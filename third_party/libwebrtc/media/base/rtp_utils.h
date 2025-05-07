@@ -11,12 +11,12 @@
 #ifndef MEDIA_BASE_RTP_UTILS_H_
 #define MEDIA_BASE_RTP_UTILS_H_
 
+#include <cstddef>
 #include <cstdint>
 
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "rtc_base/async_packet_socket.h"
-#include "rtc_base/byte_order.h"
 #include "rtc_base/system/rtc_export.h"
 
 namespace cricket {

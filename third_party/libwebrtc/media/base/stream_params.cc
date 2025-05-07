@@ -12,11 +12,16 @@
 
 #include <stdint.h>
 
-#include <list>
+#include <cstddef>
+#include <string>
+#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "api/array_view.h"
+#include "media/base/rid_description.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/strings/string_builder.h"
+#include "rtc_base/unique_id_generator.h"
 
 namespace cricket {
 namespace {

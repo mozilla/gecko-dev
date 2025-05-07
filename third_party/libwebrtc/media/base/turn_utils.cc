@@ -10,6 +10,9 @@
 
 #include "media/base/turn_utils.h"
 
+#include <cstddef>
+#include <cstdint>
+
 #include "api/transport/stun.h"
 #include "rtc_base/byte_order.h"
 

@@ -10,10 +10,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b6dd815fc9d2df718
  1 file changed, 11 deletions(-)
 
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 645874d9b8..b99ad07c4b 100644
+index b7cbd00870..0062e2c113 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
-@@ -53,11 +53,6 @@ rtc_library("rtc_media_base") {
+@@ -54,11 +54,6 @@ rtc_library("rtc_media_base") {
      "base/video_broadcaster.h",  # Used downstream
      "base/video_common.h",  # Used downstream
    ]
@@ -25,7 +25,7 @@ index 645874d9b8..b99ad07c4b 100644
    deps = [
      ":adapted_video_track_source",
      ":codec",
-@@ -137,12 +132,6 @@ rtc_library("adapted_video_track_source") {
+@@ -139,12 +134,6 @@ rtc_library("adapted_video_track_source") {
      "base/adapted_video_track_source.cc",
      "base/adapted_video_track_source.h",
    ]

@@ -11,11 +11,12 @@
 #ifndef MEDIA_BASE_TEST_UTILS_H_
 #define MEDIA_BASE_TEST_UTILS_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <string>
 #include <vector>
 
-#include "media/base/media_channel.h"
-#include "media/base/video_common.h"
+#include "media/base/stream_params.h"
 #include "rtc_base/arraysize.h"
 
 namespace webrtc {

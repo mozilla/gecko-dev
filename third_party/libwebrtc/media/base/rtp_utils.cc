@@ -17,6 +17,8 @@
 
 // PacketTimeUpdateParams is defined in asyncpacketsocket.h.
 // TODO(sergeyu): Find more appropriate place for PacketTimeUpdateParams.
+#include "absl/strings/string_view.h"
+#include "api/array_view.h"
 #include "media/base/turn_utils.h"
 #include "modules/rtp_rtcp/source/rtp_util.h"
 #include "rtc_base/async_packet_socket.h"

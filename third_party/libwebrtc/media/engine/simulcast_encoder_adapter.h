@@ -13,20 +13,23 @@
 #define MEDIA_ENGINE_SIMULCAST_ENCODER_ADAPTER_H_
 
 #include <atomic>
+#include <cstddef>
+#include <cstdint>
 #include <list>
 #include <memory>
 #include <optional>
-#include <stack>
-#include <string>
-#include <utility>
 #include <vector>
 
 #include "absl/base/nullability.h"
 #include "api/environment/environment.h"
 #include "api/fec_controller_override.h"
-#include "api/field_trials_view.h"
 #include "api/sequence_checker.h"
+#include "api/units/timestamp.h"
+#include "api/video/encoded_image.h"
+#include "api/video/video_frame.h"
+#include "api/video/video_frame_type.h"
 #include "api/video_codecs/sdp_video_format.h"
+#include "api/video_codecs/video_codec.h"
 #include "api/video_codecs/video_encoder.h"
 #include "api/video_codecs/video_encoder_factory.h"
 #include "common_video/framerate_controller.h"

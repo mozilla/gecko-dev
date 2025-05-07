@@ -10,10 +10,12 @@
 
 #include "media/base/test_utils.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <string>
+#include <vector>
 
-#include "api/video/video_frame.h"
-#include "api/video/video_source_interface.h"
+#include "media/base/stream_params.h"
 
 namespace webrtc {
 

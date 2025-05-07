@@ -10,8 +10,11 @@
 
 #include "media/base/video_adapter.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -19,6 +22,7 @@
 #include "api/video/video_frame.h"
 #include "api/video/video_source_interface.h"
 #include "media/base/fake_frame_source.h"
+#include "media/base/video_common.h"
 #include "rtc_base/arraysize.h"
 #include "rtc_base/time_utils.h"
 #include "test/field_trial.h"

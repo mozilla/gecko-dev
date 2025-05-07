@@ -10,7 +10,13 @@
 
 #include "media/base/codec_list.h"
 
+#include <vector>
+
+#include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
 #include "api/video_codecs/sdp_video_format.h"
+#include "media/base/codec.h"
+#include "rtc_base/checks.h"
 #include "test/gtest.h"
 
 namespace cricket {

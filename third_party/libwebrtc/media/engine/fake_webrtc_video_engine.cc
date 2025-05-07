@@ -11,15 +11,31 @@
 #include "media/engine/fake_webrtc_video_engine.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <memory>
+#include <optional>
+#include <string>
+#include <vector>
 
 #include "absl/strings/match.h"
 #include "api/environment/environment.h"
+#include "api/fec_controller_override.h"
+#include "api/units/time_delta.h"
+#include "api/video/encoded_image.h"
+#include "api/video/video_frame.h"
+#include "api/video/video_frame_type.h"
+#include "api/video_codecs/scalability_mode.h"
+#include "api/video_codecs/sdp_video_format.h"
+#include "api/video_codecs/video_codec.h"
+#include "api/video_codecs/video_decoder.h"
+#include "api/video_codecs/video_encoder.h"
+#include "api/video_codecs/video_encoder_factory.h"
 #include "media/base/codec.h"
 #include "media/base/media_constants.h"
 #include "media/engine/simulcast_encoder_adapter.h"
 #include "modules/video_coding/include/video_error_codes.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/time_utils.h"
 
 namespace webrtc {

@@ -13,15 +13,25 @@
 #include <stddef.h>
 
 #include <cstdint>
+#include <memory>
+#include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
+#include "api/array_view.h"
 #include "api/field_trials_view.h"
-#include "api/video/video_bitrate_allocation.h"
+#include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_transceiver_direction.h"
+#include "api/video/video_codec_constants.h"
+#include "api/video_codecs/scalability_mode.h"
+#include "media/base/codec.h"
 #include "media/base/codec_comparators.h"
+#include "media/base/rid_description.h"
+#include "media/base/stream_params.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/string_encode.h"
 
 namespace cricket {
 namespace {

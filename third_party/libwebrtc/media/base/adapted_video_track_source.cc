@@ -10,11 +10,17 @@
 
 #include "media/base/adapted_video_track_source.h"
 
+#include <cstdint>
+
 #include "api/scoped_refptr.h"
 #include "api/video/i420_buffer.h"
+#include "api/video/video_frame.h"
 #include "api/video/video_frame_buffer.h"
 #include "api/video/video_rotation.h"
-#include "rtc_base/checks.h"
+#include "api/video/video_sink_interface.h"
+#include "api/video/video_source_interface.h"
+#include "api/video_track_source_constraints.h"
+#include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/time_utils.h"
 
 namespace rtc {

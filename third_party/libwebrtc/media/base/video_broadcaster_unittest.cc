@@ -13,10 +13,13 @@
 #include <limits>
 #include <optional>
 
+#include "api/scoped_refptr.h"
 #include "api/video/i420_buffer.h"
 #include "api/video/video_frame.h"
 #include "api/video/video_rotation.h"
+#include "api/video/video_sink_interface.h"
 #include "api/video/video_source_interface.h"
+#include "api/video_track_source_constraints.h"
 #include "media/base/fake_video_renderer.h"
 #include "test/gmock.h"
 #include "test/gtest.h"

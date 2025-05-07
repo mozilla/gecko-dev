@@ -10,9 +10,13 @@
 
 #include "media/sctp/sctp_transport_factory.h"
 
+#include <memory>
+
 #include "api/environment/environment.h"
+#include "media/sctp/sctp_transport_internal.h"
 #include "p2p/dtls/dtls_transport_internal.h"
 #include "rtc_base/system/unused.h"
+#include "rtc_base/thread.h"
 
 #ifdef WEBRTC_HAVE_DCSCTP
 #include "media/sctp/dcsctp_transport.h"  // nogncheck

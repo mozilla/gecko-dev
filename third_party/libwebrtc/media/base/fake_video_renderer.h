@@ -13,9 +13,7 @@
 
 #include <stdint.h>
 
-#include "api/scoped_refptr.h"
 #include "api/video/video_frame.h"
-#include "api/video/video_frame_buffer.h"
 #include "api/video/video_rotation.h"
 #include "api/video/video_sink_interface.h"
 #include "rtc_base/synchronization/mutex.h"

@@ -15,21 +15,22 @@
 #include <stdint.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "api/environment/environment.h"
 #include "api/fec_controller_override.h"
 #include "api/video/encoded_image.h"
-#include "api/video/video_bitrate_allocation.h"
 #include "api/video/video_frame.h"
+#include "api/video/video_frame_type.h"
+#include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_codec.h"
 #include "api/video_codecs/video_decoder.h"
 #include "api/video_codecs/video_decoder_factory.h"
 #include "api/video_codecs/video_encoder.h"
 #include "api/video_codecs/video_encoder_factory.h"
-#include "modules/video_coding/include/video_codec_interface.h"
 #include "rtc_base/event.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/thread_annotations.h"

@@ -10,10 +10,13 @@
 
 #include "media/engine/internal_encoder_factory.h"
 
+#include <memory>
+#include <optional>
+
 #include "api/environment/environment_factory.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_encoder.h"
-#include "api/video_codecs/vp9_profile.h"
+#include "api/video_codecs/video_encoder_factory.h"
 #include "media/base/media_constants.h"
 #include "test/gmock.h"
 #include "test/gtest.h"

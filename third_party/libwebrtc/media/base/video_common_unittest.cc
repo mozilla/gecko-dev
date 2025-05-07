@@ -10,6 +10,7 @@
 
 #include "media/base/video_common.h"
 
+#include "rtc_base/time_utils.h"
 #include "test/gtest.h"
 
 namespace cricket {

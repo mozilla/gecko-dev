@@ -13,11 +13,11 @@
 
 #include "api/audio_codecs/audio_format.h"
 #include "api/rtp_parameters.h"
+#include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/vp9_profile.h"
 #include "media/base/codec.h"
 #include "media/base/media_constants.h"
-#include "test/gmock.h"
 #include "test/gtest.h"
 
 namespace webrtc {

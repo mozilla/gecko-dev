@@ -26,6 +26,7 @@
 #include "api/audio_options.h"
 #include "api/call/audio_sink.h"
 #include "api/crypto/crypto_options.h"
+#include "api/make_ref_counted.h"
 #include "api/rtp_parameters.h"
 #include "api/scoped_refptr.h"
 #include "api/task_queue/task_queue_base.h"

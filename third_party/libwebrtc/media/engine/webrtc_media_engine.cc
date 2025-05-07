@@ -13,10 +13,16 @@
 #include <algorithm>
 #include <map>
 #include <string>
-#include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
+#include "absl/strings/string_view.h"
+#include "api/array_view.h"
+#include "api/field_trials_view.h"
+#include "api/rtp_parameters.h"
+#include "api/transport/bitrate_settings.h"
+#include "media/base/codec.h"
 #include "media/base/media_constants.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"

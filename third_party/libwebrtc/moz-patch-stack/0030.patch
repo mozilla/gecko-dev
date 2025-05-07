@@ -561,10 +561,10 @@ index 0000000000..f6ff7f218f
 +  #endif
 +#endif
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index fcca48ca6a..e5269fe2aa 100644
+index 04b6ecf810..e00263d8d8 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
-@@ -76,7 +76,7 @@ rtc_library("rtc_media_base") {
+@@ -77,7 +77,7 @@ rtc_library("rtc_media_base") {
      "../api:media_stream_interface",
      "../api:rtc_error",
      "../api:rtp_parameters",
@@ -573,7 +573,7 @@ index fcca48ca6a..e5269fe2aa 100644
      "../api:scoped_refptr",
      "../api:sequence_checker",
      "../api:transport_api",
-@@ -127,6 +127,12 @@ rtc_library("rtc_media_base") {
+@@ -129,6 +129,12 @@ rtc_library("rtc_media_base") {
      "../video/config:encoder_config",
      "//third_party/abseil-cpp/absl/base:core_headers",
    ]
@@ -586,7 +586,7 @@ index fcca48ca6a..e5269fe2aa 100644
  }
  
  rtc_library("adapted_video_track_source") {
-@@ -151,6 +157,9 @@ rtc_library("adapted_video_track_source") {
+@@ -155,6 +161,9 @@ rtc_library("adapted_video_track_source") {
  
  rtc_source_set("audio_source") {
    sources = [ "base/audio_source.h" ]
@@ -596,7 +596,7 @@ index fcca48ca6a..e5269fe2aa 100644
  }
  
  rtc_library("video_adapter") {
-@@ -254,9 +263,16 @@ rtc_library("media_engine") {
+@@ -263,9 +272,16 @@ rtc_library("media_engine") {
      "../rtc_base/system:file_wrapper",
      "//third_party/abseil-cpp/absl/algorithm:container",
    ]
@@ -613,7 +613,7 @@ index fcca48ca6a..e5269fe2aa 100644
    sources = [
      "base/media_channel_impl.cc",
      "base/media_channel_impl.h",
-@@ -303,6 +319,7 @@ rtc_library("media_channel_impl") {
+@@ -313,6 +329,7 @@ rtc_library("media_channel_impl") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  }
@@ -621,7 +621,7 @@ index fcca48ca6a..e5269fe2aa 100644
  
  rtc_source_set("media_channel") {
    sources = [ "base/media_channel.h" ]
-@@ -398,6 +415,7 @@ rtc_library("codec_list") {
+@@ -408,6 +425,7 @@ rtc_library("codec_list") {
  }
  
  rtc_library("rtp_utils") {
@@ -629,7 +629,7 @@ index fcca48ca6a..e5269fe2aa 100644
    sources = [
      "base/rtp_utils.cc",
      "base/rtp_utils.h",
-@@ -414,8 +432,10 @@ rtc_library("rtp_utils") {
+@@ -424,8 +442,10 @@ rtc_library("rtp_utils") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  }
@@ -640,7 +640,7 @@ index fcca48ca6a..e5269fe2aa 100644
    sources = [
      "base/stream_params.cc",
      "base/stream_params.h",
-@@ -428,6 +448,7 @@ rtc_library("stream_params") {
+@@ -439,6 +459,7 @@ rtc_library("stream_params") {
      "//third_party/abseil-cpp/absl/algorithm:container",
    ]
  }
@@ -648,7 +648,7 @@ index fcca48ca6a..e5269fe2aa 100644
  
  rtc_library("media_constants") {
    sources = [
-@@ -438,6 +459,7 @@ rtc_library("media_constants") {
+@@ -449,6 +470,7 @@ rtc_library("media_constants") {
  }
  
  rtc_library("turn_utils") {
@@ -656,7 +656,7 @@ index fcca48ca6a..e5269fe2aa 100644
    sources = [
      "base/turn_utils.cc",
      "base/turn_utils.h",
-@@ -448,14 +470,17 @@ rtc_library("turn_utils") {
+@@ -459,14 +481,17 @@ rtc_library("turn_utils") {
      "../rtc_base/system:rtc_export",
    ]
  }
@@ -674,7 +674,7 @@ index fcca48ca6a..e5269fe2aa 100644
  
  rtc_library("rtc_simulcast_encoder_adapter") {
    visibility = [ "*" ]
-@@ -537,6 +562,11 @@ rtc_library("rtc_internal_video_codecs") {
+@@ -548,6 +573,11 @@ rtc_library("rtc_internal_video_codecs") {
      "//third_party/abseil-cpp/absl/container:inlined_vector",
      "//third_party/abseil-cpp/absl/strings",
    ]
@@ -686,7 +686,7 @@ index fcca48ca6a..e5269fe2aa 100644
  
    if (enable_libaom) {
      defines += [ "RTC_USE_LIBAOM_AV1_ENCODER" ]
-@@ -556,6 +586,13 @@ rtc_library("rtc_internal_video_codecs") {
+@@ -567,6 +597,13 @@ rtc_library("rtc_internal_video_codecs") {
      "engine/internal_encoder_factory.cc",
      "engine/internal_encoder_factory.h",
    ]
@@ -716,12 +716,12 @@ index d1d5fa4001..86c552457d 100644
  
  namespace cricket {
 diff --git a/media/base/media_channel_impl.cc b/media/base/media_channel_impl.cc
-index 915609d6b5..28690923b3 100644
+index 89778075be..5206203a35 100644
 --- a/media/base/media_channel_impl.cc
 +++ b/media/base/media_channel_impl.cc
-@@ -31,19 +31,6 @@
- #include "modules/rtp_rtcp/include/report_block_data.h"
- #include "rtc_base/checks.h"
+@@ -36,19 +36,6 @@
+ #include "rtc_base/dscp.h"
+ #include "rtc_base/socket.h"
  
 -namespace webrtc {
 -

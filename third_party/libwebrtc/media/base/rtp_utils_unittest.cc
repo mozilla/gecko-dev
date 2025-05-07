@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "api/array_view.h"
 #include "media/base/fake_rtp.h"
 #include "rtc_base/async_packet_socket.h"
 #include "test/gtest.h"

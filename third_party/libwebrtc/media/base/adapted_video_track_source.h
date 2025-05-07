@@ -17,9 +17,11 @@
 
 #include "api/media_stream_interface.h"
 #include "api/notifier.h"
+#include "api/video/recordable_encoded_frame.h"
 #include "api/video/video_frame.h"
 #include "api/video/video_sink_interface.h"
 #include "api/video/video_source_interface.h"
+#include "api/video_track_source_constraints.h"
 #include "media/base/video_adapter.h"
 #include "media/base/video_broadcaster.h"
 #include "rtc_base/synchronization/mutex.h"

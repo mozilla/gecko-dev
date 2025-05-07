@@ -11,6 +11,8 @@
 #ifndef MEDIA_BASE_FAKE_NETWORK_INTERFACE_H_
 #define MEDIA_BASE_FAKE_NETWORK_INTERFACE_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <set>
 #include <utility>
@@ -18,16 +20,20 @@
 
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/task_queue/task_queue_base.h"
+#include "api/units/timestamp.h"
 #include "media/base/media_channel.h"
-#include "media/base/rtp_utils.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "modules/rtp_rtcp/source/rtp_util.h"
+#include "rtc_base/async_packet_socket.h"
 #include "rtc_base/byte_order.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/dscp.h"
+#include "rtc_base/logging.h"
+#include "rtc_base/socket.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/thread.h"
+#include "rtc_base/thread_annotations.h"
 #include "rtc_base/time_utils.h"
 
 namespace webrtc {

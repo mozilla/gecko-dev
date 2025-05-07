@@ -11,8 +11,10 @@
 #ifndef MEDIA_BASE_FAKE_FRAME_SOURCE_H_
 #define MEDIA_BASE_FAKE_FRAME_SOURCE_H_
 
+#include <cstdint>
+
 #include "api/video/video_frame.h"
-#include "rtc_base/time_utils.h"
+#include "api/video/video_rotation.h"
 
 namespace webrtc {
 

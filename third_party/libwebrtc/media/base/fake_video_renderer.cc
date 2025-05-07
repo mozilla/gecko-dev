@@ -10,6 +10,13 @@
 
 #include "media/base/fake_video_renderer.h"
 
+#include <cstdint>
+
+#include "api/scoped_refptr.h"
+#include "api/video/video_frame.h"
+#include "api/video/video_frame_buffer.h"
+#include "rtc_base/synchronization/mutex.h"
+
 namespace webrtc {
 namespace {
 bool CheckFrameColorYuv(const VideoFrame& frame) {
