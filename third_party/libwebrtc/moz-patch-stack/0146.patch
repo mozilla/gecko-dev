@@ -1,23 +1,63 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 7 Mar 2025 17:43:00 -0600
-Subject: Bug 1952339 - (fix-68e7b00928) add default param to emplace() to fix
- compile issue
+From: Jan Grulich <jgrulich@redhat.com>
+Date: Mon, 14 Apr 2025 16:37:00 +0000
+Subject: Bug 1954903 - Update libwebrtc GN configs r=webrtc-reviewers,mjf
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/26c916591791b13a3d8888066c22c5ba49c86c47
+Update GN config files for the special handling in gn_processor.py for
+gbm, drm and PipeWire libraries.
+
+Also remove libwebrtc/third_party/[gbm,drm,pipewire] libs for which we
+now have a special handling in gn_processor.py.
+
+Differential Revision: https://phabricator.services.mozilla.com/D242101
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/506d4efaf2dc29472623beff64cc2bd0d5555afd
 ---
- call/rtp_config.cc | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ modules/desktop_capture/BUILD.gn | 4 ++++
+ modules/portal/BUILD.gn          | 4 +---
+ modules/video_capture/BUILD.gn   | 2 +-
+ 3 files changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/call/rtp_config.cc b/call/rtp_config.cc
-index 115912cd46..5e08467d1f 100644
---- a/call/rtp_config.cc
-+++ b/call/rtp_config.cc
-@@ -258,7 +258,7 @@ RtpStreamConfig RtpConfig::GetStreamConfig(size_t index) const {
-   stream_config.raw_payload = raw_payload;
-   if (!rtx.ssrcs.empty()) {
-     RTC_DCHECK_EQ(ssrcs.size(), rtx.ssrcs.size());
--    auto& stream_config_rtx = stream_config.rtx.emplace();
-+    auto& stream_config_rtx = stream_config.rtx.emplace(RtpStreamConfig::Rtx());
-     stream_config_rtx.ssrc = rtx.ssrcs[index];
-     stream_config_rtx.payload_type = rtx.payload_type;
+diff --git a/modules/desktop_capture/BUILD.gn b/modules/desktop_capture/BUILD.gn
+index 2245146890..5b66f2c3ff 100644
+--- a/modules/desktop_capture/BUILD.gn
++++ b/modules/desktop_capture/BUILD.gn
+@@ -554,6 +554,10 @@ rtc_library("desktop_capture") {
+       "../../rtc_base:sanitizer",
+       "../portal",
+     ]
++
++    if (build_with_mozilla) {
++      defines += [ "WEBRTC_USE_PIPEWIRE" ]
++    }
    }
+ 
+   if (rtc_enable_win_wgc) {
+diff --git a/modules/portal/BUILD.gn b/modules/portal/BUILD.gn
+index 7993e482f4..09060cd867 100644
+--- a/modules/portal/BUILD.gn
++++ b/modules/portal/BUILD.gn
+@@ -138,11 +138,9 @@ if (!build_with_mozilla) {
+       deps -= [ ":pipewire_stubs" ]
+       defines -= [ "WEBRTC_DLOPEN_PIPEWIRE" ]
+       public_deps = [
+-        "../../third_party/pipewire",
+-        "../../third_party/drm",
+-        "../../third_party/gbm",
+         "../../third_party/libepoxy"
+       ]
++      defines += [ "WEBRTC_USE_PIPEWIRE" ]
+     }
+   }
+ }
+diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
+index 42a5011b49..294ef9f0fd 100644
+--- a/modules/video_capture/BUILD.gn
++++ b/modules/video_capture/BUILD.gn
+@@ -110,7 +110,7 @@ if (!build_with_chromium || is_linux || is_chromeos) {
+         ]
+         if (build_with_mozilla) {
+           configs -= [ "../portal:pipewire_base" ]
+-          public_deps = [ "../../third_party/pipewire" ]
++          defines = [ "WEBRTC_USE_PIPEWIRE" ]
+         }
+       }
+     }
