@@ -9,6 +9,7 @@
 #include <windows.h>
 #include <mmdeviceapi.h>
 
+#include "mozilla/AppShutdown.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/ScopeExit.h"
@@ -89,6 +90,12 @@ StaticRefPtr<AudioSession> sService;
 void StartAudioSession() {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!sService);
+
+  // Stop initializing earlier than we clear ourselves.
+  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
+    return;
+  }
+
   sService = new AudioSession();
 
   // Destroy AudioSession only after any background task threads have been
@@ -105,13 +112,14 @@ void StartAudioSession() {
 
 void StopAudioSession() {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(sService);
-  NS_DispatchBackgroundTask(
+  if (sService) {
+    NS_DispatchBackgroundTask(
       NS_NewRunnableFunction("StopAudioSession", []() -> void {
         MOZ_ASSERT(AudioSession::GetSingleton(),
                    "AudioSession should outlive background threads");
         AudioSession::GetSingleton()->Stop();
       }));
+  }
 }
 
 AudioSession* AudioSession::GetSingleton() {
@@ -263,7 +271,7 @@ void AudioSession::StopInternal(const MutexAutoLock& aProofOfLock,
         // Now release the AgileReference which holds our only reference to the
         // IAudioSessionControl, then maybe restart.
         agileAsc = nullptr;
-        if (shouldRestart) {
+        if (shouldRestart && !AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
           NS_DispatchBackgroundTask(
               NS_NewCancelableRunnableFunction("RestartAudioSession", [] {
                 AudioSession* as = AudioSession::GetSingleton();
