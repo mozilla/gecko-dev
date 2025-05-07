@@ -271,7 +271,6 @@ class BuildOptionParser:
         "arm": path_base + "%s_arm.py",
         "arm-lite": path_base + "%s_arm_lite.py",
         "arm-debug": path_base + "%s_arm_debug.py",
-        "arm-gradle": path_base + "%s_arm_gradle.py",
         "arm-profile-generate": path_base + "%s_arm_profile_generate.py",
         "rusttests": path_base + "%s_rusttests.py",
         "rusttests-debug": path_base + "%s_rusttests_debug.py",
