@@ -40,6 +40,7 @@ tasks-from:
     - grcov.yml
     - hostutils.yml
     - libunwind.yml
+    - libxml2.yml
     - llvm-symbolizer.yml
     - macos-sdk.yml
     - mingw.yml
