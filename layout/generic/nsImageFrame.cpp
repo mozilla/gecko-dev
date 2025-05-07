@@ -2805,13 +2805,16 @@ nsresult nsImageFrame::HandleEvent(nsPresContext* aPresContext,
           rv = NS_MutateURI(uri).SetSpec(spec).Finalize(uri);
           NS_ENSURE_SUCCESS(rv, rv);
 
-          bool clicked = false;
           if (aEvent->mMessage == ePointerClick &&
               !aEvent->DefaultPrevented()) {
             *aEventStatus = nsEventStatus_eConsumeDoDefault;
-            clicked = true;
+            nsContentUtils::TriggerLinkClick(
+                anchorNode, uri, target,
+                aEvent->IsTrusted() ? UserNavigationInvolvement::Activation
+                                    : UserNavigationInvolvement::None);
+          } else {
+            nsContentUtils::TriggerLinkMouseOver(anchorNode, uri, target);
           }
-          nsContentUtils::TriggerLink(anchorNode, uri, target, clicked);
         }
       }
     }

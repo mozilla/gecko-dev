@@ -228,11 +228,13 @@ class nsDocShell final : public nsDocLoader,
    *        aCsp was not passed explicitly we fall back to using
    *        aContent's document's CSP if that document holds any.
    */
+  MOZ_CAN_RUN_SCRIPT
   nsresult OnLinkClick(nsIContent* aContent, nsIURI* aURI,
                        const nsAString& aTargetSpec, const nsAString& aFileName,
                        nsIInputStream* aPostDataStream,
                        nsIInputStream* aHeadersDataStream,
                        bool aIsUserTriggered,
+                       mozilla::dom::UserNavigationInvolvement aUserInvolvement,
                        nsIPrincipal* aTriggeringPrincipal,
                        nsIContentSecurityPolicy* aCsp);
   /**

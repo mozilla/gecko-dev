@@ -3560,8 +3560,7 @@ void Element::GetEventTargetParentForLinks(EventChainPreVisitor& aVisitor) {
       if (!focusEvent || !focusEvent->mIsRefocus) {
         nsAutoString target;
         GetLinkTarget(target);
-        nsContentUtils::TriggerLink(this, absURI, target,
-                                    /* click */ false);
+        nsContentUtils::TriggerLinkMouseOver(this, absURI, target);
         // Make sure any ancestor links don't also TriggerLink
         aVisitor.mEvent->mFlags.mMultipleActionsPrevented = true;
       }
@@ -3719,8 +3718,12 @@ nsresult Element::PostHandleEventForLinks(EventChainPostVisitor& aVisitor) {
               // eLegacyDOMActivate.
               nsAutoString target;
               GetLinkTarget(target);
-              nsContentUtils::TriggerLink(this, absURI, target,
-                                          /* click */ true);
+              UserNavigationInvolvement userInvolvement =
+                  mouseEvent->IsTrusted()
+                      ? UserNavigationInvolvement::Activation
+                      : UserNavigationInvolvement::None;
+              nsContentUtils::TriggerLinkClick(this, absURI, target,
+                                               userInvolvement);
             }
             // Since we didn't dispatch DOMActivate because there were no
             // listeners, do still set mEventStatus as if it was dispatched
@@ -3744,7 +3747,12 @@ nsresult Element::PostHandleEventForLinks(EventChainPostVisitor& aVisitor) {
         if (nsCOMPtr<nsIURI> absURI = GetHrefURI()) {
           nsAutoString target;
           GetLinkTarget(target);
-          nsContentUtils::TriggerLink(this, absURI, target, /* click */ true);
+          UserNavigationInvolvement userInvolvement =
+              aVisitor.mEvent->IsTrusted()
+                  ? UserNavigationInvolvement::Activation
+                  : UserNavigationInvolvement::None;
+          nsContentUtils::TriggerLinkClick(this, absURI, target,
+                                           userInvolvement);
           aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
         }
       }

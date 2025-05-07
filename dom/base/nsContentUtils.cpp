@@ -6393,21 +6393,18 @@ bool nsContentUtils::CombineResourcePrincipals(
 }
 
 /* static */
-void nsContentUtils::TriggerLink(nsIContent* aContent, nsIURI* aLinkURI,
-                                 const nsString& aTargetSpec, bool aClick) {
+void nsContentUtils::TriggerLinkClick(
+    nsIContent* aContent, nsIURI* aLinkURI, const nsString& aTargetSpec,
+    UserNavigationInvolvement aUserInvolvement) {
   MOZ_ASSERT(aLinkURI, "No link URI");
 
   if (aContent->IsEditable() || !aContent->OwnerDoc()->LinkHandlingEnabled()) {
     return;
   }
 
-  nsCOMPtr<nsIDocShell> docShell = aContent->OwnerDoc()->GetDocShell();
+  RefPtr<nsDocShell> docShell =
+      nsDocShell::Cast(aContent->OwnerDoc()->GetDocShell());
   if (!docShell) {
-    return;
-  }
-
-  if (!aClick) {
-    nsDocShell::Cast(docShell)->OnOverLink(aContent, aLinkURI, aTargetSpec);
     return;
   }
 
@@ -6446,11 +6443,31 @@ void nsContentUtils::TriggerLink(nsIContent* aContent, nsIURI* aLinkURI,
     if (!fileName.IsVoid()) {
       fileName.ReplaceChar(char16_t(0), '_');
     }
-    nsDocShell::Cast(docShell)->OnLinkClick(
+
+    docShell->OnLinkClick(
         aContent, aLinkURI, fileName.IsVoid() ? aTargetSpec : u""_ns, fileName,
         nullptr, nullptr, UserActivation::IsHandlingUserInput(),
-        triggeringPrincipal, csp);
+        aUserInvolvement, triggeringPrincipal, csp);
   }
+}
+
+/* static */
+void nsContentUtils::TriggerLinkMouseOver(nsIContent* aContent,
+                                          nsIURI* aLinkURI,
+                                          const nsString& aTargetSpec) {
+  MOZ_ASSERT(aLinkURI, "No link URI");
+
+  if (aContent->IsEditable() || !aContent->OwnerDoc()->LinkHandlingEnabled()) {
+    return;
+  }
+
+  RefPtr<nsDocShell> docShell =
+      nsDocShell::Cast(aContent->OwnerDoc()->GetDocShell());
+  if (!docShell) {
+    return;
+  }
+
+  docShell->OnOverLink(aContent, aLinkURI, aTargetSpec);
 }
 
 /* static */

@@ -89,6 +89,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
   bool IsLeafDynamic() const override;
 
   nsIContent* GetContentForEvent(const mozilla::WidgetEvent*) const final;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
   nsresult HandleEvent(nsPresContext*, mozilla::WidgetGUIEvent*,
                        nsEventStatus*) override;
   Cursor GetCursor(const nsPoint&) override;

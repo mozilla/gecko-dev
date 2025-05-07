@@ -2141,6 +2141,20 @@ class nsContentUtils {
       nsIPrincipal* aExtraPrincipal);
 
   /**
+   * Trigger a link with uri aLinkURI. Triggers a load after doing a
+   * security check using aContent's principal.
+   *
+   * @param aContent the node on which a link was triggered.
+   * @param aLinkURI the URI of the link, must be non-null.
+   * @param aTargetSpec the target (like target=, may be empty).
+   * @param aUserInvolvement whether a user is involved when link was triggered.
+   */
+  MOZ_CAN_RUN_SCRIPT
+  static void TriggerLinkClick(
+      nsIContent* aContent, nsIURI* aLinkURI, const nsString& aTargetSpec,
+      mozilla::dom::UserNavigationInvolvement aUserInvolvement);
+
+  /**
    * Trigger a link with uri aLinkURI. If aClick is false, this triggers a
    * mouseover on the link, otherwise it triggers a load after doing a
    * security check using aContent's principal.
@@ -2148,11 +2162,9 @@ class nsContentUtils {
    * @param aContent the node on which a link was triggered.
    * @param aLinkURI the URI of the link, must be non-null.
    * @param aTargetSpec the target (like target=, may be empty).
-   * @param aClick whether this was a click or not (if false, this method
-   *               assumes you just hovered over the link).
    */
-  static void TriggerLink(nsIContent* aContent, nsIURI* aLinkURI,
-                          const nsString& aTargetSpec, bool aClick);
+  static void TriggerLinkMouseOver(nsIContent* aContent, nsIURI* aLinkURI,
+                                   const nsString& aTargetSpec);
 
   /**
    * Get the link location.

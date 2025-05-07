@@ -12892,6 +12892,7 @@ nsresult nsDocShell::OnLinkClick(
     nsIContent* aContent, nsIURI* aURI, const nsAString& aTargetSpec,
     const nsAString& aFileName, nsIInputStream* aPostDataStream,
     nsIInputStream* aHeadersDataStream, bool aIsUserTriggered,
+    UserNavigationInvolvement aUserInvolvement,
     nsIPrincipal* aTriggeringPrincipal, nsIContentSecurityPolicy* aCsp) {
 #ifndef ANDROID
   MOZ_ASSERT(aTriggeringPrincipal, "Need a valid triggeringPrincipal");
@@ -12928,6 +12929,31 @@ nsresult nsDocShell::OnLinkClick(
     target = u"_blank";
     if (!aTargetSpec.Equals(target)) {
       noOpenerImplied = true;
+    }
+  }
+
+  // https://html.spec.whatwg.org/#downloading-hyperlinks
+  // Step 6, step 6.1, step 6.2
+  // aFileName not being void implies a download attribute, since we've already
+  // checked if the attribute is present in `nsContentUtils::TriggerLinkClick`
+  // and made it void otherwise.
+  if (!aFileName.IsVoid() &&
+      aUserInvolvement != UserNavigationInvolvement::BrowserUI) {
+    if (nsCOMPtr<nsPIDOMWindowInner> window = ownerDoc->GetInnerWindow()) {
+      if (RefPtr<Navigation> navigation = window->Navigation()) {
+        AutoJSAPI jsapi;
+        if (jsapi.Init(window)) {
+          RefPtr element = aContent->AsElement();
+          // Step 6.4
+          bool shouldContinue = navigation->FireDownloadRequestNavigateEvent(
+              jsapi.cx(), aURI, aUserInvolvement, element, aFileName);
+
+          // Step 6.5
+          if (!shouldContinue) {
+            return NS_OK;
+          }
+        }
+      }
     }
   }
 
