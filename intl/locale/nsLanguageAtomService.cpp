@@ -9,6 +9,7 @@
 #include "mozilla/Encoding.h"
 #include "mozilla/intl/Locale.h"
 #include "mozilla/intl/OSPreferences.h"
+#include "MainThreadUtils.h"
 #include "nsGkAtoms.h"
 #include "nsUConvPropertySearch.h"
 #include "nsUnicharUtils.h"
