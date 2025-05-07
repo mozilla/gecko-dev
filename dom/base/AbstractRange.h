@@ -237,7 +237,7 @@ class AbstractRange : public nsISupports,
                                                bool aMarkDescendants);
   friend void mozilla::SlotAssignedNodeAdded(dom::HTMLSlotElement* aSlot,
                                              nsIContent& aAssignedNode);
-  friend void mozilla::SlotAssignedNodeRemoved(HTMLSlotElement* aSlot,
+  friend void mozilla::SlotAssignedNodeRemoved(dom::HTMLSlotElement* aSlot,
                                                nsIContent& aUnassignedNode);
 
  private:
