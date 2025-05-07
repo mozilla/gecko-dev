@@ -430,7 +430,7 @@ deps = {
   'src/third_party/protobuf-javascript/src':
     Var('chromium_git') + '/external/github.com/protocolbuffers/protobuf-javascript' + '@' + 'eb785a9363664a402b6336dfe96aad27fb33ffa8',
   'src/third_party/libvpx/source/libvpx':
-    'https://chromium.googlesource.com/webm/libvpx.git@349820a50dd2c0afbfb26f7b12fc1a83588a52c0',
+    'https://chromium.googlesource.com/webm/libvpx.git@027bbee30a0103b99d86327b48d29567fed11688',
   'src/third_party/libyuv':
     'https://chromium.googlesource.com/libyuv/libyuv.git@ccdf870348764e4b77fa3b56accb2a896a901bad',
   'src/third_party/lss': {
