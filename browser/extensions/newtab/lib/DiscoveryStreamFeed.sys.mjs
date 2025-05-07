@@ -1283,15 +1283,23 @@ export class DiscoveryStreamFeed {
         }
 
         const headers = new Headers();
+        const marsOhttpEnabled = Services.prefs.getBoolPref(
+          "browser.newtabpage.activity-stream.unifiedAds.ohttp.enabled",
+          false
+        );
         headers.append("content-type", "application/json");
 
         let spocsResponse;
         try {
-          spocsResponse = await this.fetchFromEndpoint(endpoint, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(body),
-          });
+          spocsResponse = await this.fetchFromEndpoint(
+            endpoint,
+            {
+              method: "POST",
+              headers,
+              body: JSON.stringify(body),
+            },
+            marsOhttpEnabled
+          );
         } catch (error) {
           console.error("Error trying to load spocs feeds:", error);
         }

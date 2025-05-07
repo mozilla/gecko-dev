@@ -178,3 +178,94 @@ add_task(async function test_onAction_INIT_tiles() {
 
   sandbox.restore();
 });
+
+add_task(async function test_fetchData_noOHTTP() {
+  const sandbox = sinon.createSandbox();
+  const feed = getAdsFeedForTest();
+
+  sandbox
+    .stub(AdsFeed.prototype, "PersistentCache")
+    .returns({ get: () => {}, set: () => {} });
+  sandbox.stub(feed, "fetch").resolves(
+    new Response(
+      JSON.stringify({
+        tile1: [
+          {
+            block_key: "foo",
+            name: "bar",
+            url: "https://test.com",
+            image_url: "image.png",
+            callbacks: { click: "click", impression: "impression" },
+          },
+        ],
+      })
+    )
+  );
+
+  sandbox.stub(feed, "Date").returns({ now: () => 123 });
+
+  // Simulate OHTTP being disabled
+  Services.prefs.setBoolPref(
+    "browser.newtabpage.activity-stream.unifiedAds.ohttp.enabled",
+    false
+  );
+
+  const supportedAdTypes = { tiles: true };
+  await feed.fetchData(supportedAdTypes);
+
+  Assert.ok(feed.fetch.calledOnce, "Fallback fetch called");
+  sandbox.restore();
+});
+
+add_task(async function test_fetchData_OHTTP() {
+  const sandbox = sinon.createSandbox();
+  const feed = getAdsFeedForTest();
+
+  const mockConfig = { config: "mocked" };
+  const mockResponse = new Response(
+    JSON.stringify({
+      tile1: [
+        {
+          block_key: "foo",
+          name: "bar",
+          url: "https://test.com",
+          image_url: "image.png",
+          callbacks: { click: "click", impression: "impression" },
+        },
+      ],
+    })
+  );
+
+  sandbox
+    .stub(AdsFeed.prototype, "PersistentCache")
+    .returns({ get: () => {}, set: () => {} });
+  sandbox.stub(feed, "Date").returns({ now: () => 123 });
+
+  const ohttpStub = {
+    getOHTTPConfig: sandbox.stub().resolves(mockConfig),
+    ohttpRequest: sandbox.stub().resolves(mockResponse),
+  };
+
+  feed.ObliviousHTTP = ohttpStub;
+
+  Services.prefs.setBoolPref(
+    "browser.newtabpage.activity-stream.unifiedAds.ohttp.enabled",
+    true
+  );
+  Services.prefs.setStringPref(
+    "browser.newtabpage.activity-stream.discoverystream.ohttp.relayURL",
+    "https://relay.test"
+  );
+  Services.prefs.setStringPref(
+    "browser.newtabpage.activity-stream.discoverystream.ohttp.configURL",
+    "https://config.test"
+  );
+
+  const result = await feed.fetchData({ tiles: true });
+
+  Assert.ok(ohttpStub.getOHTTPConfig.calledOnce);
+  Assert.ok(ohttpStub.ohttpRequest.calledOnce);
+  Assert.deepEqual(result.tiles[0].id, "foo");
+
+  sandbox.restore();
+});

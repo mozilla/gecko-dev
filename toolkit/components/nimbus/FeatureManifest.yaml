@@ -1367,6 +1367,19 @@ newtabMerinoOhttp:
       description: >-
         Enables using OHTTP for merino content requests
 
+newtabMarsOhttp:
+  description: Sending request to MARS over OHTTP in newtab
+  owner: nbarrett@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.unifiedAds.ohttp.enabled
+      description: >-
+        Enables using OHTTP for unified ads API requests
+
 pocketNewtab:
   description: The Pocket section in newtab
   owner: sdowne@mozilla.com

@@ -27,6 +27,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   LinksCache: "resource:///modules/LinksCache.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  ObliviousHTTP: "resource://gre/modules/ObliviousHTTP.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
   PersistentCache: "resource://newtab/lib/PersistentCache.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
@@ -525,6 +526,19 @@ export class ContileIntegration {
       if (!adsFeedEnabled || !adsFeedTilesEnabled) {
         // Fetch tiles via UAPI service directly from TopSitesFeed.sys.mjs
         if (unifiedAdsTilesEnabled) {
+          let fetchPromise;
+          const marsOhttpEnabled = Services.prefs.getBoolPref(
+            "browser.newtabpage.activity-stream.unifiedAds.ohttp.enabled",
+            false
+          );
+          const ohttpRelayURL = Services.prefs.getStringPref(
+            "browser.newtabpage.activity-stream.discoverystream.ohttp.relayURL",
+            ""
+          );
+          const ohttpConfigURL = Services.prefs.getStringPref(
+            "browser.newtabpage.activity-stream.discoverystream.ohttp.configURL",
+            ""
+          );
           const headers = new Headers();
           headers.append("content-type", "application/json");
 
@@ -550,7 +564,7 @@ export class ContileIntegration {
             .filter(item => item)
             .map(item => parseInt(item, 10));
 
-          response = await this._topSitesFeed.fetch(fetchUrl, {
+          const options = {
             method: "POST",
             headers,
             body: JSON.stringify({
@@ -561,7 +575,30 @@ export class ContileIntegration {
               })),
               blocks: blockedSponsors.split(","),
             }),
-          });
+          };
+
+          if (marsOhttpEnabled && ohttpConfigURL && ohttpRelayURL) {
+            const config =
+              await lazy.ObliviousHTTP.getOHTTPConfig(ohttpConfigURL);
+            if (!config) {
+              console.error(
+                new Error(
+                  `OHTTP was configured for ${fetchUrl} but we couldn't fetch a valid config`
+                )
+              );
+              return null;
+            }
+            fetchPromise = lazy.ObliviousHTTP.ohttpRequest(
+              ohttpRelayURL,
+              config,
+              fetchUrl,
+              options
+            );
+          } else {
+            fetchPromise = this._topSitesFeed.fetch(fetchUrl, options);
+          }
+
+          response = await fetchPromise;
         } else {
           // (Default) Fetch tiles via Contile service from TopSitesFeed.sys.mjs
           const fetchUrl = Services.prefs.getStringPref(CONTILE_ENDPOINT_PREF);
