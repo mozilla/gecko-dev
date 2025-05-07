@@ -1,0 +1,6 @@
+[DEFAULT]
+subsuite = "media-bc"
+tags = "media-engine-compatible"
+skip-if = ["!wmfme"]
+
+["browser_windowsMediaFoundationCDMOriginsListService.js"]

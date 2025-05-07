@@ -21,6 +21,8 @@ XPCOM_MANIFESTS += [
     "components.conf",
 ]
 
+BROWSER_CHROME_MANIFESTS += ["tests/browser.toml"]
+
 FINAL_LIBRARY = "xul"
 
 include("/ipc/chromium/chromium-config.mozbuild")
