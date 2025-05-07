@@ -16,6 +16,7 @@ rtc_library("emulated_network") {
   ]
   if (rtc_include_tests) {
     visibility += [
+      "../../modules/congestion_controller/goog_cc:goog_cc_unittests",
       "../peer_scenario:*",
       "../scenario:*",
     ]

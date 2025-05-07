@@ -9,6 +9,11 @@
  */
 #include "modules/congestion_controller/rtp/transport_feedback_demuxer.h"
 
+#include <cstdint>
+#include <vector>
+
+#include "api/units/timestamp.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/transport_feedback.h"
 #include "test/gmock.h"
 #include "test/gtest.h"

@@ -9,11 +9,17 @@
  */
 #include "modules/congestion_controller/rtp/transport_feedback_demuxer.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "api/sequence_checker.h"
+#include "api/units/time_delta.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/transport_feedback.h"
+#include "rtc_base/checks.h"
 
 namespace webrtc {
 namespace {
