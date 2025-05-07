@@ -263,7 +263,7 @@ class LimitedTaskQueue {
  private:
   TaskQueueForTest task_queue_;
   std::atomic_int queue_size_;
-  rtc::Event task_executed_;
+  Event task_executed_;
   Mutex mutex_;
 };
 

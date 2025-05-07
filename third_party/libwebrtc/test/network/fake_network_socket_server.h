@@ -49,7 +49,7 @@ class FakeNetworkSocketServer : public rtc::SocketServer {
 
  private:
   const EndpointsContainer* endpoints_container_;
-  rtc::Event wakeup_;
+  Event wakeup_;
   rtc::Thread* thread_ = nullptr;
 
   Mutex lock_;

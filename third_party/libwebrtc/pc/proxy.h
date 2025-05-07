@@ -121,7 +121,7 @@ class MethodCall {
         Invoke(std::index_sequence_for<Args...>());
         event_.Set();
       });
-      event_.Wait(rtc::Event::kForever);
+      event_.Wait(Event::kForever);
     }
     return r_.moved_result();
   }
@@ -136,7 +136,7 @@ class MethodCall {
   Method m_;
   ReturnType<R> r_;
   std::tuple<Args&&...> args_;
-  rtc::Event event_;
+  Event event_;
 };
 
 template <typename C, typename R, typename... Args>
@@ -156,7 +156,7 @@ class ConstMethodCall {
         Invoke(std::index_sequence_for<Args...>());
         event_.Set();
       });
-      event_.Wait(rtc::Event::kForever);
+      event_.Wait(Event::kForever);
     }
     return r_.moved_result();
   }
@@ -171,7 +171,7 @@ class ConstMethodCall {
   Method m_;
   ReturnType<R> r_;
   std::tuple<Args&&...> args_;
-  rtc::Event event_;
+  Event event_;
 };
 
 #define PROXY_STRINGIZE_IMPL(x) #x

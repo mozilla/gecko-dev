@@ -29,7 +29,7 @@ class RTC_EXPORT NullSocketServer : public SocketServer {
   Socket* CreateSocket(int family, int type) override;
 
  private:
-  rtc::Event event_;
+  Event event_;
 };
 
 }  //  namespace webrtc

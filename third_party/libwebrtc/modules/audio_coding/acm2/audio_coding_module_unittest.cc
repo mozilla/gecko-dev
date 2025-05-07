@@ -476,7 +476,7 @@ class AudioCodingModuleMtTestOldApi : public AudioCodingModuleTestOldApi {
   // Used to force worker threads to stop looping.
   std::atomic<bool> quit_;
 
-  rtc::Event test_complete_;
+  Event test_complete_;
   int send_count_;
   int insert_packet_count_;
   int pull_audio_count_ RTC_GUARDED_BY(mutex_);

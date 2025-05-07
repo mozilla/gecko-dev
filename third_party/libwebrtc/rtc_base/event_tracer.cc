@@ -348,7 +348,7 @@ class EventLogger final {
   Mutex mutex_;
   std::vector<TraceEvent> trace_events_ RTC_GUARDED_BY(mutex_);
   rtc::PlatformThread logging_thread_;
-  rtc::Event shutdown_event_;
+  Event shutdown_event_;
   SequenceChecker thread_checker_;
   FILE* output_file_ = nullptr;
   bool output_file_owned_ = false;

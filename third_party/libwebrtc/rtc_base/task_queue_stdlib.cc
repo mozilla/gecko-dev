@@ -94,7 +94,7 @@ class TaskQueueStdlib final : public TaskQueueBase {
   void NotifyWake();
 
   // Signaled whenever a new task is pending.
-  rtc::Event flag_notify_;
+  Event flag_notify_;
 
   Mutex pending_lock_;
 
@@ -136,7 +136,7 @@ rtc::PlatformThread TaskQueueStdlib::InitializeThread(
     TaskQueueStdlib* me,
     absl::string_view queue_name,
     rtc::ThreadPriority priority) {
-  rtc::Event started;
+  Event started;
   auto thread = rtc::PlatformThread::SpawnJoinable(
       [&started, me] {
         CurrentTaskQueueSetter set_current(me);
@@ -144,7 +144,7 @@ rtc::PlatformThread TaskQueueStdlib::InitializeThread(
         me->ProcessTasks();
       },
       queue_name, rtc::ThreadAttributes().SetPriority(priority));
-  started.Wait(rtc::Event::kForever);
+  started.Wait(Event::kForever);
   return thread;
 }
 

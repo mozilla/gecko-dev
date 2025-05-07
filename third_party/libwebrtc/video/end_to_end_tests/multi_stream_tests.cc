@@ -51,7 +51,7 @@ TEST(MultiStreamEndToEndTest, SendsAndReceivesMultipleStreams) {
     const MultiStreamTester::CodecSettings& settings_;
     const uint32_t ssrc_;
     test::FrameGeneratorCapturer** const frame_generator_;
-    rtc::Event done_;
+    Event done_;
   };
 
   class Tester : public MultiStreamTester {

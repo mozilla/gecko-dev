@@ -95,7 +95,7 @@ class IvfFileWriterEncodedCallback : public EncodedImageCallback {
 
   Mutex lock_;
   int received_frames_count_ RTC_GUARDED_BY(lock_) = 0;
-  rtc::Event expected_frames_count_received_;
+  Event expected_frames_count_received_;
 };
 
 class IvfVideoFrameGeneratorTest : public ::testing::Test {

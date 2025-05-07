@@ -53,7 +53,7 @@ constexpr TimeDelta kStatsWaitTimeout = TimeDelta::Seconds(1);
 
 EmulatedNetworkStats PopulateStats(std::vector<EmulatedEndpoint*> endpoints,
                                    NetworkEmulationManager* network_emulation) {
-  rtc::Event stats_loaded;
+  Event stats_loaded;
   EmulatedNetworkStats stats;
   network_emulation->GetStats(endpoints, [&](EmulatedNetworkStats s) {
     stats = std::move(s);
@@ -149,7 +149,7 @@ class EmulatedNetworkStatsAccumulator {
   std::map<std::string, NetworkLayerStats> n_stats_
       RTC_GUARDED_BY(sequence_checker_);
 
-  rtc::Event all_stats_collected_;
+  Event all_stats_collected_;
   Mutex mutex_;
   std::map<std::string, NetworkLayerStats> stats_ RTC_GUARDED_BY(mutex_);
   bool stats_released_ = false;

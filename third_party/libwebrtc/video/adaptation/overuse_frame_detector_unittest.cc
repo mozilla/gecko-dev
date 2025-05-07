@@ -435,7 +435,7 @@ TEST_F(OveruseFrameDetectorTest, RunOnTqNormalUsage) {
     overuse_detector_->StartCheckForOveruse(queue.Get(), options_, observer_);
   });
 
-  rtc::Event event;
+  Event event;
   // Expect NormalUsage(). When called, stop the `overuse_detector_` and then
   // set `event` to end the test.
   EXPECT_CALL(mock_observer_, AdaptUp())
@@ -917,7 +917,7 @@ TEST_F(OveruseFrameDetectorTest2, RunOnTqNormalUsage) {
     overuse_detector_->StartCheckForOveruse(queue.Get(), options_, observer_);
   });
 
-  rtc::Event event;
+  Event event;
   // Expect NormalUsage(). When called, stop the `overuse_detector_` and then
   // set `event` to end the test.
   EXPECT_CALL(mock_observer_, AdaptUp())

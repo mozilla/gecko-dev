@@ -102,7 +102,7 @@ class FakeWebRtcVideoEncoder : public VideoEncoder {
 
  private:
   Mutex mutex_;
-  rtc::Event init_encode_event_;
+  Event init_encode_event_;
   int num_frames_encoded_ RTC_GUARDED_BY(mutex_);
   VideoCodec codec_settings_ RTC_GUARDED_BY(mutex_);
   FakeWebRtcVideoEncoderFactory* factory_;
@@ -132,7 +132,7 @@ class FakeWebRtcVideoEncoderFactory : public VideoEncoderFactory {
 
  private:
   Mutex mutex_;
-  rtc::Event created_video_encoder_event_;
+  Event created_video_encoder_event_;
   std::vector<SdpVideoFormat> formats_;
   std::vector<FakeWebRtcVideoEncoder*> encoders_ RTC_GUARDED_BY(mutex_);
   int num_created_encoders_ RTC_GUARDED_BY(mutex_);

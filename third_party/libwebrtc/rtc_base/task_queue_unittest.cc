@@ -59,7 +59,7 @@ TEST(TaskQueueTest, DISABLED_PostDelayedHighRes) {
   EnableHighResTimers high_res_scope;
 
   static const char kQueueName[] = "PostDelayedHighRes";
-  rtc::Event event;
+  Event event;
   TaskQueueForTest queue(kQueueName, TaskQueueFactory::Priority::HIGH);
 
   uint32_t start = rtc::TimeMillis();

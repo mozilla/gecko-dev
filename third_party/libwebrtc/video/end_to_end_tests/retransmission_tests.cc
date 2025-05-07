@@ -233,7 +233,7 @@ TEST_F(RetransmissionEndToEndTest,
     void PerformTest() override {
       start_time_ = clock_->TimeInMilliseconds();
       task_queue_->PostTask([this] { Run(); });
-      test_done_.Wait(rtc::Event::kForever);
+      test_done_.Wait(Event::kForever);
     }
 
     void Run() {
@@ -261,7 +261,7 @@ TEST_F(RetransmissionEndToEndTest,
     VideoSendStream* send_stream_;
     VideoReceiveStreamInterface* receive_stream_;
     TaskQueueBase* const task_queue_;
-    rtc::Event test_done_;
+    Event test_done_;
     bool frame_decoded_ = false;
     int64_t start_time_ = 0;
   } test(task_queue());

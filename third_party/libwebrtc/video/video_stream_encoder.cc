@@ -762,7 +762,7 @@ void VideoStreamEncoder::Stop() {
   RTC_DCHECK_RUN_ON(worker_queue_);
   video_source_sink_controller_.SetSource(nullptr);
 
-  rtc::Event shutdown_event;
+  Event shutdown_event;
   absl::Cleanup shutdown = [&shutdown_event] { shutdown_event.Set(); };
   encoder_queue_->PostTask([this, shutdown = std::move(shutdown)] {
     RTC_DCHECK_RUN_ON(encoder_queue_.get());
@@ -792,7 +792,7 @@ void VideoStreamEncoder::Stop() {
     frame_cadence_adapter_ = nullptr;
     frame_instrumentation_generator_ = nullptr;
   });
-  shutdown_event.Wait(rtc::Event::kForever);
+  shutdown_event.Wait(Event::kForever);
 }
 
 void VideoStreamEncoder::SetFecControllerOverride(
@@ -832,14 +832,14 @@ VideoStreamEncoder::GetAdaptationResources() {
   // run on the encoder queue. So rather than force PostTask() operations to
   // be accompanied by an event and a `Wait()`, we'll use PostTask + Wait()
   // here.
-  rtc::Event event;
+  Event event;
   std::vector<rtc::scoped_refptr<Resource>> resources;
   encoder_queue_->PostTask([&] {
     RTC_DCHECK_RUN_ON(encoder_queue_.get());
     resources = resource_adaptation_processor_->GetResources();
     event.Set();
   });
-  event.Wait(rtc::Event::kForever);
+  event.Wait(Event::kForever);
   return resources;
 }
 
@@ -2547,7 +2547,7 @@ void VideoStreamEncoder::InjectAdaptationResource(
 
 void VideoStreamEncoder::InjectAdaptationConstraint(
     AdaptationConstraint* adaptation_constraint) {
-  rtc::Event event;
+  Event event;
   encoder_queue_->PostTask([this, adaptation_constraint, &event] {
     RTC_DCHECK_RUN_ON(encoder_queue_.get());
     if (!resource_adaptation_processor_) {
@@ -2559,31 +2559,31 @@ void VideoStreamEncoder::InjectAdaptationConstraint(
     video_stream_adapter_->AddAdaptationConstraint(adaptation_constraint);
     event.Set();
   });
-  event.Wait(rtc::Event::kForever);
+  event.Wait(Event::kForever);
 }
 
 void VideoStreamEncoder::AddRestrictionsListenerForTesting(
     VideoSourceRestrictionsListener* restrictions_listener) {
-  rtc::Event event;
+  Event event;
   encoder_queue_->PostTask([this, restrictions_listener, &event] {
     RTC_DCHECK_RUN_ON(encoder_queue_.get());
     RTC_DCHECK(resource_adaptation_processor_);
     video_stream_adapter_->AddRestrictionsListener(restrictions_listener);
     event.Set();
   });
-  event.Wait(rtc::Event::kForever);
+  event.Wait(Event::kForever);
 }
 
 void VideoStreamEncoder::RemoveRestrictionsListenerForTesting(
     VideoSourceRestrictionsListener* restrictions_listener) {
-  rtc::Event event;
+  Event event;
   encoder_queue_->PostTask([this, restrictions_listener, &event] {
     RTC_DCHECK_RUN_ON(encoder_queue_.get());
     RTC_DCHECK(resource_adaptation_processor_);
     video_stream_adapter_->RemoveRestrictionsListener(restrictions_listener);
     event.Set();
   });
-  event.Wait(rtc::Event::kForever);
+  event.Wait(Event::kForever);
 }
 
 // RTC_RUN_ON(&encoder_queue_)

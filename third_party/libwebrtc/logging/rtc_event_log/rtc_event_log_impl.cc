@@ -147,9 +147,9 @@ void RtcEventLogImpl::StopLogging() {
   // TODO(bugs.webrtc.org/14449): Do not block current thread waiting on the
   // task queue. It might work for now, for current callers, but disallows
   // caller to share threads with the `task_queue_`.
-  rtc::Event output_stopped;
+  Event output_stopped;
   StopLogging([&output_stopped]() { output_stopped.Set(); });
-  output_stopped.Wait(rtc::Event::kForever);
+  output_stopped.Wait(Event::kForever);
 
   RTC_DLOG(LS_INFO) << "WebRTC event log successfully stopped.";
 }

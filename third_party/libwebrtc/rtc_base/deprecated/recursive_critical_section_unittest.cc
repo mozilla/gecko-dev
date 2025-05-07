@@ -108,8 +108,8 @@ class RunnerBase {
   }
 
   std::atomic<int> threads_active_;
-  Event start_event_;
-  Event done_event_;
+  webrtc::Event start_event_;
+  webrtc::Event done_event_;
   int shared_value_;
 };
 
@@ -178,7 +178,7 @@ TEST(RecursiveCriticalSectionTest, Basic) {
 
 class PerfTestData {
  public:
-  PerfTestData(int expected_count, Event* event)
+  PerfTestData(int expected_count, webrtc::Event* event)
       : cache_line_barrier_1_(),
         cache_line_barrier_2_(),
         expected_count_(expected_count),
@@ -206,7 +206,7 @@ class PerfTestData {
   uint8_t cache_line_barrier_2_[64];
   int64_t my_counter_ = 0;
   const int expected_count_;
-  Event* const event_;
+  webrtc::Event* const event_;
 };
 
 class PerfTestThread {
@@ -270,7 +270,7 @@ class PerfTestThread {
 // The test is disabled by default to avoid unecessarily loading the bots.
 TEST(RecursiveCriticalSectionTest, DISABLED_Performance) {
   PerfTestThread threads[8];
-  Event event;
+  webrtc::Event event;
 
   static const int kThreadRepeats = 10000000;
   static const int kExpectedCount = kThreadRepeats * arraysize(threads);
@@ -279,7 +279,7 @@ TEST(RecursiveCriticalSectionTest, DISABLED_Performance) {
   for (auto& t : threads)
     t.Start(&test_data, kThreadRepeats, 1);
 
-  event.Wait(Event::kForever);
+  event.Wait(webrtc::Event::kForever);
 
   for (auto& t : threads)
     t.Stop();

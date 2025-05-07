@@ -411,7 +411,7 @@ void VideoReceiveStream2::Stop() {
   call_stats_->DeregisterStatsObserver(this);
 
   if (decoder_running_) {
-    rtc::Event done;
+    Event done;
     decode_queue_->PostTask([this, &done] {
       RTC_DCHECK_RUN_ON(&decode_sequence_checker_);
       // Set `decoder_stopped_` before deregistering all decoders. This means
@@ -423,7 +423,7 @@ void VideoReceiveStream2::Stop() {
       }
       done.Set();
     });
-    done.Wait(rtc::Event::kForever);
+    done.Wait(Event::kForever);
 
     decoder_running_ = false;
     stats_proxy_.DecoderThreadStopped();
@@ -1108,7 +1108,7 @@ VideoReceiveStream2::RecordingState
 VideoReceiveStream2::SetAndGetRecordingState(RecordingState state,
                                              bool generate_key_frame) {
   RTC_DCHECK_RUN_ON(&worker_sequence_checker_);
-  rtc::Event event;
+  Event event;
 
   // Save old state, set the new state.
   RecordingState old_state;
@@ -1146,7 +1146,7 @@ VideoReceiveStream2::SetAndGetRecordingState(RecordingState state,
     }
   }
 
-  event.Wait(rtc::Event::kForever);
+  event.Wait(Event::kForever);
   return old_state;
 }
 

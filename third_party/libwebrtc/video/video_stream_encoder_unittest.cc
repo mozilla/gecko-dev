@@ -196,7 +196,7 @@ void PassAFrame(
 
 class TestBuffer : public webrtc::I420Buffer {
  public:
-  TestBuffer(rtc::Event* event, int width, int height)
+  TestBuffer(Event* event, int width, int height)
       : I420Buffer(width, height), event_(event) {}
 
  private:
@@ -205,14 +205,14 @@ class TestBuffer : public webrtc::I420Buffer {
     if (event_)
       event_->Set();
   }
-  rtc::Event* const event_;
+  Event* const event_;
 };
 
 // A fake native buffer that can't be converted to I420. Upon scaling, it
 // produces another FakeNativeBuffer.
 class FakeNativeBuffer : public webrtc::VideoFrameBuffer {
  public:
-  FakeNativeBuffer(rtc::Event* event, int width, int height)
+  FakeNativeBuffer(Event* event, int width, int height)
       : event_(event), width_(width), height_(height) {}
   webrtc::VideoFrameBuffer::Type type() const override { return Type::kNative; }
   int width() const override { return width_; }
@@ -237,7 +237,7 @@ class FakeNativeBuffer : public webrtc::VideoFrameBuffer {
     if (event_)
       event_->Set();
   }
-  rtc::Event* const event_;
+  Event* const event_;
   const int width_;
   const int height_;
 };
@@ -245,7 +245,7 @@ class FakeNativeBuffer : public webrtc::VideoFrameBuffer {
 // A fake native buffer that is backed by an NV12 buffer.
 class FakeNV12NativeBuffer : public webrtc::VideoFrameBuffer {
  public:
-  FakeNV12NativeBuffer(rtc::Event* event, int width, int height)
+  FakeNV12NativeBuffer(Event* event, int width, int height)
       : nv12_buffer_(NV12Buffer::Create(width, height)), event_(event) {}
 
   webrtc::VideoFrameBuffer::Type type() const override { return Type::kNative; }
@@ -270,7 +270,7 @@ class FakeNV12NativeBuffer : public webrtc::VideoFrameBuffer {
       event_->Set();
   }
   rtc::scoped_refptr<NV12Buffer> nv12_buffer_;
-  rtc::Event* const event_;
+  Event* const event_;
 };
 
 class CpuOveruseDetectorProxy : public OveruseFrameDetector {
@@ -297,12 +297,12 @@ class CpuOveruseDetectorProxy : public OveruseFrameDetector {
 
   CpuOveruseOptions GetOptions() { return options_; }
 
-  rtc::Event* framerate_updated_event() { return &framerate_updated_event_; }
+  Event* framerate_updated_event() { return &framerate_updated_event_; }
 
  private:
   Mutex lock_;
   int last_target_framerate_fps_ RTC_GUARDED_BY(lock_);
-  rtc::Event framerate_updated_event_;
+  Event framerate_updated_event_;
 };
 
 class FakeVideoSourceRestrictionsListener
@@ -314,9 +314,7 @@ class FakeVideoSourceRestrictionsListener
     RTC_DCHECK(was_restrictions_updated_);
   }
 
-  rtc::Event* restrictions_updated_event() {
-    return &restrictions_updated_event_;
-  }
+  Event* restrictions_updated_event() { return &restrictions_updated_event_; }
 
   // VideoSourceRestrictionsListener implementation.
   void OnVideoSourceRestrictionsUpdated(
@@ -330,7 +328,7 @@ class FakeVideoSourceRestrictionsListener
 
  private:
   bool was_restrictions_updated_;
-  rtc::Event restrictions_updated_event_;
+  Event restrictions_updated_event_;
 };
 
 auto WantsFps(Matcher<int> fps_matcher) {
@@ -509,7 +507,7 @@ class VideoStreamEncoderUnderTest : public VideoStreamEncoder {
 
   // Triggers resource usage measurements on the fake CPU resource.
   void TriggerCpuOveruse() {
-    rtc::Event event;
+    Event event;
     encoder_queue()->PostTask([this, &event] {
       fake_cpu_resource_->SetUsageState(ResourceUsageState::kOveruse);
       event.Set();
@@ -519,7 +517,7 @@ class VideoStreamEncoderUnderTest : public VideoStreamEncoder {
   }
 
   void TriggerCpuUnderuse() {
-    rtc::Event event;
+    Event event;
     encoder_queue()->PostTask([this, &event] {
       fake_cpu_resource_->SetUsageState(ResourceUsageState::kUnderuse);
       event.Set();
@@ -530,7 +528,7 @@ class VideoStreamEncoderUnderTest : public VideoStreamEncoder {
 
   // Triggers resource usage measurements on the fake quality resource.
   void TriggerQualityLow() {
-    rtc::Event event;
+    Event event;
     encoder_queue()->PostTask([this, &event] {
       fake_quality_resource_->SetUsageState(ResourceUsageState::kOveruse);
       event.Set();
@@ -539,7 +537,7 @@ class VideoStreamEncoderUnderTest : public VideoStreamEncoder {
     time_controller_->AdvanceTime(TimeDelta::Zero());
   }
   void TriggerQualityHigh() {
-    rtc::Event event;
+    Event event;
     encoder_queue()->PostTask([this, &event] {
       fake_quality_resource_->SetUsageState(ResourceUsageState::kUnderuse);
       event.Set();
@@ -1003,8 +1001,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
                      num_cores);
   }
 
-  VideoFrame CreateFrame(int64_t ntp_time_ms,
-                         rtc::Event* destruction_event) const {
+  VideoFrame CreateFrame(int64_t ntp_time_ms, Event* destruction_event) const {
     return VideoFrame::Builder()
         .set_video_frame_buffer(rtc::make_ref_counted<TestBuffer>(
             destruction_event, codec_width_, codec_height_))
@@ -1015,7 +1012,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
   }
 
   VideoFrame CreateFrameWithUpdatedPixel(int64_t ntp_time_ms,
-                                         rtc::Event* destruction_event,
+                                         Event* destruction_event,
                                          int offset_x) const {
     return VideoFrame::Builder()
         .set_video_frame_buffer(rtc::make_ref_counted<TestBuffer>(
@@ -1048,7 +1045,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
   }
 
   VideoFrame CreateFakeNativeFrame(int64_t ntp_time_ms,
-                                   rtc::Event* destruction_event,
+                                   Event* destruction_event,
                                    int width,
                                    int height) const {
     return VideoFrame::Builder()
@@ -1061,7 +1058,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
   }
 
   VideoFrame CreateFakeNV12NativeFrame(int64_t ntp_time_ms,
-                                       rtc::Event* destruction_event,
+                                       Event* destruction_event,
                                        int width,
                                        int height) const {
     return VideoFrame::Builder()
@@ -1074,7 +1071,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
   }
 
   VideoFrame CreateFakeNativeFrame(int64_t ntp_time_ms,
-                                   rtc::Event* destruction_event) const {
+                                   Event* destruction_event) const {
     return CreateFakeNativeFrame(ntp_time_ms, destruction_event, codec_width_,
                                  codec_height_);
   }
@@ -1406,7 +1403,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
       kInitializationFailed,
       kInitialized
     } initialized_ RTC_GUARDED_BY(local_mutex_) = EncoderState::kUninitialized;
-    rtc::Event continue_encode_event_;
+    Event continue_encode_event_;
     uint32_t timestamp_ RTC_GUARDED_BY(local_mutex_) = 0;
     int64_t ntp_time_ms_ RTC_GUARDED_BY(local_mutex_) = 0;
     int last_input_width_ RTC_GUARDED_BY(local_mutex_) = 0;
@@ -1651,7 +1648,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
     TimeController* const time_controller_;
     mutable Mutex mutex_;
     TestEncoder* test_encoder_;
-    rtc::Event encoded_frame_event_;
+    Event encoded_frame_event_;
     EncodedImage last_encoded_image_;
     std::vector<uint8_t> last_encoded_image_data_;
     uint32_t last_timestamp_ = 0;
@@ -1731,7 +1728,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
 TEST_F(VideoStreamEncoderTest, EncodeOneFrame) {
   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
       kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
-  rtc::Event frame_destroyed_event;
+  Event frame_destroyed_event;
   video_source_.IncomingCapturedFrame(CreateFrame(1, &frame_destroyed_event));
   WaitForEncodedFrame(1);
   EXPECT_TRUE(frame_destroyed_event.Wait(kDefaultTimeout));
@@ -1770,7 +1767,7 @@ TEST_F(VideoStreamEncoderTest,
   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
       kLowRate, kLowRate, kLowRate, 0, 0, 0);
 
-  rtc::Event frame_destroyed_event;
+  Event frame_destroyed_event;
   // Insert two frames, so that the first one isn't stored in the encoder queue.
   video_source_.IncomingCapturedFrame(CreateFrame(1, &frame_destroyed_event));
   video_source_.IncomingCapturedFrame(CreateFrame(34, /*event=*/nullptr));
@@ -1871,7 +1868,7 @@ TEST_F(VideoStreamEncoderTest,
 
 TEST_F(VideoStreamEncoderTest, DropsFramesBeforeFirstOnBitrateUpdated) {
   // Dropped since no target bitrate has been set.
-  rtc::Event frame_destroyed_event;
+  Event frame_destroyed_event;
   // The encoder will cache up to one frame for a short duration. Adding two
   // frames means that the first frame will be dropped and the second frame will
   // be sent when the encoder is enabled.
@@ -1947,7 +1944,7 @@ TEST_F(VideoStreamEncoderTest, DropsFrameAfterStop) {
 
   video_stream_encoder_->Stop();
   sink_.SetExpectNoFrames();
-  rtc::Event frame_destroyed_event;
+  Event frame_destroyed_event;
   video_source_.IncomingCapturedFrame(CreateFrame(2, &frame_destroyed_event));
   EXPECT_TRUE(frame_destroyed_event.Wait(kDefaultTimeout));
 }
@@ -1976,7 +1973,7 @@ TEST_F(VideoStreamEncoderTest, NativeFrameWithoutI420SupportGetsDelivered) {
   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
       kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
 
-  rtc::Event frame_destroyed_event;
+  Event frame_destroyed_event;
   video_source_.IncomingCapturedFrame(
       CreateFakeNativeFrame(1, &frame_destroyed_event));
   WaitForEncodedFrame(1);
@@ -2008,7 +2005,7 @@ TEST_F(VideoStreamEncoderTest,
 
   // Now send in a fake frame that needs to be cropped as the width/height
   // aren't divisible by 4 (see CreateEncoderStreams above).
-  rtc::Event frame_destroyed_event;
+  Event frame_destroyed_event;
   video_source_.IncomingCapturedFrame(CreateFakeNativeFrame(
       2, &frame_destroyed_event, codec_width_ + 1, codec_height_ + 1));
   WaitForEncodedFrame(2);
@@ -2037,7 +2034,7 @@ TEST_F(VideoStreamEncoderTest, NativeFrameGetsDelivered_NoFrameTypePreference) {
 
   fake_encoder_.SetPreferredPixelFormats({});
 
-  rtc::Event frame_destroyed_event;
+  Event frame_destroyed_event;
   video_source_.IncomingCapturedFrame(CreateFakeNV12NativeFrame(
       1, &frame_destroyed_event, codec_width_, codec_height_));
   WaitForEncodedFrame(1);
@@ -2053,7 +2050,7 @@ TEST_F(VideoStreamEncoderTest,
 
   fake_encoder_.SetPreferredPixelFormats({VideoFrameBuffer::Type::kNV12});
 
-  rtc::Event frame_destroyed_event;
+  Event frame_destroyed_event;
   video_source_.IncomingCapturedFrame(CreateFakeNV12NativeFrame(
       1, &frame_destroyed_event, codec_width_, codec_height_));
   WaitForEncodedFrame(1);
@@ -2069,7 +2066,7 @@ TEST_F(VideoStreamEncoderTest, NativeFrameGetsDelivered_MappingIsNotFeasible) {
   // Fake NV12 native frame does not allow mapping to I444.
   fake_encoder_.SetPreferredPixelFormats({VideoFrameBuffer::Type::kI444});
 
-  rtc::Event frame_destroyed_event;
+  Event frame_destroyed_event;
   video_source_.IncomingCapturedFrame(CreateFakeNV12NativeFrame(
       1, &frame_destroyed_event, codec_width_, codec_height_));
   WaitForEncodedFrame(1);
@@ -2082,7 +2079,7 @@ TEST_F(VideoStreamEncoderTest, NativeFrameGetsDelivered_BackedByNV12) {
   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
       kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
 
-  rtc::Event frame_destroyed_event;
+  Event frame_destroyed_event;
   video_source_.IncomingCapturedFrame(CreateFakeNV12NativeFrame(
       1, &frame_destroyed_event, codec_width_, codec_height_));
   WaitForEncodedFrame(1);
@@ -8218,7 +8215,7 @@ TEST_F(VideoStreamEncoderTest, EncoderSelectorBrokenEncoderSwitch) {
   ON_CALL(encoder_selector, OnEncoderBroken)
       .WillByDefault(Return(SdpVideoFormat("AV2")));
 
-  rtc::Event encode_attempted;
+  Event encode_attempted;
   EXPECT_CALL(switch_callback,
               RequestEncoderSwitch(Field(&SdpVideoFormat::name, "AV2"),
                                    /*allow_default_fallback=*/true))
@@ -8262,7 +8259,7 @@ TEST_F(VideoStreamEncoderTest, SwitchEncoderOnInitFailureWithEncoderSelector) {
   ON_CALL(encoder_selector, OnEncoderBroken)
       .WillByDefault(Return(SdpVideoFormat("AV2")));
 
-  rtc::Event encode_attempted;
+  Event encode_attempted;
   EXPECT_CALL(switch_callback,
               RequestEncoderSwitch(Field(&SdpVideoFormat::name, "AV2"),
                                    /*allow_default_fallback=*/true))
@@ -8304,7 +8301,7 @@ TEST_F(VideoStreamEncoderTest,
   ON_CALL(video_encoder, InitEncode(_, _))
       .WillByDefault(Return(WEBRTC_VIDEO_CODEC_ENCODER_FAILURE));
 
-  rtc::Event encode_attempted;
+  Event encode_attempted;
   EXPECT_CALL(switch_callback, RequestEncoderFallback())
       .WillOnce([&encode_attempted]() { encode_attempted.Set(); });
 
@@ -8353,7 +8350,7 @@ TEST_F(VideoStreamEncoderTest, NullEncoderReturnSwitch) {
       /*cwnd_reduce_ratio=*/0);
   ON_CALL(encoder_selector, OnEncoderBroken)
       .WillByDefault(Return(SdpVideoFormat("AV2")));
-  rtc::Event encode_attempted;
+  Event encode_attempted;
   EXPECT_CALL(switch_callback,
               RequestEncoderSwitch(Field(&SdpVideoFormat::name, "AV2"),
                                    /*allow_default_fallback=*/_))
@@ -9283,7 +9280,7 @@ TEST_F(VideoStreamEncoderTest,
        RequestsRefreshFrameAfterEarlyDroppedNativeFrame) {
   // Send a native frame before encoder rates have been set. The encoder is
   // seen as paused at this time.
-  rtc::Event frame_destroyed_event;
+  Event frame_destroyed_event;
   video_source_.IncomingCapturedFrame(CreateFakeNativeFrame(
       /*ntp_time_ms=*/1, &frame_destroyed_event, codec_width_, codec_height_));
 

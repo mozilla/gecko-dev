@@ -681,7 +681,7 @@ TEST(PeerConnectionFactoryDependenciesTest, UsesNetworkManager) {
   constexpr TimeDelta kWaitTimeout = TimeDelta::Seconds(10);
   auto mock_network_manager = std::make_unique<NiceMock<MockNetworkManager>>();
 
-  rtc::Event called;
+  Event called;
   EXPECT_CALL(*mock_network_manager, StartUpdating())
       .Times(AtLeast(1))
       .WillRepeatedly(InvokeWithoutArgs([&] { called.Set(); }));
@@ -707,7 +707,7 @@ TEST(PeerConnectionFactoryDependenciesTest, UsesPacketSocketFactory) {
   auto mock_socket_factory =
       std::make_unique<NiceMock<MockPacketSocketFactory>>();
 
-  rtc::Event called;
+  Event called;
   EXPECT_CALL(*mock_socket_factory, CreateUdpSocket(_, _, _))
       .WillOnce(InvokeWithoutArgs([&] {
         called.Set();

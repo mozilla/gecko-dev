@@ -67,11 +67,11 @@ AecDumpImpl::AecDumpImpl(FileWrapper debug_file,
 
 AecDumpImpl::~AecDumpImpl() {
   // Block until all tasks have finished running.
-  rtc::Event thread_sync_event;
+  Event thread_sync_event;
   worker_queue_->PostTask([&thread_sync_event] { thread_sync_event.Set(); });
   // Wait until the event has been signaled with .Set(). By then all
   // pending tasks will have finished.
-  thread_sync_event.Wait(rtc::Event::kForever);
+  thread_sync_event.Wait(Event::kForever);
 }
 
 void AecDumpImpl::WriteInitMessage(const ProcessingConfig& api_format,

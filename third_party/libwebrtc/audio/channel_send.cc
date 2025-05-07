@@ -608,13 +608,13 @@ void ChannelSend::StopSend() {
 
   // Wait until all pending encode tasks are executed and clear any remaining
   // buffers in the encoder.
-  rtc::Event flush;
+  Event flush;
   encoder_queue_->PostTask([this, &flush]() {
     RTC_DCHECK_RUN_ON(&encoder_queue_checker_);
     audio_coding_->Reset();
     flush.Set();
   });
-  flush.Wait(rtc::Event::kForever);
+  flush.Wait(Event::kForever);
 
   // Reset sending SSRC and sequence number and triggers direct transmission
   // of RTCP BYE

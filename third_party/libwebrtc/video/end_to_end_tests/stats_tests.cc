@@ -356,7 +356,7 @@ TEST_F(StatsEndToEndTest, GetStats) {
     std::vector<uint32_t> expected_receive_ssrcs_;
     std::set<uint32_t> expected_send_ssrcs_;
 
-    rtc::Event check_stats_event_;
+    Event check_stats_event_;
     TaskQueueBase* task_queue_ = nullptr;
   } test;
 

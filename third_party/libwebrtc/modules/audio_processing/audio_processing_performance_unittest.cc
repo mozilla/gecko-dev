@@ -509,7 +509,7 @@ class CallSimulator : public ::testing::TestWithParam<SimulationConfig> {
   }
 
   // Event handler for the test.
-  rtc::Event test_complete_;
+  Event test_complete_;
 
   // Thread related variables.
   Random rand_gen_;

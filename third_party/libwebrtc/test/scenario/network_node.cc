@@ -147,7 +147,7 @@ void NetworkNodeTransport::Connect(EmulatedEndpoint* endpoint,
   }
 
   // Must be called from the worker thread.
-  rtc::Event event;
+  Event event;
   auto cleanup = absl::MakeCleanup([&event] { event.Set(); });
   auto&& task = [this, &route, cleanup = std::move(cleanup)] {
     sender_call_->GetTransportControllerSend()->OnNetworkRouteChanged(

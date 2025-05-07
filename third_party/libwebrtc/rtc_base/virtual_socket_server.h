@@ -440,7 +440,7 @@ class VirtualSocketServer : public SocketServer {
   ThreadProcessingFakeClock* fake_clock_ = nullptr;
 
   // Used to implement Wait/WakeUp.
-  rtc::Event wakeup_;
+  Event wakeup_;
   rtc::Thread* msg_queue_;
   bool stop_on_idle_;
   in_addr next_ipv4_;

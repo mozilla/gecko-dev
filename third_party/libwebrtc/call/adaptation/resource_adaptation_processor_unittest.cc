@@ -459,7 +459,7 @@ TEST_F(ResourceAdaptationProcessorTest,
 
   // Wait for `resource_` to signal oversue first so we know that the delegate
   // has passed it on to the processor's task queue.
-  rtc::Event resource_event;
+  Event resource_event;
   TaskQueueForTest resource_task_queue("ResourceTaskQueue");
   resource_task_queue.PostTask([&]() {
     resource_->SetUsageState(ResourceUsageState::kOveruse);
@@ -481,7 +481,7 @@ TEST_F(ResourceAdaptationProcessorTest,
       DegradationPreference::MAINTAIN_FRAMERATE);
   SetInputStates(true, kDefaultFrameRate, kDefaultFrameSize);
 
-  rtc::Event overuse_event;
+  Event overuse_event;
   TaskQueueForTest resource_task_queue("ResourceTaskQueue");
   // Queues task for `resource_` overuse while `processor_` is still listening.
   resource_task_queue.PostTask([&]() {

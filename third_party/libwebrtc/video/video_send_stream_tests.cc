@@ -2132,7 +2132,7 @@ TEST_F(VideoSendStreamTest,
     }
 
     Mutex mutex_;
-    rtc::Event init_encode_called_;
+    Event init_encode_called_;
     int last_initialized_frame_width_ RTC_GUARDED_BY(&mutex_);
     int last_initialized_frame_height_ RTC_GUARDED_BY(&mutex_);
   };
@@ -2202,7 +2202,7 @@ TEST_F(VideoSendStreamTest, CanReconfigureToUseStartBitrateAbovePreviousMax) {
 
    private:
     mutable Mutex mutex_;
-    rtc::Event start_bitrate_changed_;
+    Event start_bitrate_changed_;
     int start_bitrate_kbps_ RTC_GUARDED_BY(mutex_);
   };
 
@@ -2468,7 +2468,7 @@ class VideoCodecConfigObserver : public test::SendTest,
 
   T encoder_settings_;
   const VideoCodecType video_codec_type_;
-  rtc::Event init_encode_event_;
+  Event init_encode_event_;
   VideoSendStream* stream_;
   test::VideoEncoderProxyFactory encoder_factory_;
   VideoEncoderConfig encoder_config_;
@@ -2910,9 +2910,9 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
     }
 
     TaskQueueBase* const task_queue_;
-    rtc::Event create_rate_allocator_event_;
-    rtc::Event init_encode_event_;
-    rtc::Event bitrate_changed_event_;
+    Event create_rate_allocator_event_;
+    Event init_encode_event_;
+    Event bitrate_changed_event_;
     Mutex mutex_;
     uint32_t target_bitrate_ RTC_GUARDED_BY(&mutex_);
 
@@ -3822,7 +3822,7 @@ TEST_F(VideoSendStreamTest, RemoveOverheadFromBandwidth) {
     Mutex mutex_;
     uint32_t max_bitrate_bps_ RTC_GUARDED_BY(&mutex_);
     bool first_packet_sent_ RTC_GUARDED_BY(&mutex_);
-    rtc::Event bitrate_changed_event_;
+    Event bitrate_changed_event_;
   } test(env(), task_queue());
   RunBaseTest(&test);
 }
@@ -4040,7 +4040,7 @@ class ContentSwitchTest : public test::SendTest {
   }
 
   Mutex mutex_;
-  rtc::Event content_switch_event_;
+  Event content_switch_event_;
   Call* call_;
   bool done_ RTC_GUARDED_BY(mutex_) = false;
   StreamState state_ RTC_GUARDED_BY(mutex_);

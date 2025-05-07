@@ -771,7 +771,7 @@ TEST_F(CallPerfTest, MAYBE_KeepsHighBitrateWhenReconfiguringSender) {
     }
 
    private:
-    rtc::Event time_to_reconfigure_;
+    Event time_to_reconfigure_;
     int encoder_inits_;
     uint32_t last_set_bitrate_kbps_;
     VideoSendStream* send_stream_;

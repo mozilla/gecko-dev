@@ -53,7 +53,7 @@ TEST(TaskQueueStdlib, AvoidsSpammingLogOnInactivity) {
   LogMessage::AddLogToStream(&stream, rtc::LS_VERBOSE);
   auto task_queue = CreateTaskQueueStdlibFactory()->CreateTaskQueue(
       "test", TaskQueueFactory::Priority::NORMAL);
-  auto wait_duration = rtc::Event::kDefaultWarnDuration + TimeDelta::Seconds(1);
+  auto wait_duration = Event::kDefaultWarnDuration + TimeDelta::Seconds(1);
   SleepMs(wait_duration.ms());
   EXPECT_EQ(log_output.length(), 0u);
   task_queue = nullptr;

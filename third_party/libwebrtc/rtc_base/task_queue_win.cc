@@ -211,10 +211,10 @@ TaskQueueWin::TaskQueueWin(absl::string_view queue_name,
       [this] { RunThreadMain(); }, queue_name,
       rtc::ThreadAttributes().SetPriority(priority));
 
-  rtc::Event event(false, false);
+  Event event(false, false);
   RTC_CHECK(thread_.QueueAPC(&InitializeQueueThread,
                              reinterpret_cast<ULONG_PTR>(&event)));
-  event.Wait(rtc::Event::kForever);
+  event.Wait(Event::kForever);
 }
 
 void TaskQueueWin::Delete() {

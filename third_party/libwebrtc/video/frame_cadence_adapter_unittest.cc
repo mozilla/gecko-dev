@@ -639,12 +639,12 @@ TEST(FrameCadenceAdapterTest, EncodeFramesAreAlignedWithMetronomeTick) {
   time_controller.AdvanceTime(TimeDelta::Millis(1));
   Mock::VerifyAndClearExpectations(&callback);
 
-  rtc::Event finalized;
+  Event finalized;
   queue->PostTask([&] {
     adapter = nullptr;
     finalized.Set();
   });
-  finalized.Wait(rtc::Event::kForever);
+  finalized.Wait(Event::kForever);
 }
 
 TEST(FrameCadenceAdapterTest, ShutdownUnderMetronome) {
@@ -1056,7 +1056,7 @@ TEST(FrameCadenceAdapterRealTimeTest, TimestampsDoNotDrift) {
   int frame_counter = 0;
   int64_t original_ntp_time_ms;
   int64_t original_timestamp_us;
-  rtc::Event event;
+  Event event;
   test::ScopedKeyValueConfig no_field_trials;
   queue->PostTask([&] {
     adapter = CreateAdapter(no_field_trials, clock);
@@ -1087,13 +1087,13 @@ TEST(FrameCadenceAdapterRealTimeTest, TimestampsDoNotDrift) {
             }));
     adapter->OnFrame(frame);
   });
-  event.Wait(rtc::Event::kForever);
-  rtc::Event finalized;
+  event.Wait(Event::kForever);
+  Event finalized;
   queue->PostTask([&] {
     adapter = nullptr;
     finalized.Set();
   });
-  finalized.Wait(rtc::Event::kForever);
+  finalized.Wait(Event::kForever);
 }
 
 TEST(FrameCadenceAdapterRealTimeTest, ScheduledRepeatAllowsForSlowEncode) {
@@ -1110,7 +1110,7 @@ TEST(FrameCadenceAdapterRealTimeTest, ScheduledRepeatAllowsForSlowEncode) {
   Clock* clock = Clock::GetRealTimeClock();
   std::unique_ptr<FrameCadenceAdapterInterface> adapter;
   int frame_counter = 0;
-  rtc::Event event;
+  Event event;
   std::optional<Timestamp> start_time;
   test::ScopedKeyValueConfig no_field_trials;
   queue->PostTask([&] {
@@ -1140,13 +1140,13 @@ TEST(FrameCadenceAdapterRealTimeTest, ScheduledRepeatAllowsForSlowEncode) {
         }));
     adapter->OnFrame(frame);
   });
-  event.Wait(rtc::Event::kForever);
-  rtc::Event finalized;
+  event.Wait(Event::kForever);
+  Event finalized;
   queue->PostTask([&] {
     adapter = nullptr;
     finalized.Set();
   });
-  finalized.Wait(rtc::Event::kForever);
+  finalized.Wait(Event::kForever);
 }
 
 class ZeroHertzQueueOverloadTest : public ::testing::Test {

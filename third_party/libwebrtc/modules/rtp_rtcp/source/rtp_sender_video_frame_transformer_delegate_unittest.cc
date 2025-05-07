@@ -162,7 +162,7 @@ TEST_F(RtpSenderVideoFrameTransformerDelegateTest,
   ASSERT_TRUE(frame);
   EXPECT_STRCASEEQ("video/VP8", frame->GetMimeType().c_str());
 
-  rtc::Event event;
+  Event event;
   EXPECT_CALL(test_sender_, SendVideo).WillOnce(WithoutArgs([&] {
     event.Set();
     return true;
@@ -274,7 +274,7 @@ TEST_F(RtpSenderVideoFrameTransformerDelegateTest,
   delegate->Init();
   ASSERT_TRUE(callback);
 
-  rtc::Event event;
+  Event event;
   EXPECT_CALL(
       test_sender_,
       SendVideo(payload_type, std::make_optional(kVideoCodecVP8), timestamp,

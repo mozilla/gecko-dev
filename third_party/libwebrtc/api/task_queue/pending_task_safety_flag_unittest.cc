@@ -133,9 +133,9 @@ TEST(PendingTaskSafetyFlagTest, PendingTaskDropped) {
   ASSERT_TRUE(owner);
   // Queue up a task on tq1 that will execute before the 'DoStuff' task
   // can, and delete the `owner` before the 'stuff' task can execute.
-  rtc::Event blocker;
+  Event blocker;
   tq1.PostTask([&blocker, &owner]() {
-    blocker.Wait(rtc::Event::kForever);
+    blocker.Wait(Event::kForever);
     owner.reset();
   });
 

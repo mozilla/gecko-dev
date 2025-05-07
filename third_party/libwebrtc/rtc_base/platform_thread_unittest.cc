@@ -30,7 +30,7 @@ TEST(PlatformThreadTest, StartFinalize) {
   EXPECT_FALSE(thread.empty());
   thread.Finalize();
   EXPECT_TRUE(thread.empty());
-  rtc::Event done;
+  webrtc::Event done;
   thread = PlatformThread::SpawnDetached([&] { done.Set(); }, "2");
   EXPECT_FALSE(thread.empty());
   thread.Finalize();
@@ -50,7 +50,7 @@ TEST(PlatformThreadTest, MovesHandles) {
   PlatformThread thread2 = std::move(thread1);
   EXPECT_TRUE(thread1.empty());
   EXPECT_FALSE(thread2.empty());
-  rtc::Event done;
+  webrtc::Event done;
   thread1 = PlatformThread::SpawnDetached([&] { done.Set(); }, "2");
   thread2 = std::move(thread1);
   EXPECT_TRUE(thread1.empty());
@@ -80,7 +80,7 @@ TEST(PlatformThreadTest, RunFunctionIsCalled) {
 
 TEST(PlatformThreadTest, JoinsThread) {
   // This test flakes if there are problems with the join implementation.
-  rtc::Event event;
+  webrtc::Event event;
   PlatformThread::SpawnJoinable([&] { event.Set(); }, "T");
   EXPECT_TRUE(event.Wait(/*give_up_after=*/webrtc::TimeDelta::Zero()));
 }
@@ -89,21 +89,21 @@ TEST(PlatformThreadTest, StopsBeforeDetachedThreadExits) {
   // This test flakes if there are problems with the detached thread
   // implementation.
   bool flag = false;
-  rtc::Event thread_started;
-  rtc::Event thread_continue;
-  rtc::Event thread_exiting;
+  webrtc::Event thread_started;
+  webrtc::Event thread_continue;
+  webrtc::Event thread_exiting;
   PlatformThread::SpawnDetached(
       [&] {
         thread_started.Set();
-        thread_continue.Wait(Event::kForever);
+        thread_continue.Wait(webrtc::Event::kForever);
         flag = true;
         thread_exiting.Set();
       },
       "T");
-  thread_started.Wait(Event::kForever);
+  thread_started.Wait(webrtc::Event::kForever);
   EXPECT_FALSE(flag);
   thread_continue.Set();
-  thread_exiting.Wait(Event::kForever);
+  thread_exiting.Wait(webrtc::Event::kForever);
   EXPECT_TRUE(flag);
 }
 

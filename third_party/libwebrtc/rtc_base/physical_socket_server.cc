@@ -1369,7 +1369,7 @@ void PhysicalSocketServer::Update([[maybe_unused]] Dispatcher* pdispatcher) {
 }
 
 int PhysicalSocketServer::ToCmsWait(TimeDelta max_wait_duration) {
-  return max_wait_duration == rtc::Event::kForever
+  return max_wait_duration == Event::kForever
              ? kForeverMs
              : max_wait_duration.RoundUpTo(TimeDelta::Millis(1)).ms();
 }

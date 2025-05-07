@@ -1362,7 +1362,7 @@ void RTCStatsCollector::MergeNetworkReport_s() {
   // `network_report_`. This is normally not blocking, but if
   // WaitForPendingRequest() is called while a request is pending, we might have
   // to wait until the network thread is done touching `network_report_`.
-  network_report_event_.Wait(rtc::Event::kForever);
+  network_report_event_.Wait(Event::kForever);
   if (!network_report_) {
     // Normally, MergeNetworkReport_s() is executed because it is posted from
     // the network thread. But if WaitForPendingRequest() is called while a

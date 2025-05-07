@@ -48,7 +48,7 @@ class OperationTracker {
   // Creates a binding for the synchronous operation (see
   // StartSynchronousOperation() below).
   std::function<void(std::function<void()>)> BindSynchronousOperation(
-      Event* operation_complete_event) {
+      webrtc::Event* operation_complete_event) {
     return [this, operation_complete_event](std::function<void()> callback) {
       StartSynchronousOperation(operation_complete_event, std::move(callback));
     };
@@ -57,8 +57,8 @@ class OperationTracker {
   // Creates a binding for the asynchronous operation (see
   // StartAsynchronousOperation() below).
   std::function<void(std::function<void()>)> BindAsynchronousOperation(
-      Event* unblock_operation_event,
-      Event* operation_complete_event) {
+      webrtc::Event* unblock_operation_event,
+      webrtc::Event* operation_complete_event) {
     return [this, unblock_operation_event,
             operation_complete_event](std::function<void()> callback) {
       StartAsynchronousOperation(unblock_operation_event,
@@ -69,14 +69,14 @@ class OperationTracker {
   // When an operation is completed, its associated Event* is added to this
   // list, in chronological order. This allows you to verify the order that
   // operations are executed.
-  const std::vector<Event*>& completed_operation_events() const {
+  const std::vector<webrtc::Event*>& completed_operation_events() const {
     return completed_operation_events_;
   }
 
  private:
   // This operation is completed synchronously; the callback is invoked before
   // the function returns.
-  void StartSynchronousOperation(Event* operation_complete_event,
+  void StartSynchronousOperation(webrtc::Event* operation_complete_event,
                                  std::function<void()> callback) {
     completed_operation_events_.push_back(operation_complete_event);
     operation_complete_event->Set();
@@ -88,13 +88,13 @@ class OperationTracker {
   // completes upon posting back to the thread that the operation started on.
   // Note that this requires the starting thread to be executing tasks (handle
   // messages), i.e. must not be blocked.
-  void StartAsynchronousOperation(Event* unblock_operation_event,
-                                  Event* operation_complete_event,
+  void StartAsynchronousOperation(webrtc::Event* unblock_operation_event,
+                                  webrtc::Event* operation_complete_event,
                                   std::function<void()> callback) {
     Thread* current_thread = Thread::Current();
     background_thread_->PostTask([this, current_thread, unblock_operation_event,
                                   operation_complete_event, callback]() {
-      unblock_operation_event->Wait(Event::kForever);
+      unblock_operation_event->Wait(webrtc::Event::kForever);
       current_thread->PostTask([this, operation_complete_event, callback]() {
         completed_operation_events_.push_back(operation_complete_event);
         operation_complete_event->Set();
@@ -104,7 +104,7 @@ class OperationTracker {
   }
 
   std::unique_ptr<Thread> background_thread_;
-  std::vector<Event*> completed_operation_events_;
+  std::vector<webrtc::Event*> completed_operation_events_;
 };
 
 // The OperationTrackerProxy ensures all operations are chained on a separate
@@ -119,8 +119,8 @@ class OperationTrackerProxy {
     operations_chain_thread_->Start();
   }
 
-  std::unique_ptr<Event> Initialize() {
-    std::unique_ptr<Event> event = std::make_unique<Event>();
+  std::unique_ptr<webrtc::Event> Initialize() {
+    std::unique_ptr<webrtc::Event> event = std::make_unique<webrtc::Event>();
     operations_chain_thread_->PostTask([this, event_ptr = event.get()]() {
       operation_tracker_ = std::make_unique<OperationTracker>();
       operations_chain_ = OperationsChain::Create();
@@ -130,7 +130,7 @@ class OperationTrackerProxy {
   }
 
   void SetOnChainEmptyCallback(std::function<void()> on_chain_empty_callback) {
-    Event event;
+    webrtc::Event event;
     operations_chain_thread_->PostTask(
         [this, &event,
          on_chain_empty_callback = std::move(on_chain_empty_callback)]() {
@@ -138,22 +138,22 @@ class OperationTrackerProxy {
               std::move(on_chain_empty_callback));
           event.Set();
         });
-    event.Wait(Event::kForever);
+    event.Wait(webrtc::Event::kForever);
   }
 
   bool IsEmpty() {
-    Event event;
+    webrtc::Event event;
     bool is_empty = false;
     operations_chain_thread_->PostTask([this, &event, &is_empty]() {
       is_empty = operations_chain_->IsEmpty();
       event.Set();
     });
-    event.Wait(Event::kForever);
+    event.Wait(webrtc::Event::kForever);
     return is_empty;
   }
 
-  std::unique_ptr<Event> ReleaseOperationChain() {
-    std::unique_ptr<Event> event = std::make_unique<Event>();
+  std::unique_ptr<webrtc::Event> ReleaseOperationChain() {
+    std::unique_ptr<webrtc::Event> event = std::make_unique<webrtc::Event>();
     operations_chain_thread_->PostTask([this, event_ptr = event.get()]() {
       operations_chain_ = nullptr;
       event_ptr->Set();
@@ -162,8 +162,9 @@ class OperationTrackerProxy {
   }
 
   // Chains a synchronous operation on the operation chain's thread.
-  std::unique_ptr<Event> PostSynchronousOperation() {
-    std::unique_ptr<Event> operation_complete_event = std::make_unique<Event>();
+  std::unique_ptr<webrtc::Event> PostSynchronousOperation() {
+    std::unique_ptr<webrtc::Event> operation_complete_event =
+        std::make_unique<webrtc::Event>();
     operations_chain_thread_->PostTask(
         [this,
          operation_complete_event_ptr = operation_complete_event.get()]() {
@@ -176,9 +177,10 @@ class OperationTrackerProxy {
 
   // Chains an asynchronous operation on the operation chain's thread. This
   // involves the operation chain thread and an additional background thread.
-  std::unique_ptr<Event> PostAsynchronousOperation(
-      Event* unblock_operation_event) {
-    std::unique_ptr<Event> operation_complete_event = std::make_unique<Event>();
+  std::unique_ptr<webrtc::Event> PostAsynchronousOperation(
+      webrtc::Event* unblock_operation_event) {
+    std::unique_ptr<webrtc::Event> operation_complete_event =
+        std::make_unique<webrtc::Event>();
     operations_chain_thread_->PostTask(
         [this, unblock_operation_event,
          operation_complete_event_ptr = operation_complete_event.get()]() {
@@ -192,7 +194,7 @@ class OperationTrackerProxy {
   // The order of completed events. Touches the `operation_tracker_` on the
   // calling thread, this is only thread safe if all chained operations have
   // completed.
-  const std::vector<Event*>& completed_operation_events() const {
+  const std::vector<webrtc::Event*>& completed_operation_events() const {
     return operation_tracker_->completed_operation_events();
   }
 
@@ -237,16 +239,17 @@ class SignalOnDestruction final {
 
 TEST(OperationsChainTest, SynchronousOperation) {
   OperationTrackerProxy operation_tracker_proxy;
-  operation_tracker_proxy.Initialize()->Wait(Event::kForever);
+  operation_tracker_proxy.Initialize()->Wait(webrtc::Event::kForever);
 
-  operation_tracker_proxy.PostSynchronousOperation()->Wait(Event::kForever);
+  operation_tracker_proxy.PostSynchronousOperation()->Wait(
+      webrtc::Event::kForever);
 }
 
 TEST(OperationsChainTest, AsynchronousOperation) {
   OperationTrackerProxy operation_tracker_proxy;
-  operation_tracker_proxy.Initialize()->Wait(Event::kForever);
+  operation_tracker_proxy.Initialize()->Wait(webrtc::Event::kForever);
 
-  Event unblock_async_operation_event;
+  webrtc::Event unblock_async_operation_event;
   auto async_operation_completed_event =
       operation_tracker_proxy.PostAsynchronousOperation(
           &unblock_async_operation_event);
@@ -255,7 +258,7 @@ TEST(OperationsChainTest, AsynchronousOperation) {
       async_operation_completed_event->Wait(webrtc::TimeDelta::Zero()));
   // Unblock the operation and wait for it to complete.
   unblock_async_operation_event.Set();
-  async_operation_completed_event->Wait(Event::kForever);
+  async_operation_completed_event->Wait(webrtc::Event::kForever);
 }
 
 TEST(OperationsChainTest,
@@ -265,7 +268,7 @@ TEST(OperationsChainTest,
   // threads.
   scoped_refptr<OperationsChain> operations_chain = OperationsChain::Create();
   OperationTracker operation_tracker;
-  Event event0;
+  webrtc::Event event0;
   operations_chain->ChainOperation(
       operation_tracker.BindSynchronousOperation(&event0));
   // This should already be signaled. (If it wasn't, waiting wouldn't help,
@@ -273,7 +276,7 @@ TEST(OperationsChainTest,
   EXPECT_TRUE(event0.Wait(webrtc::TimeDelta::Zero()));
   // Chaining another operation should also execute immediately because the
   // chain should already be empty.
-  Event event1;
+  webrtc::Event event1;
   operations_chain->ChainOperation(
       operation_tracker.BindSynchronousOperation(&event1));
   EXPECT_TRUE(event1.Wait(webrtc::TimeDelta::Zero()));
@@ -281,9 +284,9 @@ TEST(OperationsChainTest,
 
 TEST(OperationsChainTest, AsynchronousOperationBlocksSynchronousOperation) {
   OperationTrackerProxy operation_tracker_proxy;
-  operation_tracker_proxy.Initialize()->Wait(Event::kForever);
+  operation_tracker_proxy.Initialize()->Wait(webrtc::Event::kForever);
 
-  Event unblock_async_operation_event;
+  webrtc::Event unblock_async_operation_event;
   auto async_operation_completed_event =
       operation_tracker_proxy.PostAsynchronousOperation(
           &unblock_async_operation_event);
@@ -293,7 +296,7 @@ TEST(OperationsChainTest, AsynchronousOperationBlocksSynchronousOperation) {
 
   unblock_async_operation_event.Set();
 
-  sync_operation_completed_event->Wait(Event::kForever);
+  sync_operation_completed_event->Wait(webrtc::Event::kForever);
   // The asynchronous avent should have blocked the synchronous event, meaning
   // this should already be signaled.
   EXPECT_TRUE(async_operation_completed_event->Wait(webrtc::TimeDelta::Zero()));
@@ -301,15 +304,15 @@ TEST(OperationsChainTest, AsynchronousOperationBlocksSynchronousOperation) {
 
 TEST(OperationsChainTest, OperationsAreExecutedInOrder) {
   OperationTrackerProxy operation_tracker_proxy;
-  operation_tracker_proxy.Initialize()->Wait(Event::kForever);
+  operation_tracker_proxy.Initialize()->Wait(webrtc::Event::kForever);
 
   // Chain a mix of asynchronous and synchronous operations.
-  Event operation0_unblock_event;
+  webrtc::Event operation0_unblock_event;
   auto operation0_completed_event =
       operation_tracker_proxy.PostAsynchronousOperation(
           &operation0_unblock_event);
 
-  Event operation1_unblock_event;
+  webrtc::Event operation1_unblock_event;
   auto operation1_completed_event =
       operation_tracker_proxy.PostAsynchronousOperation(
           &operation1_unblock_event);
@@ -320,7 +323,7 @@ TEST(OperationsChainTest, OperationsAreExecutedInOrder) {
   auto operation3_completed_event =
       operation_tracker_proxy.PostSynchronousOperation();
 
-  Event operation4_unblock_event;
+  webrtc::Event operation4_unblock_event;
   auto operation4_completed_event =
       operation_tracker_proxy.PostAsynchronousOperation(
           &operation4_unblock_event);
@@ -328,7 +331,7 @@ TEST(OperationsChainTest, OperationsAreExecutedInOrder) {
   auto operation5_completed_event =
       operation_tracker_proxy.PostSynchronousOperation();
 
-  Event operation6_unblock_event;
+  webrtc::Event operation6_unblock_event;
   auto operation6_completed_event =
       operation_tracker_proxy.PostAsynchronousOperation(
           &operation6_unblock_event);
@@ -341,13 +344,13 @@ TEST(OperationsChainTest, OperationsAreExecutedInOrder) {
   operation0_unblock_event.Set();
   // Await all operations. The await-order shouldn't matter since they all get
   // executed eventually.
-  operation0_completed_event->Wait(Event::kForever);
-  operation1_completed_event->Wait(Event::kForever);
-  operation2_completed_event->Wait(Event::kForever);
-  operation3_completed_event->Wait(Event::kForever);
-  operation4_completed_event->Wait(Event::kForever);
-  operation5_completed_event->Wait(Event::kForever);
-  operation6_completed_event->Wait(Event::kForever);
+  operation0_completed_event->Wait(webrtc::Event::kForever);
+  operation1_completed_event->Wait(webrtc::Event::kForever);
+  operation2_completed_event->Wait(webrtc::Event::kForever);
+  operation3_completed_event->Wait(webrtc::Event::kForever);
+  operation4_completed_event->Wait(webrtc::Event::kForever);
+  operation5_completed_event->Wait(webrtc::Event::kForever);
+  operation6_completed_event->Wait(webrtc::Event::kForever);
 
   EXPECT_THAT(
       operation_tracker_proxy.completed_operation_events(),
@@ -360,12 +363,12 @@ TEST(OperationsChainTest, OperationsAreExecutedInOrder) {
 
 TEST(OperationsChainTest, IsEmpty) {
   OperationTrackerProxy operation_tracker_proxy;
-  operation_tracker_proxy.Initialize()->Wait(Event::kForever);
+  operation_tracker_proxy.Initialize()->Wait(webrtc::Event::kForever);
 
   // The chain is initially empty.
   EXPECT_TRUE(operation_tracker_proxy.IsEmpty());
   // Chain a single event.
-  Event unblock_async_operation_event0;
+  webrtc::Event unblock_async_operation_event0;
   auto async_operation_completed_event0 =
       operation_tracker_proxy.PostAsynchronousOperation(
           &unblock_async_operation_event0);
@@ -373,15 +376,15 @@ TEST(OperationsChainTest, IsEmpty) {
   EXPECT_FALSE(operation_tracker_proxy.IsEmpty());
   // Completing the operation empties the chain.
   unblock_async_operation_event0.Set();
-  async_operation_completed_event0->Wait(Event::kForever);
+  async_operation_completed_event0->Wait(webrtc::Event::kForever);
   EXPECT_TRUE(operation_tracker_proxy.IsEmpty());
 
   // Chain multiple events.
-  Event unblock_async_operation_event1;
+  webrtc::Event unblock_async_operation_event1;
   auto async_operation_completed_event1 =
       operation_tracker_proxy.PostAsynchronousOperation(
           &unblock_async_operation_event1);
-  Event unblock_async_operation_event2;
+  webrtc::Event unblock_async_operation_event2;
   auto async_operation_completed_event2 =
       operation_tracker_proxy.PostAsynchronousOperation(
           &unblock_async_operation_event2);
@@ -389,25 +392,25 @@ TEST(OperationsChainTest, IsEmpty) {
   EXPECT_FALSE(operation_tracker_proxy.IsEmpty());
   // Upon completing the first event, the chain is still not empty.
   unblock_async_operation_event1.Set();
-  async_operation_completed_event1->Wait(Event::kForever);
+  async_operation_completed_event1->Wait(webrtc::Event::kForever);
   EXPECT_FALSE(operation_tracker_proxy.IsEmpty());
   // Completing the last event empties the chain.
   unblock_async_operation_event2.Set();
-  async_operation_completed_event2->Wait(Event::kForever);
+  async_operation_completed_event2->Wait(webrtc::Event::kForever);
   EXPECT_TRUE(operation_tracker_proxy.IsEmpty());
 }
 
 TEST(OperationsChainTest, OnChainEmptyCallback) {
   rtc::AutoThread main_thread;
   OperationTrackerProxy operation_tracker_proxy;
-  operation_tracker_proxy.Initialize()->Wait(Event::kForever);
+  operation_tracker_proxy.Initialize()->Wait(webrtc::Event::kForever);
 
   std::atomic<size_t> on_empty_callback_counter(0u);
   operation_tracker_proxy.SetOnChainEmptyCallback(
       [&on_empty_callback_counter] { ++on_empty_callback_counter; });
 
   // Chain a single event.
-  Event unblock_async_operation_event0;
+  webrtc::Event unblock_async_operation_event0;
   auto async_operation_completed_event0 =
       operation_tracker_proxy.PostAsynchronousOperation(
           &unblock_async_operation_event0);
@@ -415,18 +418,18 @@ TEST(OperationsChainTest, OnChainEmptyCallback) {
   EXPECT_EQ(0u, on_empty_callback_counter);
   // Completing the operation empties the chain, invoking the callback.
   unblock_async_operation_event0.Set();
-  async_operation_completed_event0->Wait(Event::kForever);
+  async_operation_completed_event0->Wait(webrtc::Event::kForever);
   EXPECT_THAT(
       webrtc::WaitUntil([&] { return on_empty_callback_counter == 1u; },
                         ::testing::IsTrue(), {.timeout = kDefaultTimeout}),
       webrtc::IsRtcOk());
 
   // Chain multiple events.
-  Event unblock_async_operation_event1;
+  webrtc::Event unblock_async_operation_event1;
   auto async_operation_completed_event1 =
       operation_tracker_proxy.PostAsynchronousOperation(
           &unblock_async_operation_event1);
-  Event unblock_async_operation_event2;
+  webrtc::Event unblock_async_operation_event2;
   auto async_operation_completed_event2 =
       operation_tracker_proxy.PostAsynchronousOperation(
           &unblock_async_operation_event2);
@@ -438,14 +441,14 @@ TEST(OperationsChainTest, OnChainEmptyCallback) {
   // Upon completing the first event, the chain is still not empty, so the
   // callback must not be invoked yet.
   unblock_async_operation_event1.Set();
-  async_operation_completed_event1->Wait(Event::kForever);
+  async_operation_completed_event1->Wait(webrtc::Event::kForever);
   EXPECT_THAT(
       webrtc::WaitUntil([&] { return on_empty_callback_counter == 1u; },
                         ::testing::IsTrue(), {.timeout = kDefaultTimeout}),
       webrtc::IsRtcOk());
   // Completing the last event empties the chain, invoking the callback.
   unblock_async_operation_event2.Set();
-  async_operation_completed_event2->Wait(Event::kForever);
+  async_operation_completed_event2->Wait(webrtc::Event::kForever);
   EXPECT_THAT(
       webrtc::WaitUntil([&] { return on_empty_callback_counter == 2u; },
                         ::testing::IsTrue(), {.timeout = kDefaultTimeout}),
@@ -455,19 +458,20 @@ TEST(OperationsChainTest, OnChainEmptyCallback) {
 TEST(OperationsChainTest,
      SafeToReleaseReferenceToOperationChainWhileOperationIsPending) {
   OperationTrackerProxy operation_tracker_proxy;
-  operation_tracker_proxy.Initialize()->Wait(Event::kForever);
+  operation_tracker_proxy.Initialize()->Wait(webrtc::Event::kForever);
 
-  Event unblock_async_operation_event;
+  webrtc::Event unblock_async_operation_event;
   auto async_operation_completed_event =
       operation_tracker_proxy.PostAsynchronousOperation(
           &unblock_async_operation_event);
 
   // Pending operations keep the OperationChain alive, making it safe for the
   // test to release any references before unblocking the async operation.
-  operation_tracker_proxy.ReleaseOperationChain()->Wait(Event::kForever);
+  operation_tracker_proxy.ReleaseOperationChain()->Wait(
+      webrtc::Event::kForever);
 
   unblock_async_operation_event.Set();
-  async_operation_completed_event->Wait(Event::kForever);
+  async_operation_completed_event->Wait(webrtc::Event::kForever);
 }
 
 TEST(OperationsChainTest, FunctorIsNotDestroyedWhileExecuting) {

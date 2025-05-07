@@ -158,7 +158,7 @@ TEST_P(SimulatedRealTimeControllerConformanceTest,
   // Tasks on thread have to be executed in order in which they were
   // posted/invoked.
   ExecutionOrderKeeper execution_order;
-  rtc::Event event;
+  Event event;
   task_queue->PostTask([&]() { execution_order.Executed(1); });
   task_queue->PostTask([&]() {
     execution_order.Executed(2);

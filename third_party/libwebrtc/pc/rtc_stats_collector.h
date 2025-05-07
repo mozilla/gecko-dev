@@ -277,7 +277,7 @@ class RTCStatsCollector : public RefCountInterface {
   // This is reset before async-invoking ProducePartialResultsOnNetworkThread()
   // and set when ProducePartialResultsOnNetworkThread() is complete, after it
   // has updated the value of `network_report_`.
-  rtc::Event network_report_event_;
+  Event network_report_event_;
 
   // Cleared and set in `PrepareTransceiverStatsInfosAndCallStats_s_w_n`,
   // starting out on the signaling thread, then network. Later read on the

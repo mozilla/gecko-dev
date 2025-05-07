@@ -495,7 +495,7 @@ class RtpReplayer final {
         rtp_reader_(CreateRtpReader(rtp_dump_path_)) {
     worker_thread_ = env_.task_queue_factory().CreateTaskQueue(
         "worker_thread", TaskQueueFactory::Priority::NORMAL);
-    rtc::Event event;
+    Event event;
     worker_thread_->PostTask([&]() {
       call_ = Call::Create(CallConfig(env_));
 
@@ -517,7 +517,7 @@ class RtpReplayer final {
   ~RtpReplayer() {
     // Destruction of streams and the call must happen on the same thread as
     // their creation.
-    rtc::Event event;
+    Event event;
     worker_thread_->PostTask([&]() {
       for (const auto& receive_stream : stream_state_->receive_streams) {
         call_->DestroyVideoReceiveStream(receive_stream);
@@ -532,7 +532,7 @@ class RtpReplayer final {
   }
 
   void Run() {
-    rtc::Event event;
+    Event event;
     worker_thread_->PostTask([&]() {
       // Start replaying the provided stream now that it has been configured.
       // VideoReceiveStreams must be started on the same thread as they were
@@ -582,7 +582,7 @@ class RtpReplayer final {
     int64_t replay_start_ms = -1;
     int num_packets = 0;
     std::map<uint32_t, int> unknown_packets;
-    rtc::Event event(/*manual_reset=*/false, /*initially_signalled=*/false);
+    Event event(/*manual_reset=*/false, /*initially_signalled=*/false);
     uint32_t start_timestamp = absl::GetFlag(FLAGS_start_timestamp);
     uint32_t stop_timestamp = absl::GetFlag(FLAGS_stop_timestamp);
 

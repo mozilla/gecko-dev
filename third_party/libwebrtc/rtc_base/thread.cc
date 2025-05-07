@@ -752,10 +752,10 @@ void Thread::BlockingCallImpl(webrtc::FunctionView<void()> functor,
   }
 #endif
 
-  Event done;
+  webrtc::Event done;
   absl::Cleanup cleanup = [&done] { done.Set(); };
   PostTask([functor, cleanup = std::move(cleanup)] { functor(); });
-  done.Wait(Event::kForever);
+  done.Wait(webrtc::Event::kForever);
 }
 
 // Called by the ThreadManager when being set as the current thread.

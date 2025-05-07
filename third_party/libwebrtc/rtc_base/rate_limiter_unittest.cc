@@ -123,8 +123,8 @@ class ThreadTask {
   virtual void DoRun() = 0;
 
   RateLimiter* const rate_limiter_;
-  rtc::Event start_signal_;
-  rtc::Event end_signal_;
+  Event start_signal_;
+  Event end_signal_;
 };
 
 TEST_F(RateLimitTest, MultiThreadedUsage) {

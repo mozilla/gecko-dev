@@ -88,7 +88,7 @@ TEST_F(SsrcEndToEndTest, UnknownRtpPacketTriggersUndemuxablePacketHandler) {
     void DeliverRtcpPacket(rtc::CopyOnWriteBuffer packet) override {}
 
     PacketReceiver* receiver_;
-    rtc::Event undemuxable_packet_handler_triggered_;
+    Event undemuxable_packet_handler_triggered_;
   };
 
   std::unique_ptr<test::DirectTransport> send_transport;

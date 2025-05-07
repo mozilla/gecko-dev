@@ -348,8 +348,8 @@ TEST_F(NetworkStateEndToEndTest, RespectsNetworkState) {
     TaskQueueBase* const e2e_test_task_queue_;
     std::unique_ptr<TaskQueueBase, TaskQueueDeleter> task_queue_;
     Mutex test_mutex_;
-    rtc::Event encoded_frames_;
-    rtc::Event packet_event_;
+    Event encoded_frames_;
+    Event packet_event_;
     Call* sender_call_;
     Call* receiver_call_;
     test::VideoEncoderProxyFactory encoder_factory_;

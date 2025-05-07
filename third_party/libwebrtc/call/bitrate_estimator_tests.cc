@@ -104,7 +104,7 @@ class LogObserver {
     Mutex mutex_;
     Strings received_log_lines_ RTC_GUARDED_BY(mutex_);
     Strings expected_log_lines_ RTC_GUARDED_BY(mutex_);
-    rtc::Event done_;
+    Event done_;
   };
 
   Callback callback_;
