@@ -263,3 +263,40 @@ private fun SerializableAttachment.toAttachment(): Attachment {
         size = this.size,
     )
 }
+
+/**
+ * Enum class representing the Remote Settings server that the client should use.
+ */
+sealed class RemoteSettingsServer {
+    /**
+     * Object representing Production RemoteSettingsServer
+     */
+    object Prod : RemoteSettingsServer()
+
+    /**
+     * Object representing Stage RemoteSettingsServer
+     */
+    object Stage : RemoteSettingsServer()
+
+    /**
+     * Object representing Dev RemoteSettingsServer
+     */
+    object Dev : RemoteSettingsServer()
+
+    /**
+     * Object representing Custom RemoteSettingsServer
+     */
+    data class Custom(val url: String) : RemoteSettingsServer()
+}
+
+/**
+ * Convert [RemoteSettingsServer] into [mozilla.appservices.remotesettings.RemoteSettingsServer].
+ */
+fun RemoteSettingsServer.into(): mozilla.appservices.remotesettings.RemoteSettingsServer {
+    return when (this) {
+        RemoteSettingsServer.Dev -> mozilla.appservices.remotesettings.RemoteSettingsServer.Dev
+        RemoteSettingsServer.Stage -> mozilla.appservices.remotesettings.RemoteSettingsServer.Stage
+        RemoteSettingsServer.Prod -> mozilla.appservices.remotesettings.RemoteSettingsServer.Prod
+        is RemoteSettingsServer.Custom -> mozilla.appservices.remotesettings.RemoteSettingsServer.Custom(this.url)
+    }
+}

@@ -52,3 +52,23 @@ private fun generateAppContext(context: Context, channel: String, isLargeScreenS
         country = locale.country,
     )
 }
+
+/**
+ * Data class representing the RemoteSettingsConfig2 in appservices.
+ */
+data class RemoteSettingsServerConfig(
+    var server: RemoteSettingsServer? = null,
+    var bucketName: String? = null,
+    var appContext: RemoteSettingsContext? = null,
+)
+
+/**
+ * Convert [mozilla.components.support.remotesettings.RemoteSettingsServerConfig] into [RemoteSettingsConfig2].
+ */
+fun mozilla.components.support.remotesettings.RemoteSettingsServerConfig.into(): RemoteSettingsConfig2 {
+    return RemoteSettingsConfig2(
+        this.server,
+        this.bucketName,
+        this.appContext,
+    )
+}

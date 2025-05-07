@@ -7,11 +7,11 @@ package mozilla.components.feature.search.storage
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import mozilla.appservices.search.RefinedSearchConfig
-import mozilla.appservices.search.SearchApplicationName
-import mozilla.appservices.search.SearchDeviceType
-import mozilla.appservices.search.SearchEngineSelector
-import mozilla.appservices.search.SearchUpdateChannel
 import mozilla.components.browser.state.search.RegionState
+import mozilla.components.feature.search.SearchApplicationName
+import mozilla.components.feature.search.SearchDeviceType
+import mozilla.components.feature.search.SearchEngineSelector
+import mozilla.components.feature.search.SearchUpdateChannel
 import mozilla.components.feature.search.icons.SearchConfigIconsModel
 import mozilla.components.feature.search.icons.SearchConfigIconsUpdateService
 import mozilla.components.feature.search.middleware.SearchExtraParams

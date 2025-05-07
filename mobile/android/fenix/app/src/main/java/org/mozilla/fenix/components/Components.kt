@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.NotificationManagerCompat
 import com.google.android.play.core.review.ReviewManagerFactory
-import mozilla.appservices.remotesettings.RemoteSettingsServer
 import mozilla.components.feature.addons.AddonManager
 import mozilla.components.feature.addons.amo.AMOAddonsProvider
 import mozilla.components.feature.addons.migration.DefaultSupportedAddonsChecker
@@ -23,7 +22,9 @@ import mozilla.components.lib.publicsuffixlist.PublicSuffixList
 import mozilla.components.support.base.android.NotificationsDelegate
 import mozilla.components.support.base.worker.Frequency
 import mozilla.components.support.remotesettings.DefaultRemoteSettingsSyncScheduler
+import mozilla.components.support.remotesettings.RemoteSettingsServer
 import mozilla.components.support.remotesettings.RemoteSettingsService
+import mozilla.components.support.remotesettings.into
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.FeatureFlags
@@ -286,9 +287,9 @@ class Components(private val context: Context) {
         RemoteSettingsService(
             context,
             if (context.settings().useProductionRemoteSettingsServer) {
-                RemoteSettingsServer.Prod
+                RemoteSettingsServer.Prod.into()
             } else {
-                RemoteSettingsServer.Stage
+                RemoteSettingsServer.Stage.into()
             },
             channel = BuildConfig.BUILD_TYPE,
             // Need to send this value separately, since `isLargeScreenSize()` is a fenix extension

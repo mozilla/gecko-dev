@@ -6,16 +6,17 @@ package mozilla.components.feature.search.storage
 
 import mozilla.appservices.search.RefinedSearchConfig
 import mozilla.appservices.search.SearchApiException
-import mozilla.appservices.search.SearchApplicationName
-import mozilla.appservices.search.SearchDeviceType
-import mozilla.appservices.search.SearchEngineSelector
-import mozilla.appservices.search.SearchUpdateChannel
 import mozilla.appservices.search.SearchUserEnvironment
 import mozilla.components.browser.state.search.RegionState
 import mozilla.components.browser.state.search.SearchEngine
+import mozilla.components.feature.search.SearchApplicationName
+import mozilla.components.feature.search.SearchDeviceType
+import mozilla.components.feature.search.SearchEngineSelector
+import mozilla.components.feature.search.SearchUpdateChannel
 import mozilla.components.feature.search.icons.AttachmentModel
 import mozilla.components.feature.search.icons.SearchConfigIconsModel
 import mozilla.components.feature.search.icons.SearchConfigIconsUpdateService
+import mozilla.components.feature.search.into
 import mozilla.components.feature.search.middleware.SearchExtraParams
 import mozilla.components.feature.search.middleware.SearchMiddleware
 import mozilla.components.support.base.log.logger.Logger
@@ -65,10 +66,10 @@ class SearchEngineSelectorRepository(
                 region = region.toString(),
                 experiment = searchEngineSelectorConfig.experiment,
                 version = searchEngineSelectorConfig.appVersion,
-                updateChannel = searchEngineSelectorConfig.updateChannel,
+                updateChannel = searchEngineSelectorConfig.updateChannel.into(),
                 distributionId = distribution ?: "",
-                appName = searchEngineSelectorConfig.appName,
-                deviceType = searchEngineSelectorConfig.deviceType,
+                appName = searchEngineSelectorConfig.appName.into(),
+                deviceType = searchEngineSelectorConfig.deviceType.into(),
             )
             val searchConfig = searchEngineSelectorConfig.selector.filterEngineConfiguration(config)
 
