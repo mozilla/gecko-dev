@@ -19,7 +19,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
-import androidx.test.espresso.action.ViewActions.swipeUp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.MenuDialogTestTag.EXTENSIONS
 import org.mozilla.fenix.helpers.Constants.TAG

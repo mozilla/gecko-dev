@@ -77,11 +77,6 @@ class ToolbarView(
         view.apply {
             editMode()
 
-            if (context.settings().navigationToolbarEnabled) {
-                val toolbarPadding = context.resources.getDimensionPixelSize(R.dimen.toolbar_horizontal_margin_end)
-                setPadding(toolbarPadding, 0, toolbarPadding, 0)
-            }
-
             setOnUrlCommitListener {
                 // We're hiding the keyboard as early as possible to prevent the engine view
                 // from resizing in case the BrowserFragment is being displayed before the

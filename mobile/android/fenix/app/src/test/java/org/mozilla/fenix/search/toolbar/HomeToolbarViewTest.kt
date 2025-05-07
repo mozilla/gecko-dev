@@ -152,7 +152,6 @@ class HomeToolbarViewTest {
         every { context.settings().showUnifiedSearchFeature } returns true
         every { context.settings().shouldShowHistorySuggestions } returns true
         every { context.settings().shouldShowBookmarkSuggestions } returns true
-        every { context.settings().navigationToolbarEnabled } returns false
         every { context.settings().shouldAutocompleteInAwesomebar } returns false
         val view = buildToolbarView(false)
         mockkObject(FeatureFlags)
@@ -169,7 +168,6 @@ class HomeToolbarViewTest {
         every { context.settings().showUnifiedSearchFeature } returns true
         every { context.settings().shouldShowHistorySuggestions } returns true
         every { context.settings().shouldShowBookmarkSuggestions } returns true
-        every { context.settings().navigationToolbarEnabled } returns false
         val view = buildToolbarView(false)
         mockkObject(FeatureFlags)
 

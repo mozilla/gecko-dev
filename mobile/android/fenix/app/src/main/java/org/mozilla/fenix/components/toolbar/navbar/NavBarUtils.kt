@@ -13,15 +13,6 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.ext.settings
 
 /**
- * Returns true if navigation bar should be displayed. The returned value depends on the feature state, as well as the
- * device type and orientation – we don't show the navigation bar for tablets, landscape or when tab strip is enabled.
- * NB: don't use it with the app context – it doesn't get recreated when a foldable changes its modes.
- */
-fun Context.shouldAddNavigationBar(
-    isWindowSmall: Boolean = AcornWindowSize.getWindowSize(this) == AcornWindowSize.Small,
-) = settings().navigationToolbarEnabled && isWindowSmall
-
-/**
  *
  * Manages the state of the NavBar upon an orientation change.
  *

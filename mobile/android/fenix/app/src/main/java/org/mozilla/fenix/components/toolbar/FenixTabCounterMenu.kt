@@ -10,10 +10,9 @@ import mozilla.components.concept.menu.candidate.DividerMenuCandidate
 import mozilla.components.concept.menu.candidate.MenuCandidate
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
-import org.mozilla.fenix.ext.settings
 
 class FenixTabCounterMenu(
-    private val context: Context,
+    context: Context,
     onItemTapped: (Item) -> Unit,
     iconColor: Int? = null,
 ) : TabCounterMenu(context, onItemTapped, iconColor) {
@@ -32,7 +31,6 @@ class FenixTabCounterMenu(
     @VisibleForTesting
     internal fun menuItems(
         toolbarPosition: ToolbarPosition,
-        isNavBarEnabled: Boolean = context.settings().navigationToolbarEnabled,
     ): List<MenuCandidate> {
         val items = listOf(
             newTabItem,
@@ -40,10 +38,6 @@ class FenixTabCounterMenu(
             DividerMenuCandidate(),
             closeTabItem,
         )
-
-        if (isNavBarEnabled) {
-            return items
-        }
 
         return when (toolbarPosition) {
             ToolbarPosition.BOTTOM -> items.reversed()

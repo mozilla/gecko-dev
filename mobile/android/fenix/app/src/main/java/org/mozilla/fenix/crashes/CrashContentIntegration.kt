@@ -140,7 +140,7 @@ class CrashContentIntegration(
         with(layoutParams as MarginLayoutParams) {
             val includeTabStrip = sessionId == null && context.isTabStripEnabled()
             topMargin = settings.getTopToolbarHeight(includeTabStrip)
-            bottomMargin = settings.getBottomToolbarHeight(context)
+            bottomMargin = settings.getBottomToolbarHeight()
         }
     }
 }

@@ -18,12 +18,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -32,7 +29,6 @@ import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.fragment.app.setFragmentResultListener
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
@@ -53,7 +49,6 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import mozilla.components.browser.menu.view.MenuButton
 import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.state.BrowserState
@@ -62,7 +57,6 @@ import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.cfr.CFRPopup
-import mozilla.components.compose.cfr.CFRPopupLayout
 import mozilla.components.compose.cfr.CFRPopupProperties
 import mozilla.components.concept.sync.AccountObserver
 import mozilla.components.concept.sync.AuthType
@@ -75,19 +69,15 @@ import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
-import mozilla.components.ui.tabcounter.TabCounterMenu
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.GleanMetrics.HomeScreen
 import org.mozilla.fenix.GleanMetrics.Homepage
-import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.HomeActivity
-import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.addons.showSnackBar
 import org.mozilla.fenix.biometricauthentication.AuthenticationStatus
 import org.mozilla.fenix.biometricauthentication.BiometricAuthenticationManager
-import org.mozilla.fenix.browser.BrowserAnimator
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.tabstrip.TabStrip
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
@@ -98,12 +88,7 @@ import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAct
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction
 import org.mozilla.fenix.components.components
-import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerView
-import org.mozilla.fenix.components.toolbar.FenixTabCounterMenu
-import org.mozilla.fenix.components.toolbar.navbar.HomeNavBar
-import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
-import org.mozilla.fenix.components.toolbar.navbar.updateNavBarForConfigurationChange
 import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.databinding.FragmentHomeBinding
@@ -166,7 +151,6 @@ import org.mozilla.fenix.tabstray.TabsTrayAccessPoint
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.utils.allowUndo
 import org.mozilla.fenix.wallpapers.Wallpaper
-import java.lang.ref.WeakReference
 import org.mozilla.fenix.GleanMetrics.TabStrip as TabStripMetrics
 
 @Suppress("TooManyFunctions", "LargeClass")
@@ -277,10 +261,6 @@ class HomeFragment : Fragment() {
         bundleArgs = args.toBundle()
         if (savedInstanceState != null) {
             bundleArgs.putBoolean(FOCUS_ON_ADDRESS_BAR, false)
-        }
-
-        setFragmentResultListener(SearchDialogFragment.SEARCH_VISIBILITY_RESPONSE_KEY) { _, _ ->
-            resetNavbar()
         }
 
         // DO NOT MOVE ANYTHING BELOW THIS addMarker CALL!
@@ -617,40 +597,13 @@ class HomeFragment : Fragment() {
             )
         }
 
-    private fun reinitializeNavBar() {
-        initializeNavBar(
-            activity = requireActivity() as HomeActivity,
-            isConfigChange = true,
-        )
-    }
-
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
 
         (toolbarView as? HomeToolbarView)?.dismissMenu()
 
-        // If the navbar feature could be visible, we should update it's state.
-        val shouldUpdateNavBarState =
-            requireContext().settings().navigationToolbarEnabled
-        if (shouldUpdateNavBarState) {
-            updateNavBarForConfigurationChange(
-                context = requireContext(),
-                parent = binding.homeLayout,
-                toolbarView = toolbarView.layout,
-                bottomToolbarContainerView = _bottomToolbarContainerView?.toolbarContainerView,
-                reinitializeNavBar = ::reinitializeNavBar,
-                reinitializeMicrosurveyPrompt = { initializeMicrosurveyPrompt() },
-            )
-            context?.shouldAddNavigationBar()?.let {
-                toolbarView.updateButtonVisibility(
-                    requireComponents.core.store.state,
-                    it,
-                )
-            }
-        }
-
         // If the microsurvey feature is visible, we should update it's state.
-        if (shouldShowMicrosurveyPrompt(requireContext()) && !shouldUpdateNavBarState) {
+        if (shouldShowMicrosurveyPrompt(requireContext())) {
             updateMicrosurveyPromptForConfigurationChange(
                 parent = binding.homeLayout,
                 bottomToolbarContainerView = _bottomToolbarContainerView?.toolbarContainerView,
@@ -664,228 +617,6 @@ class HomeFragment : Fragment() {
             orientationChange = true,
             orientation = newConfig.orientation,
         )
-    }
-
-    @Suppress("LongMethod", "ComplexMethod")
-    private fun initializeNavBar(
-        activity: HomeActivity,
-        isConfigChange: Boolean = false,
-    ) {
-        NavigationBar.homeInitializeTimespan.start()
-
-        val context = requireContext()
-        val isToolbarAtBottom = context.isToolbarAtBottom()
-
-        // The toolbar view has already been added directly to the container.
-        // We should remove it and add the view to the navigation bar container.
-        // Should refactor this so there is no added view to remove to begin with:
-        // https://bugzilla.mozilla.org/show_bug.cgi?id=1870976
-        if (isToolbarAtBottom) {
-            binding.root.removeView(toolbarView.layout)
-        }
-
-        val menuButton = MenuButton(context)
-        menuButton.recordClickEvent = { NavigationBar.homeMenuTapped.record(NoExtras()) }
-        HomeMenuView(
-            context = context,
-            lifecycleOwner = viewLifecycleOwner,
-            homeActivity = activity,
-            navController = findNavController(),
-            homeFragment = this,
-            menuButton = WeakReference(menuButton),
-        ).also { it.build() }
-
-        _bottomToolbarContainerView = BottomToolbarContainerView(
-            context = context,
-            parent = binding.homeLayout,
-            hideOnScroll = false,
-            content = {
-                val searchFragmentAlreadyAdded = parentFragmentManager.fragments.any { it is SearchDialogFragment }
-                val searchFragmentShouldBeAdded = !isConfigChange && bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR)
-                val isSearchActive = searchFragmentAlreadyAdded || searchFragmentShouldBeAdded
-
-                FirefoxTheme {
-                    Column {
-                        val shouldShowNavBarCFR =
-                            context.shouldAddNavigationBar() && context.settings().shouldShowNavigationBarCFR
-                        val shouldShowMicrosurveyPrompt = !activity.isMicrosurveyPromptDismissed.value
-                        var isMicrosurveyShown = false
-
-                        if (!isSearchActive && shouldShowMicrosurveyPrompt && !shouldShowNavBarCFR) {
-                            currentMicrosurvey
-                                ?.let {
-                                    isMicrosurveyShown = true
-                                    if (isToolbarAtBottom) {
-                                        updateToolbarViewUIForMicrosurveyPrompt()
-                                    }
-
-                                    Divider()
-
-                                    MicrosurveyRequestPrompt(
-                                        microsurvey = it,
-                                        activity = activity,
-                                        onStartSurveyClicked = {
-                                            context.components.appStore.dispatch(
-                                                MicrosurveyAction.Started(it.id),
-                                            )
-                                            findNavController().nav(
-                                                R.id.homeFragment,
-                                                HomeFragmentDirections.actionGlobalMicrosurveyDialog(it.id),
-                                            )
-                                        },
-                                        onCloseButtonClicked = {
-                                            context.components.appStore.dispatch(
-                                                MicrosurveyAction.Dismissed(it.id),
-                                            )
-                                            context.settings().shouldShowMicrosurveyPrompt = false
-                                            activity.isMicrosurveyPromptDismissed.value = true
-
-                                            resetToolbarViewUI()
-                                            reinitializeNavBar()
-                                        },
-                                    )
-                                }
-                        } else {
-                            toolbarView.updateDividerVisibility(true)
-                        }
-
-                        if (isToolbarAtBottom) {
-                            AndroidView(factory = { _ -> toolbarView.layout })
-                        }
-
-                        val showCFR = !isSearchActive &&
-                            homeScreenPopupManager.get()?.navBarCFRVisibility?.collectAsState()?.value ?: false
-
-                        CFRPopupLayout(
-                            showCFR = showCFR,
-                            properties = CFRPopupProperties(
-                                popupBodyColors = listOf(
-                                    FirefoxTheme.colors.layerGradientEnd.toArgb(),
-                                    FirefoxTheme.colors.layerGradientStart.toArgb(),
-                                ),
-                                dismissButtonColor = FirefoxTheme.colors.iconOnColor.toArgb(),
-                                indicatorDirection = CFRPopup.IndicatorDirection.DOWN,
-                                popupVerticalOffset = 10.dp,
-                                indicatorArrowStartOffset = 130.dp,
-                            ),
-                            onCFRShown = { NavigationBar.navigationBarCfrShown.record(NoExtras()) },
-                            onDismiss = {
-                                NavigationBar.navigationBarCfrDismissed.record(NoExtras())
-                                homeScreenPopupManager.get()?.setNavbarCFRShown(true)
-                            },
-                            title = {
-                                FirefoxTheme {
-                                    Text(
-                                        text = stringResource(R.string.navbar_cfr_title),
-                                        color = FirefoxTheme.colors.textOnColorPrimary,
-                                        style = FirefoxTheme.typography.subtitle2,
-                                    )
-                                }
-                            },
-                            text = {
-                                FirefoxTheme {
-                                    Text(
-                                        text = stringResource(R.string.navbar_cfr_message_2),
-                                        color = FirefoxTheme.colors.textOnColorPrimary,
-                                        style = FirefoxTheme.typography.body2,
-                                    )
-                                }
-                            },
-                        ) {
-                            val tabCounterMenu = lazy {
-                                FenixTabCounterMenu(
-                                    context = context,
-                                    onItemTapped = { item ->
-                                        if (item is TabCounterMenu.Item.NewTab) {
-                                            browsingModeManager.mode = BrowsingMode.Normal
-                                            val directions =
-                                                NavGraphDirections.actionGlobalSearchDialog(
-                                                    sessionId = null,
-                                                )
-
-                                            findNavController().nav(
-                                                findNavController().currentDestination?.id,
-                                                directions,
-                                                BrowserAnimator.getToolbarNavOptions(activity),
-                                            )
-                                        } else if (item is TabCounterMenu.Item.NewPrivateTab) {
-                                            browsingModeManager.mode = BrowsingMode.Private
-                                            val directions =
-                                                NavGraphDirections.actionGlobalSearchDialog(
-                                                    sessionId = null,
-                                                )
-
-                                            findNavController().nav(
-                                                findNavController().currentDestination?.id,
-                                                directions,
-                                                BrowserAnimator.getToolbarNavOptions(activity),
-                                            )
-                                        }
-                                    },
-                                    iconColor = when (activity.browsingModeManager.mode.isPrivate) {
-                                        true -> getColor(context, R.color.fx_mobile_private_icon_color_primary)
-
-                                        else -> null
-                                    },
-                                ).also {
-                                    it.updateMenu()
-                                }
-                            }
-
-                            if (!isSearchActive) {
-                                HomeNavBar(
-                                    isPrivateMode = activity.browsingModeManager.mode.isPrivate,
-                                    showDivider = !isMicrosurveyShown && !isToolbarAtBottom,
-                                    browserStore = context.components.core.store,
-                                    appStore = context.components.appStore,
-                                    menuButton = menuButton,
-                                    tabsCounterMenu = tabCounterMenu,
-                                    onSearchButtonClick = {
-                                        NavigationBar.homeSearchTapped.record(NoExtras())
-                                        val directions =
-                                            NavGraphDirections.actionGlobalSearchDialog(
-                                                sessionId = null,
-                                            )
-
-                                        findNavController().nav(
-                                            findNavController().currentDestination?.id,
-                                            directions,
-                                            BrowserAnimator.getToolbarNavOptions(activity),
-                                        )
-                                    },
-                                    onTabsButtonClick = {
-                                        NavigationBar.homeTabTrayTapped.record(NoExtras())
-                                        findNavController().nav(
-                                            findNavController().currentDestination?.id,
-                                            NavGraphDirections.actionGlobalTabsTrayFragment(
-                                                page = when (browsingModeManager.mode) {
-                                                    BrowsingMode.Normal -> Page.NormalTabs
-                                                    BrowsingMode.Private -> Page.PrivateTabs
-                                                },
-                                            ),
-                                        )
-                                    },
-                                    onTabsButtonLongPress = {
-                                        NavigationBar.homeTabTrayLongTapped.record(NoExtras())
-                                    },
-                                    onMenuButtonClick = {
-                                        NavigationBar.homeMenuTapped.record(NoExtras())
-                                        findNavController().nav(
-                                            findNavController().currentDestination?.id,
-                                            HomeFragmentDirections.actionGlobalMenuDialogFragment(
-                                                accesspoint = MenuAccessPoint.Home,
-                                            ),
-                                        )
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-        )
-
-        NavigationBar.homeInitializeTimespan.stop()
     }
 
     private fun showEncourageSearchCfr() {
@@ -939,7 +670,6 @@ class HomeFragment : Fragment() {
 
         val isToolbarAtTheBottom = context.isToolbarAtBottom()
         // The toolbar view has already been added directly to the container.
-        // See initializeNavBar for more details on improving this.
         if (isToolbarAtTheBottom) {
             binding.root.removeView(toolbarView.layout)
         }
@@ -951,11 +681,9 @@ class HomeFragment : Fragment() {
                 FirefoxTheme {
                     Column {
                         val activity = requireActivity() as HomeActivity
-                        val shouldShowNavBarCFR =
-                            context.shouldAddNavigationBar() && context.settings().shouldShowNavigationBarCFR
                         val shouldShowMicrosurveyPrompt = !activity.isMicrosurveyPromptDismissed.value
 
-                        if (shouldShowMicrosurveyPrompt && !shouldShowNavBarCFR) {
+                        if (shouldShowMicrosurveyPrompt) {
                             currentMicrosurvey
                                 ?.let {
                                     if (isToolbarAtTheBottom) {
@@ -1004,30 +732,13 @@ class HomeFragment : Fragment() {
     }
 
     private fun resetToolbarViewUI() {
-        val elevation = if (context?.settings()?.navigationToolbarEnabled == true) {
-            0f
-        } else {
-            requireContext().resources.getDimension(R.dimen.browser_fragment_toolbar_elevation)
-        }
+        val elevation = requireContext().resources.getDimension(R.dimen.browser_fragment_toolbar_elevation)
         _binding?.homeLayout?.removeView(bottomToolbarContainerView.toolbarContainerView)
         updateToolbarViewUI(
             R.drawable.home_bottom_bar_background,
             true,
             elevation,
         )
-    }
-
-    /**
-     * Build and show a new navbar.
-     * Useful when needed to force an update of it's layout.
-     */
-    private fun resetNavbar() {
-        val safeContext = context ?: return
-        if (!safeContext.shouldAddNavigationBar()) return
-
-        // Prevent showing two navigation bars at the same time.
-        binding.root.removeView(bottomToolbarContainerView.toolbarContainerView)
-        reinitializeNavBar()
     }
 
     private fun updateToolbarViewUI(@DrawableRes id: Int, showDivider: Boolean, elevation: Float) {
@@ -1049,14 +760,7 @@ class HomeFragment : Fragment() {
                         context.components.settings.shouldShowMicrosurveyPrompt = true
                         currentMicrosurvey = microsurvey
 
-                        if (context.shouldAddNavigationBar()) {
-                            _bottomToolbarContainerView?.toolbarContainerView.let {
-                                binding.homeLayout.removeView(it)
-                            }
-                            reinitializeNavBar()
-                        } else {
-                            initializeMicrosurveyPrompt()
-                        }
+                        initializeMicrosurveyPrompt()
                     }
                 }
             }
@@ -1143,17 +847,11 @@ class HomeFragment : Fragment() {
 
         homeScreenPopupManager.set(
             feature = HomeScreenPopupManager(
-                appStore = requireComponents.appStore,
                 settings = requireContext().settings(),
             ),
             owner = viewLifecycleOwner,
             view = binding.root,
         )
-
-        val shouldAddNavigationBar = requireContext().shouldAddNavigationBar()
-        if (shouldAddNavigationBar) {
-            initializeNavBar(activity as HomeActivity)
-        }
 
         toolbarView.build(requireComponents.core.store.state)
         if (requireContext().isTabStripEnabled()) {

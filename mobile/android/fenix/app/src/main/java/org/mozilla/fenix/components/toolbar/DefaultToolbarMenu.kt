@@ -74,7 +74,6 @@ open class DefaultToolbarMenu(
 
     private val shouldDeleteDataOnQuit = context.settings().shouldDeleteBrowsingDataOnQuit
     private val shouldUseBottomToolbar = context.settings().shouldUseBottomToolbar
-    private val shouldShowMenuToolbar = !context.settings().navigationToolbarEnabled
     private val shouldShowTopSites = context.settings().showTopSitesFeature
     private val accountManager = FenixAccountManager(context)
 
@@ -435,7 +434,7 @@ open class DefaultToolbarMenu(
     val coreMenuItems by lazy {
         val menuItems =
             listOfNotNull(
-                if (shouldUseBottomToolbar || !shouldShowMenuToolbar) null else menuToolbar,
+                if (shouldUseBottomToolbar) null else menuToolbar,
                 newTabItem,
                 BrowserMenuDivider(),
                 bookmarksItem,
@@ -462,7 +461,7 @@ open class DefaultToolbarMenu(
                 settingsItem,
                 if (shouldDeleteDataOnQuit) deleteDataOnQuit else null,
                 if (shouldUseBottomToolbar) BrowserMenuDivider() else null,
-                if (shouldUseBottomToolbar && shouldShowMenuToolbar) menuToolbar else null,
+                if (shouldUseBottomToolbar) menuToolbar else null,
             )
 
         registerForIsBookmarkedUpdates()

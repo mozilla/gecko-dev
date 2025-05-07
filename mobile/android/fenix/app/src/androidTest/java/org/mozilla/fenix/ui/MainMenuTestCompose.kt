@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.rule.ActivityTestRule
 import mozilla.components.concept.engine.utils.EngineReleaseChannel
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.IntentReceiverActivity
@@ -53,14 +54,13 @@ import org.mozilla.fenix.ui.robots.homeScreen
 import org.mozilla.fenix.ui.robots.mainMenuScreen
 import org.mozilla.fenix.ui.robots.navigationToolbar
 
+@Ignore("Bugzilla issue: https://bugzilla.mozilla.org/show_bug.cgi?id=1963618")
 class MainMenuTestCompose : TestSetup() {
     @get:Rule
     val composeTestRule =
         AndroidComposeTestRule(
             HomeActivityIntentTestRule(
                 skipOnboarding = true,
-                isNavigationToolbarEnabled = true,
-                isNavigationBarCFREnabled = false,
                 isMenuRedesignEnabled = true,
                 isMenuRedesignCFREnabled = false,
                 isPageLoadTranslationsPromptEnabled = false,

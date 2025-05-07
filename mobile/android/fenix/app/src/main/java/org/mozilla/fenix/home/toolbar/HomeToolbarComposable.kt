@@ -115,7 +115,6 @@ internal class HomeToolbarComposable(
 
     override fun updateButtonVisibility(
         browserState: BrowserState,
-        shouldAddNavigationBar: Boolean,
     ) {
         // To be added later
     }

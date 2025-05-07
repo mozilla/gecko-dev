@@ -259,7 +259,6 @@ class OnboardingFragment : Fragment() {
             },
             onFinish = {
                 onFinish(it)
-                disableNavBarCFRForNewUser()
                 enableSearchBarCFRForNewUser()
             },
             onImpression = {
@@ -383,10 +382,6 @@ class OnboardingFragment : Fragment() {
             id = R.id.onboardingFragment,
             directions = OnboardingFragmentDirections.actionHome(),
         )
-    }
-
-    private fun disableNavBarCFRForNewUser() {
-        requireContext().settings().shouldShowNavigationBarCFR = false
     }
 
     private fun enableSearchBarCFRForNewUser() {

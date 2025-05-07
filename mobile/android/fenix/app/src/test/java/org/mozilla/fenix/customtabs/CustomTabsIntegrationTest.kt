@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.customtabs
 
-import android.content.res.Configuration
 import android.view.View
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -28,8 +27,6 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.appstate.AppAction
-import org.mozilla.fenix.components.appstate.OrientationMode
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
@@ -88,34 +85,6 @@ class CustomTabsIntegrationTest {
         toolbar = spyk(toolbar)
         browserToolbarView.toolbar = toolbar
         every { activity.settings() } returns settings
-    }
-
-    @Test
-    fun `WHEN orientation state changes THEN updateToolbarLayout is called`() {
-        val integration = spyk(
-            CustomTabsIntegration(
-                context = testContext,
-                store = browserStore,
-                appStore = appStore,
-                interactor = mockk(),
-                useCases = mockk(),
-                browserToolbarView = browserToolbarView,
-                browserToolbar = toolbar,
-                sessionId = sessionId,
-                activity = activity,
-                isPrivate = false,
-                shouldReverseItems = false,
-                isSandboxCustomTab = false,
-                isMenuRedesignEnabled = false,
-                isNavBarEnabled = false,
-            ),
-        )
-
-        integration.start()
-        appStore.dispatch(AppAction.OrientationChange(orientation = OrientationMode.fromInteger(Configuration.ORIENTATION_LANDSCAPE)))
-        coroutinesTestRule.testDispatcher.scheduler.advanceUntilIdle()
-
-        verify { integration.updateToolbarLayout(any(), any(), any()) }
     }
 
     @Test
@@ -245,70 +214,14 @@ class CustomTabsIntegrationTest {
         verify(exactly = 2) { toolbar.removeNavigationAction(any()) }
     }
 
-    @Test
-    fun `GIVEN navigation bar is hidden WHEN updateOpenInAction is called THEN initOpenInAction is called`() {
-        val integration = spyk(getIntegration())
-
-        integration.updateOpenInAction(
-            isNavbarVisible = false,
-            context = testContext,
-        )
-
-        verify { integration.initOpenInAction(any(), any(), any()) }
-    }
-
-    @Test
-    fun `GIVEN navigation bar is visible WHEN updateOpenInAction is called THEN removeOpenInAction is called`() {
-        val integration = spyk(getIntegration())
-
-        integration.updateOpenInAction(
-            isNavbarVisible = true,
-            context = testContext,
-        )
-
-        verify { integration.removeOpenInAction() }
-    }
-
-    @Test
-    fun `GIVEN navigation bar is enabled  WHEN updateToolbarLayout is called THEN navigation, open in actions and menu are updated`() {
-        val toolbar: BrowserToolbar = mockk(relaxed = true)
-        val integration = spyk(getIntegration(toolbar))
-
-        integration.updateToolbarLayout(
-            context = testContext,
-            isNavBarEnabled = true,
-            isWindowSizeSmall = false,
-        )
-
-        verify { integration.updateAddressBarNavigationActions(any(), any()) }
-        verify { integration.updateOpenInAction(any(), any()) }
-        verify { browserToolbarView.updateMenuVisibility(any()) }
-    }
-
-    @Test
-    fun `GIVEN navigation bar is disabled  WHEN updateToolbarLayout is called THEN navigation, open in actions and menu updates do not happen`() {
-        val integration = spyk(getIntegration())
-        integration.updateToolbarLayout(
-            context = testContext,
-            isNavBarEnabled = false,
-            isWindowSizeSmall = false,
-        )
-
-        verify(exactly = 0) { integration.updateAddressBarNavigationActions(any(), any()) }
-        verify(exactly = 0) { integration.updateOpenInAction(any(), any()) }
-        verify(exactly = 0) { browserToolbarView.updateMenuVisibility(any()) }
-    }
-
     private fun getIntegration(
         toolbar: BrowserToolbar = this.toolbar,
     ): CustomTabsIntegration {
         return CustomTabsIntegration(
             context = testContext,
             store = browserStore,
-            appStore = appStore,
             interactor = mockk(),
             useCases = mockk(),
-            browserToolbarView = browserToolbarView,
             browserToolbar = toolbar,
             sessionId = sessionId,
             activity = activity,
@@ -316,7 +229,6 @@ class CustomTabsIntegrationTest {
             shouldReverseItems = false,
             isSandboxCustomTab = false,
             isMenuRedesignEnabled = false,
-            isNavBarEnabled = false,
         )
     }
 }
