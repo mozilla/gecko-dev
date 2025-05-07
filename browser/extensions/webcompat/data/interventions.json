@@ -3291,5 +3291,22 @@
         ]
       }
     ]
+  },
+  "1963302": {
+    "label": "lefties.com",
+    "bugs": {
+      "1963302": {
+        "issue": "broken-scrolling",
+        "matches": ["*://www.lefties.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1963302-lefties.com-fix-jittery-scrolling.css"]
+        }
+      }
+    ]
   }
 }

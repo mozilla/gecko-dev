@@ -1,0 +1,16 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * lefties.com - Scrolling down the page is jittery and jumps around
+ * Bug #1963302 - https://bugzilla.mozilla.org/show_bug.cgi?id=1963302
+ * WebCompat issue #154231 - https://webcompat.com/issues/154231
+ *
+ * Bug #1781297 causes scrolling to jump around on this page, but removing
+ * floating from one of their elements avoids it (and doesn't seem to affect
+ * their layout).
+ */
+html.category-page #grid-filter-container {
+  float: none;
+}
