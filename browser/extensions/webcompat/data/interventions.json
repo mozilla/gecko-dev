@@ -2646,23 +2646,6 @@
       }
     ]
   },
-  "1923286": {
-    "label": "bing.com",
-    "bugs": {
-      "1923286": {
-        "issue": "broken-interactive-elements",
-        "matches": ["*://www.bing.com/images/search*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["desktop"],
-        "content_scripts": {
-          "js": ["bug1923286-bing.com-image-click-fix.js"]
-        }
-      }
-    ]
-  },
   "1923656": {
     "label": "ipmph.com",
     "bugs": {
