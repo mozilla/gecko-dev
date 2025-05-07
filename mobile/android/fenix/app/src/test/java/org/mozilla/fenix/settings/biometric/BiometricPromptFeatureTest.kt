@@ -96,6 +96,16 @@ class BiometricPromptFeatureTest {
     }
 
     @Test
+    fun `ensureBiometricPromptInitialized returns a new prompt when feature prompt is null`() {
+        val feature = BiometricPromptFeature(testContext, fragment, {}, {})
+        feature.biometricPrompt = null
+
+        feature.ensureBiometricPromptInitialized()
+
+        assertNotNull(feature.biometricPrompt)
+    }
+
+    @Test
     fun `promptCallback fires feature callbacks`() {
         val authSuccess: () -> Unit = mockk(relaxed = true)
         val authFailure: () -> Unit = mockk(relaxed = true)
