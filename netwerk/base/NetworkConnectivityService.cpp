@@ -225,6 +225,11 @@ void NetworkConnectivityService::PerformChecks() {
     }
   }
 
+  if (StaticPrefs::network_connectivity_service_wait_for_idle_startup() &&
+      !mIdleStartupDone) {
+    return;
+  }
+
   RecheckDNS();
   RecheckIPConnectivity();
 }
@@ -438,6 +443,7 @@ NetworkConnectivityService::Observe(nsISupports* aSubject, const char* aTopic,
                   .Equals(aData)) {
     PerformChecks();
   } else if (!strcmp(aTopic, "browser-idle-startup-tasks-finished")) {
+    mIdleStartupDone = true;
     PerformChecks();
   }
 

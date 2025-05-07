@@ -27,6 +27,10 @@ function promiseObserverNotification(topicName, matchFunc) {
   });
 }
 
+Services.prefs.setBoolPref(
+  "network.connectivity-service.wait_for_idle_startup",
+  false
+);
 registerCleanupFunction(() => {
   Services.prefs.clearUserPref("network.connectivity-service.DNSv4.domain");
   Services.prefs.clearUserPref("network.connectivity-service.DNSv6.domain");
