@@ -13,7 +13,7 @@
 "use strict";
 
 const TEST_URL =
-  "http://example.org/tests/toolkit/components/extensions/test/mochitest/file_streamfilter.txt";
+  "https://example.org/tests/toolkit/components/extensions/test/mochitest/file_streamfilter.txt";
 
 add_task(async () => {
   const firstExtension = ExtensionTestUtils.loadExtension({
@@ -33,7 +33,7 @@ add_task(async () => {
         },
         {
           urls: [
-            "http://example.org/*/file_streamfilter.txt",
+            "https://example.org/*/file_streamfilter.txt",
           ],
         },
         ["blocking"]
@@ -60,7 +60,7 @@ add_task(async () => {
         },
         {
           urls: [
-            "http://example.org/tests/toolkit/components/extensions/test/mochitest/file_streamfilter.txt",
+            "https://example.org/tests/toolkit/components/extensions/test/mochitest/file_streamfilter.txt",
           ],
         },
         ["blocking"]

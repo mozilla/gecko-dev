@@ -12,8 +12,8 @@
 <script type="text/javascript">
 "use strict";
 
-const TEST_HOST = "http://example.com/";
-const CROSS_ORIGIN_HOST = "http://example.org/";
+const TEST_HOST = "https://example.com/";
+const CROSS_ORIGIN_HOST = "https://example.org/";
 const TEST_PATH =
   "tests/toolkit/components/extensions/test/mochitest/file_streamfilter.txt";
 
@@ -43,7 +43,7 @@ add_task(async () => {
         },
         {
           urls: [
-            "http://example.org/*/file_streamfilter.txt",
+            "https://example.org/*/file_streamfilter.txt",
           ],
         },
         ["blocking"]

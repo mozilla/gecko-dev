@@ -455,10 +455,6 @@ skip-if = [
 ]
 
 ["test_ext_streamfilter_processswitch.html"]
-skip-if = [
-  "http3",
-  "http2",
-]
 
 ["test_ext_subframes_privileges.html"]
 
