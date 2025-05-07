@@ -265,7 +265,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
     let { result } = details;
 
     // Delegate to the result's feature if there is one.
-    let feature = lazy.QuickSuggest.getFeatureByResult(details.result);
+    let feature = lazy.QuickSuggest.getFeatureByResult(result);
     if (feature) {
       feature.onEngagement(
         queryContext,
