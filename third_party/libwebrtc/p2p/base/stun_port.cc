@@ -122,7 +122,7 @@ class StunBindingRequest : public StunRequest {
 };
 
 UDPPort::AddressResolver::AddressResolver(
-    rtc::PacketSocketFactory* factory,
+    webrtc::PacketSocketFactory* factory,
     std::function<void(const webrtc::SocketAddress&, int)> done_callback)
     : socket_factory_(factory), done_(std::move(done_callback)) {}
 
@@ -162,7 +162,7 @@ bool UDPPort::AddressResolver::GetResolvedAddress(
 
 UDPPort::UDPPort(const PortParametersRef& args,
                  webrtc::IceCandidateType type,
-                 rtc::AsyncPacketSocket* socket,
+                 webrtc::AsyncPacketSocket* socket,
                  bool emit_local_for_anyaddress)
     : Port(args, type),
       request_manager_(
@@ -224,7 +224,7 @@ UDPPort::~UDPPort() {
 
 void UDPPort::PrepareAddress() {
   RTC_DCHECK(request_manager_.empty());
-  if (socket_->GetState() == rtc::AsyncPacketSocket::STATE_BOUND) {
+  if (socket_->GetState() == webrtc::AsyncPacketSocket::STATE_BOUND) {
     OnLocalAddressReady(socket_, socket_->GetLocalAddress());
   }
 }
@@ -312,15 +312,15 @@ rtc::DiffServCodePoint UDPPort::StunDscpValue() const {
   return dscp_;
 }
 
-int UDPPort::SetOption(rtc::Socket::Option opt, int value) {
-  if (opt == rtc::Socket::OPT_DSCP) {
+int UDPPort::SetOption(webrtc::Socket::Option opt, int value) {
+  if (opt == webrtc::Socket::OPT_DSCP) {
     // Save value for future packets we instantiate.
     dscp_ = static_cast<rtc::DiffServCodePoint>(value);
   }
   return socket_->SetOption(opt, value);
 }
 
-int UDPPort::GetOption(rtc::Socket::Option opt, int* value) {
+int UDPPort::GetOption(webrtc::Socket::Option opt, int* value) {
   return socket_->GetOption(opt, value);
 }
 
@@ -328,7 +328,7 @@ int UDPPort::GetError() {
   return error_;
 }
 
-bool UDPPort::HandleIncomingPacket(rtc::AsyncPacketSocket* socket,
+bool UDPPort::HandleIncomingPacket(webrtc::AsyncPacketSocket* socket,
                                    const rtc::ReceivedPacket& packet) {
   // All packets given to UDP port will be consumed.
   OnReadPacket(socket, packet);
@@ -351,7 +351,7 @@ void UDPPort::set_stun_keepalive_delay(const std::optional<int>& delay) {
   stun_keepalive_delay_ = delay.value_or(STUN_KEEPALIVE_INTERVAL);
 }
 
-void UDPPort::OnLocalAddressReady(rtc::AsyncPacketSocket* /* socket */,
+void UDPPort::OnLocalAddressReady(webrtc::AsyncPacketSocket* /* socket */,
                                   const webrtc::SocketAddress& address) {
   // When adapter enumeration is disabled and binding to the any address, the
   // default local address will be issued as a candidate instead if
@@ -373,7 +373,7 @@ void UDPPort::PostAddAddress(bool /* is_final */) {
   MaybeSetPortCompleteOrError();
 }
 
-void UDPPort::OnReadPacket(rtc::AsyncPacketSocket* socket,
+void UDPPort::OnReadPacket(webrtc::AsyncPacketSocket* socket,
                            const rtc::ReceivedPacket& packet) {
   RTC_DCHECK(socket == socket_);
   RTC_DCHECK(!packet.source_address().IsUnresolvedIP());
@@ -397,12 +397,12 @@ void UDPPort::OnReadPacket(rtc::AsyncPacketSocket* socket,
   }
 }
 
-void UDPPort::OnSentPacket(rtc::AsyncPacketSocket* /* socket */,
+void UDPPort::OnSentPacket(webrtc::AsyncPacketSocket* /* socket */,
                            const rtc::SentPacket& sent_packet) {
   webrtc::PortInterface::SignalSentPacket(sent_packet);
 }
 
-void UDPPort::OnReadyToSend(rtc::AsyncPacketSocket* /* socket */) {
+void UDPPort::OnReadyToSend(webrtc::AsyncPacketSocket* /* socket */) {
   Port::OnReadyToSend();
 }
 
@@ -461,7 +461,7 @@ void UDPPort::SendStunBindingRequest(const webrtc::SocketAddress& stun_addr) {
   if (stun_addr.IsUnresolvedIP()) {
     ResolveStunAddress(stun_addr);
 
-  } else if (socket_->GetState() == rtc::AsyncPacketSocket::STATE_BOUND) {
+  } else if (socket_->GetState() == webrtc::AsyncPacketSocket::STATE_BOUND) {
     // Check if `server_addr_` is compatible with the port's ip.
     if (IsCompatibleAddress(stun_addr)) {
       request_manager_.Send(
@@ -628,7 +628,7 @@ std::unique_ptr<StunPort> StunPort::Create(
 
 std::unique_ptr<StunPort> StunPort::Create(
     webrtc::TaskQueueBase* thread,
-    rtc::PacketSocketFactory* factory,
+    webrtc::PacketSocketFactory* factory,
     const rtc::Network* network,
     uint16_t min_port,
     uint16_t max_port,

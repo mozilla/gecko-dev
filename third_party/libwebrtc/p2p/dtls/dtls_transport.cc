@@ -544,11 +544,11 @@ std::optional<rtc::NetworkRoute> DtlsTransport::network_route() const {
   return ice_transport_->network_route();
 }
 
-bool DtlsTransport::GetOption(rtc::Socket::Option opt, int* value) {
+bool DtlsTransport::GetOption(webrtc::Socket::Option opt, int* value) {
   return ice_transport_->GetOption(opt, value);
 }
 
-int DtlsTransport::SetOption(rtc::Socket::Option opt, int value) {
+int DtlsTransport::SetOption(webrtc::Socket::Option opt, int value) {
   return ice_transport_->SetOption(opt, value);
 }
 

@@ -138,7 +138,7 @@ class PeerConnectionMediaBaseTest : public ::testing::Test {
   typedef std::unique_ptr<PeerConnectionWrapperForMediaTest> WrapperPtr;
 
   explicit PeerConnectionMediaBaseTest(SdpSemantics sdp_semantics)
-      : vss_(new rtc::VirtualSocketServer()),
+      : vss_(new VirtualSocketServer()),
         main_(vss_.get()),
         sdp_semantics_(sdp_semantics) {
 #ifdef WEBRTC_ANDROID
@@ -179,7 +179,7 @@ class PeerConnectionMediaBaseTest : public ::testing::Test {
 
     auto fake_port_allocator = std::make_unique<cricket::FakePortAllocator>(
         rtc::Thread::Current(),
-        std::make_unique<rtc::BasicPacketSocketFactory>(vss_.get()), nullptr);
+        std::make_unique<BasicPacketSocketFactory>(vss_.get()), nullptr);
     auto observer = std::make_unique<MockPeerConnectionObserver>();
     auto modified_config = config;
     modified_config.sdp_semantics = sdp_semantics_;
@@ -250,7 +250,7 @@ class PeerConnectionMediaBaseTest : public ::testing::Test {
     return sdp_semantics_ == SdpSemantics::kUnifiedPlan;
   }
 
-  std::unique_ptr<rtc::VirtualSocketServer> vss_;
+  std::unique_ptr<VirtualSocketServer> vss_;
   rtc::AutoSocketServerThread main_;
   const SdpSemantics sdp_semantics_;
 };

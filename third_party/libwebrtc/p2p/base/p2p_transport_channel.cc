@@ -798,7 +798,7 @@ void P2PTransportChannel::ParseFieldTrials(
       ->Parse(field_trials->Lookup("WebRTC-DscpFieldTrial"));
 
   if (ice_field_trials_.override_dscp) {
-    SetOption(rtc::Socket::OPT_DSCP, *ice_field_trials_.override_dscp);
+    SetOption(webrtc::Socket::OPT_DSCP, *ice_field_trials_.override_dscp);
   }
 
   std::string field_trial_string =
@@ -808,7 +808,7 @@ void P2PTransportChannel::ParseFieldTrials(
   if (receive_buffer_size_kb > 0) {
     RTC_LOG(LS_INFO) << "Set WebRTC-SetSocketReceiveBuffer: Enabled and set to "
                      << receive_buffer_size_kb << "kb";
-    SetOption(rtc::Socket::OPT_RCVBUF, receive_buffer_size_kb * 1024);
+    SetOption(webrtc::Socket::OPT_RCVBUF, receive_buffer_size_kb * 1024);
   }
 
   ice_field_trials_.piggyback_ice_check_acknowledgement =
@@ -825,7 +825,7 @@ void P2PTransportChannel::ParseFieldTrials(
     int desired_recv_esn = 1;
     RTC_LOG(LS_INFO) << "Set WebRTC-RFC8888CongestionControlFeedback: Enable "
                         "and set ECN recving mode";
-    SetOption(rtc::Socket::OPT_RECV_ECN, desired_recv_esn);
+    SetOption(webrtc::Socket::OPT_RECV_ECN, desired_recv_esn);
   }
 }
 
@@ -1524,9 +1524,9 @@ void P2PTransportChannel::RememberRemoteCandidate(
 
 // Set options on ourselves is simply setting options on all of our available
 // port objects.
-int P2PTransportChannel::SetOption(rtc::Socket::Option opt, int value) {
+int P2PTransportChannel::SetOption(webrtc::Socket::Option opt, int value) {
   RTC_DCHECK_RUN_ON(network_thread_);
-  if (ice_field_trials_.override_dscp && opt == rtc::Socket::OPT_DSCP) {
+  if (ice_field_trials_.override_dscp && opt == webrtc::Socket::OPT_DSCP) {
     value = *ice_field_trials_.override_dscp;
   }
 
@@ -1551,7 +1551,7 @@ int P2PTransportChannel::SetOption(rtc::Socket::Option opt, int value) {
   return 0;
 }
 
-bool P2PTransportChannel::GetOption(rtc::Socket::Option opt, int* value) {
+bool P2PTransportChannel::GetOption(webrtc::Socket::Option opt, int* value) {
   RTC_DCHECK_RUN_ON(network_thread_);
 
   const auto& found = options_.find(opt);
@@ -1643,7 +1643,7 @@ std::optional<rtc::NetworkRoute> P2PTransportChannel::network_route() const {
 
 rtc::DiffServCodePoint P2PTransportChannel::DefaultDscpValue() const {
   RTC_DCHECK_RUN_ON(network_thread_);
-  OptionMap::const_iterator it = options_.find(rtc::Socket::OPT_DSCP);
+  OptionMap::const_iterator it = options_.find(webrtc::Socket::OPT_DSCP);
   if (it == options_.end()) {
     return rtc::DSCP_NO_CHANGE;
   }

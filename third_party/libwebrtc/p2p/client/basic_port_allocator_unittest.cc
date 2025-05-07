@@ -68,7 +68,7 @@ using webrtc::IceCandidateType;
 using ::webrtc::SocketAddress;
 
 #define MAYBE_SKIP_IPV4                        \
-  if (!rtc::HasIPv4Enabled()) {                \
+  if (!::rtc::HasIPv4Enabled()) {              \
     RTC_LOG(LS_INFO) << "No IPv4... skipping"; \
     return;                                    \
   }
@@ -153,14 +153,15 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
                                    public sigslot::has_slots<> {
  public:
   BasicPortAllocatorTestBase()
-      : vss_(new rtc::VirtualSocketServer()),
-        fss_(new rtc::FirewallSocketServer(vss_.get())),
+      : vss_(new webrtc::VirtualSocketServer()),
+        fss_(new webrtc::FirewallSocketServer(vss_.get())),
         socket_factory_(fss_.get()),
         thread_(fss_.get()),
         // Note that the NAT is not used by default. ResetWithStunServerAndNat
         // must be called.
         nat_factory_(vss_.get(), kNatUdpAddr, kNatTcpAddr),
-        nat_socket_factory_(new rtc::BasicPacketSocketFactory(&nat_factory_)),
+        nat_socket_factory_(
+            new webrtc::BasicPacketSocketFactory(&nat_factory_)),
         stun_server_(
             webrtc::TestStunServer::Create(fss_.get(), kStunAddr, thread_)),
         turn_server_(rtc::Thread::Current(),
@@ -398,17 +399,17 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
     for (it = ports_.begin(); it < ports_.end(); ++it) {
       int send_buffer_size;
       if (expected == -1) {
-        EXPECT_EQ(SOCKET_ERROR,
-                  (*it)->GetOption(rtc::Socket::OPT_SNDBUF, &send_buffer_size));
+        EXPECT_EQ(SOCKET_ERROR, (*it)->GetOption(webrtc::Socket::OPT_SNDBUF,
+                                                 &send_buffer_size));
       } else {
-        EXPECT_EQ(0,
-                  (*it)->GetOption(rtc::Socket::OPT_SNDBUF, &send_buffer_size));
+        EXPECT_EQ(
+            0, (*it)->GetOption(webrtc::Socket::OPT_SNDBUF, &send_buffer_size));
         ASSERT_EQ(expected, send_buffer_size);
       }
     }
   }
 
-  rtc::VirtualSocketServer* virtual_socket_server() { return vss_.get(); }
+  webrtc::VirtualSocketServer* virtual_socket_server() { return vss_.get(); }
 
  protected:
   BasicPortAllocator& allocator() { return *allocator_; }
@@ -485,7 +486,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
           thread_, vss_.get(), webrtc::SocketAddress(kNatUdpAddr.ipaddr(), 0)));
     } else {
       nat_socket_factory_ =
-          std::make_unique<rtc::BasicPacketSocketFactory>(fss_.get());
+          std::make_unique<webrtc::BasicPacketSocketFactory>(fss_.get());
     }
 
     ServerAddresses stun_servers;
@@ -503,13 +504,13 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
     allocator_->set_step_delay(kMinimumStepDelay);
   }
 
-  std::unique_ptr<rtc::VirtualSocketServer> vss_;
-  std::unique_ptr<rtc::FirewallSocketServer> fss_;
-  rtc::BasicPacketSocketFactory socket_factory_;
+  std::unique_ptr<webrtc::VirtualSocketServer> vss_;
+  std::unique_ptr<webrtc::FirewallSocketServer> fss_;
+  webrtc::BasicPacketSocketFactory socket_factory_;
   rtc::AutoSocketServerThread thread_;
   std::unique_ptr<webrtc::NATServer> nat_server_;
   webrtc::NATSocketFactory nat_factory_;
-  std::unique_ptr<rtc::BasicPacketSocketFactory> nat_socket_factory_;
+  std::unique_ptr<webrtc::BasicPacketSocketFactory> nat_socket_factory_;
   webrtc::TestStunServer::StunServerPtr stun_server_;
   webrtc::TestTurnServer turn_server_;
   webrtc::FakeNetworkManager network_manager_;
@@ -1634,7 +1635,7 @@ TEST_F(BasicPortAllocatorTest, TestGetAllPortsNoSockets) {
 
 // Testing STUN timeout.
 TEST_F(BasicPortAllocatorTest, TestGetAllPortsNoUdpAllowed) {
-  fss_->AddRule(false, rtc::FP_UDP, rtc::FD_ANY, kClientAddr);
+  fss_->AddRule(false, webrtc::FP_UDP, webrtc::FD_ANY, kClientAddr);
   AddInterface(kClientAddr);
   ASSERT_TRUE(CreateSession(ICE_CANDIDATE_COMPONENT_RTP));
   session_->StartGettingPorts();
@@ -2274,7 +2275,7 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketNoUdpAllowed) {
   allocator().set_flags(allocator().flags() | PORTALLOCATOR_DISABLE_RELAY |
                         PORTALLOCATOR_DISABLE_TCP |
                         PORTALLOCATOR_ENABLE_SHARED_SOCKET);
-  fss_->AddRule(false, rtc::FP_UDP, rtc::FD_ANY, kClientAddr);
+  fss_->AddRule(false, webrtc::FP_UDP, webrtc::FD_ANY, kClientAddr);
   AddInterface(kClientAddr);
   ASSERT_TRUE(CreateSession(ICE_CANDIDATE_COMPONENT_RTP));
   session_->StartGettingPorts();

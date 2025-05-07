@@ -169,14 +169,14 @@ class RTC_LOCKABLE RTC_EXPORT Thread : public webrtc::TaskQueueBase {
   // init_queue and call DoInit() from their constructor to prevent races
   // with the ThreadManager using the object while the vtable is still
   // being created.
-  explicit Thread(SocketServer* ss);
-  explicit Thread(std::unique_ptr<SocketServer> ss);
+  explicit Thread(webrtc::SocketServer* ss);
+  explicit Thread(std::unique_ptr<webrtc::SocketServer> ss);
 
   // Constructors meant for subclasses; they should call DoInit themselves and
   // pass false for `do_init`, so that DoInit is called only on the fully
   // instantiated class, which avoids a vptr data race.
-  Thread(SocketServer* ss, bool do_init);
-  Thread(std::unique_ptr<SocketServer> ss, bool do_init);
+  Thread(webrtc::SocketServer* ss, bool do_init);
+  Thread(std::unique_ptr<webrtc::SocketServer> ss, bool do_init);
 
   // NOTE: ALL SUBCLASSES OF Thread MUST CALL Stop() IN THEIR DESTRUCTORS (or
   // guarantee Stop() is explicitly called before the subclass is destroyed).
@@ -246,7 +246,7 @@ class RTC_LOCKABLE RTC_EXPORT Thread : public webrtc::TaskQueueBase {
   uint32_t GetCouldBeBlockingCallCount() const;
 #endif
 
-  SocketServer* socketserver();
+  webrtc::SocketServer* socketserver();
 
   // Note: The behavior of Thread has changed.  When a thread is stopped,
   // futher Posts and Sends will fail.  However, any pending Sends and *ready*
@@ -501,9 +501,9 @@ class RTC_LOCKABLE RTC_EXPORT Thread : public webrtc::TaskQueueBase {
   std::atomic<int> stop_;
 
   // The SocketServer might not be owned by Thread.
-  SocketServer* const ss_;
+  webrtc::SocketServer* const ss_;
   // Used if SocketServer ownership lies with `this`.
-  std::unique_ptr<SocketServer> own_ss_;
+  std::unique_ptr<webrtc::SocketServer> own_ss_;
 
   std::string name_;
 
@@ -557,7 +557,7 @@ class AutoThread : public Thread {
 
 class AutoSocketServerThread : public Thread {
  public:
-  explicit AutoSocketServerThread(SocketServer* ss);
+  explicit AutoSocketServerThread(webrtc::SocketServer* ss);
   ~AutoSocketServerThread() override;
 
   AutoSocketServerThread(const AutoSocketServerThread&) = delete;

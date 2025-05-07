@@ -17,7 +17,7 @@
 
 namespace rtc {
 
-std::unique_ptr<SocketServer> CreateDefaultSocketServer();
+std::unique_ptr<webrtc::SocketServer> CreateDefaultSocketServer();
 
 }  // namespace rtc
 

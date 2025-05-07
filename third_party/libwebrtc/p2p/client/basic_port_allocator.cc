@@ -184,7 +184,7 @@ const uint32_t DISABLE_ALL_PHASES =
 // BasicPortAllocator
 BasicPortAllocator::BasicPortAllocator(
     rtc::NetworkManager* network_manager,
-    rtc::PacketSocketFactory* socket_factory,
+    webrtc::PacketSocketFactory* socket_factory,
     webrtc::TurnCustomizer* customizer,
     RelayPortFactoryInterface* relay_port_factory,
     const webrtc::FieldTrialsView* field_trials)
@@ -1673,7 +1673,7 @@ void AllocationSequence::CreateTurnPort(const RelayServerConfig& config,
   }
 }
 
-void AllocationSequence::OnReadPacket(rtc::AsyncPacketSocket* socket,
+void AllocationSequence::OnReadPacket(webrtc::AsyncPacketSocket* socket,
                                       const rtc::ReceivedPacket& packet) {
   RTC_DCHECK(socket == udp_socket_.get());
 

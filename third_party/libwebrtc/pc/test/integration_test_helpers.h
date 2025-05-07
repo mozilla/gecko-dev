@@ -795,7 +795,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   bool Init(const PeerConnectionFactory::Options* options,
             const PeerConnectionInterface::RTCConfiguration* config,
             PeerConnectionDependencies dependencies,
-            rtc::SocketServer* socket_server,
+            SocketServer* socket_server,
             rtc::Thread* network_thread,
             rtc::Thread* worker_thread,
             std::unique_ptr<FieldTrialsView> field_trials,
@@ -1375,8 +1375,8 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
 
   explicit PeerConnectionIntegrationBaseTest(SdpSemantics sdp_semantics)
       : sdp_semantics_(sdp_semantics),
-        ss_(new rtc::VirtualSocketServer()),
-        fss_(new rtc::FirewallSocketServer(ss_.get())),
+        ss_(new VirtualSocketServer()),
+        fss_(new FirewallSocketServer(ss_.get())),
         network_thread_(new rtc::Thread(fss_.get())),
         worker_thread_(rtc::Thread::Create()) {
     network_thread_->SetName("PCNetworkThread", this);
@@ -1640,7 +1640,7 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
       ProtocolType type = ProtocolType::PROTO_UDP,
       const std::string& common_name = "test turn server") {
     rtc::Thread* thread = network_thread();
-    rtc::SocketFactory* socket_factory = fss_.get();
+    SocketFactory* socket_factory = fss_.get();
     std::unique_ptr<TestTurnServer> turn_server;
     SendTask(network_thread(), [&] {
       turn_server = std::make_unique<TestTurnServer>(
@@ -1709,7 +1709,7 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
 
   rtc::Thread* network_thread() { return network_thread_.get(); }
 
-  rtc::VirtualSocketServer* virtual_socket_server() { return ss_.get(); }
+  VirtualSocketServer* virtual_socket_server() { return ss_.get(); }
 
   PeerConnectionIntegrationWrapper* caller() { return caller_.get(); }
 
@@ -1747,7 +1747,7 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
     return old;
   }
 
-  rtc::FirewallSocketServer* firewall() const { return fss_.get(); }
+  FirewallSocketServer* firewall() const { return fss_.get(); }
 
   // Expects the provided number of new frames to be received within
   // kMaxWaitForFramesMs. The new expected frames are specified in
@@ -1910,8 +1910,8 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
  private:
   rtc::AutoThread main_thread_;  // Used as the signal thread by most tests.
   // `ss_` is used by `network_thread_` so it must be destroyed later.
-  std::unique_ptr<rtc::VirtualSocketServer> ss_;
-  std::unique_ptr<rtc::FirewallSocketServer> fss_;
+  std::unique_ptr<VirtualSocketServer> ss_;
+  std::unique_ptr<FirewallSocketServer> fss_;
   // `network_thread_` and `worker_thread_` are used by both
   // `caller_` and `callee_` so they must be destroyed
   // later.

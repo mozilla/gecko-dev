@@ -11,7 +11,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0993ae41fb7db1624
  2 files changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/rtc_base/internal/default_socket_server.cc b/rtc_base/internal/default_socket_server.cc
-index 5632b989fc..cb7b81978a 100644
+index 744bd1a885..371d3f344c 100644
 --- a/rtc_base/internal/default_socket_server.cc
 +++ b/rtc_base/internal/default_socket_server.cc
 @@ -14,7 +14,7 @@
@@ -26,14 +26,14 @@ index 5632b989fc..cb7b81978a 100644
 @@ -23,7 +23,7 @@
  namespace rtc {
  
- std::unique_ptr<SocketServer> CreateDefaultSocketServer() {
+ std::unique_ptr<webrtc::SocketServer> CreateDefaultSocketServer() {
 -#if defined(__native_client__)
 +#if defined(__native_client__) || defined(WEBRTC_BSD)
    return std::unique_ptr<SocketServer>(new rtc::NullSocketServer);
  #else
-   return std::unique_ptr<SocketServer>(new rtc::PhysicalSocketServer);
+   return std::unique_ptr<webrtc::SocketServer>(
 diff --git a/rtc_base/virtual_socket_server.cc b/rtc_base/virtual_socket_server.cc
-index 3305be72f5..079f25bdad 100644
+index d170bf3959..7d82d56ec0 100644
 --- a/rtc_base/virtual_socket_server.cc
 +++ b/rtc_base/virtual_socket_server.cc
 @@ -24,7 +24,9 @@

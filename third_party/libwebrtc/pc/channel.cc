@@ -323,7 +323,7 @@ bool BaseChannel::SendRtcp(rtc::CopyOnWriteBuffer* packet,
 }
 
 int BaseChannel::SetOption(SocketType type,
-                           rtc::Socket::Option opt,
+                           webrtc::Socket::Option opt,
                            int value) {
   RTC_DCHECK_RUN_ON(network_thread());
   RTC_DCHECK(network_initialized());
@@ -331,11 +331,11 @@ int BaseChannel::SetOption(SocketType type,
   switch (type) {
     case ST_RTP:
       socket_options_.push_back(
-          std::pair<rtc::Socket::Option, int>(opt, value));
+          std::pair<webrtc::Socket::Option, int>(opt, value));
       return rtp_transport_->SetRtpOption(opt, value);
     case ST_RTCP:
       rtcp_socket_options_.push_back(
-          std::pair<rtc::Socket::Option, int>(opt, value));
+          std::pair<webrtc::Socket::Option, int>(opt, value));
       return rtp_transport_->SetRtcpOption(opt, value);
   }
   return -1;

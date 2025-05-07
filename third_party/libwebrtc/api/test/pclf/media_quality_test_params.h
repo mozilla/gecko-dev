@@ -57,7 +57,7 @@ namespace webrtc_pc_e2e {
 // factories.
 struct PeerConnectionFactoryComponents {
   std::unique_ptr<rtc::NetworkManager> network_manager;
-  rtc::SocketFactory* socket_factory = nullptr;
+  SocketFactory* socket_factory = nullptr;
   std::unique_ptr<RtcEventLogFactoryInterface> event_log_factory;
   std::unique_ptr<FecControllerFactoryInterface> fec_controller_factory;
   std::unique_ptr<NetworkControllerFactoryInterface> network_controller_factory;
@@ -95,7 +95,7 @@ struct PeerConnectionComponents {
 struct InjectableComponents {
   InjectableComponents(rtc::Thread* network_thread,
                        std::unique_ptr<rtc::NetworkManager> network_manager,
-                       rtc::SocketFactory* socket_factory)
+                       SocketFactory* socket_factory)
       : network_thread(network_thread),
         worker_thread(nullptr),
         pcf_dependencies(std::make_unique<PeerConnectionFactoryComponents>()),

@@ -28,14 +28,13 @@ const int STUN_SERVER_PORT = 3478;
 class StunServer {
  public:
   // Creates a STUN server, which will listen on the given socket.
-  explicit StunServer(rtc::AsyncUDPSocket* socket);
+  explicit StunServer(AsyncUDPSocket* socket);
   // Removes the STUN server from the socket and deletes the socket.
   virtual ~StunServer();
 
  protected:
   // Callback for packets from socket.
-  void OnPacket(rtc::AsyncPacketSocket* socket,
-                const rtc::ReceivedPacket& packet);
+  void OnPacket(AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet);
 
   // Handlers for the different types of STUN/TURN requests:
   virtual void OnBindingRequest(cricket::StunMessage* msg,
@@ -61,7 +60,7 @@ class StunServer {
 
  private:
   SequenceChecker sequence_checker_;
-  std::unique_ptr<rtc::AsyncUDPSocket> socket_;
+  std::unique_ptr<AsyncUDPSocket> socket_;
 };
 
 }  //  namespace webrtc

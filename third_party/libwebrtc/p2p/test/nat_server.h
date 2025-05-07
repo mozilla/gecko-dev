@@ -62,11 +62,11 @@ class NATServer {
  public:
   NATServer(NATType type,
             rtc::Thread& internal_socket_thread,
-            rtc::SocketFactory* internal,
+            SocketFactory* internal,
             const SocketAddress& internal_udp_addr,
             const SocketAddress& internal_tcp_addr,
             rtc::Thread& external_socket_thread,
-            rtc::SocketFactory* external,
+            SocketFactory* external,
             const SocketAddress& external_ip);
   ~NATServer();
 
@@ -82,9 +82,9 @@ class NATServer {
   }
 
   // Packets received on one of the networks.
-  void OnInternalUDPPacket(rtc::AsyncPacketSocket* socket,
+  void OnInternalUDPPacket(AsyncPacketSocket* socket,
                            const rtc::ReceivedPacket& packet);
-  void OnExternalUDPPacket(rtc::AsyncPacketSocket* socket,
+  void OnExternalUDPPacket(AsyncPacketSocket* socket,
                            const rtc::ReceivedPacket& packet);
 
  private:
@@ -92,14 +92,14 @@ class NATServer {
 
   /* Records a translation and the associated external socket. */
   struct TransEntry {
-    TransEntry(const SocketAddressPair& r, rtc::AsyncUDPSocket* s, NAT* nat);
+    TransEntry(const SocketAddressPair& r, AsyncUDPSocket* s, NAT* nat);
     ~TransEntry();
 
     void AllowlistInsert(const SocketAddress& addr);
     bool AllowlistContains(const SocketAddress& ext_addr);
 
     SocketAddressPair route;
-    rtc::AsyncUDPSocket* socket;
+    AsyncUDPSocket* socket;
     AddressSet* allowlist;
     Mutex mutex_;
   };
@@ -116,9 +116,9 @@ class NATServer {
   NAT* nat_;
   rtc::Thread& internal_socket_thread_;
   rtc::Thread& external_socket_thread_;
-  rtc::SocketFactory* external_;
+  SocketFactory* external_;
   SocketAddress external_ip_;
-  rtc::AsyncUDPSocket* udp_server_socket_;
+  AsyncUDPSocket* udp_server_socket_;
   rtc::ProxyServer* tcp_proxy_server_;
   InternalMap* int_map_;
   ExternalMap* ext_map_;

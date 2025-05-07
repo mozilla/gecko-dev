@@ -144,7 +144,7 @@ void PeerConnectionTestWrapper::Connect(PeerConnectionTestWrapper* caller,
 
 PeerConnectionTestWrapper::PeerConnectionTestWrapper(
     const std::string& name,
-    rtc::SocketServer* socket_server,
+    webrtc::SocketServer* socket_server,
     rtc::Thread* network_thread,
     rtc::Thread* worker_thread)
     : name_(name),
@@ -179,7 +179,7 @@ bool PeerConnectionTestWrapper::CreatePc(
   std::unique_ptr<cricket::PortAllocator> port_allocator(
       new cricket::FakePortAllocator(
           network_thread_,
-          std::make_unique<rtc::BasicPacketSocketFactory>(socket_server_),
+          std::make_unique<webrtc::BasicPacketSocketFactory>(socket_server_),
           field_trials.get()));
 
   RTC_DCHECK_RUN_ON(&pc_thread_checker_);

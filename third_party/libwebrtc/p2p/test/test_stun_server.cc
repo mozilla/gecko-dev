@@ -18,12 +18,12 @@
 namespace webrtc {
 
 std::unique_ptr<TestStunServer, std::function<void(webrtc::TestStunServer*)>>
-TestStunServer::Create(rtc::SocketServer* ss,
+TestStunServer::Create(SocketServer* ss,
                        const SocketAddress& addr,
                        rtc::Thread& network_thread) {
-  rtc::Socket* socket = ss->CreateSocket(addr.family(), SOCK_DGRAM);
+  Socket* socket = ss->CreateSocket(addr.family(), SOCK_DGRAM);
   RTC_CHECK(socket != nullptr) << "Failed to create socket";
-  rtc::AsyncUDPSocket* udp_socket = rtc::AsyncUDPSocket::Create(socket, addr);
+  AsyncUDPSocket* udp_socket = AsyncUDPSocket::Create(socket, addr);
   RTC_CHECK(udp_socket != nullptr) << "Failed to create AsyncUDPSocket";
   TestStunServer* server = nullptr;
   network_thread.BlockingCall(

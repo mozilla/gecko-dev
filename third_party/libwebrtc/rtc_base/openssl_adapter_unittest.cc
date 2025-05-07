@@ -27,10 +27,10 @@
 namespace rtc {
 namespace {
 
-class MockAsyncSocket : public Socket {
+class MockAsyncSocket : public webrtc::Socket {
  public:
   virtual ~MockAsyncSocket() = default;
-  MOCK_METHOD(Socket*, Accept, (webrtc::SocketAddress*), (override));
+  MOCK_METHOD(webrtc::Socket*, Accept, (webrtc::SocketAddress*), (override));
   MOCK_METHOD(webrtc::SocketAddress, GetLocalAddress, (), (const, override));
   MOCK_METHOD(webrtc::SocketAddress, GetRemoteAddress, (), (const, override));
   MOCK_METHOD(int, Bind, (const webrtc::SocketAddress&), (override));
@@ -90,7 +90,7 @@ TEST(OpenSSLAdapterTest, TestTransformAlpnProtocols) {
 // mode.
 TEST(OpenSSLAdapterTest, TestBeginSSLBeforeConnection) {
   rtc::AutoThread main_thread;
-  Socket* async_socket = new MockAsyncSocket();
+  webrtc::Socket* async_socket = new MockAsyncSocket();
   OpenSSLAdapter adapter(async_socket);
   EXPECT_EQ(adapter.StartSSL("webrtc.org"), 0);
 }
@@ -99,7 +99,7 @@ TEST(OpenSSLAdapterTest, TestBeginSSLBeforeConnection) {
 TEST(OpenSSLAdapterFactoryTest, CreateSingleOpenSSLAdapter) {
   rtc::AutoThread main_thread;
   OpenSSLAdapterFactory adapter_factory;
-  Socket* async_socket = new MockAsyncSocket();
+  webrtc::Socket* async_socket = new MockAsyncSocket();
   auto simple_adapter = std::unique_ptr<OpenSSLAdapter>(
       adapter_factory.CreateAdapter(async_socket));
   EXPECT_NE(simple_adapter, nullptr);
@@ -115,7 +115,7 @@ TEST(OpenSSLAdapterFactoryTest, CreateWorksWithCustomVerifier) {
 
   OpenSSLAdapterFactory adapter_factory;
   adapter_factory.SetCertVerifier(cert_verifier.get());
-  Socket* async_socket = new MockAsyncSocket();
+  webrtc::Socket* async_socket = new MockAsyncSocket();
   auto simple_adapter = std::unique_ptr<OpenSSLAdapter>(
       adapter_factory.CreateAdapter(async_socket));
   EXPECT_NE(simple_adapter, nullptr);

@@ -53,7 +53,7 @@ class TestTurnRedirector : public TurnRedirectInterface {
 class TestTurnServer : public TurnAuthInterface {
  public:
   TestTurnServer(rtc::Thread* thread,
-                 rtc::SocketFactory* socket_factory,
+                 SocketFactory* socket_factory,
                  const SocketAddress& int_addr,
                  const SocketAddress& udp_ext_addr,
                  ProtocolType int_protocol = webrtc::PROTO_UDP,
@@ -62,7 +62,7 @@ class TestTurnServer : public TurnAuthInterface {
       : server_(thread), socket_factory_(socket_factory) {
     AddInternalSocket(int_addr, int_protocol, ignore_bad_cert, common_name);
     server_.SetExternalSocketFactory(
-        new rtc::BasicPacketSocketFactory(socket_factory), udp_ext_addr);
+        new BasicPacketSocketFactory(socket_factory), udp_ext_addr);
     server_.set_realm(kTestRealm);
     server_.set_software(kTestSoftware);
     server_.set_auth_hook(this);
@@ -101,7 +101,7 @@ class TestTurnServer : public TurnAuthInterface {
     } else if (proto == webrtc::PROTO_TCP || proto == webrtc::PROTO_TLS) {
       // For TCP we need to create a server socket which can listen for incoming
       // new connections.
-      rtc::Socket* socket = socket_factory_->CreateSocket(AF_INET, SOCK_STREAM);
+      Socket* socket = socket_factory_->CreateSocket(AF_INET, SOCK_STREAM);
       socket->Bind(int_addr);
       socket->Listen(5);
       if (proto == webrtc::PROTO_TLS) {
@@ -151,7 +151,7 @@ class TestTurnServer : public TurnAuthInterface {
   }
 
   TurnServer server_;
-  rtc::SocketFactory* socket_factory_;
+  SocketFactory* socket_factory_;
   SequenceChecker thread_checker_;
 };
 

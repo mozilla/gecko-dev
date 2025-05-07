@@ -48,7 +48,7 @@ class OpenSSLAdapter final : public SSLAdapter {
   // SSLCertificateVerifier which can override any existing trusted roots to
   // validate a peer certificate. The cache and verifier are effectively
   // immutable after the the SSL connection starts.
-  explicit OpenSSLAdapter(Socket* socket,
+  explicit OpenSSLAdapter(webrtc::Socket* socket,
                           OpenSSLSessionCache* ssl_session_cache = nullptr,
                           SSLCertificateVerifier* ssl_cert_verifier = nullptr);
   ~OpenSSLAdapter() override;
@@ -83,10 +83,10 @@ class OpenSSLAdapter final : public SSLAdapter {
   static SSL_CTX* CreateContext(webrtc::SSLMode mode, bool enable_cache);
 
  protected:
-  void OnConnectEvent(Socket* socket) override;
-  void OnReadEvent(Socket* socket) override;
-  void OnWriteEvent(Socket* socket) override;
-  void OnCloseEvent(Socket* socket, int err) override;
+  void OnConnectEvent(webrtc::Socket* socket) override;
+  void OnReadEvent(webrtc::Socket* socket) override;
+  void OnWriteEvent(webrtc::Socket* socket) override;
+  void OnCloseEvent(webrtc::Socket* socket, int err) override;
 
  private:
   class EarlyExitCatcher {
@@ -208,7 +208,7 @@ class OpenSSLAdapterFactory : public SSLAdapterFactory {
   // Constructs a new socket using the shared OpenSSLSessionCache. This means
   // existing SSLSessions already in the cache will be reused instead of
   // re-created for improved performance.
-  OpenSSLAdapter* CreateAdapter(Socket* socket) override;
+  OpenSSLAdapter* CreateAdapter(webrtc::Socket* socket) override;
 
  private:
   // Holds the SSLMode (DTLS,TLS) that will be used to set the session cache.

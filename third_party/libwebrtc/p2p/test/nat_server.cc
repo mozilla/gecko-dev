@@ -73,17 +73,16 @@ bool AddrCmp::operator()(const SocketAddress& a1,
 
 // Proxy socket that will capture the external destination address intended for
 // a TCP connection to the NAT server.
-class NATProxyServerSocket : public rtc::AsyncProxyServerSocket {
+class NATProxyServerSocket : public AsyncProxyServerSocket {
  public:
-  explicit NATProxyServerSocket(rtc::Socket* socket)
-      : rtc::AsyncProxyServerSocket(socket,
-                                    webrtc::kNATEncodedIPv6AddressSize) {
+  explicit NATProxyServerSocket(Socket* socket)
+      : AsyncProxyServerSocket(socket, webrtc::kNATEncodedIPv6AddressSize) {
     BufferInput(true);
   }
 
   void SendConnectResult(int err, const SocketAddress& addr) override {
     char code = err ? 1 : 0;
-    rtc::BufferedReadAdapter::DirectSend(&code, sizeof(char));
+    BufferedReadAdapter::DirectSend(&code, sizeof(char));
   }
 
  protected:
@@ -119,25 +118,25 @@ class NATProxyServerSocket : public rtc::AsyncProxyServerSocket {
 
 class NATProxyServer : public rtc::ProxyServer {
  public:
-  NATProxyServer(rtc::SocketFactory* int_factory,
+  NATProxyServer(SocketFactory* int_factory,
                  const SocketAddress& int_addr,
-                 rtc::SocketFactory* ext_factory,
+                 SocketFactory* ext_factory,
                  const SocketAddress& ext_ip)
       : rtc::ProxyServer(int_factory, int_addr, ext_factory, ext_ip) {}
 
  protected:
-  rtc::AsyncProxyServerSocket* WrapSocket(rtc::Socket* socket) override {
+  AsyncProxyServerSocket* WrapSocket(Socket* socket) override {
     return new NATProxyServerSocket(socket);
   }
 };
 
 NATServer::NATServer(NATType type,
                      rtc::Thread& internal_socket_thread,
-                     rtc::SocketFactory* internal,
+                     SocketFactory* internal,
                      const SocketAddress& internal_udp_addr,
                      const SocketAddress& internal_tcp_addr,
                      rtc::Thread& external_socket_thread,
-                     rtc::SocketFactory* external,
+                     SocketFactory* external,
                      const SocketAddress& external_ip)
     : internal_socket_thread_(internal_socket_thread),
       external_socket_thread_(external_socket_thread),
@@ -146,8 +145,7 @@ NATServer::NATServer(NATType type,
   nat_ = NAT::Create(type);
 
   internal_socket_thread_.BlockingCall([&] {
-    udp_server_socket_ =
-        rtc::AsyncUDPSocket::Create(internal, internal_udp_addr);
+    udp_server_socket_ = AsyncUDPSocket::Create(internal, internal_udp_addr);
     udp_server_socket_->RegisterReceivedPacketCallback(
         [&](rtc::AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {
           OnInternalUDPPacket(socket, packet);
@@ -173,7 +171,7 @@ NATServer::~NATServer() {
   delete ext_map_;
 }
 
-void NATServer::OnInternalUDPPacket(rtc::AsyncPacketSocket* socket,
+void NATServer::OnInternalUDPPacket(AsyncPacketSocket* socket,
                                     const rtc::ReceivedPacket& packet) {
   RTC_DCHECK(internal_socket_thread_.IsCurrent());
   // Read the intended destination from the wire.
@@ -199,7 +197,7 @@ void NATServer::OnInternalUDPPacket(rtc::AsyncPacketSocket* socket,
   iter->second->socket->SendTo(buf + length, size - length, dest_addr, options);
 }
 
-void NATServer::OnExternalUDPPacket(rtc::AsyncPacketSocket* socket,
+void NATServer::OnExternalUDPPacket(AsyncPacketSocket* socket,
                                     const rtc::ReceivedPacket& packet) {
   RTC_DCHECK(external_socket_thread_.IsCurrent());
   SocketAddress local_addr = socket->GetLocalAddress();
@@ -235,8 +233,7 @@ void NATServer::OnExternalUDPPacket(rtc::AsyncPacketSocket* socket,
 
 void NATServer::Translate(const SocketAddressPair& route) {
   external_socket_thread_.BlockingCall([&] {
-    rtc::AsyncUDPSocket* socket =
-        rtc::AsyncUDPSocket::Create(external_, external_ip_);
+    AsyncUDPSocket* socket = AsyncUDPSocket::Create(external_, external_ip_);
 
     if (!socket) {
       RTC_LOG(LS_ERROR) << "Couldn't find a free port!";
@@ -259,7 +256,7 @@ bool NATServer::ShouldFilterOut(TransEntry* entry,
 }
 
 NATServer::TransEntry::TransEntry(const SocketAddressPair& r,
-                                  rtc::AsyncUDPSocket* s,
+                                  AsyncUDPSocket* s,
                                   NAT* nat)
     : route(r), socket(s) {
   allowlist = new AddressSet(AddrCmp(nat));

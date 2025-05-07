@@ -64,16 +64,16 @@ constexpr int kOverheadIpv4Udp = 20 + 8;
 
 class SocketReader : public sigslot::has_slots<> {
  public:
-  explicit SocketReader(rtc::Socket* socket, rtc::Thread* network_thread)
+  explicit SocketReader(Socket* socket, rtc::Thread* network_thread)
       : socket_(socket), network_thread_(network_thread) {
     socket_->SignalReadEvent.connect(this, &SocketReader::OnReadEvent);
   }
 
-  void OnReadEvent(rtc::Socket* socket) {
+  void OnReadEvent(Socket* socket) {
     RTC_DCHECK(socket_ == socket);
     RTC_DCHECK(network_thread_->IsCurrent());
 
-    rtc::Socket::ReceiveBuffer receive_buffer(payload_);
+    Socket::ReceiveBuffer receive_buffer(payload_);
     socket_->RecvFrom(receive_buffer);
     last_ecn_mark_ = receive_buffer.ecn;
 
@@ -92,7 +92,7 @@ class SocketReader : public sigslot::has_slots<> {
   }
 
  private:
-  rtc::Socket* const socket_;
+  Socket* const socket_;
   rtc::Thread* const network_thread_;
   rtc::Buffer payload_;
   webrtc::EcnMarking last_ecn_mark_;
@@ -253,8 +253,8 @@ TEST(NetworkEmulationManagerTest, Run) {
 
   rtc::CopyOnWriteBuffer data("Hello");
   for (uint64_t j = 0; j < 2; j++) {
-    rtc::Socket* s1 = nullptr;
-    rtc::Socket* s2 = nullptr;
+    Socket* s1 = nullptr;
+    Socket* s2 = nullptr;
     SendTask(t1, [&] {
       s1 = t1->socketserver()->CreateSocket(AF_INET, SOCK_DGRAM);
     });
@@ -406,8 +406,8 @@ TEST(NetworkEmulationManagerTest, EcnMarkingIsPropagated) {
   rtc::Thread* t1 = nt1->network_thread();
   rtc::Thread* t2 = nt2->network_thread();
 
-  rtc::Socket* s1 = nullptr;
-  rtc::Socket* s2 = nullptr;
+  Socket* s1 = nullptr;
+  Socket* s2 = nullptr;
   SendTask(t1,
            [&] { s1 = t1->socketserver()->CreateSocket(AF_INET, SOCK_DGRAM); });
   SendTask(t2,
@@ -432,7 +432,7 @@ TEST(NetworkEmulationManagerTest, EcnMarkingIsPropagated) {
   SendTask(t2, [&] { s2->Connect(a1); });
 
   t1->PostTask([&]() {
-    s1->SetOption(rtc::Socket::Option::OPT_SEND_ECN, 1);
+    s1->SetOption(Socket::Option::OPT_SEND_ECN, 1);
     rtc::CopyOnWriteBuffer data("Hello");
     s1->Send(data.data(), data.size());
   });
@@ -494,8 +494,8 @@ TEST(NetworkEmulationManagerTest, DebugStatsCollectedInDebugMode) {
 
   rtc::CopyOnWriteBuffer data("Hello");
   for (uint64_t j = 0; j < 2; j++) {
-    rtc::Socket* s1 = nullptr;
-    rtc::Socket* s2 = nullptr;
+    Socket* s1 = nullptr;
+    Socket* s2 = nullptr;
     SendTask(t1, [&] {
       s1 = t1->socketserver()->CreateSocket(AF_INET, SOCK_DGRAM);
     });
@@ -597,8 +597,8 @@ TEST(NetworkEmulationManagerTest, ThroughputStats) {
   constexpr int64_t kSinglePacketSize = kUdpPayloadSize + kOverheadIpv4Udp;
   rtc::CopyOnWriteBuffer data(kUdpPayloadSize);
 
-  rtc::Socket* s1 = nullptr;
-  rtc::Socket* s2 = nullptr;
+  Socket* s1 = nullptr;
+  Socket* s2 = nullptr;
   SendTask(t1,
            [&] { s1 = t1->socketserver()->CreateSocket(AF_INET, SOCK_DGRAM); });
   SendTask(t2,

@@ -31,7 +31,7 @@
 #include "rtc_base/virtual_socket_server.h"
 #include "test/gtest.h"
 
-namespace cricket {
+namespace webrtc {
 
 static unsigned char kStunMessageWithZeroLength[] = {
     0x00, 0x01, 0x00, 0x00,  // length of 0 (last 2 bytes)
@@ -62,14 +62,14 @@ static unsigned char kTurnChannelDataMessageWithOddLength[] = {
     0x40, 0x00, 0x00, 0x05, 0x21, 0x12, 0xA4, 0x42, '0',
 };
 
-static const webrtc::SocketAddress kClientAddr("11.11.11.11", 0);
-static const webrtc::SocketAddress kServerAddr("22.22.22.22", 0);
+static const SocketAddress kClientAddr("11.11.11.11", 0);
+static const SocketAddress kServerAddr("22.22.22.22", 0);
 
-class AsyncStunServerTCPSocket : public rtc::AsyncTcpListenSocket {
+class AsyncStunServerTCPSocket : public AsyncTcpListenSocket {
  public:
-  explicit AsyncStunServerTCPSocket(std::unique_ptr<rtc::Socket> socket)
+  explicit AsyncStunServerTCPSocket(std::unique_ptr<Socket> socket)
       : AsyncTcpListenSocket(std::move(socket)) {}
-  void HandleIncomingConnection(rtc::Socket* socket) override {
+  void HandleIncomingConnection(Socket* socket) override {
     SignalNewConnection(this, new AsyncStunTCPSocket(socket));
   }
 };
@@ -78,12 +78,12 @@ class AsyncStunTCPSocketTest : public ::testing::Test,
                                public sigslot::has_slots<> {
  protected:
   AsyncStunTCPSocketTest()
-      : vss_(new rtc::VirtualSocketServer()), thread_(vss_.get()) {}
+      : vss_(new VirtualSocketServer()), thread_(vss_.get()) {}
 
   virtual void SetUp() { CreateSockets(); }
 
   void CreateSockets() {
-    std::unique_ptr<rtc::Socket> server =
+    std::unique_ptr<Socket> server =
         absl::WrapUnique(vss_->CreateSocket(kServerAddr.family(), SOCK_STREAM));
     server->Bind(kServerAddr);
     listen_socket_ =
@@ -91,7 +91,7 @@ class AsyncStunTCPSocketTest : public ::testing::Test,
     listen_socket_->SignalNewConnection.connect(
         this, &AsyncStunTCPSocketTest::OnNewConnection);
 
-    rtc::Socket* client = vss_->CreateSocket(kClientAddr.family(), SOCK_STREAM);
+    Socket* client = vss_->CreateSocket(kClientAddr.family(), SOCK_STREAM);
     send_socket_.reset(AsyncStunTCPSocket::Create(
         client, kClientAddr, listen_socket_->GetLocalAddress()));
     send_socket_->SignalSentPacket.connect(
@@ -100,20 +100,20 @@ class AsyncStunTCPSocketTest : public ::testing::Test,
     vss_->ProcessMessagesUntilIdle();
   }
 
-  void OnReadPacket(rtc::AsyncPacketSocket* /* socket */,
+  void OnReadPacket(AsyncPacketSocket* /* socket */,
                     const rtc::ReceivedPacket& packet) {
     recv_packets_.push_back(
         std::string(reinterpret_cast<const char*>(packet.payload().data()),
                     packet.payload().size()));
   }
 
-  void OnSentPacket(rtc::AsyncPacketSocket* /* socket */,
+  void OnSentPacket(AsyncPacketSocket* /* socket */,
                     const rtc::SentPacket& /* packet */) {
     ++sent_packets_;
   }
 
-  void OnNewConnection(rtc::AsyncListenSocket* /*server*/,
-                       rtc::AsyncPacketSocket* new_socket) {
+  void OnNewConnection(AsyncListenSocket* /*server*/,
+                       AsyncPacketSocket* new_socket) {
     recv_socket_ = absl::WrapUnique(new_socket);
     new_socket->RegisterReceivedPacketCallback(
         [&](rtc::AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {
@@ -139,11 +139,11 @@ class AsyncStunTCPSocketTest : public ::testing::Test,
     return ret;
   }
 
-  std::unique_ptr<rtc::VirtualSocketServer> vss_;
+  std::unique_ptr<VirtualSocketServer> vss_;
   rtc::AutoSocketServerThread thread_;
   std::unique_ptr<AsyncStunTCPSocket> send_socket_;
-  std::unique_ptr<rtc::AsyncListenSocket> listen_socket_;
-  std::unique_ptr<rtc::AsyncPacketSocket> recv_socket_;
+  std::unique_ptr<AsyncListenSocket> listen_socket_;
+  std::unique_ptr<AsyncPacketSocket> recv_socket_;
   std::list<std::string> recv_packets_;
   int sent_packets_ = 0;
 };
@@ -178,7 +178,7 @@ TEST_F(AsyncStunTCPSocketTest, ProcessInputHandlesMultiplePackets) {
             std::string(reinterpret_cast<const char*>(packet.payload().data()),
                         packet.payload().size()));
       });
-  rtc::Buffer buffer;
+  Buffer buffer;
   buffer.AppendData(kStunMessageWithZeroLength,
                     sizeof(kStunMessageWithZeroLength));
   // ChannelData message MUST be padded to
@@ -316,4 +316,4 @@ TEST_F(AsyncStunTCPSocketTest, SignalSentPacketNotFiredWhenPacketNotSent) {
   EXPECT_EQ(0, sent_packets_);
 }
 
-}  // namespace cricket
+}  // namespace webrtc

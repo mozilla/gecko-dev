@@ -26,7 +26,7 @@
 #include "rtc_base/socket_adapters.h"
 #include "rtc_base/ssl_adapter.h"
 
-namespace rtc {
+namespace webrtc {
 
 BasicPacketSocketFactory::BasicPacketSocketFactory(
     SocketFactory* socket_factory)
@@ -35,7 +35,7 @@ BasicPacketSocketFactory::BasicPacketSocketFactory(
 BasicPacketSocketFactory::~BasicPacketSocketFactory() {}
 
 AsyncPacketSocket* BasicPacketSocketFactory::CreateUdpSocket(
-    const webrtc::SocketAddress& address,
+    const SocketAddress& address,
     uint16_t min_port,
     uint16_t max_port) {
   // UDP sockets are simple.
@@ -52,7 +52,7 @@ AsyncPacketSocket* BasicPacketSocketFactory::CreateUdpSocket(
 }
 
 AsyncListenSocket* BasicPacketSocketFactory::CreateServerTcpSocket(
-    const webrtc::SocketAddress& local_address,
+    const SocketAddress& local_address,
     uint16_t min_port,
     uint16_t max_port,
     int opts) {
@@ -84,8 +84,8 @@ AsyncListenSocket* BasicPacketSocketFactory::CreateServerTcpSocket(
 }
 
 AsyncPacketSocket* BasicPacketSocketFactory::CreateClientTcpSocket(
-    const webrtc::SocketAddress& local_address,
-    const webrtc::SocketAddress& remote_address,
+    const SocketAddress& local_address,
+    const SocketAddress& remote_address,
     const PacketSocketTcpOptions& tcp_options) {
   Socket* socket =
       socket_factory_->CreateSocket(local_address.family(), SOCK_STREAM);
@@ -126,7 +126,7 @@ AsyncPacketSocket* BasicPacketSocketFactory::CreateClientTcpSocket(
   if ((tlsOpts & PacketSocketFactory::OPT_TLS) ||
       (tlsOpts & PacketSocketFactory::OPT_TLS_INSECURE)) {
     // Using TLS, wrap the socket in an SSL adapter.
-    SSLAdapter* ssl_adapter = SSLAdapter::Create(socket);
+    rtc::SSLAdapter* ssl_adapter = rtc::SSLAdapter::Create(socket);
     if (!ssl_adapter) {
       return NULL;
     }
@@ -160,7 +160,7 @@ AsyncPacketSocket* BasicPacketSocketFactory::CreateClientTcpSocket(
   // Finally, wrap that socket in a TCP or STUN TCP packet socket.
   AsyncPacketSocket* tcp_socket;
   if (tcp_options.opts & PacketSocketFactory::OPT_STUN) {
-    tcp_socket = new cricket::AsyncStunTCPSocket(socket);
+    tcp_socket = new AsyncStunTCPSocket(socket);
   } else {
     tcp_socket = new AsyncTCPSocket(socket);
   }
@@ -168,16 +168,15 @@ AsyncPacketSocket* BasicPacketSocketFactory::CreateClientTcpSocket(
   return tcp_socket;
 }
 
-std::unique_ptr<webrtc::AsyncDnsResolverInterface>
+std::unique_ptr<AsyncDnsResolverInterface>
 BasicPacketSocketFactory::CreateAsyncDnsResolver() {
-  return std::make_unique<webrtc::AsyncDnsResolver>();
+  return std::make_unique<AsyncDnsResolver>();
 }
 
-int BasicPacketSocketFactory::BindSocket(
-    Socket* socket,
-    const webrtc::SocketAddress& local_address,
-    uint16_t min_port,
-    uint16_t max_port) {
+int BasicPacketSocketFactory::BindSocket(Socket* socket,
+                                         const SocketAddress& local_address,
+                                         uint16_t min_port,
+                                         uint16_t max_port) {
   int ret = -1;
   if (min_port == 0 && max_port == 0) {
     // If there's no port range, let the OS pick a port for us.
@@ -185,10 +184,10 @@ int BasicPacketSocketFactory::BindSocket(
   } else {
     // Otherwise, try to find a port in the provided range.
     for (int port = min_port; ret < 0 && port <= max_port; ++port) {
-      ret = socket->Bind(webrtc::SocketAddress(local_address.ipaddr(), port));
+      ret = socket->Bind(SocketAddress(local_address.ipaddr(), port));
     }
   }
   return ret;
 }
 
-}  // namespace rtc
+}  // namespace webrtc

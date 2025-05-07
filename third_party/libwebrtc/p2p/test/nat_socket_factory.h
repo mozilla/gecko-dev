@@ -37,19 +37,18 @@ const size_t kNATEncodedIPv6AddressSize = 20U;
 class NATInternalSocketFactory {
  public:
   virtual ~NATInternalSocketFactory() {}
-  virtual rtc::Socket* CreateInternalSocket(int family,
-                                            int type,
-                                            const SocketAddress& local_addr,
-                                            SocketAddress* nat_addr) = 0;
+  virtual Socket* CreateInternalSocket(int family,
+                                       int type,
+                                       const SocketAddress& local_addr,
+                                       SocketAddress* nat_addr) = 0;
 };
 
 // Creates sockets that will send all traffic through a NAT, using an existing
 // NATServer instance running at nat_addr. The actual data is sent using sockets
 // from a socket factory, given to the constructor.
-class NATSocketFactory : public rtc::SocketFactory,
-                         public NATInternalSocketFactory {
+class NATSocketFactory : public SocketFactory, public NATInternalSocketFactory {
  public:
-  NATSocketFactory(rtc::SocketFactory* factory,
+  NATSocketFactory(SocketFactory* factory,
                    const SocketAddress& nat_udp_addr,
                    const SocketAddress& nat_tcp_addr);
 
@@ -57,16 +56,16 @@ class NATSocketFactory : public rtc::SocketFactory,
   NATSocketFactory& operator=(const NATSocketFactory&) = delete;
 
   // SocketFactory implementation
-  rtc::Socket* CreateSocket(int family, int type) override;
+  Socket* CreateSocket(int family, int type) override;
 
   // NATInternalSocketFactory implementation
-  rtc::Socket* CreateInternalSocket(int family,
-                                    int type,
-                                    const SocketAddress& local_addr,
-                                    SocketAddress* nat_addr) override;
+  Socket* CreateInternalSocket(int family,
+                               int type,
+                               const SocketAddress& local_addr,
+                               SocketAddress* nat_addr) override;
 
  private:
-  rtc::SocketFactory* factory_;
+  SocketFactory* factory_;
   SocketAddress nat_udp_addr_;
   SocketAddress nat_tcp_addr_;
 };
@@ -86,8 +85,7 @@ class NATSocketFactory : public rtc::SocketFactory,
 // ss->GetTranslator("99.99.99.99")->AddClient("10.0.0.3");
 // ss->GetTranslator("99.99.99.99")->GetTranslator("10.0.0.2")->
 //     AddClient("192.168.1.2");
-class NATSocketServer : public rtc::SocketServer,
-                        public NATInternalSocketFactory {
+class NATSocketServer : public SocketServer, public NATInternalSocketFactory {
  public:
   class Translator;
 
@@ -108,11 +106,11 @@ class NATSocketServer : public rtc::SocketServer,
                NATType type,
                const SocketAddress& int_addr,
                rtc::Thread& external_socket_thread,
-               rtc::SocketFactory* ext_factory,
+               SocketFactory* ext_factory,
                const SocketAddress& ext_addr);
     ~Translator();
 
-    rtc::SocketFactory* internal_factory() { return internal_server_.get(); }
+    SocketFactory* internal_factory() { return internal_server_.get(); }
     SocketAddress internal_udp_address() const {
       return nat_server_->internal_udp_address();
     }
@@ -134,18 +132,18 @@ class NATSocketServer : public rtc::SocketServer,
 
    private:
     NATSocketServer* server_;
-    std::unique_ptr<rtc::SocketServer> internal_server_;
+    std::unique_ptr<SocketServer> internal_server_;
     std::unique_ptr<NATServer> nat_server_;
     TranslatorMap nats_;
     std::set<SocketAddress> clients_;
   };
 
-  explicit NATSocketServer(rtc::SocketServer* ss);
+  explicit NATSocketServer(SocketServer* ss);
 
   NATSocketServer(const NATSocketServer&) = delete;
   NATSocketServer& operator=(const NATSocketServer&) = delete;
 
-  rtc::SocketServer* socketserver() { return server_; }
+  SocketServer* socketserver() { return server_; }
   rtc::Thread* queue() { return msg_queue_; }
 
   Translator* GetTranslator(const SocketAddress& ext_ip);
@@ -155,20 +153,20 @@ class NATSocketServer : public rtc::SocketServer,
   void RemoveTranslator(const SocketAddress& ext_ip);
 
   // SocketServer implementation
-  rtc::Socket* CreateSocket(int family, int type) override;
+  Socket* CreateSocket(int family, int type) override;
 
   void SetMessageQueue(rtc::Thread* queue) override;
   bool Wait(TimeDelta max_wait_duration, bool process_io) override;
   void WakeUp() override;
 
   // NATInternalSocketFactory implementation
-  rtc::Socket* CreateInternalSocket(int family,
-                                    int type,
-                                    const SocketAddress& local_addr,
-                                    SocketAddress* nat_addr) override;
+  Socket* CreateInternalSocket(int family,
+                               int type,
+                               const SocketAddress& local_addr,
+                               SocketAddress* nat_addr) override;
 
  private:
-  rtc::SocketServer* server_;
+  SocketServer* server_;
   rtc::Thread* msg_queue_;
   TranslatorMap nats_;
 };

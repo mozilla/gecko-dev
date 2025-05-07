@@ -152,8 +152,8 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
                  size_t len,
                  const rtc::PacketOptions& options,
                  int flags) override;
-  int SetOption(rtc::Socket::Option opt, int value) override;
-  bool GetOption(rtc::Socket::Option opt, int* value) override;
+  int SetOption(webrtc::Socket::Option opt, int value) override;
+  bool GetOption(webrtc::Socket::Option opt, int* value) override;
   int GetError() override;
   bool GetStats(IceTransportStats* ice_transport_stats) override;
   std::optional<int> GetRttEstimate() override;
@@ -438,7 +438,7 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
       RTC_GUARDED_BY(network_thread_);
   bool had_connection_ RTC_GUARDED_BY(network_thread_) =
       false;  // if connections_ has ever been nonempty
-  typedef std::map<rtc::Socket::Option, int> OptionMap;
+  typedef std::map<webrtc::Socket::Option, int> OptionMap;
   OptionMap options_ RTC_GUARDED_BY(network_thread_);
   IceParameters ice_parameters_ RTC_GUARDED_BY(network_thread_);
   std::vector<IceParameters> remote_ice_parameters_

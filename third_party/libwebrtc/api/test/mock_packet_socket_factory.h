@@ -22,21 +22,21 @@
 #include "test/gmock.h"
 
 namespace webrtc {
-class MockPacketSocketFactory : public rtc::PacketSocketFactory {
+class MockPacketSocketFactory : public PacketSocketFactory {
  public:
-  MOCK_METHOD(rtc::AsyncPacketSocket*,
+  MOCK_METHOD(AsyncPacketSocket*,
               CreateUdpSocket,
               (const SocketAddress&, uint16_t, uint16_t),
               (override));
-  MOCK_METHOD(rtc::AsyncListenSocket*,
+  MOCK_METHOD(AsyncListenSocket*,
               CreateServerTcpSocket,
               (const SocketAddress&, uint16_t, uint16_t, int opts),
               (override));
-  MOCK_METHOD(rtc::AsyncPacketSocket*,
+  MOCK_METHOD(AsyncPacketSocket*,
               CreateClientTcpSocket,
               (const SocketAddress& local_address,
                const SocketAddress&,
-               const rtc::PacketSocketTcpOptions&),
+               const PacketSocketTcpOptions&),
               (override));
   MOCK_METHOD(std::unique_ptr<AsyncDnsResolverInterface>,
               CreateAsyncDnsResolver,

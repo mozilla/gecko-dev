@@ -33,12 +33,12 @@ const SocketAddress client_addr("1.2.3.4", 1234);
 
 class StunServerTest : public ::testing::Test {
  public:
-  StunServerTest() : ss_(new rtc::VirtualSocketServer()) {
+  StunServerTest() : ss_(new VirtualSocketServer()) {
     ss_->SetMessageQueue(&main_thread);
     server_.reset(
-        new StunServer(rtc::AsyncUDPSocket::Create(ss_.get(), server_addr)));
+        new StunServer(AsyncUDPSocket::Create(ss_.get(), server_addr)));
     client_.reset(new TestClient(
-        absl::WrapUnique(rtc::AsyncUDPSocket::Create(ss_.get(), client_addr))));
+        absl::WrapUnique(AsyncUDPSocket::Create(ss_.get(), client_addr))));
   }
 
   void Send(const cricket::StunMessage& msg) {
@@ -65,7 +65,7 @@ class StunServerTest : public ::testing::Test {
 
  private:
   rtc::AutoThread main_thread;
-  std::unique_ptr<rtc::VirtualSocketServer> ss_;
+  std::unique_ptr<VirtualSocketServer> ss_;
   std::unique_ptr<StunServer> server_;
   std::unique_ptr<TestClient> client_;
 };

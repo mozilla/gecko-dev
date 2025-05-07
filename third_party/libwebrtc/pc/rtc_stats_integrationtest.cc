@@ -151,7 +151,7 @@ class RTCStatsIntegrationTest : public ::testing::Test {
 
   // `network_thread_` uses `virtual_socket_server_` so they must be
   // constructed/destructed in the correct order.
-  rtc::VirtualSocketServer virtual_socket_server_;
+  VirtualSocketServer virtual_socket_server_;
   std::unique_ptr<rtc::Thread> network_thread_;
   std::unique_ptr<rtc::Thread> worker_thread_;
   rtc::scoped_refptr<PeerConnectionTestWrapper> caller_;

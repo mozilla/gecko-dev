@@ -23,7 +23,7 @@ class SimulatedThread : public rtc::Thread,
   using CurrentThreadSetter = CurrentThreadSetter;
   SimulatedThread(sim_time_impl::SimulatedTimeControllerImpl* handler,
                   absl::string_view name,
-                  std::unique_ptr<rtc::SocketServer> socket_server);
+                  std::unique_ptr<SocketServer> socket_server);
   ~SimulatedThread() override;
 
   void RunReady(Timestamp at_time) override;

@@ -19,7 +19,7 @@
 #include "rtc_base/socket_server.h"
 #include "rtc_base/synchronization/mutex.h"
 
-namespace rtc {
+namespace webrtc {
 
 class FirewallManager;
 
@@ -55,16 +55,16 @@ class FirewallSocketServer : public SocketServer {
   void AddRule(bool allow,
                FirewallProtocol p = FP_ANY,
                FirewallDirection d = FD_ANY,
-               const webrtc::SocketAddress& addr = webrtc::SocketAddress());
+               const SocketAddress& addr = SocketAddress());
   void AddRule(bool allow,
                FirewallProtocol p,
-               const webrtc::SocketAddress& src,
-               const webrtc::SocketAddress& dst);
+               const SocketAddress& src,
+               const SocketAddress& dst);
   void ClearRules();
 
   bool Check(FirewallProtocol p,
-             const webrtc::SocketAddress& src,
-             const webrtc::SocketAddress& dst);
+             const SocketAddress& src,
+             const SocketAddress& dst);
 
   // Set the IP addresses for which Bind will fail. By default this list is
   // empty. This can be used to simulate a real OS that refuses to bind to
@@ -73,13 +73,13 @@ class FirewallSocketServer : public SocketServer {
   // No matter how many addresses are added (including INADDR_ANY), the server
   // will still allow creating outgoing TCP connections, since they don't
   // require explicitly binding a socket.
-  void SetUnbindableIps(const std::vector<webrtc::IPAddress>& unbindable_ips);
-  bool IsBindableIp(const webrtc::IPAddress& ip);
+  void SetUnbindableIps(const std::vector<IPAddress>& unbindable_ips);
+  bool IsBindableIp(const IPAddress& ip);
 
   Socket* CreateSocket(int family, int type) override;
 
-  void SetMessageQueue(Thread* queue) override;
-  bool Wait(webrtc::TimeDelta max_wait_duration, bool process_io) override;
+  void SetMessageQueue(rtc::Thread* queue) override;
+  bool Wait(TimeDelta max_wait_duration, bool process_io) override;
   void WakeUp() override;
 
   Socket* WrapSocket(Socket* sock, int type);
@@ -87,16 +87,16 @@ class FirewallSocketServer : public SocketServer {
  private:
   SocketServer* server_;
   FirewallManager* manager_;
-  webrtc::Mutex mutex_;
+  Mutex mutex_;
   struct Rule {
     bool allow;
     FirewallProtocol p;
     FirewallDirection d;
-    webrtc::SocketAddress src;
-    webrtc::SocketAddress dst;
+    SocketAddress src;
+    SocketAddress dst;
   };
   std::vector<Rule> rules_;
-  std::vector<webrtc::IPAddress> unbindable_ips_;
+  std::vector<IPAddress> unbindable_ips_;
   bool should_delete_server_;
   bool udp_sockets_enabled_;
   bool tcp_sockets_enabled_;
@@ -116,14 +116,29 @@ class FirewallManager {
   void AddRule(bool allow,
                FirewallProtocol p = FP_ANY,
                FirewallDirection d = FD_ANY,
-               const webrtc::SocketAddress& addr = webrtc::SocketAddress());
+               const SocketAddress& addr = SocketAddress());
   void ClearRules();
 
  private:
-  webrtc::Mutex mutex_;
+  Mutex mutex_;
   std::vector<FirewallSocketServer*> servers_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::FD_ANY;
+using ::webrtc::FD_IN;
+using ::webrtc::FD_OUT;
+using ::webrtc::FirewallDirection;
+using ::webrtc::FirewallManager;
+using ::webrtc::FirewallProtocol;
+using ::webrtc::FirewallSocketServer;
+using ::webrtc::FP_ANY;
+using ::webrtc::FP_TCP;
+using ::webrtc::FP_UDP;
 }  // namespace rtc
 
 #endif  // RTC_BASE_FIREWALL_SOCKET_SERVER_H_

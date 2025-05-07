@@ -21,15 +21,13 @@ namespace webrtc {
 
 // A PacketSocketFactory implementation for tests that uses a mock DnsResolver
 // and allows setting expectations on the resolver and results.
-class MockDnsResolvingPacketSocketFactory
-    : public rtc::BasicPacketSocketFactory {
+class MockDnsResolvingPacketSocketFactory : public BasicPacketSocketFactory {
  public:
   using Expectations =
       std::function<void(MockAsyncDnsResolver*, MockAsyncDnsResolverResult*)>;
 
-  explicit MockDnsResolvingPacketSocketFactory(
-      rtc::SocketFactory* socket_factory)
-      : rtc::BasicPacketSocketFactory(socket_factory) {}
+  explicit MockDnsResolvingPacketSocketFactory(SocketFactory* socket_factory)
+      : BasicPacketSocketFactory(socket_factory) {}
 
   std::unique_ptr<AsyncDnsResolverInterface> CreateAsyncDnsResolver() override {
     std::unique_ptr<MockAsyncDnsResolver> resolver =

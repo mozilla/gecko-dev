@@ -29,19 +29,19 @@
 #include "test/gtest.h"
 #include "test/wait_until.h"
 
-namespace rtc {
-
 #define MAYBE_SKIP_IPV4                        \
-  if (!HasIPv4Enabled()) {                     \
+  if (!::rtc::HasIPv4Enabled()) {              \
     RTC_LOG(LS_INFO) << "No IPv4... skipping"; \
     return;                                    \
   }
 
 #define MAYBE_SKIP_IPV6                        \
-  if (!HasIPv6Enabled()) {                     \
+  if (!::rtc::HasIPv6Enabled()) {              \
     RTC_LOG(LS_INFO) << "No IPv6... skipping"; \
     return;                                    \
   }
+
+namespace webrtc {
 
 class PhysicalSocketTest;
 
@@ -92,20 +92,20 @@ class FakePhysicalSocketServer : public PhysicalSocketServer {
   PhysicalSocketTest* test_;
 };
 
-class FakeNetworkBinder : public NetworkBinderInterface {
+class FakeNetworkBinder : public rtc::NetworkBinderInterface {
  public:
-  NetworkBindingResult BindSocketToNetwork(int,
-                                           const webrtc::IPAddress&) override {
+  rtc::NetworkBindingResult BindSocketToNetwork(int,
+                                                const IPAddress&) override {
     ++num_binds_;
     return result_;
   }
 
-  void set_result(NetworkBindingResult result) { result_ = result; }
+  void set_result(rtc::NetworkBindingResult result) { result_ = result; }
 
   int num_binds() { return num_binds_; }
 
  private:
-  NetworkBindingResult result_ = NetworkBindingResult::SUCCESS;
+  rtc::NetworkBindingResult result_ = rtc::NetworkBindingResult::SUCCESS;
   int num_binds_ = 0;
 };
 
@@ -127,8 +127,8 @@ class PhysicalSocketTest : public SocketTest {
         fail_accept_(false),
         max_send_size_(-1) {}
 
-  void ConnectInternalAcceptError(const webrtc::IPAddress& loopback);
-  void WritableAfterPartialWrite(const webrtc::IPAddress& loopback);
+  void ConnectInternalAcceptError(const IPAddress& loopback);
+  void WritableAfterPartialWrite(const IPAddress& loopback);
 
   FakePhysicalSocketServer server_;
   rtc::AutoSocketServerThread thread_;
@@ -200,29 +200,28 @@ TEST_F(PhysicalSocketTest, TestConnectFailIPv4) {
   SocketTest::TestConnectFailIPv4();
 }
 
-void PhysicalSocketTest::ConnectInternalAcceptError(
-    const webrtc::IPAddress& loopback) {
-  webrtc::testing::StreamSink sink;
-  webrtc::SocketAddress accept_addr;
+void PhysicalSocketTest::ConnectInternalAcceptError(const IPAddress& loopback) {
+  testing::StreamSink sink;
+  SocketAddress accept_addr;
 
   // Create two clients.
   std::unique_ptr<Socket> client1(
       server_.CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(client1.get());
   EXPECT_EQ(Socket::CS_CLOSED, client1->GetState());
-  EXPECT_TRUE(IsUnspecOrEmptyIP(client1->GetLocalAddress().ipaddr()));
+  EXPECT_TRUE(webrtc::IsUnspecOrEmptyIP(client1->GetLocalAddress().ipaddr()));
 
   std::unique_ptr<Socket> client2(
       server_.CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(client2.get());
   EXPECT_EQ(Socket::CS_CLOSED, client2->GetState());
-  EXPECT_TRUE(IsUnspecOrEmptyIP(client2->GetLocalAddress().ipaddr()));
+  EXPECT_TRUE(webrtc::IsUnspecOrEmptyIP(client2->GetLocalAddress().ipaddr()));
 
   // Create server and listen.
   std::unique_ptr<Socket> server(
       server_.CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(server.get());
-  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
   EXPECT_EQ(0, server->Listen(5));
   EXPECT_EQ(Socket::CS_CONNECTING, server->GetState());
 
@@ -291,8 +290,7 @@ TEST_F(PhysicalSocketTest, TestConnectAcceptErrorIPv6) {
   ConnectInternalAcceptError(kIPv6Loopback);
 }
 
-void PhysicalSocketTest::WritableAfterPartialWrite(
-    const webrtc::IPAddress& loopback) {
+void PhysicalSocketTest::WritableAfterPartialWrite(const IPAddress& loopback) {
   // Simulate a really small maximum send size.
   const int kMaxSendSize = 128;
   SetMaxSendSize(kMaxSendSize);
@@ -503,8 +501,8 @@ TEST_F(PhysicalSocketTest,
   FakeNetworkBinder fake_network_binder;
   server_.set_network_binder(&fake_network_binder);
   std::unique_ptr<Socket> socket(server_.CreateSocket(AF_INET, SOCK_DGRAM));
-  fake_network_binder.set_result(NetworkBindingResult::FAILURE);
-  EXPECT_EQ(-1, socket->Bind(webrtc::SocketAddress("192.168.0.1", 0)));
+  fake_network_binder.set_result(rtc::NetworkBindingResult::FAILURE);
+  EXPECT_EQ(-1, socket->Bind(SocketAddress("192.168.0.1", 0)));
   server_.set_network_binder(nullptr);
 }
 
@@ -514,7 +512,7 @@ TEST_F(PhysicalSocketTest, NetworkBinderIsNotUsedForAnyIp) {
   FakeNetworkBinder fake_network_binder;
   server_.set_network_binder(&fake_network_binder);
   std::unique_ptr<Socket> socket(server_.CreateSocket(AF_INET, SOCK_DGRAM));
-  EXPECT_EQ(0, socket->Bind(webrtc::SocketAddress("0.0.0.0", 0)));
+  EXPECT_EQ(0, socket->Bind(SocketAddress("0.0.0.0", 0)));
   EXPECT_EQ(0, fake_network_binder.num_binds());
   server_.set_network_binder(nullptr);
 }
@@ -527,8 +525,8 @@ TEST_F(PhysicalSocketTest,
   FakeNetworkBinder fake_network_binder;
   server_.set_network_binder(&fake_network_binder);
   std::unique_ptr<Socket> socket(server_.CreateSocket(AF_INET, SOCK_DGRAM));
-  fake_network_binder.set_result(NetworkBindingResult::FAILURE);
-  EXPECT_EQ(0, socket->Bind(webrtc::SocketAddress(kIPv4Loopback, 0)));
+  fake_network_binder.set_result(rtc::NetworkBindingResult::FAILURE);
+  EXPECT_EQ(0, socket->Bind(SocketAddress(kIPv4Loopback, 0)));
   server_.set_network_binder(nullptr);
 }
 
@@ -543,4 +541,4 @@ TEST_F(PhysicalSocketTest, UdpSocketRecvTimestampUseRtcEpochIPv6) {
   SocketTest::TestUdpSocketRecvTimestampUseRtcEpochIPv6();
 }
 
-}  // namespace rtc
+}  // namespace webrtc

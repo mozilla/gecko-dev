@@ -34,10 +34,10 @@ namespace webrtc {
 //         Callers can retrieve received packets from any thread by calling
 //         NextPacket.
 
-TestClient::TestClient(std::unique_ptr<rtc::AsyncPacketSocket> socket)
+TestClient::TestClient(std::unique_ptr<AsyncPacketSocket> socket)
     : TestClient(std::move(socket), nullptr) {}
 
-TestClient::TestClient(std::unique_ptr<rtc::AsyncPacketSocket> socket,
+TestClient::TestClient(std::unique_ptr<AsyncPacketSocket> socket,
                        ThreadProcessingFakeClock* fake_clock)
     : fake_clock_(fake_clock), socket_(std::move(socket)) {
   socket_->RegisterReceivedPacketCallback(
@@ -49,7 +49,7 @@ TestClient::TestClient(std::unique_ptr<rtc::AsyncPacketSocket> socket,
 
 TestClient::~TestClient() {}
 
-bool TestClient::CheckConnState(rtc::AsyncPacketSocket::State state) {
+bool TestClient::CheckConnState(AsyncPacketSocket::State state) {
   // Wait for our timeout value until the socket reaches the desired state.
   int64_t end = rtc::TimeAfter(kTimeoutMs);
   while (socket_->GetState() != state && rtc::TimeUntil(end) > 0) {
@@ -153,17 +153,17 @@ int TestClient::GetError() {
   return socket_->GetError();
 }
 
-int TestClient::SetOption(rtc::Socket::Option opt, int value) {
+int TestClient::SetOption(Socket::Option opt, int value) {
   return socket_->SetOption(opt, value);
 }
 
-void TestClient::OnPacket(rtc::AsyncPacketSocket* socket,
+void TestClient::OnPacket(AsyncPacketSocket* socket,
                           const rtc::ReceivedPacket& received_packet) {
   MutexLock lock(&mutex_);
   packets_.push_back(std::make_unique<Packet>(received_packet));
 }
 
-void TestClient::OnReadyToSend(rtc::AsyncPacketSocket* socket) {
+void TestClient::OnReadyToSend(AsyncPacketSocket* socket) {
   ++ready_to_send_count_;
 }
 

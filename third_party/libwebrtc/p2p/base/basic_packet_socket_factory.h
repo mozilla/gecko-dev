@@ -24,40 +24,42 @@
 #include "rtc_base/socket_factory.h"
 #include "rtc_base/system/rtc_export.h"
 
-namespace rtc {
-
-class SocketFactory;
+namespace webrtc {
 
 class RTC_EXPORT BasicPacketSocketFactory : public PacketSocketFactory {
  public:
   explicit BasicPacketSocketFactory(SocketFactory* socket_factory);
   ~BasicPacketSocketFactory() override;
 
-  AsyncPacketSocket* CreateUdpSocket(const webrtc::SocketAddress& local_address,
+  AsyncPacketSocket* CreateUdpSocket(const SocketAddress& local_address,
                                      uint16_t min_port,
                                      uint16_t max_port) override;
-  AsyncListenSocket* CreateServerTcpSocket(
-      const webrtc::SocketAddress& local_address,
-      uint16_t min_port,
-      uint16_t max_port,
-      int opts) override;
+  AsyncListenSocket* CreateServerTcpSocket(const SocketAddress& local_address,
+                                           uint16_t min_port,
+                                           uint16_t max_port,
+                                           int opts) override;
   AsyncPacketSocket* CreateClientTcpSocket(
-      const webrtc::SocketAddress& local_address,
-      const webrtc::SocketAddress& remote_address,
+      const SocketAddress& local_address,
+      const SocketAddress& remote_address,
       const PacketSocketTcpOptions& tcp_options) override;
 
-  std::unique_ptr<webrtc::AsyncDnsResolverInterface> CreateAsyncDnsResolver()
-      override;
+  std::unique_ptr<AsyncDnsResolverInterface> CreateAsyncDnsResolver() override;
 
  private:
   int BindSocket(Socket* socket,
-                 const webrtc::SocketAddress& local_address,
+                 const SocketAddress& local_address,
                  uint16_t min_port,
                  uint16_t max_port);
 
   SocketFactory* socket_factory_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::BasicPacketSocketFactory;
 }  // namespace rtc
 
 #endif  // P2P_BASE_BASIC_PACKET_SOCKET_FACTORY_H_

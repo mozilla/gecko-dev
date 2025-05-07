@@ -84,7 +84,7 @@ class DataChannelControllerForTest : public DataChannelController {
 class DataChannelControllerTest : public ::testing::Test {
  protected:
   DataChannelControllerTest()
-      : network_thread_(std::make_unique<rtc::NullSocketServer>()) {
+      : network_thread_(std::make_unique<NullSocketServer>()) {
     network_thread_.Start();
     pc_ = rtc::make_ref_counted<NiceMock<MockPeerConnectionInternal>>();
     ON_CALL(*pc_, signaling_thread)

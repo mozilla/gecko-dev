@@ -42,8 +42,8 @@ class RtpTransportInternal : public sigslot::has_slots<> {
   virtual const std::string& transport_name() const = 0;
 
   // Sets socket options on the underlying RTP or RTCP transports.
-  virtual int SetRtpOption(rtc::Socket::Option opt, int value) = 0;
-  virtual int SetRtcpOption(rtc::Socket::Option opt, int value) = 0;
+  virtual int SetRtpOption(Socket::Option opt, int value) = 0;
+  virtual int SetRtcpOption(Socket::Option opt, int value) = 0;
 
   virtual bool rtcp_mux_enabled() const = 0;
 

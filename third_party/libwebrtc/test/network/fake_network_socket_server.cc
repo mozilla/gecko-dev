@@ -48,7 +48,7 @@ std::string ToString(const SocketAddress& addr) {
 }  // namespace
 
 // Represents a socket, which will operate with emulated network.
-class FakeNetworkSocket : public rtc::Socket,
+class FakeNetworkSocket : public Socket,
                           public EmulatedNetworkReceiverInterface {
  public:
   explicit FakeNetworkSocket(FakeNetworkSocketServer* scoket_manager,
@@ -72,7 +72,7 @@ class FakeNetworkSocket : public rtc::Socket,
   }
   int RecvFrom(ReceiveBuffer& buffer) override;
   int Listen(int backlog) override;
-  rtc::Socket* Accept(SocketAddress* paddr) override;
+  Socket* Accept(SocketAddress* paddr) override;
   int GetError() const override;
   void SetError(int error) override;
   ConnState GetState() const override;
@@ -215,7 +215,7 @@ int FakeNetworkSocket::Listen(int backlog) {
   RTC_CHECK(false) << "Listen() isn't valid for SOCK_DGRAM";
 }
 
-rtc::Socket* FakeNetworkSocket::Accept(SocketAddress* /*paddr*/) {
+Socket* FakeNetworkSocket::Accept(SocketAddress* /*paddr*/) {
   RTC_CHECK(false) << "Accept() isn't valid for SOCK_DGRAM";
 }
 
@@ -241,7 +241,7 @@ void FakeNetworkSocket::SetError(int error) {
   error_ = error;
 }
 
-rtc::Socket::ConnState FakeNetworkSocket::GetState() const {
+Socket::ConnState FakeNetworkSocket::GetState() const {
   RTC_DCHECK_RUN_ON(thread_);
   return state_;
 }
@@ -278,7 +278,7 @@ void FakeNetworkSocketServer::Unregister(FakeNetworkSocket* socket) {
   sockets_.erase(absl::c_find(sockets_, socket));
 }
 
-rtc::Socket* FakeNetworkSocketServer::CreateSocket(int family, int type) {
+Socket* FakeNetworkSocketServer::CreateSocket(int family, int type) {
   RTC_DCHECK(family == AF_INET || family == AF_INET6);
   // We support only UDP sockets for now.
   RTC_DCHECK(type == SOCK_DGRAM) << "Only UDP sockets are supported";

@@ -18,9 +18,9 @@ namespace {
 // A socket server that does nothing. It's different from NullSocketServer in
 // that it does allow sleep/wakeup. This avoids usage of an Event instance which
 // otherwise would cause issues with the simulated Yeild behavior.
-class DummySocketServer : public rtc::SocketServer {
+class DummySocketServer : public SocketServer {
  public:
-  rtc::Socket* CreateSocket(int family, int type) override {
+  Socket* CreateSocket(int family, int type) override {
     RTC_DCHECK_NOTREACHED();
     return nullptr;
   }
@@ -36,7 +36,7 @@ class DummySocketServer : public rtc::SocketServer {
 SimulatedThread::SimulatedThread(
     sim_time_impl::SimulatedTimeControllerImpl* handler,
     absl::string_view name,
-    std::unique_ptr<rtc::SocketServer> socket_server)
+    std::unique_ptr<SocketServer> socket_server)
     : rtc::Thread(socket_server ? std::move(socket_server)
                                 : std::make_unique<DummySocketServer>()),
       handler_(handler),

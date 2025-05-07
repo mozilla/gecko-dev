@@ -427,7 +427,7 @@ class PeerConnectionEncodingsIntegrationTest : public ::testing::Test {
     return true;
   }
 
-  rtc::PhysicalSocketServer pss_;
+  PhysicalSocketServer pss_;
   std::unique_ptr<rtc::Thread> background_thread_;
 };
 

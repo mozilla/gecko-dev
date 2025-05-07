@@ -70,7 +70,7 @@ class EmulatedTURNServer : public EmulatedTURNServerInterface,
         std::string(username), std::string(realm), std::string(username), key);
   }
 
-  rtc::AsyncPacketSocket* CreatePeerSocket() { return Wrap(peer_); }
+  AsyncPacketSocket* CreatePeerSocket() { return Wrap(peer_); }
 
   // This method is called by network emulation when a packet
   // comes from an emulated link.
@@ -95,7 +95,7 @@ class EmulatedTURNServer : public EmulatedTURNServerInterface,
 
   // Wraps a EmulatedEndpoint in a AsyncPacketSocket to bridge interaction
   // with TurnServer. cricket::TurnServer gets ownership of the socket.
-  rtc::AsyncPacketSocket* Wrap(EmulatedEndpoint* endpoint);
+  AsyncPacketSocket* Wrap(EmulatedEndpoint* endpoint);
 };
 
 }  // namespace test

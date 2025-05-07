@@ -541,7 +541,7 @@ bool NetworkManagerBase::IsVpnMacAddress(
 
 BasicNetworkManager::BasicNetworkManager(
     NetworkMonitorFactory* network_monitor_factory,
-    SocketFactory* socket_factory,
+    webrtc::SocketFactory* socket_factory,
     const webrtc::FieldTrialsView* field_trials_view)
     : field_trials_(field_trials_view),
       network_monitor_factory_(network_monitor_factory),
@@ -1031,7 +1031,7 @@ webrtc::IPAddress BasicNetworkManager::QueryDefaultLocalAddress(
     int family) const {
   RTC_DCHECK(family == AF_INET || family == AF_INET6);
 
-  std::unique_ptr<Socket> socket(
+  std::unique_ptr<webrtc::Socket> socket(
       socket_factory_->CreateSocket(family, SOCK_DGRAM));
   if (!socket) {
     RTC_LOG_ERR(LS_ERROR) << "Socket creation failed";

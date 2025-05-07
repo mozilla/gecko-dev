@@ -13,7 +13,7 @@
 
 #include "rtc_base/socket.h"
 
-namespace rtc {
+namespace webrtc {
 
 class SocketFactory {
  public:
@@ -23,6 +23,12 @@ class SocketFactory {
   virtual Socket* CreateSocket(int family, int type) = 0;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::SocketFactory;
 }  // namespace rtc
 
 #endif  // RTC_BASE_SOCKET_FACTORY_H_

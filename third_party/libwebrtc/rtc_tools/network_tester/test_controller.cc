@@ -43,7 +43,7 @@ TestController::TestController(int min_port,
   packet_sender_thread_->BlockingCall([&] {
     RTC_DCHECK_RUN_ON(packet_sender_thread_.get());
     udp_socket_ =
-        std::unique_ptr<rtc::AsyncPacketSocket>(socket_factory_.CreateUdpSocket(
+        std::unique_ptr<AsyncPacketSocket>(socket_factory_.CreateUdpSocket(
             SocketAddress(GetAnyIP(AF_INET), 0), min_port, max_port));
     RTC_CHECK(udp_socket_ != nullptr);
     udp_socket_->RegisterReceivedPacketCallback(
@@ -107,7 +107,7 @@ bool TestController::IsTestDone() {
   return local_test_done_ && remote_test_done_;
 }
 
-void TestController::OnReadPacket(rtc::AsyncPacketSocket* socket,
+void TestController::OnReadPacket(AsyncPacketSocket* socket,
                                   const rtc::ReceivedPacket& received_packet) {
   RTC_DCHECK_RUN_ON(packet_sender_thread_.get());
   RTC_LOG(LS_VERBOSE) << "OnReadPacket";

@@ -49,11 +49,11 @@ class RegatheringControllerTest : public ::testing::Test,
                                   public sigslot::has_slots<> {
  public:
   RegatheringControllerTest()
-      : vss_(std::make_unique<rtc::VirtualSocketServer>()),
+      : vss_(std::make_unique<VirtualSocketServer>()),
         thread_(vss_.get()),
         ice_transport_(std::make_unique<MockIceTransport>()),
         packet_socket_factory_(
-            std::make_unique<rtc::BasicPacketSocketFactory>(vss_.get())),
+            std::make_unique<BasicPacketSocketFactory>(vss_.get())),
         allocator_(std::make_unique<cricket::FakePortAllocator>(
             rtc::Thread::Current(),
             packet_socket_factory_.get(),
@@ -110,11 +110,11 @@ class RegatheringControllerTest : public ::testing::Test,
 
  private:
   webrtc::test::ScopedKeyValueConfig field_trials_;
-  std::unique_ptr<rtc::VirtualSocketServer> vss_;
+  std::unique_ptr<VirtualSocketServer> vss_;
   rtc::AutoSocketServerThread thread_;
   std::unique_ptr<cricket::IceTransportInternal> ice_transport_;
   std::unique_ptr<BasicRegatheringController> regathering_controller_;
-  std::unique_ptr<rtc::PacketSocketFactory> packet_socket_factory_;
+  std::unique_ptr<PacketSocketFactory> packet_socket_factory_;
   std::unique_ptr<cricket::PortAllocator> allocator_;
   std::unique_ptr<cricket::PortAllocatorSession> allocator_session_;
   std::map<cricket::IceRegatheringReason, int> count_;

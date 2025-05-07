@@ -25,7 +25,7 @@ TurnPortFactory::~TurnPortFactory() {}
 
 std::unique_ptr<Port> TurnPortFactory::Create(
     const CreateRelayPortArgs& args,
-    rtc::AsyncPacketSocket* udp_socket) {
+    webrtc::AsyncPacketSocket* udp_socket) {
   auto port = TurnPort::Create(args, udp_socket);
   if (!port)
     return nullptr;

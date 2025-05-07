@@ -42,10 +42,10 @@ class TestEchoServer : public sigslot::has_slots<> {
   SocketAddress address() const { return server_socket_->GetLocalAddress(); }
 
  private:
-  void OnAccept(rtc::Socket* socket) {
-    rtc::Socket* raw_socket = socket->Accept(nullptr);
+  void OnAccept(Socket* socket) {
+    Socket* raw_socket = socket->Accept(nullptr);
     if (raw_socket) {
-      rtc::AsyncTCPSocket* packet_socket = new rtc::AsyncTCPSocket(raw_socket);
+      AsyncTCPSocket* packet_socket = new AsyncTCPSocket(raw_socket);
       packet_socket->RegisterReceivedPacketCallback(
           [&](rtc::AsyncPacketSocket* socket,
               const rtc::ReceivedPacket& packet) { OnPacket(socket, packet); });
@@ -68,8 +68,8 @@ class TestEchoServer : public sigslot::has_slots<> {
     rtc::Thread::Current()->PostTask([socket = absl::WrapUnique(socket)] {});
   }
 
-  typedef std::list<rtc::AsyncTCPSocket*> ClientList;
-  std::unique_ptr<rtc::Socket> server_socket_;
+  typedef std::list<AsyncTCPSocket*> ClientList;
+  std::unique_ptr<Socket> server_socket_;
   ClientList client_sockets_;
 };
 

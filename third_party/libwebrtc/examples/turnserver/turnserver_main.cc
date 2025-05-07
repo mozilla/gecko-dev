@@ -70,10 +70,10 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  rtc::PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   rtc::AutoSocketServerThread main(&socket_server);
-  rtc::AsyncUDPSocket* int_socket =
-      rtc::AsyncUDPSocket::Create(&socket_server, int_addr);
+  webrtc::AsyncUDPSocket* int_socket =
+      webrtc::AsyncUDPSocket::Create(&socket_server, int_addr);
   if (!int_socket) {
     std::cerr << "Failed to create a UDP socket bound at" << int_addr.ToString()
               << std::endl;
@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
   server.set_auth_hook(&auth);
   server.AddInternalSocket(int_socket, cricket::PROTO_UDP);
   server.SetExternalSocketFactory(
-      new rtc::BasicPacketSocketFactory(&socket_server),
+      new webrtc::BasicPacketSocketFactory(&socket_server),
       webrtc::SocketAddress(ext_addr, 0));
 
   std::cout << "Listening internally at " << int_addr.ToString() << std::endl;

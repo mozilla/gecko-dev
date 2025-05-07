@@ -18,7 +18,7 @@ namespace {
 class MainThread : public rtc::Thread {
  public:
   MainThread()
-      : Thread(std::make_unique<rtc::NullSocketServer>(), false),
+      : Thread(std::make_unique<NullSocketServer>(), false),
         current_setter_(this) {
     DoInit();
   }
@@ -47,9 +47,9 @@ TaskQueueFactory* RealTimeController::GetTaskQueueFactory() {
 
 std::unique_ptr<rtc::Thread> RealTimeController::CreateThread(
     const std::string& name,
-    std::unique_ptr<rtc::SocketServer> socket_server) {
+    std::unique_ptr<SocketServer> socket_server) {
   if (!socket_server)
-    socket_server = std::make_unique<rtc::NullSocketServer>();
+    socket_server = std::make_unique<NullSocketServer>();
   auto res = std::make_unique<rtc::Thread>(std::move(socket_server));
   res->SetName(name, nullptr);
   res->Start();

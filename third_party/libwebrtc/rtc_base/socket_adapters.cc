@@ -25,7 +25,7 @@
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/zero_memory.h"
 
-namespace rtc {
+namespace webrtc {
 
 BufferedReadAdapter::BufferedReadAdapter(Socket* socket, size_t size)
     : AsyncSocketAdapter(socket),
@@ -137,7 +137,7 @@ static const uint8_t kSslClientHello[] = {
 };
 
 // static
-ArrayView<const uint8_t> AsyncSSLSocket::SslClientHello() {
+rtc::ArrayView<const uint8_t> AsyncSSLSocket::SslClientHello() {
   // Implicit conversion directly from kSslClientHello to ArrayView fails when
   // built with gcc.
   return {kSslClientHello, sizeof(kSslClientHello)};
@@ -165,14 +165,14 @@ static const uint8_t kSslServerHello[] = {
 };
 
 // static
-ArrayView<const uint8_t> AsyncSSLSocket::SslServerHello() {
+rtc::ArrayView<const uint8_t> AsyncSSLSocket::SslServerHello() {
   return {kSslServerHello, sizeof(kSslServerHello)};
 }
 
 AsyncSSLSocket::AsyncSSLSocket(Socket* socket)
     : BufferedReadAdapter(socket, 1024) {}
 
-int AsyncSSLSocket::Connect(const webrtc::SocketAddress& addr) {
+int AsyncSSLSocket::Connect(const SocketAddress& addr) {
   // Begin buffering before we connect, so that there isn't a race condition
   // between potential senders and receiving the OnConnectEvent signal
   BufferInput(true);
@@ -215,4 +215,4 @@ void AsyncSSLSocket::ProcessInput(char* data, size_t* len) {
     SignalReadEvent(this);
 }
 
-}  // namespace rtc
+}  // namespace webrtc

@@ -52,7 +52,7 @@ class SSLAdapterFactory {
   virtual void SetIgnoreBadCert(bool ignore) = 0;
 
   // Creates a new SSL adapter, but from a shared context.
-  virtual SSLAdapter* CreateAdapter(Socket* socket) = 0;
+  virtual SSLAdapter* CreateAdapter(webrtc::Socket* socket) = 0;
 
   static std::unique_ptr<SSLAdapterFactory> Create();
 };
@@ -62,9 +62,10 @@ class SSLAdapterFactory {
 // in which case it will share state with other SSLAdapters created from the
 // same factory.
 // After creation, call StartSSL to initiate the SSL handshake to the server.
-class SSLAdapter : public AsyncSocketAdapter {
+class SSLAdapter : public webrtc::AsyncSocketAdapter {
  public:
-  explicit SSLAdapter(Socket* socket) : AsyncSocketAdapter(socket) {}
+  explicit SSLAdapter(webrtc::Socket* socket)
+      : webrtc::AsyncSocketAdapter(socket) {}
 
   // Methods that control server certificate verification, used in unit tests.
   // Do not call these methods in production code.
@@ -102,12 +103,14 @@ class SSLAdapter : public AsyncSocketAdapter {
   // Create the default SSL adapter for this platform. On failure, returns null
   // and deletes `socket`. Otherwise, the returned SSLAdapter takes ownership
   // of `socket`.
-  static SSLAdapter* Create(Socket* socket);
+  static SSLAdapter* Create(webrtc::Socket* socket);
 
  private:
   // Not supported.
   int Listen(int backlog) override { RTC_CHECK(false); }
-  Socket* Accept(webrtc::SocketAddress* paddr) override { RTC_CHECK(false); }
+  webrtc::Socket* Accept(webrtc::SocketAddress* paddr) override {
+    RTC_CHECK(false);
+  }
 };
 
 ///////////////////////////////////////////////////////////////////////////////

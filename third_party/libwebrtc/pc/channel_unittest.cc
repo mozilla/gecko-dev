@@ -1421,14 +1421,14 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
       new_rtp_transport_ = CreateDtlsSrtpTransport(
           fake_rtp_dtls_transport2_.get(), fake_rtcp_dtls_transport2_.get());
       channel1_->SetOption(cricket::BaseChannel::ST_RTP,
-                           rtc::Socket::Option::OPT_SNDBUF, kSndBufSize);
+                           webrtc::Socket::Option::OPT_SNDBUF, kSndBufSize);
       channel2_->SetOption(cricket::BaseChannel::ST_RTP,
-                           rtc::Socket::Option::OPT_RCVBUF, kRcvBufSize);
+                           webrtc::Socket::Option::OPT_RCVBUF, kRcvBufSize);
       channel1_->SetRtpTransport(new_rtp_transport_.get());
       send_success = fake_rtp_dtls_transport2_->GetOption(
-          rtc::Socket::Option::OPT_SNDBUF, &send_buf);
+          webrtc::Socket::Option::OPT_SNDBUF, &send_buf);
       rcv_success = fake_rtp_dtls_transport2_->GetOption(
-          rtc::Socket::Option::OPT_RCVBUF, &rcv_buf);
+          webrtc::Socket::Option::OPT_RCVBUF, &rcv_buf);
     });
 
     ASSERT_TRUE(send_success);

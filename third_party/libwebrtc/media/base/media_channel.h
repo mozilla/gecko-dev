@@ -175,7 +175,7 @@ class MediaChannelNetworkInterface {
   virtual bool SendRtcp(rtc::CopyOnWriteBuffer* packet,
                         const rtc::PacketOptions& options) = 0;
   virtual int SetOption(SocketType type,
-                        rtc::Socket::Option opt,
+                        webrtc::Socket::Option opt,
                         int option) = 0;
   virtual ~MediaChannelNetworkInterface() {}
 };

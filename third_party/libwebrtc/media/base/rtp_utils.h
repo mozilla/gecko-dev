@@ -15,12 +15,9 @@
 
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "rtc_base/async_packet_socket.h"
 #include "rtc_base/byte_order.h"
 #include "rtc_base/system/rtc_export.h"
-
-namespace rtc {
-struct PacketTimeUpdateParams;
-}  // namespace rtc
 
 namespace cricket {
 
@@ -74,7 +71,7 @@ bool UpdateRtpAbsSendTimeExtension(uint8_t* rtp,
 bool RTC_EXPORT
 ApplyPacketOptions(uint8_t* data,
                    size_t length,
-                   const rtc::PacketTimeUpdateParams& packet_time_params,
+                   const webrtc::PacketTimeUpdateParams& packet_time_params,
                    uint64_t time_us);
 
 }  // namespace cricket

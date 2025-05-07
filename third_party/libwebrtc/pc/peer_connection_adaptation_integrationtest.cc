@@ -104,7 +104,7 @@ class PeerConnectionAdaptationIntegrationTest : public ::testing::Test {
   }
 
  protected:
-  rtc::VirtualSocketServer virtual_socket_server_;
+  VirtualSocketServer virtual_socket_server_;
   std::unique_ptr<rtc::Thread> network_thread_;
   std::unique_ptr<rtc::Thread> worker_thread_;
 };

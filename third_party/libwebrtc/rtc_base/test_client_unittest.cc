@@ -40,13 +40,12 @@ namespace webrtc {
 namespace {
 
 void TestUdpInternal(const SocketAddress& loopback) {
-  rtc::PhysicalSocketServer socket_server;
+  PhysicalSocketServer socket_server;
   rtc::AutoSocketServerThread main_thread(&socket_server);
-  rtc::Socket* socket =
-      socket_server.CreateSocket(loopback.family(), SOCK_DGRAM);
+  Socket* socket = socket_server.CreateSocket(loopback.family(), SOCK_DGRAM);
   socket->Bind(loopback);
 
-  TestClient client(std::make_unique<rtc::AsyncUDPSocket>(socket));
+  TestClient client(std::make_unique<AsyncUDPSocket>(socket));
   SocketAddress addr = client.address(), from;
   EXPECT_EQ(3, client.SendTo("foo", 3, addr));
   EXPECT_TRUE(client.CheckNextPacket("foo", 3, &from));
@@ -55,14 +54,13 @@ void TestUdpInternal(const SocketAddress& loopback) {
 }
 
 void TestTcpInternal(const SocketAddress& loopback) {
-  rtc::PhysicalSocketServer socket_server;
+  PhysicalSocketServer socket_server;
   rtc::AutoSocketServerThread main_thread(&socket_server);
   webrtc::TestEchoServer server(&main_thread, loopback);
 
-  rtc::Socket* socket =
-      socket_server.CreateSocket(loopback.family(), SOCK_STREAM);
-  std::unique_ptr<rtc::AsyncTCPSocket> tcp_socket = absl::WrapUnique(
-      rtc::AsyncTCPSocket::Create(socket, loopback, server.address()));
+  Socket* socket = socket_server.CreateSocket(loopback.family(), SOCK_STREAM);
+  std::unique_ptr<AsyncTCPSocket> tcp_socket = absl::WrapUnique(
+      AsyncTCPSocket::Create(socket, loopback, server.address()));
   ASSERT_TRUE(tcp_socket != nullptr);
 
   TestClient client(std::move(tcp_socket));

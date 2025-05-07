@@ -92,7 +92,7 @@ class PeerConnectionFieldTrialTest : public ::testing::Test {
   }
 
   Clock* const clock_;
-  std::unique_ptr<rtc::SocketServer> socket_server_;
+  std::unique_ptr<SocketServer> socket_server_;
   rtc::AutoSocketServerThread main_thread_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_ = nullptr;
   PeerConnectionInterface::RTCConfiguration config_;

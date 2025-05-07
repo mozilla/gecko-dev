@@ -169,7 +169,7 @@ class PeerConnectionFactoryTest : public ::testing::Test {
 
     ASSERT_TRUE(factory_.get() != NULL);
     packet_socket_factory_.reset(
-        new rtc::BasicPacketSocketFactory(socket_server_.get()));
+        new BasicPacketSocketFactory(socket_server_.get()));
     port_allocator_.reset(new cricket::FakePortAllocator(
         rtc::Thread::Current(), packet_socket_factory_.get(),
         field_trials_.get()));
@@ -268,11 +268,11 @@ class PeerConnectionFactoryTest : public ::testing::Test {
   }
 
   std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
-  std::unique_ptr<rtc::SocketServer> socket_server_;
+  std::unique_ptr<SocketServer> socket_server_;
   rtc::AutoSocketServerThread main_thread_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> factory_;
   NullPeerConnectionObserver observer_;
-  std::unique_ptr<rtc::PacketSocketFactory> packet_socket_factory_;
+  std::unique_ptr<PacketSocketFactory> packet_socket_factory_;
   std::unique_ptr<cricket::FakePortAllocator> port_allocator_;
   // Since the PC owns the port allocator after it's been initialized,
   // this should only be used when known to be safe.

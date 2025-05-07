@@ -82,7 +82,7 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
           dtls_stun_piggyback(dtls_in_stun) {}
     webrtc::EmulatedNetworkManagerInterface* emulated_network_manager = nullptr;
     std::unique_ptr<rtc::NetworkManager> network_manager;
-    std::unique_ptr<rtc::BasicPacketSocketFactory> packet_socket_factory;
+    std::unique_ptr<webrtc::BasicPacketSocketFactory> packet_socket_factory;
     std::unique_ptr<PortAllocator> allocator;
     std::unique_ptr<IceTransportInternal> ice;
     std::unique_ptr<DtlsTransport> dtls;
@@ -98,9 +98,9 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
 
  protected:
   DtlsIceIntegrationTest()
-      : ss_(std::make_unique<rtc::VirtualSocketServer>()),
+      : ss_(std::make_unique<webrtc::VirtualSocketServer>()),
         socket_factory_(
-            std::make_unique<rtc::BasicPacketSocketFactory>(ss_.get())),
+            std::make_unique<webrtc::BasicPacketSocketFactory>(ss_.get())),
         client_(std::get<0>(GetParam())),
         server_(std::get<1>(GetParam())),
         client_ice_parameters_("c_ufrag",
@@ -143,7 +143,7 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
         ep.network_manager =
             ep.emulated_network_manager->ReleaseNetworkManager();
         ep.packet_socket_factory =
-            std::make_unique<rtc::BasicPacketSocketFactory>(
+            std::make_unique<webrtc::BasicPacketSocketFactory>(
                 ep.emulated_network_manager->socket_factory());
         ep.allocator = std::make_unique<BasicPortAllocator>(
             ep.network_manager.get(), ep.packet_socket_factory.get());
@@ -317,8 +317,8 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
 
   webrtc::ScopedFakeClock fake_clock_;
   webrtc::FakeNetworkManager network_manager_;
-  std::unique_ptr<rtc::VirtualSocketServer> ss_;
-  std::unique_ptr<rtc::BasicPacketSocketFactory> socket_factory_;
+  std::unique_ptr<webrtc::VirtualSocketServer> ss_;
+  std::unique_ptr<webrtc::BasicPacketSocketFactory> socket_factory_;
   std::unique_ptr<webrtc::NetworkEmulationManager> network_emulation_manager_;
   std::unique_ptr<rtc::AutoSocketServerThread> thread_;
 

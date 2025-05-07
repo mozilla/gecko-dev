@@ -155,7 +155,7 @@ class BaseChannel : public ChannelInterface,
   void OnTransportReadyToSend(bool ready);
 
   // Only public for unit tests.  Otherwise, consider protected.
-  int SetOption(SocketType type, rtc::Socket::Option o, int val) override;
+  int SetOption(SocketType type, webrtc::Socket::Option o, int val) override;
 
   // RtpPacketSinkInterface overrides.
   void OnRtpPacket(const webrtc::RtpPacketReceived& packet) override;
@@ -325,9 +325,9 @@ class BaseChannel : public ChannelInterface,
   webrtc::RtpTransportInternal* rtp_transport_
       RTC_GUARDED_BY(network_thread()) = nullptr;
 
-  std::vector<std::pair<rtc::Socket::Option, int> > socket_options_
+  std::vector<std::pair<webrtc::Socket::Option, int> > socket_options_
       RTC_GUARDED_BY(network_thread());
-  std::vector<std::pair<rtc::Socket::Option, int> > rtcp_socket_options_
+  std::vector<std::pair<webrtc::Socket::Option, int> > rtcp_socket_options_
       RTC_GUARDED_BY(network_thread());
   bool writable_ RTC_GUARDED_BY(network_thread()) = false;
   bool was_ever_writable_n_ RTC_GUARDED_BY(network_thread()) = false;

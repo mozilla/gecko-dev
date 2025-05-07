@@ -701,7 +701,7 @@ index fcca48ca6a..e5269fe2aa 100644
  
  rtc_library("rtc_audio_video") {
 diff --git a/media/base/media_channel.h b/media/base/media_channel.h
-index c85d6a3c51..e5718b4659 100644
+index d1d5fa4001..86c552457d 100644
 --- a/media/base/media_channel.h
 +++ b/media/base/media_channel.h
 @@ -68,10 +68,6 @@ class Timing;
@@ -716,7 +716,7 @@ index c85d6a3c51..e5718b4659 100644
  
  namespace cricket {
 diff --git a/media/base/media_channel_impl.cc b/media/base/media_channel_impl.cc
-index d41c9f9c0f..22b166a081 100644
+index 915609d6b5..28690923b3 100644
 --- a/media/base/media_channel_impl.cc
 +++ b/media/base/media_channel_impl.cc
 @@ -31,19 +31,6 @@

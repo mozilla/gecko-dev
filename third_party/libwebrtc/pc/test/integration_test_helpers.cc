@@ -217,7 +217,7 @@ bool PeerConnectionIntegrationWrapper::Init(
     const PeerConnectionFactory::Options* options,
     const PeerConnectionInterface::RTCConfiguration* config,
     PeerConnectionDependencies dependencies,
-    rtc::SocketServer* socket_server,
+    SocketServer* socket_server,
     rtc::Thread* network_thread,
     rtc::Thread* worker_thread,
     std::unique_ptr<FieldTrialsView> field_trials,

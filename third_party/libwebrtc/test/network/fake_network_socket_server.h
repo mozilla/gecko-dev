@@ -33,7 +33,7 @@ class FakeNetworkSocketServer : public rtc::SocketServer {
   ~FakeNetworkSocketServer() override;
 
   // rtc::SocketFactory methods:
-  rtc::Socket* CreateSocket(int family, int type) override;
+  Socket* CreateSocket(int family, int type) override;
 
   // rtc::SocketServer methods:
   // Called by the network thread when this server is installed, kicking off the

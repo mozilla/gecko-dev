@@ -62,11 +62,11 @@ bool RunLoop::FakeSocketServer::Wait(webrtc::TimeDelta max_wait_duration,
 
 void RunLoop::FakeSocketServer::WakeUp() {}
 
-rtc::Socket* RunLoop::FakeSocketServer::CreateSocket(int family, int type) {
+Socket* RunLoop::FakeSocketServer::CreateSocket(int family, int type) {
   return nullptr;
 }
 
-RunLoop::WorkerThread::WorkerThread(rtc::SocketServer* ss)
+RunLoop::WorkerThread::WorkerThread(SocketServer* ss)
     : rtc::Thread(ss), tq_setter_(this) {}
 
 }  // namespace test

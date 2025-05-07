@@ -86,7 +86,7 @@ class PeerConnectionJsepTest : public ::testing::Test {
   typedef std::unique_ptr<PeerConnectionWrapper> WrapperPtr;
 
   PeerConnectionJsepTest()
-      : vss_(new rtc::VirtualSocketServer()), main_(vss_.get()) {
+      : vss_(new VirtualSocketServer()), main_(vss_.get()) {
 #ifdef WEBRTC_ANDROID
     InitializeAndroidObjects();
 #endif
@@ -114,7 +114,7 @@ class PeerConnectionJsepTest : public ::testing::Test {
         pc_factory, result.MoveValue(), std::move(observer));
   }
 
-  std::unique_ptr<rtc::VirtualSocketServer> vss_;
+  std::unique_ptr<VirtualSocketServer> vss_;
   rtc::AutoSocketServerThread main_;
 };
 

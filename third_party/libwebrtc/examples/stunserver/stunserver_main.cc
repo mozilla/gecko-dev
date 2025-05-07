@@ -32,8 +32,8 @@ int main(int argc, char* argv[]) {
   rtc::Thread* pthMain = rtc::ThreadManager::Instance()->WrapCurrentThread();
   RTC_DCHECK(pthMain);
 
-  rtc::AsyncUDPSocket* server_socket =
-      rtc::AsyncUDPSocket::Create(pthMain->socketserver(), server_addr);
+  webrtc::AsyncUDPSocket* server_socket =
+      webrtc::AsyncUDPSocket::Create(pthMain->socketserver(), server_addr);
   if (!server_socket) {
     std::cerr << "Failed to create a UDP socket" << std::endl;
     return 1;

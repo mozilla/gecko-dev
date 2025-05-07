@@ -56,11 +56,11 @@ class RTC_EXPORT PacketTransportInternal : public sigslot::has_slots<> {
 
   // Sets a socket option. Note that not all options are
   // supported by all transport types.
-  virtual int SetOption(rtc::Socket::Option opt, int value) = 0;
+  virtual int SetOption(webrtc::Socket::Option opt, int value) = 0;
 
   // TODO(pthatcher): Once Chrome's MockPacketTransportInterface implements
   // this, remove the default implementation.
-  virtual bool GetOption(rtc::Socket::Option opt, int* value);
+  virtual bool GetOption(webrtc::Socket::Option opt, int* value);
 
   // Returns the most recent error that occurred on this channel.
   virtual int GetError() = 0;

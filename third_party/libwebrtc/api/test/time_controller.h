@@ -45,7 +45,7 @@ class TimeController {
   // Returned thread is not null and started.
   virtual std::unique_ptr<rtc::Thread> CreateThread(
       const std::string& name,
-      std::unique_ptr<rtc::SocketServer> socket_server = nullptr) = 0;
+      std::unique_ptr<SocketServer> socket_server = nullptr) = 0;
 
   // Creates an rtc::Thread instance that ensure that it's set as the current
   // thread.

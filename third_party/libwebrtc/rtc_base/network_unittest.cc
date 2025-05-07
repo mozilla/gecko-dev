@@ -58,13 +58,13 @@ using ::testing::Not;
 using ::testing::UnorderedElementsAre;
 using ::testing::UnorderedElementsAreArray;
 
-namespace rtc {
-
 #define MAYBE_SKIP_IPV4                        \
-  if (!HasIPv4Enabled()) {                     \
+  if (!::rtc::HasIPv4Enabled()) {              \
     RTC_LOG(LS_INFO) << "No IPv4... skipping"; \
     return;                                    \
   }
+
+namespace rtc {
 
 namespace {
 
@@ -339,7 +339,7 @@ class NetworkTest : public ::testing::Test, public sigslot::has_slots<> {
 class TestBasicNetworkManager : public BasicNetworkManager {
  public:
   TestBasicNetworkManager(NetworkMonitorFactory* network_monitor_factory,
-                          SocketFactory* socket_factory,
+                          webrtc::SocketFactory* socket_factory,
                           const webrtc::FieldTrialsView& field_trials)
       : BasicNetworkManager(network_monitor_factory,
                             socket_factory,
@@ -367,7 +367,7 @@ TEST_F(NetworkTest, TestIsIgnoredNetworkIgnoresIPsStartingWith0) {
   Network ipv4_network2("test_eth1", "Test Network Adapter 2",
                         webrtc::IPAddress(0x010000U), 24,
                         ADAPTER_TYPE_ETHERNET);
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager network_manager(&socket_server);
   network_manager.StartUpdating();
   EXPECT_FALSE(IsIgnoredNetwork(network_manager, ipv4_network1));
@@ -380,7 +380,7 @@ TEST_F(NetworkTest, TestIgnoreList) {
                     webrtc::IPAddress(0x12345600U), 24);
   Network include_me("include_me", "Include me please!",
                      webrtc::IPAddress(0x12345600U), 24);
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager default_network_manager(&socket_server);
   default_network_manager.StartUpdating();
   EXPECT_FALSE(IsIgnoredNetwork(default_network_manager, ignore_me));
@@ -397,7 +397,7 @@ TEST_F(NetworkTest, TestIgnoreList) {
 
 // Test is failing on Windows opt: b/11288214
 TEST_F(NetworkTest, DISABLED_TestCreateNetworks) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   std::vector<std::unique_ptr<Network>> result = GetNetworks(manager, true);
   // We should be able to bind to any addresses we find.
@@ -431,7 +431,7 @@ TEST_F(NetworkTest, DISABLED_TestCreateNetworks) {
 // Test StartUpdating() and StopUpdating(). network_permission_state starts with
 // ALLOWED.
 TEST_F(NetworkTest, TestUpdateNetworks) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(nullptr, &socket_server, &field_trials_);
   manager.SignalNetworksChanged.connect(static_cast<NetworkTest*>(this),
                                         &NetworkTest::OnNetworksChanged);
@@ -471,7 +471,7 @@ TEST_F(NetworkTest, TestBasicMergeNetworkList) {
                         webrtc::IPAddress(0x00010000U), 16);
   ipv4_network1.AddIP(webrtc::IPAddress(0x12345678));
   ipv4_network2.AddIP(webrtc::IPAddress(0x00010004));
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
 
   // Add ipv4_network1 to the list of networks.
@@ -579,7 +579,7 @@ void SetupNetworks(std::vector<std::unique_ptr<Network>>* list) {
 
 // Test that the basic network merging case works.
 TEST_F(NetworkTest, TestIPv6MergeNetworkList) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.SignalNetworksChanged.connect(static_cast<NetworkTest*>(this),
                                         &NetworkTest::OnNetworksChanged);
@@ -601,7 +601,7 @@ TEST_F(NetworkTest, TestIPv6MergeNetworkList) {
 // merged, that the changed callback is not called, and that the original
 // objects remain in the result list.
 TEST_F(NetworkTest, TestNoChangeMerge) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.SignalNetworksChanged.connect(static_cast<NetworkTest*>(this),
                                         &NetworkTest::OnNetworksChanged);
@@ -632,7 +632,7 @@ TEST_F(NetworkTest, TestNoChangeMerge) {
 // a different IP. The original network should remain in the list, but have its
 // IP changed.
 TEST_F(NetworkTest, MergeWithChangedIP) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.SignalNetworksChanged.connect(static_cast<NetworkTest*>(this),
                                         &NetworkTest::OnNetworksChanged);
@@ -670,7 +670,7 @@ TEST_F(NetworkTest, MergeWithChangedIP) {
 }
 
 TEST_F(NetworkTest, TestMultipleIPMergeNetworkList) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.SignalNetworksChanged.connect(static_cast<NetworkTest*>(this),
                                         &NetworkTest::OnNetworksChanged);
@@ -726,7 +726,7 @@ TEST_F(NetworkTest, TestMultipleIPMergeNetworkList) {
 
 // Test that merge correctly distinguishes multiple networks on an interface.
 TEST_F(NetworkTest, TestMultiplePublicNetworksOnOneInterfaceMerge) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.SignalNetworksChanged.connect(static_cast<NetworkTest*>(this),
                                         &NetworkTest::OnNetworksChanged);
@@ -770,7 +770,7 @@ TEST_F(NetworkTest, TestMultiplePublicNetworksOnOneInterfaceMerge) {
 
 // Test that DumpNetworks does not crash.
 TEST_F(NetworkTest, TestCreateAndDumpNetworks) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.StartUpdating();
   std::vector<std::unique_ptr<Network>> list = GetNetworks(manager, true);
@@ -780,7 +780,7 @@ TEST_F(NetworkTest, TestCreateAndDumpNetworks) {
 }
 
 TEST_F(NetworkTest, TestIPv6Toggle) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.StartUpdating();
   bool ipv6_found = false;
@@ -796,7 +796,7 @@ TEST_F(NetworkTest, TestIPv6Toggle) {
 // Test that when network interfaces are sorted and given preference values,
 // IPv6 comes first.
 TEST_F(NetworkTest, IPv6NetworksPreferredOverIPv4) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   Network ipv4_network1("test_eth0", "Test Network Adapter 1",
                         webrtc::IPAddress(0x12345600U), 24);
@@ -827,7 +827,7 @@ TEST_F(NetworkTest, IPv6NetworksPreferredOverIPv4) {
 // When two interfaces are equivalent in everything but name, they're expected
 // to be preference-ordered by name. For example, "eth0" before "eth1".
 TEST_F(NetworkTest, NetworksSortedByInterfaceName) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server, &field_trials_);
   auto eth0 = std::make_unique<Network>("test_eth0", "Test Network Adapter 1",
                                         webrtc::IPAddress(0x65432100U), 24);
@@ -876,7 +876,7 @@ TEST_F(NetworkTest, TestConvertIfAddrsNoAddress) {
   list.ifa_name = const_cast<char*>("test_iface");
 
   std::vector<std::unique_ptr<Network>> result;
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.StartUpdating();
   CallConvertIfAddrs(manager, &list, true, &result);
@@ -893,7 +893,7 @@ TEST_F(NetworkTest, TestConvertIfAddrsMultiAddressesOnOneInterface) {
   list = AddIpv6Address(list, if_name, "1000:2000:3000:4000:0:0:0:2",
                         "FFFF:FFFF:FFFF:FFFF::", 0);
   std::vector<std::unique_ptr<Network>> result;
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.StartUpdating();
   CallConvertIfAddrs(manager, list, true, &result);
@@ -915,7 +915,7 @@ TEST_F(NetworkTest, TestConvertIfAddrsNotRunning) {
   list.ifa_netmask = &ifa_netmask;
 
   std::vector<std::unique_ptr<Network>> result;
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.StartUpdating();
   CallConvertIfAddrs(manager, &list, true, &result);
@@ -930,7 +930,7 @@ TEST_F(NetworkTest, TestConvertIfAddrsGetsNullAddr) {
   list.ifa_netmask = nullptr;
 
   std::vector<std::unique_ptr<Network>> result;
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.StartUpdating();
   CallConvertIfAddrs(manager, &list, true, &result);
@@ -943,7 +943,7 @@ TEST_F(NetworkTest, TestGetAdapterTypeFromNetworkMonitor) {
   char if_name[20] = "wifi0";
   std::string ipv6_address = "1000:2000:3000:4000:0:0:0:1";
   std::string ipv6_mask = "FFFF:FFFF:FFFF:FFFF::";
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager_without_monitor(nullptr, &socket_server,
                                               &field_trials_);
   manager_without_monitor.StartUpdating();
@@ -975,7 +975,7 @@ TEST_F(NetworkTest, TestGetAdapterTypeFromNameMatching) {
   std::string ipv6_address1 = "1000:2000:3000:4000:0:0:0:1";
   std::string ipv6_address2 = "1000:2000:3000:8000:0:0:0:1";
   std::string ipv6_mask = "FFFF:FFFF:FFFF:FFFF::";
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.StartUpdating();
 
@@ -1053,7 +1053,7 @@ TEST_F(NetworkTest, TestNetworkMonitorIsAdapterAvailable) {
 
   // Sanity check that both interfaces are included by default.
   FakeNetworkMonitorFactory factory;
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&factory, &socket_server, &field_trials_);
   manager.StartUpdating();
   CallConvertIfAddrs(manager, list, /*include_ignored=*/false, &result);
@@ -1079,7 +1079,7 @@ TEST_F(NetworkTest, TestNetworkMonitorIsAdapterAvailable) {
 // Test MergeNetworkList successfully combines all IPs for the same
 // prefix/length into a single Network.
 TEST_F(NetworkTest, TestMergeNetworkList) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   std::vector<std::unique_ptr<Network>> list;
 
@@ -1118,7 +1118,7 @@ TEST_F(NetworkTest, TestMergeNetworkList) {
 // Test that MergeNetworkList successfully detects the change if
 // a network becomes inactive and then active again.
 TEST_F(NetworkTest, TestMergeNetworkListWithInactiveNetworks) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   Network network1("test_wifi", "Test Network Adapter 1",
                    webrtc::IPAddress(0x12345600U), 24);
@@ -1275,7 +1275,7 @@ TEST_F(NetworkTest, TestGetBestIPWithPreferGlobalIPv6ToLinkLocalEnabled) {
 
 TEST_F(NetworkTest, TestNetworkMonitoring) {
   FakeNetworkMonitorFactory factory;
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&factory, &socket_server, &field_trials_);
   manager.SignalNetworksChanged.connect(static_cast<NetworkTest*>(this),
                                         &NetworkTest::OnNetworksChanged);
@@ -1309,7 +1309,7 @@ TEST_F(NetworkTest, MAYBE_DefaultLocalAddress) {
   MAYBE_SKIP_IPV4;
   webrtc::IPAddress ip;
   FakeNetworkMonitorFactory factory;
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   TestBasicNetworkManager manager(&factory, &socket_server, field_trials_);
   manager.SignalNetworksChanged.connect(static_cast<NetworkTest*>(this),
                                         &NetworkTest::OnNetworksChanged);
@@ -1377,7 +1377,7 @@ TEST_F(NetworkTest, MAYBE_DefaultLocalAddress) {
 // Test that MergeNetworkList does not set change = true
 // when changing from cellular_X to cellular_Y.
 TEST_F(NetworkTest, TestWhenNetworkListChangeReturnsChangedFlag) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
 
   webrtc::IPAddress ip1;
@@ -1440,7 +1440,7 @@ TEST_F(NetworkTest, TestWhenNetworkListChangeReturnsChangedFlag) {
 TEST_F(NetworkTest, IgnoresMACBasedIPv6Address) {
   std::string ipv6_address = "2607:fc20:f340:1dc8:214:22ff:fe01:2345";
   std::string ipv6_mask = "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF";
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.StartUpdating();
 
@@ -1459,7 +1459,7 @@ TEST_F(NetworkTest, WebRTC_AllowMACBasedIPv6Address) {
       "WebRTC-AllowMACBasedIPv6/Enabled/");
   std::string ipv6_address = "2607:fc20:f340:1dc8:214:22ff:fe01:2345";
   std::string ipv6_mask = "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF";
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.StartUpdating();
 
@@ -1486,7 +1486,7 @@ TEST_F(NetworkTest, WebRTC_BindUsingInterfaceName) {
 
   // Sanity check that both interfaces are included by default.
   FakeNetworkMonitorFactory factory;
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&factory, &socket_server, &field_trials_);
   manager.StartUpdating();
   CallConvertIfAddrs(manager, list, /*include_ignored=*/false, &result);
@@ -1594,7 +1594,7 @@ TEST_F(NetworkTest, GuessAdapterFromNetworkCost) {
 }
 
 TEST_F(NetworkTest, VpnList) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   {
     BasicNetworkManager manager(&socket_server);
     manager.set_vpn_list({NetworkMask(IPFromString("192.168.0.0"), 16)});
@@ -1619,7 +1619,7 @@ TEST_F(NetworkTest, VpnList) {
 #if defined(WEBRTC_POSIX)
 // TODO(webrtc:13114): Implement the InstallIpv4Network for windows.
 TEST_F(NetworkTest, VpnListOverrideAdapterType) {
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager manager(&socket_server);
   manager.set_vpn_list({NetworkMask(IPFromString("192.168.0.0"), 16)});
   manager.StartUpdating();

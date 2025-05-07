@@ -28,7 +28,7 @@ class TestStunServer : StunServer {
   using StunServerPtr =
       std::unique_ptr<TestStunServer,
                       std::function<void(webrtc::TestStunServer*)>>;
-  static StunServerPtr Create(rtc::SocketServer* ss,
+  static StunServerPtr Create(SocketServer* ss,
                               const SocketAddress& addr,
                               rtc::Thread& network_thread);
 
@@ -38,7 +38,7 @@ class TestStunServer : StunServer {
  private:
   static void DeleteOnNetworkThread(TestStunServer* server);
 
-  TestStunServer(rtc::AsyncUDPSocket* socket, rtc::Thread& network_thread)
+  TestStunServer(AsyncUDPSocket* socket, rtc::Thread& network_thread)
       : StunServer(socket), network_thread_(network_thread) {}
 
   void OnBindingRequest(cricket::StunMessage* msg,

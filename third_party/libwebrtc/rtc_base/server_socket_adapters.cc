@@ -14,7 +14,7 @@
 
 #include "rtc_base/byte_buffer.h"
 
-namespace rtc {
+namespace webrtc {
 
 AsyncProxyServerSocket::AsyncProxyServerSocket(Socket* socket,
                                                size_t buffer_size)
@@ -29,7 +29,7 @@ AsyncSSLServerSocket::AsyncSSLServerSocket(Socket* socket)
 
 void AsyncSSLServerSocket::ProcessInput(char* data, size_t* len) {
   // We only accept client hello messages.
-  const ArrayView<const uint8_t> client_hello =
+  const rtc::ArrayView<const uint8_t> client_hello =
       AsyncSSLSocket::SslClientHello();
   if (*len < client_hello.size()) {
     return;
@@ -46,7 +46,7 @@ void AsyncSSLServerSocket::ProcessInput(char* data, size_t* len) {
   // Clients should not send more data until the handshake is completed.
   RTC_DCHECK(*len == 0);
 
-  const ArrayView<const uint8_t> server_hello =
+  const rtc::ArrayView<const uint8_t> server_hello =
       AsyncSSLSocket::SslServerHello();
   // Send a server hello back to the client.
   DirectSend(server_hello.data(), server_hello.size());
@@ -55,4 +55,4 @@ void AsyncSSLServerSocket::ProcessInput(char* data, size_t* len) {
   BufferInput(false);
 }
 
-}  // namespace rtc
+}  // namespace webrtc

@@ -29,7 +29,7 @@
 #include <errno.h>
 #endif  // WEBRTC_POSIX
 
-namespace rtc {
+namespace webrtc {
 
 static const size_t kMaxPacketSize = 64 * 1024;
 
@@ -46,11 +46,10 @@ static const size_t kMinimumRecvSize = 128;
 static const int kListenBacklog = 5;
 
 // Binds and connects `socket`
-Socket* AsyncTCPSocketBase::ConnectSocket(
-    rtc::Socket* socket,
-    const webrtc::SocketAddress& bind_address,
-    const webrtc::SocketAddress& remote_address) {
-  std::unique_ptr<rtc::Socket> owned_socket(socket);
+Socket* AsyncTCPSocketBase::ConnectSocket(Socket* socket,
+                                          const SocketAddress& bind_address,
+                                          const SocketAddress& remote_address) {
+  std::unique_ptr<Socket> owned_socket(socket);
   if (socket->Bind(bind_address) < 0) {
     RTC_LOG(LS_ERROR) << "Bind() failed with error " << socket->GetError();
     return nullptr;
@@ -77,11 +76,11 @@ AsyncTCPSocketBase::AsyncTCPSocketBase(Socket* socket, size_t max_packet_size)
 
 AsyncTCPSocketBase::~AsyncTCPSocketBase() {}
 
-webrtc::SocketAddress AsyncTCPSocketBase::GetLocalAddress() const {
+SocketAddress AsyncTCPSocketBase::GetLocalAddress() const {
   return socket_->GetLocalAddress();
 }
 
-webrtc::SocketAddress AsyncTCPSocketBase::GetRemoteAddress() const {
+SocketAddress AsyncTCPSocketBase::GetRemoteAddress() const {
   return socket_->GetRemoteAddress();
 }
 
@@ -121,9 +120,9 @@ void AsyncTCPSocketBase::SetError(int error) {
 
 int AsyncTCPSocketBase::SendTo(const void* pv,
                                size_t cb,
-                               const webrtc::SocketAddress& addr,
+                               const SocketAddress& addr,
                                const rtc::PacketOptions& options) {
-  const webrtc::SocketAddress& remote_address = GetRemoteAddress();
+  const SocketAddress& remote_address = GetRemoteAddress();
   if (addr == remote_address)
     return Send(pv, cb, options);
   // Remote address may be empty if there is a sudden network change.
@@ -245,10 +244,9 @@ void AsyncTCPSocketBase::OnCloseEvent(Socket* socket, int error) {
 // Binds and connects `socket` and creates AsyncTCPSocket for
 // it. Takes ownership of `socket`. Returns null if bind() or
 // connect() fail (`socket` is destroyed in that case).
-AsyncTCPSocket* AsyncTCPSocket::Create(
-    Socket* socket,
-    const webrtc::SocketAddress& bind_address,
-    const webrtc::SocketAddress& remote_address) {
+AsyncTCPSocket* AsyncTCPSocket::Create(Socket* socket,
+                                       const SocketAddress& bind_address,
+                                       const SocketAddress& remote_address) {
   return new AsyncTCPSocket(
       AsyncTCPSocketBase::ConnectSocket(socket, bind_address, remote_address));
 }
@@ -289,7 +287,7 @@ int AsyncTCPSocket::Send(const void* pv,
 }
 
 size_t AsyncTCPSocket::ProcessInput(rtc::ArrayView<const uint8_t> data) {
-  webrtc::SocketAddress remote_addr(GetRemoteAddress());
+  SocketAddress remote_addr(GetRemoteAddress());
 
   size_t processed_bytes = 0;
   while (true) {
@@ -303,7 +301,7 @@ size_t AsyncTCPSocket::ProcessInput(rtc::ArrayView<const uint8_t> data) {
 
     rtc::ReceivedPacket received_packet(
         data.subview(processed_bytes + kPacketLenSize, pkt_len), remote_addr,
-        webrtc::Timestamp::Micros(rtc::TimeMicros()));
+        Timestamp::Micros(rtc::TimeMicros()));
     NotifyPacketReceived(received_packet);
     processed_bytes += kPacketLenSize + pkt_len;
   }
@@ -330,15 +328,15 @@ AsyncTcpListenSocket::State AsyncTcpListenSocket::GetState() const {
   }
 }
 
-webrtc::SocketAddress AsyncTcpListenSocket::GetLocalAddress() const {
+SocketAddress AsyncTcpListenSocket::GetLocalAddress() const {
   return socket_->GetLocalAddress();
 }
 
 void AsyncTcpListenSocket::OnReadEvent(Socket* socket) {
   RTC_DCHECK(socket_.get() == socket);
 
-  webrtc::SocketAddress address;
-  rtc::Socket* new_socket = socket->Accept(&address);
+  SocketAddress address;
+  Socket* new_socket = socket->Accept(&address);
   if (!new_socket) {
     // TODO(stefan): Do something better like forwarding the error
     // to the user.
@@ -356,4 +354,4 @@ void AsyncTcpListenSocket::HandleIncomingConnection(Socket* socket) {
   SignalNewConnection(this, new AsyncTCPSocket(socket));
 }
 
-}  // namespace rtc
+}  // namespace webrtc

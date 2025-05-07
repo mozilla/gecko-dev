@@ -251,7 +251,7 @@ class PeerConnectionRampUpTest : public ::testing::Test {
   void CreateTurnServer(ProtocolType type,
                         const std::string& common_name = "test turn server") {
     rtc::Thread* thread = network_thread();
-    rtc::SocketFactory* factory = &firewall_socket_server_;
+    SocketFactory* factory = &firewall_socket_server_;
     std::unique_ptr<TestTurnServer> turn_server;
     SendTask(network_thread(), [&] {
       static const SocketAddress turn_server_internal_address{
@@ -291,7 +291,7 @@ class PeerConnectionRampUpTest : public ::testing::Test {
 
   rtc::Thread* network_thread() { return &network_thread_; }
 
-  rtc::FirewallSocketServer* firewall_socket_server() {
+  FirewallSocketServer* firewall_socket_server() {
     return &firewall_socket_server_;
   }
 
@@ -343,8 +343,8 @@ class PeerConnectionRampUpTest : public ::testing::Test {
   // the VirtualSocketServer. The first ramp down time is very noisy and the
   // second ramp up time can take up to 300 seconds, most likely due to a built
   // up queue.
-  rtc::VirtualSocketServer virtual_socket_server_;
-  rtc::FirewallSocketServer firewall_socket_server_;
+  VirtualSocketServer virtual_socket_server_;
+  FirewallSocketServer firewall_socket_server_;
 
   rtc::Thread network_thread_;
   std::unique_ptr<rtc::Thread> worker_thread_;

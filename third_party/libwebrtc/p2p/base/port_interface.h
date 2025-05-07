@@ -87,8 +87,8 @@ class PortInterface {
       CandidateOrigin origin) = 0;
 
   // Functions on the underlying socket(s).
-  virtual int SetOption(rtc::Socket::Option opt, int value) = 0;
-  virtual int GetOption(rtc::Socket::Option opt, int* value) = 0;
+  virtual int SetOption(Socket::Option opt, int value) = 0;
+  virtual int GetOption(Socket::Option opt, int* value) = 0;
   virtual int GetError() = 0;
 
   virtual ProtocolType GetProtocol() const = 0;
@@ -157,7 +157,7 @@ class PortInterface {
   virtual TaskQueueBase* thread() = 0;
 
   // The factory used to create the sockets of this port.
-  virtual rtc::PacketSocketFactory* socket_factory() const = 0;
+  virtual PacketSocketFactory* socket_factory() const = 0;
 
   // Identifies the generation that this port was created in.
   virtual uint32_t generation() const = 0;

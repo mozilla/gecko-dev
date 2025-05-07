@@ -353,12 +353,12 @@ class FakeIceTransport : public IceTransportInternal {
     return static_cast<int>(len);
   }
 
-  int SetOption(rtc::Socket::Option opt, int value) override {
+  int SetOption(webrtc::Socket::Option opt, int value) override {
     RTC_DCHECK_RUN_ON(network_thread_);
     socket_options_[opt] = value;
     return true;
   }
-  bool GetOption(rtc::Socket::Option opt, int* value) override {
+  bool GetOption(webrtc::Socket::Option opt, int* value) override {
     RTC_DCHECK_RUN_ON(network_thread_);
     auto it = socket_options_.find(opt);
     if (it != socket_options_.end()) {
@@ -616,7 +616,7 @@ class FakeIceTransport : public IceTransportInternal {
   rtc::CopyOnWriteBuffer send_packet_ RTC_GUARDED_BY(network_thread_);
   std::optional<rtc::NetworkRoute> network_route_
       RTC_GUARDED_BY(network_thread_);
-  std::map<rtc::Socket::Option, int> socket_options_
+  std::map<webrtc::Socket::Option, int> socket_options_
       RTC_GUARDED_BY(network_thread_);
   rtc::CopyOnWriteBuffer last_sent_packet_ RTC_GUARDED_BY(network_thread_);
   rtc::Thread* const network_thread_;

@@ -269,7 +269,7 @@ class PeerConnectionBundleBaseTest : public ::testing::Test {
     return candidate;
   }
 
-  rtc::VirtualSocketServer vss_;
+  VirtualSocketServer vss_;
   rtc::AutoSocketServerThread main_;
   const SdpSemantics sdp_semantics_;
 };

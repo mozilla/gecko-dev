@@ -27,11 +27,10 @@
 #include "rtc_base/socket_factory.h"
 #include "rtc_base/time_utils.h"
 
-namespace rtc {
+namespace webrtc {
 
-AsyncUDPSocket* AsyncUDPSocket::Create(
-    Socket* socket,
-    const webrtc::SocketAddress& bind_address) {
+AsyncUDPSocket* AsyncUDPSocket::Create(Socket* socket,
+                                       const SocketAddress& bind_address) {
   std::unique_ptr<Socket> owned_socket(socket);
   if (socket->Bind(bind_address) < 0) {
     RTC_LOG(LS_ERROR) << "Bind() failed with error " << socket->GetError();
@@ -40,9 +39,8 @@ AsyncUDPSocket* AsyncUDPSocket::Create(
   return new AsyncUDPSocket(owned_socket.release());
 }
 
-AsyncUDPSocket* AsyncUDPSocket::Create(
-    SocketFactory* factory,
-    const webrtc::SocketAddress& bind_address) {
+AsyncUDPSocket* AsyncUDPSocket::Create(SocketFactory* factory,
+                                       const SocketAddress& bind_address) {
   Socket* socket = factory->CreateSocket(bind_address.family(), SOCK_DGRAM);
   if (!socket)
     return nullptr;
@@ -56,11 +54,11 @@ AsyncUDPSocket::AsyncUDPSocket(Socket* socket) : socket_(socket) {
   socket_->SignalWriteEvent.connect(this, &AsyncUDPSocket::OnWriteEvent);
 }
 
-webrtc::SocketAddress AsyncUDPSocket::GetLocalAddress() const {
+SocketAddress AsyncUDPSocket::GetLocalAddress() const {
   return socket_->GetLocalAddress();
 }
 
-webrtc::SocketAddress AsyncUDPSocket::GetRemoteAddress() const {
+SocketAddress AsyncUDPSocket::GetRemoteAddress() const {
   return socket_->GetRemoteAddress();
 }
 
@@ -69,7 +67,7 @@ int AsyncUDPSocket::Send(const void* pv,
                          const rtc::PacketOptions& options) {
   rtc::SentPacket sent_packet(options.packet_id, rtc::TimeMillis(),
                               options.info_signaled_after_sent);
-  CopySocketInformationToPacketInfo(cb, *this, &sent_packet.info);
+  webrtc::CopySocketInformationToPacketInfo(cb, *this, &sent_packet.info);
   int ret = socket_->Send(pv, cb);
   SignalSentPacket(this, sent_packet);
   return ret;
@@ -77,11 +75,11 @@ int AsyncUDPSocket::Send(const void* pv,
 
 int AsyncUDPSocket::SendTo(const void* pv,
                            size_t cb,
-                           const webrtc::SocketAddress& addr,
+                           const SocketAddress& addr,
                            const rtc::PacketOptions& options) {
   rtc::SentPacket sent_packet(options.packet_id, rtc::TimeMillis(),
                               options.info_signaled_after_sent);
-  CopySocketInformationToPacketInfo(cb, *this, &sent_packet.info);
+  webrtc::CopySocketInformationToPacketInfo(cb, *this, &sent_packet.info);
   if (has_set_ect1_options_ != options.ecn_1) {
     // It is unclear what is most efficient, setting options on every sent
     // packet or when changed. Potentially, can separate send sockets be used?
@@ -131,7 +129,7 @@ void AsyncUDPSocket::OnReadEvent(Socket* socket) {
     // send datagram, indicating the remote address was unreachable.
     // When doing ICE, this kind of thing will often happen.
     // TODO: Do something better like forwarding the error to the user.
-    webrtc::SocketAddress local_addr = socket_->GetLocalAddress();
+    SocketAddress local_addr = socket_->GetLocalAddress();
     RTC_LOG(LS_INFO) << "AsyncUDPSocket[" << local_addr.ToSensitiveString()
                      << "] receive failed with error " << socket_->GetError();
     return;
@@ -143,22 +141,22 @@ void AsyncUDPSocket::OnReadEvent(Socket* socket) {
 
   if (!receive_buffer.arrival_time) {
     // Timestamp from socket is not available.
-    receive_buffer.arrival_time = webrtc::Timestamp::Micros(rtc::TimeMicros());
+    receive_buffer.arrival_time = Timestamp::Micros(rtc::TimeMicros());
   } else {
     if (!socket_time_offset_) {
       // Estimate timestamp offset from first packet arrival time.
-      socket_time_offset_ = webrtc::Timestamp::Micros(rtc::TimeMicros()) -
-                            *receive_buffer.arrival_time;
+      socket_time_offset_ =
+          Timestamp::Micros(rtc::TimeMicros()) - *receive_buffer.arrival_time;
     }
     *receive_buffer.arrival_time += *socket_time_offset_;
   }
   NotifyPacketReceived(
-      ReceivedPacket(receive_buffer.payload, receive_buffer.source_address,
-                     receive_buffer.arrival_time, receive_buffer.ecn));
+      rtc::ReceivedPacket(receive_buffer.payload, receive_buffer.source_address,
+                          receive_buffer.arrival_time, receive_buffer.ecn));
 }
 
 void AsyncUDPSocket::OnWriteEvent(Socket* socket) {
   SignalReadyToSend(this);
 }
 
-}  // namespace rtc
+}  // namespace webrtc

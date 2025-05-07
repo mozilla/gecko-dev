@@ -53,22 +53,23 @@ bool CheckReceive(webrtc::TestClient* client,
                           : client->CheckNoPacket();
 }
 
-webrtc::TestClient* CreateTestClient(SocketFactory* factory,
+webrtc::TestClient* CreateTestClient(webrtc::SocketFactory* factory,
                                      const webrtc::SocketAddress& local_addr) {
   return new webrtc::TestClient(
-      absl::WrapUnique(AsyncUDPSocket::Create(factory, local_addr)));
+      absl::WrapUnique(webrtc::AsyncUDPSocket::Create(factory, local_addr)));
 }
 
-webrtc::TestClient* CreateTCPTestClient(Socket* socket) {
-  return new webrtc::TestClient(std::make_unique<AsyncTCPSocket>(socket));
+webrtc::TestClient* CreateTCPTestClient(webrtc::Socket* socket) {
+  return new webrtc::TestClient(
+      std::make_unique<webrtc::AsyncTCPSocket>(socket));
 }
 
 // Tests that when sending from internal_addr to external_addrs through the
 // NAT type specified by nat_type, all external addrs receive the sent packet
 // and, if exp_same is true, all use the same mapped-address on the NAT.
-void TestSend(SocketServer* internal,
+void TestSend(webrtc::SocketServer* internal,
               const webrtc::SocketAddress& internal_addr,
-              SocketServer* external,
+              webrtc::SocketServer* external,
               const webrtc::SocketAddress external_addrs[4],
               webrtc::NATType nat_type,
               bool exp_same) {
@@ -127,9 +128,9 @@ void TestSend(SocketServer* internal,
 
 // Tests that when sending from external_addrs to internal_addr, the packet
 // is delivered according to the specified filter_ip and filter_port rules.
-void TestRecv(SocketServer* internal,
+void TestRecv(webrtc::SocketServer* internal,
               const webrtc::SocketAddress& internal_addr,
-              SocketServer* external,
+              webrtc::SocketServer* external,
               const webrtc::SocketAddress external_addrs[4],
               webrtc::NATType nat_type,
               bool filter_ip,
@@ -189,9 +190,9 @@ void TestRecv(SocketServer* internal,
 }
 
 // Tests that NATServer allocates bindings properly.
-void TestBindings(SocketServer* internal,
+void TestBindings(webrtc::SocketServer* internal,
                   const webrtc::SocketAddress& internal_addr,
-                  SocketServer* external,
+                  webrtc::SocketServer* external,
                   const webrtc::SocketAddress external_addrs[4]) {
   TestSend(internal, internal_addr, external, external_addrs,
            webrtc::NAT_OPEN_CONE, true);
@@ -204,9 +205,9 @@ void TestBindings(SocketServer* internal,
 }
 
 // Tests that NATServer filters packets properly.
-void TestFilters(SocketServer* internal,
+void TestFilters(webrtc::SocketServer* internal,
                  const webrtc::SocketAddress& internal_addr,
-                 SocketServer* external,
+                 webrtc::SocketServer* external,
                  const webrtc::SocketAddress external_addrs[4]) {
   TestRecv(internal, internal_addr, external, external_addrs,
            webrtc::NAT_OPEN_CONE, false, false);
@@ -223,9 +224,12 @@ bool TestConnectivity(const webrtc::SocketAddress& src,
   // The physical NAT tests require connectivity to the selected ip from the
   // internal address used for the NAT. Things like firewalls can break that, so
   // check to see if it's worth even trying with this ip.
-  std::unique_ptr<PhysicalSocketServer> pss(new PhysicalSocketServer());
-  std::unique_ptr<Socket> client(pss->CreateSocket(src.family(), SOCK_DGRAM));
-  std::unique_ptr<Socket> server(pss->CreateSocket(src.family(), SOCK_DGRAM));
+  std::unique_ptr<webrtc::PhysicalSocketServer> pss(
+      new webrtc::PhysicalSocketServer());
+  std::unique_ptr<webrtc::Socket> client(
+      pss->CreateSocket(src.family(), SOCK_DGRAM));
+  std::unique_ptr<webrtc::Socket> server(
+      pss->CreateSocket(src.family(), SOCK_DGRAM));
   if (client->Bind(webrtc::SocketAddress(src.ipaddr(), 0)) != 0 ||
       server->Bind(webrtc::SocketAddress(dst, 0)) != 0) {
     return false;
@@ -236,7 +240,7 @@ bool TestConnectivity(const webrtc::SocketAddress& src,
 
   Thread::Current()->SleepMs(100);
   rtc::Buffer payload;
-  Socket::ReceiveBuffer receive_buffer(payload);
+  webrtc::Socket::ReceiveBuffer receive_buffer(payload);
   int received = server->RecvFrom(receive_buffer);
   return received == sent && ::memcmp(buf, payload.data(), len) == 0;
 }
@@ -244,7 +248,7 @@ bool TestConnectivity(const webrtc::SocketAddress& src,
 void TestPhysicalInternal(const webrtc::SocketAddress& int_addr) {
   webrtc::test::ScopedKeyValueConfig field_trials;
   rtc::AutoThread main_thread;
-  PhysicalSocketServer socket_server;
+  webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager network_manager(nullptr, &socket_server, &field_trials);
   network_manager.StartUpdating();
   // Process pending messages so the network list is updated.
@@ -285,8 +289,10 @@ void TestPhysicalInternal(const webrtc::SocketAddress& int_addr) {
       webrtc::SocketAddress(ext_addr1), webrtc::SocketAddress(ext_addr2),
       webrtc::SocketAddress(ext_addr1), webrtc::SocketAddress(ext_addr2)};
 
-  std::unique_ptr<PhysicalSocketServer> int_pss(new PhysicalSocketServer());
-  std::unique_ptr<PhysicalSocketServer> ext_pss(new PhysicalSocketServer());
+  std::unique_ptr<webrtc::PhysicalSocketServer> int_pss(
+      new webrtc::PhysicalSocketServer());
+  std::unique_ptr<webrtc::PhysicalSocketServer> ext_pss(
+      new webrtc::PhysicalSocketServer());
 
   TestBindings(int_pss.get(), int_addr, ext_pss.get(), ext_addrs);
   TestFilters(int_pss.get(), int_addr, ext_pss.get(), ext_addrs);
@@ -306,11 +312,11 @@ TEST(NatTest, TestPhysicalIPv6) {
 
 namespace {
 
-class TestVirtualSocketServer : public VirtualSocketServer {
+class TestVirtualSocketServer : public webrtc::VirtualSocketServer {
  public:
   // Expose this publicly
   webrtc::IPAddress GetNextIP(int af) {
-    return VirtualSocketServer::GetNextIP(af);
+    return webrtc::VirtualSocketServer::GetNextIP(af);
   }
 };
 
@@ -372,13 +378,13 @@ class NatTcpTest : public ::testing::Test, public sigslot::has_slots<> {
     ext_thread_->Start();
   }
 
-  void OnConnectEvent(Socket* socket) { connected_ = true; }
+  void OnConnectEvent(webrtc::Socket* socket) { connected_ = true; }
 
-  void OnAcceptEvent(Socket* socket) {
+  void OnAcceptEvent(webrtc::Socket* socket) {
     accepted_.reset(server_->Accept(nullptr));
   }
 
-  void OnCloseEvent(Socket* socket, int error) {}
+  void OnCloseEvent(webrtc::Socket* socket, int error) {}
 
   void ConnectEvents() {
     server_->SignalReadEvent.connect(this, &NatTcpTest::OnAcceptEvent);
@@ -394,9 +400,9 @@ class NatTcpTest : public ::testing::Test, public sigslot::has_slots<> {
   std::unique_ptr<Thread> ext_thread_;
   std::unique_ptr<webrtc::NATServer> nat_;
   std::unique_ptr<webrtc::NATSocketFactory> natsf_;
-  std::unique_ptr<Socket> client_;
-  std::unique_ptr<Socket> server_;
-  std::unique_ptr<Socket> accepted_;
+  std::unique_ptr<webrtc::Socket> client_;
+  std::unique_ptr<webrtc::Socket> server_;
+  std::unique_ptr<webrtc::Socket> accepted_;
 };
 
 TEST_F(NatTcpTest, DISABLED_TestConnectOut) {

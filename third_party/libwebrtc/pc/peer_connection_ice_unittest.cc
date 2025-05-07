@@ -314,7 +314,7 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
     return sdesc->AddCandidate(jsep_candidate.get());
   }
 
-  rtc::VirtualSocketServer vss_;
+  VirtualSocketServer vss_;
   rtc::AutoSocketServerThread main_;
   const SdpSemantics sdp_semantics_;
 };
@@ -1468,7 +1468,7 @@ class PeerConnectionIceConfigTest : public ::testing::Test {
   }
   void CreatePeerConnection(const RTCConfiguration& config) {
     packet_socket_factory_.reset(
-        new rtc::BasicPacketSocketFactory(socket_server_.get()));
+        new BasicPacketSocketFactory(socket_server_.get()));
     std::unique_ptr<cricket::FakePortAllocator> port_allocator(
         new cricket::FakePortAllocator(rtc::Thread::Current(),
                                        packet_socket_factory_.get(),
@@ -1483,11 +1483,11 @@ class PeerConnectionIceConfigTest : public ::testing::Test {
   }
 
   std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
-  std::unique_ptr<rtc::SocketServer> socket_server_;
+  std::unique_ptr<SocketServer> socket_server_;
   rtc::AutoSocketServerThread main_thread_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_ = nullptr;
   rtc::scoped_refptr<PeerConnectionInterface> pc_ = nullptr;
-  std::unique_ptr<rtc::PacketSocketFactory> packet_socket_factory_;
+  std::unique_ptr<PacketSocketFactory> packet_socket_factory_;
   cricket::FakePortAllocator* port_allocator_ = nullptr;
 
   MockPeerConnectionObserver observer_;

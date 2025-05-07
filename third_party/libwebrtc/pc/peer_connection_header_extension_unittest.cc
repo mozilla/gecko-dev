@@ -94,7 +94,7 @@ class PeerConnectionHeaderExtensionTest
 
     auto fake_port_allocator = std::make_unique<cricket::FakePortAllocator>(
         rtc::Thread::Current(),
-        std::make_unique<rtc::BasicPacketSocketFactory>(socket_server_.get()),
+        std::make_unique<BasicPacketSocketFactory>(socket_server_.get()),
         field_trials_.get());
     auto observer = std::make_unique<MockPeerConnectionObserver>();
     PeerConnectionInterface::RTCConfiguration config;
@@ -111,7 +111,7 @@ class PeerConnectionHeaderExtensionTest
   }
 
   std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
-  std::unique_ptr<rtc::SocketServer> socket_server_;
+  std::unique_ptr<SocketServer> socket_server_;
   rtc::AutoSocketServerThread main_thread_;
   std::vector<RtpHeaderExtensionCapability> extensions_;
 };

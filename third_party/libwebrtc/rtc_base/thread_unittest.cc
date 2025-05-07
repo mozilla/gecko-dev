@@ -74,7 +74,7 @@ class TestGenerator {
 // Receives messages and sends on a socket.
 class MessageClient : public TestGenerator {
  public:
-  MessageClient(Thread* pth, Socket* socket) : socket_(socket) {}
+  MessageClient(Thread* pth, webrtc::Socket* socket) : socket_(socket) {}
 
   ~MessageClient() { delete socket_; }
 
@@ -84,17 +84,17 @@ class MessageClient : public TestGenerator {
   }
 
  private:
-  Socket* socket_;
+  webrtc::Socket* socket_;
 };
 
 // Receives on a socket and sends by posting messages.
 class SocketClient : public TestGenerator, public sigslot::has_slots<> {
  public:
-  SocketClient(Socket* socket,
+  SocketClient(webrtc::Socket* socket,
                const webrtc::SocketAddress& addr,
                Thread* post_thread,
                MessageClient* phandler)
-      : socket_(AsyncUDPSocket::Create(socket, addr)),
+      : socket_(webrtc::AsyncUDPSocket::Create(socket, addr)),
         post_thread_(post_thread),
         post_handler_(phandler) {
     socket_->RegisterReceivedPacketCallback(
@@ -107,7 +107,8 @@ class SocketClient : public TestGenerator, public sigslot::has_slots<> {
 
   webrtc::SocketAddress address() const { return socket_->GetLocalAddress(); }
 
-  void OnPacket(AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {
+  void OnPacket(webrtc::AsyncPacketSocket* socket,
+                const rtc::ReceivedPacket& packet) {
     EXPECT_EQ(packet.payload().size(), sizeof(uint32_t));
     uint32_t prev =
         reinterpret_cast<const uint32_t*>(packet.payload().data())[0];
@@ -119,7 +120,7 @@ class SocketClient : public TestGenerator, public sigslot::has_slots<> {
   }
 
  private:
-  AsyncUDPSocket* socket_;
+  webrtc::AsyncUDPSocket* socket_;
   Thread* post_thread_;
   MessageClient* post_handler_;
 };
@@ -127,7 +128,8 @@ class SocketClient : public TestGenerator, public sigslot::has_slots<> {
 class CustomThread : public rtc::Thread {
  public:
   CustomThread()
-      : Thread(std::unique_ptr<SocketServer>(new rtc::NullSocketServer())) {}
+      : Thread(std::unique_ptr<webrtc::SocketServer>(
+            new webrtc::NullSocketServer())) {}
   ~CustomThread() override { Stop(); }
   bool Start() { return false; }
 
@@ -140,7 +142,8 @@ class CustomThread : public rtc::Thread {
 class SignalWhenDestroyedThread : public Thread {
  public:
   SignalWhenDestroyedThread(Event* event)
-      : Thread(std::unique_ptr<SocketServer>(new NullSocketServer())),
+      : Thread(std::unique_ptr<webrtc::SocketServer>(
+            new webrtc::NullSocketServer())),
         event_(event) {}
 
   ~SignalWhenDestroyedThread() override {
@@ -163,12 +166,13 @@ TEST(ThreadTest, DISABLED_Main) {
 
   // Create the messaging client on its own thread.
   auto th1 = Thread::CreateWithSocketServer();
-  Socket* socket = th1->socketserver()->CreateSocket(addr.family(), SOCK_DGRAM);
+  webrtc::Socket* socket =
+      th1->socketserver()->CreateSocket(addr.family(), SOCK_DGRAM);
   MessageClient msg_client(th1.get(), socket);
 
   // Create the socket client on its own thread.
   auto th2 = Thread::CreateWithSocketServer();
-  Socket* asocket =
+  webrtc::Socket* asocket =
       th2->socketserver()->CreateSocket(addr.family(), SOCK_DGRAM);
   SocketClient sock_client(asocket, addr, th1.get(), &msg_client);
 
@@ -520,7 +524,7 @@ TEST(ThreadTest, DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder) {
   q.Start();
   DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(clock, q);
 
-  NullSocketServer nullss;
+  webrtc::NullSocketServer nullss;
   Thread q_nullss(&nullss, true);
   q_nullss.Start();
   DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(clock, q_nullss);

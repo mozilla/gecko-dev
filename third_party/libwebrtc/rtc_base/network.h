@@ -487,14 +487,14 @@ class RTC_EXPORT BasicNetworkManager : public NetworkManagerBase,
                                        public sigslot::has_slots<> {
  public:
   // This is used by lots of downstream code.
-  BasicNetworkManager(SocketFactory* socket_factory,
+  BasicNetworkManager(webrtc::SocketFactory* socket_factory,
                       const webrtc::FieldTrialsView* field_trials = nullptr)
       : BasicNetworkManager(/* network_monitor_factory= */ nullptr,
                             socket_factory,
                             field_trials) {}
 
   BasicNetworkManager(NetworkMonitorFactory* network_monitor_factory,
-                      SocketFactory* socket_factory,
+                      webrtc::SocketFactory* socket_factory,
                       const webrtc::FieldTrialsView* field_trials = nullptr);
   ~BasicNetworkManager() override;
 
@@ -580,7 +580,7 @@ class RTC_EXPORT BasicNetworkManager : public NetworkManagerBase,
       field_trials_;
   std::vector<std::string> network_ignore_list_;
   NetworkMonitorFactory* const network_monitor_factory_;
-  SocketFactory* const socket_factory_;
+  webrtc::SocketFactory* const socket_factory_;
   std::unique_ptr<NetworkMonitorInterface> network_monitor_
       RTC_GUARDED_BY(thread_);
   bool allow_mac_based_ipv6_ RTC_GUARDED_BY(thread_) = false;

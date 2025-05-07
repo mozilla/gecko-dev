@@ -461,7 +461,7 @@ SendPacketStatus DcSctpTransport::SendPacketWithStatus(
                         << ") failed with error: " << transport_->GetError()
                         << ".";
 
-    if (rtc::IsBlockingError(transport_->GetError())) {
+    if (IsBlockingError(transport_->GetError())) {
       return SendPacketStatus::kTemporaryFailure;
     }
     return SendPacketStatus::kError;

@@ -31,7 +31,7 @@
 #include "rtc_base/thread.h"
 #include "rtc_base/time_utils.h"
 
-namespace rtc {
+namespace webrtc {
 
 using ::webrtc::MutexLock;
 using ::webrtc::TaskQueueBase;
@@ -65,9 +65,7 @@ const int NUM_SAMPLES = 1000;
 // the kernel does.
 class VirtualSocketPacket {
  public:
-  VirtualSocketPacket(const char* data,
-                      size_t size,
-                      const webrtc::SocketAddress& from)
+  VirtualSocketPacket(const char* data, size_t size, const SocketAddress& from)
       : size_(size), consumed_(0), from_(from) {
     RTC_DCHECK(nullptr != data);
     data_ = new char[size_];
@@ -78,7 +76,7 @@ class VirtualSocketPacket {
 
   const char* data() const { return data_ + consumed_; }
   size_t size() const { return size_ - consumed_; }
-  const webrtc::SocketAddress& from() const { return from_; }
+  const SocketAddress& from() const { return from_; }
 
   // Remove the first size bytes from the data.
   void Consume(size_t size) {
@@ -89,7 +87,7 @@ class VirtualSocketPacket {
  private:
   char* data_;
   size_t size_, consumed_;
-  webrtc::SocketAddress from_;
+  SocketAddress from_;
 };
 
 VirtualSocket::VirtualSocket(VirtualSocketServer* server, int family, int type)
@@ -110,19 +108,19 @@ VirtualSocket::~VirtualSocket() {
   Close();
 }
 
-webrtc::SocketAddress VirtualSocket::GetLocalAddress() const {
+SocketAddress VirtualSocket::GetLocalAddress() const {
   return local_addr_;
 }
 
-webrtc::SocketAddress VirtualSocket::GetRemoteAddress() const {
+SocketAddress VirtualSocket::GetRemoteAddress() const {
   return remote_addr_;
 }
 
-void VirtualSocket::SetLocalAddress(const webrtc::SocketAddress& addr) {
+void VirtualSocket::SetLocalAddress(const SocketAddress& addr) {
   local_addr_ = addr;
 }
 
-int VirtualSocket::Bind(const webrtc::SocketAddress& addr) {
+int VirtualSocket::Bind(const SocketAddress& addr) {
   if (!local_addr_.IsNil()) {
     error_ = EINVAL;
     return -1;
@@ -139,7 +137,7 @@ int VirtualSocket::Bind(const webrtc::SocketAddress& addr) {
   return result;
 }
 
-int VirtualSocket::Connect(const webrtc::SocketAddress& addr) {
+int VirtualSocket::Connect(const SocketAddress& addr) {
   return InitiateConnect(addr, true);
 }
 
@@ -156,7 +154,7 @@ VirtualSocket::SafetyBlock::~SafetyBlock() {
 
 void VirtualSocket::SafetyBlock::SetNotAlive() {
   VirtualSocketServer* const server = socket_.server_;
-  const webrtc::SocketAddress& local_addr = socket_.local_addr_;
+  const SocketAddress& local_addr = socket_.local_addr_;
 
   MutexLock lock(&mutex_);
   // Cancel pending sockets
@@ -196,7 +194,7 @@ void VirtualSocket::SafetyBlock::PostSignalReadEvent() {
   }
 
   pending_read_signal_event_ = true;
-  rtc::scoped_refptr<SafetyBlock> safety(this);
+  scoped_refptr<SafetyBlock> safety(this);
   socket_.server_->msg_queue_->PostTask(
       [safety = std::move(safety)] { safety->MaybeSignalReadEvent(); });
 }
@@ -246,7 +244,7 @@ int VirtualSocket::Send(const void* pv, size_t cb) {
 
 int VirtualSocket::SendTo(const void* pv,
                           size_t cb,
-                          const webrtc::SocketAddress& addr) {
+                          const SocketAddress& addr) {
   if (SOCK_DGRAM == type_) {
     return SendUdp(pv, cb, addr);
   } else {
@@ -259,13 +257,13 @@ int VirtualSocket::SendTo(const void* pv,
 }
 
 int VirtualSocket::Recv(void* pv, size_t cb, int64_t* timestamp) {
-  webrtc::SocketAddress addr;
+  SocketAddress addr;
   return RecvFrom(pv, cb, &addr, timestamp);
 }
 
 int VirtualSocket::RecvFrom(void* pv,
                             size_t cb,
-                            webrtc::SocketAddress* paddr,
+                            SocketAddress* paddr,
                             int64_t* timestamp) {
   if (timestamp) {
     *timestamp = -1;
@@ -290,7 +288,7 @@ int VirtualSocket::RecvFrom(void* pv,
 
 int VirtualSocket::SafetyBlock::RecvFrom(void* buffer,
                                          size_t size,
-                                         webrtc::SocketAddress& addr) {
+                                         SocketAddress& addr) {
   MutexLock lock(&mutex_);
   // If we don't have a packet, then either error or wait for one to arrive.
   if (recv_buffer_.empty()) {
@@ -336,7 +334,7 @@ void VirtualSocket::SafetyBlock::Listen() {
   listen_queue_.emplace();
 }
 
-VirtualSocket* VirtualSocket::Accept(webrtc::SocketAddress* paddr) {
+VirtualSocket* VirtualSocket::Accept(SocketAddress* paddr) {
   SafetyBlock::AcceptResult result = safety_->Accept();
   if (result.error != 0) {
     error_ = result.error;
@@ -364,7 +362,7 @@ VirtualSocket::SafetyBlock::AcceptResult VirtualSocket::SafetyBlock::Accept() {
     socket->SetLocalAddress(socket_.local_addr_);
     // Sockets made from a socket that 'was Any' need to inherit that.
     socket->set_was_any(socket_.was_any());
-    webrtc::SocketAddress remote_addr = listen_queue_->front();
+    SocketAddress remote_addr = listen_queue_->front();
     listen_queue_->pop_front();
     if (socket->InitiateConnect(remote_addr, false) != 0) {
       continue;
@@ -406,7 +404,7 @@ int VirtualSocket::SetOption(Option opt, int value) {
 
 void VirtualSocket::PostPacket(TimeDelta delay,
                                std::unique_ptr<VirtualSocketPacket> packet) {
-  rtc::scoped_refptr<SafetyBlock> safety = safety_;
+  scoped_refptr<SafetyBlock> safety = safety_;
   VirtualSocket* socket = this;
   server_->msg_queue_->PostDelayedTask(
       [safety = std::move(safety), socket,
@@ -428,14 +426,13 @@ bool VirtualSocket::SafetyBlock::AddPacket(
 }
 
 void VirtualSocket::PostConnect(TimeDelta delay,
-                                const webrtc::SocketAddress& remote_addr) {
+                                const SocketAddress& remote_addr) {
   safety_->PostConnect(delay, remote_addr);
 }
 
-void VirtualSocket::SafetyBlock::PostConnect(
-    TimeDelta delay,
-    const webrtc::SocketAddress& remote_addr) {
-  rtc::scoped_refptr<SafetyBlock> safety(this);
+void VirtualSocket::SafetyBlock::PostConnect(TimeDelta delay,
+                                             const SocketAddress& remote_addr) {
+  scoped_refptr<SafetyBlock> safety(this);
 
   MutexLock lock(&mutex_);
   RTC_DCHECK(alive_);
@@ -468,7 +465,7 @@ VirtualSocket::SafetyBlock::Signal VirtualSocket::SafetyBlock::Connect(
     return Signal::kNone;
   }
   RTC_DCHECK(!posted_connects_.empty());
-  webrtc::SocketAddress remote_addr = *remote_addr_it;
+  SocketAddress remote_addr = *remote_addr_it;
   posted_connects_.erase(remote_addr_it);
 
   if (listen_queue_.has_value()) {
@@ -494,7 +491,7 @@ void VirtualSocket::PostDisconnect(TimeDelta delay) {
   // Posted task may outlive this. Use different name for `this` inside the task
   // to avoid accidental unsafe `this->safety_` instead of safe `safety`
   VirtualSocket* socket = this;
-  rtc::scoped_refptr<SafetyBlock> safety = safety_;
+  scoped_refptr<SafetyBlock> safety = safety_;
   auto task = [safety = std::move(safety), socket] {
     if (!safety->IsAlive()) {
       return;
@@ -511,8 +508,7 @@ void VirtualSocket::PostDisconnect(TimeDelta delay) {
   server_->msg_queue_->PostDelayedTask(std::move(task), delay);
 }
 
-int VirtualSocket::InitiateConnect(const webrtc::SocketAddress& addr,
-                                   bool use_delay) {
+int VirtualSocket::InitiateConnect(const SocketAddress& addr, bool use_delay) {
   if (!remote_addr_.IsNil()) {
     error_ = (CS_CONNECTED == state_) ? EISCONN : EINPROGRESS;
     return -1;
@@ -521,9 +517,9 @@ int VirtualSocket::InitiateConnect(const webrtc::SocketAddress& addr,
     // If there's no local address set, grab a random one in the correct AF.
     int result = 0;
     if (addr.ipaddr().family() == AF_INET) {
-      result = Bind(webrtc::SocketAddress("0.0.0.0", 0));
+      result = Bind(SocketAddress("0.0.0.0", 0));
     } else if (addr.ipaddr().family() == AF_INET6) {
-      result = Bind(webrtc::SocketAddress("::", 0));
+      result = Bind(SocketAddress("::", 0));
     }
     if (result != 0) {
       return result;
@@ -543,7 +539,7 @@ int VirtualSocket::InitiateConnect(const webrtc::SocketAddress& addr,
   return 0;
 }
 
-void VirtualSocket::CompleteConnect(const webrtc::SocketAddress& addr) {
+void VirtualSocket::CompleteConnect(const SocketAddress& addr) {
   RTC_DCHECK(CS_CONNECTING == state_);
   remote_addr_ = addr;
   state_ = CS_CONNECTED;
@@ -552,7 +548,7 @@ void VirtualSocket::CompleteConnect(const webrtc::SocketAddress& addr) {
 
 int VirtualSocket::SendUdp(const void* pv,
                            size_t cb,
-                           const webrtc::SocketAddress& addr) {
+                           const SocketAddress& addr) {
   // If we have not been assigned a local port, then get one.
   if (local_addr_.IsNil()) {
     local_addr_ = server_->AssignBindAddress(
@@ -659,8 +655,7 @@ size_t VirtualSocket::PurgeNetworkPackets(int64_t cur_time) {
 
 VirtualSocketServer::VirtualSocketServer() : VirtualSocketServer(nullptr) {}
 
-VirtualSocketServer::VirtualSocketServer(
-    webrtc::ThreadProcessingFakeClock* fake_clock)
+VirtualSocketServer::VirtualSocketServer(ThreadProcessingFakeClock* fake_clock)
     : fake_clock_(fake_clock),
       msg_queue_(nullptr),
       stop_on_idle_(false),
@@ -685,19 +680,19 @@ VirtualSocketServer::~VirtualSocketServer() {
   delete connections_;
 }
 
-webrtc::IPAddress VirtualSocketServer::GetNextIP(int family) {
+IPAddress VirtualSocketServer::GetNextIP(int family) {
   if (family == AF_INET) {
-    webrtc::IPAddress next_ip(next_ipv4_);
+    IPAddress next_ip(next_ipv4_);
     next_ipv4_.s_addr =
         webrtc::HostToNetwork32(webrtc::NetworkToHost32(next_ipv4_.s_addr) + 1);
     return next_ip;
   } else if (family == AF_INET6) {
-    webrtc::IPAddress next_ip(next_ipv6_);
+    IPAddress next_ip(next_ipv6_);
     uint32_t* as_ints = reinterpret_cast<uint32_t*>(&next_ipv6_.s6_addr);
     as_ints[3] += 1;
     return next_ip;
   }
-  return webrtc::IPAddress();
+  return IPAddress();
 }
 
 uint16_t VirtualSocketServer::GetNextPort() {
@@ -712,7 +707,7 @@ uint16_t VirtualSocketServer::GetNextPort() {
 
 void VirtualSocketServer::SetSendingBlocked(bool blocked) {
   {
-    webrtc::MutexLock lock(&mutex_);
+    MutexLock lock(&mutex_);
     if (blocked == sending_blocked_) {
       // Unchanged; nothing to do.
       return;
@@ -730,14 +725,13 @@ VirtualSocket* VirtualSocketServer::CreateSocket(int family, int type) {
   return new VirtualSocket(this, family, type);
 }
 
-void VirtualSocketServer::SetMessageQueue(Thread* msg_queue) {
+void VirtualSocketServer::SetMessageQueue(rtc::Thread* msg_queue) {
   msg_queue_ = msg_queue;
 }
 
-bool VirtualSocketServer::Wait(webrtc::TimeDelta max_wait_duration,
-                               bool process_io) {
+bool VirtualSocketServer::Wait(TimeDelta max_wait_duration, bool process_io) {
   RTC_DCHECK_RUN_ON(msg_queue_);
-  if (stop_on_idle_ && Thread::Current()->empty()) {
+  if (stop_on_idle_ && rtc::Thread::Current()->empty()) {
     return false;
   }
   // Note: we don't need to do anything with `process_io` since we don't have
@@ -753,8 +747,8 @@ void VirtualSocketServer::WakeUp() {
 }
 
 void VirtualSocketServer::SetAlternativeLocalAddress(
-    const webrtc::IPAddress& address,
-    const webrtc::IPAddress& alternative) {
+    const IPAddress& address,
+    const IPAddress& alternative) {
   alternative_address_mapping_[address] = alternative;
 }
 
@@ -765,10 +759,10 @@ bool VirtualSocketServer::ProcessMessagesUntilIdle() {
     if (fake_clock_) {
       // If using a fake clock, advance it in millisecond increments until the
       // queue is empty.
-      fake_clock_->AdvanceTime(webrtc::TimeDelta::Millis(1));
+      fake_clock_->AdvanceTime(TimeDelta::Millis(1));
     } else {
       // Otherwise, run a normal message loop.
-      msg_queue_->ProcessMessages(Thread::kForever);
+      msg_queue_->ProcessMessages(rtc::Thread::kForever);
     }
   }
   stop_on_idle_ = false;
@@ -780,8 +774,8 @@ void VirtualSocketServer::SetNextPortForTesting(uint16_t port) {
 }
 
 bool VirtualSocketServer::CloseTcpConnections(
-    const webrtc::SocketAddress& addr_local,
-    const webrtc::SocketAddress& addr_remote) {
+    const SocketAddress& addr_local,
+    const SocketAddress& addr_remote) {
   VirtualSocket* socket = LookupConnection(addr_local, addr_remote);
   if (!socket) {
     return false;
@@ -796,25 +790,25 @@ bool VirtualSocketServer::CloseTcpConnections(
 }
 
 int VirtualSocketServer::Bind(VirtualSocket* socket,
-                              const webrtc::SocketAddress& addr) {
+                              const SocketAddress& addr) {
   RTC_DCHECK(nullptr != socket);
   // Address must be completely specified at this point
   RTC_DCHECK(!webrtc::IPIsUnspec(addr.ipaddr()));
   RTC_DCHECK(addr.port() != 0);
 
   // Normalize the address (turns v6-mapped addresses into v4-addresses).
-  webrtc::SocketAddress normalized(addr.ipaddr().Normalized(), addr.port());
+  SocketAddress normalized(addr.ipaddr().Normalized(), addr.port());
 
   AddressMap::value_type entry(normalized, socket);
   return bindings_->insert(entry).second ? 0 : -1;
 }
 
-webrtc::SocketAddress VirtualSocketServer::AssignBindAddress(
-    const webrtc::SocketAddress& app_addr) {
+SocketAddress VirtualSocketServer::AssignBindAddress(
+    const SocketAddress& app_addr) {
   RTC_DCHECK(!webrtc::IPIsUnspec(app_addr.ipaddr()));
 
   // Normalize the IP.
-  webrtc::SocketAddress addr;
+  SocketAddress addr;
   addr.SetIP(app_addr.ipaddr().Normalized());
 
   // If the IP appears in `alternative_address_mapping_`, meaning the test has
@@ -840,21 +834,19 @@ webrtc::SocketAddress VirtualSocketServer::AssignBindAddress(
   return addr;
 }
 
-VirtualSocket* VirtualSocketServer::LookupBinding(
-    const webrtc::SocketAddress& addr) {
-  webrtc::SocketAddress normalized(addr.ipaddr().Normalized(), addr.port());
+VirtualSocket* VirtualSocketServer::LookupBinding(const SocketAddress& addr) {
+  SocketAddress normalized(addr.ipaddr().Normalized(), addr.port());
   AddressMap::iterator it = bindings_->find(normalized);
   if (it != bindings_->end()) {
     return it->second;
   }
 
-  webrtc::IPAddress default_ip =
-      GetDefaultSourceAddress(addr.ipaddr().family());
+  IPAddress default_ip = GetDefaultSourceAddress(addr.ipaddr().family());
   if (!webrtc::IPIsUnspec(default_ip) && addr.ipaddr() == default_ip) {
     // If we can't find a binding for the packet which is sent to the interface
     // corresponding to the default route, it should match a binding with the
     // correct port to the any address.
-    webrtc::SocketAddress sock_addr =
+    SocketAddress sock_addr =
         webrtc::EmptySocketAddressWithFamily(addr.ipaddr().family());
     sock_addr.SetPort(addr.port());
     return LookupBinding(sock_addr);
@@ -863,48 +855,41 @@ VirtualSocket* VirtualSocketServer::LookupBinding(
   return nullptr;
 }
 
-int VirtualSocketServer::Unbind(const webrtc::SocketAddress& addr,
+int VirtualSocketServer::Unbind(const SocketAddress& addr,
                                 VirtualSocket* socket) {
-  webrtc::SocketAddress normalized(addr.ipaddr().Normalized(), addr.port());
+  SocketAddress normalized(addr.ipaddr().Normalized(), addr.port());
   RTC_DCHECK((*bindings_)[normalized] == socket);
   bindings_->erase(bindings_->find(normalized));
   return 0;
 }
 
-void VirtualSocketServer::AddConnection(const webrtc::SocketAddress& local,
-                                        const webrtc::SocketAddress& remote,
+void VirtualSocketServer::AddConnection(const SocketAddress& local,
+                                        const SocketAddress& remote,
                                         VirtualSocket* remote_socket) {
   // Add this socket pair to our routing table. This will allow
   // multiple clients to connect to the same server address.
-  webrtc::SocketAddress local_normalized(local.ipaddr().Normalized(),
-                                         local.port());
-  webrtc::SocketAddress remote_normalized(remote.ipaddr().Normalized(),
-                                          remote.port());
-  webrtc::SocketAddressPair address_pair(local_normalized, remote_normalized);
-  connections_->insert(std::pair<webrtc::SocketAddressPair, VirtualSocket*>(
+  SocketAddress local_normalized(local.ipaddr().Normalized(), local.port());
+  SocketAddress remote_normalized(remote.ipaddr().Normalized(), remote.port());
+  SocketAddressPair address_pair(local_normalized, remote_normalized);
+  connections_->insert(std::pair<SocketAddressPair, VirtualSocket*>(
       address_pair, remote_socket));
 }
 
 VirtualSocket* VirtualSocketServer::LookupConnection(
-    const webrtc::SocketAddress& local,
-    const webrtc::SocketAddress& remote) {
-  webrtc::SocketAddress local_normalized(local.ipaddr().Normalized(),
-                                         local.port());
-  webrtc::SocketAddress remote_normalized(remote.ipaddr().Normalized(),
-                                          remote.port());
-  webrtc::SocketAddressPair address_pair(local_normalized, remote_normalized);
+    const SocketAddress& local,
+    const SocketAddress& remote) {
+  SocketAddress local_normalized(local.ipaddr().Normalized(), local.port());
+  SocketAddress remote_normalized(remote.ipaddr().Normalized(), remote.port());
+  SocketAddressPair address_pair(local_normalized, remote_normalized);
   ConnectionMap::iterator it = connections_->find(address_pair);
   return (connections_->end() != it) ? it->second : nullptr;
 }
 
-void VirtualSocketServer::RemoveConnection(
-    const webrtc::SocketAddress& local,
-    const webrtc::SocketAddress& remote) {
-  webrtc::SocketAddress local_normalized(local.ipaddr().Normalized(),
-                                         local.port());
-  webrtc::SocketAddress remote_normalized(remote.ipaddr().Normalized(),
-                                          remote.port());
-  webrtc::SocketAddressPair address_pair(local_normalized, remote_normalized);
+void VirtualSocketServer::RemoveConnection(const SocketAddress& local,
+                                           const SocketAddress& remote) {
+  SocketAddress local_normalized(local.ipaddr().Normalized(), local.port());
+  SocketAddress remote_normalized(remote.ipaddr().Normalized(), remote.port());
+  SocketAddressPair address_pair(local_normalized, remote_normalized);
   connections_->erase(address_pair);
 }
 
@@ -913,7 +898,7 @@ static double Random() {
 }
 
 int VirtualSocketServer::Connect(VirtualSocket* socket,
-                                 const webrtc::SocketAddress& remote_addr,
+                                 const SocketAddress& remote_addr,
                                  bool use_delay) {
   RTC_DCHECK(msg_queue_);
 
@@ -944,12 +929,12 @@ bool VirtualSocketServer::Disconnect(VirtualSocket* socket) {
   return true;
 }
 
-bool VirtualSocketServer::Disconnect(const webrtc::SocketAddress& addr) {
+bool VirtualSocketServer::Disconnect(const SocketAddress& addr) {
   return Disconnect(LookupBinding(addr));
 }
 
-bool VirtualSocketServer::Disconnect(const webrtc::SocketAddress& local_addr,
-                                     const webrtc::SocketAddress& remote_addr) {
+bool VirtualSocketServer::Disconnect(const SocketAddress& local_addr,
+                                     const SocketAddress& remote_addr) {
   // Disconnect remote socket, check if it is a child of a server socket.
   VirtualSocket* socket = LookupConnection(local_addr, remote_addr);
   if (!socket) {
@@ -970,9 +955,9 @@ bool VirtualSocketServer::Disconnect(const webrtc::SocketAddress& local_addr,
 int VirtualSocketServer::SendUdp(VirtualSocket* socket,
                                  const char* data,
                                  size_t data_size,
-                                 const webrtc::SocketAddress& remote_addr) {
+                                 const SocketAddress& remote_addr) {
   {
-    webrtc::MutexLock lock(&mutex_);
+    MutexLock lock(&mutex_);
     ++sent_packets_;
     if (sending_blocked_) {
       socket->SetToBlocked();
@@ -1018,7 +1003,7 @@ int VirtualSocketServer::SendUdp(VirtualSocket* socket,
   }
 
   {
-    int64_t cur_time = TimeMillis();
+    int64_t cur_time = rtc::TimeMillis();
     size_t network_size = socket->PurgeNetworkPackets(cur_time);
 
     // Determine whether we have enough bandwidth to accept this packet.  To do
@@ -1029,7 +1014,7 @@ int VirtualSocketServer::SendUdp(VirtualSocket* socket,
     // "Derivative Random Drop"); however, this algorithm is a more accurate
     // simulation of what a normal network would do.
     {
-      webrtc::MutexLock lock(&mutex_);
+      MutexLock lock(&mutex_);
       size_t packet_size = data_size + UDP_HEADER_SIZE;
       if (network_size + packet_size > network_capacity_) {
         RTC_LOG(LS_VERBOSE) << "Dropping packet: network capacity exceeded";
@@ -1046,7 +1031,7 @@ int VirtualSocketServer::SendUdp(VirtualSocket* socket,
 
 void VirtualSocketServer::SendTcp(VirtualSocket* socket) {
   {
-    webrtc::MutexLock lock(&mutex_);
+    MutexLock lock(&mutex_);
     ++sent_packets_;
     if (sending_blocked_) {
       // Eventually the socket's buffer will fill and VirtualSocket::SendTcp
@@ -1069,7 +1054,7 @@ void VirtualSocketServer::SendTcp(VirtualSocket* socket) {
     return;
   }
 
-  int64_t cur_time = TimeMillis();
+  int64_t cur_time = rtc::TimeMillis();
   socket->PurgeNetworkPackets(cur_time);
 
   while (true) {
@@ -1089,7 +1074,7 @@ void VirtualSocketServer::SendTcp(VirtualSocket* socket) {
   socket->MaybeSignalWriteEvent(send_buffer_capacity());
 }
 
-void VirtualSocketServer::SendTcp(const webrtc::SocketAddress& addr) {
+void VirtualSocketServer::SendTcp(const SocketAddress& addr) {
   VirtualSocket* sender = LookupBinding(addr);
   RTC_DCHECK(nullptr != sender);
   SendTcp(sender);
@@ -1111,9 +1096,8 @@ void VirtualSocketServer::AddPacketToNetwork(VirtualSocket* sender,
   // When the incoming packet is from a binding of the any address, translate it
   // to the default route here such that the recipient will see the default
   // route.
-  webrtc::SocketAddress sender_addr = sender->GetLocalAddress();
-  webrtc::IPAddress default_ip =
-      GetDefaultSourceAddress(sender_addr.ipaddr().family());
+  SocketAddress sender_addr = sender->GetLocalAddress();
+  IPAddress default_ip = GetDefaultSourceAddress(sender_addr.ipaddr().family());
   if (sender_addr.IsAnyIP() && !webrtc::IPIsUnspec(default_ip)) {
     sender_addr.SetIP(default_ip);
   }
@@ -1128,7 +1112,7 @@ void VirtualSocketServer::AddPacketToNetwork(VirtualSocket* sender,
 }
 
 uint32_t VirtualSocketServer::SendDelay(uint32_t size) {
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   if (bandwidth_ == 0)
     return 0;
   else
@@ -1157,7 +1141,7 @@ void PrintFunction(std::vector<std::pair<double, double> >* f) {
 #endif  // <unused>
 
 void VirtualSocketServer::UpdateDelayDistribution() {
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   delay_dist_ = CreateDistribution(delay_mean_, delay_stddev_, delay_samples_);
 }
 
@@ -1289,10 +1273,10 @@ bool VirtualSocketServer::CanInteractWith(VirtualSocket* local,
   if (!local || !remote) {
     return false;
   }
-  webrtc::IPAddress local_ip = local->GetLocalAddress().ipaddr();
-  webrtc::IPAddress remote_ip = remote->GetLocalAddress().ipaddr();
-  webrtc::IPAddress local_normalized = local_ip.Normalized();
-  webrtc::IPAddress remote_normalized = remote_ip.Normalized();
+  IPAddress local_ip = local->GetLocalAddress().ipaddr();
+  IPAddress remote_ip = remote->GetLocalAddress().ipaddr();
+  IPAddress local_normalized = local_ip.Normalized();
+  IPAddress remote_normalized = remote_ip.Normalized();
   // Check if the addresses are the same family after Normalization (turns
   // mapped IPv6 address into IPv4 addresses).
   // This will stop unmapped V6 addresses from talking to mapped V6 addresses.
@@ -1327,17 +1311,16 @@ bool VirtualSocketServer::CanInteractWith(VirtualSocket* local,
   return false;
 }
 
-webrtc::IPAddress VirtualSocketServer::GetDefaultSourceAddress(int family) {
+IPAddress VirtualSocketServer::GetDefaultSourceAddress(int family) {
   if (family == AF_INET) {
     return default_source_address_v4_;
   }
   if (family == AF_INET6) {
     return default_source_address_v6_;
   }
-  return webrtc::IPAddress();
+  return IPAddress();
 }
-void VirtualSocketServer::SetDefaultSourceAddress(
-    const webrtc::IPAddress& from_addr) {
+void VirtualSocketServer::SetDefaultSourceAddress(const IPAddress& from_addr) {
   RTC_DCHECK(!webrtc::IPIsAny(from_addr));
   if (from_addr.family() == AF_INET) {
     default_source_address_v4_ = from_addr;
@@ -1347,42 +1330,42 @@ void VirtualSocketServer::SetDefaultSourceAddress(
 }
 
 void VirtualSocketServer::set_bandwidth(uint32_t bandwidth) {
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   bandwidth_ = bandwidth;
 }
 void VirtualSocketServer::set_network_capacity(uint32_t capacity) {
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   network_capacity_ = capacity;
 }
 
 uint32_t VirtualSocketServer::send_buffer_capacity() const {
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   return send_buffer_capacity_;
 }
 void VirtualSocketServer::set_send_buffer_capacity(uint32_t capacity) {
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   send_buffer_capacity_ = capacity;
 }
 
 uint32_t VirtualSocketServer::recv_buffer_capacity() const {
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   return recv_buffer_capacity_;
 }
 void VirtualSocketServer::set_recv_buffer_capacity(uint32_t capacity) {
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   recv_buffer_capacity_ = capacity;
 }
 
 void VirtualSocketServer::set_delay_mean(uint32_t delay_mean) {
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   delay_mean_ = delay_mean;
 }
 void VirtualSocketServer::set_delay_stddev(uint32_t delay_stddev) {
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   delay_stddev_ = delay_stddev;
 }
 void VirtualSocketServer::set_delay_samples(uint32_t delay_samples) {
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   delay_samples_ = delay_samples;
 }
 
@@ -1390,18 +1373,18 @@ void VirtualSocketServer::set_drop_probability(double drop_prob) {
   RTC_DCHECK_GE(drop_prob, 0.0);
   RTC_DCHECK_LE(drop_prob, 1.0);
 
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   drop_prob_ = drop_prob;
 }
 
 void VirtualSocketServer::set_max_udp_payload(size_t payload_size) {
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   max_udp_payload_ = payload_size;
 }
 
 uint32_t VirtualSocketServer::sent_packets() const {
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   return sent_packets_;
 }
 
-}  // namespace rtc
+}  // namespace webrtc

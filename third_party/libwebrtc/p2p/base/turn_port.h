@@ -75,7 +75,7 @@ class TurnPort : public Port {
 
   // Create a TURN port using the shared UDP socket, `socket`.
   static std::unique_ptr<TurnPort> Create(const CreateRelayPortArgs& args,
-                                          rtc::AsyncPacketSocket* socket) {
+                                          webrtc::AsyncPacketSocket* socket) {
     if (!Validate(args)) {
       return nullptr;
     }
@@ -150,11 +150,11 @@ class TurnPort : public Port {
              const webrtc::SocketAddress& addr,
              const rtc::PacketOptions& options,
              bool payload) override;
-  int SetOption(rtc::Socket::Option opt, int value) override;
-  int GetOption(rtc::Socket::Option opt, int* value) override;
+  int SetOption(webrtc::Socket::Option opt, int value) override;
+  int GetOption(webrtc::Socket::Option opt, int* value) override;
   int GetError() override;
 
-  bool HandleIncomingPacket(rtc::AsyncPacketSocket* socket,
+  bool HandleIncomingPacket(webrtc::AsyncPacketSocket* socket,
                             const rtc::ReceivedPacket& packet) override;
   bool CanHandleIncomingPacketsFrom(
       const webrtc::SocketAddress& addr) const override;
@@ -166,16 +166,16 @@ class TurnPort : public Port {
                                 int error_code,
                                 absl::string_view reason) override;
 
-  virtual void OnReadPacket(rtc::AsyncPacketSocket* socket,
+  virtual void OnReadPacket(webrtc::AsyncPacketSocket* socket,
                             const rtc::ReceivedPacket& packet);
 
-  void OnSentPacket(rtc::AsyncPacketSocket* socket,
+  void OnSentPacket(webrtc::AsyncPacketSocket* socket,
                     const rtc::SentPacket& sent_packet) override;
-  virtual void OnReadyToSend(rtc::AsyncPacketSocket* socket);
+  virtual void OnReadyToSend(webrtc::AsyncPacketSocket* socket);
   bool SupportsProtocol(absl::string_view protocol) const override;
 
-  void OnSocketConnect(rtc::AsyncPacketSocket* socket);
-  void OnSocketClose(rtc::AsyncPacketSocket* socket, int error);
+  void OnSocketConnect(webrtc::AsyncPacketSocket* socket);
+  void OnSocketClose(webrtc::AsyncPacketSocket* socket, int error);
 
   const std::string& hash() const { return hash_; }
   const std::string& nonce() const { return nonce_; }
@@ -184,7 +184,7 @@ class TurnPort : public Port {
 
   void OnAllocateMismatch();
 
-  rtc::AsyncPacketSocket* socket() const { return socket_; }
+  webrtc::AsyncPacketSocket* socket() const { return socket_; }
   StunRequestManager& request_manager() { return request_manager_; }
 
   bool HasRequests() { return !request_manager_.empty(); }
@@ -208,7 +208,7 @@ class TurnPort : public Port {
 
  protected:
   TurnPort(const PortParametersRef& args,
-           rtc::AsyncPacketSocket* socket,
+           webrtc::AsyncPacketSocket* socket,
            const ProtocolAddress& server_address,
            const RelayCredentials& credentials,
            int server_priority,
@@ -230,9 +230,9 @@ class TurnPort : public Port {
 
   [[deprecated("Pass arguments using PortParametersRef")]] TurnPort(
       webrtc::TaskQueueBase* thread,
-      rtc::PacketSocketFactory* factory,
+      webrtc::PacketSocketFactory* factory,
       const rtc::Network* network,
-      rtc::AsyncPacketSocket* socket,
+      webrtc::AsyncPacketSocket* socket,
       absl::string_view username,
       absl::string_view password,
       const ProtocolAddress& server_address,
@@ -246,7 +246,7 @@ class TurnPort : public Port {
 
   [[deprecated("Pass arguments using PortParametersRef")]] TurnPort(
       webrtc::TaskQueueBase* thread,
-      rtc::PacketSocketFactory* factory,
+      webrtc::PacketSocketFactory* factory,
       const rtc::Network* network,
       uint16_t min_port,
       uint16_t max_port,
@@ -271,7 +271,7 @@ class TurnPort : public Port {
   void Close();
 
  private:
-  typedef std::map<rtc::Socket::Option, int> SocketOptionsMap;
+  typedef std::map<webrtc::Socket::Option, int> SocketOptionsMap;
   typedef std::set<webrtc::SocketAddress> AttemptedServerSet;
 
   static bool AllowedTurnPort(int port,
@@ -348,7 +348,7 @@ class TurnPort : public Port {
   RelayCredentials credentials_;
   AttemptedServerSet attempted_server_addresses_;
 
-  rtc::AsyncPacketSocket* socket_;
+  webrtc::AsyncPacketSocket* socket_;
   SocketOptionsMap socket_options_;
   std::unique_ptr<webrtc::AsyncDnsResolverInterface> resolver_;
   int error_;

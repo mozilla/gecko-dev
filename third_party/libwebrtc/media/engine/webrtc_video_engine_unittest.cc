@@ -325,7 +325,7 @@ class MockNetworkInterface : public cricket::MediaChannelNetworkInterface {
               (override));
   MOCK_METHOD(int,
               SetOption,
-              (SocketType type, rtc::Socket::Option opt, int option),
+              (SocketType type, webrtc::Socket::Option opt, int option),
               (override));
 };
 

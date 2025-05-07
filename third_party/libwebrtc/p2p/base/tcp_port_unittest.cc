@@ -86,7 +86,7 @@ class ConnectionObserver : public sigslot::has_slots<> {
 class TCPPortTest : public ::testing::Test, public sigslot::has_slots<> {
  public:
   TCPPortTest()
-      : ss_(new rtc::VirtualSocketServer()),
+      : ss_(new webrtc::VirtualSocketServer()),
         main_(ss_.get()),
         socket_factory_(ss_.get()),
         username_(rtc::CreateRandomString(ICE_UFRAG_LENGTH)),
@@ -131,9 +131,9 @@ class TCPPortTest : public ::testing::Test, public sigslot::has_slots<> {
   // Network with that IP and add it to this list. Using a list instead of a
   // vector so that when it grows, pointers aren't invalidated.
   std::list<rtc::Network> networks_;
-  std::unique_ptr<rtc::VirtualSocketServer> ss_;
+  std::unique_ptr<webrtc::VirtualSocketServer> ss_;
   rtc::AutoSocketServerThread main_;
-  rtc::BasicPacketSocketFactory socket_factory_;
+  webrtc::BasicPacketSocketFactory socket_factory_;
   std::string username_;
   std::string password_;
   webrtc::test::ScopedKeyValueConfig field_trials_;

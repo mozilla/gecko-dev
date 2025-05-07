@@ -641,7 +641,7 @@ class PeerConnectionFactoryForTest : public PeerConnectionFactory {
 class PeerConnectionInterfaceBaseTest : public ::testing::Test {
  protected:
   explicit PeerConnectionInterfaceBaseTest(SdpSemantics sdp_semantics)
-      : vss_(new rtc::VirtualSocketServer()),
+      : vss_(new VirtualSocketServer()),
         main_(vss_.get()),
         sdp_semantics_(sdp_semantics) {
 #ifdef WEBRTC_ANDROID
@@ -715,7 +715,7 @@ class PeerConnectionInterfaceBaseTest : public ::testing::Test {
     std::unique_ptr<cricket::FakePortAllocator> port_allocator(
         new cricket::FakePortAllocator(
             rtc::Thread::Current(),
-            std::make_unique<rtc::BasicPacketSocketFactory>(vss_.get()),
+            std::make_unique<BasicPacketSocketFactory>(vss_.get()),
             field_trials_.get()));
     port_allocator_ = port_allocator.get();
 
@@ -1258,10 +1258,10 @@ class PeerConnectionInterfaceBaseTest : public ::testing::Test {
     }
   }
 
-  rtc::SocketServer* socket_server() const { return vss_.get(); }
+  SocketServer* socket_server() const { return vss_.get(); }
 
   std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
-  std::unique_ptr<rtc::VirtualSocketServer> vss_;
+  std::unique_ptr<VirtualSocketServer> vss_;
   rtc::AutoSocketServerThread main_;
   rtc::scoped_refptr<FakeAudioCaptureModule> fake_audio_capture_module_;
   cricket::FakePortAllocator* port_allocator_ = nullptr;
@@ -1366,8 +1366,8 @@ TEST_P(PeerConnectionInterfaceTest, CreatePeerConnectionWithPooledCandidates) {
 TEST_P(PeerConnectionInterfaceTest,
        CreatePeerConnectionAppliesNetworkConfigToPortAllocator) {
   // Create fake port allocator.
-  std::unique_ptr<rtc::PacketSocketFactory> packet_socket_factory(
-      new rtc::BasicPacketSocketFactory(socket_server()));
+  std::unique_ptr<PacketSocketFactory> packet_socket_factory(
+      new BasicPacketSocketFactory(socket_server()));
   std::unique_ptr<cricket::FakePortAllocator> port_allocator(
       new cricket::FakePortAllocator(rtc::Thread::Current(),
                                      packet_socket_factory.get(),

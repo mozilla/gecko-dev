@@ -94,7 +94,7 @@ class PeerConnectionDataChannelBaseTest : public ::testing::Test {
   typedef std::unique_ptr<PeerConnectionWrapperForDataChannelTest> WrapperPtr;
 
   explicit PeerConnectionDataChannelBaseTest(SdpSemantics sdp_semantics)
-      : vss_(new rtc::VirtualSocketServer()),
+      : vss_(new VirtualSocketServer()),
         main_(vss_.get()),
         sdp_semantics_(sdp_semantics) {
 #ifdef WEBRTC_ANDROID
@@ -158,7 +158,7 @@ class PeerConnectionDataChannelBaseTest : public ::testing::Test {
     data_desc->set_port(port);
   }
 
-  std::unique_ptr<rtc::VirtualSocketServer> vss_;
+  std::unique_ptr<VirtualSocketServer> vss_;
   rtc::AutoSocketServerThread main_;
   const SdpSemantics sdp_semantics_;
 };

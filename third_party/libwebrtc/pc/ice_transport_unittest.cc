@@ -30,12 +30,12 @@ class IceTransportTest : public ::testing::Test {
       : socket_server_(rtc::CreateDefaultSocketServer()),
         main_thread_(socket_server_.get()) {}
 
-  rtc::SocketServer* socket_server() const { return socket_server_.get(); }
+  SocketServer* socket_server() const { return socket_server_.get(); }
 
   test::ScopedKeyValueConfig field_trials_;
 
  private:
-  std::unique_ptr<rtc::SocketServer> socket_server_;
+  std::unique_ptr<SocketServer> socket_server_;
   rtc::AutoSocketServerThread main_thread_;
 };
 
@@ -52,8 +52,7 @@ TEST_F(IceTransportTest, CreateNonSelfDeletingTransport) {
 TEST_F(IceTransportTest, CreateSelfDeletingTransport) {
   std::unique_ptr<cricket::FakePortAllocator> port_allocator(
       std::make_unique<cricket::FakePortAllocator>(
-          nullptr,
-          std::make_unique<rtc::BasicPacketSocketFactory>(socket_server()),
+          nullptr, std::make_unique<BasicPacketSocketFactory>(socket_server()),
           &field_trials_));
   IceTransportInit init;
   init.set_port_allocator(port_allocator.get());

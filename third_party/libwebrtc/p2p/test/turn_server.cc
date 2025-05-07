@@ -84,18 +84,18 @@ TurnServer::~TurnServer() {
   RTC_DCHECK_RUN_ON(thread_);
   for (InternalSocketMap::iterator it = server_sockets_.begin();
        it != server_sockets_.end(); ++it) {
-    rtc::AsyncPacketSocket* socket = it->first;
+    AsyncPacketSocket* socket = it->first;
     delete socket;
   }
 
   for (ServerSocketMap::iterator it = server_listen_sockets_.begin();
        it != server_listen_sockets_.end(); ++it) {
-    rtc::Socket* socket = it->first;
+    Socket* socket = it->first;
     delete socket;
   }
 }
 
-void TurnServer::AddInternalSocket(rtc::AsyncPacketSocket* socket,
+void TurnServer::AddInternalSocket(AsyncPacketSocket* socket,
                                    ProtocolType proto) {
   RTC_DCHECK_RUN_ON(thread_);
   RTC_DCHECK(server_sockets_.end() == server_sockets_.find(socket));
@@ -108,7 +108,7 @@ void TurnServer::AddInternalSocket(rtc::AsyncPacketSocket* socket,
 }
 
 void TurnServer::AddInternalServerSocket(
-    rtc::Socket* socket,
+    Socket* socket,
     ProtocolType proto,
     std::unique_ptr<rtc::SSLAdapterFactory> ssl_adapter_factory) {
   RTC_DCHECK_RUN_ON(thread_);
@@ -119,26 +119,26 @@ void TurnServer::AddInternalServerSocket(
   socket->SignalReadEvent.connect(this, &TurnServer::OnNewInternalConnection);
 }
 
-void TurnServer::SetExternalSocketFactory(rtc::PacketSocketFactory* factory,
+void TurnServer::SetExternalSocketFactory(PacketSocketFactory* factory,
                                           const SocketAddress& external_addr) {
   RTC_DCHECK_RUN_ON(thread_);
   external_socket_factory_.reset(factory);
   external_addr_ = external_addr;
 }
 
-void TurnServer::OnNewInternalConnection(rtc::Socket* socket) {
+void TurnServer::OnNewInternalConnection(Socket* socket) {
   RTC_DCHECK_RUN_ON(thread_);
   RTC_DCHECK(server_listen_sockets_.find(socket) !=
              server_listen_sockets_.end());
   AcceptConnection(socket);
 }
 
-void TurnServer::AcceptConnection(rtc::Socket* server_socket) {
+void TurnServer::AcceptConnection(Socket* server_socket) {
   RTC_DCHECK_RUN_ON(thread_);
 
   // Check if someone is trying to connect to us.
   SocketAddress accept_addr;
-  rtc::Socket* accepted_socket = server_socket->Accept(&accept_addr);
+  Socket* accepted_socket = server_socket->Accept(&accept_addr);
   if (accepted_socket != NULL) {
     const ServerSocketInfo& info = server_listen_sockets_[server_socket];
     if (info.ssl_adapter_factory) {
@@ -147,8 +147,7 @@ void TurnServer::AcceptConnection(rtc::Socket* server_socket) {
       ssl_adapter->StartSSL("");
       accepted_socket = ssl_adapter;
     }
-    cricket::AsyncStunTCPSocket* tcp_socket =
-        new cricket::AsyncStunTCPSocket(accepted_socket);
+    AsyncStunTCPSocket* tcp_socket = new AsyncStunTCPSocket(accepted_socket);
 
     tcp_socket->SubscribeCloseEvent(this,
                                     [this](rtc::AsyncPacketSocket* s, int err) {
@@ -159,13 +158,12 @@ void TurnServer::AcceptConnection(rtc::Socket* server_socket) {
   }
 }
 
-void TurnServer::OnInternalSocketClose(rtc::AsyncPacketSocket* socket,
-                                       int err) {
+void TurnServer::OnInternalSocketClose(AsyncPacketSocket* socket, int err) {
   RTC_DCHECK_RUN_ON(thread_);
   DestroyInternalSocket(socket);
 }
 
-void TurnServer::OnInternalPacket(rtc::AsyncPacketSocket* socket,
+void TurnServer::OnInternalPacket(AsyncPacketSocket* socket,
                                   const rtc::ReceivedPacket& packet) {
   RTC_DCHECK_RUN_ON(thread_);
   // Fail if the packet is too small to even contain a channel header.
@@ -420,7 +418,7 @@ TurnServerAllocation* TurnServer::FindAllocation(TurnServerConnection* conn) {
 TurnServerAllocation* TurnServer::CreateAllocation(TurnServerConnection* conn,
                                                    int proto,
                                                    absl::string_view key) {
-  rtc::AsyncPacketSocket* external_socket =
+  AsyncPacketSocket* external_socket =
       (external_socket_factory_)
           ? external_socket_factory_->CreateUdpSocket(external_addr_, 0, 0)
           : NULL;
@@ -505,7 +503,7 @@ void TurnServer::Send(TurnServerConnection* conn,
 
 void TurnServer::DestroyAllocation(TurnServerAllocation* allocation) {
   // Removing the internal socket if the connection is not udp.
-  rtc::AsyncPacketSocket* socket = allocation->conn()->socket();
+  AsyncPacketSocket* socket = allocation->conn()->socket();
   InternalSocketMap::iterator iter = server_sockets_.find(socket);
   // Skip if the socket serving this allocation is UDP, as this will be shared
   // by all allocations.
@@ -518,14 +516,14 @@ void TurnServer::DestroyAllocation(TurnServerAllocation* allocation) {
   allocations_.erase(*(allocation->conn()));
 }
 
-void TurnServer::DestroyInternalSocket(rtc::AsyncPacketSocket* socket) {
+void TurnServer::DestroyInternalSocket(AsyncPacketSocket* socket) {
   InternalSocketMap::iterator iter = server_sockets_.find(socket);
   if (iter != server_sockets_.end()) {
-    rtc::AsyncPacketSocket* socket = iter->first;
+    AsyncPacketSocket* socket = iter->first;
     socket->UnsubscribeCloseEvent(this);
     socket->DeregisterReceivedPacketCallback();
     server_sockets_.erase(iter);
-    std::unique_ptr<rtc::AsyncPacketSocket> socket_to_delete =
+    std::unique_ptr<AsyncPacketSocket> socket_to_delete =
         absl::WrapUnique(socket);
     // We must destroy the socket async to avoid invalidating the sigslot
     // callback list iterator inside a sigslot callback. (In other words,
@@ -536,7 +534,7 @@ void TurnServer::DestroyInternalSocket(rtc::AsyncPacketSocket* socket) {
 
 TurnServerConnection::TurnServerConnection(const SocketAddress& src,
                                            ProtocolType proto,
-                                           rtc::AsyncPacketSocket* socket)
+                                           AsyncPacketSocket* socket)
     : src_(src),
       dst_(socket->GetRemoteAddress()),
       proto_(proto),
@@ -561,7 +559,7 @@ std::string TurnServerConnection::ToString() const {
 TurnServerAllocation::TurnServerAllocation(TurnServer* server,
                                            TaskQueueBase* thread,
                                            const TurnServerConnection& conn,
-                                           rtc::AsyncPacketSocket* socket,
+                                           AsyncPacketSocket* socket,
                                            absl::string_view key)
     : server_(server),
       thread_(thread),
@@ -801,7 +799,7 @@ void TurnServerAllocation::HandleChannelData(
   }
 }
 
-void TurnServerAllocation::OnExternalPacket(rtc::AsyncPacketSocket* socket,
+void TurnServerAllocation::OnExternalPacket(AsyncPacketSocket* socket,
                                             const rtc::ReceivedPacket& packet) {
   RTC_DCHECK(external_socket_.get() == socket);
   auto channel = FindChannel(packet.source_address());

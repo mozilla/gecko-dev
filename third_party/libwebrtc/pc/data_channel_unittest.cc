@@ -84,7 +84,7 @@ class FakeDataChannelObserver : public DataChannelObserver {
 class SctpDataChannelTest : public ::testing::Test {
  protected:
   SctpDataChannelTest()
-      : network_thread_(std::make_unique<rtc::NullSocketServer>()),
+      : network_thread_(std::make_unique<NullSocketServer>()),
         controller_(new FakeDataChannelController(&network_thread_)) {
     network_thread_.Start();
     inner_channel_ = controller_->CreateDataChannel("test", init_);

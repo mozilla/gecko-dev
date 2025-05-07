@@ -208,7 +208,7 @@ cricket::Candidate CreateUdpCandidate(IceCandidateType type,
 std::unique_ptr<cricket::BasicPortAllocator> CreateBasicPortAllocator(
     const Environment& env,
     rtc::NetworkManager* network_manager,
-    rtc::PacketSocketFactory* socket_factory,
+    webrtc::PacketSocketFactory* socket_factory,
     const cricket::ServerAddresses& stun_servers,
     const webrtc::SocketAddress& turn_server_udp,
     const webrtc::SocketAddress& turn_server_tcp) {
@@ -315,10 +315,10 @@ class P2PTransportChannelTestBase : public ::testing::Test,
                                     public sigslot::has_slots<> {
  public:
   P2PTransportChannelTestBase()
-      : vss_(new rtc::VirtualSocketServer()),
+      : vss_(new webrtc::VirtualSocketServer()),
         nss_(new webrtc::NATSocketServer(vss_.get())),
-        ss_(new rtc::FirewallSocketServer(nss_.get())),
-        socket_factory_(new rtc::BasicPacketSocketFactory(ss_.get())),
+        ss_(new webrtc::FirewallSocketServer(nss_.get())),
+        socket_factory_(new webrtc::BasicPacketSocketFactory(ss_.get())),
         main_(ss_.get()),
         stun_server_(
             webrtc::TestStunServer::Create(ss_.get(), kStunAddr, main_)),
@@ -547,7 +547,7 @@ class P2PTransportChannelTestBase : public ::testing::Test,
   P2PTransportChannel* ep2_ch2() { return ep2_.cd2_.ch_.get(); }
 
   webrtc::TestTurnServer* test_turn_server() { return &turn_server_; }
-  rtc::VirtualSocketServer* virtual_socket_server() { return vss_.get(); }
+  webrtc::VirtualSocketServer* virtual_socket_server() { return vss_.get(); }
 
   // Common results.
   static const Result kLocalUdpToLocalUdp;
@@ -566,7 +566,7 @@ class P2PTransportChannelTestBase : public ::testing::Test,
   static const Result kPrflxTcpToLocalTcp;
 
   webrtc::NATSocketServer* nat() { return nss_.get(); }
-  rtc::FirewallSocketServer* fw() { return ss_.get(); }
+  webrtc::FirewallSocketServer* fw() { return ss_.get(); }
 
   Endpoint* GetEndpoint(int endpoint) {
     if (endpoint == 0) {
@@ -594,7 +594,7 @@ class P2PTransportChannelTestBase : public ::testing::Test,
   }
   void RemoveAddress(int endpoint, const SocketAddress& addr) {
     GetEndpoint(endpoint)->network_manager_.RemoveInterface(addr);
-    fw()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, addr);
+    fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_ANY, addr);
   }
   void SetAllocatorFlags(int endpoint, int flags) {
     GetAllocator(endpoint)->set_flags(flags);
@@ -1044,10 +1044,10 @@ class P2PTransportChannelTestBase : public ::testing::Test,
   bool nominated() { return nominated_; }
 
  private:
-  std::unique_ptr<rtc::VirtualSocketServer> vss_;
+  std::unique_ptr<webrtc::VirtualSocketServer> vss_;
   std::unique_ptr<webrtc::NATSocketServer> nss_;
-  std::unique_ptr<rtc::FirewallSocketServer> ss_;
-  std::unique_ptr<rtc::BasicPacketSocketFactory> socket_factory_;
+  std::unique_ptr<webrtc::FirewallSocketServer> ss_;
+  std::unique_ptr<webrtc::BasicPacketSocketFactory> socket_factory_;
 
   rtc::AutoSocketServerThread main_;
   rtc::scoped_refptr<PendingTaskSafetyFlag> safety_ =
@@ -1202,18 +1202,19 @@ class P2PTransportChannelTest : public P2PTransportChannelTestBase {
       case BLOCK_ALL_BUT_OUTGOING_HTTP:
         AddAddress(endpoint, kPublicAddrs[endpoint]);
         // Block all UDP
-        fw()->AddRule(false, rtc::FP_UDP, rtc::FD_ANY, kPublicAddrs[endpoint]);
+        fw()->AddRule(false, webrtc::FP_UDP, webrtc::FD_ANY,
+                      kPublicAddrs[endpoint]);
         if (config == BLOCK_UDP_AND_INCOMING_TCP) {
           // Block TCP inbound to the endpoint
-          fw()->AddRule(false, rtc::FP_TCP, SocketAddress(),
+          fw()->AddRule(false, webrtc::FP_TCP, SocketAddress(),
                         kPublicAddrs[endpoint]);
         } else if (config == BLOCK_ALL_BUT_OUTGOING_HTTP) {
           // Block all TCP to/from the endpoint except 80/443 out
-          fw()->AddRule(true, rtc::FP_TCP, kPublicAddrs[endpoint],
+          fw()->AddRule(true, webrtc::FP_TCP, kPublicAddrs[endpoint],
                         SocketAddress(webrtc::IPAddress(INADDR_ANY), 80));
-          fw()->AddRule(true, rtc::FP_TCP, kPublicAddrs[endpoint],
+          fw()->AddRule(true, webrtc::FP_TCP, kPublicAddrs[endpoint],
                         SocketAddress(webrtc::IPAddress(INADDR_ANY), 443));
-          fw()->AddRule(false, rtc::FP_TCP, rtc::FD_ANY,
+          fw()->AddRule(false, webrtc::FP_TCP, webrtc::FD_ANY,
                         kPublicAddrs[endpoint]);
         }
         break;
@@ -1548,7 +1549,7 @@ TEST_F(P2PTransportChannelTest,
                          .clock = &clock}),
       webrtc::IsRtcOk());
 
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, kPublicAddrs[0]);
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_ANY, kPublicAddrs[0]);
   // Timeout value such that all connections are deleted.
   const int kNetworkFailureTimeout = 35000;
   SIMULATED_WAIT(false, kNetworkFailureTimeout, clock);
@@ -2107,12 +2108,12 @@ TEST_F(P2PTransportChannelTest, TestDefaultDscpValue) {
   CreateChannels(env);
   EXPECT_EQ(rtc::DSCP_NO_CHANGE, GetEndpoint(0)->cd1_.ch_->DefaultDscpValue());
   EXPECT_EQ(rtc::DSCP_NO_CHANGE, GetEndpoint(1)->cd1_.ch_->DefaultDscpValue());
-  GetEndpoint(0)->cd1_.ch_->SetOption(rtc::Socket::OPT_DSCP, rtc::DSCP_CS6);
-  GetEndpoint(1)->cd1_.ch_->SetOption(rtc::Socket::OPT_DSCP, rtc::DSCP_CS6);
+  GetEndpoint(0)->cd1_.ch_->SetOption(webrtc::Socket::OPT_DSCP, rtc::DSCP_CS6);
+  GetEndpoint(1)->cd1_.ch_->SetOption(webrtc::Socket::OPT_DSCP, rtc::DSCP_CS6);
   EXPECT_EQ(rtc::DSCP_CS6, GetEndpoint(0)->cd1_.ch_->DefaultDscpValue());
   EXPECT_EQ(rtc::DSCP_CS6, GetEndpoint(1)->cd1_.ch_->DefaultDscpValue());
-  GetEndpoint(0)->cd1_.ch_->SetOption(rtc::Socket::OPT_DSCP, rtc::DSCP_AF41);
-  GetEndpoint(1)->cd1_.ch_->SetOption(rtc::Socket::OPT_DSCP, rtc::DSCP_AF41);
+  GetEndpoint(0)->cd1_.ch_->SetOption(webrtc::Socket::OPT_DSCP, rtc::DSCP_AF41);
+  GetEndpoint(1)->cd1_.ch_->SetOption(webrtc::Socket::OPT_DSCP, rtc::DSCP_AF41);
   EXPECT_EQ(rtc::DSCP_AF41, GetEndpoint(0)->cd1_.ch_->DefaultDscpValue());
   EXPECT_EQ(rtc::DSCP_AF41, GetEndpoint(1)->cd1_.ch_->DefaultDscpValue());
   DestroyChannels();
@@ -2600,7 +2601,7 @@ TEST_F(P2PTransportChannelTest,
   // Block the ingress traffic to ep1 so that there is no check response from
   // ep2.
   ASSERT_NE(nullptr, LocalCandidate(ep1_ch1()));
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_IN,
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_IN,
                 LocalCandidate(ep1_ch1())->address());
   // Wait until ep1 becomes unwritable. At the same time ep2 should be still
   // fine so that it will keep sending pings.
@@ -2618,7 +2619,7 @@ TEST_F(P2PTransportChannelTest,
   // though that ep1 should have stopped sending pings after becoming unwritable
   // in the current design.
   fw()->ClearRules();
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_OUT,
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_OUT,
                 LocalCandidate(ep1_ch1())->address());
   EXPECT_THAT(webrtc::WaitUntil(
                   [&] { return ep1_ch1() != nullptr && ep1_ch1()->writable(); },
@@ -2784,7 +2785,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestFailoverControlledSide) {
 
   // Blackhole any traffic to or from the public addrs.
   RTC_LOG(LS_INFO) << "Failing over...";
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, kPublicAddrs[1]);
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_ANY, kPublicAddrs[1]);
   // The selected connections may switch, so keep references to them.
   const Connection* selected_connection1 = ep1_ch1()->selected_connection();
   // We should detect loss of receiving within 1 second or so.
@@ -2845,7 +2846,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestFailoverControllingSide) {
 
   // Blackhole any traffic to or from the public addrs.
   RTC_LOG(LS_INFO) << "Failing over...";
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, kPublicAddrs[0]);
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_ANY, kPublicAddrs[0]);
 
   // We should detect loss of receiving within 1 second or so.
   // We should switch over to use the alternate addr on both sides
@@ -2921,8 +2922,8 @@ TEST_F(P2PTransportChannelMultihomedTest, TestFailoverWithManyConnections) {
 
   // Blackhole any traffic to or from the wifi on endpoint 1.
   RTC_LOG(LS_INFO) << "Failing over...";
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, wifi[0]);
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, wifiIpv6[0]);
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_ANY, wifi[0]);
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_ANY, wifiIpv6[0]);
 
   // The selected connections may switch, so keep references to them.
   const Connection* selected_connection1 = ep1_ch1()->selected_connection();
@@ -3026,7 +3027,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestIceRenomination) {
 
   // Blackhole any traffic to or from the public addrs.
   RTC_LOG(LS_INFO) << "Failing over...";
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, kPublicAddrs[0]);
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_ANY, kPublicAddrs[0]);
 
   // The selected connection on the controlling side should switch.
   EXPECT_THAT(
@@ -3088,7 +3089,7 @@ TEST_F(P2PTransportChannelMultihomedTest,
 
   // Blackhole any traffic to or from the public addrs.
   RTC_LOG(LS_INFO) << "Failing over...";
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, kPublicAddrs[1]);
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_ANY, kPublicAddrs[1]);
 
   // The selected connections may switch, so keep references to them.
   const Connection* selected_connection1 = ep1_ch1()->selected_connection();
@@ -3156,7 +3157,7 @@ TEST_F(P2PTransportChannelMultihomedTest,
 
   // Blackhole any traffic to or from the public addrs.
   RTC_LOG(LS_INFO) << "Failing over...";
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, kPublicAddrs[0]);
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_ANY, kPublicAddrs[0]);
   // The selected connections may switch, so keep references to them.
   const Connection* selected_connection1 = ep1_ch1()->selected_connection();
   // We should detect loss of receiving within 1 second or so.
@@ -3235,7 +3236,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestRemoteFailover) {
   reset_selected_candidate_pair_switches();
   // Blackhole any traffic to or from the remote WiFi networks.
   RTC_LOG(LS_INFO) << "Failing over...";
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, wifi[1]);
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_ANY, wifi[1]);
 
   int num_switches = 0;
   SIMULATED_WAIT((num_switches = reset_selected_candidate_pair_switches()) > 0,
@@ -3741,7 +3742,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestVpnPreferVpn) {
               webrtc::IsRtcOk());
 
   // Block VPN.
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, kAlternateAddrs[0]);
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_ANY, kAlternateAddrs[0]);
 
   // Check that it switches to non-VPN
   EXPECT_THAT(
@@ -3780,7 +3781,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestVpnAvoidVpn) {
       webrtc::IsRtcOk());
 
   // Block non-VPN.
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, kPublicAddrs[0]);
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_ANY, kPublicAddrs[0]);
 
   // Check that it switches to VPN
   EXPECT_THAT(webrtc::WaitUntil(
@@ -3818,7 +3819,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestVpnNeverVpn) {
       webrtc::IsRtcOk());
 
   // Block non-VPN.
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, kPublicAddrs[0]);
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_ANY, kPublicAddrs[0]);
 
   // Check that it does not switches to VPN
   clock.AdvanceTime(webrtc::TimeDelta::Millis(kDefaultTimeout));
@@ -3853,7 +3854,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestVpnOnlyVpn) {
               webrtc::IsRtcOk());
 
   // Block VPN.
-  fw()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, kAlternateAddrs[0]);
+  fw()->AddRule(false, webrtc::FP_ANY, webrtc::FD_ANY, kAlternateAddrs[0]);
 
   // Check that it does not switch to non-VPN
   clock.AdvanceTime(webrtc::TimeDelta::Millis(kDefaultTimeout));
@@ -3909,9 +3910,9 @@ class P2PTransportChannelPingTest : public ::testing::Test,
                                     public sigslot::has_slots<> {
  public:
   P2PTransportChannelPingTest()
-      : vss_(std::make_unique<rtc::VirtualSocketServer>()),
+      : vss_(std::make_unique<webrtc::VirtualSocketServer>()),
         packet_socket_factory_(
-            std::make_unique<rtc::BasicPacketSocketFactory>(vss_.get())),
+            std::make_unique<webrtc::BasicPacketSocketFactory>(vss_.get())),
         thread_(vss_.get()) {}
 
  protected:
@@ -4123,15 +4124,15 @@ class P2PTransportChannelPingTest : public ::testing::Test,
     }
   }
 
-  rtc::SocketServer* ss() const { return vss_.get(); }
+  webrtc::SocketServer* ss() const { return vss_.get(); }
 
-  rtc::PacketSocketFactory* packet_socket_factory() const {
+  webrtc::PacketSocketFactory* packet_socket_factory() const {
     return packet_socket_factory_.get();
   }
 
  private:
-  std::unique_ptr<rtc::VirtualSocketServer> vss_;
-  std::unique_ptr<rtc::PacketSocketFactory> packet_socket_factory_;
+  std::unique_ptr<webrtc::VirtualSocketServer> vss_;
+  std::unique_ptr<webrtc::PacketSocketFactory> packet_socket_factory_;
   rtc::AutoSocketServerThread thread_;
   int selected_candidate_pair_switches_ = 0;
   int last_sent_packet_id_ = -1;
@@ -6033,10 +6034,10 @@ TEST_F(P2PTransportChannelMostLikelyToWorkFirstTest, TestTcpTurn) {
 TEST(P2PTransportChannelResolverTest, HostnameCandidateIsResolved) {
   const Environment env = CreateEnvironment();
   ResolverFactoryFixture resolver_fixture;
-  std::unique_ptr<rtc::SocketServer> socket_server =
+  std::unique_ptr<webrtc::SocketServer> socket_server =
       rtc::CreateDefaultSocketServer();
   rtc::AutoSocketServerThread main_thread(socket_server.get());
-  rtc::BasicPacketSocketFactory packet_socket_factory(socket_server.get());
+  webrtc::BasicPacketSocketFactory packet_socket_factory(socket_server.get());
   FakePortAllocator allocator(rtc::Thread::Current(), &packet_socket_factory,
                               &env.field_trials());
   webrtc::IceTransportInit init;
@@ -6721,10 +6722,10 @@ TEST_F(P2PTransportChannelTest,
   EXPECT_TRUE(ep2_ch1()->selected_connection()->remote_candidate().is_local());
 
   // Block the traffic over non-relay-to-relay routes and expect a route change.
-  fw()->AddRule(false, rtc::FP_ANY, kPublicAddrs[0], kPublicAddrs[1]);
-  fw()->AddRule(false, rtc::FP_ANY, kPublicAddrs[1], kPublicAddrs[0]);
-  fw()->AddRule(false, rtc::FP_ANY, kPublicAddrs[0], kTurnUdpExtAddr);
-  fw()->AddRule(false, rtc::FP_ANY, kPublicAddrs[1], kTurnUdpExtAddr);
+  fw()->AddRule(false, webrtc::FP_ANY, kPublicAddrs[0], kPublicAddrs[1]);
+  fw()->AddRule(false, webrtc::FP_ANY, kPublicAddrs[1], kPublicAddrs[0]);
+  fw()->AddRule(false, webrtc::FP_ANY, kPublicAddrs[0], kTurnUdpExtAddr);
+  fw()->AddRule(false, webrtc::FP_ANY, kPublicAddrs[1], kTurnUdpExtAddr);
 
   // We should be able to reuse the previously gathered relay candidates.
   EXPECT_THAT(webrtc::WaitUntil(
@@ -6814,10 +6815,10 @@ TEST_F(P2PTransportChannelTest,
   EXPECT_TRUE(ep2_ch1()->selected_connection()->remote_candidate().is_stun());
 
   // Block the traffic over non-relay-to-relay routes and expect a route change.
-  fw()->AddRule(false, rtc::FP_ANY, kPrivateAddrs[0], kPublicAddrs[1]);
-  fw()->AddRule(false, rtc::FP_ANY, kPrivateAddrs[1], kPublicAddrs[0]);
-  fw()->AddRule(false, rtc::FP_ANY, kPrivateAddrs[0], kTurnUdpExtAddr);
-  fw()->AddRule(false, rtc::FP_ANY, kPrivateAddrs[1], kTurnUdpExtAddr);
+  fw()->AddRule(false, webrtc::FP_ANY, kPrivateAddrs[0], kPublicAddrs[1]);
+  fw()->AddRule(false, webrtc::FP_ANY, kPrivateAddrs[1], kPublicAddrs[0]);
+  fw()->AddRule(false, webrtc::FP_ANY, kPrivateAddrs[0], kTurnUdpExtAddr);
+  fw()->AddRule(false, webrtc::FP_ANY, kPrivateAddrs[1], kTurnUdpExtAddr);
   // We should be able to reuse the previously gathered relay candidates.
   EXPECT_THAT(webrtc::WaitUntil(
                   [&] {
@@ -7170,10 +7171,10 @@ TEST_F(P2PTransportChannelPingTest, TestInitialSelectDampeningBoth) {
 
 TEST(P2PTransportChannelIceControllerTest, InjectIceController) {
   const Environment env = CreateEnvironment();
-  std::unique_ptr<rtc::SocketServer> socket_server =
+  std::unique_ptr<webrtc::SocketServer> socket_server =
       rtc::CreateDefaultSocketServer();
   rtc::AutoSocketServerThread main_thread(socket_server.get());
-  rtc::BasicPacketSocketFactory packet_socket_factory(socket_server.get());
+  webrtc::BasicPacketSocketFactory packet_socket_factory(socket_server.get());
   webrtc::MockIceControllerFactory factory;
   FakePortAllocator pa(rtc::Thread::Current(), &packet_socket_factory,
                        &env.field_trials());
@@ -7189,10 +7190,10 @@ TEST(P2PTransportChannelIceControllerTest, InjectIceController) {
 
 TEST(P2PTransportChannel, InjectActiveIceController) {
   const Environment env = CreateEnvironment();
-  std::unique_ptr<rtc::SocketServer> socket_server =
+  std::unique_ptr<webrtc::SocketServer> socket_server =
       rtc::CreateDefaultSocketServer();
   rtc::AutoSocketServerThread main_thread(socket_server.get());
-  rtc::BasicPacketSocketFactory packet_socket_factory(socket_server.get());
+  webrtc::BasicPacketSocketFactory packet_socket_factory(socket_server.get());
   webrtc::MockActiveIceControllerFactory factory;
   FakePortAllocator pa(rtc::Thread::Current(), &packet_socket_factory,
                        &env.field_trials());

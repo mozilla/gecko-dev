@@ -321,7 +321,7 @@ class PeerConnectionUsageHistogramTest : public ::testing::Test {
   }
 
   int next_local_address_ = 0;
-  rtc::VirtualSocketServer vss_;
+  VirtualSocketServer vss_;
   rtc::AutoSocketServerThread main_;
 };
 

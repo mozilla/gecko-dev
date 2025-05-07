@@ -310,12 +310,12 @@ uint32_t Thread::ScopedCountBlockingCalls::GetTotalBlockedCallCount() const {
 }
 #endif
 
-Thread::Thread(SocketServer* ss) : Thread(ss, /*do_init=*/true) {}
+Thread::Thread(webrtc::SocketServer* ss) : Thread(ss, /*do_init=*/true) {}
 
-Thread::Thread(std::unique_ptr<SocketServer> ss)
+Thread::Thread(std::unique_ptr<webrtc::SocketServer> ss)
     : Thread(std::move(ss), /*do_init=*/true) {}
 
-Thread::Thread(SocketServer* ss, bool do_init)
+Thread::Thread(webrtc::SocketServer* ss, bool do_init)
     : delayed_next_num_(0),
       fInitialized_(false),
       fDestroyed_(false),
@@ -329,7 +329,7 @@ Thread::Thread(SocketServer* ss, bool do_init)
   }
 }
 
-Thread::Thread(std::unique_ptr<SocketServer> ss, bool do_init)
+Thread::Thread(std::unique_ptr<webrtc::SocketServer> ss, bool do_init)
     : Thread(ss.get(), do_init) {
   own_ss_ = std::move(ss);
 }
@@ -367,7 +367,7 @@ void Thread::DoDestroy() {
   delayed_messages_ = {};
 }
 
-SocketServer* Thread::socketserver() {
+webrtc::SocketServer* Thread::socketserver() {
   return ss_;
 }
 
@@ -437,7 +437,7 @@ absl::AnyInvocable<void() &&> Thread::Get(int cmsWait) {
 
     {
       // Wait and multiplex in the meantime
-      if (!ss_->Wait(cmsNext == kForever ? SocketServer::kForever
+      if (!ss_->Wait(cmsNext == kForever ? webrtc::SocketServer::kForever
                                          : webrtc::TimeDelta::Millis(cmsNext),
                      /*process_io=*/true))
         return nullptr;
@@ -543,8 +543,8 @@ std::unique_ptr<Thread> Thread::CreateWithSocketServer() {
 }
 
 std::unique_ptr<Thread> Thread::Create() {
-  return std::unique_ptr<Thread>(
-      new Thread(std::unique_ptr<SocketServer>(new NullSocketServer())));
+  return std::unique_ptr<Thread>(new Thread(
+      std::unique_ptr<webrtc::SocketServer>(new webrtc::NullSocketServer())));
 }
 
 bool Thread::SleepMs(int milliseconds) {
@@ -909,7 +909,7 @@ AutoThread::~AutoThread() {
   }
 }
 
-AutoSocketServerThread::AutoSocketServerThread(SocketServer* ss)
+AutoSocketServerThread::AutoSocketServerThread(webrtc::SocketServer* ss)
     : Thread(ss, /*do_init=*/false) {
   DoInit();
   old_thread_ = ThreadManager::Instance()->CurrentThread();

@@ -155,14 +155,12 @@ class FakeNetworkInterface : public cricket::MediaChannelNetworkInterface {
     return true;
   }
 
-  virtual int SetOption(SocketType /* type */,
-                        rtc::Socket::Option opt,
-                        int option) {
-    if (opt == rtc::Socket::OPT_SNDBUF) {
+  virtual int SetOption(SocketType /* type */, Socket::Option opt, int option) {
+    if (opt == Socket::OPT_SNDBUF) {
       sendbuf_size_ = option;
-    } else if (opt == rtc::Socket::OPT_RCVBUF) {
+    } else if (opt == Socket::OPT_RCVBUF) {
       recvbuf_size_ = option;
-    } else if (opt == rtc::Socket::OPT_DSCP) {
+    } else if (opt == Socket::OPT_DSCP) {
       dscp_ = static_cast<rtc::DiffServCodePoint>(option);
     }
     return 0;

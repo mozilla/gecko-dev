@@ -868,7 +868,7 @@ TEST(StatsCollectionTest, DetachAndMerge) {
 // Similar to `DetachAndMerge` above but detaches on one thread, merges on
 // another to test that we don't trigger sequence checker.
 TEST(StatsCollectionTest, DetachAndMergeThreaded) {
-  rtc::Thread new_thread(std::make_unique<rtc::NullSocketServer>());
+  rtc::Thread new_thread(std::make_unique<NullSocketServer>());
   new_thread.Start();
 
   StatsReport::Id id(

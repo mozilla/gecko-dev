@@ -207,7 +207,7 @@ class TurnEntry : public sigslot::has_slots<> {
 };
 
 TurnPort::TurnPort(const PortParametersRef& args,
-                   rtc::AsyncPacketSocket* socket,
+                   webrtc::AsyncPacketSocket* socket,
                    const ProtocolAddress& server_address,
                    const RelayCredentials& credentials,
                    int server_priority,
@@ -268,9 +268,9 @@ TurnPort::TurnPort(const PortParametersRef& args,
       turn_customizer_(customizer) {}
 
 TurnPort::TurnPort(webrtc::TaskQueueBase* thread,
-                   rtc::PacketSocketFactory* factory,
+                   webrtc::PacketSocketFactory* factory,
                    const rtc::Network* network,
-                   rtc::AsyncPacketSocket* socket,
+                   webrtc::AsyncPacketSocket* socket,
                    absl::string_view username,
                    absl::string_view password,
                    const ProtocolAddress& server_address,
@@ -296,7 +296,7 @@ TurnPort::TurnPort(webrtc::TaskQueueBase* thread,
                customizer,
                tls_cert_verifier) {}
 TurnPort::TurnPort(webrtc::TaskQueueBase* thread,
-                   rtc::PacketSocketFactory* factory,
+                   webrtc::PacketSocketFactory* factory,
                    const rtc::Network* network,
                    uint16_t min_port,
                    uint16_t max_port,
@@ -458,19 +458,19 @@ bool TurnPort::CreateTurnClientSocket() {
   } else if (server_address_.proto == webrtc::PROTO_TCP ||
              server_address_.proto == webrtc::PROTO_TLS) {
     RTC_DCHECK(!SharedSocket());
-    int opts = rtc::PacketSocketFactory::OPT_STUN;
+    int opts = webrtc::PacketSocketFactory::OPT_STUN;
 
     // Apply server address TLS and insecure bits to options.
     if (server_address_.proto == webrtc::PROTO_TLS) {
       if (tls_cert_policy_ ==
           TlsCertPolicy::TLS_CERT_POLICY_INSECURE_NO_CHECK) {
-        opts |= rtc::PacketSocketFactory::OPT_TLS_INSECURE;
+        opts |= webrtc::PacketSocketFactory::OPT_TLS_INSECURE;
       } else {
-        opts |= rtc::PacketSocketFactory::OPT_TLS;
+        opts |= webrtc::PacketSocketFactory::OPT_TLS;
       }
     }
 
-    rtc::PacketSocketTcpOptions tcp_options;
+    webrtc::PacketSocketTcpOptions tcp_options;
     tcp_options.opts = opts;
     tcp_options.tls_alpn_protocols = tls_alpn_protocols_;
     tcp_options.tls_elliptic_curves = tls_elliptic_curves_;
@@ -517,7 +517,7 @@ bool TurnPort::CreateTurnClientSocket() {
   return true;
 }
 
-void TurnPort::OnSocketConnect(rtc::AsyncPacketSocket* socket) {
+void TurnPort::OnSocketConnect(webrtc::AsyncPacketSocket* socket) {
   // This slot should only be invoked if we're using a connection-oriented
   // protocol.
   RTC_DCHECK(server_address_.proto == webrtc::PROTO_TCP ||
@@ -579,7 +579,7 @@ void TurnPort::OnSocketConnect(rtc::AsyncPacketSocket* socket) {
   SendRequest(new TurnAllocateRequest(this), 0);
 }
 
-void TurnPort::OnSocketClose(rtc::AsyncPacketSocket* socket, int error) {
+void TurnPort::OnSocketClose(webrtc::AsyncPacketSocket* socket, int error) {
   RTC_LOG(LS_WARNING) << ToString()
                       << ": Connection with server failed with error: "
                       << error;
@@ -664,9 +664,9 @@ bool TurnPort::FailAndPruneConnection(const webrtc::SocketAddress& address) {
   return false;
 }
 
-int TurnPort::SetOption(rtc::Socket::Option opt, int value) {
+int TurnPort::SetOption(webrtc::Socket::Option opt, int value) {
   // Remember the last requested DSCP value, for STUN traffic.
-  if (opt == rtc::Socket::OPT_DSCP)
+  if (opt == webrtc::Socket::OPT_DSCP)
     stun_dscp_value_ = static_cast<rtc::DiffServCodePoint>(value);
 
   if (!socket_) {
@@ -678,7 +678,7 @@ int TurnPort::SetOption(rtc::Socket::Option opt, int value) {
   return socket_->SetOption(opt, value);
 }
 
-int TurnPort::GetOption(rtc::Socket::Option opt, int* value) {
+int TurnPort::GetOption(webrtc::Socket::Option opt, int* value) {
   if (!socket_) {
     SocketOptionsMap::const_iterator it = socket_options_.find(opt);
     if (it == socket_options_.end()) {
@@ -738,7 +738,7 @@ void TurnPort::SendBindingErrorResponse(StunMessage* message,
   Port::SendBindingErrorResponse(message, addr, error_code, reason);
 }
 
-bool TurnPort::HandleIncomingPacket(rtc::AsyncPacketSocket* socket,
+bool TurnPort::HandleIncomingPacket(webrtc::AsyncPacketSocket* socket,
                                     const rtc::ReceivedPacket& packet) {
   if (socket != socket_) {
     // The packet was received on a shared socket after we've allocated a new
@@ -804,17 +804,17 @@ bool TurnPort::HandleIncomingPacket(rtc::AsyncPacketSocket* socket,
   return true;
 }
 
-void TurnPort::OnReadPacket(rtc::AsyncPacketSocket* socket,
+void TurnPort::OnReadPacket(webrtc::AsyncPacketSocket* socket,
                             const rtc::ReceivedPacket& packet) {
   HandleIncomingPacket(socket, packet);
 }
 
-void TurnPort::OnSentPacket(rtc::AsyncPacketSocket* socket,
+void TurnPort::OnSentPacket(webrtc::AsyncPacketSocket* socket,
                             const rtc::SentPacket& sent_packet) {
   webrtc::PortInterface::SignalSentPacket(sent_packet);
 }
 
-void TurnPort::OnReadyToSend(rtc::AsyncPacketSocket* socket) {
+void TurnPort::OnReadyToSend(webrtc::AsyncPacketSocket* socket) {
   if (ready()) {
     Port::OnReadyToSend();
   }

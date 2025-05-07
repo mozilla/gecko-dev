@@ -19,7 +19,7 @@ PacketTransportInternal::PacketTransportInternal() = default;
 
 PacketTransportInternal::~PacketTransportInternal() = default;
 
-bool PacketTransportInternal::GetOption(rtc::Socket::Option /* opt */,
+bool PacketTransportInternal::GetOption(webrtc::Socket::Option /* opt */,
                                         int* /* value */) {
   return false;
 }

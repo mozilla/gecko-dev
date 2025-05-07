@@ -97,7 +97,7 @@ class ScenarioIceConnectionImpl : public ScenarioIceConnection,
   cricket::TransportDescription const transport_description_
       RTC_GUARDED_BY(signaling_thread_);
   std::unique_ptr<rtc::NetworkManager> network_manager_;
-  rtc::BasicPacketSocketFactory packet_socket_factory_;
+  BasicPacketSocketFactory packet_socket_factory_;
   std::unique_ptr<cricket::BasicPortAllocator> port_allocator_
       RTC_GUARDED_BY(network_thread_);
   PayloadTypePicker payload_type_picker_;

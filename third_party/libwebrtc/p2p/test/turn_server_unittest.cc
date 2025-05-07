@@ -45,15 +45,15 @@ class TurnServerConnectionTest : public ::testing::Test {
   }
 
  protected:
-  rtc::VirtualSocketServer vss_;
+  VirtualSocketServer vss_;
   rtc::AutoSocketServerThread thread_;
-  rtc::BasicPacketSocketFactory socket_factory_;
+  BasicPacketSocketFactory socket_factory_;
 };
 
 TEST_F(TurnServerConnectionTest, ComparisonOperators) {
-  std::unique_ptr<rtc::AsyncPacketSocket> socket1(
+  std::unique_ptr<AsyncPacketSocket> socket1(
       socket_factory_.CreateUdpSocket(SocketAddress("1.1.1.1", 1), 0, 0));
-  std::unique_ptr<rtc::AsyncPacketSocket> socket2(
+  std::unique_ptr<AsyncPacketSocket> socket2(
       socket_factory_.CreateUdpSocket(SocketAddress("2.2.2.2", 2), 0, 0));
   TurnServerConnection connection1(socket2->GetLocalAddress(), PROTO_UDP,
                                    socket1.get());

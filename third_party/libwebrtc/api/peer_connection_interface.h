@@ -1438,10 +1438,10 @@ struct RTC_EXPORT PeerConnectionFactoryDependencies final {
   rtc::Thread* network_thread = nullptr;
   rtc::Thread* worker_thread = nullptr;
   rtc::Thread* signaling_thread = nullptr;
-  rtc::SocketFactory* socket_factory = nullptr;
+  SocketFactory* socket_factory = nullptr;
   // The `packet_socket_factory` will only be used if CreatePeerConnection is
   // called without a `port_allocator`.
-  std::unique_ptr<rtc::PacketSocketFactory> packet_socket_factory;
+  std::unique_ptr<PacketSocketFactory> packet_socket_factory;
   std::unique_ptr<TaskQueueFactory> task_queue_factory;
   std::unique_ptr<RtcEventLogFactoryInterface> event_log_factory;
   std::unique_ptr<FecControllerFactoryInterface> fec_controller_factory;

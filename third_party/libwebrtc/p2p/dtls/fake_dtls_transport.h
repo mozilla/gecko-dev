@@ -276,10 +276,10 @@ class FakeDtlsTransport : public cricket::DtlsTransportInternal {
     }
     return ice_transport_->SendPacket(data, len, options, flags);
   }
-  int SetOption(rtc::Socket::Option opt, int value) override {
+  int SetOption(Socket::Option opt, int value) override {
     return ice_transport_->SetOption(opt, value);
   }
-  bool GetOption(rtc::Socket::Option opt, int* value) override {
+  bool GetOption(Socket::Option opt, int* value) override {
     return ice_transport_->GetOption(opt, value);
   }
   int GetError() override { return ice_transport_->GetError(); }

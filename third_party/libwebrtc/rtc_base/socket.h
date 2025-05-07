@@ -75,7 +75,7 @@
 #define closesocket(s) close(s)
 #endif  // WEBRTC_POSIX
 
-namespace rtc {
+namespace webrtc {
 
 inline bool IsBlockingError(int e) {
   return (e == EWOULDBLOCK) || (e == EAGAIN) || (e == EINPROGRESS);
@@ -88,8 +88,8 @@ class RTC_EXPORT Socket {
   struct ReceiveBuffer {
     ReceiveBuffer(Buffer& payload) : payload(payload) {}
 
-    std::optional<webrtc::Timestamp> arrival_time;
-    webrtc::SocketAddress source_address;
+    std::optional<Timestamp> arrival_time;
+    SocketAddress source_address;
     EcnMarking ecn = EcnMarking::kNotEct;
     Buffer& payload;
   };
@@ -100,24 +100,22 @@ class RTC_EXPORT Socket {
 
   // Returns the address to which the socket is bound.  If the socket is not
   // bound, then the any-address is returned.
-  virtual webrtc::SocketAddress GetLocalAddress() const = 0;
+  virtual SocketAddress GetLocalAddress() const = 0;
 
   // Returns the address to which the socket is connected.  If the socket is
   // not connected, then the any-address is returned.
-  virtual webrtc::SocketAddress GetRemoteAddress() const = 0;
+  virtual SocketAddress GetRemoteAddress() const = 0;
 
-  virtual int Bind(const webrtc::SocketAddress& addr) = 0;
-  virtual int Connect(const webrtc::SocketAddress& addr) = 0;
+  virtual int Bind(const SocketAddress& addr) = 0;
+  virtual int Connect(const SocketAddress& addr) = 0;
   virtual int Send(const void* pv, size_t cb) = 0;
-  virtual int SendTo(const void* pv,
-                     size_t cb,
-                     const webrtc::SocketAddress& addr) = 0;
+  virtual int SendTo(const void* pv, size_t cb, const SocketAddress& addr) = 0;
   // `timestamp` is in units of microseconds.
   virtual int Recv(void* pv, size_t cb, int64_t* timestamp) = 0;
   // TODO(webrtc:15368): Deprecate and remove.
   virtual int RecvFrom(void* /* pv */,
                        size_t /* cb */,
-                       webrtc::SocketAddress* /* paddr */,
+                       SocketAddress* /* paddr */,
                        int64_t* /* timestamp */) {
     // Not implemented. Use RecvFrom(ReceiveBuffer& buffer).
     RTC_CHECK_NOTREACHED();
@@ -127,7 +125,7 @@ class RTC_EXPORT Socket {
   // Returns number of bytes received or a negative value on error.
   virtual int RecvFrom(ReceiveBuffer& buffer);
   virtual int Listen(int backlog) = 0;
-  virtual Socket* Accept(webrtc::SocketAddress* paddr) = 0;
+  virtual Socket* Accept(SocketAddress* paddr) = 0;
   virtual int Close() = 0;
   virtual int GetError() const = 0;
   virtual void SetError(int error) = 0;
@@ -172,6 +170,13 @@ class RTC_EXPORT Socket {
   Socket() {}
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::IsBlockingError;
+using ::webrtc::Socket;
 }  // namespace rtc
 
 #endif  // RTC_BASE_SOCKET_H_

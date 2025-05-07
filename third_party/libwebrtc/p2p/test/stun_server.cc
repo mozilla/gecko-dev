@@ -22,7 +22,7 @@
 
 namespace webrtc {
 
-StunServer::StunServer(rtc::AsyncUDPSocket* socket) : socket_(socket) {
+StunServer::StunServer(AsyncUDPSocket* socket) : socket_(socket) {
   socket_->RegisterReceivedPacketCallback(
       [&](rtc::AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {
         OnPacket(socket, packet);
@@ -34,7 +34,7 @@ StunServer::~StunServer() {
   socket_->DeregisterReceivedPacketCallback();
 }
 
-void StunServer::OnPacket(rtc::AsyncPacketSocket* socket,
+void StunServer::OnPacket(AsyncPacketSocket* socket,
                           const rtc::ReceivedPacket& packet) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   // Parse the STUN message; eat any messages that fail to parse.

@@ -175,7 +175,7 @@ static int GetFDCount() {
 
 namespace cricket {
 
-class TurnPortTestVirtualSocketServer : public rtc::VirtualSocketServer {
+class TurnPortTestVirtualSocketServer : public webrtc::VirtualSocketServer {
  public:
   TurnPortTestVirtualSocketServer() {
     // This configures the virtual socket server to always add a simulated
@@ -184,7 +184,7 @@ class TurnPortTestVirtualSocketServer : public rtc::VirtualSocketServer {
     UpdateDelayDistribution();
   }
 
-  using rtc::VirtualSocketServer::LookupBinding;
+  using webrtc::VirtualSocketServer::LookupBinding;
 };
 
 class TestConnectionWrapper : public sigslot::has_slots<> {
@@ -243,7 +243,7 @@ class TurnPortTest : public ::testing::Test,
     turn_unknown_address_ = true;
   }
   void OnUdpPortComplete(Port* port) { udp_ready_ = true; }
-  void OnSocketReadPacket(rtc::AsyncPacketSocket* socket,
+  void OnSocketReadPacket(webrtc::AsyncPacketSocket* socket,
                           const rtc::ReceivedPacket& packet) {
     turn_port_->HandleIncomingPacket(socket, packet);
   }
@@ -264,8 +264,8 @@ class TurnPortTest : public ::testing::Test,
     connection->DeregisterReceivedPacketCallback();
   }
 
-  rtc::Socket* CreateServerSocket(const SocketAddress addr) {
-    rtc::Socket* socket = ss_->CreateSocket(AF_INET, SOCK_STREAM);
+  webrtc::Socket* CreateServerSocket(const SocketAddress addr) {
+    webrtc::Socket* socket = ss_->CreateSocket(AF_INET, SOCK_STREAM);
     EXPECT_GE(socket->Bind(addr), 0);
     EXPECT_GE(socket->Listen(5), 0);
     return socket;
@@ -629,7 +629,7 @@ class TurnPortTest : public ::testing::Test,
 
     // Make a socket and bind it to the local port, to make extra sure no
     // packet is sent to this address.
-    std::unique_ptr<rtc::Socket> loopback_socket(ss_->CreateSocket(
+    std::unique_ptr<webrtc::Socket> loopback_socket(ss_->CreateSocket(
         AF_INET,
         protocol_type == webrtc::PROTO_UDP ? SOCK_DGRAM : SOCK_STREAM));
     ASSERT_NE(nullptr, loopback_socket.get());
@@ -660,7 +660,7 @@ class TurnPortTest : public ::testing::Test,
       char buf[1];
       EXPECT_EQ(-1, loopback_socket->Recv(&buf, 1, nullptr));
     } else {
-      std::unique_ptr<rtc::Socket> accepted_socket(
+      std::unique_ptr<webrtc::Socket> accepted_socket(
           loopback_socket->Accept(nullptr));
       EXPECT_EQ(nullptr, accepted_socket.get());
     }
@@ -940,7 +940,7 @@ class TurnPortTest : public ::testing::Test,
   }
 
  protected:
-  virtual rtc::PacketSocketFactory* socket_factory() {
+  virtual webrtc::PacketSocketFactory* socket_factory() {
     return &socket_factory_;
   }
 
@@ -952,7 +952,7 @@ class TurnPortTest : public ::testing::Test,
   std::list<rtc::Network> networks_;
   std::unique_ptr<TurnPortTestVirtualSocketServer> ss_;
   rtc::AutoSocketServerThread main_;
-  std::unique_ptr<rtc::AsyncPacketSocket> socket_;
+  std::unique_ptr<webrtc::AsyncPacketSocket> socket_;
   webrtc::TestTurnServer turn_server_;
   std::unique_ptr<TurnPort> turn_port_;
   std::unique_ptr<UDPPort> udp_port_;
@@ -972,7 +972,7 @@ class TurnPortTest : public ::testing::Test,
   cricket::IceCandidateErrorEvent error_event_;
 
  private:
-  rtc::BasicPacketSocketFactory socket_factory_;
+  webrtc::BasicPacketSocketFactory socket_factory_;
 };
 
 TEST_F(TurnPortTest, TestTurnPortType) {
@@ -1031,7 +1031,7 @@ TEST_F(TurnPortTest, TestReconstructedServerUrlForHostname) {
 // Do a normal TURN allocation.
 TEST_F(TurnPortTest, TestTurnAllocate) {
   CreateTurnPort(kTurnUsername, kTurnPassword, kTurnUdpProtoAddr);
-  EXPECT_EQ(0, turn_port_->SetOption(rtc::Socket::OPT_SNDBUF, 10 * 1024));
+  EXPECT_EQ(0, turn_port_->SetOption(webrtc::Socket::OPT_SNDBUF, 10 * 1024));
   TestTurnAllocateSucceeds(kSimulatedRtt * 2);
 }
 
@@ -1125,7 +1125,7 @@ TEST_F(TurnPortTest, TestServerAddressFamilyMismatch6) {
 TEST_F(TurnPortTest, TestTurnTcpAllocate) {
   turn_server_.AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
   CreateTurnPort(kTurnUsername, kTurnPassword, kTurnTcpProtoAddr);
-  EXPECT_EQ(0, turn_port_->SetOption(rtc::Socket::OPT_SNDBUF, 10 * 1024));
+  EXPECT_EQ(0, turn_port_->SetOption(webrtc::Socket::OPT_SNDBUF, 10 * 1024));
   TestTurnAllocateSucceeds(kSimulatedRtt * 3);
 }
 
@@ -1140,7 +1140,7 @@ TEST_F(TurnPortTest, TestTurnTcpAllocationWhenProxyChangesAddressToLocalHost) {
 
   turn_server_.AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
   CreateTurnPort(kLocalAddr1, kTurnUsername, kTurnPassword, kTurnTcpProtoAddr);
-  EXPECT_EQ(0, turn_port_->SetOption(rtc::Socket::OPT_SNDBUF, 10 * 1024));
+  EXPECT_EQ(0, turn_port_->SetOption(webrtc::Socket::OPT_SNDBUF, 10 * 1024));
   TestTurnAllocateSucceeds(kSimulatedRtt * 3);
 
   // Verify that the socket actually used localhost, otherwise this test isn't
@@ -2199,7 +2199,7 @@ class TurnPortWithMockDnsResolverTest : public TurnPortTest {
   TurnPortWithMockDnsResolverTest()
       : TurnPortTest(), socket_factory_(ss_.get()) {}
 
-  rtc::PacketSocketFactory* socket_factory() override {
+  webrtc::PacketSocketFactory* socket_factory() override {
     return &socket_factory_;
   }
 

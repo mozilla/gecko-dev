@@ -173,7 +173,7 @@ class DtlsTransport : public DtlsTransportInternal {
                  const rtc::PacketOptions& options,
                  int flags) override;
 
-  bool GetOption(rtc::Socket::Option opt, int* value) override;
+  bool GetOption(webrtc::Socket::Option opt, int* value) override;
 
   // Find out which TLS version was negotiated
   bool GetSslVersionBytes(int* version) const override;
@@ -218,7 +218,7 @@ class DtlsTransport : public DtlsTransportInternal {
 
   std::optional<rtc::NetworkRoute> network_route() const override;
 
-  int SetOption(rtc::Socket::Option opt, int value) override;
+  int SetOption(webrtc::Socket::Option opt, int value) override;
 
   std::string ToString() const {
     const absl::string_view RECEIVING_ABBREV[2] = {"_", "R"};

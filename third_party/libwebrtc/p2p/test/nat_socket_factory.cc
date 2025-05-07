@@ -71,7 +71,7 @@ size_t UnpackAddressFromNAT(rtc::ArrayView<const uint8_t> buf,
 }
 
 // NATSocket
-class NATSocket : public rtc::Socket, public sigslot::has_slots<> {
+class NATSocket : public Socket, public sigslot::has_slots<> {
  public:
   explicit NATSocket(NATInternalSocketFactory* sf, int family, int type)
       : sf_(sf),
@@ -165,7 +165,7 @@ class NATSocket : public rtc::Socket, public sigslot::has_slots<> {
     buf_.EnsureCapacity(size + kNATEncodedIPv6AddressSize);
 
     // Read the packet from the socket.
-    rtc::Socket::ReceiveBuffer receive_buffer(buf_);
+    Socket::ReceiveBuffer receive_buffer(buf_);
     int result = socket_->RecvFrom(receive_buffer);
     if (result >= 0) {
       RTC_DCHECK(receive_buffer.source_address == server_addr_);
@@ -207,7 +207,7 @@ class NATSocket : public rtc::Socket, public sigslot::has_slots<> {
   }
 
   int Listen(int backlog) override { return socket_->Listen(backlog); }
-  rtc::Socket* Accept(SocketAddress* paddr) override {
+  Socket* Accept(SocketAddress* paddr) override {
     return socket_->Accept(paddr);
   }
   int GetError() const override {
@@ -230,7 +230,7 @@ class NATSocket : public rtc::Socket, public sigslot::has_slots<> {
     return socket_ ? socket_->SetOption(opt, value) : -1;
   }
 
-  void OnConnectEvent(rtc::Socket* socket) {
+  void OnConnectEvent(Socket* socket) {
     // If we're NATed, we need to send a message with the real addr to use.
     RTC_DCHECK(socket == socket_);
     if (server_addr_.IsNil()) {
@@ -240,7 +240,7 @@ class NATSocket : public rtc::Socket, public sigslot::has_slots<> {
       SendConnectRequest();
     }
   }
-  void OnReadEvent(rtc::Socket* socket) {
+  void OnReadEvent(Socket* socket) {
     // If we're NATed, we need to process the connect reply.
     RTC_DCHECK(socket == socket_);
     if (type_ == SOCK_STREAM && !server_addr_.IsNil() && !connected_) {
@@ -249,11 +249,11 @@ class NATSocket : public rtc::Socket, public sigslot::has_slots<> {
       SignalReadEvent(this);
     }
   }
-  void OnWriteEvent(rtc::Socket* socket) {
+  void OnWriteEvent(Socket* socket) {
     RTC_DCHECK(socket == socket_);
     SignalWriteEvent(this);
   }
-  void OnCloseEvent(rtc::Socket* socket, int error) {
+  void OnCloseEvent(Socket* socket, int error) {
     RTC_DCHECK(socket == socket_);
     SignalCloseEvent(this, error);
   }
@@ -305,29 +305,28 @@ class NATSocket : public rtc::Socket, public sigslot::has_slots<> {
   bool connected_;
   SocketAddress remote_addr_;
   SocketAddress server_addr_;  // address of the NAT server
-  rtc::Socket* socket_;
+  Socket* socket_;
   // Need to hold error in case it occurs before the socket is created.
   int error_ = 0;
   Buffer buf_;
 };
 
 // NATSocketFactory
-NATSocketFactory::NATSocketFactory(rtc::SocketFactory* factory,
+NATSocketFactory::NATSocketFactory(SocketFactory* factory,
                                    const SocketAddress& nat_udp_addr,
                                    const SocketAddress& nat_tcp_addr)
     : factory_(factory),
       nat_udp_addr_(nat_udp_addr),
       nat_tcp_addr_(nat_tcp_addr) {}
 
-rtc::Socket* NATSocketFactory::CreateSocket(int family, int type) {
+Socket* NATSocketFactory::CreateSocket(int family, int type) {
   return new NATSocket(this, family, type);
 }
 
-rtc::Socket* NATSocketFactory::CreateInternalSocket(
-    int family,
-    int type,
-    const SocketAddress& local_addr,
-    SocketAddress* nat_addr) {
+Socket* NATSocketFactory::CreateInternalSocket(int family,
+                                               int type,
+                                               const SocketAddress& local_addr,
+                                               SocketAddress* nat_addr) {
   if (type == SOCK_STREAM) {
     *nat_addr = nat_tcp_addr_;
   } else {
@@ -337,7 +336,7 @@ rtc::Socket* NATSocketFactory::CreateInternalSocket(
 }
 
 // NATSocketServer
-NATSocketServer::NATSocketServer(rtc::SocketServer* server)
+NATSocketServer::NATSocketServer(SocketServer* server)
     : server_(server), msg_queue_(nullptr) {}
 
 NATSocketServer::Translator* NATSocketServer::GetTranslator(
@@ -361,7 +360,7 @@ void NATSocketServer::RemoveTranslator(const SocketAddress& ext_ip) {
   nats_.Remove(ext_ip);
 }
 
-rtc::Socket* NATSocketServer::CreateSocket(int family, int type) {
+Socket* NATSocketServer::CreateSocket(int family, int type) {
   return new NATSocket(this, family, type);
 }
 
@@ -378,12 +377,11 @@ void NATSocketServer::WakeUp() {
   server_->WakeUp();
 }
 
-rtc::Socket* NATSocketServer::CreateInternalSocket(
-    int family,
-    int type,
-    const SocketAddress& local_addr,
-    SocketAddress* nat_addr) {
-  rtc::Socket* socket = nullptr;
+Socket* NATSocketServer::CreateInternalSocket(int family,
+                                              int type,
+                                              const SocketAddress& local_addr,
+                                              SocketAddress* nat_addr) {
+  Socket* socket = nullptr;
   Translator* nat = nats_.FindClient(local_addr);
   if (nat) {
     socket = nat->internal_factory()->CreateSocket(family, type);
@@ -400,13 +398,13 @@ NATSocketServer::Translator::Translator(NATSocketServer* server,
                                         NATType type,
                                         const SocketAddress& int_ip,
                                         rtc::Thread& external_socket_thread,
-                                        rtc::SocketFactory* ext_factory,
+                                        SocketFactory* ext_factory,
                                         const SocketAddress& ext_ip)
     : server_(server) {
   // Create a new private network, and a NATServer running on the private
   // network that bridges to the external network. Also tell the private
   // network to use the same message queue as us.
-  internal_server_ = std::make_unique<rtc::VirtualSocketServer>();
+  internal_server_ = std::make_unique<VirtualSocketServer>();
   internal_server_->SetMessageQueue(server_->queue());
   nat_server_ = std::make_unique<NATServer>(
       type, *server->queue(), internal_server_.get(), int_ip, int_ip,

@@ -72,12 +72,12 @@ class FakePacketTransport : public rtc::PacketTransportInternal {
     return static_cast<int>(len);
   }
 
-  int SetOption(rtc::Socket::Option opt, int value) override {
+  int SetOption(Socket::Option opt, int value) override {
     options_[opt] = value;
     return 0;
   }
 
-  bool GetOption(rtc::Socket::Option opt, int* value) override {
+  bool GetOption(Socket::Option opt, int* value) override {
     auto it = options_.find(opt);
     if (it == options_.end()) {
       return false;
@@ -138,7 +138,7 @@ class FakePacketTransport : public rtc::PacketTransportInternal {
   bool writable_ = false;
   bool receiving_ = false;
 
-  std::map<rtc::Socket::Option, int> options_;
+  std::map<Socket::Option, int> options_;
   int error_ = 0;
 
   std::optional<rtc::NetworkRoute> network_route_;

@@ -77,22 +77,22 @@
 #include "test/scoped_key_value_config.h"
 #include "test/wait_until.h"
 
-using rtc::AsyncListenSocket;
 using rtc::AsyncPacketSocket;
 using rtc::ByteBufferReader;
 using rtc::ByteBufferWriter;
 using rtc::PacketSocketFactory;
-using rtc::Socket;
 using ::testing::Eq;
 using ::testing::IsNull;
 using ::testing::IsTrue;
 using ::testing::NotNull;
+using ::webrtc::AsyncListenSocket;
 using webrtc::IceCandidateType;
 using ::webrtc::NAT_ADDR_RESTRICTED;
 using ::webrtc::NAT_OPEN_CONE;
 using ::webrtc::NAT_PORT_RESTRICTED;
 using ::webrtc::NAT_SYMMETRIC;
 using ::webrtc::NATType;
+using ::webrtc::Socket;
 using ::webrtc::SocketAddress;
 
 namespace cricket {
@@ -232,10 +232,10 @@ class TestPort : public Port {
     }
     return static_cast<int>(size);
   }
-  virtual int SetOption(rtc::Socket::Option /* opt */, int /* value */) {
+  virtual int SetOption(webrtc::Socket::Option /* opt */, int /* value */) {
     return 0;
   }
-  virtual int GetOption(rtc::Socket::Option opt, int* value) { return -1; }
+  virtual int GetOption(webrtc::Socket::Option opt, int* value) { return -1; }
   virtual int GetError() { return 0; }
   void Reset() {
     last_stun_buf_.reset();
@@ -246,7 +246,7 @@ class TestPort : public Port {
   }
 
  private:
-  void OnSentPacket(rtc::AsyncPacketSocket* socket,
+  void OnSentPacket(webrtc::AsyncPacketSocket* socket,
                     const rtc::SentPacket& sent_packet) {
     webrtc::PortInterface::SignalSentPacket(sent_packet);
   }
@@ -427,7 +427,7 @@ class TestChannel : public sigslot::has_slots<> {
 class PortTest : public ::testing::Test, public sigslot::has_slots<> {
  public:
   PortTest()
-      : ss_(new rtc::VirtualSocketServer()),
+      : ss_(new webrtc::VirtualSocketServer()),
         main_(ss_.get()),
         socket_factory_(ss_.get()),
         nat_factory1_(ss_.get(), kNatAddr1, SocketAddress()),
@@ -601,7 +601,7 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
   }
   std::unique_ptr<StunPort> CreateStunPort(
       const SocketAddress& addr,
-      rtc::PacketSocketFactory* socket_factory) {
+      webrtc::PacketSocketFactory* socket_factory) {
     ServerAddresses stun_servers;
     stun_servers.insert(kStunAddr);
     auto port = StunPort::Create({.network_thread = &main_,
@@ -933,26 +933,26 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
   void OnDestroyed(webrtc::PortInterface* port) { ++ports_destroyed_; }
   int ports_destroyed() const { return ports_destroyed_; }
 
-  rtc::BasicPacketSocketFactory* nat_socket_factory1() {
+  webrtc::BasicPacketSocketFactory* nat_socket_factory1() {
     return &nat_socket_factory1_;
   }
 
-  rtc::VirtualSocketServer* vss() { return ss_.get(); }
+  webrtc::VirtualSocketServer* vss() { return ss_.get(); }
 
  private:
   // When a "create port" helper method is called with an IP, we create a
   // Network with that IP and add it to this list. Using a list instead of a
   // vector so that when it grows, pointers aren't invalidated.
   std::list<rtc::Network> networks_;
-  std::unique_ptr<rtc::VirtualSocketServer> ss_;
+  std::unique_ptr<webrtc::VirtualSocketServer> ss_;
   rtc::AutoSocketServerThread main_;
-  rtc::BasicPacketSocketFactory socket_factory_;
+  webrtc::BasicPacketSocketFactory socket_factory_;
   std::unique_ptr<webrtc::NATServer> nat_server1_;
   std::unique_ptr<webrtc::NATServer> nat_server2_;
   webrtc::NATSocketFactory nat_factory1_;
   webrtc::NATSocketFactory nat_factory2_;
-  rtc::BasicPacketSocketFactory nat_socket_factory1_;
-  rtc::BasicPacketSocketFactory nat_socket_factory2_;
+  webrtc::BasicPacketSocketFactory nat_socket_factory1_;
+  webrtc::BasicPacketSocketFactory nat_socket_factory2_;
   webrtc::TestStunServer::StunServerPtr stun_server_;
   webrtc::TestTurnServer turn_server_;
   std::string username_;
@@ -1140,7 +1140,7 @@ void PortTest::TestConnectivity(absl::string_view name1,
       webrtc::IsRtcOk());
 }
 
-class FakePacketSocketFactory : public rtc::PacketSocketFactory {
+class FakePacketSocketFactory : public webrtc::PacketSocketFactory {
  public:
   FakePacketSocketFactory()
       : next_udp_socket_(NULL), next_server_tcp_socket_(NULL) {}
@@ -1168,7 +1168,7 @@ class FakePacketSocketFactory : public rtc::PacketSocketFactory {
   AsyncPacketSocket* CreateClientTcpSocket(
       const SocketAddress& local_address,
       const SocketAddress& remote_address,
-      const rtc::PacketSocketTcpOptions& opts) override {
+      const webrtc::PacketSocketTcpOptions& opts) override {
     EXPECT_TRUE(next_client_tcp_socket_.has_value());
     AsyncPacketSocket* result = *next_client_tcp_socket_;
     next_client_tcp_socket_ = nullptr;
@@ -1423,7 +1423,7 @@ TEST_F(PortTest, TestTcpNeverConnect) {
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
 
-  std::unique_ptr<rtc::Socket> server(
+  std::unique_ptr<webrtc::Socket> server(
       vss()->CreateSocket(kLocalAddr2.family(), SOCK_STREAM));
   // Bind but not listen.
   EXPECT_EQ(0, server->Bind(kLocalAddr2));
@@ -1743,7 +1743,7 @@ TEST_F(PortTest, TestTcpNoDelay) {
   auto port1 = CreateTcpPort(kLocalAddr1);
   port1->SetIceRole(cricket::ICEROLE_CONTROLLING);
   int option_value = -1;
-  int success = port1->GetOption(rtc::Socket::OPT_NODELAY, &option_value);
+  int success = port1->GetOption(webrtc::Socket::OPT_NODELAY, &option_value);
   ASSERT_EQ(0, success);  // GetOption() should complete successfully w/ 0
   EXPECT_EQ(1, option_value);
 
@@ -1785,14 +1785,14 @@ TEST_F(PortTest, TestTcpNoDelay) {
   option_value = -1;
   success = static_cast<TCPConnection*>(ch1.conn())
                 ->socket()
-                ->GetOption(rtc::Socket::OPT_NODELAY, &option_value);
+                ->GetOption(webrtc::Socket::OPT_NODELAY, &option_value);
   ASSERT_EQ(0, success);
   EXPECT_EQ(1, option_value);
 
   option_value = -1;
   success = static_cast<TCPConnection*>(ch2.conn())
                 ->socket()
-                ->GetOption(rtc::Socket::OPT_NODELAY, &option_value);
+                ->GetOption(webrtc::Socket::OPT_NODELAY, &option_value);
   ASSERT_EQ(0, success);
   EXPECT_EQ(1, option_value);
 }
@@ -1997,28 +1997,28 @@ TEST_F(PortTest, TestUdpMultipleAddressesV6CrossTypePorts) {
 TEST_F(PortTest, TestDefaultDscpValue) {
   int dscp;
   auto udpport = CreateUdpPort(kLocalAddr1);
-  EXPECT_EQ(0, udpport->SetOption(rtc::Socket::OPT_DSCP, rtc::DSCP_CS6));
-  EXPECT_EQ(0, udpport->GetOption(rtc::Socket::OPT_DSCP, &dscp));
+  EXPECT_EQ(0, udpport->SetOption(webrtc::Socket::OPT_DSCP, rtc::DSCP_CS6));
+  EXPECT_EQ(0, udpport->GetOption(webrtc::Socket::OPT_DSCP, &dscp));
   auto tcpport = CreateTcpPort(kLocalAddr1);
-  EXPECT_EQ(0, tcpport->SetOption(rtc::Socket::OPT_DSCP, rtc::DSCP_AF31));
-  EXPECT_EQ(0, tcpport->GetOption(rtc::Socket::OPT_DSCP, &dscp));
+  EXPECT_EQ(0, tcpport->SetOption(webrtc::Socket::OPT_DSCP, rtc::DSCP_AF31));
+  EXPECT_EQ(0, tcpport->GetOption(webrtc::Socket::OPT_DSCP, &dscp));
   EXPECT_EQ(rtc::DSCP_AF31, dscp);
   auto stunport = CreateStunPort(kLocalAddr1, nat_socket_factory1());
-  EXPECT_EQ(0, stunport->SetOption(rtc::Socket::OPT_DSCP, rtc::DSCP_AF41));
-  EXPECT_EQ(0, stunport->GetOption(rtc::Socket::OPT_DSCP, &dscp));
+  EXPECT_EQ(0, stunport->SetOption(webrtc::Socket::OPT_DSCP, rtc::DSCP_AF41));
+  EXPECT_EQ(0, stunport->GetOption(webrtc::Socket::OPT_DSCP, &dscp));
   EXPECT_EQ(rtc::DSCP_AF41, dscp);
   auto turnport1 = CreateTurnPort(kLocalAddr1, nat_socket_factory1(),
                                   webrtc::PROTO_UDP, webrtc::PROTO_UDP);
   // Socket is created in PrepareAddress.
   turnport1->PrepareAddress();
-  EXPECT_EQ(0, turnport1->SetOption(rtc::Socket::OPT_DSCP, rtc::DSCP_CS7));
-  EXPECT_EQ(0, turnport1->GetOption(rtc::Socket::OPT_DSCP, &dscp));
+  EXPECT_EQ(0, turnport1->SetOption(webrtc::Socket::OPT_DSCP, rtc::DSCP_CS7));
+  EXPECT_EQ(0, turnport1->GetOption(webrtc::Socket::OPT_DSCP, &dscp));
   EXPECT_EQ(rtc::DSCP_CS7, dscp);
   // This will verify correct value returned without the socket.
   auto turnport2 = CreateTurnPort(kLocalAddr1, nat_socket_factory1(),
                                   webrtc::PROTO_UDP, webrtc::PROTO_UDP);
-  EXPECT_EQ(0, turnport2->SetOption(rtc::Socket::OPT_DSCP, rtc::DSCP_CS6));
-  EXPECT_EQ(0, turnport2->GetOption(rtc::Socket::OPT_DSCP, &dscp));
+  EXPECT_EQ(0, turnport2->SetOption(webrtc::Socket::OPT_DSCP, rtc::DSCP_CS6));
+  EXPECT_EQ(0, turnport2->GetOption(webrtc::Socket::OPT_DSCP, &dscp));
   EXPECT_EQ(rtc::DSCP_CS6, dscp);
 }
 

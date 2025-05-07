@@ -87,7 +87,7 @@ class MediaChannelUtil {
                 const rtc::PacketOptions& options);
 
   int SetOption(MediaChannelNetworkInterface::SocketType type,
-                rtc::Socket::Option opt,
+                webrtc::Socket::Option opt,
                 int option);
 
   // Functions that form part of one or more interface classes.
@@ -130,7 +130,7 @@ class MediaChannelUtil {
     void SetInterface(MediaChannelNetworkInterface* iface);
 
     int SetOption(MediaChannelNetworkInterface::SocketType type,
-                  rtc::Socket::Option opt,
+                  webrtc::Socket::Option opt,
                   int option);
 
     bool DoSendPacket(rtc::CopyOnWriteBuffer* packet,
@@ -159,7 +159,7 @@ class MediaChannelUtil {
     void UpdateDscp() RTC_RUN_ON(network_thread_);
 
     int SetOptionLocked(MediaChannelNetworkInterface::SocketType type,
-                        rtc::Socket::Option opt,
+                        webrtc::Socket::Option opt,
                         int option) RTC_RUN_ON(network_thread_);
 
     const rtc::scoped_refptr<webrtc::PendingTaskSafetyFlag> network_safety_
