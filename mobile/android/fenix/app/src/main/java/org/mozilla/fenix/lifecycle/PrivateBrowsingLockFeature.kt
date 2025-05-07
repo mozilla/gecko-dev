@@ -16,6 +16,7 @@ import mozilla.components.lib.state.ext.flowScoped
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.Components
+import org.mozilla.fenix.components.appstate.AppAction.PrivateBrowsingLockAction
 
 /**
  * A lifecycle-aware feature that locks private browsing mode behind authentication
@@ -25,11 +26,15 @@ class PrivateBrowsingLockFeature(
     private val components: Components,
 ) : DefaultLifecycleObserver {
 
-    private var isPrivateScreenLocked: Boolean
-
     init {
-        // When the activity is created, if there are private tabs, we should lock the private mode.
-        isPrivateScreenLocked = components.core.store.state.privateTabs.isNotEmpty()
+        // When the app is initialized, if there are private tabs, we should lock the private mode.
+        // NB: This might need a check if the feature is enabled. As part of future work, we
+        // should make sure that lock state resets when the user enables/disables the feature.
+        components.appStore.dispatch(
+            PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
+                isLocked = components.core.store.state.privateTabs.isNotEmpty(),
+            ),
+        )
     }
 
     override fun onStart(owner: LifecycleOwner) {
@@ -41,7 +46,11 @@ class PrivateBrowsingLockFeature(
                 .collect {
                     if (components.settings.privateBrowsingLockedEnabled) {
                         // When all private tabs are closed, we don't need to lock the private mode.
-                        isPrivateScreenLocked = false
+                        components.appStore.dispatch(
+                            PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
+                                isLocked = false,
+                            ),
+                        )
                     }
                 }
         }
@@ -58,7 +67,11 @@ class PrivateBrowsingLockFeature(
                     val hasPrivateTabs = components.core.store.state.privateTabs.isNotEmpty()
 
                     if (isPrivateModeLockEnabled && hasPrivateTabs) {
-                        isPrivateScreenLocked = true
+                        components.appStore.dispatch(
+                            PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
+                                isLocked = true,
+                            ),
+                        )
                     }
                 }
         }
@@ -80,22 +93,12 @@ class PrivateBrowsingLockFeature(
         val isPrivateMode = components.appStore.state.mode == BrowsingMode.Private
 
         if (isPrivateModeLockEnabled && isPrivateMode && hasPrivateTabs) {
-            isPrivateScreenLocked = true
+            components.appStore.dispatch(
+                PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
+                    isLocked = true,
+                ),
+            )
         }
-    }
-
-    /**
-     * This should be called by the authentication handler after the user successfully authenticates.
-     */
-    fun onAuthSuccess() {
-        isPrivateScreenLocked = false
-    }
-
-    /**
-     * This should be called by the authentication handler if authentication fails or is cancelled.
-     */
-    fun onAuthFailure() {
-        isPrivateScreenLocked = true
     }
 
     /**
@@ -125,6 +128,7 @@ class PrivateBrowsingLockFeature(
         val hasPrivateTabs = components.core.store.state.privateTabs.isNotEmpty()
         val biometricLockEnabled = components.settings.privateBrowsingLockedEnabled
         val isPrivateMode = components.appStore.state.mode == BrowsingMode.Private
+        val isPrivateScreenLocked = components.appStore.state.isPrivateScreenLocked
 
         return isPrivateMode && hasPrivateTabs && biometricLockEnabled && isPrivateScreenLocked
     }

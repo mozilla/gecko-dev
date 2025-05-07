@@ -49,6 +49,7 @@ import org.mozilla.fenix.biometricauthentication.BiometricAuthenticationManager
 import org.mozilla.fenix.biometricauthentication.BiometricAuthenticationNeededInfo
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.StoreProvider
+import org.mozilla.fenix.components.appstate.AppAction.PrivateBrowsingLockAction
 import org.mozilla.fenix.compose.core.Action
 import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.compose.snackbar.SnackbarState
@@ -765,10 +766,14 @@ class TabsTrayFragment : AppCompatDialogFragment() {
 
                     tabsTrayInteractor.onTrayPositionSelected(page.ordinal, false)
 
-                    requireComponents.privateBrowsingLockFeature.onAuthSuccess()
+                    requireComponents.appStore.dispatch(
+                        PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(isLocked = false),
+                    )
                 },
                 onAuthFailure = {
-                    requireComponents.privateBrowsingLockFeature.onAuthFailure()
+                    requireComponents.appStore.dispatch(
+                        PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(isLocked = true),
+                    )
                 },
                 titleRes = R.string.pbm_authentication_unlock_private_tabs,
             )

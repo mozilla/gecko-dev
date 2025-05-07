@@ -523,6 +523,19 @@ sealed class AppAction : Action {
     }
 
     /**
+     * [AppAction]s related to the private‐browsing lock feature.
+     */
+    sealed class PrivateBrowsingLockAction : AppAction() {
+
+        /**
+         * Dispatched when the private-browsing lock state should be updated.
+         *
+         * @property isLocked whether the feature should be locked.
+         */
+        data class UpdatePrivateBrowsingLock(val isLocked: Boolean) : PrivateBrowsingLockAction()
+    }
+
+    /**
      * [AppAction]s related to the content recommendations feature.
      */
     sealed class ContentRecommendationsAction : AppAction() {
