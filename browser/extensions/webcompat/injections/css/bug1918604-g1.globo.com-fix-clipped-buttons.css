@@ -1,0 +1,22 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * g1.globo.com/jogos/caca-palavras - fix CSS layout issues
+ * Bug #1738564 - https://bugzilla.mozilla.org/show_bug.cgi?id=1738564
+ * WebCompat issue #141570 - https://webcompat.com/issues/141570
+ *
+ * This CSS disables some un-needed CSS masks which cause buttons on the
+ * top of the game's screen to be clipped, and also un-sets the dominant-
+ * baseline of the letters SVG so the selection doesn't appear misaligned.
+ */
+
+g#insert_chart > g,
+g#more_vert > g {
+  mask: none;
+}
+
+svg [dominant-baseline="middle"] {
+  dominant-baseline: auto;
+}
