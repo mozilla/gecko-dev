@@ -117,6 +117,22 @@ export class DynamicSuggestions extends SuggestProvider {
     );
   }
 
+  onEngagement(_queryContext, controller, details, _searchString) {
+    switch (details.selType) {
+      case "manage":
+        // "manage" is handled by UrlbarInput, no need to do anything here.
+        break;
+      case "dismiss":
+        let { result } = details;
+        lazy.QuickSuggest.dismissResult(result);
+        result.acknowledgeDismissalL10n = {
+          id: "firefox-suggest-dismissal-acknowledgment-one",
+        };
+        controller.removeResult(result);
+        break;
+    }
+  }
+
   #makeExposureResult(suggestion, payload) {
     // It doesn't really matter what kind of result we return since it won't be
     // shown. Use a dynamic result since that kind of makes sense and there are
