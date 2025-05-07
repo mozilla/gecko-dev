@@ -749,12 +749,12 @@ struct AnchorResolvedInsetHelper {
   }
 
   static AnchorResolvedInset FromUnresolved(
-      const mozilla::StyleInset& aValue, mozilla::StylePhysicalAxis aAxis,
+      const mozilla::StyleInset& aValue, mozilla::Side aSide,
       mozilla::StylePositionProperty aPosition) {
     if (!aValue.HasAnchorPositioningFunction()) {
       return AnchorResolvedInset::NonOwning(&aValue);
     }
-    return ResolveAnchor(aValue, aAxis, aPosition);
+    return ResolveAnchor(aValue, mozilla::ToStylePhysicalSide(aSide), aPosition);
   }
 
  private:
@@ -763,7 +763,7 @@ struct AnchorResolvedInsetHelper {
   }
 
   static AnchorResolvedInset ResolveAnchor(
-      const mozilla::StyleInset& aValue, mozilla::StylePhysicalAxis aAxis,
+      const mozilla::StyleInset& aValue, mozilla::StylePhysicalSide aSide,
       mozilla::StylePositionProperty aPosition);
 };
 
@@ -1014,7 +1014,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   AnchorResolvedInset GetAnchorResolvedInset(
       mozilla::Side aSide, mozilla::StylePositionProperty aPosition) const {
     return AnchorResolvedInsetHelper::FromUnresolved(
-        mOffset.Get(aSide), GetStylePhysicalAxis(aSide), aPosition);
+        mOffset.Get(aSide), aSide, aPosition);
   }
   inline AnchorResolvedInset GetAnchorResolvedInset(
       mozilla::LogicalSide aSide, WritingMode aWM,

@@ -331,6 +331,7 @@ include = [
   "Margin",
   "PositionProperty",
   "PhysicalAxis",
+  "PhysicalSide",
   "QueryFontMetricsFlags",
 ]
 item_types = [

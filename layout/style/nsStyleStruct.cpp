@@ -1363,14 +1363,8 @@ StyleJustifySelf nsStylePosition::UsedJustifySelf(
 }
 
 AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
-    const mozilla::StyleInset& aValue, mozilla::StylePhysicalAxis aAxis,
-    mozilla::StylePositionProperty aPosition) {
-  static_assert(static_cast<uint8_t>(mozilla::PhysicalAxis::Vertical) ==
-                    static_cast<uint8_t>(StylePhysicalAxis::Vertical),
-                "Vertical axis doesn't match");
-  static_assert(static_cast<uint8_t>(mozilla::PhysicalAxis::Horizontal) ==
-                    static_cast<uint8_t>(StylePhysicalAxis::Horizontal),
-                "Horizontal axis doesn't match");
+    const StyleInset& aValue, StylePhysicalSide aSide,
+    StylePositionProperty aPosition) {
   MOZ_ASSERT(aValue.HasAnchorPositioningFunction(),
              "Calling anchor resolution without using it?");
   switch (aValue.tag) {
@@ -1378,7 +1372,7 @@ AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
       const auto& lp = aValue.AsAnchorContainingCalcFunction();
       const auto& c = lp.AsCalc();
       auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
-      Servo_ResolveAnchorFunctionsInCalcPercentage(&c, &aAxis, aPosition,
+      Servo_ResolveAnchorFunctionsInCalcPercentage(&c, &aSide, aPosition,
                                                    &result);
       if (result.IsInvalid()) {
         return Auto();
@@ -1387,7 +1381,7 @@ AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
     }
     case StyleInset::Tag::AnchorFunction: {
       auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
-      Servo_ResolveAnchorFunction(&*aValue.AsAnchorFunction(), aAxis, aPosition,
+      Servo_ResolveAnchorFunction(&*aValue.AsAnchorFunction(), aSide, aPosition,
                                   &resolved);
       if (resolved.IsInvalid()) {
         return Auto();

@@ -11,7 +11,7 @@ use style_traits::CssWriter;
 use style_traits::SpecifiedValueInfo;
 use style_traits::ToCss;
 
-use crate::logical_geometry::PhysicalAxis;
+use crate::logical_geometry::PhysicalSide;
 use crate::values::animated::ToAnimatedZero;
 use crate::values::generics::box_::PositionProperty;
 use crate::values::generics::length::{AnchorResolutionResult, GenericAnchorSizeFunction};
@@ -391,14 +391,14 @@ impl<Percentage, LengthPercentage> GenericAnchorFunction<Percentage, LengthPerce
     /// Resolve the anchor function. On failure, return reference to fallback, if exists.
     pub fn resolve<'a>(
         &'a self,
-        axis: PhysicalAxis,
+        side: PhysicalSide,
         position_property: PositionProperty,
     ) -> AnchorResolutionResult<'a, LengthPercentage> {
         if !position_property.is_absolutely_positioned() {
             return AnchorResolutionResult::new_anchor_invalid(self.fallback.as_ref());
         }
 
-        if !self.side.valid_for_axis(axis) {
+        if !self.side.valid_for(side) {
             return AnchorResolutionResult::new_anchor_invalid(self.fallback.as_ref());
         }
 
@@ -456,10 +456,10 @@ pub enum AnchorSideKeyword {
 }
 
 impl AnchorSideKeyword {
-    fn valid_for_axis(&self, axis: PhysicalAxis) -> bool {
+    fn valid_for(&self, side: PhysicalSide) -> bool {
         match self {
-            Self::Left | Self::Right => axis == PhysicalAxis::Horizontal,
-            Self::Top | Self::Bottom => axis == PhysicalAxis::Vertical,
+            Self::Left | Self::Right => matches!(side, PhysicalSide::Left | PhysicalSide::Right),
+            Self::Top | Self::Bottom => matches!(side, PhysicalSide::Top | PhysicalSide::Bottom),
             Self::Inside |
             Self::Outside |
             Self::Start |
@@ -500,10 +500,10 @@ pub enum AnchorSide<P> {
 }
 
 impl<P> AnchorSide<P> {
-    /// Is this anchor side valid for a given axis?
-    pub fn valid_for_axis(&self, axis: PhysicalAxis) -> bool {
+    /// Is this anchor side valid for a given side?
+    pub fn valid_for(&self, side: PhysicalSide) -> bool {
         match self {
-            Self::Keyword(k) => k.valid_for_axis(axis),
+            Self::Keyword(k) => k.valid_for(side),
             Self::Percentage(_) => true,
         }
     }
