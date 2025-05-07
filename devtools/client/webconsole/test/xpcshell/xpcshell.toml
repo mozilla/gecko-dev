@@ -3,4 +3,8 @@ tags = "devtools"
 firefox-appdir = "browser"
 run-if = ["os != 'android'"]
 
+["test_javascript_logging.js"]
+support-files = ["test_javascript_logging.snapshot.mjs"]
+prefs = ["dom.security.https_first=false"] # JS HttpServer doesn't support https
+
 ["test_webconsole_l10n.js"]
