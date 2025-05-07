@@ -832,7 +832,6 @@ normandy:
 
         - "invalid-recipe": the recipe failed schema validation;
         - "invalid-branch": a branch value failed schema validation;
-        - "invalid-feature": the recipe uses an unknown feature;
         - "l10n-missing-locale": the recipe is missing localizations for a
           specific locale;
         - "l10n-missing-entry": the recipe is missing specific localization
@@ -842,7 +841,6 @@ normandy:
           only for the background task runner);
 
       branch: If reason == invalid-branch, the branch that failed validation.
-      feature: If reason == invalid-feature, the invalid feature ID.
       locale: >
         If reason == missing-locale, the locale that was missing from the
         localization table.
