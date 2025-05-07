@@ -427,3 +427,43 @@ Any message that uses this action should have `canCreateSelectableProfiles` as p
 Submits a Glean `onboarding-opt-out` ping.  Should only be used during preonboarding (but this is not enforced).
 
 - args: (none)
+
+### `SET_SEARCH_MODE`
+
+Sets search mode for a specific browser instance and focuses the urlbar.
+
+- args:
+
+```ts
+interface SearchMode {
+  // The name of the search engine to restrict to. Can be left empty to use source
+  // restriction instead.
+  engineName?: string;
+  // A result source to restrict to. One of the values in UrlbarUtils.RESULT_SOURCE.
+  // Defaults to 3 (SEARCH).
+  source?: number;
+  // How search mode was entered. This is recorded in event telemetry. One of the
+  // values in UrlbarUtils.SEARCH_MODE_ENTRY. Defaults to "other".
+  entry?: string;
+  // If true, we will preview search mode. Search mode preview does not record
+  // telemetry and has slighly different UI behavior. The preview is exited in
+  // favor of full search mode when a query is executed. False should be
+  // passed if the caller needs to enter search mode but expects it will not
+  // be interacted with right away. Defaults to true.
+  isPreview?: boolean;
+}
+```
+
+* example:
+
+```json
+"action": {
+  "type": "SET_SEARCH_MODE",
+  "data": {
+    "engineName": "test_engine",
+    "source": 3,
+    "entry": "other",
+    "isPreview": false,
+  }
+}
+```

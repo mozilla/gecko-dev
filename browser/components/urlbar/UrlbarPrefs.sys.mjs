@@ -195,6 +195,11 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // should be opened in new tabs by default.
   ["openintab", false],
 
+  // Once Perplexity has entered search mode at least once,
+  // we no longer show the Perplexity onboarding callout.
+  // This pref will be set to true when perplexity search mode is detected.
+  ["perplexity.hasBeenInSearchMode", false],
+
   // Feature gate pref for Pocket suggestions in the urlbar.
   ["pocket.featureGate", false],
 
