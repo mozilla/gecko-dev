@@ -928,9 +928,15 @@ static int32_t CompareToRangeStart(
     return 1;
   }
 
-  // The points are in the same subtree, hence there has to be an order.
-  return *nsContentUtils::ComparePoints(
-      aCompareBoundary, aRange.MayCrossShadowBoundaryStartRef(), aCache);
+  nsINode* start = aRange.GetMayCrossShadowBoundaryStartContainer();
+  uint32_t startOffset = aRange.MayCrossShadowBoundaryStartOffset();
+  if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
+    return *nsContentUtils::ComparePoints<TreeKind::Flat>(
+        aCompareBoundary, ConstRawRangeBoundary{start, startOffset}, aCache);
+  }
+
+  return *nsContentUtils::ComparePoints<TreeKind::ShadowIncludingDOM>(
+      aCompareBoundary, ConstRawRangeBoundary{start, startOffset}, aCache);
 }
 
 template <typename PT, typename RT>
@@ -956,9 +962,14 @@ static int32_t CompareToRangeEnd(
     return 1;
   }
 
-  // The points are in the same subtree, hence there has to be an order.
-  return *nsContentUtils::ComparePoints(aCompareBoundary,
-                                        aRange.MayCrossShadowBoundaryEndRef());
+  nsINode* end = aRange.GetMayCrossShadowBoundaryEndContainer();
+  uint32_t endOffset = aRange.MayCrossShadowBoundaryEndOffset();
+  if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
+    return *nsContentUtils::ComparePoints<TreeKind::Flat>(
+        aCompareBoundary, ConstRawRangeBoundary{end, endOffset});
+  }
+  return *nsContentUtils::ComparePoints<TreeKind::ShadowIncludingDOM>(
+      aCompareBoundary, ConstRawRangeBoundary{end, endOffset});
 }
 
 // static
@@ -3123,17 +3134,24 @@ void Selection::Extend(nsINode& aContainer, uint32_t aOffset,
   const uint32_t endOffset = range->MayCrossShadowBoundaryEndOffset();
 
   bool shouldClearRange = false;
+
+  auto ComparePoints = [](const nsINode* aNode1, const uint32_t aOffset1,
+                          const nsINode* aNode2, const uint32_t aOffset2) {
+    if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
+      return nsContentUtils::ComparePointsWithIndices<TreeKind::Flat>(
+          aNode1, aOffset1, aNode2, aOffset2);
+    }
+    return nsContentUtils::ComparePointsWithIndices<
+        TreeKind::ShadowIncludingDOM>(aNode1, aOffset1, aNode2, aOffset2);
+  };
   const Maybe<int32_t> anchorOldFocusOrder =
-      nsContentUtils::ComparePointsWithIndices(anchorNode, anchorOffset,
-                                               focusNode, focusOffset);
+      ComparePoints(anchorNode, anchorOffset, focusNode, focusOffset);
   shouldClearRange |= !anchorOldFocusOrder;
   const Maybe<int32_t> oldFocusNewFocusOrder =
-      nsContentUtils::ComparePointsWithIndices(focusNode, focusOffset,
-                                               &aContainer, aOffset);
+      ComparePoints(focusNode, focusOffset, &aContainer, aOffset);
   shouldClearRange |= !oldFocusNewFocusOrder;
   const Maybe<int32_t> anchorNewFocusOrder =
-      nsContentUtils::ComparePointsWithIndices(anchorNode, anchorOffset,
-                                               &aContainer, aOffset);
+      ComparePoints(anchorNode, anchorOffset, &aContainer, aOffset);
   shouldClearRange |= !anchorNewFocusOrder;
 
   // If the points are disconnected, the range will be collapsed below,
@@ -4231,7 +4249,10 @@ void Selection::SetBaseAndExtentInternal(InLimiter aInLimiter,
   //     new nsRange instance?
   SelectionBatcher batch(this, __FUNCTION__);
   const Maybe<int32_t> order =
-      nsContentUtils::ComparePoints(aAnchorRef, aFocusRef);
+      StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
+          ? nsContentUtils::ComparePoints<TreeKind::Flat>(aAnchorRef, aFocusRef)
+          : nsContentUtils::ComparePoints<TreeKind::ShadowIncludingDOM>(
+                aAnchorRef, aFocusRef);
   if (order && (*order <= 0)) {
     SetStartAndEndInternal(aInLimiter, aAnchorRef, aFocusRef, eDirNext, aRv);
     return;

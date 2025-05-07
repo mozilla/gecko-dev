@@ -2829,9 +2829,10 @@ HTMLEditUtils::ComputePointToPutCaretInElementIfOutside(
   // Use range boundaries and RangeUtils::CompareNodeToRange() to compare
   // selection start to new block.
   bool nodeBefore, nodeAfter;
-  nsresult rv = RangeUtils::CompareNodeToRangeBoundaries(
-      const_cast<Element*>(&aElement), aCurrentPoint.ToRawRangeBoundary(),
-      aCurrentPoint.ToRawRangeBoundary(), &nodeBefore, &nodeAfter);
+  nsresult rv =
+      RangeUtils::CompareNodeToRangeBoundaries<TreeKind::ShadowIncludingDOM>(
+          const_cast<Element*>(&aElement), aCurrentPoint.ToRawRangeBoundary(),
+          aCurrentPoint.ToRawRangeBoundary(), &nodeBefore, &nodeAfter);
   if (NS_FAILED(rv)) {
     NS_WARNING("RangeUtils::CompareNodeToRange() failed");
     return Err(rv);

@@ -1190,7 +1190,7 @@ class nsINode : public mozilla::dom::EventTarget {
    *   2. For contents that are slotted into a UA shadow tree, use its
    *   parent rather than the slot element.
    */
-  inline nsIContent* GetFlattenedTreeParentNodeForSelection() const;
+  inline nsINode* GetFlattenedTreeParentNodeForSelection() const;
 
   inline mozilla::dom::Element* GetFlattenedTreeParentElement() const;
   inline mozilla::dom::Element* GetFlattenedTreeParentElementForStyle() const;
