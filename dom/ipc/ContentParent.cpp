@@ -338,13 +338,41 @@ namespace mozilla {
 class OriginsListLoadCallback final : public nsIOriginsListLoadCallback {
  public:
   explicit OriginsListLoadCallback(ContentParent* aContentParent)
-      : mContentParent(aContentParent) {}
+      : mContentParent(aContentParent) {
+    MOZ_ASSERT(mContentParent);
+  }
 
   NS_DECL_ISUPPORTS
 
   // nsIOriginsListLoadCallback
   NS_IMETHODIMP OnOriginsListLoaded(nsIArray* aEntries) {
-    // TODO : broadcast the origin entries to the content process
+    if (NS_WARN_IF(!mContentParent)) {
+      return NS_ERROR_FAILURE;
+    }
+
+    uint32_t length = 0;
+    nsresult rv = aEntries->GetLength(&length);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    nsTArray<dom::IPCOriginStatusEntry> ipcEntries;
+    for (uint32_t i = 0; i < length; ++i) {
+      nsCOMPtr<nsIOriginStatusEntry> entry;
+      aEntries->QueryElementAt(i, NS_GET_IID(nsIOriginStatusEntry),
+                               getter_AddRefs(entry));
+      if (!entry) {
+        NS_WARNING("OriginsListLoadCallback, skip bad entry?");
+        continue;
+      }
+      nsAutoCString origin;
+      int32_t status = 0;
+      entry->GetOrigin(origin);
+      entry->GetStatus(&status);
+      dom::IPCOriginStatusEntry ipcEntry(origin, status);
+      ipcEntries.AppendElement(ipcEntry);
+    }
+    Unused << mContentParent->SendUpdateMFCDMOriginEntries(ipcEntries);
     return NS_OK;
   }
 

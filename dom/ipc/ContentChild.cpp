@@ -4673,6 +4673,14 @@ void ContentChild::ConfigureThreadPerformanceHints(
   }
 }
 
+#ifdef MOZ_WMF_CDM
+mozilla::ipc::IPCResult ContentChild::RecvUpdateMFCDMOriginEntries(
+    const nsTArray<IPCOriginStatusEntry>& aEntries) {
+  // TODO : store entries into MediaKeySystemAccess.
+  return IPC_OK();
+}
+#endif
+
 }  // namespace dom
 
 #if defined(__OpenBSD__) && defined(MOZ_SANDBOX)
