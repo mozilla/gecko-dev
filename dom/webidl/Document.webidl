@@ -123,7 +123,7 @@ interface Document : Node {
 // https://html.spec.whatwg.org/multipage/dom.html#the-document-object
 partial interface Document {
   [Throws, NeedsSubjectPrincipal=NonSystem]
-  static Document parseHTMLUnsafe((TrustedHTML or DOMString) html);
+  static Document parseHTMLUnsafe((TrustedHTML or DOMString) html, optional SetHTMLUnsafeOptions options = {});
 
   [PutForwards=href, LegacyUnforgeable] readonly attribute Location? location;
   [SetterThrows]                           attribute DOMString domain;

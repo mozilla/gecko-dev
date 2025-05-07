@@ -5619,7 +5619,8 @@ class Document : public nsINode,
 
   MOZ_CAN_RUN_SCRIPT static already_AddRefed<Document> ParseHTMLUnsafe(
       GlobalObject& aGlobal, const TrustedHTMLOrString& aHTML,
-      nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
+      const SetHTMLUnsafeOptions& aOptions, nsIPrincipal* aSubjectPrincipal,
+      ErrorResult& aError);
 
   static already_AddRefed<Document> ParseHTML(GlobalObject& aGlobal,
                                               const nsAString& aHTML,
