@@ -1494,6 +1494,23 @@
       }
     ]
   },
+  "1847971": {
+    "label": "ebay.com",
+    "bugs": {
+      "1847971": {
+        "issue": "blocked-content",
+        "matches": ["*://www.ebay.com/sl/prelist/suggest*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "js": ["bug1847971-ebay.com-barcode-scanner.js"]
+        }
+      }
+    ]
+  },
   "1848713": {
     "label": "cleanrider.com",
     "bugs": {
