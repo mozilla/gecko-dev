@@ -14,9 +14,19 @@ namespace widget {
 
 NS_IMPL_ISUPPORTS(AndroidAlerts, nsIAlertsService)
 
-StaticAutoPtr<AndroidAlerts::ListenerMap> AndroidAlerts::sListenerMap;
-MOZ_RUNINIT nsTHashMap<nsStringHashKey, java::WebNotification::GlobalRef>
-    AndroidAlerts::mNotificationsMap;
+struct AndroidNotificationTuple {
+  // Can be null if the caller doesn't care about the result.
+  nsCOMPtr<nsIObserver> mObserver;
+
+  // The Gecko alert notification.
+  nsCOMPtr<nsIAlertNotification> mAlert;
+
+  // The Java represented form of mAlert.
+  mozilla::java::WebNotification::GlobalRef mNotificationRef;
+};
+
+using NotificationMap = nsTHashMap<nsStringHashKey, AndroidNotificationTuple>;
+static StaticAutoPtr<NotificationMap> sNotificationMap;
 
 NS_IMETHODIMP
 AndroidAlerts::ShowAlertNotification(
@@ -92,45 +102,55 @@ AndroidAlerts::ShowAlert(nsIAlertNotification* aAlert,
   rv = aAlert->GetVibrate(vibrate);
   NS_ENSURE_SUCCESS(rv, NS_OK);
 
-  if (aAlertListener) {
-    if (!sListenerMap) {
-      sListenerMap = new ListenerMap();
+  if (!sNotificationMap) {
+    sNotificationMap = new NotificationMap();
+  } else if (Maybe<AndroidNotificationTuple> tuple =
+                 sNotificationMap->Extract(name)) {
+    if (tuple->mObserver) {
+      tuple->mObserver->Observe(nullptr, "alertfinished", nullptr);
     }
-    // This will remove any observers already registered for this name.
-    sListenerMap->InsertOrUpdate(name, aAlertListener);
   }
 
   java::WebNotification::LocalRef notification = notification->New(
       title, name, cookie, text, imageUrl, dir, lang, requireInteraction, spec,
       silent, privateBrowsing, jni::IntArray::From(vibrate));
-  java::GeckoRuntime::LocalRef runtime = java::GeckoRuntime::GetInstance();
-  if (runtime != NULL) {
+  AndroidNotificationTuple tuple{
+      .mObserver = aAlertListener,
+      .mAlert = aAlert,
+      .mNotificationRef = notification,
+  };
+  sNotificationMap->InsertOrUpdate(name, std::move(tuple));
+
+  if (java::GeckoRuntime::LocalRef runtime =
+          java::GeckoRuntime::GetInstance()) {
     runtime->NotifyOnShow(notification);
   }
-  mNotificationsMap.InsertOrUpdate(name, notification);
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
 AndroidAlerts::CloseAlert(const nsAString& aAlertName, bool aContextClosed) {
-  java::WebNotification::LocalRef notification =
-      mNotificationsMap.Get(aAlertName);
-  if (!notification) {
+  if (!sNotificationMap) {
+    return NS_OK;
+  }
+
+  Maybe<AndroidNotificationTuple> tuple =
+      sNotificationMap->MaybeGet(aAlertName);
+  if (!tuple) {
     return NS_OK;
   }
 
   java::GeckoRuntime::LocalRef runtime = java::GeckoRuntime::GetInstance();
   if (runtime != NULL) {
-    runtime->NotifyOnClose(notification);
+    runtime->NotifyOnClose(tuple->mNotificationRef);
   }
-  mNotificationsMap.Remove(aAlertName);
 
   return NS_OK;
 }
 
 NS_IMETHODIMP AndroidAlerts::Teardown() {
-  mNotificationsMap.Clear();
+  sNotificationMap = nullptr;
   return NS_OK;
 }
 
@@ -138,20 +158,21 @@ NS_IMETHODIMP AndroidAlerts::PbmTeardown() { return NS_ERROR_NOT_IMPLEMENTED; }
 
 void AndroidAlerts::NotifyListener(const nsAString& aName, const char* aTopic,
                                    const char16_t* aCookie) {
-  if (!sListenerMap) {
+  if (!sNotificationMap) {
     return;
   }
 
-  nsCOMPtr<nsIObserver> listener = sListenerMap->Get(aName);
-  if (!listener) {
+  Maybe<AndroidNotificationTuple> tuple = sNotificationMap->MaybeGet(aName);
+  if (!tuple) {
     return;
   }
 
-  listener->Observe(nullptr, aTopic, aCookie);
+  if (tuple->mObserver) {
+    tuple->mObserver->Observe(nullptr, aTopic, nullptr);
+  }
 
   if ("alertfinished"_ns.Equals(aTopic)) {
-    sListenerMap->Remove(aName);
-    mNotificationsMap.Remove(aName);
+    sNotificationMap->Remove(aName);
   }
 }
 
