@@ -81,41 +81,83 @@ add_task(async function test_validation() {
   let name = dialogWin.document.getElementById("engineName");
   let url = dialogWin.document.getElementById("engineUrl");
   let alias = dialogWin.document.getElementById("engineAlias");
+  let suggestUrl = dialogWin.document.getElementById("suggestUrl");
 
   Assert.ok(
     name.value == "" && url.value == "" && alias.value == "",
     "Everything is empty initially."
   );
   Assert.ok(button.disabled, "Button is disabled initially.");
+  await assertError(name, "add-engine-no-name");
+  await assertError(url, "add-engine-no-url");
+  await assertError(alias, null);
+  await assertError(suggestUrl, null);
 
   setName("Example", dialogWin);
   setUrl("https://example.com/search?q=%s", dialogWin);
   await setAlias("abc", dialogWin);
+  setSuggestUrl("https://example.com/search?q=%s", dialogWin);
   Assert.ok(!button.disabled, "Button is enabled when everything is there.");
+
+  // Check name
+  setName("", dialogWin);
+  await assertError(name, "add-engine-no-name");
+  Assert.ok(button.disabled, "Name is required.");
+
+  setName(existingEngine.name, dialogWin);
+  await assertError(name, "add-engine-name-exists");
+  Assert.ok(button.disabled, "Existing name is not allowed.");
+
+  setName("Example", dialogWin);
+  await assertError(name, null);
+  Assert.ok(!button.disabled, "Good name enables the button.");
 
   // Check URL
   setUrl("", dialogWin);
   Assert.ok(button.disabled, "URL is required.");
-  setUrl("javascript://%s", dialogWin);
-  Assert.ok(button.disabled, "Javascript URLs are not allowed.");
-  setUrl("https://example.com/search?q=%s", dialogWin);
-  Assert.ok(!button.disabled, "Good URL enables the button.");
+  await assertError(url, "add-engine-no-url");
 
-  // Check name
-  setName("", dialogWin);
-  Assert.ok(button.disabled, "Name is required.");
-  setName(existingEngine.name, dialogWin);
-  Assert.ok(button.disabled, "Existing name is not allowed.");
-  setName("Example", dialogWin);
-  Assert.ok(!button.disabled, "Good name enables the button.");
+  setUrl("javascript://%s", dialogWin);
+  await assertError(url, "add-engine-invalid-protocol");
+  Assert.ok(button.disabled, "Javascript URLs are not allowed.");
+
+  setUrl("not a url", dialogWin);
+  await assertError(url, "add-engine-invalid-url");
+  Assert.ok(button.disabled, "Invalid URLs are not allowed.");
+
+  setUrl("https://example.com/search?q=%s", dialogWin);
+  await assertError(url, null);
+  Assert.ok(!button.disabled, "Good URL enables the button.");
 
   // Check alias
   await setAlias("", dialogWin);
+  await assertError(alias, null);
   Assert.ok(!button.disabled, "Alias is not required.");
+
   await setAlias(existingEngine.alias, dialogWin);
+  await assertError(alias, "add-engine-keyword-exists");
   Assert.ok(button.disabled, "Existing alias is not allowed.");
+
+  await setAlias(existingEngine.alias.toUpperCase(), dialogWin);
+  await assertError(alias, "add-engine-keyword-exists");
+  Assert.ok(button.disabled, "Alias duplicate test is case insensitive.");
+
   await setAlias("abc", dialogWin);
+  await assertError(alias, null);
   Assert.ok(!button.disabled, "Good alias enables the button.");
+
+  // Check suggest URL
+  setSuggestUrl("javascript://%s", dialogWin);
+  await assertError(suggestUrl, "add-engine-invalid-protocol");
+  Assert.ok(button.disabled, "Javascript URLs are not allowed.");
+
+  setSuggestUrl("not a url", dialogWin);
+  await assertError(suggestUrl, "add-engine-invalid-url");
+  Assert.ok(button.disabled, "Invalid URLs are not allowed.");
+
+  setSuggestUrl("https://example.com/search?q=%s", dialogWin);
+  await assertError(suggestUrl, null);
+  Assert.ok(!button.disabled, "Good URL enables the button.");
 
   // Clean up.
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
@@ -158,8 +200,12 @@ add_task(async function test_editEngine() {
   Assert.ok(!!userEngineIndex, "User engine is in the table.");
   view.selection.select(userEngineIndex);
 
-  // Open the dialog.
+  // Open the dialog and check values.
   let dialogWin = await openDialogWith(doc, () => editButton.click());
+  let acceptButton = dialogWin.document
+    .querySelector("dialog")
+    .shadowRoot.querySelector('button[dlgtype="accept"]');
+
   Assert.equal(
     dialogWin.document.getElementById("titleContainer").style.display,
     "none",
@@ -201,7 +247,7 @@ add_task(async function test_editEngine() {
     SearchUtils.TOPIC_ENGINE_MODIFIED,
     3
   );
-  EventUtils.synthesizeKey("VK_RETURN", {}, dialogWin);
+  acceptButton.click();
   await promiseChanged;
   Assert.ok(true, "Got 3 change notifications.");
 
@@ -301,11 +347,11 @@ add_task(async function test_editPostEngine() {
   let promiseChanged = SearchTestUtils.promiseSearchNotification(
     SearchUtils.MODIFIED_TYPE.CHANGED,
     SearchUtils.TOPIC_ENGINE_MODIFIED,
-    3
+    4
   );
   EventUtils.synthesizeKey("VK_RETURN", {}, dialogWin);
   await promiseChanged;
-  Assert.ok(true, "Got 3 change notifications.");
+  Assert.ok(true, "Got 4 change notifications.");
 
   // Open dialog again and check values.
   dialogWin = await openDialogWith(doc, () => editButton.click());
@@ -370,6 +416,25 @@ add_task(async function test_editPostEngine() {
   await Services.search.removeEngine(engine);
 });
 
+/**
+ * Checks the error label of an input of the add engine dialog.
+ *
+ * @param {HTMLInputElement} elt
+ *   The element whose error should be checked
+ * @param {?string} error
+ *   The l10n id of the expected error message or null if no error is expected.
+ */
+async function assertError(elt, error = null) {
+  let errorLabel = elt.parentElement.querySelector(".error-label");
+
+  if (error) {
+    let msg = await document.l10n.formatValue(error);
+    Assert.equal(errorLabel.textContent, msg);
+  } else {
+    Assert.equal(errorLabel.textContent, "valid");
+  }
+}
+
 async function openDialogWith(doc, fn) {
   let dialogLoaded = TestUtils.topicObserved("subdialog-loaded");
   await fn();
@@ -387,12 +452,12 @@ function setUrl(value, win) {
   fillTextField("engineUrl", value, win);
 }
 
-function setPostData(value, win) {
-  fillTextField("enginePostData", value, win);
-}
-
 function setSuggestUrl(value, win) {
   fillTextField("suggestUrl", value, win);
+}
+
+function setPostData(value, win) {
+  fillTextField("enginePostData", value, win);
 }
 
 async function setAlias(value, win) {
