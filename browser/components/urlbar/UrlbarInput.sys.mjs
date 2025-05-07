@@ -492,6 +492,7 @@ export class UrlbarInput {
 
     let value = this.window.gBrowser.userTypedValue;
     let valid = false;
+    let isReverting = !uri;
 
     // If `value` is null or if it's an empty string and we're switching tabs
     // set value to the browser's current URI. When a user empties the input,
@@ -603,7 +604,8 @@ export class UrlbarInput {
     this.setPageProxyState(
       valid ? "valid" : "invalid",
       dueToTabSwitch,
-      dueToTabSwitch &&
+      !isReverting &&
+        dueToTabSwitch &&
         this.getBrowserState(this.window.gBrowser.selectedBrowser)
           .isUnifiedSearchButtonAvailable
     );
