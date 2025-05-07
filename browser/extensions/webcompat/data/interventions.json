@@ -1956,6 +1956,7 @@
     "interventions": [
       {
         "platforms": ["desktop"],
+        "pref_check": { "layout.css.prefixes.transforms": false },
         "content_scripts": {
           "all_frames": true,
           "js": ["bug1897120-turnjs-zoom-fix.js"]

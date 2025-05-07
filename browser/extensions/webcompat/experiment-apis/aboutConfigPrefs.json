@@ -83,7 +83,7 @@
           },
           {
             "name": "value",
-            "type": "boolean",
+            "type": "any",
             "description": "The new value"
           }
         ],

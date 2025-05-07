@@ -20,6 +20,8 @@ support-files = ["download_server.sjs"]
 
 ["browser_interventions.js"]
 
+["browser_pref_check.js"]
+
 ["browser_shims.js"]
 https_first_disabled = true
 skip-if = ["verify"]

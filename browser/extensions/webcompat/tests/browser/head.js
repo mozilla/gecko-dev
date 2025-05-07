@@ -60,6 +60,37 @@ const WebCompatExtension = new (class WebCompatExtension {
     });
   }
 
+  async noOngoingInterventionChanges() {
+    return this.#run(async function () {
+      await new Promise(lock1 => {
+        return new Promise(lock2 => {
+          content.wrappedJSObject.navigator.locks.request(
+            "pref_check_lock",
+            lock2
+          );
+        }).then(() =>
+          content.wrappedJSObject.navigator.locks.request(
+            "intervention_lock",
+            lock1
+          )
+        );
+      });
+    });
+  }
+
+  async getInterventionById(_id) {
+    return this.#run(function (id) {
+      return content.wrappedJSObject.interventions._availableInterventions.find(
+        i => i.id === id
+      );
+    }, _id);
+  }
+
+  getCheckableGlobalPrefs() {
+    return this.extension.experimentAPIManager.global.aboutConfigPrefs
+      .ALLOWED_GLOBAL_PREFS;
+  }
+
   async shimsReady() {
     return this.#run(async function () {
       await content.wrappedJSObject.shims.ready();

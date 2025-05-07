@@ -66,6 +66,7 @@ function check_valid_array(a, key, id) {
 add_task(async function test_json_data() {
   const addon = await AddonManager.getAddonByID("webcompat@mozilla.org");
   const addonURI = addon.getResourceURI();
+  const checkableGlobalPrefs = WebCompatExtension.getCheckableGlobalPrefs();
 
   const exports = {};
   Services.scriptloader.loadSubScript(
@@ -165,6 +166,7 @@ add_task(async function test_json_data() {
       "platforms",
       "not_channels",
       "only_channels",
+      "pref_check",
       "skip_if",
       "ua_string",
     ];
@@ -212,6 +214,7 @@ add_task(async function test_json_data() {
         not_channels,
         only_channels,
         platforms,
+        pref_check,
         skip_if,
         ua_string,
       } = intervention;
@@ -274,9 +277,32 @@ add_task(async function test_json_data() {
         }
       }
       ok(
-        content_scripts || skip_if || ua_string || custom_found,
+        content_scripts || ua_string || custom_found,
         `Interventions are defined for id ${id}`
       );
+      ok(
+        pref_check === undefined || typeof pref_check === "object",
+        `pref_check is not given or is an object ${id}`
+      );
+      if (pref_check) {
+        for (const [pref, value] of Object.entries(pref_check)) {
+          ok(
+            checkableGlobalPrefs.includes(pref),
+            `'${pref}' is allow-listed in AboutConfigPrefsAPI.ALLOWED_GLOBAL_PREFS`
+          );
+          const type = typeof value;
+          const expectedType = Services.prefs.getPrefType(pref);
+          ok(
+            (type === "boolean" &&
+              expectedType === Ci.nsIPrefBranch.PREF_BOOL) ||
+              (type === "number" &&
+                expectedType === Ci.nsIPrefBranch.PREF_INT) ||
+              (type === "string" &&
+                expectedType === Ci.nsIPrefBranch.PREF_STRING),
+            `Given value (${JSON.stringify(value)}) for '${pref}' matches the pref's type`
+          );
+        }
+      }
       if (check_valid_array(skip_if, "skip_if", id)) {
         for (const fn of skip_if) {
           ok(

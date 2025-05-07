@@ -45,29 +45,42 @@ class Interventions {
     const data = structuredClone(_data);
     await this.disableInterventions(data);
     await this.enableInterventions(data);
+    for (const intervention of data) {
+      const { id } = intervention;
+      const i = this._availableInterventions.findIndex(v => v.id === id);
+      if (i > -1) {
+        this._availableInterventions[i] = intervention;
+      } else {
+        this._availableInterventions.push(intervention);
+      }
+    }
     return data;
   }
 
   checkInterventionPref() {
-    browser.aboutConfigPrefs.getPref(this.INTERVENTION_PREF).then(value => {
+    navigator.locks.request("pref_check_lock", async () => {
+      const value = await browser.aboutConfigPrefs.getPref(
+        this.INTERVENTION_PREF
+      );
       if (value === undefined) {
-        browser.aboutConfigPrefs.setPref(this.INTERVENTION_PREF, true);
+        await browser.aboutConfigPrefs.setPref(this.INTERVENTION_PREF, true);
       } else if (value === false) {
-        this.disableInterventions();
+        await this.disableInterventions();
       } else {
-        this.enableInterventions();
+        await this.enableInterventions();
       }
     });
   }
 
   checkOverridePref() {
-    browser.aboutConfigPrefs.getPref(this.OVERRIDE_PREF).then(value => {
+    navigator.locks.request("pref_check_lock", async () => {
+      const value = await browser.aboutConfigPrefs.getPref(this.OVERRIDE_PREF);
       if (value === undefined) {
-        browser.aboutConfigPrefs.setPref(this.OVERRIDE_PREF, true);
+        await browser.aboutConfigPrefs.setPref(this.OVERRIDE_PREF, true);
       } else if (value === false) {
-        this.unregisterUAOverrides();
+        await this.unregisterUAOverrides();
       } else {
-        this.registerUAOverrides();
+        await this.registerUAOverrides();
       }
     });
   }
@@ -105,6 +118,44 @@ class Interventions {
     });
   }
 
+  #checkedPrefListeners = new Map();
+  #checkedPrefCache = new Map();
+
+  async onCheckedPrefChanged(pref) {
+    navigator.locks.request("pref_check_lock", async () => {
+      this.#checkedPrefCache.delete(pref);
+      const toRecheck = this._availableInterventions.filter(cfg =>
+        cfg.interventions.find(i => i.pref_check && pref in i.pref_check)
+      );
+      await this.updateInterventions(toRecheck);
+    });
+  }
+
+  async _check_for_needed_prefs(intervention) {
+    if (!intervention.pref_check) {
+      return true;
+    }
+    for (const pref of Object.keys(intervention.pref_check ?? {})) {
+      if (!this.#checkedPrefListeners.has(pref)) {
+        const listener = () => this.onCheckedPrefChanged(pref);
+        this.#checkedPrefListeners.set(pref, listener);
+        await browser.aboutConfigPrefs.onPrefChange.addListener(listener, pref);
+      }
+    }
+    for (const [pref, value] of Object.entries(intervention.pref_check ?? {})) {
+      if (!this.#checkedPrefCache.has(pref)) {
+        this.#checkedPrefCache.set(
+          pref,
+          await browser.aboutConfigPrefs.getPref(pref)
+        );
+      }
+      if (value !== this.#checkedPrefCache.get(pref)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   async _enableInterventionsNow(whichInterventions) {
     const skipped = [];
 
@@ -117,6 +168,10 @@ class Interventions {
 
     for (const config of whichInterventions) {
       for (const intervention of config.interventions) {
+        intervention.enabled = false;
+        if (!(await this._check_for_needed_prefs(intervention))) {
+          continue;
+        }
         if (
           await InterventionHelpers.shouldSkip(
             intervention,
