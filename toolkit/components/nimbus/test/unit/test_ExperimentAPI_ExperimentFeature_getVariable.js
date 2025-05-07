@@ -3,9 +3,6 @@
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
-const { FeatureManifest } = ChromeUtils.importESModule(
-  "resource://nimbus/FeatureManifest.sys.mjs"
-);
 
 const FEATURE_ID = "testfeature1";
 // Note: this gets deleted at the end of tests
@@ -36,11 +33,9 @@ const TEST_FEATURE = new ExperimentFeature(FEATURE_ID, {
 
 add_setup(() => {
   const cleanupFeature = NimbusTestUtils.addTestFeatures(TEST_FEATURE);
-  FeatureManifest[FEATURE_ID] = TEST_FEATURE.manifest;
 
   registerCleanupFunction(() => {
     cleanupFeature();
-    delete FeatureManifest[FEATURE_ID];
   });
 });
 
