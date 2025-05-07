@@ -271,7 +271,6 @@ class BuildOptionParser:
         "rusttests-debug": path_base + "%s_rusttests_debug.py",
         "x86": path_base + "%s_x86.py",
         "x86-lite": path_base + "%s_x86_lite.py",
-        "x86-debug": path_base + "%s_x86_debug.py",
         "x86-profile-generate": path_base + "%s_x86_profile_generate.py",
         "x86_64": path_base + "%s_x86_64.py",
         "x86_64-lite": path_base + "%s_x86_64_lite.py",
