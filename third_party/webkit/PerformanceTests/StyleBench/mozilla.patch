@@ -65,6 +65,7 @@ index b33021d9d9ce..58b3e46982d1 100644
 +            if (location.search == '?raptor') {
 +                var data = ['raptor-benchmark', 'speedometer', measuredValuesByFullName];
 +                window.postMessage(data, '*');
++                window.sessionStorage.setItem('benchmark_results',  JSON.stringify(data));
 +            } else if (typeof tpRecordTime !== "undefined") {
 +                var values = new Array;
 +                var allNames = new Array;

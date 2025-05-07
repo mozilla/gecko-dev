@@ -5131,7 +5131,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
 
       ./mach raptor -t stylebench
 
-   **Owner**: :emelio and Layout Team
+   **Owner**: :emilio and Layout Team
 
    * **alert threshold**: 2.0
    * **apps**: firefox, chrome, safari

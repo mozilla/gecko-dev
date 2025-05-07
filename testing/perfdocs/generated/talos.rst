@@ -5459,7 +5459,7 @@ For the sample commands found below, note that the capitalization used is import
 
       ./mach talos-test -a perf_reftest_singletons
 
-   * contact: :emelio and Layout team
+   * contact: :emilio and Layout team
    * source: `perf-reftest-singletons <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/perf-reftest-singletons>`__
    * type: `Page load`_
    * reporting: intervals in ms (lower is better)

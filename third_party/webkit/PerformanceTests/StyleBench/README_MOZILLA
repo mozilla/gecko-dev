@@ -1,8 +1,8 @@
 The source from this directory was copied from the
 PerformanceTests/StyleBench directory of the Webkit repository
-at: https://svn.webkit.org/repository/webkit/trunk
+at: https://github.com/WebKit/WebKit/
 
-The SVN revision used was: 234578
+The git commit used was: aac8c557da9ae65151ba533ba8d5b1c7841e741c
 
 The contents of this directory are intended for use to "train" the
 profile guided optimization (PGO) of Firefox and for benchmarking

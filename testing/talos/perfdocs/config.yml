@@ -662,7 +662,7 @@ suites:
                         167.36, 167.265, 167.75500000000002, 166.895, 167.735, 166.985, 166.275, 166.54000000000002, 165.61, 166.115,
                         166.64499999999998, 165.68, 167.64499999999998, 167.12, 168.15, 166.575, 166.335],
             perf_reftest_singletons: >
-                - contact: :emelio and Layout team
+                - contact: :emilio and Layout team
                 - source: `perf-reftest-singletons <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/tests/perf-reftest-singletons>`__
                 - type: `Page load`_
                 - reporting: intervals in ms (lower is better)
