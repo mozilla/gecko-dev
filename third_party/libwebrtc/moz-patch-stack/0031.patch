@@ -118,7 +118,7 @@ index b61ab6455b..277c526aa9 100644
    # TODO(https://bugs.webrtc.org/14437):  Remove this section if general
    # Chromium fix resolves the problem.
 diff --git a/BUILD.gn b/BUILD.gn
-index 5e7d863ac2..e6753a8722 100644
+index fb9c90f591..c79280232b 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -33,7 +33,7 @@ if (is_android) {
@@ -203,8 +203,8 @@ index 5e7d863ac2..e6753a8722 100644
 +        "modules/video_coding:webrtc_vp8",
 +        "modules/video_coding:webrtc_vp9",
        ]
-     } else {
-       deps += [
+     }
+ 
 diff --git a/api/BUILD.gn b/api/BUILD.gn
 index 1af8603b10..4a863d80d0 100644
 --- a/api/BUILD.gn

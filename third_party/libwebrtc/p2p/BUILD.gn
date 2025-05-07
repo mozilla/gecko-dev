@@ -8,9 +8,6 @@
 
 import("../webrtc.gni")
 
-group("p2p") {
-}
-
 rtc_source_set("active_ice_controller_factory_interface") {
   sources = [ "base/active_ice_controller_factory_interface.h" ]
   deps = [
