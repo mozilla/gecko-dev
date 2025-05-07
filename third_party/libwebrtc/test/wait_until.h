@@ -67,8 +67,8 @@ template <typename Fn, typename Matcher>
                              WaitUntilSettings settings = {})
     -> RTCErrorOr<decltype(fn())> {
   if (std::holds_alternative<std::monostate>(settings.clock)) {
-    RTC_CHECK(rtc::Thread::Current()) << "A current thread is required. An "
-                                         "rtc::AutoThread can work for tests.";
+    RTC_CHECK(Thread::Current()) << "A current thread is required. An "
+                                    "rtc::AutoThread can work for tests.";
   }
 
   Timestamp start =

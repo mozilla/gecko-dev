@@ -53,7 +53,7 @@ using ::webrtc::testing::StreamSink;
 
 // Sends at a constant rate but with random packet sizes.
 struct Sender {
-  Sender(Thread* th, webrtc::Socket* s, uint32_t rt)
+  Sender(webrtc::Thread* th, webrtc::Socket* s, uint32_t rt)
       : thread(th),
         socket(std::make_unique<webrtc::AsyncUDPSocket>(s)),
         rate(rt),
@@ -79,7 +79,7 @@ struct Sender {
     return TimeDelta::Seconds(1) * size / rate;
   }
 
-  Thread* thread;
+  webrtc::Thread* thread;
   std::unique_ptr<webrtc::AsyncUDPSocket> socket;
   rtc::PacketOptions options;
   RepeatingTaskHandle periodic;
@@ -90,7 +90,7 @@ struct Sender {
 };
 
 struct Receiver : public sigslot::has_slots<> {
-  Receiver(Thread* th, webrtc::Socket* s, uint32_t bw)
+  Receiver(webrtc::Thread* th, webrtc::Socket* s, uint32_t bw)
       : thread(th),
         socket(std::make_unique<webrtc::AsyncUDPSocket>(s)),
         bandwidth(bw),
@@ -134,7 +134,7 @@ struct Receiver : public sigslot::has_slots<> {
     samples += 1;
   }
 
-  Thread* thread;
+  webrtc::Thread* thread;
   std::unique_ptr<webrtc::AsyncUDPSocket> socket;
   uint32_t bandwidth;
   RepeatingTaskHandle periodic;
@@ -692,7 +692,7 @@ class VirtualSocketServerTest : public ::testing::Test {
     uint32_t bandwidth = 64 * 1024;
     ss_.set_bandwidth(bandwidth);
 
-    Thread* pthMain = Thread::Current();
+    webrtc::Thread* pthMain = webrtc::Thread::Current();
     Sender sender(pthMain, send_socket, 80 * 1024);
     Receiver receiver(pthMain, recv_socket, bandwidth);
 
@@ -734,7 +734,7 @@ class VirtualSocketServerTest : public ::testing::Test {
     EXPECT_EQ(recv_socket->GetLocalAddress().family(), initial_addr.family());
     ASSERT_EQ(0, send_socket->Connect(recv_socket->GetLocalAddress()));
 
-    Thread* pthMain = Thread::Current();
+    webrtc::Thread* pthMain = webrtc::Thread::Current();
     // Avg packet size is 2K, so at 200KB/s for 10s, we should see about
     // 1000 packets, which is necessary to get a good distribution.
     Sender sender(pthMain, send_socket, 100 * 2 * 1024);
@@ -851,7 +851,7 @@ class VirtualSocketServerTest : public ::testing::Test {
  protected:
   webrtc::ScopedFakeClock fake_clock_;
   webrtc::VirtualSocketServer ss_;
-  AutoSocketServerThread thread_;
+  webrtc::AutoSocketServerThread thread_;
   const webrtc::SocketAddress kIPv4AnyAddress;
   const webrtc::SocketAddress kIPv6AnyAddress;
 };

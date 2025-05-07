@@ -41,8 +41,9 @@ static const webrtc::TimeDelta kTimeout = webrtc::TimeDelta::Millis(5000);
 static webrtc::Socket* CreateSocket() {
   webrtc::SocketAddress address(webrtc::IPAddress(INADDR_ANY), 0);
 
-  webrtc::Socket* socket = rtc::Thread::Current()->socketserver()->CreateSocket(
-      address.family(), SOCK_STREAM);
+  webrtc::Socket* socket =
+      webrtc::Thread::Current()->socketserver()->CreateSocket(address.family(),
+                                                              SOCK_STREAM);
   socket->Bind(address);
 
   return socket;
@@ -299,7 +300,7 @@ class SSLAdapterTestBase : public ::testing::Test, public sigslot::has_slots<> {
 
  protected:
   std::unique_ptr<webrtc::VirtualSocketServer> vss_;
-  rtc::AutoSocketServerThread thread_;
+  webrtc::AutoSocketServerThread thread_;
   std::unique_ptr<SSLAdapterTestDummyServer> server_;
   std::unique_ptr<SSLAdapterTestDummyClient> client_;
   std::unique_ptr<rtc::SSLCertificateVerifier> cert_verifier_;

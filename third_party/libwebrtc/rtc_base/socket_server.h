@@ -16,12 +16,12 @@
 #include "api/units/time_delta.h"
 #include "rtc_base/event.h"
 #include "rtc_base/socket_factory.h"
-namespace rtc {
-class Thread;
-class NetworkBinderInterface;
-}  // namespace rtc
 
 namespace webrtc {
+
+class NetworkBinderInterface;
+class Thread;
+class ThreadManager;
 
 // Needs to be forward declared because there's a circular dependency between
 // NetworkMonitor and Thread.
@@ -41,7 +41,7 @@ class SocketServer : public SocketFactory {
   // to allow the socket server to use the thread's message queue for any
   // messaging that it might need to perform. It is also called with a null
   // argument before the thread is destroyed.
-  virtual void SetMessageQueue(rtc::Thread* /* queue */) {}
+  virtual void SetMessageQueue(Thread* /* queue */) {}
 
   // Sleeps until:
   //  1) `max_wait_duration` has elapsed (unless `max_wait_duration` ==
@@ -55,15 +55,13 @@ class SocketServer : public SocketFactory {
 
   // A network binder will bind the created sockets to a network.
   // It is only used in PhysicalSocketServer.
-  void set_network_binder(rtc::NetworkBinderInterface* binder) {
+  void set_network_binder(NetworkBinderInterface* binder) {
     network_binder_ = binder;
   }
-  rtc::NetworkBinderInterface* network_binder() const {
-    return network_binder_;
-  }
+  NetworkBinderInterface* network_binder() const { return network_binder_; }
 
  private:
-  rtc::NetworkBinderInterface* network_binder_ = nullptr;
+  NetworkBinderInterface* network_binder_ = nullptr;
 };
 
 }  //  namespace webrtc

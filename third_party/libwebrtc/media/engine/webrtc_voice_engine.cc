@@ -1237,7 +1237,7 @@ class WebRtcVoiceSendChannel::WebRtcAudioSendStream : public AudioSource::Sink {
 
   const AdaptivePtimeConfig adaptive_ptime_config_;
   webrtc::SequenceChecker worker_thread_checker_;
-  rtc::RaceChecker audio_capture_race_checker_;
+  webrtc::RaceChecker audio_capture_race_checker_;
   webrtc::Call* call_ = nullptr;
   webrtc::AudioSendStream::Config config_;
   // The stream is owned by WebRtcAudioSendStream and may be reallocated if

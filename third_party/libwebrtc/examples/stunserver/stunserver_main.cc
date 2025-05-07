@@ -29,7 +29,8 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  rtc::Thread* pthMain = rtc::ThreadManager::Instance()->WrapCurrentThread();
+  webrtc::Thread* pthMain =
+      webrtc::ThreadManager::Instance()->WrapCurrentThread();
   RTC_DCHECK(pthMain);
 
   webrtc::AsyncUDPSocket* server_socket =

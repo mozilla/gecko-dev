@@ -38,7 +38,7 @@ class EmulatedNetworkManager : public EmulatedNetworkManagerInterface {
 
   void UpdateNetworks();
 
-  absl::Nonnull<rtc::Thread*> network_thread() override {
+  absl::Nonnull<Thread*> network_thread() override {
     return network_thread_.get();
   }
   absl::Nonnull<rtc::SocketFactory*> socket_factory() override {
@@ -62,7 +62,7 @@ class EmulatedNetworkManager : public EmulatedNetworkManagerInterface {
   // Socket server is owned by the `network_thread_'
   const absl::Nonnull<rtc::SocketServer*> socket_server_;
 
-  const absl::Nonnull<std::unique_ptr<rtc::Thread>> network_thread_;
+  const absl::Nonnull<std::unique_ptr<Thread>> network_thread_;
   absl::Nullable<std::unique_ptr<NetworkManagerImpl>> network_manager_;
 
   // Keep pointer to the network manager when it is extracted to be injected

@@ -95,7 +95,7 @@ class SignalingProxyTest : public ::testing::Test {
 
  protected:
   void SetUp() override {
-    signaling_thread_ = rtc::Thread::Create();
+    signaling_thread_ = Thread::Create();
     ASSERT_TRUE(signaling_thread_->Start());
     fake_ = Fake::Create();
     fake_signaling_proxy_ =
@@ -103,7 +103,7 @@ class SignalingProxyTest : public ::testing::Test {
   }
 
  protected:
-  std::unique_ptr<rtc::Thread> signaling_thread_;
+  std::unique_ptr<Thread> signaling_thread_;
   rtc::scoped_refptr<FakeInterface> fake_signaling_proxy_;
   rtc::scoped_refptr<Fake> fake_;
 };
@@ -182,8 +182,8 @@ class ProxyTest : public ::testing::Test {
 
  protected:
   void SetUp() override {
-    signaling_thread_ = rtc::Thread::Create();
-    worker_thread_ = rtc::Thread::Create();
+    signaling_thread_ = Thread::Create();
+    worker_thread_ = Thread::Create();
     ASSERT_TRUE(signaling_thread_->Start());
     ASSERT_TRUE(worker_thread_->Start());
     fake_ = Fake::Create();
@@ -192,8 +192,8 @@ class ProxyTest : public ::testing::Test {
   }
 
  protected:
-  std::unique_ptr<rtc::Thread> signaling_thread_;
-  std::unique_ptr<rtc::Thread> worker_thread_;
+  std::unique_ptr<Thread> signaling_thread_;
+  std::unique_ptr<Thread> worker_thread_;
   rtc::scoped_refptr<FakeInterface> fake_proxy_;
   rtc::scoped_refptr<Fake> fake_;
 };

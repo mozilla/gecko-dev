@@ -427,7 +427,7 @@ bool FakeAudioCaptureModule::ShouldStartProcessing() {
 void FakeAudioCaptureModule::UpdateProcessing(bool start) {
   if (start) {
     if (!process_thread_) {
-      process_thread_ = rtc::Thread::Create();
+      process_thread_ = webrtc::Thread::Create();
       process_thread_->Start();
     }
     process_thread_->PostTask([this] { StartProcessP(); });

@@ -61,7 +61,7 @@ index 5fa32af69b..d3f80bdf9d 100644
  
  void RTCPSender::SetNonSenderRttMeasurement(bool enabled) {
 diff --git a/modules/rtp_rtcp/source/rtcp_sender_unittest.cc b/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
-index 9cca326ac5..ede02ea636 100644
+index b7466fc4ce..7dfece2e0f 100644
 --- a/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
 +++ b/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
 @@ -346,12 +346,13 @@ TEST_F(RtcpSenderTest, SendBye) {

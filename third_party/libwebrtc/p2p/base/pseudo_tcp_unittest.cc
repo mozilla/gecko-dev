@@ -212,7 +212,7 @@ class PseudoTcpTestBase : public ::testing::Test,
         TimeDelta::Millis(interval));
   }
 
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   PseudoTcpForTest local_;
   PseudoTcpForTest remote_;
   ScopedTaskSafety local_timer_;
@@ -606,8 +606,8 @@ class PseudoTcpTestReceiveWindow : public PseudoTcpTestBase {
     if (packets_in_flight_ > 0) {
       // If there are packet tasks, attempt to continue sending after giving
       // those packets time to process, which should free up the send buffer.
-      rtc::Thread::Current()->PostDelayedTask([this] { WriteData(); },
-                                              TimeDelta::Millis(10));
+      webrtc::Thread::Current()->PostDelayedTask([this] { WriteData(); },
+                                                 TimeDelta::Millis(10));
     } else {
       if (!remote_.isReceiveBufferFull()) {
         RTC_LOG(LS_ERROR) << "This shouldn't happen - the send buffer is full, "

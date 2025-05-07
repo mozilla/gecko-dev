@@ -364,7 +364,7 @@ Socket* NATSocketServer::CreateSocket(int family, int type) {
   return new NATSocket(this, family, type);
 }
 
-void NATSocketServer::SetMessageQueue(rtc::Thread* queue) {
+void NATSocketServer::SetMessageQueue(Thread* queue) {
   msg_queue_ = queue;
   server_->SetMessageQueue(queue);
 }
@@ -397,7 +397,7 @@ Socket* NATSocketServer::CreateInternalSocket(int family,
 NATSocketServer::Translator::Translator(NATSocketServer* server,
                                         NATType type,
                                         const SocketAddress& int_ip,
-                                        rtc::Thread& external_socket_thread,
+                                        Thread& external_socket_thread,
                                         SocketFactory* ext_factory,
                                         const SocketAddress& ext_ip)
     : server_(server) {

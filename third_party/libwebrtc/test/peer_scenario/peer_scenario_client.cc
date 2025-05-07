@@ -241,7 +241,7 @@ class FakeVideoDecoderFactory : public VideoDecoderFactory {
 
 PeerScenarioClient::PeerScenarioClient(
     NetworkEmulationManager* net,
-    rtc::Thread* signaling_thread,
+    Thread* signaling_thread,
     std::unique_ptr<LogWriterFactoryInterface> log_writer_factory,
     PeerScenarioClient::Config config)
     : endpoints_(CreateEndpoints(net, config.endpoints)),

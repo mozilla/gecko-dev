@@ -20,7 +20,7 @@ namespace webrtc {
 std::unique_ptr<TestStunServer, std::function<void(webrtc::TestStunServer*)>>
 TestStunServer::Create(SocketServer* ss,
                        const SocketAddress& addr,
-                       rtc::Thread& network_thread) {
+                       Thread& network_thread) {
   Socket* socket = ss->CreateSocket(addr.family(), SOCK_DGRAM);
   RTC_CHECK(socket != nullptr) << "Failed to create socket";
   AsyncUDPSocket* udp_socket = AsyncUDPSocket::Create(socket, addr);

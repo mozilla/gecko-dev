@@ -79,7 +79,7 @@ class WrappingActiveIceController : public ActiveIceControllerInterface {
 
   void PruneConnections();
 
-  rtc::Thread* const network_thread_;
+  webrtc::Thread* const network_thread_;
   webrtc::ScopedTaskSafety task_safety_;
 
   bool started_pinging_ RTC_GUARDED_BY(network_thread_) = false;

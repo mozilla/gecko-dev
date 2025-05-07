@@ -24,7 +24,7 @@
 
 #include "rtc_base/deprecated/recursive_critical_section.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Bug 1691641
 class PlatformUIThread;
@@ -123,6 +123,14 @@ class PlatformThread final {
   friend PlatformUIThread;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::PlatformThread;
+using ::webrtc::ThreadAttributes;
+using ::webrtc::ThreadPriority;
 }  // namespace rtc
 
 #endif  // RTC_BASE_PLATFORM_THREAD_H_

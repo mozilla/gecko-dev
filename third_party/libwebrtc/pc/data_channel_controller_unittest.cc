@@ -87,8 +87,7 @@ class DataChannelControllerTest : public ::testing::Test {
       : network_thread_(std::make_unique<NullSocketServer>()) {
     network_thread_.Start();
     pc_ = rtc::make_ref_counted<NiceMock<MockPeerConnectionInternal>>();
-    ON_CALL(*pc_, signaling_thread)
-        .WillByDefault(Return(rtc::Thread::Current()));
+    ON_CALL(*pc_, signaling_thread).WillByDefault(Return(Thread::Current()));
     ON_CALL(*pc_, network_thread).WillByDefault(Return(&network_thread_));
   }
 
@@ -98,7 +97,7 @@ class DataChannelControllerTest : public ::testing::Test {
   }
 
   test::RunLoop run_loop_;
-  rtc::Thread network_thread_;
+  Thread network_thread_;
   rtc::scoped_refptr<NiceMock<MockPeerConnectionInternal>> pc_;
 };
 

@@ -16,7 +16,7 @@
 #include "system_wrappers/include/sleep.h"
 #include "test/gmock.h"
 
-namespace rtc {
+namespace webrtc {
 
 TEST(PlatformThreadTest, DefaultConstructedIsEmpty) {
   PlatformThread thread;
@@ -30,12 +30,12 @@ TEST(PlatformThreadTest, StartFinalize) {
   EXPECT_FALSE(thread.empty());
   thread.Finalize();
   EXPECT_TRUE(thread.empty());
-  webrtc::Event done;
+  Event done;
   thread = PlatformThread::SpawnDetached([&] { done.Set(); }, "2");
   EXPECT_FALSE(thread.empty());
   thread.Finalize();
   EXPECT_TRUE(thread.empty());
-  done.Wait(webrtc::TimeDelta::Seconds(30));
+  done.Wait(TimeDelta::Seconds(30));
 }
 
 TEST(PlatformThreadTest, MovesEmpty) {
@@ -50,12 +50,12 @@ TEST(PlatformThreadTest, MovesHandles) {
   PlatformThread thread2 = std::move(thread1);
   EXPECT_TRUE(thread1.empty());
   EXPECT_FALSE(thread2.empty());
-  webrtc::Event done;
+  Event done;
   thread1 = PlatformThread::SpawnDetached([&] { done.Set(); }, "2");
   thread2 = std::move(thread1);
   EXPECT_TRUE(thread1.empty());
   EXPECT_FALSE(thread2.empty());
-  done.Wait(webrtc::TimeDelta::Seconds(30));
+  done.Wait(TimeDelta::Seconds(30));
 }
 
 TEST(PlatformThreadTest,
@@ -80,31 +80,31 @@ TEST(PlatformThreadTest, RunFunctionIsCalled) {
 
 TEST(PlatformThreadTest, JoinsThread) {
   // This test flakes if there are problems with the join implementation.
-  webrtc::Event event;
+  Event event;
   PlatformThread::SpawnJoinable([&] { event.Set(); }, "T");
-  EXPECT_TRUE(event.Wait(/*give_up_after=*/webrtc::TimeDelta::Zero()));
+  EXPECT_TRUE(event.Wait(/*give_up_after=*/TimeDelta::Zero()));
 }
 
 TEST(PlatformThreadTest, StopsBeforeDetachedThreadExits) {
   // This test flakes if there are problems with the detached thread
   // implementation.
   bool flag = false;
-  webrtc::Event thread_started;
-  webrtc::Event thread_continue;
-  webrtc::Event thread_exiting;
+  Event thread_started;
+  Event thread_continue;
+  Event thread_exiting;
   PlatformThread::SpawnDetached(
       [&] {
         thread_started.Set();
-        thread_continue.Wait(webrtc::Event::kForever);
+        thread_continue.Wait(Event::kForever);
         flag = true;
         thread_exiting.Set();
       },
       "T");
-  thread_started.Wait(webrtc::Event::kForever);
+  thread_started.Wait(Event::kForever);
   EXPECT_FALSE(flag);
   thread_continue.Set();
-  thread_exiting.Wait(webrtc::Event::kForever);
+  thread_exiting.Wait(Event::kForever);
   EXPECT_TRUE(flag);
 }
 
-}  // namespace rtc
+}  // namespace webrtc

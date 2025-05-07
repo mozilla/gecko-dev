@@ -48,7 +48,7 @@ class SignalerThread {
   void Start(Event* writer, Event* reader) {
     writer_ = writer;
     reader_ = reader;
-    thread_ = rtc::PlatformThread::SpawnJoinable(
+    thread_ = PlatformThread::SpawnJoinable(
         [this] {
           while (!stop_event_.Wait(TimeDelta::Zero())) {
             writer_->Set();
@@ -64,7 +64,7 @@ class SignalerThread {
   Event stop_event_;
   Event* writer_;
   Event* reader_;
-  rtc::PlatformThread thread_;
+  PlatformThread thread_;
 };
 
 TEST(EventTest, UnsignaledWaitDoesNotReturnBeforeTimeout) {

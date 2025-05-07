@@ -18,7 +18,7 @@
 #include "rtc_base/ip_address.h"
 #include "rtc_base/network_constants.h"
 
-namespace rtc {
+namespace webrtc {
 
 enum class NetworkBindingResult {
   SUCCESS = 0,   // No error
@@ -48,7 +48,7 @@ class NetworkBinderInterface {
   // special bind call to put packets on a non-default network interface.
   virtual NetworkBindingResult BindSocketToNetwork(
       int socket_fd,
-      const webrtc::IPAddress& address) = 0;
+      const IPAddress& address) = 0;
   virtual ~NetworkBinderInterface() {}
 };
 
@@ -74,10 +74,10 @@ class NetworkMonitorInterface {
  public:
   struct InterfaceInfo {
     // The type of adapter if known.
-    webrtc::AdapterType adapter_type;
+    AdapterType adapter_type;
 
     // Is ADAPTER_TYPE_UNKNOWN unless adapter_type == ADAPTER_TYPE_VPN.
-    webrtc::AdapterType underlying_type_for_vpn = webrtc::ADAPTER_TYPE_UNKNOWN;
+    AdapterType underlying_type_for_vpn = webrtc::ADAPTER_TYPE_UNKNOWN;
 
     // The OS/firmware specific preference of this interface.
     NetworkPreference network_preference = NetworkPreference::NEUTRAL;
@@ -113,7 +113,7 @@ class NetworkMonitorInterface {
   // name. Only implemented on Android.
   virtual NetworkBindingResult BindSocketToNetwork(
       int /* socket_fd */,
-      const webrtc::IPAddress& /* address */,
+      const IPAddress& /* address */,
       absl::string_view /* interface_name */) {
     return NetworkBindingResult::NOT_IMPLEMENTED;
   }
@@ -133,6 +133,16 @@ class NetworkMonitorInterface {
   std::function<void()> networks_changed_callback_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::NetworkBinderInterface;
+using ::webrtc::NetworkBindingResult;
+using ::webrtc::NetworkMonitorInterface;
+using ::webrtc::NetworkPreference;
+using ::webrtc::NetworkPreferenceToString;
 }  // namespace rtc
 
 #endif  // RTC_BASE_NETWORK_MONITOR_H_

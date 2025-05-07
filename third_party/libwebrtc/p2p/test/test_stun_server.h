@@ -30,7 +30,7 @@ class TestStunServer : StunServer {
                       std::function<void(webrtc::TestStunServer*)>>;
   static StunServerPtr Create(SocketServer* ss,
                               const SocketAddress& addr,
-                              rtc::Thread& network_thread);
+                              Thread& network_thread);
 
   // Set a fake STUN address to return to the client.
   void set_fake_stun_addr(const SocketAddress& addr) { fake_stun_addr_ = addr; }
@@ -38,7 +38,7 @@ class TestStunServer : StunServer {
  private:
   static void DeleteOnNetworkThread(TestStunServer* server);
 
-  TestStunServer(AsyncUDPSocket* socket, rtc::Thread& network_thread)
+  TestStunServer(AsyncUDPSocket* socket, Thread& network_thread)
       : StunServer(socket), network_thread_(network_thread) {}
 
   void OnBindingRequest(cricket::StunMessage* msg,
@@ -46,7 +46,7 @@ class TestStunServer : StunServer {
 
  private:
   SocketAddress fake_stun_addr_;
-  rtc::Thread& network_thread_;
+  Thread& network_thread_;
 };
 
 }  //  namespace webrtc

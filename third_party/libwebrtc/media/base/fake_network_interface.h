@@ -42,7 +42,7 @@ namespace webrtc {
 class FakeNetworkInterface : public cricket::MediaChannelNetworkInterface {
  public:
   FakeNetworkInterface()
-      : thread_(rtc::Thread::Current()),
+      : thread_(Thread::Current()),
         dest_(NULL),
         conf_(false),
         sendbuf_size_(-1),

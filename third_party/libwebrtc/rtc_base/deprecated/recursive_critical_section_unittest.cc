@@ -44,7 +44,7 @@ class UniqueValueVerifier {
       // Each value should only be taken by one thread, so if this value
       // has already been added, something went wrong.
       EXPECT_TRUE(result.second)
-          << " Thread=" << Thread::Current() << " value=" << values[i];
+          << " Thread=" << webrtc::Thread::Current() << " value=" << values[i];
     }
   }
 
@@ -61,10 +61,10 @@ class CompareAndSwapVerifier {
   void Verify(const std::vector<int>& values) {
     for (auto v : values) {
       if (v == 0) {
-        EXPECT_EQ(0, zero_count_) << "Thread=" << Thread::Current();
+        EXPECT_EQ(0, zero_count_) << "Thread=" << webrtc::Thread::Current();
         ++zero_count_;
       } else {
-        EXPECT_EQ(1, v) << " Thread=" << Thread::Current();
+        EXPECT_EQ(1, v) << " Thread=" << webrtc::Thread::Current();
       }
     }
   }
@@ -155,7 +155,7 @@ template <typename Runner>
 void StartThreads(std::vector<std::unique_ptr<Thread>>* threads,
                   Runner* handler) {
   for (int i = 0; i < kNumThreads; ++i) {
-    std::unique_ptr<Thread> thread(Thread::Create());
+    std::unique_ptr<webrtc::Thread> thread(webrtc::Thread::Create());
     thread->Start();
     thread->PostTask([handler] { handler->Loop(); });
     threads->push_back(std::move(thread));
@@ -167,7 +167,7 @@ void StartThreads(std::vector<std::unique_ptr<Thread>>* threads,
 TEST(RecursiveCriticalSectionTest, Basic) {
   // Create and start lots of threads.
   LockRunner<CriticalSectionLock> runner;
-  std::vector<std::unique_ptr<Thread>> threads;
+  std::vector<std::unique_ptr<webrtc::Thread>> threads;
   StartThreads(&threads, &runner);
   runner.SetExpectedThreadCount(kNumThreads);
 
@@ -216,7 +216,7 @@ class PerfTestThread {
     data_ = data;
     repeats_ = repeats;
     my_id_ = id;
-    thread_ = PlatformThread::SpawnJoinable(
+    thread_ = webrtc::PlatformThread::SpawnJoinable(
         [this] {
           for (int i = 0; i < repeats_; ++i)
             data_->AddToCounter(my_id_);
@@ -233,7 +233,7 @@ class PerfTestThread {
   }
 
  private:
-  PlatformThread thread_;
+  webrtc::PlatformThread thread_;
   PerfTestData* data_ = nullptr;
   int repeats_ = 0;
   int my_id_ = 0;

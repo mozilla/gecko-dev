@@ -726,7 +726,7 @@ int main(int argc, char* argv[]) {
   RTC_CHECK(ValidateInputFilenameNotEmpty(absl::GetFlag(FLAGS_input_file)));
   RTC_CHECK_GE(absl::GetFlag(FLAGS_extend_run_time_duration), 0);
 
-  rtc::ThreadManager::Instance()->WrapCurrentThread();
+  webrtc::ThreadManager::Instance()->WrapCurrentThread();
   webrtc::test::RunTest(webrtc::RtpReplay);
   return 0;
 }

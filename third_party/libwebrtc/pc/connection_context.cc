@@ -27,16 +27,16 @@ namespace webrtc {
 
 namespace {
 
-rtc::Thread* MaybeStartNetworkThread(
-    rtc::Thread* old_thread,
+Thread* MaybeStartNetworkThread(
+    Thread* old_thread,
     std::unique_ptr<SocketFactory>& socket_factory_holder,
-    std::unique_ptr<rtc::Thread>& thread_holder) {
+    std::unique_ptr<Thread>& thread_holder) {
   if (old_thread) {
     return old_thread;
   }
   std::unique_ptr<SocketServer> socket_server =
       rtc::CreateDefaultSocketServer();
-  thread_holder = std::make_unique<rtc::Thread>(socket_server.get());
+  thread_holder = std::make_unique<Thread>(socket_server.get());
   socket_factory_holder = std::move(socket_server);
 
   thread_holder->SetName("pc_network_thread", nullptr);
@@ -44,17 +44,16 @@ rtc::Thread* MaybeStartNetworkThread(
   return thread_holder.get();
 }
 
-rtc::Thread* MaybeWrapThread(rtc::Thread* signaling_thread,
-                             bool& wraps_current_thread) {
+Thread* MaybeWrapThread(Thread* signaling_thread, bool& wraps_current_thread) {
   wraps_current_thread = false;
   if (signaling_thread) {
     return signaling_thread;
   }
-  auto this_thread = rtc::Thread::Current();
+  auto this_thread = Thread::Current();
   if (!this_thread) {
     // If this thread isn't already wrapped by an rtc::Thread, create a
     // wrapper and own it in this class.
-    this_thread = rtc::ThreadManager::Instance()->WrapCurrentThread();
+    this_thread = ThreadManager::Instance()->WrapCurrentThread();
     wraps_current_thread = true;
   }
   return this_thread;
@@ -62,7 +61,7 @@ rtc::Thread* MaybeWrapThread(rtc::Thread* signaling_thread,
 
 std::unique_ptr<SctpTransportFactoryInterface> MaybeCreateSctpFactory(
     std::unique_ptr<SctpTransportFactoryInterface> factory,
-    rtc::Thread* network_thread) {
+    Thread* network_thread) {
   if (factory) {
     return factory;
   }
@@ -91,7 +90,7 @@ ConnectionContext::ConnectionContext(
                                               owned_network_thread_)),
       worker_thread_(dependencies->worker_thread,
                      []() {
-                       auto thread_holder = rtc::Thread::Create();
+                       auto thread_holder = Thread::Create();
                        thread_holder->SetName("pc_worker_thread", nullptr);
                        thread_holder->Start();
                        return thread_holder;
@@ -187,7 +186,7 @@ ConnectionContext::~ConnectionContext() {
   default_network_manager_ = nullptr;
 
   if (wraps_current_thread_)
-    rtc::ThreadManager::Instance()->UnwrapCurrentThread();
+    ThreadManager::Instance()->UnwrapCurrentThread();
 }
 
 }  // namespace webrtc

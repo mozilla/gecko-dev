@@ -83,7 +83,7 @@ class Peer {
         .WillOnce(Return(ByMove(std::move(socket_ptr))));
 
     sctp_transport_ = std::make_unique<webrtc::DcSctpTransport>(
-        env_, rtc::Thread::Current(), &fake_dtls_transport_,
+        env_, Thread::Current(), &fake_dtls_transport_,
         std::move(mock_dcsctp_socket_factory));
     sctp_transport_->SetDataChannelSink(&sink_);
     sctp_transport_->SetOnConnectedCallback([this]() { sink_.OnConnected(); });
@@ -99,7 +99,7 @@ class Peer {
 }  // namespace
 
 TEST(DcSctpTransportTest, OpenSequence) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
   peer_a.fake_dtls_transport_.SetWritable(true);
 
@@ -117,7 +117,7 @@ TEST(DcSctpTransportTest, OpenSequence) {
 // Tests that the close sequence invoked from one end results in the stream to
 // be reset from both ends and all the proper signals are sent.
 TEST(DcSctpTransportTest, CloseSequence) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
   Peer peer_b;
   peer_a.fake_dtls_transport_.SetDestination(&peer_b.fake_dtls_transport_,
@@ -167,7 +167,7 @@ TEST(DcSctpTransportTest, CloseSequence) {
 // terminates properly. Both peers will think they initiated it, so no
 // OnClosingProcedureStartedRemotely should be called.
 TEST(DcSctpTransportTest, CloseSequenceSimultaneous) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
   Peer peer_b;
   peer_a.fake_dtls_transport_.SetDestination(&peer_b.fake_dtls_transport_,
@@ -211,7 +211,7 @@ TEST(DcSctpTransportTest, CloseSequenceSimultaneous) {
 }
 
 TEST(DcSctpTransportTest, SetStreamPriority) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
 
   {
@@ -235,7 +235,7 @@ TEST(DcSctpTransportTest, SetStreamPriority) {
 }
 
 TEST(DcSctpTransportTest, DiscardMessageClosedChannel) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
 
   EXPECT_CALL(*peer_a.socket_, Send(_, _)).Times(0);
@@ -251,7 +251,7 @@ TEST(DcSctpTransportTest, DiscardMessageClosedChannel) {
 }
 
 TEST(DcSctpTransportTest, DiscardMessageClosingChannel) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
 
   EXPECT_CALL(*peer_a.socket_, Send(_, _)).Times(0);
@@ -269,7 +269,7 @@ TEST(DcSctpTransportTest, DiscardMessageClosingChannel) {
 }
 
 TEST(DcSctpTransportTest, SendDataOpenChannel) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
   dcsctp::DcSctpOptions options;
 
@@ -287,7 +287,7 @@ TEST(DcSctpTransportTest, SendDataOpenChannel) {
 }
 
 TEST(DcSctpTransportTest, DeliversMessage) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
 
   EXPECT_CALL(peer_a.sink_,
@@ -305,7 +305,7 @@ TEST(DcSctpTransportTest, DeliversMessage) {
 }
 
 TEST(DcSctpTransportTest, DropMessageWithUnknownPpid) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
 
   EXPECT_CALL(peer_a.sink_, OnDataReceived(_, _, _)).Times(0);

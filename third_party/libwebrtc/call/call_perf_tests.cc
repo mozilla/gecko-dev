@@ -863,8 +863,8 @@ void CallPerfTest::TestMinAudioVideoBitrate(int test_bitrate_from,
         send_simulated_network_->SetConfig(pipe_config);
         receive_simulated_network_->SetConfig(pipe_config);
 
-        rtc::Thread::SleepMs(quick_perf_test ? kShortDelayMs
-                                             : kBitrateStabilizationMs);
+        Thread::SleepMs(quick_perf_test ? kShortDelayMs
+                                        : kBitrateStabilizationMs);
 
         int64_t avg_rtt = 0;
         for (int i = 0; i < kBitrateMeasurements; i++) {
@@ -873,8 +873,8 @@ void CallPerfTest::TestMinAudioVideoBitrate(int test_bitrate_from,
             call_stats = sender_call_->GetStats();
           });
           avg_rtt += call_stats.rtt_ms;
-          rtc::Thread::SleepMs(quick_perf_test ? kShortDelayMs
-                                               : kBitrateMeasurementMs);
+          Thread::SleepMs(quick_perf_test ? kShortDelayMs
+                                          : kBitrateMeasurementMs);
         }
         avg_rtt = avg_rtt / kBitrateMeasurements;
         if (avg_rtt > kMinGoodRttMs) {

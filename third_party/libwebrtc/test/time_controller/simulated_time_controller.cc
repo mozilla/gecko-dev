@@ -53,7 +53,7 @@ SimulatedTimeControllerImpl::CreateTaskQueue(
   return task_queue;
 }
 
-std::unique_ptr<rtc::Thread> SimulatedTimeControllerImpl::CreateThread(
+std::unique_ptr<Thread> SimulatedTimeControllerImpl::CreateThread(
     const std::string& name,
     std::unique_ptr<SocketServer> socket_server) {
   auto thread =
@@ -182,13 +182,13 @@ TaskQueueFactory* GlobalSimulatedTimeController::GetTaskQueueFactory() {
   return &impl_;
 }
 
-std::unique_ptr<rtc::Thread> GlobalSimulatedTimeController::CreateThread(
+std::unique_ptr<Thread> GlobalSimulatedTimeController::CreateThread(
     const std::string& name,
     std::unique_ptr<SocketServer> socket_server) {
   return impl_.CreateThread(name, std::move(socket_server));
 }
 
-rtc::Thread* GlobalSimulatedTimeController::GetMainThread() {
+Thread* GlobalSimulatedTimeController::GetMainThread() {
   return main_thread_.get();
 }
 

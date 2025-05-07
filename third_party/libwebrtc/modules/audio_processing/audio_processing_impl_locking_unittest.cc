@@ -396,14 +396,14 @@ class AudioProcessingImplLockTest
   // Start the threads used in the test.
   void StartThreads() {
     const auto attributes =
-        rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kRealtime);
-    render_thread_ = rtc::PlatformThread::SpawnJoinable(
+        ThreadAttributes().SetPriority(ThreadPriority::kRealtime);
+    render_thread_ = PlatformThread::SpawnJoinable(
         [this] {
           while (!MaybeEndTest())
             render_thread_state_.Process();
         },
         "render", attributes);
-    capture_thread_ = rtc::PlatformThread::SpawnJoinable(
+    capture_thread_ = PlatformThread::SpawnJoinable(
         [this] {
           while (!MaybeEndTest()) {
             capture_thread_state_.Process();
@@ -411,7 +411,7 @@ class AudioProcessingImplLockTest
         },
         "capture", attributes);
 
-    stats_thread_ = rtc::PlatformThread::SpawnJoinable(
+    stats_thread_ = PlatformThread::SpawnJoinable(
         [this] {
           while (!MaybeEndTest())
             stats_thread_state_.Process();
@@ -433,9 +433,9 @@ class AudioProcessingImplLockTest
   RenderProcessor render_thread_state_;
   CaptureProcessor capture_thread_state_;
   StatsProcessor stats_thread_state_;
-  rtc::PlatformThread render_thread_;
-  rtc::PlatformThread capture_thread_;
-  rtc::PlatformThread stats_thread_;
+  PlatformThread render_thread_;
+  PlatformThread capture_thread_;
+  PlatformThread stats_thread_;
 };
 
 // Sleeps a random time between 0 and max_sleep milliseconds.

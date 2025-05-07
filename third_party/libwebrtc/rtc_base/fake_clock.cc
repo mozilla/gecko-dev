@@ -35,12 +35,12 @@ void ThreadProcessingFakeClock::SetTime(Timestamp time) {
   clock_.SetTime(time);
   // If message queues are waiting in a socket select() with a timeout provided
   // by the OS, they should wake up and dispatch all messages that are ready.
-  rtc::ThreadManager::ProcessAllMessageQueuesForTesting();
+  ThreadManager::ProcessAllMessageQueuesForTesting();
 }
 
 void ThreadProcessingFakeClock::AdvanceTime(TimeDelta delta) {
   clock_.AdvanceTime(delta);
-  rtc::ThreadManager::ProcessAllMessageQueuesForTesting();
+  ThreadManager::ProcessAllMessageQueuesForTesting();
 }
 
 ScopedBaseFakeClock::ScopedBaseFakeClock() {

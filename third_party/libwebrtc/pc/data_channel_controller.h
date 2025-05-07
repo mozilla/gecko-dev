@@ -100,8 +100,8 @@ class DataChannelController : public SctpDataChannelControllerInterface,
   bool HasUsedDataChannels() const;
 
  protected:
-  rtc::Thread* network_thread() const;
-  rtc::Thread* signaling_thread() const;
+  Thread* network_thread() const;
+  Thread* signaling_thread() const;
 
  private:
   void OnSctpDataChannelClosed(SctpDataChannel* channel);

@@ -1400,7 +1400,7 @@ index 3ff972f16e..34c6df46b4 100644
  
    return 0;
 diff --git a/modules/video_capture/video_capture_impl.h b/modules/video_capture/video_capture_impl.h
-index 5ec1fd4a83..e46e050609 100644
+index 3511867725..962aa29f86 100644
 --- a/modules/video_capture/video_capture_impl.h
 +++ b/modules/video_capture/video_capture_impl.h
 @@ -64,8 +64,10 @@ class RTC_EXPORT VideoCaptureImpl : public VideoCaptureModule {

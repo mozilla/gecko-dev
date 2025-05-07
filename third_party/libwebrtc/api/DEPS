@@ -84,6 +84,10 @@ specific_include_rules = {
     "+rtc_base/socket_address.h",
   ],
 
+  "create_peerconnection_factory\.h": [
+    "+rtc_base/thread.h",
+  ],
+
   "data_channel_interface\.h": [
     "+rtc_base/copy_on_write_buffer.h",
   ],

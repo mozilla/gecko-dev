@@ -230,7 +230,7 @@ class PeerConnectionUsageHistogramTest : public ::testing::Test {
 
     auto fake_network = std::make_unique<FakeNetworkManager>();
     fake_network->set_mdns_responder(
-        std::make_unique<FakeMdnsResponder>(rtc::Thread::Current()));
+        std::make_unique<FakeMdnsResponder>(Thread::Current()));
     fake_network->AddInterface(NextLocalAddress());
 
     return CreatePeerConnection(config,
@@ -275,9 +275,9 @@ class PeerConnectionUsageHistogramTest : public ::testing::Test {
       PeerConnectionDependencies deps,
       std::unique_ptr<rtc::NetworkManager> network_manager) {
     PeerConnectionFactoryDependencies pcf_deps;
-    pcf_deps.network_thread = rtc::Thread::Current();
-    pcf_deps.worker_thread = rtc::Thread::Current();
-    pcf_deps.signaling_thread = rtc::Thread::Current();
+    pcf_deps.network_thread = Thread::Current();
+    pcf_deps.worker_thread = Thread::Current();
+    pcf_deps.signaling_thread = Thread::Current();
     pcf_deps.socket_factory = &vss_;
     if (network_manager != nullptr) {
       pcf_deps.network_manager = std::move(network_manager);
@@ -322,7 +322,7 @@ class PeerConnectionUsageHistogramTest : public ::testing::Test {
 
   int next_local_address_ = 0;
   VirtualSocketServer vss_;
-  rtc::AutoSocketServerThread main_;
+  AutoSocketServerThread main_;
 };
 
 TEST_F(PeerConnectionUsageHistogramTest, UsageFingerprintHistogramFromTimeout) {

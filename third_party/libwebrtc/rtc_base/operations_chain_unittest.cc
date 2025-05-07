@@ -39,7 +39,7 @@ constexpr webrtc::TimeDelta kDefaultTimeout = webrtc::TimeDelta::Millis(3000);
 
 class OperationTracker {
  public:
-  OperationTracker() : background_thread_(Thread::Create()) {
+  OperationTracker() : background_thread_(webrtc::Thread::Create()) {
     background_thread_->Start();
   }
   // The caller is responsible for ensuring that no operations are pending.
@@ -91,7 +91,7 @@ class OperationTracker {
   void StartAsynchronousOperation(webrtc::Event* unblock_operation_event,
                                   webrtc::Event* operation_complete_event,
                                   std::function<void()> callback) {
-    Thread* current_thread = Thread::Current();
+    webrtc::Thread* current_thread = webrtc::Thread::Current();
     background_thread_->PostTask([this, current_thread, unblock_operation_event,
                                   operation_complete_event, callback]() {
       unblock_operation_event->Wait(webrtc::Event::kForever);
@@ -103,7 +103,7 @@ class OperationTracker {
     });
   }
 
-  std::unique_ptr<Thread> background_thread_;
+  std::unique_ptr<webrtc::Thread> background_thread_;
   std::vector<webrtc::Event*> completed_operation_events_;
 };
 
@@ -113,7 +113,7 @@ class OperationTracker {
 class OperationTrackerProxy {
  public:
   OperationTrackerProxy()
-      : operations_chain_thread_(Thread::Create()),
+      : operations_chain_thread_(webrtc::Thread::Create()),
         operation_tracker_(nullptr),
         operations_chain_(nullptr) {
     operations_chain_thread_->Start();
@@ -199,7 +199,7 @@ class OperationTrackerProxy {
   }
 
  private:
-  std::unique_ptr<Thread> operations_chain_thread_;
+  std::unique_ptr<webrtc::Thread> operations_chain_thread_;
   std::unique_ptr<OperationTracker> operation_tracker_;
   scoped_refptr<OperationsChain> operations_chain_;
 };
@@ -401,7 +401,7 @@ TEST(OperationsChainTest, IsEmpty) {
 }
 
 TEST(OperationsChainTest, OnChainEmptyCallback) {
-  rtc::AutoThread main_thread;
+  webrtc::AutoThread main_thread;
   OperationTrackerProxy operation_tracker_proxy;
   operation_tracker_proxy.Initialize()->Wait(webrtc::Event::kForever);
 

@@ -134,7 +134,7 @@ bool IsEmptyPPID(dcsctp::PPID ppid) {
 }  // namespace
 
 DcSctpTransport::DcSctpTransport(const Environment& env,
-                                 rtc::Thread* network_thread,
+                                 Thread* network_thread,
                                  cricket::DtlsTransportInternal* transport)
     : DcSctpTransport(env,
                       network_thread,
@@ -143,7 +143,7 @@ DcSctpTransport::DcSctpTransport(const Environment& env,
 
 DcSctpTransport::DcSctpTransport(
     const Environment& env,
-    rtc::Thread* network_thread,
+    Thread* network_thread,
     cricket::DtlsTransportInternal* transport,
     std::unique_ptr<dcsctp::DcSctpSocketFactory> socket_factory)
     : network_thread_(network_thread),

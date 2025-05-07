@@ -83,7 +83,7 @@ class BaseChannel : public ChannelInterface,
   // Constructor for use when the MediaChannels are split
   BaseChannel(
       webrtc::TaskQueueBase* worker_thread,
-      rtc::Thread* network_thread,
+      webrtc::Thread* network_thread,
       webrtc::TaskQueueBase* signaling_thread,
       std::unique_ptr<MediaSendChannelInterface> media_send_channel,
       std::unique_ptr<MediaReceiveChannelInterface> media_receive_channel,
@@ -94,7 +94,7 @@ class BaseChannel : public ChannelInterface,
   virtual ~BaseChannel();
 
   webrtc::TaskQueueBase* worker_thread() const { return worker_thread_; }
-  rtc::Thread* network_thread() const { return network_thread_; }
+  webrtc::Thread* network_thread() const { return network_thread_; }
   const std::string& mid() const override { return demuxer_criteria_.mid(); }
   // TODO(deadbeef): This is redundant; remove this.
   absl::string_view transport_name() const override {
@@ -313,7 +313,7 @@ class BaseChannel : public ChannelInterface,
   void SignalSentPacket_n(const rtc::SentPacket& sent_packet);
 
   webrtc::TaskQueueBase* const worker_thread_;
-  rtc::Thread* const network_thread_;
+  webrtc::Thread* const network_thread_;
   webrtc::TaskQueueBase* const signaling_thread_;
   rtc::scoped_refptr<webrtc::PendingTaskSafetyFlag> alive_;
 
@@ -371,7 +371,7 @@ class VoiceChannel : public BaseChannel {
  public:
   VoiceChannel(
       webrtc::TaskQueueBase* worker_thread,
-      rtc::Thread* network_thread,
+      webrtc::Thread* network_thread,
       webrtc::TaskQueueBase* signaling_thread,
       std::unique_ptr<VoiceMediaSendChannelInterface> send_channel_impl,
       std::unique_ptr<VoiceMediaReceiveChannelInterface> receive_channel_impl,
@@ -441,7 +441,7 @@ class VideoChannel : public BaseChannel {
  public:
   VideoChannel(
       webrtc::TaskQueueBase* worker_thread,
-      rtc::Thread* network_thread,
+      webrtc::Thread* network_thread,
       webrtc::TaskQueueBase* signaling_thread,
       std::unique_ptr<VideoMediaSendChannelInterface> media_send_channel,
       std::unique_ptr<VideoMediaReceiveChannelInterface> media_receive_channel,

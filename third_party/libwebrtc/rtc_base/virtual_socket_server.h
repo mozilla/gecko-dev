@@ -284,7 +284,7 @@ class VirtualSocketServer : public SocketServer {
   VirtualSocket* CreateSocket(int family, int type) override;
 
   // SocketServer:
-  void SetMessageQueue(rtc::Thread* queue) override;
+  void SetMessageQueue(Thread* queue) override;
   bool Wait(TimeDelta max_wait_duration, bool process_io) override;
   void WakeUp() override;
 
@@ -441,7 +441,7 @@ class VirtualSocketServer : public SocketServer {
 
   // Used to implement Wait/WakeUp.
   Event wakeup_;
-  rtc::Thread* msg_queue_;
+  Thread* msg_queue_;
   bool stop_on_idle_;
   in_addr next_ipv4_;
   in6_addr next_ipv6_;

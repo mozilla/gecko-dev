@@ -92,20 +92,19 @@ class FakePhysicalSocketServer : public PhysicalSocketServer {
   PhysicalSocketTest* test_;
 };
 
-class FakeNetworkBinder : public rtc::NetworkBinderInterface {
+class FakeNetworkBinder : public NetworkBinderInterface {
  public:
-  rtc::NetworkBindingResult BindSocketToNetwork(int,
-                                                const IPAddress&) override {
+  NetworkBindingResult BindSocketToNetwork(int, const IPAddress&) override {
     ++num_binds_;
     return result_;
   }
 
-  void set_result(rtc::NetworkBindingResult result) { result_ = result; }
+  void set_result(NetworkBindingResult result) { result_ = result; }
 
   int num_binds() { return num_binds_; }
 
  private:
-  rtc::NetworkBindingResult result_ = rtc::NetworkBindingResult::SUCCESS;
+  NetworkBindingResult result_ = rtc::NetworkBindingResult::SUCCESS;
   int num_binds_ = 0;
 };
 
@@ -131,7 +130,7 @@ class PhysicalSocketTest : public SocketTest {
   void WritableAfterPartialWrite(const IPAddress& loopback);
 
   FakePhysicalSocketServer server_;
-  rtc::AutoSocketServerThread thread_;
+  AutoSocketServerThread thread_;
   bool fail_accept_;
   int max_send_size_;
 };
@@ -501,7 +500,7 @@ TEST_F(PhysicalSocketTest,
   FakeNetworkBinder fake_network_binder;
   server_.set_network_binder(&fake_network_binder);
   std::unique_ptr<Socket> socket(server_.CreateSocket(AF_INET, SOCK_DGRAM));
-  fake_network_binder.set_result(rtc::NetworkBindingResult::FAILURE);
+  fake_network_binder.set_result(NetworkBindingResult::FAILURE);
   EXPECT_EQ(-1, socket->Bind(SocketAddress("192.168.0.1", 0)));
   server_.set_network_binder(nullptr);
 }
@@ -525,7 +524,7 @@ TEST_F(PhysicalSocketTest,
   FakeNetworkBinder fake_network_binder;
   server_.set_network_binder(&fake_network_binder);
   std::unique_ptr<Socket> socket(server_.CreateSocket(AF_INET, SOCK_DGRAM));
-  fake_network_binder.set_result(rtc::NetworkBindingResult::FAILURE);
+  fake_network_binder.set_result(NetworkBindingResult::FAILURE);
   EXPECT_EQ(0, socket->Bind(SocketAddress(kIPv4Loopback, 0)));
   server_.set_network_binder(nullptr);
 }

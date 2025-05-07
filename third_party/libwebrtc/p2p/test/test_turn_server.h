@@ -52,7 +52,7 @@ class TestTurnRedirector : public TurnRedirectInterface {
 
 class TestTurnServer : public TurnAuthInterface {
  public:
-  TestTurnServer(rtc::Thread* thread,
+  TestTurnServer(Thread* thread,
                  SocketFactory* socket_factory,
                  const SocketAddress& int_addr,
                  const SocketAddress& udp_ext_addr,

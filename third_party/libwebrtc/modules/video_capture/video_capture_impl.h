@@ -94,7 +94,7 @@ class RTC_EXPORT VideoCaptureImpl : public VideoCaptureModule {
   SequenceChecker api_checker_;
   // RaceChecker for members that can be accessed on the API thread while
   // capture is not happening, and on a callback thread otherwise.
-  rtc::RaceChecker capture_checker_;
+  RaceChecker capture_checker_;
   // current Device unique name;
   char* _deviceUniqueId RTC_GUARDED_BY(api_checker_);
 

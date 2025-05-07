@@ -725,13 +725,13 @@ VirtualSocket* VirtualSocketServer::CreateSocket(int family, int type) {
   return new VirtualSocket(this, family, type);
 }
 
-void VirtualSocketServer::SetMessageQueue(rtc::Thread* msg_queue) {
+void VirtualSocketServer::SetMessageQueue(Thread* msg_queue) {
   msg_queue_ = msg_queue;
 }
 
 bool VirtualSocketServer::Wait(TimeDelta max_wait_duration, bool process_io) {
   RTC_DCHECK_RUN_ON(msg_queue_);
-  if (stop_on_idle_ && rtc::Thread::Current()->empty()) {
+  if (stop_on_idle_ && Thread::Current()->empty()) {
     return false;
   }
   // Note: we don't need to do anything with `process_io` since we don't have
@@ -762,7 +762,7 @@ bool VirtualSocketServer::ProcessMessagesUntilIdle() {
       fake_clock_->AdvanceTime(TimeDelta::Millis(1));
     } else {
       // Otherwise, run a normal message loop.
-      msg_queue_->ProcessMessages(rtc::Thread::kForever);
+      msg_queue_->ProcessMessages(Thread::kForever);
     }
   }
   stop_on_idle_ = false;

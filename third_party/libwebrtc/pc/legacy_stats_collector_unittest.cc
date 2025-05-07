@@ -724,7 +724,7 @@ class LegacyStatsCollectorTest : public ::testing::Test {
   }
 
  private:
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
 };
 
 static rtc::scoped_refptr<MockRtpSenderInternal> CreateMockSender(
@@ -769,7 +769,7 @@ class StatsCollectorTrackTest : public LegacyStatsCollectorTest,
   void AddOutgoingVideoTrack(FakePeerConnectionForStats* pc,
                              LegacyStatsCollectorForTest* stats) {
     video_track_ = VideoTrack::Create(
-        kLocalTrackId, FakeVideoTrackSource::Create(), rtc::Thread::Current());
+        kLocalTrackId, FakeVideoTrackSource::Create(), Thread::Current());
     if (GetParam()) {
       if (!stream_)
         stream_ = MediaStream::Create("streamid");
@@ -785,7 +785,7 @@ class StatsCollectorTrackTest : public LegacyStatsCollectorTest,
   void AddIncomingVideoTrack(FakePeerConnectionForStats* pc,
                              LegacyStatsCollectorForTest* stats) {
     video_track_ = VideoTrack::Create(
-        kRemoteTrackId, FakeVideoTrackSource::Create(), rtc::Thread::Current());
+        kRemoteTrackId, FakeVideoTrackSource::Create(), Thread::Current());
     if (GetParam()) {
       stream_ = MediaStream::Create("streamid");
       stream_->AddTrack(video_track());
@@ -868,7 +868,7 @@ TEST(StatsCollectionTest, DetachAndMerge) {
 // Similar to `DetachAndMerge` above but detaches on one thread, merges on
 // another to test that we don't trigger sequence checker.
 TEST(StatsCollectionTest, DetachAndMergeThreaded) {
-  rtc::Thread new_thread(std::make_unique<NullSocketServer>());
+  Thread new_thread(std::make_unique<NullSocketServer>());
   new_thread.Start();
 
   StatsReport::Id id(

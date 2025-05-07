@@ -85,14 +85,13 @@ TEST(ChannelReceiveFrameTransformerDelegateTest,
 // transformer, it passes it to the channel using the ReceiveFrameCallback.
 TEST(ChannelReceiveFrameTransformerDelegateTest,
      TransformRunsChannelReceiveCallback) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   rtc::scoped_refptr<MockFrameTransformer> mock_frame_transformer =
       rtc::make_ref_counted<NiceMock<MockFrameTransformer>>();
   MockChannelReceive mock_channel;
   rtc::scoped_refptr<ChannelReceiveFrameTransformerDelegate> delegate =
       rtc::make_ref_counted<ChannelReceiveFrameTransformerDelegate>(
-          mock_channel.callback(), mock_frame_transformer,
-          rtc::Thread::Current());
+          mock_channel.callback(), mock_frame_transformer, Thread::Current());
   rtc::scoped_refptr<TransformedFrameCallback> callback;
   EXPECT_CALL(*mock_frame_transformer, RegisterTransformedFrameCallback)
       .WillOnce(SaveArg<0>(&callback));
@@ -110,21 +109,20 @@ TEST(ChannelReceiveFrameTransformerDelegateTest,
           });
   delegate->Transform(packet, header, /*ssrc=*/1111, /*mimeType=*/"audio/opus",
                       kFakeReceiveTimestamp);
-  rtc::ThreadManager::ProcessAllMessageQueuesForTesting();
+  ThreadManager::ProcessAllMessageQueuesForTesting();
 }
 
 // Test that when the delegate receives a Outgoing frame from the frame
 // transformer, it passes it to the channel using the ReceiveFrameCallback.
 TEST(ChannelReceiveFrameTransformerDelegateTest,
      TransformRunsChannelReceiveCallbackForSenderFrame) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   rtc::scoped_refptr<MockFrameTransformer> mock_frame_transformer =
       rtc::make_ref_counted<NiceMock<MockFrameTransformer>>();
   MockChannelReceive mock_channel;
   rtc::scoped_refptr<ChannelReceiveFrameTransformerDelegate> delegate =
       rtc::make_ref_counted<ChannelReceiveFrameTransformerDelegate>(
-          mock_channel.callback(), mock_frame_transformer,
-          rtc::Thread::Current());
+          mock_channel.callback(), mock_frame_transformer, Thread::Current());
   rtc::scoped_refptr<TransformedFrameCallback> callback;
   EXPECT_CALL(*mock_frame_transformer, RegisterTransformedFrameCallback)
       .WillOnce(SaveArg<0>(&callback));
@@ -145,7 +143,7 @@ TEST(ChannelReceiveFrameTransformerDelegateTest,
           });
   delegate->Transform(packet, header, /*ssrc=*/1111, /*mimeType=*/"audio/opus",
                       kFakeReceiveTimestamp);
-  rtc::ThreadManager::ProcessAllMessageQueuesForTesting();
+  ThreadManager::ProcessAllMessageQueuesForTesting();
 }
 
 // Test that if the delegate receives a transformed frame after it has been
@@ -153,37 +151,35 @@ TEST(ChannelReceiveFrameTransformerDelegateTest,
 // after resetting the delegate.
 TEST(ChannelReceiveFrameTransformerDelegateTest,
      OnTransformedDoesNotRunChannelReceiveCallbackAfterReset) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   rtc::scoped_refptr<MockFrameTransformer> mock_frame_transformer =
       rtc::make_ref_counted<testing::NiceMock<MockFrameTransformer>>();
   MockChannelReceive mock_channel;
   rtc::scoped_refptr<ChannelReceiveFrameTransformerDelegate> delegate =
       rtc::make_ref_counted<ChannelReceiveFrameTransformerDelegate>(
-          mock_channel.callback(), mock_frame_transformer,
-          rtc::Thread::Current());
+          mock_channel.callback(), mock_frame_transformer, Thread::Current());
 
   delegate->Reset();
   EXPECT_CALL(mock_channel, ReceiveFrame).Times(0);
   delegate->OnTransformedFrame(std::make_unique<MockTransformableAudioFrame>());
-  rtc::ThreadManager::ProcessAllMessageQueuesForTesting();
+  ThreadManager::ProcessAllMessageQueuesForTesting();
 }
 
 TEST(ChannelReceiveFrameTransformerDelegateTest,
      ShortCircuitingSkipsTransform) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   rtc::scoped_refptr<MockFrameTransformer> mock_frame_transformer =
       rtc::make_ref_counted<testing::NiceMock<MockFrameTransformer>>();
   MockChannelReceive mock_channel;
   rtc::scoped_refptr<ChannelReceiveFrameTransformerDelegate> delegate =
       rtc::make_ref_counted<ChannelReceiveFrameTransformerDelegate>(
-          mock_channel.callback(), mock_frame_transformer,
-          rtc::Thread::Current());
+          mock_channel.callback(), mock_frame_transformer, Thread::Current());
   const uint8_t data[] = {1, 2, 3, 4};
   rtc::ArrayView<const uint8_t> packet(data, sizeof(data));
   RTPHeader header;
 
   delegate->StartShortCircuiting();
-  rtc::ThreadManager::ProcessAllMessageQueuesForTesting();
+  ThreadManager::ProcessAllMessageQueuesForTesting();
 
   // Will not call the actual transformer.
   EXPECT_CALL(*mock_frame_transformer, Transform).Times(0);
@@ -195,13 +191,13 @@ TEST(ChannelReceiveFrameTransformerDelegateTest,
 
 TEST(ChannelReceiveFrameTransformerDelegateTest,
      AudioLevelAndCaptureTimeAbsentWithoutExtension) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   rtc::scoped_refptr<MockFrameTransformer> mock_frame_transformer =
       rtc::make_ref_counted<NiceMock<MockFrameTransformer>>();
   rtc::scoped_refptr<ChannelReceiveFrameTransformerDelegate> delegate =
       rtc::make_ref_counted<ChannelReceiveFrameTransformerDelegate>(
           /*receive_frame_callback=*/nullptr, mock_frame_transformer,
-          rtc::Thread::Current());
+          Thread::Current());
   rtc::scoped_refptr<TransformedFrameCallback> callback;
   EXPECT_CALL(*mock_frame_transformer, RegisterTransformedFrameCallback)
       .WillOnce(SaveArg<0>(&callback));
@@ -232,13 +228,13 @@ TEST(ChannelReceiveFrameTransformerDelegateTest,
 
 TEST(ChannelReceiveFrameTransformerDelegateTest,
      AudioLevelPresentWithExtension) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   rtc::scoped_refptr<MockFrameTransformer> mock_frame_transformer =
       rtc::make_ref_counted<NiceMock<MockFrameTransformer>>();
   rtc::scoped_refptr<ChannelReceiveFrameTransformerDelegate> delegate =
       rtc::make_ref_counted<ChannelReceiveFrameTransformerDelegate>(
           /*receive_frame_callback=*/nullptr, mock_frame_transformer,
-          rtc::Thread::Current());
+          Thread::Current());
   rtc::scoped_refptr<TransformedFrameCallback> callback;
   EXPECT_CALL(*mock_frame_transformer, RegisterTransformedFrameCallback)
       .WillOnce(SaveArg<0>(&callback));
@@ -270,13 +266,13 @@ TEST(ChannelReceiveFrameTransformerDelegateTest,
 
 TEST(ChannelReceiveFrameTransformerDelegateTest,
      CaptureTimePresentWithExtension) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   rtc::scoped_refptr<MockFrameTransformer> mock_frame_transformer =
       rtc::make_ref_counted<NiceMock<MockFrameTransformer>>();
   rtc::scoped_refptr<ChannelReceiveFrameTransformerDelegate> delegate =
       rtc::make_ref_counted<ChannelReceiveFrameTransformerDelegate>(
           /*receive_frame_callback=*/nullptr, mock_frame_transformer,
-          rtc::Thread::Current());
+          Thread::Current());
   rtc::scoped_refptr<TransformedFrameCallback> callback;
   EXPECT_CALL(*mock_frame_transformer, RegisterTransformedFrameCallback)
       .WillOnce(SaveArg<0>(&callback));

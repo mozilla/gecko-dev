@@ -206,7 +206,7 @@ Socket* FirewallSocketServer::CreateSocket(int family, int type) {
   return WrapSocket(server_->CreateSocket(family, type), type);
 }
 
-void FirewallSocketServer::SetMessageQueue(rtc::Thread* queue) {
+void FirewallSocketServer::SetMessageQueue(Thread* queue) {
   server_->SetMessageQueue(queue);
 }
 

@@ -218,8 +218,8 @@ bool PeerConnectionIntegrationWrapper::Init(
     const PeerConnectionInterface::RTCConfiguration* config,
     PeerConnectionDependencies dependencies,
     SocketServer* socket_server,
-    rtc::Thread* network_thread,
-    rtc::Thread* worker_thread,
+    Thread* network_thread,
+    Thread* worker_thread,
     std::unique_ptr<FieldTrialsView> field_trials,
     std::unique_ptr<FakeRtcEventLogFactory> event_log_factory,
     bool reset_encoder_factory,
@@ -239,7 +239,7 @@ bool PeerConnectionIntegrationWrapper::Init(
   if (!fake_audio_capture_module_) {
     return false;
   }
-  rtc::Thread* const signaling_thread = rtc::Thread::Current();
+  Thread* const signaling_thread = Thread::Current();
 
   PeerConnectionFactoryDependencies pc_factory_dependencies;
   pc_factory_dependencies.network_thread = network_thread;

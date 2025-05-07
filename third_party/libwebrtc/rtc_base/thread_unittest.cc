@@ -49,7 +49,7 @@
 
 #endif
 
-namespace rtc {
+namespace webrtc {
 namespace {
 
 using ::testing::ElementsAre;
@@ -74,7 +74,7 @@ class TestGenerator {
 // Receives messages and sends on a socket.
 class MessageClient : public TestGenerator {
  public:
-  MessageClient(Thread* pth, webrtc::Socket* socket) : socket_(socket) {}
+  MessageClient(Thread* pth, Socket* socket) : socket_(socket) {}
 
   ~MessageClient() { delete socket_; }
 
@@ -84,17 +84,17 @@ class MessageClient : public TestGenerator {
   }
 
  private:
-  webrtc::Socket* socket_;
+  Socket* socket_;
 };
 
 // Receives on a socket and sends by posting messages.
 class SocketClient : public TestGenerator, public sigslot::has_slots<> {
  public:
-  SocketClient(webrtc::Socket* socket,
-               const webrtc::SocketAddress& addr,
+  SocketClient(Socket* socket,
+               const SocketAddress& addr,
                Thread* post_thread,
                MessageClient* phandler)
-      : socket_(webrtc::AsyncUDPSocket::Create(socket, addr)),
+      : socket_(AsyncUDPSocket::Create(socket, addr)),
         post_thread_(post_thread),
         post_handler_(phandler) {
     socket_->RegisterReceivedPacketCallback(
@@ -105,10 +105,9 @@ class SocketClient : public TestGenerator, public sigslot::has_slots<> {
 
   ~SocketClient() override { delete socket_; }
 
-  webrtc::SocketAddress address() const { return socket_->GetLocalAddress(); }
+  SocketAddress address() const { return socket_->GetLocalAddress(); }
 
-  void OnPacket(webrtc::AsyncPacketSocket* socket,
-                const rtc::ReceivedPacket& packet) {
+  void OnPacket(AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {
     EXPECT_EQ(packet.payload().size(), sizeof(uint32_t));
     uint32_t prev =
         reinterpret_cast<const uint32_t*>(packet.payload().data())[0];
@@ -120,16 +119,15 @@ class SocketClient : public TestGenerator, public sigslot::has_slots<> {
   }
 
  private:
-  webrtc::AsyncUDPSocket* socket_;
+  AsyncUDPSocket* socket_;
   Thread* post_thread_;
   MessageClient* post_handler_;
 };
 
-class CustomThread : public rtc::Thread {
+class CustomThread : public Thread {
  public:
   CustomThread()
-      : Thread(std::unique_ptr<webrtc::SocketServer>(
-            new webrtc::NullSocketServer())) {}
+      : Thread(std::unique_ptr<SocketServer>(new NullSocketServer())) {}
   ~CustomThread() override { Stop(); }
   bool Start() { return false; }
 
@@ -141,9 +139,8 @@ class CustomThread : public rtc::Thread {
 // when it is destroyed.
 class SignalWhenDestroyedThread : public Thread {
  public:
-  SignalWhenDestroyedThread(webrtc::Event* event)
-      : Thread(std::unique_ptr<webrtc::SocketServer>(
-            new webrtc::NullSocketServer())),
+  SignalWhenDestroyedThread(Event* event)
+      : Thread(std::unique_ptr<SocketServer>(new NullSocketServer())),
         event_(event) {}
 
   ~SignalWhenDestroyedThread() override {
@@ -156,23 +153,22 @@ class SignalWhenDestroyedThread : public Thread {
   }
 
  private:
-  webrtc::Event* event_;
+  Event* event_;
 };
 
 // See: https://code.google.com/p/webrtc/issues/detail?id=2409
 TEST(ThreadTest, DISABLED_Main) {
-  rtc::AutoThread main_thread;
-  const webrtc::SocketAddress addr("127.0.0.1", 0);
+  AutoThread main_thread;
+  const SocketAddress addr("127.0.0.1", 0);
 
   // Create the messaging client on its own thread.
   auto th1 = Thread::CreateWithSocketServer();
-  webrtc::Socket* socket =
-      th1->socketserver()->CreateSocket(addr.family(), SOCK_DGRAM);
+  Socket* socket = th1->socketserver()->CreateSocket(addr.family(), SOCK_DGRAM);
   MessageClient msg_client(th1.get(), socket);
 
   // Create the socket client on its own thread.
   auto th2 = Thread::CreateWithSocketServer();
-  webrtc::Socket* asocket =
+  Socket* asocket =
       th2->socketserver()->CreateSocket(addr.family(), SOCK_DGRAM);
   SocketClient sock_client(asocket, addr, th1.get(), &msg_client);
 
@@ -204,7 +200,7 @@ TEST(ThreadTest, DISABLED_Main) {
 }
 
 TEST(ThreadTest, CountBlockingCalls) {
-  rtc::AutoThread current;
+  AutoThread current;
 
   // When the test runs, this will print out:
   //   (thread_unittest.cc:262): Blocking TestBody: total=2 (actual=1, could=1)
@@ -357,7 +353,7 @@ TEST(ThreadTest, InvokesDisallowedWhenDisallowAllInvokes) {
 #endif  // (!defined(NDEBUG) || RTC_DCHECK_IS_ON)
 
 TEST(ThreadTest, InvokesAllowedByDefault) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   // Create and start the thread.
   auto thread1 = Thread::CreateWithSocketServer();
   auto thread2 = Thread::CreateWithSocketServer();
@@ -434,17 +430,17 @@ TEST(ThreadTest, ThreeThreadsBlockingCall) {
     explicit LockedBool(bool value) : value_(value) {}
 
     void Set(bool value) {
-      webrtc::MutexLock lock(&mutex_);
+      MutexLock lock(&mutex_);
       value_ = value;
     }
 
     bool Get() {
-      webrtc::MutexLock lock(&mutex_);
+      MutexLock lock(&mutex_);
       return value_;
     }
 
    private:
-    webrtc::Mutex mutex_;
+    Mutex mutex_;
     bool value_ RTC_GUARDED_BY(mutex_);
   };
 
@@ -496,12 +492,12 @@ TEST(ThreadTest, ThreeThreadsBlockingCall) {
 }
 
 static void DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(
-    webrtc::FakeClock& clock,
+    FakeClock& clock,
     Thread& q) {
   std::vector<int> run_order;
 
-  webrtc::Event done;
-  int64_t now = webrtc::TimeMillis();
+  Event done;
+  int64_t now = TimeMillis();
   q.PostDelayedTask([&] { run_order.push_back(3); }, TimeDelta::Millis(3));
   q.PostDelayedTask([&] { run_order.push_back(0); }, TimeDelta::Millis(1));
   q.PostDelayedTask([&] { run_order.push_back(1); }, TimeDelta::Millis(2));
@@ -509,7 +505,7 @@ static void DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(
   q.PostDelayedTask([&] { run_order.push_back(2); }, TimeDelta::Millis(2));
   q.PostDelayedTask([&] { done.Set(); }, TimeDelta::Millis(4));
   // Validate time was frozen while tasks were posted.
-  RTC_DCHECK_EQ(webrtc::TimeMillis(), now);
+  RTC_DCHECK_EQ(TimeMillis(), now);
 
   // Change time to make all tasks ready to run and wait for them.
   clock.AdvanceTime(TimeDelta::Millis(4));
@@ -519,12 +515,12 @@ static void DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(
 }
 
 TEST(ThreadTest, DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder) {
-  webrtc::ScopedBaseFakeClock clock;
-  Thread q(CreateDefaultSocketServer(), true);
+  ScopedBaseFakeClock clock;
+  Thread q(rtc::CreateDefaultSocketServer(), true);
   q.Start();
   DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(clock, q);
 
-  webrtc::NullSocketServer nullss;
+  NullSocketServer nullss;
   Thread q_nullss(&nullss, true);
   q_nullss.Start();
   DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(clock, q_nullss);
@@ -534,8 +530,8 @@ TEST(ThreadTest, DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder) {
 // all messages (both delayed and non delayed) up until the current time, on
 // all registered message queues.
 TEST(ThreadManager, ProcessAllMessageQueues) {
-  rtc::AutoThread main_thread;
-  webrtc::Event entered_process_all_message_queues(true, false);
+  AutoThread main_thread;
+  Event entered_process_all_message_queues(true, false);
   auto a = Thread::CreateWithSocketServer();
   auto b = Thread::CreateWithSocketServer();
   a->Start();
@@ -548,7 +544,7 @@ TEST(ThreadManager, ProcessAllMessageQueues) {
     // of ProcessAllMessageQueues. The event is set by a message posted to
     // the main thread, which is guaranteed to be handled inside
     // ProcessAllMessageQueues.
-    entered_process_all_message_queues.Wait(webrtc::Event::kForever);
+    entered_process_all_message_queues.Wait(Event::kForever);
     messages_processed.fetch_add(1);
   };
   auto event_signaler = [&entered_process_all_message_queues] {
@@ -574,8 +570,8 @@ TEST(ThreadManager, ProcessAllMessageQueuesWithQuittingThread) {
   ThreadManager::ProcessAllMessageQueuesForTesting();
 }
 
-void WaitAndSetEvent(webrtc::Event* wait_event, webrtc::Event* set_event) {
-  wait_event->Wait(webrtc::Event::kForever);
+void WaitAndSetEvent(Event* wait_event, Event* set_event) {
+  wait_event->Wait(Event::kForever);
   set_event->Set();
 }
 
@@ -587,8 +583,7 @@ class LifeCycleFunctor {
     size_t move_count = 0;
   };
 
-  LifeCycleFunctor(Stats* stats, webrtc::Event* event)
-      : stats_(stats), event_(event) {}
+  LifeCycleFunctor(Stats* stats, Event* event) : stats_(stats), event_(event) {}
   LifeCycleFunctor(const LifeCycleFunctor& other) { *this = other; }
   LifeCycleFunctor(LifeCycleFunctor&& other) { *this = std::move(other); }
 
@@ -610,15 +605,13 @@ class LifeCycleFunctor {
 
  private:
   Stats* stats_;
-  webrtc::Event* event_;
+  Event* event_;
 };
 
 // A functor that verifies the thread it was destroyed on.
 class DestructionFunctor {
  public:
-  DestructionFunctor(Thread* thread,
-                     bool* thread_was_current,
-                     webrtc::Event* event)
+  DestructionFunctor(Thread* thread, bool* thread_was_current, Event* event)
       : thread_(thread),
         thread_was_current_(thread_was_current),
         event_(event) {}
@@ -637,111 +630,111 @@ class DestructionFunctor {
  private:
   Thread* thread_;
   bool* thread_was_current_;
-  webrtc::Event* event_;
+  Event* event_;
   bool was_invoked_ = false;
 };
 
 TEST(ThreadPostTaskTest, InvokesWithLambda) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
-  webrtc::Event event;
+  Event event;
   background_thread->PostTask([&event] { event.Set(); });
-  event.Wait(webrtc::Event::kForever);
+  event.Wait(Event::kForever);
 }
 
 TEST(ThreadPostTaskTest, InvokesWithCopiedFunctor) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   LifeCycleFunctor::Stats stats;
-  webrtc::Event event;
+  Event event;
   LifeCycleFunctor functor(&stats, &event);
   background_thread->PostTask(functor);
-  event.Wait(webrtc::Event::kForever);
+  event.Wait(Event::kForever);
 
   EXPECT_EQ(1u, stats.copy_count);
   EXPECT_EQ(0u, stats.move_count);
 }
 
 TEST(ThreadPostTaskTest, InvokesWithMovedFunctor) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   LifeCycleFunctor::Stats stats;
-  webrtc::Event event;
+  Event event;
   LifeCycleFunctor functor(&stats, &event);
   background_thread->PostTask(std::move(functor));
-  event.Wait(webrtc::Event::kForever);
+  event.Wait(Event::kForever);
 
   EXPECT_EQ(0u, stats.copy_count);
   EXPECT_EQ(1u, stats.move_count);
 }
 
 TEST(ThreadPostTaskTest, InvokesWithReferencedFunctorShouldCopy) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   LifeCycleFunctor::Stats stats;
-  webrtc::Event event;
+  Event event;
   LifeCycleFunctor functor(&stats, &event);
   LifeCycleFunctor& functor_ref = functor;
   background_thread->PostTask(functor_ref);
-  event.Wait(webrtc::Event::kForever);
+  event.Wait(Event::kForever);
 
   EXPECT_EQ(1u, stats.copy_count);
   EXPECT_EQ(0u, stats.move_count);
 }
 
 TEST(ThreadPostTaskTest, InvokesWithCopiedFunctorDestroyedOnTargetThread) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
-  webrtc::Event event;
+  Event event;
   bool was_invoked_on_background_thread = false;
   DestructionFunctor functor(background_thread.get(),
                              &was_invoked_on_background_thread, &event);
   background_thread->PostTask(functor);
-  event.Wait(webrtc::Event::kForever);
+  event.Wait(Event::kForever);
 
   EXPECT_TRUE(was_invoked_on_background_thread);
 }
 
 TEST(ThreadPostTaskTest, InvokesWithMovedFunctorDestroyedOnTargetThread) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
-  webrtc::Event event;
+  Event event;
   bool was_invoked_on_background_thread = false;
   DestructionFunctor functor(background_thread.get(),
                              &was_invoked_on_background_thread, &event);
   background_thread->PostTask(std::move(functor));
-  event.Wait(webrtc::Event::kForever);
+  event.Wait(Event::kForever);
 
   EXPECT_TRUE(was_invoked_on_background_thread);
 }
 
 TEST(ThreadPostTaskTest,
      InvokesWithReferencedFunctorShouldCopyAndDestroyedOnTargetThread) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
-  webrtc::Event event;
+  Event event;
   bool was_invoked_on_background_thread = false;
   DestructionFunctor functor(background_thread.get(),
                              &was_invoked_on_background_thread, &event);
   DestructionFunctor& functor_ref = functor;
   background_thread->PostTask(functor_ref);
-  event.Wait(webrtc::Event::kForever);
+  event.Wait(Event::kForever);
 
   EXPECT_TRUE(was_invoked_on_background_thread);
 }
 
 TEST(ThreadPostTaskTest, InvokesOnBackgroundThread) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
-  webrtc::Event event;
+  Event event;
   bool was_invoked_on_background_thread = false;
   Thread* background_thread_ptr = background_thread.get();
   background_thread->PostTask(
@@ -749,35 +742,35 @@ TEST(ThreadPostTaskTest, InvokesOnBackgroundThread) {
         was_invoked_on_background_thread = background_thread_ptr->IsCurrent();
         event.Set();
       });
-  event.Wait(webrtc::Event::kForever);
+  event.Wait(Event::kForever);
 
   EXPECT_TRUE(was_invoked_on_background_thread);
 }
 
 TEST(ThreadPostTaskTest, InvokesAsynchronously) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   // The first event ensures that SendSingleMessage() is not blocking this
   // thread. The second event ensures that the message is processed.
-  webrtc::Event event_set_by_test_thread;
-  webrtc::Event event_set_by_background_thread;
+  Event event_set_by_test_thread;
+  Event event_set_by_background_thread;
   background_thread->PostTask([&event_set_by_test_thread,
                                &event_set_by_background_thread] {
     WaitAndSetEvent(&event_set_by_test_thread, &event_set_by_background_thread);
   });
   event_set_by_test_thread.Set();
-  event_set_by_background_thread.Wait(webrtc::Event::kForever);
+  event_set_by_background_thread.Wait(Event::kForever);
 }
 
 TEST(ThreadPostTaskTest, InvokesInPostedOrder) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
-  webrtc::Event first;
-  webrtc::Event second;
-  webrtc::Event third;
-  webrtc::Event fourth;
+  Event first;
+  Event second;
+  Event third;
+  Event fourth;
 
   background_thread->PostTask(
       [&first, &second] { WaitAndSetEvent(&first, &second); });
@@ -789,17 +782,17 @@ TEST(ThreadPostTaskTest, InvokesInPostedOrder) {
   // All tasks have been posted before the first one is unblocked.
   first.Set();
   // Only if the chain is invoked in posted order will the last event be set.
-  fourth.Wait(webrtc::Event::kForever);
+  fourth.Wait(Event::kForever);
 }
 
 TEST(ThreadPostDelayedTaskTest, InvokesAsynchronously) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   // The first event ensures that SendSingleMessage() is not blocking this
   // thread. The second event ensures that the message is processed.
-  webrtc::Event event_set_by_test_thread;
-  webrtc::Event event_set_by_background_thread;
+  Event event_set_by_test_thread;
+  Event event_set_by_background_thread;
   background_thread->PostDelayedTask(
       [&event_set_by_test_thread, &event_set_by_background_thread] {
         WaitAndSetEvent(&event_set_by_test_thread,
@@ -807,18 +800,18 @@ TEST(ThreadPostDelayedTaskTest, InvokesAsynchronously) {
       },
       TimeDelta::Millis(10));
   event_set_by_test_thread.Set();
-  event_set_by_background_thread.Wait(webrtc::Event::kForever);
+  event_set_by_background_thread.Wait(Event::kForever);
 }
 
 TEST(ThreadPostDelayedTaskTest, InvokesInDelayOrder) {
-  webrtc::ScopedFakeClock clock;
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  ScopedFakeClock clock;
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
-  webrtc::Event first;
-  webrtc::Event second;
-  webrtc::Event third;
-  webrtc::Event fourth;
+  Event first;
+  Event second;
+  Event third;
+  Event fourth;
 
   background_thread->PostDelayedTask(
       [&third, &fourth] { WaitAndSetEvent(&third, &fourth); },
@@ -838,31 +831,30 @@ TEST(ThreadPostDelayedTaskTest, InvokesInDelayOrder) {
 }
 
 TEST(ThreadPostDelayedTaskTest, IsCurrentTaskQueue) {
-  auto current_tq = webrtc::TaskQueueBase::Current();
+  auto current_tq = TaskQueueBase::Current();
   {
-    std::unique_ptr<rtc::Thread> thread(rtc::Thread::Create());
+    std::unique_ptr<Thread> thread(rtc::Thread::Create());
     thread->WrapCurrent();
-    EXPECT_EQ(webrtc::TaskQueueBase::Current(),
-              static_cast<webrtc::TaskQueueBase*>(thread.get()));
+    EXPECT_EQ(TaskQueueBase::Current(),
+              static_cast<TaskQueueBase*>(thread.get()));
     thread->UnwrapCurrent();
   }
-  EXPECT_EQ(webrtc::TaskQueueBase::Current(), current_tq);
+  EXPECT_EQ(TaskQueueBase::Current(), current_tq);
 }
 
-class ThreadFactory : public webrtc::TaskQueueFactory {
+class ThreadFactory : public TaskQueueFactory {
  public:
-  std::unique_ptr<webrtc::TaskQueueBase, webrtc::TaskQueueDeleter>
-  CreateTaskQueue(absl::string_view /* name */,
-                  Priority /*priority*/) const override {
+  std::unique_ptr<TaskQueueBase, TaskQueueDeleter> CreateTaskQueue(
+      absl::string_view /* name */,
+      Priority /*priority*/) const override {
     std::unique_ptr<Thread> thread = Thread::Create();
     thread->Start();
-    return std::unique_ptr<webrtc::TaskQueueBase, webrtc::TaskQueueDeleter>(
-        thread.release());
+    return std::unique_ptr<TaskQueueBase, TaskQueueDeleter>(thread.release());
   }
 };
 
-std::unique_ptr<webrtc::TaskQueueFactory> CreateDefaultThreadFactory(
-    const webrtc::FieldTrialsView*) {
+std::unique_ptr<TaskQueueFactory> CreateDefaultThreadFactory(
+    const FieldTrialsView*) {
   return std::make_unique<ThreadFactory>();
 }
 
@@ -873,4 +865,4 @@ INSTANTIATE_TEST_SUITE_P(RtcThread,
                          ::testing::Values(CreateDefaultThreadFactory));
 
 }  // namespace
-}  // namespace rtc
+}  // namespace webrtc

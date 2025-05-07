@@ -294,7 +294,7 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
   webrtc::TestStunServer* stun_server_1() { return stun_servers_[0].get(); }
   webrtc::TestStunServer* stun_server_2() { return stun_servers_[1].get(); }
 
-  rtc::AutoSocketServerThread& thread() { return thread_; }
+  webrtc::AutoSocketServerThread& thread() { return thread_; }
   webrtc::SocketFactory* nat_factory() { return &nat_factory_; }
 
  private:
@@ -302,7 +302,7 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
   rtc::Network* network_;
 
   std::unique_ptr<webrtc::VirtualSocketServer> ss_;
-  rtc::AutoSocketServerThread thread_;
+  webrtc::AutoSocketServerThread thread_;
   webrtc::NATSocketFactory nat_factory_;
   webrtc::BasicPacketSocketFactory nat_socket_factory_;
   std::unique_ptr<cricket::UDPPort> stun_port_;

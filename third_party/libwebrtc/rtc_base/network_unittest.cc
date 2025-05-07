@@ -74,7 +74,7 @@ webrtc::IPAddress IPFromString(absl::string_view str) {
   return ip;
 }
 
-class FakeNetworkMonitor : public NetworkMonitorInterface {
+class FakeNetworkMonitor : public webrtc::NetworkMonitorInterface {
  public:
   void Start() override { started_ = true; }
   void Stop() override { started_ = false; }
@@ -99,19 +99,20 @@ class FakeNetworkMonitor : public NetworkMonitorInterface {
 
   bool SupportsBindSocketToNetwork() const override { return true; }
 
-  NetworkBindingResult BindSocketToNetwork(int socket_fd,
-                                           const webrtc::IPAddress& address,
-                                           absl::string_view if_name) override {
+  webrtc::NetworkBindingResult BindSocketToNetwork(
+      int socket_fd,
+      const webrtc::IPAddress& address,
+      absl::string_view if_name) override {
     if (absl::c_count(addresses_, address) > 0) {
-      return NetworkBindingResult::SUCCESS;
+      return webrtc::NetworkBindingResult::SUCCESS;
     }
 
     for (auto const& iter : adapters_) {
       if (absl::StrContains(if_name, iter)) {
-        return NetworkBindingResult::SUCCESS;
+        return webrtc::NetworkBindingResult::SUCCESS;
       }
     }
-    return NetworkBindingResult::ADDRESS_NOT_FOUND;
+    return webrtc::NetworkBindingResult::ADDRESS_NOT_FOUND;
   }
 
   void set_ip_addresses(std::vector<webrtc::IPAddress> addresses) {
@@ -134,7 +135,7 @@ class FakeNetworkMonitor : public NetworkMonitorInterface {
 class FakeNetworkMonitorFactory : public NetworkMonitorFactory {
  public:
   FakeNetworkMonitorFactory() {}
-  NetworkMonitorInterface* CreateNetworkMonitor(
+  webrtc::NetworkMonitorInterface* CreateNetworkMonitor(
       const webrtc::FieldTrialsView& field_trials) override {
     return new FakeNetworkMonitor();
   }
@@ -332,7 +333,7 @@ class NetworkTest : public ::testing::Test, public sigslot::has_slots<> {
 
  protected:
   webrtc::test::ScopedKeyValueConfig field_trials_;
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   bool callback_called_;
 };
 
@@ -438,14 +439,14 @@ TEST_F(NetworkTest, TestUpdateNetworks) {
   EXPECT_EQ(NetworkManager::ENUMERATION_ALLOWED,
             manager.enumeration_permission());
   manager.StartUpdating();
-  Thread::Current()->ProcessMessages(0);
+  webrtc::Thread::Current()->ProcessMessages(0);
   EXPECT_TRUE(callback_called_);
   callback_called_ = false;
   // Callback should be triggered immediately when StartUpdating
   // is called, after network update signal is already sent.
   manager.StartUpdating();
   EXPECT_TRUE(manager.started());
-  Thread::Current()->ProcessMessages(0);
+  webrtc::Thread::Current()->ProcessMessages(0);
   EXPECT_TRUE(callback_called_);
   manager.StopUpdating();
   EXPECT_TRUE(manager.started());
@@ -459,7 +460,7 @@ TEST_F(NetworkTest, TestUpdateNetworks) {
   // Callback should be triggered immediately after StartUpdating is called
   // when start_count_ is reset to 0.
   manager.StartUpdating();
-  Thread::Current()->ProcessMessages(0);
+  webrtc::Thread::Current()->ProcessMessages(0);
   EXPECT_TRUE(callback_called_);
 }
 
@@ -1511,11 +1512,11 @@ TEST_F(NetworkTest, WebRTC_BindUsingInterfaceName) {
   network_monitor->set_adapters({"wlan0"});
   network_monitor->set_ip_addresses({ipv6});
   EXPECT_EQ(manager.BindSocketToNetwork(/* fd */ 77, ipv6),
-            NetworkBindingResult::SUCCESS);
+            webrtc::NetworkBindingResult::SUCCESS);
 
   // But it will bind anyway using string matching...
   EXPECT_EQ(manager.BindSocketToNetwork(/* fd */ 77, ipv4),
-            NetworkBindingResult::SUCCESS);
+            webrtc::NetworkBindingResult::SUCCESS);
 }
 #endif
 

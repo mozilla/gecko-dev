@@ -111,7 +111,7 @@ void TrackMediaInfoMap::Initialize(
     std::optional<cricket::VideoMediaInfo> video_media_info,
     rtc::ArrayView<rtc::scoped_refptr<RtpSenderInternal>> rtp_senders,
     rtc::ArrayView<rtc::scoped_refptr<RtpReceiverInternal>> rtp_receivers) {
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
   RTC_DCHECK(!is_initialized_);
   is_initialized_ = true;
   voice_media_info_ = std::move(voice_media_info);

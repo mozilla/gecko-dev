@@ -55,13 +55,13 @@ class RegatheringControllerTest : public ::testing::Test,
         packet_socket_factory_(
             std::make_unique<BasicPacketSocketFactory>(vss_.get())),
         allocator_(std::make_unique<cricket::FakePortAllocator>(
-            rtc::Thread::Current(),
+            Thread::Current(),
             packet_socket_factory_.get(),
             &field_trials_)) {
     BasicRegatheringController::Config regathering_config;
     regathering_config.regather_on_failed_networks_interval = 0;
     regathering_controller_.reset(new BasicRegatheringController(
-        regathering_config, ice_transport_.get(), rtc::Thread::Current()));
+        regathering_config, ice_transport_.get(), Thread::Current()));
   }
 
   // Initializes the allocator and gathers candidates once by StartGettingPorts.
@@ -111,7 +111,7 @@ class RegatheringControllerTest : public ::testing::Test,
  private:
   webrtc::test::ScopedKeyValueConfig field_trials_;
   std::unique_ptr<VirtualSocketServer> vss_;
-  rtc::AutoSocketServerThread thread_;
+  AutoSocketServerThread thread_;
   std::unique_ptr<IceTransportInternal> ice_transport_;
   std::unique_ptr<BasicRegatheringController> regathering_controller_;
   std::unique_ptr<PacketSocketFactory> packet_socket_factory_;

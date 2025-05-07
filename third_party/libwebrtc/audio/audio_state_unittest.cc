@@ -469,7 +469,7 @@ TEST_P(AudioStateTest, AlwaysCallInitPlayoutBeforeStartPlayout) {
   }
 
   // SetPlayout(false) starts the NullAudioPoller...which needs a thread.
-  rtc::ThreadManager::Instance()->WrapCurrentThread();
+  ThreadManager::Instance()->WrapCurrentThread();
 
   EXPECT_CALL(*adm, StopPlayout());
   audio_state->SetPlayout(false);
@@ -483,7 +483,7 @@ TEST_P(AudioStateTest, AlwaysCallInitPlayoutBeforeStartPlayout) {
 
   // Playout without streams starts the NullAudioPoller...
   // which needs a thread.
-  rtc::ThreadManager::Instance()->WrapCurrentThread();
+  ThreadManager::Instance()->WrapCurrentThread();
 
   EXPECT_CALL(*adm, StopPlayout());
   audio_state->RemoveReceivingStream(&stream);
@@ -516,7 +516,7 @@ TEST_P(AudioStateTest, AddStreamDoesNothingIfPlayoutDisabled) {
 
   // AddReceivingStream with playout disabled start the NullAudioPoller...
   // which needs a thread.
-  rtc::ThreadManager::Instance()->WrapCurrentThread();
+  ThreadManager::Instance()->WrapCurrentThread();
 
   MockAudioReceiveStream stream;
   audio_state->AddReceivingStream(&stream);

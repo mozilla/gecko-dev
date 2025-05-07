@@ -286,7 +286,7 @@ class ChannelSend : public ChannelSendInterface,
   // only access. We don't necessarily own and control these threads, so thread
   // checkers cannot be used. E.g. Chromium may transfer "ownership" from one
   // audio thread to another, but access is still sequential.
-  rtc::RaceChecker audio_thread_race_checker_;
+  RaceChecker audio_thread_race_checker_;
 
   mutable Mutex volume_settings_mutex_;
 

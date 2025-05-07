@@ -167,9 +167,9 @@ class PeerConnectionMediaBaseTest : public ::testing::Test {
 
     PeerConnectionFactoryDependencies factory_dependencies;
 
-    factory_dependencies.network_thread = rtc::Thread::Current();
-    factory_dependencies.worker_thread = rtc::Thread::Current();
-    factory_dependencies.signaling_thread = rtc::Thread::Current();
+    factory_dependencies.network_thread = Thread::Current();
+    factory_dependencies.worker_thread = Thread::Current();
+    factory_dependencies.signaling_thread = Thread::Current();
     factory_dependencies.task_queue_factory = CreateDefaultTaskQueueFactory();
     EnableFakeMedia(factory_dependencies, std::move(media_engine));
     factory_dependencies.event_log_factory =
@@ -178,7 +178,7 @@ class PeerConnectionMediaBaseTest : public ::testing::Test {
         CreateModularPeerConnectionFactory(std::move(factory_dependencies));
 
     auto fake_port_allocator = std::make_unique<cricket::FakePortAllocator>(
-        rtc::Thread::Current(),
+        Thread::Current(),
         std::make_unique<BasicPacketSocketFactory>(vss_.get()), nullptr);
     auto observer = std::make_unique<MockPeerConnectionObserver>();
     auto modified_config = config;
@@ -250,7 +250,7 @@ class PeerConnectionMediaBaseTest : public ::testing::Test {
   }
 
   std::unique_ptr<VirtualSocketServer> vss_;
-  rtc::AutoSocketServerThread main_;
+  AutoSocketServerThread main_;
   const SdpSemantics sdp_semantics_;
 };
 

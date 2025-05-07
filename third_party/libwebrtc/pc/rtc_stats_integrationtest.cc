@@ -55,8 +55,8 @@ const int64_t kGetStatsTimeoutMs = 10000;
 class RTCStatsIntegrationTest : public ::testing::Test {
  public:
   RTCStatsIntegrationTest()
-      : network_thread_(new rtc::Thread(&virtual_socket_server_)),
-        worker_thread_(rtc::Thread::Create()) {
+      : network_thread_(new Thread(&virtual_socket_server_)),
+        worker_thread_(Thread::Create()) {
     RTC_CHECK(network_thread_->Start());
     RTC_CHECK(worker_thread_->Start());
 
@@ -152,8 +152,8 @@ class RTCStatsIntegrationTest : public ::testing::Test {
   // `network_thread_` uses `virtual_socket_server_` so they must be
   // constructed/destructed in the correct order.
   VirtualSocketServer virtual_socket_server_;
-  std::unique_ptr<rtc::Thread> network_thread_;
-  std::unique_ptr<rtc::Thread> worker_thread_;
+  std::unique_ptr<Thread> network_thread_;
+  std::unique_ptr<Thread> worker_thread_;
   rtc::scoped_refptr<PeerConnectionTestWrapper> caller_;
   rtc::scoped_refptr<PeerConnectionTestWrapper> callee_;
 };

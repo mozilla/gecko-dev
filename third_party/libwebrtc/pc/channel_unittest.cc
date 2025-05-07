@@ -154,9 +154,9 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
         rtp_packet_(rtp_data.data(), rtp_data.size()),
         rtcp_packet_(rtcp_data.data(), rtcp_data.size()) {
     if (network_is_worker == NetworkIsWorker::Yes) {
-      network_thread_ = rtc::Thread::Current();
+      network_thread_ = webrtc::Thread::Current();
     } else {
-      network_thread_keeper_ = rtc::Thread::Create();
+      network_thread_keeper_ = webrtc::Thread::Create();
       network_thread_keeper_->SetName("Network", nullptr);
       network_thread_ = network_thread_keeper_.get();
     }
@@ -215,7 +215,7 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
     // Make sure if using raw packet transports, they're used for both
     // channels.
     RTC_DCHECK_EQ(flags1 & RAW_PACKET_TRANSPORT, flags2 & RAW_PACKET_TRANSPORT);
-    rtc::Thread* worker_thread = rtc::Thread::Current();
+    webrtc::Thread* worker_thread = webrtc::Thread::Current();
 
     network_thread_->BlockingCall([&] {
       // Based on flags, create fake DTLS or raw packet transports.
@@ -305,8 +305,8 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
     }
   }
   std::unique_ptr<typename T::Channel> CreateChannel(
-      rtc::Thread* worker_thread,
-      rtc::Thread* network_thread,
+      webrtc::Thread* worker_thread,
+      webrtc::Thread* network_thread,
       std::unique_ptr<typename T::MediaSendChannel> ch_send,
       std::unique_ptr<typename T::MediaReceiveChannel> ch_receive,
       webrtc::RtpTransportInternal* rtp_transport,
@@ -559,17 +559,17 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
   class ScopedCallThread {
    public:
     explicit ScopedCallThread(absl::AnyInvocable<void() &&> functor)
-        : thread_(rtc::Thread::Create()) {
+        : thread_(webrtc::Thread::Create()) {
       thread_->Start();
       thread_->PostTask(std::move(functor));
     }
 
     ~ScopedCallThread() { thread_->Stop(); }
 
-    rtc::Thread* thread() { return thread_.get(); }
+    webrtc::Thread* thread() { return thread_.get(); }
 
    private:
-    std::unique_ptr<rtc::Thread> thread_;
+    std::unique_ptr<webrtc::Thread> thread_;
   };
 
   cricket::CandidatePairInterface* last_selected_candidate_pair() {
@@ -1128,7 +1128,8 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
     EXPECT_TRUE(SendAccept());
     ScopedCallThread send_rtp1([this] { SendRtp1(); });
     ScopedCallThread send_rtp2([this] { SendRtp2(); });
-    rtc::Thread* involved_threads[] = {send_rtp1.thread(), send_rtp2.thread()};
+    webrtc::Thread* involved_threads[] = {send_rtp1.thread(),
+                                          send_rtp2.thread()};
     WaitForThreads(involved_threads);
     EXPECT_TRUE(CheckRtp1());
     EXPECT_TRUE(CheckRtp2());
@@ -1490,28 +1491,28 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
 
  protected:
   void WaitForThreads() { WaitForThreads(rtc::ArrayView<rtc::Thread*>()); }
-  static void ProcessThreadQueue(rtc::Thread* thread) {
+  static void ProcessThreadQueue(webrtc::Thread* thread) {
     RTC_DCHECK(thread->IsCurrent());
     while (!thread->empty()) {
       thread->ProcessMessages(0);
     }
   }
   static void FlushCurrentThread() {
-    rtc::Thread::Current()->ProcessMessages(0);
+    webrtc::Thread::Current()->ProcessMessages(0);
   }
   void WaitForThreads(rtc::ArrayView<rtc::Thread*> threads) {
     // `threads` and current thread post packets to network thread.
     for (rtc::Thread* thread : threads) {
       SendTask(thread, [thread] { ProcessThreadQueue(thread); });
     }
-    ProcessThreadQueue(rtc::Thread::Current());
+    ProcessThreadQueue(webrtc::Thread::Current());
     // Network thread move them around and post back to worker = current thread.
     if (!network_thread_->IsCurrent()) {
       SendTask(network_thread_,
                [this] { ProcessThreadQueue(network_thread_); });
     }
     // Worker thread = current Thread process received messages.
-    ProcessThreadQueue(rtc::Thread::Current());
+    ProcessThreadQueue(webrtc::Thread::Current());
   }
 
   // Accessors that return the standard VideoMedia{Send|Receive}ChannelInterface
@@ -1559,14 +1560,14 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
         channel2_->media_receive_channel());
   }
 
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   // TODO(pbos): Remove playout from all media channels and let renderers mute
   // themselves.
   const bool verify_playout_;
   rtc::scoped_refptr<webrtc::PendingTaskSafetyFlag> network_thread_safety_ =
       webrtc::PendingTaskSafetyFlag::CreateDetached();
-  std::unique_ptr<rtc::Thread> network_thread_keeper_;
-  rtc::Thread* network_thread_;
+  std::unique_ptr<webrtc::Thread> network_thread_keeper_;
+  webrtc::Thread* network_thread_;
   std::unique_ptr<webrtc::FakeDtlsTransport> fake_rtp_dtls_transport1_;
   std::unique_ptr<webrtc::FakeDtlsTransport> fake_rtcp_dtls_transport1_;
   std::unique_ptr<webrtc::FakeDtlsTransport> fake_rtp_dtls_transport2_;
@@ -1595,13 +1596,13 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
 
 template <>
 std::unique_ptr<cricket::VoiceChannel> ChannelTest<VoiceTraits>::CreateChannel(
-    rtc::Thread* worker_thread,
-    rtc::Thread* network_thread,
+    webrtc::Thread* worker_thread,
+    webrtc::Thread* network_thread,
     std::unique_ptr<cricket::FakeVoiceMediaSendChannel> send_ch,
     std::unique_ptr<cricket::FakeVoiceMediaReceiveChannel> receive_ch,
     webrtc::RtpTransportInternal* rtp_transport,
     int flags) {
-  rtc::Thread* signaling_thread = rtc::Thread::Current();
+  webrtc::Thread* signaling_thread = webrtc::Thread::Current();
   auto channel = std::make_unique<cricket::VoiceChannel>(
       worker_thread, network_thread, signaling_thread, std::move(send_ch),
       std::move(receive_ch), cricket::CN_AUDIO, (flags & DTLS) != 0,
@@ -1675,13 +1676,13 @@ class VoiceChannelWithEncryptedRtpHeaderExtensionsDoubleThreadTest
 // override to add NULL parameter
 template <>
 std::unique_ptr<cricket::VideoChannel> ChannelTest<VideoTraits>::CreateChannel(
-    rtc::Thread* worker_thread,
-    rtc::Thread* network_thread,
+    webrtc::Thread* worker_thread,
+    webrtc::Thread* network_thread,
     std::unique_ptr<cricket::FakeVideoMediaSendChannel> send_ch,
     std::unique_ptr<cricket::FakeVideoMediaReceiveChannel> receive_ch,
     webrtc::RtpTransportInternal* rtp_transport,
     int flags) {
-  rtc::Thread* signaling_thread = rtc::Thread::Current();
+  webrtc::Thread* signaling_thread = webrtc::Thread::Current();
   auto channel = std::make_unique<cricket::VideoChannel>(
       worker_thread, network_thread, signaling_thread, std::move(send_ch),
       std::move(receive_ch), cricket::CN_VIDEO, (flags & DTLS) != 0,

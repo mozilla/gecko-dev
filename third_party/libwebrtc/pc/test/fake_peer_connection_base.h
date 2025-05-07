@@ -288,9 +288,9 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
 
   // PeerConnectionInternal implementation.
 
-  rtc::Thread* network_thread() const override { return nullptr; }
-  rtc::Thread* worker_thread() const override { return nullptr; }
-  rtc::Thread* signaling_thread() const override { return nullptr; }
+  Thread* network_thread() const override { return nullptr; }
+  Thread* worker_thread() const override { return nullptr; }
+  Thread* signaling_thread() const override { return nullptr; }
 
   std::string session_id() const override { return ""; }
 

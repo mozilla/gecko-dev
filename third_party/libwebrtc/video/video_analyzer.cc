@@ -149,7 +149,7 @@ VideoAnalyzer::VideoAnalyzer(test::LayerFilteringTransport* transport,
   }
 
   for (uint32_t i = 0; i < num_cores; ++i) {
-    comparison_thread_pool_.push_back(rtc::PlatformThread::SpawnJoinable(
+    comparison_thread_pool_.push_back(PlatformThread::SpawnJoinable(
         [this] {
           while (CompareFrames()) {
           }

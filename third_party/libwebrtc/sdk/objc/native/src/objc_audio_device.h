@@ -245,7 +245,7 @@ class ObjCAudioDeviceModule : public AudioDeviceModule {
   std::atomic<int> cached_recording_delay_ms_ = 0;
 
   // Thread that is initialized audio device module.
-  rtc::Thread* thread_;
+  Thread* thread_;
 
   // Ensures that methods are called from the same thread as this object is
   // initialized on.

@@ -877,7 +877,7 @@ bool CanAddLocalMediaStream(StreamCollectionInterface* current_streams,
 }
 
 rtc::scoped_refptr<DtlsTransport> LookupDtlsTransportByMid(
-    rtc::Thread* network_thread,
+    Thread* network_thread,
     JsepTransportController* controller,
     const std::string& mid) {
   // TODO(tommi): Can we post this (and associated operations where this
@@ -1563,11 +1563,11 @@ void SdpOfferAnswerHandler::RestartIce() {
   UpdateNegotiationNeeded();
 }
 
-rtc::Thread* SdpOfferAnswerHandler::signaling_thread() const {
+Thread* SdpOfferAnswerHandler::signaling_thread() const {
   return context_->signaling_thread();
 }
 
-rtc::Thread* SdpOfferAnswerHandler::network_thread() const {
+Thread* SdpOfferAnswerHandler::network_thread() const {
   return context_->network_thread();
 }
 
@@ -2739,7 +2739,7 @@ void SdpOfferAnswerHandler::SetAssociatedRemoteStreams(
     rtc::scoped_refptr<MediaStreamInterface> stream(
         remote_streams_->find(stream_id));
     if (!stream) {
-      stream = MediaStreamProxy::Create(rtc::Thread::Current(),
+      stream = MediaStreamProxy::Create(Thread::Current(),
                                         MediaStream::Create(stream_id));
       remote_streams_->AddStream(stream);
       added_streams->push_back(stream);
@@ -2752,7 +2752,7 @@ void SdpOfferAnswerHandler::SetAssociatedRemoteStreams(
         kMsidSignalingMediaSection)) {
     if (!missing_msid_default_stream_) {
       missing_msid_default_stream_ = MediaStreamProxy::Create(
-          rtc::Thread::Current(), MediaStream::Create(CreateRandomUuid()));
+          Thread::Current(), MediaStream::Create(CreateRandomUuid()));
       added_streams->push_back(missing_msid_default_stream_);
     }
     media_streams.push_back(missing_msid_default_stream_);
@@ -4883,7 +4883,7 @@ void SdpOfferAnswerHandler::UpdateRemoteSendersList(
         remote_streams_->find(stream_id));
     if (!stream) {
       // This is a new MediaStream. Create a new remote MediaStream.
-      stream = MediaStreamProxy::Create(rtc::Thread::Current(),
+      stream = MediaStreamProxy::Create(Thread::Current(),
                                         MediaStream::Create(stream_id));
       remote_streams_->AddStream(stream);
       new_streams->AddStream(stream);
@@ -4905,7 +4905,7 @@ void SdpOfferAnswerHandler::UpdateRemoteSendersList(
     if (!default_stream) {
       // Create the new default MediaStream.
       default_stream = MediaStreamProxy::Create(
-          rtc::Thread::Current(), MediaStream::Create(kDefaultStreamId));
+          Thread::Current(), MediaStream::Create(kDefaultStreamId));
       remote_streams_->AddStream(default_stream);
       new_streams->AddStream(default_stream);
     }
@@ -5198,7 +5198,7 @@ bool SdpOfferAnswerHandler::UseCandidate(
     const IceCandidateInterface* candidate) {
   RTC_DCHECK_RUN_ON(signaling_thread());
 
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   RTCErrorOr<const ContentInfo*> result =
       FindContentInfo(remote_description(), candidate);

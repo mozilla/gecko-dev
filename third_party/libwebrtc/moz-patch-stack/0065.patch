@@ -186,7 +186,7 @@ index 495f64bdb3..10a9caacdd 100644
  
    void ForceSpsPpsIdrIsH264Keyframe();
 diff --git a/video/receive_statistics_proxy.cc b/video/receive_statistics_proxy.cc
-index 4334ca3933..393881aad9 100644
+index 47f9d5e5d6..ba4bb4cf86 100644
 --- a/video/receive_statistics_proxy.cc
 +++ b/video/receive_statistics_proxy.cc
 @@ -797,6 +797,11 @@ void ReceiveStatisticsProxy::OnDroppedFrames(uint32_t frames_dropped) {
@@ -214,7 +214,7 @@ index 0800e84103..7c4ae845fa 100644
                                     int current_delay_ms,
                                     int target_delay_ms,
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 57b2d48824..9e935288e6 100644
+index ebf3611c72..f79bbce24d 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -286,6 +286,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(

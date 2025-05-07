@@ -99,8 +99,8 @@ class PeerConnectionE2EQualityTest
   void SetPeerCodecPreferences(TestPeer* peer);
   std::unique_ptr<SignalingInterceptor> CreateSignalingInterceptor(
       const RunParams& run_params);
-  void WaitUntilIceCandidatesGathered(rtc::Thread* signaling_thread);
-  void WaitUntilPeersAreConnected(rtc::Thread* signaling_thread);
+  void WaitUntilIceCandidatesGathered(Thread* signaling_thread);
+  void WaitUntilPeersAreConnected(Thread* signaling_thread);
   void ExchangeOfferAnswer(SignalingInterceptor* signaling_interceptor);
   void ExchangeIceCandidates(SignalingInterceptor* signaling_interceptor);
   void StartVideo(

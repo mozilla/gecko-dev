@@ -164,8 +164,8 @@ class PeerConnectionSdpMethods {
 class PeerConnectionInternal : public PeerConnectionInterface,
                                public PeerConnectionSdpMethods {
  public:
-  virtual rtc::Thread* network_thread() const = 0;
-  virtual rtc::Thread* worker_thread() const = 0;
+  virtual Thread* network_thread() const = 0;
+  virtual Thread* worker_thread() const = 0;
 
   // Returns true if we were the initial offerer.
   virtual bool initial_offerer() const = 0;

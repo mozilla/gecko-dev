@@ -51,7 +51,7 @@ class BasicRegatheringController : public sigslot::has_slots<> {
   BasicRegatheringController() = delete;
   BasicRegatheringController(const Config& config,
                              IceTransportInternal* ice_transport,
-                             rtc::Thread* thread);
+                             Thread* thread);
   ~BasicRegatheringController() override;
   // TODO(qingsi): Remove this method after implementing a new signal in
   // P2PTransportChannel and reacting to that signal for the initial schedules
@@ -89,7 +89,7 @@ class BasicRegatheringController : public sigslot::has_slots<> {
   Config config_;
   IceTransportInternal* ice_transport_;
   PortAllocatorSession* allocator_session_ = nullptr;
-  rtc::Thread* const thread_;
+  Thread* const thread_;
 };
 
 }  // namespace webrtc

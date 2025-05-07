@@ -188,7 +188,7 @@ P2PTransportChannel::P2PTransportChannel(
                                       ? owned_dns_resolver_factory.get()
                                       : async_dns_resolver_factory),
       owned_dns_resolver_factory_(std::move(owned_dns_resolver_factory)),
-      network_thread_(rtc::Thread::Current()),
+      network_thread_(webrtc::Thread::Current()),
       incoming_only_(false),
       error_(0),
       remote_ice_mode_(ICEMODE_FULL),
@@ -958,7 +958,7 @@ void P2PTransportChannel::OnCandidatesReady(
 void P2PTransportChannel::OnCandidateError(
     webrtc::PortAllocatorSession* /* session */,
     const IceCandidateErrorEvent& event) {
-  RTC_DCHECK(network_thread_ == rtc::Thread::Current());
+  RTC_DCHECK(network_thread_ == webrtc::Thread::Current());
   if (candidate_error_callback_) {
     candidate_error_callback_(this, event);
   }

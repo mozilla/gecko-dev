@@ -257,9 +257,9 @@ class RTCStatsCollector : public RefCountInterface {
   PeerConnectionInternal* const pc_;
   const Environment env_;
   const bool stats_timestamp_with_environment_clock_;
-  rtc::Thread* const signaling_thread_;
-  rtc::Thread* const worker_thread_;
-  rtc::Thread* const network_thread_;
+  Thread* const signaling_thread_;
+  Thread* const worker_thread_;
+  Thread* const network_thread_;
 
   int num_pending_partial_reports_;
   int64_t partial_report_timestamp_us_;

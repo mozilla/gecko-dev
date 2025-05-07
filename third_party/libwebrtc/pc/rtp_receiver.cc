@@ -40,7 +40,7 @@ RtpReceiverInternal::CreateStreamsFromIds(std::vector<std::string> stream_ids) {
       stream_ids.size());
   for (size_t i = 0; i < stream_ids.size(); ++i) {
     streams[i] = MediaStreamProxy::Create(
-        rtc::Thread::Current(), MediaStream::Create(std::move(stream_ids[i])));
+        Thread::Current(), MediaStream::Create(std::move(stream_ids[i])));
   }
   return streams;
 }

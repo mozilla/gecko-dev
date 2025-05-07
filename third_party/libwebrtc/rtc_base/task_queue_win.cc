@@ -64,15 +64,15 @@ void CALLBACK InitializeQueueThread(ULONG_PTR param) {
   data->Set();
 }
 
-rtc::ThreadPriority TaskQueuePriorityToThreadPriority(
+ThreadPriority TaskQueuePriorityToThreadPriority(
     TaskQueueFactory::Priority priority) {
   switch (priority) {
     case TaskQueueFactory::Priority::HIGH:
-      return rtc::ThreadPriority::kRealtime;
+      return ThreadPriority::kRealtime;
     case TaskQueueFactory::Priority::LOW:
-      return rtc::ThreadPriority::kLow;
+      return ThreadPriority::kLow;
     case TaskQueueFactory::Priority::NORMAL:
-      return rtc::ThreadPriority::kNormal;
+      return ThreadPriority::kNormal;
   }
 }
 
@@ -165,7 +165,7 @@ class MultimediaTimer {
 
 class TaskQueueWin : public TaskQueueBase {
  public:
-  TaskQueueWin(absl::string_view queue_name, rtc::ThreadPriority priority);
+  TaskQueueWin(absl::string_view queue_name, ThreadPriority priority);
   ~TaskQueueWin() override = default;
 
   void Delete() override;
@@ -196,7 +196,7 @@ class TaskQueueWin : public TaskQueueBase {
                       std::greater<DelayedTaskInfo>>
       timer_tasks_;
   UINT_PTR timer_id_ = 0;
-  rtc::PlatformThread thread_;
+  PlatformThread thread_;
   Mutex pending_lock_;
   std::queue<absl::AnyInvocable<void() &&>> pending_
       RTC_GUARDED_BY(pending_lock_);
@@ -204,7 +204,7 @@ class TaskQueueWin : public TaskQueueBase {
 };
 
 TaskQueueWin::TaskQueueWin(absl::string_view queue_name,
-                           rtc::ThreadPriority priority)
+                           ThreadPriority priority)
     : in_queue_(::CreateEvent(nullptr, true, false, nullptr)) {
   RTC_DCHECK(in_queue_);
   thread_ = rtc::PlatformThread::SpawnJoinable(

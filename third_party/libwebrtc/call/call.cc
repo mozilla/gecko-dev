@@ -177,7 +177,7 @@ std::unique_ptr<rtclog::StreamConfig> CreateRtcLogStreamConfig(
 TaskQueueBase* GetCurrentTaskQueueOrThread() {
   TaskQueueBase* current = TaskQueueBase::Current();
   if (!current)
-    current = rtc::ThreadManager::Instance()->CurrentThread();
+    current = ThreadManager::Instance()->CurrentThread();
   return current;
 }
 

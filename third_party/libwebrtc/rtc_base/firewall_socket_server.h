@@ -78,7 +78,7 @@ class FirewallSocketServer : public SocketServer {
 
   Socket* CreateSocket(int family, int type) override;
 
-  void SetMessageQueue(rtc::Thread* queue) override;
+  void SetMessageQueue(Thread* queue) override;
   bool Wait(TimeDelta max_wait_duration, bool process_io) override;
   void WakeUp() override;
 

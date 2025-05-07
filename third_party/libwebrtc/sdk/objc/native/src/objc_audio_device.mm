@@ -81,7 +81,7 @@ int32_t ObjCAudioDeviceModule::Init() {
   io_playout_thread_checker_.Detach();
   io_record_thread_checker_.Detach();
 
-  thread_ = rtc::Thread::Current();
+  thread_ = Thread::Current();
   audio_device_buffer_.reset(
       new webrtc::AudioDeviceBuffer(task_queue_factory_.get()));
 

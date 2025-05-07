@@ -217,13 +217,13 @@ int32_t FileAudioDevice::StartPlayout() {
     }
   }
 
-  _ptrThreadPlay = rtc::PlatformThread::SpawnJoinable(
+  _ptrThreadPlay = PlatformThread::SpawnJoinable(
       [this] {
         while (PlayThreadProcess()) {
         }
       },
       "webrtc_audio_module_play_thread",
-      rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kRealtime));
+      ThreadAttributes().SetPriority(ThreadPriority::kRealtime));
 
   RTC_LOG(LS_INFO) << "Started playout capture to output file: "
                    << _outputFilename;
@@ -278,13 +278,13 @@ int32_t FileAudioDevice::StartRecording() {
     }
   }
 
-  _ptrThreadRec = rtc::PlatformThread::SpawnJoinable(
+  _ptrThreadRec = PlatformThread::SpawnJoinable(
       [this] {
         while (RecThreadProcess()) {
         }
       },
       "webrtc_audio_module_capture_thread",
-      rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kRealtime));
+      ThreadAttributes().SetPriority(ThreadPriority::kRealtime));
 
   RTC_LOG(LS_INFO) << "Started recording from input file: " << _inputFilename;
 

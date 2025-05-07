@@ -135,7 +135,7 @@ class RTC_EXPORT BasicPortAllocatorSession
   ~BasicPortAllocatorSession() override;
 
   virtual BasicPortAllocator* allocator();
-  rtc::Thread* network_thread() { return network_thread_; }
+  webrtc::Thread* network_thread() { return network_thread_; }
   webrtc::PacketSocketFactory* socket_factory() { return socket_factory_; }
 
   // If the new filter allows new types of candidates compared to the previous
@@ -280,7 +280,7 @@ class RTC_EXPORT BasicPortAllocatorSession
   bool PruneNewlyPairableTurnPort(PortData* newly_pairable_turn_port);
 
   BasicPortAllocator* allocator_;
-  rtc::Thread* network_thread_;
+  webrtc::Thread* network_thread_;
   webrtc::PacketSocketFactory* socket_factory_;
   bool allocation_started_;
   bool network_manager_started_;

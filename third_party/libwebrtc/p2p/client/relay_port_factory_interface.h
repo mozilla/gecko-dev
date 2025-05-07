@@ -18,12 +18,12 @@
 #include "p2p/base/port_allocator.h"
 #include "p2p/base/port_interface.h"
 #include "rtc_base/async_packet_socket.h"
+#include "rtc_base/thread.h"
 
 namespace rtc {
 
 class Network;
 
-class Thread;
 }  // namespace rtc
 
 namespace webrtc {
@@ -37,7 +37,7 @@ struct ProtocolAddress;
 
 // A struct containing arguments to RelayPortFactory::Create()
 struct CreateRelayPortArgs {
-  rtc::Thread* network_thread;
+  webrtc::Thread* network_thread;
   webrtc::PacketSocketFactory* socket_factory;
   const rtc::Network* network;
   const ProtocolAddress* server_address;

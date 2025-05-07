@@ -878,7 +878,7 @@ class RTCStatsCollectorTest : public ::testing::Test {
 
  protected:
   ScopedFakeClock fake_clock_;
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   rtc::scoped_refptr<FakePeerConnectionForStats> pc_;
   std::unique_ptr<RTCStatsCollectorWrapper> stats_;
   std::unique_ptr<FakeDataChannelController> data_channel_controller_;
@@ -2092,10 +2092,10 @@ TEST_F(RTCStatsCollectorTest, CollectRTCPeerConnectionStats) {
   FakeDataChannelController controller(pc_->network_thread());
   rtc::scoped_refptr<SctpDataChannel> dummy_channel_a = SctpDataChannel::Create(
       controller.weak_ptr(), "DummyChannelA", false, InternalDataChannelInit(),
-      rtc::Thread::Current(), rtc::Thread::Current());
+      Thread::Current(), Thread::Current());
   rtc::scoped_refptr<SctpDataChannel> dummy_channel_b = SctpDataChannel::Create(
       controller.weak_ptr(), "DummyChannelB", false, InternalDataChannelInit(),
-      rtc::Thread::Current(), rtc::Thread::Current());
+      Thread::Current(), Thread::Current());
 
   stats_->stats_collector()->OnSctpDataChannelStateChanged(
       dummy_channel_a->internal_id(), DataChannelInterface::DataState::kOpen);
@@ -3854,9 +3854,9 @@ class FakeRTCStatsCollector : public RTCStatsCollector,
   }
 
  private:
-  rtc::Thread* const signaling_thread_;
-  rtc::Thread* const worker_thread_;
-  rtc::Thread* const network_thread_;
+  Thread* const signaling_thread_;
+  Thread* const worker_thread_;
+  Thread* const network_thread_;
 
   Mutex lock_;
   rtc::scoped_refptr<const RTCStatsReport> delivered_report_;
@@ -3865,7 +3865,7 @@ class FakeRTCStatsCollector : public RTCStatsCollector,
 };
 
 TEST(RTCStatsCollectorTestWithFakeCollector, ThreadUsageAndResultsMerging) {
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   auto pc = rtc::make_ref_counted<FakePeerConnectionForStats>();
   rtc::scoped_refptr<FakeRTCStatsCollector> stats_collector(
       FakeRTCStatsCollector::Create(pc.get(), CreateEnvironment(),

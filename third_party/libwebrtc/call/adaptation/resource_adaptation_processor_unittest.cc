@@ -142,11 +142,11 @@ class ResourceAdaptationProcessorTest : public ::testing::Test {
   }
 
   static void WaitUntilTaskQueueIdle() {
-    ASSERT_TRUE(rtc::Thread::Current()->ProcessMessages(0));
+    ASSERT_TRUE(Thread::Current()->ProcessMessages(0));
   }
 
  protected:
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   webrtc::test::ScopedKeyValueConfig field_trials_;
   FakeFrameRateProvider frame_rate_provider_;
   VideoStreamInputStateProvider input_state_provider_;

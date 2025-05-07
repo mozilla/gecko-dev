@@ -18,7 +18,7 @@ namespace webrtc {
 BasicRegatheringController::BasicRegatheringController(
     const Config& config,
     IceTransportInternal* ice_transport,
-    rtc::Thread* thread)
+    Thread* thread)
     : config_(config), ice_transport_(ice_transport), thread_(thread) {
   RTC_DCHECK(thread_);
   RTC_DCHECK_RUN_ON(thread_);

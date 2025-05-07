@@ -226,15 +226,15 @@ int PhysicalSocket::Bind(const SocketAddress& bind_addr) {
   // instead of bind(), since this is more reliable on an OS with a weak host
   // model.
   if (ss_->network_binder() && !bind_addr.IsAnyIP()) {
-    rtc::NetworkBindingResult result =
+    NetworkBindingResult result =
         ss_->network_binder()->BindSocketToNetwork(s_, bind_addr.ipaddr());
-    if (result == rtc::NetworkBindingResult::SUCCESS) {
+    if (result == NetworkBindingResult::SUCCESS) {
       // Since the network binder handled binding the socket to the desired
       // network interface, we don't need to (and shouldn't) include an IP in
       // the bind() call; bind() just needs to assign a port.
       copied_bind_addr.SetIP(
           webrtc::GetAnyIP(copied_bind_addr.ipaddr().family()));
-    } else if (result == rtc::NetworkBindingResult::NOT_IMPLEMENTED) {
+    } else if (result == NetworkBindingResult::NOT_IMPLEMENTED) {
       RTC_LOG(LS_INFO) << "Can't bind socket to network because "
                           "network binding is not implemented for this OS.";
     } else {

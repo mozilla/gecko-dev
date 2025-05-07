@@ -233,8 +233,8 @@ class EventLogger final {
     RTC_CHECK(g_event_logging_active.compare_exchange_strong(zero, 1));
 
     // Finally start, everything should be set up now.
-    logging_thread_ = rtc::PlatformThread::SpawnJoinable([this] { Log(); },
-                                                         "EventTracingThread");
+    logging_thread_ =
+        PlatformThread::SpawnJoinable([this] { Log(); }, "EventTracingThread");
     TRACE_EVENT_INSTANT0("webrtc", "EventLogger::Start",
                          TRACE_EVENT_SCOPE_GLOBAL);
   }
@@ -347,7 +347,7 @@ class EventLogger final {
 
   Mutex mutex_;
   std::vector<TraceEvent> trace_events_ RTC_GUARDED_BY(mutex_);
-  rtc::PlatformThread logging_thread_;
+  PlatformThread logging_thread_;
   Event shutdown_event_;
   SequenceChecker thread_checker_;
   FILE* output_file_ = nullptr;

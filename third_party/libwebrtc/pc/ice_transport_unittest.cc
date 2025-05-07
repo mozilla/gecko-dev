@@ -36,7 +36,7 @@ class IceTransportTest : public ::testing::Test {
 
  private:
   std::unique_ptr<SocketServer> socket_server_;
-  rtc::AutoSocketServerThread main_thread_;
+  AutoSocketServerThread main_thread_;
 };
 
 TEST_F(IceTransportTest, CreateNonSelfDeletingTransport) {

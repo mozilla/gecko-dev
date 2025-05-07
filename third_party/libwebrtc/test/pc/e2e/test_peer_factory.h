@@ -49,7 +49,7 @@ class TestPeerFactory {
   // factories and call factory.
   // `video_analyzer_helper` will be used to setup video quality analysis for
   // created peers.
-  TestPeerFactory(rtc::Thread* signaling_thread,
+  TestPeerFactory(Thread* signaling_thread,
                   TimeController& time_controller,
                   VideoQualityAnalyzerInjectionHelper* video_analyzer_helper)
       : signaling_thread_(signaling_thread),
@@ -57,7 +57,7 @@ class TestPeerFactory {
         video_analyzer_helper_(video_analyzer_helper) {}
 
   ABSL_DEPRECATE_AND_INLINE()
-  TestPeerFactory(rtc::Thread* signaling_thread,
+  TestPeerFactory(Thread* signaling_thread,
                   TimeController& time_controller,
                   VideoQualityAnalyzerInjectionHelper* video_analyzer_helper,
                   TaskQueueBase* /*task_queue*/)
@@ -76,7 +76,7 @@ class TestPeerFactory {
       std::optional<EchoEmulationConfig> echo_emulation_config);
 
  private:
-  rtc::Thread* signaling_thread_;
+  Thread* signaling_thread_;
   TimeController& time_controller_;
   VideoQualityAnalyzerInjectionHelper* video_analyzer_helper_;
 };

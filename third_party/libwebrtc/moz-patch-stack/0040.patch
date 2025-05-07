@@ -42,7 +42,7 @@ index 7383c1e655..ea3f6f5a0c 100644
  }  // namespace
  
 diff --git a/audio/channel_receive.cc b/audio/channel_receive.cc
-index 9fa64cec89..45cb6cebf7 100644
+index 79e38287cb..33786761c5 100644
 --- a/audio/channel_receive.cc
 +++ b/audio/channel_receive.cc
 @@ -134,7 +134,8 @@ class ChannelReceive : public ChannelReceiveInterface,
@@ -267,7 +267,7 @@ index 68e8fb70bd..e14072c0fc 100644
  
      // DEPRECATED, transport_feedback_callback is no longer invoked by the RTP
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 60367593c9..da15c5958f 100644
+index 695f9a4192..a36dfffcf0 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -129,7 +129,8 @@ std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpRtcpModule(

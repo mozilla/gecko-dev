@@ -92,7 +92,7 @@ class SctpTransport : public SctpTransportInterface,
 
   // NOTE: `owner_thread_` is the thread that the SctpTransport object is
   // constructed on. In the context of PeerConnection, it's the network thread.
-  rtc::Thread* const owner_thread_;
+  Thread* const owner_thread_;
   SctpTransportInformation info_ RTC_GUARDED_BY(owner_thread_);
   std::unique_ptr<cricket::SctpTransportInternal> internal_sctp_transport_
       RTC_GUARDED_BY(owner_thread_);

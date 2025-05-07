@@ -71,7 +71,7 @@
 #include "rtc_base/thread_annotations.h"
 
 namespace rtc {
-class Thread;
+
 class PacketTransportInternal;
 }  // namespace rtc
 
@@ -149,7 +149,7 @@ class JsepTransportController : public PayloadTypeSuggester,
   // `network_thread`.
   JsepTransportController(
       const Environment& env,
-      rtc::Thread* network_thread,
+      Thread* network_thread,
       PortAllocator* port_allocator,
       AsyncDnsResolverFactoryInterface* async_dns_resolver_factory,
       PayloadTypePicker& payload_type_picker,
@@ -488,7 +488,7 @@ class JsepTransportController : public PayloadTypeSuggester,
                           cricket::JsepTransport* transport);
 
   const Environment env_;
-  rtc::Thread* const network_thread_ = nullptr;
+  Thread* const network_thread_ = nullptr;
   PortAllocator* const port_allocator_ = nullptr;
   AsyncDnsResolverFactoryInterface* const async_dns_resolver_factory_ = nullptr;
 

@@ -64,7 +64,7 @@ constexpr int kOverheadIpv4Udp = 20 + 8;
 
 class SocketReader : public sigslot::has_slots<> {
  public:
-  explicit SocketReader(Socket* socket, rtc::Thread* network_thread)
+  explicit SocketReader(Socket* socket, Thread* network_thread)
       : socket_(socket), network_thread_(network_thread) {
     socket_->SignalReadEvent.connect(this, &SocketReader::OnReadEvent);
   }
@@ -93,7 +93,7 @@ class SocketReader : public sigslot::has_slots<> {
 
  private:
   Socket* const socket_;
-  rtc::Thread* const network_thread_;
+  Thread* const network_thread_;
   rtc::Buffer payload_;
   webrtc::EcnMarking last_ecn_mark_;
 
@@ -248,8 +248,8 @@ TEST(NetworkEmulationManagerTest, Run) {
   EmulatedNetworkManagerInterface* nt2 =
       network_manager.CreateEmulatedNetworkManagerInterface({bob_endpoint});
 
-  rtc::Thread* t1 = nt1->network_thread();
-  rtc::Thread* t2 = nt2->network_thread();
+  Thread* t1 = nt1->network_thread();
+  Thread* t2 = nt2->network_thread();
 
   rtc::CopyOnWriteBuffer data("Hello");
   for (uint64_t j = 0; j < 2; j++) {
@@ -403,8 +403,8 @@ TEST(NetworkEmulationManagerTest, EcnMarkingIsPropagated) {
   EmulatedNetworkManagerInterface* nt2 =
       network_manager.CreateEmulatedNetworkManagerInterface({bob_endpoint});
 
-  rtc::Thread* t1 = nt1->network_thread();
-  rtc::Thread* t2 = nt2->network_thread();
+  Thread* t1 = nt1->network_thread();
+  Thread* t2 = nt2->network_thread();
 
   Socket* s1 = nullptr;
   Socket* s2 = nullptr;
@@ -489,8 +489,8 @@ TEST(NetworkEmulationManagerTest, DebugStatsCollectedInDebugMode) {
   EmulatedNetworkManagerInterface* nt2 =
       network_manager.CreateEmulatedNetworkManagerInterface({bob_endpoint});
 
-  rtc::Thread* t1 = nt1->network_thread();
-  rtc::Thread* t2 = nt2->network_thread();
+  Thread* t1 = nt1->network_thread();
+  Thread* t2 = nt2->network_thread();
 
   rtc::CopyOnWriteBuffer data("Hello");
   for (uint64_t j = 0; j < 2; j++) {
@@ -590,8 +590,8 @@ TEST(NetworkEmulationManagerTest, ThroughputStats) {
   EmulatedNetworkManagerInterface* nt2 =
       network_manager.CreateEmulatedNetworkManagerInterface({bob_endpoint});
 
-  rtc::Thread* t1 = nt1->network_thread();
-  rtc::Thread* t2 = nt2->network_thread();
+  Thread* t1 = nt1->network_thread();
+  Thread* t2 = nt2->network_thread();
 
   constexpr int64_t kUdpPayloadSize = 100;
   constexpr int64_t kSinglePacketSize = kUdpPayloadSize + kOverheadIpv4Udp;

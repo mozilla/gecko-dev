@@ -68,7 +68,7 @@ class TestController {
                     const rtc::ReceivedPacket& received_packet);
   RTC_NO_UNIQUE_ADDRESS SequenceChecker test_controller_thread_checker_;
   std::unique_ptr<rtc::SocketServer> socket_server_;
-  std::unique_ptr<rtc::Thread> packet_sender_thread_;
+  std::unique_ptr<Thread> packet_sender_thread_;
   BasicPacketSocketFactory socket_factory_
       RTC_GUARDED_BY(packet_sender_thread_);
   const std::string config_file_path_;

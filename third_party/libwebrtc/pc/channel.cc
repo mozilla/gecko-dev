@@ -130,7 +130,7 @@ void RtpSendParametersFromMediaDescription(
 
 BaseChannel::BaseChannel(
     webrtc::TaskQueueBase* worker_thread,
-    rtc::Thread* network_thread,
+    webrtc::Thread* network_thread,
     webrtc::TaskQueueBase* signaling_thread,
     std::unique_ptr<MediaSendChannelInterface> send_media_channel_impl,
     std::unique_ptr<MediaReceiveChannelInterface> receive_media_channel_impl,
@@ -852,7 +852,7 @@ void BaseChannel::SignalSentPacket_n(const rtc::SentPacket& sent_packet) {
 
 VoiceChannel::VoiceChannel(
     webrtc::TaskQueueBase* worker_thread,
-    rtc::Thread* network_thread,
+    webrtc::Thread* network_thread,
     webrtc::TaskQueueBase* signaling_thread,
     std::unique_ptr<VoiceMediaSendChannelInterface> media_send_channel,
     std::unique_ptr<VoiceMediaReceiveChannelInterface> media_receive_channel,
@@ -996,7 +996,7 @@ bool VoiceChannel::SetRemoteContent_w(
 
 VideoChannel::VideoChannel(
     webrtc::TaskQueueBase* worker_thread,
-    rtc::Thread* network_thread,
+    webrtc::Thread* network_thread,
     webrtc::TaskQueueBase* signaling_thread,
     std::unique_ptr<VideoMediaSendChannelInterface> media_send_channel,
     std::unique_ptr<VideoMediaReceiveChannelInterface> media_receive_channel,

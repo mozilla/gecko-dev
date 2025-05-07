@@ -113,15 +113,14 @@ class JsepTransportControllerTest : public JsepTransportController::Observer,
  public:
   JsepTransportControllerTest()
       : env_(CreateEnvironment(&field_trials_)),
-        signaling_thread_(rtc::Thread::Current()) {
+        signaling_thread_(Thread::Current()) {
     fake_ice_transport_factory_ = std::make_unique<FakeIceTransportFactory>();
     fake_dtls_transport_factory_ = std::make_unique<FakeDtlsTransportFactory>();
   }
 
-  void CreateJsepTransportController(
-      JsepTransportController::Config config,
-      rtc::Thread* network_thread = rtc::Thread::Current(),
-      PortAllocator* port_allocator = nullptr) {
+  void CreateJsepTransportController(JsepTransportController::Config config,
+                                     Thread* network_thread = Thread::Current(),
+                                     PortAllocator* port_allocator = nullptr) {
     config.transport_observer = this;
     config.rtcp_handler = [](const rtc::CopyOnWriteBuffer& packet,
                              int64_t packet_time_us) {
@@ -323,14 +322,14 @@ class JsepTransportControllerTest : public JsepTransportController::Observer,
 
  protected:
   void OnConnectionState(cricket::IceConnectionState state) {
-    ice_signaled_on_thread_ = rtc::Thread::Current();
+    ice_signaled_on_thread_ = Thread::Current();
     connection_state_ = state;
     ++connection_state_signal_count_;
   }
 
   void OnStandardizedIceConnectionState(
       PeerConnectionInterface::IceConnectionState state) {
-    ice_signaled_on_thread_ = rtc::Thread::Current();
+    ice_signaled_on_thread_ = Thread::Current();
     ice_connection_state_ = state;
     ++ice_connection_state_signal_count_;
   }
@@ -339,20 +338,20 @@ class JsepTransportControllerTest : public JsepTransportController::Observer,
       PeerConnectionInterface::PeerConnectionState state) {
     RTC_LOG(LS_INFO) << "OnCombinedConnectionState: "
                      << static_cast<int>(state);
-    ice_signaled_on_thread_ = rtc::Thread::Current();
+    ice_signaled_on_thread_ = Thread::Current();
     combined_connection_state_ = state;
     ++combined_connection_state_signal_count_;
   }
 
   void OnGatheringState(IceGatheringState state) {
-    ice_signaled_on_thread_ = rtc::Thread::Current();
+    ice_signaled_on_thread_ = Thread::Current();
     gathering_state_ = state;
     ++gathering_state_signal_count_;
   }
 
   void OnCandidatesGathered(const std::string& transport_name,
                             const Candidates& candidates) {
-    ice_signaled_on_thread_ = rtc::Thread::Current();
+    ice_signaled_on_thread_ = Thread::Current();
     candidates_[transport_name].insert(candidates_[transport_name].end(),
                                        candidates.begin(), candidates.end());
     ++candidates_signal_count_;
@@ -375,7 +374,7 @@ class JsepTransportControllerTest : public JsepTransportController::Observer,
 
   test::ScopedKeyValueConfig field_trials_;
   Environment env_;
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   // Information received from signals from transport controller.
   cricket::IceConnectionState connection_state_ =
       cricket::kIceConnectionConnecting;
@@ -396,11 +395,11 @@ class JsepTransportControllerTest : public JsepTransportController::Observer,
   int candidates_signal_count_ = 0;
 
   // `network_thread_` should be destroyed after `transport_controller_`
-  std::unique_ptr<rtc::Thread> network_thread_;
+  std::unique_ptr<Thread> network_thread_;
   std::unique_ptr<FakeIceTransportFactory> fake_ice_transport_factory_;
   std::unique_ptr<FakeDtlsTransportFactory> fake_dtls_transport_factory_;
-  rtc::Thread* const signaling_thread_ = nullptr;
-  rtc::Thread* ice_signaled_on_thread_ = nullptr;
+  Thread* const signaling_thread_ = nullptr;
+  Thread* ice_signaled_on_thread_ = nullptr;
   // Used to verify the SignalRtpTransportChanged/SignalDtlsTransportChanged are
   // signaled correctly.
   std::map<std::string, RtpTransportInternal*> changed_rtp_transport_by_mid_;
@@ -1134,7 +1133,7 @@ TEST_F(JsepTransportControllerTest, SignalCandidatesGathered) {
 }
 
 TEST_F(JsepTransportControllerTest, IceSignalingOccursOnNetworkThread) {
-  network_thread_ = rtc::Thread::CreateWithSocketServer();
+  network_thread_ = Thread::CreateWithSocketServer();
   network_thread_->Start();
   EXPECT_EQ(ice_signaled_on_thread_, nullptr);
   CreateJsepTransportController(JsepTransportController::Config(),

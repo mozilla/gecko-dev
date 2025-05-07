@@ -131,11 +131,11 @@ class NATProxyServer : public rtc::ProxyServer {
 };
 
 NATServer::NATServer(NATType type,
-                     rtc::Thread& internal_socket_thread,
+                     Thread& internal_socket_thread,
                      SocketFactory* internal,
                      const SocketAddress& internal_udp_addr,
                      const SocketAddress& internal_tcp_addr,
-                     rtc::Thread& external_socket_thread,
+                     Thread& external_socket_thread,
                      SocketFactory* external,
                      const SocketAddress& external_ip)
     : internal_socket_thread_(internal_socket_thread),

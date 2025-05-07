@@ -92,9 +92,9 @@ class PeerConnectionRtpBaseTest : public ::testing::Test {
   explicit PeerConnectionRtpBaseTest(SdpSemantics sdp_semantics)
       : sdp_semantics_(sdp_semantics),
         pc_factory_(CreatePeerConnectionFactory(
-            rtc::Thread::Current(),
-            rtc::Thread::Current(),
-            rtc::Thread::Current(),
+            Thread::Current(),
+            Thread::Current(),
+            Thread::Current(),
             FakeAudioCaptureModule::Create(),
             CreateBuiltinAudioEncoderFactory(),
             CreateBuiltinAudioDecoderFactory(),
@@ -154,7 +154,7 @@ class PeerConnectionRtpBaseTest : public ::testing::Test {
         pc_factory_, result.MoveValue(), std::move(observer));
   }
 
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
 };
 
 class PeerConnectionRtpTest
@@ -939,7 +939,7 @@ TEST_P(PeerConnectionRtpTest,
   auto offer = caller->CreateOfferAndSetAsLocal();
   callee->pc()->SetRemoteDescription(observer.get(), offer.release());
   callee = nullptr;
-  rtc::Thread::Current()->ProcessMessages(0);
+  Thread::Current()->ProcessMessages(0);
   EXPECT_FALSE(observer->called());
 }
 

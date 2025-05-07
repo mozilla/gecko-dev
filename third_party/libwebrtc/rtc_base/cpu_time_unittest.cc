@@ -61,9 +61,9 @@ TEST(CpuTimeTest, MAYBE_TEST(TwoThreads)) {
   int64_t thread_start_time_nanos = GetThreadCpuTimeNanos();
   int64_t counter1;
   int64_t counter2;
-  auto thread1 = PlatformThread::SpawnJoinable(
+  auto thread1 = webrtc::PlatformThread::SpawnJoinable(
       [&counter1] { WorkingFunction(&counter1); }, "Thread1");
-  auto thread2 = PlatformThread::SpawnJoinable(
+  auto thread2 = webrtc::PlatformThread::SpawnJoinable(
       [&counter2] { WorkingFunction(&counter2); }, "Thread2");
   thread1.Finalize();
   thread2.Finalize();

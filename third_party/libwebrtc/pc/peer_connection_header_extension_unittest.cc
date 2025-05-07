@@ -80,9 +80,9 @@ class PeerConnectionHeaderExtensionTest
     else
       media_engine->fake_video_engine()->SetRtpHeaderExtensions(extensions_);
     PeerConnectionFactoryDependencies factory_dependencies;
-    factory_dependencies.network_thread = rtc::Thread::Current();
-    factory_dependencies.worker_thread = rtc::Thread::Current();
-    factory_dependencies.signaling_thread = rtc::Thread::Current();
+    factory_dependencies.network_thread = Thread::Current();
+    factory_dependencies.worker_thread = Thread::Current();
+    factory_dependencies.signaling_thread = Thread::Current();
     factory_dependencies.task_queue_factory = CreateDefaultTaskQueueFactory();
     EnableFakeMedia(factory_dependencies, std::move(media_engine));
 
@@ -93,7 +93,7 @@ class PeerConnectionHeaderExtensionTest
         CreateModularPeerConnectionFactory(std::move(factory_dependencies));
 
     auto fake_port_allocator = std::make_unique<cricket::FakePortAllocator>(
-        rtc::Thread::Current(),
+        Thread::Current(),
         std::make_unique<BasicPacketSocketFactory>(socket_server_.get()),
         field_trials_.get());
     auto observer = std::make_unique<MockPeerConnectionObserver>();
@@ -112,7 +112,7 @@ class PeerConnectionHeaderExtensionTest
 
   std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
   std::unique_ptr<SocketServer> socket_server_;
-  rtc::AutoSocketServerThread main_thread_;
+  AutoSocketServerThread main_thread_;
   std::vector<RtpHeaderExtensionCapability> extensions_;
 };
 

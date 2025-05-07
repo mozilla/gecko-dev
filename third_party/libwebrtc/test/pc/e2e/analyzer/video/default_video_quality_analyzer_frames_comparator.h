@@ -148,7 +148,7 @@ class DefaultVideoQualityAnalyzerFramesComparator {
   std::deque<FrameComparison> comparisons_ RTC_GUARDED_BY(mutex_);
   FramesComparatorStats frames_comparator_stats_ RTC_GUARDED_BY(mutex_);
 
-  std::vector<rtc::PlatformThread> thread_pool_;
+  std::vector<PlatformThread> thread_pool_;
   rtc::Event comparison_available_event_;
 };
 

@@ -657,7 +657,7 @@ void SocketTest::ServerCloseInternal(const IPAddress& loopback) {
   EXPECT_TRUE(accepted->GetRemoteAddress().IsNil());
 
   // And the closee should only get a single signal.
-  rtc::Thread::Current()->ProcessMessages(0);
+  Thread::Current()->ProcessMessages(0);
   EXPECT_FALSE(sink.Check(client.get(), SSE_CLOSE));
 
   // Close down the client and ensure all is good.
@@ -755,7 +755,7 @@ void SocketTest::DeleteInReadCallbackInternal(const IPAddress& loopback) {
   EXPECT_EQ(3, socket1->SendTo("foo", 3, socket1->GetLocalAddress()));
   EXPECT_EQ(3, socket2->SendTo("bar", 3, socket1->GetLocalAddress()));
   // Sleep a while to ensure sends are both completed at the same time.
-  rtc::Thread::SleepMs(1000);
+  Thread::SleepMs(1000);
 
   // Configure the helper class to delete socket 2 when socket 1 has a read
   // event.
@@ -809,9 +809,9 @@ void SocketTest::SocketServerWaitInternal(const IPAddress& loopback) {
   EXPECT_FALSE(sink.Check(accepted.get(), SSE_READ));
 
   // Shouldn't signal when blocked in a thread Send, where process_io is false.
-  std::unique_ptr<rtc::Thread> thread(rtc::Thread::CreateWithSocketServer());
+  std::unique_ptr<Thread> thread(Thread::CreateWithSocketServer());
   thread->Start();
-  thread->BlockingCall([] { rtc::Thread::SleepMs(500); });
+  thread->BlockingCall([] { Thread::SleepMs(500); });
   EXPECT_FALSE(sink.Check(accepted.get(), SSE_READ));
 
   // But should signal when process_io is true.
@@ -1034,7 +1034,7 @@ void SocketTest::SingleFlowControlCallbackInternal(const IPAddress& loopback) {
   int extras = 0;
   for (int i = 0; i < 100; ++i) {
     accepted->Send(&buf, arraysize(buf));
-    rtc::Thread::Current()->ProcessMessages(1);
+    Thread::Current()->ProcessMessages(1);
     if (sink.Check(accepted.get(), SSE_WRITE)) {
       extras++;
     }
@@ -1254,7 +1254,7 @@ void SocketTest::SocketRecvTimestamp(const IPAddress& loopback) {
   ASSERT_GT(socket->RecvFrom(receive_buffer_1), 0);
 
   const int64_t kTimeBetweenPacketsMs = 100;
-  rtc::Thread::SleepMs(kTimeBetweenPacketsMs);
+  Thread::SleepMs(kTimeBetweenPacketsMs);
 
   int64_t send_time_2 = TimeMicros();
   socket->SendTo("bar", 3, address);
@@ -1293,7 +1293,7 @@ void SocketTest::UdpSocketRecvTimestampUseRtcEpoch(const IPAddress& loopback) {
   ASSERT_TRUE(packet_1 != nullptr);
   EXPECT_NEAR(packet_1->packet_time->us(), TimeMicros(), 1000'000);
 
-  rtc::Thread::SleepMs(100);
+  Thread::SleepMs(100);
   client2->SendTo("bar", 3, address);
   std::unique_ptr<TestClient::Packet> packet_2 = client1->NextPacket(10000);
   ASSERT_TRUE(packet_2 != nullptr);

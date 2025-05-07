@@ -88,13 +88,13 @@ class RtpTransceiverTest : public testing::Test {
   }
 
  private:
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
 
   static PeerConnectionFactoryDependencies MakeDependencies() {
     PeerConnectionFactoryDependencies d;
-    d.network_thread = rtc::Thread::Current();
-    d.worker_thread = rtc::Thread::Current();
-    d.signaling_thread = rtc::Thread::Current();
+    d.network_thread = Thread::Current();
+    d.worker_thread = Thread::Current();
+    d.signaling_thread = Thread::Current();
     EnableFakeMedia(d, std::make_unique<cricket::FakeMediaEngine>());
     return d;
   }
@@ -191,17 +191,16 @@ class RtpTransceiverUnifiedPlanTest : public RtpTransceiverTest {
       rtc::scoped_refptr<RtpReceiverInternal> receiver) {
     return rtc::make_ref_counted<RtpTransceiver>(
         RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
-            rtc::Thread::Current(), std::move(sender)),
+            Thread::Current(), std::move(sender)),
         RtpReceiverProxyWithInternal<RtpReceiverInternal>::Create(
-            rtc::Thread::Current(), rtc::Thread::Current(),
-            std::move(receiver)),
+            Thread::Current(), Thread::Current(), std::move(receiver)),
         context(), codec_lookup_helper(),
         media_engine()->voice().GetRtpHeaderExtensions(),
         /* on_negotiation_needed= */ [] {});
   }
 
  protected:
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
 };
 
 // Basic tests for Stop()
@@ -583,11 +582,11 @@ class RtpTransceiverTestForHeaderExtensions
                                           RtpTransceiverDirection::kSendRecv)}),
         transceiver_(rtc::make_ref_counted<RtpTransceiver>(
             RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
-                rtc::Thread::Current(),
+                Thread::Current(),
                 sender_),
             RtpReceiverProxyWithInternal<RtpReceiverInternal>::Create(
-                rtc::Thread::Current(),
-                rtc::Thread::Current(),
+                Thread::Current(),
+                Thread::Current(),
                 receiver_),
             context(),
             codec_lookup_helper(),
@@ -858,10 +857,10 @@ TEST_F(RtpTransceiverTestForHeaderExtensions,
   // Default is stopped.
   auto sender = rtc::make_ref_counted<NiceMock<MockRtpSenderInternal>>();
   auto transceiver = rtc::make_ref_counted<RtpTransceiver>(
-      RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
-          rtc::Thread::Current(), sender),
+      RtpSenderProxyWithInternal<RtpSenderInternal>::Create(Thread::Current(),
+                                                            sender),
       RtpReceiverProxyWithInternal<RtpReceiverInternal>::Create(
-          rtc::Thread::Current(), rtc::Thread::Current(), receiver_),
+          Thread::Current(), Thread::Current(), receiver_),
       context(), codec_lookup_helper(), extensions,
       /* on_negotiation_needed= */ [] {});
   std::vector<webrtc::RtpHeaderExtensionCapability> header_extensions =
@@ -880,10 +879,10 @@ TEST_F(RtpTransceiverTestForHeaderExtensions,
   EXPECT_CALL(*simulcast_sender, GetParametersInternal())
       .WillRepeatedly(Return(simulcast_parameters));
   auto simulcast_transceiver = rtc::make_ref_counted<RtpTransceiver>(
-      RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
-          rtc::Thread::Current(), simulcast_sender),
+      RtpSenderProxyWithInternal<RtpSenderInternal>::Create(Thread::Current(),
+                                                            simulcast_sender),
       RtpReceiverProxyWithInternal<RtpReceiverInternal>::Create(
-          rtc::Thread::Current(), rtc::Thread::Current(), receiver_),
+          Thread::Current(), Thread::Current(), receiver_),
       context(), codec_lookup_helper(), extensions,
       /* on_negotiation_needed= */ [] {});
   auto simulcast_extensions =
@@ -907,10 +906,10 @@ TEST_F(RtpTransceiverTestForHeaderExtensions,
   EXPECT_CALL(*svc_sender, GetParametersInternal())
       .WillRepeatedly(Return(svc_parameters));
   auto svc_transceiver = rtc::make_ref_counted<RtpTransceiver>(
-      RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
-          rtc::Thread::Current(), svc_sender),
+      RtpSenderProxyWithInternal<RtpSenderInternal>::Create(Thread::Current(),
+                                                            svc_sender),
       RtpReceiverProxyWithInternal<RtpReceiverInternal>::Create(
-          rtc::Thread::Current(), rtc::Thread::Current(), receiver_),
+          Thread::Current(), Thread::Current(), receiver_),
       context(), codec_lookup_helper(), extensions,
       /* on_negotiation_needed= */ [] {});
   std::vector<webrtc::RtpHeaderExtensionCapability> svc_extensions =

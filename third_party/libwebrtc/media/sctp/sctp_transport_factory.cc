@@ -24,7 +24,7 @@
 
 namespace cricket {
 
-SctpTransportFactory::SctpTransportFactory(rtc::Thread* network_thread)
+SctpTransportFactory::SctpTransportFactory(webrtc::Thread* network_thread)
     : network_thread_(network_thread) {
   RTC_UNUSED(network_thread_);
 }

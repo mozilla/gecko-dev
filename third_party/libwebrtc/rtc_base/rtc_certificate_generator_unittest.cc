@@ -31,8 +31,8 @@ namespace webrtc {
 class RTCCertificateGeneratorFixture {
  public:
   RTCCertificateGeneratorFixture()
-      : signaling_thread_(rtc::Thread::Current()),
-        worker_thread_(rtc::Thread::Create()),
+      : signaling_thread_(Thread::Current()),
+        worker_thread_(Thread::Create()),
         generate_async_completed_(false) {
     RTC_CHECK(signaling_thread_);
     RTC_CHECK(worker_thread_->Start());
@@ -62,8 +62,8 @@ class RTCCertificateGeneratorFixture {
   }
 
  protected:
-  rtc::Thread* const signaling_thread_;
-  std::unique_ptr<rtc::Thread> worker_thread_;
+  Thread* const signaling_thread_;
+  std::unique_ptr<Thread> worker_thread_;
   std::unique_ptr<RTCCertificateGenerator> generator_;
   scoped_refptr<RTCCertificate> certificate_;
   bool generate_async_completed_;
@@ -74,7 +74,7 @@ class RTCCertificateGeneratorTest : public ::testing::Test {
  protected:
   static constexpr TimeDelta kGenerationTimeoutMs = TimeDelta::Millis(10000);
 
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   RTCCertificateGeneratorFixture fixture_;
 };
 

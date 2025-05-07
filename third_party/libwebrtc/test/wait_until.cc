@@ -41,8 +41,8 @@ Timestamp GetTimeFromClockVariant(const ClockVariant& clock) {
 void AdvanceTimeOnClockVariant(ClockVariant& clock, TimeDelta delta) {
   std::visit(absl::Overload{
                  [&](const std::monostate&) {
-                   rtc::Thread::Current()->ProcessMessages(0);
-                   rtc::Thread::Current()->SleepMs(delta.ms());
+                   Thread::Current()->ProcessMessages(0);
+                   Thread::Current()->SleepMs(delta.ms());
                  },
                  [&](auto* clock) { clock->AdvanceTime(delta); },
              },

@@ -109,7 +109,7 @@ RTCError VerifyCodecPreferences(
 TaskQueueBase* GetCurrentTaskQueueOrThread() {
   TaskQueueBase* current = TaskQueueBase::Current();
   if (!current)
-    current = rtc::ThreadManager::Instance()->CurrentThread();
+    current = ThreadManager::Instance()->CurrentThread();
   return current;
 }
 

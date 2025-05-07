@@ -145,8 +145,8 @@ void PeerConnectionTestWrapper::Connect(PeerConnectionTestWrapper* caller,
 PeerConnectionTestWrapper::PeerConnectionTestWrapper(
     const std::string& name,
     webrtc::SocketServer* socket_server,
-    rtc::Thread* network_thread,
-    rtc::Thread* worker_thread)
+    webrtc::Thread* network_thread,
+    webrtc::Thread* worker_thread)
     : name_(name),
       socket_server_(socket_server),
       network_thread_(network_thread),
@@ -190,7 +190,7 @@ bool PeerConnectionTestWrapper::CreatePc(
   }
 
   peer_connection_factory_ = webrtc::CreatePeerConnectionFactory(
-      network_thread_, worker_thread_, rtc::Thread::Current(),
+      network_thread_, worker_thread_, webrtc::Thread::Current(),
       rtc::scoped_refptr<webrtc::AudioDeviceModule>(fake_audio_capture_module_),
       audio_encoder_factory, audio_decoder_factory,
       std::move(video_encoder_factory), std::move(video_decoder_factory),

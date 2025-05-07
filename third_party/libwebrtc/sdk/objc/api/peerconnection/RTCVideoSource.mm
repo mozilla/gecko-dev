@@ -54,8 +54,8 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(
 
 - (instancetype)initWithFactory:
                     (RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
-                signalingThread:(rtc::Thread *)signalingThread
-                   workerThread:(rtc::Thread *)workerThread {
+                signalingThread:(webrtc::Thread *)signalingThread
+                   workerThread:(webrtc::Thread *)workerThread {
   return [self initWithFactory:factory
                signalingThread:signalingThread
                   workerThread:workerThread
@@ -64,8 +64,8 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(
 
 - (instancetype)initWithFactory:
                     (RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
-                signalingThread:(rtc::Thread *)signalingThread
-                   workerThread:(rtc::Thread *)workerThread
+                signalingThread:(webrtc::Thread *)signalingThread
+                   workerThread:(webrtc::Thread *)workerThread
                    isScreenCast:(BOOL)isScreenCast {
   rtc::scoped_refptr<webrtc::ObjCVideoTrackSource> objCVideoTrackSource =
       rtc::make_ref_counted<webrtc::ObjCVideoTrackSource>(isScreenCast);

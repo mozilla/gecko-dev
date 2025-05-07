@@ -93,7 +93,7 @@ struct PeerConnectionComponents {
 // Contains all components, that can be overridden in peer connection. Also
 // has a network thread, that will be used to communicate with another peers.
 struct InjectableComponents {
-  InjectableComponents(rtc::Thread* network_thread,
+  InjectableComponents(Thread* network_thread,
                        std::unique_ptr<rtc::NetworkManager> network_manager,
                        SocketFactory* socket_factory)
       : network_thread(network_thread),
@@ -105,8 +105,8 @@ struct InjectableComponents {
     pcf_dependencies->socket_factory = socket_factory;
   }
 
-  rtc::Thread* const network_thread;
-  rtc::Thread* worker_thread;
+  Thread* const network_thread;
+  Thread* worker_thread;
 
   std::unique_ptr<PeerConnectionFactoryComponents> pcf_dependencies;
   std::unique_ptr<PeerConnectionComponents> pc_dependencies;

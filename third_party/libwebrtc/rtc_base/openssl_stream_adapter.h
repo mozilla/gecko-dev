@@ -202,7 +202,7 @@ class OpenSSLStreamAdapter final : public webrtc::SSLStreamAdapter {
   const std::unique_ptr<webrtc::StreamInterface> stream_;
   absl::AnyInvocable<void(webrtc::SSLHandshakeError)> handshake_error_;
 
-  rtc::Thread* const owner_;
+  webrtc::Thread* const owner_;
   webrtc::ScopedTaskSafety task_safety_;
   webrtc::RepeatingTaskHandle timeout_task_;
 

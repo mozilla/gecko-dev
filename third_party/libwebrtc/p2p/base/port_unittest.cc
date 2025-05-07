@@ -447,7 +447,7 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
     // Workaround for tests that trigger async destruction of objects that we
     // need to give an opportunity here to run, before proceeding with other
     // teardown.
-    rtc::Thread::Current()->ProcessMessages(0);
+    webrtc::Thread::Current()->ProcessMessages(0);
   }
 
  protected:
@@ -947,7 +947,7 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
   // vector so that when it grows, pointers aren't invalidated.
   std::list<rtc::Network> networks_;
   std::unique_ptr<webrtc::VirtualSocketServer> ss_;
-  rtc::AutoSocketServerThread main_;
+  webrtc::AutoSocketServerThread main_;
   webrtc::BasicPacketSocketFactory socket_factory_;
   std::unique_ptr<webrtc::NATServer> nat_server1_;
   std::unique_ptr<webrtc::NATServer> nat_server2_;
@@ -1490,12 +1490,12 @@ TEST_F(PortTest, TestConnectionDead) {
   ASSERT_NE(conn, nullptr);
   // It is not dead if it is after MIN_CONNECTION_LIFETIME but not pruned.
   conn->UpdateState(after_created + MIN_CONNECTION_LIFETIME + 1);
-  rtc::Thread::Current()->ProcessMessages(0);
+  webrtc::Thread::Current()->ProcessMessages(0);
   EXPECT_TRUE(ch1.conn() != nullptr);
   // It is not dead if it is before MIN_CONNECTION_LIFETIME and pruned.
   conn->UpdateState(before_created + MIN_CONNECTION_LIFETIME - 1);
   conn->Prune();
-  rtc::Thread::Current()->ProcessMessages(0);
+  webrtc::Thread::Current()->ProcessMessages(0);
   EXPECT_TRUE(ch1.conn() != nullptr);
   // It will be dead after MIN_CONNECTION_LIFETIME and pruned.
   conn->UpdateState(after_created + MIN_CONNECTION_LIFETIME + 1);
@@ -1515,7 +1515,7 @@ TEST_F(PortTest, TestConnectionDead) {
   // The connection will be dead after DEAD_CONNECTION_RECEIVE_TIMEOUT
   conn->UpdateState(before_last_receiving + DEAD_CONNECTION_RECEIVE_TIMEOUT -
                     1);
-  rtc::Thread::Current()->ProcessMessages(100);
+  webrtc::Thread::Current()->ProcessMessages(100);
   EXPECT_TRUE(ch1.conn() != nullptr);
   conn->UpdateState(after_last_receiving + DEAD_CONNECTION_RECEIVE_TIMEOUT + 1);
   EXPECT_THAT(webrtc::WaitUntil(
@@ -1555,7 +1555,7 @@ TEST_F(PortTest, TestConnectionDeadWithDeadConnectionTimeout) {
   int64_t after_last_receiving = webrtc::TimeMillis();
   // The connection will be dead after 90s
   conn->UpdateState(before_last_receiving + 90000 - 1);
-  rtc::Thread::Current()->ProcessMessages(100);
+  webrtc::Thread::Current()->ProcessMessages(100);
   EXPECT_TRUE(ch1.conn() != nullptr);
   conn->UpdateState(after_last_receiving + 90000 + 1);
   EXPECT_THAT(webrtc::WaitUntil(
@@ -1604,7 +1604,7 @@ TEST_F(PortTest, TestConnectionDeadOutstandingPing) {
 
   // The connection will be dead 30s after the ping was sent.
   conn->UpdateState(send_ping_timestamp + DEAD_CONNECTION_RECEIVE_TIMEOUT - 1);
-  rtc::Thread::Current()->ProcessMessages(100);
+  webrtc::Thread::Current()->ProcessMessages(100);
   EXPECT_TRUE(ch1.conn() != nullptr);
   conn->UpdateState(send_ping_timestamp + DEAD_CONNECTION_RECEIVE_TIMEOUT + 1);
   EXPECT_THAT(webrtc::WaitUntil(
@@ -2826,7 +2826,7 @@ TEST_F(PortTest, TestHandleStunBindingIndication) {
   int64_t last_ping_received1 = lconn->last_ping_received();
 
   // Adding a delay of 100ms.
-  rtc::Thread::Current()->ProcessMessages(100);
+  webrtc::Thread::Current()->ProcessMessages(100);
   // Pinging lconn using stun indication message.
   lconn->OnReadPacket(rtc::ReceivedPacket::CreateFromLegacy(
       buf->Data(), buf->Length(), /*packet_time_us=*/-1));
@@ -2985,7 +2985,7 @@ TEST_F(PortTest, TestCandidateFoundation) {
   // Running a second turn server, to get different base IP address.
   SocketAddress kTurnUdpIntAddr2("99.99.98.4", webrtc::STUN_SERVER_PORT);
   SocketAddress kTurnUdpExtAddr2("99.99.98.5", 0);
-  webrtc::TestTurnServer turn_server2(rtc::Thread::Current(), vss(),
+  webrtc::TestTurnServer turn_server2(webrtc::Thread::Current(), vss(),
                                       kTurnUdpIntAddr2, kTurnUdpExtAddr2);
   auto turnport3 =
       CreateTurnPort(kLocalAddr1, nat_socket_factory1(), webrtc::PROTO_UDP,
@@ -3000,7 +3000,7 @@ TEST_F(PortTest, TestCandidateFoundation) {
 
   // Start a TCP turn server, and check that two turn candidates have
   // different foundations if their relay protocols are different.
-  webrtc::TestTurnServer turn_server3(rtc::Thread::Current(), vss(),
+  webrtc::TestTurnServer turn_server3(webrtc::Thread::Current(), vss(),
                                       kTurnTcpIntAddr, kTurnUdpExtAddr,
                                       webrtc::PROTO_TCP);
   auto turnport4 = CreateTurnPort(kLocalAddr1, nat_socket_factory1(),
@@ -4134,7 +4134,7 @@ TEST_F(PortTest, TestAddConnectionWithSameAddress) {
   EXPECT_EQ(2u, conn_in_use->remote_candidate().generation());
 
   // Make sure the new connection was not deleted.
-  rtc::Thread::Current()->ProcessMessages(300);
+  webrtc::Thread::Current()->ProcessMessages(300);
   EXPECT_TRUE(port->GetConnection(address) != nullptr);
 }
 

@@ -52,7 +52,7 @@ class FakeNetworkSocket : public Socket,
                           public EmulatedNetworkReceiverInterface {
  public:
   explicit FakeNetworkSocket(FakeNetworkSocketServer* scoket_manager,
-                             rtc::Thread* thread);
+                             Thread* thread);
   ~FakeNetworkSocket() override;
 
   // Will be invoked by EmulatedEndpoint to deliver packets into this socket.
@@ -81,7 +81,7 @@ class FakeNetworkSocket : public Socket,
 
  private:
   FakeNetworkSocketServer* const socket_server_;
-  rtc::Thread* const thread_;
+  Thread* const thread_;
   EmulatedEndpointImpl* endpoint_ RTC_GUARDED_BY(&thread_);
   SocketAddress local_addr_ RTC_GUARDED_BY(&thread_);
   SocketAddress remote_addr_ RTC_GUARDED_BY(&thread_);
@@ -94,7 +94,7 @@ class FakeNetworkSocket : public Socket,
 };
 
 FakeNetworkSocket::FakeNetworkSocket(FakeNetworkSocketServer* socket_server,
-                                     rtc::Thread* thread)
+                                     Thread* thread)
     : socket_server_(socket_server),
       thread_(thread),
       state_(CS_CLOSED),
@@ -291,14 +291,14 @@ Socket* FakeNetworkSocketServer::CreateSocket(int family, int type) {
   return out;
 }
 
-void FakeNetworkSocketServer::SetMessageQueue(rtc::Thread* thread) {
+void FakeNetworkSocketServer::SetMessageQueue(Thread* thread) {
   thread_ = thread;
 }
 
 // Always returns true (if return false, it won't be invoked again...)
 bool FakeNetworkSocketServer::Wait(webrtc::TimeDelta max_wait_duration,
                                    bool process_io) {
-  RTC_DCHECK(thread_ == rtc::Thread::Current());
+  RTC_DCHECK(thread_ == Thread::Current());
   if (!max_wait_duration.IsZero())
     wakeup_.Wait(max_wait_duration);
 

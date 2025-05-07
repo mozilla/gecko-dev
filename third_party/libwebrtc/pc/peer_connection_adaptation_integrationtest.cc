@@ -84,8 +84,8 @@ class PeerConnectionAdaptationIntegrationTest : public ::testing::Test {
  public:
   PeerConnectionAdaptationIntegrationTest()
       : virtual_socket_server_(),
-        network_thread_(new rtc::Thread(&virtual_socket_server_)),
-        worker_thread_(rtc::Thread::Create()) {
+        network_thread_(new Thread(&virtual_socket_server_)),
+        worker_thread_(Thread::Create()) {
     RTC_CHECK(network_thread_->Start());
     RTC_CHECK(worker_thread_->Start());
   }
@@ -105,8 +105,8 @@ class PeerConnectionAdaptationIntegrationTest : public ::testing::Test {
 
  protected:
   VirtualSocketServer virtual_socket_server_;
-  std::unique_ptr<rtc::Thread> network_thread_;
-  std::unique_ptr<rtc::Thread> worker_thread_;
+  std::unique_ptr<Thread> network_thread_;
+  std::unique_ptr<Thread> worker_thread_;
 };
 
 TEST_F(PeerConnectionAdaptationIntegrationTest,

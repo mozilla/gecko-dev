@@ -1272,7 +1272,7 @@ void RTCStatsCollector::WaitForPendingRequest() {
 void RTCStatsCollector::ProducePartialResultsOnSignalingThread(
     Timestamp timestamp) {
   RTC_DCHECK_RUN_ON(signaling_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   partial_report_ = RTCStatsReport::Create(timestamp);
 
@@ -1290,7 +1290,7 @@ void RTCStatsCollector::ProducePartialResultsOnSignalingThreadImpl(
     Timestamp timestamp,
     RTCStatsReport* partial_report) {
   RTC_DCHECK_RUN_ON(signaling_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   ProduceMediaSourceStats_s(timestamp, partial_report);
   ProducePeerConnectionStats_s(timestamp, partial_report);
@@ -1303,7 +1303,7 @@ void RTCStatsCollector::ProducePartialResultsOnNetworkThread(
   TRACE_EVENT0("webrtc",
                "RTCStatsCollector::ProducePartialResultsOnNetworkThread");
   RTC_DCHECK_RUN_ON(network_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   // Touching `network_report_` on this thread is safe by this method because
   // `network_report_event_` is reset before this method is invoked.
@@ -1345,7 +1345,7 @@ void RTCStatsCollector::ProducePartialResultsOnNetworkThreadImpl(
     const std::map<std::string, CertificateStatsPair>& transport_cert_stats,
     RTCStatsReport* partial_report) {
   RTC_DCHECK_RUN_ON(network_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   ProduceCertificateStats_n(timestamp, transport_cert_stats, partial_report);
   ProduceIceCandidateAndPairStats_n(timestamp, transport_stats_by_name,
@@ -1431,7 +1431,7 @@ void RTCStatsCollector::ProduceCertificateStats_n(
     const std::map<std::string, CertificateStatsPair>& transport_cert_stats,
     RTCStatsReport* report) const {
   RTC_DCHECK_RUN_ON(network_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   for (const auto& transport_cert_stats_pair : transport_cert_stats) {
     if (transport_cert_stats_pair.second.local) {
@@ -1449,7 +1449,7 @@ void RTCStatsCollector::ProduceDataChannelStats_n(
     Timestamp timestamp,
     RTCStatsReport* report) const {
   RTC_DCHECK_RUN_ON(network_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
   std::vector<DataChannelStats> data_stats = pc_->GetDataChannelStats();
   for (const auto& stats : data_stats) {
     auto data_channel_stats = std::make_unique<RTCDataChannelStats>(
@@ -1477,7 +1477,7 @@ void RTCStatsCollector::ProduceIceCandidateAndPairStats_n(
     const Call::Stats& call_stats,
     RTCStatsReport* report) const {
   RTC_DCHECK_RUN_ON(network_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   for (const auto& entry : transport_stats_by_name) {
     const std::string& transport_name = entry.first;
@@ -1581,7 +1581,7 @@ void RTCStatsCollector::ProduceMediaSourceStats_s(
     Timestamp timestamp,
     RTCStatsReport* report) const {
   RTC_DCHECK_RUN_ON(signaling_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   for (const RtpTransceiverStatsInfo& transceiver_stats_info :
        transceiver_stats_infos_) {
@@ -1680,7 +1680,7 @@ void RTCStatsCollector::ProducePeerConnectionStats_s(
     Timestamp timestamp,
     RTCStatsReport* report) const {
   RTC_DCHECK_RUN_ON(signaling_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   auto stats(std::make_unique<RTCPeerConnectionStats>("P", timestamp));
   stats->data_channels_opened = internal_record_.data_channels_opened;
@@ -1692,7 +1692,7 @@ void RTCStatsCollector::ProduceAudioPlayoutStats_s(
     Timestamp timestamp,
     RTCStatsReport* report) const {
   RTC_DCHECK_RUN_ON(signaling_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   if (audio_device_stats_) {
     report->AddStats(CreateAudioPlayoutStats(*audio_device_stats_, timestamp));
@@ -1704,7 +1704,7 @@ void RTCStatsCollector::ProduceRTPStreamStats_n(
     const std::vector<RtpTransceiverStatsInfo>& transceiver_stats_infos,
     RTCStatsReport* report) const {
   RTC_DCHECK_RUN_ON(network_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   for (const RtpTransceiverStatsInfo& stats : transceiver_stats_infos) {
     if (stats.media_type == cricket::MEDIA_TYPE_AUDIO) {
@@ -1722,7 +1722,7 @@ void RTCStatsCollector::ProduceAudioRTPStreamStats_n(
     const RtpTransceiverStatsInfo& stats,
     RTCStatsReport* report) const {
   RTC_DCHECK_RUN_ON(network_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   if (!stats.mid || !stats.transport_name) {
     return;
@@ -1827,7 +1827,7 @@ void RTCStatsCollector::ProduceVideoRTPStreamStats_n(
     const RtpTransceiverStatsInfo& stats,
     RTCStatsReport* report) const {
   RTC_DCHECK_RUN_ON(network_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   if (!stats.mid || !stats.transport_name) {
     return;
@@ -1924,7 +1924,7 @@ void RTCStatsCollector::ProduceTransportStats_n(
     const std::map<std::string, CertificateStatsPair>& transport_cert_stats,
     RTCStatsReport* report) const {
   RTC_DCHECK_RUN_ON(network_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   for (const auto& entry : transport_stats_by_name) {
     const std::string& transport_name = entry.first;
@@ -2031,7 +2031,7 @@ RTCStatsCollector::PrepareTransportCertificateStats_n(
     const std::map<std::string, cricket::TransportStats>&
         transport_stats_by_name) {
   RTC_DCHECK_RUN_ON(network_thread_);
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   std::map<std::string, CertificateStatsPair> transport_cert_stats;
   {
@@ -2097,7 +2097,7 @@ void RTCStatsCollector::PrepareTransceiverStatsInfosAndCallStats_s_w_n() {
   // TODO(tommi): See if we can avoid synchronously blocking the signaling
   // thread while we do this (or avoid the BlockingCall at all).
   network_thread_->BlockingCall([&] {
-    rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+    Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
     for (const auto& transceiver_proxy : transceivers) {
       RtpTransceiver* transceiver = transceiver_proxy->internal();
@@ -2153,7 +2153,7 @@ void RTCStatsCollector::PrepareTransceiverStatsInfosAndCallStats_s_w_n() {
   // TrackMediaInfoMaps, which also needs info from the worker thread. This
   // minimizes the number of thread jumps.
   worker_thread_->BlockingCall([&] {
-    rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+    Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
     for (auto& pair : voice_send_stats) {
       if (!pair.first->GetStats(&pair.second)) {

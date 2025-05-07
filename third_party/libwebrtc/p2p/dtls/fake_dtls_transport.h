@@ -84,7 +84,7 @@ class FakeDtlsTransport : public cricket::DtlsTransportInternal {
             std::make_unique<cricket::FakeIceTransport>(name, component)) {}
   FakeDtlsTransport(const std::string& name,
                     int component,
-                    rtc::Thread* network_thread)
+                    Thread* network_thread)
       : FakeDtlsTransport(
             std::make_unique<cricket::FakeIceTransport>(name,
                                                         component,

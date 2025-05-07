@@ -83,7 +83,7 @@ class TestUDPPort : public UDPPort {
 class FakePortAllocatorSession : public webrtc::PortAllocatorSession {
  public:
   FakePortAllocatorSession(webrtc::PortAllocator* allocator,
-                           rtc::Thread* network_thread,
+                           webrtc::Thread* network_thread,
                            webrtc::PacketSocketFactory* factory,
                            absl::string_view content_name,
                            int component,
@@ -206,7 +206,7 @@ class FakePortAllocatorSession : public webrtc::PortAllocatorSession {
   }
 
   webrtc::PortAllocator* allocator_;
-  rtc::Thread* network_thread_;
+  webrtc::Thread* network_thread_;
   webrtc::PacketSocketFactory* factory_;
   rtc::Network ipv4_network_;
   rtc::Network ipv6_network_;
@@ -226,12 +226,12 @@ class FakePortAllocatorSession : public webrtc::PortAllocatorSession {
 
 class FakePortAllocator : public webrtc::PortAllocator {
  public:
-  FakePortAllocator(rtc::Thread* network_thread,
+  FakePortAllocator(webrtc::Thread* network_thread,
                     webrtc::PacketSocketFactory* factory,
                     const webrtc::FieldTrialsView* field_trials)
       : FakePortAllocator(network_thread, factory, nullptr, field_trials) {}
 
-  FakePortAllocator(rtc::Thread* network_thread,
+  FakePortAllocator(webrtc::Thread* network_thread,
                     std::unique_ptr<webrtc::PacketSocketFactory> factory,
                     const webrtc::FieldTrialsView* field_trials)
       : FakePortAllocator(network_thread,
@@ -262,7 +262,7 @@ class FakePortAllocator : public webrtc::PortAllocator {
   }
 
  private:
-  FakePortAllocator(rtc::Thread* network_thread,
+  FakePortAllocator(webrtc::Thread* network_thread,
                     webrtc::PacketSocketFactory* factory,
                     std::unique_ptr<webrtc::PacketSocketFactory> owned_factory,
                     const webrtc::FieldTrialsView* field_trials)
@@ -270,14 +270,14 @@ class FakePortAllocator : public webrtc::PortAllocator {
         factory_(std::move(owned_factory), factory),
         field_trials_(field_trials) {
     if (network_thread_ == nullptr) {
-      network_thread_ = rtc::Thread::Current();
+      network_thread_ = webrtc::Thread::Current();
       Initialize();
       return;
     }
     SendTask(network_thread_, [this] { Initialize(); });
   }
 
-  rtc::Thread* network_thread_;
+  webrtc::Thread* network_thread_;
   const webrtc::AlwaysValidPointerNoDefault<webrtc::PacketSocketFactory>
       factory_;
   const webrtc::FieldTrialsView* field_trials_;

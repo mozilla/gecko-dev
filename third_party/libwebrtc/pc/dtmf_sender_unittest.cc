@@ -119,7 +119,7 @@ class DtmfSenderTest : public ::testing::Test {
   DtmfSenderTest()
       : observer_(new FakeDtmfObserver()), provider_(new FakeDtmfProvider()) {
     provider_->SetCanInsertDtmf(true);
-    dtmf_ = DtmfSender::Create(rtc::Thread::Current(), provider_.get());
+    dtmf_ = DtmfSender::Create(webrtc::Thread::Current(), provider_.get());
     dtmf_->RegisterObserver(observer_.get());
   }
 
@@ -214,7 +214,7 @@ class DtmfSenderTest : public ::testing::Test {
     }
   }
 
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   std::unique_ptr<FakeDtmfObserver> observer_;
   std::unique_ptr<FakeDtmfProvider> provider_;
   rtc::scoped_refptr<DtmfSender> dtmf_;

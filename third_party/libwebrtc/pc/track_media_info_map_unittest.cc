@@ -90,7 +90,7 @@ rtc::scoped_refptr<MockRtpReceiverInternal> CreateMockRtpReceiver(
 rtc::scoped_refptr<VideoTrackInterface> CreateVideoTrack(
     const std::string& id) {
   return VideoTrack::Create(id, FakeVideoTrackSource::Create(false),
-                            rtc::Thread::Current());
+                            Thread::Current());
 }
 
 rtc::scoped_refptr<VideoTrackInterface> CreateMockVideoTrack(
@@ -180,7 +180,7 @@ class TrackMediaInfoMapTest : public ::testing::Test {
   }
 
  private:
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   cricket::VoiceMediaInfo voice_media_info_;
   cricket::VideoMediaInfo video_media_info_;
 

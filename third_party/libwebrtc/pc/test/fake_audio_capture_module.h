@@ -31,11 +31,8 @@
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
 #include "rtc_base/synchronization/mutex.h"
+#include "rtc_base/thread.h"
 #include "rtc_base/thread_annotations.h"
-
-namespace rtc {
-class Thread;
-}  // namespace rtc
 
 class FakeAudioCaptureModule : public webrtc::AudioDeviceModule {
  public:
@@ -215,7 +212,7 @@ class FakeAudioCaptureModule : public webrtc::AudioDeviceModule {
   bool started_ RTC_GUARDED_BY(mutex_);
   int64_t next_frame_time_ RTC_GUARDED_BY(process_thread_checker_);
 
-  std::unique_ptr<rtc::Thread> process_thread_;
+  std::unique_ptr<webrtc::Thread> process_thread_;
 
   // Buffer for storing samples received from the webrtc::AudioTransport.
   char rec_buffer_[kNumberSamples * kNumberBytesPerSample];

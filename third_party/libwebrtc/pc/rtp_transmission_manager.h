@@ -43,10 +43,6 @@
 #include "rtc_base/unique_id_generator.h"
 #include "rtc_base/weak_ptr.h"
 
-namespace rtc {
-class Thread;
-}
-
 namespace webrtc {
 
 // This class contains information about
@@ -217,8 +213,8 @@ class RtpTransmissionManager : public RtpSenderBase::SetStreamsObserver {
       const;
 
  private:
-  rtc::Thread* signaling_thread() const { return context_->signaling_thread(); }
-  rtc::Thread* worker_thread() const { return context_->worker_thread(); }
+  Thread* signaling_thread() const { return context_->signaling_thread(); }
+  Thread* worker_thread() const { return context_->worker_thread(); }
   bool IsUnifiedPlan() const { return is_unified_plan_; }
   void NoteUsageEvent(UsageEvent event) {
     usage_pattern_->NoteUsageEvent(event);

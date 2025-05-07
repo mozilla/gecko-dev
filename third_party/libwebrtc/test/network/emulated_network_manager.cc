@@ -35,7 +35,7 @@ class EmulatedNetworkManager::NetworkManagerImpl
     : public rtc::NetworkManagerBase {
  public:
   explicit NetworkManagerImpl(
-      absl::Nonnull<rtc::Thread*> network_thread,
+      absl::Nonnull<Thread*> network_thread,
       absl::Nonnull<EndpointsContainer*> endpoints_container)
       : network_thread_(network_thread),
         endpoints_container_(endpoints_container) {}
@@ -52,7 +52,7 @@ class EmulatedNetworkManager::NetworkManagerImpl
   }
 
  private:
-  const absl::Nonnull<rtc::Thread*> network_thread_;
+  const absl::Nonnull<Thread*> network_thread_;
   const absl::Nonnull<const EndpointsContainer*> endpoints_container_;
   bool sent_first_update_ RTC_GUARDED_BY(network_thread_) = false;
   int start_count_ RTC_GUARDED_BY(network_thread_) = 0;

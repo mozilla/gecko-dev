@@ -146,10 +146,6 @@
 #include "rtc_base/system/rtc_export.h"
 #include "rtc_base/thread.h"
 
-namespace rtc {
-class Thread;  // IWYU pragma: keep
-}  // namespace rtc
-
 namespace webrtc {
 // IWYU pragma: begin_keep
 // MediaFactory class definition is not part of the api.
@@ -1238,7 +1234,7 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   //
   // Also the only thread on which it's safe to use SessionDescriptionInterface
   // pointers.
-  virtual rtc::Thread* signaling_thread() const = 0;
+  virtual Thread* signaling_thread() const = 0;
 
   // NetworkController instance being used by this PeerConnection, to be used
   // to identify instances when using a custom NetworkControllerFactory.
@@ -1435,9 +1431,9 @@ struct RTC_EXPORT PeerConnectionFactoryDependencies final {
   ~PeerConnectionFactoryDependencies();
 
   // Optional dependencies
-  rtc::Thread* network_thread = nullptr;
-  rtc::Thread* worker_thread = nullptr;
-  rtc::Thread* signaling_thread = nullptr;
+  Thread* network_thread = nullptr;
+  Thread* worker_thread = nullptr;
+  Thread* signaling_thread = nullptr;
   SocketFactory* socket_factory = nullptr;
   // The `packet_socket_factory` will only be used if CreatePeerConnection is
   // called without a `port_allocator`.

@@ -73,8 +73,8 @@ void TestSend(webrtc::SocketServer* internal,
               const webrtc::SocketAddress external_addrs[4],
               webrtc::NATType nat_type,
               bool exp_same) {
-  Thread th_int(internal);
-  Thread th_ext(external);
+  webrtc::Thread th_int(internal);
+  webrtc::Thread th_ext(external);
 
   th_int.Start();
   th_ext.Start();
@@ -135,8 +135,8 @@ void TestRecv(webrtc::SocketServer* internal,
               webrtc::NATType nat_type,
               bool filter_ip,
               bool filter_port) {
-  Thread th_int(internal);
-  Thread th_ext(external);
+  webrtc::Thread th_int(internal);
+  webrtc::Thread th_ext(external);
 
   webrtc::SocketAddress server_addr = internal_addr;
   server_addr.SetPort(0);  // Auto-select a port
@@ -238,7 +238,7 @@ bool TestConnectivity(const webrtc::SocketAddress& src,
   size_t len = strlen(buf);
   int sent = client->SendTo(buf, len, server->GetLocalAddress());
 
-  Thread::Current()->SleepMs(100);
+  webrtc::Thread::Current()->SleepMs(100);
   rtc::Buffer payload;
   webrtc::Socket::ReceiveBuffer receive_buffer(payload);
   int received = server->RecvFrom(receive_buffer);
@@ -247,12 +247,12 @@ bool TestConnectivity(const webrtc::SocketAddress& src,
 
 void TestPhysicalInternal(const webrtc::SocketAddress& int_addr) {
   webrtc::test::ScopedKeyValueConfig field_trials;
-  rtc::AutoThread main_thread;
+  webrtc::AutoThread main_thread;
   webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager network_manager(nullptr, &socket_server, &field_trials);
   network_manager.StartUpdating();
   // Process pending messages so the network list is updated.
-  Thread::Current()->ProcessMessages(0);
+  webrtc::Thread::Current()->ProcessMessages(0);
 
   std::vector<const Network*> networks = network_manager.GetNetworks();
   networks.erase(std::remove_if(networks.begin(), networks.end(),
@@ -323,7 +323,7 @@ class TestVirtualSocketServer : public webrtc::VirtualSocketServer {
 }  // namespace
 
 void TestVirtualInternal(int family) {
-  rtc::AutoThread main_thread;
+  webrtc::AutoThread main_thread;
   std::unique_ptr<TestVirtualSocketServer> int_vss(
       new TestVirtualSocketServer());
   std::unique_ptr<TestVirtualSocketServer> ext_vss(
@@ -361,8 +361,8 @@ class NatTcpTest : public ::testing::Test, public sigslot::has_slots<> {
         connected_(false),
         int_vss_(new TestVirtualSocketServer()),
         ext_vss_(new TestVirtualSocketServer()),
-        int_thread_(new Thread(int_vss_.get())),
-        ext_thread_(new Thread(ext_vss_.get())),
+        int_thread_(new webrtc::Thread(int_vss_.get())),
+        ext_thread_(new webrtc::Thread(ext_vss_.get())),
         nat_(new webrtc::NATServer(webrtc::NAT_OPEN_CONE,
                                    *int_thread_,
                                    int_vss_.get(),
@@ -396,8 +396,8 @@ class NatTcpTest : public ::testing::Test, public sigslot::has_slots<> {
   bool connected_;
   std::unique_ptr<TestVirtualSocketServer> int_vss_;
   std::unique_ptr<TestVirtualSocketServer> ext_vss_;
-  std::unique_ptr<Thread> int_thread_;
-  std::unique_ptr<Thread> ext_thread_;
+  std::unique_ptr<webrtc::Thread> int_thread_;
+  std::unique_ptr<webrtc::Thread> ext_thread_;
   std::unique_ptr<webrtc::NATServer> nat_;
   std::unique_ptr<webrtc::NATSocketFactory> natsf_;
   std::unique_ptr<webrtc::Socket> client_;

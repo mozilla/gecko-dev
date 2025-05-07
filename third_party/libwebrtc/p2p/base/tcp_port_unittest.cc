@@ -132,7 +132,7 @@ class TCPPortTest : public ::testing::Test, public sigslot::has_slots<> {
   // vector so that when it grows, pointers aren't invalidated.
   std::list<rtc::Network> networks_;
   std::unique_ptr<webrtc::VirtualSocketServer> ss_;
-  rtc::AutoSocketServerThread main_;
+  webrtc::AutoSocketServerThread main_;
   webrtc::BasicPacketSocketFactory socket_factory_;
   std::string username_;
   std::string password_;
@@ -422,7 +422,7 @@ TEST_F(TCPPortTest, SignalSentPacketAfterReconnect) {
                         {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
       webrtc::IsRtcOk());
   // Wait a bit for the Stun response to be received.
-  rtc::Thread::Current()->ProcessMessages(100);
+  webrtc::Thread::Current()->ProcessMessages(100);
 
   // After the Stun Ping response has been received, packets can be sent again
   // and SignalSentPacket should be invoked.

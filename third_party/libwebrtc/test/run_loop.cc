@@ -67,7 +67,7 @@ Socket* RunLoop::FakeSocketServer::CreateSocket(int family, int type) {
 }
 
 RunLoop::WorkerThread::WorkerThread(SocketServer* ss)
-    : rtc::Thread(ss), tq_setter_(this) {}
+    : Thread(ss), tq_setter_(this) {}
 
 }  // namespace test
 }  // namespace webrtc

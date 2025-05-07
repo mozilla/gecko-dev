@@ -70,9 +70,9 @@ using ::testing::Values;
 
 PeerConnectionFactoryDependencies CreatePeerConnectionFactoryDependencies() {
   PeerConnectionFactoryDependencies dependencies;
-  dependencies.worker_thread = rtc::Thread::Current();
-  dependencies.network_thread = rtc::Thread::Current();
-  dependencies.signaling_thread = rtc::Thread::Current();
+  dependencies.worker_thread = Thread::Current();
+  dependencies.network_thread = Thread::Current();
+  dependencies.signaling_thread = Thread::Current();
   dependencies.task_queue_factory = CreateDefaultTaskQueueFactory();
   dependencies.trials = std::make_unique<FieldTrialBasedConfig>();
   dependencies.adm = FakeAudioCaptureModule::Create();
@@ -115,7 +115,7 @@ class PeerConnectionJsepTest : public ::testing::Test {
   }
 
   std::unique_ptr<VirtualSocketServer> vss_;
-  rtc::AutoSocketServerThread main_;
+  AutoSocketServerThread main_;
 };
 
 // Tests for JSEP initial offer generation.

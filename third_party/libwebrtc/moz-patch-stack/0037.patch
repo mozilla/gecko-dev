@@ -11,11 +11,11 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/99b99cca6b7b2c2eb
  3 files changed, 6 insertions(+), 4 deletions(-)
 
 diff --git a/modules/video_capture/video_capture_impl.h b/modules/video_capture/video_capture_impl.h
-index e46e050609..dcc93fd3a0 100644
+index 962aa29f86..d0f604afe4 100644
 --- a/modules/video_capture/video_capture_impl.h
 +++ b/modules/video_capture/video_capture_impl.h
 @@ -97,6 +97,10 @@ class RTC_EXPORT VideoCaptureImpl : public VideoCaptureModule {
-   rtc::RaceChecker capture_checker_;
+   RaceChecker capture_checker_;
    // current Device unique name;
    char* _deviceUniqueId RTC_GUARDED_BY(api_checker_);
 +

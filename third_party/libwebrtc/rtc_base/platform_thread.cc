@@ -21,7 +21,7 @@
 
 #include "MicroGeckoProfiler.h"
 
-namespace rtc {
+namespace webrtc {
 namespace {
 
 #if defined(WEBRTC_WIN)
@@ -221,4 +221,4 @@ PlatformThread PlatformThread::SpawnThread(
   return PlatformThread(handle, joinable);
 }
 
-}  // namespace rtc
+}  // namespace webrtc

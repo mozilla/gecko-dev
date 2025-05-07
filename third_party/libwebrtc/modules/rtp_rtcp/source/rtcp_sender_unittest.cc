@@ -150,7 +150,7 @@ class RtcpSenderTest : public ::testing::Test {
     return rtp_rtcp_impl_.GetFeedbackState();
   }
 
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   SimulatedClock clock_;
   const Environment env_;
   TestTransport test_transport_;

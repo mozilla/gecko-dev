@@ -94,9 +94,9 @@ class PeerConnectionSimulcastTests : public ::testing::Test {
  public:
   PeerConnectionSimulcastTests()
       : pc_factory_(CreatePeerConnectionFactory(
-            rtc::Thread::Current(),
-            rtc::Thread::Current(),
-            rtc::Thread::Current(),
+            Thread::Current(),
+            Thread::Current(),
+            Thread::Current(),
             FakeAudioCaptureModule::Create(),
             CreateBuiltinAudioEncoderFactory(),
             CreateBuiltinAudioDecoderFactory(),

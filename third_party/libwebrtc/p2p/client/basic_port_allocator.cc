@@ -267,7 +267,7 @@ BasicPortAllocatorSession::BasicPortAllocatorSession(
                                    ice_pwd,
                                    allocator->flags()),
       allocator_(allocator),
-      network_thread_(rtc::Thread::Current()),
+      network_thread_(webrtc::Thread::Current()),
       socket_factory_(allocator->socket_factory()),
       allocation_started_(false),
       network_manager_started_(false),
@@ -1415,7 +1415,7 @@ void AllocationSequence::Stop() {
 }
 
 void AllocationSequence::Process(int epoch) {
-  RTC_DCHECK(rtc::Thread::Current() == session_->network_thread());
+  RTC_DCHECK(webrtc::Thread::Current() == session_->network_thread());
   const char* const PHASE_NAMES[kNumPhases] = {"Udp", "Relay", "Tcp"};
 
   if (epoch != epoch_)

@@ -26,7 +26,7 @@ namespace webrtc {
 // Implementation of DtlsTransportInterface
 DtlsTransport::DtlsTransport(
     std::unique_ptr<cricket::DtlsTransportInternal> internal)
-    : owner_thread_(rtc::Thread::Current()),
+    : owner_thread_(Thread::Current()),
       info_(DtlsTransportState::kNew),
       internal_dtls_transport_(std::move(internal)),
       ice_transport_(rtc::make_ref_counted<IceTransportWithPointer>(

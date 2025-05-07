@@ -264,14 +264,12 @@ class PeerConnection : public PeerConnectionInternal,
 
   void Close() override;
 
-  rtc::Thread* signaling_thread() const final {
+  Thread* signaling_thread() const final {
     return context_->signaling_thread();
   }
 
-  rtc::Thread* network_thread() const final {
-    return context_->network_thread();
-  }
-  rtc::Thread* worker_thread() const final { return context_->worker_thread(); }
+  Thread* network_thread() const final { return context_->network_thread(); }
+  Thread* worker_thread() const final { return context_->worker_thread(); }
 
   std::string session_id() const override { return session_id_; }
 

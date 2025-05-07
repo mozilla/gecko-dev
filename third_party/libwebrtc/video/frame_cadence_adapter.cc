@@ -436,7 +436,7 @@ class FrameCadenceAdapterImpl : public FrameCadenceAdapterInterface {
 
   // Race checker for incoming frames. This is the network thread in chromium,
   // but may vary from test contexts.
-  rtc::RaceChecker incoming_frame_race_checker_;
+  RaceChecker incoming_frame_race_checker_;
 
   // Number of frames that are currently scheduled for processing on the
   // `queue_`.

@@ -217,7 +217,7 @@ class DtlsSrtpTransportIntegrationTest : public ::testing::Test {
   }
 
  private:
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   webrtc::ScopedFakeClock fake_clock_;
   webrtc::test::ScopedKeyValueConfig field_trials_;
 

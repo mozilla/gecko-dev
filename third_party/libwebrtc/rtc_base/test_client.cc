@@ -141,7 +141,7 @@ void TestClient::AdvanceTime(int ms) {
       fake_clock_->AdvanceTime(webrtc::TimeDelta::Millis(1));
     };
   } else {
-    rtc::Thread::Current()->ProcessMessages(1);
+    Thread::Current()->ProcessMessages(1);
   }
 }
 

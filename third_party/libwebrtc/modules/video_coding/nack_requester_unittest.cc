@@ -89,7 +89,7 @@ class TestNackRequester : public ::testing::Test,
   }
 
   static constexpr int64_t kDefaultRttMs = 20;
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   test::RunLoop loop_;
   std::unique_ptr<SimulatedClock> clock_;
   std::unique_ptr<NackPeriodicProcessor> nack_periodic_processor_;
@@ -284,7 +284,7 @@ class TestNackRequesterWithFieldTrial : public ::testing::Test,
   void RequestKeyFrame() override { ++keyframes_requested_; }
 
   test::ScopedKeyValueConfig nack_delay_field_trial_;
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   std::unique_ptr<SimulatedClock> clock_;
   NackPeriodicProcessor nack_periodic_processor_;
   NackRequester nack_module_;

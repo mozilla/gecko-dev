@@ -24,7 +24,7 @@
 namespace webrtc {
 
 AudioRtpReceiver::AudioRtpReceiver(
-    rtc::Thread* worker_thread,
+    Thread* worker_thread,
     std::string receiver_id,
     std::vector<std::string> stream_ids,
     bool is_unified_plan,
@@ -36,7 +36,7 @@ AudioRtpReceiver::AudioRtpReceiver(
                        voice_channel) {}
 
 AudioRtpReceiver::AudioRtpReceiver(
-    rtc::Thread* worker_thread,
+    Thread* worker_thread,
     const std::string& receiver_id,
     const std::vector<rtc::scoped_refptr<MediaStreamInterface>>& streams,
     bool is_unified_plan,
@@ -49,7 +49,7 @@ AudioRtpReceiver::AudioRtpReceiver(
               ? RemoteAudioSource::OnAudioChannelGoneAction::kSurvive
               : RemoteAudioSource::OnAudioChannelGoneAction::kEnd)),
       track_(AudioTrackProxyWithInternal<AudioTrack>::Create(
-          rtc::Thread::Current(),
+          Thread::Current(),
           AudioTrack::Create(receiver_id, source_))),
       media_channel_(voice_channel),
       cached_track_enabled_(track_->internal()->enabled()),

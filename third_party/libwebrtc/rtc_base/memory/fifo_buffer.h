@@ -31,7 +31,7 @@ class FifoBuffer final : public webrtc::StreamInterface {
   // Creates a FIFO buffer with the specified capacity.
   explicit FifoBuffer(size_t length);
   // Creates a FIFO buffer with the specified capacity and owner
-  FifoBuffer(size_t length, Thread* owner);
+  FifoBuffer(size_t length, webrtc::Thread* owner);
   ~FifoBuffer() override;
 
   FifoBuffer(const FifoBuffer&) = delete;
@@ -118,7 +118,7 @@ class FifoBuffer final : public webrtc::StreamInterface {
   // offset to the readable data
   size_t read_position_ RTC_GUARDED_BY(callback_sequence_);
   // stream callbacks are dispatched on this thread
-  Thread* const owner_;
+  webrtc::Thread* const owner_;
 };
 
 }  // namespace rtc

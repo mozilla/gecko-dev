@@ -40,7 +40,7 @@ namespace webrtc {
 class AudioRtpReceiverTest : public ::testing::Test {
  protected:
   AudioRtpReceiverTest()
-      : worker_(rtc::Thread::Current()),
+      : worker_(Thread::Current()),
         receiver_(
             rtc::make_ref_counted<AudioRtpReceiver>(worker_,
                                                     std::string(),
@@ -55,8 +55,8 @@ class AudioRtpReceiverTest : public ::testing::Test {
     receiver_->SetMediaChannel(nullptr);
   }
 
-  rtc::AutoThread main_thread_;
-  rtc::Thread* worker_;
+  AutoThread main_thread_;
+  Thread* worker_;
   rtc::scoped_refptr<AudioRtpReceiver> receiver_;
   cricket::MockVoiceMediaReceiveChannelInterface receive_channel_;
 };
@@ -108,7 +108,7 @@ TEST_F(AudioRtpReceiverTest, VolumesSetBeforeStartingAreRespected) {
 // constructor.
 TEST(AudioRtpReceiver, OnChangedNotificationsAfterConstruction) {
   test::RunLoop loop;
-  auto* thread = rtc::Thread::Current();  // Points to loop's thread.
+  auto* thread = Thread::Current();  // Points to loop's thread.
   cricket::MockVoiceMediaReceiveChannelInterface receive_channel;
   auto receiver = rtc::make_ref_counted<AudioRtpReceiver>(
       thread, std::string(), std::vector<std::string>(), true,

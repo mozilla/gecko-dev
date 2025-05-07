@@ -295,7 +295,7 @@ OpenSSLStreamAdapter::OpenSSLStreamAdapter(
     const webrtc::FieldTrialsView* field_trials)
     : stream_(std::move(stream)),
       handshake_error_(std::move(handshake_error)),
-      owner_(rtc::Thread::Current()),
+      owner_(webrtc::Thread::Current()),
       state_(SSL_NONE),
       role_(webrtc::SSL_CLIENT),
       ssl_read_needs_write_(false),

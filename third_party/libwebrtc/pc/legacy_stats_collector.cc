@@ -630,7 +630,7 @@ void LegacyStatsCollector::GetStats(MediaStreamTrackInterface* track,
   RTC_DCHECK(reports != NULL);
   RTC_DCHECK(reports->empty());
 
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   if (!track) {
     reports->reserve(reports_.size());
@@ -906,7 +906,7 @@ LegacyStatsCollector::SessionStats LegacyStatsCollector::ExtractSessionInfo_n(
     std::optional<std::string> sctp_mid) {
   TRACE_EVENT0("webrtc", "LegacyStatsCollector::ExtractSessionInfo_n");
   RTC_DCHECK_RUN_ON(pc_->network_thread());
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
   SessionStats stats;
   stats.candidate_stats = pc_->GetPooledCandidateStats();
   for (auto& transceiver : transceivers) {
@@ -957,7 +957,7 @@ LegacyStatsCollector::SessionStats LegacyStatsCollector::ExtractSessionInfo_n(
 
 void LegacyStatsCollector::ExtractSessionInfo_s(SessionStats& session_stats) {
   RTC_DCHECK_RUN_ON(pc_->signaling_thread());
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   StatsReport::Id id(StatsReport::NewTypedId(
       StatsReport::kStatsReportTypeSession, pc_->session_id()));
@@ -1213,7 +1213,7 @@ void LegacyStatsCollector::ExtractMediaInfo(
 
   auto transceivers = pc_->GetTransceiversInternal();
   {
-    rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+    Thread::ScopedDisallowBlockingCalls no_blocking_calls;
     for (const auto& transceiver : transceivers) {
       cricket::ChannelInterface* channel = transceiver->internal()->channel();
       if (!channel) {
@@ -1240,7 +1240,7 @@ void LegacyStatsCollector::ExtractMediaInfo(
   }
 
   pc_->worker_thread()->BlockingCall([&] {
-    rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+    Thread::ScopedDisallowBlockingCalls no_blocking_calls;
     // Populate `receiver_track_id_by_ssrc` for the gatherers.
     int i = 0;
     for (const auto& transceiver : transceivers) {
@@ -1269,7 +1269,7 @@ void LegacyStatsCollector::ExtractMediaInfo(
     }
   });
 
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   bool has_remote_audio = false;
   for (const auto& gatherer : gatherers) {
@@ -1316,7 +1316,7 @@ void LegacyStatsCollector::ExtractSenderInfo() {
 void LegacyStatsCollector::ExtractDataInfo_n(StatsCollection* reports) {
   RTC_DCHECK_RUN_ON(pc_->network_thread());
 
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   std::vector<DataChannelStats> data_stats = pc_->GetDataChannelStats();
   for (const auto& stats : data_stats) {
@@ -1398,7 +1398,7 @@ void LegacyStatsCollector::UpdateReportFromAudioTrack(
 void LegacyStatsCollector::UpdateTrackReports() {
   RTC_DCHECK_RUN_ON(pc_->signaling_thread());
 
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
 
   for (const auto& entry : track_ids_) {
     StatsReport* report = entry.second;

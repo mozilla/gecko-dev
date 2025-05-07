@@ -421,7 +421,7 @@ int OpenSSLAdapter::ContinueSSL() {
       if (DTLSv1_get_timeout(ssl_, &timeout)) {
         TimeDelta delay = TimeDelta::Seconds(timeout.tv_sec) +
                           TimeDelta::Micros(timeout.tv_usec);
-        Thread::Current()->PostDelayedTask(
+        webrtc::Thread::Current()->PostDelayedTask(
             SafeTask(timer_.flag(), [this] { OnTimeout(); }), delay);
       }
       break;

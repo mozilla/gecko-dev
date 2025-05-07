@@ -76,7 +76,7 @@ class DtlsTransport : public DtlsTransportInterface {
   }
 
   DtlsTransportObserverInterface* observer_ = nullptr;
-  rtc::Thread* owner_thread_;
+  Thread* owner_thread_;
   mutable Mutex lock_;
   DtlsTransportInformation info_ RTC_GUARDED_BY(lock_);
   std::unique_ptr<cricket::DtlsTransportInternal> internal_dtls_transport_

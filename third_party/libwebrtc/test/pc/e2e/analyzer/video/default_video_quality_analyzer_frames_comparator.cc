@@ -187,7 +187,7 @@ FrameComparison ValidateFrameComparison(FrameComparison comparison) {
 
 void DefaultVideoQualityAnalyzerFramesComparator::Start(int max_threads_count) {
   for (int i = 0; i < max_threads_count; i++) {
-    thread_pool_.push_back(rtc::PlatformThread::SpawnJoinable(
+    thread_pool_.push_back(PlatformThread::SpawnJoinable(
         [this] { ProcessComparisons(); },
         "DefaultVideoQualityAnalyzerFramesComparator-" + std::to_string(i)));
   }

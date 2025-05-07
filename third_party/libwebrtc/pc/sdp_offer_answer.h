@@ -221,8 +221,8 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
       ConnectionContext* context,
       cricket::CodecLookupHelper* codec_lookup_helper);
 
-  rtc::Thread* signaling_thread() const;
-  rtc::Thread* network_thread() const;
+  Thread* signaling_thread() const;
+  Thread* network_thread() const;
   // Non-const versions of local_description()/remote_description(), for use
   // internally.
   SessionDescriptionInterface* mutable_local_description()

@@ -113,7 +113,7 @@ class MethodCall {
         m_(m),
         args_(std::forward_as_tuple(std::forward<Args>(args)...)) {}
 
-  R Marshal(rtc::Thread* t) {
+  R Marshal(Thread* t) {
     if (t->IsCurrent()) {
       Invoke(std::index_sequence_for<Args...>());
     } else {
@@ -148,7 +148,7 @@ class ConstMethodCall {
         m_(m),
         args_(std::forward_as_tuple(std::forward<Args>(args)...)) {}
 
-  R Marshal(rtc::Thread* t) {
+  R Marshal(Thread* t) {
     if (t->IsCurrent()) {
       Invoke(std::index_sequence_for<Args...>());
     } else {

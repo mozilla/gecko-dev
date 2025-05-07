@@ -89,7 +89,7 @@ TEST(OpenSSLAdapterTest, TestTransformAlpnProtocols) {
 // Verifies that SSLStart works when OpenSSLAdapter is started in standalone
 // mode.
 TEST(OpenSSLAdapterTest, TestBeginSSLBeforeConnection) {
-  rtc::AutoThread main_thread;
+  webrtc::AutoThread main_thread;
   webrtc::Socket* async_socket = new MockAsyncSocket();
   OpenSSLAdapter adapter(async_socket);
   EXPECT_EQ(adapter.StartSSL("webrtc.org"), 0);
@@ -97,7 +97,7 @@ TEST(OpenSSLAdapterTest, TestBeginSSLBeforeConnection) {
 
 // Verifies that the adapter factory can create new adapters.
 TEST(OpenSSLAdapterFactoryTest, CreateSingleOpenSSLAdapter) {
-  rtc::AutoThread main_thread;
+  webrtc::AutoThread main_thread;
   OpenSSLAdapterFactory adapter_factory;
   webrtc::Socket* async_socket = new MockAsyncSocket();
   auto simple_adapter = std::unique_ptr<OpenSSLAdapter>(
@@ -108,7 +108,7 @@ TEST(OpenSSLAdapterFactoryTest, CreateSingleOpenSSLAdapter) {
 // Verifies that setting a custom verifier still allows for adapters to be
 // created.
 TEST(OpenSSLAdapterFactoryTest, CreateWorksWithCustomVerifier) {
-  rtc::AutoThread main_thread;
+  webrtc::AutoThread main_thread;
   MockCertVerifier* mock_verifier = new MockCertVerifier();
   EXPECT_CALL(*mock_verifier, Verify(_)).WillRepeatedly(Return(true));
   auto cert_verifier = std::unique_ptr<SSLCertificateVerifier>(mock_verifier);

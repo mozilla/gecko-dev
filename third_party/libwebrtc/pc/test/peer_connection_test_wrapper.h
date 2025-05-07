@@ -51,8 +51,8 @@ class PeerConnectionTestWrapper
 
   PeerConnectionTestWrapper(const std::string& name,
                             webrtc::SocketServer* socket_server,
-                            rtc::Thread* network_thread,
-                            rtc::Thread* worker_thread);
+                            webrtc::Thread* network_thread,
+                            webrtc::Thread* worker_thread);
   virtual ~PeerConnectionTestWrapper();
 
   bool CreatePc(
@@ -145,8 +145,8 @@ class PeerConnectionTestWrapper
 
   std::string name_;
   webrtc::SocketServer* const socket_server_;
-  rtc::Thread* const network_thread_;
-  rtc::Thread* const worker_thread_;
+  webrtc::Thread* const network_thread_;
+  webrtc::Thread* const worker_thread_;
   webrtc::SequenceChecker pc_thread_checker_;
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>

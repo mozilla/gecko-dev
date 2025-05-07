@@ -41,7 +41,7 @@ namespace {
 
 void TestUdpInternal(const SocketAddress& loopback) {
   PhysicalSocketServer socket_server;
-  rtc::AutoSocketServerThread main_thread(&socket_server);
+  AutoSocketServerThread main_thread(&socket_server);
   Socket* socket = socket_server.CreateSocket(loopback.family(), SOCK_DGRAM);
   socket->Bind(loopback);
 
@@ -55,7 +55,7 @@ void TestUdpInternal(const SocketAddress& loopback) {
 
 void TestTcpInternal(const SocketAddress& loopback) {
   PhysicalSocketServer socket_server;
-  rtc::AutoSocketServerThread main_thread(&socket_server);
+  AutoSocketServerThread main_thread(&socket_server);
   webrtc::TestEchoServer server(&main_thread, loopback);
 
   Socket* socket = socket_server.CreateSocket(loopback.family(), SOCK_STREAM);

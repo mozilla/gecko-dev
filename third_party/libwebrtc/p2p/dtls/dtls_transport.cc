@@ -1035,7 +1035,7 @@ void DtlsTransport::PeriodicRetransmitDtlsPacketUntilDtlsConnected() {
 
   // Set pending before we post task.
   pending_periodic_retransmit_dtls_packet_ = true;
-  rtc::Thread::Current()->PostDelayedHighPrecisionTask(
+  webrtc::Thread::Current()->PostDelayedHighPrecisionTask(
       webrtc::SafeTask(safety_flag_.flag(),
                        [this] {
                          RTC_DCHECK_RUN_ON(&thread_checker_);

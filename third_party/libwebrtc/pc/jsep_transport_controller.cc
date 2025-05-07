@@ -73,7 +73,7 @@ namespace webrtc {
 
 JsepTransportController::JsepTransportController(
     const Environment& env,
-    rtc::Thread* network_thread,
+    Thread* network_thread,
     PortAllocator* port_allocator,
     AsyncDnsResolverFactoryInterface* async_dns_resolver_factory,
     PayloadTypePicker& payload_type_picker,

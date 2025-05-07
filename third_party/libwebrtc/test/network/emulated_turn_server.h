@@ -47,7 +47,7 @@ class EmulatedTURNServer : public EmulatedTURNServerInterface,
   // `thread` is a thread that will be used to run cricket::TurnServer
   // that expects all calls to be made from a single thread.
   EmulatedTURNServer(const EmulatedTURNServerConfig& config,
-                     std::unique_ptr<rtc::Thread> thread,
+                     std::unique_ptr<Thread> thread,
                      EmulatedEndpoint* client,
                      EmulatedEndpoint* peer);
   ~EmulatedTURNServer() override;
@@ -83,7 +83,7 @@ class EmulatedTURNServer : public EmulatedTURNServerInterface,
   void Stop();
 
  private:
-  std::unique_ptr<rtc::Thread> thread_;
+  std::unique_ptr<Thread> thread_;
   SocketAddress client_address_;
   IceServerConfig ice_config_;
   EmulatedEndpoint* const client_;

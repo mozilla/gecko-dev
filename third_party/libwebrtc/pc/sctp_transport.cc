@@ -36,7 +36,7 @@ namespace webrtc {
 SctpTransport::SctpTransport(
     std::unique_ptr<cricket::SctpTransportInternal> internal,
     rtc::scoped_refptr<DtlsTransport> dtls_transport)
-    : owner_thread_(rtc::Thread::Current()),
+    : owner_thread_(Thread::Current()),
       info_(SctpTransportState::kConnecting,
             dtls_transport,
             /*max_message_size=*/std::nullopt,

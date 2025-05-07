@@ -53,9 +53,9 @@ namespace {
 
 PeerConnectionFactoryDependencies CreatePeerConnectionFactoryDependencies() {
   PeerConnectionFactoryDependencies deps;
-  deps.network_thread = rtc::Thread::Current();
-  deps.worker_thread = rtc::Thread::Current();
-  deps.signaling_thread = rtc::Thread::Current();
+  deps.network_thread = Thread::Current();
+  deps.worker_thread = Thread::Current();
+  deps.signaling_thread = Thread::Current();
   deps.task_queue_factory = CreateDefaultTaskQueueFactory();
   EnableFakeMedia(deps);
   deps.sctp_factory = std::make_unique<FakeSctpTransportFactory>();
@@ -158,7 +158,7 @@ class PeerConnectionDataChannelBaseTest : public ::testing::Test {
   }
 
   std::unique_ptr<VirtualSocketServer> vss_;
-  rtc::AutoSocketServerThread main_;
+  AutoSocketServerThread main_;
   const SdpSemantics sdp_semantics_;
 };
 

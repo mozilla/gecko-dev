@@ -61,7 +61,7 @@ bool AddIceCandidates(PeerConnectionWrapper* peer,
 }
 
 rtc::scoped_refptr<PeerConnectionFactoryInterface> CreatePeerConnectionFactory(
-    rtc::Thread* signaling_thread,
+    Thread* signaling_thread,
     EmulatedNetworkManagerInterface* network) {
   PeerConnectionFactoryDependencies pcf_deps;
   pcf_deps.task_queue_factory = CreateDefaultTaskQueueFactory();
@@ -111,7 +111,7 @@ rtc::scoped_refptr<PeerConnectionInterface> CreatePeerConnection(
 }  // namespace
 
 TEST(NetworkEmulationManagerPCTest, Run) {
-  std::unique_ptr<rtc::Thread> signaling_thread = rtc::Thread::Create();
+  std::unique_ptr<Thread> signaling_thread = Thread::Create();
   signaling_thread->SetName(kSignalThreadName, nullptr);
   signaling_thread->Start();
 
@@ -202,7 +202,7 @@ TEST(NetworkEmulationManagerPCTest, Run) {
 }
 
 TEST(NetworkEmulationManagerPCTest, RunTURN) {
-  std::unique_ptr<rtc::Thread> signaling_thread = rtc::Thread::Create();
+  std::unique_ptr<Thread> signaling_thread = Thread::Create();
   signaling_thread->SetName(kSignalThreadName, nullptr);
   signaling_thread->Start();
 

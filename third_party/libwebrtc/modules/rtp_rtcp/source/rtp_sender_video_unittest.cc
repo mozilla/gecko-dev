@@ -208,7 +208,7 @@ class RtpSenderVideoTest : public ::testing::Test {
       int version);
 
  protected:
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   SimulatedClock fake_clock_;
   const Environment env_;
   LoopbackTransportTest transport_;

@@ -2313,7 +2313,7 @@ PeerConnection::GetTransportStatsByNames(
   if (!network_thread_safety_->alive())
     return {};
 
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
   std::map<std::string, cricket::TransportStats> transport_stats_by_name;
   for (const std::string& transport_name : transport_names) {
     cricket::TransportStats transport_stats;
@@ -2498,7 +2498,7 @@ Call::Stats PeerConnection::GetCallStats() {
     return worker_thread()->BlockingCall([this] { return GetCallStats(); });
   }
   RTC_DCHECK_RUN_ON(worker_thread());
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
   if (call_) {
     return call_->GetStats();
   } else {
@@ -2738,7 +2738,7 @@ void PeerConnection::OnTransportControllerGatheringState(
 void PeerConnection::ReportTransportStats(
     std::vector<RtpTransceiverProxyRefPtr> transceivers) {
   TRACE_EVENT0("webrtc", "PeerConnection::ReportTransportStats");
-  rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;
+  Thread::ScopedDisallowBlockingCalls no_blocking_calls;
   std::map<std::string, std::set<cricket::MediaType>>
       media_types_by_transport_name;
   for (const auto& transceiver : transceivers) {

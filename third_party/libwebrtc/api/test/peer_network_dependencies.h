@@ -27,7 +27,7 @@ class PeerNetworkDependencies {
  public:
   virtual ~PeerNetworkDependencies() = default;
 
-  virtual absl::Nonnull<rtc::Thread*> network_thread() = 0;
+  virtual absl::Nonnull<Thread*> network_thread() = 0;
   virtual absl::Nonnull<SocketFactory*> socket_factory() = 0;
   virtual absl::Nonnull<std::unique_ptr<rtc::NetworkManager>>
   ReleaseNetworkManager() = 0;

@@ -795,8 +795,8 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
             const PeerConnectionInterface::RTCConfiguration* config,
             PeerConnectionDependencies dependencies,
             SocketServer* socket_server,
-            rtc::Thread* network_thread,
-            rtc::Thread* worker_thread,
+            Thread* network_thread,
+            Thread* worker_thread,
             std::unique_ptr<FieldTrialsView> field_trials,
             std::unique_ptr<FakeRtcEventLogFactory> event_log_factory,
             bool reset_encoder_factory,
@@ -946,7 +946,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     if (signaling_delay_ms_ == 0) {
       RelaySdpMessageIfReceiverExists(type, msg);
     } else {
-      rtc::Thread::Current()->PostDelayedTask(
+      Thread::Current()->PostDelayedTask(
           SafeTask(task_safety_.flag(),
                    [this, type, msg] {
                      RelaySdpMessageIfReceiverExists(type, msg);
@@ -969,7 +969,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     if (signaling_delay_ms_ == 0) {
       RelayIceMessageIfReceiverExists(sdp_mid, sdp_mline_index, msg);
     } else {
-      rtc::Thread::Current()->PostDelayedTask(
+      Thread::Current()->PostDelayedTask(
           SafeTask(task_safety_.flag(),
                    [this, sdp_mid, sdp_mline_index, msg] {
                      RelayIceMessageIfReceiverExists(sdp_mid, sdp_mline_index,
@@ -1143,7 +1143,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
 
   // Network manager is owned by the `peer_connection_factory_`.
   FakeNetworkManager* fake_network_manager_ = nullptr;
-  rtc::Thread* network_thread_;
+  Thread* network_thread_;
 
   // Reference to the mDNS responder owned by `fake_network_manager_` after set.
   FakeMdnsResponder* mdns_responder_ = nullptr;
@@ -1376,8 +1376,8 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
       : sdp_semantics_(sdp_semantics),
         ss_(new VirtualSocketServer()),
         fss_(new FirewallSocketServer(ss_.get())),
-        network_thread_(new rtc::Thread(fss_.get())),
-        worker_thread_(rtc::Thread::Create()) {
+        network_thread_(new Thread(fss_.get())),
+        worker_thread_(Thread::Create()) {
     network_thread_->SetName("PCNetworkThread", this);
     worker_thread_->SetName("PCWorkerThread", this);
     RTC_CHECK(network_thread_->Start());
@@ -1638,7 +1638,7 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
       SocketAddress external_address,
       ProtocolType type = ProtocolType::PROTO_UDP,
       const std::string& common_name = "test turn server") {
-    rtc::Thread* thread = network_thread();
+    Thread* thread = network_thread();
     SocketFactory* socket_factory = fss_.get();
     std::unique_ptr<TestTurnServer> turn_server;
     SendTask(network_thread(), [&] {
@@ -1706,7 +1706,7 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
     }
   }
 
-  rtc::Thread* network_thread() { return network_thread_.get(); }
+  Thread* network_thread() { return network_thread_.get(); }
 
   VirtualSocketServer* virtual_socket_server() { return ss_.get(); }
 
@@ -1907,15 +1907,15 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
   SdpSemantics sdp_semantics_;
 
  private:
-  rtc::AutoThread main_thread_;  // Used as the signal thread by most tests.
+  AutoThread main_thread_;  // Used as the signal thread by most tests.
   // `ss_` is used by `network_thread_` so it must be destroyed later.
   std::unique_ptr<VirtualSocketServer> ss_;
   std::unique_ptr<FirewallSocketServer> fss_;
   // `network_thread_` and `worker_thread_` are used by both
   // `caller_` and `callee_` so they must be destroyed
   // later.
-  std::unique_ptr<rtc::Thread> network_thread_;
-  std::unique_ptr<rtc::Thread> worker_thread_;
+  std::unique_ptr<Thread> network_thread_;
+  std::unique_ptr<Thread> worker_thread_;
   // The turn servers and turn customizers should be accessed & deleted on the
   // network thread to avoid a race with the socket read/write that occurs
   // on the network thread.

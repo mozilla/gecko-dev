@@ -148,7 +148,7 @@ class SctpDataChannelTest : public ::testing::Test {
   }
 
   test::RunLoop run_loop_;
-  rtc::Thread network_thread_;
+  Thread network_thread_;
   InternalDataChannelInit init_;
   rtc::scoped_refptr<PendingTaskSafetyFlag> signaling_safety_ =
       PendingTaskSafetyFlag::Create();

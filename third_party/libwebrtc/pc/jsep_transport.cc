@@ -79,7 +79,7 @@ JsepTransport::JsepTransport(
     std::unique_ptr<SctpTransportInternal> sctp_transport,
     std::function<void()> rtcp_mux_active_callback,
     webrtc::PayloadTypePicker& suggester)
-    : network_thread_(rtc::Thread::Current()),
+    : network_thread_(webrtc::Thread::Current()),
       mid_(mid),
       local_certificate_(local_certificate),
       ice_transport_(std::move(ice_transport)),

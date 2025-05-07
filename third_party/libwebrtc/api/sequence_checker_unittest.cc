@@ -49,7 +49,7 @@ class CompileTimeTestForGuardedBy {
 
 void RunOnDifferentThread(FunctionView<void()> run) {
   Event thread_has_run_event;
-  rtc::PlatformThread::SpawnJoinable(
+  PlatformThread::SpawnJoinable(
       [&] {
         run();
         thread_has_run_event.Set();

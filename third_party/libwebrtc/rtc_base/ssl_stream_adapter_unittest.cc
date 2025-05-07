@@ -330,7 +330,7 @@ class SSLDummyStream final : public webrtc::StreamInterface {
   }
 
   webrtc::ScopedTaskSafety task_safety_;
-  rtc::Thread* const thread_ = rtc::Thread::Current();
+  webrtc::Thread* const thread_ = webrtc::Thread::Current();
   SSLStreamAdapterTestBase* test_base_;
   const std::string side_;
   StreamWrapper* const in_;
@@ -391,7 +391,7 @@ class BufferQueueStream : public webrtc::StreamInterface {
     }));
   }
 
-  rtc::Thread* const thread_ = rtc::Thread::Current();
+  webrtc::Thread* const thread_ = webrtc::Thread::Current();
   webrtc::ScopedTaskSafety task_safety_;
   rtc::BufferQueue buffer_;
 };
@@ -876,7 +876,7 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
     return server_ssl_->GetIdentityForTesting();
   }
 
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   webrtc::ScopedFakeClock clock_;
   std::string client_cert_pem_;
   std::string client_private_key_pem_;

@@ -289,7 +289,7 @@ class JsepTransport {
                          TransportStats* stats) const;
 
   // Owning thread, for safety checks
-  const rtc::Thread* const network_thread_;
+  const webrtc::Thread* const network_thread_;
   const std::string mid_;
   // needs-ice-restart bit as described in JSEP.
   bool needs_ice_restart_ RTC_GUARDED_BY(network_thread_) = false;

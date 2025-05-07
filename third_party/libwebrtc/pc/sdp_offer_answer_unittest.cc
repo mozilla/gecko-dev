@@ -80,8 +80,8 @@ using ::testing::SizeIs;
 
 namespace {
 
-std::unique_ptr<rtc::Thread> CreateAndStartThread() {
-  auto thread = rtc::Thread::Create();
+std::unique_ptr<Thread> CreateAndStartThread() {
+  auto thread = Thread::Create();
   thread->Start();
   return thread;
 }
@@ -152,11 +152,11 @@ class SdpOfferAnswerTest : public ::testing::Test {
   }
 
  protected:
-  std::unique_ptr<rtc::Thread> signaling_thread_;
+  std::unique_ptr<Thread> signaling_thread_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_;
 
  private:
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
 };
 
 TEST_F(SdpOfferAnswerTest, OnTrackReturnsProxiedObject) {

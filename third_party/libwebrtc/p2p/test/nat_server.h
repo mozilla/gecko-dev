@@ -61,11 +61,11 @@ const int NAT_SERVER_TCP_PORT = 4238;
 class NATServer {
  public:
   NATServer(NATType type,
-            rtc::Thread& internal_socket_thread,
+            Thread& internal_socket_thread,
             SocketFactory* internal,
             const SocketAddress& internal_udp_addr,
             const SocketAddress& internal_tcp_addr,
-            rtc::Thread& external_socket_thread,
+            Thread& external_socket_thread,
             SocketFactory* external,
             const SocketAddress& external_ip);
   ~NATServer();
@@ -114,8 +114,8 @@ class NATServer {
   bool ShouldFilterOut(TransEntry* entry, const SocketAddress& ext_addr);
 
   NAT* nat_;
-  rtc::Thread& internal_socket_thread_;
-  rtc::Thread& external_socket_thread_;
+  Thread& internal_socket_thread_;
+  Thread& external_socket_thread_;
   SocketFactory* external_;
   SocketAddress external_ip_;
   AsyncUDPSocket* udp_server_socket_;

@@ -221,12 +221,12 @@ TEST(LogTest, MultipleStreams) {
 class LogThread {
  public:
   void Start() {
-    thread_ = rtc::PlatformThread::SpawnJoinable(
+    thread_ = PlatformThread::SpawnJoinable(
         [] { RTC_LOG(LS_VERBOSE) << "RTC_LOG"; }, "LogThread");
   }
 
  private:
-  rtc::PlatformThread thread_;
+  PlatformThread thread_;
 };
 
 // Ensure we don't crash when adding/removing streams while threads are going.

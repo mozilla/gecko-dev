@@ -105,7 +105,7 @@ class NATSocketServer : public SocketServer, public NATInternalSocketFactory {
     Translator(NATSocketServer* server,
                NATType type,
                const SocketAddress& int_addr,
-               rtc::Thread& external_socket_thread,
+               Thread& external_socket_thread,
                SocketFactory* ext_factory,
                const SocketAddress& ext_addr);
     ~Translator();
@@ -144,7 +144,7 @@ class NATSocketServer : public SocketServer, public NATInternalSocketFactory {
   NATSocketServer& operator=(const NATSocketServer&) = delete;
 
   SocketServer* socketserver() { return server_; }
-  rtc::Thread* queue() { return msg_queue_; }
+  Thread* queue() { return msg_queue_; }
 
   Translator* GetTranslator(const SocketAddress& ext_ip);
   Translator* AddTranslator(const SocketAddress& ext_ip,
@@ -155,7 +155,7 @@ class NATSocketServer : public SocketServer, public NATInternalSocketFactory {
   // SocketServer implementation
   Socket* CreateSocket(int family, int type) override;
 
-  void SetMessageQueue(rtc::Thread* queue) override;
+  void SetMessageQueue(Thread* queue) override;
   bool Wait(TimeDelta max_wait_duration, bool process_io) override;
   void WakeUp() override;
 
@@ -167,7 +167,7 @@ class NATSocketServer : public SocketServer, public NATInternalSocketFactory {
 
  private:
   SocketServer* server_;
-  rtc::Thread* msg_queue_;
+  Thread* msg_queue_;
   TranslatorMap nats_;
 };
 

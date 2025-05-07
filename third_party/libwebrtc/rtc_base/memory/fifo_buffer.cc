@@ -22,11 +22,11 @@ FifoBuffer::FifoBuffer(size_t size)
       buffer_length_(size),
       data_length_(0),
       read_position_(0),
-      owner_(Thread::Current()) {
+      owner_(webrtc::Thread::Current()) {
   // all events are done on the owner_ thread
 }
 
-FifoBuffer::FifoBuffer(size_t size, Thread* owner)
+FifoBuffer::FifoBuffer(size_t size, webrtc::Thread* owner)
     : state_(webrtc::SS_OPEN),
       buffer_(new char[size]),
       buffer_length_(size),

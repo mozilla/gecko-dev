@@ -57,7 +57,7 @@ bool IsCurrentTaskQueueOrThread(TaskQueueBase* task_queue) {
   if (task_queue->IsCurrent())
     return true;
 
-  rtc::Thread* current_thread = rtc::ThreadManager::Instance()->CurrentThread();
+  Thread* current_thread = ThreadManager::Instance()->CurrentThread();
   if (!current_thread)
     return false;
 

@@ -381,22 +381,22 @@ class AudioCodingModuleMtTestOldApi : public AudioCodingModuleTestOldApi {
     quit_.store(false);
 
     const auto attributes =
-        rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kRealtime);
-    send_thread_ = rtc::PlatformThread::SpawnJoinable(
+        ThreadAttributes().SetPriority(ThreadPriority::kRealtime);
+    send_thread_ = PlatformThread::SpawnJoinable(
         [this] {
           while (!quit_.load()) {
             CbSendImpl();
           }
         },
         "send", attributes);
-    insert_packet_thread_ = rtc::PlatformThread::SpawnJoinable(
+    insert_packet_thread_ = PlatformThread::SpawnJoinable(
         [this] {
           while (!quit_.load()) {
             CbInsertPacketImpl();
           }
         },
         "insert_packet", attributes);
-    pull_audio_thread_ = rtc::PlatformThread::SpawnJoinable(
+    pull_audio_thread_ = PlatformThread::SpawnJoinable(
         [this] {
           while (!quit_.load()) {
             CbPullAudioImpl();
@@ -470,9 +470,9 @@ class AudioCodingModuleMtTestOldApi : public AudioCodingModuleTestOldApi {
     fake_clock_->AdvanceTimeMilliseconds(10);
   }
 
-  rtc::PlatformThread send_thread_;
-  rtc::PlatformThread insert_packet_thread_;
-  rtc::PlatformThread pull_audio_thread_;
+  PlatformThread send_thread_;
+  PlatformThread insert_packet_thread_;
+  PlatformThread pull_audio_thread_;
   // Used to force worker threads to stop looping.
   std::atomic<bool> quit_;
 

@@ -156,7 +156,7 @@ class PeerConnectionFactoryTest : public ::testing::Test {
     // level, and using a real one could make tests flaky e.g. when run in
     // parallel.
     factory_ = CreatePeerConnectionFactory(
-        rtc::Thread::Current(), rtc::Thread::Current(), rtc::Thread::Current(),
+        Thread::Current(), Thread::Current(), Thread::Current(),
         rtc::scoped_refptr<AudioDeviceModule>(FakeAudioCaptureModule::Create()),
         CreateBuiltinAudioEncoderFactory(), CreateBuiltinAudioDecoderFactory(),
         std::make_unique<VideoEncoderFactoryTemplate<
@@ -171,8 +171,7 @@ class PeerConnectionFactoryTest : public ::testing::Test {
     packet_socket_factory_.reset(
         new BasicPacketSocketFactory(socket_server_.get()));
     port_allocator_.reset(new cricket::FakePortAllocator(
-        rtc::Thread::Current(), packet_socket_factory_.get(),
-        field_trials_.get()));
+        Thread::Current(), packet_socket_factory_.get(), field_trials_.get()));
     raw_port_allocator_ = port_allocator_.get();
   }
 
@@ -269,7 +268,7 @@ class PeerConnectionFactoryTest : public ::testing::Test {
 
   std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
   std::unique_ptr<SocketServer> socket_server_;
-  rtc::AutoSocketServerThread main_thread_;
+  AutoSocketServerThread main_thread_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> factory_;
   NullPeerConnectionObserver observer_;
   std::unique_ptr<PacketSocketFactory> packet_socket_factory_;
@@ -284,9 +283,9 @@ class PeerConnectionFactoryTest : public ::testing::Test {
 rtc::scoped_refptr<PeerConnectionFactoryInterface>
 CreatePeerConnectionFactoryWithRtxDisabled() {
   PeerConnectionFactoryDependencies pcf_dependencies;
-  pcf_dependencies.signaling_thread = rtc::Thread::Current();
-  pcf_dependencies.worker_thread = rtc::Thread::Current();
-  pcf_dependencies.network_thread = rtc::Thread::Current();
+  pcf_dependencies.signaling_thread = Thread::Current();
+  pcf_dependencies.worker_thread = Thread::Current();
+  pcf_dependencies.network_thread = Thread::Current();
   pcf_dependencies.task_queue_factory = CreateDefaultTaskQueueFactory();
 
   pcf_dependencies.adm = FakeAudioCaptureModule::Create();

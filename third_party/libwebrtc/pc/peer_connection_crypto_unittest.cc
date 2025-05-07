@@ -84,7 +84,7 @@ class PeerConnectionCryptoBaseTest : public ::testing::Test {
     InitializeAndroidObjects();
 #endif
     pc_factory_ = CreatePeerConnectionFactory(
-        rtc::Thread::Current(), rtc::Thread::Current(), rtc::Thread::Current(),
+        Thread::Current(), Thread::Current(), Thread::Current(),
         FakeAudioCaptureModule::Create(), CreateBuiltinAudioEncoderFactory(),
         CreateBuiltinAudioDecoderFactory(),
         std::make_unique<VideoEncoderFactoryTemplate<
@@ -108,7 +108,7 @@ class PeerConnectionCryptoBaseTest : public ::testing::Test {
       const RTCConfiguration& config,
       std::unique_ptr<RTCCertificateGeneratorInterface> cert_gen) {
     auto fake_port_allocator = std::make_unique<cricket::FakePortAllocator>(
-        rtc::Thread::Current(),
+        Thread::Current(),
         std::make_unique<BasicPacketSocketFactory>(vss_.get()),
         field_trials_.get());
     auto observer = std::make_unique<MockPeerConnectionObserver>();
@@ -159,7 +159,7 @@ class PeerConnectionCryptoBaseTest : public ::testing::Test {
 
   std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
   std::unique_ptr<VirtualSocketServer> vss_;
-  rtc::AutoSocketServerThread main_;
+  AutoSocketServerThread main_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_;
   const SdpSemantics sdp_semantics_;
 };

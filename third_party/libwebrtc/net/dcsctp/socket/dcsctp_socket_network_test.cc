@@ -142,7 +142,7 @@ class SctpActor : public DcSctpSocketCallbacks {
             BoundSocket& emulated_socket,
             const DcSctpOptions& sctp_options)
       : log_prefix_(std::string(name) + ": "),
-        thread_(rtc::Thread::Current()),
+        thread_(webrtc::Thread::Current()),
         emulated_socket_(emulated_socket),
         timeout_factory_(
             *thread_,
@@ -313,7 +313,7 @@ class SctpActor : public DcSctpSocketCallbacks {
 
   ActorMode mode_ = ActorMode::kAtRest;
   const std::string log_prefix_;
-  rtc::Thread* thread_;
+  webrtc::Thread* thread_;
   BoundSocket& emulated_socket_;
   TaskQueueTimeoutFactory timeout_factory_;
   webrtc::Random random_;

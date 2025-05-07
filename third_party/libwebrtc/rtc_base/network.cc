@@ -581,13 +581,13 @@ bool BasicNetworkManager::CreateNetworks(
 }
 
 #elif defined(WEBRTC_POSIX)
-NetworkMonitorInterface::InterfaceInfo BasicNetworkManager::GetInterfaceInfo(
-    struct ifaddrs* cursor) const {
+webrtc::NetworkMonitorInterface::InterfaceInfo
+BasicNetworkManager::GetInterfaceInfo(struct ifaddrs* cursor) const {
   if (cursor->ifa_flags & IFF_LOOPBACK) {
     return {
         .adapter_type = webrtc::ADAPTER_TYPE_LOOPBACK,
         .underlying_type_for_vpn = webrtc::ADAPTER_TYPE_UNKNOWN,
-        .network_preference = NetworkPreference::NEUTRAL,
+        .network_preference = webrtc::NetworkPreference::NEUTRAL,
         .available = true,
     };
   } else if (network_monitor_) {
@@ -595,7 +595,7 @@ NetworkMonitorInterface::InterfaceInfo BasicNetworkManager::GetInterfaceInfo(
   } else {
     return {.adapter_type = GetAdapterTypeFromName(cursor->ifa_name),
             .underlying_type_for_vpn = webrtc::ADAPTER_TYPE_UNKNOWN,
-            .network_preference = NetworkPreference::NEUTRAL,
+            .network_preference = webrtc::NetworkPreference::NEUTRAL,
             .available = true};
   }
 }
@@ -677,7 +677,8 @@ void BasicNetworkManager::ConvertIfAddrs(
     }
 
     // Create a new network.
-    NetworkMonitorInterface::InterfaceInfo if_info = GetInterfaceInfo(cursor);
+    webrtc::NetworkMonitorInterface::InterfaceInfo if_info =
+        GetInterfaceInfo(cursor);
 
     // Check manually configured VPN override.
     if (if_info.adapter_type != webrtc::ADAPTER_TYPE_VPN &&
@@ -955,7 +956,7 @@ bool BasicNetworkManager::IsIgnoredNetwork(const Network& network) const {
 }
 
 void BasicNetworkManager::StartUpdating() {
-  thread_ = Thread::Current();
+  thread_ = webrtc::Thread::Current();
   // Redundant but necessary for thread annotations.
   RTC_DCHECK_RUN_ON(thread_);
   if (start_count_) {
@@ -1098,7 +1099,7 @@ void BasicNetworkManager::DumpNetworks() {
   }
 }
 
-NetworkBindingResult BasicNetworkManager::BindSocketToNetwork(
+webrtc::NetworkBindingResult BasicNetworkManager::BindSocketToNetwork(
     int socket_fd,
     const webrtc::IPAddress& address) {
   RTC_DCHECK_RUN_ON(thread_);

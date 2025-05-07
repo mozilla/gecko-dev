@@ -176,9 +176,9 @@ constexpr bool kDefaultSrtpRequired = true;
 class VoiceChannelForTesting : public cricket::VoiceChannel {
  public:
   VoiceChannelForTesting(
-      rtc::Thread* worker_thread,
-      rtc::Thread* network_thread,
-      rtc::Thread* signaling_thread,
+      Thread* worker_thread,
+      Thread* network_thread,
+      Thread* signaling_thread,
       std::unique_ptr<cricket::VoiceMediaSendChannelInterface> send_channel,
       std::unique_ptr<cricket::VoiceMediaReceiveChannelInterface>
           receive_channel,
@@ -209,9 +209,9 @@ class VoiceChannelForTesting : public cricket::VoiceChannel {
 class VideoChannelForTesting : public cricket::VideoChannel {
  public:
   VideoChannelForTesting(
-      rtc::Thread* worker_thread,
-      rtc::Thread* network_thread,
-      rtc::Thread* signaling_thread,
+      Thread* worker_thread,
+      Thread* network_thread,
+      Thread* signaling_thread,
       std::unique_ptr<cricket::VideoMediaSendChannelInterface> send_channel,
       std::unique_ptr<cricket::VideoMediaReceiveChannelInterface>
           receive_channel,
@@ -248,9 +248,9 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
   // TODO(steveanton): Add support for specifying separate threads to test
   // multi-threading correctness.
   FakePeerConnectionForStats()
-      : network_thread_(rtc::Thread::Current()),
-        worker_thread_(rtc::Thread::Current()),
-        signaling_thread_(rtc::Thread::Current()),
+      : network_thread_(Thread::Current()),
+        worker_thread_(Thread::Current()),
+        signaling_thread_(Thread::Current()),
         // TODO(hta): remove separate thread variables and use context.
         dependencies_(MakeDependencies()),
         context_(
@@ -268,9 +268,9 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
 
   static PeerConnectionFactoryDependencies MakeDependencies() {
     PeerConnectionFactoryDependencies dependencies;
-    dependencies.network_thread = rtc::Thread::Current();
-    dependencies.worker_thread = rtc::Thread::Current();
-    dependencies.signaling_thread = rtc::Thread::Current();
+    dependencies.network_thread = Thread::Current();
+    dependencies.worker_thread = Thread::Current();
+    dependencies.signaling_thread = Thread::Current();
     EnableFakeMedia(dependencies);
     return dependencies;
   }
@@ -395,7 +395,7 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
     // TODO(bugs.webrtc.org/11547): Supply a separate network thread.
     AddSctpDataChannel(SctpDataChannel::Create(
         data_channel_controller_.weak_ptr(), label, false, init,
-        rtc::Thread::Current(), rtc::Thread::Current()));
+        Thread::Current(), Thread::Current()));
   }
 
   void AddSctpDataChannel(rtc::scoped_refptr<SctpDataChannel> data_channel) {
@@ -469,11 +469,11 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
 
   // PeerConnectionInternal overrides.
 
-  rtc::Thread* network_thread() const override { return network_thread_; }
+  Thread* network_thread() const override { return network_thread_; }
 
-  rtc::Thread* worker_thread() const override { return worker_thread_; }
+  Thread* worker_thread() const override { return worker_thread_; }
 
-  rtc::Thread* signaling_thread() const override { return signaling_thread_; }
+  Thread* signaling_thread() const override { return signaling_thread_; }
 
   std::vector<
       rtc::scoped_refptr<RtpTransceiverProxyWithInternal<RtpTransceiver>>>
@@ -570,9 +570,9 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
     return transceiver;
   }
 
-  rtc::Thread* const network_thread_;
-  rtc::Thread* const worker_thread_;
-  rtc::Thread* const signaling_thread_;
+  Thread* const network_thread_;
+  Thread* const worker_thread_;
+  Thread* const signaling_thread_;
 
   PeerConnectionFactoryDependencies dependencies_;
   rtc::scoped_refptr<ConnectionContext> context_;

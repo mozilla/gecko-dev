@@ -199,7 +199,7 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
         rtc::SSLIdentity::Create("test", rtc::KT_DEFAULT));
 
     if (network_emulation_manager_ == nullptr) {
-      thread_ = std::make_unique<rtc::AutoSocketServerThread>(ss_.get());
+      thread_ = std::make_unique<webrtc::AutoSocketServerThread>(ss_.get());
     }
 
     client_thread()->BlockingCall([&]() {
@@ -274,7 +274,7 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
     }
   }
 
-  rtc::Thread* thread(Endpoint& ep) {
+  webrtc::Thread* thread(Endpoint& ep) {
     if (ep.emulated_network_manager == nullptr) {
       return thread_.get();
     } else {
@@ -282,9 +282,9 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
     }
   }
 
-  rtc::Thread* client_thread() { return thread(client_); }
+  webrtc::Thread* client_thread() { return thread(client_); }
 
-  rtc::Thread* server_thread() { return thread(server_); }
+  webrtc::Thread* server_thread() { return thread(server_); }
 
   void SetRemoteFingerprintFromCert(
       Endpoint& ep,
@@ -320,7 +320,7 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
   std::unique_ptr<webrtc::VirtualSocketServer> ss_;
   std::unique_ptr<webrtc::BasicPacketSocketFactory> socket_factory_;
   std::unique_ptr<webrtc::NetworkEmulationManager> network_emulation_manager_;
-  std::unique_ptr<rtc::AutoSocketServerThread> thread_;
+  std::unique_ptr<webrtc::AutoSocketServerThread> thread_;
 
   Endpoint client_;
   Endpoint server_;

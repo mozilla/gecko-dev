@@ -10,7 +10,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d881b16dd8a6813fe
  1 file changed, 6 insertions(+)
 
 diff --git a/rtc_base/platform_thread.cc b/rtc_base/platform_thread.cc
-index f75ce8c3dc..81e115b568 100644
+index b7141bcf16..cc1c9c1c76 100644
 --- a/rtc_base/platform_thread.cc
 +++ b/rtc_base/platform_thread.cc
 @@ -19,6 +19,8 @@
@@ -19,7 +19,7 @@ index f75ce8c3dc..81e115b568 100644
  
 +#include "MicroGeckoProfiler.h"
 +
- namespace rtc {
+ namespace webrtc {
  namespace {
  
 @@ -183,6 +185,10 @@ PlatformThread PlatformThread::SpawnThread(

@@ -461,7 +461,7 @@ void FakeFlexfecReceiveStream::OnRtpPacket(const RtpPacketReceived&) {
 }
 
 FakeCall::FakeCall(const Environment& env)
-    : FakeCall(env, rtc::Thread::Current(), rtc::Thread::Current()) {}
+    : FakeCall(env, Thread::Current(), Thread::Current()) {}
 
 FakeCall::FakeCall(const Environment& env,
                    TaskQueueBase* worker_thread,

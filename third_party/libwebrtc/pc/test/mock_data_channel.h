@@ -47,8 +47,8 @@ class MockSctpDataChannel : public SctpDataChannel {
       uint32_t messages_received,
       uint64_t bytes_received,
       const InternalDataChannelInit& config = InternalDataChannelInit(),
-      rtc::Thread* signaling_thread = rtc::Thread::Current(),
-      rtc::Thread* network_thread = rtc::Thread::Current())
+      Thread* signaling_thread = Thread::Current(),
+      Thread* network_thread = Thread::Current())
       : SctpDataChannel(config,
                         std::move(controller),
                         label,

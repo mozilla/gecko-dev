@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
   }
 
   webrtc::PhysicalSocketServer socket_server;
-  rtc::AutoSocketServerThread main(&socket_server);
+  webrtc::AutoSocketServerThread main(&socket_server);
   webrtc::AsyncUDPSocket* int_socket =
       webrtc::AsyncUDPSocket::Create(&socket_server, int_addr);
   if (!int_socket) {

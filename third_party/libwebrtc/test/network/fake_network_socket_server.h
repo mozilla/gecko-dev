@@ -38,7 +38,7 @@ class FakeNetworkSocketServer : public rtc::SocketServer {
   // rtc::SocketServer methods:
   // Called by the network thread when this server is installed, kicking off the
   // message handler loop.
-  void SetMessageQueue(rtc::Thread* thread) override;
+  void SetMessageQueue(Thread* thread) override;
   bool Wait(webrtc::TimeDelta max_wait_duration, bool process_io) override;
   void WakeUp() override;
 
@@ -50,7 +50,7 @@ class FakeNetworkSocketServer : public rtc::SocketServer {
  private:
   const EndpointsContainer* endpoints_container_;
   Event wakeup_;
-  rtc::Thread* thread_ = nullptr;
+  Thread* thread_ = nullptr;
 
   Mutex lock_;
   std::vector<FakeNetworkSocket*> sockets_ RTC_GUARDED_BY(lock_);

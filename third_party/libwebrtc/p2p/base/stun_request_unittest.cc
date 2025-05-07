@@ -50,7 +50,7 @@ int TotalDelay(int sends) {
 class StunRequestTest : public ::testing::Test {
  public:
   StunRequestTest()
-      : manager_(rtc::Thread::Current(),
+      : manager_(webrtc::Thread::Current(),
                  [this](const void* data, size_t size, StunRequest* request) {
                    OnSendPacket(data, size, request);
                  }),
@@ -75,7 +75,7 @@ class StunRequestTest : public ::testing::Test {
   virtual void OnTimeout() { timeout_ = true; }
 
  protected:
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   StunRequestManager manager_;
   int request_count_;
   StunMessage* response_;

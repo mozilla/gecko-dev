@@ -44,7 +44,7 @@ using ::testing::Ref;
 using ::testing::Return;
 using ::testing::Sequence;
 
-using ::rtc::AutoThread;
+using ::webrtc::AutoThread;
 using ::webrtc::Event;
 using ::webrtc::ScopedFakeClock;
 using ::webrtc::TimeDelta;

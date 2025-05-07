@@ -72,7 +72,7 @@ class ScopedAutoReleasePool {
 }  // namespace
 #endif
 
-namespace rtc {
+namespace webrtc {
 
 using ::webrtc::MutexLock;
 using ::webrtc::TimeDelta;
@@ -179,7 +179,7 @@ void ThreadManager::ProcessAllMessageQueuesInternal() {
     }
   }
 
-  rtc::Thread* current = rtc::Thread::Current();
+  Thread* current = rtc::Thread::Current();
   // Note: One of the message queues may have been on this thread, which is
   // why we can't synchronously wait for queues_not_done to go to 0; we need
   // to process messages as well.
@@ -251,14 +251,14 @@ void ThreadManager::SetCurrentThread(Thread* thread) {
   SetCurrentThreadInternal(thread);
 }
 
-void rtc::ThreadManager::ChangeCurrentThreadForTest(rtc::Thread* thread) {
+void rtc::ThreadManager::ChangeCurrentThreadForTest(Thread* thread) {
   SetCurrentThreadInternal(thread);
 }
 
 Thread* ThreadManager::WrapCurrentThread() {
   Thread* result = CurrentThread();
   if (nullptr == result) {
-    result = new Thread(CreateDefaultSocketServer());
+    result = new Thread(rtc::CreateDefaultSocketServer());
     result->WrapCurrentWithThreadManager(this, true);
   }
   return result;
@@ -310,12 +310,12 @@ uint32_t Thread::ScopedCountBlockingCalls::GetTotalBlockedCallCount() const {
 }
 #endif
 
-Thread::Thread(webrtc::SocketServer* ss) : Thread(ss, /*do_init=*/true) {}
+Thread::Thread(SocketServer* ss) : Thread(ss, /*do_init=*/true) {}
 
-Thread::Thread(std::unique_ptr<webrtc::SocketServer> ss)
+Thread::Thread(std::unique_ptr<SocketServer> ss)
     : Thread(std::move(ss), /*do_init=*/true) {}
 
-Thread::Thread(webrtc::SocketServer* ss, bool do_init)
+Thread::Thread(SocketServer* ss, bool do_init)
     : delayed_next_num_(0),
       fInitialized_(false),
       fDestroyed_(false),
@@ -329,7 +329,7 @@ Thread::Thread(webrtc::SocketServer* ss, bool do_init)
   }
 }
 
-Thread::Thread(std::unique_ptr<webrtc::SocketServer> ss, bool do_init)
+Thread::Thread(std::unique_ptr<SocketServer> ss, bool do_init)
     : Thread(ss.get(), do_init) {
   own_ss_ = std::move(ss);
 }
@@ -367,7 +367,7 @@ void Thread::DoDestroy() {
   delayed_messages_ = {};
 }
 
-webrtc::SocketServer* Thread::socketserver() {
+SocketServer* Thread::socketserver() {
   return ss_;
 }
 
@@ -393,7 +393,7 @@ absl::AnyInvocable<void() &&> Thread::Get(int cmsWait) {
 
   int64_t cmsTotal = cmsWait;
   int64_t cmsElapsed = 0;
-  int64_t msStart = webrtc::TimeMillis();
+  int64_t msStart = TimeMillis();
   int64_t msCurrent = msStart;
   while (true) {
     // Check for posted events
@@ -407,7 +407,7 @@ absl::AnyInvocable<void() &&> Thread::Get(int cmsWait) {
       while (!delayed_messages_.empty()) {
         if (msCurrent < delayed_messages_.top().run_time_ms) {
           cmsDelayNext =
-              webrtc::TimeDiff(delayed_messages_.top().run_time_ms, msCurrent);
+              TimeDiff(delayed_messages_.top().run_time_ms, msCurrent);
           break;
         }
         messages_.push(std::move(delayed_messages_.top().functor));
@@ -437,16 +437,16 @@ absl::AnyInvocable<void() &&> Thread::Get(int cmsWait) {
 
     {
       // Wait and multiplex in the meantime
-      if (!ss_->Wait(cmsNext == kForever ? webrtc::SocketServer::kForever
-                                         : webrtc::TimeDelta::Millis(cmsNext),
+      if (!ss_->Wait(cmsNext == kForever ? SocketServer::kForever
+                                         : TimeDelta::Millis(cmsNext),
                      /*process_io=*/true))
         return nullptr;
     }
 
     // If the specified timeout expired, return
 
-    msCurrent = webrtc::TimeMillis();
-    cmsElapsed = webrtc::TimeDiff(msCurrent, msStart);
+    msCurrent = TimeMillis();
+    cmsElapsed = TimeDiff(msCurrent, msStart);
     if (cmsWait != kForever) {
       if (cmsElapsed >= cmsWait)
         return nullptr;
@@ -457,7 +457,7 @@ absl::AnyInvocable<void() &&> Thread::Get(int cmsWait) {
 
 void Thread::PostTaskImpl(absl::AnyInvocable<void() &&> task,
                           const PostTaskTraits& /* traits */,
-                          const webrtc::Location& /* location */) {
+                          const Location& /* location */) {
   if (IsQuitting()) {
     return;
   }
@@ -474,9 +474,9 @@ void Thread::PostTaskImpl(absl::AnyInvocable<void() &&> task,
 }
 
 void Thread::PostDelayedTaskImpl(absl::AnyInvocable<void() &&> task,
-                                 webrtc::TimeDelta delay,
+                                 TimeDelta delay,
                                  const PostDelayedTaskTraits& /* traits */,
-                                 const webrtc::Location& /* location */) {
+                                 const Location& /* location */) {
   if (IsQuitting()) {
     return;
   }
@@ -486,7 +486,7 @@ void Thread::PostDelayedTaskImpl(absl::AnyInvocable<void() &&> task,
   // Signal for the multiplexer to return.
 
   int64_t delay_ms = delay.RoundUpTo(webrtc::TimeDelta::Millis(1)).ms<int>();
-  int64_t run_time_ms = webrtc::TimeAfter(delay_ms);
+  int64_t run_time_ms = TimeAfter(delay_ms);
   {
     MutexLock lock(&mutex_);
     delayed_messages_.push({.delay_ms = delay_ms,
@@ -539,12 +539,12 @@ bool Thread::IsCurrent() const {
 }
 
 std::unique_ptr<Thread> Thread::CreateWithSocketServer() {
-  return std::unique_ptr<Thread>(new Thread(CreateDefaultSocketServer()));
+  return std::unique_ptr<Thread>(new Thread(rtc::CreateDefaultSocketServer()));
 }
 
 std::unique_ptr<Thread> Thread::Create() {
-  return std::unique_ptr<Thread>(new Thread(
-      std::unique_ptr<webrtc::SocketServer>(new webrtc::NullSocketServer())));
+  return std::unique_ptr<Thread>(
+      new Thread(std::unique_ptr<SocketServer>(new NullSocketServer())));
 }
 
 bool Thread::SleepMs(int milliseconds) {
@@ -723,8 +723,8 @@ void Thread::Stop() {
   Join();
 }
 
-void Thread::BlockingCallImpl(webrtc::FunctionView<void()> functor,
-                              const webrtc::Location& /* location */) {
+void Thread::BlockingCallImpl(FunctionView<void()> functor,
+                              const Location& /* location */) {
   TRACE_EVENT0("webrtc", "Thread::BlockingCall");
 
   RTC_DCHECK(!IsQuitting());
@@ -752,10 +752,10 @@ void Thread::BlockingCallImpl(webrtc::FunctionView<void()> functor,
   }
 #endif
 
-  webrtc::Event done;
+  Event done;
   absl::Cleanup cleanup = [&done] { done.Set(); };
   PostTask([functor, cleanup = std::move(cleanup)] { functor(); });
-  done.Wait(webrtc::Event::kForever);
+  done.Wait(Event::kForever);
 }
 
 // Called by the ThreadManager when being set as the current thread.
@@ -806,7 +806,7 @@ uint32_t Thread::GetCouldBeBlockingCallCount() const {
 
 // Returns true if no policies added or if there is at least one policy
 // that permits invocation to `target` thread.
-bool Thread::IsInvokeToThreadAllowed(rtc::Thread* target) {
+bool Thread::IsInvokeToThreadAllowed(Thread* target) {
 #if (!defined(NDEBUG) || RTC_DCHECK_IS_ON)
   RTC_DCHECK_RUN_ON(this);
   if (!invoke_policy_enabled_) {
@@ -891,7 +891,7 @@ bool Thread::IsRunning() {
 }
 
 AutoThread::AutoThread()
-    : Thread(CreateDefaultSocketServer(), /*do_init=*/false) {
+    : Thread(rtc::CreateDefaultSocketServer(), /*do_init=*/false) {
   if (!ThreadManager::Instance()->CurrentThread()) {
     // DoInit registers with ThreadManager. Do that only if we intend to
     // be rtc::Thread::Current(), otherwise ProcessAllMessageQueuesInternal will
@@ -909,7 +909,7 @@ AutoThread::~AutoThread() {
   }
 }
 
-AutoSocketServerThread::AutoSocketServerThread(webrtc::SocketServer* ss)
+AutoSocketServerThread::AutoSocketServerThread(SocketServer* ss)
     : Thread(ss, /*do_init=*/false) {
   DoInit();
   old_thread_ = ThreadManager::Instance()->CurrentThread();
@@ -937,4 +937,4 @@ AutoSocketServerThread::~AutoSocketServerThread() {
   }
 }
 
-}  // namespace rtc
+}  // namespace webrtc

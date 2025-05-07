@@ -74,7 +74,7 @@ struct SetupMessage {
 class DataChannelServerObserverImpl : public webrtc::DataChannelObserver {
  public:
   explicit DataChannelServerObserverImpl(webrtc::DataChannelInterface* dc,
-                                         rtc::Thread* signaling_thread)
+                                         webrtc::Thread* signaling_thread)
       : dc_(dc), signaling_thread_(signaling_thread) {}
 
   void OnStateChange() override {
@@ -170,7 +170,7 @@ class DataChannelServerObserverImpl : public webrtc::DataChannelObserver {
   }
 
   webrtc::DataChannelInterface* const dc_;
-  rtc::Thread* const signaling_thread_;
+  webrtc::Thread* const signaling_thread_;
   webrtc::Event closed_event_;
   webrtc::Event setup_message_event_;
   size_t remaining_data_ = 0u;
@@ -227,7 +227,7 @@ int RunServer() {
   bool oneshot = absl::GetFlag(FLAGS_oneshot);
   uint16_t port = absl::GetFlag(FLAGS_port);
 
-  auto signaling_thread = rtc::Thread::Create();
+  auto signaling_thread = webrtc::Thread::Create();
   signaling_thread->Start();
   {
     auto factory = webrtc::PeerConnectionClient::CreateDefaultFactory(
@@ -297,7 +297,7 @@ int RunClient() {
   size_t transfer_size = absl::GetFlag(FLAGS_transfer_size) * 1024 * 1024;
   size_t packet_size = absl::GetFlag(FLAGS_packet_size);
 
-  auto signaling_thread = rtc::Thread::Create();
+  auto signaling_thread = webrtc::Thread::Create();
   signaling_thread->Start();
   {
     auto factory = webrtc::PeerConnectionClient::CreateDefaultFactory(

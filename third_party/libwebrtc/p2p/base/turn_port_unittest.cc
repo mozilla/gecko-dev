@@ -951,7 +951,7 @@ class TurnPortTest : public ::testing::Test,
   // vector so that when it grows, pointers aren't invalidated.
   std::list<rtc::Network> networks_;
   std::unique_ptr<TurnPortTestVirtualSocketServer> ss_;
-  rtc::AutoSocketServerThread main_;
+  webrtc::AutoSocketServerThread main_;
   std::unique_ptr<webrtc::AsyncPacketSocket> socket_;
   webrtc::TestTurnServer turn_server_;
   std::unique_ptr<TurnPort> turn_port_;
@@ -1989,7 +1989,7 @@ TEST_F(TurnPortTest, TestResolverShutdown) {
               webrtc::IsRtcOk());
   EXPECT_TRUE(turn_port_->Candidates().empty());
   turn_port_.reset();
-  rtc::Thread::Current()->PostTask([this] { test_finish_ = true; });
+  webrtc::Thread::Current()->PostTask([this] { test_finish_ = true; });
   // Waiting for above message to be processed.
   ASSERT_THAT(webrtc::WaitUntil([&] { return test_finish_; }, IsTrue(),
                                 {.clock = &fake_clock_}),

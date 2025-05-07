@@ -200,7 +200,7 @@ class FifoAudioStream : public AudioStream {
   using Buffer16 = rtc::BufferT<int16_t>;
 
   mutable Mutex lock_;
-  rtc::RaceChecker race_checker_;
+  RaceChecker race_checker_;
 
   std::list<Buffer16> fifo_ RTC_GUARDED_BY(lock_);
   size_t write_count_ RTC_GUARDED_BY(race_checker_) = 0;
@@ -316,7 +316,7 @@ class LatencyAudioStream : public AudioStream {
   }
 
   Mutex lock_;
-  rtc::RaceChecker race_checker_;
+  RaceChecker race_checker_;
   SequenceChecker read_thread_checker_;
   SequenceChecker write_thread_checker_;
 

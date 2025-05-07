@@ -35,8 +35,8 @@
 class FakeDataChannelController
     : public webrtc::SctpDataChannelControllerInterface {
  public:
-  explicit FakeDataChannelController(rtc::Thread* network_thread)
-      : signaling_thread_(rtc::Thread::Current()),
+  explicit FakeDataChannelController(webrtc::Thread* network_thread)
+      : signaling_thread_(webrtc::Thread::Current()),
         network_thread_(network_thread),
         send_blocked_(false),
         transport_available_(false),
@@ -238,8 +238,8 @@ class FakeDataChannelController
   }
 
  private:
-  rtc::Thread* const signaling_thread_;
-  rtc::Thread* const network_thread_;
+  webrtc::Thread* const signaling_thread_;
+  webrtc::Thread* const network_thread_;
   webrtc::StreamId last_sid_ RTC_GUARDED_BY(network_thread_);
   webrtc::SendDataParams last_send_data_params_ RTC_GUARDED_BY(network_thread_);
   bool send_blocked_ RTC_GUARDED_BY(network_thread_);

@@ -169,8 +169,7 @@ void AsyncDnsResolver::Start(const SocketAddress& addr,
   PostTaskToGlobalQueue(
       std::make_unique<absl::AnyInvocable<void() &&>>(thread_function));
 #else
-  rtc::PlatformThread::SpawnDetached(std::move(thread_function),
-                                     "AsyncResolver");
+  PlatformThread::SpawnDetached(std::move(thread_function), "AsyncResolver");
 #endif
 }
 

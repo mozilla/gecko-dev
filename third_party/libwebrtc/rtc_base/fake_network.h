@@ -74,9 +74,9 @@ class FakeNetworkManager : public rtc::NetworkManagerBase {
     ++start_count_;
     if (start_count_ == 1) {
       sent_first_update_ = false;
-      rtc::Thread::Current()->PostTask([this] { DoUpdateNetworks(); });
+      Thread::Current()->PostTask([this] { DoUpdateNetworks(); });
     } else if (sent_first_update_) {
-      rtc::Thread::Current()->PostTask([this] { SignalNetworksChanged(); });
+      Thread::Current()->PostTask([this] { SignalNetworksChanged(); });
     }
   }
 

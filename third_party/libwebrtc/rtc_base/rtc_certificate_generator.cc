@@ -60,8 +60,8 @@ scoped_refptr<RTCCertificate> RTCCertificateGenerator::GenerateCertificate(
   return RTCCertificate::Create(std::move(identity));
 }
 
-RTCCertificateGenerator::RTCCertificateGenerator(rtc::Thread* signaling_thread,
-                                                 rtc::Thread* worker_thread)
+RTCCertificateGenerator::RTCCertificateGenerator(Thread* signaling_thread,
+                                                 Thread* worker_thread)
     : signaling_thread_(signaling_thread), worker_thread_(worker_thread) {
   RTC_DCHECK(signaling_thread_);
   RTC_DCHECK(worker_thread_);

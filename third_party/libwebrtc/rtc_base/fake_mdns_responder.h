@@ -27,7 +27,7 @@ namespace webrtc {
 // depends on, e.g., using WeakPtrFactory or PendingTaskSafetyFlag.
 class FakeMdnsResponder : public MdnsResponderInterface {
  public:
-  explicit FakeMdnsResponder(rtc::Thread* thread) : thread_(thread) {}
+  explicit FakeMdnsResponder(Thread* thread) : thread_(thread) {}
   ~FakeMdnsResponder() = default;
 
   void CreateNameForAddress(const IPAddress& addr,
@@ -63,7 +63,7 @@ class FakeMdnsResponder : public MdnsResponderInterface {
  private:
   uint32_t next_available_id_ = 0;
   std::map<IPAddress, std::string> addr_name_map_;
-  rtc::Thread* const thread_;
+  Thread* const thread_;
 };
 
 }  // namespace webrtc

@@ -147,14 +147,14 @@ class SctpTransportTest : public ::testing::Test {
     return static_cast<FakeCricketSctpTransport*>(transport_->internal());
   }
 
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   rtc::scoped_refptr<SctpTransport> transport_;
   rtc::scoped_refptr<DtlsTransport> dtls_transport_;
   TestSctpTransportObserver observer_;
 };
 
 TEST(SctpTransportSimpleTest, CreateClearDelete) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   std::unique_ptr<cricket::DtlsTransportInternal> cricket_transport =
       std::make_unique<FakeDtlsTransport>("audio",
                                           cricket::ICE_CANDIDATE_COMPONENT_RTP);

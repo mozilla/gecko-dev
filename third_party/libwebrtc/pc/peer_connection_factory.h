@@ -91,13 +91,13 @@ class PeerConnectionFactory : public PeerConnectionFactoryInterface {
     return context_->sctp_transport_factory();
   }
 
-  rtc::Thread* signaling_thread() const {
+  Thread* signaling_thread() const {
     // This method can be called on a different thread when the factory is
     // created in CreatePeerConnectionFactory().
     return context_->signaling_thread();
   }
 
-  rtc::Thread* worker_thread() const { return context_->worker_thread(); }
+  Thread* worker_thread() const { return context_->worker_thread(); }
 
   const Options& options() const {
     RTC_DCHECK_RUN_ON(signaling_thread());
@@ -124,7 +124,7 @@ class PeerConnectionFactory : public PeerConnectionFactoryInterface {
   virtual ~PeerConnectionFactory();
 
  private:
-  rtc::Thread* network_thread() const { return context_->network_thread(); }
+  Thread* network_thread() const { return context_->network_thread(); }
 
   bool IsTrialEnabled(absl::string_view key) const;
 

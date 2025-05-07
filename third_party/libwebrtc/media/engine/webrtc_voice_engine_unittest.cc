@@ -354,7 +354,7 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
     webrtc::RtpPacketReceived packet;
     packet.Parse(reinterpret_cast<const uint8_t*>(data), len);
     receive_channel_->OnPacketReceived(packet);
-    rtc::Thread::Current()->ProcessMessages(0);
+    webrtc::Thread::Current()->ProcessMessages(0);
   }
 
   const webrtc::FakeAudioSendStream& GetSendStream(uint32_t ssrc) {
@@ -912,7 +912,7 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
   }
 
  protected:
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   const bool use_null_apm_;
   webrtc::test::ScopedKeyValueConfig field_trials_;
   const Environment env_;
@@ -1625,7 +1625,7 @@ TEST_P(WebRtcVoiceEngineTestFake, OnPacketReceivedIdentifiesExtensions) {
   ASSERT_TRUE(received_packet.Parse(reference_packet.Buffer()));
 
   receive_channel_->OnPacketReceived(received_packet);
-  rtc::Thread::Current()->ProcessMessages(0);
+  webrtc::Thread::Current()->ProcessMessages(0);
 
   webrtc::AudioLevel audio_level;
   EXPECT_TRUE(call_.last_received_rtp_packet()
@@ -3656,7 +3656,7 @@ TEST_P(WebRtcVoiceEngineTestFake, DeliverAudioPacket_Call) {
   webrtc::RtpPacketReceived parsed_packet;
   RTC_CHECK(parsed_packet.Parse(kPcmuPacket));
   receive_channel_->OnPacketReceived(parsed_packet);
-  rtc::Thread::Current()->ProcessMessages(0);
+  webrtc::Thread::Current()->ProcessMessages(0);
 
   EXPECT_EQ(1, s->received_packets());
 }
@@ -3824,7 +3824,7 @@ TEST_P(WebRtcVoiceEngineTestFake, GetSourcesWithNonExistingSsrc) {
 
 // Tests that the library initializes and shuts down properly.
 TEST(WebRtcVoiceEngineTest, StartupShutdown) {
-  rtc::AutoThread main_thread;
+  webrtc::AutoThread main_thread;
   for (bool use_null_apm : {false, true}) {
     // If the VoiceEngine wants to gather available codecs early, that's fine
     // but we never want it to create a decoder at this stage.
@@ -3855,7 +3855,7 @@ TEST(WebRtcVoiceEngineTest, StartupShutdown) {
 
 // Tests that reference counting on the external ADM is correct.
 TEST(WebRtcVoiceEngineTest, StartupShutdownWithExternalADM) {
-  rtc::AutoThread main_thread;
+  webrtc::AutoThread main_thread;
   for (bool use_null_apm : {false, true}) {
     Environment env = CreateEnvironment();
     auto adm = rtc::make_ref_counted<
@@ -3938,7 +3938,7 @@ TEST(WebRtcVoiceEngineTest, HasCorrectPayloadTypeMapping) {
 
 // Tests that VoE supports at least 32 channels
 TEST(WebRtcVoiceEngineTest, Has32Channels) {
-  rtc::AutoThread main_thread;
+  webrtc::AutoThread main_thread;
   for (bool use_null_apm : {false, true}) {
     Environment env = CreateEnvironment();
     rtc::scoped_refptr<webrtc::test::MockAudioDeviceModule> adm =
@@ -3971,7 +3971,7 @@ TEST(WebRtcVoiceEngineTest, Has32Channels) {
 
 // Test that we set our preferred codecs properly.
 TEST(WebRtcVoiceEngineTest, SetRecvCodecs) {
-  rtc::AutoThread main_thread;
+  webrtc::AutoThread main_thread;
   for (bool use_null_apm : {false, true}) {
     Environment env = CreateEnvironment();
     // TODO(ossu): I'm not sure of the intent of this test. It's either:
@@ -4003,7 +4003,7 @@ TEST(WebRtcVoiceEngineTest, SetRecvCodecs) {
 }
 
 TEST(WebRtcVoiceEngineTest, SetRtpSendParametersMaxBitrate) {
-  rtc::AutoThread main_thread;
+  webrtc::AutoThread main_thread;
   Environment env = CreateEnvironment();
   rtc::scoped_refptr<webrtc::test::MockAudioDeviceModule> adm =
       webrtc::test::MockAudioDeviceModule::CreateNice();

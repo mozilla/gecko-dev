@@ -51,10 +51,10 @@ class DcSctpTransport : public cricket::SctpTransportInternal,
                         public sigslot::has_slots<> {
  public:
   DcSctpTransport(const Environment& env,
-                  rtc::Thread* network_thread,
+                  Thread* network_thread,
                   cricket::DtlsTransportInternal* transport);
   DcSctpTransport(const Environment& env,
-                  rtc::Thread* network_thread,
+                  Thread* network_thread,
                   cricket::DtlsTransportInternal* transport,
                   std::unique_ptr<dcsctp::DcSctpSocketFactory> socket_factory);
   ~DcSctpTransport() override;
@@ -112,7 +112,7 @@ class DcSctpTransport : public cricket::SctpTransportInternal,
                             webrtc::DtlsTransportState);
   void MaybeConnectSocket();
 
-  rtc::Thread* network_thread_;
+  Thread* network_thread_;
   cricket::DtlsTransportInternal* transport_;
   Environment env_;
   Random random_;

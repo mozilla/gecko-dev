@@ -140,7 +140,7 @@ class AsyncStunTCPSocketTest : public ::testing::Test,
   }
 
   std::unique_ptr<VirtualSocketServer> vss_;
-  rtc::AutoSocketServerThread thread_;
+  AutoSocketServerThread thread_;
   std::unique_ptr<AsyncStunTCPSocket> send_socket_;
   std::unique_ptr<AsyncListenSocket> listen_socket_;
   std::unique_ptr<AsyncPacketSocket> recv_socket_;

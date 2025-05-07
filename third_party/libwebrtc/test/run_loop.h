@@ -56,7 +56,7 @@ class RunLoop {
     bool fail_next_wait_ = false;
   };
 
-  class WorkerThread : public rtc::Thread {
+  class WorkerThread : public Thread {
    public:
     explicit WorkerThread(SocketServer* ss);
 

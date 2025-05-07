@@ -273,7 +273,7 @@ void PeerConnectionE2EQualityTest::Run(RunParams run_params) {
       << !bob_configurer->configurable_params()->video_configs.empty()
       << "; audio=" << bob_configurer->params()->audio_config.has_value();
 
-  const std::unique_ptr<rtc::Thread> signaling_thread =
+  const std::unique_ptr<Thread> signaling_thread =
       time_controller_.CreateThread(kSignalThreadName);
   media_helper_ = std::make_unique<MediaHelper>(
       video_quality_analyzer_injection_helper_.get(), task_queue_factory_.get(),
@@ -646,7 +646,7 @@ PeerConnectionE2EQualityTest::CreateSignalingInterceptor(
 }
 
 void PeerConnectionE2EQualityTest::WaitUntilIceCandidatesGathered(
-    rtc::Thread* signaling_thread) {
+    Thread* signaling_thread) {
   ASSERT_TRUE(time_controller_.Wait(
       [&]() {
         bool result;
@@ -659,7 +659,7 @@ void PeerConnectionE2EQualityTest::WaitUntilIceCandidatesGathered(
 }
 
 void PeerConnectionE2EQualityTest::WaitUntilPeersAreConnected(
-    rtc::Thread* signaling_thread) {
+    Thread* signaling_thread) {
   // This means that ICE and DTLS are connected.
   alice_connected_ = time_controller_.Wait(
       [&]() {

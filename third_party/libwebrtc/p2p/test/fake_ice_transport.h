@@ -58,11 +58,11 @@ class FakeIceTransport : public webrtc::IceTransportInternal {
  public:
   explicit FakeIceTransport(absl::string_view name,
                             int component,
-                            rtc::Thread* network_thread = nullptr)
+                            webrtc::Thread* network_thread = nullptr)
       : name_(name),
         component_(component),
         network_thread_(network_thread ? network_thread
-                                       : rtc::Thread::Current()),
+                                       : webrtc::Thread::Current()),
         field_trials_("") {
     RTC_DCHECK(network_thread_);
   }
@@ -619,7 +619,7 @@ class FakeIceTransport : public webrtc::IceTransportInternal {
   std::map<webrtc::Socket::Option, int> socket_options_
       RTC_GUARDED_BY(network_thread_);
   rtc::CopyOnWriteBuffer last_sent_packet_ RTC_GUARDED_BY(network_thread_);
-  rtc::Thread* const network_thread_;
+  webrtc::Thread* const network_thread_;
   webrtc::ScopedTaskSafetyDetached task_safety_;
   std::optional<int> rtt_estimate_;
   std::optional<int64_t> last_sent_ping_timestamp_;

@@ -17,7 +17,7 @@
 
 namespace webrtc {
 
-class SimulatedThread : public rtc::Thread,
+class SimulatedThread : public Thread,
                         public sim_time_impl::SimulatedSequenceRunner {
  public:
   using CurrentThreadSetter = CurrentThreadSetter;

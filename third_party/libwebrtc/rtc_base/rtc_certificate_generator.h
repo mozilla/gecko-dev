@@ -62,8 +62,7 @@ class RTC_EXPORT RTCCertificateGenerator
       const rtc::KeyParams& key_params,
       const std::optional<uint64_t>& expires_ms);
 
-  RTCCertificateGenerator(rtc::Thread* signaling_thread,
-                          rtc::Thread* worker_thread);
+  RTCCertificateGenerator(Thread* signaling_thread, Thread* worker_thread);
   ~RTCCertificateGenerator() override {}
 
   // `RTCCertificateGeneratorInterface` overrides.
@@ -76,8 +75,8 @@ class RTC_EXPORT RTCCertificateGenerator
                                 Callback callback) override;
 
  private:
-  rtc::Thread* const signaling_thread_;
-  rtc::Thread* const worker_thread_;
+  Thread* const signaling_thread_;
+  Thread* const worker_thread_;
 };
 
 }  //  namespace webrtc

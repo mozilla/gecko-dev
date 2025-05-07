@@ -34,11 +34,11 @@ class VideoTrackTest : public ::testing::Test {
     video_track_source_ = rtc::make_ref_counted<FakeVideoTrackSource>(
         /*is_screencast=*/false);
     video_track_ = VideoTrack::Create(kVideoTrackId, video_track_source_,
-                                      rtc::Thread::Current());
+                                      webrtc::Thread::Current());
   }
 
  protected:
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   rtc::scoped_refptr<FakeVideoTrackSource> video_track_source_;
   rtc::scoped_refptr<VideoTrack> video_track_;
   webrtc::FakeFrameSource frame_source_;

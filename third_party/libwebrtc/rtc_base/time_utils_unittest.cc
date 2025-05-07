@@ -23,7 +23,7 @@ namespace webrtc {
 
 TEST(TimeTest, TimeInMs) {
   int64_t ts_earlier = TimeMillis();
-  rtc::Thread::SleepMs(100);
+  Thread::SleepMs(100);
   int64_t ts_now = TimeMillis();
   // Allow for the thread to wakeup ~20ms early.
   EXPECT_GE(ts_now, ts_earlier + 80);
@@ -209,7 +209,7 @@ TEST(FakeClock, SettingTimeWakesThreads) {
   ThreadProcessingFakeClock clock;
   SetClockForTesting(&clock);
 
-  std::unique_ptr<rtc::Thread> worker(rtc::Thread::CreateWithSocketServer());
+  std::unique_ptr<Thread> worker(Thread::CreateWithSocketServer());
   worker->Start();
 
   // Post an event that won't be executed for 10 seconds.
@@ -221,7 +221,7 @@ TEST(FakeClock, SettingTimeWakesThreads) {
   // Wait for a bit for the worker thread to be started and enter its socket
   // select(). Otherwise this test would be trivial since the worker thread
   // would process the event as soon as it was started.
-  rtc::Thread::Current()->SleepMs(1000);
+  Thread::Current()->SleepMs(1000);
 
   // Advance the fake clock, expecting the worker thread to wake up
   // and dispatch the message instantly.

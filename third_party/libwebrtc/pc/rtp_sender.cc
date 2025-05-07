@@ -92,7 +92,7 @@ RtpParameters RestoreEncodingLayers(
 
 class SignalingThreadCallback {
  public:
-  SignalingThreadCallback(rtc::Thread* signaling_thread,
+  SignalingThreadCallback(Thread* signaling_thread,
                           SetParametersCallback callback)
       : signaling_thread_(signaling_thread), callback_(std::move(callback)) {}
   SignalingThreadCallback(SignalingThreadCallback&& other)
@@ -126,7 +126,7 @@ class SignalingThreadCallback {
     callback_ = nullptr;
   }
 
-  rtc::Thread* signaling_thread_;
+  Thread* signaling_thread_;
   SetParametersCallback callback_;
 };
 
@@ -150,11 +150,11 @@ bool UnimplementedRtpParameterHasValue(const RtpParameters& parameters) {
 }
 
 RtpSenderBase::RtpSenderBase(const Environment& env,
-                             rtc::Thread* worker_thread,
+                             Thread* worker_thread,
                              const std::string& id,
                              SetStreamsObserver* set_streams_observer)
     : env_(env),
-      signaling_thread_(rtc::Thread::Current()),
+      signaling_thread_(Thread::Current()),
       worker_thread_(worker_thread),
       id_(id),
       set_streams_observer_(set_streams_observer) {
@@ -647,7 +647,7 @@ void LocalAudioSinkAdapter::SetSink(cricket::AudioSource::Sink* sink) {
 
 rtc::scoped_refptr<AudioRtpSender> AudioRtpSender::Create(
     const webrtc::Environment& env,
-    rtc::Thread* worker_thread,
+    Thread* worker_thread,
     const std::string& id,
     LegacyStatsCollectorInterface* stats,
     SetStreamsObserver* set_streams_observer) {
@@ -656,15 +656,15 @@ rtc::scoped_refptr<AudioRtpSender> AudioRtpSender::Create(
 }
 
 AudioRtpSender::AudioRtpSender(const webrtc::Environment& env,
-                               rtc::Thread* worker_thread,
+                               Thread* worker_thread,
                                const std::string& id,
                                LegacyStatsCollectorInterface* legacy_stats,
                                SetStreamsObserver* set_streams_observer)
     : RtpSenderBase(env, worker_thread, id, set_streams_observer),
       legacy_stats_(legacy_stats),
-      dtmf_sender_(DtmfSender::Create(rtc::Thread::Current(), this)),
+      dtmf_sender_(DtmfSender::Create(Thread::Current(), this)),
       dtmf_sender_proxy_(
-          DtmfSenderProxy::Create(rtc::Thread::Current(), dtmf_sender_)),
+          DtmfSenderProxy::Create(Thread::Current(), dtmf_sender_)),
       sink_adapter_(new LocalAudioSinkAdapter()) {}
 
 AudioRtpSender::~AudioRtpSender() {
@@ -802,7 +802,7 @@ void AudioRtpSender::ClearSend() {
 
 rtc::scoped_refptr<VideoRtpSender> VideoRtpSender::Create(
     const Environment& env,
-    rtc::Thread* worker_thread,
+    Thread* worker_thread,
     const std::string& id,
     SetStreamsObserver* set_streams_observer) {
   return rtc::make_ref_counted<VideoRtpSender>(env, worker_thread, id,
@@ -810,7 +810,7 @@ rtc::scoped_refptr<VideoRtpSender> VideoRtpSender::Create(
 }
 
 VideoRtpSender::VideoRtpSender(const Environment& env,
-                               rtc::Thread* worker_thread,
+                               Thread* worker_thread,
                                const std::string& id,
                                SetStreamsObserver* set_streams_observer)
     : RtpSenderBase(env, worker_thread, id, set_streams_observer) {}

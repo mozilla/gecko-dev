@@ -26,9 +26,9 @@
 namespace webrtc {
 
 TEST(NullSocketServerTest, WaitAndSet) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   NullSocketServer ss;
-  auto thread = rtc::Thread::Create();
+  auto thread = Thread::Create();
   EXPECT_TRUE(thread->Start());
   thread->PostTask([&ss] { ss.WakeUp(); });
   // The process_io will be ignored.

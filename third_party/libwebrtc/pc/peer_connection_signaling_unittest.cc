@@ -130,7 +130,7 @@ class PeerConnectionSignalingBaseTest : public ::testing::Test {
     InitializeAndroidObjects();
 #endif
     pc_factory_ = CreatePeerConnectionFactory(
-        rtc::Thread::Current(), rtc::Thread::Current(), rtc::Thread::Current(),
+        Thread::Current(), Thread::Current(), Thread::Current(),
         rtc::scoped_refptr<AudioDeviceModule>(FakeAudioCaptureModule::Create()),
         CreateBuiltinAudioEncoderFactory(), CreateBuiltinAudioDecoderFactory(),
         std::make_unique<VideoEncoderFactoryTemplate<
@@ -197,7 +197,7 @@ class PeerConnectionSignalingBaseTest : public ::testing::Test {
   }
 
   std::unique_ptr<VirtualSocketServer> vss_;
-  rtc::AutoSocketServerThread main_;
+  AutoSocketServerThread main_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_;
   const SdpSemantics sdp_semantics_;
 };
@@ -693,7 +693,7 @@ TEST_P(PeerConnectionSignalingTest,
   EXPECT_FALSE(observer->called());
   // Process all currently pending messages by waiting for a posted task to run.
   bool checkpoint_reached = false;
-  rtc::Thread::Current()->PostTask(
+  Thread::Current()->PostTask(
       [&checkpoint_reached] { checkpoint_reached = true; });
   EXPECT_THAT(WaitUntil([&] { return checkpoint_reached; }, ::testing::IsTrue(),
                         {.timeout = webrtc::TimeDelta::Millis(kWaitTimeout)}),

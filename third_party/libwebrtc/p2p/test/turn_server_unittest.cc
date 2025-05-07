@@ -46,7 +46,7 @@ class TurnServerConnectionTest : public ::testing::Test {
 
  protected:
   VirtualSocketServer vss_;
-  rtc::AutoSocketServerThread thread_;
+  AutoSocketServerThread thread_;
   BasicPacketSocketFactory socket_factory_;
 };
 

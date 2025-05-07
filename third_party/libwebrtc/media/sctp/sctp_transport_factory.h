@@ -22,14 +22,14 @@ namespace cricket {
 
 class SctpTransportFactory : public webrtc::SctpTransportFactoryInterface {
  public:
-  explicit SctpTransportFactory(rtc::Thread* network_thread);
+  explicit SctpTransportFactory(webrtc::Thread* network_thread);
 
   std::unique_ptr<SctpTransportInternal> CreateSctpTransport(
       const webrtc::Environment& env,
       DtlsTransportInternal* transport) override;
 
  private:
-  rtc::Thread* network_thread_;
+  webrtc::Thread* network_thread_;
 };
 
 }  // namespace cricket

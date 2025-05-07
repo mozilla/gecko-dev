@@ -132,7 +132,7 @@ class EmulatedTURNServer::AsyncPacketSocketWrapper : public AsyncPacketSocket {
 };
 
 EmulatedTURNServer::EmulatedTURNServer(const EmulatedTURNServerConfig& config,
-                                       std::unique_ptr<rtc::Thread> thread,
+                                       std::unique_ptr<Thread> thread,
                                        EmulatedEndpoint* client,
                                        EmulatedEndpoint* peer)
     : thread_(std::move(thread)), client_(client), peer_(peer) {

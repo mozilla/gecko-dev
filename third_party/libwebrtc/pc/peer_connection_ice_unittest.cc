@@ -156,9 +156,9 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
 
   WrapperPtr CreatePeerConnection(const RTCConfiguration& config) {
     PeerConnectionFactoryDependencies pcf_deps;
-    pcf_deps.network_thread = rtc::Thread::Current();
-    pcf_deps.worker_thread = rtc::Thread::Current();
-    pcf_deps.signaling_thread = rtc::Thread::Current();
+    pcf_deps.network_thread = Thread::Current();
+    pcf_deps.worker_thread = Thread::Current();
+    pcf_deps.signaling_thread = Thread::Current();
     pcf_deps.socket_factory = &vss_;
     auto network_manager = std::make_unique<FakeNetworkManager>();
     auto* fake_network = network_manager.get();
@@ -315,7 +315,7 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
   }
 
   VirtualSocketServer vss_;
-  rtc::AutoSocketServerThread main_;
+  AutoSocketServerThread main_;
   const SdpSemantics sdp_semantics_;
 };
 
@@ -467,7 +467,7 @@ TEST_P(PeerConnectionIceTest, NoIceCandidatesBeforeSetLocalDescription) {
   caller->network()->AddInterface(kLocalAddress);
 
   // Pump for 1 second and verify that no candidates are generated.
-  rtc::Thread::Current()->ProcessMessages(1000);
+  Thread::Current()->ProcessMessages(1000);
 
   EXPECT_EQ(0u, caller->observer()->candidates_.size());
 }
@@ -485,7 +485,7 @@ TEST_P(PeerConnectionIceTest,
   ASSERT_TRUE(callee->SetRemoteDescription(std::move(offer)));
 
   // Pump for 1 second and verify that no candidates are generated.
-  rtc::Thread::Current()->ProcessMessages(1000);
+  Thread::Current()->ProcessMessages(1000);
 
   EXPECT_EQ(0u, callee->observer()->candidates_.size());
 }
@@ -989,7 +989,7 @@ TEST_P(PeerConnectionIceTest,
   caller->network()->RemoveInterface(kLocalAddress);
 
   // Verify that the local candidates are not removed;
-  rtc::Thread::Current()->ProcessMessages(1000);
+  Thread::Current()->ProcessMessages(1000);
   EXPECT_EQ(0, caller->observer()->num_candidates_removed_);
 }
 
@@ -1453,7 +1453,7 @@ class PeerConnectionIceConfigTest : public ::testing::Test {
  protected:
   void SetUp() override {
     pc_factory_ = CreatePeerConnectionFactory(
-        rtc::Thread::Current(), rtc::Thread::Current(), rtc::Thread::Current(),
+        Thread::Current(), Thread::Current(), Thread::Current(),
         FakeAudioCaptureModule::Create(), CreateBuiltinAudioEncoderFactory(),
         CreateBuiltinAudioDecoderFactory(),
         std::make_unique<VideoEncoderFactoryTemplate<
@@ -1468,7 +1468,7 @@ class PeerConnectionIceConfigTest : public ::testing::Test {
     packet_socket_factory_.reset(
         new BasicPacketSocketFactory(socket_server_.get()));
     std::unique_ptr<cricket::FakePortAllocator> port_allocator(
-        new cricket::FakePortAllocator(rtc::Thread::Current(),
+        new cricket::FakePortAllocator(Thread::Current(),
                                        packet_socket_factory_.get(),
                                        field_trials_.get()));
     port_allocator_ = port_allocator.get();
@@ -1482,7 +1482,7 @@ class PeerConnectionIceConfigTest : public ::testing::Test {
 
   std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
   std::unique_ptr<SocketServer> socket_server_;
-  rtc::AutoSocketServerThread main_thread_;
+  AutoSocketServerThread main_thread_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_ = nullptr;
   rtc::scoped_refptr<PeerConnectionInterface> pc_ = nullptr;
   std::unique_ptr<PacketSocketFactory> packet_socket_factory_;

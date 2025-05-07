@@ -1082,8 +1082,8 @@ void RtpVideoStreamReceiver2::SetDepacketizerToDecoderFrameTransformer(
   RTC_DCHECK_RUN_ON(&worker_task_checker_);
   frame_transformer_delegate_ =
       rtc::make_ref_counted<RtpVideoStreamReceiverFrameTransformerDelegate>(
-          this, &env_.clock(), std::move(frame_transformer),
-          rtc::Thread::Current(), config_.rtp.remote_ssrc);
+          this, &env_.clock(), std::move(frame_transformer), Thread::Current(),
+          config_.rtp.remote_ssrc);
   frame_transformer_delegate_->Init();
 }
 

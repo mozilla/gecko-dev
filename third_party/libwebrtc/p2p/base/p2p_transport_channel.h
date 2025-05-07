@@ -420,7 +420,7 @@ class RTC_EXPORT P2PTransportChannel : public webrtc::IceTransportInternal,
       RTC_GUARDED_BY(network_thread_);
   const std::unique_ptr<webrtc::AsyncDnsResolverFactoryInterface>
       owned_dns_resolver_factory_;
-  rtc::Thread* const network_thread_;
+  webrtc::Thread* const network_thread_;
   bool incoming_only_ RTC_GUARDED_BY(network_thread_);
   int error_ RTC_GUARDED_BY(network_thread_);
   std::vector<std::unique_ptr<webrtc::PortAllocatorSession>> allocator_sessions_

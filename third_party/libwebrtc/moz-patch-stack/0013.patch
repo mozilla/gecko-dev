@@ -15,7 +15,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2b079067648bfe0d0
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/rtc_base/physical_socket_server.cc b/rtc_base/physical_socket_server.cc
-index d41c491b09..96225e337c 100644
+index 244d6cdde4..c86ea7a09d 100644
 --- a/rtc_base/physical_socket_server.cc
 +++ b/rtc_base/physical_socket_server.cc
 @@ -1548,7 +1548,7 @@ bool PhysicalSocketServer::WaitSelect(int cmsWait, bool process_io) {

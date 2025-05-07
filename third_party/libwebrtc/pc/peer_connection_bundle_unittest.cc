@@ -208,9 +208,9 @@ class PeerConnectionBundleBaseTest : public ::testing::Test {
     // `PeerConnectionFactoryDependencies`, thus each PeerConnection in these
     // tests is created with own PeerConnectionFactory.
     PeerConnectionFactoryDependencies pcf_deps;
-    pcf_deps.network_thread = rtc::Thread::Current();
-    pcf_deps.worker_thread = rtc::Thread::Current();
-    pcf_deps.signaling_thread = rtc::Thread::Current();
+    pcf_deps.network_thread = Thread::Current();
+    pcf_deps.worker_thread = Thread::Current();
+    pcf_deps.signaling_thread = Thread::Current();
     pcf_deps.socket_factory = &vss_;
     auto network_manager =
         std::make_unique<FakeNetworkManagerWithNoAnyNetwork>();
@@ -270,7 +270,7 @@ class PeerConnectionBundleBaseTest : public ::testing::Test {
   }
 
   VirtualSocketServer vss_;
-  rtc::AutoSocketServerThread main_;
+  AutoSocketServerThread main_;
   const SdpSemantics sdp_semantics_;
 };
 

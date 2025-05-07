@@ -65,7 +65,7 @@ class PeerConnectionFieldTrialTest : public ::testing::Test {
 
   void CreatePCFactory(std::unique_ptr<FieldTrialsView> field_trials) {
     PeerConnectionFactoryDependencies pcf_deps;
-    pcf_deps.signaling_thread = rtc::Thread::Current();
+    pcf_deps.signaling_thread = Thread::Current();
     pcf_deps.trials = std::move(field_trials);
     pcf_deps.task_queue_factory = CreateDefaultTaskQueueFactory();
     pcf_deps.adm = FakeAudioCaptureModule::Create();
@@ -93,7 +93,7 @@ class PeerConnectionFieldTrialTest : public ::testing::Test {
 
   Clock* const clock_;
   std::unique_ptr<SocketServer> socket_server_;
-  rtc::AutoSocketServerThread main_thread_;
+  AutoSocketServerThread main_thread_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_ = nullptr;
   PeerConnectionInterface::RTCConfiguration config_;
 };

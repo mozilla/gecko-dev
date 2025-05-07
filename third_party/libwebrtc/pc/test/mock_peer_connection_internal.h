@@ -253,7 +253,7 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
               (override));
   MOCK_METHOD(void, StopRtcEventLog, (), (override));
   MOCK_METHOD(void, Close, (), (override));
-  MOCK_METHOD(rtc::Thread*, signaling_thread, (), (const, override));
+  MOCK_METHOD(Thread*, signaling_thread, (), (const, override));
 
   // PeerConnectionSdpMethods
   MOCK_METHOD(std::string, session_id, (), (const, override));
@@ -324,8 +324,8 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
   MOCK_METHOD(const FieldTrialsView&, trials, (), (const, override));
 
   // PeerConnectionInternal
-  MOCK_METHOD(rtc::Thread*, network_thread, (), (const, override));
-  MOCK_METHOD(rtc::Thread*, worker_thread, (), (const, override));
+  MOCK_METHOD(Thread*, network_thread, (), (const, override));
+  MOCK_METHOD(Thread*, worker_thread, (), (const, override));
   MOCK_METHOD(bool, initial_offerer, (), (const, override));
   MOCK_METHOD(
       std::vector<

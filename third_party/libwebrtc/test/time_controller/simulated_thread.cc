@@ -37,8 +37,8 @@ SimulatedThread::SimulatedThread(
     sim_time_impl::SimulatedTimeControllerImpl* handler,
     absl::string_view name,
     std::unique_ptr<SocketServer> socket_server)
-    : rtc::Thread(socket_server ? std::move(socket_server)
-                                : std::make_unique<DummySocketServer>()),
+    : Thread(socket_server ? std::move(socket_server)
+                           : std::make_unique<DummySocketServer>()),
       handler_(handler),
       name_(new char[name.size()]) {
   std::copy_n(name.begin(), name.size(), name_);
@@ -81,7 +81,7 @@ void SimulatedThread::BlockingCallImpl(FunctionView<void()> functor,
 void SimulatedThread::PostTaskImpl(absl::AnyInvocable<void() &&> task,
                                    const PostTaskTraits& traits,
                                    const Location& location) {
-  rtc::Thread::PostTaskImpl(std::move(task), traits, location);
+  Thread::PostTaskImpl(std::move(task), traits, location);
   MutexLock lock(&lock_);
   next_run_time_ = Timestamp::MinusInfinity();
 }
@@ -90,7 +90,7 @@ void SimulatedThread::PostDelayedTaskImpl(absl::AnyInvocable<void() &&> task,
                                           TimeDelta delay,
                                           const PostDelayedTaskTraits& traits,
                                           const Location& location) {
-  rtc::Thread::PostDelayedTaskImpl(std::move(task), delay, traits, location);
+  Thread::PostDelayedTaskImpl(std::move(task), delay, traits, location);
   MutexLock lock(&lock_);
   next_run_time_ =
       std::min(next_run_time_, Timestamp::Millis(TimeMillis()) + delay);

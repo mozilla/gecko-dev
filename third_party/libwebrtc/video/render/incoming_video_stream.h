@@ -38,7 +38,7 @@ class IncomingVideoStream : public rtc::VideoSinkInterface<VideoFrame> {
   void Dequeue();
 
   SequenceChecker main_thread_checker_;
-  rtc::RaceChecker decoder_race_checker_;
+  RaceChecker decoder_race_checker_;
 
   VideoRenderFrames render_buffers_ RTC_GUARDED_BY(incoming_render_queue_);
   rtc::VideoSinkInterface<VideoFrame>* const callback_;

@@ -200,7 +200,7 @@ class RTPSenderVideo : public RTPVideoFrameSenderInterface {
 
   // These members should only be accessed from within SendVideo() to avoid
   // potential race conditions.
-  rtc::RaceChecker send_checker_;
+  RaceChecker send_checker_;
   int32_t retransmission_settings_ RTC_GUARDED_BY(send_checker_);
   VideoRotation last_rotation_ RTC_GUARDED_BY(send_checker_);
   std::optional<ColorSpace> last_color_space_ RTC_GUARDED_BY(send_checker_);

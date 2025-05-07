@@ -38,7 +38,7 @@ namespace cricket {
 WrappingActiveIceController::WrappingActiveIceController(
     IceAgentInterface* ice_agent,
     std::unique_ptr<IceControllerInterface> wrapped)
-    : network_thread_(rtc::Thread::Current()),
+    : network_thread_(webrtc::Thread::Current()),
       wrapped_(std::move(wrapped)),
       agent_(*ice_agent) {
   RTC_DCHECK(ice_agent != nullptr);
@@ -48,7 +48,7 @@ WrappingActiveIceController::WrappingActiveIceController(
     IceAgentInterface* ice_agent,
     webrtc::IceControllerFactoryInterface* wrapped_factory,
     const webrtc::IceControllerFactoryArgs& wrapped_factory_args)
-    : network_thread_(rtc::Thread::Current()), agent_(*ice_agent) {
+    : network_thread_(webrtc::Thread::Current()), agent_(*ice_agent) {
   RTC_DCHECK(ice_agent != nullptr);
   if (wrapped_factory) {
     wrapped_ = wrapped_factory->Create(wrapped_factory_args);

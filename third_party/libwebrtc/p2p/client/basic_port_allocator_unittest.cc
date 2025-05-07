@@ -164,7 +164,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
             new webrtc::BasicPacketSocketFactory(&nat_factory_)),
         stun_server_(
             webrtc::TestStunServer::Create(fss_.get(), kStunAddr, thread_)),
-        turn_server_(rtc::Thread::Current(),
+        turn_server_(webrtc::Thread::Current(),
                      fss_.get(),
                      kTurnUdpIntAddr,
                      kTurnUdpExtAddr),
@@ -512,7 +512,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
   std::unique_ptr<webrtc::VirtualSocketServer> vss_;
   std::unique_ptr<webrtc::FirewallSocketServer> fss_;
   webrtc::BasicPacketSocketFactory socket_factory_;
-  rtc::AutoSocketServerThread thread_;
+  webrtc::AutoSocketServerThread thread_;
   std::unique_ptr<webrtc::NATServer> nat_server_;
   webrtc::NATSocketFactory nat_factory_;
   std::unique_ptr<webrtc::BasicPacketSocketFactory> nat_socket_factory_;
@@ -2789,7 +2789,7 @@ TEST_F(BasicPortAllocatorTest, HostCandidateAddressIsReplacedByHostname) {
 
   ASSERT_EQ(&network_manager_, allocator().network_manager());
   network_manager_.set_mdns_responder(
-      std::make_unique<webrtc::FakeMdnsResponder>(rtc::Thread::Current()));
+      std::make_unique<webrtc::FakeMdnsResponder>(webrtc::Thread::Current()));
   AddInterface(kClientAddr);
   ASSERT_TRUE(CreateSession(ICE_CANDIDATE_COMPONENT_RTP));
   session_->StartGettingPorts();
