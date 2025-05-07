@@ -11,11 +11,9 @@ config = {
         "build",
     ],
     "vcs_share_base": "/builds/hg-shared",
-    #########################################################################
-    #########################################################################
-    ###### 64 bit specific ######
-    "platform": "linux64",
-    "stage_platform": "linux64-searchfox-opt",
+    "upload_env": {
+        "UPLOAD_PATH": "/builds/worker/artifacts",
+    },
     "env": {
         "MOZBUILD_STATE_PATH": os.path.join(os.getcwd(), ".mozbuild"),
         "DISPLAY": ":2",
@@ -26,12 +24,14 @@ config = {
         "TOOLTOOL_HOME": "/builds",
         "MOZ_CRASHREPORTER_NO_REPORT": "1",
         "LC_ALL": "C",
-        ## 64 bit specific
-        "PATH": "/usr/local/bin:/bin:\
-/usr/bin:/usr/local/sbin:/usr/sbin:/sbin",
-        ##
+        "PATH": "/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin",
     },
+    "mozconfig_variant": "debug-searchfox-clang",
+    #########################################################################
+    #########################################################################
+    ###### 64 bit specific ######
+    "platform": "linux64",
+    "stage_platform": "linux64-searchfox-opt",
     # This doesn't actually inherit from anything.
     "mozconfig_platform": "linux64",
-    "mozconfig_variant": "debug-searchfox-clang",
 }
