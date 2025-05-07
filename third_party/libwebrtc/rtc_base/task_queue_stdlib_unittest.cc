@@ -33,7 +33,7 @@ INSTANTIATE_TEST_SUITE_P(TaskQueueStdlib,
                          TaskQueueTest,
                          ::testing::Values(CreateTaskQueueFactory));
 
-class StringPtrLogSink : public rtc::LogSink {
+class StringPtrLogSink : public LogSink {
  public:
   explicit StringPtrLogSink(std::string* log_data) : log_data_(log_data) {}
 
@@ -50,14 +50,14 @@ class StringPtrLogSink : public rtc::LogSink {
 TEST(TaskQueueStdlib, AvoidsSpammingLogOnInactivity) {
   std::string log_output;
   StringPtrLogSink stream(&log_output);
-  rtc::LogMessage::AddLogToStream(&stream, rtc::LS_VERBOSE);
+  LogMessage::AddLogToStream(&stream, rtc::LS_VERBOSE);
   auto task_queue = CreateTaskQueueStdlibFactory()->CreateTaskQueue(
       "test", TaskQueueFactory::Priority::NORMAL);
   auto wait_duration = rtc::Event::kDefaultWarnDuration + TimeDelta::Seconds(1);
   SleepMs(wait_duration.ms());
   EXPECT_EQ(log_output.length(), 0u);
   task_queue = nullptr;
-  rtc::LogMessage::RemoveLogToStream(&stream);
+  LogMessage::RemoveLogToStream(&stream);
 }
 
 }  // namespace

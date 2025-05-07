@@ -134,20 +134,20 @@ class TestMainImpl : public TestMain {
 
     // Default to LS_INFO, even for release builds to provide better test
     // logging.
-    if (rtc::LogMessage::GetLogToDebug() > rtc::LS_INFO)
-      rtc::LogMessage::LogToDebug(rtc::LS_INFO);
+    if (LogMessage::GetLogToDebug() > LS_INFO)
+      LogMessage::LogToDebug(LS_INFO);
 
     if (absl::GetFlag(FLAGS_verbose))
-      rtc::LogMessage::LogToDebug(rtc::LS_VERBOSE);
+      LogMessage::LogToDebug(LS_VERBOSE);
 
-    rtc::LogMessage::SetLogToStderr(absl::GetFlag(FLAGS_logs) ||
-                                    absl::GetFlag(FLAGS_verbose));
+    LogMessage::SetLogToStderr(absl::GetFlag(FLAGS_logs) ||
+                               absl::GetFlag(FLAGS_verbose));
 
     // InitFieldTrialsFromString stores the char*, so the char array must
     // outlive the application.
     field_trials_ = absl::GetFlag(FLAGS_force_fieldtrials);
-    webrtc::field_trial::InitFieldTrialsFromString(field_trials_.c_str());
-    webrtc::metrics::Enable();
+    field_trial::InitFieldTrialsFromString(field_trials_.c_str());
+    metrics::Enable();
 
 #if defined(WEBRTC_WIN)
     winsock_init_ = std::make_unique<rtc::WinsockInitializer>();

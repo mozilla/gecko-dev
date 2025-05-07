@@ -1548,7 +1548,7 @@ index b1c3d30fda..0c8099e94c 100644
      # Dependency on chromium's logging (in //base).
      deps += [ "//base" ]
 diff --git a/rtc_base/logging.cc b/rtc_base/logging.cc
-index 83dd1bc99f..f8ff475e5d 100644
+index cf28db4a8e..eb31bffab9 100644
 --- a/rtc_base/logging.cc
 +++ b/rtc_base/logging.cc
 @@ -44,6 +44,7 @@ static const int kMaxLogLineSize = 1024 - 60;
@@ -1562,7 +1562,7 @@ index 83dd1bc99f..f8ff475e5d 100644
 @@ -54,6 +55,24 @@ static const int kMaxLogLineSize = 1024 - 60;
  #include "rtc_base/time_utils.h"
  
- namespace rtc {
+ namespace webrtc {
 +
 +bool LogMessage::aec_debug_ = false;
 +std::string LogMessage::aec_filename_base_;
@@ -1594,7 +1594,7 @@ index 83dd1bc99f..f8ff475e5d 100644
  // The list of logging streams currently configured.
  // Note: we explicitly do not clean this up, because of the uncertain ordering
 diff --git a/rtc_base/logging.h b/rtc_base/logging.h
-index 9a024f6c77..1f598df01f 100644
+index 2fa7b2edc3..a2329a999a 100644
 --- a/rtc_base/logging.h
 +++ b/rtc_base/logging.h
 @@ -555,6 +555,12 @@ class LogMessage {
@@ -1613,7 +1613,7 @@ index 9a024f6c77..1f598df01f 100644
 @@ -610,6 +616,9 @@ class LogMessage {
  
    // The stringbuilder that buffers the formatted message before output
-   webrtc::StringBuilder print_stream_;
+   StringBuilder print_stream_;
 +
 +  static bool aec_debug_;
 +  static std::string aec_filename_base_;

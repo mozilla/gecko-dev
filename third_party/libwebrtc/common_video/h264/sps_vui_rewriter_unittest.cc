@@ -303,8 +303,8 @@ void GenerateFakeSps(const VuiHeader& vui, rtc::Buffer* out_buffer) {
 void TestSps(const VuiHeader& vui,
              const ColorSpace* color_space,
              SpsVuiRewriter::ParseResult expected_parse_result) {
-  rtc::LogMessage::LogToDebug(rtc::LS_VERBOSE);
-  rtc::Buffer original_sps;
+  LogMessage::LogToDebug(rtc::LS_VERBOSE);
+  Buffer original_sps;
   GenerateFakeSps(vui, &original_sps);
 
   std::optional<SpsParser::SpsState> sps;
@@ -391,7 +391,7 @@ INSTANTIATE_TEST_SUITE_P(
                         SpsVuiRewriter::ParseResult::kVuiRewritten)));
 
 TEST(SpsVuiRewriterOutgoingVuiTest, ParseOutgoingBitstreamOptimalVui) {
-  rtc::LogMessage::LogToDebug(rtc::LS_VERBOSE);
+  LogMessage::LogToDebug(rtc::LS_VERBOSE);
 
   rtc::Buffer optimal_sps;
   GenerateFakeSps(kVuiNoFrameBuffering, &optimal_sps);
@@ -407,7 +407,7 @@ TEST(SpsVuiRewriterOutgoingVuiTest, ParseOutgoingBitstreamOptimalVui) {
 }
 
 TEST(SpsVuiRewriterOutgoingVuiTest, ParseOutgoingBitstreamNoVui) {
-  rtc::LogMessage::LogToDebug(rtc::LS_VERBOSE);
+  LogMessage::LogToDebug(rtc::LS_VERBOSE);
 
   rtc::Buffer sps;
   GenerateFakeSps(kVuiNotPresent, &sps);
@@ -438,7 +438,7 @@ TEST(SpsVuiRewriterOutgoingVuiTest, ParseOutgoingBitstreamNoVui) {
 }
 
 TEST(SpsVuiRewriterOutgoingAudTest, ParseOutgoingBitstreamWithAud) {
-  rtc::LogMessage::LogToDebug(rtc::LS_VERBOSE);
+  LogMessage::LogToDebug(rtc::LS_VERBOSE);
 
   rtc::Buffer optimal_sps;
   GenerateFakeSps(kVuiNoFrameBuffering, &optimal_sps);
