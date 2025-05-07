@@ -97,7 +97,7 @@ internal data class BookmarksState(
             sortMenuShown = false,
             sortOrder = BookmarksListSortOrder.default,
             recursiveSelectedCount = null,
-            currentFolder = BookmarkItem.Folder("", ""),
+            currentFolder = BookmarkItem.Folder("", "", null),
             isSignedIntoSync = false,
             openTabsConfirmationDialog = OpenTabsConfirmationDialog.None,
             bookmarksSnackbarState = BookmarksSnackbarState.None,

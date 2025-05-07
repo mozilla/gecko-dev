@@ -95,11 +95,17 @@ internal class BookmarksMiddleware(
                 Result.runCatching {
                     val bookmarkNode = bookmarksStorage.getBookmark(action.guid)
                     val bookmark = bookmarkNode?.let {
-                        BookmarkItem.Bookmark(it.url!!, it.title ?: "", it.url!!, it.guid)
+                        BookmarkItem.Bookmark(it.url!!, it.title ?: "", it.url!!, it.guid, it.position)
                     }
                     val folder = bookmarkNode?.parentGuid
                         ?.let { bookmarksStorage.getBookmark(it) }
-                        ?.let { BookmarkItem.Folder(guid = it.guid, title = resolveFolderTitle(it)) }
+                        ?.let {
+                            BookmarkItem.Folder(
+                                guid = it.guid,
+                                title = resolveFolderTitle(it),
+                                position = it.position,
+                            )
+                        }
 
                     InitEditLoaded(bookmark = bookmark!!, folder = folder!!)
                 }.getOrNull()?.also {
@@ -147,9 +153,11 @@ internal class BookmarksMiddleware(
                                     parentGuid = preReductionState.bookmarksAddFolderState.parent.guid,
                                     title = newFolderTitle,
                                 )
+                                val position = bookmarksStorage.getBookmark(guid)?.position
                                 val folder = BookmarkItem.Folder(
                                     guid = guid,
                                     title = newFolderTitle,
+                                    position = position,
                                 )
 
                                 context.store.dispatch(AddFolderAction.FolderCreated(folder))
@@ -372,6 +380,7 @@ internal class BookmarksMiddleware(
                 val folder = BookmarkItem.Folder(
                     guid = guid,
                     title = resolveFolderTitle(rootNode),
+                    position = rootNode.position,
                 )
 
                 val items = when (guid) {
@@ -425,12 +434,14 @@ internal class BookmarksMiddleware(
                         previewImageUrl = node.url!!,
                         dateAdded = node.dateAdded,
                         guid = node.guid,
+                        position = node.position,
                     )
 
                     BookmarkNodeType.FOLDER -> BookmarkItem.Folder(
                         title = node.title ?: "",
                         dateAdded = node.dateAdded,
                         guid = node.guid,
+                        position = node.position,
                     )
 
                     BookmarkNodeType.SEPARATOR -> null
@@ -452,6 +463,7 @@ internal class BookmarksMiddleware(
                     folder = BookmarkItem.Folder(
                         guid = node.guid,
                         title = resolveFolderTitle(node),
+                        position = node.position,
                     ),
                 ),
             )
@@ -601,7 +613,7 @@ private fun BookmarksState.createBookmarkInfo() = when {
     bookmarksEditFolderState != null -> bookmarksEditFolderState.let { state ->
         BookmarkInfo(
             parentGuid = state.parent.guid,
-            position = bookmarkItems.indexOfFirst { it.guid == state.folder.guid }.toUInt(),
+            position = bookmarkItems.firstOrNull { it.guid == state.folder.guid }?.position,
             title = state.folder.title,
             url = null,
         )
@@ -609,7 +621,7 @@ private fun BookmarksState.createBookmarkInfo() = when {
     bookmarksEditBookmarkState != null -> bookmarksEditBookmarkState.let { state ->
         BookmarkInfo(
             parentGuid = state.folder.guid,
-            position = bookmarkItems.indexOfFirst { it.guid == state.bookmark.guid }.toUInt(),
+            position = bookmarkItems.firstOrNull { it.guid == state.bookmark.guid }?.position,
             title = state.bookmark.title,
             url = state.bookmark.url,
         )

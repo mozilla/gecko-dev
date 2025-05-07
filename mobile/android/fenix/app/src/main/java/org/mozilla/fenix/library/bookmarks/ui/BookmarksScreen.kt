@@ -1330,6 +1330,7 @@ private fun EditBookmarkScreenPreview() {
             currentFolder = BookmarkItem.Folder(
                 guid = BookmarkRoot.Mobile.id,
                 title = "Bookmarks",
+                position = null,
             ),
             isSignedIntoSync = true,
             openTabsConfirmationDialog = OpenTabsConfirmationDialog.None,
@@ -1342,8 +1343,9 @@ private fun EditBookmarkScreenPreview() {
                     title = "this is a very long bookmark title that should overflow 1",
                     previewImageUrl = "",
                     guid = "1",
+                    position = null,
                 ),
-                folder = BookmarkItem.Folder("folder 1", guid = "1"),
+                folder = BookmarkItem.Folder("folder 1", guid = "1", null),
             ),
             bookmarksSelectFolderState = null,
             bookmarksEditFolderState = null,
@@ -1369,9 +1371,10 @@ private fun BookmarksScreenPreview() {
                 title = "this is a very long bookmark title that should overflow $it",
                 previewImageUrl = "",
                 guid = "$it",
+                position = null,
             )
         } else {
-            BookmarkItem.Folder("folder $it", guid = "$it")
+            BookmarkItem.Folder("folder $it", guid = "$it", position = null)
         }
     }
 
@@ -1386,6 +1389,7 @@ private fun BookmarksScreenPreview() {
                 currentFolder = BookmarkItem.Folder(
                     guid = BookmarkRoot.Mobile.id,
                     title = "Bookmarks",
+                    position = null,
                 ),
                 isSignedIntoSync = false,
                 openTabsConfirmationDialog = OpenTabsConfirmationDialog.None,
@@ -1421,6 +1425,7 @@ private fun EmptyBookmarksScreenPreview() {
                 currentFolder = BookmarkItem.Folder(
                     guid = BookmarkRoot.Mobile.id,
                     title = "Bookmarks",
+                    position = null,
                 ),
                 isSignedIntoSync = false,
                 openTabsConfirmationDialog = OpenTabsConfirmationDialog.None,
@@ -1455,6 +1460,7 @@ private fun AddFolderPreview() {
             currentFolder = BookmarkItem.Folder(
                 guid = BookmarkRoot.Mobile.id,
                 title = "Bookmarks",
+                position = null,
             ),
             isSignedIntoSync = false,
             openTabsConfirmationDialog = OpenTabsConfirmationDialog.None,
@@ -1465,6 +1471,7 @@ private fun AddFolderPreview() {
                 parent = BookmarkItem.Folder(
                     guid = BookmarkRoot.Mobile.id,
                     title = "Bookmarks",
+                    position = null,
                 ),
                 folderBeingAddedTitle = "Edit me!",
             ),
@@ -1494,6 +1501,7 @@ private fun SelectFolderPreview() {
             currentFolder = BookmarkItem.Folder(
                 guid = BookmarkRoot.Mobile.id,
                 title = "Bookmarks",
+                position = null,
             ),
             isSignedIntoSync = false,
             bookmarksEditBookmarkState = null,
@@ -1501,6 +1509,7 @@ private fun SelectFolderPreview() {
                 parent = BookmarkItem.Folder(
                     guid = BookmarkRoot.Mobile.id,
                     title = "Bookmarks",
+                    position = null,
                 ),
                 folderBeingAddedTitle = "Edit me!",
             ),
@@ -1512,18 +1521,18 @@ private fun SelectFolderPreview() {
                 outerSelectionGuid = "",
                 innerSelectionGuid = "guid1",
                 folders = listOf(
-                    SelectFolderItem(0, BookmarkItem.Folder("Bookmarks", "guid0")),
-                    SelectFolderItem(1, BookmarkItem.Folder("Desktop Bookmarks", BookmarkRoot.Root.id)),
-                    SelectFolderItem(2, BookmarkItem.Folder("Bookmarks Menu", BookmarkRoot.Menu.id)),
-                    SelectFolderItem(2, BookmarkItem.Folder("Bookmarks Toolbar", BookmarkRoot.Toolbar.id)),
-                    SelectFolderItem(2, BookmarkItem.Folder("Bookmarks Unfiled", BookmarkRoot.Unfiled.id)),
-                    SelectFolderItem(1, BookmarkItem.Folder("Nested One", "guid0")),
-                    SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid0")),
-                    SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid0")),
-                    SelectFolderItem(1, BookmarkItem.Folder("Nested One", "guid0")),
-                    SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid1")),
-                    SelectFolderItem(3, BookmarkItem.Folder("Nested Three", "guid0")),
-                    SelectFolderItem(0, BookmarkItem.Folder("Nested 0", "guid0")),
+                    SelectFolderItem(0, BookmarkItem.Folder("Bookmarks", "guid0", null)),
+                    SelectFolderItem(1, BookmarkItem.Folder("Desktop Bookmarks", BookmarkRoot.Root.id, null)),
+                    SelectFolderItem(2, BookmarkItem.Folder("Bookmarks Menu", BookmarkRoot.Menu.id, null)),
+                    SelectFolderItem(2, BookmarkItem.Folder("Bookmarks Toolbar", BookmarkRoot.Toolbar.id, null)),
+                    SelectFolderItem(2, BookmarkItem.Folder("Bookmarks Unfiled", BookmarkRoot.Unfiled.id, null)),
+                    SelectFolderItem(1, BookmarkItem.Folder("Nested One", "guid0", null)),
+                    SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid0", null)),
+                    SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid0", null)),
+                    SelectFolderItem(1, BookmarkItem.Folder("Nested One", "guid0", null)),
+                    SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid1", null)),
+                    SelectFolderItem(3, BookmarkItem.Folder("Nested Three", "guid0", null)),
+                    SelectFolderItem(0, BookmarkItem.Folder("Nested 0", "guid0", null)),
                 ),
             ),
             bookmarksMultiselectMoveState = null,
