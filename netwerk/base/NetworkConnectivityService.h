@@ -68,6 +68,7 @@ class NetworkConnectivityService : public nsINetworkConnectivityService,
 
   bool mCheckedNetworkId = false;
   bool mHasNetworkId = false;
+  bool mIdleStartupDone{false};
 
   Mutex mLock MOZ_UNANNOTATED{"nat64prefixes"};
 };

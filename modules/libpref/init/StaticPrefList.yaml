@@ -14890,6 +14890,12 @@
   value: ""
   mirror: never
 
+# Whether to wait for idle-startup notification before performing connectivity checks
+- name: network.connectivity-service.wait_for_idle_startup
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # Whether to enable echconfig.
 - name: network.dns.echconfig.enabled
   type: RelaxedAtomicBool
