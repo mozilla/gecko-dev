@@ -717,7 +717,7 @@ option("--disable-cargo-incremental", help="Disable incremental rust compilation
 @depends(
     developer_options,
     debug_rust,
-    "MOZ_AUTOMATION",
+    moz_automation,
     code_coverage,
     "--disable-cargo-incremental",
     using_sccache,

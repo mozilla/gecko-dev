@@ -258,7 +258,7 @@ option(
     help="Indicate that ld64 is free of symbol aliasing bugs",
 )
 
-imply_option("MOZ_LD64_KNOWN_GOOD", depends_if("MOZ_AUTOMATION")(lambda _: True))
+imply_option("MOZ_LD64_KNOWN_GOOD", moz_automation)
 
 
 @depends(
@@ -270,7 +270,7 @@ imply_option("MOZ_LD64_KNOWN_GOOD", depends_if("MOZ_AUTOMATION")(lambda _: True)
     "--enable-profile-generate",
     pass_manager.enabled,
     "--enable-profile-use",
-    "MOZ_AUTOMATION",
+    moz_automation,
 )
 @imports("multiprocessing")
 def lto(

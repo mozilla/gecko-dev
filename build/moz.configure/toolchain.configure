@@ -939,7 +939,7 @@ clang_search_path = bootstrap_search_path("clang/bin")
 
 
 @depends(
-    bootstrap_path("rustc/bin", when="MOZ_AUTOMATION"),
+    bootstrap_path("rustc/bin", when=moz_automation),
     original_path,
 )
 @imports("os")

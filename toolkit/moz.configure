@@ -520,7 +520,7 @@ set_define("JSON_USE_EXCEPTION", 0)
 option("--with-l10n-base", nargs=1, env="L10NBASEDIR", help="Path to l10n repositories")
 
 
-@depends("--with-l10n-base", "MOZ_AUTOMATION", build_environment)
+@depends("--with-l10n-base", moz_automation, build_environment)
 @imports(_from="os.path", _import="isdir")
 @imports(_from="os.path", _import="expanduser")
 @imports(_from="os", _import="environ")
@@ -1438,7 +1438,7 @@ set_define("ENABLE_WEBDRIVER", webdriver)
 
 
 @depends(
-    "--enable-tests", target, cross_compiling, hazard_analysis, asan, "MOZ_AUTOMATION"
+    "--enable-tests", target, cross_compiling, hazard_analysis, asan, moz_automation
 )
 def geckodriver_default(enable_tests, target, cross_compile, hazard, asan, automation):
     if not enable_tests:
@@ -3068,7 +3068,7 @@ def pdbstr_paths(valid_windows_sdk_dir, host):
     ]
 
 
-@depends("MOZ_AUTOMATION", c_compiler)
+@depends(moz_automation, c_compiler)
 def allow_missing_wintools(automation, c_compiler):
     if not automation:
         return True
@@ -3661,7 +3661,7 @@ set_define(
 # Automation renaming
 # ==============================================================
 
-with only_when("MOZ_AUTOMATION"):
+with only_when(moz_automation):
     option(env="MOZ_SIMPLE_PACKAGE_NAME", nargs=1, help="Package name override")
     set_config(
         "MOZ_SIMPLE_PACKAGE_NAME", depends_if("MOZ_SIMPLE_PACKAGE_NAME")(lambda x: x[0])

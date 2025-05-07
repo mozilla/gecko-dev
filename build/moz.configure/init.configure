@@ -191,7 +191,7 @@ def early_options():
 early_options = early_options()
 
 
-@depends(mozconfig, early_options, "MOZ_AUTOMATION", "--help")
+@depends(mozconfig, early_options, moz_automation, "--help")
 # This gives access to the sandbox. Don't copy this blindly.
 @imports("__sandbox__")
 @imports("os")
@@ -247,7 +247,7 @@ def js_package(build_env, help):
 # ================================================
 
 
-@depends(build_environment, "MOZ_AUTOMATION", js_package, "--help")
+@depends(build_environment, moz_automation, js_package, "--help")
 @checking("for vcs source checkout")
 @imports("os")
 def vcs_checkout_type(build_env, automation, js_package, help):
@@ -351,7 +351,7 @@ def git_version(git):
 # environment is more well-defined.
 
 
-@depends(vcs_checkout_type, hg_version, git_version, "MOZ_AUTOMATION")
+@depends(vcs_checkout_type, hg_version, git_version, moz_automation)
 def exposed_vcs_checkout_type(vcs_checkout_type, hg, git, automation):
     if vcs_checkout_type == "hg":
         if hg:
@@ -1241,7 +1241,7 @@ def enabled_in_nightly(milestone):
 option(
     env="MOZ_LINUX_32_SSE2_STARTUP_ERROR",
     help="Add code to perform startup checks to warn if SSE2 is not available",
-    default=depends("MOZ_AUTOMATION")(lambda x: bool(x)),
+    default=moz_automation,
     when=target_is_unix & depends(target)(lambda target: target.cpu == "x86"),
 )
 set_config(

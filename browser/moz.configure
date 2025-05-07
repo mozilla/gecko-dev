@@ -42,7 +42,7 @@ with only_when(target_has_linux_kernel & compile_environment):
     set_config("MOZ_NO_PIE_COMPAT", depends_if("MOZ_NO_PIE_COMPAT")(lambda _: True))
 
 
-@depends(target, update_channel, have_64_bit, moz_debug, "MOZ_AUTOMATION")
+@depends(target, update_channel, have_64_bit, moz_debug, moz_automation)
 @imports(_from="os", _import="environ")
 def requires_stub_installer(
     target, update_channel, have_64_bit, moz_debug, moz_automation

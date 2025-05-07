@@ -7,18 +7,18 @@
 option(
     env="MOZ_FETCHES_DIR",
     nargs=1,
-    when="MOZ_AUTOMATION",
+    when=moz_automation,
     help="Directory containing fetched artifacts",
 )
 
 
-@depends("MOZ_FETCHES_DIR", when="MOZ_AUTOMATION")
+@depends("MOZ_FETCHES_DIR", when=moz_automation)
 def moz_fetches_dir(value):
     if value:
         return value[0]
 
 
-@depends(vcs_checkout_type, milestone.is_nightly, "MOZ_AUTOMATION")
+@depends(vcs_checkout_type, milestone.is_nightly, moz_automation)
 def bootstrap_default(vcs_checkout_type, is_nightly, automation):
     if automation:
         return False

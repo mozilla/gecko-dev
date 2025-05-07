@@ -488,7 +488,7 @@ option(
 )
 
 
-@depends("--with-redist", "MOZ_AUTOMATION", c_compiler, vc_path, target)
+@depends("--with-redist", moz_automation, c_compiler, vc_path, target)
 @imports("os")
 def win32_redist_dir(redist, automation, c_compiler, vc_path, target):
     if len(redist):

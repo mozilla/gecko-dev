@@ -7,7 +7,7 @@
 option(
     "--enable-warnings-as-errors",
     env="MOZ_ENABLE_WARNINGS_AS_ERRORS",
-    default=depends("MOZ_AUTOMATION")(lambda x: bool(x)),
+    default=moz_automation,
     help="{Enable|Disable} treating warnings as errors",
 )
 
