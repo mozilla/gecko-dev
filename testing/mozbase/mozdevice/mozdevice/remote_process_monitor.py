@@ -38,7 +38,16 @@ class RemoteProcessMonitor:
             self.device.rm(self.remote_log_file)
             self.log.info("deleted remote log %s" % self.remote_log_file)
 
-    def launch(self, app, debugger_info, test_url, extra_args, env, e10s):
+    def launch(
+        self,
+        app,
+        debugger_info,
+        test_url,
+        extra_args,
+        env,
+        e10s,
+        activity="TestRunnerActivity",
+    ):
         """
         Start the remote activity.
         """
@@ -50,7 +59,6 @@ class RemoteProcessMonitor:
             args.extend(debugger_info.args)
             args.append(app)
         args.extend(extra_args)
-        activity = "TestRunnerActivity"
         self.device.launch_activity(
             self.app_name,
             activity_name=activity,

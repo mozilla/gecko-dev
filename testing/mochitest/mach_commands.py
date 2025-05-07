@@ -290,6 +290,10 @@ def run_mochitest_general(
             buildapp = app
             break
 
+    # Force the buildapp to be android if requested
+    if kwargs.get("android"):
+        buildapp = "android"
+
     flavors = None
     if flavor:
         for fname, fobj in ALL_FLAVORS.items():

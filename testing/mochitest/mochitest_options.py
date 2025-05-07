@@ -187,6 +187,14 @@ class MochitestArguments(ArgumentContainer):
             },
         ],
         [
+            ["--android"],
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "Force an android test run.",
+            },
+        ],
+        [
             ["--utility-path"],
             {
                 "dest": "utilityPath",
@@ -1288,6 +1296,19 @@ class AndroidArguments(ArgumentContainer):
             },
         ],
         [
+            ["--activity"],
+            {
+                "dest": "appActivity",
+                "default": "TestRunnerActivity",
+                "help": (
+                    "Specify the android app activity that should be used (e.g. "
+                    "GeckoViewActivity for org.mozilla.geckoview_example). Uses "
+                    "TestRunnerActivity by default for org.mozilla.geckoview.test_"
+                    "runner"
+                ),
+            },
+        ],
+        [
             ["--remote-webserver"],
             {
                 "dest": "remoteWebServer",
@@ -1429,6 +1450,27 @@ class MochitestArgumentParser(ArgumentParser):
 
         self.oldcwd = os.getcwd()
         self.app = app
+
+        mozlog.commandline.add_logging_group(self)
+
+    @property
+    def containers(self):
+        if self._containers:
+            return self._containers
+
+        containers = container_map[self.app]
+        self._containers = [c() for c in containers]
+        return self._containers
+
+    def validate(self, args):
+        for container in self.containers:
+            args = container.validate(self, args, self.context)
+        return args
+
+    def parse_known_args(self, args=None, namespace=None):
+        if not self.app and any("--android" == arg for arg in args):
+            self.app = "android"
+
         if not self.app and build_obj:
             if conditions.is_android(build_obj):
                 self.app = "android"
@@ -1465,18 +1507,5 @@ class MochitestArgumentParser(ArgumentParser):
                 group.add_argument(*cli, **kwargs)
 
         self.set_defaults(**defaults)
-        mozlog.commandline.add_logging_group(self)
 
-    @property
-    def containers(self):
-        if self._containers:
-            return self._containers
-
-        containers = container_map[self.app]
-        self._containers = [c() for c in containers]
-        return self._containers
-
-    def validate(self, args):
-        for container in self.containers:
-            args = container.validate(self, args, self.context)
-        return args
+        return super().parse_known_args(args, namespace)

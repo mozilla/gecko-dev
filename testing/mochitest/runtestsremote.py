@@ -95,6 +95,7 @@ class MochiRemote(MochitestDesktop):
         self.device.mkdir(self.remoteChromeTestDir, parents=True)
 
         self.appName = options.remoteappname
+        self.appActivity = options.appActivity
         self.device.stop_application(self.appName)
         if self.device.process_exist(self.appName):
             self.log.warning("unable to kill %s before running tests!" % self.appName)
@@ -374,6 +375,7 @@ class MochiRemote(MochitestDesktop):
             args,
             env=self.environment(env=env, crashreporter=not debuggerInfo),
             e10s=e10s,
+            activity=self.appActivity,
         )
 
         # TODO: not using runFailures or crashAsPass, if we choose to use them
