@@ -748,7 +748,6 @@ customElements.define(
   ) {
     connectedCallback() {
       this.descriptionEl = this.querySelector("#addon-install-description");
-      this.settingsLinkEl = this.querySelector("#addon-install-settings-link");
 
       this.addEventListener("click", this);
     }
@@ -757,12 +756,16 @@ customElements.define(
       this.removeEventListener("click", this);
     }
 
+    get #settingsLinkId() {
+      return "addon-install-settings-link";
+    }
+
     handleEvent(event) {
       const { target } = event;
 
       switch (event.type) {
         case "click": {
-          if (target.id === this.settingsLinkEl.id) {
+          if (target.id === this.#settingsLinkId) {
             const { addonId } = this.notification.options.customElementOptions;
 
             BrowserAddonUI.openAddonsMgr(
@@ -791,14 +794,22 @@ customElements.define(
     }
 
     render() {
-      this.settingsLinkEl.hidden = true;
-
       let fluentId = "appmenu-addon-post-install-message3";
+
+      this.ownerDocument.l10n.setAttributes(this.descriptionEl, null);
+      this.querySelector(`#${this.#settingsLinkId}`)?.remove();
+
       if (this.#dataCollectionPermissionsEnabled) {
         MozXULElement.insertFTLIfNeeded(
           "locales-preview/dataCollectionPermissions.ftl"
         );
-        this.settingsLinkEl.hidden = false;
+
+        const HTML_NS = "http://www.w3.org/1999/xhtml";
+        const link = document.createElementNS(HTML_NS, "a");
+        link.setAttribute("id", this.#settingsLinkId);
+        link.setAttribute("data-l10n-name", "settings-link");
+        this.descriptionEl.append(link);
+
         fluentId = "appmenu-addon-post-install-message-with-data-collection";
       }
 
