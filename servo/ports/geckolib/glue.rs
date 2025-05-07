@@ -3252,6 +3252,21 @@ pub unsafe extern "C" fn Servo_FontFaceRule_Clone(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn Servo_FontFaceRule_Equals(
+    a: &LockedFontFaceRule,
+    b: &LockedFontFaceRule,
+) -> bool {
+    if a as *const _ == b as *const _ {
+        return true;
+    }
+    read_locked_arc_worker(a, |a: &FontFaceRule| {
+        read_locked_arc_worker(b, |b: &FontFaceRule| {
+            a == b
+        })
+    })
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn Servo_FontFaceRule_GetSourceLocation(
     rule: &LockedFontFaceRule,
     line: *mut u32,

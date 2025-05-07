@@ -406,16 +406,6 @@ bool FontFaceSetDocumentImpl::UpdateRules(
   // same rules are still present.
   nsTArray<FontFaceRecord> oldRecords = std::move(mRuleFaces);
 
-  // reuse existing FontFace objects mapped to particular rules already
-  nsTHashMap<nsPtrHashKey<StyleLockedFontFaceRule>, FontFaceImpl*> ruleFaceMap;
-  for (const FontFaceRecord& record : oldRecords) {
-    FontFaceImpl* f = record.mFontFace;
-    if (!f || !f->GetOwner()) {
-      continue;
-    }
-    ruleFaceMap.InsertOrUpdate(f->GetRule(), f);
-  }
-
   // Remove faces from the font family records; we need to re-insert them
   // because we might end up with faces in a different order even if they're
   // the same font entries as before. (The order can affect font selection
@@ -441,13 +431,7 @@ bool FontFaceSetDocumentImpl::UpdateRules(
       // rule was already present in the hashtable
       continue;
     }
-    RefPtr<FontFaceImpl> faceImpl = ruleFaceMap.Get(rule);
-    RefPtr<FontFace> face = faceImpl ? faceImpl->GetOwner() : nullptr;
-    if (mOwner && (!faceImpl || !face)) {
-      face = FontFace::CreateForRule(mOwner->GetParentObject(), mOwner, rule);
-      faceImpl = face->GetImpl();
-    }
-    InsertRuleFontFace(faceImpl, face, container.mOrigin, oldRecords, modified);
+    modified |= InsertRuleFontFace(rule, container.mOrigin, oldRecords);
   }
 
   for (const FontFaceRecord& record : mNonRuleFaces) {
@@ -512,16 +496,20 @@ bool FontFaceSetDocumentImpl::UpdateRules(
   return modified;
 }
 
-void FontFaceSetDocumentImpl::InsertRuleFontFace(
-    FontFaceImpl* aFontFace, FontFace* aFontFaceOwner, StyleOrigin aSheetType,
-    nsTArray<FontFaceRecord>& aOldRecords, bool& aFontSetModified) {
+bool FontFaceSetDocumentImpl::InsertRuleFontFace(
+    StyleLockedFontFaceRule* aRule, StyleOrigin aSheetType,
+    nsTArray<FontFaceRecord>& aOldRecords) {
   RecursiveMutexAutoLock lock(mMutex);
 
+  if (MOZ_UNLIKELY(!mOwner)) {
+    return false;
+  }
+
   gfxUserFontAttributes attr;
-  if (!aFontFace->GetAttributes(attr)) {
+  if (!FontFaceImpl::GetAttributesFromRule(aRule, attr)) {
     // If there is no family name, this rule cannot contribute a
     // usable font, so there is no point in processing it further.
-    return;
+    return false;
   }
 
   bool remove = false;
@@ -533,50 +521,66 @@ void FontFaceSetDocumentImpl::InsertRuleFontFace(
   for (size_t i = 0; i < aOldRecords.Length(); ++i) {
     FontFaceRecord& rec = aOldRecords[i];
 
-    if (rec.mFontFace == aFontFace && rec.mOrigin == Some(aSheetType)) {
-      // if local rules were used, don't use the old font entry
-      // for rules containing src local usage
-      if (mLocalRulesUsed && mRebuildLocalRules) {
-        if (aFontFace->HasLocalSrc()) {
-          // Remove the old record, but wait to see if we successfully create a
-          // new user font entry below.
-          remove = true;
-          removeIndex = i;
-          break;
-        }
-      }
-
-      gfxUserFontEntry* entry = rec.mFontFace->GetUserFontEntry();
-      MOZ_ASSERT(entry, "FontFace should have a gfxUserFontEntry by now");
-
-      AddUserFontEntry(attr.mFamilyName, entry);
-
-      MOZ_ASSERT(!HasRuleFontFace(rec.mFontFace),
-                 "FontFace should not occur in mRuleFaces twice");
-
-      mRuleFaces.AppendElement(rec);
-      aOldRecords.RemoveElementAt(i);
-
-      if (mOwner && aFontFaceOwner) {
-        mOwner->InsertRuleFontFace(aFontFaceOwner, aSheetType);
-      }
-
-      // note the set has been modified if an old rule was skipped to find
-      // this one - something has been dropped, or ordering changed
-      if (i > 0) {
-        aFontSetModified = true;
-      }
-      return;
+    const bool matches =
+        rec.mOrigin == Some(aSheetType) &&
+        Servo_FontFaceRule_Equals(rec.mFontFace->GetData(), aRule);
+    if (!matches) {
+      continue;
     }
+
+    FontFace* owner = rec.mFontFace->GetOwner();
+    // if local rules were used, don't use the old font entry
+    // for rules containing src local usage
+    if (mLocalRulesUsed && mRebuildLocalRules) {
+      const bool hasLocalSource = [&] {
+        for (auto& source : attr.mSources) {
+          if (source.IsLocal()) {
+            return true;
+          }
+        }
+        return false;
+      }();
+
+      if (hasLocalSource) {
+        // Remove the old record, but wait to see if we successfully create a
+        // new user font entry below.
+        remove = true;
+        removeIndex = i;
+        break;
+      }
+    }
+
+    rec.mFontFace->SetRule(aRule);
+    gfxUserFontEntry* entry = rec.mFontFace->GetUserFontEntry();
+    MOZ_ASSERT(entry, "FontFace should have a gfxUserFontEntry by now");
+
+    AddUserFontEntry(attr.mFamilyName, entry);
+
+    MOZ_ASSERT(!HasRuleFontFace(rec.mFontFace),
+               "FontFace should not occur in mRuleFaces twice");
+
+    mRuleFaces.AppendElement(rec);
+    aOldRecords.RemoveElementAt(i);
+
+    if (owner) {
+      mOwner->InsertRuleFontFace(owner, aSheetType);
+    }
+
+    // note the set has been modified if an old rule was skipped to find
+    // this one - something has been dropped, or ordering changed
+    return i > 0;
   }
 
+  RefPtr<FontFace> fontFace =
+      FontFace::CreateForRule(mOwner->GetParentObject(), mOwner, aRule);
+  RefPtr<FontFaceImpl> impl = fontFace->GetImpl();
   // this is a new rule:
   nsAutoCString family(attr.mFamilyName);
-  RefPtr<gfxUserFontEntry> entry = FindOrCreateUserFontEntryFromFontFace(
-      aFontFace, std::move(attr), aSheetType);
+  RefPtr<gfxUserFontEntry> entry =
+      FindOrCreateUserFontEntryFromFontFace(impl, std::move(attr), aSheetType);
 
   if (!entry) {
-    return;
+    return false;
   }
 
   if (remove) {
@@ -590,22 +594,17 @@ void FontFaceSetDocumentImpl::InsertRuleFontFace(
   }
 
   FontFaceRecord rec;
-  rec.mFontFace = aFontFace;
+  rec.mFontFace = impl;
   rec.mOrigin = Some(aSheetType);
 
-  aFontFace->SetUserFontEntry(entry);
+  impl->SetUserFontEntry(entry);
 
-  MOZ_ASSERT(!HasRuleFontFace(aFontFace),
+  MOZ_ASSERT(!HasRuleFontFace(impl),
              "FontFace should not occur in mRuleFaces twice");
 
   mRuleFaces.AppendElement(rec);
 
-  if (mOwner && aFontFaceOwner) {
-    mOwner->InsertRuleFontFace(aFontFaceOwner, aSheetType);
-  }
-
-  // this was a new rule and font entry, so note that the set was modified
-  aFontSetModified = true;
+  mOwner->InsertRuleFontFace(fontFace, aSheetType);
 
   // Add the entry to the end of the list.  If an existing userfont entry was
   // returned by FindOrCreateUserFontEntryFromFontFace that was already stored
@@ -613,6 +612,7 @@ void FontFaceSetDocumentImpl::InsertRuleFontFace(
   // calls, will automatically remove the earlier occurrence of the same
   // userfont entry.
   AddUserFontEntry(family, entry);
+  return true;
 }
 
 StyleLockedFontFaceRule* FontFaceSetDocumentImpl::FindRuleForEntry(
