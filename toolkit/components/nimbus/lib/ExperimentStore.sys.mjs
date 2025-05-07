@@ -7,7 +7,7 @@ import { SharedDataMap } from "resource://nimbus/lib/SharedDataMap.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  FeatureManifest: "resource://nimbus/FeatureManifest.sys.mjs",
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
 });
 
@@ -85,8 +85,7 @@ ChromeUtils.defineLazyGetter(lazy, "syncDataStore", () => {
         let value = lazy.PrefUtils.getPref(prefName);
         // Try to parse string values that could be stringified objects
         if (
-          lazy.NimbusFeatures[featureId]?.manifest?.variables?.[childPref]
-            ?.type === "json"
+          lazy.FeatureManifest[featureId]?.variables[childPref]?.type === "json"
         ) {
           let parsedValue = tryJSONParse(value);
           if (parsedValue) {
@@ -250,7 +249,7 @@ export class ExperimentStore extends SharedDataMap {
       );
     }
 
-    if (lazy.NimbusFeatures[featureId]?.manifest.isEarlyStartup) {
+    if (lazy.FeatureManifest[featureId].isEarlyStartup) {
       return lazy.syncDataStore.get(featureId);
     }
 
@@ -318,7 +317,7 @@ export class ExperimentStore extends SharedDataMap {
       );
     }
 
-    if (lazy.NimbusFeatures[featureId]?.manifest.isEarlyStartup) {
+    if (lazy.FeatureManifest[featureId].isEarlyStartup) {
       return lazy.syncDataStore.getDefault(featureId);
     }
 
@@ -399,7 +398,7 @@ export class ExperimentStore extends SharedDataMap {
    */
   _updateSyncStore(enrollment) {
     for (let feature of enrollment.branch.features) {
-      if (lazy.NimbusFeatures[feature.featureId]?.manifest.isEarlyStartup) {
+      if (lazy.FeatureManifest[feature.featureId]?.isEarlyStartup) {
         if (!enrollment.active) {
           // Remove experiments on un-enroll, no need to check if it exists
           if (enrollment.isRollout) {

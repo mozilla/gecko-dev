@@ -3,6 +3,9 @@
 const { ExperimentStore } = ChromeUtils.importESModule(
   "resource://nimbus/lib/ExperimentStore.sys.mjs"
 );
+const { FeatureManifest } = ChromeUtils.importESModule(
+  "resource://nimbus/FeatureManifest.sys.mjs"
+);
 
 const { SYNC_DATA_PREF_BRANCH, SYNC_DEFAULTS_PREF_BRANCH } = ExperimentStore;
 
@@ -689,23 +692,21 @@ add_task(async function test_addEnrollment_rollout() {
 });
 
 add_task(async function test_storeValuePerPref_returnsSameValue_allTypes() {
-  const cleanupFeature = NimbusTestUtils.addTestFeatures(
-    new ExperimentFeature("purple", {
-      isEarlyStartup: true,
-      variables: {
-        string: { type: "string" },
-        bool: { type: "boolean" },
-        array: { type: "json" },
-        number1: { type: "int" },
-        number2: { type: "int" },
-        number3: { type: "int" },
-        json: { type: "json" },
-      },
-    })
-  );
-
   const { store, cleanup } = await setupTest();
 
+  // Add a fake feature that matches the variables we're testing
+  FeatureManifest.purple = {
+    isEarlyStartup: true,
+    variables: {
+      string: { type: "string" },
+      bool: { type: "boolean" },
+      array: { type: "json" },
+      number1: { type: "int" },
+      number2: { type: "int" },
+      number3: { type: "int" },
+      json: { type: "json" },
+    },
+  };
   const experiment = NimbusTestUtils.factories.experiment.withFeatureConfig(
     "foo",
     {
@@ -741,8 +742,9 @@ add_task(async function test_storeValuePerPref_returnsSameValue_allTypes() {
   );
   Assert.deepEqual(branch.getChildList(""), [], "Variables are also removed");
 
+  delete FeatureManifest.purple;
+
   cleanup();
-  cleanupFeature();
 });
 
 add_task(async function test_cleanupOldRecipes() {

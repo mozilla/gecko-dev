@@ -434,7 +434,7 @@ export const NimbusTestUtils = {
     }
     return () => {
       for (const { featureId } of features) {
-        NimbusFeatures[featureId];
+        delete NimbusFeatures[featureId];
       }
     };
   },
