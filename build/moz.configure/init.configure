@@ -63,7 +63,14 @@ set_config("TOPOBJDIR", build_environment.topobjdir)
 set_config("DIST", build_environment.dist)
 
 option(env="MOZ_AUTOMATION", help="Enable options for automated builds")
-set_config("MOZ_AUTOMATION", depends_if("MOZ_AUTOMATION")(lambda x: True))
+
+
+@depends("MOZ_AUTOMATION")
+def moz_automation(value):
+    return bool(value)
+
+
+set_config("MOZ_AUTOMATION", moz_automation)
 
 option(env="MOZCONFIG", nargs=1, help="Mozconfig location")
 
