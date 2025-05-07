@@ -64,12 +64,10 @@ class nsBaseDragSession : public nsIDragSession {
   int32_t TakeChildProcessDragAction();
 
   void SetDragEndPoint(nsIntPoint aEndDragPoint) {
-    mEndDragPoint =
-        mozilla::LayoutDeviceIntPoint::FromUnknownPoint(aEndDragPoint);
+    SetDragEndPoint(
+        mozilla::LayoutDeviceIntPoint::FromUnknownPoint(aEndDragPoint));
   }
-  void SetDragEndPoint(mozilla::LayoutDeviceIntPoint aEndDragPoint) {
-    mEndDragPoint = aEndDragPoint;
-  }
+  void SetDragEndPoint(mozilla::LayoutDeviceIntPoint aEndDragPoint);
 
   uint16_t GetInputSource() { return mInputSource; }
 

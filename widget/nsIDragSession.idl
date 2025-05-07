@@ -170,9 +170,9 @@ interface nsIDragSession : nsISupports
 
   /**
    * Sets drag end point of synthesized session when the test does not dispatch
-   * "drop" event.
+   * "drop" event.  Position is relative to screen in CSS coordinates.
    */
-  void setDragEndPointForTests(in long aScreenX, in long aScreenY);
+  void setDragEndPointForTests(in float aScreenX, in float aScreenY);
 
   /**
    * Returns true if the session is for dragging text in a text in text control

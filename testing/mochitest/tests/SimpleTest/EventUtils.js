@@ -3921,6 +3921,14 @@ async function synthesizePlainDragAndDrop(aParams) {
       dragEvent
     );
     srcSession.setDragEndPointForTests(event.screenX, event.screenY);
+    if (logFunc) {
+      logFunc(
+        `dragend event client (X,Y) = (${event.clientX}, ${event.clientY})`
+      );
+      logFunc(
+        `dragend event screen (X,Y) = (${event.screenX}, ${event.screenY})`
+      );
+    }
   } finally {
     await new Promise(r => setTimeout(r, 0));
 

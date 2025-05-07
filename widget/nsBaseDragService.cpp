@@ -285,8 +285,8 @@ uint32_t nsBaseDragSession::GetEffectAllowedForTests() {
   return mEffectAllowedForTests;
 }
 
-NS_IMETHODIMP nsBaseDragSession::SetDragEndPointForTests(int32_t aScreenX,
-                                                         int32_t aScreenY) {
+NS_IMETHODIMP nsBaseDragSession::SetDragEndPointForTests(float aScreenX,
+                                                         float aScreenY) {
   MOZ_ASSERT(mDoingDrag);
   MOZ_ASSERT(mSourceDocument);
   MOZ_ASSERT(mSessionIsSynthesizedForTests);
@@ -298,7 +298,7 @@ NS_IMETHODIMP nsBaseDragSession::SetDragEndPointForTests(int32_t aScreenX,
   if (NS_WARN_IF(!pc)) {
     return NS_ERROR_FAILURE;
   }
-  auto p = LayoutDeviceIntPoint::Round(CSSIntPoint(aScreenX, aScreenY) *
+  auto p = LayoutDeviceIntPoint::Round(CSSPoint(aScreenX, aScreenY) *
                                        pc->CSSToDevPixelScale());
   // p is screen-relative, and we want them to be top-level-widget-relative.
   if (nsCOMPtr<nsIWidget> widget = pc->GetRootWidget()) {
@@ -1228,6 +1228,14 @@ NS_IMETHODIMP
 nsBaseDragService::SetNeverAllowSessionIsSynthesizedForTests(bool aNeverAllow) {
   mNeverAllowSessionIsSynthesizedForTests = aNeverAllow;
   return NS_OK;
+}
+
+void nsBaseDragSession::SetDragEndPoint(
+    mozilla::LayoutDeviceIntPoint aEndDragPoint) {
+  mEndDragPoint = aEndDragPoint;
+  MOZ_DRAGSERVICE_LOG("SetDragEndPoint (x,y)=(%d,%d)",
+                      static_cast<int>(mEndDragPoint.x),
+                      static_cast<int>(mEndDragPoint.y));
 }
 
 NS_IMETHODIMP
