@@ -2857,6 +2857,21 @@
       }
     ]
   },
+  "1935598": {
+    "label": "testbook.com",
+    "bugs": {
+      "1935598": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://testbook.com/*/lesson/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1935968": {
     "label": "cfspart-idp.impots.gouv.fr",
     "bugs": {
