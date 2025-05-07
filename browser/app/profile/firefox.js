@@ -1994,7 +1994,6 @@ pref("browser.newtabpage.activity-stream.discoverystream.sections.personalizatio
 pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.locale-config", "en-US,en-GB,en-CA");
 
 pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.user.enabled", true);
-pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.blocked", false);
 
 pref("browser.newtabpage.activity-stream.discoverystream.sections.interestPicker.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.sections.interestPicker.visibleSections", "");
