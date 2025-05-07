@@ -11684,7 +11684,9 @@
     mirror: always
 
 # Enable origin filter for MFCDM support
-# 0 : disabled, 1 : enabled allowed list, 2 : enabled blocked list
+# 0 : disabled, 1 : enabled allowed list, 2 : enabled blocked list,
+# 3 : enabled allowed by default via Remote Settings
+# 4 : enabled blocked by default via Remote Settings
 -   name: media.eme.mfcdm.origin-filter.enabled
     type: RelaxedAtomicUint32
 #if defined(MOZ_DEV_EDITION) || defined(EARLY_BETA_OR_EARLIER)
