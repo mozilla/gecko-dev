@@ -1484,7 +1484,7 @@
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">浏览上一页</string>
   <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description">向上导航</string>
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">向上导航</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">分享 URL</string>
   <!-- Text for the button to share the download file -->

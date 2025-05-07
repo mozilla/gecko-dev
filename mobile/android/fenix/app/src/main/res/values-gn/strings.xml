@@ -1480,7 +1480,7 @@
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Eikundaha tapykuévo</string>
   <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description">Eikundaha yvatévo</string>
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Eikundaha yvatévo</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Emoherakuã URL</string>
   <!-- Text for the button to share the download file -->

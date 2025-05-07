@@ -1410,7 +1410,7 @@
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">പുറകോട്ട് ചെല്ലുക</string>
   <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description">മുകളിലേക്ക്  ചെല്ലുക</string>
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">മുകളിലേക്ക്  ചെല്ലുക</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">കണ്ണി പങ്കിടുക</string>
   <!-- Text for the button to share the download file -->

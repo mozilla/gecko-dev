@@ -1484,7 +1484,7 @@
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Navega cap enrere</string>
   <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description">Navega cap amunt</string>
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Navega cap amunt</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Comparteix l’URL</string>
   <!-- Text for the button to share the download file -->

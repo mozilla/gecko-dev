@@ -1490,7 +1490,7 @@
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">ਪਿੱਛੇ ਵੱਲ ਨੈਵੀਗੇਟ ਕਰੋ</string>
   <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description">ਉੱਤੇ ਜਾਓ</string>
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">ਉੱਤੇ ਜਾਓ</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">URL ਸਾਂਝਾ ਕਰੋ</string>
   <!-- Text for the button to share the download file -->

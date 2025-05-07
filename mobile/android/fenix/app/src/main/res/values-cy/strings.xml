@@ -1486,7 +1486,7 @@
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Symud nôl</string>
   <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description">Symud i fyny</string>
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Symud i fyny</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Rhannu URL</string>
   <!-- Text for the button to share the download file -->
@@ -3575,5 +3575,5 @@
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
   <string name="private_tab_cfr_negative">Dim diolch</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
-  <string name="private_tab_cfr_positive">Cloi tabiau</string>
+  <string name="private_tab_cfr_positive">Cloi\'r tabiau</string>
 </resources>

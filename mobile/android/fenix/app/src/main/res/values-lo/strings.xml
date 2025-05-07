@@ -1485,7 +1485,7 @@
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">ນຳທາງຍ້ອນກັບ</string>
   <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description">ນຳທາງຂຶ້ນໄປທາງເທິງ</string>
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">ນຳທາງຂຶ້ນໄປທາງເທິງ</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">ແບ່ງປັນ URL</string>
   <!-- Text for the button to share the download file -->
