@@ -936,7 +936,7 @@ requires-dist = [
     { name = "markupsafe", specifier = "==2.0.1" },
     { name = "moz-l10n", specifier = "~=0.5.7" },
     { name = "mozilla-repo-urls", specifier = "==0.1.1" },
-    { name = "mozilla-version", specifier = "==3.1.0" },
+    { name = "mozilla-version", specifier = "==4.1.0" },
     { name = "packaging", specifier = "==23.1" },
     { name = "pathspec", specifier = "==0.9.0" },
     { name = "pip", specifier = "==24.0" },
@@ -971,14 +971,14 @@ requires-dist = [
 
 [[package]]
 name = "mozilla-version"
-version = "3.1.0"
+version = "4.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3b/59/02c98815c8ba8d49c571344c2012594d9ad255175387f517c24e06840388/mozilla-version-3.1.0.tar.gz", hash = "sha256:3a9463ebcf2249dc8bcf504e246b6b5977c902dfa819de31602e10bce032ed93", size = 61440 }
+sdist = { url = "https://files.pythonhosted.org/packages/c2/91/a67deea35ec3a0c80bfa0142e72fc779d96544814067e99f39d78d90b754/mozilla_version-4.1.0.tar.gz", hash = "sha256:f32f6f5607c345bb4db0aba0077511b196cba80af70c83cfe606a913a478f7e8", size = 62685 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/27/d6c1c598feec8ff0cd5c9060bbb94b848a1151c41c2edc08773cac513ed6/mozilla_version-3.1.0-py3-none-any.whl", hash = "sha256:f798e716da9063608a0b49ca1ec0a51b73ac810c3cc8a4bcc2c461df902b147c", size = 39558 },
+    { url = "https://files.pythonhosted.org/packages/83/d9/671361f42a55d8369d29bbb07ada1e884cc079c1e265ab5a826e2091cadb/mozilla_version-4.1.0-py3-none-any.whl", hash = "sha256:816b0cd03456105f49ad8661e47934e66118f84ddae38c4193082f297396a7ed", size = 132224 },
 ]
 
 [[package]]

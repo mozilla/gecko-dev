@@ -157,6 +157,7 @@ class GeckoVersion(ShipItVersion):
         102,
         115,
         128,
+        140,
     )
 
     _BOOLEANS_NOT_INFERRED_BY_NUMBERS = (
@@ -582,8 +583,7 @@ class GeckoVersion(ShipItVersion):
         elif (
             self.is_nightly
             and self.major_number > self._LAST_AURORA_DEVEDITION_AS_VERSION_TYPE
-            or self.is_aurora_or_devedition
-        ):
+        ) or self.is_aurora_or_devedition:
             bump_version_type_kwargs["beta_number"] = 1
         elif self.is_beta and not self.is_rapid_release_scheme:
             bump_version_type_kwargs["release_candidate_number"] = 1
