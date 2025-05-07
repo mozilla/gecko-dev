@@ -10,7 +10,7 @@ vars = {
   # chromium waterfalls. More info at: crbug.com/570091.
   'checkout_configuration': 'default',
   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
-  'chromium_revision': '60851a9f6eddbaf39d5e5c6f64b49c1dd210d6fd',
+  'chromium_revision': '79a14840b35343fe99521f14280437c5810eb7b7',
 
   # Fetch the prebuilt binaries for llvm-cov and llvm-profdata. Needed to
   # process the raw profiles produced by instrumented targets (built with
@@ -64,9 +64,9 @@ vars = {
 deps = {
   # TODO(kjellander): Move this to be Android-only.
   'src/base':
-    'https://chromium.googlesource.com/chromium/src/base@9a666cd03c38c716cb45dcde80ee2ed6e9db37a5',
+    'https://chromium.googlesource.com/chromium/src/base@c75b2c2ea935234e97b07806b07d47b9dffa51eb',
   'src/build':
-    'https://chromium.googlesource.com/chromium/src/build@bcaac35c149ba998cb3eb7297a5cb664fc62a3d5',
+    'https://chromium.googlesource.com/chromium/src/build@4c7215770cc18b381f756a5c5fc7e35cab6308f7',
   'src/buildtools':
     'https://chromium.googlesource.com/chromium/src/buildtools@244e7cf4453305d0c17d500662a69fba2e46a73e',
   # Gradle 6.6.1. Used for testing Android Studio project generation for WebRTC.
@@ -545,8 +545,8 @@ deps = {
   'src/third_party/android_sdk/public': {
       'packages': [
           {
-              'package': 'chromium/third_party/android_sdk/public/build-tools/35.0.0',
-              'version': 'DxwAZ3hD551Neu6ycuW5CPnXFrdleRBd93oX1eB_m9YC',
+              'package': 'chromium/third_party/android_sdk/public/build-tools/36.0.0',
+              'version': 'y3EsZLg4bxPmpW0oYsAHylywNyMnIwPS3kh1VbQLAFAC',
           },
           {
               'package': 'chromium/third_party/android_sdk/public/emulator',
@@ -554,11 +554,11 @@ deps = {
           },
           {
               'package': 'chromium/third_party/android_sdk/public/platform-tools',
-              'version': 'WihaseZR6cojZbkzIqwGhpTp92ztaGfqq8njBU8eTXYC',
+              'version': 'mjFmRj7k_XR9yj60pYbr9mG38FyEbU5oWdU56bZQ5cwC'
           },
           {
-              'package': 'chromium/third_party/android_sdk/public/platforms/android-35',
-              'version': 'kIXA-9XuCfOESodXEdOBkW5f1ytrGWdbp3HFp1I8A_0C',
+              'package': 'chromium/third_party/android_sdk/public/platforms/android-36',
+              'version': '_YHemUrK49JrE7Mctdf5DDNOHu1VKBx_PTcWnZ-cbOAC',
           },
           {
               'package': 'chromium/third_party/android_sdk/public/cmdline-tools',
