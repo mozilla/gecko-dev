@@ -148,6 +148,7 @@ import org.mozilla.fenix.home.topsites.TopSitesConfigConstants.AMAZON_SPONSORED_
 import org.mozilla.fenix.home.topsites.TopSitesConfigConstants.EBAY_SPONSORED_TITLE
 import org.mozilla.fenix.home.topsites.getTopSitesConfig
 import org.mozilla.fenix.home.ui.Homepage
+import org.mozilla.fenix.lifecycle.observePrivateModeLock
 import org.mozilla.fenix.messaging.DefaultMessageController
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 import org.mozilla.fenix.messaging.MessagingFeature
@@ -1138,7 +1139,15 @@ class HomeFragment : Fragment() {
 
         observeSearchEngineNameChanges()
         observeWallpaperUpdates()
-        observePrivateModeLock()
+
+        observePrivateModeLock(
+            viewLifecycleOwner = viewLifecycleOwner,
+            scope = viewLifecycleOwner.lifecycleScope,
+            appStore = requireComponents.appStore,
+            onPrivateModeLocked = {
+                findNavController().navigate(R.id.unlockPrivateTabsFragment)
+            },
+        )
 
         homeScreenPopupManager.set(
             feature = HomeScreenPopupManager(
@@ -1611,23 +1620,6 @@ class HomeFragment : Fragment() {
                         )
                     }
                 }
-        }
-    }
-
-    private fun observePrivateModeLock() {
-        with(viewLifecycleOwner) {
-            lifecycleScope.launch {
-                lifecycle.repeatOnLifecycle(RESUMED) {
-                    requireComponents.appStore.flow()
-                        .filter { state ->
-                            state.isPrivateScreenLocked && state.mode == BrowsingMode.Private
-                        }
-                        .distinctUntilChanged()
-                        .collect {
-                            findNavController().navigate(R.id.unlockPrivateTabsFragment)
-                        }
-                }
-            }
         }
     }
 

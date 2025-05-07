@@ -6,49 +6,60 @@ package org.mozilla.fenix.lifecycle
 
 import android.app.Activity
 import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.Lifecycle.State.RESUMED
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import mozilla.components.browser.state.selector.privateTabs
+import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.lib.state.ext.flow
 import mozilla.components.lib.state.ext.flowScoped
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
-import org.mozilla.fenix.components.Components
+import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.PrivateBrowsingLockAction
+import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.tabstray.TabsTrayFragment
+import org.mozilla.fenix.utils.Settings
 
 /**
  * A lifecycle-aware feature that locks private browsing mode behind authentication
  * when certain conditions are met (e.g., switching modes or backgrounding the app).
  */
 class PrivateBrowsingLockFeature(
-    private val components: Components,
+    private val appStore: AppStore,
+    private val browserStore: BrowserStore,
+    private val settings: Settings,
 ) : DefaultLifecycleObserver {
 
     init {
         // When the app is initialized, if there are private tabs, we should lock the private mode.
-        // NB: This might need a check if the feature is enabled. As part of future work, we
-        // should make sure that lock state resets when the user enables/disables the feature.
-        components.appStore.dispatch(
-            PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
-                isLocked = components.core.store.state.privateTabs.isNotEmpty(),
-            ),
-        )
+        if (settings.privateBrowsingLockedEnabled) {
+            appStore.dispatch(
+                PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
+                    isLocked = browserStore.state.privateTabs.isNotEmpty(),
+                ),
+            )
+        }
 
         observePrivateTabsClosure()
         observeSwitchingToNormalMode()
     }
 
     private fun observePrivateTabsClosure() {
-        components.core.store.flowScoped { flow ->
+        browserStore.flowScoped { flow ->
             flow
                 .map { it.privateTabs.size }
                 .distinctUntilChanged()
                 .filter { it == 0 }
                 .collect {
-                    if (components.settings.privateBrowsingLockedEnabled) {
+                    if (settings.privateBrowsingLockedEnabled) {
                         // When all private tabs are closed, we don't need to lock the private mode.
-                        components.appStore.dispatch(
+                        appStore.dispatch(
                             PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
                                 isLocked = false,
                             ),
@@ -59,7 +70,7 @@ class PrivateBrowsingLockFeature(
     }
 
     private fun observeSwitchingToNormalMode() {
-        components.appStore.flowScoped { flow ->
+        appStore.flowScoped { flow ->
             flow
                 .map { it.mode }
                 .distinctUntilChanged()
@@ -67,11 +78,11 @@ class PrivateBrowsingLockFeature(
                 .collect {
                     // When witching from private to normal mode with private tabs open,
                     // we lock the private mode.
-                    val isPrivateModeLockEnabled = components.settings.privateBrowsingLockedEnabled
-                    val hasPrivateTabs = components.core.store.state.privateTabs.isNotEmpty()
+                    val isPrivateModeLockEnabled = settings.privateBrowsingLockedEnabled
+                    val hasPrivateTabs = browserStore.state.privateTabs.isNotEmpty()
 
                     if (isPrivateModeLockEnabled && hasPrivateTabs) {
-                        components.appStore.dispatch(
+                        appStore.dispatch(
                             PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
                                 isLocked = true,
                             ),
@@ -101,12 +112,12 @@ class PrivateBrowsingLockFeature(
 
     private fun maybeLockPrivateModeOnStop() {
         // When the app gets inactive in private mode with opened tabs, we lock the private mode.
-        val isPrivateModeLockEnabled = components.settings.privateBrowsingLockedEnabled
-        val hasPrivateTabs = components.core.store.state.privateTabs.isNotEmpty()
-        val isPrivateMode = components.appStore.state.mode == BrowsingMode.Private
+        val isPrivateModeLockEnabled = settings.privateBrowsingLockedEnabled
+        val hasPrivateTabs = browserStore.state.privateTabs.isNotEmpty()
+        val isPrivateMode = appStore.state.mode == BrowsingMode.Private
 
         if (isPrivateModeLockEnabled && isPrivateMode && hasPrivateTabs) {
-            components.appStore.dispatch(
+            appStore.dispatch(
                 PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
                     isLocked = true,
                 ),
@@ -115,16 +126,49 @@ class PrivateBrowsingLockFeature(
     }
 
     private fun maybeLockPrivateModeOnTabsTrayClosure() {
-        val isPrivateModeLockEnabled = components.settings.privateBrowsingLockedEnabled
-        val hasPrivateTabs = components.core.store.state.privateTabs.isNotEmpty()
-        val isNormalMode = components.appStore.state.mode == BrowsingMode.Normal
+        val isPrivateModeLockEnabled = settings.privateBrowsingLockedEnabled
+        val hasPrivateTabs = browserStore.state.privateTabs.isNotEmpty()
+        val isNormalMode = appStore.state.mode == BrowsingMode.Normal
 
         if (isPrivateModeLockEnabled && isNormalMode && hasPrivateTabs) {
-            components.appStore.dispatch(
+            appStore.dispatch(
                 PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
                     isLocked = true,
                 ),
             )
+        }
+    }
+}
+
+/**
+ * Observes the app state and triggers a callback when the user enters a locked private browsing session.
+ *
+ * The observer is active in the [Lifecycle.State.RESUMED] state to ensure the UI state is sync with the app state (the
+ * app state might be updated while the UI is no longer active.
+ *
+ * @param viewLifecycleOwner The [LifecycleOwner] used to control when the observation is active.
+ * @param scope The [CoroutineScope] in which the coroutine will be launched.
+ * @param appStore The [AppStore] to observe the [AppState].
+ * @param onPrivateModeLocked A callback invoked when private browsing mode is locked.
+ */
+fun observePrivateModeLock(
+    viewLifecycleOwner: LifecycleOwner,
+    scope: CoroutineScope,
+    appStore: AppStore,
+    onPrivateModeLocked: () -> Unit,
+) {
+    with(viewLifecycleOwner) {
+        scope.launch {
+            lifecycle.repeatOnLifecycle(RESUMED) {
+                appStore.flow()
+                    .filter { state ->
+                        state.isPrivateScreenLocked && state.mode == BrowsingMode.Private
+                    }
+                    .distinctUntilChanged()
+                    .collect {
+                        onPrivateModeLocked()
+                    }
+            }
         }
     }
 }

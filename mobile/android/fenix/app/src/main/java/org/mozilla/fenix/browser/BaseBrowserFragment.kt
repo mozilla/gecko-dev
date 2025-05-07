@@ -46,10 +46,8 @@ import androidx.core.view.OnApplyWindowInsetsListener
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.Lifecycle.State
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.fragment.findNavController
 import androidx.preference.PreferenceManager
@@ -60,7 +58,6 @@ import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
@@ -242,6 +239,7 @@ import org.mozilla.fenix.ext.updateMicrosurveyPromptForConfigurationChange
 import org.mozilla.fenix.home.HomeScreenViewModel
 import org.mozilla.fenix.home.SharedViewModel
 import org.mozilla.fenix.library.bookmarks.friendlyRootTitle
+import org.mozilla.fenix.lifecycle.observePrivateModeLock
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 import org.mozilla.fenix.messaging.MessagingFeature
 import org.mozilla.fenix.microsurvey.ui.MicrosurveyRequestPrompt
@@ -472,7 +470,14 @@ abstract class BaseBrowserFragment :
             isCustomTabSession = customTabSessionId != null,
         )
 
-        observePrivateModeLock()
+        observePrivateModeLock(
+            viewLifecycleOwner = viewLifecycleOwner,
+            scope = viewLifecycleOwner.lifecycleScope,
+            appStore = requireComponents.appStore,
+            onPrivateModeLocked = {
+                findNavController().navigate(R.id.unlockPrivateTabsFragment)
+            },
+        )
 
         if (!requireComponents.fenixOnboarding.userHasBeenOnboarded()) {
             observeTabSource(requireComponents.core.store)
@@ -2132,30 +2137,13 @@ abstract class BaseBrowserFragment :
                 .collect {
                     dismissDownloadDialogs()
                     handleTabSelected(it, isCustomTabSession)
-                }
+            }
         }
     }
 
     private fun dismissDownloadDialogs() {
         currentStartDownloadDialog?.dismiss()
         firstPartyDownloadDialog?.dismiss()
-    }
-
-    private fun observePrivateModeLock() {
-        with(viewLifecycleOwner) {
-            lifecycleScope.launch {
-                lifecycle.repeatOnLifecycle(State.RESUMED) {
-                    requireComponents.appStore.flow()
-                        .filter { state ->
-                            state.isPrivateScreenLocked && state.mode == BrowsingMode.Private
-                        }
-                        .distinctUntilChanged()
-                        .collect {
-                            findNavController().navigate(R.id.unlockPrivateTabsFragment)
-                        }
-                }
-            }
-        }
     }
 
     @VisibleForTesting
