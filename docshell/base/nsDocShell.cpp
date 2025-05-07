@@ -11405,19 +11405,23 @@ nsDocShell::AddState(JS::Handle<JS::Value> aData, const nsAString& aTitle,
   // https://html.spec.whatwg.org/#shared-history-push/replace-state-steps
   // Step 8
   if (nsCOMPtr<nsPIDOMWindowInner> window = document->GetInnerWindow()) {
-    if (RefPtr<Navigation> navigation = window->Navigation();
-        navigation &&
-        navigation->FirePushReplaceReloadNavigateEvent(
-            aCx, aReplace ? NavigationType::Replace : NavigationType::Push,
-            newURI,
-            /* aIsSameDocument */ true, /* aUserInvolvement */ Nothing(),
-            /* aSourceElement */ nullptr, /* aFormDataEntryList */ Nothing(),
-            /* aNavigationAPIState */ nullptr, scContainer)) {
-      return NS_OK;
+    if (RefPtr<Navigation> navigation = window->Navigation()) {
+      bool shouldContinue = navigation->FirePushReplaceReloadNavigateEvent(
+          aCx, aReplace ? NavigationType::Replace : NavigationType::Push,
+          newURI,
+          /* aIsSameDocument */ true, /* aUserInvolvement */ Nothing(),
+          /* aSourceElement */ nullptr, /* aFormDataEntryList */ Nothing(),
+          /* aNavigationAPIState */ nullptr, scContainer);
+
+      // Step 9
+      if (!shouldContinue) {
+        return NS_OK;
+      }
     }
   }
 
-  // Step 8: call "URL and history update steps"
+  // Step 10
+  // Run #url-and-history-update-steps
   rv = UpdateURLAndHistory(document, newURI, scContainer,
                            aReplace ? NavigationHistoryBehavior::Replace
                                     : NavigationHistoryBehavior::Push,

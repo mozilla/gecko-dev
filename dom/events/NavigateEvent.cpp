@@ -127,6 +127,7 @@ static void MaybeReportWarningToConsole(Document* aDocument,
       "PreviousInterceptCallOptionOverriddenWarning", params);
 }
 
+// https://html.spec.whatwg.org/#dom-navigateevent-intercept
 void NavigateEvent::Intercept(const NavigationInterceptOptions& aOptions,
                               ErrorResult& aRv) {
   // Step 1
@@ -141,7 +142,7 @@ void NavigateEvent::Intercept(const NavigationInterceptOptions& aOptions,
   }
 
   // Step 3
-  if (!HasBeenDispatched()) {
+  if (!IsBeingDispatched()) {
     aRv.ThrowInvalidStateError("Event has never been dispatched");
     return;
   }
@@ -252,8 +253,8 @@ AbortController* NavigateEvent::AbortController() const {
   return mAbortController;
 }
 
-bool NavigateEvent::HasBeenDispatched() const {
-  return mEvent->mFlags.mDispatchedAtLeastOnce;
+bool NavigateEvent::IsBeingDispatched() const {
+  return mEvent->mFlags.mIsBeingDispatched;
 }
 
 // https://html.spec.whatwg.org/#navigateevent-finish

@@ -99,7 +99,7 @@ class NavigateEvent final : public Event {
 
   dom::AbortController* AbortController() const;
 
-  bool HasBeenDispatched() const;
+  bool IsBeingDispatched() const;
 
   MOZ_CAN_RUN_SCRIPT
   void Finish(bool aDidFulfill);
