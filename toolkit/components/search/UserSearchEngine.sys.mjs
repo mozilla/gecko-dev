@@ -130,7 +130,7 @@ export class UserSearchEngine extends SearchEngine {
    *
    * @param {string} newName
    *   The new name.
-   * @returns {bool}
+   * @returns {boolean}
    *   Whether the name was changed successfully.
    */
   rename(newName) {
