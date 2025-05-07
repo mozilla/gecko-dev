@@ -9,6 +9,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
   AnimationFramePromise: "chrome://remote/content/shared/Sync.sys.mjs",
   AppInfo: "chrome://remote/content/shared/AppInfo.sys.mjs",
+  BrowsingContextListener:
+    "chrome://remote/content/shared/listeners/BrowsingContextListener.sys.mjs",
   DebounceCallback: "chrome://remote/content/marionette/sync.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   EventPromise: "chrome://remote/content/shared/Sync.sys.mjs",
@@ -33,9 +35,23 @@ const TIMEOUT_NO_WINDOW_MANAGER = 5000;
  * @class WindowManager
  */
 class WindowManager {
+  #clientWindowIds;
+  #contextListener;
+
   constructor() {
     // Maps ChromeWindow to uuid: WeakMap.<Object, string>
     this._chromeWindowHandles = new WeakMap();
+
+    /**
+     * Keep track of the client window for any registered contexts. When the
+     * contextDestroyed event is fired, the context is already destroyed so
+     * we cannot query for the client window at that time.
+     */
+    this.#clientWindowIds = new WeakMap();
+
+    this.#contextListener = new lazy.BrowsingContextListener();
+    this.#contextListener.on("attached", this.#onContextAttached);
+    this.#contextListener.startListening();
   }
 
   get chromeWindowHandles() {
@@ -141,6 +157,23 @@ class WindowManager {
       hasTabBrowser: !!lazy.TabManager.getTabBrowser(win),
       tabIndex: options.tabIndex,
     };
+  }
+
+  /**
+   * Returns the window ID for a specific browsing context.
+   *
+   * @param {BrowsingContext} context
+   *     The browsing context for which we want to retrieve the window ID.
+   *
+   * @returns {(string|undefined)}
+   *    The ID of the window associated with the browsing context.
+   */
+  getIdForBrowsingContext(context) {
+    const window = this.#getBrowsingContextWindow(context);
+
+    return window
+      ? this.getIdForWindow(window)
+      : this.#clientWindowIds.get(context);
   }
 
   /**
@@ -465,6 +498,28 @@ class WindowManager {
       }
     );
   }
+
+  /**
+   * Returns the window for a specific browsing context.
+   *
+   * @param {BrowsingContext} context
+   *    The browsing context for which we want to retrieve the window.
+   *
+   * @returns {(window|undefined)}
+   *    The window associated with the browsing context.
+   */
+  #getBrowsingContextWindow(context) {
+    return lazy.AppInfo.isAndroid
+      ? context.top.embedderElement?.ownerGlobal
+      : context.topChromeWindow;
+  }
+
+  #onContextAttached = (_, data = {}) => {
+    const { browsingContext } = data;
+
+    const window = this.#getBrowsingContextWindow(browsingContext);
+    this.#clientWindowIds.set(browsingContext, this.getIdForWindow(window));
+  };
 }
 
 // Expose a shared singleton.
