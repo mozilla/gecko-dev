@@ -466,6 +466,7 @@ VectorImage::GetWidth(int32_t* aWidth) {
   }
 
   *aWidth = SVGUtils::ClampToInt(rootElemWidth.AsLength().ToCSSPixels());
+  *aWidth = std::max(0, *aWidth);
   return NS_OK;
 }
 
@@ -563,6 +564,7 @@ VectorImage::GetHeight(int32_t* aHeight) {
   }
 
   *aHeight = SVGUtils::ClampToInt(rootElemHeight.AsLength().ToCSSPixels());
+  *aHeight = std::max(0, *aHeight);
   return NS_OK;
 }
 
