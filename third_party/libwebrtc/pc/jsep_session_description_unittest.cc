@@ -93,8 +93,8 @@ class JsepSessionDescriptionTest : public ::testing::Test {
                                 address, 1, "", "", IceCandidateType::kHost, 0,
                                 "1");
     candidate_ = candidate;
-    const std::string session_id = rtc::ToString(rtc::CreateRandomId64());
-    const std::string session_version = rtc::ToString(rtc::CreateRandomId());
+    const std::string session_id = rtc::ToString(webrtc::CreateRandomId64());
+    const std::string session_version = rtc::ToString(webrtc::CreateRandomId());
     jsep_desc_ = std::make_unique<JsepSessionDescription>(SdpType::kOffer);
     ASSERT_TRUE(jsep_desc_->Initialize(CreateCricketSessionDescription(),
                                        session_id, session_version));

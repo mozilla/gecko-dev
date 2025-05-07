@@ -130,8 +130,8 @@ ScenarioIceConnectionImpl::ScenarioIceConnectionImpl(
           rtc::SSLIdentity::Create("", ::rtc::KT_DEFAULT))),
       transport_description_(
           /*transport_options*/ {},
-          rtc::CreateRandomString(cricket::ICE_UFRAG_LENGTH),
-          rtc::CreateRandomString(cricket::ICE_PWD_LENGTH),
+          CreateRandomString(cricket::ICE_UFRAG_LENGTH),
+          CreateRandomString(cricket::ICE_PWD_LENGTH),
           cricket::IceMode::ICEMODE_FULL,
           cricket::ConnectionRole::CONNECTIONROLE_PASSIVE,
           rtc::SSLFingerprint::CreateFromCertificate(*certificate_.get())

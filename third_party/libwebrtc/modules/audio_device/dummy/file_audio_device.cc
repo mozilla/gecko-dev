@@ -445,7 +445,7 @@ bool FileAudioDevice::PlayThreadProcess() {
   if (!_playing) {
     return false;
   }
-  int64_t currentTime = rtc::TimeMillis();
+  int64_t currentTime = TimeMillis();
   mutex_.Lock();
 
   if (_lastCallPlayoutMillis == 0 ||
@@ -464,7 +464,7 @@ bool FileAudioDevice::PlayThreadProcess() {
   _playoutFramesLeft = 0;
   mutex_.Unlock();
 
-  int64_t deltaTimeMillis = rtc::TimeMillis() - currentTime;
+  int64_t deltaTimeMillis = TimeMillis() - currentTime;
   if (deltaTimeMillis < 10) {
     SleepMs(10 - deltaTimeMillis);
   }
@@ -477,7 +477,7 @@ bool FileAudioDevice::RecThreadProcess() {
     return false;
   }
 
-  int64_t currentTime = rtc::TimeMillis();
+  int64_t currentTime = TimeMillis();
   mutex_.Lock();
 
   if (_lastCallRecordMillis == 0 || currentTime - _lastCallRecordMillis >= 10) {
@@ -497,7 +497,7 @@ bool FileAudioDevice::RecThreadProcess() {
 
   mutex_.Unlock();
 
-  int64_t deltaTimeMillis = rtc::TimeMillis() - currentTime;
+  int64_t deltaTimeMillis = TimeMillis() - currentTime;
   if (deltaTimeMillis < 10) {
     SleepMs(10 - deltaTimeMillis);
   }

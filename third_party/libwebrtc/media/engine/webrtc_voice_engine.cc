@@ -2556,7 +2556,8 @@ void WebRtcVoiceReceiveChannel::OnPacketReceived(
         // applied directly in RtpTransport::DemuxPacket;
         packet.IdentifyExtensions(recv_rtp_extension_map_);
         if (!packet.arrival_time().IsFinite()) {
-          packet.set_arrival_time(webrtc::Timestamp::Micros(rtc::TimeMicros()));
+          packet.set_arrival_time(
+              webrtc::Timestamp::Micros(webrtc::TimeMicros()));
         }
 
         call_->Receiver()->DeliverRtpPacket(

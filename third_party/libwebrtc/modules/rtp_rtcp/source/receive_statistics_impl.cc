@@ -33,8 +33,7 @@ constexpr TimeDelta kStatisticsProcessInterval = TimeDelta::Seconds(1);
 TimeDelta UnixEpochDelta(Clock& clock) {
   Timestamp now = clock.CurrentTime();
   NtpTime ntp_now = clock.ConvertTimestampToNtpTime(now);
-  return TimeDelta::Millis(ntp_now.ToMs() - now.ms() -
-                           rtc::kNtpJan1970Millisecs);
+  return TimeDelta::Millis(ntp_now.ToMs() - now.ms() - kNtpJan1970Millisecs);
 }
 
 }  // namespace

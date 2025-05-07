@@ -25,7 +25,7 @@ namespace webrtc {
 // Starts at time 0.
 //
 // TODO(deadbeef): Unify with webrtc::SimulatedClock.
-class FakeClock : public rtc::ClockInterface {
+class FakeClock : public ClockInterface {
  public:
   FakeClock() = default;
   FakeClock(const FakeClock&) = delete;
@@ -47,7 +47,7 @@ class FakeClock : public rtc::ClockInterface {
   int64_t time_ns_ RTC_GUARDED_BY(lock_) = 0;
 };
 
-class ThreadProcessingFakeClock : public rtc::ClockInterface {
+class ThreadProcessingFakeClock : public ClockInterface {
  public:
   int64_t TimeNanos() const override { return clock_.TimeNanos(); }
   void SetTime(Timestamp time);
@@ -65,7 +65,7 @@ class ScopedBaseFakeClock : public FakeClock {
   ~ScopedBaseFakeClock() override;
 
  private:
-  rtc::ClockInterface* prev_clock_;
+  ClockInterface* prev_clock_;
 };
 
 // TODO(srte): Rename this to reflect that it also does thread processing.
@@ -75,7 +75,7 @@ class ScopedFakeClock : public ThreadProcessingFakeClock {
   ~ScopedFakeClock() override;
 
  private:
-  rtc::ClockInterface* prev_clock_;
+  ClockInterface* prev_clock_;
 };
 
 }  //  namespace webrtc

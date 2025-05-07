@@ -54,13 +54,13 @@ void FullScreenWindowDetector::UpdateWindowListIfNeeded(
 
   constexpr int64_t kUpdateIntervalMs = 500;
 
-  if ((rtc::TimeMillis() - last_update_time_ms_) <= kUpdateIntervalMs) {
+  if ((TimeMillis() - last_update_time_ms_) <= kUpdateIntervalMs) {
     return;
   }
 
   DesktopCapturer::SourceList window_list;
   if (get_sources(&window_list)) {
-    last_update_time_ms_ = rtc::TimeMillis();
+    last_update_time_ms_ = TimeMillis();
     window_list_.swap(window_list);
   }
 }

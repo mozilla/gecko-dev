@@ -277,7 +277,7 @@ int AsyncTCPSocket::Send(const void* pv,
     return res;
   }
 
-  rtc::SentPacket sent_packet(options.packet_id, rtc::TimeMillis(),
+  rtc::SentPacket sent_packet(options.packet_id, TimeMillis(),
                               options.info_signaled_after_sent);
   CopySocketInformationToPacketInfo(cb, *this, &sent_packet.info);
   SignalSentPacket(this, sent_packet);
@@ -301,7 +301,7 @@ size_t AsyncTCPSocket::ProcessInput(rtc::ArrayView<const uint8_t> data) {
 
     rtc::ReceivedPacket received_packet(
         data.subview(processed_bytes + kPacketLenSize, pkt_len), remote_addr,
-        Timestamp::Micros(rtc::TimeMicros()));
+        Timestamp::Micros(TimeMicros()));
     NotifyPacketReceived(received_packet);
     processed_bytes += kPacketLenSize + pkt_len;
   }

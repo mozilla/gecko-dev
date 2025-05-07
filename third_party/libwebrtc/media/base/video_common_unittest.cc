@@ -40,8 +40,8 @@ TEST(VideoCommonTest, TestCanonicalFourCC) {
 // Test conversion between interval and fps
 TEST(VideoCommonTest, TestVideoFormatFps) {
   EXPECT_EQ(VideoFormat::kMinimumInterval, VideoFormat::FpsToInterval(0));
-  EXPECT_EQ(rtc::kNumNanosecsPerSec / 20, VideoFormat::FpsToInterval(20));
-  EXPECT_EQ(20, VideoFormat::IntervalToFps(rtc::kNumNanosecsPerSec / 20));
+  EXPECT_EQ(webrtc::kNumNanosecsPerSec / 20, VideoFormat::FpsToInterval(20));
+  EXPECT_EQ(20, VideoFormat::IntervalToFps(webrtc::kNumNanosecsPerSec / 20));
   EXPECT_EQ(0, VideoFormat::IntervalToFps(0));
 }
 

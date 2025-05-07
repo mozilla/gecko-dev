@@ -93,7 +93,7 @@ void SimulatedThread::PostDelayedTaskImpl(absl::AnyInvocable<void() &&> task,
   rtc::Thread::PostDelayedTaskImpl(std::move(task), delay, traits, location);
   MutexLock lock(&lock_);
   next_run_time_ =
-      std::min(next_run_time_, Timestamp::Millis(rtc::TimeMillis()) + delay);
+      std::min(next_run_time_, Timestamp::Millis(TimeMillis()) + delay);
 }
 
 void SimulatedThread::Stop() {

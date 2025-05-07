@@ -75,10 +75,10 @@ int32_t VideoCaptureImpl::RotationInDegrees(VideoRotation rotation,
 VideoCaptureImpl::VideoCaptureImpl()
     : _deviceUniqueId(NULL),
       _requestedCapability(),
-      _lastProcessTimeNanos(rtc::TimeNanos()),
-      _lastFrameRateCallbackTimeNanos(rtc::TimeNanos()),
+      _lastProcessTimeNanos(TimeNanos()),
+      _lastFrameRateCallbackTimeNanos(TimeNanos()),
       _rawDataCallBack(NULL),
-      _lastProcessFrameTimeNanos(rtc::TimeNanos()),
+      _lastProcessFrameTimeNanos(TimeNanos()),
       _rotateFrame(kVideoRotation_0),
       apply_rotation_(false) {
   _requestedCapability.width = kDefaultWidth;
@@ -248,7 +248,7 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
       VideoFrame::Builder()
           .set_video_frame_buffer(buffer)
           .set_rtp_timestamp(0)
-          .set_timestamp_ms(rtc::TimeMillis())
+          .set_timestamp_ms(TimeMillis())
           .set_rotation(!apply_rotation_ ? _rotateFrame : kVideoRotation_0)
           .build();
   captureFrame.set_ntp_time_ms(captureTime);
@@ -305,7 +305,7 @@ bool VideoCaptureImpl::GetApplyRotation() {
 void VideoCaptureImpl::UpdateFrameCount() {
   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
 
-  if (_incomingFrameTimesNanos[0] / rtc::kNumNanosecsPerMicrosec == 0) {
+  if (_incomingFrameTimesNanos[0] / kNumNanosecsPerMicrosec == 0) {
     // first no shift
   } else {
     // shift
@@ -313,7 +313,7 @@ void VideoCaptureImpl::UpdateFrameCount() {
       _incomingFrameTimesNanos[i + 1] = _incomingFrameTimesNanos[i];
     }
   }
-  _incomingFrameTimesNanos[0] = rtc::TimeNanos();
+  _incomingFrameTimesNanos[0] = TimeNanos();
 }
 
 uint32_t VideoCaptureImpl::CalculateFrameRate(int64_t now_ns) {
@@ -323,8 +323,7 @@ uint32_t VideoCaptureImpl::CalculateFrameRate(int64_t now_ns) {
   int32_t nrOfFrames = 0;
   for (num = 1; num < (kFrameRateCountHistorySize - 1); ++num) {
     if (_incomingFrameTimesNanos[num] <= 0 ||
-        (now_ns - _incomingFrameTimesNanos[num]) /
-                rtc::kNumNanosecsPerMillisec >
+        (now_ns - _incomingFrameTimesNanos[num]) / kNumNanosecsPerMillisec >
             kFrameRateHistoryWindowMs) {  // don't use data older than 2sec
       break;
     } else {
@@ -332,8 +331,8 @@ uint32_t VideoCaptureImpl::CalculateFrameRate(int64_t now_ns) {
     }
   }
   if (num > 1) {
-    int64_t diff = (now_ns - _incomingFrameTimesNanos[num - 1]) /
-                   rtc::kNumNanosecsPerMillisec;
+    int64_t diff =
+        (now_ns - _incomingFrameTimesNanos[num - 1]) / kNumNanosecsPerMillisec;
     if (diff > 0) {
       return uint32_t((nrOfFrames * 1000.0f / diff) + 0.5f);
     }

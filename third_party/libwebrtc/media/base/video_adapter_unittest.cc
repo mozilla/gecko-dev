@@ -85,7 +85,7 @@ class VideoAdapterTest : public ::testing::Test,
             kWidth,
             kHeight,
             VideoFormat::FpsToInterval(kDefaultFps) /
-                rtc::kNumNanosecsPerMicrosec)),
+                webrtc::kNumNanosecsPerMicrosec)),
         adapter_(source_resolution_alignment),
         adapter_wrapper_(std::make_unique<VideoAdapterWrapper>(&adapter_)),
         use_new_format_request_(GetParam()) {}
@@ -117,7 +117,7 @@ class VideoAdapterTest : public ::testing::Test,
       int out_height;
       if (video_adapter_->AdaptFrameResolution(
               in_width, in_height,
-              frame.timestamp_us() * rtc::kNumNanosecsPerMicrosec,
+              frame.timestamp_us() * webrtc::kNumNanosecsPerMicrosec,
               &cropped_width, &cropped_height, &out_width, &out_height)) {
         stats_.cropped_width = cropped_width;
         stats_.cropped_height = cropped_height;
@@ -1059,7 +1059,7 @@ TEST(VideoAdapterTestMultipleOrientation, TestNormal) {
 
   EXPECT_TRUE(video_adapter.AdaptFrameResolution(
       /* in_width= */ 480, /* in_height= */ 640,
-      /* in_timestamp_ns= */ rtc::kNumNanosecsPerSec / 30, &cropped_width,
+      /* in_timestamp_ns= */ webrtc::kNumNanosecsPerSec / 30, &cropped_width,
       &cropped_height, &out_width, &out_height));
   EXPECT_EQ(360, cropped_width);
   EXPECT_EQ(640, cropped_height);
@@ -1087,7 +1087,7 @@ TEST(VideoAdapterTestMultipleOrientation, TestForcePortrait) {
 
   EXPECT_TRUE(video_adapter.AdaptFrameResolution(
       /* in_width= */ 480, /* in_height= */ 640,
-      /* in_timestamp_ns= */ rtc::kNumNanosecsPerSec / 30, &cropped_width,
+      /* in_timestamp_ns= */ webrtc::kNumNanosecsPerSec / 30, &cropped_width,
       &cropped_height, &out_width, &out_height));
   EXPECT_EQ(360, cropped_width);
   EXPECT_EQ(640, cropped_height);
@@ -1194,8 +1194,8 @@ TEST_P(VideoAdapterTest, AdaptResolutionWithSinkAlignment) {
                        std::numeric_limits<int>::max(), sink_alignment));
     EXPECT_TRUE(adapter_.AdaptFrameResolution(
         kSourceWidth, kSourceHeight,
-        frame_num * rtc::kNumNanosecsPerSec / kSourceFramerate, &cropped_width_,
-        &cropped_height_, &out_width_, &out_height_));
+        frame_num * webrtc::kNumNanosecsPerSec / kSourceFramerate,
+        &cropped_width_, &cropped_height_, &out_width_, &out_height_));
     EXPECT_EQ(out_width_ % sink_alignment, 0);
     EXPECT_EQ(out_height_ % sink_alignment, 0);
 

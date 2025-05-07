@@ -112,7 +112,7 @@ bool AdaptedVideoTrackSource::AdaptFrame(int width,
   }
 
   if (!video_adapter_.AdaptFrameResolution(
-          width, height, time_us * rtc::kNumNanosecsPerMicrosec, crop_width,
+          width, height, time_us * webrtc::kNumNanosecsPerMicrosec, crop_width,
           crop_height, out_width, out_height)) {
     broadcaster_.OnDiscardedFrame();
     // VideoAdapter dropped the frame.

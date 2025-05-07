@@ -41,11 +41,11 @@ TEST(NullSocketServerTest, WaitAndSet) {
 
 TEST(NullSocketServerTest, TestWait) {
   NullSocketServer ss;
-  int64_t start = rtc::TimeMillis();
+  int64_t start = TimeMillis();
   ss.Wait(TimeDelta::Millis(200), true);
   // The actual wait time is dependent on the resolution of the timer used by
   // the Event class. Allow for the event to signal ~20ms early.
-  EXPECT_GE(rtc::TimeSince(start), 180);
+  EXPECT_GE(TimeSince(start), 180);
 }
 
 }  // namespace webrtc

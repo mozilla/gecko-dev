@@ -108,7 +108,7 @@ namespace {
 using ::webrtc::ParseRtpPayloadType;
 using ::webrtc::ParseRtpSsrc;
 
-constexpr int64_t kUnsignaledSsrcCooldownMs = rtc::kNumMillisecsPerSec / 2;
+constexpr int64_t kUnsignaledSsrcCooldownMs = webrtc::kNumMillisecsPerSec / 2;
 
 // This constant is really an on/off, lower-level configurable NACK history
 // duration hasn't been implemented.
@@ -1656,7 +1656,7 @@ bool WebRtcVideoSendChannel::GetStats(VideoMediaSendInfo* info) {
 
   // Log stats periodically.
   bool log_stats = false;
-  int64_t now_ms = rtc::TimeMillis();
+  int64_t now_ms = webrtc::TimeMillis();
   if (last_send_stats_log_ms_ == -1 ||
       now_ms - last_send_stats_log_ms_ > kStatsLogIntervalMs) {
     last_send_stats_log_ms_ = now_ms;
@@ -2477,7 +2477,7 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::GetPerLayerVideoSenderInfos(
   } else {
     stats = stream_->GetStats();
     if (log_stats)
-      RTC_LOG(LS_INFO) << stats.ToString(rtc::TimeMillis());
+      RTC_LOG(LS_INFO) << stats.ToString(webrtc::TimeMillis());
 
     // Metrics that are in common for all substreams.
     common_info.adapt_changes = stats.number_of_cpu_adapt_changes;
@@ -3204,7 +3204,7 @@ bool WebRtcVideoReceiveChannel::GetStats(VideoMediaReceiveInfo* info) {
 
   // Log stats periodically.
   bool log_stats = false;
-  int64_t now_ms = rtc::TimeMillis();
+  int64_t now_ms = webrtc::TimeMillis();
   if (last_receive_stats_log_ms_ == -1 ||
       now_ms - last_receive_stats_log_ms_ > kStatsLogIntervalMs) {
     last_receive_stats_log_ms_ = now_ms;
@@ -3315,7 +3315,7 @@ bool WebRtcVideoReceiveChannel::MaybeCreateDefaultReceiveStream(
   // of creating decoders on every packet eats up processing time (e.g.
   // https://crbug.com/1069603) and this cooldown prevents that.
   if (last_unsignalled_ssrc_creation_time_ms_.has_value()) {
-    int64_t now_ms = rtc::TimeMillis();
+    int64_t now_ms = webrtc::TimeMillis();
     if (now_ms - last_unsignalled_ssrc_creation_time_ms_.value() <
         kUnsignaledSsrcCooldownMs) {
       // We've already created an unsignalled ssrc stream within the last
@@ -3329,7 +3329,7 @@ bool WebRtcVideoReceiveChannel::MaybeCreateDefaultReceiveStream(
 
   // RTX SSRC not yet known.
   ReCreateDefaultReceiveStream(packet.Ssrc(), std::nullopt);
-  last_unsignalled_ssrc_creation_time_ms_ = rtc::TimeMillis();
+  last_unsignalled_ssrc_creation_time_ms_ = webrtc::TimeMillis();
   return true;
 }
 
@@ -3756,7 +3756,7 @@ void WebRtcVideoReceiveChannel::WebRtcVideoReceiveStream::OnFrame(
     const webrtc::VideoFrame& frame) {
   webrtc::MutexLock lock(&sink_lock_);
 
-  int64_t time_now_ms = rtc::TimeMillis();
+  int64_t time_now_ms = webrtc::TimeMillis();
   if (first_frame_timestamp_ < 0)
     first_frame_timestamp_ = time_now_ms;
   int64_t elapsed_time_ms = time_now_ms - first_frame_timestamp_;
@@ -3942,7 +3942,7 @@ WebRtcVideoReceiveChannel::WebRtcVideoReceiveStream::GetVideoReceiverInfo(
   // present if DLRR is enabled.
 
   if (log_stats)
-    RTC_LOG(LS_INFO) << stats.ToString(rtc::TimeMillis());
+    RTC_LOG(LS_INFO) << stats.ToString(webrtc::TimeMillis());
 
   return info;
 }
@@ -4036,7 +4036,7 @@ void WebRtcVideoReceiveChannel::ProcessReceivedPacket(
   packet.IdentifyExtensions(recv_rtp_extension_map_);
   packet.set_payload_type_frequency(webrtc::kVideoPayloadTypeFrequency);
   if (!packet.arrival_time().IsFinite()) {
-    packet.set_arrival_time(webrtc::Timestamp::Micros(rtc::TimeMicros()));
+    packet.set_arrival_time(webrtc::Timestamp::Micros(webrtc::TimeMicros()));
   }
 
   call_->Receiver()->DeliverRtpPacket(

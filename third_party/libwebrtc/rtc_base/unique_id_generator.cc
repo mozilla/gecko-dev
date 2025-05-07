@@ -31,7 +31,7 @@ uint32_t UniqueRandomIdGenerator::GenerateId() {
 
   RTC_CHECK_LT(known_ids_.size(), std::numeric_limits<uint32_t>::max() - 1);
   while (true) {
-    auto pair = known_ids_.insert(rtc::CreateRandomNonZeroId());
+    auto pair = known_ids_.insert(CreateRandomNonZeroId());
     if (pair.second) {
       return *pair.first;
     }

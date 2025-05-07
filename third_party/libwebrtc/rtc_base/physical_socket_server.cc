@@ -86,7 +86,7 @@ int64_t GetSocketRecvTimestamp(int socket) {
   if (ret != 0)
     return -1;
   int64_t timestamp =
-      rtc::kNumMicrosecsPerSec * static_cast<int64_t>(tv_ioctl.tv_sec) +
+      webrtc::kNumMicrosecsPerSec * static_cast<int64_t>(tv_ioctl.tv_sec) +
       static_cast<int64_t>(tv_ioctl.tv_usec);
   return timestamp;
 }
@@ -556,9 +556,8 @@ int PhysicalSocket::DoReadFromSocket(void* buffer,
       if (timestamp && cmsg->cmsg_type == SCM_TIMESTAMP) {
         timeval ts;
         std::memcpy(static_cast<void*>(&ts), CMSG_DATA(cmsg), sizeof(ts));
-        *timestamp =
-            rtc::kNumMicrosecsPerSec * static_cast<int64_t>(ts.tv_sec) +
-            static_cast<int64_t>(ts.tv_usec);
+        *timestamp = kNumMicrosecsPerSec * static_cast<int64_t>(ts.tv_sec) +
+                     static_cast<int64_t>(ts.tv_usec);
       }
     }
   }
@@ -1515,7 +1514,7 @@ bool PhysicalSocketServer::WaitSelect(int cmsWait, bool process_io) {
     ptvWait = &tvWait;
 
     // Calculate when to return
-    stop_us = rtc::TimeMicros() + cmsWait * 1000;
+    stop_us = TimeMicros() + cmsWait * 1000;
   }
 
   fd_set fdsRead;
@@ -1614,10 +1613,10 @@ bool PhysicalSocketServer::WaitSelect(int cmsWait, bool process_io) {
     if (ptvWait) {
       ptvWait->tv_sec = 0;
       ptvWait->tv_usec = 0;
-      int64_t time_left_us = stop_us - rtc::TimeMicros();
+      int64_t time_left_us = stop_us - TimeMicros();
       if (time_left_us > 0) {
-        ptvWait->tv_sec = time_left_us / rtc::kNumMicrosecsPerSec;
-        ptvWait->tv_usec = time_left_us % rtc::kNumMicrosecsPerSec;
+        ptvWait->tv_sec = time_left_us / kNumMicrosecsPerSec;
+        ptvWait->tv_usec = time_left_us % kNumMicrosecsPerSec;
       }
     }
   }
@@ -1706,7 +1705,7 @@ bool PhysicalSocketServer::WaitEpoll(int cmsWait) {
   int64_t msStop = -1;
   if (cmsWait != kForeverMs) {
     msWait = cmsWait;
-    msStop = rtc::TimeAfter(cmsWait);
+    msStop = TimeAfter(cmsWait);
   }
 
   fWait_ = true;
@@ -1750,7 +1749,7 @@ bool PhysicalSocketServer::WaitEpoll(int cmsWait) {
     }
 
     if (cmsWait != kForeverMs) {
-      msWait = rtc::TimeDiff(msStop, rtc::TimeMillis());
+      msWait = TimeDiff(msStop, TimeMillis());
       if (msWait <= 0) {
         // Return success on timeout.
         return true;
@@ -1768,7 +1767,7 @@ bool PhysicalSocketServer::WaitPollOneDispatcher(int cmsWait,
   int64_t msStop = -1;
   if (cmsWait != kForeverMs) {
     msWait = cmsWait;
-    msStop = rtc::TimeAfter(cmsWait);
+    msStop = TimeAfter(cmsWait);
   }
 
   fWait_ = true;
@@ -1802,7 +1801,7 @@ bool PhysicalSocketServer::WaitPollOneDispatcher(int cmsWait,
     }
 
     if (cmsWait != kForeverMs) {
-      msWait = rtc::TimeDiff(msStop, rtc::TimeMillis());
+      msWait = TimeDiff(msStop, TimeMillis());
       if (msWait < 0) {
         // Return success on timeout.
         return true;

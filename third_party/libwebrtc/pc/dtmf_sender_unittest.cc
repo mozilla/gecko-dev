@@ -92,9 +92,9 @@ class FakeDtmfProvider : public DtmfProviderInterface {
     // TODO(ronghuawu): Make the timer (basically the rtc::TimeNanos)
     // mockable and use a fake timer in the unit tests.
     if (last_insert_dtmf_call_ > 0) {
-      gap = static_cast<int>(rtc::TimeMillis() - last_insert_dtmf_call_);
+      gap = static_cast<int>(webrtc::TimeMillis() - last_insert_dtmf_call_);
     }
-    last_insert_dtmf_call_ = rtc::TimeMillis();
+    last_insert_dtmf_call_ = webrtc::TimeMillis();
 
     dtmf_info_queue_.push_back(DtmfInfo(code, duration, gap));
     return true;

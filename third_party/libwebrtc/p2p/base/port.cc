@@ -130,8 +130,8 @@ Port::Port(const PortParametersRef& args,
   // we should just create one.
   if (ice_username_fragment_.empty()) {
     RTC_DCHECK(password_.empty());
-    ice_username_fragment_ = rtc::CreateRandomString(ICE_UFRAG_LENGTH);
-    password_ = rtc::CreateRandomString(ICE_PWD_LENGTH);
+    ice_username_fragment_ = webrtc::CreateRandomString(ICE_UFRAG_LENGTH);
+    password_ = webrtc::CreateRandomString(ICE_PWD_LENGTH);
   }
   network_->SignalTypeChanged.connect(this, &Port::OnNetworkTypeChanged);
 
@@ -819,10 +819,10 @@ void Port::PostDestroyIfDead(bool delayed) {
 
 void Port::DestroyIfDead() {
   RTC_DCHECK_RUN_ON(thread_);
-  bool dead =
-      (state_ == State::INIT || state_ == State::PRUNED) &&
-      connections_.empty() &&
-      rtc::TimeMillis() - last_time_all_connections_removed_ >= timeout_delay_;
+  bool dead = (state_ == State::INIT || state_ == State::PRUNED) &&
+              connections_.empty() &&
+              webrtc::TimeMillis() - last_time_all_connections_removed_ >=
+                  timeout_delay_;
   if (dead) {
     Destroy();
   }
@@ -892,7 +892,7 @@ bool Port::OnConnectionDestroyed(Connection* conn) {
   // fails and is removed before kPortTimeoutDelay, then this message will
   // not cause the Port to be destroyed.
   if (connections_.empty()) {
-    last_time_all_connections_removed_ = rtc::TimeMillis();
+    last_time_all_connections_removed_ = webrtc::TimeMillis();
     PostDestroyIfDead(/*delayed=*/true);
   }
 

@@ -43,7 +43,7 @@ class RTC_EXPORT TimestampAligner {
   // "TranslateTimestamp(int64_t capturer_time_us, int64_t system_time_us)"
   // This avoids the caller from getting two timestamps with the same
   // millisecond.
-  static constexpr int64_t kMinFrameIntervalUs = rtc::kNumMicrosecsPerMillisec;
+  static constexpr int64_t kMinFrameIntervalUs = kNumMicrosecsPerMillisec;
 
   // Translates timestamps of a capture system to the same timescale as is used
   // by rtc::TimeMicros(). `capturer_time_us` is assumed to be accurate, but

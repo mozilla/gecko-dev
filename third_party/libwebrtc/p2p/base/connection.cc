@@ -235,7 +235,7 @@ Connection::Connection(rtc::WeakPtr<webrtc::PortInterface> port,
                        size_t index,
                        const webrtc::Candidate& remote_candidate)
     : network_thread_(port->thread()),
-      id_(rtc::CreateRandomId()),
+      id_(webrtc::CreateRandomId()),
       port_(std::move(port)),
       local_candidate_(port_->Candidates()[index]),
       remote_candidate_(remote_candidate),
@@ -256,8 +256,9 @@ Connection::Connection(rtc::WeakPtr<webrtc::PortInterface> port,
       last_data_received_(0),
       last_ping_response_received_(0),
       state_(IceCandidatePairState::WAITING),
-      time_created_ms_(rtc::TimeMillis()),
-      delta_internal_unix_epoch_ms_(rtc::TimeUTCMillis() - rtc::TimeMillis()),
+      time_created_ms_(webrtc::TimeMillis()),
+      delta_internal_unix_epoch_ms_(webrtc::TimeUTCMillis() -
+                                    webrtc::TimeMillis()),
       field_trials_(&kDefaultFieldTrials),
       rtt_estimate_(DEFAULT_RTT_ESTIMATE_HALF_TIME_MS) {
   RTC_DCHECK_RUN_ON(network_thread_);
@@ -497,7 +498,7 @@ void Connection::OnReadPacket(const rtc::ReceivedPacket& packet) {
           packet.payload().size(), addr, &msg, &remote_ufrag)) {
     // The packet did not parse as a valid STUN message
     // This is a data packet, pass it along.
-    last_data_received_ = rtc::TimeMillis();
+    last_data_received_ = webrtc::TimeMillis();
     UpdateReceiving(last_data_received_);
     recv_rate_tracker_.AddSamples(packet.payload().size());
     stats_.packets_received++;
@@ -642,7 +643,7 @@ void Connection::HandleStunBindingOrGoogPingRequest(IceMessage* msg) {
   if (field_trials_->extra_ice_ping && last_ping_response_received_ == 0) {
     if (local_candidate().is_relay() || local_candidate().is_prflx() ||
         remote_candidate().is_relay() || remote_candidate().is_prflx()) {
-      const int64_t now = rtc::TimeMillis();
+      const int64_t now = webrtc::TimeMillis();
       if (last_ping_sent_ + kMinExtraPingDelayMs <= now) {
         RTC_LOG(LS_INFO) << ToString()
                          << "WebRTC-ExtraICEPing/Sending extra ping"
@@ -1180,7 +1181,7 @@ int64_t Connection::last_ping_received() const {
 
 void Connection::ReceivedPing(const std::optional<std::string>& request_id) {
   RTC_DCHECK_RUN_ON(network_thread_);
-  last_ping_received_ = rtc::TimeMillis();
+  last_ping_received_ = webrtc::TimeMillis();
   last_ping_id_received_ = request_id;
   UpdateReceiving(last_ping_received_);
 }
@@ -1202,7 +1203,7 @@ void Connection::HandlePiggybackCheckAcknowledgementIfAny(StunMessage* msg) {
       RTC_LOG_V(sev) << ToString()
                      << ": Received piggyback STUN ping response, id="
                      << rtc::hex_encode(request_id);
-      const int64_t rtt = rtc::TimeMillis() - iter->sent_time;
+      const int64_t rtt = webrtc::TimeMillis() - iter->sent_time;
       ReceivedPingResponse(rtt, request_id, iter->nomination);
     }
   }
@@ -1233,7 +1234,7 @@ void Connection::ReceivedPingResponse(
     acked_nomination_ = nomination.value();
   }
 
-  int64_t now = rtc::TimeMillis();
+  int64_t now = webrtc::TimeMillis();
   total_round_trip_time_ms_ += rtt;
   current_round_trip_time_ms_ = static_cast<uint32_t>(rtt);
   rtt_estimate_.AddSample(now, rtt);
@@ -1874,7 +1875,7 @@ int ProxyConnection::Send(const void* data,
   stats_.sent_total_packets++;
   int sent =
       port_->SendTo(data, size, remote_candidate_.address(), options, true);
-  int64_t now = rtc::TimeMillis();
+  int64_t now = webrtc::TimeMillis();
   if (sent <= 0) {
     RTC_DCHECK(sent < 0);
     error_ = port_->GetError();

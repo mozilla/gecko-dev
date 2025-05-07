@@ -135,7 +135,7 @@ ConnectionContext::ConnectionContext(
         });
   }
 
-  rtc::InitRandom(rtc::Time32());
+  InitRandom(Time32());
 
   SocketFactory* socket_factory = dependencies->socket_factory;
   if (socket_factory == nullptr) {

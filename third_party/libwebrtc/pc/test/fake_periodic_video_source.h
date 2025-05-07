@@ -48,11 +48,10 @@ class FakePeriodicVideoSource final
 
   FakePeriodicVideoSource() : FakePeriodicVideoSource(Config()) {}
   explicit FakePeriodicVideoSource(Config config)
-      : frame_source_(
-            config.width,
-            config.height,
-            config.frame_interval_ms * rtc::kNumMicrosecsPerMillisec,
-            config.timestamp_offset_ms * rtc::kNumMicrosecsPerMillisec),
+      : frame_source_(config.width,
+                      config.height,
+                      config.frame_interval_ms * kNumMicrosecsPerMillisec,
+                      config.timestamp_offset_ms * kNumMicrosecsPerMillisec),
         task_queue_(std::make_unique<TaskQueueForTest>(
             "FakePeriodicVideoTrackSource")) {
     frame_source_.SetRotation(config.rotation);

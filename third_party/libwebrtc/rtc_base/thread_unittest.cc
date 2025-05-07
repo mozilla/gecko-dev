@@ -501,7 +501,7 @@ static void DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(
   std::vector<int> run_order;
 
   webrtc::Event done;
-  int64_t now = TimeMillis();
+  int64_t now = webrtc::TimeMillis();
   q.PostDelayedTask([&] { run_order.push_back(3); }, TimeDelta::Millis(3));
   q.PostDelayedTask([&] { run_order.push_back(0); }, TimeDelta::Millis(1));
   q.PostDelayedTask([&] { run_order.push_back(1); }, TimeDelta::Millis(2));
@@ -509,7 +509,7 @@ static void DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(
   q.PostDelayedTask([&] { run_order.push_back(2); }, TimeDelta::Millis(2));
   q.PostDelayedTask([&] { done.Set(); }, TimeDelta::Millis(4));
   // Validate time was frozen while tasks were posted.
-  RTC_DCHECK_EQ(TimeMillis(), now);
+  RTC_DCHECK_EQ(webrtc::TimeMillis(), now);
 
   // Change time to make all tasks ready to run and wait for them.
   clock.AdvanceTime(TimeDelta::Millis(4));

@@ -142,7 +142,7 @@ struct VideoFormatPod {
 
 struct RTC_EXPORT VideoFormat : VideoFormatPod {
   static const int64_t kMinimumInterval =
-      rtc::kNumNanosecsPerSec / 10000;  // 10k fps.
+      webrtc::kNumNanosecsPerSec / 10000;  // 10k fps.
 
   VideoFormat() { Construct(0, 0, 0, 0); }
 
@@ -162,21 +162,21 @@ struct RTC_EXPORT VideoFormat : VideoFormatPod {
   }
 
   static int64_t FpsToInterval(int fps) {
-    return fps ? rtc::kNumNanosecsPerSec / fps : kMinimumInterval;
+    return fps ? webrtc::kNumNanosecsPerSec / fps : kMinimumInterval;
   }
 
   static int IntervalToFps(int64_t interval) {
     if (!interval) {
       return 0;
     }
-    return static_cast<int>(rtc::kNumNanosecsPerSec / interval);
+    return static_cast<int>(webrtc::kNumNanosecsPerSec / interval);
   }
 
   static float IntervalToFpsFloat(int64_t interval) {
     if (!interval) {
       return 0.f;
     }
-    return static_cast<float>(rtc::kNumNanosecsPerSec) /
+    return static_cast<float>(webrtc::kNumNanosecsPerSec) /
            static_cast<float>(interval);
   }
 

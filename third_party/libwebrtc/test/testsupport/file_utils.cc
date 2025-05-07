@@ -99,7 +99,7 @@ std::string OutputPath() {
 
 std::string OutputPathWithRandomDirectory() {
   std::string path = webrtc::test::internal::OutputPath();
-  std::string rand_dir = path + rtc::CreateRandomUuid();
+  std::string rand_dir = path + CreateRandomUuid();
   RTC_CHECK(CreateDir(rand_dir)) << "Failed to create dir: " << rand_dir;
   return rand_dir + std::string(kPathDelimiter);
 }

@@ -391,14 +391,14 @@ void RtcEventLogSession::WriteLog(EventCounts count,
       clock_.AdvanceTime(TimeDelta::Millis(prng_.Rand(20)));
       event_log->StartLogging(log_output_factory_->Create(temp_filename_),
                               output_period_ms_);
-      start_time_us_ = rtc::TimeMicros();
-      utc_start_time_us_ = rtc::TimeUTCMicros();
+      start_time_us_ = TimeMicros();
+      utc_start_time_us_ = TimeUTCMicros();
     }
 
     clock_.AdvanceTime(TimeDelta::Millis(prng_.Rand(20)));
     size_t selection = prng_.Rand(remaining_events - 1);
-    first_timestamp_ms_ = std::min(first_timestamp_ms_, rtc::TimeMillis());
-    last_timestamp_ms_ = std::max(last_timestamp_ms_, rtc::TimeMillis());
+    first_timestamp_ms_ = std::min(first_timestamp_ms_, TimeMillis());
+    last_timestamp_ms_ = std::max(last_timestamp_ms_, TimeMillis());
 
     if (selection < count.alr_states) {
       auto event = gen_.NewAlrState();
@@ -605,7 +605,7 @@ void RtcEventLogSession::WriteLog(EventCounts count,
   }
 
   event_log->StopLogging();
-  stop_time_us_ = rtc::TimeMicros();
+  stop_time_us_ = TimeMicros();
 
   ASSERT_EQ(count.total_nonconfig_events(), static_cast<size_t>(0));
 }
@@ -978,12 +978,12 @@ TEST_P(RtcEventLogCircularBufferTest, KeepsMostRecentEvents) {
           i, kStartBitrate + i * 1000));
       fake_clock->AdvanceTime(TimeDelta::Millis(10));
     }
-    start_time_us = rtc::TimeMicros();
-    utc_start_time_us = rtc::TimeUTCMicros();
+    start_time_us = TimeMicros();
+    utc_start_time_us = TimeUTCMicros();
     log->StartLogging(log_output_factory_->Create(temp_filename),
                       RtcEventLog::kImmediateOutput);
     fake_clock->AdvanceTime(TimeDelta::Millis(10));
-    stop_time_us = rtc::TimeMicros();
+    stop_time_us = TimeMicros();
     log->StopLogging();
   }
 

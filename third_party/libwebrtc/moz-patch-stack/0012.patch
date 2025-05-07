@@ -102,7 +102,7 @@ index 0d7a54f6d5..05879338fd 100644
  #include <endian.h>
  #else
 diff --git a/rtc_base/physical_socket_server.cc b/rtc_base/physical_socket_server.cc
-index 7c074e1d7f..78bf365712 100644
+index aa010c94f4..d41c491b09 100644
 --- a/rtc_base/physical_socket_server.cc
 +++ b/rtc_base/physical_socket_server.cc
 @@ -75,7 +75,10 @@ typedef void* SockOptArg;
@@ -117,7 +117,7 @@ index 7c074e1d7f..78bf365712 100644
  
  int64_t GetSocketRecvTimestamp(int socket) {
    struct timeval tv_ioctl;
-@@ -699,7 +702,7 @@ int PhysicalSocket::TranslateOption(Option opt, int* slevel, int* sopt) {
+@@ -698,7 +701,7 @@ int PhysicalSocket::TranslateOption(Option opt, int* slevel, int* sopt) {
        *slevel = IPPROTO_IP;
        *sopt = IP_DONTFRAGMENT;
        break;

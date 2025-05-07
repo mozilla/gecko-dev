@@ -259,7 +259,7 @@ const StunMessage* StunRequest::msg() const {
 
 int StunRequest::Elapsed() const {
   RTC_DCHECK_RUN_ON(network_thread());
-  return static_cast<int>(rtc::TimeMillis() - tstamp_);
+  return static_cast<int>(webrtc::TimeMillis() - tstamp_);
 }
 
 void StunRequest::SendInternal() {
@@ -270,7 +270,7 @@ void StunRequest::SendInternal() {
     return;
   }
 
-  tstamp_ = rtc::TimeMillis();
+  tstamp_ = webrtc::TimeMillis();
 
   rtc::ByteBufferWriter buf;
   msg_->Write(&buf);

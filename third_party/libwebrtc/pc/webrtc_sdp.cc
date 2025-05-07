@@ -740,7 +740,7 @@ void CreateTracksFromSsrcInfos(const SsrcInfoVec& ssrc_infos,
     // msid attribute, use default/random values. This happens after
     // deduplication.
     if (stream.id.empty()) {
-      stream.id = rtc::CreateRandomString(8);
+      stream.id = CreateRandomString(8);
     }
   }
 }
@@ -3363,7 +3363,7 @@ bool ParseContent(absl::string_view message,
     // support unsignaled SSRCs.
     // If track id was not specified, create a random one.
     if (track_id.empty()) {
-      track_id = rtc::CreateRandomString(8);
+      track_id = CreateRandomString(8);
     }
     CreateTrackWithNoSsrcs(stream_ids, track_id, send_rids, &tracks);
   }

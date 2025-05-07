@@ -855,7 +855,7 @@ void ExtractSharedMediaSessionOptions(
 // Generate a RTCP CNAME when a PeerConnection is created.
 std::string GenerateRtcpCname() {
   std::string cname;
-  if (!rtc::CreateRandomString(kRtcpCnameLength, &cname)) {
+  if (!CreateRandomString(kRtcpCnameLength, &cname)) {
     RTC_LOG(LS_ERROR) << "Failed to generate CNAME.";
     RTC_DCHECK_NOTREACHED();
   }
@@ -2752,7 +2752,7 @@ void SdpOfferAnswerHandler::SetAssociatedRemoteStreams(
         kMsidSignalingMediaSection)) {
     if (!missing_msid_default_stream_) {
       missing_msid_default_stream_ = MediaStreamProxy::Create(
-          rtc::Thread::Current(), MediaStream::Create(rtc::CreateRandomUuid()));
+          rtc::Thread::Current(), MediaStream::Create(CreateRandomUuid()));
       added_streams->push_back(missing_msid_default_stream_);
     }
     media_streams.push_back(missing_msid_default_stream_);
@@ -3979,7 +3979,7 @@ SdpOfferAnswerHandler::AssociateTransceiver(
                        << " transceiver for MID=" << content.mid()
                        << " at i=" << mline_index
                        << " in response to the remote description.";
-      std::string sender_id = rtc::CreateRandomUuid();
+      std::string sender_id = CreateRandomUuid();
       std::vector<RtpEncodingParameters> send_encodings =
           GetSendEncodingsFromRemoteDescription(*media_desc);
       auto sender = rtp_manager()->CreateSender(media_desc->type(), sender_id,
@@ -3988,7 +3988,7 @@ SdpOfferAnswerHandler::AssociateTransceiver(
       if (!media_desc->streams().empty()) {
         receiver_id = media_desc->streams()[0].id;
       } else {
-        receiver_id = rtc::CreateRandomUuid();
+        receiver_id = CreateRandomUuid();
       }
       auto receiver =
           rtp_manager()->CreateReceiver(media_desc->type(), receiver_id);

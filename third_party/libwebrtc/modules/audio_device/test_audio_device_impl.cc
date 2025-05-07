@@ -169,7 +169,7 @@ void TestAudioDevice::ProcessAudio() {
       audio_buffer_->SetRecordedBuffer(
           recording_buffer_.data(),
           recording_buffer_.size() / capturer_->NumChannels(),
-          std::make_optional(rtc::TimeNanos()));
+          std::make_optional(TimeNanos()));
       audio_buffer_->DeliverRecordedData();
     }
     if (!keep_capturing) {

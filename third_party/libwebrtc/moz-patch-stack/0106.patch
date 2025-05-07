@@ -33,7 +33,7 @@ index 744bd1a885..371d3f344c 100644
  #else
    return std::unique_ptr<webrtc::SocketServer>(
 diff --git a/rtc_base/virtual_socket_server.cc b/rtc_base/virtual_socket_server.cc
-index d170bf3959..7d82d56ec0 100644
+index 83682a74ca..0f409d5b09 100644
 --- a/rtc_base/virtual_socket_server.cc
 +++ b/rtc_base/virtual_socket_server.cc
 @@ -24,7 +24,9 @@

@@ -89,8 +89,8 @@ class TCPPortTest : public ::testing::Test, public sigslot::has_slots<> {
       : ss_(new webrtc::VirtualSocketServer()),
         main_(ss_.get()),
         socket_factory_(ss_.get()),
-        username_(rtc::CreateRandomString(ICE_UFRAG_LENGTH)),
-        password_(rtc::CreateRandomString(ICE_PWD_LENGTH)) {}
+        username_(webrtc::CreateRandomString(ICE_UFRAG_LENGTH)),
+        password_(webrtc::CreateRandomString(ICE_PWD_LENGTH)) {}
 
   rtc::Network* MakeNetwork(const SocketAddress& addr) {
     networks_.emplace_back("unittest", "unittest", addr.ipaddr(), 32);
@@ -288,8 +288,8 @@ TEST_F(TCPPortTest, SignalSentPacket) {
                         {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
       webrtc::IsRtcOk());
 
-  client_conn->Ping(rtc::TimeMillis());
-  server_conn->Ping(rtc::TimeMillis());
+  client_conn->Ping(webrtc::TimeMillis());
+  server_conn->Ping(webrtc::TimeMillis());
   ASSERT_THAT(
       webrtc::WaitUntil([&] { return client_conn->writable(); }, IsTrue(),
                         {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
@@ -350,7 +350,7 @@ TEST_F(TCPPortTest, SignalSentPacketAfterReconnect) {
                         {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
       webrtc::IsRtcOk());
   EXPECT_FALSE(client_conn->writable());
-  client_conn->Ping(rtc::TimeMillis());
+  client_conn->Ping(webrtc::TimeMillis());
   ASSERT_THAT(
       webrtc::WaitUntil([&] { return client_conn->writable(); }, IsTrue(),
                         {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
@@ -415,7 +415,7 @@ TEST_F(TCPPortTest, SignalSentPacketAfterReconnect) {
       webrtc::IsRtcOk());
 
   // Send Stun Binding request.
-  client_conn->Ping(rtc::TimeMillis());
+  client_conn->Ping(webrtc::TimeMillis());
   // The Stun Binding request is reported as sent.
   EXPECT_THAT(
       webrtc::WaitUntil([&] { return client_counter.sent_packets(); }, Eq(2),

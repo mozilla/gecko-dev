@@ -393,7 +393,7 @@ absl::AnyInvocable<void() &&> Thread::Get(int cmsWait) {
 
   int64_t cmsTotal = cmsWait;
   int64_t cmsElapsed = 0;
-  int64_t msStart = TimeMillis();
+  int64_t msStart = webrtc::TimeMillis();
   int64_t msCurrent = msStart;
   while (true) {
     // Check for posted events
@@ -407,7 +407,7 @@ absl::AnyInvocable<void() &&> Thread::Get(int cmsWait) {
       while (!delayed_messages_.empty()) {
         if (msCurrent < delayed_messages_.top().run_time_ms) {
           cmsDelayNext =
-              TimeDiff(delayed_messages_.top().run_time_ms, msCurrent);
+              webrtc::TimeDiff(delayed_messages_.top().run_time_ms, msCurrent);
           break;
         }
         messages_.push(std::move(delayed_messages_.top().functor));
@@ -445,8 +445,8 @@ absl::AnyInvocable<void() &&> Thread::Get(int cmsWait) {
 
     // If the specified timeout expired, return
 
-    msCurrent = TimeMillis();
-    cmsElapsed = TimeDiff(msCurrent, msStart);
+    msCurrent = webrtc::TimeMillis();
+    cmsElapsed = webrtc::TimeDiff(msCurrent, msStart);
     if (cmsWait != kForever) {
       if (cmsElapsed >= cmsWait)
         return nullptr;
@@ -486,7 +486,7 @@ void Thread::PostDelayedTaskImpl(absl::AnyInvocable<void() &&> task,
   // Signal for the multiplexer to return.
 
   int64_t delay_ms = delay.RoundUpTo(webrtc::TimeDelta::Millis(1)).ms<int>();
-  int64_t run_time_ms = TimeAfter(delay_ms);
+  int64_t run_time_ms = webrtc::TimeAfter(delay_ms);
   {
     MutexLock lock(&mutex_);
     delayed_messages_.push({.delay_ms = delay_ms,
@@ -509,7 +509,7 @@ int Thread::GetDelay() {
     return 0;
 
   if (!delayed_messages_.empty()) {
-    int delay = TimeUntil(delayed_messages_.top().run_time_ms);
+    int delay = webrtc::TimeUntil(delayed_messages_.top().run_time_ms);
     if (delay < 0)
       delay = 0;
     return delay;
@@ -521,10 +521,10 @@ int Thread::GetDelay() {
 void Thread::Dispatch(absl::AnyInvocable<void() &&> task) {
   TRACE_EVENT0("webrtc", "Thread::Dispatch");
   RTC_DCHECK_RUN_ON(this);
-  int64_t start_time = TimeMillis();
+  int64_t start_time = webrtc::TimeMillis();
   std::move(task)();
-  int64_t end_time = TimeMillis();
-  int64_t diff = TimeDiff(end_time, start_time);
+  int64_t end_time = webrtc::TimeMillis();
+  int64_t diff = webrtc::TimeDiff(end_time, start_time);
   if (diff >= dispatch_warning_ms_) {
     RTC_LOG(LS_INFO) << "Message to " << name() << " took " << diff
                      << "ms to dispatch.";
@@ -836,9 +836,9 @@ bool Thread::ProcessMessages(int cmsLoop) {
   // Using ProcessMessages with a custom clock for testing and a time greater
   // than 0 doesn't work, since it's not guaranteed to advance the custom
   // clock's time, and may get stuck in an infinite loop.
-  RTC_DCHECK(GetClockForTesting() == nullptr || cmsLoop == 0 ||
+  RTC_DCHECK(webrtc::GetClockForTesting() == nullptr || cmsLoop == 0 ||
              cmsLoop == kForever);
-  int64_t msEnd = (kForever == cmsLoop) ? 0 : TimeAfter(cmsLoop);
+  int64_t msEnd = (kForever == cmsLoop) ? 0 : webrtc::TimeAfter(cmsLoop);
   int cmsNext = cmsLoop;
 
   while (true) {
@@ -851,7 +851,7 @@ bool Thread::ProcessMessages(int cmsLoop) {
     Dispatch(std::move(task));
 
     if (cmsLoop != kForever) {
-      cmsNext = static_cast<int>(TimeUntil(msEnd));
+      cmsNext = static_cast<int>(webrtc::TimeUntil(msEnd));
       if (cmsNext < 0)
         return true;
     }

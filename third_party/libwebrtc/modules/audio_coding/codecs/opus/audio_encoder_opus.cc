@@ -313,7 +313,7 @@ std::optional<int> AudioEncoderOpusImpl::GetNewBandwidth(
 class AudioEncoderOpusImpl::PacketLossFractionSmoother {
  public:
   explicit PacketLossFractionSmoother()
-      : last_sample_time_ms_(rtc::TimeMillis()),
+      : last_sample_time_ms_(TimeMillis()),
         smoother_(kAlphaForPacketLossFractionSmoother) {}
 
   // Gets the smoothed packet loss fraction.
@@ -324,7 +324,7 @@ class AudioEncoderOpusImpl::PacketLossFractionSmoother {
 
   // Add new observation to the packet loss fraction smoother.
   void AddSample(float packet_loss_fraction) {
-    int64_t now_ms = rtc::TimeMillis();
+    int64_t now_ms = TimeMillis();
     smoother_.Apply(static_cast<float>(now_ms - last_sample_time_ms_),
                     packet_loss_fraction);
     last_sample_time_ms_ = now_ms;
@@ -783,7 +783,7 @@ AudioEncoderOpusImpl::DefaultAudioNetworkAdaptorCreator(
 
 void AudioEncoderOpusImpl::MaybeUpdateUplinkBandwidth() {
   if (audio_network_adaptor_ && !use_stable_target_for_adaptation_) {
-    int64_t now_ms = rtc::TimeMillis();
+    int64_t now_ms = TimeMillis();
     if (!bitrate_smoother_last_update_time_ ||
         now_ms - *bitrate_smoother_last_update_time_ >=
             config_.uplink_bandwidth_update_interval_ms) {

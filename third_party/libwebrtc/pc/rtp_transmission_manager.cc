@@ -171,7 +171,7 @@ RtpTransmissionManager::AddTrackPlanB(
   }
   std::vector<std::string> adjusted_stream_ids = stream_ids;
   if (adjusted_stream_ids.empty()) {
-    adjusted_stream_ids.push_back(rtc::CreateRandomUuid());
+    adjusted_stream_ids.push_back(CreateRandomUuid());
   }
   cricket::MediaType media_type =
       (track->kind() == MediaStreamTrackInterface::kAudioKind
@@ -243,14 +243,14 @@ RtpTransmissionManager::AddTrackUnifiedPlan(
     // This can happen if this is the second time AddTrack has created a sender
     // for this track.
     if (FindSenderById(sender_id)) {
-      sender_id = rtc::CreateRandomUuid();
+      sender_id = CreateRandomUuid();
     }
     auto sender = CreateSender(
         media_type, sender_id, track, stream_ids,
         init_send_encodings
             ? *init_send_encodings
             : std::vector<RtpEncodingParameters>(1, RtpEncodingParameters{}));
-    auto receiver = CreateReceiver(media_type, rtc::CreateRandomUuid());
+    auto receiver = CreateReceiver(media_type, CreateRandomUuid());
     transceiver = CreateAndAddTransceiver(sender, receiver);
     transceiver->internal()->set_created_by_addtrack(true);
     transceiver->internal()->set_direction(RtpTransceiverDirection::kSendRecv);

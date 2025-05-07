@@ -36,7 +36,7 @@ FakeFrameSource::FakeFrameSource(int width,
 }
 
 FakeFrameSource::FakeFrameSource(int width, int height, int interval_us)
-    : FakeFrameSource(width, height, interval_us, rtc::TimeMicros()) {}
+    : FakeFrameSource(width, height, interval_us, TimeMicros()) {}
 
 VideoRotation FakeFrameSource::GetRotation() const {
   return rotation_;

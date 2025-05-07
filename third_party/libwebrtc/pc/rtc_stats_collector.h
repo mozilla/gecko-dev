@@ -61,7 +61,7 @@ class RTCStatsCollector : public RefCountInterface {
   static rtc::scoped_refptr<RTCStatsCollector> Create(
       PeerConnectionInternal* pc,
       const Environment& env,
-      int64_t cache_lifetime_us = 50 * rtc::kNumMicrosecsPerMillisec);
+      int64_t cache_lifetime_us = 50 * kNumMicrosecsPerMillisec);
 
   // Gets a recent stats report. If there is a report cached that is still fresh
   // it is returned, otherwise new stats are gathered and returned. A report is

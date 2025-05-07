@@ -254,8 +254,7 @@ TEST_F(TestVp8Impl, OnEncodedImageReportsInfo) {
   constexpr Timestamp kPresentationTimestamp = Timestamp::Micros(1000);
   VideoFrame input_frame = NextInputFrame();
   input_frame.set_rtp_timestamp(kInitialTimestampRtp);
-  input_frame.set_timestamp_us(kInitialTimestampMs *
-                               rtc::kNumMicrosecsPerMillisec);
+  input_frame.set_timestamp_us(kInitialTimestampMs * kNumMicrosecsPerMillisec);
   input_frame.set_presentation_timestamp(kPresentationTimestamp);
   EncodedImage encoded_frame;
   CodecSpecificInfo codec_specific_info;
@@ -494,8 +493,7 @@ TEST_F(TestVp8Impl, ChecksSimulcastSettings) {
 TEST_F(TestVp8Impl, MAYBE_AlignedStrideEncodeDecode) {
   VideoFrame input_frame = NextInputFrame();
   input_frame.set_rtp_timestamp(kInitialTimestampRtp);
-  input_frame.set_timestamp_us(kInitialTimestampMs *
-                               rtc::kNumMicrosecsPerMillisec);
+  input_frame.set_timestamp_us(kInitialTimestampMs * kNumMicrosecsPerMillisec);
   EncodedImage encoded_frame;
   CodecSpecificInfo codec_specific_info;
   EncodeAndWaitForFrame(input_frame, &encoded_frame, &codec_specific_info);

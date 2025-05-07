@@ -357,13 +357,13 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
         peer_connection_factory_->CreateAudioSource(options);
     // TODO(perkj): Test audio source when it is implemented. Currently audio
     // always use the default input.
-    return peer_connection_factory_->CreateAudioTrack(rtc::CreateRandomUuid(),
+    return peer_connection_factory_->CreateAudioTrack(CreateRandomUuid(),
                                                       source.get());
   }
 
   rtc::scoped_refptr<VideoTrackInterface> CreateLocalVideoTrack() {
     FakePeriodicVideoSource::Config config;
-    config.timestamp_offset_ms = rtc::TimeMillis();
+    config.timestamp_offset_ms = TimeMillis();
     return CreateLocalVideoTrackInternal(config);
   }
 
@@ -376,7 +376,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
       VideoRotation rotation) {
     FakePeriodicVideoSource::Config config;
     config.rotation = rotation;
-    config.timestamp_offset_ms = rtc::TimeMillis();
+    config.timestamp_offset_ms = TimeMillis();
     return CreateLocalVideoTrackInternal(config);
   }
 
@@ -844,7 +844,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
             config, false /* remote */));
     rtc::scoped_refptr<VideoTrackInterface> track =
         peer_connection_factory_->CreateVideoTrack(video_track_sources_.back(),
-                                                   rtc::CreateRandomUuid());
+                                                   CreateRandomUuid());
     if (!local_video_renderer_) {
       local_video_renderer_.reset(new FakeVideoTrackRenderer(track.get()));
     }

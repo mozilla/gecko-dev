@@ -26,9 +26,7 @@ namespace wait_until_internal {
 Timestamp GetTimeFromClockVariant(const ClockVariant& clock) {
   return std::visit(
       absl::Overload{
-          [](const std::monostate&) {
-            return Timestamp::Micros(rtc::TimeMicros());
-          },
+          [](const std::monostate&) { return Timestamp::Micros(TimeMicros()); },
           [](SimulatedClock* clock) { return clock->CurrentTime(); },
           [](TimeController* time_controller) {
             return time_controller->GetClock()->CurrentTime();

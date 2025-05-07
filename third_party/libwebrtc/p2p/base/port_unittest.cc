@@ -271,7 +271,7 @@ static void SendPingAndReceiveResponse(Connection* lconn,
                                        TestPort* rport,
                                        webrtc::ScopedFakeClock* clock,
                                        int64_t ms) {
-  lconn->Ping(rtc::TimeMillis());
+  lconn->Ping(webrtc::TimeMillis());
   ASSERT_THAT(webrtc::WaitUntil(
                   [&] { return lport->last_stun_msg(); }, IsTrue(),
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
@@ -438,8 +438,8 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
         stun_server_(
             webrtc::TestStunServer::Create(ss_.get(), kStunAddr, main_)),
         turn_server_(&main_, ss_.get(), kTurnUdpIntAddr, kTurnUdpExtAddr),
-        username_(rtc::CreateRandomString(ICE_UFRAG_LENGTH)),
-        password_(rtc::CreateRandomString(ICE_PWD_LENGTH)),
+        username_(webrtc::CreateRandomString(ICE_UFRAG_LENGTH)),
+        password_(webrtc::CreateRandomString(ICE_PWD_LENGTH)),
         role_conflict_(false),
         ports_destroyed_(0) {}
 
@@ -1483,9 +1483,9 @@ TEST_F(PortTest, TestConnectionDead) {
               webrtc::IsRtcOk());
 
   // Test case that the connection has never received anything.
-  int64_t before_created = rtc::TimeMillis();
+  int64_t before_created = webrtc::TimeMillis();
   ch1.CreateConnection(GetCandidate(ch2.port()));
-  int64_t after_created = rtc::TimeMillis();
+  int64_t after_created = webrtc::TimeMillis();
   Connection* conn = ch1.conn();
   ASSERT_NE(conn, nullptr);
   // It is not dead if it is after MIN_CONNECTION_LIFETIME but not pruned.
@@ -1509,9 +1509,9 @@ TEST_F(PortTest, TestConnectionDead) {
   ch1.CreateConnection(GetCandidate(ch2.port()));
   conn = ch1.conn();
   ASSERT_NE(conn, nullptr);
-  int64_t before_last_receiving = rtc::TimeMillis();
+  int64_t before_last_receiving = webrtc::TimeMillis();
   conn->ReceivedPing();
-  int64_t after_last_receiving = rtc::TimeMillis();
+  int64_t after_last_receiving = webrtc::TimeMillis();
   // The connection will be dead after DEAD_CONNECTION_RECEIVE_TIMEOUT
   conn->UpdateState(before_last_receiving + DEAD_CONNECTION_RECEIVE_TIMEOUT -
                     1);
@@ -1550,9 +1550,9 @@ TEST_F(PortTest, TestConnectionDeadWithDeadConnectionTimeout) {
   conn->SetIceFieldTrials(&field_trials);
 
   ASSERT_NE(conn, nullptr);
-  int64_t before_last_receiving = rtc::TimeMillis();
+  int64_t before_last_receiving = webrtc::TimeMillis();
   conn->ReceivedPing();
-  int64_t after_last_receiving = rtc::TimeMillis();
+  int64_t after_last_receiving = webrtc::TimeMillis();
   // The connection will be dead after 90s
   conn->UpdateState(before_last_receiving + 90000 - 1);
   rtc::Thread::Current()->ProcessMessages(100);
@@ -1599,7 +1599,7 @@ TEST_F(PortTest, TestConnectionDeadOutstandingPing) {
 
   ASSERT_NE(conn, nullptr);
   conn->ReceivedPing();
-  int64_t send_ping_timestamp = rtc::TimeMillis();
+  int64_t send_ping_timestamp = webrtc::TimeMillis();
   conn->Ping(send_ping_timestamp);
 
   // The connection will be dead 30s after the ping was sent.
@@ -4180,7 +4180,7 @@ class ConnectionTest : public PortTest {
         lconn->PortForTest() == lport_.get() ? lport_.get() : rport_.get();
     TestPort* rport =
         rconn->PortForTest() == rport_.get() ? rport_.get() : lport_.get();
-    lconn->Ping(rtc::TimeMillis());
+    lconn->Ping(webrtc::TimeMillis());
     ASSERT_THAT(webrtc::WaitUntil(
                     [&] { return lport->last_stun_msg(); }, IsTrue(),
                     {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
@@ -4336,7 +4336,7 @@ TEST_F(ConnectionTest, SendReceiveGoogDelta) {
       // DeltaAckReceived
       [](webrtc::RTCErrorOr<const StunUInt64Attribute*> error_or__ack) {});
 
-  lconn->Ping(rtc::TimeMillis(), std::move(delta));
+  lconn->Ping(webrtc::TimeMillis(), std::move(delta));
   ASSERT_THAT(webrtc::WaitUntil(
                   [&] { return lport_->last_stun_msg(); }, IsTrue(),
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
@@ -4380,7 +4380,7 @@ TEST_F(ConnectionTest, SendGoogDeltaNoReply) {
         EXPECT_FALSE(error_or_ack.ok());
       });
 
-  lconn->Ping(rtc::TimeMillis(), std::move(delta));
+  lconn->Ping(webrtc::TimeMillis(), std::move(delta));
   ASSERT_THAT(webrtc::WaitUntil(
                   [&] { return lport_->last_stun_msg(); }, IsTrue(),
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),

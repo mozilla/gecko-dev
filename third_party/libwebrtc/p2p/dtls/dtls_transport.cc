@@ -810,7 +810,7 @@ void DtlsTransport::OnDtlsEvent(int sig, int err) {
         // timestamp.
         NotifyPacketReceived(rtc::ReceivedPacket(
             rtc::MakeArrayView(buf, read), webrtc::SocketAddress(),
-            webrtc::Timestamp::Micros(rtc::TimeMicros()),
+            webrtc::Timestamp::Micros(webrtc::TimeMicros()),
             rtc::EcnMarking::kNotEct, rtc::ReceivedPacket::kDtlsDecrypted));
       } else if (ret == webrtc::SR_EOS) {
         // Remote peer shut down the association with no error.

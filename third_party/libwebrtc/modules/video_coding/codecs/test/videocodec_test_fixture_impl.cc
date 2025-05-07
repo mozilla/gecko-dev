@@ -520,7 +520,7 @@ void VideoCodecTestFixtureImpl::ProcessAllFrames(
     if (RunEncodeInRealTime(config_)) {
       // Roughly pace the frames.
       const int frame_duration_ms =
-          std::ceil(rtc::kNumMillisecsPerSec / rate_profile->input_fps);
+          std::ceil(kNumMillisecsPerSec / rate_profile->input_fps);
       SleepMs(frame_duration_ms);
     }
   }
@@ -532,7 +532,7 @@ void VideoCodecTestFixtureImpl::ProcessAllFrames(
 
   // Give the VideoProcessor pipeline some time to process the last frame,
   // and then release the codecs.
-  SleepMs(1 * rtc::kNumMillisecsPerSec);
+  SleepMs(1 * kNumMillisecsPerSec);
   cpu_process_time_->Stop();
 }
 

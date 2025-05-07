@@ -712,7 +712,7 @@ class P2PTransportChannelTestBase : public ::testing::Test,
 
   void Test(const Environment& env, const Result& expected) {
     webrtc::ScopedFakeClock clock;
-    int64_t connect_start = rtc::TimeMillis();
+    int64_t connect_start = webrtc::TimeMillis();
     int64_t connect_time;
 
     // Create the channels and wait for them to connect.
@@ -724,7 +724,7 @@ class P2PTransportChannelTestBase : public ::testing::Test,
                                expected.connect_wait + kShortTimeout),
                            .clock = &clock}),
         webrtc::IsRtcOk());
-    connect_time = rtc::TimeMillis() - connect_start;
+    connect_time = webrtc::TimeMillis() - connect_start;
     if (connect_time < expected.connect_wait) {
       RTC_LOG(LS_INFO) << "Connect time: " << connect_time << " ms";
     } else {
@@ -735,7 +735,7 @@ class P2PTransportChannelTestBase : public ::testing::Test,
     // Allow a few turns of the crank for the selected connections to emerge.
     // This may take up to 2 seconds.
     if (ep1_ch1()->selected_connection() && ep2_ch1()->selected_connection()) {
-      int64_t converge_start = rtc::TimeMillis();
+      int64_t converge_start = webrtc::TimeMillis();
       int64_t converge_time;
       // Verifying local and remote channel selected connection information.
       // This is done only for the RFC 5245 as controlled agent will use
@@ -754,7 +754,7 @@ class P2PTransportChannelTestBase : public ::testing::Test,
       ExpectCandidate1(expected);
       ExpectCandidate2(expected);
 
-      converge_time = rtc::TimeMillis() - converge_start;
+      converge_time = webrtc::TimeMillis() - converge_start;
       int64_t converge_wait = 2000;
       if (converge_time < converge_wait) {
         RTC_LOG(LS_INFO) << "Converge time: " << converge_time << " ms";
@@ -4073,7 +4073,7 @@ class P2PTransportChannelPingTest : public ::testing::Test,
     msg.Write(&buf);
     conn->OnReadPacket(rtc::ReceivedPacket::CreateFromLegacy(
         reinterpret_cast<const char*>(buf.Data()), buf.Length(),
-        rtc::TimeMicros()));
+        webrtc::TimeMicros()));
   }
 
   void ReceivePingOnConnection(Connection* conn,
@@ -4243,7 +4243,7 @@ TEST_F(P2PTransportChannelPingTest, TestStunPingIntervals) {
   SIMULATED_WAIT(conn->num_pings_sent() >= MIN_PINGS_AT_WEAK_PING_INTERVAL,
                  kDefaultTimeout, clock);
   int64_t ping_interval_ms = (clock.TimeNanos() - start) /
-                             rtc::kNumNanosecsPerMillisec /
+                             webrtc::kNumNanosecsPerMillisec /
                              (MIN_PINGS_AT_WEAK_PING_INTERVAL - 1);
   EXPECT_EQ(ping_interval_ms, WEAK_PING_INTERVAL);
 
@@ -4256,7 +4256,8 @@ TEST_F(P2PTransportChannelPingTest, TestStunPingIntervals) {
   // to converge the RTT.
   SIMULATED_WAIT(conn->num_pings_sent() == ping_sent_before + 1, kMediumTimeout,
                  clock);
-  ping_interval_ms = (clock.TimeNanos() - start) / rtc::kNumNanosecsPerMillisec;
+  ping_interval_ms =
+      (clock.TimeNanos() - start) / webrtc::kNumNanosecsPerMillisec;
   EXPECT_GE(ping_interval_ms,
             WEAK_OR_STABILIZING_WRITABLE_CONNECTION_PING_INTERVAL);
   EXPECT_LE(
@@ -4274,7 +4275,8 @@ TEST_F(P2PTransportChannelPingTest, TestStunPingIntervals) {
   start = clock.TimeNanos();
   SIMULATED_WAIT(conn->num_pings_sent() == ping_sent_before + 1, kMediumTimeout,
                  clock);
-  ping_interval_ms = (clock.TimeNanos() - start) / rtc::kNumNanosecsPerMillisec;
+  ping_interval_ms =
+      (clock.TimeNanos() - start) / webrtc::kNumNanosecsPerMillisec;
   EXPECT_GE(ping_interval_ms,
             STRONG_AND_STABLE_WRITABLE_CONNECTION_PING_INTERVAL);
   EXPECT_LE(
@@ -4285,14 +4287,14 @@ TEST_F(P2PTransportChannelPingTest, TestStunPingIntervals) {
 
   conn->ReceivedPingResponse(LOW_RTT, "id");
   // Create a in-flight ping.
-  conn->Ping(clock.TimeNanos() / rtc::kNumNanosecsPerMillisec);
+  conn->Ping(clock.TimeNanos() / webrtc::kNumNanosecsPerMillisec);
   start = clock.TimeNanos();
   // In-flight ping timeout and the connection will be unstable.
   SIMULATED_WAIT(
-      !conn->stable(clock.TimeNanos() / rtc::kNumNanosecsPerMillisec),
+      !conn->stable(clock.TimeNanos() / webrtc::kNumNanosecsPerMillisec),
       kMediumTimeout, clock);
   int64_t duration_ms =
-      (clock.TimeNanos() - start) / rtc::kNumNanosecsPerMillisec;
+      (clock.TimeNanos() - start) / webrtc::kNumNanosecsPerMillisec;
   EXPECT_GE(duration_ms, 2 * conn->rtt() - RTT_RANGE);
   EXPECT_LE(duration_ms, 2 * conn->rtt() + RTT_RANGE);
   // The connection become unstable due to not receiving ping responses.
@@ -4305,7 +4307,8 @@ TEST_F(P2PTransportChannelPingTest, TestStunPingIntervals) {
   ping_sent_before = conn->num_pings_sent();
   SIMULATED_WAIT(conn->num_pings_sent() == ping_sent_before + 1, kMediumTimeout,
                  clock);
-  ping_interval_ms = (clock.TimeNanos() - start) / rtc::kNumNanosecsPerMillisec;
+  ping_interval_ms =
+      (clock.TimeNanos() - start) / webrtc::kNumNanosecsPerMillisec;
   EXPECT_GE(ping_interval_ms,
             WEAK_OR_STABILIZING_WRITABLE_CONNECTION_PING_INTERVAL);
   EXPECT_LE(
@@ -4580,7 +4583,7 @@ TEST_F(P2PTransportChannelPingTest, TestReceivingStateChange) {
   clock.AdvanceTime(webrtc::TimeDelta::Seconds(1));
   conn1->ReceivedPing();
   conn1->OnReadPacket(
-      rtc::ReceivedPacket::CreateFromLegacy("ABC", 3, rtc::TimeMicros()));
+      rtc::ReceivedPacket::CreateFromLegacy("ABC", 3, webrtc::TimeMicros()));
 
   EXPECT_THAT(
       webrtc::WaitUntil([&] { return ch.receiving(); }, IsTrue(),
@@ -4945,7 +4948,7 @@ TEST_F(P2PTransportChannelPingTest, TestSelectConnectionBasedOnMediaReceived) {
   ASSERT_TRUE(conn2 != nullptr);
   conn2->ReceivedPingResponse(LOW_RTT, "id");  // Become writable and receiving.
   conn2->OnReadPacket(
-      rtc::ReceivedPacket::CreateFromLegacy("ABC", 3, rtc::TimeMicros()));
+      rtc::ReceivedPacket::CreateFromLegacy("ABC", 3, webrtc::TimeMicros()));
   EXPECT_EQ(conn2, ch.selected_connection());
   conn2->ReceivedPingResponse(LOW_RTT, "id");  // Become writable.
 
@@ -4976,7 +4979,7 @@ TEST_F(P2PTransportChannelPingTest, TestSelectConnectionBasedOnMediaReceived) {
   conn2->ReceivedPing();
   conn2->ReceivedPingResponse(LOW_RTT, "id");
   conn2->OnReadPacket(
-      rtc::ReceivedPacket::CreateFromLegacy("XYZ", 3, rtc::TimeMicros()));
+      rtc::ReceivedPacket::CreateFromLegacy("XYZ", 3, webrtc::TimeMicros()));
   EXPECT_THAT(webrtc::WaitUntil(
                   [&] { return ch.selected_connection(); }, Eq(conn3),
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
@@ -5013,13 +5016,13 @@ TEST_F(P2PTransportChannelPingTest,
   SIMULATED_WAIT(false, 1, clock);
 
   conn2->OnReadPacket(
-      rtc::ReceivedPacket::CreateFromLegacy("XYZ", 3, rtc::TimeMicros()));
+      rtc::ReceivedPacket::CreateFromLegacy("XYZ", 3, webrtc::TimeMicros()));
   EXPECT_EQ(1, reset_selected_candidate_pair_switches());
   EXPECT_TRUE(CandidatePairMatchesNetworkRoute(conn2));
 
   // conn1 also receives data; it becomes selected due to priority again.
   conn1->OnReadPacket(
-      rtc::ReceivedPacket::CreateFromLegacy("ABC", 3, rtc::TimeMicros()));
+      rtc::ReceivedPacket::CreateFromLegacy("ABC", 3, webrtc::TimeMicros()));
   EXPECT_EQ(1, reset_selected_candidate_pair_switches());
   EXPECT_TRUE(CandidatePairMatchesNetworkRoute(conn2));
 
@@ -5029,7 +5032,7 @@ TEST_F(P2PTransportChannelPingTest,
   // Need to become writable again because it was pruned.
   conn2->ReceivedPingResponse(LOW_RTT, "id");
   conn2->OnReadPacket(
-      rtc::ReceivedPacket::CreateFromLegacy("ABC", 3, rtc::TimeMicros()));
+      rtc::ReceivedPacket::CreateFromLegacy("ABC", 3, webrtc::TimeMicros()));
   EXPECT_EQ(1, reset_selected_candidate_pair_switches());
   EXPECT_TRUE(CandidatePairMatchesNetworkRoute(conn2));
 
@@ -5064,7 +5067,7 @@ TEST_F(P2PTransportChannelPingTest,
   SIMULATED_WAIT(false, 1, clock);
 
   conn1->OnReadPacket(
-      rtc::ReceivedPacket::CreateFromLegacy("XYZ", 3, rtc::TimeMicros()));
+      rtc::ReceivedPacket::CreateFromLegacy("XYZ", 3, webrtc::TimeMicros()));
   EXPECT_EQ(1, reset_selected_candidate_pair_switches());
   EXPECT_TRUE(CandidatePairMatchesNetworkRoute(conn1));
 
@@ -5173,7 +5176,7 @@ TEST_F(P2PTransportChannelPingTest, TestEstimatedDisconnectedTime) {
     clock.AdvanceTime(webrtc::TimeDelta::Seconds(1));
     // This will not parse as STUN, and is considered data
     conn1->OnReadPacket(
-        rtc::ReceivedPacket::CreateFromLegacy("XYZ", 3, rtc::TimeMicros()));
+        rtc::ReceivedPacket::CreateFromLegacy("XYZ", 3, webrtc::TimeMicros()));
     clock.AdvanceTime(webrtc::TimeDelta::Seconds(2));
 
     // conn2 is nominated; it becomes selected.
@@ -5186,7 +5189,7 @@ TEST_F(P2PTransportChannelPingTest, TestEstimatedDisconnectedTime) {
   {
     clock.AdvanceTime(webrtc::TimeDelta::Seconds(1));
     conn2->OnReadPacket(
-        rtc::ReceivedPacket::CreateFromLegacy("XYZ", 3, rtc::TimeMicros()));
+        rtc::ReceivedPacket::CreateFromLegacy("XYZ", 3, webrtc::TimeMicros()));
     clock.AdvanceTime(webrtc::TimeDelta::Seconds(2));
     ReceivePingOnConnection(conn2, kIceUfrag[1], 1, nomination++);
 
@@ -5391,7 +5394,7 @@ TEST_F(P2PTransportChannelPingTest, TestDontPruneHighPriorityConnections) {
   NominateConnection(conn1);
   SIMULATED_WAIT(false, 1, clock);
   conn1->OnReadPacket(
-      rtc::ReceivedPacket::CreateFromLegacy("XYZ", 3, rtc::TimeMicros()));
+      rtc::ReceivedPacket::CreateFromLegacy("XYZ", 3, webrtc::TimeMicros()));
   SIMULATED_WAIT(conn2->pruned(), 100, clock);
   EXPECT_FALSE(conn2->pruned());
 }

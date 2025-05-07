@@ -651,7 +651,7 @@ TEST_F(PeerConnectionFactoryTest, LocalRendering) {
   rtc::scoped_refptr<FakeVideoTrackSource> source =
       FakeVideoTrackSource::Create(/*is_screencast=*/false);
 
-  FakeFrameSource frame_source(1280, 720, rtc::kNumMicrosecsPerSec / 30);
+  FakeFrameSource frame_source(1280, 720, kNumMicrosecsPerSec / 30);
 
   ASSERT_TRUE(source.get() != NULL);
   rtc::scoped_refptr<VideoTrackInterface> track(

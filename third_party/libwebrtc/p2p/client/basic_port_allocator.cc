@@ -56,7 +56,7 @@
 
 namespace cricket {
 namespace {
-using ::rtc::CreateRandomId;
+using ::webrtc::CreateRandomId;
 using ::webrtc::IceCandidateType;
 using ::webrtc::SafeTask;
 using ::webrtc::TimeDelta;

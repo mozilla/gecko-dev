@@ -35,7 +35,7 @@ RTCCertificate::~RTCCertificate() = default;
 uint64_t RTCCertificate::Expires() const {
   int64_t expires = GetSSLCertificate().CertificateExpirationTime();
   if (expires != -1)
-    return static_cast<uint64_t>(expires) * rtc::kNumMillisecsPerSec;
+    return static_cast<uint64_t>(expires) * kNumMillisecsPerSec;
   // If the expiration time could not be retrieved return an expired timestamp.
   return 0;  // = 1970-01-01
 }

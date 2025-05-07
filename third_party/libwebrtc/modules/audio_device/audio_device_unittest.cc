@@ -232,7 +232,7 @@ class LatencyAudioStream : public AudioStream {
       {
         MutexLock lock(&lock_);
         if (!pulse_time_) {
-          pulse_time_ = rtc::TimeMillis();
+          pulse_time_ = TimeMillis();
         }
       }
       constexpr int16_t impulse = std::numeric_limits<int16_t>::max();
@@ -260,7 +260,7 @@ class LatencyAudioStream : public AudioStream {
     const size_t max = source[index_of_max];
     if (max > kImpulseThreshold) {
       PRINTD("(%zu, %zu)", max, index_of_max);
-      int64_t now_time = rtc::TimeMillis();
+      int64_t now_time = TimeMillis();
       int extra_delay = IndexToMilliseconds(index_of_max, source.size());
       PRINTD("[%d]", rtc::checked_cast<int>(now_time - pulse_time_));
       PRINTD("[%d]", extra_delay);

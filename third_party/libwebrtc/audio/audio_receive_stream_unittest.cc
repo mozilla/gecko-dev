@@ -277,15 +277,15 @@ TEST(AudioReceiveStreamTest, GetStats) {
     EXPECT_EQ(kNetworkStats.concealedSamples, stats.concealed_samples);
     EXPECT_EQ(kNetworkStats.concealmentEvents, stats.concealment_events);
     EXPECT_EQ(static_cast<double>(kNetworkStats.jitterBufferDelayMs) /
-                  static_cast<double>(rtc::kNumMillisecsPerSec),
+                  static_cast<double>(kNumMillisecsPerSec),
               stats.jitter_buffer_delay_seconds);
     EXPECT_EQ(kNetworkStats.jitterBufferEmittedCount,
               stats.jitter_buffer_emitted_count);
     EXPECT_EQ(static_cast<double>(kNetworkStats.jitterBufferTargetDelayMs) /
-                  static_cast<double>(rtc::kNumMillisecsPerSec),
+                  static_cast<double>(kNumMillisecsPerSec),
               stats.jitter_buffer_target_delay_seconds);
     EXPECT_EQ(static_cast<double>(kNetworkStats.jitterBufferMinimumDelayMs) /
-                  static_cast<double>(rtc::kNumMillisecsPerSec),
+                  static_cast<double>(kNumMillisecsPerSec),
               stats.jitter_buffer_minimum_delay_seconds);
     EXPECT_EQ(kNetworkStats.insertedSamplesForDeceleration,
               stats.inserted_samples_for_deceleration);
@@ -294,7 +294,7 @@ TEST(AudioReceiveStreamTest, GetStats) {
     EXPECT_EQ(kNetworkStats.fecPacketsReceived, stats.fec_packets_received);
     EXPECT_EQ(kNetworkStats.fecPacketsDiscarded, stats.fec_packets_discarded);
     EXPECT_EQ(static_cast<double>(kNetworkStats.totalProcessingDelayUs) /
-                  static_cast<double>(rtc::kNumMicrosecsPerSec),
+                  static_cast<double>(kNumMicrosecsPerSec),
               stats.total_processing_delay_seconds);
     EXPECT_EQ(kNetworkStats.packetsDiscarded, stats.packets_discarded);
     EXPECT_EQ(Q14ToFloat(kNetworkStats.currentExpandRate), stats.expand_rate);
@@ -312,7 +312,7 @@ TEST(AudioReceiveStreamTest, GetStats) {
     EXPECT_EQ(kNetworkStats.delayedPacketOutageSamples,
               stats.delayed_packet_outage_samples);
     EXPECT_EQ(static_cast<double>(kNetworkStats.relativePacketArrivalDelayMs) /
-                  static_cast<double>(rtc::kNumMillisecsPerSec),
+                  static_cast<double>(kNumMillisecsPerSec),
               stats.relative_packet_arrival_delay_seconds);
     EXPECT_EQ(kNetworkStats.interruptionCount, stats.interruption_count);
     EXPECT_EQ(kNetworkStats.totalInterruptionDurationMs,

@@ -29,14 +29,14 @@ namespace {
 absl::AnyInvocable<void() &&> SendPacketTask(
     PacketSender* packet_sender,
     rtc::scoped_refptr<webrtc::PendingTaskSafetyFlag> task_safety_flag,
-    int64_t target_time_ms = rtc::TimeMillis()) {
+    int64_t target_time_ms = TimeMillis()) {
   return [target_time_ms, packet_sender,
           task_safety_flag = std::move(task_safety_flag)]() mutable {
     if (task_safety_flag->alive() && packet_sender->IsSending()) {
       packet_sender->SendPacket();
       target_time_ms += packet_sender->GetSendIntervalMs();
       int64_t delay_ms =
-          std::max(static_cast<int64_t>(0), target_time_ms - rtc::TimeMillis());
+          std::max(static_cast<int64_t>(0), target_time_ms - TimeMillis());
       TaskQueueBase::Current()->PostDelayedTask(
           SendPacketTask(packet_sender, std::move(task_safety_flag),
                          target_time_ms),
@@ -114,7 +114,7 @@ void PacketSender::SendPacket() {
   NetworkTesterPacket packet;
   packet.set_type(NetworkTesterPacket::TEST_DATA);
   packet.set_sequence_number(sequence_number_++);
-  packet.set_send_timestamp(rtc::TimeMicros());
+  packet.set_send_timestamp(TimeMicros());
   test_controller_->SendData(packet, packet_size_);
 }
 

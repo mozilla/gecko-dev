@@ -44,19 +44,19 @@ void ThreadProcessingFakeClock::AdvanceTime(TimeDelta delta) {
 }
 
 ScopedBaseFakeClock::ScopedBaseFakeClock() {
-  prev_clock_ = rtc::SetClockForTesting(this);
+  prev_clock_ = SetClockForTesting(this);
 }
 
 ScopedBaseFakeClock::~ScopedBaseFakeClock() {
-  rtc::SetClockForTesting(prev_clock_);
+  SetClockForTesting(prev_clock_);
 }
 
 ScopedFakeClock::ScopedFakeClock() {
-  prev_clock_ = rtc::SetClockForTesting(this);
+  prev_clock_ = SetClockForTesting(this);
 }
 
 ScopedFakeClock::~ScopedFakeClock() {
-  rtc::SetClockForTesting(prev_clock_);
+  SetClockForTesting(prev_clock_);
 }
 
 }  // namespace webrtc

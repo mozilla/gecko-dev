@@ -62,7 +62,7 @@ double RateTracker::ComputeRateForInterval(
     buckets_to_skip = bucket_count_ - current_bucket_;
     milliseconds_to_skip = 0;
     available_interval_milliseconds =
-        TimeDiff(current_time, initialization_time_milliseconds_);
+        webrtc::TimeDiff(current_time, initialization_time_milliseconds_);
     // Let one bucket interval pass after initialization before reporting.
     if (available_interval_milliseconds < bucket_milliseconds_) {
       return 0.0;
@@ -100,7 +100,7 @@ double RateTracker::ComputeTotalRate() const {
   }
   return static_cast<double>(total_sample_count_ * 1000) /
          static_cast<double>(
-             TimeDiff(current_time, initialization_time_milliseconds_));
+             webrtc::TimeDiff(current_time, initialization_time_milliseconds_));
 }
 
 int64_t RateTracker::TotalSampleCount() const {
@@ -137,7 +137,7 @@ void RateTracker::AddSamplesAtTime(int64_t current_time_ms,
 }
 
 int64_t RateTracker::Time() const {
-  return rtc::TimeMillis();
+  return webrtc::TimeMillis();
 }
 
 void RateTracker::EnsureInitialized() {

@@ -45,7 +45,7 @@ absl::string_view IceCandidateTypeToString(IceCandidateType type) {
 namespace webrtc {
 
 Candidate::Candidate()
-    : id_(rtc::CreateRandomString(8)),
+    : id_(CreateRandomString(8)),
       component_(cricket::ICE_CANDIDATE_COMPONENT_DEFAULT),
       priority_(0),
       network_type_(webrtc::ADAPTER_TYPE_UNKNOWN),
@@ -65,7 +65,7 @@ Candidate::Candidate(int component,
                      absl::string_view foundation,
                      uint16_t network_id /*= 0*/,
                      uint16_t network_cost /*= 0*/)
-    : id_(rtc::CreateRandomString(8)),
+    : id_(CreateRandomString(8)),
       component_(component),
       protocol_(protocol),
       address_(address),
@@ -85,7 +85,7 @@ Candidate::Candidate(const Candidate&) = default;
 Candidate::~Candidate() = default;
 
 void Candidate::generate_id() {
-  id_ = rtc::CreateRandomString(8);
+  id_ = CreateRandomString(8);
 }
 
 bool Candidate::is_local() const {

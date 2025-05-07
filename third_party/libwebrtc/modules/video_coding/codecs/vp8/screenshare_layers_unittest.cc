@@ -113,7 +113,7 @@ class ScreenshareLayerTest : public ::testing::Test {
 
   Vp8FrameConfig NextFrameConfig(size_t stream_index, uint32_t timestamp) {
     int64_t timestamp_ms = timestamp / 90;
-    clock_.AdvanceTime(TimeDelta::Millis(timestamp_ms - rtc::TimeMillis()));
+    clock_.AdvanceTime(TimeDelta::Millis(timestamp_ms - TimeMillis()));
     return layers_->NextFrameConfig(stream_index, timestamp);
   }
 

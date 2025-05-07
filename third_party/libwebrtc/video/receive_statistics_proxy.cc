@@ -135,8 +135,7 @@ void ReceiveStatisticsProxy::UpdateHistograms(
   if (first_decoded_frame_time_ms_) {
     const int64_t elapsed_ms =
         (clock_->TimeInMilliseconds() - *first_decoded_frame_time_ms_);
-    if (elapsed_ms >=
-        metrics::kMinRunTimeInSeconds * rtc::kNumMillisecsPerSec) {
+    if (elapsed_ms >= metrics::kMinRunTimeInSeconds * kNumMillisecsPerSec) {
       int decoded_fps = static_cast<int>(
           (stats_.frames_decoded * 1000.0f / elapsed_ms) + 0.5f);
       RTC_HISTOGRAM_COUNTS_100("WebRTC.Video.DecodedFramesPerSecond",
@@ -457,7 +456,7 @@ VideoReceiveStreamInterface::Stats ReceiveStatisticsProxy::GetStats() const {
       video_quality_observer_->TotalPausesDurationMs();
   stats_.total_inter_frame_delay =
       static_cast<double>(video_quality_observer_->TotalFramesDurationMs()) /
-      rtc::kNumMillisecsPerSec;
+      kNumMillisecsPerSec;
   stats_.total_squared_inter_frame_delay =
       video_quality_observer_->SumSquaredFrameDurationsSec();
 

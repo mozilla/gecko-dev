@@ -459,7 +459,7 @@ void FakeAudioCaptureModule::ProcessFrameP() {
   {
     webrtc::MutexLock lock(&mutex_);
     if (!started_) {
-      next_frame_time_ = rtc::TimeMillis();
+      next_frame_time_ = webrtc::TimeMillis();
       started_ = true;
     }
 
@@ -473,7 +473,7 @@ void FakeAudioCaptureModule::ProcessFrameP() {
   }
 
   next_frame_time_ += kTimePerFrameMs;
-  const int64_t current_time = rtc::TimeMillis();
+  const int64_t current_time = webrtc::TimeMillis();
   const int64_t wait_time =
       (next_frame_time_ > current_time) ? next_frame_time_ - current_time : 0;
   process_thread_->PostDelayedTask([this] { ProcessFrameP(); },

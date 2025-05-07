@@ -40,7 +40,7 @@ void RunLoop::Flush() {
   // thread will loop forever since time never increases. Since the clock is
   // simulated, 0ms can be used as the loop delay, which will process all
   // messages ready for execution.
-  int cms = rtc::GetClockForTesting() ? 0 : 1000;
+  int cms = GetClockForTesting() ? 0 : 1000;
   worker_thread_.ProcessMessages(cms);
 }
 

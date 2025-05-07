@@ -58,10 +58,10 @@ struct Sender {
         socket(std::make_unique<webrtc::AsyncUDPSocket>(s)),
         rate(rt),
         count(0) {
-    last_send = rtc::TimeMillis();
+    last_send = webrtc::TimeMillis();
 
     periodic = RepeatingTaskHandle::DelayedStart(thread, NextDelay(), [this] {
-      int64_t cur_time = rtc::TimeMillis();
+      int64_t cur_time = webrtc::TimeMillis();
       int64_t delay = cur_time - last_send;
       uint32_t size =
           std::clamp<uint32_t>(rate * delay / 1000, sizeof(uint32_t), 4096);
@@ -127,7 +127,7 @@ struct Receiver : public sigslot::has_slots<> {
 
     uint32_t send_time =
         *reinterpret_cast<const uint32_t*>(packet.payload().data());
-    uint32_t recv_time = rtc::TimeMillis();
+    uint32_t recv_time = webrtc::TimeMillis();
     uint32_t delay = recv_time - send_time;
     sum += delay;
     sum_sq += delay * delay;

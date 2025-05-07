@@ -56,7 +56,7 @@ int64_t GetProcessCpuTimeNanos() {
 #elif defined(WEBRTC_LINUX)
   struct timespec ts;
   if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts) == 0) {
-    return ts.tv_sec * kNumNanosecsPerSec + ts.tv_nsec;
+    return ts.tv_sec * webrtc::kNumNanosecsPerSec + ts.tv_nsec;
   } else {
     RTC_LOG_ERR(LS_ERROR) << "clock_gettime() failed.";
   }
@@ -104,7 +104,7 @@ int64_t GetThreadCpuTimeNanos() {
 #elif defined(WEBRTC_LINUX)
   struct timespec ts;
   if (clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) == 0) {
-    return ts.tv_sec * kNumNanosecsPerSec + ts.tv_nsec;
+    return ts.tv_sec * webrtc::kNumNanosecsPerSec + ts.tv_nsec;
   } else {
     RTC_LOG_ERR(LS_ERROR) << "clock_gettime() failed.";
   }

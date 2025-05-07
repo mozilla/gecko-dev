@@ -250,7 +250,7 @@ std::unique_ptr<ControllerManager> ControllerManagerImpl::Create(
       controller_manager_config.ParseFromString(std::string(config_string)));
   if (debug_dump_writer)
     debug_dump_writer->DumpControllerManagerConfig(controller_manager_config,
-                                                   rtc::TimeMillis());
+                                                   TimeMillis());
 
   std::vector<std::unique_ptr<Controller>> controllers;
   std::map<const Controller*, std::pair<int, float>> scoring_points;
@@ -360,7 +360,7 @@ std::vector<Controller*> ControllerManagerImpl::GetSortedControllers(
   if (!metrics.uplink_bandwidth_bps || !metrics.uplink_packet_loss_fraction)
     return sorted_controllers_;
 
-  const int64_t now_ms = rtc::TimeMillis();
+  const int64_t now_ms = TimeMillis();
   if (last_reordering_time_ms_ &&
       now_ms - *last_reordering_time_ms_ < config_.min_reordering_time_ms)
     return sorted_controllers_;

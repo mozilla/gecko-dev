@@ -130,14 +130,14 @@ timespec GetTimespec(TimeDelta duration_from_now) {
 
   // Add the specified number of milliseconds to it.
   int64_t microsecs_from_now = duration_from_now.us();
-  ts.tv_sec += microsecs_from_now / rtc::kNumMicrosecsPerSec;
-  ts.tv_nsec += (microsecs_from_now % rtc::kNumMicrosecsPerSec) *
-                rtc::kNumNanosecsPerMicrosec;
+  ts.tv_sec += microsecs_from_now / kNumMicrosecsPerSec;
+  ts.tv_nsec +=
+      (microsecs_from_now % kNumMicrosecsPerSec) * kNumNanosecsPerMicrosec;
 
   // Normalize.
-  if (ts.tv_nsec >= rtc::kNumNanosecsPerSec) {
+  if (ts.tv_nsec >= kNumNanosecsPerSec) {
     ts.tv_sec++;
-    ts.tv_nsec -= rtc::kNumNanosecsPerSec;
+    ts.tv_nsec -= kNumNanosecsPerSec;
   }
 
   return ts;

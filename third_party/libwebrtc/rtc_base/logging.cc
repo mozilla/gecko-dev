@@ -160,7 +160,7 @@ LogMessage::LogMessage(const char* file,
     int64_t log_start_time = LogStartTime();
     // Use SystemTimeMillis so that even if tests use fake clocks, the timestamp
     // in log messages represents the real system time.
-    int64_t time = rtc::TimeDiff(rtc::SystemTimeMillis(), log_start_time);
+    int64_t time = TimeDiff(SystemTimeMillis(), log_start_time);
     // Also ensure WallClockStartTime is initialized, so that it matches
     // LogStartTime.
     WallClockStartTime();
@@ -257,7 +257,7 @@ LoggingSeverity LogMessage::GetLogToDebug() {
   return g_dbg_sev;
 }
 int64_t LogMessage::LogStartTime() {
-  static const int64_t g_start = rtc::SystemTimeMillis();
+  static const int64_t g_start = SystemTimeMillis();
   return g_start;
 }
 

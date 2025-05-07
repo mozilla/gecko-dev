@@ -474,7 +474,7 @@ PeerConnectionTestWrapper::GetUserMedia(
     // Set max frame rate to 10fps to reduce the risk of the tests to be flaky.
     webrtc::FakePeriodicVideoSource::Config config;
     config.frame_interval_ms = 100;
-    config.timestamp_offset_ms = rtc::TimeMillis();
+    config.timestamp_offset_ms = webrtc::TimeMillis();
     config.width = resolution.width;
     config.height = resolution.height;
 

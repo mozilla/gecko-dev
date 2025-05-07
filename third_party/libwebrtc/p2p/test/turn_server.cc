@@ -75,7 +75,7 @@ static void InitErrorResponse(int code,
 
 TurnServer::TurnServer(TaskQueueBase* thread)
     : thread_(thread),
-      nonce_key_(rtc::CreateRandomString(kNonceKeySize)),
+      nonce_key_(CreateRandomString(kNonceKeySize)),
       auth_hook_(NULL),
       redirect_hook_(NULL),
       enable_otu_nonce_(false) {}
@@ -407,7 +407,7 @@ bool TurnServer::ValidateNonce(absl::string_view nonce) const {
   }
 
   // Validate the timestamp.
-  return TimeDelta::Millis(rtc::TimeMillis() - then) < kNonceTimeout;
+  return TimeDelta::Millis(TimeMillis() - then) < kNonceTimeout;
 }
 
 TurnServerAllocation* TurnServer::FindAllocation(TurnServerConnection* conn) {
@@ -456,7 +456,7 @@ void TurnServer::SendErrorResponseWithRealmAndNonce(
                             msg->transaction_id());
   InitErrorResponse(code, reason, &resp);
 
-  int64_t timestamp = rtc::TimeMillis();
+  int64_t timestamp = TimeMillis();
   if (ts_for_next_nonce_) {
     timestamp = ts_for_next_nonce_;
     ts_for_next_nonce_ = 0;

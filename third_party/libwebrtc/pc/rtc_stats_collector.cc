@@ -347,7 +347,7 @@ QualityLimitationDurationToRTCQualityLimitationDuration(
   // https://w3c.github.io/webrtc-stats/#dom-rtcoutboundrtpstreamstats-qualitylimitationdurations
   for (const auto& elem : durations_ms) {
     result[QualityLimitationReasonToRTCQualityLimitationReason(elem.first)] =
-        elem.second / static_cast<double>(rtc::kNumMillisecsPerSec);
+        elem.second / static_cast<double>(kNumMillisecsPerSec);
   }
   return result;
 }
@@ -470,8 +470,8 @@ std::unique_ptr<RTCInboundRtpStreamStats> CreateInboundAudioStreamStats(
           codec_param_it->second, report);
     }
   }
-  inbound_audio->jitter = static_cast<double>(voice_receiver_info.jitter_ms) /
-                          rtc::kNumMillisecsPerSec;
+  inbound_audio->jitter =
+      static_cast<double>(voice_receiver_info.jitter_ms) / kNumMillisecsPerSec;
   inbound_audio->total_samples_received =
       voice_receiver_info.total_samples_received;
   inbound_audio->concealed_samples = voice_receiver_info.concealed_samples;
@@ -513,7 +513,7 @@ std::unique_ptr<RTCInboundRtpStreamStats> CreateInboundAudioStreamStats(
           : 0;
   inbound_audio->total_interruption_duration =
       static_cast<double>(voice_receiver_info.total_interruption_duration_ms) /
-      rtc::kNumMillisecsPerSec;
+      kNumMillisecsPerSec;
   return inbound_audio;
 }
 
@@ -617,8 +617,8 @@ CreateInboundRTPStreamStatsFromVideoReceiverInfo(
           codec_param_it->second, report);
     }
   }
-  inbound_video->jitter = static_cast<double>(video_receiver_info.jitter_ms) /
-                          rtc::kNumMillisecsPerSec;
+  inbound_video->jitter =
+      static_cast<double>(video_receiver_info.jitter_ms) / kNumMillisecsPerSec;
   inbound_video->fir_count =
       static_cast<uint32_t>(video_receiver_info.firs_sent);
   inbound_video->pli_count =
@@ -670,14 +670,14 @@ CreateInboundRTPStreamStatsFromVideoReceiverInfo(
   inbound_video->pause_count = video_receiver_info.pause_count;
   inbound_video->total_pauses_duration =
       static_cast<double>(video_receiver_info.total_pauses_duration_ms) /
-      rtc::kNumMillisecsPerSec;
+      kNumMillisecsPerSec;
   inbound_video->freeze_count = video_receiver_info.freeze_count;
   inbound_video->total_freezes_duration =
       static_cast<double>(video_receiver_info.total_freezes_duration_ms) /
-      rtc::kNumMillisecsPerSec;
+      kNumMillisecsPerSec;
   inbound_video->min_playout_delay =
       static_cast<double>(video_receiver_info.min_playout_delay_ms) /
-      rtc::kNumMillisecsPerSec;
+      kNumMillisecsPerSec;
   if (video_receiver_info.last_packet_received.has_value()) {
     inbound_video->last_packet_received_timestamp =
         video_receiver_info.last_packet_received->ms<double>();
@@ -814,7 +814,7 @@ CreateOutboundRTPStreamStatsFromVideoSenderInfo(
   outbound_video->key_frames_encoded = video_sender_info.key_frames_encoded;
   outbound_video->total_encode_time =
       static_cast<double>(video_sender_info.total_encode_time_ms) /
-      rtc::kNumMillisecsPerSec;
+      kNumMillisecsPerSec;
   outbound_video->total_encoded_bytes_target =
       video_sender_info.total_encoded_bytes_target;
   if (video_sender_info.send_frame_width > 0) {
@@ -1207,7 +1207,7 @@ void RTCStatsCollector::GetStatsReportInternal(
   requests_.push_back(std::move(request));
 
   // "Now" using a monotonically increasing timer.
-  int64_t cache_now_us = rtc::TimeMicros();
+  int64_t cache_now_us = TimeMicros();
   if (cached_report_ &&
       cache_now_us - cache_timestamp_us_ <= cache_lifetime_us_) {
     // We have a fresh cached report to deliver. Deliver asynchronously, since
@@ -1231,7 +1231,7 @@ void RTCStatsCollector::GetStatsReportInternal(
             // "Now" using a system clock, relative to the UNIX epoch (Jan 1,
             // 1970, UTC), in microseconds. The system clock could be modified
             // and is not necessarily monotonically increasing.
-            Timestamp::Micros(rtc::TimeUTCMicros());
+            Timestamp::Micros(TimeUTCMicros());
 
     num_pending_partial_reports_ = 2;
     partial_report_timestamp_us_ = cache_now_us;
@@ -1519,11 +1519,11 @@ void RTCStatsCollector::ProduceIceCandidateAndPairStats_n(
             static_cast<uint64_t>(info.recv_total_bytes);
         candidate_pair_stats->total_round_trip_time =
             static_cast<double>(info.total_round_trip_time_ms) /
-            rtc::kNumMillisecsPerSec;
+            kNumMillisecsPerSec;
         if (info.current_round_trip_time_ms.has_value()) {
           candidate_pair_stats->current_round_trip_time =
               static_cast<double>(*info.current_round_trip_time_ms) /
-              rtc::kNumMillisecsPerSec;
+              kNumMillisecsPerSec;
         }
         if (info.best_connection) {
           // The bandwidth estimations we have are for the selected candidate

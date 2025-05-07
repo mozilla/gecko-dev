@@ -425,12 +425,12 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
         handshake_wait_(webrtc::TimeDelta::Millis(5000)),
         identities_set_(false) {
     // Set use of the test RNG to get predictable loss patterns.
-    rtc::SetRandomTestMode(true);
+    webrtc::SetRandomTestMode(true);
   }
 
   ~SSLStreamAdapterTestBase() override {
     // Put it back for the next test.
-    rtc::SetRandomTestMode(false);
+    webrtc::SetRandomTestMode(false);
   }
 
   void SetUp() override {
@@ -634,8 +634,8 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
     // Now wait for the handshake to timeout (or fail after an hour of simulated
     // time).
     while (client_ssl_->GetState() == webrtc::SS_OPENING &&
-           (rtc::TimeDiff(clock_.TimeNanos(), time_start) <
-            3600 * rtc::kNumNanosecsPerSec)) {
+           (webrtc::TimeDiff(clock_.TimeNanos(), time_start) <
+            3600 * webrtc::kNumNanosecsPerSec)) {
       EXPECT_THAT(webrtc::WaitUntil(
                       [&] {
                         return !((client_ssl_->GetState() == webrtc::SS_OPEN) &&
@@ -753,7 +753,7 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
                                    size_t& written,
                                    int& error) {
     // Randomly drop loss_ percent of packets
-    if (rtc::CreateRandomId() % 100 < static_cast<uint32_t>(loss_)) {
+    if (webrtc::CreateRandomId() % 100 < static_cast<uint32_t>(loss_)) {
       RTC_LOG(LS_VERBOSE) << "Randomly dropping packet, size=" << data_len;
       written = data_len;
       return webrtc::SR_SUCCESS;

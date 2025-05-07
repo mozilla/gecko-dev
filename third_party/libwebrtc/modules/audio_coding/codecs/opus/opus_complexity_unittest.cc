@@ -42,7 +42,7 @@ int64_t RunComplexityTest(const Environment& env,
   EXPECT_TRUE(audio_loop.Init(kInputFileName, kMaxLoopLengthSamples,
                               kInputBlockSizeSamples));
   // Encode.
-  const int64_t start_time_ms = rtc::TimeMillis();
+  const int64_t start_time_ms = TimeMillis();
   AudioEncoder::EncodedInfo info;
   rtc::Buffer encoded(500);
   uint32_t rtp_timestamp = 0u;
@@ -51,7 +51,7 @@ int64_t RunComplexityTest(const Environment& env,
     info = encoder->Encode(rtp_timestamp, audio_loop.GetNextBlock(), &encoded);
     rtp_timestamp += kInputBlockSizeSamples;
   }
-  return rtc::TimeMillis() - start_time_ms;
+  return TimeMillis() - start_time_ms;
 }
 
 // This test encodes an audio file using Opus twice with different bitrates

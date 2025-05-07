@@ -385,7 +385,7 @@ TEST_P(PeerConnectionIntegrationTest,
   FakePeriodicVideoSource::Config config;
   config.width = 1280;
   config.height = 720;
-  config.timestamp_offset_ms = rtc::TimeMillis();
+  config.timestamp_offset_ms = TimeMillis();
   caller()->AddTrack(caller()->CreateLocalVideoTrackWithConfig(config));
   callee()->AddTrack(callee()->CreateLocalVideoTrackWithConfig(config));
 
@@ -3683,13 +3683,13 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
     }
     current_size = caller()->pc()->GetTransceivers().size();
     RTC_LOG(LS_INFO) << "Renegotiating with " << current_size << " tracks";
-    auto start_time_ms = rtc::TimeMillis();
+    auto start_time_ms = TimeMillis();
     caller()->CreateAndSetAndSignalOffer();
     // We want to stop when the time exceeds one second.
     ASSERT_THAT(
         WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
         IsRtcOk());
-    auto elapsed_time_ms = rtc::TimeMillis() - start_time_ms;
+    auto elapsed_time_ms = TimeMillis() - start_time_ms;
     RTC_LOG(LS_INFO) << "Renegotiating took " << elapsed_time_ms << " ms";
     ASSERT_GT(1000, elapsed_time_ms)
         << "Audio transceivers: Negotiation took too long after "
@@ -3723,13 +3723,13 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
     }
     current_size = caller()->pc()->GetTransceivers().size();
     RTC_LOG(LS_INFO) << "Renegotiating with " << current_size << " tracks";
-    auto start_time_ms = rtc::TimeMillis();
+    auto start_time_ms = TimeMillis();
     caller()->CreateAndSetAndSignalOffer();
     // We want to stop when the time exceeds one second.
     ASSERT_THAT(
         WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
         IsRtcOk());
-    auto elapsed_time_ms = rtc::TimeMillis() - start_time_ms;
+    auto elapsed_time_ms = TimeMillis() - start_time_ms;
     RTC_LOG(LS_INFO) << "Renegotiating took " << elapsed_time_ms << " ms";
     ASSERT_GT(1000, elapsed_time_ms)
         << "Video transceivers: Negotiation took too long after "
@@ -3769,13 +3769,13 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
     }
     current_size = caller()->pc()->GetTransceivers().size();
     RTC_LOG(LS_INFO) << "Renegotiating with " << current_size << " tracks";
-    auto start_time_ms = rtc::TimeMillis();
+    auto start_time_ms = TimeMillis();
     caller()->CreateAndSetAndSignalOffer();
     // We want to stop when the time exceeds one second.
     ASSERT_THAT(
         WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
         IsRtcOk());
-    auto elapsed_time_ms = rtc::TimeMillis() - start_time_ms;
+    auto elapsed_time_ms = TimeMillis() - start_time_ms;
     RTC_LOG(LS_INFO) << "Renegotiating took " << elapsed_time_ms << " ms";
     // This is a guard against the test using excessive amounts of time.
     ASSERT_GT(5000, elapsed_time_ms)

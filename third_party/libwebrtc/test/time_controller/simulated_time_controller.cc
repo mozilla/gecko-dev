@@ -196,7 +196,7 @@ void GlobalSimulatedTimeController::AdvanceTime(TimeDelta duration) {
   ScopedYieldPolicy yield_policy(&impl_);
   Timestamp current_time = impl_.CurrentTime();
   Timestamp target_time = current_time + duration;
-  RTC_DCHECK_EQ(current_time.us(), rtc::TimeMicros());
+  RTC_DCHECK_EQ(current_time.us(), TimeMicros());
   while (current_time < target_time) {
     impl_.RunReadyRunners();
     Timestamp next_time = std::min(impl_.NextRunTime(), target_time);

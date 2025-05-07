@@ -1677,7 +1677,7 @@ void P2PTransportChannel::RemoveConnectionForTest(Connection* connection) {
 // Monitor connection states.
 void P2PTransportChannel::UpdateConnectionStates() {
   RTC_DCHECK_RUN_ON(network_thread_);
-  int64_t now = rtc::TimeMillis();
+  int64_t now = webrtc::TimeMillis();
 
   // We need to copy the list of connections since some may delete themselves
   // when we call UpdateState.
@@ -1842,7 +1842,7 @@ void P2PTransportChannel::SwitchSelectedConnectionInternal(
 
     if (old_selected_connection) {
       pair_change.estimated_disconnected_time_ms =
-          ComputeEstimatedDisconnectedTimeMs(rtc::TimeMillis(),
+          ComputeEstimatedDisconnectedTimeMs(webrtc::TimeMillis(),
                                              old_selected_connection);
     } else {
       pair_change.estimated_disconnected_time_ms = 0;
@@ -2056,7 +2056,7 @@ void P2PTransportChannel::PingConnection(Connection* conn) {
   }
   conn->set_nomination(nomination);
   conn->set_use_candidate_attr(use_candidate_attr);
-  last_ping_sent_ms_ = rtc::TimeMillis();
+  last_ping_sent_ms_ = webrtc::TimeMillis();
   conn->Ping(last_ping_sent_ms_, stun_dict_writer_.CreateDelta());
 }
 

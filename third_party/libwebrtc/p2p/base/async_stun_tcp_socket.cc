@@ -88,7 +88,7 @@ int AsyncStunTCPSocket::Send(const void* pv,
     return res;
   }
 
-  rtc::SentPacket sent_packet(options.packet_id, rtc::TimeMillis());
+  rtc::SentPacket sent_packet(options.packet_id, TimeMillis());
   SignalSentPacket(this, sent_packet);
 
   // We claim to have sent the whole thing, even if we only sent partial
@@ -125,7 +125,7 @@ size_t AsyncStunTCPSocket::ProcessInput(rtc::ArrayView<const uint8_t> data) {
 
     rtc::ReceivedPacket received_packet(
         data.subview(processed_bytes, expected_pkt_len), remote_addr,
-        Timestamp::Micros(rtc::TimeMicros()));
+        Timestamp::Micros(TimeMicros()));
     NotifyPacketReceived(received_packet);
     processed_bytes += actual_length;
   }

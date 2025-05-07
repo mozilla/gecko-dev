@@ -79,7 +79,7 @@ rtc::ThreadPriority TaskQueuePriorityToThreadPriority(
 Timestamp CurrentTime() {
   static const UINT kPeriod = 1;
   bool high_res = (timeBeginPeriod(kPeriod) == TIMERR_NOERROR);
-  Timestamp ret = Timestamp::Micros(rtc::TimeMicros());
+  Timestamp ret = Timestamp::Micros(TimeMicros());
   if (high_res)
     timeEndPeriod(kPeriod);
   return ret;

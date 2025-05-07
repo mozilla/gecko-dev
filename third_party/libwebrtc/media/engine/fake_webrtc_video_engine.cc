@@ -283,12 +283,12 @@ std::unique_ptr<VideoEncoder> FakeWebRtcVideoEncoderFactory::Create(
 
 bool FakeWebRtcVideoEncoderFactory::WaitForCreatedVideoEncoders(
     int num_encoders) {
-  int64_t start_offset_ms = rtc::TimeMillis();
+  int64_t start_offset_ms = TimeMillis();
   int64_t wait_time = kEventTimeout.ms();
   do {
     if (GetNumCreatedEncoders() >= num_encoders)
       return true;
-    wait_time = kEventTimeout.ms() - (rtc::TimeMillis() - start_offset_ms);
+    wait_time = kEventTimeout.ms() - (TimeMillis() - start_offset_ms);
   } while (wait_time > 0 &&
            created_video_encoder_event_.Wait(TimeDelta::Millis(wait_time)));
   return false;

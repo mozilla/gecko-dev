@@ -673,7 +673,7 @@ void SrtpSession::HandleEventThunk(srtp_event_data_t* ev) {
 // be inspected in Wireshark using the RTP, VP8 and H264 dissectors.
 void SrtpSession::DumpPacket(const rtc::CopyOnWriteBuffer& buffer,
                              bool outbound) {
-  int64_t time_of_day = rtc::TimeUTCMillis() % (24 * 3600 * 1000);
+  int64_t time_of_day = webrtc::TimeUTCMillis() % (24 * 3600 * 1000);
   int64_t hours = time_of_day / (3600 * 1000);
   int64_t minutes = (time_of_day / (60 * 1000)) % 60;
   int64_t seconds = (time_of_day / 1000) % 60;

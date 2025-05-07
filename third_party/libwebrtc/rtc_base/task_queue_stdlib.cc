@@ -178,7 +178,7 @@ void TaskQueueStdlib::PostDelayedTaskImpl(absl::AnyInvocable<void() &&> task,
                                           const PostDelayedTaskTraits& traits,
                                           const Location& location) {
   DelayedEntryTimeout delayed_entry;
-  delayed_entry.next_fire_at_us = rtc::TimeMicros() + delay.us();
+  delayed_entry.next_fire_at_us = TimeMicros() + delay.us();
 
   {
     MutexLock lock(&pending_lock_);
@@ -192,7 +192,7 @@ void TaskQueueStdlib::PostDelayedTaskImpl(absl::AnyInvocable<void() &&> task,
 TaskQueueStdlib::NextTask TaskQueueStdlib::GetNextTask() {
   NextTask result;
 
-  const int64_t tick_us = rtc::TimeMicros();
+  const int64_t tick_us = TimeMicros();
 
   MutexLock lock(&pending_lock_);
 

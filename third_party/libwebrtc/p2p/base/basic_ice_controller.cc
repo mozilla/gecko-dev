@@ -89,7 +89,7 @@ void BasicIceController::OnConnectionDestroyed(const Connection* connection) {
 }
 
 bool BasicIceController::HasPingableConnection() const {
-  int64_t now = rtc::TimeMillis();
+  int64_t now = webrtc::TimeMillis();
   return absl::c_any_of(connections_, [this, now](const Connection* c) {
     return IsPingable(c, now);
   });
@@ -110,7 +110,7 @@ IceControllerInterface::PingResult BasicIceController::SelectConnectionToPing(
                           : strong_ping_interval();
 
   const Connection* conn = nullptr;
-  if (rtc::TimeMillis() >= last_ping_sent_ms + ping_interval) {
+  if (webrtc::TimeMillis() >= last_ping_sent_ms + ping_interval) {
     conn = FindNextPingableConnection();
   }
   PingResult res(conn, std::min(ping_interval, check_receiving_interval()));
@@ -125,7 +125,7 @@ void BasicIceController::MarkConnectionPinged(const Connection* conn) {
 
 // Returns the next pingable connection to ping.
 const Connection* BasicIceController::FindNextPingableConnection() {
-  int64_t now = rtc::TimeMillis();
+  int64_t now = webrtc::TimeMillis();
 
   // Rule 1: Selected connection takes priority over non-selected ones.
   if (selected_connection_ && selected_connection_->connected() &&
@@ -424,7 +424,7 @@ BasicIceController::HandleInitialSelectDampening(
     return {new_connection, std::nullopt};
   }
 
-  int64_t now = rtc::TimeMillis();
+  int64_t now = webrtc::TimeMillis();
   int64_t max_delay = 0;
   if (new_connection->last_ping_received() > 0 &&
       field_trials_->initial_select_dampening_ping_received.has_value()) {
@@ -492,7 +492,7 @@ IceControllerInterface::SwitchResult BasicIceController::ShouldSwitchConnection(
 
   bool missed_receiving_unchanged_threshold = false;
   std::optional<int64_t> receiving_unchanged_threshold(
-      rtc::TimeMillis() - config_.receiving_switching_delay_or_default());
+      webrtc::TimeMillis() - config_.receiving_switching_delay_or_default());
   int cmp = CompareConnections(selected_connection_, new_connection,
                                receiving_unchanged_threshold,
                                &missed_receiving_unchanged_threshold);

@@ -348,7 +348,7 @@ class FakeIceTransport : public webrtc::IceTransportInternal {
       SendPacketInternal(packet, options, flags);
     }
 
-    rtc::SentPacket sent_packet(options.packet_id, rtc::TimeMillis());
+    rtc::SentPacket sent_packet(options.packet_id, webrtc::TimeMillis());
     SignalSentPacket(this, sent_packet);
     return static_cast<int>(len);
   }
@@ -431,7 +431,7 @@ class FakeIceTransport : public webrtc::IceTransportInternal {
   bool SendIcePing() {
     RTC_DCHECK_RUN_ON(network_thread_);
     RTC_DLOG(LS_INFO) << name_ << ": SendIcePing()";
-    last_sent_ping_timestamp_ = rtc::TimeMicros();
+    last_sent_ping_timestamp_ = webrtc::TimeMicros();
     auto msg = std::make_unique<IceMessage>(STUN_BINDING_REQUEST);
     MaybeAddDtlsPiggybackingAttributes(msg.get());
     msg->AddFingerprint();
@@ -542,7 +542,7 @@ class FakeIceTransport : public webrtc::IceTransportInternal {
 
   void ReceivePacketInternal(const rtc::CopyOnWriteBuffer& packet) {
     RTC_DCHECK_RUN_ON(network_thread_);
-    auto now = rtc::TimeMicros();
+    auto now = webrtc::TimeMicros();
     if (auto msg = GetStunMessage(packet)) {
       const auto* dtls_piggyback_attr =
           msg->GetByteString(STUN_ATTR_META_DTLS_IN_STUN);

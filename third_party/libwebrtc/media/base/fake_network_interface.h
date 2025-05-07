@@ -178,7 +178,7 @@ class FakeNetworkInterface : public cricket::MediaChannelNetworkInterface {
       if (dest_) {
         RtpPacketReceived parsed_packet;
         if (parsed_packet.Parse(packet)) {
-          parsed_packet.set_arrival_time(Timestamp::Micros(rtc::TimeMicros()));
+          parsed_packet.set_arrival_time(Timestamp::Micros(TimeMicros()));
           dest_->OnPacketReceived(std::move(parsed_packet));
         } else {
           RTC_DCHECK_NOTREACHED();

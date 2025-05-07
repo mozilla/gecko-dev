@@ -773,7 +773,7 @@ TEST_F(WebRtcVideoEngineTest, UseFactoryForVp8WhenSupported) {
   EXPECT_TRUE(send_channel->SetSend(true));
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 30);
+                                       webrtc::kNumMicrosecsPerSec / 30);
   EXPECT_TRUE(send_channel->SetVideoSend(kSsrc, nullptr, &frame_forwarder));
   frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
   time_controller_.AdvanceTime(webrtc::TimeDelta::Zero());
@@ -861,7 +861,7 @@ TEST_F(WebRtcVideoEngineTest, PropagatesInputFrameTimestamp) {
 
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 60);
+                                       webrtc::kNumMicrosecsPerSec / 60);
   EXPECT_TRUE(send_channel->SetVideoSend(kSsrc, nullptr, &frame_forwarder));
   send_channel->SetSend(true);
 
@@ -883,12 +883,12 @@ TEST_F(WebRtcVideoEngineTest, PropagatesInputFrameTimestamp) {
 
   frame_forwarder.IncomingCapturedFrame(
       frame_source.GetFrame(1280, 720, webrtc::VideoRotation::kVideoRotation_0,
-                            rtc::kNumMicrosecsPerSec / 30));
+                            webrtc::kNumMicrosecsPerSec / 30));
   last_timestamp = stream->GetLastTimestamp();
   for (int i = 0; i < 10; i++) {
     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame(
         1280, 720, webrtc::VideoRotation::kVideoRotation_0,
-        rtc::kNumMicrosecsPerSec / 30));
+        webrtc::kNumMicrosecsPerSec / 30));
     int64_t timestamp = stream->GetLastTimestamp();
     int64_t interval = timestamp - last_timestamp;
 
@@ -1129,7 +1129,7 @@ TEST_F(WebRtcVideoEngineTest, UsesSimulcastAdapterForVp8Factories) {
 
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 60);
+                                       webrtc::kNumMicrosecsPerSec / 60);
   EXPECT_TRUE(
       send_channel->SetVideoSend(ssrcs.front(), nullptr, &frame_forwarder));
   frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
@@ -1161,7 +1161,7 @@ TEST_F(WebRtcVideoEngineTest, ChannelWithH264CanChangeToVp8) {
   // Frame source.
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 30);
+                                       webrtc::kNumMicrosecsPerSec / 30);
 
   std::unique_ptr<VideoMediaSendChannelInterface> send_channel =
       engine_.CreateSendChannel(call_.get(), GetMediaConfig(), VideoOptions(),
@@ -1215,7 +1215,7 @@ TEST_F(WebRtcVideoEngineTest,
   // encoder layer.
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 30);
+                                       webrtc::kNumMicrosecsPerSec / 30);
   EXPECT_TRUE(
       send_channel->SetVideoSend(ssrcs.front(), nullptr, &frame_forwarder));
   frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
@@ -1250,7 +1250,7 @@ TEST_F(WebRtcVideoEngineTest,
   // Send a frame of 720p. This should trigger a "real" encoder initialization.
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 30);
+                                       webrtc::kNumMicrosecsPerSec / 30);
   EXPECT_TRUE(send_channel->SetVideoSend(kSsrc, nullptr, &frame_forwarder));
   frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
   time_controller_.AdvanceTime(webrtc::TimeDelta::Zero());
@@ -1284,7 +1284,7 @@ TEST_F(WebRtcVideoEngineTest, SimulcastEnabledForH264) {
   // Send a frame of 720p. This should trigger a "real" encoder initialization.
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 30);
+                                       webrtc::kNumMicrosecsPerSec / 30);
   EXPECT_TRUE(send_channel->SetVideoSend(ssrcs[0], nullptr, &frame_forwarder));
   frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
   time_controller_.AdvanceTime(webrtc::TimeDelta::Zero());
@@ -1558,7 +1558,7 @@ TEST(WebRtcVideoEngineNewVideoCodecFactoryTest, Vp8) {
   // Set capturer.
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 30);
+                                       webrtc::kNumMicrosecsPerSec / 30);
   EXPECT_TRUE(send_channel->SetVideoSend(send_ssrc, nullptr, &frame_forwarder));
   // Sending one frame will allocate the encoder.
   frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
@@ -1600,7 +1600,7 @@ TEST_F(WebRtcVideoEngineTest, DISABLED_RecreatesEncoderOnContentTypeChange) {
 
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 30);
+                                       webrtc::kNumMicrosecsPerSec / 30);
   VideoOptions options;
   EXPECT_TRUE(send_channel->SetVideoSend(kSsrc, &options, &frame_forwarder));
 
@@ -1885,7 +1885,7 @@ class WebRtcVideoChannelBaseTest : public ::testing::Test {
     EXPECT_TRUE(send_channel_->AddSendStream(DefaultSendStreamParams()));
     frame_forwarder_ = std::make_unique<webrtc::test::FrameForwarder>();
     frame_source_ = std::make_unique<webrtc::FakeFrameSource>(
-        640, 480, rtc::kNumMicrosecsPerSec / kFramerate);
+        640, 480, webrtc::kNumMicrosecsPerSec / kFramerate);
     EXPECT_TRUE(
         send_channel_->SetVideoSend(kSsrc, nullptr, frame_forwarder_.get()));
   }
@@ -1943,7 +1943,7 @@ class WebRtcVideoChannelBaseTest : public ::testing::Test {
 
   bool SetOneCodec(const cricket::Codec& codec) {
     frame_source_ = std::make_unique<webrtc::FakeFrameSource>(
-        kVideoWidth, kVideoHeight, rtc::kNumMicrosecsPerSec / kFramerate);
+        kVideoWidth, kVideoHeight, webrtc::kNumMicrosecsPerSec / kFramerate);
 
     bool sending = SendImpl()->sending();
     bool success = SetSend(false);
@@ -2247,7 +2247,7 @@ TEST_F(WebRtcVideoChannelBaseTest, GetStatsMultipleSendStreams) {
   const int kTestWidth = 160;
   const int kTestHeight = 120;
   webrtc::FakeFrameSource frame_source(kTestWidth, kTestHeight,
-                                       rtc::kNumMicrosecsPerSec / 5);
+                                       webrtc::kNumMicrosecsPerSec / 5);
   EXPECT_TRUE(
       send_channel_->AddSendStream(cricket::StreamParams::CreateLegacy(5678)));
   EXPECT_TRUE(send_channel_->SetVideoSend(5678, nullptr, &frame_forwarder));
@@ -2446,8 +2446,9 @@ TEST_F(WebRtcVideoChannelBaseTest, DISABLED_AddRemoveCapturer) {
   EXPECT_FRAME(1, kVideoWidth, kVideoHeight);
 
   webrtc::test::FrameForwarder frame_forwarder;
-  webrtc::FakeFrameSource frame_source(480, 360, rtc::kNumMicrosecsPerSec / 30,
-                                       rtc::kNumMicrosecsPerSec / 30);
+  webrtc::FakeFrameSource frame_source(480, 360,
+                                       webrtc::kNumMicrosecsPerSec / 30,
+                                       webrtc::kNumMicrosecsPerSec / 30);
 
   // TODO(nisse): This testcase fails if we don't configure
   // screencast. It's unclear why, I see nothing obvious in this
@@ -2534,8 +2535,8 @@ TEST_F(WebRtcVideoChannelBaseTest, AddRemoveCapturerMultipleSources) {
       send_channel_->AddSendStream(cricket::StreamParams::CreateLegacy(1)));
 
   webrtc::test::FrameForwarder frame_forwarder1;
-  webrtc::FakeFrameSource frame_source(kVideoWidth, kVideoHeight,
-                                       rtc::kNumMicrosecsPerSec / kFramerate);
+  webrtc::FakeFrameSource frame_source(
+      kVideoWidth, kVideoHeight, webrtc::kNumMicrosecsPerSec / kFramerate);
 
   // Set up additional stream 2.
   webrtc::FakeVideoRenderer renderer2;
@@ -2560,13 +2561,13 @@ TEST_F(WebRtcVideoChannelBaseTest, AddRemoveCapturerMultipleSources) {
   const int kTestHeight = 120;
   frame_forwarder1.IncomingCapturedFrame(frame_source.GetFrame(
       kTestWidth, kTestHeight, webrtc::VideoRotation::kVideoRotation_0,
-      rtc::kNumMicrosecsPerSec / kFramerate));
+      webrtc::kNumMicrosecsPerSec / kFramerate));
   time_controller_.AdvanceTime(kFrameDuration);
   EXPECT_FRAME_ON_RENDERER(renderer1, 1, kTestWidth, kTestHeight);
   // Capture a frame with additional capturer2, frames should be received
   frame_forwarder2.IncomingCapturedFrame(frame_source.GetFrame(
       kTestWidth, kTestHeight, webrtc::VideoRotation::kVideoRotation_0,
-      rtc::kNumMicrosecsPerSec / kFramerate));
+      webrtc::kNumMicrosecsPerSec / kFramerate));
   time_controller_.AdvanceTime(kFrameDuration);
   EXPECT_FRAME_ON_RENDERER(renderer2, 1, kTestWidth, kTestHeight);
   // Successfully remove the capturer.
@@ -2771,7 +2772,7 @@ class WebRtcVideoChannelTest : public WebRtcVideoEngineTest {
   WebRtcVideoChannelTest() : WebRtcVideoChannelTest("") {}
   explicit WebRtcVideoChannelTest(const char* field_trials)
       : WebRtcVideoEngineTest(field_trials),
-        frame_source_(1280, 720, rtc::kNumMicrosecsPerSec / 30),
+        frame_source_(1280, 720, webrtc::kNumMicrosecsPerSec / 30),
         last_ssrc_(0) {}
   void SetUp() override {
     AddSupportedVideoCodecType("VP8");
@@ -3610,7 +3611,7 @@ TEST_F(WebRtcVideoChannelTest, ReconfiguresEncodersWhenNotSending) {
 
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 30);
+                                       webrtc::kNumMicrosecsPerSec / 30);
 
   EXPECT_TRUE(
       send_channel_->SetVideoSend(last_ssrc_, nullptr, &frame_forwarder));
@@ -3634,7 +3635,7 @@ TEST_F(WebRtcVideoChannelTest, UsesCorrectSettingsForScreencast) {
 
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 30);
+                                       webrtc::kNumMicrosecsPerSec / 30);
   VideoOptions min_bitrate_options;
   min_bitrate_options.screencast_min_bitrate_kbps = kScreenshareMinBitrateKbps;
   EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, &min_bitrate_options,
@@ -3697,7 +3698,7 @@ TEST_F(WebRtcVideoChannelTest,
   options.is_screencast = true;
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 30);
+                                       webrtc::kNumMicrosecsPerSec / 30);
   EXPECT_TRUE(
       send_channel_->SetVideoSend(last_ssrc_, &options, &frame_forwarder));
   EXPECT_TRUE(send_channel_->SetSend(true));
@@ -8188,7 +8189,7 @@ TEST_F(WebRtcVideoChannelTest, SetRtpSendParametersPrioritySimulcastStreams) {
   send_channel_->SetSend(true);
   frame_forwarder.IncomingCapturedFrame(frame_source_.GetFrame(
       1920, 1080, webrtc::VideoRotation::kVideoRotation_0,
-      rtc::kNumMicrosecsPerSec / 30));
+      webrtc::kNumMicrosecsPerSec / 30));
 
   // Get and set the rtp encoding parameters.
   webrtc::RtpParameters parameters =
@@ -8283,7 +8284,7 @@ TEST_P(WebRtcVideoChannelScaleResolutionDownByTest, ScaleResolutionDownBy) {
   // (See field trial set at the top of the test.)
   webrtc::FakeFrameSource frame_source(test_params.resolution.width,
                                        test_params.resolution.height,
-                                       rtc::kNumMicrosecsPerSec / 30);
+                                       webrtc::kNumMicrosecsPerSec / 30);
   frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
 
   // Ensure the scaling is correct.
@@ -9483,7 +9484,7 @@ TEST_F(WebRtcVideoChannelTest,
   send_channel_->SetSend(true);
   frame_forwarder.IncomingCapturedFrame(frame_source_.GetFrame(
       1920, 1080, webrtc::VideoRotation::kVideoRotation_0,
-      rtc::kNumMicrosecsPerSec / 30));
+      webrtc::kNumMicrosecsPerSec / 30));
 
   // Check that all encodings are initially active.
   webrtc::RtpParameters parameters =
@@ -9983,7 +9984,7 @@ class WebRtcVideoChannelSimulcastTest : public ::testing::Test {
     // expected simulcast layers.
     webrtc::test::FrameForwarder frame_forwarder;
     webrtc::FakeFrameSource frame_source(capture_width, capture_height,
-                                         rtc::kNumMicrosecsPerSec / 30);
+                                         webrtc::kNumMicrosecsPerSec / 30);
 
     VideoOptions options;
     if (screenshare)
@@ -10240,7 +10241,7 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecast) {
   webrtc::FakeVideoSendStream* stream = AddSendStream();
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 30);
+                                       webrtc::kNumMicrosecsPerSec / 30);
   EXPECT_TRUE(
       send_channel_->SetVideoSend(last_ssrc_, nullptr, &frame_forwarder));
 
@@ -10299,7 +10300,7 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecastScaling) {
   webrtc::FakeVideoSendStream* stream = AddSendStream();
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 30);
+                                       webrtc::kNumMicrosecsPerSec / 30);
   EXPECT_TRUE(
       send_channel_->SetVideoSend(last_ssrc_, nullptr, &frame_forwarder));
 
@@ -10377,7 +10378,7 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSimulcast) {
       SetUpSimulcast(true, /*with_rtx=*/false);
   webrtc::test::FrameForwarder frame_forwarder;
   webrtc::FakeFrameSource frame_source(1280, 720,
-                                       rtc::kNumMicrosecsPerSec / 30);
+                                       webrtc::kNumMicrosecsPerSec / 30);
   EXPECT_TRUE(
       send_channel_->SetVideoSend(last_ssrc_, nullptr, &frame_forwarder));
 

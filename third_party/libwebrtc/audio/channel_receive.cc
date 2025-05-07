@@ -670,7 +670,7 @@ void ChannelReceive::SetReceiveCodecs(
 
 void ChannelReceive::OnRtpPacket(const RtpPacketReceived& packet) {
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);
-  int64_t now_ms = rtc::TimeMillis();
+  int64_t now_ms = TimeMillis();
 
   last_received_rtp_timestamp_ = packet.Timestamp();
   last_received_rtp_system_time_ms_ = now_ms;
@@ -768,7 +768,7 @@ void ChannelReceive::ReceivedRTCPPacket(const uint8_t* data, size_t length) {
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);
 
   // Store playout timestamp for the received RTCP packet
-  UpdatePlayoutTimestamp(true, rtc::TimeMillis());
+  UpdatePlayoutTimestamp(true, TimeMillis());
 
   // Deliver RTCP packet to RTP/RTCP module for parsing
   rtp_rtcp_->IncomingRtcpPacket(rtc::MakeArrayView(data, length));

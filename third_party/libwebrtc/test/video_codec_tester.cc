@@ -175,7 +175,7 @@ class Pacer {
       : settings_(settings), delay_(TimeDelta::Zero()) {}
 
   Timestamp Schedule(Timestamp timestamp) {
-    Timestamp now = Timestamp::Micros(rtc::TimeMicros());
+    Timestamp now = Timestamp::Micros(TimeMicros());
     if (settings_.mode == PacingMode::kNoPacing) {
       return now;
     }
@@ -234,7 +234,7 @@ class LimitedTaskQueue {
 
     ++queue_size_;
     task_queue_.PostTask([this, task = std::move(task), scheduled]() mutable {
-      Timestamp now = Timestamp::Millis(rtc::TimeMillis());
+      Timestamp now = Timestamp::Millis(TimeMillis());
       int64_t wait_ms = (scheduled - now).ms();
       if (wait_ms > 0) {
         RTC_CHECK_LT(wait_ms, 10000) << "Too high wait_ms " << wait_ms;
@@ -247,7 +247,7 @@ class LimitedTaskQueue {
   }
 
   void PostTask(absl::AnyInvocable<void() &&> task) {
-    Timestamp now = Timestamp::Millis(rtc::TimeMillis());
+    Timestamp now = Timestamp::Millis(TimeMillis());
     PostScheduledTask(std::move(task), now);
   }
 
@@ -369,7 +369,7 @@ class VideoCodecAnalyzer : public VideoCodecTester::VideoCodecStats {
  public:
   void StartEncode(const VideoFrame& video_frame,
                    const EncodingSettings& encoding_settings) {
-    int64_t encode_start_us = rtc::TimeMicros();
+    int64_t encode_start_us = TimeMicros();
     task_queue_.PostTask([this, timestamp_rtp = video_frame.rtp_timestamp(),
                           encoding_settings, encode_start_us]() {
       RTC_CHECK(frames_.find(timestamp_rtp) == frames_.end())
@@ -386,7 +386,7 @@ class VideoCodecAnalyzer : public VideoCodecTester::VideoCodecStats {
   }
 
   void FinishEncode(const EncodedImage& encoded_frame) {
-    int64_t encode_finished_us = rtc::TimeMicros();
+    int64_t encode_finished_us = TimeMicros();
     task_queue_.PostTask(
         [this, timestamp_rtp = encoded_frame.RtpTimestamp(),
          spatial_idx = encoded_frame.SpatialIndex().value_or(
@@ -421,7 +421,7 @@ class VideoCodecAnalyzer : public VideoCodecTester::VideoCodecStats {
   }
 
   void StartDecode(const EncodedImage& encoded_frame) {
-    int64_t decode_start_us = rtc::TimeMicros();
+    int64_t decode_start_us = TimeMicros();
     task_queue_.PostTask(
         [this, timestamp_rtp = encoded_frame.RtpTimestamp(),
          spatial_idx = encoded_frame.SpatialIndex().value_or(
@@ -458,7 +458,7 @@ class VideoCodecAnalyzer : public VideoCodecTester::VideoCodecStats {
   void FinishDecode(const VideoFrame& decoded_frame,
                     int spatial_idx,
                     std::optional<VideoFrame> ref_frame = std::nullopt) {
-    int64_t decode_finished_us = rtc::TimeMicros();
+    int64_t decode_finished_us = TimeMicros();
     task_queue_.PostTask([this, timestamp_rtp = decoded_frame.rtp_timestamp(),
                           spatial_idx, width = decoded_frame.width(),
                           height = decoded_frame.height(),

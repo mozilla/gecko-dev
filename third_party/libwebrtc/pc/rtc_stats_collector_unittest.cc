@@ -394,7 +394,7 @@ class RTCStatsCollectorWrapper {
         stats_collector_(
             RTCStatsCollector::Create(pc.get(),
                                       env,
-                                      50 * rtc::kNumMicrosecsPerMillisec)) {}
+                                      50 * kNumMicrosecsPerMillisec)) {}
 
   rtc::scoped_refptr<RTCStatsCollector> stats_collector() {
     return stats_collector_;
@@ -609,7 +609,7 @@ class RTCStatsCollectorWrapper {
             [&] { return callback->report() != nullptr; }, ::testing::IsTrue(),
             {.timeout = webrtc::TimeDelta::Millis(kGetStatsReportTimeoutMs)}),
         IsRtcOk());
-    int64_t after = rtc::TimeUTCMicros();
+    int64_t after = TimeUTCMicros();
     for (const RTCStats& stats : *callback->report()) {
       if (stats.type() == RTCRemoteInboundRtpStreamStats::kType ||
           stats.type() == RTCRemoteOutboundRtpStreamStats::kType) {
@@ -1459,10 +1459,10 @@ TEST_F(RTCStatsCollectorTest, CertificateStatsCache) {
   ASSERT_TRUE(first_local_cert1);
   ASSERT_TRUE(first_remote_cert0);
   ASSERT_TRUE(first_remote_cert1);
-  EXPECT_EQ(first_local_cert0->timestamp().us(), rtc::TimeMicros());
-  EXPECT_EQ(first_local_cert1->timestamp().us(), rtc::TimeMicros());
-  EXPECT_EQ(first_remote_cert0->timestamp().us(), rtc::TimeMicros());
-  EXPECT_EQ(first_remote_cert1->timestamp().us(), rtc::TimeMicros());
+  EXPECT_EQ(first_local_cert0->timestamp().us(), TimeMicros());
+  EXPECT_EQ(first_local_cert1->timestamp().us(), TimeMicros());
+  EXPECT_EQ(first_remote_cert0->timestamp().us(), TimeMicros());
+  EXPECT_EQ(first_remote_cert1->timestamp().us(), TimeMicros());
 
   // Replace all certificates.
   std::unique_ptr<CertificateInfo> updated_local_certinfo =
@@ -1511,10 +1511,10 @@ TEST_F(RTCStatsCollectorTest, CertificateStatsCache) {
   EXPECT_EQ(*second_remote_cert1->fingerprint,
             initial_remote_certinfo->fingerprints[1]);
   // But timestamps are up-to-date, because this is a fresh stats report.
-  EXPECT_EQ(second_local_cert0->timestamp().us(), rtc::TimeMicros());
-  EXPECT_EQ(second_local_cert1->timestamp().us(), rtc::TimeMicros());
-  EXPECT_EQ(second_remote_cert0->timestamp().us(), rtc::TimeMicros());
-  EXPECT_EQ(second_remote_cert1->timestamp().us(), rtc::TimeMicros());
+  EXPECT_EQ(second_local_cert0->timestamp().us(), TimeMicros());
+  EXPECT_EQ(second_local_cert1->timestamp().us(), TimeMicros());
+  EXPECT_EQ(second_remote_cert0->timestamp().us(), TimeMicros());
+  EXPECT_EQ(second_remote_cert1->timestamp().us(), TimeMicros());
   // The updated certificates are not part of the report yet.
   EXPECT_FALSE(GetCertificateStatsFromFingerprint(
       second_report, updated_local_certinfo->fingerprints[0]));
@@ -3869,7 +3869,7 @@ TEST(RTCStatsCollectorTestWithFakeCollector, ThreadUsageAndResultsMerging) {
   auto pc = rtc::make_ref_counted<FakePeerConnectionForStats>();
   rtc::scoped_refptr<FakeRTCStatsCollector> stats_collector(
       FakeRTCStatsCollector::Create(pc.get(), CreateEnvironment(),
-                                    50 * rtc::kNumMicrosecsPerMillisec));
+                                    50 * kNumMicrosecsPerMillisec));
   stats_collector->VerifyThreadUsageAndResultsMerging();
 }
 

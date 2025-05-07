@@ -1117,10 +1117,10 @@ void SocketTest::UdpReadyToSend(const IPAddress& loopback) {
   client->SetOption(Socket::OPT_SNDBUF, send_buffer_size);
 
   int error = 0;
-  uint32_t start_ms = rtc::Time();
+  uint32_t start_ms = Time();
   int sent_packet_num = 0;
   int expected_error = EWOULDBLOCK;
-  while (start_ms + 5000 > rtc::Time()) {
+  while (start_ms + 5000 > Time()) {
     int ret = client->SendTo(test_packet.get(), test_packet_size, test_addr);
     ++sent_packet_num;
     if (ret != test_packet_size) {
@@ -1241,7 +1241,7 @@ void SocketTest::SocketRecvTimestamp(const IPAddress& loopback) {
   SocketAddress address = socket->GetLocalAddress();
   sink.Monitor(socket.get());
 
-  int64_t send_time_1 = rtc::TimeMicros();
+  int64_t send_time_1 = TimeMicros();
   socket->SendTo("foo", 3, address);
 
   // Wait until data is available.
@@ -1256,7 +1256,7 @@ void SocketTest::SocketRecvTimestamp(const IPAddress& loopback) {
   const int64_t kTimeBetweenPacketsMs = 100;
   rtc::Thread::SleepMs(kTimeBetweenPacketsMs);
 
-  int64_t send_time_2 = rtc::TimeMicros();
+  int64_t send_time_2 = TimeMicros();
   socket->SendTo("bar", 3, address);
   // Wait until data is available.
   EXPECT_THAT(
@@ -1291,14 +1291,14 @@ void SocketTest::UdpSocketRecvTimestampUseRtcEpoch(const IPAddress& loopback) {
   client2->SendTo("foo", 3, address);
   std::unique_ptr<TestClient::Packet> packet_1 = client1->NextPacket(10000);
   ASSERT_TRUE(packet_1 != nullptr);
-  EXPECT_NEAR(packet_1->packet_time->us(), rtc::TimeMicros(), 1000'000);
+  EXPECT_NEAR(packet_1->packet_time->us(), TimeMicros(), 1000'000);
 
   rtc::Thread::SleepMs(100);
   client2->SendTo("bar", 3, address);
   std::unique_ptr<TestClient::Packet> packet_2 = client1->NextPacket(10000);
   ASSERT_TRUE(packet_2 != nullptr);
   EXPECT_GT(packet_2->packet_time->us(), packet_1->packet_time->us());
-  EXPECT_NEAR(packet_2->packet_time->us(), rtc::TimeMicros(), 1000'000);
+  EXPECT_NEAR(packet_2->packet_time->us(), TimeMicros(), 1000'000);
 }
 
 void SocketTest::SocketSendRecvWithEcn(const IPAddress& loopback) {

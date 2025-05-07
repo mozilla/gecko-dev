@@ -32,8 +32,7 @@ std::optional<double> FrameRateEstimator::GetAverageFps() const {
   }
   TimeDelta avg_frame_interval = time_span / (frame_times_.size() - 1);
 
-  return static_cast<double>(rtc::kNumMicrosecsPerSec) /
-         avg_frame_interval.us();
+  return static_cast<double>(kNumMicrosecsPerSec) / avg_frame_interval.us();
 }
 
 std::optional<double> FrameRateEstimator::GetAverageFps(Timestamp now) {

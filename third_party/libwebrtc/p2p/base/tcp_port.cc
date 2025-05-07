@@ -399,7 +399,7 @@ int TCPConnection::Send(const void* data,
   tcp_port()->CopyPortInformationToPacketInfo(
       &modified_options.info_signaled_after_sent);
   int sent = socket_->Send(data, size, modified_options);
-  int64_t now = rtc::TimeMillis();
+  int64_t now = webrtc::TimeMillis();
   if (sent < 0) {
     stats_.sent_discarded_packets++;
     error_ = socket_->GetError();

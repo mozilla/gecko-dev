@@ -191,8 +191,8 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
         {.network_thread = &thread_,
          .socket_factory = socket_factory(),
          .network = network_,
-         .ice_username_fragment = rtc::CreateRandomString(16),
-         .ice_password = rtc::CreateRandomString(22),
+         .ice_username_fragment = webrtc::CreateRandomString(16),
+         .ice_password = webrtc::CreateRandomString(22),
          .field_trials = field_trials},
         0, 0, stun_servers, std::nullopt);
     stun_port_->SetIceTiebreaker(kTiebreakerDefault);
@@ -230,8 +230,8 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
         {.network_thread = &thread_,
          .socket_factory = socket_factory(),
          .network = network_,
-         .ice_username_fragment = rtc::CreateRandomString(16),
-         .ice_password = rtc::CreateRandomString(22),
+         .ice_username_fragment = webrtc::CreateRandomString(16),
+         .ice_password = webrtc::CreateRandomString(22),
          .field_trials = field_trials},
         socket_.get(), false, std::nullopt);
     stun_port_->set_server_addresses(stun_servers);
@@ -263,7 +263,7 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
  protected:
   static void SetUpTestSuite() {
     // Ensure the RNG is inited.
-    rtc::InitRandom(NULL, 0);
+    webrtc::InitRandom(NULL, 0);
   }
 
   void OnPortComplete(cricket::Port* /* port */) {

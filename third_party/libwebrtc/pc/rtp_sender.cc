@@ -229,7 +229,7 @@ RtpParameters RtpSenderBase::GetParametersInternalWithAllLayers() const {
 RtpParameters RtpSenderBase::GetParameters() const {
   RTC_DCHECK_RUN_ON(signaling_thread_);
   RtpParameters result = GetParametersInternal();
-  last_transaction_id_ = rtc::CreateRandomUuid();
+  last_transaction_id_ = CreateRandomUuid();
   result.transaction_id = last_transaction_id_.value();
   return result;
 }

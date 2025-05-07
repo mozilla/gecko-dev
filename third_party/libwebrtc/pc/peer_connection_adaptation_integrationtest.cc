@@ -58,7 +58,7 @@ TrackWithPeriodicSource CreateTrackWithPeriodicSource(
     rtc::scoped_refptr<PeerConnectionFactoryInterface> factory) {
   FakePeriodicVideoSource::Config periodic_track_source_config;
   periodic_track_source_config.frame_interval_ms = 100;
-  periodic_track_source_config.timestamp_offset_ms = rtc::TimeMillis();
+  periodic_track_source_config.timestamp_offset_ms = TimeMillis();
   rtc::scoped_refptr<FakePeriodicVideoTrackSource> periodic_track_source =
       rtc::make_ref_counted<FakePeriodicVideoTrackSource>(
           periodic_track_source_config, /* remote */ false);

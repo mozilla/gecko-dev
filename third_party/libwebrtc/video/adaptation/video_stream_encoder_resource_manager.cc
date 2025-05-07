@@ -481,7 +481,7 @@ void VideoStreamEncoderResourceManager::OnEncodeCompleted(
   // Inform `encode_usage_resource_` of the encode completed event.
   uint32_t timestamp = encoded_image.RtpTimestamp();
   int64_t capture_time_us =
-      encoded_image.capture_time_ms_ * rtc::kNumMicrosecsPerMillisec;
+      encoded_image.capture_time_ms_ * kNumMicrosecsPerMillisec;
   encode_usage_resource_->OnEncodeCompleted(
       timestamp, time_sent_in_us, capture_time_us, encode_duration_us);
   quality_scaler_resource_->OnEncodeCompleted(encoded_image, time_sent_in_us);
@@ -646,7 +646,7 @@ CpuOveruseOptions VideoStreamEncoderResourceManager::GetCpuOveruseOptions()
     options.high_encode_usage_threshold_percent = 200;
   }
   if (experiment_cpu_load_estimator_) {
-    options.filter_time_ms = 5 * rtc::kNumMillisecsPerSec;
+    options.filter_time_ms = 5 * kNumMillisecsPerSec;
   }
   return options;
 }

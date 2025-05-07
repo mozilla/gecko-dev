@@ -1430,8 +1430,7 @@ void Call::DeliverRtpPacket(
     // Repair packet_time_us for clock resets by comparing a new read of
     // the same clock (TimeUTCMicros) to a monotonic clock reading.
     packet_time_us = receive_time_calculator_->ReconcileReceiveTimes(
-        packet_time_us, rtc::TimeUTCMicros(),
-        env_.clock().TimeInMicroseconds());
+        packet_time_us, TimeUTCMicros(), env_.clock().TimeInMicroseconds());
     packet.set_arrival_time(Timestamp::Micros(packet_time_us));
   }
 

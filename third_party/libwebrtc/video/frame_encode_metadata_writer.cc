@@ -100,7 +100,7 @@ void FrameEncodeMetadataWriter::OnEncodeStarted(const VideoFrame& frame) {
   timing_frames_info_.resize(num_spatial_layers_);
   FrameMetadata metadata;
   metadata.rtp_timestamp = frame.rtp_timestamp();
-  metadata.encode_start_time_ms = rtc::TimeMillis();
+  metadata.encode_start_time_ms = TimeMillis();
   metadata.ntp_time_ms = frame.ntp_time_ms();
   metadata.timestamp_us = frame.timestamp_us();
   metadata.rotation = frame.rotation();
@@ -109,10 +109,9 @@ void FrameEncodeMetadataWriter::OnEncodeStarted(const VideoFrame& frame) {
   metadata.packet_infos = frame.packet_infos();
   for (size_t si = 0; si < num_spatial_layers_; ++si) {
     RTC_DCHECK(timing_frames_info_[si].frames.empty() ||
-               rtc::TimeDiff(
-                   frame.render_time_ms(),
-                   timing_frames_info_[si].frames.back().timestamp_us / 1000) >=
-                   0);
+               TimeDiff(frame.render_time_ms(),
+                        timing_frames_info_[si].frames.back().timestamp_us /
+                            1000) >= 0);
     // If stream is disabled due to low bandwidth OnEncodeStarted still will be
     // called and have to be ignored.
     if (timing_frames_info_[si].target_bitrate_bytes_per_sec == 0)
@@ -145,7 +144,7 @@ void FrameEncodeMetadataWriter::FillMetadataAndTimingInfo(
   std::optional<int64_t> encode_start_ms;
   uint8_t timing_flags = VideoSendTiming::kNotTriggered;
 
-  int64_t encode_done_ms = rtc::TimeMillis();
+  int64_t encode_done_ms = TimeMillis();
 
   encode_start_ms =
       ExtractEncodeStartTimeAndFillMetadata(simulcast_svc_idx, encoded_image);

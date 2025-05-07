@@ -48,7 +48,7 @@ void NetEqStatsGetter::AfterGetAudio(int64_t time_now_ms,
   // get audio. It is called independently from get audio in practice.
   const auto lifetime_stat = neteq->GetLifetimeStatistics();
   if (last_stats_query_time_ms_ == 0 ||
-      rtc::TimeDiff(time_now_ms, last_stats_query_time_ms_) >=
+      TimeDiff(time_now_ms, last_stats_query_time_ms_) >=
           stats_query_interval_ms_) {
     NetEqNetworkStatistics stats;
     RTC_CHECK_EQ(neteq->NetworkStatistics(&stats), 0);

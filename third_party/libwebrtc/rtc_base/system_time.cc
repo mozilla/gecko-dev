@@ -66,7 +66,7 @@ int64_t SystemTimeNanos() {
   // TODO(deadbeef): Do we need to handle the case when CLOCK_MONOTONIC is not
   // supported?
   clock_gettime(CLOCK_MONOTONIC, &ts);
-  ticks = rtc::kNumNanosecsPerSec * static_cast<int64_t>(ts.tv_sec) +
+  ticks = kNumNanosecsPerSec * static_cast<int64_t>(ts.tv_sec) +
           static_cast<int64_t>(ts.tv_nsec);
 #elif defined(WINUWP)
   ticks = WinUwpSystemTimeNanos();

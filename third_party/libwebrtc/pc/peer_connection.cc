@@ -564,7 +564,7 @@ PeerConnection::PeerConnection(
       // o line MUST be representable with a "64 bit signed integer".
       // Due to this constraint session id `session_id_` is max limited to
       // LLONG_MAX.
-      session_id_(rtc::ToString(rtc::CreateRandomId64() & LLONG_MAX)),
+      session_id_(rtc::ToString(CreateRandomId64() & LLONG_MAX)),
       data_channel_controller_(this),
       message_handler_(signaling_thread()),
       codec_lookup_helper_(
@@ -1132,11 +1132,10 @@ PeerConnection::AddTransceiver(
   // that sender ID is already in use.
   std::string sender_id = (track && !rtp_manager()->FindSenderById(track->id())
                                ? track->id()
-                               : rtc::CreateRandomUuid());
+                               : CreateRandomUuid());
   auto sender = rtp_manager()->CreateSender(
       media_type, sender_id, track, init.stream_ids, parameters.encodings);
-  auto receiver =
-      rtp_manager()->CreateReceiver(media_type, rtc::CreateRandomUuid());
+  auto receiver = rtp_manager()->CreateReceiver(media_type, CreateRandomUuid());
   auto transceiver = rtp_manager()->CreateAndAddTransceiver(sender, receiver);
   transceiver->internal()->set_direction(init.direction);
 
@@ -1173,7 +1172,7 @@ rtc::scoped_refptr<RtpSenderInterface> PeerConnection::CreateSender(
   // generate a random stream ID if not specified.
   std::vector<std::string> stream_ids;
   if (stream_id.empty()) {
-    stream_ids.push_back(rtc::CreateRandomUuid());
+    stream_ids.push_back(CreateRandomUuid());
     RTC_LOG(LS_INFO)
         << "No stream_id specified for sender. Generated stream ID: "
         << stream_ids[0];
@@ -1185,7 +1184,7 @@ rtc::scoped_refptr<RtpSenderInterface> PeerConnection::CreateSender(
   rtc::scoped_refptr<RtpSenderProxyWithInternal<RtpSenderInternal>> new_sender;
   if (kind == MediaStreamTrackInterface::kAudioKind) {
     auto audio_sender =
-        AudioRtpSender::Create(env_, worker_thread(), rtc::CreateRandomUuid(),
+        AudioRtpSender::Create(env_, worker_thread(), CreateRandomUuid(),
                                legacy_stats_.get(), rtp_manager());
     audio_sender->SetMediaChannel(rtp_manager()->voice_media_send_channel());
     new_sender = RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
@@ -1193,7 +1192,7 @@ rtc::scoped_refptr<RtpSenderInterface> PeerConnection::CreateSender(
     rtp_manager()->GetAudioTransceiver()->internal()->AddSender(new_sender);
   } else if (kind == MediaStreamTrackInterface::kVideoKind) {
     auto video_sender = VideoRtpSender::Create(
-        env_, worker_thread(), rtc::CreateRandomUuid(), rtp_manager());
+        env_, worker_thread(), CreateRandomUuid(), rtp_manager());
     video_sender->SetMediaChannel(rtp_manager()->video_media_send_channel());
     new_sender = RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
         signaling_thread(), video_sender);

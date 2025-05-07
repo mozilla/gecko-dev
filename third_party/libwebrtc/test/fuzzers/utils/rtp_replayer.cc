@@ -156,7 +156,7 @@ void RtpReplayer::ReplayPackets(
   int64_t replay_start_ms = -1;
 
   while (true) {
-    int64_t now_ms = rtc::TimeMillis();
+    int64_t now_ms = TimeMillis();
     if (replay_start_ms == -1) {
       replay_start_ms = now_ms;
     }

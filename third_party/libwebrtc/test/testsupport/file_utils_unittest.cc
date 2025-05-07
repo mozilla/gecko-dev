@@ -121,7 +121,7 @@ TEST_F(FileUtilsTest, OutputPathFromRootWorkingDir) {
 }
 
 TEST_F(FileUtilsTest, RandomOutputPathFromUnchangedWorkingDir) {
-  rtc::SetRandomTestMode(true);
+  SetRandomTestMode(true);
   std::string fixed_first_uuid = "def01482-f829-429a-bfd4-841706e92cdd";
   std::string expected_end = ExpectedRootDirByPlatform() + fixed_first_uuid +
                              std::string(kPathDelimiter);
@@ -133,7 +133,7 @@ TEST_F(FileUtilsTest, RandomOutputPathFromUnchangedWorkingDir) {
 TEST_F(FileUtilsTest, RandomOutputPathFromRootWorkingDir) {
   ASSERT_EQ(0, chdir(kPathDelimiter.data()));
 
-  rtc::SetRandomTestMode(true);
+  SetRandomTestMode(true);
   std::string fixed_first_uuid = "def01482-f829-429a-bfd4-841706e92cdd";
   std::string expected_end = ExpectedRootDirByPlatform() + fixed_first_uuid +
                              std::string(kPathDelimiter);

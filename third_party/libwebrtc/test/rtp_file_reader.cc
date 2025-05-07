@@ -557,7 +557,7 @@ class PcapReader : public RtpFileReaderImpl {
         // truncating to uint32_t is ok.
         uint64_t timestamp_ms =
             ((static_cast<uint64_t>(ts_upper) << 32) | ts_lower) /
-            rtc::kNumMicrosecsPerSec;
+            kNumMicrosecsPerSec;
         marker.time_offset_ms =
             static_cast<uint32_t>(timestamp_ms) - stream_start_ms;
         TRY_PCAP(ReadPacketHeader(&marker));

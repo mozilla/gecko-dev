@@ -155,7 +155,7 @@ const DataRate kStartBitrate = DataRate::KilobitsPerSec(600);
 const DataRate kSimulcastTargetBitrate = DataRate::KilobitsPerSec(3150);
 const int kMaxInitialFramedrop = 4;
 const int kDefaultFramerate = 30;
-const int64_t kFrameIntervalMs = rtc::kNumMillisecsPerSec / kDefaultFramerate;
+const int64_t kFrameIntervalMs = kNumMillisecsPerSec / kDefaultFramerate;
 const int64_t kProcessIntervalMs = 1000;
 const VideoEncoder::ResolutionBitrateLimits
     kEncoderBitrateLimits540p(960 * 540, 100 * 1000, 100 * 1000, 2000 * 1000);
@@ -3018,7 +3018,7 @@ TEST_F(VideoStreamEncoderTest, TestCpuDowngrades_BalancedMode) {
 
     // Simulate the framerate we've been asked to adapt to.
     const int fps = std::min(kFramerateFps, last_wants.max_framerate_fps);
-    const int frame_interval_ms = rtc::kNumMillisecsPerSec / fps;
+    const int frame_interval_ms = kNumMillisecsPerSec / fps;
     VideoSendStream::Stats mock_stats = stats_proxy_->GetStats();
     mock_stats.input_frame_rate = fps;
     stats_proxy_->SetMockStats(mock_stats);
@@ -3054,7 +3054,7 @@ TEST_F(VideoStreamEncoderTest, TestCpuDowngrades_BalancedMode) {
 
     // Simulate the framerate we've been asked to adapt to.
     const int fps = std::min(kFramerateFps, last_wants.max_framerate_fps);
-    const int frame_interval_ms = rtc::kNumMillisecsPerSec / fps;
+    const int frame_interval_ms = kNumMillisecsPerSec / fps;
     VideoSendStream::Stats mock_stats = stats_proxy_->GetStats();
     mock_stats.input_frame_rate = fps;
     stats_proxy_->SetMockStats(mock_stats);
@@ -7015,7 +7015,7 @@ TEST_F(VideoStreamEncoderTest,
 
 TEST_F(VideoStreamEncoderTest, DoesntAdaptDownPastMinFramerate) {
   const int kFramerateFps = 5;
-  const int kFrameIntervalMs = rtc::kNumMillisecsPerSec / kFramerateFps;
+  const int kFrameIntervalMs = kNumMillisecsPerSec / kFramerateFps;
   const int kFrameWidth = 1280;
   const int kFrameHeight = 720;
 

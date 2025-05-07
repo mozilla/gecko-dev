@@ -562,7 +562,7 @@ LegacyStatsCollector::~LegacyStatsCollector() {
 
 // Wallclock time in ms.
 double LegacyStatsCollector::GetTimeNow() {
-  return static_cast<double>(rtc::TimeUTCMillis());
+  return static_cast<double>(TimeUTCMillis());
 }
 
 // Adds a MediaStream with tracks that can be used as a `selector` in a call
@@ -671,7 +671,7 @@ void LegacyStatsCollector::UpdateStats(
   // will be ignored. Using a monotonic clock specifically for this, while using
   // a UTC clock for the reports themselves.
   const int64_t kMinGatherStatsPeriodMs = 50;
-  int64_t cache_now_ms = rtc::TimeMillis();
+  int64_t cache_now_ms = TimeMillis();
   if (cache_timestamp_ms_ != 0 &&
       cache_timestamp_ms_ + kMinGatherStatsPeriodMs > cache_now_ms) {
     return;

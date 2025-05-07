@@ -530,7 +530,7 @@ bool StunMessage::ValidateFingerprint(const char* data, size_t size) {
 
 // static
 std::string StunMessage::GenerateTransactionId() {
-  return rtc::CreateRandomString(kStunTransactionIdLength);
+  return webrtc::CreateRandomString(kStunTransactionIdLength);
 }
 
 bool StunMessage::IsStunMethod(rtc::ArrayView<int> methods,

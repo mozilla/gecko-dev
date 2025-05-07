@@ -385,9 +385,9 @@ void InternalAddTraceEvent(char phase,
   if (g_event_logging_active.load() == 0)
     return;
 
-  g_event_logger.load()->AddTraceEvent(
-      name, category_enabled, phase, num_args, arg_names, arg_types, arg_values,
-      rtc::TimeMicros(), 1, rtc::CurrentThreadId());
+  g_event_logger.load()->AddTraceEvent(name, category_enabled, phase, num_args,
+                                       arg_names, arg_types, arg_values,
+                                       TimeMicros(), 1, rtc::CurrentThreadId());
 }
 
 }  // namespace

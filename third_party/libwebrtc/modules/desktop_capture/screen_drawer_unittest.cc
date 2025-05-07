@@ -60,13 +60,13 @@ void TestScreenDrawerLock(
       // it's still possible the second lock won't be created before the
       // following sleep has been finished, the possibility will be
       // significantly reduced.
-      const int64_t current_ms = rtc::TimeMillis();
+      const int64_t current_ms = TimeMillis();
       // SleepMs() may return early. See
       // https://cs.chromium.org/chromium/src/third_party/webrtc/system_wrappers/include/sleep.h?rcl=4a604c80cecce18aff6fc5e16296d04675312d83&l=20
       // But we need to ensure at least 100 ms has been passed before unlocking
       // `lock`.
-      while (rtc::TimeMillis() - current_ms < kLockDurationMs) {
-        SleepMs(kLockDurationMs - (rtc::TimeMillis() - current_ms));
+      while (TimeMillis() - current_ms < kLockDurationMs) {
+        SleepMs(kLockDurationMs - (TimeMillis() - current_ms));
       }
     }
 
@@ -87,13 +87,13 @@ void TestScreenDrawerLock(
     SleepMs(1);
   }
 
-  const int64_t start_ms = rtc::TimeMillis();
+  const int64_t start_ms = TimeMillis();
   ready.store(true);
   // This is unlikely to fail, but just in case current thread is too laggy and
   // cause the SleepMs() in RunTask() to finish before we creating another lock.
-  ASSERT_GT(kLockDurationMs, rtc::TimeMillis() - start_ms);
+  ASSERT_GT(kLockDurationMs, TimeMillis() - start_ms);
   ctor();
-  ASSERT_LE(kLockDurationMs, rtc::TimeMillis() - start_ms);
+  ASSERT_LE(kLockDurationMs, TimeMillis() - start_ms);
 }
 
 }  // namespace
@@ -118,7 +118,7 @@ TEST(ScreenDrawerTest, DISABLED_DrawRectangles) {
   }
 
   DesktopRect rect = drawer->DrawableRegion();
-  Random random(rtc::TimeMicros());
+  Random random(TimeMicros());
   for (int i = 0; i < 100; i++) {
     // Make sure we at least draw one pixel.
     int left = random.Rand(rect.left(), rect.right() - 2);

@@ -669,7 +669,7 @@ void VideoAnalyzer::PrintResults() {
   const double total_freezes_duration_ms_double =
       static_cast<double>(total_freezes_duration_ms_);
   const double total_frames_duration_ms_double =
-      total_inter_frame_delay_ * rtc::kNumMillisecsPerSec;
+      total_inter_frame_delay_ * kNumMillisecsPerSec;
 
   if (total_frames_duration_ms_double > 0) {
     GetGlobalMetricsLogger()->LogSingleValueMetric(

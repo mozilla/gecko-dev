@@ -660,7 +660,7 @@ TEST_P(DataChannelIntegrationTest, StressTestUnorderedSctpDataChannel) {
     size_t length =
         (rand() % kMaxMessageSize) + 1;  // NOLINT (rand_r instead of rand)
     std::string message;
-    ASSERT_TRUE(rtc::CreateRandomString(length, &message));
+    ASSERT_TRUE(CreateRandomString(length, &message));
     caller()->data_channel()->Send(DataBuffer(message));
     callee()->data_channel()->Send(DataBuffer(message));
     sent_messages.push_back(message);

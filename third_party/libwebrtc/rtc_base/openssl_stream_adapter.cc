@@ -100,9 +100,10 @@ constexpr SrtpCipherMapEntry kSrtpCipherMap[] = {
 bool g_use_time_callback_for_testing = false;
 // Not used in production code. Actual time should be relative to Jan 1, 1970.
 void TimeCallbackForTesting(const SSL* ssl, struct timeval* out_clock) {
-  int64_t time = TimeNanos();
-  out_clock->tv_sec = time / kNumNanosecsPerSec;
-  out_clock->tv_usec = (time % kNumNanosecsPerSec) / kNumNanosecsPerMicrosec;
+  int64_t time = webrtc::TimeNanos();
+  out_clock->tv_sec = time / webrtc::kNumNanosecsPerSec;
+  out_clock->tv_usec =
+      (time % webrtc::kNumNanosecsPerSec) / webrtc::kNumNanosecsPerMicrosec;
 }
 #endif
 

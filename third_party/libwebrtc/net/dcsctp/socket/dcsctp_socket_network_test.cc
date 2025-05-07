@@ -190,7 +190,7 @@ class SctpActor : public DcSctpSocketCallbacks {
     return timeout_factory_.CreateTimeout(precision);
   }
 
-  Timestamp Now() override { return Timestamp::Millis(rtc::TimeMillis()); }
+  Timestamp Now() override { return Timestamp::Millis(webrtc::TimeMillis()); }
 
   uint32_t GetRandomInt(uint32_t low, uint32_t high) override {
     return random_.Rand(low, high);
@@ -306,7 +306,7 @@ class SctpActor : public DcSctpSocketCallbacks {
   std::string log_prefix() const {
     webrtc::StringBuilder sb;
     sb << log_prefix_;
-    sb << rtc::TimeMillis();
+    sb << webrtc::TimeMillis();
     sb << ": ";
     return sb.Release();
   }

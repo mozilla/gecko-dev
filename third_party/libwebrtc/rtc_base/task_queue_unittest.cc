@@ -62,7 +62,7 @@ TEST(TaskQueueTest, DISABLED_PostDelayedHighRes) {
   Event event;
   TaskQueueForTest queue(kQueueName, TaskQueueFactory::Priority::HIGH);
 
-  uint32_t start = rtc::TimeMillis();
+  uint32_t start = TimeMillis();
   queue.PostDelayedTask(
       [&event, &queue] {
         EXPECT_TRUE(queue.IsCurrent());
@@ -70,7 +70,7 @@ TEST(TaskQueueTest, DISABLED_PostDelayedHighRes) {
       },
       TimeDelta::Millis(3));
   EXPECT_TRUE(event.Wait(TimeDelta::Seconds(1)));
-  uint32_t end = rtc::TimeMillis();
+  uint32_t end = TimeMillis();
   // These tests are a little relaxed due to how "powerful" our test bots can
   // be.  Most recently we've seen windows bots fire the callback after 94-99ms,
   // which is why we have a little bit of leeway backwards as well.
