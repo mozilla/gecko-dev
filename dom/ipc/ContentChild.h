@@ -814,11 +814,6 @@ class ContentChild final : public PContentChild,
   mozilla::ipc::IPCResult RecvUpdateMediaCodecsSupported(
       RemoteDecodeIn aLocation, const media::MediaCodecsSupported& aSupported);
 
-#ifdef MOZ_WMF_CDM
-  mozilla::ipc::IPCResult RecvUpdateMFCDMOriginEntries(
-      const nsTArray<IPCOriginStatusEntry>& aEntries);
-#endif
-
 #ifdef NIGHTLY_BUILD
   virtual void OnChannelReceivedMessage(const Message& aMsg) override;
 

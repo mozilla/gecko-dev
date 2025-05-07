@@ -25,7 +25,6 @@ class ErrorResult;
 
 namespace dom {
 
-class IPCOriginStatusEntry;
 struct MediaKeySystemAccessRequest;
 
 class MediaKeySystemAccess final : public nsISupports, public nsWrapperCache {
@@ -37,11 +36,6 @@ class MediaKeySystemAccess final : public nsISupports, public nsWrapperCache {
   explicit MediaKeySystemAccess(nsPIDOMWindowInner* aParent,
                                 const nsAString& aKeySystem,
                                 const MediaKeySystemConfiguration& aConfig);
-
-#ifdef MOZ_WMF_CDM
-  static void UpdateMFCDMOriginEntries(
-      const nsTArray<IPCOriginStatusEntry>& aEntries);
-#endif
 
  protected:
   ~MediaKeySystemAccess();

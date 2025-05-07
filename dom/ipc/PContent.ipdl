@@ -174,10 +174,6 @@ using mozilla::dom::PrivateAttributionImpressionType from "mozilla/dom/PrivateAt
 using nsIClipboard::ClipboardType from "nsIClipboard.h";
 using nsIUrlClassifierFeature::listType from "nsIUrlClassifierFeature.h";
 
-#ifdef MOZ_WMF_CDM
-using nsIOriginStatusEntry from "nsIWindowsMediaFoundationCDMOriginsListService.h";
-#endif
-
 union ChromeRegistryItem
 {
     ChromePackage;
@@ -475,13 +471,6 @@ struct BroadcastBlobURLUnregistrationRequest {
     nsCString url;
     nullable nsIPrincipal principal;
 };
-
-#ifdef MOZ_WMF_CDM
-struct IPCOriginStatusEntry {
-    nsCString origin;
-    int32_t status;
-};
-#endif
 
 /**
  * The PContent protocol is a top-level protocol between the UI process
@@ -1068,10 +1057,6 @@ child:
     async InitNextGenLocalStorageEnabled(bool enabled);
 
     async PRemotePrintJob();
-
-#ifdef MOZ_WMF_CDM
-    async UpdateMFCDMOriginEntries(IPCOriginStatusEntry[] aEntries);
-#endif
 
 parent:
     async SynchronizeLayoutHistoryState(MaybeDiscardedBrowsingContext aContext,

@@ -63,7 +63,6 @@ class nsIDumpGCAndCCLogsCallback;
 class nsIRemoteTab;
 class nsITimer;
 class ParentIdleListener;
-class nsIOriginsListLoadCallback;
 class nsIWidget;
 class nsIX509Cert;
 
@@ -1623,10 +1622,6 @@ class ContentParent final : public PContentParent,
   bool mIsNotifiedShutdownSuccess = false;
 
   nsCOMPtr<nsIThread> mClipboardContentAnalysisThread;
-
-#ifdef MOZ_WMF_CDM
-  RefPtr<nsIOriginsListLoadCallback> mOriginsListCallback;
-#endif
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(ContentParent, NS_CONTENTPARENT_IID)

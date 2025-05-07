@@ -331,60 +331,6 @@
 #include "nsIToolkitProfileService.h"
 #include "nsIToolkitProfile.h"
 
-#ifdef MOZ_WMF_CDM
-#  include "nsIWindowsMediaFoundationCDMOriginsListService.h"
-
-namespace mozilla {
-class OriginsListLoadCallback final : public nsIOriginsListLoadCallback {
- public:
-  explicit OriginsListLoadCallback(ContentParent* aContentParent)
-      : mContentParent(aContentParent) {
-    MOZ_ASSERT(mContentParent);
-  }
-
-  NS_DECL_ISUPPORTS
-
-  // nsIOriginsListLoadCallback
-  NS_IMETHODIMP OnOriginsListLoaded(nsIArray* aEntries) {
-    if (NS_WARN_IF(!mContentParent)) {
-      return NS_ERROR_FAILURE;
-    }
-
-    uint32_t length = 0;
-    nsresult rv = aEntries->GetLength(&length);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
-    nsTArray<dom::IPCOriginStatusEntry> ipcEntries;
-    for (uint32_t i = 0; i < length; ++i) {
-      nsCOMPtr<nsIOriginStatusEntry> entry;
-      aEntries->QueryElementAt(i, NS_GET_IID(nsIOriginStatusEntry),
-                               getter_AddRefs(entry));
-      if (!entry) {
-        NS_WARNING("OriginsListLoadCallback, skip bad entry?");
-        continue;
-      }
-      nsAutoCString origin;
-      int32_t status = 0;
-      entry->GetOrigin(origin);
-      entry->GetStatus(&status);
-      dom::IPCOriginStatusEntry ipcEntry(origin, status);
-      ipcEntries.AppendElement(ipcEntry);
-    }
-    Unused << mContentParent->SendUpdateMFCDMOriginEntries(ipcEntries);
-    return NS_OK;
-  }
-
- private:
-  ~OriginsListLoadCallback() = default;
-
-  RefPtr<ContentParent> mContentParent;
-};
-NS_IMPL_ISUPPORTS(OriginsListLoadCallback, nsIOriginsListLoadCallback)
-}  // namespace mozilla
-#endif
-
 static NS_DEFINE_CID(kCClipboardCID, NS_CLIPBOARD_CID);
 
 using base::KillProcess;
@@ -1930,17 +1876,6 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
 
   RecvRemoveGeolocationListener();
 
-#ifdef MOZ_WMF_CDM
-  if (mOriginsListCallback) {
-    nsCOMPtr<nsIWindowsMediaFoundationCDMOriginsListService> rsService =
-        do_GetService("@mozilla.org/media/wmfcdm-origins-list;1");
-    if (rsService) {
-      rsService->RemoveCallback(mOriginsListCallback);
-    }
-    mOriginsListCallback = nullptr;
-  }
-#endif
-
   // Destroy our JSProcessActors, and reject any pending queries.
   JSActorDidDestroy();
 
@@ -2951,17 +2886,6 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
                                          nsIStyleSheetService::AUTHOR_SHEET);
     }
   }
-
-#ifdef MOZ_WMF_CDM
-  if (!mOriginsListCallback) {
-    mOriginsListCallback = new OriginsListLoadCallback(this);
-    nsCOMPtr<nsIWindowsMediaFoundationCDMOriginsListService> rsService =
-        do_GetService("@mozilla.org/media/wmfcdm-origins-list;1");
-    if (rsService) {
-      rsService->SetCallback(mOriginsListCallback);
-    }
-  }
-#endif
 
 #ifdef MOZ_SANDBOX
   bool shouldSandbox = true;

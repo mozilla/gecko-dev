@@ -292,10 +292,6 @@
 #  include "mozilla/CodeCoverageHandler.h"
 #endif
 
-#ifdef MOZ_WMF_CDM
-#  include "mozilla/dom/MediaKeySystemAccess.h"
-#endif
-
 extern mozilla::LazyLogModule gSHIPBFCacheLog;
 
 using namespace mozilla;
@@ -4676,14 +4672,6 @@ void ContentChild::ConfigureThreadPerformanceHints(
     mPerformanceHintSession = nullptr;
   }
 }
-
-#ifdef MOZ_WMF_CDM
-mozilla::ipc::IPCResult ContentChild::RecvUpdateMFCDMOriginEntries(
-    const nsTArray<IPCOriginStatusEntry>& aEntries) {
-  MediaKeySystemAccess::UpdateMFCDMOriginEntries(aEntries);
-  return IPC_OK();
-}
-#endif
 
 }  // namespace dom
 
