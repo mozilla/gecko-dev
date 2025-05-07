@@ -930,3 +930,140 @@ add_task(function test_disabled_ping_with_test_reset() {
     "Metric in now-enabled ping stores its value."
   );
 });
+
+/*** Tests to cover non-test prefix runtime metric and ping registration API */
+add_task(function jog_register_boolean_works() {
+  Services.fog.registerRuntimeMetric(
+    "boolean",
+    "jog_cat_1",
+    "jog_bool",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+  Glean.jogCat1.jogBool.set(false);
+  Assert.equal(false, Glean.jogCat1.jogBool.testGetValue());
+});
+
+add_task(async function jog_register_event_works() {
+  Services.fog.registerRuntimeMetric(
+    "event",
+    "jog_cat",
+    "jog_event_no_extra",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+  Glean.jogCat.jogEventNoExtra.record();
+  var events = Glean.jogCat.jogEventNoExtra.testGetValue();
+  Assert.equal(1, events.length);
+  Assert.equal("jog_cat", events[0].category);
+  Assert.equal("jog_event_no_extra", events[0].name);
+
+  Services.fog.registerRuntimeMetric(
+    "event",
+    "jog_cat",
+    "jog_event",
+    ["test-ping"],
+    `"ping"`,
+    false,
+    JSON.stringify({ allowed_extra_keys: ["extra1", "extra2"] })
+  );
+  let extra = { extra1: "can set extras", extra2: "passing more data" };
+  Glean.jogCat.jogEvent.record(extra);
+  events = Glean.jogCat.jogEvent.testGetValue();
+  Assert.equal(1, events.length);
+  Assert.equal("jog_cat", events[0].category);
+  Assert.equal("jog_event", events[0].name);
+  Assert.deepEqual(extra, events[0].extra);
+
+  Services.fog.registerRuntimeMetric(
+    "event",
+    "jog_cat",
+    "jog_event_with_extra",
+    ["test-ping"],
+    `"ping"`,
+    false,
+    JSON.stringify({
+      allowed_extra_keys: ["extra1", "extra2", "extra3_longer_name"],
+    })
+  );
+  let extra2 = {
+    extra1: "can set extras",
+    extra2: 37,
+    extra3_longer_name: false,
+  };
+  Glean.jogCat.jogEventWithExtra.record(extra2);
+  events = Glean.jogCat.jogEventWithExtra.testGetValue();
+  Assert.equal(1, events.length);
+  Assert.equal("jog_cat", events[0].category);
+  Assert.equal("jog_event_with_extra", events[0].name);
+  let expectedExtra = {
+    extra1: "can set extras",
+    extra2: "37",
+    extra3_longer_name: "false",
+  };
+  Assert.deepEqual(expectedExtra, events[0].extra);
+
+  // Invalid extra keys don't crash, the event is not recorded.
+  let extra3 = {
+    extra1_nonexistent_extra: "this does not crash",
+  };
+  Glean.jogCat.jogEventWithExtra.record(extra3);
+  // And test methods throw appropriately
+  Assert.throws(
+    () => Glean.jogCat.jogEventWithExtra.testGetValue(),
+    /DataError/
+  );
+});
+
+/**
+ * Test multiple metrics in same category
+ */
+add_task(function test_multiple_metrics_same_category() {
+  Services.fog.registerRuntimeMetric(
+    "counter",
+    "multi_cat",
+    "metric1",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+  Services.fog.registerRuntimeMetric(
+    "boolean",
+    "multi_cat",
+    "metric2",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+
+  Glean.multiCat.metric1.add(5);
+  Glean.multiCat.metric2.set(true);
+
+  Assert.equal(5, Glean.multiCat.metric1.testGetValue());
+  Assert.equal(true, Glean.multiCat.metric2.testGetValue());
+});
+
+add_task(async function jog_ping_works() {
+  const kReason = "reason-1";
+  Services.fog.registerRuntimePing(
+    "my-ping",
+    true,
+    true,
+    true,
+    true,
+    true,
+    [],
+    [kReason],
+    true,
+    []
+  );
+  let submitted = false;
+  GleanPings.myPing.testBeforeNextSubmit(reason => {
+    submitted = true;
+    Assert.equal(kReason, reason);
+  });
+  GleanPings.myPing.submit("reason-1");
+  Assert.ok(submitted, "Ping must have been submitted");
+});
