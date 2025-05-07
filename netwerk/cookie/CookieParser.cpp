@@ -699,7 +699,7 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
   // check for max-age attribute first; this overrides expires attribute
   int64_t maxage = 0;
   if (ParseMaxAgeAttribute(aMaxage, &maxage)) {
-    if (maxage == INT64_MIN || maxage == INT64_MAX) {
+    if (maxage == INT64_MIN) {
       aCookieData.expiry() = maxage;
     } else {
       CheckedInt<int64_t> value(aCurrentTime);
