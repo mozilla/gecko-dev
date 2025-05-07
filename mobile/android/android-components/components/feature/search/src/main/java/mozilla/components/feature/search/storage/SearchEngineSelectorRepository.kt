@@ -62,8 +62,8 @@ class SearchEngineSelectorRepository(
     ): SearchMiddleware.BundleStorage.Bundle {
         try {
             val config = SearchUserEnvironment(
-                locale = locale.toString(),
-                region = region.toString(),
+                locale = locale.languageTag,
+                region = region.home,
                 experiment = searchEngineSelectorConfig.experiment,
                 version = searchEngineSelectorConfig.appVersion,
                 updateChannel = searchEngineSelectorConfig.updateChannel.into(),
@@ -133,3 +133,6 @@ data class SearchEngineSelectorConfig(
     val selector: SearchEngineSelector,
     val service: RemoteSettingsService,
 )
+
+private val Locale.languageTag: String
+    get() = "$language-$country"
