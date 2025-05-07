@@ -87,26 +87,31 @@ using namespace mozilla::dom;
 
 template already_AddRefed<nsRange> nsRange::Create(
     const RangeBoundary& aStartBoundary, const RangeBoundary& aEndBoundary,
-    ErrorResult& aRv);
+    ErrorResult& aRv, AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
 template already_AddRefed<nsRange> nsRange::Create(
     const RangeBoundary& aStartBoundary, const RawRangeBoundary& aEndBoundary,
-    ErrorResult& aRv);
+    ErrorResult& aRv, AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
 template already_AddRefed<nsRange> nsRange::Create(
     const RawRangeBoundary& aStartBoundary, const RangeBoundary& aEndBoundary,
-    ErrorResult& aRv);
+    ErrorResult& aRv, AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
 template already_AddRefed<nsRange> nsRange::Create(
     const RawRangeBoundary& aStartBoundary,
-    const RawRangeBoundary& aEndBoundary, ErrorResult& aRv);
+    const RawRangeBoundary& aEndBoundary, ErrorResult& aRv,
+    AllowRangeCrossShadowBoundary aAlloCrossShadowBoundary);
 
-template nsresult nsRange::SetStartAndEnd(const RangeBoundary& aStartBoundary,
-                                          const RangeBoundary& aEndBoundary);
-template nsresult nsRange::SetStartAndEnd(const RangeBoundary& aStartBoundary,
-                                          const RawRangeBoundary& aEndBoundary);
 template nsresult nsRange::SetStartAndEnd(
-    const RawRangeBoundary& aStartBoundary, const RangeBoundary& aEndBoundary);
+    const RangeBoundary& aStartBoundary, const RangeBoundary& aEndBoundary,
+    AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
+template nsresult nsRange::SetStartAndEnd(
+    const RangeBoundary& aStartBoundary, const RawRangeBoundary& aEndBoundary,
+    AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
+template nsresult nsRange::SetStartAndEnd(
+    const RawRangeBoundary& aStartBoundary, const RangeBoundary& aEndBoundary,
+    AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
 template nsresult nsRange::SetStartAndEnd(
     const RawRangeBoundary& aStartBoundary,
-    const RawRangeBoundary& aEndBoundary);
+    const RawRangeBoundary& aEndBoundary,
+    AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
 
 template void nsRange::DoSetRange(const RangeBoundary& aStartBoundary,
                                   const RangeBoundary& aEndBoundary,
@@ -209,11 +214,13 @@ already_AddRefed<nsRange> nsRange::Create(nsINode* aNode) {
 template <typename SPT, typename SRT, typename EPT, typename ERT>
 already_AddRefed<nsRange> nsRange::Create(
     const RangeBoundaryBase<SPT, SRT>& aStartBoundary,
-    const RangeBoundaryBase<EPT, ERT>& aEndBoundary, ErrorResult& aRv) {
+    const RangeBoundaryBase<EPT, ERT>& aEndBoundary, ErrorResult& aRv,
+    AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary) {
   // If we fail to initialize the range a lot, nsRange should have a static
   // initializer since the allocation cost is not cheap in hot path.
   RefPtr<nsRange> range = nsRange::Create(aStartBoundary.GetContainer());
-  aRv = range->SetStartAndEnd(aStartBoundary, aEndBoundary);
+  aRv = range->SetStartAndEnd(aStartBoundary, aEndBoundary,
+                              aAllowCrossShadowBoundary);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
