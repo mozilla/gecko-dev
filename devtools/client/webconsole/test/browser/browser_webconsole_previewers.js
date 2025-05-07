@@ -3,44 +3,27 @@
 
 "use strict";
 
-const TEST_URI = `data:text/html,<!DOCTYPE html>Test for object previews in console
-    <script>
-      globalThis.myPolicy = trustedTypes.createPolicy("myPolicy", {
-        createHTML: s => "<my-policy>" + s + "</my-policy>",
-        createScript: s => "/* myPolicy */ " + s,
-        createScriptURL: s => s + "?myPolicy",
-      });
-    </script>`;
+const { JSObjectsTestUtils, CONTEXTS } = ChromeUtils.importESModule(
+  "resource://testing-common/JSObjectsTestUtils.sys.mjs"
+);
+JSObjectsTestUtils.init(this);
+
+const EXPECTED_VALUES_FILE = "browser_webconsole_previewers.snapshot.mjs";
 
 add_task(async function () {
-  await pushPref("dom.security.trusted_types.enabled", true);
-  const hud = await openNewTabAndConsole(TEST_URI);
+  // nsHttpServer does not support https
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+  const hud = await openNewTabAndConsole("http://example.com");
 
-  const TESTS = [
-    {
-      input: `myPolicy.createHTML("hello")`,
-      preview: `TrustedHTML "<my-policy>hello</my-policy>"`,
-    },
-    {
-      input: `myPolicy.createScript("const hello = 'world'")`,
-      preview: `TrustedScript "/* myPolicy */ const hello = 'world'"`,
-    },
-    {
-      input: `myPolicy.createScriptURL("https://example.com/trusted")`,
-      preview: `TrustedScriptURL https://example.com/trusted?myPolicy`,
-    },
-    {
-      input: `new BigInt64Array(Array.from({length: 20}, (_, i) => BigInt(i)))`,
-      preview: `BigInt64Array(20) [ 0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, … ]`,
-    },
-  ];
+  await JSObjectsTestUtils.runTest(
+    EXPECTED_VALUES_FILE,
+    async function ({ context, expression }) {
+      if (context == CONTEXTS.CHROME) {
+        return undefined;
+      }
 
-  for (const { input, preview } of TESTS) {
-    const message = await executeAndWaitForResultMessage(hud, input, "");
-    is(
-      message.node.innerText.trim(),
-      preview,
-      `Got expected preview for \`${input}\``
-    );
-  }
+      const message = await executeAndWaitForResultMessage(hud, expression, "");
+      return message.node.innerText.trim();
+    }
+  );
 });

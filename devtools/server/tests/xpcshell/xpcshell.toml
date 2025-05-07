@@ -219,6 +219,9 @@ skip-if = [
 
 ["test_interrupt.js"]
 
+["test_javascript_object_actors.js"]
+support-files = ["test_javascript_object_actors.snapshot.mjs"]
+
 ["test_layout-reflows-observer.js"]
 
 ["test_listsources-01.js"]

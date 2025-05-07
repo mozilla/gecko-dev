@@ -55,6 +55,7 @@ Automated tests
    DevTools mochitests <tests/mochitest-devtools.md>
    Node tests <tests/node-tests.md>
    Memory Allocation tests </devtools/tests/memory/index.md>
+   JavaScript Objects tests<tests/js-object-tests.md>
    Writing tests <tests/writing-tests.md>
    Debugging intermittent failures <tests/debugging-intermittents.md>
    Performance tests overview<tests/performance-tests-overview.md>
