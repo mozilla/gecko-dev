@@ -131,10 +131,10 @@ index a5c568240b..6e7e407358 100644
    webrtc::MutexLock lock(&callback_lock_);
  
 diff --git a/modules/video_capture/linux/pipewire_session.h b/modules/video_capture/linux/pipewire_session.h
-index 84273ea695..1f3a00614f 100644
+index 5420a7f150..aed3fbb1bf 100644
 --- a/modules/video_capture/linux/pipewire_session.h
 +++ b/modules/video_capture/linux/pipewire_session.h
-@@ -29,6 +29,7 @@
+@@ -28,6 +28,7 @@
  namespace webrtc {
  namespace videocapturemodule {
  
@@ -142,7 +142,7 @@ index 84273ea695..1f3a00614f 100644
  class PipeWireSession;
  class VideoCaptureModulePipeWire;
  
-@@ -97,6 +98,21 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
+@@ -96,6 +97,21 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
  
    void Init(VideoCaptureOptions::Callback* callback,
              int fd = kInvalidPipeWireFd);
@@ -164,7 +164,7 @@ index 84273ea695..1f3a00614f 100644
    const std::deque<PipeWireNode::PipeWireNodePtr>& nodes() const {
      return nodes_;
    }
-@@ -111,6 +127,8 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
+@@ -110,6 +126,8 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
    void StopPipeWire();
    void PipeWireSync();
  
@@ -173,7 +173,7 @@ index 84273ea695..1f3a00614f 100644
    static void OnCoreError(void* data,
                            uint32_t id,
                            int seq,
-@@ -133,7 +151,13 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
+@@ -132,7 +150,13 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
    VideoCaptureOptions::Callback* callback_ RTC_GUARDED_BY(&callback_lock_) =
        nullptr;
  

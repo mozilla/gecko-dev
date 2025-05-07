@@ -1,33 +1,63 @@
 From: Jan Grulich <jgrulich@redhat.com>
-Date: Mon, 24 Mar 2025 10:09:00 +0000
-Subject: Bug 1954903 - WebRTC backport: PipeWire camera: drop redundant
- <pipewire/core.h> include r=pehrsons,webrtc-reviewers
+Date: Mon, 14 Apr 2025 16:37:00 +0000
+Subject: Bug 1954903 - Update libwebrtc GN configs r=webrtc-reviewers,mjf
 
-We already include main <pipewire/pipewire.h> header, which includes all
-the PipeWire headers, making <pipewire/core.h> to be included twice.
+Update GN config files for the special handling in gn_processor.py for
+gbm, drm and PipeWire libraries.
 
-This breaks Firefox builds, where using system libraries we have to list
-all system headers, making Firefox to unnecessarily list "core.h" header
-in the list, while "pipewire.h" should be enough.
+Also remove libwebrtc/third_party/[gbm,drm,pipewire] libs for which we
+now have a special handling in gn_processor.py.
 
-This is a simple backport of an WebRTC upstream change.
-Upstream commit: 537158885bc60ffe64c2c0c8a7c89d74cb7c105b
-
-Differential Revision: https://phabricator.services.mozilla.com/D242277
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ff19ec147fca0f7179d7fe9f478e1aef8bfe3e57
+Differential Revision: https://phabricator.services.mozilla.com/D242101
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/506d4efaf2dc29472623beff64cc2bd0d5555afd
 ---
- modules/video_capture/linux/pipewire_session.h | 1 -
- 1 file changed, 1 deletion(-)
+ modules/desktop_capture/BUILD.gn | 4 ++++
+ modules/portal/BUILD.gn          | 4 +---
+ modules/video_capture/BUILD.gn   | 2 +-
+ 3 files changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/modules/video_capture/linux/pipewire_session.h b/modules/video_capture/linux/pipewire_session.h
-index 1f3a00614f..aed3fbb1bf 100644
---- a/modules/video_capture/linux/pipewire_session.h
-+++ b/modules/video_capture/linux/pipewire_session.h
-@@ -11,7 +11,6 @@
- #ifndef MODULES_VIDEO_CAPTURE_LINUX_PIPEWIRE_SESSION_H_
- #define MODULES_VIDEO_CAPTURE_LINUX_PIPEWIRE_SESSION_H_
+diff --git a/modules/desktop_capture/BUILD.gn b/modules/desktop_capture/BUILD.gn
+index 2245146890..5b66f2c3ff 100644
+--- a/modules/desktop_capture/BUILD.gn
++++ b/modules/desktop_capture/BUILD.gn
+@@ -554,6 +554,10 @@ rtc_library("desktop_capture") {
+       "../../rtc_base:sanitizer",
+       "../portal",
+     ]
++
++    if (build_with_mozilla) {
++      defines += [ "WEBRTC_USE_PIPEWIRE" ]
++    }
+   }
  
--#include <pipewire/core.h>
- #include <pipewire/pipewire.h>
- 
- #include <deque>
+   if (rtc_enable_win_wgc) {
+diff --git a/modules/portal/BUILD.gn b/modules/portal/BUILD.gn
+index 7993e482f4..09060cd867 100644
+--- a/modules/portal/BUILD.gn
++++ b/modules/portal/BUILD.gn
+@@ -138,11 +138,9 @@ if (!build_with_mozilla) {
+       deps -= [ ":pipewire_stubs" ]
+       defines -= [ "WEBRTC_DLOPEN_PIPEWIRE" ]
+       public_deps = [
+-        "../../third_party/pipewire",
+-        "../../third_party/drm",
+-        "../../third_party/gbm",
+         "../../third_party/libepoxy"
+       ]
++      defines += [ "WEBRTC_USE_PIPEWIRE" ]
+     }
+   }
+ }
+diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
+index 42a5011b49..294ef9f0fd 100644
+--- a/modules/video_capture/BUILD.gn
++++ b/modules/video_capture/BUILD.gn
+@@ -110,7 +110,7 @@ if (!build_with_chromium || is_linux || is_chromeos) {
+         ]
+         if (build_with_mozilla) {
+           configs -= [ "../portal:pipewire_base" ]
+-          public_deps = [ "../../third_party/pipewire" ]
++          defines = [ "WEBRTC_USE_PIPEWIRE" ]
+         }
+       }
+     }
