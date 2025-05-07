@@ -221,6 +221,11 @@ TEST_HARNESS_FILES.testing.mochitest.DoHServer.node_ip.lib += [
     "../xpcshell/node_ip/lib/ip.js",
 ]
 
+if CONFIG["MOZ_BUILD_APP"] != "mobile/android":
+    TEST_HARNESS_FILES.testing.mochitest += [
+        "extensions/**.xpi",
+    ]
+
 with Files("**"):
     BUG_COMPONENT = ("Testing", "Mochitest")
     SCHEDULES.exclusive = ["mochitest"]
