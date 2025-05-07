@@ -733,15 +733,12 @@ var TelemetryReportingPolicyImpl = {
           m => m.id === "NEW_USER_TOU_ONBOARDING"
         );
       // Use default message variables, overriding with values from any set
-      // fallback prefs other than the minimum and current policy versions.
+      // fallback prefs.
       this._nimbusVariables = {
         ...preonboardingMessage,
         ...Object.fromEntries(
           Object.entries(this._nimbusVariables).filter(
-            ([key, value]) =>
-              value !== null &&
-              key !== "minimumPolicyVersion" &&
-              key !== "currentPolicyVersion"
+            ([_, value]) => value !== null
           )
         ),
       };
