@@ -4,10 +4,14 @@
 
 const lazy = {};
 
-ChromeUtils.defineESModuleGetters(lazy, {
-  NetworkHelper:
-    "resource://devtools/shared/network-observer/NetworkHelper.sys.mjs",
-});
+ChromeUtils.defineESModuleGetters(
+  lazy,
+  {
+    NetworkHelper:
+      "resource://devtools/shared/network-observer/NetworkHelper.sys.mjs",
+  },
+  { global: "contextual" }
+);
 
 /**
  * Global cache session object.
