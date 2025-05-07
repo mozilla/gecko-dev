@@ -18,6 +18,7 @@ server.registerPathHandler("/bfcachetestpage", (request, response) => {
 <script>
   window.addEventListener("pageshow", (event) => {
     event.stopImmediatePropagation();
+    dump("pageshow fired with persisted=" + event.persisted + "\\n");
     if (window.browserTestSendMessage) {
       browserTestSendMessage("content-script-show");
     }
@@ -25,6 +26,7 @@ server.registerPathHandler("/bfcachetestpage", (request, response) => {
   window.addEventListener("pagehide", (event) => {
     event.stopImmediatePropagation();
     if (window.browserTestSendMessage) {
+      dump("pagehide fired with persisted=" + event.persisted + "\\n");
       if (event.persisted) {
         browserTestSendMessage("content-script-hide");
       } else {
@@ -33,6 +35,24 @@ server.registerPathHandler("/bfcachetestpage", (request, response) => {
     }
   }, true);
 </script>`);
+});
+
+add_setup(() => {
+  // A test below wants to prevent a page from entering the bfcache by adding
+  // an "unload" listener.
+  Services.prefs.setBoolPref(
+    "docshell.shistory.bfcache.allow_unload_listeners",
+    false
+  );
+
+  // When the bfcache is force-disabled, the process would go away upon
+  // navigating elsewhere (example.com -> example.org). Keep the process alive
+  // for a bit longer to enable us to verify state within the process.
+  Services.prefs.setIntPref("dom.ipc.processReuse.unusedGraceMs", 30000);
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref("dom.ipc.processReuse.unusedGraceMs");
+    Services.ppmm.releaseCachedProcesses();
+  });
 });
 
 add_task(async function test_contentscript_context_isolation() {
@@ -77,92 +97,129 @@ add_task(async function test_contentscript_context_isolation() {
   let contentPage = await ExtensionTestUtils.loadContentPage(
     "http://example.com/bfcachetestpage"
   );
+  // When a cross-origin navigation happens, the contentPage's process may
+  // change. Get a handle to the spawn helper to communicate with the process.
+  // When the page is in the bfcache, the process is guaranteed to be around.
+  const initialProcessSP = contentPage.getCurrentContentProcessSpecialPowers();
+
   await extension.startup();
   await extension.awaitMessage("content-script-ready");
 
   // Get the content script context and check that it points to the correct window.
-  await contentPage.legacySpawn(extension.id, async extensionId => {
+  await contentPage.spawn([extension.id], async extensionId => {
     const { ExtensionContent } = ChromeUtils.importESModule(
       "resource://gre/modules/ExtensionContent.sys.mjs"
     );
-    this.context = ExtensionContent.getContextByExtensionId(
+    let context = ExtensionContent.getContextByExtensionId(
       extensionId,
       this.content
     );
 
-    Assert.ok(this.context, "Got content script context");
+    Assert.ok(context, "Got content script context");
 
     Assert.equal(
-      this.context.contentWindow,
+      context.contentWindow,
       this.content,
       "Context's contentWindow property is correct"
     );
 
-    // Navigate so that the content page is hidden in the bfcache.
-
-    this.content.location = "http://example.org/dummy?noscripthere1";
+    // To allow later contentPage.spawn() calls to verify that the contexts
+    // are identical, remember it.
+    ExtensionContent._rememberedContextForTest = context;
   });
+
+  // Navigate so that the content page is hidden in the bfcache.
+  await contentPage.loadURL("http://example.org/dummy?noscripthere1");
+  info("Expecting page to enter bfcache");
 
   await extension.awaitMessage("content-script-hide");
 
-  await contentPage.legacySpawn(null, async () => {
+  await initialProcessSP.spawn([], async () => {
+    const { ExtensionContent } = ChromeUtils.importESModule(
+      "resource://gre/modules/ExtensionContent.sys.mjs"
+    );
+    let context = ExtensionContent._rememberedContextForTest;
     Assert.equal(
-      this.context.contentWindow,
+      context.contentWindow,
       null,
       "Context's contentWindow property is null"
     );
-    Assert.ok(this.context.sandbox, "Context's sandbox exists");
+    Assert.ok(context.sandbox, "Context's sandbox exists");
+  });
 
+  await contentPage.spawn([], async () => {
     // Navigate back so the content page is resurrected from the bfcache.
     this.content.history.back();
   });
 
   await extension.awaitMessage("content-script-show");
 
-  async function testWithoutBfcache() {
-    return contentPage.legacySpawn(null, async () => {
-      Assert.equal(
-        this.context.contentWindow,
-        this.content,
-        "Context's contentWindow property is correct"
-      );
-      Assert.ok(this.context.sandbox, "Context's sandbox exists before unload");
+  await contentPage.spawn([extension.id], async extensionId => {
+    const { ExtensionContent } = ChromeUtils.importESModule(
+      "resource://gre/modules/ExtensionContent.sys.mjs"
+    );
+    let context = ExtensionContent.getContextByExtensionId(
+      extensionId,
+      this.content
+    );
+    Assert.equal(
+      context,
+      ExtensionContent._rememberedContextForTest,
+      "Same as initial context"
+    );
+    Assert.equal(
+      context.contentWindow,
+      this.content,
+      "Context's contentWindow property is correct"
+    );
+    Assert.ok(context.sandbox, "Context's sandbox exists before unload");
+  });
 
-      let contextUnloadedPromise = new Promise(resolve => {
-        this.context.callOnClose({ close: resolve });
-      });
+  await initialProcessSP.spawn([], async () => {
+    const { ExtensionContent } = ChromeUtils.importESModule(
+      "resource://gre/modules/ExtensionContent.sys.mjs"
+    );
+    let context = ExtensionContent._rememberedContextForTest;
+    // Note: this is same as "this.content" inside contentPage.spawn():
+    let contentOfContentPage = context.contentWindow;
 
-      // Now add an "unload" event listener, which should prevent a page from entering the bfcache.
-      await new Promise(resolve => {
-        this.content.addEventListener("unload", () => {
-          Assert.equal(
-            this.context.contentWindow,
-            this.content,
-            "Context's contentWindow property should be non-null at unload"
-          );
-          resolve();
-        });
-        this.content.location = "http://example.org/dummy?noscripthere2";
-      });
-
-      await contextUnloadedPromise;
+    let contextUnloadedPromise = new Promise(resolve => {
+      context.callOnClose({ close: resolve });
     });
-  }
-  await runWithPrefs(
-    [["docshell.shistory.bfcache.allow_unload_listeners", false]],
-    testWithoutBfcache
-  );
+    // Now add an "unload" event listener, which should prevent a page from entering the bfcache.
+    await new Promise(resolve => {
+      contentOfContentPage.addEventListener("unload", () => {
+        Assert.equal(
+          context.contentWindow,
+          contentOfContentPage,
+          "Context's contentWindow property should be non-null at unload"
+        );
+        resolve();
+      });
+      contentOfContentPage.location = "http://example.org/dummy?noscripthere2";
+    });
+
+    await contextUnloadedPromise;
+  });
 
   await extension.awaitMessage("content-script-unload");
 
-  await contentPage.legacySpawn(null, async () => {
+  // Note: we set dom.ipc.processReuse.unusedGraceMs before, to make sure that
+  // the process stays for a bit longer despite the contentPage having been
+  // unloaded without bfcache entry.
+  await initialProcessSP.spawn([], async () => {
+    const { ExtensionContent } = ChromeUtils.importESModule(
+      "resource://gre/modules/ExtensionContent.sys.mjs"
+    );
+    let context = ExtensionContent._rememberedContextForTest;
     Assert.equal(
-      this.context.sandbox,
+      context.sandbox,
       null,
       "Context's sandbox has been destroyed after unload"
     );
   });
 
   await contentPage.close();
+  await initialProcessSP.destroy();
   await extension.unload();
 });

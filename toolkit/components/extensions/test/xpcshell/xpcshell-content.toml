@@ -44,7 +44,6 @@ run-sequentially = "very high failure rate in parallel"
 ["test_ext_shadowdom.js"]
 
 ["test_ext_web_accessible_resources.js"]
-skip-if = ["sessionHistoryInParent"] # Bug 1762638
 
 ["test_ext_web_accessible_resources_matches.js"]
 run-sequentially = "very high failure rate in parallel"
