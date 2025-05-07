@@ -212,7 +212,7 @@ module.exports = logTest(
         }
       });
 
-      if (browserName === "firefox") {
+      if (browserName === "firefox" && protocol === "h3") {
         const statsScript = `
         const gDashboard = Cc["@mozilla.org/network/dashboard;1"].getService(
           Ci.nsIDashboard

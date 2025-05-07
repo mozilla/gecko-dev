@@ -184,6 +184,7 @@ class NetworkBench(BasePythonSupport):
                     ],
                 },
             ]
+        protocols = ["h3"] if self.http_version == "h3" else ["h1", "h2"]
         caddyfile_content = {
             "admin": {"disabled": True},
             "apps": {
@@ -191,7 +192,7 @@ class NetworkBench(BasePythonSupport):
                     "servers": {
                         "server1": {
                             "listen": [port_str],
-                            "protocols": ["h3"],
+                            "protocols": protocols,
                             "routes": routes,
                             "tls_connection_policies": [
                                 {"certificate_selection": {"any_tag": ["cert1"]}}
@@ -601,8 +602,15 @@ class NetworkBench(BasePythonSupport):
                     f"--chrome.args=--origin-to-force-quic-on=localhost:{self.caddy_port}",
                     f"--chrome.args=--ignore-certificate-errors-spki-list={spki}",
                 ]
-        else:
+        elif self.http_version == "h2":
             self.caddy_port = self.find_free_port(socket.SOCK_STREAM)
+            if self._is_chrome:
+                spki = "VCIlmPM9NkgFQtrs4Oa5TeFcDu6MWRTKSNdePEhOgD8="
+                cmd += [
+                    f"--chrome.args=--ignore-certificate-errors-spki-list={spki}",
+                ]
+        else:
+            raise Exception("Unsupported HTTP version")
 
         self.get_network_conditions(cmd)
         temp_file_path = None

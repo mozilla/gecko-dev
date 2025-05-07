@@ -970,6 +970,8 @@ browsertime-network-bench:
         subtests:
             - [h3-upload, h3-up]
             - [h3-download, h3-down]
+            - [h2-upload, h2-up]
+            - [h2-download, h2-down]
         network-conditions:
             by-subtest:
                 h3-upload:
@@ -979,6 +981,18 @@ browsertime-network-bench:
                     - [10M_40ms, "0"]
                     - [100M_40ms, "0"]
                 h3-download:
+                    - [1M_400ms, "0"]
+                    - [300M_40ms, "0"]
+                    - [300M_80ms, "0"]
+                    - [10M_40ms, "0"]
+                    - [100M_40ms, "0"]
+                h2-upload:
+                    - [1M_400ms, "0"]
+                    - [300M_40ms, "0"]
+                    - [300M_80ms, "0"]
+                    - [10M_40ms, "0"]
+                    - [100M_40ms, "0"]
+                h2-download:
                     - [1M_400ms, "0"]
                     - [300M_40ms, "0"]
                     - [300M_80ms, "0"]

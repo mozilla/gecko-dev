@@ -254,6 +254,8 @@ suites:
             trr-w-next: "Tests DNS lookup time on a NextDNS TRR server, with the TRR connection warmed up."
             upload: "Measures HTTP/2 file upload throughput with a remote server"
             upload-h3: "Measures HTTP/3 file upload throughput with a remote server"
+            h2-upload: "Measures HTTP/2 file upload throughput with a local server"
+            h2-download: "Measures HTTP/2 download throughput with a local server"
             h3-upload: "Measures HTTP/3 file upload throughput with a local server"
             h3-download: "Measures HTTP/3 download throughput with a local server"
             throttled: "Pageload test using a throttled network environment"
