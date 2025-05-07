@@ -58,6 +58,7 @@ import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivate
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.CloseCurrentTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.TabCounterClicked
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.tabstray.ext.isActiveDownload
@@ -201,24 +202,28 @@ class BrowserToolbarMiddleware(
     )
 
     private fun buildEndBrowserActions(tabsCount: Int): List<Action> =
-        listOf(
-            TabCounterAction(
-                count = tabsCount,
-                contentDescription = dependencies.context.getString(
-                    R.string.mozac_tab_counter_open_tab_tray,
-                    tabsCount.toString(),
+        when (!dependencies.context.shouldAddNavigationBar()) {
+            true -> listOf(
+                TabCounterAction(
+                    count = tabsCount,
+                    contentDescription = dependencies.context.getString(
+                        R.string.mozac_tab_counter_open_tab_tray,
+                        tabsCount.toString(),
+                    ),
+                    showPrivacyMask = dependencies.browsingModeManager.mode == Private,
+                    onClick = TabCounterClicked,
+                    onLongClick = buildTabCounterMenu(),
                 ),
-                showPrivacyMask = dependencies.browsingModeManager.mode == Private,
-                onClick = TabCounterClicked,
-                onLongClick = buildTabCounterMenu(),
-            ),
-            ActionButton(
-                icon = R.drawable.mozac_ic_ellipsis_vertical_24,
-                contentDescription = R.string.content_description_menu,
-                tint = R.attr.actionPrimary,
-                onClick = MenuClicked,
-            ),
-        )
+                ActionButton(
+                    icon = R.drawable.mozac_ic_ellipsis_vertical_24,
+                    contentDescription = R.string.content_description_menu,
+                    tint = R.attr.actionPrimary,
+                    onClick = MenuClicked,
+                ),
+            )
+
+            false -> emptyList()
+        }
 
     private fun buildTabCounterMenu() = BrowserToolbarMenu {
         listOf(

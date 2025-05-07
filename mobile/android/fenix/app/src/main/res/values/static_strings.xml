@@ -93,6 +93,8 @@
     <string name="preferences_debug_settings_menu_redesign" translatable="false">Enable Menu Redesign</string>
     <!-- Label for enabling Firefox Suggest -->
     <string name="preferences_debug_settings_fxsuggest" translatable="false">Enable Firefox Suggest</string>
+    <!-- Label for enabling Navigation Toolbar -->
+    <string name="preferences_debug_settings_navigation_toolbar" translatable="false">Enable Navigation Toolbar</string>
     <!-- Label for enabling the redesigned toolbar -->
     <string name="preferences_debug_settings_composable_toolbar" translatable="false">Enable Composable Toolbar</string>
     <!-- Label for enabling Felt Privacy -->
@@ -176,8 +178,10 @@
     <string name="debug_drawer_cfr_tools_toolbar_cfr_title">Toolbar CFRs</string>
     <!-- The title of the other CFRs section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_other_cfr_title">Other CFRs</string>
+    <!-- The homepage nav toolbar CFR title in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_homepage_nav_toolbar_title">Homepage Navigation Toolbar</string>
     <!-- The homepage nav toolbar CFR description in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_homepage_nav_toolbar_description" moz:removedIn="140" tools:ignore="UnusedResources">Displayed when the user is on the homepage and sees the new navigation bar for the first time. Note that this CFR must be displayed in order for the Homepage Sync CFR to be shown.</string>
+    <string name="debug_drawer_cfr_tools_homepage_nav_toolbar_description">Displayed when the user is on the homepage and sees the new navigation bar for the first time. Note that this CFR must be displayed in order for the Homepage Sync CFR to be shown.</string>
     <!-- The homepage search bar CFR title in CFR Tools -->
     <string name="debug_drawer_cfr_tools_homepage_searchbar_title">Homepage Searchbar</string>
     <!-- The homepage searchbar CFR description in CFR Tools -->
@@ -195,9 +199,9 @@
     <!-- The tab auto close banner description in CFR Tools -->
     <string name="debug_drawer_cfr_tools_tab_auto_close_description">Displayed the first time the user has at least 6 normal tabs or 6 private tabs open at once and a CFR has not been shown in at least 3 days.</string>
     <!-- The navigation buttons CFR title in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_navigation_buttons_title" moz:removedIn="140" tools:ignore="UnusedResources">Navigation Buttons</string>
+    <string name="debug_drawer_cfr_tools_navigation_buttons_title">Navigation Buttons</string>
     <!-- The navigation buttons CFR description in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_navigation_buttons_description" moz:removedIn="140" tools:ignore="UnusedResources">Displayed the first time the user double taps on the forward or backward navigation buttons within 5 seconds.</string>
+    <string name="debug_drawer_cfr_tools_navigation_buttons_description">Displayed the first time the user double taps on the forward or backward navigation buttons within 5 seconds.</string>
     <!-- The open in app CFR title in CFR Tools -->
     <string name="debug_drawer_cfr_tools_open_in_app_title">Open in App</string>
     <!-- The open in app CFR description in CFR Tools -->

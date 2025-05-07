@@ -49,11 +49,27 @@ class CfrToolsPreferencesMiddleware(
                     ),
                 )
             }
+            is CfrToolsAction.HomepageNavToolbarShownToggled -> {
+                cfrPreferencesRepository.updateCfrPreference(
+                    CfrPreferencesRepository.CfrPreferenceUpdate(
+                        preferenceType = CfrPreferencesRepository.CfrPreference.HomepageNavToolbar,
+                        value = context.state.homepageNavToolbarShown,
+                    ),
+                )
+            }
             is CfrToolsAction.HomepageSearchBarShownToggled -> {
                 cfrPreferencesRepository.updateCfrPreference(
                     CfrPreferencesRepository.CfrPreferenceUpdate(
                         preferenceType = CfrPreferencesRepository.CfrPreference.HomepageSearchBar,
                         value = context.state.homepageSearchBarShown,
+                    ),
+                )
+            }
+            is CfrToolsAction.NavButtonsShownToggled -> {
+                cfrPreferencesRepository.updateCfrPreference(
+                    CfrPreferencesRepository.CfrPreferenceUpdate(
+                        preferenceType = CfrPreferencesRepository.CfrPreference.NavButtons,
+                        value = context.state.navButtonsShown,
                     ),
                 )
             }
@@ -99,8 +115,12 @@ class CfrToolsPreferencesMiddleware(
         return when (cfrPreferenceUpdate.preferenceType) {
             CfrPreferencesRepository.CfrPreference.HomepageSync ->
                 CfrToolsAction.HomepageSyncCfrUpdated(newValue = !cfrPreferenceUpdate.value)
+            CfrPreferencesRepository.CfrPreference.HomepageNavToolbar ->
+                CfrToolsAction.HomepageNavToolbarCfrUpdated(newValue = !cfrPreferenceUpdate.value)
             CfrPreferencesRepository.CfrPreference.HomepageSearchBar ->
                 CfrToolsAction.HomepageSearchbarCfrUpdated(newValue = !cfrPreferenceUpdate.value)
+            CfrPreferencesRepository.CfrPreference.NavButtons ->
+                CfrToolsAction.NavButtonsCfrUpdated(newValue = !cfrPreferenceUpdate.value)
             CfrPreferencesRepository.CfrPreference.TabAutoCloseBanner ->
                 CfrToolsAction.TabAutoCloseBannerCfrUpdated(newValue = !cfrPreferenceUpdate.value)
             CfrPreferencesRepository.CfrPreference.InactiveTabs ->

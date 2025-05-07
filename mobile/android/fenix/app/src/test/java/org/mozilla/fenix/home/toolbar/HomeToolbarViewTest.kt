@@ -15,12 +15,15 @@ import io.mockk.unmockkStatic
 import io.mockk.verify
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.HomeActivity
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
@@ -56,8 +59,20 @@ class HomeToolbarViewTest {
     }
 
     @Test
-    fun `WHEN updateLayout is called THEN tab counter and menu are visible and initialized`() {
-        toolbarView.updateButtonVisibility(mockk(relaxed = true))
+    fun `GIVEN navbar is visible WHEN updateLayout is called THEN tab counter and menu are gone and not initialized`() {
+        every { testContext.settings().navigationToolbarEnabled } returns true
+        toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar())
+
+        assertFalse(toolbarView.menuButton.isVisible)
+        assertFalse(toolbarView.tabButton.isVisible)
+        assertNull(toolbarView.homeMenuView)
+        assertNull(toolbarView.tabCounterView)
+    }
+
+    @Test
+    fun `GIVEN navbar isn't visible WHEN updateLayout is called THEN tab counter and menu are visible and initialized`() {
+        every { testContext.settings().navigationToolbarEnabled } returns false
+        toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar())
 
         assertTrue(toolbarView.menuButton.isVisible)
         assertTrue(toolbarView.tabButton.isVisible)
@@ -67,7 +82,18 @@ class HomeToolbarViewTest {
 
     @Test
     fun `GIVEN mode is landscape WHEN updateLayout is called THEN tab counter and menu are visible and initialized`() {
-        toolbarView.updateButtonVisibility(mockk(relaxed = true))
+        every { testContext.settings().navigationToolbarEnabled } returns false
+
+        toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar(false))
+
+        assertTrue(toolbarView.menuButton.isVisible)
+        assertTrue(toolbarView.tabButton.isVisible)
+        assertNotNull(toolbarView.tabCounterView)
+        assertNotNull(toolbarView.homeMenuView)
+
+        every { testContext.settings().navigationToolbarEnabled } returns true
+
+        toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar(false))
 
         assertTrue(toolbarView.menuButton.isVisible)
         assertTrue(toolbarView.tabButton.isVisible)
@@ -79,7 +105,18 @@ class HomeToolbarViewTest {
     fun `GIVEN device is tablet WHEN updateLayout is called THEN tab counter and menu are visible and initialized`() {
         every { testContext.isLargeWindow() } returns true
 
-        toolbarView.updateButtonVisibility(mockk(relaxed = true))
+        every { testContext.settings().navigationToolbarEnabled } returns false
+
+        toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar(false))
+
+        assertTrue(toolbarView.menuButton.isVisible)
+        assertTrue(toolbarView.tabButton.isVisible)
+        assertNotNull(toolbarView.tabCounterView)
+        assertNotNull(toolbarView.homeMenuView)
+
+        every { testContext.settings().navigationToolbarEnabled } returns true
+
+        toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar(false))
 
         assertTrue(toolbarView.menuButton.isVisible)
         assertTrue(toolbarView.tabButton.isVisible)
@@ -91,7 +128,7 @@ class HomeToolbarViewTest {
     fun `WHEN build is called THEN layout gets updated`() {
         toolbarView.build(mockk(relaxed = true))
 
-        verify(exactly = 1) { toolbarView.updateButtonVisibility(any()) }
+        verify(exactly = 1) { toolbarView.updateButtonVisibility(any(), any()) }
     }
 
     @Test

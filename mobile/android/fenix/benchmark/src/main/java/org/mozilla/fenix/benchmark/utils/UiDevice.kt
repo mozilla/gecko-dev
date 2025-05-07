@@ -67,9 +67,7 @@ fun UiDevice.completeBrowserJourney(packageName: String) {
 
     openSponsoredShortcut(shortcutName = "Google")
 
-    openTabsTray(packageName = packageName)
-
-    openNewTabOnTabsTray()
+    openNewTabFromNavBar(packageName = packageName)
 
     loadSite(packageName = packageName, url = "getpocket.com")
 
@@ -99,6 +97,8 @@ fun UiDevice.completeBrowserJourney(packageName: String) {
 
     loadSite(packageName = packageName, url = "mozilla.org")
 
+    navigateBack()
+
     openTabsTray(packageName = packageName)
 
     closeAllTabs()
@@ -125,6 +125,18 @@ fun UiDevice.waitUntilPageLoaded() {
         UiSelector().description("Refresh"),
     )
     refresh.waitForExists(WAITING_TIME_MS)
+}
+
+fun UiDevice.openNewTabFromNavBar(packageName: String) {
+    val newTabButton = findObject(
+        UiSelector().resourceId("$packageName:id/new_tab_button"),
+    )
+    newTabButton.waitForExists(WAITING_TIME_MS)
+    newTabButton.click()
+
+    if (isWallpaperOnboardingShown()) {
+        dismissWallpaperOnboarding()
+    }
 }
 
 fun UiDevice.openTabsTray(packageName: String) {
@@ -227,4 +239,12 @@ fun UiDevice.loadSite(packageName: String, url: String) {
     waitUntilPageLoaded()
 
     dismissCookieBannerBlockerCFR()
+}
+
+fun UiDevice.navigateBack() {
+    val backButton = findObject(
+        UiSelector().description("Back")
+    )
+    backButton.waitForExists(WAITING_TIME_MS)
+    backButton.click()
 }

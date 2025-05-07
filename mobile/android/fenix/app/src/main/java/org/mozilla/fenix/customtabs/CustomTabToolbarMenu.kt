@@ -55,6 +55,8 @@ class CustomTabToolbarMenu(
     internal val session: CustomTabSessionState? get() = sessionId?.let { store.state.findCustomTab(it) }
 
     private val appName = context.getString(R.string.app_name)
+    private val isNavBarEnabled = context.settings().navigationToolbarEnabled
+    private val shouldShowMenuToolbar = !isNavBarEnabled
 
     override val menuToolbar by lazy {
         val back = BrowserMenuItemToolbar.TwoStateButton(
@@ -123,12 +125,13 @@ class CustomTabToolbarMenu(
         val menuItems = listOfNotNull(
             poweredBy.apply { visible = { !isSandboxCustomTab } },
             BrowserMenuDivider().apply { visible = { !isSandboxCustomTab } },
+            sharePage.apply { visible = { isNavBarEnabled && !isSandboxCustomTab } },
             desktopMode,
             findInPage,
             openInApp.apply { visible = ::shouldShowOpenInApp },
-            openInFenix.apply { visible = { !isSandboxCustomTab } },
+            openInFenix.apply { visible = { !isSandboxCustomTab && !isNavBarEnabled } },
             BrowserMenuDivider(),
-            menuToolbar,
+            if (shouldShowMenuToolbar) menuToolbar else null,
         )
         if (shouldReverseItems) {
             menuItems.reversed()
@@ -143,6 +146,14 @@ class CustomTabToolbarMenu(
         initialState = { session?.content?.desktopMode ?: false },
     ) { checked ->
         onItemTapped.invoke(ToolbarMenu.Item.RequestDesktop(checked))
+    }
+
+    private val sharePage = BrowserMenuImageText(
+        label = context.getString(R.string.browser_menu_share),
+        imageResource = R.drawable.ic_share,
+        iconTintColorResource = primaryTextColor(),
+    ) {
+        onItemTapped.invoke(ToolbarMenu.Item.Share)
     }
 
     private val findInPage = BrowserMenuImageText(

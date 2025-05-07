@@ -39,6 +39,8 @@ class BookmarksTestCompose : TestSetup() {
         AndroidComposeTestRule(
             HomeActivityIntentTestRule(
                 isNewBookmarksEnabled = true,
+                isNavigationToolbarEnabled = false,
+                isNavigationBarCFREnabled = false,
                 isMenuRedesignEnabled = false,
                 isMenuRedesignCFREnabled = false,
                 shouldUseBottomToolbar = true,

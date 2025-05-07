@@ -179,7 +179,11 @@ internal class ReleaseMetricController(
             }
         }
         Component.BROWSER_TOOLBAR to ToolbarFacts.Items.MENU -> {
-            Events.toolbarMenuVisible.record(NoExtras())
+            if (settings.navigationToolbarEnabled) {
+                Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("menu_press"))
+            } else {
+                Events.toolbarMenuVisible.record(NoExtras())
+            }
         }
         Component.UI_TABCOUNTER to ToolbarFacts.Items.TOOLBAR -> {
             Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("tabs_tray"))

@@ -14,6 +14,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.slot
 import io.mockk.spyk
 import io.mockk.unmockkStatic
 import io.mockk.verify
@@ -37,6 +38,7 @@ import org.mozilla.fenix.components.FindInPageIntegration
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerView
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.ToolbarContainerView
+import org.mozilla.fenix.components.toolbar.navbar.EngineViewClippingBehavior
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.isKeyboardVisible
 import org.mozilla.fenix.ext.settings
@@ -104,6 +106,7 @@ class BaseBrowserFragmentTest {
     fun `initializeEngineView should setDynamicToolbarMaxHeight to toolbar height if dynamic toolbar is enabled`() {
         every { settings.shouldUseFixedTopToolbar } returns false
         every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.navigationToolbarEnabled } returns true
 
         fragment.initializeEngineView(
             topToolbarHeight = 13,
@@ -130,15 +133,20 @@ class BaseBrowserFragmentTest {
     fun `initializeEngineView should set EngineViewClippingBehavior when dynamic toolbar is enabled`() {
         every { settings.shouldUseFixedTopToolbar } returns false
         every { settings.isDynamicToolbarEnabled } returns true
-        every { settings.shouldShowMicrosurveyPrompt } returns true
+        every { settings.navigationToolbarEnabled } returns true
         val params: CoordinatorLayout.LayoutParams = mockk(relaxed = true)
         every { params.behavior } returns mockk(relaxed = true)
         every { swipeRefreshLayout.layoutParams } returns params
+        val behavior = slot<EngineViewClippingBehavior>()
 
         fragment.initializeEngineView(
             topToolbarHeight = 13,
             bottomToolbarHeight = 0,
         )
+
+        // EngineViewClippingBehavior constructor parameters are not properties, we cannot check them.
+        // Ensure just that the right behavior is set.
+        verify { params.behavior = capture(behavior) }
     }
 
     @Test
@@ -250,6 +258,7 @@ class BaseBrowserFragmentTest {
     fun `WHEN initializeEngineView is called  THEN setDynamicToolbarMaxHeight sets max height to the engine view as a sum of two toolbars heights`() {
         every { settings.shouldUseFixedTopToolbar } returns false
         every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.navigationToolbarEnabled } returns true
 
         fragment.initializeEngineView(
             topToolbarHeight = 13,
@@ -274,6 +283,7 @@ class BaseBrowserFragmentTest {
     fun `GIVEN dynamic toolbars and not a PWA WHEN initializeEngineView is called THEN set a custom behavior for the browser`() {
         every { settings.shouldUseFixedTopToolbar } returns false
         every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.navigationToolbarEnabled } returns true
         fragment.webAppToolbarShouldBeVisible = true
 
         fragment.initializeEngineView(0, 0)
@@ -286,6 +296,7 @@ class BaseBrowserFragmentTest {
     fun `GIVEN dynamic toolbars for a PWA WHEN initializeEngineView is called THEN don't set a custom behavior for the browser`() {
         every { settings.shouldUseFixedTopToolbar } returns false
         every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.navigationToolbarEnabled } returns true
         fragment.webAppToolbarShouldBeVisible = false
 
         fragment.initializeEngineView(0, 0)
@@ -353,7 +364,7 @@ class BaseBrowserFragmentTest {
             every { context } returns testContext
         }
         every { settings.getTopToolbarHeight(any()) } returns 11
-        every { settings.getBottomToolbarHeight() } returns 5
+        every { settings.getBottomToolbarHeight(any()) } returns 5
         every { settings.isDynamicToolbarEnabled } returns false
 
         safeMockkStatic(
@@ -380,7 +391,7 @@ class BaseBrowserFragmentTest {
             every { context } returns testContext
         }
         every { settings.getTopToolbarHeight(any()) } returns 11
-        every { settings.getBottomToolbarHeight() } returns 0
+        every { settings.getBottomToolbarHeight(any()) } returns 0
         every { settings.isDynamicToolbarEnabled } returns true
         every { settings.shouldUseFixedTopToolbar } returns false
 
@@ -411,7 +422,7 @@ class BaseBrowserFragmentTest {
             every { context } returns testContext
         }
         every { settings.getTopToolbarHeight(any()) } returns 11
-        every { settings.getBottomToolbarHeight() } returns 0
+        every { settings.getBottomToolbarHeight(any()) } returns 0
         every { settings.isDynamicToolbarEnabled } returns true
         every { settings.shouldUseFixedTopToolbar } returns false
 
@@ -444,7 +455,7 @@ class BaseBrowserFragmentTest {
             every { context } returns testContext
         }
         every { settings.getTopToolbarHeight(any()) } returns 11
-        every { settings.getBottomToolbarHeight() } returns 0
+        every { settings.getBottomToolbarHeight(any()) } returns 0
         every { settings.isDynamicToolbarEnabled } returns true
         every { settings.shouldUseFixedTopToolbar } returns false
 
@@ -480,7 +491,7 @@ class BaseBrowserFragmentTest {
             every { context } returns testContext
         }
         every { settings.getTopToolbarHeight(any()) } returns 11
-        every { settings.getBottomToolbarHeight() } returns 0
+        every { settings.getBottomToolbarHeight(any()) } returns 0
         every { settings.isDynamicToolbarEnabled } returns true
         every { settings.shouldUseFixedTopToolbar } returns false
 
@@ -508,7 +519,7 @@ class BaseBrowserFragmentTest {
             every { context } returns testContext
         }
         every { settings.getTopToolbarHeight(any()) } returns 0
-        every { settings.getBottomToolbarHeight() } returns 22
+        every { settings.getBottomToolbarHeight(any()) } returns 22
         every { settings.isDynamicToolbarEnabled } returns true
         every { settings.shouldUseFixedTopToolbar } returns false
 
@@ -539,7 +550,7 @@ class BaseBrowserFragmentTest {
             every { context } returns testContext
         }
         every { settings.getTopToolbarHeight(any()) } returns 0
-        every { settings.getBottomToolbarHeight() } returns 22
+        every { settings.getBottomToolbarHeight(any()) } returns 22
         every { settings.isDynamicToolbarEnabled } returns true
         every { settings.shouldUseFixedTopToolbar } returns false
 
@@ -557,7 +568,7 @@ class BaseBrowserFragmentTest {
     }
 
     @Test
-    fun `GIVEN addressbar and micro survey shown WHEN setting engine view insets THEN use both toolbars' heights`() {
+    fun `GIVEN addressbar and navbar shown WHEN setting engine view insets THEN use both toolbars' heights`() {
         val currentTab = createTab("https://example.com")
         every { testContext.components.core.store.state } returns BrowserState(
             tabs = listOf(currentTab),
@@ -567,9 +578,10 @@ class BaseBrowserFragmentTest {
             every { context } returns testContext
         }
         every { settings.getTopToolbarHeight(any()) } returns 11
-        every { settings.getBottomToolbarHeight() } returns 131
+        every { settings.getBottomToolbarHeight(any()) } returns 22
         every { settings.isDynamicToolbarEnabled } returns true
         every { settings.shouldUseFixedTopToolbar } returns false
+        every { testContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height) } returns 10
 
         safeMockkStatic(
             View::isKeyboardVisible,
@@ -581,7 +593,7 @@ class BaseBrowserFragmentTest {
             fragment.configureEngineViewWithDynamicToolbarsMaxHeight()
         }
 
-        verify { engineView.setDynamicToolbarMaxHeight(142) }
+        verify { engineView.setDynamicToolbarMaxHeight(33) }
     }
 
     @Test
@@ -598,7 +610,7 @@ class BaseBrowserFragmentTest {
             every { context } returns testContext
         }
         every { settings.getTopToolbarHeight(any()) } returns 11
-        every { settings.getBottomToolbarHeight() } returns 22
+        every { settings.getBottomToolbarHeight(any()) } returns 22
         every { settings.isDynamicToolbarEnabled } returns true
         every { settings.shouldUseFixedTopToolbar } returns false
         every { testContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height) } returns 10
@@ -627,7 +639,7 @@ class BaseBrowserFragmentTest {
             every { context } returns testContext
         }
         every { settings.getTopToolbarHeight(any()) } returns 11
-        every { settings.getBottomToolbarHeight() } returns 22
+        every { settings.getBottomToolbarHeight(any()) } returns 22
         every { settings.isDynamicToolbarEnabled } returns true
         every { settings.shouldUseFixedTopToolbar } returns false
         every { testContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height) } returns 10
@@ -642,7 +654,7 @@ class BaseBrowserFragmentTest {
             fragment.configureEngineViewWithDynamicToolbarsMaxHeight()
         }
 
-        verify { engineView.setDynamicToolbarMaxHeight(33) }
+        verify { engineView.setDynamicToolbarMaxHeight(23) }
     }
 
     @Test
@@ -659,7 +671,7 @@ class BaseBrowserFragmentTest {
             every { context } returns testContext
         }
         every { settings.getTopToolbarHeight(any()) } returns 11
-        every { settings.getBottomToolbarHeight() } returns 22
+        every { settings.getBottomToolbarHeight(any()) } returns 22
         every { settings.isDynamicToolbarEnabled } returns true
         every { settings.shouldUseFixedTopToolbar } returns false
         every { testContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height) } returns 10
@@ -743,7 +755,7 @@ class BaseBrowserFragmentTest {
     fun `GIVEN normal browsing WHEN reinitializing the engine view THEN use the toolbar heights`() {
         fragment.webAppToolbarShouldBeVisible = true
         every { settings.getTopToolbarHeight(any()) } returns 11
-        every { settings.getBottomToolbarHeight() } returns 5
+        every { settings.getBottomToolbarHeight(any()) } returns 5
 
         safeMockkStatic(Context::isTabStripEnabled) {
             every { testContext.isTabStripEnabled() } returns false
@@ -758,7 +770,7 @@ class BaseBrowserFragmentTest {
     fun `GIVEN a PWA WHEN reinitializing the engine view THEN ignore toolbar heights`() {
         fragment.webAppToolbarShouldBeVisible = false
         every { settings.getTopToolbarHeight(any()) } returns 11
-        every { settings.getBottomToolbarHeight() } returns 5
+        every { settings.getBottomToolbarHeight(any()) } returns 5
 
         safeMockkStatic(Context::isTabStripEnabled) {
             every { testContext.isTabStripEnabled() } returns false

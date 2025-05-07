@@ -29,8 +29,10 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.components.toolbar.ui.createShareBrowserAction
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.theme.ThemeManager
 
@@ -103,7 +105,7 @@ abstract class ToolbarIntegration(
             )!!,
             contentDescription = context.getString(R.string.content_description_menu),
             visible = {
-                context.settings().enableMenuRedesign
+                context.settings().enableMenuRedesign && !context.shouldAddNavigationBar()
             },
             weight = { Int.MAX_VALUE },
             iconTintColorResource = ThemeManager.resolveAttribute(R.attr.textPrimary, context),
@@ -172,7 +174,9 @@ class DefaultToolbarIntegration(
         val newTabAction = BrowserToolbar.Button(
             imageDrawable = AppCompatResources.getDrawable(context, R.drawable.mozac_ic_plus_24)!!,
             contentDescription = context.getString(R.string.library_new_tab),
-            visible = { false },
+            visible = {
+                context.settings().navigationToolbarEnabled && !context.shouldAddNavigationBar()
+            },
             weight = { NEW_TAB_ACTION_WEIGHT },
             iconTintColorResource = ThemeManager.resolveAttribute(R.attr.textPrimary, context),
             listener = interactor::onNewTabButtonClicked,
@@ -190,7 +194,7 @@ class DefaultToolbarIntegration(
             },
             store = store,
             menu = buildTabCounterMenu(),
-            visible = { true },
+            visible = { !context.shouldAddNavigationBar() },
             weight = { TAB_COUNTER_ACTION_WEIGHT },
         )
 
@@ -227,19 +231,22 @@ class DefaultToolbarIntegration(
         super.stop()
     }
 
-    private fun buildTabCounterMenu(): TabCounterMenu =
-        FenixTabCounterMenu(
-            context = context,
-            onItemTapped = {
-                interactor.onTabCounterMenuItemTapped(it)
-            },
-            iconColor = if (isPrivate) {
-                ContextCompat.getColor(context, R.color.fx_mobile_private_icon_color_primary)
-            } else {
-                null
-            },
-        ).also {
-            it.updateMenu(context.settings().toolbarPosition)
+    private fun buildTabCounterMenu(): TabCounterMenu? =
+        when ((context.settings().navigationToolbarEnabled && context.isLargeWindow())) {
+            true -> null
+            false -> FenixTabCounterMenu(
+                context = context,
+                onItemTapped = {
+                    interactor.onTabCounterMenuItemTapped(it)
+                },
+                iconColor = if (isPrivate) {
+                    ContextCompat.getColor(context, R.color.fx_mobile_private_icon_color_primary)
+                } else {
+                    null
+                },
+            ).also {
+                it.updateMenu(context.settings().toolbarPosition)
+            }
         }
 
     companion object {

@@ -27,6 +27,8 @@ class TranslationsTest : TestSetup() {
         AndroidComposeTestRule(
             HomeActivityIntentTestRule(
                 skipOnboarding = true,
+                isNavigationToolbarEnabled = false,
+                isNavigationBarCFREnabled = false,
                 isMenuRedesignEnabled = false,
                 isMenuRedesignCFREnabled = false,
                 isPageLoadTranslationsPromptEnabled = true,
