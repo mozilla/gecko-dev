@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-05-06T02:14:50.090677+00:00'
+updated_at: '2025-05-07T01:05:49.262826+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -2152,6 +2152,20 @@ modules:
       - *jesup
     machine_name: core_libjar
 
+  - machine_name: core_localstorage_sessionstorage
+    name: localStorage & sessionStorage
+    description: Implementation of localStorage & sessionStorage exposed only on window
+      objects as “localStorage” and “sessionStorage”.
+    includes:
+      - dom/localstorage/**/*
+      - dom/storage/**/*
+    excludes: []
+    owners:
+      - *janv
+    peers:
+      - *asuth
+      - *farre
+    meta:
   - machine_name: core_machine_learning
     name: 'Core: Machine Learning'
     description: AI services and local inference
@@ -4553,5 +4567,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: e47658f976ab64e86c55a6106dfb5aa97c167d73
-  export: 7599a109b3728375ca8048f3566676287acc35b9
+  config: 3825a00753e2baaf500e62ea796ece96149e6937
+  export: e1e1829b45285c4e3a60c73a99e323a033d64945
