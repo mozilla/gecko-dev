@@ -1445,6 +1445,22 @@ var XPIStates = {
       logger.warn("Error parsing extensions state: ${error}", { error: e });
     }
 
+    // Let's remove invalid `_processedColors` properties in the theme add-ons.
+    for (let location of Object.values(state || {})) {
+      for (let data of Object.values(location.addons || {})) {
+        if (data.type === "theme" && data.startupData) {
+          // Some profiles have an outdated version of `startupData` containing
+          // `_processedColors` properties, which in certain cases prevent the
+          // data from being updated correctly. These properties are removed
+          // here. See bug 1830136.
+          delete data.startupData.lwtData?.darkTheme?._processedColors;
+          delete data.startupData.lwtData?.theme?._processedColors;
+          delete data.startupData.lwtDarkStyles?._processedColors;
+          delete data.startupData.lwtStyles?._processedColors;
+        }
+      }
+    }
+
     // When upgrading from a build prior to bug 857456, convert startup
     // metadata.
     let done = false;
