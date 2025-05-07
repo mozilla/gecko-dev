@@ -1472,7 +1472,7 @@ class HomeFragment : Fragment() {
         BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
             AuthenticationStatus.NOT_AUTHENTICATED
 
-        (requireActivity() as HomeActivity).privateBrowsingLockFeature.maybeLockScreen(findNavController())
+        requireComponents.privateBrowsingLockFeature.maybeLockScreen(findNavController())
     }
 
     private fun evaluateMessagesForMicrosurvey(components: Components) =

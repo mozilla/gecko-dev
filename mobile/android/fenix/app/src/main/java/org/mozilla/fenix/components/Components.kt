@@ -56,6 +56,7 @@ import org.mozilla.fenix.home.middleware.HomeTelemetryMiddleware
 import org.mozilla.fenix.home.setup.store.DefaultSetupChecklistRepository
 import org.mozilla.fenix.home.setup.store.SetupChecklistPreferencesMiddleware
 import org.mozilla.fenix.home.setup.store.SetupChecklistTelemetryMiddleware
+import org.mozilla.fenix.lifecycle.PrivateBrowsingLockFeature
 import org.mozilla.fenix.messaging.state.MessagingMiddleware
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.onboarding.FenixOnboarding
@@ -193,6 +194,7 @@ class Components(private val context: Context) {
     val push by lazyMonitored { Push(context, analytics.crashReporter) }
     val wifiConnectionMonitor by lazyMonitored { WifiConnectionMonitor(context as Application) }
     val strictMode by lazyMonitored { StrictModeManager(Config, this) }
+    val privateBrowsingLockFeature by lazyMonitored { PrivateBrowsingLockFeature(this) }
 
     val settings by lazyMonitored { Settings(context) }
     val fenixOnboarding by lazyMonitored { FenixOnboarding(context) }

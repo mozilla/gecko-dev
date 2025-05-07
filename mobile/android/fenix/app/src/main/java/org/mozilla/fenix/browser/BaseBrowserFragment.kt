@@ -2198,7 +2198,7 @@ abstract class BaseBrowserFragment :
 
         evaluateMessagesForMicrosurvey(components)
 
-        (requireActivity() as HomeActivity).privateBrowsingLockFeature.maybeLockScreen(findNavController())
+        requireComponents.privateBrowsingLockFeature.maybeLockScreen(findNavController())
 
         BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
             true

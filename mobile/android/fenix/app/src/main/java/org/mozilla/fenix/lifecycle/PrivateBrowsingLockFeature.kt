@@ -25,6 +25,13 @@ class PrivateBrowsingLockFeature(
     private val components: Components,
 ) : DefaultLifecycleObserver {
 
+    private var isPrivateScreenLocked: Boolean
+
+    init {
+        // When the activity is created, if there are private tabs, we should lock the private mode.
+        isPrivateScreenLocked = components.core.store.state.privateTabs.isNotEmpty()
+    }
+
     override fun onStart(owner: LifecycleOwner) {
         components.core.store.flowScoped(owner) { flow ->
             flow
@@ -34,7 +41,7 @@ class PrivateBrowsingLockFeature(
                 .collect {
                     if (components.settings.privateBrowsingLockedEnabled) {
                         // When all private tabs are closed, we don't need to lock the private mode.
-                        components.settings.isPrivateScreenLocked = false
+                        isPrivateScreenLocked = false
                     }
                 }
         }
@@ -51,7 +58,7 @@ class PrivateBrowsingLockFeature(
                     val hasPrivateTabs = components.core.store.state.privateTabs.isNotEmpty()
 
                     if (isPrivateModeLockEnabled && hasPrivateTabs) {
-                        components.settings.isPrivateScreenLocked = true
+                        isPrivateScreenLocked = true
                     }
                 }
         }
@@ -73,8 +80,22 @@ class PrivateBrowsingLockFeature(
         val isPrivateMode = components.appStore.state.mode == BrowsingMode.Private
 
         if (isPrivateModeLockEnabled && isPrivateMode && hasPrivateTabs) {
-            components.settings.isPrivateScreenLocked = true
+            isPrivateScreenLocked = true
         }
+    }
+
+    /**
+     * This should be called by the authentication handler after the user successfully authenticates.
+     */
+    fun onAuthSuccess() {
+        isPrivateScreenLocked = false
+    }
+
+    /**
+     * This should be called by the authentication handler if authentication fails or is cancelled.
+     */
+    fun onAuthFailure() {
+        isPrivateScreenLocked = true
     }
 
     /**
@@ -104,7 +125,6 @@ class PrivateBrowsingLockFeature(
         val hasPrivateTabs = components.core.store.state.privateTabs.isNotEmpty()
         val biometricLockEnabled = components.settings.privateBrowsingLockedEnabled
         val isPrivateMode = components.appStore.state.mode == BrowsingMode.Private
-        val isPrivateScreenLocked = components.settings.isPrivateScreenLocked
 
         return isPrivateMode && hasPrivateTabs && biometricLockEnabled && isPrivateScreenLocked
     }

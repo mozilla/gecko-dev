@@ -765,12 +765,10 @@ class TabsTrayFragment : AppCompatDialogFragment() {
 
                     tabsTrayInteractor.onTrayPositionSelected(page.ordinal, false)
 
-                    requireContext().settings().isPrivateScreenLocked = false
+                    requireComponents.privateBrowsingLockFeature.onAuthSuccess()
                 },
                 onAuthFailure = {
-                    biometricAuthenticationNeededInfo.apply {
-                        authenticationStatus = AuthenticationStatus.NOT_AUTHENTICATED
-                    }
+                    requireComponents.privateBrowsingLockFeature.onAuthFailure()
                 },
                 titleRes = R.string.pbm_authentication_unlock_private_tabs,
             )
