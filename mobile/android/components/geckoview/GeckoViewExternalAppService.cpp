@@ -19,7 +19,9 @@
 class StreamListener final : public mozilla::GeckoViewStreamListener {
  public:
   explicit StreamListener(nsWindow* aWindow)
-      : GeckoViewStreamListener(), mWindow(aWindow) {}
+      : GeckoViewStreamListener(), mWindow(aWindow) {
+    MOZ_ASSERT(aWindow);
+  }
 
   void SendWebResponse(mozilla::java::WebResponse::Param aResponse) {
     mWindow->PassExternalResponse(aResponse);
@@ -77,7 +79,9 @@ NS_IMETHODIMP GeckoViewExternalAppService::CreateListener(
   }
 
   RefPtr<nsWindow> window = nsWindow::From(widget);
-  MOZ_ASSERT(window);
+  if (NS_WARN_IF(!window) || NS_WARN_IF(window->Destroyed())) {
+    return NS_ERROR_ABORT;
+  }
 
   RefPtr<StreamListener> listener = new StreamListener(window);
 
