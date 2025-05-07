@@ -246,7 +246,6 @@ class BuildOptionParser:
     path_base = "builds/releng_sub_%s_configs/"
     build_variants = {
         "add-on-devel": path_base + "%s_add-on-devel.py",
-        "asan": path_base + "%s_asan.py",
         "asan-tc": path_base + "%s_asan_tc.py",
         "asan-reporter-tc": path_base + "%s_asan_reporter_tc.py",
         "fuzzing-asan-tc": path_base + "%s_fuzzing_asan_tc.py",
@@ -259,9 +258,7 @@ class BuildOptionParser:
         "cross-fuzzing-debug": path_base + "%s_cross_fuzzing_debug.py",
         "debug": path_base + "%s_debug.py",
         "fuzzing-debug": path_base + "%s_fuzzing_debug.py",
-        "asan-and-debug": path_base + "%s_asan_and_debug.py",
         "asan-tc-and-debug": path_base + "%s_asan_tc_and_debug.py",
-        "stat-and-debug": path_base + "%s_stat_and_debug.py",
         "code-coverage-debug": path_base + "%s_code_coverage_debug.py",
         "code-coverage-opt": path_base + "%s_code_coverage_opt.py",
         "source": path_base + "%s_source.py",
