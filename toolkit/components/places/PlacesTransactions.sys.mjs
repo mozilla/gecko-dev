@@ -352,7 +352,7 @@ export var PlacesTransactions = {
    * position in the transactions history in the reverse order, if any, and
    * adjusts the undo position.
    *
-   * @returns {Promises).  The promise always resolves.
+   * @returns {Promise<void>}.  The promise always resolves.
    * @note All undo manager operations are queued. This means that transactions
    * history may change by the time your request is fulfilled.
    */
@@ -366,7 +366,7 @@ export var PlacesTransactions = {
    * position in the transactions history, if any, and adjusts the undo
    * position.
    *
-   * @returns {Promises).  The promise always resolves.
+   * @returns {Promise<void>}.  The promise always resolves.
    * @note All undo manager operations are queued. This means that transactions
    * history may change by the time your request is fulfilled.
    */
@@ -379,12 +379,12 @@ export var PlacesTransactions = {
    * Asynchronously clear the undo, redo, or all entries from the transactions
    * history.
    *
-   * @param [optional] undoEntries
-   *        Whether or not to clear undo entries.  Default: true.
-   * @param [optional] redoEntries
-   *        Whether or not to clear undo entries.  Default: true.
+   * @param {boolean} [undoEntries]
+   *   Whether or not to clear undo entries. Default: true.
+   * @param {boolean} [redoEntries]
+   *   Whether or not to clear undo entries. Default: true.
    *
-   * @returns {Promises).  The promise always resolves.
+   * @returns {Promise<void>}.  The promise always resolves.
    * @throws if both aUndoEntries and aRedoEntries are false.
    * @note All undo manager operations are queued. This means that transactions
    * history may change by the time your request is fulfilled.
@@ -520,7 +520,7 @@ var TransactionsManager = {
    *
    * @param {object} txnProxy The proxified transaction to execute.
    * @param {boolean} [inBatch] Whether the transaction is part of a batch.
-   * @param {integer} [batchIndex] The index of the transaction in the batch array.
+   * @param {number} [batchIndex] The index of the transaction in the batch array.
    * @returns {Promise} resolved to the transaction return value once complete.
    */
   transact(txnProxy, inBatch = false, batchIndex = undefined) {
@@ -644,6 +644,7 @@ var TransactionsManager = {
     try {
       let win = Services.focus.activeWindow;
       if (win) {
+        // @ts-ignore - Bug 1954851
         win.updateCommands("undo");
       }
     } catch (ex) {
@@ -675,10 +676,12 @@ function DefineTransaction(requiredProps = [], optionalProps = []) {
     }
   }
 
+  /** @this {{ execute: Function }} */
   let ctor = function (input) {
     // We want to support both syntaxes:
     // let t = new PlacesTransactions.NewBookmark(),
     // let t = PlacesTransactions.NewBookmark()
+    // @ts-ignore - Typescript is not yet able to identify this correctly.
     if (this == PlacesTransactions) {
       return new ctor(input);
     }
@@ -1050,7 +1053,7 @@ PT.NewBookmark = DefineTransaction(
   ["parentGuid", "url"],
   ["index", "title", "tags"]
 );
-PT.NewBookmark.prototype = Object.seal({
+PT.NewBookmark.prototype = {
   async execute({ parentGuid, url, index, title, tags }) {
     let info = { parentGuid, index, url, title };
     // Filter tags to exclude already existing ones.
@@ -1083,7 +1086,7 @@ PT.NewBookmark.prototype = Object.seal({
   toString() {
     return "NewBookmark";
   },
-});
+};
 
 /**
  * Transaction for creating a folder.
@@ -1097,7 +1100,7 @@ PT.NewFolder = DefineTransaction(
   ["parentGuid", "title"],
   ["index", "children"]
 );
-PT.NewFolder.prototype = Object.seal({
+PT.NewFolder.prototype = {
   async execute({ parentGuid, title, index, children }) {
     let folderGuid;
     let info = {
@@ -1151,7 +1154,7 @@ PT.NewFolder.prototype = Object.seal({
   toString() {
     return "NewFolder";
   },
-});
+};
 
 /**
  * Transaction for creating a separator.
@@ -1163,7 +1166,7 @@ PT.NewFolder.prototype = Object.seal({
  * GUID.
  */
 PT.NewSeparator = DefineTransaction(["parentGuid"], ["index"]);
-PT.NewSeparator.prototype = Object.seal({
+PT.NewSeparator.prototype = {
   async execute(info) {
     info.type = PlacesUtils.bookmarks.TYPE_SEPARATOR;
     info = await PlacesUtils.bookmarks.insert(info);
@@ -1174,7 +1177,7 @@ PT.NewSeparator.prototype = Object.seal({
   toString() {
     return "NewSeparator";
   },
-});
+};
 
 /**
  * Transaction for moving an item.
@@ -1183,7 +1186,7 @@ PT.NewSeparator.prototype = Object.seal({
  * Optional Input Properties  newIndex.
  */
 PT.Move = DefineTransaction(["guids", "newParentGuid"], ["newIndex"]);
-PT.Move.prototype = Object.seal({
+PT.Move.prototype = {
   async execute({ guids, newParentGuid, newIndex }) {
     let originalInfos = [];
     let index = newIndex;
@@ -1220,7 +1223,7 @@ PT.Move.prototype = Object.seal({
   toString() {
     return "Move";
   },
-});
+};
 
 /**
  * Transaction for setting the title for an item.
@@ -1228,7 +1231,7 @@ PT.Move.prototype = Object.seal({
  * Required Input Properties: guid, title.
  */
 PT.EditTitle = DefineTransaction(["guid", "title"]);
-PT.EditTitle.prototype = Object.seal({
+PT.EditTitle.prototype = {
   async execute({ guid, title }) {
     let originalInfo = await PlacesUtils.bookmarks.fetch(guid);
     if (!originalInfo) {
@@ -1250,7 +1253,7 @@ PT.EditTitle.prototype = Object.seal({
   toString() {
     return "EditTitle";
   },
-});
+};
 
 /**
  * Transaction for setting the URI for an item.
@@ -1258,7 +1261,7 @@ PT.EditTitle.prototype = Object.seal({
  * Required Input Properties: guid, url.
  */
 PT.EditUrl = DefineTransaction(["guid", "url"]);
-PT.EditUrl.prototype = Object.seal({
+PT.EditUrl.prototype = {
   async execute({ guid, url }) {
     let originalInfo = await PlacesUtils.bookmarks.fetch(guid);
     if (!originalInfo) {
@@ -1310,13 +1313,13 @@ PT.EditUrl.prototype = Object.seal({
     };
 
     this.redo = async function () {
-      updatedInfo = await updateItem();
+      await updateItem();
     };
   },
   toString() {
     return "EditUrl";
   },
-});
+};
 
 /**
  * Transaction for setting the keyword for a bookmark.
@@ -1328,7 +1331,7 @@ PT.EditKeyword = DefineTransaction(
   ["guid", "keyword"],
   ["postData", "oldKeyword"]
 );
-PT.EditKeyword.prototype = Object.seal({
+PT.EditKeyword.prototype = {
   async execute({ guid, keyword, postData, oldKeyword }) {
     let url;
     let oldKeywordEntry;
@@ -1361,7 +1364,7 @@ PT.EditKeyword.prototype = Object.seal({
   toString() {
     return "EditKeyword";
   },
-});
+};
 
 /**
  * Transaction for sorting a folder by name.
@@ -1601,15 +1604,15 @@ PT.RenameTag.prototype = {
     let urls = new Set();
     await PlacesUtils.bookmarks.fetch({ tags: [oldTag] }, b => urls.add(b.url));
     if (urls.size > 0) {
-      urls = Array.from(urls);
+      let urlsAsArray = Array.from(urls);
       let tagTxn = lazy.TransactionsHistory.getRawTransaction(
-        PT.Tag({ urls, tags: [tag] })
+        PT.Tag({ urls: urlsAsArray, tags: [tag] })
       );
       await tagTxn.execute();
       onUndo.unshift(tagTxn.undo.bind(tagTxn));
       onRedo.push(tagTxn.redo.bind(tagTxn));
       let untagTxn = lazy.TransactionsHistory.getRawTransaction(
-        PT.Untag({ urls, tags: [oldTag] })
+        PT.Untag({ urls: urlsAsArray, tags: [oldTag] })
       );
       await untagTxn.execute();
       onUndo.unshift(untagTxn.undo.bind(untagTxn));

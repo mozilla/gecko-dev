@@ -318,8 +318,6 @@ export class PlacesSemanticHistoryManager {
    * This ensures any tasks are finalized and the manager is properly
    * cleaned up during shutdown.
    *
-   * @private
-   * @returns {void}
    */
   #finalize() {
     lazy.logger.trace("Finalizing SemanticManager");
@@ -495,8 +493,12 @@ export class PlacesSemanticHistoryManager {
    * This runs the engine's inference pipeline on the provided request and
    * checks if changes to the rank warrant triggering an update.
    *
-   * @param {object} request - The request to run through the engine.
-   * @returns {Promise<object>} - The result of the engine's inference pipeline.
+   * @param {object} queryContext
+   *   The request to run through the engine.
+   * @param {string} queryContext.searchString
+   *   The search string used for the request.
+   * @returns {Promise<object>}
+   *   The result of the engine's inference pipeline.
    */
   async infer(queryContext) {
     const inferStartTime = Cu.now();
