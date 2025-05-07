@@ -10,16 +10,38 @@
 
 #include "pc/rtp_transmission_manager.h"
 
+#include <cstdint>
+#include <functional>
 #include <optional>
-#include <type_traits>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "api/environment/environment.h"
+#include "api/make_ref_counted.h"
+#include "api/media_stream_interface.h"
+#include "api/media_types.h"
 #include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_receiver_interface.h"
+#include "api/rtp_sender_interface.h"
 #include "api/rtp_transceiver_direction.h"
+#include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
+#include "media/base/media_channel.h"
+#include "media/base/media_engine.h"
 #include "pc/audio_rtp_receiver.h"
 #include "pc/channel_interface.h"
+#include "pc/codec_vendor.h"
+#include "pc/connection_context.h"
 #include "pc/legacy_stats_collector_interface.h"
+#include "pc/rtp_receiver.h"
+#include "pc/rtp_receiver_proxy.h"
+#include "pc/rtp_sender.h"
+#include "pc/rtp_sender_proxy.h"
+#include "pc/rtp_transceiver.h"
+#include "pc/usage_pattern.h"
 #include "pc/video_rtp_receiver.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/crypto_random.h"
@@ -38,6 +60,7 @@ RtpTransmissionManager::RtpTransmissionManager(
     const Environment& env,
     bool is_unified_plan,
     ConnectionContext* context,
+    cricket::CodecLookupHelper* codec_lookup_helper,
     UsagePattern* usage_pattern,
     PeerConnectionObserver* observer,
     LegacyStatsCollectorInterface* legacy_stats,
@@ -45,6 +68,7 @@ RtpTransmissionManager::RtpTransmissionManager(
     : env_(env),
       is_unified_plan_(is_unified_plan),
       context_(context),
+      codec_lookup_helper_(codec_lookup_helper),
       usage_pattern_(usage_pattern),
       observer_(observer),
       legacy_stats_(legacy_stats),
@@ -304,7 +328,7 @@ RtpTransmissionManager::CreateAndAddTransceiver(
   auto transceiver = RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
       signaling_thread(),
       rtc::make_ref_counted<RtpTransceiver>(
-          sender, receiver, context_,
+          sender, receiver, context_, codec_lookup_helper_,
           sender->media_type() == cricket::MEDIA_TYPE_AUDIO
               ? media_engine()->voice().GetRtpHeaderExtensions()
               : media_engine()->video().GetRtpHeaderExtensions(),

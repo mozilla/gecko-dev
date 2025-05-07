@@ -34,6 +34,7 @@
 #include "media/base/codec.h"
 #include "media/base/codec_comparators.h"
 #include "media/base/fake_media_engine.h"
+#include "pc/codec_vendor.h"
 #include "pc/connection_context.h"
 #include "pc/rtp_parameters_conversion.h"
 #include "pc/rtp_receiver.h"
@@ -42,6 +43,7 @@
 #include "pc/rtp_sender_proxy.h"
 #include "pc/session_description.h"
 #include "pc/test/enable_fake_media.h"
+#include "pc/test/fake_codec_lookup_helper.h"
 #include "pc/test/mock_channel_interface.h"
 #include "pc/test/mock_rtp_receiver_internal.h"
 #include "pc/test/mock_rtp_sender_internal.h"
@@ -68,7 +70,8 @@ class RtpTransceiverTest : public testing::Test {
   RtpTransceiverTest()
       : dependencies_(MakeDependencies()),
         context_(
-            ConnectionContext::Create(CreateEnvironment(), &dependencies_)) {}
+            ConnectionContext::Create(CreateEnvironment(), &dependencies_)),
+        codec_lookup_helper_(context_.get()) {}
 
  protected:
   cricket::FakeMediaEngine* media_engine() {
@@ -77,6 +80,12 @@ class RtpTransceiverTest : public testing::Test {
     return static_cast<cricket::FakeMediaEngine*>(context_->media_engine());
   }
   ConnectionContext* context() { return context_.get(); }
+  cricket::CodecLookupHelper* codec_lookup_helper() {
+    return &codec_lookup_helper_;
+  }
+  FakeCodecLookupHelper* fake_codec_lookup_helper() {
+    return &codec_lookup_helper_;
+  }
 
  private:
   rtc::AutoThread main_thread_;
@@ -92,13 +101,14 @@ class RtpTransceiverTest : public testing::Test {
 
   PeerConnectionFactoryDependencies dependencies_;
   rtc::scoped_refptr<ConnectionContext> context_;
+  FakeCodecLookupHelper codec_lookup_helper_;
 };
 
 // Checks that a channel cannot be set on a stopped `RtpTransceiver`.
 TEST_F(RtpTransceiverTest, CannotSetChannelOnStoppedTransceiver) {
   const std::string content_name("my_mid");
   auto transceiver = rtc::make_ref_counted<RtpTransceiver>(
-      cricket::MediaType::MEDIA_TYPE_AUDIO, context());
+      cricket::MediaType::MEDIA_TYPE_AUDIO, context(), codec_lookup_helper());
   auto channel1 = std::make_unique<NiceMock<MockChannelInterface>>();
   EXPECT_CALL(*channel1, media_type())
       .WillRepeatedly(Return(cricket::MediaType::MEDIA_TYPE_AUDIO));
@@ -134,7 +144,7 @@ TEST_F(RtpTransceiverTest, CannotSetChannelOnStoppedTransceiver) {
 TEST_F(RtpTransceiverTest, CanUnsetChannelOnStoppedTransceiver) {
   const std::string content_name("my_mid");
   auto transceiver = rtc::make_ref_counted<RtpTransceiver>(
-      cricket::MediaType::MEDIA_TYPE_VIDEO, context());
+      cricket::MediaType::MEDIA_TYPE_VIDEO, context(), codec_lookup_helper());
   auto channel = std::make_unique<NiceMock<MockChannelInterface>>();
   EXPECT_CALL(*channel, media_type())
       .WillRepeatedly(Return(cricket::MediaType::MEDIA_TYPE_VIDEO));
@@ -185,7 +195,8 @@ class RtpTransceiverUnifiedPlanTest : public RtpTransceiverTest {
         RtpReceiverProxyWithInternal<RtpReceiverInternal>::Create(
             rtc::Thread::Current(), rtc::Thread::Current(),
             std::move(receiver)),
-        context(), media_engine()->voice().GetRtpHeaderExtensions(),
+        context(), codec_lookup_helper(),
+        media_engine()->voice().GetRtpHeaderExtensions(),
         /* on_negotiation_needed= */ [] {});
   }
 
@@ -242,6 +253,7 @@ class RtpTransceiverFilteredCodecPreferencesTest
   // capabilities, since the transceiver picks up codecs from the factory
   // at transceiver create time.
   void RecreateTransceiver() {
+    fake_codec_lookup_helper()->Reset();
     transceiver_ =
         CreateTransceiver(MockSender(cricket::MediaType::MEDIA_TYPE_VIDEO),
                           MockReceiver(cricket::MediaType::MEDIA_TYPE_VIDEO));
@@ -578,6 +590,7 @@ class RtpTransceiverTestForHeaderExtensions
                 rtc::Thread::Current(),
                 receiver_),
             context(),
+            codec_lookup_helper(),
             extensions_,
             /* on_negotiation_needed= */ [] {})) {}
 
@@ -849,7 +862,7 @@ TEST_F(RtpTransceiverTestForHeaderExtensions,
           rtc::Thread::Current(), sender),
       RtpReceiverProxyWithInternal<RtpReceiverInternal>::Create(
           rtc::Thread::Current(), rtc::Thread::Current(), receiver_),
-      context(), extensions,
+      context(), codec_lookup_helper(), extensions,
       /* on_negotiation_needed= */ [] {});
   std::vector<webrtc::RtpHeaderExtensionCapability> header_extensions =
       transceiver->GetHeaderExtensionsToNegotiate();
@@ -871,7 +884,7 @@ TEST_F(RtpTransceiverTestForHeaderExtensions,
           rtc::Thread::Current(), simulcast_sender),
       RtpReceiverProxyWithInternal<RtpReceiverInternal>::Create(
           rtc::Thread::Current(), rtc::Thread::Current(), receiver_),
-      context(), extensions,
+      context(), codec_lookup_helper(), extensions,
       /* on_negotiation_needed= */ [] {});
   auto simulcast_extensions =
       simulcast_transceiver->GetHeaderExtensionsToNegotiate();
@@ -898,7 +911,7 @@ TEST_F(RtpTransceiverTestForHeaderExtensions,
           rtc::Thread::Current(), svc_sender),
       RtpReceiverProxyWithInternal<RtpReceiverInternal>::Create(
           rtc::Thread::Current(), rtc::Thread::Current(), receiver_),
-      context(), extensions,
+      context(), codec_lookup_helper(), extensions,
       /* on_negotiation_needed= */ [] {});
   std::vector<webrtc::RtpHeaderExtensionCapability> svc_extensions =
       svc_transceiver->GetHeaderExtensionsToNegotiate();

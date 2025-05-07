@@ -1694,6 +1694,8 @@ rtc_library("rtp_transmission_manager") {
     ":audio_rtp_receiver",
     ":channel",
     ":channel_interface",
+    ":codec_vendor",
+    ":connection_context",
     ":legacy_stats_collector_interface",
     ":rtp_receiver",
     ":rtp_receiver_proxy",
@@ -1704,6 +1706,7 @@ rtc_library("rtp_transmission_manager") {
     ":usage_pattern",
     ":video_rtp_receiver",
     "../api:libjingle_peerconnection_api",
+    "../api:make_ref_counted",
     "../api:media_stream_interface",
     "../api:rtc_error",
     "../api:rtp_parameters",
@@ -1713,12 +1716,14 @@ rtc_library("rtp_transmission_manager") {
     "../api:sequence_checker",
     "../api/environment",
     "../media:media_channel",
+    "../media:media_engine",
     "../rtc_base:checks",
     "../rtc_base:crypto_random",
     "../rtc_base:logging",
     "../rtc_base:macromagic",
     "../rtc_base:ssl",
     "../rtc_base:threading",
+    "../rtc_base:unique_id_generator",
     "../rtc_base:weak_ptr",
   ]
 }
@@ -2074,6 +2079,17 @@ rtc_source_set("libjingle_peerconnection") {
 }
 
 if (rtc_include_tests && !build_with_chromium) {
+  rtc_source_set("fake_codec_lookup_helper") {
+    testonly = true
+    sources = [ "test/fake_codec_lookup_helper.h" ]
+    deps = [
+      ":codec_vendor",
+      ":connection_context",
+      "../call:payload_type",
+      "../rtc_base:checks",
+    ]
+  }
+
   rtc_test("rtc_pc_unittests") {
     testonly = true
 
@@ -2405,11 +2421,13 @@ if (rtc_include_tests && !build_with_chromium) {
       ":audio_track",
       ":channel",
       ":channel_interface",
+      ":codec_vendor",
       ":connection_context",
       ":dtls_srtp_transport",
       ":dtls_transport",
       ":dtmf_sender",
       ":enable_fake_media",
+      ":fake_codec_lookup_helper",
       ":ice_server_parsing",
       ":integration_test_helpers",
       ":jitter_buffer_delay",
@@ -2787,6 +2805,7 @@ if (rtc_include_tests && !build_with_chromium) {
       ":connection_context",
       ":data_channel_utils",
       ":enable_fake_media",
+      ":fake_codec_lookup_helper",
       ":jitter_buffer_delay",
       ":jsep_transport_controller",
       ":libjingle_peerconnection",

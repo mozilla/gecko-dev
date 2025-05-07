@@ -49,6 +49,7 @@
 #include "pc/sctp_data_channel.h"
 #include "pc/stream_collection.h"
 #include "pc/test/enable_fake_media.h"
+#include "pc/test/fake_codec_lookup_helper.h"
 #include "pc/test/fake_data_channel_controller.h"
 #include "pc/test/fake_peer_connection_base.h"
 #include "pc/transport_stats.h"
@@ -256,7 +257,8 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
             ConnectionContext::Create(CreateEnvironment(), &dependencies_)),
         local_streams_(StreamCollection::Create()),
         remote_streams_(StreamCollection::Create()),
-        data_channel_controller_(network_thread_) {}
+        data_channel_controller_(network_thread_),
+        codec_lookup_helper_(context_.get()) {}
 
   ~FakePeerConnectionForStats() {
     for (auto transceiver : transceivers_) {
@@ -562,7 +564,8 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
   CreateTransceiverOfType(cricket::MediaType media_type) {
     auto transceiver = RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
         signaling_thread_,
-        rtc::make_ref_counted<RtpTransceiver>(media_type, context_.get()));
+        rtc::make_ref_counted<RtpTransceiver>(media_type, context_.get(),
+                                              &codec_lookup_helper_));
     transceivers_.push_back(transceiver);
     return transceiver;
   }
@@ -596,6 +599,7 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
   std::map<std::string, std::unique_ptr<rtc::SSLCertChain>>
       remote_cert_chains_by_transport_;
   PayloadTypePicker payload_type_picker_;
+  FakeCodecLookupHelper codec_lookup_helper_;
 };
 
 }  // namespace webrtc

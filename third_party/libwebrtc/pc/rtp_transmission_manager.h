@@ -28,6 +28,8 @@
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
 #include "media/base/media_channel.h"
+#include "pc/codec_vendor.h"
+#include "pc/connection_context.h"
 #include "pc/legacy_stats_collector_interface.h"
 #include "pc/rtp_receiver.h"
 #include "pc/rtp_receiver_proxy.h"
@@ -38,6 +40,7 @@
 #include "pc/usage_pattern.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/thread_annotations.h"
+#include "rtc_base/unique_id_generator.h"
 #include "rtc_base/weak_ptr.h"
 
 namespace rtc {
@@ -74,6 +77,7 @@ class RtpTransmissionManager : public RtpSenderBase::SetStreamsObserver {
   RtpTransmissionManager(const Environment& env,
                          bool is_unified_plan,
                          ConnectionContext* context,
+                         cricket::CodecLookupHelper* codec_lookup_helper,
                          UsagePattern* usage_pattern,
                          PeerConnectionObserver* observer,
                          LegacyStatsCollectorInterface* legacy_stats,
@@ -268,6 +272,7 @@ class RtpTransmissionManager : public RtpSenderBase::SetStreamsObserver {
   bool closed_ = false;
   bool const is_unified_plan_;
   ConnectionContext* context_;
+  cricket::CodecLookupHelper* codec_lookup_helper_;
   UsagePattern* usage_pattern_;
   PeerConnectionObserver* observer_;
   LegacyStatsCollectorInterface* const legacy_stats_;

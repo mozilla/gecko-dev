@@ -92,7 +92,9 @@ class RtpTransceiver : public RtpTransceiverInterface {
   // channel set.
   // `media_type` specifies the type of RtpTransceiver (and, by transitivity,
   // the type of senders, receivers, and channel). Can either by audio or video.
-  RtpTransceiver(cricket::MediaType media_type, ConnectionContext* context);
+  RtpTransceiver(cricket::MediaType media_type,
+                 ConnectionContext* context,
+                 cricket::CodecLookupHelper* codec_lookup_helper);
   // Construct a Unified Plan-style RtpTransceiver with the given sender and
   // receiver. The media type will be derived from the media types of the sender
   // and receiver. The sender and receiver should have the same media type.
@@ -103,6 +105,7 @@ class RtpTransceiver : public RtpTransceiverInterface {
       rtc::scoped_refptr<RtpReceiverProxyWithInternal<RtpReceiverInternal>>
           receiver,
       ConnectionContext* context,
+      cricket::CodecLookupHelper* codec_lookup_helper,
       std::vector<RtpHeaderExtensionCapability> HeaderExtensionsToNegotiate,
       std::function<void()> on_negotiation_needed);
   ~RtpTransceiver() override;
@@ -182,8 +185,8 @@ class RtpTransceiver : public RtpTransceiverInterface {
       rtc::scoped_refptr<RtpReceiverProxyWithInternal<RtpReceiverInternal>>
           receiver);
 
-  // Removes the given RtpReceiver. Returns false if the sender is not owned by
-  // this transceiver.
+  // Removes the given RtpReceiver. Returns false if the receiver is not owned
+  // by this transceiver.
   bool RemoveReceiver(RtpReceiverInterface* receiver);
 
   // Returns a vector of the receivers owned by this transceiver.
@@ -301,13 +304,18 @@ class RtpTransceiver : public RtpTransceiverInterface {
   void OnNegotiationUpdate(SdpType sdp_type,
                            const cricket::MediaContentDescription* content);
 
-  cricket::CodecVendor* codec_vendor() { return &codec_vendor_; }
-
  private:
   cricket::MediaEngineInterface* media_engine() const {
     return context_->media_engine();
   }
   ConnectionContext* context() const { return context_; }
+  cricket::CodecVendor& codec_vendor() {
+    if (mid_) {
+      return *codec_lookup_helper_->CodecVendor(*mid_);
+    } else {
+      return *codec_lookup_helper_->CodecVendor("");
+    }
+  }
   void OnFirstPacketReceived();
   void OnFirstPacketSent();
   void StopSendingAndReceiving();
@@ -349,6 +357,7 @@ class RtpTransceiver : public RtpTransceiverInterface {
   // from thread_.
   std::unique_ptr<cricket::ChannelInterface> channel_ = nullptr;
   ConnectionContext* const context_;
+  cricket::CodecLookupHelper* const codec_lookup_helper_;
   std::vector<RtpCodecCapability> codec_preferences_;
   std::vector<RtpCodecCapability> sendrecv_codec_preferences_;
   std::vector<RtpCodecCapability> sendonly_codec_preferences_;
@@ -360,7 +369,6 @@ class RtpTransceiver : public RtpTransceiverInterface {
   // PushdownMediaDescription().
   cricket::RtpHeaderExtensions negotiated_header_extensions_
       RTC_GUARDED_BY(thread_);
-  cricket::CodecVendor codec_vendor_;
 
   const std::function<void()> on_negotiation_needed_;
 };

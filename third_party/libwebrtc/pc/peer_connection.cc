@@ -151,26 +151,18 @@ class CodecLookupHelperForPeerConnection : public cricket::CodecLookupHelper {
   }
 
   cricket::CodecVendor* CodecVendor(const std::string& mid) override {
-    auto transceiver = self_->rtp_manager()->transceivers()->FindByMid(mid);
-    if (!transceiver) {
-      // This codepath exists because of some codec lookups that have not
-      // yet been converted to be transceiver specific.
-      if (!fallback_codec_vendor_) {
-        RTC_LOG(LS_WARNING) << "Creating fallback codec vendor due to "
-                               "lookup of mid "
-                            << mid;
-        fallback_codec_vendor_ = std::make_unique<cricket::CodecVendor>(
-            self_->context()->media_engine(), self_->context()->use_rtx(),
-            self_->context()->env().field_trials());
-      }
-      return fallback_codec_vendor_.get();
+    if (codec_vendors_.count(mid) == 0) {
+      codec_vendors_.emplace(
+          mid, cricket::CodecVendor{self_->context()->media_engine(),
+                                    self_->context()->use_rtx(),
+                                    self_->context()->env().field_trials()});
     }
-    return transceiver->internal()->codec_vendor();
+    return &codec_vendors_.at(mid);
   }
 
  private:
   PeerConnection* self_;
-  std::unique_ptr<cricket::CodecVendor> fallback_codec_vendor_;
+  std::map<std::string, cricket::CodecVendor> codec_vendors_;
 };
 
 uint32_t ConvertIceTransportTypeToCandidateFilter(
@@ -598,8 +590,8 @@ PeerConnection::PeerConnection(
       std::move(dependencies.video_bitrate_allocator_factory), context_.get(),
       codec_lookup_helper_.get());
   rtp_manager_ = std::make_unique<RtpTransmissionManager>(
-      env_, IsUnifiedPlan(), context_.get(), &usage_pattern_, observer_,
-      legacy_stats_.get(), [this]() {
+      env_, IsUnifiedPlan(), context_.get(), codec_lookup_helper_.get(),
+      &usage_pattern_, observer_, legacy_stats_.get(), [this]() {
         RTC_DCHECK_RUN_ON(signaling_thread());
         sdp_handler_->UpdateNegotiationNeeded();
       });
@@ -607,14 +599,14 @@ PeerConnection::PeerConnection(
   if (!IsUnifiedPlan()) {
     rtp_manager_->transceivers()->Add(
         RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
-            signaling_thread(),
-            rtc::make_ref_counted<RtpTransceiver>(cricket::MEDIA_TYPE_AUDIO,
-                                                  context_.get())));
+            signaling_thread(), rtc::make_ref_counted<RtpTransceiver>(
+                                    cricket::MEDIA_TYPE_AUDIO, context_.get(),
+                                    codec_lookup_helper_.get())));
     rtp_manager_->transceivers()->Add(
         RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
-            signaling_thread(),
-            rtc::make_ref_counted<RtpTransceiver>(cricket::MEDIA_TYPE_VIDEO,
-                                                  context_.get())));
+            signaling_thread(), rtc::make_ref_counted<RtpTransceiver>(
+                                    cricket::MEDIA_TYPE_VIDEO, context_.get(),
+                                    codec_lookup_helper_.get())));
   }
 
   const int delay_ms = configuration_.report_usage_pattern_delay_ms

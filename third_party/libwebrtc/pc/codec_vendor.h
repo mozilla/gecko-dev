@@ -121,6 +121,7 @@ class CodecVendor {
 // A class to assist in looking up data for a codec mapping.
 // Pure virtual to allow implementations that depend on things that
 // codec_vendor.h should not depend on.
+// Pointers returned are not stable, and should not be stored.
 class CodecLookupHelper {
  public:
   virtual ~CodecLookupHelper() = default;
