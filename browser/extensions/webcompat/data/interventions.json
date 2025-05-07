@@ -2002,21 +2002,6 @@
       }
     ]
   },
-  "1898531": {
-    "label": "cwb.digital",
-    "bugs": {
-      "1898531": {
-        "issue": "broken-login",
-        "matches": ["*://*.cwb.digital/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "ua_string": ["add_Chrome"]
-      }
-    ]
-  },
   "1898909": {
     "label": "remotasks.com",
     "bugs": {
