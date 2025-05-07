@@ -730,11 +730,7 @@ const AVAILABLE_SHIMS = [
     contentScripts: [
       {
         js: "microsoftAccountIcon.js",
-        matches: [
-          "*://*.microsoft.com/*",
-          "*://*.bing.com/*",
-          "*://m365.cloud.microsoft/*",
-        ],
+        matches: ["*://*.microsoft.com/*", "*://m365.cloud.microsoft/*"],
         runAt: "document_start",
       },
     ],
