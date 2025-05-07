@@ -3091,6 +3091,23 @@
       }
     ]
   },
+  "1949466": {
+    "label": "lapalabradeldia.com",
+    "bugs": {
+      "1949466": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://lapalabradeldia.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "css": ["bug1949466-lapalabradeldia.com-fix-vanishing-letters.css"]
+        }
+      }
+    ]
+  },
   "1950100": {
     "label": "aylak.com",
     "bugs": {

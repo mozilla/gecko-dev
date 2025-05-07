@@ -1,0 +1,14 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * lapalabradeldia.com - letters sometimes vanish as they are input
+ * Bug #1949466 - https://bugzilla.mozilla.org/show_bug.cgi?id=1949466
+ *
+ * While playing the game, letters sometimes vanish when clicking on the
+ * game's on-screen keyboard. This intervention works around the bug.
+ */
+.react-card-front {
+  transform-style: initial !important;
+}
