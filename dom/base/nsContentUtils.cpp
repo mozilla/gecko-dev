@@ -5960,6 +5960,15 @@ static void SetAndFilterHTML(FragmentOrElement* aTarget, Element* aContext,
 }
 
 /* static */
+void nsContentUtils::SetHTML(FragmentOrElement* aTarget, Element* aContext,
+                             const nsAString& aHTML,
+                             const SetHTMLOptions& aOptions,
+                             ErrorResult& aError) {
+  SetAndFilterHTML(aTarget, aContext, aHTML, aOptions.mSanitizer,
+                   /* aSafe */ true, aError);
+}
+
+/* static */
 void nsContentUtils::SetHTMLUnsafe(
     FragmentOrElement* aTarget, Element* aContext,
     const TrustedHTMLOrString& aSource, const SetHTMLUnsafeOptions& aOptions,
