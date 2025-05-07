@@ -213,8 +213,8 @@ void FontFaceSetDocumentImpl::EnsureReady() {
 
 #ifdef DEBUG
 bool FontFaceSetDocumentImpl::HasRuleFontFace(FontFaceImpl* aFontFace) {
-  for (size_t i = 0; i < mRuleFaces.Length(); i++) {
-    if (mRuleFaces[i].mFontFace == aFontFace) {
+  for (const auto& record : mRuleFaces) {
+    if (record.mFontFace == aFontFace) {
       return true;
     }
   }
@@ -399,23 +399,22 @@ bool FontFaceSetDocumentImpl::UpdateRules(
   bool modified = mNonRuleFacesDirty;
   mNonRuleFacesDirty = false;
 
-  // reuse existing FontFace objects mapped to rules already
-  nsTHashMap<nsPtrHashKey<StyleLockedFontFaceRule>, FontFaceImpl*> ruleFaceMap;
-  for (size_t i = 0, i_end = mRuleFaces.Length(); i < i_end; ++i) {
-    FontFaceImpl* f = mRuleFaces[i].mFontFace;
-    if (!f || !f->GetOwner()) {
-      continue;
-    }
-    ruleFaceMap.InsertOrUpdate(f->GetRule(), f);
-  }
-
   // The @font-face rules that make up the user font set have changed,
   // so we need to update the set. However, we want to preserve existing
   // font entries wherever possible, so that we don't discard and then
   // re-download resources in the (common) case where at least some of the
   // same rules are still present.
-
   nsTArray<FontFaceRecord> oldRecords = std::move(mRuleFaces);
+
+  // reuse existing FontFace objects mapped to particular rules already
+  nsTHashMap<nsPtrHashKey<StyleLockedFontFaceRule>, FontFaceImpl*> ruleFaceMap;
+  for (const FontFaceRecord& record : oldRecords) {
+    FontFaceImpl* f = record.mFontFace;
+    if (!f || !f->GetOwner()) {
+      continue;
+    }
+    ruleFaceMap.InsertOrUpdate(f->GetRule(), f);
+  }
 
   // Remove faces from the font family records; we need to re-insert them
   // because we might end up with faces in a different order even if they're
@@ -432,12 +431,12 @@ bool FontFaceSetDocumentImpl::UpdateRules(
   // ones we've handled in this table.
   nsTHashSet<StyleLockedFontFaceRule*> handledRules;
 
-  for (size_t i = 0, i_end = aRules.Length(); i < i_end; ++i) {
+  for (const nsFontFaceRuleContainer& container : aRules) {
     // Insert each FontFace objects for each rule into our list, migrating old
     // font entries if possible rather than creating new ones; set  modified  to
     // true if we detect that rule ordering has changed, or if a new entry is
     // created.
-    StyleLockedFontFaceRule* rule = aRules[i].mRule;
+    StyleLockedFontFaceRule* rule = container.mRule;
     if (!handledRules.EnsureInserted(rule)) {
       // rule was already present in the hashtable
       continue;
@@ -448,12 +447,12 @@ bool FontFaceSetDocumentImpl::UpdateRules(
       face = FontFace::CreateForRule(mOwner->GetParentObject(), mOwner, rule);
       faceImpl = face->GetImpl();
     }
-    InsertRuleFontFace(faceImpl, face, aRules[i].mOrigin, oldRecords, modified);
+    InsertRuleFontFace(faceImpl, face, container.mOrigin, oldRecords, modified);
   }
 
-  for (size_t i = 0, i_end = mNonRuleFaces.Length(); i < i_end; ++i) {
+  for (const FontFaceRecord& record : mNonRuleFaces) {
     // Do the same for the non rule backed FontFace objects.
-    InsertNonRuleFontFace(mNonRuleFaces[i].mFontFace);
+    InsertNonRuleFontFace(record.mFontFace);
   }
 
   // Remove any residual families that have no font entries (i.e., they were
@@ -467,7 +466,7 @@ bool FontFaceSetDocumentImpl::UpdateRules(
   // If any FontFace objects for rules are left in the old list, note that the
   // set has changed (even if the new set was built entirely by migrating old
   // font entries).
-  if (oldRecords.Length() > 0) {
+  if (!oldRecords.IsEmpty()) {
     modified = true;
     // Any in-progress loaders for obsolete rules should be cancelled,
     // as the resource being downloaded will no longer be required.
@@ -478,13 +477,10 @@ bool FontFaceSetDocumentImpl::UpdateRules(
     // XXX Now that it is possible for the author to hold on to a rule backed
     // FontFace object, we shouldn't cancel loading here; instead we should do
     // it when the FontFace is GCed, if we can detect that.
-    size_t count = oldRecords.Length();
-    for (size_t i = 0; i < count; ++i) {
-      RefPtr<FontFaceImpl> f = oldRecords[i].mFontFace;
-      gfxUserFontEntry* userFontEntry = f->GetUserFontEntry();
-      if (userFontEntry) {
-        nsFontFaceLoader* loader = userFontEntry->GetLoader();
-        if (loader) {
+    for (const FontFaceRecord& record : oldRecords) {
+      RefPtr<FontFaceImpl> f = record.mFontFace;
+      if (gfxUserFontEntry* userFontEntry = f->GetUserFontEntry()) {
+        if (nsFontFaceLoader* loader = userFontEntry->GetLoader()) {
           loader->Cancel();
           RemoveLoader(loader);
         }
