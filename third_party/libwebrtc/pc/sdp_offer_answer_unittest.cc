@@ -1921,12 +1921,28 @@ TEST_F(SdpOfferAnswerMungingTest, IceOptions) {
   auto& transport_infos = offer->description()->transport_infos();
   ASSERT_EQ(transport_infos.size(), 1u);
   transport_infos[0].description.transport_options.push_back(
-      cricket::ICE_OPTION_RENOMINATION);
+      "something-unsupported");
   RTCError error;
   EXPECT_TRUE(pc->SetLocalDescription(std::move(offer), &error));
   EXPECT_THAT(
       metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
       ElementsAre(Pair(SdpMungingType::kIceOptions, 1)));
+}
+
+TEST_F(SdpOfferAnswerMungingTest, IceOptionsRenomination) {
+  auto pc = CreatePeerConnection();
+  pc->AddAudioTrack("audio_track", {});
+
+  auto offer = pc->CreateOffer();
+  auto& transport_infos = offer->description()->transport_infos();
+  ASSERT_EQ(transport_infos.size(), 1u);
+  transport_infos[0].description.transport_options.push_back(
+      cricket::ICE_OPTION_RENOMINATION);
+  RTCError error;
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(offer), &error));
+  EXPECT_THAT(
+      metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
+      ElementsAre(Pair(SdpMungingType::kIceOptionsRenomination, 1)));
 }
 
 TEST_F(SdpOfferAnswerMungingTest, DtlsRole) {

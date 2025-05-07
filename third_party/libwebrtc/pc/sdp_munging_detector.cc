@@ -20,6 +20,7 @@
 #include "media/base/codec.h"
 #include "media/base/media_constants.h"
 #include "media/base/stream_params.h"
+#include "p2p/base/transport_description.h"
 #include "p2p/base/transport_info.h"
 #include "pc/session_description.h"
 #include "rtc_base/checks.h"
@@ -68,6 +69,18 @@ SdpMungingType DetermineTransportModification(
         transport_infos_to_set[i].description.transport_options) {
       RTC_LOG(LS_WARNING) << "SDP munging: ice_options does not match last "
                              "created description.";
+      bool created_renomination =
+          absl::c_find(
+              last_created_transport_infos[i].description.transport_options,
+              cricket::ICE_OPTION_RENOMINATION) !=
+          last_created_transport_infos[i].description.transport_options.end();
+      bool set_renomination =
+          absl::c_find(transport_infos_to_set[i].description.transport_options,
+                       cricket::ICE_OPTION_RENOMINATION) !=
+          transport_infos_to_set[i].description.transport_options.end();
+      if (!created_renomination && set_renomination) {
+        return SdpMungingType::kIceOptionsRenomination;
+      }
       return SdpMungingType::kIceOptions;
     }
   }
