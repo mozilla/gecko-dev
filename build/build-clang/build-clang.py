@@ -288,6 +288,13 @@ def build_one_stage(
                 # checks.
                 cmake_args += ["-DCAN_TARGET_i386=1"]
             cmake_args += ["-DLLVM_ENABLE_TERMINFO=OFF"]
+            libxml2 = os.path.join(os.environ.get("MOZ_FETCHES_DIR", ""), "libxml2")
+            if os.path.exists(libxml2):
+                cmake_args += [
+                    "-DLIBXML2_DEFINITIONS=-DLIBXML_STATIC",
+                    f"-DLIBXML2_INCLUDE_DIR={libxml2}/include/libxml2",
+                    f"-DLIBXML2_LIBRARIES={libxml2}/lib/libxml2.a",
+                ]
         if is_windows(target):
             cmake_args.insert(-1, "-DLLVM_EXPORT_SYMBOLS_FOR_PLUGINS=ON")
             cmake_args.insert(-1, "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded")
