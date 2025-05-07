@@ -3,6 +3,8 @@ import asyncio
 import pytest
 from webdriver import NoSuchElementException
 
+# This is just a regression test.
+
 URL = "https://www.tvmovie.de/tv/fernsehprogramm"
 
 POPUP_CSS = "#sp_message_container_1179875"
@@ -39,13 +41,6 @@ async def check_if_scroll_bounces(client, in_headless_mode):
 
 @pytest.mark.skip_platforms("android")
 @pytest.mark.asyncio
-@pytest.mark.with_interventions
-async def test_enabled(client, in_headless_mode):
-    assert not await check_if_scroll_bounces(client, in_headless_mode)
-
-
-@pytest.mark.skip_platforms("android")
-@pytest.mark.asyncio
 @pytest.mark.without_interventions
 async def test_disabled(client, in_headless_mode):
-    assert await check_if_scroll_bounces(client, in_headless_mode)
+    assert not await check_if_scroll_bounces(client, in_headless_mode)

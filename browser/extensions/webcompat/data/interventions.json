@@ -1684,30 +1684,6 @@
       }
     ]
   },
-  "1868345": {
-    "label": "tvmovie.de, www.goodcarbadcar.net",
-    "bugs": {
-      "1840166": {
-        "issue": "broken-scrolling",
-        "matches": [
-          "*://www.tvmovie.de/tv/fernsehprogramm",
-          "*://www.tvmovie.de/tv/fernsehprogramm*"
-        ]
-      },
-      "1897392": {
-        "issue": "broken-scrolling",
-        "matches": ["*://www.goodcarbadcar.net/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "content_scripts": {
-          "css": ["bug1868345-tvmovie.de-scroll-fix.css"]
-        }
-      }
-    ]
-  },
   "1873166": {
     "label": "nsandi.com",
     "bugs": {
