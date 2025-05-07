@@ -18,8 +18,6 @@
     "firefox-devtools.vscode-firefox-debug",
     // IDL language support
     "mythmon.idl",
-    // Mercurial support
-    "mrcrowl.hg",
     // VSCode Remote Development over SSH
     "ms-vscode-remote.remote-ssh",
   ]
