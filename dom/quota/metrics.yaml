@@ -149,7 +149,7 @@ quotamanager.initialize.temporarystorage:
     notification_emails:
       - jvarga@mozilla.com
       - storage-telemetry@mozilla.com
-    expires: 141
+    expires: never
 quotamanager.shutdown:
   total_time_excluding_suspend:
     type: timing_distribution
