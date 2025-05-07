@@ -5063,8 +5063,7 @@ nsRect PresShell::ClipListToRange(nsDisplayListBuilder* aBuilder,
         // if the node is within the range, append it to the temporary list
         bool before, after;
         nsresult rv =
-            RangeUtils::CompareNodeToRange<TreeKind::ShadowIncludingDOM>(
-                content, aRange, &before, &after);
+            RangeUtils::CompareNodeToRange(content, aRange, &before, &after);
         if (NS_SUCCEEDED(rv) && !before && !after) {
           itemToInsert = i;
           bool snap;

@@ -144,8 +144,9 @@ inline nsINode* nsINode::GetFlattenedTreeParentNodeForStyle() const {
   return ::GetFlattenedTreeParentNode<nsINode::eForStyle>(this);
 }
 
-inline nsINode* nsINode::GetFlattenedTreeParentNodeForSelection() const {
-  return ::GetFlattenedTreeParentNode<nsINode::eForSelection>(this);
+inline nsIContent* nsINode::GetFlattenedTreeParentNodeForSelection() const {
+  nsINode* parent = ::GetFlattenedTreeParentNode<nsINode::eForSelection>(this);
+  return (parent && parent->IsContent()) ? parent->AsContent() : nullptr;
 }
 
 inline bool nsINode::NodeOrAncestorHasDirAuto() const {

@@ -13,7 +13,9 @@
 <script>
   // Selected contents are:
   //   er
-  //   Slotted     Inner
+  //        Inner
+  // Since we use shadow including order, contents in flat tree
+  // are not selected.
   const inner = host.shadowRoot.getElementById("inner");
   window.getSelection()
       .setBaseAndExtent(outer.firstChild, 3, inner.firstChild, 5);

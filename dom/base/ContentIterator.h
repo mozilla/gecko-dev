@@ -87,45 +87,24 @@ class ContentIteratorBase {
   static nsINode* GetDeepFirstChild(nsINode* aRoot);
   // If aAllowCrossShadowBoundary is true, it'll continue with the shadow tree
   // when it reaches to a shadow host.
-  static nsIContent* GetDeepFirstChild(
-      nsIContent* aRoot,
-      dom::AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
+  static nsIContent* GetDeepFirstChild(nsIContent* aRoot,
+                                       bool aAllowCrossShadowBoundary);
   static nsINode* GetDeepLastChild(nsINode* aRoot);
   // If aAllowCrossShadowBoundary is true, it'll continue with the shadow tree
   // when it reaches to a shadow host.
-  static nsIContent* GetDeepLastChild(
-      nsIContent* aRoot,
-      dom::AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
+  static nsIContent* GetDeepLastChild(nsIContent* aRoot,
+                                      bool aAllowCrossShadowBoundary);
 
-  struct AncestorInfo {
-    nsIContent* mAncestor = nullptr;
-    // mIsDescendantInShadowTree is used to determine if we should go
-    // dive into the shadow tree or regular light DOM tree if mAncestor
-    // is a shadow host. It should always be false otherwise.
-    bool mIsDescendantInShadowTree = false;
-  };
-
-  class InclusiveAncestorComparator {
-   public:
-    bool Equals(const AncestorInfo& aA, const nsINode* aB) const {
-      return aA.mAncestor == aB;
-    }
-  };
   // Get the next/previous sibling of aNode, or its parent's, or grandparent's,
   // etc.  Returns null if aNode and all its ancestors have no next/previous
   // sibling.
   //
   // If aAllowCrossShadowBoundary is true, it'll continue with the shadow host
   // when it reaches to a shadow root.
-  static nsIContent* GetNextSibling(
-      nsINode* aNode,
-      dom::AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary =
-          dom::AllowRangeCrossShadowBoundary::No,
-      nsTArray<AncestorInfo>* aInclusiveAncestorsOfEndContainer = nullptr);
-  static nsIContent* GetPrevSibling(
-      nsINode* aNode,
-      dom::AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary =
-          dom::AllowRangeCrossShadowBoundary::No);
+  static nsIContent* GetNextSibling(nsINode* aNode,
+                                    bool aAllowCrossShadowBoundary = false);
+  static nsIContent* GetPrevSibling(nsINode* aNode,
+                                    bool aAllowCrossShadowBoundary = false);
 
   nsINode* NextNode(nsINode* aNode);
   nsINode* PrevNode(nsINode* aNode);
@@ -345,7 +324,7 @@ class ContentSubtreeIterator final : public SafeContentIteratorBase {
   RefPtr<dom::AbstractRange> mRange;
 
   // See <https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor>.
-  AutoTArray<AncestorInfo, 8> mInclusiveAncestorsOfEndContainer;
+  AutoTArray<nsIContent*, 8> mInclusiveAncestorsOfEndContainer;
 
   // Whether this iterator allows to iterate nodes across shadow boundary.
   dom::AllowRangeCrossShadowBoundary mAllowCrossShadowBoundary =
