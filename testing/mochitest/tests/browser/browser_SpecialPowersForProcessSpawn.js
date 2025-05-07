@@ -59,7 +59,7 @@ add_task(async function test_SpecialPowersForProcess_spawn() {
     const frame1 = this.content.document.getElementById("frame1");
     Assert.throws(
       () => frame1.contentDocument.location.search,
-      /TypeError: can't access property "location", frame1.contentDocument is null/,
+      /TypeError: (can't access property "location", )?frame1.contentDocument is null/,
       "ContentPage.spawn: Assert, cannot read cross-origin content"
     );
     await new Promise(resolve => {
