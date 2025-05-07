@@ -1,0 +1,57 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsIArray.idl"
+#include "nsISupports.idl"
+
+[scriptable, uuid(1f2d7c8e-5b94-48cf-a5f1-709b6f6d3c4a)]
+interface nsIOriginStatusEntry : nsISupports
+{
+  /**
+   * The origin string.
+   */
+  readonly attribute ACString origin;
+
+  /**
+   * The origin status.
+   * Values are defined in nsIWindowsMediaFoundationCDMOriginsListService.
+   */
+  readonly attribute long status;
+};
+
+[scriptable, uuid(9b7f6a4a-8a72-4de4-9157-d45e6e4f9f18)]
+interface nsIOriginsListLoadCallback : nsISupports
+{
+  /**
+   * Called when the origin list has been successfully loaded from Remote Settings.
+   *
+   * @param aEntries An array of nsIOriginStatusEntry.
+   */
+  void onOriginsListLoaded(in nsIArray aEntries);
+};
+
+/**
+ * A service that provides the list of origins allowed or blocked to use the
+ * Windows Media Foundation CDM (WMFCDM), retrieved via Remote Settings.
+ */
+[scriptable, uuid(d8a0a9c3-3d0b-4e1a-9a8c-bf542fa318f7)]
+interface nsIWindowsMediaFoundationCDMOriginsListService : nsISupports
+{
+  const long ORIGIN_BLOCKED               = 0;
+  const long ORIGIN_ALLOWED               = 1;
+
+  /**
+   * Set a callback that will be notified when the origin list has been loaded.
+   *
+   * @param aCallback The callback to be invoked when loading is complete.
+   */
+  void setCallback(in nsIOriginsListLoadCallback aCallback);
+
+  /**
+   * Remove a callback.
+   *
+   * @param aCallback The callback to be invoked when loading is complete.
+   */
+  void removeCallback(in nsIOriginsListLoadCallback aCallback);
+};

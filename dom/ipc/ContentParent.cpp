@@ -331,6 +331,32 @@
 #include "nsIToolkitProfileService.h"
 #include "nsIToolkitProfile.h"
 
+#ifdef MOZ_WMF_CDM
+#  include "nsIWindowsMediaFoundationCDMOriginsListService.h"
+
+namespace mozilla {
+class OriginsListLoadCallback final : public nsIOriginsListLoadCallback {
+ public:
+  explicit OriginsListLoadCallback(ContentParent* aContentParent)
+      : mContentParent(aContentParent) {}
+
+  NS_DECL_ISUPPORTS
+
+  // nsIOriginsListLoadCallback
+  NS_IMETHODIMP OnOriginsListLoaded(nsIArray* aEntries) {
+    // TODO : broadcast the origin entries to the content process
+    return NS_OK;
+  }
+
+ private:
+  ~OriginsListLoadCallback() = default;
+
+  RefPtr<ContentParent> mContentParent;
+};
+NS_IMPL_ISUPPORTS(OriginsListLoadCallback, nsIOriginsListLoadCallback)
+}  // namespace mozilla
+#endif
+
 static NS_DEFINE_CID(kCClipboardCID, NS_CLIPBOARD_CID);
 
 using base::KillProcess;
@@ -1876,6 +1902,17 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
 
   RecvRemoveGeolocationListener();
 
+#ifdef MOZ_WMF_CDM
+  if (mOriginsListCallback) {
+    nsCOMPtr<nsIWindowsMediaFoundationCDMOriginsListService> rsService =
+        do_GetService("@mozilla.org/media/wmfcdm-origins-list;1");
+    if (rsService) {
+      rsService->RemoveCallback(mOriginsListCallback);
+    }
+    mOriginsListCallback = nullptr;
+  }
+#endif
+
   // Destroy our JSProcessActors, and reject any pending queries.
   JSActorDidDestroy();
 
@@ -2886,6 +2923,17 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
                                          nsIStyleSheetService::AUTHOR_SHEET);
     }
   }
+
+#ifdef MOZ_WMF_CDM
+  if (!mOriginsListCallback) {
+    mOriginsListCallback = new OriginsListLoadCallback(this);
+    nsCOMPtr<nsIWindowsMediaFoundationCDMOriginsListService> rsService =
+        do_GetService("@mozilla.org/media/wmfcdm-origins-list;1");
+    if (rsService) {
+      rsService->SetCallback(mOriginsListCallback);
+    }
+  }
+#endif
 
 #ifdef MOZ_SANDBOX
   bool shouldSandbox = true;
