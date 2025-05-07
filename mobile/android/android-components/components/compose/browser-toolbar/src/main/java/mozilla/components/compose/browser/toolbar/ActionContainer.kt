@@ -43,6 +43,7 @@ fun ActionContainer(
                         contentDescription = action.contentDescription,
                         tint = action.tint,
                         onClick = action.onClick,
+                        highlighted = action.highlighted,
                         onLongClick = action.onLongClick,
                         onInteraction = { onInteraction(it) },
                     )

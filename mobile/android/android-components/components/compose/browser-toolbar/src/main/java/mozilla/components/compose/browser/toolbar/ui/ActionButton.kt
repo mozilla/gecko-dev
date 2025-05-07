@@ -43,9 +43,9 @@ import mozilla.components.ui.icons.R
  * @param icon Drawable resource for this button.
  * @param tint Color resource used to tint [icon].
  * @param contentDescription Text used by accessibility services to describe what this button does.
- * @property onClick [BrowserToolbarInteraction] describing how to handle this button being clicked.
- * @param onLongClick Optional [BrowserToolbarInteraction] describing how to handle this button being long clicked.
  * @param highlighted Whether or not to highlight this button.
+ * @param onClick [BrowserToolbarInteraction] describing how to handle this button being clicked.
+ * @param onLongClick Optional [BrowserToolbarInteraction] describing how to handle this button being long clicked.
  * @param onInteraction Callback for handling [BrowserToolbarEvent]s on user interactions.
  */
 @Composable
@@ -54,9 +54,9 @@ fun ActionButton(
     @DrawableRes icon: Int,
     @ColorInt tint: Int,
     @StringRes contentDescription: Int,
+    highlighted: Boolean = false,
     onClick: BrowserToolbarInteraction,
     onLongClick: BrowserToolbarInteraction? = null,
-    highlighted: Boolean = false,
     onInteraction: (BrowserToolbarEvent) -> Unit,
 ) {
     val onClickMenu = key(onClick) { onClick.buildMenu(onInteraction) }

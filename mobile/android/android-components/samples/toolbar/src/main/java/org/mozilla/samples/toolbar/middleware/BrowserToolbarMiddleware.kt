@@ -170,6 +170,7 @@ internal class BrowserToolbarMiddleware(
                 dependencies.context,
                 R.color.generic_button_tint,
             ),
+            highlighted = true,
             onClick = SecurityIndicatorClicked,
         ),
     )
