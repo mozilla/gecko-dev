@@ -105,8 +105,18 @@ describe("DiscoveryStreamFeed", () => {
         links: [],
         isBlocked: () => false,
       },
+      getUtcOffset: () => 0,
+      normalizeOs: () => "",
     };
     globals.set("NewTabUtils", fakeNewTabUtils);
+    globals.set("ClientEnvironmentBase", {
+      os: "0",
+    });
+
+    globals.set("ObliviousHTTP", {
+      getOHTTPConfig: () => {},
+      ohttpRequest: () => {},
+    });
 
     fakePktApi = {
       isUserLoggedIn: () => false,
@@ -229,6 +239,52 @@ describe("DiscoveryStreamFeed", () => {
           method: "POST",
           body: "{}",
         }
+      );
+    });
+
+    it("should use OHTTP when configured and enabled", async () => {
+      sandbox
+        .stub(global.Services.prefs, "getStringPref")
+        .withArgs(
+          "browser.newtabpage.activity-stream.discoverystream.ohttp.relayURL"
+        )
+        .returns("https://relay.url")
+        .withArgs(
+          "browser.newtabpage.activity-stream.discoverystream.ohttp.configURL"
+        )
+        .returns("https://config.url");
+
+      const fakeOhttpConfig = { config: "config" };
+      sandbox
+        .stub(global.ObliviousHTTP, "getOHTTPConfig")
+        .resolves(fakeOhttpConfig);
+
+      const ohttpResponse = {
+        json: () => Promise.resolve("ohttp response"),
+        ok: true,
+      };
+      const ohttpRequestStub = sandbox
+        .stub(global.ObliviousHTTP, "ohttpRequest")
+        .resolves(ohttpResponse);
+
+      // Allow the endpoint
+      feed.store.getState = () => ({
+        Prefs: {
+          values: {
+            [ENDPOINTS_PREF_NAME]: DUMMY_ENDPOINT,
+          },
+        },
+      });
+
+      const result = await feed.fetchFromEndpoint(DUMMY_ENDPOINT, {}, true);
+
+      assert.equal(result, "ohttp response");
+      assert.calledOnce(ohttpRequestStub);
+      assert.calledWithMatch(
+        ohttpRequestStub,
+        "https://relay.url",
+        fakeOhttpConfig,
+        DUMMY_ENDPOINT
       );
     });
   });
@@ -3453,6 +3509,7 @@ describe("DiscoveryStreamFeed", () => {
       assert.equal(result.score, 1);
     });
   });
+
   describe("new proxy feed", () => {
     beforeEach(() => {
       feed.store = createStore(combineReducers(reducers), {

@@ -9,6 +9,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
+  ObliviousHTTP: "resource://gre/modules/ObliviousHTTP.sys.mjs",
   pktApi: "chrome://pocket/content/pktApi.sys.mjs",
   PersistentCache: "resource://newtab/lib/PersistentCache.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
@@ -503,7 +504,8 @@ export class DiscoveryStreamFeed {
     this._prefCache = {};
   }
 
-  async fetchFromEndpoint(rawEndpoint, options = {}) {
+  async fetchFromEndpoint(rawEndpoint, options = {}, useOhttp = false) {
+    let fetchPromise;
     if (!rawEndpoint) {
       console.error("Tried to fetch endpoint but none was configured.");
       return null;
@@ -511,6 +513,14 @@ export class DiscoveryStreamFeed {
 
     const apiKeyPref = this.config.api_key_pref;
     const apiKey = Services.prefs.getCharPref(apiKeyPref, "");
+    const ohttpRelayURL = Services.prefs.getStringPref(
+      "browser.newtabpage.activity-stream.discoverystream.ohttp.relayURL",
+      ""
+    );
+    const ohttpConfigURL = Services.prefs.getStringPref(
+      "browser.newtabpage.activity-stream.discoverystream.ohttp.configURL",
+      ""
+    );
 
     const endpoint = rawEndpoint
       .replace("$apiKey", apiKey)
@@ -532,17 +542,42 @@ export class DiscoveryStreamFeed {
       const controller = new AbortController();
       const { signal } = controller;
 
-      const fetchPromise = fetch(endpoint, {
-        ...options,
-        credentials: "omit",
-        signal,
-      });
+      if (useOhttp && ohttpConfigURL && ohttpRelayURL) {
+        let config = await lazy.ObliviousHTTP.getOHTTPConfig(ohttpConfigURL);
+
+        if (!config) {
+          console.error(
+            new Error(
+              `OHTTP was configured for ${endpoint} but we couldn't fetch a valid config`
+            )
+          );
+          return null;
+        }
+        fetchPromise = lazy.ObliviousHTTP.ohttpRequest(
+          ohttpRelayURL,
+          config,
+          endpoint,
+          {
+            ...options,
+            credentials: "omit",
+            signal,
+          }
+        );
+      } else {
+        fetchPromise = fetch(endpoint, {
+          ...options,
+          credentials: "omit",
+          signal,
+        });
+      }
+
       // istanbul ignore next
       const timeoutId = setTimeout(() => {
         controller.abort();
       }, FETCH_TIMEOUT);
 
       const response = await fetchPromise;
+
       if (!response.ok) {
         throw new Error(`Unexpected status (${response.status})`);
       }
@@ -1700,6 +1735,11 @@ export class DiscoveryStreamFeed {
     const sectionsEnabled = prefs[PREF_SECTIONS_ENABLED];
     let isFakespot;
     const selectedFeedPref = prefs[PREF_CONTEXTUAL_CONTENT_SELECTED_FEED];
+    // Should we fetch /curated-recommendations over OHTTP
+    const merinoOhttpEnabled = Services.prefs.getBoolPref(
+      "browser.newtabpage.activity-stream.discoverystream.merino-provider.ohttp.enabled",
+      false
+    );
     let sections = [];
     const { feeds } = cachedData;
 
@@ -1709,7 +1749,11 @@ export class DiscoveryStreamFeed {
         cachedData.sectionPersonalization
       );
 
-      const feedResponse = await this.fetchFromEndpoint(feedUrl, options);
+      const feedResponse = await this.fetchFromEndpoint(
+        feedUrl,
+        options,
+        merinoOhttpEnabled
+      );
 
       if (feedResponse) {
         const { settings = {} } = feedResponse;
