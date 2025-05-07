@@ -704,67 +704,64 @@ user-login = "Manishearth"
 user-name = "Manish Goregaokar"
 
 [[publisher.uniffi]]
-version = "0.29.1"
-when = "2025-03-18"
-user-id = 111105
-user-login = "mhammond"
-user-name = "Mark Hammond"
+version = "0.29.2"
+when = "2025-05-05"
+user-id = 127697
+user-login = "bendk"
 
 [[publisher.uniffi_bindgen]]
-version = "0.29.1"
-when = "2025-03-18"
-user-id = 111105
-user-login = "mhammond"
-user-name = "Mark Hammond"
+version = "0.29.2"
+when = "2025-05-05"
+user-id = 127697
+user-login = "bendk"
 
 [[publisher.uniffi_build]]
-version = "0.29.1"
-when = "2025-03-18"
-user-id = 111105
-user-login = "mhammond"
-user-name = "Mark Hammond"
+version = "0.29.2"
+when = "2025-05-05"
+user-id = 127697
+user-login = "bendk"
 
 [[publisher.uniffi_core]]
-version = "0.29.1"
-when = "2025-03-18"
-user-id = 111105
-user-login = "mhammond"
-user-name = "Mark Hammond"
+version = "0.29.2"
+when = "2025-05-05"
+user-id = 127697
+user-login = "bendk"
 
 [[publisher.uniffi_internal_macros]]
-version = "0.29.1"
-when = "2025-03-18"
-user-id = 111105
-user-login = "mhammond"
-user-name = "Mark Hammond"
+version = "0.29.2"
+when = "2025-05-05"
+user-id = 127697
+user-login = "bendk"
 
 [[publisher.uniffi_macros]]
-version = "0.29.1"
-when = "2025-03-18"
-user-id = 111105
-user-login = "mhammond"
-user-name = "Mark Hammond"
+version = "0.29.2"
+when = "2025-05-05"
+user-id = 127697
+user-login = "bendk"
 
 [[publisher.uniffi_meta]]
-version = "0.29.1"
-when = "2025-03-18"
-user-id = 111105
-user-login = "mhammond"
-user-name = "Mark Hammond"
+version = "0.29.2"
+when = "2025-05-05"
+user-id = 127697
+user-login = "bendk"
+
+[[publisher.uniffi_pipeline]]
+version = "0.29.2"
+when = "2025-05-05"
+user-id = 127697
+user-login = "bendk"
 
 [[publisher.uniffi_testing]]
-version = "0.29.1"
-when = "2025-03-18"
-user-id = 111105
-user-login = "mhammond"
-user-name = "Mark Hammond"
+version = "0.29.2"
+when = "2025-05-05"
+user-id = 127697
+user-login = "bendk"
 
 [[publisher.uniffi_udl]]
-version = "0.29.1"
-when = "2025-03-18"
-user-id = 111105
-user-login = "mhammond"
-user-name = "Mark Hammond"
+version = "0.29.2"
+when = "2025-05-05"
+user-id = 127697
+user-login = "bendk"
 
 [[publisher.utf8_iter]]
 version = "1.0.4"
@@ -879,6 +876,13 @@ when = "2023-11-15"
 user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
+
+[[publisher.winnow]]
+version = "0.7.9"
+when = "2025-05-02"
+user-id = 6743
+user-login = "epage"
+user-name = "Ed Page"
 
 [[publisher.wit-bindgen-rt]]
 version = "0.21.0"
@@ -1051,6 +1055,24 @@ who = "Pat Hickey <phickey@fastly.com>"
 criteria = "safe-to-deploy"
 version = "0.1.2"
 notes = "no build, no ambient capabilities, no unsafe"
+
+[[audits.bytecode-alliance.audits.cargo_metadata]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.15.3"
+notes = "no build, no unsafe, inputs to cargo command are reasonably sanitized"
+
+[[audits.bytecode-alliance.audits.cargo_metadata]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+delta = "0.17.0 -> 0.18.1"
+notes = "No major changes, no unsafe code here."
+
+[[audits.bytecode-alliance.audits.cargo_metadata]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+delta = "0.18.1 -> 0.19.2"
+notes = "Dependency updates and minor changes, nothing suspicious."
 
 [[audits.bytecode-alliance.audits.cfg-if]]
 who = "Alex Crichton <alex@alexcrichton.com>"
@@ -1413,6 +1435,18 @@ and used in production.
 who = "Johan Andersson <opensource@embark-studios.com>"
 criteria = "safe-to-deploy"
 version = "1.0.58"
+
+[[audits.embark-studios.audits.cargo_metadata]]
+who = "Johan Andersson <opensource@embark-studios.com>"
+criteria = "safe-to-deploy"
+delta = "0.15.3 -> 0.15.4"
+notes = "No notable changes"
+
+[[audits.embark-studios.audits.cargo_metadata]]
+who = "Johan Andersson <opensource@embark-studios.com>"
+criteria = "safe-to-deploy"
+delta = "0.15.4 -> 0.17.0"
+notes = "No notable changes"
 
 [[audits.embark-studios.audits.cfg_aliases]]
 who = "Johan Andersson <opensource@embark-studios.com>"
@@ -2202,68 +2236,12 @@ who = "Ameer Ghani <inahga@divviup.org>"
 criteria = "safe-to-deploy"
 delta = "0.4.1 -> 0.4.2"
 
-[[audits.mozilla.wildcard-audits.uniffi]]
+[[audits.mozilla.wildcard-audits.uniffi_internal_macros]]
 who = "Jan-Erik Rediger <jrediger@mozilla.com>"
 criteria = "safe-to-deploy"
-user-id = 111105 # Mark Hammond (mhammond)
-start = "2021-11-22"
-end = "2026-01-13"
-aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
-
-[[audits.mozilla.wildcard-audits.uniffi_bindgen]]
-who = "Jan-Erik Rediger <jrediger@mozilla.com>"
-criteria = "safe-to-deploy"
-user-id = 111105 # Mark Hammond (mhammond)
-start = "2021-11-22"
-end = "2026-01-13"
-aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
-
-[[audits.mozilla.wildcard-audits.uniffi_build]]
-who = "Jan-Erik Rediger <jrediger@mozilla.com>"
-criteria = "safe-to-deploy"
-user-id = 111105 # Mark Hammond (mhammond)
-start = "2021-11-22"
-end = "2026-01-13"
-aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
-
-[[audits.mozilla.wildcard-audits.uniffi_core]]
-who = "Jan-Erik Rediger <jrediger@mozilla.com>"
-criteria = "safe-to-deploy"
-user-id = 111105 # Mark Hammond (mhammond)
-start = "2023-11-20"
-end = "2026-01-13"
-aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
-
-[[audits.mozilla.wildcard-audits.uniffi_macros]]
-who = "Jan-Erik Rediger <jrediger@mozilla.com>"
-criteria = "safe-to-deploy"
-user-id = 111105 # Mark Hammond (mhammond)
-start = "2021-11-22"
-end = "2026-01-13"
-aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
-
-[[audits.mozilla.wildcard-audits.uniffi_meta]]
-who = "Jan-Erik Rediger <jrediger@mozilla.com>"
-criteria = "safe-to-deploy"
-user-id = 111105 # Mark Hammond (mhammond)
-start = "2023-11-20"
-end = "2026-01-13"
-aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
-
-[[audits.mozilla.wildcard-audits.uniffi_testing]]
-who = "Jan-Erik Rediger <jrediger@mozilla.com>"
-criteria = "safe-to-deploy"
-user-id = 111105 # Mark Hammond (mhammond)
-start = "2023-11-20"
-end = "2026-01-13"
-aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
-
-[[audits.mozilla.wildcard-audits.uniffi_udl]]
-who = "Jan-Erik Rediger <jrediger@mozilla.com>"
-criteria = "safe-to-deploy"
-user-id = 111105 # Mark Hammond (mhammond)
-start = "2023-11-20"
-end = "2026-01-13"
+user-id = 127697 # bendk
+start = "2025-02-06"
+end = "2026-03-14"
 aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
 
 [[audits.mozilla.wildcard-audits.weedle2]]

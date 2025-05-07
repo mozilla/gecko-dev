@@ -16,8 +16,8 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 
 use std::collections::HashSet;
 
+use askama::Template;
 use heck::{ToSnakeCase, ToUpperCamelCase};
-use rinja::Template;
 use uniffi_bindgen::interface::{
     AsType, Callable, CallbackInterface, ComponentInterface, FfiDefinition, FfiFunction, FfiType,
 };

@@ -10,19 +10,42 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
-rust-version = "1.42.0"
+edition = "2021"
+rust-version = "1.78.0"
 name = "cargo_metadata"
-version = "0.15.3"
+version = "0.19.2"
 authors = ["Oliver Schneider <git-spam-no-reply9815368754983@oli-obk.de>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "structured access to the output of `cargo metadata`"
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/oli-obk/cargo_metadata"
 
 [package.metadata.cargo_metadata_test]
-some_field = true
 other_field = "foo"
+some_field = true
+
+[features]
+builder = ["derive_builder"]
+default = []
+unstable = []
+
+[lib]
+name = "cargo_metadata"
+path = "src/lib.rs"
+
+[[test]]
+name = "selftest"
+path = "tests/selftest.rs"
+
+[[test]]
+name = "test_samples"
+path = "tests/test_samples.rs"
 
 [dependencies.camino]
 version = "1.0.7"
@@ -32,7 +55,7 @@ features = ["serde1"]
 version = "0.1.2"
 
 [dependencies.derive_builder]
-version = "0.11.1"
+version = "0.20"
 optional = true
 
 [dependencies.semver]
@@ -44,12 +67,8 @@ version = "1.0.136"
 features = ["derive"]
 
 [dependencies.serde_json]
-version = "1.0.79"
+version = "1.0.118"
 features = ["unbounded_depth"]
 
 [dependencies.thiserror]
-version = "1.0.31"
-
-[features]
-builder = ["derive_builder"]
-default = []
+version = "2.0.3"

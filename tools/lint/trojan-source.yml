@@ -15,6 +15,7 @@ trojan-source:
         # TODO: Remove this when https://github.com/jaraco/zipp/pull/125 lands
         # to setuptools
         - third_party/python/setuptools/setuptools/_vendor/zipp/__init__.py
+        - third_party/rust/askama_parser/src/memchr_splitter.rs
         - third_party/rust/chardetng/src/data.rs
         - third_party/rust/clap_builder/src/output/textwrap/core.rs
         - third_party/rust/textwrap/src/core.rs
@@ -24,7 +25,6 @@ trojan-source:
         - third_party/rust/error-chain/tests/tests.rs
         - third_party/rust/unicode-width/src/lib.rs
         - third_party/rust/unicode-width/tests/tests.rs
-        - third_party/rust/rinja_parser/src/memchr_splitter.rs
         - security/nss/gtests/mozpkix_gtest/pkixnames_tests.cpp
         - testing/web-platform/tests/webdriver/tests/bidi/input/perform_actions/key_tentative.py
         - testing/web-platform/tests/webdriver/tests/classic/perform_actions/key_tentative.py

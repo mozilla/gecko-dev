@@ -25,13 +25,13 @@ fn metadata() {
         .iter()
         .find(|t| t.name == "cargo_metadata")
         .unwrap();
-    assert_eq!(lib.kind[0], "lib");
-    assert_eq!(lib.crate_types[0], "lib");
+    assert_eq!(lib.kind[0], "lib".into());
+    assert_eq!(lib.crate_types[0], "lib".into());
 
     let selftest = this.targets.iter().find(|t| t.name == "selftest").unwrap();
     assert_eq!(selftest.name, "selftest");
-    assert_eq!(selftest.kind[0], "test");
-    assert_eq!(selftest.crate_types[0], "bin");
+    assert_eq!(selftest.kind[0], "test".into());
+    assert_eq!(selftest.crate_types[0], "bin".into());
 
     let package_metadata = &metadata.packages[0]
         .metadata
@@ -141,13 +141,13 @@ fn metadata_deps() {
         .iter()
         .find(|t| t.name == "cargo_metadata")
         .unwrap();
-    assert_eq!(lib.kind[0], "lib");
-    assert_eq!(lib.crate_types[0], "lib");
+    assert_eq!(lib.kind[0], "lib".into());
+    assert_eq!(lib.crate_types[0], "lib".into());
 
     let selftest = this.targets.iter().find(|t| t.name == "selftest").unwrap();
     assert_eq!(selftest.name, "selftest");
-    assert_eq!(selftest.kind[0], "test");
-    assert_eq!(selftest.crate_types[0], "bin");
+    assert_eq!(selftest.kind[0], "test".into());
+    assert_eq!(selftest.crate_types[0], "bin".into());
 
     let dependencies = &this.dependencies;
 
@@ -160,4 +160,19 @@ fn metadata_deps() {
     assert!(!serde.req.matches(&Version::parse("1.0.0").unwrap()));
     assert!(serde.req.matches(&Version::parse("1.99.99").unwrap()));
     assert!(!serde.req.matches(&Version::parse("2.0.0").unwrap()));
+}
+
+#[test]
+fn workspace_default_packages() {
+    let metadata = MetadataCommand::new()
+        .manifest_path("Cargo.toml")
+        .exec()
+        .unwrap();
+    let workspace_packages = metadata.workspace_packages();
+    // this will only trigger on cargo versions that expose
+    // workspace_default_members (that is, cargo >= 1.71)
+    if metadata.workspace_default_members.is_available() {
+        let default_packages = metadata.workspace_default_packages();
+        assert_eq!(default_packages, workspace_packages);
+    }
 }

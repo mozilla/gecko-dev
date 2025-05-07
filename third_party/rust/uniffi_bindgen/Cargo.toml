@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "uniffi_bindgen"
-version = "0.29.1"
+version = "0.29.2"
 build = false
 autolib = false
 autobins = false
@@ -46,11 +46,20 @@ path = "src/lib.rs"
 [dependencies.anyhow]
 version = "1"
 
+[dependencies.askama]
+version = "0.13.0"
+features = [
+    "config",
+    "derive",
+    "alloc",
+]
+default-features = false
+
 [dependencies.camino]
 version = "1.0.8"
 
 [dependencies.cargo_metadata]
-version = "0.15"
+version = "0.19"
 optional = true
 
 [dependencies.fs-err]
@@ -65,20 +74,18 @@ version = "0.8"
 [dependencies.heck]
 version = "0.5"
 
+[dependencies.indexmap]
+version = "2.2"
+
 [dependencies.once_cell]
 version = "1.12"
-
-[dependencies.paste]
-version = "1.0"
-
-[dependencies.rinja]
-version = "0.3.4"
-features = ["config"]
-default-features = false
 
 [dependencies.serde]
 version = "1"
 features = ["derive"]
+
+[dependencies.tempfile]
+version = "3"
 
 [dependencies.textwrap]
 version = "0.16"
@@ -88,12 +95,18 @@ default-features = false
 [dependencies.toml]
 version = "0.5"
 
+[dependencies.uniffi_internal_macros]
+version = "=0.29.2"
+
 [dependencies.uniffi_meta]
-version = "=0.29.1"
+version = "=0.29.2"
+
+[dependencies.uniffi_pipeline]
+version = "=0.29.2"
 
 [dependencies.uniffi_testing]
-version = "=0.29.1"
+version = "=0.29.2"
 optional = true
 
 [dependencies.uniffi_udl]
-version = "=0.29.1"
+version = "=0.29.2"
