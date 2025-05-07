@@ -1,26 +1,23 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 7 Feb 2025 15:53:00 -0600
-Subject: Bug 1942428 - (fix-882b32d00f) fix
- -Wtautological-unsigned-zero-compare in payload_type.h
+Date: Wed, 5 Feb 2025 18:03:00 +0000
+Subject: Bug 1942171 - add builtin_audio_processing_builder to the libwebrtc
+ build. r=pehrsons,webrtc-reviewers
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/f3ed04250e9ec1b22731ac690eb66bc96ff894d6
+Differential Revision: https://phabricator.services.mozilla.com/D234594
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/27c29807e6f46562d2b6bae4b7b06a5966290afe
 ---
- call/payload_type.h | 4 ++++
- 1 file changed, 4 insertions(+)
+ BUILD.gn | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/call/payload_type.h b/call/payload_type.h
-index 672c489fc6..b2466f6d18 100644
---- a/call/payload_type.h
-+++ b/call/payload_type.h
-@@ -33,7 +33,11 @@ class PayloadType : public StrongAlias<class PayloadTypeTag, uint8_t> {
-     if (rtcp_mux && (id > 63 && id < 96)) {
-       return false;
-     }
-+#if defined(WEBRTC_MOZILLA_BUILD)
-+    return id <= 127; // id is unsigned, therefor always >= 0
-+#else
-     return id >= 0 && id <= 127;
-+#endif
-   }
-   template <typename Sink>
-   friend void AbslStringify(Sink& sink, const PayloadType pt) {
+diff --git a/BUILD.gn b/BUILD.gn
+index ca6e5b3122..5e49b71beb 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -615,6 +615,7 @@ if (!build_with_chromium) {
+ 
+     if (build_with_mozilla) {
+       deps += [
++        "api/audio:builtin_audio_processing_builder",
+         "api/environment:environment_factory",
+         "api/video:video_frame",
+         "api/video:video_rtp_headers",
