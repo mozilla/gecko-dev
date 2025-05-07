@@ -354,7 +354,8 @@ bool nsIFrame::CheckAndClearDisplayListState() {
 }
 
 bool nsIFrame::IsVisibleConsideringAncestors(uint32_t aFlags) const {
-  if (!StyleVisibility()->IsVisible()) {
+  if (!StyleVisibility()->IsVisible() ||
+      HasAnyStateBits(NS_FRAME_IS_NONDISPLAY)) {
     return false;
   }
 
