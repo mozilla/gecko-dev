@@ -944,6 +944,7 @@ if (rtc_include_tests) {
       "../video/config:streams_config",
       "//testing/gtest",
       "//third_party/abseil-cpp/absl/algorithm:container",
+      "//third_party/abseil-cpp/absl/base:nullability",
       "//third_party/abseil-cpp/absl/functional:any_invocable",
       "//third_party/abseil-cpp/absl/strings",
       "//third_party/abseil-cpp/absl/strings:string_view",
