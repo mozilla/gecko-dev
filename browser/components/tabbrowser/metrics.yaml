@@ -363,6 +363,26 @@ tabgroup:
         type: string
     expires: never
 
+  ungroup:
+    type: event
+    description: >
+      Recorded when the user ungroups all tabs of a tab group
+    notification_emails:
+      - dao@mozilla.com
+      - jswinarton@mozilla.com
+      - sthompson@mozilla.com
+    bugs:
+      - https://bugzil.la/1963713
+    data_reviews:
+      - https://bugzil.la/1963713
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      source:
+        description: The system, surface, or control the user used to ungroup the tabs of the tab group
+        type: string
+    expires: never
+
   tab_interactions:
     type: labeled_counter
     description: >

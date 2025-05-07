@@ -1329,9 +1329,15 @@ export let BrowserUsageTelemetry = {
    * @param {CustomEvent} event `TabGroupUngroup` event
    */
   _onTabGroupUngroup(event) {
-    const { isUserTriggered } = event.detail;
+    const { isUserTriggered, telemetrySource } = event.detail;
     if (isUserTriggered) {
-      Glean.tabgroup.groupInteractions.ungroup.add(1);
+      Glean.tabgroup.ungroup.record({ source: telemetrySource });
+      // Only count explicit user actions (i.e. "Ungroup tabs" in the tab group
+      // context menu) toward the total number of tab group ungroup interations.
+      // This excludes implicit user actions, e.g. canceling tab group creation.
+      if (telemetrySource == lazy.TabMetrics.METRIC_SOURCE.TAB_GROUP_MENU) {
+        Glean.tabgroup.groupInteractions.ungroup.add(1);
+      }
     }
   },
 
