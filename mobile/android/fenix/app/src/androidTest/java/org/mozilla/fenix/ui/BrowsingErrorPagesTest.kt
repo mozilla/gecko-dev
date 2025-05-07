@@ -5,6 +5,7 @@
 package org.mozilla.fenix.ui
 
 import androidx.core.net.toUri
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.R
@@ -125,6 +126,7 @@ class BrowsingErrorPagesTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2140588
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1964989")
     @Test
     fun verifyNoInternetConnectionErrorMessageTest() {
         val url = "www.example.com"

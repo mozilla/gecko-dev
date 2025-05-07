@@ -7,6 +7,7 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.filters.SdkSuppress
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -34,6 +35,7 @@ class NoNetworkAccessStartupTests : TestSetup() {
     // caution when making changes to it, so they don't block the builds
     // Based on STR from https://github.com/mozilla-mobile/fenix/issues/16886
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2240542
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1964989")
     @Test
     fun noNetworkConnectionStartupTest() {
         setNetworkEnabled(false)
@@ -47,6 +49,7 @@ class NoNetworkAccessStartupTests : TestSetup() {
 
     // Based on STR from https://github.com/mozilla-mobile/fenix/issues/16886
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2240722
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1964989")
     @Test
     fun networkInterruptedFromBrowserToHomeTest() {
         val url = "example.com"
@@ -65,6 +68,7 @@ class NoNetworkAccessStartupTests : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2240723
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1964989")
     @Test
     fun testPageReloadAfterNetworkInterrupted() {
         val url = "example.com"
@@ -82,6 +86,7 @@ class NoNetworkAccessStartupTests : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2240721
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1964989")
     @SdkSuppress(minSdkVersion = 34)
     @SmokeTest
     @Test
