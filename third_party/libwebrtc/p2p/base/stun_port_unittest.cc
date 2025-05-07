@@ -468,7 +468,7 @@ TEST_F(StunPortWithMockDnsResolverTest,
       webrtc::IsRtcOk());
   ASSERT_EQ(1U, port()->Candidates().size());
   EXPECT_TRUE(kPublicIP.EqualIPs(port()->Candidates()[0].address()));
-  EXPECT_EQ(kStunCandidatePriority + (cricket::kMaxTurnServers << 8),
+  EXPECT_EQ(kStunCandidatePriority + (webrtc::kMaxTurnServers << 8),
             port()->Candidates()[0].priority());
 }
 
@@ -929,7 +929,7 @@ TEST_F(StunIPv6PortTestWithMockDnsResolver,
       webrtc::IsRtcOk());
   ASSERT_EQ(1U, port()->Candidates().size());
   EXPECT_TRUE(kPrivateIPv6.EqualIPs(port()->Candidates()[0].address()));
-  EXPECT_EQ(kIPv6StunCandidatePriority + (cricket::kMaxTurnServers << 8),
+  EXPECT_EQ(kIPv6StunCandidatePriority + (webrtc::kMaxTurnServers << 8),
             port()->Candidates()[0].priority());
 }
 

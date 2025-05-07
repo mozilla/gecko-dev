@@ -111,7 +111,7 @@ TEST_F(PeerConnectionFieldTrialTest, EnableDependencyDescriptorAdvertised) {
   auto contents1 = offer->description()->contents();
   ASSERT_EQ(1u, contents1.size());
 
-  const cricket::MediaContentDescription* media_description1 =
+  const MediaContentDescription* media_description1 =
       contents1[0].media_description();
   EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, media_description1->type());
   const cricket::RtpHeaderExtensions& rtp_header_extensions1 =
@@ -145,7 +145,7 @@ TEST_F(PeerConnectionFieldTrialTest, MAYBE_InjectDependencyDescriptor) {
   cricket::ContentInfos& contents1 = offer->description()->contents();
   ASSERT_EQ(1u, contents1.size());
 
-  cricket::MediaContentDescription* media_description1 =
+  MediaContentDescription* media_description1 =
       contents1[0].media_description();
   EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, media_description1->type());
   cricket::RtpHeaderExtensions rtp_header_extensions1 =
@@ -189,7 +189,7 @@ TEST_F(PeerConnectionFieldTrialTest, MAYBE_InjectDependencyDescriptor) {
   cricket::ContentInfos& contents2 = answer->description()->contents();
   ASSERT_EQ(1u, contents2.size());
 
-  cricket::MediaContentDescription* media_description2 =
+  MediaContentDescription* media_description2 =
       contents2[0].media_description();
   EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, media_description2->type());
   cricket::RtpHeaderExtensions rtp_header_extensions2 =

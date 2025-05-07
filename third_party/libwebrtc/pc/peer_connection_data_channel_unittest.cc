@@ -149,9 +149,8 @@ class PeerConnectionDataChannelBaseTest : public ::testing::Test {
   }
 
   // Changes the SCTP data channel port on the given session description.
-  void ChangeSctpPortOnDescription(cricket::SessionDescription* desc,
-                                   int port) {
-    auto* data_content = cricket::GetFirstDataContent(desc);
+  void ChangeSctpPortOnDescription(SessionDescription* desc, int port) {
+    auto* data_content = GetFirstDataContent(desc);
     RTC_DCHECK(data_content);
     auto* data_desc = data_content->media_description()->as_sctp();
     RTC_DCHECK(data_desc);
@@ -258,7 +257,7 @@ TEST_P(PeerConnectionDataChannelTest,
 
   auto answer = callee->CreateAnswer();
   ASSERT_TRUE(answer);
-  auto* data_content = cricket::GetFirstDataContent(answer->description());
+  auto* data_content = GetFirstDataContent(answer->description());
   ASSERT_TRUE(data_content);
   EXPECT_FALSE(data_content->rejected);
   EXPECT_TRUE(
@@ -292,8 +291,8 @@ TEST_P(PeerConnectionDataChannelTest, ModernSdpSyntaxByDefault) {
   PeerConnectionInterface::RTCOfferAnswerOptions options;
   auto caller = CreatePeerConnectionWithDataChannel();
   auto offer = caller->CreateOffer(options);
-  EXPECT_FALSE(cricket::GetFirstSctpDataContentDescription(offer->description())
-                   ->use_sctpmap());
+  EXPECT_FALSE(
+      GetFirstSctpDataContentDescription(offer->description())->use_sctpmap());
   std::string sdp;
   offer->ToString(&sdp);
   RTC_LOG(LS_ERROR) << sdp;
@@ -306,8 +305,8 @@ TEST_P(PeerConnectionDataChannelTest, ObsoleteSdpSyntaxIfSet) {
   options.use_obsolete_sctp_sdp = true;
   auto caller = CreatePeerConnectionWithDataChannel();
   auto offer = caller->CreateOffer(options);
-  EXPECT_TRUE(cricket::GetFirstSctpDataContentDescription(offer->description())
-                  ->use_sctpmap());
+  EXPECT_TRUE(
+      GetFirstSctpDataContentDescription(offer->description())->use_sctpmap());
   std::string sdp;
   offer->ToString(&sdp);
   EXPECT_THAT(sdp, Not(HasSubstr(" UDP/DTLS/SCTP webrtc-datachannel")));

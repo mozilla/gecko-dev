@@ -100,7 +100,7 @@ class PeerConnectionWrapperForIceTest : public PeerConnectionWrapper {
   using PeerConnectionWrapper::PeerConnectionWrapper;
 
   std::unique_ptr<IceCandidateInterface> CreateJsepCandidateForFirstTransport(
-      cricket::Candidate* candidate) {
+      Candidate* candidate) {
     RTC_DCHECK(pc()->remote_description());
     const auto* desc = pc()->remote_description()->description();
     RTC_DCHECK(!desc->contents().empty());
@@ -110,7 +110,7 @@ class PeerConnectionWrapperForIceTest : public PeerConnectionWrapper {
   }
 
   // Adds a new ICE candidate to the first transport.
-  bool AddIceCandidate(cricket::Candidate* candidate) {
+  bool AddIceCandidate(Candidate* candidate) {
     return pc()->AddIceCandidate(
         CreateJsepCandidateForFirstTransport(candidate).get());
   }
@@ -209,8 +209,8 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
     return wrapper;
   }
 
-  cricket::Candidate CreateLocalUdpCandidate(const SocketAddress& address) {
-    cricket::Candidate candidate;
+  Candidate CreateLocalUdpCandidate(const SocketAddress& address) {
+    Candidate candidate;
     RTC_DCHECK_EQ(candidate.type(), IceCandidateType::kHost);
     candidate.set_component(cricket::ICE_CANDIDATE_COMPONENT_DEFAULT);
     candidate.set_protocol(cricket::UDP_PROTOCOL_NAME);
@@ -303,7 +303,7 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
     return ice_credentials;
   }
 
-  bool AddCandidateToFirstTransport(cricket::Candidate* candidate,
+  bool AddCandidateToFirstTransport(Candidate* candidate,
                                     SessionDescriptionInterface* sdesc) {
     auto* desc = sdesc->description();
     RTC_DCHECK(!desc->contents().empty());
@@ -330,8 +330,8 @@ class PeerConnectionIceTest
 
 ::testing::AssertionResult AssertCandidatesEqual(const char* a_expr,
                                                  const char* b_expr,
-                                                 const cricket::Candidate& a,
-                                                 const cricket::Candidate& b) {
+                                                 const Candidate& a,
+                                                 const Candidate& b) {
   StringBuilder failure_info;
   if (a.component() != b.component()) {
     failure_info << "\ncomponent: " << a.component() << " != " << b.component();
@@ -413,7 +413,7 @@ TEST_P(PeerConnectionIceTest,
   auto callee = CreatePeerConnectionWithAudioVideo();
 
   auto offer = caller->CreateOfferAndSetAsLocal();
-  cricket::Candidate candidate = CreateLocalUdpCandidate(kCallerAddress);
+  Candidate candidate = CreateLocalUdpCandidate(kCallerAddress);
   AddCandidateToFirstTransport(&candidate, offer.get());
 
   ASSERT_TRUE(callee->SetRemoteDescription(std::move(offer)));
@@ -480,7 +480,7 @@ TEST_P(PeerConnectionIceTest,
   caller->network()->AddInterface(kCallerAddress);
 
   auto offer = caller->CreateOfferAndSetAsLocal();
-  cricket::Candidate candidate = CreateLocalUdpCandidate(kCallerAddress);
+  Candidate candidate = CreateLocalUdpCandidate(kCallerAddress);
   AddCandidateToFirstTransport(&candidate, offer.get());
   ASSERT_TRUE(callee->SetRemoteDescription(std::move(offer)));
 
@@ -494,7 +494,7 @@ TEST_P(PeerConnectionIceTest, CannotAddCandidateWhenRemoteDescriptionNotSet) {
   const SocketAddress kCalleeAddress("1.1.1.1", 1111);
 
   auto caller = CreatePeerConnectionWithAudioVideo();
-  cricket::Candidate candidate = CreateLocalUdpCandidate(kCalleeAddress);
+  Candidate candidate = CreateLocalUdpCandidate(kCalleeAddress);
   std::unique_ptr<IceCandidateInterface> jsep_candidate =
       CreateIceCandidate(cricket::CN_AUDIO, 0, candidate);
 
@@ -516,9 +516,9 @@ TEST_P(PeerConnectionIceTest, CannotAddCandidateWhenPeerConnectionClosed) {
 
   ASSERT_TRUE(caller->ExchangeOfferAnswerWith(callee.get()));
 
-  cricket::Candidate candidate = CreateLocalUdpCandidate(kCalleeAddress);
-  auto* audio_content = cricket::GetFirstAudioContent(
-      caller->pc()->local_description()->description());
+  Candidate candidate = CreateLocalUdpCandidate(kCalleeAddress);
+  auto* audio_content =
+      GetFirstAudioContent(caller->pc()->local_description()->description());
   std::unique_ptr<IceCandidateInterface> jsep_candidate =
       CreateIceCandidate(audio_content->mid(), 0, candidate);
 
@@ -537,7 +537,7 @@ TEST_P(PeerConnectionIceTest, DuplicateIceCandidateIgnoredWhenAdded) {
   ASSERT_TRUE(
       caller->SetRemoteDescription(callee->CreateAnswerAndSetAsLocal()));
 
-  cricket::Candidate candidate = CreateLocalUdpCandidate(kCalleeAddress);
+  Candidate candidate = CreateLocalUdpCandidate(kCalleeAddress);
   caller->AddIceCandidate(&candidate);
   EXPECT_TRUE(caller->AddIceCandidate(&candidate));
   EXPECT_EQ(1u, caller->GetIceCandidatesFromRemoteDescription().size());
@@ -553,7 +553,7 @@ TEST_P(PeerConnectionIceTest, DISABLED_ErrorOnInvalidRemoteIceCandidateAdded) {
   // Add a candidate to the remote description with a candidate that has an
   // invalid address (port number == 2).
   auto answer = callee->CreateAnswerAndSetAsLocal();
-  cricket::Candidate bad_candidate =
+  Candidate bad_candidate =
       CreateLocalUdpCandidate(SocketAddress("2.2.2.2", 2));
   RTC_LOG(LS_INFO) << "Bad candidate: " << bad_candidate.ToString();
   AddCandidateToFirstTransport(&bad_candidate, answer.get());
@@ -570,9 +570,9 @@ TEST_P(PeerConnectionIceTest,
 
   ASSERT_TRUE(caller->ExchangeOfferAnswerWith(callee.get()));
 
-  cricket::Candidate candidate = CreateLocalUdpCandidate(kCalleeAddress);
-  auto* audio_content = cricket::GetFirstAudioContent(
-      caller->pc()->local_description()->description());
+  Candidate candidate = CreateLocalUdpCandidate(kCalleeAddress);
+  auto* audio_content =
+      GetFirstAudioContent(caller->pc()->local_description()->description());
   std::unique_ptr<IceCandidateInterface> ice_candidate =
       CreateIceCandidate(audio_content->mid(), 0, candidate);
 
@@ -595,9 +595,9 @@ TEST_P(PeerConnectionIceTest,
       caller->SetRemoteDescription(callee->CreateAnswerAndSetAsLocal()));
 
   // `candidate.transport_name()` is empty.
-  cricket::Candidate candidate = CreateLocalUdpCandidate(kCalleeAddress);
-  auto* audio_content = cricket::GetFirstAudioContent(
-      caller->pc()->local_description()->description());
+  Candidate candidate = CreateLocalUdpCandidate(kCalleeAddress);
+  auto* audio_content =
+      GetFirstAudioContent(caller->pc()->local_description()->description());
   std::unique_ptr<IceCandidateInterface> ice_candidate =
       CreateIceCandidate(audio_content->mid(), 0, candidate);
   EXPECT_TRUE(caller->pc()->AddIceCandidate(ice_candidate.get()));
@@ -614,7 +614,7 @@ TEST_P(PeerConnectionIceTest, RemoveCandidateRemovesFromRemoteDescription) {
   ASSERT_TRUE(
       caller->SetRemoteDescription(callee->CreateAnswerAndSetAsLocal()));
 
-  cricket::Candidate candidate = CreateLocalUdpCandidate(kCalleeAddress);
+  Candidate candidate = CreateLocalUdpCandidate(kCalleeAddress);
   ASSERT_TRUE(caller->AddIceCandidate(&candidate));
   EXPECT_TRUE(caller->pc()->RemoveIceCandidates({candidate}));
   EXPECT_EQ(0u, caller->GetIceCandidatesFromRemoteDescription().size());
@@ -636,12 +636,12 @@ TEST_P(PeerConnectionIceTest,
       caller->SetRemoteDescription(callee->CreateAnswerAndSetAsLocal()));
 
   // Add one candidate via `AddIceCandidate`.
-  cricket::Candidate candidate1 = CreateLocalUdpCandidate(kCallerAddress1);
+  Candidate candidate1 = CreateLocalUdpCandidate(kCallerAddress1);
   ASSERT_TRUE(callee->AddIceCandidate(&candidate1));
 
   // Add the second candidate via a reoffer.
   auto offer = caller->CreateOffer();
-  cricket::Candidate candidate2 = CreateLocalUdpCandidate(kCallerAddress2);
+  Candidate candidate2 = CreateLocalUdpCandidate(kCallerAddress2);
   AddCandidateToFirstTransport(&candidate2, offer.get());
 
   // Expect both candidates to appear in the callee's remote description.
@@ -733,7 +733,7 @@ TEST_P(PeerConnectionIceTest, TrickledSingleCandidateAddedToRemoteDescription) {
 
   ASSERT_TRUE(callee->SetRemoteDescription(caller->CreateOfferAndSetAsLocal()));
 
-  cricket::Candidate candidate = CreateLocalUdpCandidate(kCallerAddress);
+  Candidate candidate = CreateLocalUdpCandidate(kCallerAddress);
   callee->AddIceCandidate(&candidate);
   auto candidates = callee->GetIceCandidatesFromRemoteDescription();
   ASSERT_EQ(1u, candidates.size());
@@ -752,10 +752,10 @@ TEST_P(PeerConnectionIceTest, TwoTrickledCandidatesAddedToRemoteDescription) {
   ASSERT_TRUE(
       caller->SetRemoteDescription(callee->CreateAnswerAndSetAsLocal()));
 
-  cricket::Candidate candidate1 = CreateLocalUdpCandidate(kCalleeAddress1);
+  Candidate candidate1 = CreateLocalUdpCandidate(kCalleeAddress1);
   caller->AddIceCandidate(&candidate1);
 
-  cricket::Candidate candidate2 = CreateLocalUdpCandidate(kCalleeAddress2);
+  Candidate candidate2 = CreateLocalUdpCandidate(kCalleeAddress2);
   caller->AddIceCandidate(&candidate2);
 
   auto candidates = caller->GetIceCandidatesFromRemoteDescription();
@@ -1004,7 +1004,7 @@ TEST_P(PeerConnectionIceTest, IceRestartOfferClearsExistingCandidate) {
   auto callee = CreatePeerConnectionWithAudioVideo();
 
   auto offer = caller->CreateOfferAndSetAsLocal();
-  cricket::Candidate candidate = CreateLocalUdpCandidate(kCallerAddress);
+  Candidate candidate = CreateLocalUdpCandidate(kCallerAddress);
   AddCandidateToFirstTransport(&candidate, offer.get());
 
   ASSERT_TRUE(callee->SetRemoteDescription(std::move(offer)));
@@ -1025,8 +1025,7 @@ TEST_P(PeerConnectionIceTest,
   auto callee = CreatePeerConnectionWithAudioVideo();
 
   auto offer = caller->CreateOfferAndSetAsLocal();
-  cricket::Candidate old_candidate =
-      CreateLocalUdpCandidate(kFirstCallerAddress);
+  Candidate old_candidate = CreateLocalUdpCandidate(kFirstCallerAddress);
   AddCandidateToFirstTransport(&old_candidate, offer.get());
 
   ASSERT_TRUE(callee->SetRemoteDescription(std::move(offer)));
@@ -1034,8 +1033,7 @@ TEST_P(PeerConnectionIceTest,
   RTCOfferAnswerOptions options;
   options.ice_restart = true;
   auto restart_offer = caller->CreateOfferAndSetAsLocal(options);
-  cricket::Candidate new_candidate =
-      CreateLocalUdpCandidate(kRestartedCallerAddress);
+  Candidate new_candidate = CreateLocalUdpCandidate(kRestartedCallerAddress);
   AddCandidateToFirstTransport(&new_candidate, restart_offer.get());
 
   ASSERT_TRUE(callee->SetRemoteDescription(std::move(restart_offer)));
@@ -1606,9 +1604,9 @@ TEST_P(PeerConnectionIceTest, PrefersMidOverMLineIndex) {
       caller->SetRemoteDescription(callee->CreateAnswerAndSetAsLocal()));
 
   // `candidate.transport_name()` is empty.
-  cricket::Candidate candidate = CreateLocalUdpCandidate(kCalleeAddress);
-  auto* audio_content = cricket::GetFirstAudioContent(
-      caller->pc()->local_description()->description());
+  Candidate candidate = CreateLocalUdpCandidate(kCalleeAddress);
+  auto* audio_content =
+      GetFirstAudioContent(caller->pc()->local_description()->description());
   std::unique_ptr<IceCandidateInterface> ice_candidate =
       CreateIceCandidate(audio_content->mid(), 65535, candidate);
   EXPECT_TRUE(caller->pc()->AddIceCandidate(ice_candidate.get()));

@@ -88,8 +88,8 @@ SdpMungingType DetermineTransportModification(
 }
 
 SdpMungingType DetermineAudioSdpMungingType(
-    const cricket::MediaContentDescription* last_created_media_description,
-    const cricket::MediaContentDescription* media_description_to_set) {
+    const MediaContentDescription* last_created_media_description,
+    const MediaContentDescription* media_description_to_set) {
   RTC_DCHECK(last_created_media_description);
   RTC_DCHECK(media_description_to_set);
   // Removing codecs should be done via setCodecPreferences or negotiation, not
@@ -272,8 +272,8 @@ SdpMungingType DetermineAudioSdpMungingType(
 }
 
 SdpMungingType DetermineVideoSdpMungingType(
-    const cricket::MediaContentDescription* last_created_media_description,
-    const cricket::MediaContentDescription* media_description_to_set) {
+    const MediaContentDescription* last_created_media_description,
+    const MediaContentDescription* media_description_to_set) {
   RTC_DCHECK(last_created_media_description);
   RTC_DCHECK(media_description_to_set);
   // Removing codecs should be done via setCodecPreferences or negotiation, not

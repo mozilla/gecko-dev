@@ -141,19 +141,16 @@ class PeerConnectionCryptoBaseTest : public ::testing::Test {
     return wrapper;
   }
 
-  cricket::ConnectionRole& AudioConnectionRole(
-      cricket::SessionDescription* desc) {
-    return ConnectionRoleFromContent(desc, cricket::GetFirstAudioContent(desc));
+  cricket::ConnectionRole& AudioConnectionRole(SessionDescription* desc) {
+    return ConnectionRoleFromContent(desc, GetFirstAudioContent(desc));
   }
 
-  cricket::ConnectionRole& VideoConnectionRole(
-      cricket::SessionDescription* desc) {
-    return ConnectionRoleFromContent(desc, cricket::GetFirstVideoContent(desc));
+  cricket::ConnectionRole& VideoConnectionRole(SessionDescription* desc) {
+    return ConnectionRoleFromContent(desc, GetFirstVideoContent(desc));
   }
 
-  cricket::ConnectionRole& ConnectionRoleFromContent(
-      cricket::SessionDescription* desc,
-      cricket::ContentInfo* content) {
+  cricket::ConnectionRole& ConnectionRoleFromContent(SessionDescription* desc,
+                                                     ContentInfo* content) {
     RTC_DCHECK(content);
     auto* transport_info = desc->GetTransportInfoByName(content->mid());
     RTC_DCHECK(transport_info);
@@ -168,10 +165,10 @@ class PeerConnectionCryptoBaseTest : public ::testing::Test {
 };
 
 SdpContentPredicate HaveDtlsFingerprint() {
-  return [](const cricket::ContentInfo* content,
-            const cricket::TransportInfo* transport) {
-    return transport->description.identity_fingerprint != nullptr;
-  };
+  return
+      [](const ContentInfo* content, const cricket::TransportInfo* transport) {
+        return transport->description.identity_fingerprint != nullptr;
+      };
 }
 
 SdpContentPredicate HaveProtocol(const std::string& protocol) {
@@ -189,7 +186,7 @@ class PeerConnectionCryptoTest
 };
 
 SdpContentMutator RemoveDtlsFingerprint() {
-  return [](cricket::ContentInfo* content, cricket::TransportInfo* transport) {
+  return [](ContentInfo* content, cricket::TransportInfo* transport) {
     transport->description.identity_fingerprint.reset();
   };
 }
@@ -500,8 +497,7 @@ TEST_P(PeerConnectionCryptoTest, SessionErrorIfFingerprintInvalid) {
   // Create an invalid answer with the other certificate's fingerprint.
   auto valid_answer = callee->CreateAnswer();
   auto invalid_answer = CloneSessionDescription(valid_answer.get());
-  auto* audio_content =
-      cricket::GetFirstAudioContent(invalid_answer->description());
+  auto* audio_content = GetFirstAudioContent(invalid_answer->description());
   ASSERT_TRUE(audio_content);
   auto* audio_transport_info =
       invalid_answer->description()->GetTransportInfoByName(

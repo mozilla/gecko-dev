@@ -99,7 +99,7 @@ inline bool TooLongWithoutResponse(
 
 // Helper methods for converting string values of log description fields to
 // enum.
-IceCandidateType GetRtcEventLogCandidateType(const Candidate& c) {
+IceCandidateType GetRtcEventLogCandidateType(const webrtc::Candidate& c) {
   if (c.is_local()) {
     return IceCandidateType::kHost;
   } else if (c.is_stun()) {
@@ -135,21 +135,21 @@ webrtc::IceCandidatePairAddressFamily GetAddressFamilyByInt(
   return webrtc::IceCandidatePairAddressFamily::kUnknown;
 }
 
-webrtc::IceCandidateNetworkType ConvertNetworkType(rtc::AdapterType type) {
+webrtc::IceCandidateNetworkType ConvertNetworkType(webrtc::AdapterType type) {
   switch (type) {
-    case rtc::ADAPTER_TYPE_ETHERNET:
+    case webrtc::ADAPTER_TYPE_ETHERNET:
       return webrtc::IceCandidateNetworkType::kEthernet;
-    case rtc::ADAPTER_TYPE_LOOPBACK:
+    case webrtc::ADAPTER_TYPE_LOOPBACK:
       return webrtc::IceCandidateNetworkType::kLoopback;
-    case rtc::ADAPTER_TYPE_WIFI:
+    case webrtc::ADAPTER_TYPE_WIFI:
       return webrtc::IceCandidateNetworkType::kWifi;
-    case rtc::ADAPTER_TYPE_VPN:
+    case webrtc::ADAPTER_TYPE_VPN:
       return webrtc::IceCandidateNetworkType::kVpn;
-    case rtc::ADAPTER_TYPE_CELLULAR:
-    case rtc::ADAPTER_TYPE_CELLULAR_2G:
-    case rtc::ADAPTER_TYPE_CELLULAR_3G:
-    case rtc::ADAPTER_TYPE_CELLULAR_4G:
-    case rtc::ADAPTER_TYPE_CELLULAR_5G:
+    case webrtc::ADAPTER_TYPE_CELLULAR:
+    case webrtc::ADAPTER_TYPE_CELLULAR_2G:
+    case webrtc::ADAPTER_TYPE_CELLULAR_3G:
+    case webrtc::ADAPTER_TYPE_CELLULAR_4G:
+    case webrtc::ADAPTER_TYPE_CELLULAR_5G:
       return webrtc::IceCandidateNetworkType::kCellular;
     default:
       return webrtc::IceCandidateNetworkType::kUnknown;
@@ -233,7 +233,7 @@ int Connection::ConnectionRequest::resend_delay() {
 
 Connection::Connection(rtc::WeakPtr<webrtc::PortInterface> port,
                        size_t index,
-                       const Candidate& remote_candidate)
+                       const webrtc::Candidate& remote_candidate)
     : network_thread_(port->thread()),
       id_(rtc::CreateRandomId()),
       port_(std::move(port)),
@@ -275,12 +275,12 @@ webrtc::TaskQueueBase* Connection::network_thread() const {
   return network_thread_;
 }
 
-const Candidate& Connection::local_candidate() const {
+const webrtc::Candidate& Connection::local_candidate() const {
   RTC_DCHECK_RUN_ON(network_thread_);
   return local_candidate_;
 }
 
-const Candidate& Connection::remote_candidate() const {
+const webrtc::Candidate& Connection::remote_candidate() const {
   return remote_candidate_;
 }
 
@@ -1391,8 +1391,8 @@ std::string Connection::ToString() const {
        << ":";
   }
 
-  const Candidate& local = local_candidate();
-  const Candidate& remote = remote_candidate();
+  const webrtc::Candidate& local = local_candidate();
+  const webrtc::Candidate& remote = remote_candidate();
   ss << local.id() << ":" << local.component() << ":" << local.generation()
      << ":" << local.type_name() << ":" << local.protocol() << ":"
      << local.address().ToSensitiveString() << "->" << remote.id() << ":"
@@ -1426,8 +1426,8 @@ const webrtc::IceCandidatePairDescription& Connection::ToLogDescription() {
   if (log_description_.has_value()) {
     return log_description_.value();
   }
-  const Candidate& local = local_candidate();
-  const Candidate& remote = remote_candidate();
+  const webrtc::Candidate& local = local_candidate();
+  const webrtc::Candidate& remote = remote_candidate();
   const rtc::Network* network = port()->Network();
   log_description_ = webrtc::IceCandidatePairDescription(
       GetRtcEventLogCandidateType(local), GetRtcEventLogCandidateType(remote));
@@ -1653,7 +1653,7 @@ void Connection::MaybeSetRemoteIceParametersAndGeneration(
 }
 
 void Connection::MaybeUpdatePeerReflexiveCandidate(
-    const Candidate& new_candidate) {
+    const webrtc::Candidate& new_candidate) {
   if (remote_candidate_.is_prflx() && !new_candidate.is_prflx() &&
       remote_candidate_.protocol() == new_candidate.protocol() &&
       remote_candidate_.address() == new_candidate.address() &&
@@ -1861,7 +1861,7 @@ void Connection::ForgetLearnedState() {
 
 ProxyConnection::ProxyConnection(rtc::WeakPtr<webrtc::PortInterface> port,
                                  size_t index,
-                                 const Candidate& remote_candidate)
+                                 const webrtc::Candidate& remote_candidate)
     : Connection(std::move(port), index, remote_candidate) {}
 
 int ProxyConnection::Send(const void* data,

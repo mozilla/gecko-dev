@@ -306,8 +306,8 @@ class TurnPortTest : public ::testing::Test,
                                    absl::string_view username,
                                    absl::string_view password,
                                    const ProtocolAddress& server_address) {
-    RelayServerConfig config;
-    config.credentials = RelayCredentials(username, password);
+    webrtc::RelayServerConfig config;
+    config.credentials = webrtc::RelayCredentials(username, password);
     CreateRelayPortArgs args;
     args.network_thread = &main_;
     args.socket_factory = socket_factory();
@@ -333,7 +333,7 @@ class TurnPortTest : public ::testing::Test,
       // the normal client validation. Instruct the client to ignore certificate
       // errors for testing only.
       turn_port_->SetTlsCertPolicy(
-          TlsCertPolicy::TLS_CERT_POLICY_INSECURE_NO_CHECK);
+          webrtc::TlsCertPolicy::TLS_CERT_POLICY_INSECURE_NO_CHECK);
     }
     return true;
   }
@@ -354,8 +354,8 @@ class TurnPortTest : public ::testing::Test,
           });
     }
 
-    RelayServerConfig config;
-    config.credentials = RelayCredentials(username, password);
+    webrtc::RelayServerConfig config;
+    config.credentials = webrtc::RelayCredentials(username, password);
     CreateRelayPortArgs args;
     args.network_thread = &main_;
     args.socket_factory = socket_factory();
@@ -1489,7 +1489,7 @@ TEST_F(TurnPortTest, TestRefreshRequestGetsErrorResponse) {
   turn_port_->CreateConnection(udp_port_->Candidates()[0],
                                Port::ORIGIN_MESSAGE);
   // Set bad credentials.
-  RelayCredentials bad_credentials("bad_user", "bad_pwd");
+  webrtc::RelayCredentials bad_credentials("bad_user", "bad_pwd");
   turn_port_->set_credentials(bad_credentials);
   turn_refresh_success_ = false;
   // This sends out the first RefreshRequest with correct credentials.
@@ -1728,7 +1728,7 @@ TEST_F(TurnPortTest, TestRefreshCreatePermissionRequest) {
   // A create-permission-request should be pending.
   // After the next create-permission-response is received, it will schedule
   // another request with bad_ufrag and bad_pwd.
-  RelayCredentials bad_credentials("bad_user", "bad_pwd");
+  webrtc::RelayCredentials bad_credentials("bad_user", "bad_pwd");
   turn_port_->set_credentials(bad_credentials);
   turn_port_->request_manager().FlushForTest(kAllRequestsForTest);
   EXPECT_THAT(webrtc::WaitUntil(
@@ -1862,9 +1862,9 @@ TEST_F(TurnPortTest, TestCandidateAddressFamilyMatch) {
   ASSERT_EQ(1U, turn_port_->Candidates().size());
 
   // Create an IPv4 candidate. It will match the TURN candidate.
-  Candidate remote_candidate(ICE_CANDIDATE_COMPONENT_RTP, "udp", kLocalAddr2, 0,
-                             "", "", IceCandidateType::kHost, 0,
-                             kCandidateFoundation);
+  webrtc::Candidate remote_candidate(
+      ICE_CANDIDATE_COMPONENT_RTP, "udp", kLocalAddr2, 0, "", "",
+      IceCandidateType::kHost, 0, kCandidateFoundation);
   remote_candidate.set_address(kLocalAddr2);
   Connection* conn =
       turn_port_->CreateConnection(remote_candidate, Port::ORIGIN_MESSAGE);
@@ -2139,7 +2139,7 @@ TEST_F(TurnPortTest, TestTurnCustomizerAddAttribute) {
 
 TEST_F(TurnPortTest, TestOverlongUsername) {
   std::string overlong_username(513, 'x');
-  RelayCredentials credentials(overlong_username, kTurnPassword);
+  webrtc::RelayCredentials credentials(overlong_username, kTurnPassword);
   EXPECT_FALSE(
       CreateTurnPort(overlong_username, kTurnPassword, kTurnTlsProtoAddr));
 }

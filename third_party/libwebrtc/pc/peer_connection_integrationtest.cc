@@ -794,7 +794,7 @@ TEST_P(PeerConnectionIntegrationTest, RotatedVideoWithoutCVOExtension) {
   // Remove the CVO extension from the offered SDP.
   callee()->SetReceivedSdpMunger(
       [](std::unique_ptr<SessionDescriptionInterface>& sdp) {
-        cricket::VideoContentDescription* video =
+        VideoContentDescription* video =
             GetFirstVideoContentDescription(sdp->description());
         video->ClearRtpHeaderExtensions();
       });
@@ -982,7 +982,7 @@ TEST_P(PeerConnectionIntegrationTest, VideoRejectedInSubsequentOffer) {
     caller()->SetGeneratedSdpMunger(
         [](std::unique_ptr<SessionDescriptionInterface>& sdp) {
           for (cricket::ContentInfo& content : sdp->description()->contents()) {
-            if (cricket::IsVideoContent(&content)) {
+            if (IsVideoContent(&content)) {
               content.rejected = true;
             }
           }
@@ -1169,7 +1169,7 @@ void RemoveBundleGroupSsrcsAndMidExtension(
   RemoveSsrcsAndKeepMsids(sdp);
   sdp->description()->RemoveGroupByName("BUNDLE");
   for (ContentInfo& content : sdp->description()->contents()) {
-    cricket::MediaContentDescription* media = content.media_description();
+    MediaContentDescription* media = content.media_description();
     cricket::RtpHeaderExtensions extensions = media->rtp_header_extensions();
     extensions.erase(std::remove_if(extensions.begin(), extensions.end(),
                                     [](const RtpExtension& extension) {
@@ -1218,7 +1218,7 @@ void ModifyPayloadTypesAndRemoveMidExtension(
     std::unique_ptr<SessionDescriptionInterface>& sdp) {
   int pt = 96;
   for (ContentInfo& content : sdp->description()->contents()) {
-    cricket::MediaContentDescription* media = content.media_description();
+    MediaContentDescription* media = content.media_description();
     cricket::RtpHeaderExtensions extensions = media->rtp_header_extensions();
     extensions.erase(std::remove_if(extensions.begin(), extensions.end(),
                                     [](const RtpExtension& extension) {
@@ -2180,7 +2180,7 @@ TEST_P(PeerConnectionIntegrationTest, MediaContinuesFlowingAfterIceRestart) {
   std::string callee_candidate_pre_restart;
   ASSERT_TRUE(
       audio_candidates_callee->at(0)->ToString(&callee_candidate_pre_restart));
-  const cricket::SessionDescription* desc =
+  const SessionDescription* desc =
       caller()->pc()->local_description()->description();
   std::string caller_ufrag_pre_restart =
       desc->transport_infos()[0].description.ice_ufrag;
@@ -2252,7 +2252,7 @@ TEST_P(PeerConnectionIntegrationTest, EndToEndCallWithIceRenomination) {
       WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
       IsRtcOk());
   // Sanity check that ICE renomination was actually negotiated.
-  const cricket::SessionDescription* desc =
+  const SessionDescription* desc =
       caller()->pc()->local_description()->description();
   for (const cricket::TransportInfo& info : desc->transport_infos()) {
     ASSERT_THAT(info.description.transport_options, Contains("renomination"));
@@ -2341,8 +2341,8 @@ TEST_P(PeerConnectionIntegrationTest,
       WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
       IsRtcOk());
   // Sanity check that video "m=" section was actually rejected.
-  const ContentInfo* answer_video_content = cricket::GetFirstVideoContent(
-      callee()->pc()->local_description()->description());
+  const ContentInfo* answer_video_content =
+      GetFirstVideoContent(callee()->pc()->local_description()->description());
   ASSERT_NE(nullptr, answer_video_content);
   ASSERT_TRUE(answer_video_content->rejected);
 
@@ -2870,7 +2870,7 @@ TEST_P(PeerConnectionIntegrationTest, CodecNamesAreCaseInsensitive) {
   // casing of the caller's generated offer.
   caller()->SetGeneratedSdpMunger(
       [](std::unique_ptr<SessionDescriptionInterface>& sdp) {
-        cricket::AudioContentDescription* audio =
+        AudioContentDescription* audio =
             GetFirstAudioContentDescription(sdp->description());
         ASSERT_NE(nullptr, audio);
         auto audio_codecs = audio->codecs();
@@ -2884,7 +2884,7 @@ TEST_P(PeerConnectionIntegrationTest, CodecNamesAreCaseInsensitive) {
         audio_codecs[0].name = "OpUs";
         audio->set_codecs(audio_codecs);
 
-        cricket::VideoContentDescription* video =
+        VideoContentDescription* video =
             GetFirstVideoContentDescription(sdp->description());
         ASSERT_NE(nullptr, video);
         auto video_codecs = video->codecs();
@@ -3620,7 +3620,7 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
   caller()->AddVideoTrack();
   callee()->AddVideoTrack();
   auto munger = [](std::unique_ptr<SessionDescriptionInterface>& sdp) {
-    cricket::VideoContentDescription* video =
+    VideoContentDescription* video =
         GetFirstVideoContentDescription(sdp->description());
     auto codecs = video->codecs();
     for (auto&& codec : codecs) {
@@ -3646,7 +3646,7 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
   // Observe that after munging the parameter is present in generated SDP.
   caller()->SetGeneratedSdpMunger(
       [](std::unique_ptr<SessionDescriptionInterface>& sdp) {
-        cricket::VideoContentDescription* video =
+        VideoContentDescription* video =
             GetFirstVideoContentDescription(sdp->description());
         for (auto&& codec : video->codecs()) {
           if (codec.name == "H264") {
@@ -4277,7 +4277,7 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
   caller()->SetGeneratedSdpMunger(
       [](std::unique_ptr<SessionDescriptionInterface>& sdp) {
         for (ContentInfo& content : sdp->description()->contents()) {
-          cricket::MediaContentDescription* media = content.media_description();
+          MediaContentDescription* media = content.media_description();
           std::vector<cricket::Codec> codecs = media->codecs();
           std::vector<cricket::Codec> codecs_out;
           for (cricket::Codec codec : codecs) {
@@ -4332,7 +4332,7 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan, VideoPacketLossCausesNack) {
   caller()->SetGeneratedSdpMunger(
       [](std::unique_ptr<SessionDescriptionInterface>& sdp) {
         for (ContentInfo& content : sdp->description()->contents()) {
-          cricket::MediaContentDescription* media = content.media_description();
+          MediaContentDescription* media = content.media_description();
           std::vector<cricket::Codec> codecs = media->codecs();
           std::vector<cricket::Codec> codecs_out;
           for (const cricket::Codec& codec : codecs) {

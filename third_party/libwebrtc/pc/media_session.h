@@ -37,10 +37,11 @@ namespace webrtc {
 class ConnectionContext;
 
 }  // namespace webrtc
-
 namespace cricket {
-
 class MediaEngineInterface;
+}  // namespace cricket
+
+namespace webrtc {
 
 // Creates media session descriptions according to the supplied codecs and
 // other fields, as well as the supplied per-call options.
@@ -53,14 +54,15 @@ class MediaSessionDescriptionFactory {
   // The TransportDescriptionFactory, the UniqueRandomIdGenerator, and the
   // PayloadTypeSuggester are not owned by MediaSessionDescriptionFactory, so
   // they must be kept alive by the user of this class.
-  MediaSessionDescriptionFactory(cricket::MediaEngineInterface* media_engine,
-                                 bool rtx_enabled,
-                                 rtc::UniqueRandomIdGenerator* ssrc_generator,
-                                 const TransportDescriptionFactory* factory,
-                                 CodecLookupHelper* codec_lookup_helper);
+  MediaSessionDescriptionFactory(
+      cricket::MediaEngineInterface* media_engine,
+      bool rtx_enabled,
+      UniqueRandomIdGenerator* ssrc_generator,
+      const cricket::TransportDescriptionFactory* factory,
+      cricket::CodecLookupHelper* codec_lookup_helper);
 
-  RtpHeaderExtensions filtered_rtp_header_extensions(
-      RtpHeaderExtensions extensions) const;
+  cricket::RtpHeaderExtensions filtered_rtp_header_extensions(
+      cricket::RtpHeaderExtensions extensions) const;
 
   void set_enable_encrypted_rtp_header_extensions(bool enable) {
     enable_encrypted_rtp_header_extensions_ = enable;
@@ -70,122 +72,121 @@ class MediaSessionDescriptionFactory {
     is_unified_plan_ = is_unified_plan;
   }
 
-  webrtc::RTCErrorOr<std::unique_ptr<SessionDescription>> CreateOfferOrError(
-      const MediaSessionOptions& options,
+  RTCErrorOr<std::unique_ptr<SessionDescription>> CreateOfferOrError(
+      const cricket::MediaSessionOptions& options,
       const SessionDescription* current_description) const;
-  webrtc::RTCErrorOr<std::unique_ptr<SessionDescription>> CreateAnswerOrError(
+  RTCErrorOr<std::unique_ptr<SessionDescription>> CreateAnswerOrError(
       const SessionDescription* offer,
-      const MediaSessionOptions& options,
+      const cricket::MediaSessionOptions& options,
       const SessionDescription* current_description) const;
 
  private:
   struct AudioVideoRtpHeaderExtensions {
-    RtpHeaderExtensions audio;
-    RtpHeaderExtensions video;
+    cricket::RtpHeaderExtensions audio;
+    cricket::RtpHeaderExtensions video;
   };
 
   AudioVideoRtpHeaderExtensions GetOfferedRtpHeaderExtensionsWithIds(
       const std::vector<const ContentInfo*>& current_active_contents,
       bool extmap_allow_mixed,
-      const std::vector<MediaDescriptionOptions>& media_description_options)
-      const;
-  webrtc::RTCError AddTransportOffer(
+      const std::vector<cricket::MediaDescriptionOptions>&
+          media_description_options) const;
+  RTCError AddTransportOffer(
       const std::string& content_name,
-      const TransportOptions& transport_options,
+      const cricket::TransportOptions& transport_options,
       const SessionDescription* current_desc,
       SessionDescription* offer,
-      IceCredentialsIterator* ice_credentials) const;
+      cricket::IceCredentialsIterator* ice_credentials) const;
 
-  std::unique_ptr<TransportDescription> CreateTransportAnswer(
+  std::unique_ptr<cricket::TransportDescription> CreateTransportAnswer(
       const std::string& content_name,
       const SessionDescription* offer_desc,
-      const TransportOptions& transport_options,
+      const cricket::TransportOptions& transport_options,
       const SessionDescription* current_desc,
       bool require_transport_attributes,
-      IceCredentialsIterator* ice_credentials) const;
+      cricket::IceCredentialsIterator* ice_credentials) const;
 
-  webrtc::RTCError AddTransportAnswer(
+  RTCError AddTransportAnswer(
       const std::string& content_name,
-      const TransportDescription& transport_desc,
+      const cricket::TransportDescription& transport_desc,
       SessionDescription* answer_desc) const;
 
   // Helpers for adding media contents to the SessionDescription.
-  webrtc::RTCError AddRtpContentForOffer(
-      const MediaDescriptionOptions& media_description_options,
-      const MediaSessionOptions& session_options,
+  RTCError AddRtpContentForOffer(
+      const cricket::MediaDescriptionOptions& media_description_options,
+      const cricket::MediaSessionOptions& session_options,
       const ContentInfo* current_content,
       const SessionDescription* current_description,
-      const RtpHeaderExtensions& header_extensions,
-      const CodecList& codecs,
-      StreamParamsVec* current_streams,
+      const cricket::RtpHeaderExtensions& header_extensions,
+      const cricket::CodecList& codecs,
+      cricket::StreamParamsVec* current_streams,
       SessionDescription* desc,
-      IceCredentialsIterator* ice_credentials) const;
+      cricket::IceCredentialsIterator* ice_credentials) const;
 
-  webrtc::RTCError AddDataContentForOffer(
-      const MediaDescriptionOptions& media_description_options,
-      const MediaSessionOptions& session_options,
+  RTCError AddDataContentForOffer(
+      const cricket::MediaDescriptionOptions& media_description_options,
+      const cricket::MediaSessionOptions& session_options,
       const ContentInfo* current_content,
       const SessionDescription* current_description,
-      StreamParamsVec* current_streams,
+      cricket::StreamParamsVec* current_streams,
       SessionDescription* desc,
-      IceCredentialsIterator* ice_credentials) const;
+      cricket::IceCredentialsIterator* ice_credentials) const;
 
-  webrtc::RTCError AddUnsupportedContentForOffer(
-      const MediaDescriptionOptions& media_description_options,
-      const MediaSessionOptions& session_options,
+  RTCError AddUnsupportedContentForOffer(
+      const cricket::MediaDescriptionOptions& media_description_options,
+      const cricket::MediaSessionOptions& session_options,
       const ContentInfo* current_content,
       const SessionDescription* current_description,
       SessionDescription* desc,
-      IceCredentialsIterator* ice_credentials) const;
+      cricket::IceCredentialsIterator* ice_credentials) const;
 
-  webrtc::RTCError AddRtpContentForAnswer(
-      const MediaDescriptionOptions& media_description_options,
-      const MediaSessionOptions& session_options,
+  RTCError AddRtpContentForAnswer(
+      const cricket::MediaDescriptionOptions& media_description_options,
+      const cricket::MediaSessionOptions& session_options,
       const ContentInfo* offer_content,
       const SessionDescription* offer_description,
       const ContentInfo* current_content,
       const SessionDescription* current_description,
-      const TransportInfo* bundle_transport,
-      const CodecList& codecs,
-      const RtpHeaderExtensions& header_extensions,
-      StreamParamsVec* current_streams,
+      const cricket::TransportInfo* bundle_transport,
+      const cricket::CodecList& codecs,
+      const cricket::RtpHeaderExtensions& header_extensions,
+      cricket::StreamParamsVec* current_streams,
       SessionDescription* answer,
-      IceCredentialsIterator* ice_credentials) const;
+      cricket::IceCredentialsIterator* ice_credentials) const;
 
-  webrtc::RTCError AddDataContentForAnswer(
-      const MediaDescriptionOptions& media_description_options,
-      const MediaSessionOptions& session_options,
+  RTCError AddDataContentForAnswer(
+      const cricket::MediaDescriptionOptions& media_description_options,
+      const cricket::MediaSessionOptions& session_options,
       const ContentInfo* offer_content,
       const SessionDescription* offer_description,
       const ContentInfo* current_content,
       const SessionDescription* current_description,
-      const TransportInfo* bundle_transport,
-      StreamParamsVec* current_streams,
+      const cricket::TransportInfo* bundle_transport,
+      cricket::StreamParamsVec* current_streams,
       SessionDescription* answer,
-      IceCredentialsIterator* ice_credentials) const;
+      cricket::IceCredentialsIterator* ice_credentials) const;
 
-  webrtc::RTCError AddUnsupportedContentForAnswer(
-      const MediaDescriptionOptions& media_description_options,
-      const MediaSessionOptions& session_options,
+  RTCError AddUnsupportedContentForAnswer(
+      const cricket::MediaDescriptionOptions& media_description_options,
+      const cricket::MediaSessionOptions& session_options,
       const ContentInfo* offer_content,
       const SessionDescription* offer_description,
       const ContentInfo* current_content,
       const SessionDescription* current_description,
-      const TransportInfo* bundle_transport,
+      const cricket::TransportInfo* bundle_transport,
       SessionDescription* answer,
-      IceCredentialsIterator* ice_credentials) const;
+      cricket::IceCredentialsIterator* ice_credentials) const;
 
-  rtc::UniqueRandomIdGenerator* ssrc_generator() const {
+  UniqueRandomIdGenerator* ssrc_generator() const {
     return ssrc_generator_.get();
   }
 
   bool is_unified_plan_ = false;
   // This object may or may not be owned by this class.
-  webrtc::AlwaysValidPointer<rtc::UniqueRandomIdGenerator> const
-      ssrc_generator_;
+  AlwaysValidPointer<UniqueRandomIdGenerator> const ssrc_generator_;
   bool enable_encrypted_rtp_header_extensions_ = true;
-  const TransportDescriptionFactory* transport_desc_factory_;
-  CodecLookupHelper* codec_lookup_helper_;
+  const cricket::TransportDescriptionFactory* transport_desc_factory_;
+  cricket::CodecLookupHelper* codec_lookup_helper_;
   bool payload_types_in_transport_trial_enabled_;
 };
 
@@ -195,13 +196,13 @@ bool IsAudioContent(const ContentInfo* content);
 bool IsVideoContent(const ContentInfo* content);
 bool IsDataContent(const ContentInfo* content);
 bool IsUnsupportedContent(const ContentInfo* content);
-const ContentInfo* GetFirstMediaContent(const ContentInfos& contents,
-                                        MediaType media_type);
-const ContentInfo* GetFirstAudioContent(const ContentInfos& contents);
-const ContentInfo* GetFirstVideoContent(const ContentInfos& contents);
-const ContentInfo* GetFirstDataContent(const ContentInfos& contents);
+const ContentInfo* GetFirstMediaContent(const cricket::ContentInfos& contents,
+                                        cricket::MediaType media_type);
+const ContentInfo* GetFirstAudioContent(const cricket::ContentInfos& contents);
+const ContentInfo* GetFirstVideoContent(const cricket::ContentInfos& contents);
+const ContentInfo* GetFirstDataContent(const cricket::ContentInfos& contents);
 const ContentInfo* GetFirstMediaContent(const SessionDescription* sdesc,
-                                        MediaType media_type);
+                                        cricket::MediaType media_type);
 const ContentInfo* GetFirstAudioContent(const SessionDescription* sdesc);
 const ContentInfo* GetFirstVideoContent(const SessionDescription* sdesc);
 const ContentInfo* GetFirstDataContent(const SessionDescription* sdesc);
@@ -213,12 +214,13 @@ const SctpDataContentDescription* GetFirstSctpDataContentDescription(
     const SessionDescription* sdesc);
 // Non-const versions of the above functions.
 // Useful when modifying an existing description.
-ContentInfo* GetFirstMediaContent(ContentInfos* contents, MediaType media_type);
-ContentInfo* GetFirstAudioContent(ContentInfos* contents);
-ContentInfo* GetFirstVideoContent(ContentInfos* contents);
-ContentInfo* GetFirstDataContent(ContentInfos* contents);
+ContentInfo* GetFirstMediaContent(cricket::ContentInfos* contents,
+                                  cricket::MediaType media_type);
+ContentInfo* GetFirstAudioContent(cricket::ContentInfos* contents);
+ContentInfo* GetFirstVideoContent(cricket::ContentInfos* contents);
+ContentInfo* GetFirstDataContent(cricket::ContentInfos* contents);
 ContentInfo* GetFirstMediaContent(SessionDescription* sdesc,
-                                  MediaType media_type);
+                                  cricket::MediaType media_type);
 ContentInfo* GetFirstAudioContent(SessionDescription* sdesc);
 ContentInfo* GetFirstVideoContent(SessionDescription* sdesc);
 ContentInfo* GetFirstDataContent(SessionDescription* sdesc);
@@ -229,6 +231,24 @@ VideoContentDescription* GetFirstVideoContentDescription(
 SctpDataContentDescription* GetFirstSctpDataContentDescription(
     SessionDescription* sdesc);
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace cricket {
+using ::webrtc::GetFirstAudioContent;
+using ::webrtc::GetFirstAudioContentDescription;
+using ::webrtc::GetFirstDataContent;
+using ::webrtc::GetFirstMediaContent;
+using ::webrtc::GetFirstSctpDataContentDescription;
+using ::webrtc::GetFirstVideoContent;
+using ::webrtc::GetFirstVideoContentDescription;
+using ::webrtc::IsAudioContent;
+using ::webrtc::IsDataContent;
+using ::webrtc::IsMediaContent;
+using ::webrtc::IsUnsupportedContent;
+using ::webrtc::IsVideoContent;
+using ::webrtc::MediaSessionDescriptionFactory;
 }  // namespace cricket
 
 #endif  // PC_MEDIA_SESSION_H_

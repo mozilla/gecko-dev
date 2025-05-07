@@ -158,7 +158,7 @@ webrtc::RTCError JsepTransport::SetLocalJsepTransportDescription(
   }
 
   if (!SetRtcpMux(jsep_description.rtcp_mux_enabled, type,
-                  ContentSource::CS_LOCAL)) {
+                  webrtc::ContentSource::CS_LOCAL)) {
     return webrtc::RTCError(webrtc::RTCErrorType::INVALID_PARAMETER,
                             "Failed to setup RTCP mux.");
   }
@@ -235,7 +235,7 @@ webrtc::RTCError JsepTransport::SetRemoteJsepTransportDescription(
   }
 
   if (!SetRtcpMux(jsep_description.rtcp_mux_enabled, type,
-                  ContentSource::CS_REMOTE)) {
+                  webrtc::ContentSource::CS_REMOTE)) {
     return webrtc::RTCError(webrtc::RTCErrorType::INVALID_PARAMETER,
                             "Failed to setup RTCP mux.");
   }
@@ -373,9 +373,10 @@ void JsepTransport::SetActiveResetSrtpParams(bool active_reset_srtp_params) {
   }
 }
 
-webrtc::RTCError JsepTransport::RecordPayloadTypes(bool local,
-                                                   webrtc::SdpType type,
-                                                   const ContentInfo& content) {
+webrtc::RTCError JsepTransport::RecordPayloadTypes(
+    bool local,
+    webrtc::SdpType type,
+    const webrtc::ContentInfo& content) {
   RTC_DCHECK_RUN_ON(network_thread_);
   if (local) {
     local_payload_types_.DisallowRedefinition();
@@ -403,7 +404,7 @@ webrtc::RTCError JsepTransport::RecordPayloadTypes(bool local,
 
 void JsepTransport::SetRemoteIceParameters(
     const IceParameters& ice_parameters,
-    IceTransportInternal* ice_transport) {
+    webrtc::IceTransportInternal* ice_transport) {
   TRACE_EVENT0("webrtc", "JsepTransport::SetRemoteIceParameters");
   RTC_DCHECK_RUN_ON(network_thread_);
   RTC_DCHECK(ice_transport);
@@ -424,7 +425,7 @@ webrtc::RTCError JsepTransport::SetNegotiatedDtlsParameters(
 
 bool JsepTransport::SetRtcpMux(bool enable,
                                webrtc::SdpType type,
-                               ContentSource source) {
+                               webrtc::ContentSource source) {
   RTC_DCHECK_RUN_ON(network_thread_);
   bool ret = false;
   switch (type) {

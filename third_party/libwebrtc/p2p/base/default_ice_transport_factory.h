@@ -30,7 +30,7 @@ class DefaultIceTransport : public IceTransportInterface {
       std::unique_ptr<cricket::P2PTransportChannel> internal);
   ~DefaultIceTransport();
 
-  cricket::IceTransportInternal* internal() override {
+  IceTransportInternal* internal() override {
     RTC_DCHECK_RUN_ON(&thread_checker_);
     return internal_.get();
   }

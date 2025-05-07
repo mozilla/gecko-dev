@@ -240,9 +240,8 @@ PeerConfigurer* PeerConfigurer::SetFieldTrials(
 
 PeerConfigurer* PeerConfigurer::SetPortAllocatorExtraFlags(
     uint32_t extra_flags) {
-  params_->port_allocator_flags = cricket::kDefaultPortAllocatorFlags |
-                                  cricket::PORTALLOCATOR_DISABLE_TCP |
-                                  extra_flags;
+  params_->port_allocator_flags =
+      kDefaultPortAllocatorFlags | PORTALLOCATOR_DISABLE_TCP | extra_flags;
   return this;
 }
 

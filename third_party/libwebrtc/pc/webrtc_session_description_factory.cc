@@ -89,7 +89,7 @@ void WebRtcSessionDescriptionFactory::CopyCandidatesFromSessionDescription(
   }
   const cricket::ContentInfos& contents =
       source_desc->description()->contents();
-  const cricket::ContentInfo* cinfo =
+  const ContentInfo* cinfo =
       source_desc->description()->GetContentByName(content_name);
   if (!cinfo) {
     return;
@@ -290,7 +290,7 @@ void WebRtcSessionDescriptionFactory::InternalCreateOffer(
     PostCreateSessionDescriptionFailed(request.observer.get(), result.error());
     return;
   }
-  std::unique_ptr<cricket::SessionDescription> desc = std::move(result.value());
+  std::unique_ptr<SessionDescription> desc = std::move(result.value());
   RTC_CHECK(desc);
 
   // RFC 3264
@@ -352,7 +352,7 @@ void WebRtcSessionDescriptionFactory::InternalCreateAnswer(
     PostCreateSessionDescriptionFailed(request.observer.get(), result.error());
     return;
   }
-  std::unique_ptr<cricket::SessionDescription> desc = std::move(result.value());
+  std::unique_ptr<SessionDescription> desc = std::move(result.value());
   RTC_CHECK(desc);
 
   // RFC 3264

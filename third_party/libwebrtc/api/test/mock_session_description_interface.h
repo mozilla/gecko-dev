@@ -27,11 +27,8 @@ class MockSessionDescriptionInterface : public SessionDescriptionInterface {
               Clone,
               (),
               (const, override));
-  MOCK_METHOD(cricket::SessionDescription*, description, (), (override));
-  MOCK_METHOD(const cricket::SessionDescription*,
-              description,
-              (),
-              (const, override));
+  MOCK_METHOD(SessionDescription*, description, (), (override));
+  MOCK_METHOD(const SessionDescription*, description, (), (const, override));
   MOCK_METHOD(std::string, session_id, (), (const, override));
   MOCK_METHOD(std::string, session_version, (), (const, override));
   MOCK_METHOD(SdpType, GetType, (), (const, override));
@@ -39,7 +36,7 @@ class MockSessionDescriptionInterface : public SessionDescriptionInterface {
   MOCK_METHOD(bool, AddCandidate, (const IceCandidateInterface*), (override));
   MOCK_METHOD(size_t,
               RemoveCandidates,
-              (const std::vector<cricket::Candidate>&),
+              (const std::vector<webrtc::Candidate>&),
               (override));
   MOCK_METHOD(size_t, number_of_mediasections, (), (const, override));
   MOCK_METHOD(const IceCandidateCollection*,

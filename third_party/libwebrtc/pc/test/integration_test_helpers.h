@@ -99,7 +99,6 @@
 
 namespace webrtc {
 
-using ::cricket::ContentInfo;
 using ::cricket::StreamParams;
 
 using ::testing::_;
@@ -649,11 +648,11 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     return event_log_factory_;
   }
 
-  cricket::Candidate last_candidate_gathered() const {
+  Candidate last_candidate_gathered() const {
     if (last_gathered_ice_candidate_) {
       return last_gathered_ice_candidate_->candidate();
     }
-    return cricket::Candidate();
+    return Candidate();
   }
   const IceCandidateInterface* last_gathered_ice_candidate() const {
     return last_gathered_ice_candidate_.get();
@@ -1345,7 +1344,7 @@ class MockIceTransport : public IceTransportInterface {
             component,
             nullptr /* network_thread */)) {}
   ~MockIceTransport() = default;
-  cricket::IceTransportInternal* internal() { return internal_.get(); }
+  IceTransportInternal* internal() { return internal_.get(); }
 
  private:
   std::unique_ptr<cricket::FakeIceTransport> internal_;

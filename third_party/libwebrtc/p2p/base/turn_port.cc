@@ -209,7 +209,7 @@ class TurnEntry : public sigslot::has_slots<> {
 TurnPort::TurnPort(const PortParametersRef& args,
                    webrtc::AsyncPacketSocket* socket,
                    const ProtocolAddress& server_address,
-                   const RelayCredentials& credentials,
+                   const webrtc::RelayCredentials& credentials,
                    int server_priority,
                    const std::vector<std::string>& tls_alpn_protocols,
                    const std::vector<std::string>& tls_elliptic_curves,
@@ -240,7 +240,7 @@ TurnPort::TurnPort(const PortParametersRef& args,
                    uint16_t min_port,
                    uint16_t max_port,
                    const ProtocolAddress& server_address,
-                   const RelayCredentials& credentials,
+                   const webrtc::RelayCredentials& credentials,
                    int server_priority,
                    const std::vector<std::string>& tls_alpn_protocols,
                    const std::vector<std::string>& tls_elliptic_curves,
@@ -274,7 +274,7 @@ TurnPort::TurnPort(webrtc::TaskQueueBase* thread,
                    absl::string_view username,
                    absl::string_view password,
                    const ProtocolAddress& server_address,
-                   const RelayCredentials& credentials,
+                   const webrtc::RelayCredentials& credentials,
                    int server_priority,
                    const std::vector<std::string>& tls_alpn_protocols,
                    const std::vector<std::string>& tls_elliptic_curves,
@@ -303,7 +303,7 @@ TurnPort::TurnPort(webrtc::TaskQueueBase* thread,
                    absl::string_view username,
                    absl::string_view password,
                    const ProtocolAddress& server_address,
-                   const RelayCredentials& credentials,
+                   const webrtc::RelayCredentials& credentials,
                    int server_priority,
                    const std::vector<std::string>& tls_alpn_protocols,
                    const std::vector<std::string>& tls_elliptic_curves,
@@ -367,11 +367,11 @@ webrtc::ProtocolType TurnPort::GetProtocol() const {
   return server_address_.proto;
 }
 
-TlsCertPolicy TurnPort::GetTlsCertPolicy() const {
+webrtc::TlsCertPolicy TurnPort::GetTlsCertPolicy() const {
   return tls_cert_policy_;
 }
 
-void TurnPort::SetTlsCertPolicy(TlsCertPolicy tls_cert_policy) {
+void TurnPort::SetTlsCertPolicy(webrtc::TlsCertPolicy tls_cert_policy) {
   tls_cert_policy_ = tls_cert_policy;
 }
 
@@ -463,7 +463,7 @@ bool TurnPort::CreateTurnClientSocket() {
     // Apply server address TLS and insecure bits to options.
     if (server_address_.proto == webrtc::PROTO_TLS) {
       if (tls_cert_policy_ ==
-          TlsCertPolicy::TLS_CERT_POLICY_INSECURE_NO_CHECK) {
+          webrtc::TlsCertPolicy::TLS_CERT_POLICY_INSECURE_NO_CHECK) {
         opts |= webrtc::PacketSocketFactory::OPT_TLS_INSECURE;
       } else {
         opts |= webrtc::PacketSocketFactory::OPT_TLS;
@@ -616,8 +616,9 @@ void TurnPort::OnAllocateMismatch() {
   ++allocate_mismatch_retries_;
 }
 
-Connection* TurnPort::CreateConnection(const Candidate& remote_candidate,
-                                       CandidateOrigin origin) {
+Connection* TurnPort::CreateConnection(
+    const webrtc::Candidate& remote_candidate,
+    CandidateOrigin origin) {
   // TURN-UDP can only connect to UDP candidates.
   if (!SupportsProtocol(remote_candidate.protocol())) {
     return nullptr;
@@ -638,7 +639,7 @@ Connection* TurnPort::CreateConnection(const Candidate& remote_candidate,
   // present in all cases. If present stun candidate will be added first
   // and TURN candidate later.
   for (size_t index = 0; index < Candidates().size(); ++index) {
-    const Candidate& local_candidate = Candidates()[index];
+    const webrtc::Candidate& local_candidate = Candidates()[index];
     if (local_candidate.is_relay() && local_candidate.address().family() ==
                                           remote_candidate.address().family()) {
       ProxyConnection* conn =
@@ -1267,7 +1268,7 @@ TurnEntry* TurnPort::FindEntry(uint16_t channel_id) const {
 }
 
 bool TurnPort::CreateOrRefreshEntry(Connection* conn, int channel_number) {
-  const Candidate& remote_candidate = conn->remote_candidate();
+  const webrtc::Candidate& remote_candidate = conn->remote_candidate();
   TurnEntry* entry = FindEntry(remote_candidate.address());
   if (entry == nullptr) {
     entries_.push_back(std::make_unique<TurnEntry>(this, conn, channel_number));

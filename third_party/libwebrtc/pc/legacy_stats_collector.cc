@@ -496,7 +496,7 @@ void ExtractStatsFromList(
 
 }  // namespace
 
-const char* IceCandidateTypeToStatsType(const cricket::Candidate& candidate) {
+const char* IceCandidateTypeToStatsType(const Candidate& candidate) {
   if (candidate.is_local()) {
     return STATSREPORT_LOCAL_PORT_TYPE;
   }
@@ -514,7 +514,7 @@ const char* IceCandidateTypeToStatsType(const cricket::Candidate& candidate) {
 }
 
 // Return std::string to make sure that the type remains kString compatible.
-std::string GetLegacyCandidateTypeName(const cricket::Candidate& c) {
+std::string GetLegacyCandidateTypeName(const Candidate& c) {
   if (c.is_local())
     return "local";
   if (c.is_stun())
@@ -522,25 +522,25 @@ std::string GetLegacyCandidateTypeName(const cricket::Candidate& c) {
   return std::string(c.type_name());
 }
 
-const char* AdapterTypeToStatsType(rtc::AdapterType type) {
+const char* AdapterTypeToStatsType(AdapterType type) {
   switch (type) {
-    case rtc::ADAPTER_TYPE_UNKNOWN:
+    case ADAPTER_TYPE_UNKNOWN:
       return "unknown";
-    case rtc::ADAPTER_TYPE_ETHERNET:
+    case ADAPTER_TYPE_ETHERNET:
       return STATSREPORT_ADAPTER_TYPE_ETHERNET;
-    case rtc::ADAPTER_TYPE_WIFI:
+    case ADAPTER_TYPE_WIFI:
       return STATSREPORT_ADAPTER_TYPE_WIFI;
-    case rtc::ADAPTER_TYPE_CELLULAR:
-    case rtc::ADAPTER_TYPE_CELLULAR_2G:
-    case rtc::ADAPTER_TYPE_CELLULAR_3G:
-    case rtc::ADAPTER_TYPE_CELLULAR_4G:
-    case rtc::ADAPTER_TYPE_CELLULAR_5G:
+    case ADAPTER_TYPE_CELLULAR:
+    case ADAPTER_TYPE_CELLULAR_2G:
+    case ADAPTER_TYPE_CELLULAR_3G:
+    case ADAPTER_TYPE_CELLULAR_4G:
+    case ADAPTER_TYPE_CELLULAR_5G:
       return STATSREPORT_ADAPTER_TYPE_WWAN;
-    case rtc::ADAPTER_TYPE_VPN:
+    case ADAPTER_TYPE_VPN:
       return STATSREPORT_ADAPTER_TYPE_VPN;
-    case rtc::ADAPTER_TYPE_LOOPBACK:
+    case ADAPTER_TYPE_LOOPBACK:
       return STATSREPORT_ADAPTER_TYPE_LOOPBACK;
-    case rtc::ADAPTER_TYPE_ANY:
+    case ADAPTER_TYPE_ANY:
       return STATSREPORT_ADAPTER_TYPE_WILDCARD;
     default:
       RTC_DCHECK_NOTREACHED();

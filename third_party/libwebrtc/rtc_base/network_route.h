@@ -28,7 +28,7 @@ namespace rtc {
 class RouteEndpoint {
  public:
   RouteEndpoint() {}  // Used by tests.
-  RouteEndpoint(AdapterType adapter_type,
+  RouteEndpoint(webrtc::AdapterType adapter_type,
                 uint16_t adapter_id,
                 uint16_t network_id,
                 bool uses_turn)
@@ -42,7 +42,7 @@ class RouteEndpoint {
 
   // Used by tests.
   static RouteEndpoint CreateWithNetworkId(uint16_t network_id) {
-    return RouteEndpoint(ADAPTER_TYPE_UNKNOWN,
+    return RouteEndpoint(webrtc::ADAPTER_TYPE_UNKNOWN,
                          /* adapter_id = */ 0, network_id,
                          /* uses_turn = */ false);
   }
@@ -50,7 +50,7 @@ class RouteEndpoint {
     return RouteEndpoint(adapter_type_, adapter_id_, network_id_, uses_turn);
   }
 
-  AdapterType adapter_type() const { return adapter_type_; }
+  webrtc::AdapterType adapter_type() const { return adapter_type_; }
   uint16_t adapter_id() const { return adapter_id_; }
   uint16_t network_id() const { return network_id_; }
   bool uses_turn() const { return uses_turn_; }
@@ -58,7 +58,7 @@ class RouteEndpoint {
   bool operator==(const RouteEndpoint& other) const;
 
  private:
-  AdapterType adapter_type_ = ADAPTER_TYPE_UNKNOWN;
+  webrtc::AdapterType adapter_type_ = webrtc::ADAPTER_TYPE_UNKNOWN;
   uint16_t adapter_id_ = 0;
   uint16_t network_id_ = 0;
   bool uses_turn_ = false;
@@ -78,10 +78,10 @@ struct NetworkRoute {
     webrtc::StringBuilder oss;
     oss << "[ connected: " << connected << " local: [ " << local.adapter_id()
         << "/" << local.network_id() << " "
-        << AdapterTypeToString(local.adapter_type())
+        << webrtc::AdapterTypeToString(local.adapter_type())
         << " turn: " << local.uses_turn() << " ] remote: [ "
         << remote.adapter_id() << "/" << remote.network_id() << " "
-        << AdapterTypeToString(remote.adapter_type())
+        << webrtc::AdapterTypeToString(remote.adapter_type())
         << " turn: " << remote.uses_turn()
         << " ] packet_overhead_bytes: " << packet_overhead << " ]";
     return oss.Release();

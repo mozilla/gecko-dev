@@ -15,6 +15,7 @@
 #include <string>
 
 #include "api/packet_socket_factory.h"
+#include "p2p/base/port_allocator.h"
 #include "p2p/base/port_interface.h"
 #include "rtc_base/async_packet_socket.h"
 
@@ -33,7 +34,6 @@ class FieldTrialsView;
 namespace cricket {
 class Port;
 struct ProtocolAddress;
-struct RelayServerConfig;
 
 // A struct containing arguments to RelayPortFactory::Create()
 struct CreateRelayPortArgs {
@@ -41,7 +41,7 @@ struct CreateRelayPortArgs {
   webrtc::PacketSocketFactory* socket_factory;
   const rtc::Network* network;
   const ProtocolAddress* server_address;
-  const RelayServerConfig* config;
+  const webrtc::RelayServerConfig* config;
   std::string username;
   std::string password;
   webrtc::TurnCustomizer* turn_customizer = nullptr;

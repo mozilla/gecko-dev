@@ -60,8 +60,10 @@ struct ConnectionInfo {
   size_t packets_received;     // Number of packets that were received.
   size_t recv_ping_requests;   // Number of STUN ping request received.
   size_t recv_ping_responses;  // Number of STUN ping response received.
-  Candidate local_candidate;   // The local candidate for this connection.
-  Candidate remote_candidate;  // The remote candidate for this connection.
+  webrtc::Candidate
+      local_candidate;  // The local candidate for this connection.
+  webrtc::Candidate
+      remote_candidate;        // The remote candidate for this connection.
   void* key;                   // A static value that identifies this conn.
   // https://w3c.github.io/webrtc-stats/#dom-rtcicecandidatepairstats-state
   IceCandidatePairState state;

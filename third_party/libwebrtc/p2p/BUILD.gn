@@ -865,6 +865,7 @@ rtc_library("turn_port_factory") {
 rtc_source_set("relay_port_factory_interface") {
   sources = [ "client/relay_port_factory_interface.h" ]
   deps = [
+    ":port_allocator",
     ":port_interface",
     "../api:packet_socket_factory",
     "../rtc_base:async_packet_socket",

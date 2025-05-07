@@ -76,7 +76,7 @@ struct EmulatedEndpointConfig {
   // Enabled endpoints will be available for webrtc to send packets.
   bool start_as_enabled = true;
   // Network type which will be used to represent endpoint to WebRTC.
-  rtc::AdapterType type = rtc::AdapterType::ADAPTER_TYPE_UNKNOWN;
+  AdapterType type = AdapterType::ADAPTER_TYPE_UNKNOWN;
   // Allow endpoint to send packets specifying source IP address different to
   // the current endpoint IP address. If false endpoint will crash if attempt
   // to send such packet will be done.

@@ -123,18 +123,18 @@
 #include "rtc_base/unique_id_generator.h"
 #include "system_wrappers/include/metrics.h"
 
-using cricket::ContentInfo;
-using cricket::ContentInfos;
 using cricket::MediaContentDescription;
-using cricket::MediaProtocolType;
 using cricket::RidDescription;
 using cricket::RidDirection;
-using cricket::SessionDescription;
 using cricket::SimulcastDescription;
 using cricket::SimulcastLayer;
 using cricket::SimulcastLayerList;
 using cricket::StreamParams;
 using cricket::TransportInfo;
+using ::webrtc::ContentInfo;
+using ::webrtc::ContentInfos;
+using ::webrtc::MediaProtocolType;
+using ::webrtc::SessionDescription;
 
 namespace webrtc {
 
@@ -169,22 +169,21 @@ uint32_t ConvertIceTransportTypeToCandidateFilter(
     PeerConnectionInterface::IceTransportsType type) {
   switch (type) {
     case PeerConnectionInterface::kNone:
-      return cricket::CF_NONE;
+      return CF_NONE;
     case PeerConnectionInterface::kRelay:
-      return cricket::CF_RELAY;
+      return CF_RELAY;
     case PeerConnectionInterface::kNoHost:
-      return (cricket::CF_ALL & ~cricket::CF_HOST);
+      return (CF_ALL & ~CF_HOST);
     case PeerConnectionInterface::kAll:
-      return cricket::CF_ALL;
+      return CF_ALL;
     default:
       RTC_DCHECK_NOTREACHED();
   }
-  return cricket::CF_NONE;
+  return CF_NONE;
 }
 
-IceCandidatePairType GetIceCandidatePairCounter(
-    const cricket::Candidate& local,
-    const cricket::Candidate& remote) {
+IceCandidatePairType GetIceCandidatePairCounter(const Candidate& local,
+                                                const Candidate& remote) {
   if (local.is_local() && remote.is_local()) {
     bool local_hostname =
         !local.address().hostname().empty() && local.address().IsUnresolvedIP();
@@ -348,7 +347,7 @@ RTCErrorOr<PeerConnectionInterface::RTCConfiguration> ApplyConfiguration(
                          "Modifying the configuration in an unsupported way.");
   }
 
-  RTCError err = cricket::IceConfig(modified_config).IsValid();
+  RTCError err = IceConfig(modified_config).IsValid();
   if (!err.ok()) {
     return err;
   }
@@ -356,7 +355,7 @@ RTCErrorOr<PeerConnectionInterface::RTCConfiguration> ApplyConfiguration(
   return modified_config;
 }
 
-bool HasRtcpMuxEnabled(const cricket::ContentInfo* content) {
+bool HasRtcpMuxEnabled(const ContentInfo* content) {
   return content->media_description()->rtcp_mux();
 }
 
@@ -370,10 +369,9 @@ bool DtlsEnabled(const PeerConnectionInterface::RTCConfiguration& configuration,
   return (dependencies.cert_generator || !configuration.certificates.empty());
 }
 
-void NoteServerUsage(
-    UsagePattern& usage_pattern,
-    const cricket::ServerAddresses& stun_servers,
-    const std::vector<cricket::RelayServerConfig>& turn_servers) {
+void NoteServerUsage(UsagePattern& usage_pattern,
+                     const cricket::ServerAddresses& stun_servers,
+                     const std::vector<RelayServerConfig>& turn_servers) {
   if (!stun_servers.empty()) {
     usage_pattern.NoteUsageEvent(UsageEvent::STUN_SERVER_ADDED);
   }
@@ -513,8 +511,8 @@ rtc::scoped_refptr<PeerConnection> PeerConnection::Create(
     const PeerConnectionInterface::RTCConfiguration& configuration,
     PeerConnectionDependencies& dependencies,
     const cricket::ServerAddresses& stun_servers,
-    const std::vector<cricket::RelayServerConfig>& turn_servers) {
-  RTC_DCHECK(cricket::IceConfig(configuration).IsValid().ok());
+    const std::vector<RelayServerConfig>& turn_servers) {
+  RTC_DCHECK(IceConfig(configuration).IsValid().ok());
   RTC_DCHECK(dependencies.observer);
   RTC_DCHECK(dependencies.async_dns_resolver_factory);
   RTC_DCHECK(dependencies.allocator);
@@ -538,7 +536,7 @@ PeerConnection::PeerConnection(
     std::unique_ptr<Call> call,
     PeerConnectionDependencies& dependencies,
     const cricket::ServerAddresses& stun_servers,
-    const std::vector<cricket::RelayServerConfig>& turn_servers,
+    const std::vector<RelayServerConfig>& turn_servers,
     bool dtls_enabled)
     : env_(env),
       context_(context),
@@ -681,7 +679,7 @@ PeerConnection::~PeerConnection() {
 
 JsepTransportController* PeerConnection::InitializeNetworkThread(
     const cricket::ServerAddresses& stun_servers,
-    const std::vector<cricket::RelayServerConfig>& turn_servers) {
+    const std::vector<RelayServerConfig>& turn_servers) {
   RTC_DCHECK_RUN_ON(signaling_thread());
 
   NoteServerUsage(usage_pattern_, stun_servers, turn_servers);
@@ -768,7 +766,7 @@ JsepTransportController* PeerConnection::InitializeTransportController_n(
             }));
       });
   transport_controller_->SubscribeIceGatheringState(
-      [this](cricket::IceGatheringState s) {
+      [this](::webrtc::IceGatheringState s) {
         RTC_DCHECK_RUN_ON(network_thread());
         signaling_thread()->PostTask(
             SafeTask(signaling_thread_safety_.flag(), [this, s]() {
@@ -815,7 +813,7 @@ JsepTransportController* PeerConnection::InitializeTransportController_n(
             }));
       });
 
-  cricket::IceConfig ice_config(configuration);
+  IceConfig ice_config(configuration);
   ice_config.dtls_handshake_in_stun =
       CanAttemptDtlsStunPiggybacking(configuration);
 
@@ -1533,7 +1531,7 @@ RTCError PeerConnection::SetConfiguration(
 
   // Parse ICE servers before hopping to network thread.
   cricket::ServerAddresses stun_servers;
-  std::vector<cricket::RelayServerConfig> turn_servers;
+  std::vector<RelayServerConfig> turn_servers;
   validate_error = ParseAndValidateIceServersFromConfiguration(
       configuration, stun_servers, turn_servers);
   if (!validate_error.ok()) {
@@ -1549,7 +1547,7 @@ RTCError PeerConnection::SetConfiguration(
           configuration_.type, modified_config.type) ||
       modified_config.GetTurnPortPrunePolicy() !=
           configuration_.GetTurnPortPrunePolicy();
-  cricket::IceConfig ice_config(modified_config);
+  IceConfig ice_config(modified_config);
   ice_config.dtls_handshake_in_stun =
       CanAttemptDtlsStunPiggybacking(modified_config);
 
@@ -1604,7 +1602,7 @@ void PeerConnection::AddIceCandidate(
 }
 
 bool PeerConnection::RemoveIceCandidates(
-    const std::vector<cricket::Candidate>& candidates) {
+    const std::vector<Candidate>& candidates) {
   TRACE_EVENT0("webrtc", "PeerConnection::RemoveIceCandidates");
   RTC_DCHECK_RUN_ON(signaling_thread());
   return sdp_handler_->RemoveIceCandidates(candidates);
@@ -2073,7 +2071,7 @@ void PeerConnection::OnIceCandidateError(const std::string& address,
 }
 
 void PeerConnection::OnIceCandidatesRemoved(
-    const std::vector<cricket::Candidate>& candidates) {
+    const std::vector<Candidate>& candidates) {
   if (IsClosed()) {
     return;
   }
@@ -2134,7 +2132,7 @@ void PeerConnection::OnSctpDataChannelStateChanged(
 PeerConnection::InitializePortAllocatorResult
 PeerConnection::InitializePortAllocator_n(
     const cricket::ServerAddresses& stun_servers,
-    const std::vector<cricket::RelayServerConfig>& turn_servers,
+    const std::vector<RelayServerConfig>& turn_servers,
     const RTCConfiguration& configuration) {
   RTC_DCHECK_RUN_ON(network_thread());
 
@@ -2142,36 +2140,36 @@ PeerConnection::InitializePortAllocator_n(
   // To handle both internal and externally created port allocator, we will
   // enable BUNDLE here.
   int port_allocator_flags = port_allocator_->flags();
-  port_allocator_flags |= cricket::PORTALLOCATOR_ENABLE_SHARED_SOCKET |
-                          cricket::PORTALLOCATOR_ENABLE_IPV6 |
-                          cricket::PORTALLOCATOR_ENABLE_IPV6_ON_WIFI;
+  port_allocator_flags |= PORTALLOCATOR_ENABLE_SHARED_SOCKET |
+                          PORTALLOCATOR_ENABLE_IPV6 |
+                          PORTALLOCATOR_ENABLE_IPV6_ON_WIFI;
   if (trials().IsDisabled("WebRTC-IPv6Default")) {
-    port_allocator_flags &= ~(cricket::PORTALLOCATOR_ENABLE_IPV6);
+    port_allocator_flags &= ~(PORTALLOCATOR_ENABLE_IPV6);
   }
   if (configuration.disable_ipv6_on_wifi) {
-    port_allocator_flags &= ~(cricket::PORTALLOCATOR_ENABLE_IPV6_ON_WIFI);
+    port_allocator_flags &= ~(PORTALLOCATOR_ENABLE_IPV6_ON_WIFI);
     RTC_LOG(LS_INFO) << "IPv6 candidates on Wi-Fi are disabled.";
   }
 
   if (configuration.tcp_candidate_policy == kTcpCandidatePolicyDisabled) {
-    port_allocator_flags |= cricket::PORTALLOCATOR_DISABLE_TCP;
+    port_allocator_flags |= PORTALLOCATOR_DISABLE_TCP;
     RTC_LOG(LS_INFO) << "TCP candidates are disabled.";
   }
 
   if (configuration.candidate_network_policy ==
       kCandidateNetworkPolicyLowCost) {
-    port_allocator_flags |= cricket::PORTALLOCATOR_DISABLE_COSTLY_NETWORKS;
+    port_allocator_flags |= PORTALLOCATOR_DISABLE_COSTLY_NETWORKS;
     RTC_LOG(LS_INFO) << "Do not gather candidates on high-cost networks";
   }
 
   if (configuration.disable_link_local_networks) {
-    port_allocator_flags |= cricket::PORTALLOCATOR_DISABLE_LINK_LOCAL_NETWORKS;
+    port_allocator_flags |= PORTALLOCATOR_DISABLE_LINK_LOCAL_NETWORKS;
     RTC_LOG(LS_INFO) << "Disable candidates on link-local network interfaces.";
   }
 
   port_allocator_->set_flags(port_allocator_flags);
   // No step delay is used while allocating ports.
-  port_allocator_->set_step_delay(cricket::kMinimumStepDelay);
+  port_allocator_->set_step_delay(kMinimumStepDelay);
   port_allocator_->SetCandidateFilter(
       ConvertIceTransportTypeToCandidateFilter(configuration.type));
   port_allocator_->set_max_ipv6_networks(configuration.max_ipv6_networks);
@@ -2189,13 +2187,13 @@ PeerConnection::InitializePortAllocator_n(
       configuration.stun_candidate_keepalive_interval);
 
   InitializePortAllocatorResult res;
-  res.enable_ipv6 = port_allocator_flags & cricket::PORTALLOCATOR_ENABLE_IPV6;
+  res.enable_ipv6 = port_allocator_flags & PORTALLOCATOR_ENABLE_IPV6;
   return res;
 }
 
 bool PeerConnection::ReconfigurePortAllocator_n(
     const cricket::ServerAddresses& stun_servers,
-    const std::vector<cricket::RelayServerConfig>& turn_servers,
+    const std::vector<RelayServerConfig>& turn_servers,
     IceTransportsType type,
     int candidate_pool_size,
     PortPrunePolicy turn_port_prune_policy,
@@ -2450,7 +2448,7 @@ void PeerConnection::OnTransportControllerCandidateError(
 }
 
 void PeerConnection::OnTransportControllerCandidatesRemoved(
-    const std::vector<cricket::Candidate>& candidates) {
+    const std::vector<Candidate>& candidates) {
   // Sanity check.
   for (const cricket::Candidate& candidate : candidates) {
     if (candidate.transport_name().empty()) {
@@ -2559,15 +2557,14 @@ void PeerConnection::TeardownDataChannelTransport_n(RTCError error) {
 // Returns false if bundle is enabled and rtcp_mux is disabled.
 bool PeerConnection::ValidateBundleSettings(
     const SessionDescription* desc,
-    const std::map<std::string, const cricket::ContentGroup*>&
-        bundle_groups_by_mid) {
+    const std::map<std::string, const ContentGroup*>& bundle_groups_by_mid) {
   if (bundle_groups_by_mid.empty())
     return true;
 
   const cricket::ContentInfos& contents = desc->contents();
   for (cricket::ContentInfos::const_iterator citer = contents.begin();
        citer != contents.end(); ++citer) {
-    const cricket::ContentInfo* content = (&*citer);
+    const ContentInfo* content = (&*citer);
     RTC_DCHECK(content != NULL);
     auto it = bundle_groups_by_mid.find(content->mid());
     if (it != bundle_groups_by_mid.end() &&
@@ -2627,8 +2624,7 @@ void PeerConnection::ReportSdpBundleUsage(
                             kBundleUsageMax);
 }
 
-void PeerConnection::ReportIceCandidateCollected(
-    const cricket::Candidate& candidate) {
+void PeerConnection::ReportIceCandidateCollected(const Candidate& candidate) {
   NoteUsageEvent(UsageEvent::CANDIDATE_COLLECTED);
   if (candidate.address().IsPrivateIP()) {
     NoteUsageEvent(UsageEvent::PRIVATE_CANDIDATE_COLLECTED);
@@ -2648,7 +2644,7 @@ void PeerConnection::NoteUsageEvent(UsageEvent event) {
 
 // Asynchronously adds remote candidates on the network thread.
 void PeerConnection::AddRemoteCandidate(absl::string_view mid,
-                                        const cricket::Candidate& candidate) {
+                                        const Candidate& candidate) {
   RTC_DCHECK_RUN_ON(signaling_thread());
 
   if (candidate.network_type() != rtc::ADAPTER_TYPE_UNKNOWN) {
@@ -2657,7 +2653,7 @@ void PeerConnection::AddRemoteCandidate(absl::string_view mid,
   }
 
   // Clear fields that do not make sense as remote candidates.
-  cricket::Candidate new_candidate(candidate);
+  Candidate new_candidate(candidate);
   new_candidate.set_network_type(rtc::ADAPTER_TYPE_UNKNOWN);
   new_candidate.set_relay_protocol("");
   new_candidate.set_underlying_type_for_vpn(rtc::ADAPTER_TYPE_UNKNOWN);
@@ -2666,7 +2662,7 @@ void PeerConnection::AddRemoteCandidate(absl::string_view mid,
       network_thread_safety_,
       [this, mid = std::string(mid), candidate = new_candidate] {
         RTC_DCHECK_RUN_ON(network_thread());
-        std::vector<cricket::Candidate> candidates = {candidate};
+        std::vector<Candidate> candidates = {candidate};
         RTCError error =
             transport_controller_->AddRemoteCandidates(mid, candidates);
         if (error.ok()) {
@@ -2703,8 +2699,7 @@ void PeerConnection::ReportUsagePattern() const {
   usage_pattern_.ReportUsagePattern(observer_);
 }
 
-void PeerConnection::ReportRemoteIceCandidateAdded(
-    const cricket::Candidate& candidate) {
+void PeerConnection::ReportRemoteIceCandidateAdded(const Candidate& candidate) {
   RTC_DCHECK_RUN_ON(signaling_thread());
 
   NoteUsageEvent(UsageEvent::REMOTE_CANDIDATE_ADDED);
@@ -2726,13 +2721,13 @@ bool PeerConnection::SrtpRequired() const {
 }
 
 void PeerConnection::OnTransportControllerGatheringState(
-    cricket::IceGatheringState state) {
+    ::webrtc::IceGatheringState state) {
   RTC_DCHECK(signaling_thread()->IsCurrent());
-  if (state == cricket::kIceGatheringGathering) {
+  if (state == ::webrtc::kIceGatheringGathering) {
     OnIceGatheringChange(PeerConnectionInterface::kIceGatheringGathering);
-  } else if (state == cricket::kIceGatheringComplete) {
+  } else if (state == ::webrtc::kIceGatheringComplete) {
     OnIceGatheringChange(PeerConnectionInterface::kIceGatheringComplete);
-  } else if (state == cricket::kIceGatheringNew) {
+  } else if (state == ::webrtc::kIceGatheringNew) {
     OnIceGatheringChange(PeerConnectionInterface::kIceGatheringNew);
   } else {
     RTC_LOG(LS_ERROR) << "Unknown state received: " << state;
@@ -2789,8 +2784,8 @@ void PeerConnection::ReportBestConnectionState(
         continue;
       }
 
-      const cricket::Candidate& local = connection_info.local_candidate;
-      const cricket::Candidate& remote = connection_info.remote_candidate;
+      const Candidate& local = connection_info.local_candidate;
+      const Candidate& remote = connection_info.remote_candidate;
 
       // Increment the counter for IceCandidatePairType.
       if (local.protocol() == cricket::TCP_PROTOCOL_NAME ||

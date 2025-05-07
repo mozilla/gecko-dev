@@ -56,7 +56,7 @@ class PeerScenarioClient {
                                    int,
                                    const std::string&)>>
         on_ice_candidate_error;
-    std::vector<std::function<void(const std::vector<cricket::Candidate>&)>>
+    std::vector<std::function<void(const std::vector<webrtc::Candidate>&)>>
         on_ice_candidates_removed;
     std::vector<std::function<void(
         rtc::scoped_refptr<RtpReceiverInterface>,

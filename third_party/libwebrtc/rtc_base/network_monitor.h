@@ -74,10 +74,10 @@ class NetworkMonitorInterface {
  public:
   struct InterfaceInfo {
     // The type of adapter if known.
-    AdapterType adapter_type;
+    webrtc::AdapterType adapter_type;
 
     // Is ADAPTER_TYPE_UNKNOWN unless adapter_type == ADAPTER_TYPE_VPN.
-    AdapterType underlying_type_for_vpn = ADAPTER_TYPE_UNKNOWN;
+    webrtc::AdapterType underlying_type_for_vpn = webrtc::ADAPTER_TYPE_UNKNOWN;
 
     // The OS/firmware specific preference of this interface.
     NetworkPreference network_preference = NetworkPreference::NEUTRAL;

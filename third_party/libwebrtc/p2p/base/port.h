@@ -101,19 +101,19 @@ class CandidateStats {
   CandidateStats() = default;
   CandidateStats(const CandidateStats&) = default;
   CandidateStats(CandidateStats&&) = default;
-  CandidateStats(Candidate candidate,
+  CandidateStats(webrtc::Candidate candidate,
                  std::optional<StunStats> stats = std::nullopt)
       : candidate_(std::move(candidate)), stun_stats_(std::move(stats)) {}
   ~CandidateStats() = default;
 
   CandidateStats& operator=(const CandidateStats& other) = default;
 
-  const Candidate& candidate() const { return candidate_; }
+  const webrtc::Candidate& candidate() const { return candidate_; }
 
   const std::optional<StunStats>& stun_stats() const { return stun_stats_; }
 
  private:
-  Candidate candidate_;
+  webrtc::Candidate candidate_;
   // STUN port stats if this candidate is a STUN candidate.
   std::optional<StunStats> stun_stats_;
 };
@@ -264,9 +264,9 @@ class RTC_EXPORT Port : public webrtc::PortInterface,
 
   // Fired when candidates are discovered by the port. When all candidates
   // are discovered that belong to port SignalAddressReady is fired.
-  sigslot::signal2<Port*, const Candidate&> SignalCandidateReady;
+  sigslot::signal2<Port*, const webrtc::Candidate&> SignalCandidateReady;
   // Provides all of the above information in one handy object.
-  const std::vector<Candidate>& Candidates() const override;
+  const std::vector<webrtc::Candidate>& Candidates() const override;
   // Fired when candidate discovery failed using certain server.
   sigslot::signal2<Port*, const IceCandidateErrorEvent&> SignalCandidateError;
 
@@ -362,7 +362,7 @@ class RTC_EXPORT Port : public webrtc::PortInterface,
   void OnReadyToSend();
 
   // Called when the Connection discovers a local peer reflexive candidate.
-  void AddPrflxCandidate(const Candidate& local) override;
+  void AddPrflxCandidate(const webrtc::Candidate& local) override;
 
   int16_t network_cost() const override { return network_cost_; }
 
@@ -385,7 +385,7 @@ class RTC_EXPORT Port : public webrtc::PortInterface,
                   absl::string_view url,
                   bool is_final);
 
-  void FinishAddingAddress(const Candidate& c, bool is_final)
+  void FinishAddingAddress(const webrtc::Candidate& c, bool is_final)
       RTC_RUN_ON(thread_);
 
   virtual void PostAddAddress(bool is_final);
@@ -449,7 +449,7 @@ class RTC_EXPORT Port : public webrtc::PortInterface,
   webrtc::IceCandidateType type() const { return type_; }
 
  private:
-  bool MaybeObfuscateAddress(const Candidate& c, bool is_final)
+  bool MaybeObfuscateAddress(const webrtc::Candidate& c, bool is_final)
       RTC_RUN_ON(thread_);
 
   void PostDestroyIfDead(bool delayed);
@@ -489,7 +489,7 @@ class RTC_EXPORT Port : public webrtc::PortInterface,
   // PortAllocatorSession will provide these username_fragment and password.
   std::string ice_username_fragment_ RTC_GUARDED_BY(thread_);
   std::string password_ RTC_GUARDED_BY(thread_);
-  std::vector<Candidate> candidates_ RTC_GUARDED_BY(thread_);
+  std::vector<webrtc::Candidate> candidates_ RTC_GUARDED_BY(thread_);
   AddressMap connections_;
   int timeout_delay_;
   bool enable_port_packets_;

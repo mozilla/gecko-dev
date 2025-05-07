@@ -71,11 +71,11 @@ class MockChannelInterface : public cricket::ChannelInterface {
               (override));
   MOCK_METHOD(bool,
               SetLocalContent,
-              (const cricket::MediaContentDescription*, SdpType, std::string&),
+              (const webrtc::MediaContentDescription*, SdpType, std::string&),
               (override));
   MOCK_METHOD(bool,
               SetRemoteContent,
-              (const cricket::MediaContentDescription*, SdpType, std::string&),
+              (const webrtc::MediaContentDescription*, SdpType, std::string&),
               (override));
   MOCK_METHOD(bool, SetPayloadTypeDemuxingEnabled, (bool), (override));
   MOCK_METHOD(const std::vector<cricket::StreamParams>&,

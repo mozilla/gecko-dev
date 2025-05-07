@@ -270,52 +270,52 @@ const char* IceTransportStateToRTCIceTransportState(IceTransportState state) {
   }
 }
 
-const char* NetworkTypeToStatsType(rtc::AdapterType type) {
+const char* NetworkTypeToStatsType(AdapterType type) {
   switch (type) {
-    case rtc::ADAPTER_TYPE_CELLULAR:
-    case rtc::ADAPTER_TYPE_CELLULAR_2G:
-    case rtc::ADAPTER_TYPE_CELLULAR_3G:
-    case rtc::ADAPTER_TYPE_CELLULAR_4G:
-    case rtc::ADAPTER_TYPE_CELLULAR_5G:
+    case ADAPTER_TYPE_CELLULAR:
+    case ADAPTER_TYPE_CELLULAR_2G:
+    case ADAPTER_TYPE_CELLULAR_3G:
+    case ADAPTER_TYPE_CELLULAR_4G:
+    case ADAPTER_TYPE_CELLULAR_5G:
       return "cellular";
-    case rtc::ADAPTER_TYPE_ETHERNET:
+    case ADAPTER_TYPE_ETHERNET:
       return "ethernet";
-    case rtc::ADAPTER_TYPE_WIFI:
+    case ADAPTER_TYPE_WIFI:
       return "wifi";
-    case rtc::ADAPTER_TYPE_VPN:
+    case ADAPTER_TYPE_VPN:
       return "vpn";
-    case rtc::ADAPTER_TYPE_UNKNOWN:
-    case rtc::ADAPTER_TYPE_LOOPBACK:
-    case rtc::ADAPTER_TYPE_ANY:
+    case ADAPTER_TYPE_UNKNOWN:
+    case ADAPTER_TYPE_LOOPBACK:
+    case ADAPTER_TYPE_ANY:
       return "unknown";
   }
   RTC_DCHECK_NOTREACHED();
   return nullptr;
 }
 
-absl::string_view NetworkTypeToStatsNetworkAdapterType(rtc::AdapterType type) {
+absl::string_view NetworkTypeToStatsNetworkAdapterType(AdapterType type) {
   switch (type) {
-    case rtc::ADAPTER_TYPE_CELLULAR:
+    case ADAPTER_TYPE_CELLULAR:
       return "cellular";
-    case rtc::ADAPTER_TYPE_CELLULAR_2G:
+    case ADAPTER_TYPE_CELLULAR_2G:
       return "cellular2g";
-    case rtc::ADAPTER_TYPE_CELLULAR_3G:
+    case ADAPTER_TYPE_CELLULAR_3G:
       return "cellular3g";
-    case rtc::ADAPTER_TYPE_CELLULAR_4G:
+    case ADAPTER_TYPE_CELLULAR_4G:
       return "cellular4g";
-    case rtc::ADAPTER_TYPE_CELLULAR_5G:
+    case ADAPTER_TYPE_CELLULAR_5G:
       return "cellular5g";
-    case rtc::ADAPTER_TYPE_ETHERNET:
+    case ADAPTER_TYPE_ETHERNET:
       return "ethernet";
-    case rtc::ADAPTER_TYPE_WIFI:
+    case ADAPTER_TYPE_WIFI:
       return "wifi";
-    case rtc::ADAPTER_TYPE_UNKNOWN:
+    case ADAPTER_TYPE_UNKNOWN:
       return "unknown";
-    case rtc::ADAPTER_TYPE_LOOPBACK:
+    case ADAPTER_TYPE_LOOPBACK:
       return "loopback";
-    case rtc::ADAPTER_TYPE_ANY:
+    case ADAPTER_TYPE_ANY:
       return "any";
-    case rtc::ADAPTER_TYPE_VPN:
+    case ADAPTER_TYPE_VPN:
       /* should not be handled here. Vpn is modelled as a bool */
       break;
   }
@@ -968,7 +968,7 @@ void ProduceCertificateStatsFromSSLCertificateStats(
 }
 
 const std::string& ProduceIceCandidateStats(Timestamp timestamp,
-                                            const cricket::Candidate& candidate,
+                                            const Candidate& candidate,
                                             bool is_local,
                                             const std::string& transport_id,
                                             RTCStatsReport* report) {
@@ -1003,7 +1003,7 @@ const std::string& ProduceIceCandidateStats(Timestamp timestamp,
           candidate_stats->url = url;
         }
       }
-      if (candidate.network_type() == rtc::ADAPTER_TYPE_VPN) {
+      if (candidate.network_type() == ADAPTER_TYPE_VPN) {
         candidate_stats->vpn = true;
         candidate_stats->network_adapter_type =
             std::string(NetworkTypeToStatsNetworkAdapterType(
@@ -1015,10 +1015,9 @@ const std::string& ProduceIceCandidateStats(Timestamp timestamp,
       }
     } else {
       // We don't expect to know the adapter type of remote candidates.
-      RTC_DCHECK_EQ(rtc::ADAPTER_TYPE_UNKNOWN, candidate.network_type());
+      RTC_DCHECK_EQ(ADAPTER_TYPE_UNKNOWN, candidate.network_type());
       RTC_DCHECK_EQ(0, candidate.relay_protocol().compare(""));
-      RTC_DCHECK_EQ(rtc::ADAPTER_TYPE_UNKNOWN,
-                    candidate.underlying_type_for_vpn());
+      RTC_DCHECK_EQ(ADAPTER_TYPE_UNKNOWN, candidate.underlying_type_for_vpn());
     }
     candidate_stats->ip = candidate.address().ipaddr().ToString();
     candidate_stats->address = candidate.address().ipaddr().ToString();

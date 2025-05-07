@@ -276,7 +276,7 @@ TEST_F(TCPPortTest, SignalSentPacket) {
       webrtc::IsRtcOk());
 
   // Need to get the port of the actual outgoing socket, not the server socket..
-  cricket::Candidate client_candidate = client->Candidates()[0];
+  webrtc::Candidate client_candidate = client->Candidates()[0];
   client_candidate.set_address(static_cast<cricket::TCPConnection*>(client_conn)
                                    ->socket()
                                    ->GetLocalAddress());
@@ -338,7 +338,7 @@ TEST_F(TCPPortTest, SignalSentPacketAfterReconnect) {
       webrtc::IsRtcOk());
 
   // Need to get the port of the actual outgoing socket.
-  cricket::Candidate client_candidate = client->Candidates()[0];
+  webrtc::Candidate client_candidate = client->Candidates()[0];
   client_candidate.set_address(static_cast<cricket::TCPConnection*>(client_conn)
                                    ->socket()
                                    ->GetLocalAddress());

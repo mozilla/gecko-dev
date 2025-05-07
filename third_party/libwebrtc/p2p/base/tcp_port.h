@@ -65,7 +65,7 @@ class TCPPort : public Port {
   }
   ~TCPPort() override;
 
-  Connection* CreateConnection(const Candidate& address,
+  Connection* CreateConnection(const webrtc::Candidate& address,
                                CandidateOrigin origin) override;
 
   void PrepareAddress() override;
@@ -134,7 +134,7 @@ class TCPConnection : public Connection, public sigslot::has_slots<> {
  public:
   // Connection is outgoing unless socket is specified
   TCPConnection(rtc::WeakPtr<Port> tcp_port,
-                const Candidate& candidate,
+                const webrtc::Candidate& candidate,
                 webrtc::AsyncPacketSocket* socket = nullptr);
   ~TCPConnection() override;
 

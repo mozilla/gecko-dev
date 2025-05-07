@@ -85,7 +85,7 @@ class ScenarioIceConnectionImpl : public ScenarioIceConnection,
 
   void OnRtpPacket(const RtpPacketReceived& packet) override;
   void OnCandidates(const std::string& mid,
-                    const std::vector<cricket::Candidate>& candidates);
+                    const std::vector<Candidate>& candidates);
 
   IceConnectionObserver* const observer_;
   EmulatedEndpoint* const endpoint_;
@@ -271,7 +271,7 @@ void ScenarioIceConnectionImpl::OnRtpPacket(const RtpPacketReceived& packet) {
 
 void ScenarioIceConnectionImpl::OnCandidates(
     const std::string& mid,
-    const std::vector<cricket::Candidate>& candidates) {
+    const std::vector<Candidate>& candidates) {
   RTC_DCHECK_RUN_ON(signaling_thread_);
   observer_->OnIceCandidates(mid, candidates);
 }

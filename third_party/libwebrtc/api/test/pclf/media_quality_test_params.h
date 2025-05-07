@@ -125,7 +125,7 @@ struct Params {
   // IMPORTANT: if you use WebRTC Network Emulation
   // (api/test/network_emulation_manager.h) and set this field, remember to set
   // cricket::PORTALLOCATOR_DISABLE_TCP.
-  uint32_t port_allocator_flags = cricket::PORTALLOCATOR_DISABLE_TCP;
+  uint32_t port_allocator_flags = PORTALLOCATOR_DISABLE_TCP;
   // If `rtc_event_log_path` is set, an RTCEventLog will be saved in that
   // location and it will be available for further analysis.
   std::optional<std::string> rtc_event_log_path;

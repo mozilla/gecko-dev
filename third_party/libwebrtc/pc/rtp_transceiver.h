@@ -302,7 +302,7 @@ class RtpTransceiver : public RtpTransceiverInterface {
   // method. This will happen with the ownership of the channel object being
   // moved into the transceiver.
   void OnNegotiationUpdate(SdpType sdp_type,
-                           const cricket::MediaContentDescription* content);
+                           const MediaContentDescription* content);
 
  private:
   cricket::MediaEngineInterface* media_engine() const {

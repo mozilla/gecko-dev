@@ -455,7 +455,7 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
     // and delaying ICE completion.
     //
     // Can be set to INT_MAX to effectively disable the limit.
-    int max_ipv6_networks = cricket::kDefaultMaxIPv6Networks;
+    int max_ipv6_networks = kDefaultMaxIPv6Networks;
 
     // Exclude link-local network interfaces
     // from consideration for gathering ICE candidates.
@@ -621,7 +621,7 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
     // A candidate pair on a preferred network has a higher precedence in ICE
     // than one on an un-preferred network, regardless of priority or network
     // cost.
-    std::optional<rtc::AdapterType> network_preference;
+    std::optional<AdapterType> network_preference;
 
     // Configure the SDP semantics used by this PeerConnection. By default, this
     // is Unified Plan which is compliant to the WebRTC 1.0 specification. It is
@@ -1139,7 +1139,7 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   // TODO(bugs.webrtc.org/8395): Use IceCandidateInterface instead of
   // cricket::Candidate, which would avoid the transport_name oddity.
   virtual bool RemoveIceCandidates(
-      const std::vector<cricket::Candidate>& candidates) = 0;
+      const std::vector<Candidate>& candidates) = 0;
 
   // SetBitrate limits the bandwidth allocated for all RTP streams sent by
   // this PeerConnection. Other limitations might affect these limits and
@@ -1323,7 +1323,7 @@ class PeerConnectionObserver {
   // TODO(honghaiz): Make this a pure virtual method when all its subclasses
   // implement it.
   virtual void OnIceCandidatesRemoved(
-      const std::vector<cricket::Candidate>& /* candidates */) {}
+      const std::vector<Candidate>& /* candidates */) {}
 
   // Called when the ICE connection receiving status changes.
   virtual void OnIceConnectionReceivingChange(bool /* receiving */) {}
@@ -1397,7 +1397,7 @@ struct RTC_EXPORT PeerConnectionDependencies final {
   // TODO(bugs.webrtc.org/7447): remove port allocator once downstream is
   // updated. The recommended way to inject networking components is to pass a
   // PacketSocketFactory when creating the PeerConnectionFactory.
-  std::unique_ptr<cricket::PortAllocator> allocator;
+  std::unique_ptr<PortAllocator> allocator;
   // Factory for creating resolvers that look up hostnames in DNS
   std::unique_ptr<webrtc::AsyncDnsResolverFactoryInterface>
       async_dns_resolver_factory;

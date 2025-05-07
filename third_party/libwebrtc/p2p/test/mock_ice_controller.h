@@ -22,11 +22,10 @@ namespace webrtc {
 
 class MockIceController : public cricket::IceControllerInterface {
  public:
-  explicit MockIceController(
-      const cricket::IceControllerFactoryArgs& /* args */) {}
+  explicit MockIceController(const IceControllerFactoryArgs& /* args */) {}
   ~MockIceController() override = default;
 
-  MOCK_METHOD(void, SetIceConfig, (const cricket::IceConfig&), (override));
+  MOCK_METHOD(void, SetIceConfig, (const webrtc::IceConfig&), (override));
   MOCK_METHOD(void,
               SetSelectedConnection,
               (const cricket::Connection*),
@@ -52,7 +51,7 @@ class MockIceController : public cricket::IceControllerInterface {
   MOCK_METHOD(bool,
               GetUseCandidateAttr,
               (const cricket::Connection*,
-               cricket::NominationMode,
+               webrtc::NominationMode,
                cricket::IceMode),
               (const, override));
   MOCK_METHOD(const cricket::Connection*,
@@ -77,12 +76,12 @@ class MockIceController : public cricket::IceControllerInterface {
               (override));
 };
 
-class MockIceControllerFactory : public cricket::IceControllerFactoryInterface {
+class MockIceControllerFactory : public IceControllerFactoryInterface {
  public:
   ~MockIceControllerFactory() override = default;
 
   std::unique_ptr<cricket::IceControllerInterface> Create(
-      const cricket::IceControllerFactoryArgs& args) override {
+      const IceControllerFactoryArgs& args) override {
     RecordIceControllerCreated();
     return std::make_unique<MockIceController>(args);
   }

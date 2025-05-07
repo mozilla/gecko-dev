@@ -80,9 +80,9 @@ class TestUDPPort : public UDPPort {
 // A FakePortAllocatorSession can be used with either a real or fake socket
 // factory. It gathers a single loopback port, using IPv6 if available and
 // not disabled.
-class FakePortAllocatorSession : public PortAllocatorSession {
+class FakePortAllocatorSession : public webrtc::PortAllocatorSession {
  public:
-  FakePortAllocatorSession(PortAllocator* allocator,
+  FakePortAllocatorSession(webrtc::PortAllocator* allocator,
                            rtc::Thread* network_thread,
                            webrtc::PacketSocketFactory* factory,
                            absl::string_view content_name,
@@ -90,11 +90,11 @@ class FakePortAllocatorSession : public PortAllocatorSession {
                            absl::string_view ice_ufrag,
                            absl::string_view ice_pwd,
                            const webrtc::FieldTrialsView* field_trials)
-      : PortAllocatorSession(content_name,
-                             component,
-                             ice_ufrag,
-                             ice_pwd,
-                             allocator->flags()),
+      : webrtc::PortAllocatorSession(content_name,
+                                     component,
+                                     ice_ufrag,
+                                     ice_pwd,
+                                     allocator->flags()),
         allocator_(allocator),
         network_thread_(network_thread),
         factory_(factory),
@@ -121,10 +121,10 @@ class FakePortAllocatorSession : public PortAllocatorSession {
 
   void StartGettingPorts() override {
     if (!port_) {
-      rtc::Network& network =
-          (rtc::HasIPv6Enabled() && (flags() & PORTALLOCATOR_ENABLE_IPV6))
-              ? ipv6_network_
-              : ipv4_network_;
+      rtc::Network& network = (rtc::HasIPv6Enabled() &&
+                               (flags() & webrtc::PORTALLOCATOR_ENABLE_IPV6))
+                                  ? ipv6_network_
+                                  : ipv4_network_;
       port_.reset(TestUDPPort::Create({.network_thread = network_thread_,
                                        .socket_factory = factory_,
                                        .network = &network,
@@ -148,13 +148,13 @@ class FakePortAllocatorSession : public PortAllocatorSession {
   bool IsCleared() const override { return is_cleared; }
 
   void RegatherOnFailedNetworks() override {
-    SignalIceRegathering(this, IceRegatheringReason::NETWORK_FAILURE);
+    SignalIceRegathering(this, webrtc::IceRegatheringReason::NETWORK_FAILURE);
   }
 
   std::vector<webrtc::PortInterface*> ReadyPorts() const override {
     return ready_ports_;
   }
-  std::vector<Candidate> ReadyCandidates() const override {
+  std::vector<webrtc::Candidate> ReadyCandidates() const override {
     return candidates_;
   }
   void PruneAllPorts() override { port_->Prune(); }
@@ -164,7 +164,7 @@ class FakePortAllocatorSession : public PortAllocatorSession {
 
   const ServerAddresses& stun_servers() const { return stun_servers_; }
 
-  const std::vector<RelayServerConfig>& turn_servers() const {
+  const std::vector<webrtc::RelayServerConfig>& turn_servers() const {
     return turn_servers_;
   }
 
@@ -193,7 +193,7 @@ class FakePortAllocatorSession : public PortAllocatorSession {
     port->KeepAliveUntilPruned();
   }
   void OnPortComplete(cricket::Port* port) {
-    const std::vector<Candidate>& candidates = port->Candidates();
+    const std::vector<webrtc::Candidate>& candidates = port->Candidates();
     candidates_.insert(candidates_.end(), candidates.begin(), candidates.end());
     SignalCandidatesReady(this, candidates);
 
@@ -205,26 +205,26 @@ class FakePortAllocatorSession : public PortAllocatorSession {
     port_.release();
   }
 
-  PortAllocator* allocator_;
+  webrtc::PortAllocator* allocator_;
   rtc::Thread* network_thread_;
   webrtc::PacketSocketFactory* factory_;
   rtc::Network ipv4_network_;
   rtc::Network ipv6_network_;
   std::unique_ptr<cricket::Port> port_;
   int port_config_count_;
-  std::vector<Candidate> candidates_;
+  std::vector<webrtc::Candidate> candidates_;
   std::vector<webrtc::PortInterface*> ready_ports_;
   bool allocation_done_ = false;
   bool is_cleared = false;
   ServerAddresses stun_servers_;
-  std::vector<RelayServerConfig> turn_servers_;
-  uint32_t candidate_filter_ = CF_ALL;
+  std::vector<webrtc::RelayServerConfig> turn_servers_;
+  uint32_t candidate_filter_ = webrtc::CF_ALL;
   int transport_info_update_count_ = 0;
   bool running_ = false;
   const webrtc::FieldTrialsView* field_trials_;
 };
 
-class FakePortAllocator : public cricket::PortAllocator {
+class FakePortAllocator : public webrtc::PortAllocator {
  public:
   FakePortAllocator(rtc::Thread* network_thread,
                     webrtc::PacketSocketFactory* factory,
@@ -241,7 +241,7 @@ class FakePortAllocator : public cricket::PortAllocator {
 
   void SetNetworkIgnoreMask(int /* network_ignore_mask */) override {}
 
-  cricket::PortAllocatorSession* CreateSessionInternal(
+  webrtc::PortAllocatorSession* CreateSessionInternal(
       absl::string_view content_name,
       int component,
       absl::string_view ice_ufrag,

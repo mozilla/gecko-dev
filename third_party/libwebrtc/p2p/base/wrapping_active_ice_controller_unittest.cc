@@ -24,17 +24,17 @@
 namespace {
 
 using ::cricket::Connection;
-using ::cricket::IceConfig;
-using ::cricket::IceControllerFactoryArgs;
 using ::cricket::IceControllerInterface;
 using ::cricket::IceMode;
 using ::cricket::IceRecheckEvent;
 using ::cricket::IceSwitchReason;
-using ::cricket::NominationMode;
 using ::cricket::WrappingActiveIceController;
+using ::webrtc::IceConfig;
+using ::webrtc::IceControllerFactoryArgs;
 using ::webrtc::MockIceAgent;
 using ::webrtc::MockIceController;
 using ::webrtc::MockIceControllerFactory;
+using ::webrtc::NominationMode;
 
 using ::testing::_;
 using ::testing::ElementsAreArray;

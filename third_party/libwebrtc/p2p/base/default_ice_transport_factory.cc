@@ -18,11 +18,10 @@
 
 namespace {
 
-class BasicIceControllerFactory
-    : public cricket::IceControllerFactoryInterface {
+class BasicIceControllerFactory : public webrtc::IceControllerFactoryInterface {
  public:
   std::unique_ptr<cricket::IceControllerInterface> Create(
-      const cricket::IceControllerFactoryArgs& args) override {
+      const webrtc::IceControllerFactoryArgs& args) override {
     return std::make_unique<cricket::BasicIceController>(args);
   }
 };

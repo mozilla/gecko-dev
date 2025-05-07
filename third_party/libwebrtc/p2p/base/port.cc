@@ -193,7 +193,7 @@ void Port::SetIceParameters(int component,
   }
 }
 
-const std::vector<Candidate>& Port::Candidates() const {
+const std::vector<webrtc::Candidate>& Port::Candidates() const {
   return candidates_;
 }
 
@@ -221,8 +221,9 @@ void Port::AddAddress(const webrtc::SocketAddress& address,
   // TODO(tommi): Set relay_protocol and optionally provide the base address
   // to automatically compute the foundation in the ctor? It would be a good
   // thing for the Candidate class to know the base address and keep it const.
-  Candidate c(component_, protocol, address, 0U, username_fragment(), password_,
-              type, generation_, "", network_->id(), network_cost_);
+  webrtc::Candidate c(component_, protocol, address, 0U, username_fragment(),
+                      password_, type, generation_, "", network_->id(),
+                      network_cost_);
   // Set the relay protocol before computing the foundation field.
   c.set_relay_protocol(relay_protocol);
   // TODO(bugs.webrtc.org/14605): ensure IceTiebreaker() is set.
@@ -251,7 +252,7 @@ void Port::AddAddress(const webrtc::SocketAddress& address,
   }
 }
 
-bool Port::MaybeObfuscateAddress(const Candidate& c, bool is_final) {
+bool Port::MaybeObfuscateAddress(const webrtc::Candidate& c, bool is_final) {
   // TODO(bugs.webrtc.org/9723): Use a config to control the feature of IP
   // handling with mDNS.
   if (network_->GetMdnsResponder() == nullptr) {
@@ -287,7 +288,7 @@ bool Port::MaybeObfuscateAddress(const Candidate& c, bool is_final) {
   return true;
 }
 
-void Port::FinishAddingAddress(const Candidate& c, bool is_final) {
+void Port::FinishAddingAddress(const webrtc::Candidate& c, bool is_final) {
   candidates_.push_back(c);
   SignalCandidateReady(this, c);
 
@@ -381,7 +382,7 @@ void Port::OnReadyToSend() {
   }
 }
 
-void Port::AddPrflxCandidate(const Candidate& local) {
+void Port::AddPrflxCandidate(const webrtc::Candidate& local) {
   RTC_DCHECK_RUN_ON(thread_);
   candidates_.push_back(local);
 }

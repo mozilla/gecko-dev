@@ -103,7 +103,7 @@ class PeerConnectionWrapperForBundleTest : public PeerConnectionWrapper {
  public:
   using PeerConnectionWrapper::PeerConnectionWrapper;
 
-  bool AddIceCandidateToMedia(cricket::Candidate* candidate,
+  bool AddIceCandidateToMedia(Candidate* candidate,
                               cricket::MediaType media_type) {
     auto* desc = pc()->remote_description()->description();
     for (size_t i = 0; i < desc->contents().size(); i++) {
@@ -261,8 +261,8 @@ class PeerConnectionBundleBaseTest : public ::testing::Test {
     return wrapper;
   }
 
-  cricket::Candidate CreateLocalUdpCandidate(const SocketAddress& address) {
-    cricket::Candidate candidate;
+  Candidate CreateLocalUdpCandidate(const SocketAddress& address) {
+    Candidate candidate;
     candidate.set_component(cricket::ICE_CANDIDATE_COMPONENT_DEFAULT);
     candidate.set_protocol(cricket::UDP_PROTOCOL_NAME);
     candidate.set_address(address);
@@ -289,7 +289,7 @@ class PeerConnectionBundleTestUnifiedPlan
 };
 
 SdpContentMutator RemoveRtcpMux() {
-  return [](cricket::ContentInfo* content, cricket::TransportInfo* transport) {
+  return [](ContentInfo* content, cricket::TransportInfo* transport) {
     content->media_description()->set_rtcp_mux(false);
   };
 }
@@ -660,15 +660,15 @@ TEST_P(PeerConnectionBundleTest,
   // candidate does _not_ change state. So we interleave candidates and assume
   // that messages are executed in the order they were posted.
 
-  cricket::Candidate audio_candidate1 = CreateLocalUdpCandidate(kAudioAddress1);
+  Candidate audio_candidate1 = CreateLocalUdpCandidate(kAudioAddress1);
   ASSERT_TRUE(caller->AddIceCandidateToMedia(&audio_candidate1,
                                              cricket::MEDIA_TYPE_AUDIO));
 
-  cricket::Candidate video_candidate = CreateLocalUdpCandidate(kVideoAddress);
+  Candidate video_candidate = CreateLocalUdpCandidate(kVideoAddress);
   ASSERT_TRUE(caller->AddIceCandidateToMedia(&video_candidate,
                                              cricket::MEDIA_TYPE_VIDEO));
 
-  cricket::Candidate audio_candidate2 = CreateLocalUdpCandidate(kAudioAddress2);
+  Candidate audio_candidate2 = CreateLocalUdpCandidate(kAudioAddress2);
   ASSERT_TRUE(caller->AddIceCandidateToMedia(&audio_candidate2,
                                              cricket::MEDIA_TYPE_AUDIO));
 
@@ -707,7 +707,7 @@ TEST_P(PeerConnectionBundleTest, BundleOnFirstMidInAnswer) {
   std::string second_mid = old_bundle_group->content_names()[1];
   answer->description()->RemoveGroupByName(cricket::GROUP_TYPE_BUNDLE);
 
-  cricket::ContentGroup new_bundle_group(cricket::GROUP_TYPE_BUNDLE);
+  ContentGroup new_bundle_group(cricket::GROUP_TYPE_BUNDLE);
   new_bundle_group.AddContentName(second_mid);
   new_bundle_group.AddContentName(first_mid);
   answer->description()->AddGroup(new_bundle_group);
@@ -795,7 +795,7 @@ TEST_P(PeerConnectionBundleTest, RejectDescriptionChangingBundleTag) {
       offer->description()->GetGroupByName(cricket::GROUP_TYPE_BUNDLE);
   std::string first_mid = old_bundle_group->content_names()[0];
   std::string second_mid = old_bundle_group->content_names()[1];
-  cricket::ContentGroup new_bundle_group(cricket::GROUP_TYPE_BUNDLE);
+  ContentGroup new_bundle_group(cricket::GROUP_TYPE_BUNDLE);
   new_bundle_group.AddContentName(second_mid);
 
   auto re_offer = CloneSessionDescription(offer.get());
@@ -859,7 +859,7 @@ TEST_P(PeerConnectionBundleTest, AddContentToBundleGroupInAnswerNotSupported) {
   const auto first_mid = offer->description()->contents()[0].mid();
   const auto second_mid = offer->description()->contents()[1].mid();
 
-  cricket::ContentGroup bundle_group(cricket::GROUP_TYPE_BUNDLE);
+  ContentGroup bundle_group(cricket::GROUP_TYPE_BUNDLE);
   bundle_group.AddContentName(first_mid);
   offer->description()->RemoveGroupByName(cricket::GROUP_TYPE_BUNDLE);
   offer->description()->AddGroup(bundle_group);
@@ -947,7 +947,7 @@ TEST_F(PeerConnectionBundleTestUnifiedPlan,
   // Verify that the answer actually contained an empty bundle group.
   const SessionDescriptionInterface* desc = callee->pc()->local_description();
   ASSERT_NE(nullptr, desc);
-  const cricket::ContentGroup* bundle_group =
+  const ContentGroup* bundle_group =
       desc->description()->GetGroupByName(cricket::GROUP_TYPE_BUNDLE);
   ASSERT_NE(nullptr, bundle_group);
   EXPECT_TRUE(bundle_group->content_names().empty());
@@ -965,10 +965,10 @@ TEST_F(PeerConnectionBundleTestUnifiedPlan, MultipleBundleGroups) {
   // Modify the GROUP to have two BUNDLEs. We know that the MIDs will be 0,1,2,4
   // because our implementation has predictable MIDs.
   offer->description()->RemoveGroupByName(cricket::GROUP_TYPE_BUNDLE);
-  cricket::ContentGroup bundle_group1(cricket::GROUP_TYPE_BUNDLE);
+  ContentGroup bundle_group1(cricket::GROUP_TYPE_BUNDLE);
   bundle_group1.AddContentName("0");
   bundle_group1.AddContentName("1");
-  cricket::ContentGroup bundle_group2(cricket::GROUP_TYPE_BUNDLE);
+  ContentGroup bundle_group2(cricket::GROUP_TYPE_BUNDLE);
   bundle_group2.AddContentName("2");
   bundle_group2.AddContentName("3");
   offer->description()->AddGroup(bundle_group1);
@@ -1029,7 +1029,7 @@ TEST_F(PeerConnectionBundleTestUnifiedPlan, AddNonBundledSection) {
   caller->AddAudioTrack("3_audio");
   offer = caller->CreateOffer(RTCOfferAnswerOptions());
   offer->description()->RemoveGroupByName(cricket::GROUP_TYPE_BUNDLE);
-  cricket::ContentGroup bundle_group(cricket::GROUP_TYPE_BUNDLE);
+  ContentGroup bundle_group(cricket::GROUP_TYPE_BUNDLE);
   bundle_group.AddContentName("0");
   bundle_group.AddContentName("1");
   offer->description()->AddGroup(bundle_group);

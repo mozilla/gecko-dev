@@ -46,8 +46,8 @@ WrappingActiveIceController::WrappingActiveIceController(
 
 WrappingActiveIceController::WrappingActiveIceController(
     IceAgentInterface* ice_agent,
-    IceControllerFactoryInterface* wrapped_factory,
-    const IceControllerFactoryArgs& wrapped_factory_args)
+    webrtc::IceControllerFactoryInterface* wrapped_factory,
+    const webrtc::IceControllerFactoryArgs& wrapped_factory_args)
     : network_thread_(rtc::Thread::Current()), agent_(*ice_agent) {
   RTC_DCHECK(ice_agent != nullptr);
   if (wrapped_factory) {
@@ -59,14 +59,15 @@ WrappingActiveIceController::WrappingActiveIceController(
 
 WrappingActiveIceController::~WrappingActiveIceController() {}
 
-void WrappingActiveIceController::SetIceConfig(const IceConfig& config) {
+void WrappingActiveIceController::SetIceConfig(
+    const webrtc::IceConfig& config) {
   RTC_DCHECK_RUN_ON(network_thread_);
   wrapped_->SetIceConfig(config);
 }
 
 bool WrappingActiveIceController::GetUseCandidateAttribute(
     const Connection* connection,
-    NominationMode mode,
+    webrtc::NominationMode mode,
     IceMode remote_ice_mode) const {
   RTC_DCHECK_RUN_ON(network_thread_);
   return wrapped_->GetUseCandidateAttr(connection, mode, remote_ice_mode);

@@ -29,15 +29,15 @@
 
 namespace {
 
-const int kOnlyLocalPorts = cricket::PORTALLOCATOR_DISABLE_STUN |
-                            cricket::PORTALLOCATOR_DISABLE_RELAY |
-                            cricket::PORTALLOCATOR_DISABLE_TCP;
+const int kOnlyLocalPorts = webrtc::PORTALLOCATOR_DISABLE_STUN |
+                            webrtc::PORTALLOCATOR_DISABLE_RELAY |
+                            webrtc::PORTALLOCATOR_DISABLE_TCP;
 // The address of the public STUN server.
 const webrtc::SocketAddress kStunAddr("99.99.99.1", webrtc::STUN_SERVER_PORT);
 // The addresses for the public TURN server.
 const webrtc::SocketAddress kTurnUdpIntAddr("99.99.99.3",
                                             webrtc::STUN_SERVER_PORT);
-const cricket::RelayCredentials kRelayCredentials("test", "test");
+const webrtc::RelayCredentials kRelayCredentials("test", "test");
 const char kIceUfrag[] = "UF00";
 const char kIcePwd[] = "TESTICEPWD00000000000000";
 
@@ -68,11 +68,11 @@ class RegatheringControllerTest : public ::testing::Test,
   void InitializeAndGatherOnce() {
     cricket::ServerAddresses stun_servers;
     stun_servers.insert(kStunAddr);
-    cricket::RelayServerConfig turn_server;
+    RelayServerConfig turn_server;
     turn_server.credentials = kRelayCredentials;
     turn_server.ports.push_back(
         cricket::ProtocolAddress(kTurnUdpIntAddr, cricket::PROTO_UDP));
-    std::vector<cricket::RelayServerConfig> turn_servers(1, turn_server);
+    std::vector<RelayServerConfig> turn_servers(1, turn_server);
     allocator_->set_flags(kOnlyLocalPorts);
     allocator_->SetConfiguration(stun_servers, turn_servers, 0 /* pool size */,
                                  webrtc::NO_PRUNE);
@@ -95,12 +95,12 @@ class RegatheringControllerTest : public ::testing::Test,
     allocator_session_->ClearGettingPorts();
   }
 
-  void OnIceRegathering(cricket::PortAllocatorSession* /* allocator_session */,
-                        cricket::IceRegatheringReason reason) {
+  void OnIceRegathering(PortAllocatorSession* /* allocator_session */,
+                        IceRegatheringReason reason) {
     ++count_[reason];
   }
 
-  int GetRegatheringReasonCount(cricket::IceRegatheringReason reason) {
+  int GetRegatheringReasonCount(IceRegatheringReason reason) {
     return count_[reason];
   }
 
@@ -112,12 +112,12 @@ class RegatheringControllerTest : public ::testing::Test,
   webrtc::test::ScopedKeyValueConfig field_trials_;
   std::unique_ptr<VirtualSocketServer> vss_;
   rtc::AutoSocketServerThread thread_;
-  std::unique_ptr<cricket::IceTransportInternal> ice_transport_;
+  std::unique_ptr<IceTransportInternal> ice_transport_;
   std::unique_ptr<BasicRegatheringController> regathering_controller_;
   std::unique_ptr<PacketSocketFactory> packet_socket_factory_;
-  std::unique_ptr<cricket::PortAllocator> allocator_;
-  std::unique_ptr<cricket::PortAllocatorSession> allocator_session_;
-  std::map<cricket::IceRegatheringReason, int> count_;
+  std::unique_ptr<PortAllocator> allocator_;
+  std::unique_ptr<PortAllocatorSession> allocator_session_;
+  std::map<IceRegatheringReason, int> count_;
 };
 
 // Tests that ICE regathering occurs only if the port allocator session is
@@ -134,8 +134,8 @@ TEST_F(RegatheringControllerTest,
   regathering_controller()->Start();
   SIMULATED_WAIT(false, 10000, clock);
   // Expect no regathering in the last 10s.
-  EXPECT_EQ(0, GetRegatheringReasonCount(
-                   cricket::IceRegatheringReason::NETWORK_FAILURE));
+  EXPECT_EQ(0,
+            GetRegatheringReasonCount(IceRegatheringReason::NETWORK_FAILURE));
 }
 
 TEST_F(RegatheringControllerTest, IceRegatheringRepeatsAsScheduled) {
@@ -148,17 +148,17 @@ TEST_F(RegatheringControllerTest, IceRegatheringRepeatsAsScheduled) {
   regathering_controller()->Start();
   SIMULATED_WAIT(false, 2000 - 1, clock);
   // Expect no regathering.
-  EXPECT_EQ(0, GetRegatheringReasonCount(
-                   cricket::IceRegatheringReason::NETWORK_FAILURE));
+  EXPECT_EQ(0,
+            GetRegatheringReasonCount(IceRegatheringReason::NETWORK_FAILURE));
   SIMULATED_WAIT(false, 2, clock);
   // Expect regathering on all networks and on failed networks to happen once
   // respectively in that last 2s with 2s interval.
-  EXPECT_EQ(1, GetRegatheringReasonCount(
-                   cricket::IceRegatheringReason::NETWORK_FAILURE));
+  EXPECT_EQ(1,
+            GetRegatheringReasonCount(IceRegatheringReason::NETWORK_FAILURE));
   SIMULATED_WAIT(false, 11000, clock);
   // Expect regathering to happen for another 5 times in 11s with 2s interval.
-  EXPECT_EQ(6, GetRegatheringReasonCount(
-                   cricket::IceRegatheringReason::NETWORK_FAILURE));
+  EXPECT_EQ(6,
+            GetRegatheringReasonCount(IceRegatheringReason::NETWORK_FAILURE));
 }
 
 // Tests that the schedule of ICE regathering on failed networks can be canceled
@@ -176,12 +176,12 @@ TEST_F(RegatheringControllerTest,
   regathering_controller()->SetConfig(config);
   SIMULATED_WAIT(false, 3000, clock);
   // Expect no regathering from the previous schedule.
-  EXPECT_EQ(0, GetRegatheringReasonCount(
-                   cricket::IceRegatheringReason::NETWORK_FAILURE));
+  EXPECT_EQ(0,
+            GetRegatheringReasonCount(IceRegatheringReason::NETWORK_FAILURE));
   SIMULATED_WAIT(false, 11000 - 3000, clock);
   // Expect regathering to happen twice in the last 11s with 5s interval.
-  EXPECT_EQ(2, GetRegatheringReasonCount(
-                   cricket::IceRegatheringReason::NETWORK_FAILURE));
+  EXPECT_EQ(2,
+            GetRegatheringReasonCount(IceRegatheringReason::NETWORK_FAILURE));
 }
 
 }  // namespace webrtc

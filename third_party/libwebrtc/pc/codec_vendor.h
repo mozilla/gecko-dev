@@ -48,19 +48,19 @@ class CodecVendor {
 
  public:
   webrtc::RTCError GetCodecsForOffer(
-      const std::vector<const ContentInfo*>& current_active_contents,
+      const std::vector<const webrtc::ContentInfo*>& current_active_contents,
       CodecList& audio_codecs,
       CodecList& video_codecs) const;
   webrtc::RTCError GetCodecsForAnswer(
-      const std::vector<const ContentInfo*>& current_active_contents,
-      const SessionDescription& remote_offer,
+      const std::vector<const webrtc::ContentInfo*>& current_active_contents,
+      const webrtc::SessionDescription& remote_offer,
       CodecList& audio_codecs,
       CodecList& video_codecs) const;
 
   webrtc::RTCErrorOr<std::vector<Codec>> GetNegotiatedCodecsForOffer(
       const MediaDescriptionOptions& media_description_options,
       const MediaSessionOptions& session_options,
-      const ContentInfo* current_content,
+      const webrtc::ContentInfo* current_content,
       webrtc::PayloadTypeSuggester& pt_suggester,
       const CodecList& codecs);
 
@@ -69,7 +69,7 @@ class CodecVendor {
       const MediaSessionOptions& session_options,
       webrtc::RtpTransceiverDirection offer_rtd,
       webrtc::RtpTransceiverDirection answer_rtd,
-      const ContentInfo* current_content,
+      const webrtc::ContentInfo* current_content,
       std::vector<Codec> codecs_from_offer,
       webrtc::PayloadTypeSuggester& pt_suggester,
       const CodecList& codecs);

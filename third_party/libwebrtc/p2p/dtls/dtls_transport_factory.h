@@ -31,7 +31,7 @@ class DtlsTransportFactory {
   virtual ~DtlsTransportFactory() = default;
 
   virtual std::unique_ptr<DtlsTransportInternal> CreateDtlsTransport(
-      IceTransportInternal* ice,
+      webrtc::IceTransportInternal* ice,
       const webrtc::CryptoOptions& crypto_options,
       webrtc::SSLProtocolVersion max_version) = 0;
 };

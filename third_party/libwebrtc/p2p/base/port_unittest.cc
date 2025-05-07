@@ -110,7 +110,7 @@ const SocketAddress kStunAddr("99.99.99.1", webrtc::STUN_SERVER_PORT);
 const SocketAddress kTurnUdpIntAddr("99.99.99.4", webrtc::STUN_SERVER_PORT);
 const SocketAddress kTurnTcpIntAddr("99.99.99.4", 5010);
 const SocketAddress kTurnUdpExtAddr("99.99.99.5", 0);
-const RelayCredentials kRelayCredentials("test", "test");
+const webrtc::RelayCredentials kRelayCredentials("test", "test");
 
 // TODO(?): Update these when RFC5245 is completely supported.
 // Magic value of 30 is from RFC3484, for IPv4 addresses.
@@ -124,7 +124,7 @@ constexpr int kTiebreakerDefault = 44444;
 
 const char* kTestData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 
-Candidate GetCandidate(Port* port) {
+webrtc::Candidate GetCandidate(Port* port) {
   RTC_DCHECK_GE(port->Candidates().size(), 1);
   return port->Candidates()[0];
 }
@@ -205,8 +205,9 @@ class TestPort : public Port {
                type_preference, 0, "", final);
   }
 
-  virtual Connection* CreateConnection(const Candidate& remote_candidate,
-                                       CandidateOrigin /* origin */) {
+  virtual Connection* CreateConnection(
+      const webrtc::Candidate& remote_candidate,
+      CandidateOrigin /* origin */) {
     Connection* conn = new ProxyConnection(NewWeakPtr(), 0, remote_candidate);
     AddOrReplaceConnection(conn);
     // Set use-candidate attribute flag as this will add USE-CANDIDATE attribute
@@ -307,7 +308,7 @@ class TestChannel : public sigslot::has_slots<> {
   std::string remote_fragment() { return remote_frag_; }
 
   void Start() { port_->PrepareAddress(); }
-  void CreateConnection(const Candidate& remote_candidate) {
+  void CreateConnection(const webrtc::Candidate& remote_candidate) {
     RTC_DCHECK(!conn_);
     conn_ = port_->CreateConnection(remote_candidate, Port::ORIGIN_MESSAGE);
     IceMode remote_ice_mode =
@@ -327,13 +328,13 @@ class TestChannel : public sigslot::has_slots<> {
       nominated_ = true;
     }
   }
-  void AcceptConnection(const Candidate& remote_candidate) {
+  void AcceptConnection(const webrtc::Candidate& remote_candidate) {
     if (conn_) {
       conn_->SignalDestroyed.disconnect(this);
       conn_ = nullptr;
     }
     ASSERT_TRUE(remote_request_.get() != NULL);
-    Candidate c = remote_candidate;
+    webrtc::Candidate c = remote_candidate;
     c.set_address(remote_address_);
     conn_ = port_->CreateConnection(c, Port::ORIGIN_MESSAGE);
     conn_->SignalDestroyed.connect(this, &TestChannel::OnDestroyed);
@@ -545,7 +546,7 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
   rtc::Network* MakeNetworkMultipleAddrs(const SocketAddress& global_addr,
                                          const SocketAddress& link_local_addr) {
     networks_.emplace_back("unittest", "unittest", global_addr.ipaddr(), 32,
-                           rtc::ADAPTER_TYPE_UNKNOWN);
+                           webrtc::ADAPTER_TYPE_UNKNOWN);
     networks_.back().AddIP(link_local_addr.ipaddr());
     networks_.back().AddIP(global_addr.ipaddr());
     networks_.back().AddIP(link_local_addr.ipaddr());
@@ -634,7 +635,7 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
       webrtc::ProtocolType int_proto,
       webrtc::ProtocolType ext_proto,
       const webrtc::SocketAddress& server_addr) {
-    RelayServerConfig config;
+    webrtc::RelayServerConfig config;
     config.credentials = kRelayCredentials;
     ProtocolAddress server_address(server_addr, int_proto);
     CreateRelayPortArgs args;
@@ -1429,7 +1430,7 @@ TEST_F(PortTest, TestTcpNeverConnect) {
   // Bind but not listen.
   EXPECT_EQ(0, server->Bind(kLocalAddr2));
 
-  Candidate c = GetCandidate(ch1.port());
+  webrtc::Candidate c = GetCandidate(ch1.port());
   c.set_address(server->GetLocalAddress());
 
   ch1.CreateConnection(c);
@@ -2337,39 +2338,39 @@ TEST_F(PortTest, TestNetworkCostChange) {
   rport->PrepareAddress();
 
   // Default local port cost is rtc::kNetworkCostUnknown.
-  EXPECT_EQ(rtc::kNetworkCostUnknown, lport->network_cost());
+  EXPECT_EQ(webrtc::kNetworkCostUnknown, lport->network_cost());
   ASSERT_TRUE(!lport->Candidates().empty());
   for (const cricket::Candidate& candidate : lport->Candidates()) {
-    EXPECT_EQ(rtc::kNetworkCostUnknown, candidate.network_cost());
+    EXPECT_EQ(webrtc::kNetworkCostUnknown, candidate.network_cost());
   }
 
   // Change the network type to wifi.
-  test_network->set_type(rtc::ADAPTER_TYPE_WIFI);
-  EXPECT_EQ(rtc::kNetworkCostLow, lport->network_cost());
+  test_network->set_type(webrtc::ADAPTER_TYPE_WIFI);
+  EXPECT_EQ(webrtc::kNetworkCostLow, lport->network_cost());
   for (const cricket::Candidate& candidate : lport->Candidates()) {
-    EXPECT_EQ(rtc::kNetworkCostLow, candidate.network_cost());
+    EXPECT_EQ(webrtc::kNetworkCostLow, candidate.network_cost());
   }
 
   // Add a connection and then change the network type.
   Connection* lconn =
       lport->CreateConnection(rport->Candidates()[0], Port::ORIGIN_MESSAGE);
   // Change the network type to cellular.
-  test_network->set_type(rtc::ADAPTER_TYPE_CELLULAR);
-  EXPECT_EQ(rtc::kNetworkCostHigh, lport->network_cost());
+  test_network->set_type(webrtc::ADAPTER_TYPE_CELLULAR);
+  EXPECT_EQ(webrtc::kNetworkCostHigh, lport->network_cost());
   for (const cricket::Candidate& candidate : lport->Candidates()) {
-    EXPECT_EQ(rtc::kNetworkCostHigh, candidate.network_cost());
+    EXPECT_EQ(webrtc::kNetworkCostHigh, candidate.network_cost());
   }
 
-  test_network->set_type(rtc::ADAPTER_TYPE_WIFI);
+  test_network->set_type(webrtc::ADAPTER_TYPE_WIFI);
   Connection* rconn =
       rport->CreateConnection(lport->Candidates()[0], Port::ORIGIN_MESSAGE);
-  test_network->set_type(rtc::ADAPTER_TYPE_CELLULAR);
+  test_network->set_type(webrtc::ADAPTER_TYPE_CELLULAR);
   lconn->Ping(0);
   // The rconn's remote candidate cost is rtc::kNetworkCostLow, but the ping
   // contains an attribute of network cost of rtc::kNetworkCostHigh. Once the
   // message is handled in rconn, The rconn's remote candidate will have cost
   // rtc::kNetworkCostHigh;
-  EXPECT_EQ(rtc::kNetworkCostLow, rconn->remote_candidate().network_cost());
+  EXPECT_EQ(webrtc::kNetworkCostLow, rconn->remote_candidate().network_cost());
   ASSERT_THAT(webrtc::WaitUntil(
                   [&] { return lport->last_stun_msg(); }, NotNull(),
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
@@ -2385,7 +2386,7 @@ TEST_F(PortTest, TestNetworkCostChange) {
                   [&] { return rport->last_stun_msg(); }, NotNull(),
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
-  EXPECT_EQ(rtc::kNetworkCostHigh, rconn->remote_candidate().network_cost());
+  EXPECT_EQ(webrtc::kNetworkCostHigh, rconn->remote_candidate().network_cost());
 }
 
 TEST_F(PortTest, TestNetworkInfoAttribute) {
@@ -2416,11 +2417,11 @@ TEST_F(PortTest, TestNetworkInfoAttribute) {
   uint32_t network_info = network_info_attr->value();
   EXPECT_EQ(lnetwork_id, network_info >> 16);
   // Default network has unknown type and cost kNetworkCostUnknown.
-  EXPECT_EQ(rtc::kNetworkCostUnknown, network_info & 0xFFFF);
+  EXPECT_EQ(webrtc::kNetworkCostUnknown, network_info & 0xFFFF);
 
   // Set the network type to be cellular so its cost will be kNetworkCostHigh.
   // Send a fake ping from rport to lport.
-  test_network->set_type(rtc::ADAPTER_TYPE_CELLULAR);
+  test_network->set_type(webrtc::ADAPTER_TYPE_CELLULAR);
   uint16_t rnetwork_id = 8;
   test_network->set_id(rnetwork_id);
   Connection* rconn =
@@ -2435,7 +2436,7 @@ TEST_F(PortTest, TestNetworkInfoAttribute) {
   ASSERT_TRUE(network_info_attr != NULL);
   network_info = network_info_attr->value();
   EXPECT_EQ(rnetwork_id, network_info >> 16);
-  EXPECT_EQ(rtc::kNetworkCostHigh, network_info & 0xFFFF);
+  EXPECT_EQ(webrtc::kNetworkCostHigh, network_info & 0xFFFF);
 }
 
 // Test handling STUN messages.
@@ -2887,15 +2888,20 @@ TEST_F(PortTest, TestComputeCandidatePriorityWithPriorityAdjustment) {
   port->AddCandidateAddress(SocketAddress("3ffe::1234:5678", 1234));
   // These should all be:
   // (90 << 24) | (([rfc3484 pref value] << 8) + kMaxTurnServers) | (256 - 177)
-  uint32_t expected_priority_v4 = 1509957199U + (kMaxTurnServers << 8);
-  uint32_t expected_priority_v6 = 1509959759U + (kMaxTurnServers << 8);
-  uint32_t expected_priority_ula = 1509962319U + (kMaxTurnServers << 8);
+  uint32_t expected_priority_v4 = 1509957199U + (webrtc::kMaxTurnServers << 8);
+  uint32_t expected_priority_v6 = 1509959759U + (webrtc::kMaxTurnServers << 8);
+  uint32_t expected_priority_ula = 1509962319U + (webrtc::kMaxTurnServers << 8);
   uint32_t expected_priority_v4mapped = expected_priority_v4;
-  uint32_t expected_priority_v4compat = 1509949775U + (kMaxTurnServers << 8);
-  uint32_t expected_priority_6to4 = 1509954639U + (kMaxTurnServers << 8);
-  uint32_t expected_priority_teredo = 1509952079U + (kMaxTurnServers << 8);
-  uint32_t expected_priority_sitelocal = 1509949775U + (kMaxTurnServers << 8);
-  uint32_t expected_priority_6bone = 1509949775U + (kMaxTurnServers << 8);
+  uint32_t expected_priority_v4compat =
+      1509949775U + (webrtc::kMaxTurnServers << 8);
+  uint32_t expected_priority_6to4 =
+      1509954639U + (webrtc::kMaxTurnServers << 8);
+  uint32_t expected_priority_teredo =
+      1509952079U + (webrtc::kMaxTurnServers << 8);
+  uint32_t expected_priority_sitelocal =
+      1509949775U + (webrtc::kMaxTurnServers << 8);
+  uint32_t expected_priority_6bone =
+      1509949775U + (webrtc::kMaxTurnServers << 8);
   ASSERT_EQ(expected_priority_v4, port->Candidates()[0].priority());
   ASSERT_EQ(expected_priority_v6, port->Candidates()[1].priority());
   ASSERT_EQ(expected_priority_ula, port->Candidates()[2].priority());
@@ -3047,9 +3053,9 @@ TEST_F(PortTest, TestCandidateRelatedAddress) {
 
 // Test priority value overflow handling when preference is set to 3.
 TEST_F(PortTest, TestCandidatePriority) {
-  cricket::Candidate cand1;
+  webrtc::Candidate cand1;
   cand1.set_priority(3);
-  cricket::Candidate cand2;
+  webrtc::Candidate cand2;
   cand2.set_priority(1);
   EXPECT_TRUE(cand1.priority() > cand2.priority());
 }
@@ -3110,9 +3116,9 @@ TEST_F(PortTest, TestConnectionPriorityWithPriorityAdjustment) {
   rport->set_component(23);
   rport->AddCandidateAddress(SocketAddress("10.1.1.100", 1234));
 
-  EXPECT_EQ(0x7E001E85U + (kMaxTurnServers << 8),
+  EXPECT_EQ(0x7E001E85U + (webrtc::kMaxTurnServers << 8),
             lport->Candidates()[0].priority());
-  EXPECT_EQ(0x2001EE9U + (kMaxTurnServers << 8),
+  EXPECT_EQ(0x2001EE9U + (webrtc::kMaxTurnServers << 8),
             rport->Candidates()[0].priority());
 
   // RFC 5245
@@ -4097,7 +4103,7 @@ TEST_F(PortTest, TestSetIceParameters) {
   EXPECT_EQ(1, port->component());
   EXPECT_EQ("ufrag2", port->username_fragment());
   EXPECT_EQ("password2", port->password());
-  const Candidate& candidate = port->Candidates()[0];
+  const webrtc::Candidate& candidate = port->Candidates()[0];
   EXPECT_EQ(1, candidate.component());
   EXPECT_EQ("ufrag2", candidate.username());
   EXPECT_EQ("password2", candidate.password());
@@ -4109,8 +4115,8 @@ TEST_F(PortTest, TestAddConnectionWithSameAddress) {
   port->PrepareAddress();
   EXPECT_EQ(1u, port->Candidates().size());
   webrtc::SocketAddress address("1.1.1.1", 5000);
-  cricket::Candidate candidate(1, "udp", address, 0, "", "",
-                               IceCandidateType::kRelay, 0, "");
+  webrtc::Candidate candidate(1, "udp", address, 0, "", "",
+                              IceCandidateType::kRelay, 0, "");
   cricket::Connection* conn1 =
       port->CreateConnection(candidate, Port::ORIGIN_MESSAGE);
   cricket::Connection* conn_in_use = port->GetConnection(address);

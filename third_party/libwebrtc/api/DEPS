@@ -244,6 +244,10 @@ specific_include_rules = {
     "+rtc_base/containers/flat_set.h",
   ],
 
+  "ice_transport_factory\.h": [
+    "+p2p/base/port_allocator.h",
+  ],
+
   # .cc files in api/ should not be restricted in what they can #include,
   # so we re-add all the top-level directories here. (That's because .h
   # files leak their #includes to whoever's #including them, but .cc files

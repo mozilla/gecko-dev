@@ -835,7 +835,7 @@ RTCError RtpTransceiver::SetHeaderExtensionsToNegotiate(
 
 void RtpTransceiver::OnNegotiationUpdate(
     SdpType sdp_type,
-    const cricket::MediaContentDescription* content) {
+    const MediaContentDescription* content) {
   RTC_DCHECK_RUN_ON(thread_);
   RTC_DCHECK(content);
   if (sdp_type == SdpType::kAnswer)

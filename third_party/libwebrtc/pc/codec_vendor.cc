@@ -88,7 +88,8 @@ void StripCNCodecs(CodecList& audio_codecs) {
       audio_codecs.end());
 }
 
-bool IsMediaContentOfType(const ContentInfo* content, MediaType media_type) {
+bool IsMediaContentOfType(const webrtc::ContentInfo* content,
+                          MediaType media_type) {
   if (!content || !content->media_description()) {
     return false;
   }
@@ -334,7 +335,7 @@ CodecList ComputeCodecsUnion(const CodecList codecs1, const CodecList codecs2) {
 }
 
 RTCError MergeCodecsFromDescription(
-    const std::vector<const ContentInfo*>& current_active_contents,
+    const std::vector<const webrtc::ContentInfo*>& current_active_contents,
     CodecList& audio_codecs,
     CodecList& video_codecs,
     UsedPayloadTypes* used_pltypes) {
@@ -571,7 +572,7 @@ webrtc::RTCError AssignCodecIdsAndLinkRed(
 webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
     const MediaDescriptionOptions& media_description_options,
     const MediaSessionOptions& session_options,
-    const ContentInfo* current_content,
+    const webrtc::ContentInfo* current_content,
     PayloadTypeSuggester& pt_suggester,
     const CodecList& codecs) {
   CodecList filtered_codecs;
@@ -600,7 +601,7 @@ webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
                                    current_content->mid() +
                                    "' does not match previous type.");
         }
-        const MediaContentDescription* mcd =
+        const webrtc::MediaContentDescription* mcd =
             current_content->media_description();
         for (const Codec& codec : mcd->codecs()) {
           if (webrtc::FindMatchingCodec(mcd->codecs(), codecs.codecs(),
@@ -684,7 +685,7 @@ webrtc::RTCErrorOr<Codecs> CodecVendor::GetNegotiatedCodecsForAnswer(
     const MediaSessionOptions& session_options,
     webrtc::RtpTransceiverDirection offer_rtd,
     webrtc::RtpTransceiverDirection answer_rtd,
-    const ContentInfo* current_content,
+    const webrtc::ContentInfo* current_content,
     const std::vector<Codec> codecs_from_offer,
     PayloadTypeSuggester& pt_suggester,
     const CodecList& codecs) {
@@ -712,7 +713,7 @@ webrtc::RTCErrorOr<Codecs> CodecVendor::GetNegotiatedCodecsForAnswer(
                                    current_content->mid() +
                                    "' does not match previous type.");
         }
-        const MediaContentDescription* mcd =
+        const webrtc::MediaContentDescription* mcd =
             current_content->media_description();
         for (const Codec& codec : mcd->codecs()) {
           if (webrtc::FindMatchingCodec(mcd->codecs(), codecs.codecs(),
@@ -827,7 +828,7 @@ void CodecVendor::set_video_codecs(const CodecList& send_codecs,
 // 3. For each individual media description (m= section), filter codecs based
 //    on the directional attribute (happens in another method).
 RTCError CodecVendor::GetCodecsForOffer(
-    const std::vector<const ContentInfo*>& current_active_contents,
+    const std::vector<const webrtc::ContentInfo*>& current_active_contents,
     CodecList& audio_codecs,
     CodecList& video_codecs) const {
   // First - get all codecs from the current description if the media type
@@ -853,8 +854,8 @@ RTCError CodecVendor::GetCodecsForOffer(
 // 4. For each individual media description (m= section), filter codecs based
 //    on the directional attribute (happens in another method).
 RTCError CodecVendor::GetCodecsForAnswer(
-    const std::vector<const ContentInfo*>& current_active_contents,
-    const SessionDescription& remote_offer,
+    const std::vector<const webrtc::ContentInfo*>& current_active_contents,
+    const webrtc::SessionDescription& remote_offer,
     CodecList& audio_codecs,
     CodecList& video_codecs) const {
   // First - get all codecs from the current description if the media type

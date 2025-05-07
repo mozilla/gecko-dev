@@ -51,7 +51,7 @@ class NetworkMonitorInterface;
 class Thread;
 
 // By default, ignore loopback interfaces on the host.
-const int kDefaultNetworkIgnoreMask = ADAPTER_TYPE_LOOPBACK;
+const int kDefaultNetworkIgnoreMask = webrtc::ADAPTER_TYPE_LOOPBACK;
 
 namespace webrtc_network_internal {
 bool CompareNetworks(const std::unique_ptr<Network>& a,
@@ -68,7 +68,8 @@ std::string MakeNetworkKey(absl::string_view name,
 // Utility function that attempts to determine an adapter type by an interface
 // name (e.g., "wlan0"). Can be used by NetworkManager subclasses when other
 // mechanisms fail to determine the type.
-RTC_EXPORT AdapterType GetAdapterTypeFromName(absl::string_view network_name);
+RTC_EXPORT webrtc::AdapterType GetAdapterTypeFromName(
+    absl::string_view network_name);
 
 class DefaultLocalAddressProvider {
  public:
@@ -201,13 +202,13 @@ class RTC_EXPORT Network {
                 description,
                 prefix,
                 prefix_length,
-                rtc::ADAPTER_TYPE_UNKNOWN) {}
+                webrtc::ADAPTER_TYPE_UNKNOWN) {}
 
   Network(absl::string_view name,
           absl::string_view description,
           const webrtc::IPAddress& prefix,
           int prefix_length,
-          AdapterType type);
+          webrtc::AdapterType type);
 
   Network(const Network&);
   ~Network();
@@ -302,28 +303,28 @@ class RTC_EXPORT Network {
   bool ignored() const { return ignored_; }
   void set_ignored(bool ignored) { ignored_ = ignored; }
 
-  AdapterType type() const { return type_; }
+  webrtc::AdapterType type() const { return type_; }
   // When type() is ADAPTER_TYPE_VPN, this returns the type of the underlying
   // network interface used by the VPN, typically the preferred network type
   // (see for example, the method setUnderlyingNetworks(android.net.Network[])
   // on https://developer.android.com/reference/android/net/VpnService.html).
   // When this information is unavailable from the OS, ADAPTER_TYPE_UNKNOWN is
   // returned.
-  AdapterType underlying_type_for_vpn() const {
+  webrtc::AdapterType underlying_type_for_vpn() const {
     return underlying_type_for_vpn_;
   }
-  void set_type(AdapterType type) {
+  void set_type(webrtc::AdapterType type) {
     if (type_ == type) {
       return;
     }
     type_ = type;
-    if (type != ADAPTER_TYPE_VPN) {
-      underlying_type_for_vpn_ = ADAPTER_TYPE_UNKNOWN;
+    if (type != webrtc::ADAPTER_TYPE_VPN) {
+      underlying_type_for_vpn_ = webrtc::ADAPTER_TYPE_UNKNOWN;
     }
     SignalTypeChanged(this);
   }
 
-  void set_underlying_type_for_vpn(AdapterType type) {
+  void set_underlying_type_for_vpn(webrtc::AdapterType type) {
     if (underlying_type_for_vpn_ == type) {
       return;
     }
@@ -331,17 +332,17 @@ class RTC_EXPORT Network {
     SignalTypeChanged(this);
   }
 
-  bool IsVpn() const { return type_ == ADAPTER_TYPE_VPN; }
+  bool IsVpn() const { return type_ == webrtc::ADAPTER_TYPE_VPN; }
 
   bool IsCellular() const { return IsCellular(type_); }
 
-  static bool IsCellular(AdapterType type) {
+  static bool IsCellular(webrtc::AdapterType type) {
     switch (type) {
-      case ADAPTER_TYPE_CELLULAR:
-      case ADAPTER_TYPE_CELLULAR_2G:
-      case ADAPTER_TYPE_CELLULAR_3G:
-      case ADAPTER_TYPE_CELLULAR_4G:
-      case ADAPTER_TYPE_CELLULAR_5G:
+      case webrtc::ADAPTER_TYPE_CELLULAR:
+      case webrtc::ADAPTER_TYPE_CELLULAR_2G:
+      case webrtc::ADAPTER_TYPE_CELLULAR_3G:
+      case webrtc::ADAPTER_TYPE_CELLULAR_4G:
+      case webrtc::ADAPTER_TYPE_CELLULAR_5G:
         return true;
       default:
         return false;
@@ -383,7 +384,7 @@ class RTC_EXPORT Network {
     SignalNetworkPreferenceChanged(this);
   }
 
-  static std::pair<rtc::AdapterType, bool /* vpn */>
+  static std::pair<webrtc::AdapterType, bool /* vpn */>
   GuessAdapterFromNetworkCost(int network_cost);
 
   // Debugging description of this network
@@ -400,8 +401,8 @@ class RTC_EXPORT Network {
   std::vector<webrtc::InterfaceAddress> ips_;
   int scope_id_;
   bool ignored_;
-  AdapterType type_;
-  AdapterType underlying_type_for_vpn_ = ADAPTER_TYPE_UNKNOWN;
+  webrtc::AdapterType type_;
+  webrtc::AdapterType underlying_type_for_vpn_ = webrtc::ADAPTER_TYPE_UNKNOWN;
   int preference_;
   bool active_ = true;
   uint16_t id_ = 0;
@@ -458,7 +459,7 @@ class RTC_EXPORT NetworkManagerBase : public NetworkManager {
                                          absl::string_view description,
                                          const webrtc::IPAddress& prefix,
                                          int prefix_length,
-                                         AdapterType type) const;
+                                         webrtc::AdapterType type) const;
 
  private:
   friend class NetworkTest;

@@ -21,6 +21,7 @@
 #include "api/media_types.h"
 #include "media/base/media_channel.h"
 #include "pc/rtp_transport_internal.h"
+#include "pc/session_description.h"
 
 namespace webrtc {
 class Call;
@@ -31,7 +32,7 @@ namespace cricket {
 
 class VoiceChannel;
 class VideoChannel;
-class MediaContentDescription;
+
 struct MediaConfig;
 
 // A Channel is a construct that groups media streams of the same type
@@ -82,10 +83,10 @@ class ChannelInterface {
   virtual void SetFirstPacketSentCallback(std::function<void()> callback) = 0;
 
   // Channel control
-  virtual bool SetLocalContent(const MediaContentDescription* content,
+  virtual bool SetLocalContent(const webrtc::MediaContentDescription* content,
                                webrtc::SdpType type,
                                std::string& error_desc) = 0;
-  virtual bool SetRemoteContent(const MediaContentDescription* content,
+  virtual bool SetRemoteContent(const webrtc::MediaContentDescription* content,
                                 webrtc::SdpType type,
                                 std::string& error_desc) = 0;
   virtual bool SetPayloadTypeDemuxingEnabled(bool enabled) = 0;

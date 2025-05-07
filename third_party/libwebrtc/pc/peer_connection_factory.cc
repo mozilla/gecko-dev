@@ -238,14 +238,14 @@ PeerConnectionFactory::CreatePeerConnectionOrError(
         << "PeerConnection constructed with legacy SDP semantics!";
   }
 
-  RTCError err = cricket::IceConfig(configuration).IsValid();
+  RTCError err = IceConfig(configuration).IsValid();
   if (!err.ok()) {
     RTC_LOG(LS_ERROR) << "Invalid ICE configuration: " << err.message();
     return err;
   }
 
   cricket::ServerAddresses stun_servers;
-  std::vector<cricket::RelayServerConfig> turn_servers;
+  std::vector<RelayServerConfig> turn_servers;
   err = ParseAndValidateIceServersFromConfiguration(configuration, stun_servers,
                                                     turn_servers);
   if (!err.ok()) {

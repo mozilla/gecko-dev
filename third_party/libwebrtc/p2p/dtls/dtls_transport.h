@@ -55,7 +55,7 @@ namespace cricket {
 // the bottom and a StreamInterface on the top.
 class StreamInterfaceChannel : public rtc::StreamInterface {
  public:
-  explicit StreamInterfaceChannel(IceTransportInternal* ice_transport);
+  explicit StreamInterfaceChannel(webrtc::IceTransportInternal* ice_transport);
 
   void SetDtlsStunPiggybackController(
       DtlsStunPiggybackController* dtls_stun_piggyback_controller);
@@ -77,7 +77,7 @@ class StreamInterfaceChannel : public rtc::StreamInterface {
                           int& error) override;
 
  private:
-  IceTransportInternal* const ice_transport_;  // owned by DtlsTransport
+  webrtc::IceTransportInternal* const ice_transport_;  // owned by DtlsTransport
   DtlsStunPiggybackController* dtls_stun_piggyback_controller_ =
       nullptr;  // owned by DtlsTransport
   rtc::StreamState state_ RTC_GUARDED_BY(callback_sequence_);
@@ -123,7 +123,7 @@ class DtlsTransport : public DtlsTransportInternal {
   // `event_log` is an optional RtcEventLog for logging state changes. It should
   // outlive the DtlsTransport.
   DtlsTransport(
-      IceTransportInternal* ice_transport,
+      webrtc::IceTransportInternal* ice_transport,
       const webrtc::CryptoOptions& crypto_options,
       webrtc::RtcEventLog* event_log,
       webrtc::SSLProtocolVersion max_version = webrtc::SSL_PROTOCOL_DTLS_12);
@@ -204,7 +204,7 @@ class DtlsTransport : public DtlsTransportInternal {
   bool ExportSrtpKeyingMaterial(
       rtc::ZeroOnFreeBuffer<uint8_t>& keying_material) override;
 
-  IceTransportInternal* ice_transport() override;
+  webrtc::IceTransportInternal* ice_transport() override;
 
   // For informational purposes. Tells if the DTLS handshake has finished.
   // This may be true even if writable() is false, if the remote fingerprint
@@ -266,7 +266,7 @@ class DtlsTransport : public DtlsTransportInternal {
   const int component_;
   webrtc::DtlsTransportState dtls_state_ = webrtc::DtlsTransportState::kNew;
   // Underlying ice_transport, not owned by this class.
-  IceTransportInternal* const ice_transport_;
+  webrtc::IceTransportInternal* const ice_transport_;
   std::unique_ptr<webrtc::SSLStreamAdapter> dtls_;  // The DTLS stream
   StreamInterfaceChannel*
       downward_;  // Wrapper for ice_transport_, owned by dtls_.

@@ -36,7 +36,7 @@ class ActiveIceControllerInterface {
   virtual ~ActiveIceControllerInterface() = default;
 
   // Sets the current ICE configuration.
-  virtual void SetIceConfig(const IceConfig& config) = 0;
+  virtual void SetIceConfig(const webrtc::IceConfig& config) = 0;
 
   // Called when a new connection is added to the ICE transport.
   virtual void OnConnectionAdded(const Connection* connection) = 0;
@@ -61,7 +61,7 @@ class ActiveIceControllerInterface {
 
   // Compute "STUN_ATTR_USE_CANDIDATE" for a STUN ping on the given connection.
   virtual bool GetUseCandidateAttribute(const Connection* connection,
-                                        NominationMode mode,
+                                        webrtc::NominationMode mode,
                                         IceMode remote_ice_mode) const = 0;
 
   // Called to enque a request to pick and switch to the best available

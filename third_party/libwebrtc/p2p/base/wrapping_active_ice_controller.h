@@ -44,13 +44,13 @@ class WrappingActiveIceController : public ActiveIceControllerInterface {
   // outlive the ICE controller.
   WrappingActiveIceController(
       IceAgentInterface* ice_agent,
-      IceControllerFactoryInterface* wrapped_factory,
-      const IceControllerFactoryArgs& wrapped_factory_args);
+      webrtc::IceControllerFactoryInterface* wrapped_factory,
+      const webrtc::IceControllerFactoryArgs& wrapped_factory_args);
   virtual ~WrappingActiveIceController();
 
-  void SetIceConfig(const IceConfig& config) override;
+  void SetIceConfig(const webrtc::IceConfig& config) override;
   bool GetUseCandidateAttribute(const Connection* connection,
-                                NominationMode mode,
+                                webrtc::NominationMode mode,
                                 IceMode remote_ice_mode) const override;
 
   void OnConnectionAdded(const Connection* connection) override;

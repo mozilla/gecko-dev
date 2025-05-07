@@ -25,7 +25,7 @@ class MockActiveIceController : public cricket::ActiveIceControllerInterface {
       const cricket::ActiveIceControllerFactoryArgs& /* args */) {}
   ~MockActiveIceController() override = default;
 
-  MOCK_METHOD(void, SetIceConfig, (const cricket::IceConfig&), (override));
+  MOCK_METHOD(void, SetIceConfig, (const webrtc::IceConfig&), (override));
   MOCK_METHOD(void,
               OnConnectionAdded,
               (const cricket::Connection*),
@@ -49,7 +49,7 @@ class MockActiveIceController : public cricket::ActiveIceControllerInterface {
   MOCK_METHOD(bool,
               GetUseCandidateAttribute,
               (const cricket::Connection*,
-               cricket::NominationMode,
+               webrtc::NominationMode,
                cricket::IceMode),
               (const, override));
   MOCK_METHOD(void,

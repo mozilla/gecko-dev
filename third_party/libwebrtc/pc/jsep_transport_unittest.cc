@@ -179,8 +179,8 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
     return jsep_description;
   }
 
-  Candidate CreateCandidate(int component) {
-    Candidate c;
+  webrtc::Candidate CreateCandidate(int component) {
+    webrtc::Candidate c;
     c.set_address(webrtc::SocketAddress("192.168.1.1", 8000));
     c.set_component(component);
     c.set_protocol(UDP_PROTOCOL_NAME);

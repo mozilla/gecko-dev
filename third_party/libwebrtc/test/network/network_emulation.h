@@ -270,7 +270,7 @@ class EmulatedEndpointImpl : public EmulatedEndpoint {
     // Endpoint local IP address.
     IPAddress ip;
     EmulatedNetworkStatsGatheringMode stats_gathering_mode;
-    rtc::AdapterType type;
+    AdapterType type;
     // Allow endpoint to send packets specifying source IP address different to
     // the current endpoint IP address. If false endpoint will crash if attempt
     // to send such packet will be done.

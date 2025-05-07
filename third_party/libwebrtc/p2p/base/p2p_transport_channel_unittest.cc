@@ -128,9 +128,9 @@ static const int kDefaultTimeout = 10000;
 static const int kMediumTimeout = 3000;
 static const int kShortTimeout = 1000;
 
-static const int kOnlyLocalPorts = cricket::PORTALLOCATOR_DISABLE_STUN |
-                                   cricket::PORTALLOCATOR_DISABLE_RELAY |
-                                   cricket::PORTALLOCATOR_DISABLE_TCP;
+static const int kOnlyLocalPorts = webrtc::PORTALLOCATOR_DISABLE_STUN |
+                                   webrtc::PORTALLOCATOR_DISABLE_RELAY |
+                                   webrtc::PORTALLOCATOR_DISABLE_TCP;
 static const int LOW_RTT = 20;
 // Addresses on the public internet.
 static const SocketAddress kPublicAddrs[2] = {SocketAddress("11.11.11.11", 0),
@@ -165,7 +165,7 @@ static const SocketAddress kTurnUdpIntAddr("99.99.99.3",
 static const SocketAddress kTurnTcpIntAddr("99.99.99.4",
                                            webrtc::STUN_SERVER_PORT + 1);
 static const SocketAddress kTurnUdpExtAddr("99.99.99.5", 0);
-static const cricket::RelayCredentials kRelayCredentials("test", "test");
+static const webrtc::RelayCredentials kRelayCredentials("test", "test");
 
 // Based on ICE_UFRAG_LENGTH
 const char* kIceUfrag[4] = {"UF00", "UF01", "UF02", "UF03"};
@@ -179,23 +179,23 @@ const cricket::IceParameters kIceParams[4] = {
     {kIceUfrag[2], kIcePwd[2], false},
     {kIceUfrag[3], kIcePwd[3], false}};
 
-cricket::IceConfig CreateIceConfig(
+webrtc::IceConfig CreateIceConfig(
     int receiving_timeout,
-    cricket::ContinualGatheringPolicy continual_gathering_policy,
+    webrtc::ContinualGatheringPolicy continual_gathering_policy,
     std::optional<int> backup_ping_interval = std::nullopt) {
-  cricket::IceConfig config;
+  webrtc::IceConfig config;
   config.receiving_timeout = receiving_timeout;
   config.continual_gathering_policy = continual_gathering_policy;
   config.backup_connection_ping_interval = backup_ping_interval;
   return config;
 }
 
-cricket::Candidate CreateUdpCandidate(IceCandidateType type,
-                                      absl::string_view ip,
-                                      int port,
-                                      int priority,
-                                      absl::string_view ufrag = "") {
-  cricket::Candidate c;
+webrtc::Candidate CreateUdpCandidate(IceCandidateType type,
+                                     absl::string_view ip,
+                                     int port,
+                                     int priority,
+                                     absl::string_view ufrag = "") {
+  webrtc::Candidate c;
   c.set_address(webrtc::SocketAddress(ip, port));
   c.set_component(cricket::ICE_CANDIDATE_COMPONENT_DEFAULT);
   c.set_protocol(cricket::UDP_PROTOCOL_NAME);
@@ -212,7 +212,7 @@ std::unique_ptr<cricket::BasicPortAllocator> CreateBasicPortAllocator(
     const cricket::ServerAddresses& stun_servers,
     const webrtc::SocketAddress& turn_server_udp,
     const webrtc::SocketAddress& turn_server_tcp) {
-  cricket::RelayServerConfig turn_server;
+  webrtc::RelayServerConfig turn_server;
   turn_server.credentials = kRelayCredentials;
   if (!turn_server_udp.IsNil()) {
     turn_server.ports.push_back(
@@ -222,7 +222,7 @@ std::unique_ptr<cricket::BasicPortAllocator> CreateBasicPortAllocator(
     turn_server.ports.push_back(
         cricket::ProtocolAddress(turn_server_tcp, webrtc::PROTO_TCP));
   }
-  std::vector<cricket::RelayServerConfig> turn_servers(1, turn_server);
+  std::vector<webrtc::RelayServerConfig> turn_servers(1, turn_server);
 
   auto allocator = std::make_unique<cricket::BasicPortAllocator>(
       network_manager, socket_factory, nullptr, nullptr, &env.field_trials());
@@ -394,8 +394,8 @@ class P2PTransportChannelTestBase : public ::testing::Test,
   };
 
   struct CandidateData {
-    IceTransportInternal* channel;
-    Candidate candidate;
+    webrtc::IceTransportInternal* channel;
+    webrtc::Candidate candidate;
   };
 
   struct Endpoint : public sigslot::has_slots<> {
@@ -427,11 +427,12 @@ class P2PTransportChannelTestBase : public ::testing::Test,
       allocator_->set_allow_tcp_listen(allow_tcp_listen);
     }
 
-    void OnIceRegathering(PortAllocatorSession*, IceRegatheringReason reason) {
+    void OnIceRegathering(webrtc::PortAllocatorSession*,
+                          webrtc::IceRegatheringReason reason) {
       ++ice_regathering_counter_[reason];
     }
 
-    int GetIceRegatheringCountForReason(IceRegatheringReason reason) {
+    int GetIceRegatheringCountForReason(webrtc::IceRegatheringReason reason) {
       return ice_regathering_counter_[reason];
     }
 
@@ -447,7 +448,7 @@ class P2PTransportChannelTestBase : public ::testing::Test,
     bool save_candidates_;
     std::vector<CandidateData> saved_candidates_;
     bool ready_to_send_ = false;
-    std::map<IceRegatheringReason, int> ice_regathering_counter_;
+    std::map<webrtc::IceRegatheringReason, int> ice_regathering_counter_;
   };
 
   ChannelData* GetChannelData(rtc::PacketTransportInternal* transport) {
@@ -465,8 +466,8 @@ class P2PTransportChannelTestBase : public ::testing::Test,
   }
 
   void CreateChannels(const Environment& env,
-                      const IceConfig& ep1_config,
-                      const IceConfig& ep2_config,
+                      const webrtc::IceConfig& ep1_config,
+                      const webrtc::IceConfig& ep2_config,
                       bool renomination = false) {
     IceParameters ice_ep1_cd1_ch =
         IceParamsWithRenomination(kIceParams[0], renomination);
@@ -487,7 +488,7 @@ class P2PTransportChannelTestBase : public ::testing::Test,
   }
 
   void CreateChannels(const Environment& env) {
-    IceConfig default_config;
+    webrtc::IceConfig default_config;
     CreateChannels(env, default_config, default_config, false);
   }
 
@@ -815,10 +816,10 @@ class P2PTransportChannelTestBase : public ::testing::Test,
                            .clock = &clock}),
         webrtc::IsRtcOk());
 
-    const Candidate* old_local_candidate1 = LocalCandidate(ep1_ch1());
-    const Candidate* old_local_candidate2 = LocalCandidate(ep2_ch1());
-    const Candidate* old_remote_candidate1 = RemoteCandidate(ep1_ch1());
-    const Candidate* old_remote_candidate2 = RemoteCandidate(ep2_ch1());
+    const webrtc::Candidate* old_local_candidate1 = LocalCandidate(ep1_ch1());
+    const webrtc::Candidate* old_local_candidate2 = LocalCandidate(ep2_ch1());
+    const webrtc::Candidate* old_remote_candidate1 = RemoteCandidate(ep1_ch1());
+    const webrtc::Candidate* old_remote_candidate2 = RemoteCandidate(ep2_ch1());
 
     ep1_ch1()->SetIceParameters(kIceParams[2]);
     ep1_ch1()->SetRemoteIceParameters(kIceParams[3]);
@@ -867,7 +868,8 @@ class P2PTransportChannelTestBase : public ::testing::Test,
   }
 
   // We pass the candidates directly to the other side.
-  void OnCandidateGathered(IceTransportInternal* ch, const Candidate& c) {
+  void OnCandidateGathered(webrtc::IceTransportInternal* ch,
+                           const webrtc::Candidate& c) {
     if (force_relay_ && !c.is_relay())
       return;
 
@@ -899,8 +901,8 @@ class P2PTransportChannelTestBase : public ::testing::Test,
     GetEndpoint(endpoint)->save_candidates_ = true;
   }
 
-  void OnCandidatesRemoved(IceTransportInternal* ch,
-                           const std::vector<Candidate>& candidates) {
+  void OnCandidatesRemoved(webrtc::IceTransportInternal* ch,
+                           const std::vector<webrtc::Candidate>& candidates) {
     // Candidate removals are not paused.
     main_.PostTask(SafeTask(safety_, [this, ch, candidates]() mutable {
       P2PTransportChannel* rch = GetRemoteChannel(ch);
@@ -944,7 +946,8 @@ class P2PTransportChannelTestBase : public ::testing::Test,
     ed->save_candidates_ = false;
   }
 
-  void AddCandidate(IceTransportInternal* channel, Candidate& candidate) {
+  void AddCandidate(webrtc::IceTransportInternal* channel,
+                    webrtc::Candidate& candidate) {
     P2PTransportChannel* rch = GetRemoteChannel(channel);
     if (rch == nullptr) {
       return;
@@ -966,7 +969,7 @@ class P2PTransportChannelTestBase : public ::testing::Test,
                     packet.payload().size()));
   }
 
-  void OnRoleConflict(IceTransportInternal* channel) {
+  void OnRoleConflict(webrtc::IceTransportInternal* channel) {
     GetEndpoint(channel)->OnRoleConflict(true);
     IceRole new_role = GetEndpoint(channel)->ice_role() == ICEROLE_CONTROLLING
                            ? ICEROLE_CONTROLLED
@@ -979,21 +982,23 @@ class P2PTransportChannelTestBase : public ::testing::Test,
     TestPacketInfoIsSet(packet.info);
   }
 
-  int SendData(IceTransportInternal* channel, const char* data, size_t len) {
+  int SendData(webrtc::IceTransportInternal* channel,
+               const char* data,
+               size_t len) {
     rtc::PacketOptions options;
     return channel->SendPacket(data, len, options, 0);
   }
-  bool CheckDataOnChannel(IceTransportInternal* channel,
+  bool CheckDataOnChannel(webrtc::IceTransportInternal* channel,
                           const char* data,
                           int len) {
     return GetChannelData(channel)->CheckData(data, len);
   }
-  static const Candidate* LocalCandidate(P2PTransportChannel* ch) {
+  static const webrtc::Candidate* LocalCandidate(P2PTransportChannel* ch) {
     return (ch && ch->selected_connection())
                ? &ch->selected_connection()->local_candidate()
                : NULL;
   }
-  static const Candidate* RemoteCandidate(P2PTransportChannel* ch) {
+  static const webrtc::Candidate* RemoteCandidate(P2PTransportChannel* ch) {
     return (ch && ch->selected_connection())
                ? &ch->selected_connection()->remote_candidate()
                : NULL;
@@ -1007,7 +1012,7 @@ class P2PTransportChannelTestBase : public ::testing::Test,
       return NULL;
     }
   }
-  P2PTransportChannel* GetRemoteChannel(IceTransportInternal* ch) {
+  P2PTransportChannel* GetRemoteChannel(webrtc::IceTransportInternal* ch) {
     if (ch == ep1_ch1())
       return ep2_ch1();
     else if (ch == ep1_ch2())
@@ -1161,10 +1166,10 @@ class P2PTransportChannelTest : public P2PTransportChannelTestBase {
     CreatePortAllocators(env);
     ConfigureEndpoint(0, config1);
     SetAllocatorFlags(0, allocator_flags1);
-    SetAllocationStepDelay(0, kMinimumStepDelay);
+    SetAllocationStepDelay(0, webrtc::kMinimumStepDelay);
     ConfigureEndpoint(1, config2);
     SetAllocatorFlags(1, allocator_flags2);
-    SetAllocationStepDelay(1, kMinimumStepDelay);
+    SetAllocationStepDelay(1, webrtc::kMinimumStepDelay);
 
     set_remote_ice_parameter_source(FROM_SETICEPARAMETERS);
   }
@@ -1328,8 +1333,8 @@ INSTANTIATE_TEST_SUITE_P(
 // Standard Ice protocol is used.
 TEST_F(P2PTransportChannelTest, HandleUfragPwdChange) {
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   CreateChannels(env);
   TestHandleIceUfragPasswordChanged();
   DestroyChannels();
@@ -1340,7 +1345,8 @@ TEST_F(P2PTransportChannelTest, HandleUfragPwdChange) {
 TEST_F(P2PTransportChannelTest, HandleUfragPwdChangeSymmetricNat) {
   const Environment env = CreateEnvironment();
   ConfigureEndpoints(env, NAT_SYMMETRIC, NAT_SYMMETRIC,
-                     kDefaultPortAllocatorFlags, kDefaultPortAllocatorFlags);
+                     webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   CreateChannels(env);
   TestHandleIceUfragPasswordChanged();
   DestroyChannels();
@@ -1350,8 +1356,8 @@ TEST_F(P2PTransportChannelTest, HandleUfragPwdChangeSymmetricNat) {
 TEST_F(P2PTransportChannelTest, GetStats) {
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   CreateChannels(env);
   EXPECT_THAT(webrtc::WaitUntil(
                   [&] {
@@ -1371,7 +1377,7 @@ TEST_F(P2PTransportChannelTest, GetStats) {
   int len = static_cast<int>(strlen(data));
   EXPECT_EQ(-1, SendData(ep1_ch1(), data, len));
 
-  IceTransportStats ice_transport_stats;
+  webrtc::IceTransportStats ice_transport_stats;
   ASSERT_TRUE(ep1_ch1()->GetStats(&ice_transport_stats));
   ASSERT_GE(ice_transport_stats.connection_infos.size(), 1u);
   ASSERT_GE(ice_transport_stats.candidate_stats_list.size(), 1u);
@@ -1405,11 +1411,11 @@ TEST_F(P2PTransportChannelTest, GetStats) {
 TEST_F(P2PTransportChannelTest, GetStatsSwitchConnection) {
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
-  IceConfig continual_gathering_config =
-      CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig continual_gathering_config =
+      CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
 
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
 
   AddAddress(0, kAlternateAddrs[1], "rmnet0", rtc::ADAPTER_TYPE_CELLULAR);
 
@@ -1426,7 +1432,7 @@ TEST_F(P2PTransportChannelTest, GetStatsSwitchConnection) {
   // Sends and receives 10 packets.
   TestSendRecv(&clock);
 
-  IceTransportStats ice_transport_stats;
+  webrtc::IceTransportStats ice_transport_stats;
   ASSERT_TRUE(ep1_ch1()->GetStats(&ice_transport_stats));
   ASSERT_GE(ice_transport_stats.connection_infos.size(), 2u);
   ASSERT_GE(ice_transport_stats.candidate_stats_list.size(), 2u);
@@ -1462,7 +1468,7 @@ TEST_F(P2PTransportChannelTest, GetStatsSwitchConnection) {
   // Sends and receives 10 packets.
   TestSendRecv(&clock);
 
-  IceTransportStats ice_transport_stats2;
+  webrtc::IceTransportStats ice_transport_stats2;
   ASSERT_TRUE(ep1_ch1()->GetStats(&ice_transport_stats2));
 
   int64_t sum_bytes_sent = 0;
@@ -1490,9 +1496,9 @@ TEST_F(P2PTransportChannelTest,
   ConfigureEndpoints(env, OPEN, OPEN, kOnlyLocalPorts, kOnlyLocalPorts);
 
   // ep1 gathers continually but ep2 does not.
-  IceConfig continual_gathering_config =
-      CreateIceConfig(1000, GATHER_CONTINUALLY);
-  IceConfig default_config;
+  webrtc::IceConfig continual_gathering_config =
+      CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
+  webrtc::IceConfig default_config;
   CreateChannels(env, continual_gathering_config, default_config);
 
   EXPECT_THAT(
@@ -1507,7 +1513,7 @@ TEST_F(P2PTransportChannelTest,
   EXPECT_THAT(webrtc::WaitUntil(
                   [&] {
                     return GetEndpoint(0)->GetIceRegatheringCountForReason(
-                        IceRegatheringReason::NETWORK_CHANGE);
+                        webrtc::IceRegatheringReason::NETWORK_CHANGE);
                   },
                   Eq(1),
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout),
@@ -1522,7 +1528,7 @@ TEST_F(P2PTransportChannelTest,
   SIMULATED_WAIT(false, kDefaultTimeout, clock);
   // ep2 has not enabled continual gathering.
   EXPECT_EQ(0, GetEndpoint(1)->GetIceRegatheringCountForReason(
-                   IceRegatheringReason::NETWORK_CHANGE));
+                   webrtc::IceRegatheringReason::NETWORK_CHANGE));
 
   DestroyChannels();
 }
@@ -1536,9 +1542,9 @@ TEST_F(P2PTransportChannelTest,
   ConfigureEndpoints(env, OPEN, OPEN, kOnlyLocalPorts, kOnlyLocalPorts);
 
   // ep1 gathers continually but ep2 does not.
-  IceConfig config1 = CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig config1 = CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   config1.regather_on_failed_networks_interval = 2000;
-  IceConfig config2;
+  webrtc::IceConfig config2;
   config2.regather_on_failed_networks_interval = 2000;
   CreateChannels(env, config1, config2);
 
@@ -1554,9 +1560,9 @@ TEST_F(P2PTransportChannelTest,
   const int kNetworkFailureTimeout = 35000;
   SIMULATED_WAIT(false, kNetworkFailureTimeout, clock);
   EXPECT_LE(1, GetEndpoint(0)->GetIceRegatheringCountForReason(
-                   IceRegatheringReason::NETWORK_FAILURE));
+                   webrtc::IceRegatheringReason::NETWORK_FAILURE));
   EXPECT_EQ(0, GetEndpoint(1)->GetIceRegatheringCountForReason(
-                   IceRegatheringReason::NETWORK_FAILURE));
+                   webrtc::IceRegatheringReason::NETWORK_FAILURE));
 
   DestroyChannels();
 }
@@ -1565,8 +1571,8 @@ TEST_F(P2PTransportChannelTest,
 // when the signaling is slow.
 TEST_F(P2PTransportChannelTest, PeerReflexiveCandidateBeforeSignaling) {
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   // Emulate no remote parameters coming in.
   set_remote_ice_parameter_source(FROM_CANDIDATE);
   CreateChannels(env);
@@ -1651,7 +1657,7 @@ TEST_F(P2PTransportChannelTest, PeerReflexiveRemoteCandidateIsSanitized) {
   EXPECT_TRUE(pair_ep1->remote_candidate().is_prflx());
   EXPECT_TRUE(pair_ep1->remote_candidate().address().ipaddr().IsNil());
 
-  IceTransportStats ice_transport_stats;
+  webrtc::IceTransportStats ice_transport_stats;
   ep1_ch1()->GetStats(&ice_transport_stats);
   // Check the candidate pair stats.
   ASSERT_EQ(1u, ice_transport_stats.connection_infos.size());
@@ -1701,8 +1707,9 @@ TEST_F(P2PTransportChannelTest, PeerReflexiveRemoteCandidateIsSanitized) {
 // when the signaling is slow and the end points are behind NAT.
 TEST_F(P2PTransportChannelTest, PeerReflexiveCandidateBeforeSignalingWithNAT) {
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, NAT_SYMMETRIC, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, NAT_SYMMETRIC,
+                     webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   // Emulate no remote parameters coming in.
   set_remote_ice_parameter_source(FROM_CANDIDATE);
   CreateChannels(env);
@@ -1766,12 +1773,12 @@ TEST_F(P2PTransportChannelTest, PeerReflexiveCandidateBeforeSignalingWithNAT) {
 TEST_F(P2PTransportChannelTest,
        PeerReflexiveCandidateBeforeSignalingWithIceRestart) {
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   // Only gather relay candidates, so that when the prflx candidate arrives
   // it's prioritized above the current candidate pair.
-  GetEndpoint(0)->allocator_->SetCandidateFilter(CF_RELAY);
-  GetEndpoint(1)->allocator_->SetCandidateFilter(CF_RELAY);
+  GetEndpoint(0)->allocator_->SetCandidateFilter(webrtc::CF_RELAY);
+  GetEndpoint(1)->allocator_->SetCandidateFilter(webrtc::CF_RELAY);
   // Setting this allows us to control when SetRemoteIceParameters is called.
   set_remote_ice_parameter_source(FROM_CANDIDATE);
   CreateChannels(env);
@@ -1836,8 +1843,8 @@ TEST_F(P2PTransportChannelTest, RemoteCandidatesWithoutUfragPwd) {
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
   set_remote_ice_parameter_source(FROM_SETICEPARAMETERS);
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   CreateChannels(env);
   const Connection* selected_connection = NULL;
   // Wait until the callee's connections are created.
@@ -1862,8 +1869,9 @@ TEST_F(P2PTransportChannelTest, RemoteCandidatesWithoutUfragPwd) {
 TEST_F(P2PTransportChannelTest, IncomingOnlyBlocked) {
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, NAT_FULL_CONE, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, NAT_FULL_CONE, OPEN,
+                     webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
 
   SetAllocatorFlags(0, kOnlyLocalPorts);
   CreateChannels(env);
@@ -1885,8 +1893,9 @@ TEST_F(P2PTransportChannelTest, IncomingOnlyBlocked) {
 TEST_F(P2PTransportChannelTest, IncomingOnlyOpen) {
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, NAT_FULL_CONE, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, NAT_FULL_CONE,
+                     webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
 
   SetAllocatorFlags(0, kOnlyLocalPorts);
   CreateChannels(env);
@@ -1913,10 +1922,10 @@ TEST_F(P2PTransportChannelTest, CanOnlyMakeOutgoingTcpConnections) {
   //
   // TODO(deadbeef): Later, make this flag the default, and do more elegant
   // things to ensure extra candidates don't waste resources?
-  ConfigureEndpoints(
-      env, OPEN, OPEN,
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_ANY_ADDRESS_PORTS,
-      kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN,
+                     webrtc::kDefaultPortAllocatorFlags |
+                         webrtc::PORTALLOCATOR_ENABLE_ANY_ADDRESS_PORTS,
+                     webrtc::kDefaultPortAllocatorFlags);
   // In order to simulate nothing working but outgoing TCP connections, prevent
   // the endpoint from binding to its interface's address as well as the
   // "any" addresses. It can then only make a connection by using "Connect()".
@@ -1936,12 +1945,12 @@ TEST_F(P2PTransportChannelTest, TestTcpConnectionsFromActiveToPassive) {
   AddAddress(0, kPublicAddrs[0]);
   AddAddress(1, kPublicAddrs[1]);
 
-  SetAllocationStepDelay(0, kMinimumStepDelay);
-  SetAllocationStepDelay(1, kMinimumStepDelay);
+  SetAllocationStepDelay(0, webrtc::kMinimumStepDelay);
+  SetAllocationStepDelay(1, webrtc::kMinimumStepDelay);
 
-  int kOnlyLocalTcpPorts = PORTALLOCATOR_DISABLE_UDP |
-                           PORTALLOCATOR_DISABLE_STUN |
-                           PORTALLOCATOR_DISABLE_RELAY;
+  int kOnlyLocalTcpPorts = webrtc::PORTALLOCATOR_DISABLE_UDP |
+                           webrtc::PORTALLOCATOR_DISABLE_STUN |
+                           webrtc::PORTALLOCATOR_DISABLE_RELAY;
   // Disable all protocols except TCP.
   SetAllocatorFlags(0, kOnlyLocalTcpPorts);
   SetAllocatorFlags(1, kOnlyLocalTcpPorts);
@@ -1986,8 +1995,8 @@ TEST_F(P2PTransportChannelTest, TestTcpConnectionTcptypeSet) {
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
   ConfigureEndpoints(env, BLOCK_UDP_AND_INCOMING_TCP, OPEN,
-                     PORTALLOCATOR_ENABLE_SHARED_SOCKET,
-                     PORTALLOCATOR_ENABLE_SHARED_SOCKET);
+                     webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET,
+                     webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET);
 
   SetAllowTcpListen(0, false);  // active.
   SetAllowTcpListen(1, true);   // actpass.
@@ -2129,14 +2138,14 @@ TEST_F(P2PTransportChannelTest, TestIPv6Connections) {
   AddAddress(1, kIPv6PublicAddrs[1]);
   AddAddress(1, kPublicAddrs[1]);
 
-  SetAllocationStepDelay(0, kMinimumStepDelay);
-  SetAllocationStepDelay(1, kMinimumStepDelay);
+  SetAllocationStepDelay(0, webrtc::kMinimumStepDelay);
+  SetAllocationStepDelay(1, webrtc::kMinimumStepDelay);
 
   // Enable IPv6
-  SetAllocatorFlags(
-      0, PORTALLOCATOR_ENABLE_IPV6 | PORTALLOCATOR_ENABLE_IPV6_ON_WIFI);
-  SetAllocatorFlags(
-      1, PORTALLOCATOR_ENABLE_IPV6 | PORTALLOCATOR_ENABLE_IPV6_ON_WIFI);
+  SetAllocatorFlags(0, webrtc::PORTALLOCATOR_ENABLE_IPV6 |
+                           webrtc::PORTALLOCATOR_ENABLE_IPV6_ON_WIFI);
+  SetAllocatorFlags(1, webrtc::PORTALLOCATOR_ENABLE_IPV6 |
+                           webrtc::PORTALLOCATOR_ENABLE_IPV6_ON_WIFI);
 
   CreateChannels(env);
 
@@ -2159,14 +2168,15 @@ TEST_F(P2PTransportChannelTest, TestIPv6Connections) {
 TEST_F(P2PTransportChannelTest, TestForceTurn) {
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(
-      env, NAT_PORT_RESTRICTED, NAT_SYMMETRIC,
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_SHARED_SOCKET,
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_SHARED_SOCKET);
+  ConfigureEndpoints(env, NAT_PORT_RESTRICTED, NAT_SYMMETRIC,
+                     webrtc::kDefaultPortAllocatorFlags |
+                         webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET,
+                     webrtc::kDefaultPortAllocatorFlags |
+                         webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET);
   set_force_relay(true);
 
-  SetAllocationStepDelay(0, kMinimumStepDelay);
-  SetAllocationStepDelay(1, kMinimumStepDelay);
+  SetAllocationStepDelay(0, webrtc::kMinimumStepDelay);
+  SetAllocationStepDelay(1, webrtc::kMinimumStepDelay);
 
   CreateChannels(env);
 
@@ -2194,14 +2204,14 @@ TEST_F(P2PTransportChannelTest, TestForceTurn) {
 TEST_F(P2PTransportChannelTest, TestContinualGathering) {
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
-  SetAllocationStepDelay(0, kDefaultStepDelay);
-  SetAllocationStepDelay(1, kDefaultStepDelay);
-  IceConfig continual_gathering_config =
-      CreateIceConfig(1000, GATHER_CONTINUALLY);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
+  SetAllocationStepDelay(0, webrtc::kDefaultStepDelay);
+  SetAllocationStepDelay(1, webrtc::kDefaultStepDelay);
+  webrtc::IceConfig continual_gathering_config =
+      CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   // By default, ep2 does not gather continually.
-  IceConfig default_config;
+  webrtc::IceConfig default_config;
   CreateChannels(env, continual_gathering_config, default_config);
 
   EXPECT_THAT(
@@ -2210,13 +2220,13 @@ TEST_F(P2PTransportChannelTest, TestContinualGathering) {
                         {.timeout = webrtc::TimeDelta::Millis(kMediumTimeout),
                          .clock = &clock}),
       webrtc::IsRtcOk());
-  SIMULATED_WAIT(
-      IceGatheringState::kIceGatheringComplete == ep1_ch1()->gathering_state(),
-      kShortTimeout, clock);
-  EXPECT_EQ(IceGatheringState::kIceGatheringGathering,
+  SIMULATED_WAIT(webrtc::IceGatheringState::kIceGatheringComplete ==
+                     ep1_ch1()->gathering_state(),
+                 kShortTimeout, clock);
+  EXPECT_EQ(webrtc::IceGatheringState::kIceGatheringGathering,
             ep1_ch1()->gathering_state());
   // By now, ep2 should have completed gathering.
-  EXPECT_EQ(IceGatheringState::kIceGatheringComplete,
+  EXPECT_EQ(webrtc::IceGatheringState::kIceGatheringComplete,
             ep2_ch1()->gathering_state());
 
   DestroyChannels();
@@ -2227,8 +2237,8 @@ TEST_F(P2PTransportChannelTest, TestContinualGathering) {
 TEST_F(P2PTransportChannelTest, TestUsingPooledSessionBeforeDoneGathering) {
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   // First create a pooled session for each endpoint.
   auto& allocator_1 = GetEndpoint(0)->allocator_;
   auto& allocator_2 = GetEndpoint(1)->allocator_;
@@ -2239,9 +2249,9 @@ TEST_F(P2PTransportChannelTest, TestUsingPooledSessionBeforeDoneGathering) {
   allocator_2->SetConfiguration(allocator_2->stun_servers(),
                                 allocator_2->turn_servers(), pool_size,
                                 webrtc::NO_PRUNE);
-  const PortAllocatorSession* pooled_session_1 =
+  const webrtc::PortAllocatorSession* pooled_session_1 =
       allocator_1->GetPooledSession();
-  const PortAllocatorSession* pooled_session_2 =
+  const webrtc::PortAllocatorSession* pooled_session_2 =
       allocator_2->GetPooledSession();
   ASSERT_NE(nullptr, pooled_session_1);
   ASSERT_NE(nullptr, pooled_session_2);
@@ -2275,8 +2285,8 @@ TEST_F(P2PTransportChannelTest, TestUsingPooledSessionBeforeDoneGathering) {
 TEST_F(P2PTransportChannelTest, TestUsingPooledSessionAfterDoneGathering) {
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   // First create a pooled session for each endpoint.
   auto& allocator_1 = GetEndpoint(0)->allocator_;
   auto& allocator_2 = GetEndpoint(1)->allocator_;
@@ -2287,9 +2297,9 @@ TEST_F(P2PTransportChannelTest, TestUsingPooledSessionAfterDoneGathering) {
   allocator_2->SetConfiguration(allocator_2->stun_servers(),
                                 allocator_2->turn_servers(), pool_size,
                                 webrtc::NO_PRUNE);
-  const PortAllocatorSession* pooled_session_1 =
+  const webrtc::PortAllocatorSession* pooled_session_1 =
       allocator_1->GetPooledSession();
-  const PortAllocatorSession* pooled_session_2 =
+  const webrtc::PortAllocatorSession* pooled_session_2 =
       allocator_2->GetPooledSession();
   ASSERT_NE(nullptr, pooled_session_1);
   ASSERT_NE(nullptr, pooled_session_2);
@@ -2332,19 +2342,19 @@ TEST_F(P2PTransportChannelTest, TestUsingPooledSessionAfterDoneGathering) {
 // (which supports TURN servers and TURN candidate gathering) is available.
 TEST_F(P2PTransportChannelTest, TurnToTurnPresumedWritable) {
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   // Only configure one channel so we can control when the remote candidate
   // is added.
   GetEndpoint(0)->cd1_.ch_ = CreateChannel(
       env, 0, ICE_CANDIDATE_COMPONENT_DEFAULT, kIceParams[0], kIceParams[1]);
-  IceConfig config;
+  webrtc::IceConfig config;
   config.presume_writable_when_fully_relayed = true;
   ep1_ch1()->SetIceConfig(config);
   ep1_ch1()->MaybeStartGathering();
   EXPECT_THAT(webrtc::WaitUntil(
                   [&] { return ep1_ch1()->gathering_state(); },
-                  Eq(IceGatheringState::kIceGatheringComplete),
+                  Eq(webrtc::IceGatheringState::kIceGatheringComplete),
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
   // Add two remote candidates; a host candidate (with higher priority)
@@ -2385,12 +2395,13 @@ TEST_F(P2PTransportChannelTest, TurnToPrflxPresumedWritable) {
   virtual_socket_server()->UpdateDelayDistribution();
 
   ConfigureEndpoints(env, NAT_SYMMETRIC, NAT_SYMMETRIC,
-                     kDefaultPortAllocatorFlags, kDefaultPortAllocatorFlags);
+                     webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   // We want the remote TURN candidate to show up as prflx. To do this we need
   // to configure the server to accept packets from an address we haven't
   // explicitly installed permission for.
   test_turn_server()->set_enable_permission_checks(false);
-  IceConfig config;
+  webrtc::IceConfig config;
   config.presume_writable_when_fully_relayed = true;
   GetEndpoint(0)->cd1_.ch_ = CreateChannel(
       env, 0, ICE_CANDIDATE_COMPONENT_DEFAULT, kIceParams[0], kIceParams[1]);
@@ -2438,8 +2449,9 @@ TEST_F(P2PTransportChannelTest, PresumedWritablePreferredOverUnreliable) {
   const Environment env = CreateEnvironment();
 
   ConfigureEndpoints(env, NAT_SYMMETRIC, NAT_SYMMETRIC,
-                     kDefaultPortAllocatorFlags, kDefaultPortAllocatorFlags);
-  IceConfig config;
+                     webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
+  webrtc::IceConfig config;
   config.presume_writable_when_fully_relayed = true;
   GetEndpoint(0)->cd1_.ch_ = CreateChannel(
       env, 0, ICE_CANDIDATE_COMPONENT_DEFAULT, kIceParams[0], kIceParams[1]);
@@ -2483,19 +2495,19 @@ TEST_F(P2PTransportChannelTest, PresumedWritablePreferredOverUnreliable) {
 // writable" connection. Previously this did not work.
 TEST_F(P2PTransportChannelTest, SignalReadyToSendWithPresumedWritable) {
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   // Only test one endpoint, so we can ensure the connection doesn't receive a
   // binding response and advance beyond being "presumed" writable.
   GetEndpoint(0)->cd1_.ch_ = CreateChannel(
       env, 0, ICE_CANDIDATE_COMPONENT_DEFAULT, kIceParams[0], kIceParams[1]);
-  IceConfig config;
+  webrtc::IceConfig config;
   config.presume_writable_when_fully_relayed = true;
   ep1_ch1()->SetIceConfig(config);
   ep1_ch1()->MaybeStartGathering();
   EXPECT_THAT(webrtc::WaitUntil(
                   [&] { return ep1_ch1()->gathering_state(); },
-                  Eq(IceGatheringState::kIceGatheringComplete),
+                  Eq(webrtc::IceGatheringState::kIceGatheringComplete),
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
   ep1_ch1()->AddRemoteCandidate(
@@ -2531,12 +2543,14 @@ TEST_F(P2PTransportChannelTest,
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
   // Gather only relay candidates.
-  ConfigureEndpoints(env, NAT_SYMMETRIC, NAT_SYMMETRIC,
-                     kDefaultPortAllocatorFlags | PORTALLOCATOR_DISABLE_UDP |
-                         PORTALLOCATOR_DISABLE_STUN | PORTALLOCATOR_DISABLE_TCP,
-                     kDefaultPortAllocatorFlags | PORTALLOCATOR_DISABLE_UDP |
-                         PORTALLOCATOR_DISABLE_STUN |
-                         PORTALLOCATOR_DISABLE_TCP);
+  ConfigureEndpoints(
+      env, NAT_SYMMETRIC, NAT_SYMMETRIC,
+      webrtc::kDefaultPortAllocatorFlags | webrtc::PORTALLOCATOR_DISABLE_UDP |
+          webrtc::PORTALLOCATOR_DISABLE_STUN |
+          webrtc::PORTALLOCATOR_DISABLE_TCP,
+      webrtc::kDefaultPortAllocatorFlags | webrtc::PORTALLOCATOR_DISABLE_UDP |
+          webrtc::PORTALLOCATOR_DISABLE_STUN |
+          webrtc::PORTALLOCATOR_DISABLE_TCP);
   // With conflicting ICE roles, endpoint 1 has the higher tie breaker and will
   // send a binding error response.
   SetIceRole(0, ICEROLE_CONTROLLING);
@@ -2579,8 +2593,9 @@ TEST_F(P2PTransportChannelTest,
   const Environment env = CreateEnvironment(FieldTrials::CreateNoGlobal(
       "WebRTC-PiggybackIceCheckAcknowledgement/Enabled/"));
   ConfigureEndpoints(env, OPEN, OPEN, kOnlyLocalPorts, kOnlyLocalPorts);
-  IceConfig ep1_config;
-  IceConfig ep2_config = CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig ep1_config;
+  webrtc::IceConfig ep2_config =
+      CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   // Let ep2 be tolerable of the loss of connectivity checks, so that it keeps
   // sending pings even after ep1 becomes unwritable as we configure the
   // firewall below.
@@ -2769,7 +2784,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestFailoverControlledSide) {
   SetAllocatorFlags(1, kOnlyLocalPorts);
 
   // Make the receiving timeout shorter for testing.
-  IceConfig config = CreateIceConfig(1000, GATHER_ONCE);
+  webrtc::IceConfig config = CreateIceConfig(1000, webrtc::GATHER_ONCE);
   // Create channels and let them go writable, as usual.
   CreateChannels(env, config, config);
 
@@ -2831,7 +2846,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestFailoverControllingSide) {
   SetAllocatorFlags(1, kOnlyLocalPorts);
 
   // Make the receiving timeout shorter for testing.
-  IceConfig config = CreateIceConfig(1000, GATHER_ONCE);
+  webrtc::IceConfig config = CreateIceConfig(1000, webrtc::GATHER_ONCE);
   // Create channels and let them go writable, as usual.
   CreateChannels(env, config, config);
   EXPECT_THAT(webrtc::WaitUntil(
@@ -2872,19 +2887,19 @@ TEST_F(P2PTransportChannelMultihomedTest, TestFailoverWithManyConnections) {
   const Environment env = CreateEnvironment();
   CreatePortAllocators(env);
   test_turn_server()->AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
-  RelayServerConfig turn_server;
+  webrtc::RelayServerConfig turn_server;
   turn_server.credentials = kRelayCredentials;
   turn_server.ports.push_back(
       ProtocolAddress(kTurnTcpIntAddr, webrtc::PROTO_TCP));
   GetAllocator(0)->AddTurnServerForTesting(turn_server);
   GetAllocator(1)->AddTurnServerForTesting(turn_server);
   // Enable IPv6
-  SetAllocatorFlags(
-      0, PORTALLOCATOR_ENABLE_IPV6 | PORTALLOCATOR_ENABLE_IPV6_ON_WIFI);
-  SetAllocatorFlags(
-      1, PORTALLOCATOR_ENABLE_IPV6 | PORTALLOCATOR_ENABLE_IPV6_ON_WIFI);
-  SetAllocationStepDelay(0, kMinimumStepDelay);
-  SetAllocationStepDelay(1, kMinimumStepDelay);
+  SetAllocatorFlags(0, webrtc::PORTALLOCATOR_ENABLE_IPV6 |
+                           webrtc::PORTALLOCATOR_ENABLE_IPV6_ON_WIFI);
+  SetAllocatorFlags(1, webrtc::PORTALLOCATOR_ENABLE_IPV6 |
+                           webrtc::PORTALLOCATOR_ENABLE_IPV6_ON_WIFI);
+  SetAllocationStepDelay(0, webrtc::kMinimumStepDelay);
+  SetAllocationStepDelay(1, webrtc::kMinimumStepDelay);
 
   auto& wifi = kPublicAddrs;
   auto& cellular = kAlternateAddrs;
@@ -2907,7 +2922,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestFailoverWithManyConnections) {
   virtual_socket_server()->UpdateDelayDistribution();
 
   // Make the receiving timeout shorter for testing.
-  IceConfig config = CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig config = CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   // Create channels and let them go writable, as usual.
   CreateChannels(env, config, config, true /* ice_renomination */);
   EXPECT_THAT(webrtc::WaitUntil(
@@ -2996,7 +3011,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestIceRenomination) {
   // We want it to set the remote ICE parameters when creating channels.
   set_remote_ice_parameter_source(FROM_SETICEPARAMETERS);
   // Make the receiving timeout shorter for testing.
-  IceConfig config = CreateIceConfig(1000, GATHER_ONCE);
+  webrtc::IceConfig config = CreateIceConfig(1000, webrtc::GATHER_ONCE);
   // Create channels with ICE renomination and let them go writable as usual.
   CreateChannels(env, config, config, true);
   ASSERT_THAT(
@@ -3082,7 +3097,7 @@ TEST_F(P2PTransportChannelMultihomedTest,
               webrtc::IsRtcOk());
 
   // Make the receiving timeout shorter for testing.
-  IceConfig config = CreateIceConfig(1000, GATHER_ONCE);
+  webrtc::IceConfig config = CreateIceConfig(1000, webrtc::GATHER_ONCE);
   ep1_ch1()->SetIceConfig(config);
   ep2_ch1()->SetIceConfig(config);
   reset_selected_candidate_pair_switches();
@@ -3150,7 +3165,7 @@ TEST_F(P2PTransportChannelMultihomedTest,
               webrtc::IsRtcOk());
 
   // Make the receiving timeout shorter for testing.
-  IceConfig config = CreateIceConfig(1000, GATHER_ONCE);
+  webrtc::IceConfig config = CreateIceConfig(1000, webrtc::GATHER_ONCE);
   ep1_ch1()->SetIceConfig(config);
   ep2_ch1()->SetIceConfig(config);
   reset_selected_candidate_pair_switches();
@@ -3206,7 +3221,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestRemoteFailover) {
   CreateChannels(env);
   // Make the receiving timeout shorter for testing.
   // Set the backup connection ping interval to 25s.
-  IceConfig config = CreateIceConfig(1000, GATHER_ONCE, 25000);
+  webrtc::IceConfig config = CreateIceConfig(1000, webrtc::GATHER_ONCE, 25000);
   // Ping the best connection more frequently since we don't have traffic.
   config.stable_writable_connection_ping_interval = 900;
   ep1_ch1()->SetIceConfig(config);
@@ -3333,7 +3348,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestPingBackupConnectionRate) {
       webrtc::IsRtcOk());
   int backup_ping_interval = 2000;
   ep2_ch1()->SetIceConfig(
-      CreateIceConfig(2000, GATHER_ONCE, backup_ping_interval));
+      CreateIceConfig(2000, webrtc::GATHER_ONCE, backup_ping_interval));
   // After the state becomes COMPLETED, the backup connection will be pinged
   // once every `backup_ping_interval` milliseconds.
   ASSERT_THAT(webrtc::WaitUntil([&] { return ep2_ch1()->GetState(); },
@@ -3383,7 +3398,8 @@ TEST_F(P2PTransportChannelMultihomedTest, TestStableWritableRate) {
       webrtc::IsRtcOk());
   // Set a value larger than the default value of 2500 ms
   int ping_interval_ms = 3456;
-  IceConfig config = CreateIceConfig(2 * ping_interval_ms, GATHER_ONCE);
+  webrtc::IceConfig config =
+      CreateIceConfig(2 * ping_interval_ms, webrtc::GATHER_ONCE);
   config.stable_writable_connection_ping_interval = ping_interval_ms;
   ep2_ch1()->SetIceConfig(config);
   // After the state becomes COMPLETED and is stable and writable, the
@@ -3455,8 +3471,9 @@ TEST_F(P2PTransportChannelMultihomedTest, TestNetworkBecomesInactive) {
   AddAddress(0, kPublicAddrs[0]);
   AddAddress(1, kPublicAddrs[1]);
   // Create channels and let them go writable, as usual.
-  IceConfig ep1_config = CreateIceConfig(2000, GATHER_CONTINUALLY);
-  IceConfig ep2_config = CreateIceConfig(2000, GATHER_ONCE);
+  webrtc::IceConfig ep1_config =
+      CreateIceConfig(2000, webrtc::GATHER_CONTINUALLY);
+  webrtc::IceConfig ep2_config = CreateIceConfig(2000, webrtc::GATHER_ONCE);
   CreateChannels(env, ep1_config, ep2_config);
 
   SetAllocatorFlags(0, kOnlyLocalPorts);
@@ -3509,8 +3526,8 @@ TEST_F(P2PTransportChannelMultihomedTest,
   AddAddress(0, wifi[0], "test_wifi0", rtc::ADAPTER_TYPE_WIFI);
   AddAddress(1, cellular[1], "test_cell1", rtc::ADAPTER_TYPE_CELLULAR);
   // Set continual gathering policy.
-  IceConfig continual_gathering_config =
-      CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig continual_gathering_config =
+      CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   CreateChannels(env, continual_gathering_config, continual_gathering_config);
   SetAllocatorFlags(0, kOnlyLocalPorts);
   SetAllocatorFlags(1, kOnlyLocalPorts);
@@ -3593,8 +3610,8 @@ TEST_F(P2PTransportChannelMultihomedTest,
   SetAllocatorFlags(1, kOnlyLocalPorts);
 
   // Set continual gathering policy.
-  IceConfig continual_gathering_config =
-      CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig continual_gathering_config =
+      CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   // Create channels and let them go writable, as usual.
   CreateChannels(env, continual_gathering_config, continual_gathering_config);
   EXPECT_THAT(webrtc::WaitUntil(
@@ -3657,7 +3674,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestRestoreBackupConnection) {
   SetAllocatorFlags(1, kOnlyLocalPorts);
 
   // Create channels and let them go writable, as usual.
-  IceConfig config = CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig config = CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   config.regather_on_failed_networks_interval = 2000;
   CreateChannels(env, config, config);
   EXPECT_THAT(webrtc::WaitUntil(
@@ -3704,7 +3721,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestVpnDefault) {
   AddAddress(0, kAlternateAddrs[0], "vpn0", rtc::ADAPTER_TYPE_VPN);
   AddAddress(1, kPublicAddrs[1]);
 
-  IceConfig config;
+  webrtc::IceConfig config;
   CreateChannels(env, config, config, false);
   EXPECT_THAT(
       webrtc::WaitUntil(
@@ -3727,7 +3744,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestVpnPreferVpn) {
              rtc::ADAPTER_TYPE_CELLULAR);
   AddAddress(1, kPublicAddrs[1]);
 
-  IceConfig config;
+  webrtc::IceConfig config;
   config.vpn_preference = webrtc::VpnPreference::kPreferVpn;
   RTC_LOG(LS_INFO) << "KESO: config.vpn_preference: " << config.vpn_preference;
   CreateChannels(env, config, config, false);
@@ -3766,7 +3783,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestVpnAvoidVpn) {
              rtc::ADAPTER_TYPE_ETHERNET);
   AddAddress(1, kPublicAddrs[1]);
 
-  IceConfig config;
+  webrtc::IceConfig config;
   config.vpn_preference = webrtc::VpnPreference::kAvoidVpn;
   CreateChannels(env, config, config, false);
   EXPECT_THAT(
@@ -3804,7 +3821,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestVpnNeverVpn) {
              rtc::ADAPTER_TYPE_ETHERNET);
   AddAddress(1, kPublicAddrs[1]);
 
-  IceConfig config;
+  webrtc::IceConfig config;
   config.vpn_preference = webrtc::VpnPreference::kNeverUseVpn;
   CreateChannels(env, config, config, false);
   EXPECT_THAT(
@@ -3840,7 +3857,7 @@ TEST_F(P2PTransportChannelMultihomedTest, TestVpnOnlyVpn) {
              rtc::ADAPTER_TYPE_ETHERNET);
   AddAddress(1, kPublicAddrs[1]);
 
-  IceConfig config;
+  webrtc::IceConfig config;
   config.vpn_preference = webrtc::VpnPreference::kOnlyUseVpn;
   CreateChannels(env, config, config, false);
   EXPECT_THAT(webrtc::WaitUntil(
@@ -3878,12 +3895,12 @@ TEST_F(P2PTransportChannelMultihomedTest, StunDictionaryPerformsSync) {
   // Create channels and let them go writable, as usual.
   CreateChannels(env);
 
-  MockFunction<void(IceTransportInternal*, const StunDictionaryView&,
+  MockFunction<void(webrtc::IceTransportInternal*, const StunDictionaryView&,
                     rtc::ArrayView<uint16_t>)>
       view_updated_func;
   ep2_ch1()->AddDictionaryViewUpdatedCallback(
       "tag", view_updated_func.AsStdFunction());
-  MockFunction<void(IceTransportInternal*, const StunDictionaryWriter&)>
+  MockFunction<void(webrtc::IceTransportInternal*, const StunDictionaryWriter&)>
       writer_synced_func;
   ep1_ch1()->AddDictionaryWriterSyncedCallback(
       "tag", writer_synced_func.AsStdFunction());
@@ -3986,7 +4003,7 @@ class P2PTransportChannelPingTest : public ::testing::Test,
     return conn;
   }
 
-  int SendData(IceTransportInternal* channel,
+  int SendData(webrtc::IceTransportInternal* channel,
                const char* data,
                size_t len,
                int packet_id) {
@@ -4070,7 +4087,7 @@ class P2PTransportChannelPingTest : public ::testing::Test,
   void OnReadyToSend(rtc::PacketTransportInternal* transport) {
     channel_ready_to_send_ = true;
   }
-  void OnChannelStateChanged(IceTransportInternal* channel) {
+  void OnChannelStateChanged(webrtc::IceTransportInternal* channel) {
     channel_state_ = channel->GetState();
   }
   void OnCandidatePairChanged(const CandidatePairChangeEvent& event) {
@@ -4310,7 +4327,7 @@ TEST_F(P2PTransportChannelPingTest, PingingStartedAsSoonAsPossible) {
   ch.MaybeStartGathering();
   EXPECT_THAT(webrtc::WaitUntil(
                   [&] { return ch.gathering_state(); },
-                  Eq(IceGatheringState::kIceGatheringComplete),
+                  Eq(webrtc::IceGatheringState::kIceGatheringComplete),
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
 
@@ -4432,7 +4449,7 @@ TEST_F(P2PTransportChannelPingTest, TestAddRemoteCandidateWithVariousUfrags) {
                                            1, 1, kIceUfrag[2]));
   Connection* conn1 = WaitForConnectionTo(&ch, "1.1.1.1", 1);
   ASSERT_TRUE(conn1 != nullptr);
-  const Candidate& candidate = conn1->remote_candidate();
+  const webrtc::Candidate& candidate = conn1->remote_candidate();
   EXPECT_EQ(kIceUfrag[2], candidate.username());
   EXPECT_TRUE(candidate.password().empty());
   EXPECT_TRUE(FindNextPingableConnectionAndPingIt(&ch) == nullptr);
@@ -4461,7 +4478,7 @@ TEST_F(P2PTransportChannelPingTest, TestAddRemoteCandidateWithVariousUfrags) {
           [&] { return conn3 = GetConnectionTo(&ch, "3.3.3.3", 3); },
           Ne(nullptr), {.timeout = webrtc::TimeDelta::Millis(kMediumTimeout)}),
       webrtc::IsRtcOk());
-  const Candidate& new_candidate = conn3->remote_candidate();
+  const webrtc::Candidate& new_candidate = conn3->remote_candidate();
   EXPECT_EQ(kIcePwd[2], new_candidate.password());
   EXPECT_EQ(1U, new_candidate.generation());
 
@@ -4551,7 +4568,7 @@ TEST_F(P2PTransportChannelPingTest, TestReceivingStateChange) {
   // small.
   EXPECT_LE(1000, ch.config().receiving_timeout_or_default());
   EXPECT_LE(200, ch.check_receiving_interval());
-  ch.SetIceConfig(CreateIceConfig(500, GATHER_ONCE));
+  ch.SetIceConfig(CreateIceConfig(500, webrtc::GATHER_ONCE));
   EXPECT_EQ(500, ch.config().receiving_timeout_or_default());
   EXPECT_EQ(50, ch.check_receiving_interval());
   ch.MaybeStartGathering();
@@ -5275,7 +5292,7 @@ TEST_F(P2PTransportChannelPingTest, TestAddRemoteCandidateWithAddressReuse) {
   const int port_num = 1;
 
   // kIceUfrag[1] is the current generation ufrag.
-  Candidate candidate = CreateUdpCandidate(
+  webrtc::Candidate candidate = CreateUdpCandidate(
       IceCandidateType::kHost, host_address, port_num, 1, kIceUfrag[1]);
   ch.AddRemoteCandidate(candidate);
   Connection* conn1 = WaitForConnectionTo(&ch, host_address, port_num);
@@ -5335,7 +5352,7 @@ TEST_F(P2PTransportChannelPingTest, TestDontPruneWhenWeak) {
                          .clock = &clock}),
       webrtc::IsRtcOk());
 
-  ch.SetIceConfig(CreateIceConfig(500, GATHER_ONCE));
+  ch.SetIceConfig(CreateIceConfig(500, webrtc::GATHER_ONCE));
   // Wait until conn2 becomes not receiving.
   EXPECT_THAT(
       webrtc::WaitUntil([&] { return !conn2->receiving(); }, IsTrue(),
@@ -5441,7 +5458,7 @@ TEST_F(P2PTransportChannelPingTest, TestConnectionPrunedAgain) {
                        &env.field_trials());
   P2PTransportChannel ch("test channel", 1, &pa, &env.field_trials());
   PrepareChannel(&ch);
-  IceConfig config = CreateIceConfig(1000, GATHER_ONCE);
+  webrtc::IceConfig config = CreateIceConfig(1000, webrtc::GATHER_ONCE);
   config.receiving_switching_delay = 800;
   ch.SetIceConfig(config);
   ch.MaybeStartGathering();
@@ -5565,7 +5582,7 @@ TEST_F(P2PTransportChannelPingTest, TestStopPortAllocatorSessions) {
                        &env.field_trials());
   P2PTransportChannel ch("test channel", 1, &pa, &env.field_trials());
   PrepareChannel(&ch);
-  ch.SetIceConfig(CreateIceConfig(2000, GATHER_ONCE));
+  ch.SetIceConfig(CreateIceConfig(2000, webrtc::GATHER_ONCE));
   ch.MaybeStartGathering();
   ch.AddRemoteCandidate(
       CreateUdpCandidate(IceCandidateType::kHost, "1.1.1.1", 1, 100));
@@ -5604,7 +5621,7 @@ TEST_F(P2PTransportChannelPingTest, TestIceRoleUpdatedOnRemovedPort) {
                          &env.field_trials());
   // Starts with ICEROLE_CONTROLLING.
   PrepareChannel(&ch);
-  IceConfig config = CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig config = CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   ch.SetIceConfig(config);
   ch.MaybeStartGathering();
   ch.AddRemoteCandidate(
@@ -5735,9 +5752,9 @@ class P2PTransportChannelMostLikelyToWorkFirstTest
         env, &network_manager_, packet_socket_factory(), ServerAddresses(),
         kTurnUdpIntAddr, webrtc::SocketAddress());
     port_allocator_->set_flags(port_allocator_->flags() |
-                               PORTALLOCATOR_DISABLE_STUN |
-                               PORTALLOCATOR_DISABLE_TCP);
-    port_allocator_->set_step_delay(kMinimumStepDelay);
+                               webrtc::PORTALLOCATOR_DISABLE_STUN |
+                               webrtc::PORTALLOCATOR_DISABLE_TCP);
+    port_allocator_->set_step_delay(webrtc::kMinimumStepDelay);
     return *port_allocator_;
   }
 
@@ -5747,7 +5764,7 @@ class P2PTransportChannelMostLikelyToWorkFirstTest
       int stable_writable_connection_ping_interval) {
     channel_ = std::make_unique<P2PTransportChannel>(
         "checks", 1, port_allocator_.get(), &env.field_trials());
-    IceConfig config = channel_->config();
+    webrtc::IceConfig config = channel_->config();
     config.prioritize_most_likely_candidate_pairs =
         prioritize_most_likely_to_work;
     config.stable_writable_connection_ping_interval =
@@ -5993,7 +6010,7 @@ TEST_F(P2PTransportChannelMostLikelyToWorkFirstTest, TestTcpTurn) {
   const Environment env = CreateEnvironment();
   // Add a Tcp Turn server.
   turn_server()->AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
-  RelayServerConfig config;
+  webrtc::RelayServerConfig config;
   config.credentials = kRelayCredentials;
   config.ports.push_back(ProtocolAddress(kTurnTcpIntAddr, webrtc::PROTO_TCP));
   CreatePortAllocator(env).AddTurnServerForTesting(config);
@@ -6045,7 +6062,7 @@ TEST(P2PTransportChannelResolverTest, HostnameCandidateIsResolved) {
   init.set_async_dns_resolver_factory(&resolver_fixture);
   init.set_field_trials(&env.field_trials());
   auto channel = P2PTransportChannel::Create("tn", 0, std::move(init));
-  Candidate hostname_candidate;
+  webrtc::Candidate hostname_candidate;
   SocketAddress hostname_address("fake.test", 1000);
   hostname_candidate.set_address(hostname_address);
   channel->AddRemoteCandidate(hostname_candidate);
@@ -6275,9 +6292,10 @@ TEST_F(P2PTransportChannelTest,
   // ep1 and ep2 will gather host candidates with addresses
   // kPublicAddrs[0] and kPublicAddrs[1], respectively. ep1 also gathers a srflx
   // and a relay candidates.
-  ConfigureEndpoints(env, OPEN, OPEN,
-                     kDefaultPortAllocatorFlags | PORTALLOCATOR_DISABLE_TCP,
-                     kOnlyLocalPorts);
+  ConfigureEndpoints(
+      env, OPEN, OPEN,
+      webrtc::kDefaultPortAllocatorFlags | webrtc::PORTALLOCATOR_DISABLE_TCP,
+      kOnlyLocalPorts);
   // ICE parameter will be set up when creating the channels.
   set_remote_ice_parameter_source(FROM_SETICEPARAMETERS);
   GetEndpoint(0)->network_manager_.set_mdns_responder(
@@ -6316,7 +6334,7 @@ TEST_F(P2PTransportChannelTest,
 
   ASSERT_THAT(
       webrtc::WaitUntil([&] { return ep1_ch1()->gathering_state(); },
-                        Eq(kIceGatheringComplete),
+                        Eq(webrtc::kIceGatheringComplete),
                         {.timeout = webrtc::TimeDelta::Millis(kMediumTimeout)}),
       webrtc::IsRtcOk());
   // We should have the following candidate pairs on both endpoints:
@@ -6330,8 +6348,8 @@ TEST_F(P2PTransportChannelTest,
                         {.timeout = webrtc::TimeDelta::Millis(kMediumTimeout)}),
       webrtc::IsRtcOk());
 
-  IceTransportStats ice_transport_stats1;
-  IceTransportStats ice_transport_stats2;
+  webrtc::IceTransportStats ice_transport_stats1;
+  webrtc::IceTransportStats ice_transport_stats2;
   ep1_ch1()->GetStats(&ice_transport_stats1);
   ep2_ch1()->GetStats(&ice_transport_stats2);
   EXPECT_EQ(3u, ice_transport_stats1.connection_infos.size());
@@ -6375,11 +6393,11 @@ TEST_F(P2PTransportChannelTest,
        ConnectingIncreasesSelectedCandidatePairChanges) {
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   CreateChannels(env);
 
-  IceTransportStats ice_transport_stats;
+  webrtc::IceTransportStats ice_transport_stats;
   ASSERT_TRUE(ep1_ch1()->GetStats(&ice_transport_stats));
   EXPECT_EQ(0u, ice_transport_stats.selected_candidate_pair_changes);
 
@@ -6400,11 +6418,11 @@ TEST_F(P2PTransportChannelTest,
        DisconnectedIncreasesSelectedCandidatePairChanges) {
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   CreateChannels(env);
 
-  IceTransportStats ice_transport_stats;
+  webrtc::IceTransportStats ice_transport_stats;
   ASSERT_TRUE(ep1_ch1()->GetStats(&ice_transport_stats));
   EXPECT_EQ(0u, ice_transport_stats.selected_candidate_pair_changes);
 
@@ -6438,11 +6456,11 @@ TEST_F(P2PTransportChannelTest,
        NewSelectionIncreasesSelectedCandidatePairChanges) {
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   CreateChannels(env);
 
-  IceTransportStats ice_transport_stats;
+  webrtc::IceTransportStats ice_transport_stats;
   ASSERT_TRUE(ep1_ch1()->GetStats(&ice_transport_stats));
   EXPECT_EQ(0u, ice_transport_stats.selected_candidate_pair_changes);
 
@@ -6544,33 +6562,33 @@ TEST_F(P2PTransportChannelTest,
 TEST_F(P2PTransportChannelTest,
        NoPairOfLocalRelayCandidateWithRemoteMdnsCandidate) {
   const Environment env = CreateEnvironment();
-  const int kOnlyRelayPorts = cricket::PORTALLOCATOR_DISABLE_UDP |
-                              cricket::PORTALLOCATOR_DISABLE_STUN |
-                              cricket::PORTALLOCATOR_DISABLE_TCP;
+  const int kOnlyRelayPorts = webrtc::PORTALLOCATOR_DISABLE_UDP |
+                              webrtc::PORTALLOCATOR_DISABLE_STUN |
+                              webrtc::PORTALLOCATOR_DISABLE_TCP;
   // We use one endpoint to test the behavior of adding remote candidates, and
   // this endpoint only gathers relay candidates.
   ConfigureEndpoints(env, OPEN, OPEN, kOnlyRelayPorts,
-                     kDefaultPortAllocatorFlags);
+                     webrtc::kDefaultPortAllocatorFlags);
   GetEndpoint(0)->cd1_.ch_ = CreateChannel(
       env, 0, ICE_CANDIDATE_COMPONENT_DEFAULT, kIceParams[0], kIceParams[1]);
-  IceConfig config;
+  webrtc::IceConfig config;
   // Start gathering and we should have only a single relay port.
   ep1_ch1()->SetIceConfig(config);
   ep1_ch1()->MaybeStartGathering();
   EXPECT_THAT(webrtc::WaitUntil(
                   [&] { return ep1_ch1()->gathering_state(); },
-                  Eq(IceGatheringState::kIceGatheringComplete),
+                  Eq(webrtc::IceGatheringState::kIceGatheringComplete),
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
   EXPECT_EQ(1u, ep1_ch1()->ports().size());
   // Add a plain remote host candidate and three remote mDNS candidates with the
   // host, srflx and relay types. Note that the candidates differ in their
   // ports.
-  cricket::Candidate host_candidate = CreateUdpCandidate(
+  webrtc::Candidate host_candidate = CreateUdpCandidate(
       IceCandidateType::kHost, "1.1.1.1", 1 /* port */, 0 /* priority */);
   ep1_ch1()->AddRemoteCandidate(host_candidate);
 
-  std::vector<cricket::Candidate> mdns_candidates;
+  std::vector<webrtc::Candidate> mdns_candidates;
   mdns_candidates.push_back(CreateUdpCandidate(IceCandidateType::kHost,
                                                "example.local", 2 /* port */,
                                                0 /* priority */));
@@ -6622,9 +6640,8 @@ TEST_F(P2PTransportChannelTest,
   // kPublicAddrs[0] and kPublicAddrs[1], respectively, and we use a shared
   // socket in gathering.
   const auto kOnlyLocalAndStunPorts =
-      cricket::PORTALLOCATOR_DISABLE_RELAY |
-      cricket::PORTALLOCATOR_DISABLE_TCP |
-      cricket::PORTALLOCATOR_ENABLE_SHARED_SOCKET;
+      webrtc::PORTALLOCATOR_DISABLE_RELAY | webrtc::PORTALLOCATOR_DISABLE_TCP |
+      webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET;
   // ep1 is configured with a NAT so that we do gather a srflx candidate.
   ConfigureEndpoints(env, NAT_FULL_CONE, OPEN, kOnlyLocalAndStunPorts,
                      kOnlyLocalAndStunPorts);
@@ -6662,17 +6679,19 @@ TEST_F(P2PTransportChannelTest,
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
 
-  ConfigureEndpoints(
-      env, OPEN, OPEN,
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_SHARED_SOCKET,
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_SHARED_SOCKET);
+  ConfigureEndpoints(env, OPEN, OPEN,
+                     webrtc::kDefaultPortAllocatorFlags |
+                         webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET,
+                     webrtc::kDefaultPortAllocatorFlags |
+                         webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET);
   auto* ep1 = GetEndpoint(0);
   auto* ep2 = GetEndpoint(1);
-  ep1->allocator_->SetCandidateFilter(CF_RELAY);
-  ep2->allocator_->SetCandidateFilter(CF_RELAY);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_RELAY);
+  ep2->allocator_->SetCandidateFilter(webrtc::CF_RELAY);
   // Enable continual gathering and also resurfacing gathered candidates upon
   // the candidate filter changed in the ICE configuration.
-  IceConfig ice_config = CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig ice_config =
+      CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   ice_config.surface_ice_candidates_on_ice_transport_type_changed = true;
   CreateChannels(env, ice_config, ice_config);
   ASSERT_THAT(webrtc::WaitUntil(
@@ -6689,7 +6708,7 @@ TEST_F(P2PTransportChannelTest,
   EXPECT_TRUE(ep2_ch1()->selected_connection()->local_candidate().is_relay());
 
   // Loosen the candidate filter at ep1.
-  ep1->allocator_->SetCandidateFilter(CF_ALL);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_ALL);
   EXPECT_THAT(webrtc::WaitUntil(
                   [&] {
                     return ep1_ch1()->selected_connection() != nullptr &&
@@ -6705,7 +6724,7 @@ TEST_F(P2PTransportChannelTest,
   EXPECT_TRUE(ep1_ch1()->selected_connection()->remote_candidate().is_relay());
 
   // Loosen the candidate filter at ep2.
-  ep2->allocator_->SetCandidateFilter(CF_ALL);
+  ep2->allocator_->SetCandidateFilter(webrtc::CF_ALL);
   EXPECT_THAT(webrtc::WaitUntil(
                   [&] {
                     return ep2_ch1()->selected_connection() != nullptr &&
@@ -6757,17 +6776,19 @@ TEST_F(P2PTransportChannelTest,
   //  1. We don't generate the srflx candidate when we have public IP.
   //  2. We keep the host candidate in this case in CheckCandidateFilter even
   //     though we intend to filter them.
-  ConfigureEndpoints(
-      env, NAT_FULL_CONE, NAT_FULL_CONE,
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_SHARED_SOCKET,
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_SHARED_SOCKET);
+  ConfigureEndpoints(env, NAT_FULL_CONE, NAT_FULL_CONE,
+                     webrtc::kDefaultPortAllocatorFlags |
+                         webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET,
+                     webrtc::kDefaultPortAllocatorFlags |
+                         webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET);
   auto* ep1 = GetEndpoint(0);
   auto* ep2 = GetEndpoint(1);
-  ep1->allocator_->SetCandidateFilter(CF_RELAY);
-  ep2->allocator_->SetCandidateFilter(CF_RELAY);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_RELAY);
+  ep2->allocator_->SetCandidateFilter(webrtc::CF_RELAY);
   // Enable continual gathering and also resurfacing gathered candidates upon
   // the candidate filter changed in the ICE configuration.
-  IceConfig ice_config = CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig ice_config =
+      CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   ice_config.surface_ice_candidates_on_ice_transport_type_changed = true;
   CreateChannels(env, ice_config, ice_config);
   ASSERT_THAT(webrtc::WaitUntil(
@@ -6780,7 +6801,7 @@ TEST_F(P2PTransportChannelTest,
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout),
                    .clock = &clock}),
               webrtc::IsRtcOk());
-  const uint32_t kCandidateFilterNoHost = CF_ALL & ~CF_HOST;
+  const uint32_t kCandidateFilterNoHost = webrtc::CF_ALL & ~webrtc::CF_HOST;
   // Loosen the candidate filter at ep1.
   ep1->allocator_->SetCandidateFilter(kCandidateFilterNoHost);
   EXPECT_THAT(webrtc::WaitUntil(
@@ -6845,16 +6866,17 @@ TEST_F(P2PTransportChannelTest,
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
 
-  ConfigureEndpoints(
-      env, OPEN, OPEN,
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_SHARED_SOCKET,
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_SHARED_SOCKET);
+  ConfigureEndpoints(env, OPEN, OPEN,
+                     webrtc::kDefaultPortAllocatorFlags |
+                         webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET,
+                     webrtc::kDefaultPortAllocatorFlags |
+                         webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET);
   auto* ep1 = GetEndpoint(0);
   auto* ep2 = GetEndpoint(1);
-  ep1->allocator_->SetCandidateFilter(CF_RELAY);
-  ep2->allocator_->SetCandidateFilter(CF_RELAY);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_RELAY);
+  ep2->allocator_->SetCandidateFilter(webrtc::CF_RELAY);
   // Only gather once.
-  IceConfig ice_config = CreateIceConfig(1000, GATHER_ONCE);
+  webrtc::IceConfig ice_config = CreateIceConfig(1000, webrtc::GATHER_ONCE);
   ice_config.surface_ice_candidates_on_ice_transport_type_changed = true;
   CreateChannels(env, ice_config, ice_config);
   ASSERT_THAT(webrtc::WaitUntil(
@@ -6868,13 +6890,13 @@ TEST_F(P2PTransportChannelTest,
                    .clock = &clock}),
               webrtc::IsRtcOk());
   // Loosen the candidate filter at ep1.
-  ep1->allocator_->SetCandidateFilter(CF_ALL);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_ALL);
   // Wait for a period for any potential surfacing of new candidates.
   SIMULATED_WAIT(false, kDefaultTimeout, clock);
   EXPECT_TRUE(ep1_ch1()->selected_connection()->local_candidate().is_relay());
 
   // Loosen the candidate filter at ep2.
-  ep2->allocator_->SetCandidateFilter(CF_ALL);
+  ep2->allocator_->SetCandidateFilter(webrtc::CF_ALL);
   EXPECT_TRUE(ep2_ch1()->selected_connection()->local_candidate().is_relay());
   DestroyChannels();
 }
@@ -6887,17 +6909,19 @@ TEST_F(P2PTransportChannelTest,
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
 
-  ConfigureEndpoints(
-      env, OPEN, OPEN,
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_SHARED_SOCKET,
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_SHARED_SOCKET);
+  ConfigureEndpoints(env, OPEN, OPEN,
+                     webrtc::kDefaultPortAllocatorFlags |
+                         webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET,
+                     webrtc::kDefaultPortAllocatorFlags |
+                         webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET);
   auto* ep1 = GetEndpoint(0);
   auto* ep2 = GetEndpoint(1);
-  ep1->allocator_->SetCandidateFilter(CF_ALL);
-  ep2->allocator_->SetCandidateFilter(CF_ALL);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_ALL);
+  ep2->allocator_->SetCandidateFilter(webrtc::CF_ALL);
   // Enable continual gathering and also resurfacing gathered candidates upon
   // the candidate filter changed in the ICE configuration.
-  IceConfig ice_config = CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig ice_config =
+      CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   ice_config.surface_ice_candidates_on_ice_transport_type_changed = true;
   // Pause candidates so we can gather all types of candidates. See
   // P2PTransportChannel::OnConnectionStateChange, where we would stop the
@@ -6948,15 +6972,15 @@ TEST_F(P2PTransportChannelTest,
   test_invariants();
 
   // Set a more restrictive candidate filter at ep1.
-  ep1->allocator_->SetCandidateFilter(CF_HOST | CF_REFLEXIVE);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_HOST | webrtc::CF_REFLEXIVE);
   SIMULATED_WAIT(false, kDefaultTimeout, clock);
   test_invariants();
 
-  ep1->allocator_->SetCandidateFilter(CF_HOST);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_HOST);
   SIMULATED_WAIT(false, kDefaultTimeout, clock);
   test_invariants();
 
-  ep1->allocator_->SetCandidateFilter(CF_NONE);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_NONE);
   SIMULATED_WAIT(false, kDefaultTimeout, clock);
   test_invariants();
   DestroyChannels();
@@ -6973,17 +6997,19 @@ TEST_F(P2PTransportChannelTest, SurfaceRequiresCoordination) {
   const Environment env = CreateEnvironment(FieldTrials::CreateNoGlobal(
       "WebRTC-IceFieldTrials/skip_relay_to_non_relay_connections:true/"));
 
-  ConfigureEndpoints(
-      env, OPEN, OPEN,
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_SHARED_SOCKET,
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_SHARED_SOCKET);
+  ConfigureEndpoints(env, OPEN, OPEN,
+                     webrtc::kDefaultPortAllocatorFlags |
+                         webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET,
+                     webrtc::kDefaultPortAllocatorFlags |
+                         webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET);
   auto* ep1 = GetEndpoint(0);
   auto* ep2 = GetEndpoint(1);
-  ep1->allocator_->SetCandidateFilter(CF_RELAY);
-  ep2->allocator_->SetCandidateFilter(CF_ALL);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_RELAY);
+  ep2->allocator_->SetCandidateFilter(webrtc::CF_ALL);
   // Enable continual gathering and also resurfacing gathered candidates upon
   // the candidate filter changed in the ICE configuration.
-  IceConfig ice_config = CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig ice_config =
+      CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   ice_config.surface_ice_candidates_on_ice_transport_type_changed = true;
   // Pause candidates gathering so we can gather all types of candidates. See
   // P2PTransportChannel::OnConnectionStateChange, where we would stop the
@@ -7035,7 +7061,7 @@ TEST_F(P2PTransportChannelTest, SurfaceRequiresCoordination) {
   SIMULATED_WAIT(false, 300000, clock);
 
   // And then loosen caller candidate filter.
-  ep1->allocator_->SetCandidateFilter(CF_ALL);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_ALL);
 
   SIMULATED_WAIT(false, kDefaultTimeout, clock);
 
@@ -7210,7 +7236,7 @@ TEST(P2PTransportChannel, InjectActiveIceController) {
 class ForgetLearnedStateController : public cricket::BasicIceController {
  public:
   explicit ForgetLearnedStateController(
-      const cricket::IceControllerFactoryArgs& args)
+      const webrtc::IceControllerFactoryArgs& args)
       : cricket::BasicIceController(args) {}
 
   SwitchResult SortAndSwitchConnection(IceSwitchReason reason) override {
@@ -7233,10 +7259,10 @@ class ForgetLearnedStateController : public cricket::BasicIceController {
 };
 
 class ForgetLearnedStateControllerFactory
-    : public cricket::IceControllerFactoryInterface {
+    : public webrtc::IceControllerFactoryInterface {
  public:
   std::unique_ptr<cricket::IceControllerInterface> Create(
-      const cricket::IceControllerFactoryArgs& args) override {
+      const webrtc::IceControllerFactoryArgs& args) override {
     auto controller = std::make_unique<ForgetLearnedStateController>(args);
     // Keep a pointer to allow modifying calls.
     // Must not be used after the p2ptransportchannel has been destructed.
@@ -7297,10 +7323,10 @@ TEST_F(P2PTransportChannelPingTest, TestForgetLearnedState) {
 
 TEST_F(P2PTransportChannelTest, DisableDnsLookupsWithTransportPolicyRelay) {
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   auto* ep1 = GetEndpoint(0);
-  ep1->allocator_->SetCandidateFilter(CF_RELAY);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_RELAY);
 
   std::unique_ptr<webrtc::MockAsyncDnsResolver> mock_async_resolver =
       std::make_unique<webrtc::MockAsyncDnsResolver>();
@@ -7324,10 +7350,10 @@ TEST_F(P2PTransportChannelTest, DisableDnsLookupsWithTransportPolicyRelay) {
 
 TEST_F(P2PTransportChannelTest, DisableDnsLookupsWithTransportPolicyNone) {
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   auto* ep1 = GetEndpoint(0);
-  ep1->allocator_->SetCandidateFilter(CF_NONE);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_NONE);
 
   std::unique_ptr<webrtc::MockAsyncDnsResolver> mock_async_resolver =
       std::make_unique<webrtc::MockAsyncDnsResolver>();
@@ -7351,10 +7377,10 @@ TEST_F(P2PTransportChannelTest, DisableDnsLookupsWithTransportPolicyNone) {
 
 TEST_F(P2PTransportChannelTest, EnableDnsLookupsWithTransportPolicyNoHost) {
   const Environment env = CreateEnvironment();
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
   auto* ep1 = GetEndpoint(0);
-  ep1->allocator_->SetCandidateFilter(CF_ALL & ~CF_HOST);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_ALL & ~webrtc::CF_HOST);
 
   std::unique_ptr<webrtc::MockAsyncDnsResolver> mock_async_resolver =
       std::make_unique<webrtc::MockAsyncDnsResolver>();
@@ -7394,21 +7420,23 @@ TEST_P(GatherAfterConnectedTest, GatherAfterConnected) {
   const Environment env =
       CreateEnvironment(FieldTrials::CreateNoGlobal(field_trial));
   // Use local + relay
-  constexpr uint32_t flags =
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_SHARED_SOCKET |
-      PORTALLOCATOR_DISABLE_STUN | PORTALLOCATOR_DISABLE_TCP;
+  constexpr uint32_t flags = webrtc::kDefaultPortAllocatorFlags |
+                             webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET |
+                             webrtc::PORTALLOCATOR_DISABLE_STUN |
+                             webrtc::PORTALLOCATOR_DISABLE_TCP;
   ConfigureEndpoints(env, OPEN, OPEN, flags, flags);
   auto* ep1 = GetEndpoint(0);
   auto* ep2 = GetEndpoint(1);
-  ep1->allocator_->SetCandidateFilter(CF_ALL);
-  ep2->allocator_->SetCandidateFilter(CF_ALL);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_ALL);
+  ep2->allocator_->SetCandidateFilter(webrtc::CF_ALL);
 
   // Use step delay 3s which is long enough for
   // connection to be established before managing to gather relay candidates.
   int delay = 3000;
   SetAllocationStepDelay(0, delay);
   SetAllocationStepDelay(1, delay);
-  IceConfig ice_config = CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig ice_config =
+      CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   CreateChannels(env, ice_config, ice_config);
 
   PauseCandidates(0);
@@ -7475,22 +7503,24 @@ TEST_P(GatherAfterConnectedTest, GatherAfterConnectedMultiHomed) {
       CreateEnvironment(FieldTrials::CreateNoGlobal(field_trial));
 
   // Use local + relay
-  constexpr uint32_t flags =
-      kDefaultPortAllocatorFlags | PORTALLOCATOR_ENABLE_SHARED_SOCKET |
-      PORTALLOCATOR_DISABLE_STUN | PORTALLOCATOR_DISABLE_TCP;
+  constexpr uint32_t flags = webrtc::kDefaultPortAllocatorFlags |
+                             webrtc::PORTALLOCATOR_ENABLE_SHARED_SOCKET |
+                             webrtc::PORTALLOCATOR_DISABLE_STUN |
+                             webrtc::PORTALLOCATOR_DISABLE_TCP;
   AddAddress(0, kAlternateAddrs[0]);
   ConfigureEndpoints(env, OPEN, OPEN, flags, flags);
   auto* ep1 = GetEndpoint(0);
   auto* ep2 = GetEndpoint(1);
-  ep1->allocator_->SetCandidateFilter(CF_ALL);
-  ep2->allocator_->SetCandidateFilter(CF_ALL);
+  ep1->allocator_->SetCandidateFilter(webrtc::CF_ALL);
+  ep2->allocator_->SetCandidateFilter(webrtc::CF_ALL);
 
   // Use step delay 3s which is long enough for
   // connection to be established before managing to gather relay candidates.
   int delay = 3000;
   SetAllocationStepDelay(0, delay);
   SetAllocationStepDelay(1, delay);
-  IceConfig ice_config = CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig ice_config =
+      CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   CreateChannels(env, ice_config, ice_config);
 
   PauseCandidates(0);
@@ -7552,11 +7582,11 @@ TEST_F(P2PTransportChannelTest, TestIceNoOldCandidatesAfterIceRestart) {
   webrtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
   AddAddress(0, kAlternateAddrs[0]);
-  ConfigureEndpoints(env, OPEN, OPEN, kDefaultPortAllocatorFlags,
-                     kDefaultPortAllocatorFlags);
+  ConfigureEndpoints(env, OPEN, OPEN, webrtc::kDefaultPortAllocatorFlags,
+                     webrtc::kDefaultPortAllocatorFlags);
 
   // gathers continually.
-  IceConfig config = CreateIceConfig(1000, GATHER_CONTINUALLY);
+  webrtc::IceConfig config = CreateIceConfig(1000, webrtc::GATHER_CONTINUALLY);
   CreateChannels(env, config, config);
 
   EXPECT_THAT(
@@ -7601,9 +7631,9 @@ class P2PTransportChannelTestDtlsInStun : public P2PTransportChannelTestBase {
   void Run(bool ep1_support, bool ep2_support) {
     const Environment env = CreateEnvironment();
     CreatePortAllocators(env);
-    IceConfig ep1_config;
+    webrtc::IceConfig ep1_config;
     ep1_config.dtls_handshake_in_stun = ep1_support;
-    IceConfig ep2_config;
+    webrtc::IceConfig ep2_config;
     ep2_config.dtls_handshake_in_stun = ep2_support;
     CreateChannels(env, ep1_config, ep2_config);
     if (ep1_support) {

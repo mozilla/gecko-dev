@@ -81,9 +81,9 @@ class RTC_EXPORT Connection : public CandidatePairInterface {
 
   // Implementation of virtual methods in CandidatePairInterface.
   // Returns the description of the local port
-  const Candidate& local_candidate() const override;
+  const webrtc::Candidate& local_candidate() const override;
   // Returns the description of the remote port to which we communicate.
-  const Candidate& remote_candidate() const override;
+  const webrtc::Candidate& remote_candidate() const override;
 
   // Return local network for this connection.
   virtual const rtc::Network* network() const;
@@ -284,7 +284,8 @@ class RTC_EXPORT Connection : public CandidatePairInterface {
   // If `remote_candidate_` is peer reflexive and is equivalent to
   // `new_candidate` except the type, update `remote_candidate_` to
   // `new_candidate`.
-  void MaybeUpdatePeerReflexiveCandidate(const Candidate& new_candidate);
+  void MaybeUpdatePeerReflexiveCandidate(
+      const webrtc::Candidate& new_candidate);
 
   // Returns the last received time of any data, stun request, or stun
   // response in milliseconds
@@ -374,7 +375,7 @@ class RTC_EXPORT Connection : public CandidatePairInterface {
   // Constructs a new connection to the given remote port.
   Connection(rtc::WeakPtr<webrtc::PortInterface> port,
              size_t index,
-             const Candidate& candidate);
+             const webrtc::Candidate& candidate);
 
   // Called back when StunRequestManager has a stun packet to send
   void OnSendStunPacket(const void* data, size_t size, StunRequest* req);
@@ -413,8 +414,8 @@ class RTC_EXPORT Connection : public CandidatePairInterface {
   webrtc::TaskQueueBase* const network_thread_;
   const uint32_t id_;
   rtc::WeakPtr<webrtc::PortInterface> port_;
-  Candidate local_candidate_ RTC_GUARDED_BY(network_thread_);
-  Candidate remote_candidate_;
+  webrtc::Candidate local_candidate_ RTC_GUARDED_BY(network_thread_);
+  webrtc::Candidate remote_candidate_;
 
   ConnectionInfo stats_;
   rtc::RateTracker recv_rate_tracker_;
@@ -529,7 +530,7 @@ class ProxyConnection : public Connection {
  public:
   ProxyConnection(rtc::WeakPtr<webrtc::PortInterface> port,
                   size_t index,
-                  const Candidate& remote_candidate);
+                  const webrtc::Candidate& remote_candidate);
 
   int Send(const void* data,
            size_t size,

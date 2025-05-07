@@ -119,6 +119,7 @@ rtc_source_set("channel_interface") {
   sources = [ "channel_interface.h" ]
   deps = [
     ":rtp_transport_internal",
+    ":session_description",
     "../api:libjingle_peerconnection_api",
     "../api:rtp_parameters",
     "../media:media_channel",

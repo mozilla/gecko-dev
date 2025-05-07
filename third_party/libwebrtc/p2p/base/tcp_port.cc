@@ -117,7 +117,7 @@ TCPPort::~TCPPort() {
   incoming_.clear();
 }
 
-Connection* TCPPort::CreateConnection(const Candidate& address,
+Connection* TCPPort::CreateConnection(const webrtc::Candidate& address,
                                       CandidateOrigin origin) {
   if (!SupportsProtocol(address.protocol())) {
     return NULL;
@@ -335,7 +335,7 @@ void TCPPort::OnReadyToSend(webrtc::AsyncPacketSocket* socket) {
 // Replace this constant with the config parameter assuming the default value if
 // we decide it is also applicable here.
 TCPConnection::TCPConnection(rtc::WeakPtr<Port> tcp_port,
-                             const Candidate& candidate,
+                             const webrtc::Candidate& candidate,
                              webrtc::AsyncPacketSocket* socket)
     : Connection(std::move(tcp_port), 0, candidate),
       socket_(socket),

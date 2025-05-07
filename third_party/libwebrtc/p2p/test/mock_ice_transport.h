@@ -21,7 +21,7 @@
 namespace webrtc {
 
 // Used in Chromium/remoting/protocol/channel_socket_adapter_unittest.cc
-class MockIceTransport : public cricket::IceTransportInternal {
+class MockIceTransport : public IceTransportInternal {
  public:
   MockIceTransport() {
     SignalReadyToSend(this);
@@ -40,7 +40,7 @@ class MockIceTransport : public cricket::IceTransportInternal {
   MOCK_METHOD(cricket::IceRole, GetIceRole, (), (const, override));
   MOCK_METHOD(bool,
               GetStats,
-              (cricket::IceTransportStats * ice_transport_stats),
+              (webrtc::IceTransportStats * ice_transport_stats),
               (override));
 
   cricket::IceTransportState GetState() const override {
@@ -60,10 +60,8 @@ class MockIceTransport : public cricket::IceTransportInternal {
   void SetRemoteIceParameters(
       const cricket::IceParameters& /* ice_params */) override {}
   void SetRemoteIceMode(cricket::IceMode /* mode */) override {}
-  void SetIceConfig(const cricket::IceConfig& config) override {
-    ice_config_ = config;
-  }
-  const cricket::IceConfig& config() const override { return ice_config_; }
+  void SetIceConfig(const IceConfig& config) override { ice_config_ = config; }
+  const IceConfig& config() const override { return ice_config_; }
   std::optional<int> GetRttEstimate() override { return std::nullopt; }
   const cricket::Connection* selected_connection() const override {
     return nullptr;
@@ -77,8 +75,8 @@ class MockIceTransport : public cricket::IceTransportInternal {
   void RemoveRemoteCandidate(
       const cricket::Candidate& /* candidate */) override {}
   void RemoveAllRemoteCandidates() override {}
-  cricket::IceGatheringState gathering_state() const override {
-    return cricket::IceGatheringState::kIceGatheringComplete;
+  IceGatheringState gathering_state() const override {
+    return IceGatheringState::kIceGatheringComplete;
   }
 
   bool receiving() const override { return true; }
@@ -86,7 +84,7 @@ class MockIceTransport : public cricket::IceTransportInternal {
 
  private:
   std::string transport_name_;
-  cricket::IceConfig ice_config_;
+  IceConfig ice_config_;
 };
 
 }  //  namespace webrtc

@@ -1317,7 +1317,7 @@ TEST_P(StatsCollectorTrackTest, ReportsFromRemoteTrack) {
 // information from local/remote candidates.
 TEST_F(LegacyStatsCollectorTest, IceCandidateReport) {
   const std::string kTransportName = "transport";
-  const rtc::AdapterType kNetworkType = rtc::ADAPTER_TYPE_ETHERNET;
+  const AdapterType kNetworkType = ADAPTER_TYPE_ETHERNET;
   constexpr uint32_t kPriority = 1000;
 
   constexpr int kLocalPort = 2000;
@@ -1331,7 +1331,7 @@ TEST_F(LegacyStatsCollectorTest, IceCandidateReport) {
   auto pc = CreatePeerConnection();
   auto stats = CreateStatsCollector(pc.get());
 
-  cricket::Candidate local;
+  Candidate local;
   EXPECT_GT(local.id().length(), 0u);
   RTC_DCHECK_EQ(local.type(), IceCandidateType::kHost);
   local.set_protocol(cricket::UDP_PROTOCOL_NAME);
@@ -1339,7 +1339,7 @@ TEST_F(LegacyStatsCollectorTest, IceCandidateReport) {
   local.set_priority(kPriority);
   local.set_network_type(kNetworkType);
 
-  cricket::Candidate remote;
+  Candidate remote;
   EXPECT_GT(remote.id().length(), 0u);
   remote.set_type(IceCandidateType::kPrflx);
   remote.set_protocol(cricket::UDP_PROTOCOL_NAME);

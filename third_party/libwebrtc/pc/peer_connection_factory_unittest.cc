@@ -181,7 +181,7 @@ class PeerConnectionFactoryTest : public ::testing::Test {
     EXPECT_EQ(stun_servers, raw_port_allocator_->stun_servers());
   }
 
-  void VerifyTurnServers(std::vector<cricket::RelayServerConfig> turn_servers) {
+  void VerifyTurnServers(std::vector<RelayServerConfig> turn_servers) {
     EXPECT_EQ(turn_servers.size(), raw_port_allocator_->turn_servers().size());
     for (size_t i = 0; i < turn_servers.size(); ++i) {
       ASSERT_EQ(1u, turn_servers[i].ports.size());
@@ -476,12 +476,12 @@ TEST_F(PeerConnectionFactoryTest, CreatePCUsingIceServers) {
   SocketAddress stun1("stun.l.google.com", 19302);
   stun_servers.insert(stun1);
   VerifyStunServers(stun_servers);
-  std::vector<cricket::RelayServerConfig> turn_servers;
-  cricket::RelayServerConfig turn1("test.com", 1234, kTurnUsername,
-                                   kTurnPassword, cricket::PROTO_UDP);
+  std::vector<RelayServerConfig> turn_servers;
+  RelayServerConfig turn1("test.com", 1234, kTurnUsername, kTurnPassword,
+                          cricket::PROTO_UDP);
   turn_servers.push_back(turn1);
-  cricket::RelayServerConfig turn2("hello.com", kDefaultStunPort, kTurnUsername,
-                                   kTurnPassword, cricket::PROTO_TCP);
+  RelayServerConfig turn2("hello.com", kDefaultStunPort, kTurnUsername,
+                          kTurnPassword, cricket::PROTO_TCP);
   turn_servers.push_back(turn2);
   VerifyTurnServers(turn_servers);
 }
@@ -509,12 +509,12 @@ TEST_F(PeerConnectionFactoryTest, CreatePCUsingIceServersUrls) {
   SocketAddress stun1("stun.l.google.com", 19302);
   stun_servers.insert(stun1);
   VerifyStunServers(stun_servers);
-  std::vector<cricket::RelayServerConfig> turn_servers;
-  cricket::RelayServerConfig turn1("test.com", 1234, kTurnUsername,
-                                   kTurnPassword, cricket::PROTO_UDP);
+  std::vector<RelayServerConfig> turn_servers;
+  RelayServerConfig turn1("test.com", 1234, kTurnUsername, kTurnPassword,
+                          cricket::PROTO_UDP);
   turn_servers.push_back(turn1);
-  cricket::RelayServerConfig turn2("hello.com", kDefaultStunPort, kTurnUsername,
-                                   kTurnPassword, cricket::PROTO_TCP);
+  RelayServerConfig turn2("hello.com", kDefaultStunPort, kTurnUsername,
+                          kTurnPassword, cricket::PROTO_TCP);
   turn_servers.push_back(turn2);
   VerifyTurnServers(turn_servers);
 }
@@ -536,9 +536,9 @@ TEST_F(PeerConnectionFactoryTest, CreatePCUsingNoUsernameInUri) {
   auto result =
       factory_->CreatePeerConnectionOrError(config, std::move(pc_dependencies));
   ASSERT_TRUE(result.ok());
-  std::vector<cricket::RelayServerConfig> turn_servers;
-  cricket::RelayServerConfig turn("test.com", 1234, kTurnUsername,
-                                  kTurnPassword, cricket::PROTO_UDP);
+  std::vector<RelayServerConfig> turn_servers;
+  RelayServerConfig turn("test.com", 1234, kTurnUsername, kTurnPassword,
+                         cricket::PROTO_UDP);
   turn_servers.push_back(turn);
   VerifyTurnServers(turn_servers);
 }
@@ -560,9 +560,9 @@ TEST_F(PeerConnectionFactoryTest, CreatePCUsingTurnUrlWithTransportParam) {
   auto result =
       factory_->CreatePeerConnectionOrError(config, std::move(pc_dependencies));
   ASSERT_TRUE(result.ok());
-  std::vector<cricket::RelayServerConfig> turn_servers;
-  cricket::RelayServerConfig turn("hello.com", kDefaultStunPort, kTurnUsername,
-                                  kTurnPassword, cricket::PROTO_TCP);
+  std::vector<RelayServerConfig> turn_servers;
+  RelayServerConfig turn("hello.com", kDefaultStunPort, kTurnUsername,
+                         kTurnPassword, cricket::PROTO_TCP);
   turn_servers.push_back(turn);
   VerifyTurnServers(turn_servers);
 }
@@ -590,18 +590,16 @@ TEST_F(PeerConnectionFactoryTest, CreatePCUsingSecureTurnUrl) {
   auto result =
       factory_->CreatePeerConnectionOrError(config, std::move(pc_dependencies));
   ASSERT_TRUE(result.ok());
-  std::vector<cricket::RelayServerConfig> turn_servers;
-  cricket::RelayServerConfig turn1("hello.com", kDefaultStunTlsPort,
-                                   kTurnUsername, kTurnPassword,
-                                   cricket::PROTO_TLS);
+  std::vector<RelayServerConfig> turn_servers;
+  RelayServerConfig turn1("hello.com", kDefaultStunTlsPort, kTurnUsername,
+                          kTurnPassword, cricket::PROTO_TLS);
   turn_servers.push_back(turn1);
   // TURNS with transport param should be default to tcp.
-  cricket::RelayServerConfig turn2("hello.com", 443, kTurnUsername,
-                                   kTurnPassword, cricket::PROTO_TLS);
+  RelayServerConfig turn2("hello.com", 443, kTurnUsername, kTurnPassword,
+                          cricket::PROTO_TLS);
   turn_servers.push_back(turn2);
-  cricket::RelayServerConfig turn3("hello.com", kDefaultStunTlsPort,
-                                   kTurnUsername, kTurnPassword,
-                                   cricket::PROTO_TLS);
+  RelayServerConfig turn3("hello.com", kDefaultStunTlsPort, kTurnUsername,
+                          kTurnPassword, cricket::PROTO_TLS);
   turn_servers.push_back(turn3);
   VerifyTurnServers(turn_servers);
 }
@@ -640,9 +638,9 @@ TEST_F(PeerConnectionFactoryTest, CreatePCUsingIPLiteralAddress) {
   stun_servers.insert(stun4);  // Default port
   VerifyStunServers(stun_servers);
 
-  std::vector<cricket::RelayServerConfig> turn_servers;
-  cricket::RelayServerConfig turn1("2401:fa00:4::", 1234, kTurnUsername,
-                                   kTurnPassword, cricket::PROTO_UDP);
+  std::vector<RelayServerConfig> turn_servers;
+  RelayServerConfig turn1("2401:fa00:4::", 1234, kTurnUsername, kTurnPassword,
+                          cricket::PROTO_UDP);
   turn_servers.push_back(turn1);
   VerifyTurnServers(turn_servers);
 }

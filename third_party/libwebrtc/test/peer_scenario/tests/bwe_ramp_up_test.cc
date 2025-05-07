@@ -136,11 +136,11 @@ TEST(BweRampupTest, RampUpWithUndemuxableRtpPackets) {
   signaling.NegotiateSdp(
       [&](SessionDescriptionInterface* offer) {
         RtpHeaderExtensionMap extension_map(
-            cricket::GetFirstVideoContentDescription(offer->description())
+            GetFirstVideoContentDescription(offer->description())
                 ->rtp_header_extensions());
         ASSERT_TRUE(extension_map.IsRegistered(kRtpExtensionMid));
         const std::string video_mid =
-            cricket::GetFirstVideoContent(offer->description())->mid();
+            GetFirstVideoContent(offer->description())->mid();
         send_node->router()->SetFilter([extension_map, video_mid, &send_node](
                                            const EmulatedIpPacket& packet) {
           if (IsRtpPacket(packet.data)) {

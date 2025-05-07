@@ -176,7 +176,7 @@ bool PeerConnectionTestWrapper::CreatePc(
     std::unique_ptr<webrtc::VideoEncoderFactory> video_encoder_factory,
     std::unique_ptr<webrtc::VideoDecoderFactory> video_decoder_factory,
     std::unique_ptr<webrtc::FieldTrialsView> field_trials) {
-  std::unique_ptr<cricket::PortAllocator> port_allocator(
+  std::unique_ptr<webrtc::PortAllocator> port_allocator(
       new cricket::FakePortAllocator(
           network_thread_,
           std::make_unique<webrtc::BasicPacketSocketFactory>(socket_server_),

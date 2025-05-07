@@ -50,14 +50,14 @@ class BasicRegatheringController : public sigslot::has_slots<> {
 
   BasicRegatheringController() = delete;
   BasicRegatheringController(const Config& config,
-                             cricket::IceTransportInternal* ice_transport,
+                             IceTransportInternal* ice_transport,
                              rtc::Thread* thread);
   ~BasicRegatheringController() override;
   // TODO(qingsi): Remove this method after implementing a new signal in
   // P2PTransportChannel and reacting to that signal for the initial schedules
   // of regathering.
   void Start();
-  void set_allocator_session(cricket::PortAllocatorSession* allocator_session) {
+  void set_allocator_session(PortAllocatorSession* allocator_session) {
     allocator_session_ = allocator_session;
   }
   // Setting a different config of the regathering interval range on all
@@ -71,7 +71,7 @@ class BasicRegatheringController : public sigslot::has_slots<> {
   // TODO(qingsi): Implement the following methods and use methods from the ICE
   // transport like GetStats to get additional information for the decision
   // making in regathering.
-  void OnIceTransportStateChanged(cricket::IceTransportInternal*) {}
+  void OnIceTransportStateChanged(IceTransportInternal*) {}
   void OnIceTransportWritableState(rtc::PacketTransportInternal*) {}
   void OnIceTransportReceivingState(rtc::PacketTransportInternal*) {}
   void OnIceTransportNetworkRouteChanged(std::optional<rtc::NetworkRoute>) {}
@@ -87,8 +87,8 @@ class BasicRegatheringController : public sigslot::has_slots<> {
   // the object goes out of scope or the config changes.
   std::unique_ptr<ScopedTaskSafety> pending_regathering_;
   Config config_;
-  cricket::IceTransportInternal* ice_transport_;
-  cricket::PortAllocatorSession* allocator_session_ = nullptr;
+  IceTransportInternal* ice_transport_;
+  PortAllocatorSession* allocator_session_ = nullptr;
   rtc::Thread* const thread_;
 };
 

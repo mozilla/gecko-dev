@@ -146,7 +146,7 @@ class MockPeerConnectionObserver : public PeerConnectionObserver {
   }
 
   void OnIceCandidatesRemoved(
-      const std::vector<cricket::Candidate>& candidates) override {
+      const std::vector<Candidate>& candidates) override {
     num_candidates_removed_++;
     callback_triggered_ = true;
   }

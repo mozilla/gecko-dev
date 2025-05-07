@@ -422,7 +422,7 @@ TEST_F(PeerConnectionJsepTest, CreateAnswerHasSameMidsAsOffer) {
   auto callee = CreatePeerConnection();
 
   auto offer = caller->CreateOffer();
-  const auto* offer_data = cricket::GetFirstDataContent(offer->description());
+  const auto* offer_data = GetFirstDataContent(offer->description());
   ASSERT_TRUE(
       caller->SetLocalDescription(CloneSessionDescription(offer.get())));
   ASSERT_TRUE(callee->SetRemoteDescription(std::move(offer)));
@@ -1182,14 +1182,13 @@ TEST_F(PeerConnectionJsepTest, AudioTrackAddedAfterDataSectionInReoffer) {
 static void RenameSection(size_t mline_index,
                           absl::string_view new_mid,
                           SessionDescriptionInterface* sdesc) {
-  cricket::SessionDescription* desc = sdesc->description();
+  SessionDescription* desc = sdesc->description();
   std::string old_mid(desc->contents()[mline_index].mid());
   desc->contents()[mline_index].set_mid(new_mid);
   desc->transport_infos()[mline_index].content_name = new_mid;
-  const cricket::ContentGroup* bundle =
-      desc->GetGroupByName(cricket::GROUP_TYPE_BUNDLE);
+  const ContentGroup* bundle = desc->GetGroupByName(cricket::GROUP_TYPE_BUNDLE);
   if (bundle) {
-    cricket::ContentGroup new_bundle = *bundle;
+    ContentGroup new_bundle = *bundle;
     if (new_bundle.RemoveContentName(old_mid)) {
       new_bundle.AddContentName(new_mid);
     }
@@ -1669,16 +1668,16 @@ static void RemoveRtpHeaderExtensionByUri(
 // Transforms a session description to emulate a legacy endpoint which does not
 // support a=mid, BUNDLE, and the MID header extension.
 static void ClearMids(SessionDescriptionInterface* sdesc) {
-  cricket::SessionDescription* desc = sdesc->description();
+  SessionDescription* desc = sdesc->description();
   desc->RemoveGroupByName(cricket::GROUP_TYPE_BUNDLE);
-  cricket::ContentInfo* audio_content = cricket::GetFirstAudioContent(desc);
+  ContentInfo* audio_content = GetFirstAudioContent(desc);
   if (audio_content) {
     desc->GetTransportInfoByName(audio_content->mid())->content_name = "";
     audio_content->set_mid("");
     RemoveRtpHeaderExtensionByUri(audio_content->media_description(),
                                   RtpExtension::kMidUri);
   }
-  cricket::ContentInfo* video_content = cricket::GetFirstVideoContent(desc);
+  ContentInfo* video_content = GetFirstVideoContent(desc);
   if (video_content) {
     desc->GetTransportInfoByName(video_content->mid())->content_name = "";
     video_content->set_mid("");

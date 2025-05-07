@@ -15,25 +15,25 @@
 #include "absl/strings/string_view.h"
 #include "p2p/base/p2p_constants.h"
 
-namespace cricket {
+namespace webrtc {
 namespace {
 
 // RTCConfiguration uses kUndefined (-1) to indicate unset optional parameters.
 std::optional<int> RTCConfigurationToIceConfigOptionalInt(
     int rtc_configuration_parameter) {
   if (rtc_configuration_parameter ==
-      webrtc::PeerConnectionInterface::RTCConfiguration::kUndefined) {
+      PeerConnectionInterface::RTCConfiguration::kUndefined) {
     return std::nullopt;
   }
   return rtc_configuration_parameter;
 }
 
 ContinualGatheringPolicy GetContinualGatheringPolicy(
-    const webrtc::PeerConnectionInterface::RTCConfiguration& config) {
+    const PeerConnectionInterface::RTCConfiguration& config) {
   switch (config.continual_gathering_policy) {
-    case webrtc::PeerConnectionInterface::GATHER_ONCE:
+    case PeerConnectionInterface::GATHER_ONCE:
       return GATHER_ONCE;
-    case webrtc::PeerConnectionInterface::GATHER_CONTINUALLY:
+    case PeerConnectionInterface::GATHER_CONTINUALLY:
       return GATHER_CONTINUALLY;
     default:
       break;
@@ -80,7 +80,7 @@ RTCError VerifyCandidate(const Candidate& cand) {
 }
 
 RTCError VerifyCandidates(const Candidates& candidates) {
-  for (const Candidate& candidate : candidates) {
+  for (const cricket::Candidate& candidate : candidates) {
     RTCError error = VerifyCandidate(candidate);
     if (!error.ok())
       return error;
@@ -110,8 +110,7 @@ IceConfig::IceConfig(int receiving_timeout_ms,
           regather_on_failed_networks_interval_ms),
       receiving_switching_delay(receiving_switching_delay_ms) {}
 
-IceConfig::IceConfig(
-    const webrtc::PeerConnectionInterface::RTCConfiguration& config)
+IceConfig::IceConfig(const PeerConnectionInterface::RTCConfiguration& config)
     : receiving_timeout(RTCConfigurationToIceConfigOptionalInt(
           config.ice_connection_receiving_timeout)),
       backup_connection_ping_interval(RTCConfigurationToIceConfigOptionalInt(
@@ -139,48 +138,53 @@ IceConfig::IceConfig(
 IceConfig::~IceConfig() = default;
 
 int IceConfig::receiving_timeout_or_default() const {
-  return receiving_timeout.value_or(RECEIVING_TIMEOUT);
+  return receiving_timeout.value_or(cricket::RECEIVING_TIMEOUT);
 }
 int IceConfig::backup_connection_ping_interval_or_default() const {
   return backup_connection_ping_interval.value_or(
-      BACKUP_CONNECTION_PING_INTERVAL);
+      cricket::BACKUP_CONNECTION_PING_INTERVAL);
 }
 int IceConfig::stable_writable_connection_ping_interval_or_default() const {
   return stable_writable_connection_ping_interval.value_or(
-      STRONG_AND_STABLE_WRITABLE_CONNECTION_PING_INTERVAL);
+      cricket::STRONG_AND_STABLE_WRITABLE_CONNECTION_PING_INTERVAL);
 }
 int IceConfig::regather_on_failed_networks_interval_or_default() const {
   return regather_on_failed_networks_interval.value_or(
-      REGATHER_ON_FAILED_NETWORKS_INTERVAL);
+      cricket::REGATHER_ON_FAILED_NETWORKS_INTERVAL);
 }
 int IceConfig::receiving_switching_delay_or_default() const {
-  return receiving_switching_delay.value_or(RECEIVING_SWITCHING_DELAY);
+  return receiving_switching_delay.value_or(cricket::RECEIVING_SWITCHING_DELAY);
 }
 int IceConfig::ice_check_interval_strong_connectivity_or_default() const {
-  return ice_check_interval_strong_connectivity.value_or(STRONG_PING_INTERVAL);
+  return ice_check_interval_strong_connectivity.value_or(
+      cricket::STRONG_PING_INTERVAL);
 }
 int IceConfig::ice_check_interval_weak_connectivity_or_default() const {
-  return ice_check_interval_weak_connectivity.value_or(WEAK_PING_INTERVAL);
+  return ice_check_interval_weak_connectivity.value_or(
+      cricket::WEAK_PING_INTERVAL);
 }
 int IceConfig::ice_check_min_interval_or_default() const {
   return ice_check_min_interval.value_or(-1);
 }
 int IceConfig::ice_unwritable_timeout_or_default() const {
-  return ice_unwritable_timeout.value_or(CONNECTION_WRITE_CONNECT_TIMEOUT);
+  return ice_unwritable_timeout.value_or(
+      cricket::CONNECTION_WRITE_CONNECT_TIMEOUT);
 }
 int IceConfig::ice_unwritable_min_checks_or_default() const {
-  return ice_unwritable_min_checks.value_or(CONNECTION_WRITE_CONNECT_FAILURES);
+  return ice_unwritable_min_checks.value_or(
+      cricket::CONNECTION_WRITE_CONNECT_FAILURES);
 }
 int IceConfig::ice_inactive_timeout_or_default() const {
-  return ice_inactive_timeout.value_or(CONNECTION_WRITE_TIMEOUT);
+  return ice_inactive_timeout.value_or(cricket::CONNECTION_WRITE_TIMEOUT);
 }
 int IceConfig::stun_keepalive_interval_or_default() const {
-  return stun_keepalive_interval.value_or(STUN_KEEPALIVE_INTERVAL);
+  return stun_keepalive_interval.value_or(cricket::STUN_KEEPALIVE_INTERVAL);
 }
 
-webrtc::RTCError IceConfig::IsValid() const {
+RTCError IceConfig::IsValid() const {
   if (ice_check_interval_strong_connectivity_or_default() <
-      ice_check_interval_weak_connectivity.value_or(WEAK_PING_INTERVAL)) {
+      ice_check_interval_weak_connectivity.value_or(
+          cricket::WEAK_PING_INTERVAL)) {
     return RTCError(RTCErrorType::INVALID_PARAMETER,
                     "Ping interval of candidate pairs is shorter when ICE is "
                     "strongly connected than that when ICE is weakly "
@@ -226,17 +230,17 @@ IceTransportInternal::~IceTransportInternal() = default;
 
 void IceTransportInternal::SetIceCredentials(absl::string_view ice_ufrag,
                                              absl::string_view ice_pwd) {
-  SetIceParameters(IceParameters(ice_ufrag, ice_pwd, false));
+  SetIceParameters(cricket::IceParameters(ice_ufrag, ice_pwd, false));
 }
 
 void IceTransportInternal::SetRemoteIceCredentials(absl::string_view ice_ufrag,
                                                    absl::string_view ice_pwd) {
-  SetRemoteIceParameters(IceParameters(ice_ufrag, ice_pwd, false));
+  SetRemoteIceParameters(cricket::IceParameters(ice_ufrag, ice_pwd, false));
 }
 
 void IceTransportInternal::AddGatheringStateCallback(
     const void* removal_tag,
-    absl::AnyInvocable<void(IceTransportInternal*)> callback) {
+    absl::AnyInvocable<void(webrtc::IceTransportInternal*)> callback) {
   gathering_state_callback_list_.AddReceiver(removal_tag, std::move(callback));
 }
 void IceTransportInternal::RemoveGatheringStateCallback(
@@ -244,4 +248,4 @@ void IceTransportInternal::RemoveGatheringStateCallback(
   gathering_state_callback_list_.RemoveReceivers(removal_tag);
 }
 
-}  // namespace cricket
+}  // namespace webrtc

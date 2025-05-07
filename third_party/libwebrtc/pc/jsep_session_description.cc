@@ -27,7 +27,7 @@
 #include "rtc_base/socket_address.h"
 
 using cricket::Candidate;
-using cricket::SessionDescription;
+using ::webrtc::SessionDescription;
 
 namespace webrtc {
 namespace {
@@ -39,7 +39,7 @@ constexpr int kDummyPort = 9;
 // candidates.
 void UpdateConnectionAddress(
     const JsepCandidateCollection& candidate_collection,
-    cricket::MediaContentDescription* media_desc) {
+    MediaContentDescription* media_desc) {
   int port = kDummyPort;
   std::string ip = kDummyAddress;
   std::string hostname;
@@ -146,7 +146,7 @@ std::unique_ptr<SessionDescriptionInterface> CreateSessionDescription(
     SdpType type,
     const std::string& session_id,
     const std::string& session_version,
-    std::unique_ptr<cricket::SessionDescription> description) {
+    std::unique_ptr<SessionDescription> description) {
   auto jsep_description = std::make_unique<JsepSessionDescription>(type);
   bool initialize_success = jsep_description->Initialize(
       std::move(description), session_id, session_version);
@@ -170,7 +170,7 @@ JsepSessionDescription::JsepSessionDescription(const std::string& type) {
 
 JsepSessionDescription::JsepSessionDescription(
     SdpType type,
-    std::unique_ptr<cricket::SessionDescription> description,
+    std::unique_ptr<SessionDescription> description,
     absl::string_view session_id,
     absl::string_view session_version)
     : description_(std::move(description)),
@@ -184,7 +184,7 @@ JsepSessionDescription::JsepSessionDescription(
 JsepSessionDescription::~JsepSessionDescription() {}
 
 bool JsepSessionDescription::Initialize(
-    std::unique_ptr<cricket::SessionDescription> description,
+    std::unique_ptr<SessionDescription> description,
     const std::string& session_id,
     const std::string& session_version) {
   if (!description)

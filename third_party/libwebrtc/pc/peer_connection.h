@@ -123,7 +123,7 @@ class PeerConnection : public PeerConnectionInternal,
       const PeerConnectionInterface::RTCConfiguration& configuration,
       PeerConnectionDependencies& dependencies,
       const cricket::ServerAddresses& stun_servers,
-      const std::vector<cricket::RelayServerConfig>& turn_servers);
+      const std::vector<RelayServerConfig>& turn_servers);
 
   rtc::scoped_refptr<StreamCollectionInterface> local_streams() override;
   rtc::scoped_refptr<StreamCollectionInterface> remote_streams() override;
@@ -239,8 +239,7 @@ class PeerConnection : public PeerConnectionInternal,
   bool AddIceCandidate(const IceCandidateInterface* candidate) override;
   void AddIceCandidate(std::unique_ptr<IceCandidateInterface> candidate,
                        std::function<void(RTCError)> callback) override;
-  bool RemoveIceCandidates(
-      const std::vector<cricket::Candidate>& candidates) override;
+  bool RemoveIceCandidates(const std::vector<Candidate>& candidates) override;
 
   RTCError SetBitrate(const BitrateSettings& bitrate) override;
   void ReconfigureBandwidthEstimation(
@@ -366,9 +365,7 @@ class PeerConnection : public PeerConnectionInternal,
     RTC_DCHECK_RUN_ON(network_thread());
     return transport_controller_.get();
   }
-  cricket::PortAllocator* port_allocator() override {
-    return port_allocator_.get();
-  }
+  PortAllocator* port_allocator() override { return port_allocator_.get(); }
   Call* call_ptr() override { return call_ptr_; }
 
   ConnectionContext* context() { return context_.get(); }
@@ -380,7 +377,7 @@ class PeerConnection : public PeerConnectionInternal,
 
   // Asynchronously adds a remote candidate on the network thread.
   void AddRemoteCandidate(absl::string_view mid,
-                          const cricket::Candidate& candidate) override;
+                          const Candidate& candidate) override;
 
   // Report the UMA metric BundleUsage for the given remote description.
   void ReportSdpBundleUsage(
@@ -402,10 +399,9 @@ class PeerConnection : public PeerConnectionInternal,
     RTC_DCHECK_RUN_ON(signaling_thread());
     return is_unified_plan_;
   }
-  bool ValidateBundleSettings(
-      const cricket::SessionDescription* desc,
-      const std::map<std::string, const cricket::ContentGroup*>&
-          bundle_groups_by_mid) override;
+  bool ValidateBundleSettings(const SessionDescription* desc,
+                              const std::map<std::string, const ContentGroup*>&
+                                  bundle_groups_by_mid) override;
 
   bool CreateDataChannelTransport(absl::string_view mid) override;
   void DestroyDataChannelTransport(RTCError error) override;
@@ -472,7 +468,7 @@ class PeerConnection : public PeerConnectionInternal,
                  std::unique_ptr<Call> call,
                  PeerConnectionDependencies& dependencies,
                  const cricket::ServerAddresses& stun_servers,
-                 const std::vector<cricket::RelayServerConfig>& turn_servers,
+                 const std::vector<RelayServerConfig>& turn_servers,
                  bool dtls_enabled);
 
   ~PeerConnection() override;
@@ -484,7 +480,7 @@ class PeerConnection : public PeerConnectionInternal,
   // to set the initial value of `transport_controller_copy_`.
   JsepTransportController* InitializeNetworkThread(
       const cricket::ServerAddresses& stun_servers,
-      const std::vector<cricket::RelayServerConfig>& turn_servers);
+      const std::vector<RelayServerConfig>& turn_servers);
   JsepTransportController* InitializeTransportController_n(
       const RTCConfiguration& configuration) RTC_RUN_ON(network_thread());
 
@@ -513,7 +509,7 @@ class PeerConnection : public PeerConnectionInternal,
                            const std::string& error_text)
       RTC_RUN_ON(signaling_thread());
   // Some local ICE candidates have been removed.
-  void OnIceCandidatesRemoved(const std::vector<cricket::Candidate>& candidates)
+  void OnIceCandidatesRemoved(const std::vector<Candidate>& candidates)
       RTC_RUN_ON(signaling_thread());
 
   void OnSelectedCandidatePairChanged(
@@ -528,13 +524,13 @@ class PeerConnection : public PeerConnectionInternal,
   };
   InitializePortAllocatorResult InitializePortAllocator_n(
       const cricket::ServerAddresses& stun_servers,
-      const std::vector<cricket::RelayServerConfig>& turn_servers,
+      const std::vector<RelayServerConfig>& turn_servers,
       const RTCConfiguration& configuration);
   // Called when SetConfiguration is called to apply the supported subset
   // of the configuration on the network thread.
   bool ReconfigurePortAllocator_n(
       const cricket::ServerAddresses& stun_servers,
-      const std::vector<cricket::RelayServerConfig>& turn_servers,
+      const std::vector<RelayServerConfig>& turn_servers,
       IceTransportsType type,
       int candidate_pool_size,
       PortPrunePolicy turn_port_prune_policy,
@@ -553,10 +549,9 @@ class PeerConnection : public PeerConnectionInternal,
 
   // Returns true and the TransportInfo of the given `content_name`
   // from `description`. Returns false if it's not available.
-  static bool GetTransportDescription(
-      const cricket::SessionDescription* description,
-      const std::string& content_name,
-      cricket::TransportDescription* info);
+  static bool GetTransportDescription(const SessionDescription* description,
+                                      const std::string& content_name,
+                                      cricket::TransportDescription* info);
 
   // Returns the media index for a local ice candidate given the content name.
   // Returns false if the local session description does not have a media
@@ -568,18 +563,16 @@ class PeerConnection : public PeerConnectionInternal,
   // JsepTransportController signal handlers.
   void OnTransportControllerConnectionState(cricket::IceConnectionState state)
       RTC_RUN_ON(signaling_thread());
-  void OnTransportControllerGatheringState(cricket::IceGatheringState state)
+  void OnTransportControllerGatheringState(::webrtc::IceGatheringState state)
       RTC_RUN_ON(signaling_thread());
   void OnTransportControllerCandidatesGathered(
       const std::string& transport_name,
-      const std::vector<cricket::Candidate>& candidates)
-      RTC_RUN_ON(signaling_thread());
+      const std::vector<Candidate>& candidates) RTC_RUN_ON(signaling_thread());
   void OnTransportControllerCandidateError(
       const cricket::IceCandidateErrorEvent& event)
       RTC_RUN_ON(signaling_thread());
   void OnTransportControllerCandidatesRemoved(
-      const std::vector<cricket::Candidate>& candidates)
-      RTC_RUN_ON(signaling_thread());
+      const std::vector<Candidate>& candidates) RTC_RUN_ON(signaling_thread());
   void OnTransportControllerCandidateChanged(
       const cricket::CandidatePairChangeEvent& event)
       RTC_RUN_ON(signaling_thread());
@@ -597,12 +590,12 @@ class PeerConnection : public PeerConnectionInternal,
       bool dtls_enabled,
       const cricket::TransportStats& stats,
       const std::set<cricket::MediaType>& media_types);
-  void ReportIceCandidateCollected(const cricket::Candidate& candidate)
+  void ReportIceCandidateCollected(const Candidate& candidate)
       RTC_RUN_ON(signaling_thread());
 
   void ReportUsagePattern() const RTC_RUN_ON(signaling_thread());
 
-  void ReportRemoteIceCandidateAdded(const cricket::Candidate& candidate);
+  void ReportRemoteIceCandidateAdded(const Candidate& candidate);
 
   // JsepTransportController::Observer override.
   //
@@ -655,7 +648,7 @@ class PeerConnection : public PeerConnectionInternal,
 
   const std::unique_ptr<AsyncDnsResolverFactoryInterface>
       async_dns_resolver_factory_;
-  std::unique_ptr<cricket::PortAllocator>
+  std::unique_ptr<PortAllocator>
       port_allocator_;  // TODO(bugs.webrtc.org/9987): Accessed on both
                         // signaling and network thread.
   const std::unique_ptr<IceTransportFactory>

@@ -112,7 +112,7 @@ class DtlsTransportInternal : public rtc::PacketTransportInternal {
   }
 
   // Expose the underneath IceTransport.
-  virtual IceTransportInternal* ice_transport() = 0;
+  virtual webrtc::IceTransportInternal* ice_transport() = 0;
 
   // F: void(DtlsTransportInternal*, const webrtc::DtlsTransportState)
   template <typename F>

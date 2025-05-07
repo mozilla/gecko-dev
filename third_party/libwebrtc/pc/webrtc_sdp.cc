@@ -68,10 +68,7 @@
 #include "rtc_base/string_encode.h"
 #include "rtc_base/strings/string_builder.h"
 
-using cricket::AudioContentDescription;
 using cricket::Candidate;
-using cricket::Candidates;
-using cricket::ContentInfo;
 using cricket::ICE_CANDIDATE_COMPONENT_RTCP;
 using cricket::ICE_CANDIDATE_COMPONENT_RTP;
 using cricket::kApplicationSpecificBandwidth;
@@ -79,12 +76,7 @@ using cricket::kCodecParamMaxPTime;
 using cricket::kCodecParamMinPTime;
 using cricket::kCodecParamPTime;
 using cricket::kTransportSpecificBandwidth;
-using cricket::MediaContentDescription;
-using cricket::MediaProtocolType;
-using cricket::MediaType;
 using cricket::RidDescription;
-using cricket::RtpHeaderExtensions;
-using cricket::SctpDataContentDescription;
 using cricket::SimulcastDescription;
 using cricket::SimulcastLayer;
 using cricket::SimulcastLayerList;
@@ -93,9 +85,16 @@ using cricket::StreamParams;
 using cricket::StreamParamsVec;
 using cricket::TransportDescription;
 using cricket::TransportInfo;
-using cricket::UnsupportedContentDescription;
-using cricket::VideoContentDescription;
+using ::webrtc::AudioContentDescription;
+using ::webrtc::Candidates;
+using ::webrtc::ContentInfo;
+using ::webrtc::MediaContentDescription;
+using ::webrtc::MediaProtocolType;
+using ::webrtc::RtpHeaderExtensions;
+using ::webrtc::SctpDataContentDescription;
 using ::webrtc::SocketAddress;
+using ::webrtc::UnsupportedContentDescription;
+using ::webrtc::VideoContentDescription;
 
 // TODO(deadbeef): Switch to using anonymous namespace rather than declaring
 // everything "static".
@@ -301,7 +300,7 @@ static bool ParseSessionDescription(absl::string_view message,
                                     TransportDescription* session_td,
                                     RtpHeaderExtensions* session_extmaps,
                                     SocketAddress* connection_addr,
-                                    cricket::SessionDescription* desc,
+                                    SessionDescription* desc,
                                     SdpParseError* error);
 static bool ParseMediaDescription(
     absl::string_view message,
@@ -309,7 +308,7 @@ static bool ParseMediaDescription(
     const RtpHeaderExtensions& session_extmaps,
     size_t* pos,
     const SocketAddress& session_connection_addr,
-    cricket::SessionDescription* desc,
+    SessionDescription* desc,
     std::vector<std::unique_ptr<JsepIceCandidate>>* candidates,
     SdpParseError* error);
 static bool ParseContent(
@@ -327,7 +326,7 @@ static bool ParseContent(
     std::vector<std::unique_ptr<JsepIceCandidate>>* candidates,
     SdpParseError* error);
 static bool ParseGroupAttribute(absl::string_view line,
-                                cricket::SessionDescription* desc,
+                                SessionDescription* desc,
                                 SdpParseError* error);
 static bool ParseSsrcAttribute(absl::string_view line,
                                SsrcInfoVec* ssrc_infos,
@@ -708,15 +707,15 @@ void CreateTracksFromSsrcInfos(const SsrcInfoVec& ssrc_infos,
     }
     std::vector<std::string> stream_ids;
     std::string track_id;
-    if (msid_signaling & cricket::kMsidSignalingMediaSection) {
+    if (msid_signaling & kMsidSignalingMediaSection) {
       // This is the case with Unified Plan SDP msid signaling.
       stream_ids = msid_stream_ids;
       track_id = std::string(msid_track_id);
-    } else if (msid_signaling & cricket::kMsidSignalingSsrcAttribute) {
+    } else if (msid_signaling & kMsidSignalingSsrcAttribute) {
       // This is the case with Plan B SDP msid signaling.
       stream_ids.push_back(ssrc_info.stream_id);
       track_id = ssrc_info.track_id;
-    } else if (msid_signaling == cricket::kMsidSignalingNotUsed) {
+    } else if (msid_signaling == kMsidSignalingNotUsed) {
       // Since no media streams isn't supported with older SDP signaling, we
       // use a default stream id.
       stream_ids.push_back(kDefaultMsid);
@@ -842,7 +841,7 @@ static bool IsValidPort(int port) {
 }
 
 std::string SdpSerialize(const JsepSessionDescription& jdesc) {
-  const cricket::SessionDescription* desc = jdesc.description();
+  const SessionDescription* desc = jdesc.description();
   if (!desc) {
     return "";
   }
@@ -872,7 +871,7 @@ std::string SdpSerialize(const JsepSessionDescription& jdesc) {
   AddLine(kTimeDescription, &message);
 
   // BUNDLE Groups
-  std::vector<const cricket::ContentGroup*> groups =
+  std::vector<const ContentGroup*> groups =
       desc->GetGroupsByName(cricket::GROUP_TYPE_BUNDLE);
   for (const cricket::ContentGroup* group : groups) {
     std::string group_line = kAttrGroup;
@@ -894,7 +893,7 @@ std::string SdpSerialize(const JsepSessionDescription& jdesc) {
   // TODO(bugs.webrtc.org/10421): Change to & cricket::kMsidSignalingSemantic
   // when we think it's safe to do so, so that we gradually fade out this old
   // line that was removed from the specification.
-  if (desc->msid_signaling() != cricket::kMsidSignalingNotUsed) {
+  if (desc->msid_signaling() != kMsidSignalingNotUsed) {
     InitAttrLine(kAttributeMsidSemantics, &os);
     os << kSdpDelimiterColon << " " << kMediaStreamSemantic;
 
@@ -948,9 +947,9 @@ std::string SdpSerializeCandidate(const IceCandidateInterface& candidate) {
 }
 
 // Serializes a cricket Candidate.
-std::string SdpSerializeCandidate(const cricket::Candidate& candidate) {
+std::string SdpSerializeCandidate(const Candidate& candidate) {
   std::string message;
-  std::vector<cricket::Candidate> candidates(1, candidate);
+  std::vector<Candidate> candidates(1, candidate);
   BuildCandidate(candidates, true, &message);
   // From WebRTC draft section 4.8.1.1 candidate-attribute will be
   // just candidate:<candidate> not a=candidate:<blah>CRLF
@@ -969,7 +968,7 @@ bool SdpDeserialize(absl::string_view message,
   TransportDescription session_td("", "");
   RtpHeaderExtensions session_extmaps;
   SocketAddress session_connection_addr;
-  auto desc = std::make_unique<cricket::SessionDescription>();
+  auto desc = std::make_unique<SessionDescription>();
   size_t current_pos = 0;
 
   // Session Description
@@ -1009,7 +1008,7 @@ bool SdpDeserializeCandidate(absl::string_view message,
 
 bool SdpDeserializeCandidate(absl::string_view transport_name,
                              absl::string_view message,
-                             cricket::Candidate* candidate,
+                             Candidate* candidate,
                              SdpParseError* error) {
   RTC_DCHECK(candidate != nullptr);
   if (!ParseCandidate(message, candidate, error, true)) {
@@ -1207,7 +1206,7 @@ bool ParseCandidate(absl::string_view message,
       if (!GetValueFromString(first_line, fields[++i], &network_cost, error)) {
         return false;
       }
-      network_cost = std::min(network_cost, rtc::kNetworkCostMax);
+      network_cost = std::min(network_cost, kNetworkCostMax);
     } else {
       // Skip the unknown extension.
       ++i;
@@ -1322,7 +1321,7 @@ bool ParseExtmap(absl::string_view line,
 
 static void BuildSctpContentAttributes(
     std::string* message,
-    const cricket::SctpDataContentDescription* data_desc) {
+    const SctpDataContentDescription* data_desc) {
   StringBuilder os;
   if (data_desc->use_sctpmap()) {
     // draft-ietf-mmusic-sctp-sdp-04
@@ -1422,8 +1421,7 @@ void BuildMediaLine(const cricket::MediaType media_type,
     }
   } else if (media_type == cricket::MEDIA_TYPE_DATA) {
     type = kMediaTypeData;
-    const cricket::SctpDataContentDescription* sctp_data_desc =
-        media_desc->as_sctp();
+    const SctpDataContentDescription* sctp_data_desc = media_desc->as_sctp();
     if (sctp_data_desc) {
       fmt.append(" ");
 
@@ -1557,8 +1555,7 @@ void BuildMediaDescription(const ContentInfo* content_info,
   AddLine(os.str(), message);
 
   if (cricket::IsDtlsSctp(media_desc->protocol())) {
-    const cricket::SctpDataContentDescription* data_desc =
-        media_desc->as_sctp();
+    const SctpDataContentDescription* data_desc = media_desc->as_sctp();
     BuildSctpContentAttributes(message, data_desc);
   } else if (cricket::IsRtpProtocol(media_desc->protocol())) {
     BuildRtpContentAttributes(media_desc, media_type, msid_signaling, message);
@@ -1614,7 +1611,7 @@ void BuildRtpContentAttributes(const MediaContentDescription* media_desc,
   // line for every media stream, with a special msid-id value of "-"
   // representing no streams. The value of "msid-appdata" MUST be identical for
   // all lines.
-  if (msid_signaling & cricket::kMsidSignalingMediaSection) {
+  if (msid_signaling & kMsidSignalingMediaSection) {
     const StreamParamsVec& streams = media_desc->streams();
     if (streams.size() == 1u) {
       const StreamParams& track = streams[0];
@@ -1685,7 +1682,7 @@ void BuildRtpContentAttributes(const MediaContentDescription* media_desc,
       // a=ssrc:<ssrc-id> cname:<value>
       AddSsrcLine(ssrc, kSsrcAttributeCname, track.cname, message);
 
-      if (msid_signaling & cricket::kMsidSignalingSsrcAttribute) {
+      if (msid_signaling & kMsidSignalingSsrcAttribute) {
         // draft-alvestrand-mmusic-msid-00
         // a=ssrc:<ssrc-id> msid:identifier [appdata]
         // The appdata consists of the "id" attribute of a MediaStreamTrack,
@@ -2098,11 +2095,11 @@ bool ParseSessionDescription(absl::string_view message,
                              TransportDescription* session_td,
                              RtpHeaderExtensions* session_extmaps,
                              SocketAddress* connection_addr,
-                             cricket::SessionDescription* desc,
+                             SessionDescription* desc,
                              SdpParseError* error) {
   std::optional<absl::string_view> line;
 
-  desc->set_msid_signaling(cricket::kMsidSignalingNotUsed);
+  desc->set_msid_signaling(kMsidSignalingNotUsed);
   desc->set_extmap_allow_mixed(false);
   // RFC 4566
   // v=  (protocol version)
@@ -2245,7 +2242,7 @@ bool ParseSessionDescription(absl::string_view message,
         return false;
       }
       if (CaseInsensitiveFind(semantics, kMediaStreamSemantic)) {
-        desc->set_msid_signaling(cricket::kMsidSignalingSemantic);
+        desc->set_msid_signaling(kMsidSignalingSemantic);
       }
     } else if (HasAttribute(*aline, kAttributeExtmapAllowMixed)) {
       desc->set_extmap_allow_mixed(true);
@@ -2261,7 +2258,7 @@ bool ParseSessionDescription(absl::string_view message,
 }
 
 bool ParseGroupAttribute(absl::string_view line,
-                         cricket::SessionDescription* desc,
+                         SessionDescription* desc,
                          SdpParseError* error) {
   RTC_DCHECK(desc != NULL);
 
@@ -2273,7 +2270,7 @@ bool ParseGroupAttribute(absl::string_view line,
   if (!GetValue(fields[0], kAttributeGroup, &semantics, error)) {
     return false;
   }
-  cricket::ContentGroup group(semantics);
+  ContentGroup group(semantics);
   for (size_t i = 1; i < fields.size(); ++i) {
     group.AddContentName(fields[i]);
   }
@@ -2637,7 +2634,7 @@ static std::unique_ptr<MediaContentDescription> ParseContentDescription(
   return media_desc;
 }
 
-bool HasDuplicateMsidLines(cricket::SessionDescription* desc) {
+bool HasDuplicateMsidLines(SessionDescription* desc) {
   std::set<std::pair<std::string, std::string>> seen_msids;
   for (const cricket::ContentInfo& content : desc->contents()) {
     for (const cricket::StreamParams& stream :
@@ -2658,7 +2655,7 @@ bool ParseMediaDescription(
     const RtpHeaderExtensions& session_extmaps,
     size_t* pos,
     const SocketAddress& session_connection_addr,
-    cricket::SessionDescription* desc,
+    SessionDescription* desc,
     std::vector<std::unique_ptr<JsepIceCandidate>>* candidates,
     SdpParseError* error) {
   RTC_DCHECK(desc != NULL);
@@ -2715,7 +2712,7 @@ bool ParseMediaDescription(
     std::unique_ptr<MediaContentDescription> content;
     std::string content_name;
     bool bundle_only = false;
-    int section_msid_signaling = cricket::kMsidSignalingNotUsed;
+    int section_msid_signaling = kMsidSignalingNotUsed;
     absl::string_view media_type = fields[0];
     if ((media_type == kMediaTypeVideo || media_type == kMediaTypeAudio) &&
         !cricket::IsRtpProtocol(protocol)) {
@@ -2963,7 +2960,7 @@ std::optional<cricket::Codec> PopWildcardCodec(
   return std::nullopt;
 }
 
-void UpdateFromWildcardCodecs(cricket::MediaContentDescription* desc) {
+void UpdateFromWildcardCodecs(MediaContentDescription* desc) {
   RTC_DCHECK(desc);
   auto codecs = desc->codecs();
   std::optional<cricket::Codec> wildcard_codec = PopWildcardCodec(&codecs);
@@ -3251,7 +3248,7 @@ bool ParseContent(absl::string_view message,
         if (!ParseMsidAttribute(*line, &stream_ids, &track_id, error)) {
           return false;
         }
-        *msid_signaling |= cricket::kMsidSignalingMediaSection;
+        *msid_signaling |= kMsidSignalingMediaSection;
       } else if (HasAttribute(*line, kAttributeRid)) {
         const size_t kRidPrefixLength =
             kLinePrefixLength + arraysize(kAttributeRid);
@@ -3359,7 +3356,7 @@ bool ParseContent(absl::string_view message,
     CreateTracksFromSsrcInfos(ssrc_infos, stream_ids, track_id, &tracks,
                               *msid_signaling);
   } else if (media_type != cricket::MEDIA_TYPE_DATA &&
-             (*msid_signaling & cricket::kMsidSignalingMediaSection)) {
+             (*msid_signaling & kMsidSignalingMediaSection)) {
     // If the stream_ids/track_id was signaled but SSRCs were unsignaled we
     // still create a track. This isn't done for data media types because
     // StreamParams aren't used for SCTP streams, and RTP data channels don't
@@ -3485,7 +3482,7 @@ bool ParseSsrcAttribute(absl::string_view line,
     if (fields.size() == 2) {
       ssrc_info.track_id = std::string(fields[1]);
     }
-    *msid_signaling |= cricket::kMsidSignalingSsrcAttribute;
+    *msid_signaling |= kMsidSignalingSsrcAttribute;
   } else {
     RTC_LOG(LS_INFO) << "Ignored unknown ssrc-specific attribute: " << line;
   }

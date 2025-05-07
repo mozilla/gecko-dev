@@ -48,13 +48,13 @@ class SimulcastSdpSerializer {
   // Serialization for the RID description according to
   // https://tools.ietf.org/html/draft-ietf-mmusic-rid-15#section-10
   std::string SerializeRidDescription(
-      const cricket::MediaContentDescription& media_desc,
+      const MediaContentDescription& media_desc,
       const cricket::RidDescription& rid_description) const;
 
   // Deserialization for the RidDescription according to
   // https://tools.ietf.org/html/draft-ietf-mmusic-rid-15#section-10
   RTCErrorOr<cricket::RidDescription> DeserializeRidDescription(
-      const cricket::MediaContentDescription& media_desc,
+      const MediaContentDescription& media_desc,
       absl::string_view string) const;
 };
 

@@ -81,13 +81,13 @@ class FakeNetworkMonitor : public NetworkMonitorInterface {
   bool started() { return started_; }
   InterfaceInfo GetInterfaceInfo(absl::string_view if_name) override {
     InterfaceInfo if_info = {
-        .adapter_type = ADAPTER_TYPE_UNKNOWN,
+        .adapter_type = webrtc::ADAPTER_TYPE_UNKNOWN,
         .available = absl::c_count(unavailable_adapters_, if_name) == 0,
     };
     if (absl::StartsWith(if_name, "wifi")) {
-      if_info.adapter_type = ADAPTER_TYPE_WIFI;
+      if_info.adapter_type = webrtc::ADAPTER_TYPE_WIFI;
     } else if (absl::StartsWith(if_name, "cellular")) {
-      if_info.adapter_type = ADAPTER_TYPE_CELLULAR;
+      if_info.adapter_type = webrtc::ADAPTER_TYPE_CELLULAR;
     }
     return if_info;
   }
@@ -211,7 +211,7 @@ class NetworkTest : public ::testing::Test, public sigslot::has_slots<> {
     network_manager.networks_map_.clear();
   }
 
-  AdapterType GetAdapterType(BasicNetworkManager& network_manager) {
+  webrtc::AdapterType GetAdapterType(BasicNetworkManager& network_manager) {
     std::vector<const Network*> list = network_manager.GetNetworks();
     RTC_CHECK_EQ(1, list.size());
     return list[0]->type();
@@ -363,10 +363,10 @@ TEST_F(NetworkTest, TestNetworkConstruct) {
 TEST_F(NetworkTest, TestIsIgnoredNetworkIgnoresIPsStartingWith0) {
   Network ipv4_network1("test_eth0", "Test Network Adapter 1",
                         webrtc::IPAddress(0x12345600U), 24,
-                        ADAPTER_TYPE_ETHERNET);
+                        webrtc::ADAPTER_TYPE_ETHERNET);
   Network ipv4_network2("test_eth1", "Test Network Adapter 2",
                         webrtc::IPAddress(0x010000U), 24,
-                        ADAPTER_TYPE_ETHERNET);
+                        webrtc::ADAPTER_TYPE_ETHERNET);
   webrtc::PhysicalSocketServer socket_server;
   BasicNetworkManager network_manager(&socket_server);
   network_manager.StartUpdating();
@@ -852,20 +852,21 @@ TEST_F(NetworkTest, NetworksSortedByInterfaceName) {
 
 TEST_F(NetworkTest, TestNetworkAdapterTypes) {
   Network wifi("wlan0", "Wireless Adapter", webrtc::IPAddress(0x12345600U), 24,
-               ADAPTER_TYPE_WIFI);
-  EXPECT_EQ(ADAPTER_TYPE_WIFI, wifi.type());
+               webrtc::ADAPTER_TYPE_WIFI);
+  EXPECT_EQ(webrtc::ADAPTER_TYPE_WIFI, wifi.type());
   Network ethernet("eth0", "Ethernet", webrtc::IPAddress(0x12345600U), 24,
-                   ADAPTER_TYPE_ETHERNET);
-  EXPECT_EQ(ADAPTER_TYPE_ETHERNET, ethernet.type());
+                   webrtc::ADAPTER_TYPE_ETHERNET);
+  EXPECT_EQ(webrtc::ADAPTER_TYPE_ETHERNET, ethernet.type());
   Network cellular("test_cell", "Cellular Adapter",
-                   webrtc::IPAddress(0x12345600U), 24, ADAPTER_TYPE_CELLULAR);
-  EXPECT_EQ(ADAPTER_TYPE_CELLULAR, cellular.type());
+                   webrtc::IPAddress(0x12345600U), 24,
+                   webrtc::ADAPTER_TYPE_CELLULAR);
+  EXPECT_EQ(webrtc::ADAPTER_TYPE_CELLULAR, cellular.type());
   Network vpn("bridge_test", "VPN Adapter", webrtc::IPAddress(0x12345600U), 24,
-              ADAPTER_TYPE_VPN);
-  EXPECT_EQ(ADAPTER_TYPE_VPN, vpn.type());
+              webrtc::ADAPTER_TYPE_VPN);
+  EXPECT_EQ(webrtc::ADAPTER_TYPE_VPN, vpn.type());
   Network unknown("test", "Test Adapter", webrtc::IPAddress(0x12345600U), 24,
-                  ADAPTER_TYPE_UNKNOWN);
-  EXPECT_EQ(ADAPTER_TYPE_UNKNOWN, unknown.type());
+                  webrtc::ADAPTER_TYPE_UNKNOWN);
+  EXPECT_EQ(webrtc::ADAPTER_TYPE_UNKNOWN, unknown.type());
 }
 
 #if defined(WEBRTC_POSIX)
@@ -950,7 +951,8 @@ TEST_F(NetworkTest, TestGetAdapterTypeFromNetworkMonitor) {
   // A network created without a network monitor will get UNKNOWN type.
   ifaddrs* addr_list = InstallIpv6Network(if_name, ipv6_address, ipv6_mask,
                                           manager_without_monitor);
-  EXPECT_EQ(ADAPTER_TYPE_UNKNOWN, GetAdapterType(manager_without_monitor));
+  EXPECT_EQ(webrtc::ADAPTER_TYPE_UNKNOWN,
+            GetAdapterType(manager_without_monitor));
   ReleaseIfAddrs(addr_list);
 
   // With the fake network monitor the type should be correctly determined.
@@ -962,7 +964,7 @@ TEST_F(NetworkTest, TestGetAdapterTypeFromNetworkMonitor) {
   // detected by the network monitor now.
   addr_list = InstallIpv6Network(if_name, ipv6_address, ipv6_mask,
                                  manager_with_monitor);
-  EXPECT_EQ(ADAPTER_TYPE_WIFI, GetAdapterType(manager_with_monitor));
+  EXPECT_EQ(webrtc::ADAPTER_TYPE_WIFI, GetAdapterType(manager_with_monitor));
   ReleaseIfAddrs(addr_list);
 }
 
@@ -983,25 +985,25 @@ TEST_F(NetworkTest, TestGetAdapterTypeFromNameMatching) {
   char if_name[20] = "ipsec11";
   ifaddrs* addr_list =
       InstallIpv6Network(if_name, ipv6_address1, ipv6_mask, manager);
-  EXPECT_EQ(ADAPTER_TYPE_VPN, GetAdapterType(manager));
+  EXPECT_EQ(webrtc::ADAPTER_TYPE_VPN, GetAdapterType(manager));
   ClearNetworks(manager);
   ReleaseIfAddrs(addr_list);
 
   strcpy(if_name, "lo0");
   addr_list = InstallIpv6Network(if_name, ipv6_address1, ipv6_mask, manager);
-  EXPECT_EQ(ADAPTER_TYPE_LOOPBACK, GetAdapterType(manager));
+  EXPECT_EQ(webrtc::ADAPTER_TYPE_LOOPBACK, GetAdapterType(manager));
   ClearNetworks(manager);
   ReleaseIfAddrs(addr_list);
 
   strcpy(if_name, "eth0");
   addr_list = InstallIpv4Network(if_name, ipv4_address1, ipv4_mask, manager);
-  EXPECT_EQ(ADAPTER_TYPE_ETHERNET, GetAdapterType(manager));
+  EXPECT_EQ(webrtc::ADAPTER_TYPE_ETHERNET, GetAdapterType(manager));
   ClearNetworks(manager);
   ReleaseIfAddrs(addr_list);
 
   strcpy(if_name, "wlan0");
   addr_list = InstallIpv6Network(if_name, ipv6_address1, ipv6_mask, manager);
-  EXPECT_EQ(ADAPTER_TYPE_WIFI, GetAdapterType(manager));
+  EXPECT_EQ(webrtc::ADAPTER_TYPE_WIFI, GetAdapterType(manager));
   ClearNetworks(manager);
   ReleaseIfAddrs(addr_list);
 
@@ -1217,7 +1219,8 @@ TEST_F(NetworkTest, TestGetBestIPWithPreferGlobalIPv6ToLinkLocalEnabled) {
 
   // Create a network with this prefix.
   Network ipv6_network("test_eth0", "Test NetworkAdapter",
-                       webrtc::TruncateIP(ip, 64), 64, ADAPTER_TYPE_UNKNOWN);
+                       webrtc::TruncateIP(ip, 64), 64,
+                       webrtc::ADAPTER_TYPE_UNKNOWN);
 
   // When there is no address added, it should return an unspecified
   // address.
@@ -1384,7 +1387,7 @@ TEST_F(NetworkTest, TestWhenNetworkListChangeReturnsChangedFlag) {
   EXPECT_TRUE(webrtc::IPFromString("2400:4030:1:2c00:be30:0:0:1", &ip1));
   auto net1 =
       std::make_unique<Network>("em1", "em1", webrtc::TruncateIP(ip1, 64), 64);
-  net1->set_type(ADAPTER_TYPE_CELLULAR_3G);
+  net1->set_type(webrtc::ADAPTER_TYPE_CELLULAR_3G);
   net1->AddIP(ip1);
   std::vector<std::unique_ptr<Network>> list;
   list.push_back(std::move(net1));
@@ -1395,14 +1398,14 @@ TEST_F(NetworkTest, TestWhenNetworkListChangeReturnsChangedFlag) {
     EXPECT_TRUE(changed);
     std::vector<const Network*> list2 = manager.GetNetworks();
     EXPECT_EQ(list2.size(), 1uL);
-    EXPECT_EQ(ADAPTER_TYPE_CELLULAR_3G, list2[0]->type());
+    EXPECT_EQ(webrtc::ADAPTER_TYPE_CELLULAR_3G, list2[0]->type());
   }
 
   // Modify net1 from 3G to 4G
   {
     auto net2 = std::make_unique<Network>("em1", "em1",
                                           webrtc::TruncateIP(ip1, 64), 64);
-    net2->set_type(ADAPTER_TYPE_CELLULAR_4G);
+    net2->set_type(webrtc::ADAPTER_TYPE_CELLULAR_4G);
     net2->AddIP(ip1);
     list.clear();
     list.push_back(std::move(net2));
@@ -1414,14 +1417,14 @@ TEST_F(NetworkTest, TestWhenNetworkListChangeReturnsChangedFlag) {
     EXPECT_FALSE(changed);
     std::vector<const Network*> list2 = manager.GetNetworks();
     ASSERT_EQ(list2.size(), 1uL);
-    EXPECT_EQ(ADAPTER_TYPE_CELLULAR_4G, list2[0]->type());
+    EXPECT_EQ(webrtc::ADAPTER_TYPE_CELLULAR_4G, list2[0]->type());
   }
 
   // Don't modify.
   {
     auto net2 = std::make_unique<Network>("em1", "em1",
                                           webrtc::TruncateIP(ip1, 64), 64);
-    net2->set_type(ADAPTER_TYPE_CELLULAR_4G);
+    net2->set_type(webrtc::ADAPTER_TYPE_CELLULAR_4G);
     net2->AddIP(ip1);
     list.clear();
     list.push_back(std::move(net2));
@@ -1432,7 +1435,7 @@ TEST_F(NetworkTest, TestWhenNetworkListChangeReturnsChangedFlag) {
     EXPECT_FALSE(changed);
     std::vector<const Network*> list2 = manager.GetNetworks();
     ASSERT_EQ(list2.size(), 1uL);
-    EXPECT_EQ(ADAPTER_TYPE_CELLULAR_4G, list2[0]->type());
+    EXPECT_EQ(webrtc::ADAPTER_TYPE_CELLULAR_4G, list2[0]->type());
   }
 }
 
@@ -1522,11 +1525,11 @@ TEST_F(NetworkTest, NetworkCostVpn_Default) {
   webrtc::test::ScopedKeyValueConfig field_trials;
 
   Network* net1 = new Network("em1", "em1", webrtc::TruncateIP(ip1, 64), 64);
-  net1->set_type(ADAPTER_TYPE_VPN);
-  net1->set_underlying_type_for_vpn(ADAPTER_TYPE_ETHERNET);
+  net1->set_type(webrtc::ADAPTER_TYPE_VPN);
+  net1->set_underlying_type_for_vpn(webrtc::ADAPTER_TYPE_ETHERNET);
 
   Network* net2 = new Network("em1", "em1", webrtc::TruncateIP(ip1, 64), 64);
-  net2->set_type(ADAPTER_TYPE_ETHERNET);
+  net2->set_type(webrtc::ADAPTER_TYPE_ETHERNET);
 
   EXPECT_EQ(net1->GetCost(field_trials), net2->GetCost(field_trials));
   delete net1;
@@ -1541,11 +1544,11 @@ TEST_F(NetworkTest, NetworkCostVpn_VpnMoreExpensive) {
   EXPECT_TRUE(webrtc::IPFromString("2400:4030:1:2c00:be30:0:0:1", &ip1));
 
   Network* net1 = new Network("em1", "em1", webrtc::TruncateIP(ip1, 64), 64);
-  net1->set_type(ADAPTER_TYPE_VPN);
-  net1->set_underlying_type_for_vpn(ADAPTER_TYPE_ETHERNET);
+  net1->set_type(webrtc::ADAPTER_TYPE_VPN);
+  net1->set_underlying_type_for_vpn(webrtc::ADAPTER_TYPE_ETHERNET);
 
   Network* net2 = new Network("em1", "em1", webrtc::TruncateIP(ip1, 64), 64);
-  net2->set_type(ADAPTER_TYPE_ETHERNET);
+  net2->set_type(webrtc::ADAPTER_TYPE_ETHERNET);
 
   EXPECT_GT(net1->GetCost(field_trials), net2->GetCost(field_trials));
   delete net1;
@@ -1560,33 +1563,33 @@ TEST_F(NetworkTest, GuessAdapterFromNetworkCost) {
   webrtc::IPAddress ip1;
   EXPECT_TRUE(webrtc::IPFromString("2400:4030:1:2c00:be30:0:0:1", &ip1));
 
-  for (auto type : kAllAdapterTypes) {
-    if (type == rtc::ADAPTER_TYPE_VPN)
+  for (auto type : webrtc::kAllAdapterTypes) {
+    if (type == webrtc::ADAPTER_TYPE_VPN)
       continue;
     Network net1("em1", "em1", webrtc::TruncateIP(ip1, 64), 64);
     net1.set_type(type);
     auto [guess, vpn] =
         Network::GuessAdapterFromNetworkCost(net1.GetCost(field_trials));
     EXPECT_FALSE(vpn);
-    if (type == rtc::ADAPTER_TYPE_LOOPBACK) {
-      EXPECT_EQ(guess, rtc::ADAPTER_TYPE_ETHERNET);
+    if (type == webrtc::ADAPTER_TYPE_LOOPBACK) {
+      EXPECT_EQ(guess, webrtc::ADAPTER_TYPE_ETHERNET);
     } else {
       EXPECT_EQ(type, guess);
     }
   }
 
   // VPN
-  for (auto type : kAllAdapterTypes) {
-    if (type == rtc::ADAPTER_TYPE_VPN)
+  for (auto type : webrtc::kAllAdapterTypes) {
+    if (type == webrtc::ADAPTER_TYPE_VPN)
       continue;
     Network net1("em1", "em1", webrtc::TruncateIP(ip1, 64), 64);
-    net1.set_type(rtc::ADAPTER_TYPE_VPN);
+    net1.set_type(webrtc::ADAPTER_TYPE_VPN);
     net1.set_underlying_type_for_vpn(type);
     auto [guess, vpn] =
         Network::GuessAdapterFromNetworkCost(net1.GetCost(field_trials));
     EXPECT_TRUE(vpn);
-    if (type == rtc::ADAPTER_TYPE_LOOPBACK) {
-      EXPECT_EQ(guess, rtc::ADAPTER_TYPE_ETHERNET);
+    if (type == webrtc::ADAPTER_TYPE_LOOPBACK) {
+      EXPECT_EQ(guess, webrtc::ADAPTER_TYPE_ETHERNET);
     } else {
       EXPECT_EQ(type, guess);
     }
@@ -1630,8 +1633,8 @@ TEST_F(NetworkTest, VpnListOverrideAdapterType) {
 
   std::vector<const Network*> list = manager.GetNetworks();
   ASSERT_EQ(1u, list.size());
-  EXPECT_EQ(ADAPTER_TYPE_VPN, list[0]->type());
-  EXPECT_EQ(ADAPTER_TYPE_ETHERNET, list[0]->underlying_type_for_vpn());
+  EXPECT_EQ(webrtc::ADAPTER_TYPE_VPN, list[0]->type());
+  EXPECT_EQ(webrtc::ADAPTER_TYPE_ETHERNET, list[0]->underlying_type_for_vpn());
   ClearNetworks(manager);
   ReleaseIfAddrs(addr_list);
 }

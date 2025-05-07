@@ -96,7 +96,7 @@ struct StreamFinder {
 }  // namespace
 
 void MediaChannelParametersFromMediaDescription(
-    const MediaContentDescription* desc,
+    const webrtc::MediaContentDescription* desc,
     const RtpHeaderExtensions& extensions,
     bool is_stream_active,
     MediaChannelParameters* params) {
@@ -114,7 +114,7 @@ void MediaChannelParametersFromMediaDescription(
 }
 
 void RtpSendParametersFromMediaDescription(
-    const MediaContentDescription* desc,
+    const webrtc::MediaContentDescription* desc,
     webrtc::RtpExtension::Filter extensions_filter,
     SenderParameters* send_params) {
   RtpHeaderExtensions extensions =
@@ -275,17 +275,19 @@ void BaseChannel::Enable(bool enable) {
   }));
 }
 
-bool BaseChannel::SetLocalContent(const MediaContentDescription* content,
-                                  SdpType type,
-                                  std::string& error_desc) {
+bool BaseChannel::SetLocalContent(
+    const webrtc::MediaContentDescription* content,
+    SdpType type,
+    std::string& error_desc) {
   RTC_DCHECK_RUN_ON(worker_thread());
   TRACE_EVENT0("webrtc", "BaseChannel::SetLocalContent");
   return SetLocalContent_w(content, type, error_desc);
 }
 
-bool BaseChannel::SetRemoteContent(const MediaContentDescription* content,
-                                   SdpType type,
-                                   std::string& error_desc) {
+bool BaseChannel::SetRemoteContent(
+    const webrtc::MediaContentDescription* content,
+    SdpType type,
+    std::string& error_desc) {
   RTC_DCHECK_RUN_ON(worker_thread());
   TRACE_EVENT0("webrtc", "BaseChannel::SetRemoteContent");
   return SetRemoteContent_w(content, type, error_desc);
@@ -722,9 +724,10 @@ bool BaseChannel::UpdateLocalStreams_w(const std::vector<StreamParams>& streams,
   return ret;
 }
 
-bool BaseChannel::UpdateRemoteStreams_w(const MediaContentDescription* content,
-                                        SdpType type,
-                                        std::string& error_desc) {
+bool BaseChannel::UpdateRemoteStreams_w(
+    const webrtc::MediaContentDescription* content,
+    SdpType type,
+    std::string& error_desc) {
   RTC_LOG_THREAD_BLOCK_COUNT();
   bool needs_re_registration = false;
   if (!webrtc::RtpTransceiverDirectionHasSend(content->direction())) {
@@ -889,9 +892,10 @@ void VoiceChannel::UpdateMediaSendRecvState_w() {
                    << " send=" << send << " for " << ToString();
 }
 
-bool VoiceChannel::SetLocalContent_w(const MediaContentDescription* content,
-                                     SdpType type,
-                                     std::string& error_desc) {
+bool VoiceChannel::SetLocalContent_w(
+    const webrtc::MediaContentDescription* content,
+    SdpType type,
+    std::string& error_desc) {
   TRACE_EVENT0("webrtc", "VoiceChannel::SetLocalContent_w");
   RTC_DLOG(LS_INFO) << "Setting local voice description for " << ToString();
 
@@ -952,9 +956,10 @@ bool VoiceChannel::SetLocalContent_w(const MediaContentDescription* content,
   return success;
 }
 
-bool VoiceChannel::SetRemoteContent_w(const MediaContentDescription* content,
-                                      SdpType type,
-                                      std::string& error_desc) {
+bool VoiceChannel::SetRemoteContent_w(
+    const webrtc::MediaContentDescription* content,
+    SdpType type,
+    std::string& error_desc) {
   TRACE_EVENT0("webrtc", "VoiceChannel::SetRemoteContent_w");
   RTC_LOG(LS_INFO) << "Setting remote voice description for " << ToString();
 
@@ -1038,9 +1043,10 @@ void VideoChannel::UpdateMediaSendRecvState_w() {
                    << " send=" << send << " for " << ToString();
 }
 
-bool VideoChannel::SetLocalContent_w(const MediaContentDescription* content,
-                                     SdpType type,
-                                     std::string& error_desc) {
+bool VideoChannel::SetLocalContent_w(
+    const webrtc::MediaContentDescription* content,
+    SdpType type,
+    std::string& error_desc) {
   TRACE_EVENT0("webrtc", "VideoChannel::SetLocalContent_w");
   RTC_DLOG(LS_INFO) << "Setting local video description for " << ToString();
 
@@ -1160,9 +1166,10 @@ bool VideoChannel::SetLocalContent_w(const MediaContentDescription* content,
   return success;
 }
 
-bool VideoChannel::SetRemoteContent_w(const MediaContentDescription* content,
-                                      SdpType type,
-                                      std::string& error_desc) {
+bool VideoChannel::SetRemoteContent_w(
+    const webrtc::MediaContentDescription* content,
+    SdpType type,
+    std::string& error_desc) {
   TRACE_EVENT0("webrtc", "VideoChannel::SetRemoteContent_w");
   RTC_LOG(LS_INFO) << "Setting remote video description for " << ToString();
 

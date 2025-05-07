@@ -125,12 +125,12 @@ class TurnPort : public Port {
   bool connected() const {
     return state_ == STATE_READY || state_ == STATE_CONNECTED;
   }
-  const RelayCredentials& credentials() const { return credentials_; }
+  const webrtc::RelayCredentials& credentials() const { return credentials_; }
 
   webrtc::ProtocolType GetProtocol() const override;
 
-  virtual TlsCertPolicy GetTlsCertPolicy() const;
-  virtual void SetTlsCertPolicy(TlsCertPolicy tls_cert_policy);
+  virtual webrtc::TlsCertPolicy GetTlsCertPolicy() const;
+  virtual void SetTlsCertPolicy(webrtc::TlsCertPolicy tls_cert_policy);
 
   void SetTurnLoggingId(absl::string_view turn_logging_id);
 
@@ -143,7 +143,7 @@ class TurnPort : public Port {
 
   void PrepareAddress() override;
   Connection* CreateConnection(
-      const Candidate& c,
+      const webrtc::Candidate& c,
       webrtc::PortInterface::CandidateOrigin origin) override;
   int SendTo(const void* data,
              size_t size,
@@ -188,7 +188,7 @@ class TurnPort : public Port {
   StunRequestManager& request_manager() { return request_manager_; }
 
   bool HasRequests() { return !request_manager_.empty(); }
-  void set_credentials(const RelayCredentials& credentials) {
+  void set_credentials(const webrtc::RelayCredentials& credentials) {
     credentials_ = credentials;
   }
 
@@ -210,7 +210,7 @@ class TurnPort : public Port {
   TurnPort(const PortParametersRef& args,
            webrtc::AsyncPacketSocket* socket,
            const ProtocolAddress& server_address,
-           const RelayCredentials& credentials,
+           const webrtc::RelayCredentials& credentials,
            int server_priority,
            const std::vector<std::string>& tls_alpn_protocols,
            const std::vector<std::string>& tls_elliptic_curves,
@@ -221,7 +221,7 @@ class TurnPort : public Port {
            uint16_t min_port,
            uint16_t max_port,
            const ProtocolAddress& server_address,
-           const RelayCredentials& credentials,
+           const webrtc::RelayCredentials& credentials,
            int server_priority,
            const std::vector<std::string>& tls_alpn_protocols,
            const std::vector<std::string>& tls_elliptic_curves,
@@ -236,7 +236,7 @@ class TurnPort : public Port {
       absl::string_view username,
       absl::string_view password,
       const ProtocolAddress& server_address,
-      const RelayCredentials& credentials,
+      const webrtc::RelayCredentials& credentials,
       int server_priority,
       const std::vector<std::string>& tls_alpn_protocols,
       const std::vector<std::string>& tls_elliptic_curves,
@@ -253,7 +253,7 @@ class TurnPort : public Port {
       absl::string_view username,
       absl::string_view password,
       const ProtocolAddress& server_address,
-      const RelayCredentials& credentials,
+      const webrtc::RelayCredentials& credentials,
       int server_priority,
       const std::vector<std::string>& tls_alpn_protocols,
       const std::vector<std::string>& tls_elliptic_curves,
@@ -341,11 +341,12 @@ class TurnPort : public Port {
   std::string ReconstructServerUrl();
   std::string server_url_;
 
-  TlsCertPolicy tls_cert_policy_ = TlsCertPolicy::TLS_CERT_POLICY_SECURE;
+  webrtc::TlsCertPolicy tls_cert_policy_ =
+      webrtc::TlsCertPolicy::TLS_CERT_POLICY_SECURE;
   std::vector<std::string> tls_alpn_protocols_;
   std::vector<std::string> tls_elliptic_curves_;
   rtc::SSLCertificateVerifier* tls_cert_verifier_;
-  RelayCredentials credentials_;
+  webrtc::RelayCredentials credentials_;
   AttemptedServerSet attempted_server_addresses_;
 
   webrtc::AsyncPacketSocket* socket_;

@@ -66,11 +66,11 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
                                    /* client_dtls_is_ice_controlling= */ bool>>,
                                public sigslot::has_slots<> {
  public:
-  void CandidateC2S(IceTransportInternal*, const Candidate& c) {
+  void CandidateC2S(webrtc::IceTransportInternal*, const webrtc::Candidate& c) {
     server_thread()->PostTask(
         [this, c = c]() { server_.ice->AddRemoteCandidate(c); });
   }
-  void CandidateS2C(IceTransportInternal*, const Candidate& c) {
+  void CandidateS2C(webrtc::IceTransportInternal*, const webrtc::Candidate& c) {
     client_thread()->PostTask(
         [this, c = c]() { client_.ice->AddRemoteCandidate(c); });
   }
@@ -83,8 +83,8 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
     webrtc::EmulatedNetworkManagerInterface* emulated_network_manager = nullptr;
     std::unique_ptr<rtc::NetworkManager> network_manager;
     std::unique_ptr<webrtc::BasicPacketSocketFactory> packet_socket_factory;
-    std::unique_ptr<PortAllocator> allocator;
-    std::unique_ptr<IceTransportInternal> ice;
+    std::unique_ptr<webrtc::PortAllocator> allocator;
+    std::unique_ptr<webrtc::IceTransportInternal> ice;
     std::unique_ptr<DtlsTransport> dtls;
 
     // SetRemoteFingerprintFromCert does not actually set the fingerprint,
@@ -149,7 +149,7 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
             ep.network_manager.get(), ep.packet_socket_factory.get());
       }
       ep.allocator->set_flags(ep.allocator->flags() |
-                              cricket::PORTALLOCATOR_DISABLE_TCP);
+                              webrtc::PORTALLOCATOR_DISABLE_TCP);
       ep.ice = std::make_unique<P2PTransportChannel>(
           client ? "client_transport" : "server_transport", 0,
           ep.allocator.get(), &ep.field_trials);
@@ -159,8 +159,8 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
 
       // Enable(or disable) the dtls_in_stun parameter before
       // DTLS is negotiated.
-      cricket::IceConfig config;
-      config.continual_gathering_policy = GATHER_CONTINUALLY;
+      webrtc::IceConfig config;
+      config.continual_gathering_policy = webrtc::GATHER_CONTINUALLY;
       config.dtls_handshake_in_stun = ep.dtls_stun_piggyback;
       ep.ice->SetIceConfig(config);
 
@@ -238,9 +238,9 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
   ~DtlsIceIntegrationTest() = default;
 
   static int CountConnectionsWithFilter(
-      IceTransportInternal* ice,
+      webrtc::IceTransportInternal* ice,
       std::function<bool(const ConnectionInfo&)> filter) {
-    IceTransportStats stats;
+    webrtc::IceTransportStats stats;
     ice->GetStats(&stats);
     int count = 0;
     for (const auto& con : stats.connection_infos) {
@@ -251,11 +251,11 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
     return count;
   }
 
-  static int CountConnections(IceTransportInternal* ice) {
+  static int CountConnections(webrtc::IceTransportInternal* ice) {
     return CountConnectionsWithFilter(ice, [](auto con) { return true; });
   }
 
-  static int CountWritableConnections(IceTransportInternal* ice) {
+  static int CountWritableConnections(webrtc::IceTransportInternal* ice) {
     return CountConnectionsWithFilter(ice,
                                       [](auto con) { return con.writable; });
   }

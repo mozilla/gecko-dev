@@ -74,7 +74,7 @@ static bool IsRtpPacket(rtc::ArrayView<const uint8_t> payload) {
 }
 
 StreamInterfaceChannel::StreamInterfaceChannel(
-    IceTransportInternal* ice_transport)
+    webrtc::IceTransportInternal* ice_transport)
     : ice_transport_(ice_transport),
       state_(webrtc::SS_OPEN),
       packets_(kMaxPendingPackets, kMaxDtlsPacketLen) {}
@@ -148,7 +148,7 @@ void StreamInterfaceChannel::Close() {
   state_ = webrtc::SS_CLOSED;
 }
 
-DtlsTransport::DtlsTransport(IceTransportInternal* ice_transport,
+DtlsTransport::DtlsTransport(webrtc::IceTransportInternal* ice_transport,
                              const webrtc::CryptoOptions& crypto_options,
                              webrtc::RtcEventLog* event_log,
                              webrtc::SSLProtocolVersion max_version)
@@ -520,7 +520,7 @@ int DtlsTransport::SendPacket(const char* data,
   }
 }
 
-IceTransportInternal* DtlsTransport::ice_transport() {
+webrtc::IceTransportInternal* DtlsTransport::ice_transport() {
   return ice_transport_;
 }
 

@@ -54,7 +54,7 @@ using ::webrtc::TimeDelta;
 // All methods must be called on the network thread (which is either the thread
 // calling the constructor, or the separate thread explicitly passed to the
 // constructor).
-class FakeIceTransport : public IceTransportInternal {
+class FakeIceTransport : public webrtc::IceTransportInternal {
  public:
   explicit FakeIceTransport(absl::string_view name,
                             int component,
@@ -163,8 +163,8 @@ class FakeIceTransport : public IceTransportInternal {
 
   void SetCandidatesGatheringComplete() {
     RTC_DCHECK_RUN_ON(network_thread_);
-    if (gathering_state_ != kIceGatheringComplete) {
-      gathering_state_ = kIceGatheringComplete;
+    if (gathering_state_ != webrtc::kIceGatheringComplete) {
+      gathering_state_ = webrtc::kIceGatheringComplete;
       SendGatheringStateEvent();
     }
   }
@@ -263,29 +263,29 @@ class FakeIceTransport : public IceTransportInternal {
 
   void MaybeStartGathering() override {
     RTC_DCHECK_RUN_ON(network_thread_);
-    if (gathering_state_ == kIceGatheringNew) {
-      gathering_state_ = kIceGatheringGathering;
+    if (gathering_state_ == webrtc::kIceGatheringNew) {
+      gathering_state_ = webrtc::kIceGatheringGathering;
       SendGatheringStateEvent();
     }
   }
 
-  IceGatheringState gathering_state() const override {
+  webrtc::IceGatheringState gathering_state() const override {
     RTC_DCHECK_RUN_ON(network_thread_);
     return gathering_state_;
   }
 
-  void SetIceConfig(const IceConfig& config) override {
+  void SetIceConfig(const webrtc::IceConfig& config) override {
     RTC_DCHECK_RUN_ON(network_thread_);
     ice_config_ = config;
   }
 
-  const IceConfig& config() const override { return ice_config_; }
+  const webrtc::IceConfig& config() const override { return ice_config_; }
 
-  void AddRemoteCandidate(const Candidate& candidate) override {
+  void AddRemoteCandidate(const webrtc::Candidate& candidate) override {
     RTC_DCHECK_RUN_ON(network_thread_);
     remote_candidates_.push_back(candidate);
   }
-  void RemoveRemoteCandidate(const Candidate& candidate) override {
+  void RemoveRemoteCandidate(const webrtc::Candidate& candidate) override {
     RTC_DCHECK_RUN_ON(network_thread_);
     auto it = absl::c_find(remote_candidates_, candidate);
     if (it == remote_candidates_.end()) {
@@ -301,7 +301,7 @@ class FakeIceTransport : public IceTransportInternal {
     remote_candidates_.clear();
   }
 
-  bool GetStats(IceTransportStats* ice_transport_stats) override {
+  bool GetStats(webrtc::IceTransportStats* ice_transport_stats) override {
     CandidateStats candidate_stats;
     ConnectionInfo candidate_pair_stats;
     ice_transport_stats->candidate_stats_list.clear();
@@ -597,7 +597,7 @@ class FakeIceTransport : public IceTransportInternal {
   bool async_ RTC_GUARDED_BY(network_thread_) = false;
   int async_delay_ms_ RTC_GUARDED_BY(network_thread_) = 0;
   Candidates remote_candidates_ RTC_GUARDED_BY(network_thread_);
-  IceConfig ice_config_ RTC_GUARDED_BY(network_thread_);
+  webrtc::IceConfig ice_config_ RTC_GUARDED_BY(network_thread_);
   IceRole role_ RTC_GUARDED_BY(network_thread_) = ICEROLE_UNKNOWN;
   IceParameters ice_parameters_ RTC_GUARDED_BY(network_thread_);
   IceParameters remote_ice_parameters_ RTC_GUARDED_BY(network_thread_);
@@ -607,8 +607,8 @@ class FakeIceTransport : public IceTransportInternal {
       RTC_GUARDED_BY(network_thread_);
   std::optional<IceTransportState> legacy_transport_state_
       RTC_GUARDED_BY(network_thread_);
-  IceGatheringState gathering_state_ RTC_GUARDED_BY(network_thread_) =
-      kIceGatheringNew;
+  webrtc::IceGatheringState gathering_state_ RTC_GUARDED_BY(network_thread_) =
+      webrtc::kIceGatheringNew;
   bool had_connection_ RTC_GUARDED_BY(network_thread_) = false;
   bool writable_ RTC_GUARDED_BY(network_thread_) = false;
   bool receiving_ RTC_GUARDED_BY(network_thread_) = false;
@@ -640,7 +640,7 @@ class FakeIceTransportWrapper : public webrtc::IceTransportInterface {
       std::unique_ptr<cricket::FakeIceTransport> internal)
       : internal_(std::move(internal)) {}
 
-  cricket::IceTransportInternal* internal() override { return internal_.get(); }
+  webrtc::IceTransportInternal* internal() override { return internal_.get(); }
 
  private:
   std::unique_ptr<cricket::FakeIceTransport> internal_;

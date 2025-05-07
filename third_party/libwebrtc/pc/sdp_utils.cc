@@ -39,8 +39,7 @@ std::unique_ptr<SessionDescriptionInterface> CloneSessionDescriptionAsType(
   return std::move(clone);
 }
 
-bool SdpContentsAll(SdpContentPredicate pred,
-                    const cricket::SessionDescription* desc) {
+bool SdpContentsAll(SdpContentPredicate pred, const SessionDescription* desc) {
   RTC_DCHECK(desc);
   for (const auto& content : desc->contents()) {
     const auto* transport_info = desc->GetTransportInfoByName(content.mid());
@@ -51,8 +50,7 @@ bool SdpContentsAll(SdpContentPredicate pred,
   return true;
 }
 
-bool SdpContentsNone(SdpContentPredicate pred,
-                     const cricket::SessionDescription* desc) {
+bool SdpContentsNone(SdpContentPredicate pred, const SessionDescription* desc) {
   return SdpContentsAll(
       [pred](const cricket::ContentInfo* content_info,
              const cricket::TransportInfo* transport_info) {
@@ -61,8 +59,7 @@ bool SdpContentsNone(SdpContentPredicate pred,
       desc);
 }
 
-void SdpContentsForEach(SdpContentMutator fn,
-                        cricket::SessionDescription* desc) {
+void SdpContentsForEach(SdpContentMutator fn, SessionDescription* desc) {
   RTC_DCHECK(desc);
   for (auto& content : desc->contents()) {
     auto* transport_info = desc->GetTransportInfoByName(content.mid());

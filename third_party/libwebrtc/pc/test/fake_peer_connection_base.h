@@ -231,8 +231,7 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
     return false;
   }
 
-  bool RemoveIceCandidates(
-      const std::vector<cricket::Candidate>& candidates) override {
+  bool RemoveIceCandidates(const std::vector<Candidate>& candidates) override {
     return false;
   }
 
@@ -394,7 +393,7 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
   }
 
   void AddRemoteCandidate(absl::string_view mid,
-                          const cricket::Candidate& candidate) override {}
+                          const Candidate& candidate) override {}
 
   Call* call_ptr() override { return nullptr; }
   bool SrtpRequired() const override { return false; }

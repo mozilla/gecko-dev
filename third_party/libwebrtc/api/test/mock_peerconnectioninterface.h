@@ -198,7 +198,7 @@ class MockPeerConnectionInterface : public webrtc::PeerConnectionInterface {
               (override));
   MOCK_METHOD(bool,
               RemoveIceCandidates,
-              (const std::vector<cricket::Candidate>&),
+              (const std::vector<webrtc::Candidate>&),
               (override));
   MOCK_METHOD(RTCError, SetBitrate, (const BitrateSettings&), (override));
   MOCK_METHOD(void,

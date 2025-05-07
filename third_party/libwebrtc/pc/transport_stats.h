@@ -35,7 +35,7 @@ struct TransportChannelStats {
   std::optional<absl::string_view> tls_cipher_suite_name;
   std::optional<webrtc::SSLRole> dtls_role;
   webrtc::DtlsTransportState dtls_state = webrtc::DtlsTransportState::kNew;
-  IceTransportStats ice_transport_stats;
+  webrtc::IceTransportStats ice_transport_stats;
   uint16_t ssl_peer_signature_algorithm = webrtc::kSslSignatureAlgorithmUnknown;
 };
 

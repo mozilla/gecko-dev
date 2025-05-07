@@ -121,7 +121,7 @@ class RTC_EXPORT UDPPort : public Port {
 
   void PrepareAddress() override;
 
-  Connection* CreateConnection(const Candidate& address,
+  Connection* CreateConnection(const webrtc::Candidate& address,
                                CandidateOrigin origin) override;
   int SetOption(webrtc::Socket::Option opt, int value) override;
   int GetOption(webrtc::Socket::Option opt, int* value) override;
@@ -256,7 +256,7 @@ class RTC_EXPORT UDPPort : public Port {
   // requests indefinitely to keep the NAT binding alive. Otherwise, stop
   // sending STUN binding requests after HIGH_COST_PORT_KEEPALIVE_LIFETIME.
   int GetStunKeepaliveLifetime() {
-    return (network_cost() >= rtc::kNetworkCostHigh)
+    return (network_cost() >= webrtc::kNetworkCostHigh)
                ? HIGH_COST_PORT_KEEPALIVE_LIFETIME
                : INFINITE_LIFETIME;
   }

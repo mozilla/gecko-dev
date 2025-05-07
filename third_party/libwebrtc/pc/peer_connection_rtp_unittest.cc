@@ -322,8 +322,7 @@ TEST_F(PeerConnectionRtpTestPlanB,
 
   // Change the stream ID of the sender in the session description.
   auto offer = caller->CreateOfferAndSetAsLocal();
-  auto* audio_desc =
-      cricket::GetFirstAudioContentDescription(offer->description());
+  auto* audio_desc = GetFirstAudioContentDescription(offer->description());
   ASSERT_EQ(audio_desc->mutable_streams().size(), 1u);
   audio_desc->mutable_streams()[0].set_stream_ids({kStreamId2});
   ASSERT_TRUE(callee->SetRemoteDescription(std::move(offer)));
@@ -898,8 +897,7 @@ TEST_F(PeerConnectionRtpTestPlanB,
 
   auto offer = caller->CreateOfferAndSetAsLocal();
   auto mutable_streams =
-      cricket::GetFirstAudioContentDescription(offer->description())
-          ->mutable_streams();
+      GetFirstAudioContentDescription(offer->description())->mutable_streams();
   ASSERT_EQ(mutable_streams.size(), 2u);
   // Clear the IDs in the StreamParams.
   mutable_streams[0].id.clear();
@@ -1867,16 +1865,14 @@ TEST_F(PeerConnectionMsidSignalingTest, UnifiedPlanTalkingToOurself) {
 
   // Offer should have had both a=msid and a=ssrc MSID lines.
   auto* offer = callee->pc()->remote_description();
-  EXPECT_EQ(
-      (cricket::kMsidSignalingSemantic | cricket::kMsidSignalingMediaSection |
-       cricket::kMsidSignalingSsrcAttribute),
-      offer->description()->msid_signaling());
+  EXPECT_EQ((kMsidSignalingSemantic | kMsidSignalingMediaSection |
+             kMsidSignalingSsrcAttribute),
+            offer->description()->msid_signaling());
 
   // Answer should have had only a=msid lines.
   auto* answer = caller->pc()->remote_description();
-  EXPECT_EQ(
-      cricket::kMsidSignalingSemantic | cricket::kMsidSignalingMediaSection,
-      answer->description()->msid_signaling());
+  EXPECT_EQ(kMsidSignalingSemantic | kMsidSignalingMediaSection,
+            answer->description()->msid_signaling());
 }
 
 TEST_F(PeerConnectionMsidSignalingTest, PlanBOfferToUnifiedPlanAnswer) {
@@ -1889,15 +1885,13 @@ TEST_F(PeerConnectionMsidSignalingTest, PlanBOfferToUnifiedPlanAnswer) {
 
   // Offer should have only a=ssrc MSID lines.
   auto* offer = callee->pc()->remote_description();
-  EXPECT_EQ(
-      cricket::kMsidSignalingSemantic | cricket::kMsidSignalingSsrcAttribute,
-      offer->description()->msid_signaling());
+  EXPECT_EQ(kMsidSignalingSemantic | kMsidSignalingSsrcAttribute,
+            offer->description()->msid_signaling());
 
   // Answer should have only a=ssrc MSID lines to match the offer.
   auto* answer = caller->pc()->remote_description();
-  EXPECT_EQ(
-      cricket::kMsidSignalingSemantic | cricket::kMsidSignalingSsrcAttribute,
-      answer->description()->msid_signaling());
+  EXPECT_EQ(kMsidSignalingSemantic | kMsidSignalingSsrcAttribute,
+            answer->description()->msid_signaling());
 }
 
 // This tests that a Plan B endpoint appropriately sets the remote description
@@ -1919,10 +1913,9 @@ TEST_F(PeerConnectionMsidSignalingTest, UnifiedPlanToPlanBAnswer) {
 
   // Offer should have had both a=msid and a=ssrc MSID lines.
   auto* offer = callee->pc()->remote_description();
-  EXPECT_EQ(
-      (cricket::kMsidSignalingSemantic | cricket::kMsidSignalingMediaSection |
-       cricket::kMsidSignalingSsrcAttribute),
-      offer->description()->msid_signaling());
+  EXPECT_EQ((kMsidSignalingSemantic | kMsidSignalingMediaSection |
+             kMsidSignalingSsrcAttribute),
+            offer->description()->msid_signaling());
 
   // Callee should always have 1 stream for all of it's receivers.
   const auto& track_events = callee->observer()->add_track_events_;
@@ -1943,8 +1936,8 @@ TEST_F(PeerConnectionMsidSignalingTest, PureUnifiedPlanToUs) {
   auto offer = caller->CreateOffer();
   // Simulate a pure Unified Plan offerer by setting the MSID signaling to media
   // section only.
-  offer->description()->set_msid_signaling(cricket::kMsidSignalingSemantic |
-                                           cricket::kMsidSignalingMediaSection);
+  offer->description()->set_msid_signaling(kMsidSignalingSemantic |
+                                           kMsidSignalingMediaSection);
 
   ASSERT_TRUE(
       caller->SetLocalDescription(CloneSessionDescription(offer.get())));
@@ -1952,9 +1945,8 @@ TEST_F(PeerConnectionMsidSignalingTest, PureUnifiedPlanToUs) {
 
   // Answer should have only a=msid to match the offer.
   auto answer = callee->CreateAnswer();
-  EXPECT_EQ(
-      cricket::kMsidSignalingSemantic | cricket::kMsidSignalingMediaSection,
-      answer->description()->msid_signaling());
+  EXPECT_EQ(kMsidSignalingSemantic | kMsidSignalingMediaSection,
+            answer->description()->msid_signaling());
 }
 
 // Sender setups in a call.

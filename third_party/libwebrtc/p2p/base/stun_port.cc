@@ -240,7 +240,7 @@ void UDPPort::MaybePrepareStunCandidate() {
   }
 }
 
-Connection* UDPPort::CreateConnection(const Candidate& address,
+Connection* UDPPort::CreateConnection(const webrtc::Candidate& address,
                                       CandidateOrigin /* origin */) {
   if (!SupportsProtocol(address.protocol())) {
     return nullptr;
@@ -602,8 +602,9 @@ void UDPPort::OnSendPacket(const void* data, size_t size, StunRequest* req) {
 
 bool UDPPort::HasStunCandidateWithAddress(
     const webrtc::SocketAddress& addr) const {
-  const std::vector<Candidate>& existing_candidates = Candidates();
-  std::vector<Candidate>::const_iterator it = existing_candidates.begin();
+  const std::vector<webrtc::Candidate>& existing_candidates = Candidates();
+  std::vector<webrtc::Candidate>::const_iterator it =
+      existing_candidates.begin();
   for (; it != existing_candidates.end(); ++it) {
     if (it->is_stun() && it->address() == addr)
       return true;

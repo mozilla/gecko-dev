@@ -135,7 +135,7 @@ class LambdaPeerConnectionObserver final : public PeerConnectionObserver {
       handler(address, port, url, error_code, error_text);
   }
   void OnIceCandidatesRemoved(
-      const std::vector<cricket::Candidate>& candidates) override {
+      const std::vector<Candidate>& candidates) override {
     for (const auto& handler : handlers_->on_ice_candidates_removed)
       handler(candidates);
   }

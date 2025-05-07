@@ -268,7 +268,7 @@ SimulcastSdpSerializer::DeserializeSimulcastDescription(
 }
 
 std::string SimulcastSdpSerializer::SerializeRidDescription(
-    const cricket::MediaContentDescription& media_desc,
+    const MediaContentDescription& media_desc,
     const RidDescription& rid_description) const {
   RTC_DCHECK(!rid_description.rid.empty());
   RTC_DCHECK(rid_description.direction == RidDirection::kSend ||
@@ -344,7 +344,7 @@ std::string SimulcastSdpSerializer::SerializeRidDescription(
 // param-val          = *( %x20-58 / %x60-7E )
 //                      ; Any printable character except semicolon
 RTCErrorOr<RidDescription> SimulcastSdpSerializer::DeserializeRidDescription(
-    const cricket::MediaContentDescription& media_desc,
+    const MediaContentDescription& media_desc,
     absl::string_view string) const {
   std::vector<std::string> tokens;
   rtc::tokenize(std::string(string), kDelimiterSpaceChar, &tokens);

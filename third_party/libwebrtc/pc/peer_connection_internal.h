@@ -93,7 +93,7 @@ class PeerConnectionSdpMethods {
   virtual JsepTransportController* transport_controller_s() = 0;
   virtual JsepTransportController* transport_controller_n() = 0;
   virtual DataChannelController* data_channel_controller() = 0;
-  virtual cricket::PortAllocator* port_allocator() = 0;
+  virtual PortAllocator* port_allocator() = 0;
   virtual LegacyStatsCollector* legacy_stats() = 0;
   // Returns the observer. Will crash on CHECK if the observer is removed.
   virtual PeerConnectionObserver* Observer() const = 0;
@@ -112,8 +112,8 @@ class PeerConnectionSdpMethods {
   // sufficient time has passed.
   virtual bool IsUnifiedPlan() const = 0;
   virtual bool ValidateBundleSettings(
-      const cricket::SessionDescription* desc,
-      const std::map<std::string, const cricket::ContentGroup*>&
+      const SessionDescription* desc,
+      const std::map<std::string, const ContentGroup*>&
           bundle_groups_by_mid) = 0;
 
   // Internal implementation for AddTransceiver family of methods. If
@@ -137,7 +137,7 @@ class PeerConnectionSdpMethods {
 
   // Asynchronously adds a remote candidate on the network thread.
   virtual void AddRemoteCandidate(absl::string_view mid,
-                                  const cricket::Candidate& candidate) = 0;
+                                  const Candidate& candidate) = 0;
 
   virtual Call* call_ptr() = 0;
   // Returns true if SRTP (either using DTLS-SRTP or SDES) is required by

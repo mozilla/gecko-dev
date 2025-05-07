@@ -789,7 +789,7 @@ TEST_F(RtpTransceiverTestForHeaderExtensions, ReturnsNegotiatedHdrExts) {
 
   cricket::RtpHeaderExtensions extensions = {RtpExtension("uri1", 1),
                                              RtpExtension("uri2", 2)};
-  cricket::AudioContentDescription description;
+  AudioContentDescription description;
   description.set_rtp_header_extensions(extensions);
   transceiver_->OnNegotiationUpdate(SdpType::kAnswer, &description);
 
@@ -818,7 +818,7 @@ TEST_F(RtpTransceiverTestForHeaderExtensions,
 
   cricket::RtpHeaderExtensions extensions = {RtpExtension("uri1", 1),
                                              RtpExtension("uri2", 2)};
-  cricket::AudioContentDescription description;
+  AudioContentDescription description;
   description.set_rtp_header_extensions(extensions);
   transceiver_->OnNegotiationUpdate(SdpType::kAnswer, &description);
 
