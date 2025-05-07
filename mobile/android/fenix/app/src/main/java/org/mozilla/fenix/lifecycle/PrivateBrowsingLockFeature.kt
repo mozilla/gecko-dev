@@ -15,6 +15,7 @@ import mozilla.components.lib.state.ext.flowScoped
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.appstate.AppAction.PrivateBrowsingLockAction
+import org.mozilla.fenix.tabstray.TabsTrayFragment
 
 /**
  * A lifecycle-aware feature that locks private browsing mode behind authentication
@@ -83,9 +84,18 @@ class PrivateBrowsingLockFeature(
     override fun onStop(owner: LifecycleOwner) {
         super.onStop(owner)
 
-        // only lock when this isn’t a config-change restart
-        if (owner !is Activity || !owner.isChangingConfigurations) {
-            maybeLockPrivateModeOnStop()
+        when (owner) {
+            // lock when activity hits onStop and it isn’t a config-change restart
+            is Activity -> {
+                if (!owner.isChangingConfigurations) {
+                    maybeLockPrivateModeOnStop()
+                }
+            }
+
+            // lock when tabs fragment is getting closed in regular mode
+            is TabsTrayFragment -> {
+                maybeLockPrivateModeOnTabsTrayClosure()
+            }
         }
     }
 
@@ -96,6 +106,20 @@ class PrivateBrowsingLockFeature(
         val isPrivateMode = components.appStore.state.mode == BrowsingMode.Private
 
         if (isPrivateModeLockEnabled && isPrivateMode && hasPrivateTabs) {
+            components.appStore.dispatch(
+                PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
+                    isLocked = true,
+                ),
+            )
+        }
+    }
+
+    private fun maybeLockPrivateModeOnTabsTrayClosure() {
+        val isPrivateModeLockEnabled = components.settings.privateBrowsingLockedEnabled
+        val hasPrivateTabs = components.core.store.state.privateTabs.isNotEmpty()
+        val isNormalMode = components.appStore.state.mode == BrowsingMode.Normal
+
+        if (isPrivateModeLockEnabled && isNormalMode && hasPrivateTabs) {
             components.appStore.dispatch(
                 PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
                     isLocked = true,

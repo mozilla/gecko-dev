@@ -37,6 +37,7 @@ import mozilla.components.feature.accounts.push.CloseTabsUseCases
 import mozilla.components.feature.downloads.ui.DownloadCancelDialogFragment
 import mozilla.components.feature.tabs.tabstray.TabsFeature
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
+import mozilla.components.support.ktx.android.arch.lifecycle.addObservers
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.FeatureFlags
@@ -119,6 +120,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             Breadcrumb("TabsTrayFragment dismissTabsTray"),
         )
         setStyle(STYLE_NO_TITLE, R.style.TabTrayDialogStyle)
+        lifecycle.addObservers(requireComponents.privateBrowsingLockFeature)
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
