@@ -335,7 +335,7 @@ class BenchmarkSupport(PageloadSupport):
             correctionFactor = 3
             results = _filter(vals)
 
-            # stylebench has 5 tests, each of these are made of up 5 subtests
+            # stylebench has 6 tests. Five of them are made of up 5 subtests
             #
             #   * Adding classes.
             #   * Removing classes.
@@ -367,11 +367,44 @@ class BenchmarkSupport(PageloadSupport):
             #
             # We receive 76 entries per test, which ads up to 380. We want to use
             # the 5 test entries, not the rest.
-            if len(results) != 380:
+            #
+            # Then there's the sixth "Dynamic media queries" test, which gives
+            # results for viewports in increments of 50px like:
+            #
+            #   Dynamic media queries/Resizing to 300px - 0/Sync
+            #   Dynamic media queries/Resizing to 300px - 0/Async
+            #   Dynamic media queries/Resizing to 300px - 0
+            #   Dynamic media queries/Resizing to 350px - 0/Sync
+            #   Dynamic media queries/Resizing to 350px - 0/Async
+            #   Dynamic media queries/Resizing to 350px - 0
+            #   ...
+            #   Dynamic media queries/Resizing to 800px - 0/Sync
+            #   Dynamic media queries/Resizing to 800px - 0/Async
+            #   Dynamic media queries/Resizing to 800px - 0
+            #   Dynamic media queries/Resizing to 350px - 1/Sync
+            #   Dynamic media queries/Resizing to 350px - 1/Async
+            #   Dynamic media queries/Resizing to 350px - 1
+            #   Dynamic media queries/Resizing to 400px - 1/Sync
+            #   Dynamic media queries/Resizing to 400px - 1/Async
+            #   Dynamic media queries/Resizing to 400px - 1
+            #   ...
+            #   Dynamic media queries/Resizing to 800px - 4/Sync
+            #   Dynamic media queries/Resizing to 800px - 4/Async
+            #   Dynamic media queries/Resizing to 800px - 4
+            #   Dynamic media queries <- What we want
+            #
+            # So len([300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800]) is 11.
+            #
+            # So, 11 (subtests) *
+            #     5 (repetitions) *
+            #     3 (entries per repetition (sync/async/sum)) =
+            #     165 entries for test before the sum.
+            EXPECTED_ENTRIES = 380 + 166
+            if len(results) != EXPECTED_ENTRIES:
                 raise Exception(
-                    "StyleBench requires 380 entries, found: %s instead" % len(results)
+                    f"StyleBench requires {EXPECTED_ENTRIES} entries, found: {len(results)} instead"
                 )
-            results = results[75::76]
+            results = results[:380][75::76] + [results[-1]]
             # pylint --py3k W1619
             return 60 * 1000 / filters.geometric_mean(results) / correctionFactor
 
