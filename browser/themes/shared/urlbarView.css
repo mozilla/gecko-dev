@@ -665,6 +665,8 @@
 /* Action labels */
 
 .urlbarView-action {
+  white-space: nowrap;
+
   .urlbarView-title:not(:empty) ~ & {
     font-size: var(--urlbarView-small-font-size);
 
@@ -700,6 +702,7 @@
   .urlbarView[action-override] .urlbarView-row[type=switchtab] > .urlbarView-row-inner > .urlbarView-no-wrap > & {
     visibility: hidden;
     width: 0;
+    margin-inline: 0;
     padding-inline: 0;
     border-inline: 0;
   }

@@ -728,7 +728,15 @@ class Query {
       // Treat form history as searches for the purpose of acceptableSources.
       (result.type != lazy.UrlbarUtils.RESULT_TYPE.SEARCH ||
         result.source != lazy.UrlbarUtils.RESULT_SOURCE.HISTORY ||
-        !this.acceptableSources.includes(lazy.UrlbarUtils.RESULT_SOURCE.SEARCH))
+        !this.acceptableSources.includes(
+          lazy.UrlbarUtils.RESULT_SOURCE.SEARCH
+        )) &&
+      // To enable tab group search in tabs mode, allow actions to bypass
+      // acceptableSources.
+      !(
+        result.source == lazy.UrlbarUtils.RESULT_SOURCE.ACTIONS &&
+        this.acceptableSources.includes(lazy.UrlbarUtils.RESULT_SOURCE.TABS)
+      )
     ) {
       return;
     }

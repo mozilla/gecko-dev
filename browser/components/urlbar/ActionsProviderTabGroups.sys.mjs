@@ -11,6 +11,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
+  UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
   TabMetrics: "moz-src:///browser/components/tabbrowser/TabMetrics.sys.mjs",
 });
@@ -28,7 +29,8 @@ class ProviderTabGroups extends ActionsProvider {
   isActive(queryContext) {
     return (
       Services.prefs.getBoolPref("browser.tabs.groups.enabled") &&
-      !queryContext.searchMode &&
+      (!queryContext.restrictSource ||
+        queryContext.restrictSource == lazy.UrlbarUtils.RESULT_SOURCE.TABS) &&
       queryContext.trimmedSearchString.length < 50 &&
       queryContext.trimmedSearchString.length >=
         lazy.UrlbarPrefs.get(MIN_SEARCH_PREF)

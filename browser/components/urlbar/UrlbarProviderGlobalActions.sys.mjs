@@ -20,6 +20,7 @@ const DYNAMIC_TYPE_NAME = "actions";
 
 // The suggestion index of the actions row within the urlbar results.
 const SUGGESTED_INDEX = 1;
+const SUGGESTED_INDEX_TABS_MODE = 0;
 
 const SCOTCH_BONNET_PREF = "scotchBonnet.enableOverride";
 const ACTIONS_PREF = "secondaryActions.featureGate";
@@ -113,7 +114,10 @@ class ProviderGlobalActions extends UrlbarProvider {
       UrlbarUtils.RESULT_SOURCE.ACTIONS,
       payload
     );
-    result.suggestedIndex = SUGGESTED_INDEX;
+    result.suggestedIndex =
+      queryContext.restrictSource == UrlbarUtils.RESULT_SOURCE.TABS
+        ? SUGGESTED_INDEX_TABS_MODE
+        : SUGGESTED_INDEX;
     addCallback(this, result);
   }
 

@@ -53,3 +53,7 @@ add_task(async function test_substring() {
 add_task(async function test_words() {
   await simple_tabgroup_search_test("My About Pages", "abou pag");
 });
+
+add_task(async function test_tabs_mode() {
+  await simple_tabgroup_search_test("About Pages", "% a");
+});
