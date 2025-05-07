@@ -43,6 +43,11 @@ class FakeDevice:
                 yield line
 
 
+def fake_version_producer(self, metadata):
+    return metadata
+
+
+@mock.patch("mozperftest.system.VersionProducer.run", new=fake_version_producer)
 @mock.patch("mozperftest.test.browsertime.runner.install_package")
 @mock.patch(
     "mozperftest.test.noderunner.NodeRunner.verify_node_install", new=lambda x: True
@@ -57,6 +62,7 @@ def test_android_log(*mocked):
     with temp_file() as logcat, temp_dir() as output:
         args = {
             "flavor": "mobile-browser",
+            "app": "fenix",
             "android-install-apk": ["this.apk"],
             "android": True,
             "console": True,

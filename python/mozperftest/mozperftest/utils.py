@@ -37,6 +37,14 @@ PRETTY_APP_NAMES = {
     "org.mozilla.geckoview_example": "geckoview",
 }
 
+FIREFOX_MOBILE_APPS = ["fenix", "geckoview", "focus", "refbrow", "fennec"]
+CHROME_MOBILE_APPS = ["chrome-m"]
+MOBILE_APPS = FIREFOX_MOBILE_APPS + CHROME_MOBILE_APPS
+
+FIREFOX_DESKTOP_APPS = ["firefox"]
+CHROME_DESKTOP_APPS = ["chrome"]
+DESKTOP_APPS = FIREFOX_DESKTOP_APPS + CHROME_DESKTOP_APPS
+
 
 class NoPerfMetricsError(Exception):
     """Raised when perfMetrics were not found, or were not output

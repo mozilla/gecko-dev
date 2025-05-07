@@ -11,7 +11,7 @@ from mozdevice import ADBDevice, ADBError
 
 from mozperftest.layers import Layer
 from mozperftest.system.android_perf_tuner import tune_performance
-from mozperftest.utils import download_file
+from mozperftest.utils import MOBILE_APPS, download_file
 
 HERE = Path(__file__).parent
 
@@ -48,6 +48,12 @@ _PERMALINKS = {
 
 
 class DeviceError(Exception):
+    pass
+
+
+class AndroidSetupError(Exception):
+    """Raised when there's an issue in the android setup."""
+
     pass
 
 
@@ -222,6 +228,13 @@ class AndroidDevice(Layer):
             raise Exception("%s is not installed" % self.app_name)
 
     def run(self, metadata):
+        if self.get_arg("app") not in MOBILE_APPS:
+            raise AndroidSetupError(
+                f"Incorrect app '{self.get_arg('app')}' specified for android test run. "
+                f"Use --app to  set it to one of the following options: "
+                f"{', '.join(MOBILE_APPS)}"
+            )
+
         self.app_name = self.get_arg("android-app-name")
         self.android_activity = self.get_arg("android-activity")
         self.clear_logcat = self.get_arg("clear-logcat")

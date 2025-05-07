@@ -8,7 +8,13 @@ import subprocess
 
 import mozversion
 
-from mozperftest.utils import ON_TRY
+from mozperftest.utils import (
+    CHROME_DESKTOP_APPS,
+    CHROME_MOBILE_APPS,
+    FIREFOX_DESKTOP_APPS,
+    FIREFOX_MOBILE_APPS,
+    ON_TRY,
+)
 
 
 class MultipleApplicationSetups(Exception):
@@ -147,7 +153,7 @@ class BaseSetup:
 
 @binary_setup
 class FirefoxSetup(BaseSetup):
-    apps = ["firefox"]
+    apps = FIREFOX_DESKTOP_APPS
 
     def setup_binary(self):
         if ON_TRY:
@@ -161,7 +167,7 @@ class FirefoxSetup(BaseSetup):
 
 @binary_setup
 class ChromeSetup(BaseSetup):
-    apps = ["chrome"]
+    apps = CHROME_DESKTOP_APPS
 
     def setup_binary(self):
         if ON_TRY:
@@ -185,7 +191,7 @@ class ChromeSetup(BaseSetup):
 
 @binary_setup
 class ChromeMobileSetup(BaseSetup):
-    apps = ["chrome-m"]
+    apps = CHROME_MOBILE_APPS
     version_producer = MobileVersionProducer
 
     def setup_binary(self):
@@ -194,7 +200,7 @@ class ChromeMobileSetup(BaseSetup):
 
 @binary_setup
 class FirefoxMobileSetup(BaseSetup):
-    apps = ["fenix", "geckoview", "focus"]
+    apps = FIREFOX_MOBILE_APPS
     version_producer = MobileVersionProducer
 
     def setup_binary(self):

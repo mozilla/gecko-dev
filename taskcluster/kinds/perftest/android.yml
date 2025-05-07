@@ -879,6 +879,7 @@ hw-a55-record-websites:
             cd $GECKO_PATH &&
             python3 python/mozperftest/mozperftest/runner.py
             --flavor mobile-browser
+            --app geckoview
             --android
             --android-app-name org.mozilla.geckoview_example
             --android-activity org.mozilla.geckoview_example.GeckoViewActivity
