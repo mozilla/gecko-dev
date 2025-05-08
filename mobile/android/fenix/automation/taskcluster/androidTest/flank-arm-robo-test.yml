@@ -28,8 +28,8 @@ gcloud:
     - model: oriole
       version: 31
       locale: en_US
-    - model: x1q
-      version: 29
+    - model: e1q
+      version: 34
       locale: en_US
 
   type: robo
