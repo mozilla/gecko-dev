@@ -13,9 +13,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=587931
 <pre id="test">
 <script type="application/javascript">
 
-var { AppConstants } = SpecialPowers.ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
-);
+const gScriptExecuteEventEnabled = SpecialPowers.getBoolPref("dom.events.script_execute.enabled");
 
 /** Test for Bug 587931 **/
 SimpleTest.waitForExplicitFinish();
@@ -29,7 +27,7 @@ var expectedCurrentScriptInAfterScriptExecute = null;
 function verifyScript(n) {
   var curr = document.currentScript;
   is(curr, document.getElementById(n), "correct script (" + n + ")");
-  is(lastBeforeExecute, AppConstants.NIGHTLY_BUILD ? null : curr, "correct beforescript (" + n + ")");
+  is(lastBeforeExecute, gScriptExecuteEventEnabled ? curr : null, "correct beforescript (" + n + ")");
   document.addEventListener("afterscriptexecute", function(event) {
     afterCount++;
     lastBeforeExecute = null;
@@ -56,7 +54,7 @@ SpecialPowers.wrap(document).addEventListener("beforescriptexecute", function(ev
 }, { mozSystemGroup: true });
 
 window.addEventListener("load", function() {
-  is(afterCount, AppConstants.NIGHTLY_BUILD ? 0 : 4, "correct number of afterscriptexecute");
+  is(afterCount, gScriptExecuteEventEnabled ? 4 : 0, "correct number of afterscriptexecute");
   is(afterCountForSystemGroup, 4, "correct number of afterscriptexecute for system group");
   SimpleTest.finish();
 });
@@ -86,7 +84,7 @@ document.body.appendChild(s);
 <!-- Test cancel using beforescriptexecute -->
 <script onbeforescriptexecute="return false;"
         onafterescriptexecute="window.firedAfterScriptExecuteForCancel = true;">
-ok(AppConstants.NIGHTLY_BUILD, "should have been canceled");
+ok(!gScriptExecuteEventEnabled, "should have been canceled");
 </script>
 <script>
 isnot(window.firedAfterScriptExecuteForCancel, true, "onafterscriptexecute executed");
@@ -109,14 +107,14 @@ is(extFiredLoadForCancel, true, "onload executed");
         onload="window.loadDidExecute = true"
         onerror="window.errorDidExecute = true"
         src="data:text/plain,window.didExecute=true">
-is(window.beforeDidExecute, AppConstants.NIGHTLY_BUILD ? undefined : true, 'onbeforescriptexecute executed');
+is(window.beforeDidExecute, gScriptExecuteEventEnabled ? true : undefined, 'onbeforescriptexecute executed');
 is(window.afterDidExecute, undefined, 'onafterscriptexecute executed');
 is(window.didExecute, true, 'script executed');
 is(window.loadDidExecute, undefined, 'onload executed');
 is(window.errorDidExecute, undefined, 'onerror executed');
 </script>
 <script>
-is(window.afterDidExecute, AppConstants.NIGHTLY_BUILD ? undefined : true, "onafterscriptexecute executed");
+is(window.afterDidExecute, gScriptExecuteEventEnabled ? true : undefined, "onafterscriptexecute executed");
 is(window.loadDidExecute, true, "onload executed");
 is(window.errorDidExecute, undefined, "onerror executed");
 </script>

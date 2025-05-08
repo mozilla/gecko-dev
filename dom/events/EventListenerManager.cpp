@@ -515,7 +515,13 @@ void EventListenerManager::AddEventListenerInternal(
         if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {
           if (Document* doc = window->GetExtantDoc()) {
             doc->SetUseCounter(eUseCounter_AfterScriptExecuteEvent);
-            doc->WarnOnceAbout(DeprecatedOperations::eAfterScriptExecuteEvent);
+            if (StaticPrefs::dom_events_script_execute_enabled()) {
+              doc->WarnOnceAbout(
+                  DeprecatedOperations::eAfterScriptExecuteEvent);
+            } else {
+              doc->WarnOnceAbout(
+                  Document::eAfterScriptExecuteEventNotSupported);
+            }
           }
         }
         break;
@@ -523,7 +529,13 @@ void EventListenerManager::AddEventListenerInternal(
         if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {
           if (Document* doc = window->GetExtantDoc()) {
             doc->SetUseCounter(eUseCounter_BeforeScriptExecuteEvent);
-            doc->WarnOnceAbout(DeprecatedOperations::eBeforeScriptExecuteEvent);
+            if (StaticPrefs::dom_events_script_execute_enabled()) {
+              doc->WarnOnceAbout(
+                  DeprecatedOperations::eBeforeScriptExecuteEvent);
+            } else {
+              doc->WarnOnceAbout(
+                  Document::eBeforeScriptExecuteEventNotSupported);
+            }
           }
         }
         break;
