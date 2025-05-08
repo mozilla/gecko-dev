@@ -1344,8 +1344,8 @@ nsresult nsCocoaUtils::GetScreenCapturePermissionState(
   // names if the calling application has been authorized to record the
   // screen. We use the window name, window level, and owning PID as
   // heuristics to determine if we have screen recording permission.
-  AutoCFRelease<CFArrayRef> windowArray =
-      CGWindowListCopyWindowInfo(kCGWindowListOptionAll, kCGNullWindowID);
+  AutoCFTypeRef<CFArrayRef> windowArray(
+      CGWindowListCopyWindowInfo(kCGWindowListOptionAll, kCGNullWindowID));
   if (!windowArray) {
     LOG("GetScreenCapturePermissionState() ERROR: got NULL window info list");
     return NS_ERROR_UNEXPECTED;
@@ -1540,8 +1540,8 @@ void nsCocoaUtils::ResolveAudioCapturePromises(bool aGranted) {
 //
 nsresult nsCocoaUtils::MaybeRequestScreenCapturePermission() {
   LOG("MaybeRequestScreenCapturePermission()");
-  AutoCFRelease<CGImageRef> image =
-      CGDisplayCreateImageForRect(kCGDirectMainDisplay, CGRectMake(0, 0, 1, 1));
+  AutoCFTypeRef<CGImageRef> image(CGDisplayCreateImageForRect(
+      kCGDirectMainDisplay, CGRectMake(0, 0, 1, 1)));
   return NS_OK;
 }
 

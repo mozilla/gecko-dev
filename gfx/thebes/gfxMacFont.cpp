@@ -221,8 +221,8 @@ void gfxMacFont::InitMetrics() {
   // return the true value for OpenType/CFF fonts (it normalizes to 1000,
   // which then leads to metrics errors when we read the 'hmtx' table to
   // get glyph advances for HarfBuzz, see bug 580863)
-  AutoCFRelease<CFDataRef> headData =
-      ::CGFontCopyTableForTag(mCGFont, TRUETYPE_TAG('h', 'e', 'a', 'd'));
+  AutoCFTypeRef<CFDataRef> headData(
+      ::CGFontCopyTableForTag(mCGFont, TRUETYPE_TAG('h', 'e', 'a', 'd')));
   if (headData) {
     if (size_t(::CFDataGetLength(headData)) >= sizeof(HeadTable)) {
       const HeadTable* head =
@@ -278,8 +278,8 @@ void gfxMacFont::InitMetrics() {
     mMetrics.capHeight = ::CGFontGetCapHeight(mCGFont) * cgConvFactor;
   }
 
-  AutoCFRelease<CFDataRef> cmap =
-      ::CGFontCopyTableForTag(mCGFont, TRUETYPE_TAG('c', 'm', 'a', 'p'));
+  AutoCFTypeRef<CFDataRef> cmap(
+      ::CGFontCopyTableForTag(mCGFont, TRUETYPE_TAG('c', 'm', 'a', 'p')));
 
   uint32_t glyphID;
   mMetrics.zeroWidth = GetCharWidth(cmap, '0', &glyphID, cgConvFactor);
@@ -505,8 +505,8 @@ bool gfxMacFont::GetGlyphBounds(uint16_t aGID, gfxRect* aBounds, bool aTight) {
 // for sfnts, including ALL downloadable fonts, we prefer to use
 // InitMetricsFromSfntTables and avoid platform APIs.
 void gfxMacFont::InitMetricsFromPlatform() {
-  AutoCFRelease<CTFontRef> ctFont =
-      ::CTFontCreateWithGraphicsFont(mCGFont, mAdjustedSize, nullptr, nullptr);
+  AutoCFTypeRef<CTFontRef> ctFont(
+      ::CTFontCreateWithGraphicsFont(mCGFont, mAdjustedSize, nullptr, nullptr));
   if (!ctFont) {
     return;
   }
