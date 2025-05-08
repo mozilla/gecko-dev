@@ -760,10 +760,7 @@ export const ContentAnalysis = {
       .finally(() => {
         // This is also called if the tab/window is closed while a request is
         // in progress, in which case we need to cancel all related requests.
-        if (this.requestTokenToRequestInfo.delete(aRequestToken)) {
-          // TODO: Is this useful?  I think no.
-          this._removeSlowCAMessage(aUserActionId, aRequestToken);
-        }
+        //
         // If aUserActionId is still in userActionToBusyDialogMap,
         // this means the dialog wasn't closed by _disconnectFromView(),
         // so cancel the operation.
@@ -771,6 +768,14 @@ export const ContentAnalysis = {
           this.contentAnalysis.cancelAllRequestsAssociatedWithUserAction(
             aUserActionId
           );
+        }
+        // Do this after checking userActionToBusyDialogMap, since
+        // _removeSlowCAMessage() will remove the entry from
+        // userActionToBusyDialogMap.
+        if (this.requestTokenToRequestInfo.delete(aRequestToken)) {
+          // I think this is needed to clean up when the tab/window
+          // is closed.
+          this._removeSlowCAMessage(aUserActionId, aRequestToken);
         }
       });
     return {
