@@ -29,6 +29,7 @@ DIRS += [
     "specs",
     "storage",
     "test-helpers",
+    "tests/objects",
     "transport",
     "webconsole",
     "worker",

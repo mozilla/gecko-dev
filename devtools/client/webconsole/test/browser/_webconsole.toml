@@ -586,6 +586,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
 
 ["browser_webconsole_previewers.js"]
+support-files = ["browser_webconsole_previewers.snapshot.mjs"]
+https_first_disabled = true # JS HttpServer doesn't support https
+skip-if = ["http3"] # JS HttpServer doesn't support http3
 
 ["browser_webconsole_promise_rejected_object.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
