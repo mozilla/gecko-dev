@@ -110,5 +110,13 @@ addAccessibleTask(
       [p, 0, p, 1],
       [link, 0, link, 1],
     ]);
+
+    info("Clearing selection");
+    selected = waitForEvent(EVENT_TEXT_SELECTION_CHANGED, docAcc);
+    await runPython(`
+      docSel.setSelections(0, byref(IA2TextSelection()))
+    `);
+    await selected;
+    checkSelection(docAcc, []);
   }
 );
