@@ -11,7 +11,8 @@ import {
   getBlockInfoForTextureFormat,
   isDepthOrStencilTextureFormat,
   getBlockInfoForSizedTextureFormat,
-  getBlockInfoForColorTextureFormat } from
+  getBlockInfoForColorTextureFormat,
+  getMaxValidTextureSizeForFormatAndDimension } from
 '../../../format_info.js';
 import { align } from '../../../util/math.js';
 import {
@@ -195,13 +196,14 @@ fn((t) => {
   t.skipIfTextureFormatNotSupported(format);
   t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
   const info = getBlockInfoForSizedTextureFormat(format);
+  const maxSize = getMaxValidTextureSizeForFormatAndDimension(t.device, format, dimension);
 
   // In the CopyB2T and CopyT2B cases we need to have bytesPerRow 256-aligned,
   // to make this happen we align the bytesInACompleteRow value and multiply
   // bytesPerRowPadding by 256.
   const bytesPerRowAlignment = method === 'WriteTexture' ? 1 : 256;
-  const copyWidth = copyWidthInBlocks * info.blockWidth;
-  const copyHeight = copyHeightInBlocks * info.blockHeight;
+  const copyWidth = Math.min(copyWidthInBlocks * info.blockWidth, maxSize[0]);
+  const copyHeight = Math.min(copyHeightInBlocks * info.blockHeight, maxSize[1]);
   const rowsPerImage = copyHeight + rowsPerImagePaddingInBlocks * info.blockHeight;
   const bytesPerRow =
   align(bytesInACompleteRow(copyWidth, format), bytesPerRowAlignment) +

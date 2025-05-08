@@ -22,6 +22,7 @@ import {
   isColorTextureFormat,
   textureFormatsAreViewCompatible,
   textureDimensionAndFormatCompatibleForDevice,
+  getMaxValidTextureSizeForFormatAndDimension,
 } from '../../format_info.js';
 import { maxMipLevelCount } from '../../util/texture/base.js';
 
@@ -733,11 +734,9 @@ g.test('texture_size,2d_texture,compressed_format')
     const { dimension, format, sizeVariant } = t.params;
     t.skipIfTextureFormatNotSupported(format);
     const info = getBlockInfoForTextureFormat(format);
-    const size = [
-      t.device.limits.maxTextureDimension2D,
-      t.device.limits.maxTextureDimension2D,
-      t.device.limits.maxTextureArrayLayers,
-    ].map((limit, ndx) => makeValueTestVariant(limit, sizeVariant[ndx]));
+    const size = getMaxValidTextureSizeForFormatAndDimension(t.device, format, '2d').map(
+      (limit, ndx) => makeValueTestVariant(limit, sizeVariant[ndx])
+    );
 
     const descriptor: GPUTextureDescriptor = {
       size,
@@ -967,14 +966,10 @@ g.test('texture_size,3d_texture,compressed_format')
     const { format, sizeVariant } = t.params;
     t.skipIfTextureFormatNotSupported(format);
     t.skipIfTextureFormatAndDimensionNotCompatible(format, '3d');
-    const info = getBlockInfoForTextureFormat(format);
-
     const maxTextureDimension3D = t.device.limits.maxTextureDimension3D;
-    const size = sizeVariant.map(variant => t.makeLimitVariant('maxTextureDimension3D', variant));
-
-    assert(
-      maxTextureDimension3D % info.blockWidth === 0 &&
-        maxTextureDimension3D % info.blockHeight === 0
+    const info = getBlockInfoForTextureFormat(format);
+    const size = getMaxValidTextureSizeForFormatAndDimension(t.device, format, '3d').map(
+      (limit, ndx) => makeValueTestVariant(limit, sizeVariant[ndx])
     );
 
     const descriptor: GPUTextureDescriptor = {

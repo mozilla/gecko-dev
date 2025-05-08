@@ -58,7 +58,8 @@ import {
   getBlockInfoForTextureFormat,
   getBlockInfoForColorTextureFormat,
   canCopyToAllAspectsOfTextureFormat,
-  canCopyFromAllAspectsOfTextureFormat } from
+  canCopyFromAllAspectsOfTextureFormat,
+  getMaxValidTextureSizeForFormatAndDimension } from
 '../../../format_info.js';
 import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import * as ttu from '../../../texture_test_utils.js';
@@ -1245,14 +1246,16 @@ fn((t) => {
   t.skipIfTextureFormatNotSupported(format);
   t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
   const info = getBlockInfoForTextureFormat(format);
+  const maxSize = getMaxValidTextureSizeForFormatAndDimension(t.device, format, dimension);
+
   // For CopyB2T and CopyT2B we need to have bytesPerRow 256-aligned,
   // to make this happen we align the bytesInACompleteRow value and multiply
   // bytesPerRowPadding by 256.
   const bytesPerRowAlignment =
   initMethod === 'WriteTexture' && checkMethod === 'FullCopyT2B' ? 1 : 256;
 
-  const copyWidth = copyWidthInBlocks * info.blockWidth;
-  const copyHeight = copyHeightInBlocks * info.blockHeight;
+  const copyWidth = Math.min(copyWidthInBlocks * info.blockWidth, maxSize[0]);
+  const copyHeight = Math.min(copyHeightInBlocks * info.blockHeight, maxSize[1]);
   const rowsPerImage = copyHeightInBlocks + rowsPerImagePadding;
   const bytesPerRow =
   align(bytesInACompleteRow(copyWidth, format), bytesPerRowAlignment) +

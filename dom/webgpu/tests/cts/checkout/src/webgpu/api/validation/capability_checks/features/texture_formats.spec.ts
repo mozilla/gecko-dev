@@ -541,7 +541,7 @@ g.test('check_capability_guarantees')
   .desc(
     `check any adapter returned by requestAdapter() must provide the following guarantees:
       - "texture-compression-bc" is supported or both "texture-compression-etc2" and "texture-compression-astc" are supported
-      - either "texture-compression-bc" or "texture-compression-bc-sliced-3d" is supported, both must be supported.
+      - if "texture-compression-bc-sliced-3d" is supported, then "texture-compression-bc" must be supported.
       - if "texture-compression-astc-sliced-3d" is supported, then "texture-compression-astc" must be supported.
     `
   )
@@ -562,11 +562,8 @@ g.test('check_capability_guarantees')
       'Adapter must support BC or both ETC2 and ASTC'
     );
 
-    if (supportsBC || supportsBCSliced3D) {
-      t.expect(
-        supportsBC && supportsBCSliced3D,
-        'If BC or BC Sliced 3D is supported, both must be'
-      );
+    if (supportsBCSliced3D) {
+      t.expect(supportsBC, 'If BC Sliced 3D is supported, BC must be supported');
     }
 
     if (supportsASTCSliced3D) {

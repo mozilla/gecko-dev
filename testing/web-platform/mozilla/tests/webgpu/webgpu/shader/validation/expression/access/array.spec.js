@@ -377,6 +377,45 @@ const kOutOfBoundsCases = {
     result: true,
     pipeline: true,
     value: 1
+  },
+  override_array_dynamic_type_checked_oob_pos: {
+    code: `@group(0) @binding(0) var<storage> v : array<array<array<u32, 3>, 4>, 5>;
+    override x : i32;
+    override w = 0u;
+    fn y() -> u32 {
+      var u = 0;
+      let tmp = v[w][u][x];
+      return 0;
+    }`,
+    result: false,
+    pipeline: true,
+    value: 3
+  },
+  override_array_dynamic_type_checked_oob_neg: {
+    code: `@group(0) @binding(0) var<storage> v : array<array<array<u32, 3>, 4>, 5>;
+    override x : i32;
+    override w = 0u;
+    fn y() -> u32 {
+      var u = 0;
+      let tmp = v[w][u][x];
+      return 0;
+    }`,
+    result: false,
+    pipeline: true,
+    value: -1
+  },
+  override_array_dynamic_type_checked_bounds: {
+    code: `@group(0) @binding(0) var<storage> v : array<array<array<u32, 3>, 4>, 5>;
+    override x : i32;
+    override w = 0u;
+    fn y() -> u32 {
+      var u = 0;
+      let tmp = v[w][u][x];
+      return 0;
+    }`,
+    result: true,
+    pipeline: true,
+    value: 1
   }
 };
 
