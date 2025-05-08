@@ -128,13 +128,29 @@ class TabDrawerRobot(private val composeTestRule: ComposeTestRule) {
         }
     }
 
-    fun verifyOpenTabsOrder(title: String, position: Int) {
+    fun verifyOpenTabsOrder(title: String, position: Int, isListViewEnabled: Boolean = false) {
         Log.i(TAG, "verifyOpenTabsOrder: Trying to verify that the open tab at position: $position has title: $title")
-        composeTestRule.normalTabsList()
-            .onChildAt(position - 1)
-            .assert(hasTestTag(TabsTrayTestTag.tabItemRoot))
-            .assert(hasAnyChild(hasText(title)))
-        Log.i(TAG, "verifyOpenTabsOrder: Verified that the open tab at position: $position has title: $title")
+        when (isListViewEnabled) {
+           false -> {
+               composeTestRule.normalTabsListGridView()
+                   .onChildAt(position - 1)
+                   .assert(hasTestTag(TabsTrayTestTag.tabItemRoot))
+                   .assert(hasAnyChild(hasText(title)))
+               Log.i(
+                   TAG,
+                   "verifyOpenTabsOrder: Verified that the open tab at position: $position has title: $title",
+               )
+           }
+            true -> {
+                composeTestRule.normalTabsListView()
+                    .onChildAt(position - 1)
+                    .assert(hasAnyChild(hasText(title)))
+                Log.i(
+                    TAG,
+                    "verifyOpenTabsOrder: Verified that the open tab at position: $position has title: $title",
+                )
+            }
+        }
     }
 
     fun verifyNoExistingOpenTabs(vararg titles: String) {
@@ -150,7 +166,7 @@ class TabDrawerRobot(private val composeTestRule: ComposeTestRule) {
     fun verifyNormalTabsList() {
         composeTestRule.waitUntilDoesNotExist(hasTestTag("tabstray.tabList.normal.empty"), waitingTime)
         Log.i(TAG, "verifyNormalTabsList: Trying to verify that the normal tabs list exists")
-        composeTestRule.normalTabsList().assertExists()
+        composeTestRule.normalTabsListGridView().assertExists()
         Log.i(TAG, "verifyNormalTabsList: Verified that the normal tabs list exists")
     }
 
@@ -293,9 +309,12 @@ class TabDrawerRobot(private val composeTestRule: ComposeTestRule) {
     /**
      * Swipes a tab with [title] left.
      */
-    fun swipeTabLeft(title: String) {
+    fun swipeTabLeft(title: String, isListViewEnabled: Boolean = false) {
         Log.i(TAG, "swipeTabLeft: Trying to perform swipe left action on tab: $title")
-        composeTestRule.tabItem(title).performTouchInput { swipeLeft() }
+        when (isListViewEnabled) {
+            false -> composeTestRule.tabItem(title).performTouchInput { swipeLeft() }
+            true -> composeTestRule.tabItemInListView(title).performTouchInput { swipeLeft() }
+        }
         Log.i(TAG, "swipeTabLeft: Performed swipe left action on tab: $title")
         Log.i(TAG, "swipeTabLeft: Waiting for compose test rule to be idle")
         composeTestRule.waitForIdle()
@@ -305,9 +324,12 @@ class TabDrawerRobot(private val composeTestRule: ComposeTestRule) {
     /**
      * Swipes a tab with [title] right.
      */
-    fun swipeTabRight(title: String) {
+    fun swipeTabRight(title: String, isListViewEnabled: Boolean = false) {
         Log.i(TAG, "swipeTabRight: Trying to perform swipe right action on tab: $title")
-        composeTestRule.tabItem(title).performTouchInput { swipeRight() }
+        when (isListViewEnabled) {
+            false -> composeTestRule.tabItem(title).performTouchInput { swipeRight() }
+            true -> composeTestRule.tabItemInListView(title).performTouchInput { swipeRight() }
+        }
         Log.i(TAG, "swipeTabRight: Performed swipe right action on tab: $title")
         Log.i(TAG, "swipeTabRight: Waiting for compose test rule to be idle")
         composeTestRule.waitForIdle()
@@ -525,7 +547,7 @@ class TabDrawerRobot(private val composeTestRule: ComposeTestRule) {
 
         fun openNormalTab(position: Int, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
             Log.i(TAG, "openNormalTab: Trying to click tab at position: ${position + 1}")
-            composeTestRule.normalTabsList()
+            composeTestRule.normalTabsListGridView()
                 .onChildren()[position]
                 .performClick()
             Log.i(TAG, "openNormalTab: Clicked tab at position: ${position + 1}")
@@ -677,9 +699,15 @@ private fun ComposeTestRule.privateBrowsingButton() = onNodeWithTag(TabsTrayTest
 private fun ComposeTestRule.syncedTabsButton() = onNodeWithTag(TabsTrayTestTag.syncedTabsPageButton)
 
 /**
- * Obtains the normal tabs list.
+ * Obtains the normal tabs list when in Grid view.
  */
-private fun ComposeTestRule.normalTabsList() = onNodeWithTag(TabsTrayTestTag.normalTabsList)
+private fun ComposeTestRule.normalTabsListGridView() = onNodeWithTag(TabsTrayTestTag.normalTabsList)
+
+/**
+ * Obtains the normal tabs list when in List view.
+ */
+private fun ComposeTestRule.normalTabsListView() =
+    onNodeWithTag(TabsTrayTestTag.normalTabsList, useUnmergedTree = true)
 
 /**
  * Obtains the private tabs list.
@@ -702,11 +730,19 @@ private fun ComposeTestRule.emptyNormalTabsList() = onNodeWithTag(TabsTrayTestTa
 private fun ComposeTestRule.emptyPrivateTabsList() = onNodeWithTag(TabsTrayTestTag.emptyPrivateTabsList)
 
 /**
- * Obtains the tab with the provided [title]
+ * Obtains the tab with the provided [title] in Grid view.
  */
 private fun ComposeTestRule.tabItem(title: String) = onAllNodesWithTag(TabsTrayTestTag.tabItemRoot)
     .filter(hasAnyChild(hasText(title)))
     .onFirst()
+
+/**
+ * Obtains the tab with the provided [title] when in List view.
+ */
+private fun ComposeTestRule.tabItemInListView(title: String) =
+    onAllNodesWithTag(TabsTrayTestTag.tabItemRoot, useUnmergedTree = true)
+        .filter(hasAnyChild(hasText(title)))
+        .onFirst()
 
 /**
  * Obtains an open tab's close button when there's only one tab open.

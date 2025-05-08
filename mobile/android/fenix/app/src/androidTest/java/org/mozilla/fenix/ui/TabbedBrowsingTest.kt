@@ -11,10 +11,13 @@ import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SkipLeaks
 import org.mozilla.fenix.customannotations.SmokeTest
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper
+import org.mozilla.fenix.helpers.MockBrowserDataHelper
 import org.mozilla.fenix.helpers.RetryTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper
+import org.mozilla.fenix.helpers.TestHelper.appContext
 import org.mozilla.fenix.helpers.TestHelper.clickSnackbarButton
 import org.mozilla.fenix.helpers.TestHelper.closeApp
 import org.mozilla.fenix.helpers.TestHelper.mDevice
@@ -534,6 +537,58 @@ class TabbedBrowsingTest : TestSetup() {
             verifyPrivateBrowsingHomeScreenItems()
         }.openTabDrawer(composeTestRule) {
             verifyNoOpenTabsInPrivateBrowsing()
+        }
+    }
+
+    @Test
+    fun verifyTabsTrayListView() {
+        appContext.settings().gridTabView = false
+
+        val webPages = TestAssetHelper.getGenericAssets(mockWebServer)
+
+        MockBrowserDataHelper.createTabItem(webPages[0].url.toString())
+        MockBrowserDataHelper.createTabItem(webPages[1].url.toString())
+        MockBrowserDataHelper.createTabItem(webPages[2].url.toString())
+        MockBrowserDataHelper.createTabItem(webPages[3].url.toString())
+
+        homeScreen {
+        }.openTabDrawer(composeTestRule) {
+            verifyNormalTabsList()
+        }.closeTabDrawer {}
+        homeScreen {
+        }.openTabDrawer(composeTestRule) {
+            verifyOpenTabsOrder(title = webPages[0].title, position = 1, isListViewEnabled = true)
+            verifyOpenTabsOrder(title = webPages[1].title, position = 2, isListViewEnabled = true)
+            verifyOpenTabsOrder(title = webPages[2].title, position = 3, isListViewEnabled = true)
+            verifyOpenTabsOrder(title = webPages[3].title, position = 4, isListViewEnabled = true)
+            swipeTabLeft(title = webPages[0].title, isListViewEnabled = true)
+            verifyOpenTabsOrder(title = webPages[1].title, position = 1, isListViewEnabled = true)
+        }
+    }
+
+    @Test
+    fun verifyTabsTrayGridView() {
+        appContext.settings().gridTabView = true
+
+        val webPages = TestAssetHelper.getGenericAssets(mockWebServer)
+
+        MockBrowserDataHelper.createTabItem(webPages[0].url.toString())
+        MockBrowserDataHelper.createTabItem(webPages[1].url.toString())
+        MockBrowserDataHelper.createTabItem(webPages[2].url.toString())
+        MockBrowserDataHelper.createTabItem(webPages[3].url.toString())
+
+        homeScreen {
+        }.openTabDrawer(composeTestRule) {
+            verifyNormalTabsList()
+        }.closeTabDrawer {}
+        homeScreen {
+        }.openTabDrawer(composeTestRule) {
+            verifyOpenTabsOrder(title = webPages[0].title, position = 1)
+            verifyOpenTabsOrder(title = webPages[1].title, position = 2)
+            verifyOpenTabsOrder(title = webPages[2].title, position = 3)
+            verifyOpenTabsOrder(title = webPages[3].title, position = 4)
+            swipeTabLeft(title = webPages[0].title)
+            verifyOpenTabsOrder(title = webPages[1].title, position = 1)
         }
     }
 }
