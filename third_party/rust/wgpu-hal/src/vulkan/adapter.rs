@@ -123,6 +123,10 @@ pub struct PhysicalDeviceFeatures {
 
     /// Features proved by `VK_EXT_mesh_shader`
     mesh_shader: Option<vk::PhysicalDeviceMeshShaderFeaturesEXT<'static>>,
+
+    /// Features provided by `VK_KHR_shader_integer_dot_product`, promoted to Vulkan 1.3.
+    shader_integer_dot_product:
+        Option<vk::PhysicalDeviceShaderIntegerDotProductFeaturesKHR<'static>>,
 }
 
 impl PhysicalDeviceFeatures {
@@ -185,6 +189,9 @@ impl PhysicalDeviceFeatures {
             info = info.push_next(feature);
         }
         if let Some(ref mut feature) = self.mesh_shader {
+            info = info.push_next(feature);
+        }
+        if let Some(ref mut feature) = self.shader_integer_dot_product {
             info = info.push_next(feature);
         }
         info
@@ -499,6 +506,16 @@ impl PhysicalDeviceFeatures {
             } else {
                 None
             },
+            shader_integer_dot_product: if device_api_version >= vk::API_VERSION_1_3
+                || enabled_extensions.contains(&khr::shader_integer_dot_product::NAME)
+            {
+                Some(
+                    vk::PhysicalDeviceShaderIntegerDotProductFeaturesKHR::default()
+                        .shader_integer_dot_product(private_caps.shader_integer_dot_product),
+                )
+            } else {
+                None
+            },
         }
     }
 
@@ -697,6 +714,13 @@ impl PhysicalDeviceFeatures {
             features.set(
                 F::TEXTURE_COMPRESSION_ASTC_HDR,
                 astc_hdr.texture_compression_astc_hdr != 0,
+            );
+        }
+
+        if self.core.texture_compression_astc_ldr != 0 {
+            features.set(
+                F::TEXTURE_COMPRESSION_ASTC_SLICED_3D,
+                supports_astc_3d(instance, phd),
             );
         }
 
@@ -1005,6 +1029,11 @@ impl PhysicalDeviceProperties {
 
             if requested_features.intersects(wgt::Features::EXPERIMENTAL_MESH_SHADER) {
                 extensions.push(khr::maintenance4::NAME);
+            }
+
+            // Optional `VK_KHR_shader_integer_dot_product`
+            if self.supports_extension(khr::shader_integer_dot_product::NAME) {
+                extensions.push(khr::shader_integer_dot_product::NAME);
             }
         }
 
@@ -1496,6 +1525,16 @@ impl super::InstanceShared {
                 features2 = features2.push_next(next);
             }
 
+            // `VK_KHR_shader_integer_dot_product` is promoted to 1.3
+            if capabilities.device_api_version >= vk::API_VERSION_1_3
+                || capabilities.supports_extension(khr::shader_integer_dot_product::NAME)
+            {
+                let next = features
+                    .shader_integer_dot_product
+                    .insert(vk::PhysicalDeviceShaderIntegerDotProductFeatures::default());
+                features2 = features2.push_next(next);
+            }
+
             unsafe { get_device_properties.get_physical_device_features2(phd, &mut features2) };
             features2.features
         } else {
@@ -1679,6 +1718,9 @@ impl super::Instance {
                 .properties
                 .limits
                 .max_sampler_allocation_count,
+            shader_integer_dot_product: phd_features
+                .shader_integer_dot_product
+                .is_some_and(|ext| ext.shader_integer_dot_product != 0),
         };
         let capabilities = crate::Capabilities {
             limits: phd_capabilities.to_wgpu_limits(),
@@ -1971,13 +2013,24 @@ impl super::Adapter {
             if features.contains(wgt::Features::EXPERIMENTAL_RAY_HIT_VERTEX_RETURN) {
                 capabilities.push(spv::Capability::RayQueryPositionFetchKHR)
             }
+            if self.private_caps.shader_integer_dot_product {
+                // See <https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_shader_integer_dot_product.html#_new_spir_v_capabilities>.
+                capabilities.extend(&[
+                    spv::Capability::DotProductInputAllKHR,
+                    spv::Capability::DotProductInput4x8BitKHR,
+                    spv::Capability::DotProductInput4x8BitPackedKHR,
+                    spv::Capability::DotProductKHR,
+                ]);
+            }
             spv::Options {
-                lang_version: if features
-                    .intersects(wgt::Features::SUBGROUP | wgt::Features::SUBGROUP_VERTEX)
-                {
-                    (1, 3)
-                } else {
-                    (1, 0)
+                lang_version: match self.phd_capabilities.device_api_version {
+                    // Use maximum supported SPIR-V version according to
+                    // <https://github.com/KhronosGroup/Vulkan-Docs/blob/19b7651/appendices/spirvenv.adoc?plain=1#L21-L40>.
+                    vk::API_VERSION_1_0..vk::API_VERSION_1_1 => (1, 0),
+                    vk::API_VERSION_1_1..vk::API_VERSION_1_2 => (1, 3),
+                    vk::API_VERSION_1_2..vk::API_VERSION_1_3 => (1, 5),
+                    vk::API_VERSION_1_3.. => (1, 6),
+                    _ => unreachable!(),
                 },
                 flags,
                 capabilities: Some(capabilities.iter().cloned().collect()),
@@ -2556,6 +2609,60 @@ fn supports_format(
         vk::ImageTiling::OPTIMAL => properties.optimal_tiling_features.contains(features),
         _ => false,
     }
+}
+
+fn supports_astc_3d(instance: &ash::Instance, phd: vk::PhysicalDevice) -> bool {
+    let mut supports = true;
+
+    let astc_formats = [
+        vk::Format::ASTC_4X4_UNORM_BLOCK,
+        vk::Format::ASTC_4X4_SRGB_BLOCK,
+        vk::Format::ASTC_5X4_UNORM_BLOCK,
+        vk::Format::ASTC_5X4_SRGB_BLOCK,
+        vk::Format::ASTC_5X5_UNORM_BLOCK,
+        vk::Format::ASTC_5X5_SRGB_BLOCK,
+        vk::Format::ASTC_6X5_UNORM_BLOCK,
+        vk::Format::ASTC_6X5_SRGB_BLOCK,
+        vk::Format::ASTC_6X6_UNORM_BLOCK,
+        vk::Format::ASTC_6X6_SRGB_BLOCK,
+        vk::Format::ASTC_8X5_UNORM_BLOCK,
+        vk::Format::ASTC_8X5_SRGB_BLOCK,
+        vk::Format::ASTC_8X6_UNORM_BLOCK,
+        vk::Format::ASTC_8X6_SRGB_BLOCK,
+        vk::Format::ASTC_8X8_UNORM_BLOCK,
+        vk::Format::ASTC_8X8_SRGB_BLOCK,
+        vk::Format::ASTC_10X5_UNORM_BLOCK,
+        vk::Format::ASTC_10X5_SRGB_BLOCK,
+        vk::Format::ASTC_10X6_UNORM_BLOCK,
+        vk::Format::ASTC_10X6_SRGB_BLOCK,
+        vk::Format::ASTC_10X8_UNORM_BLOCK,
+        vk::Format::ASTC_10X8_SRGB_BLOCK,
+        vk::Format::ASTC_10X10_UNORM_BLOCK,
+        vk::Format::ASTC_10X10_SRGB_BLOCK,
+        vk::Format::ASTC_12X10_UNORM_BLOCK,
+        vk::Format::ASTC_12X10_SRGB_BLOCK,
+        vk::Format::ASTC_12X12_UNORM_BLOCK,
+        vk::Format::ASTC_12X12_SRGB_BLOCK,
+    ];
+
+    for &format in &astc_formats {
+        let result = unsafe {
+            instance.get_physical_device_image_format_properties(
+                phd,
+                format,
+                vk::ImageType::TYPE_3D,
+                vk::ImageTiling::OPTIMAL,
+                vk::ImageUsageFlags::SAMPLED,
+                vk::ImageCreateFlags::empty(),
+            )
+        };
+        if result.is_err() {
+            supports = false;
+            break;
+        }
+    }
+
+    supports
 }
 
 fn supports_bgra8unorm_storage(
