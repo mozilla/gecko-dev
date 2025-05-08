@@ -411,6 +411,7 @@ bool D3D11TextureData::PrepareDrawTargetInLock(OpenMode aMode) {
 }
 
 void D3D11TextureData::Unlock() {
+  IncrementAndSignalWriteFence();
   if (mFencesHolderId.isSome()) {
     auto* fencesHolderMap = CompositeProcessD3D11FencesHolderMap::Get();
     fencesHolderMap->SetWriteFence(mFencesHolderId.ref(), mWriteFence);
@@ -712,7 +713,7 @@ TextureFlags D3D11TextureData::GetTextureFlags() const {
 }
 
 void D3D11TextureData::IncrementAndSignalWriteFence() {
-  if (!mFencesHolderId.isNothing() || !mWriteFence) {
+  if (mFencesHolderId.isNothing() || !mWriteFence) {
     return;
   }
   auto* fencesHolderMap = CompositeProcessD3D11FencesHolderMap::Get();
