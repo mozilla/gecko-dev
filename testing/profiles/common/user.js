@@ -102,3 +102,5 @@ user_pref("widget.gtk.overlay-scrollbars.enabled", false);
 // Generally, we don't want daily idle tasks run during tests. Specific tests
 // can re-enable if needed.
 user_pref("idle.lastDailyNotification", -1);
+// Honor logging prefs set for certain test suites.
+user_pref("logging.config.clear_on_startup", false);
