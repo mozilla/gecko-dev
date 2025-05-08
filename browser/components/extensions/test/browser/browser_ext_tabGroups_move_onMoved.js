@@ -153,3 +153,73 @@ add_task(async function tabsGroups_move_onMoved() {
 
   await ext.unload();
 });
+
+// Regression test for bug 1965057. Verify that replaceGroupWithWindow triggers
+// the expected tabGroups events (tabGroups.onMoved).
+add_task(async function test_replaceGroupWithWindow() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "https://example.com/?tab_to_group"
+  );
+  let group = gBrowser.addTabGroup([tab]);
+
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: ["tabGroups"],
+    },
+    async background() {
+      browser.tabGroups.onMoved.addListener(group => {
+        browser.test.sendMessage("moved_group", group);
+      });
+      browser.tabGroups.onCreated.addListener(group => {
+        browser.test.fail(`Unexpected onCreated: ${JSON.stringify(group)}`);
+      });
+      browser.tabGroups.onRemoved.addListener(group => {
+        browser.test.fail(`Unexpected onRemoved: ${JSON.stringify(group)}`);
+      });
+      browser.tabs.onDetached.addListener((movedTabId, detachInfo) => {
+        browser.test.sendMessage("onDetached_detachInfo", detachInfo);
+      });
+      browser.tabs.onAttached.addListener((movedTabId, attachInfo) => {
+        browser.test.sendMessage("onAttached_attachInfo", attachInfo);
+      });
+      browser.windows.onCreated.addListener(window => {
+        browser.test.sendMessage("created_windowId", window.id);
+      });
+      let groups = await browser.tabGroups.query({});
+      browser.test.assertEq(
+        1,
+        groups.length,
+        `Found the one group: ${JSON.stringify(groups)}`
+      );
+      browser.test.sendMessage("initial_group", groups[0]);
+    },
+  });
+
+  await extension.startup();
+  let groupBefore = await extension.awaitMessage("initial_group");
+  let oldPosition = tab._tPos;
+  let groupRemoved = BrowserTestUtils.waitForEvent(group, "TabGroupRemoved");
+  let newWindow = gBrowser.replaceGroupWithWindow(group);
+  let newWindowId = await extension.awaitMessage("created_windowId");
+  let groupAfter = await extension.awaitMessage("moved_group");
+  Assert.deepEqual(
+    groupAfter,
+    { ...groupBefore, windowId: newWindowId },
+    "Expected group after moving group with replaceGroupWithWindow"
+  );
+  Assert.notEqual(groupBefore.windowId, newWindowId, "windowId changed");
+  Assert.deepEqual(
+    await extension.awaitMessage("onDetached_detachInfo"),
+    { oldWindowId: groupBefore.windowId, oldPosition },
+    "Tab did indeed move to the new window"
+  );
+  Assert.deepEqual(
+    await extension.awaitMessage("onAttached_attachInfo"),
+    { newWindowId, newPosition: 0 },
+    "Tab did indeed move to the new window"
+  );
+  await groupRemoved;
+  await extension.unload();
+  await BrowserTestUtils.closeWindow(newWindow);
+});

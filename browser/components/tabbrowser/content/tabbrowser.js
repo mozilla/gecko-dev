@@ -5847,6 +5847,7 @@
         selectedIndex = 0;
       }
       let firstTab = group.tabs[selectedIndex];
+      group.removedByAdoption = true;
       let newWindow = this.replaceTabWithWindow(firstTab);
 
       newWindow.addEventListener(
@@ -5864,9 +5865,10 @@
           // The initial tab isn't fully adopted yet, but the tab object has been
           // instantiated, so we can make a group now.
           newWindow.gBrowser.addTabGroup(tabsToGroup, {
-            color: group.color,
-            label: group.label,
             id: group.id,
+            label: group.label,
+            color: group.color,
+            isAdoptingGroup: true,
           });
           Glean.tabgroup.groupInteractions.move_window.add(1);
         },
