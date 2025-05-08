@@ -8,5 +8,5 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0.19"
-wast = "219.0.1"
+wast = "229.0.0"
 regex = "1.11.1"

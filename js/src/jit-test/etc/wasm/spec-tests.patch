@@ -81,28 +81,39 @@ diff --git a/js/src/jit-test/tests/wasm/spec/memory64/memory_trap64.wast.js b/js
 diff --git a/js/src/jit-test/tests/wasm/spec/memory64/memory.wast.js b/js/src/jit-test/tests/wasm/spec/memory64/memory.wast.js
 --- a/js/src/jit-test/tests/wasm/spec/memory64/memory.wast.js
 +++ b/js/src/jit-test/tests/wasm/spec/memory64/memory.wast.js
-@@ -138,24 +138,6 @@ assert_invalid(
-   `memory size must be at most 65536 pages (4GiB)`,
- );
+@@ -124,32 +124,2 @@
+ assert_invalid(() => instantiate(`(module (memory 0 4294967295))`), `memory size`);
+-
+-// ./test/core/memory.wast:77
+-assert_invalid(() => instantiate(`(module (memory 0x1_0000_0000))`), `memory size`);
+-
+-// ./test/core/memory.wast:81
+-assert_invalid(
+-  () => instantiate(`(module (memory 0x1_0000_0000 0x1_0000_0000))`),
+-  `memory size`,
+-);
+-
+-// ./test/core/memory.wast:85
+-assert_invalid(() => instantiate(`(module (memory 0 0x1_0000_0000))`), `memory size`);
+-
+-// ./test/core/memory.wast:90
+-assert_invalid(
+-  () => instantiate(`(module (memory (import "M" "m") 0x1_0000_0000))`),
+-  `memory size`,
+-);
+-
+-// ./test/core/memory.wast:94
+-assert_invalid(
+-  () => instantiate(`(module (memory (import "M" "m") 0x1_0000_0000 0x1_0000_0000))`),
+-  `memory size`,
+-);
+-
+-// ./test/core/memory.wast:98
+-assert_invalid(
+-  () => instantiate(`(module (memory (import "M" "m") 0 0x1_0000_0000))`),
+-  `memory size`,
+-);
  
--// ./test/core/memory.wast:76
--assert_invalid(
--  () => instantiate(`(memory 0x1_0000_0000) `),
--  `memory size must be at most 65536 pages (4GiB)`,
--);
--
--// ./test/core/memory.wast:80
--assert_invalid(
--  () => instantiate(`(memory 0x1_0000_0000 0x1_0000_0000) `),
--  `memory size must be at most 65536 pages (4GiB)`,
--);
--
--// ./test/core/memory.wast:84
--assert_invalid(
--  () => instantiate(`(memory 0 0x1_0000_0000) `),
--  `memory size must be at most 65536 pages (4GiB)`,
--);
--
  // ./test/core/memory.wast:89
  let $9 = instantiate(`(module
    (memory 1)

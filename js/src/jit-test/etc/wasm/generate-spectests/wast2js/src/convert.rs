@@ -129,13 +129,12 @@ fn convert_directive(
 
         // (module definition $M ...): Define and validate, but do not instantiate, a module
         ModuleDefinition(wast::QuoteWat::Wat(wast::Wat::Module(module))) => {
-            let name = module
-                .id
-                .ok_or(anyhow!("`module define` directives must have IDs"))?
-                .name();
             let module_text = module_definition_to_js_string(&module, wast)?;
-
-            writeln!(out, "let ${} = module(`{}`);", name, module_text)?;
+            if let Some(id) = module.id {
+              writeln!(out, "let ${} = module(`{}`);", id.name(), module_text)?;
+            } else {
+              writeln!(out, "let _ = module(`{}`);", module_text)?;
+            }
         }
         ModuleDefinition(..) => bail!("unsupported module definition...definition"),
 
@@ -468,7 +467,7 @@ fn module_definition_to_js_string(module: &wast::core::Module, wast: &str) -> Re
     let opened_module = &wast[offset..];
 
     // strip "module definition $M" down to just "module"
-    let pattern = r"^module definition \$[a-zA-Z_$][a-zA-Z0-9_$]*(.*)";
+    let pattern = r"^module definition (?:\$[a-zA-Z_$][a-zA-Z0-9_$]* )?(.*)";
     let re = Regex::new(pattern).expect("Invalid regex pattern");
     let without_definition = re.replace(opened_module, "module $1");
 

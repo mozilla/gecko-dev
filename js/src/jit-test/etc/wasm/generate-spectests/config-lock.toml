@@ -4,12 +4,12 @@ commit = '1e1010249'
 
 [[repos]]
 name = 'memory64'
-commit = '179566900'
+commit = '9003cd5e2'
 
 [[repos]]
 name = 'exception-handling'
-commit = 'da1e90701'
+commit = 'af287a73d'
 
 [[repos]]
 name = 'gc'
-commit = '88463e822'
+commit = '756060f58'
