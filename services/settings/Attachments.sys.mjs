@@ -474,8 +474,8 @@ export class Downloader {
    * No-op if the attachment does not exist.
    *
    * @param record A Remote Settings entry with attachment.
-   * @param {Object} options Some options.
-   * @param {string} options.attachmentId The attachment identifier to use for
+   * @param {Object} [options] Some options.
+   * @param {string} [options.attachmentId] The attachment identifier to use for
    *                                      accessing and deleting the attachment.
    *                                      (default: `record.id`)
    */
