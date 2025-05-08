@@ -6,8 +6,9 @@
 
 MOCHITEST_MANIFESTS += ["mochitest/mochitest.toml"]
 MOCHITEST_CHROME_MANIFESTS += ["mochitest/chrome.toml"]
-XPCSHELL_TESTS_MANIFESTS += ["unit/xpcshell.toml"]
+XPCSHELL_TESTS_MANIFESTS += ["performance/xpcshell.toml", "unit/xpcshell.toml"]
 BROWSER_CHROME_MANIFESTS += ["browser/browser.toml"]
+PERFTESTS_MANIFESTS += ["performance/perftest.toml"]
 
 TESTING_JS_MODULES += [
     "UrlClassifierTestUtils.sys.mjs",

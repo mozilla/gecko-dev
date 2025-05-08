@@ -79,3 +79,8 @@ suites:
         description: "Performance tests from the 'dom/webgpu/tests/mochitest' folder."
         tests:
             "Queue Write": ""
+
+    toolkit/components/url-classifier/tests/performance:
+        description: "Performance tests for the URL Classifier"
+        tests:
+            "UrlClassifierExceptionListLookup": ""

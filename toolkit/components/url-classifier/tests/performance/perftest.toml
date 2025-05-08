@@ -1,0 +1,4 @@
+[DEFAULT]
+
+["perftest_exceptionListLookup.js"]
+disabled = "Disabled as we want to run this only as perftest, not regular CI"
