@@ -249,10 +249,14 @@ nsINode* AbstractRange::GetClosestCommonInclusiveAncestor(
   if (!mIsPositioned) {
     return nullptr;
   }
-  nsINode* startContainer = ShadowDOMSelectionHelpers::GetStartContainer(
-      this, aAllowCrossShadowBoundary);
-  nsINode* endContainer = ShadowDOMSelectionHelpers::GetEndContainer(
-      this, aAllowCrossShadowBoundary);
+  nsINode* startContainer =
+      aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes
+          ? GetMayCrossShadowBoundaryStartContainer()
+          : GetStartContainer();
+  nsINode* endContainer =
+      aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes
+          ? GetMayCrossShadowBoundaryEndContainer()
+          : GetEndContainer();
 
   if (MayCrossShadowBoundary() &&
       aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes) {

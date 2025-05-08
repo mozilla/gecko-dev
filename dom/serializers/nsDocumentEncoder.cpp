@@ -47,7 +47,6 @@
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/AbstractRange.h"
 #include "mozilla/dom/Text.h"
-#include "mozilla/dom/AbstractRange.h"
 #include "mozilla/Encoding.h"
 #include "mozilla/IntegerRange.h"
 #include "mozilla/Maybe.h"
@@ -246,8 +245,7 @@ class nsDocumentEncoder : public nsIDocumentEncoder {
   virtual ~nsDocumentEncoder();
 
   void Initialize(bool aClearCachedSerializer = true,
-                  AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary =
-                      AllowRangeCrossShadowBoundary::No);
+                  bool aAllowCrossShadowBoundary = false);
 
   /**
    * @param aMaxLength As described at
@@ -433,7 +431,7 @@ class nsDocumentEncoder : public nsIDocumentEncoder {
           mNodeSerializer{aNodeSerializer},
           mRangeContextSerializer{aRangeContextSerializer} {}
 
-    void Initialize(AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
+    void Initialize(bool aAllowCrossShadowBoundary);
 
     /**
      * @param aDepth the distance (number of `GetParent` calls) from aNode to
@@ -500,15 +498,14 @@ class nsDocumentEncoder : public nsIDocumentEncoder {
     const NodeSerializer& mNodeSerializer;
     RangeContextSerializer& mRangeContextSerializer;
 
-    AllowRangeCrossShadowBoundary mAllowCrossShadowBoundary =
-        AllowRangeCrossShadowBoundary::No;
+    bool mAllowCrossShadowBoundary = false;
   };
 
   RangeSerializer mRangeSerializer;
 };
 
 void nsDocumentEncoder::RangeSerializer::Initialize(
-    AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary) {
+    bool aAllowCrossShadowBoundary) {
   mContextInfoDepth = {};
   mStartRootIndex = 0;
   mEndRootIndex = 0;
@@ -551,9 +548,8 @@ nsDocumentEncoder::nsDocumentEncoder(
 nsDocumentEncoder::nsDocumentEncoder()
     : nsDocumentEncoder(MakeUnique<RangeNodeContext>()) {}
 
-void nsDocumentEncoder::Initialize(
-    bool aClearCachedSerializer,
-    AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary) {
+void nsDocumentEncoder::Initialize(bool aClearCachedSerializer,
+                                   bool aAllowCrossShadowBoundary) {
   mFlags = 0;
   mWrapColumn = 72;
   mRangeSerializer.Initialize(aAllowCrossShadowBoundary);
@@ -572,13 +568,6 @@ static bool ParentIsTR(nsIContent* aContent) {
     return false;
   }
   return parent->IsHTMLElement(nsGkAtoms::tr);
-}
-
-static AllowRangeCrossShadowBoundary GetAllowRangeCrossShadowBoundary(
-    const uint32_t aFlags) {
-  return (aFlags & nsIDocumentEncoder::AllowCrossShadowBoundary)
-             ? AllowRangeCrossShadowBoundary::Yes
-             : AllowRangeCrossShadowBoundary::No;
 }
 
 nsresult nsDocumentEncoder::SerializeDependingOnScope(uint32_t aMaxLength) {
@@ -619,7 +608,7 @@ nsresult nsDocumentEncoder::SerializeSelection() {
     // by the immediate context. This assumes that you can't select cells that
     // are multiple selections from two tables simultaneously.
     node = ShadowDOMSelectionHelpers::GetStartContainer(
-        range, GetAllowRangeCrossShadowBoundary(mFlags));
+        range, mFlags & nsIDocumentEncoder::AllowCrossShadowBoundary);
     NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
     if (node != prevNode) {
       if (prevNode) {
@@ -736,7 +725,7 @@ nsDocumentEncoder::NativeInit(Document* aDocument, const nsAString& aMimeType,
   if (!aDocument) return NS_ERROR_INVALID_ARG;
 
   Initialize(!mMimeType.Equals(aMimeType),
-             GetAllowRangeCrossShadowBoundary(aFlags));
+             aFlags & nsIDocumentEncoder::AllowCrossShadowBoundary);
 
   mDocument = aDocument;
 
@@ -970,7 +959,7 @@ nsresult nsDocumentEncoder::NodeSerializer::SerializeToStringRecursive(
   }
 
   ShadowRoot* shadowRoot = ShadowDOMSelectionHelpers::GetShadowRoot(
-      aNode, GetAllowRangeCrossShadowBoundary(mFlags));
+      aNode, mFlags & nsIDocumentEncoder::AllowCrossShadowBoundary);
 
   if (shadowRoot) {
     MOZ_ASSERT(StaticPrefs::dom_shadowdom_selection_across_boundary_enabled());
@@ -1325,10 +1314,8 @@ bool nsDocumentEncoder::RangeSerializer::HasInvisibleParentAndShouldBeSkipped(
 
 nsresult nsDocumentEncoder::RangeSerializer::SerializeRangeToString(
     const nsRange* aRange) {
-  if (!aRange ||
-      (aRange->Collapsed() &&
-       (mAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::No ||
-        !aRange->MayCrossShadowBoundary()))) {
+  if (!aRange || (aRange->Collapsed() && (!mAllowCrossShadowBoundary ||
+                                          !aRange->MayCrossShadowBoundary()))) {
     return NS_OK;
   }
 
@@ -1338,7 +1325,9 @@ nsresult nsDocumentEncoder::RangeSerializer::SerializeRangeToString(
   // boundary can return the host element as the container.
   // SerializeRangeContextStart doesn't support this case.
   mClosestCommonInclusiveAncestorOfRange =
-      aRange->GetClosestCommonInclusiveAncestor(mAllowCrossShadowBoundary);
+      aRange->GetClosestCommonInclusiveAncestor(
+          mAllowCrossShadowBoundary ? AllowRangeCrossShadowBoundary::Yes
+                                    : AllowRangeCrossShadowBoundary::No);
 
   if (!mClosestCommonInclusiveAncestorOfRange) {
     return NS_OK;
@@ -1373,7 +1362,7 @@ nsresult nsDocumentEncoder::RangeSerializer::SerializeRangeToString(
 
   nsContentUtils::GetInclusiveAncestors(mClosestCommonInclusiveAncestorOfRange,
                                         mCommonInclusiveAncestors);
-  if (mAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes) {
+  if (mAllowCrossShadowBoundary) {
     nsContentUtils::GetShadowIncludingAncestorsAndOffsets(
         startContainer, startOffset, inclusiveAncestorsOfStart,
         inclusiveAncestorsOffsetsOfStart);
@@ -1622,7 +1611,7 @@ nsHTMLCopyEncoder::Init(Document* aDocument, const nsAString& aMimeType,
   if (!aDocument) return NS_ERROR_INVALID_ARG;
 
   mIsTextWidget = false;
-  Initialize(true, GetAllowRangeCrossShadowBoundary(aFlags));
+  Initialize(true, aFlags & nsIDocumentEncoder::AllowCrossShadowBoundary);
 
   mIsCopying = true;
   mDocument = aDocument;
@@ -1867,13 +1856,19 @@ nsresult nsHTMLCopyEncoder::PromoteRange(nsRange* inRange) {
 
   // set the range to the new values
   ErrorResult err;
+  const bool allowRangeCrossShadowBoundary =
+      mFlags & nsIDocumentEncoder::AllowCrossShadowBoundary;
   inRange->SetStart(*opStartNode, static_cast<uint32_t>(opStartOffset), err,
-                    GetAllowRangeCrossShadowBoundary(mFlags));
+                    allowRangeCrossShadowBoundary
+                        ? AllowRangeCrossShadowBoundary::Yes
+                        : AllowRangeCrossShadowBoundary::No);
   if (NS_WARN_IF(err.Failed())) {
     return err.StealNSResult();
   }
   inRange->SetEnd(*opEndNode, static_cast<uint32_t>(opEndOffset), err,
-                  GetAllowRangeCrossShadowBoundary(mFlags));
+                  allowRangeCrossShadowBoundary
+                      ? AllowRangeCrossShadowBoundary::Yes
+                      : AllowRangeCrossShadowBoundary::No);
   if (NS_WARN_IF(err.Failed())) {
     return err.StealNSResult();
   }
@@ -2062,7 +2057,8 @@ nsresult nsHTMLCopyEncoder::GetPromotedPoint(Endpoint aWhere, nsINode* aNode,
         const bool isGeneratedContent =
             offset == -1 &&
             ShadowDOMSelectionHelpers::GetShadowRoot(
-                parent, GetAllowRangeCrossShadowBoundary(mFlags)) != node;
+                parent,
+                mFlags & nsIDocumentEncoder::AllowCrossShadowBoundary) != node;
         if (isGeneratedContent)  // we hit generated content; STOP
         {
           // back up a bit

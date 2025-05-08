@@ -25,29 +25,23 @@ class AbstractRange;
 struct ShadowDOMSelectionHelpers {
   ShadowDOMSelectionHelpers() = delete;
 
-  static nsINode* GetStartContainer(
-      const AbstractRange* aRange,
-      AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
+  static nsINode* GetStartContainer(const AbstractRange* aRange,
+                                    bool aAllowCrossShadowBoundary);
 
-  static uint32_t StartOffset(
-      const AbstractRange* aRange,
-      AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
+  static uint32_t StartOffset(const AbstractRange* aRange,
+                              bool aAllowCrossShadowBoundary);
 
-  static nsINode* GetEndContainer(
-      const AbstractRange* aRange,
-      AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
+  static nsINode* GetEndContainer(const AbstractRange* aRange,
+                                  bool aAllowCrossShadowBoundary);
 
-  static uint32_t EndOffset(
-      const AbstractRange* aRange,
-      AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
+  static uint32_t EndOffset(const AbstractRange* aRange,
+                            bool aAllowCrossShadowBoundary);
 
-  static nsINode* GetParentNodeInSameSelection(
-      const nsINode& aNode,
-      AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
+  static nsINode* GetParentNodeInSameSelection(nsINode& aNode,
+                                               bool aAllowCrossShadowBoundary);
 
-  static ShadowRoot* GetShadowRoot(
-      const nsINode* aNode,
-      AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
+  static ShadowRoot* GetShadowRoot(const nsINode* aNode,
+                                   bool aAllowCrossShadowBoundary);
 };
 }  // namespace dom
 
