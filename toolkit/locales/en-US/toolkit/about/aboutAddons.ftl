@@ -588,3 +588,12 @@ plugins-openh264-description = This plugin is automatically installed by Mozilla
 
 plugins-widevine-name = Widevine Content Decryption Module provided by Google Inc.
 plugins-widevine-description = This plugin enables playback of encrypted media in compliance with the Encrypted Media Extensions specification. Encrypted media is typically used by sites to protect against copying of premium media content. Visit https://www.w3.org/TR/encrypted-media/ for more information on Encrypted Media Extensions.
+
+## Headings for the Permissions tab in `about:addons` when the data collection
+## feature is enabled.
+
+addon-permissions-required-data-collection = Required data collection:
+addon-permissions-optional-data-collection = Optional data collection:
+
+# Name of the Permissions tab in `about:addons` when the data collection feature is enabled.
+permissions-data-addon-button = Permissions and data

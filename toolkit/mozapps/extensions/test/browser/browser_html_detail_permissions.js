@@ -14,6 +14,8 @@ const { PERMISSION_L10N, PERMISSION_L10N_ID_OVERRIDES } =
 
 AddonTestUtils.initMochitest(this);
 
+const addonsBundle = new Localization(["toolkit/about/aboutAddons.ftl"], true);
+
 const assertVisibleSections = async (permsSection, expectedHeaders) => {
   let headers = Array.from(permsSection.querySelectorAll(".permission-header"))
     // Filter out hidden sections.
@@ -1438,7 +1440,7 @@ add_task(async function test_data_collection() {
     let permsBtn = tabGroup.querySelector('[name="permissions"]');
     is(
       permsBtn.textContent,
-      PERMISSION_L10N.formatValueSync("permissions-data-addon-button"),
+      addonsBundle.formatValueSync("permissions-data-addon-button"),
       "Expected permissions and data tab"
     );
 

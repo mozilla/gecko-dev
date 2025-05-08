@@ -369,7 +369,7 @@ add_task(async function test_pending_update_with_prompted_permission() {
         Assert.equal(
           popupContentEl.introEl.textContent,
           PERMISSION_L10N.formatValueSync(
-            "webext-perms-update-listIntro-with-data-collection"
+            "webext-perms-update-list-intro-with-data-collection"
           ),
           "Expected list intro string"
         );

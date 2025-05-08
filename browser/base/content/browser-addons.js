@@ -483,14 +483,10 @@ customElements.define(
       const { grantTechnicalAndInteractionDataCollection } =
         this.notification.options.customElementOptions;
 
-      MozXULElement.insertFTLIfNeeded(
-        "locales-preview/dataCollectionPermissions.ftl"
-      );
-
       const checkboxEl = this.ownerDocument.createElement("moz-checkbox");
       this.ownerDocument.l10n.setAttributes(
         checkboxEl,
-        "popup-notification-addon-technicalAndInteraction-checkbox"
+        "popup-notification-addon-technical-and-interaction-checkbox"
       );
       checkboxEl.checked = grantTechnicalAndInteractionDataCollection;
       checkboxEl.addEventListener("change", () => {
@@ -800,10 +796,6 @@ customElements.define(
       this.querySelector(`#${this.#settingsLinkId}`)?.remove();
 
       if (this.#dataCollectionPermissionsEnabled) {
-        MozXULElement.insertFTLIfNeeded(
-          "locales-preview/dataCollectionPermissions.ftl"
-        );
-
         const HTML_NS = "http://www.w3.org/1999/xhtml";
         const link = document.createElementNS(HTML_NS, "a");
         link.setAttribute("id", this.#settingsLinkId);

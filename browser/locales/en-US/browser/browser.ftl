@@ -1175,6 +1175,12 @@ popup-notification-addon-privatebrowsing-checkbox2 =
     .label = Allow extension to run in private windows
     .accesskey = p
 
+# This string is similar to `webext-perms-description-data-long-technicalAndInteraction`
+# but it is used in the install prompt, and it needs an access key.
+popup-notification-addon-technical-and-interaction-checkbox =
+    .label = Share technical and interaction data with extension developer
+    .accesskey = S
+
 ## Pop-up warning
 
 # Variables:

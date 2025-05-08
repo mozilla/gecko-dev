@@ -19,10 +19,12 @@ ChromeUtils.defineESModuleGetters(this, {
 
 AddonTestUtils.initMochitest(this);
 
-const LABEL_FOR_TECHNICAL_AND_INTERACTION_DATA_CHECKBOX =
-  PERMISSION_L10N.formatMessagesSync([
-    "popup-notification-addon-technicalAndInteraction-checkbox",
-  ])[0].attributes.find(attr => attr.name === "label").value;
+const l10n = new Localization(["browser/browser.ftl"], true);
+const LABEL_FOR_TECHNICAL_AND_INTERACTION_DATA_CHECKBOX = l10n
+  .formatMessagesSync([
+    "popup-notification-addon-technical-and-interaction-checkbox",
+  ])[0]
+  .attributes.find(attr => attr.name === "label").value;
 
 function assertDisabledSideloadedExtensionElement(managerWindow, addonElement) {
   const doc = addonElement.ownerDocument;

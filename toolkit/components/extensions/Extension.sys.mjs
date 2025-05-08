@@ -2993,7 +2993,7 @@ export class ExtensionData {
         acceptId = "webext-perms-update-accept";
         if (lazy.dataCollectionPermissionsEnabled) {
           result.listIntro = l10n.formatValueSync(
-            "webext-perms-update-listIntro-with-data-collection"
+            "webext-perms-update-list-intro-with-data-collection"
           );
         }
         break;

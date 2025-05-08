@@ -14,7 +14,6 @@ export const PERMISSION_L10N = new Localization(
     "toolkit/global/extensions.ftl",
     "toolkit/global/extensionPermissions.ftl",
     "branding/brand.ftl",
-    "locales-preview/dataCollectionPermissions.ftl",
   ],
   true
 );
