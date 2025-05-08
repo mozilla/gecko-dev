@@ -2071,28 +2071,6 @@ var SidebarController = {
     };
   },
 
-  async handleEvent(e) {
-    switch (e.type) {
-      case "popupshown":
-        this.mouseEnterTask?.disarm();
-        /* Temporarily remove MousePosTracker listener when a context menu is open */
-        MousePosTracker.removeListener(this);
-        break;
-      case "popuphidden":
-        if (this._state.launcherExpanded) {
-          if (this._animationEnabled && !window.gReduceMotion) {
-            this._animateSidebarMain();
-          }
-          this._state.launcherExpanded = false;
-        }
-        await this.waitUntilStable();
-        MousePosTracker.addListener(this);
-        break;
-      default:
-        break;
-    }
-  },
-
   async toggleExpandOnHover(isEnabled, isDragEnded) {
     document.documentElement.toggleAttribute(
       "sidebar-expand-on-hover",
@@ -2107,15 +2085,11 @@ var SidebarController = {
       if (!isDragEnded) {
         await this.setLauncherCollapsedWidth();
       }
-      document.addEventListener("popupshown", this);
-      document.addEventListener("popuphidden", this);
     } else {
       MousePosTracker.removeListener(this);
       if (!this.mouseOverTask?.isFinalized) {
         this.mouseOverTask?.finalize();
       }
-      document.removeEventListener("popupshown", this);
-      document.removeEventListener("popuphidden", this);
     }
 
     document.documentElement.toggleAttribute(
