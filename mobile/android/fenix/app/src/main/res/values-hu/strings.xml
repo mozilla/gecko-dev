@@ -1480,7 +1480,7 @@
   -->
   <string name="download_multi_select_title">%1$d kiválasztva</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Eltávolítás</string>
+  <string name="download_delete_item_1">Eltávolítás</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Törlés</string>
   <!-- Content description for the toolbar "Navigate back" button -->

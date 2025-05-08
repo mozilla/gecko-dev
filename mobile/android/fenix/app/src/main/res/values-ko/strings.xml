@@ -1481,7 +1481,7 @@
   -->
   <string name="download_multi_select_title">%1$d개 선택됨</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">삭제</string>
+  <string name="download_delete_item_1">삭제</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">삭제</string>
   <!-- Content description for the toolbar "Navigate back" button -->
@@ -1882,7 +1882,7 @@
   <!-- Text for the cancel button from collection dialogs -->
   <string name="create_collection_negative">취소</string>
   <!-- Default name for a new collection in "name new collection" step of the collection creator. %d is a placeholder for the number of collections -->
-  <string name="create_collection_default_name">모음집 %d개</string>
+  <string name="create_collection_default_name">모음집 %d</string>
   <!--
     Share
 

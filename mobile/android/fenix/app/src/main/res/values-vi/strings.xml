@@ -1480,7 +1480,7 @@
   -->
   <string name="download_multi_select_title">%1$d đã chọn</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Xóa</string>
+  <string name="download_delete_item_1">Xóa</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Xóa</string>
   <!-- Content description for the toolbar "Navigate back" button -->

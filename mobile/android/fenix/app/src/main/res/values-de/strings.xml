@@ -650,7 +650,7 @@
   <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
   <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Wenn Sie anderen erzählen, wie Sie auf Firefox gestoßen sind, helfen Sie uns dabei, unseren Browser mehr Menschen näherzubringen.</string>
   <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
-  <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Teilen Sie lediglich minimale Daten mit den Marketing-Technologie-Partnern von Mozilla. Diese Daten werden niemals verkauft oder dazu verwendet, Ihnen Werbung anzuzeigen.</string>
+  <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Teilen Sie lediglich begrenzte Daten mit den Partnern der Marketingtechnologien von Mozilla. Diese Daten werden niemals verkauft oder dazu verwendet, Ihnen Werbung anzuzeigen.</string>
   <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Wie wir die Daten nutzen</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
@@ -1142,7 +1142,7 @@
     Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for.
   -->
-  <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Teilen Sie den Marketing-Technologien von Mozilla mit, wie Sie Firefox entdeckt haben und dass Sie ihn verwenden.</string>
+  <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Teilen Sie den Partnern der Marketingtechnologie von Mozilla mit, wie Sie Firefox entdeckt haben und dass Sie ihn verwenden.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Weitere Informationen über Marketingdaten</string>
   <!-- Preference switch for daily usage ping data collection -->
@@ -1481,13 +1481,34 @@
   -->
   <string name="download_multi_select_title">%1$d ausgewählt</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Entfernen</string>
+  <string name="download_delete_item_1">Entfernen</string>
+  <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
+  <string name="download_file_has_not_enough_storage_dialog_title">Nicht genügend Speicherplatz</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message">Dieses Gerät hat nicht genügend Speicherplatz, um &lt;b&gt;%s&lt;/b&gt; herunterzuladen.</string>
+  <!--
+    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will navigate the user to the device's storage management settings.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">Dateien verwalten</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">Abbrechen</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Löschen</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Rückwärts navigieren</string>
   <!-- Content description for the toolbar "Navigate up" button -->
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Nach oben navigieren</string>
+  <!-- Content description for the toolbar back button while searching the downloads -->
+  <string name="download_close_search_description">Zurück und Suche schließen</string>
+  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <string name="download_clear_search_description">Leeren</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">URL teilen</string>
   <!-- Text for the button to share the download file -->

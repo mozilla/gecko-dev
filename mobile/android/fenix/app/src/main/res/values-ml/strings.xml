@@ -1404,7 +1404,7 @@
   -->
   <string name="download_multi_select_title">%1$d തിരഞ്ഞെടുത്തിരിക്കുന്നു</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">മാറ്റുക</string>
+  <string name="download_delete_item_1">മാറ്റുക</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">മായ്ക്കുക</string>
   <!-- Content description for the toolbar "Navigate back" button -->

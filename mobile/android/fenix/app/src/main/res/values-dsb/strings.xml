@@ -1481,7 +1481,7 @@
   -->
   <string name="download_multi_select_title">Wubrane: %1$d</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Wótwónoźeś</string>
+  <string name="download_delete_item_1">Wótwónoźeś</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Lašowaś</string>
   <!-- Content description for the toolbar "Navigate back" button -->

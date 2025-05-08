@@ -1479,7 +1479,7 @@
   -->
   <string name="download_multi_select_title">ເລືອກ %1$d ແລ້ວ</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">ລຶບ</string>
+  <string name="download_delete_item_1">ລຶບ</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">ລຶບ</string>
   <!-- Content description for the toolbar "Navigate back" button -->
