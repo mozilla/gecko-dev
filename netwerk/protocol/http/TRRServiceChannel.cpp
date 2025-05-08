@@ -461,19 +461,9 @@ nsresult TRRServiceChannel::BeginConnect() {
     mCaps &= ~(NS_HTTP_ALLOW_KEEPALIVE);
   }
 
-  if (gHttpHandler->CriticalRequestPrioritization()) {
-    if (mClassOfService.Flags() & nsIClassOfService::Leader) {
-      mCaps |= NS_HTTP_LOAD_AS_BLOCKING;
-    }
-    if (mClassOfService.Flags() & nsIClassOfService::Unblocked) {
-      mCaps |= NS_HTTP_LOAD_UNBLOCKED;
-    }
-    if (mClassOfService.Flags() & nsIClassOfService::UrgentStart &&
-        gHttpHandler->IsUrgentStartEnabled()) {
-      mCaps |= NS_HTTP_URGENT_START;
-      SetPriority(nsISupportsPriority::PRIORITY_HIGHEST);
-    }
-  }
+  // TRR requests should never be blocked.
+  mCaps |= (NS_HTTP_LOAD_UNBLOCKED | NS_HTTP_URGENT_START);
+  SetPriority(nsISupportsPriority::PRIORITY_HIGHEST);
 
   if (mCanceled) {
     return mStatus;
