@@ -286,11 +286,11 @@ var gSyncPane = {
     }
   },
 
-  async _chooseWhatToSync(isAlreadySyncing) {
+  async _chooseWhatToSync(isSyncConfigured) {
     // Assuming another device is syncing and we're not,
     // we update the engines selection so the correct
     // checkboxes are pre-filed.
-    if (!isAlreadySyncing) {
+    if (!isSyncConfigured) {
       try {
         await Weave.Service.updateLocalEnginesState();
       } catch (err) {
@@ -298,7 +298,7 @@ var gSyncPane = {
       }
     }
     let params = {};
-    if (isAlreadySyncing) {
+    if (isSyncConfigured) {
       // If we are already syncing then we also offer to disconnect.
       params.disconnectFun = () => this.disconnectSync();
     }
@@ -306,18 +306,28 @@ var gSyncPane = {
       "chrome://browser/content/preferences/dialogs/syncChooseWhatToSync.xhtml",
       {
         closingCallback: event => {
-          if (!isAlreadySyncing && event.detail.button == "accept") {
-            // We weren't syncing but the user has accepted the dialog - so we
-            // want to start!
-            fxAccounts.telemetry
-              .recordConnection(["sync"], "ui")
-              .then(() => {
-                this.updateSyncUI();
-                return Weave.Service.configure();
-              })
-              .catch(err => {
-                console.error("Failed to enable sync", err);
+          if (event.detail.button == "accept") {
+            // Sync wasn't previously configured, but the user has accepted
+            // so we want to now start syncing!
+            if (!isSyncConfigured) {
+              fxAccounts.telemetry
+                .recordConnection(["sync"], "ui")
+                .then(() => {
+                  this.updateSyncUI();
+                  return Weave.Service.configure();
+                })
+                .catch(err => {
+                  console.error("Failed to enable sync", err);
+                });
+            } else {
+              // User is already configured and have possibly changed the engines they want to
+              // sync, so we should let the server know immediately
+              // if the user is currently syncing, we queue another sync after
+              // to ensure we caught their updates
+              Services.tm.dispatchToMainThread(() => {
+                Weave.Service.queueSync("cwts");
               });
+            }
           }
           // When the modal closes we want to remove any query params
           // so it doesn't open on subsequent visits (and will reload)
