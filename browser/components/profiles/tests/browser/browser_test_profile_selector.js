@@ -89,8 +89,8 @@ add_task(async function test_selector_window() {
   Assert.ok(profileSelector.checkbox.checked, "Checkbox should be checked");
 
   Assert.ok(
-    !profileSelector.checkbox.querySelector('[slot="description"]'),
-    "Description slot should not exist when checkbox is checked"
+    profileSelector.checkbox.querySelector('[slot="description"]').hidden,
+    "Description slot should be hidden when checkbox is checked"
   );
 
   let asyncFlushCalled = false;
@@ -150,8 +150,8 @@ add_task(async function test_selector_window() {
   );
 
   Assert.ok(
-    !profileSelector.checkbox.querySelector('[slot="description"]'),
-    "Description slot should not exist when checkbox is checked again"
+    profileSelector.checkbox.querySelector('[slot="description"]').hidden,
+    "Description slot should be hidden when checkbox is checked again"
   );
 
   const profiles = profileSelector.profileCards;

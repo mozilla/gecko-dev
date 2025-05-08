@@ -12,6 +12,7 @@ profile-selector {
   flex-direction: column;
   align-items: center;
   padding: 8%;
+  padding-bottom: 0;
 }
 
 .logo {
@@ -22,15 +23,31 @@ profile-selector {
 .profiles-body-text {
   width: 70%;
   text-align: center;
+  font-size: var(--font-size-large);
 }
 
 .profile-list {
   width: 100%;
   max-height: 400px;
+  min-width: 426px;
   overflow: auto;
-  padding: var(--space-small);
   margin: var(--space-xxlarge) 0;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xxlarge);
+  padding: 4px;
+}
+
+moz-checkbox {
+  margin-block-start: 40px;
+}
+
+moz-checkbox span[hidden] {
+  visibility: hidden;
+}
+
+h1[data-l10n-id="profile-window-heading"] {
+  font-size: calc(2 * var(--font-size-large));
+  margin-block-start: var(--space-medium);
+  margin-block-end: 0;
 }

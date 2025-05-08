@@ -51,13 +51,13 @@ new-profile-card {
 #edit-profile-card,
 #delete-profile-card {
   display: flex;
-  gap: var(--space-xxlarge);
+  gap: 48px;
   padding-block: 50px var(--space-xxlarge);
   padding-inline: var(--space-xxlarge);
 
   @media only screen and (width <= 830px) {
     flex-direction: column;
-    gap: var(--space-medium);
+    gap: var(--space-xxlarge);
   }
 
   & h1 {

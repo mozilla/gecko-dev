@@ -10,7 +10,7 @@
   gap: var(--space-xlarge);
 }
 
-#profile-content h2[data-l10n-id="edit-profile-page-header"] {
+#profile-content h1[data-l10n-id="edit-profile-page-header"] {
   margin-block: 0;
 }
 
@@ -20,14 +20,12 @@
   width: var(--header-avatar-size);
   height: var(--header-avatar-size);
   border-radius: var(--border-radius-circle);
-  margin-inline-end: var(--space-xxlarge);
 }
 
 #profile-name-area {
   display: flex;
   flex-direction: column;
   gap: var(--space-xsmall);
-  margin-block: 0 var(--space-large);
 }
 
 #profile-name-area label {
@@ -44,21 +42,13 @@
   }
 }
 
-.message-parent {
-  position: relative;
-  margin-block-end: var(--space-medium);
-}
-
 .message {
   display: inline-flex;
   gap: var(--space-xsmall);
   padding: var(--space-xsmall);
 
-  position: absolute;
-  inset-inline-start: 0;
-
   &[hidden] {
-    visibility: hidden;
+    display: none;
   }
 
   > .message-icon {

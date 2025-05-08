@@ -186,12 +186,11 @@ export class ProfileSelector extends MozLitElement {
         data-l10n-id="profile-window-checkbox-label-2"
         ?checked=${this.showSelector}
       >
-        ${!this.showSelector
-          ? html`<span
-              slot="description"
-              data-l10n-id="profile-window-checkbox-subcopy"
-            ></span>`
-          : null}
+        <span
+          slot="description"
+          data-l10n-id="profile-window-checkbox-subcopy"
+          ?hidden=${this.showSelector}
+        ></span>
       </moz-checkbox>`;
   }
 }
