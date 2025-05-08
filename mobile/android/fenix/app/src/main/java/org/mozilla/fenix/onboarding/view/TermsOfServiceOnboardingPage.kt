@@ -212,7 +212,7 @@ private fun OnboardingPagePreview() {
                 imageRes = R.drawable.ic_firefox,
                 primaryButton = Action(
                     text = stringResource(
-                        id = R.string.onboarding_term_of_service_agree_and_continue_button_label,
+                        id = R.string.onboarding_term_of_service_agree_and_continue_button_label_2,
                     ),
                     onClick = {},
                 ),

@@ -27,7 +27,7 @@ features:
               body: onboarding_terms_of_service_sub_header_2
               ordering: 1
               image-res: ic_firefox
-              primary-button-label: onboarding_term_of_service_agree_and_continue_button_label
+              primary-button-label: onboarding_term_of_service_agree_and_continue_button_label_2
               extra-data:
                 term-of-service-data:
                   line-one-text: onboarding_term_of_service_line_one_2
@@ -130,7 +130,7 @@ features:
               title: onboarding_welcome_to_firefox
               ordering: 0
               image-res: ic_firefox
-              primary-button-label: onboarding_term_of_service_agree_and_continue_button_label
+              primary-button-label: onboarding_term_of_service_agree_and_continue_button_label_2
               extra-data:
                 term-of-service-data:
                   line-one-text: onboarding_term_of_service_line_one_2
