@@ -10972,8 +10972,10 @@ nsViewportInfo Document::GetViewportInfo(const ScreenIntSize& aDisplaySize) {
                               : nsViewportInfo::ZoomBehaviour::Desktop);
   }
 
-  // Special behaviour for desktop mode, provided we are not on an about: page.
-  if (bc && bc->ForceDesktopViewport() && !IsAboutPage()) {
+  // Special behaviour for desktop mode, provided we are not on an about: page
+  // or a PDF.js page.
+  if (bc && bc->ForceDesktopViewport() && !IsAboutPage() &&
+      !nsContentUtils::IsPDFJS(NodePrincipal())) {
     CSSCoord viewportWidth =
         StaticPrefs::browser_viewport_desktopWidth() / fullZoom;
     // Do not use a desktop viewport size less wide than the display.

@@ -15,6 +15,7 @@ import androidx.core.graphics.scale
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import androidx.test.platform.app.InstrumentationRegistry
 import org.hamcrest.Matchers.equalTo
 import org.junit.After
 import org.junit.Assert.assertTrue
@@ -26,6 +27,7 @@ import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.mozilla.geckoview.Autofill
+import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.GeckoViewPrintDocumentAdapter
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.NullDelegate
 import java.io.File
@@ -40,6 +42,7 @@ class PdfCreationTest : BaseSessionTest() {
     var deviceWidth = 0
     var scaledHeight = 0
     var scaledWidth = 12
+    private val uiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation
 
     @get:Rule
     override val rules: RuleChain = RuleChain.outerRule(activityRule).around(sessionRule)
@@ -188,6 +191,24 @@ class PdfCreationTest : BaseSessionTest() {
             TestContentProvider.setNullTestData("application/pdf")
             mainSession.loadUri("content://org.mozilla.geckoview.test.provider/pdf")
             mainSession.waitForPageStop()
+        }
+    }
+
+    @NullDelegate(Autofill.Delegate::class)
+    @Test
+    fun testIfPdfIsNotScaledInDesktopMode() {
+        activityRule.scenario.onActivity {
+            mainSession.settings.userAgentMode = GeckoSessionSettings.USER_AGENT_MODE_DESKTOP
+            mainSession.settings.viewportMode = GeckoSessionSettings.VIEWPORT_MODE_DESKTOP
+
+            mainSession.loadTestPath(HELLO_PDF_WORLD_PDF_PATH)
+            mainSession.waitForPageStop()
+            assertTrue("Is a PDF document", sessionRule.waitForResult(mainSession.isPdfJs))
+
+            val scaledScreenshot = uiAutomation.takeScreenshot().scale(scaledWidth, scaledHeight, filter = false)
+            val topHalfPixel = scaledScreenshot[scaledWidth / 2, scaledHeight / 5]
+            val toolbarColor = rgb(249, 249, 251)
+            assertTrue("The PDF toolbar rendered as the correct size.", topHalfPixel == toolbarColor)
         }
     }
 }
