@@ -7,6 +7,7 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import mozilla.components.concept.engine.utils.EngineReleaseChannel
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -48,6 +49,7 @@ class MainMenuTest : TestSetup() {
     val memoryLeaksRule = DetectMemoryLeaksRule()
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/233849
+    @Ignore("Bugzilla: https://bugzilla.mozilla.org/show_bug.cgi?id=1965300")
     @Test
     fun verifyTabMainMenuItemsTest() {
         FxNimbus.features.translations.withInitializer { _, _ ->
