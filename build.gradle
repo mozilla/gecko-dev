@@ -535,3 +535,12 @@ subprojects { project ->
         }
     }
 }
+
+tasks.register("lint-a-c") {
+    subprojects.each{
+        if (it.tasks.findByName("lint") != null && it.projectDir.absolutePath.contains("android-components")) {
+            dependsOn it.tasks.named("lint")
+            println("Subproject ${it.name} has a lint task")
+        }
+    }
+}

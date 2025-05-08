@@ -148,7 +148,7 @@ object URLStringUtils {
      * Determine whether a string is a valid search query URL.
      */
     fun isValidSearchQueryUrl(url: String): Boolean {
-        var trimmedUrl = url.trim { it <= ' ' }
+        var trimmedUrl = url.trim()
         if (!trimmedUrl.matches("^.+?://.+?".toRegex())) {
             // UI hint url doesn't have http scheme, so add it if necessary
             trimmedUrl = "http://$trimmedUrl"

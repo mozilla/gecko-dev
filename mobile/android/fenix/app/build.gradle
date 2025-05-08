@@ -248,6 +248,9 @@ android {
     lint {
         lintConfig = file("lint.xml")
         baseline = file("lint-baseline.xml")
+        sarifReport = true
+        sarifOutput = file("../build/reports/lint/lint-report.sarif.json")
+        abortOnError = false
     }
 
     // https://issuetracker.google.com/issues/379732901

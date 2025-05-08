@@ -93,12 +93,12 @@ class AddToHomescreenDialogFragment : DialogFragment() {
                 requireContext(),
                 IconGenerator.generateLauncherIcon(requireContext(), iconUrl),
                 iconUrl,
-                editableTitle.text.toString().trim { it <= ' ' },
+                editableTitle.text.toString().trim(),
                 blockingEnabled,
                 requestDesktop,
             )
 
-            val hasEditedTitle = initialTitle != editableTitle.text.toString().trim { it <= ' ' }
+            val hasEditedTitle = initialTitle != editableTitle.text.toString().trim()
             AddToHomeScreen.addButtonTapped.record(
                 AddToHomeScreen.AddButtonTappedExtra(
                     hasEditedTitle = hasEditedTitle,

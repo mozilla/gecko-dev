@@ -10,6 +10,7 @@ import androidx.annotation.FloatRange
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -84,7 +85,7 @@ fun Modifier.debouncedClickable(
     debounceInterval: Long = 1000L,
     onClick: () -> Unit,
 ) = composed {
-    var lastClickTime: Long by remember { mutableStateOf(0) }
+    var lastClickTime: Long by remember { mutableLongStateOf(0) }
 
     this.then(
         Modifier.clickable(

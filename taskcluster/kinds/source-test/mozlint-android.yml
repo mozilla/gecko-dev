@@ -3,11 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
 
-# Just one TC job that runs all the lints.  There's no real advantage
-# to running them separately, and this way we perform the expensive
-# clone and somewhat expensive compilation of the Android
-# intermediates just once.
-lints:
+task-defaults:
     always-target: true
     attributes:
         build_platform: android
@@ -16,7 +12,6 @@ lints:
     description: Android lints
     platform: lint/opt
     treeherder:
-        symbol: A(lints)
         kind: test
         tier: 1
     worker-type: t-linux-docker
@@ -62,6 +57,20 @@ lints:
               type: directory
     run:
         using: run-task
+        tooltool-downloads: internal  # For internal toolchains.
+    fetches:
+        toolchain:
+            # Aliases aren't allowed for toolchains installed by fetch.
+            - linux64-android-gradle-dependencies
+            - linux64-android-sdk-linux-repack
+            - linux64-jdk-repack
+            - linux64-node
+
+
+lints:
+    treeherder:
+        symbol: A(lints)
+    run:
         command: >
             ln -s $MOZ_FETCHES_DIR/android-gradle-dependencies $GECKO_PATH &&
             ln -s $MOZ_FETCHES_DIR/android-sdk-linux $GECKO_PATH &&
@@ -75,18 +84,7 @@ lints:
             --linter android-checkstyle
             --linter android-lint
             --linter android-test
-            --linter android-fenix
-            --linter android-ac
-            --linter android-focus
             *
-        tooltool-downloads: internal  # For internal toolchains.
-    fetches:
-        toolchain:
-            # Aliases aren't allowed for toolchains installed by fetch.
-            - linux64-android-gradle-dependencies
-            - linux64-android-sdk-linux-repack
-            - linux64-jdk-repack
-            - linux64-node
     when:
         files-changed:
             # Source files.
@@ -98,6 +96,90 @@ lints:
             - 'mobile/android/**/*.png'
             - 'mobile/android/**/*.svg'
             - 'mobile/android/**/*.xml'
+            # Build stuff.
+            - 'mobile/android/**/Makefile.in'
+            - 'mobile/android/config/**'
+            - 'mobile/android/gradle.configure'
+            - 'mobile/android/**/moz.build'
+            - '**/*.gradle'
+            # Other misc lint related files.
+            - 'python/mozlint/**'
+            - 'tools/lint/**'
+
+fenix:
+    worker-type: t-linux-xlarge-source
+    treeherder:
+        symbol: A(fenix-lints)
+    run:
+        command: >
+            ln -s $MOZ_FETCHES_DIR/android-gradle-dependencies $GECKO_PATH &&
+            ln -s $MOZ_FETCHES_DIR/android-sdk-linux $GECKO_PATH &&
+            ln -s $MOZ_FETCHES_DIR/node $GECKO_PATH &&
+            cd $GECKO_PATH &&
+            ./mach --log-no-times build pre-export export &&
+            ./mach --log-no-times lint -f treeherder -f json:/builds/worker/mozlint.json
+            --linter android-fenix
+            *
+    when:
+        files-changed:
+            # Source files.
+            - 'mobile/android/fenix/**'
+            # Build stuff.
+            - 'mobile/android/**/Makefile.in'
+            - 'mobile/android/config/**'
+            - 'mobile/android/gradle.configure'
+            - 'mobile/android/**/moz.build'
+            - '**/*.gradle'
+            # Other misc lint related files.
+            - 'python/mozlint/**'
+            - 'tools/lint/**'
+
+focus:
+    worker-type: t-linux-xlarge-source
+    treeherder:
+        symbol: A(focus-lints)
+    run:
+        command: >
+            ln -s $MOZ_FETCHES_DIR/android-gradle-dependencies $GECKO_PATH &&
+            ln -s $MOZ_FETCHES_DIR/android-sdk-linux $GECKO_PATH &&
+            ln -s $MOZ_FETCHES_DIR/node $GECKO_PATH &&
+            cd $GECKO_PATH &&
+            ./mach --log-no-times build pre-export export &&
+            ./mach --log-no-times lint -f treeherder -f json:/builds/worker/mozlint.json
+            --linter android-focus
+            *
+    when:
+        files-changed:
+            # Source files.
+            - 'mobile/android/focus-android/**'
+            # Build stuff.
+            - 'mobile/android/**/Makefile.in'
+            - 'mobile/android/config/**'
+            - 'mobile/android/gradle.configure'
+            - 'mobile/android/**/moz.build'
+            - '**/*.gradle'
+            # Other misc lint related files.
+            - 'python/mozlint/**'
+            - 'tools/lint/**'
+
+android-components:
+    worker-type: t-linux-xlarge-source
+    treeherder:
+        symbol: A(ac-lints)
+    run:
+        command: >
+            ln -s $MOZ_FETCHES_DIR/android-gradle-dependencies $GECKO_PATH &&
+            ln -s $MOZ_FETCHES_DIR/android-sdk-linux $GECKO_PATH &&
+            ln -s $MOZ_FETCHES_DIR/node $GECKO_PATH &&
+            cd $GECKO_PATH &&
+            ./mach --log-no-times build pre-export export &&
+            ./mach --log-no-times lint -f treeherder -f json:/builds/worker/mozlint.json
+            --linter android-ac
+            *
+    when:
+        files-changed:
+            # Source files.
+            - 'mobile/android/android-components/**'
             # Build stuff.
             - 'mobile/android/**/Makefile.in'
             - 'mobile/android/config/**'

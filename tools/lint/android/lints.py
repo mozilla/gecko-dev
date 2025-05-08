@@ -162,6 +162,10 @@ def fenix_format(_paths, config, fix=None, **lintargs):
         config,
         fix,
         os.path.join("mobile", "android", "fenix"),
+        lint_tasks=[
+            "fenix:lint",
+            "fenix:lintFenixDebug",
+        ],
         **lintargs,
     )
 
@@ -171,6 +175,7 @@ def ac_format(_paths, config, fix=None, **lintargs):
         config,
         fix,
         os.path.join("mobile", "android", "android-components"),
+        lint_tasks=["lint-a-c"],
         **lintargs,
     )
 
@@ -180,11 +185,12 @@ def focus_format(_paths, config, fix=None, **lintargs):
         config,
         fix,
         os.path.join("mobile", "android", "focus-android"),
+        lint_tasks=["focus-android:lint"],
         **lintargs,
     )
 
 
-def report_gradlew(config, fix, subdir, **lintargs):
+def report_gradlew(config, fix, subdir, lint_tasks=[], **lintargs):
     topsrcdir = lintargs["root"]
     topobjdir = lintargs["topobjdir"]
 
@@ -195,14 +201,13 @@ def report_gradlew(config, fix, subdir, **lintargs):
 
     extra_args = lintargs.get("extra_args") or []
 
-    for task in tasks:
-        gradle(
-            lintargs["log"],
-            topsrcdir=topsrcdir,
-            topobjdir=topobjdir,
-            tasks=[task],
-            extra_args=extra_args + ["-p", os.path.join(topsrcdir, subdir)],
-        )
+    gradle(
+        lintargs["log"],
+        topsrcdir=topsrcdir,
+        topobjdir=topobjdir,
+        tasks=tasks,
+        extra_args=extra_args + ["-p", os.path.join(topsrcdir, subdir), "--continue"],
+    )
 
     reports = os.path.join(topsrcdir, subdir, "build", "reports")
     results = []
@@ -216,16 +221,21 @@ def report_gradlew(config, fix, subdir, **lintargs):
                 elif f.startswith(subdir):
                     excludes.append(f.strip())
 
-    try:
-        tree = ET.parse(
-            open(
-                os.path.join(
-                    reports,
-                    "detekt",
-                    "detekt.xml",
-                ),
-            )
+    detekt_report = None
+    if os.path.exists(os.path.join(reports, "detekt", "detekt.xml")):
+        detekt_report = os.path.join(reports, "detekt", "detekt.xml")
+    elif os.path.join(
+        topobjdir, "gradle", "build", subdir, "reports", "detekt", "detekt.xml"
+    ):
+        detekt_report = os.path.join(
+            topobjdir, "gradle", "build", subdir, "reports", "detekt", "detekt.xml"
         )
+    else:
+        print(f"Could not read detekt report: '{detekt_report}'")
+        pass
+
+    try:
+        tree = ET.parse(open(detekt_report))
         root = tree.getroot()
 
         for file in root.findall("file"):
@@ -243,6 +253,7 @@ def report_gradlew(config, fix, subdir, **lintargs):
                 }
                 results.append(result.from_config(config, **err))
     except FileNotFoundError:
+        print(f"Could not read detekt report: '{detekt_report}'")
         pass
 
     ktlint_file = "ktlint.json"
@@ -274,9 +285,10 @@ def report_gradlew(config, fix, subdir, **lintargs):
                 }
                 results.append(result.from_config(config, **err))
     except FileNotFoundError:
+        print(f"Could not read ktlint report: `{ktlint_file}`")
         pass
 
-    return results
+    return results + read_lint_report(config, subdir, tasks=lint_tasks, **lintargs)
 
 
 def is_excluded_file(topsrcdir, excludes, file):
@@ -405,6 +417,98 @@ def lint(_paths, config, **lintargs):
         results.append(result.from_config(config, **err))
 
     return results
+
+
+def read_lint_report(config, subdir, tasks=[], **lintargs):
+    topsrcdir = lintargs["root"]
+    topobjdir = lintargs["topobjdir"]
+
+    gradle(
+        lintargs["log"],
+        topsrcdir=topsrcdir,
+        topobjdir=topobjdir,
+        tasks=tasks,
+        extra_args=lintargs.get("extra_args") or [],
+    )
+
+    reports = os.path.join(topsrcdir, subdir, "build", "reports")
+
+    excludes = []
+    for path in EXCLUSION_FILES:
+        with open(os.path.join(topsrcdir, path)) as fh:
+            for f in fh.readlines():
+                if "*" in f:
+                    excludes.extend(glob.glob(f.strip()))
+                elif f.startswith(subdir):
+                    excludes.append(f.strip())
+
+    try:
+        files = os.listdir(
+            os.path.join(
+                reports,
+                "lint",
+            )
+        )
+
+        results = []
+        for file in files:
+            data = json.load(
+                open(
+                    os.path.join(reports, "lint", file),
+                )
+            ).get(
+                "runs", [{}]
+            )[0]
+
+            issues = data.get("results", [])
+            rules = data.get("tool", {}).get("driver", {}).get("rules", [])
+
+            for issue in issues:
+                dir = os.path.join(topsrcdir, subdir)
+                if subdir != os.path.join("mobile", "android", "android-components"):
+                    dir = os.path.join(topsrcdir, "mobile", "android")
+                name = os.path.join(
+                    dir,
+                    issue.get("locations", [{}])[0]
+                    .get("physicalLocation", {})
+                    .get("artifactLocation", {})
+                    .get("uri"),
+                )
+
+                if is_excluded_file(topsrcdir, excludes, name) and not "/res/" in name:
+                    continue
+
+                level = "error"
+                if "level" in issue:
+                    level = issue["level"]
+                elif "ruleIndex" in issue and len(rules) > issue["ruleIndex"]:
+                    rule_level = (
+                        rules[issue["ruleIndex"]]
+                        .get("defaultConfiguration", {})
+                        .get("level")
+                    )
+                    if rule_level:
+                        level = rule_level
+
+                err = {
+                    "rule": issue.get("ruleId"),
+                    "path": name,
+                    "lineno": issue.get("locations", [{}])[0]
+                    .get("physicalLocation", {})
+                    .get("region", {})
+                    .get("startLine"),
+                    "column": issue.get("locations", [{}])[0]
+                    .get("physicalLocation", {})
+                    .get("region", {})
+                    .get("startColumn"),
+                    "message": issue.get("message", {}).get("text"),
+                    "level": level,
+                }
+                results.append(result.from_config(config, **err))
+        return results
+    except FileNotFoundError:
+        print("Could not read lint report from ", subdir)
+        return []
 
 
 def _parse_checkstyle_output(config, topsrcdir=None, report_path=None):

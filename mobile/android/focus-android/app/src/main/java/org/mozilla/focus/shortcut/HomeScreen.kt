@@ -66,7 +66,7 @@ object HomeScreen {
         blockingEnabled: Boolean,
         requestDesktop: Boolean,
     ) {
-        val shortcutTitle = if (TextUtils.isEmpty(title.trim { it <= ' ' })) {
+        val shortcutTitle = if (TextUtils.isEmpty(title.trim())) {
             generateTitleFromUrl(url)
         } else {
             title

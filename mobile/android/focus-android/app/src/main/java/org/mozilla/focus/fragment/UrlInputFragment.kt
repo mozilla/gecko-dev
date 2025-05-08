@@ -501,7 +501,7 @@ class UrlInputFragment :
     }
 
     internal fun onCommit(input: String) {
-        if (input.trim { it <= ' ' }.isNotEmpty()) {
+        if (input.trim().isNotEmpty()) {
             handleCrashTrigger(input)
 
             binding.browserToolbar.hideKeyboard()
@@ -612,7 +612,7 @@ class UrlInputFragment :
     internal fun onTextChange(text: String) {
         searchSuggestionsViewModel.setSearchQuery(text)
 
-        if (text.trim { it <= ' ' }.isEmpty()) {
+        if (text.trim().isEmpty()) {
             binding.searchViewContainer.isVisible = false
 
             if (!isOverlay) {

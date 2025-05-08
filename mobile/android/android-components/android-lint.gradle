@@ -1,7 +1,7 @@
 android {
     lint {
         warningsAsErrors = true
-        abortOnError = true
+        abortOnError = false
 
                 // With our L10N process its totally possible to have missing or (temporarily) extra translations.
         disable 'MissingTranslation',
@@ -15,5 +15,7 @@ android {
                 // "We do not impose rules on locales"
                 // https://github.com/mozilla-mobile/android-components/pull/11069
                 'TypographyDashes'
+        sarifReport true
+        sarifOutput file("../../../build/reports/lint/lint-report-${project.name}.sarif.json")
     }
 }

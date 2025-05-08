@@ -30,7 +30,7 @@ import java.util.Locale
 interface AddonDetailsInteractor {
 
     /**
-     * Open the given URL in the browser.
+     * Open the given URL in the browser.a
      */
     fun openWebsite(url: Uri)
 

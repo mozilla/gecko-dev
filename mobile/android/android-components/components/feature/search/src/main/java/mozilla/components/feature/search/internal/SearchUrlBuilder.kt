@@ -79,7 +79,7 @@ private fun paramSubstitution(template: String, query: String, inputEncoding: St
 }
 
 private fun normalize(input: String): String {
-    val trimmedInput = input.trim { it <= ' ' }
+    val trimmedInput = input.trim()
     var uri = trimmedInput.toUri()
 
     if (TextUtils.isEmpty(uri.scheme)) {

@@ -61,6 +61,9 @@ android {
     lint {
         lintConfig = file("lint.xml")
         baseline = file("lint-baseline.xml")
+        sarifReport = true
+        sarifOutput = file("../build/reports/lint/lint-report.sarif.json")
+        abortOnError = false
     }
 
     // We have a three dimensional build configuration:
