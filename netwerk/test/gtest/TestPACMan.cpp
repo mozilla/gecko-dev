@@ -4,7 +4,7 @@
 #include "nsServiceManagerUtils.h"
 #include "../../../xpcom/threads/nsThreadManager.h"
 #include "nsIDHCPClient.h"
-#include "nsIPrefBranch.h"
+#include "mozilla/Preferences.h"
 #include "nsComponentManager.h"
 #include "nsIPrefService.h"
 #include "nsNetCID.h"
@@ -26,21 +26,11 @@ namespace mozilla {
 namespace net {
 
 nsresult SetNetworkProxyType(int32_t pref) {
-  nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-
-  if (!prefs) {
-    return NS_ERROR_FACTORY_NOT_REGISTERED;
-  }
-  return prefs->SetIntPref(NETWORK_PROXY_TYPE_PREF_NAME, pref);
+  return Preferences::SetInt(NETWORK_PROXY_TYPE_PREF_NAME, pref);
 }
 
 nsresult GetNetworkProxyType(int32_t* pref) {
-  nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-
-  if (!prefs) {
-    return NS_ERROR_FACTORY_NOT_REGISTERED;
-  }
-  return prefs->GetIntPref(NETWORK_PROXY_TYPE_PREF_NAME, pref);
+  return Preferences::GetInt(NETWORK_PROXY_TYPE_PREF_NAME, pref);
 }
 
 class nsTestDHCPClient final : public nsIDHCPClient {
@@ -67,11 +57,7 @@ NS_IMPL_ISUPPORTS(nsTestDHCPClient, nsIDHCPClient)
 
 #define NS_TESTDHCPCLIENTSERVICE_CID /* {FEBF1D69-4D7D-4891-9524-045AD18B5593} \
                                       */                                       \
-  {                                                                            \
-    0xFEBF1D69, 0x4D7D, 0x4891, {                                              \
-      0x95, 0x24, 0x04, 0x5a, 0xd1, 0x8b, 0x55, 0x93                           \
-    }                                                                          \
-  }
+  {0xFEBF1D69, 0x4D7D, 0x4891, {0x95, 0x24, 0x04, 0x5a, 0xd1, 0x8b, 0x55, 0x93}}
 
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsTestDHCPClient, Init)
 NS_DEFINE_NAMED_CID(NS_TESTDHCPCLIENTSERVICE_CID);
@@ -125,6 +111,8 @@ class TestPACMan : public ::testing::Test {
   }
 
   virtual void SetUp() {
+    Preferences::SetBool("network.proxy.dhcp_wpad_only_one_outstanding", false);
+    Preferences::SetFloat("network.proxy.dhcp_wpad_timeout_sec", 30);
     ASSERT_EQ(NS_OK, GetNetworkProxyType(&originalNetworkProxyTypePref));
     nsCOMPtr<nsIFactory> factory;
     nsresult rv = nsComponentManagerImpl::gComponentManager->GetClassObject(
