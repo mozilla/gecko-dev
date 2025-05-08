@@ -571,10 +571,12 @@ void gfxHarfBuzzShaper::GetGlyphVOrigin(hb_codepoint_t aGlyph,
   if (mVmtxTable) {
     bool emptyGlyf;
     const Glyf* glyf = FindGlyf(aGlyph, &emptyGlyf);
-    // If we didn't find any 'glyf' data, fall through to the default below;
-    // note that the glyph might still actually render (via SVG or COLR data),
-    // so we need to provide a reasonable origin.
-    if (glyf && !emptyGlyf) {
+    if (glyf) {
+      if (emptyGlyf) {
+        *aY = 0;
+        return;
+      }
+
       const ::GlyphMetrics* metrics = reinterpret_cast<const ::GlyphMetrics*>(
           hb_blob_get_data(mVmtxTable, nullptr));
       int16_t lsb;
