@@ -3577,12 +3577,23 @@ Result<FullOriginMetadata, nsresult> QuotaManager::LoadFullOriginMetadata(
       fullOriginMetadata.mStorageOrigin,
       MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(nsCString, binaryStream, ReadCString));
 
+  const auto extraInfo =
+      ScopedLogExtraInfo{ScopedLogExtraInfo::kTagStorageOriginTainted,
+                         fullOriginMetadata.mStorageOrigin};
+
   // Legacy field, previously used for isPrivate (and before that, for isApp).
   // This value is no longer used, but still read and discarded to preserve
   // compatibility with older builds that may still expect it.
   QM_TRY_INSPECT(const bool& unusedData3,
                  MOZ_TO_RESULT_INVOKE_MEMBER(binaryStream, ReadBoolean));
   Unused << unusedData3;
+
+  QM_VERBOSEONLY_TRY_UNWRAP(const auto unexpectedData,
+                            MOZ_TO_RESULT_INVOKE_MEMBER(binaryStream, Read32));
+
+  if (unexpectedData) {
+    QM_TRY(MOZ_TO_RESULT(false));
+  }
 
   QM_TRY(MOZ_TO_RESULT(binaryStream->Close()));
 
