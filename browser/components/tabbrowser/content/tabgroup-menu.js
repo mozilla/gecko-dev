@@ -916,7 +916,10 @@
             this.#handleMlTelemetry("save-popup-hidden");
           }
         } else {
-          this.activeGroup.ungroupTabs();
+          this.activeGroup.ungroupTabs({
+            isUserTriggered: true,
+            telemetrySource: TabMetrics.METRIC_SOURCE.CANCEL_TAB_GROUP_CREATION,
+          });
         }
       }
       if (this.#nameField.disabled) {

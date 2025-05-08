@@ -982,6 +982,66 @@ add_task(async function test_groupInteractions() {
     1,
     "tab group ungroup count should have increased because a tab group was ungrouped"
   );
+  const ungroupEvents = Glean.tabgroup.ungroup.testGetValue();
+  Assert.ok(ungroupEvents, "an `ungroup` event should have been recorded");
+  Assert.deepEqual(
+    ungroupEvents[0].extra,
+    { source: "tab_group" },
+    "ungroup event should have come from the tab group context menu"
+  );
+
+  await resetTelemetry();
+});
+
+add_task(async function test_cancelTabGroupCreation_ungroupTabsEvent() {
+  await resetTelemetry();
+
+  let tab = BrowserTestUtils.addTab(win.gBrowser, "https://example.com");
+
+  let tabGroupCreateByUser = BrowserTestUtils.waitForEvent(
+    win.gBrowser.tabContainer,
+    "TabGroupCreateByUser"
+  );
+  let tabGroupContextOpen = BrowserTestUtils.waitForPopupEvent(
+    win.gBrowser.tabGroupMenu,
+    "shown"
+  );
+  win.gBrowser.addTabGroup([tab], {
+    isUserTriggered: true,
+    telemetryUserCreateSource: "test-source",
+  });
+  await Promise.all([tabGroupCreateByUser, tabGroupContextOpen]);
+
+  Assert.ok(
+    win.gBrowser.tabGroupMenu.createMode,
+    "tab group context menu should be in create mode"
+  );
+
+  info("hit Escape key in order to cancel/undo tab group creation");
+  let tabGroupContextClosed = BrowserTestUtils.waitForPopupEvent(
+    win.gBrowser.tabGroupMenu,
+    "hidden"
+  );
+  EventUtils.synthesizeKey("KEY_Escape", {}, win);
+  await tabGroupContextClosed;
+
+  await BrowserTestUtils.waitForCondition(() => {
+    return Glean.tabgroup.ungroup.testGetValue() != null;
+  }, "wait until an ungroup event is recorded");
+
+  let [ungroupEvent] = Glean.tabgroup.ungroup.testGetValue();
+  Assert.deepEqual(
+    ungroupEvent.extra,
+    { source: "cancel_create" },
+    "ungroup event should be from canceling group creation"
+  );
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.ungroup.testGetValue(),
+    null,
+    "tab group interactions ungroup count should not be increased when canceling tab group creation"
+  );
+
+  await BrowserTestUtils.removeTab(tab);
 
   await resetTelemetry();
 });
