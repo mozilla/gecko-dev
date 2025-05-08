@@ -19,15 +19,25 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 // Set the appropriate l10n id before the dialog's connectedCallback.
-let mode = window.arguments[0].mode == "EDIT" ? "edit" : "add";
-document.l10n.setAttributes(
-  document.querySelector("dialog"),
-  mode + "-engine-dialog"
-);
-document.l10n.setAttributes(
-  document.querySelector("window"),
-  mode + "-engine-window"
-);
+if (window.arguments[0].mode == "EDIT") {
+  document.l10n.setAttributes(
+    document.querySelector("dialog"),
+    "edit-engine-dialog"
+  );
+  document.l10n.setAttributes(
+    document.querySelector("window"),
+    "edit-engine-window"
+  );
+} else {
+  document.l10n.setAttributes(
+    document.querySelector("dialog"),
+    "add-engine-dialog2"
+  );
+  document.l10n.setAttributes(
+    document.querySelector("window"),
+    "add-engine-window"
+  );
+}
 
 let loadedResolvers = Promise.withResolvers();
 document.mozSubdialogReady = loadedResolvers.promise;
@@ -54,6 +64,22 @@ class EngineDialog {
 
     this._form.addEventListener("input", e => this.validateInput(e.target));
     document.addEventListener("dialogaccept", this.onAccept.bind(this));
+    document.addEventListener("dialogextra1", () => this.showAdvanced());
+  }
+
+  /**
+   * Shows the advanced section and hides the advanced button.
+   *
+   * @param {boolean} [resize]
+   *   Whether the resizeDialog should be called. Before `mozSubdialogReady`
+   *   is resolved, this should be false to avoid flickering.
+   */
+  showAdvanced(resize = true) {
+    this._dialog.getButton("extra1").hidden = true;
+    document.getElementById("advanced-section").hidden = false;
+    if (resize) {
+      window.resizeDialog();
+    }
   }
 
   onAccept() {
@@ -70,9 +96,10 @@ class EngineDialog {
     let existingEngine = Services.search.getEngineByName(name);
     if (existingEngine && !this.allowedNames.includes(name)) {
       this.setValidity(this._name, "add-engine-name-exists");
-    } else {
-      this.setValidity(this._name, null);
+      return;
     }
+
+    this.setValidity(this._name, null);
   }
 
   async validateAlias() {
@@ -85,41 +112,71 @@ class EngineDialog {
     let existingEngine = await Services.search.getEngineByAlias(alias);
     if (existingEngine && !this.allowedAliases.includes(alias)) {
       this.setValidity(this._alias, "add-engine-keyword-exists");
-    } else {
-      this.setValidity(this._alias, null);
+      return;
     }
+
+    this.setValidity(this._alias, null);
   }
 
-  /**
-   * Validates the passed URL input element and updates error messages.
-   *
-   * @param {HTMLInputElement} urlInput
-   *   The URL input to validate.
-   * @param {boolean} required
-   *   Whether the input is required or optional.
-   */
-  validateUrlInput(urlInput, required) {
-    let urlString = urlInput.value.trim();
+  validateUrlInput() {
+    let urlString = this._url.value.trim();
     if (!urlString) {
-      if (required) {
-        this.setValidity(urlInput, "add-engine-no-url");
-        return;
-      }
-      this.setValidity(urlInput, null);
+      this.setValidity(this._url, "add-engine-no-url");
       return;
     }
 
     let url = URL.parse(urlString);
     if (!url) {
-      this.setValidity(urlInput, "add-engine-invalid-url");
+      this.setValidity(this._url, "add-engine-invalid-url");
       return;
     }
 
-    if (url.protocol == "http:" || url.protocol == "https:") {
-      this.setValidity(urlInput, null);
-    } else {
-      this.setValidity(urlInput, "add-engine-invalid-protocol");
+    if (url.protocol != "http:" && url.protocol != "https:") {
+      this.setValidity(this._url, "add-engine-invalid-protocol");
+      return;
     }
+
+    let postData = this._postData?.value.trim();
+    if (!urlString.includes("%s") && !postData) {
+      this.setValidity(this._url, "add-engine-missing-terms-url");
+      return;
+    }
+    this.setValidity(this._url, null);
+  }
+
+  validatePostDataInput() {
+    let postData = this._postData.value.trim();
+    if (postData && !postData.includes("%s")) {
+      this.setValidity(this._postData, "add-engine-missing-terms-post-data");
+      return;
+    }
+    this.setValidity(this._postData, null);
+  }
+
+  validateSuggestUrlInput() {
+    let urlString = this._suggestUrl.value.trim();
+    if (!urlString) {
+      this.setValidity(this._suggestUrl, null);
+      return;
+    }
+
+    let url = URL.parse(urlString);
+    if (!url) {
+      this.setValidity(this._suggestUrl, "add-engine-invalid-url");
+      return;
+    }
+
+    if (url.protocol != "http:" && url.protocol != "https:") {
+      this.setValidity(this._suggestUrl, "add-engine-invalid-protocol");
+      return;
+    }
+
+    if (!urlString.includes("%s")) {
+      this.setValidity(this._suggestUrl, "add-engine-missing-terms-url");
+      return;
+    }
+
+    this.setValidity(this._suggestUrl, null);
   }
 
   /**
@@ -136,11 +193,15 @@ class EngineDialog {
       case this._alias.id:
         await this.validateAlias();
         break;
+      case this._postData.id:
       case this._url.id:
-        this.validateUrlInput(this._url, true);
+        // Since either the url or the post data input could
+        // contain %s, we need to update both inputs here.
+        this.validateUrlInput();
+        this.validatePostDataInput();
         break;
       case this._suggestUrl.id:
-        this.validateUrlInput(this._suggestUrl, false);
+        this.validateSuggestUrlInput();
         break;
     }
   }
@@ -175,10 +236,7 @@ class EngineDialog {
     // The CSS already hides the error label based on the validity of `inputElement`.
     errorLabel.textContent = validationMessage || "valid";
 
-    this._dialog.setAttribute(
-      "buttondisabledaccept",
-      !this._form.checkValidity()
-    );
+    this._dialog.getButton("accept").disabled = !this._form.checkValidity();
   }
 
   /**
@@ -212,16 +270,19 @@ class NewEngineDialog extends EngineDialog {
     document.l10n.setAttributes(this._url, "add-engine-url-placeholder");
     document.l10n.setAttributes(this._alias, "add-engine-keyword-placeholder");
 
-    document.getElementById("enginePostDataRow").remove();
-    this._postData = null;
-
     this.validateAll();
   }
 
   onAccept() {
+    let params = new URLSearchParams(
+      this._postData.value.trim().replace(/%s/, "{searchTerms}")
+    );
+
     Services.search.addUserEngine({
       name: this._name.value.trim(),
       url: this._url.value.trim().replace(/%s/, "{searchTerms}"),
+      method: params.size ? "POST" : "GET",
+      params,
       suggestUrl: this._suggestUrl.value.trim().replace(/%s/, "{searchTerms}"),
       alias: this._alias.value.trim(),
     });
@@ -251,17 +312,17 @@ class EditEngineDialog extends EngineDialog {
       lazy.SearchUtils.URL_TYPE.SEARCH
     );
     this._url.value = url;
-    if (postData) {
-      this._postData.value = postData;
-    } else {
-      document.getElementById("enginePostDataRow").hidden = true;
-    }
+    this._postData.value = postData;
 
     let [suggestUrl] = this.getSubmissionTemplate(
       lazy.SearchUtils.URL_TYPE.SUGGEST_JSON
     );
     if (suggestUrl) {
       this._suggestUrl.value = suggestUrl;
+    }
+
+    if (postData || suggestUrl) {
+      this.showAdvanced(false);
     }
 
     this.validateAll();
@@ -272,17 +333,17 @@ class EditEngineDialog extends EngineDialog {
     this.#engine.alias = this._alias.value.trim();
 
     let newURL = this._url.value.trim();
-    let newPostData = this._postData.value.trim();
+    let newPostData = this._postData.value.trim() || null;
 
     // UserSearchEngine.changeUrl() does not check whether the URL has actually changed.
     let [prevURL, prevPostData] = this.getSubmissionTemplate(
       lazy.SearchUtils.URL_TYPE.SEARCH
     );
-    if (newURL != prevURL || (prevPostData && prevPostData != newPostData)) {
+    if (newURL != prevURL || prevPostData != newPostData) {
       this.#engine.wrappedJSObject.changeUrl(
         lazy.SearchUtils.URL_TYPE.SEARCH,
         newURL.replace(/%s/, "{searchTerms}"),
-        prevPostData ? newPostData.replace(/%s/, "{searchTerms}") : null
+        newPostData?.replace(/%s/, "{searchTerms}")
       );
     }
 
@@ -366,6 +427,7 @@ class NewEngineFromFormDialog extends EngineDialog {
     this._suggestUrl = null;
     document.getElementById("enginePostDataRow").remove();
     this._postData = null;
+    this._dialog.getButton("extra1").hidden = true;
 
     this._name.value = nameTemplate;
     this.validateAll();
@@ -389,6 +451,8 @@ async function initL10nCache() {
     "add-engine-no-url",
     "add-engine-invalid-protocol",
     "add-engine-invalid-url",
+    "add-engine-missing-terms-url",
+    "add-engine-missing-terms-post-data",
   ];
 
   let msgs = await document.l10n.formatValues(errorIds.map(id => ({ id })));
