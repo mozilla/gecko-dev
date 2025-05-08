@@ -121,6 +121,20 @@ add_task(async function test() {
       tab1,
       "Tab1 should be activated by pressing Ctrl+" + reverseKey + " on Tab2"
     );
+
+    EventUtils.synthesizeKey("VK_DOWN", { altKey: true, metaKey: true });
+    is(
+      gBrowser.selectedTab,
+      tab2,
+      "Tab2 should be activated by pressing Ctrl+down on Tab1"
+    );
+
+    EventUtils.synthesizeKey("VK_UP", { altKey: true, metaKey: true });
+    is(
+      gBrowser.selectedTab,
+      tab1,
+      "Tab1 should be activated by pressing Ctrl+down on Tab2"
+    );
   }
 
   gBrowser.selectedTab = tab2;

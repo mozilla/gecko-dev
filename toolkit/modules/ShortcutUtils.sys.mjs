@@ -327,13 +327,23 @@ export var ShortcutUtils = {
    * @param {KeyboardEvent} event The event to check for a related system action.
    * @returns {string} A string identifying the action, or null if no action is found.
    */
-  // eslint-disable-next-line complexity
   getSystemActionForEvent(event, { rtl } = {}) {
     // On Windows, Win key state is not strictly checked so that we can ignore
     // Win key state to check the other modifier state.
     const meaningfulMetaKey = event.metaKey && AppConstants.platform != "win";
-    // This is set to true only when the Meta key is accel key on the platform.
-    const accelMetaKey = event.metaKey && this.metaKeyIsCommandKey();
+    const ctrlOnly =
+      event.ctrlKey && !event.shiftKey && !event.altKey && !meaningfulMetaKey;
+    const ctrlShift =
+      event.ctrlKey && event.shiftKey && !event.altKey && !meaningfulMetaKey;
+
+    // If Meta is accel on this platform, allow meta+alt combination:
+    const metaAltAccel =
+      event.metaKey &&
+      this.metaKeyIsCommandKey() &&
+      event.altKey &&
+      !event.shiftKey &&
+      !event.ctrlKey;
+
     switch (event.keyCode) {
       case event.DOM_VK_TAB:
         if (event.ctrlKey && !event.altKey && !meaningfulMetaKey) {
@@ -347,48 +357,30 @@ export var ShortcutUtils = {
         }
         break;
       case event.DOM_VK_PAGE_UP:
-        if (
-          event.ctrlKey &&
-          !event.shiftKey &&
-          !event.altKey &&
-          !meaningfulMetaKey
-        ) {
+        if (ctrlOnly) {
           return ShortcutUtils.PREVIOUS_TAB;
         }
-        if (
-          event.ctrlKey &&
-          event.shiftKey &&
-          !event.altKey &&
-          !meaningfulMetaKey
-        ) {
+        if (ctrlShift) {
           return ShortcutUtils.MOVE_TAB_BACKWARD;
         }
         break;
       case event.DOM_VK_PAGE_DOWN:
-        if (
-          event.ctrlKey &&
-          !event.shiftKey &&
-          !event.altKey &&
-          !meaningfulMetaKey
-        ) {
+        if (ctrlOnly) {
           return ShortcutUtils.NEXT_TAB;
         }
-        if (
-          event.ctrlKey &&
-          event.shiftKey &&
-          !event.altKey &&
-          !meaningfulMetaKey
-        ) {
+        if (ctrlShift) {
           return ShortcutUtils.MOVE_TAB_FORWARD;
         }
         break;
+      case event.DOM_VK_UP: // fall through
       case event.DOM_VK_LEFT:
-        if (accelMetaKey && event.altKey && !event.shiftKey && !event.ctrlKey) {
+        if (metaAltAccel) {
           return ShortcutUtils.PREVIOUS_TAB;
         }
         break;
+      case event.DOM_VK_DOWN: // fall through
       case event.DOM_VK_RIGHT:
-        if (accelMetaKey && event.altKey && !event.shiftKey && !event.ctrlKey) {
+        if (metaAltAccel) {
           return ShortcutUtils.NEXT_TAB;
         }
         break;
@@ -412,11 +404,7 @@ export var ShortcutUtils = {
     }
     // Not on Mac from now on.
     if (AppConstants.platform != "macosx") {
-      if (
-        event.ctrlKey &&
-        !event.shiftKey &&
-        event.keyCode == KeyEvent.DOM_VK_F4
-      ) {
+      if (ctrlOnly && event.keyCode == KeyEvent.DOM_VK_F4) {
         return ShortcutUtils.CLOSE_TAB;
       }
     }
