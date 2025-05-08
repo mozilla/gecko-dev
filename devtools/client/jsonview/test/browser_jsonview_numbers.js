@@ -170,3 +170,57 @@ add_task(async function () {
     "Pretty printed JSON must be displayed"
   );
 });
+
+add_task(async function testBigNumberNotNested() {
+  await addJsonViewTab(`data:application/json,9999999999999999`);
+
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
+    const values = content.document.querySelectorAll(
+      ".jsonPanelBox .jsonPrimitiveValue"
+    );
+    is(values.length, 1, "There is 1 JSON primitive value");
+
+    ok(
+      !values[0].querySelector(".theme-twisty"),
+      `top level big number doesn't have an expand button`
+    );
+
+    info("Check a root number bigger than Number.MAX_SAFE_INTEGER");
+    const rootBigNumberValueEl = values[0].querySelector(".objectBox-number");
+    ok(
+      rootBigNumberValueEl.classList.contains("objectBox-json-number"),
+      "Big number get the lossy class"
+    );
+    is(
+      rootBigNumberValueEl.querySelector(".source-value").textContent,
+      "9999999999999999",
+      "Big number has expected source text"
+    );
+    is(
+      rootBigNumberValueEl.querySelector(".parsed-value").textContent,
+      "JS:10000000000000000",
+      "Big number has expected parsed value text"
+    );
+    ok(
+      rootBigNumberValueEl.querySelector(".parsed-value").getAttribute("title"),
+      "Big number parsed value label has a title attribute"
+    );
+  });
+
+  info("Select the RawData tab");
+  await selectJsonViewContentTab("rawdata");
+
+  const text = await getElementText(".textPanelBox .data");
+  is(text, "9999999999999999", "Proper JSON must be displayed in DOM");
+
+  info("Click 'Pretty Print' button");
+  await BrowserTestUtils.synthesizeMouseAtCenter(
+    ".textPanelBox .toolbar button.prettyprint",
+    {},
+    gBrowser.selectedBrowser
+  );
+
+  let prettyText = await getElementText(".textPanelBox .data");
+  prettyText = normalizeNewLines(prettyText);
+  is(prettyText, "9999999999999999", "Pretty printed JSON must be displayed");
+});

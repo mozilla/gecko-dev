@@ -13,7 +13,10 @@ import { createFactories } from "resource://devtools/client/shared/react-utils.m
 import TreeViewClass from "resource://devtools/client/shared/components/tree/TreeView.mjs";
 import JsonToolbarClass from "resource://devtools/client/jsonview/components/JsonToolbar.mjs";
 
-import { MODE } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
+import {
+  JSON_NUMBER,
+  MODE,
+} from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
 import { Rep } from "resource://devtools/client/shared/components/reps/reps/rep.mjs";
 
 const TreeView = createFactory(TreeViewClass);
@@ -132,6 +135,14 @@ class JsonPanel extends Component {
       );
     } else if (data instanceof Error) {
       content = div({ className: "jsonParseError" }, data + "");
+    } else if (data.type === JSON_NUMBER) {
+      content = div(
+        { className: "jsonPrimitiveValue" },
+        Rep({
+          object: data,
+          noGrip: true,
+        })
+      );
     } else {
       content = this.renderTree();
     }
