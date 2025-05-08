@@ -325,6 +325,7 @@ class Database final : public nsIObserver, public nsSupportsWeakReference {
   nsresult MigrateV75Up();
   nsresult MigrateV77Up();
   nsresult MigrateV78Up();
+  nsresult MigrateV79Up();
 
   nsresult UpdateBookmarkRootTitles();
 

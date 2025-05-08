@@ -1328,6 +1328,13 @@ nsresult Database::InitSchema(bool* aDatabaseMigrated) {
 
       // Firefox 132 uses schema version 78
 
+      if (currentSchemaVersion < 79) {
+        rv = MigrateV79Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      // Firefox 140 uses schema version 79
+
       // Schema Upgrades must add migration code here.
       // >>> IMPORTANT! <<<
       // NEVER MIX UP SYNC AND ASYNC EXECUTION IN MIGRATORS, YOU MAY LOCK THE
@@ -1438,6 +1445,17 @@ nsresult Database::InitSchema(bool* aDatabaseMigrated) {
 
     // moz_previews_tombstones
     rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_PREVIEWS_TOMBSTONES);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    // moz_newtab_story
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_NEWTAB_STORY_CLICK);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_NEWTAB_STORY_IMPRESSION);
+    NS_ENSURE_SUCCESS(rv, rv);
+    // Add newtab_story timestamp index.
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_NEWTAB_STORY_CLICK_TIMESTAMP);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_NEWTAB_IMPRESSION_TIMESTAMP);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // The bookmarks roots get initialized in CheckRoots().
@@ -2149,6 +2167,25 @@ nsresult Database::MigrateV78Up() {
     rv = mMainConn->ExecuteSimpleSQL(
         "ALTER TABLE moz_icons "
         "ADD COLUMN flags INTEGER NOT NULL DEFAULT 0"_ns);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  return NS_OK;
+}
+
+nsresult Database::MigrateV79Up() {
+  // Add newtab_story tables for moz_newtab_story_click and moz_newtab_story_impression
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mMainConn->CreateStatement(
+      "SELECT feature FROM moz_newtab_story_click"_ns, getter_AddRefs(stmt));
+  if (NS_FAILED(rv)) {
+    nsresult rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_NEWTAB_STORY_CLICK);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_NEWTAB_STORY_IMPRESSION);
+    NS_ENSURE_SUCCESS(rv, rv);
+    // Add newtab_story timestamp index.
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_NEWTAB_STORY_CLICK_TIMESTAMP);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_NEWTAB_IMPRESSION_TIMESTAMP);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   return NS_OK;
