@@ -2651,11 +2651,11 @@
     ]
   },
   "1921410": {
-    "label": "beta.maps.apple.com",
+    "label": "maps.apple.com",
     "bugs": {
       "1921410": {
         "issue": "blocked-content",
-        "matches": ["*://beta.maps.apple.com/*"]
+        "matches": ["*://maps.apple.com/*"]
       }
     },
     "interventions": [

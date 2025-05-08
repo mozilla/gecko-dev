@@ -1,6 +1,6 @@
 import pytest
 
-URL = "https://beta.maps.apple.com/"
+URL = "https://maps.apple.com/"
 BLOCKED_CSS = "#unsupported"
 NOT_BLOCKED_CSS = "#shell-container"
 
