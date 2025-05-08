@@ -15,9 +15,10 @@
 
 namespace mozilla::glean {
 
-typedef std::function<void(const nsACString& aReason)> PingTestCallback;
-typedef std::function<nsresult(const nsACString& aReason)>
-    FalliblePingTestCallback;
+using PingTestCallback = std::function<void(const nsACString& aReason)>;
+using FalliblePingTestCallback =
+    std::function<nsresult(const nsACString& aReason)>;
+using PingSubmitCallback = std::function<void()>;
 
 class GleanPing;
 
@@ -61,10 +62,29 @@ class Ping {
    * A ping may not be sent afterwards, e.g. if the ping is empty and
    * `send_if_empty` is `false`
    *
+   * Prefer using `testSubmission` over this function when possible because it
+   * will return whether or not the ping was submitted.
+   *
    * @param aCallback - The callback to call on the next submit.
    */
   void TestBeforeNextSubmit(PingTestCallback&& aCallback) const;
   void TestBeforeNextSubmitFallible(FalliblePingTestCallback&& aCallback) const;
+
+  /**
+   * **Test-only API**
+   *
+   * Register a callback to be called right before this ping is next submitted.
+   * Then immediately try to trigger ping submission by calling the second
+   * callback.
+   *
+   * @param aCallback - The callback to call on the next submit.
+   * @param aSubmitCallback - The callback that should trigger ping submission.
+   *
+   * @returns Whether or not the ping was submitted.
+   */
+  [[nodiscard]]
+  bool TestSubmission(PingTestCallback&& aTestCallback,
+                      PingSubmitCallback&& aSubmitCallback) const;
 
   /**
    * Enable or disable a ping.

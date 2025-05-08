@@ -211,17 +211,33 @@ TEST_F(FOGFixture, TestCppCustomDistWorks) {
 }
 
 TEST_F(FOGFixture, TestCppPings) {
-  test_only::one_ping_one_bool.Set(false);
   const auto& ping = mozilla::glean_pings::OnePingOnly;
-  bool submitted = false;
-  ping.TestBeforeNextSubmit([&submitted](const nsACString& aReason) {
-    submitted = true;
-    ASSERT_EQ(false,
-              test_only::one_ping_one_bool.TestGetValue().unwrap().ref());
-  });
-  ping.Submit();
-  ASSERT_TRUE(submitted)
-  << "Must have actually called the lambda.";
+
+  test_only::one_ping_one_bool.Set(false);
+
+  {
+    bool submitted = false;
+
+    ping.TestBeforeNextSubmit([&submitted](const nsACString& aReason) {
+      submitted = true;
+      ASSERT_EQ(false,
+                test_only::one_ping_one_bool.TestGetValue().unwrap().ref());
+    });
+    ping.Submit();
+
+    ASSERT_TRUE(submitted)
+    << "Must have actually called the lambda.";
+  }
+
+  test_only::one_ping_one_bool.Set(false);
+
+  ASSERT_TRUE(ping.TestSubmission(
+      [](const nsACString& aReason) {
+        ASSERT_EQ(false,
+                  test_only::one_ping_one_bool.TestGetValue().unwrap().ref());
+      },
+      [&]() { ping.Submit(); }))
+  << "Must submit ping";
 }
 
 TEST_F(FOGFixture, TestCppStringLists) {

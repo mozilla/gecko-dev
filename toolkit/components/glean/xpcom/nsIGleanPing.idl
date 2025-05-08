@@ -11,6 +11,12 @@ interface nsIGleanPingTestCallback : nsISupports
   void call(in ACString aReason);
 };
 
+[scriptable, function, uuid(576baf9b-3f90-48aa-b35b-89a9638cc823)]
+interface nsIGleanPingSubmitCallback : nsISupports
+{
+  Promise call();
+};
+
 [scriptable, uuid(5223a48b-687d-47ff-a629-fd4a72d1ecfa)]
 interface nsIGleanPing : nsISupports
 {
@@ -45,6 +51,9 @@ interface nsIGleanPing : nsISupports
    * A ping might not be sent afterwards, e.g. if the ping is empty and
    * `send_if_empty` is `false`.
    *
+   * Prefer using `testSubmission` over this function when possible because it
+   * will assert that the ping is submitted.
+   *
    * @param aCallback - The callback to call on the next submit.
    */
   void testBeforeNextSubmit(in nsIGleanPingTestCallback aCallback);
@@ -58,4 +67,30 @@ interface nsIGleanPing : nsISupports
    * @param aValue When true, enable metric collection.
    */
   void setEnabled(in boolean aValue);
+
+  /**
+   * **Test-only API**
+   *
+   * Register a callback to be called right before this ping is next submitted.
+   * Then immediately try to trigger ping submission by calling the second callback.
+   *
+   * NB: To support both sync and async submit callbacks, this function also has
+   *     to be async. As such, you must await the result.
+   *
+   * @param aCallback - The callback to call on the next submit.
+   * @param aSubmitCallback - The callback that should trigger ping submission.
+   *                          This may be an async function.
+   * @param aSubmitTimeout - An optional timemout after which this function will
+   *                         reject the returned promise if `aTestCallback` has
+   *                         not been called.
+   *
+   * @returns A promise that resolves after ping submission but rejects if
+   *         `aCallback` was not called after the promise returned by
+   *         `aSubmitCallback` resolves.
+   */
+  [implicit_jscontext]
+  Promise testSubmission(
+    in nsIGleanPingTestCallback aTestCallback,
+    in nsIGleanPingSubmitCallback aSubmitCallback,
+    [optional] in unsigned long aSubmitTimeoutMs);
 };
