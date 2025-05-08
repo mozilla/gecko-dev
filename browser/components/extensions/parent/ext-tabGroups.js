@@ -64,6 +64,9 @@ this.tabGroups = class extends ExtensionAPIPersistent {
           // Tab group moved from a different window.
           return;
         }
+        if (!this.extension.canAccessWindow(event.originalTarget.ownerGlobal)) {
+          return;
+        }
         fire.async(this.convert(event.originalTarget));
       };
       windowTracker.addListener("TabGroupCreate", onCreate);
@@ -78,13 +81,20 @@ this.tabGroups = class extends ExtensionAPIPersistent {
     },
     onMoved({ fire }) {
       let onMove = event => {
+        if (!this.extension.canAccessWindow(event.originalTarget.ownerGlobal)) {
+          return;
+        }
         fire.async(this.convert(event.originalTarget));
       };
       let onCreate = event => {
-        if (event.detail.isAdoptingGroup) {
-          // Tab group moved from a different window.
-          fire.async(this.convert(event.originalTarget));
+        if (!event.detail.isAdoptingGroup) {
+          // We are only interested in tab groups moved from a different window.
+          return;
         }
+        if (!this.extension.canAccessWindow(event.originalTarget.ownerGlobal)) {
+          return;
+        }
+        fire.async(this.convert(event.originalTarget));
       };
       windowTracker.addListener("TabGroupMoved", onMove);
       windowTracker.addListener("TabGroupCreate", onCreate);
@@ -104,6 +114,9 @@ this.tabGroups = class extends ExtensionAPIPersistent {
           // Tab group moved to a different window.
           return;
         }
+        if (!this.extension.canAccessWindow(event.originalTarget.ownerGlobal)) {
+          return;
+        }
         fire.async(this.convert(event.originalTarget));
       };
       windowTracker.addListener("TabGroupRemoved", onRemove);
@@ -118,6 +131,9 @@ this.tabGroups = class extends ExtensionAPIPersistent {
     },
     onUpdated({ fire }) {
       let onUpdate = event => {
+        if (!this.extension.canAccessWindow(event.originalTarget.ownerGlobal)) {
+          return;
+        }
         fire.async(this.convert(event.originalTarget));
       };
       windowTracker.addListener("TabGroupCollapse", onUpdate);
