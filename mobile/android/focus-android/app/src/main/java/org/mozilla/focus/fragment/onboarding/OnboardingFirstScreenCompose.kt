@@ -186,7 +186,7 @@ private fun ComponentGoToOnBoardingSecondScreen(goToOnBoardingSecondScreen: () -
         Text(
             text = AnnotatedString(
                 LocalContext.current.resources.getString(
-                    R.string.onboarding_first_screen_button_agree_and_continue,
+                    R.string.onboarding_first_screen_button_agree_and_continue_2,
                 ),
             ),
             color = PhotonColors.White,

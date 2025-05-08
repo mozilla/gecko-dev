@@ -219,7 +219,7 @@ private val onboardingFirstScreenPrivacyNotice =
     )
 
 private val onboardingAgreeAndContinueButton =
-    mDevice.findObject(UiSelector().textContains("Agree and continue"))
+    mDevice.findObject(UiSelector().textContains("Continue"))
 
 private val onboardingSetAsDefaultBrowserButton =
     mDevice.findObject(
