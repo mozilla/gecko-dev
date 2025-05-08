@@ -180,7 +180,7 @@ class DefaultBrowserMenu(
             shortcuts,
             shortcutsDivider,
             findInPage,
-            desktopMode,
+            desktopMode.apply { visible = { selectedSession?.content?.isPdf == false } },
             reportSiteIssuePlaceholder,
             BrowserMenuDivider(),
             addToHomescreen.apply { visible = ::canAddToHomescreen },

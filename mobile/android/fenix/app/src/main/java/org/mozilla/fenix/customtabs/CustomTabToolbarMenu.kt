@@ -123,7 +123,7 @@ class CustomTabToolbarMenu(
         val menuItems = listOfNotNull(
             poweredBy.apply { visible = { !isSandboxCustomTab } },
             BrowserMenuDivider().apply { visible = { !isSandboxCustomTab } },
-            desktopMode,
+            desktopMode.apply { visible = { session?.content?.isPdf == false } },
             findInPage,
             openInApp.apply { visible = ::shouldShowOpenInApp },
             openInFenix.apply { visible = { !isSandboxCustomTab } },

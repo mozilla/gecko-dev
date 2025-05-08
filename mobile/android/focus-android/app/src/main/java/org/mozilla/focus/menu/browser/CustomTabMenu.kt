@@ -124,7 +124,7 @@ class CustomTabMenu(
             menuToolbar,
             BrowserMenuDivider(),
             findInPage,
-            desktopMode,
+            desktopMode.apply { visible = { selectedSession?.content?.isPdf == false } },
             reportSiteIssue,
             BrowserMenuDivider(),
             addToHomescreen,

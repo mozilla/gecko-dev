@@ -446,7 +446,7 @@ open class DefaultToolbarMenu(
                 BrowserMenuDivider(),
                 findInPageItem,
                 translationsItem.apply { visible = ::shouldShowTranslations },
-                desktopSiteItem,
+                desktopSiteItem.apply { visible = { store.state.selectedTab?.content?.isPdf == false } },
                 openInRegularTabItem.apply { visible = ::shouldShowOpenInRegularTab },
                 customizeReaderView.apply { visible = ::shouldShowReaderViewCustomization },
                 openInApp.apply { visible = ::shouldShowOpenInApp },
