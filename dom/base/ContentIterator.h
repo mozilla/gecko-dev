@@ -87,13 +87,15 @@ class ContentIteratorBase {
   static nsINode* GetDeepFirstChild(nsINode* aRoot);
   // If aAllowCrossShadowBoundary is true, it'll continue with the shadow tree
   // when it reaches to a shadow host.
-  static nsIContent* GetDeepFirstChild(nsIContent* aRoot,
-                                       bool aAllowCrossShadowBoundary);
+  static nsIContent* GetDeepFirstChild(
+      nsIContent* aRoot,
+      dom::AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
   static nsINode* GetDeepLastChild(nsINode* aRoot);
   // If aAllowCrossShadowBoundary is true, it'll continue with the shadow tree
   // when it reaches to a shadow host.
-  static nsIContent* GetDeepLastChild(nsIContent* aRoot,
-                                      bool aAllowCrossShadowBoundary);
+  static nsIContent* GetDeepLastChild(
+      nsIContent* aRoot,
+      dom::AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
 
   // Get the next/previous sibling of aNode, or its parent's, or grandparent's,
   // etc.  Returns null if aNode and all its ancestors have no next/previous
@@ -101,10 +103,14 @@ class ContentIteratorBase {
   //
   // If aAllowCrossShadowBoundary is true, it'll continue with the shadow host
   // when it reaches to a shadow root.
-  static nsIContent* GetNextSibling(nsINode* aNode,
-                                    bool aAllowCrossShadowBoundary = false);
-  static nsIContent* GetPrevSibling(nsINode* aNode,
-                                    bool aAllowCrossShadowBoundary = false);
+  static nsIContent* GetNextSibling(
+      nsINode* aNode,
+      dom::AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary =
+          dom::AllowRangeCrossShadowBoundary::No,
+  static nsIContent* GetPrevSibling(
+      nsINode* aNode,
+      dom::AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary =
+          dom::AllowRangeCrossShadowBoundary::No);
 
   nsINode* NextNode(nsINode* aNode);
   nsINode* PrevNode(nsINode* aNode);
