@@ -60,6 +60,7 @@ import org.mozilla.fenix.databinding.ComponentTabstray3FabBinding
 import org.mozilla.fenix.databinding.FragmentTabTrayDialogBinding
 import org.mozilla.fenix.ext.actualInactiveTabs
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.registerForActivityResult
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.settings
@@ -124,6 +125,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
         lifecycle.addObservers(requireComponents.privateBrowsingLockFeature)
     }
 
+    @Suppress("LongMethod")
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val args by navArgs<TabsTrayFragmentArgs>()
         args.accessPoint.takeIf { it != TabsTrayAccessPoint.None }?.let {
@@ -139,6 +141,17 @@ class TabsTrayFragment : AppCompatDialogFragment() {
         val initialInactiveExpanded = requireComponents.appStore.state.inactiveTabsExpanded
         val inactiveTabs = requireComponents.core.store.state.actualInactiveTabs(requireContext().settings())
         val normalTabs = requireComponents.core.store.state.normalTabs - inactiveTabs.toSet()
+
+        startForResult = registerForActivityResult(
+            onSuccess = {
+                PrivateBrowsingLocked.authSuccess.record()
+                PrivateBrowsingLocked.featureEnabled.record()
+                requireContext().settings().privateBrowsingLockedEnabled = true
+            },
+            onFailure = {
+                PrivateBrowsingLocked.authFailure.record()
+            },
+        )
 
         tabsTrayStore = StoreProvider.get(this) {
             TabsTrayStore(
