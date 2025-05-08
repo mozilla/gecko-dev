@@ -512,7 +512,7 @@ def run(
         if out:
             fh = open(path, "w") if path else sys.stdout
 
-            if not path and fh.encoding == "ascii":
+            if not path and fh.encoding in ("ascii", "iso8859-1"):
                 # If sys.stdout.encoding is ascii, printing output will fail
                 # due to the stylish formatter's use of unicode characters.
                 # Ideally the user should fix their environment by setting
