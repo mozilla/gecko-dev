@@ -749,25 +749,7 @@ export class EnrollmentsContext {
     this.shouldCheckTargeting = shouldCheckTargeting;
     this.matches = 0;
 
-    this.recipeMismatches = [];
-    this.invalidRecipes = [];
-    this.invalidBranches = [];
-    this.invalidFeatures = [];
-    this.missingLocale = [];
-    this.missingL10nIds = [];
-
     this.locale = Services.locale.appLocaleAsBCP47;
-  }
-
-  getResults() {
-    return {
-      recipeMismatches: this.recipeMismatches,
-      invalidRecipes: this.invalidRecipes,
-      invalidBranches: this.invalidBranches,
-      invalidFeatures: this.invalidFeatures,
-      missingLocale: this.missingLocale,
-      missingL10nIds: this.missingL10nIds,
-    };
   }
 
   async checkRecipe(recipe) {
@@ -785,8 +767,6 @@ export class EnrollmentsContext {
           )}`
         );
         if (recipe.slug) {
-          this.invalidRecipes.push(recipe.slug);
-
           lazy.NimbusTelemetry.recordValidationFailure(
             recipe.slug,
             lazy.NimbusTelemetry.ValidationFailureReason.INVALID_RECIPE
@@ -826,7 +806,6 @@ export class EnrollmentsContext {
         lazy.log.debug(`[${type}] ${recipe.slug} matched targeting`);
       } else {
         lazy.log.debug(`${recipe.slug} did not match due to targeting`);
-        this.recipeMismatches.push(recipe.slug);
         return CheckRecipeResult.Ok(MatchStatus.NO_MATCH);
       }
     }
@@ -841,7 +820,6 @@ export class EnrollmentsContext {
         typeof recipe.localizations[this.locale] !== "object" ||
         recipe.localizations[this.locale] === null
       ) {
-        this.missingLocale.push(recipe.slug);
         lazy.log.debug(
           `${recipe.slug} is localized but missing locale ${this.locale}`
         );
@@ -857,20 +835,6 @@ export class EnrollmentsContext {
     const result = await this._validateBranches(recipe, validateFeatureSchemas);
     if (!result.ok) {
       lazy.log.debug(`${recipe.slug} did not validate: ${result.reason}`);
-      switch (result.reason) {
-        case lazy.NimbusTelemetry.ValidationFailureReason.INVALID_BRANCH:
-          this.invalidBranches.push(recipe.slug);
-          break;
-
-        case lazy.NimbusTelemetry.ValidationFailureReason.INVALID_FEATURE:
-          this.invalidFeatures.push(recipe.slug);
-          break;
-
-        case lazy.NimbusTelemetry.ValidationFailureReason.L10N_MISSING_ENTRY:
-          this.missingL10nIds.push(recipe.slug);
-          break;
-      }
-
       return result;
     }
 
