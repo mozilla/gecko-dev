@@ -451,8 +451,8 @@ namespace mozilla {
  * Windows touchscreen code works by setting a global WH_GETMESSAGE hook and
  * injecting tiptsf.dll. The touchscreen process then posts registered messages
  * to our main thread. The tiptsf hook picks up those registered messages and
- * uses them as commands, some of which call into UIA, which then calls into
- * MSAA, which then sends WM_GETOBJECT to us.
+ * uses them as commands, some of which call into UIA, which then sends
+ * WM_GETOBJECT to us.
  *
  * We can get ahead of this by installing our own thread-local WH_GETMESSAGE
  * hook. Since thread-local hooks are called ahead of global hooks, we will
@@ -560,8 +560,10 @@ class TIPMessageHandler {
     // want to block, and the aHwnd is a nsWindow that belongs to the current
     // (i.e., main) thread.
     if (!aMsgResult || aMsgCode != WM_GETOBJECT ||
-        static_cast<LONG>(aLParam) != OBJID_CLIENT || !::NS_IsMainThread() ||
-        !WinUtils::GetNSWindowPtr(aHwnd) || !IsA11yBlocked()) {
+        (static_cast<LONG>(aLParam) != OBJID_CLIENT &&
+         static_cast<LONG>(aLParam) != UiaRootObjectId) ||
+        !::NS_IsMainThread() || !WinUtils::GetNSWindowPtr(aHwnd) ||
+        !IsA11yBlocked()) {
       return sSendMessageTimeoutWStub(aHwnd, aMsgCode, aWParam, aLParam, aFlags,
                                       aTimeout, aMsgResult);
     }
