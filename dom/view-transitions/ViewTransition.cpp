@@ -661,8 +661,9 @@ static nsTArray<Keyframe> BuildGroupKeyframes(
   return result;
 }
 
-bool ViewTransition::GetGroupKeyframes(nsAtom* aAnimationName,
-                                       nsTArray<Keyframe>& aResult) const {
+bool ViewTransition::GetGroupKeyframes(
+    nsAtom* aAnimationName, const StyleComputedTimingFunction& aTimingFunction,
+    nsTArray<Keyframe>& aResult) {
   MOZ_ASSERT(StringBeginsWith(nsDependentAtomString(aAnimationName),
                               kGroupAnimPrefix));
   RefPtr<nsAtom> transitionName = NS_Atomize(Substring(
@@ -672,6 +673,11 @@ bool ViewTransition::GetGroupKeyframes(nsAtom* aAnimationName,
     return false;
   }
   aResult = el->mGroupKeyframes.Clone();
+  // We assign the timing function always to make sure we don't use the default
+  // linear timing function.
+  MOZ_ASSERT(aResult.Length() == 2);
+  aResult[0].mTimingFunction = Some(aTimingFunction);
+  aResult[1].mTimingFunction = Some(aTimingFunction);
   return true;
 }
 

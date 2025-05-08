@@ -1080,7 +1080,7 @@ bool ServoStyleSet::GetKeyframesForName(
   if (StringBeginsWith(nsDependentAtomString(aName),
                        ViewTransition::kGroupAnimPrefix)) {
     if (auto* vt = mDocument->GetActiveViewTransition()) {
-      if (vt->GetGroupKeyframes(aName, aKeyframes)) {
+      if (vt->GetGroupKeyframes(aName, aTimingFunction, aKeyframes)) {
         return true;
       }
     }

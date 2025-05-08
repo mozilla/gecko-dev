@@ -119,7 +119,8 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
       u"-ua-view-transition-group-anim-"_ns;
 
   [[nodiscard]] bool GetGroupKeyframes(nsAtom* aAnimationName,
-                                       nsTArray<Keyframe>&) const;
+                                       const StyleComputedTimingFunction&,
+                                       nsTArray<Keyframe>&);
 
   nsIGlobalObject* GetParentObject() const;
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
