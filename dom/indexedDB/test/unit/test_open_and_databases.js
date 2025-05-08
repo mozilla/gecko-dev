@@ -5,6 +5,29 @@
 
 /* exported testSteps */
 async function testSteps() {
+  const factory = (function () {
+    if (typeof Cc === "undefined") {
+      return indexedDB;
+    }
+
+    // In xpcshell tests (where `Cc` is defined), we avoid using the system
+    // principal because background services may create indexedDB databases
+    // concurrently under that principal. To prevent interference and ensure
+    // test isolation, we use a sandbox with a content principal instead.
+
+    const { PrincipalUtils } = ChromeUtils.importESModule(
+      "resource://testing-common/dom/quota/test/modules/PrincipalUtils.sys.mjs"
+    );
+
+    const principal = PrincipalUtils.createPrincipal("https://example.com");
+
+    const sandbox = new Cu.Sandbox(principal, {
+      wantGlobalProperties: ["indexedDB"],
+    });
+
+    return Cu.evalInSandbox("indexedDB", sandbox);
+  })();
+
   const openInfos = [
     { name: "foo-a", version: 1 },
     { name: "foo-b", version: 1 },
@@ -15,7 +38,7 @@ async function testSteps() {
   for (let index = 0; index < openInfos.length; index++) {
     const openInfo = openInfos[index];
 
-    const request = indexedDB.open(openInfo.name, openInfo.version);
+    const request = factory.open(openInfo.name, openInfo.version);
 
     await expectingUpgrade(request);
 
@@ -28,7 +51,7 @@ async function testSteps() {
 
   info("Getting databases");
 
-  const databasesPromise = indexedDB.databases();
+  const databasesPromise = factory.databases();
 
   info("Opening databases");
 
@@ -37,7 +60,7 @@ async function testSteps() {
   for (let index = 0; index < openInfos.length; index++) {
     const openInfo = openInfos[index];
 
-    const request = indexedDB.open(openInfo.name, openInfo.version);
+    const request = factory.open(openInfo.name, openInfo.version);
 
     const promise = expectingSuccess(request);
 
