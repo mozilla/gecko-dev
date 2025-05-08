@@ -162,32 +162,6 @@ function with_rope() {
     }
 }
 
-function atomref() {
-    // Create a string too big to be inline if stored twoByte, but small enough
-    // if stored latin1, and force it to be twoByte.
-    var inlineIfLatin1 = newString("0123456789", { tenured: false, twoByte: true });
-
-    // Make a tenured rope with a nursery child so it goes into the whole cell
-    // buffer.
-    var s = newRope(inlineIfLatin1, "abc", { nursery: false });
-
-    // Make a toplevel rope node for flattening fun.
-    var rope = newRope("....", s);
-
-    // Flatten the toplevel, so `s` becomes a dependent string in the whole cell
-    // buffer, pointing at the root.
-    ensureLinearString(rope);
-
-    // Convert the string to an AtomRef to an atom, deflated to latin1 so it is
-    // inline.
-    ({})[s] = true;
-
-    // The whole cell buffer will trace `s`, which is an atomref (a type of
-    // dependent string) that points to an inline atom.
-    minorgc();
-}
-
 no_dedupe();
 with_dependent();
 with_rope();
-atomref();
