@@ -26,7 +26,7 @@
 #include "mozilla/dom/SelectionBinding.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/StaticRange.h"
-#include "mozilla/dom/TreeIterator.h"
+#include "mozilla/dom/ShadowIncludingTreeIterator.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/HTMLEditor.h"
 #include "mozilla/IntegerRange.h"
@@ -333,7 +333,7 @@ const nsTHashSet<const nsINode*>& SelectionNodeCache::MaybeCollect(
     for (size_t rangeIndex = 0; rangeIndex < sel->RangeCount(); ++rangeIndex) {
       AbstractRange* range = sel->GetAbstractRangeAt(rangeIndex);
       MOZ_ASSERT(range);
-      if (range->AreNormalRangeAndCrossShadowBoundaryRangeCollapsed()) {
+      if (range->Collapsed()) {
         continue;
       }
       if (range->IsStaticRange() && !range->AsStaticRange()->IsValid()) {
@@ -346,44 +346,19 @@ const nsTHashSet<const nsINode*>& SelectionNodeCache::MaybeCollect(
           startRef.IsStartOfContainer() ? nullptr : startRef.GetContainer();
       const nsINode* endContainer =
           endRef.IsEndOfContainer() ? nullptr : endRef.GetContainer();
-
-      auto AddNodeIfFullySelected = [&](const nsINode* aNode) {
-        if (!aNode) {
-          return;
-        }
-        // Only collect start and end container if they are fully
-        // selected (they are null in that case).
-        if (aNode == startContainer || aNode == endContainer) {
-          return;
-        }
-        fullySelectedNodes.Insert(aNode);
-      };
-
-      if (!StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
-        UnsafePreContentIterator iter;
-        nsresult rv = iter.Init(range);
-        if (NS_FAILED(rv)) {
-          continue;
-        }
-        for (; !iter.IsDone(); iter.Next()) {
-          AddNodeIfFullySelected(iter.GetCurrentNode());
-        }
-      } else {
-        ContentSubtreeIterator subtreeIter;
-        nsresult rv = subtreeIter.InitWithAllowCrossShadowBoundary(range);
-        if (NS_FAILED(rv)) {
-          continue;
-        }
-
-        for (; !subtreeIter.IsDone(); subtreeIter.Next()) {
-          MOZ_DIAGNOSTIC_ASSERT(subtreeIter.GetCurrentNode());
-          if (subtreeIter.GetCurrentNode()->IsContent()) {
-            TreeIterator<FlattenedChildIterator> iter(
-                *(subtreeIter.GetCurrentNode()->AsContent()));
-            for (; iter.GetCurrent(); iter.GetNext()) {
-              AddNodeIfFullySelected(iter.GetCurrent());
-            }
+      UnsafePreContentIterator iter;
+      nsresult rv = iter.Init(range);
+      if (NS_FAILED(rv)) {
+        continue;
+      }
+      for (; !iter.IsDone(); iter.Next()) {
+        if (const nsINode* node = iter.GetCurrentNode()) {
+          // Only collect start and end container if they are fully
+          // selected (they are null in that case).
+          if (node == startContainer || node == endContainer) {
+            continue;
           }
+          fullySelectedNodes.Insert(node);
         }
       }
     }
@@ -943,8 +918,8 @@ static int32_t CompareToRangeStart(
     const AbstractRange& aRange, nsContentUtils::NodeIndexCache* aCache) {
   MOZ_ASSERT(aCompareBoundary.IsSet());
   MOZ_ASSERT(aRange.GetMayCrossShadowBoundaryStartContainer());
-  // If the nodes that we're comparing are not in the same document, assume
-  // that aCompareNode will fall at the end of the ranges.
+  // If the nodes that we're comparing are not in the same document, assume that
+  // aCompareNode will fall at the end of the ranges.
   if (aCompareBoundary.GetComposedDoc() !=
           aRange.MayCrossShadowBoundaryStartRef().GetComposedDoc() ||
       !aRange.MayCrossShadowBoundaryStartRef().IsSetAndInComposedDoc()) {
@@ -1881,6 +1856,16 @@ nsresult Selection::SelectFramesOfInclusiveDescendantsOfContent(
   return NS_OK;
 }
 
+void Selection::SelectFramesOfShadowIncludingDescendantsOfContent(
+    nsIContent* aContent, bool aSelected) const {
+  MOZ_ASSERT(aContent);
+  MOZ_ASSERT(StaticPrefs::dom_shadowdom_selection_across_boundary_enabled());
+  for (nsINode* node : ShadowIncludingTreeIterator(*aContent)) {
+    nsIContent* innercontent = node->IsContent() ? node->AsContent() : nullptr;
+    SelectFramesOf(innercontent, aSelected);
+  }
+}
+
 void Selection::SelectFramesInAllRanges(nsPresContext* aPresContext) {
   // this method is currently only called in a user-initiated context.
   // therefore it is safe to assume that we are not in a Highlight selection
@@ -2009,7 +1994,7 @@ nsresult Selection::SelectFrames(nsPresContext* aPresContext,
     if (nsIContent* const content =
             nsIContent::FromNodeOrNull(subtreeIter.GetCurrentNode())) {
       if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
-        SelectFramesOfFlattenedTreeOfContent(content, aSelect);
+        SelectFramesOfShadowIncludingDescendantsOfContent(content, aSelect);
       } else {
         SelectFramesOfInclusiveDescendantsOfContent(postOrderIter, content,
                                                     aSelect);
@@ -2030,16 +2015,6 @@ nsresult Selection::SelectFrames(nsPresContext* aPresContext,
     }
   }
   return NS_OK;
-}
-
-void Selection::SelectFramesOfFlattenedTreeOfContent(nsIContent* aContent,
-                                                     bool aSelected) const {
-  MOZ_ASSERT(aContent);
-  MOZ_ASSERT(StaticPrefs::dom_shadowdom_selection_across_boundary_enabled());
-  TreeIterator<FlattenedChildIterator> iter(*aContent);
-  for (; iter.GetCurrent(); iter.GetNext()) {
-    SelectFramesOf(iter.GetCurrent(), aSelected);
-  }
 }
 
 // Selection::LookUpSelection
