@@ -11,7 +11,6 @@
 #include "mozilla/RangeBoundary.h"
 #include "nsIContent.h"
 #include "nsINode.h"
-#include "nsContentUtils.h"
 
 namespace mozilla {
 
@@ -56,6 +55,8 @@ class RangeUtils final {
   using AbstractRange = dom::AbstractRange;
 
  public:
+  static nsINode* GetParentNodeInSameSelection(const nsINode* aNode);
+
   /**
    * GetRawRangeBoundaryBefore() and GetRawRangeBoundaryAfter() retrieve
    * RawRangeBoundary which points before or after aNode.
@@ -136,9 +137,6 @@ class RangeUtils final {
   /**
    * The caller needs to ensure aNode is in the same doc like aAbstractRange.
    */
-  template <TreeKind aKind = TreeKind::ShadowIncludingDOM,
-            typename = std::enable_if_t<aKind == TreeKind::ShadowIncludingDOM ||
-                                        aKind == TreeKind::Flat>>
   static Maybe<bool> IsNodeContainedInRange(nsINode& aNode,
                                             AbstractRange* aAbstractRange);
 
@@ -147,18 +145,12 @@ class RangeUtils final {
    * ends after a range.  If neither it is contained inside the range.
    * Note that callers responsibility to ensure node in same doc as range.
    */
-  template <TreeKind aKind = TreeKind::ShadowIncludingDOM,
-            typename = std::enable_if_t<aKind == TreeKind::ShadowIncludingDOM ||
-                                        aKind == TreeKind::Flat>>
   static nsresult CompareNodeToRange(nsINode* aNode,
                                      AbstractRange* aAbstractRange,
                                      bool* aNodeIsBeforeRange,
                                      bool* aNodeIsAfterRange);
 
-  template <TreeKind aKind, typename SPT, typename SRT, typename EPT,
-            typename ERT,
-            typename = std::enable_if_t<aKind == TreeKind::ShadowIncludingDOM ||
-                                        aKind == TreeKind::Flat>>
+  template <typename SPT, typename SRT, typename EPT, typename ERT>
   static nsresult CompareNodeToRangeBoundaries(
       nsINode* aNode, const RangeBoundaryBase<SPT, SRT>& aStartBoundary,
       const RangeBoundaryBase<EPT, ERT>& aEndBoundary, bool* aNodeIsBeforeRange,
