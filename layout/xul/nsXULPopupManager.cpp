@@ -686,8 +686,6 @@ void nsXULPopupManager::PopupMoved(nsIFrame* aFrame,
     return;
   }
 
-  menuPopupFrame->WidgetPositionOrSizeDidChange();
-
   // Don't do anything if the popup is already at the specified location. This
   // prevents recursive calls when a popup is positioned.
   LayoutDeviceIntRect curDevBounds = view->RecalcWidgetBounds();
@@ -720,8 +718,6 @@ void nsXULPopupManager::PopupResized(nsIFrame* aFrame,
   if (!menuPopupFrame) {
     return;
   }
-
-  menuPopupFrame->WidgetPositionOrSizeDidChange();
 
   nsView* view = menuPopupFrame->GetView();
   if (!view) {

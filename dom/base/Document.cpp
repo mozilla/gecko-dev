@@ -287,6 +287,7 @@
 #include "mozilla/net/RequestContextService.h"
 #include "nsAboutProtocolUtils.h"
 #include "nsAttrValue.h"
+#include "nsMenuPopupFrame.h"
 #include "nsAttrValueInlines.h"
 #include "nsBaseHashtable.h"
 #include "nsBidiUtils.h"
@@ -17273,32 +17274,46 @@ static void UpdateEffectsOnBrowsingContext(BrowsingContext* aBc,
       //    this code very often anyways.
       return EffectsInfo::FullyHidden();
     }
-    const IntersectionOutput output = DOMIntersectionObserver::Intersect(
-        aInput, *el, DOMIntersectionObserver::BoxToUse::Content);
-    if (!output.Intersects()) {
-      // XXX do we want to pass the scale and such down even if out of the
-      // viewport?
-      return EffectsInfo::FullyHidden();
-    }
-    MOZ_ASSERT(el->GetPrimaryFrame(), "How do we intersect without a frame?");
     if (MOZ_UNLIKELY(NS_WARN_IF(!subDocFrame))) {
       // <frame> not inside a <frameset> might not create a subdoc frame,
       // for example.
       return EffectsInfo::FullyHidden();
     }
-    Maybe<nsRect> visibleRect = subDocFrame->GetVisibleRect();
-    // If we're paginated, we the display list rect might not be reasonable,
-    // because it is the one from the last display item painted. We assume the
-    // frame is fully visible, lacking something better.
-    if (subDocFrame->PresContext()->IsPaginated()) {
+    const bool inPopup = subDocFrame->HasAnyStateBits(NS_FRAME_IN_POPUP);
+    Maybe<nsRect> visibleRect;
+    if (inPopup) {
+      nsMenuPopupFrame* popup =
+          do_QueryFrame(nsLayoutUtils::GetDisplayRootFrame(subDocFrame));
+      MOZ_ASSERT(popup);
+      if (!popup || !popup->IsVisibleOrShowing()) {
+        return EffectsInfo::FullyHidden();
+      }
+      // Be a bit conservative on popups and assume remote frames in there are
+      // fully visible.
       visibleRect = Some(subDocFrame->GetDestRect());
-    }
-    if (!visibleRect) {
-      // If we have no visible rect (e.g., because we are zero-sized) we
-      // still want to provide the intersection rect in order to get the
-      // right throttling behavior.
-      visibleRect.emplace(*output.mIntersectionRect -
-                          output.mTargetRect.TopLeft());
+    } else {
+      const IntersectionOutput output = DOMIntersectionObserver::Intersect(
+          aInput, *el, DOMIntersectionObserver::BoxToUse::Content);
+      if (!output.Intersects()) {
+        // XXX do we want to pass the scale and such down even if out of the
+        // viewport?
+        return EffectsInfo::FullyHidden();
+      }
+      visibleRect = subDocFrame->GetVisibleRect();
+      if (!visibleRect) {
+        // If we have no visible rect (e.g., because we are zero-sized) we
+        // still want to provide the intersection rect in order to get the
+        // right throttling behavior.
+        visibleRect.emplace(*output.mIntersectionRect -
+                            output.mTargetRect.TopLeft());
+      }
+      // If we're paginated, the visible rect from the display list might not be
+      // reasonable, because there can be multiple display items for the frame
+      // and the rect would be the last one painted. We assume the frame is
+      // fully visible, lacking something better.
+      if (subDocFrame->PresContext()->IsPaginated()) {
+        visibleRect = Some(subDocFrame->GetDestRect());
+      }
     }
     gfx::MatrixScales rasterScale = subDocFrame->GetRasterScale();
     ParentLayerToScreenScale2D transformToAncestorScale =

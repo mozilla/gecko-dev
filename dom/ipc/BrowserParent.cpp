@@ -1112,20 +1112,6 @@ nsresult BrowserParent::UpdatePosition() {
   return NS_OK;
 }
 
-void BrowserParent::NotifyPositionUpdatedForContentsInPopup() {
-  if (CanonicalBrowsingContext* bc = GetBrowsingContext()) {
-    bc->PreOrderWalk([](BrowsingContext* aContext) {
-      if (WindowGlobalParent* windowGlobalParent =
-              aContext->Canonical()->GetCurrentWindowGlobal()) {
-        if (RefPtr<BrowserParent> browserParent =
-                windowGlobalParent->GetBrowserParent()) {
-          browserParent->UpdatePosition();
-        }
-      }
-    });
-  }
-}
-
 void BrowserParent::UpdateDimensions(const LayoutDeviceIntRect& rect,
                                      const LayoutDeviceIntSize& size) {
   if (mIsDestroyed) {

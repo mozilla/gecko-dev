@@ -550,8 +550,6 @@ class nsMenuPopupFrame final : public nsBlockFrame {
   int8_t GetPopupAnchor() const { return mPopupAnchor; }
   FlipType GetFlipType() const { return mFlip; }
 
-  void WidgetPositionOrSizeDidChange();
-
   uint64_t GetAPZFocusSequenceNumber() const { return mAPZFocusSequenceNumber; }
 
   void UpdateAPZFocusSequenceNumber(uint64_t aNewNumber) {
