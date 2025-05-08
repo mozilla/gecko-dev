@@ -20265,7 +20265,11 @@ static already_AddRefed<Document> CreateHTMLDocument(GlobalObject& aGlobal,
 /* static */
 already_AddRefed<Document> Document::ParseHTMLUnsafe(
     GlobalObject& aGlobal, const TrustedHTMLOrString& aHTML,
-    nsIPrincipal* aSubjectPrincipal, ErrorResult& aError) {
+    const SetHTMLUnsafeOptions& aOptions, nsIPrincipal* aSubjectPrincipal,
+    ErrorResult& aError) {
+  // Step 1. Let compliantHTML be the result of invoking the Get Trusted Type
+  // compliant string algorithm with TrustedHTML, this’s relevant global object,
+  // html, "Document parseHTMLUnsafe", and "script".
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
   constexpr nsLiteralString sink = u"Document parseHTMLUnsafe"_ns;
   Maybe<nsAutoString> compliantStringHolder;
@@ -20277,16 +20281,50 @@ already_AddRefed<Document> Document::ParseHTMLUnsafe(
     return nullptr;
   }
 
-  RefPtr<Document> doc = CreateHTMLDocument(aGlobal, false, aError);
+  // TODO: Always initialize the sanitizer.
+  bool sanitize = aOptions.mSanitizer.WasPassed();
+
+  // Step 2. Let document be a new Document, whose content type is "text/html".
+  // Step 3. Set document’s allow declarative shadow roots to true.
+  // TODO: Figure out if we can always loadAsData.
+  RefPtr<Document> doc =
+      CreateHTMLDocument(aGlobal, /* aLoadedAsData */ sanitize, aError);
   if (aError.Failed()) {
     return nullptr;
   }
 
-  aError = nsContentUtils::ParseDocumentHTML(*compliantString, doc, false);
+  // Step 4. Parse HTML from a string given document and compliantHTML.
+  // TODO(bug 1960845): Investigate the behavior around <noscript> with
+  // parseHTML
+  aError = nsContentUtils::ParseDocumentHTML(
+      *compliantString, doc,
+      /* aScriptingEnabledForNoscriptParsing */ sanitize);
   if (aError.Failed()) {
     return nullptr;
   }
 
+  if (sanitize) {
+    // Step 5. Let sanitizer be the result of calling get a sanitizer instance
+    // from options with options and false.
+    nsCOMPtr<nsIGlobalObject> global =
+        do_QueryInterface(aGlobal.GetAsSupports());
+    RefPtr<Sanitizer> sanitizer = Sanitizer::GetInstance(
+        global, aOptions.mSanitizer.Value(), true, aError);
+    if (aError.Failed()) {
+      return nullptr;
+    }
+
+    // Step 6. Call sanitize on document’s root node with sanitizer and false.
+    nsCOMPtr<nsINode> root = doc->GetRootElement();
+    MOZ_DIAGNOSTIC_ASSERT(root,
+                          "HTML parser should have create the <html> root");
+    sanitizer->Sanitize(root, /* aSafe */ true, aError);
+    if (aError.Failed()) {
+      return nullptr;
+    }
+  }
+
+  // Step 7. Return document.
   return doc.forget();
 }
 
@@ -20298,7 +20336,8 @@ already_AddRefed<Document> Document::ParseHTML(GlobalObject& aGlobal,
                                                ErrorResult& aError) {
   // Step 1. Let document be a new Document, whose content type is "text/html".
   // Step 2. Set document’s allow declarative shadow roots to true.
-  RefPtr<Document> doc = CreateHTMLDocument(aGlobal, true, aError);
+  RefPtr<Document> doc =
+      CreateHTMLDocument(aGlobal, /* aLoadedAsData */ true, aError);
   if (aError.Failed()) {
     return nullptr;
   }
