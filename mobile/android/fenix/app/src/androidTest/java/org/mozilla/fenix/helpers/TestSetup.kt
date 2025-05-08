@@ -62,7 +62,11 @@ open class TestSetup {
             // This will only work in case of a RetryTestRule execution.
             AppAndSystemHelper.clearDownloadsFolder()
             // Make sure the Wifi and Mobile Data connections are on.
-            AppAndSystemHelper.setNetworkEnabled(true)
+
+            // Disabled due to network connections problems encountered recently
+            // See https://bugzilla.mozilla.org/show_bug.cgi?id=1964989 for the disabled UI tests
+            // AppAndSystemHelper.setNetworkEnabled(true)
+
             // Make sure that the data saver system setting is disabled.
             enableDataSaverSystemSetting(enabled = false)
             // Clear bookmarks left after a failed test, before a retry.
