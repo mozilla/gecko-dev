@@ -14,11 +14,11 @@ enum SanitizerPresets { "default" };
 dictionary SetHTMLOptions {
   (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer = "default";
 };
-/*
 dictionary SetHTMLUnsafeOptions {
-  (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer = {};
+  // TODO: = {}; (Using optional to easily detect a missing sanitizer)
+  [Pref="dom.security.sanitizer.enabled"]
+  (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer;
 };
-*/
 
 dictionary SanitizerElementNamespace {
   required DOMString name;

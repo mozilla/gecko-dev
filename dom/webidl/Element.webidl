@@ -405,9 +405,8 @@ dictionary GetHTMLOptions {
 
 partial interface Element {
   // https://html.spec.whatwg.org/#dom-element-sethtmlunsafe
-  /* TODO: optional SetHTMLUnsafeOptions options = {} */
   [NeedsSubjectPrincipal=NonSystem, Throws]
-  undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
+  undefined setHTMLUnsafe((TrustedHTML or DOMString) html, optional SetHTMLUnsafeOptions options = {});
   DOMString getHTML(optional GetHTMLOptions options = {});
 };
 

@@ -197,6 +197,7 @@
 #include "mozilla/dom/PContentChild.h"
 #include "mozilla/dom/PrototypeList.h"
 #include "mozilla/dom/ReferrerPolicyBinding.h"
+#include "mozilla/dom/Sanitizer.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/dom/ShadowRoot.h"
@@ -5862,13 +5863,107 @@ uint32_t computeSanitizationFlags(nsIPrincipal* aPrincipal, int32_t aFlags) {
   return sanitizationFlags;
 }
 
+// https://wicg.github.io/sanitizer-api/#set-and-filter-html
+static void SetAndFilterHTML(
+    FragmentOrElement* aTarget, Element* aContext, const nsAString& aHTML,
+    const OwningSanitizerOrSanitizerConfigOrSanitizerPresets& aSanitizerOptions,
+    const bool aSafe, ErrorResult& aError) {
+  RefPtr<Document> doc = aTarget->OwnerDoc();
+
+  // Step 1. If safe and contextElement’s local name is "script" and
+  // contextElement’s namespace is the HTML namespace or the SVG namespace, then
+  // return.
+  if (aSafe && (aContext->IsHTMLElement(nsGkAtoms::script) ||
+                aContext->IsSVGElement(nsGkAtoms::script))) {
+    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "DOM"_ns, doc,
+                                    nsContentUtils::eDOM_PROPERTIES,
+                                    "SetHTMLScript");
+    return;
+  }
+
+  // Step 2. Let sanitizer be the result of calling get a sanitizer instance
+  // from options with options and safe.
+  nsCOMPtr<nsIGlobalObject> global = aTarget->GetOwnerGlobal();
+  if (!global) {
+    aError.ThrowInvalidStateError("Missing owner global.");
+    return;
+  }
+  RefPtr<Sanitizer> sanitizer =
+      Sanitizer::GetInstance(global, aSanitizerOptions, aSafe, aError);
+  if (aError.Failed()) {
+    return;
+  }
+
+  // Batch possible DOMSubtreeModified events.
+  mozAutoSubtreeModified subtree(doc, nullptr);
+
+  aTarget->FireNodeRemovedForChildren();
+
+  // Needed when innerHTML is used in combination with contenteditable
+  mozAutoDocUpdate updateBatch(doc, true);
+
+  // Remove childnodes.
+  nsAutoMutationBatch mb(aTarget, true, false);
+  aTarget->RemoveAllChildren(true);
+  mb.RemovalDone();
+
+  nsAutoScriptLoaderDisabler sld(doc);
+
+  // Step 3. Let newChildren be the result of the HTML fragment parsing
+  // algorithm steps given contextElement, html, and true.
+  // Step 4. Let fragment be a new DocumentFragment whose node document is
+  // contextElement’s node document.
+  // Step 5. For each node in newChildren, append node to fragment.
+
+  // We MUST NOT cause any requests during parsing, so we'll
+  // create an inert Document and parse into a new DocumentFragment.
+
+  RefPtr<Document> inertDoc = nsContentUtils::CreateInertHTMLDocument(doc);
+  if (!inertDoc) {
+    aError = NS_ERROR_FAILURE;
+    return;
+  }
+
+  RefPtr<DocumentFragment> fragment = new (inertDoc->NodeInfoManager())
+      DocumentFragment(inertDoc->NodeInfoManager());
+
+  nsAtom* contextLocalName = aContext->NodeInfo()->NameAtom();
+  int32_t contextNameSpaceID = aContext->GetNameSpaceID();
+  aError = nsContentUtils::ParseFragmentHTML(aHTML, fragment, contextLocalName,
+                                             contextNameSpaceID, false, true);
+  if (aError.Failed()) {
+    return;
+  }
+
+  // Suppress assertion about node removal mutation events that can't have
+  // listeners anyway, because no one has had the chance to register
+  // mutation listeners on the fragment that comes from the parser.
+  nsAutoScriptBlockerSuppressNodeRemoved scriptBlocker;
+
+  int32_t oldChildCount = static_cast<int32_t>(aTarget->GetChildCount());
+
+  // Step 6. Run sanitize on fragment using sanitizer and safe.
+  sanitizer->Sanitize(fragment, aSafe, aError);
+  if (aError.Failed()) {
+    return;
+  }
+
+  // Step 7. Replace all with fragment within target.
+  aTarget->AppendChild(*fragment, aError);
+  if (aError.Failed()) {
+    return;
+  }
+
+  mb.NodesAdded();
+  nsContentUtils::FireMutationEventsForDirectParsing(doc, aTarget,
+                                                     oldChildCount);
+}
+
 /* static */
-void nsContentUtils::SetHTMLUnsafe(FragmentOrElement* aTarget,
-                                   Element* aContext,
-                                   const TrustedHTMLOrString& aSource,
-                                   bool aIsShadowRoot,
-                                   nsIPrincipal* aSubjectPrincipal,
-                                   ErrorResult& aError) {
+void nsContentUtils::SetHTMLUnsafe(
+    FragmentOrElement* aTarget, Element* aContext,
+    const TrustedHTMLOrString& aSource, const SetHTMLUnsafeOptions& aOptions,
+    bool aIsShadowRoot, nsIPrincipal* aSubjectPrincipal, ErrorResult& aError) {
   constexpr nsLiteralString elementSink = u"Element setHTMLUnsafe"_ns;
   constexpr nsLiteralString shadowRootSink = u"ShadowRoot setHTMLUnsafe"_ns;
   Maybe<nsAutoString> compliantStringHolder;
@@ -5879,6 +5974,13 @@ void nsContentUtils::SetHTMLUnsafe(FragmentOrElement* aTarget,
           compliantStringHolder, aError);
   if (aError.Failed()) {
     return;
+  }
+
+  // Fallback to the more optimized code below without a sanitizer.
+  if (aOptions.mSanitizer.WasPassed()) {
+    return SetAndFilterHTML(aTarget, aContext, *compliantString,
+                            aOptions.mSanitizer.Value(), /* aSafe */ false,
+                            aError);
   }
 
   RefPtr<DocumentFragment> fragment;

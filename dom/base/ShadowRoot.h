@@ -252,6 +252,7 @@ class ShadowRoot final : public DocumentFragment, public DocumentOrShadowRoot {
 
   MOZ_CAN_RUN_SCRIPT
   void SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
+                     const SetHTMLUnsafeOptions& aOptions,
                      nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
 
   // @param aInnerHTML will always be of type `NullIsEmptyString`.

@@ -60,7 +60,7 @@ interface ShadowRoot : DocumentFragment
 partial interface ShadowRoot {
   // https://html.spec.whatwg.org/#dom-shadowroot-sethtmlunsafe
   [NeedsSubjectPrincipal=NonSystem, Throws]
-  undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
+  undefined setHTMLUnsafe((TrustedHTML or DOMString) html, optional SetHTMLUnsafeOptions options = {});
   DOMString getHTML(optional GetHTMLOptions options = {});
 };
 
