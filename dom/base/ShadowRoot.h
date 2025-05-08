@@ -250,12 +250,8 @@ class ShadowRoot final : public DocumentFragment, public DocumentOrShadowRoot {
     mIsDeclarative = aIsDeclarative ? Declarative::Yes : Declarative::No;
   }
 
-  void SetHTML(const nsAString& aInnerHTML, const SetHTMLOptions& aOptions,
-               ErrorResult& aError);
-
   MOZ_CAN_RUN_SCRIPT
   void SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
-                     const SetHTMLUnsafeOptions& aOptions,
                      nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
 
   // @param aInnerHTML will always be of type `NullIsEmptyString`.

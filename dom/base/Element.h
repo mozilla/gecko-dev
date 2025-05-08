@@ -119,7 +119,6 @@ struct URLValue;
 namespace dom {
 struct CheckVisibilityOptions;
 struct CustomElementData;
-struct SetHTMLUnsafeOptions;
 struct SetHTMLOptions;
 struct GetHTMLOptions;
 struct GetAnimationsOptions;
@@ -1677,15 +1676,8 @@ class Element : public FragmentOrElement {
       const TrustedHTMLOrString& aTrustedHTMLOrString,
       nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
 
-  virtual void SetHTML(const nsAString& aInnerHTML,
-                       const SetHTMLOptions& aOptions, ErrorResult& aError);
-
-  MOZ_CAN_RUN_SCRIPT
-  virtual void SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
-                             const SetHTMLUnsafeOptions& aOptions,
-                             nsIPrincipal* aSubjectPrincipal,
-                             ErrorResult& aError);
-
+  void SetHTML(const nsAString& aInnerHTML, const SetHTMLOptions& aOptions,
+               ErrorResult& aError);
   void GetHTML(const GetHTMLOptions& aOptions, nsAString& aResult);
 
   //----------------------------------------
@@ -2275,6 +2267,11 @@ class Element : public FragmentOrElement {
   virtual void GetLinkTargetImpl(nsAString& aTarget);
 
   virtual bool Translate() const;
+
+  MOZ_CAN_RUN_SCRIPT
+  virtual void SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
+                             nsIPrincipal* aSubjectPrincipal,
+                             ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
   void FireBeforematchEvent(ErrorResult& aRv);

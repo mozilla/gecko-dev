@@ -5327,9 +5327,125 @@ void Element::RegUnRegAccessKey(bool aDoReg) {
   }
 }
 
-void Element::SetHTML(const nsAString& aHTML, const SetHTMLOptions& aOptions,
-                      ErrorResult& aError) {
-  nsContentUtils::SetHTML(this, this, aHTML, aOptions, aError);
+// https://wicg.github.io/sanitizer-api/#shadowroot-sethtml
+void Element::SetHTML(const nsAString& aInnerHTML,
+                      const SetHTMLOptions& aOptions, ErrorResult& aError) {
+  // Step 1. Set and filter HTML using this (as target), this (as context
+  // element), html, options, and true.
+
+  // https://wicg.github.io/sanitizer-api/#set-and-filter-html
+  // Step 1. If safe and contextElement’s local name is "script" and
+  // contextElement’s namespace is the HTML namespace or the SVG namespace, then
+  // return.
+  if (IsHTMLElement(nsGkAtoms::script) || IsSVGElement(nsGkAtoms::script)) {
+    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "DOM"_ns,
+                                    OwnerDoc(), nsContentUtils::eDOM_PROPERTIES,
+                                    "SetHTMLScript");
+    return;
+  }
+
+  // Step 2. Let sanitizer be the result of calling get a sanitizer instance
+  // from options with options and safe.
+  nsCOMPtr<nsIGlobalObject> global = GetOwnerGlobal();
+  if (!global) {
+    aError.ThrowInvalidStateError("Missing owner global.");
+    return;
+  }
+  RefPtr<Sanitizer> sanitizer =
+      Sanitizer::GetInstance(global, aOptions.mSanitizer, true, aError);
+  if (aError.Failed()) {
+    return;
+  }
+
+  // Keep "this" alive should be guaranteed by the caller, and also the content
+  // of a template element (if this is one) should never been released from this
+  // during this call.  Therefore, using raw pointer here is safe.
+  FragmentOrElement* target = this;
+  // Handle template case.
+  if (target->IsTemplateElement()) {
+    DocumentFragment* frag =
+        static_cast<HTMLTemplateElement*>(target)->Content();
+    MOZ_ASSERT(frag);
+    target = frag;
+  }
+
+  // TODO: Avoid parsing and implement a fast-path for non-markup input,
+  // Filed as bug 1731215.
+
+  // mozAutoSubtreeModified keeps the owner document alive.  Therefore, using a
+  // raw pointer here is safe.
+  Document* const doc = target->OwnerDoc();
+
+  // Batch possible DOMSubtreeModified events.
+  mozAutoSubtreeModified subtree(doc, nullptr);
+
+  target->FireNodeRemovedForChildren();
+
+  // Needed when innerHTML is used in combination with contenteditable
+  mozAutoDocUpdate updateBatch(doc, true);
+
+  // Remove childnodes.
+  nsAutoMutationBatch mb(target, true, false);
+  target->RemoveAllChildren(true);
+  mb.RemovalDone();
+
+  nsAutoScriptLoaderDisabler sld(doc);
+
+  FragmentOrElement* parseContext = this;
+  if (ShadowRoot* shadowRoot = ShadowRoot::FromNode(parseContext)) {
+    // Fix up the context to be the host of the ShadowRoot.  See
+    // https://w3c.github.io/DOM-Parsing/#dom-innerhtml-innerhtml setter step 1.
+    parseContext = shadowRoot->GetHost();
+  }
+
+  // Step 3. Let newChildren be the result of the HTML fragment parsing
+  // algorithm steps given contextElement, html, and true.
+  // Step 4. Let fragment be a new DocumentFragment whose node document is
+  // contextElement’s node document.
+  // Step 5. For each node in newChildren, append node to fragment.
+
+  // We MUST NOT cause any requests during parsing, so we'll
+  // create an inert Document and parse into a new DocumentFragment.
+
+  RefPtr<Document> inertDoc = nsContentUtils::CreateInertHTMLDocument(doc);
+  if (!inertDoc) {
+    aError = NS_ERROR_FAILURE;
+    return;
+  }
+
+  RefPtr<DocumentFragment> fragment = new (inertDoc->NodeInfoManager())
+      DocumentFragment(inertDoc->NodeInfoManager());
+
+  nsAtom* contextLocalName = parseContext->NodeInfo()->NameAtom();
+  int32_t contextNameSpaceID = parseContext->GetNameSpaceID();
+  aError = nsContentUtils::ParseFragmentHTML(
+      aInnerHTML, fragment, contextLocalName, contextNameSpaceID, false, true);
+  if (aError.Failed()) {
+    return;
+  }
+
+  // Suppress assertion about node removal mutation events that can't have
+  // listeners anyway, because no one has had the chance to register
+  // mutation listeners on the fragment that comes from the parser.
+  nsAutoScriptBlockerSuppressNodeRemoved scriptBlocker;
+
+  int32_t oldChildCount = static_cast<int32_t>(target->GetChildCount());
+
+  // Step 6. Run sanitize on fragment using sanitizer and safe.
+  sanitizer->Sanitize(fragment, /* aSafe */ true, aError);
+  if (aError.Failed()) {
+    return;
+  }
+
+  // Step 7. Replace all with fragment within target.
+  target->AppendChild(*fragment, aError);
+  if (aError.Failed()) {
+    return;
+  }
+
+  mb.NodesAdded();
+  nsContentUtils::FireMutationEventsForDirectParsing(doc, target,
+                                                     oldChildCount);
 }
 
 void Element::GetHTML(const GetHTMLOptions& aOptions, nsAString& aResult) {
@@ -5377,12 +5493,10 @@ EditorBase* Element::GetExtantEditor() const {
 }
 
 void Element::SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
-                            const SetHTMLUnsafeOptions& aOptions,
                             nsIPrincipal* aSubjectPrincipal,
                             ErrorResult& aError) {
-  nsContentUtils::SetHTMLUnsafe(this, this, aHTML, aOptions,
-                                false /*aIsShadowRoot*/, aSubjectPrincipal,
-                                aError);
+  nsContentUtils::SetHTMLUnsafe(this, this, aHTML, false /*aIsShadowRoot*/,
+                                aSubjectPrincipal, aError);
 }
 
 // https://html.spec.whatwg.org/#event-beforematch
