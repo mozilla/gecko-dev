@@ -134,15 +134,11 @@ class AutoTypeRef {
   }
 
   // Move constructor
-  AutoTypeRef(AutoTypeRef<T, Traits>&& aOther) : mObj(aOther.mObj) {
-    aOther.mObj = Traits::InvalidValue();
-  }
+  AutoTypeRef(AutoTypeRef<T, Traits>&& aOther) : mObj(aOther.Take()) {}
 
   // Move assignment
   AutoTypeRef<T, Traits>& operator=(const AutoTypeRef<T, Traits>&& aOther) {
-    ReleaseIfNeeded();
-    mObj = aOther.mObj;
-    aOther.mObj = Traits::InvalidValue();
+    Reset(aOther.Take(), AutoTypePolicy::NoRetain);
     return *this;
   }
 
@@ -172,6 +168,12 @@ class AutoTypeRef {
   }
 
  private:
+  T Take() {
+    T obj = mObj;
+    mObj = Traits::InvalidValue();
+    return obj;
+  }
+
   void ReleaseIfNeeded() {
     if (mObj != Traits::InvalidValue()) {
       Traits::Release(mObj);
