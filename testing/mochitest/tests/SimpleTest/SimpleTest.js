@@ -2262,11 +2262,3 @@ addEventListener("message", async event => {
     SimpleTest.finish();
   }
 });
-
-/* import-globals-from ../../../modules/Mochia.js */
-SpecialPowers.Services.scriptloader.loadSubScript(
-  "resource://testing-common/Mochia.js",
-  this
-);
-
-Mochia(this);
