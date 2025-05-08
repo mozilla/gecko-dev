@@ -11,6 +11,11 @@ users or automated tests.  This is more restrictive than most definitions of
 "build" in a Mozilla context: it does not include tasks that run build-like
 actions for static analysis or to produce instrumented artifacts.
 
+build-extensions
+----------------
+
+Builds Firefox extensions with `mach build`.
+
 build-fat-aar
 -------------
 

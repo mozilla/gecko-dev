@@ -42,9 +42,9 @@ def enable_artifact_build_symbols(value, automation, target):
 set_config("MOZ_ARTIFACT_BUILD_SYMBOLS", enable_artifact_build_symbols)
 
 
-@depends("--enable-artifact-builds")
-def imply_disable_compile_environment(value):
-    if value:
+@depends("--enable-artifact-builds", build_project)
+def imply_disable_compile_environment(value, build_project):
+    if value or build_project == "browser/extensions":
         return False
 
 
@@ -75,7 +75,9 @@ option(
 
 set_config("MOZ_COPY_PDBS", depends_if("MOZ_COPY_PDBS")(lambda _: True))
 
-imply_option("--enable-compile-environment", imply_disable_compile_environment)
+imply_option(
+    "--enable-compile-environment", imply_disable_compile_environment, reason="default"
+)
 
 option("--disable-compile-environment", help="Disable compiler/library checks")
 

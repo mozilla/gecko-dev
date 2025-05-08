@@ -1,0 +1,2 @@
+# This mozconfig is used by `mozilla-extensions/xpi-manifest` to build system addons.
+ac_add_options --enable-project=browser/extensions

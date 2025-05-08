@@ -1,0 +1,3 @@
+set_config("BROWSER_NEWTAB_AS_ADDON", True)
+set_define("BROWSER_NEWTAB_AS_ADDON", True)
+set_config("MOZ_JAR_MAKER_FILE_FORMAT", "jar")
