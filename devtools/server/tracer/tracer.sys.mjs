@@ -933,7 +933,7 @@ function objectToString(obj) {
   } else if (typeof obj === "function") {
     return `function ${obj.name || "anonymous"}()`;
   }
-  return primitiveToString(obj);
+  return obj;
 }
 
 function primitiveToString(value) {
@@ -952,7 +952,7 @@ function primitiveToString(value) {
   }
 
   // For all other types/cases, rely on native convertion to string
-  return String(value);
+  return value;
 }
 
 /**
@@ -1112,5 +1112,4 @@ export const JSTracer = {
   removeTracingListener,
   NEXT_INTERACTION_MESSAGE,
   DOM_MUTATIONS,
-  objectToString,
 };
