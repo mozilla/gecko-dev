@@ -280,6 +280,7 @@ include = [
   "CounterSet",
   "CounterIncrement",
   "WritingMode",
+  "WritingModeProperty",
   "Content",
   "ContentItem",
   "AlignSelf",

@@ -622,6 +622,7 @@ class Longhand(Property):
                 "UserSelect",
                 "VectorEffect",
                 "WordBreak",
+                "WritingModeProperty",
                 "XSpan",
                 "XTextScale",
                 "ZIndex",

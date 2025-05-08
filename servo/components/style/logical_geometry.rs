@@ -23,6 +23,38 @@ pub enum InlineBaseDirection {
     RightToLeft,
 }
 
+/// The writing-mode property (different from the WritingMode enum).
+/// https://drafts.csswg.org/css-writing-modes/#block-flow
+/// Aliases come from https://drafts.csswg.org/css-writing-modes-4/#svg-writing-mode
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum WritingModeProperty {
+    #[parse(aliases = "lr,lr-tb,rl,rl-tb")]
+    HorizontalTb,
+    #[parse(aliases = "tb,tb-rl")]
+    VerticalRl,
+    VerticalLr,
+    #[cfg(feature = "gecko")]
+    SidewaysRl,
+    #[cfg(feature = "gecko")]
+    SidewaysLr,
+}
+
 // TODO: improve the readability of the WritingMode serialization, refer to the Debug:fmt()
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, Serialize)]
 #[repr(C)]
@@ -82,7 +114,6 @@ impl WritingMode {
     /// Return a WritingMode bitflags from the relevant CSS properties.
     pub fn new(inheritedbox_style: &style_structs::InheritedBox) -> Self {
         use crate::properties::longhands::direction::computed_value::T as Direction;
-        use crate::properties::longhands::writing_mode::computed_value::T as SpecifiedWritingMode;
 
         let mut flags = WritingMode::empty();
 
@@ -97,18 +128,18 @@ impl WritingMode {
         }
 
         match writing_mode {
-            SpecifiedWritingMode::HorizontalTb => {
+            WritingModeProperty::HorizontalTb => {
                 if direction == Direction::Rtl {
                     flags.insert(WritingMode::INLINE_REVERSED);
                 }
             },
-            SpecifiedWritingMode::VerticalRl => {
+            WritingModeProperty::VerticalRl => {
                 flags.insert(WritingMode::VERTICAL);
                 if direction == Direction::Rtl {
                     flags.insert(WritingMode::INLINE_REVERSED);
                 }
             },
-            SpecifiedWritingMode::VerticalLr => {
+            WritingModeProperty::VerticalLr => {
                 flags.insert(WritingMode::VERTICAL);
                 flags.insert(WritingMode::VERTICAL_LR);
                 flags.insert(WritingMode::LINE_INVERTED);
@@ -117,7 +148,7 @@ impl WritingMode {
                 }
             },
             #[cfg(feature = "gecko")]
-            SpecifiedWritingMode::SidewaysRl => {
+            WritingModeProperty::SidewaysRl => {
                 flags.insert(WritingMode::VERTICAL);
                 flags.insert(WritingMode::VERTICAL_SIDEWAYS);
                 if direction == Direction::Rtl {
@@ -125,7 +156,7 @@ impl WritingMode {
                 }
             },
             #[cfg(feature = "gecko")]
-            SpecifiedWritingMode::SidewaysLr => {
+            WritingModeProperty::SidewaysLr => {
                 flags.insert(WritingMode::VERTICAL);
                 flags.insert(WritingMode::VERTICAL_LR);
                 flags.insert(WritingMode::VERTICAL_SIDEWAYS);
@@ -142,7 +173,7 @@ impl WritingMode {
             // text-orientation only has an effect for vertical-rl and
             // vertical-lr values of writing-mode.
             match writing_mode {
-                SpecifiedWritingMode::VerticalRl | SpecifiedWritingMode::VerticalLr => {
+                WritingModeProperty::VerticalRl | WritingModeProperty::VerticalLr => {
                     match inheritedbox_style.clone_text_orientation() {
                         TextOrientation::Mixed => {},
                         TextOrientation::Upright => {

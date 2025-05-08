@@ -17,18 +17,14 @@ ${helpers.single_keyword(
 
 // CSS Writing Modes Level 3
 // https://drafts.csswg.org/css-writing-modes-3
-${helpers.single_keyword(
+${helpers.predefined_type(
     "writing-mode",
-    "horizontal-tb vertical-rl vertical-lr",
+    "WritingModeProperty",
+    "computed::WritingModeProperty::HorizontalTb",
     engines="gecko servo",
-    extra_gecko_values="sideways-rl sideways-lr",
-    gecko_aliases="lr=horizontal-tb lr-tb=horizontal-tb \
-                         rl=horizontal-tb rl-tb=horizontal-tb \
-                         tb=vertical-rl   tb-rl=vertical-rl",
+    spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode",
     servo_pref="layout.writing-mode.enabled",
     animation_type="none",
-    spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode",
-    gecko_enum_prefix="StyleWritingModeProperty",
     servo_restyle_damage="rebuild_and_reflow",
     affects="layout",
 )}

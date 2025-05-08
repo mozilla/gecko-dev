@@ -20,6 +20,7 @@ pub use crate::values::specified::box_::{
     ContainerType, ContentVisibility, Display, Float, Overflow, OverflowAnchor, OverflowClipBox,
     OverscrollBehavior, PositionProperty, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop,
     ScrollSnapStrictness, ScrollSnapType, ScrollbarGutter, TouchAction, WillChange,
+    WritingModeProperty,
 };
 
 /// A computed value for the `vertical-align` property.

@@ -192,15 +192,6 @@ enum class StyleDirection : uint8_t { Ltr, Rtl };
 // values here accidentally use it in their binary representation.)
 static constexpr uint8_t kWritingModeSidewaysMask = 4;
 
-enum class StyleWritingModeProperty : uint8_t {
-  HorizontalTb = 0,
-  VerticalRl = 1,
-  // HorizontalBT = 2,    // hypothetical
-  VerticalLr = 3,
-  SidewaysRl = VerticalRl | kWritingModeSidewaysMask,
-  SidewaysLr = VerticalLr | kWritingModeSidewaysMask,
-};
-
 // See nsStylePosition
 enum class StyleFlexDirection : uint8_t {
   Row,
