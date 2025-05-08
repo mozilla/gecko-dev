@@ -916,6 +916,20 @@ struct IpcFailCustomRetVal {
 
 // QM_INFOONLY_TRY_INSPECT doesn't make sense.
 
+/**
+ * QM_VERBOSEONLY_TRY_UNWRAP is like QM_WARNONLY_TRY_UNWRAP. The only
+ * difference is that failures are reported using the lowest severity which is
+ * currently ignored in LogError, so nothing goes to the console, browser
+ * console and telemetry. Since nothing goes to the telemetry, the macro can't
+ * signal the end of the underlying error stack or change the type of the error
+ * stack in the telemetry. For that reason, the expression shouldn't contain
+ * nested QM_TRY macro uses.
+ */
+#define QM_VERBOSEONLY_TRY_UNWRAP(...) \
+  QM_REPORTONLY_TRY_ASSIGN_GLUE(Verbose, __VA_ARGS__)
+
+// QM_VERBOSEONLY_TRY_INSPECT doesn't make sense.
+
 // QM_OR_ELSE_REPORT macro is an implementation detail of
 // QM_OR_ELSE_WARN/QM_OR_ELSE_INFO/QM_OR_ELSE_LOG_VERBOSE and shouldn't be used
 // directly.
