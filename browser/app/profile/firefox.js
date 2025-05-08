@@ -2569,19 +2569,11 @@ pref("browser.tabs.crashReporting.sendReport", true);
 pref("browser.tabs.crashReporting.includeURL", false);
 
 // Enables the "Unload Tab" context menu item
-#ifdef EARLY_BETA_OR_EARLIER
 pref("browser.tabs.unloadTabInContextMenu", true);
-#else
-pref("browser.tabs.unloadTabInContextMenu", false);
-#endif
 
 // Whether tabs that have been explicitly unloaded
 // are faded out in the tab bar.
-#ifdef EARLY_BETA_OR_EARLIER
 pref("browser.tabs.fadeOutExplicitlyUnloadedTabs", true);
-#else
-pref("browser.tabs.fadeOutExplicitlyUnloadedTabs", false);
-#endif
 
 // Whether unloaded tabs (either from session restore or because
 // they are explicitly unloaded) are faded out in the tab bar.
