@@ -655,7 +655,6 @@ nsIContent* ContentIteratorBase<NodeType>::GetDeepLastChild(
 template <typename NodeType>
 nsIContent* ContentIteratorBase<NodeType>::GetNextSibling(
     nsINode* aNode, AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary,
-    nsTArray<AncestorInfo>* aInclusiveAncestorsOfEndContainer) {
   if (NS_WARN_IF(!aNode)) {
     return nullptr;
   }
@@ -688,29 +687,19 @@ nsIContent* ContentIteratorBase<NodeType>::GetNextSibling(
     return nullptr;
   }
 
-  // We now have finished iterating descendants within this shadow root, and
-  // reached to the shadow host.
-  if (aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes &&
-      aInclusiveAncestorsOfEndContainer && parent->GetShadowRoot() == aNode) {
-    const int32_t i = aInclusiveAncestorsOfEndContainer->IndexOf(
-        parent, 0, InclusiveAncestorComparator());
-
-    // If parent is an ancestor of the end container, we return the parent so
-    // that the caller (ContentSubtreeIterator::Next) can stop the iteration.
-    //
-    // This is only a special case for ShadowDOM selection where
-    // the end container is in light DOM and we have to iterate
-    // shadow DOM nodes first. We would have reached to mLast
-    // already if this isn't the case.
-    if (i != -1) {
-      MOZ_ASSERT(!aInclusiveAncestorsOfEndContainer->ElementAt(i)
-                      .mIsDescendantInShadowTree);
-      return parent->AsContent();
+  if (aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes) {
+    // This is temporary solution.
+    // For shadow root, instead of getting to the sibling of the parent
+    // directly, we need to get into the light tree of the parent to handle
+    // slotted contents.
+    if (aNode->IsShadowRoot()) {
+      if (nsIContent* child = parent->GetFirstChild()) {
+        return child;
+      }
     }
   }
 
-  return ContentIteratorBase::GetNextSibling(parent, aAllowCrossShadowBoundary,
-                                             aInclusiveAncestorsOfEndContainer);
+  return ContentIteratorBase::GetNextSibling(parent, aAllowCrossShadowBoundary);
 }
 
 // Get the prev sibling, or parent's prev sibling, or shadow host's prev sibling
@@ -1239,8 +1228,8 @@ void ContentSubtreeIterator::Next() {
     return;
   }
 
-  nsINode* nextNode = ContentIteratorBase::GetNextSibling(
-      mCurNode, mAllowCrossShadowBoundary, &mInclusiveAncestorsOfEndContainer);
+  nsINode* nextNode =
+      ContentIteratorBase::GetNextSibling(mCurNode, mAllowCrossShadowBoundary);
 
   NS_ASSERTION(nextNode, "No next sibling!?! This could mean deadlock!");
 
@@ -1262,13 +1251,8 @@ void ContentSubtreeIterator::Next() {
         nextNode = slot->AssignedNodes()[0];
       }
     } else {
-      if (root) {
-        // nextNode is a shadow host but the descendant in the light DOM
-        // of it. There's no need to iterate light DOM elements for a
-        // shadow tree. Stop here.
-        mCurNode = nullptr;
-        return;
-      }
+      MOZ_ASSERT(
+          !mInclusiveAncestorsOfEndContainer[i].mIsDescendantInShadowTree);
       nextNode = nextNode->GetFirstChild();
     }
     NS_ASSERTION(nextNode, "Iterator error, expected a child node!");
