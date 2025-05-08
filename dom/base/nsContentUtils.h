@@ -192,6 +192,7 @@ class MessageBroadcaster;
 class NodeInfo;
 class OwningFileOrUSVStringOrFormData;
 class Selection;
+struct SetHTMLOptions;
 struct SetHTMLUnsafeOptions;
 enum class ShadowRootMode : uint8_t;
 class ShadowRoot;
@@ -1890,6 +1891,11 @@ class nsContentUtils {
   CreateContextualFragment(nsINode* aContextNode, const nsAString& aFragment,
                            bool aPreventScriptExecution,
                            mozilla::ErrorResult& aRv);
+
+  static void SetHTML(mozilla::dom::FragmentOrElement* aTarget,
+                      Element* aContext, const nsAString& aHTML,
+                      const mozilla::dom::SetHTMLOptions& aOptions,
+                      mozilla::ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
   static void SetHTMLUnsafe(mozilla::dom::FragmentOrElement* aTarget,

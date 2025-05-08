@@ -884,6 +884,12 @@ nsresult ShadowRoot::Clone(dom::NodeInfo* aNodeInfo, nsINode** aResult) const {
   return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
 }
 
+void ShadowRoot::SetHTML(const nsAString& aHTML, const SetHTMLOptions& aOptions,
+                         ErrorResult& aError) {
+  RefPtr<Element> host = GetHost();
+  nsContentUtils::SetHTML(this, host, aHTML, aOptions, aError);
+}
+
 void ShadowRoot::SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
                                const SetHTMLUnsafeOptions& aOptions,
                                nsIPrincipal* aSubjectPrincipal,
