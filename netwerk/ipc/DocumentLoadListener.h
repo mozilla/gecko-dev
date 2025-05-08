@@ -222,7 +222,7 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   // Returns true if the channel was finished before we could resume it.
   bool ResumeSuspendedChannel(nsIStreamListener* aListener);
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(DOCUMENT_LOAD_LISTENER_IID)
+  NS_INLINE_DECL_STATIC_IID(DOCUMENT_LOAD_LISTENER_IID)
 
   // Called by the DocumentChannel if cancelled.
   void Cancel(const nsresult& aStatusCode, const nsACString& aReason);
@@ -625,8 +625,6 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
 
   RefPtr<HTTPSFirstDowngradeData> mHTTPSFirstDowngradeData;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(DocumentLoadListener, DOCUMENT_LOAD_LISTENER_IID)
 
 inline nsISupports* ToSupports(DocumentLoadListener* aObj) {
   return static_cast<nsIInterfaceRequestor*>(aObj);

@@ -20,12 +20,8 @@
 #include "ReportInternalError.h"
 #include "SafeRefPtr.h"
 
-#define PRIVATE_IDBREQUEST_IID                       \
-  {                                                  \
-    0xe68901e5, 0x1d50, 0x4ee9, {                    \
-      0xaf, 0x49, 0x90, 0x99, 0x4a, 0xff, 0xc8, 0x39 \
-    }                                                \
-  }
+#define PRIVATE_IDBREQUEST_IID \
+  {0xe68901e5, 0x1d50, 0x4ee9, {0xaf, 0x49, 0x90, 0x99, 0x4a, 0xff, 0xc8, 0x39}}
 
 class nsIGlobalObject;
 
@@ -50,10 +46,8 @@ namespace detail {
 // This class holds the IID for use with NS_GET_IID.
 class PrivateIDBRequest {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(PRIVATE_IDBREQUEST_IID)
+  NS_INLINE_DECL_STATIC_IID(PRIVATE_IDBREQUEST_IID)
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(PrivateIDBRequest, PRIVATE_IDBREQUEST_IID)
 
 }  // namespace detail
 

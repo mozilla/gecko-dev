@@ -26,12 +26,8 @@
 #include "nsParserBase.h"
 #include "mozilla/NotNull.h"
 
-#define NS_IPARSER_IID                               \
-  {                                                  \
-    0x2c4ad90a, 0x740e, 0x4212, {                    \
-      0xba, 0x3f, 0xfe, 0xac, 0xda, 0x4b, 0x92, 0x9e \
-    }                                                \
-  }
+#define NS_IPARSER_IID \
+  {0x2c4ad90a, 0x740e, 0x4212, {0xba, 0x3f, 0xfe, 0xac, 0xda, 0x4b, 0x92, 0x9e}}
 
 class nsIContentSink;
 class nsIRequestObserver;
@@ -64,7 +60,7 @@ class nsIParser : public nsParserBase {
   using NotNull = mozilla::NotNull<T>;
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IPARSER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IPARSER_IID)
 
   /**
    * Select given content sink into parser for parser output
@@ -180,7 +176,5 @@ class nsIParser : public nsParserBase {
    */
   virtual bool IsScriptCreated() = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIParser, NS_IPARSER_IID)
 
 #endif

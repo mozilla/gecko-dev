@@ -33,7 +33,7 @@ class ServiceWorkerRegistrationChild;
 
 class ServiceWorkerRegistration final : public DOMEventTargetHelper {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_DOM_SERVICEWORKERREGISTRATION_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_DOM_SERVICEWORKERREGISTRATION_IID)
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ServiceWorkerRegistration,
                                            DOMEventTargetHelper)
@@ -151,9 +151,6 @@ class ServiceWorkerRegistration final : public DOMEventTargetHelper {
   uint64_t mScheduledUpdateFoundId;
   uint64_t mDispatchedUpdateFoundId;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(ServiceWorkerRegistration,
-                              NS_DOM_SERVICEWORKERREGISTRATION_IID)
 
 }  // namespace mozilla::dom
 

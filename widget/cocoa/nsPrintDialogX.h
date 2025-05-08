@@ -57,6 +57,4 @@ class nsPrintDialogServiceX final : public nsIPrintDialogService {
 
 @end
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsPrintDialogServiceX, NS_IPRINTDIALOGSERVICE_IID)
-
 #endif  // nsPrintDialog_h_

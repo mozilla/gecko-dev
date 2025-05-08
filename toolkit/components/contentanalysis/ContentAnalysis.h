@@ -189,7 +189,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
                               public nsIObserver,
                               public SupportsWeakPtr {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(CONTENTANALYSIS_IID)
+  NS_INLINE_DECL_STATIC_IID(CONTENTANALYSIS_IID)
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSICONTENTANALYSIS
   NS_DECL_NSIOBSERVER
@@ -503,8 +503,6 @@ class ContentAnalysis final : public nsIContentAnalysis,
   friend class ContentAnalysisResponse;
   friend class ::ContentAnalysisTest;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(ContentAnalysis, CONTENTANALYSIS_IID)
 
 class ContentAnalysisResponse final : public nsIContentAnalysisResponse {
  public:

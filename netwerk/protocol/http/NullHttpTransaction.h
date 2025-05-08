@@ -26,16 +26,12 @@ class nsHttpConnectionInfo;
 class nsHttpRequestHead;
 
 // 6c445340-3b82-4345-8efa-4902c3b8805a
-#define NS_NULLHTTPTRANSACTION_IID                   \
-  {                                                  \
-    0x6c445340, 0x3b82, 0x4345, {                    \
-      0x8e, 0xfa, 0x49, 0x02, 0xc3, 0xb8, 0x80, 0x5a \
-    }                                                \
-  }
+#define NS_NULLHTTPTRANSACTION_IID \
+  {0x6c445340, 0x3b82, 0x4345, {0x8e, 0xfa, 0x49, 0x02, 0xc3, 0xb8, 0x80, 0x5a}}
 
 class NullHttpTransaction : public nsAHttpTransaction {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_NULLHTTPTRANSACTION_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_NULLHTTPTRANSACTION_IID)
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSAHTTPTRANSACTION
 
@@ -85,8 +81,6 @@ class NullHttpTransaction : public nsAHttpTransaction {
   RefPtr<nsHttpConnectionInfo> mConnectionInfo;
   nsCOMPtr<nsIHttpActivityObserver> mActivityDistributor;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(NullHttpTransaction, NS_NULLHTTPTRANSACTION_IID)
 
 }  // namespace net
 }  // namespace mozilla

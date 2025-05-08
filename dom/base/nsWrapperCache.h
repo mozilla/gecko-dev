@@ -84,7 +84,7 @@ static_assert(sizeof(void*) == 4, "Only support 32-bit and 64-bit");
 
 class JS_HAZ_ROOTED nsWrapperCache {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_WRAPPERCACHE_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_WRAPPERCACHE_IID)
 
   nsWrapperCache() = default;
   ~nsWrapperCache() {
@@ -411,8 +411,6 @@ class JS_HAZ_ROOTED nsWrapperCache {
 };
 
 enum { WRAPPER_CACHE_FLAGS_BITS_USED = 1 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsWrapperCache, NS_WRAPPERCACHE_IID)
 
 #define NS_WRAPPERCACHE_INTERFACE_TABLE_ENTRY           \
   if (aIID.Equals(NS_GET_IID(nsWrapperCache))) {        \

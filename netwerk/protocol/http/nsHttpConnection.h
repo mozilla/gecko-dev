@@ -59,7 +59,7 @@ class nsHttpConnection final : public HttpConnectionBase,
   virtual ~nsHttpConnection();
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_HTTPCONNECTION_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_HTTPCONNECTION_IID)
   NS_DECL_HTTPCONNECTIONBASE
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSAHTTPSEGMENTREADER
@@ -379,8 +379,6 @@ class nsHttpConnection final : public HttpConnectionBase,
   bool mHasTLSTransportLayer{false};
   bool mTransactionDisallowHttp3{false};
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsHttpConnection, NS_HTTPCONNECTION_IID)
 
 }  // namespace net
 }  // namespace mozilla

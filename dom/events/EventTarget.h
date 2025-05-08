@@ -41,16 +41,12 @@ enum class CallerType : uint32_t;
 enum class EventCallbackDebuggerNotificationType : uint8_t;
 
 // IID for the dom::EventTarget interface
-#define NS_EVENTTARGET_IID                           \
-  {                                                  \
-    0xde651c36, 0x0053, 0x4c67, {                    \
-      0xb1, 0x3d, 0x67, 0xb9, 0x40, 0xfc, 0x82, 0xe4 \
-    }                                                \
-  }
+#define NS_EVENTTARGET_IID \
+  {0xde651c36, 0x0053, 0x4c67, {0xb1, 0x3d, 0x67, 0xb9, 0x40, 0xfc, 0x82, 0xe4}}
 
 class EventTarget : public nsISupports, public nsWrapperCache {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_EVENTTARGET_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_EVENTTARGET_IID)
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
@@ -363,8 +359,6 @@ class EventTarget : public nsISupports, public nsWrapperCache {
                                   bool aUseCapture,
                                   const Nullable<bool>& aWantsUntrusted);
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(EventTarget, NS_EVENTTARGET_IID)
 
 #define NS_IMPL_FROMEVENTTARGET_GENERIC(_class, _check, _const)             \
   template <typename T>                                                     \

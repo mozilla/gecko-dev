@@ -683,8 +683,7 @@ inline void NS_QueryNotificationCallbacks(T* channel, const nsIID& iid,
 
 template <class C, class T>
 inline void NS_QueryNotificationCallbacks(C* channel, nsCOMPtr<T>& result) {
-  NS_QueryNotificationCallbacks(channel, NS_GET_TEMPLATE_IID(T),
-                                getter_AddRefs(result));
+  NS_QueryNotificationCallbacks(channel, NS_GET_IID(T), getter_AddRefs(result));
 }
 
 /**
@@ -761,7 +760,7 @@ template <class T>
 inline void NS_QueryNotificationCallbacks(nsIInterfaceRequestor* callbacks,
                                           nsILoadGroup* loadGroup,
                                           nsCOMPtr<T>& result) {
-  NS_QueryNotificationCallbacks(callbacks, loadGroup, NS_GET_TEMPLATE_IID(T),
+  NS_QueryNotificationCallbacks(callbacks, loadGroup, NS_GET_IID(T),
                                 getter_AddRefs(result));
 }
 

@@ -39,16 +39,12 @@ namespace dom {
 
 class GlobalObject;
 
-#define MOZILLA_EXCEPTION_IID                        \
-  {                                                  \
-    0x55eda557, 0xeba0, 0x4fe3, {                    \
-      0xae, 0x2e, 0xf3, 0x94, 0x49, 0x23, 0x62, 0xd6 \
-    }                                                \
-  }
+#define MOZILLA_EXCEPTION_IID \
+  {0x55eda557, 0xeba0, 0x4fe3, {0xae, 0x2e, 0xf3, 0x94, 0x49, 0x23, 0x62, 0xd6}}
 
 class Exception : public nsIException, public nsWrapperCache {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_EXCEPTION_IID)
+  NS_INLINE_DECL_STATIC_IID(MOZILLA_EXCEPTION_IID)
 
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Exception)
 
@@ -134,8 +130,6 @@ class Exception : public nsIException, public nsWrapperCache {
   bool mHoldingJSVal;
   JS::Heap<JS::Value> mThrownJSVal;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(Exception, MOZILLA_EXCEPTION_IID)
 
 class DOMException : public Exception {
  public:

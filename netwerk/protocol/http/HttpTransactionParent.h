@@ -37,7 +37,7 @@ class HttpTransactionParent final : public PHttpTransactionParent,
   NS_DECL_HTTPTRANSACTIONSHELL
   NS_DECL_NSIREQUEST
   NS_DECL_NSITHREADRETARGETABLEREQUEST
-  NS_DECLARE_STATIC_IID_ACCESSOR(HTTP_TRANSACTION_PARENT_IID)
+  NS_INLINE_DECL_STATIC_IID(HTTP_TRANSACTION_PARENT_IID)
 
   explicit HttpTransactionParent(bool aIsDocumentLoad);
 
@@ -184,9 +184,6 @@ class HttpTransactionParent final : public PHttpTransactionParent,
   RefPtr<nsHttpConnectionInfo> mConnInfo;
   bool mSupportsHTTP3 = false;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(HttpTransactionParent,
-                              HTTP_TRANSACTION_PARENT_IID)
 
 }  // namespace mozilla::net
 

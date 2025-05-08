@@ -87,7 +87,7 @@ class DOMSVGLengthList final : public nsISupports, public nsWrapperCache {
   }
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGLENGTHLIST_IID)
+  NS_INLINE_DECL_STATIC_IID(MOZILLA_DOMSVGLENGTHLIST_IID)
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGLengthList)
 
@@ -194,8 +194,6 @@ class DOMSVGLengthList final : public nsISupports, public nsWrapperCache {
 
   RefPtr<DOMSVGAnimatedLengthList> mAList;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(DOMSVGLengthList, MOZILLA_DOMSVGLENGTHLIST_IID)
 
 }  // namespace dom
 }  // namespace mozilla

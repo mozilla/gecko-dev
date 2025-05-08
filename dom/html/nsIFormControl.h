@@ -77,12 +77,8 @@ static_assert(uint8_t(FormControlType::LastButtonElement) <
 static_assert(uint32_t(FormControlType::LastInputElement) < (1 << 8),
               "Too many form control types");
 
-#define NS_IFORMCONTROL_IID                          \
-  {                                                  \
-    0x4b89980c, 0x4dcd, 0x428f, {                    \
-      0xb7, 0xad, 0x43, 0x5b, 0x93, 0x29, 0x79, 0xec \
-    }                                                \
-  }
+#define NS_IFORMCONTROL_IID \
+  {0x4b89980c, 0x4dcd, 0x428f, {0xb7, 0xad, 0x43, 0x5b, 0x93, 0x29, 0x79, 0xec}}
 
 /**
  * Interface which all form controls (e.g. buttons, checkboxes, text,
@@ -93,7 +89,7 @@ class nsIFormControl : public nsISupports {
  public:
   nsIFormControl(FormControlType aType) : mType(aType) {}
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IFORMCONTROL_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IFORMCONTROL_IID)
 
   static nsIFormControl* FromEventTarget(mozilla::dom::EventTarget* aTarget);
   static nsIFormControl* FromEventTargetOrNull(
@@ -297,7 +293,5 @@ bool nsIFormControl::AllowDraggableChildren() const {
   return type == FormControlType::Object || type == FormControlType::Fieldset ||
          type == FormControlType::Output;
 }
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIFormControl, NS_IFORMCONTROL_IID)
 
 #endif /* nsIFormControl_h___ */

@@ -46,7 +46,7 @@ union NetAddr;
 
 class HttpTransactionShell : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(HTTPTRANSACTIONSHELL_IID)
+  NS_INLINE_DECL_STATIC_IID(HTTPTRANSACTIONSHELL_IID)
 
   using TransactionObserverFunc =
       std::function<void(TransactionObserverResult&&)>;
@@ -172,8 +172,6 @@ class HttpTransactionShell : public nsISupports {
   virtual TimeStamp GetDataAvailableStartTime() const { return TimeStamp(); }
   virtual TimeStamp GetOnStopRequestStartTime() const { return TimeStamp(); }
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(HttpTransactionShell, HTTPTRANSACTIONSHELL_IID)
 
 #define NS_DECL_HTTPTRANSACTIONSHELL                                           \
   virtual nsresult Init(                                                       \

@@ -30,18 +30,14 @@ class Promise;
 
 class ReadableStream;
 
-#define NS_DOM_BLOB_IID                              \
-  {                                                  \
-    0x648c2a83, 0xbdb1, 0x4a7d, {                    \
-      0xb5, 0x0a, 0xca, 0xcd, 0x92, 0x87, 0x45, 0xc2 \
-    }                                                \
-  }
+#define NS_DOM_BLOB_IID \
+  {0x648c2a83, 0xbdb1, 0x4a7d, {0xb5, 0x0a, 0xca, 0xcd, 0x92, 0x87, 0x45, 0xc2}}
 
 class Blob : public nsSupportsWeakReference, public nsWrapperCache {
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Blob)
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_DOM_BLOB_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_DOM_BLOB_IID)
 
   using BlobPart = OwningArrayBufferViewOrArrayBufferOrBlobOrUTF8String;
 
@@ -145,8 +141,6 @@ class Blob : public nsSupportsWeakReference, public nsWrapperCache {
  private:
   nsCOMPtr<nsIGlobalObject> mGlobal;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(Blob, NS_DOM_BLOB_IID)
 
 // Override BindingJSObjectMallocBytes for blobs to tell the JS GC how much
 // memory is held live by the binding object.

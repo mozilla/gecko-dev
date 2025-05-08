@@ -236,12 +236,8 @@ class TaskQueue final : public AbstractThread,
   };
 };
 
-#define MOZILLA_TASKQUEUETRACKER_IID                 \
-  {                                                  \
-    0x765c4b56, 0xd5f6, 0x4a9f, {                    \
-      0x91, 0xcf, 0x51, 0x47, 0xb3, 0xc1, 0x7e, 0xa6 \
-    }                                                \
-  }
+#define MOZILLA_TASKQUEUETRACKER_IID \
+  {0x765c4b56, 0xd5f6, 0x4a9f, {0x91, 0xcf, 0x51, 0x47, 0xb3, 0xc1, 0x7e, 0xa6}}
 
 // XPCOM "interface" which may be implemented by nsIEventTarget implementations
 // which want to keep track of what TaskQueue instances are currently targeting
@@ -253,7 +249,7 @@ class TaskQueue final : public AbstractThread,
 // are asynchronous, which is not a requirement of that interface.
 class TaskQueueTracker : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_TASKQUEUETRACKER_IID)
+  NS_INLINE_DECL_STATIC_IID(MOZILLA_TASKQUEUETRACKER_IID)
 
   // Get a strong reference to every TaskQueue currently tracked by this
   // TaskQueueTracker. May be called from any thraed.
@@ -268,8 +264,6 @@ class TaskQueueTracker : public nsISupports {
   Mutex mMutex{"TaskQueueTracker"};
   LinkedList<TaskQueueTrackerEntry> mEntries MOZ_GUARDED_BY(mMutex);
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(TaskQueueTracker, MOZILLA_TASKQUEUETRACKER_IID)
 
 }  // namespace mozilla
 

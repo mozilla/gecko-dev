@@ -14,26 +14,26 @@
 #include "nsINestedURI.h"
 #include "nsIURIMutator.h"
 
-#define NS_THIS_JARURI_IMPL_CID                      \
-  { /* 9a55f629-730b-4d08-b75b-fa7d9570a691 */       \
-    0x9a55f629, 0x730b, 0x4d08, {                    \
-      0xb7, 0x5b, 0xfa, 0x7d, 0x95, 0x70, 0xa6, 0x91 \
-    }                                                \
-  }
+#define NS_THIS_JARURI_IMPL_CID               \
+  {/* 9a55f629-730b-4d08-b75b-fa7d9570a691 */ \
+   0x9a55f629,                                \
+   0x730b,                                    \
+   0x4d08,                                    \
+   {0xb7, 0x5b, 0xfa, 0x7d, 0x95, 0x70, 0xa6, 0x91}}
 
-#define NS_JARURI_CID                                \
-  { /* 245abae2-b947-4ded-a46d-9829d3cca462 */       \
-    0x245abae2, 0xb947, 0x4ded, {                    \
-      0xa4, 0x6d, 0x98, 0x29, 0xd3, 0xcc, 0xa4, 0x62 \
-    }                                                \
-  }
+#define NS_JARURI_CID                         \
+  {/* 245abae2-b947-4ded-a46d-9829d3cca462 */ \
+   0x245abae2,                                \
+   0xb947,                                    \
+   0x4ded,                                    \
+   {0xa4, 0x6d, 0x98, 0x29, 0xd3, 0xcc, 0xa4, 0x62}}
 
-#define NS_JARURIMUTATOR_CID                         \
-  { /* 19d9161b-a2a9-4518-b2c9-fcb8296d6dcd */       \
-    0x19d9161b, 0xa2a9, 0x4518, {                    \
-      0xb2, 0xc9, 0xfc, 0xb8, 0x29, 0x6d, 0x6d, 0xcd \
-    }                                                \
-  }
+#define NS_JARURIMUTATOR_CID                  \
+  {/* 19d9161b-a2a9-4518-b2c9-fcb8296d6dcd */ \
+   0x19d9161b,                                \
+   0xa2a9,                                    \
+   0x4518,                                    \
+   {0xb2, 0xc9, 0xfc, 0xb8, 0x29, 0x6d, 0x6d, 0xcd}}
 
 class nsJARURI final : public nsIJARURI,
                        public nsISerializable,
@@ -46,7 +46,7 @@ class nsJARURI final : public nsIJARURI,
   NS_DECL_NSISERIALIZABLE
   NS_DECL_NSINESTEDURI
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_THIS_JARURI_IMPL_CID)
+  NS_INLINE_DECL_STATIC_IID(NS_THIS_JARURI_IMPL_CID)
 
   // nsJARURI
   nsresult FormatSpec(const nsACString& entryPath, nsACString& result,
@@ -150,7 +150,5 @@ class nsJARURI final : public nsIJARURI,
 
   friend BaseURIMutator<nsJARURI>;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsJARURI, NS_THIS_JARURI_IMPL_CID)
 
 #endif  // nsJARURI_h__

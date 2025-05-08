@@ -141,7 +141,7 @@ class ContentParent final : public PContentParent,
   using LaunchPromise =
       mozilla::MozPromise<UniqueContentParentKeepAlive, nsresult, true>;
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_CONTENTPARENT_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_CONTENTPARENT_IID)
 
   static LogModule* GetLog();
 
@@ -1623,8 +1623,6 @@ class ContentParent final : public PContentParent,
 
   nsCOMPtr<nsIThread> mClipboardContentAnalysisThread;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(ContentParent, NS_CONTENTPARENT_IID)
 
 // Threadsafe handle object allowing off-main-thread code to get some
 // information and maintain a weak reference to a ContentParent.

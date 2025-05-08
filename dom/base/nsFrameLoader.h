@@ -102,12 +102,8 @@ typedef struct _GtkWidget GtkWidget;
 #endif
 
 // IID for nsFrameLoader, because some places want to QI to it.
-#define NS_FRAMELOADER_IID                           \
-  {                                                  \
-    0x297fd0ea, 0x1b4a, 0x4c9a, {                    \
-      0xa4, 0x04, 0xe5, 0x8b, 0xe8, 0x95, 0x10, 0x50 \
-    }                                                \
-  }
+#define NS_FRAMELOADER_IID \
+  {0x297fd0ea, 0x1b4a, 0x4c9a, {0xa4, 0x04, 0xe5, 0x8b, 0xe8, 0x95, 0x10, 0x50}}
 
 class nsFrameLoader final : public nsStubMutationObserver,
                             public mozilla::dom::ipc::MessageManagerCallback,
@@ -137,7 +133,7 @@ class nsFrameLoader final : public nsStubMutationObserver,
       const mozilla::dom::NavigationIsolationOptions& aRemotenessOptions,
       bool aIsRemote, bool aNetworkCreated, bool aPreserveContext);
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_FRAMELOADER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_FRAMELOADER_IID)
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(nsFrameLoader)
@@ -567,8 +563,6 @@ class nsFrameLoader final : public nsStubMutationObserver,
   // frame. To ensure this is only fired once, this bit is checked.
   bool mTabProcessCrashFired : 1;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsFrameLoader, NS_FRAMELOADER_IID)
 
 inline nsISupports* ToSupports(nsFrameLoader* aFrameLoader) {
   return aFrameLoader;

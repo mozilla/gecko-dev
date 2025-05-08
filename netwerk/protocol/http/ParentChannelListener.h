@@ -19,12 +19,8 @@
 namespace mozilla {
 namespace net {
 
-#define PARENT_CHANNEL_LISTENER                      \
-  {                                                  \
-    0xa4e2c10c, 0xceba, 0x457f, {                    \
-      0xa8, 0x0d, 0x78, 0x2b, 0x23, 0xba, 0xbd, 0x16 \
-    }                                                \
-  }
+#define PARENT_CHANNEL_LISTENER \
+  {0xa4e2c10c, 0xceba, 0x457f, {0xa8, 0x0d, 0x78, 0x2b, 0x23, 0xba, 0xbd, 0x16}}
 
 class ParentChannelListener final : public nsIInterfaceRequestor,
                                     public nsIMultiPartChannelListener,
@@ -41,7 +37,7 @@ class ParentChannelListener final : public nsIInterfaceRequestor,
   NS_DECL_NSIAUTHPROMPTPROVIDER
   NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(PARENT_CHANNEL_LISTENER)
+  NS_INLINE_DECL_STATIC_IID(PARENT_CHANNEL_LISTENER)
 
   explicit ParentChannelListener(
       nsIStreamListener* aListener,
@@ -73,8 +69,6 @@ class ParentChannelListener final : public nsIInterfaceRequestor,
   // expected AllPartsStopped to be called when complete.
   bool mIsMultiPart = false;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(ParentChannelListener, PARENT_CHANNEL_LISTENER)
 
 inline nsISupports* ToSupports(ParentChannelListener* aDoc) {
   return static_cast<nsIInterfaceRequestor*>(aDoc);

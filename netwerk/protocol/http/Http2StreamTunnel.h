@@ -24,7 +24,7 @@ class Http2StreamTunnel : public Http2StreamBase,
                           public nsISocketTransport,
                           public nsSupportsWeakReference {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_HTTP2STREAMTUNNEL_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_HTTP2STREAMTUNNEL_IID)
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSITRANSPORT
   NS_DECL_NSISOCKETTRANSPORT
@@ -85,7 +85,7 @@ class Http2StreamTunnel : public Http2StreamBase,
 
 class OutputStreamTunnel : public nsIAsyncOutputStream {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_OUTPUTSTREAMTUNNEL_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_OUTPUTSTREAMTUNNEL_IID)
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOUTPUTSTREAM
   NS_DECL_NSIASYNCOUTPUTSTREAM
@@ -127,9 +127,6 @@ class InputStreamTunnel : public nsIAsyncInputStream {
   nsCOMPtr<nsIInputStreamCallback> mCallback;
   nsresult mCondition{NS_OK};
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(Http2StreamTunnel, NS_HTTP2STREAMTUNNEL_IID)
-NS_DEFINE_STATIC_IID_ACCESSOR(OutputStreamTunnel, NS_OUTPUTSTREAMTUNNEL_IID)
 
 class Http2StreamWebSocket : public Http2StreamTunnel {
  public:

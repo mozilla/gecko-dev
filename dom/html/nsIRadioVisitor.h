@@ -14,12 +14,8 @@ class HTMLInputElement;
 }  // namespace mozilla::dom
 
 // IID for the nsIRadioControl interface
-#define NS_IRADIOVISITOR_IID                         \
-  {                                                  \
-    0xc6bed232, 0x1181, 0x4ab2, {                    \
-      0xa1, 0xda, 0x55, 0xc2, 0x13, 0x6d, 0xea, 0x3d \
-    }                                                \
-  }
+#define NS_IRADIOVISITOR_IID \
+  {0xc6bed232, 0x1181, 0x4ab2, {0xa1, 0xda, 0x55, 0xc2, 0x13, 0x6d, 0xea, 0x3d}}
 
 /**
  * This interface is used for the text control frame to store its value away
@@ -27,7 +23,7 @@ class HTMLInputElement;
  */
 class nsIRadioVisitor : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IRADIOVISITOR_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IRADIOVISITOR_IID)
 
   /**
    * Visit a node in the tree.  This is meant to be called on all radios in a
@@ -42,7 +38,5 @@ class nsIRadioVisitor : public nsISupports {
    */
   virtual bool Visit(mozilla::dom::HTMLInputElement* aRadio) = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIRadioVisitor, NS_IRADIOVISITOR_IID)
 
 #endif  // nsIRadioVisitor_h___

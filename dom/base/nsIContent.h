@@ -73,7 +73,7 @@ class nsIContent : public nsINode {
   }
 #endif  // MOZILLA_INTERNAL_API
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICONTENT_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_ICONTENT_IID)
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_IMETHOD_(void) DeleteCycleCollectable(void) final;
@@ -771,7 +771,5 @@ class nsIContent : public nsINode {
 };
 
 NON_VIRTUAL_ADDREF_RELEASE(nsIContent)
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIContent, NS_ICONTENT_IID)
 
 #endif /* nsIContent_h___ */

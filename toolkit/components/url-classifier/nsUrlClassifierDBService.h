@@ -78,7 +78,7 @@ class nsUrlClassifierDBService final : public nsIUrlClassifierDBService,
   static already_AddRefed<nsUrlClassifierDBService> GetInstance(
       nsresult* result);
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_URLCLASSIFIERDBSERVICE_CID)
+  NS_INLINE_DECL_STATIC_IID(NS_URLCLASSIFIERDBSERVICE_CID)
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIURLCLASSIFIERDBSERVICE
@@ -272,8 +272,5 @@ class nsUrlClassifierDBServiceWorker final : public nsIUrlClassifierDBService {
   // list of pending lookups
   nsTArray<PendingLookup> mPendingLookups;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsUrlClassifierDBService,
-                              NS_URLCLASSIFIERDBSERVICE_CID)
 
 #endif  // nsUrlClassifierDBService_h_

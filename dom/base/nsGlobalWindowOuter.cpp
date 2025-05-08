@@ -1812,7 +1812,7 @@ void nsGlobalWindowOuter::SetInitialPrincipal(
 
 class WindowStateHolder final : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(WINDOWSTATEHOLDER_IID)
+  NS_INLINE_DECL_STATIC_IID(WINDOWSTATEHOLDER_IID)
   NS_DECL_ISUPPORTS
 
   explicit WindowStateHolder(nsGlobalWindowInner* aWindow);
@@ -1832,8 +1832,6 @@ class WindowStateHolder final : public nsISupports {
   // window ends up recalculating it anyway.
   JS::PersistentRooted<JSObject*> mInnerWindowReflector;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(WindowStateHolder, WINDOWSTATEHOLDER_IID)
 
 WindowStateHolder::WindowStateHolder(nsGlobalWindowInner* aWindow)
     : mInnerWindow(aWindow),

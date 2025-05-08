@@ -18,12 +18,8 @@ class nsICancelable;
 namespace mozilla {
 namespace net {
 
-#define DNS_LISTENER_PROXY_IID                       \
-  {                                                  \
-    0x8f172ca3, 0x7a7f, 0x4941, {                    \
-      0xa7, 0x0b, 0xbc, 0x72, 0x80, 0x2e, 0x9d, 0x9b \
-    }                                                \
-  }
+#define DNS_LISTENER_PROXY_IID \
+  {0x8f172ca3, 0x7a7f, 0x4941, {0xa7, 0x0b, 0xbc, 0x72, 0x80, 0x2e, 0x9d, 0x9b}}
 
 class DNSListenerProxy final : public nsIDNSListener {
  public:
@@ -39,7 +35,7 @@ class DNSListenerProxy final : public nsIDNSListener {
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIDNSLISTENER
-  NS_DECLARE_STATIC_IID_ACCESSOR(DNS_LISTENER_PROXY_IID)
+  NS_INLINE_DECL_STATIC_IID(DNS_LISTENER_PROXY_IID)
 
   uintptr_t GetOriginalListenerAddress() const { return mListenerAddress; }
 
@@ -53,8 +49,6 @@ class DNSListenerProxy final : public nsIDNSListener {
   nsCOMPtr<nsIEventTarget> mTargetThread;
   uintptr_t mListenerAddress;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(DNSListenerProxy, DNS_LISTENER_PROXY_IID)
 
 }  // namespace net
 }  // namespace mozilla

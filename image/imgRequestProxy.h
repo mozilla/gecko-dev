@@ -21,12 +21,12 @@
 
 #include "IProgressObserver.h"
 
-#define NS_IMGREQUESTPROXY_CID                       \
-  { /* 20557898-1dd2-11b2-8f65-9c462ee2bc95 */       \
-    0x20557898, 0x1dd2, 0x11b2, {                    \
-      0x8f, 0x65, 0x9c, 0x46, 0x2e, 0xe2, 0xbc, 0x95 \
-    }                                                \
-  }
+#define NS_IMGREQUESTPROXY_CID                \
+  {/* 20557898-1dd2-11b2-8f65-9c462ee2bc95 */ \
+   0x20557898,                                \
+   0x1dd2,                                    \
+   0x11b2,                                    \
+   {0x8f, 0x65, 0x9c, 0x46, 0x2e, 0xe2, 0xbc, 0x95}}
 
 class imgCacheValidator;
 class imgINotificationObserver;
@@ -54,7 +54,7 @@ class imgRequestProxy : public mozilla::PreloaderBase,
   typedef mozilla::image::Image Image;
   typedef mozilla::image::ProgressTracker ProgressTracker;
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IMGREQUESTPROXY_CID)
+  NS_INLINE_DECL_STATIC_IID(NS_IMGREQUESTPROXY_CID)
   MOZ_DECLARE_REFCOUNTED_TYPENAME(imgRequestProxy)
   NS_DECL_ISUPPORTS
   NS_DECL_IMGIREQUEST
@@ -251,8 +251,6 @@ class imgRequestProxy : public mozilla::PreloaderBase,
 inline nsISupports* ToSupports(imgRequestProxy* p) {
   return NS_ISUPPORTS_CAST(imgIRequest*, p);
 }
-
-NS_DEFINE_STATIC_IID_ACCESSOR(imgRequestProxy, NS_IMGREQUESTPROXY_CID)
 
 // Used for static image proxies for which no requests are available, so
 // certain behaviours must be overridden to compensate.

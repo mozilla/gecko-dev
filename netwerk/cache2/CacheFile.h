@@ -39,13 +39,11 @@ class CacheFileLock;
 
 class CacheFileListener : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(CACHEFILELISTENER_IID)
+  NS_INLINE_DECL_STATIC_IID(CACHEFILELISTENER_IID)
 
   NS_IMETHOD OnFileReady(nsresult aResult, bool aIsNew) = 0;
   NS_IMETHOD OnFileDoomed(nsresult aResult) = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(CacheFileListener, CACHEFILELISTENER_IID)
 
 class MOZ_CAPABILITY("mutex") CacheFile final
     : public CacheFileChunkListener,

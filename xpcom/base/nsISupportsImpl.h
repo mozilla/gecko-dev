@@ -1075,7 +1075,7 @@ constexpr const nsIID& GetImplementedIID() {
                   "Cannot implement a threadsafe interface with "
                   "non-threadsafe refcounting!");
   }
-  return NS_GET_TEMPLATE_IID(Interface);
+  return NS_GET_IID(Interface);
 }
 
 template <typename Class, typename Interface>

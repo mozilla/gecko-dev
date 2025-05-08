@@ -13,12 +13,12 @@
 #include "mozilla/Attributes.h"
 
 // Use to support QI nsIProxyInfo to nsProxyInfo
-#define NS_PROXYINFO_IID                             \
-  { /* ed42f751-825e-4cc2-abeb-3670711a8b85 */       \
-    0xed42f751, 0x825e, 0x4cc2, {                    \
-      0xab, 0xeb, 0x36, 0x70, 0x71, 0x1a, 0x8b, 0x85 \
-    }                                                \
-  }
+#define NS_PROXYINFO_IID                      \
+  {/* ed42f751-825e-4cc2-abeb-3670711a8b85 */ \
+   0xed42f751,                                \
+   0x825e,                                    \
+   0x4cc2,                                    \
+   {0xab, 0xeb, 0x36, 0x70, 0x71, 0x1a, 0x8b, 0x85}}
 
 namespace mozilla {
 namespace net {
@@ -29,7 +29,7 @@ class ProxyInfoCloneArgs;
 // to the nsIProxyInfo attributes.
 class nsProxyInfo final : public nsIProxyInfo {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_PROXYINFO_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_PROXYINFO_IID)
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIPROXYINFO
@@ -91,8 +91,6 @@ class nsProxyInfo final : public nsIProxyInfo {
   uint32_t mTimeout{UINT32_MAX};
   nsProxyInfo* mNext{nullptr};
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsProxyInfo, NS_PROXYINFO_IID)
 
 }  // namespace net
 }  // namespace mozilla

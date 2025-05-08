@@ -13,16 +13,12 @@
 
 namespace TestNsRefPtr {
 
-#define NS_FOO_IID                                   \
-  {                                                  \
-    0x6f7652e0, 0xee43, 0x11d1, {                    \
-      0x9c, 0xc3, 0x00, 0x60, 0x08, 0x8c, 0xa6, 0xb3 \
-    }                                                \
-  }
+#define NS_FOO_IID \
+  {0x6f7652e0, 0xee43, 0x11d1, {0x9c, 0xc3, 0x00, 0x60, 0x08, 0x8c, 0xa6, 0xb3}}
 
 class Foo : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_FOO_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_FOO_IID)
 
  public:
   Foo();
@@ -46,8 +42,6 @@ class Foo : public nsISupports {
   static int total_addrefs_;
   static int total_queries_;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(Foo, NS_FOO_IID)
 
 int Foo::total_constructions_;
 int Foo::total_destructions_;
@@ -125,16 +119,12 @@ static RefPtr<Foo> return_a_Foo() {
   return foop;
 }
 
-#define NS_BAR_IID                                   \
-  {                                                  \
-    0x6f7652e1, 0xee43, 0x11d1, {                    \
-      0x9c, 0xc3, 0x00, 0x60, 0x08, 0x8c, 0xa6, 0xb3 \
-    }                                                \
-  }
+#define NS_BAR_IID \
+  {0x6f7652e1, 0xee43, 0x11d1, {0x9c, 0xc3, 0x00, 0x60, 0x08, 0x8c, 0xa6, 0xb3}}
 
 class Bar : public Foo {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_BAR_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_BAR_IID)
 
  public:
   Bar();
@@ -149,8 +139,6 @@ class Bar : public Foo {
   static int total_destructions_;
   static int total_queries_;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(Bar, NS_BAR_IID)
 
 int Bar::total_constructions_;
 int Bar::total_destructions_;

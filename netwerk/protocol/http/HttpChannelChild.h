@@ -38,12 +38,8 @@ class nsISerialEventTarget;
 class nsITransportSecurityInfo;
 class nsInputStreamPump;
 
-#define HTTP_CHANNEL_CHILD_IID                       \
-  {                                                  \
-    0x321bd99e, 0x2242, 0x4dc6, {                    \
-      0xbb, 0xec, 0xd5, 0x06, 0x29, 0x7c, 0x39, 0x83 \
-    }                                                \
-  }
+#define HTTP_CHANNEL_CHILD_IID \
+  {0x321bd99e, 0x2242, 0x4dc6, {0xbb, 0xec, 0xd5, 0x06, 0x29, 0x7c, 0x39, 0x83}}
 
 namespace mozilla::net {
 
@@ -71,7 +67,7 @@ class HttpChannelChild final : public PHttpChannelChild,
   NS_DECL_NSIHTTPCHANNELCHILD
   NS_DECL_NSIMULTIPARTCHANNEL
   NS_DECL_NSITHREADRETARGETABLEREQUEST
-  NS_DECLARE_STATIC_IID_ACCESSOR(HTTP_CHANNEL_CHILD_IID)
+  NS_INLINE_DECL_STATIC_IID(HTTP_CHANNEL_CHILD_IID)
 
   HttpChannelChild();
 
@@ -471,8 +467,6 @@ class HttpChannelChild final : public PHttpChannelChild,
   friend class HttpBackgroundChannelChild;
   friend class NeckoTargetChannelFunctionEvent;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(HttpChannelChild, HTTP_CHANNEL_CHILD_IID)
 
 //-----------------------------------------------------------------------------
 // inline functions

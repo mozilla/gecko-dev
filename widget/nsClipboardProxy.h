@@ -9,12 +9,8 @@
 #include "mozilla/dom/PContent.h"
 #include "nsIClipboard.h"
 
-#define NS_CLIPBOARDPROXY_IID                        \
-  {                                                  \
-    0xa64c82da, 0x7326, 0x4681, {                    \
-      0xa0, 0x95, 0x81, 0x2c, 0xc9, 0x86, 0xe6, 0xde \
-    }                                                \
-  }
+#define NS_CLIPBOARDPROXY_IID \
+  {0xa64c82da, 0x7326, 0x4681, {0xa0, 0x95, 0x81, 0x2c, 0xc9, 0x86, 0xe6, 0xde}}
 
 // Hack for ContentChild to be able to know that we're an nsClipboardProxy.
 class nsIClipboardProxy : public nsIClipboard {
@@ -22,12 +18,10 @@ class nsIClipboardProxy : public nsIClipboard {
   typedef mozilla::dom::ClipboardCapabilities ClipboardCapabilities;
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_CLIPBOARDPROXY_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_CLIPBOARDPROXY_IID)
 
   virtual void SetCapabilities(const ClipboardCapabilities& aClipboardCaps) = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIClipboardProxy, NS_CLIPBOARDPROXY_IID)
 
 class nsClipboardProxy final : public nsIClipboardProxy {
  public:

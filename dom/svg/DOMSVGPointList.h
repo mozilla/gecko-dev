@@ -93,7 +93,7 @@ class DOMSVGPointList final : public nsISupports, public nsWrapperCache {
   friend class DOMSVGPoint;
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGPOINTLIST_IID)
+  NS_INLINE_DECL_STATIC_IID(MOZILLA_DOMSVGPOINTLIST_IID)
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGPointList)
 
@@ -252,8 +252,6 @@ class DOMSVGPointList final : public nsISupports, public nsWrapperCache {
   // destructed or soon-to-be destructed).
   bool mIsInTearoffTable = true;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(DOMSVGPointList, MOZILLA_DOMSVGPOINTLIST_IID)
 
 }  // namespace dom
 }  // namespace mozilla

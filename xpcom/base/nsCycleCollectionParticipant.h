@@ -118,11 +118,8 @@ static inline const char* CCReasonToString(CCReason aReason) {
  */
 class nsCycleCollectionISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_CYCLECOLLECTIONISUPPORTS_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_CYCLECOLLECTIONISUPPORTS_IID)
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsCycleCollectionISupports,
-                              NS_CYCLECOLLECTIONISUPPORTS_IID)
 
 class nsCycleCollectionTraversalCallback;
 class nsISupports;
@@ -450,7 +447,7 @@ class NS_NO_VTABLE nsXPCOMCycleCollectionParticipant
   constexpr explicit nsXPCOMCycleCollectionParticipant(Flags aFlags)
       : nsScriptObjectTracer(aFlags) {}
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_XPCOMCYCLECOLLECTIONPARTICIPANT_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_XPCOMCYCLECOLLECTIONPARTICIPANT_IID)
 
   NS_IMETHOD_(void) Root(void* aPtr) override;
   NS_IMETHOD_(void) Unroot(void* aPtr) override;
@@ -460,9 +457,6 @@ class NS_NO_VTABLE nsXPCOMCycleCollectionParticipant
 
   static bool CheckForRightISupports(nsISupports* aSupports);
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsXPCOMCycleCollectionParticipant,
-                              NS_XPCOMCYCLECOLLECTIONPARTICIPANT_IID)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Helpers for implementing a QI to nsXPCOMCycleCollectionParticipant

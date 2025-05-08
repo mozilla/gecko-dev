@@ -82,7 +82,7 @@ nsresult UnwrapArgImpl(JSContext* cx, JS::Handle<JSObject*> src,
 template <class Interface>
 inline nsresult UnwrapArg(JSContext* cx, JS::Handle<JSObject*> src,
                           Interface** ppArg) {
-  return UnwrapArgImpl(cx, src, NS_GET_TEMPLATE_IID(Interface),
+  return UnwrapArgImpl(cx, src, NS_GET_IID(Interface),
                        reinterpret_cast<void**>(ppArg));
 }
 

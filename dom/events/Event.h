@@ -70,7 +70,7 @@ struct EventInit;
 
 class Event : public nsISupports, public nsWrapperCache {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_EVENT_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_EVENT_IID)
 
   Event(EventTarget* aOwner, nsPresContext* aPresContext, WidgetEvent* aEvent);
   explicit Event(nsPIDOMWindowInner* aWindow);
@@ -491,8 +491,6 @@ class MOZ_STACK_CLASS WantsPopupControlCheck {
   Event* mEvent;
   bool mOriginalWantsPopupControlCheck;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(Event, NS_EVENT_IID)
 
 }  // namespace mozilla::dom
 

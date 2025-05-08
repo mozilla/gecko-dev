@@ -32,12 +32,12 @@ class XULTreeElement;
 }  // namespace dom
 }  // namespace mozilla
 
-#define NS_TREECOLUMN_IMPL_CID                       \
-  { /* 02cd1963-4b5d-4a6c-9223-814d3ade93a3 */       \
-    0x02cd1963, 0x4b5d, 0x4a6c, {                    \
-      0x92, 0x23, 0x81, 0x4d, 0x3a, 0xde, 0x93, 0xa3 \
-    }                                                \
-  }
+#define NS_TREECOLUMN_IMPL_CID                \
+  {/* 02cd1963-4b5d-4a6c-9223-814d3ade93a3 */ \
+   0x02cd1963,                                \
+   0x4b5d,                                    \
+   0x4a6c,                                    \
+   {0x92, 0x23, 0x81, 0x4d, 0x3a, 0xde, 0x93, 0xa3}}
 
 // This class is our column info.  We use it to iterate our columns and to
 // obtain information about each column.
@@ -45,7 +45,7 @@ class nsTreeColumn final : public nsISupports, public nsWrapperCache {
  public:
   nsTreeColumn(nsTreeColumns* aColumns, mozilla::dom::Element* aElement);
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_TREECOLUMN_IMPL_CID)
+  NS_INLINE_DECL_STATIC_IID(NS_TREECOLUMN_IMPL_CID)
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(nsTreeColumn)
@@ -147,8 +147,6 @@ class nsTreeColumn final : public nsISupports, public nsWrapperCache {
   RefPtr<nsTreeColumn> mNext;
   nsTreeColumn* mPrevious;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsTreeColumn, NS_TREECOLUMN_IMPL_CID)
 
 class nsTreeColumns final : public nsISupports, public nsWrapperCache {
  private:

@@ -90,7 +90,7 @@ class LocalAccessible : public nsISupports, public Accessible {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(LocalAccessible)
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ACCESSIBLE_IMPL_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_ACCESSIBLE_IMPL_IID)
 
   //////////////////////////////////////////////////////////////////////////////
   // Public methods
@@ -1033,8 +1033,6 @@ class LocalAccessible : public nsISupports, public Accessible {
 
   LocalAccessible* GetPopoverTargetDetailsRelation() const;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(LocalAccessible, NS_ACCESSIBLE_IMPL_IID)
 
 ////////////////////////////////////////////////////////////////////////////////
 // LocalAccessible downcasting method

@@ -25,18 +25,14 @@ class EventDispatcher;
 class TextInputHandler;
 }  // namespace mozilla::widget
 
-#define NS_WINDOW_IID                                \
-  {                                                  \
-    0x5e6fd559, 0xb3f9, 0x40c9, {                    \
-      0x92, 0xd1, 0xef, 0x80, 0xb4, 0xf9, 0x69, 0xe9 \
-    }                                                \
-  }
+#define NS_WINDOW_IID \
+  {0x5e6fd559, 0xb3f9, 0x40c9, {0x92, 0xd1, 0xef, 0x80, 0xb4, 0xf9, 0x69, 0xe9}}
 
 class nsWindow final : public nsBaseWidget {
  public:
   nsWindow();
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_WINDOW_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_WINDOW_IID)
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -146,7 +142,5 @@ class nsWindow final : public nsBaseWidget {
   static void DumpWindows(const nsTArray<nsWindow*>& wins, int indent = 0);
   static void LogWindow(nsWindow* win, int index, int indent);
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsWindow, NS_WINDOW_IID)
 
 #endif /* NSWINDOW_H_ */

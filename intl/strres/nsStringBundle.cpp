@@ -111,7 +111,7 @@ namespace {
 class StringBundleProxy : public nsIStringBundle {
   NS_DECL_THREADSAFE_ISUPPORTS
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(STRINGBUNDLEPROXY_IID)
+  NS_INLINE_DECL_STATIC_IID(STRINGBUNDLEPROXY_IID)
 
   explicit StringBundleProxy(already_AddRefed<nsIStringBundle> aTarget)
       : mMutex("StringBundleProxy::mMutex"), mTarget(aTarget) {}
@@ -177,8 +177,6 @@ class StringBundleProxy : public nsIStringBundle {
   }
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(StringBundleProxy, STRINGBUNDLEPROXY_IID)
-
 NS_IMPL_ISUPPORTS(StringBundleProxy, nsIStringBundle, StringBundleProxy)
 
 #define SHAREDSTRINGBUNDLE_IID \
@@ -203,7 +201,7 @@ class SharedStringBundle final : public nsStringBundleBase {
   void SetMapFile(mozilla::ipc::ReadOnlySharedMemoryHandle&& aHandle);
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECLARE_STATIC_IID_ACCESSOR(SHAREDSTRINGBUNDLE_IID)
+  NS_INLINE_DECL_STATIC_IID(SHAREDSTRINGBUNDLE_IID)
 
   nsresult LoadProperties() override;
 
@@ -265,8 +263,6 @@ class SharedStringBundle final : public nsStringBundleBase {
 
   Maybe<mozilla::ipc::ReadOnlySharedMemoryHandle> mMapHandle;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(SharedStringBundle, SHAREDSTRINGBUNDLE_IID)
 
 class StringMapEnumerator final : public nsSimpleEnumerator {
  public:

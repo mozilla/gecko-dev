@@ -66,7 +66,7 @@ class nsITheme : public nsISupports {
   using ComputedStyle = mozilla::ComputedStyle;
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ITHEME_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_ITHEME_IID)
 
   /**
    * Draw the actual theme background.
@@ -239,8 +239,6 @@ class nsITheme : public nsISupports {
 
   virtual bool ThemeSupportsScrollbarButtons() = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsITheme, NS_ITHEME_IID)
 
 // Singleton accessor functions, these should never return null.
 //

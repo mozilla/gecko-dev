@@ -78,12 +78,8 @@ namespace ipc {
 class StructuredCloneData;
 }  // namespace ipc
 
-#define DOM_BROWSERPARENT_IID                        \
-  {                                                  \
-    0x58b47b52, 0x77dc, 0x44cf, {                    \
-      0x8b, 0xe5, 0x8e, 0x78, 0x24, 0xd9, 0xae, 0xc5 \
-    }                                                \
-  }
+#define DOM_BROWSERPARENT_IID \
+  {0x58b47b52, 0x77dc, 0x44cf, {0x8b, 0xe5, 0x8e, 0x78, 0x24, 0xd9, 0xae, 0xc5}}
 
 /**
  * BrowserParent implements the parent actor part of the PBrowser protocol. See
@@ -106,7 +102,7 @@ class BrowserParent final : public PBrowserParent,
   // Helper class for ContentParent::RecvCreateWindow.
   struct AutoUseNewTab;
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(DOM_BROWSERPARENT_IID)
+  NS_INLINE_DECL_STATIC_IID(DOM_BROWSERPARENT_IID)
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIAUTHPROMPTPROVIDER
   // nsIDOMEventListener interfaces
@@ -1017,8 +1013,6 @@ class BrowserParent final : public PBrowserParent,
   // True between ShowTooltip and HideTooltip messages.
   bool mShowingTooltip : 1;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(BrowserParent, DOM_BROWSERPARENT_IID)
 
 struct MOZ_STACK_CLASS BrowserParent::AutoUseNewTab final {
  public:

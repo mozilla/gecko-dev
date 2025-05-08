@@ -10,22 +10,16 @@
 #include "gtest/gtest.h"
 
 // {9e70a320-be02-11d1-8031-006008159b5a}
-#define NS_IFOO_IID                                  \
-  {                                                  \
-    0x9e70a320, 0xbe02, 0x11d1, {                    \
-      0x80, 0x31, 0x00, 0x60, 0x08, 0x15, 0x9b, 0x5a \
-    }                                                \
-  }
+#define NS_IFOO_IID \
+  {0x9e70a320, 0xbe02, 0x11d1, {0x80, 0x31, 0x00, 0x60, 0x08, 0x15, 0x9b, 0x5a}}
 
 class IFoo : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IFOO_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IFOO_IID)
 
   NS_IMETHOD_(MozExternalRefCountType) RefCnt() = 0;
   NS_IMETHOD_(int32_t) ID() = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(IFoo, NS_IFOO_IID)
 
 class Foo final : public IFoo {
   ~Foo();
@@ -57,19 +51,13 @@ Foo::~Foo() { --gCount; }
 NS_IMPL_ISUPPORTS(Foo, IFoo)
 
 // {0e70a320-be02-11d1-8031-006008159b5a}
-#define NS_IBAR_IID                                  \
-  {                                                  \
-    0x0e70a320, 0xbe02, 0x11d1, {                    \
-      0x80, 0x31, 0x00, 0x60, 0x08, 0x15, 0x9b, 0x5a \
-    }                                                \
-  }
+#define NS_IBAR_IID \
+  {0x0e70a320, 0xbe02, 0x11d1, {0x80, 0x31, 0x00, 0x60, 0x08, 0x15, 0x9b, 0x5a}}
 
 class IBar : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IBAR_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IBAR_IID)
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(IBar, NS_IBAR_IID)
 
 class Bar final : public IBar {
  public:

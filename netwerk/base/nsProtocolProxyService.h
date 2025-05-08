@@ -48,7 +48,7 @@ class nsProtocolProxyService final : public nsIProtocolProxyService2,
   NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSINAMED
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_PROTOCOL_PROXY_SERVICE_IMPL_CID)
+  NS_INLINE_DECL_STATIC_IID(NS_PROTOCOL_PROXY_SERVICE_IMPL_CID)
 
   nsProtocolProxyService();
 
@@ -424,9 +424,6 @@ class nsProtocolProxyService final : public nsIProtocolProxyService2,
   bool mIsShutdown{false};
   nsCOMPtr<nsITimer> mReloadPACTimer;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsProtocolProxyService,
-                              NS_PROTOCOL_PROXY_SERVICE_IMPL_CID)
 
 }  // namespace net
 }  // namespace mozilla

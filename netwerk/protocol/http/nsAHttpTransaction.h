@@ -53,7 +53,7 @@ enum class ExtendedCONNECTSupport { UNSURE, NO_SUPPORT, SUPPORTED };
 
 class nsAHttpTransaction : public nsSupportsWeakReference {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_AHTTPTRANSACTION_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_AHTTPTRANSACTION_IID)
 
   // called by the connection when it takes ownership of the transaction.
   virtual void SetConnection(nsAHttpConnection*) = 0;
@@ -230,8 +230,6 @@ class nsAHttpTransaction : public nsSupportsWeakReference {
   virtual bool IsResettingForTunnelConn() { return false; }
   virtual void SetResettingForTunnelConn(bool aValue) {}
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpTransaction, NS_AHTTPTRANSACTION_IID)
 
 #define NS_DECL_NSAHTTPTRANSACTION                                             \
   void SetConnection(nsAHttpConnection*) override;                             \

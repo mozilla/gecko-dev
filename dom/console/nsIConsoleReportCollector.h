@@ -13,12 +13,8 @@
 #include "nsTArrayForwardDeclare.h"
 
 // Must be kept in sync with xpcom/rust/xpcom/src/interfaces/nonidl.rs
-#define NS_NSICONSOLEREPORTCOLLECTOR_IID             \
-  {                                                  \
-    0xdd98a481, 0xd2c4, 0x4203, {                    \
-      0x8d, 0xfa, 0x85, 0xbf, 0xd7, 0xdc, 0xd7, 0x05 \
-    }                                                \
-  }
+#define NS_NSICONSOLEREPORTCOLLECTOR_IID \
+  {0xdd98a481, 0xd2c4, 0x4203, {0x8d, 0xfa, 0x85, 0xbf, 0xd7, 0xdc, 0xd7, 0x05}}
 
 namespace mozilla::net {
 class ConsoleReportCollected;
@@ -28,7 +24,7 @@ class ConsoleReportCollected;
 // window at a later time.
 class NS_NO_VTABLE nsIConsoleReportCollector : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_NSICONSOLEREPORTCOLLECTOR_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_NSICONSOLEREPORTCOLLECTOR_IID)
 
   // Add a pending report to be later displayed on the console.  This may be
   // called from any thread.
@@ -125,8 +121,5 @@ class NS_NO_VTABLE nsIConsoleReportCollector : public nsISupports {
   // Clear all pending reports.
   virtual void ClearConsoleReports() = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIConsoleReportCollector,
-                              NS_NSICONSOLEREPORTCOLLECTOR_IID)
 
 #endif  // nsIConsoleReportCollector_h

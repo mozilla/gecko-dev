@@ -119,7 +119,7 @@ enum class EchExtensionStatus {
 
 class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_HTTP3SESSION_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_HTTP3SESSION_IID)
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSAHTTPTRANSACTION
@@ -386,8 +386,6 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
   // improve performance.
   nsIUDPSocket* mSocket;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(Http3Session, NS_HTTP3SESSION_IID);
 
 }  // namespace mozilla::net
 

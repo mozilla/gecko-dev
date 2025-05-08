@@ -38,7 +38,7 @@ class nsIContentSink : public nsISupports {
   using NotNull = mozilla::NotNull<T>;
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICONTENT_SINK_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_ICONTENT_SINK_IID)
 
   /**
    * This method is called by the parser when it is entered from
@@ -135,7 +135,5 @@ class nsIContentSink : public nsISupports {
 
   virtual void InitialTranslationCompleted() {}
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIContentSink, NS_ICONTENT_SINK_IID)
 
 #endif /* nsIContentSink_h___ */

@@ -25,7 +25,7 @@
 #include "mozilla/dom/BindingUtils.h"  // for MaybeWrapValue, MaybeWrapObjectOrNullValue, XPCOMObjectToJsval, GetOrCreateDOMReflector
 #include "mozilla/dom/CallbackObject.h"  // for CallbackObject
 #include "mozilla/dom/Record.h"
-#include "nsID.h"         // for NS_GET_TEMPLATE_IID, nsIID
+#include "nsID.h"         // for NS_GET_IID, nsIID
 #include "nsISupports.h"  // for nsISupports
 #include "nsStringFwd.h"  // for nsAString
 #include "nsTArrayForwardDeclare.h"
@@ -247,8 +247,7 @@ ToJSValue(JSContext* aCx, T& aArgument, JS::MutableHandle<JS::Value> aValue) {
 
   xpcObjectHelper helper(ToSupports(&aArgument));
   JS::Rooted<JSObject*> scope(aCx, JS::CurrentGlobalOrNull(aCx));
-  const nsIID& iid =
-      NS_GET_TEMPLATE_IID(binding_detail::ScriptableInterfaceType<T>);
+  const nsIID& iid = NS_GET_IID(binding_detail::ScriptableInterfaceType<T>);
   return XPCOMObjectToJsval(aCx, scope, helper, &iid, true, aValue);
 }
 

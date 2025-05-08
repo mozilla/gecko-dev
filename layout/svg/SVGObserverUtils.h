@@ -49,7 +49,7 @@ namespace mozilla {
 
 class ISVGFilterObserverList : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_ICANVASFILTEROBSERVER_IID)
+  NS_INLINE_DECL_STATIC_IID(MOZILLA_ICANVASFILTEROBSERVER_IID)
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(ISVGFilterObserverList)
 
@@ -59,9 +59,6 @@ class ISVGFilterObserverList : public nsISupports {
  protected:
   virtual ~ISVGFilterObserverList() = default;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(ISVGFilterObserverList,
-                              MOZILLA_ICANVASFILTEROBSERVER_IID)
 
 /**
  * This interface allows us to be notified when a piece of SVG content is

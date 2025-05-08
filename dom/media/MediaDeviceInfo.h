@@ -17,11 +17,7 @@
 namespace mozilla::dom {
 
 #define MOZILLA_DOM_MEDIADEVICEINFO_IMPLEMENTATION_IID \
-  {                                                    \
-    0x25091870, 0x84d6, 0x4acf, {                      \
-      0xaf, 0x97, 0x6e, 0xd5, 0x5b, 0xe0, 0x47, 0xb2   \
-    }                                                  \
-  }
+  {0x25091870, 0x84d6, 0x4acf, {0xaf, 0x97, 0x6e, 0xd5, 0x5b, 0xe0, 0x47, 0xb2}}
 
 class MediaDeviceInfo final : public nsISupports, public nsWrapperCache {
  public:
@@ -30,7 +26,7 @@ class MediaDeviceInfo final : public nsISupports, public nsWrapperCache {
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(MediaDeviceInfo)
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOM_MEDIADEVICEINFO_IMPLEMENTATION_IID)
+  NS_INLINE_DECL_STATIC_IID(MOZILLA_DOM_MEDIADEVICEINFO_IMPLEMENTATION_IID)
 
   JSObject* WrapObject(JSContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override;
@@ -50,9 +46,6 @@ class MediaDeviceInfo final : public nsISupports, public nsWrapperCache {
 
   virtual ~MediaDeviceInfo() = default;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(MediaDeviceInfo,
-                              MOZILLA_DOM_MEDIADEVICEINFO_IMPLEMENTATION_IID)
 
 }  // namespace mozilla::dom
 

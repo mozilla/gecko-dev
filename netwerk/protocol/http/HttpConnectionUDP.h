@@ -53,7 +53,7 @@ class HttpConnectionUDP final : public HttpConnectionBase,
   virtual ~HttpConnectionUDP();
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(HTTPCONNECTIONUDP_IID)
+  NS_INLINE_DECL_STATIC_IID(HTTPCONNECTIONUDP_IID)
   NS_DECL_HTTPCONNECTIONBASE
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIUDPSOCKETSYNCLISTENER
@@ -127,8 +127,6 @@ class HttpConnectionUDP final : public HttpConnectionBase,
   RefPtr<Http3Session> mHttp3Session;
   nsCString mAlpnToken;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(HttpConnectionUDP, HTTPCONNECTIONUDP_IID)
 
 }  // namespace net
 }  // namespace mozilla

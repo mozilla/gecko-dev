@@ -310,7 +310,7 @@ class CallbackObject : public nsISupports,
                        public CallbackObjectBase,
                        public JSHolderBase {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(DOM_CALLBACKOBJECT_IID)
+  NS_INLINE_DECL_STATIC_IID(DOM_CALLBACKOBJECT_IID)
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(CallbackObject)
@@ -566,7 +566,7 @@ class CallbackObjectHolder : CallbackObjectHolderBase {
     }
 
     nsCOMPtr<nsISupports> supp = CallbackObjectHolderBase::ToXPCOMCallback(
-        GetWebIDLCallback(), NS_GET_TEMPLATE_IID(XPCOMCallbackT));
+        GetWebIDLCallback(), NS_GET_IID(XPCOMCallbackT));
     if (supp) {
       // ToXPCOMCallback already did the right QI for us.
       return supp.forget().downcast<XPCOMCallbackT>();
@@ -599,8 +599,6 @@ class CallbackObjectHolder : CallbackObjectHolderBase {
 
   uintptr_t mPtrBits;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(CallbackObject, DOM_CALLBACKOBJECT_IID)
 
 template <class T, class U>
 inline void ImplCycleCollectionTraverse(

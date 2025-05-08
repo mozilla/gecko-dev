@@ -18,17 +18,13 @@ class Element;
 }  // namespace dom
 }  // namespace mozilla
 
-#define NS_IDOCUMENT_OBSERVER_IID                    \
-  {                                                  \
-    0x71041fa3, 0x6dd7, 0x4cde, {                    \
-      0xbb, 0x76, 0xae, 0xcc, 0x69, 0xe1, 0x75, 0x78 \
-    }                                                \
-  }
+#define NS_IDOCUMENT_OBSERVER_IID \
+  {0x71041fa3, 0x6dd7, 0x4cde, {0xbb, 0x76, 0xae, 0xcc, 0x69, 0xe1, 0x75, 0x78}}
 
 // Document observer interface
 class nsIDocumentObserver : public nsIMutationObserver {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IDOCUMENT_OBSERVER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IDOCUMENT_OBSERVER_IID)
 
   /**
    * Notify that a content model update is beginning. This call can be
@@ -72,8 +68,6 @@ class nsIDocumentObserver : public nsIMutationObserver {
                                    mozilla::dom::Element*,
                                    mozilla::dom::ElementState) = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocumentObserver, NS_IDOCUMENT_OBSERVER_IID)
 
 #define NS_DECL_NSIDOCUMENTOBSERVER_BEGINUPDATE \
   virtual void BeginUpdate(mozilla::dom::Document*) override;

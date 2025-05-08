@@ -35,19 +35,15 @@ enum class ReferrerPolicy : uint8_t;
 }  // namespace mozilla::dom
 
 // Must be kept in sync with xpcom/rust/xpcom/src/interfaces/nonidl.rs
-#define NS_ISCRIPTELEMENT_IID                        \
-  {                                                  \
-    0xe60fca9b, 0x1b96, 0x4e4e, {                    \
-      0xa9, 0xb4, 0xdc, 0x98, 0x4f, 0x88, 0x3f, 0x9c \
-    }                                                \
-  }
+#define NS_ISCRIPTELEMENT_IID \
+  {0xe60fca9b, 0x1b96, 0x4e4e, {0xa9, 0xb4, 0xdc, 0x98, 0x4f, 0x88, 0x3f, 0x9c}}
 
 /**
  * Internal interface implemented by script elements
  */
 class nsIScriptElement : public nsIScriptLoaderObserver {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISCRIPTELEMENT_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_ISCRIPTELEMENT_IID)
 
   explicit nsIScriptElement(mozilla::dom::FromParser aFromParser)
       : mLineNumber(1),
@@ -369,7 +365,5 @@ class nsIScriptElement : public nsIScriptLoaderObserver {
    */
   nsWeakPtr mCreatorParser;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptElement, NS_ISCRIPTELEMENT_IID)
 
 #endif  // nsIScriptElement_h___

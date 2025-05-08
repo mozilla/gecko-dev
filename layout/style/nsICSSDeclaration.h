@@ -40,16 +40,12 @@ class DocGroup;
 }  // namespace mozilla
 
 // dbeabbfa-6cb3-4f5c-aec2-dd558d9d681f
-#define NS_ICSSDECLARATION_IID                       \
-  {                                                  \
-    0xdbeabbfa, 0x6cb3, 0x4f5c, {                    \
-      0xae, 0xc2, 0xdd, 0x55, 0x8d, 0x9d, 0x68, 0x1f \
-    }                                                \
-  }
+#define NS_ICSSDECLARATION_IID \
+  {0xdbeabbfa, 0x6cb3, 0x4f5c, {0xae, 0xc2, 0xdd, 0x55, 0x8d, 0x9d, 0x68, 0x1f}}
 
 class nsICSSDeclaration : public nsISupports, public nsWrapperCache {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICSSDECLARATION_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_ICSSDECLARATION_IID)
 
   virtual nsINode* GetAssociatedNode() const = 0;
   virtual nsISupports* GetParentObject() const = 0;
@@ -109,8 +105,6 @@ class nsICSSDeclaration : public nsISupports, public nsWrapperCache {
  protected:
   bool IsReadOnly();
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsICSSDeclaration, NS_ICSSDECLARATION_IID)
 
 #define NS_DECL_NSIDOMCSSSTYLEDECLARATION_HELPER                               \
   void GetCssText(nsACString& aCssText) override;                              \

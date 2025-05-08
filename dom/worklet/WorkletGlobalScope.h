@@ -15,12 +15,8 @@
 #include "nsIGlobalObject.h"
 #include "nsWrapperCache.h"
 
-#define WORKLET_IID                                  \
-  {                                                  \
-    0x1b3f62e7, 0xe357, 0x44be, {                    \
-      0xbf, 0xe0, 0xdf, 0x85, 0xe6, 0x56, 0x85, 0xac \
-    }                                                \
-  }
+#define WORKLET_IID \
+  {0x1b3f62e7, 0xe357, 0x44be, {0xbf, 0xe0, 0xdf, 0x85, 0xe6, 0x56, 0x85, 0xac}}
 
 namespace JS {
 class RealmOptions;
@@ -45,7 +41,7 @@ class Console;
 
 class WorkletGlobalScope : public nsIGlobalObject, public nsWrapperCache {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(WORKLET_IID)
+  NS_INLINE_DECL_STATIC_IID(WORKLET_IID)
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(WorkletGlobalScope)
@@ -100,8 +96,6 @@ class WorkletGlobalScope : public nsIGlobalObject, public nsWrapperCache {
   RefPtr<Console> mConsole;
   RefPtr<loader::WorkletModuleLoader> mModuleLoader;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(WorkletGlobalScope, WORKLET_IID)
 
 }  // namespace dom
 }  // namespace mozilla

@@ -124,15 +124,12 @@ class CacheFileMetadataHeader {
 
 class CacheFileMetadataListener : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(CACHEFILEMETADATALISTENER_IID)
+  NS_INLINE_DECL_STATIC_IID(CACHEFILEMETADATALISTENER_IID)
 
   NS_IMETHOD OnMetadataRead(nsresult aResult) = 0;
   NS_IMETHOD OnMetadataWritten(nsresult aResult) = 0;
   virtual bool IsKilled() = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(CacheFileMetadataListener,
-                              CACHEFILEMETADATALISTENER_IID)
 
 class CacheFileMetadata final : public CacheFileIOListener,
                                 public CacheMemoryConsumer {

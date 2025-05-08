@@ -29,7 +29,4 @@ class nsPrintDialogServiceGTK final : public nsIPrintDialogService {
   NS_DECL_NSIPRINTDIALOGSERVICE
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsPrintDialogServiceGTK,
-                              NS_IPRINTDIALOGSERVICE_IID)
-
 #endif

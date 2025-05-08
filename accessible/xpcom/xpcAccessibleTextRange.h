@@ -18,12 +18,12 @@ namespace a11y {
 
 class TextRange;
 
-#define NS_ACCESSIBLETEXTRANGE_IMPL_IID              \
-  { /* 133c8bf4-4913-4355-bd50-426bd1d6e1ad */       \
-    0xb17652d9, 0x4f54, 0x4c56, {                    \
-      0xbb, 0x62, 0x6d, 0x5b, 0xf1, 0xef, 0x91, 0x0c \
-    }                                                \
-  }
+#define NS_ACCESSIBLETEXTRANGE_IMPL_IID       \
+  {/* 133c8bf4-4913-4355-bd50-426bd1d6e1ad */ \
+   0xb17652d9,                                \
+   0x4f54,                                    \
+   0x4c56,                                    \
+   {0xbb, 0x62, 0x6d, 0x5b, 0xf1, 0xef, 0x91, 0x0c}}
 
 class xpcAccessibleTextRange final : public nsIAccessibleTextRange {
  public:
@@ -43,7 +43,7 @@ class xpcAccessibleTextRange final : public nsIAccessibleTextRange {
                               int32_t* aResult) final;
   NS_IMETHOD Crop(nsIAccessible* aContainer, bool* aSuccess) final;
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ACCESSIBLETEXTRANGE_IMPL_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_ACCESSIBLETEXTRANGE_IMPL_IID)
 
  private:
   xpcAccessibleTextRange() {}
@@ -68,9 +68,6 @@ class xpcAccessibleTextRange final : public nsIAccessibleTextRange {
   RefPtr<xpcAccessibleHyperText> mEndContainer;
   int32_t mEndOffset;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(xpcAccessibleTextRange,
-                              NS_ACCESSIBLETEXTRANGE_IMPL_IID)
 
 }  // namespace a11y
 }  // namespace mozilla

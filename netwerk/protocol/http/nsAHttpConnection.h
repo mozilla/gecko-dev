@@ -36,7 +36,7 @@ class nsHttpResponseHead;
 
 class nsAHttpConnection : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_AHTTPCONNECTION_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_AHTTPCONNECTION_IID)
 
   NS_DECL_THREADSAFE_ISUPPORTS
 
@@ -179,8 +179,6 @@ class nsAHttpConnection : public nsISupports {
  protected:
   virtual ~nsAHttpConnection();
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpConnection, NS_AHTTPCONNECTION_IID)
 
 #define NS_DECL_NSAHTTPCONNECTION(fwdObject)                                 \
   [[nodiscard]] nsresult OnHeadersAvailable(                                 \

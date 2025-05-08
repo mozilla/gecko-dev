@@ -49,7 +49,7 @@ class Http2Session final : public ASpdySession,
   ~Http2Session();
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_HTTP2SESSION_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_HTTP2SESSION_IID)
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSAHTTPTRANSACTION
@@ -642,8 +642,6 @@ class Http2Session final : public ASpdySession,
   // we've received the settings.
   bool mHasTransactionWaitingForExtendedCONNECT = false;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(Http2Session, NS_HTTP2SESSION_IID);
 
 }  // namespace net
 }  // namespace mozilla

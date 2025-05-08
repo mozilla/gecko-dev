@@ -10,12 +10,8 @@
 #include "nsISupports.h"
 #include "nsString.h"
 
-#define BLOBIMPL_IID                                 \
-  {                                                  \
-    0xbccb3275, 0x6778, 0x4ac5, {                    \
-      0xaf, 0x03, 0x90, 0xed, 0x37, 0xad, 0xdf, 0x5d \
-    }                                                \
-  }
+#define BLOBIMPL_IID \
+  {0xbccb3275, 0x6778, 0x4ac5, {0xaf, 0x03, 0x90, 0xed, 0x37, 0xad, 0xdf, 0x5d}}
 
 class nsIInputStream;
 
@@ -32,7 +28,7 @@ class Optional;
 // because this class must be ref-counted and it has to work with IPC.
 class BlobImpl : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(BLOBIMPL_IID)
+  NS_INLINE_DECL_STATIC_IID(BLOBIMPL_IID)
   NS_DECL_THREADSAFE_ISUPPORTS
 
   BlobImpl() = default;
@@ -105,8 +101,6 @@ class BlobImpl : public nsISupports {
  protected:
   virtual ~BlobImpl() = default;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(BlobImpl, BLOBIMPL_IID)
 
 }  // namespace dom
 }  // namespace mozilla

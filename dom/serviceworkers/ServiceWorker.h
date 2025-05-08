@@ -24,16 +24,12 @@ class ServiceWorkerChild;
 class ServiceWorkerCloneData;
 struct StructuredSerializeOptions;
 
-#define NS_DOM_SERVICEWORKER_IID                     \
-  {                                                  \
-    0xd42e0611, 0x3647, 0x4319, {                    \
-      0xae, 0x05, 0x19, 0x89, 0x59, 0xba, 0x99, 0x5e \
-    }                                                \
-  }
+#define NS_DOM_SERVICEWORKER_IID \
+  {0xd42e0611, 0x3647, 0x4319, {0xae, 0x05, 0x19, 0x89, 0x59, 0xba, 0x99, 0x5e}}
 
 class ServiceWorker final : public DOMEventTargetHelper {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_DOM_SERVICEWORKER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_DOM_SERVICEWORKER_IID)
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ServiceWorker, DOMEventTargetHelper)
 
@@ -86,8 +82,6 @@ class ServiceWorker final : public DOMEventTargetHelper {
   RefPtr<ServiceWorkerRegistration> mRegistration;
   ServiceWorkerState mLastNotifiedState;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(ServiceWorker, NS_DOM_SERVICEWORKER_IID)
 
 }  // namespace mozilla::dom
 

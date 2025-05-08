@@ -121,7 +121,7 @@ class AppWindow final : public nsIBaseWindow,
   NS_DECL_NSIAPPWINDOW
   NS_DECL_NSIBASEWINDOW
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_APPWINDOW_IMPL_CID)
+  NS_INLINE_DECL_STATIC_IID(NS_APPWINDOW_IMPL_CID)
 
   void LockUntilChromeLoad() { mLockedUntilChromeLoad = true; }
   bool IsLocked() const { return mLockedUntilChromeLoad; }
@@ -377,8 +377,6 @@ class AppWindow final : public nsIBaseWindow,
   nsCOMPtr<nsIXULStore> mLocalStore;
   bool mIsWidgetInFullscreen = false;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(AppWindow, NS_APPWINDOW_IMPL_CID)
 
 }  // namespace mozilla
 

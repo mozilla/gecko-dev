@@ -14,12 +14,8 @@ class DocumentFragment;
 }  // namespace dom
 }  // namespace mozilla
 
-#define NS_I_FRAGMENT_CONTENT_SINK_IID               \
-  {                                                  \
-    0x1a8ce30b, 0x63fc, 0x441a, {                    \
-      0xa3, 0xaa, 0xf7, 0x16, 0xc0, 0xfe, 0x96, 0x69 \
-    }                                                \
-  }
+#define NS_I_FRAGMENT_CONTENT_SINK_IID \
+  {0x1a8ce30b, 0x63fc, 0x441a, {0xa3, 0xaa, 0xf7, 0x16, 0xc0, 0xfe, 0x96, 0x69}}
 
 /**
  * The fragment sink allows a client to parse a fragment of sink, possibly
@@ -29,7 +25,7 @@ class DocumentFragment;
  */
 class nsIFragmentContentSink : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_I_FRAGMENT_CONTENT_SINK_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_I_FRAGMENT_CONTENT_SINK_IID)
   /**
    * This method is used to obtain the fragment created by
    * a fragment content sink and to release resources held by the parser.
@@ -75,9 +71,6 @@ class nsIFragmentContentSink : public nsISupports {
    */
   NS_IMETHOD SetPreventScriptExecution(bool aPreventScriptExecution) = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIFragmentContentSink,
-                              NS_I_FRAGMENT_CONTENT_SINK_IID)
 
 nsresult NS_NewXMLFragmentContentSink(
     nsIFragmentContentSink** aInstancePtrResult);

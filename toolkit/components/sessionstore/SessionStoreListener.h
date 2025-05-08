@@ -70,7 +70,7 @@ class TabListener : public nsIDOMEventListener,
                     public nsIWebProgressListener,
                     public nsSupportsWeakReference {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_TABLISTENER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_TABLISTENER_IID)
 
   explicit TabListener(nsIDocShell* aDocShell, Element* aElement);
   EventTarget* GetEventTarget();
@@ -115,8 +115,6 @@ class TabListener : public nsIDOMEventListener,
   int32_t mUpdateInterval;
   uint32_t mEpoch;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(TabListener, NS_TABLISTENER_IID)
 
 }  // namespace mozilla::dom
 

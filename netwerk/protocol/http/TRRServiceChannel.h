@@ -45,7 +45,7 @@ class TRRServiceChannel : public HttpBaseChannel,
   NS_DECL_NSITRANSPORTEVENTSINK
   NS_DECL_NSIPROXIEDCHANNEL
   NS_DECL_NSIPROTOCOLPROXYCALLBACK
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_TRRSERVICECHANNEL_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_TRRSERVICECHANNEL_IID)
 
   // nsIRequest
   NS_IMETHOD SetCanceledReason(const nsACString& aReason) override;
@@ -166,8 +166,6 @@ class TRRServiceChannel : public HttpBaseChannel,
   friend class HttpAsyncAborter<TRRServiceChannel>;
   friend class nsHttpHandler;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(TRRServiceChannel, NS_TRRSERVICECHANNEL_IID)
 
 }  // namespace mozilla::net
 

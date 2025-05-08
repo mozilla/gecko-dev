@@ -184,7 +184,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
     return mUniqueId;
   }
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(DOM_BROWSERCHILD_IID)
+  NS_INLINE_DECL_STATIC_IID(DOM_BROWSERCHILD_IID)
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIWEBBROWSERCHROME
   NS_DECL_NSIINTERFACEREQUESTOR
@@ -928,8 +928,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   DISALLOW_EVIL_CONSTRUCTORS(BrowserChild);
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(BrowserChild, DOM_BROWSERCHILD_IID)
 
 }  // namespace dom
 }  // namespace mozilla

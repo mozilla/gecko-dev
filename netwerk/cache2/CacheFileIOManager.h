@@ -218,16 +218,16 @@ class WriteEvent;
 class MetadataWriteScheduleEvent;
 class CacheFileContextEvictor;
 
-#define CACHEFILEIOLISTENER_IID                      \
-  { /* dcaf2ddc-17cf-4242-bca1-8c86936375a5 */       \
-    0xdcaf2ddc, 0x17cf, 0x4242, {                    \
-      0xbc, 0xa1, 0x8c, 0x86, 0x93, 0x63, 0x75, 0xa5 \
-    }                                                \
-  }
+#define CACHEFILEIOLISTENER_IID               \
+  {/* dcaf2ddc-17cf-4242-bca1-8c86936375a5 */ \
+   0xdcaf2ddc,                                \
+   0x17cf,                                    \
+   0x4242,                                    \
+   {0xbc, 0xa1, 0x8c, 0x86, 0x93, 0x63, 0x75, 0xa5}}
 
 class CacheFileIOListener : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(CACHEFILEIOLISTENER_IID)
+  NS_INLINE_DECL_STATIC_IID(CACHEFILEIOLISTENER_IID)
 
   NS_IMETHOD OnFileOpened(CacheFileHandle* aHandle, nsresult aResult) = 0;
   NS_IMETHOD OnDataWritten(CacheFileHandle* aHandle, const char* aBuf,
@@ -240,8 +240,6 @@ class CacheFileIOListener : public nsISupports {
 
   virtual bool IsKilled() { return false; }
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(CacheFileIOListener, CACHEFILEIOLISTENER_IID)
 
 class CacheFileIOManager final : public nsITimerCallback, public nsINamed {
  public:

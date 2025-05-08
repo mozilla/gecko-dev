@@ -13,11 +13,7 @@
 #include "mozilla/dom/BindingDeclarations.h"
 
 #define MOZILLA_DOM_RADIONODELIST_IMPLEMENTATION_IID \
-  {                                                  \
-    0xbba7f3e8, 0xf3b5, 0x42e5, {                    \
-      0x82, 0x08, 0xa6, 0x8b, 0xe0, 0xbc, 0x22, 0x19 \
-    }                                                \
-  }
+  {0xbba7f3e8, 0xf3b5, 0x42e5, {0x82, 0x08, 0xa6, 0x8b, 0xe0, 0xbc, 0x22, 0x19}}
 
 namespace mozilla::dom {
 
@@ -31,13 +27,10 @@ class RadioNodeList final : public nsSimpleContentList {
   void SetValue(const nsAString& value, CallerType aCallerType);
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOM_RADIONODELIST_IMPLEMENTATION_IID)
+  NS_INLINE_DECL_STATIC_IID(MOZILLA_DOM_RADIONODELIST_IMPLEMENTATION_IID)
  private:
   ~RadioNodeList() = default;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(RadioNodeList,
-                              MOZILLA_DOM_RADIONODELIST_IMPLEMENTATION_IID)
 
 }  // namespace mozilla::dom
 

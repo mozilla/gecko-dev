@@ -11,21 +11,14 @@
 #include "nsID.h"
 #include "nsError.h"
 
-#define NS_ICORSPREFLIGHTCALLBACK_IID                \
-  {                                                  \
-    0x3758cfbb, 0x259f, 0x4074, {                    \
-      0xa8, 0xc0, 0x98, 0xe0, 0x4b, 0x3c, 0xc0, 0xe3 \
-    }                                                \
-  }
+#define NS_ICORSPREFLIGHTCALLBACK_IID \
+  {0x3758cfbb, 0x259f, 0x4074, {0xa8, 0xc0, 0x98, 0xe0, 0x4b, 0x3c, 0xc0, 0xe3}}
 
 class nsICorsPreflightCallback : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(nsICorsPreflightCallback);
+  NS_INLINE_DECL_STATIC_IID(NS_ICORSPREFLIGHTCALLBACK_IID);
   NS_IMETHOD OnPreflightSucceeded() = 0;
   NS_IMETHOD OnPreflightFailed(nsresult aError) = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsICorsPreflightCallback,
-                              NS_ICORSPREFLIGHTCALLBACK_IID);
 
 #endif

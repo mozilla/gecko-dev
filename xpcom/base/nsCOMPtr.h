@@ -27,8 +27,8 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/RefPtr.h"
 #include "nsCycleCollectionNoteChild.h"
-#include "nsDebug.h"  // for |NS_ASSERTION|
-#include "nsISupportsUtils.h"  // for |nsresult|, |NS_ADDREF|, |NS_GET_TEMPLATE_IID| et al
+#include "nsDebug.h"           // for |NS_ASSERTION|
+#include "nsISupportsUtils.h"  // for |nsresult|, |NS_ADDREF|, |NS_GET_IID| et al
 
 /*
  * WARNING: This file defines several macros for internal use only. These
@@ -290,7 +290,7 @@ class MOZ_STACK_CLASS nsQueryReferent final {
 
 // Helper for assert_validity method
 template <class T>
-char (&TestForIID(decltype(&NS_GET_TEMPLATE_IID(T))))[2];
+char (&TestForIID(decltype(&NS_GET_IID(T))))[2];
 template <class T>
 char TestForIID(...);
 
@@ -330,8 +330,8 @@ class MOZ_IS_REFPTR nsCOMPtr final {
     static_assert(1 < sizeof(TestForIID<T>(nullptr)),
                   "nsCOMPtr only works "
                   "for types with IIDs.  Either use RefPtr; add an IID to "
-                  "your type with NS_DECLARE_STATIC_IID_ACCESSOR/"
-                  "NS_DEFINE_STATIC_IID_ACCESSOR; or make the nsCOMPtr point "
+                  "your type with NS_INLINE_DECL_STATIC_IID/ ;"
+                  "or make the nsCOMPtr point "
                   "to a base class with an IID.");
   }
 
@@ -358,7 +358,7 @@ class MOZ_IS_REFPTR nsCOMPtr final {
     // This can't be defined in terms of do_QueryInterface because
     // that bans casts from a class to itself.
     void* out = nullptr;
-    mRawPtr->QueryInterface(NS_GET_TEMPLATE_IID(T), &out);
+    mRawPtr->QueryInterface(NS_GET_IID(T), &out);
     T* query_result = static_cast<T*>(out);
     MOZ_ASSERT(query_result == mRawPtr, "QueryInterface needed");
     NS_RELEASE(query_result);
@@ -479,7 +479,7 @@ class MOZ_IS_REFPTR nsCOMPtr final {
   MOZ_IMPLICIT nsCOMPtr(const nsQueryInterface<U> aQI) : mRawPtr(nullptr) {
     assert_validity();
     NSCAP_LOG_ASSIGNMENT(this, nullptr);
-    assign_from_qi(aQI, NS_GET_TEMPLATE_IID(T));
+    assign_from_qi(aQI, NS_GET_IID(T));
   }
 
   // Construct from |do_QueryInterface(expr, &rv)|.
@@ -488,14 +488,14 @@ class MOZ_IS_REFPTR nsCOMPtr final {
       : mRawPtr(nullptr) {
     assert_validity();
     NSCAP_LOG_ASSIGNMENT(this, nullptr);
-    assign_from_qi_with_error(aQI, NS_GET_TEMPLATE_IID(T));
+    assign_from_qi_with_error(aQI, NS_GET_IID(T));
   }
 
   // Construct from |do_GetService(cid_expr)|.
   MOZ_IMPLICIT nsCOMPtr(const nsGetServiceByCID aGS) : mRawPtr(nullptr) {
     assert_validity();
     NSCAP_LOG_ASSIGNMENT(this, nullptr);
-    assign_from_gs_cid(aGS, NS_GET_TEMPLATE_IID(T));
+    assign_from_gs_cid(aGS, NS_GET_IID(T));
   }
 
   // Construct from |do_GetService(cid_expr, &rv)|.
@@ -503,14 +503,14 @@ class MOZ_IS_REFPTR nsCOMPtr final {
       : mRawPtr(nullptr) {
     assert_validity();
     NSCAP_LOG_ASSIGNMENT(this, nullptr);
-    assign_from_gs_cid_with_error(aGS, NS_GET_TEMPLATE_IID(T));
+    assign_from_gs_cid_with_error(aGS, NS_GET_IID(T));
   }
 
   // Construct from |do_GetService(contractid_expr)|.
   MOZ_IMPLICIT nsCOMPtr(const nsGetServiceByContractID aGS) : mRawPtr(nullptr) {
     assert_validity();
     NSCAP_LOG_ASSIGNMENT(this, nullptr);
-    assign_from_gs_contractid(aGS, NS_GET_TEMPLATE_IID(T));
+    assign_from_gs_contractid(aGS, NS_GET_IID(T));
   }
 
   // Construct from |do_GetService(contractid_expr, &rv)|.
@@ -518,7 +518,7 @@ class MOZ_IS_REFPTR nsCOMPtr final {
       : mRawPtr(nullptr) {
     assert_validity();
     NSCAP_LOG_ASSIGNMENT(this, nullptr);
-    assign_from_gs_contractid_with_error(aGS, NS_GET_TEMPLATE_IID(T));
+    assign_from_gs_contractid_with_error(aGS, NS_GET_IID(T));
   }
 
   // Construct from |do_QueryReferent(ptr)|
@@ -526,7 +526,7 @@ class MOZ_IS_REFPTR nsCOMPtr final {
       : mRawPtr(nullptr) {
     assert_validity();
     NSCAP_LOG_ASSIGNMENT(this, nullptr);
-    assign_from_query_referent(aQueryReferent, NS_GET_TEMPLATE_IID(T));
+    assign_from_query_referent(aQueryReferent, NS_GET_IID(T));
   }
 
   // And finally, anything else we might need to construct from can exploit the
@@ -534,7 +534,7 @@ class MOZ_IS_REFPTR nsCOMPtr final {
   MOZ_IMPLICIT nsCOMPtr(const nsCOMPtr_helper& aHelper) : mRawPtr(nullptr) {
     assert_validity();
     NSCAP_LOG_ASSIGNMENT(this, nullptr);
-    assign_from_helper(aHelper, NS_GET_TEMPLATE_IID(T));
+    assign_from_helper(aHelper, NS_GET_IID(T));
     NSCAP_ASSERT_NO_QUERY_NEEDED();
   }
 
@@ -631,51 +631,51 @@ class MOZ_IS_REFPTR nsCOMPtr final {
   // Assign from |do_QueryInterface(expr)|.
   template <typename U>
   nsCOMPtr<T>& operator=(const nsQueryInterface<U> aRhs) {
-    assign_from_qi(aRhs, NS_GET_TEMPLATE_IID(T));
+    assign_from_qi(aRhs, NS_GET_IID(T));
     return *this;
   }
 
   // Assign from |do_QueryInterface(expr, &rv)|.
   template <typename U>
   nsCOMPtr<T>& operator=(const nsQueryInterfaceWithError<U>& aRhs) {
-    assign_from_qi_with_error(aRhs, NS_GET_TEMPLATE_IID(T));
+    assign_from_qi_with_error(aRhs, NS_GET_IID(T));
     return *this;
   }
 
   // Assign from |do_GetService(cid_expr)|.
   nsCOMPtr<T>& operator=(const nsGetServiceByCID aRhs) {
-    assign_from_gs_cid(aRhs, NS_GET_TEMPLATE_IID(T));
+    assign_from_gs_cid(aRhs, NS_GET_IID(T));
     return *this;
   }
 
   // Assign from |do_GetService(cid_expr, &rv)|.
   nsCOMPtr<T>& operator=(const nsGetServiceByCIDWithError& aRhs) {
-    assign_from_gs_cid_with_error(aRhs, NS_GET_TEMPLATE_IID(T));
+    assign_from_gs_cid_with_error(aRhs, NS_GET_IID(T));
     return *this;
   }
 
   // Assign from |do_GetService(contractid_expr)|.
   nsCOMPtr<T>& operator=(const nsGetServiceByContractID aRhs) {
-    assign_from_gs_contractid(aRhs, NS_GET_TEMPLATE_IID(T));
+    assign_from_gs_contractid(aRhs, NS_GET_IID(T));
     return *this;
   }
 
   // Assign from |do_GetService(contractid_expr, &rv)|.
   nsCOMPtr<T>& operator=(const nsGetServiceByContractIDWithError& aRhs) {
-    assign_from_gs_contractid_with_error(aRhs, NS_GET_TEMPLATE_IID(T));
+    assign_from_gs_contractid_with_error(aRhs, NS_GET_IID(T));
     return *this;
   }
 
   // Assign from |do_QueryReferent(ptr)|.
   nsCOMPtr<T>& operator=(const nsQueryReferent& aRhs) {
-    assign_from_query_referent(aRhs, NS_GET_TEMPLATE_IID(T));
+    assign_from_query_referent(aRhs, NS_GET_IID(T));
     return *this;
   }
 
   // And finally, anything else we might need to assign from can exploit the
   // nsCOMPtr_helper facility.
   nsCOMPtr<T>& operator=(const nsCOMPtr_helper& aRhs) {
-    assign_from_helper(aRhs, NS_GET_TEMPLATE_IID(T));
+    assign_from_helper(aRhs, NS_GET_IID(T));
     NSCAP_ASSERT_NO_QUERY_NEEDED();
     return *this;
   }
@@ -1099,7 +1099,7 @@ inline nsresult CallQueryInterface(nsCOMPtr<SourceType>& aSourcePtr,
 template <class T>
 RefPtr<T>::RefPtr(const nsQueryReferent& aQueryReferent) {
   void* newRawPtr;
-  if (NS_FAILED(aQueryReferent(NS_GET_TEMPLATE_IID(T), &newRawPtr))) {
+  if (NS_FAILED(aQueryReferent(NS_GET_IID(T), &newRawPtr))) {
     newRawPtr = nullptr;
   }
   mRawPtr = static_cast<T*>(newRawPtr);
@@ -1108,7 +1108,7 @@ RefPtr<T>::RefPtr(const nsQueryReferent& aQueryReferent) {
 template <class T>
 RefPtr<T>::RefPtr(const nsCOMPtr_helper& aHelper) {
   void* newRawPtr;
-  if (NS_FAILED(aHelper(NS_GET_TEMPLATE_IID(T), &newRawPtr))) {
+  if (NS_FAILED(aHelper(NS_GET_IID(T), &newRawPtr))) {
     newRawPtr = nullptr;
   }
   mRawPtr = static_cast<T*>(newRawPtr);
@@ -1117,7 +1117,7 @@ RefPtr<T>::RefPtr(const nsCOMPtr_helper& aHelper) {
 template <class T>
 RefPtr<T>& RefPtr<T>::operator=(const nsQueryReferent& aQueryReferent) {
   void* newRawPtr;
-  if (NS_FAILED(aQueryReferent(NS_GET_TEMPLATE_IID(T), &newRawPtr))) {
+  if (NS_FAILED(aQueryReferent(NS_GET_IID(T), &newRawPtr))) {
     newRawPtr = nullptr;
   }
   assign_assuming_AddRef(static_cast<T*>(newRawPtr));
@@ -1127,7 +1127,7 @@ RefPtr<T>& RefPtr<T>::operator=(const nsQueryReferent& aQueryReferent) {
 template <class T>
 RefPtr<T>& RefPtr<T>::operator=(const nsCOMPtr_helper& aHelper) {
   void* newRawPtr;
-  if (NS_FAILED(aHelper(NS_GET_TEMPLATE_IID(T), &newRawPtr))) {
+  if (NS_FAILED(aHelper(NS_GET_IID(T), &newRawPtr))) {
     newRawPtr = nullptr;
   }
   assign_assuming_AddRef(static_cast<T*>(newRawPtr));

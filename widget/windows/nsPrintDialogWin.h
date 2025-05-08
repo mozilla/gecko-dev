@@ -33,7 +33,4 @@ class nsPrintDialogServiceWin final : public nsIPrintDialogService {
   nsCOMPtr<nsIWindowWatcher> mWatcher;
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsPrintDialogServiceWin,
-                              NS_IPRINTDIALOGSERVICE_IID)
-
 #endif

@@ -47,19 +47,15 @@ template <typename T>
 class Optional;
 class WindowContext;
 
-#define NS_DATATRANSFER_IID                          \
-  {                                                  \
-    0x6c5f90d1, 0xa886, 0x42c8, {                    \
-      0x85, 0x06, 0x10, 0xbe, 0x5c, 0x0d, 0xc6, 0x77 \
-    }                                                \
-  }
+#define NS_DATATRANSFER_IID \
+  {0x6c5f90d1, 0xa886, 0x42c8, {0x85, 0x06, 0x10, 0xbe, 0x5c, 0x0d, 0xc6, 0x77}}
 
 /**
  * See <https://html.spec.whatwg.org/multipage/dnd.html#datatransfer>.
  */
 class DataTransfer final : public nsISupports, public nsWrapperCache {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_DATATRANSFER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_DATATRANSFER_IID)
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
@@ -557,8 +553,6 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   // Not supported everywhere.
   bool mShowFailAnimation = true;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(DataTransfer, NS_DATATRANSFER_IID)
 
 }  // namespace dom
 }  // namespace mozilla

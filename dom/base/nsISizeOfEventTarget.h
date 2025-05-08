@@ -10,12 +10,8 @@
 #include "mozilla/MemoryReporting.h"
 #include "nsISupports.h"
 
-#define NS_ISIZEOFEVENTTARGET_IID                    \
-  {                                                  \
-    0xa1e08cb9, 0x5455, 0x4593, {                    \
-      0xb4, 0x1f, 0x38, 0x7a, 0x85, 0x44, 0xd0, 0xb5 \
-    }                                                \
-  }
+#define NS_ISIZEOFEVENTTARGET_IID \
+  {0xa1e08cb9, 0x5455, 0x4593, {0xb4, 0x1f, 0x38, 0x7a, 0x85, 0x44, 0xd0, 0xb5}}
 
 /**
  * This class is much the same as nsISizeOf, but is specifically for measuring
@@ -27,7 +23,7 @@
  */
 class nsISizeOfEventTarget : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISIZEOFEVENTTARGET_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_ISIZEOFEVENTTARGET_IID)
 
   /**
    * Measures the size of the things pointed to by the object, plus the object
@@ -36,7 +32,5 @@ class nsISizeOfEventTarget : public nsISupports {
   virtual size_t SizeOfEventTargetIncludingThis(
       mozilla::MallocSizeOf aMallocSizeOf) const = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsISizeOfEventTarget, NS_ISIZEOFEVENTTARGET_IID)
 
 #endif /* nsISizeOfEventTarget_h___ */

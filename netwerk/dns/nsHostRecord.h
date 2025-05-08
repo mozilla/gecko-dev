@@ -266,7 +266,7 @@ class AddrHostRecord final : public nsHostRecord {
   using Mutex = mozilla::Mutex;
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(ADDRHOSTRECORD_IID)
+  NS_INLINE_DECL_STATIC_IID(ADDRHOSTRECORD_IID)
   NS_DECL_ISUPPORTS_INHERITED
 
   /* a fully resolved host record has either a non-null |addr_info| or |addr|
@@ -350,8 +350,6 @@ class AddrHostRecord final : public nsHostRecord {
   nsTArray<nsCString> mUnusableItems;
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(AddrHostRecord, ADDRHOSTRECORD_IID)
-
 // 77b786a7-04be-44f2-987c-ab8aa96676e0
 #define TYPEHOSTRECORD_IID \
   {0x77b786a7, 0x04be, 0x44f2, {0x98, 0x7c, 0xab, 0x8a, 0xa9, 0x66, 0x76, 0xe0}}
@@ -361,7 +359,7 @@ class TypeHostRecord final : public nsHostRecord,
                              public nsIDNSHTTPSSVCRecord,
                              public mozilla::net::DNSHTTPSSVCRecordBase {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(TYPEHOSTRECORD_IID)
+  NS_INLINE_DECL_STATIC_IID(TYPEHOSTRECORD_IID)
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDNSTXTRECORD
   NS_DECL_NSIDNSHTTPSSVCRECORD
@@ -393,8 +391,6 @@ class TypeHostRecord final : public nsHostRecord,
   mozilla::Maybe<nsCString> mOriginHost MOZ_GUARDED_BY(mResultsLock);
   bool mAllRecordsExcluded = false;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(TypeHostRecord, TYPEHOSTRECORD_IID)
 
 static inline bool IsHighPriority(nsIDNSService::DNSFlags flags) {
   return !(flags & (nsHostRecord::DNS_PRIORITY_LOW |

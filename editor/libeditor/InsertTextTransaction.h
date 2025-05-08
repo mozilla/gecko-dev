@@ -13,7 +13,7 @@
 
 #include "mozilla/dom/Text.h"
 #include "nsCycleCollectionParticipant.h"  // various macros
-#include "nsID.h"                          // NS_DECLARE_STATIC_IID_ACCESSOR
+#include "nsID.h"                          // NS_INLINE_DECL_STATIC_IID
 #include "nsISupportsImpl.h"               // NS_DECL_ISUPPORTS_INHERITED
 #include "nsString.h"                      // nsString members
 #include "nscore.h"                        // NS_IMETHOD, nsAString

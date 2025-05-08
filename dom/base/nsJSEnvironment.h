@@ -198,22 +198,16 @@ class AsyncErrorReporter final : public mozilla::Runnable {
 // supports this interface, JS can reach directly in for the argv, and avoid
 // nsISupports conversion. If this interface is not supported, the object will
 // be queried for nsIArray, and everything converted via xpcom objects.
-#define NS_IJSARGARRAY_IID                           \
-  {                                                  \
-    0xb6acdac8, 0xf5c6, 0x432c, {                    \
-      0xa8, 0x6e, 0x33, 0xee, 0xb1, 0xb0, 0xcd, 0xdc \
-    }                                                \
-  }
+#define NS_IJSARGARRAY_IID \
+  {0xb6acdac8, 0xf5c6, 0x432c, {0xa8, 0x6e, 0x33, 0xee, 0xb1, 0xb0, 0xcd, 0xdc}}
 
 class nsIJSArgArray : public nsIArray {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IJSARGARRAY_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IJSARGARRAY_IID)
   // Bug 312003 describes why this must be "void **", but after calling argv
   // may be cast to JS::Value* and the args found at:
   //    ((JS::Value*)argv)[0], ..., ((JS::Value*)argv)[argc - 1]
   virtual nsresult GetArgs(uint32_t* argc, void** argv) = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIJSArgArray, NS_IJSARGARRAY_IID)
 
 #endif /* nsJSEnvironment_h */

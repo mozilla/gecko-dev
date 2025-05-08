@@ -16,16 +16,12 @@ class nsIController;
 class nsINode;
 class nsIRemoteTab;
 
-#define NS_IWINDOWROOT_IID                           \
-  {                                                  \
-    0xb8724c49, 0xc398, 0x4f9b, {                    \
-      0x82, 0x59, 0x87, 0x27, 0xa6, 0x47, 0xdd, 0x0f \
-    }                                                \
-  }
+#define NS_IWINDOWROOT_IID \
+  {0xb8724c49, 0xc398, 0x4f9b, {0x82, 0x59, 0x87, 0x27, 0xa6, 0x47, 0xdd, 0x0f}}
 
 class nsPIWindowRoot : public mozilla::dom::EventTarget {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IWINDOWROOT_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IWINDOWROOT_IID)
 
   bool IsRootWindow() const final { return true; }
 
@@ -90,7 +86,5 @@ inline const nsPIWindowRoot* EventTarget::AsWindowRoot() const {
 }
 
 }  // namespace mozilla::dom
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsPIWindowRoot, NS_IWINDOWROOT_IID)
 
 #endif  // nsPIWindowRoot_h__

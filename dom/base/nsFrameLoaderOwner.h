@@ -25,12 +25,8 @@ struct NavigationIsolationOptions;
 }  // namespace mozilla
 
 // IID for the FrameLoaderOwner interface
-#define NS_FRAMELOADEROWNER_IID                      \
-  {                                                  \
-    0x1b4fd25c, 0x2e57, 0x11e9, {                    \
-      0x9e, 0x5a, 0x5b, 0x86, 0xe9, 0x89, 0xa5, 0xc0 \
-    }                                                \
-  }
+#define NS_FRAMELOADEROWNER_IID \
+  {0x1b4fd25c, 0x2e57, 0x11e9, {0x9e, 0x5a, 0x5b, 0x86, 0xe9, 0x89, 0xa5, 0xc0}}
 
 // Mixin that handles ownership of nsFrameLoader for Frame elements
 // (XULFrameElement, HTMLI/FrameElement, etc...). Manages information when doing
@@ -41,7 +37,7 @@ struct NavigationIsolationOptions;
 // nsFrameLoaderOwner to actually implement ISupports for us.
 class nsFrameLoaderOwner : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_FRAMELOADEROWNER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_FRAMELOADEROWNER_IID)
 
   nsFrameLoaderOwner() = default;
   already_AddRefed<nsFrameLoader> GetFrameLoader();
@@ -137,7 +133,5 @@ class nsFrameLoaderOwner : public nsISupports {
   // In particular it contains all the nsFrameLoaders which are in bfcache.
   mozilla::LinkedList<nsFrameLoader> mFrameLoaderList;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsFrameLoaderOwner, NS_FRAMELOADEROWNER_IID)
 
 #endif  // nsFrameLoaderOwner_h_

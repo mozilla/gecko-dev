@@ -18,12 +18,8 @@ template <typename>
 struct Nullable;
 class WindowProxyHolder;
 
-#define NS_CONTENTFRAMEMESSAGEMANAGER_IID            \
-  {                                                  \
-    0x97e192a6, 0xab7a, 0x4c8f, {                    \
-      0xb7, 0xdd, 0xf7, 0xec, 0x36, 0x38, 0x71, 0xb5 \
-    }                                                \
-  }
+#define NS_CONTENTFRAMEMESSAGEMANAGER_IID \
+  {0x97e192a6, 0xab7a, 0x4c8f, {0xb7, 0xdd, 0xf7, 0xec, 0x36, 0x38, 0x71, 0xb5}}
 
 /**
  * Base class for implementing the WebIDL ContentFrameMessageManager class.
@@ -34,7 +30,7 @@ class ContentFrameMessageManager : public DOMEventTargetHelper,
   using DOMEventTargetHelper::AddRef;
   using DOMEventTargetHelper::Release;
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_CONTENTFRAMEMESSAGEMANAGER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_CONTENTFRAMEMESSAGEMANAGER_IID)
 
   virtual Nullable<WindowProxyHolder> GetContent(ErrorResult& aError) = 0;
   virtual already_AddRefed<nsIDocShell> GetDocShell(ErrorResult& aError) = 0;
@@ -53,9 +49,6 @@ class ContentFrameMessageManager : public DOMEventTargetHelper,
       : DOMEventTargetHelper(xpc::NativeGlobal(xpc::PrivilegedJunkScope())),
         MessageManagerGlobal(aMessageManager) {}
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(ContentFrameMessageManager,
-                              NS_CONTENTFRAMEMESSAGEMANAGER_IID)
 
 }  // namespace mozilla::dom
 

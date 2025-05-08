@@ -22,16 +22,12 @@ class InputStreamParams;
 
 }  // namespace mozilla
 
-#define NS_IIPCSERIALIZABLEINPUTSTREAM_IID           \
-  {                                                  \
-    0xb0211b14, 0xea6d, 0x40d4, {                    \
-      0x87, 0xb5, 0x7b, 0xe3, 0xdf, 0xac, 0x09, 0xd1 \
-    }                                                \
-  }
+#define NS_IIPCSERIALIZABLEINPUTSTREAM_IID \
+  {0xb0211b14, 0xea6d, 0x40d4, {0x87, 0xb5, 0x7b, 0xe3, 0xdf, 0xac, 0x09, 0xd1}}
 
 class NS_NO_VTABLE nsIIPCSerializableInputStream : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IIPCSERIALIZABLEINPUTSTREAM_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IIPCSERIALIZABLEINPUTSTREAM_IID)
 
   // Determine the serialized complexity of this input stream, initializing
   // `*aSizeUsed`, `*aPipes` and `*aTransferables` to the number of inline
@@ -71,9 +67,6 @@ class NS_NO_VTABLE nsIIPCSerializableInputStream : public nsISupports {
 
   virtual bool Deserialize(const mozilla::ipc::InputStreamParams& aParams) = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIIPCSerializableInputStream,
-                              NS_IIPCSERIALIZABLEINPUTSTREAM_IID)
 
 #define NS_DECL_NSIIPCSERIALIZABLEINPUTSTREAM                               \
   virtual void SerializedComplexity(uint32_t aMaxSize, uint32_t* aSizeUsed, \

@@ -33,7 +33,7 @@ class ClassOfService;
 
 class HttpConnectionMgrShell : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(HTTPCONNECTIONMGRSHELL_IID)
+  NS_INLINE_DECL_STATIC_IID(HTTPCONNECTIONMGRSHELL_IID)
 
   enum nsParamName : uint32_t {
     MAX_URGENT_START_Q,
@@ -165,9 +165,6 @@ class HttpConnectionMgrShell : public nsISupports {
   virtual nsHttpConnectionMgr* AsHttpConnectionMgr() = 0;
   virtual HttpConnectionMgrParent* AsHttpConnectionMgrParent() = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(HttpConnectionMgrShell,
-                              HTTPCONNECTIONMGRSHELL_IID)
 
 #define NS_DECL_HTTPCONNECTIONMGRSHELL                                         \
   virtual nsresult Init(                                                       \

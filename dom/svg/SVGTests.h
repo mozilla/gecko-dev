@@ -23,12 +23,8 @@ class DOMSVGStringList;
 class SVGSwitchElement;
 }  // namespace dom
 
-#define MOZILLA_DOMSVGTESTS_IID                      \
-  {                                                  \
-    0x92370da8, 0xda28, 0x4895, {                    \
-      0x9b, 0x1b, 0xe0, 0x06, 0x0d, 0xb7, 0x3f, 0xc3 \
-    }                                                \
-  }
+#define MOZILLA_DOMSVGTESTS_IID \
+  {0x92370da8, 0xda28, 0x4895, {0x9b, 0x1b, 0xe0, 0x06, 0x0d, 0xb7, 0x3f, 0xc3}}
 
 namespace dom {
 
@@ -36,7 +32,7 @@ class SVGElement;
 
 class SVGTests : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGTESTS_IID)
+  NS_INLINE_DECL_STATIC_IID(MOZILLA_DOMSVGTESTS_IID)
 
   SVGTests();
 
@@ -105,8 +101,6 @@ class SVGTests : public nsISupports {
   static nsStaticAtom* const sStringListNames[2];
   mutable Maybe<bool> mPassesConditionalProcessingTests = Some(true);
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(SVGTests, MOZILLA_DOMSVGTESTS_IID)
 
 }  // namespace dom
 }  // namespace mozilla

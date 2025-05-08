@@ -20,19 +20,15 @@ class Element;
 }  // namespace mozilla::dom
 
 // IID for the nsIHTMLCollection interface
-#define NS_IHTMLCOLLECTION_IID                       \
-  {                                                  \
-    0x4e169191, 0x5196, 0x4e17, {                    \
-      0xa4, 0x79, 0xd5, 0x35, 0x0b, 0x5b, 0x0a, 0xcd \
-    }                                                \
-  }
+#define NS_IHTMLCOLLECTION_IID \
+  {0x4e169191, 0x5196, 0x4e17, {0xa4, 0x79, 0xd5, 0x35, 0x0b, 0x5b, 0x0a, 0xcd}}
 
 /**
  * An internal interface
  */
 class nsIHTMLCollection : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IHTMLCOLLECTION_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IHTMLCOLLECTION_IID)
 
   /**
    * Get the root node for this HTML collection.
@@ -81,7 +77,5 @@ class nsIHTMLCollection : public nsISupports {
   // Hook for calling nsWrapperCache::PreserveWrapper.
   virtual void PreserveWrapperInternal(nsISupports* aScriptObjectHolder) = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIHTMLCollection, NS_IHTMLCOLLECTION_IID)
 
 #endif /* nsIHTMLCollection_h___ */

@@ -12,23 +12,17 @@ namespace mozilla::dom {
 class Animation;
 }  // namespace mozilla::dom
 
-#define NS_IANIMATION_OBSERVER_IID                   \
-  {                                                  \
-    0xed025fc7, 0xdeda, 0x48b9, {                    \
-      0x9c, 0x35, 0xf2, 0xb6, 0x1e, 0xeb, 0xd0, 0x8d \
-    }                                                \
-  }
+#define NS_IANIMATION_OBSERVER_IID \
+  {0xed025fc7, 0xdeda, 0x48b9, {0x9c, 0x35, 0xf2, 0xb6, 0x1e, 0xeb, 0xd0, 0x8d}}
 
 class nsIAnimationObserver : public nsIMutationObserver {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IANIMATION_OBSERVER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IANIMATION_OBSERVER_IID)
 
   virtual void AnimationAdded(mozilla::dom::Animation* aAnimation) = 0;
   virtual void AnimationChanged(mozilla::dom::Animation* aAnimation) = 0;
   virtual void AnimationRemoved(mozilla::dom::Animation* aAnimation) = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIAnimationObserver, NS_IANIMATION_OBSERVER_IID)
 
 #define NS_DECL_NSIANIMATIONOBSERVER_ANIMATIONADDED \
   virtual void AnimationAdded(mozilla::dom::Animation* aAnimation) override;

@@ -36,12 +36,8 @@ extern const uint64_t kUnknownSize;
 class FileReaderDecreaseBusyCounter;
 
 // 26a79031-c94b-47e9-850a-f04fe17bc026
-#define FILEREADER_ID                                \
-  {                                                  \
-    0x26a79031, 0xc94b, 0x47e9, {                    \
-      0x85, 0x0a, 0xf0, 0x4f, 0xe1, 0x7b, 0xc0, 0x26 \
-    }                                                \
-  }
+#define FILEREADER_ID \
+  {0x26a79031, 0xc94b, 0x47e9, {0x85, 0x0a, 0xf0, 0x4f, 0xe1, 0x7b, 0xc0, 0x26}}
 
 class FileReader final : public DOMEventTargetHelper,
                          public nsIInterfaceRequestor,
@@ -61,7 +57,7 @@ class FileReader final : public DOMEventTargetHelper,
   NS_DECL_NSIINTERFACEREQUESTOR
   NS_DECL_NSINAMED
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(FILEREADER_ID)
+  NS_INLINE_DECL_STATIC_IID(FILEREADER_ID)
 
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(FileReader,
                                                          DOMEventTargetHelper)
@@ -199,8 +195,6 @@ class FileReader final : public DOMEventTargetHelper,
   class AsyncWaitRunnable;
   RefPtr<AsyncWaitRunnable> mAsyncWaitRunnable;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(FileReader, FILEREADER_ID)
 
 }  // namespace mozilla::dom
 

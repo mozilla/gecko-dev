@@ -103,7 +103,7 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
   ~nsPIDOMWindowInner();
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_PIDOMWINDOWINNER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_PIDOMWINDOWINNER_IID)
 
   nsIGlobalObject* AsGlobal();
   const nsIGlobalObject* AsGlobal() const;
@@ -743,8 +743,6 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
   RefPtr<mozilla::dom::CloseWatcherManager> mCloseWatcherManager;
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsPIDOMWindowInner, NS_PIDOMWINDOWINNER_IID)
-
 class nsPIDOMWindowOuter : public mozIDOMWindowProxy {
  protected:
   using Document = mozilla::dom::Document;
@@ -756,7 +754,7 @@ class nsPIDOMWindowOuter : public mozIDOMWindowProxy {
   void NotifyResumingDelayedMedia();
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_PIDOMWINDOWOUTER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_PIDOMWINDOWOUTER_IID)
 
   NS_IMPL_FROMEVENTTARGET_HELPER_WITH_GETTER(nsPIDOMWindowOuter,
                                              GetAsOuterWindow())
@@ -1143,8 +1141,6 @@ class nsPIDOMWindowOuter : public mozIDOMWindowProxy {
 
   uint32_t mMarkedCCGeneration;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsPIDOMWindowOuter, NS_PIDOMWINDOWOUTER_IID)
 
 #include "nsPIDOMWindowInlines.h"
 

@@ -24,12 +24,8 @@
 #include "nsISupports.h"
 #include "nsString.h"
 
-#define NS_IDTD_IID                                  \
-  {                                                  \
-    0x3de05873, 0xefa7, 0x410d, {                    \
-      0xa4, 0x61, 0x80, 0x33, 0xaf, 0xd9, 0xe3, 0x26 \
-    }                                                \
-  }
+#define NS_IDTD_IID \
+  {0x3de05873, 0xefa7, 0x410d, {0xa4, 0x61, 0x80, 0x33, 0xaf, 0xd9, 0xe3, 0x26}}
 
 enum eAutoDetectResult {
   eUnknownDetect,
@@ -47,7 +43,7 @@ class CParserContext;
 
 class nsIDTD : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IDTD_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IDTD_IID)
 
   /**
    * Called by the parser after the parsing process has concluded
@@ -78,8 +74,6 @@ class nsIDTD : public nsISupports {
    */
   NS_IMETHOD_(void) Terminate() = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIDTD, NS_IDTD_IID)
 
 #define NS_DECL_NSIDTD                                   \
   void DidBuildModel() override;                         \

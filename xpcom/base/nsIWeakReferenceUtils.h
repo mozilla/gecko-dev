@@ -23,7 +23,7 @@ inline nsresult CallQueryReferent(T* aSource, DestinationType** aDestination) {
   MOZ_ASSERT(aSource, "null parameter");
   MOZ_ASSERT(aDestination, "null parameter");
 
-  return aSource->QueryReferent(NS_GET_TEMPLATE_IID(DestinationType),
+  return aSource->QueryReferent(NS_GET_IID(DestinationType),
                                 reinterpret_cast<void**>(aDestination));
 }
 

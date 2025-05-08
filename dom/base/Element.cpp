@@ -4741,8 +4741,8 @@ void Element::ClearDataset() {
 
 template <class T>
 void Element::GetCustomInterface(nsGetterAddRefs<T> aResult) {
-  nsCOMPtr<nsISupports> iface = CustomElementRegistry::CallGetCustomInterface(
-      this, NS_GET_TEMPLATE_IID(T));
+  nsCOMPtr<nsISupports> iface =
+      CustomElementRegistry::CallGetCustomInterface(this, NS_GET_IID(T));
   if (iface) {
     if (NS_SUCCEEDED(CallQueryInterface(iface, static_cast<T**>(aResult)))) {
       return;

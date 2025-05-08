@@ -13,12 +13,8 @@
 #include "mozilla/dom/Nullable.h"
 #include "nsStringFwd.h"
 
-#define IDBVERSIONCHANGEEVENT_IID                    \
-  {                                                  \
-    0x3b65d4c3, 0x73ad, 0x492e, {                    \
-      0xb1, 0x2d, 0x15, 0xf9, 0xda, 0xc2, 0x08, 0x4b \
-    }                                                \
-  }
+#define IDBVERSIONCHANGEEVENT_IID \
+  {0x3b65d4c3, 0x73ad, 0x492e, {0xb1, 0x2d, 0x15, 0xf9, 0xda, 0xc2, 0x08, 0x4b}}
 
 namespace mozilla {
 
@@ -73,7 +69,7 @@ class IDBVersionChangeEvent final : public Event {
 
   Nullable<uint64_t> GetNewVersion() const { return mNewVersion; }
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(IDBVERSIONCHANGEEVENT_IID)
+  NS_INLINE_DECL_STATIC_IID(IDBVERSIONCHANGEEVENT_IID)
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -90,8 +86,6 @@ class IDBVersionChangeEvent final : public Event {
       EventTarget* aOwner, const nsAString& aType, uint64_t aOldVersion,
       const Nullable<uint64_t>& aNewVersion);
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(IDBVersionChangeEvent, IDBVERSIONCHANGEEVENT_IID)
 
 }  // namespace dom
 }  // namespace mozilla

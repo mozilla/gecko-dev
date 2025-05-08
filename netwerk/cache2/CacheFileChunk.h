@@ -89,16 +89,16 @@ class CacheFileChunkWriteHandle : public CacheFileChunkHandle {
   void UpdateDataSize(uint32_t aOffset, uint32_t aLen);
 };
 
-#define CACHEFILECHUNKLISTENER_IID                   \
-  { /* baf16149-2ab5-499c-a9c2-5904eb95c288 */       \
-    0xbaf16149, 0x2ab5, 0x499c, {                    \
-      0xa9, 0xc2, 0x59, 0x04, 0xeb, 0x95, 0xc2, 0x88 \
-    }                                                \
-  }
+#define CACHEFILECHUNKLISTENER_IID            \
+  {/* baf16149-2ab5-499c-a9c2-5904eb95c288 */ \
+   0xbaf16149,                                \
+   0x2ab5,                                    \
+   0x499c,                                    \
+   {0xa9, 0xc2, 0x59, 0x04, 0xeb, 0x95, 0xc2, 0x88}}
 
 class CacheFileChunkListener : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(CACHEFILECHUNKLISTENER_IID)
+  NS_INLINE_DECL_STATIC_IID(CACHEFILECHUNKLISTENER_IID)
 
   NS_IMETHOD OnChunkRead(nsresult aResult, CacheFileChunk* aChunk) = 0;
   NS_IMETHOD OnChunkWritten(nsresult aResult, CacheFileChunk* aChunk) = 0;
@@ -106,9 +106,6 @@ class CacheFileChunkListener : public nsISupports {
                               CacheFileChunk* aChunk) = 0;
   NS_IMETHOD OnChunkUpdated(CacheFileChunk* aChunk) = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(CacheFileChunkListener,
-                              CACHEFILECHUNKLISTENER_IID)
 
 class ChunkListenerItem {
  public:

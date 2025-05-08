@@ -29,35 +29,24 @@ class nsIVariant;
 /***************************************************************************/
 #define NS_IXPCONNECTJSOBJECTHOLDER_IID_STR \
   "73e6ff4a-ab99-4d99-ac00-ba39ccb8e4d7"
-#define NS_IXPCONNECTJSOBJECTHOLDER_IID              \
-  {                                                  \
-    0x73e6ff4a, 0xab99, 0x4d99, {                    \
-      0xac, 0x00, 0xba, 0x39, 0xcc, 0xb8, 0xe4, 0xd7 \
-    }                                                \
-  }
+#define NS_IXPCONNECTJSOBJECTHOLDER_IID \
+  {0x73e6ff4a, 0xab99, 0x4d99, {0xac, 0x00, 0xba, 0x39, 0xcc, 0xb8, 0xe4, 0xd7}}
 
 class NS_NO_VTABLE nsIXPConnectJSObjectHolder : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IXPCONNECTJSOBJECTHOLDER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IXPCONNECTJSOBJECTHOLDER_IID)
 
   virtual JSObject* GetJSObject() = 0;
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIXPConnectJSObjectHolder,
-                              NS_IXPCONNECTJSOBJECTHOLDER_IID)
-
 #define NS_IXPCONNECTWRAPPEDNATIVE_IID_STR \
   "e787be29-db5d-4a45-a3d6-1de1d6b85c30"
-#define NS_IXPCONNECTWRAPPEDNATIVE_IID               \
-  {                                                  \
-    0xe787be29, 0xdb5d, 0x4a45, {                    \
-      0xa3, 0xd6, 0x1d, 0xe1, 0xd6, 0xb8, 0x5c, 0x30 \
-    }                                                \
-  }
+#define NS_IXPCONNECTWRAPPEDNATIVE_IID \
+  {0xe787be29, 0xdb5d, 0x4a45, {0xa3, 0xd6, 0x1d, 0xe1, 0xd6, 0xb8, 0x5c, 0x30}}
 
 class nsIXPConnectWrappedNative : public nsIXPConnectJSObjectHolder {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IXPCONNECTWRAPPEDNATIVE_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IXPCONNECTWRAPPEDNATIVE_IID)
 
   nsresult DebugDump(int16_t depth);
 
@@ -70,20 +59,13 @@ class nsIXPConnectWrappedNative : public nsIXPConnectJSObjectHolder {
   XPCWrappedNative* AsXPCWrappedNative();
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIXPConnectWrappedNative,
-                              NS_IXPCONNECTWRAPPEDNATIVE_IID)
-
 #define NS_IXPCONNECTWRAPPEDJS_IID_STR "3a01b0d6-074b-49ed-bac3-08c76366cae4"
-#define NS_IXPCONNECTWRAPPEDJS_IID                   \
-  {                                                  \
-    0x3a01b0d6, 0x074b, 0x49ed, {                    \
-      0xba, 0xc3, 0x08, 0xc7, 0x63, 0x66, 0xca, 0xe4 \
-    }                                                \
-  }
+#define NS_IXPCONNECTWRAPPEDJS_IID \
+  {0x3a01b0d6, 0x074b, 0x49ed, {0xba, 0xc3, 0x08, 0xc7, 0x63, 0x66, 0xca, 0xe4}}
 
 class nsIXPConnectWrappedJS : public nsIXPConnectJSObjectHolder {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IXPCONNECTWRAPPEDJS_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IXPCONNECTWRAPPEDJS_IID)
 
   nsresult GetInterfaceIID(nsIID** aInterfaceIID);
 
@@ -102,16 +84,10 @@ class nsIXPConnectWrappedJS : public nsIXPConnectJSObjectHolder {
   nsXPCWrappedJS* AsXPCWrappedJS();
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIXPConnectWrappedJS, NS_IXPCONNECTWRAPPEDJS_IID)
-
 #define NS_IXPCONNECTWRAPPEDJSUNMARKGRAY_IID_STR \
   "c02a0ce6-275f-4ea1-9c23-08494898b070"
-#define NS_IXPCONNECTWRAPPEDJSUNMARKGRAY_IID         \
-  {                                                  \
-    0xc02a0ce6, 0x275f, 0x4ea1, {                    \
-      0x9c, 0x23, 0x08, 0x49, 0x48, 0x98, 0xb0, 0x70 \
-    }                                                \
-  }
+#define NS_IXPCONNECTWRAPPEDJSUNMARKGRAY_IID \
+  {0xc02a0ce6, 0x275f, 0x4ea1, {0x9c, 0x23, 0x08, 0x49, 0x48, 0x98, 0xb0, 0x70}}
 
 // Special interface to unmark the internal JSObject.
 // QIing to nsIXPConnectWrappedJSUnmarkGray does *not* addref, it only unmarks,
@@ -119,25 +95,18 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIXPConnectWrappedJS, NS_IXPCONNECTWRAPPEDJS_IID)
 class NS_NO_VTABLE nsIXPConnectWrappedJSUnmarkGray
     : public nsIXPConnectWrappedJS {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IXPCONNECTWRAPPEDJSUNMARKGRAY_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IXPCONNECTWRAPPEDJSUNMARKGRAY_IID)
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIXPConnectWrappedJSUnmarkGray,
-                              NS_IXPCONNECTWRAPPEDJSUNMARKGRAY_IID)
 
 /***************************************************************************/
 
 #define NS_IXPCONNECT_IID_STR "768507b5-b981-40c7-8276-f6a1da502a24"
-#define NS_IXPCONNECT_IID                            \
-  {                                                  \
-    0x768507b5, 0xb981, 0x40c7, {                    \
-      0x82, 0x76, 0xf6, 0xa1, 0xda, 0x50, 0x2a, 0x24 \
-    }                                                \
-  }
+#define NS_IXPCONNECT_IID \
+  {0x768507b5, 0xb981, 0x40c7, {0x82, 0x76, 0xf6, 0xa1, 0xda, 0x50, 0x2a, 0x24}}
 
 class nsIXPConnect : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IXPCONNECT_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IXPCONNECT_IID)
   // This gets a non-addref'd pointer.
   static nsIXPConnect* XPConnect();
 
@@ -285,7 +254,5 @@ class nsIXPConnect : public nsISupports {
                                JSContext* cx, JSObject* sandboxArg,
                                JS::MutableHandle<JS::Value> rval);
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIXPConnect, NS_IXPCONNECT_IID)
 
 #endif  // defined nsIXPConnect_h

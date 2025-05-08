@@ -9,16 +9,12 @@
 
 #include "nsISupports.h"
 
-#define NS_ICANCELABLERUNNABLE_IID                   \
-  {                                                  \
-    0xde93dc4c, 0x5eea, 0x4eb7, {                    \
-      0xb6, 0xd1, 0xdb, 0xf1, 0xe0, 0xce, 0xf6, 0x5c \
-    }                                                \
-  }
+#define NS_ICANCELABLERUNNABLE_IID \
+  {0xde93dc4c, 0x5eea, 0x4eb7, {0xb6, 0xd1, 0xdb, 0xf1, 0xe0, 0xce, 0xf6, 0x5c}}
 
 class nsICancelableRunnable : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICANCELABLERUNNABLE_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_ICANCELABLERUNNABLE_IID)
 
   /*
    * Cancels a pending task, so that calling run() on the task is a no-op.
@@ -34,7 +30,5 @@ class nsICancelableRunnable : public nsISupports {
   nsICancelableRunnable() = default;
   virtual ~nsICancelableRunnable() = default;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsICancelableRunnable, NS_ICANCELABLERUNNABLE_IID)
 
 #endif  // nsICancelableRunnable_h__

@@ -30,12 +30,8 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY bool NS_HandleScriptError(
     const mozilla::dom::ErrorEventInit& aErrorEvent, nsEventStatus* aStatus);
 
 // Must be kept in sync with xpcom/rust/xpcom/src/interfaces/nonidl.rs
-#define NS_ISCRIPTGLOBALOBJECT_IID                   \
-  {                                                  \
-    0x876f83bd, 0x6314, 0x460a, {                    \
-      0xa0, 0x45, 0x1c, 0x8f, 0x46, 0x2f, 0xb8, 0xe1 \
-    }                                                \
-  }
+#define NS_ISCRIPTGLOBALOBJECT_IID \
+  {0x876f83bd, 0x6314, 0x460a, {0xa0, 0x45, 0x1c, 0x8f, 0x46, 0x2f, 0xb8, 0xe1}}
 
 /**
  * The global object which keeps a script context for each supported script
@@ -46,7 +42,7 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY bool NS_HandleScriptError(
 
 class nsIScriptGlobalObject : public nsIGlobalObject {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISCRIPTGLOBALOBJECT_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_ISCRIPTGLOBALOBJECT_IID)
 
   /**
    * Ensure that the script global object is initialized for working with the
@@ -78,7 +74,5 @@ class nsIScriptGlobalObject : public nsIGlobalObject {
  protected:
   virtual ~nsIScriptGlobalObject() = default;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptGlobalObject, NS_ISCRIPTGLOBALOBJECT_IID)
 
 #endif

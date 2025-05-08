@@ -47,12 +47,8 @@ class SourceBufferList;
 template <typename T>
 class Optional;
 
-#define MOZILLA_DOM_MEDIASOURCE_IMPLEMENTATION_IID   \
-  {                                                  \
-    0x3839d699, 0x22c5, 0x439f, {                    \
-      0x94, 0xca, 0x0e, 0x0b, 0x26, 0xf9, 0xca, 0xbf \
-    }                                                \
-  }
+#define MOZILLA_DOM_MEDIASOURCE_IMPLEMENTATION_IID \
+  {0x3839d699, 0x22c5, 0x439f, {0x94, 0xca, 0x0e, 0x0b, 0x26, 0xf9, 0xca, 0xbf}}
 
 class MediaSource final : public DOMEventTargetHelper,
                           public DecoderDoctorLifeLogger<MediaSource> {
@@ -94,7 +90,7 @@ class MediaSource final : public DOMEventTargetHelper,
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MediaSource, DOMEventTargetHelper)
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOM_MEDIASOURCE_IMPLEMENTATION_IID)
+  NS_INLINE_DECL_STATIC_IID(MOZILLA_DOM_MEDIASOURCE_IMPLEMENTATION_IID)
 
   nsPIDOMWindowInner* GetParentObject() const;
 
@@ -172,9 +168,6 @@ class MediaSource final : public DOMEventTargetHelper,
   Maybe<media::TimeRanges> mLiveSeekableRange;
   nsTArray<MozPromiseHolder<ActiveCompletionPromise>> mCompletionPromises;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(MediaSource,
-                              MOZILLA_DOM_MEDIASOURCE_IMPLEMENTATION_IID)
 
 }  // namespace dom
 

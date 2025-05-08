@@ -29,12 +29,8 @@
 #include "gfxMatrix.h"
 
 // {70db954d-e452-4be3-83aa-f54a51cf7890}
-#define MOZILLA_SVGELEMENT_IID                       \
-  {                                                  \
-    0x70db954d, 0xe452, 0x4be3, {                    \
-      0x82, 0xaa, 0xf5, 0x4a, 0x51, 0xcf, 0x78, 0x90 \
-    }                                                \
-  }
+#define MOZILLA_SVGELEMENT_IID \
+  {0x70db954d, 0xe452, 0x4be3, {0x82, 0xaa, 0xf5, 0x4a, 0x51, 0xcf, 0x78, 0x90}}
 
 nsresult NS_NewSVGElement(mozilla::dom::Element** aResult,
                           already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
@@ -89,7 +85,7 @@ class SVGElement : public SVGElementBase  // nsIContent
   // From Element
   nsresult CopyInnerTo(mozilla::dom::Element* aDest);
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_SVGELEMENT_IID)
+  NS_INLINE_DECL_STATIC_IID(MOZILLA_SVGELEMENT_IID)
   // nsISupports
   NS_INLINE_DECL_REFCOUNTING_INHERITED(SVGElement, SVGElementBase)
 
@@ -530,8 +526,6 @@ class SVGElement : public SVGElementBase  // nsIContent
   SVGAnimatedClass mClassAttribute;
   UniquePtr<nsAttrValue> mClassAnimAttr;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(SVGElement, MOZILLA_SVGELEMENT_IID)
 
 /**
  * A macro to implement the NS_NewSVGXXXElement() functions.

@@ -353,7 +353,7 @@ class MockGlobalObject : public nsIGlobalObject, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(MockGlobalObject)
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOCKGLOBALOBJECT_IID)
+  NS_INLINE_DECL_STATIC_IID(MOCKGLOBALOBJECT_IID)
 
   explicit MockGlobalObject(nsCOMPtr<nsIGlobalObject>&& aGlobal)
       : mGlobal(std::move(aGlobal)) {}
@@ -398,7 +398,5 @@ class MockGlobalObject : public nsIGlobalObject, public nsWrapperCache {
 
   nsCOMPtr<nsIGlobalObject> mGlobal;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(MockGlobalObject, MOCKGLOBALOBJECT_IID)
 
 #endif  // DOM_FS_TEST_GTEST_FILESYSTEMMOCKS_H_

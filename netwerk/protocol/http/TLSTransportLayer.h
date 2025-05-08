@@ -37,18 +37,14 @@ namespace mozilla::net {
 // nsSocketOutputStream::Write
 
 // 9d6a3bc6-1f90-41d0-9b02-33ccd169052b
-#define NS_TLSTRANSPORTLAYER_IID                     \
-  {                                                  \
-    0x9d6a3bc6, 0x1f90, 0x41d0, {                    \
-      0x9b, 0x02, 0x33, 0xcc, 0xd1, 0x69, 0x05, 0x2b \
-    }                                                \
-  }
+#define NS_TLSTRANSPORTLAYER_IID \
+  {0x9d6a3bc6, 0x1f90, 0x41d0, {0x9b, 0x02, 0x33, 0xcc, 0xd1, 0x69, 0x05, 0x2b}}
 
 class TLSTransportLayer final : public nsISocketTransport,
                                 public nsIInputStreamCallback,
                                 public nsIOutputStreamCallback {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_TLSTRANSPORTLAYER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_TLSTRANSPORTLAYER_IID)
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSITRANSPORT
   NS_DECL_NSISOCKETTRANSPORT
@@ -158,8 +154,6 @@ class TLSTransportLayer final : public nsISocketTransport,
   PRFileDesc* mFD{nullptr};
   nsCOMPtr<nsIInputStreamCallback> mOwner;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(TLSTransportLayer, NS_TLSTRANSPORTLAYER_IID)
 
 }  // namespace mozilla::net
 

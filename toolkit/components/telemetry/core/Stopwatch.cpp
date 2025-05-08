@@ -109,7 +109,7 @@ class Timer final : public mozilla::LinkedListElement<RefPtr<Timer>> {
 class TimerKeys final : public nsISupports {
  public:
   NS_DECL_ISUPPORTS
-  NS_DECLARE_STATIC_IID_ACCESSOR(TIMER_KEYS_IID)
+  NS_INLINE_DECL_STATIC_IID(TIMER_KEYS_IID)
 
   Timer* Get(const nsAString& aKey, bool aCreate = true);
 
@@ -126,8 +126,6 @@ class TimerKeys final : public nsISupports {
 
   nsRefPtrHashtable<nsStringHashKey, Timer> mTimers;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(TimerKeys, TIMER_KEYS_IID)
 
 NS_IMPL_ISUPPORTS(TimerKeys, TimerKeys)
 

@@ -375,7 +375,7 @@ class SessionHistoryEntry : public nsISHEntry, public nsSupportsWeakReference {
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSISHENTRY
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_SESSIONHISTORYENTRY_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_SESSIONHISTORYENTRY_IID)
 
   bool IsInSessionHistory() {
     SessionHistoryEntry* entry = this;
@@ -460,8 +460,6 @@ class SessionHistoryEntry : public nsISHEntry, public nsSupportsWeakReference {
 
   static nsTHashMap<nsUint64HashKey, LoadingEntry>* sLoadIdToEntry;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(SessionHistoryEntry, NS_SESSIONHISTORYENTRY_IID)
 
 }  // namespace dom
 

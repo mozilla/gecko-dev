@@ -34,12 +34,8 @@
 #include "nsIWeakReferenceUtils.h"
 #include "nsWrapperCache.h"
 
-#define NS_CHANNELWRAPPER_IID                        \
-  {                                                  \
-    0xc06162d2, 0xb803, 0x43b4, {                    \
-      0xaa, 0x31, 0xcf, 0x69, 0x7f, 0x93, 0x68, 0x1c \
-    }                                                \
-  }
+#define NS_CHANNELWRAPPER_IID \
+  {0xc06162d2, 0xb803, 0x43b4, {0xaa, 0x31, 0xcf, 0x69, 0x7f, 0x93, 0x68, 0x1c}}
 
 class nsILoadContext;
 class nsITraceableChannel;
@@ -123,7 +119,7 @@ class ChannelWrapper final : public DOMEventTargetHelper,
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ChannelWrapper, DOMEventTargetHelper)
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_CHANNELWRAPPER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_CHANNELWRAPPER_IID)
 
   void Die();
 
@@ -352,8 +348,6 @@ class ChannelWrapper final : public DOMEventTargetHelper,
     nsCOMPtr<nsIStreamListener> mOrigStreamListener;
   };
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(ChannelWrapper, NS_CHANNELWRAPPER_IID)
 
 }  // namespace extensions
 }  // namespace mozilla

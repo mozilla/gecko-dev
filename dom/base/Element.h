@@ -309,7 +309,7 @@ class Element : public FragmentOrElement {
 
 #endif  // MOZILLA_INTERNAL_API
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ELEMENT_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_ELEMENT_IID)
 
   NS_DECL_ADDSIZEOFEXCLUDINGTHIS
 
@@ -2349,8 +2349,6 @@ class Element : public FragmentOrElement {
   // Array containing all attributes for this element
   AttrArray mAttrs;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(Element, NS_ELEMENT_IID)
 
 inline bool Element::HasNonEmptyAttr(int32_t aNameSpaceID,
                                      const nsAtom* aName) const {

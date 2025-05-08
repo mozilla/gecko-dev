@@ -38,12 +38,8 @@ class Event;
 enum class CallerType : uint32_t;
 }  // namespace dom
 
-#define NS_DOMEVENTTARGETHELPER_IID                  \
-  {                                                  \
-    0xa28385c6, 0x9451, 0x4d7e, {                    \
-      0xa3, 0xdd, 0xf4, 0xb6, 0x87, 0x2f, 0xa4, 0x76 \
-    }                                                \
-  }
+#define NS_DOMEVENTTARGETHELPER_IID \
+  {0xa28385c6, 0x9451, 0x4d7e, {0xa3, 0xdd, 0xf4, 0xb6, 0x87, 0x2f, 0xa4, 0x76}}
 
 class DOMEventTargetHelper : public dom::EventTarget,
                              public GlobalTeardownObserver {
@@ -73,7 +69,7 @@ class DOMEventTargetHelper : public dom::EventTarget,
 
   nsresult PostHandleEvent(EventChainPostVisitor& aVisitor) override;
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_DOMEVENTTARGETHELPER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_DOMEVENTTARGETHELPER_IID)
 
   nsIGlobalObject* GetOwnerGlobal() const override {
     return GlobalTeardownObserver::GetOwnerGlobal();
@@ -146,8 +142,6 @@ class DOMEventTargetHelper : public dom::EventTarget,
 
   bool mIsKeptAlive = false;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(DOMEventTargetHelper, NS_DOMEVENTTARGETHELPER_IID)
 
 }  // namespace mozilla
 

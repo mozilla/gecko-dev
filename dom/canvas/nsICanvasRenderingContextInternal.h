@@ -24,12 +24,8 @@
 #include "mozilla/WeakPtr.h"
 #include "mozilla/layers/LayersSurfaces.h"
 
-#define NS_ICANVASRENDERINGCONTEXTINTERNAL_IID       \
-  {                                                  \
-    0xb84f2fed, 0x9d4b, 0x430b, {                    \
-      0xbd, 0xfb, 0x85, 0x57, 0x8a, 0xc2, 0xb4, 0x4b \
-    }                                                \
-  }
+#define NS_ICANVASRENDERINGCONTEXTINTERNAL_IID \
+  {0xb84f2fed, 0x9d4b, 0x430b, {0xbd, 0xfb, 0x85, 0x57, 0x8a, 0xc2, 0xb4, 0x4b}}
 
 class nsICookieJarSettings;
 class nsIDocShell;
@@ -70,7 +66,7 @@ class nsICanvasRenderingContextInternal : public nsISupports,
   using CanvasRenderer = mozilla::layers::CanvasRenderer;
   using WebRenderCanvasData = mozilla::layers::WebRenderCanvasData;
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICANVASRENDERINGCONTEXTINTERNAL_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_ICANVASRENDERINGCONTEXTINTERNAL_IID)
 
   nsICanvasRenderingContextInternal();
 
@@ -239,8 +235,5 @@ class nsICanvasRenderingContextInternal : public nsISupports,
   RefPtr<mozilla::dom::OffscreenCanvas> mOffscreenCanvas;
   RefPtr<nsRefreshDriver> mRefreshDriver;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsICanvasRenderingContextInternal,
-                              NS_ICANVASRENDERINGCONTEXTINTERNAL_IID)
 
 #endif /* nsICanvasRenderingContextInternal_h___ */

@@ -110,7 +110,7 @@ class nsIMutationObserver
   friend struct mozilla::GetDoublyLinkedListElement<nsIMutationObserver>;
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IMUTATION_OBSERVER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IMUTATION_OBSERVER_IID)
 
   /**
    * Notification that the node value of a data node (text, cdata, pi, comment)
@@ -338,8 +338,6 @@ class nsIMutationObserver
  private:
   uint32_t mEnabledCallbacks = kAll;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIMutationObserver, NS_IMUTATION_OBSERVER_IID)
 
 #define NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATAWILLCHANGE \
   virtual void CharacterDataWillChange(                     \

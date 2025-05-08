@@ -23,19 +23,15 @@ class PrintTarget;
 }  // namespace gfx
 }  // namespace mozilla
 
-#define NS_IDEVICE_CONTEXT_SPEC_IID                  \
-  {                                                  \
-    0xf407cfba, 0xbe28, 0x46c9, {                    \
-      0x8a, 0xba, 0x04, 0x2d, 0xae, 0xbb, 0x4f, 0x23 \
-    }                                                \
-  }
+#define NS_IDEVICE_CONTEXT_SPEC_IID \
+  {0xf407cfba, 0xbe28, 0x46c9, {0x8a, 0xba, 0x04, 0x2d, 0xae, 0xbb, 0x4f, 0x23}}
 
 class nsIDeviceContextSpec : public nsISupports {
  public:
   typedef mozilla::gfx::PrintTarget PrintTarget;
   using IntSize = mozilla::gfx::IntSize;
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IDEVICE_CONTEXT_SPEC_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IDEVICE_CONTEXT_SPEC_IID)
 
   /**
    * Initialize the device context spec.
@@ -107,5 +103,4 @@ class nsIDeviceContextSpec : public nsISupports {
 #endif
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIDeviceContextSpec, NS_IDEVICE_CONTEXT_SPEC_IID)
 #endif

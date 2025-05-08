@@ -40,7 +40,7 @@ class DnsAndConnectSocket final : public nsIOutputStreamCallback,
   ~DnsAndConnectSocket();
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_DNSANDCONNECTSOCKET_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_DNSANDCONNECTSOCKET_IID)
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOUTPUTSTREAMCALLBACK
   NS_DECL_NSITRANSPORTEVENTSINK
@@ -265,8 +265,6 @@ class DnsAndConnectSocket final : public nsIOutputStreamCallback,
   bool mProxyNotTransparent = false;
   bool mProxyTransparentResolvesHost = false;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(DnsAndConnectSocket, NS_DNSANDCONNECTSOCKET_IID)
 
 }  // namespace net
 }  // namespace mozilla

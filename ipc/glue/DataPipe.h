@@ -88,7 +88,7 @@ class DataPipeReceiver;
 class DataPipeSender final : public nsIAsyncOutputStream,
                              public data_pipe_detail::DataPipeBase {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_DATAPIPESENDER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_DATAPIPESENDER_IID)
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOUTPUTSTREAM
   NS_DECL_NSIASYNCOUTPUTSTREAM
@@ -114,8 +114,6 @@ class DataPipeSender final : public nsIAsyncOutputStream,
   ~DataPipeSender() = default;
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(DataPipeSender, NS_DATAPIPESENDER_IID)
-
 #define NS_DATAPIPERECEIVER_IID \
   {0x0a185f83, 0x499e, 0x450c, {0x95, 0x82, 0x27, 0x67, 0xad, 0x6d, 0x64, 0xb5}}
 
@@ -124,7 +122,7 @@ class DataPipeReceiver final : public nsIAsyncInputStream,
                                public nsIIPCSerializableInputStream,
                                public data_pipe_detail::DataPipeBase {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_DATAPIPERECEIVER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_DATAPIPERECEIVER_IID)
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIINPUTSTREAM
   NS_DECL_NSIASYNCINPUTSTREAM
@@ -149,8 +147,6 @@ class DataPipeReceiver final : public nsIAsyncInputStream,
 
   ~DataPipeReceiver() = default;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(DataPipeReceiver, NS_DATAPIPERECEIVER_IID)
 
 constexpr uint32_t kDefaultDataPipeCapacity = 64 * 1024;
 

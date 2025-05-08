@@ -125,7 +125,7 @@ inline nsresult CallCreateInstance(const nsCID& aClass,
                                    DestinationType** aDestination) {
   MOZ_ASSERT(aDestination, "null parameter");
 
-  return CallCreateInstance(aClass, NS_GET_TEMPLATE_IID(DestinationType),
+  return CallCreateInstance(aClass, NS_GET_IID(DestinationType),
                             reinterpret_cast<void**>(aDestination));
 }
 
@@ -135,7 +135,7 @@ inline nsresult CallCreateInstance(const char* aContractID,
   MOZ_ASSERT(aContractID, "null parameter");
   MOZ_ASSERT(aDestination, "null parameter");
 
-  return CallCreateInstance(aContractID, NS_GET_TEMPLATE_IID(DestinationType),
+  return CallCreateInstance(aContractID, NS_GET_IID(DestinationType),
                             reinterpret_cast<void**>(aDestination));
 }
 
@@ -145,7 +145,7 @@ inline nsresult CallCreateInstance(nsIFactory* aFactory,
   MOZ_ASSERT(aFactory, "null parameter");
   MOZ_ASSERT(aDestination, "null parameter");
 
-  return aFactory->CreateInstance(nullptr, NS_GET_TEMPLATE_IID(DestinationType),
+  return aFactory->CreateInstance(nullptr, NS_GET_IID(DestinationType),
                                   reinterpret_cast<void**>(aDestination));
 }
 
@@ -154,7 +154,7 @@ inline nsresult CallGetClassObject(const nsCID& aClass,
                                    DestinationType** aDestination) {
   MOZ_ASSERT(aDestination, "null parameter");
 
-  return CallGetClassObject(aClass, NS_GET_TEMPLATE_IID(DestinationType),
+  return CallGetClassObject(aClass, NS_GET_IID(DestinationType),
                             reinterpret_cast<void**>(aDestination));
 }
 
@@ -163,7 +163,7 @@ inline nsresult CallGetClassObject(const char* aContractID,
                                    DestinationType** aDestination) {
   MOZ_ASSERT(aDestination, "null parameter");
 
-  return CallGetClassObject(aContractID, NS_GET_TEMPLATE_IID(DestinationType),
+  return CallGetClassObject(aContractID, NS_GET_IID(DestinationType),
                             reinterpret_cast<void**>(aDestination));
 }
 

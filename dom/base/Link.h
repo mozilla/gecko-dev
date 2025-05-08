@@ -27,16 +27,12 @@ class Document;
 class Element;
 struct BindContext;
 
-#define MOZILLA_DOM_LINK_IMPLEMENTATION_IID          \
-  {                                                  \
-    0xb25edee6, 0xdd35, 0x4f8b, {                    \
-      0xab, 0x90, 0x66, 0xd0, 0xbd, 0x3c, 0x22, 0xd5 \
-    }                                                \
-  }
+#define MOZILLA_DOM_LINK_IMPLEMENTATION_IID \
+  {0xb25edee6, 0xdd35, 0x4f8b, {0xab, 0x90, 0x66, 0xd0, 0xbd, 0x3c, 0x22, 0xd5}}
 
 class Link : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOM_LINK_IMPLEMENTATION_IID)
+  NS_INLINE_DECL_STATIC_IID(MOZILLA_DOM_LINK_IMPLEMENTATION_IID)
 
   enum class State : uint8_t {
     Unvisited = 0,
@@ -140,8 +136,6 @@ class Link : public nsISupports {
   bool mHasPendingLinkUpdate : 1;
   const bool mHistory : 1;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(Link, MOZILLA_DOM_LINK_IMPLEMENTATION_IID)
 
 }  // namespace dom
 }  // namespace mozilla

@@ -72,7 +72,7 @@ class SVGSVGElement final : public SVGSVGElementBase {
   NS_IMPL_FROMNODE_WITH_TAG(SVGSVGElement, kNameSpaceID_SVG, svg)
 
   // interfaces:
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_SVGSVGELEMENT_IID)
+  NS_INLINE_DECL_STATIC_IID(MOZILLA_SVGSVGELEMENT_IID)
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(SVGSVGElement, SVGSVGElementBase)
 
@@ -223,8 +223,6 @@ class SVGSVGElement final : public SVGSVGElementBase {
   UniquePtr<nsString> mCurrentViewID;
   UniquePtr<SVGView> mSVGView;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(SVGSVGElement, MOZILLA_SVGSVGELEMENT_IID)
 
 }  // namespace dom
 

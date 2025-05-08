@@ -577,7 +577,7 @@ class Document : public nsINode,
    */
   static void Shutdown();
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IDOCUMENT_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_IDOCUMENT_IID)
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_IMETHOD_(void) DeleteCycleCollectable() override;
@@ -3710,9 +3710,9 @@ class Document : public nsINode,
   // effect once per document, and so is called during document destruction.
   void ReportDocumentUseCounters();
 
-  // Report the names of the HTMLDocument properties thad had been shadowed using id/name
-  // and were then accessed ("DOM clobbering").
-  // This data is collected by nsHTMLDocument::NamedGetter and limited to 10 unique entries.
+  // Report the names of the HTMLDocument properties thad had been shadowed
+  // using id/name and were then accessed ("DOM clobbering"). This data is
+  // collected by nsHTMLDocument::NamedGetter and limited to 10 unique entries.
   void ReportShadowedHTMLDocumentProperties();
 
   // Reports largest contentful paint via telemetry. We want the most up to
@@ -5569,8 +5569,8 @@ class Document : public nsINode,
   // See SetNotifyFormOrPasswordRemoved and ShouldNotifyFormOrPasswordRemoved.
   bool mShouldNotifyFormOrPasswordRemoved;
 
-  // Used by the shadowed_html_document_property_access telemetry probe to collected shadowed
-  // HTMLDocument properties. (Limited to 10 entries)
+  // Used by the shadowed_html_document_property_access telemetry probe to
+  // collected shadowed HTMLDocument properties. (Limited to 10 entries)
   nsTArray<nsString> mShadowedHTMLDocumentProperties;
 
   // Bitfield to be collected in the pageload event, recording relevant features
@@ -5627,8 +5627,6 @@ class Document : public nsINode,
                                               const SetHTMLOptions& aOptions,
                                               ErrorResult& aError);
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(Document, NS_IDOCUMENT_IID)
 
 /**
  * mozAutoSubtreeModified batches DOM mutations so that a DOMSubtreeModified

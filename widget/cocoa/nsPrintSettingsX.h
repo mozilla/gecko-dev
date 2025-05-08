@@ -20,7 +20,7 @@
 
 class nsPrintSettingsX : public nsPrintSettings {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_PRINTSETTINGSX_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_PRINTSETTINGSX_IID)
   NS_DECL_ISUPPORTS_INHERITED
 
   nsPrintSettingsX();
@@ -100,7 +100,5 @@ class nsPrintSettingsX : public nsPrintSettings {
   // it was originally passed.
   NSPrintInfo* mSystemPrintInfo = nullptr;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsPrintSettingsX, NS_PRINTSETTINGSX_IID)
 
 #endif  // nsPrintSettingsX_h_

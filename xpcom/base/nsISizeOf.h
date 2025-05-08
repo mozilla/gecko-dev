@@ -10,16 +10,12 @@
 #include "mozilla/MemoryReporting.h"
 #include "nsISupports.h"
 
-#define NS_ISIZEOF_IID                               \
-  {                                                  \
-    0x61d05579, 0xd7ec, 0x485c, {                    \
-      0xa4, 0x0c, 0x31, 0xc7, 0x9a, 0x5c, 0xf9, 0xf3 \
-    }                                                \
-  }
+#define NS_ISIZEOF_IID \
+  {0x61d05579, 0xd7ec, 0x485c, {0xa4, 0x0c, 0x31, 0xc7, 0x9a, 0x5c, 0xf9, 0xf3}}
 
 class nsISizeOf : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISIZEOF_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_ISIZEOF_IID)
 
   /**
    * Measures the size of the things pointed to by the object.
@@ -33,7 +29,5 @@ class nsISizeOf : public nsISupports {
   virtual size_t SizeOfIncludingThis(
       mozilla::MallocSizeOf aMallocSizeOf) const = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsISizeOf, NS_ISIZEOF_IID)
 
 #endif /* nsISizeOf_h___ */

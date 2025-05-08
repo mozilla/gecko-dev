@@ -64,7 +64,7 @@ class HttpChannelParent final : public nsIInterfaceRequestor,
   NS_DECL_NSIREDIRECTRESULTLISTENER
   NS_DECL_NSIMULTIPARTCHANNELLISTENER
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(HTTP_CHANNEL_PARENT_IID)
+  NS_INLINE_DECL_STATIC_IID(HTTP_CHANNEL_PARENT_IID)
 
   HttpChannelParent(dom::BrowserParent* iframeEmbedding,
                     nsILoadContext* aLoadContext,
@@ -320,8 +320,6 @@ class HttpChannelParent final : public nsIInterfaceRequestor,
   // directly.
   uint8_t mDataSentToChildProcess : 1;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(HttpChannelParent, HTTP_CHANNEL_PARENT_IID)
 
 }  // namespace net
 }  // namespace mozilla

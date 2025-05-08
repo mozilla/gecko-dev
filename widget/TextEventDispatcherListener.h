@@ -22,7 +22,7 @@ struct IMENotificationRequests;
 
 class TextEventDispatcherListener : public nsSupportsWeakReference {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_TEXT_INPUT_PROXY_LISTENER_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_TEXT_INPUT_PROXY_LISTENER_IID)
 
   /**
    * NotifyIME() is called by TextEventDispatcher::NotifyIME().  This is a
@@ -85,9 +85,6 @@ class TextEventDispatcherListener : public nsSupportsWeakReference {
                             WidgetKeyboardEvent& aKeyboardEvent,
                             uint32_t aIndexOfKeypress, void* aData) = 0;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(TextEventDispatcherListener,
-                              NS_TEXT_INPUT_PROXY_LISTENER_IID)
 
 }  // namespace widget
 }  // namespace mozilla

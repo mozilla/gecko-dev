@@ -43,26 +43,21 @@ namespace dom {
 
 class nsRenamedInterface : public nsISupports, public nsWrapperCache {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_RENAMED_INTERFACE_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_RENAMED_INTERFACE_IID)
   NS_DECL_ISUPPORTS
 
   // We need a GetParentObject to make binding codegen happy
   virtual nsISupports* GetParentObject();
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsRenamedInterface, NS_RENAMED_INTERFACE_IID)
-
 // IID for the TestExternalInterface
 #define NS_TEST_EXTERNAL_INTERFACE_IID \
   {0xd5ba0c99, 0x9b1d, 0x4e71, {0x8a, 0x94, 0x56, 0x38, 0x6c, 0xa3, 0xda, 0x3d}}
 class TestExternalInterface : public nsISupports {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_TEST_EXTERNAL_INTERFACE_IID)
+  NS_INLINE_DECL_STATIC_IID(NS_TEST_EXTERNAL_INTERFACE_IID)
   NS_DECL_ISUPPORTS
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(TestExternalInterface,
-                              NS_TEST_EXTERNAL_INTERFACE_IID)
 
 class TestNonWrapperCacheInterface : public nsISupports {
  public:
