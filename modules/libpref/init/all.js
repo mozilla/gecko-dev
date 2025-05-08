@@ -3680,7 +3680,7 @@ pref("browser.ml.modelCacheMaxSize", 4);
 // Model cache timeout in ms
 pref("browser.ml.modelCacheTimeout", 120000);
 // Minimal Physical RAM required in GiB
-pref("browser.ml.minimumPhysicalMemory", 4);
+pref("browser.ml.minimumPhysicalMemory", 3);
 // Check for memory before running
 pref("browser.ml.checkForMemory", true);
 // Allowed overrides for various ml features
