@@ -152,7 +152,7 @@ gfx.features:
         status:
           type: string
         version:
-          type: number
+          type: string
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
     expires: never
