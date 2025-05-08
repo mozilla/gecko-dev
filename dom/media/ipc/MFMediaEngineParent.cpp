@@ -390,6 +390,11 @@ HRESULT MFMediaEngineParent::SetMediaInfo(const MediaInfoIPDL& aInfo,
     RETURN_IF_FAILED(mediaEngineEx->EnableWindowlessSwapchainMode(true));
     LOG("Enabled dcomp swap chain mode");
     ENGINE_MARKER("MFMediaEngineParent,EnabledSwapChain");
+    if (isEncryted) {
+      // Microsoft recommends to disable low latency with DRM.
+      RETURN_IF_FAILED(mediaEngineEx->SetRealTimeMode(false));
+      LOG("Turned off the real time mode for encrypted playback");
+    }
   }
 
   mRequestSampleListener = mMediaSource->RequestSampleEvent().Connect(
