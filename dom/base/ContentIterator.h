@@ -121,6 +121,7 @@ class ContentIteratorBase {
       nsINode* aNode,
       dom::AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary =
           dom::AllowRangeCrossShadowBoundary::No,
+      nsTArray<AncestorInfo>* aInclusiveAncestorsOfEndContainer = nullptr);
   static nsIContent* GetPrevSibling(
       nsINode* aNode,
       dom::AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary =
