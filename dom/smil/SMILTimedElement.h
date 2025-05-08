@@ -44,7 +44,6 @@ class SMILTimedElement {
   ~SMILTimedElement();
 
   using Element = dom::Element;
-  using DiscardArray = nsTObserverArray<RefPtr<Element>>;
 
   /*
    * Sets the owning animation element which this class uses to convert between
@@ -206,7 +205,8 @@ class SMILTimedElement {
    *
    * @param aContainerTime The container time at which to sample.
    */
-  void SampleAt(SMILTime aContainerTime, DiscardArray& aDiscards);
+  void SampleAt(SMILTime aContainerTime);
+
   /**
    * Performs a special sample for the end of an interval. Such a sample should
    * only advance the timed element (and any dependent elements) to the waiting
@@ -219,7 +219,7 @@ class SMILTimedElement {
    *
    * @param aContainerTime The container time at which to sample.
    */
-  void SampleEndAt(SMILTime aContainerTime, DiscardArray& aDiscards);
+  void SampleEndAt(SMILTime aContainerTime);
 
   /**
    * Informs the timed element that its time container has changed time
@@ -399,8 +399,7 @@ class SMILTimedElement {
   void ClearSpecs(TimeValueSpecList& aSpecs, InstanceTimeList& aInstances,
                   RemovalTestFunction aRemove);
   void ClearIntervals();
-  void DoSampleAt(SMILTime aContainerTime, DiscardArray& aDiscards,
-                  bool aEndOnly);
+  void DoSampleAt(SMILTime aContainerTime, bool aEndOnly);
 
   /**
    * Helper function to check for an early end and, if necessary, update the

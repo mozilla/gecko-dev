@@ -51,7 +51,7 @@ nsresult SVGAnimationElement::Init() {
 //----------------------------------------------------------------------
 
 Element* SVGAnimationElement::GetTargetElementContent() {
-  if ((HasAttr(kNameSpaceID_XLink, nsGkAtoms::href) && SupportsXLinkHref()) ||
+  if (HasAttr(kNameSpaceID_XLink, nsGkAtoms::href) ||
       HasAttr(nsGkAtoms::href)) {
     return mHrefTarget.get();
   }
@@ -139,10 +139,10 @@ nsresult SVGAnimationElement::BindToTree(BindContext& aContext,
     if (SMILAnimationController* controller = doc->GetAnimationController()) {
       controller->RegisterAnimationElement(this);
     }
-    const nsAttrValue* href = mAttrs.GetAttr(nsGkAtoms::href);
-    if (!href && SupportsXLinkHref()) {
-      href = mAttrs.GetAttr(nsGkAtoms::href, kNameSpaceID_XLink);
-    }
+    const nsAttrValue* href =
+        HasAttr(nsGkAtoms::href)
+            ? mAttrs.GetAttr(nsGkAtoms::href, kNameSpaceID_None)
+            : mAttrs.GetAttr(nsGkAtoms::href, kNameSpaceID_XLink);
     if (href) {
       nsAutoString hrefStr;
       href->ToString(hrefStr);
@@ -250,22 +250,20 @@ void SVGAnimationElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
       mHrefTarget.Unlink();
       AnimationTargetChanged();
 
-      if (SupportsXLinkHref()) {
-        // After unsetting href, we may still have xlink:href, so we
-        // should try to add it back.
-        const nsAttrValue* xlinkHref =
-            mAttrs.GetAttr(nsGkAtoms::href, kNameSpaceID_XLink);
-        if (xlinkHref) {
-          UpdateHrefTarget(xlinkHref->GetStringValue());
-        }
+      // After unsetting href, we may still have xlink:href, so we
+      // should try to add it back.
+      const nsAttrValue* xlinkHref =
+          mAttrs.GetAttr(nsGkAtoms::href, kNameSpaceID_XLink);
+      if (xlinkHref) {
+        UpdateHrefTarget(xlinkHref->GetStringValue());
       }
-    } else if (!HasAttr(nsGkAtoms::href) && SupportsXLinkHref()) {
+    } else if (!HasAttr(nsGkAtoms::href)) {
       mHrefTarget.Unlink();
       AnimationTargetChanged();
     }  // else: we unset xlink:href, but we still have href attribute, so keep
        // mHrefTarget linking to href.
-  } else if (aNamespaceID == kNameSpaceID_None ||
-             (!HasAttr(nsGkAtoms::href) && SupportsXLinkHref())) {
+  } else if (!(aNamespaceID == kNameSpaceID_XLink &&
+               HasAttr(nsGkAtoms::href))) {
     // Note: "href" takes priority over xlink:href. So if "xlink:href" is being
     // set here, we only let that update our target if "href" is *unset*.
     MOZ_ASSERT(aValue->Type() == nsAttrValue::eString,

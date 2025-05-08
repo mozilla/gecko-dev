@@ -250,14 +250,6 @@ void SMILAnimationController::StopSampling(nsRefreshDriver* aRefreshDriver) {
 //----------------------------------------------------------------------
 // Sample-related methods and callbacks
 
-static void ProcessDiscards(
-    const SMILAnimationController::DiscardArray& aDiscards) {
-  SMILAnimationController::DiscardArray::ForwardIterator iter(aDiscards);
-  while (iter.HasMore()) {
-    iter.GetNext()->Remove();
-  }
-}
-
 void SMILAnimationController::DoSample() {
   DoSample(true);  // Skip unchanged time containers
 }
@@ -330,16 +322,12 @@ void SMILAnimationController::DoSample(bool aSkipUnchangedContainers) {
   nsTArray<RefPtr<SVGAnimationElement>> animElems(
       mAnimationElementTable.Count());
 
-  SMILAnimationController::DiscardArray discards;
-
   for (SVGAnimationElement* animElem : mAnimationElementTable.Keys()) {
-    SampleTimedElement(animElem, discards, &activeContainers);
+    SampleTimedElement(animElem, &activeContainers);
     AddAnimationToCompositorTable(animElem, currentCompositorTable.get());
     animElems.AppendElement(animElem);
   }
   activeContainers.Clear();
-  ProcessDiscards(discards);
-  discards.Clear();
 
   // STEP 4: Compare previous sample's compositors against this sample's.
   // (Transfer cached base values across, & remove animation effects from
@@ -481,8 +469,6 @@ void SMILAnimationController::DoMilestoneSamples() {
     // dependencies will be appropriately resolved.
     sampleTime = std::max(nextMilestone.mTime, sampleTime);
 
-    SMILAnimationController::DiscardArray discards;
-
     for (RefPtr<dom::SVGAnimationElement>& elem : elements) {
       MOZ_ASSERT(elem, "nullptr animation element in list");
       SMILTimeContainer* container = elem->GetTimeContainer();
@@ -500,21 +486,17 @@ void SMILAnimationController::DoMilestoneSamples() {
           std::max<SMILTime>(0, containerTimeValue.GetMillis());
 
       if (nextMilestone.mIsEnd) {
-        elem->TimedElement().SampleEndAt(containerTime, discards);
+        elem->TimedElement().SampleEndAt(containerTime);
       } else {
-        elem->TimedElement().SampleAt(containerTime, discards);
+        elem->TimedElement().SampleAt(containerTime);
       }
     }
-
-    elements.Clear();
-    ProcessDiscards(discards);
   }
 }
 
 /*static*/
 void SMILAnimationController::SampleTimedElement(
-    SVGAnimationElement* aElement, DiscardArray& aDiscards,
-    TimeContainerHashtable* aActiveContainers) {
+    SVGAnimationElement* aElement, TimeContainerHashtable* aActiveContainers) {
   SMILTimeContainer* timeContainer = aElement->GetTimeContainer();
   if (!timeContainer) return;
 
@@ -533,7 +515,7 @@ void SMILAnimationController::SampleTimedElement(
 
   MOZ_ASSERT(!timeContainer->IsSeeking(),
              "Doing a regular sample but the time container is still seeking");
-  aElement->TimedElement().SampleAt(containerTime, aDiscards);
+  aElement->TimedElement().SampleAt(containerTime);
 }
 
 /*static*/

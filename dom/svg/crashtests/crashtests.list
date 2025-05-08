@@ -101,5 +101,3 @@ load 1837487.html
 load 1858792.html
 load 1858806.html
 load 1861736.html
-pref(svg.discard.enabled,true) load discard-no-target.svg
-pref(svg.discard.enabled,true) load 1953645.html
