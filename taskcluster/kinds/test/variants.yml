@@ -527,7 +527,7 @@ async-event-dispatching:
 vertical-tabs:
     description: "{description} limited to tests identified as being applicable to also run with vertical tabs enabled"
     component: "Firefox::Tabbed Browser"
-    expiration: "2025-05-01"
+    expiration: "2025-11-01"
     suffix: "vt"
     mozinfo: "vertical_tab"
     merge:
