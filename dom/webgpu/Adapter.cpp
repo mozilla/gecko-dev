@@ -203,8 +203,7 @@ struct FeatureImplementationStatus {
         return implemented(WGPUWEBGPU_FEATURE_TEXTURE_COMPRESSION_ASTC);
 
       case dom::GPUFeatureName::Texture_compression_astc_sliced_3d:
-        return unimplemented(
-            "https://bugzilla.mozilla.org/show_bug.cgi?id=1964139");
+        return implemented(WGPUWEBGPU_FEATURE_TEXTURE_COMPRESSION_ASTC_SLICED_3D);
 
       case dom::GPUFeatureName::Timestamp_query:
         return implemented(WGPUWEBGPU_FEATURE_TIMESTAMP_QUERY);
