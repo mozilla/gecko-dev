@@ -15015,8 +15015,12 @@ void Document::HandleEscKey() {
     }
     if (RefPtr dialogElement = HTMLDialogElement::FromNodeOrNull(element)) {
       if (dialogElement->GetClosedBy() != HTMLDialogElement::ClosedBy::None) {
-        const mozilla::dom::Optional<nsAString> returnValue;
-        dialogElement->RequestClose(returnValue);
+        if (StaticPrefs::dom_dialog_light_dismiss_enabled()) {
+          const mozilla::dom::Optional<nsAString> returnValue;
+          dialogElement->RequestClose(returnValue);
+        } else {
+          dialogElement->QueueCancelDialog();
+        }
         return;
       }
     }
