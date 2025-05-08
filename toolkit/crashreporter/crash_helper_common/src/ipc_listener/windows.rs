@@ -4,7 +4,9 @@
 
 use crate::{
     errors::IPCError,
-    platform::windows::{create_manual_reset_event, reset_event, server_name, set_event},
+    platform::windows::{
+        cancel_overlapped_io, create_manual_reset_event, reset_event, server_name, set_event,
+    },
     IPCConnector, Pid,
 };
 
@@ -36,9 +38,8 @@ use windows_sys::Win32::{
 pub struct IPCListener {
     server_name: String,
     handle: OwnedHandle,
-    overlapped: Box<OVERLAPPED>,
+    overlapped: Option<Box<OVERLAPPED>>,
     event: OwnedHandle,
-    connected: bool,
 }
 
 impl IPCListener {
@@ -50,9 +51,8 @@ impl IPCListener {
         Ok(IPCListener {
             server_name,
             handle: pipe,
-            overlapped: Box::new(unsafe { zeroed() }),
+            overlapped: None,
             event,
-            connected: false,
         })
     }
 
@@ -62,19 +62,15 @@ impl IPCListener {
 
     pub fn listen(&mut self) -> Result<(), IPCError> {
         reset_event(self.event.as_handle())?;
-        *self.overlapped.as_mut() = OVERLAPPED {
+        let mut overlapped = Box::new(OVERLAPPED {
             hEvent: self.event.as_raw_handle() as HANDLE,
             ..unsafe { zeroed() }
-        };
+        });
 
         // SAFETY: We guarantee that the handle and OVERLAPPED object are both
         // valid and remain so while used by this function.
-        let res = unsafe {
-            ConnectNamedPipe(
-                self.handle.as_raw_handle() as HANDLE,
-                self.overlapped.as_mut(),
-            )
-        };
+        let res =
+            unsafe { ConnectNamedPipe(self.handle.as_raw_handle() as HANDLE, overlapped.as_mut()) };
         let error = unsafe { GetLastError() };
 
         if res != FALSE {
@@ -84,11 +80,12 @@ impl IPCListener {
         }
 
         match error {
-            ERROR_IO_PENDING => Ok(()),
+            ERROR_IO_PENDING => {
+                self.overlapped = Some(overlapped);
+                Ok(())
+            }
             ERROR_PIPE_CONNECTED => {
                 set_event(self.event.as_handle())?;
-                self.connected = true;
-
                 Ok(())
             }
             _ => Err(IPCError::System(error)),
@@ -96,23 +93,23 @@ impl IPCListener {
     }
 
     pub fn accept(&mut self) -> Result<IPCConnector, IPCError> {
-        if !self.connected {
+        if let Some(overlapped) = self.overlapped.take() {
             let mut _number_of_bytes_transferred: u32 = 0;
             let res = unsafe {
                 GetOverlappedResult(
                     self.handle.as_raw_handle() as HANDLE,
-                    self.overlapped.as_ref(),
+                    overlapped.as_ref(),
                     &mut _number_of_bytes_transferred,
                     /* bWait */ FALSE,
                 )
             };
             let error = unsafe { GetLastError() };
             if res == FALSE {
+                cancel_overlapped_io(self.handle.as_handle(), overlapped);
                 return Err(IPCError::System(error));
             }
         }
 
-        self.connected = false;
         let new_pipe = create_named_pipe(&self.server_name, /* first_instance */ false)?;
         let connected_pipe = std::mem::replace(&mut self.handle, new_pipe);
 
@@ -146,16 +143,24 @@ impl IPCListener {
         let mut listener = IPCListener {
             server_name,
             handle,
-            overlapped: Box::new(unsafe { zeroed() }),
+            overlapped: None,
             event,
-            connected: false,
         };
 
         // Since we've inherited this handler we need to start a new
         // asynchronous operation to listen for incoming connections.
         listener.listen()?;
 
-        return Ok(listener);
+        Ok(listener)
+    }
+}
+
+impl Drop for IPCListener {
+    fn drop(&mut self) {
+        // Cancel whatever I/O operation is pending, if none this is a no-op
+        if let Some(overlapped) = self.overlapped.take() {
+            cancel_overlapped_io(self.handle.as_handle(), overlapped);
+        }
     }
 }
 

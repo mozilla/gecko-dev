@@ -5,7 +5,9 @@
 use crate::{
     errors::{IPCError, MessageError},
     messages::{self, Message, HEADER_SIZE},
-    platform::windows::{create_manual_reset_event, reset_event, server_name},
+    platform::windows::{
+        cancel_overlapped_io, create_manual_reset_event, reset_event, server_name,
+    },
     AncillaryData, Pid, IO_TIMEOUT,
 };
 
@@ -13,7 +15,7 @@ use std::{
     ffi::{c_void, CStr, OsString},
     mem::zeroed,
     os::windows::io::{AsHandle, AsRawHandle, FromRawHandle, OwnedHandle, RawHandle},
-    ptr::{addr_of, addr_of_mut, null_mut},
+    ptr::{addr_of_mut, null_mut},
     str::FromStr,
     time::{Duration, Instant},
 };
@@ -36,31 +38,11 @@ use windows_sys::Win32::{
     },
 };
 
-pub struct IPCPendingRequest {
-    pub overlapped: OVERLAPPED,
-    pub header_buffer: [u8; HEADER_SIZE],
-    pub completed: bool,
-}
-
-impl IPCPendingRequest {
-    fn new(event: HANDLE) -> IPCPendingRequest {
-        let overlapped = OVERLAPPED {
-            hEvent: event,
-            ..unsafe { zeroed() }
-        };
-
-        IPCPendingRequest {
-            overlapped,
-            header_buffer: unsafe { zeroed() },
-            completed: false,
-        }
-    }
-}
-
 pub struct IPCConnector {
     handle: OwnedHandle,
     event: OwnedHandle,
-    pending: Option<Box<IPCPendingRequest>>,
+    header_buffer: [u8; HEADER_SIZE],
+    overlapped: Option<Box<OVERLAPPED>>,
     pid: Pid,
 }
 
@@ -78,7 +60,8 @@ impl IPCConnector {
         Ok(IPCConnector {
             handle,
             event,
-            pending: None,
+            header_buffer: [0; HEADER_SIZE],
+            overlapped: None,
             pid,
         })
     }
@@ -220,7 +203,7 @@ impl IPCConnector {
     }
 
     pub fn sched_recv_header(&mut self) -> Result<(), IPCError> {
-        if self.pending.is_some() {
+        if self.overlapped.is_some() {
             // We're already waiting for a header.
             return Ok(());
         }
@@ -229,15 +212,18 @@ impl IPCConnector {
         let mut number_of_bytes_transferred: u32 = 0;
 
         reset_event(self.event.as_handle())?;
-        let mut pending_request = Box::new(IPCPendingRequest::new(self.event_raw_handle()));
+        let mut overlapped = Box::new(OVERLAPPED {
+            hEvent: self.event_raw_handle(),
+            ..unsafe { zeroed() }
+        });
 
         let res = unsafe {
             ReadFile(
                 self.as_raw(),
-                addr_of_mut!(pending_request.header_buffer) as *mut _,
+                addr_of_mut!(self.header_buffer) as *mut _,
                 bytes_to_transfer,
                 &mut number_of_bytes_transferred,
-                addr_of_mut!(pending_request.overlapped),
+                overlapped.as_mut(),
             )
         };
         let error = unsafe { GetLastError() };
@@ -246,30 +232,25 @@ impl IPCConnector {
             if error != ERROR_IO_PENDING {
                 return Err(IPCError::System(error));
             }
-        } else {
-            if number_of_bytes_transferred != bytes_to_transfer {
-                return Err(IPCError::BadMessage(MessageError::InvalidData));
-            }
 
-            pending_request.completed = true;
+            self.overlapped = Some(overlapped);
+        } else if number_of_bytes_transferred != bytes_to_transfer {
+            return Err(IPCError::BadMessage(MessageError::InvalidData));
         }
-
-        self.pending = Some(pending_request);
 
         Ok(())
     }
 
     pub fn collect_header(&mut self) -> Result<messages::Header, IPCError> {
-        let pending_request = std::mem::take(&mut self.pending)
-            .expect("No pending request should be present on this IPC connector");
+        let overlapped = self.overlapped.take();
 
-        if !pending_request.completed {
+        if let Some(overlapped) = overlapped {
             let mut number_of_bytes_transferred: u32 = 0;
 
             let res = unsafe {
                 GetOverlappedResult(
                     self.as_raw(),
-                    addr_of!(pending_request.overlapped),
+                    overlapped.as_ref(),
                     &mut number_of_bytes_transferred,
                     /* bWait */ FALSE,
                 )
@@ -282,13 +263,13 @@ impl IPCConnector {
             }
         }
 
-        messages::Header::decode(&pending_request.header_buffer).map_err(IPCError::BadMessage)
+        messages::Header::decode(&self.header_buffer).map_err(IPCError::BadMessage)
     }
 
     fn check_completion(
         &self,
         res: BOOL,
-        overlapped: &OVERLAPPED,
+        overlapped: &mut OVERLAPPED,
         number_of_bytes_transferred: &mut u32,
         bytes_to_transfer: usize,
     ) -> Result<(), IPCError> {
@@ -305,9 +286,8 @@ impl IPCConnector {
                     )
                 };
 
-                let error = unsafe { GetLastError() };
                 if res == FALSE {
-                    return Err(IPCError::System(error));
+                    return Err(IPCError::System(unsafe { GetLastError() }));
                 }
             } else {
                 return Err(IPCError::System(error));
@@ -326,10 +306,10 @@ impl IPCConnector {
         let mut number_of_bytes_transferred: u32 = 0;
 
         reset_event(self.event.as_handle())?;
-        let mut overlapped = OVERLAPPED {
+        let mut overlapped = Box::new(OVERLAPPED {
             hEvent: self.event_raw_handle(),
             ..unsafe { zeroed() }
-        };
+        });
 
         let res = unsafe {
             WriteFile(
@@ -337,16 +317,20 @@ impl IPCConnector {
                 buff.as_ptr(),
                 bytes_to_transfer,
                 &mut number_of_bytes_transferred,
-                addr_of_mut!(overlapped),
+                overlapped.as_mut(),
             )
         };
 
         self.check_completion(
             res,
-            &overlapped,
+            overlapped.as_mut(),
             &mut number_of_bytes_transferred,
             bytes_to_transfer as usize,
         )
+        .map_err(|error| {
+            cancel_overlapped_io(self.handle.as_handle(), overlapped);
+            error
+        })
     }
 
     pub fn recv(&self, expected_size: usize) -> Result<(Vec<u8>, Option<AncillaryData>), IPCError> {
@@ -355,10 +339,10 @@ impl IPCConnector {
         let mut number_of_bytes_transferred: u32 = 0;
 
         reset_event(self.event.as_handle())?;
-        let mut overlapped = OVERLAPPED {
+        let mut overlapped = Box::new(OVERLAPPED {
             hEvent: self.event_raw_handle(),
             ..unsafe { zeroed() }
-        };
+        });
 
         let res = unsafe {
             ReadFile(
@@ -366,22 +350,35 @@ impl IPCConnector {
                 buff.as_mut_ptr(),
                 bytes_to_transfer,
                 &mut number_of_bytes_transferred,
-                addr_of_mut!(overlapped),
+                overlapped.as_mut(),
             )
         };
 
         self.check_completion(
             res,
-            &overlapped,
+            overlapped.as_mut(),
             &mut number_of_bytes_transferred,
             bytes_to_transfer as usize,
-        )?;
+        )
+        .map_err(|error| {
+            cancel_overlapped_io(self.handle.as_handle(), overlapped);
+            error
+        })?;
 
         Ok((buff, None))
     }
 
     pub fn endpoint_pid(&self) -> Pid {
         self.pid
+    }
+}
+
+impl Drop for IPCConnector {
+    fn drop(&mut self) {
+        if let Some(overlapped) = self.overlapped.take() {
+            // An I/O operation is still pending and needs to be cancelled
+            cancel_overlapped_io(self.handle.as_handle(), overlapped);
+        }
     }
 }
 
