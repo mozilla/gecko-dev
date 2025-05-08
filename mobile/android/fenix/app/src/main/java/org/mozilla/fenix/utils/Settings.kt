@@ -40,7 +40,6 @@ import org.mozilla.fenix.components.settings.counterPreference
 import org.mozilla.fenix.components.settings.featureFlagPreference
 import org.mozilla.fenix.components.settings.lazyFeatureFlagPreference
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
-import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.debugsettings.addresses.SharedPrefsAddressesDebugLocalesRepository
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getPreferenceKey
@@ -1874,27 +1873,11 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Indicates if the navigation bar CFR should be displayed to the user.
-     */
-    var shouldShowNavigationBarCFR by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_should_navbar_cfr),
-        default = true,
-    )
-
-    /**
      * Indicates if the search bar CFR should be displayed to the user.
      */
     var shouldShowSearchBarCFR by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_should_searchbar_cfr),
         default = false,
-    )
-
-    /**
-     * Indicates Navigation Bar's Navigation buttons CFR should be displayed to the user.
-     */
-    var shouldShowNavigationButtonsCFR by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_toolbar_navigation_cfr),
-        default = true,
     )
 
     /**
@@ -2174,34 +2157,20 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      * Returns the height of the bottom toolbar.
      *
      * The bottom toolbar can consist of:
-     *  - a navigation bar.
-     *  - a combination of a navigation and address bar.
-     *  - a combination of a navigation and address bar & a microsurvey.
      *  - a combination of address bar & a microsurvey.
      *  - be absent.
-     *
-     *  @param context to be used for [shouldAddNavigationBar] function
      */
-    fun getBottomToolbarHeight(context: Context): Int {
-        val isNavbarVisible = context.shouldAddNavigationBar()
+    fun getBottomToolbarHeight(): Int {
         val isMicrosurveyEnabled = shouldShowMicrosurveyPrompt
         val isToolbarAtBottom = toolbarPosition == ToolbarPosition.BOTTOM
 
-        val navbarHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height)
         val microsurveyHeight =
             appContext.resources.getDimensionPixelSize(R.dimen.browser_microsurvey_height)
         val toolbarHeight =
             appContext.resources.getDimensionPixelSize(R.dimen.browser_toolbar_height)
 
         return when {
-            isNavbarVisible && isMicrosurveyEnabled && isToolbarAtBottom ->
-                navbarHeight + microsurveyHeight + toolbarHeight
-
-            isNavbarVisible && isMicrosurveyEnabled -> navbarHeight + microsurveyHeight
-            isNavbarVisible && isToolbarAtBottom -> navbarHeight + toolbarHeight
             isMicrosurveyEnabled && isToolbarAtBottom -> microsurveyHeight + toolbarHeight
-
-            isNavbarVisible -> navbarHeight
             isMicrosurveyEnabled -> microsurveyHeight
             isToolbarAtBottom -> toolbarHeight
 
@@ -2234,28 +2203,15 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      * a combination of a navigation and microsurvey prompt, or be absent.
      */
     fun getBottomToolbarContainerHeight(): Int {
-        val isNavBarEnabled = navigationToolbarEnabled
         val isMicrosurveyEnabled = shouldShowMicrosurveyPrompt
-        val navbarHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height)
         val microsurveyHeight =
             appContext.resources.getDimensionPixelSize(R.dimen.browser_microsurvey_height)
 
         return when {
-            isNavBarEnabled && isMicrosurveyEnabled -> navbarHeight + microsurveyHeight
-            isNavBarEnabled -> navbarHeight
             isMicrosurveyEnabled -> microsurveyHeight
             else -> 0
         }
     }
-
-    /**
-     * Indicates if the user is shown the new navigation toolbar.
-     */
-    var navigationToolbarEnabled by lazyFeatureFlagPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_toolbar_show_navigation_toolbar),
-        default = { FxNimbus.features.navigationToolbar.value().enabled },
-        featureFlag = true,
-    )
 
     /**
      * Indicates if the microsurvey feature is enabled.

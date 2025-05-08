@@ -34,9 +34,8 @@ interface FenixHomeToolbar {
      * Updates the visibility of the tab counter and menu buttons.
      *
      * @param browserState [BrowserState] is used to update tab counter's state.
-     * @param shouldAddNavigationBar [Boolean] is used to update menu button's and tab counter's state.
      */
-    fun updateButtonVisibility(browserState: BrowserState, shouldAddNavigationBar: Boolean)
+    fun updateButtonVisibility(browserState: BrowserState)
 
     /**
      * Updates the visibility of the address bar.

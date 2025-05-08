@@ -23,7 +23,6 @@ import mozilla.components.support.utils.ext.isContentUrl
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.Events
-import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.GleanMetrics.Translations
 import org.mozilla.fenix.HomeActivity
@@ -38,7 +37,6 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
-import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
@@ -288,11 +286,7 @@ class DefaultBrowserToolbarController(
             )
         }
 
-        if (activity.shouldAddNavigationBar()) {
-            NavigationBar.browserNewTabTapped.record(NoExtras())
-        } else {
-            Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("new_tab"))
-        }
+        Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("new_tab"))
 
         browserAnimator.captureEngineViewAndDrawStatically {
             navController.navigate(
@@ -302,11 +296,7 @@ class DefaultBrowserToolbarController(
     }
 
     override fun handleNewTabButtonLongClick() {
-        if (activity.shouldAddNavigationBar()) {
-            NavigationBar.browserNewTabLongTapped.record(NoExtras())
-        } else {
-            Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("new_tab_long_press"))
-        }
+        Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("new_tab_long_press"))
     }
 
     override fun handleMenuButtonClicked(

@@ -69,8 +69,6 @@
     <dimen name="browser_navbar_height">49dp</dimen>
     <dimen name="tab_strip_height">56dp</dimen>
     <dimen name="browser_microsurvey_height">131dp</dimen>
-    <dimen name="toolbar_horizontal_margin">16dp</dimen>
-    <dimen name="toolbar_horizontal_margin_end">8dp</dimen>
 
     <!-- Bookmark Edit Fragment  -->
     <dimen name="bookmark_edit_text_height">48dp</dimen>
@@ -79,7 +77,6 @@
     <!-- Home Fragment -->
     <dimen name="home_fragment_top_toolbar_header_margin">60dp</dimen>
     <dimen name="home_item_horizontal_margin">16dp</dimen>
-    <dimen name="home_item_horizontal_short_margin">8dp</dimen>
     <dimen name="home_item_vertical_margin">8dp</dimen>
     <dimen name="wordmark_text_height">18dp</dimen>
     <dimen name="wordmark_text_margin_top">10dp</dimen>

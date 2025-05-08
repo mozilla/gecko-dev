@@ -10,6 +10,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -42,6 +43,7 @@ import org.mozilla.fenix.benchmark.utils.TARGET_PACKAGE
 @RequiresApi(Build.VERSION_CODES.P)
 @RunWith(AndroidJUnit4::class)
 @BaselineProfileGenerator
+@Ignore("Disabled: https://bugzilla.mozilla.org/show_bug.cgi?id=1964970")
 class LaunchIntentBaselineProfileGenerator {
 
     @get:Rule

@@ -54,7 +54,6 @@ class HomeActivityTestRule(
         isHomeOnboardingDialogEnabled: Boolean = settings.showHomeOnboardingDialog &&
             FenixOnboarding(appContext).userHasBeenOnboarded(),
         isPocketEnabled: Boolean = settings.showPocketRecommendationsFeature,
-        isNavigationBarCFREnabled: Boolean = settings.shouldShowNavigationBarCFR,
         isRecentTabsFeatureEnabled: Boolean = settings.showRecentTabsFeature,
         isRecentlyVisitedFeatureEnabled: Boolean = settings.historyMetadataUIFeature,
         isPWAsPromptEnabled: Boolean = !settings.userKnowsAboutPwas,
@@ -64,7 +63,6 @@ class HomeActivityTestRule(
         etpPolicy: ETPPolicy = getETPPolicy(settings),
         composeTopSitesEnabled: Boolean = false,
         isLocationPermissionEnabled: SitePermissionsRules.Action = getFeaturePermission(PhoneFeature.LOCATION, settings),
-        isNavigationToolbarEnabled: Boolean = false,
         isMenuRedesignEnabled: Boolean = false,
         isMenuRedesignCFREnabled: Boolean = false,
         isNewBookmarksEnabled: Boolean = false,
@@ -75,7 +73,6 @@ class HomeActivityTestRule(
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
-        this.isNavigationBarCFREnabled = isNavigationBarCFREnabled
         this.isRecentTabsFeatureEnabled = isRecentTabsFeatureEnabled
         this.isRecentlyVisitedFeatureEnabled = isRecentlyVisitedFeatureEnabled
         this.isPWAsPromptEnabled = isPWAsPromptEnabled
@@ -85,7 +82,6 @@ class HomeActivityTestRule(
         this.etpPolicy = etpPolicy
         this.composeTopSitesEnabled = composeTopSitesEnabled
         this.isLocationPermissionEnabled = isLocationPermissionEnabled
-        this.isNavigationToolbarEnabled = isNavigationToolbarEnabled
         this.isMenuRedesignEnabled = isMenuRedesignEnabled
         this.isMenuRedesignCFREnabled = isMenuRedesignCFREnabled
         this.isNewBookmarksEnabled = isNewBookmarksEnabled
@@ -181,7 +177,6 @@ class HomeActivityIntentTestRule internal constructor(
         isHomeOnboardingDialogEnabled: Boolean = settings.showHomeOnboardingDialog &&
             FenixOnboarding(appContext).userHasBeenOnboarded(),
         isPocketEnabled: Boolean = settings.showPocketRecommendationsFeature,
-        isNavigationBarCFREnabled: Boolean = settings.shouldShowNavigationBarCFR,
         isRecentTabsFeatureEnabled: Boolean = settings.showRecentTabsFeature,
         isRecentlyVisitedFeatureEnabled: Boolean = settings.historyMetadataUIFeature,
         isPWAsPromptEnabled: Boolean = !settings.userKnowsAboutPwas,
@@ -191,7 +186,6 @@ class HomeActivityIntentTestRule internal constructor(
         etpPolicy: ETPPolicy = getETPPolicy(settings),
         composeTopSitesEnabled: Boolean = false,
         isLocationPermissionEnabled: SitePermissionsRules.Action = getFeaturePermission(PhoneFeature.LOCATION, settings),
-        isNavigationToolbarEnabled: Boolean = false,
         isMenuRedesignEnabled: Boolean = false,
         isMenuRedesignCFREnabled: Boolean = false,
         isNewBookmarksEnabled: Boolean = false,
@@ -203,7 +197,6 @@ class HomeActivityIntentTestRule internal constructor(
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
-        this.isNavigationBarCFREnabled = isNavigationBarCFREnabled
         this.isRecentTabsFeatureEnabled = isRecentTabsFeatureEnabled
         this.isRecentlyVisitedFeatureEnabled = isRecentlyVisitedFeatureEnabled
         this.isPWAsPromptEnabled = isPWAsPromptEnabled
@@ -213,7 +206,6 @@ class HomeActivityIntentTestRule internal constructor(
         this.etpPolicy = etpPolicy
         this.composeTopSitesEnabled = composeTopSitesEnabled
         this.isLocationPermissionEnabled = isLocationPermissionEnabled
-        this.isNavigationToolbarEnabled = isNavigationToolbarEnabled
         this.isMenuRedesignEnabled = isMenuRedesignEnabled
         this.isMenuRedesignCFREnabled = isMenuRedesignCFREnabled
         this.isNewBookmarksEnabled = isNewBookmarksEnabled
@@ -280,7 +272,6 @@ class HomeActivityIntentTestRule internal constructor(
         isHomeOnboardingDialogEnabled =
             settings.showHomeOnboardingDialog && FenixOnboarding(appContext).userHasBeenOnboarded()
         isPocketEnabled = settings.showPocketRecommendationsFeature
-        isNavigationBarCFREnabled = settings.shouldShowNavigationBarCFR
         isRecentTabsFeatureEnabled = settings.showRecentTabsFeature
         isRecentlyVisitedFeatureEnabled = settings.historyMetadataUIFeature
         isPWAsPromptEnabled = !settings.userKnowsAboutPwas
@@ -289,7 +280,6 @@ class HomeActivityIntentTestRule internal constructor(
         isOpenInAppBannerEnabled = settings.shouldShowOpenInAppBanner
         etpPolicy = getETPPolicy(settings)
         isLocationPermissionEnabled = getFeaturePermission(PhoneFeature.LOCATION, settings)
-        isNavigationToolbarEnabled = settings.navigationToolbarEnabled
         isMenuRedesignEnabled = settings.enableMenuRedesign
         isMenuRedesignCFREnabled = settings.shouldShowMenuCFR
         isNewBookmarksEnabled = settings.useNewBookmarks

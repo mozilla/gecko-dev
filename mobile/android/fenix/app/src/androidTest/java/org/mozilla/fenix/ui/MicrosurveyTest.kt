@@ -24,8 +24,6 @@ class MicrosurveyTest : TestSetup() {
             HomeActivityIntentTestRule(
                 skipOnboarding = true,
                 isMicrosurveyEnabled = true,
-                isNavigationBarCFREnabled = false,
-                isNavigationToolbarEnabled = true,
             ),
         ) { it.activity }
 
@@ -40,7 +38,8 @@ class MicrosurveyTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.clickShareButtonFromRedesignedToolbar {
+        }.openThreeDotMenu {
+        }.clickShareButton {
         }.clickPrintButton {
             mDevice.waitForIdle()
             mDevice.pressBack()
@@ -62,7 +61,8 @@ class MicrosurveyTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage1.url) {
-        }.clickShareButtonFromRedesignedToolbar {
+        }.openThreeDotMenu {
+        }.clickShareButton {
         }.clickPrintButton {
             mDevice.waitForIdle()
             mDevice.pressBack()
@@ -89,7 +89,8 @@ class MicrosurveyTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.clickShareButtonFromRedesignedToolbar {
+        }.openThreeDotMenu {
+        }.clickShareButton {
         }.clickPrintButton {
             mDevice.waitForIdle()
             mDevice.pressBack()
