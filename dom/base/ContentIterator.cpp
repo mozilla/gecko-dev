@@ -952,27 +952,15 @@ void ContentSubtreeIterator::CacheInclusiveAncestorsOfEndContainer() {
       mRange, mAllowCrossShadowBoundary);
   nsIContent* endNode =
       endContainer->IsContent() ? endContainer->AsContent() : nullptr;
-
-  AncestorInfo info{endNode, false};
-  while (info.mAncestor) {
-    const nsINode* child = info.mAncestor;
-    mInclusiveAncestorsOfEndContainer.AppendElement(info);
+  while (endNode) {
+    mInclusiveAncestorsOfEndContainer.AppendElement(endNode);
     // Cross the boundary for contents in shadow tree.
     nsINode* parent = ShadowDOMSelectionHelpers::GetParentNodeInSameSelection(
-        *child, mAllowCrossShadowBoundary);
+        *endNode, IterAllowCrossShadowBoundary());
     if (!parent || !parent->IsContent()) {
       break;
     }
-
-    const bool isDescendantInShadowTree =
-        IterAllowCrossShadowBoundary() && child->IsShadowRoot();
-
-    info.mAncestor = parent->AsContent();
-    // mIsDescendantInShadowTree indicates that whether child is in the
-    // shadow tree of parent or in the regular light DOM tree of parent.
-    // So that later, when info.mAncestor is reached, we can decide whether
-    // we should dive into the shadow tree.
-    info.mIsDescendantInShadowTree = isDescendantInShadowTree;
+    endNode = parent->AsContent();
   }
 }
 
@@ -1176,20 +1164,20 @@ void ContentSubtreeIterator::Next() {
 
   NS_ASSERTION(nextNode, "No next sibling!?! This could mean deadlock!");
 
-  int32_t i = mInclusiveAncestorsOfEndContainer.IndexOf(
-      nextNode, 0, InclusiveAncestorComparator());
-
+  int32_t i = mInclusiveAncestorsOfEndContainer.IndexOf(nextNode);
   while (i != -1) {
     // as long as we are finding ancestors of the endpoint of the range,
     // dive down into their children
     ShadowRoot* root = ShadowDOMSelectionHelpers::GetShadowRoot(
-        nextNode, mAllowCrossShadowBoundary);
-    if (mInclusiveAncestorsOfEndContainer[i].mIsDescendantInShadowTree) {
-      nextNode = root->GetFirstChild();
-    } else {
-      MOZ_ASSERT(
-          !mInclusiveAncestorsOfEndContainer[i].mIsDescendantInShadowTree);
+        nextNode, IterAllowCrossShadowBoundary());
+    if (!root) {
       nextNode = nextNode->GetFirstChild();
+    } else {
+      // If IterAllowCrossShadowBoundary() returns true, it means we should
+      // use shadow-including order for this iterator, that means the shadow
+      // root should always be iterated.
+      nextNode = IterAllowCrossShadowBoundary() ? root->GetFirstChild()
+                                                : nextNode->GetFirstChild();
     }
     NS_ASSERTION(nextNode, "Iterator error, expected a child node!");
 
@@ -1197,8 +1185,7 @@ void ContentSubtreeIterator::Next() {
     // down the child chain to the bottom without finding an interior node,
     // then the previous node should have been the last, which was
     // was tested at top of routine.
-    i = mInclusiveAncestorsOfEndContainer.IndexOf(
-        nextNode, 0, InclusiveAncestorComparator());
+    i = mInclusiveAncestorsOfEndContainer.IndexOf(nextNode);
   }
 
   mCurNode = nextNode;

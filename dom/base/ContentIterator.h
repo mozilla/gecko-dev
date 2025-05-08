@@ -97,20 +97,6 @@ class ContentIteratorBase {
       nsIContent* aRoot,
       dom::AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary);
 
-  struct AncestorInfo {
-    nsIContent* mAncestor = nullptr;
-    // mIsDescendantInShadowTree is used to determine if we should go
-    // dive into the shadow tree or regular light DOM tree if mAncestor
-    // is a shadow host. It should always be false otherwise.
-    bool mIsDescendantInShadowTree = false;
-  };
-
-  class InclusiveAncestorComparator {
-   public:
-    bool Equals(const AncestorInfo& aA, const nsINode* aB) const {
-      return aA.mAncestor == aB;
-    }
-  };
   // Get the next/previous sibling of aNode, or its parent's, or grandparent's,
   // etc.  Returns null if aNode and all its ancestors have no next/previous
   // sibling.
@@ -344,7 +330,7 @@ class ContentSubtreeIterator final : public SafeContentIteratorBase {
   RefPtr<dom::AbstractRange> mRange;
 
   // See <https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor>.
-  AutoTArray<AncestorInfo, 8> mInclusiveAncestorsOfEndContainer;
+  AutoTArray<nsIContent*, 8> mInclusiveAncestorsOfEndContainer;
 
   // Whether this iterator allows to iterate nodes across shadow boundary.
   dom::AllowRangeCrossShadowBoundary mAllowCrossShadowBoundary =
