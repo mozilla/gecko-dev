@@ -14,19 +14,20 @@ add_setup(async function () {
   });
 });
 
-add_task(async function test_basic_restore_tabgroup() {
+async function simple_tabgroup_search_test(label, searchString) {
+  info(`Attempting to find tab group '${label}' by typing '${searchString}'`);
   const win = await BrowserTestUtils.openNewBrowserWindow();
   let aboutRobotsTab = BrowserTestUtils.addTab(win.gBrowser, "about:robots");
   let aboutMozillaTab = BrowserTestUtils.addTab(win.gBrowser, "about:mozilla");
   let tabGroup = win.gBrowser.addTabGroup([aboutRobotsTab, aboutMozillaTab], {
     color: "blue",
-    label: "my about pages",
+    label,
   });
   tabGroup.collapsed = true;
 
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window: win,
-    value: "about",
+    value: searchString,
   });
   await UrlbarTestUtils.promisePopupClose(win, () => {
     EventUtils.synthesizeKey("KEY_Tab", {}, win);
@@ -39,4 +40,16 @@ add_task(async function test_basic_restore_tabgroup() {
   );
 
   await BrowserTestUtils.closeWindow(win);
+}
+
+add_task(async function test_first_letter() {
+  await simple_tabgroup_search_test("About Pages", "a");
+});
+
+add_task(async function test_substring() {
+  await simple_tabgroup_search_test("My About Pages", "about");
+});
+
+add_task(async function test_words() {
+  await simple_tabgroup_search_test("My About Pages", "abou pag");
 });
