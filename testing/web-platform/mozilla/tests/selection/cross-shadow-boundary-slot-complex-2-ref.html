@@ -1,0 +1,15 @@
+<!doctype html>
+<div>
+  in shadow
+  <span id="slot1">--slotted 1--</span>
+  <div>
+    in nested shadow
+    <span id="slot2">--slotted 2--</span>
+    <span id="end">in nested shadow</span>
+  </div>
+  in shadow
+</div>
+<script>
+  window.getSelection()
+      .setBaseAndExtent(slot1.firstChild, 3, end.firstChild, 7);
+</script>

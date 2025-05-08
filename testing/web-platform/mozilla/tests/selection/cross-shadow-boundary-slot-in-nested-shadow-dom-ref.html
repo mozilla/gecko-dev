@@ -1,0 +1,13 @@
+<!doctype html>
+<span id="outer">Outer</span>
+<div id="host">
+  <span id="inner">Inner</span>
+  <div id="innerHost">
+    <span id="inner">Inner2</span>
+    <span id="slotted">Slotted</span>
+  </div>
+</div>
+<script>
+  window.getSelection()
+      .setBaseAndExtent(outer.firstChild, 3, slotted.firstChild, 5);
+</script>

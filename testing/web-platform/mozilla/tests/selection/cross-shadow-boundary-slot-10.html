@@ -1,0 +1,14 @@
+<head>
+<link rel="match" href="cross-shadow-boundary-slot-10-ref.html"/>
+</head>
+<div id="host">
+  <template shadowrootmode="open">
+    <slot></slot>
+  </template>
+  <span>slotted</span>
+</div>
+
+<script>
+  // "slotted" is selected
+  window.getSelection().setBaseAndExtent(host, 0, host, host.childNodes.length);
+</script>

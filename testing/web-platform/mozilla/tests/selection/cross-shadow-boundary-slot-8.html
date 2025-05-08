@@ -1,0 +1,30 @@
+<!doctype html>
+<head>
+<link rel="match" href="cross-shadow-boundary-slot-8-ref.html"/>
+</head>
+<div>
+  <template shadowrootmode="open">
+    <slot name="first"></slot>
+    <span id="inner">Inner</span>
+    <slot name="second"></slot>
+  </template>
+  <span id="second" slot="second">Second</span>
+  <span id="first" slot="first">First</span>
+</div>
+<div>
+  <template shadowrootmode="open">
+    <slot name="third"></slot>
+    <span id="inner">Inner</span>
+    <slot name="fourth"></slot>
+  </template>
+  <span id="fourth" slot="fourth">Fourth</span>
+  <span id="third" slot="third">Third</span>
+</div>
+<script>
+  // This selects:
+
+  // rst Inner Second
+  // Third Inner Fou
+  window.getSelection()
+      .setBaseAndExtent(fourth.firstChild, 3, first.firstChild, 2);
+</script>

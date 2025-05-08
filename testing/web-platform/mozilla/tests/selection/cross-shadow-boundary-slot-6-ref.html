@@ -1,0 +1,12 @@
+<!doctype html>
+<span id="outer">Outer</span>
+<div id="host">
+    <span id="inner">Inner</span>
+    <span id="first">First</span>
+    <span>Second</span>
+</div>
+<script>
+  // select "First" shouldn't select "Second"
+  window.getSelection()
+      .setBaseAndExtent(outer.firstChild, 3, first.firstChild, 2);
+</script>

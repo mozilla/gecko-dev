@@ -1,0 +1,25 @@
+<!doctype html>
+<head>
+<link rel="match" href="cross-shadow-boundary-slot-reversed-ref.html"/>
+</head>
+<div id="host"></div>
+<script>
+  const root = host.attachShadow({mode:"open", slotAssignment: "manual"});
+  root.innerHTML="<span>Start</span> <slot></slot> <span>End</span>"
+
+  const node1 = document.createElement("span");
+  node1.innerText = "text1";
+
+  const node2 = document.createElement("span");
+  node2.innerText = "text2";
+
+  // Note that node1 is before node2 in DOM order, but users will
+  // see node2 is ahead of node1.
+  host.appendChild(node1);
+  host.appendChild(node2);
+
+  root.querySelector("slot").assign(node2, node1);
+
+  // "xt2tex" is selected
+  window.getSelection().setBaseAndExtent(node2.firstChild, 2, node1.firstChild, 3);
+</script>
