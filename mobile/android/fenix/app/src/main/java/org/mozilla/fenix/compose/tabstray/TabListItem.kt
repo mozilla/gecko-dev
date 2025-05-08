@@ -34,7 +34,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
@@ -326,7 +325,7 @@ private fun Thumbnail(
                         .matchParentSize()
                         .padding(all = 8.dp),
                     contentDescription = null,
-                    tint = colorResource(id = R.color.mozac_ui_icons_fill),
+                    tint = FirefoxTheme.colors.iconActionPrimary,
                 )
             }
         }

@@ -40,7 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -368,7 +367,7 @@ private fun Thumbnail(
                         .matchParentSize()
                         .padding(all = 8.dp),
                     contentDescription = null,
-                    tint = colorResource(id = R.color.mozac_ui_icons_fill),
+                    tint = FirefoxTheme.colors.iconActionPrimary,
                 )
             }
         }
