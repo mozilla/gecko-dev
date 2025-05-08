@@ -50,6 +50,18 @@
 
 .ai-content {
     padding: var(--og-padding);
+    .og-error-message-container {
+        margin:0;
+        font-size: var(--og-main-font-size);
+
+        .og-error-message {
+            color: var(--text-color-deemphasized);
+        }
+
+        a {
+            color: var(--text-color-deemphasized);
+        }
+    }
 
     h3 {
         align-items: center;
@@ -67,23 +79,22 @@
       margin-inline-start: var(--space-xlarge);
       pointer-events: none;
       width: var(--icon-size-default);
-  }
-
-
-  > ul {
-      font-size: var(--og-main-font-size);
-      line-height: 1.15;  /* Design requires 18px line-height */
-      list-style-type: square;
-      padding-inline-start: var(--space-large);
-  }
-
-  li {
-      margin-block: var(--space-medium);
-      padding-inline-start: 5px;
-      &::marker {
-        color: var(--border-color-deemphasized);
     }
-  }
+
+    > ul {
+        font-size: var(--og-main-font-size);
+        line-height: 1.15;  /* Design requires 18px line-height */
+        list-style-type: square;
+        padding-inline-start: var(--space-large);
+    }
+
+    li {
+        margin-block: var(--space-medium);
+        padding-inline-start: 5px;
+        &::marker {
+            color: var(--border-color-deemphasized);
+        }
+    }
 
   .visit-link-container {
     align-items: center;
