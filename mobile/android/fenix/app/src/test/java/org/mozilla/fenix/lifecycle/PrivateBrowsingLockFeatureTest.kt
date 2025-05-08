@@ -58,7 +58,7 @@ class PrivateBrowsingLockFeatureTest {
     @Test
     fun `GIVEN the feature is enabled WHEN number of private tabs reaches zero THEN we unlock private mode`() {
         every { settings.privateBrowsingLockedEnabled } returns true
-        val store = createBrowser()
+        val store = createBrowserStore()
         PrivateBrowsingLockFeature(appStore, store, settings)
 
         store.dispatch(TabListAction.RemoveAllPrivateTabsAction).joinBlocking()
@@ -73,7 +73,7 @@ class PrivateBrowsingLockFeatureTest {
     @Test
     fun `GIVEN the feature is disabled WHEN number of private tabs reaches zero THEN we don't lock private mode`() {
         every { settings.privateBrowsingLockedEnabled } returns false
-        val store = createBrowser()
+        val store = createBrowserStore()
         PrivateBrowsingLockFeature(appStore, store, settings)
 
         store.dispatch(TabListAction.RemoveAllPrivateTabsAction).joinBlocking()
@@ -88,7 +88,7 @@ class PrivateBrowsingLockFeatureTest {
     @Test
     fun `GIVEN the feature is on and there are private tabs WHEN initializing the app THEN we lock private mode`() {
         every { settings.privateBrowsingLockedEnabled } returns true
-        val store = createBrowser(
+        val store = createBrowserStore(
             tabs = listOf(
                 createTab("https://www.firefox.com", id = "firefox", private = true),
                 createTab("https://www.mozilla.org", id = "mozilla"),
@@ -113,7 +113,7 @@ class PrivateBrowsingLockFeatureTest {
     @Test
     fun `GIVEN the feature is off and there are private tabs WHEN initializing the app THEN we do not lock private mode`() {
         every { settings.privateBrowsingLockedEnabled } returns false
-        val store = createBrowser(
+        val store = createBrowserStore(
             tabs = listOf(
                 createTab("https://www.firefox.com", id = "firefox", private = true),
                 createTab("https://www.mozilla.org", id = "mozilla"),
@@ -138,7 +138,7 @@ class PrivateBrowsingLockFeatureTest {
     @Test
     fun `GIVEN there are private tabs WHEN switching to normal mode THEN we lock private mode`() {
         every { settings.privateBrowsingLockedEnabled } returns true
-        val store = createBrowser(tabs = listOf(createTab("https://www.mozilla.org", id = "mozilla")))
+        val store = createBrowserStore(tabs = listOf(createTab("https://www.mozilla.org", id = "mozilla")))
         val appStore = spy(AppStore(initialState = AppState(mode = BrowsingMode.Private)))
         PrivateBrowsingLockFeature(appStore, store, settings)
 
@@ -227,7 +227,7 @@ class PrivateBrowsingLockFeatureTest {
     @Test
     fun `GIVEN private mode with private tabs WHEN Activity stops without config change THEN lock is triggered`() {
         every { settings.privateBrowsingLockedEnabled } returns true
-        val store = createBrowser(
+        val store = createBrowserStore(
             tabs = listOf(createTab("https://www.mozilla.org", id = "mozilla")),
             selectedTabId = "mozilla",
         )
@@ -247,7 +247,7 @@ class PrivateBrowsingLockFeatureTest {
     @Test
     fun `GIVEN normal mode with private tabs WHEN TabsTrayFragment stops THEN lock is triggered`() {
         every { settings.privateBrowsingLockedEnabled } returns true
-        val store = createBrowser(
+        val store = createBrowserStore(
             tabs = listOf(createTab("https://www.mozilla.org", id = "mozilla")),
             selectedTabId = "mozilla",
         )
@@ -269,18 +269,16 @@ class PrivateBrowsingLockFeatureTest {
         }
     }
 
-    private fun createBrowser(
+    private fun createBrowserStore(
         tabs: List<TabSessionState> = listOf(
             createTab("https://www.firefox.com", id = "firefox", private = true),
             createTab("https://www.mozilla.org", id = "mozilla"),
         ),
         selectedTabId: String = "mozilla",
-    ): BrowserStore {
-        return BrowserStore(
-            BrowserState(
-                tabs = tabs,
-                selectedTabId = selectedTabId,
-            ),
-        )
-    }
+    ) = BrowserStore(
+        BrowserState(
+            tabs = tabs,
+            selectedTabId = selectedTabId,
+        ),
+    )
 }
