@@ -728,6 +728,8 @@ var TelemetryReportingPolicyImpl = {
     this._nimbusVariables = lazy.NimbusFeatures.preonboarding.getAllVariables();
 
     if (this._nimbusVariables.enabled === null) {
+      const PREF_TOS_ROLLOUT_ENROLLED =
+        "browser.preonboarding.enrolledInOnTrainRollout";
       const preonboardingMessage =
         lazy.OnboardingMessageProvider.getPreonboardingMessages().find(
           m => m.id === "NEW_USER_TOU_ONBOARDING"
@@ -742,6 +744,7 @@ var TelemetryReportingPolicyImpl = {
           )
         ),
       };
+      Services.prefs.setBoolPref(PREF_TOS_ROLLOUT_ENROLLED, true);
       this._log.trace(
         `_configureFromNimbus: using default preonboarding message`
       );

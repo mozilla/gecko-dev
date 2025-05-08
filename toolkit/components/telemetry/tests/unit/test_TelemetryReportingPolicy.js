@@ -717,6 +717,15 @@ add_task(
       "showModal is invoked once when not enrolled in an experiemnt"
     );
 
+    Assert.equal(
+      true,
+      Services.prefs.getBoolPref(
+        "browser.preonboarding.enrolledInOnTrainRollout",
+        false
+      ),
+      "Pref recording that user is enrolled in on-train rollout is set to true"
+    );
+
     sinon.restore();
     fakeResetAcceptedPolicy();
   }
