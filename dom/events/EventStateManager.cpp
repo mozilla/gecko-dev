@@ -29,6 +29,7 @@
 #include "mozilla/TextEvents.h"
 #include "mozilla/TouchEvents.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/dom/AncestorIterator.h"
 #include "mozilla/dom/BrowserBridgeChild.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
@@ -2456,12 +2457,7 @@ LayoutDeviceIntPoint EventStateManager::GetEventRefPoint(
 
 void EventStateManager::BeginTrackingRemoteDragGesture(
     nsIContent* aContent, RemoteDragStartData* aDragStartData) {
-  mGestureDownContent = aContent;
-  mGestureDownFrameOwner = aContent;
-  mGestureDownInTextControl =
-      aContent && aContent->IsInNativeAnonymousSubtree() &&
-      TextControlElement::FromNodeOrNull(
-          aContent->GetClosestNativeAnonymousSubtreeRootParentOrHost());
+  UpdateGestureContent(aContent);
   mGestureDownDragStartData = aDragStartData;
 }
 
@@ -2605,7 +2601,20 @@ void EventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
 
   AutoWeakFrame targetFrameBefore = mCurrentTarget;
   auto autoRestore = MakeScopeExit([&] { mCurrentTarget = targetFrameBefore; });
-  mCurrentTarget = mGestureDownFrameOwner->GetPrimaryFrame();
+
+  mCurrentTarget = nullptr;
+  // Try to find a suitable frame by looping through the ancestors chain.
+  for (auto* content :
+       mGestureDownFrameOwner->InclusiveFlatTreeAncestorsOfType<nsIContent>()) {
+    if (nsIFrame* target = content->GetPrimaryFrame()) {
+      mCurrentTarget = target;
+
+      if (content != mGestureDownFrameOwner) {
+        UpdateGestureContent(content);
+      }
+      break;
+    }
+  }
 
   if (!mCurrentTarget || !mCurrentTarget->GetNearestWidget()) {
     StopTrackingDragGesture(true);
@@ -7511,6 +7520,15 @@ bool EventStateManager::WheelPrefs::IsOverOnePageScrollAllowedY(
          MIN_MULTIPLIER_VALUE_ALLOWING_OVER_ONE_PAGE_SCROLL;
 }
 
+void EventStateManager::UpdateGestureContent(nsIContent* aContent) {
+  mGestureDownContent = aContent;
+  mGestureDownFrameOwner = aContent;
+  mGestureDownInTextControl =
+      aContent && aContent->IsInNativeAnonymousSubtree() &&
+      TextControlElement::FromNodeOrNull(
+          aContent->GetClosestNativeAnonymousSubtreeRootParentOrHost());
+}
+
 void EventStateManager::NotifyContentWillBeRemovedForGesture(
     nsIContent& aContent) {
   if (!mGestureDownContent) {
@@ -7522,13 +7540,7 @@ void EventStateManager::NotifyContentWillBeRemovedForGesture(
     return;
   }
 
-  nsIContent* parent = aContent.GetFlattenedTreeParent();
-  mGestureDownContent = parent;
-  mGestureDownFrameOwner = parent;
-  mGestureDownInTextControl =
-      parent && parent->IsInNativeAnonymousSubtree() &&
-      TextControlElement::FromNodeOrNull(
-          parent->GetClosestNativeAnonymousSubtreeRootParentOrHost());
+  UpdateGestureContent(aContent.GetFlattenedTreeParent());
 }
 
 }  // namespace mozilla
