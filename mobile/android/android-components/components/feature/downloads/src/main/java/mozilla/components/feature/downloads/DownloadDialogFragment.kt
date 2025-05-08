@@ -7,8 +7,6 @@ package mozilla.components.feature.downloads
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatDialogFragment
 import mozilla.components.browser.state.state.content.DownloadState
-import mozilla.components.feature.downloads.DownloadDialogFragment.Companion.KILOBYTE
-import mozilla.components.feature.downloads.DownloadDialogFragment.Companion.MEGABYTE
 import mozilla.components.feature.downloads.ext.realFilenameOrGuessed
 
 /**
@@ -56,27 +54,5 @@ abstract class DownloadDialogFragment : AppCompatDialogFragment() {
         const val KEY_URL = "KEY_URL"
 
         const val FRAGMENT_TAG = "SHOULD_DOWNLOAD_PROMPT_DIALOG"
-
-        const val MEGABYTE = 1024.0 * 1024.0
-
-        const val KILOBYTE = 1024.0
-
-        const val BYTES_TO_MB_LIMIT = 0.01
     }
-}
-
-/**
- * Converts the bytes to megabytes with two decimal places and returns a formatted string
- */
-@Suppress("DefaultLocale")
-fun Long.toMegabyteString(): String {
-    return String.format("%.2f MB", this / MEGABYTE)
-}
-
-/**
- * Converts the bytes to kilobytes with two decimal places and returns a formatted string
- */
-@Suppress("DefaultLocale")
-fun Long.toKilobyteString(): String {
-    return String.format("%.2f KB", this / KILOBYTE)
 }
