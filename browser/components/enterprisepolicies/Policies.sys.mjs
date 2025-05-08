@@ -1330,8 +1330,7 @@ export var Policies = {
             "extensions.htmlaboutaddons.recommendations.enable",
             false
           );
-          // Block about:debugging
-          blockAboutPage(manager, "about:debugging");
+          manager.disallowFeature("installTemporaryAddon");
         }
         if ("restricted_domains" in extensionSettings["*"]) {
           let restrictedDomains = Services.prefs
@@ -1661,7 +1660,7 @@ export var Policies = {
       if ("Default" in param) {
         setAndLockPref("xpinstall.enabled", param.Default);
         if (!param.Default) {
-          blockAboutPage(manager, "about:debugging");
+          manager.disallowFeature("installTemporaryAddon");
           setAndLockPref(
             "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons",
             false
