@@ -30,7 +30,6 @@ namespace mozilla::dom {
 class Document;
 class Selection;
 class StaticRange;
-class HTMLSlotElement;
 
 enum class AllowRangeCrossShadowBoundary : bool { No, Yes };
 
@@ -194,9 +193,7 @@ class AbstractRange : public nsISupports,
             typename RangeType>
   static nsresult SetStartAndEndInternal(
       const RangeBoundaryBase<SPT, SRT>& aStartBoundary,
-      const RangeBoundaryBase<EPT, ERT>& aEndBoundary, RangeType* aRange,
-      AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary =
-          AllowRangeCrossShadowBoundary::No);
+      const RangeBoundaryBase<EPT, ERT>& aEndBoundary, RangeType* aRange);
 
   template <class RangeType>
   static bool MaybeCacheToReuse(RangeType& aInstance);
@@ -230,15 +227,8 @@ class AbstractRange : public nsISupports,
 
   void UpdateCommonAncestorIfNecessary();
 
-  static void MarkDescendants(nsINode& aNode);
-  static void UnmarkDescendants(nsINode& aNode);
-
-  static void UpdateDescendantsInFlattenedTree(nsINode& aNode,
-                                               bool aMarkDescendants);
-  friend void mozilla::SlotAssignedNodeAdded(dom::HTMLSlotElement* aSlot,
-                                             nsIContent& aAssignedNode);
-  friend void mozilla::SlotAssignedNodeRemoved(dom::HTMLSlotElement* aSlot,
-                                               nsIContent& aUnassignedNode);
+  static void MarkDescendants(const nsINode& aNode);
+  static void UnmarkDescendants(const nsINode& aNode);
 
  private:
   void ClearForReuse();

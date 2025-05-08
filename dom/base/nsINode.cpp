@@ -310,26 +310,17 @@ static const nsINode* GetClosestCommonInclusiveAncestorForRangeInSelection(
     const nsINode* aNode) {
   while (aNode &&
          !aNode->IsClosestCommonInclusiveAncestorForRangeInSelection()) {
-    const bool isNodeInFlattenedShadowTree =
+    const bool isNodeInShadowTree =
         StaticPrefs::dom_shadowdom_selection_across_boundary_enabled() &&
-        (aNode->IsInShadowTree() ||
-         (aNode->IsContent() && aNode->AsContent()->GetAssignedSlot()));
-
+        aNode->IsInShadowTree();
     if (!aNode
              ->IsDescendantOfClosestCommonInclusiveAncestorForRangeInSelection() &&
-        !isNodeInFlattenedShadowTree) {
+        !isNodeInShadowTree) {
       return nullptr;
     }
-
-    if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
-      if (aNode->IsContent() && aNode->AsContent()->GetAssignedSlot()) {
-        aNode = aNode->AsContent()->GetAssignedSlot();
-      } else {
-        aNode = aNode->GetParentOrShadowHostNode();
-      }
-      continue;
-    }
-    aNode = aNode->GetParentNode();
+    aNode = StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
+                ? aNode->GetParentOrShadowHostNode()
+                : aNode->GetParentNode();
   }
   return aNode;
 }

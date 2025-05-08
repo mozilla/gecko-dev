@@ -100,8 +100,7 @@ class nsRange final : public mozilla::dom::AbstractRange,
   static already_AddRefed<nsRange> Create(
       const mozilla::RangeBoundaryBase<SPT, SRT>& aStartBoundary,
       const mozilla::RangeBoundaryBase<EPT, ERT>& aEndBoundary,
-      ErrorResult& aRv,
-      AllowRangeCrossShadowBoundary = AllowRangeCrossShadowBoundary::No);
+      ErrorResult& aRv);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_IMETHODIMP_(void) DeleteCycleCollectable(void) override;
@@ -161,23 +160,17 @@ class nsRange final : public mozilla::dom::AbstractRange,
    * collapsed at the end point.  Similarly, if they are in different root,
    * the range will be collapsed at the end point.
    */
-  nsresult SetStartAndEnd(
-      nsINode* aStartContainer, uint32_t aStartOffset, nsINode* aEndContainer,
-      uint32_t aEndOffset,
-      AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary =
-          AllowRangeCrossShadowBoundary::No) {
+  nsresult SetStartAndEnd(nsINode* aStartContainer, uint32_t aStartOffset,
+                          nsINode* aEndContainer, uint32_t aEndOffset) {
     return SetStartAndEnd(RawRangeBoundary(aStartContainer, aStartOffset),
-                          RawRangeBoundary(aEndContainer, aEndOffset),
-                          aAllowCrossShadowBoundary);
+                          RawRangeBoundary(aEndContainer, aEndOffset));
   }
   template <typename SPT, typename SRT, typename EPT, typename ERT>
   nsresult SetStartAndEnd(
       const mozilla::RangeBoundaryBase<SPT, SRT>& aStartBoundary,
-      const mozilla::RangeBoundaryBase<EPT, ERT>& aEndBoundary,
-      AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary =
-          AllowRangeCrossShadowBoundary::No) {
-    return AbstractRange::SetStartAndEndInternal(
-        aStartBoundary, aEndBoundary, this, aAllowCrossShadowBoundary);
+      const mozilla::RangeBoundaryBase<EPT, ERT>& aEndBoundary) {
+    return AbstractRange::SetStartAndEndInternal(aStartBoundary, aEndBoundary,
+                                                 this);
   }
 
   /**
