@@ -4,6 +4,8 @@ skip-if = ["os == 'android'"]
 
 ["test_async_flush.js"]
 
+["test_async_flush_group_profile.js"]
+
 ["test_check_backup.js"]
 
 ["test_claim_locked.js"]
