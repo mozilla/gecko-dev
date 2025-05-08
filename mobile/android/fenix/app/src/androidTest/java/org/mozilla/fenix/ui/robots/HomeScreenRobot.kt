@@ -498,7 +498,6 @@ class HomeScreenRobot {
 
     fun verifyThoughtProvokingStories(enabled: Boolean) {
         if (enabled) {
-            // scrollToElementByText(getStringResource(R.string.pocket_stories_header_1))
             assertUIObjectExists(itemContainingText(getStringResource(R.string.pocket_stories_header_1)))
         } else {
             assertUIObjectExists(itemContainingText(getStringResource(R.string.pocket_stories_header_1)), exists = false)
@@ -513,7 +512,10 @@ class HomeScreenRobot {
         Log.i(TAG, "scrollToPocketProvokingStories: Scrolled into view the featured pocket stories")
     }
 
-    fun verifyPocketRecommendedStoriesItems() {
+    fun verifyPocketRecommendedStoriesItems(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "verifyPocketRecommendedStoriesItems: Trying to scroll into view the \"Thought-provoking stories\" pocket section")
+        composeTestRule.onNodeWithTag("homepage.view").performScrollToNode(hasTestTag("pocket.stories"))
+        Log.i(TAG, "verifyPocketRecommendedStoriesItems: Scrolled into view the \"Thought-provoking stories\" pocket section")
         for (position in 0..8) {
             Log.i(TAG, "verifyPocketRecommendedStoriesItems: Trying to scroll into view the featured pocket story from position: $position")
             pocketStoriesList().scrollIntoView(UiSelector().index(position))
