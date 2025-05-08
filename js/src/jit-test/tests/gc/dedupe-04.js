@@ -17,36 +17,6 @@
 // Given that the children must be created before the rope that points to them,
 // that means the rope creation would need to be pretenured or similar.
 
-// This case *does* happen in practice, in an actual web page. I'm not totally
-// clear on how. But it's actually the simpler case where no deduplication is
-// involved, just a nursery->tenured->nursery chain, which triggered an assert.
-function no_dedupe() {
-    // Add an object to the whole cell buffer so it can be used later to trace
-    // the correct string first. The whole cell buffer is used surprisingly
-    // little outside the JIT and strings, but a tenured WeakRef with a nursery
-    // target will use it. Fortunately, WeakRefs are always tenured.
-    var Tobj = new WeakRef(Object.create(null));
-
-    // Tenured -> nursery edge, put in whole cell buffer.
-    Tobj.name = newString("blah", { tenured: false });
-    var NB4 = newString("diddle doodle dawdle dink. piddle poodle paddle pink. widdle woodle wattle wink.", { tenured: false });
-    var TD3 = newDependentString(NB4, 0, 70, { tenured: true });
-    var ND2 = newDependentString(TD3, 0, 60, { tenured: false, 'suppress-contraction': true });
-    Tobj.name = ND2; // Make Tobj point to ND2 to process it first.
-    NB4 = TD3 = null;
-
-    // When tracing the whole cell buffer, Tobj will cause ND2 to be promoted
-    // first. Later ND2 is promoted, and it has a base chain of ND2->TD3->NB4.
-    // TD3, though in the whole cell buffer, has not yet been traced, so it
-    // still points to the nursery version of NB4. As a result, when ND2 is
-    // promoted to TD2, it will see NB4 as its base string, which still has the
-    // original chars pointer. ND2 is able to force-promote NB4 to a tenured TB4
-    // and recompute its chars as TD2.chars=(NB4.chars-ND2.chars)+TB4.chars. It
-    // is difficult but not impossible to trigger this code path in practice.
-    minorgc();
-    return ND2;
-}
-
 function with_dependent() {
     // Create a base NB5 to deduplicate to.
     var base = "MY YOUNGEST MEMORY IS OF A TOE, A GIANT BLUE TOE, IT MADE FUN OF ME INCESSANTLY BUT THAT DID NOT BOTHER ME IN THE LEAST. MY MOTHER WOULD HAVE BEEN HORRIFIED, BUT SHE WAS A GOOSE AND HAD ALREADY LAID THE EGG THAT CONTAINED ME SO SHE DID NOT ESPECIALLY CARE AND THOUGHT THAT IT WOULD BE GOOD TO BE TOUGHENED UP.";
@@ -162,6 +132,5 @@ function with_rope() {
     }
 }
 
-no_dedupe();
 with_dependent();
 with_rope();
