@@ -1296,16 +1296,16 @@ add_task(async function test_restorePrefs_experimentAndRollout() {
         });
       }
 
-      storePath = await NimbusTestUtils.saveStore(manager.store);
-
-      removePrefObservers(manager);
-      assertNoObservers(manager);
-
       // User branch prefs persist through restart, so we only want to delete
       // the prefs if we changed the default branch.
       if (branch === "default") {
         Services.prefs.deleteBranch(pref);
       }
+
+      removePrefObservers(manager);
+      assertNoObservers(manager);
+
+      storePath = await NimbusTestUtils.saveStore(manager.store);
     }
 
     // Restore the default branch value as it was before "restarting".
@@ -1368,9 +1368,8 @@ add_task(async function test_restorePrefs_experimentAndRollout() {
       i++;
     }
 
-    cleanup();
-
     Services.prefs.deleteBranch(pref);
+    cleanup();
   }
 
   {
@@ -2326,12 +2325,19 @@ add_task(async function test_deleteBranch() {
     })
   );
 
+  Services.prefs.deleteBranch(PREFS[USER]);
+  Services.prefs.deleteBranch(PREFS[DEFAULT]);
+
+  // deleteBranch does not trigger pref observers!
+  Assert.equal(
+    manager.store.getAll().length,
+    4,
+    "nsIPrefBranch::deleteBranch does not trigger unenrollment"
+  );
+
   for (const cleanupFn of cleanupFunctions) {
     cleanupFn();
   }
-
-  Services.prefs.deleteBranch(PREFS[USER]);
-  Services.prefs.deleteBranch(PREFS[DEFAULT]);
 
   cleanup();
 });
@@ -2853,12 +2859,12 @@ add_task(async function test_restorePrefs_manifestChanged() {
         userPref = PrefUtils.getPref(pref, { branch });
       }
 
-      storePath = await NimbusTestUtils.saveStore(manager.store);
-
       removePrefObservers(manager);
       assertNoObservers(manager);
 
       Services.prefs.deleteBranch(pref);
+
+      storePath = await NimbusTestUtils.saveStore(manager.store);
     }
 
     // Restore the default branch value as it was before "restarting".
@@ -3428,14 +3434,14 @@ add_task(async function test_setPref_types_restore() {
       { manager }
     );
 
-    storePath = await NimbusTestUtils.saveStore(manager.store);
+    for (const varDef of Object.values(TYPED_FEATURE.manifest.variables)) {
+      Services.prefs.deleteBranch(varDef.setPref.pref);
+    }
 
     removePrefObservers(manager);
     assertNoObservers(manager);
 
-    for (const varDef of Object.values(TYPED_FEATURE.manifest.variables)) {
-      Services.prefs.deleteBranch(varDef.setPref.pref);
-    }
+    storePath = await NimbusTestUtils.saveStore(manager.store);
   }
 
   const { manager, cleanup } = await setupTest({ storePath });
