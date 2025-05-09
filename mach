@@ -11,7 +11,7 @@ import traceback
 from textwrap import dedent, fill
 
 MIN_PYTHON_VERSION = (3, 8)
-MAX_PYTHON_VERSION_TO_CONSIDER = (3, 11)
+MAX_PYTHON_VERSION_TO_CONSIDER = (3, 12)
 
 
 def load_mach(dir_path, mach_path, args):
