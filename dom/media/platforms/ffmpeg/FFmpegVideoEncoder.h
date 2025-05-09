@@ -22,7 +22,6 @@ class FFmpegVideoEncoder : public MediaDataEncoder {};
 
 template <>
 class FFmpegVideoEncoder<LIBAV_VER> : public FFmpegDataEncoder<LIBAV_VER> {
-  using DurationMap = SimpleMap<int64_t, int64_t, ThreadSafePolicy>;
   using PtsMap = SimpleMap<int64_t, int64_t, NoOpPolicy>;
 
  public:
