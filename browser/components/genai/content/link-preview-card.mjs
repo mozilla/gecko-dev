@@ -43,16 +43,12 @@ class LinkPreviewCard extends MozLitElement {
     keyPoints: { type: Array },
     pageData: { type: Object },
     progress: { type: Number }, // -1 = off, 0-100 = download progress
-    isMissingDataErrorState: { type: Boolean },
-    isGenerationErrorState: { type: Boolean },
   };
 
   constructor() {
     super();
     this.keyPoints = [];
     this.progress = -1;
-    this.isMissingDataErrorState = false;
-    this.isGenerationErrorState = false;
   }
 
   addKeyPoint(text) {
@@ -90,17 +86,6 @@ class LinkPreviewCard extends MozLitElement {
     );
   }
 
-  /**
-   * Handles retry request for key points generation.
-   *
-   * @param {MouseEvent} event - The click event.
-   */
-  handleRetry(event) {
-    event.preventDefault();
-    // Dispatch retry event to be handled by LinkPreview.sys.mjs
-    this.dispatchEvent(new CustomEvent("LinkPreviewCard:retry"));
-  }
-
   updated(properties) {
     if (properties.has("generating")) {
       if (this.generating > 0) {
@@ -114,180 +99,6 @@ class LinkPreviewCard extends MozLitElement {
         clearTimeout(this.dotsTimeout);
       }
     }
-  }
-
-  /**
-   * Get the appropriate Fluent ID for the error message based on the error state.
-   *
-   * @returns {string} The Fluent ID for the error message.
-   */
-  get errorMessageL10nId() {
-    if (this.isMissingDataErrorState) {
-      return "link-preview-generation-error-missing-data";
-    } else if (this.isGenerationErrorState) {
-      return "link-preview-generation-error-unexpected";
-    }
-    return "";
-  }
-
-  /**
-   * Renders the error generation card for when we have a generation error.
-   *
-   * @returns {import('lit').TemplateResult} The error generation card HTML
-   */
-  renderErrorGenerationCard() {
-    return html`
-      <div class="ai-content">
-        <p class="og-error-message-container">
-          <span
-            class="og-error-message"
-            data-l10n-id=${this.errorMessageL10nId}
-          ></span>
-          ${this.isGenerationErrorState
-            ? html`
-                <span class="retry-link">
-                  <a
-                    href="#"
-                    @click=${this.handleRetry}
-                    data-l10n-id="link-preview-generation-retry"
-                  ></a>
-                </span>
-              `
-            : ""}
-        </p>
-      </div>
-    `;
-  }
-
-  /**
-   * Renders the normal generation card for displaying key points.
-   *
-   * @param {string} pageUrl - URL of the page being previewed
-   * @returns {import('lit').TemplateResult} The normal generation card HTML
-   */
-  /**
-   * Renders the normal generation card for displaying key points.
-   *
-   * @param {string} pageUrl - URL of the page being previewed
-   * @returns {import('lit').TemplateResult} The normal generation card HTML
-   */
-  renderNormalGenerationCard(pageUrl) {
-    // Extract the links section into its own variable
-    const linksSection = html`
-      <p>
-        Key points are AI-generated and may have mistakes.
-        <a
-          @click=${this.handleLink}
-          data-source="feedback"
-          href=${FEEDBACK_LINK}
-        >
-          Share feedback
-        </a>
-      </p>
-      <p>
-        <a @click=${this.handleLink} data-source="visit" href=${pageUrl}>
-          Visit original page
-        </a>
-      </p>
-    `;
-
-    return html`
-      <div class="ai-content">
-        <h3>
-          Key points
-          <img
-            class="icon"
-            xmlns="http://www.w3.org/1999/xhtml"
-            role="presentation"
-            src="chrome://global/skin/icons/highlights.svg"
-          />
-        </h3>
-        <ul class="keypoints-list">
-          ${
-            /* All populated content items */
-            this.keyPoints.map(
-              item => html`<li class="content-item">${item}</li>`
-            )
-          }
-          ${
-            /* Loading placeholders with three divs each */
-            this.generating
-              ? Array(
-                  Math.max(
-                    0,
-                    LinkPreviewCard.PLACEHOLDER_COUNT - this.keyPoints.length
-                  )
-                )
-                  .fill()
-                  .map(
-                    () =>
-                      html` <li class="content-item loading">
-                        <div></div>
-                        <div></div>
-                        <div></div>
-                      </li>`
-                  )
-              : []
-          }
-        </ul>
-        ${!this.generating
-          ? html`
-              <div class="visit-link-container">
-                <a
-                  @click=${this.handleLink}
-                  data-source="visit"
-                  href=${pageUrl}
-                  class="visit-link"
-                >
-                  Visit page
-                  <img
-                    class="icon"
-                    xmlns="http://www.w3.org/1999/xhtml"
-                    role="presentation"
-                    src="chrome://global/skin/icons/open-in-new.svg"
-                  />
-                </a>
-              </div>
-            `
-          : ""}
-        ${this.progress >= 0
-          ? html`
-              <p>First-time setup • <strong>${this.progress}%</strong></p>
-              <p>You'll see key points more quickly next time.</p>
-            `
-          : ""}
-        ${!this.generating
-          ? html`
-              <hr />
-              ${linksSection}
-            `
-          : ""}
-      </div>
-    `;
-  }
-
-  /**
-   * Renders the appropriate content card based on state.
-   *
-   * @param {string} pageUrl - URL of the page being previewed
-   * @returns {import('lit').TemplateResult} The content card HTML
-   */
-  renderKeyPointsSection(pageUrl) {
-    // Determine if there's any generation error state
-    const isGenerationError =
-      this.isMissingDataErrorState || this.isGenerationErrorState;
-
-    if (isGenerationError) {
-      return this.renderErrorGenerationCard(pageUrl);
-    }
-
-    // Show key points section only if generating or we have key points
-    if (this.generating || this.keyPoints.length) {
-      return this.renderNormalGenerationCard(pageUrl);
-    }
-
-    // Otherwise, don't show the keypoints section
-    return "";
   }
 
   /**
@@ -385,7 +196,85 @@ class LinkPreviewCard extends MozLitElement {
               `
             : ""}
         </div>
-        ${this.renderKeyPointsSection(pageUrl)}
+        ${this.generating || this.keyPoints.length
+          ? html`
+              <div class="ai-content">
+                <h3>
+                  Key points
+                  <img
+                    class="icon"
+                    xmlns="http://www.w3.org/1999/xhtml"
+                    role="presentation"
+                    src="chrome://global/skin/icons/highlights.svg"
+                  />
+                </h3>
+                <ul class="keypoints-list">
+                  ${
+                    /* All populated content items */
+                    this.keyPoints.map(
+                      item => html`<li class="content-item">${item}</li>`
+                    )
+                  }
+                  ${
+                    /* Loading placeholders with three divs each */
+                    this.generating
+                      ? Array(
+                          Math.max(
+                            0,
+                            LinkPreviewCard.PLACEHOLDER_COUNT -
+                              this.keyPoints.length
+                          )
+                        )
+                          .fill()
+                          .map(
+                            () =>
+                              html` <li class="content-item loading">
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                              </li>`
+                          )
+                      : []
+                  }
+                </ul>
+                <div class="visit-link-container">
+                  <a
+                    @click=${this.handleLink}
+                    data-source="visit"
+                    href=${pageUrl}
+                    class="visit-link"
+                  >
+                    Visit page
+                    <img
+                      class="icon"
+                      xmlns="http://www.w3.org/1999/xhtml"
+                      role="presentation"
+                      src="chrome://global/skin/icons/open-in-new.svg"
+                    />
+                  </a>
+                </div>
+                ${this.progress >= 0
+                  ? html`
+                      <p>
+                        First-time setup • <strong>${this.progress}%</strong>
+                      </p>
+                      <p>You'll see key points more quickly next time.</p>
+                    `
+                  : ""}
+                <hr />
+                <p>
+                  Key points are AI-generated and may have mistakes.
+                  <a
+                    @click=${this.handleLink}
+                    data-source="feedback"
+                    href=${FEEDBACK_LINK}
+                  >
+                    Share feedback
+                  </a>
+                </p>
+              </div>
+            `
+          : ""}
       </div>
     `;
 
