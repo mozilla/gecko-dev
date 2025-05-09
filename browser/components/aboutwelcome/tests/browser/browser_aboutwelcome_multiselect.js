@@ -110,15 +110,18 @@ add_task(async function test_multiselect_with_item_description() {
       // Both items have labels
       `.multi-select-container .multi-select-item:first-of-type label`,
       `.multi-select-container .multi-select-item:last-of-type label`,
-      // Second item has input description linked to input
+      // Second item has input label and description linked to input
       `.multi-select-container .multi-select-item:last-of-type input[aria-describedby="checkbox-2-description"]`,
+      `.multi-select-container .multi-select-item:last-of-type input[aria-labelledby="checkbox-2-label"]`,
       `.multi-select-container .multi-select-item:last-of-type p#checkbox-2-description`,
+      `.multi-select-container .multi-select-item:last-of-type label#checkbox-2-label`,
     ],
     // Unexpected selectors
     [
       // First item has no description paragraph or aria-describedby attribute
       `.multi-select-container .multi-select-item:first-of-type p`,
       `.multi-select-container .multi-select-item:first-of-type input[aria-describedby*="-description"]`,
+      `.multi-select-container .multi-select-item:first-of-type input[aria-labelledby*="-label"]`,
     ]
   );
 });
