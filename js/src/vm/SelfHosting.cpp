@@ -876,11 +876,96 @@ static bool intrinsic_GeneratorSetClosed(JSContext* cx, unsigned argc,
   return true;
 }
 
+template <typename T>
+static bool intrinsic_ArrayBufferByteLength(JSContext* cx, unsigned argc,
+                                            Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 1);
+  MOZ_ASSERT(args[0].isObject());
+  MOZ_ASSERT(args[0].toObject().is<T>());
+
+  size_t byteLength = args[0].toObject().as<T>().byteLength();
+  args.rval().setNumber(byteLength);
+  return true;
+}
+
+template <typename T>
+static bool intrinsic_PossiblyWrappedArrayBufferByteLength(JSContext* cx,
+                                                           unsigned argc,
+                                                           Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 1);
+
+  T* obj = args[0].toObject().maybeUnwrapAs<T>();
+  if (!obj) {
+    ReportAccessDenied(cx);
+    return false;
+  }
+
+  size_t byteLength = obj->byteLength();
+  args.rval().setNumber(byteLength);
+  return true;
+}
+
 static void AssertNonNegativeInteger(const Value& v) {
   MOZ_ASSERT(v.isNumber());
   MOZ_ASSERT(v.toNumber() >= 0);
   MOZ_ASSERT(v.toNumber() < DOUBLE_INTEGRAL_PRECISION_LIMIT);
   MOZ_ASSERT(JS::ToInteger(v.toNumber()) == v.toNumber());
+}
+
+template <typename T>
+static bool intrinsic_ArrayBufferCopyData(JSContext* cx, unsigned argc,
+                                          Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 6);
+  AssertNonNegativeInteger(args[1]);
+  AssertNonNegativeInteger(args[3]);
+  AssertNonNegativeInteger(args[4]);
+
+  bool isWrapped = args[5].toBoolean();
+  Rooted<T*> toBuffer(cx);
+  if (!isWrapped) {
+    toBuffer = &args[0].toObject().as<T>();
+  } else {
+    JSObject* wrapped = &args[0].toObject();
+    MOZ_ASSERT(wrapped->is<WrapperObject>());
+    toBuffer = wrapped->maybeUnwrapAs<T>();
+    if (!toBuffer) {
+      ReportAccessDenied(cx);
+      return false;
+    }
+  }
+  size_t toIndex = size_t(args[1].toNumber());
+  Rooted<T*> fromBuffer(cx, &args[2].toObject().as<T>());
+  size_t fromIndex = size_t(args[3].toNumber());
+  size_t count = size_t(args[4].toNumber());
+
+  T::copyData(toBuffer, toIndex, fromBuffer, fromIndex, count);
+
+  args.rval().setUndefined();
+  return true;
+}
+
+// Arguments must both be SharedArrayBuffer or wrapped SharedArrayBuffer.
+static bool intrinsic_SharedArrayBuffersMemorySame(JSContext* cx, unsigned argc,
+                                                   Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 2);
+
+  auto* lhs = args[0].toObject().maybeUnwrapAs<SharedArrayBufferObject>();
+  if (!lhs) {
+    ReportAccessDenied(cx);
+    return false;
+  }
+  auto* rhs = args[1].toObject().maybeUnwrapAs<SharedArrayBufferObject>();
+  if (!rhs) {
+    ReportAccessDenied(cx);
+    return false;
+  }
+
+  args.rval().setBoolean(lhs->rawBufferObject() == rhs->rawBufferObject());
+  return true;
 }
 
 static bool intrinsic_IsTypedArrayConstructor(JSContext* cx, unsigned argc,
@@ -1903,11 +1988,18 @@ static bool intrinsic_ToTemporalDuration(JSContext* cx, unsigned argc,
 
 static const JSFunctionSpec intrinsic_functions[] = {
     // Intrinsic helper functions
+    JS_INLINABLE_FN("ArrayBufferByteLength",
+                    intrinsic_ArrayBufferByteLength<ArrayBufferObject>, 1, 0,
+                    IntrinsicArrayBufferByteLength),
+    JS_FN("ArrayBufferCopyData",
+          intrinsic_ArrayBufferCopyData<ArrayBufferObject>, 6, 0),
     JS_INLINABLE_FN("ArrayIteratorPrototypeOptimizable",
                     intrinsic_ArrayIteratorPrototypeOptimizable, 0, 0,
                     IntrinsicArrayIteratorPrototypeOptimizable),
     JS_FN("AssertionFailed", intrinsic_AssertionFailed, 1, 0),
     JS_FN("BigIntToNumber", intrinsic_BigIntToNumber, 1, 0),
+    JS_FN("CallArrayBufferMethodIfWrapped",
+          CallNonGenericSelfhostedMethod<Is<ArrayBufferObject>>, 2, 0),
     JS_FN("CallArrayIteratorMethodIfWrapped",
           CallNonGenericSelfhostedMethod<Is<ArrayIteratorObject>>, 2, 0),
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
@@ -1940,6 +2032,8 @@ static const JSFunctionSpec intrinsic_functions[] = {
           CallNonGenericSelfhostedMethod<Is<SetIteratorObject>>, 2, 0),
     JS_FN("CallSetMethodIfWrapped",
           CallNonGenericSelfhostedMethod<Is<SetObject>>, 2, 0),
+    JS_FN("CallSharedArrayBufferMethodIfWrapped",
+          CallNonGenericSelfhostedMethod<Is<SharedArrayBufferObject>>, 2, 0),
     JS_FN("CallStringIteratorMethodIfWrapped",
           CallNonGenericSelfhostedMethod<Is<StringIteratorObject>>, 2, 0),
     JS_FN("CallTypedArrayMethodIfWrapped",
@@ -2083,6 +2177,10 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_INLINABLE_FN("IsTypedArrayConstructor",
                     intrinsic_IsTypedArrayConstructor, 1, 0,
                     IntrinsicIsTypedArrayConstructor),
+    JS_FN("IsWrappedArrayBuffer",
+          intrinsic_IsWrappedInstanceOfBuiltin<ArrayBufferObject>, 1, 0),
+    JS_FN("IsWrappedSharedArrayBuffer",
+          intrinsic_IsWrappedInstanceOfBuiltin<SharedArrayBufferObject>, 1, 0),
     JS_INLINABLE_FN("NewArrayIterator", intrinsic_NewArrayIterator, 0, 0,
                     IntrinsicNewArrayIterator),
     JS_FN("NewAsyncIteratorHelper", intrinsic_NewAsyncIteratorHelper, 0, 0),
@@ -2098,6 +2196,14 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("NewWrapForValidIterator", intrinsic_NewWrapForValidIterator, 0, 0),
     JS_FN("NoPrivateGetter", intrinsic_NoPrivateGetter, 1, 0),
     JS_FN("NumberToBigInt", intrinsic_NumberToBigInt, 1, 0),
+    JS_INLINABLE_FN(
+        "PossiblyWrappedArrayBufferByteLength",
+        intrinsic_PossiblyWrappedArrayBufferByteLength<ArrayBufferObject>, 1, 0,
+        IntrinsicPossiblyWrappedArrayBufferByteLength),
+    JS_FN(
+        "PossiblyWrappedSharedArrayBufferByteLength",
+        intrinsic_PossiblyWrappedArrayBufferByteLength<SharedArrayBufferObject>,
+        1, 0),
     JS_FN("PossiblyWrappedTypedArrayHasDetachedBuffer",
           intrinsic_PossiblyWrappedTypedArrayHasDetachedBuffer, 1, 0),
     JS_INLINABLE_FN("PossiblyWrappedTypedArrayLength",
@@ -2126,6 +2232,12 @@ static const JSFunctionSpec intrinsic_functions[] = {
           intrinsic_RegExpSymbolProtocolOnPrimitiveCounter, 0, 0),
     JS_INLINABLE_FN("SameValue", js::obj_is, 2, 0, ObjectIs),
     JS_FN("SetCopy", SetObject::copy, 1, 0),
+    JS_FN("SharedArrayBufferByteLength",
+          intrinsic_ArrayBufferByteLength<SharedArrayBufferObject>, 1, 0),
+    JS_FN("SharedArrayBufferCopyData",
+          intrinsic_ArrayBufferCopyData<SharedArrayBufferObject>, 6, 0),
+    JS_FN("SharedArrayBuffersMemorySame",
+          intrinsic_SharedArrayBuffersMemorySame, 2, 0),
     JS_FN("StringReplaceAllString", intrinsic_StringReplaceAllString, 3, 0),
     JS_INLINABLE_FN("StringReplaceString", intrinsic_StringReplaceString, 3, 0,
                     IntrinsicStringReplaceString),

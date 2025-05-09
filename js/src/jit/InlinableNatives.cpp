@@ -238,6 +238,8 @@ bool js::jit::CanInlineNativeCrossRealm(InlinableNative native) {
     case InlinableNative::IntrinsicGuardToSetObject:
     case InlinableNative::IntrinsicGetNextSetEntryForIterator:
     case InlinableNative::IntrinsicGuardToArrayBuffer:
+    case InlinableNative::IntrinsicArrayBufferByteLength:
+    case InlinableNative::IntrinsicPossiblyWrappedArrayBufferByteLength:
     case InlinableNative::IntrinsicGuardToSharedArrayBuffer:
     case InlinableNative::IntrinsicIsTypedArrayConstructor:
     case InlinableNative::IntrinsicIsTypedArray:

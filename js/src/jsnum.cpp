@@ -2205,39 +2205,6 @@ bool js::ToIndexSlow(JSContext* cx, JS::HandleValue v,
   return true;
 }
 
-/**
- * Convert |value| to an integer and clamp it to a valid integer index within
- * the range `[0..length]`.
- */
-template <typename ArrayLength>
-bool js::ToIntegerIndexSlow(JSContext* cx, Handle<Value> value,
-                            ArrayLength length, ArrayLength* result) {
-  MOZ_ASSERT(!value.isInt32());
-
-  double relative;
-  if (!ToInteger(cx, value, &relative)) {
-    return false;
-  }
-
-  if (relative >= 0) {
-    *result = ArrayLength(std::min(relative, double(length)));
-  } else {
-    *result = ArrayLength(std::max(relative + double(length), 0.0));
-  }
-  return true;
-}
-
-static_assert(std::is_same_v<size_t, uint32_t> ||
-                  std::is_same_v<size_t, uint64_t>,
-              "If this assertion fails, add the corresponding unsigned int "
-              "type for size_t to the explicit instantiations below");
-
-template bool js::ToIntegerIndexSlow<uint32_t>(JSContext*, Handle<Value>,
-                                               uint32_t, uint32_t*);
-
-template bool js::ToIntegerIndexSlow<uint64_t>(JSContext*, Handle<Value>,
-                                               uint64_t, uint64_t*);
-
 template <typename CharT>
 double js_strtod(const CharT* begin, const CharT* end, const CharT** dEnd) {
   const CharT* s = SkipSpace(begin, end);

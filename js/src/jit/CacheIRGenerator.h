@@ -756,6 +756,7 @@ class MOZ_RAII InlinableNativeIRGenerator {
   AttachDecision tryAttachTypedArrayElementSize();
   AttachDecision tryAttachTypedArrayLength(bool isPossiblyWrapped,
                                            bool allowOutOfBounds);
+  AttachDecision tryAttachArrayBufferByteLength(bool isPossiblyWrapped);
   AttachDecision tryAttachIsConstructing();
   AttachDecision tryAttachGetNextMapSetEntryForIterator(bool isMap);
   AttachDecision tryAttachNewArrayIterator();
