@@ -256,9 +256,16 @@ export class ChromeProfileMigrator extends MigratorBase {
         ];
         if (lazy.ChromeMigrationUtils.supportsLoginsForPlatform) {
           possibleResourcePromises.push(
-            this._GetPasswordsResource(profileFolder),
-            this._GetPaymentMethodsResource(profileFolder)
+            this._GetPasswordsResource(profileFolder)
           );
+
+          // We no longer support importing payment methods from Chrome on
+          // Windows.
+          if (AppConstants.platform != "win") {
+            possibleResourcePromises.push(
+              this._GetPaymentMethodsResource(profileFolder)
+            );
+          }
         }
 
         // Some of these Promises might reject due to things like database
