@@ -56,7 +56,7 @@ class RecentVisitsFeatureTest {
     fun setup() {
         historyHightlightsStorage = mockk(relaxed = true)
         historyMetadataStorage = mockk(relaxed = true)
-        Settings.SEARCH_GROUP_MINIMUM_SITES = 1
+        Settings.searchGroupMinimumSites = 1
     }
 
     @Test

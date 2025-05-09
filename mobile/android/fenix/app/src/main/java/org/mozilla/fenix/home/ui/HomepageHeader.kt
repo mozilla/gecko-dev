@@ -35,9 +35,9 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
-import org.mozilla.fenix.home.ui.HomepageTestTag.homepageWordMarkLogo
-import org.mozilla.fenix.home.ui.HomepageTestTag.homepageWordMarkText
-import org.mozilla.fenix.home.ui.HomepageTestTag.privateBrowsingHomepageButton
+import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE_WORDMARK_LOGO
+import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE_WORDMARK_TEXT
+import org.mozilla.fenix.home.ui.HomepageTestTag.PRIVATE_BROWSING_HOMEPAGE_BUTTON
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
@@ -74,7 +74,7 @@ private fun WordmarkLogo() {
             .height(40.dp)
             .semantics {
                 testTagsAsResourceId = true
-                testTag = homepageWordMarkLogo
+                testTag = HOMEPAGE_WORDMARK_LOGO
             }
             .padding(end = 10.dp),
         painter = painterResource(getAttr(R.attr.fenixWordmarkLogo)),
@@ -89,7 +89,7 @@ private fun WordmarkText() {
         modifier = Modifier
             .semantics {
                 testTagsAsResourceId = true
-                testTag = homepageWordMarkText
+                testTag = HOMEPAGE_WORDMARK_TEXT
             }
             .height(dimensionResource(R.dimen.wordmark_text_height)),
         painter = painterResource(getAttr(R.attr.fenixWordmarkText)),
@@ -112,7 +112,7 @@ private fun PrivateBrowsingButton(
             .size(40.dp)
             .semantics {
                 testTagsAsResourceId = true
-                testTag = privateBrowsingHomepageButton
+                testTag = PRIVATE_BROWSING_HOMEPAGE_BUTTON
             },
         checked = browsingMode.isPrivate,
         onCheckedChange = {

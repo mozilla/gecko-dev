@@ -45,10 +45,10 @@ open class LocaleAwareAppCompatActivity : AppCompatActivity() {
     @SuppressWarnings("VariableNaming")
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     fun setLayoutDirectionIfNeeded() {
-        val isAndroid8 = Build.VERSION.SDK_INT == Build.VERSION_CODES.O
-        val isAndroid8_1 = Build.VERSION.SDK_INT == Build.VERSION_CODES.O_MR1
+        val isOreo = Build.VERSION.SDK_INT == Build.VERSION_CODES.O
+        val isOreoMr1 = Build.VERSION.SDK_INT == Build.VERSION_CODES.O_MR1
 
-        if (isAndroid8 || isAndroid8_1) {
+        if (isOreo || isOreoMr1) {
             window.decorView.layoutDirection = resources.configuration.layoutDirection
         }
     }

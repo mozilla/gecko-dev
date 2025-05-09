@@ -88,17 +88,17 @@ class SwitchContextTest : TestSetup() {
     @Test
     fun switchFromSettingsToFocusTest() {
         // Initialize UiDevice instance
-        val LAUNCH_TIMEOUT = 5000
-        val SETTINGS_APP = "com.android.settings"
+        val appLaunchTimeoutMillis = 5000
+        val settingsPackage = "com.android.settings"
         val settingsApp = mDevice.findObject(
             UiSelector()
-                .packageName(SETTINGS_APP)
+                .packageName(settingsPackage)
                 .enabled(true),
         )
         val launcherPackage = mDevice.launcherPackageName
         val context = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val intent = context.packageManager
-            .getLaunchIntentForPackage(SETTINGS_APP)
+            .getLaunchIntentForPackage(settingsPackage)
         val testPage = TestAssetHelper.getGenericAsset(webServer)
 
         // Open a webpage
@@ -112,7 +112,7 @@ class SwitchContextTest : TestSetup() {
         Assert.assertNotNull(launcherPackage)
         mDevice.wait(
             Until.hasObject(By.pkg(launcherPackage).depth(0)),
-            LAUNCH_TIMEOUT.toLong(),
+            appLaunchTimeoutMillis.toLong(),
         )
 
         // Launch the app

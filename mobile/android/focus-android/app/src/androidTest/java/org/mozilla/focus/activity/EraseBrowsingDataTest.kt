@@ -120,7 +120,7 @@ class EraseBrowsingDataTest : TestSetup() {
     @Test
     fun systemBarHomeViewTest() {
         val testPage = getGenericTabAsset(webServer, 1)
-        val LAUNCH_TIMEOUT = 5000
+        val launcherLoadTimeoutMillis = 5000
         val launcherPackage = mDevice.launcherPackageName
 
         notificationTray {
@@ -152,7 +152,7 @@ class EraseBrowsingDataTest : TestSetup() {
             Assert.assertNotNull(launcherPackage)
             mDevice.wait(
                 Until.hasObject(By.pkg(launcherPackage).depth(0)),
-                LAUNCH_TIMEOUT.toLong(),
+                launcherLoadTimeoutMillis.toLong(),
             )
 
             // Re-launch the app, verify it's not showing the previous browsing session

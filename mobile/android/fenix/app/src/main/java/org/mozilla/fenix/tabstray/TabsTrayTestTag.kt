@@ -5,43 +5,43 @@
 package org.mozilla.fenix.tabstray
 
 internal object TabsTrayTestTag {
-    const val tabsTray = "tabstray"
+    const val TABS_TRAY = "tabstray"
 
     // Tabs Tray Banner
-    const val bannerTestTagRoot = "$tabsTray.banner"
-    const val bannerHandle = "$bannerTestTagRoot.handle"
-    const val normalTabsPageButton = "$bannerTestTagRoot.normalTabsPageButton"
-    const val normalTabsCounter = "$normalTabsPageButton.counter"
-    const val privateTabsPageButton = "$bannerTestTagRoot.privateTabsPageButton"
-    const val syncedTabsPageButton = "$bannerTestTagRoot.syncedTabsPageButton"
+    const val BANNER_ROOT = "$TABS_TRAY.banner"
+    const val BANNER_HANDLE = "$BANNER_ROOT.handle"
+    const val NORMAL_TABS_PAGE_BUTTON = "$BANNER_ROOT.normalTabsPageButton"
+    const val NORMAL_TABS_COUNTER = "$NORMAL_TABS_PAGE_BUTTON.counter"
+    const val PRIVATE_TABS_PAGE_BUTTON = "$BANNER_ROOT.privateTabsPageButton"
+    const val SYNCED_TABS_PAGE_BUTTON = "$BANNER_ROOT.syncedTabsPageButton"
 
-    const val selectionCounter = "$bannerTestTagRoot.selectionCounter"
-    const val collectionsButton = "$bannerTestTagRoot.collections"
+    const val SELECTION_COUNTER = "$BANNER_ROOT.selectionCounter"
+    const val COLLECTIONS_BUTTON = "$BANNER_ROOT.collections"
 
     // Tabs Tray Banner three dot menu
-    const val threeDotButton = "$bannerTestTagRoot.threeDotButton"
+    const val THREE_DOT_BUTTON = "$BANNER_ROOT.threeDotButton"
 
-    const val accountSettings = "$threeDotButton.accountSettings"
-    const val closeAllTabs = "$threeDotButton.closeAllTabs"
-    const val recentlyClosedTabs = "$threeDotButton.recentlyClosedTabs"
-    const val selectTabs = "$threeDotButton.selectTabs"
-    const val shareAllTabs = "$threeDotButton.shareAllTabs"
-    const val tabSettings = "$threeDotButton.tabSettings"
+    const val ACCOUNT_SETTINGS = "$THREE_DOT_BUTTON.accountSettings"
+    const val CLOSE_ALL_TABS = "$THREE_DOT_BUTTON.closeAllTabs"
+    const val RECENTLY_CLOSED_TABS = "$THREE_DOT_BUTTON.recentlyClosedTabs"
+    const val SELECT_TABS = "$THREE_DOT_BUTTON.selectTabs"
+    const val SHARE_ALL_TABS = "$THREE_DOT_BUTTON.shareAllTabs"
+    const val TAB_SETTINGS = "$THREE_DOT_BUTTON.tabSettings"
 
     // FAB
-    const val fab = "$tabsTray.fab"
+    const val FAB = "$TABS_TRAY.fab"
 
     // Tab lists
-    private const val tabListTestTagRoot = "$tabsTray.tabList"
-    const val normalTabsList = "$tabListTestTagRoot.normal"
-    const val privateTabsList = "$tabListTestTagRoot.private"
-    const val syncedTabsList = "$tabListTestTagRoot.synced"
+    private const val TAB_LIST_ROOT = "$TABS_TRAY.tabList"
+    const val NORMAL_TABS_LIST = "$TAB_LIST_ROOT.normal"
+    const val PRIVATE_TABS_LIST = "$TAB_LIST_ROOT.private"
+    const val SYNCED_TABS_LIST = "$TAB_LIST_ROOT.synced"
 
-    const val emptyNormalTabsList = "$normalTabsList.empty"
-    const val emptyPrivateTabsList = "$privateTabsList.empty"
+    const val EMPTY_NORMAL_TABS_LIST = "$NORMAL_TABS_LIST.empty"
+    const val EMPTY_PRIVATE_TABS_LIST = "$PRIVATE_TABS_LIST.empty"
 
     // Tab items
-    const val tabItemRoot = "$tabsTray.tabItem"
-    const val tabItemClose = "$tabItemRoot.close"
-    const val tabItemThumbnail = "$tabItemRoot.thumbnail"
+    const val TAB_ITEM_ROOT = "$TABS_TRAY.tabItem"
+    const val TAB_ITEM_CLOSE = "$TAB_ITEM_ROOT.close"
+    const val TAB_ITEM_THUMBNAIL = "$TAB_ITEM_ROOT.thumbnail"
 }

@@ -85,7 +85,7 @@ class SafelistTest {
         }
     }
 
-    val SAFE_LIST_JSON = """{
+    val safelistJson = """{
       "Host1": {
         "properties": [
           "host1.com",
@@ -110,7 +110,7 @@ class SafelistTest {
 
     @Test
     fun fromJson() {
-        val safelist = Safelist.fromJson(JsonReader(StringReader(SAFE_LIST_JSON)))
+        val safelist = Safelist.fromJson(JsonReader(StringReader(safelistJson)))
 
         assertTrue(safelist.contains("http://host1.com", "http://host1ads.com"))
         assertTrue(safelist.contains("https://host1.com", "https://host1ads.de"))

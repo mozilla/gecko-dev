@@ -21,9 +21,9 @@ import org.mozilla.fenix.helpers.Constants.LONG_CLICK_DURATION
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
-import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.addBookmarkFolderNameTextField
-import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.editBookmarkedItemTileTextField
-import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.editBookmarkedItemURLTextField
+import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.ADD_BOOKMARK_FOLDER_NAME_TEXT_FIELD
+import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.EDIT_BOOKMARK_ITEM_TITLE_TEXT_FIELD
+import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.EDIT_BOOKMARK_ITEM_URL_TEXT_FIELD
 
 class BookmarksRobotCompose(private val composeTestRule: ComposeTestRule) {
 
@@ -61,9 +61,9 @@ class BookmarksRobotCompose(private val composeTestRule: ComposeTestRule) {
             .assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription(getStringResource(R.string.bookmark_delete_bookmark_content_description))
             .assertIsDisplayed()
-        composeTestRule.onNodeWithTag(editBookmarkedItemTileTextField)
+        composeTestRule.onNodeWithTag(EDIT_BOOKMARK_ITEM_TITLE_TEXT_FIELD)
             .assertIsDisplayed()
-        composeTestRule.onNodeWithTag(editBookmarkedItemURLTextField)
+        composeTestRule.onNodeWithTag(EDIT_BOOKMARK_ITEM_URL_TEXT_FIELD)
             .assertIsDisplayed()
         composeTestRule.onNodeWithText("Bookmarks").assertIsDisplayed()
         Log.i(TAG, "verifyEditBookmarksView: Verified that the edit bookmark view items are displayed")
@@ -243,7 +243,7 @@ private fun ComposeTestRule.addFolderButton() =
     onNodeWithContentDescription(getStringResource(R.string.bookmark_select_folder_new_folder_button_title))
 
 private fun ComposeTestRule.addFolderTitleField() =
-    onNodeWithTag(addBookmarkFolderNameTextField).onChildAt(0)
+    onNodeWithTag(ADD_BOOKMARK_FOLDER_NAME_TEXT_FIELD).onChildAt(0)
 
 private fun ComposeTestRule.navigateUpButton() =
     onNodeWithContentDescription(getStringResource(R.string.bookmark_navigate_back_button_content_description))
@@ -252,13 +252,13 @@ private fun ComposeTestRule.threeDotMenuButton(bookmarkedItem: String) =
     onNodeWithContentDescription("Item Menu for $bookmarkedItem")
 
 private fun ComposeTestRule.bookmarkNameEditBox() =
-    onNodeWithTag(editBookmarkedItemTileTextField).onChildAt(0)
+    onNodeWithTag(EDIT_BOOKMARK_ITEM_TITLE_TEXT_FIELD).onChildAt(0)
 
 private fun ComposeTestRule.bookmarkFolderSelector() =
     onNodeWithText("Bookmarks")
 
 private fun ComposeTestRule.bookmarkURLEditBox() =
-    onNodeWithTag(editBookmarkedItemURLTextField).onChildAt(0)
+    onNodeWithTag(EDIT_BOOKMARK_ITEM_URL_TEXT_FIELD).onChildAt(0)
 
 private fun ComposeTestRule.selectFolderNewFolderButton() =
     onNodeWithText(getStringResource(R.string.bookmark_select_folder_new_folder_button_title))

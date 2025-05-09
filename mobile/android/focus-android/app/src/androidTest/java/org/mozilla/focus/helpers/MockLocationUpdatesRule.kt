@@ -17,7 +17,7 @@ import org.mozilla.focus.helpers.TestHelper.executeShellCommandBlocking
 import java.util.Date
 import kotlin.random.Random
 
-private const val mockProviderName = LocationManager.GPS_PROVIDER
+private const val MOCK_PROVIDER_NAME = LocationManager.GPS_PROVIDER
 
 /**
  * Rule that sets up a mock location provider that can inject location samples
@@ -50,7 +50,7 @@ class MockLocationUpdatesRule : ExternalResource() {
         // To mock locations we need a location provider, so we generate and set it here.
         try {
             locationManager.addTestProvider(
-                mockProviderName,
+                MOCK_PROVIDER_NAME,
                 false,
                 false,
                 false,
@@ -65,13 +65,13 @@ class MockLocationUpdatesRule : ExternalResource() {
             // unstable
             Log.w("MockLocationUpdatesRule", "addTestProvider failed")
         }
-        locationManager.setTestProviderEnabled(mockProviderName, true)
+        locationManager.setTestProviderEnabled(MOCK_PROVIDER_NAME, true)
     }
 
     // Cleaning up the location provider after the test.
     override fun after() {
-        locationManager.setTestProviderEnabled(mockProviderName, false)
-        locationManager.removeTestProvider(mockProviderName)
+        locationManager.setTestProviderEnabled(MOCK_PROVIDER_NAME, false)
+        locationManager.removeTestProvider(MOCK_PROVIDER_NAME)
     }
 
     /**
@@ -85,7 +85,7 @@ class MockLocationUpdatesRule : ExternalResource() {
                 "running version >= Build.VERSION_CODES.M"
         }
 
-        val location = Location(mockProviderName)
+        val location = Location(MOCK_PROVIDER_NAME)
         location.time = Date().time
         location.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
         location.accuracy = 5f
@@ -108,6 +108,6 @@ class MockLocationUpdatesRule : ExternalResource() {
             location.apply(it)
         }
 
-        locationManager.setTestProviderLocation(mockProviderName, location)
+        locationManager.setTestProviderLocation(MOCK_PROVIDER_NAME, location)
     }
 }

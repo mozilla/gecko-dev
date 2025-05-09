@@ -43,7 +43,7 @@ private fun generateAppContext(context: Context, channel: String, isLargeScreenS
     val formFactor = if (isLargeScreenSize) "tablet" else "phone"
     return RemoteSettingsContext(
         channel = channel,
-        appVersion = AcBuild.version,
+        appVersion = AcBuild.VERSION,
         appId = context.packageName,
         locale = locale.toString(),
         os = "Android",

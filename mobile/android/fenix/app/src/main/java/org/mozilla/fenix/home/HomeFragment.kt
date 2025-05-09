@@ -230,7 +230,7 @@ class HomeFragment : Fragment() {
     private val toolbarView: FenixHomeToolbar
         get() = nullableToolbarView!!
 
-    private var lastAppliedWallpaperName: String = Wallpaper.defaultName
+    private var lastAppliedWallpaperName: String = Wallpaper.DEFAULT
 
     private val topSitesFeature = ViewBoundFeatureWrapper<TopSitesFeature>()
 
@@ -1096,7 +1096,7 @@ class HomeFragment : Fragment() {
         _binding = null
 
         bundleArgs.clear()
-        lastAppliedWallpaperName = Wallpaper.defaultName
+        lastAppliedWallpaperName = Wallpaper.DEFAULT
     }
 
     override fun onStart() {
@@ -1279,7 +1279,7 @@ class HomeFragment : Fragment() {
                         }
                         // If setting a wallpaper failed reset also the contrasting text color.
                         requireContext().settings().currentWallpaperTextColor = 0L
-                        lastAppliedWallpaperName = Wallpaper.defaultName
+                        lastAppliedWallpaperName = Wallpaper.DEFAULT
                     }
                 }
             }

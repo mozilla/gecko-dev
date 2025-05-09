@@ -24,7 +24,7 @@ import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryGrou
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryHighlight
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItemInternal.HistoryGroupInternal
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItemInternal.HistoryHighlightInternal
-import org.mozilla.fenix.utils.Settings.Companion.SEARCH_GROUP_MINIMUM_SITES
+import org.mozilla.fenix.utils.Settings.Companion.searchGroupMinimumSites
 import kotlin.math.max
 
 @VisibleForTesting internal const val MAX_RESULTS_TOTAL = 9
@@ -212,7 +212,7 @@ class RecentVisitsFeature(
                 )
             }
             .filter {
-                it.groupItems.size >= SEARCH_GROUP_MINIMUM_SITES
+                it.groupItems.size >= searchGroupMinimumSites
             }
     }
 

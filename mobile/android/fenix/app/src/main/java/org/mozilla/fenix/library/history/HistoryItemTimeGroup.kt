@@ -21,14 +21,14 @@ enum class HistoryItemTimeGroup {
     }
 
     companion object {
-        private const val zeroDays = 0
-        private const val oneDay = 1
-        private const val sevenDays = 7
-        private const val thirtyDays = 30
-        private val today = getDaysAgo(zeroDays).time
-        private val yesterday = getDaysAgo(oneDay).time
-        private val sevenDaysAgo = getDaysAgo(sevenDays).time
-        private val thirtyDaysAgo = getDaysAgo(thirtyDays).time
+        private const val ZERO_DAYS = 0
+        private const val ONE_DAY = 1
+        private const val SEVEN_DAYS = 7
+        private const val THIRTY_DAYS = 30
+        private val today = getDaysAgo(ZERO_DAYS).time
+        private val yesterday = getDaysAgo(ONE_DAY).time
+        private val sevenDaysAgo = getDaysAgo(SEVEN_DAYS).time
+        private val thirtyDaysAgo = getDaysAgo(THIRTY_DAYS).time
         private val todayRange = LongRange(today, Long.MAX_VALUE) // all future time is considered today
         private val yesterdayRange = LongRange(yesterday, today)
         private val lastWeekRange = LongRange(sevenDaysAgo, yesterday)

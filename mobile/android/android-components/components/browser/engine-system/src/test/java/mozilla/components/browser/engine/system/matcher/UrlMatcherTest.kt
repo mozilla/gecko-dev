@@ -22,7 +22,6 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import java.io.StringReader
-import java.util.HashMap
 
 @RunWith(AndroidJUnit4::class)
 class UrlMatcherTest {
@@ -115,7 +114,7 @@ class UrlMatcherTest {
         }
     }
 
-    val BLOCK_LIST = """{
+    val blockListJson = """{
       "license": "test-license",
       "categories": {
         "Advertising": [
@@ -186,7 +185,7 @@ class UrlMatcherTest {
     }
     """
 
-    val SAFE_LIST = """{
+    val safeListJson = """{
       "SocialTest1": {
         "properties": [
           "www.socialtest1.com"
@@ -200,8 +199,8 @@ class UrlMatcherTest {
     @Test
     fun createMatcher() {
         val matcher = UrlMatcher.createMatcher(
-            StringReader(BLOCK_LIST),
-            StringReader(SAFE_LIST),
+            StringReader(blockListJson),
+            StringReader(safeListJson),
         )
 
         // Check returns correct category
@@ -263,8 +262,8 @@ class UrlMatcherTest {
     fun setCategoriesEnabled() {
         val matcher = spy(
             UrlMatcher.createMatcher(
-                StringReader(BLOCK_LIST),
-                StringReader(SAFE_LIST),
+                StringReader(blockListJson),
+                StringReader(safeListJson),
                 setOf("Advertising", "Analytics"),
             ),
         )
@@ -281,8 +280,8 @@ class UrlMatcherTest {
     @Test
     fun webFontsNotBlockedByDefault() {
         val matcher = UrlMatcher.createMatcher(
-            StringReader(BLOCK_LIST),
-            StringReader(SAFE_LIST),
+            StringReader(blockListJson),
+            StringReader(safeListJson),
             setOf(UrlMatcher.ADVERTISING, UrlMatcher.ANALYTICS, UrlMatcher.SOCIAL, UrlMatcher.CONTENT),
         )
 

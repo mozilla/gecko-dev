@@ -75,7 +75,7 @@ fun ToolbarTabCounterButton(
         },
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .testTag(NavBarTestTags.tabCounterButton),
+            .testTag(NavBarTestTags.TAB_COUNTER_BUTTON),
         update = { tabCounter ->
             tabCounter.setCount(tabCount)
             tabCounter.layoutDirection = if (isRtl) {

@@ -406,7 +406,7 @@ class NavigationToolbarRobot {
                     tabTrayButton().click()
                     Log.i(TAG, "openTabDrawer: Clicked the tabs tray button")
                     Log.i(TAG, "openTabDrawer: Trying to verify that the tabs tray exists")
-                    composeTestRule.onNodeWithTag(TabsTrayTestTag.tabsTray).assertExists()
+                    composeTestRule.onNodeWithTag(TabsTrayTestTag.TABS_TRAY).assertExists()
                     Log.i(TAG, "openTabDrawer: Verified that the tabs tray exists")
 
                     break
@@ -422,7 +422,7 @@ class NavigationToolbarRobot {
                 }
             }
             Log.i(TAG, "openTabDrawer: Trying to verify the tabs tray new tab FAB button exists")
-            composeTestRule.onNodeWithTag(TabsTrayTestTag.fab).assertExists()
+            composeTestRule.onNodeWithTag(TabsTrayTestTag.FAB).assertExists()
             Log.i(TAG, "openTabDrawer: Verified the tabs tray new tab FAB button exists")
 
             TabDrawerRobot(composeTestRule).interact()

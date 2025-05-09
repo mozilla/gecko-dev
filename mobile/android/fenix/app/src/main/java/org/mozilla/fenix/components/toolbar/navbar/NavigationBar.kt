@@ -377,7 +377,7 @@ private fun NavBar(
                     .height(dimensionResource(id = R.dimen.browser_navbar_height))
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .testTag(NavBarTestTags.navbar),
+                    .testTag(NavBarTestTags.NAVBAR),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
                 content = content,
@@ -409,7 +409,7 @@ private fun BackButton(
         enabled = enabled,
         modifier = Modifier
             .size(48.dp)
-            .testTag(NavBarTestTags.backButton),
+            .testTag(NavBarTestTags.BACK_BUTTON),
     ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_back_24),
@@ -434,7 +434,7 @@ private fun ForwardButton(
         enabled = enabled,
         modifier = Modifier
             .size(48.dp)
-            .testTag(NavBarTestTags.forwardButton),
+            .testTag(NavBarTestTags.FORWARD_BUTTON),
     ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_forward_24),
@@ -452,7 +452,7 @@ private fun SearchWebButton(
         onClick = onSearchButtonClick,
         contentDescription = stringResource(R.string.search_hint),
         modifier = Modifier
-            .testTag(NavBarTestTags.searchButton),
+            .testTag(NavBarTestTags.SEARCH_BUTTON),
     ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_search_24),
@@ -475,7 +475,7 @@ private fun MenuButton(
             contentDescription = stringResource(R.string.content_description_menu),
             modifier = Modifier
                 .size(48.dp)
-                .testTag(NavBarTestTags.menuButton),
+                .testTag(NavBarTestTags.MENU_BUTTON),
         ) {
             Icon(
                 painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
@@ -487,7 +487,7 @@ private fun MenuButton(
         AndroidView(
             modifier = Modifier
                 .size(48.dp)
-                .testTag(NavBarTestTags.menuButton),
+                .testTag(NavBarTestTags.MENU_BUTTON),
             factory = { _ ->
                 menuButton.apply {
                     contentDescription = context.getString(R.string.mozac_browser_menu_button)
@@ -516,7 +516,7 @@ private fun OpenInBrowserButton(
         contentDescription = stringResource(R.string.browser_menu_open_in_fenix, stringResource(R.string.app_name)),
         enabled = enabled,
         modifier = Modifier
-            .testTag(NavBarTestTags.openInBrowserButton),
+            .testTag(NavBarTestTags.OPEN_IN_BROWSER_BUTTON),
     ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_open_in),

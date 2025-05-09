@@ -13,22 +13,22 @@ object Build {
     /**
      * The version name of this Android Components release (e.g. 0.54.0 or 0.55.0-SNAPSHOT).
      */
-    const val version: String = BuildConfig.LIBRARY_VERSION
+    const val VERSION: String = BuildConfig.LIBRARY_VERSION
 
     /**
      * The version of "Application Services" libraries this version was *build* against.
      *
      * Note that a consuming app may be able to override the actual version that is used at runtime.
      */
-    const val applicationServicesVersion: String = BuildConfig.APPLICATION_SERVICES_VERSION
+    const val APPLICATION_SERVICES_VERSION: String = BuildConfig.APPLICATION_SERVICES_VERSION
 
     /**
      * The version of the "Glean SDK" library this version was *build* against.
      */
-    const val gleanSdkVersion: String = BuildConfig.GLEAN_SDK_VERSION
+    const val GLEAN_SDK_VERSION: String = BuildConfig.GLEAN_SDK_VERSION
 
     /**
      * Git or hg hash of the latest commit in the Android Components repository checkout this version was built from.
      */
-    const val gitHash: String = BuildConfig.VCS_HASH
+    const val GIT_HASH: String = BuildConfig.VCS_HASH
 }

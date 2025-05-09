@@ -496,7 +496,7 @@ class SystemEngineViewTest {
 
     @Test
     fun `WebView client tracking protection`() {
-        SystemEngineView.URL_MATCHER = UrlMatcher(arrayOf("blocked.random"))
+        SystemEngineView.urlMatcher = UrlMatcher(arrayOf("blocked.random"))
 
         val engineSession = SystemEngineSession(testContext)
         val engineView = SystemEngineView(testContext)
@@ -549,7 +549,7 @@ class SystemEngineViewTest {
 
     @Test
     fun `blocked trackers are reported with correct categories`() {
-        val BLOCK_LIST = """{
+        val blockList = """{
       "license": "test-license",
       "categories": {
         "Advertising": [
@@ -591,8 +591,8 @@ class SystemEngineViewTest {
       }
         }
     """
-        SystemEngineView.URL_MATCHER = UrlMatcher.createMatcher(
-            StringReader(BLOCK_LIST),
+        SystemEngineView.urlMatcher = UrlMatcher.createMatcher(
+            StringReader(blockList),
             StringReader("{}"),
         )
 
@@ -631,7 +631,7 @@ class SystemEngineViewTest {
 
         assertTrue(trackerBlocked!!.trackingCategories.first() == TrackingCategory.SOCIAL)
 
-        SystemEngineView.URL_MATCHER = null
+        SystemEngineView.urlMatcher = null
     }
 
     @Test
@@ -1046,7 +1046,7 @@ class SystemEngineViewTest {
 
     @Test
     fun `URL matcher categories can be changed`() {
-        SystemEngineView.URL_MATCHER = null
+        SystemEngineView.urlMatcher = null
         val resources = testContext.resources
 
         var urlMatcher = SystemEngineView.getOrCreateUrlMatcher(

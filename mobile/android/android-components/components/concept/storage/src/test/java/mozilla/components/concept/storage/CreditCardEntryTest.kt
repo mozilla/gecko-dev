@@ -4,9 +4,9 @@
 
 package mozilla.components.concept.storage
 
-import mozilla.components.concept.storage.CreditCard.Companion.ellipsesEnd
-import mozilla.components.concept.storage.CreditCard.Companion.ellipsesStart
-import mozilla.components.concept.storage.CreditCard.Companion.ellipsis
+import mozilla.components.concept.storage.CreditCard.Companion.ELLIPSES_END
+import mozilla.components.concept.storage.CreditCard.Companion.ELLIPSES_START
+import mozilla.components.concept.storage.CreditCard.Companion.ELLIPSIS
 import mozilla.components.support.ktx.kotlin.last4Digits
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -26,10 +26,10 @@ class CreditCardEntryTest {
     @Test
     fun `WHEN obfuscatedCardNumber getter is called THEN the expected obfuscated card number is returned`() {
         assertEquals(
-            ellipsesStart +
-                ellipsis + ellipsis + ellipsis + ellipsis +
+            ELLIPSES_START +
+                ELLIPSIS + ELLIPSIS + ELLIPSIS + ELLIPSIS +
                 creditCard.number.last4Digits() +
-                ellipsesEnd,
+                ELLIPSES_END,
             creditCard.obfuscatedCardNumber,
         )
     }

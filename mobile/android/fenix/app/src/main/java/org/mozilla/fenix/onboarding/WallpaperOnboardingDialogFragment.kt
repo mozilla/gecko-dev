@@ -75,7 +75,7 @@ class WallpaperOnboardingDialogFragment : BottomSheetDialogFragment() {
         val currentWallpaper = requireContext().components.appStore.state.wallpaperState.currentWallpaper
         Wallpapers.onboardingClosed.record(
             Wallpapers.OnboardingClosedExtra(
-                isSelected = currentWallpaper.name != Wallpaper.defaultName,
+                isSelected = currentWallpaper.name != Wallpaper.DEFAULT,
             ),
         )
     }

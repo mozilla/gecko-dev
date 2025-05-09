@@ -316,14 +316,14 @@ object TestHelper {
     )
 
     @JvmField
-    var AddtoHSmenuItem = mDevice.findObject(
+    var addtoHSmenuItem = mDevice.findObject(
         UiSelector()
             .resourceId(packageName + ":id/add_to_homescreen")
             .enabled(true),
     )
 
     @JvmField
-    var AddtoHSCancelBtn = mDevice.findObject(
+    var addtoHSCancelBtn = mDevice.findObject(
         UiSelector()
             .resourceId(packageName + ":id/addtohomescreen_dialog_cancel")
             .enabled(true),

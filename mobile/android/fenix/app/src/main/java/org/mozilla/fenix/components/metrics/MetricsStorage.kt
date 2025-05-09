@@ -85,7 +85,7 @@ internal class DefaultMetricsStorage(
                 }
                 Event.GrowthData.UsageThreshold -> {
                     !settings.usageTimeGrowthSent &&
-                        settings.usageTimeGrowthData > usageThresholdMillis
+                        settings.usageTimeGrowthData > USAGE_THRESHOLD_MILLIS
                 }
                 Event.GrowthData.FirstAppOpenForDay -> {
                     currentTime.afterFirstDay() &&
@@ -196,17 +196,17 @@ internal class DefaultMetricsStorage(
         calendar.timeInMillis = this
     }
 
-    private fun Long.hasBeenMoreThanDaySince() = System.currentTimeMillis() - this > dayMillis
+    private fun Long.hasBeenMoreThanDaySince() = System.currentTimeMillis() - this > DAY_MILLIS
 
-    private fun Long.afterFirstDay() = this > getInstalledTime() + dayMillis
+    private fun Long.afterFirstDay() = this > getInstalledTime() + DAY_MILLIS
 
-    private fun Long.duringFirstDay() = this < getInstalledTime() + dayMillis
+    private fun Long.duringFirstDay() = this < getInstalledTime() + DAY_MILLIS
 
-    private fun Long.afterThirdDay() = this > getInstalledTime() + threeDayMillis
+    private fun Long.afterThirdDay() = this > getInstalledTime() + THREE_DAY_MILLIS
 
-    private fun Long.duringFirstWeek() = this < getInstalledTime() + fullWeekMillis
+    private fun Long.duringFirstWeek() = this < getInstalledTime() + FULL_WEEK_MILLIS
 
-    private fun Long.duringFirstMonth() = this < getInstalledTime() + shortestMonthMillis
+    private fun Long.duringFirstMonth() = this < getInstalledTime() + SHORTEST_MONTH_MILLIS
 
     private fun Calendar.createNextDay() = (this.clone() as Calendar).also { calendar ->
         calendar.add(Calendar.DAY_OF_MONTH, 1)
@@ -214,7 +214,7 @@ internal class DefaultMetricsStorage(
 
     private fun hasUserReachedActivatedThreshold(): Boolean {
         return !settings.growthUserActivatedSent &&
-            settings.growthEarlyUseCount.value >= daysActivatedThreshold &&
+            settings.growthEarlyUseCount.value >= DAYS_ACTIVATED_THREASHOLD &&
             settings.growthEarlySearchUsed
     }
 
@@ -254,19 +254,19 @@ internal class DefaultMetricsStorage(
     }
 
     companion object {
-        private const val dayMillis: Long = 1000 * 60 * 60 * 24
-        private const val threeDayMillis: Long = 3 * dayMillis
-        private const val shortestMonthMillis: Long = dayMillis * 28
+        private const val DAY_MILLIS: Long = 1000 * 60 * 60 * 24
+        private const val THREE_DAY_MILLIS: Long = 3 * DAY_MILLIS
+        private const val SHORTEST_MONTH_MILLIS: Long = DAY_MILLIS * 28
 
         // Note this is 8 so that recording of FirstWeekSeriesActivity happens throughout the length
         // of the 7th day after install
-        private const val fullWeekMillis: Long = dayMillis * 8
+        private const val FULL_WEEK_MILLIS: Long = DAY_MILLIS * 8
 
         // The usage threshold we are interested in is currently 340 seconds.
-        private const val usageThresholdMillis = 1000 * 340
+        private const val USAGE_THRESHOLD_MILLIS = 1000 * 340
 
         // The usage threshold for "activated" growth users.
-        private const val daysActivatedThreshold = 3
+        private const val DAYS_ACTIVATED_THREASHOLD = 3
 
         /**
          * Determines whether events should be tracked based on some general criteria:

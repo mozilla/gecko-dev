@@ -123,24 +123,24 @@ private class FocusSnackbarCallback(
     override fun animateContentIn(delay: Int, duration: Int) {
         content.translationY = (content.height).toFloat()
         content.animate().apply {
-            translationY(defaultYTranslation)
-            setDuration(animateInDuration)
+            translationY(DEFAULT_Y_TRANSLATION)
+            setDuration(ANIMATE_IN_DURATION)
             startDelay = delay.toLong()
         }
     }
 
     override fun animateContentOut(delay: Int, duration: Int) {
-        content.translationY = defaultYTranslation
+        content.translationY = DEFAULT_Y_TRANSLATION
         content.animate().apply {
             translationY((content.height).toFloat())
-            setDuration(animateOutDuration)
+            setDuration(ANIMATE_OUT_DURATION)
             startDelay = delay.toLong()
         }
     }
 
     companion object {
-        private const val defaultYTranslation = 0f
-        private const val animateInDuration = 200L
-        private const val animateOutDuration = 150L
+        private const val DEFAULT_Y_TRANSLATION = 0f
+        private const val ANIMATE_IN_DURATION = 200L
+        private const val ANIMATE_OUT_DURATION = 150L
     }
 }

@@ -17,7 +17,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.BuildConfig
-import org.mozilla.fenix.wallpapers.WallpaperMetadataFetcher.Companion.currentJsonVersion
+import org.mozilla.fenix.wallpapers.WallpaperMetadataFetcher.Companion.CURRENT_JSON_VERSION
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -27,7 +27,7 @@ class WallpaperMetadataFetcherTest {
 
     private val expectedRequest = Request(
         url = BuildConfig.WALLPAPER_URL.substringBefore("android") +
-            "metadata/v$currentJsonVersion/wallpapers.json",
+            "metadata/v$CURRENT_JSON_VERSION/wallpapers.json",
         method = Request.Method.GET,
         conservative = true,
     )

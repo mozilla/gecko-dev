@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit
 private const val GEOIP_SERVICE_URL = "https://location.services.mozilla.com/v1/"
 private const val CONNECT_TIMEOUT_SECONDS = 10L
 private const val READ_TIMEOUT_SECONDS = 10L
-private const val USER_AGENT = "MozAC/" + Build.version
+private const val USER_AGENT = "MozAC/" + Build.VERSION
 private const val EMPTY_REQUEST_BODY = "{}"
 private const val CACHE_FILE = "mozac.service.location.region"
 private const val KEY_COUNTRY_CODE = "country_code"

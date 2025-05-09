@@ -108,7 +108,7 @@ class AboutFragment : BaseComposeFragment() {
         val engineIndicator =
             gecko + GeckoViewBuildConfig.MOZ_APP_VERSION + "-" + GeckoViewBuildConfig.MOZ_APP_BUILDID
         val servicesAbbreviation = getString(R.string.services_abbreviation)
-        val servicesIndicator = mozilla.components.Build.applicationServicesVersion
+        val servicesIndicator = mozilla.components.Build.APPLICATION_SERVICES_VERSION
         val packageInfo =
             requireContext().packageManager.getPackageInfoCompat(requireContext().packageName, 0)
         val versionCode = PackageInfoCompat.getLongVersionCode(packageInfo).toString()

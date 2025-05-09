@@ -15,7 +15,7 @@ import org.junit.Test
 import java.io.IOException
 
 class ManifestDatabaseMigrationTest {
-    private val TEST_DB = "migration-test"
+    private val testDbName = "migration-test"
 
     @Rule
     @JvmField
@@ -27,7 +27,7 @@ class ManifestDatabaseMigrationTest {
     @Test
     @Throws(IOException::class)
     fun migrate2To3() {
-        helper.createDatabase(TEST_DB, 2).apply {
+        helper.createDatabase(testDbName, 2).apply {
             // db has schema version 2. insert some data using SQL queries.
             // You cannot use DAO classes because they expect the latest schema.
             execSQL("INSERT INTO manifests (start_url, created_at, updated_at, manifest, used_at, scope) VALUES ('https://mozilla.org', 1, 2, '{}', 3, 'https://mozilla.org')")
@@ -38,7 +38,7 @@ class ManifestDatabaseMigrationTest {
 
         // Re-open the database with version 2 and provide
         // MIGRATION_1_2 as the migration process.
-        helper.runMigrationsAndValidate(TEST_DB, 3, true, ManifestDatabase.MIGRATION_2_3).apply {
+        helper.runMigrationsAndValidate(testDbName, 3, true, ManifestDatabase.MIGRATION_2_3).apply {
             val result = query("SELECT scope, has_share_targets FROM manifests WHERE start_url = 'https://mozilla.org'")
 
             result.moveToNext()
@@ -56,7 +56,7 @@ class ManifestDatabaseMigrationTest {
     @Test
     @Throws(IOException::class)
     fun migrate1To2() {
-        helper.createDatabase(TEST_DB, 1).apply {
+        helper.createDatabase(testDbName, 1).apply {
             // db has schema version 1. insert some data using SQL queries.
             // You cannot use DAO classes because they expect the latest schema.
             execSQL("INSERT INTO manifests (start_url, created_at, updated_at, manifest, used_at, scope) VALUES ('https://mozilla.org', 1, 2, '{}', 3, 'https://mozilla.org')")
@@ -67,7 +67,7 @@ class ManifestDatabaseMigrationTest {
 
         // Re-open the database with version 2 and provide
         // MIGRATION_1_2 as the migration process.
-        helper.runMigrationsAndValidate(TEST_DB, 2, true, ManifestDatabase.MIGRATION_1_2).apply {
+        helper.runMigrationsAndValidate(testDbName, 2, true, ManifestDatabase.MIGRATION_1_2).apply {
             val result = query("SELECT scope, used_at FROM manifests WHERE start_url = 'https://mozilla.org'")
 
             result.moveToNext()
@@ -85,7 +85,7 @@ class ManifestDatabaseMigrationTest {
     @Test
     @Throws(IOException::class)
     fun migrate0To2() {
-        helper.createDatabase(TEST_DB, 0).apply {
+        helper.createDatabase(testDbName, 0).apply {
             // db has schema version 0 which was the original version 1. insert some data using SQL queries.
             // You cannot use DAO classes because they expect the latest schema.
             execSQL("INSERT INTO manifests (start_url, created_at, updated_at, manifest) VALUES ('https://mozilla.org', 1, 2, '{}')")
@@ -96,7 +96,7 @@ class ManifestDatabaseMigrationTest {
 
         // Re-open the database with version 2 and provide
         // MIGRATION_1_2 as the migration process.
-        helper.runMigrationsAndValidate(TEST_DB, 2, true, ManifestDatabase.MIGRATION_1_2).apply {
+        helper.runMigrationsAndValidate(testDbName, 2, true, ManifestDatabase.MIGRATION_1_2).apply {
             val result = query("SELECT scope, used_at FROM manifests WHERE start_url = 'https://mozilla.org'")
 
             result.moveToNext()

@@ -86,9 +86,9 @@ import org.mozilla.fenix.compose.list.SelectableIconListItem
 import org.mozilla.fenix.compose.snackbar.AcornSnackbarHostState
 import org.mozilla.fenix.compose.snackbar.SnackbarHost
 import org.mozilla.fenix.compose.snackbar.SnackbarState
-import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.addBookmarkFolderNameTextField
-import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.editBookmarkedItemTileTextField
-import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.editBookmarkedItemURLTextField
+import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.ADD_BOOKMARK_FOLDER_NAME_TEXT_FIELD
+import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.EDIT_BOOKMARK_ITEM_TITLE_TEXT_FIELD
+import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.EDIT_BOOKMARK_ITEM_URL_TEXT_FIELD
 import org.mozilla.fenix.theme.FirefoxTheme
 import mozilla.components.ui.icons.R as iconsR
 
@@ -1094,7 +1094,7 @@ private fun AddFolderScreen(
                     )
                     .semantics {
                         testTagsAsResourceId = true
-                        testTag = addBookmarkFolderNameTextField
+                        testTag = ADD_BOOKMARK_FOLDER_NAME_TEXT_FIELD
                     },
                 label = stringResource(R.string.bookmark_name_label_normal_case),
             )
@@ -1203,7 +1203,7 @@ private fun BookmarkEditor(
                 modifier =
                 Modifier
                     .semantics {
-                        testTag = editBookmarkedItemTileTextField
+                        testTag = EDIT_BOOKMARK_ITEM_TITLE_TEXT_FIELD
                     },
             )
 
@@ -1216,7 +1216,7 @@ private fun BookmarkEditor(
                 modifier =
                 Modifier
                     .semantics {
-                        testTag = editBookmarkedItemURLTextField
+                        testTag = EDIT_BOOKMARK_ITEM_URL_TEXT_FIELD
                     },
             )
         }

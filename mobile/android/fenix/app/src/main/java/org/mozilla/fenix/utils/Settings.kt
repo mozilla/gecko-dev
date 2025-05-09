@@ -95,7 +95,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
          * The minimum number a search groups should contain.
          */
         @VisibleForTesting
-        internal var SEARCH_GROUP_MINIMUM_SITES: Int = 2
+        internal var searchGroupMinimumSites: Int = 2
 
         /**
          * Minimum number of days between Set as default Browser prompt displays in home page.

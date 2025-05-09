@@ -33,8 +33,8 @@ import java.io.IOException
 @RunWith(AndroidJUnit4ClassRunner::class)
 class CustomTabTest : TestSetup() {
     private lateinit var webServer: MockWebServer
-    private val MENU_ITEM_LABEL = "TestItem4223"
-    private val ACTION_BUTTON_DESCRIPTION = "TestButton"
+    private val menuItemTestLabel = "TestItem4223"
+    private val actionButtonDescription = "TestButton"
     private val featureSettingsHelper = FeatureSettingsHelper()
 
     @get:Rule
@@ -72,7 +72,7 @@ class CustomTabTest : TestSetup() {
         val customTabPage = getGenericAsset(webServer)
         val customTabActivity =
             launchActivity<IntentReceiverActivity>(
-                createCustomTabIntent(customTabPage.url, MENU_ITEM_LABEL, ACTION_BUTTON_DESCRIPTION),
+                createCustomTabIntent(customTabPage.url, menuItemTestLabel, actionButtonDescription),
             )
 
         browserScreen {
@@ -82,11 +82,11 @@ class CustomTabTest : TestSetup() {
         }
 
         customTab {
-            verifyCustomTabActionButton(ACTION_BUTTON_DESCRIPTION)
+            verifyCustomTabActionButton(actionButtonDescription)
             verifyShareButtonIsDisplayed()
             openCustomTabMenu()
             verifyTheStandardMenuItems()
-            verifyCustomMenuItem(MENU_ITEM_LABEL)
+            verifyCustomMenuItem(menuItemTestLabel)
             // Close the menu and close the tab
             mDevice.pressBack()
             closeCustomTab()

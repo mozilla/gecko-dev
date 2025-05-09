@@ -75,7 +75,7 @@ import org.mozilla.fenix.home.store.HomepageState
 import org.mozilla.fenix.home.store.NimbusMessageState
 import org.mozilla.fenix.home.topsites.TopSiteColors
 import org.mozilla.fenix.home.topsites.TopSites
-import org.mozilla.fenix.home.ui.HomepageTestTag.homepage
+import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 import org.mozilla.fenix.utils.isLargeScreenSize
@@ -106,7 +106,7 @@ internal fun Homepage(
         modifier = Modifier
             .semantics {
                 testTagsAsResourceId = true
-                testTag = homepage
+                testTag = HOMEPAGE
             }
             .verticalScroll(scrollState)
             .animateContentSize(),

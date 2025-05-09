@@ -120,7 +120,7 @@ internal fun NormalTabsPage(
             displayTabsInGrid = displayTabsInGrid,
             selectedTabId = selectedTabId,
             selectionMode = selectionMode,
-            modifier = Modifier.testTag(TabsTrayTestTag.normalTabsList),
+            modifier = Modifier.testTag(TabsTrayTestTag.NORMAL_TABS_LIST),
             onTabClose = onTabClose,
             onTabMediaClick = onTabMediaClick,
             onTabClick = onTabClick,

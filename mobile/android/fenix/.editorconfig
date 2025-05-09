@@ -23,7 +23,6 @@ ktlint_standard_condition-wrapping = disabled
 ktlint_standard_enum-wrapping = disabled
 ktlint_standard_function-expression-body = disabled
 ktlint_standard_no-blank-line-in-list = disabled
-ktlint_standard_property-naming = disabled
 
 ktlint_standard_property-wrapping = disabled
 ktlint_standard_no-empty-first-line-in-class-body = disabled

@@ -83,7 +83,7 @@ fun TabsTrayFab(
             icon = icon,
             modifier = Modifier
                 .padding(bottom = 16.dp, end = 16.dp)
-                .testTag(TabsTrayTestTag.fab),
+                .testTag(TabsTrayTestTag.FAB),
             contentDescription = contentDescription,
             label = label,
             onClick = onClick,

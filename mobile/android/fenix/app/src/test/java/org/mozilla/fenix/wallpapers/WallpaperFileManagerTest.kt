@@ -38,7 +38,7 @@ class WallpaperFileManagerTest {
             coroutineDispatcher = dispatcher,
         )
         settings = mockk {
-            every { currentWallpaperName } returns wallpaperName
+            every { currentWallpaperName } returns WALLPAPER_NAME
             every { currentWallpaperTextColor } returns 0L
             every { currentWallpaperCardColorLight } returns 0L
             every { currentWallpaperCardColorDark } returns 0L
@@ -47,21 +47,21 @@ class WallpaperFileManagerTest {
 
     @Test
     fun `GIVEN wallpaper directory exists WHEN looked up THEN wallpaper created with correct name`() = runTest {
-        createAllFiles(wallpaperName)
+        createAllFiles(WALLPAPER_NAME)
 
         val result = fileManager.lookupExpiredWallpaper(settings)
 
-        val expected = generateWallpaper(name = wallpaperName)
+        val expected = generateWallpaper(name = WALLPAPER_NAME)
         assertEquals(expected, result)
     }
 
     @Test
     fun `GIVEN portrait file missing in directories WHEN expired wallpaper looked up THEN null returned`() = runTest {
-        File(wallpapersFolder, "$wallpaperName/landscape.png").apply {
+        File(wallpapersFolder, "$WALLPAPER_NAME/landscape.png").apply {
             mkdirs()
             createNewFile()
         }
-        File(wallpapersFolder, "$wallpaperName/thumbnail.png").apply {
+        File(wallpapersFolder, "$WALLPAPER_NAME/thumbnail.png").apply {
             mkdirs()
             createNewFile()
         }
@@ -73,11 +73,11 @@ class WallpaperFileManagerTest {
 
     @Test
     fun `GIVEN landscape file missing in directories WHEN expired wallpaper looked up THEN null returned`() = runTest {
-        File(wallpapersFolder, "$wallpaperName/portrait.png").apply {
+        File(wallpapersFolder, "$WALLPAPER_NAME/portrait.png").apply {
             mkdirs()
             createNewFile()
         }
-        File(wallpapersFolder, "$wallpaperName/thumbnail.png").apply {
+        File(wallpapersFolder, "$WALLPAPER_NAME/thumbnail.png").apply {
             mkdirs()
             createNewFile()
         }
@@ -89,11 +89,11 @@ class WallpaperFileManagerTest {
 
     @Test
     fun `GIVEN thumbnail file missing in directories WHEN expired wallpaper looked up THEN null returned`() = runTest {
-        File(wallpapersFolder, "$wallpaperName/portrait.png").apply {
+        File(wallpapersFolder, "$WALLPAPER_NAME/portrait.png").apply {
             mkdirs()
             createNewFile()
         }
-        File(wallpapersFolder, "$wallpaperName/landscape.png").apply {
+        File(wallpapersFolder, "$WALLPAPER_NAME/landscape.png").apply {
             mkdirs()
             createNewFile()
         }
@@ -173,6 +173,6 @@ class WallpaperFileManagerTest {
     )
 
     private companion object {
-        const val wallpaperName = "name"
+        const val WALLPAPER_NAME = "name"
     }
 }

@@ -165,7 +165,7 @@ class AboutFragment(
             val geckoVersion =
                 GeckoViewBuildConfig.MOZ_APP_VERSION + "-" + GeckoViewBuildConfig.MOZ_APP_BUILDID
             val appServicesAbbreviation = getString(R.string.app_services_abbreviation)
-            val appServicesVersion = mozilla.components.Build.applicationServicesVersion
+            val appServicesVersion = mozilla.components.Build.APPLICATION_SERVICES_VERSION
             val operatingSystemAbbrevation = "OS"
             val operatingSystemVersion = "Android ${Build.VERSION.RELEASE}"
 

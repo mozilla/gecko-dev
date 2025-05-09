@@ -26,7 +26,7 @@ class PagedHistoryProviderTest {
     @Before
     fun setup() {
         storage = mockk()
-        Settings.SEARCH_GROUP_MINIMUM_SITES = 1
+        Settings.searchGroupMinimumSites = 1
     }
 
     @Test

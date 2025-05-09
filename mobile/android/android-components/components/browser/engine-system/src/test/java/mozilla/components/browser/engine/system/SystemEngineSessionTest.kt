@@ -355,7 +355,7 @@ class SystemEngineSessionTest {
     @ExperimentalCoroutinesApi
     @Test
     fun enableTrackingProtection() = runTest {
-        SystemEngineView.URL_MATCHER = UrlMatcher(arrayOf(""))
+        SystemEngineView.urlMatcher = UrlMatcher(arrayOf(""))
 
         val engineSession = spy(SystemEngineSession(testContext))
         val webView = mock<WebView>()

@@ -59,8 +59,8 @@ import mozilla.components.compose.base.textfield.TextFieldColors
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.theme.FirefoxTheme
-import org.mozilla.fenix.webcompat.BrokenSiteReporterTestTags.brokenSiteReporterSendButton
-import org.mozilla.fenix.webcompat.BrokenSiteReporterTestTags.chooseReasonErrorMessage
+import org.mozilla.fenix.webcompat.BrokenSiteReporterTestTags.BROKEN_SITE_REPORTER_CHOOSE_REASON_BUTTON
+import org.mozilla.fenix.webcompat.BrokenSiteReporterTestTags.BROKEN_SITE_REPORTER_SEND_BUTTON
 import org.mozilla.fenix.webcompat.store.WebCompatReporterAction
 import org.mozilla.fenix.webcompat.store.WebCompatReporterState
 import org.mozilla.fenix.webcompat.store.WebCompatReporterState.BrokenSiteReason
@@ -156,7 +156,7 @@ fun WebCompatReporter(
                     // The a11y for this is handled via the `Dropdown` modifier
                     modifier = Modifier.clearAndSetSemantics {
                         testTagsAsResourceId = true
-                        testTag = chooseReasonErrorMessage
+                        testTag = BROKEN_SITE_REPORTER_CHOOSE_REASON_BUTTON
                     },
                     style = FirefoxTheme.typography.caption,
                     color = FirefoxTheme.colors.textCritical,
@@ -228,7 +228,7 @@ fun WebCompatReporter(
                             .wrapContentSize()
                             .semantics {
                                 testTagsAsResourceId = true
-                                testTag = brokenSiteReporterSendButton
+                                testTag = BROKEN_SITE_REPORTER_SEND_BUTTON
                             },
                         enabled = state.isSubmitEnabled,
                     ) {

@@ -157,7 +157,7 @@ class LegacyWallpaperMigrationTest {
 
     @Test
     fun `WHEN the beach-vibe legacy wallpaper is migrated THEN the legacy wallpapers destination is beach-vibes`() = runTest {
-        val wallpaperName = Wallpaper.beachVibeName
+        val wallpaperName = Wallpaper.BEACH_VIBE
 
         createAllLegacyFiles(wallpaperName)
 
@@ -169,37 +169,37 @@ class LegacyWallpaperMigrationTest {
 
     @Test
     fun `WHEN a drawable legacy wallpaper is migrated THEN the respective V2 wallpaper is downloaded`() = runTest {
-        var migratedWallpaperName = migrationHelper.migrateLegacyWallpaper(Wallpaper.ceruleanName)
+        var migratedWallpaperName = migrationHelper.migrateLegacyWallpaper(Wallpaper.CERULEAN)
 
-        assertEquals(Wallpaper.ceruleanName, migratedWallpaperName)
+        assertEquals(Wallpaper.CERULEAN, migratedWallpaperName)
         verify {
             downloadWallpaper(
                 withArg {
-                    assertEquals(Wallpaper.ceruleanName, it.name)
+                    assertEquals(Wallpaper.CERULEAN, it.name)
                     assertEquals(Wallpaper.ClassicFirefoxCollection, it.collection)
                 },
             )
         }
 
-        migratedWallpaperName = migrationHelper.migrateLegacyWallpaper(Wallpaper.sunriseName)
+        migratedWallpaperName = migrationHelper.migrateLegacyWallpaper(Wallpaper.SUNRISE)
 
-        assertEquals(Wallpaper.sunriseName, migratedWallpaperName)
+        assertEquals(Wallpaper.SUNRISE, migratedWallpaperName)
         verify {
             downloadWallpaper(
                 withArg {
-                    assertEquals(Wallpaper.sunriseName, it.name)
+                    assertEquals(Wallpaper.SUNRISE, it.name)
                     assertEquals(Wallpaper.ClassicFirefoxCollection, it.collection)
                 },
             )
         }
 
-        migratedWallpaperName = migrationHelper.migrateLegacyWallpaper(Wallpaper.amethystName)
+        migratedWallpaperName = migrationHelper.migrateLegacyWallpaper(Wallpaper.AMETHYST)
 
-        assertEquals(Wallpaper.amethystName, migratedWallpaperName)
+        assertEquals(Wallpaper.AMETHYST, migratedWallpaperName)
         verify {
             downloadWallpaper(
                 withArg {
-                    assertEquals(Wallpaper.amethystName, it.name)
+                    assertEquals(Wallpaper.AMETHYST, it.name)
                     assertEquals(Wallpaper.ClassicFirefoxCollection, it.collection)
                 },
             )

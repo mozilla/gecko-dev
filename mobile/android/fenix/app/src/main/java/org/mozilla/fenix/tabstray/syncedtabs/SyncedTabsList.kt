@@ -78,7 +78,7 @@ fun SyncedTabsList(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .testTag(TabsTrayTestTag.syncedTabsList),
+            .testTag(TabsTrayTestTag.SYNCED_TABS_LIST),
         state = listState,
     ) {
         syncedTabs.forEachIndexed { index, syncedTabItem ->

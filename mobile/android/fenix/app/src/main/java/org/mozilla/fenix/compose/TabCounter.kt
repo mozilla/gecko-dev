@@ -102,7 +102,7 @@ fun TabCounter(
     Box(
         modifier = Modifier
             .semantics(mergeDescendants = true) {
-                testTag = TabsTrayTestTag.normalTabsCounter
+                testTag = TabsTrayTestTag.NORMAL_TABS_COUNTER
             },
         contentAlignment = Alignment.Center,
     ) {

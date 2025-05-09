@@ -1708,7 +1708,7 @@ class DefaultSessionControlControllerTest {
     ) = Wallpaper(
         name = "name",
         collection = Wallpaper.Collection(
-            name = Wallpaper.firefoxCollectionName,
+            name = Wallpaper.FIREFOX_COLLECTION,
             heading = null,
             description = null,
             availableLocales = null,

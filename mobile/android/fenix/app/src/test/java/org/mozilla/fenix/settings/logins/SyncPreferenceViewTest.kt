@@ -95,7 +95,7 @@ class SyncPreferenceViewTest {
         createView()
 
         verify { syncPreference.isSwitchWidgetVisible = false }
-        verify { syncPreference.title = notLoggedInTitle }
+        verify { syncPreference.title = NOT_LOGGED_IN_TITLE }
         assertFalse(preferenceChangeListener.captured.onPreferenceChange(syncPreference, any()))
         verify {
             navController.navigate(
@@ -112,7 +112,7 @@ class SyncPreferenceViewTest {
         createView()
 
         verify { syncPreference.isSwitchWidgetVisible = false }
-        verify { syncPreference.title = notLoggedInTitle }
+        verify { syncPreference.title = NOT_LOGGED_IN_TITLE }
         assertFalse(preferenceChangeListener.captured.onPreferenceChange(syncPreference, any()))
         verify {
             navController.navigate(
@@ -131,7 +131,7 @@ class SyncPreferenceViewTest {
         createView()
 
         verify { syncPreference.isSwitchWidgetVisible = false }
-        verify { syncPreference.title = notLoggedInTitle }
+        verify { syncPreference.title = NOT_LOGGED_IN_TITLE }
         assertFalse(preferenceChangeListener.captured.onPreferenceChange(syncPreference, any()))
         verify {
             navController.navigate(
@@ -156,7 +156,7 @@ class SyncPreferenceViewTest {
 
         verify { syncPreference.isSwitchWidgetVisible = true }
         verify { syncPreference.isChecked = true }
-        verify { syncPreference.title = loggedInTitle }
+        verify { syncPreference.title = LOGGED_IN_TITLE }
         assertTrue(preferenceChangeListener.captured.onPreferenceChange(syncPreference, false))
         verify { anyConstructed<SyncEnginesStorage>().setStatus(any(), false) }
     }
@@ -175,7 +175,7 @@ class SyncPreferenceViewTest {
 
         verify { syncPreference.isSwitchWidgetVisible = true }
         verify { syncPreference.isChecked = false }
-        verify { syncPreference.title = loggedInTitle }
+        verify { syncPreference.title = LOGGED_IN_TITLE }
         assertTrue(preferenceChangeListener.captured.onPreferenceChange(syncPreference, true))
         verify { anyConstructed<SyncEnginesStorage>().setStatus(any(), true) }
     }
@@ -185,8 +185,8 @@ class SyncPreferenceViewTest {
         lifecycleOwner = lifecycleOwner,
         accountManager = accountManager,
         syncEngine = SyncEngine.Passwords,
-        loggedOffTitle = notLoggedInTitle,
-        loggedInTitle = loggedInTitle,
+        loggedOffTitle = NOT_LOGGED_IN_TITLE,
+        loggedInTitle = LOGGED_IN_TITLE,
         onSyncSignInClicked = {
             val directions =
                 SavedLoginsAuthFragmentDirections.actionSavedLoginsAuthFragmentToTurnOnSyncFragment(
@@ -204,7 +204,7 @@ class SyncPreferenceViewTest {
     )
 
     companion object {
-        const val notLoggedInTitle: String = "Sync passwords across devices"
-        const val loggedInTitle: String = "Sync passwords"
+        const val NOT_LOGGED_IN_TITLE: String = "Sync passwords across devices"
+        const val LOGGED_IN_TITLE: String = "Sync passwords"
     }
 }

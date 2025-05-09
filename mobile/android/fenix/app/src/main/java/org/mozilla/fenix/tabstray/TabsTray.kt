@@ -166,7 +166,7 @@ fun TabsTray(
             .fillMaxSize()
             .then(shapeModifier)
             .background(FirefoxTheme.colors.layer1)
-            .testTag(TabsTrayTestTag.tabsTray),
+            .testTag(TabsTrayTestTag.TABS_TRAY),
     ) {
         Box(modifier = Modifier.nestedScroll(rememberNestedScrollInteropConnection())) {
             TabsTrayBanner(

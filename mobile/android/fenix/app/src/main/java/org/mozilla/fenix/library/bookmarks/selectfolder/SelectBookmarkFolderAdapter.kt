@@ -78,7 +78,7 @@ class SelectBookmarkFolderAdapter(private val sharedViewModel: BookmarksSharedVi
         }
 
         companion object {
-            const val viewType = 1
+            const val VIEW_TYPE = 1
         }
     }
 

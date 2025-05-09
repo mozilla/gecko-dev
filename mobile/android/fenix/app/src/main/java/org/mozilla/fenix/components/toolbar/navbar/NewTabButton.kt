@@ -83,7 +83,7 @@ fun NewTabButton(
         },
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .testTag(NavBarTestTags.newTabButton),
+            .testTag(NavBarTestTags.NEW_TAB_BUTTON),
         update = { newTabButton ->
             newTabButton.layoutDirection = if (isRtl) {
                 View.TEXT_DIRECTION_RTL

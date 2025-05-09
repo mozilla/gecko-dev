@@ -193,7 +193,7 @@ class LibrarySubMenusMultipleSelectionToolbarRobot {
             openInNewTabButton().click()
             Log.i(TAG, "clickOpenNewTab: Clicked the multi-select \"Open in a new tab\" context menu button")
             Log.i(TAG, "clickOpenNewTab: Trying to verify that the tabs tray exists")
-            composeTestRule.onNodeWithTag(TabsTrayTestTag.tabsTray).assertExists()
+            composeTestRule.onNodeWithTag(TabsTrayTestTag.TABS_TRAY).assertExists()
             Log.i(TAG, "clickOpenNewTab: Verified that the tabs tray exists")
 
             TabDrawerRobot(composeTestRule).interact()
@@ -205,7 +205,7 @@ class LibrarySubMenusMultipleSelectionToolbarRobot {
             redesignedBookmarksOpenInNewTabButton(composeTestRule).performClick()
             Log.i(TAG, "clickOpenInNewTabButton: Clicked the multi-select \"Open in a new tab\" context menu button")
             Log.i(TAG, "clickOpenInNewTabButton: Trying to verify that the tabs tray exists")
-            composeTestRule.onNodeWithTag(TabsTrayTestTag.tabsTray).assertExists()
+            composeTestRule.onNodeWithTag(TabsTrayTestTag.TABS_TRAY).assertExists()
             Log.i(TAG, "clickOpenInNewTabButton: Verified that the tabs tray exists")
 
             TabDrawerRobot(composeTestRule).interact()

@@ -55,7 +55,7 @@ interface BookmarksStorage : Storage {
      * @param limit The maximum number of entries to return.
      * @return The list of matching bookmark nodes up to the limit number of items.
      */
-    suspend fun searchBookmarks(query: String, limit: Int = defaultBookmarkSearchLimit): List<BookmarkNode>
+    suspend fun searchBookmarks(query: String, limit: Int = DEFAULT_BOOKMARKS_SEARCH_LIMIT): List<BookmarkNode>
 
     /**
      * Adds a new bookmark item to a given node.
@@ -123,7 +123,7 @@ interface BookmarksStorage : Storage {
     suspend fun countBookmarksInTrees(guids: List<String>): UInt
 
     companion object {
-        const val defaultBookmarkSearchLimit = 10
+        const val DEFAULT_BOOKMARKS_SEARCH_LIMIT = 10
     }
 }
 

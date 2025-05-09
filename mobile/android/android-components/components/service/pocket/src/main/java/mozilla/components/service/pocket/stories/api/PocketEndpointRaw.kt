@@ -33,12 +33,12 @@ internal class PocketEndpointRaw internal constructor(
      */
     @WorkerThread // synchronous request.
     private fun makeRequest(): String? {
-        val request = Request(pocketEndpointUrl, conservative = true)
+        val request = Request(POCKET_ENDPOINT_URL, conservative = true)
         return client.fetchBodyOrNull(request)
     }
 
     companion object {
-        private const val pocketEndpointUrl = "https://firefox-android-home-recommendations.getpocket.com/"
+        private const val POCKET_ENDPOINT_URL = "https://firefox-android-home-recommendations.getpocket.com/"
 
         /**
          * Returns a new instance of [PocketEndpointRaw].

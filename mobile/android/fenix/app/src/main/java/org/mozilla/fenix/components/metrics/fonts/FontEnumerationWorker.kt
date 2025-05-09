@@ -43,7 +43,7 @@ class FontEnumerationWorker(
 
         // To avoid getting multiple submissions from new installs, set directly
         // to the desired number of submissions
-        applicationContext.settings().numFontListSent = kDesiredSubmissions
+        applicationContext.settings().numFontListSent = DESIRED_SUBMISSIONS_NUMBER
 
         return@withContext Result.success()
     }
@@ -84,7 +84,7 @@ class FontEnumerationWorker(
                 return
             }
 
-            if (context.settings().numFontListSent >= kDesiredSubmissions) {
+            if (context.settings().numFontListSent >= DESIRED_SUBMISSIONS_NUMBER) {
                 return
             }
 
@@ -135,6 +135,6 @@ class FontEnumerationWorker(
          * we wish to perform another data collection effort on the Nightly
          * population.
          */
-        const val kDesiredSubmissions: Int = 4
+        const val DESIRED_SUBMISSIONS_NUMBER: Int = 4
     }
 }

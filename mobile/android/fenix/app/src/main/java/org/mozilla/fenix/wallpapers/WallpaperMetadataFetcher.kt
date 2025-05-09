@@ -25,7 +25,7 @@ class WallpaperMetadataFetcher(
     private val client: Client,
 ) {
     private val metadataUrl = BuildConfig.WALLPAPER_URL.substringBefore("android") +
-        "metadata/v$currentJsonVersion/wallpapers.json"
+        "metadata/v$CURRENT_JSON_VERSION/wallpapers.json"
 
     /**
      * Downloads the list of wallpapers from the remote source. Failures will return an empty list.
@@ -110,6 +110,6 @@ class WallpaperMetadataFetcher(
         .toHexColor()
 
     companion object {
-        internal const val currentJsonVersion = 1
+        internal const val CURRENT_JSON_VERSION = 1
     }
 }

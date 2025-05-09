@@ -79,11 +79,11 @@ import org.mozilla.fenix.helpers.TestHelper.scrollToElementByText
 import org.mozilla.fenix.helpers.click
 import org.mozilla.fenix.helpers.ext.waitNotNull
 import org.mozilla.fenix.home.topsites.TopSitesTestTag
-import org.mozilla.fenix.home.topsites.TopSitesTestTag.topSiteCardFavicon
-import org.mozilla.fenix.home.ui.HomepageTestTag.homepage
-import org.mozilla.fenix.home.ui.HomepageTestTag.homepageWordMarkLogo
-import org.mozilla.fenix.home.ui.HomepageTestTag.homepageWordMarkText
-import org.mozilla.fenix.home.ui.HomepageTestTag.privateBrowsingHomepageButton
+import org.mozilla.fenix.home.topsites.TopSitesTestTag.TOP_SITE_CARD_FAVICON
+import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE
+import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE_WORDMARK_LOGO
+import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE_WORDMARK_TEXT
+import org.mozilla.fenix.home.ui.HomepageTestTag.PRIVATE_BROWSING_HOMEPAGE_BUTTON
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
 
 /**
@@ -142,7 +142,7 @@ class HomeScreenRobot {
     }
     fun verifyHomeComponent(composeTestRule: ComposeTestRule) {
         Log.i(TAG, "verifyHomeComponent: Trying to verify home screen view is visible")
-        composeTestRule.onNodeWithTag(homepage).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(HOMEPAGE).assertIsDisplayed()
         Log.i(TAG, "verifyHomeComponent: Verified home screen view is visible")
     }
 
@@ -333,10 +333,10 @@ class HomeScreenRobot {
     @OptIn(ExperimentalTestApi::class)
     fun verifyExistingTopSitesList(composeTestRule: ComposeTestRule) {
         Log.i(TAG, "verifyExistingTopSitesList: Waiting for $waitingTime ms until the top sites list exists")
-        composeTestRule.waitUntilAtLeastOneExists(hasTestTag(TopSitesTestTag.topSites), timeoutMillis = waitingTime)
+        composeTestRule.waitUntilAtLeastOneExists(hasTestTag(TopSitesTestTag.TOP_SITES), timeoutMillis = waitingTime)
         Log.i(TAG, "verifyExistingTopSitesList: Waited for $waitingTime ms until the top sites list to exists")
         Log.i(TAG, "verifyExistingTopSitesList: Trying to verify that the top sites list is displayed")
-        composeTestRule.onNodeWithTag(TopSitesTestTag.topSites).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TopSitesTestTag.TOP_SITES).assertIsDisplayed()
         Log.i(TAG, "verifyExistingTopSitesList: Verified that the top sites list is displayed")
     }
 
@@ -374,7 +374,7 @@ class HomeScreenRobot {
         titles.forEach { title ->
             Log.i(TAG, "verifyExistingTopSiteItem: Waiting for $waitingTime ms until the top site with title: $title exists")
             composeTestRule.waitUntilAtLeastOneExists(
-                hasTestTag(TopSitesTestTag.topSiteItemRoot).and(hasAnyChild(hasText(title))),
+                hasTestTag(TopSitesTestTag.TOP_SITE_ITEM_ROOT).and(hasAnyChild(hasText(title))),
                 timeoutMillis = waitingTimeLong,
             )
             Log.i(TAG, "verifyExistingTopSiteItem: Waited for $waitingTimeLong ms until the top site with title: $title exists")
@@ -389,7 +389,7 @@ class HomeScreenRobot {
             itemWithResIdAndIndex(resourceId = "top_sites_list.top_site_item", index = position - 1)
                 .getChild(
                     UiSelector()
-                        .resourceId(topSiteCardFavicon),
+                        .resourceId(TOP_SITE_CARD_FAVICON),
                 ),
         )
         assertUIObjectExists(
@@ -605,7 +605,7 @@ class HomeScreenRobot {
     fun verifyCustomizeHomepageButton(composeTestRule: ComposeTestRule, enabled: Boolean) {
         if (enabled) {
             Log.i(TAG, "verifyCustomizeHomepageButton: Trying to perform scroll to the \"Customize homepage\" button")
-            composeTestRule.onNodeWithTag(homepage).performScrollToNode(hasText("Customize homepage"))
+            composeTestRule.onNodeWithTag(HOMEPAGE).performScrollToNode(hasText("Customize homepage"))
             Log.i(TAG, "verifyCustomizeHomepageButton: Performed scroll to the \"Customize homepage\" button")
             Log.i(TAG, "verifyCustomizeHomepageButton: Trying to verify that the \"Customize homepage\" button is displayed")
             composeTestRule.onNodeWithText("Customize homepage").assertIsDisplayed()
@@ -696,7 +696,7 @@ class HomeScreenRobot {
                     tabsCounter().click()
                     Log.i(TAG, "openTabDrawerFromRedesignedToolbar: Clicked the tab counter button")
                     Log.i(TAG, "openTabDrawerFromRedesignedToolbar: Trying to verify the tabs tray exists")
-                    composeTestRule.onNodeWithTag(TabsTrayTestTag.tabsTray).assertExists()
+                    composeTestRule.onNodeWithTag(TabsTrayTestTag.TABS_TRAY).assertExists()
                     Log.i(TAG, "openTabDrawer: Verified the tabs tray exists")
 
                     break
@@ -712,7 +712,7 @@ class HomeScreenRobot {
                 }
             }
             Log.i(TAG, "openTabDrawerFromRedesignedToolbar: Trying to verify the tabs tray new tab FAB button exists")
-            composeTestRule.onNodeWithTag(TabsTrayTestTag.fab).assertExists()
+            composeTestRule.onNodeWithTag(TabsTrayTestTag.FAB).assertExists()
             Log.i(TAG, "openTabDrawerFromRedesignedToolbar: Verified the tabs tray new tab FAB button exists")
 
             TabDrawerRobot(composeTestRule).interact()
@@ -727,7 +727,7 @@ class HomeScreenRobot {
             onView(withId(R.id.tab_button)).click()
             Log.i(TAG, "openTabDrawer: Clicked tab counter button")
             Log.i(TAG, "openTabDrawer: Trying to verify the tabs tray exists")
-            composeTestRule.onNodeWithTag(TabsTrayTestTag.tabsTray).assertExists()
+            composeTestRule.onNodeWithTag(TabsTrayTestTag.TABS_TRAY).assertExists()
             Log.i(TAG, "openTabDrawer: Verified the tabs tray exists")
 
             TabDrawerRobot(composeTestRule).interact()
@@ -927,7 +927,7 @@ class HomeScreenRobot {
             composeTestRule.contextMenuItemRemove().performClick()
             Log.i(TAG, "removeTopSite: Clicked the \"Remove\" menu button")
             Log.i(TAG, "removeTopSite: Waiting for $waitingTime ms until the \"Remove\" menu button does not exist")
-            composeTestRule.waitUntilDoesNotExist(hasTestTag(TopSitesTestTag.remove), waitingTime)
+            composeTestRule.waitUntilDoesNotExist(hasTestTag(TopSitesTestTag.REMOVE), waitingTime)
             Log.i(TAG, "removeTopSite: Waited for $waitingTime ms until the \"Remove\" menu button does not exist")
 
             HomeScreenRobot().interact()
@@ -1007,7 +1007,7 @@ class HomeScreenRobot {
 
         fun openCustomizeHomepage(composeTestRule: ComposeTestRule, interact: SettingsSubMenuHomepageRobot.() -> Unit): SettingsSubMenuHomepageRobot.Transition {
             Log.i(TAG, "openCustomizeHomepage: Trying to perform scroll to the \"Customize homepage\" button")
-            composeTestRule.onNodeWithTag(homepage).performScrollToNode(hasText("Customize homepage"))
+            composeTestRule.onNodeWithTag(HOMEPAGE).performScrollToNode(hasText("Customize homepage"))
             Log.i(TAG, "openCustomizeHomepage: Performed scroll to the \"Customize homepage\" button")
             Log.i(TAG, "openCustomizeHomepage: Trying to click \"Customize homepage\" button")
             composeTestRule.onNodeWithText("Customize homepage").performClick()
@@ -1108,7 +1108,7 @@ fun homeScreen(interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition
 private fun homeScreenList() =
     UiScrollable(
         UiSelector()
-            .resourceId(homepage)
+            .resourceId(HOMEPAGE)
             .scrollable(true),
     ).setAsVerticalList()
 
@@ -1136,16 +1136,16 @@ private fun storyByTopicItem(composeTestRule: ComposeTestRule, position: Int) =
 private fun homeScreen() =
     itemWithResId("$packageName:id/homepageView")
 private fun privateBrowsingButton() =
-    itemWithResId(privateBrowsingHomepageButton)
+    itemWithResId(PRIVATE_BROWSING_HOMEPAGE_BUTTON)
 
 private fun isPrivateModeEnabled(): Boolean =
-    itemWithResId(privateBrowsingHomepageButton).isChecked
+    itemWithResId(PRIVATE_BROWSING_HOMEPAGE_BUTTON).isChecked
 
 private fun homepageWordmarkLogo() =
-    itemWithResId(homepageWordMarkLogo)
+    itemWithResId(HOMEPAGE_WORDMARK_LOGO)
 
 private fun homepageWordmarkText() =
-    itemWithResId(homepageWordMarkText)
+    itemWithResId(HOMEPAGE_WORDMARK_TEXT)
 
 private fun navigationToolbar() =
     itemWithResId("$packageName:id/toolbar")
@@ -1174,10 +1174,10 @@ private fun firefoxOptionSetAsDefaultBrowserDialogRadioButton() =
     )
 
 private fun ComposeTestRule.topSiteItem(title: String) =
-    onAllNodesWithTag(TopSitesTestTag.topSiteItemRoot).filter(hasAnyChild(hasText(title))).onFirst()
+    onAllNodesWithTag(TopSitesTestTag.TOP_SITE_ITEM_ROOT).filter(hasAnyChild(hasText(title))).onFirst()
 
-private fun ComposeTestRule.contextMenuItemOpenInPrivateTab() = onAllNodesWithTag(TopSitesTestTag.openInPrivateTab).onFirst()
+private fun ComposeTestRule.contextMenuItemOpenInPrivateTab() = onAllNodesWithTag(TopSitesTestTag.OPEN_IN_PRIVATE_TAB).onFirst()
 
-private fun ComposeTestRule.contextMenuItemEdit() = onAllNodesWithTag(TopSitesTestTag.edit).onFirst()
+private fun ComposeTestRule.contextMenuItemEdit() = onAllNodesWithTag(TopSitesTestTag.EDIT).onFirst()
 
-private fun ComposeTestRule.contextMenuItemRemove() = onAllNodesWithTag(TopSitesTestTag.remove).onFirst()
+private fun ComposeTestRule.contextMenuItemRemove() = onAllNodesWithTag(TopSitesTestTag.REMOVE).onFirst()

@@ -59,7 +59,7 @@ import org.mozilla.fenix.compose.MenuItem
 import org.mozilla.fenix.compose.PagerIndicator
 import org.mozilla.fenix.home.fake.FakeHomepagePreview
 import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
-import org.mozilla.fenix.home.topsites.TopSitesTestTag.topSiteCardFavicon
+import org.mozilla.fenix.home.topsites.TopSitesTestTag.TOP_SITE_CARD_FAVICON
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.wallpapers.WallpaperState
@@ -152,7 +152,7 @@ fun TopSites(
             .semantics {
                 testTagsAsResourceId = true
             }
-            .testTag(TopSitesTestTag.topSites),
+            .testTag(TopSitesTestTag.TOP_SITES),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val pagerState = rememberPagerState(
@@ -333,7 +333,7 @@ private fun TopSiteItem(
             .semantics {
                 testTagsAsResourceId = true
             }
-            .testTag(TopSitesTestTag.topSiteItemRoot),
+            .testTag(TopSitesTestTag.TOP_SITE_ITEM_ROOT),
     ) {
         Column(
             modifier = Modifier
@@ -379,7 +379,7 @@ private fun TopSiteItem(
                         .semantics {
                             testTagsAsResourceId = true
                         }
-                        .testTag(TopSitesTestTag.topSiteTitle),
+                        .testTag(TopSitesTestTag.TOP_SITE_TITLE),
                     text = topSite.title ?: topSite.url,
                     color = topSiteColors.titleTextColor,
                     overflow = TextOverflow.Ellipsis,
@@ -402,7 +402,7 @@ private fun TopSiteItem(
 
         ContextualMenu(
             modifier = Modifier
-                .testTag(TopSitesTestTag.topSiteContextualMenu),
+                .testTag(TopSitesTestTag.TOP_SITE_CONTEXTUAL_MENU),
             menuItems = menuItems,
             showMenu = menuExpanded,
             onDismissRequest = { menuExpanded = false },
@@ -436,7 +436,7 @@ private fun TopSiteFaviconCard(
         modifier = Modifier
             .semantics {
                 testTagsAsResourceId = true
-                testTag = topSiteCardFavicon
+                testTag = TOP_SITE_CARD_FAVICON
             }
             .size(TOP_SITES_FAVICON_CARD_SIZE.dp),
         shape = RoundedCornerShape(8.dp),
@@ -495,7 +495,7 @@ private fun getMenuItems(
     result.add(
         MenuItem(
             title = stringResource(id = R.string.bookmark_menu_open_in_private_tab_button),
-            testTag = TopSitesTestTag.openInPrivateTab,
+            testTag = TopSitesTestTag.OPEN_IN_PRIVATE_TAB,
             onClick = { onOpenInPrivateTabClicked(topSite) },
         ),
     )
@@ -504,7 +504,7 @@ private fun getMenuItems(
         result.add(
             MenuItem(
                 title = stringResource(id = R.string.top_sites_edit_top_site),
-                testTag = TopSitesTestTag.edit,
+                testTag = TopSitesTestTag.EDIT,
                 onClick = { onEditTopSiteClicked(topSite) },
             ),
         )
@@ -520,7 +520,7 @@ private fun getMenuItems(
                         R.string.delete_from_history
                     },
                 ),
-                testTag = TopSitesTestTag.remove,
+                testTag = TopSitesTestTag.REMOVE,
                 onClick = { onRemoveTopSiteClicked(topSite) },
             ),
         )
@@ -531,7 +531,7 @@ private fun getMenuItems(
             listOf(
                 MenuItem(
                     title = stringResource(id = R.string.delete_from_history),
-                    testTag = TopSitesTestTag.remove,
+                    testTag = TopSitesTestTag.REMOVE,
                     onClick = { onRemoveTopSiteClicked(topSite) },
                 ),
                 MenuItem(

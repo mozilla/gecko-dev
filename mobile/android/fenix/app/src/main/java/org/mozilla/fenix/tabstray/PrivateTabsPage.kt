@@ -41,7 +41,7 @@ internal fun PrivateTabsPage(
             displayTabsInGrid = displayTabsInGrid,
             selectedTabId = selectedTabId,
             selectionMode = selectionMode,
-            modifier = Modifier.testTag(TabsTrayTestTag.privateTabsList),
+            modifier = Modifier.testTag(TabsTrayTestTag.PRIVATE_TABS_LIST),
             onTabClose = onTabClose,
             onTabMediaClick = onTabMediaClick,
             onTabClick = onTabClick,

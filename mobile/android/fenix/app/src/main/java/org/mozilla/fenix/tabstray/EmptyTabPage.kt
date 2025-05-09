@@ -27,10 +27,10 @@ internal fun EmptyTabPage(isPrivate: Boolean) {
     val testTag: String
     val emptyTextId: Int
     if (isPrivate) {
-        testTag = TabsTrayTestTag.emptyPrivateTabsList
+        testTag = TabsTrayTestTag.EMPTY_PRIVATE_TABS_LIST
         emptyTextId = R.string.no_private_tabs_description
     } else {
-        testTag = TabsTrayTestTag.emptyNormalTabsList
+        testTag = TabsTrayTestTag.EMPTY_NORMAL_TABS_LIST
         emptyTextId = R.string.no_open_tabs_description
     }
 

@@ -65,7 +65,7 @@ class SettingsSubMenuAboutRobot {
         val buildNVersion = "${packageInfo.versionName} (Build #$versionCode)\n"
         val geckoVersion =
             org.mozilla.geckoview.BuildConfig.MOZ_APP_VERSION + "-" + org.mozilla.geckoview.BuildConfig.MOZ_APP_BUILDID
-        val asVersion = mozilla.components.Build.applicationServicesVersion
+        val asVersion = mozilla.components.Build.APPLICATION_SERVICES_VERSION
         val osVersion = Build.VERSION.RELEASE
         Log.i(TAG, "verifyVersionNumber: Trying to verify that the about section contains build version: $buildNVersion")
         onView(withId(R.id.about_text)).check(matches(withText(containsString(buildNVersion))))

@@ -9,10 +9,10 @@ import kotlinx.coroutines.withContext
 import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.fenix.utils.Settings
 import org.mozilla.fenix.utils.toHexColor
-import org.mozilla.fenix.wallpapers.Wallpaper.Companion.amethystName
-import org.mozilla.fenix.wallpapers.Wallpaper.Companion.beachVibeName
-import org.mozilla.fenix.wallpapers.Wallpaper.Companion.ceruleanName
-import org.mozilla.fenix.wallpapers.Wallpaper.Companion.sunriseName
+import org.mozilla.fenix.wallpapers.Wallpaper.Companion.AMETHYST
+import org.mozilla.fenix.wallpapers.Wallpaper.Companion.BEACH_VIBE
+import org.mozilla.fenix.wallpapers.Wallpaper.Companion.CERULEAN
+import org.mozilla.fenix.wallpapers.Wallpaper.Companion.SUNRISE
 import java.io.File
 import java.io.IOException
 
@@ -39,7 +39,7 @@ class LegacyWallpaperMigration(
         // For the legacy wallpapers previously stored as drawables,
         // attempt to download them at startup.
         when (wallpaperName) {
-            ceruleanName, sunriseName, amethystName -> {
+            CERULEAN, SUNRISE, AMETHYST -> {
                 downloadWallpaper(
                     Wallpaper.Default.copy(
                         name = wallpaperName,
@@ -61,7 +61,7 @@ class LegacyWallpaperMigration(
             return@withContext wallpaperName
         }
         // The V2 name for the "beach-vibe" wallpaper is "beach-vibes".
-        val migratedWallpaperName = if (wallpaperName == beachVibeName) {
+        val migratedWallpaperName = if (wallpaperName == BEACH_VIBE) {
             "beach-vibes"
         } else {
             wallpaperName

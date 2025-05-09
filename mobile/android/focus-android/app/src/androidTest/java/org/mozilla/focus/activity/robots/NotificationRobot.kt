@@ -17,8 +17,8 @@ import org.mozilla.focus.helpers.TestHelper.waitingTime
 
 class NotificationRobot {
 
-    private val NOTIFICATION_SHADE = "com.android.systemui:id/notification_stack_scroller"
-    private val QS_PANEL = "com.android.systemui:id/quick_qs_panel"
+    private val systemNotificationPanelId = "com.android.systemui:id/notification_stack_scroller"
+    private val quickSettingsPanelId = "com.android.systemui:id/quick_qs_panel"
 
     fun clearNotifications() {
         if (clearButton().exists()) {
@@ -41,7 +41,7 @@ class NotificationRobot {
         val notification = mDevice.findObject(UiSelector().text(notificationMessage))
         while (!notification.waitForExists(waitingTime)) {
             UiScrollable(
-                UiSelector().resourceId(NOTIFICATION_SHADE),
+                UiSelector().resourceId(systemNotificationPanelId),
             ).flingToEnd(1)
         }
 
@@ -52,7 +52,7 @@ class NotificationRobot {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val notificationInTray = mDevice.wait(
                 Until.hasObject(
-                    By.res(QS_PANEL).hasDescendant(
+                    By.res(quickSettingsPanelId).hasDescendant(
                         By.text(notificationMessage),
                     ),
                 ),

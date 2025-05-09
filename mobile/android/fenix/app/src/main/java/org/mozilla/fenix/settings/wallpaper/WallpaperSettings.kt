@@ -119,7 +119,7 @@ private fun WallpaperGroupHeading(
     // and descriptions so they could be localized.
     // In the future, we may want to either use the dynamic wallpaper properties with localized fallbacks
     // or invest in a method of localizing the remote strings themselves.
-    if (collection.name == Wallpaper.classicFirefoxCollectionName) {
+    if (collection.name == Wallpaper.CLASSIC_FIREFOX_COLLECTION) {
         Text(
             text = stringResource(R.string.wallpaper_classic_title, stringResource(R.string.firefox)),
             color = FirefoxTheme.colors.textSecondary,
@@ -240,7 +240,7 @@ private fun WallpaperThumbnailItem(
     }
     val border = if (isSelected) {
         BorderStroke(width = FirefoxTheme.layout.border.thick, color = FirefoxTheme.colors.borderAccent)
-    } else if (wallpaper.name == Wallpaper.defaultName) {
+    } else if (wallpaper.name == Wallpaper.DEFAULT) {
         BorderStroke(width = FirefoxTheme.layout.border.thick, color = FirefoxTheme.colors.borderPrimary)
     } else {
         null

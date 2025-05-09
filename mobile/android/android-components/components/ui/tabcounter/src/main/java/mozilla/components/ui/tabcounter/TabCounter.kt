@@ -44,7 +44,7 @@ class TabCounter @JvmOverloads constructor(
         counterRoot = binding.counterRoot
         counterMask = binding.counterMask
 
-        setCount(INTERNAL_COUNT)
+        setCount(internalCount)
 
         context.obtainStyledAttributes(attrs, R.styleable.TabCounter, defStyle, 0).apply {
             counterColor = getColorStateList(
@@ -86,9 +86,9 @@ class TabCounter @JvmOverloads constructor(
 
         // No need to animate on these cases.
         when {
-            INTERNAL_COUNT == 0 -> return // Initial state.
-            INTERNAL_COUNT == count -> return // There isn't any tab added or removed.
-            INTERNAL_COUNT > MAX_VISIBLE_TABS -> return // There are still over MAX_VISIBLE_TABS tabs open.
+            internalCount == 0 -> return // Initial state.
+            internalCount == count -> return // There isn't any tab added or removed.
+            internalCount > MAX_VISIBLE_TABS -> return // There are still over MAX_VISIBLE_TABS tabs open.
         }
 
         // Cancel previous animations if necessary.
@@ -109,7 +109,7 @@ class TabCounter @JvmOverloads constructor(
     }
 
     fun setCount(count: Int) {
-        INTERNAL_COUNT = count
+        internalCount = count
         updateContentDescription(count)
         setBackgroundDrawable(count)
         setCounterText(count)
@@ -292,7 +292,7 @@ class TabCounter @JvmOverloads constructor(
     }
 
     companion object {
-        var INTERNAL_COUNT = 0
+        var internalCount = 0
 
         const val MAX_VISIBLE_TABS = 99
 

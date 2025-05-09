@@ -68,10 +68,10 @@ class AutofillCreditCardsAddressesStorageTest {
         assertEquals(creditCardFields.expiryYear, creditCard.expiryYear)
         assertEquals(creditCardFields.cardType, creditCard.cardType)
         assertEquals(
-            CreditCard.ellipsesStart +
-                CreditCard.ellipsis + CreditCard.ellipsis + CreditCard.ellipsis + CreditCard.ellipsis +
+            CreditCard.ELLIPSES_START +
+                CreditCard.ELLIPSIS + CreditCard.ELLIPSIS + CreditCard.ELLIPSIS + CreditCard.ELLIPSIS +
                 creditCardFields.cardNumberLast4 +
-                CreditCard.ellipsesEnd,
+                CreditCard.ELLIPSES_END,
             creditCard.obfuscatedCardNumber,
         )
     }

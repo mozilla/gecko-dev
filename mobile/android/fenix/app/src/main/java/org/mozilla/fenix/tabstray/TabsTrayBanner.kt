@@ -154,7 +154,7 @@ fun TabsTrayBanner(
     )
 
     Column(
-        modifier = Modifier.testTag(tag = TabsTrayTestTag.bannerTestTagRoot),
+        modifier = Modifier.testTag(tag = TabsTrayTestTag.BANNER_ROOT),
     ) {
         if (isInMultiSelectMode) {
             MultiSelectBanner(
@@ -280,7 +280,7 @@ private fun TabPageBanner(
             modifier = Modifier
                 .fillMaxWidth(BOTTOM_SHEET_HANDLE_WIDTH_PERCENT)
                 .align(Alignment.CenterHorizontally)
-                .testTag(TabsTrayTestTag.bannerHandle),
+                .testTag(TabsTrayTestTag.BANNER_HANDLE),
         )
 
         Row(
@@ -301,7 +301,7 @@ private fun TabPageBanner(
                     onClick = { onTabPageIndicatorClicked(Page.NormalTabs) },
                     modifier = Modifier
                         .fillMaxHeight()
-                        .testTag(TabsTrayTestTag.normalTabsPageButton),
+                        .testTag(TabsTrayTestTag.NORMAL_TABS_PAGE_BUTTON),
                     selectedContentColor = selectedColor,
                     unselectedContentColor = inactiveColor,
                 ) {
@@ -319,7 +319,7 @@ private fun TabPageBanner(
                     onClick = { onTabPageIndicatorClicked(Page.PrivateTabs) },
                     modifier = Modifier
                         .fillMaxHeight()
-                        .testTag(TabsTrayTestTag.privateTabsPageButton),
+                        .testTag(TabsTrayTestTag.PRIVATE_TABS_PAGE_BUTTON),
                     icon = {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_private_browsing),
@@ -338,7 +338,7 @@ private fun TabPageBanner(
                     onClick = { onTabPageIndicatorClicked(Page.SyncedTabs) },
                     modifier = Modifier
                         .fillMaxHeight()
-                        .testTag(TabsTrayTestTag.syncedTabsPageButton),
+                        .testTag(TabsTrayTestTag.SYNCED_TABS_PAGE_BUTTON),
                     icon = {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_synced_tabs),
@@ -359,7 +359,7 @@ private fun TabPageBanner(
                 onClick = { showMenu = true },
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
-                    .testTag(TabsTrayTestTag.threeDotButton),
+                    .testTag(TabsTrayTestTag.THREE_DOT_BUTTON),
             ) {
                 DropdownMenu(
                     menuItems = menuItems,
@@ -426,7 +426,7 @@ private fun MultiSelectBanner(
 
         Text(
             text = stringResource(R.string.tab_tray_multi_select_title, selectedTabCount),
-            modifier = Modifier.testTag(TabsTrayTestTag.selectionCounter),
+            modifier = Modifier.testTag(TabsTrayTestTag.SELECTION_COUNTER),
             style = FirefoxTheme.typography.headline6,
             color = FirefoxTheme.colors.textOnColorPrimary,
         )
@@ -435,7 +435,7 @@ private fun MultiSelectBanner(
 
         IconButton(
             onClick = onSaveToCollectionsClick,
-            modifier = Modifier.testTag(TabsTrayTestTag.collectionsButton),
+            modifier = Modifier.testTag(TabsTrayTestTag.COLLECTIONS_BUTTON),
             enabled = buttonsEnabled,
         ) {
             Icon(
