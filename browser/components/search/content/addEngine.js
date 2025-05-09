@@ -19,6 +19,7 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
 });
 
@@ -277,18 +278,24 @@ class NewEngineDialog extends EngineDialog {
     this.validateAll();
   }
 
-  onAccept() {
+  async onAccept() {
     let params = new URLSearchParams(
       this._postData.value.trim().replace(/%s/, "{searchTerms}")
+    );
+    let url = this._url.value.trim().replace(/%s/, "{searchTerms}");
+
+    let favicon = await lazy.PlacesUtils.favicons.getFaviconForPage(
+      Services.io.newURI(new URL(url).origin)
     );
 
     Services.search.addUserEngine({
       name: this._name.value.trim(),
-      url: this._url.value.trim().replace(/%s/, "{searchTerms}"),
+      url,
       method: params.size ? "POST" : "GET",
       params,
       suggestUrl: this._suggestUrl.value.trim().replace(/%s/, "{searchTerms}"),
       alias: this._alias.value.trim(),
+      icon: favicon?.dataURI.spec,
     });
   }
 }
@@ -362,6 +369,20 @@ class EditEngineDialog extends EngineDialog {
         null
       );
     }
+
+    lazy.PlacesUtils.favicons
+      .getFaviconForPage(Services.io.newURI(new URL(newURL).origin))
+      .then(iconURL => {
+        if (iconURL) {
+          this.#engine.changeIcon(iconURL.dataURI.spec);
+        }
+      })
+      .catch(e =>
+        console.warn(
+          `Unable to change icon of engine ${this.#engine.name}:`,
+          e.message
+        )
+      );
   }
 
   get allowedAliases() {
