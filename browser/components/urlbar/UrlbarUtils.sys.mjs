@@ -660,7 +660,8 @@ export var UrlbarUtils = {
    *
    * @param {UrlbarResult} result
    *   The result.
-   * @param {bool} includeHiddenExposures
+   * @param {object} [options]
+   * @param {boolean} [options.includeHiddenExposures]
    *   Whether a span should be returned if the result is a hidden exposure. If
    *   false and `result.isHiddenExposure` is true, zero will be returned since
    *   the result should be hidden and not take up any rows at all. Otherwise
@@ -812,19 +813,19 @@ export var UrlbarUtils = {
    *        The text to modify.
    * @param {object} [options]
    *        The options object.
-   * @param {boolean} options.stripHttp
+   * @param {boolean} [options.stripHttp]
    *        Whether to strip http.
-   * @param {boolean} options.stripHttps
+   * @param {boolean} [options.stripHttps]
    *        Whether to strip https.
-   * @param {boolean} options.stripWww
+   * @param {boolean} [options.stripWww]
    *        Whether to strip `www.`.
-   * @param {boolean} options.trimSlash
+   * @param {boolean} [options.trimSlash]
    *        Whether to trim the trailing slash.
-   * @param {boolean} options.trimEmptyQuery
+   * @param {boolean} [options.trimEmptyQuery]
    *        Whether to trim a trailing `?`.
-   * @param {boolean} options.trimEmptyHash
+   * @param {boolean} [options.trimEmptyHash]
    *        Whether to trim a trailing `#`.
-   * @param {boolean} options.trimTrailingDot
+   * @param {boolean} [options.trimTrailingDot]
    *        Whether to trim a trailing '.'.
    * @returns {string[]} [modified, prefix, suffix]
    *          modified: {string} The modified spec.
@@ -1175,7 +1176,7 @@ export var UrlbarUtils = {
    *                 The URL to test
    * @param {string} candidate
    *                 The candidate string to test against
-   * @param {string} checkFragmentOnly
+   * @param {boolean} [checkFragmentOnly]
    *                 If want to check the fragment only, pass true.
    *                 Otherwise, check whole url.
    * @returns {boolean} true: can autofill
@@ -1465,7 +1466,7 @@ export var UrlbarUtils = {
    * Extracts a type for search engagement telemetry from a result.
    *
    * @param {UrlbarResult} result The result to analyze.
-   * @param {string} selType An optional parameter for the selected type.
+   * @param {string} [selType] An optional parameter for the selected type.
    * @returns {string} Type as string.
    */
   searchEngagementTelemetryType(result, selType = null) {
@@ -1630,7 +1631,7 @@ export var UrlbarUtils = {
    *
    * @param {object} obj
    *   The object to modify.
-   * @param {boolean} overwrite
+   * @param {boolean} [overwrite]
    *   Controls what happens when a camelCase key is already defined for a
    *   snake_case key (excluding keys that don't have underscores). If true the
    *   existing key will be overwritten. If false an error will be thrown.
@@ -2162,7 +2163,7 @@ export class UrlbarQueryContext {
    *   The maximum number of results that will be displayed for this query.
    * @param {boolean} options.allowAutofill
    *   Whether or not to allow providers to include autofill results.
-   * @param {number} options.userContextId
+   * @param {number} [options.userContextId]
    *   The container id where this context was generated, if any.
    * @param {Array} [options.sources]
    *   A list of acceptable UrlbarUtils.RESULT_SOURCE for the context.
@@ -2177,7 +2178,7 @@ export class UrlbarQueryContext {
    * @param {string} [options.formHistoryName]
    *   The name under which the local form history is registered.
    */
-  constructor(options = {}) {
+  constructor(options) {
     this._checkRequiredOptions(options, [
       "allowAutofill",
       "isPrivate",
@@ -2744,13 +2745,13 @@ export class SkippableTimer {
   /**
    * Creates a skippable timer for the given callback and time.
    *
-   * @param {object} options An object that configures the timer
-   * @param {string} options.name The name of the timer, logged when necessary
-   * @param {Function} options.callback To be invoked when requested
-   * @param {number} options.time A delay in milliseconds to wait for
-   * @param {boolean} options.reportErrorOnTimeout If true and the timer times
+   * @param {object} [options] An object that configures the timer
+   * @param {string} [options.name] The name of the timer, logged when necessary
+   * @param {Function} [options.callback] To be invoked when requested
+   * @param {number} [options.time] A delay in milliseconds to wait for
+   * @param {boolean} [options.reportErrorOnTimeout] If true and the timer times
    *                  out, an error will be logged with Cu.reportError
-   * @param {logger} options.logger An optional logger
+   * @param {Console} [options.logger] An optional logger
    */
   constructor({
     name = "<anonymous timer>",
@@ -2859,9 +2860,9 @@ export class L10nCache {
    *   Options
    * @param {string} options.id
    *   The string's Fluent ID.
-   * @param {object} options.args
+   * @param {object} [options.args]
    *   The Fluent arguments as passed to `l10n.setAttributes`.
-   * @param {boolean} options.excludeArgsFromCacheKey
+   * @param {boolean} [options.excludeArgsFromCacheKey]
    *   Pass true if the string was cached using a key that excluded arguments.
    * @returns {object}
    *   The message object or undefined if it's not cached. The message object is
@@ -2905,9 +2906,9 @@ export class L10nCache {
    *   Options
    * @param {string} options.id
    *   The string's Fluent ID.
-   * @param {object} options.args
+   * @param {object} [options.args]
    *   The Fluent arguments as passed to `l10n.setAttributes`.
-   * @param {boolean} options.excludeArgsFromCacheKey
+   * @param {boolean} [options.excludeArgsFromCacheKey]
    *   Pass true to cache the string using a key that excludes the arguments.
    *   The string will be cached only by its ID. This is useful if the string is
    *   used only once in the UI, its arguments vary, and it's acceptable to
@@ -2954,9 +2955,9 @@ export class L10nCache {
    *   Options
    * @param {string} options.id
    *   The string's Fluent ID.
-   * @param {object} options.args
+   * @param {object} [options.args]
    *   The Fluent arguments as passed to `l10n.setAttributes`.
-   * @param {boolean} options.excludeArgsFromCacheKey
+   * @param {boolean} [options.excludeArgsFromCacheKey]
    *   Pass true to cache the string using a key that excludes the arguments.
    *   The string will be cached only by its ID. See `add()` for more.
    */
@@ -2971,7 +2972,7 @@ export class L10nCache {
   /**
    * Fetches and caches strings that aren't already cached.
    *
-   * @param {Array} objects
+   * @param {object[]} objects
    *   An array of objects as passed to `ensure()`.
    */
   async ensureAll(objects) {
@@ -2989,9 +2990,9 @@ export class L10nCache {
    *   Options
    * @param {string} options.id
    *   The string's Fluent ID.
-   * @param {object} options.args
+   * @param {object} [options.args]
    *   The Fluent arguments as passed to `l10n.setAttributes`.
-   * @param {boolean} options.excludeArgsFromCacheKey
+   * @param {boolean} [options.excludeArgsFromCacheKey]
    *   Pass true if the string was cached using a key that excludes the
    *   arguments. If true, `args` is ignored.
    */
@@ -3034,24 +3035,24 @@ export class L10nCache {
    *   Options object.
    * @param {string} options.id
    *   The l10n string ID.
-   * @param {object} options.args
+   * @param {object} [options.args]
    *   The l10n string arguments.
-   * @param {string} options.attribute
+   * @param {string} [options.attribute]
    *   If the string applies to an attribute on the element, pass the name of
    *   the attribute. The string in the Fluent file should define a value for
    *   the attribute, like ".foo = My value". If the string applies to the
    *   element's content, leave this undefined.
-   * @param {boolean} options.parseMarkup
+   * @param {boolean} [options.parseMarkup]
    *   This controls whether the cached string is applied to the element's
    *   `textContent` or its `innerHTML`. It's not relevant if the string is
    *   applied to an attribute. Typically it should be set to true when the
    *   string is expected to contain markup. When true, the cached string is
    *   essentially assigned to the element's `innerHTML`. When false, it's
    *   assigned to the element's `textContent`.
-   * @param {boolean} options.cacheable
+   * @param {boolean} [options.cacheable]
    *   Whether the string should be cached in addition to applying it to the
    *   given element.
-   * @param {boolean} options.excludeArgsFromCacheKey
+   * @param {boolean} [options.excludeArgsFromCacheKey]
    *   This affects how the string is stored in and fetched from the cache and
    *   is only relevant if the string has arguments. When true, all formatted
    *   values of the string share the same cache entry regardless of the
@@ -3142,9 +3143,9 @@ export class L10nCache {
    *
    * @param {Element} element
    *   The content and attributes will be removed from this element.
-   * @param {object} options
+   * @param {object} [options]
    *   Options object.
-   * @param {string} options.attribute
+   * @param {string} [options.attribute]
    *   If you passed an attribute to `setElementL10n()`, pass it here too.
    */
   removeElementL10n(element, { attribute = undefined } = {}) {

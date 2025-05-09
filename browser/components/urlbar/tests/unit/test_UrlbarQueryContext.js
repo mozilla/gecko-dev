@@ -5,7 +5,7 @@
 
 add_task(function test_constructor() {
   Assert.throws(
-    () => new UrlbarQueryContext(),
+    () => new UrlbarQueryContext({}),
     /Missing or empty allowAutofill provided to UrlbarQueryContext/,
     "Should throw with no arguments"
   );
