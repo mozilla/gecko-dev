@@ -78,6 +78,7 @@ class ProviderGlobalActions extends UrlbarProvider {
             // We only allow one action that provides an engine search mode.
             continue;
           }
+          action.providerName = provider.name;
           actionsResults.push(action);
         }
       }
