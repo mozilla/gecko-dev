@@ -31,6 +31,7 @@
 #include "mozilla/EditorForwards.h"
 #include "mozilla/IntegerRange.h"
 #include "mozilla/InternalMutationEvent.h"
+#include "mozilla/Logging.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/OwningNonNull.h"
@@ -72,6 +73,8 @@
 class nsISupports;
 
 namespace mozilla {
+
+extern LazyLogModule gTextInputLog;  // Defined in EditorBase.cpp
 
 using namespace dom;
 using EmptyCheckOption = HTMLEditUtils::EmptyCheckOption;
@@ -1077,6 +1080,12 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
     const nsAString& aInsertionString, InsertTextFor aPurpose) {
   MOZ_ASSERT(IsTopLevelEditSubActionDataAvailable());
 
+  MOZ_LOG(
+      gTextInputLog, LogLevel::Info,
+      ("%p HTMLEditor::HandleInsertText(aInsertionString=\"%s\", aPurpose=%s)",
+       this, NS_ConvertUTF16toUTF8(aInsertionString).get(),
+       ToString(aPurpose).c_str()));
+
   {
     Result<EditActionResult, nsresult> result = CanHandleHTMLEditSubAction();
     if (MOZ_UNLIKELY(result.isErr())) {
@@ -1147,6 +1156,11 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
     }
     return GetFirstSelectionStartPoint<EditorDOMPoint>();
   }();
+
+  MOZ_LOG(gTextInputLog, LogLevel::Info,
+          ("%p HTMLEditor::HandleInsertText(), pointToInsert=%s", this,
+           ToString(pointToInsert).c_str()));
+
   if (NS_WARN_IF(!pointToInsert.IsSet())) {
     return Err(NS_ERROR_FAILURE);
   }

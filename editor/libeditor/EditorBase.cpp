@@ -150,6 +150,7 @@ using LeafNodeTypes = HTMLEditUtils::LeafNodeTypes;
 using WalkTreeOption = HTMLEditUtils::WalkTreeOption;
 
 static LazyLogModule gEventLog("EditorEvent");
+LazyLogModule gTextInputLog("EditorTextInput");
 
 /*****************************************************************************
  * mozilla::EditorBase
@@ -4041,6 +4042,13 @@ bool EditorBase::EnsureComposition(WidgetCompositionEvent& aCompositionEvent) {
 
 nsresult EditorBase::OnCompositionStart(
     WidgetCompositionEvent& aCompositionStartEvent) {
+  MOZ_LOG(gTextInputLog, LogLevel::Info,
+          ("%p %s::OnCompositionStart(aCompositionStartEvent={ mData=\"%s\"}), "
+           "mComposition=%p",
+           this, mIsHTMLEditorClass ? "HTMLEditor" : "TextEditor",
+           NS_ConvertUTF16toUTF8(aCompositionStartEvent.mData).get(),
+           mComposition.get()));
+
   if (mComposition) {
     NS_WARNING("There was a composition at receiving compositionstart event");
     return NS_OK;
@@ -4061,6 +4069,15 @@ nsresult EditorBase::OnCompositionChange(
     WidgetCompositionEvent& aCompositionChangeEvent) {
   MOZ_ASSERT(aCompositionChangeEvent.mMessage == eCompositionChange,
              "The event should be eCompositionChange");
+
+  MOZ_LOG(
+      gTextInputLog, LogLevel::Info,
+      ("%p %s::OnCompositionChange(aCompositionChangeEvent={ mData=\"%s\", "
+       "IsFollowedByCompositionEnd()=%s }), mComposition=%p",
+       this, mIsHTMLEditorClass ? "HTMLEditor" : "TextEditor",
+       NS_ConvertUTF16toUTF8(aCompositionChangeEvent.mData).get(),
+       aCompositionChangeEvent.IsFollowedByCompositionEnd() ? "true" : "false",
+       mComposition.get()));
 
   if (!mComposition) {
     NS_WARNING(
@@ -4208,6 +4225,13 @@ nsresult EditorBase::OnCompositionChange(
 
 void EditorBase::OnCompositionEnd(
     WidgetCompositionEvent& aCompositionEndEvent) {
+  MOZ_LOG(gTextInputLog, LogLevel::Info,
+          ("%p %s::OnCompositionEnd(aCompositionEndEvent={ mData=\"%s\"}), "
+           "mComposition=%p",
+           this, mIsHTMLEditorClass ? "HTMLEditor" : "TextEditor",
+           NS_ConvertUTF16toUTF8(aCompositionEndEvent.mData).get(),
+           mComposition.get()));
+
   if (!mComposition) {
     NS_WARNING("There is no composition, but receiving compositionend event");
     return;
@@ -5537,6 +5561,12 @@ nsresult EditorBase::HandleKeyPressEvent(WidgetKeyboardEvent* aKeyboardEvent) {
 nsresult EditorBase::OnInputText(const nsAString& aStringToInsert) {
   AutoEditActionDataSetter editActionData(*this, EditAction::eInsertText);
   MOZ_ASSERT(!aStringToInsert.IsVoid());
+
+  MOZ_LOG(gTextInputLog, LogLevel::Info,
+          ("%p %s::OnInputText(aStringToInsert=\"%s\")", this,
+           mIsHTMLEditorClass ? "HTMLEditor" : "TextEditor",
+           NS_ConvertUTF16toUTF8(aStringToInsert).get()));
+
   editActionData.SetData(aStringToInsert);
   // FYI: For conforming to current UI Events spec, we should dispatch
   //      "beforeinput" event before "keypress" event, but here is in a

@@ -13,6 +13,7 @@
 #include "HTMLEditor.h"
 
 #include "mozilla/Assertions.h"
+#include "mozilla/Logging.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_editor.h"
@@ -43,6 +44,8 @@
 #include "nsUnicharUtils.h"
 
 namespace mozilla {
+
+extern LazyLogModule gTextInputLog;  // Defined in EditorBase.cpp
 
 using namespace dom;
 
@@ -345,6 +348,12 @@ void TextEditor::HandleNewLinesInStringForSingleLineEditor(
 Result<EditActionResult, nsresult> TextEditor::HandleInsertText(
     const nsAString& aInsertionString, InsertTextFor aPurpose) {
   MOZ_ASSERT(IsEditActionDataAvailable());
+
+  MOZ_LOG(
+      gTextInputLog, LogLevel::Info,
+      ("%p TextEditor::HandleInsertText(aInsertionString=\"%s\", aPurpose=%s)",
+       this, NS_ConvertUTF16toUTF8(aInsertionString).get(),
+       ToString(aPurpose).c_str()));
 
   UndefineCaretBidiLevel();
 
