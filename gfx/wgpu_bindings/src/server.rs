@@ -88,7 +88,7 @@ fn restrict_limits(limits: wgt::Limits) -> wgt::Limits {
         max_storage_buffer_binding_size: limits
             .max_storage_buffer_binding_size
             .min(MAX_BUFFER_SIZE_U32),
-        max_non_sampler_bindings: 10_000,
+        max_non_sampler_bindings: 500_000,
         ..limits
     }
 }
