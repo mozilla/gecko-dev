@@ -13,7 +13,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.lang.IllegalStateException
 
 @RunWith(AndroidJUnit4::class)
 class FxaDeviceSettingsCacheTest {
@@ -25,7 +24,9 @@ class FxaDeviceSettingsCacheTest {
         try {
             cache.updateCachedName("new name")
             fail()
-        } catch (e: IllegalStateException) {}
+        } catch (e: IllegalStateException) {
+            // Ignore exception
+        }
 
         cache.setToCache(DeviceSettings("some id", "some name", DeviceType.VR))
         assertEquals(

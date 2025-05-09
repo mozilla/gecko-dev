@@ -33,7 +33,6 @@ ktlint_standard_parameter-list-wrapping = disabled
 ktlint_standard_property-naming = disabled
 ktlint_standard_statement-wrapping = disabled
 ktlint_standard_string-template-indent = disabled
-ktlint_standard_try-catch-finally-spacing = disabled
 
 ktlint_standard_function-naming = disabled
 ktlint_standard_if-else-wrapping = disabled

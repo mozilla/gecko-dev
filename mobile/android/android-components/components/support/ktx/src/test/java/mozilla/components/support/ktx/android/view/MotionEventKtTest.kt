@@ -35,7 +35,11 @@ class MotionEventKtTest {
 
     @Test
     fun `WHEN use is called with an exception THEN the object is recycled`() {
-        try { subjectSpy.use { throw IllegalStateException("Catch me!") } } catch (e: Exception) { /* Do nothing */ }
+        try {
+            subjectSpy.use { throw IllegalStateException("Catch me!") }
+        } catch (e: Exception) {
+            // Do nothing
+        }
         verify(subjectSpy, times(1)).recycle()
     }
 

@@ -119,7 +119,9 @@ class StrictModeManagerTest {
 
             @Suppress("UNREACHABLE_CODE")
             fail("Expected previous method to throw.")
-        } catch (e: IllegalStateException) { /* Do nothing */ }
+        } catch (e: IllegalStateException) {
+            // Expected
+        }
 
         verify { StrictMode.setThreadPolicy(expectedPolicy) }
     }

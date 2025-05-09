@@ -72,9 +72,7 @@ import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.hasCamera
 import mozilla.components.support.ktx.android.content.isPermissionGranted
 import java.io.Serializable
-import java.util.ArrayList
 import java.util.Collections
-import java.util.Comparator
 import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -492,7 +490,8 @@ class QrFragment : Fragment() {
             captureSession = null
         } catch (e: InterruptedException) {
             throw IllegalStateException("Interrupted while trying to lock camera closing.", e)
-        } catch (e: RejectedExecutionException) { // This exception was found in automated testing
+        } catch (e: RejectedExecutionException) {
+            // This exception was found in automated testing
             logger.error("backgroundExecutor terminated", e)
         } finally {
             cameraOpenCloseLock.release()

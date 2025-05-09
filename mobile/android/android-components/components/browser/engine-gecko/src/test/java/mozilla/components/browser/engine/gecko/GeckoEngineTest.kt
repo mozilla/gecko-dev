@@ -354,12 +354,16 @@ class GeckoEngineTest {
         try {
             engine.settings.domStorageEnabled
             fail("Expected UnsupportedOperationException")
-        } catch (e: UnsupportedSettingException) { }
+        } catch (e: UnsupportedSettingException) {
+            // Expected
+        }
 
         try {
             engine.settings.domStorageEnabled = false
             fail("Expected UnsupportedOperationException")
-        } catch (e: UnsupportedSettingException) { }
+        } catch (e: UnsupportedSettingException) {
+            // Ignore exception
+        }
     }
 
     @Test

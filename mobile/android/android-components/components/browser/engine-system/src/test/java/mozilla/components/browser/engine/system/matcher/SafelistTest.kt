@@ -80,7 +80,9 @@ class SafelistTest {
         try {
             trie.putSafelist("def", safelist)
             fail("Expected IllegalStateException")
-        } catch (e: IllegalStateException) { }
+        } catch (e: IllegalStateException) {
+            // Expected
+        }
     }
 
     val SAFE_LIST_JSON = """{

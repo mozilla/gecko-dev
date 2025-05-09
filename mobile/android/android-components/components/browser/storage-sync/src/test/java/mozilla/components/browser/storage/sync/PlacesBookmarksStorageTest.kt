@@ -198,7 +198,9 @@ class PlacesBookmarksStorageTest {
             try {
                 bookmarks.deleteNode(root.id)
                 fail("Expected root deletion for ${root.id} to fail")
-            } catch (e: PlacesApiException.InvalidBookmarkOperation) {}
+            } catch (e: PlacesApiException.InvalidBookmarkOperation) {
+                // Expected
+            }
         }
 
         with(bookmarks.searchBookmarks("mozilla")) {

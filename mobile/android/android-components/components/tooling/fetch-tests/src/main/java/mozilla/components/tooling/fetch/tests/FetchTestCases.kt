@@ -27,7 +27,6 @@ import org.junit.Assert.fail
 import org.junit.Test
 import java.io.File
 import java.io.IOException
-import java.lang.Exception
 import java.net.SocketTimeoutException
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -512,7 +511,11 @@ abstract class FetchTestCases {
                 server.block(client)
             }
         } finally {
-            try { server.shutdown() } catch (e: IOException) {}
+            try {
+                server.shutdown()
+            } catch (e: IOException) {
+                // Ignore exception
+            }
         }
     }
 

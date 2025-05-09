@@ -332,7 +332,9 @@ class SystemEngineSessionTest {
         try {
             engineSession.restoreState(mock())
             fail("Expected IllegalArgumentException")
-        } catch (e: IllegalArgumentException) {}
+        } catch (e: IllegalArgumentException) {
+            // Expected
+        }
         assertFalse(engineSession.restoreState(SystemEngineSessionState(Bundle())))
         verify(webView, never()).restoreState(mockitoAny(Bundle::class.java))
 

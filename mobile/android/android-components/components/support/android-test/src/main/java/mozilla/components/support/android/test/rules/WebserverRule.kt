@@ -53,7 +53,8 @@ private class AndroidAssetDispatcher : Dispatcher() {
             assetManager.open(path).use { inputStream ->
                 inputStream.bufferedReader().use { it.readText() }
             }
-        } catch (e: IOException) { // e.g. file not found.
+        // e.g. file not found.
+        } catch (e: IOException) {
             // We're on a background thread so we need to forward the exception to the main thread.
             mainThreadHandler.postAtFrontOfQueue {
                 throw IllegalStateException("Could not load resource from path: $path", e)

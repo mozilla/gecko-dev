@@ -46,7 +46,9 @@ inline fun <T, R : Any> JSONArray.mapNotNull(getFromArray: JSONArray.(index: Int
         try {
             val transformed = transform(getFromArray(i))
             if (transformed != null) { transformedResults.add(transformed) }
-        } catch (e: JSONException) { /* Do nothing: we skip bad data. */ }
+        } catch (e: JSONException) {
+            // Do nothing: we skip bad data.
+        }
     }
 
     return transformedResults

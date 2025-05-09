@@ -71,7 +71,8 @@ class AndroidAssetDispatcher : Dispatcher() {
             assetManager.open(pathWithoutQueryParams!!).use { inputStream ->
                 return fileToResponse(pathWithoutQueryParams, inputStream)
             }
-        } catch (e: IOException) { // e.g. file not found.
+        // e.g. file not found.
+        } catch (e: IOException) {
             // We're on a background thread so we need to forward the exception to the main thread.
             mainThreadHandler.postAtFrontOfQueue { throw e }
             return MockResponse().setResponseCode(HTTP_NOT_FOUND)

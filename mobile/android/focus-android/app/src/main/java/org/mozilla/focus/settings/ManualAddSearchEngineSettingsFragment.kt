@@ -191,7 +191,9 @@ class ManualAddSearchEngineSettingsFragment : BaseSettingsFragment() {
             val normalizedHttpsSearchURLStr = URLStringUtils.toNormalizedURL(query)
             val searchURLStr = normalizedHttpsSearchURLStr.replace("%s".toRegex(), encodedTestQuery)
 
-            try { URL(searchURLStr) } catch (e: MalformedURLException) {
+            try {
+                URL(searchURLStr)
+            } catch (e: MalformedURLException) {
                 // Don't log exception to avoid leaking URL.
                 Log.d(LOGTAG, "Failure to get response code from server: returning invalid search query")
                 return false

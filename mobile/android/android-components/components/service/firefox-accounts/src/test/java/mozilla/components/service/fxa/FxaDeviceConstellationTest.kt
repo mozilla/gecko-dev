@@ -127,7 +127,9 @@ class FxaDeviceConstellationTest {
         try {
             constellation.setDeviceName("new name", testContext)
             fail()
-        } catch (e: IllegalStateException) {}
+        } catch (e: IllegalStateException) {
+            // Ignore exception
+        }
 
         val cache = FxaDeviceSettingsCache(testContext)
         cache.setToCache(DeviceSettings("someId", "test name", RustDeviceType.MOBILE))

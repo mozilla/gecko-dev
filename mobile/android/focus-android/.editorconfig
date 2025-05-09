@@ -25,7 +25,6 @@ ktlint_standard_property-naming = disabled
 ktlint_standard_no-blank-line-in-list = disabled
 ktlint_standard_condition-wrapping = disabled
 ktlint_standard_no-single-line-block-comment = disabled
-ktlint_standard_try-catch-finally-spacing = disabled
 
 
 # rules that enforce style we don't want

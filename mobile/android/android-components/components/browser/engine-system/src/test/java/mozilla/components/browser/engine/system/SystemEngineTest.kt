@@ -42,13 +42,17 @@ class SystemEngineTest {
             engine.createSession(true)
             // Private browsing not yet supported
             fail("Expected UnsupportedOperationException")
-        } catch (e: UnsupportedOperationException) { }
+        } catch (e: UnsupportedOperationException) {
+            // Ignore exception
+        }
 
         try {
             engine.createSession(false, "1")
             // Contextual identities not yet supported
             fail("Expected UnsupportedOperationException")
-        } catch (e: UnsupportedOperationException) { }
+        } catch (e: UnsupportedOperationException) {
+            // Ignore exception
+        }
     }
 
     @Test
