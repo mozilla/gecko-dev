@@ -220,7 +220,13 @@ MediaResult FFmpegAudioEncoder<LIBAV_VER>::InitEncoder() {
   }
   mLib->av_dict_free(&options);
 
-  // TODO: LOG setting info here.
+  FFMPEGA_LOG(
+      "%s has been initialized with sample-format: %d, bitrate: %" PRIi64
+      ", sample-rate: %d, channels: %d, time_base: %d/%d",
+      mCodecName.get(), static_cast<int>(mCodecContext->sample_fmt),
+      static_cast<int64_t>(mCodecContext->bit_rate), mCodecContext->sample_rate,
+      mConfig.mNumberOfChannels, mCodecContext->time_base.num,
+      mCodecContext->time_base.den);
 
   return NS_OK;
 }
