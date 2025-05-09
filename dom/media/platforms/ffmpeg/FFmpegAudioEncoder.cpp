@@ -279,8 +279,6 @@ FFmpegAudioEncoder<LIBAV_VER>::EncodeOnePacket(Span<float> aSamples,
   mFrame->duration = frameCount;
 #  else
   mFrame->pkt_duration = frameCount;
-  // Save duration in the time_base unit.
-  mDurationMap.Insert(mFrame->pts, mFrame->pkt_duration);
 #  endif
 
   if (int ret = mLib->av_frame_get_buffer(mFrame, 16); ret < 0) {
