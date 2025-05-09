@@ -1427,13 +1427,13 @@ void MacroAssembler::branch16(Condition cond, const Address& lhs, Imm32 rhs,
 }
 
 void MacroAssembler::branch32(Condition cond, Register lhs, Register rhs,
-                              Label* label) {
+                              Label* label, LhsHighBitsAreClean) {
   ma_cmp(lhs, rhs);
   ma_b(label, cond);
 }
 
 void MacroAssembler::branch32(Condition cond, Register lhs, Imm32 rhs,
-                              Label* label) {
+                              Label* label, LhsHighBitsAreClean) {
   ScratchRegisterScope scratch(*this);
 
   ma_cmp(lhs, rhs, scratch);

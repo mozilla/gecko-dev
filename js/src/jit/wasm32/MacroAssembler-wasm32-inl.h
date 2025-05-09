@@ -735,12 +735,12 @@ void MacroAssembler::branch16(Condition cond, const Address& lhs, Imm32 rhs,
 }
 
 void MacroAssembler::branch32(Condition cond, Register lhs, Register rhs,
-                              Label* label) {
+                              Label* label, LhsHighBitsAreClean) {
   MOZ_CRASH();
 }
 
 void MacroAssembler::branch32(Condition cond, Register lhs, Imm32 rhs,
-                              Label* label) {
+                              Label* label, LhsHighBitsAreClean) {
   MOZ_CRASH();
 }
 

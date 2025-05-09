@@ -506,12 +506,14 @@ void MacroAssembler::branch16(Condition cond, const Address& lhs, Imm32 rhs,
   }
 }
 void MacroAssembler::branch32(Condition cond, Register lhs, Register rhs,
-                              Label* label) {
+                              Label* label, LhsHighBitsAreClean clean) {
+  // TODO: Handle LhsHighBitsAreClean::No.
   ma_b(lhs, rhs, label, cond);
 }
 
 void MacroAssembler::branch32(Condition cond, Register lhs, Imm32 imm,
-                              Label* label) {
+                              Label* label, LhsHighBitsAreClean clean) {
+  // TODO: Handle LhsHighBitsAreClean::No.
   ma_b(lhs, imm, label, cond);
 }
 

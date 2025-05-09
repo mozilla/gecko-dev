@@ -1168,13 +1168,13 @@ void MacroAssembler::branch16(Condition cond, const Address& lhs, Imm32 rhs,
 }
 
 void MacroAssembler::branch32(Condition cond, Register lhs, Register rhs,
-                              Label* label) {
+                              Label* label, LhsHighBitsAreClean) {
   cmp32(lhs, rhs);
   B(label, cond);
 }
 
 void MacroAssembler::branch32(Condition cond, Register lhs, Imm32 imm,
-                              Label* label) {
+                              Label* label, LhsHighBitsAreClean) {
   if (imm.value == 0 && cond == Assembler::Equal) {
     Cbz(ARMRegister(lhs, 32), label);
   } else if (imm.value == 0 && cond == Assembler::NotEqual) {

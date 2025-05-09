@@ -551,13 +551,13 @@ void MacroAssembler::branch16(Condition cond, const Address& lhs, Imm32 rhs,
 }
 
 void MacroAssembler::branch32(Condition cond, Register lhs, Register rhs,
-                              Label* label) {
+                              Label* label, LhsHighBitsAreClean) {
   cmp32(lhs, rhs);
   j(cond, label);
 }
 
 void MacroAssembler::branch32(Condition cond, Register lhs, Imm32 rhs,
-                              Label* label) {
+                              Label* label, LhsHighBitsAreClean) {
   cmp32(lhs, rhs);
   j(cond, label);
 }
