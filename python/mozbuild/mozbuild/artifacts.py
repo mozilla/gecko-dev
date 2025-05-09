@@ -1213,6 +1213,8 @@ class Artifacts:
                 == 0
             ):
                 return kind
+        # Fall back to the new default git repository.
+        return "firefox"
 
     def _guess_artifact_job(self):
         # Add the "-debug" suffix to the guessed artifact job name
