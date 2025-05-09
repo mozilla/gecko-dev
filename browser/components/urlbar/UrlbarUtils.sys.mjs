@@ -521,6 +521,7 @@ export var UrlbarUtils = {
    *   The result's group.
    */
   getResultGroup(result) {
+    // Used for test_suggestedIndexRelativeToGroup.js to make it simpler
     if (result.group) {
       return result.group;
     }

@@ -19,14 +19,28 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 /**
+ * @typedef UrlbarAutofillData
+ * @property {string} value
+ *   The value to insert for autofill.
+ * @property {number} selectionStart
+ *   Where to start the selection for the autofill.
+ * @property {number} selectionEnd
+ *   Where to end the selection for the autofill.
+ * @property {string} [type]
+ *   The type of the autofill.
+ * @property {string} [adaptiveHistoryInput]
+ *   The input string associated with this autofill item.
+ */
+
+/**
  * Class used to create a single result.
  */
 export class UrlbarResult {
   /**
    * Creates a result.
    *
-   * @param {integer} resultType one of UrlbarUtils.RESULT_TYPE.* values
-   * @param {integer} resultSource one of UrlbarUtils.RESULT_SOURCE.* values
+   * @param {Values<typeof lazy.UrlbarUtils.RESULT_TYPE>} resultType
+   * @param {Values<typeof lazy.UrlbarUtils.RESULT_SOURCE>} resultSource
    * @param {object} payload data for this result. A payload should always
    *        contain a way to extract a final url to visit. The url getter
    *        should have a case for each of the types.
@@ -82,6 +96,69 @@ export class UrlbarResult {
       }
     }
   }
+
+  /**
+   * Autofill data associated with this result.
+   *
+   * @type {?UrlbarAutofillData}
+   */
+  autofill;
+
+  /**
+   * Used for tests to force the group returned by UrlbarUtils.getResultGroup.
+   *
+   * @type {Values<typeof lazy.UrlbarUtils.RESULT_GROUP>}
+   */
+  group;
+
+  /**
+   * Whether this is the best suggest match for a set of results.
+   */
+  isBestMatch = false;
+
+  /**
+   * Whether this suggestion should be displayed as a rich suggestion.
+   */
+  isRichSuggestion = false;
+
+  /**
+   * True if the suggested index is relative to the group.
+   */
+  isSuggestedIndexRelativeToGroup = false;
+
+  /**
+   * The name of the UrlbarProvider providing the result.
+   *
+   * @type {?string}
+   */
+  providerName;
+
+  /**
+   * The type of the UrlbarProvider providing the result.
+   *
+   * @type {?Values<typeof lazy.UrlbarUtils.PROVIDER_TYPE>}
+   */
+  providerType;
+
+  /**
+   * How many result lines this result should span.
+   *
+   * @type {?number}
+   */
+  resultSpan;
+
+  /**
+   * An optional hint to the muxer that can be set to suggest a specific
+   * position among the results.
+   *
+   * @type {?number}
+   */
+  suggestedIndex;
+
+  /**
+   * @type {?number}
+   */
+  userContextId;
 
   /**
    * Returns a title that could be used as a label for this result.

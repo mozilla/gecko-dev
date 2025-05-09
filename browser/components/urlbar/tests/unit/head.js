@@ -1061,7 +1061,7 @@ async function check_results({
     );
 
     for (let [key, { optional, map }] of Object.entries(propertiesToCheck)) {
-      if (!optional || expected.hasOwnProperty(key)) {
+      if (!optional || expected[key] !== undefined) {
         map ??= v => v;
         Assert.equal(
           map(actual[key]),
