@@ -3296,7 +3296,7 @@ void MacroAssembler::enterFakeExitFrameForWasm(Register cxreg, Register scratch,
 
 CodeOffset MacroAssembler::sub32FromMemAndBranchIfNegativeWithPatch(
     Address address, Label* label) {
-  ScratchRegisterScope scratch(asMasm());
+  SecondScratchRegisterScope scratch(asMasm());
   MOZ_ASSERT(scratch != address.base);
   ma_ld_w(scratch, address);
   // LoongArch doesn't have subtraction instr that support immediate operand,
