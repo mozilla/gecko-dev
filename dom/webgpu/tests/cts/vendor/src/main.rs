@@ -73,6 +73,21 @@ fn run(args: CliArgs) -> miette::Result<()> {
     );
     npm_ci_cmd.run().into_diagnostic()?;
 
+    let test_listing_join_handle = {
+        let mut cmd = EasyCommand::new_with(node_bin, |cmd| {
+            cmd.args(["tools/run_node", "--list", "webgpu:*"])
+                .stderr(Stdio::inherit())
+        });
+        log::info!("requesting exhaustive list of tests in a separate thread using {cmd}…");
+        std::thread::spawn(move || {
+            let stdout = cmd.output().into_diagnostic()?.stdout;
+
+            String::from_utf8(stdout)
+                .into_diagnostic()
+                .context("failed to read output of exhaustive test listing command")
+        })
+    };
+
     let out_wpt_dir = cts_ckt.regen_dir("out-wpt", |out_wpt_dir| {
         let mut npm_run_wpt_cmd = EasyCommand::simple(&npm_bin, ["run", "wpt"]);
         log::info!("generating WPT test cases into {out_wpt_dir} with {npm_run_wpt_cmd}…");
@@ -287,19 +302,12 @@ fn run(args: CliArgs) -> miette::Result<()> {
             .map(|(test_path, config)| (test_path, test_split::Entry::from_config(config)))
             .collect::<BTreeMap<_, _>>();
 
-        let mut cmd = EasyCommand::new_with(&node_bin, |cmd| {
-            cmd.args(["tools/run_node", "--list", "webgpu:*"])
-                .stderr(Stdio::inherit())
-        });
-        log::info!("  requesting exhaustive list of tests using {cmd}…");
-        test_listing_buf = {
-            let stdout = cmd.output().into_diagnostic()?.stdout;
-            String::from_utf8(stdout)
-                .into_diagnostic()
-                .context("failed to read output of exhaustive test listing command")?
-        };
-
-        log::info!("  building index from list of tests…");
+        log::debug!("blocking on list of tests…");
+        test_listing_buf = test_listing_join_handle
+            .join()
+            .expect("failed to get value from test listing thread")
+            .unwrap();
+        log::info!("building index from list of tests…");
         for full_path in test_listing_buf.lines() {
             let (subtest_path, params) = split_at_nth_colon(2, full_path)
                 .wrap_err_with(|| "failed to parse configured split entry")?;
