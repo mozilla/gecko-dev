@@ -50,13 +50,13 @@ class SitePermissionsTest : TestSetup() {
         Manifest.permission.ACCESS_FINE_LOCATION,
     )
 
-    @get: Rule
+    @get:Rule
     val mockLocationUpdatesRule = MockLocationUpdatesRule()
 
     @get:Rule
     val memoryLeaksRule = DetectMemoryLeaksRule()
 
-    @get: Rule
+    @get:Rule
     val retryTestRule = RetryTestRule(3)
 
     override fun setUp() {

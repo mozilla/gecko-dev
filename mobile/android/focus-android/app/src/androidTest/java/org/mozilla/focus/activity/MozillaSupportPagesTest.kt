@@ -21,7 +21,7 @@ import org.mozilla.focus.testAnnotations.SmokeTest
 class MozillaSupportPagesTest : TestSetup() {
     private val featureSettingsHelper = FeatureSettingsHelper()
 
-    @get: Rule
+    @get:Rule
     val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Before

@@ -43,7 +43,7 @@ class MultitaskingTest : TestSetup() {
         .store
     private val featureSettingsHelper = FeatureSettingsHelper()
 
-    @get: Rule
+    @get:Rule
     val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Rule

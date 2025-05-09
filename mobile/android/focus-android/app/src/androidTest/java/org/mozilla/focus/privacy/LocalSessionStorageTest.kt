@@ -33,7 +33,7 @@ class LocalSessionStorageTest : TestSetup() {
         const val LOCAL_STORAGE_MISS = "Local storage empty"
     }
 
-    @get: Rule
+    @get:Rule
     val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Before

@@ -33,7 +33,7 @@ class BrowsingErrorPagesTest : TestSetup() {
         getStringResource(R.string.mozac_browser_errorpages_safe_browsing_unwanted_uri_title)
     private val harmfulSiteWarning = getStringResource(R.string.mozac_browser_errorpages_safe_harmful_uri_title)
 
-    @get: Rule
+    @get:Rule
     val mActivityTestRule = HomeActivityTestRule.withDefaultSettingsOverrides()
 
     @get:Rule

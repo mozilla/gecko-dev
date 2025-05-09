@@ -26,7 +26,7 @@ class SearchTest : TestSetup() {
     private val enginesList = listOf("DuckDuckGo", "Google", "Wikipedia")
     private val featureSettingsHelper = FeatureSettingsHelper()
 
-    @get: Rule
+    @get:Rule
     val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Before

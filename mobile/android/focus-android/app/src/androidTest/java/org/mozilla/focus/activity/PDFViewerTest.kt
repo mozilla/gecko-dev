@@ -24,7 +24,7 @@ class PDFViewerTest : TestSetup() {
     private val featureSettingsHelper = FeatureSettingsHelper()
     private val pdfLink = "PDF file"
 
-    @get: Rule
+    @get:Rule
     val mActivityTestRule = MainActivityIntentsTestRule(showFirstRun = false)
 
     @Before

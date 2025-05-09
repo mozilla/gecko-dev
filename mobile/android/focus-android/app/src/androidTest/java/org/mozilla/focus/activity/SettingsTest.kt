@@ -16,7 +16,7 @@ import org.mozilla.focus.testAnnotations.SmokeTest
 // This test checks all the headings in the Settings menu are there
 @RunWith(AndroidJUnit4ClassRunner::class)
 class SettingsTest : TestSetup() {
-    @get: Rule
+    @get:Rule
     val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @SmokeTest

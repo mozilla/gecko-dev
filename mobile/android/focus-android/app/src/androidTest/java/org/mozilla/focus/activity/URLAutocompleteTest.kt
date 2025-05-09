@@ -23,7 +23,7 @@ class URLAutocompleteTest : TestSetup() {
     private val pageUrl = "https://www.mozilla.org/"
     private val customURL = "680news.com"
 
-    @get: Rule
+    @get:Rule
     val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     // Test the url autocomplete feature with default settings

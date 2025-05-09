@@ -37,7 +37,7 @@ class CustomTabTest : TestSetup() {
     private val ACTION_BUTTON_DESCRIPTION = "TestButton"
     private val featureSettingsHelper = FeatureSettingsHelper()
 
-    @get: Rule
+    @get:Rule
     val activityTestRule = ActivityTestRule(
         IntentReceiverActivity::class.java,
         true,

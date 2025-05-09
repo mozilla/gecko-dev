@@ -67,7 +67,7 @@ class MainMenuTestCompose : TestSetup() {
             ),
         ) { it.activity }
 
-    @get: Rule
+    @get:Rule
     val intentReceiverActivityTestRule = ActivityTestRule(
         IntentReceiverActivity::class.java,
         true,

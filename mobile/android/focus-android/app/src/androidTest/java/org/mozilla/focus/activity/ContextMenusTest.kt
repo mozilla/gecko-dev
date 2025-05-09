@@ -33,10 +33,10 @@ class ContextMenusTest : TestSetup() {
     private lateinit var webServer: MockWebServer
     private val featureSettingsHelper = FeatureSettingsHelper()
 
-    @get: Rule
+    @get:Rule
     val mActivityTestRule = MainActivityIntentsTestRule(showFirstRun = false)
 
-    @get: Rule
+    @get:Rule
     val retryTestRule = RetryTestRule(3)
 
     @Before

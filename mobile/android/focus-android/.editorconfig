@@ -9,7 +9,6 @@ ktlint_standard_annotation = disabled
 ktlint_standard_blank-line-before-declaration = disabled
 ktlint_standard_chain-method-continuation = disabled
 ktlint_standard_class-signature = disabled
-ktlint_standard_colon-spacing = disabled
 ktlint_standard_function-naming = disabled
 ktlint_standard_function-signature = disabled
 ktlint_standard_indent = disabled

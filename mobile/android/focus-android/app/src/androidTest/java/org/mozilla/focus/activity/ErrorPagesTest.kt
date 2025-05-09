@@ -22,7 +22,7 @@ import org.mozilla.focus.helpers.TestSetup
 class ErrorPagesTest : TestSetup() {
     private val featureSettingsHelper = FeatureSettingsHelper()
 
-    @get: Rule
+    @get:Rule
     val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Before

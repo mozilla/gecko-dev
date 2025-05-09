@@ -31,7 +31,7 @@ class SettingsPrivacyTest : TestSetup() {
     private val featureSettingsHelper = FeatureSettingsHelper()
     private lateinit var webServer: MockWebServer
 
-    @get: Rule
+    @get:Rule
     val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Rule

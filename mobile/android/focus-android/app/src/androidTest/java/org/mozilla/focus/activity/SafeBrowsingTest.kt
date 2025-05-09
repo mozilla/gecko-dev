@@ -30,7 +30,7 @@ class SafeBrowsingTest : TestSetup() {
     private val tryAgainButton = getStringResource(R.string.mozac_browser_errorpages_page_refresh)
     private val featureSettingsHelper = FeatureSettingsHelper()
 
-    @get: Rule
+    @get:Rule
     val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Before
