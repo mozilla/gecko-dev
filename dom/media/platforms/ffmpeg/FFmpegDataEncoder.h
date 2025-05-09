@@ -53,6 +53,11 @@ class FFmpegDataEncoder<LIBAV_VER> : public MediaDataEncoder {
   static Result<AVCodecContext*, MediaResult> AllocateCodecContext(
       const FFmpegLibWrapper* aLib, AVCodecID aCodecId);
 
+  // This method copies data from an AVPacket into a newly created MediaRawData.
+  // It should serve as the initial step in implementing ToMediaRawData.
+  static Result<RefPtr<MediaRawData>, MediaResult> CreateMediaRawData(
+      AVPacket* aPacket);
+
   // Methods only called on mTaskQueue.
   RefPtr<EncodePromise> ProcessEncode(RefPtr<const MediaData> aSample);
   RefPtr<ReconfigurationPromise> ProcessReconfigure(
@@ -82,8 +87,6 @@ class FFmpegDataEncoder<LIBAV_VER> : public MediaDataEncoder {
   // because DTX is enabled.
   virtual Result<RefPtr<MediaRawData>, MediaResult> ToMediaRawData(
       AVPacket* aPacket) = 0;
-  Result<RefPtr<MediaRawData>, MediaResult> ToMediaRawDataCommon(
-      AVPacket* aPacket);
   virtual Result<already_AddRefed<MediaByteBuffer>, MediaResult> GetExtraData(
       AVPacket* aPacket) = 0;
   void ForceEnablingFFmpegDebugLogs();

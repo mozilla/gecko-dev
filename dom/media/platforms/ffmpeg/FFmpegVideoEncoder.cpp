@@ -637,12 +637,27 @@ FFmpegVideoEncoder<LIBAV_VER>::ToMediaRawData(AVPacket* aPacket) {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
   MOZ_ASSERT(aPacket);
 
-  auto r = ToMediaRawDataCommon(aPacket);
-  if (r.isErr()) {
-    return Err(r.unwrapErr());
+  auto creationResult = CreateMediaRawData(aPacket);
+  if (creationResult.isErr()) {
+    return Err(creationResult.unwrapErr());
   }
 
-  RefPtr<MediaRawData> data = r.unwrap();
+  RefPtr<MediaRawData> data = creationResult.unwrap();
+
+  data->mKeyframe = (aPacket->flags & AV_PKT_FLAG_KEY) != 0;
+
+  auto extradataResult = GetExtraData(aPacket);
+  if (extradataResult.isOk()) {
+    data->mExtraData = extradataResult.unwrap();
+  } else if (extradataResult.isErr()) {
+    MediaResult e = extradataResult.unwrapErr();
+    if (e.Code() != NS_ERROR_NOT_AVAILABLE &&
+        e.Code() != NS_ERROR_NOT_IMPLEMENTED) {
+      return Err(e);
+    }
+    FFMPEGV_LOG("GetExtraData failed with %s, but we can ignore it for now",
+                e.Description().get());
+  }
 
   // TODO(bug 1869560): The unit of pts, dts, and duration is time_base, which
   // is recommended to be the reciprocal of the frame rate, but we set it to
@@ -743,7 +758,7 @@ FFmpegVideoEncoder<LIBAV_VER>::GetExtraData(AVPacket* aPacket) {
   // Ensure we have profile, constraints and level needed to create the extra
   // data.
   if (spsData.Length() < 4) {
-    return Err(MediaResult(NS_ERROR_NOT_AVAILABLE, "spsData is too short"_ns));
+    return Err(MediaResult(NS_ERROR_UNEXPECTED, "spsData is too short"_ns));
   }
 
   FFMPEGV_LOG(

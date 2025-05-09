@@ -443,12 +443,18 @@ FFmpegAudioEncoder<LIBAV_VER>::ToMediaRawData(AVPacket* aPacket) {
     return RefPtr<MediaRawData>(nullptr);
   }
 
-  auto r = ToMediaRawDataCommon(aPacket);
-  if (r.isErr()) {
-    return Err(r.unwrapErr());
+  auto creationResult = CreateMediaRawData(aPacket);
+  if (creationResult.isErr()) {
+    return Err(creationResult.unwrapErr());
   }
 
-  RefPtr<MediaRawData> data = r.unwrap();
+  RefPtr<MediaRawData> data = creationResult.unwrap();
+
+  data->mKeyframe = (aPacket->flags & AV_PKT_FLAG_KEY) != 0;
+
+  if (auto extradataResult = GetExtraData(aPacket); extradataResult.isOk()) {
+    data->mExtraData = extradataResult.unwrap();
+  }
 
   data->mTime = media::TimeUnit(aPacket->pts, mConfig.mSampleRate);
   data->mTimecode = data->mTime;

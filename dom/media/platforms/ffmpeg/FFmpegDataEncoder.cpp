@@ -92,6 +92,21 @@ FFmpegDataEncoder<LIBAV_VER>::AllocateCodecContext(const FFmpegLibWrapper* aLib,
   return ctx;
 }
 
+/* static */
+Result<RefPtr<MediaRawData>, MediaResult>
+FFmpegDataEncoder<LIBAV_VER>::CreateMediaRawData(AVPacket* aPacket) {
+  MOZ_ASSERT(aPacket);
+
+  // Copy frame data from AVPacket.
+  auto data = MakeRefPtr<MediaRawData>();
+  UniquePtr<MediaRawDataWriter> writer(data->CreateWriter());
+  if (!writer->Append(aPacket->data, static_cast<size_t>(aPacket->size))) {
+    return Err(MediaResult(NS_ERROR_OUT_OF_MEMORY,
+                           "fail to allocate MediaRawData buffer"_ns));
+  }
+  return data;
+}
+
 StaticMutex FFmpegDataEncoder<LIBAV_VER>::sMutex;
 
 FFmpegDataEncoder<LIBAV_VER>::FFmpegDataEncoder(
@@ -478,27 +493,6 @@ FFmpegDataEncoder<LIBAV_VER>::DrainWithModernAPIs() {
 }
 #endif  // LIBAVCODEC_VERSION_MAJOR >= 58
 
-Result<RefPtr<MediaRawData>, MediaResult>
-FFmpegDataEncoder<LIBAV_VER>::ToMediaRawDataCommon(AVPacket* aPacket) {
-  MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
-  MOZ_ASSERT(aPacket);
-
-  // Copy frame data from AVPacket.
-  auto data = MakeRefPtr<MediaRawData>();
-  UniquePtr<MediaRawDataWriter> writer(data->CreateWriter());
-  if (!writer->Append(aPacket->data, static_cast<size_t>(aPacket->size))) {
-    return Err(MediaResult(NS_ERROR_OUT_OF_MEMORY,
-                           "fail to allocate MediaRawData buffer"_ns));
-  }
-
-  data->mKeyframe = (aPacket->flags & AV_PKT_FLAG_KEY) != 0;
-
-  if (auto r = GetExtraData(aPacket); r.isOk()) {
-    data->mExtraData = r.unwrap();
-  }
-
-  return data;
-}
 void FFmpegDataEncoder<LIBAV_VER>::ForceEnablingFFmpegDebugLogs() {
 #if DEBUG
   if (!getenv("MOZ_AV_LOG_LEVEL") &&
