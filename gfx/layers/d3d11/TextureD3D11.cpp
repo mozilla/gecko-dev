@@ -362,6 +362,7 @@ D3D11TextureData::~D3D11TextureData() {
     auto* fencesHolderMap = CompositeProcessD3D11FencesHolderMap::Get();
     if (fencesHolderMap) {
       fencesHolderMap->Unregister(mFencesHolderId.ref());
+    } else {
       gfxCriticalNoteOnce
           << "CompositeProcessD3D11FencesHolderMap does not exist";
     }
