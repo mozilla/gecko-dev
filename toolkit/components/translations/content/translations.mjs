@@ -19,6 +19,9 @@ window.DEBOUNCE_DELAY = 200;
 // Allow tests to test the debounce behavior by counting debounce runs.
 window.DEBOUNCE_RUN_COUNT = 0;
 
+// Limits how long the "text" parameter can be in the URL.
+const URL_MAX_TEXT_LENGTH = 5000;
+
 const l10nIds = {
   resultsPlaceholder: "about-translations-results-placeholder",
   translatingMessage: "about-translations-translating-message",
@@ -119,7 +122,7 @@ class TranslationsState {
     this.ui.setup();
 
     // Set the UI as ready after all of the state promises have settled.
-    this.supportedLanguages
+    this.updateFromURL()
       .then(() => {
         this.ui.setAsReady();
       })
@@ -148,6 +151,100 @@ class TranslationsState {
   }
 
   /**
+   * Update the translation state from the src, trg, and text
+   * URL parameters when the page is opened or reloaded.
+   */
+  async updateFromURL() {
+    let supportedLanguages = await this.supportedLanguages;
+    let newParams = new URLSearchParams(window.location.href.split("#")[1]);
+    let newSrc = newParams.get("src");
+    let newTrg = newParams.get("trg");
+    let newText = newParams.get("text");
+    if (!newText) {
+      newText = "";
+    }
+    this.messageToTranslate = newText;
+    this.ui.translationFrom.value = newText;
+
+    if (newSrc == "detect") {
+      // Check if target is in supported languages
+      if (
+        !supportedLanguages.targetLanguages.some(
+          ({ langTag }) => langTag === newTrg
+        )
+      ) {
+        this.ui.updateTranslation("");
+        return;
+      }
+    } else if (
+      // The language pair is invalid
+      !supportedLanguages.languagePairs.some(
+        ({ sourceLanguage, targetLanguage }) =>
+          sourceLanguage === newSrc && targetLanguage === newTrg
+      ) &&
+      // English pivot cannot be used
+      !(
+        supportedLanguages.languagePairs.some(
+          ({ sourceLanguage, targetLanguage }) =>
+            sourceLanguage === newSrc && targetLanguage === "en"
+        ) &&
+        supportedLanguages.languagePairs.some(
+          ({ sourceLanguage, targetLanguage }) =>
+            sourceLanguage === "en" && targetLanguage === newTrg
+        )
+      )
+    ) {
+      this.ui.updateTranslation("");
+      return;
+    }
+
+    // Update the parameters if they have changed
+    this.sourceLanguage = newSrc;
+    this.targetLanguage = newTrg;
+    this.messageToTranslate = newText;
+    this.ui.sourceLanguage.value = newSrc;
+    this.ui.targetLanguage.value = newTrg;
+    this.ui.translationFrom.value = newText;
+    this.maybeUpdateDetectedLanguage();
+    this.maybeCreateNewTranslator();
+    if (newSrc === "detect") {
+      await this.maybeUpdateDetectedLanguage();
+    }
+    await this.maybeCreateNewTranslator();
+  }
+
+  /**
+   * Update the URL with the current state whenever a translation is
+   * requested or languages are modified.
+   *
+   * If the text is too long, it is truncated to URL_MAX_TEXT_LENGTH.
+   */
+  async updateURL() {
+    let params = new URLSearchParams();
+    if (this.ui.detectOptionIsSelected()) {
+      params.append("src", "detect");
+    } else if (this.ui.sourceLanguage.value) {
+      params.append("src", encodeURIComponent(this.ui.sourceLanguage.value));
+    }
+
+    if (this.ui.targetLanguage.value) {
+      params.append("trg", encodeURIComponent(this.ui.targetLanguage.value));
+    }
+
+    let textParam = this.messageToTranslate;
+    let tooLong = textParam.length > URL_MAX_TEXT_LENGTH;
+    textParam = tooLong
+      ? textParam
+      : textParam.substring(0, URL_MAX_TEXT_LENGTH);
+
+    if (textParam) {
+      params.append("text", textParam);
+    }
+
+    window.location.hash = params;
+  }
+
+  /**
    * Only request a translation when it's ready.
    */
   maybeRequestTranslation = debounce({
@@ -158,6 +255,8 @@ class TranslationsState {
      * in a new translation request.
      */
     onDebounce: async () => {
+      // If a translation is requested, something may have changed that needs to be updated in the url
+      this.updateURL();
       if (!this.isTranslationEngineSupported) {
         // Never translate when the engine isn't supported.
         return;
@@ -226,8 +325,8 @@ class TranslationsState {
   async maybeCreateNewTranslator() {
     // If we may need to re-building the worker, the old translation is no longer valid.
     this.ui.updateTranslation("");
-
     // These are cases in which it wouldn't make sense or be possible to load any translations models.
+
     if (
       // If sourceLanguage or targetLanguage are unpopulated we cannot load anything.
       !this.sourceLanguage ||
@@ -237,15 +336,13 @@ class TranslationsState {
       this.sourceLanguage === "detect" ||
       // If sourceLanguage and targetLanguage are the same, this means that the detected language
       // is the same as the targetLanguage, and we do not want to translate from one language to itself.
-      this.sourceLanguage === this.targetLanguage
+      this.sourceLanguage === this.targetLanguage ||
+      // If the state's languages do not match the UI's languages, then we may be in the middle of
+      // transitioning the state, so we should not create a new translator yet.
+      this.targetLanguage !== this.ui.targetLanguage.value ||
+      (this.sourceLanguage !== this.ui.sourceLanguage.value &&
+        this.ui.sourceLanguage.value !== "detect")
     ) {
-      if (this.translator) {
-        // The engine is no longer needed.
-        this.translator.destroy();
-        this.translator = null;
-        this.languagePair = null;
-        this.languagePairKey = null;
-      }
       return;
     }
 
@@ -497,14 +594,19 @@ class TranslationsUI {
     await this.updateOnLanguageChange();
 
     this.sourceLanguage.addEventListener("input", async () => {
+      this.state.targetLanguage = this.targetLanguage.value;
+      this.translationTo.setAttribute("lang", this.targetLanguage.value);
       this.state.setSourceLanguage(this.sourceLanguage.value);
+
       await this.updateOnLanguageChange();
     });
 
     this.targetLanguage.addEventListener("input", async () => {
-      this.state.setTargetLanguage(this.targetLanguage.value);
-      await this.updateOnLanguageChange();
+      this.state.sourceLanguage = this.sourceLanguage.value;
       this.translationTo.setAttribute("lang", this.targetLanguage.value);
+      this.state.setTargetLanguage(this.targetLanguage.value);
+
+      await this.updateOnLanguageChange();
     });
   }
 
@@ -524,16 +626,22 @@ class TranslationsUI {
         this.sanitizeSourceLangTagAsTargetLangTag(this.sourceLanguage.value) ||
         this.state.sourceLanguage;
 
-      this.state.setSourceLanguage(newSourceLanguage);
-      this.state.setTargetLanguage(newTargetLanguage);
-
       this.sourceLanguage.value = newSourceLanguage;
+      this.state.sourceLanguage = newSourceLanguage;
+
       this.targetLanguage.value = newTargetLanguage;
-      await this.updateOnLanguageChange();
-      this.translationTo.setAttribute("lang", this.targetLanguage.value);
+      this.state.targetLanguage = newTargetLanguage;
 
       this.translationFrom.value = translationToValue;
-      this.state.setMessageToTranslate(translationToValue);
+      this.state.messageToTranslate = translationToValue;
+
+      await this.updateOnLanguageChange();
+
+      if (newSourceLanguage == "detect") {
+        await this.state.maybeUpdateDetectedLanguage();
+      }
+
+      await this.state.maybeCreateNewTranslator();
     });
   }
 
@@ -641,6 +749,7 @@ class TranslationsUI {
     this.#updateDropdownLanguages();
     this.#updateMessageDirections();
     await this.#updateLanguageSwapButton();
+    this.state.updateURL();
   }
 
   /**
