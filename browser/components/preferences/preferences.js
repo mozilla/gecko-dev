@@ -204,7 +204,7 @@ function init_all() {
     // Set hidden based on previous load's hidden value or if Nimbus is
     // disabled.
     document.getElementById("category-experimental").hidden =
-      !ExperimentAPI._manager.studiesEnabled ||
+      !ExperimentAPI.studiesEnabled ||
       Services.prefs.getBoolPref(
         "browser.preferences.experimental.hidden",
         false

@@ -511,7 +511,7 @@ async function setupLabsTest(recipes) {
   await ExperimentAPI._rsLoader.updateRecipes("test");
 
   return async function cleanup() {
-    const store = ExperimentAPI._manager.store;
+    const store = ExperimentAPI.manager.store;
 
     store._store._saver.disarm();
     if (store._store._saver.isRunning) {
