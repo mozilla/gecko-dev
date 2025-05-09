@@ -369,13 +369,10 @@ export class MigrationWizardParent extends JSWindowActorParent {
       }
     }
 
-    if (
-      migrationDetails.key == lazy.SafariProfileMigrator?.key &&
-      migrationDetails.manualPasswordFilePath
-    ) {
-      // The caller supplied a password export file for Safari. We're going to
-      // pretend that there was a PASSWORDS resource for Safari to represent
-      // the state of importing from that file.
+    if (migrationDetails.manualPasswordFilePath) {
+      // The caller supplied a password export file for another browser. We're
+      // going to pretend that there was a PASSWORDS resource to represent the
+      // state of importing from that file.
       progress[
         lazy.MigrationWizardConstants.DISPLAYED_RESOURCE_TYPES.PASSWORDS
       ] = {
@@ -393,6 +390,8 @@ export class MigrationWizardParent extends JSWindowActorParent {
           migrationDetails.manualPasswordFilePath
         );
         let quantity = summary.filter(entry => entry.result == "added").length;
+
+        MigrationUtils.notifyLoginsManuallyImported(quantity);
 
         progress[
           lazy.MigrationWizardConstants.DISPLAYED_RESOURCE_TYPES.PASSWORDS
@@ -672,17 +671,18 @@ export class MigrationWizardParent extends JSWindowActorParent {
     ) {
       for (let resourceType in MigrationUtils.resourceTypes) {
         // Normally, we check each possible resourceType to see if we have one or
-        // more corresponding resourceTypes in profileMigrationData. The exception
-        // is for Safari, where the migrator does not expose a PASSWORDS resource
-        // type, but we allow the user to express that they'd like to import
-        // passwords from it anyways. This is because the Safari migration flow is
-        // special, and allows the user to import passwords from a file exported
-        // from Safari.
+        // more corresponding resourceTypes in profileMigrationData.
+        //
+        // The exception is for passwords for Safari, and for Chrome on Windows,
+        // where we cannot import passwords automatically, but we allow the user
+        // to express that they'd like to import passwords from it anyways. We
+        // use this to determine whether or not to show guidance on how to
+        // manually import a passwords CSV file.
         if (
           profileMigrationData & MigrationUtils.resourceTypes[resourceType] ||
-          (migrator.constructor.key == lazy.SafariProfileMigrator?.key &&
-            MigrationUtils.resourceTypes[resourceType] ==
-              MigrationUtils.resourceTypes.PASSWORDS)
+          (MigrationUtils.resourceTypes[resourceType] ==
+            MigrationUtils.resourceTypes.PASSWORDS &&
+            migrator.showsManualPasswordImport)
         ) {
           availableResourceTypes.push(resourceType);
         }

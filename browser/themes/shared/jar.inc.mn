@@ -77,6 +77,7 @@
   skin/classic/browser/migration/migration-wizard.css          (../shared/migration/migration-wizard.css)
   skin/classic/browser/migration/success.svg                   (../shared/migration/success.svg)
   skin/classic/browser/migration/progress-mask.svg                   (../shared/migration/progress-mask.svg)
+  skin/classic/browser/migration/chrome-icon-3dots.svg                   (../shared/migration/chrome-icon-3dots.svg)
   skin/classic/browser/migration/safari-icon-3dots.svg                   (../shared/migration/safari-icon-3dots.svg)
   skin/classic/browser/notification-icons/autoplay-media.svg                (../shared/notification-icons/autoplay-media.svg)
   skin/classic/browser/notification-icons/autoplay-media-blocked.svg        (../shared/notification-icons/autoplay-media-blocked.svg)

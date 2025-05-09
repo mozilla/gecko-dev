@@ -239,6 +239,16 @@ export class MigratorBase {
   }
 
   /**
+   * Subclasses should override this and return true if the source browser
+   * cannot have its passwords imported directly, and if there is a specialized
+   * flow through the wizard to walk the user through importing from a CSV
+   * file manually.
+   */
+  get showsManualPasswordImport() {
+    return false;
+  }
+
+  /**
    * This method returns a number that is the bitwise OR of all resource
    * types that are available in aProfile. See MigrationUtils.resourceTypes
    * for each resource type.

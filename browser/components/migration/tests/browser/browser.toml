@@ -8,6 +8,9 @@ tags = "os_integration"
 
 ["browser_aboutwelcome_behavior.js"]
 
+["browser_chrome_windows_passwords.js"]
+run-if = ["os == 'win'"]
+
 ["browser_dialog_cancel_close.js"]
 
 ["browser_dialog_open.js"]

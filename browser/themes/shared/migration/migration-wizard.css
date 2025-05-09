@@ -340,14 +340,28 @@ summary {
   vertical-align: middle;
 }
 
-.safari-icon-3dots {
+.safari-icon-3dots,
+.chrome-icon-3dots {
   width: 16px;
   height: 16px;
-  vertical-align: middle;
-  content: url("chrome://browser/skin/migration/safari-icon-3dots.svg");
   -moz-context-properties: fill, stroke;
+  vertical-align: middle;
+}
+
+.safari-icon-3dots {
+  content: url("chrome://browser/skin/migration/safari-icon-3dots.svg");
   fill: currentColor;
   stroke: color-mix(in srgb, currentColor 10%, transparent 90%);
+}
+
+.chrome-icon-3dots {
+  content: url("chrome://browser/skin/migration/chrome-icon-3dots.svg");
+  /**
+   * Stroke and fill colours were sampled from built-in dark and light theme
+   * from Chrome on Windows
+   */
+  fill: light-dark(#474747, #C7C7C7);
+  stroke: light-dark(#474747, #C7C7C7);
 }
 
 .no-browsers-found-message {

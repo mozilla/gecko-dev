@@ -232,6 +232,20 @@ browser.migration:
     expires: never
     telemetry_mirror: BrowserMigration_SafariPasswordFile_Wizard
 
+  chrome_password_file_wizard:
+    type: event
+    description: >
+      Recorded if the user is importing from Chrome, and was presented with
+      the page of the wizard requesting to import passwords from a file. This
+      currently only gets shown on Windows.
+    bugs:
+      - https://bugzil.la/1960560
+    data_reviews:
+      - https://bugzil.la/1960560
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+
   migration_started_wizard:
     type: event
     description: >
