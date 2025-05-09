@@ -726,8 +726,14 @@ export const NimbusTestUtils = {
     experiments,
     secureExperiments,
     clearTelemetry = false,
+    features,
   } = {}) {
     const sandbox = lazy.sinon.createSandbox();
+
+    let cleanupFeatures = null;
+    if (Array.isArray(features)) {
+      cleanupFeatures = NimbusTestUtils.addTestFeatures(...features);
+    }
 
     const store = NimbusTestUtils.stubs.store(storePath);
     const manager = NimbusTestUtils.stubs.manager(store);
@@ -750,6 +756,10 @@ export const NimbusTestUtils = {
         NimbusTestUtils.assert.storeIsEmpty(manager.store);
         ExperimentAPI._resetForTests();
         sandbox.restore();
+
+        if (cleanupFeatures) {
+          cleanupFeatures();
+        }
 
         if (clearTelemetry) {
           Services.fog.testResetFOG();
