@@ -95,6 +95,30 @@ export class FxAccountsTelemetry {
     return lazy.CryptoUtils.sha256(deviceId + uid);
   }
 
+  // Record when the user opens the choose what to sync menu.
+  async recordOpenCWTSMenu(why = null) {
+    try {
+      let extra = {};
+      if (why) {
+        extra.why = why;
+      }
+      Glean.syncSettings.openChooseWhatToSyncMenu.record(extra);
+    } catch (ex) {
+      log.error("Failed to record manage sync settings telemetry", ex);
+      console.error("Failed to record manage sync settings telemetry", ex);
+    }
+  }
+
+  // Record when the user saves sync settings.
+  async recordSaveSyncSettings() {
+    try {
+      Glean.syncSettings.save.record();
+    } catch (ex) {
+      log.error("Failed to record save sync settings telemetry", ex);
+      console.error("Failed to record save sync settings telemetry", ex);
+    }
+  }
+
   // Record the connection of FxA or one of its services.
   // Note that you must call this before performing the actual connection
   // or we may record incorrect data - for example, we will not be able to
