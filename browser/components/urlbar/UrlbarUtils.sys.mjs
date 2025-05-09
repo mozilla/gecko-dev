@@ -47,7 +47,7 @@ export var UrlbarUtils = {
   // result groups may require adding UI migrations to BrowserGlue.  Be careful
   // about making trivial changes to existing groups, like renaming them,
   // because we don't want to make downgrades unnecessarily hard.
-  RESULT_GROUP: {
+  RESULT_GROUP: Object.freeze({
     ABOUT_PAGES: "aboutPages",
     GENERAL: "general",
     GENERAL_PARENT: "generalParent",
@@ -72,7 +72,7 @@ export var UrlbarUtils = {
     RESTRICT_SEARCH_KEYWORD: "restrictSearchKeyword",
     SUGGESTED_INDEX: "suggestedIndex",
     TAIL_SUGGESTION: "tailSuggestion",
-  },
+  }),
 
   // Defines provider types.
   PROVIDER_TYPE: {
@@ -172,11 +172,11 @@ export var UrlbarUtils = {
 
   // Whether a result should be highlighted up to the point the user has typed
   // or after that point.
-  HIGHLIGHT: {
+  HIGHLIGHT: Object.freeze({
     NONE: 0,
     TYPED: 1,
     SUGGESTED: 2,
-  },
+  }),
 
   // UrlbarProviderPlaces's autocomplete results store their titles and tags
   // together in their comments.  This separator is used to separate them.
@@ -267,7 +267,7 @@ export var UrlbarUtils = {
   /**
    * Returns the payload schema for the given type of result.
    *
-   * @param {number} type One of the UrlbarUtils.RESULT_TYPE values.
+   * @param {Values<typeof this.RESULT_TYPE>} type
    * @returns {object} The schema for the given type.
    */
   getPayloadSchema(type) {
@@ -279,7 +279,7 @@ export var UrlbarUtils = {
    * and it is valid.
    *
    * @param {string} url The url to add to history.
-   * @param {nsIDomWindow} window The window from where the url is being added.
+   * @param {nsIDOMWindow} window The window from where the url is being added.
    */
   addToUrlbarHistory(url, window) {
     if (
@@ -391,7 +391,7 @@ export var UrlbarUtils = {
    *
    * @param {Array} tokens The tokens to search for.
    * @param {string} str The string to match against.
-   * @param {boolean} highlightType
+   * @param {Values<typeof this.HIGHLIGHT>} highlightType
    *   One of the HIGHLIGHT values:
    *     TYPED: match ranges matching the tokens; or
    *     SUGGESTED: match ranges for words not matching the tokens and the
@@ -517,8 +517,8 @@ export var UrlbarUtils = {
    *
    * @param {UrlbarResult} result
    *   The result.
-   * @returns {UrlbarUtils.RESULT_GROUP}
-   *   The reuslt's group.
+   * @returns {Values<typeof this.RESULT_GROUP>}
+   *   The result's group.
    */
   getResultGroup(result) {
     if (result.group) {
@@ -645,10 +645,14 @@ export var UrlbarUtils = {
     return [submission.uri.spec, submission.postData];
   },
 
-  // Ranks a URL prefix from 3 - 0 with the following preferences:
-  // https:// > https://www. > http:// > http://www.
-  // Higher is better for the purposes of deduping URLs.
-  // Returns -1 if the prefix does not match any of the above.
+  /**
+   * Ranks a URL prefix from 3 - 0 with the following preferences:
+   * https:// > https://www. > http:// > http://www.
+   * Higher is better for the purposes of deduping URLs.
+   * Returns -1 if the prefix does not match any of the above.
+   *
+   * @param {string} prefix
+   */
   getPrefixRank(prefix) {
     return ["http://www.", "http://", "https://www.", "https://"].indexOf(
       prefix
@@ -696,7 +700,7 @@ export var UrlbarUtils = {
   /**
    * Gets a default icon for a URL.
    *
-   * @param {string} url
+   * @param {string|URL} url
    *   The URL to get the icon for.
    * @returns {string} A URI pointing to an icon for `url`.
    */
@@ -719,7 +723,7 @@ export var UrlbarUtils = {
    * Returns a search mode object if a token should enter search mode when
    * typed. This does not handle engine aliases.
    *
-   * @param {UrlbarUtils.RESTRICT} token
+   * @param {Values<typeof lazy.UrlbarTokenizer.RESTRICT>} token
    *   A restriction token to convert to search mode.
    * @returns {object}
    *   A search mode object. Null if search mode should not be entered. See
@@ -962,7 +966,7 @@ export var UrlbarUtils = {
   /**
    * Whether the passed-in input event is paste event.
    *
-   * @param {DOMEvent} event an input DOM event.
+   * @param {InputEvent} event an input DOM event.
    * @returns {boolean} Whether the event is a paste event.
    */
   isPasteEvent(event) {
@@ -1060,7 +1064,7 @@ export var UrlbarUtils = {
    *
    * @param {string} searchString The string to search for.
    * @param {nsIDOMWindow} window The window requesting it.
-   * @returns {UrlbarResult} an heuristic result.
+   * @returns {Promise<UrlbarResult>} an heuristic result.
    */
   async getHeuristicResultFor(searchString, window) {
     if (!searchString) {
@@ -1121,7 +1125,7 @@ export var UrlbarUtils = {
    * Returns the name of a result source.  The name is the lowercase name of the
    * corresponding property in the RESULT_SOURCE object.
    *
-   * @param {string} source A UrlbarUtils.RESULT_SOURCE value.
+   * @param {keyof typeof this.RESULT_SOURCE} source A UrlbarUtils.RESULT_SOURCE value.
    * @returns {string} The token's name, a lowercased name in the RESULT_SOURCE
    *   object.
    */
@@ -1143,7 +1147,7 @@ export var UrlbarUtils = {
    * @param {string} value The value to add.
    * @param {string} [source] The source of the addition, usually
    *        the name of the engine the search was made with.
-   * @returns {Promise} resolved once the operation is complete
+   * @returns {Promise<void>} resolved once the operation is complete
    */
   addToFormHistory(input, value, source) {
     // If the user types a search engine alias without a search string,
