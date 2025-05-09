@@ -634,14 +634,12 @@ nsGIOService::GetAppForURIScheme(const nsACString& aURIScheme,
       return NS_ERROR_FAILURE;
     }
     GUniquePtr<GError> error;
-    RefPtr<GDBusProxy> proxy;
-    RefPtr<GVariant> result;
 
-    proxy = g_dbus_proxy_new_for_bus_sync(
+    RefPtr<GDBusProxy> proxy = dont_AddRef(g_dbus_proxy_new_for_bus_sync(
         G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE, nullptr, OPENURI_BUS_NAME,
         OPENURI_OBJECT_PATH, OPENURI_INTERFACE_NAME,
         nullptr,  // cancellable
-        getter_Transfers(error));
+        getter_Transfers(error)));
     if (error) {
       g_warning("Failed to create proxy: %s\n", error->message);
       return NS_ERROR_FAILURE;
@@ -650,7 +648,7 @@ nsGIOService::GetAppForURIScheme(const nsACString& aURIScheme,
     GVariantBuilder builder;
     g_variant_builder_init(&builder, G_VARIANT_TYPE_VARDICT);
 
-    result = dont_AddRef(g_dbus_proxy_call_sync(
+    RefPtr<GVariant> result = dont_AddRef(g_dbus_proxy_call_sync(
         proxy, SCHEME_SUPPORTED_METHOD,
         g_variant_new("(sa{sv})", PromiseFlatCString(aURIScheme).get(),
                       &builder),
