@@ -10,15 +10,20 @@ namespace mozilla {
 class RtpRtcpConfig {
  public:
   RtpRtcpConfig() = delete;
-  explicit RtpRtcpConfig(const webrtc::RtcpMode aMode) : mRtcpMode(aMode) {}
+  explicit RtpRtcpConfig(const webrtc::RtcpMode aMode,
+                         const bool aExtmapAllowMixed)
+      : mRtcpMode(aMode), mExtmapAllowMixed(aExtmapAllowMixed) {}
   webrtc::RtcpMode GetRtcpMode() const { return mRtcpMode; }
+  bool GetExtmapAllowMixed() const { return mExtmapAllowMixed; }
 
   bool operator==(const RtpRtcpConfig& aOther) const {
-    return mRtcpMode == aOther.mRtcpMode;
+    return mRtcpMode == aOther.mRtcpMode &&
+           mExtmapAllowMixed == aOther.mExtmapAllowMixed;
   }
 
  private:
   webrtc::RtcpMode mRtcpMode;
+  bool mExtmapAllowMixed;
 };
 }  // namespace mozilla
 #endif

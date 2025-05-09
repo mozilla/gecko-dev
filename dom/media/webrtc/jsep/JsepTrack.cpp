@@ -421,7 +421,11 @@ void JsepTrack::CreateEncodings(
           SdpAttribute::kRtcpRsizeAttribute)) {
     rtcpMode = webrtc::RtcpMode::kReducedSize;
   }
-  negotiatedDetails->mRtpRtcpConf = RtpRtcpConfig(rtcpMode);
+  // extmap-allow-mixed which can be at the media level or the session level
+  constexpr bool SESSION_FALLBACK = true;
+  bool extmapAllowMixed = remote.GetAttributeList().HasAttribute(
+      SdpAttribute::kExtmapAllowMixedAttribute, SESSION_FALLBACK);
+  negotiatedDetails->mRtpRtcpConf = RtpRtcpConfig(rtcpMode, extmapAllowMixed);
 
   // TODO add support for b=AS if TIAS is not set (bug 976521)
 

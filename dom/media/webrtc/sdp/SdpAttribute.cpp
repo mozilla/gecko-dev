@@ -1333,6 +1333,8 @@ bool SdpAttribute::IsAllowedAtMediaLevel(AttributeType type) {
       return true;
     case kExtmapAttribute:
       return true;
+    case kExtmapAllowMixedAttribute:
+      return true;
     case kFingerprintAttribute:
       return true;
     case kFmtpAttribute:
@@ -1416,6 +1418,8 @@ bool SdpAttribute::IsAllowedAtSessionLevel(AttributeType type) {
       return true;
     case kExtmapAttribute:
       return true;
+    case kExtmapAllowMixedAttribute:
+      return true;
     case kFingerprintAttribute:
       return true;
     case kFmtpAttribute:
@@ -1494,6 +1498,8 @@ const std::string SdpAttribute::GetAttributeTypeString(AttributeType type) {
       return "end-of-candidates";
     case kExtmapAttribute:
       return "extmap";
+    case kExtmapAllowMixedAttribute:
+      return "extmap-allow-mixed";
     case kFingerprintAttribute:
       return "fingerprint";
     case kFmtpAttribute:

@@ -506,7 +506,6 @@ void WebrtcVideoConduit::OnControlConfigChange() {
        rtpRtcpConfig != mControl.mConfiguredRecvRtpRtcpConfig)) {
     mControl.mConfiguredRecvCodecs = codecConfigList;
     mControl.mConfiguredRecvRtpRtcpConfig = rtpRtcpConfig;
-
     webrtc::VideoReceiveStreamInterface::Config::Rtp newRtp(
         mRecvStreamConfig.rtp);
     MOZ_ASSERT(newRtp == mRecvStreamConfig.rtp);
@@ -800,6 +799,7 @@ void WebrtcVideoConduit::OnControlConfigChange() {
         newRtp.payload_name = codecConfig->mName;
         newRtp.payload_type = codecConfig->mType;
         newRtp.rtcp_mode = rtpRtcpConfig->GetRtcpMode();
+        newRtp.extmap_allow_mixed = rtpRtcpConfig->GetExtmapAllowMixed();
         newRtp.max_packet_size = kVideoMtu;
         newRtp.rtx.payload_type = codecConfig->RtxPayloadTypeIsSet()
                                       ? codecConfig->mRTXPayloadType

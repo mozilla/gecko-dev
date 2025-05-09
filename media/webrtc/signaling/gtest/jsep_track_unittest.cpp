@@ -420,6 +420,20 @@ class CheckForCodecType {
   SdpMediaSection::MediaType mType;
 };
 
+TEST_F(JsepTrackTest, CheckForAnsweringWithExtmapAllowMixedWhenNotOffered) {
+  Init(SdpMediaSection::kAudio);
+
+  CreateOffer();
+  mOffer->GetMediaSection(0).GetAttributeList().RemoveAttribute(
+      SdpAttribute::kExtmapAllowMixedAttribute);
+  CreateAnswer();
+
+  ASSERT_FALSE(mAnswer->GetMediaSection(0).GetAttributeList().HasAttribute(
+      SdpAttribute::kExtmapAllowMixedAttribute));
+  Negotiate();
+  SanityCheck();
+}
+
 TEST_F(JsepTrackTest, CheckForMismatchedAudioCodecAndVideoTrack) {
   std::vector<UniquePtr<JsepCodecDescription>> offerCodecs;
 

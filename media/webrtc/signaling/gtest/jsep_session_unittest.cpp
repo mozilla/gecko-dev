@@ -1163,12 +1163,12 @@ class JsepSessionTest : public JsepSessionTestBase,
     }
 
    private:
-    typedef size_t Level;
-    typedef std::string TransportId;
-    typedef std::string Mid;
-    typedef std::string Candidate;
-    typedef std::string Address;
-    typedef uint16_t Port;
+    using Level = size_t;
+    using TransportId = std::string;
+    using Mid = std::string;
+    using Candidate = std::string;
+    using Address = std::string;
+    using Port = uint16_t;
     // Default candidates are put into the m-line, c-line, and rtcp
     // attribute for endpoints that don't support ICE.
     std::map<TransportId, std::map<ComponentType, std::pair<Address, Port>>>
@@ -1505,6 +1505,20 @@ class JsepSessionTest : public JsepSessionTestBase,
     }
   }
 
+ protected:
+  bool ExtmapAllowMixed(const JsepSessionImpl& aSession) {
+    if (aSession.mCurrentLocalDescription) {
+      return aSession.mCurrentLocalDescription->GetAttributeList().HasAttribute(
+          SdpAttribute::kExtmapAllowMixedAttribute);
+    }
+    if (aSession.mPendingLocalDescription) {
+      return aSession.mPendingLocalDescription->GetAttributeList().HasAttribute(
+          SdpAttribute::kExtmapAllowMixedAttribute);
+    }
+    return false;
+  }
+
+ private:
   std::string mLastError;
   SdpHelper mSdpHelper;
 
@@ -7774,4 +7788,58 @@ TEST_F(JsepSessionTest, TestBundleSupportWithZeroPort) {
     ASSERT_TRUE(offerTransceiver.mSendTrack.GetActive());
   }
 }
+
+TEST_F(JsepSessionTest, ExtmapAllowMixedTrueWhenPrensentAtSessionLevel) {
+  AddTracks(*mSessionOff, "audio,video,datachannel");
+  AddTracks(*mSessionAns, "audio,video,datachannel");
+  std::string offer;
+  mSessionOff->CreateOffer(JsepOfferOptions(), &offer);
+
+  // Remove extmap-allow-mixed from the media level
+  ReplaceAll("a=extmap-allow-mixed\r\n", "", &offer);
+
+  // Add extmap-allow-mixed to the session level
+  Replace("m=audio", "a=extmap-allow-mixed\r\nm=audio", &offer);
+
+  mSessionOff->SetLocalDescription(kJsepSdpOffer, offer);
+  mSessionAns->SetRemoteDescription(kJsepSdpOffer, offer);
+
+  std::string answer;
+  mSessionAns->CreateAnswer(JsepAnswerOptions(), &answer);
+
+  mSessionOff->SetRemoteDescription(kJsepSdpAnswer, answer);
+  mSessionAns->SetLocalDescription(kJsepSdpAnswer, answer);
+
+  ASSERT_TRUE(ExtmapAllowMixed(*mSessionOff));
+  ASSERT_TRUE(ExtmapAllowMixed(*mSessionAns));
+
+  mSessionAns->ForEachTransceiver([](JsepTransceiver& aTransceiver) {
+    if (aTransceiver.mSendTrack.GetMediaType()) {
+      ASSERT_TRUE(aTransceiver.mSendTrack.GetNegotiatedDetails()
+                      ->GetRtpRtcpConfig()
+                      .GetExtmapAllowMixed());
+    }
+  });
+}
+
+TEST_F(JsepSessionTest, ExtmapAllowMixedCheckDoNotDefaultToSessionLevel) {
+  AddTracks(*mSessionOff, "audio,video,datachannel");
+  AddTracks(*mSessionAns, "audio,video,datachannel");
+
+  std::string offer;
+  mSessionOff->CreateOffer(JsepOfferOptions(), &offer);
+
+  mSessionOff->SetLocalDescription(kJsepSdpOffer, offer);
+  mSessionAns->SetRemoteDescription(kJsepSdpOffer, offer);
+
+  std::string answer;
+  mSessionAns->CreateAnswer(JsepAnswerOptions(), &answer);
+
+  mSessionOff->SetRemoteDescription(kJsepSdpAnswer, answer);
+  mSessionAns->SetLocalDescription(kJsepSdpAnswer, answer);
+
+  ASSERT_FALSE(ExtmapAllowMixed(*mSessionOff));
+  ASSERT_FALSE(ExtmapAllowMixed(*mSessionAns));
+}
+
 }  // namespace mozilla

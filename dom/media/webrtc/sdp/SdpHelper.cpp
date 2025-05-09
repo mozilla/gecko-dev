@@ -553,6 +553,11 @@ nsresult SdpHelper::CopyStickyParams(const SdpMediaSection& source,
         new SdpFlagAttribute(SdpAttribute::kRtcpRsizeAttribute));
   }
 
+  // Keep extmap-allow-mixed setting
+  if (sourceAttrs.HasAttribute(SdpAttribute::kExtmapAllowMixedAttribute)) {
+    destAttrs.SetAttribute(
+        new SdpFlagAttribute(SdpAttribute::kExtmapAllowMixedAttribute));
+  }
   return NS_OK;
 }
 

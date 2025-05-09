@@ -613,6 +613,7 @@ pub struct RustSdpAttributeFlags {
     pub rtcp_rsize: bool,
     pub bundle_only: bool,
     pub end_of_candidates: bool,
+    pub extmap_allow_mixed: bool,
 }
 
 #[no_mangle]
@@ -625,6 +626,7 @@ pub unsafe extern "C" fn sdp_get_attribute_flags(
         rtcp_rsize: false,
         bundle_only: false,
         end_of_candidates: false,
+        extmap_allow_mixed: false,
     };
     for attribute in (*attributes).iter() {
         if let SdpAttribute::IceLite = *attribute {
@@ -637,6 +639,8 @@ pub unsafe extern "C" fn sdp_get_attribute_flags(
             ret.bundle_only = true;
         } else if let SdpAttribute::EndOfCandidates = *attribute {
             ret.end_of_candidates = true;
+        } else if let SdpAttribute::ExtmapAllowMixed = *attribute {
+            ret.extmap_allow_mixed = true;
         }
     }
     ret

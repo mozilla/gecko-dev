@@ -1555,6 +1555,18 @@ TEST_F(SdpTest, parseIceLite) {
       sdp_attr_is_present(sdp_ptr_, SDP_ATTR_ICE_LITE, SDP_SESSION_LEVEL, 0));
 }
 
+TEST_F(SdpTest, parseExtmapAllowMixed) {
+  std::string sdp =
+      "v=0\r\n"
+      "o=- 4294967296 2 IN IP4 127.0.0.1\r\n"
+      "s=SIP Call\r\n"
+      "t=0 0\r\n"
+      "a=extmap-allow-mixed\r\n";
+  ParseSdp(sdp);
+  ASSERT_TRUE(sdp_attr_is_present(sdp_ptr_, SDP_ATTR_EXTMAP_ALLOW_MIXED,
+                                  SDP_SESSION_LEVEL, 0));
+}
+
 class NewSdpTest
     : public ::testing::Test,
       public ::testing::WithParamInterface< ::testing::tuple<bool, bool> > {
@@ -1918,6 +1930,7 @@ MOZ_RUNINIT const std::vector<std::string> kBasicAudioVideoOfferLines = {
     "a=ice-pwd:0000000000000000000000000000000",
     "a=sendonly",
     "a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level",
+    "a=extmap-allow-mixed",
     "a=setup:actpass",
     "a=rtcp-mux",
     "a=msid:stream track",
@@ -1950,6 +1963,7 @@ MOZ_RUNINIT const std::vector<std::string> kBasicAudioVideoOfferLines = {
     "a=rtpmap:122 red/90000",
     "a=rtpmap:123 ulpfec/90000",
     "a=fmtp:122 120/121/123",
+    "a=extmap-allow-mixed",
     "a=recvonly",
     "a=rtcp-fb:120 nack",
     "a=rtcp-fb:120 nack pli",
@@ -1991,6 +2005,7 @@ MOZ_RUNINIT const std::vector<std::string> kBasicAudioVideoOfferLines = {
     "a=rtpmap:0 PCMU/8000",
     "a=ice-options:foo bar",
     "a=msid:noappdata",
+    "a=extmap-allow-mixed",
     "a=bundle-only"};
 
 // SDP from a basic A/V apprtc call FFX/FFX
@@ -2030,6 +2045,7 @@ MOZ_RUNINIT const std::vector<std::string> kBasicAV1AudioVideoOfferLines = {
     "a=ice-pwd:0000000000000000000000000000000",
     "a=sendonly",
     "a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level",
+    "a=extmap-allow-mixed",
     "a=setup:actpass",
     "a=rtcp-mux",
     "a=msid:stream track",
@@ -2056,6 +2072,7 @@ MOZ_RUNINIT const std::vector<std::string> kBasicAV1AudioVideoOfferLines = {
     "DF:FA:FB:08:3B:3C:54:1D:D7:D4:05:77:A0:72:9B:14:08:6D:0F:4C",
     "a=mid:second",
     "a=rtpmap:98 AV1/90000",
+    "a=extmap-allow-mixed",
     "a=fmtp:98 profile=1;level-idx=1;tier=1;max-fs=3600;max-fr=30",
     "a=rtpmap:122 red/90000",
     "a=rtpmap:123 ulpfec/90000",
@@ -2098,6 +2115,7 @@ MOZ_RUNINIT const std::vector<std::string> kBasicAV1AudioVideoOfferLines = {
     "a=rtpmap:0 PCMU/8000",
     "a=ice-options:foo bar",
     "a=msid:noappdata",
+    "a=extmap-allow-mixed",
     "a=bundle-only"};
 
 static std::string joinSdp(const std::vector<std::string>& aSdp,
@@ -2935,6 +2953,15 @@ TEST_P(NewSdpTest, CheckFlags) {
       SdpAttribute::kIceLiteAttribute));
   ASSERT_FALSE(Sdp()->GetMediaSection(2).GetAttributeList().HasAttribute(
       SdpAttribute::kIceLiteAttribute));
+
+  ASSERT_FALSE(Sdp()->GetAttributeList().HasAttribute(
+      SdpAttribute::kExtmapAllowMixedAttribute));
+  ASSERT_TRUE(Sdp()->GetMediaSection(0).GetAttributeList().HasAttribute(
+      SdpAttribute::kExtmapAllowMixedAttribute));
+  ASSERT_TRUE(Sdp()->GetMediaSection(1).GetAttributeList().HasAttribute(
+      SdpAttribute::kExtmapAllowMixedAttribute));
+  ASSERT_TRUE(Sdp()->GetMediaSection(2).GetAttributeList().HasAttribute(
+      SdpAttribute::kExtmapAllowMixedAttribute));
 
   ASSERT_TRUE(Sdp()->GetMediaSection(0).GetAttributeList().HasAttribute(
       SdpAttribute::kRtcpMuxAttribute));

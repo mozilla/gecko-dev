@@ -41,6 +41,7 @@ class SdpAttribute {
     kDtlsMessageAttribute,
     kEndOfCandidatesAttribute,
     kExtmapAttribute,
+    kExtmapAllowMixedAttribute,
     kFingerprintAttribute,
     kFmtpAttribute,
     kGroupAttribute,

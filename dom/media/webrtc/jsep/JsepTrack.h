@@ -27,7 +27,7 @@ namespace mozilla {
 class JsepTrackNegotiatedDetails {
  public:
   JsepTrackNegotiatedDetails()
-      : mTias(0), mRtpRtcpConf(webrtc::RtcpMode::kCompound) {}
+      : mTias(0), mRtpRtcpConf(webrtc::RtcpMode::kCompound, true) {}
 
   JsepTrackNegotiatedDetails(const JsepTrackNegotiatedDetails& orig)
       : mExtmap(orig.mExtmap),
@@ -65,7 +65,7 @@ class JsepTrackNegotiatedDetails {
   void ForEachRTPHeaderExtension(
       const std::function<void(const SdpExtmapAttributeList::Extmap& extmap)>&
           fn) const {
-    for (auto entry : mExtmap) {
+    for (const auto& entry : mExtmap) {
       fn(entry.second);
     }
   }

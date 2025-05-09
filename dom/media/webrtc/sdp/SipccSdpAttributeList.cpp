@@ -142,7 +142,12 @@ void SipccSdpAttributeList::LoadSimpleNumbers(sdp_t* sdp, uint16_t level,
 }
 
 void SipccSdpAttributeList::LoadFlags(sdp_t* sdp, uint16_t level) {
-  if (AtSessionLevel()) {
+  // any-level
+  if (sdp_attr_valid(sdp, SDP_ATTR_EXTMAP_ALLOW_MIXED, level, 0, 1)) {
+    SetAttribute(
+        new SdpFlagAttribute(SdpAttribute::kExtmapAllowMixedAttribute));
+  }
+  if (AtSessionLevel()) {  // session-level only
     if (sdp_attr_valid(sdp, SDP_ATTR_ICE_LITE, level, 0, 1)) {
       SetAttribute(new SdpFlagAttribute(SdpAttribute::kIceLiteAttribute));
     }
@@ -157,8 +162,9 @@ void SipccSdpAttributeList::LoadFlags(sdp_t* sdp, uint16_t level) {
     if (sdp_attr_valid(sdp, SDP_ATTR_BUNDLE_ONLY, level, 0, 1)) {
       SetAttribute(new SdpFlagAttribute(SdpAttribute::kBundleOnlyAttribute));
     }
-    if (sdp_attr_valid(sdp, SDP_ATTR_RTCP_RSIZE, level, 0, 1))
+    if (sdp_attr_valid(sdp, SDP_ATTR_RTCP_RSIZE, level, 0, 1)) {
       SetAttribute(new SdpFlagAttribute(SdpAttribute::kRtcpRsizeAttribute));
+    }
   }
 }
 
@@ -180,7 +186,8 @@ static void ConvertDirection(sdp_direction_e sipcc_direction,
     case SDP_MAX_QOS_DIRECTIONS:
       // Nothing actually sets this value.
       // Fall through to MOZ_CRASH below.
-      {}
+      {
+      }
   }
 
   MOZ_CRASH("Invalid direction from sipcc; this is probably corruption");
@@ -459,7 +466,8 @@ void SipccSdpAttributeList::LoadSetup(sdp_t* sdp, uint16_t level) {
     case SDP_MAX_SETUP:
       // There is no code that will set these.
       // Fall through to MOZ_CRASH() below.
-      {}
+      {
+      }
   }
 
   MOZ_CRASH("Invalid setup type from sipcc. This is probably corruption.");

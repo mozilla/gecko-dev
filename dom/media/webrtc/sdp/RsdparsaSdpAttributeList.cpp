@@ -379,6 +379,7 @@ void RsdparsaSdpAttributeList::LoadAttribute(RustAttributeList* attributeList,
       case SdpAttribute::kRtcpRsizeAttribute:
       case SdpAttribute::kBundleOnlyAttribute:
       case SdpAttribute::kEndOfCandidatesAttribute:
+      case SdpAttribute::kExtmapAllowMixedAttribute:
         LoadFlags(attributeList);
         return;
       case SdpAttribute::kMaxMessageSizeAttribute:
@@ -845,6 +846,10 @@ void RsdparsaSdpAttributeList::LoadFlags(RustAttributeList* attributeList) {
   }
   if (flags.endOfCandidates) {
     SetAttribute(new SdpFlagAttribute(SdpAttribute::kEndOfCandidatesAttribute));
+  }
+  if (flags.extmapAllowMixed) {
+    SetAttribute(
+        new SdpFlagAttribute(SdpAttribute::kExtmapAllowMixedAttribute));
   }
 }
 

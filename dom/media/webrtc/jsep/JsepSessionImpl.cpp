@@ -308,6 +308,9 @@ nsresult JsepSessionImpl::CreateOfferMsection(const JsepOfferOptions& options,
           new SdpFlagAttribute(SdpAttribute::kRtcpRsizeAttribute));
     }
   }
+  // Ditto for extmap-allow-mixed
+  msection->GetAttributeList().SetAttribute(
+      new SdpFlagAttribute(SdpAttribute::kExtmapAllowMixedAttribute));
 
   nsresult rv = AddTransportAttributes(msection, SdpSetupAttribute::kActpass);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -569,6 +572,16 @@ JsepSession::Result JsepSessionImpl::CreateAnswer(
   UniquePtr<SdpGroupAttributeList> groupAttr(new SdpGroupAttributeList);
   mSdpHelper.GetBundleGroups(offer, &groupAttr->mGroups);
   sdp->GetAttributeList().SetAttribute(groupAttr.release());
+
+  // Copy EXTMAP-ALLOW-MIXED from the offer to the answer
+  if (offer.GetAttributeList().HasAttribute(
+          SdpAttribute::kExtmapAllowMixedAttribute)) {
+    sdp->GetAttributeList().SetAttribute(
+        new SdpFlagAttribute(SdpAttribute::kExtmapAllowMixedAttribute));
+  } else {
+    sdp->GetAttributeList().RemoveAttribute(
+        SdpAttribute::kExtmapAllowMixedAttribute);
+  }
 
   for (size_t i = 0; i < offer.GetMediaSectionCount(); ++i) {
     // The transceivers are already in place, due to setRemote

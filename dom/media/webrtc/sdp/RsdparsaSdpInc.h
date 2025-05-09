@@ -263,6 +263,7 @@ struct RustSdpAttributeFlags {
   bool rtcpRsize;
   bool bundleOnly;
   bool endOfCandidates;
+  bool extmapAllowMixed;
 };
 
 struct RustSdpAttributeMsid {
