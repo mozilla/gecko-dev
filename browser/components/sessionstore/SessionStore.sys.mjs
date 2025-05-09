@@ -8166,6 +8166,16 @@ var SessionStoreInternal = {
 
     Glean.tabgroup.groupInteractions.open_recent.add(1);
 
+    let isVerticalMode = targetWindow.gBrowser.tabContainer.verticalMode;
+    Glean.tabgroup.reopen.record({
+      id: tabGroupId,
+      source: TabMetrics.METRIC_SOURCE.RECENT_TABS,
+      type: TabMetrics.METRIC_REOPEN_TYPE.DELETED,
+      layout: isVerticalMode
+        ? TabMetrics.METRIC_TABS_LAYOUT.VERTICAL
+        : TabMetrics.METRIC_TABS_LAYOUT.HORIZONTAL,
+    });
+
     group.select();
     return group;
   },

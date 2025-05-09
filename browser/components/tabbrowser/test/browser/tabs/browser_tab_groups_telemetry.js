@@ -629,9 +629,19 @@ async function doReopenTests(useVerticalTabs) {
     layout: expectedLayout,
     type: "saved",
   });
-
-  await win.gBrowser.removeTabGroup(win.gBrowser.getTabGroupById(groupId));
   await resetTelemetry();
+
+  await TabGroupTestUtils.removeTabGroup(win.gBrowser.getTabGroupById(groupId));
+  SessionStore.undoCloseTabGroup(win, groupId, win);
+  await waitForReopenRecord();
+  assertReopenEvent({
+    id: groupId,
+    source: "recent",
+    layout: expectedLayout,
+    type: "deleted",
+  });
+  await resetTelemetry();
+  await TabGroupTestUtils.removeTabGroup(win.gBrowser.getTabGroupById(groupId));
   await SpecialPowers.popPrefEnv();
 }
 
