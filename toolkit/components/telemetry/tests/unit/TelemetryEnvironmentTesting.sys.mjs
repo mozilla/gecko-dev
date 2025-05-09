@@ -527,7 +527,13 @@ export var TelemetryEnvironmentTesting = {
     lazy.Assert.ok(Array.isArray(data.partner.partnerNames));
     if (isInitial) {
       lazy.Assert.equal(data.partner.partnerNames.length, 0);
-      lazy.Assert.equal(distExt.partnerNames, null);
+      // bug 1965481 - Artifact and full builds disagree on how to store [].
+      if (Services.prefs.getBoolPref("telemetry.fog.artifact_build", false)) {
+        lazy.Assert.ok(Array.isArray(distExt.partnerNames));
+        lazy.Assert.equal(distExt.partnerNames.length, 0);
+      } else {
+        lazy.Assert.equal(distExt.partnerNames, null);
+      }
     } else {
       lazy.Assert.ok(data.partner.partnerNames.includes(PARTNER_NAME));
       lazy.Assert.ok(
