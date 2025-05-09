@@ -6,6 +6,7 @@
 
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/StaticPrefs_image.h"
 #include "mozilla/FocusModel.h"
 #include "mozilla/dom/BindContext.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -628,12 +629,32 @@ nsIntSize HTMLImageElement::NaturalSize() {
     return {};
   }
 
-  // For now, treat a missing intrinsic 'width' or 'height' as a natural size
-  // of '0' in that axis, per spec.  But we'll be changing that soon for
-  // webcompat reasons per https://github.com/whatwg/html/issues/11287
-  // and https://bugzilla.mozilla.org/show_bug.cgi?id=1935269 .
-  nsIntSize size(intrinsicSize.mWidth.valueOr(0),
-                 intrinsicSize.mHeight.valueOr(0));
+  nsIntSize size;  // defaults to 0,0
+  if (!StaticPrefs::image_natural_size_fallback_enabled()) {
+    size.width = intrinsicSize.mWidth.valueOr(0);
+    size.height = intrinsicSize.mHeight.valueOr(0);
+  } else {
+    // Fallback case, for web-compatibility!
+    // See https://github.com/whatwg/html/issues/11287 and bug 1935269.
+    // If we lack an intrinsic size in either axis, then use the fallback size,
+    // unless we can transfer the size through the aspect ratio.
+    // (And if we *only* have an intrinsic aspect ratio, use the fallback width
+    // and transfer that through the aspect ratio to produce a height.)
+    size.width = intrinsicSize.mWidth.valueOr(kFallbackIntrinsicWidthInPixels);
+    size.height =
+        intrinsicSize.mHeight.valueOr(kFallbackIntrinsicHeightInPixels);
+    AspectRatio ratio = image->GetIntrinsicRatio();
+    if (ratio) {
+      if (!intrinsicSize.mHeight) {
+        // Compute the height from the width & ratio.  (Note that the width we
+        // use here might be kFallbackIntrinsicWidthInPixels, and that's fine.)
+        size.height = ratio.Inverted().ApplyTo(size.width);
+      } else if (!intrinsicSize.mWidth) {
+        // Compute the width from the height & ratio.
+        size.width = ratio.ApplyTo(size.height);
+      }
+    }
+  }
 
   ImageResolution resolution = image->GetResolution();
   // NOTE(emilio): What we implement here matches the image-set() spec, but it's

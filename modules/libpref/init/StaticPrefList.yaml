@@ -8096,6 +8096,14 @@
   value: -1
   mirror: always
 
+# If true, then the HTMLImageElement naturalWidth and naturalHeight APIs will
+# fall back to the default concrete object size (300x150) for images that lack
+# a natural width and/or height.
+- name: image.natural-size-fallback.enabled
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # Whether we record SVG images as blobs or not.
 - name: image.svg.blob-image
   type: RelaxedAtomicBool
