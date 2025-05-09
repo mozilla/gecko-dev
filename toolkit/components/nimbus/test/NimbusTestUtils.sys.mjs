@@ -44,7 +44,7 @@ function fetchSchemaSync(uri) {
 
 ChromeUtils.defineLazyGetter(lazy, "enrollmentSchema", () => {
   return fetchSchemaSync(
-    "resource://nimbus/schemas/NimbusEnrollment.schema.json"
+    "resource://testing-common/nimbus/schemas/NimbusEnrollment.schema.json"
   );
 });
 

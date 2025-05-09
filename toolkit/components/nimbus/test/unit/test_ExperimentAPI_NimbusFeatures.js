@@ -5,9 +5,12 @@ const { JsonSchema } = ChromeUtils.importESModule(
 );
 
 ChromeUtils.defineLazyGetter(this, "fetchSchema", () => {
-  return fetch("resource://nimbus/schemas/NimbusEnrollment.schema.json", {
-    credentials: "omit",
-  }).then(rsp => rsp.json());
+  return fetch(
+    "resource://testing-common/nimbus/schemas/NimbusEnrollment.schema.json",
+    {
+      credentials: "omit",
+    }
+  ).then(rsp => rsp.json());
 });
 
 const MATCHING_ROLLOUT = Object.freeze(

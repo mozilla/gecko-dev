@@ -38,6 +38,7 @@ TESTING_JS_MODULES += [
 
 TESTING_JS_MODULES.nimbus.schemas += [
     "schemas/ExperimentFeature.schema.json",
+    "schemas/NimbusEnrollment.schema.json",
 ]
 
 GeneratedFile(
