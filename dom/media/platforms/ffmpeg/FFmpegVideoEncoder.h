@@ -37,14 +37,14 @@ class FFmpegVideoEncoder<LIBAV_VER> : public FFmpegDataEncoder<LIBAV_VER> {
  protected:
   virtual ~FFmpegVideoEncoder() = default;
   // Methods only called on mTaskQueue.
-  virtual nsresult InitSpecific() override;
+  virtual MediaResult InitSpecific() override;
 #if LIBAVCODEC_VERSION_MAJOR >= 58
-  Result<EncodedData, nsresult> EncodeInputWithModernAPIs(
+  Result<EncodedData, MediaResult> EncodeInputWithModernAPIs(
       RefPtr<const MediaData> aSample) override;
 #endif
   virtual Result<RefPtr<MediaRawData>, MediaResult> ToMediaRawData(
       AVPacket* aPacket) override;
-  Result<already_AddRefed<MediaByteBuffer>, nsresult> GetExtraData(
+  Result<already_AddRefed<MediaByteBuffer>, MediaResult> GetExtraData(
       AVPacket* aPacket) override;
   void ForceEnablingFFmpegDebugLogs();
   struct SVCSettings {

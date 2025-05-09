@@ -297,7 +297,7 @@ bool FFmpegVideoEncoder<LIBAV_VER>::SvcEnabled() const {
   return mConfig.mScalabilityMode != ScalabilityMode::None;
 }
 
-nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
+MediaResult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
 
   FFMPEGV_LOG("FFmpegVideoEncoder::InitSpecific");
@@ -305,8 +305,8 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
   // Initialize the common members of the encoder instance
   AVCodec* codec = FFmpegDataEncoder<LIBAV_VER>::InitCommon();
   if (!codec) {
-    FFMPEGV_LOG("FFmpegDataEncoder::InitCommon failed");
-    return NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR;
+    return MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
+                       "FFmpegDataEncoder::InitCommon failed"_ns);
   }
 
   // And now the video-specific part
@@ -426,7 +426,8 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
     if (Maybe<SVCSettings> settings = GetSVCSettings()) {
       if (mCodecName == "libaom-av1") {
         if (mConfig.mBitrateMode != BitrateMode::Constant) {
-          return NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR;
+          return MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
+                             "AV1 with SVC only supports constant bitrate"_ns);
         }
       }
 
@@ -513,7 +514,7 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
 
 // avcodec_send_frame and avcodec_receive_packet were introduced in version 58.
 #if LIBAVCODEC_VERSION_MAJOR >= 58
-Result<MediaDataEncoder::EncodedData, nsresult> FFmpegVideoEncoder<
+Result<MediaDataEncoder::EncodedData, MediaResult> FFmpegVideoEncoder<
     LIBAV_VER>::EncodeInputWithModernAPIs(RefPtr<const MediaData> aSample) {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
   MOZ_ASSERT(mCodecContext);
@@ -523,21 +524,17 @@ Result<MediaDataEncoder::EncodedData, nsresult> FFmpegVideoEncoder<
 
   // Validate input.
   if (!sample->mImage) {
-    FFMPEGV_LOG("No image");
-    return Result<MediaDataEncoder::EncodedData, nsresult>(
-        NS_ERROR_DOM_MEDIA_FATAL_ERR);
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, "No image"_ns));
   }
   if (sample->mImage->GetSize().IsEmpty()) {
-    FFMPEGV_LOG("image width or height is invalid");
-    return Result<MediaDataEncoder::EncodedData, nsresult>(
-        NS_ERROR_DOM_MEDIA_FATAL_ERR);
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                           "image width or height is invalid"_ns));
   }
 
   // Allocate AVFrame.
   if (!PrepareFrame()) {
-    FFMPEGV_LOG("failed to allocate frame");
-    return Result<MediaDataEncoder::EncodedData, nsresult>(
-        NS_ERROR_DOM_MEDIA_FATAL_ERR);
+    return Err(
+        MediaResult(NS_ERROR_OUT_OF_MEMORY, "failed to allocate frame"_ns));
   }
 
   // Set AVFrame properties for its internal data allocation. For now, we always
@@ -550,27 +547,24 @@ Result<MediaDataEncoder::EncodedData, nsresult> FFmpegVideoEncoder<
 
   // Allocate AVFrame data.
   if (int ret = mLib->av_frame_get_buffer(mFrame, 0); ret < 0) {
-    FFMPEGV_LOG("failed to allocate frame data: %s",
-                MakeErrorString(mLib, ret).get());
-    return Result<MediaDataEncoder::EncodedData, nsresult>(
-        NS_ERROR_DOM_MEDIA_FATAL_ERR);
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                           RESULT_DETAIL("failed to allocate frame data: %s",
+                                         MakeErrorString(mLib, ret).get())));
   }
 
   // Make sure AVFrame is writable.
   if (int ret = mLib->av_frame_make_writable(mFrame); ret < 0) {
-    FFMPEGV_LOG("failed to make frame writable: %s",
-                MakeErrorString(mLib, ret).get());
-    return Result<MediaDataEncoder::EncodedData, nsresult>(
-        NS_ERROR_DOM_MEDIA_FATAL_ERR);
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                           RESULT_DETAIL("failed to make frame writable: %s",
+                                         MakeErrorString(mLib, ret).get())));
   }
 
-  nsresult rv = ConvertToI420(
+  MediaResult rv = ConvertToI420(
       sample->mImage, mFrame->data[0], mFrame->linesize[0], mFrame->data[1],
       mFrame->linesize[1], mFrame->data[2], mFrame->linesize[2], mConfig.mSize);
   if (NS_FAILED(rv)) {
-    FFMPEGV_LOG("Conversion error!");
-    return Result<MediaDataEncoder::EncodedData, nsresult>(
-        NS_ERROR_DOM_MEDIA_FATAL_ERR);
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                           "failed to convert format to I420"_ns));
   }
 
   // Set presentation timestamp and duration of the AVFrame. The unit of pts is
@@ -650,7 +644,7 @@ FFmpegVideoEncoder<LIBAV_VER>::ToMediaRawData(AVPacket* aPacket) {
   return data;
 }
 
-Result<already_AddRefed<MediaByteBuffer>, nsresult>
+Result<already_AddRefed<MediaByteBuffer>, MediaResult>
 FFmpegVideoEncoder<LIBAV_VER>::GetExtraData(AVPacket* aPacket) {
   MOZ_ASSERT(aPacket);
 
@@ -661,13 +655,16 @@ FFmpegVideoEncoder<LIBAV_VER>::GetExtraData(AVPacket* aPacket) {
       mConfig.mCodecSpecific->as<H264Specific>().mFormat !=
           H264BitStreamFormat::AVC ||
       !(aPacket->flags & AV_PKT_FLAG_KEY)) {
-    return Err(NS_ERROR_NOT_AVAILABLE);
+    return Err(
+        MediaResult(NS_ERROR_NOT_AVAILABLE, "No available extra data"_ns));
   }
 
   if (mCodecName != "libx264") {
-    FFMPEGV_LOG("Get extra data from codec %s has not been implemented yet",
-                mCodecName.get());
-    return Err(NS_ERROR_NOT_IMPLEMENTED);
+    return Err(MediaResult(
+        NS_ERROR_NOT_IMPLEMENTED,
+        RESULT_DETAIL(
+            "Get extra data from codec %s has not been implemented yet",
+            mCodecName.get())));
   }
 
   bool useGlobalHeader =
@@ -687,8 +684,8 @@ FFmpegVideoEncoder<LIBAV_VER>::GetExtraData(AVPacket* aPacket) {
         Span<const uint8_t>(aPacket->data, static_cast<size_t>(aPacket->size));
   }
   if (buf.empty()) {
-    FFMPEGV_LOG("fail to get H264 AVCC header in key frame!");
-    return Err(NS_ERROR_UNEXPECTED);
+    return Err(MediaResult(NS_ERROR_UNEXPECTED,
+                           "fail to get H264 AVCC header in key frame!"_ns));
   }
 
   BufferReader reader(buf);
@@ -710,7 +707,7 @@ FFmpegVideoEncoder<LIBAV_VER>::GetExtraData(AVPacket* aPacket) {
   // Ensure we have profile, constraints and level needed to create the extra
   // data.
   if (spsData.Length() < 4) {
-    return Err(NS_ERROR_NOT_AVAILABLE);
+    return Err(MediaResult(NS_ERROR_NOT_AVAILABLE, "spsData is too short"_ns));
   }
 
   FFMPEGV_LOG(

@@ -59,7 +59,7 @@ class FFmpegDataEncoder<LIBAV_VER> : public MediaDataEncoder {
   RefPtr<EncodePromise> ProcessDrain();
   RefPtr<ShutdownPromise> ProcessShutdown();
   // Initialize the audio or video-specific members of an encoder instance.
-  virtual nsresult InitSpecific() = 0;
+  virtual MediaResult InitSpecific() = 0;
   // nullptr in case of failure. This is to be called by the
   // audio/video-specific InitInternal methods in the sub-class, and initializes
   // the common members.
@@ -72,10 +72,10 @@ class FFmpegDataEncoder<LIBAV_VER> : public MediaDataEncoder {
   bool PrepareFrame();
   void DestroyFrame();
 #if LIBAVCODEC_VERSION_MAJOR >= 58
-  virtual Result<EncodedData, nsresult> EncodeInputWithModernAPIs(
+  virtual Result<EncodedData, MediaResult> EncodeInputWithModernAPIs(
       RefPtr<const MediaData> aSample) = 0;
-  Result<EncodedData, nsresult> EncodeWithModernAPIs();
-  virtual Result<EncodedData, nsresult> DrainWithModernAPIs();
+  Result<EncodedData, MediaResult> EncodeWithModernAPIs();
+  virtual Result<EncodedData, MediaResult> DrainWithModernAPIs();
 #endif
   // Convert an AVPacket to a MediaRawData. This can return nullptr if a packet
   // has been processed by the encoder, but is not to be returned to the caller,
@@ -84,7 +84,7 @@ class FFmpegDataEncoder<LIBAV_VER> : public MediaDataEncoder {
       AVPacket* aPacket) = 0;
   Result<RefPtr<MediaRawData>, MediaResult> ToMediaRawDataCommon(
       AVPacket* aPacket);
-  virtual Result<already_AddRefed<MediaByteBuffer>, nsresult> GetExtraData(
+  virtual Result<already_AddRefed<MediaByteBuffer>, MediaResult> GetExtraData(
       AVPacket* aPacket) = 0;
   void ForceEnablingFFmpegDebugLogs();
 
