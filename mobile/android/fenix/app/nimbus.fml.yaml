@@ -506,7 +506,7 @@ features:
         description: >
           Suggest domains from the shipped domain list.
         type: Boolean
-        default: true
+        default: false
     defaults:
       - channel: nightly
         value:
