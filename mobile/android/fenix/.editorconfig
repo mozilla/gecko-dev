@@ -26,7 +26,6 @@ ktlint_standard_no-blank-line-in-list = disabled
 
 ktlint_standard_property-wrapping = disabled
 ktlint_standard_no-empty-first-line-in-class-body = disabled
-ktlint_standard_no-single-line-block-comment= disabled
 ktlint_standard_if-else-wrapping = disabled
 
 

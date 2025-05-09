@@ -87,7 +87,7 @@ class DiskIconProcessorTest {
 
     @Test
     fun `Icon loaded in private mode is not saved in cache`() {
-        /* Can be Source.INLINE as well. To ensure that the icon is eligible for caching on the disk. */
+        // Can be Source.INLINE as well. To ensure that the icon is eligible for caching on the disk.
         val icon = Icon(mock(), source = Icon.Source.DOWNLOAD)
         val cache: DiskIconProcessor.ProcessorDiskCache = mock()
 
@@ -102,7 +102,7 @@ class DiskIconProcessorTest {
 
     @Test
     fun `Icon loaded in non-private mode is saved in cache`() {
-        /* Can be Source.INLINE as well. To ensure that the icon is eligible for caching on the disk. */
+        // Can be Source.INLINE as well. To ensure that the icon is eligible for caching on the disk.
         val icon = Icon(mock(), source = Icon.Source.DOWNLOAD)
         val cache: DiskIconProcessor.ProcessorDiskCache = mock()
 

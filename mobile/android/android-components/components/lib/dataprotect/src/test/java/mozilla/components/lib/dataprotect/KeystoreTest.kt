@@ -20,7 +20,7 @@ import javax.crypto.SecretKey
 
 private val DEFAULTPASS = "testit!".toCharArray()
 
-/* mock keystore wrapper to deal with intricacies of how Java/Anroid key management work */
+// mock keystore wrapper to deal with intricacies of how Java/Anroid key management work
 internal class MockStoreWrapper : KeyStoreWrapper() {
     override fun loadKeyStore(): KeyStore {
         val ks = KeyStore.getInstance("JCEKS")

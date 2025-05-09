@@ -187,7 +187,7 @@ class SyncIntegrationTest {
         mDevice.waitNotNull(Until.findObjects(By.text("Save")), TestAssetHelper.waitingTime)
         mDevice.waitNotNull(Until.findObjects(By.text("Settings")), TestAssetHelper.waitingTime)
 
-        /* Wait until the Settings shows the account synced */
+        // Wait until the Settings shows the account synced
         mDevice.waitNotNull(Until.findObjects(By.text("Account")), TestAssetHelper.waitingTime)
         mDevice.waitNotNull(Until.findObjects(By.res("org.mozilla.fenix.debug:id/email")), TestAssetHelper.waitingTime)
         TestAssetHelper.waitingTime

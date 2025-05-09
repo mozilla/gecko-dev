@@ -30,7 +30,7 @@ import org.mozilla.fenix.ui.robots.navigationToolbar
  *
  */
 class SitePermissionsTest : TestSetup() {
-    /* Test page created and handled by the Mozilla mobile test-eng team */
+    // Test page created and handled by the Mozilla mobile test-eng team
     private val testPage = "https://mozilla-mobile.github.io/testapp/permissions"
     private val testPageHost = "mozilla-mobile.github.io"
     private val cameraManager = appContext.getSystemService(Context.CAMERA_SERVICE) as CameraManager

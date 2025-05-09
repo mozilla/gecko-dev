@@ -23,7 +23,7 @@ import org.mozilla.fenix.ui.robots.downloadRobot
  **/
 @RunWith(Parameterized::class)
 class DownloadFileTypesTest(fileName: String) : TestSetup() {
-    /* Remote test page managed by Mozilla Mobile QA team at https://github.com/mozilla-mobile/testapp */
+    // Remote test page managed by Mozilla Mobile QA team at https://github.com/mozilla-mobile/testapp
     private val downloadTestPage = "https://storage.googleapis.com/mobile_test_assets/test_app/downloads.html"
     private var downloadFile: String = fileName
 

@@ -68,18 +68,18 @@ class TextPercentageSeekBarPreference @JvmOverloads constructor(
     defStyleAttr: Int = R.attr.seekBarPreferenceStyle,
     defStyleRes: Int = 0,
 ) : Preference(context, attrs, defStyleAttr, defStyleRes) {
-    /* synthetic access */
+    // synthetic access
     internal var mSeekBarValue: Int = 0
 
-    /* synthetic access */
+    // synthetic access
     internal var mMin: Int = 0
     private var mMax: Int = 0
     private var mSeekBarIncrement: Int = 0
 
-    /* synthetic access */
+    // synthetic access
     internal var mTrackingTouch: Boolean = false
 
-    /* synthetic access */
+    // synthetic access
     internal var mSeekBar: SeekBar? = null
     private var mSeekBarValueTextView: TextView? = null
     private var mExampleTextTextView: TextView? = null
@@ -87,7 +87,7 @@ class TextPercentageSeekBarPreference @JvmOverloads constructor(
     /**
      * Whether the SeekBar should respond to the left/right keys
      */
-    /* synthetic access */
+    // synthetic access
     var isAdjustable: Boolean = false
 
     /**
@@ -98,7 +98,7 @@ class TextPercentageSeekBarPreference @JvmOverloads constructor(
     /**
      * Whether the SeekBarPreference should continuously save the Seekbar value while it is being dragged.
      */
-    /* synthetic access */
+    // synthetic access
     var updatesContinuously: Boolean = false
 
     /**
@@ -327,7 +327,7 @@ class TextPercentageSeekBarPreference @JvmOverloads constructor(
      * Persist the [SeekBar]'s SeekBar value if callChangeListener returns true, otherwise
      * set the [SeekBar]'s value to the stored value.
      */
-    /* synthetic access */
+    // synthetic access
     internal fun syncValueInternal(seekBar: SeekBar) {
         val seekBarValue = mMin + seekBar.progress
         if (seekBarValue != mSeekBarValue) {
@@ -346,7 +346,7 @@ class TextPercentageSeekBarPreference @JvmOverloads constructor(
      *
      * @param labelValue the value to display next to the [SeekBar]
      */
-    /* synthetic access */
+    // synthetic access
     internal fun updateLabelValue(labelValue: Int) {
         var value = labelValue
         if (mSeekBarValueTextView != null) {

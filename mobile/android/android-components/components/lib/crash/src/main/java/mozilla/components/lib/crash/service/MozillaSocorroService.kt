@@ -38,7 +38,7 @@ import java.util.zip.GZIPOutputStream
 import kotlin.random.Random
 import mozilla.components.Build as AcBuild
 
-/* This ID is used for all Mozilla products.  Setting as default if no ID is passed in */
+// This ID is used for all Mozilla products.  Setting as default if no ID is passed in
 private const val MOZILLA_PRODUCT_ID = "{eeb82917-e434-4870-8148-5c03d4caa81b}"
 
 @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -156,7 +156,7 @@ class MozillaSocorroService(
     }
 
     override fun report(throwable: Throwable, breadcrumbs: ArrayList<Breadcrumb>): String? {
-        /* Not sending caught exceptions to Socorro */
+        // Not sending caught exceptions to Socorro
         return null
     }
 

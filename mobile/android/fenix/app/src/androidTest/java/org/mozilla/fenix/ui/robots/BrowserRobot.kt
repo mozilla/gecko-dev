@@ -252,7 +252,7 @@ class BrowserRobot {
         }
     }
 
-    /* Verifies the information displayed on the about:cache page */
+    // Verifies the information displayed on the about:cache page
     fun verifyNetworkCacheIsEmpty(storage: String) {
         val memorySection = mDevice.findObject(UiSelector().description(storage))
 

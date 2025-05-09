@@ -318,7 +318,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 )
             }
 
-            /* General preferences */
+            // General preferences
             resources.getString(R.string.pref_key_search_settings) -> {
                 SettingsFragmentDirections.actionSettingsFragmentToSearchEngineFragment()
             }
@@ -358,7 +358,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 SettingsFragmentDirections.actionSettingsFragmentToTranslationsSettingsFragment()
             }
 
-            /* Privacy and security preferences */
+            // Privacy and security preferences
             resources.getString(R.string.pref_key_private_browsing) -> {
                 SettingsFragmentDirections.actionSettingsFragmentToPrivateBrowsingFragment()
             }
@@ -397,7 +397,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 SettingsFragmentDirections.actionSettingsFragmentToDataChoicesFragment()
             }
 
-            /* Advanced preferences */
+            // Advanced preferences
             resources.getString(R.string.pref_key_addons) -> {
                 Addons.openAddonsInSettings.record(NoExtras())
                 SettingsFragmentDirections.actionSettingsFragmentToAddonsFragment()
@@ -464,7 +464,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 SettingsFragmentDirections.actionSettingsFragmentToSyncDebugFragment()
             }
 
-            /* About preferences */
+            // About preferences
             resources.getString(R.string.pref_key_rate) -> {
                 try {
                     startActivity(Intent(Intent.ACTION_VIEW, SupportUtils.RATE_APP_URL.toUri()))

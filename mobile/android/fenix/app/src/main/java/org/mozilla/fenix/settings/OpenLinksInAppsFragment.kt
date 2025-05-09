@@ -27,7 +27,7 @@ class OpenLinksInAppsFragment : PreferenceFragmentCompat() {
         radioAskBeforeOpening = requirePreference(R.string.pref_key_open_links_in_apps_ask)
         radioNever = requirePreference(R.string.pref_key_open_links_in_apps_never)
 
-        /* only show the Always option in normal browsing mode */
+        // only show the Always option in normal browsing mode
         radioAlways.isVisible = requireContext().settings().lastKnownMode == BrowsingMode.Normal
     }
 

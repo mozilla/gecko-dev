@@ -58,7 +58,7 @@ open class GeckoSelectionActionDelegate(
     }
 
     override fun performAction(id: String, item: MenuItem): Boolean {
-        /* Temporary, removed once https://bugzilla.mozilla.org/show_bug.cgi?id=1694983 is fixed */
+        // Temporary, removed once https://bugzilla.mozilla.org/show_bug.cgi?id=1694983 is fixed
         try {
             val selectedText = mSelection?.text ?: return super.performAction(id, item)
 

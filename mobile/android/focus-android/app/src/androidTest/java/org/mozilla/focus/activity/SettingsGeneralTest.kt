@@ -76,7 +76,7 @@ class SettingsGeneralTest : TestSetup() {
     @SmokeTest
     @Test
     fun englishSystemLocaleTest() {
-        /* Go to Settings and change language to French*/
+        // Go to Settings and change language to French
         homeScreen {
         }.openMainMenu {
         }.openSettings {
@@ -87,12 +87,12 @@ class SettingsGeneralTest : TestSetup() {
             verifyTranslatedTextExists(AF_LANGUAGE_MENU)
             exitToTop()
         }
-        /* Exit to main and see the UI is localized as well */
+        // Exit to main and see the UI is localized as well
         homeScreen {
         }.openMainMenu {
             verifyTranslatedTextExists(AF_SETTINGS)
             verifyTranslatedTextExists(AF_HELP)
-            /* change back to system locale, verify the locale is changed */
+            // change back to system locale, verify the locale is changed
         }.openSettings(AF_SETTINGS) {
         }.openGeneralSettingsMenu(AF_GENERAL_HEADING) {
             openLanguageSelectionMenu(AF_LANGUAGE_MENU)
@@ -109,14 +109,14 @@ class SettingsGeneralTest : TestSetup() {
 
     @Test
     fun frenchLocaleTest() {
-        /* Go to Settings */
+        // Go to Settings
         homeScreen {
         }.openMainMenu {
         }.openSettings(FR_SETTINGS) {
         }.openGeneralSettingsMenu(FR_GENERAL_HEADING) {
             openLanguageSelectionMenu(FR_LANGUAGE_MENU)
             verifySystemLocaleSelected(FR_LANGUAGE_SYSTEM_DEFAULT)
-            /* change locale to English, verify the locale is changed */
+            // change locale to English, verify the locale is changed
             selectLanguage(EN_AFRIKAANS_LOCALE)
             verifyTranslatedTextExists(AF_LANGUAGE_MENU)
             exitToTop()

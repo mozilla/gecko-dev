@@ -7,7 +7,7 @@ package mozilla.components.support.ktx.android.widget
 import android.view.View
 import android.widget.TextView
 
-/* This is the sum of both the default ascender height and the default descender height in Android */
+// This is the sum of both the default ascender height and the default descender height in Android
 private const val DEFAULT_FONT_PADDING = 6
 
 /**

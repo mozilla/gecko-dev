@@ -43,7 +43,7 @@ import org.mozilla.fenix.ui.robots.notificationShade
  *  - Verifies managing downloads inside the Downloads listing.
  **/
 class DownloadTest : TestSetup() {
-    /* Remote test page managed by Mozilla Mobile QA team at https://github.com/mozilla-mobile/testapp */
+    // Remote test page managed by Mozilla Mobile QA team at https://github.com/mozilla-mobile/testapp
     private val downloadTestPage =
         "https://storage.googleapis.com/mobile_test_assets/test_app/downloads.html"
     private var downloadFile: String = ""

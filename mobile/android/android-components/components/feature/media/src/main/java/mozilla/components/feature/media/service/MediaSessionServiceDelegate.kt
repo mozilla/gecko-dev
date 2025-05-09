@@ -131,7 +131,7 @@ internal class MediaSessionServiceDelegate(
     }
 
     fun onTaskRemoved() {
-        /* no need to do this for custom tabs */
+        // no need to do this for custom tabs
         store.state.tabs.forEach {
             it.mediaSessionState?.controller?.stop()
         }

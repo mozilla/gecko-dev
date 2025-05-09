@@ -34,7 +34,7 @@ import org.mozilla.fenix.ui.robots.navigationToolbar
  *
  */
 class SettingsSitePermissionsTest : TestSetup() {
-    /* Test page created and handled by the Mozilla mobile test-eng team */
+    // Test page created and handled by the Mozilla mobile test-eng team
     private val permissionsTestPage = "https://mozilla-mobile.github.io/testapp/v2.0/permissions"
     private val permissionsTestPageOrigin = "https://mozilla-mobile.github.io"
     private val permissionsTestPageHost = "mozilla-mobile.github.io"

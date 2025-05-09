@@ -49,7 +49,7 @@ internal class CrashListFragment : Fragment(R.layout.mozac_lib_crash_crashlist) 
                 emptyView.isGone = list.isNotEmpty()
             }
         } catch (e: SQLiteBlobTooBigException) {
-            /* recover by deleting all entries */
+            // recover by deleting all entries
             database.crashDao().deleteAll()
         }
     }
