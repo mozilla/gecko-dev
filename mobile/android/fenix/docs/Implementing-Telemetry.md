@@ -24,11 +24,11 @@
 * A full example of adding an event with keys can be found [here](https://github.com/mozilla-mobile/android-components/pull/10837) (Android Components), [here](https://github.com/mozilla-mobile/fenix/pull/20909) (Fenix) and [here](https://github.com/mozilla/glean-annotations/pull/77) (Glean Annotation)
 1. Create an event in [metrics.yaml](https://github.com/mozilla-mobile/fenix/blob/master/app/metrics.yaml) and do a project rebuild to generate the event
 2. To add feature tags see steps [here](https://github.com/mozilla-mobile/fenix/wiki/Metric-Feature-Tags).
-5. Send the event from the proper place in the code with the appropriate generated method (e.g. `GeneratedClassMetrics.generatedEvent.record()`)
-6. Create pull requests
-7. Submit a data review ([example here](https://github.com/mozilla-mobile/fenix/pull/20909#issuecomment-902119039)).  There's also a [command-line tool for generating Data Review Requests](https://chuttenblog.wordpress.com/2021/09/07/this-week-in-glean-data-reviews-are-important-glean-parser-makes-them-easy/)
-8. Update the [metrics.yaml](https://github.com/mozilla-mobile/fenix/blob/master/app/metrics.yaml) with the data review
-9. For startup metrics, make sure to [manually test it](https://github.com/mozilla-mobile/fenix/wiki/Test-telemetry-pings)
+3. Send the event from the proper place in the code with the appropriate generated method (e.g. `GeneratedClassMetrics.generatedEvent.record()`)
+4. Create pull requests
+5. Submit a data review ([example here](https://github.com/mozilla-mobile/fenix/pull/20909#issuecomment-902119039)).  There's also a [command-line tool for generating Data Review Requests](https://chuttenblog.wordpress.com/2021/09/07/this-week-in-glean-data-reviews-are-important-glean-parser-makes-them-easy/)
+6. Update the [metrics.yaml](https://github.com/mozilla-mobile/fenix/blob/master/app/metrics.yaml) with the data review
+7. For startup metrics, make sure to [manually test it](https://github.com/mozilla-mobile/fenix/wiki/Test-telemetry-pings)
 
 ## Review
 See example [here](https://github.com/mozilla-mobile/fenix/pull/20909)
@@ -38,8 +38,8 @@ See example [here](https://github.com/mozilla-mobile/fenix/pull/20909)
 
 ## After Merge
 1. Make a note to revisit your telemetry changes when it makes it to beta/release.
-* for events, go to Glean dictionary and find the event you want to verify.  Click on the Looker link on the bottom of the page to confirm that the event is being reported.  (For example, for credit_cards.modified, the Glean dictionary link is https://dictionary.telemetry.mozilla.org/apps/fenix/metrics/credit_cards_modified.  On the bottom click on the "credit_cards.modified" link next to Looker to see event count)
-* for metrics, create a query (ex: https://sql.telemetry.mozilla.org/queries/82373) to confirm that metric is being reported.
+* for events, go to Glean dictionary and find the event you want to verify.  Click on the Looker link on the bottom of the page to confirm that the event is being reported.  (For example, for credit_cards.modified, the Glean dictionary link is [https://dictionary.telemetry.mozilla.org/apps/fenix/metrics/credit_cards_modified](https://dictionary.telemetry.mozilla.org/apps/fenix/metrics/credit_cards_modified).  On the bottom click on the "credit_cards.modified" link next to Looker to see event count)
+* for metrics, create a query (ex: [https://sql.telemetry.mozilla.org/queries/82373](https://sql.telemetry.mozilla.org/queries/82373)) to confirm that metric is being reported.
 2. Work with the data science team to make sure that they are seeing data that meet their requirements.
 
 ## Renewing Expiring Telemetry
