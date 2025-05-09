@@ -2672,6 +2672,63 @@ TEST_F(TestQuotaManager, TotalDirectoryIterations_ClearingNonEmptyRepository) {
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
 }
 
+TEST_F(TestQuotaManager, SaveOriginAccessTimeCount_EmptyRepository) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(InitializeStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
+
+  const auto saveOriginAccessTimeCountBefore = SaveOriginAccessTimeCount();
+  const auto saveOriginAccessTimeCountInternalBefore =
+      SaveOriginAccessTimeCountInternal();
+
+  SaveOriginAccessTime(GetTestOriginMetadata(), PR_Now());
+
+  const auto saveOriginAccessTimeCountAfter = SaveOriginAccessTimeCount();
+  const auto saveOriginAccessTimeCountInternalAfter =
+      SaveOriginAccessTimeCountInternal();
+
+  // Ensure access time update doesn't occur when origin doesn't exist.
+  ASSERT_EQ(saveOriginAccessTimeCountAfter - saveOriginAccessTimeCountBefore,
+            0u);
+  ASSERT_EQ(saveOriginAccessTimeCountInternalAfter -
+                saveOriginAccessTimeCountInternalBefore,
+            0u);
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+TEST_F(TestQuotaManager, SaveOriginAccessTimeCount_OriginDirectoryExists) {
+  auto testOriginMetadata = GetTestOriginMetadata();
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(InitializeStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
+  ASSERT_NO_FATAL_FAILURE(
+      InitializeTemporaryOrigin(testOriginMetadata,
+                                /* aCreateIfNonExistent */ true));
+
+  const auto saveOriginAccessTimeCountBefore = SaveOriginAccessTimeCount();
+  const auto saveOriginAccessTimeCountInternalBefore =
+      SaveOriginAccessTimeCountInternal();
+
+  SaveOriginAccessTime(testOriginMetadata, PR_Now());
+
+  const auto saveOriginAccessTimeCountAfter = SaveOriginAccessTimeCount();
+  const auto saveOriginAccessTimeCountInternalAfter =
+      SaveOriginAccessTimeCountInternal();
+
+  // Confirm the access time update was recorded.
+  ASSERT_EQ(saveOriginAccessTimeCountAfter - saveOriginAccessTimeCountBefore,
+            1u);
+  ASSERT_EQ(saveOriginAccessTimeCountInternalAfter -
+                saveOriginAccessTimeCountInternalBefore,
+            1u);
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
 TEST_P(TestQuotaManagerAndClearStorageWithBoolPair,
        ClearStoragesForOriginAttributesPattern_ThumbnailPrivateIdentity) {
   const BoolPairTestParams& param = GetParam();

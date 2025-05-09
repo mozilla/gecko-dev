@@ -423,6 +423,30 @@ uint64_t QuotaManagerDependencyFixture::TotalDirectoryIterations() {
 }
 
 // static
+uint64_t QuotaManagerDependencyFixture::SaveOriginAccessTimeCount() {
+  const auto result = PerformOnBackgroundThread([]() -> uint64_t {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    MOZ_RELEASE_ASSERT(quotaManager);
+
+    return quotaManager->SaveOriginAccessTimeCount();
+  });
+
+  return result;
+}
+
+// static
+uint64_t QuotaManagerDependencyFixture::SaveOriginAccessTimeCountInternal() {
+  const auto result = PerformOnIOThread([]() -> uint64_t {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    MOZ_RELEASE_ASSERT(quotaManager);
+
+    return quotaManager->SaveOriginAccessTimeCountInternal();
+  });
+
+  return result;
+}
+
+// static
 PrincipalMetadata QuotaManagerDependencyFixture::GetTestPrincipalMetadata() {
   return GetPrincipalMetadata("example.com"_ns, "http://example.com"_ns);
 }

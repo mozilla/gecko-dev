@@ -117,6 +117,7 @@ class SaveOriginAccessTimeOp
     : public OpenStorageDirectoryHelper<ResolvableNormalOriginOp<bool>> {
   const OriginMetadata mOriginMetadata;
   int64_t mTimestamp;
+  bool mSaved;
 
  public:
   SaveOriginAccessTimeOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
@@ -125,7 +126,8 @@ class SaveOriginAccessTimeOp
       : OpenStorageDirectoryHelper(std::move(aQuotaManager),
                                    "dom::quota::SaveOriginAccessTimeOp"),
         mOriginMetadata(aOriginMetadata),
-        mTimestamp(aTimestamp) {
+        mTimestamp(aTimestamp),
+        mSaved(false) {
     AssertIsOnOwningThread();
   }
 
@@ -136,7 +138,7 @@ class SaveOriginAccessTimeOp
 
   virtual nsresult DoDirectoryWork(QuotaManager& aQuotaManager) override;
 
-  bool UnwrapResolveValue() override { return true; }
+  bool UnwrapResolveValue() override;
 
   void CloseDirectory() override;
 };
@@ -1326,10 +1328,18 @@ nsresult SaveOriginAccessTimeOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
     MOZ_ASSERT(stream);
 
     QM_TRY(MOZ_TO_RESULT(stream->Write64(mTimestamp)));
+
+    QM_TRY(MOZ_TO_RESULT(stream->Close()));
+
+    mSaved = true;
+
+    aQuotaManager.IncreaseSaveOriginAccessTimeCountInternal();
   }
 
   return NS_OK;
 }
+
+bool SaveOriginAccessTimeOp::UnwrapResolveValue() { return mSaved; }
 
 void SaveOriginAccessTimeOp::CloseDirectory() {
   AssertIsOnOwningThread();

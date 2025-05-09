@@ -82,6 +82,7 @@ class OriginDirectoryLock;
 class OriginInfo;
 class OriginScope;
 class QuotaObject;
+class SaveOriginAccessTimeOp;
 class UniversalDirectoryLock;
 
 namespace test {
@@ -106,6 +107,7 @@ class QuotaManager final : public BackgroundThreadObject {
   friend class ListCachedOriginsOp;
   friend class OriginInfo;
   friend class PersistOp;
+  friend class SaveOriginAccessTimeOp;
   friend class ShutdownStorageOp;
   friend class test::GTEST_CLASS(TestQuotaManagerAndShutdownFixture,
                                  ThumbnailPrivateIdentityTemporaryOriginCount);
@@ -659,6 +661,20 @@ class QuotaManager final : public BackgroundThreadObject {
    */
   uint64_t TotalDirectoryIterations() const;
 
+  /**
+   * Retrieves the number of metadata updates performed by SaveOriginAccessTime
+   * operation, as tracked on the background thread. This count is incremented
+   * after the operation has fully completed.
+   */
+  uint64_t SaveOriginAccessTimeCount() const;
+
+  /**
+   * Retrieves the number of metadata updates performed by SaveOriginAccessTime
+   * operation, as tracked internally on the I/O thread. This count is
+   * incremented when the actual metadata file update occurs.
+   */
+  uint64_t SaveOriginAccessTimeCountInternal() const;
+
   // Record a quota client shutdown step, if shutting down.
   // Assumes that the QuotaManager singleton is alive.
   static void MaybeRecordQuotaClientShutdownStep(
@@ -909,6 +925,18 @@ class QuotaManager final : public BackgroundThreadObject {
    */
   void IncreaseTotalDirectoryIterations();
 
+  /**
+   * Increments the counter tracking SaveOriginAccessTime metadata updates,
+   * recorded on the background thread after the operation has completed.
+   */
+  void IncreaseSaveOriginAccessTimeCount();
+
+  /**
+   * Increments the counter tracking SaveOriginAccessTime metadata updates,
+   * recorded internally on the I/O thread when the metadata file is updated.
+   */
+  void IncreaseSaveOriginAccessTimeCountInternal();
+
   template <typename Iterator>
   static void MaybeInsertNonPersistedOriginInfos(
       Iterator aDest, const RefPtr<GroupInfo>& aTemporaryGroupInfo,
@@ -958,6 +986,8 @@ class QuotaManager final : public BackgroundThreadObject {
   struct BackgroundThreadAccessible {
     PrincipalMetadataArray mUninitializedGroups;
     nsTHashSet<nsCString> mInitializedGroups;
+    // Tracks how many times SaveOriginAccessTime resulted in updating metadata.
+    uint64_t mSaveOriginAccessTimeCount = 0;
   };
   ThreadBound<BackgroundThreadAccessible> mBackgroundThreadAccessible;
 
@@ -973,6 +1003,8 @@ class QuotaManager final : public BackgroundThreadObject {
     // Tracks the total number of directory iterations.
     // Note: This is currently incremented only during clearing operations.
     uint64_t mTotalDirectoryIterations = 0;
+    // Tracks how many times SaveOriginAccessTime resulted in updating metadata.
+    uint64_t mSaveOriginAccessTimeCount = 0;
     // Tracks the count of thumbnail private identity temporary origins.
     uint32_t mThumbnailPrivateIdentityTemporaryOriginCount = 0;
   };

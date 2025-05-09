@@ -6591,7 +6591,15 @@ RefPtr<BoolPromise> QuotaManager::SaveOriginAccessTime(
 
   saveOriginAccessTimeOp->RunImmediately();
 
-  return saveOriginAccessTimeOp->OnResults();
+  return Map<BoolPromise>(
+      saveOriginAccessTimeOp->OnResults(),
+      [self = RefPtr(this)](const BoolPromise::ResolveOrRejectValue& aValue) {
+        if (aValue.ResolveValue()) {
+          self->IncreaseSaveOriginAccessTimeCount();
+        }
+
+        return aValue.ResolveValue();
+      });
 }
 
 RefPtr<OriginUsageMetadataArrayPromise> QuotaManager::GetUsage(
@@ -7145,6 +7153,18 @@ uint64_t QuotaManager::TotalDirectoryIterations() const {
   AssertIsOnIOThread();
 
   return mIOThreadAccessible.Access()->mTotalDirectoryIterations;
+}
+
+uint64_t QuotaManager::SaveOriginAccessTimeCount() const {
+  AssertIsOnOwningThread();
+
+  return mBackgroundThreadAccessible.Access()->mSaveOriginAccessTimeCount;
+}
+
+uint64_t QuotaManager::SaveOriginAccessTimeCountInternal() const {
+  AssertIsOnIOThread();
+
+  return mIOThreadAccessible.Access()->mSaveOriginAccessTimeCount;
 }
 
 // static
@@ -8058,6 +8078,24 @@ void QuotaManager::IncreaseTotalDirectoryIterations() {
 
   AssertNoOverflow(ioThreadData->mTotalDirectoryIterations, 1);
   ioThreadData->mTotalDirectoryIterations++;
+}
+
+void QuotaManager::IncreaseSaveOriginAccessTimeCount() {
+  AssertIsOnOwningThread();
+
+  auto backgroundThreadData = mBackgroundThreadAccessible.Access();
+
+  AssertNoOverflow(backgroundThreadData->mSaveOriginAccessTimeCount, 1);
+  backgroundThreadData->mSaveOriginAccessTimeCount++;
+}
+
+void QuotaManager::IncreaseSaveOriginAccessTimeCountInternal() {
+  AssertIsOnIOThread();
+
+  auto ioThreadData = mIOThreadAccessible.Access();
+
+  AssertNoOverflow(ioThreadData->mSaveOriginAccessTimeCount, 1);
+  ioThreadData->mSaveOriginAccessTimeCount++;
 }
 
 /*******************************************************************************
