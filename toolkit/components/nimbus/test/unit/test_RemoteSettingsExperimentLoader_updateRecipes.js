@@ -441,19 +441,34 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
 });
 
 add_task(async function test_updateRecipes_invalidFeatureAfterUpdate() {
-  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig("recipe", {
-    featureId: "bogus",
-    value: {},
+  const featureConfig = { featureId: "bogus", value: {} };
+
+  let storePath;
+  {
+    const store = NimbusTestUtils.stubs.store();
+    await store.init();
+
+    store.addEnrollment(
+      NimbusTestUtils.factories.experiment.withFeatureConfig(
+        "recipe",
+        featureConfig
+      )
+    );
+
+    storePath = await NimbusTestUtils.saveStore(store);
+  }
+
+  const { manager, cleanup } = await setupTest({
+    storePath,
+    experiments: [
+      NimbusTestUtils.factories.recipe.withFeatureConfig(
+        "recipe",
+        featureConfig
+      ),
+    ],
   });
 
-  const { loader, manager, cleanup } = await setupTest();
-
-  await manager.enroll(recipe);
-
-  loader.remoteSettingsClients.experiments.get.resolves([recipe]);
-  await loader.updateRecipes();
-
-  const enrollment = manager.store.get(recipe.slug);
+  const enrollment = manager.store.get("recipe");
   Assert.ok(!enrollment.active, "Should have unenrolled");
   Assert.equal(
     enrollment.unenrollReason,
@@ -475,7 +490,7 @@ add_task(async function test_updateRecipes_invalidFeatureAfterUpdate() {
       ?.map(ev => ev.extra) ?? [],
     [
       {
-        experiment: recipe.slug,
+        experiment: "recipe",
         branch: enrollment.branch.slug,
         reason: "invalid-feature",
       },
