@@ -144,8 +144,8 @@ export class MigrationWizardParent extends JSWindowActorParent {
         );
       }
 
-      case "SelectSafariPasswordFile": {
-        return this.#selectSafariPasswordFile(
+      case "SelectManualPasswordFile": {
+        return this.#selectManualPasswordFile(
           this.browsingContext.topChromeWindow
         );
       }
@@ -279,16 +279,17 @@ export class MigrationWizardParent extends JSWindowActorParent {
 
   /**
    * Handles a request to open a native file picker to get the path to a
-   * CSV file that contains passwords exported from Safari. The returned
-   * path is in the form of a string, or `null` if the user cancelled the
-   * native picker.
+   * CSV file that contains passwords exported from another browser. The
+   * returned path is in the form of a string, or `null` if the user cancelled
+   * the native picker. We use this for browsers or platforms that do not
+   * allow us to import passwords automatically.
    *
    * @param {DOMWindow} window
    *   The window that the native file picker should be associated with. This
    *   cannot be null. See nsIFilePicker.init for more details.
    * @returns {Promise<string|null>}
    */
-  async #selectSafariPasswordFile(window) {
+  async #selectManualPasswordFile(window) {
     let fileMigrator = MigrationUtils.getFileMigrator(
       lazy.PasswordFileMigrator.key
     );
@@ -370,7 +371,7 @@ export class MigrationWizardParent extends JSWindowActorParent {
 
     if (
       migrationDetails.key == lazy.SafariProfileMigrator?.key &&
-      migrationDetails.safariPasswordFilePath
+      migrationDetails.manualPasswordFilePath
     ) {
       // The caller supplied a password export file for Safari. We're going to
       // pretend that there was a PASSWORDS resource for Safari to represent
@@ -389,7 +390,7 @@ export class MigrationWizardParent extends JSWindowActorParent {
 
       try {
         let summary = await lazy.LoginCSVImport.importFromCSV(
-          migrationDetails.safariPasswordFilePath
+          migrationDetails.manualPasswordFilePath
         );
         let quantity = summary.filter(entry => entry.result == "added").length;
 
@@ -424,7 +425,7 @@ export class MigrationWizardParent extends JSWindowActorParent {
     // It's possible that only a Safari password file path was sent up, and
     // there's nothing left to migrate, in which case we're done here.
     if (
-      migrationDetails.safariPasswordFilePath &&
+      migrationDetails.manualPasswordFilePath &&
       !migrationDetails.resourceTypes.length
     ) {
       return extraArgs;

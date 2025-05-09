@@ -152,7 +152,7 @@ class MigrationUtils {
           "MigrationWizard:RequestState": { wantUntrusted: true },
           "MigrationWizard:BeginMigration": { wantUntrusted: true },
           "MigrationWizard:RequestSafariPermissions": { wantUntrusted: true },
-          "MigrationWizard:SelectSafariPasswordFile": { wantUntrusted: true },
+          "MigrationWizard:SelectManualPasswordFile": { wantUntrusted: true },
           "MigrationWizard:OpenAboutAddons": { wantUntrusted: true },
           "MigrationWizard:PermissionsNeeded": { wantUntrusted: true },
           "MigrationWizard:GetPermissions": { wantUntrusted: true },
