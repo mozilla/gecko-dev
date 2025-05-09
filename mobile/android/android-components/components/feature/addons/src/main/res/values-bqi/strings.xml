@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Description for privacy add-on permission. -->
+  <string name="mozac_feature_addons_permissions_privacy_description">خوندن وو آلشت سامووا هریم سیخومی</string>
+  <!-- Description for giving an add-on access to users's data on one site. %1$s  will be replaced by the DNS host name for which a web extension is requesting access (e.g., www.mozilla.org). -->
+  <string name="mozac_feature_addons_permissions_one_site_description">دسرسی و دووسمندیا ایسا سی %1$s</string>
+  <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
+  <string name="mozac_feature_addons_permissions_content_description_item">%1$s، %2$d ز %3$d</string>
+  <!-- Description for clipboard_read permission. -->
+  <string name="mozac_feature_addons_permissions_clipboard_read_description">گرؽڌن داده یل ز کلیپ بورد</string>
+  <!-- Description for clipboard_write permission. -->
+  <string name="mozac_feature_addons_permissions_clipboard_write_description">و من ٱووردن و کلیپ بورد</string>
+  <!-- Description for declarativeNetRequest permission. -->
+  <string name="mozac_feature_addons_permissions_declarative_net_request_description">موئتوا ن من هر بلگه ای مسدۊد کوݩ</string>
+  <!-- Description for declarativeNetRequestFeedback permission. -->
+  <string name="mozac_feature_addons_permissions_declarative_net_request_feedback_description">ویرگار گشتن خوتووݩ ن بخۊوین</string>
+  <!-- Description for downloads_open permission. -->
+  <string name="mozac_feature_addons_permissions_downloads_open_description">گۊشیڌن فایلا گرؽڌه بیڌه ری کامپیتر ایسا</string>
+  <!-- Description for geolocation permission. -->
+  <string name="mozac_feature_addons_permissions_geolocation_description">دسرسی و جاگه ایسا</string>
+  <!-- Description for history permission. -->
+  <string name="mozac_feature_addons_permissions_history_description">دسرسی و ویرگار گشتنا</string>
+  <!-- Description for text button that expands the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_all_sites">نشۉݩ داڌن پوی وبگه یل</string>
+  <!-- The version on of add-on. -->
+  <string name="mozac_feature_addons_version">نوسخه</string>
+  <!-- The author of an add-on. -->
+  <string name="mozac_feature_addons_author">هؽل کوݩ</string>
+  <!-- The last date that the add-on was updated. -->
+  <string name="mozac_feature_addons_last_updated">ورۊ رسۊوی دیندایی</string>
+  <!-- The developer website (Homepage) of the add-on. -->
+  <string name="mozac_feature_addons_home_page">بلگه هووه ای</string>
+  <!-- A link where users can find more information about add-ons permissions. -->
+  <string name="mozac_feature_addons_learn_more">زبار موجوزا بیشتر دووسته بۊین</string>
+  <!-- The settings of the add-on. -->
+  <string name="mozac_feature_addons_settings">سامووا</string>
+  <!-- Indicates the add-on is enabled. -->
+  <string name="mozac_feature_addons_settings_on">رۊشن</string>
+  <!-- Indicates the add-on is allowed in private browsing mode. -->
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing">هشتن من هالت گشتن سیخومی</string>
+  <!-- Indicates the add-on is allowed in private browsing mode. -->
+  <string name="mozac_feature_addons_settings_run_in_private_browsing">ر وندن من هالت گشتن سیخومی</string>
+  <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the installed section. -->
+  <string name="mozac_feature_addons_installed_section">پۊرنیڌه وابی</string>
+  <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the recommended section. -->
+  <string name="mozac_feature_addons_recommended_section">پؽشنهاڌ وابیڌه</string>
+  <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the not yet supported section. -->
+  <string name="mozac_feature_addons_unsupported_section">هنی لادراری نوابیڌه</string>
+  <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the not yet available section. -->
+  <string name="mozac_feature_addons_unavailable_section">هنی من دسرس نؽ</string>
+  <!-- Displays a page with all the details of an add-on. -->
+  <string name="mozac_feature_addons_details">جۊزیات</string>
+  <!-- Displays a page with all the permissions of an add-on. -->
+  <string name="mozac_feature_addons_permissions">موجوزا</string>
+  <!-- This is a button to remove (i.e. uninstall) an add-on. -->
+  <string name="mozac_feature_addons_remove">پاک کردن</string>
+  <!-- This is a button to cancel the add-on installation . -->
+  <string name="mozac_feature_addons_permissions_dialog_cancel">لقو</string>
+  <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_install_addon_content_description_2">پۊرنیڌن %1$s</string>
+  <!-- This is the label of a button to cancel an ongoing add-on installation. -->
+  <string name="mozac_feature_addons_install_addon_dialog_cancel">لقو</string>
+  <!-- The label of the allow button, this will be shown to the user when an add-on needs new permissions, with the button the user will indicate that they want to accept the new permissions and update the add-on -->
+  <string name="mozac_feature_addons_updater_notification_allow_button">هشتن</string>
+  <!-- The label of the deny button on a notification, this will be shown to the user when an add-on needs new permissions. Indicates the user denies the new permissions and prevents the add-on from be updated -->
+  <string name="mozac_feature_addons_updater_notification_deny_button">رڌ کردن</string>
+  <!-- Confirmation button text for the dialog when add-on installation is completed. -->
+  <string name="mozac_feature_addons_installed_dialog_okay_button_2">خا</string>
+</resources>

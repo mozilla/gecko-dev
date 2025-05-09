@@ -1485,6 +1485,11 @@
   <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
   <string name="download_file_has_not_enough_storage_dialog_title">공간이 충분하지 않음</string>
   <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message">기기에 &lt;b&gt;%s&lt;/b&gt; 파일을 다운로드하는데 충분한 공간이 없습니다.</string>
+  <!--
     Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
     This button will navigate the user to the device's storage management settings.
   -->
