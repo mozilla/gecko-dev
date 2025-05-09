@@ -59,7 +59,7 @@ class DownloadFileTypesTest(fileName: String) : TestSetup() {
             verifyDownloadCompleteNotificationPopup()
         }.closeDownloadPrompt {
         }.openThreeDotMenu {
-        }.openDownloadsManager() {
+        }.openDownloadsManager {
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, downloadFile)
         }.exitDownloadsManagerToBrowser(activityTestRule) { }
     }

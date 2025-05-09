@@ -134,7 +134,7 @@ class DownloadTest : TestSetup() {
         }
         browserScreen {
         }.openThreeDotMenu {
-        }.openDownloadsManager() {
+        }.openDownloadsManager {
             verifyEmptyDownloadsList(activityTestRule)
         }
     }
@@ -148,7 +148,7 @@ class DownloadTest : TestSetup() {
         }
         browserScreen {
         }.openThreeDotMenu {
-        }.openDownloadsManager() {
+        }.openDownloadsManager {
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, "web_icon.png")
             clickDownloadedItem(activityTestRule, "web_icon.png")
             verifyPhotosAppOpens()
@@ -193,7 +193,7 @@ class DownloadTest : TestSetup() {
         }
         browserScreen {
         }.openThreeDotMenu {
-        }.openDownloadsManager() {
+        }.openDownloadsManager {
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, firstDownloadedFile)
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, secondDownloadedFile)
             longClickDownloadedItem(activityTestRule, firstDownloadedFile)
@@ -222,12 +222,12 @@ class DownloadTest : TestSetup() {
         }
         browserScreen {
         }.openThreeDotMenu {
-        }.openDownloadsManager() {
+        }.openDownloadsManager {
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, "smallZip.zip")
             deleteDownloadedFileOnStorage("smallZip.zip")
         }.exitDownloadsManagerToBrowser(activityTestRule) {
         }.openThreeDotMenu {
-        }.openDownloadsManager() {
+        }.openDownloadsManager {
             verifyEmptyDownloadsList(activityTestRule)
         }.exitDownloadsManagerToBrowser(activityTestRule) {
         }
@@ -238,7 +238,7 @@ class DownloadTest : TestSetup() {
         }
         browserScreen {
         }.openThreeDotMenu {
-        }.openDownloadsManager() {
+        }.openDownloadsManager {
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, "smallZip.zip")
         }
     }

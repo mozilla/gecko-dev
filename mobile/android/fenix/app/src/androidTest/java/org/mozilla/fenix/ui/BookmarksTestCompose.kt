@@ -223,7 +223,7 @@ class BookmarksTestCompose : TestSetup() {
         homeScreen {
         }.openThreeDotMenu {
         }.openBookmarksMenu(composeTestRule) {
-        }.clickSearchButton() {
+        }.clickSearchButton {
             // Search for a valid term
             typeSearch(firstWebPage.title)
             verifySearchSuggestionsAreDisplayed(composeTestRule, firstWebPage.url.toString())

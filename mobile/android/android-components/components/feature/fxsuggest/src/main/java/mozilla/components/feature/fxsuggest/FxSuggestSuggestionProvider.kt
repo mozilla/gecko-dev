@@ -51,7 +51,7 @@ class FxSuggestSuggestionProvider(
         if (text.isEmpty()) {
             emptyList()
         } else {
-            val providers = buildList() {
+            val providers = buildList {
                 val availableSuggestionTypes = FxSuggestNimbus.features
                     .awesomebarSuggestionProvider
                     .value()

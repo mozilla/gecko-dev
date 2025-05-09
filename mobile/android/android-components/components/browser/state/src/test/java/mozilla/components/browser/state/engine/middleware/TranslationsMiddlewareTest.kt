@@ -289,7 +289,7 @@ class TranslationsMiddlewareTest {
     }
 
     @Test
-    fun `WHEN InitTranslationsBrowserState is dispatched AND an error occurs THEN TranslateExceptionAction is dispatched for language settings`() = runTest() {
+    fun `WHEN InitTranslationsBrowserState is dispatched AND an error occurs THEN TranslateExceptionAction is dispatched for language settings`() = runTest {
         // Send Action
         translationsMiddleware.invoke(context = context, next = {}, action = TranslationsAction.InitTranslationsBrowserState)
         waitForIdle()
@@ -378,7 +378,7 @@ class TranslationsMiddlewareTest {
     }
 
     @Test
-    fun `WHEN InitTranslationsBrowserState is dispatched AND has an issue with the engine THEN EngineExceptionAction is dispatched`() = runTest() {
+    fun `WHEN InitTranslationsBrowserState is dispatched AND has an issue with the engine THEN EngineExceptionAction is dispatched`() = runTest {
         // Send Action
         // Note: Implicitly called once due to connection with InitAction
         translationsMiddleware.invoke(context = context, next = {}, action = TranslationsAction.InitTranslationsBrowserState)
@@ -658,7 +658,7 @@ class TranslationsMiddlewareTest {
     }
 
     @Test
-    fun `WHEN an Operation to FETCH_AUTOMATIC_LANGUAGE_SETTINGS has an error THEN EngineExceptionAction and TranslateExceptionAction are dispatched for language setting`() = runTest() {
+    fun `WHEN an Operation to FETCH_AUTOMATIC_LANGUAGE_SETTINGS has an error THEN EngineExceptionAction and TranslateExceptionAction are dispatched for language setting`() = runTest {
         // Send Action
         val action =
             TranslationsAction.OperationRequestedAction(

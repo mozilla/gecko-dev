@@ -306,7 +306,7 @@ class SystemEngineSessionTest {
         var onGotoHistoryIndexTriggered = false
         val engineSession = spy(SystemEngineSession(testContext))
         val settings = mock<WebSettings>()
-        val webView = mock<WebView>() {
+        val webView = mock<WebView> {
             whenever(this.settings).thenReturn(settings)
             whenever(copyBackForwardList()).thenReturn(mock())
         }

@@ -348,7 +348,7 @@ class BrowserStateTest {
                 privateTab4,
             ),
         )
-        val settings: Settings = mockk() {
+        val settings: Settings = mockk {
             every { inactiveTabsAreEnabled } returns false
         }
 
@@ -385,7 +385,7 @@ class BrowserStateTest {
                 privateTab4,
             ),
         )
-        val settings: Settings = mockk() {
+        val settings: Settings = mockk {
             every { inactiveTabsAreEnabled } returns true
         }
 

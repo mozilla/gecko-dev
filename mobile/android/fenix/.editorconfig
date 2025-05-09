@@ -28,7 +28,6 @@ ktlint_standard_property-wrapping = disabled
 ktlint_standard_no-empty-first-line-in-class-body = disabled
 ktlint_standard_no-single-line-block-comment= disabled
 ktlint_standard_if-else-wrapping = disabled
-ktlint_standard_unnecessary-parentheses-before-trailing-lambda = disabled
 
 
 # rules that enforce style we don't want

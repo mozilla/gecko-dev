@@ -379,7 +379,7 @@ class StoreExtensionsKtTest {
         var receivedValue = 0
         var latch = CountDownLatch(1)
 
-        val scope = store.flowScoped() { flow ->
+        val scope = store.flowScoped { flow ->
             flow.collect { state ->
                 receivedValue = state.counter
                 latch.countDown()
