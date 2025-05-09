@@ -540,6 +540,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3024942
     @Test
     fun verifyTabsTrayListView() {
         appContext.settings().gridTabView = false
@@ -566,6 +567,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1126911
     @Test
     fun verifyTabsTrayGridView() {
         appContext.settings().gridTabView = true
