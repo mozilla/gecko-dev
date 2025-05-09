@@ -4507,12 +4507,6 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
     *aExitFlag = true;
     return 0;
   }
-
-#  ifdef MOZ_WIDGET_GTK
-  if (XRE_IsParentProcess()) {
-    widget::RegisterHostApp();
-  }
-#  endif
 #endif
 
   rv = XRE_InitCommandLine(gArgc, gArgv);
