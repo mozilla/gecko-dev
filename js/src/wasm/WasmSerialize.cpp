@@ -1573,10 +1573,6 @@ void Module::initGCMallocBytesExcludingCode() {
 
   // Add the size of the ModuleMetadata
   (void)CodeModuleMetadata<MODE>(coder, moduleMeta_);
-  // .. and the size of the CodeMetadata, but not of the Code itself
-  if (!code().codeMeta().isAsmJS()) {
-    (void)CodeCodeMetadata<MODE>(coder, &code().codeMeta());
-  }
 
   // Overflow really shouldn't be possible here, but handle it anyways.
   size_t serializedSize = coder.size_.isValid() ? coder.size_.value() : 0;
