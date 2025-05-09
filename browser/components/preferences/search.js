@@ -1070,14 +1070,11 @@ class EngineView {
             }
             break;
           case "editEngineButton":
-            if (this.selectedEngine.isUserEngine) {
-              let engine = this.selectedEngine.originalEngine.wrappedJSObject;
-              gSubDialog.open(
-                "chrome://browser/content/search/addEngine.xhtml",
-                { features: "resizable=no, modal=yes" },
-                { engine, mode: "EDIT" }
-              );
-            }
+            gSubDialog.open(
+              "chrome://browser/content/search/addEngine.xhtml",
+              { features: "resizable=no, modal=yes" },
+              { engine: this.selectedEngine.originalEngine, mode: "EDIT" }
+            );
             break;
           case "addEngineButton":
             gSubDialog.open(
