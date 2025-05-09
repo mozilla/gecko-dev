@@ -447,7 +447,6 @@ add_task(async function test_get_throws_if_no_empty_fallback() {
 add_task(clear_state);
 
 add_task(async function test_get_verify_signature_no_sync() {
-  client.verifySignature = true;
   // No signature in metadata, and no sync if empty.
   let error;
   try {
@@ -488,8 +487,6 @@ add_task(clear_state);
 add_task(async function test_get_can_verify_signature() {
   // Populate the local DB (record and metadata)
   await client.maybeSync(2000);
-
-  client.verifySignature = true;
 
   // It validates signature that was stored in local DB.
   let calledSignature;
@@ -532,7 +529,6 @@ add_task(async function test_get_does_not_verify_signature_if_load_dump() {
       return true;
     },
   };
-  clientWithDump.verifySignature = true;
 
   // When dump is loaded, signature is not verified.
   const records = await clientWithDump.get({ verifySignature: true });
@@ -540,7 +536,6 @@ add_task(async function test_get_does_not_verify_signature_if_load_dump() {
   ok(!called, "signature is missing but not verified");
 
   // If metadata is missing locally, it is not fetched if `syncIfEmpty` is disabled.
-  client.verifySignature = true;
   let error;
   try {
     await clientWithDump.get({ verifySignature: true, syncIfEmpty: false });
@@ -564,7 +559,6 @@ add_task(clear_state);
 
 add_task(
   async function test_get_does_verify_signature_if_json_loaded_in_parallel() {
-    clientWithDump.verifySignature = true;
     const backup = clientWithDump._verifier;
     let callCount = 0;
     clientWithDump._verifier = {
