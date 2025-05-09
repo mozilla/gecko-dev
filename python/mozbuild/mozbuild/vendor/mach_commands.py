@@ -279,7 +279,7 @@ def vendor_python(
 ):
     from mozbuild.vendor.vendor_python import VendorPython
 
-    if upgrade or upgrade_package and add or remove:
+    if (upgrade or upgrade_package) and (add or remove):
         command_context.log(
             logging.ERROR,
             "vendor-python-upgrade-and-add-or-remove",
