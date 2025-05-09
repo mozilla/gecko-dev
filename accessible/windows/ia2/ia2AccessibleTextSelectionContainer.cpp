@@ -53,12 +53,16 @@ ia2AccessibleTextSelectionContainer::get_selections(
 STDMETHODIMP
 ia2AccessibleTextSelectionContainer::setSelections(
     long nSelections, IA2TextSelection* selections) {
-  if (nSelections <= 0 || !selections) {
+  if (nSelections < 0 || !selections) {
     return E_INVALIDARG;
   }
   HyperTextAccessibleBase* text = TextAcc();
   if (!text) {
     return CO_E_OBJNOTCONNECTED;
+  }
+  if (nSelections == 0) {
+    text->RemoveFromSelection(TextLeafRange::kRemoveAllExistingSelectedRanges);
+    return S_OK;
   }
   // Build and validate new selection ranges.
   AutoTArray<TextLeafRange, 1> newRanges;

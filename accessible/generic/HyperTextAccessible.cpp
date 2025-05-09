@@ -767,6 +767,11 @@ bool HyperTextAccessible::RemoveFromSelection(int32_t aSelectionNum) {
   RefPtr<dom::Selection> domSel = DOMSelection();
   if (!domSel) return false;
 
+  if (aSelectionNum == TextLeafRange::kRemoveAllExistingSelectedRanges) {
+    domSel->RemoveAllRanges(IgnoreErrors());
+    return true;
+  }
+
   if (aSelectionNum < 0 ||
       aSelectionNum >= static_cast<int32_t>(domSel->RangeCount())) {
     return false;

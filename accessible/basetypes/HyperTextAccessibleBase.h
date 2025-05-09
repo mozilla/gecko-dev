@@ -248,7 +248,8 @@ class HyperTextAccessibleBase {
   }
 
   /**
-   * Removes the specified selection.
+   * Removes the specified selection, or removes all selections if aSelectionNum
+   *is TextLeafRange::kRemoveAllExistingSelectedRanges.
    * @return true if succeeded
    */
   // TODO: annotate this with `MOZ_CAN_RUN_SCRIPT` instead.
