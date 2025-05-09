@@ -83,6 +83,8 @@ import org.mozilla.fenix.tabstray.syncedtabs.OnTabCloseClick as OnSyncedTabClose
  * @param onTabsTrayDismiss Invoked when accessibility services or UI automation requests dismissal.
  * @param onTabAutoCloseBannerViewOptionsClick Invoked when the user clicks to view the auto close options.
  * @param onTabsTrayPbmLockedClick Invoked when the user interacts with the lock private browsing mode banner.
+ * @param onTabsTrayPbmLockedDismiss Invoked when the user clicks either button on the
+ * lock private browsing mode banner.
  * @param onTabAutoCloseBannerDismiss Invoked when the user clicks to dismiss the auto close banner.
  * @param onTabAutoCloseBannerShown Invoked when the auto close banner has been shown to the user.
  * @param onMove Invoked after the drag and drop gesture completed. Swaps positions of two tabs.
@@ -127,6 +129,7 @@ fun TabsTray(
     onTabsTrayDismiss: () -> Unit,
     onTabAutoCloseBannerViewOptionsClick: () -> Unit,
     onTabsTrayPbmLockedClick: () -> Unit,
+    onTabsTrayPbmLockedDismiss: () -> Unit,
     onTabAutoCloseBannerDismiss: () -> Unit,
     onTabAutoCloseBannerShown: () -> Unit,
     onMove: (String, String?, Boolean) -> Unit,
@@ -192,6 +195,7 @@ fun TabsTray(
                 onDismissClick = onTabsTrayDismiss,
                 onTabAutoCloseBannerViewOptionsClick = onTabAutoCloseBannerViewOptionsClick,
                 onTabsTrayPbmLockedClick = onTabsTrayPbmLockedClick,
+                onTabsTrayPbmLockedDismiss = onTabsTrayPbmLockedDismiss,
                 onTabAutoCloseBannerDismiss = onTabAutoCloseBannerDismiss,
                 onTabAutoCloseBannerShown = onTabAutoCloseBannerShown,
                 onEnterMultiselectModeClick = {
@@ -442,6 +446,7 @@ private fun TabsTrayPreviewRoot(
                 onTabsTrayDismiss = {},
                 onTabAutoCloseBannerViewOptionsClick = {},
                 onTabsTrayPbmLockedClick = {},
+                onTabsTrayPbmLockedDismiss = {},
                 onTabAutoCloseBannerDismiss = {},
                 onTabAutoCloseBannerShown = {},
                 onMove = { _, _, _ -> },

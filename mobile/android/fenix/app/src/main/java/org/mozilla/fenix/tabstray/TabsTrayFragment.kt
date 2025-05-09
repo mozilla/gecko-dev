@@ -347,6 +347,12 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                     onTabsTrayDismiss = ::onTabsTrayDismissed,
                     onTabsTrayPbmLockedClick = {
                         requireContext().settings().privateBrowsingLockedEnabled = true
+                        requireContext().settings().shouldShowLockPbmBanner = false
+                        PrivateBrowsingLocked.bannerPositiveClicked.record()
+                    },
+                    onTabsTrayPbmLockedDismiss = {
+                        requireContext().settings().shouldShowLockPbmBanner = false
+                        PrivateBrowsingLocked.bannerNegativeClicked.record()
                     },
                     onTabAutoCloseBannerViewOptionsClick = {
                         navigationInteractor.onTabSettingsClicked()

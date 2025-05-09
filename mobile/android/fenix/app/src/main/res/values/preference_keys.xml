@@ -307,6 +307,9 @@
     <!-- A value  of `true` means the Auto Close Tabs Banner has not been shown yet -->
     <string name="pref_key_should_show_auto_close_tabs_banner" translatable="false">pref_key_should_show_auto_close_tabs_banner</string>
 
+    <!-- A value  of `true` means the Lock Private Browsing Mode Banner has not been shown yet -->
+    <string name="pref_key_should_show_lock_pbm_banner" translatable="false">pref_key_should_show_lock_pbm_banner</string>
+
     <!-- A value  of `true` means the Inactive tabs onboarding popup has not been shown yet -->
     <string name="pref_key_should_show_inactive_tabs_popup" translatable="false">pref_key_should_show_inactive_tabs_popup</string>
     <!-- A value  of `true` means the Inactive tabs auto close dialog has been dismissed by the user -->

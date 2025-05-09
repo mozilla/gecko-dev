@@ -42,7 +42,6 @@ import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.menu.DropdownMenu
 import mozilla.components.compose.base.menu.MenuItem
-import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Banner
 import org.mozilla.fenix.compose.BottomSheetHandle
@@ -81,6 +80,8 @@ private const val TAB_COUNT_SHOW_CFR = 6
  * @param onDismissClick Invoked when accessibility services or UI automation request a dismissal.
  * @param onTabAutoCloseBannerViewOptionsClick Invoked when the user clicks to view auto-close settings from the banner.
  * @param onTabsTrayPbmLockedClick Invoked when the user interacts with the lock private browsing mode banner.
+ * @param onTabsTrayPbmLockedDismiss Invoked when the user clicks on either button in the
+ * lock private browsing mode banner.
  * @param onTabAutoCloseBannerDismiss Invoked when the user dismisses the auto-close banner.
  * @param onTabAutoCloseBannerShown Invoked when the auto-close banner is shown to the user.
  * @param onEnterMultiselectModeClick Invoked when the user enters multi-select mode.
@@ -111,6 +112,7 @@ fun TabsTrayBanner(
     onDismissClick: () -> Unit,
     onTabAutoCloseBannerViewOptionsClick: () -> Unit,
     onTabsTrayPbmLockedClick: () -> Unit,
+    onTabsTrayPbmLockedDismiss: () -> Unit,
     onTabAutoCloseBannerDismiss: () -> Unit,
     onTabAutoCloseBannerShown: () -> Unit,
     onEnterMultiselectModeClick: () -> Unit,
@@ -134,8 +136,8 @@ fun TabsTrayBanner(
         }
     }
 
-    val showLockPbmBanner by remember { mutableStateOf(shouldShowLockPbmBanner) }
-    var hasAcknowledgedBanner by remember { mutableStateOf(false) }
+    var hasAcknowledgedAutoCloseBanner by remember { mutableStateOf(false) }
+    var hasAcknowledgedPbmLockBanner by remember { mutableStateOf(false) }
 
     val menuItems = selectionMode.getMenuItems(
         shouldShowInactiveButton = isInDebugMode,
@@ -176,84 +178,47 @@ fun TabsTrayBanner(
             )
         }
 
-        if (!hasAcknowledgedBanner && (showTabAutoCloseBanner || showLockPbmBanner)) {
-            onTabAutoCloseBannerShown()
+        when {
+            !hasAcknowledgedAutoCloseBanner && showTabAutoCloseBanner -> {
+                onTabAutoCloseBannerShown()
 
-            Divider()
+                Divider()
 
-            if (showTabAutoCloseBanner) {
                 Banner(
                     message = stringResource(id = R.string.tab_tray_close_tabs_banner_message),
                     button1Text = stringResource(id = R.string.tab_tray_close_tabs_banner_negative_button_text),
                     button2Text = stringResource(id = R.string.tab_tray_close_tabs_banner_positive_button_text),
                     onButton1Click = {
-                        hasAcknowledgedBanner = true
+                        hasAcknowledgedAutoCloseBanner = true
                         onTabAutoCloseBannerViewOptionsClick()
                     },
                     onButton2Click = {
-                        hasAcknowledgedBanner = true
+                        hasAcknowledgedAutoCloseBanner = true
                         onTabAutoCloseBannerDismiss()
                     },
                 )
-            } else if (showLockPbmBanner) {
+            }
+
+            !hasAcknowledgedPbmLockBanner && shouldShowLockPbmBanner -> {
+                // After this bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1965545
+                // is resolved, we should swap the button 1 and button 2 click actions.
                 Banner(
                     message = stringResource(id = R.string.private_tab_cfr_title),
-                    button1Text = stringResource(id = R.string.private_tab_cfr_positive),
-                    button2Text = stringResource(id = R.string.private_tab_cfr_negative),
+                    button1Text = stringResource(id = R.string.private_tab_cfr_negative),
+                    button2Text = stringResource(id = R.string.private_tab_cfr_positive),
                     onButton1Click = {
-                        hasAcknowledgedBanner = true
-                        PrivateBrowsingLocked.bannerNegativeClicked.record()
-                        onTabAutoCloseBannerDismiss()
+                        hasAcknowledgedPbmLockBanner = true
+                        onTabsTrayPbmLockedClick()
+                        onTabsTrayPbmLockedDismiss()
                     },
                     onButton2Click = {
-                        hasAcknowledgedBanner = true
-                        PrivateBrowsingLocked.bannerPositiveClicked.record()
-                        onTabsTrayPbmLockedClick()
-                        onTabAutoCloseBannerDismiss()
+                        hasAcknowledgedPbmLockBanner = true
+                        onTabsTrayPbmLockedDismiss()
                     },
                 )
             }
         }
     }
-}
-
-/**
- * A reusable banner component for the Tabs Tray UI that supports two action buttons.
- *
- * This composable ensures a consistent layout and behavior for banners by:
- * - Displaying a custom message with two buttons.
- * - Triggering a common `onAcknowledge` callback before executing each button's individual action.
- *
- * @param message The message text to display in the banner.
- * @param button1Text The label for the first button (typically a dismiss or settings action).
- * @param button2Text The label for the second button (typically a confirm or proceed action).
- * @param onAcknowledge A callback triggered before any button is pressed,
- * typically used to mark the banner as acknowledged.
- * @param onButton1Click The action to perform when the first button is clicked.
- * @param onButton2Click The action to perform when the second button is clicked.
- */
-@Composable
-private fun TabsTrayCustomBanner(
-    message: String,
-    button1Text: String,
-    button2Text: String,
-    onAcknowledge: () -> Unit,
-    onButton1Click: () -> Unit,
-    onButton2Click: () -> Unit,
-) {
-    Banner(
-        message = message,
-        button1Text = button1Text,
-        button2Text = button2Text,
-        onButton1Click = {
-            onAcknowledge()
-            onButton1Click()
-        },
-        onButton2Click = {
-            onAcknowledge()
-            onButton2Click()
-        },
-    )
 }
 
 @Suppress("LongMethod")
@@ -502,7 +467,6 @@ private fun TabsTrayBannerInfinityPreview() {
 private fun TabsTrayBannerAutoClosePreview() {
     TabsTrayBannerPreviewRoot(
         shouldShowTabAutoCloseBanner = true,
-        shouldShowLockPbmBanner = true,
     )
 }
 
@@ -588,6 +552,7 @@ private fun TabsTrayBannerPreviewRoot(
                 onDismissClick = {},
                 onTabAutoCloseBannerViewOptionsClick = {},
                 onTabsTrayPbmLockedClick = {},
+                onTabsTrayPbmLockedDismiss = {},
                 onTabAutoCloseBannerDismiss = {},
                 onTabAutoCloseBannerShown = {},
                 onEnterMultiselectModeClick = {
