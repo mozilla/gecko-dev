@@ -3,6 +3,9 @@
 
 "use strict";
 
+const { PlacesTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PlacesTestUtils.sys.mjs"
+);
 const { SearchTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/SearchTestUtils.sys.mjs"
 );
@@ -525,6 +528,69 @@ add_task(async function test_editPostEngine() {
   await Services.search.removeEngine(engine);
 });
 
+add_task(async function test_icon() {
+  // Set up favicon.
+  let pageUrl = "https://search.test/";
+  let iconUrl = "https://search.test/favicon.svg";
+  let dataURL = "data:image/svg+xml;base64,PHN2Zy8+";
+
+  await PlacesTestUtils.addVisits({ uri: new URL(pageUrl).URI });
+  await PlacesTestUtils.setFaviconForPage(pageUrl, iconUrl, dataURL);
+
+  // Open Settings.
+  await openPreferencesViaOpenPreferencesAPI("search", {
+    leaveOpen: true,
+  });
+
+  let doc = gBrowser.contentDocument;
+  let tree = doc.querySelector("#engineList");
+  let view = tree.view.wrappedJSObject;
+
+  let addButton = doc.querySelector("#addEngineButton");
+  let editButton = doc.querySelector("#editEngineButton");
+
+  // Add engine and check favicon.
+  let dialogWin = await openDialogWith(doc, () => addButton.click());
+  setName("Bugzilla", dialogWin);
+  setUrl("https://search.test/search?q=%s", dialogWin);
+
+  let promiseIcon = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.ICON_CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  dialogWin.document.querySelector("dialog").getButton("accept").click();
+  let engine = await promiseIcon;
+
+  Assert.ok(true, "Icon was added");
+  Assert.equal(await engine.getIconURL(), dataURL, "Icon is correct");
+
+  // Change favicon.
+  dataURL = "data:image/svg+xml;base64,PHN2Zz48Y2lyY2xlIHI9IjEiLz48L3N2Zz4=";
+  await PlacesTestUtils.setFaviconForPage(pageUrl, iconUrl, dataURL);
+
+  // Edit engine and check favicon.
+  let engines = await Services.search.getEngines();
+  let i = engines.findIndex(e => e.id == engine.id);
+  view.selection.select(i);
+  dialogWin = await openDialogWith(doc, () => editButton.click());
+
+  promiseIcon = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.ICON_CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  dialogWin.document.querySelector("dialog").getButton("accept").click();
+  await promiseIcon;
+
+  Assert.ok(true, "Icon was changed");
+  Assert.equal(await engine.getIconURL(), dataURL, "New icon is correct");
+
+  // Clean up.
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  await Services.search.removeEngine(engine);
+  PlacesUtils.favicons.expireAllFavicons();
+  await PlacesUtils.history.clear();
+});
+
 /**
  * Checks the error label of an input of the add engine dialog.
  *
@@ -545,11 +611,12 @@ async function assertError(elt, error = null) {
 }
 
 async function openDialogWith(doc, fn) {
+  info("Opening dialog.");
   let dialogLoaded = TestUtils.topicObserved("subdialog-loaded");
   await fn();
   let [dialogWin] = await dialogLoaded;
   await doc.ownerGlobal.gSubDialog.dialogs[0]._dialogReady;
-  Assert.ok(true, "Engine dialog opened.");
+  Assert.ok(true, "Engine dialog opened");
   return dialogWin;
 }
 
