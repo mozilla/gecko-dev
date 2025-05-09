@@ -240,7 +240,7 @@ add_task(async function testGetEnrollments() {
     new ExperimentFeature("foo", {
       variables: {
         foo: { type: "int" },
-        bar: { type: "bool" },
+        bar: { type: "boolean" },
         baz: {
           type: "string",
           fallbackPref,
@@ -315,7 +315,7 @@ add_task(async function testGetEnrollmentsCoenrolling() {
       allowCoenrollment: true,
       variables: {
         foo: { type: "int" },
-        bar: { type: "bool" },
+        bar: { type: "boolean" },
         baz: {
           type: "string",
           fallbackPref,

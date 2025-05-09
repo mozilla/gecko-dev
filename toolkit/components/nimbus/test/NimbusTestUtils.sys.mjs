@@ -48,6 +48,12 @@ ChromeUtils.defineLazyGetter(lazy, "enrollmentSchema", () => {
   );
 });
 
+ChromeUtils.defineLazyGetter(lazy, "featureSchema", () => {
+  return fetchSchemaSync(
+    "resource://testing-common/nimbus/schemas/ExperimentFeature.schema.json"
+  );
+});
+
 const { SYNC_DATA_PREF_BRANCH, SYNC_DEFAULTS_PREF_BRANCH } = ExperimentStore;
 
 async function fetchSchema(url) {
@@ -59,10 +65,13 @@ async function fetchSchema(url) {
   return schema;
 }
 
-function validateSchema(schema, value, errorMsg) {
-  const result = lazy.JsonSchema.validate(value, schema, {
-    shortCircuit: false,
-  });
+function validateSchema(schemaOrValidator, value, errorMsg) {
+  const validator =
+    schemaOrValidator instanceof lazy.JsonSchema.Validator
+      ? schemaOrValidator
+      : new lazy.JsonSchema.Validator(schemaOrValidator);
+
+  const result = validator.validate(value, { shortCircuit: false });
   if (result.errors.length) {
     throw new Error(
       `${errorMsg}: ${JSON.stringify(result.errors, undefined, 2)}`
@@ -424,14 +433,39 @@ export const NimbusTestUtils = {
    *          A cleanup function to remove the features once the test has completed.
    */
   addTestFeatures(...features) {
+    const validator = new lazy.JsonSchema.Validator(lazy.featureSchema);
+
     for (const feature of features) {
       if (Object.hasOwn(NimbusFeatures, feature.featureId)) {
         throw new Error(
           `Cannot add feature ${feature.featureId} -- a feature with this ID already exists!`
         );
       }
+
+      // Stub out metadata-only properties.
+      feature.manifest.owner ??= "owner@example.com";
+      feature.manifest.description ??= `${feature.featureId} description`;
+      feature.manifest.hasExposure ??= false;
+      feature.manifest.exposureDescription ??= `${feature.featureId} exposure description`;
+
+      feature.manifest.variables ??= {};
+      for (const [name, variable] of Object.entries(
+        feature.manifest?.variables
+      )) {
+        variable.description ??= `${name} variable`;
+      }
+
+      validateSchema(
+        validator,
+        feature.manifest,
+        `Could not validate feature ${feature.featureId}`
+      );
+    }
+
+    for (const feature of features) {
       NimbusFeatures[feature.featureId] = feature;
     }
+
     return () => {
       for (const { featureId } of features) {
         delete NimbusFeatures[featureId];

@@ -36,6 +36,10 @@ TESTING_JS_MODULES += [
     "test/NimbusTestUtils.sys.mjs",
 ]
 
+TESTING_JS_MODULES.nimbus.schemas += [
+    "schemas/ExperimentFeature.schema.json",
+]
+
 GeneratedFile(
     "FeatureManifest.sys.mjs",
     script="generate/generate_feature_manifest.py",
