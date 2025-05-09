@@ -180,7 +180,7 @@ class WebRenderCommandBuilder final {
     return res.forget();
   }
 
-  WebRenderLayerManager* mManager;
+  WebRenderLayerManager* const mManager;
 
  private:
   RenderRootStateManager* GetRenderRootStateManager();
@@ -217,6 +217,8 @@ class WebRenderCommandBuilder final {
 
   wr::usize mBuilderDumpIndex;
   wr::usize mDumpIndent;
+
+  bool mApzEnabled;
 
  public:
   // Whether consecutive inactive display items should be grouped into one

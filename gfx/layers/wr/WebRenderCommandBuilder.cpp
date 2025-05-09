@@ -40,8 +40,7 @@
 
 #include <cstdint>
 
-namespace mozilla {
-namespace layers {
+namespace mozilla::layers {
 
 using namespace gfx;
 using namespace image;
@@ -1723,6 +1722,7 @@ WebRenderCommandBuilder::WebRenderCommandBuilder(
       mLastAsr(nullptr),
       mBuilderDumpIndex(0),
       mDumpIndent(0),
+      mApzEnabled(true),
       mDoGrouping(false),
       mContainsSVGGroup(false) {}
 
@@ -1942,7 +1942,7 @@ void WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(
     return;
   }
 
-  bool dumpEnabled = ShouldDumpDisplayList(aDisplayListBuilder);
+  const bool dumpEnabled = ShouldDumpDisplayList(aDisplayListBuilder);
   if (dumpEnabled) {
     // If we're inside a nested display list, print the WR DL items from the
     // wrapper item before we start processing the nested items.
@@ -1960,11 +1960,10 @@ void WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(
     mClipManager.BeginList(aSc);
   }
 
-  const bool apzEnabled = mManager->AsyncPanZoomEnabled();
   do {
     nsDisplayItem* item = iter.GetNextItem();
 
-    DisplayItemType itemType = item->GetType();
+    const DisplayItemType itemType = item->GetType();
 
     // If this is a new (not retained/reused) item, then we need to disable
     // the display item cache for descendants, since it's possible that some of
@@ -2019,8 +2018,12 @@ void WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(
       }
     }
 
+    AutoRestore<bool> restoreApzEnabled(mApzEnabled);
+    mApzEnabled = mApzEnabled && mManager->AsyncPanZoomEnabled() &&
+                  itemType != DisplayItemType::TYPE_VT_CAPTURE;
+
     Maybe<NewLayerData> newLayerData;
-    if (apzEnabled) {
+    if (mApzEnabled) {
       // For some types of display items we want to force a new
       // WebRenderLayerScrollData object, to ensure we preserve the APZ-relevant
       // data that is in the display item.
@@ -2122,59 +2125,57 @@ void WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(
       }
     }
 
-    if (apzEnabled) {
-      if (newLayerData) {
-        // Pop the thing we pushed before the recursion, so the topmost item on
-        // the stack is enclosing display item's ASR (or the stack is empty)
-        mAsrStack.pop_back();
+    if (newLayerData) {
+      // Pop the thing we pushed before the recursion, so the topmost item on
+      // the stack is enclosing display item's ASR (or the stack is empty)
+      mAsrStack.pop_back();
 
-        if (newLayerData->mDeferredItem) {
-          aSc.RestoreDeferredTransformItem(newLayerData->mDeferredItem);
-        }
+      if (newLayerData->mDeferredItem) {
+        aSc.RestoreDeferredTransformItem(newLayerData->mDeferredItem);
+      }
 
-        const ActiveScrolledRoot* stopAtAsr = newLayerData->mStopAtAsr;
+      const ActiveScrolledRoot* stopAtAsr = newLayerData->mStopAtAsr;
 
-        int32_t descendants =
-            mLayerScrollData.size() - newLayerData->mLayerCountBeforeRecursing;
+      int32_t descendants =
+          mLayerScrollData.size() - newLayerData->mLayerCountBeforeRecursing;
 
-        nsDisplayTransform* deferred = newLayerData->mDeferredItem;
-        ScrollableLayerGuid::ViewID deferredId = newLayerData->mDeferredId;
+      nsDisplayTransform* deferred = newLayerData->mDeferredItem;
+      ScrollableLayerGuid::ViewID deferredId = newLayerData->mDeferredId;
 
-        if (newLayerData->mTransformShouldGetOwnLayer) {
-          // This creates the child WebRenderLayerScrollData for |item|, but
-          // omits the transform (hence the Nothing() as the last argument to
-          // Initialize(...)). We also need to make sure that the ASR from
-          // the deferred transform item is not on this node, so we use that
-          // ASR as the "stop at" ASR for this WebRenderLayerScrollData.
-          mLayerScrollData.emplace_back();
-          mLayerScrollData.back().Initialize(
-              mManager->GetScrollData(), item, descendants,
-              deferred->GetActiveScrolledRoot(), Nothing(),
-              ScrollableLayerGuid::NULL_SCROLL_ID);
+      if (newLayerData->mTransformShouldGetOwnLayer) {
+        // This creates the child WebRenderLayerScrollData for |item|, but
+        // omits the transform (hence the Nothing() as the last argument to
+        // Initialize(...)). We also need to make sure that the ASR from
+        // the deferred transform item is not on this node, so we use that
+        // ASR as the "stop at" ASR for this WebRenderLayerScrollData.
+        mLayerScrollData.emplace_back();
+        mLayerScrollData.back().Initialize(
+            mManager->GetScrollData(), item, descendants,
+            deferred->GetActiveScrolledRoot(), Nothing(),
+            ScrollableLayerGuid::NULL_SCROLL_ID);
 
-          // The above WebRenderLayerScrollData will also be a descendant of
-          // the transform-holding WebRenderLayerScrollData we create below.
-          descendants++;
+        // The above WebRenderLayerScrollData will also be a descendant of
+        // the transform-holding WebRenderLayerScrollData we create below.
+        descendants++;
 
-          // This creates the WebRenderLayerScrollData for the deferred
-          // transform item. This holds the transform matrix and the remaining
-          // ASRs needed to complete the ASR chain (i.e. the ones from the
-          // stopAtAsr down to the deferred transform item's ASR, which must be
-          // "between" stopAtAsr and |item|'s ASR in the ASR tree).
-          mLayerScrollData.emplace_back();
-          mLayerScrollData.back().Initialize(
-              mManager->GetScrollData(), deferred, descendants, stopAtAsr,
-              aSc.GetDeferredTransformMatrix(), deferredId);
-        } else {
-          // This is the "simple" case where we don't need to create two
-          // WebRenderLayerScrollData items; we can just create one that also
-          // holds the deferred transform matrix, if any.
-          mLayerScrollData.emplace_back();
-          mLayerScrollData.back().Initialize(
-              mManager->GetScrollData(), item, descendants, stopAtAsr,
-              deferred ? aSc.GetDeferredTransformMatrix() : Nothing(),
-              deferredId);
-        }
+        // This creates the WebRenderLayerScrollData for the deferred
+        // transform item. This holds the transform matrix and the remaining
+        // ASRs needed to complete the ASR chain (i.e. the ones from the
+        // stopAtAsr down to the deferred transform item's ASR, which must be
+        // "between" stopAtAsr and |item|'s ASR in the ASR tree).
+        mLayerScrollData.emplace_back();
+        mLayerScrollData.back().Initialize(
+            mManager->GetScrollData(), deferred, descendants, stopAtAsr,
+            aSc.GetDeferredTransformMatrix(), deferredId);
+      } else {
+        // This is the "simple" case where we don't need to create two
+        // WebRenderLayerScrollData items; we can just create one that also
+        // holds the deferred transform matrix, if any.
+        mLayerScrollData.emplace_back();
+        mLayerScrollData.back().Initialize(
+            mManager->GetScrollData(), item, descendants, stopAtAsr,
+            deferred ? aSc.GetDeferredTransformMatrix() : Nothing(),
+            deferredId);
       }
     }
   } while (iter.HasNext());
@@ -2954,5 +2955,4 @@ WebRenderGroupData::~WebRenderGroupData() {
   mFollowingGroup.ClearImageKey(mManager, true);
 }
 
-}  // namespace layers
-}  // namespace mozilla
+}  // namespace mozilla::layers
