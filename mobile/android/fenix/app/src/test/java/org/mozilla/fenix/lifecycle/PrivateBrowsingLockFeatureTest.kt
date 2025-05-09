@@ -16,27 +16,21 @@ import junit.framework.TestCase.assertTrue
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import mozilla.components.browser.state.action.TabListAction
+import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.state.BrowserState
-import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.test.ext.joinBlocking
+import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.rule.MainCoroutineRule
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.never
-import org.mockito.Mockito.spy
-import org.mockito.Mockito.times
-import org.mockito.Mockito.verify
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
-import org.mozilla.fenix.components.appstate.AppAction.PrivateBrowsingLockAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.tabstray.TabsTrayFragment
-import org.mozilla.fenix.utils.Settings
 
 @RunWith(AndroidJUnit4::class)
 class PrivateBrowsingLockFeatureTest {
@@ -44,223 +38,674 @@ class PrivateBrowsingLockFeatureTest {
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()
 
-    private lateinit var appStore: AppStore
-    private lateinit var browserStore: BrowserStore
-    private lateinit var settings: Settings
-
-    @Before
-    fun setup() {
-        appStore = spy(AppStore())
-        browserStore = BrowserStore()
-        settings = mockk(relaxed = true)
-    }
-
+    // zero tabs cases
     @Test
-    fun `GIVEN the feature is enabled WHEN number of private tabs reaches zero THEN we unlock private mode`() {
-        every { settings.privateBrowsingLockedEnabled } returns true
-        val store = createBrowserStore()
-        PrivateBrowsingLockFeature(appStore, store, settings)
+    fun `GIVEN feature is enabled and mode is normal WHEN number of private tabs reaches zero THEN we unlock private mode`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Normal
 
-        store.dispatch(TabListAction.RemoveAllPrivateTabsAction).joinBlocking()
-
-        verify(appStore).dispatch(
-            PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
-                isLocked = false,
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
             ),
         )
+        createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        assertTrue(appStore.state.isPrivateScreenLocked)
+
+        browserStore.dispatch(TabListAction.RemoveAllPrivateTabsAction).joinBlocking()
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
     }
 
     @Test
-    fun `GIVEN the feature is disabled WHEN number of private tabs reaches zero THEN we don't lock private mode`() {
-        every { settings.privateBrowsingLockedEnabled } returns false
-        val store = createBrowserStore()
-        PrivateBrowsingLockFeature(appStore, store, settings)
+    fun `GIVEN feature is enabled and mode is private WHEN authenticated and number of private tabs reaches zero THEN private mode is unchanged`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Private
 
-        store.dispatch(TabListAction.RemoveAllPrivateTabsAction).joinBlocking()
-
-        verify(appStore, never()).dispatch(
-            PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
-                isLocked = false,
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
             ),
         )
+        val feature = createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        feature.onSuccessfulAuthentication()
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+
+        browserStore.dispatch(TabListAction.RemoveAllPrivateTabsAction).joinBlocking()
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
     }
 
     @Test
-    fun `GIVEN the feature is on and there are private tabs WHEN initializing the app THEN we lock private mode`() {
-        every { settings.privateBrowsingLockedEnabled } returns true
-        val store = createBrowserStore(
+    fun `GIVEN the feature is disabled and mode is normal WHEN number of private tabs reaches zero THEN private mode is unchanged `() {
+        val isFeatureEnabled = false
+        val mode = BrowsingMode.Normal
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+
+        browserStore.dispatch(TabListAction.RemoveAllPrivateTabsAction).joinBlocking()
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+    }
+
+    @Test
+    fun `GIVEN the feature is disabled and mode is private WHEN number of private tabs reaches zero THEN private mode is unchanged `() {
+        val isFeatureEnabled = false
+        val mode = BrowsingMode.Private
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+
+        browserStore.dispatch(TabListAction.RemoveAllPrivateTabsAction).joinBlocking()
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+    }
+
+    // initializing cases
+    @Test
+    fun `GIVEN feature is enabled and mode is private and there are private tabs WHEN initializing feature THEN we lock private mode`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Private
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+        BrowserState(
             tabs = listOf(
                 createTab("https://www.firefox.com", id = "firefox", private = true),
                 createTab("https://www.mozilla.org", id = "mozilla"),
             ),
             selectedTabId = "mozilla",
+        ),
         )
-        val appStore = spy(
-            AppStore(
-                initialState = AppState(mode = BrowsingMode.Private),
-            ),
-        )
+        createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
 
-        PrivateBrowsingLockFeature(appStore, store, settings)
-
-        verify(appStore).dispatch(
-            PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
-                isLocked = true,
-            ),
-        )
+        assertTrue(appStore.state.isPrivateScreenLocked)
     }
 
     @Test
-    fun `GIVEN the feature is off and there are private tabs WHEN initializing the app THEN we do not lock private mode`() {
-        every { settings.privateBrowsingLockedEnabled } returns false
-        val store = createBrowserStore(
-            tabs = listOf(
-                createTab("https://www.firefox.com", id = "firefox", private = true),
-                createTab("https://www.mozilla.org", id = "mozilla"),
-            ),
-            selectedTabId = "mozilla",
-        )
-        val appStore = spy(
-            AppStore(
-                initialState = AppState(mode = BrowsingMode.Private),
-            ),
-        )
+    fun `GIVEN feature is enabled and mode is normal and there are private tabs WHEN initializing feature THEN we lock private mode`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Normal
 
-        PrivateBrowsingLockFeature(appStore, store, settings)
-
-        verify(appStore, times(0)).dispatch(
-            PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
-                isLocked = true,
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
             ),
         )
+        createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        assertTrue(appStore.state.isPrivateScreenLocked)
     }
 
     @Test
-    fun `GIVEN there are private tabs WHEN switching to normal mode THEN we lock private mode`() {
-        every { settings.privateBrowsingLockedEnabled } returns true
-        val store = createBrowserStore(tabs = listOf(createTab("https://www.mozilla.org", id = "mozilla")))
-        val appStore = spy(AppStore(initialState = AppState(mode = BrowsingMode.Private)))
-        PrivateBrowsingLockFeature(appStore, store, settings)
+    fun `GIVEN feature is disabled and mode is private and there are private tabs WHEN initializing the app THEN we do not lock private mode`() {
+        val isFeatureEnabled = false
+        val mode = BrowsingMode.Private
 
-        store.dispatch(TabListAction.AddTabAction(createTab("https://www.firefox.com", id = "firefox", private = true))).joinBlocking()
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+    }
+
+    @Test
+    fun `GIVEN feature is disabled and mode is normal and there are private tabs WHEN initializing the app THEN we do not lock private mode`() {
+        val isFeatureEnabled = false
+        val mode = BrowsingMode.Normal
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+    }
+
+    @Test
+    fun `GIVEN feature is enabled and mode is private and there are no private tabs WHEN initializing feature THEN we do not lock private mode`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Private
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+    }
+
+    @Test
+    fun `GIVEN feature is enabled and mode is normal and there are no private tabs WHEN initializing feature THEN we do not lock private mode`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Normal
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+    }
+
+    @Test
+    fun `GIVEN feature is enabled and there are private tabs WHEN switching to normal mode THEN we lock private mode`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Private
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        val feature = createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        feature.onSuccessfulAuthentication()
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+
         appStore.dispatch(AppAction.ModeChange(mode = BrowsingMode.Normal)).joinBlocking()
+        appStore.waitUntilIdle()
 
-        verify(appStore, times(1)).dispatch(
-            PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
-                isLocked = true,
-            ),
-        )
+        assertTrue(appStore.state.isPrivateScreenLocked)
     }
 
     @Test
     fun `GIVEN normal mode and enabled lock WHEN lifecycle is resumed THEN observing lock doesn't trigger`() {
         val localScope = TestScope()
-        var isLocked = false
+        val mode = BrowsingMode.Normal
+        val isPrivateScreenLocked = true
+        var result = false
+        val appStore = AppStore(initialState = AppState(mode = mode, isPrivateScreenLocked = isPrivateScreenLocked))
+
         observePrivateModeLock(
             viewLifecycleOwner = MockedLifecycleOwner(Lifecycle.State.RESUMED),
             scope = localScope,
             appStore = appStore,
-            onPrivateModeLocked = { isLocked = true },
+            onPrivateModeLocked = { result = true },
         )
-
-        appStore.dispatch(AppAction.ModeChange(mode = BrowsingMode.Normal)).joinBlocking()
-        appStore.dispatch(PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(true)).joinBlocking()
         localScope.advanceUntilIdle()
 
-        assertFalse(isLocked)
+        assertFalse(result)
     }
 
     @Test
     fun `GIVEN normal mode and disabled lock WHEN lifecycle is resumed THEN observing lock doesn't trigger`() {
         val localScope = TestScope()
-        var isLocked = false
+        val mode = BrowsingMode.Normal
+        val isPrivateScreenLocked = false
+        var result = false
+        val appStore = AppStore(initialState = AppState(mode = mode, isPrivateScreenLocked = isPrivateScreenLocked))
+
         observePrivateModeLock(
             viewLifecycleOwner = MockedLifecycleOwner(Lifecycle.State.RESUMED),
             scope = localScope,
             appStore = appStore,
-            onPrivateModeLocked = { isLocked = true },
+            onPrivateModeLocked = { result = true },
         )
 
-        appStore.dispatch(AppAction.ModeChange(mode = BrowsingMode.Normal)).joinBlocking()
-        appStore.dispatch(PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(true)).joinBlocking()
         localScope.advanceUntilIdle()
 
-        assertFalse(isLocked)
+        assertFalse(result)
     }
 
     @Test
     fun `GIVEN private mode and enabled lock WHEN lifecycle is resumed THEN observing lock triggers`() {
         val localScope = TestScope()
-        var isLocked = false
+        val mode = BrowsingMode.Private
+        val isPrivateScreenLocked = true
+        var result = false
+        val appStore = AppStore(initialState = AppState(mode = mode, isPrivateScreenLocked = isPrivateScreenLocked))
+
         observePrivateModeLock(
             viewLifecycleOwner = MockedLifecycleOwner(Lifecycle.State.RESUMED),
             scope = localScope,
             appStore = appStore,
-            onPrivateModeLocked = { isLocked = true },
+            onPrivateModeLocked = { result = true },
         )
 
-        appStore.dispatch(AppAction.ModeChange(mode = BrowsingMode.Private)).joinBlocking()
-        appStore.dispatch(PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(true)).joinBlocking()
         localScope.advanceUntilIdle()
 
-        assertTrue(isLocked)
+        assertTrue(result)
     }
 
     @Test
     fun `GIVEN private mode and disabled lock WHEN lifecycle is resumed THEN observing lock doesn't trigger`() {
         val localScope = TestScope()
-        var isLocked = false
+        val mode = BrowsingMode.Private
+        val isPrivateScreenLocked = false
+        var result = false
+        val appStore = AppStore(initialState = AppState(mode = mode, isPrivateScreenLocked = isPrivateScreenLocked))
+
         observePrivateModeLock(
             viewLifecycleOwner = MockedLifecycleOwner(Lifecycle.State.RESUMED),
             scope = localScope,
             appStore = appStore,
-            onPrivateModeLocked = { isLocked = true },
+            onPrivateModeLocked = { result = true },
         )
 
-        appStore.dispatch(PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(false)).joinBlocking()
-        appStore.dispatch(AppAction.ModeChange(mode = BrowsingMode.Private)).joinBlocking()
         localScope.advanceUntilIdle()
 
-        assertFalse(isLocked)
+        assertFalse(result)
     }
 
     @Test
-    fun `GIVEN private mode with private tabs WHEN Activity stops without config change THEN lock is triggered`() {
-        every { settings.privateBrowsingLockedEnabled } returns true
-        val store = createBrowserStore(
-            tabs = listOf(createTab("https://www.mozilla.org", id = "mozilla")),
-            selectedTabId = "mozilla",
+    fun `GIVEN feature is on and mode is private and there are private tabs WHEN Activity stops without config change THEN we lock private mode`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Private
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
         )
-        val appStore = spy(AppStore(AppState(mode = BrowsingMode.Private)))
-        val feature = PrivateBrowsingLockFeature(appStore, store, settings)
+        val feature = createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
         val activity = mockk<AppCompatActivity>(relaxed = true)
         every { activity.isChangingConfigurations } returns false
 
-        store.dispatch(TabListAction.AddTabAction(createTab("https://www.firefox.com", id = "firefox", private = true))).joinBlocking()
         feature.onStop(activity)
+        appStore.waitUntilIdle()
 
-        verify(appStore).dispatch(
-            PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(isLocked = true),
-        )
+        assertTrue(appStore.state.isPrivateScreenLocked)
     }
 
     @Test
-    fun `GIVEN normal mode with private tabs WHEN TabsTrayFragment stops THEN lock is triggered`() {
-        every { settings.privateBrowsingLockedEnabled } returns true
-        val store = createBrowserStore(
-            tabs = listOf(createTab("https://www.mozilla.org", id = "mozilla")),
-            selectedTabId = "mozilla",
+    fun `GIVEN feature is on and mode is normal and there are private tabs WHEN Activity stops without config change THEN we lock private mode`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Normal
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
         )
-        val appStore = spy(AppStore(AppState(mode = BrowsingMode.Normal)))
-        val feature = PrivateBrowsingLockFeature(appStore, store, settings)
+        val feature = createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        val activity = mockk<AppCompatActivity>(relaxed = true)
+        every { activity.isChangingConfigurations } returns false
+
+        feature.onStop(activity)
+        appStore.waitUntilIdle()
+
+        assertTrue(appStore.state.isPrivateScreenLocked)
+    }
+
+    @Test
+    fun `GIVEN feature is on and mode is private and there are no private tabs WHEN Activity stops without config change THEN we do not lock private mode`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Private
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        val feature = createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        val activity = mockk<AppCompatActivity>(relaxed = true)
+        every { activity.isChangingConfigurations } returns false
+
+        feature.onStop(activity)
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+    }
+
+    @Test
+    fun `GIVEN feature is on and mode is normal and there are no private tabs WHEN Activity stops without config change THEN we do not lock private mode`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Normal
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        val feature = createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        val activity = mockk<AppCompatActivity>(relaxed = true)
+        every { activity.isChangingConfigurations } returns false
+
+        feature.onStop(activity)
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+    }
+
+    @Test
+    fun `GIVEN feature is off and mode is private and there are private tabs WHEN Activity stops without config change THEN we do not lock private mode`() {
+        val isFeatureEnabled = false
+        val mode = BrowsingMode.Private
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        val feature = createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        val activity = mockk<AppCompatActivity>(relaxed = true)
+        every { activity.isChangingConfigurations } returns false
+
+        feature.onStop(activity)
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+    }
+
+    @Test
+    fun `GIVEN feature is on and mode is normal and there are private tabs WHEN Activity stops without config change THEN we do not lock private mode`() {
+        val isFeatureEnabled = false
+        val mode = BrowsingMode.Normal
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        val feature = createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        val activity = mockk<AppCompatActivity>(relaxed = true)
+        every { activity.isChangingConfigurations } returns false
+
+        feature.onStop(activity)
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+    }
+
+    // NB: this is an important case: we don't want to lock the screen on config change if the user is already in
+    // private mode because switching modes causes the activity to recreate; e.g., the user switches to private mode
+    // tab through the tabstray. the app goes into private mode and then activity shuts due to configuration change.
+    // if we lock the screen at that point, going into private mode will always lock it due to activity restart.
+    @Test
+    fun `GIVEN feature is on and mode is private and there are private tabs WHEN Activity stops with config change THEN we do not lock private mode`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Private
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        val feature = createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        feature.onSuccessfulAuthentication()
+        appStore.waitUntilIdle()
+
+        val activity = mockk<AppCompatActivity>(relaxed = true)
+        every { activity.isChangingConfigurations } returns true
+
+        feature.onStop(activity)
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+    }
+
+    @Test
+    fun `GIVEN feature is on and mode is normal and there are private tabs WHEN TabsTrayFragment stops THEN we lock private mode`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Private
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        val feature = createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
         val fragment = mockk<TabsTrayFragment>(relaxed = true)
 
-        store.dispatch(TabListAction.AddTabAction(createTab("https://www.firefox.com", id = "firefox", private = true))).joinBlocking()
         feature.onStop(fragment)
+        appStore.waitUntilIdle()
 
-        verify(appStore).dispatch(
-            PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(isLocked = true),
+        assertTrue(appStore.state.isPrivateScreenLocked)
+    }
+
+    @Test
+    fun `GIVEN the feature is on and there are private tabs WHEN we turn off the feature THEN we unlock private tabs and don't lock it`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Private
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
         )
+        val storage = createStorage(isFeatureEnabled = isFeatureEnabled)
+
+        val feature = createFeature(browserStore = browserStore, appStore = appStore, storage = storage)
+        appStore.waitUntilIdle()
+
+        assertTrue(appStore.state.isPrivateScreenLocked)
+
+        // verify that disabled feature state unlocks private mode
+        val sharedPrefUpdate = false
+        storage.listener?.invoke(sharedPrefUpdate)
+        appStore.waitUntilIdle()
+
+        assertTrue(browserStore.state.privateTabs.isNotEmpty())
+        assertFalse(appStore.state.isPrivateScreenLocked)
+
+        // verify that activity.onStop doesn't lock private mode
+        val activity = mockk<AppCompatActivity>(relaxed = true)
+        every { activity.isChangingConfigurations } returns false
+
+        feature.onStop(activity)
+        appStore.waitUntilIdle()
+
+        assertTrue(browserStore.state.privateTabs.isNotEmpty())
+        assertFalse(appStore.state.isPrivateScreenLocked)
+
+        // verify that going to normal mode doesn't lock private mode
+        appStore.dispatch(AppAction.ModeChange(mode = BrowsingMode.Normal)).joinBlocking()
+
+        assertTrue(browserStore.state.privateTabs.isNotEmpty())
+        assertFalse(appStore.state.isPrivateScreenLocked)
+    }
+
+    @Test
+    fun `GIVEN the feature is off and mode is normal and there are private tabs WHEN we turn on the feature THEN we lock private tabs`() {
+        val isFeatureEnabled = false
+        val mode = BrowsingMode.Normal
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        val storage = createStorage(isFeatureEnabled = isFeatureEnabled)
+
+        createFeature(browserStore = browserStore, appStore = appStore, storage = storage)
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+
+        // verify that disabled feature state unlocks private mode
+        val sharedPrefUpdate = true
+        storage.listener?.invoke(sharedPrefUpdate)
+        appStore.waitUntilIdle()
+
+        assertTrue(browserStore.state.privateTabs.isNotEmpty())
+        assertTrue(appStore.state.isPrivateScreenLocked)
+    }
+
+    @Test
+    fun `GIVEN the feature is off and mode is private and there are private tabs WHEN we turn on the feature THEN we do not lock private tabs`() {
+        val isFeatureEnabled = false
+        val mode = BrowsingMode.Private
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        val storage = createStorage(isFeatureEnabled = isFeatureEnabled)
+
+        createFeature(browserStore = browserStore, appStore = appStore, storage = storage)
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+
+        // verify that disabled feature state unlocks private mode
+        val sharedPrefUpdate = true
+        storage.listener?.invoke(sharedPrefUpdate)
+        appStore.waitUntilIdle()
+
+        assertTrue(browserStore.state.privateTabs.isNotEmpty())
+        assertFalse(appStore.state.isPrivateScreenLocked)
     }
 
     internal class MockedLifecycleOwner(initialState: Lifecycle.State) : LifecycleOwner {
@@ -269,16 +714,26 @@ class PrivateBrowsingLockFeatureTest {
         }
     }
 
-    private fun createBrowserStore(
-        tabs: List<TabSessionState> = listOf(
-            createTab("https://www.firefox.com", id = "firefox", private = true),
-            createTab("https://www.mozilla.org", id = "mozilla"),
-        ),
-        selectedTabId: String = "mozilla",
-    ) = BrowserStore(
-        BrowserState(
-            tabs = tabs,
-            selectedTabId = selectedTabId,
-        ),
+    internal class MockedPrivateBrowsingLockStorage(
+        override val isFeatureEnabled: Boolean = true,
+    ) : PrivateBrowsingLockStorage {
+        var listener: ((Boolean) -> Unit)? = null
+
+        override fun addFeatureStateListener(listener: (Boolean) -> Unit) {
+            this.listener = listener
+        }
+        override fun removeFeatureStateListener() {}
+    }
+
+    private fun createFeature(
+        appStore: AppStore,
+        browserStore: BrowserStore,
+        storage: PrivateBrowsingLockStorage,
+    ) = PrivateBrowsingLockFeature(
+        appStore = appStore,
+        browserStore = browserStore,
+        storage = storage,
     )
+
+    private fun createStorage(isFeatureEnabled: Boolean = true) = MockedPrivateBrowsingLockStorage(isFeatureEnabled)
 }

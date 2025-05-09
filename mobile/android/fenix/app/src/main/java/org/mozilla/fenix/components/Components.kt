@@ -56,6 +56,7 @@ import org.mozilla.fenix.home.middleware.HomeTelemetryMiddleware
 import org.mozilla.fenix.home.setup.store.DefaultSetupChecklistRepository
 import org.mozilla.fenix.home.setup.store.SetupChecklistPreferencesMiddleware
 import org.mozilla.fenix.home.setup.store.SetupChecklistTelemetryMiddleware
+import org.mozilla.fenix.lifecycle.DefaultPrivateBrowsingLockStorage
 import org.mozilla.fenix.lifecycle.PrivateBrowsingLockFeature
 import org.mozilla.fenix.messaging.state.MessagingMiddleware
 import org.mozilla.fenix.nimbus.FxNimbus
@@ -198,7 +199,10 @@ class Components(private val context: Context) {
         PrivateBrowsingLockFeature(
             appStore = appStore,
             browserStore = core.store,
-            settings = settings,
+            storage = DefaultPrivateBrowsingLockStorage(
+                preferences = settings.preferences,
+                privateBrowsingLockPrefKey = context.getString(R.string.pref_key_private_browsing_locked_enabled),
+            ),
         )
     }
 
