@@ -3,10 +3,6 @@
 
 "use strict";
 
-const { SpellCheckHelper } = ChromeUtils.importESModule(
-  "resource://gre/modules/InlineSpellChecker.sys.mjs"
-);
-
 ChromeUtils.defineLazyGetter(this, "UrlbarTestUtils", () => {
   const { UrlbarTestUtils: module } = ChromeUtils.importESModule(
     "resource://testing-common/UrlbarTestUtils.sys.mjs"
@@ -69,6 +65,12 @@ const URL_UTF_8 =
   "https://example.org/browser/browser/components/search/test/browser/test.html";
 const URL_WINDOWS1252 =
   "https://example.org/browser/browser/components/search/test/browser/test_windows1252.html";
+
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.update2.engineAliasRefresh", true]],
+  });
+});
 
 async function addEngine(browser, selector, name, alias) {
   let contextMenu = document.getElementById("contentAreaContextMenu");
@@ -162,27 +164,7 @@ async function navigateToCharset(charset) {
   }
 }
 
-function postDataToString(postData) {
-  if (!postData) {
-    return undefined;
-  }
-  let binaryStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(
-    Ci.nsIBinaryInputStream
-  );
-  binaryStream.setInputStream(postData.data);
-
-  return binaryStream
-    .readBytes(binaryStream.available())
-    .replace("searchTerms", "%s");
-}
-
-add_setup(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.update2.engineAliasRefresh", true]],
-  });
-});
-
-add_task(async function testAddingEngines() {
+add_task(async function () {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
   let browser = tab.linkedBrowser;
 
@@ -205,7 +187,7 @@ add_task(async function testAddingEngines() {
       "Submission URI is correct"
     );
     Assert.equal(
-      SearchTestUtils.getPostDataString(submission),
+      postDataToString(submission.postData),
       args.expectedPost,
       "Submission post data is correct."
     );
@@ -220,56 +202,16 @@ add_task(async function testAddingEngines() {
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
 
-add_task(async function testSearchFieldDetection() {
-  let form = document.createElement("form");
-  form.method = "GET";
-  form.action = "/";
-
-  let input = document.createElement("input");
-  input.type = "search";
-  input.name = "q";
-  form.appendChild(input);
-
-  let isSearchField = SpellCheckHelper.isTargetASearchEngineField(
-    input,
-    window
+function postDataToString(postData) {
+  if (!postData) {
+    return undefined;
+  }
+  let binaryStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(
+    Ci.nsIBinaryInputStream
   );
-  Assert.equal(isSearchField, true, "Is search field initially");
+  binaryStream.setInputStream(postData.data);
 
-  // We test mostly non search fields here since valid search fields
-  // are already tested in testAddingEngines.
-  delete form.removeAttribute("action");
-  isSearchField = SpellCheckHelper.isTargetASearchEngineField(input, window);
-  Assert.equal(isSearchField, false, "Missing action means no search field");
-
-  form.action = "/";
-
-  form.method = "dialog";
-  isSearchField = SpellCheckHelper.isTargetASearchEngineField(input, window);
-  Assert.equal(isSearchField, false, "Method=dialog means no search field");
-
-  form.method = "POST";
-
-  delete input.removeAttribute("name");
-  isSearchField = SpellCheckHelper.isTargetASearchEngineField(input, window);
-  Assert.equal(isSearchField, false, "Missing name means no search field");
-
-  input.name = "q";
-
-  input.type = "url";
-  isSearchField = SpellCheckHelper.isTargetASearchEngineField(input, window);
-  Assert.equal(isSearchField, false, "Url input means no search field");
-
-  input.type = "text";
-
-  let fileInput = document.createElement("input");
-  fileInput.type = "file";
-  fileInput.name = "file-input";
-  form.appendChild(fileInput);
-  isSearchField = SpellCheckHelper.isTargetASearchEngineField(input, window);
-  Assert.equal(isSearchField, false, "File input means no search field");
-
-  fileInput.remove();
-  isSearchField = SpellCheckHelper.isTargetASearchEngineField(input, window);
-  Assert.equal(isSearchField, true, "Is search field again");
-});
+  return binaryStream
+    .readBytes(binaryStream.available())
+    .replace("searchTerms", "%s");
+}

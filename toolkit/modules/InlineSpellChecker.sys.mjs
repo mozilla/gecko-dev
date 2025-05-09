@@ -473,39 +473,21 @@ export var SpellCheckHelper = {
     );
   },
 
-  /**
-   * Returns whether the element is counted as a search engine field.
-   *
-   * @param {HTMLInputElement} aNode
-   *   The input to check.
-   * @param {Window} window
-   *   The element's window.
-   * @returns {boolean}
-   *   Whether it should count as a search engine field.
-   */
   isTargetASearchEngineField(aNode, window) {
-    if (
-      !window.HTMLInputElement.isInstance(aNode) ||
-      (aNode.type != "text" && aNode.type != "search") ||
-      aNode.readOnly ||
-      !aNode.name ||
-      !aNode.form
-    ) {
+    if (!window.HTMLInputElement.isInstance(aNode)) {
       return false;
     }
 
     let form = aNode.form;
+    if (!form || aNode.type == "password" || !aNode.name) {
+      return false;
+    }
     let method = form.method.toUpperCase();
 
     return (
-      // Forms without an explicit action often don't work, see Bug 1960237.
-      form.hasAttribute("action") &&
-      // The only other method is dialog.
       (method == "GET" || method == "POST") &&
-      // SearchEngine objects currently only support urlencoded requests.
       form.enctype == "application/x-www-form-urlencoded" &&
-      // Don't allow forms with file inputs.
-      new FormData(form).values().every(v => typeof v == "string")
+      new FormData(form).entries().every(([k, v]) => k && typeof v == "string")
     );
   },
 

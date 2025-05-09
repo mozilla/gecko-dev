@@ -557,9 +557,8 @@ export class SearchEngine {
   }
 
   /**
-   * Directly adds a local icon to the icon map without notifying observers.
-   * Icon must be square and should be behind a local URL
-   * (i.e., data, or moz-extension).
+   * Add an icon to the icon map used by getIconURL().
+   * Icon must be square.
    *
    * @param {string} iconURL
    *   String with the icon's URI.
@@ -577,83 +576,85 @@ export class SearchEngine {
   }
 
   /**
-   * Adds an icon from an http[s], data, or moz-extension URL to the
-   * icon map, downloading http[s] icons and rescaling icons with a size
-   * larger than MAX_ICON_SIZE.
+   * Sets the .iconURI property of the engine. If size is provided
+   * an entry will be added to _iconMapObj that will enable accessing
+   * icon's data through getIconURL() APIs.
    *
    * @param {string} iconURL
-   *   A URI string pointing to the engine's icon.
-   *   Must have http[s], data, or moz-extension protocol.
+   *   A URI string pointing to the engine's icon. Must have a http[s]
+   *   or data scheme. Icons with HTTP[S] schemes will be
+   *   downloaded and converted to data URIs for storage in the engine
+   *   XML files, if the engine is not built-in.
    * @param {number} [size]
-   *   Width and height of the icon (determined automatically if not provided).
+   *   Width and height of the icon.
    * @param {boolean} [override]
-   * Whether the new URI should override an existing one.
-   * @returns {Promise<void>}
-   *   Resolves when the icon was set.
-   *   Rejects with an Error if there was an error.
+   *   Whether the new URI should override an existing one.
    */
   async _setIcon(iconURL, size, override = true) {
+    let uri = lazy.SearchUtils.makeURI(iconURL);
+
+    // Ignore bad URIs
+    if (!uri) {
+      return;
+    }
+
     lazy.logConsole.debug(
       "_setIcon: Setting icon url for",
       this.name,
       "to",
-      limitURILength(iconURL)
+      limitURILength(uri.spec)
     );
-
-    [iconURL, size] = await this._downloadAndRescaleIcon(iconURL, size);
-    this._addIconToMap(iconURL, size, override);
-
-    if (this._engineAddedToStore) {
-      lazy.SearchUtils.notifyAction(
-        this,
-        lazy.SearchUtils.MODIFIED_TYPE.ICON_CHANGED
-      );
-    }
-  }
-
-  /**
-   * Downloads the requested icon if the url is http[s], determines
-   * its size if not provided and rescales the icon if its size exceeds
-   * MAX_ICON_SIZE.
-   *
-   * @param {string} iconURL
-   *   A URI string pointing to the engine's icon.
-   *   Must have http[s], data, or moz-extension protocol.
-   * @param {number} [size]
-   *   Width and height of the icon (determined automatically if not provided).
-   * @returns {Promise<[string, number]>}
-   *   Resolves to [dataURL, size] if successful and rejects if there was an error.
-   */
-  async _downloadAndRescaleIcon(iconURL, size) {
-    let uri = lazy.SearchUtils.makeURI(iconURL);
-
-    if (!uri) {
-      throw new Error(`Invalid URI`);
-    }
-
+    // Only accept remote icons from http[s]
     switch (uri.scheme) {
       case "moz-extension": {
         if (!size) {
-          let [byteArray, contentType] = await lazy.SearchUtils.fetchIcon(uri);
+          let byteArray, contentType;
+          try {
+            [byteArray, contentType] = await lazy.SearchUtils.fetchIcon(uri);
+          } catch {
+            lazy.logConsole.warn(
+              `Failed to load icon of search engine ${this.name}.`
+            );
+            return;
+          }
           size = lazy.SearchUtils.decodeSize(byteArray, contentType, 16);
         }
-        return [iconURL, size];
+
+        this._addIconToMap(iconURL, size, override);
+        break;
       }
       // We also fetch data URLs to ensure the size doesn't exceed MAX_ICON_SIZE.
       case "data":
       case "http":
       case "https": {
-        let [byteArray, contentType] = await lazy.SearchUtils.fetchIcon(uri);
+        let byteArray, contentType;
+        try {
+          [byteArray, contentType] = await lazy.SearchUtils.fetchIcon(uri);
+        } catch {
+          lazy.logConsole.warn(
+            `Failed to load icon of search engine ${this.name}.`
+          );
+          return;
+        }
+
         if (byteArray.length > lazy.SearchUtils.MAX_ICON_SIZE) {
-          lazy.logConsole.debug(
-            `Rescaling icon for search engine ${this.name}.`
-          );
-          [byteArray, contentType] = lazy.SearchUtils.rescaleIcon(
-            byteArray,
-            contentType,
-            32
-          );
-          size = 32;
+          try {
+            lazy.logConsole.debug(
+              `Rescaling icon for search engine ${this.name}.`
+            );
+            [byteArray, contentType] = lazy.SearchUtils.rescaleIcon(
+              byteArray,
+              contentType,
+              32
+            );
+            size = 32;
+          } catch (ex) {
+            lazy.logConsole.error(
+              `Unable to rescale  icon for search engine ${this.name}:`,
+              ex
+            );
+            return;
+          }
         }
 
         if (!size) {
@@ -661,10 +662,16 @@ export class SearchEngine {
         }
 
         let dataURL = "data:" + contentType + ";base64," + byteArray.toBase64();
-        return [dataURL, size];
+        this._addIconToMap(dataURL, size, override);
+        break;
       }
-      default:
-        throw new Error(`URL scheme ${uri.scheme} is not allowed`);
+    }
+
+    if (this._engineAddedToStore) {
+      lazy.SearchUtils.notifyAction(
+        this,
+        lazy.SearchUtils.MODIFIED_TYPE.ICON_CHANGED
+      );
     }
   }
 
@@ -756,10 +763,7 @@ export class SearchEngine {
 
     if (details.iconURL) {
       this._setIcon(details.iconURL).catch(e =>
-        lazy.logConsole.warn(
-          `Error while setting icon for search engine ${details.name}:`,
-          e.message
-        )
+        lazy.logConsole.log("Error while setting search engine icon:", e)
       );
     }
     this._setUrls(details);
@@ -1412,7 +1416,7 @@ export class SearchEngine {
    * Returns the icon URL for the search engine closest to the preferred width
    * or undefined if the engine has no icons.
    *
-   * @param {number} [preferredWidth]
+   * @param {number} preferredWidth
    *   Width of the requested icon. If not specified, it is assumed that
    *   16x16 is desired.
    * @returns {Promise<string|undefined>}

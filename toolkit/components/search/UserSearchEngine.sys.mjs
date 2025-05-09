@@ -105,12 +105,7 @@ export class UserSearchEngine extends SearchEngine {
     }
 
     if (formInfo.icon) {
-      this._setIcon(formInfo.icon).catch(e =>
-        console.warn(
-          `Error while setting icon for search engine ${formInfo.name}:`,
-          e.message
-        )
-      );
+      this._setIcon(formInfo.icon);
     }
     if (formInfo.charset) {
       this._queryCharset = formInfo.charset;
@@ -170,21 +165,5 @@ export class UserSearchEngine extends SearchEngine {
     }
     this._urls.push(url);
     lazy.SearchUtils.notifyAction(this, lazy.SearchUtils.MODIFIED_TYPE.CHANGED);
-  }
-
-  /**
-   * Replaces the current icon.
-   *
-   * @param {string} newIconURL
-   */
-  async changeIcon(newIconURL) {
-    let [iconURL, size] = await this._downloadAndRescaleIcon(newIconURL);
-
-    this._iconMapObj = {};
-    this._addIconToMap(iconURL, size);
-    lazy.SearchUtils.notifyAction(
-      this,
-      lazy.SearchUtils.MODIFIED_TYPE.ICON_CHANGED
-    );
   }
 }
