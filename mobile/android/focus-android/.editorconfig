@@ -18,12 +18,10 @@ ktlint_standard_parameter-list-wrapping = disabled
 ktlint_standard_statement-wrapping = disabled
 ktlint_standard_string-template-indent = disabled
 ktlint_standard_function-expression-body = disabled
-
 ktlint_standard_enum-wrapping = disabled
 ktlint_standard_if-else-wrapping = disabled
 ktlint_standard_no-blank-line-in-list = disabled
 ktlint_standard_condition-wrapping = disabled
-
 
 # rules that enforce style we don't want
 ktlint_standard_backing-property-naming = disabled # it would force making backed properties public.
