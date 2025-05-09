@@ -622,9 +622,18 @@ nsIntSize HTMLImageElement::NaturalSize() {
     return {};
   }
 
-  nsIntSize size;
-  Unused << image->GetHeight(&size.height);
-  Unused << image->GetWidth(&size.width);
+  mozilla::image::ImageIntrinsicSize intrinsicSize;
+  nsresult rv = image->GetIntrinsicSize(&intrinsicSize);
+  if (NS_FAILED(rv)) {
+    return {};
+  }
+
+  // For now, treat a missing intrinsic 'width' or 'height' as a natural size
+  // of '0' in that axis, per spec.  But we'll be changing that soon for
+  // webcompat reasons per https://github.com/whatwg/html/issues/11287
+  // and https://bugzilla.mozilla.org/show_bug.cgi?id=1935269 .
+  nsIntSize size(intrinsicSize.mWidth.valueOr(0),
+                 intrinsicSize.mHeight.valueOr(0));
 
   ImageResolution resolution = image->GetResolution();
   // NOTE(emilio): What we implement here matches the image-set() spec, but it's

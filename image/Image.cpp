@@ -78,11 +78,10 @@ ImageMemoryCounter::ImageMemoryCounter(imgRequest* aRequest, Image* aImage,
     imageURL->GetSpec(mURI);
   }
 
-  int32_t width = 0;
-  int32_t height = 0;
-  aImage->GetWidth(&width);
-  aImage->GetHeight(&height);
-  mIntrinsicSize.SizeTo(width, height);
+  ImageIntrinsicSize size;
+  if (NS_SUCCEEDED(aImage->GetIntrinsicSize(&size))) {
+    mIntrinsicSize.SizeTo(size.mWidth.valueOr(0), size.mHeight.valueOr(0));
+  }  // else, leave mIntrinsicSize default-initialized as IntSize(0,0).
 
   mType = aImage->GetType();
   mHasError = aImage->HasError();
