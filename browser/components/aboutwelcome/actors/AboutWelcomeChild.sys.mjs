@@ -399,166 +399,6 @@ export class AboutWelcomeChild extends JSWindowActorChild {
   }
 }
 
-const OPTIN_SIDEBAR_VARIANT = {
-  id: "FAKESPOT_OPTIN_SIDEBAR_VARIANT",
-  template: "multistage",
-  backdrop: "transparent",
-  aria_role: "alert",
-  UTMTerm: "opt-in",
-  screens: [
-    {
-      id: "FS_OPT_IN_SIDEBAR_VARIANT",
-      content: {
-        position: "split",
-        title: { string_id: "shopping-opt-in-integrated-headline" },
-        logo: {
-          type: "image",
-          imageURL: "chrome://browser/content/shopping/assets/emptyStateB.svg",
-        },
-        above_button_content: [
-          {
-            type: "text",
-            text: {
-              string_id: "shopping-opt-in-integrated-subtitle",
-            },
-            link_keys: ["learn_more"],
-            args: {},
-          },
-          {
-            type: "text",
-            text: {
-              string_id:
-                "shopping-opt-in-integrated-privacy-policy-and-terms-of-use",
-            },
-            link_keys: ["privacy_policy", "terms_of_use"],
-            font_styles: "legal",
-          },
-        ],
-        learn_more: {
-          action: {
-            type: "OPEN_URL",
-            data: {
-              args: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/review-checker-review-quality?utm_source=review-checker&utm_campaign=learn-more&utm_medium=in-product",
-              where: "tab",
-            },
-          },
-        },
-        privacy_policy: {
-          action: {
-            type: "OPEN_URL",
-            data: {
-              args: "https://www.mozilla.org/privacy/firefox?utm_source=review-checker&utm_campaign=privacy-policy&utm_medium=in-product&utm_term=opt-in-screen",
-              where: "tab",
-            },
-          },
-        },
-        terms_of_use: {
-          action: {
-            type: "OPEN_URL",
-            data: {
-              args: "https://www.fakespot.com/terms?utm_source=review-checker&utm_campaign=terms-of-use&utm_medium=in-product",
-              where: "tab",
-            },
-          },
-        },
-        primary_button: {
-          should_focus_button: true,
-          label: { string_id: "shopping-opt-in-integrated-button" },
-          action: {
-            type: "SET_PREF",
-            data: {
-              pref: {
-                name: "browser.shopping.experience2023.optedIn",
-                value: 1,
-              },
-            },
-          },
-        },
-      },
-    },
-  ],
-};
-
-const OPTIN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP = {
-  id: "FAKESPOT_OPTIN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP",
-  template: "multistage",
-  backdrop: "transparent",
-  aria_role: "alert",
-  UTMTerm: "opt-in",
-  screens: [
-    {
-      id: "FS_OPT_IN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP",
-      content: {
-        position: "split",
-        title: { string_id: "shopping-opt-in-integrated-headline" },
-        logo: {
-          type: "image",
-          imageURL: "chrome://browser/content/shopping/assets/emptyStateC.svg",
-        },
-        above_button_content: [
-          {
-            type: "text",
-            text: {
-              string_id: "shopping-opt-in-integrated-subtitle-unsupported-site",
-            },
-            link_keys: ["learn_more"],
-            args: {},
-          },
-          {
-            type: "text",
-            text: {
-              string_id:
-                "shopping-opt-in-integrated-privacy-policy-and-terms-of-use",
-            },
-            link_keys: ["privacy_policy", "terms_of_use"],
-            font_styles: "legal",
-          },
-        ],
-        learn_more: {
-          action: {
-            type: "OPEN_URL",
-            data: {
-              args: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/review-checker-review-quality?utm_source=review-checker&utm_campaign=learn-more&utm_medium=in-product",
-              where: "tab",
-            },
-          },
-        },
-        privacy_policy: {
-          action: {
-            type: "OPEN_URL",
-            data: {
-              args: "https://www.mozilla.org/privacy/firefox?utm_source=review-checker&utm_campaign=privacy-policy&utm_medium=in-product&utm_term=opt-in-screen",
-              where: "tab",
-            },
-          },
-        },
-        terms_of_use: {
-          action: {
-            type: "OPEN_URL",
-            data: {
-              args: "https://www.fakespot.com/terms?utm_source=review-checker&utm_campaign=terms-of-use&utm_medium=in-product",
-              where: "tab",
-            },
-          },
-        },
-        primary_button: {
-          should_focus_button: true,
-          label: { string_id: "shopping-opt-in-integrated-button" },
-          action: {
-            type: "SET_PREF",
-            data: {
-              pref: {
-                name: "browser.shopping.experience2023.optedIn",
-                value: 1,
-              },
-            },
-          },
-        },
-      },
-    },
-  ],
-};
-
 const OPTIN_DEFAULT = {
   id: "FAKESPOT_OPTIN_DEFAULT",
   template: "multistage",
@@ -858,13 +698,6 @@ const OPTED_IN_TIME_PREF = "browser.shopping.experience2023.survey.optedInTime";
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "isIntegratedSidebar",
-  "browser.shopping.experience2023.integratedSidebar",
-  false
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
   "isSurveySeen",
   "browser.shopping.experience2023.survey.hasSeen",
   false
@@ -962,42 +795,19 @@ export class AboutWelcomeShoppingChild extends AboutWelcomeChild {
 
   handleEvent(event) {
     // Decide when to show/hide onboarding and survey message
-    const { productUrl, showOnboarding, data, isSupportedSite, isProductPage } =
-      event.detail;
+    const { productUrl, showOnboarding, data } = event.detail;
     this.showOnboarding = showOnboarding;
 
     // Display onboarding if a user hasn't opted-in
-    // The sidebar panel that is integrated into the main sidebar
-    // can be opened for any URL, so we shouldn't check if this is
-    // a productURL for that.
-    const optInReady = lazy.isIntegratedSidebar
-      ? showOnboarding
-      : showOnboarding && productUrl;
+    const optInReady = showOnboarding && productUrl;
     if (optInReady) {
       // Render opt-in message
       AboutWelcomeShoppingChild.optedInSession = true;
-      this.AWSetProductURL(productUrl, isProductPage, isSupportedSite);
-
-      // Don't re-render the same opt in screen if it is already
-      // showing.
-      if (
-        lazy.isIntegratedSidebar &&
-        this.showingOnboardingForProduct === isProductPage &&
-        this.showingOnboardingForSite === isSupportedSite
-      ) {
-        return;
-      }
-
+      this.AWSetProductURL(productUrl);
       this.renderMessage();
-
-      this.showingOnboardingForProduct = !!isSupportedSite;
-      this.showingOnboardingForSite = !!isProductPage;
 
       return;
     }
-
-    this.showingOnboardingForProduct = null;
-    this.showingOnboardingForSite = null;
 
     //Store timestamp if user opts in
     if (
@@ -1088,60 +898,13 @@ export class AboutWelcomeShoppingChild extends AboutWelcomeChild {
     }
   }
 
-  AWSetProductURL(productUrl, isProductPage, isSupportedSite) {
+  AWSetProductURL(productUrl) {
     let productHostname;
     if (productUrl) {
       productHostname = new URL(productUrl).hostname;
     }
-    let content = lazy.isIntegratedSidebar
-      ? this._AWGetOptInSidebarVariantContent(
-          productUrl,
-          isProductPage,
-          isSupportedSite
-        )
-      : this._AWGetOptInDefaultContent(productHostname);
+    let content = this._AWGetOptInDefaultContent(productHostname);
     optInDynamicContent = content;
-  }
-
-  _AWGetOptInSidebarVariantContent(productUrl, isProductPage, isSupportedSite) {
-    let content;
-
-    if (!isProductPage && !isSupportedSite) {
-      content = JSON.parse(
-        JSON.stringify(OPTIN_SIDEBAR_VARIANT_UNSUPPORTED_NON_PDP)
-      );
-    } else {
-      content = JSON.parse(JSON.stringify(OPTIN_SIDEBAR_VARIANT));
-    }
-
-    const [optInScreen] = content.screens;
-
-    switch (productUrl) {
-      case "www.walmart.com":
-        optInScreen.content.above_button_content[0].text.args = {
-          firstSite: "Walmart",
-          secondSite: "Amazon",
-          thirdSite: "Best Buy",
-        };
-        break;
-      case "www.bestbuy.com":
-        optInScreen.content.above_button_content[0].text.args = {
-          firstSite: "Best Buy",
-          secondSite: "Amazon",
-          thirdSite: "Walmart",
-        };
-        break;
-      case "www.amazon.com":
-      // Intentional fall-through
-      default:
-        optInScreen.content.above_button_content[0].text.args = {
-          firstSite: "Amazon",
-          secondSite: "Walmart",
-          thirdSite: "Best Buy",
-        };
-    }
-
-    return content;
   }
 
   _AWGetOptInDefaultContent(productUrl) {

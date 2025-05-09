@@ -23,8 +23,6 @@ import "chrome://browser/content/shopping/shopping-message-bar.mjs";
 import "chrome://browser/content/shopping/unanalyzed.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/shopping/recommended-ad.mjs";
-// eslint-disable-next-line import/no-unassigned-import
-import "chrome://browser/content/shopping/new-position-notification-card.mjs";
 
 // The number of pixels that must be scrolled from the
 // top of the sidebar to show the header box shadow.
@@ -36,11 +34,6 @@ const SIDEBAR_CLOSED_COUNT_PREF =
 const SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF =
   "browser.shopping.experience2023.showKeepSidebarClosedMessage";
 const SHOPPING_SIDEBAR_ACTIVE_PREF = "browser.shopping.experience2023.active";
-const SIDEBAR_REVAMP_PREF = "sidebar.revamp";
-const INTEGRATED_SIDEBAR_PREF =
-  "browser.shopping.experience2023.integratedSidebar";
-const HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF =
-  "browser.shopping.experience2023.newPositionCard.hasSeen";
 
 const CLOSED_COUNT_PREVIOUS_MIN = 4;
 const CLOSED_COUNT_PREVIOUS_MAX = 6;
@@ -65,11 +58,7 @@ export class ShoppingContainer extends MozLitElement {
     showingKeepClosedMessage: { type: Boolean },
     isProductPage: { type: Boolean },
     isSupportedSite: { type: Boolean },
-    supportedDomains: { type: Object },
-    formattedDomainList: { type: Object, state: true },
     isHeaderOverflow: { type: Boolean, state: true },
-    isSidebarStartPosition: { type: Boolean },
-    showNewPositionCard: { type: Boolean },
   };
 
   static get queries() {
@@ -85,13 +74,8 @@ export class ShoppingContainer extends MozLitElement {
       loadingEl: "#loading-wrapper",
       closeButtonEl: "#close-button",
       keepClosedMessageBarEl: "#keep-closed-message-bar",
-      emptyStateImgEl: "#shopping-empty-state-img",
-      emptyStateHeaderEl: "#shopping-empty-state-header",
-      emptyStateTextEl: "#shopping-empty-state-text",
-      emptyStateSupportedListEl: "#shopping-empty-list-of-supported-domains",
       containerContentEl: "#content",
       header: "#shopping-header",
-      newPositionNotificationCardEl: "new-position-notification-card",
     };
   }
 
@@ -101,9 +85,6 @@ export class ShoppingContainer extends MozLitElement {
       return;
     }
     this.initialized = true;
-    this.showHeader =
-      !RPMGetBoolPref(INTEGRATED_SIDEBAR_PREF) ||
-      RPMGetBoolPref(SIDEBAR_REVAMP_PREF);
 
     window.document.addEventListener("Update", this);
     window.document.addEventListener("NewAnalysisRequested", this);
@@ -116,8 +97,6 @@ export class ShoppingContainer extends MozLitElement {
     window.document.addEventListener("autoOpenEnabledByUserChanged", this);
     window.document.addEventListener("ShowKeepClosedMessage", this);
     window.document.addEventListener("HideKeepClosedMessage", this);
-    window.document.addEventListener("ShowNewPositionCard", this);
-    window.document.addEventListener("HideNewPositionCard", this);
 
     window.dispatchEvent(
       new CustomEvent("ContentReady", {
@@ -138,24 +117,7 @@ export class ShoppingContainer extends MozLitElement {
     this.headerResizeObserver.observe(this.header);
   }
 
-  updated(changedProperties) {
-    if (changedProperties.has("supportedDomains")) {
-      let oldVal = changedProperties.get("supportedDomains");
-      /**
-       * We expect the domains object to be passed in consistently and not change often.
-       * A shallow comparison seems to be enough.
-       */
-      try {
-        if (JSON.stringify(oldVal) !== JSON.stringify(this.supportedDomains)) {
-          // Let the render function deal with recreating the formatted list.
-          this.formattedDomainList = null;
-        }
-      } catch (e) {
-        console.error(e);
-        this.formattedDomainList = null;
-      }
-    }
-
+  updated() {
     if (this.focusCloseButton) {
       this.closeButtonEl.focus();
     }
@@ -175,8 +137,6 @@ export class ShoppingContainer extends MozLitElement {
     autoOpenEnabledByUser,
     isProductPage,
     isSupportedSite,
-    supportedDomains,
-    isSidebarStartPosition,
   }) {
     // If we're not opted in or there's no shopping URL in the main browser,
     // the actor will pass `null`, which means this will clear out any existing
@@ -196,9 +156,6 @@ export class ShoppingContainer extends MozLitElement {
       autoOpenEnabledByUser ?? this.autoOpenEnabledByUser;
     this.isProductPage = isProductPage ?? true;
     this.isSupportedSite = isSupportedSite;
-    this.supportedDomains = supportedDomains ?? this.supportedDomains;
-    this.isSidebarStartPosition =
-      isSidebarStartPosition ?? this.isSidebarStartPosition;
   }
 
   _updateRecommendations({ recommendationData }) {
@@ -258,12 +215,6 @@ export class ShoppingContainer extends MozLitElement {
         break;
       case "HideKeepClosedMessage":
         this.showingKeepClosedMessage = false;
-        break;
-      case "ShowNewPositionCard":
-        this.showNewPositionCard = true;
-        break;
-      case "HideNewPositionCard":
-        this.showNewPositionCard = false;
         break;
     }
   }
@@ -430,115 +381,6 @@ export class ShoppingContainer extends MozLitElement {
     return this.loadingTemplate({ animate });
   }
 
-  nonPDPTemplate() {
-    // TODO: (Bug 1937924) settings template will throw a warning since this.productUrl is null when viewing a non-PDP
-    const bodyTextTemplate = this.isSupportedSite
-      ? html` <p
-          id="shopping-empty-state-text"
-          data-l10n-id="shopping-empty-state-supported-site"
-        ></p>`
-      : html`
-          <p
-            id="shopping-empty-state-text"
-            data-l10n-id="shopping-empty-state-non-supported-site"
-          ></p>
-        `;
-
-    if (!this.formattedDomainList) {
-      this.formattedDomainList = this._formattedDomainListTemplate();
-    }
-
-    const listTemplate = !this.isSupportedSite
-      ? html`<ul id="shopping-empty-list-of-supported-domains">
-          ${this.formattedDomainList}
-        </ul>`
-      : null;
-
-    // Anything wrapped by #shopping-empty-wrapper will be centered on sidebar width changes.
-    return html`<div id="shopping-empty-wrapper">
-        <img
-          id="shopping-empty-state-img"
-          src="chrome://browser/content/shopping/assets/emptyStateA.svg"
-          alt=""
-          role="presentation"
-        />
-        <h2
-          id="shopping-empty-state-header"
-          data-l10n-id="shopping-empty-state-header"
-        ></h2>
-        ${bodyTextTemplate} ${listTemplate}
-      </div>
-      ${this.isSupportedSite
-        ? this.explainerTemplate({ className: "first-footer-card" })
-        : null}`;
-  }
-
-  _formattedDomainListTemplate() {
-    if (!this.supportedDomains) {
-      return null;
-    }
-
-    let template = [];
-    let formatter = new Intl.ListFormat(undefined, {
-      style: "narrow",
-      type: "conjunction",
-    });
-
-    Object.keys(this.supportedDomains)
-      .sort()
-      .forEach(sitename => {
-        let domainsFromSite = this.supportedDomains[sitename];
-
-        // List of supported domains per sitename, per row, as a string.
-        let anchorsString = domainsFromSite.map(domain => {
-          try {
-            let url = new URL(domain);
-            let hostname = url.hostname;
-            /** ShoppingProduct should already validate the URLs in the ProductConfig for us.
-             * As an extra precaution though, let's verify that we've been passed a valid URL, in case
-             * something goes awry in messages between actors and the shopping-container.
-             *
-             * @see ShoppingProduct
-             */
-            let validProtocolRegex = /^(https:\/\/\w+.*)/;
-            return validProtocolRegex.test(url)
-              ? `<a class="shopping-supported-domain-link" href=${url.href} target="_blank">${hostname}</a>`
-              : null;
-          } catch (e) {
-            // Somehow, we got an invalid URL.
-            console.error(e);
-            return null;
-          }
-        });
-
-        // Now format the string as a list suitable for the current locale.
-        anchorsString = formatter.format(anchorsString);
-
-        // Convert the formatted string into an element that can be inserted into our litElement template.
-        const parser = new DOMParser();
-        let anchorsDOMDoc = parser.parseFromString(anchorsString, "text/html");
-        /**
-         * litElement will lose a reference to the childNodes on re-render if we use a DocumentFragment.
-         * Instead, add the nodes as an array in our template so that we preserve them.
-         */
-        let anchorsTemplate = [];
-        Array.from(anchorsDOMDoc.body.childNodes).forEach(childNode => {
-          anchorsTemplate.push(childNode);
-        });
-
-        let listTemplate = html` <li
-          id="shopping-empty-state-domains-list-${sitename}"
-          class="shopping-supported-domain-list"
-        >
-          ${anchorsTemplate}
-        </li>`;
-
-        template.push(listTemplate);
-      });
-
-    return template;
-  }
-
   headerTemplate() {
     const headerWrapperClasses = `${this.showHeaderShadow ? "header-wrapper-shadow" : ""} ${this.isHeaderOverflow ? "header-wrapper-overflow" : ""}`;
     return html`<div id="header-wrapper" class=${headerWrapperClasses}>
@@ -560,11 +402,6 @@ export class ShoppingContainer extends MozLitElement {
 
   // TODO: (Bug 1949647) do not render "Keep closed" message and notification card simultaneously.
   renderContainer(sidebarContent, { showSettings = false } = {}) {
-    /* Empty state styles for users that are not yet opted-in are managed separately
-     * by AboutWelcomeChild.sys.mjs and _shopping.scss. To prevent overlap, only apply
-     * the class for these styles if a user is opted-in. */
-    const canStyleEmptyState =
-      !this.isProductPage && !this.isOffline && !this.showOnboarding;
     return html`<link
         rel="stylesheet"
         href="chrome://browser/content/shopping/shopping-container.css"
@@ -578,13 +415,8 @@ export class ShoppingContainer extends MozLitElement {
         href="chrome://browser/content/shopping/shopping-page.css"
       />
       <div id="shopping-container">
-        ${this.showHeader ? this.headerTemplate() : null}
-        <div
-          id="content"
-          class=${canStyleEmptyState ? "is-empty-state" : ""}
-          aria-live="polite"
-          aria-busy=${!this.data}
-        >
+        ${this.headerTemplate()}
+        <div id="content" aria-live="polite" aria-busy=${!this.data}>
           <slot name="multi-stage-message-slot"></slot>
           ${this.userInteractionMessageTemplate()}${sidebarContent}
           ${showSettings
@@ -618,45 +450,15 @@ export class ShoppingContainer extends MozLitElement {
   }
 
   userInteractionMessageTemplate() {
-    /**
-     * There are two types of messages about users' interaction with Review Checker that we want to display
-     * when users keep the auto-open setting enabled:
-     * 1. The "Keep closed" message-bar
-     * 2. The "New position" notification card (integratedSidebar only)
-     *
-     * Only one or the other should be rendered at a time, at the same spot. If a user is eligible
-     * to see the notification card, make sure to show that card first. Once the card is dismissed,
-     * we can then check if the user is eligible to see the "Keep closed" message.
-     */
     if (!this.autoOpenEnabled || !this.autoOpenEnabledByUser) {
       return null;
     }
 
-    let canShowNotificationCard =
-      RPMGetBoolPref(INTEGRATED_SIDEBAR_PREF, false) &&
-      this.showNewPositionCard &&
-      this.isSidebarStartPosition &&
-      // Set fallback value to true to prevent weird flickering UI when switching tabs
-      !RPMGetBoolPref(HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF, true) &&
-      this.isProductPage;
-    let canShowKeepClosedMessage =
-      this.showingKeepClosedMessage && this.isProductPage;
-
-    if (canShowNotificationCard) {
-      return this.newPositionNotificationCardTemplate();
-    } else if (canShowKeepClosedMessage) {
+    if (this.showingKeepClosedMessage) {
       return this.keepClosedMessageTemplate();
     }
 
     return null;
-  }
-
-  newPositionNotificationCardTemplate() {
-    return html`
-      <new-position-notification-card
-        isSidebarStartPosition=${this.isSidebarStartPosition}
-      ></new-position-notification-card>
-    `;
   }
 
   keepClosedMessageTemplate() {
@@ -669,16 +471,12 @@ export class ShoppingContainer extends MozLitElement {
   render() {
     let content;
     // this.data may be null because we're viewing a non PDP, or a PDP that does not have data yet.
-    // Use isProductPage and isSupported to distinguish between the two.
-    const isLoadingData =
-      !this.data && this.isProductPage && !this.isSupportedSite;
+    const isLoadingData = !this.data;
 
     if (this.showOnboarding) {
       content = html``;
     } else if (isLoadingData || this.isOffline) {
       content = this.noDataTemplate({ animate: !this.isOffline });
-    } else if (!this.isProductPage || this.isSupportedSite) {
-      content = this.nonPDPTemplate();
     } else {
       content = this.hasDataTemplate();
     }
@@ -692,18 +490,6 @@ export class ShoppingContainer extends MozLitElement {
 
   handleCloseButtonClick() {
     let canShowKeepClosedMessage;
-
-    let showingNewPositionCard =
-      RPMGetBoolPref(INTEGRATED_SIDEBAR_PREF, false) &&
-      this.showNewPositionCard &&
-      !RPMGetBoolPref(HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF, true);
-
-    // Consider the notification card as seen if the user closes RC with the X button
-    // when the card is already rendered.
-    if (showingNewPositionCard) {
-      this.showNewPositionCard = false;
-      RPMSetPref(HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF, true);
-    }
 
     if (this.autoOpenEnabled && this.autoOpenEnabledByUser) {
       canShowKeepClosedMessage =
@@ -735,15 +521,9 @@ export class ShoppingContainer extends MozLitElement {
    * Do not show the message again after the 7th close.
    */
   _canShowKeepClosedMessageOnCloseButtonClick() {
-    let yetToSeeNotificationCard =
-      !RPMGetBoolPref(HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF, false) &&
-      RPMGetBoolPref(INTEGRATED_SIDEBAR_PREF, false);
-
     if (
-      yetToSeeNotificationCard ||
       !RPMGetBoolPref(SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF, false) ||
-      this.showOnboarding ||
-      !this.isProductPage
+      this.showOnboarding
     ) {
       return false;
     }
