@@ -175,12 +175,14 @@ export const ExperimentAPI = {
     return this._manager.store.ready();
   },
 
-  async _annotateCrashReport() {
+  /**
+   * Annotate the current crash report with current enrollments.
+   */
+  _annotateCrashReport() {
     if (!Services.appinfo.crashReporterEnabled) {
       return;
     }
 
-    await this.ready();
     const activeEnrollments = this._manager.store
       .getAll()
       .filter(e => e.active)
