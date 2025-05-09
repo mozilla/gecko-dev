@@ -639,6 +639,9 @@ export let BrowserUsageTelemetry = {
       case "TabGroupSaved":
         this._onTabGroupSave(event);
         break;
+      case "TabGroupUngroup":
+        this._onTabGroupUngroup(event);
+        break;
 
       case "unload":
         this._unregisterWindow(event.target);
@@ -1198,6 +1201,7 @@ export let BrowserUsageTelemetry = {
     win.addEventListener("TabGroupCollapse", this);
     win.addEventListener("TabGroupExpand", this);
     win.addEventListener("TabGroupSaved", this);
+    win.addEventListener("TabGroupUngroup", this);
 
     win.gBrowser.tabContainer.addEventListener(TAB_RESTORING_TOPIC, this);
     win.gBrowser.addTabsProgressListener(URICountListener);
@@ -1220,6 +1224,7 @@ export let BrowserUsageTelemetry = {
     win.removeEventListener("TabGroupCollapse", this);
     win.removeEventListener("TabGroupExpand", this);
     win.removeEventListener("TabGroupSaved", this);
+    win.removeEventListener("TabGroupUngroup", this);
 
     win.defaultView.gBrowser.tabContainer.removeEventListener(
       TAB_RESTORING_TOPIC,
@@ -1303,10 +1308,16 @@ export let BrowserUsageTelemetry = {
   },
 
   _onTabGroupSave(event) {
+    const { isUserTriggered } = event.detail;
+
     Glean.tabgroup.save.record({
-      user_triggered: event.detail.isUserTriggered,
+      user_triggered: isUserTriggered,
       id: event.target.id,
     });
+
+    if (isUserTriggered) {
+      Glean.tabgroup.groupInteractions.save.add(1);
+    }
 
     this._onTabGroupChange();
   },
@@ -1314,6 +1325,16 @@ export let BrowserUsageTelemetry = {
   _onTabGroupChange() {
     this._onTabGroupChangeTask.disarm();
     this._onTabGroupChangeTask.arm();
+  },
+
+  /**
+   * @param {CustomEvent} event `TabGroupUngroup` event
+   */
+  _onTabGroupUngroup(event) {
+    const { isUserTriggered } = event.detail;
+    if (isUserTriggered) {
+      Glean.tabgroup.groupInteractions.ungroup.add(1);
+    }
   },
 
   /**
@@ -1419,6 +1440,7 @@ export let BrowserUsageTelemetry = {
         id: event.target.id,
         source: telemetrySource,
       });
+      Glean.tabgroup.groupInteractions.delete.add(1);
     }
   },
 

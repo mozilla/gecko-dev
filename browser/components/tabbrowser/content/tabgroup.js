@@ -7,6 +7,10 @@
 // This is loaded into chrome windows with the subscript loader. Wrap in
 // a block to prevent accidentally leaking globals onto `window`.
 {
+  const { TabMetrics } = ChromeUtils.importESModule(
+    "moz-src:///browser/components/tabbrowser/TabMetrics.sys.mjs"
+  );
+
   class MozTabbrowserTabGroup extends MozXULElement {
     static markup = `
       <vbox class="tab-group-label-container" pack="center">
@@ -254,9 +258,20 @@
 
     /**
      * Remove all tabs from the group and delete the group.
-     *
+     * @param {TabMetricsContext} [metricsContext]
      */
-    ungroupTabs() {
+    ungroupTabs(
+      metricsContext = {
+        isUserTriggered: false,
+        telemetrySource: TabMetrics.METRIC_SOURCE.UNKNOWN,
+      }
+    ) {
+      this.dispatchEvent(
+        new CustomEvent("TabGroupUngroup", {
+          bubbles: true,
+          detail: metricsContext,
+        })
+      );
       for (let i = this.tabs.length - 1; i >= 0; i--) {
         gBrowser.ungroupTab(this.tabs[i]);
       }
@@ -293,6 +308,12 @@
         event.preventDefault();
         this.collapsed = !this.collapsed;
         gBrowser.tabGroupMenu.close();
+
+        /** @type {GleanCounter} */
+        let interactionMetric = this.collapsed
+          ? Glean.tabgroup.groupInteractions.collapse
+          : Glean.tabgroup.groupInteractions.expand;
+        interactionMetric.add(1);
       }
     }
 

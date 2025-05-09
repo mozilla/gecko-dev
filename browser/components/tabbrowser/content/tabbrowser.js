@@ -5903,6 +5903,7 @@
             label: group.label,
             id: group.id,
           });
+          Glean.tabgroup.groupInteractions.move_window.add(1);
         },
         { once: true }
       );
