@@ -92,7 +92,7 @@ ext.configurePublish = { groupIdArg, artifactIdArg, descriptionArg ->
             }
             repositories {
                 maven {
-                    url = "$buildDir/maven"
+                    url = "${gradle.mozconfig.topobjdir}/gradle/maven"
                 }
             }
         }

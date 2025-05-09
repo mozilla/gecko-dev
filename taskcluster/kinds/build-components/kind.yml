@@ -21,7 +21,7 @@ task-defaults:
     artifact-template:
         type: file
         name: public/build/{artifact_file_name}
-        path: '/builds/worker/checkouts/gecko/mobile/android/android-components/{component_path}/build/maven/org/mozilla/components/{component}/{version}/{artifact_file_name}'
+        path: '/builds/worker/workspace/obj-build/gradle/maven/org/mozilla/components/{component}/{version}/{artifact_file_name}'
     tests-artifact-template:
         type: directory
         name: public/reports/tests
