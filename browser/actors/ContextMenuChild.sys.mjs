@@ -241,7 +241,7 @@ export class ContextMenuChild extends JSWindowActorChild {
           !node.name ||
           (method != "POST" && method != "GET") ||
           node.form.enctype != "application/x-www-form-urlencoded" ||
-          formData.entries().some(([k, v]) => !k && typeof v != "string")
+          formData.values().some(v => typeof v != "string")
         ) {
           // This should never happen since these conditions are checked in
           // `isTargetASearchEngineField`.

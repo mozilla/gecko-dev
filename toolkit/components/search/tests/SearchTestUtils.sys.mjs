@@ -761,6 +761,26 @@ class _SearchTestUtils {
       reader.readAsDataURL(blob);
     });
   }
+
+  /**
+   * Extracts post data string from an nsISearchSubmission.
+   * If there is no post data, returns null.
+   *
+   * @param {?nsISearchSubmission} submission
+   * @returns {?string}
+   */
+  getPostDataString(submission) {
+    if (!submission.postData) {
+      return null;
+    }
+
+    let binaryStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(
+      Ci.nsIBinaryInputStream
+    );
+    binaryStream.setInputStream(submission.postData.data);
+
+    return binaryStream.readBytes(binaryStream.available());
+  }
 }
 
 export const SearchTestUtils = new _SearchTestUtils();
