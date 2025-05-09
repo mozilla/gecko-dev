@@ -820,6 +820,10 @@ search-keyword-warning-title = Duplicate Keyword
 search-keyword-warning-engine = You have chosen a keyword that is currently in use by “{ $name }”. Please select another.
 search-keyword-warning-bookmark = You have chosen a keyword that is currently in use by a bookmark. Please select another.
 
+remove-engine-confirmation = Are you sure you want to remove this search engine?
+remove-engine-remove = Remove
+remove-addon-engine-alert = To remove this search engine, remove the associated add-on.
+
 ## Containers Section
 
 containers-back-button2 =

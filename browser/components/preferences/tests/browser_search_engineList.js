@@ -1,3 +1,6 @@
+const { PromptTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PromptTestUtils.sys.mjs"
+);
 const { SearchTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/SearchTestUtils.sys.mjs"
 );
@@ -45,6 +48,24 @@ async function engine_list_test(fn) {
   Object.defineProperty(task, "name", { value: fn.name });
   add_task(task);
 }
+async function selectEngine(tree, index) {
+  let rect = tree.getCoordsForCellItem(
+    index,
+    tree.columns.getNamedColumn("engineName"),
+    "text"
+  );
+  let x = rect.x + rect.width / 2;
+  let y = rect.y + rect.height / 2;
+  let promise = BrowserTestUtils.waitForEvent(tree, "click");
+  EventUtils.synthesizeMouse(
+    tree.body,
+    x,
+    y,
+    { clickCount: 1 },
+    tree.ownerGlobal
+  );
+  return promise;
+}
 
 add_setup(async function () {
   installedEngines = await Services.search.getAppProvidedEngines();
@@ -64,11 +85,7 @@ add_setup(async function () {
     alias: "u",
   });
   installedEngines.push(userEngine);
-
-  registerCleanupFunction(async () => {
-    await Services.search.removeEngine(userEngine);
-    // Extension engine is cleaned up by SearchTestUtils.
-  });
+  // The added engines are removed in the last test.
 });
 
 engine_list_test(async function test_engine_list(tree) {
@@ -201,29 +218,83 @@ engine_list_test(async function test_rename_engines(tree) {
 
 engine_list_test(async function test_remove_button_disabled_state(tree, doc) {
   let appProvidedEngines = await Services.search.getAppProvidedEngines();
-  let win = tree.ownerGlobal;
   for (let i = 0; i < appProvidedEngines.length; i++) {
     let engine = appProvidedEngines[i];
     let isDefaultSearchEngine =
       engine.id == Services.search.defaultEngine.id ||
       engine.id == Services.search.defaultPrivateEngine.id;
 
-    let rect = tree.getCoordsForCellItem(
-      i,
-      tree.columns.getNamedColumn("engineName"),
-      "text"
-    );
-    let x = rect.x + rect.width / 2;
-    let y = rect.y + rect.height / 2;
-
-    let promise = BrowserTestUtils.waitForEvent(tree, "click");
-    EventUtils.synthesizeMouse(tree.body, x, y, { clickCount: 1 }, win);
-    await promise;
-
+    await selectEngine(tree, i);
     Assert.equal(
       doc.querySelector("#removeEngineButton").disabled,
       isDefaultSearchEngine,
       "Remove button is in correct disabled state."
     );
   }
+});
+
+engine_list_test(async function test_remove_button(tree, doc) {
+  let win = tree.ownerGlobal;
+  let alertSpy = sinon.stub(win, "alert");
+
+  info("Removing user engine.");
+  let userEngineIndex = installedEngines.findIndex(e => e.id == userEngine.id);
+  await selectEngine(tree, userEngineIndex);
+
+  let promptPromise = PromptTestUtils.handleNextPrompt(
+    gBrowser.selectedBrowser,
+    { modalType: Services.prompt.MODAL_TYPE_CONTENT },
+    { buttonNumClick: 0 } // 0 = cancel, 1 = remove
+  );
+  let removedPromise = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.REMOVED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+
+  doc.querySelector("#removeEngineButton").click();
+  await promptPromise;
+  let removedEngine = await removedPromise;
+  Assert.equal(
+    removedEngine.id,
+    userEngine.id,
+    "User engine was removed after a prompt."
+  );
+
+  // Re-fetch the engines since removing the user engine changed it.
+  installedEngines = await Services.search.getEngines();
+
+  info("Removing extension engine.");
+  let extensionEngineIndex = installedEngines.findIndex(
+    e => e.id == extensionEngine.id
+  );
+  await selectEngine(tree, extensionEngineIndex);
+
+  doc.querySelector("#removeEngineButton").click();
+  await TestUtils.waitForCondition(() => alertSpy.calledOnce);
+  Assert.ok(true, "Alert is shown when attempting to remove extension engine.");
+
+  info("Removing (last) app provided engine.");
+  let appProvidedEngines = await Services.search.getAppProvidedEngines();
+  let lastAppEngine = appProvidedEngines[appProvidedEngines.length - 1];
+  let lastAppEngineIndex = installedEngines.findIndex(
+    e => e.id == lastAppEngine.id
+  );
+  await selectEngine(tree, lastAppEngineIndex);
+
+  doc.querySelector("#removeEngineButton").click();
+  removedEngine = await SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.REMOVED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  Assert.equal(
+    removedEngine.id,
+    lastAppEngine.id,
+    "Last app provided engine was removed without a prompt."
+  );
+
+  // Cleanup.
+  alertSpy.restore();
+  Services.search.resetToAppDefaultEngine();
+  // The user engine is purposefully not re-added.
+  // The extension engine is removed automatically on cleanup.
 });
