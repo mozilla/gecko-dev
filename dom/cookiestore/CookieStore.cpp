@@ -53,12 +53,12 @@ int32_t SameSiteToConst(const CookieSameSite& aSameSite) {
 }
 
 bool ValidateCookieNameOrValue(const nsAString& aStr) {
+  if (aStr.Length() > 0 && (aStr.First() == 0x20 || aStr.Last() == 0x20)) {
+    return false;
+  }
   for (auto iter = aStr.BeginReading(), end = aStr.EndReading(); iter < end;
        ++iter) {
     if (*iter == 0x3B || *iter == 0x7F || (*iter <= 0x1F && *iter != 0x09)) {
-      return false;
-    }
-    if (*iter == 0x20) {
       return false;
     }
   }
