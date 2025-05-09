@@ -13,6 +13,7 @@
 #include "nsGkAtoms.h"
 #include "nsUConvPropertySearch.h"
 #include "nsUnicharUtils.h"
+#include "MainThreadUtils.h"
 
 #include <mutex>  // for call_once
 
