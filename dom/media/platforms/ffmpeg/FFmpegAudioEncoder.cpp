@@ -237,6 +237,8 @@ MediaResult FFmpegAudioEncoder<LIBAV_VER>::InitEncoder() {
 Result<MediaDataEncoder::EncodedData, MediaResult>
 FFmpegAudioEncoder<LIBAV_VER>::EncodeOnePacket(Span<float> aSamples,
                                                media::TimeUnit aPts) {
+  MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
+
   // Allocate AVFrame.
   if (!PrepareFrame()) {
     return Err(
@@ -394,6 +396,8 @@ Result<MediaDataEncoder::EncodedData, MediaResult> FFmpegAudioEncoder<
 
 Result<MediaDataEncoder::EncodedData, MediaResult>
 FFmpegAudioEncoder<LIBAV_VER>::DrainWithModernAPIs() {
+  MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
+
   // If there's no packetizer, or it's empty, we can proceed immediately.
   if (!mPacketizer || mPacketizer->FramesAvailable() == 0) {
     return FFmpegDataEncoder<LIBAV_VER>::DrainWithModernAPIs();
@@ -490,6 +494,8 @@ FFmpegAudioEncoder<LIBAV_VER>::ToMediaRawData(AVPacket* aPacket) {
 
 Result<already_AddRefed<MediaByteBuffer>, MediaResult>
 FFmpegAudioEncoder<LIBAV_VER>::GetExtraData(AVPacket* /* aPacket */) {
+  MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
+
   if (!mCodecContext->extradata_size) {
     return Err(MediaResult(NS_ERROR_NOT_AVAILABLE, "no extradata"_ns));
   }
