@@ -700,7 +700,7 @@ TEST(EncodeAPI, MultiResEncode) {
     cfg[0].g_timebase.num = 1;                 /* Set fps */
     cfg[0].g_timebase.den = framerate;
 
-    memcpy(&cfg[1], &cfg[0], sizeof(cfg[0]));
+    cfg[1] = cfg[0];
     cfg[1].rc_target_bitrate = 500;
     cfg[1].g_w = width_down;
     cfg[1].g_h = height_down;

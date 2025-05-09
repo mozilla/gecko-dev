@@ -308,7 +308,6 @@ EXPERIMENT_LIST="
     fp_mb_stats
     emulate_hardware
     non_greedy_mv
-    rate_ctrl
     collect_component_timing
 "
 CONFIG_LIST="

@@ -1028,15 +1028,6 @@ static void dealloc_compressor_data(VP9_COMP *cpi) {
   vpx_free(cpi->mi_ssim_rdmult_scaling_factors);
   cpi->mi_ssim_rdmult_scaling_factors = NULL;
 
-#if CONFIG_RATE_CTRL
-  if (cpi->oxcf.use_simple_encode_api) {
-    free_partition_info(cpi);
-    free_motion_vector_info(cpi);
-    free_fp_motion_vector_info(cpi);
-    free_tpl_stats_info(cpi);
-  }
-#endif
-
   vp9_free_ref_frame_buffers(cm->buffer_pool);
 #if CONFIG_VP9_POSTPROC
   vp9_free_postproc_buffers(cm);
@@ -2805,16 +2796,6 @@ VP9_COMP *vp9_create_compressor(const VP9EncoderConfig *oxcf,
 
   cm->error.setjmp = 0;
 
-#if CONFIG_RATE_CTRL
-  encode_command_init(&cpi->encode_command);
-  if (oxcf->use_simple_encode_api) {
-    partition_info_init(cpi);
-    motion_vector_info_init(cpi);
-    fp_motion_vector_info_init(cpi);
-    tpl_stats_info_init(cpi);
-  }
-#endif
-
   return cpi;
 }
 
@@ -3500,11 +3481,15 @@ static void loopfilter_frame(VP9_COMP *cpi, VP9_COMMON *cm) {
     lf->filter_level = 0;
     lf->last_filt_level = 0;
   } else {
+#if CONFIG_INTERNAL_STATS
     struct vpx_usec_timer timer;
+#endif
 
     vpx_clear_system_state();
 
+#if CONFIG_INTERNAL_STATS
     vpx_usec_timer_start(&timer);
+#endif
 
     if (!cpi->rc.is_src_frame_alt_ref) {
       if ((cpi->common.frame_type == KEY_FRAME) &&
@@ -3517,8 +3502,10 @@ static void loopfilter_frame(VP9_COMP *cpi, VP9_COMMON *cm) {
       lf->filter_level = 0;
     }
 
+#if CONFIG_INTERNAL_STATS
     vpx_usec_timer_mark(&timer);
     cpi->time_pick_lpf += vpx_usec_timer_elapsed(&timer);
+#endif
   }
 
   if (lf->filter_level > 0 && is_reference_frame) {
@@ -4414,150 +4401,8 @@ static int get_qstep_adj(int rate_excess, int rate_limit) {
   return VPXMIN(qstep, MAX_QSTEP_ADJ);
 }
 
-#if CONFIG_RATE_CTRL
-static void init_rq_history(RATE_QINDEX_HISTORY *rq_history) {
-  rq_history->recode_count = 0;
-  rq_history->q_index_high = 255;
-  rq_history->q_index_low = 0;
-}
-
-static void update_rq_history(RATE_QINDEX_HISTORY *rq_history, int target_bits,
-                              int actual_bits, int q_index) {
-  rq_history->q_index_history[rq_history->recode_count] = q_index;
-  rq_history->rate_history[rq_history->recode_count] = actual_bits;
-  if (actual_bits <= target_bits) {
-    rq_history->q_index_high = q_index;
-  }
-  if (actual_bits >= target_bits) {
-    rq_history->q_index_low = q_index;
-  }
-  rq_history->recode_count += 1;
-}
-
-static int guess_q_index_from_model(const RATE_QSTEP_MODEL *rq_model,
-                                    int target_bits) {
-  // The model predicts bits as follows.
-  // target_bits = bias - ratio * log2(q_step)
-  // Given the target_bits, we compute the q_step as follows.
-  double q_step;
-  assert(rq_model->ratio > 0);
-  q_step = pow(2.0, (rq_model->bias - target_bits) / rq_model->ratio);
-  // TODO(angiebird): Make this function support highbitdepth.
-  return vp9_convert_q_to_qindex(q_step, VPX_BITS_8);
-}
-
-static int guess_q_index_linear(int prev_q_index, int target_bits,
-                                int actual_bits, int gap) {
-  int q_index = prev_q_index;
-  if (actual_bits < target_bits) {
-    q_index -= gap;
-    q_index = VPXMAX(q_index, 0);
-  } else {
-    q_index += gap;
-    q_index = VPXMIN(q_index, 255);
-  }
-  return q_index;
-}
-
-static double get_bits_percent_diff(int target_bits, int actual_bits) {
-  double diff;
-  target_bits = VPXMAX(target_bits, 1);
-  diff = abs(target_bits - actual_bits) * 1. / target_bits;
-  return diff * 100;
-}
-
-static int rq_model_predict_q_index(const RATE_QSTEP_MODEL *rq_model,
-                                    const RATE_QINDEX_HISTORY *rq_history,
-                                    int target_bits) {
-  int q_index = 128;
-  if (rq_history->recode_count > 0) {
-    const int actual_bits =
-        rq_history->rate_history[rq_history->recode_count - 1];
-    const int prev_q_index =
-        rq_history->q_index_history[rq_history->recode_count - 1];
-    const double percent_diff = get_bits_percent_diff(target_bits, actual_bits);
-    if (percent_diff > 50) {
-      // Binary search.
-      // When the actual_bits and target_bits are far apart, binary search
-      // q_index is faster.
-      q_index = (rq_history->q_index_low + rq_history->q_index_high) / 2;
-    } else {
-      if (rq_model->ready) {
-        q_index = guess_q_index_from_model(rq_model, target_bits);
-      } else {
-        // TODO(angiebird): Find a better way to set the gap.
-        q_index =
-            guess_q_index_linear(prev_q_index, target_bits, actual_bits, 20);
-      }
-    }
-  } else {
-    if (rq_model->ready) {
-      q_index = guess_q_index_from_model(rq_model, target_bits);
-    }
-  }
-
-  assert(rq_history->q_index_low <= rq_history->q_index_high);
-  if (q_index <= rq_history->q_index_low) {
-    q_index = rq_history->q_index_low + 1;
-  }
-  if (q_index >= rq_history->q_index_high) {
-    q_index = rq_history->q_index_high - 1;
-  }
-  return q_index;
-}
-
-static void rq_model_update(const RATE_QINDEX_HISTORY *rq_history,
-                            int target_bits, RATE_QSTEP_MODEL *rq_model) {
-  const int recode_count = rq_history->recode_count;
-  const double delta = 0.00001;
-  if (recode_count >= 2) {
-    const int q_index1 = rq_history->q_index_history[recode_count - 2];
-    const int q_index2 = rq_history->q_index_history[recode_count - 1];
-    const int r1 = rq_history->rate_history[recode_count - 2];
-    const int r2 = rq_history->rate_history[recode_count - 1];
-    int valid = 0;
-    // lower q_index should yield higher bit rate
-    if (q_index1 < q_index2) {
-      valid = r1 > r2;
-    } else if (q_index1 > q_index2) {
-      valid = r1 < r2;
-    }
-    // Only update the model when the q_index and rate behave normally.
-    if (valid) {
-      // Fit the ratio and bias of rq_model based on last two recode histories.
-      const double s1 = vp9_convert_qindex_to_q(q_index1, VPX_BITS_8);
-      const double s2 = vp9_convert_qindex_to_q(q_index2, VPX_BITS_8);
-      if (fabs(log2(s1) - log2(s2)) > delta) {
-        rq_model->ratio = (r2 - r1) / (log2(s1) - log2(s2));
-        rq_model->bias = r1 + (rq_model->ratio) * log2(s1);
-        if (rq_model->ratio > delta && rq_model->bias > delta) {
-          rq_model->ready = 1;
-        }
-      }
-    }
-  } else if (recode_count == 1) {
-    if (rq_model->ready) {
-      // Update the ratio only when the initial model exists and we only have
-      // one recode history.
-      const int prev_q = rq_history->q_index_history[recode_count - 1];
-      const double prev_q_step = vp9_convert_qindex_to_q(prev_q, VPX_BITS_8);
-      if (fabs(log2(prev_q_step)) > delta) {
-        const int actual_bits = rq_history->rate_history[recode_count - 1];
-        rq_model->ratio =
-            rq_model->ratio + (target_bits - actual_bits) / log2(prev_q_step);
-      }
-    }
-  }
-}
-#endif  // CONFIG_RATE_CTRL
-
 static void encode_with_recode_loop(VP9_COMP *cpi, size_t *size, uint8_t *dest,
-                                    size_t dest_size
-#if CONFIG_RATE_CTRL
-                                    ,
-                                    RATE_QINDEX_HISTORY *rq_history
-#endif  // CONFIG_RATE_CTRL
-) {
+                                    size_t dest_size) {
   const VP9EncoderConfig *const oxcf = &cpi->oxcf;
   VP9_COMMON *const cm = &cpi->common;
   RATE_CONTROL *const rc = &cpi->rc;
@@ -4576,17 +4421,6 @@ static void encode_with_recode_loop(VP9_COMP *cpi, size_t *size, uint8_t *dest,
 #endif
 
   const int orig_rc_max_frame_bandwidth = rc->max_frame_bandwidth;
-
-#if CONFIG_RATE_CTRL
-  RATE_QSTEP_MODEL *rq_model;
-  {
-    const FRAME_UPDATE_TYPE update_type =
-        cpi->twopass.gf_group.update_type[cpi->twopass.gf_group.index];
-    const ENCODE_FRAME_TYPE frame_type = get_encode_frame_type(update_type);
-    rq_model = &cpi->rq_model[frame_type];
-  }
-  init_rq_history(rq_history);
-#endif  // CONFIG_RATE_CTRL
 
   if (cm->show_existing_frame) {
     rc->this_frame_target = 0;
@@ -4676,19 +4510,6 @@ static void encode_with_recode_loop(VP9_COMP *cpi, size_t *size, uint8_t *dest,
       vp9_scale_references(cpi);
     }
 
-#if CONFIG_RATE_CTRL
-    // TODO(angiebird): This is a hack for making sure the encoder use the
-    // external_quantize_index exactly. Avoid this kind of hack later.
-    if (cpi->oxcf.use_simple_encode_api) {
-      if (cpi->encode_command.use_external_target_frame_bits) {
-        q = rq_model_predict_q_index(rq_model, rq_history,
-                                     rc->this_frame_target);
-      }
-      if (cpi->encode_command.use_external_quantize_index) {
-        q = cpi->encode_command.external_quantize_index;
-      }
-    }
-#endif  // CONFIG_RATE_CTRL
     const GF_GROUP *gf_group = &cpi->twopass.gf_group;
     int ext_rc_delta_q_uv = 0;
     if (cpi->ext_ratectrl.ready &&
@@ -4772,39 +4593,6 @@ static void encode_with_recode_loop(VP9_COMP *cpi, size_t *size, uint8_t *dest,
         (cpi->ext_ratectrl.funcs.rc_type & VPX_RC_QP) != 0) {
       break;
     }
-#if CONFIG_RATE_CTRL
-    if (cpi->oxcf.use_simple_encode_api) {
-      // This part needs to be after save_coding_context() because
-      // restore_coding_context will be called in the end of this function.
-      // TODO(angiebird): This is a hack for making sure the encoder use the
-      // external_quantize_index exactly. Avoid this kind of hack later.
-      if (cpi->encode_command.use_external_quantize_index) {
-        break;
-      }
-
-      if (cpi->encode_command.use_external_target_frame_bits) {
-        const double percent_diff = get_bits_percent_diff(
-            rc->this_frame_target, rc->projected_frame_size);
-        update_rq_history(rq_history, rc->this_frame_target,
-                          rc->projected_frame_size, q);
-        loop_count += 1;
-
-        rq_model_update(rq_history, rc->this_frame_target, rq_model);
-
-        // Check if we hit the target bitrate.
-        if (percent_diff <=
-                cpi->encode_command.target_frame_bits_error_percent ||
-            rq_history->recode_count >= RATE_CTRL_MAX_RECODE_NUM ||
-            rq_history->q_index_low >= rq_history->q_index_high) {
-          break;
-        }
-
-        loop = 1;
-        restore_coding_context(cpi);
-        continue;
-      }
-    }
-#endif  // CONFIG_RATE_CTRL
 
     if (oxcf->rc_mode == VPX_Q) {
       loop = 0;
@@ -5535,69 +5323,6 @@ static void update_encode_frame_result_basic(
   encode_frame_result->update_type = update_type;
   encode_frame_result->quantize_index = quantize_index;
 }
-
-#if CONFIG_RATE_CTRL
-static void yv12_buffer_to_image_buffer(const YV12_BUFFER_CONFIG *yv12_buffer,
-                                        IMAGE_BUFFER *image_buffer) {
-  const uint8_t *src_buf_ls[3] = { yv12_buffer->y_buffer, yv12_buffer->u_buffer,
-                                   yv12_buffer->v_buffer };
-  const int src_stride_ls[3] = { yv12_buffer->y_stride, yv12_buffer->uv_stride,
-                                 yv12_buffer->uv_stride };
-  const int w_ls[3] = { yv12_buffer->y_crop_width, yv12_buffer->uv_crop_width,
-                        yv12_buffer->uv_crop_width };
-  const int h_ls[3] = { yv12_buffer->y_crop_height, yv12_buffer->uv_crop_height,
-                        yv12_buffer->uv_crop_height };
-  int plane;
-  for (plane = 0; plane < 3; ++plane) {
-    const int src_stride = src_stride_ls[plane];
-    const int w = w_ls[plane];
-    const int h = h_ls[plane];
-    const uint8_t *src_buf = src_buf_ls[plane];
-    uint8_t *dst_buf = image_buffer->plane_buffer[plane];
-    int r;
-    assert(image_buffer->plane_width[plane] == w);
-    assert(image_buffer->plane_height[plane] == h);
-    for (r = 0; r < h; ++r) {
-      memcpy(dst_buf, src_buf, sizeof(*src_buf) * w);
-      src_buf += src_stride;
-      dst_buf += w;
-    }
-  }
-}
-
-// This function will update extra information specific for simple_encode APIs
-static void update_encode_frame_result_simple_encode(
-    int ref_frame_flags, FRAME_UPDATE_TYPE update_type,
-    const YV12_BUFFER_CONFIG *source_frame, const RefCntBuffer *coded_frame_buf,
-    RefCntBuffer *ref_frame_bufs[MAX_INTER_REF_FRAMES], int quantize_index,
-    uint32_t bit_depth, uint32_t input_bit_depth, const FRAME_COUNTS *counts,
-    const PARTITION_INFO *partition_info,
-    const MOTION_VECTOR_INFO *motion_vector_info,
-    const TplDepStats *tpl_stats_info,
-    ENCODE_FRAME_RESULT *encode_frame_result) {
-  PSNR_STATS psnr;
-  update_encode_frame_result_basic(update_type, coded_frame_buf->frame_index,
-                                   quantize_index, encode_frame_result);
-  compute_psnr_stats(source_frame, &coded_frame_buf->buf, bit_depth,
-                     input_bit_depth);
-  encode_frame_result->frame_coding_index = coded_frame_buf->frame_coding_index;
-
-  vp9_get_ref_frame_info(update_type, ref_frame_flags, ref_frame_bufs,
-                         encode_frame_result->ref_frame_coding_indexes,
-                         encode_frame_result->ref_frame_valid_list);
-
-  encode_frame_result->psnr = psnr.psnr[0];
-  encode_frame_result->sse = psnr.sse[0];
-  encode_frame_result->frame_counts = *counts;
-  encode_frame_result->partition_info = partition_info;
-  encode_frame_result->motion_vector_info = motion_vector_info;
-  encode_frame_result->tpl_stats_info = tpl_stats_info;
-  if (encode_frame_result->coded_frame.allocated) {
-    yv12_buffer_to_image_buffer(&coded_frame_buf->buf,
-                                &encode_frame_result->coded_frame);
-  }
-}
-#endif  // CONFIG_RATE_CTRL
 #endif  // !CONFIG_REALTIME_ONLY
 
 static void encode_frame_to_data_rate(
@@ -5714,10 +5439,6 @@ static void encode_frame_to_data_rate(
     if (!encode_without_recode_loop(cpi, size, dest, dest_size)) return;
   } else {
 #if !CONFIG_REALTIME_ONLY
-#if CONFIG_RATE_CTRL
-    encode_with_recode_loop(cpi, size, dest, dest_size,
-                            &encode_frame_result->rq_history);
-#else  // CONFIG_RATE_CTRL
 #if CONFIG_COLLECT_COMPONENT_TIMING
     start_timing(cpi, encode_with_recode_loop_time);
 #endif
@@ -5725,7 +5446,6 @@ static void encode_frame_to_data_rate(
 #if CONFIG_COLLECT_COMPONENT_TIMING
     end_timing(cpi, encode_with_recode_loop_time);
 #endif
-#endif  // CONFIG_RATE_CTRL
 #endif  // !CONFIG_REALTIME_ONLY
   }
 
@@ -5815,7 +5535,7 @@ static void encode_frame_to_data_rate(
 #if CONFIG_REALTIME_ONLY
   (void)encode_frame_result;
   assert(encode_frame_result == NULL);
-#else  // CONFIG_REALTIME_ONLY
+#else   // CONFIG_REALTIME_ONLY
   if (encode_frame_result != NULL) {
     const RefCntBuffer *coded_frame_buf =
         get_ref_cnt_buffer(cm, cm->new_fb_idx);
@@ -5851,19 +5571,6 @@ static void encode_frame_to_data_rate(
               "ENCODE_FRAME_RESULT gop_index %d psnr %f bits %zu\n",
               cpi->twopass.gf_group.index, psnr.psnr[0], (*size) << 3);
     }
-
-#if CONFIG_RATE_CTRL
-    if (cpi->oxcf.use_simple_encode_api) {
-      const int ref_frame_flags = get_ref_frame_flags(cpi);
-      update_encode_frame_result_simple_encode(
-          ref_frame_flags,
-          cpi->twopass.gf_group.update_type[cpi->twopass.gf_group.index],
-          cpi->Source, coded_frame_buf, ref_frame_bufs, quantize_index,
-          cm->bit_depth, cpi->oxcf.input_bit_depth, cpi->td.counts,
-          cpi->partition_info, cpi->motion_vector_info, cpi->tpl_stats_info,
-          encode_frame_result);
-    }
-#endif  // CONFIG_RATE_CTRL
   }
 #endif  // CONFIG_REALTIME_ONLY
 
@@ -6029,7 +5736,9 @@ int vp9_receive_raw_frame(VP9_COMP *cpi, vpx_enc_frame_flags_t frame_flags,
                           YV12_BUFFER_CONFIG *sd, int64_t time_stamp,
                           int64_t end_time) {
   VP9_COMMON *const cm = &cpi->common;
+#if CONFIG_INTERNAL_STATS
   struct vpx_usec_timer timer;
+#endif
   int res = 0;
   const int subsampling_x = sd->subsampling_x;
   const int subsampling_y = sd->subsampling_y;
@@ -6046,13 +5755,17 @@ int vp9_receive_raw_frame(VP9_COMP *cpi, vpx_enc_frame_flags_t frame_flags,
 
   alloc_raw_frame_buffers(cpi);
 
+#if CONFIG_INTERNAL_STATS
   vpx_usec_timer_start(&timer);
+#endif
 
   if (vp9_lookahead_push(cpi->lookahead, sd, time_stamp, end_time,
                          use_highbitdepth, frame_flags))
     res = -1;
+#if CONFIG_INTERNAL_STATS
   vpx_usec_timer_mark(&timer);
   cpi->time_receive_data += vpx_usec_timer_elapsed(&timer);
+#endif
 
   if ((cm->profile == PROFILE_0 || cm->profile == PROFILE_2) &&
       (subsampling_x != 1 || subsampling_y != 1)) {
@@ -6425,12 +6138,6 @@ void vp9_get_ref_frame_info(FRAME_UPDATE_TYPE update_type, int ref_frame_flags,
 
 void vp9_init_encode_frame_result(ENCODE_FRAME_RESULT *encode_frame_result) {
   encode_frame_result->show_idx = -1;  // Actual encoding doesn't happen.
-#if CONFIG_RATE_CTRL
-  encode_frame_result->frame_coding_index = -1;
-  vp9_zero(encode_frame_result->coded_frame);
-  encode_frame_result->coded_frame.allocated = 0;
-  init_rq_history(&encode_frame_result->rq_history);
-#endif  // CONFIG_RATE_CTRL
 }
 
 // Returns if TPL stats need to be calculated.
@@ -6460,7 +6167,9 @@ int vp9_get_compressed_data(VP9_COMP *cpi, unsigned int *frame_flags,
   VP9_COMMON *const cm = &cpi->common;
   BufferPool *const pool = cm->buffer_pool;
   RATE_CONTROL *const rc = &cpi->rc;
+#if CONFIG_INTERNAL_STATS
   struct vpx_usec_timer cmptimer;
+#endif
   YV12_BUFFER_CONFIG *force_src_buffer = NULL;
   struct lookahead_entry *last_source = NULL;
   struct lookahead_entry *source = NULL;
@@ -6476,7 +6185,9 @@ int vp9_get_compressed_data(VP9_COMP *cpi, unsigned int *frame_flags,
     vp9_one_pass_svc_start_layer(cpi);
   }
 
+#if CONFIG_INTERNAL_STATS
   vpx_usec_timer_start(&cmptimer);
+#endif
 
   vp9_set_high_precision_mv(cpi, ALTREF_HIGH_PRECISION_MV);
 
@@ -6817,8 +6528,10 @@ int vp9_get_compressed_data(VP9_COMP *cpi, unsigned int *frame_flags,
   if (cpi->svc.spatial_layer_id == cpi->svc.number_spatial_layers - 1)
     cpi->fixed_qp_onepass = 0;
 
+#if CONFIG_INTERNAL_STATS
   vpx_usec_timer_mark(&cmptimer);
   cpi->time_compress_data += vpx_usec_timer_elapsed(&cmptimer);
+#endif
 
   if (cpi->keep_level_stats && oxcf->pass != 1)
     update_level_info(cpi, size, arf_src_index);

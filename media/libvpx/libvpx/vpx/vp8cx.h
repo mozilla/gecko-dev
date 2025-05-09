@@ -877,7 +877,7 @@ typedef enum {
   VP8_EIGHT_TOKENPARTITION = 3
 } vp8e_token_partitions;
 
-/*!brief VP9 encoder content type */
+/*!\brief VP9 encoder content type */
 typedef enum {
   VP9E_CONTENT_DEFAULT,
   VP9E_CONTENT_SCREEN,

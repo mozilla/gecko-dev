@@ -852,7 +852,7 @@ static struct stream_state *new_stream(struct VpxEncoderConfig *global,
   }
 
   if (prev) {
-    memcpy(stream, prev, sizeof(*stream));
+    *stream = *prev;
     stream->index++;
     prev->next = stream;
   } else {

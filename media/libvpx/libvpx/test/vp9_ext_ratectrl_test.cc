@@ -22,7 +22,6 @@
 #if CONFIG_VP9_DECODER
 #include "vpx/vp8dx.h"
 #endif
-#include "vp9/simple_encode.h"
 #include "vpx/vpx_codec.h"
 #include "vpx/vpx_encoder.h"
 #include "vpx/vpx_ext_ratectrl.h"

@@ -2319,8 +2319,7 @@ static int64_t rd_pick_best_sub8x8_mode(
 
           if (!subpelmv && have_ref &&
               ref_bsi->rdstat[block][mode_idx].brdcost < INT64_MAX) {
-            memcpy(&bsi->rdstat[block][mode_idx],
-                   &ref_bsi->rdstat[block][mode_idx], sizeof(SEG_RDSTAT));
+            bsi->rdstat[block][mode_idx] = ref_bsi->rdstat[block][mode_idx];
             if (num_4x4_blocks_wide > 1)
               bsi->rdstat[block + 1][mode_idx].eobs =
                   ref_bsi->rdstat[block + 1][mode_idx].eobs;
@@ -4893,8 +4892,7 @@ void vp9_rd_pick_inter_mode_sub8x8(VP9_COMP *cpi, TileDataEnc *tile_data,
   if (!is_inter_block(&best_mbmode)) {
     for (i = 0; i < 4; i++) xd->mi[0]->bmi[i].as_mode = best_bmodes[i].as_mode;
   } else {
-    for (i = 0; i < 4; ++i)
-      memcpy(&xd->mi[0]->bmi[i], &best_bmodes[i], sizeof(b_mode_info));
+    for (i = 0; i < 4; ++i) xd->mi[0]->bmi[i] = best_bmodes[i];
 
     mi->mv[0].as_int = xd->mi[0]->bmi[3].as_mv[0].as_int;
     mi->mv[1].as_int = xd->mi[0]->bmi[3].as_mv[1].as_int;

@@ -68,13 +68,14 @@ vpx_codec_err_t vpx_codec_enc_init_ver(vpx_codec_ctx_t *ctx,
 }
 
 vpx_codec_err_t vpx_codec_enc_init_multi_ver(
-    vpx_codec_ctx_t *ctx, vpx_codec_iface_t *iface, vpx_codec_enc_cfg_t *cfg,
-    int num_enc, vpx_codec_flags_t flags, vpx_rational_t *dsf, int ver) {
+    vpx_codec_ctx_t *ctx, vpx_codec_iface_t *iface,
+    const vpx_codec_enc_cfg_t *cfg, int num_enc, vpx_codec_flags_t flags,
+    const vpx_rational_t *dsf, int ver) {
   vpx_codec_err_t res = VPX_CODEC_OK;
 
   if (ver != VPX_ENCODER_ABI_VERSION)
     res = VPX_CODEC_ABI_MISMATCH;
-  else if (!ctx || !iface || !cfg || (num_enc > 16 || num_enc < 1))
+  else if (!ctx || !iface || !cfg || (num_enc > 16 || num_enc < 1) || !dsf)
     res = VPX_CODEC_INVALID_PARAM;
   else if (iface->abi_version != VPX_CODEC_INTERNAL_ABI_VERSION)
     res = VPX_CODEC_ABI_MISMATCH;

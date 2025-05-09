@@ -93,6 +93,5 @@
 .equ CONFIG_FP_MB_STATS ,  0
 .equ CONFIG_EMULATE_HARDWARE ,  0
 .equ CONFIG_NON_GREEDY_MV ,  0
-.equ CONFIG_RATE_CTRL ,  0
 .equ CONFIG_COLLECT_COMPONENT_TIMING ,  0
     .section .note.GNU-stack,"",%progbits
