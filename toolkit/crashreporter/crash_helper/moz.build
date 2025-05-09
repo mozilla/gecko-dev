@@ -35,6 +35,11 @@ else:
             "ws2_32",
         ]
 
+        # MinGW needs an import library to use symbols from bcryptprimitives
+        # that MSVC doesn't need or have.
+        if CONFIG["CC_TYPE"] != "clang-cl":
+            OS_LIBS += ["bcryptprimitives"]
+
     UNIFIED_SOURCES += [
         "crashhelper.cpp",
     ]
