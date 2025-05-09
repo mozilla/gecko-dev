@@ -1844,40 +1844,6 @@ static bool TypedArray_set(JSContext* cx, unsigned argc, Value* vp) {
   return CallNonGenericMethod<IsTypedArrayObject, TypedArray_set>(cx, args);
 }
 
-/**
- * Convert |value| to an integer and clamp it to a valid integer index within
- * the range `[0..length]`.
- */
-static bool ToIntegerIndex(JSContext* cx, Handle<Value> value, size_t length,
-                           size_t* result) {
-  // Optimize for the common case when |value| is an int32 to avoid unnecessary
-  // floating point computations.
-  if (value.isInt32()) {
-    int32_t relative = value.toInt32();
-
-    if (relative >= 0) {
-      *result = std::min(size_t(relative), length);
-    } else if (mozilla::Abs(relative) <= length) {
-      *result = length - mozilla::Abs(relative);
-    } else {
-      *result = 0;
-    }
-    return true;
-  }
-
-  double relative;
-  if (!ToInteger(cx, value, &relative)) {
-    return false;
-  }
-
-  if (relative >= 0) {
-    *result = size_t(std::min(relative, double(length)));
-  } else {
-    *result = size_t(std::max(relative + double(length), 0.0));
-  }
-  return true;
-}
-
 // ES2020 draft rev dc1e21c454bd316810be1c0e7af0131a2d7f38e9
 // 22.2.3.5 %TypedArray%.prototype.copyWithin ( target, start [ , end ] )
 static bool TypedArray_copyWithin(JSContext* cx, const CallArgs& args) {
