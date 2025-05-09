@@ -885,6 +885,18 @@ export let ProfileDataUpgrader = {
       Services.prefs.setCharPref(kPref, migrations.join(","));
     }
 
+    if (existingDataVersion < 155) {
+      // Remove outdated sidebar info from XULStore.
+      for (const attr of [
+        "checked",
+        "positionend",
+        "sidebarcommand",
+        "style",
+      ]) {
+        Services.xulStore.removeValue(BROWSER_DOCURL, "sidebar-box", attr);
+      }
+    }
+
     // Update the migration version.
     Services.prefs.setIntPref("browser.migration.version", newVersion);
   },

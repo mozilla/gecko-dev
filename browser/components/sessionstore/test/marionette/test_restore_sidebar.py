@@ -289,3 +289,18 @@ class TestSessionRestore(SessionStoreTestCase):
             "viewHistorySidebar",
             "Correct sidebar category has been restored.",
         )
+
+    def test_upgrade_profile_and_restore_sidebar_from_backup_pref(self):
+        # Bug 1963549 - Sidebar bookmarks no longer open automatically since the last update.
+        self.marionette.execute_script(
+            """
+            Services.prefs.setIntPref("browser.migration.version", 154);
+            Services.xulStore.setValue(
+                AppConstants.BROWSER_CHROME_URL,
+                "sidebar-box",
+                "checked",
+                "true"
+            );
+            """
+        )
+        self.test_restore_sidebar_open_from_backup_pref()
