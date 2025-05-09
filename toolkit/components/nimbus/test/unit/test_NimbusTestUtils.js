@@ -44,10 +44,8 @@ add_task(async function test_enrollmentHelper() {
 });
 
 add_task(async function test_enrollWithFeatureConfig() {
-  const { manager, cleanup } = await NimbusTestUtils.setupTest({
-    features: [new ExperimentFeature("enrollWithFeatureConfig", {})],
-  });
-
+  let manager = NimbusTestUtils.stubs.manager();
+  await manager.onStartup();
   let doEnrollmentCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: "enrollWithFeatureConfig",
@@ -67,6 +65,4 @@ add_task(async function test_enrollWithFeatureConfig() {
     !manager.store.hasExperimentForFeature("enrollWithFeatureConfig"),
     "Unenrolled successfully"
   );
-
-  cleanup();
 });
