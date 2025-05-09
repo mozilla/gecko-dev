@@ -89,26 +89,28 @@ export default class MozSelect extends MozBaseInputElement {
 
   inputTemplate() {
     return html`
-      <select
-        id="input"
-        name=${this.name}
-        accesskey=${this.accessKey}
-        @input=${this.handleStateChange}
-        @change=${this.redispatchEvent}
-        ?disabled=${this.disabled || this.parentDisabled}
-        aria-describedby="description"
-      >
-        ${this.options.map(
-          option => html`
-            <option
-              value=${option.value}
-              ?selected=${option.value === this.value}
-            >
-              ${option.label}
-            </option>
-          `
-        )}
-      </select>
+      <div class="select-wrapper">
+        <select
+          id="input"
+          name=${this.name}
+          accesskey=${this.accessKey}
+          @input=${this.handleStateChange}
+          @change=${this.redispatchEvent}
+          ?disabled=${this.disabled || this.parentDisabled}
+          aria-describedby="description"
+        >
+          ${this.options.map(
+            option => html`
+              <option
+                value=${option.value}
+                ?selected=${option.value === this.value}
+              >
+                ${option.label}
+              </option>
+            `
+          )}
+        </select>
+      </div>
       <slot
         @slotchange=${this.populateOptions}
         hidden

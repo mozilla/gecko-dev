@@ -3,26 +3,79 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :host {
-  display: flex;
-  flex-direction: column;
+  --select-border: var(--button-border);
+  --select-border-radius: var(--button-border-radius);
+  --select-border-color-hover: var(--button-border-color-hover);
+  --select-background-color:  var(--button-background-color);
+  --select-background-color-hover: var(--button-background-color-hover);
+  --select-background-color-disabled: var(--button-background-color-disabled);
+  --select-margin-block: var(--input-margin-block-adjust);
+  --select-margin-inline: var(--input-margin-inline-start-adjust) var(--space-small);
+  --select-min-height: var(--button-min-height);
+  --select-font-size: var(--button-font-size);
+  --select-font-weight: var(--button-font-weight);
+  --select-option-font-weight: var(--font-weight);
+  --select-text-color: var(--button-text-color);
+  --select-text-color-hover: var(--button-text-color-hover);
+  --select-option-text-color: var(--text-color);
+  --select-icon-fill: var(--button-icon-fill);
 }
 
-select {
-  border: var(--button-border);
-  border-radius: var(--button-border-radius);
-  font-weight: var(--button-font-weight);
-  padding-block: var(--space-xsmall);
-  padding-inline:  var(--space-large) var(--space-xxlarge);
-  min-height: var(--button-min-height);
-  font-size: var(--button-font-size);
-  appearance: none;
-  background: no-repeat url("chrome://global/skin/icons/arrow-down.svg") calc(100% - var(--space-medium)) / var(--icon-size-default) var(--icon-size-default) var(--button-background-color);
-  -moz-context-properties: fill;
-  fill: var(--icon-color);
+.select-wrapper {
+  border-radius: var(--select-border-radius);
+  background-color:  var(--select-background-color);
+  margin-block: var(--select-margin-block);
+  margin-inline: var(--select-margin-inline);
   min-width: var(--select-min-width);
   max-width: var(--select-max-width);
 
+  &:has(select:hover),
+  &:has(select:open) {
+    background-color: var(--select-background-color-hover);
+  }
+
+  &:has(select:disabled) {
+    background-color: var(--select-background-color-disabled);
+  }
+}
+
+select {
+  border: var(--select-border);
+  border-radius: var(--select-border-radius);
+  padding-block: var(--space-xsmall);
+  padding-inline:  var(--space-large) var(--space-xxlarge);
+  margin: 0;
+  min-height: var(--select-min-height);
+  width: 100%;
+  font-size: var(--select-font-size);
+  font-weight: var(--select-font-weight);
+  appearance: none;
+  color: var(--select-text-color);
+  background-color: transparent;
+  background-image: url("chrome://global/skin/icons/arrow-down.svg");
+  background-repeat: no-repeat;
+  background-position: calc(100% - var(--space-medium));
+  background-size: var(--icon-size-default);
+  -moz-context-properties: fill;
+  fill: var(--select-icon-fill);
+
   &:dir(rtl) {
     background-position-x: left var(--space-medium);
+  }
+
+  &:hover,
+  &:open {
+    border-color: var(--select-border-color-hover);
+    color: var(--select-text-color-hover);
+  }
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-offset);
+  }
+
+  & option {
+    font-weight: var(--select-option-font-weight);
+    color: var(--select-option-text-color);
   }
 }
