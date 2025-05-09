@@ -65,6 +65,13 @@ function setOnboardingPrefs(states = {}) {
       states.telemetryEnabled
     );
   }
+
+  if (Object.hasOwn(states, "autoOpenEnabled")) {
+    Services.prefs.setBoolPref(
+      "browser.shopping.experience2023.autoOpen.enabled",
+      states.autoOpenEnabled
+    );
+  }
 }
 
 add_setup(async function setup() {
@@ -81,6 +88,7 @@ add_setup(async function setup() {
       autoActivateCount: 0,
       handledAutoActivate: false,
       telementryEnabled: false,
+      autoOpenEnabled: false,
     })
   );
 });
@@ -95,7 +103,12 @@ add_setup(async function setup() {
 add_task(async function test_onOptIn() {
   await Services.fog.testFlushAllChildren();
   Services.fog.testResetFOG();
-  setOnboardingPrefs({ active: false, optedIn: 0, telemetryEnabled: true });
+  setOnboardingPrefs({
+    active: false,
+    optedIn: 0,
+    telemetryEnabled: true,
+    autoOpenEnabled: true,
+  });
 
   await BrowserTestUtils.withNewTab(
     {
@@ -262,7 +275,12 @@ async function linkParagraphClickLinks() {
 add_task(async function test_linkParagraph() {
   await Services.fog.testFlushAllChildren();
   Services.fog.testResetFOG();
-  setOnboardingPrefs({ active: false, optedIn: 0, telemetryEnabled: true });
+  setOnboardingPrefs({
+    active: false,
+    optedIn: 0,
+    telemetryEnabled: true,
+    autoOpenEnabled: true,
+  });
 
   await linkParagraphClickLinks();
 
@@ -303,6 +321,7 @@ add_task(async function test_onboarding_auto_activate_opt_in() {
     lastAutoActivate: 0,
     autoActivateCount: 0,
     handledAutoActivate: false,
+    autoOpenEnabled: true,
   });
   ShoppingUtils.handleAutoActivateOnProduct();
 
@@ -323,6 +342,7 @@ add_task(async function test_onboarding_auto_activate_opt_in() {
     lastAutoActivate: 0,
     autoActivateCount: 1,
     handledAutoActivate: false,
+    autoOpenEnabled: true,
   });
   ShoppingUtils.handleAutoActivateOnProduct();
 
@@ -340,6 +360,7 @@ add_task(async function test_onboarding_auto_activate_not_now() {
     lastAutoActivate: 0,
     autoActivateCount: 0,
     handledAutoActivate: false,
+    autoOpenEnabled: true,
   });
   ShoppingUtils.handleAutoActivateOnProduct();
 
@@ -378,6 +399,7 @@ add_task(async function test_onboarding_auto_activate_not_now() {
     lastAutoActivate: 0,
     autoActivateCount: 0,
     handledAutoActivate: true,
+    autoOpenEnabled: true,
   });
   ShoppingUtils.handleAutoActivateOnProduct();
 
@@ -394,6 +416,7 @@ add_task(async function test_onboarding_auto_activate_not_now() {
     lastAutoActivate: Date.now() / 1000,
     autoActivateCount: 1,
     handledAutoActivate: false,
+    autoOpenEnabled: true,
   });
   ShoppingUtils.handleAutoActivateOnProduct();
 
@@ -410,6 +433,7 @@ add_task(async function test_onboarding_auto_activate_not_now() {
     lastAutoActivate: 0,
     autoActivateCount: 2,
     handledAutoActivate: false,
+    autoOpenEnabled: true,
   });
   ShoppingUtils.handleAutoActivateOnProduct();
 
@@ -425,6 +449,7 @@ add_task(async function test_onboarding_auto_activate_not_now() {
     lastAutoActivate: Date.now() / 1000 - 2 * 24 * 60 * 60, // 2 days ago
     autoActivateCount: 1,
     handledAutoActivate: false,
+    autoOpenEnabled: true,
   });
   ShoppingUtils.handleAutoActivateOnProduct();
 
@@ -450,6 +475,7 @@ add_task(async function test_deactivate_sidebar_if_user_turns_off_cfr() {
     lastAutoActivate: 0,
     autoActivateCount: 0,
     handledAutoActivate: false,
+    autoOpenEnabled: true,
   });
   ShoppingUtils.handleAutoActivateOnProduct();
 

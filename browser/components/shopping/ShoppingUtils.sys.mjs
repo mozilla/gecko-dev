@@ -258,7 +258,13 @@ export const ShoppingUtils = {
    */
   handleAutoActivateOnProduct() {
     let shouldAutoActivate = false;
-    if (!this.handledAutoActivate && !this.optedIn && this.cfrFeatures) {
+
+    if (
+      !this.handledAutoActivate &&
+      !this.optedIn &&
+      this.cfrFeatures &&
+      this.autoOpenEnabled
+    ) {
       let autoActivateCount = Services.prefs.getIntPref(
         AUTO_ACTIVATE_COUNT_PREF,
         0
