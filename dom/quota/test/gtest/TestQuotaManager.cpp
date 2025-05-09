@@ -2040,18 +2040,7 @@ TEST_F(TestQuotaManager, SaveOriginAccessTime_Simple) {
   ASSERT_NO_FATAL_FAILURE(
       AssertTemporaryOriginNotInitialized(testOriginMetadata));
 
-  PerformOnBackgroundThread([testOriginMetadata]() {
-    QuotaManager* quotaManager = QuotaManager::Get();
-    ASSERT_TRUE(quotaManager);
-
-    {
-      int64_t timestamp = PR_Now();
-
-      auto value = Await(
-          quotaManager->SaveOriginAccessTime(testOriginMetadata, timestamp));
-      ASSERT_TRUE(value.IsResolve());
-    }
-  });
+  SaveOriginAccessTime(testOriginMetadata, PR_Now());
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
   ASSERT_NO_FATAL_FAILURE(AssertTemporaryStorageNotInitialized());

@@ -272,6 +272,19 @@ void QuotaManagerDependencyFixture::AssertTemporaryOriginNotInitialized(
 }
 
 // static
+void QuotaManagerDependencyFixture::SaveOriginAccessTime(
+    const OriginMetadata& aOriginMetadata, int64_t aTimestamp) {
+  PerformOnBackgroundThread([aOriginMetadata, aTimestamp]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    MOZ_RELEASE_ASSERT(quotaManager);
+
+    auto value =
+        Await(quotaManager->SaveOriginAccessTime(aOriginMetadata, aTimestamp));
+    MOZ_RELEASE_ASSERT(value.IsResolve());
+  });
+}
+
+// static
 void QuotaManagerDependencyFixture::GetOriginUsage(
     const OriginMetadata& aOriginMetadata, UsageInfo* aResult) {
   ASSERT_TRUE(aResult);
