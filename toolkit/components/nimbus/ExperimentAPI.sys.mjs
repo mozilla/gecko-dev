@@ -33,9 +33,6 @@ const CRASHREPORTER_ENABLED =
 const IS_MAIN_PROCESS =
   Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT;
 
-const UPLOAD_ENABLED_PREF = "datareporting.healthreport.uploadEnabled";
-const STUDIES_OPT_OUT_PREF = "app.shield.optoutstudies.enabled";
-
 const COLLECTION_ID_PREF = "messaging-system.rsexperimentloader.collection_id";
 const COLLECTION_ID_FALLBACK = "nimbus-desktop-experiments";
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -114,17 +111,6 @@ export const EnrollmentType = Object.freeze({
 
 export const ExperimentAPI = {
   /**
-   * The topic that is notified when either the studies enabled pref or the
-   * telemetry enabled pref changes.
-   *
-   * Consumers can listen for notifications on this topic to react to
-   * Nimbus being enabled or disabled.
-   */
-  get STUDIES_ENABLED_CHANGED() {
-    return "nimbus:studies-enabled-changed";
-  },
-
-  /**
    * Initialize the ExperimentAPI.
    *
    * This will initialize the ExperimentManager and the
@@ -142,8 +128,6 @@ export const ExperimentAPI = {
   async init({ extraContext, forceSync = false } = {}) {
     if (!initialized) {
       initialized = true;
-
-      const studiesEnabled = this.studiesEnabled;
 
       try {
         await this._manager.onStartup(extraContext);
@@ -167,21 +151,6 @@ export const ExperimentAPI = {
         this._manager.store.on("update", this._annotateCrashReport);
         this._annotateCrashReport();
       }
-
-      Services.prefs.addObserver(
-        UPLOAD_ENABLED_PREF,
-        this._onStudiesEnabledChanged
-      );
-      Services.prefs.addObserver(
-        STUDIES_OPT_OUT_PREF,
-        this._onStudiesEnabledChanged
-      );
-
-      // If Nimbus was disabled between the start of this function and
-      // registering the pref observers we have not handled it yet.
-      if (studiesEnabled !== this.studiesEnabled) {
-        this._onStudiesEnabledChanged();
-      }
     }
   },
 
@@ -189,14 +158,6 @@ export const ExperimentAPI = {
     this._rsLoader.disable();
     this._manager.store.off("update", this._annotateCrashReport);
     initialized = false;
-  },
-
-  get studiesEnabled() {
-    return (
-      Services.prefs.getBoolPref(UPLOAD_ENABLED_PREF, false) &&
-      Services.prefs.getBoolPref(STUDIES_OPT_OUT_PREF, false) &&
-      Services.policies.isAllowed("Shield")
-    );
   },
 
   /**
@@ -232,14 +193,6 @@ export const ExperimentAPI = {
       "NimbusEnrollments",
       activeEnrollments
     );
-  },
-
-  _onStudiesEnabledChanged() {
-    if (!this.studiesEnabled) {
-      this._manager._handleStudiesOptOut();
-    }
-
-    Services.obs.notifyObservers(null, this.STUDIES_ENABLED_CHANGED);
   },
 
   /**
@@ -771,8 +724,6 @@ export class _ExperimentFeature {
 
 ExperimentAPI._annotateCrashReport =
   ExperimentAPI._annotateCrashReport.bind(ExperimentAPI);
-ExperimentAPI._onStudiesEnabledChanged =
-  ExperimentAPI._onStudiesEnabledChanged.bind(ExperimentAPI);
 
 if (CRASHREPORTER_ENABLED) {
   lazy.CleanupManager.addCleanupHandler(() => {

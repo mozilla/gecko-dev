@@ -30,8 +30,22 @@ function getEnabledPrefForFeature(featureId) {
   return NimbusFeatures[featureId].manifest.variables.enabled.setPref.pref;
 }
 
+function removeExperimentManagerListeners(manager) {
+  // This is a giant hack to remove pref listeners from the global ExperimentManager or an
+  // ExperimentManager from a previous test (because the nsIObserverService holds a strong reference
+  // to all these listeners);
+  //
+  // See https://bugzilla.mozilla.org/show_bug.cgi?id=1950237 for a long-term solution to this.
+  Services.prefs.removeObserver(
+    "datareporting.healthreport.uploadEnabled",
+    manager
+  );
+  Services.prefs.removeObserver("app.shield.optoutstudies.enabled", manager);
+}
+
 add_setup(function setup() {
   Services.fog.initializeFOG();
+  removeExperimentManagerListeners(ExperimentAPI._manager);
 });
 
 /**
@@ -92,6 +106,7 @@ async function setupTest({
     ...ctx,
     cleanup() {
       baseCleanup();
+      removeExperimentManagerListeners(ctx.manager);
       Services.prefs.deleteBranch(NIMBUS_MIGRATION_PREF);
     },
   };
@@ -414,6 +429,7 @@ add_task(async function test_migration_firefoxLabsEnrollments_idempotent() {
 
     await NimbusTestUtils.saveStore(manager.store);
 
+    removeExperimentManagerListeners(manager);
     removePrefObservers(manager);
     assertNoObservers(manager);
   }
