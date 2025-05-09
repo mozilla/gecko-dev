@@ -110,23 +110,9 @@ add_task(async function test_encoding_of_spaces() {
   let submission = engine.getSubmission("f o o");
   Assert.equal(submission.uri.spec, "https://example.com/user");
   Assert.equal(
-    postDataToString(submission.postData),
+    SearchTestUtils.getPostDataString(submission),
     "q=f+o+o",
     "Encodes spaces in body as +."
   );
   await Services.search.removeEngine(engine);
 });
-
-function postDataToString(postData) {
-  if (!postData) {
-    return undefined;
-  }
-  let binaryStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(
-    Ci.nsIBinaryInputStream
-  );
-  binaryStream.setInputStream(postData.data);
-
-  return binaryStream
-    .readBytes(binaryStream.available())
-    .replace("searchTerms", "%s");
-}
