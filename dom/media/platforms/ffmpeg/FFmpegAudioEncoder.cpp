@@ -385,8 +385,8 @@ FFmpegAudioEncoder<LIBAV_VER>::DrainWithModernAPIs() {
 }
 #endif  // if LIBAVCODEC_VERSION_MAJOR >= 58
 
-RefPtr<MediaRawData> FFmpegAudioEncoder<LIBAV_VER>::ToMediaRawData(
-    AVPacket* aPacket) {
+Result<RefPtr<MediaRawData>, MediaResult>
+FFmpegAudioEncoder<LIBAV_VER>::ToMediaRawData(AVPacket* aPacket) {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
   MOZ_ASSERT(aPacket);
 
@@ -394,10 +394,15 @@ RefPtr<MediaRawData> FFmpegAudioEncoder<LIBAV_VER>::ToMediaRawData(
     FFMPEG_LOG(
         "DTX enabled and packet is %d bytes (threshold %d), not returning.",
         aPacket->size, mDtxThreshold);
-    return nullptr;
+    return RefPtr<MediaRawData>(nullptr);
   }
 
-  RefPtr<MediaRawData> data = ToMediaRawDataCommon(aPacket);
+  auto r = ToMediaRawDataCommon(aPacket);
+  if (r.isErr()) {
+    return Err(r.unwrapErr());
+  }
+
+  RefPtr<MediaRawData> data = r.unwrap();
 
   data->mTime = media::TimeUnit(aPacket->pts, mConfig.mSampleRate);
   data->mTimecode = data->mTime;
@@ -429,14 +434,14 @@ RefPtr<MediaRawData> FFmpegAudioEncoder<LIBAV_VER>::ToMediaRawData(
   }
 
   if (data->mExtraData) {
-    FFMPEG_LOG(
+    FFMPEGA_LOG(
         "FFmpegAudioEncoder out: [%s,%s] (%zu bytes, extradata %zu bytes)",
         data->mTime.ToString().get(), data->mDuration.ToString().get(),
         data->Size(), data->mExtraData->Length());
   } else {
-    FFMPEG_LOG("FFmpegAudioEncoder out: [%s,%s] (%zu bytes)",
-               data->mTime.ToString().get(), data->mDuration.ToString().get(),
-               data->Size());
+    FFMPEGA_LOG("FFmpegAudioEncoder out: [%s,%s] (%zu bytes)",
+                data->mTime.ToString().get(), data->mDuration.ToString().get(),
+                data->Size());
   }
 
   return data;

@@ -394,8 +394,15 @@ FFmpegDataEncoder<LIBAV_VER>::EncodeWithModernAPIs() {
       return Err(NS_ERROR_DOM_MEDIA_FATAL_ERR);
     }
 
-    RefPtr<MediaRawData> d = ToMediaRawData(pkt);
+    auto r = ToMediaRawData(pkt);
     mLib->av_packet_unref(pkt);
+    if (r.isErr()) {
+      MediaResult e = r.unwrapErr();
+      FFMPEG_LOG("%s", e.Description().get());
+      return Err(e);
+    }
+
+    RefPtr<MediaRawData> d = r.unwrap();
     if (!d) {
       // This can happen if e.g. DTX is enabled
       FFMPEG_LOG("No encoded packet output");
@@ -460,8 +467,15 @@ FFmpegDataEncoder<LIBAV_VER>::DrainWithModernAPIs() {
       return Err(NS_ERROR_DOM_MEDIA_FATAL_ERR);
     }
 
-    RefPtr<MediaRawData> d = ToMediaRawData(pkt);
+    auto r = ToMediaRawData(pkt);
     mLib->av_packet_unref(pkt);
+    if (r.isErr()) {
+      MediaResult e = r.unwrapErr();
+      FFMPEG_LOG("%s", e.Description().get());
+      return Err(e);
+    }
+
+    RefPtr<MediaRawData> d = r.unwrap();
     if (!d) {
       FFMPEG_LOG("failed to create a MediaRawData from the AVPacket");
       return Err(NS_ERROR_DOM_MEDIA_FATAL_ERR);
@@ -483,8 +497,8 @@ FFmpegDataEncoder<LIBAV_VER>::DrainWithModernAPIs() {
 }
 #endif  // LIBAVCODEC_VERSION_MAJOR >= 58
 
-RefPtr<MediaRawData> FFmpegDataEncoder<LIBAV_VER>::ToMediaRawDataCommon(
-    AVPacket* aPacket) {
+Result<RefPtr<MediaRawData>, MediaResult>
+FFmpegDataEncoder<LIBAV_VER>::ToMediaRawDataCommon(AVPacket* aPacket) {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
   MOZ_ASSERT(aPacket);
 
@@ -492,8 +506,8 @@ RefPtr<MediaRawData> FFmpegDataEncoder<LIBAV_VER>::ToMediaRawDataCommon(
   auto data = MakeRefPtr<MediaRawData>();
   UniquePtr<MediaRawDataWriter> writer(data->CreateWriter());
   if (!writer->Append(aPacket->data, static_cast<size_t>(aPacket->size))) {
-    FFMPEG_LOG("fail to allocate MediaRawData buffer");
-    return nullptr;  // OOM
+    return Err(MediaResult(NS_ERROR_OUT_OF_MEMORY,
+                           "fail to allocate MediaRawData buffer"_ns));
   }
 
   data->mKeyframe = (aPacket->flags & AV_PKT_FLAG_KEY) != 0;

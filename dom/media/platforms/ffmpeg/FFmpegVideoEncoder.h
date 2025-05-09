@@ -42,7 +42,8 @@ class FFmpegVideoEncoder<LIBAV_VER> : public FFmpegDataEncoder<LIBAV_VER> {
   Result<EncodedData, nsresult> EncodeInputWithModernAPIs(
       RefPtr<const MediaData> aSample) override;
 #endif
-  virtual RefPtr<MediaRawData> ToMediaRawData(AVPacket* aPacket) override;
+  virtual Result<RefPtr<MediaRawData>, MediaResult> ToMediaRawData(
+      AVPacket* aPacket) override;
   Result<already_AddRefed<MediaByteBuffer>, nsresult> GetExtraData(
       AVPacket* aPacket) override;
   void ForceEnablingFFmpegDebugLogs();

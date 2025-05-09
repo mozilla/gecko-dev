@@ -619,12 +619,17 @@ Result<MediaDataEncoder::EncodedData, nsresult> FFmpegVideoEncoder<
 }
 #endif  // if LIBAVCODEC_VERSION_MAJOR >= 58
 
-RefPtr<MediaRawData> FFmpegVideoEncoder<LIBAV_VER>::ToMediaRawData(
-    AVPacket* aPacket) {
+Result<RefPtr<MediaRawData>, MediaResult>
+FFmpegVideoEncoder<LIBAV_VER>::ToMediaRawData(AVPacket* aPacket) {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
   MOZ_ASSERT(aPacket);
 
-  RefPtr<MediaRawData> data = ToMediaRawDataCommon(aPacket);
+  auto r = ToMediaRawDataCommon(aPacket);
+  if (r.isErr()) {
+    return Err(r.unwrapErr());
+  }
+
+  RefPtr<MediaRawData> data = r.unwrap();
 
   if (mConfig.mCodec == CodecType::AV1) {
     auto found = mPtsMap.Take(aPacket->pts);

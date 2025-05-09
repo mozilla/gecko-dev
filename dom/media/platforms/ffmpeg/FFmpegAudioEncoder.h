@@ -44,7 +44,8 @@ class FFmpegAudioEncoder<LIBAV_VER> : public FFmpegDataEncoder<LIBAV_VER> {
   Result<MediaDataEncoder::EncodedData, nsresult> DrainWithModernAPIs()
       override;
 #endif
-  virtual RefPtr<MediaRawData> ToMediaRawData(AVPacket* aPacket) override;
+  virtual Result<RefPtr<MediaRawData>, MediaResult> ToMediaRawData(
+      AVPacket* aPacket) override;
   Result<already_AddRefed<MediaByteBuffer>, nsresult> GetExtraData(
       AVPacket* aPacket) override;
   // Most audio codecs (except PCM) require a very specific frame size.
