@@ -430,6 +430,19 @@ bool VectorImage::ShouldAnimate() {
   return ImageResource::ShouldAnimate() && mIsFullyLoaded && mHaveAnimations;
 }
 
+// Helper for GetWidth/GetHeight:
+// If the given LengthPercentage is just a Length, this function converts it to
+// CSS pixels and clamps it to be nonnegative, and returns the result.
+// Otherwise, this function returns Nothing().
+static Maybe<int32_t> ClampedPxLengthOrNothing(
+    const LengthPercentage& aLenPct) {
+  if (!aLenPct.IsLength()) {
+    return Nothing();
+  }
+  auto lenInPx = SVGUtils::ClampToInt(aLenPct.AsLength().ToCSSPixels());
+  return Some(std::max(0, lenInPx));
+}
+
 //------------------------------------------------------------------------------
 // imgIContainer methods
 
@@ -453,15 +466,14 @@ VectorImage::GetWidth(int32_t* aWidth) {
     *aWidth = 0;
     return NS_ERROR_FAILURE;
   }
-  LengthPercentage rootElemWidth = rootElem->GetIntrinsicWidth();
 
-  if (!rootElemWidth.IsLength()) {
+  auto widthFromSVG = ClampedPxLengthOrNothing(rootElem->GetIntrinsicWidth());
+  if (!widthFromSVG) {
     *aWidth = 0;
     return NS_ERROR_FAILURE;
   }
 
-  *aWidth = SVGUtils::ClampToInt(rootElemWidth.AsLength().ToCSSPixels());
-  *aWidth = std::max(0, *aWidth);
+  *aWidth = *widthFromSVG;
   return NS_OK;
 }
 
@@ -485,15 +497,13 @@ VectorImage::GetHeight(int32_t* aHeight) {
     *aHeight = 0;
     return NS_ERROR_FAILURE;
   }
-  LengthPercentage rootElemHeight = rootElem->GetIntrinsicHeight();
-
-  if (!rootElemHeight.IsLength()) {
+  auto heightFromSVG = ClampedPxLengthOrNothing(rootElem->GetIntrinsicHeight());
+  if (!heightFromSVG) {
     *aHeight = 0;
     return NS_ERROR_FAILURE;
   }
 
-  *aHeight = SVGUtils::ClampToInt(rootElemHeight.AsLength().ToCSSPixels());
-  *aHeight = std::max(0, *aHeight);
+  *aHeight = *heightFromSVG;
   return NS_OK;
 }
 
