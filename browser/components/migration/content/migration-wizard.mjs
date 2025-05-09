@@ -244,8 +244,8 @@ export class MigrationWizard extends HTMLElement {
               </li>
             </ol>
             <moz-button-group class="buttons" part="buttons">
-              <button class="manual-password-import-skip" data-l10n-id="migration-safari-password-import-skip-button"></button>
-              <button class="manual-password-import-select primary" data-l10n-id="migration-safari-password-import-select-button"></button>
+              <button class="manual-password-import-skip" data-l10n-id="migration-manual-password-import-skip-button"></button>
+              <button class="manual-password-import-select primary" data-l10n-id="migration-manual-password-import-select-button"></button>
             </moz-button-group>
           </div>
 
@@ -316,9 +316,6 @@ export class MigrationWizard extends HTMLElement {
     if (window.MozXULElement) {
       window.MozXULElement.insertFTLIfNeeded("branding/brand.ftl");
       window.MozXULElement.insertFTLIfNeeded("browser/migrationWizard.ftl");
-      window.MozXULElement.insertFTLIfNeeded(
-        "preview/migrationWizardChromeWindows.ftl"
-      );
     }
     document.l10n.connectRoot(shadow);
 

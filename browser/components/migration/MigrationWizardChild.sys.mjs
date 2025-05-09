@@ -332,8 +332,7 @@ export class MigrationWizardChild extends JSWindowActorChild {
         return;
       } else if (
         migrationDetails.key == "chrome" &&
-        AppConstants.platform == "win" &&
-        Services.locale.appLocaleAsBCP47.startsWith("en")
+        AppConstants.platform == "win"
       ) {
         this.#sendTelemetryEvent("chromePasswordFile");
         this.setComponentState({
