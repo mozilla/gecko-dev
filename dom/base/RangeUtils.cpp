@@ -10,6 +10,7 @@
 #include "mozilla/dom/AbstractRange.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/ShadowRoot.h"
+#include "mozilla/dom/HTMLSlotElement.h"
 #include "nsContentUtils.h"
 #include "nsFrameSelection.h"
 

@@ -559,6 +559,19 @@ static void MaybeClearAffectsDirAutoSlot(nsIContent* aContent) {
 }
 
 void SlotAssignedNodeAdded(HTMLSlotElement* aSlot, nsIContent& aAssignedNode) {
+  MOZ_ASSERT(aSlot);
+  if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
+    if (aSlot->IsMaybeSelected()) {
+      // Normally it's nsRange::ContentAppended's responsibility to
+      // mark new descendants, however this doesn't work for slotted
+      // content because nsRange observes the common ancestor of
+      // start/end, whereas slotted element may not have the same
+      // ancestor as them.
+      dom::AbstractRange::UpdateDescendantsInFlattenedTree(
+          aAssignedNode, true /* aMarkDesendants*/);
+    }
+  }
+
   if (aSlot->HasDirAuto()) {
     aAssignedNode.SetAffectsDirAutoSlot();
     DownwardPropagateDirAutoFlags(&aAssignedNode);
@@ -568,6 +581,19 @@ void SlotAssignedNodeAdded(HTMLSlotElement* aSlot, nsIContent& aAssignedNode) {
 
 void SlotAssignedNodeRemoved(HTMLSlotElement* aSlot,
                              nsIContent& aUnassignedNode) {
+  if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled() &&
+      aUnassignedNode.IsMaybeSelected()) {
+    // Normally, this shouldn't happen because nsRange::ContentRemoved
+    // should be called for content removal, and then
+    // AbstractRange::UnmarkDescendants will be used to clear the flags.
+    // Though this doesn't work for slotted element because nsRange
+    // observers the common ancestor of start/end, whereas slotted element
+    // may not have the same ancestor as them, so we have to clear
+    // the flags manually here.
+    dom::AbstractRange::UpdateDescendantsInFlattenedTree(
+        aUnassignedNode, false /* aMarkDesendants*/);
+  }
+
   if (aSlot->HasDirAuto()) {
     MaybeClearAffectsDirAutoSlot(&aUnassignedNode);
   }
