@@ -38,6 +38,7 @@ namespace wasm {
 class LazyTieringHeuristics {
   static constexpr uint32_t MIN_LEVEL = 1;
   static constexpr uint32_t MAX_LEVEL = 9;
+  static constexpr uint32_t SMALL_MODULE_THRESH = 150000;
 
   // A scaling table for levels 2 .. 8.  Levels 1 and 9 are special-cased.  In
   // this table, each value differs from its neighbour by a factor of 3, giving
@@ -64,8 +65,20 @@ class LazyTieringHeuristics {
   // goes negative it requests tier-up.  See "[SMDOC] WebAssembly baseline
   // compiler -- Lazy Tier-Up mechanism" in WasmBaselineCompile.cpp.
 
-  static int32_t estimateIonCompilationCost(uint32_t bodyLength) {
+  static int32_t estimateIonCompilationCost(uint32_t bodyLength,
+                                            size_t codeSectionSize) {
     uint32_t level = rawLevel();
+
+    // Increase the aggressiveness of tiering for small modules, since they
+    // don't generate much optimised-tier compilation work, so we might as well
+    // try to get them into optimized code sooner.  But don't overdo it, since
+    // we don't want to lose indirect-target resolution as a result.  See bug
+    // 1965195.
+    MOZ_ASSERT(codeSectionSize > 0);
+    if (codeSectionSize <= SMALL_MODULE_THRESH && level < MAX_LEVEL) {
+      level += 1;
+    }
+
     if (MOZ_LIKELY(MIN_LEVEL < level && level < MAX_LEVEL)) {
       // The estimated cost, in X86_64 insns, for Ion compilation:
       // 30k up-front cost + 4k per bytecode byte.

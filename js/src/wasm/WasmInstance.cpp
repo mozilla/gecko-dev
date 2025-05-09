@@ -2343,10 +2343,12 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 
   // Initialize the hotness counters, if relevant.
   if (code().mode() == CompileMode::LazyTiering) {
+    // Computing the initial hotness counters requires the code section size.
+    const size_t codeSectionSize = codeMeta().codeSectionSize();
     for (uint32_t funcIndex = codeMeta().numFuncImports;
          funcIndex < codeMeta().numFuncs(); funcIndex++) {
       funcDefInstanceData(funcIndex)->hotnessCounter =
-          computeInitialHotnessCounter(funcIndex);
+          computeInitialHotnessCounter(funcIndex, codeSectionSize);
     }
   }
 
@@ -2736,10 +2738,13 @@ void Instance::resetTemporaryStackLimit(JSContext* cx) {
   onSuspendableStack_ = false;
 }
 
-int32_t Instance::computeInitialHotnessCounter(uint32_t funcIndex) {
+int32_t Instance::computeInitialHotnessCounter(uint32_t funcIndex,
+                                               size_t codeSectionSize) {
   MOZ_ASSERT(code().mode() == CompileMode::LazyTiering);
+  MOZ_ASSERT(codeSectionSize > 0);
   uint32_t bodyLength = codeTailMeta().funcDefRange(funcIndex).size;
-  return LazyTieringHeuristics::estimateIonCompilationCost(bodyLength);
+  return LazyTieringHeuristics::estimateIonCompilationCost(bodyLength,
+                                                           codeSectionSize);
 }
 
 void Instance::resetHotnessCounter(uint32_t funcIndex) {
