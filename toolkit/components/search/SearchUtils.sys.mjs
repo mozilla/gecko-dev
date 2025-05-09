@@ -83,7 +83,7 @@ class LoadListener {
     }
 
     if (requestFailed || this._countRead == 0) {
-      lazy.logConsole.warn("loadListener: request failed!");
+      lazy.logConsole.debug("loadListener: request failed!");
       // send null so the callback can deal with the failure
       this._bytes = null;
     } else if (!this._expectedContentType.test(this._channel.contentType)) {
@@ -596,7 +596,7 @@ export var SearchUtils = {
     let stream = imgTools.encodeScaledImage(container, "image/png", size, size);
     let streamSize = stream.available();
     if (streamSize > SearchUtils.MAX_ICON_SIZE) {
-      throw new Error("Icon is too big");
+      throw new Error("Rescaled icon still is too big");
     }
 
     let bis = new BinaryInputStream(stream);
