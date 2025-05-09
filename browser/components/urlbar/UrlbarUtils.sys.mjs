@@ -230,7 +230,7 @@ export var UrlbarUtils = {
   get LOCAL_SEARCH_MODES() {
     return [
       {
-        source: UrlbarUtils.RESULT_SOURCE.BOOKMARKS,
+        source: this.RESULT_SOURCE.BOOKMARKS,
         restrict: lazy.UrlbarTokenizer.RESTRICT.BOOKMARK,
         icon: "chrome://browser/skin/bookmark.svg",
         pref: "shortcuts.bookmarks",
@@ -238,7 +238,7 @@ export var UrlbarUtils = {
         uiLabel: "urlbar-searchmode-bookmarks",
       },
       {
-        source: UrlbarUtils.RESULT_SOURCE.TABS,
+        source: this.RESULT_SOURCE.TABS,
         restrict: lazy.UrlbarTokenizer.RESTRICT.OPENPAGE,
         icon: "chrome://browser/skin/tabs.svg",
         pref: "shortcuts.tabs",
@@ -246,7 +246,7 @@ export var UrlbarUtils = {
         uiLabel: "urlbar-searchmode-tabs",
       },
       {
-        source: UrlbarUtils.RESULT_SOURCE.HISTORY,
+        source: this.RESULT_SOURCE.HISTORY,
         restrict: lazy.UrlbarTokenizer.RESTRICT.HISTORY,
         icon: "chrome://browser/skin/history.svg",
         pref: "shortcuts.history",
@@ -254,7 +254,7 @@ export var UrlbarUtils = {
         uiLabel: "urlbar-searchmode-history",
       },
       {
-        source: UrlbarUtils.RESULT_SOURCE.ACTIONS,
+        source: this.RESULT_SOURCE.ACTIONS,
         restrict: lazy.UrlbarTokenizer.RESTRICT.ACTION,
         icon: "chrome://browser/skin/quickactions.svg",
         pref: "shortcuts.actions",
@@ -271,7 +271,7 @@ export var UrlbarUtils = {
    * @returns {object} The schema for the given type.
    */
   getPayloadSchema(type) {
-    return UrlbarUtils.RESULT_PAYLOAD_SCHEMA[type];
+    return this.RESULT_PAYLOAD_SCHEMA[type];
   },
 
   /**
@@ -408,7 +408,7 @@ export var UrlbarUtils = {
     // Only search a portion of the string, because not more than a certain
     // amount of characters are visible in the UI, matching over what is visible
     // would be expensive and pointless.
-    str = str.substring(0, UrlbarUtils.MAX_TEXT_LENGTH).toLocaleLowerCase();
+    str = str.substring(0, this.MAX_TEXT_LENGTH).toLocaleLowerCase();
     // To generate non-overlapping ranges, we start from a 0-filled array with
     // the same length of the string, and use it as a collision marker, setting
     // 1 where the text should be highlighted.
@@ -433,7 +433,7 @@ export var UrlbarUtils = {
           break;
         }
 
-        if (highlightType == UrlbarUtils.HIGHLIGHT.SUGGESTED) {
+        if (highlightType == this.HIGHLIGHT.SUGGESTED) {
           // We de-emphasize the match only if it's preceded by a space, thus
           // it's a perfect match or the beginning of a longer word.
           let previousSpaceIndex = str.lastIndexOf(" ", index) + 1;
@@ -473,7 +473,7 @@ export var UrlbarUtils = {
         while (index < str.length) {
           let hay = str.substr(index, needle.length);
           if (compareIgnoringDiacritics(needle, hay) === 0) {
-            if (highlightType == UrlbarUtils.HIGHLIGHT.SUGGESTED) {
+            if (highlightType == this.HIGHLIGHT.SUGGESTED) {
               let previousSpaceIndex = str.lastIndexOf(" ", index) + 1;
               if (index != previousSpaceIndex) {
                 index += needle.length;
@@ -493,7 +493,7 @@ export var UrlbarUtils = {
       }
 
       totalTokensLength += needle.length;
-      if (totalTokensLength > UrlbarUtils.MAX_TEXT_LENGTH) {
+      if (totalTokensLength > this.MAX_TEXT_LENGTH) {
         // Limit the number of tokens to reduce calculate time.
         break;
       }
@@ -526,79 +526,79 @@ export var UrlbarUtils = {
     }
 
     if (result.hasSuggestedIndex && !result.isSuggestedIndexRelativeToGroup) {
-      return UrlbarUtils.RESULT_GROUP.SUGGESTED_INDEX;
+      return this.RESULT_GROUP.SUGGESTED_INDEX;
     }
     if (result.heuristic) {
       switch (result.providerName) {
         case "AliasEngines":
-          return UrlbarUtils.RESULT_GROUP.HEURISTIC_ENGINE_ALIAS;
+          return this.RESULT_GROUP.HEURISTIC_ENGINE_ALIAS;
         case "Autofill":
-          return UrlbarUtils.RESULT_GROUP.HEURISTIC_AUTOFILL;
+          return this.RESULT_GROUP.HEURISTIC_AUTOFILL;
         case "BookmarkKeywords":
-          return UrlbarUtils.RESULT_GROUP.HEURISTIC_BOOKMARK_KEYWORD;
+          return this.RESULT_GROUP.HEURISTIC_BOOKMARK_KEYWORD;
         case "HeuristicFallback":
-          return UrlbarUtils.RESULT_GROUP.HEURISTIC_FALLBACK;
+          return this.RESULT_GROUP.HEURISTIC_FALLBACK;
         case "Omnibox":
-          return UrlbarUtils.RESULT_GROUP.HEURISTIC_OMNIBOX;
+          return this.RESULT_GROUP.HEURISTIC_OMNIBOX;
         case "RestrictKeywordsAutofill":
-          return UrlbarUtils.RESULT_GROUP.HEURISTIC_RESTRICT_KEYWORD_AUTOFILL;
+          return this.RESULT_GROUP.HEURISTIC_RESTRICT_KEYWORD_AUTOFILL;
         case "TokenAliasEngines":
-          return UrlbarUtils.RESULT_GROUP.HEURISTIC_TOKEN_ALIAS_ENGINE;
+          return this.RESULT_GROUP.HEURISTIC_TOKEN_ALIAS_ENGINE;
         case "UrlbarProviderSearchTips":
-          return UrlbarUtils.RESULT_GROUP.HEURISTIC_SEARCH_TIP;
+          return this.RESULT_GROUP.HEURISTIC_SEARCH_TIP;
         case "HistoryUrlHeuristic":
-          return UrlbarUtils.RESULT_GROUP.HEURISTIC_HISTORY_URL;
+          return this.RESULT_GROUP.HEURISTIC_HISTORY_URL;
         default:
           if (result.providerName.startsWith("TestProvider")) {
-            return UrlbarUtils.RESULT_GROUP.HEURISTIC_TEST;
+            return this.RESULT_GROUP.HEURISTIC_TEST;
           }
           break;
       }
-      if (result.providerType == UrlbarUtils.PROVIDER_TYPE.EXTENSION) {
-        return UrlbarUtils.RESULT_GROUP.HEURISTIC_EXTENSION;
+      if (result.providerType == this.PROVIDER_TYPE.EXTENSION) {
+        return this.RESULT_GROUP.HEURISTIC_EXTENSION;
       }
       console.error(
         "Returning HEURISTIC_FALLBACK for unrecognized heuristic result: ",
         result
       );
-      return UrlbarUtils.RESULT_GROUP.HEURISTIC_FALLBACK;
+      return this.RESULT_GROUP.HEURISTIC_FALLBACK;
     }
 
     switch (result.providerName) {
       case "AboutPages":
-        return UrlbarUtils.RESULT_GROUP.ABOUT_PAGES;
+        return this.RESULT_GROUP.ABOUT_PAGES;
       case "InputHistory":
-        return UrlbarUtils.RESULT_GROUP.INPUT_HISTORY;
+        return this.RESULT_GROUP.INPUT_HISTORY;
       case "SemanticHistorySearch":
-        return UrlbarUtils.RESULT_GROUP.HISTORY_SEMANTIC;
+        return this.RESULT_GROUP.HISTORY_SEMANTIC;
       case "UrlbarProviderQuickSuggest":
-        return UrlbarUtils.RESULT_GROUP.GENERAL_PARENT;
+        return this.RESULT_GROUP.GENERAL_PARENT;
       default:
         break;
     }
 
     switch (result.type) {
-      case UrlbarUtils.RESULT_TYPE.SEARCH:
-        if (result.source == UrlbarUtils.RESULT_SOURCE.HISTORY) {
+      case this.RESULT_TYPE.SEARCH:
+        if (result.source == this.RESULT_SOURCE.HISTORY) {
           return result.providerName == "RecentSearches"
-            ? UrlbarUtils.RESULT_GROUP.RECENT_SEARCH
-            : UrlbarUtils.RESULT_GROUP.FORM_HISTORY;
+            ? this.RESULT_GROUP.RECENT_SEARCH
+            : this.RESULT_GROUP.FORM_HISTORY;
         }
         if (result.payload.tail && !result.isRichSuggestion) {
-          return UrlbarUtils.RESULT_GROUP.TAIL_SUGGESTION;
+          return this.RESULT_GROUP.TAIL_SUGGESTION;
         }
         if (result.payload.suggestion) {
-          return UrlbarUtils.RESULT_GROUP.REMOTE_SUGGESTION;
+          return this.RESULT_GROUP.REMOTE_SUGGESTION;
         }
         break;
-      case UrlbarUtils.RESULT_TYPE.OMNIBOX:
-        return UrlbarUtils.RESULT_GROUP.OMNIBOX;
-      case UrlbarUtils.RESULT_TYPE.REMOTE_TAB:
-        return UrlbarUtils.RESULT_GROUP.REMOTE_TAB;
-      case UrlbarUtils.RESULT_TYPE.RESTRICT:
-        return UrlbarUtils.RESULT_GROUP.RESTRICT_SEARCH_KEYWORD;
+      case this.RESULT_TYPE.OMNIBOX:
+        return this.RESULT_GROUP.OMNIBOX;
+      case this.RESULT_TYPE.REMOTE_TAB:
+        return this.RESULT_GROUP.REMOTE_TAB;
+      case this.RESULT_TYPE.RESTRICT:
+        return this.RESULT_GROUP.RESTRICT_SEARCH_KEYWORD;
     }
-    return UrlbarUtils.RESULT_GROUP.GENERAL;
+    return this.RESULT_GROUP.GENERAL;
   },
 
   /**
@@ -612,10 +612,7 @@ export var UrlbarUtils = {
    *   null if the result doesn't have post data.
    */
   getUrlFromResult(result) {
-    if (
-      result.type == UrlbarUtils.RESULT_TYPE.SEARCH &&
-      result.payload.engine
-    ) {
+    if (result.type == this.RESULT_TYPE.SEARCH && result.payload.engine) {
       const engine = Services.search.getEngineByName(result.payload.engine);
       let [url, postData] = this.getSearchQueryUrl(
         engine,
@@ -681,15 +678,15 @@ export var UrlbarUtils = {
     }
 
     switch (result.type) {
-      case UrlbarUtils.RESULT_TYPE.URL:
-      case UrlbarUtils.RESULT_TYPE.BOOKMARKS:
-      case UrlbarUtils.RESULT_TYPE.REMOTE_TAB:
-      case UrlbarUtils.RESULT_TYPE.TAB_SWITCH:
-      case UrlbarUtils.RESULT_TYPE.KEYWORD:
-      case UrlbarUtils.RESULT_TYPE.SEARCH:
-      case UrlbarUtils.RESULT_TYPE.OMNIBOX:
+      case this.RESULT_TYPE.URL:
+      case this.RESULT_TYPE.BOOKMARKS:
+      case this.RESULT_TYPE.REMOTE_TAB:
+      case this.RESULT_TYPE.TAB_SWITCH:
+      case this.RESULT_TYPE.KEYWORD:
+      case this.RESULT_TYPE.SEARCH:
+      case this.RESULT_TYPE.OMNIBOX:
         return 1;
-      case UrlbarUtils.RESULT_TYPE.TIP:
+      case this.RESULT_TYPE.TIP:
         return 3;
     }
     return 1;
@@ -704,17 +701,17 @@ export var UrlbarUtils = {
    */
   getIconForUrl(url) {
     if (typeof url == "string") {
-      return UrlbarUtils.PROTOCOLS_WITH_ICONS.some(p => url.startsWith(p))
+      return this.PROTOCOLS_WITH_ICONS.some(p => url.startsWith(p))
         ? "page-icon:" + url
-        : UrlbarUtils.ICON.DEFAULT;
+        : this.ICON.DEFAULT;
     }
     if (
       URL.isInstance(url) &&
-      UrlbarUtils.PROTOCOLS_WITH_ICONS.includes(url.protocol)
+      this.PROTOCOLS_WITH_ICONS.includes(url.protocol)
     ) {
       return "page-icon:" + url.href;
     }
-    return UrlbarUtils.ICON.DEFAULT;
+    return this.ICON.DEFAULT;
   },
 
   /**
@@ -735,7 +732,7 @@ export var UrlbarUtils = {
       };
     }
 
-    let mode = UrlbarUtils.LOCAL_SEARCH_MODES.find(m => m.restrict == token);
+    let mode = this.LOCAL_SEARCH_MODES.find(m => m.restrict == token);
     if (!mode) {
       return null;
     }
@@ -1048,7 +1045,7 @@ export var UrlbarUtils = {
     }
     if (
       prefix.endsWith(":") &&
-      !UrlbarUtils.PROTOCOLS_WITHOUT_AUTHORITY.includes(prefix.toLowerCase())
+      !this.PROTOCOLS_WITHOUT_AUTHORITY.includes(prefix.toLowerCase())
     ) {
       // Something that looks like a URI scheme but we won't treat as one:
       // e.g. "localhost:8888"
@@ -1247,13 +1244,13 @@ export var UrlbarUtils = {
       return "unknown";
     }
     switch (result.type) {
-      case UrlbarUtils.RESULT_TYPE.TAB_SWITCH:
+      case this.RESULT_TYPE.TAB_SWITCH:
         return "switchtab";
-      case UrlbarUtils.RESULT_TYPE.SEARCH:
+      case this.RESULT_TYPE.SEARCH:
         if (result.providerName == "RecentSearches") {
           return "recent_search";
         }
-        if (result.source == UrlbarUtils.RESULT_SOURCE.HISTORY) {
+        if (result.source == this.RESULT_SOURCE.HISTORY) {
           return "formhistory";
         }
         if (result.providerName == "TabToSearch") {
@@ -1267,7 +1264,7 @@ export var UrlbarUtils = {
           return type;
         }
         return "searchengine";
-      case UrlbarUtils.RESULT_TYPE.URL:
+      case this.RESULT_TYPE.URL:
         if (result.autofill) {
           let { type } = result.autofill;
           if (!type) {
@@ -1281,7 +1278,7 @@ export var UrlbarUtils = {
           return `autofill_${type}`;
         }
         if (
-          result.source == UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL &&
+          result.source == this.RESULT_SOURCE.OTHER_LOCAL &&
           result.heuristic
         ) {
           return "visiturl";
@@ -1294,7 +1291,7 @@ export var UrlbarUtils = {
         }
         {
           let type =
-            result.source == UrlbarUtils.RESULT_SOURCE.BOOKMARKS
+            result.source == this.RESULT_SOURCE.BOOKMARKS
               ? "bookmark"
               : "history";
           if (result.providerName == "InputHistory") {
@@ -1302,21 +1299,21 @@ export var UrlbarUtils = {
           }
           return type;
         }
-      case UrlbarUtils.RESULT_TYPE.KEYWORD:
+      case this.RESULT_TYPE.KEYWORD:
         return "keyword";
-      case UrlbarUtils.RESULT_TYPE.OMNIBOX:
+      case this.RESULT_TYPE.OMNIBOX:
         return "extension";
-      case UrlbarUtils.RESULT_TYPE.REMOTE_TAB:
+      case this.RESULT_TYPE.REMOTE_TAB:
         return "remotetab";
-      case UrlbarUtils.RESULT_TYPE.TIP:
+      case this.RESULT_TYPE.TIP:
         return "tip";
-      case UrlbarUtils.RESULT_TYPE.DYNAMIC:
+      case this.RESULT_TYPE.DYNAMIC:
         if (result.providerName == "TabToSearch") {
           // This is the onboarding result.
           return "tabtosearch";
         }
         return "dynamic";
-      case UrlbarUtils.RESULT_TYPE.RESTRICT:
+      case this.RESULT_TYPE.RESTRICT:
         if (result.payload.keyword === lazy.UrlbarTokenizer.RESTRICT.BOOKMARK) {
           return "restrict_keyword_bookmarks";
         }
@@ -1342,7 +1339,7 @@ export var UrlbarUtils = {
    * @returns {string} Unescaped uri.
    */
   unEscapeURIForUI(uri) {
-    return uri.length > UrlbarUtils.MAX_TEXT_LENGTH
+    return uri.length > this.MAX_TEXT_LENGTH
       ? uri
       : Services.textToSubURI.unEscapeURIForUI(uri);
   },
@@ -1380,7 +1377,7 @@ export var UrlbarUtils = {
 
     if (url) {
       if (schemeless) {
-        url = UrlbarUtils.stripPrefixAndTrim(url, {
+        url = this.stripPrefixAndTrim(url, {
           stripHttp: true,
           stripHttps: true,
         })[0];
@@ -1416,17 +1413,17 @@ export var UrlbarUtils = {
     }
 
     switch (this.getResultGroup(result)) {
-      case UrlbarUtils.RESULT_GROUP.INPUT_HISTORY: {
+      case this.RESULT_GROUP.INPUT_HISTORY: {
         return "adaptive_history";
       }
-      case UrlbarUtils.RESULT_GROUP.RECENT_SEARCH: {
+      case this.RESULT_GROUP.RECENT_SEARCH: {
         return "recent_search";
       }
-      case UrlbarUtils.RESULT_GROUP.FORM_HISTORY: {
+      case this.RESULT_GROUP.FORM_HISTORY: {
         return "search_history";
       }
-      case UrlbarUtils.RESULT_GROUP.TAIL_SUGGESTION:
-      case UrlbarUtils.RESULT_GROUP.REMOTE_SUGGESTION: {
+      case this.RESULT_GROUP.TAIL_SUGGESTION:
+      case this.RESULT_GROUP.REMOTE_SUGGESTION: {
         let group = result.payload.trending
           ? "trending_search"
           : "search_suggest";
@@ -1435,28 +1432,28 @@ export var UrlbarUtils = {
         }
         return group;
       }
-      case UrlbarUtils.RESULT_GROUP.REMOTE_TAB: {
+      case this.RESULT_GROUP.REMOTE_TAB: {
         return "remote_tab";
       }
-      case UrlbarUtils.RESULT_GROUP.HEURISTIC_EXTENSION:
-      case UrlbarUtils.RESULT_GROUP.HEURISTIC_OMNIBOX:
-      case UrlbarUtils.RESULT_GROUP.OMNIBOX: {
+      case this.RESULT_GROUP.HEURISTIC_EXTENSION:
+      case this.RESULT_GROUP.HEURISTIC_OMNIBOX:
+      case this.RESULT_GROUP.OMNIBOX: {
         return "addon";
       }
-      case UrlbarUtils.RESULT_GROUP.GENERAL: {
+      case this.RESULT_GROUP.GENERAL: {
         return "general";
       }
       // Group of UrlbarProviderQuickSuggest is GENERAL_PARENT.
-      case UrlbarUtils.RESULT_GROUP.GENERAL_PARENT: {
+      case this.RESULT_GROUP.GENERAL_PARENT: {
         return "suggest";
       }
-      case UrlbarUtils.RESULT_GROUP.ABOUT_PAGES: {
+      case this.RESULT_GROUP.ABOUT_PAGES: {
         return "about_page";
       }
-      case UrlbarUtils.RESULT_GROUP.SUGGESTED_INDEX: {
+      case this.RESULT_GROUP.SUGGESTED_INDEX: {
         return "suggested_index";
       }
-      case UrlbarUtils.RESULT_GROUP.RESTRICT_SEARCH_KEYWORD: {
+      case this.RESULT_GROUP.RESTRICT_SEARCH_KEYWORD: {
         return "restrict_keyword";
       }
     }
@@ -1479,14 +1476,14 @@ export var UrlbarUtils = {
     // While product doesn't use experimental addons anymore, tests may still do
     // for testing purposes.
     if (
-      result.providerType === UrlbarUtils.PROVIDER_TYPE.EXTENSION &&
+      result.providerType === this.PROVIDER_TYPE.EXTENSION &&
       result.providerName != "Omnibox"
     ) {
       return "experimental_addon";
     }
 
     switch (result.type) {
-      case UrlbarUtils.RESULT_TYPE.DYNAMIC:
+      case this.RESULT_TYPE.DYNAMIC:
         switch (result.providerName) {
           case "calculator":
             return "calc";
@@ -1503,17 +1500,17 @@ export var UrlbarUtils = {
             return "action";
         }
         break;
-      case UrlbarUtils.RESULT_TYPE.KEYWORD:
+      case this.RESULT_TYPE.KEYWORD:
         return "keyword";
-      case UrlbarUtils.RESULT_TYPE.OMNIBOX:
+      case this.RESULT_TYPE.OMNIBOX:
         return "addon";
-      case UrlbarUtils.RESULT_TYPE.REMOTE_TAB:
+      case this.RESULT_TYPE.REMOTE_TAB:
         return "remote_tab";
-      case UrlbarUtils.RESULT_TYPE.SEARCH:
+      case this.RESULT_TYPE.SEARCH:
         if (result.providerName === "TabToSearch") {
           return "tab_to_search";
         }
-        if (result.source == UrlbarUtils.RESULT_SOURCE.HISTORY) {
+        if (result.source == this.RESULT_SOURCE.HISTORY) {
           return result.providerName == "RecentSearches"
             ? "recent_search"
             : "search_history";
@@ -1528,9 +1525,9 @@ export var UrlbarUtils = {
           return type;
         }
         return "search_engine";
-      case UrlbarUtils.RESULT_TYPE.TAB_SWITCH:
+      case this.RESULT_TYPE.TAB_SWITCH:
         return "tab";
-      case UrlbarUtils.RESULT_TYPE.TIP:
+      case this.RESULT_TYPE.TIP:
         if (result.providerName === "UrlbarProviderInterventions") {
           switch (result.payload.type) {
             case lazy.UrlbarProviderInterventions.TIP_TYPE.CLEAR:
@@ -1558,9 +1555,9 @@ export var UrlbarUtils = {
           default:
             return "tip_unknown";
         }
-      case UrlbarUtils.RESULT_TYPE.URL:
+      case this.RESULT_TYPE.URL:
         if (
-          result.source === UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL &&
+          result.source === this.RESULT_SOURCE.OTHER_LOCAL &&
           result.heuristic
         ) {
           return "url";
@@ -1577,10 +1574,10 @@ export var UrlbarUtils = {
         if (result.providerName === "UrlbarProviderClipboard") {
           return "clipboard";
         }
-        return result.source === UrlbarUtils.RESULT_SOURCE.BOOKMARKS
+        return result.source === this.RESULT_SOURCE.BOOKMARKS
           ? "bookmark"
           : "history";
-      case UrlbarUtils.RESULT_TYPE.RESTRICT:
+      case this.RESULT_TYPE.RESTRICT:
         if (result.payload.keyword === lazy.UrlbarTokenizer.RESTRICT.BOOKMARK) {
           return "restrict_keyword_bookmarks";
         }
