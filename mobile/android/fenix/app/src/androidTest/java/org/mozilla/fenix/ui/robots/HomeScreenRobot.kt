@@ -1105,11 +1105,6 @@ fun homeScreen(interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition
     return HomeScreenRobot.Transition()
 }
 
-fun homeScreenWithComposeTopSites(composeTestRule: HomeActivityComposeTestRule, interact: TopSitesRobotCompose.() -> Unit): TopSitesRobotCompose.Transition {
-    TopSitesRobotCompose(composeTestRule).interact()
-    return TopSitesRobotCompose.Transition(composeTestRule)
-}
-
 private fun homeScreenList() =
     UiScrollable(
         UiSelector()

@@ -39,7 +39,6 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         isDeleteSitePermissionsEnabled = settings.deleteSitePermissions,
         isOpenInAppBannerEnabled = settings.shouldShowOpenInAppBanner,
         etpPolicy = getETPPolicy(settings),
-        composeTopSitesEnabled = settings.enableComposeTopSites,
         isLocationPermissionEnabled = getFeaturePermission(PhoneFeature.LOCATION, settings),
         isMenuRedesignEnabled = settings.enableMenuRedesign,
         isMenuRedesignCFREnabled = settings.shouldShowMenuCFR,
@@ -73,7 +72,6 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
     override var isPWAsPromptEnabled: Boolean by updatedFeatureFlags::isPWAsPromptEnabled
     override var isOpenInAppBannerEnabled: Boolean by updatedFeatureFlags::isOpenInAppBannerEnabled
     override var etpPolicy: ETPPolicy by updatedFeatureFlags::etpPolicy
-    override var composeTopSitesEnabled: Boolean by updatedFeatureFlags::composeTopSitesEnabled
     override var isLocationPermissionEnabled: SitePermissionsRules.Action by updatedFeatureFlags::isLocationPermissionEnabled
     override var isMenuRedesignEnabled: Boolean by updatedFeatureFlags::isMenuRedesignEnabled
     override var isMenuRedesignCFREnabled: Boolean by updatedFeatureFlags::isMenuRedesignCFREnabled
@@ -107,7 +105,6 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         settings.showWallpaperOnboarding = featureFlags.isWallpaperOnboardingEnabled
         settings.deleteSitePermissions = featureFlags.isDeleteSitePermissionsEnabled
         settings.shouldShowOpenInAppBanner = featureFlags.isOpenInAppBannerEnabled
-        settings.enableComposeTopSites = featureFlags.composeTopSitesEnabled
         settings.enableMenuRedesign = featureFlags.isMenuRedesignEnabled
         settings.shouldShowMenuCFR = featureFlags.isMenuRedesignCFREnabled
         settings.useNewBookmarks = featureFlags.isNewBookmarksEnabled
@@ -131,7 +128,6 @@ private data class FeatureFlags(
     var isDeleteSitePermissionsEnabled: Boolean,
     var isOpenInAppBannerEnabled: Boolean,
     var etpPolicy: ETPPolicy,
-    var composeTopSitesEnabled: Boolean,
     var isLocationPermissionEnabled: SitePermissionsRules.Action,
     var isMenuRedesignEnabled: Boolean,
     var isMenuRedesignCFREnabled: Boolean,

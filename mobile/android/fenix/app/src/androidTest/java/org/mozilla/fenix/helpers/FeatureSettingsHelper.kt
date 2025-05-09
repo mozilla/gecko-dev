@@ -63,11 +63,6 @@ interface FeatureSettingsHelper {
     var isOpenInAppBannerEnabled: Boolean
 
     /**
-     * Enable or disable the Top Sites to Compose rewrite.
-     */
-    var composeTopSitesEnabled: Boolean
-
-    /**
      * Enable or disable all location permission requests.
      */
     var isLocationPermissionEnabled: SitePermissionsRules.Action
