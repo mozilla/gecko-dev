@@ -65,15 +65,7 @@ class Config {
 def setupProject(name, path, description) {
     settings.include(":$name")
 
-    def projectPath = "/mobile/android/android-components/${path}"
-    if (rootDir.toString().endsWith("android-components") ||
-            rootDir.toString().endsWith("focus-android") ||
-            rootDir.toString().endsWith("fenix")
-    ) {
-        projectPath = "../android-components/${path}"
-    }
-
-    project(":$name").projectDir = new File(rootDir, projectPath)
+    project(":$name").projectDir = new File(gradle.mozconfig.topsrcdir, "mobile/android/android-components/${path}")
 
     // project(...) gives us a skeleton project that we can't set ext.* on
     gradle.beforeProject { project ->
@@ -101,16 +93,9 @@ def getManifestVersionString(componentsVersion) {
     return "${parts[0]}.${parts[1]}.${dateAndTime}";
 }
 
-def buildConfigPath = '/mobile/android/android-components/.buildconfig.yml'
-if (rootDir.toString().endsWith("android-components") ||
-        rootDir.toString().endsWith("focus-android") ||
-        rootDir.toString().endsWith("fenix")
-) {
-    buildConfigPath = '../android-components/.buildconfig.yml'
-}
-
 def yaml = new Yaml()
-def buildconfig = yaml.load(new File(rootDir, buildConfigPath).newInputStream())
+def buildConfigFile = new File(gradle.mozconfig.topsrcdir, "mobile/android/android-components/.buildconfig.yml")
+def buildconfig = yaml.load(buildConfigFile.newInputStream())
 
 buildconfig.projects.each { project ->
     // If we're building A-C, set up all projects, otherwise exclude samples e.g., if we're building Fenix or Focus.
@@ -121,20 +106,11 @@ buildconfig.projects.each { project ->
 }
 
 gradle.projectsLoaded { ->
-    def versionPath = './mobile/android/version.txt'
-    def configPath = './mobile/android/android-components/.config.yml'
+    def versionFile = new File(gradle.mozconfig.topsrcdir, "mobile/android/version.txt")
+    String version = versionFile.text.stripTrailing()
 
-    if (rootDir.toString().endsWith("android-components") ||
-        rootDir.toString().endsWith("focus-android") ||
-        rootDir.toString().endsWith("fenix")
-    ) {
-        versionPath = '../version.txt'
-        configPath = '../android-components/.config.yml'
-    }
-
-    def componentsVersion = gradle.rootProject.file(versionPath).text.stripTrailing()
-    def configData = yaml.load(gradle.rootProject.file(configPath).newInputStream())
-    String version = componentsVersion
+    def configDataFile = new File(gradle.mozconfig.topsrcdir, "mobile/android/android-components/.config.yml")
+    def configData = yaml.load(configDataFile.newInputStream())
 
     if (gradle.rootProject.hasProperty("nightlyVersion")) {
         version = gradle.rootProject.nightlyVersion

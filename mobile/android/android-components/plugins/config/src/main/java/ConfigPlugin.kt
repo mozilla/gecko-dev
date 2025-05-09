@@ -5,7 +5,9 @@
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.provider.ProviderFactory
+import org.gradle.kotlin.dsl.extra
 import org.gradle.process.ExecOutput
+import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.util.Date
@@ -46,13 +48,10 @@ object Config {
 
     @JvmStatic
     fun readVersionFromFile(project: Project): String {
-        var versionPath = "../version.txt"
-
-        if (project.findProject(":geckoview") != null) {
-            versionPath = "./mobile/android/version.txt"
-        }
-
-        return project.rootProject.file(versionPath).useLines { it.firstOrNull() ?: "" }
+        var mozconfig = project.gradle.extensions.extraProperties.get("mozconfig") as Map<*, *>;
+        var topsrcdir = mozconfig.get("topsrcdir") as String;
+        var versionPath = Paths.get(topsrcdir, "mobile/android/version.txt");
+        return project.file(versionPath).useLines { it.firstOrNull() ?: "" }
     }
 
     @JvmStatic
