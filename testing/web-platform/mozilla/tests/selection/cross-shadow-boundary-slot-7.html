@@ -1,0 +1,20 @@
+<!doctype html>
+<head>
+<link rel="match" href="cross-shadow-boundary-slot-7-ref.html"/>
+</head>
+<div>
+  <template shadowrootmode="open">
+    <slot name="first"></slot>
+    <span id="inner">Inner</span>
+    <slot name="second"></slot>
+  </template>
+  <span id="second" slot="second">Second</span>
+  <span id="first" slot="first">First</span>
+</div>
+<script>
+  // This selects:
+
+  // rst Inner Sec
+  window.getSelection()
+      .setBaseAndExtent(second.firstChild, 3, first.firstChild, 2);
+</script>

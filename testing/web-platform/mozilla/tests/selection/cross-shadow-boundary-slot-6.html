@@ -1,0 +1,22 @@
+<!doctype html>
+<head>
+<link rel="match" href="cross-shadow-boundary-slot-6-ref.html"/>
+</head>
+<span id="outer">Outer</span>
+<div id="host">
+  <template shadowrootmode="open">
+    <span id="inner">Inner</span>
+    <slot name="first"></slot>
+    <slot name="second"></slot>
+  </template>
+  <span slot="second">Second</span>
+  <span id="first" slot="first">First</span>
+</div>
+<script>
+  // This selects:
+
+  // er
+  // Inner Fi
+  window.getSelection()
+      .setBaseAndExtent(outer.firstChild, 3, first.firstChild, 2);
+</script>

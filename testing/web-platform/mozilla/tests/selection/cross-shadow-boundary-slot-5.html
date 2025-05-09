@@ -1,19 +1,19 @@
 <!doctype html>
 <head>
-<link rel="match" href="cross-shadow-boundary-slot-1-ref.html"/>
+<link rel="match" href="cross-shadow-boundary-slot-5-ref.html"/>
 </head>
 <span id="outer">Outer</span>
-<div>
+<div id="host">
   <template shadowrootmode="open">
+    <span id="inner">Inner</span>
     <slot></slot>
-    <span>Inner</span>
   </template>
   <span id="slotted">Slotted</span>
 </div>
 <script>
   // Selected contents are:
-  //   er
-  //   Slot
+  //   ter
+  //   Inner Slotted
   window.getSelection()
-      .setBaseAndExtent(outer.firstChild, 3, slotted.firstChild, 4);
+      .setBaseAndExtent(slotted.firstChild, 3, outer.firstChild, 2);
 </script>

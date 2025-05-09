@@ -1,10 +1,10 @@
 <!doctype html>
 <span id="outer">Outer</span>
 <div>
-  <span id="slotted">Slotted</span>
   <span id="inner">Inner</span>
+  <span id="slotted">Slotted</span>
 </div>
 <script>
   window.getSelection()
-      .setBaseAndExtent(outer.firstChild, 3, inner.firstChild, 5);
+      .setBaseAndExtent(slotted.firstChild, 3, outer.firstChild, 2);
 </script>

@@ -1,0 +1,52 @@
+<!doctype html>
+<head>
+<link rel="match" href="cross-shadow-boundary-slot-9-ref.html"/>
+</head>
+<div>
+  <template shadowrootmode="open">
+    <slot name="first"></slot>
+    <span id="inner">Inner</span>
+    <div id="innerHost1">
+      <template shadowrootmode="open">
+        <slot name="reordered1"></slot>
+        <span id="inner">Inner</span>
+        <slot name="reordered2"></slot>
+      </template>
+      <span slot="reordered2">Reordered2</span>
+      <span slot="reordered1">Reordered1</span>
+    </div>
+    <slot name="second"></slot>
+  </template>
+  <span id="second" slot="second">Second</span>
+  <span id="first" slot="first">First</span>
+</div>
+<div>
+  <template shadowrootmode="open">
+    <slot name="third"></slot>
+    <span id="inner">Inner</span>
+    <div id="innerHost1">
+      <template shadowrootmode="open">
+        <slot name="reordered3"></slot>
+        <span id="inner">Inner</span>
+        <slot name="reordered4"></slot>
+      </template>
+      <span slot="reordered4">Reordered4</span>
+      <span slot="reordered3">Reordered3</span>
+    </div>
+    <slot name="fourth"></slot>
+  </template>
+  <span id="fourth" slot="fourth">Fourth</span>
+  <span id="third" slot="third">Third</span>
+</div>
+<script>
+  // This selects:
+
+  // rst Inner
+  // Reordered1 Inner Reordered2
+  // Second
+  // Third Inner
+  // Reordered3 Inner Reordered4
+  // Fou
+  window.getSelection()
+      .setBaseAndExtent(fourth.firstChild, 3, first.firstChild, 2);
+</script>

@@ -1,0 +1,27 @@
+<!doctype html>
+<head>
+<link rel="match" href="cross-shadow-boundary-slot-in-nested-shadow-dom-ref.html"/>
+</head>
+<span id="outer">Outer</span>
+<div id="host">
+  <template shadowrootmode="open">
+    <span id="inner">Inner</span>
+    <div id="innerHost">
+      <template shadowrootmode="open">
+      <span id="inner">Inner2</span>
+      <slot></slot>
+      </template>
+      <span id="slotted">Slotted</span>
+    </div>
+  </template>
+</div>
+<script>
+  // This selects:
+
+  // er
+  // Inner
+  // Inner2 Slott
+  const slotted = host.shadowRoot.getElementById("slotted");
+  window.getSelection()
+      .setBaseAndExtent(outer.firstChild, 3, slotted.firstChild, 5);
+</script>

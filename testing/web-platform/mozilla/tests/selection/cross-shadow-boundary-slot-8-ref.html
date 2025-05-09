@@ -1,0 +1,15 @@
+<!doctype html>
+<div>
+  <span id="first" slot="first">First</span>
+  <span id="inner">Inner</span>
+  <span id="second" slot="second">Second</span>
+</div>
+<div>
+  <span id="third" slot="third">Third</span>
+  <span id="inner">Inner</span>
+  <span id="fourth" slot="fourth">Fourth</span>
+</div>
+<script>
+  window.getSelection()
+      .setBaseAndExtent(fourth.firstChild, 3, first.firstChild, 2);
+</script>

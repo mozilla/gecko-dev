@@ -1,0 +1,25 @@
+<!doctype html>
+<div>
+  <span id="first" slot="first">First</span>
+  <span id="inner">Inner</span>
+  <div id="innerHost1">
+    <span slot="reordered1">Reordered1</span>
+    <span id="inner">Inner</span>
+    <span slot="reordered2">Reordered2</span>
+  </div>
+  <span id="second" slot="second">Second</span>
+</div>
+<div>
+  <span id="third" slot="third">Third</span>
+  <span id="inner">Inner</span>
+  <div id="innerHost1">
+    <span slot="reordered3">Reordered3</span>
+    <span id="inner">Inner</span>
+    <span slot="reordered4">Reordered4</span>
+  </div>
+  <span id="fourth" slot="fourth">Fourth</span>
+</div>
+<script>
+  window.getSelection()
+      .setBaseAndExtent(fourth.firstChild, 3, first.firstChild, 2);
+</script>

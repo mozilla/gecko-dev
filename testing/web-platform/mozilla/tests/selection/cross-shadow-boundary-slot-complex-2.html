@@ -1,0 +1,33 @@
+<!doctype html>
+<head>
+<link rel="match" href="cross-shadow-boundary-slot-complex-2-ref.html"/>
+</head>
+<div id="host">
+  <template shadowrootmode="open">
+    in shadow
+    <slot name="1"></slot>
+    <div>
+      <template shadowrootmode="open">
+        in nested shadow
+        <slot></slot>
+        <span id="inNestedShadow">in nested shadow</span>
+      </template>
+      <slot name="2"></slot>
+    </div>
+    in shadow
+  </template>
+  <span id="slot1" slot="1">--slotted 1--</span>
+  <span id="slot2" slot="2">--slotted 2--</span>
+</div>
+<script>
+  // This selects:
+
+  // lotted 1--
+  // in nested shadow --slotted 2-- in nest
+  const nestedRoot = host.shadowRoot.querySelector("div").shadowRoot;
+  window.getSelection()
+      .setBaseAndExtent(
+        slot1.firstChild, 3,
+        nestedRoot.getElementById("inNestedShadow").firstChild,
+        7);
+</script>
