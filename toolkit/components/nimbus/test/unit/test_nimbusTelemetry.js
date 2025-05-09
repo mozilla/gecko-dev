@@ -334,7 +334,7 @@ add_task(
       "The targetingContextValue metric has not been recorded yet."
     );
 
-    GleanPings.nimbusTargetingContext.testBeforeNextSubmit(() => {
+    GleanPings.nimbusTargetingContext.testSubmission(() => {
       Assert.deepEqual(
         JSON.parse(
           Glean.nimbusTargetingEnvironment.targetingContextValue.testGetValue()
@@ -350,8 +350,7 @@ add_task(
           ],
         }
       );
-    });
-    await recordTargetingContext();
+    }, recordTargetingContext);
 
     cleanupExperiment();
     cleanup();
