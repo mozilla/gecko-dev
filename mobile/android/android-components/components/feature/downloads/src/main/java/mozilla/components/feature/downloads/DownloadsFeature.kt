@@ -119,10 +119,12 @@ class DownloadsFeature(
     private val fragmentManager: FragmentManager? = null,
     private val promptsStyling: PromptsStyling? = null,
     private val shouldForwardToThirdParties: () -> Boolean = { false },
-    private val customFirstPartyDownloadDialog:
-    ((Filename, ContentSize, PositiveActionCallback, NegativeActionCallback) -> Unit)? = null,
-    private val customThirdPartyDownloadDialog:
-    ((ThirdPartyDownloaderApps, ThirdPartyDownloaderAppChosenCallback, NegativeActionCallback) -> Unit)? = null,
+    private val customFirstPartyDownloadDialog: (
+        (Filename, ContentSize, PositiveActionCallback, NegativeActionCallback) -> Unit
+    )? = null,
+    private val customThirdPartyDownloadDialog: (
+        (ThirdPartyDownloaderApps, ThirdPartyDownloaderAppChosenCallback, NegativeActionCallback) -> Unit
+    )? = null,
     private val fileHasNotEnoughStorageDialog: ((Filename) -> Unit) = {},
 ) : LifecycleAwareFeature, PermissionsFeature {
 

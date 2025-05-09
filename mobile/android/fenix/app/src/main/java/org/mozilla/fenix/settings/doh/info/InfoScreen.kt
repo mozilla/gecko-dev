@@ -215,8 +215,7 @@ internal data class BulletPoint(
  */
 internal enum class InfoScreenTopic(
     @StringRes val titleId: Int,
-    val bulletPoints:
-    List<Pair<BulletPoint, SupportUtils.SumoTopic?>>,
+    val bulletPoints: List<Pair<BulletPoint, SupportUtils.SumoTopic?>>,
 ) {
     DEFAULT(
         titleId = R.string.preference_doh_default_protection,

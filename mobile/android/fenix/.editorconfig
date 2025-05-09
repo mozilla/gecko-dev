@@ -32,7 +32,6 @@ ktlint_standard_if-else-wrapping = disabled
 ktlint_standard_unnecessary-parentheses-before-trailing-lambda = disabled
 ktlint_standard_function-literal = disabled
 ktlint_standard_try-catch-finally-spacing = disabled
-ktlint_standard_parameter-list-spacing = disabled
 
 
 # rules that enforce style we don't want

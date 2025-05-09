@@ -316,7 +316,7 @@ open class BaseSessionTest(
     fun Any?.asJsonArray(): JSONArray = this as JSONArray
 
     @Suppress("UNCHECKED_CAST")
-    fun<V> JSONObject.asMap(): Map<String?, V?> {
+    fun <V> JSONObject.asMap(): Map<String?, V?> {
         val result = HashMap<String?, V?>()
         for (key in this.keys()) {
             result[key] = this[key] as V
@@ -325,7 +325,7 @@ open class BaseSessionTest(
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun<T> Any?.asJSList(): List<T> {
+    fun <T> Any?.asJSList(): List<T> {
         val array = this.asJsonArray()
         val result = ArrayList<T>()
 

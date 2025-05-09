@@ -61,8 +61,8 @@ sealed class TranslationPageSettingsOption(
      */
     data class NeverTranslateSite(
         override val hasDivider: Boolean = true,
-        override val descriptionId:
-        Int = R.string.translation_option_bottom_sheet_switch_never_translate_site_description,
+        override val descriptionId: Int =
+            R.string.translation_option_bottom_sheet_switch_never_translate_site_description,
     ) : TranslationPageSettingsOption(hasDivider = hasDivider)
 }
 
