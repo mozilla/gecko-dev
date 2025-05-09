@@ -68,7 +68,11 @@ skip-if = ["os == 'linux'"] # Bug 821781
 
 ["test_PlacesQuery_history.js"]
 
+["test_PlacesSemanticHistoryDatabase.js"]
+run-if = ["buildapp == 'browser'"]
+
 ["test_PlacesSemanticHistoryManager.js"]
+run-if = ["buildapp == 'browser'"]
 
 ["test_PlacesUtils_isRootItem.js"]
 

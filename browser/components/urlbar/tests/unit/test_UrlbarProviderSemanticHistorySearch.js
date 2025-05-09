@@ -99,14 +99,14 @@ add_task(async function test_isActive_conditions() {
     "browser.urlbar.suggest.semanticHistory.minLength",
     5
   );
-  canUseStub.returns(false);
+  canUseStub.get(() => false);
   Assert.ok(
     !provider.isActive(validQuery),
     "Should be inactive if canUseSemanticSearch returns false"
   );
 
   // All conditions met
-  canUseStub.returns(true);
+  canUseStub.get(() => true);
   Assert.ok(
     provider.isActive(validQuery),
     "Should be active when all conditions are met"

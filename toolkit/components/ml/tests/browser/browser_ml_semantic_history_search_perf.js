@@ -219,6 +219,8 @@ async function prepareSemanticSearchTest({
 
   const { cleanup } = await perfSetup({
     prefs: [
+      ["browser.ml.enable", true],
+      ["places.semanticHistory.featureGate", true],
       ["browser.ml.modelHubRootUrl", modelHubRootUrl],
       ["javascript.options.wasm_lazy_tiering", true],
       ["browser.ml.logLevel", "Info"],
@@ -331,7 +333,7 @@ async function cleanupSemanticSearchTest({ semanticManager, conn, cleanup }) {
   await EngineProcess.destroyMLEngine();
   semanticManager.stopProcess();
   await semanticManager.embedder.shutdown();
-  await semanticManager.semanticDB.dropSchema();
+  await semanticManager.semanticDB.removeDatabaseFiles();
   await cleanup();
 
   return updateTime;

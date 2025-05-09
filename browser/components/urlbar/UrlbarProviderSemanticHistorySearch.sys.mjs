@@ -89,7 +89,7 @@ class ProviderSemanticHistorySearch extends UrlbarProvider {
       queryContext.searchString.length >= minSearchStringLength
     ) {
       const semanticManager = this.ensureSemanticManagerInitialized();
-      return semanticManager?.canUseSemanticSearch() ?? false;
+      return semanticManager?.canUseSemanticSearch ?? false;
     }
     return false;
   }
@@ -119,11 +119,11 @@ class ProviderSemanticHistorySearch extends UrlbarProvider {
       const result = new lazy.UrlbarResult(
         UrlbarUtils.RESULT_TYPE.URL,
         UrlbarUtils.RESULT_SOURCE.HISTORY,
-        {
-          title: res.title,
-          url: res.url,
+        ...lazy.UrlbarResult.payloadAndSimpleHighlights(queryContext.tokens, {
+          title: [res.title, UrlbarUtils.HIGHLIGHT.NONE],
+          url: [res.url, UrlbarUtils.HIGHLIGHT.NONE],
           icon: UrlbarUtils.getIconForUrl(res.url),
-        }
+        })
       );
       result.resultGroup = UrlbarUtils.RESULT_GROUP.HISTORY_SEMANTIC;
       addCallback(this, result);

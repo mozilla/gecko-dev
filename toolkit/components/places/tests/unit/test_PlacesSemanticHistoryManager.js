@@ -59,18 +59,14 @@ add_task(async function test_tensorToBindable() {
 add_task(async function test_shutdown_no_error() {
   let manager = new createPlacesSemanticHistoryManager();
 
-  const fakeConn = {
-    close: sinon.stub().resolves(),
-  };
-
-  manager.setConnection(fakeConn);
-
+  sinon.stub(manager.semanticDB, "closeConnection").resolves();
   await manager.shutdown();
 
   Assert.ok(
-    fakeConn.close.calledOnce,
-    "DB connection close() should be called once"
+    manager.semanticDB.closeConnection.called,
+    "Connection close() should be invoked"
   );
+  sinon.reset();
 });
 
 add_task(async function test_canUseSemanticSearch_all_conditions_met() {
@@ -82,7 +78,7 @@ add_task(async function test_canUseSemanticSearch_all_conditions_met() {
   manager.qualifiedForSemanticSearch = true;
 
   Assert.ok(
-    manager.canUseSemanticSearch(),
+    manager.canUseSemanticSearch,
     "Semantic search should be enabled when all conditions met."
   );
 });
@@ -96,7 +92,7 @@ add_task(async function test_canUseSemanticSearch_ml_disabled() {
   manager.qualifiedForSemanticSearch = true;
 
   Assert.ok(
-    !manager.canUseSemanticSearch(),
+    !manager.canUseSemanticSearch,
     "Semantic search should be disabled when ml disabled."
   );
 });
@@ -110,7 +106,7 @@ add_task(async function test_canUseSemanticSearch_featureGate_disabled() {
   manager.qualifiedForSemanticSearch = true;
 
   Assert.ok(
-    !manager.canUseSemanticSearch(),
+    !manager.canUseSemanticSearch,
     "Semantic search should be disabled when featureGate disabled."
   );
 });
@@ -124,7 +120,70 @@ add_task(async function test_canUseSemanticSearch_not_qualified() {
   manager.qualifiedForSemanticSearch = false;
 
   Assert.ok(
-    !manager.canUseSemanticSearch(),
+    !manager.canUseSemanticSearch,
     "Semantic search should be disabled when not qualified."
+  );
+});
+
+add_task(async function test_removeDatabaseFilesOnDisable() {
+  // Ensure Places has been initialized.
+  Assert.equal(
+    PlacesUtils.history.databaseStatus,
+    PlacesUtils.history.DATABASE_STATUS_CREATE,
+    "Places database should be initialized."
+  );
+  let manager = new createPlacesSemanticHistoryManager();
+  await manager.getConnection();
+
+  Assert.ok(await IOUtils.exists(manager.semanticDB.databaseFilePath));
+  Assert.ok(await IOUtils.exists(manager.semanticDB.databaseFilePath + "-wal"));
+
+  await manager.shutdown();
+
+  // Create a new instance of the manager after disabling the feature.
+  Services.prefs.setBoolPref("places.semanticHistory.featureGate", false);
+  manager = new createPlacesSemanticHistoryManager();
+
+  Assert.ok(
+    !manager.canUseSemanticSearch,
+    "Semantic search should be disabled."
+  );
+
+  await TestUtils.waitForCondition(async () => {
+    return (
+      !(await IOUtils.exists(manager.semanticDB.databaseFilePath)) &&
+      !(await IOUtils.exists(manager.semanticDB.databaseFilePath + "-wal"))
+    );
+  }, "Wait for database files to be removed");
+});
+
+add_task(async function test_removeDatabaseFilesOnStartup() {
+  // Ensure Places has been initialized.
+  Assert.equal(
+    PlacesUtils.history.databaseStatus,
+    PlacesUtils.history.DATABASE_STATUS_CREATE,
+    "Places database should be initialized."
+  );
+  Services.prefs.setBoolPref("places.semanticHistory.featureGate", true);
+  let manager = new createPlacesSemanticHistoryManager();
+  Assert.ok(manager.canUseSemanticSearch, "Semantic search should be enabled.");
+  await manager.getConnection();
+
+  Assert.ok(await IOUtils.exists(manager.semanticDB.databaseFilePath));
+  Assert.ok(await IOUtils.exists(manager.semanticDB.databaseFilePath + "-wal"));
+
+  await manager.shutdown();
+
+  // Create a new instance of the manager after setting the pref.
+  Services.prefs.setBoolPref("places.semanticHistory.removeOnStartup", true);
+
+  manager = new createPlacesSemanticHistoryManager();
+
+  Assert.ok(
+    !Services.prefs.getBoolPref(
+      "places.semanticHistory.removeOnStartup",
+      false
+    ),
+    "Pref should have been reset."
   );
 });
