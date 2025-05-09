@@ -2,14 +2,20 @@
  *    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 /*
- * Tests that User Engines can be installed correctly.
+ * Tests that User Engines can be installed correctly and
+ * that the functions to change their attributes work.
  */
 
 "use strict";
 
+function getTestIconUrl(iconName) {
+  return gHttpURL + "/icons/" + iconName;
+}
+
 add_setup(async function () {
   Services.fog.initializeFOG();
   await Services.search.init();
+  useHttpServer();
 });
 
 add_task(async function test_user_engine() {
@@ -62,7 +68,7 @@ add_task(async function test_user_engine() {
   await Services.search.removeEngine(engine);
 });
 
-add_task(async function test_user_engine_rename() {
+add_task(async function test_rename() {
   let engine = await Services.search.addUserEngine({
     name: "user",
     url: "https://example.com/user?q={searchTerms}",
@@ -89,7 +95,7 @@ add_task(async function test_user_engine_rename() {
   await Services.search.removeEngine(engine);
 });
 
-add_task(async function test_user_engine_rename_duplicate() {
+add_task(async function test_rename_duplicate() {
   let engine = await Services.search.addUserEngine({
     name: "user",
     url: "https://example.com/user?q={searchTerms}",
@@ -113,7 +119,7 @@ add_task(async function test_user_engine_rename_duplicate() {
   await Services.search.removeEngine(engine2);
 });
 
-add_task(async function test_user_engine_changeUrl() {
+add_task(async function test_changeUrl() {
   let engine = await Services.search.addUserEngine({
     name: "user",
     url: "https://example.com/user?q={searchTerms}",
@@ -177,4 +183,52 @@ add_task(async function test_user_engine_changeUrl() {
   );
 
   await Services.search.removeEngine(engine);
+});
+
+add_task(async function test_changeIcon() {
+  let engine = await Services.search.addUserEngine({
+    name: "user",
+    url: "https://example.com/user?q={searchTerms}",
+  });
+  Assert.ok(!(await engine.getIconURL()), "Engine initially has no icon");
+
+  info("Test adding a new svg icon.");
+  let svgIconUrl = getTestIconUrl("svgIcon.svg");
+  let promiseIconChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.ICON_CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  await engine.changeIcon(svgIconUrl);
+  await promiseIconChanged;
+  Assert.ok(true, "Observers are notified");
+  Assert.deepEqual(
+    Object.keys(engine._iconMapObj),
+    ["16"],
+    "One icon with the correct resolution was added."
+  );
+  Assert.ok(
+    (await engine.getIconURL()) ==
+      (await SearchTestUtils.fetchAsDataUrl(svgIconUrl)),
+    "Correct icon was added."
+  );
+
+  info("Test replacing the svg by a larger ico.");
+  let bigIconUrl = getTestIconUrl("bigIcon.ico");
+  promiseIconChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.ICON_CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  await engine.changeIcon(bigIconUrl);
+  await promiseIconChanged;
+  Assert.ok(true, "Observers are notified");
+  Assert.deepEqual(
+    Object.keys(engine._iconMapObj),
+    ["32"],
+    "Icon with the correct resolution was added and old icon removed."
+  );
+  Assert.ok(
+    (await engine.getIconURL()) !=
+      (await SearchTestUtils.fetchAsDataUrl(bigIconUrl)),
+    "The icon was re-scaled."
+  );
 });

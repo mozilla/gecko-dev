@@ -69,7 +69,10 @@ export class OpenSearchEngine extends SearchEngine {
 
     if (options.faviconURL) {
       this._setIcon(options.faviconURL, undefined, false).catch(e =>
-        lazy.logConsole.error("Error while setting search engine icon:", e)
+        lazy.logConsole.error(
+          `Error while setting icon for search engine ${options.engineData.name}:`,
+          e.message
+        )
       );
     }
 
@@ -256,7 +259,10 @@ export class OpenSearchEngine extends SearchEngine {
 
     for (let image of data.images) {
       this._setIcon(image.url, image.size).catch(e =>
-        lazy.logConsole.log("Error while setting search engine icon:", e)
+        lazy.logConsole.error(
+          `Error while setting icon for search engine ${data.name}:`,
+          e.message
+        )
       );
     }
   }

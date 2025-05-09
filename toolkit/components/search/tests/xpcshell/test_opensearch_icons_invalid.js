@@ -11,6 +11,7 @@ add_setup(async function () {
 });
 
 add_task(async function test_installedresourceicon() {
+  consoleAllowList.push("Error while setting icon for search engine");
   // Attempts to load a resource:// url as an icon.
   let engine1 = await SearchTestUtils.installOpenSearchEngine({
     url: `${gHttpURL}/opensearch/resourceicon.xml`,
