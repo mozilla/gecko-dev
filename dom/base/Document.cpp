@@ -15029,14 +15029,17 @@ void Document::HandleEscKey() {
     }
   }
   // Not all dialogs exist in the top layer, so despite already iterating
-  // through all top layer elements we also need to iterate over non-modal
-  // dialogs, as they may have a specified `closedby` value which may allow them
-  // to be closed via Escape key.
-  for (RefPtr<HTMLDialogElement> dialog : Reversed(mOpenDialogs)) {
+  // through all top layer elements we also need to check open dialogs that are
+  // _not_ open via the top-layer (showModal).
+  // The top-most dialog in mOpenDialogs may need to be closed.
+  if (RefPtr<HTMLDialogElement> dialog =
+          mOpenDialogs.SafeLastElement(nullptr)) {
     if (dialog->GetClosedBy() != HTMLDialogElement::ClosedBy::None) {
+      MOZ_ASSERT(StaticPrefs::dom_dialog_light_dismiss_enabled(),
+                 "Light Dismiss must have been enabled for GetClosedBy() "
+                 "returns != ClosedBy::None");
       const mozilla::dom::Optional<nsAString> returnValue;
       dialog->RequestClose(returnValue);
-      return;
     }
   }
 }
