@@ -9,8 +9,6 @@ ChromeUtils.defineESModuleGetters(this, {
   FirefoxLabs: "resource://nimbus/FirefoxLabs.sys.mjs",
 });
 
-const STUDIES_ENABLED_CHANGED = "nimbus:studies-enabled-changed";
-
 const gExperimentalPane = {
   inited: false,
   _featureGatesContainer: null,
@@ -39,7 +37,7 @@ const gExperimentalPane = {
 
     Services.obs.addObserver(
       this._onStudiesEnabledChanged,
-      STUDIES_ENABLED_CHANGED
+      ExperimentAPI.STUDIES_ENABLED_CHANGED
     );
     window.addEventListener("unload", () => this._removeObservers());
 
@@ -189,7 +187,7 @@ const gExperimentalPane = {
     ExperimentAPI._manager.store.off("update", this._onNimbusUpdate);
     Services.obs.removeObserver(
       this._onStudiesEnabledChanged,
-      STUDIES_ENABLED_CHANGED
+      ExperimentAPI.STUDIES_ENABLED_CHANGED
     );
   },
 
