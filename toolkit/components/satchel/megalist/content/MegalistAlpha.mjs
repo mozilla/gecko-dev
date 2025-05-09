@@ -656,6 +656,7 @@ export class MegalistAlpha extends MozLitElement {
             this.#sendCommand("Export");
             this.#recordToolbarAction("export", "toolbar");
           }}
+          ?disabled=${!this.header?.value.total}
         ></panel-item>
         <panel-item
           action="remove-all-logins"
