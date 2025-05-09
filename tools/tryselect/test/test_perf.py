@@ -929,11 +929,9 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?"
-                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=13\n\n"
-                " The old comparison tool is still available at this URL:\n"
-                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision&framework=13\n"
+                " https://perf.compare/compare-hash-results?"
+                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
+                f"&baseRepo=try&newRepo=try&framework=13\n\n"
             ),
         ),
         (
@@ -943,11 +941,9 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?"
-                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=13\n\n"
-                " The old comparison tool is still available at this URL:\n"
-                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision&framework=13\n"
+                " https://perf.compare/compare-hash-results?"
+                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
+                f"&baseRepo=try&newRepo=try&framework=13\n\n"
             ),
         ),
         (
@@ -957,12 +953,9 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?"
-                "baseRev=cached_base_revision&newRev=revision&"
-                "baseRepo=try&newRepo=try&framework=13\n\n"
-                " The old comparison tool is still available at this URL:\n"
-                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=cached_base_revision&newProject=try&newRevision=revision&framework=13\n"
+                " https://perf.compare/compare-hash-results?"
+                f"baseHash=cached_base_revision&newHash={hash('mocked100')}&baseHashDate=2024-04-04&newHashDate=2025-01-01"
+                f"&baseRepo=try&newRepo=try&framework=13\n\n"
             ),
         ),
         (
@@ -981,11 +974,9 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?"
-                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=1\n\n"
-                " The old comparison tool is still available at this URL:\n"
-                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision&framework=1\n"
+                " https://perf.compare/compare-hash-results?"
+                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
+                f"&baseRepo=try&newRepo=try&framework=1\n\n"
             ),
         ),
         (
@@ -995,11 +986,9 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?"
-                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=1\n\n"
-                " The old comparison tool is still available at this URL:\n"
-                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision&framework=1\n"
+                " https://perf.compare/compare-hash-results?"
+                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
+                f"&baseRepo=try&newRepo=try&framework=1\n\n"
             ),
         ),
         (
@@ -1018,11 +1007,9 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?"
-                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=13\n\n"
-                " The old comparison tool is still available at this URL:\n"
-                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision&framework=13\n"
+                " https://perf.compare/compare-hash-results?"
+                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
+                f"&baseRepo=try&newRepo=try&framework=13\n\n"
             ),
         ),
         (
@@ -1032,11 +1019,9 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?"
-                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=13\n\n"
-                " The old comparison tool is still available at this URL:\n"
-                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision&framework=13\n"
+                " https://perf.compare/compare-hash-results?"
+                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
+                f"&baseRepo=try&newRepo=try&framework=13\n\n"
             ),
         ),
         (
@@ -1046,11 +1031,9 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?"
-                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=1\n\n"
-                " The old comparison tool is still available at this URL:\n"
-                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision&framework=1\n"
+                " https://perf.compare/compare-hash-results?"
+                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
+                f"&baseRepo=try&newRepo=try&framework=1\n\n"
             ),
         ),
         (
@@ -1060,11 +1043,9 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?"
-                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=1\n\n"
-                " The old comparison tool is still available at this URL:\n"
-                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision&framework=1\n"
+                " https://perf.compare/compare-hash-results?"
+                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
+                f"&baseRepo=try&newRepo=try&framework=1\n\n"
             ),
         ),
     ],
@@ -1089,7 +1070,17 @@ def test_full_run(options, call_counts, log_ind, expected_log_message):
         "tryselect.selectors.perf.PerfParser.set_categories_for_test"
     ) as tests_mock, mock.patch(
         "tryselect.selectors.perf.requests"
-    ) as requests_mock:
+    ) as requests_mock, mock.patch(
+        "tryselect.selectors.perf.datetime"
+    ) as mock_datetime, mock.patch(
+        "tryselect.selectors.perf.HG_TO_GIT_MIGRATION_COMPLETE", return_value=True
+    ), mock.patch(
+        "tryselect.selectors.perf.ON_GIT", return_value=True
+    ), mock.patch(
+        "tryselect.selectors.perf.time.time", return_value=100
+    ), mock.patch(
+        "tryselect.selectors.perf.subprocess.getoutput", return_value="mocked"
+    ):
 
         def test_mock_func(*args, **kwargs):
             """Used for testing any --test functionality."""
@@ -1155,6 +1146,7 @@ def test_full_run(options, call_counts, log_ind, expected_log_message):
 
         fzf.side_effect = fzf_side_effects
         ccr.return_value = options.get("cached_revision", (None, None))
+        mock_datetime.today.return_value = datetime(2025, 1, 1)
 
         with category_reset():
             run(**options)

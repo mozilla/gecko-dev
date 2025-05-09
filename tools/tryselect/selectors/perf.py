@@ -69,7 +69,7 @@ TREEHERDER_ALERT_TASKS_URL = (
 )
 
 # Our ./mach try perf changes should only take effect after we have migrated to github
-HG_TO_GIT_MIGRATION_COMPLETE = False
+HG_TO_GIT_MIGRATION_COMPLETE = True
 ON_GIT = get_repository_object(build.topsrcdir).name == "git"
 
 # Prevent users from running more than 300 tests at once. It's possible, but
@@ -1324,7 +1324,7 @@ class PerfParser(CompareParser):
                         dry_run=dry_run,
                         closed_tree=False,
                         allow_log_capture=True,
-                        push_to_vcs=True,
+                        push_to_vcs=not ON_GIT,
                     )
 
                 PerfParser.push_info.base_revision = log_processor.revision
@@ -1364,7 +1364,7 @@ class PerfParser(CompareParser):
                     dry_run=dry_run,
                     closed_tree=False,
                     allow_log_capture=True,
-                    push_to_vcs=True,
+                    push_to_vcs=not ON_GIT,
                 )
 
             PerfParser.push_info.new_revision = log_processor.revision
@@ -1655,7 +1655,7 @@ def run(**kwargs):
             PERFHERDER_BASE_URL % PerfParser.push_info.get_perfcompare_settings()
         )
         compareview_url_print = f" The old comparison tool is still available at this URL:\n {compareview_url}\n"
-        if HG_TO_GIT_MIGRATION_COMPLETE:
+        if HG_TO_GIT_MIGRATION_COMPLETE and ON_GIT:
             perfcompare_url = (
                 PERFCOMPARE_BASE_URL_GIT
                 % PerfParser.push_info.get_perfcompare_settings_git()
