@@ -475,11 +475,8 @@ FFmpegAudioEncoder<LIBAV_VER>::ToMediaRawData(AVPacket* aPacket) {
   }
 
   if (mPacketsDelivered++ == 0) {
-    // Attach extradata, and the config (including any channel / samplerate
-    // modification to fit the encoder requirements), if needed.
-    if (auto r = GetExtraData(aPacket); r.isOk()) {
-      data->mExtraData = r.unwrap();
-    }
+    // Attach the config (including any channel / samplerate modification to fit
+    // the encoder requirements), if needed.
     data->mConfig = MakeUnique<EncoderConfig>(mConfig);
   }
 
