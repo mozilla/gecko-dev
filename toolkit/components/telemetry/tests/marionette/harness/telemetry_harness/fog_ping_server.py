@@ -36,17 +36,22 @@ class FOGPingServer:
 
             request_url = request.route_match.copy()
 
-            self.pings.append(
-                {
-                    "request_url": request_url,
-                    "payload": json.loads(request_data),
-                    "debug_tag": request.headers.get("X-Debug-ID"),
-                }
-            )
+            ping = {
+                "request_url": request_url,
+                "payload": json.loads(request_data),
+                "debug_tag": request.headers.get("X-Debug-ID"),
+            }
 
-            self._logger.info(
-                "pings_handler received '{}' ping".format(request_url["doc_type"])
-            )
+            self.pings.append(ping)
+
+            doc_type = request_url["doc_type"]
+            log_message = f"pings_handler received '{doc_type}' ping"
+
+            ping_info = ping["payload"].get("ping_info")
+            if ping_info:
+                log_message = f"{log_message} with reason '{ping_info['reason']}', seq {ping_info['seq']}"
+
+            self._logger.info(log_message)
 
             status_code = 200
             content = "OK"
