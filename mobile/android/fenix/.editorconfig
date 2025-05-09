@@ -4,6 +4,7 @@ ij_kotlin_allow_trailing_comma=true
 
 [*]
 insert_final_newline = true
+ktlint_function_naming_ignore_when_annotated_with=Composable
 
 # disabled rules after 1.5.0 upgrade
 ktlint_standard_annotation = disabled
@@ -11,7 +12,6 @@ ktlint_standard_argument-list-wrapping = disabled
 ktlint_standard_blank-line-before-declaration = disabled
 ktlint_standard_chain-method-continuation = disabled
 ktlint_standard_class-signature = disabled
-ktlint_standard_function-naming = disabled
 ktlint_standard_function-signature = disabled
 ktlint_standard_indent = disabled
 ktlint_standard_multiline-expression-wrapping = disabled

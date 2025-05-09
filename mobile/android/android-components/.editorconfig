@@ -12,6 +12,7 @@ indent_style = space
 
 ij_kotlin_allow_trailing_comma_on_call_site=true
 ij_kotlin_allow_trailing_comma=true
+ktlint_function_naming_ignore_when_annotated_with=Composable
 
 # disabled rules after 1.5.0 upgrade
 ktlint_standard_annotation = disabled
@@ -23,7 +24,6 @@ ktlint_standard_condition-wrapping = disabled
 ktlint_standard_enum-wrapping = disabled
 ktlint_standard_function-expression-body = disabled
 ktlint_standard_function-literal = disabled
-ktlint_standard_function-naming = disabled
 ktlint_standard_function-signature = disabled
 ktlint_standard_indent = disabled
 ktlint_standard_multiline-expression-wrapping = disabled
@@ -33,7 +33,6 @@ ktlint_standard_parameter-list-wrapping = disabled
 ktlint_standard_statement-wrapping = disabled
 ktlint_standard_string-template-indent = disabled
 
-ktlint_standard_function-naming = disabled
 ktlint_standard_if-else-wrapping = disabled
 ktlint_standard_no-single-line-block-comment = disabled
 ktlint_standard_unnecessary-parentheses-before-trailing-lambda = disabled
