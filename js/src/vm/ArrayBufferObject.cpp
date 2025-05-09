@@ -734,6 +734,28 @@ static bool IsArrayBufferSpecies(JSContext* cx, JSFunction* species) {
                                       cx->names().dollar_ArrayBufferSpecies_);
 }
 
+static bool HasBuiltinArrayBufferSpecies(ArrayBufferObject* obj,
+                                         JSContext* cx) {
+  // Ensure `ArrayBuffer.prototype.constructor` and `ArrayBuffer[@@species]`
+  // haven't been mutated.
+  if (!cx->realm()->realmFuses.optimizeArrayBufferSpeciesFuse.intact()) {
+    return false;
+  }
+
+  // Ensure |obj|'s prototype is the actual ArrayBuffer.prototype.
+  auto* proto = cx->global()->maybeGetPrototype(JSProto_ArrayBuffer);
+  if (!proto || obj->staticPrototype() != proto) {
+    return false;
+  }
+
+  // Fail if |obj| has an own `constructor` property.
+  if (obj->containsPure(NameToId(cx->names().constructor))) {
+    return false;
+  }
+
+  return true;
+}
+
 /**
  * ArrayBuffer.prototype.slice ( start, end )
  *
@@ -773,62 +795,85 @@ bool ArrayBufferObject::sliceImpl(JSContext* cx, const CallArgs& args) {
 
   // Step 14.
   size_t newLen = final_ >= first ? final_ - first : 0;
+  MOZ_ASSERT(newLen <= ArrayBufferObject::ByteLengthLimit);
 
-  // Step 15.
-  Rooted<JSObject*> ctor(cx, SpeciesConstructor(cx, obj, JSProto_ArrayBuffer,
-                                                IsArrayBufferSpecies));
-  if (!ctor) {
-    return false;
-  }
-
-  // Step 16.
+  // Steps 15-21.
   Rooted<JSObject*> resultObj(cx);
-  {
-    FixedConstructArgs<1> cargs(cx);
-    cargs[0].setNumber(newLen);
-
-    Rooted<Value> ctorVal(cx, ObjectValue(*ctor));
-    if (!Construct(cx, ctorVal, cargs, ctorVal, &resultObj)) {
+  ArrayBufferObject* unwrappedResult = nullptr;
+  if (HasBuiltinArrayBufferSpecies(obj, cx)) {
+    // Steps 15-16.
+    unwrappedResult = createZeroed(cx, newLen);
+    if (!unwrappedResult) {
       return false;
     }
-  }
+    resultObj.set(unwrappedResult);
 
-  // Steps 17-18.
-  auto* unwrappedResult = resultObj->maybeUnwrapIf<ArrayBufferObject>();
-  if (!unwrappedResult) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_NON_ARRAY_BUFFER_RETURNED);
-    return false;
-  }
+    // Steps 17-18. (Not applicable)
 
-  // Step 19.
-  if (unwrappedResult->isDetached()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TYPED_ARRAY_DETACHED);
-    return false;
-  }
+    // Step 19.
+    MOZ_ASSERT(!unwrappedResult->isDetached());
 
-  // Step 20.
-  if (unwrappedResult == obj) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_SAME_ARRAY_BUFFER_RETURNED);
-    return false;
-  }
+    // Step 20.
+    MOZ_ASSERT(unwrappedResult != obj);
 
-  // Step 21.
-  size_t resultByteLength = unwrappedResult->byteLength();
-  if (resultByteLength < newLen) {
-    ToCStringBuf resultLenCbuf;
-    const char* resultLenStr =
-        NumberToCString(&resultLenCbuf, double(resultByteLength));
+    // Step 21.
+    MOZ_ASSERT(unwrappedResult->byteLength() == newLen);
+  } else {
+    // Step 15.
+    Rooted<JSObject*> ctor(cx, SpeciesConstructor(cx, obj, JSProto_ArrayBuffer,
+                                                  IsArrayBufferSpecies));
+    if (!ctor) {
+      return false;
+    }
 
-    ToCStringBuf newLenCbuf;
-    const char* newLenStr = NumberToCString(&newLenCbuf, double(newLen));
+    // Step 16.
+    {
+      FixedConstructArgs<1> cargs(cx);
+      cargs[0].setNumber(newLen);
 
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_SHORT_ARRAY_BUFFER_RETURNED, newLenStr,
-                              resultLenStr);
-    return false;
+      Rooted<Value> ctorVal(cx, ObjectValue(*ctor));
+      if (!Construct(cx, ctorVal, cargs, ctorVal, &resultObj)) {
+        return false;
+      }
+    }
+
+    // Steps 17-18.
+    unwrappedResult = resultObj->maybeUnwrapIf<ArrayBufferObject>();
+    if (!unwrappedResult) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_NON_ARRAY_BUFFER_RETURNED);
+      return false;
+    }
+
+    // Step 19.
+    if (unwrappedResult->isDetached()) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_TYPED_ARRAY_DETACHED);
+      return false;
+    }
+
+    // Step 20.
+    if (unwrappedResult == obj) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_SAME_ARRAY_BUFFER_RETURNED);
+      return false;
+    }
+
+    // Step 21.
+    size_t resultByteLength = unwrappedResult->byteLength();
+    if (resultByteLength < newLen) {
+      ToCStringBuf resultLenCbuf;
+      const char* resultLenStr =
+          NumberToCString(&resultLenCbuf, double(resultByteLength));
+
+      ToCStringBuf newLenCbuf;
+      const char* newLenStr = NumberToCString(&newLenCbuf, double(newLen));
+
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_SHORT_ARRAY_BUFFER_RETURNED, newLenStr,
+                                resultLenStr);
+      return false;
+    }
   }
 
   // Steps 22-23.

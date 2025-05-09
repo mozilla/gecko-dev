@@ -439,6 +439,28 @@ static bool IsSharedArrayBufferSpecies(JSContext* cx, JSFunction* species) {
       species, cx->names().dollar_SharedArrayBufferSpecies_);
 }
 
+static bool HasBuiltinSharedArrayBufferSpecies(SharedArrayBufferObject* obj,
+                                               JSContext* cx) {
+  // Ensure `SharedArrayBuffer.prototype.constructor` and
+  // `SharedArrayBuffer[@@species]` haven't been mutated.
+  if (!cx->realm()->realmFuses.optimizeSharedArrayBufferSpeciesFuse.intact()) {
+    return false;
+  }
+
+  // Ensure |obj|'s prototype is the actual SharedArrayBuffer.prototype.
+  auto* proto = cx->global()->maybeGetPrototype(JSProto_SharedArrayBuffer);
+  if (!proto || obj->staticPrototype() != proto) {
+    return false;
+  }
+
+  // Fail if |obj| has an own `constructor` property.
+  if (obj->containsPure(NameToId(cx->names().constructor))) {
+    return false;
+  }
+
+  return true;
+}
+
 /**
  * SharedArrayBuffer.prototype.slice ( start, end )
  *
@@ -471,56 +493,76 @@ bool SharedArrayBufferObject::sliceImpl(JSContext* cx, const CallArgs& args) {
 
   // Step 13.
   size_t newLen = final_ >= first ? final_ - first : 0;
+  MOZ_ASSERT(newLen <= ArrayBufferObject::ByteLengthLimit);
 
-  // Step 14.
-  Rooted<JSObject*> ctor(cx,
-                         SpeciesConstructor(cx, obj, JSProto_SharedArrayBuffer,
-                                            IsSharedArrayBufferSpecies));
-  if (!ctor) {
-    return false;
-  }
-
-  // Step 15.
+  // Steps 14-19.
   Rooted<JSObject*> resultObj(cx);
-  {
-    FixedConstructArgs<1> cargs(cx);
-    cargs[0].setNumber(newLen);
-
-    Rooted<Value> ctorVal(cx, ObjectValue(*ctor));
-    if (!Construct(cx, ctorVal, cargs, ctorVal, &resultObj)) {
+  SharedArrayBufferObject* unwrappedResult = nullptr;
+  if (HasBuiltinSharedArrayBufferSpecies(obj, cx)) {
+    // Steps 14-15.
+    unwrappedResult = New(cx, newLen);
+    if (!unwrappedResult) {
       return false;
     }
-  }
+    resultObj.set(unwrappedResult);
 
-  // Steps 16-17.
-  auto* unwrappedResult = resultObj->maybeUnwrapIf<SharedArrayBufferObject>();
-  if (!unwrappedResult) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_NON_SHARED_ARRAY_BUFFER_RETURNED);
-    return false;
-  }
+    // Steps 16-17. (Not applicable)
 
-  // Step 18.
-  if (obj->rawBufferObject() == unwrappedResult->rawBufferObject()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_SAME_SHARED_ARRAY_BUFFER_RETURNED);
-    return false;
-  }
+    // Step 18.
+    MOZ_ASSERT(obj->rawBufferObject() != unwrappedResult->rawBufferObject());
 
-  // Step 19.
-  size_t resultByteLength = unwrappedResult->byteLength();
-  if (resultByteLength < newLen) {
-    ToCStringBuf resultLenCbuf;
-    const char* resultLenStr =
-        NumberToCString(&resultLenCbuf, double(resultByteLength));
+    // Step 19.
+    MOZ_ASSERT(unwrappedResult->byteLength() == newLen);
+  } else {
+    // Step 14.
+    Rooted<JSObject*> ctor(
+        cx, SpeciesConstructor(cx, obj, JSProto_SharedArrayBuffer,
+                               IsSharedArrayBufferSpecies));
+    if (!ctor) {
+      return false;
+    }
 
-    ToCStringBuf newLenCbuf;
-    const char* newLenStr = NumberToCString(&newLenCbuf, double(newLen));
+    // Step 15.
+    {
+      FixedConstructArgs<1> cargs(cx);
+      cargs[0].setNumber(newLen);
 
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_SHORT_SHARED_ARRAY_BUFFER_RETURNED,
-                              newLenStr, resultLenStr);
-    return false;
+      Rooted<Value> ctorVal(cx, ObjectValue(*ctor));
+      if (!Construct(cx, ctorVal, cargs, ctorVal, &resultObj)) {
+        return false;
+      }
+    }
+
+    // Steps 16-17.
+    unwrappedResult = resultObj->maybeUnwrapIf<SharedArrayBufferObject>();
+    if (!unwrappedResult) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_NON_SHARED_ARRAY_BUFFER_RETURNED);
+      return false;
+    }
+
+    // Step 18.
+    if (obj->rawBufferObject() == unwrappedResult->rawBufferObject()) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_SAME_SHARED_ARRAY_BUFFER_RETURNED);
+      return false;
+    }
+
+    // Step 19.
+    size_t resultByteLength = unwrappedResult->byteLength();
+    if (resultByteLength < newLen) {
+      ToCStringBuf resultLenCbuf;
+      const char* resultLenStr =
+          NumberToCString(&resultLenCbuf, double(resultByteLength));
+
+      ToCStringBuf newLenCbuf;
+      const char* newLenStr = NumberToCString(&newLenCbuf, double(newLen));
+
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_SHORT_SHARED_ARRAY_BUFFER_RETURNED,
+                                newLenStr, resultLenStr);
+      return false;
+    }
   }
 
   // Steps 20-22.
