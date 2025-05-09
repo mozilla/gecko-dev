@@ -20,6 +20,18 @@ FFmpegAudioEncoder<LIBAV_VER>::FFmpegAudioEncoder(
     const RefPtr<TaskQueue>& aTaskQueue, const EncoderConfig& aConfig)
     : FFmpegDataEncoder(aLib, aCodecID, aTaskQueue, aConfig) {}
 
+RefPtr<MediaDataEncoder::InitPromise> FFmpegAudioEncoder<LIBAV_VER>::Init() {
+  FFMPEGA_LOG("Init");
+  return InvokeAsync(mTaskQueue, __func__, [self = RefPtr(this)]() {
+    MediaResult r = self->InitEncoder();
+    if (NS_FAILED(r.Code())) {
+      FFMPEGV_LOG("%s", r.Description().get());
+      return InitPromise::CreateAndReject(r, __func__);
+    }
+    return InitPromise::CreateAndResolve(true, __func__);
+  });
+}
+
 nsCString FFmpegAudioEncoder<LIBAV_VER>::GetDescriptionName() const {
 #ifdef USING_MOZFFVPX
   return "ffvpx audio encoder"_ns;
@@ -39,17 +51,25 @@ void FFmpegAudioEncoder<LIBAV_VER>::ResamplerDestroy::operator()(
   speex_resampler_destroy(aResampler);
 }
 
-MediaResult FFmpegAudioEncoder<LIBAV_VER>::InitSpecific() {
+MediaResult FFmpegAudioEncoder<LIBAV_VER>::InitEncoder() {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
 
-  FFMPEG_LOG("FFmpegAudioEncoder::InitInternal");
+  ForceEnablingFFmpegDebugLogs();
+
+  FFMPEG_LOG("FFmpegAudioEncoder::InitEncoder");
 
   // Initialize the common members of the encoder instance
-  AVCodec* codec = FFmpegDataEncoder<LIBAV_VER>::InitCommon();
-  if (!codec) {
-    return MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
-                       "FFmpegDataEncoder::InitCommon failed"_ns);
+  auto r = AllocateCodecContext(mLib, mCodecID);
+  if (r.isErr()) {
+    return r.unwrapErr();
   }
+  mCodecContext = r.unwrap();
+  const AVCodec* codec = mCodecContext->codec;
+  mCodecName = codec->name;
+
+#if LIBAVCODEC_VERSION_MAJOR >= 60
+  mCodecContext->flags |= AV_CODEC_FLAG_FRAME_DURATION;
+#endif
 
   // Find a compatible input rate for the codec, update the encoder config, and
   // note the rate at which this instance was configured.
@@ -185,10 +205,22 @@ MediaResult FFmpegAudioEncoder<LIBAV_VER>::InitSpecific() {
   mCodecContext->time_base =
       AVRational{.num = 1, .den = mCodecContext->sample_rate};
 
-  MediaResult rv = FinishInitCommon(codec);
-  if (NS_FAILED(rv)) {
-    return rv;
+#if LIBAVCODEC_VERSION_MAJOR >= 60
+  mCodecContext->flags |= AV_CODEC_FLAG_FRAME_DURATION;
+#endif
+
+  SetContextBitrate();
+
+  AVDictionary* options = nullptr;
+  if (int ret = OpenCodecContext(mCodecContext->codec, &options); ret < 0) {
+    return MediaResult(
+        NS_ERROR_DOM_MEDIA_FATAL_ERR,
+        RESULT_DETAIL("failed to open %s avcodec: %s", mCodecName.get(),
+                      MakeErrorString(mLib, ret).get()));
   }
+  mLib->av_dict_free(&options);
+
+  // TODO: LOG setting info here.
 
   return NS_OK;
 }

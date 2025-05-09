@@ -67,6 +67,31 @@ AVCodec* FFmpegDataEncoder<LIBAV_VER>::FindEncoderWithPreference(
   return aLib->avcodec_find_encoder(aCodecId);
 }
 
+/* static */
+Result<AVCodecContext*, MediaResult>
+FFmpegDataEncoder<LIBAV_VER>::AllocateCodecContext(const FFmpegLibWrapper* aLib,
+                                                   AVCodecID aCodecId) {
+  AVCodec* codec = FindEncoderWithPreference(aLib, aCodecId);
+  if (!codec) {
+    return Err(MediaResult(
+        NS_ERROR_DOM_MEDIA_FATAL_ERR,
+        RESULT_DETAIL("failed to find ffmpeg encoder for codec id %d",
+                      aCodecId)));
+  }
+
+  AVCodecContext* ctx = aLib->avcodec_alloc_context3(codec);
+  if (!ctx) {
+    return Err(MediaResult(
+        NS_ERROR_OUT_OF_MEMORY,
+        RESULT_DETAIL("failed to allocate ffmpeg context for codec %s",
+                      codec->name)));
+  }
+
+  MOZ_ASSERT(ctx->codec == codec);
+
+  return ctx;
+}
+
 StaticMutex FFmpegDataEncoder<LIBAV_VER>::sMutex;
 
 FFmpegDataEncoder<LIBAV_VER>::FFmpegDataEncoder(
@@ -86,12 +111,6 @@ FFmpegDataEncoder<LIBAV_VER>::FFmpegDataEncoder(
   MOZ_CRASH("FFmpegDataEncoder needs ffmpeg 58 at least.");
 #endif
 };
-
-RefPtr<MediaDataEncoder::InitPromise> FFmpegDataEncoder<LIBAV_VER>::Init() {
-  FFMPEG_LOG("Init");
-  return InvokeAsync(mTaskQueue, this, __func__,
-                     &FFmpegDataEncoder::ProcessInit);
-}
 
 RefPtr<MediaDataEncoder::EncodePromise> FFmpegDataEncoder<LIBAV_VER>::Encode(
     const MediaData* aSample) {
@@ -129,19 +148,6 @@ RefPtr<GenericPromise> FFmpegDataEncoder<LIBAV_VER>::SetBitrate(
     uint32_t aBitrate) {
   FFMPEG_LOG("SetBitrate");
   return GenericPromise::CreateAndReject(NS_ERROR_NOT_IMPLEMENTED, __func__);
-}
-
-RefPtr<MediaDataEncoder::InitPromise>
-FFmpegDataEncoder<LIBAV_VER>::ProcessInit() {
-  MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
-
-  FFMPEG_LOG("ProcessInit");
-  MediaResult rv = InitSpecific();
-  if (NS_FAILED(rv.Code())) {
-    FFMPEG_LOG("%s", rv.Description().get());
-    return InitPromise::CreateAndReject(rv, __func__);
-  }
-  return InitPromise::CreateAndResolve(true, __func__);
 }
 
 RefPtr<MediaDataEncoder::EncodePromise>
@@ -239,31 +245,10 @@ RefPtr<ShutdownPromise> FFmpegDataEncoder<LIBAV_VER>::ProcessShutdown() {
   return ShutdownPromise::CreateAndResolve(true, __func__);
 }
 
-AVCodec* FFmpegDataEncoder<LIBAV_VER>::InitCommon() {
+void FFmpegDataEncoder<LIBAV_VER>::SetContextBitrate() {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
+  MOZ_ASSERT(mCodecContext);
 
-  FFMPEG_LOG("FFmpegDataEncoder::InitCommon");
-
-  AVCodec* codec = FindEncoderWithPreference(mLib, mCodecID);
-  if (!codec) {
-    FFMPEG_LOG("failed to find ffmpeg encoder for codec id %d", mCodecID);
-    return nullptr;
-  }
-  FFMPEG_LOG("found codec: %s", codec->name);
-  mCodecName = codec->name;
-
-  ForceEnablingFFmpegDebugLogs();
-
-  MOZ_ASSERT(!mCodecContext);
-  if (!(mCodecContext = mLib->avcodec_alloc_context3(codec))) {
-    FFMPEG_LOG("failed to allocate ffmpeg context for codec %s", codec->name);
-    return nullptr;
-  }
-
-  return codec;
-}
-
-MediaResult FFmpegDataEncoder<LIBAV_VER>::FinishInitCommon(AVCodec* aCodec) {
   if (mConfig.mBitrateMode == BitrateMode::Constant) {
     mCodecContext->rc_max_rate = static_cast<FFmpegBitRate>(mConfig.mBitrate);
     mCodecContext->rc_min_rate = static_cast<FFmpegBitRate>(mConfig.mBitrate);
@@ -276,20 +261,6 @@ MediaResult FFmpegDataEncoder<LIBAV_VER>::FinishInitCommon(AVCodec* aCodec) {
     FFMPEG_LOG("Encoding in VBR: [%d;%d]", (int)mCodecContext->rc_min_rate,
                (int)mCodecContext->rc_max_rate);
   }
-#if LIBAVCODEC_VERSION_MAJOR >= 60
-  mCodecContext->flags |= AV_CODEC_FLAG_FRAME_DURATION;
-#endif
-
-  AVDictionary* options = nullptr;
-  if (int ret = OpenCodecContext(aCodec, &options); ret < 0) {
-    FFMPEG_LOG("failed to open %s avcodec: %s", aCodec->name,
-               MakeErrorString(mLib, ret).get());
-    return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                       RESULT_DETAIL("avcodec_open2 error"));
-  }
-  mLib->av_dict_free(&options);
-
-  return MediaResult(NS_OK);
 }
 
 void FFmpegDataEncoder<LIBAV_VER>::ShutdownInternal() {
@@ -497,7 +468,7 @@ FFmpegDataEncoder<LIBAV_VER>::DrainWithModernAPIs() {
   // TODO: Only re-create AVCodecContext when avcodec_flush_buffers is
   // unavailable.
   ShutdownInternal();
-  MediaResult r = InitSpecific();
+  MediaResult r = InitEncoder();
   if (NS_FAILED(r.Code())) {
     FFMPEG_LOG("%s", r.Description().get());
     return Err(r);

@@ -279,6 +279,18 @@ FFmpegVideoEncoder<LIBAV_VER>::FFmpegVideoEncoder(
     const RefPtr<TaskQueue>& aTaskQueue, const EncoderConfig& aConfig)
     : FFmpegDataEncoder(aLib, aCodecID, aTaskQueue, aConfig) {}
 
+RefPtr<MediaDataEncoder::InitPromise> FFmpegVideoEncoder<LIBAV_VER>::Init() {
+  FFMPEGV_LOG("Init");
+  return InvokeAsync(mTaskQueue, __func__, [self = RefPtr(this)]() {
+    MediaResult r = self->InitEncoder();
+    if (NS_FAILED(r.Code())) {
+      FFMPEGV_LOG("%s", r.Description().get());
+      return InitPromise::CreateAndReject(r, __func__);
+    }
+    return InitPromise::CreateAndResolve(true, __func__);
+  });
+}
+
 nsCString FFmpegVideoEncoder<LIBAV_VER>::GetDescriptionName() const {
 #ifdef USING_MOZFFVPX
   return "ffvpx video encoder"_ns;
@@ -297,17 +309,20 @@ bool FFmpegVideoEncoder<LIBAV_VER>::SvcEnabled() const {
   return mConfig.mScalabilityMode != ScalabilityMode::None;
 }
 
-MediaResult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
+MediaResult FFmpegVideoEncoder<LIBAV_VER>::InitEncoder() {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
 
-  FFMPEGV_LOG("FFmpegVideoEncoder::InitSpecific");
+  ForceEnablingFFmpegDebugLogs();
+
+  FFMPEGV_LOG("FFmpegVideoEncoder::InitEncoder");
 
   // Initialize the common members of the encoder instance
-  AVCodec* codec = FFmpegDataEncoder<LIBAV_VER>::InitCommon();
-  if (!codec) {
-    return MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
-                       "FFmpegDataEncoder::InitCommon failed"_ns);
+  auto r = AllocateCodecContext(mLib, mCodecID);
+  if (r.isErr()) {
+    return r.inspectErr();
   }
+  mCodecContext = r.unwrap();
+  mCodecName = mCodecContext->codec->name;
 
   // And now the video-specific part
   mCodecContext->pix_fmt = ffmpeg::FFMPEG_PIX_FMT_YUV420P;
@@ -494,16 +509,21 @@ MediaResult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
   // encoder.
   mCodecContext->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
 
-  MediaResult rv = FinishInitCommon(codec);
-  if (NS_FAILED(rv)) {
-    FFMPEGV_LOG("FFmpeg video encoder initialization failure.");
-    return rv;
+  SetContextBitrate();
+
+  AVDictionary* options = nullptr;
+  if (int ret = OpenCodecContext(mCodecContext->codec, &options); ret < 0) {
+    return MediaResult(
+        NS_ERROR_DOM_MEDIA_FATAL_ERR,
+        RESULT_DETAIL("failed to open %s avcodec: %s", mCodecName.get(),
+                      MakeErrorString(mLib, ret).get()));
   }
+  mLib->av_dict_free(&options);
 
   FFMPEGV_LOG(
       "%s has been initialized with format: %s, bitrate: %" PRIi64
       ", width: %d, height: %d, quantizer: [%d, %d], time_base: %d/%d%s",
-      codec->name, ffmpeg::GetPixelFormatString(mCodecContext->pix_fmt),
+      mCodecName.get(), ffmpeg::GetPixelFormatString(mCodecContext->pix_fmt),
       static_cast<int64_t>(mCodecContext->bit_rate), mCodecContext->width,
       mCodecContext->height, mCodecContext->qmin, mCodecContext->qmax,
       mCodecContext->time_base.num, mCodecContext->time_base.den,

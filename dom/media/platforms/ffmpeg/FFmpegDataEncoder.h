@@ -40,7 +40,7 @@ class FFmpegDataEncoder<LIBAV_VER> : public MediaDataEncoder {
 
   /* MediaDataEncoder Methods */
   // All methods run on the task queue, except for GetDescriptionName.
-  RefPtr<InitPromise> Init() override;
+  RefPtr<InitPromise> Init() override = 0;  // Implemented in the sub-classes.
   RefPtr<EncodePromise> Encode(const MediaData* aSample) override;
   RefPtr<ReconfigurationPromise> Reconfigure(
       const RefPtr<const EncoderConfigurationChangeList>& aConfigurationChanges)
@@ -50,8 +50,10 @@ class FFmpegDataEncoder<LIBAV_VER> : public MediaDataEncoder {
   RefPtr<GenericPromise> SetBitrate(uint32_t aBitRate) override;
 
  protected:
+  static Result<AVCodecContext*, MediaResult> AllocateCodecContext(
+      const FFmpegLibWrapper* aLib, AVCodecID aCodecId);
+
   // Methods only called on mTaskQueue.
-  RefPtr<InitPromise> ProcessInit();
   RefPtr<EncodePromise> ProcessEncode(RefPtr<const MediaData> aSample);
   RefPtr<ReconfigurationPromise> ProcessReconfigure(
       const RefPtr<const EncoderConfigurationChangeList>&
@@ -59,12 +61,10 @@ class FFmpegDataEncoder<LIBAV_VER> : public MediaDataEncoder {
   RefPtr<EncodePromise> ProcessDrain();
   RefPtr<ShutdownPromise> ProcessShutdown();
   // Initialize the audio or video-specific members of an encoder instance.
-  virtual MediaResult InitSpecific() = 0;
-  // nullptr in case of failure. This is to be called by the
-  // audio/video-specific InitInternal methods in the sub-class, and initializes
-  // the common members.
-  AVCodec* InitCommon();
-  MediaResult FinishInitCommon(AVCodec* aCodec);
+  virtual MediaResult InitEncoder() = 0;
+
+  void SetContextBitrate();
+
   void ShutdownInternal();
   int OpenCodecContext(const AVCodec* aCodec, AVDictionary** aOptions)
       MOZ_EXCLUDES(sMutex);
