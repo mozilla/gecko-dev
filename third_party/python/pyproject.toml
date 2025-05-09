@@ -47,7 +47,7 @@ dependencies = [
     "pyyaml==6.0.1",
     "redo==2.0.3",
     "requests-unixsocket==0.2.0",
-    "requests==2.32.0",
+    "requests~=2.32",
     "responses==0.10.6",
     "rsa==4.9",
     "sentry-sdk==1.14.0",
