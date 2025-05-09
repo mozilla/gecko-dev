@@ -737,6 +737,14 @@ export class FormAutofillHandler {
         continue;
       }
       if (FormAutofillUtils.isFieldVisible(element)) {
+        // We don't care about visibility state changes for fields that are not recognized
+        // by our heuristics. We only handle this for visible fields because we currently
+        // don't run field detection heuristics for invisible fields.
+        const fieldDetail = this.getFieldDetailByElement(element);
+        if (!fieldDetail.fieldName) {
+          continue;
+        }
+
         // Setting up an observer that notifies when the visible element becomes invisible
         setUpIntersectionObserver(element, VISIBILITY_STATE.INVISIBLE);
       } else {
