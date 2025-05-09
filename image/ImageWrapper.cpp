@@ -115,6 +115,11 @@ size_t ImageWrapper::GetNativeSizesLength() {
 }
 
 NS_IMETHODIMP
+ImageWrapper::GetIntrinsicSize(ImageIntrinsicSize* aIntrinsicSize) {
+  return mInnerImage->GetIntrinsicSize(aIntrinsicSize);
+}
+
+NS_IMETHODIMP
 ImageWrapper::GetIntrinsicSizeInAppUnits(nsSize* aSize) {
   return mInnerImage->GetIntrinsicSizeInAppUnits(aSize);
 }

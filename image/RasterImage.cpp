@@ -208,6 +208,20 @@ RasterImage::GetHeight(int32_t* aHeight) {
 }
 
 //******************************************************************************
+NS_IMETHODIMP
+RasterImage::GetIntrinsicSize(ImageIntrinsicSize* aIntrinsicSize) {
+  NS_ENSURE_ARG_POINTER(aIntrinsicSize);
+
+  if (mError) {
+    return NS_ERROR_FAILURE;
+  }
+
+  aIntrinsicSize->mWidth = Some(mSize.width);
+  aIntrinsicSize->mHeight = Some(mSize.height);
+  return NS_OK;
+}
+
+//******************************************************************************
 void RasterImage::MediaFeatureValuesChangedAllDocuments(
     const mozilla::MediaFeatureChange& aChange) {}
 

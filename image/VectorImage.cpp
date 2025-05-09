@@ -447,6 +447,7 @@ static Maybe<int32_t> ClampedPxLengthOrNothing(
 // imgIContainer methods
 
 //******************************************************************************
+
 NS_IMETHODIMP
 VectorImage::GetWidth(int32_t* aWidth) {
   if (mError || !mIsFullyLoaded) {
@@ -504,6 +505,25 @@ VectorImage::GetHeight(int32_t* aHeight) {
   }
 
   *aHeight = *heightFromSVG;
+  return NS_OK;
+}
+
+//******************************************************************************
+NS_IMETHODIMP
+VectorImage::GetIntrinsicSize(ImageIntrinsicSize* aIntrinsicSize) {
+  if (mError || !mIsFullyLoaded) {
+    return NS_ERROR_FAILURE;
+  }
+  SVGSVGElement* rootElem = mSVGDocumentWrapper->GetRootSVGElem();
+  if (MOZ_UNLIKELY(!rootElem)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  aIntrinsicSize->mWidth =
+      ClampedPxLengthOrNothing(rootElem->GetIntrinsicWidth());
+  aIntrinsicSize->mHeight =
+      ClampedPxLengthOrNothing(rootElem->GetIntrinsicHeight());
+
   return NS_OK;
 }
 
