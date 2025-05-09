@@ -55,6 +55,24 @@ class LinkPreviewCard extends MozLitElement {
     this.isGenerationErrorState = false;
   }
 
+  /**
+   * Handles click events on the settings button.
+   *
+   * Prevents the default event behavior and opens Firefox's preferences
+   * page with the link preview settings section focused.
+   *
+   * @param {MouseEvent} _event - The click event from the settings button.
+   */
+  handleSettingsClick(_event) {
+    const win = this.ownerGlobal;
+    win.openPreferences("general-link-preview");
+    this.dispatchEvent(
+      new CustomEvent("LinkPreviewCard:dismiss", {
+        detail: "settings",
+      })
+    );
+  }
+
   addKeyPoint(text) {
     this.keyPoints.push(text);
     this.requestUpdate();
@@ -365,23 +383,33 @@ class LinkPreviewCard extends MozLitElement {
             : ""}
           ${readingTimeMinsFast && readingTimeMinsSlow
             ? html`
-                <div
-                  class="og-card-reading-time"
-                  data-l10n-id="link-preview-reading-time"
-                  data-l10n-args=${JSON.stringify({
-                    range:
-                      readingTimeMinsFast === readingTimeMinsSlow
-                        ? `~${readingTimeMinsFastStr}`
-                        : `${readingTimeRange}`,
-                    rangePlural:
-                      readingTimeMinsFast === readingTimeMinsSlow
-                        ? lazy.pluralRules.select(readingTimeMinsFast)
-                        : lazy.pluralRules.selectRange(
-                            readingTimeMinsFast,
-                            readingTimeMinsSlow
-                          ),
-                  })}
-                ></div>
+                <div class="reading-time-settings-container">
+                  <div
+                    class="og-card-reading-time"
+                    data-l10n-id="link-preview-reading-time"
+                    data-l10n-args=${JSON.stringify({
+                      range:
+                        readingTimeMinsFast === readingTimeMinsSlow
+                          ? `~${readingTimeMinsFastStr}`
+                          : `${readingTimeRange}`,
+                      rangePlural:
+                        readingTimeMinsFast === readingTimeMinsSlow
+                          ? lazy.pluralRules.select(readingTimeMinsFast)
+                          : lazy.pluralRules.selectRange(
+                              readingTimeMinsFast,
+                              readingTimeMinsSlow
+                            ),
+                    })}
+                  ></div>
+                  <moz-button
+                    type="icon ghost"
+                    iconSrc="chrome://global/skin/icons/settings.svg"
+                    data-l10n-id="link-preview-settings-button"
+                    data-l10n-attrs="title"
+                    @click=${this.handleSettingsClick}
+                  >
+                  </moz-button>
+                </div>
               `
             : ""}
         </div>

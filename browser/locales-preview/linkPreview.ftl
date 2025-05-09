@@ -16,3 +16,7 @@ link-preview-generation-error-unexpected = Something went wrong.
 
 # Text for the retry link when generation fails
 link-preview-generation-retry = Try again
+
+# Button that opens the Link Preview settings
+link-preview-settings-button =
+.title = Link Preview Settings
