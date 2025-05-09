@@ -355,7 +355,7 @@ fn run(args: CliArgs) -> miette::Result<()> {
                 }
             };
             let (test_group_path, _test_name) = test_path.rsplit_once(':').unwrap();
-            let test_group_path_components = test_group_path.split([':', ',']);
+            let mut test_group_path_components = test_group_path.split([':', ',']);
 
             if let Some(entry) = tests_to_split.get_mut(test_path) {
                 let test_split::Entry { seen, ref config } = entry;
@@ -364,10 +364,13 @@ fn run(args: CliArgs) -> miette::Result<()> {
                     split_by,
                 } = config;
 
-                let file_path = test_group_path_components
-                    .chain([*new_sibling_basename])
-                    .join_with("/")
-                    .to_string();
+                let file_path = {
+                    test_group_path_components.next_back();
+                    test_group_path_components
+                        .chain([*new_sibling_basename])
+                        .join_with("/")
+                        .to_string()
+                };
 
                 seen.wpt_files = true;
 
