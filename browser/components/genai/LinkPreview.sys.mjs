@@ -225,10 +225,14 @@ export const LinkPreview = {
     };
     updateProgress();
 
+    if (!this._isRegionSupported()) {
+      // Region not supported, just don't show key points section
+      return ogCard;
+    }
+
     // Generate key points if we have content, language and configured for any
     // language or restricted.
     if (
-      this._isRegionSupported() &&
       pageData.article.textContent &&
       pageData.article.detectedLanguage &&
       (!lazy.allowedLanguages ||
@@ -237,7 +241,10 @@ export const LinkPreview = {
           .includes(pageData.article.detectedLanguage))
     ) {
       this.generateKeyPoints(ogCard);
+    } else {
+      ogCard.isMissingDataErrorState = true;
     }
+
     return ogCard;
   },
 
@@ -245,8 +252,9 @@ export const LinkPreview = {
    * Generate AI key points for card.
    *
    * @param {LinkPreviewCard} ogCard to add key points
+   * @param {boolean} _retry Indicates whether to retry the operation.
    */
-  async generateKeyPoints(ogCard) {
+  async generateKeyPoints(ogCard, _retry = false) {
     // Support prefetching without a card by mocking expected properties.
     let outcome = ogCard ? "success" : "prefetch";
     if (!ogCard) {
@@ -290,6 +298,7 @@ export const LinkPreview = {
           onError: error => {
             console.error(error);
             outcome = error;
+            ogCard.isGenerationErrorState = true;
           },
           onText: text => {
             // Clear waiting in case a different generate handled download.
@@ -396,6 +405,16 @@ export const LinkPreview = {
       Glean.genaiLinkpreview.cardLink.record({ source: event.detail });
     });
 
+    // Add event listener for the retry event
+    ogCard.addEventListener("LinkPreviewCard:retry", _event => {
+      // Reset error states
+      ogCard.isMissingDataErrorState = false;
+      ogCard.isGenerationErrorState = false;
+
+      this.generateKeyPoints(ogCard, true);
+      //TODO: review if glean record is correct
+      // Glean.genaiLinkpreview.cardLink.record({ source: url, op: "retry" });
+    });
     openPopup();
   },
 
