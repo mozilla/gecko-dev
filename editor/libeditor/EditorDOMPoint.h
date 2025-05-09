@@ -23,8 +23,10 @@
 #include "nsGkAtoms.h"
 #include "nsIContent.h"
 #include "nsINode.h"
+#include "nsString.h"
 #include "nsStyledElement.h"
 
+#include <algorithm>
 #include <type_traits>
 
 namespace mozilla {
@@ -1314,8 +1316,21 @@ class EditorDOMPointBase final {
                                   const SelfType& aDOMPoint) {
     aStream << "{ mParent=" << aDOMPoint.GetContainer();
     if (aDOMPoint.mParent) {
-      aStream << " (" << *aDOMPoint.mParent
-              << ", Length()=" << aDOMPoint.mParent->Length() << ")";
+      const auto* parentAsText = dom::Text::FromNode(aDOMPoint.mParent);
+      if (parentAsText && parentAsText->TextDataLength()) {
+        nsAutoString data;
+        parentAsText->AppendTextTo(data);
+        aStream << " (" << *parentAsText << ", (begins with=\""
+                << NS_ConvertUTF16toUTF8(
+                       Substring(
+                           data,
+                           std::min(static_cast<uint32_t>(data.Length()), 5u)))
+                       .get()
+                << "\"), Length()=" << parentAsText->TextDataLength() << ")";
+      } else {
+        aStream << " (" << *aDOMPoint.mParent
+                << ", Length()=" << aDOMPoint.mParent->Length() << ")";
+      }
     }
     aStream << ", mChild=" << static_cast<nsIContent*>(aDOMPoint.mChild);
     if (aDOMPoint.mChild) {

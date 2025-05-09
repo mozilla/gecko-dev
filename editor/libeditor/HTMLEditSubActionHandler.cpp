@@ -1146,7 +1146,7 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
     }
   }
 
-  auto pointToInsert = [&]() -> EditorDOMPoint {
+  EditorDOMPoint pointToInsert = [&]() {
     if (InsertingTextForExtantComposition(aPurpose)) {
       auto compositionStartPoint =
           GetFirstIMESelectionStartPoint<EditorDOMPoint>();
