@@ -27,10 +27,7 @@ itertools = "0.11.0"
 joinery = "3.1.0"
 log = "0.4.17"
 miette = "7.6.0"
-regex = { version = "1.11.1", default-features = false, features = [
-  "std",
-  "perf",
-] }
+regex = "1.11.1"
 thiserror = "2"
 wax = "0.6.0"
 which = "4.4.0"
