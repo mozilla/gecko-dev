@@ -14,19 +14,19 @@ const IS_MAIN_PROCESS =
   Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT;
 
 export class SharedDataMap extends EventEmitter {
-  constructor(sharedDataKey, { path, isParent = IS_MAIN_PROCESS } = {}) {
+  constructor(sharedDataKey, { path } = {}) {
     super();
 
     this._sharedDataKey = sharedDataKey;
-    this._isParent = isParent;
     this._isReady = false;
     this._readyDeferred = Promise.withResolvers();
     this._data = null;
-    this._shutdownBlocker = () => {
-      this._checkIfShutdownStarted();
-    };
 
-    if (this.isParent) {
+    if (IS_MAIN_PROCESS) {
+      this._shutdownBlocker = () => {
+        this._checkIfShutdownStarted();
+      };
+
       if (!this._checkIfShutdownStarted()) {
         lazy.AsyncShutdown.appShutdownConfirmed.addBlocker(
           "SharedDataMap: shutting down before init finished",
@@ -54,7 +54,7 @@ export class SharedDataMap extends EventEmitter {
   }
 
   async init() {
-    if (!this._isReady && this.isParent) {
+    if (!this._isReady && IS_MAIN_PROCESS) {
       try {
         await this._store.load();
         this._data = this._store.data;
@@ -75,10 +75,6 @@ export class SharedDataMap extends EventEmitter {
     return this._sharedDataKey;
   }
 
-  get isParent() {
-    return this._isParent;
-  }
-
   ready() {
     return this._readyDeferred.promise;
   }
@@ -94,7 +90,7 @@ export class SharedDataMap extends EventEmitter {
   }
 
   set(key, value) {
-    if (!this.isParent) {
+    if (!IS_MAIN_PROCESS) {
       throw new Error(
         "Setting values from within a content process is not allowed"
       );
@@ -128,7 +124,7 @@ export class SharedDataMap extends EventEmitter {
 
   // Only used in tests
   _deleteForTests(key) {
-    if (!this.isParent) {
+    if (!IS_MAIN_PROCESS) {
       throw new Error(
         "Setting values from within a content process is not allowed"
       );

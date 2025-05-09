@@ -22,3 +22,5 @@ tags = "remote-settings"
 ["browser_remotesettingsexperimentloader_init.js"]
 
 ["browser_remotesettingsexperimentloader_remote_defaults.js"]
+
+["browser_SharedDataMap.js"]
