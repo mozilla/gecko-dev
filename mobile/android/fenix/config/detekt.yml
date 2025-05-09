@@ -786,8 +786,6 @@ style:
     ignoreLateinitVar: false
   WildcardImport:
     active: true
-    excludeImports:
-      - 'java.util.*'
 
 # Custom Rules
 

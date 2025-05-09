@@ -17,7 +17,7 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
-import java.util.*
+import java.util.Date
 
 class UpdateAttemptStorageTest {
 

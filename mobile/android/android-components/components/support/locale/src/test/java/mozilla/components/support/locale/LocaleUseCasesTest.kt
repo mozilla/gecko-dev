@@ -11,7 +11,7 @@ import mozilla.components.support.test.mock
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.verify
-import java.util.*
+import java.util.Locale
 
 class LocaleUseCasesTest {
 
