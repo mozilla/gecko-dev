@@ -11707,10 +11707,10 @@
 # 4 : enabled blocked by default via Remote Settings
 -   name: media.eme.mfcdm.origin-filter.enabled
     type: RelaxedAtomicUint32
-#if defined(MOZ_DEV_EDITION) || defined(EARLY_BETA_OR_EARLIER)
-    value: 2
+#ifdef NIGHTLY_BUILD
+    value: 3
 #else
-    value: 1
+    value: 4
 #endif
     mirror: always
 
