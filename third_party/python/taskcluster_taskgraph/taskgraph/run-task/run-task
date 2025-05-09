@@ -199,7 +199,7 @@ def remove(path):
         return
 
     """
-    On Windows, adds '\\\\?\\' to paths which match ^[A-Za-z]:\\.* to access
+    On Windows, adds '\\\\?\\' to paths which match ^[A-Za-z]:(\\|/).* to access
     files or directories that exceed MAX_PATH(260) limitation or that ends
     with a period.
     """
@@ -207,7 +207,7 @@ def remove(path):
         sys.platform in ("win32", "cygwin")
         and len(path) >= 3
         and path[1] == ":"
-        and path[2] == "\\"
+        and path[2] in (os.pathsep, os.altsep)
     ):
         path = "\\\\?\\%s" % path
 

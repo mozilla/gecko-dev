@@ -88,7 +88,7 @@ def json_time_from_now(input_str, now=None, datetime_format=False):
     """
 
     if now is None:
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
 
     time = now + value_of(input_str)
 
@@ -98,7 +98,7 @@ def json_time_from_now(input_str, now=None, datetime_format=False):
         # Sorta a big hack but the json schema validator for date does not like the
         # ISO dates until 'Z' (for timezone) is added...
         # Microseconds are excluded (see bug 1381801)
-        return time.isoformat(timespec="milliseconds") + "Z"
+        return time.replace(tzinfo=None).isoformat(timespec="milliseconds") + "Z"
 
 
 def current_json_time(datetime_format=False):
@@ -106,8 +106,9 @@ def current_json_time(datetime_format=False):
     :param boolean datetime_format: Set `True` to get a `datetime` output
     :returns: JSON string representation of the current time.
     """
+    now = datetime.datetime.now(datetime.timezone.utc)
     if datetime_format is True:
-        return datetime.datetime.utcnow()
+        return now
     else:
         # Microseconds are excluded (see bug 1381801)
-        return datetime.datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
+        return now.replace(tzinfo=None).isoformat(timespec="milliseconds") + "Z"

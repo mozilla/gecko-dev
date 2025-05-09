@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: rich
-Version: 13.9.4
+Version: 14.0.0
 Summary: Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal
 Home-page: https://github.com/Textualize/rich
 License: MIT

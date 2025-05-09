@@ -333,7 +333,7 @@ def replace_tasks(
         dependents = [target_task_graph.tasks[l] for l in dependents_of[label]]
         deadline = None
         if dependents:
-            now = datetime.datetime.utcnow()
+            now = datetime.datetime.now(datetime.timezone.utc)
             deadline = max(
                 resolve_timestamps(now, task.task["deadline"])
                 for task in dependents  # type: ignore

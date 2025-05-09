@@ -477,6 +477,7 @@ def show_taskgraph(options):
             print(f"Generating {options['graph_attr']} @ {base_rev}", file=sys.stderr)
             ret |= generate_taskgraph(options, parameters, overrides, logdir)
         finally:
+            assert cur_rev
             repo.update(cur_rev)
 
         # Generate diff(s)
@@ -710,6 +711,46 @@ def decision(options):
     taskgraph_decision(options)
 
 
+@command("actions", help="Print the rendered actions.json")
+@argument(
+    "--root",
+    "-r",
+    help="root of the taskgraph definition relative to topsrcdir",
+    default="taskcluster",
+)
+@argument(
+    "--verbose",
+    "-v",
+    action="store_true",
+    help="include debug-level logging output",
+)
+@argument(
+    "--parameters",
+    "-p",
+    default="",
+    help="parameters file (.yml or .json; see `taskcluster/docs/parameters.rst`)`",
+)
+def actions(args):
+    from taskgraph.actions import render_actions_json
+    from taskgraph.generator import TaskGraphGenerator
+    from taskgraph.parameters import parameters_loader
+
+    if args.pop("verbose", False):
+        logging.root.setLevel(logging.DEBUG)
+
+    try:
+        parameters = parameters_loader(args["parameters"], strict=False)
+        tgg = TaskGraphGenerator(root_dir=args.get("root"), parameters=parameters)
+
+        actions = render_actions_json(tgg.parameters, tgg.graph_config, "DECISION-TASK")
+        print(json.dumps(actions, sort_keys=True, indent=2, separators=(",", ": ")))
+    except Exception:
+        traceback.print_exc()
+        sys.exit(1)
+
+    return 0
+
+
 @command("action-callback", description="Run action callback used by action tasks")
 @argument(
     "--root",
@@ -872,16 +913,14 @@ def init_taskgraph(options):
 
     if repo.tool == "git" and "github.com" in repo_url:
         context["repo_host"] = "github"
-    elif repo.tool == "hg" and "hg.mozilla.org" in repo_url:
-        context["repo_host"] = "hgmo"
     else:
         print(
             dedent(
                 """\
             Repository not supported!
 
-            Taskgraph only supports repositories hosted on Github or hg.mozilla.org.
-            Ensure you have a remote that points to one of these locations.
+            The `taskgraph init` command only supports repositories hosted on
+            Github. Ensure you use a remote that points to a Github repository.
             """
             ),
             file=sys.stderr,

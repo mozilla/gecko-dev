@@ -171,11 +171,11 @@ def register_callback_action(
                 "base_url": parameters["base_repository"],
             }
 
-            revision = parameters["head_rev"]
             push = {
                 "owner": "mozilla-taskcluster-maintenance@mozilla.com",
                 "pushlog_id": parameters["pushlog_id"],
-                "revision": revision,
+                "revision": parameters["head_rev"],
+                "base_revision": parameters["base_rev"],
             }
             branch = parameters.get("head_ref")
             if branch:

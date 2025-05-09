@@ -338,8 +338,9 @@ def verify_index(config, index):
         # artifacts to extract from the task image after completion
         Optional("artifacts"): [
             {
-                # type of artifact -- simple file, or recursive directory
-                "type": Any("file", "directory"),
+                # type of artifact -- simple file, or recursive directory,
+                # or a volume mounted directory.
+                "type": Any("file", "directory", "volume"),
                 # task image path from which to read artifact
                 "path": str,
                 # name of the produced artifact (root of the names for

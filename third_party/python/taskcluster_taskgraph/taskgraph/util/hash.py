@@ -4,9 +4,10 @@
 
 import functools
 import hashlib
-from pathlib import Path
+import os
 
 from taskgraph.util import path as mozpath
+from taskgraph.util.vcs import get_repository
 
 
 @functools.lru_cache(maxsize=None)
@@ -52,8 +53,5 @@ def _find_matching_files(base_path, pattern):
 
 @functools.lru_cache(maxsize=None)
 def _get_all_files(base_path):
-    return [
-        mozpath.normsep(str(path))
-        for path in Path(base_path).rglob("*")
-        if path.is_file()
-    ]
+    repo = get_repository(os.getcwd())
+    return repo.get_tracked_files(base_path)
