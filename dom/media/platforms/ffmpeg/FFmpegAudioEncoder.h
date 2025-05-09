@@ -19,7 +19,7 @@
 namespace mozilla {
 
 template <int V>
-class FFmpegAudioEncoder : public MediaDataEncoder {};
+class FFmpegAudioEncoder : public FFmpegDataEncoder<V> {};
 
 template <>
 class FFmpegAudioEncoder<LIBAV_VER> : public FFmpegDataEncoder<LIBAV_VER> {
