@@ -882,17 +882,6 @@ pref("browser.shopping.experience2023.sidebarClosedCount", 0);
 // When conditions are met, shows a prompt on the shopping sidebar asking users if they want to disable auto-open behavior
 pref("browser.shopping.experience2023.showKeepSidebarClosedMessage", true);
 
-// Integrates the Review Checker feature into the global sidebar.
-// `enabled` pref should be opposite of this to disable
-// the custom shopping sidebar.
-pref("browser.shopping.experience2023.integratedSidebar", false);
-
-// If true, users have already seen a card in the Review Checker sidebar panel
-// notifying users of the feature's new location and asking if they want to
-// move the sidebar to the left or right side. Else if false, users are yet to
-// see the card.
-pref("browser.shopping.experience2023.newPositionCard.hasSeen", false);
-
 // Spin the cursor while the page is loading
 pref("browser.spin_cursor_while_busy", false);
 

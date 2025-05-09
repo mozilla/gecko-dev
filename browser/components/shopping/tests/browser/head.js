@@ -196,7 +196,6 @@ function getAnalysisDetails(browser, data) {
   return SpecialPowers.spawn(browser, [data], async mockData => {
     let shoppingContainer =
       content.document.querySelector("shopping-container").wrappedJSObject;
-    shoppingContainer.isProductPage = true;
     shoppingContainer.data = Cu.cloneInto(mockData, content);
     await shoppingContainer.updateComplete;
     let returnState = {};
@@ -303,9 +302,7 @@ async function reviewCheckerSidebarUpdated(expectedProduct, win = window) {
       function isUpdated() {
         let shoppingContainer =
           content.document.querySelector("shopping-container").wrappedJSObject;
-        return (
-          !!shoppingContainer.data || shoppingContainer.isProductPage === false
-        );
+        return !!shoppingContainer.data;
       }
 
       if (isLocationCurrent() && isUpdated()) {
@@ -323,8 +320,7 @@ async function reviewCheckerSidebarUpdated(expectedProduct, win = window) {
         e => {
           info("Sidebar updated for product: " + JSON.stringify(e.detail));
           let hasData = !!e.detail.data;
-          let isNotProductPage = e.detail.isProductPage === false;
-          return (hasData || isNotProductPage) && isLocationCurrent();
+          return hasData && isLocationCurrent();
         },
         true
       ).then(() => true);

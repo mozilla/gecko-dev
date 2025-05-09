@@ -267,7 +267,6 @@ export let RemotePageAccessManager = {
         "browser.shopping.experience2023.active",
         "browser.shopping.experience2023.ads.userEnabled",
         "browser.shopping.experience2023.autoOpen.userEnabled",
-        "browser.shopping.experience2023.newPositionCard.hasSeen",
         "browser.shopping.experience2023.sidebarClosedCount",
         "browser.shopping.experience2023.showKeepSidebarClosedMessage",
       ],
@@ -276,9 +275,7 @@ export let RemotePageAccessManager = {
       RPMGetBoolPref: [
         "browser.shopping.experience2023.showKeepSidebarClosedMessage",
         "sidebar.revamp",
-        "browser.shopping.experience2023.integratedSidebar",
         "toolkit.shopping.experience2023.defr",
-        "browser.shopping.experience2023.newPositionCard.hasSeen",
       ],
     },
     "about:tabcrashed": {

@@ -19,7 +19,6 @@ const kAllowedPrefs = new Set([
   "browser.shopping.experience2023.ads.userEnabled",
   "browser.shopping.experience2023.autoOpen.enabled",
   "browser.shopping.experience2023.autoOpen.userEnabled",
-  "browser.shopping.experience2023.newPositionCard.hasSeen",
   "browser.shopping.experience2023.optedIn",
   "browser.shopping.experience2023.showKeepSidebarClosedMessage",
   "browser.shopping.experience2023.sidebarClosedCount",

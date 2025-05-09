@@ -34,8 +34,6 @@ export class ShoppingSidebarParent extends JSWindowActorParent {
     "browser.shopping.experience2023.sidebarClosedCount";
   static SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF =
     "browser.shopping.experience2023.showKeepSidebarClosedMessage";
-  static INTEGRATED_SIDEBAR_PANEL_PREF =
-    "browser.shopping.experience2023.integratedSidebar";
 
   updateCurrentURL(uri, flags) {
     this.sendAsyncMessage("ShoppingSidebar:UpdateProductURL", {
@@ -209,13 +207,6 @@ class ShoppingSidebarManagerClass {
       true,
       this.updateSidebarVisibility
     );
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "isIntegratedSidebarPanel",
-      ShoppingSidebarParent.INTEGRATED_SIDEBAR_PANEL_PREF,
-      false,
-      this.updateSidebarVisibility
-    );
     this.updateSidebarVisibility();
 
     lazy.EveryWindow.registerCallback(
@@ -244,7 +235,7 @@ class ShoppingSidebarManagerClass {
   }
 
   updateSidebarVisibility() {
-    this.enabled = this.isEnabled && !this.isIntegratedSidebarPanel;
+    this.enabled = this.isEnabled;
     for (let window of lazy.BrowserWindowTracker.orderedWindows) {
       let isPBM = lazy.PrivateBrowsingUtils.isWindowPrivate(window);
       if (isPBM) {

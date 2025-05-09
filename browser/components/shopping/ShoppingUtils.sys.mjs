@@ -31,24 +31,16 @@ const CFR_FEATURES_PREF =
   "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features";
 
 const ENABLED_PREF = "browser.shopping.experience2023.enabled";
-const INTEGRATED_SIDEBAR_PREF =
-  "browser.shopping.experience2023.integratedSidebar";
 
 export const ShoppingUtils = {
   initialized: false,
   registered: false,
   handledAutoActivate: false,
   enabled: false,
-  integratedSidebar: false,
   everyWindowCallbackId: `shoppingutils-${Services.uuid.generateUUID()}`,
 
   _updatePrefVariables() {
-    this.integratedSidebar = Services.prefs.getBoolPref(
-      INTEGRATED_SIDEBAR_PREF,
-      false
-    );
-    this.enabled =
-      this.integratedSidebar || Services.prefs.getBoolPref(ENABLED_PREF, false);
+    this.enabled = Services.prefs.getBoolPref(ENABLED_PREF, false);
   },
 
   onPrefUpdate(_subject, topic) {
@@ -83,7 +75,6 @@ export const ShoppingUtils = {
       // which in turn calls `ShoppingUtils.init`, creating an infinite loop.
       this.registered = true;
       Services.prefs.addObserver(ENABLED_PREF, this.onPrefUpdate);
-      Services.prefs.addObserver(INTEGRATED_SIDEBAR_PREF, this.onPrefUpdate);
       this._updatePrefVariables();
     }
 
@@ -110,7 +101,7 @@ export const ShoppingUtils = {
 
   /**
    * Runs when:
-   * - the shopping2023 enabled or integratedSidebar prefs are changed,
+   * - the shopping2023 enabled pref is changed,
    * - the user is unenrolled from the Nimbus experiment,
    * - or at shutdown, after quit-application-granted.
    *
@@ -131,7 +122,6 @@ export const ShoppingUtils = {
     if (!soft) {
       this.registered = false;
       Services.prefs.removeObserver(ENABLED_PREF, this.onPrefUpdate);
-      Services.prefs.removeObserver(INTEGRATED_SIDEBAR_PREF, this.onPrefUpdate);
     }
 
     this.initialized = false;
@@ -341,7 +331,6 @@ export const ShoppingUtils = {
     }
 
     if (
-      !this.integratedSidebar &&
       this.isAutoOpenEligible() &&
       this.resetActiveOnNextProductPage &&
       isProductPageNavigation

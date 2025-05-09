@@ -56,8 +56,6 @@ export class ShoppingContainer extends MozLitElement {
     autoOpenEnabled: { type: Boolean },
     autoOpenEnabledByUser: { type: Boolean },
     showingKeepClosedMessage: { type: Boolean },
-    isProductPage: { type: Boolean },
-    isSupportedSite: { type: Boolean },
     isHeaderOverflow: { type: Boolean, state: true },
   };
 
@@ -135,8 +133,6 @@ export class ShoppingContainer extends MozLitElement {
     focusCloseButton,
     autoOpenEnabled,
     autoOpenEnabledByUser,
-    isProductPage,
-    isSupportedSite,
   }) {
     // If we're not opted in or there's no shopping URL in the main browser,
     // the actor will pass `null`, which means this will clear out any existing
@@ -154,8 +150,6 @@ export class ShoppingContainer extends MozLitElement {
     this.autoOpenEnabled = autoOpenEnabled ?? this.autoOpenEnabled;
     this.autoOpenEnabledByUser =
       autoOpenEnabledByUser ?? this.autoOpenEnabledByUser;
-    this.isProductPage = isProductPage ?? true;
-    this.isSupportedSite = isSupportedSite;
   }
 
   _updateRecommendations({ recommendationData }) {
@@ -420,11 +414,7 @@ export class ShoppingContainer extends MozLitElement {
           <slot name="multi-stage-message-slot"></slot>
           ${this.userInteractionMessageTemplate()}${sidebarContent}
           ${showSettings
-            ? this.settingsTemplate(
-                !this.isSupportedSite && !this.isProductPage
-                  ? { className: "first-footer-card" }
-                  : ""
-              )
+            ? this.settingsTemplate({ className: "first-footer-card" })
             : null}
         </div>
       </div>`;
