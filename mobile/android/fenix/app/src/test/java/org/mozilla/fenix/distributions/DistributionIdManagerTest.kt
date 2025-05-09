@@ -147,21 +147,6 @@ class DistributionIdManagerTest {
     }
 
     @Test
-    fun `WHEN the provider is digital_tubrine AND the DT app is not installed THEN the proper ID is returned`() {
-        val subject = DistributionIdManager(
-            testContext,
-            testBrowserStoreProvider,
-            testDistributionProviderChecker,
-            isDtTelefonicaInstalled = { false },
-        )
-
-        providerValue = "digital_turbine"
-        val distributionId = subject.getDistributionId()
-
-        assertEquals("Mozilla", distributionId)
-    }
-
-    @Test
     fun `WHEN the provider is not digital_tubrine AND the DT app is not installed THEN the proper ID is returned`() {
         val subject = DistributionIdManager(
             testContext,
@@ -257,21 +242,6 @@ class DistributionIdManagerTest {
     }
 
     @Test
-    fun `WHEN the provider is DT AND no USA package is installed THEN the proper distribution ID is returned`() {
-        val subject = DistributionIdManager(
-            testContext,
-            testBrowserStoreProvider,
-            testDistributionProviderChecker,
-            isDtUsaInstalled = { false },
-        )
-
-        providerValue = "digital_turbine"
-        val distributionId = subject.getDistributionId()
-
-        assertEquals("Mozilla", distributionId)
-    }
-
-    @Test
     fun `WHEN the provider is not DT AND a DT USA package is installed THEN the proper distribution ID is returned`() {
         val subject = DistributionIdManager(
             testContext,
@@ -284,5 +254,19 @@ class DistributionIdManagerTest {
         val distributionId = subject.getDistributionId()
 
         assertEquals("Mozilla", distributionId)
+    }
+
+    @Test
+    fun `WHEN the provider is DT and telefonica and USA packages are not installed THEN the proper distribution ID is returned`() {
+        val subject = DistributionIdManager(
+            testContext,
+            testBrowserStoreProvider,
+            testDistributionProviderChecker,
+        )
+
+        providerValue = "digital_turbine"
+        val distributionId = subject.getDistributionId()
+
+        assertEquals("dt-003", distributionId)
     }
 }
