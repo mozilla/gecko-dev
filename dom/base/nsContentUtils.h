@@ -716,6 +716,9 @@ class nsContentUtils {
    *          0 if point1 == point2.
    *          `Nothing` if the two nodes aren't in the same connected subtree.
    */
+  template <TreeKind aKind = TreeKind::ShadowIncludingDOM,
+            typename = std::enable_if_t<aKind == TreeKind::ShadowIncludingDOM ||
+                                        aKind == TreeKind::Flat>>
   static mozilla::Maybe<int32_t> ComparePointsWithIndices(
       const nsINode* aParent1, uint32_t aOffset1, const nsINode* aParent2,
       uint32_t aOffset2, NodeIndexCache* aIndexCache = nullptr);
@@ -730,7 +733,10 @@ class nsContentUtils {
    *          0 if point1 == point2.
    *          `Nothing` if the two nodes aren't in the same connected subtree.
    */
-  template <typename PT1, typename RT1, typename PT2, typename RT2>
+  template <TreeKind aKind = TreeKind::ShadowIncludingDOM, typename PT1,
+            typename RT1, typename PT2, typename RT2,
+            typename = std::enable_if_t<aKind == TreeKind::ShadowIncludingDOM ||
+                                        aKind == TreeKind::Flat>>
   static mozilla::Maybe<int32_t> ComparePoints(
       const mozilla::RangeBoundaryBase<PT1, RT1>& aBoundary1,
       const mozilla::RangeBoundaryBase<PT2, RT2>& aBoundary2,
@@ -746,6 +752,9 @@ class nsContentUtils {
    * traditional behavior. If you want to use this in new code, it means that
    * you **should** check the offset values and call `ComparePoints` instead.
    */
+  template <TreeKind aKind = TreeKind::ShadowIncludingDOM,
+            typename = std::enable_if_t<aKind == TreeKind::ShadowIncludingDOM ||
+                                        aKind == TreeKind::Flat>>
   static mozilla::Maybe<int32_t> ComparePoints_AllowNegativeOffsets(
       const nsINode* aParent1, int64_t aOffset1, const nsINode* aParent2,
       int64_t aOffset2) {
@@ -768,7 +777,7 @@ class nsContentUtils {
       }
       // Otherwise, aOffset1 nor aOffset2 is referred so that any value is fine
       // if negative.
-      return ComparePointsWithIndices(
+      return ComparePointsWithIndices<aKind>(
           aParent1,
           // Avoid warnings.
           aOffset1 < 0 ? aParent1->GetChildCount()
@@ -780,7 +789,8 @@ class nsContentUtils {
                        : std::min(static_cast<uint32_t>(aOffset2),
                                   aParent2->GetChildCount()));
     }
-    return ComparePointsWithIndices(aParent1, aOffset1, aParent2, aOffset2);
+    return ComparePointsWithIndices<aKind>(aParent1, aOffset1, aParent2,
+                                           aOffset2);
   }
 
   /**
@@ -3642,6 +3652,9 @@ class nsContentUtils {
    * node.
    * Return Nothing if aChild1 is a root of the native anonymous subtree.
    */
+  template <TreeKind aKind,
+            typename = std::enable_if_t<aKind == TreeKind::ShadowIncludingDOM ||
+                                        aKind == TreeKind::Flat>>
   static mozilla::Maybe<int32_t> CompareChildNodes(
       const nsINode* aChild1, const nsINode* aChild2,
       NodeIndexCache* aIndexCache = nullptr);
@@ -3671,8 +3684,12 @@ class nsContentUtils {
    * includes odd traditional behavior. Therefore, do not use this method as a
    * utility method.
    */
+  template <TreeKind aKind = TreeKind::ShadowIncludingDOM,
+            typename = std::enable_if_t<aKind == TreeKind::ShadowIncludingDOM ||
+                                        aKind == TreeKind::Flat>>
   static mozilla::Maybe<int32_t> CompareClosestCommonAncestorChildren(
-      const nsINode&, const nsINode*, const nsINode*, NodeIndexCache*);
+      const nsINode&, const nsINode*, const nsINode*,
+      NodeIndexCache* = nullptr);
 
   static nsIXPConnect* sXPConnect;
 

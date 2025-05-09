@@ -285,12 +285,21 @@ static RangeBehaviour GetRangeBehaviour(
   const RangeBoundary& otherSideExistingBoundary =
       aIsSetStart ? aRange->EndRef() : aRange->StartRef();
 
+  auto ComparePoints = [aAllowCrossShadowBoundary](
+                           const RawRangeBoundary& aBoundary1,
+                           const RawRangeBoundary& aBoundary2) {
+    if (aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes) {
+      return nsContentUtils::ComparePoints<TreeKind::Flat>(aBoundary1,
+                                                           aBoundary2);
+    }
+    return nsContentUtils::ComparePoints<TreeKind::ShadowIncludingDOM>(
+        aBoundary1, aBoundary2);
+  };
   // Both bondaries are in the same root, now check for their position
   const Maybe<int32_t> order =
-      aIsSetStart ? nsContentUtils::ComparePoints(aNewBoundary,
-                                                  otherSideExistingBoundary)
-                  : nsContentUtils::ComparePoints(otherSideExistingBoundary,
-                                                  aNewBoundary);
+      aIsSetStart
+          ? ComparePoints(aNewBoundary, otherSideExistingBoundary.AsRaw())
+          : ComparePoints(otherSideExistingBoundary.AsRaw(), aNewBoundary);
 
   if (order) {
     if (*order != 1) {
@@ -324,11 +333,12 @@ static RangeBehaviour GetRangeBehaviour(
     // otherSideExistingBoundary. However, it's possible that aNewBoundary
     // is valid with the otherSideExistingCrossShadowBoundaryBoundary.
     const Maybe<int32_t> withCrossShadowBoundaryOrder =
-        aIsSetStart
-            ? nsContentUtils::ComparePoints(
-                  aNewBoundary, otherSideExistingCrossShadowBoundaryBoundary)
-            : nsContentUtils::ComparePoints(
-                  otherSideExistingCrossShadowBoundaryBoundary, aNewBoundary);
+        aIsSetStart ? ComparePoints(
+                          aNewBoundary,
+                          otherSideExistingCrossShadowBoundaryBoundary.AsRaw())
+                    : ComparePoints(
+                          otherSideExistingCrossShadowBoundaryBoundary.AsRaw(),
+                          aNewBoundary);
 
     // Valid to the cross boundary boundary.
     if (withCrossShadowBoundaryOrder && *withCrossShadowBoundaryOrder != 1) {
@@ -3246,8 +3256,7 @@ void nsRange::ExcludeNonSelectableNodes(nsTArray<RefPtr<nsRange>>* aOutRanges) {
       nsINode* node = preOrderIter.GetCurrentNode();
       preOrderIter.Next();
       bool selectable = true;
-      nsIContent* content =
-          node && node->IsContent() ? node->AsContent() : nullptr;
+      nsIContent* content = nsIContent::FromNodeOrNull(node);
       if (content) {
         if (firstNonSelectableContent &&
             ExcludeIfNextToNonSelectable(content)) {
