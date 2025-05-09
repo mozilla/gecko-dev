@@ -20,7 +20,7 @@ async function mouseOverSidebarToExpand() {
   // Disable non-test mouse events
   window.windowUtils.disableNonTestMouseEvents(true);
 
-  EventUtils.synthesizeMouse(SidebarController.sidebarContainer, 1, 80, {
+  EventUtils.synthesizeMouse(SidebarController.sidebarContainer, 1, 150, {
     type: "mousemove",
   });
 
@@ -167,6 +167,39 @@ add_task(async function test_enable_expand_on_hover() {
   );
 });
 
+add_task(async function test_expand_on_hover_context_menu() {
+  await SidebarController.toggleExpandOnHover(true);
+  await SidebarController.waitUntilStable();
+  await mouseOverSidebarToExpand();
+  await SidebarController.waitUntilStable();
+  await BrowserTestUtils.waitForMutationCondition(
+    SidebarController.sidebarContainer,
+    { attributes: true },
+    () => SidebarController._state.launcherExpanded,
+    "The launcher is expanded"
+  );
+
+  const toolbarContextMenu = document.getElementById("toolbar-context-menu");
+  await openAndWaitForContextMenu(
+    toolbarContextMenu,
+    SidebarController.sidebarMain,
+    () => {
+      ok(
+        !document.getElementById("toolbar-context-customize-sidebar").hidden,
+        "The sidebar context menu is loaded"
+      );
+      ok(
+        SidebarController._state.launcherExpanded,
+        "The sidebar launcher is still expanded with the context menu open"
+      );
+    }
+  );
+  toolbarContextMenu.hidePopup();
+  await mouseOutSidebarToCollapse();
+  await SidebarController.toggleExpandOnHover(false);
+  await SidebarController.waitUntilStable();
+});
+
 add_task(async function test_expand_on_hover_pinned_tabs() {
   await SidebarController.toggleExpandOnHover(true);
   await SidebarController.waitUntilStable();
@@ -212,39 +245,6 @@ add_task(async function test_expand_on_hover_pinned_tabs() {
     "The expanded pinned tab is not showing the inline audio button."
   );
 
-  await mouseOutSidebarToCollapse();
-  await SidebarController.toggleExpandOnHover(false);
-  await SidebarController.waitUntilStable();
-});
-
-add_task(async function test_expand_on_hover_context_menu() {
-  await SidebarController.toggleExpandOnHover(true);
-  await SidebarController.waitUntilStable();
-  await mouseOverSidebarToExpand();
-  await SidebarController.waitUntilStable();
-  await BrowserTestUtils.waitForMutationCondition(
-    SidebarController.sidebarContainer,
-    { attributes: true },
-    () => SidebarController._state.launcherExpanded,
-    "The launcher is expanded"
-  );
-
-  const toolbarContextMenu = document.getElementById("toolbar-context-menu");
-  await openAndWaitForContextMenu(
-    toolbarContextMenu,
-    SidebarController.sidebarMain,
-    () => {
-      ok(
-        !document.getElementById("toolbar-context-customize-sidebar").hidden,
-        "The sidebar context menu is loaded"
-      );
-      ok(
-        SidebarController._state.launcherExpanded,
-        "The sidebar launcher is still expanded with the context menu open"
-      );
-    }
-  );
-  toolbarContextMenu.hidePopup();
   await mouseOutSidebarToCollapse();
   await SidebarController.toggleExpandOnHover(false);
   await SidebarController.waitUntilStable();
