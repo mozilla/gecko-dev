@@ -102,8 +102,12 @@ interface imgIContainer : nsISupports
    * The intrinsic size of this image in appunits. If the image has no intrinsic
    * size in a dimension, -1 will be returned for that dimension. In the case of
    * any error, an exception will be thrown.
+   *
+   * XXXdholbert maybe this should use the actual IntrinsicSize type (defined
+   * in nsIFrame.h, specifically for replaced elements like images, also
+   * using nscoord units but with Maybe<> to represent sizes being missing)?
    */
-  [noscript] readonly attribute nsSize intrinsicSize;
+  [noscript] readonly attribute nsSize intrinsicSizeInAppUnits;
 
   /**
    * The (dimensionless) intrinsic ratio of this image. Might return a

@@ -196,11 +196,12 @@ ClippedImage::GetHeight(int32_t* aHeight) {
 }
 
 NS_IMETHODIMP
-ClippedImage::GetIntrinsicSize(nsSize* aSize) {
+ClippedImage::GetIntrinsicSizeInAppUnits(nsSize* aSize) {
   if (!ShouldClip()) {
-    return InnerImage()->GetIntrinsicSize(aSize);
+    return InnerImage()->GetIntrinsicSizeInAppUnits(aSize);
   }
 
+  // XXXdholbert This probably needs to be scaled; see bug 1965106.
   *aSize = nsSize(mClip.Width(), mClip.Height());
   return NS_OK;
 }

@@ -245,7 +245,7 @@ size_t RasterImage::GetNativeSizesLength() {
 
 //******************************************************************************
 NS_IMETHODIMP
-RasterImage::GetIntrinsicSize(nsSize* aSize) {
+RasterImage::GetIntrinsicSizeInAppUnits(nsSize* aSize) {
   if (mError) {
     return NS_ERROR_FAILURE;
   }

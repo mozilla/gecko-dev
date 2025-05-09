@@ -852,7 +852,7 @@ IntrinsicSize nsImageFrame::ComputeIntrinsicSize(
   }
 
   nsSize size;
-  if (mImage && NS_SUCCEEDED(mImage->GetIntrinsicSize(&size))) {
+  if (mImage && NS_SUCCEEDED(mImage->GetIntrinsicSizeInAppUnits(&size))) {
     IntrinsicSize intrinsicSize;
     intrinsicSize.width = size.width == -1 ? Nothing() : Some(size.width);
     intrinsicSize.height = size.height == -1 ? Nothing() : Some(size.height);
@@ -1035,7 +1035,8 @@ bool nsImageFrame::GetSourceToDestTransform(nsTransform2D& aTransform) {
   // size (mIntrinsicSize), which can be scaled due to ResponsiveImageSelector,
   // see ScaleIntrinsicSizeForDensity.
   nsSize intrinsicSize;
-  if (!mImage || !NS_SUCCEEDED(mImage->GetIntrinsicSize(&intrinsicSize)) ||
+  if (!mImage ||
+      !NS_SUCCEEDED(mImage->GetIntrinsicSizeInAppUnits(&intrinsicSize)) ||
       intrinsicSize.IsEmpty()) {
     return false;
   }

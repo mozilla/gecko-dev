@@ -499,7 +499,7 @@ VectorImage::GetHeight(int32_t* aHeight) {
 
 //******************************************************************************
 NS_IMETHODIMP
-VectorImage::GetIntrinsicSize(nsSize* aSize) {
+VectorImage::GetIntrinsicSizeInAppUnits(nsSize* aSize) {
   if (mError || !mIsFullyLoaded) {
     return NS_ERROR_FAILURE;
   }

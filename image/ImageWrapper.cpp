@@ -115,8 +115,8 @@ size_t ImageWrapper::GetNativeSizesLength() {
 }
 
 NS_IMETHODIMP
-ImageWrapper::GetIntrinsicSize(nsSize* aSize) {
-  return mInnerImage->GetIntrinsicSize(aSize);
+ImageWrapper::GetIntrinsicSizeInAppUnits(nsSize* aSize) {
+  return mInnerImage->GetIntrinsicSizeInAppUnits(aSize);
 }
 
 AspectRatio ImageWrapper::GetIntrinsicRatio() {
