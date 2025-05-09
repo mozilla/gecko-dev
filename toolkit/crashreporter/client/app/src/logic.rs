@@ -7,7 +7,6 @@
 use crate::std::{
     cell::RefCell,
     path::PathBuf,
-    process::Command,
     sync::{
         atomic::{AtomicBool, Ordering::Relaxed},
         Arc, Mutex, Weak,
@@ -356,24 +355,7 @@ impl ReportCrash {
 
     /// Restart the program.
     fn restart_process(&self) {
-        if self.config.restart_command.is_none() {
-            // The restart button should be hidden in this case, so this error should not occur.
-            log::error!("no process configured for restart");
-            return;
-        }
-
-        let mut cmd = Command::new(self.config.restart_command.as_ref().unwrap());
-        cmd.args(&self.config.restart_args)
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null());
-        if let Some(xul_app_file) = &self.config.app_file {
-            cmd.env("XUL_APP_FILE", xul_app_file);
-        }
-        log::debug!("restarting process: {:?}", cmd);
-        if let Err(e) = cmd.spawn() {
-            log::error!("failed to restart process: {e}");
-        }
+        self.config.restart_process();
     }
 
     /// Run the crash reporting UI.

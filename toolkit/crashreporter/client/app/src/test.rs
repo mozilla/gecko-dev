@@ -453,14 +453,45 @@ fn error_dialog() {
     gui_interact(
         || {
             let cfg = Config::default();
-            ui::error_dialog(&cfg, "an error occurred");
+            ui::error_dialog(Arc::new(cfg), "an error occurred");
             Ok(())
         },
         |interact| {
-            interact.element("close", |_style, b: &model::Button| b.click.fire(&()));
+            interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
         },
     )
     .unwrap();
+}
+
+#[test]
+fn error_dialog_restart() {
+    let mut config = Config::default();
+    config.restart_command = Some("my_process".into());
+    config.restart_args = vec!["a".into(), "b".into()];
+    let ran_process = Counter::new();
+    let mock_ran_process = ran_process.clone();
+    mock::builder()
+        .set(
+            Command::mock("my_process"),
+            Box::new(move |cmd| {
+                assert_eq!(cmd.args, &["a", "b"]);
+                mock_ran_process.inc();
+                Ok(crate::std::process::success_output())
+            }),
+        )
+        .run(|| {
+            gui_interact(
+                move || {
+                    ui::error_dialog(Arc::new(config), "an error occurred");
+                    Ok(())
+                },
+                |interact| {
+                    interact.element("restart", |_style, b: &model::Button| b.click.fire(&()));
+                },
+            )
+        })
+        .unwrap();
+    ran_process.assert_one();
 }
 
 #[test]

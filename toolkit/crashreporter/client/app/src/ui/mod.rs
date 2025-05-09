@@ -70,7 +70,7 @@ cfg_if::cfg_if! {
 
 /// Display an error dialog with the given message.
 #[cfg_attr(mock, allow(unused))]
-pub fn error_dialog<M: std::fmt::Debug>(config: &Config, message: M) {
+pub fn error_dialog<M: std::fmt::Debug>(config: Arc<Config>, message: M) {
     let close = data::Event::default();
     // Config may not have localized strings
     let string_or = |name, fallback: &str| {
@@ -94,8 +94,20 @@ pub fn error_dialog<M: std::fmt::Debug>(config: &Config, message: M) {
                 Scroll halign(Alignment::Fill) valign(Alignment::Fill) {
                     TextBox content(format!("{message:?}")) halign(Alignment::Fill) valign(Alignment::Fill)
                 },
-                Button["close"] halign(Alignment::End) on_click(move || close.fire(&())) {
-                    Label text(string_or("crashreporter-button-close", "Close"))
+                HBox valign(Alignment::End) halign(Alignment::End) spacing(10) affirmative_order(true)
+                {
+                    Button["restart"] hsize(160) visible(config.restart_command.is_some())
+                        on_click(cc! { (config, close) move || {
+                            config.restart_process();
+                            close.fire(&());
+                        }})
+                    {
+                        Label text(string_or("crashreporter-button-restart", "Restart"))
+                    },
+                    Button["quit"] hsize(160) on_click(move || close.fire(&()))
+                    {
+                        Label text(string_or("crashreporter-button-quit", "Quit"))
+                    }
                 }
             }
         }

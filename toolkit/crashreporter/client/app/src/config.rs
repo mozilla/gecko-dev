@@ -7,6 +7,7 @@
 use crate::std::borrow::Cow;
 use crate::std::ffi::{OsStr, OsString};
 use crate::std::path::{Path, PathBuf};
+use crate::std::process::Command;
 use crate::{lang, logging::LogTarget, std};
 use anyhow::Context;
 use once_cell::sync::Lazy;
@@ -444,6 +445,28 @@ impl Config {
             let _ = std::fs::remove_file(memory_file_for_dump_file(dump_file));
         }
         Ok(())
+    }
+
+    /// Restart the program based on the configured restart command.
+    pub fn restart_process(&self) {
+        if self.restart_command.is_none() {
+            // The restart button should be hidden in this case, so this error should not occur.
+            log::error!("no process configured for restart");
+            return;
+        }
+
+        let mut cmd = Command::new(self.restart_command.as_ref().unwrap());
+        cmd.args(&self.restart_args)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
+        if let Some(xul_app_file) = &self.app_file {
+            cmd.env("XUL_APP_FILE", xul_app_file);
+        }
+        log::debug!("restarting process: {:?}", cmd);
+        if let Err(e) = cmd.spawn() {
+            log::error!("failed to restart process: {e}");
+        }
     }
 
     /// Get the path of a program in the installation.

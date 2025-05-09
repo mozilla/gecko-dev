@@ -109,7 +109,7 @@ fn report_main() {
             log::error!("exiting with error: {message:#}");
             if !config.auto_submit {
                 // Only show a dialog if auto_submit is disabled.
-                ui::error_dialog(&config, message);
+                ui::error_dialog(config, message);
             }
             std::process::exit(1);
         }
@@ -256,5 +256,5 @@ fn try_run(config: &mut Arc<Config>) -> anyhow::Result<bool> {
 // `std` uses `raw-dylib` to link this dll, but that doesn't work properly on x86 MinGW, so we explicitly
 // have to link it.
 #[cfg(all(target_os = "windows", target_env = "gnu"))]
-#[link(name="bcryptprimitives")]
+#[link(name = "bcryptprimitives")]
 extern "C" {}
