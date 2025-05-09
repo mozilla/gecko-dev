@@ -183,6 +183,7 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
   static bool maxByteLengthGetterImpl(JSContext* cx, const CallArgs& args);
   static bool resizableGetterImpl(JSContext* cx, const CallArgs& args);
   static bool detachedGetterImpl(JSContext* cx, const CallArgs& args);
+  static bool sliceImpl(JSContext* cx, const CallArgs& args);
   static bool resizeImpl(JSContext* cx, const CallArgs& args);
   static bool transferImpl(JSContext* cx, const CallArgs& args);
   static bool transferToFixedLengthImpl(JSContext* cx, const CallArgs& args);
@@ -421,6 +422,8 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
   static bool detachedGetter(JSContext* cx, unsigned argc, Value* vp);
 
   static bool fun_isView(JSContext* cx, unsigned argc, Value* vp);
+
+  static bool slice(JSContext* cx, unsigned argc, Value* vp);
 
   static bool resize(JSContext* cx, unsigned argc, Value* vp);
 
