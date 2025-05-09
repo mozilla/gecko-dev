@@ -238,6 +238,7 @@ Result<MediaDataEncoder::EncodedData, MediaResult>
 FFmpegAudioEncoder<LIBAV_VER>::EncodeOnePacket(Span<float> aSamples,
                                                media::TimeUnit aPts) {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
+  MOZ_ASSERT(aSamples.Length() % mConfig.mNumberOfChannels == 0);
 
   // Allocate AVFrame.
   if (!PrepareFrame()) {
