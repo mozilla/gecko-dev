@@ -1799,6 +1799,11 @@ pref("browser.newtab.preload", true);
 // population (2500 / 10000).
 pref("browser.preonboarding.onTrainRolloutPopulation",  2500);
 
+// Do not enable the preonboarding experience on Linux
+#ifdef XP_LINUX
+  pref("browser.preonboarding.enabled", false);
+#endif
+
 // Mozilla Ad Routing Service (MARS) unified ads service
 pref("browser.newtabpage.activity-stream.unifiedAds.tiles.enabled", true);
 pref("browser.newtabpage.activity-stream.unifiedAds.spocs.enabled", true);

@@ -34,7 +34,6 @@ const PREF_MINIMUM_CHANNEL_POLICY_VERSION =
   TelemetryUtils.Preferences.MinimumPolicyVersion + ".channel-" + TEST_CHANNEL;
 
 const ON_TRAIN_ROLLOUT_SUPPORTED_PLATFORM =
-  AppConstants.platform == "linux" ||
   AppConstants.platform == "macosx" ||
   (AppConstants.platform === "win" &&
     Services.sysinfo.getProperty("hasWinPackageId", false));
