@@ -368,3 +368,28 @@ add_task(async function test_specialMessageAction_onLinkClick() {
 
   handleStub.restore();
 });
+
+add_task(async function test_showInfoBarMessage_skipsPrivateWindow() {
+  const { PrivateBrowsingUtils } = ChromeUtils.importESModule(
+    "resource://gre/modules/PrivateBrowsingUtils.sys.mjs"
+  );
+  sinon.stub(PrivateBrowsingUtils, "isWindowPrivate").returns(true);
+
+  let browser = BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser;
+  let dispatch = sinon.stub();
+
+  let result = await InfoBar.showInfoBarMessage(
+    browser,
+    {
+      id: "Private Win Test",
+      content: { type: "global", buttons: [], text: "t", dismissable: true },
+    },
+    dispatch
+  );
+
+  Assert.equal(result, null);
+  Assert.equal(dispatch.callCount, 0);
+
+  // Cleanup
+  sinon.restore();
+});
