@@ -212,8 +212,7 @@ class UrlMatcher {
         ): UrlMatcher {
             val categoryMap = HashMap<String, Trie>()
 
-            JsonReader(block).use {
-                    jsonReader ->
+            JsonReader(block).use { jsonReader ->
                 loadCategories(jsonReader, categoryMap)
             }
 

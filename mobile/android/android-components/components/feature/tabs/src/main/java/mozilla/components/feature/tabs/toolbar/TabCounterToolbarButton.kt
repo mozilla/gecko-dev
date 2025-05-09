@@ -46,8 +46,7 @@ open class TabCounterToolbarButton(
         store.flowScoped(lifecycleOwner) { flow ->
             flow.map { state -> getTabCount(state) }
                 .distinctUntilChanged()
-                .collect {
-                        tabs ->
+                .collect { tabs ->
                     updateCount(tabs)
                 }
         }

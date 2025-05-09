@@ -119,7 +119,6 @@ import mozilla.components.feature.tabs.LastTabFeature
 import mozilla.components.feature.webauthn.WebAuthnFeature
 import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.consumeFrom
-import mozilla.components.lib.state.ext.flow
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.service.sync.autofill.DefaultCreditCardValidationDelegate
 import mozilla.components.service.sync.logins.DefaultLoginValidationDelegate
@@ -1455,8 +1454,7 @@ abstract class BaseBrowserFragment :
             flow.mapNotNull { state ->
                 state.findCustomTabOrSelectedTab(customTabSessionId)
             }
-                .ifAnyChanged {
-                        tab ->
+                .ifAnyChanged { tab ->
                     arrayOf(tab.content.url, tab.content.loadRequest)
                 }
                 .collect {

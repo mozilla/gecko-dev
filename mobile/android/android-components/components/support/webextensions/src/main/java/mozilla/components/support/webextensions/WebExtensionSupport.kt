@@ -38,6 +38,7 @@ import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.kotlin.isExtensionUrl
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.filterChanged
+import mozilla.components.support.webextensions.WebExtensionSupport.initialize
 import mozilla.components.support.webextensions.facts.emitWebExtensionsInitializedFact
 import java.util.concurrent.ConcurrentHashMap
 
@@ -378,16 +379,14 @@ object WebExtensionSupport {
      */
     private fun registerInstalledExtensions(store: BrowserStore, runtime: WebExtensionRuntime) {
         runtime.listInstalledWebExtensions(
-            onSuccess = {
-                    extensions ->
+            onSuccess = { extensions ->
                 extensions.forEach { registerInstalledExtension(store, it) }
                 emitWebExtensionsInitializedFact(extensions)
                 closeUnsupportedTabs(store, extensions)
                 initializationResult.complete(Unit)
                 onExtensionsLoaded?.invoke(extensions.filter { !it.isBuiltIn() })
             },
-            onError = {
-                    throwable ->
+            onError = { throwable ->
                 logger.error("Failed to query installed extension", throwable)
                 initializationResult.completeExceptionally(throwable)
             },

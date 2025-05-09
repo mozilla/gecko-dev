@@ -329,8 +329,7 @@ class SearchDialogController(
             setNegativeButton(R.string.camera_permissions_needed_negative_button_text) { _, _ ->
                 dismissDialog?.invoke()
             }
-            setPositiveButton(R.string.camera_permissions_needed_positive_button_text) {
-                    dialog: DialogInterface, _ ->
+            setPositiveButton(R.string.camera_permissions_needed_positive_button_text) { dialog: DialogInterface, _ ->
                 val intent: Intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                 } else {

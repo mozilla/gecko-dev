@@ -472,8 +472,7 @@ class GeckoEngine(
     override fun listInstalledWebExtensions(onSuccess: (List<WebExtension>) -> Unit, onError: (Throwable) -> Unit) {
         runtime.webExtensionController.list().then(
             {
-                val extensions = it?.map {
-                        extension ->
+                val extensions = it?.map { extension ->
                     GeckoWebExtension(extension, runtime)
                 } ?: emptyList()
 
@@ -752,8 +751,7 @@ class GeckoEngine(
                 onSuccess()
                 GeckoResult<Void>()
             },
-            {
-                    throwable ->
+            { throwable ->
                 onError(throwable)
                 GeckoResult<Void>()
             },
@@ -820,8 +818,7 @@ class GeckoEngine(
                 if (it != null) {
                     val listOfModels = mutableListOf<LanguageModel>()
                     for (each in it) {
-                        val language = each.language?.let {
-                                language ->
+                        val language = each.language?.let { language ->
                             Language(language.code, each.language?.localizedDisplayName)
                         }
                         val status = if (each.isDownloaded) ModelState.DOWNLOADED else ModelState.NOT_DOWNLOADED

@@ -34,10 +34,11 @@ class AddonsManagementViewTest {
     private var onMoreAddonsButtonClicked: () -> Unit = { moreAddonsButtonClicked = true }
     private var moreAddonsButtonClicked = false
 
-    private var onLearnMoreLinkClicked: (AddonsManagerAdapterDelegate.LearnMoreLinks, Addon) -> Unit = {
-            _: AddonsManagerAdapterDelegate.LearnMoreLinks, _: Addon ->
-        learnMoreLinkClicked = true
-    }
+    private var onLearnMoreLinkClicked: (AddonsManagerAdapterDelegate.LearnMoreLinks, Addon) -> Unit =
+        { _: AddonsManagerAdapterDelegate.LearnMoreLinks, _: Addon ->
+            learnMoreLinkClicked = true
+        }
+
     private var learnMoreLinkClicked = false
 
     @Before

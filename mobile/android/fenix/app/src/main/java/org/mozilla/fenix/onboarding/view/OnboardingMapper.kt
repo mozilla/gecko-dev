@@ -32,8 +32,7 @@ internal fun Collection<OnboardingCardData>.toPageUiData(
         // we are then filtering again based on device capabilities
         .filter { it.isCardEnabled(showDefaultBrowserPage, showNotificationPage, showAddWidgetPage, showToolbarPage) }
         .sortedBy { it.ordering }
-        .mapIndexed {
-                index, onboardingCardData ->
+        .mapIndexed { index, onboardingCardData ->
             // only first onboarding card shows privacy caption
             onboardingCardData.toPageUiData(if (index == 0) privacyCaption else null)
         }

@@ -51,8 +51,7 @@ class OpenInAppOnboardingObserver(
             flow.mapNotNull { state ->
                 state.selectedTab
             }
-                .ifAnyChanged {
-                        tab ->
+                .ifAnyChanged { tab ->
                     arrayOf(tab.content.url, tab.content.loading)
                 }
                 .collect { tab ->

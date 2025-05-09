@@ -49,8 +49,7 @@ class TranslationsDialogBinding(
         // Applying the flows together
         sessionFlow
             .combine(browserFlow) { sessionState, browserState -> TranslationsFlowState(sessionState, browserState) }
-            .collect {
-                    state ->
+            .collect { state ->
                 // Browser Translations State Behavior (Global)
                 val browserTranslationsState = state.browserState.translationEngine
                 val translateFromLanguages =

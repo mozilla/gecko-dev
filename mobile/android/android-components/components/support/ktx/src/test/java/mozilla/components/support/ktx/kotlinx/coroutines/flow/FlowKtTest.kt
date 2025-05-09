@@ -32,8 +32,7 @@ class FlowKtTest {
         val originalFlow = flowOf("banana", "bandanna", "bus", "apple", "big", "coconut", "circle", "home")
 
         val items =
-            originalFlow.ifAnyChanged {
-                    item ->
+            originalFlow.ifAnyChanged { item ->
                 arrayOf(CharState(item[0]), CharState(item[1]))
             }.toList()
 

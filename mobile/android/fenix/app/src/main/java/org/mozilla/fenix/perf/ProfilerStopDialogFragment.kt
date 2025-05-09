@@ -158,8 +158,7 @@ class ProfilerStopDialogFragment : DialogFragment() {
                     displayToastAndDismiss(R.string.profiler_no_info)
                 }
             },
-            onError = {
-                    error ->
+            onError = { error ->
                 if (error.message != null) {
                     displayToastAndDismiss(R.string.profiler_error, " error: $error")
                 } else {

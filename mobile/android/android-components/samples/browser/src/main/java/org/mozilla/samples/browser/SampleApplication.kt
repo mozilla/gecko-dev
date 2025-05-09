@@ -92,16 +92,13 @@ class SampleApplication : Application() {
             WebExtensionSupport.initialize(
                 components.engine,
                 components.store,
-                onNewTabOverride = {
-                        _, engineSession, url ->
+                onNewTabOverride = { _, engineSession, url ->
                     components.tabsUseCases.addTab(url, selectTab = true, engineSession = engineSession)
                 },
-                onCloseTabOverride = {
-                        _, sessionId ->
+                onCloseTabOverride = { _, sessionId ->
                     components.tabsUseCases.removeTab(sessionId)
                 },
-                onSelectTabOverride = {
-                        _, sessionId ->
+                onSelectTabOverride = { _, sessionId ->
                     components.tabsUseCases.selectTab(sessionId)
                 },
                 onUpdatePermissionRequest = components.addonUpdater::onUpdatePermissionRequest,

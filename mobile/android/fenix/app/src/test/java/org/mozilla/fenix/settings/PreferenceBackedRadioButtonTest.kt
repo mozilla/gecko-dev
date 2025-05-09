@@ -141,7 +141,8 @@ class PreferenceBackedRadioButtonTest {
 
         button.isEnabled = true
 
-        verify(exactly = 1) { // first "isChecked" from init happens before we can count it
+        verify(exactly = 1) {
+            // first "isChecked" from init happens before we can count it
             button.isChecked = true
         }
     }

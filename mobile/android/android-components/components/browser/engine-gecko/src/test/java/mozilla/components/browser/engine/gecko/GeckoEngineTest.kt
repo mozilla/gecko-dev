@@ -2971,8 +2971,7 @@ class GeckoEngineTest {
 
         val geckoResult = GeckoResult<Boolean>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<Boolean>> { isTranslationsEngineSupported() }
                 .thenReturn(geckoResult)
 
@@ -2999,8 +2998,7 @@ class GeckoEngineTest {
 
         val geckoResult = GeckoResult<Boolean>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<Boolean>> { isTranslationsEngineSupported() }
                 .thenReturn(geckoResult)
 
@@ -3027,8 +3025,7 @@ class GeckoEngineTest {
 
         val geckoResult = GeckoResult<Long>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<Long>> { checkPairDownloadSize(any(), any()) }
                 .thenReturn(geckoResult)
 
@@ -3057,8 +3054,7 @@ class GeckoEngineTest {
 
         val geckoResult = GeckoResult<Long>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<Long>> { checkPairDownloadSize(any(), any()) }
                 .thenReturn(geckoResult)
 
@@ -3094,8 +3090,7 @@ class GeckoEngineTest {
         val geckoResultValue: List<LanguageModel> = mutableListOf(geckoLanguageModel)
         val geckoResult = GeckoResult<List<LanguageModel>>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<List<LanguageModel>>> { listModelDownloadStates() }
                 .thenReturn(geckoResult)
 
@@ -3128,8 +3123,7 @@ class GeckoEngineTest {
 
         val geckoResult = GeckoResult<List<LanguageModel>>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<List<LanguageModel>>> { listModelDownloadStates() }
                 .thenReturn(geckoResult)
 
@@ -3158,8 +3152,7 @@ class GeckoEngineTest {
         val toLanguage = Language("de", "German")
         val fromLanguage = Language("es", "Spanish")
         val geckoResultValue = TranslationsController.RuntimeTranslation.TranslationSupport(listOf<Language>(fromLanguage), listOf<Language>(toLanguage))
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<TranslationsController.RuntimeTranslation.TranslationSupport>> { listSupportedLanguages() }
                 .thenReturn(geckoResult)
 
@@ -3190,8 +3183,7 @@ class GeckoEngineTest {
 
         val geckoResult = GeckoResult<TranslationsController.RuntimeTranslation.TranslationSupport>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<TranslationsController.RuntimeTranslation.TranslationSupport>> { listSupportedLanguages() }
                 .thenReturn(geckoResult)
 
@@ -3219,8 +3211,7 @@ class GeckoEngineTest {
         var options = ModelManagementOptions(null, ModelOperation.DOWNLOAD, OperationLevel.ALL)
         val geckoResult = GeckoResult<Void>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<Void>> { manageLanguageModel(any()) }
                 .thenReturn(geckoResult)
 
@@ -3249,8 +3240,7 @@ class GeckoEngineTest {
         var options = ModelManagementOptions(null, ModelOperation.DOWNLOAD, OperationLevel.ALL)
         val geckoResult = GeckoResult<Void>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<Void>> { manageLanguageModel(any()) }
                 .thenReturn(geckoResult)
 
@@ -3279,8 +3269,7 @@ class GeckoEngineTest {
         val geckoResult = GeckoResult<List<String>>()
         val geckoResultValue = listOf<String>("en", "es", "de")
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<List<String>>> { preferredLanguages() }
                 .thenReturn(geckoResult)
 
@@ -3310,8 +3299,7 @@ class GeckoEngineTest {
 
         val geckoResult = GeckoResult<List<String>>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<List<String>>> { preferredLanguages() }
                 .thenReturn(geckoResult)
 
@@ -3352,8 +3340,7 @@ class GeckoEngineTest {
         val geckoResult = GeckoResult<String>()
         val geckoResultValue = "always"
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<String>> { getLanguageSetting(any()) }
                 .thenReturn(geckoResult)
 
@@ -3384,8 +3371,7 @@ class GeckoEngineTest {
 
         val geckoResult = GeckoResult<String>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<String>> { getLanguageSetting(any()) }
                 .thenReturn(geckoResult)
 
@@ -3413,8 +3399,7 @@ class GeckoEngineTest {
 
         val geckoResult = GeckoResult<Void>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<Void>> { setLanguageSettings(any(), any()) }
                 .thenReturn(geckoResult)
 
@@ -3443,8 +3428,7 @@ class GeckoEngineTest {
 
         val geckoResult = GeckoResult<Void>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<Void>> { setLanguageSettings(any(), any()) }
                 .thenReturn(geckoResult)
 
@@ -3474,8 +3458,7 @@ class GeckoEngineTest {
         val geckoResult = GeckoResult<String>()
         val geckoResultValue = "NotAnExpectedResponse"
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<String>> { getLanguageSetting(any()) }
                 .thenReturn(geckoResult)
 
@@ -3504,8 +3487,7 @@ class GeckoEngineTest {
         val geckoResult = GeckoResult<Map<String, String>>()
         val geckoResultValue = mapOf("es" to "offer", "de" to "always", "fr" to "never")
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<Map<String, String>>> { getLanguageSettings() }
                 .thenReturn(geckoResult)
 
@@ -3537,8 +3519,7 @@ class GeckoEngineTest {
 
         val geckoResult = GeckoResult<Map<String, String>>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<Map<String, String>>> { getLanguageSettings() }
                 .thenReturn(geckoResult)
 
@@ -3566,8 +3547,7 @@ class GeckoEngineTest {
         val geckoResult = GeckoResult<List<String>>()
         val geckoResultValue = listOf("www.mozilla.org")
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<List<String>>> { getNeverTranslateSiteList() }
                 .thenReturn(geckoResult)
 
@@ -3597,8 +3577,7 @@ class GeckoEngineTest {
 
         val geckoResult = GeckoResult<List<String>>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<List<String>>> { getNeverTranslateSiteList() }
                 .thenReturn(geckoResult)
 
@@ -3625,8 +3604,7 @@ class GeckoEngineTest {
 
         val geckoResult = GeckoResult<Void>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<Void>> { setNeverTranslateSpecifiedSite(any(), any()) }
                 .thenReturn(geckoResult)
 
@@ -3655,8 +3633,7 @@ class GeckoEngineTest {
 
         val geckoResult = GeckoResult<List<String>>()
 
-        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use {
-                mocked ->
+        Mockito.mockStatic(TranslationsController.RuntimeTranslation::class.java, Mockito.CALLS_REAL_METHODS).use { mocked ->
             mocked.`when`<GeckoResult<List<String>>> { setNeverTranslateSpecifiedSite(any(), any()) }
                 .thenReturn(geckoResult)
 

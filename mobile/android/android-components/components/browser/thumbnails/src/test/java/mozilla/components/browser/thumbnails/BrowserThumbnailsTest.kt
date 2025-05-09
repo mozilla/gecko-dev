@@ -74,7 +74,8 @@ class BrowserThumbnailsTest {
         thumbnails.start()
 
         `when`(engineView.captureThumbnail(any()))
-            .thenAnswer { // if engineView responds with a bitmap
+            .thenAnswer {
+                // if engineView responds with a bitmap
                 (it.arguments[0] as (Bitmap?) -> Unit).invoke(bitmap)
             }
 
@@ -96,7 +97,8 @@ class BrowserThumbnailsTest {
 
         `when`(store.state).thenReturn(state)
         `when`(engineView.captureThumbnail(any()))
-            .thenAnswer { // if engineView responds with a bitmap
+            .thenAnswer {
+                // if engineView responds with a bitmap
                 (it.arguments[0] as (Bitmap?) -> Unit).invoke(null)
             }
 
@@ -117,7 +119,8 @@ class BrowserThumbnailsTest {
         `when`(store.state).thenReturn(state)
         `when`(state.selectedTabId).thenReturn(tabId)
         `when`(engineView.captureThumbnail(any()))
-            .thenAnswer { // if engineView responds with a bitmap
+            .thenAnswer {
+                // if engineView responds with a bitmap
                 (it.arguments[0] as (Bitmap?) -> Unit).invoke(bitmap)
             }
 
