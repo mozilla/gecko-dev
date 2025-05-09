@@ -47,6 +47,8 @@ prefs = [
 
 ["browser_aboutPrivateBrowsing.js"]
 
+["browser_aboutRestartrequired_noRestore.js"]
+
 ["browser_aboutSessionRestore.js"]
 skip-if = [
   "verify && debug && os == 'win'",
