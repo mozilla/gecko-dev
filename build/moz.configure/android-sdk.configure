@@ -29,13 +29,18 @@ option(
 )
 
 
-@depends(host)
+@dependable
+@imports(_from="platform", _import="machine")
 @imports(_from="mozboot.android", _import="get_os_name_for_android")
 @imports(_from="mozboot.android", _import="get_os_tag_for_android")
-def android_os_info(host):
+def android_os_info():
     os_name = get_os_name_for_android()
     os_tag = get_os_tag_for_android(os_name)
-    os_arch = host.cpu
+    os_arch = machine()
+    if os_arch.lower() == "amd64":
+        # On Windows, x86_64 is reported as AMD64, but we use x86_64
+        # everywhere else, so let's normalize it.
+        os_arch = "x86_64"
 
     if os_name == "windows" and os_arch.startswith("arm"):
         die(

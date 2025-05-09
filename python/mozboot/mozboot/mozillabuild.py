@@ -163,9 +163,9 @@ class MozillaBuildBootstrapper(BaseBootstrapper):
 
     def _os_arch(self):
         os_arch = platform.machine()
-        if os_arch == "AMD64":
-            # On Windows, x86_64 is reported as AMD64 but we use x86_64
-            # everywhere else, so let's normalized it here.
+        if os_arch.lower() == "amd64":
+            # On Windows, x86_64 is reported as AMD64, but we use x86_64
+            # everywhere else, so let's normalize it.
             return "x86_64"
         return os_arch
 
