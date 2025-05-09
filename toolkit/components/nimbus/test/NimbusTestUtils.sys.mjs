@@ -485,7 +485,7 @@ export const NimbusTestUtils = {
    *         The ExperimentManager to clean up. Defaults to the global
    *         ExperimentManager.
    */
-  cleanupManager(slugs, { manager = ExperimentAPI._manager } = {}) {
+  cleanupManager(slugs, { manager = ExperimentAPI.manager } = {}) {
     for (const slug of slugs) {
       manager.unenroll(slug);
     }
@@ -528,7 +528,7 @@ export const NimbusTestUtils = {
    */
   async enroll(
     recipe,
-    { manager = ExperimentAPI._manager, source = "nimbus-test-utils" } = {}
+    { manager = ExperimentAPI.manager, source = "nimbus-test-utils" } = {}
   ) {
     if (!recipe?.slug) {
       throw new Error("Experiment with slug is required");
@@ -581,7 +581,7 @@ export const NimbusTestUtils = {
   async enrollWithFeatureConfig(
     featureConfig,
     {
-      manager = ExperimentAPI._manager,
+      manager = ExperimentAPI.manager,
       source,
       slug,
       branchSlug = "control",
@@ -677,7 +677,7 @@ export const NimbusTestUtils = {
    *           A RemoteSettingsExperimentLoader instance that has stubbed
    *           RemoteSettings clients.
    *
-   * @property {_ExperimentManager} maanger
+   * @property {_ExperimentManager} manager
    *           An ExperimentManager instance that will validate all enrollments
    *           added to its store.
    *

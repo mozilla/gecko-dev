@@ -68,7 +68,7 @@ async function migrateFirefoxLabsEnrollments() {
 
         // We need to overwrite the original pref value stored in the
         // ExperimentStore so that unenrolling will disable the feature.
-        const enrollment = lazy.ExperimentAPI._manager.store.get(slug);
+        const enrollment = lazy.ExperimentAPI.manager.store.get(slug);
         if (!enrollment) {
           lazy.log.error(`Enrollment with ${slug} should exist but does not`);
           continue;
@@ -97,7 +97,7 @@ async function migrateFirefoxLabsEnrollments() {
         // structures without using set().
         // We do not have to sync these changes to child processes because the
         // data is only used in the parent process.
-        lazy.ExperimentAPI._manager.store._store.saveSoon();
+        lazy.ExperimentAPI.manager.store._store.saveSoon();
       }
     },
     { mode: "shared" }

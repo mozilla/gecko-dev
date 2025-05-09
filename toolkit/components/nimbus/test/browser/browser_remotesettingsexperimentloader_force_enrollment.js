@@ -12,7 +12,7 @@ const { RemoteSettingsExperimentLoader } = ChromeUtils.importESModule(
 async function setup(recipes) {
   const sandbox = sinon.createSandbox();
 
-  sandbox.stub(ExperimentManager, "forceEnroll");
+  sandbox.stub(ExperimentAPI.manager, "forceEnroll");
 
   const client = RemoteSettings("nimbus-desktop-experiments");
   await client.db.importChanges({}, Date.now(), recipes, {
@@ -59,7 +59,7 @@ add_task(async function test_fetch_recipe_and_branch_no_debug() {
   );
 
   Assert.ok(
-    ExperimentManager.forceEnroll.notCalled,
+    ExperimentAPI.manager.forceEnroll.notCalled,
     "forceEnroll is not called"
   );
 
@@ -70,7 +70,7 @@ add_task(async function test_fetch_recipe_and_branch_no_debug() {
     branch: "control",
   });
 
-  Assert.ok(ExperimentManager.forceEnroll.called, "forceEnroll is called");
+  Assert.ok(ExperimentAPI.manager.forceEnroll.called, "forceEnroll is called");
 
   await cleanup();
 });
@@ -88,7 +88,7 @@ add_task(async function test_fetch_recipe_and_branch_badslug() {
   );
 
   Assert.ok(
-    ExperimentManager.forceEnroll.notCalled,
+    ExperimentAPI.manager.forceEnroll.notCalled,
     "forceEnroll is not called"
   );
 
@@ -110,7 +110,7 @@ add_task(async function test_fetch_recipe_and_branch_badbranch() {
   );
 
   Assert.ok(
-    ExperimentManager.forceEnroll.notCalled,
+    ExperimentAPI.manager.forceEnroll.notCalled,
     "forceEnroll is not called"
   );
 
@@ -128,7 +128,7 @@ add_task(async function test_fetch_recipe_and_branch() {
   });
 
   Assert.ok(
-    ExperimentManager.forceEnroll.calledOnceWithExactly(
+    ExperimentAPI.manager.forceEnroll.calledOnceWithExactly(
       recipe,
       recipe.branches[0]
     ),
@@ -155,7 +155,10 @@ add_task(async function test_invalid_recipe() {
     /failed validation/
   );
 
-  Assert.ok(ExperimentManager.forceEnroll.notCalled, "forceEnroll not called");
+  Assert.ok(
+    ExperimentAPI.manager.forceEnroll.notCalled,
+    "forceEnroll not called"
+  );
 
   await cleanup();
 });
@@ -192,7 +195,10 @@ add_task(async function test_invalid_branch_variablesOnly() {
     /failed validation/
   );
 
-  Assert.ok(ExperimentManager.forceEnroll.notCalled, "forceEnroll not called");
+  Assert.ok(
+    ExperimentAPI.manager.forceEnroll.notCalled,
+    "forceEnroll not called"
+  );
 
   await cleanup();
 });
@@ -226,7 +232,10 @@ add_task(async function test_invalid_branch_schema() {
     /failed validation/
   );
 
-  Assert.ok(ExperimentManager.forceEnroll.notCalled, "forceEnroll not called");
+  Assert.ok(
+    ExperimentAPI.manager.forceEnroll.notCalled,
+    "forceEnroll not called"
+  );
 
   await cleanup();
 });
@@ -259,7 +268,10 @@ add_task(async function test_invalid_branch_featureId() {
     /failed validation/
   );
 
-  Assert.ok(ExperimentManager.forceEnroll.notCalled, "forceEnroll not called");
+  Assert.ok(
+    ExperimentAPI.manager.forceEnroll.notCalled,
+    "forceEnroll not called"
+  );
 
   await cleanup();
 });

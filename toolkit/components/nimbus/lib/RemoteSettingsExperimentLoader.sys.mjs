@@ -13,7 +13,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource:///modules/asrouter/ASRouterTargeting.sys.mjs",
   CleanupManager: "resource://normandy/lib/CleanupManager.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
-  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusTelemetry: "resource://nimbus/lib/Telemetry.sys.mjs",
@@ -187,7 +186,7 @@ export class _RemoteSettingsExperimentLoader {
     this._updatingDeferred = Promise.withResolvers();
 
     // Make it possible to override for testing
-    this.manager = manager ?? lazy.ExperimentManager;
+    this.manager = manager ?? lazy.ExperimentAPI.manager;
 
     this.remoteSettingsClients = {};
     ChromeUtils.defineLazyGetter(

@@ -5,9 +5,6 @@
 
 const { _ExperimentFeature: ExperimentFeature, ExperimentAPI } =
   ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
-const { ExperimentManager } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/ExperimentManager.sys.mjs"
-);
 const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
@@ -27,11 +24,11 @@ add_setup(async function () {
    * the schema and no records have missing (or extra) properties while in tests
    */
 
-  const origAddExperiment = ExperimentManager.store.addEnrollment.bind(
-    ExperimentManager.store
+  const origAddExperiment = ExperimentAPI.manager.store.addEnrollment.bind(
+    ExperimentAPI.manager.store
   );
   sandbox
-    .stub(ExperimentManager.store, "addEnrollment")
+    .stub(ExperimentAPI.manager.store, "addEnrollment")
     .callsFake(enrollment => {
       NimbusTestUtils.validateEnrollment(enrollment);
       return origAddExperiment(enrollment);
@@ -42,7 +39,7 @@ add_setup(async function () {
   // stray enrollments.
   registerCleanupFunction(() => {
     registerCleanupFunction(() => {
-      NimbusTestUtils.assert.storeIsEmpty(ExperimentManager.store);
+      NimbusTestUtils.assert.storeIsEmpty(ExperimentAPI.manager.store);
       sandbox.restore();
     });
   });
@@ -62,7 +59,7 @@ async function setupTest() {
   await ExperimentAPI._rsLoader.updateRecipes("test");
 
   return async function cleanup() {
-    await NimbusTestUtils.removeStore(ExperimentAPI._manager.store);
+    await NimbusTestUtils.removeStore(ExperimentAPI.manager.store);
   };
 }
 

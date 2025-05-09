@@ -13,18 +13,18 @@ add_task(async function test_double_feature_enrollment() {
   await ExperimentAPI.ready();
 
   Assert.ok(
-    ExperimentManager.store.getAllActiveExperiments().length === 0,
+    ExperimentAPI.manager.store.getAllActiveExperiments().length === 0,
     "Clean state"
   );
 
   let recipe1 = NimbusTestUtils.factories.recipe("foo" + Math.random());
   let recipe2 = NimbusTestUtils.factories.recipe("bar" + Math.random());
 
-  await ExperimentManager.enroll(recipe1, "test_double_feature_enrollment");
-  await ExperimentManager.enroll(recipe2, "test_double_feature_enrollment");
+  await ExperimentAPI.manager.enroll(recipe1, "test_double_feature_enrollment");
+  await ExperimentAPI.manager.enroll(recipe2, "test_double_feature_enrollment");
 
   Assert.equal(
-    ExperimentManager.store.getAllActiveExperiments().length,
+    ExperimentAPI.manager.store.getAllActiveExperiments().length,
     1,
     "1 active experiment"
   );

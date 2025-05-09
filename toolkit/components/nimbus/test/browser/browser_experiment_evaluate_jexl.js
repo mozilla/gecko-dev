@@ -68,7 +68,7 @@ add_task(async function test_evaluate_active_experiments_activeExperiments() {
   // Add an experiment to active experiments
   const slug = "foo" + Math.random();
   // Init the store before we use it
-  await ExperimentManager.onStartup();
+  await ExperimentAPI.manager.onStartup();
 
   let recipe = NimbusTestUtils.factories.recipe(slug);
   recipe.branches[0].slug = "mochitest-active-foo";

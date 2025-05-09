@@ -14,13 +14,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TargetingContext: "resource://messaging-system/targeting/Targeting.sys.mjs",
 });
 
-// Don't use ChromeUtils.defineLazyPropertyGetter because that will replace the
-// property with the value upon first access, which prevents us from stubbing the ExperimentManager
-// in unit tests.
-Object.defineProperty(lazy, "ExperimentManager", {
-  get: () => lazy.ExperimentAPI._manager,
-});
-
 const { PREF_INVALID, PREF_STRING, PREF_INT, PREF_BOOL } = Ci.nsIPrefBranch;
 const PREF_TYPES = Object.freeze({
   [PREF_STRING]: "Ci.nsIPrefBranch.PREF_STRING",
@@ -358,7 +351,7 @@ function recordPrefValues() {
 async function recordTargetingContextAttributes() {
   const context = new lazy.TargetingContext(
     lazy.TargetingContext.combineContexts(
-      lazy.ExperimentManager.createTargetingContext(),
+      lazy.ExperimentAPI.manager.createTargetingContext(),
       lazy.ASRouterTargeting.Environment
     )
   ).ctx;

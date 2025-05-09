@@ -44,7 +44,7 @@ export class FirefoxLabs {
       throw new Error("FirefoxLabs can only be created in the main process");
     }
 
-    const recipes = await lazy.ExperimentAPI._manager.getAllOptInRecipes();
+    const recipes = await lazy.ExperimentAPI.manager.getAllOptInRecipes();
     return new FirefoxLabs(recipes);
   }
 
@@ -73,7 +73,7 @@ export class FirefoxLabs {
     }
 
     try {
-      await lazy.ExperimentAPI._manager.enroll(recipe, "rs-loader", {
+      await lazy.ExperimentAPI.manager.enroll(recipe, "rs-loader", {
         branchSlug,
       });
     } catch (e) {
@@ -97,7 +97,7 @@ export class FirefoxLabs {
     }
 
     try {
-      lazy.ExperimentAPI._manager.unenroll(
+      lazy.ExperimentAPI.manager.unenroll(
         slug,
         lazy.UnenrollmentCause.fromReason(
           lazy.NimbusTelemetry.UnenrollReason.LABS_OPT_OUT
