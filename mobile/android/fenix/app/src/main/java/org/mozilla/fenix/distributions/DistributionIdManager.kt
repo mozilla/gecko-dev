@@ -22,6 +22,9 @@ private const val VIVO_MANUFACTURER = "vivo"
 
 private const val DT_PROVIDER = "digital_turbine"
 private const val DT_TELEFONICA_PACKAGE = "com.dti.telefonica"
+private const val DT_VERIZON_PACKAGE = "com.logiagroup.logiadeck"
+private const val DT_CRICKET_PACKAGE = "com.dti.cricket"
+private const val DT_TRACFONE_PACKAGE = "com.dti.tracfone"
 
 private const val AURA_PROVIDER = "aura"
 
@@ -35,6 +38,7 @@ private val logger = Logger(DistributionIdManager::class.simpleName)
  * @param distributionProviderChecker used for checking content providers for a distribution provider
  * @param appPreinstalledOnVivoDevice checks if the vivo preinstalled file exists.
  * @param isDtTelefonicaInstalled checks if the DT telefonica app is installed on the device
+ * @param isDtUsaInstalled checks if one of the DT USA carrier apps is installed on the device
  */
 class DistributionIdManager(
     private val context: Context,
@@ -42,6 +46,7 @@ class DistributionIdManager(
     private val distributionProviderChecker: DistributionProviderChecker,
     private val appPreinstalledOnVivoDevice: () -> Boolean = { wasAppPreinstalledOnVivoDevice() },
     private val isDtTelefonicaInstalled: () -> Boolean = { isDtTelefonicaInstalled(context) },
+    private val isDtUsaInstalled: () -> Boolean = { isDtUsaInstalled(context) },
 ) {
 
     /**
@@ -57,6 +62,7 @@ class DistributionIdManager(
 
         val distributionId = when {
             isProviderDigitalTurbine(provider) && isDtTelefonicaInstalled() -> Distribution.DT_001.id
+            isProviderDigitalTurbine(provider) && isDtUsaInstalled() -> Distribution.DT_002.id
             isProviderAura(provider) -> Distribution.AURA_001.id
             isDeviceVivo() && appPreinstalledOnVivoDevice() -> Distribution.VIVO_001.id
             else -> Distribution.DEFAULT.id
@@ -79,6 +85,7 @@ class DistributionIdManager(
             Distribution.DEFAULT -> false
             Distribution.VIVO_001 -> true
             Distribution.DT_001 -> true
+            Distribution.DT_002 -> true
             Distribution.AURA_001 -> true
         }
     }
@@ -99,6 +106,7 @@ class DistributionIdManager(
         DEFAULT(id = "Mozilla"),
         VIVO_001(id = "vivo-001"),
         DT_001(id = "dt-001"),
+        DT_002(id = "dt-002"),
         AURA_001(id = "aura-001"),
         ;
 
@@ -129,4 +137,17 @@ private fun wasAppPreinstalledOnVivoDevice(): Boolean {
 private fun isDtTelefonicaInstalled(context: Context): Boolean {
     val packages = context.packageManager.getInstalledPackages(PackageManager.GET_META_DATA)
     return packages.any { it.packageName == DT_TELEFONICA_PACKAGE }
+}
+
+/**
+ * Checks if one of the Digital Turbine USA apps exist on the device
+ */
+private fun isDtUsaInstalled(context: Context): Boolean {
+    val packages = context.packageManager.getInstalledPackages(PackageManager.GET_META_DATA)
+    return packages.any {
+        val packageName = it.packageName.lowercase()
+        packageName == DT_VERIZON_PACKAGE ||
+            packageName == DT_CRICKET_PACKAGE ||
+            packageName == DT_TRACFONE_PACKAGE
+    }
 }
