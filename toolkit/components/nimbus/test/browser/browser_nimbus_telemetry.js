@@ -16,10 +16,6 @@ const TEST_FEATURE = new ExperimentFeature("test-feature", {
 });
 
 add_setup(async function () {
-  let sandbox = sinon.createSandbox();
-  // stub the `observe` method to make sure the Experiment Manager
-  // pref listener doesn't trigger and cause side effects
-  sandbox.stub(ExperimentManager, "observe");
   await SpecialPowers.pushPrefEnv({
     set: [["app.shield.optoutstudies.enabled", true]],
   });
@@ -28,8 +24,6 @@ add_setup(async function () {
 
   registerCleanupFunction(async () => {
     await SpecialPowers.popPrefEnv();
-    sandbox.restore();
-
     cleanupFeature();
   });
 });

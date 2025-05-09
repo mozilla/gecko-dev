@@ -12,6 +12,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
     "resource:///modules/asrouter/ASRouterTargeting.sys.mjs",
   CleanupManager: "resource://normandy/lib/CleanupManager.sys.mjs",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
@@ -222,10 +223,6 @@ export class _RemoteSettingsExperimentLoader {
     );
   }
 
-  get studiesEnabled() {
-    return this.manager.studiesEnabled;
-  }
-
   /**
    * Initialize the loader, updating recipes from Remote Settings.
    *
@@ -246,7 +243,7 @@ export class _RemoteSettingsExperimentLoader {
       return;
     }
 
-    if (!this.studiesEnabled) {
+    if (!lazy.ExperimentAPI.studiesEnabled) {
       lazy.log.debug(
         "Not enabling RemoteSettingsExperimentLoader: studies disabled"
       );
@@ -505,7 +502,7 @@ export class _RemoteSettingsExperimentLoader {
       throw new Error("Could not opt in.");
     }
 
-    if (!this.studiesEnabled) {
+    if (!lazy.ExperimentAPI.studiesEnabled) {
       lazy.log.debug(
         "Force enrollment does not work when studies are disabled."
       );
@@ -601,9 +598,9 @@ export class _RemoteSettingsExperimentLoader {
    * processing.
    */
   onEnabledPrefChange() {
-    if (this._enabled && !this.studiesEnabled) {
+    if (this._enabled && !lazy.ExperimentAPI.studiesEnabled) {
       this.disable();
-    } else if (!this._enabled && this.studiesEnabled) {
+    } else if (!this._enabled && lazy.ExperimentAPI.studiesEnabled) {
       // If the feature pref is turned on then turn on recipe processing.
       // If the opt in pref is turned on then turn on recipe processing only if
       // the feature pref is also enabled.
@@ -654,7 +651,7 @@ export class _RemoteSettingsExperimentLoader {
    * If studies are disabled, then this will always resolve immediately.
    */
   finishedUpdating() {
-    if (!this.studiesEnabled) {
+    if (!lazy.ExperimentAPI.studiesEnabled) {
       return Promise.resolve();
     }
 
