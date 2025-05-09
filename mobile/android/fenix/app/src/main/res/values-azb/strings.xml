@@ -1176,7 +1176,7 @@
   -->
   <string name="download_multi_select_title">%1$d سئچیلیدی</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">قالدیر</string>
+  <string name="download_delete_item_1">قالدیر</string>
   <!--
     Crashes
 

@@ -332,12 +332,23 @@
   <!-- Preference switch for daily usage ping data collection -->
   <string name="preference_daily_usage_ping_title">နေ့စဉ်အသုံးပြုမှု ping</string>
   <string name="preference_daily_usage_ping_description">၎င်းသည် Mozilla အား သုံးဆွဲသူပမာဏကို ခန့်မှန်းရန် ကူညီပေးသည်။</string>
+  <string name="preference_daily_usage_ping_learn_more">ပိုမိုလေ့လာရန်</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">ကိုယ်ရေးကာကွယ်မှု သတိပေးချက်</string>
+  <!-- In-app link (in settings) to Focus licensing information. -->
+  <string name="preference_licensing_info">လိုင်စင်အကြောင်းသိကောင်းစရာ</string>
+  <!-- Link to Focus licensing information from other libraries that we use. -->
+  <string name="preference_libraries_we_use">ကျွန်ုပ်တို့အသုံးပြုသောဆော့ဝဲများ</string>
+  <!-- Link to Focus Crash reports list. -->
+  <string name="preference_crashes">ပိတ်ကျခြင်းမှတ်တမ်း</string>
+  <!-- Open Source Licenses page title. %s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
+  <string name="open_source_licenses_title">%s | OSS ေဆာ့ဝဲများ</string>
   <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">%1$s အကြောင်း</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">သွင်းထားသော ရှာဖွေအင်ဂျင်များ</string>
+  <!-- Header for the list of installed search engines -->
+  <string name="preference_choose_search_engine">ရှာဖွေရေးအင်ဂျင်ကို ရွေးပါ</string>
   <!-- Action for restoring the default list of search engines -->
   <string name="preference_search_restore">ပုံသေ ရှာဖွေအင်ဂျင်များကို မူလအတိုင်း ပြန်သတ်မှတ်ပါ</string>
   <!--
@@ -347,6 +358,10 @@
   <string name="preference_search_add2">+ အခြားရှာဖွေအင်ဂျင်ကို ထပ်ထည့်ပါ</string>
   <string name="preference_search_remove_title">ရှာဖွေအင်ဂျင်များ ဖယ်ရှားပါ</string>
   <string name="preference_search_remove">ဖယ်ရှားပါ</string>
+  <!-- Action for dding an additional search engine to the list -->
+  <string name="preference_search_add3">အခြားရှာဖွေအင်ဂျင်ကို ထပ်ထည့်ပါ</string>
+  <!-- Explanation text above the list of search engines -->
+  <string name="preference_select_preferred_engine">သင်နှစ်သက်သော ရှာဖွေအင်ဂျင်ကို ရွေးပါ -</string>
   <!-- Clickable action text that shows when user long-presses on a search engine search field (this is similar to paste or copy when long-pressing a text field) -->
   <string name="action_option_add_search_engine">ရှာဖွေရေး အင်ဂျင် တိုးရန်</string>
   <string name="search_add_manually_name_hint">အင်ဂျင်နာမည် ရှာဖွေပါ</string>
@@ -440,7 +455,59 @@
   <string name="download_snackbar_finished">%1$s ကို ဆွဲယူခြင်း ပြီးဆုံးပါပြီ</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">ဖွင့်ပါ</string>
+  <!-- Snackbar that will be displayed after a website has been added to shortcuts. -->
+  <string name="snackbar_added_to_shortcuts">ဖြတ်လမ်းများထဲသို့ ပေါင်းထည့်ခဲ့သည်</string>
   <string name="error_hostLookup_title">ဆာဗာကို မတွေ့ပါ</string>
+  <!--
+    New Onboarding flow first screen title
+
+    %1$s is the app name and build variant (for example "Firefox Focus", "Firefox Klar Nightly").
+  -->
+  <string name="onboarding_first_screen_title">%1$s မှ ကြိုဆိုပါတယ်။</string>
+  <!-- New Onboarding flow first screen subtitle the one that appears under title -->
+  <string name="onboarding_first_screen_subtitle">မြန်သည်။ သီးသန့်။ အနှောက်အယှက်မပေး</string>
+  <!--
+    New Onboarding flow first screen 'terms of use' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">ရှေ့ဆက်ခြင်းဖြင့် သင်သည် %1$s ကို သဘောတူပါသည်</string>
+  <!--
+    New Onboarding flow first screen 'terms of use link'
+
+    Text for the link used in onboarding_first_screen_terms_of_use_text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Firefox အသုံးပြုမှုသဘောတူညီချက်များ</string>
+  <!--
+    New Onboarding flow first screen 'privacy notice' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
+  -->
+  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox သည် သင်၏ privacy ကို ဂရုစိုက်သည်။ ကျွန်ုပ်တို့၏ %1$s တွင် ပိုမိုလေ့လာပါ</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link">ကိုယ်ရေးကာကွယ်မှု သတိပေးချက်</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue">သဘောတူပြီး ဆက်လုပ်ပါ</string>
+  <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
+  <string name="a11y_link_available">ရနိုင်သောလင်ခ့်</string>
+  <!--
+    Onboarding second screen: Title
+
+    %1$s will be replaced by the app short name(Focus)
+  -->
+  <string name="onboarding_second_screen_title">%1$s သည် အခြားဘရောက်ဆာများနှင့် မတူပါ</string>
+  <!-- New Onboarding flow second screen subtitle the one that appears under title -->
+  <string name="onboarding_second_screen_subtitle_one">အပိုကိုယ်ရေးကိုယ်တာအတွက် အပလီကေးရှင်းကိုပိတ်သောအခါတွင် သင်၏မှတ်တမ်းကို ကျွန်ုပ်တို့ရှင်းလင်းပါသည်</string>
+  <!--
+    New Onboarding flow second screen subtitle two the one that appears under subtitle one
+
+    %1$s will be replaced by the app short name(Focus)
+  -->
+  <string name="onboarding_second_screen_subtitle_two">သင်ဖွင့်ထားသော လင့်ခ်တိုင်းဖြင့် သင့်ဒေတာကို ကာကွယ်ရန် %1$s ကို သင့်မူရင်းအဖြစ် ပြုလုပ်ပါ</string>
+  <!-- New Onboarding flow second screen make Focus default browser button label -->
+  <string name="onboarding_second_screen_default_browser_button_text">ပုံသေဘရောက်ဇာ အဖြစ်သတ်မှတ်မည်</string>
+  <!-- New Onboarding flow second screen skip onboarding button label -->
+  <string name="onboarding_second_screen_skip_button_text">ကျော်ရန်</string>
   <!-- First run tour (Default browser): Title -->
   <string name="firstrun_defaultbrowser_title">ကိုယ်ရေးကာကွယ်မှုကို တိုးမြှင့်ပါ</string>
   <!-- First run tour (Default browser): Text. -->
@@ -464,8 +531,12 @@
   <string name="content_blocking_disabled">-</string>
   <!-- Label of the action that will add the current website to the home screen (shown in the confirmation dialog). -->
   <string name="dialog_addtohomescreen_action_add">ထည့်ရန်</string>
+  <!-- Label of the action that will add the current website to the home screen (shown in the confirmation dialog). -->
+  <string name="dialog_addtohomescreen_action_yes">ဟုတ်</string>
   <!-- Label of the action that will close the dialog and not add anything to the home screen (shown in the confirmation dialog). -->
   <string name="dialog_addtohomescreen_action_cancel">မလုပ်ဆောင်တော့ပါ</string>
+  <!-- Label of the action that will close the dialog and not add anything to the home screen (shown in the confirmation dialog). -->
+  <string name="dialog_addtohomescreen_action_no">မဟုတ်ဘူး</string>
   <!--
     The user visible name of the "notification channel" (Android 8+ feature) for the ongoing notification shown while a browsing session is active.
     The recommended maximum length is 40 characters; the value may be truncated if it is too long.
@@ -484,6 +555,8 @@
   <string name="notification_browsing_session_channel_description">အသိပေးချက်များသည် သင့် %1$s အသုံးပြုကာလကို တို့ထိရုံဖြင့် ဖယ်ရှားနိုင်စေသည်။ အက်ပ်ကို ဖွင့်ရန် သို့မဟုတ် ဘရောင်ဇာထဲတွင် ဖွင့်ထားသည်များကို ကြည့်ရန် မလိုအပ်ပါ။</string>
   <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
   <string name="tabs_tray_action_erase">လည်ပတ်မှတ်တမ်းကို ရှင်းလင်းရန်</string>
+  <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+  <string name="tabs_tray_action_erase_other">အခြားတဗ်များကိုပိတ်ပါ</string>
   <!--
     If the user decides to open the current page in another browser and if Firefox is not installed then we show this
     item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play).
@@ -529,12 +602,18 @@
   <string name="accessibility_dismiss_find_in_page">စာမျက်နှာတွင် ရှာဖွေမှု ဖယ်ထုတ်ပါ</string>
   <!-- Checkbox menu item text to request desktop site -->
   <string name="preference_performance_request_desktop_site">ဒတ်စ်တောခ့်ဆိုက်ကို တောင်းပါ</string>
+  <!-- Checkbox menu item text to request desktop site -->
+  <string name="preference_performance_request_desktop_site2">Desktop site</string>
   <!-- Displayed after a user long presses on the URL in a custom tab to copy the URL -->
   <string name="custom_tab_copy_url_action">URL ကူးခဲ့သည်</string>
   <!-- Description of what a user may find in the Advanced Setting category, used for debugging -->
   <string name="preference_advanced_summary">ကျွမ်းကျင်သူသုံး ကိရိယာ</string>
+  <!-- Preference for open links in third party apps -->
+  <string name="preferences_open_links_in_apps">အက်ပ်များမှလင့်များကိုဖွင့်ပါ</string>
   <!-- Title of Advanced Setting category -->
   <string name="preference_category_advanced">အဆင့်မြင့်</string>
+  <!-- Preference for site permissions -->
+  <string name="preference_site_permissions">ဆိုဒ်ခွင့်ပြုချက်များ</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">USB/Wi-Fi မှတဆင့် Remote debugging</string>
   <!-- Description for the fingerprint authentication image. Used for accessibility purposes. -->

@@ -1479,13 +1479,13 @@
   -->
   <string name="download_multi_select_title">Ընտրված է %1$d-ը</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Հեռացնել</string>
+  <string name="download_delete_item_1">Հեռացնել</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Ջնջել</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Նավարկել ետ</string>
   <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description">Նավարկել վերև</string>
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Նավարկել վերև</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Համօգտագործել URL-ը</string>
   <!-- Text for the button to share the download file -->
@@ -3568,4 +3568,10 @@
   <string name="pbm_authentication_unlock">Ապակողպել</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Ապակողպել գաղտնի ներդիրները</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title">Օգտագործե՞լ էկրանի կողպումը՝ անձնական ներդիրները թաքցնելու համար։</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative">Ոչ, շնորհակալ եմ</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive">Կողպել ներդիրները</string>
 </resources>

@@ -1469,13 +1469,13 @@
   -->
   <string name="download_multi_select_title">เลือกอยู่ %1$d</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">เอาออก</string>
+  <string name="download_delete_item_1">เอาออก</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">ลบ</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">นำทางย้อนกลับ</string>
   <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description">นำทางขึ้นไปด้านบน</string>
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">นำทางขึ้นไปด้านบน</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">แบ่งปัน URL</string>
   <!-- Text for the button to share the download file -->

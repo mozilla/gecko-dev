@@ -1480,13 +1480,13 @@
   -->
   <string name="download_multi_select_title">%1$d đã chọn</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Xóa</string>
+  <string name="download_delete_item_1">Xóa</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Xóa</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Điều hướng quay lại</string>
   <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description">Điều hướng lên</string>
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Điều hướng lên</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Chia sẻ URL</string>
   <!-- Text for the button to share the download file -->

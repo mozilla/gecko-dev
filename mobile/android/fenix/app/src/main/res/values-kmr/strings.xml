@@ -1247,7 +1247,7 @@
   -->
   <string name="download_multi_select_title">%1$d hatin bijartin</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Rake</string>
+  <string name="download_delete_item_1">Rake</string>
   <!-- Text for the header that groups the downloads the past 7 days -->
   <string name="download_time_period_last_7_days">7 rojên dawiyê</string>
   <!--

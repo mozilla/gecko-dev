@@ -1480,13 +1480,13 @@
   -->
   <string name="download_multi_select_title">Выбрано: %1$d</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Удалить</string>
+  <string name="download_delete_item_1">Удалить</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Удалить</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Перейти назад</string>
   <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description">Перейти наверх</string>
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Перейти наверх</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Поделиться URL</string>
   <!-- Text for the button to share the download file -->

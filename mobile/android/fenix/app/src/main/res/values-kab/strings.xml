@@ -620,6 +620,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="onboarding_terms_of_service_sub_header_2">Tinigin taruradt, taɣellsant deg uẓeṭṭa</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label">Qbel syen kemmel</string>
+  <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
+  <string name="onboarding_term_of_service_line_one_2">S ukemmel, ad tqebleḍ %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
   <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">Tiwtiln n useqdec n Fiefox</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
@@ -630,6 +632,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Mudd afus i usnerni n Firefox</string>
   <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Amek i nesseqdac isefka</string>
+  <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Sentem syen bdu tunigin</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Fren adeg deg ufeggag n yifecka</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1274,6 +1278,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="studies_remove">Kkes</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Rmed</string>
+  <!-- Description for studies -->
+  <string name="studies_description_3">Ɛreḍ timahilin d tektiwin send ma ad asent-nserrḥen akk i medden.</string>
   <!-- Title of the Studies data preference -->
   <string name="studies_title">Sbedd syen bdu almad</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
@@ -1407,13 +1413,13 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   -->
   <string name="download_multi_select_title">%1$d yettwafren</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Kkes</string>
+  <string name="download_delete_item_1">Kkes</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Kkes</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Inig ar deffir</string>
   <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description">Inig d asawen</string>
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Inig d asawen</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Bḍu URL</string>
   <!-- Text for the button to share the download file -->
@@ -1500,6 +1506,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="webcompat_reporter_cancel">Sefsex</string>
   <!-- The button text for the send button to submit the provided form data. -->
   <string name="webcompat_reporter_send">Azen</string>
+  <!-- Text for a snackbar to confirm the successful submission of a WebCompat report. -->
+  <string name="webcompat_reporter_success_snackbar_text">Aneqqisik yettwazen</string>
   <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
   <string name="webcompat_reporter_dismiss_success_snackbar_text">Mdel</string>
   <!--
@@ -2215,6 +2223,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="preference_doh_default_protection">Ammesten s wudem amezwer</string>
   <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_1">Seqdec asaǧǧaw i tferneḍ</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">Seqdec asaǧǧaw adigan, ma yella tettunefk tegnit. %1$s</string>
   <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection">Ammesten yettwasghden</string>
   <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
@@ -3060,16 +3070,33 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="protection_panel_etp_toggle_label">Ammesten mgal aḍfaṛ yettwaseǧhed</string>
   <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
   <string name="protection_panel_etp_toggle_disabled_description">Ammesten yensa. Ad nsumer ad t-tremdeḍ.</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the protection panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="protection_panel_num_trackers_blocked">Ineḍfaren ttusweḥlen: %d</string>
   <!-- Text for when no trackers have been blocked. -->
   <string name="protection_panel_no_trackers_blocked">Ulac ineḍfaren i yettwafen</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">Iɣewwaren n tbaḍnit d tɣellist</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">Tisirag</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the trackers blocked panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_total_num_trackers_blocked">Ineḍfaren ttusweḥlen: %d</string>
   <!--
     Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
     %s is a placeholder for the name of the tracker category.
     %d is a placeholder for the number of trackers blocked.
   -->
   <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+  <!--
+    Description text for a dialog confirming whether the user wants to delete all data for current site.
+    %s is a placeholder for the base domain of website.
+  -->
+  <string name="clear_site_data_dialog_description">Tukksa n yinagan n tuqqna d yisefka n usmel i &lt;b&gt;%s&lt;/b&gt; yezmer ad ak-isuffeɣ seg usmel web, ad yesfeḍ tikarḍiwin n tiɣin.</string>
   <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
   <string name="clear_site_data_dialog_positive_button_text">Sfeḍ</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
@@ -3236,6 +3263,18 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   -->
   <string name="glean_debug_tools_title">Ifecka n temseɣtayt Glean</string>
   <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Ifecka n temḍant</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Tamnaḍt tagejdant</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Tamnaḍt-a</string>
+  <!--
     Messages explaining how to exit fullscreen mode
 
     Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
@@ -3265,12 +3304,36 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Leqqem tura</string>
   <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Leqqem iminig-ik Firefox</string>
+  <!--
+    TextField Design System Component
+
+    The default content description for the eye trailing icon button in TextField
+  -->
+  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Sken-d aḍris uffir</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Sfeḍ aḍṛis</string>
+  <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">Fakk asbedi %1$s</string>
   <!-- Title for the setup checklist feature when the state is 'completed' -->
   <string name="setup_checklist_title_state_completed">Ayyuz!</string>
+  <!--
+    ===== Setup checklist feature: Task titles =====
+
+    The title of the default browser task for the setup checklist
+  -->
+  <string name="setup_checklist_task_default_browser">Sbadu-t d iminig amezwer</string>
   <!-- The title of the sign-in task for the setup checklist -->
   <string name="setup_checklist_task_account_sync">Kcem ɣer umiḍan-ik·im</string>
+  <!-- The title of the theme selection task for the setup checklist -->
+  <string name="setup_checklist_task_theme_selection">Fren asentel</string>
+  <!-- The title of the toolbar selection task for the setup checklist -->
+  <string name="setup_checklist_task_toolbar_selection">Fren adeg deg ufeggag n yifecka</string>
   <!-- The title of the explore extensions task for the setup checklist -->
   <string name="setup_checklist_task_explore_extensions">Snirem isiɣzaf</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
@@ -3283,8 +3346,16 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="a11y_completed_task_description">Tawuri yemmden</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Tignit n temsekrit</string>
+  <!--
+    Private browsing mode authentication screen
+
+    Label for the secondary action to exit private browsing mode
+  -->
+  <string name="pbm_authentication_leave_private_tabs">Ffeɣ seg waccaren usligen</string>
   <!-- Label for the primary action button to unlock private tabs -->
   <string name="pbm_authentication_unlock">Serreḥ</string>
+  <!-- Title text instructing the user to unlock private tabs -->
+  <string name="pbm_authentication_unlock_private_tabs">Seḥbes accaren usligen</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
   <string name="private_tab_cfr_negative">Ala, tanemmirt</string>
 </resources>
