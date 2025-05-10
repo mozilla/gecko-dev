@@ -14,3 +14,7 @@ include bmpsuite/reftest.list
 # future we decide that such bmps (offset past the end of the file) are
 # invalid the test will still pass, but won't be testing much.
 == 1240629-1.bmp 1240629-2.bmp
+
+# A bmp where the image data offset says that the image data starts in the
+# color table. We support this kind of corruption.
+== dataoffset-in-color-table-1.bmp dataoffset-in-color-table-ref.png

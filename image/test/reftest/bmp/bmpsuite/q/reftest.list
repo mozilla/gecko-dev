@@ -80,8 +80,8 @@ fuzzy(0-1,0-996) == pal8os2-hs.bmp pal8.png
 # BMP: bihsize=12, 127 x 64, bpp=8, compression=0, colors=0
 # "An OS/2v1 with a less-than-full-sized palette. Probably not valid, but such
 # files have been seen in the wild."
-# [We reject it. Chromium accepts it.]
-fuzzy(0-245,0-8128) == wrapper.html?pal8os2sp.bmp about:blank
+# [We accept it. So does Chromium.]
+fuzzy(0-1,0-899) == pal8os2sp.bmp pal8.png
 
 # BMP: bihsize=64, 127 x 64, bpp=8, compression=0, colors=252
 # "My attempt to make an OS/2v2 bitmap."

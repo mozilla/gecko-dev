@@ -34,9 +34,8 @@ fuzzy(0-1,0-926) == badbitssize.bmp pal1.png
 # BMP: bihsize=40, 127 x 64, bpp=8, compression=0, colors=305402420
 # "Header incorrectly indicates that the palette contains an absurdly large
 # number of colors."
-# [We reject it. Chromium accepts it but draws nothing. Rejecting seems
-# preferable give that the data is clearly untrustworthy.]
-fuzzy(0-245,0-8128) == wrapper.html?badpalettesize.bmp about:blank
+# [We accept it. So does Chromium.]
+fuzzy(0-1,0-899) == badpalettesize.bmp pal8.png
 
 # BMP: bihsize=40, 127 x 64, bpp=1, compression=0, colors=2
 # "The 'planes' setting, which is required to be 1, is not 1."
