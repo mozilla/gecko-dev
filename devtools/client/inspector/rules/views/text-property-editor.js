@@ -394,6 +394,14 @@ TextPropertyEditor.prototype = {
       });
 
       this.valueSpan.addEventListener("click", event => {
+        if (this._hasPendingClick) {
+          // When we start handling a drag in the valueSpan, we make the valueSpan capture the
+          // pointer. Then, `click` event target is always the valueSpan with the latest spec of
+          // Pointer Events. Therefore, we should stop immediate propagation of the `click` event
+          // if we've handled a drag to prevent moving focus to the inplace editor.
+          event.stopImmediatePropagation();
+          return;
+        }
         const target = event.target;
 
         if (target.nodeName === "a") {
