@@ -1,0 +1,11 @@
+--- a/sqlite-vec.c
++++ b/sqlite-vec.c
+@@ -17,7 +17,7 @@
+ 
+ #ifndef SQLITE_CORE
+ #include "sqlite3ext.h"
+-SQLITE_EXTENSION_INIT1
++SQLITE_EXTENSION_INIT3
+ #else
+ #include "sqlite3.h"
+ #endif
