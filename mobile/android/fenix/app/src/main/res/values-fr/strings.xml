@@ -127,8 +127,6 @@
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Balayez la barre d\'outils pour changer d’onglet</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Faites glisser vers la gauche ou la droite pour changer d’onglet. Faites glisser vers la gauche depuis votre dernier onglet pour ouvrir un nouvel onglet.</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message_2">Glissez la barre d’outils vers la gauche ou la droite pour passer d’un onglet à un autre.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Accès à la caméra nécessaire. Accédez aux paramètres Android, appuyez sur Autorisations, puis sur Autoriser.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1479,31 +1477,12 @@
   <string name="download_multi_select_title">%1$d sélectionné(s)</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Supprimer</string>
-  <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
-  <string name="download_file_has_not_enough_storage_dialog_title">Espace insuffisant</string>
-  <!--
-    Message for the dialog that is shown when there is not enough storage space to download a file.
-    %s is the name of the file to download.
-  -->
-  <string name="download_file_has_not_enough_storage_dialog_message">L’espace de stockage de l’appareil est insuffisant pour télécharger &lt;b&gt;%s&lt;/b&gt;.</string>
-  <!--
-    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
-    This button will navigate the user to the device's storage management settings.
-  -->
-  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">Gérer les fichiers</string>
-  <!--
-    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
-    This button will dismiss the dialog.
-  -->
-  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">Annuler</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Supprimer</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Précédent</string>
   <!-- Content description for the toolbar "Navigate up" button -->
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Remonter</string>
-  <!-- Content description for the search bar clear text button on the downloads screen -->
-  <string name="download_clear_search_description">Effacer</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Partager l’URL</string>
   <!-- Text for the button to share the download file -->
@@ -3211,8 +3190,6 @@
   <string name="protection_panel_no_trackers_blocked">Aucun traqueur trouvé</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">Paramètres de confidentialité et de sécurité</string>
-  <!-- Title text for the protection panel permissions section. -->
-  <string name="protection_panel_permissions_title">Autorisations</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.
@@ -3398,14 +3375,6 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Outils de débogage Glean</string>
-  <!--
-    Debug drawer region tools
-
-    Title of the Region tools in the Debug Drawer.
-    This tool allows temporarily overriding the home region (user's default locale)
-    and the current region (device's detected location) for testing purposes.
-  -->
-  <string name="debug_drawer_region_tools_title">Outils régionaux</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
