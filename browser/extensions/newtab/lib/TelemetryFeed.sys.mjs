@@ -30,7 +30,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ClientEnvironmentBase:
     "resource://gre/modules/components-utils/ClientEnvironment.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
-  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExtensionSettingsStore:
     "resource://gre/modules/ExtensionSettingsStore.sys.mjs",
   HomePage: "resource:///modules/HomePage.sys.mjs",
@@ -143,10 +143,6 @@ export class TelemetryFeed {
 
   get privatePingEnabled() {
     return this._prefs.get(PREF_PRIVATE_PING_ENABLED);
-  }
-
-  get experimentManager() {
-    return lazy.ExperimentManager;
   }
 
   get clientInfo() {
@@ -944,7 +940,9 @@ export class TelemetryFeed {
    * "component_init" | "newtab_session_end"
    */
   async configureContentPing(submitReason) {
-    const expContext = this.experimentManager.createTargetingContext();
+    // ExperimentAPI._manager is deprecated as of bug 1950237, but will stay
+    // available until ExperimentAPI.manager can ride to release.
+    const expContext = lazy.ExperimentAPI._manager.createTargetingContext();
     const followed = this.getFollowedSections();
     if (followed.length) {
       Glean.newtabContent.followedSections.set(followed);
