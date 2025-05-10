@@ -843,7 +843,7 @@ add_task(async function test_updateRecipes_invalidFeature_mismatch() {
     EnrollmentsContext.prototype.checkTargeting.calledOnce,
     "Should have checked targeting for recipe"
   );
-  ok(
+  Assert.ok(
     !(await EnrollmentsContext.prototype.checkTargeting.returnValues[0]),
     "Targeting should not have matched"
   );
