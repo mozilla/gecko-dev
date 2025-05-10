@@ -23,38 +23,37 @@ add_task(async function () {
   Services.telemetry.clearEvents();
   TelemetryTestUtils.assertNumberOfEvents(0);
 
-  // Add checks for pageload ping and pageload event
-  let pingSubmitted = false;
-  GleanPings.pageload.testBeforeNextSubmit(reason => {
-    pingSubmitted = true;
-    Assert.equal(reason, "threshold");
-    let record = Glean.perf.pageLoad.testGetValue();
-    Assert.greaterOrEqual(
-      record.length,
-      30,
-      "Should have at least 30 page load events"
-    );
-
-    // Ensure the events in the pageload ping are reasonable.
-    record.forEach(entry => {
-      Assert.equal(entry.name, "page_load");
-      Assert.greater(parseInt(entry.extra.load_time), 0);
-      Assert.ok(
-        entry.extra.using_webdriver,
-        "Webdriver field should be set to true."
+  // Check for pageload ping and pageload event
+  await GleanPings.pageload.testSubmission(
+    reason => {
+      Assert.equal(reason, "threshold");
+      let record = Glean.perf.pageLoad.testGetValue();
+      Assert.greaterOrEqual(
+        record.length,
+        30,
+        "Should have at least 30 page load events"
       );
-    });
-  });
 
-  // Perform page load 30 times to trigger the ping being sent
-  for (let i = 0; i < 30; i++) {
-    BrowserTestUtils.startLoadingURIString(browser, "https://example.com");
-    await BrowserTestUtils.browserLoaded(browser);
-  }
-
-  await BrowserTestUtils.waitForCondition(
-    () => pingSubmitted,
-    "Page load ping should have been submitted."
+      // Ensure the events in the pageload ping are reasonable.
+      record.forEach(entry => {
+        Assert.equal(entry.name, "page_load");
+        Assert.greater(parseInt(entry.extra.load_time), 0);
+        Assert.ok(
+          entry.extra.using_webdriver,
+          "Webdriver field should be set to true."
+        );
+      });
+    },
+    async () => {
+      // Perform page load 30 times to trigger the ping being sent
+      for (let i = 0; i < 30; i++) {
+        BrowserTestUtils.startLoadingURIString(browser, "https://example.com");
+        await BrowserTestUtils.browserLoaded(browser);
+      }
+    },
+    // The ping itself is submitted via idle dispatch, so we need to specify a
+    // timeout.
+    1000
   );
 
   BrowserTestUtils.removeTab(tab);
