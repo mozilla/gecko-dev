@@ -1249,10 +1249,14 @@ class OutputScale {
   get symmetric() {
     return this.sx === this.sy;
   }
-  limitCanvas(width, height, maxPixels, maxDim) {
+  limitCanvas(width, height, maxPixels, maxDim, capAreaFactor = -1) {
     let maxAreaScale = Infinity,
       maxWidthScale = Infinity,
       maxHeightScale = Infinity;
+    if (capAreaFactor >= 0) {
+      const cappedWindowArea = OutputScale.getCappedWindowArea(capAreaFactor);
+      maxPixels = maxPixels > 0 ? Math.min(maxPixels, cappedWindowArea) : cappedWindowArea;
+    }
     if (maxPixels > 0) {
       maxAreaScale = Math.sqrt(maxPixels / (width * height));
     }
@@ -1270,6 +1274,9 @@ class OutputScale {
   }
   static get pixelRatio() {
     return globalThis.devicePixelRatio || 1;
+  }
+  static getCappedWindowArea(capAreaFactor) {
+    return Math.ceil(window.screen.availWidth * window.screen.availHeight * this.pixelRatio ** 2 * (1 + capAreaFactor / 100));
   }
 }
 const SupportedImageMimeTypes = ["image/apng", "image/avif", "image/bmp", "image/gif", "image/jpeg", "image/png", "image/svg+xml", "image/webp", "image/x-icon"];
@@ -10086,7 +10093,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "5.2.160",
+    apiVersion: "5.2.177",
     data,
     password,
     disableAutoFetch,
@@ -11721,8 +11728,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "5.2.160";
-const build = "06f44916c";
+const version = "5.2.177";
+const build = "293506ada";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -21102,8 +21109,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "5.2.160";
-const pdfjsBuild = "06f44916c";
+const pdfjsVersion = "5.2.177";
+const pdfjsBuild = "293506ada";
 globalThis.pdfjsLib = {
   AbortException: AbortException,
   AnnotationEditorLayer: AnnotationEditorLayer,
