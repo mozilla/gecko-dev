@@ -14,6 +14,7 @@ const { AppConstants } = ChromeUtils.importESModule(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   DAPTelemetrySender: "resource://gre/modules/DAPTelemetrySender.sys.mjs",
   DAPVisitCounter: "resource://gre/modules/DAPVisitCounter.sys.mjs",
   NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
@@ -173,7 +174,7 @@ add_task(
     skip_if: () => !AppConstants.MOZ_NORMANDY,
   },
   async function testVisitCounterNimbus() {
-    const { cleanup } = await lazy.NimbusTestUtils.setupTest();
+    await lazy.ExperimentManager.onStartup();
     await lazy.DAPVisitCounter.startup();
 
     Assert.ok(
@@ -229,7 +230,5 @@ add_task(
       lazy.DAPVisitCounter.timerId === null,
       "Submission timer should not exist after unenrollment"
     );
-
-    cleanup();
   }
 );

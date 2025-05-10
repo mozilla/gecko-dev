@@ -9,6 +9,7 @@
 ChromeUtils.defineESModuleGetters(this, {
   AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
@@ -131,6 +132,8 @@ add_setup(async function test_setup() {
 });
 
 add_setup(skipIfNotBrowser(), async () => {
+  // Needed to interact with Nimbus.
+  await ExperimentManager.onStartup();
   await ExperimentAPI.ready();
 });
 
