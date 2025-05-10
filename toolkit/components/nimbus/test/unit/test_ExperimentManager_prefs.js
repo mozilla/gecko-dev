@@ -1287,7 +1287,7 @@ add_task(async function test_restorePrefs_experimentAndRollout() {
 
       await manager.onStartup();
 
-      assertEmptyStore(manager.store);
+      NimbusTestUtils.assert.storeIsEmpty(manager.store);
 
       for (const [enrollmentKind, config] of Object.entries(configs)) {
         await NimbusTestUtils.enrollWithFeatureConfig(config, {
@@ -2832,7 +2832,7 @@ add_task(async function test_restorePrefs_manifestChanged() {
 
       await manager.onStartup();
 
-      assertEmptyStore(manager.store);
+      NimbusTestUtils.assert.storeIsEmpty(manager.store);
 
       for (const [enrollmentKind, config] of Object.entries(configs)) {
         const isRollout = enrollmentKind === ROLLOUT;
@@ -3419,7 +3419,7 @@ add_task(async function test_setPref_types_restore() {
     const manager = NimbusTestUtils.stubs.manager();
 
     await manager.onStartup();
-    assertEmptyStore(manager.store);
+    NimbusTestUtils.assert.storeIsEmpty(manager.store);
 
     await NimbusTestUtils.enrollWithFeatureConfig(
       {
