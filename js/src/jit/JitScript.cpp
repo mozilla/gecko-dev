@@ -59,6 +59,7 @@ ICScript::~ICScript() {
   // The contents of the AllocSite LifoAlloc are removed and freed separately
   // after the next minor GC. See prepareForDestruction.
   MOZ_ASSERT(allocSitesSpace_.isEmpty());
+  MOZ_ASSERT(!envAllocSite_);
 }
 
 #ifdef DEBUG
@@ -373,6 +374,8 @@ void JitScript::forEachICScript(const F& f) const {
 }
 
 void ICScript::prepareForDestruction(Zone* zone) {
+  envAllocSite_ = nullptr;  // Points into allocSitesSpace_.
+
   // Defer freeing AllocSite memory until after the next minor GC, because the
   // nursery can point to these alloc sites.
   JSRuntime* rt = zone->runtimeFromMainThread();
@@ -816,6 +819,8 @@ void jit::MarkActiveICScriptsAndCopyStubs(Zone* zone,
 
 InliningRoot* JitScript::getOrCreateInliningRoot(JSContext* cx,
                                                  JSScript* script) {
+  MOZ_ASSERT(script->jitScript() == this);
+
   if (!inliningRoot_) {
     inliningRoot_ = js::MakeUnique<InliningRoot>(cx, script);
     if (!inliningRoot_) {
@@ -833,8 +838,9 @@ gc::AllocSite* ICScript::getOrCreateAllocSite(JSScript* outerScript,
   MOZ_ASSERT(outerScript->jitScript()->icScript() == this ||
              (inliningRoot() && inliningRoot()->owningScript() == outerScript));
 
-  // The pcOffset must be for this (maybe inlined) script.
-  MOZ_ASSERT(pcOffset < bytecodeSize());
+  // The pcOffset must be valid for this (maybe inlined) script.
+  MOZ_ASSERT_IF(pcOffset != gc::AllocSite::EnvSitePCOffset,
+                pcOffset < bytecodeSize());
 
   for (gc::AllocSite* site : allocSites_) {
     if (site->pcOffset() == pcOffset) {
@@ -867,6 +873,22 @@ gc::AllocSite* ICScript::getOrCreateAllocSite(JSScript* outerScript,
   nursery.noteAllocSiteCreated();
 
   return site;
+}
+
+void ICScript::ensureEnvAllocSite(JSScript* outerScript) {
+  if (envAllocSite_) {
+    return;
+  }
+
+  // Use a dummy offset for this site.
+  uint32_t pcoffset = gc::AllocSite::EnvSitePCOffset;
+  gc::AllocSite* site = getOrCreateAllocSite(outerScript, pcoffset);
+  if (!site) {
+    // Use the unknown site on failure.
+    site = outerScript->zone()->unknownAllocSite(JS::TraceKind::Object);
+  }
+
+  envAllocSite_ = site;
 }
 
 bool JitScript::resetAllocSites(bool resetNurserySites,

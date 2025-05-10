@@ -684,6 +684,10 @@ void BaselineCompilerHandler::createAllocSites() {
   for (uint32_t allocSiteIndex : allocSiteIndices_) {
     CreateAllocSitesForICChain(script(), allocSiteIndex);
   }
+
+  if (needsEnvAllocSite_) {
+    script()->jitScript()->icScript()->ensureEnvAllocSite(script());
+  }
 }
 
 template <>
@@ -1356,15 +1360,25 @@ bool BaselineCompilerCodeGen::initEnvironmentChain() {
   Register enclosingEnv = regs.takeAny();
   Register callee = regs.takeAny();
   Register temp = regs.takeAny();
+  Register siteRegister;
 
   Label fail;
   masm.loadPtr(frame.addressOfEnvironmentChain(), enclosingEnv);
   masm.loadFunctionFromCalleeToken(frame.addressOfCalleeToken(), callee);
 
+  AllocSiteInput site;
+  if (handler.addEnvAllocSite()) {
+    siteRegister = regs.takeAny();
+    masm.loadPtr(frame.addressOfICScript(), temp);
+    masm.loadPtr(Address(temp, ICScript::offsetOfEnvAllocSite()), siteRegister);
+    site = AllocSiteInput(siteRegister);
+  }
+
   // Allocate a NamedLambdaObject if needed.
   if (namedLambdaTemplate) {
     TemplateObject templateObject(namedLambdaTemplate);
-    masm.createGCObject(newEnv, temp, templateObject, gc::Heap::Default, &fail);
+    masm.createGCObject(newEnv, temp, templateObject, gc::Heap::Default, &fail,
+                        true, site);
 
     // Store enclosing environment.
     Address enclosingSlot(newEnv,
@@ -1385,7 +1399,8 @@ bool BaselineCompilerCodeGen::initEnvironmentChain() {
   // Allocate a CallObject if needed.
   if (callObjectTemplate) {
     TemplateObject templateObject(callObjectTemplate);
-    masm.createGCObject(newEnv, temp, templateObject, gc::Heap::Default, &fail);
+    masm.createGCObject(newEnv, temp, templateObject, gc::Heap::Default, &fail,
+                        true, site);
 
     // Store enclosing environment.
     Address enclosingSlot(newEnv, CallObject::offsetOfEnclosingEnvironment());

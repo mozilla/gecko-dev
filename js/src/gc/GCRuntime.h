@@ -374,6 +374,10 @@ class GCRuntime {
     return nursery_.refNoCheck().addressOfPosition();
   }
 
+  void* addressOfNurseryAllocatedSites() {
+    return nursery_.refNoCheck().addressOfNurseryAllocatedSites();
+  }
+
   const void* addressOfLastBufferedWholeCell() {
     return storeBuffer_.refNoCheck().addressOfLastBufferedWholeCell();
   }

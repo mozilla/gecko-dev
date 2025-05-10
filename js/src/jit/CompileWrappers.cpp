@@ -182,7 +182,7 @@ void* CompileZone::addressOfNurseryPosition() {
 
 void* CompileZone::addressOfNurseryAllocatedSites() {
   JSRuntime* rt = zone()->runtimeFromAnyThread();
-  return rt->gc.nursery().addressOfNurseryAllocatedSites();
+  return rt->gc.addressOfNurseryAllocatedSites();
 }
 
 bool CompileZone::canNurseryAllocateStrings() {

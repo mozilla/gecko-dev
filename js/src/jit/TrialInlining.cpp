@@ -714,6 +714,10 @@ ICScript* TrialInliner::createInlinedICScript(JSFunction* target,
 
   inlinedICScript->initICEntries(cx(), targetScript);
 
+  if (targetScript->needsFunctionEnvironmentObjects()) {
+    inlinedICScript->ensureEnvAllocSite(root->owningScript());
+  }
+
   uint32_t pcOffset = loc.bytecodeToOffset(script_);
   ICScript* result = inlinedICScript.get();
   if (!icScript_->addInlinedChild(cx(), std::move(inlinedICScript), pcOffset)) {

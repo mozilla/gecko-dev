@@ -126,7 +126,8 @@ class AllocSite {
   uintptr_t rawScript() const { return scriptAndState & ~STATE_MASK; }
 
  public:
-  static constexpr uint32_t MaxValidPCOffset = InvalidPCOffset - 1;
+  static constexpr uint32_t EnvSitePCOffset = InvalidPCOffset - 1;
+  static constexpr uint32_t MaxValidPCOffset = EnvSitePCOffset - 1;
 
   // Default constructor. Clients must call one of the init methods afterwards.
   AllocSite()
@@ -145,7 +146,7 @@ class AllocSite {
         nurseryPromotedCount(0),
         invalidationCount(0),
         traceKind_(uint32_t(traceKind)) {
-    MOZ_ASSERT(pcOffset <= MaxValidPCOffset);
+    MOZ_ASSERT(pcOffset <= MaxValidPCOffset || pcOffset == EnvSitePCOffset);
     MOZ_ASSERT(pcOffset_ == pcOffset);
     setScript(script);
   }

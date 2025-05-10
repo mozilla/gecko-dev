@@ -180,6 +180,10 @@ class alignas(uintptr_t) ICScript final : public TrailingArray<ICScript> {
     return numElements<ICEntry>(icEntriesOffset(), fallbackStubsOffset());
   }
 
+  static constexpr Offset offsetOfEnvAllocSite() {
+    return offsetof(ICScript, envAllocSite_);
+  }
+
   ICEntry* interpreterICEntryFromPCOffset(uint32_t pcOffset);
 
   ICEntry& icEntryFromPCOffset(uint32_t pcOffset);
@@ -200,6 +204,9 @@ class alignas(uintptr_t) ICScript final : public TrailingArray<ICScript> {
   void resetActive() { active_ = false; }
 
   gc::AllocSite* getOrCreateAllocSite(JSScript* outerScript, uint32_t pcOffset);
+
+  void ensureEnvAllocSite(JSScript* outerScript);
+  gc::AllocSite* maybeEnvAllocSite() const { return envAllocSite_; }
 
   void prepareForDestruction(Zone* zone);
 
@@ -231,6 +238,9 @@ class alignas(uintptr_t) ICScript final : public TrailingArray<ICScript> {
   static constexpr size_t AllocSiteChunkSize = 256;
   LifoAlloc allocSitesSpace_{AllocSiteChunkSize, js::BackgroundMallocArena};
   Vector<gc::AllocSite*, 0, SystemAllocPolicy> allocSites_;
+
+  // Optional alloc site to use when allocating environment chain objects.
+  gc::AllocSite* envAllocSite_ = nullptr;
 
   // Number of times this copy of the script has been called or has had
   // backedges taken.  Reset if the script's JIT code is forcibly discarded.
@@ -469,6 +479,8 @@ class alignas(uintptr_t) JitScript final
 
   void updateLastICStubCounter() { warmUpCountAtLastICStub_ = warmUpCount(); }
   uint32_t warmUpCountAtLastICStub() const { return warmUpCountAtLastICStub_; }
+
+  bool hasEnvAllocSite() const { return icScript_.envAllocSite_; }
 
  private:
   // Methods to set baselineScript_ to a BaselineScript*, nullptr, or

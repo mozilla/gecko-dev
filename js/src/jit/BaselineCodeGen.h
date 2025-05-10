@@ -310,6 +310,8 @@ class BaselineCompilerHandler {
 
   bool compilingOffThread_ = false;
 
+  bool needsEnvAllocSite_ = false;
+
  public:
   using FrameInfoT = CompilerFrameInfo;
 
@@ -386,6 +388,11 @@ class BaselineCompilerHandler {
 
   bool compilingOffThread() const { return compilingOffThread_; }
   void setCompilingOffThread() { compilingOffThread_ = true; }
+
+  bool addEnvAllocSite() {
+    needsEnvAllocSite_ = true;
+    return true;
+  }
 };
 
 using BaselineCompilerCodeGen = BaselineCodeGen<BaselineCompilerHandler>;
@@ -514,6 +521,8 @@ class BaselineInterpreterHandler {
   bool mustIncludeSlotsInStackCheck() const { return true; }
 
   bool canHaveFixedSlots() const { return true; }
+
+  bool addEnvAllocSite() { return false; }  // Not supported.
 };
 
 using BaselineInterpreterCodeGen = BaselineCodeGen<BaselineInterpreterHandler>;
