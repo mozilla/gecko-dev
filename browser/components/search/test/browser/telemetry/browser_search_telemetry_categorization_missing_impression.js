@@ -160,34 +160,28 @@ add_task(async function test_threshold_reached() {
   let sandbox = sinon.createSandbox();
   sandbox.stub(SERPDomainToCategoriesMap, "get").returns([]);
 
-  let submitted = false;
-  GleanPings.serpCategorization.testBeforeNextSubmit(reason => {
-    submitted = true;
-    Assert.equal(
-      1,
-      Glean.serp.categorizationNoMapFound.testGetValue(),
-      "Should record one missing impression due to a broken domain-to-categories map."
-    );
+  await GleanPings.serpCategorization.testSubmission(
+    reason => {
+      Assert.equal(
+        1,
+        Glean.serp.categorizationNoMapFound.testGetValue(),
+        "Should record one missing impression due to a broken domain-to-categories map."
+      );
 
-    Assert.equal(
-      "threshold_reached",
-      reason,
-      "Ping submission reason should be 'threshold_reached'."
-    );
-  });
-
-  let url = getSERPUrl("searchTelemetryDomainCategorizationReporting.html");
-  info("Load a sample SERP with organic and sponsored results.");
-  let promise = waitForPageWithCategorizedDomains();
-  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
-  await promise;
-
-  BrowserTestUtils.removeTab(tab);
-
-  Assert.equal(
-    true,
-    submitted,
-    "Ping should be submitted once threshold is reached."
+      Assert.equal(
+        "threshold_reached",
+        reason,
+        "Ping submission reason should be 'threshold_reached'."
+      );
+    },
+    async () => {
+      let url = getSERPUrl("searchTelemetryDomainCategorizationReporting.html");
+      info("Load a sample SERP with organic and sponsored results.");
+      let promise = waitForPageWithCategorizedDomains();
+      let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
+      await promise;
+      BrowserTestUtils.removeTab(tab);
+    }
   );
 
   CATEGORIZATION_SETTINGS.PING_SUBMISSION_THRESHOLD = oldThreshold;

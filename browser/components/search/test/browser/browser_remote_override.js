@@ -92,25 +92,25 @@ add_task(async function test_remote_override() {
     "Should have at least one item in the results"
   );
 
-  let pingReceived = Promise.withResolvers();
-  GleanPings.searchWith.testBeforeNextSubmit(() => {
-    Assert.equal(
-      Glean.searchWith.reportingUrl.testGetValue(),
-      "https://example.org/somewhere",
-      "Should have recorded the reporting URL"
-    );
-    Assert.equal(
-      Glean.searchWith.contextId.testGetValue().length,
-      36,
-      "Should have sent a context id with the ping"
-    );
-    pingReceived.resolve();
-  });
-
-  let loadPromise = BrowserTestUtils.browserLoaded(tab.linkedBrowser);
-  EventUtils.sendKey("return");
-  await loadPromise;
-  await pingReceived.promise;
+  await GleanPings.searchWith.testSubmission(
+    () => {
+      Assert.equal(
+        Glean.searchWith.reportingUrl.testGetValue(),
+        "https://example.org/somewhere",
+        "Should have recorded the reporting URL"
+      );
+      Assert.equal(
+        Glean.searchWith.contextId.testGetValue().length,
+        36,
+        "Should have sent a context id with the ping"
+      );
+    },
+    async () => {
+      let loadPromise = BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+      EventUtils.sendKey("return");
+      await loadPromise;
+    }
+  );
 
   Assert.equal(
     tab.linkedBrowser.currentURI.spec,

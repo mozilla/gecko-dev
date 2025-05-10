@@ -106,21 +106,14 @@ add_task(async function test_no_experiment_enrollments() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
   await promise;
 
-  let submitted = false;
-  GleanPings.serpCategorization.testBeforeNextSubmit(() => {
-    submitted = true;
-    Assert.equal(
-      Glean.serp.experimentInfo.testGetValue(),
-      null,
-      "No experiment info should be recorded when the client isn't enrolled in any experiments."
-    );
-  });
-
-  await BrowserTestUtils.removeTab(tab);
-  Assert.equal(
-    submitted,
-    true,
-    "Categorization ping should have been submitted."
+  await GleanPings.serpCategorization.testSubmission(
+    () =>
+      Assert.equal(
+        Glean.serp.experimentInfo.testGetValue(),
+        null,
+        "No experiment info should be recorded when the client isn't enrolled in any experiments."
+      ),
+    () => BrowserTestUtils.removeTab(tab)
   );
 });
 
@@ -143,22 +136,14 @@ add_task(async function test_1_non_search_experiment() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
   await promise;
 
-  let submitted = false;
-  GleanPings.serpCategorization.testBeforeNextSubmit(() => {
-    submitted = true;
-
-    Assert.equal(
-      Glean.serp.experimentInfo.testGetValue(),
-      null,
-      "No experiment info should be recorded when the client isn't enrolled in any search experiments."
-    );
-  });
-
-  await BrowserTestUtils.removeTab(tab);
-  Assert.equal(
-    submitted,
-    true,
-    "Categorization ping should have been submitted."
+  await GleanPings.serpCategorization.testSubmission(
+    () =>
+      Assert.equal(
+        Glean.serp.experimentInfo.testGetValue(),
+        null,
+        "No experiment info should be recorded when the client isn't enrolled in any search experiments."
+      ),
+    () => BrowserTestUtils.removeTab(tab)
   );
 
   await doExperimentCleanup();
@@ -186,21 +171,14 @@ add_task(async function test_1_search_experiment_no_targetExperiment() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
   await promise;
 
-  let submitted = false;
-  GleanPings.serpCategorization.testBeforeNextSubmit(() => {
-    submitted = true;
-    Assert.equal(
-      Glean.serp.experimentInfo.testGetValue(),
-      null,
-      "No experiment info should be recorded when the client is enrolled in a search experiment without a targetExperiment."
-    );
-  });
-
-  await BrowserTestUtils.removeTab(tab);
-  Assert.equal(
-    submitted,
-    true,
-    "Categorization ping should have been submitted."
+  await GleanPings.serpCategorization.testSubmission(
+    () =>
+      Assert.equal(
+        Glean.serp.experimentInfo.testGetValue(),
+        null,
+        "No experiment info should be recorded when the client is enrolled in a search experiment without a targetExperiment."
+      ),
+    () => BrowserTestUtils.removeTab(tab)
   );
 
   await doExperimentCleanup();
@@ -228,26 +206,19 @@ add_task(async function test_1_search_experiment_with_targetExperiment() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
   await promise;
 
-  let submitted = false;
-  GleanPings.serpCategorization.testBeforeNextSubmit(() => {
-    submitted = true;
-
-    let actualExperimentInfo = Glean.serp.experimentInfo.testGetValue();
-    Assert.deepEqual(
-      actualExperimentInfo,
-      {
-        slug: "dummy-search-experiment1",
-        branch: "control",
-      },
-      "Experiment info should be correct when the client is enrolled in a search experiment with a targetExperiment."
-    );
-  });
-
-  await BrowserTestUtils.removeTab(tab);
-  Assert.equal(
-    submitted,
-    true,
-    "Categorization ping should have been submitted."
+  await GleanPings.serpCategorization.testSubmission(
+    () => {
+      let actualExperimentInfo = Glean.serp.experimentInfo.testGetValue();
+      Assert.deepEqual(
+        actualExperimentInfo,
+        {
+          slug: "dummy-search-experiment1",
+          branch: "control",
+        },
+        "Experiment info should be correct when the client is enrolled in a search experiment with a targetExperiment."
+      );
+    },
+    () => BrowserTestUtils.removeTab(tab)
   );
 
   await doExperimentCleanup();
@@ -277,26 +248,19 @@ add_task(async function test_1_search_rollout_with_targetExperiment() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
   await promise;
 
-  let submitted = false;
-  GleanPings.serpCategorization.testBeforeNextSubmit(() => {
-    submitted = true;
-
-    let actualExperimentInfo = Glean.serp.experimentInfo.testGetValue();
-    Assert.deepEqual(
-      actualExperimentInfo,
-      {
-        slug: "dummy-search-experiment1",
-        branch: "control",
-      },
-      "Experiment info should be correct when the client is enrolled in a search rollout with a targetExperiment."
-    );
-  });
-
-  await BrowserTestUtils.removeTab(tab);
-  Assert.equal(
-    submitted,
-    true,
-    "Categorization ping should have been submitted."
+  await GleanPings.serpCategorization.testSubmission(
+    () => {
+      let actualExperimentInfo = Glean.serp.experimentInfo.testGetValue();
+      Assert.deepEqual(
+        actualExperimentInfo,
+        {
+          slug: "dummy-search-experiment1",
+          branch: "control",
+        },
+        "Experiment info should be correct when the client is enrolled in a search rollout with a targetExperiment."
+      );
+    },
+    () => BrowserTestUtils.removeTab(tab)
   );
 
   await doExperimentCleanup();
