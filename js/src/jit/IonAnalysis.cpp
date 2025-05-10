@@ -4193,8 +4193,13 @@ bool jit::EliminateRedundantGCBarriers(MIRGraph& graph) {
          insIter != block->end(); insIter++) {
       MInstruction* ins = *insIter;
       if (ins->isNewCallObject()) {
-        if (!TryEliminateGCBarriersForAllocation(graph.alloc(), ins)) {
-          return false;
+        MNewCallObject* allocation = ins->toNewCallObject();
+        // We can only eliminate the post barrier if we know the call object
+        // will be allocated in the nursery.
+        if (allocation->initialHeap() == gc::Heap::Default) {
+          if (!TryEliminateGCBarriersForAllocation(graph.alloc(), allocation)) {
+            return false;
+          }
         }
       }
     }

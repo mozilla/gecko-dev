@@ -83,7 +83,8 @@ PropertyName* js::EnvironmentCoordinateNameSlow(JSScript* script,
 
 template <typename T>
 static T* CreateEnvironmentObject(JSContext* cx, Handle<SharedShape*> shape,
-                                  gc::Heap heap) {
+                                  gc::Heap heap,
+                                  gc::AllocSite* site = nullptr) {
   static_assert(std::is_base_of_v<EnvironmentObject, T>,
                 "T must be an EnvironmentObject");
 
@@ -92,7 +93,7 @@ static T* CreateEnvironmentObject(JSContext* cx, Handle<SharedShape*> shape,
   MOZ_ASSERT(gc::GetObjectFinalizeKind(&T::class_) == gc::FinalizeKind::None);
   MOZ_ASSERT(!gc::IsFinalizedKind(allocKind));
 
-  return NativeObject::create<T>(cx, allocKind, heap, shape);
+  return NativeObject::create<T>(cx, allocKind, heap, shape, site);
 }
 
 // Helper function for simple environment objects that don't need the overloads
@@ -105,8 +106,9 @@ static T* CreateEnvironmentObject(JSContext* cx, Handle<SharedShape*> shape,
 }
 
 CallObject* CallObject::createWithShape(JSContext* cx,
-                                        Handle<SharedShape*> shape) {
-  return CreateEnvironmentObject<CallObject>(cx, shape);
+                                        Handle<SharedShape*> shape,
+                                        gc::Heap heap) {
+  return CreateEnvironmentObject<CallObject>(cx, shape, heap);
 }
 
 /*
@@ -115,7 +117,8 @@ CallObject* CallObject::createWithShape(JSContext* cx,
  * callee) or used as a template for jit compilation.
  */
 CallObject* CallObject::create(JSContext* cx, HandleScript script,
-                               HandleObject enclosing, gc::Heap heap) {
+                               HandleObject enclosing, gc::Heap heap,
+                               gc::AllocSite* site) {
   Rooted<SharedShape*> shape(
       cx, script->bodyScope()->as<FunctionScope>().environmentShape());
   MOZ_ASSERT(shape->getObjectClass() == &class_);
@@ -123,7 +126,7 @@ CallObject* CallObject::create(JSContext* cx, HandleScript script,
   // The JITs assume the result is nursery allocated unless we collected the
   // nursery, so don't change |heap| here.
 
-  auto* callObj = CreateEnvironmentObject<CallObject>(cx, shape, heap);
+  auto* callObj = CreateEnvironmentObject<CallObject>(cx, shape, heap, site);
   if (!callObj) {
     return nullptr;
   }
@@ -140,16 +143,17 @@ CallObject* CallObject::createTemplateObject(JSContext* cx, HandleScript script,
   return create(cx, script, enclosing, gc::Heap::Tenured);
 }
 
-CallObject* CallObject::create(JSContext* cx, AbstractFramePtr frame) {
+CallObject* CallObject::createForFrame(JSContext* cx, AbstractFramePtr frame,
+                                       gc::AllocSite* site) {
   MOZ_ASSERT(frame.isFunctionFrame());
   cx->check(frame);
 
   RootedObject envChain(cx, frame.environmentChain());
   RootedFunction callee(cx, frame.callee());
   RootedScript script(cx, callee->nonLazyScript());
+  gc::Heap heap = site ? site->initialHeap() : gc::Heap::Default;
 
-  gc::Heap heap = gc::Heap::Default;
-  CallObject* callobj = create(cx, script, envChain, heap);
+  CallObject* callobj = create(cx, script, envChain, heap, site);
   if (!callobj) {
     return nullptr;
   }
@@ -997,14 +1001,14 @@ const JSClass LexicalEnvironmentObject::class_ = {
 /* static */
 LexicalEnvironmentObject* LexicalEnvironmentObject::create(
     JSContext* cx, Handle<SharedShape*> shape, HandleObject enclosing,
-    gc::Heap heap) {
+    gc::Heap heap, gc::AllocSite* site) {
   MOZ_ASSERT(shape->getObjectClass() == &LexicalEnvironmentObject::class_);
 
   // The JITs assume the result is nursery allocated unless we collected the
   // nursery, so don't change |heap| here.
 
   auto* env =
-      CreateEnvironmentObject<LexicalEnvironmentObject>(cx, shape, heap);
+      CreateEnvironmentObject<LexicalEnvironmentObject>(cx, shape, heap, site);
   if (!env) {
     return nullptr;
   }
@@ -1030,13 +1034,13 @@ bool LexicalEnvironmentObject::isExtensible() const {
 /* static */
 BlockLexicalEnvironmentObject* BlockLexicalEnvironmentObject::create(
     JSContext* cx, Handle<LexicalScope*> scope, HandleObject enclosing,
-    gc::Heap heap) {
+    gc::Heap heap, gc::AllocSite* site) {
   cx->check(enclosing);
   MOZ_ASSERT(scope->hasEnvironment());
 
   Rooted<SharedShape*> shape(cx, scope->environmentShape());
   auto* env = static_cast<BlockLexicalEnvironmentObject*>(
-      LexicalEnvironmentObject::create(cx, shape, enclosing, heap));
+      LexicalEnvironmentObject::create(cx, shape, enclosing, heap, site));
   if (!env) {
     return nullptr;
   }
@@ -1144,7 +1148,8 @@ BlockLexicalEnvironmentObject* BlockLexicalEnvironmentObject::recreate(
 NamedLambdaObject* NamedLambdaObject::create(JSContext* cx,
                                              HandleFunction callee,
                                              HandleObject enclosing,
-                                             gc::Heap heap) {
+                                             gc::Heap heap,
+                                             gc::AllocSite* site) {
   MOZ_ASSERT(callee->isNamedLambda());
   Rooted<Scope*> scope(cx, callee->nonLazyScript()->maybeNamedLambdaScope());
   MOZ_ASSERT(scope && scope->environmentShape());
@@ -1166,7 +1171,7 @@ NamedLambdaObject* NamedLambdaObject::create(JSContext* cx,
 #endif
 
   BlockLexicalEnvironmentObject* obj = BlockLexicalEnvironmentObject::create(
-      cx, scope.as<LexicalScope>(), enclosing, heap);
+      cx, scope.as<LexicalScope>(), enclosing, heap, site);
   if (!obj) {
     return nullptr;
   }
@@ -1183,16 +1188,18 @@ NamedLambdaObject* NamedLambdaObject::createTemplateObject(
 
 /* static */
 NamedLambdaObject* NamedLambdaObject::createWithoutEnclosing(
-    JSContext* cx, HandleFunction callee) {
-  return create(cx, callee, nullptr, gc::Heap::Default);
+    JSContext* cx, HandleFunction callee, gc::Heap heap) {
+  return create(cx, callee, nullptr, heap);
 }
 
 /* static */
-NamedLambdaObject* NamedLambdaObject::create(JSContext* cx,
-                                             AbstractFramePtr frame) {
+NamedLambdaObject* NamedLambdaObject::createForFrame(JSContext* cx,
+                                                     AbstractFramePtr frame,
+                                                     gc::AllocSite* site) {
   RootedFunction fun(cx, frame.callee());
   RootedObject enclosing(cx, frame.environmentChain());
-  return create(cx, fun, enclosing, gc::Heap::Default);
+  gc::Heap heap = site ? site->initialHeap() : gc::Heap::Default;
+  return create(cx, fun, enclosing, heap, site);
 }
 
 /* static */
@@ -4125,9 +4132,15 @@ bool js::InitFunctionEnvironmentObjects(JSContext* cx, AbstractFramePtr frame) {
 
   RootedFunction callee(cx, frame.callee());
 
+  gc::AllocSite* site = nullptr;
+  if (frame.isBaselineFrame()) {
+    site = frame.asBaselineFrame()->icScript()->maybeEnvAllocSite();
+  }
+
   // Named lambdas may have an environment that holds itself for recursion.
   if (callee->needsNamedLambdaEnvironment()) {
-    NamedLambdaObject* declEnv = NamedLambdaObject::create(cx, frame);
+    NamedLambdaObject* declEnv =
+        NamedLambdaObject::createForFrame(cx, frame, site);
     if (!declEnv) {
       return false;
     }
@@ -4137,7 +4150,7 @@ bool js::InitFunctionEnvironmentObjects(JSContext* cx, AbstractFramePtr frame) {
   // If the function has parameter default expressions, there may be an
   // extra environment to hold the parameters.
   if (callee->needsCallObject()) {
-    CallObject* callObj = CallObject::create(cx, frame);
+    CallObject* callObj = CallObject::createForFrame(cx, frame, site);
     if (!callObj) {
       return false;
     }

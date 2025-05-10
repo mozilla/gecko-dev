@@ -8691,15 +8691,18 @@ void CodeGenerator::visitNewNamedLambdaObject(LNewNamedLambdaObject* lir) {
   Register objReg = ToRegister(lir->output());
   Register tempReg = ToRegister(lir->temp0());
   const CompileInfo& info = lir->mir()->block()->info();
+  gc::Heap heap = lir->mir()->initialHeap();
 
-  using Fn = js::NamedLambdaObject* (*)(JSContext*, HandleFunction);
+  using Fn = js::NamedLambdaObject* (*)(JSContext*, HandleFunction, gc::Heap);
   OutOfLineCode* ool = oolCallVM<Fn, NamedLambdaObject::createWithoutEnclosing>(
-      lir, ArgList(info.funMaybeLazy()), StoreRegisterTo(objReg));
+      lir, ArgList(info.funMaybeLazy(), Imm32(uint32_t(heap))),
+      StoreRegisterTo(objReg));
 
   TemplateObject templateObject(lir->mir()->templateObj());
 
-  masm.createGCObject(objReg, tempReg, templateObject, gc::Heap::Default,
-                      ool->entry());
+  masm.createGCObject(objReg, tempReg, templateObject, heap, ool->entry(),
+                      /* initContents = */ true,
+                      AllocSiteInput(gc::CatchAllAllocSite::Optimized));
 
   masm.bind(ool->rejoin());
 }
@@ -8709,16 +8712,20 @@ void CodeGenerator::visitNewCallObject(LNewCallObject* lir) {
   Register tempReg = ToRegister(lir->temp0());
 
   CallObject* templateObj = lir->mir()->templateObject();
+  gc::Heap heap = lir->mir()->initialHeap();
 
-  using Fn = CallObject* (*)(JSContext*, Handle<SharedShape*>);
+  // todo: should get a specialized fallback that passes site
+  using Fn = CallObject* (*)(JSContext*, Handle<SharedShape*>, gc::Heap);
   OutOfLineCode* ool = oolCallVM<Fn, CallObject::createWithShape>(
-      lir, ArgList(ImmGCPtr(templateObj->sharedShape())),
+      lir, ArgList(ImmGCPtr(templateObj->sharedShape()), Imm32(uint32_t(heap))),
       StoreRegisterTo(objReg));
 
   // Inline call object creation, using the OOL path only for tricky cases.
   TemplateObject templateObject(templateObj);
-  masm.createGCObject(objReg, tempReg, templateObject, gc::Heap::Default,
-                      ool->entry());
+
+  masm.createGCObject(objReg, tempReg, templateObject, heap, ool->entry(),
+                      /* initContents = */ true,
+                      AllocSiteInput(gc::CatchAllAllocSite::Optimized));
 
   masm.bind(ool->rejoin());
 }
