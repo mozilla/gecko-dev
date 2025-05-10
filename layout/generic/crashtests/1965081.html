@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <iframe id="iframe" src="1965081-iframe.html"></iframe>
+
+  <script>
+  function takeSnapshot() {
+    document.documentElement.removeAttribute("class");
+  }
+
+  var iframe = document.getElementById("iframe");
+  let hasReloaded = false;
+
+  iframe.addEventListener("load", () => {
+    if (!hasReloaded) {
+      hasReloaded = true;
+      iframe.contentWindow.location.reload();
+    } else {
+      setTimeout(takeSnapshot, 200);
+    }
+  });
+  </script>
+</html>

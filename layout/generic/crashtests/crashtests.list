@@ -820,3 +820,4 @@ load 1858798.html
 load 1870219.html
 load 1915006.html
 asserts(0-85) load 1881375-1.html # bug 1890687 - assertions about fragmentation invariants, failing many times because the test runs in a loop
+asserts(0-4) load 1965081.html # Bug 457400 - ASSERTION: can't mark frame dirty during reflow
