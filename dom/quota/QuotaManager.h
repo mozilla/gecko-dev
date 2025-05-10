@@ -157,6 +157,19 @@ class QuotaManager final : public BackgroundThreadObject {
   // Use only in gtests!
   static nsIObserver* GetObserver();
 
+  /**
+   * Ensures that all pending normal origin operations and their follow-up
+   * events are processed and completed.
+   *
+   * This is useful in cases where operations are scheduled asynchronously
+   * without a way to explicitly await their completion, and must be finalized
+   * before continuing with further checks or logic.
+   *
+   * This method asserts that gtests are currently running and must not be used
+   * outside of gtest code.
+   */
+  static void ProcessPendingNormalOriginOperations();
+
   // Returns true if we've begun the shutdown process.
   static bool IsShuttingDown();
 

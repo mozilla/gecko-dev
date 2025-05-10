@@ -2635,6 +2635,39 @@ TEST_F(TestQuotaManager, ShutdownStorage_OngoingWithClientDirectoryLock) {
   });
 }
 
+// Test basic ProcessPendingNormalOriginOperations behavior when a normal
+// origin operation is triggered but not explicitly awaited.
+TEST_F(TestQuotaManager, ProcessPendingNormalOriginOperations_Basic) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  AssertStorageNotInitialized();
+
+  PerformOnBackgroundThread([]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    ASSERT_FALSE(quotaManager->IsStorageInitialized());
+
+    // Intentionally do not await the returned promise to test that
+    // ProcessPendingNormalOriginOperations correctly processes any pending
+    // events and waits for the completion of any normal origin operation,
+    // such as the one triggered by InitializeStorage. In theory, any similar
+    // method could be used here, InitializeStorage was chosen for its
+    // simplicity.
+    quotaManager->InitializeStorage();
+
+    ASSERT_FALSE(quotaManager->IsStorageInitialized());
+
+    quotaManager->ProcessPendingNormalOriginOperations();
+
+    ASSERT_TRUE(quotaManager->IsStorageInitialized());
+  });
+
+  AssertStorageInitialized();
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
 TEST_F(TestQuotaManager, TotalDirectoryIterations_ClearingEmptyRepository) {
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
 

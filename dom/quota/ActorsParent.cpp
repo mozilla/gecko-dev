@@ -1837,6 +1837,31 @@ nsIObserver* QuotaManager::GetObserver() {
 }
 
 // static
+void QuotaManager::ProcessPendingNormalOriginOperations() {
+  MOZ_ASSERT(IsRunningGTests());
+
+  // Processes any pending events that may create normal origin operations.
+  // This is needed in cases where an async method (e.g., InitializeStorage)
+  // is called without a pre-acquired directory lock, which causes the
+  // operation to be created and scheduled after the directory lock is
+  // acquired.
+  NS_ProcessPendingEvents(nullptr);
+
+  // Wait until all normal origin operations have completed.
+  MOZ_ALWAYS_TRUE(SpinEventLoopUntil(
+      "QuotaManager::ProcessPendingNormalOriginOperations"_ns,
+      []() { return !gNormalOriginOps; }));
+
+  // Once an operation completes, it is removed from gNormalOriginOps. However,
+  // there may still be a follow-up event pending that updates a flag after the
+  // operation has finished. We need to process that event as well; otherwise,
+  // callers of this helper may see inconsistent state.
+  // For example, IsStorageInitialized could still return false even after
+  // calling InitializeStorage and ProcessPendingNormalOriginOperations.
+  NS_ProcessPendingEvents(nullptr);
+}
+
+// static
 bool QuotaManager::IsShuttingDown() { return gShutdown; }
 
 // static

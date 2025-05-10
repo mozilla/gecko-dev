@@ -74,6 +74,8 @@ class QuotaManagerDependencyFixture : public testing::Test {
   static void ClearStoragesForOriginAttributesPattern(
       const nsAString& aPattern);
 
+  static void ProcessPendingNormalOriginOperations();
+
   static uint64_t TotalDirectoryIterations();
 
   static uint64_t SaveOriginAccessTimeCount();
