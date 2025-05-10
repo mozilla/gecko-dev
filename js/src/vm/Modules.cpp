@@ -25,6 +25,7 @@
 #include "js/ColumnNumber.h"            // JS::ColumnNumberOneOrigin
 #include "js/Context.h"                 // js::AssertHeapIsIdle
 #include "js/ErrorReport.h"             // JSErrorBase
+#include "js/friend/StackLimits.h"      // js::AutoCheckRecursionLimit
 #include "js/RootingAPI.h"              // JS::MutableHandle
 #include "js/Value.h"                   // JS::Value
 #include "vm/EnvironmentObject.h"       // js::ModuleEnvironmentObject
@@ -1349,6 +1350,11 @@ static bool ModuleLink(JSContext* cx, Handle<ModuleObject*> module) {
 static bool InnerModuleLinking(JSContext* cx, Handle<ModuleObject*> module,
                                MutableHandle<ModuleVector> stack, size_t index,
                                size_t* indexOut) {
+  AutoCheckRecursionLimit recursion(cx);
+  if (!recursion.check(cx)) {
+    return false;
+  }
+
   // Step 1. If module is not a Cyclic Module Record, then
   if (!module->hasCyclicModuleFields()) {
     // Step 1.a. Perform ? module.Link(). (Skipped)
