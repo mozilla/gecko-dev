@@ -13,17 +13,14 @@ add_common_setup();
 requestLongerTimeout(2);
 
 async function clickSendAndCheckPing(rbs, expectedReason = null) {
-  const pingCheck = new Promise(resolve => {
-    GleanPings.brokenSiteReport.testBeforeNextSubmit(() => {
+  await GleanPings.brokenSiteReport.testSubmission(
+    () =>
       Assert.equal(
         Glean.brokenSiteReport.breakageCategory.testGetValue(),
         expectedReason
-      );
-      resolve();
-    });
-  });
-  await rbs.clickSend();
-  return pingCheck;
+      ),
+    () => rbs.clickSend()
+  );
 }
 
 add_task(async function testReasonDropdown() {
