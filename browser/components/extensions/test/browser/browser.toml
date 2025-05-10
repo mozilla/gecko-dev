@@ -487,6 +487,8 @@ https_first_disabled = true
 
 ["browser_ext_tabGroups_move_onMoved.js"]
 
+["browser_ext_tabGroups_private.js"]
+
 ["browser_ext_tabGroups_query.js"]
 
 ["browser_ext_tab_runtimeConnect.js"]
