@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Name for one of the font options available to use -->
+  <string name="mozac_feature_readerview_sans_serif_font">بؽ سریف</string>
+  <!-- Accessible description for the font option -->
+  <string name="mozac_feature_readerview_sans_serif_font_desc">فونت بؽ سریف</string>
+  <!-- Name for one of the font options available to use -->
+  <string name="mozac_feature_readerview_serif_font">سریف</string>
+  <!-- Accessible description for the font option -->
+  <string name="mozac_feature_readerview_serif_font_desc">فونت سریف</string>
+  <!-- Color option for the background -->
+  <string name="mozac_feature_readerview_dark">تاریک</string>
+  <!-- Accessible description for the color option -->
+  <string name="mozac_feature_readerview_dark_color_scheme_desc">تئر رنگ تاریک</string>
+  <!-- Color option for the background -->
+  <string name="mozac_feature_readerview_sephia">سوبیایی</string>
+  <!-- Accessible description for the color option -->
+  <string name="mozac_feature_readerview_sepia_color_scheme_desc">تئر رنگی سوبیایی</string>
+  <!-- Color option for the background -->
+  <string name="mozac_feature_readerview_light">رۊشن</string>
+  <!-- Accessible description for the color option -->
+  <string name="mozac_feature_readerview_light_color_scheme_desc">تئر رنگ رۊشن</string>
+</resources>

@@ -133,4 +133,6 @@
   <string name="mozac_feature_prompts_save_credit_card_prompt_title">Salvează securizat acest card?</string>
   <!-- Text for the title of an update credit card dialog. -->
   <string name="mozac_feature_prompts_update_credit_card_prompt_title">Actualizează data de expirare a cardului?</string>
+  <!-- Text for the manage addresses button. -->
+  <string name="mozac_feature_prompts_manage_address">Gestionează adrese</string>
 </resources>

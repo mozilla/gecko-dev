@@ -41,4 +41,20 @@
   <string name="mozac_feature_sitepermissions_always_allow">Întotdeauna</string>
   <!-- Text for a negative button in a permission request dialog. This will never allow and remember the decision of the user, this is the special case of the notification permission, that is only ask one time -->
   <string name="mozac_feature_sitepermissions_never_allow">Niciodată</string>
+  <!-- Title of a dialog to require to save data in persistent storage. %1$s will be replaced with the URL of the current page -->
+  <string name="mozac_feature_sitepermissions_persistent_storage_title">Permiteți %1$s să stocheze date în spațiul de stocare persistent?</string>
+  <!-- Title of a dialog to use EME. %1$s will be replaced with the URL of the current page -->
+  <string name="mozac_feature_sitepermissions_media_key_system_access_title">Permiteți %1$s să redea conținut controlat prin DRM?</string>
+  <!--
+    Title of a dialog to use cross origin storage permission. %1$s is the name of the site URL (www.site1.example) trying to track the user's activity.
+    %2$s is the name of the site URL (www.site2.example) that the user is visiting.  This is the same domain name displayed in the address bar
+  -->
+  <string name="mozac_feature_sitepermissions_storage_access_title">Permiteți %1$s să folosească cookie-urile pe %2$s?</string>
+  <!--
+    Message of a dialog offering more context about the cross origin storage permission.
+    %s is the name of the site URL (www.site1.example) trying to track the user's activity.
+  -->
+  <string name="mozac_feature_sitepermissions_storage_access_message">Poate doriți să blocați accesul dacă nu este clar de ce %s are nevoie de aceste date.</string>
+  <!-- Text for a negative button in the storage access permission request dialog. This button will not give access to this permission. -->
+  <string name="mozac_feature_sitepermissions_storage_access_not_allow">Blochează</string>
 </resources>

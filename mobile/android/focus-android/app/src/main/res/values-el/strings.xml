@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -487,7 +487,7 @@
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
   <string name="onboarding_first_screen_privacy_notice_link">Σημείωση απορρήτου</string>
   <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_agree_and_continue">Αποδοχή και συνέχεια</string>
+  <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Αποδοχή και συνέχεια</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
   <string name="a11y_link_available">Διαθέσιμος σύνδεσμος</string>
   <!--

@@ -16,6 +16,16 @@
   <string name="content_description_disable_private_browsing_button">Dezactivează navigarea privată</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">Caută sau introdu adresa</string>
+  <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
+  <string name="search_hint_general_engine">Caută pe web</string>
+  <!-- Placeholder text shown in search bar when using history search -->
+  <string name="history_search_hint">Caută în istoric</string>
+  <!-- Placeholder text shown in search bar when using bookmarks search -->
+  <string name="bookmark_search_hint">Caută în marcaje</string>
+  <!-- Placeholder text shown in search bar when using tabs search -->
+  <string name="tab_search_hint">Caută în file</string>
+  <!-- Placeholder text shown in the search bar when using application search engines -->
+  <string name="application_search_hint">Introdu termenii de căutare</string>
   <!-- No Open Tabs Message Description -->
   <string name="no_open_tabs_description">Filele deschise vor fi afișate aici.</string>
   <!-- No Private Tabs Message Description -->
@@ -89,6 +99,10 @@
   <string name="tab_tray_close_tabs_banner_positive_button_text">Vezi opțiunile</string>
   <!-- Text for the negative action button to dismiss the Close Tabs Banner. -->
   <string name="tab_tray_close_tabs_banner_negative_button_text">Înlătură</string>
+  <!-- Content description for close button in the auto-close dialog of the inactive tabs. -->
+  <string name="tab_tray_inactive_auto_close_button_content_description">Închide</string>
+  <!-- Text for turn on auto close tabs button in the auto-close dialog of the inactive tabs. -->
+  <string name="tab_tray_inactive_turn_on_auto_close_button_2">Activează închiderea automată</string>
   <!--
     Home screen icons - Long press shortcuts
 
@@ -108,12 +122,22 @@
   <!-- Text for the dropdown menu to remove a recent synced tab from the homescreen -->
   <string name="recent_synced_tab_menu_item_remove">Elimină</string>
   <!--
+    Text for the menu button to remove a grouped highlight from the user's browsing history
+    in the Recently visited section
+  -->
+  <string name="recent_tab_menu_item_remove">Elimină</string>
+  <!--
     History Metadata
 
     Header text for a section on the home screen that displays grouped highlights from the
     user's browsing history, such as topics they have researched or explored on the web
   -->
   <string name="history_metadata_header_2">Vizitate recent</string>
+  <!--
+    Text for the menu button to remove a grouped highlight from the user's browsing history
+    in the Recently visited section
+  -->
+  <string name="recently_visited_menu_item_remove">Elimină</string>
   <!--
     Browser Fragment
 
