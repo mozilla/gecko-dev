@@ -256,7 +256,6 @@ export class MigrationWizard extends HTMLElement {
               <li data-l10n-id="migration-chrome-windows-password-import-step1"><img class="chrome-icon-3dots" data-l10n-name="chrome-icon-3dots"/></li>
               <li data-l10n-id="migration-chrome-windows-password-import-step2"></li>
               <li data-l10n-id="migration-chrome-windows-password-import-step3"></li>
-              <li data-l10n-id="migration-chrome-windows-password-import-step4"></li>
             </ol>
             <p>
               <span data-l10n-id="migration-chrome-windows-password-import-step4"></span>
