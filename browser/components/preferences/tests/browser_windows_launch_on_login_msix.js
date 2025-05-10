@@ -11,14 +11,6 @@ ChromeUtils.defineESModuleGetters(this, {
   WindowsLaunchOnLogin: "resource://gre/modules/WindowsLaunchOnLogin.sys.mjs",
 });
 
-const { ExperimentAPI } = ChromeUtils.importESModule(
-  "resource://nimbus/ExperimentAPI.sys.mjs"
-);
-
-const { NimbusTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/NimbusTestUtils.sys.mjs"
-);
-
 add_task(async function test_check_uncheck_checkbox() {
   await ExperimentAPI.ready();
   let doCleanup = await NimbusTestUtils.enrollWithFeatureConfig({

@@ -48,7 +48,7 @@ add_task(async function test_experimentEnrollment() {
   meta = NimbusFeatures.testFeature.getEnrollmentMetadata();
   Assert.ok(!meta, "Experiment is no longer active");
 
-  assertEmptyStore(ExperimentAPI.manager.store);
+  await NimbusTestUtils.removeStore(ExperimentAPI.manager.store);
 });
 
 add_task(async function test_experimentEnrollment_startup() {

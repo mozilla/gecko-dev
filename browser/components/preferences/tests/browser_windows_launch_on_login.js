@@ -10,14 +10,6 @@ ChromeUtils.defineESModuleGetters(this, {
   WindowsLaunchOnLogin: "resource://gre/modules/WindowsLaunchOnLogin.sys.mjs",
 });
 
-const { ExperimentAPI } = ChromeUtils.importESModule(
-  "resource://nimbus/ExperimentAPI.sys.mjs"
-);
-
-const { NimbusTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/NimbusTestUtils.sys.mjs"
-);
-
 const { MockRegistry } = ChromeUtils.importESModule(
   "resource://testing-common/MockRegistry.sys.mjs"
 );
