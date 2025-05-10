@@ -198,6 +198,8 @@ class gfxPlatformFontList : public gfxFontInfoLoader {
       return mFontNameList.ConstIter();
     }
 
+    const nsTArray<uint32_t>& CJKPrefLangs() const { return mCJKPrefLangs; }
+
    private:
     static constexpr char kNamePrefix[] = "font.name.";
     static constexpr char kNameListPrefix[] = "font.name-list.";
@@ -206,6 +208,7 @@ class gfxPlatformFontList : public gfxFontInfoLoader {
 
     HashMap mFontName;
     HashMap mFontNameList;
+    nsTArray<uint32_t> mCJKPrefLangs;
     bool mEmojiHasUserValue = false;
   };
 
@@ -1055,7 +1058,6 @@ class gfxPlatformFontList : public gfxFontInfoLoader {
 
   nsLanguageAtomService* mLangService = nullptr;
 
-  nsTArray<uint32_t> mCJKPrefLangs MOZ_GUARDED_BY(mLock);
   nsTArray<mozilla::StyleGenericFontFamily> mDefaultGenericsLangGroup
       MOZ_GUARDED_BY(mLock);
 
