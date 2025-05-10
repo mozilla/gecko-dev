@@ -5289,7 +5289,7 @@
 # consider the target from the pointer position, set this to false.
 - name: dom.w3c_pointer_events.dispatch_click_on_pointer_capturing_element
   type: bool
-  value: false
+  value: true
   mirror: always
 
 # In case Touch API is enabled, this pref controls whether to support
