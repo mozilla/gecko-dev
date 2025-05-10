@@ -2944,6 +2944,7 @@
 - name: NewNamedLambdaObject
   arguments:
     templateObj: NamedLambdaObject*
+    initialHeap: gc::Heap
   result_type: Object
   alias_set: none
   generate_lir: true

@@ -286,8 +286,14 @@ WarpEnvironment WarpScriptOracle::createEnvironment() {
   auto [callObjectTemplate, namedLambdaTemplate] =
       script_->jitScript()->functionEnvironmentTemplates(fun);
 
-  return WarpEnvironment(
-      FunctionEnvironment(callObjectTemplate, namedLambdaTemplate));
+  gc::Heap initialHeap = gc::Heap::Default;
+  JitScript* jitScript = script_->jitScript();
+  if (jitScript->hasEnvAllocSite()) {
+    initialHeap = jitScript->icScript()->maybeEnvAllocSite()->initialHeap();
+  }
+
+  return WarpEnvironment(FunctionEnvironment(callObjectTemplate,
+                                             namedLambdaTemplate, initialHeap));
 }
 
 AbortReasonOr<WarpScriptSnapshot*> WarpScriptOracle::createScriptSnapshot() {

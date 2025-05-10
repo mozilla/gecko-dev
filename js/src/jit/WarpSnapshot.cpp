@@ -98,9 +98,11 @@ void WarpScriptSnapshot::dump(GenericPrinter& out) const {
       [&](JSObject* obj) { out.printf("Object: 0x%p\n", obj); },
       [&](const FunctionEnvironment& env) {
         out.printf(
-            "Function: callobject template 0x%p, named lambda template: 0x%p\n",
+            "Function: callobject template 0x%p, named lambda template: 0x%p,"
+            " initial heap %u\n",
             static_cast<JSObject*>(env.callObjectTemplate),
-            static_cast<JSObject*>(env.namedLambdaTemplate));
+            static_cast<JSObject*>(env.namedLambdaTemplate),
+            unsigned(env.initialHeap));
       });
 
   out.printf("\n");

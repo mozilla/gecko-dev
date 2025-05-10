@@ -8828,18 +8828,22 @@ class MPostWriteElementBarrier
 
 class MNewCallObject : public MUnaryInstruction,
                        public SingleObjectPolicy::Data {
+  gc::Heap initialHeap_;
+
  public:
   INSTRUCTION_HEADER(NewCallObject)
   TRIVIAL_NEW_WRAPPERS
 
-  explicit MNewCallObject(MConstant* templateObj)
-      : MUnaryInstruction(classOpcode, templateObj) {
+  explicit MNewCallObject(MConstant* templateObj, gc::Heap initialHeap)
+      : MUnaryInstruction(classOpcode, templateObj), initialHeap_(initialHeap) {
     setResultType(MIRType::Object);
   }
 
   CallObject* templateObject() const {
     return &getOperand(0)->toConstant()->toObject().as<CallObject>();
   }
+  gc::Heap initialHeap() const { return initialHeap_; }
+
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 
   [[nodiscard]] bool writeRecoverData(

@@ -453,12 +453,15 @@ using ConstantObjectEnvironment = OffthreadGCPtr<JSObject*>;
 struct FunctionEnvironment {
   OffthreadGCPtr<CallObject*> callObjectTemplate;
   OffthreadGCPtr<NamedLambdaObject*> namedLambdaTemplate;
+  gc::Heap initialHeap;
 
  public:
   FunctionEnvironment(CallObject* callObjectTemplate,
-                      NamedLambdaObject* namedLambdaTemplate)
+                      NamedLambdaObject* namedLambdaTemplate,
+                      gc::Heap initialHeap)
       : callObjectTemplate(callObjectTemplate),
-        namedLambdaTemplate(namedLambdaTemplate) {}
+        namedLambdaTemplate(namedLambdaTemplate),
+        initialHeap(initialHeap) {}
 };
 
 // Snapshot data for the environment object(s) created in the script's prologue.

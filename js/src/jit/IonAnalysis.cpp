@@ -4190,10 +4190,8 @@ bool jit::EliminateRedundantGCBarriers(MIRGraph& graph) {
   for (ReversePostorderIterator block = graph.rpoBegin();
        block != graph.rpoEnd(); block++) {
     for (MInstructionIterator insIter(block->begin());
-         insIter != block->end();) {
+         insIter != block->end(); insIter++) {
       MInstruction* ins = *insIter;
-      insIter++;
-
       if (ins->isNewCallObject()) {
         if (!TryEliminateGCBarriersForAllocation(graph.alloc(), ins)) {
           return false;
