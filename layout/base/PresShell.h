@@ -2352,7 +2352,7 @@ class PresShell final : public nsStubDocumentObserver,
      *                                  explanation of HandleEvent() for the
      *                                  details.
      * @param aGUIEvent                 The handled event.
-     * @param aPointerCapturingContent  The content which is capturing pointer
+     * @param aPointerCapturingElement  The element which is capturing pointer
      *                                  events if there is.  Otherwise, nullptr.
      * @param aDontRetargetEvents       Set aDontRetargetEvents of
      *                                  HandleEvent() which called this method.
@@ -2366,7 +2366,7 @@ class PresShell final : public nsStubDocumentObserver,
      */
     MOZ_CAN_RUN_SCRIPT bool DispatchPrecedingPointerEvent(
         AutoWeakFrame& aWeakFrameForPresShell, WidgetGUIEvent* aGUIEvent,
-        nsIContent* aPointerCapturingContent, bool aDontRetargetEvents,
+        Element* aPointerCapturingElement, bool aDontRetargetEvents,
         EventTargetData* aEventTargetData, nsEventStatus* aEventStatus);
 
     /**
@@ -2595,7 +2595,7 @@ class PresShell final : public nsStubDocumentObserver,
      *                                  explanation of HandleEvent() for the
      *                                  details.
      * @param aGUIEvent                 The handling event.
-     * @param aPointerCapturingContent  Current pointer capturing content.
+     * @param aPointerCapturingElement  Current pointer capturing element.
      *                                  Must not be nullptr.
      * @param aEventStatus              [in/out] The event status of aGUIEvent.
      * @return                          Basically, result of
@@ -2604,7 +2604,7 @@ class PresShell final : public nsStubDocumentObserver,
     MOZ_CAN_RUN_SCRIPT nsresult
     HandleEventWithPointerCapturingContentWithoutItsFrame(
         AutoWeakFrame& aWeakFrameForPresShell, WidgetGUIEvent* aGUIEvent,
-        nsIContent* aPointerCapturingContent, nsEventStatus* aEventStatus);
+        dom::Element* aPointerCapturingElement, nsEventStatus* aEventStatus);
 
     /**
      * HandleEventAtFocusedContent() handles aGUIEvent at focused content.
@@ -2801,7 +2801,8 @@ class PresShell final : public nsStubDocumentObserver,
      * the event.
      */
     [[nodiscard]] Result<nsIContent*, nsresult> GetOverrideClickTarget(
-        WidgetGUIEvent* aGUIEvent, nsIFrame* aFrameForPresShell);
+        WidgetGUIEvent* aGUIEvent, nsIFrame* aFrameForPresShell,
+        nsIContent* aPointerCapturingContent);
 
     /**
      * DispatchEvent() tries to dispatch aEvent and notifies aEventStateManager

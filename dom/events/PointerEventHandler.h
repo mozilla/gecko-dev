@@ -78,6 +78,10 @@ class PointerEventHandler final {
   // Return the preference value of implicit capture.
   static bool IsPointerEventImplicitCaptureForTouchEnabled();
 
+  // Return true if click/auxclick/contextmenu event should be fired on
+  // an element which was capturing the pointer at dispatching ePointerUp.
+  [[nodiscard]] static bool ShouldDispatchClickEventOnCapturingElement();
+
   // Called in ESM::PreHandleEvent to update current active pointers in a hash
   // table.
   static void UpdateActivePointerState(WidgetMouseEvent* aEvent,
@@ -143,6 +147,20 @@ class PointerEventHandler final {
 
   static dom::Element* GetPointerCapturingElement(uint32_t aPointerId);
 
+  /**
+   * Return an element which captured the pointer at dispatching the last
+   * ePointerUp event caused by eMouseUp except the compatibility mouse events
+   * of Touch Events or caused by eTouchEnd whose number of touches is one,
+   * i.e., the last touch release.
+   */
+  [[nodiscard]] static RefPtr<dom::Element>
+  GetPointerCapturingElementAtLastPointerUp();
+
+  /**
+   * Forget the pointer capturing element at dispatching the last ePointerUp.
+   */
+  static void ReleasePointerCapturingElementAtLastPointerUp();
+
   // Release pointer capture if captured by the specified content or it's
   // descendant. This is called to handle the case that the pointer capturing
   // content or it's parent is removed from the document.
@@ -183,6 +201,8 @@ class PointerEventHandler final {
    * @param aShell              The PresShell which is handling the event.
    * @param aEventTargetFrame   The frame for aEventTargetContent.
    * @param aEventTargetContent The event target node.
+   * @param aPointerCapturingElement
+   *                            The pointer capturing element.
    * @param aMouseOrTouchEvent  A mouse or touch event.
    * @param aDontRetargetEvents If true, this won't dispatch event with
    *                            different PresShell from aShell.  Otherwise,
@@ -207,9 +227,9 @@ class PointerEventHandler final {
    */
   MOZ_CAN_RUN_SCRIPT static void DispatchPointerFromMouseOrTouch(
       PresShell* aShell, nsIFrame* aEventTargetFrame,
-      nsIContent* aEventTargetContent, WidgetGUIEvent* aMouseOrTouchEvent,
-      bool aDontRetargetEvents, nsEventStatus* aStatus,
-      nsIContent** aMouseOrTouchEventTarget = nullptr);
+      nsIContent* aEventTargetContent, dom::Element* aPointerCapturingElement,
+      WidgetGUIEvent* aMouseOrTouchEvent, bool aDontRetargetEvents,
+      nsEventStatus* aStatus, nsIContent** aMouseOrTouchEventTarget = nullptr);
 
   /**
    * Synthesize eMouseMove or ePointerMove to dispatch mouse/pointer boundary

@@ -180,7 +180,7 @@ static UniquePtr<WidgetMouseEvent> CreateMouseOrPointerWidgetEvent(
  */
 static nsINode* GetCommonAncestorForMouseUp(
     nsINode* aCurrentMouseUpTarget, nsINode* aLastMouseDownTarget,
-    Maybe<FormControlType>& aLastMouseDownInputControlType) {
+    const Maybe<FormControlType>& aLastMouseDownInputControlType) {
   if (!aCurrentMouseUpTarget || !aLastMouseDownTarget) {
     return nullptr;
   }
@@ -4221,6 +4221,12 @@ nsresult EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
             esm->PostHandleMouseUp(mouseUpEvent, aStatus, aOverrideClickTarget);
       }
 
+      // After dispatching click events for this eMouseUp, nobody needs to refer
+      // to the preceding ePointerUp event target anymore because it was
+      // required by the click event dispatcher to consider the target.
+      // Therefore, PointerEventHandler should forget the target now.
+      PointerEventHandler::ReleasePointerCapturingElementAtLastPointerUp();
+
       if (PresShell* presShell = presContext->GetPresShell()) {
         RefPtr<nsFrameSelection> frameSelection = presShell->FrameSelection();
         frameSelection->SetDragState(false);
@@ -5986,12 +5992,28 @@ nsresult EventStateManager::SetClickCount(WidgetMouseEvent* aEvent,
       }
     }
   } else {
-    aEvent->mClickTarget =
-        !aEvent->mClickEventPrevented
-            ? GetCommonAncestorForMouseUp(
-                  mouseContent, mouseDownInfo.mLastMouseDownContent,
-                  mouseDownInfo.mLastMouseDownInputControlType)
-            : nullptr;
+    MOZ_ASSERT(aEvent->mMessage == eMouseUp);
+    aEvent->mClickTarget = [&]() -> EventTarget* {
+      if (aEvent->mClickEventPrevented ||
+          !mouseDownInfo.mLastMouseDownContent) {
+        return nullptr;
+      }
+      // If an element was capturing the pointer at dispatching ePointerUp, we
+      // should dispatch click/auxclick/contextmenu event on it to conform to
+      // Pointer Events. https://w3c.github.io/pointerevents/#event-dispatch
+      if (PointerEventHandler::ShouldDispatchClickEventOnCapturingElement()) {
+        const RefPtr<Element> capturingElementAtLastPointerUp =
+            PointerEventHandler::GetPointerCapturingElementAtLastPointerUp();
+        if (capturingElementAtLastPointerUp &&
+            capturingElementAtLastPointerUp->GetPresContext(
+                Element::PresContextFor::eForComposedDoc) == mPresContext) {
+          return capturingElementAtLastPointerUp;
+        }
+      }
+      return GetCommonAncestorForMouseUp(
+          mouseContent, mouseDownInfo.mLastMouseDownContent,
+          mouseDownInfo.mLastMouseDownInputControlType);
+    }();
     if (aEvent->mClickTarget) {
       aEvent->mClickCount = mouseDownInfo.mClickCount;
       mouseDownInfo.mClickCount = 0;

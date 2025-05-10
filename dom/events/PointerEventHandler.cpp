@@ -5,19 +5,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "PointerEventHandler.h"
-#include "mozilla/EventForwards.h"
-#include "nsIContentInlines.h"
-#include "nsIFrame.h"
+
 #include "PointerEvent.h"
 #include "PointerLockManager.h"
-#include "nsRFPService.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/StaticPrefs_ui.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/BrowserParent.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/MouseEventBinding.h"
+#include "nsIContentInlines.h"
+#include "nsIFrame.h"
+#include "nsIWeakReferenceUtils.h"
+#include "nsRFPService.h"
 #include "nsUserCharacteristics.h"
 
 namespace mozilla {
@@ -41,6 +43,10 @@ static nsClassHashtable<nsUint32HashKey, PointerInfo>* sActivePointersIds;
 static nsTHashMap<nsUint32HashKey, BrowserParent*>*
     sPointerCaptureRemoteTargetTable = nullptr;
 
+// Keep the capturing element at dispatching the last pointer up event to
+// consider the following click, auxclick or contextmenu event target.
+MOZ_RUNINIT nsWeakPtr sPointerCapturingElementAtLastPointerUpEvent;
+
 /* static */
 void PointerEventHandler::InitializeStatics() {
   MOZ_ASSERT(!sPointerCaptureList, "InitializeStatics called multiple times!");
@@ -60,6 +66,7 @@ void PointerEventHandler::ReleaseStatics() {
   sPointerCaptureList = nullptr;
   delete sActivePointersIds;
   sActivePointersIds = nullptr;
+  sPointerCapturingElementAtLastPointerUpEvent = nullptr;
   if (sPointerCaptureRemoteTargetTable) {
     MOZ_ASSERT(XRE_IsParentProcess());
     delete sPointerCaptureRemoteTargetTable;
@@ -70,6 +77,12 @@ void PointerEventHandler::ReleaseStatics() {
 /* static */
 bool PointerEventHandler::IsPointerEventImplicitCaptureForTouchEnabled() {
   return StaticPrefs::dom_w3c_pointer_events_implicit_capture();
+}
+
+/* static */
+bool PointerEventHandler::ShouldDispatchClickEventOnCapturingElement() {
+  return StaticPrefs::
+      dom_w3c_pointer_events_dispatch_click_on_pointer_capturing_element();
 }
 
 /* static */
@@ -118,6 +131,7 @@ void PointerEventHandler::UpdateActivePointerState(WidgetMouseEvent* aEvent,
               nullptr, /* aIsOnlySynthesizedForTests = */ true));
       return;
     case ePointerDown:
+      sPointerCapturingElementAtLastPointerUpEvent = nullptr;
       // In this case we switch pointer to active state
       if (WidgetPointerEvent* pointerEvent = aEvent->AsPointerEvent()) {
         // XXXedgar, test could possibly synthesize a mousedown event on a
@@ -578,6 +592,16 @@ Element* PointerEventHandler::GetPointerCapturingElement(
 }
 
 /* static */
+RefPtr<Element>
+PointerEventHandler::GetPointerCapturingElementAtLastPointerUp() {
+  return do_QueryReferent(sPointerCapturingElementAtLastPointerUpEvent);
+}
+
+void PointerEventHandler::ReleasePointerCapturingElementAtLastPointerUp() {
+  sPointerCapturingElementAtLastPointerUpEvent = nullptr;
+}
+
+/* static */
 void PointerEventHandler::ReleaseIfCaptureByDescendant(nsIContent* aContent) {
   // We should check that aChild does not contain pointer capturing elements.
   // If it does we should release the pointer capture for the elements.
@@ -764,12 +788,15 @@ EventMessage PointerEventHandler::ToPointerEventMessage(
 /* static */
 void PointerEventHandler::DispatchPointerFromMouseOrTouch(
     PresShell* aShell, nsIFrame* aEventTargetFrame,
-    nsIContent* aEventTargetContent, WidgetGUIEvent* aMouseOrTouchEvent,
-    bool aDontRetargetEvents, nsEventStatus* aStatus,
+    nsIContent* aEventTargetContent, Element* aPointerCapturingElement,
+    WidgetGUIEvent* aMouseOrTouchEvent, bool aDontRetargetEvents,
+    nsEventStatus* aStatus,
     nsIContent** aMouseOrTouchEventTarget /* = nullptr */) {
   MOZ_ASSERT(aEventTargetFrame || aEventTargetContent);
   MOZ_ASSERT(aMouseOrTouchEvent);
 
+  nsWeakPtr pointerCapturingElementWeak =
+      do_GetWeakReference(aPointerCapturingElement);
   EventMessage pointerMessage = eVoidEvent;
   if (aMouseOrTouchEvent->mClass == eMouseEventClass) {
     WidgetMouseEvent* mouseEvent = aMouseOrTouchEvent->AsMouseEvent();
@@ -826,6 +853,19 @@ void PointerEventHandler::DispatchPointerFromMouseOrTouch(
     if (pointerMessage == eVoidEvent) {
       return;
     }
+    // If the touch is a single tap release, we will dispatch click or auxclick
+    // event later unless it's suppressed.  The event target should be the
+    // pointer capturing element right now, i.e., at dispatching ePointerUp.
+    // Although we cannot know whether the touch is a single tap here, we should
+    // store the last touch pointer capturing element.  If this is not a single
+    // tap end, the stored element will be ignored due to not dispatching click
+    // nor auxclick.
+    if (touchEvent->mMessage == eTouchEnd &&
+        touchEvent->mTouches.Length() == 1) {
+      MOZ_ASSERT(!pointerCapturingElementWeak);
+      pointerCapturingElementWeak = do_GetWeakReference(
+          GetPointerCapturingElement(touchEvent->mTouches[0]->Identifier()));
+    }
     RefPtr<PresShell> shell(aShell);
     for (uint32_t i = 0; i < touchEvent->mTouches.Length(); ++i) {
       Touch* touch = touchEvent->mTouches[i];
@@ -873,6 +913,14 @@ void PointerEventHandler::DispatchPointerFromMouseOrTouch(
       }
     }
   }
+  // If we dispatched an ePointerUp event while an element capturing the
+  // pointer, we should keep storing it to consider click, auxclick and
+  // contextmenu event target later.
+  if (!aShell->IsDestroying() && pointerMessage == ePointerUp &&
+      pointerCapturingElementWeak) {
+    sPointerCapturingElementAtLastPointerUpEvent =
+        std::move(pointerCapturingElementWeak);
+  }
 }
 
 /* static */
@@ -894,6 +942,16 @@ void PointerEventHandler::NotifyDestroyPresContext(
     }
     if (data->Empty()) {
       iter.Remove();
+    }
+  }
+  if (const RefPtr<Element> capturingElementAtLastPointerUp =
+          GetPointerCapturingElementAtLastPointerUp()) {
+    // The pointer capturing element may belong to different document from the
+    // destroying nsPresContext. Check whether the composed document's
+    // nsPresContext is the destroying one or not.
+    if (capturingElementAtLastPointerUp->GetPresContext(
+            Element::eForComposedDoc) == aPresContext) {
+      ReleasePointerCapturingElementAtLastPointerUp();
     }
   }
   // Clean up active pointer info

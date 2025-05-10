@@ -5284,6 +5284,14 @@
   value: @IS_NIGHTLY_BUILD@
   mirror: always
 
+# `click` event target is defined as overridden by pointer capture target in
+# Pointer Events.  Set this to true if we should conform to it.  Otherwise,
+# consider the target from the pointer position, set this to false.
+- name: dom.w3c_pointer_events.dispatch_click_on_pointer_capturing_element
+  type: bool
+  value: false
+  mirror: always
+
 # In case Touch API is enabled, this pref controls whether to support
 # ontouch* event handlers, document.createTouch, document.createTouchList and
 # document.createEvent("TouchEvent").

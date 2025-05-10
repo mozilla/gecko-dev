@@ -15,7 +15,13 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1447993
 
   var win;
   function start() {
-    SpecialPowers.pushPrefEnv({"set": [["dom.w3c_touch_events.enabled", 1]]},
+    // This test is ported to pointerevent_click_during_parent_capture.html to
+    // check the standardized behavior.  Therefore, when we delete the pref,
+    // we can remove this test.
+    SpecialPowers.pushPrefEnv({"set": [
+      ["dom.w3c_touch_events.enabled", 1],
+      ["dom.w3c_pointer_events.dispatch_click_on_pointer_capturing_element", false],
+    ]},
     function() {
       win = window.open("window_bug1447993.html", "testwindow",
                         "width=" + window.screen.width +

@@ -7774,7 +7774,7 @@ bool PresShell::EventHandler::ComputeEventTargetFrameAndPresShellAtEventPoint(
 
 bool PresShell::EventHandler::DispatchPrecedingPointerEvent(
     AutoWeakFrame& aWeakFrameForPresShell, WidgetGUIEvent* aGUIEvent,
-    nsIContent* aPointerCapturingContent, bool aDontRetargetEvents,
+    Element* aPointerCapturingElement, bool aDontRetargetEvents,
     EventTargetData* aEventTargetData, nsEventStatus* aEventStatus) {
   MOZ_ASSERT(aGUIEvent);
   MOZ_ASSERT(aEventTargetData);
@@ -7807,26 +7807,27 @@ bool PresShell::EventHandler::DispatchPrecedingPointerEvent(
   }
   nsIFrame* targetFrame = targetFrameOrError.unwrap();
 
-  if (aPointerCapturingContent) {
+  if (aPointerCapturingElement) {
     Result<nsIContent*, nsresult> overrideClickTargetOrError =
-        GetOverrideClickTarget(aGUIEvent, aWeakFrameForPresShell.GetFrame());
+        GetOverrideClickTarget(aGUIEvent, aWeakFrameForPresShell.GetFrame(),
+                               aPointerCapturingElement);
     if (MOZ_UNLIKELY(overrideClickTargetOrError.isErr())) {
       return false;
     }
     aEventTargetData->mOverrideClickTarget =
         overrideClickTargetOrError.unwrap();
     aEventTargetData->mPresShell =
-        PresShell::GetShellForEventTarget(nullptr, aPointerCapturingContent);
+        PresShell::GetShellForEventTarget(nullptr, aPointerCapturingElement);
     if (!aEventTargetData->mPresShell) {
       // If we can't process event for the capturing content, release
       // the capture.
       PointerEventHandler::ReleaseIfCaptureByDescendant(
-          aPointerCapturingContent);
+          aPointerCapturingElement);
       return false;
     }
 
-    targetFrame = aPointerCapturingContent->GetPrimaryFrame();
-    aEventTargetData->SetFrameAndContent(targetFrame, aPointerCapturingContent);
+    targetFrame = aPointerCapturingElement->GetPrimaryFrame();
+    aEventTargetData->SetFrameAndContent(targetFrame, aPointerCapturingElement);
   }
 
   AutoWeakFrame weakTargetFrame(targetFrame);
@@ -7837,7 +7838,7 @@ bool PresShell::EventHandler::DispatchPrecedingPointerEvent(
   nsCOMPtr<nsIContent> mouseOrTouchEventTargetContent;
   PointerEventHandler::DispatchPointerFromMouseOrTouch(
       presShell, aEventTargetData->GetFrame(), pointerEventTargetContent,
-      aGUIEvent, aDontRetargetEvents, aEventStatus,
+      aPointerCapturingElement, aGUIEvent, aDontRetargetEvents, aEventStatus,
       getter_AddRefs(mouseOrTouchEventTargetContent));
 
   // If the target frame is alive, the caller should keep handling the event
@@ -8010,6 +8011,10 @@ void PresShell::EventHandler::MaybeSynthesizeCompatMouseEventsForTouchEnd(
       StaticPrefs::test_events_async_enabled()) {
     return;
   }
+
+  auto cleanUpPointerCapturingElementAtLastPointerUp = MakeScopeExit([]() {
+    PointerEventHandler::ReleasePointerCapturingElementAtLastPointerUp();
+  });
 
   // If the tap was consumed or 2 or more touches occurred, we don't need the
   // compatibility mouse events.
@@ -8509,19 +8514,19 @@ PresShell::EventHandler::ComputeRootFrameToHandleEventWithCapturingContent(
 nsresult
 PresShell::EventHandler::HandleEventWithPointerCapturingContentWithoutItsFrame(
     AutoWeakFrame& aWeakFrameForPresShell, WidgetGUIEvent* aGUIEvent,
-    nsIContent* aPointerCapturingContent, nsEventStatus* aEventStatus) {
+    Element* aPointerCapturingElement, nsEventStatus* aEventStatus) {
   MOZ_ASSERT(aGUIEvent);
-  MOZ_ASSERT(aPointerCapturingContent);
-  MOZ_ASSERT(!aPointerCapturingContent->GetPrimaryFrame(),
+  MOZ_ASSERT(aPointerCapturingElement);
+  MOZ_ASSERT(!aPointerCapturingElement->GetPrimaryFrame(),
              "Handle the event with frame rather than only with the content");
   MOZ_ASSERT(aEventStatus);
 
   RefPtr<PresShell> presShellForCapturingContent =
-      PresShell::GetShellForEventTarget(nullptr, aPointerCapturingContent);
+      PresShell::GetShellForEventTarget(nullptr, aPointerCapturingElement);
   if (!presShellForCapturingContent) {
     // If we can't process event for the capturing content, release
     // the capture.
-    PointerEventHandler::ReleaseIfCaptureByDescendant(aPointerCapturingContent);
+    PointerEventHandler::ReleaseIfCaptureByDescendant(aPointerCapturingElement);
     // Since we don't dispatch ePointeUp nor ePointerCancel in this case,
     // EventStateManager::PostHandleEvent does not have a chance to dispatch
     // ePointerLostCapture event.  Therefore, we need to dispatch it here.
@@ -8530,7 +8535,8 @@ PresShell::EventHandler::HandleEventWithPointerCapturingContentWithoutItsFrame(
   }
 
   Result<nsIContent*, nsresult> overrideClickTargetOrError =
-      GetOverrideClickTarget(aGUIEvent, aWeakFrameForPresShell.GetFrame());
+      GetOverrideClickTarget(aGUIEvent, aWeakFrameForPresShell.GetFrame(),
+                             aPointerCapturingElement);
   if (MOZ_UNLIKELY(overrideClickTargetOrError.isErr())) {
     return NS_OK;
   }
@@ -8540,11 +8546,11 @@ PresShell::EventHandler::HandleEventWithPointerCapturingContentWithoutItsFrame(
   // Dispatch events to the capturing content even it's frame is
   // destroyed.
   PointerEventHandler::DispatchPointerFromMouseOrTouch(
-      presShellForCapturingContent, nullptr, aPointerCapturingContent,
-      aGUIEvent, false, aEventStatus, nullptr);
+      presShellForCapturingContent, nullptr, aPointerCapturingElement,
+      aPointerCapturingElement, aGUIEvent, false, aEventStatus, nullptr);
 
   if (presShellForCapturingContent == mPresShell) {
-    return HandleEventWithTarget(aGUIEvent, nullptr, aPointerCapturingContent,
+    return HandleEventWithTarget(aGUIEvent, nullptr, aPointerCapturingElement,
                                  aEventStatus, true, nullptr,
                                  overrideClickTarget);
   }
@@ -8552,7 +8558,7 @@ PresShell::EventHandler::HandleEventWithPointerCapturingContentWithoutItsFrame(
   EventHandler eventHandlerForCapturingContent(
       std::move(presShellForCapturingContent));
   return eventHandlerForCapturingContent.HandleEventWithTarget(
-      aGUIEvent, nullptr, aPointerCapturingContent, aEventStatus, true, nullptr,
+      aGUIEvent, nullptr, aPointerCapturingElement, aEventStatus, true, nullptr,
       overrideClickTarget);
 }
 
@@ -12305,37 +12311,63 @@ void PresShell::NotifyStyleSheetServiceSheetRemoved(StyleSheet* aSheet,
 }
 
 Result<nsIContent*, nsresult> PresShell::EventHandler::GetOverrideClickTarget(
-    WidgetGUIEvent* aGUIEvent, nsIFrame* aFrameForPresShell) {
+    WidgetGUIEvent* aGUIEvent, nsIFrame* aFrameForPresShell,
+    nsIContent* aPointerCapturingContent) {
   if (aGUIEvent->mMessage != eMouseUp) {
     return nullptr;
   }
 
   // If aFrameForPresShell has already been reframed before this is called,
   // we cannot keep handling aGUIEvent.
-  if (MOZ_UNLIKELY(!aFrameForPresShell)) {
-    return Err(NS_ERROR_FAILURE);
+  auto overrideClickTargetOrError = [&]() -> Result<nsIContent*, nsresult> {
+    if (PointerEventHandler::ShouldDispatchClickEventOnCapturingElement() &&
+        aPointerCapturingContent) {
+      return aGUIEvent->AsMouseEvent()->mInputSource ==
+                     MouseEvent_Binding::MOZ_SOURCE_TOUCH
+                 // If the event is a compatibility mouse event of Touch Events,
+                 // `click` event target should be the element capturing the
+                 // touch (Note that eTouchStart caused implicit pointer capture
+                 // by default when the web app does not use the pointer capture
+                 // API).  However, if the web app released the pointer capture,
+                 // the target should be the closest common ancestor of
+                 // ePointerDown and ePointerUp.  These things will be handled
+                 // by EventStateManager::SetClickCount().  Therefore, we should
+                 // not override the click event target for a single tap here.
+                 ? nullptr
+                 // On the other hand, we want to use the pointer capturing
+                 // element as the target of `click` event caused by other input
+                 // devices.
+                 : aPointerCapturingContent;
+    }
+
+    if (MOZ_UNLIKELY(!aFrameForPresShell)) {
+      return Err(NS_ERROR_FAILURE);
+    }
+
+    MOZ_ASSERT(aGUIEvent->mClass == eMouseEventClass);
+    WidgetMouseEvent* mouseEvent = aGUIEvent->AsMouseEvent();
+
+    uint32_t flags = 0;
+    RelativeTo relativeTo{aFrameForPresShell};
+    nsPoint eventPoint =
+        nsLayoutUtils::GetEventCoordinatesRelativeTo(aGUIEvent, relativeTo);
+    if (mouseEvent->mIgnoreRootScrollFrame) {
+      flags |= INPUT_IGNORE_ROOT_SCROLL_FRAME;
+    }
+
+    nsIFrame* target =
+        FindFrameTargetedByInputEvent(aGUIEvent, relativeTo, eventPoint, flags);
+    if (!target) {
+      return nullptr;
+    }
+    return target->GetContent();
+  }();
+  if (MOZ_UNLIKELY(overrideClickTargetOrError.isErr())) {
+    return overrideClickTargetOrError;
   }
-
-  MOZ_ASSERT(aGUIEvent->mClass == eMouseEventClass);
-  WidgetMouseEvent* mouseEvent = aGUIEvent->AsMouseEvent();
-
-  uint32_t flags = 0;
-  RelativeTo relativeTo{aFrameForPresShell};
-  nsPoint eventPoint =
-      nsLayoutUtils::GetEventCoordinatesRelativeTo(aGUIEvent, relativeTo);
-  if (mouseEvent->mIgnoreRootScrollFrame) {
-    flags |= INPUT_IGNORE_ROOT_SCROLL_FRAME;
-  }
-
-  nsIFrame* target =
-      FindFrameTargetedByInputEvent(aGUIEvent, relativeTo, eventPoint, flags);
-  if (!target) {
-    return nullptr;
-  }
-
-  nsIContent* overrideClickTarget = target->GetContent();
-  return overrideClickTarget
-             ? overrideClickTarget->GetInclusiveFlattenedTreeAncestorElement()
+  return overrideClickTargetOrError.inspect()
+             ? overrideClickTargetOrError.inspect()
+                   ->GetInclusiveFlattenedTreeAncestorElement()
              : nullptr;
 }
 

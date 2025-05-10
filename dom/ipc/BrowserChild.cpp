@@ -1377,6 +1377,12 @@ mozilla::ipc::IPCResult BrowserChild::RecvHandleTap(
       }
       break;
   }
+
+  // mAPZEventState may not dispatch the compatibility mouse events.  Therefore,
+  // we should release the pointer capturing element at the last ePointerUp
+  // here.
+  PointerEventHandler::ReleasePointerCapturingElementAtLastPointerUp();
+
   return IPC_OK();
 }
 

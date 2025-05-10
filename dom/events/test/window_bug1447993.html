@@ -51,13 +51,15 @@
       function captureEvent(e) {
         eventLog.push([e.type, e.composedPath()]);
       }
+      const pathToTarget = [ target, area, body, html, document, window ];
+      const pathToArea = [ area, body, html, document, window ];
       var expectedEvents = [
-        ["pointerdown", [ target, area, body, html, document, window ]],
-        ["mousedown", [ target, area, body, html, document, window ]],
-        ["pointerup", [ area, body, html, document, window ]],
-        ["mouseup", [ area, body, html, document, window ]],
-        ["click", [ target, area, body, html, document, window ]],
-        ];
+        ["pointerdown", pathToTarget],
+        ["mousedown", pathToTarget],
+        ["pointerup", pathToArea],
+        ["mouseup", pathToArea],
+        ["click", pathToTarget],
+      ];
 
       window.addEventListener("pointerdown",
         function(e) {
@@ -106,18 +108,17 @@
       function captureEvent(e) {
         eventLog.push([e.type, e.composedPath()]);
       }
+      const pathToTarget = [ target, area, body, html, document, window ];
+      const pathToArea = [ area, body, html, document, window ];
       var expectedEvents = [
-        ["pointerdown", [ target, area, body, html, document, window ]],
-        ["touchstart", [ target, area, body, html, document, window ]],
-        ["pointerup", [ area, body, html, document, window ]],
-        ["touchend", [ target, area, body, html, document, window ]],
-        /*
-        // Right now touch event initated mousedown/up (and then click) are
-        // dispatched in APZ, and there isn't JS exposed way to test that.
-        ["mousedown", [ target, area, body, html, document, window ]],
-        ["mouseup", [ target, area, body, html, document, window ]],
-        ["click", [ target, area, body, html, document, window ]],*/
-        ];
+        ["pointerdown", pathToTarget],
+        ["touchstart", pathToTarget],
+        ["pointerup", pathToArea],
+        ["touchend", pathToTarget],
+        ["mousedown", pathToTarget],
+        ["mouseup", pathToTarget],
+        ["click", pathToTarget],
+      ];
 
       window.addEventListener("pointerdown",
         function(e) {
@@ -138,7 +139,7 @@
       window.addEventListener("touchend", function(e) {
           captureEvent(e);
         }, { once: true});
-      /*window.addEventListener("mousedown",
+      window.addEventListener("mousedown",
         function(e) {
           captureEvent(e);
         }, { once: true});
@@ -147,7 +148,7 @@
         }, { once: true});
       window.addEventListener("click", function(e) {
           captureEvent(e);
-        }, { once: true});*/
+        }, { once: true});
 
       synthesizeTouchAtCenter(target, {}, window);
 
@@ -182,13 +183,15 @@
       function captureEvent(e) {
         eventLog.push([e.type, e.composedPath()]);
       }
+      const pathToTarget = [ target, area, body, html, doc, win ];
+      const pathToArea = [ area, body, html, doc, win ];
       var expectedEvents = [
-        ["pointerdown", [ target, area, body, html, doc, win ]],
-        ["mousedown", [ target, area, body, html, doc, win ]],
-        ["pointerup", [ area, body, html, doc, win ]],
-        ["mouseup", [ area, body, html, doc, win ]],
-        ["click", [ target, area, body, html, doc, win ]],
-        ];
+        ["pointerdown", pathToTarget],
+        ["mousedown", pathToTarget],
+        ["pointerup", pathToArea],
+        ["mouseup", pathToArea],
+        ["click",  pathToTarget],
+      ];
 
       win.addEventListener("pointerdown",
         function(e) {
