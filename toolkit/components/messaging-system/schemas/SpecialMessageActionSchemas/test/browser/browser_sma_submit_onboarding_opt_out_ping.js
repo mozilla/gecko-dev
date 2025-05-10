@@ -3,49 +3,50 @@
 
 "use strict";
 
+const { ExperimentAPI } = ChromeUtils.importESModule(
+  "resource://nimbus/ExperimentAPI.sys.mjs"
+);
 const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
 NimbusTestUtils.init(this);
 
-add_setup(() => {
+add_setup(async () => {
   Services.fog.initializeFOG();
+
+  await ExperimentAPI.ready();
 });
 
 add_task(async function test_SUBMIT_ONBOARDING_OPT_OUT_PING() {
   // Arrange fake experiment enrollment details.
-  const manager = NimbusTestUtils.stubs.manager();
-  sinon.stub(SpecialMessageActions, "_experimentManager").get(() => manager);
-
-  await manager.onStartup();
-  await manager.enroll(
+  await ExperimentAPI.manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
       featureId: "testFeature",
     }),
     "test"
   );
-  manager.unenroll("foo");
-  await manager.enroll(
+  ExperimentAPI.manager.unenroll("foo");
+  await ExperimentAPI.manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig("bar", {
       featureId: "testFeature",
     }),
     "test"
   );
-  manager.unenroll("bar");
-  await manager.enroll(
+  ExperimentAPI.manager.unenroll("bar");
+  await ExperimentAPI.manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig("baz", {
       featureId: "testFeature",
     }),
     "test"
   );
 
-  await manager.enroll(
+  await ExperimentAPI.manager.enroll(
     NimbusTestUtils.factories.recipe("rol1", { isRollout: true }),
     "test"
   );
-  manager.unenroll("rol1");
-  await manager.enroll(
+  ExperimentAPI.manager.unenroll("rol1");
+  await ExperimentAPI.manager.enroll(
     NimbusTestUtils.factories.recipe("rol2", { isRollout: true }),
     "test"
   );
@@ -92,5 +93,5 @@ add_task(async function test_SUBMIT_ONBOARDING_OPT_OUT_PING() {
 
   ok(await promise, "`onboarding-opt-out` ping was submitted");
 
-  NimbusTestUtils.cleanupManager(["baz", "rol2"], { manager });
+  NimbusTestUtils.cleanupManager(["baz", "rol2"]);
 });
