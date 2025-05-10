@@ -1103,39 +1103,42 @@ tab-group {
     outline-offset: -1px;
   }
 
-  #tabbrowser-tabs[orient="vertical"]:not([expanded]) & {
-    width: 24px;
-    min-height: 24px;
-    max-width: 24px;
-    /*
-     * Keep tab group label square in collapsed sidebar centered without
-     * margin: auto, similar to how tabs' .tab-background use margin in order
-     * to stay centered in the collapsed sidebar. This helps prevent the tab
-     * group label from jumping around during the sidebar collapsed-to-expanded
-     * transition.
-     */
-    margin-inline: calc(var(--tab-inner-inline-margin) + (var(--tab-collapsed-background-width) - 24px) / 2);
-    font-size: 0;
-
-    &::first-letter {
-      font: message-box;
-      font-weight: var(--font-weight-bold);
-      line-height: 24px;
-    }
-  }
-
-  #tabbrowser-tabs[orient="vertical"][expanded] & {
-    align-self: start;
-    box-sizing: content-box;
-    line-height: var(--tab-group-label-height);
-    max-width: -moz-available;
-    margin-inline-end: var(--space-medium);
-    padding-block: calc((24px - var(--tab-group-label-height)) / 2);
-  }
-
   #tabbrowser-tabs[tablist-has-focus] &.tablist-keyboard-focus {
     outline: var(--focus-outline);
     outline-offset: var(--focus-outline-offset);
+  }
+
+  #tabbrowser-tabs[orient="vertical"] & {
+    height: 24px;
+    min-height: auto;
+    line-height: 24px;
+
+    #tabbrowser-tabs:not([expanded]) & {
+      width: 24px;
+      max-width: 24px;
+      font-size-adjust: 0;
+
+      /*
+       * Keep tab group label square in collapsed sidebar centered without
+       * margin: auto, similar to how tabs' .tab-background use margin in order
+       * to stay centered in the collapsed sidebar. This helps prevent the tab
+       * group label from jumping around during the sidebar collapsed-to-expanded
+       * transition.
+       */
+      margin-inline: calc(var(--tab-inner-inline-margin) + (var(--tab-collapsed-background-width) - 24px) / 2);
+
+      &::first-letter {
+        font: message-box;
+        font-weight: var(--font-weight-bold);
+        line-height: 24px;
+      }
+    }
+
+    #tabbrowser-tabs[expanded] & {
+      align-self: start;
+      max-width: -moz-available;
+      margin-inline-end: var(--space-medium);
+    }
   }
 }
 
