@@ -612,7 +612,7 @@ uint32_t HTMLImageElement::Height() { return GetWidthHeightForImage().height; }
 
 uint32_t HTMLImageElement::Width() { return GetWidthHeightForImage().width; }
 
-nsIntSize HTMLImageElement::NaturalSize() {
+CSSIntSize HTMLImageElement::NaturalSize() {
   if (!mCurrentRequest) {
     return {};
   }
@@ -629,7 +629,7 @@ nsIntSize HTMLImageElement::NaturalSize() {
     return {};
   }
 
-  nsIntSize size;  // defaults to 0,0
+  CSSIntSize size; // defaults to 0,0
   if (!StaticPrefs::image_natural_size_fallback_enabled()) {
     size.width = intrinsicSize.mWidth.valueOr(0);
     size.height = intrinsicSize.mHeight.valueOr(0);
