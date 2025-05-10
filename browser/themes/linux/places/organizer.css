@@ -70,16 +70,15 @@
 
 .expander-up,
 .expander-down {
-  padding: 2px 0;
-  padding-inline-start: 2px;
+  padding: 2px;
+
+  > .button-box {
+    appearance: auto;
+    -moz-default-appearance: -moz-menulist-arrow-button;
+  }
 }
 
 .expander-up > .button-box {
-  appearance: auto;
-  -moz-default-appearance: -moz-menulist-arrow-button;
-}
-
-.expander-down > .button-box {
   transform: scaleY(-1);
 }
 
