@@ -27,6 +27,10 @@ add_setup(function () {
   do_get_profile();
 });
 
+function assertEmptyStore(store) {
+  NimbusTestUtils.assert.storeIsEmpty(store);
+}
+
 /**
  * Assert the manager has no active pref observers.
  */

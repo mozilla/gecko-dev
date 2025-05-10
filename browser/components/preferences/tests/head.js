@@ -1,9 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { NimbusTestUtils } = ChromeUtils.import(
-  "resource://testing-common/NimbusTestUtils.sys.mjs"
-);
 const { PermissionTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/PermissionTestUtils.sys.mjs"
 );
@@ -18,9 +15,8 @@ ChromeUtils.defineLazyGetter(this, "QuickSuggestTestUtils", () => {
 
 ChromeUtils.defineESModuleGetters(this, {
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
 });
-
-NimbusTestUtils.init(this);
 
 const kDefaultWait = 2000;
 
@@ -515,7 +511,15 @@ async function setupLabsTest(recipes) {
   await ExperimentAPI._rsLoader.updateRecipes("test");
 
   return async function cleanup() {
-    await NimbusTestUtils.removeStore(ExperimentAPI.manager.store);
+    const store = ExperimentAPI.manager.store;
+
+    store._store._saver.disarm();
+    if (store._store._saver.isRunning) {
+      await store._store._saver._runningPromise;
+    }
+
+    await IOUtils.remove(store._store.path);
+
     await SpecialPowers.popPrefEnv();
   };
 }
