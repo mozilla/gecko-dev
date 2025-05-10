@@ -64,6 +64,10 @@
 
 # Build directories
 ^obj.*/
+
+# Hazard analysis results
+^haz-.*/
+
 # Gradle build errors
 ^build/reports/
 
