@@ -130,17 +130,6 @@ export class _ExperimentManager {
   }
 
   /**
-   * Whether or not Nimbus is enabled.
-   *
-   * @returns {boolean} Whether or not Nimbus is enabled.
-   *
-   * @deprecated Use ExperimentAPI.studiesEnabled instead.
-   */
-  get studiesEnabled() {
-    return lazy.ExperimentAPI.studiesEnabled;
-  }
-
-  /**
    * Creates a targeting context with following filters:
    *
    *   * `activeExperiments`: an array of slugs of all the active experiments
