@@ -448,11 +448,6 @@ scheme = "https"
 ["test_ext_storage_smoke_test.html"]
 
 ["test_ext_streamfilter_multiple.html"]
-skip-if = [
-  "!debug", # Bug 1628642
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http2", # Bug 1628642
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1628642
-]
 
 ["test_ext_streamfilter_processswitch.html"]
 
