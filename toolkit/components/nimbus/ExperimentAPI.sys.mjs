@@ -172,6 +172,10 @@ export const ExperimentAPI = {
     if (CRASHREPORTER_ENABLED) {
       this.manager.store.on("update", this._annotateCrashReport);
       this._annotateCrashReport();
+
+      lazy.CleanupManager.addCleanupHandler(
+        ExperimentAPI._removeCrashReportAnnotator
+      );
     }
 
     Services.prefs.addObserver(
@@ -202,6 +206,9 @@ export const ExperimentAPI = {
   _resetForTests() {
     this._rsLoader.disable();
     this.manager.store.off("update", this._annotateCrashReport);
+    lazy.CleanupManager.removeCleanupHandler(
+      ExperimentAPI._removeCrashReportAnnotator
+    );
     initialized = false;
   },
 
@@ -246,6 +253,12 @@ export const ExperimentAPI = {
       "NimbusEnrollments",
       activeEnrollments
     );
+  },
+
+  _removeCrashReportAnnotator() {
+    if (initialized) {
+      this.manager.store.off("update", this._annotateCrashReport);
+    }
   },
 
   _onStudiesEnabledChanged() {
@@ -785,17 +798,8 @@ ExperimentAPI._annotateCrashReport =
   ExperimentAPI._annotateCrashReport.bind(ExperimentAPI);
 ExperimentAPI._onStudiesEnabledChanged =
   ExperimentAPI._onStudiesEnabledChanged.bind(ExperimentAPI);
-
-if (CRASHREPORTER_ENABLED) {
-  lazy.CleanupManager.addCleanupHandler(() => {
-    if (initialized) {
-      ExperimentAPI.manager.store.off(
-        "update",
-        ExperimentAPI._annotateCrashReport
-      );
-    }
-  });
-}
+ExperimentAPI._removeCrashReportAnnotator =
+  ExperimentAPI._removeCrashReportAnnotator.bind(ExperimentAPI);
 
 ChromeUtils.defineLazyGetter(ExperimentAPI, "_manager", function () {
   return lazy.ExperimentManager;
