@@ -413,6 +413,416 @@ TEST_F(TestQuotaManager,
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
 }
 
+// Test simple OpenClientDirectory behavior and verify that origin access time
+// updates are triggered as expected.
+TEST_F(TestQuotaManager, OpenClientDirectory_Simple) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+
+  const auto saveOriginAccessTimeCountBefore = SaveOriginAccessTimeCount();
+  const auto saveOriginAccessTimeCountInternalBefore =
+      SaveOriginAccessTimeCountInternal();
+
+  PerformOnBackgroundThread([]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    {
+      auto value =
+          Await(quotaManager->OpenClientDirectory(GetTestClientMetadata()));
+      ASSERT_TRUE(value.IsResolve());
+
+      ClientDirectoryLockHandle directoryLockHandle =
+          std::move(value.ResolveValue());
+
+      {
+        auto destroyingDirectoryLockHandle = std::move(directoryLockHandle);
+      }
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
+  });
+
+  ProcessPendingNormalOriginOperations();
+
+  const auto saveOriginAccessTimeCountAfter = SaveOriginAccessTimeCount();
+  const auto saveOriginAccessTimeCountInternalAfter =
+      SaveOriginAccessTimeCountInternal();
+
+  // XXX We currently observe only one access time update (on last access), but
+  // it should have been updated twice!
+  ASSERT_EQ(saveOriginAccessTimeCountAfter - saveOriginAccessTimeCountBefore,
+            1u);
+  ASSERT_EQ(saveOriginAccessTimeCountInternalAfter -
+                saveOriginAccessTimeCountInternalBefore,
+            1u);
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+// Test simple OpenClientDirectory behavior when the origin directory exists,
+// and verify that access time updates are triggered on first and last access.
+TEST_F(TestQuotaManager, OpenClientDirectory_Simple_OriginDirectoryExists) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(InitializeStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
+  ASSERT_NO_FATAL_FAILURE(
+      InitializeTemporaryOrigin(GetTestOriginMetadata(),
+                                /* aCreateIfNonExistent */ true));
+
+  const auto saveOriginAccessTimeCountBefore = SaveOriginAccessTimeCount();
+  const auto saveOriginAccessTimeCountInternalBefore =
+      SaveOriginAccessTimeCountInternal();
+
+  PerformOnBackgroundThread([]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    {
+      auto value =
+          Await(quotaManager->OpenClientDirectory(GetTestClientMetadata()));
+      ASSERT_TRUE(value.IsResolve());
+
+      ClientDirectoryLockHandle directoryLockHandle =
+          std::move(value.ResolveValue());
+
+      {
+        auto destroyingDirectoryLockHandle = std::move(directoryLockHandle);
+      }
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
+  });
+
+  ProcessPendingNormalOriginOperations();
+
+  const auto saveOriginAccessTimeCountAfter = SaveOriginAccessTimeCount();
+  const auto saveOriginAccessTimeCountInternalAfter =
+      SaveOriginAccessTimeCountInternal();
+
+  ASSERT_EQ(saveOriginAccessTimeCountAfter - saveOriginAccessTimeCountBefore,
+            2u);
+  ASSERT_EQ(saveOriginAccessTimeCountInternalAfter -
+                saveOriginAccessTimeCountInternalBefore,
+            2u);
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+// Test OpenClientDirectory when the origin directory doesn't exist, and verify
+// that no access time update occurs. The directory should not be created
+// solely for updating access time.
+TEST_F(TestQuotaManager,
+       OpenClientDirectory_Simple_NonExistingOriginDirectory) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(InitializeStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
+  ASSERT_NO_FATAL_FAILURE(
+      InitializeTemporaryOrigin(GetTestOriginMetadata(),
+                                /* aCreateIfNonExistent */ false));
+
+  const auto saveOriginAccessTimeCountBefore = SaveOriginAccessTimeCount();
+  const auto saveOriginAccessTimeCountInternalBefore =
+      SaveOriginAccessTimeCountInternal();
+
+  PerformOnBackgroundThread([]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    {
+      auto value = Await(quotaManager->OpenClientDirectory(
+          GetTestClientMetadata(),
+          /* aInitializeOrigin */ true, /* aCreateIfNonExistent */ false));
+      ASSERT_TRUE(value.IsResolve());
+
+      ClientDirectoryLockHandle directoryLockHandle =
+          std::move(value.ResolveValue());
+
+      {
+        auto destroyingDirectoryLockHandle = std::move(directoryLockHandle);
+      }
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
+  });
+
+  ProcessPendingNormalOriginOperations();
+
+  const auto saveOriginAccessTimeCountAfter = SaveOriginAccessTimeCount();
+  const auto saveOriginAccessTimeCountInternalAfter =
+      SaveOriginAccessTimeCountInternal();
+
+  // This is expected to be 0, the origin directory should not be created
+  // solely to update access time when, for example, LSNG explicitly requests
+  // that it not be created if it doesn't exist. The access time will be saved
+  // later.
+  ASSERT_EQ(saveOriginAccessTimeCountAfter - saveOriginAccessTimeCountBefore,
+            0u);
+  ASSERT_EQ(saveOriginAccessTimeCountInternalAfter -
+                saveOriginAccessTimeCountInternalBefore,
+            0u);
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+// Test OpenClientDirectory when a clear operation is scheduled before
+// releasing the directory lock. Verifies that access time updates still occur,
+// even with the scheduled clear operation.
+TEST_F(TestQuotaManager,
+       OpenClientDirectory_SimpleWithScheduledClearing_OriginDirectoryExists) {
+  auto testOriginMetadata = GetTestOriginMetadata();
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(InitializeStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
+  ASSERT_NO_FATAL_FAILURE(
+      InitializeTemporaryOrigin(testOriginMetadata,
+                                /* aCreateIfNonExistent */ true));
+
+  const auto saveOriginAccessTimeCountBefore = SaveOriginAccessTimeCount();
+  const auto saveOriginAccessTimeCountInternalBefore =
+      SaveOriginAccessTimeCountInternal();
+
+  PerformOnBackgroundThread([testOriginMetadata]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    {
+      auto value =
+          Await(quotaManager->OpenClientDirectory(GetTestClientMetadata()));
+      ASSERT_TRUE(value.IsResolve());
+
+      ClientDirectoryLockHandle directoryLockHandle =
+          std::move(value.ResolveValue());
+
+      nsCOMPtr<nsIPrincipal> principal =
+          BasePrincipal::CreateContentPrincipal(testOriginMetadata.mOrigin);
+      QM_TRY(MOZ_TO_RESULT(principal), QM_TEST_FAIL);
+
+      mozilla::ipc::PrincipalInfo principalInfo;
+      QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)),
+             QM_TEST_FAIL);
+
+      // This can't be awaited here, it would cause a hang, on the other hand,
+      // it must be scheduled before the handle is moved below.
+      quotaManager->ClearStoragesForOrigin(
+          /* aPersistenceType */ Nothing(), principalInfo);
+
+      {
+        auto destroyingDirectoryLockHandle = std::move(directoryLockHandle);
+      }
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
+  });
+
+  ProcessPendingNormalOriginOperations();
+
+  const auto saveOriginAccessTimeCountAfter = SaveOriginAccessTimeCount();
+  const auto saveOriginAccessTimeCountInternalAfter =
+      SaveOriginAccessTimeCountInternal();
+
+  // XXX We currently observe only one access time update, but it should have
+  // been updated twice!
+  ASSERT_EQ(saveOriginAccessTimeCountAfter - saveOriginAccessTimeCountBefore,
+            1u);
+  ASSERT_EQ(saveOriginAccessTimeCountInternalAfter -
+                saveOriginAccessTimeCountInternalBefore,
+            1u);
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+// Test OpenClientDirectory when a client directory opening is already ongoing
+// and the origin directory exists. Verifies that each opening completes only
+// after the origin access time update triggered by first access has finished,
+// and that access time is updated only on first and last access as expected.
+TEST_F(TestQuotaManager, OpenClientDirectory_Ongoing_OriginDirectoryExists) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(InitializeStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
+  ASSERT_NO_FATAL_FAILURE(
+      InitializeTemporaryOrigin(GetTestOriginMetadata(),
+                                /* aCreateIfNonExistent */ true));
+
+  const auto saveOriginAccessTimeCountBefore = SaveOriginAccessTimeCount();
+  const auto saveOriginAccessTimeCountInternalBefore =
+      SaveOriginAccessTimeCountInternal();
+
+  PerformOnBackgroundThread([saveOriginAccessTimeCountBefore,
+                             saveOriginAccessTimeCountInternalBefore]() {
+    auto testClientMetadata = GetTestClientMetadata();
+
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    ClientDirectoryLockHandle directoryLockHandle;
+    ClientDirectoryLockHandle directoryLockHandle2;
+
+    nsTArray<RefPtr<BoolPromise>> promises;
+
+    promises.AppendElement(
+        quotaManager->OpenClientDirectory(testClientMetadata)
+            ->Then(GetCurrentSerialEventTarget(), __func__,
+                   [saveOriginAccessTimeCountBefore, &directoryLockHandle](
+                       QuotaManager::ClientDirectoryLockHandlePromise::
+                           ResolveOrRejectValue&& aValue) {
+                     if (aValue.IsReject()) {
+                       return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                           __func__);
+                     }
+
+                     QuotaManager* quotaManager = QuotaManager::Get();
+                     MOZ_RELEASE_ASSERT(quotaManager);
+
+                     const auto saveOriginAccessTimeCountNow =
+                         quotaManager->SaveOriginAccessTimeCount();
+
+                     const auto saveOriginAccessTimeCountDelta =
+                         saveOriginAccessTimeCountNow -
+                         saveOriginAccessTimeCountBefore;
+
+                     // XXX This callback should only be called once the access
+                     // time update has completed, but it's currently triggered
+                     // inconsistently — sometimes before the update finishes.
+                     // For now, we allow either 0 or 1 updates to reflect this
+                     // timing issue.
+                     EXPECT_TRUE(saveOriginAccessTimeCountDelta == 0u ||
+                                 saveOriginAccessTimeCountDelta == 1u);
+
+                     directoryLockHandle = std::move(aValue.ResolveValue());
+
+                     return BoolPromise::CreateAndResolve(true, __func__);
+                   })
+            ->Then(quotaManager->IOThread(), __func__,
+                   [saveOriginAccessTimeCountInternalBefore](
+                       const BoolPromise::ResolveOrRejectValue& aValue) {
+                     if (aValue.IsReject()) {
+                       return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                           __func__);
+                     }
+
+                     QuotaManager* quotaManager = QuotaManager::Get();
+                     MOZ_RELEASE_ASSERT(quotaManager);
+
+                     const auto saveOriginAccessTimeCountInternalNow =
+                         quotaManager->SaveOriginAccessTimeCountInternal();
+
+                     EXPECT_EQ(saveOriginAccessTimeCountInternalNow -
+                                   saveOriginAccessTimeCountInternalBefore,
+                               1u);
+
+                     return BoolPromise::CreateAndResolve(true, __func__);
+                   }));
+    promises.AppendElement(
+        quotaManager->OpenClientDirectory(testClientMetadata)
+            ->Then(GetCurrentSerialEventTarget(), __func__,
+                   [saveOriginAccessTimeCountBefore, &directoryLockHandle2](
+                       QuotaManager::ClientDirectoryLockHandlePromise::
+                           ResolveOrRejectValue&& aValue) {
+                     if (aValue.IsReject()) {
+                       return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                           __func__);
+                     }
+
+                     QuotaManager* quotaManager = QuotaManager::Get();
+                     MOZ_RELEASE_ASSERT(quotaManager);
+
+                     const auto saveOriginAccessTimeCountNow =
+                         quotaManager->SaveOriginAccessTimeCount();
+
+                     const auto saveOriginAccessTimeCountDelta =
+                         saveOriginAccessTimeCountNow -
+                         saveOriginAccessTimeCountBefore;
+
+                     // XXX This callback should only be called once the access
+                     // time update has completed, but it's currently triggered
+                     // inconsistently — sometimes before the update finishes.
+                     // For now, we allow either 0 or 1 updates to reflect this
+                     // timing issue.
+                     EXPECT_TRUE(saveOriginAccessTimeCountDelta == 0u ||
+                                 saveOriginAccessTimeCountDelta == 1u);
+
+                     directoryLockHandle2 = std::move(aValue.ResolveValue());
+
+                     return BoolPromise::CreateAndResolve(true, __func__);
+                   })
+            ->Then(quotaManager->IOThread(), __func__,
+                   [saveOriginAccessTimeCountInternalBefore](
+                       const BoolPromise::ResolveOrRejectValue& aValue) {
+                     if (aValue.IsReject()) {
+                       return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                           __func__);
+                     }
+
+                     QuotaManager* quotaManager = QuotaManager::Get();
+                     MOZ_RELEASE_ASSERT(quotaManager);
+
+                     const auto saveOriginAccessTimeCountInternalNow =
+                         quotaManager->SaveOriginAccessTimeCountInternal();
+
+                     EXPECT_EQ(saveOriginAccessTimeCountInternalNow -
+                                   saveOriginAccessTimeCountInternalBefore,
+                               1u);
+
+                     return BoolPromise::CreateAndResolve(true, __func__);
+                   }));
+
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
+
+    {
+      auto destroyingDirectoryLockHandle = std::move(directoryLockHandle);
+    }
+
+    {
+      auto destroyingDirectoryLockHandle2 = std::move(directoryLockHandle2);
+    }
+  });
+
+  ProcessPendingNormalOriginOperations();
+
+  const auto saveOriginAccessTimeCountAfter = SaveOriginAccessTimeCount();
+  const auto saveOriginAccessTimeCountInternalAfter =
+      SaveOriginAccessTimeCountInternal();
+
+  ASSERT_EQ(saveOriginAccessTimeCountAfter - saveOriginAccessTimeCountBefore,
+            2u);
+  ASSERT_EQ(saveOriginAccessTimeCountInternalAfter -
+                saveOriginAccessTimeCountInternalBefore,
+            2u);
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
 // Test OpenClientDirctory when an opening of a client directory is already
 // ongoing and storage shutdown is scheduled after that.
 TEST_F(TestQuotaManager, OpenClientDirectory_OngoingWithScheduledShutdown) {
