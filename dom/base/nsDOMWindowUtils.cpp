@@ -3200,10 +3200,13 @@ nsDOMWindowUtils::ZoomToFocusedInput() {
   // root content document. In this scenario, we want to ensure that the
   // main-thread side knows to scroll the content into view before we get
   // the bounding content rect and ask APZ to zoom in to the target content.
-  presShell->ScrollContentIntoView(
-      refContent, ScrollAxis(WhereToScroll::Center, WhenToScroll::IfNotVisible),
-      ScrollAxis(WhereToScroll::Center, WhenToScroll::IfNotVisible),
-      ScrollFlags::ScrollOverflowHidden);
+  if (nsIFrame* frame = refContent->GetPrimaryFrame()) {
+    presShell->ScrollFrameIntoView(
+        frame, Nothing(),
+        ScrollAxis(WhereToScroll::Center, WhenToScroll::IfNotVisible),
+        ScrollAxis(WhereToScroll::Center, WhenToScroll::IfNotVisible),
+        ScrollFlags::ScrollOverflowHidden);
+  }
 
   RefPtr<Document> document = presShell->GetDocument();
   if (!document) {

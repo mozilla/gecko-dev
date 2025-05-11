@@ -1,0 +1,45 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tests that zoom-to-focused-input works for an element in `content-visibility: auto` subtree</title>
+<script src="apz_test_utils.js"></script>
+<script src="/tests/SimpleTest/paint_listener.js"></script>
+<style>
+.spacer {
+  height: 200vh;
+}
+.auto {
+  content-visibility: auto;
+}
+</style>
+<body>
+<div class="spacer"></div>
+<div class=auto><input id=target type="text"/></div>
+<div class="spacer"></div>
+<script>
+async function test() {
+  is(window.scrollY, 0, "The initial scroll offset should be 0");
+
+  // Focus to the input element without scrolling.
+  const input = document.querySelector("#target");
+  const focusPromise = new Promise(resolve => {
+    input.addEventListener("focus", resolve);
+  });
+  input.focus({ preventScroll: true });
+  await focusPromise;
+  is(document.activeElement, input, "The input element has been focused");
+
+  // Invoke zoom-to-focused-input.
+  const utils = SpecialPowers.getDOMWindowUtils(window);
+  utils.zoomToFocusedInput();
+
+  ok(window.scrollY > 0, `The scroll offset have been changed: ${window.scrollY}`);
+}
+
+waitUntilApzStable()
+.then(test)
+.then(subtestDone, subtestFailed);
+</script>
+</body>
+</html>
