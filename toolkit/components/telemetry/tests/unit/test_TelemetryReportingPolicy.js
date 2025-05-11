@@ -8,20 +8,18 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
   WinTaskbarJumpList: "resource:///modules/WindowsJumpLists.sys.mjs",
 });
 
-const { NimbusTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/NimbusTestUtils.sys.mjs"
-);
 const { Policy, TelemetryReportingPolicy } = ChromeUtils.importESModule(
   "resource://gre/modules/TelemetryReportingPolicy.sys.mjs"
 );
-
-NimbusTestUtils.init(this);
 
 // Some tests in this test file can't outside desktop Firefox because of
 // features that aren't included in the build.
@@ -134,9 +132,9 @@ add_setup(async function test_setup() {
 });
 
 add_setup(skipIfNotBrowser(), async () => {
-  const { cleanup } = await NimbusTestUtils.setupTest();
-
-  registerCleanupFunction(cleanup);
+  // Needed to interact with Nimbus.
+  await ExperimentManager.onStartup();
+  await ExperimentAPI.ready();
 });
 
 add_task(skipIfNotBrowser(), async function test_firstRun() {
