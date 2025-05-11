@@ -10,6 +10,9 @@ const { ClientID } = ChromeUtils.importESModule(
 const { ClientEnvironment } = ChromeUtils.importESModule(
   "resource://normandy/lib/ClientEnvironment.sys.mjs"
 );
+const { ExperimentManager } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/ExperimentManager.sys.mjs"
+);
 const { ExperimentStore } = ChromeUtils.importESModule(
   "resource://nimbus/lib/ExperimentStore.sys.mjs"
 );
@@ -1017,11 +1020,11 @@ add_task(async function test_randomizationUnit() {
   await ClientID.setProfileGroupID(NOT_ENROLL);
 
   Assert.ok(
-    await ExperimentAPI.manager.isInBucketAllocation(normandyIdBucketing),
+    await ExperimentManager.isInBucketAllocation(normandyIdBucketing),
     "in bucketing using normandy_id"
   );
   Assert.ok(
-    !(await ExperimentAPI.manager.isInBucketAllocation(groupIdBucketing)),
+    !(await ExperimentManager.isInBucketAllocation(groupIdBucketing)),
     "not in bucketing using group_id"
   );
 
@@ -1029,11 +1032,11 @@ add_task(async function test_randomizationUnit() {
   await ClientID.setProfileGroupID(ENROLL);
 
   Assert.ok(
-    !(await ExperimentAPI.manager.isInBucketAllocation(normandyIdBucketing)),
+    !(await ExperimentManager.isInBucketAllocation(normandyIdBucketing)),
     "not in bucketing using normandy_id"
   );
   Assert.ok(
-    await ExperimentAPI.manager.isInBucketAllocation(groupIdBucketing),
+    await ExperimentManager.isInBucketAllocation(groupIdBucketing),
     "in bucketing using group_id"
   );
 });
