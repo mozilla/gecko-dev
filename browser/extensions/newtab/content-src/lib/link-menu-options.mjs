@@ -118,6 +118,7 @@ export const LinkMenuOptions = {
     icon: "dismiss",
     action: ac.AlsoToMain({
       type: at.BLOCK_URL,
+      source: eventSource,
       data: tiles.map(site => ({
         url: site.original_url || site.open_url || site.url,
         // pocket_id is only for pocket stories being in highlights, and then dismissed.
