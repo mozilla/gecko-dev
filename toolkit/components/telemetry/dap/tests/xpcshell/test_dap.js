@@ -10,14 +10,17 @@ const { HttpServer } = ChromeUtils.importESModule(
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
+const { NimbusTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
+);
+
+NimbusTestUtils.init(this);
 
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   DAPTelemetrySender: "resource://gre/modules/DAPTelemetrySender.sys.mjs",
   DAPVisitCounter: "resource://gre/modules/DAPVisitCounter.sys.mjs",
-  NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
 });
 
 const BinaryInputStream = Components.Constructor(
@@ -174,7 +177,7 @@ add_task(
     skip_if: () => !AppConstants.MOZ_NORMANDY,
   },
   async function testVisitCounterNimbus() {
-    await lazy.ExperimentManager.onStartup();
+    const { cleanup } = await NimbusTestUtils.setupTest();
     await lazy.DAPVisitCounter.startup();
 
     Assert.ok(
@@ -183,17 +186,16 @@ add_task(
     );
 
     // Enroll experiment
-    let doExperimentCleanup =
-      await lazy.NimbusTestUtils.enrollWithFeatureConfig({
-        featureId: "dapTelemetry",
-        value: {
-          enabled: true,
-          visitCountingEnabled: true,
-          visitCountingExperimentList: {
-            [tasks[2].id]: ["mozilla.org", "example.com"],
-          },
+    let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
+      featureId: "dapTelemetry",
+      value: {
+        enabled: true,
+        visitCountingEnabled: true,
+        visitCountingExperimentList: {
+          [tasks[2].id]: ["mozilla.org", "example.com"],
         },
-      });
+      },
+    });
 
     Assert.ok(
       lazy.DAPVisitCounter.timerId !== null,
@@ -230,5 +232,7 @@ add_task(
       lazy.DAPVisitCounter.timerId === null,
       "Submission timer should not exist after unenrollment"
     );
+
+    cleanup();
   }
 );
