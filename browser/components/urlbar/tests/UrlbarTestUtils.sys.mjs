@@ -15,7 +15,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUIUtils: "resource:///modules/BrowserUIUtils.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
-  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   FormHistoryTestUtils:
     "resource://testing-common/FormHistoryTestUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
@@ -1262,8 +1261,8 @@ export var UrlbarTestUtils = {
     feature = "urlbar",
     enrollmentType = "rollout"
   ) {
-    this.info("initNimbusFeature awaiting ExperimentManager.onStartup");
-    await lazy.ExperimentManager.onStartup();
+    this.info("initNimbusFeature awaiting ExperimentAPI.init");
+    const initializedExperimentAPI = await lazy.ExperimentAPI.init();
 
     this.info("initNimbusFeature awaiting ExperimentAPI.ready");
     await lazy.ExperimentAPI.ready();
@@ -1271,27 +1270,37 @@ export var UrlbarTestUtils = {
     this.info(
       `initNimbusFeature awaiting NimbusTestUtils.enrollWithFeatureConfig`
     );
-    const doCleanup = await lazy.NimbusTestUtils.enrollWithFeatureConfig(
-      {
-        featureId: lazy.NimbusFeatures[feature].featureId,
-        value: { enabled: true, ...value },
-      },
-      {
-        isRollout: enrollmentType === "rollout",
-      }
-    );
+    const doExperimentCleanup =
+      await lazy.NimbusTestUtils.enrollWithFeatureConfig(
+        {
+          featureId: lazy.NimbusFeatures[feature].featureId,
+          value,
+        },
+        {
+          isRollout: enrollmentType === "rollout",
+        }
+      );
 
     this.info("initNimbusFeature done");
 
+    const cleanup = () => {
+      doExperimentCleanup();
+      if (initializedExperimentAPI) {
+        // Only reset if we're in an xpcshell-test and actually initialized the
+        // ExperimentAPI.
+        lazy.ExperimentAPI._resetForTests();
+      }
+    };
+
     this.registerCleanupFunction?.(async () => {
-      // If `doCleanup()` has already been called (i.e., by the caller), it will
+      // If `cleanup()` has already been called (i.e., by the caller), it will
       // throw an error here.
       try {
-        doCleanup();
+        cleanup();
       } catch (error) {}
     });
 
-    return doCleanup;
+    return cleanup;
   },
 
   /**

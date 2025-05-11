@@ -8,7 +8,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AmpSuggestions: "resource:///modules/urlbar/private/AmpSuggestions.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
-  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
@@ -198,8 +197,8 @@ class _QuickSuggestTestUtils {
   } = {}) {
     this.#log("ensureQuickSuggestInit", "Started");
 
-    this.#log("ensureQuickSuggestInit", "Awaiting ExperimentManager.onStartup");
-    await lazy.ExperimentManager.onStartup();
+    this.#log("ensureQuickSuggestInit", "Awaiting ExperimentAPI.init");
+    const initializedExperimentAPI = await lazy.ExperimentAPI.init();
 
     this.#log("ensureQuickSuggestInit", "Awaiting ExperimentAPI.ready");
     await lazy.ExperimentAPI.ready();
@@ -260,6 +259,12 @@ class _QuickSuggestTestUtils {
       if (!cleanupCalled) {
         cleanupCalled = true;
         await this.#uninitQuickSuggest(prefs, !!merinoSuggestions);
+
+        if (initializedExperimentAPI) {
+          // Only reset if we're in an xpcshell-test and actually initialized
+          // the ExperimentAPI.
+          lazy.ExperimentAPI._resetForTests();
+        }
       }
     };
     this.registerCleanupFunction?.(cleanup);
