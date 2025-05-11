@@ -44,6 +44,7 @@ skip-if = [
   "os == 'android'",   # Android cannot copy image contents (bug 1299578)
 ]
 support-files = "file_test_clipboard_pngPreservesTransparency.js"
+scheme = "https" # ImageDecoder requires secure context
 
 ["test_contextmenu_by_mouse_on_unix.html"]
 run-if = [
