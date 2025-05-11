@@ -1644,6 +1644,10 @@
   <string name="bookmark_sort_menu_newest">เรียงตามใหม่ล่าสุด</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_oldest">เรียงตามเก่าที่สุด</string>
+  <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_a_to_z">เรียงตาม ก ถึง ฮ</string>
+  <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_z_to_a">เรียงตาม ฮ ถึง ก</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected
@@ -3447,6 +3451,8 @@
   <string name="setup_checklist_task_default_browser">ตั้งเป็นเบราว์เซอร์เริ่มต้น</string>
   <!-- The title of the sign-in task for the setup checklist -->
   <string name="setup_checklist_task_account_sync">ลงชื่อเข้าบัญชีของคุณ</string>
+  <!-- The title of the theme selection task for the setup checklist -->
+  <string name="setup_checklist_task_theme_selection">เลือกชุดตกแต่ง</string>
   <!-- The title of the explore extensions task for the setup checklist -->
   <string name="setup_checklist_task_explore_extensions">สำรวจส่วนขยาย</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->

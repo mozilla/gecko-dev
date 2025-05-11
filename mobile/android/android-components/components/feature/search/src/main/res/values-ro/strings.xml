@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!--
+    Search Widget
+
+    Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="search_widget_content_description">Deschide o nouă filă de %1$s</string>
+  <!-- Text preview for smaller sized widgets. -->
+  <string name="search_widget_text_short">Caută</string>
+  <!-- Text preview for larger sized widgets. -->
+  <string name="search_widget_text_long">Caută pe web</string>
+  <!-- Content description (not visible, for screen readers etc.): Voice search. -->
+  <string name="search_widget_voice">Căutare vocală</string>
+</resources>

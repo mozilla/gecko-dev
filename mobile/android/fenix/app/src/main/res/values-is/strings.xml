@@ -1481,12 +1481,33 @@
   <string name="download_multi_select_title">%1$d valið</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Fjarlægja</string>
+  <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
+  <string name="download_file_has_not_enough_storage_dialog_title">Ekki nægilegt pláss</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message">Þetta tæki hefur ekki nægilegt pláss til að sækja &lt;b&gt;%s&lt;/b&gt;.</string>
+  <!--
+    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will navigate the user to the device's storage management settings.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">Sýsla með skrár</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">Hætta við</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Eyða</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Fara til baka</string>
   <!-- Content description for the toolbar "Navigate up" button -->
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Fara upp</string>
+  <!-- Content description for the toolbar back button while searching the downloads -->
+  <string name="download_close_search_description">Til baka og loka leit</string>
+  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <string name="download_clear_search_description">Hreinsa</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Deila vefslóð</string>
   <!-- Text for the button to share the download file -->

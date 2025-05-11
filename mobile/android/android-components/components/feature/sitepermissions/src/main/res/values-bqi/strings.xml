@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Title of a dialog for a notification permission request. %1$s is the domain name of the website. -->
+  <string name="mozac_feature_sitepermissions_notification_title">هیلین %1$s وارسۊوی بفشنه؟</string>
+  <!-- Title of a dialog for a camera permission request. %1$s is the domain name of the website. -->
+  <string name="mozac_feature_sitepermissions_camera_title">هیلین %1$s شؽواتگر ایسا ن و کار گره؟</string>
+  <!-- Title of a dialog for a microphone permission request. %1$s is the domain name of the website. -->
+  <string name="mozac_feature_sitepermissions_microfone_title">هیلین %1$s میکروفووݩ ایسا ن و کار گره؟</string>
+  <!-- Title of a dialog for a location permission request. %1$s is the domain name of the website. -->
+  <string name="mozac_feature_sitepermissions_location_title">هیلین %1$s جاگه ایسا ن و کار گره؟</string>
+  <!-- Title of a dialog for a camera and microphone permission request. %1$s is the domain name of the website. -->
+  <string name="mozac_feature_sitepermissions_camera_and_microphone">هیلین %1$s شؽواتگر وو میکروفووݩ ایسا ن و کار گره؟</string>
+  <!--
+    Option in a dialog for requesting a microphone permission, this option will give access to
+    the first microphone
+  -->
+  <string name="mozac_feature_sitepermissions_option_microphone_one">میکروفووݩ 1</string>
+  <!--
+    Option in a dialog for requesting a camera permission, this option will give access to
+    back facing camera
+  -->
+  <string name="mozac_feature_sitepermissions_back_facing_camera2">شؽواتگر پوشت</string>
+  <!--
+    Option in a dialog for requesting a camera permission, this option will give access to
+    front facing camera
+  -->
+  <string name="mozac_feature_sitepermissions_selfie_camera2">شؽواتگر جلاو</string>
+  <!--
+    Text for a positive button in a permission request dialog, this button will give
+    access to this permission
+  -->
+  <string name="mozac_feature_sitepermissions_allow">هشتن</string>
+  <!--
+    Text for a negative button in a permission request dialog, this button will do not give
+    access to this permission
+  -->
+  <string name="mozac_feature_sitepermissions_not_allow">نشتن</string>
+  <!-- Text for a positive button in a permission request dialog. This will always allow and remember the decision of the user, this is the special case of the notification permission, that is only ask one time -->
+  <string name="mozac_feature_sitepermissions_always_allow">هی</string>
+  <!-- Text for a negative button in the storage access permission request dialog. This button will not give access to this permission. -->
+  <string name="mozac_feature_sitepermissions_storage_access_not_allow">مسدۊد کردن</string>
+  <!-- Clickable text that will open a new tab navigating the user to online documentation about specific features. -->
+  <string name="mozac_feature_sitepermissions_learn_more_title">قلوه دووسته بۊین</string>
+</resources>
