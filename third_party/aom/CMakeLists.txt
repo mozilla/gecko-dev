@@ -59,7 +59,7 @@ endif()
 #
 # The VERSION number in project() should be updated when these variables are.
 set(LT_CURRENT 15)
-set(LT_REVISION 0)
+set(LT_REVISION 1)
 set(LT_AGE 12)
 math(EXPR SO_VERSION "${LT_CURRENT} - ${LT_AGE}")
 set(SO_FILE_VERSION "${SO_VERSION}.${LT_AGE}.${LT_REVISION}")
@@ -269,6 +269,43 @@ add_rtcd_build_step("${AOM_ROOT}/av1/common/av1_rtcd_defs.pl"
 
 add_library(aom_rtcd OBJECT ${AOM_RTCD_SOURCES})
 add_dependencies(aom_rtcd aom_version)
+
+if(CONFIG_HIGHWAY)
+  list(APPEND AOM_HIGHWAY_SOURCES
+              "${AOM_ROOT}/third_party/highway/hwy/abort.h"
+              "${AOM_ROOT}/third_party/highway/hwy/aligned_allocator.h"
+              "${AOM_ROOT}/third_party/highway/hwy/base.h"
+              "${AOM_ROOT}/third_party/highway/hwy/cache_control.h"
+              "${AOM_ROOT}/third_party/highway/hwy/per_target.h"
+              "${AOM_ROOT}/third_party/highway/hwy/print.h"
+              "${AOM_ROOT}/third_party/highway/hwy/foreach_target.h"
+              "${AOM_ROOT}/third_party/highway/hwy/highway_export.h"
+              "${AOM_ROOT}/third_party/highway/hwy/highway.h"
+              "${AOM_ROOT}/third_party/highway/hwy/print-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/timer-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/detect_compiler_arch.h"
+              "${AOM_ROOT}/third_party/highway/hwy/detect_targets.h"
+              "${AOM_ROOT}/third_party/highway/hwy/targets.h"
+              "${AOM_ROOT}/third_party/highway/hwy/ops/arm_neon-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/ops/arm_sve-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/ops/emu128-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/ops/generic_ops-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/ops/scalar-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/ops/set_macros-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/ops/shared-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/ops/x86_128-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/ops/x86_256-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/ops/x86_512-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/ops/x86_avx3-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/contrib/algo/copy-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/contrib/algo/find-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/contrib/algo/transform-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/contrib/dot/dot-inl.h"
+              "${AOM_ROOT}/third_party/highway/hwy/contrib/image/image.h"
+              "${AOM_ROOT}/third_party/highway/hwy/contrib/math/math-inl.h")
+  add_library(aom_hwy OBJECT ${AOM_HIGHWAY_SOURCES})
+  set(AOM_LIB_TARGETS ${AOM_LIB_TARGETS} aom_hwy)
+endif()
 
 if(ENABLE_EXAMPLES)
   add_library(aom_encoder_stats OBJECT ${AOM_ENCODER_STATS_SOURCES})

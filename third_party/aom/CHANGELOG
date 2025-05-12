@@ -1,3 +1,19 @@
+2025-04-11 v3.12.1
+  This release includes several bug fixes. This release is ABI
+  compatible with the last release. See
+  https://aomedia.googlesource.com/aom/+log/v3.12.0..v3.12.1 for all the
+  commits in this release.
+
+  - Bug Fixes
+    * b:396169342: Assertion
+      `av1_is_subpelmv_in_range(&ms_params.mv_limits, start_mv)' failed.
+    * b:401671154: typo in void init_src_params(...)
+    * Coverity defect 323670: Uninitialized scalar variable in
+      encode_with_and_without_superres()
+    * cmake: bump minimum version to 3.16
+    * cfl_ppc: fix subtract_average_vsx
+    * Fix an incorrect index in av1_highbd_pixel_proj_error_neon
+
 2025-02-10 v3.12.0
   This release includes new codec interfaces, compression efficiency and
   perceptual improvements, speedup and memory optimizations, and bug

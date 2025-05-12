@@ -2675,7 +2675,11 @@ typedef struct AV1_PRIMARY {
   /*!
    * Sequence parameters have been transmitted already and locked
    * or not. Once locked av1_change_config cannot change the seq
-   * parameters.
+   * parameters. Note that for SVC encoding the sequence parameters
+   * (operating_points_cnt_minus_1, operating_point_idc[],
+   * has_nonzero_operating_point_idc) should be updated whenever the
+   * number of layers is changed. This is done in the
+   * ctrl_set_svc_params().
    */
   int seq_params_locked;
 
@@ -3904,6 +3908,8 @@ void av1_set_screen_content_options(struct AV1_COMP *cpi,
                                     FeatureFlags *features);
 
 void av1_update_frame_size(AV1_COMP *cpi);
+
+void av1_set_svc_seq_params(AV1_PRIMARY *const ppi);
 
 typedef struct {
   int pyr_level;

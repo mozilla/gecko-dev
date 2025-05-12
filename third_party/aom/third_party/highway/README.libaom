@@ -1,0 +1,11 @@
+URL: https://github.com/google/highway
+
+Version: e92c12750d18c372867809b882dd3ec6874ecc73
+License: BSD-3-clause clear
+License File: LICENSE-BSD3
+
+Description:
+Highway is a C++ library that provides portable SIMD/vector intrinsics.
+
+Local Changes:
+Remove everything except hwy/ and LICENSE-BSD3

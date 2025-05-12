@@ -518,8 +518,6 @@ static void process_tpl_stats_frame(AV1_COMP *cpi) {
           const int gfu_boost = get_gfu_boost_from_r0_lap(
               min_boost_factor, MAX_GFUBOOST_FACTOR, cpi->rd.r0,
               cpi->ppi->p_rc.num_stats_required_for_gfu_boost);
-          // printf("old boost %d new boost %d\n", cpi->rc.gfu_boost,
-          //        gfu_boost);
           cpi->ppi->p_rc.gfu_boost = combine_prior_with_tpl_boost(
               min_boost_factor, MAX_BOOST_COMBINE_FACTOR,
               cpi->ppi->p_rc.gfu_boost, gfu_boost,
@@ -840,10 +838,12 @@ BLOCK_SIZE av1_select_sb_size(const AV1EncoderConfig *const oxcf, int width,
   }
   assert(oxcf->tool_cfg.superblock_size == AOM_SUPERBLOCK_SIZE_DYNAMIC);
 
-  if (number_spatial_layers > 1 ||
-      oxcf->resize_cfg.resize_mode != RESIZE_NONE) {
-    // Use the configured size (top resolution) for spatial layers or
-    // on resize.
+  if (number_spatial_layers > 1) {
+    // For spatial layers better selection may be done given the resolutions
+    // used across the layers, but for now use 64x64 for spatial layers.
+    return BLOCK_64X64;
+  } else if (oxcf->resize_cfg.resize_mode != RESIZE_NONE) {
+    // Use the configured size (top resolution) for resize.
     return AOMMIN(oxcf->frm_dim_cfg.width, oxcf->frm_dim_cfg.height) > 720
                ? BLOCK_128X128
                : BLOCK_64X64;

@@ -246,7 +246,6 @@ void AV1FwdTxfm2dMatchTest(TX_SIZE tx_size, lowbd_fwd_txfm_func target_func) {
   memset(&param, 0, sizeof(param));
   const int rows = tx_size_high[tx_size];
   const int cols = tx_size_wide[tx_size];
-  // printf("%d x %d\n", cols, rows);
   for (int tx_type = 0; tx_type < TX_TYPES; ++tx_type) {
     if (libaom_test::IsTxSizeTypeValid(
             tx_size, static_cast<TX_TYPE>(tx_type)) == false) {

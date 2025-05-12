@@ -235,12 +235,6 @@ static int64_t pick_wedge(const AV1_COMP *const cpi, const MACROBLOCK *const x,
 
     model_rd_sse_fn[MODELRD_TYPE_MASKED_COMPOUND](cpi, x, bsize, 0, sse, N,
                                                   &rate, &dist);
-    // int rate2;
-    // int64_t dist2;
-    // model_rd_with_curvfit(cpi, x, bsize, 0, sse, N, &rate2, &dist2);
-    // printf("sse %"PRId64": leagacy: %d %"PRId64", curvfit %d %"PRId64"\n",
-    // sse, rate, dist, rate2, dist2); dist = dist2;
-    // rate = rate2;
 
     rate += x->mode_costs.wedge_idx_cost[bsize][wedge_index];
     rd = RDCOST(x->rdmult, rate, dist);
