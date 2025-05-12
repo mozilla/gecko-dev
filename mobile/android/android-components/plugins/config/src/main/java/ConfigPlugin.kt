@@ -57,14 +57,6 @@ object Config {
         return readVersionFromFile(project).split(".")[0]
     }
 
-    /**
-     * Generate a build date that follows the ISO-8601 format
-     */
-    @JvmStatic
-    fun generateBuildDate(): String {
-        return LocalDateTime.now().toString()
-    }
-
     private val fennecBaseVersionCode by lazy {
         val format = SimpleDateFormat("yyyyMMddHHmmss", Locale.US)
         val cutoff = format.parse("20141228000000")
