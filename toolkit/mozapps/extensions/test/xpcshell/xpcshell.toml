@@ -76,6 +76,9 @@ skip-if = ["os == 'android'"] # Built-in Static Theme add-ons are not supported 
 ["test_childprocess.js"]
 head = ""
 
+["test_cleanup_theme_processedColors.js"]
+skip-if = ["os == 'android'"] # Non-extension add-ons are not supported on Android, but test installs static theme.
+
 ["test_cookies.js"]
 
 ["test_corrupt.js"]
