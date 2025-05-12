@@ -1177,6 +1177,32 @@ add_task(async function test_tabGroupContextMenuMoveTabToGroupNewGroup() {
   await removeTabGroup(tab.group);
 });
 
+/**
+ * Ensure group is positioned correctly when a pinned tab is grouped
+ */
+add_task(async function test_tabGroupContextMenuMovePinnedTabToNewGroup() {
+  let pinnedTab = await addTab("about:blank");
+  let pinnedUngroupedTab = await addTab("about:blank");
+  gBrowser.pinTab(pinnedTab);
+  gBrowser.pinTab(pinnedUngroupedTab);
+  await waitForAndAcceptGroupPanel(
+    async () =>
+      await withTabMenu(pinnedTab, async (_, moveTabToGroupItem) => {
+        moveTabToGroupItem
+          .querySelector("#context_moveTabToGroupNewGroup")
+          .click();
+      })
+  );
+  Assert.ok(!pinnedTab.pinned, "first pinned tab is no longer pinned");
+  Assert.ok(pinnedTab.group, "first pinned tab is grouped");
+  Assert.ok(
+    pinnedTab._tPos > pinnedUngroupedTab._tPos,
+    "pinned tab's group appears after the list of pinned tabs"
+  );
+  await removeTabGroup(pinnedTab.group);
+  BrowserTestUtils.removeTab(pinnedUngroupedTab);
+});
+
 /*
  * Tests that the "move tab to group > [group name]" option moves a tab to the selected group
  */

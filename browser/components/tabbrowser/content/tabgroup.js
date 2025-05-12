@@ -304,8 +304,6 @@
         if (tab.pinned) {
           tab.ownerGlobal.gBrowser.unpinTab(tab);
         }
-      }
-      for (let tab of tabs) {
         let tabToMove =
           this.ownerGlobal === tab.ownerGlobal
             ? tab

@@ -9261,8 +9261,12 @@ var TabContextMenu = {
   },
 
   moveTabsToNewGroup() {
+    let insertBefore = this.contextTab;
+    if (insertBefore._tPos < gBrowser.pinnedTabCount) {
+      insertBefore = gBrowser.tabs[gBrowser.pinnedTabCount];
+    }
     gBrowser.addTabGroup(this.contextTabs, {
-      insertBefore: this.contextTab,
+      insertBefore,
       isUserTriggered: true,
       telemetryUserCreateSource: "tab_menu",
     });
