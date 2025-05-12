@@ -47,45 +47,40 @@ test_runner(async function test_submitPocketButtonPing({ sandbox }) {
     Assert.equal(Glean.pocketButton.eventSource.testGetValue(), eventSource);
   };
 
-  let submitted = false;
-  GleanPings.pocketButton.testBeforeNextSubmit(() => {
-    submitted = true;
-    assertConstantStuff();
-    Assert.equal(Glean.pocketButton.eventPosition.testGetValue(), null);
-    Assert.equal(Glean.pocketButton.model.testGetValue(), null);
-  });
-
-  pktTelemetry.submitPocketButtonPing(eventAction, eventSource);
-  Assert.ok(submitted, "Ping submitted successfully");
-
-  submitted = false;
-  GleanPings.pocketButton.testBeforeNextSubmit(() => {
-    submitted = true;
-    assertConstantStuff();
-    Assert.equal(Glean.pocketButton.eventPosition.testGetValue(), 0);
-    Assert.equal(Glean.pocketButton.model.testGetValue(), null);
-  });
-
-  pktTelemetry.submitPocketButtonPing(eventAction, eventSource, 0, null);
-  Assert.ok(submitted, "Ping submitted successfully");
-
-  submitted = false;
-  GleanPings.pocketButton.testBeforeNextSubmit(() => {
-    submitted = true;
-    assertConstantStuff();
-    // falsey but not undefined positions will be omitted.
-    Assert.equal(Glean.pocketButton.eventPosition.testGetValue(), null);
-    Assert.equal(
-      Glean.pocketButton.model.testGetValue(),
-      "some-really-groovy-model"
-    );
-  });
-
-  pktTelemetry.submitPocketButtonPing(
-    eventAction,
-    eventSource,
-    false,
-    "some-really-groovy-model"
+  await GleanPings.pocketButton.testSubmission(
+    () => {
+      assertConstantStuff();
+      Assert.equal(Glean.pocketButton.eventPosition.testGetValue(), null);
+      Assert.equal(Glean.pocketButton.model.testGetValue(), null);
+    },
+    () => pktTelemetry.submitPocketButtonPing(eventAction, eventSource)
   );
-  Assert.ok(submitted, "Ping submitted successfully");
+
+  await GleanPings.pocketButton.testSubmission(
+    () => {
+      assertConstantStuff();
+      Assert.equal(Glean.pocketButton.eventPosition.testGetValue(), 0);
+      Assert.equal(Glean.pocketButton.model.testGetValue(), null);
+    },
+    () => pktTelemetry.submitPocketButtonPing(eventAction, eventSource, 0, null)
+  );
+
+  await GleanPings.pocketButton.testSubmission(
+    () => {
+      assertConstantStuff();
+      // falsey but not undefined positions will be omitted.
+      Assert.equal(Glean.pocketButton.eventPosition.testGetValue(), null);
+      Assert.equal(
+        Glean.pocketButton.model.testGetValue(),
+        "some-really-groovy-model"
+      );
+    },
+    () =>
+      pktTelemetry.submitPocketButtonPing(
+        eventAction,
+        eventSource,
+        false,
+        "some-really-groovy-model"
+      )
+  );
 });
