@@ -18,7 +18,7 @@ async def get_current_geolocation(bidi_session, configuration):
                 new Promise(
                     resolve => window.navigator.geolocation.getCurrentPosition(
                         position => resolve(position.coords.toJSON()),
-                        error => resolve({code: error.code, message: error.message}),
+                        error => resolve({code: error.code}),
                         {timeout: 500 * multiplier}
                 ))
             """,
