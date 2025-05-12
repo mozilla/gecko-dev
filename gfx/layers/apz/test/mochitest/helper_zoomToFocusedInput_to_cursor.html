@@ -1,0 +1,72 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tests that zoomToFocuedInput scrolls to show the cursor in input element</title>
+  <script src="apz_test_utils.js"></script>
+  <script src="/tests/SimpleTest/paint_listener.js"></script>
+</head>
+<style>
+@font-face {
+  font-family: Ahem;
+  src: url("/tests/layout/base/tests/Ahem.ttf");
+}
+body {
+  margin: 0px;
+  padding: 0px;
+}
+input {
+  /*
+   * This document gets scaled by 2.0x so that this `60vw` width element
+   * would be wider than the visual viewport.
+   */
+  width: 60vw;
+  border: none;
+  padding: 0px;
+  font: 25px/1 Ahem;
+}
+</style>
+<body>
+<input id="target" type="text" maxlength="2048"/>
+<script>
+async function test() {
+  is(window.scrollY, 0, "The initial scroll offset should be 0");
+  is(visualViewport.scale, 2.0, "The document should get scaled by 2.0");
+  is(visualViewport.pageLeft, 0, "The initial visual viewport pageLeft should be 0");
+
+  const input = document.querySelector("#target");
+  const rect = input.getBoundingClientRect();
+  ok(rect.width > visualViewport.width,
+    `the input element width: ${rect.width} > the visual viewport width: ${visualViewport.width}`);
+
+  // Fill up the input element with N characters so that the last character should
+  // be outside of the visual viewport.
+  const nCharacters= Math.floor(rect.width / 25) + 1;
+  input.value = "X".repeat(nCharacters);
+  // And put the cursor at the tail of the characters.
+  input.setSelectionRange(nCharacters, nCharacters);
+
+  // Focus to the input element without scrolling.
+  const focusPromise = new Promise(resolve => {
+    input.addEventListener("focus", resolve);
+  });
+  input.focus({ preventScroll: true });
+  await focusPromise;
+
+  // Invoke zoom-to-focused-input.
+  const utils = SpecialPowers.getDOMWindowUtils(window);
+  utils.zoomToFocusedInput();
+
+  await promiseApzFlushedRepaints();
+  ok(visualViewport.pageLeft > 0,
+    `The visual viewport should have been scrolled: ${visualViewport.pageLeft}`);
+}
+
+SpecialPowers.getDOMWindowUtils(window).setResolutionAndScaleTo(2.0);
+waitUntilApzStable()
+.then(test)
+.then(subtestDone, subtestFailed);
+</script>
+</body>
+</html>
