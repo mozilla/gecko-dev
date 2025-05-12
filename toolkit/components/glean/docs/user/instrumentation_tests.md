@@ -8,6 +8,7 @@ All metrics and pings in the Glean SDK have [well-documented APIs for testing][g
 You'll want to familiarize yourself with `TestGetValue()`
 (here's [an example JS (xpcshell) test of some metrics][metrics-xpcshell-test])
 for metrics and
+[`TestSubmission()`][test-submission] or
 [`TestBeforeNextSubmit()`][test-before-next-submit]
 (here's [an example C++ (gtest) test of a custom ping][ping-gtest])
 for pings.
@@ -146,7 +147,41 @@ add_task(function test_instrumentation() {
 ```
 
 If your new instrumentation includes a new custom ping,
-there are two small additions to The Usual Test Format:
+there are two possible testing APIs that you can use:
+
+* [`testSubmission()`][test-submission]
+* [`testBeforeNextSubmit()`][test-before-next-submit]
+
+`testSubmission` is recommended over `testBeforeNextSubmit` because it
+guarantees that the ping is submitted, whereas `testBeforeNextSubmit` requires
+that the test assert that. Additionally, it can handle pings submitted
+asynchronously (in its submit callback or by, e.g., idle dispatch) because it is
+async-aware and supports an optional submission timeout.
+
+```js
+add_task(async function test_custom_ping_submission() {
+  // 1) Assert no value
+  Assert.equal(undefined, Glean.myMetricCategory.myMetricName.testGetValue());
+
+  // 2) Express behaviour that records the correct metrics
+  // ...<left as an exercise to the reader>...
+
+  // 3) Assert the corect value and trigger ping submission
+  await GleanPings.myPing.testSubmission(
+    reason => {
+      Assert.equal(kExpectedReason, reason, "Reason of submitted ping must match.");
+      Assert.equal(kExpectedMetricValue, Glean.myMetricCategory.myMetricName.testGetValue());
+    },
+    () => {
+      // Trigger ping submission. Your ping may be submitted by specific logic
+      // elsewhere or by calling GleanPings.myPing.submit()`
+      // ...<left as an exercise to the reader>...
+    });
+});
+```
+
+If your test uses `testBeforeNextSubmit`, then there are two small additions to
+The Usual Test Format:
 
 * 1.1) Call `testBeforeNextSubmit` _before_ your ping is submitted.
   The callback you register in `testBeforeNextSubmit`
@@ -308,4 +343,5 @@ pub extern "C" fn Rust_MyRustTest() {
 [metrics-xpcshell-test]: https://searchfox.org/mozilla-central/rev/66e59131c1c76fe486424dc37f0a8a399ca874d4/toolkit/mozapps/update/tests/unit_background_update/test_backgroundupdate_glean.js#28
 [ping-gtest]: https://searchfox.org/mozilla-central/rev/66e59131c1c76fe486424dc37f0a8a399ca874d4/toolkit/components/glean/tests/gtest/TestFog.cpp#232
 [test-before-next-submit]: https://mozilla.github.io/glean/book/reference/pings/index.html#testbeforenextsubmit
+[test-submission]: https://searchfox.org/mozilla-central/rev/126697140e711e04a9d95edae537541c3bde89cc/toolkit/components/glean/xpcom/nsIGleanPing.idl#71
 [glean-debug]: https://mozilla.github.io/glean/book/reference/debug/index.html
