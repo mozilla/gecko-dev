@@ -224,7 +224,7 @@ export class TelemetryFeed {
   getFollowedSections() {
     const followedString = this._prefs.get(PREF_FOLLOWED_SECTIONS);
 
-    if (followedString.length) {
+    if (followedString?.length) {
       const items = followedString
         .split(",")
         .map(item => item.trim())
