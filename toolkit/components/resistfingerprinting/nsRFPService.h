@@ -410,6 +410,9 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   // Returns the value of privacy.resistFingerprinting.exemptedDomains pref
   static void GetExemptedDomainsLowercase(nsCString& aExemptedDomains);
 
+  static CSSIntRect GetSpoofedScreenAvailSize(const nsRect& aRect,
+                                              float aScale);
+
  private:
   nsresult Init();
 
