@@ -229,6 +229,9 @@ class WindowContext : public nsISupports, public nsWrapperCache {
   // Consume the history-action user activation.
   void ConsumeHistoryActivation();
 
+  // Update the history-action user activation for this window context
+  void UpdateLastHistoryActivation();
+
   bool GetTransientUserGestureActivationModifiers(
       UserActivation::Modifiers* aModifiers);
 

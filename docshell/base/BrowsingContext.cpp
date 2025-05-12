@@ -4001,6 +4001,26 @@ void BrowsingContext::GetContiguousHistoryEntries(
   }
 }
 
+// https://html.spec.whatwg.org/multipage/interaction.html#consume-history-action-user-activation
+// Step 3 onward
+void BrowsingContext::ConsumeHistoryActivation() {
+  // 3. Let navigables be the inclusive descendant navigables of top's active
+  // document.
+  // 4. Let windows be the list of Window objects constructed by taking the
+  // active window of each item in navigables.
+  PreOrderWalk([&](BrowsingContext* aBrowsingContext) {
+    RefPtr<WindowContext> windowContext =
+        aBrowsingContext->GetCurrentWindowContext();
+    // 5. For each window in windows, set window's last history-action
+    // activation timestamp to window's last activation timestamp.
+    if (aBrowsingContext->IsInProcess() && windowContext &&
+        windowContext->GetUserActivationState() ==
+            UserActivation::State::FullActivated) {
+      windowContext->UpdateLastHistoryActivation();
+    }
+  });
+}
+
 }  // namespace dom
 
 namespace ipc {

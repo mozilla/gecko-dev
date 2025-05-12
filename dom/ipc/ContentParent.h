@@ -1370,6 +1370,9 @@ class ContentParent final : public PContentParent,
       const MaybeDiscarded<BrowsingContext>& aContext,
       const uint32_t aReloadFlags);
 
+  mozilla::ipc::IPCResult RecvConsumeHistoryActivation(
+      const MaybeDiscarded<BrowsingContext>& aTop);
+
   mozilla::ipc::IPCResult RecvCleanupPendingLoadState(uint64_t aLoadIdentifier);
 
   // Notify the ContentChild to enable the input event prioritization when

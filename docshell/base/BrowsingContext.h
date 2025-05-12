@@ -987,6 +987,8 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   void GetContiguousHistoryEntries(SessionHistoryInfo& aActiveEntry,
                                    Navigation* aNavigation);
 
+  void ConsumeHistoryActivation();
+
  protected:
   virtual ~BrowsingContext();
   BrowsingContext(WindowContext* aParentWindow, BrowsingContextGroup* aGroup,

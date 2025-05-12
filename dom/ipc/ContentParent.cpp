@@ -7773,6 +7773,17 @@ mozilla::ipc::IPCResult ContentParent::RecvHistoryReload(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult ContentParent::RecvConsumeHistoryActivation(
+    const MaybeDiscarded<BrowsingContext>& aTop) {
+  if (aTop.IsNullOrDiscarded()) {
+    return IPC_OK();
+  }
+  aTop->Group()->EachOtherParent(this, [aTop](ContentParent* aParent) {
+    Unused << aParent->SendConsumeHistoryActivation(aTop);
+  });
+  return IPC_OK();
+}
+
 mozilla::ipc::IPCResult ContentParent::RecvCommitWindowContextTransaction(
     const MaybeDiscarded<WindowContext>& aContext,
     WindowContext::BaseTransaction&& aTransaction, uint64_t aEpoch) {

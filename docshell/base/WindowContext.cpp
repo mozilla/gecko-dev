@@ -624,13 +624,27 @@ bool WindowContext::HasValidHistoryActivation() const {
 }
 
 // https://html.spec.whatwg.org/multipage/interaction.html#consume-history-action-user-activation
+// Step 1-2
 void WindowContext::ConsumeHistoryActivation() {
   MOZ_ASSERT(IsInProcess());
 
-  if (!HasValidHistoryActivation()) {
-    return;
-  }
+  // 1. If W's navigable is null, then return.
 
+  // 2. Let top be W's navigable's top-level traversable.
+  RefPtr<BrowsingContext> top = mBrowsingContext->Top();
+
+  // Consuming a history activation must happen across all child processes,
+  // including for example cross-origin iframes. As such we need to send an
+  // message over the IPC boundary to ensure out of processes contexts also
+  // consume their activations.
+  MOZ_ASSERT(XRE_IsContentProcess());
+  ContentChild::GetSingleton()->SendConsumeHistoryActivation(top);
+
+  // Update the local process children immediately.
+  top->ConsumeHistoryActivation();
+}
+
+void WindowContext::UpdateLastHistoryActivation() {
   mHistoryActivation = mLastActivationTimestamp;
 }
 

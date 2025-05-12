@@ -4323,6 +4323,14 @@ mozilla::ipc::IPCResult ContentChild::RecvHistoryCommitIndexAndLength(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult ContentChild::RecvConsumeHistoryActivation(
+    const MaybeDiscarded<BrowsingContext>& aTop) {
+  if (!aTop.IsNullOrDiscarded()) {
+    aTop->ConsumeHistoryActivation();
+  }
+  return IPC_OK();
+}
+
 mozilla::ipc::IPCResult ContentChild::RecvGetLayoutHistoryState(
     const MaybeDiscarded<BrowsingContext>& aContext,
     GetLayoutHistoryStateResolver&& aResolver) {

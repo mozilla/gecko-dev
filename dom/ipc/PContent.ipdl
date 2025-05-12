@@ -1073,6 +1073,11 @@ child:
     async UpdateMFCDMOriginEntries(IPCOriginStatusEntry[] aEntries);
 #endif
 
+both:
+    // Update the "History Action Activation" timestamp for all parents in the
+    // subtree beginning at `aTop`.
+    async ConsumeHistoryActivation(MaybeDiscardedBrowsingContext aTop);
+
 parent:
     async SynchronizeLayoutHistoryState(MaybeDiscardedBrowsingContext aContext,
                                         nullable nsILayoutHistoryState aState);
