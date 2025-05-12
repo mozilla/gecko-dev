@@ -35,7 +35,7 @@ fuzzy(0-1,0-926) == badbitssize.bmp pal1.png
 # "Header incorrectly indicates that the palette contains an absurdly large
 # number of colors."
 # [We accept it. So does Chromium.]
-fuzzy(0-1,0-899) == badpalettesize.bmp pal8.png
+== badpalettesize.bmp pal8.png
 
 # BMP: bihsize=40, 127 x 64, bpp=1, compression=0, colors=2
 # "The 'planes' setting, which is required to be 1, is not 1."
@@ -97,7 +97,7 @@ fuzzy(0-1,0-899) == badpalettesize.bmp pal8.png
 # allowed."
 # [We accept it. Chromium rejects it. Accepting seems better given that we can
 # decode it perfectly well.]
-fuzzy(0-1,0-996) == rletopdown.bmp pal8.png
+== rletopdown.bmp pal8.png
 
 # BMP: bihsize=40, 127 x 64, bpp=1, compression=0, colors=2
 # "A file that has been truncated in the middle of the bitmap."
