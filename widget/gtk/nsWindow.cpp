@@ -3350,6 +3350,20 @@ void nsWindow::RecomputeBounds(MayChangeCsdMargin aMayChangeCsdMargin) {
   }();
   mClientMargin.EnsureAtLeast(LayoutDeviceIntMargin());
 
+  if (IsPopup()) {
+    // Popup windows not be moved by the window manager, and so any change in
+    // position is a result of our direction.
+    //
+    // mBounds has already been set in Move() or Resize(), and that is more
+    // up-to-date than the position in the ConfigureNotify event if the event
+    // is from an earlier window move.
+    //
+    // NOTE(emilio): If we remove the early mBounds change in Move() /
+    // Resize(), we should be able to remove this special case (but some tests
+    // would need to be adjusted to deal with the async popup moves).
+    mBounds.MoveTo(mLastMoveRequest);
+  }
+
   // Sometimes the window manager gives us garbage sizes (way past the maximum
   // texture size) causing crashes if we don't enforce size constraints again
   // here.
@@ -3360,32 +3374,6 @@ void nsWindow::RecomputeBounds(MayChangeCsdMargin aMayChangeCsdMargin) {
       ToString(mBounds).c_str(), ToString(unconstrainedBounds).c_str());
   LOG("margin: %s -> %s", ToString(oldMargin).c_str(),
       ToString(mClientMargin).c_str());
-
-  if (IsPopup()) {
-    // Override-redirect window.
-    //
-    // These windows should not be moved by the window manager, and so any
-    // change in position is a result of our direction.  mBounds has already
-    // been set in Move() or Resize(), and that is more up-to-date than the
-    // position in the ConfigureNotify event if the event is from an earlier
-    // window move.
-    //
-    // Skipping the WindowMoved call saves context menus from an infinite
-    // loop when nsXULPopupManager::PopupMoved moves the window to the new
-    // position and nsMenuPopupFrame::SetPopupPosition adds
-    // offsetForContextMenu on each iteration.
-    //
-    // FIXME(emilio): This might not be an issue anymore... Maybe try to remove
-    // this special case?
-    mBounds.MoveTo(mLastMoveRequest);
-
-    // Our back buffer might have been invalidated while we drew the last
-    // frame, and its contents might be incorrect. See bug 1280653 comment 7
-    // and comment 10. Specifically we must ensure we recomposite the frame
-    // as soon as possible to avoid the corrupted frame being displayed.
-    GetWindowRenderer()->FlushRendering(wr::RenderReasons::WIDGET);
-    return;
-  }
 
   const bool clientMarginsChanged = oldMargin != mClientMargin;
   if (clientMarginsChanged) {
