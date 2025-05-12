@@ -21,7 +21,7 @@ import mozilla.components.service.fxa.store.Account
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.menu.MenuDialogTestTag
-import org.mozilla.fenix.components.menu.compose.header.MenuHeader
+import org.mozilla.fenix.components.menu.compose.header.MenuNavHeader
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
@@ -94,14 +94,19 @@ fun MainMenu(
     onNewInFirefoxMenuClick: () -> Unit,
     onQuitMenuClick: () -> Unit,
 ) {
+    account.hashCode()
+    accountState.hashCode()
+    onMozillaAccountButtonClick.hashCode()
+    onHelpButtonClick.hashCode()
+    onSettingsButtonClick.hashCode()
+
     MenuScaffold(
         header = {
-            MenuHeader(
-                account = account,
-                accountState = accountState,
-                onMozillaAccountButtonClick = onMozillaAccountButtonClick,
-                onHelpButtonClick = onHelpButtonClick,
-                onSettingsButtonClick = onSettingsButtonClick,
+            MenuNavHeader(
+                onBackButtonClick = {},
+                onForwardButtonClick = {},
+                onRefreshButtonClick = {},
+                onShareButtonClick = {},
             )
         },
         scrollState = scrollState,
