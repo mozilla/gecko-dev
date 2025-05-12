@@ -921,6 +921,7 @@ static const ClassSpec SharedArrayBufferObjectClassSpec = {
     sharedarray_properties,
     sharedarray_proto_functions,
     sharedarray_proto_properties,
+    GenericFinishInit<WhichHasFuseProperty::ProtoAndCtor>,
 };
 
 const JSClass SharedArrayBufferObject::protoClass_ = {
