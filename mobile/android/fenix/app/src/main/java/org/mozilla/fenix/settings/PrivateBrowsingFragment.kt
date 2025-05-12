@@ -99,8 +99,14 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
                     },
                 )
 
+                val titleRes = if (enablePrivateBrowsingLock) {
+                    R.string.pbm_authentication_enable_lock
+                } else {
+                    R.string.pbm_authentication_disable_lock
+                }
+
                 val promptInfo = BiometricPrompt.PromptInfo.Builder()
-                    .setTitle(requireContext().getString(R.string.pbm_authentication_unlock_private_tabs))
+                    .setTitle(requireContext().getString(titleRes))
                     .setAllowedAuthenticators(
                         DEVICE_CREDENTIAL or BiometricManager.Authenticators.BIOMETRIC_WEAK,
                     )
