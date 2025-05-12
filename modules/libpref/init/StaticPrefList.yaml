@@ -2437,6 +2437,16 @@
   value: true
   mirror: always
 
+- name: docshell.shistory.sameDocumentNavigationOverridesLoadType
+  type: bool
+  value: @IS_NOT_NIGHTLY_BUILD@
+  mirror: always
+
+- name: docshell.shistory.sameDocumentNavigationOverridesLoadType.forceDisable
+  type: String
+  value: ""
+  mirror: never
+
 #---------------------------------------------------------------------------
 # Prefs starting with "dom."
 #---------------------------------------------------------------------------
