@@ -243,12 +243,16 @@ export const NimbusTelemetry = {
   recordValidationFailure(
     slug,
     reason,
-    { branch, feature, locale, l10nIds: l10n_ids, featureIds: feature_ids } = {}
+    { branch, locale, l10nIds: l10n_ids, featureIds: feature_ids } = {}
   ) {
+    // Do not record invalid feature telemetry.
+    if (reason === ValidationFailureReason.INVALID_FEATURE) {
+      return;
+    }
+
     const extra = Object.assign(
       { reason },
       reason === ValidationFailureReason.INVALID_BRANCH ? { branch } : {},
-      reason === ValidationFailureReason.INVALID_FEATURE ? { feature } : {},
       reason === ValidationFailureReason.L10N_MISSING_ENTRY
         ? { l10n_ids, locale }
         : {},

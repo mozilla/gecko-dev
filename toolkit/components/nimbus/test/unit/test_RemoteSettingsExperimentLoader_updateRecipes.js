@@ -100,6 +100,14 @@ add_task(async function test_updateRecipes_invalidFeatureId() {
   );
   Assert.ok(manager.enroll.notCalled, "Would not enroll");
 
+  Assert.deepEqual(
+    Glean.nimbusEvents.validationFailed
+      .testGetValue("events")
+      ?.map(ev => ev.extra) ?? [],
+    [],
+    "Did not submit telemetry"
+  );
+
   assertEmptyStore(manager.store);
 
   Services.fog.testResetFOG();
@@ -508,6 +516,73 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
   );
 });
 
+add_task(async function test_updateRecipes_invalidFeatureAfterUpdate() {
+  const recipe = ExperimentFakes.recipe("recipe", {
+    branches: [
+      {
+        ratio: 1,
+        slug: "control",
+        features: [
+          {
+            featureId: "bogus",
+            value: {},
+          },
+        ],
+      },
+    ],
+  });
+
+  const loader = ExperimentFakes.rsLoader();
+  const manager = loader.manager;
+
+  await manager.onStartup();
+  await loader.enable();
+
+  await manager.enroll(recipe);
+
+  sinon
+    .stub(loader.remoteSettingsClients.experiments, "get")
+    .resolves([recipe]);
+
+  await loader.updateRecipes();
+
+  const enrollment = manager.store.get(recipe.slug);
+  Assert.ok(!enrollment.active, "Should have unenrolled");
+  Assert.equal(
+    enrollment.unenrollReason,
+    "invalid-feature",
+    "Should have unenrolled"
+  );
+
+  Assert.deepEqual(
+    Glean.nimbusEvents.validationFailed
+      .testGetValue("events")
+      ?.map(ev => ev.extra) ?? [],
+    [],
+    "Should not have submitted any validationFailed telemetry"
+  );
+
+  Assert.deepEqual(
+    Glean.nimbusEvents.unenrollment
+      .testGetValue("events")
+      ?.map(ev => ev.extra) ?? [],
+    [
+      {
+        experiment: recipe.slug,
+        branch: enrollment.branch.slug,
+        reason: "invalid-feature",
+      },
+    ]
+  );
+
+  assertEmptyStore(manager.store);
+  Services.fog.testResetFOG();
+  Services.telemetry.snapshotEvents(
+    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+    /* clear = */ true
+  );
+});
+
 add_task(async function test_updateRecipes_validationTelemetry() {
   Services.telemetry.snapshotEvents(
     Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
@@ -561,10 +636,8 @@ add_task(async function test_updateRecipes_validationTelemetry() {
     {
       recipe: invalidFeature,
       reason: "invalid-feature",
-      events: invalidFeature.branches[0].features.map(feature => ({
-        feature: feature.featureId,
-      })),
-      callCount: 2,
+      events: [],
+      callCount: 0,
     },
   ];
 
@@ -595,23 +668,15 @@ add_task(async function test_updateRecipes_validationTelemetry() {
       `Should call recordValidationFailure ${callCount} times for reason ${reason}`
     );
 
-    const gleanEvents = Glean.nimbusEvents.validationFailed
-      .testGetValue("events")
-      .map(event => {
-        event = { ...event };
-        // We do not care about the timestamp.
-        delete event.timestamp;
-        return event;
-      });
+    const gleanEvents =
+      Glean.nimbusEvents.validationFailed
+        .testGetValue("events")
+        ?.map(event => event.extra) ?? [];
 
     const expectedGleanEvents = events.map(event => ({
-      category: "nimbus_events",
-      name: "validation_failed",
-      extra: {
-        experiment: recipe.slug,
-        reason,
-        ...event,
-      },
+      experiment: recipe.slug,
+      reason,
+      ...event,
     }));
 
     Assert.deepEqual(

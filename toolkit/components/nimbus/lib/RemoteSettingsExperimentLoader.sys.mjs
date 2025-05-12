@@ -1037,16 +1037,10 @@ export class EnrollmentsContext {
     }
 
     if (invalidFeatureIds.size) {
-      for (const featureId of invalidFeatureIds) {
-        lazy.NimbusTelemetry.recordValidationFailure(
-          slug,
-          lazy.NimbusTelemetry.ValidationFailureReason.INVALID_FEATURE,
-          {
-            feature: featureId,
-          }
-        );
-      }
-
+      // Do not record invalid feature telemetry. In practice this only happens
+      // due to long-lived recipes referencing features that were removed in a
+      // prior version. Reporting these errors results in an inordinate amount
+      // of telemetry being submitted.
       return CheckRecipeResult.InvalidFeatures(Array.from(invalidFeatureIds));
     }
 
