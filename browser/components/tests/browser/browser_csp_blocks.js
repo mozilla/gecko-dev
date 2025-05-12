@@ -53,7 +53,7 @@ add_task(async function test_blocks_event_handlers() {
     "effectiveDirective matches"
   );
   ok(
-    violation.sourceFile.endsWith("browser_csp_blocks_event_handlers.js"),
+    violation.sourceFile.endsWith("browser_csp_blocks.js"),
     "sourceFile matches"
   );
   is(
@@ -74,7 +74,7 @@ add_task(async function test_blocks_event_handlers() {
   );
   is(extra.sourcetype, "chromeuri", "violation's `sourcetype` is correct");
   ok(
-    extra.sourcedetails.endsWith("browser_csp_blocks_event_handlers.js"),
+    extra.sourcedetails.endsWith("browser_csp_blocks.js"),
     "violation's `sourcedetails` is correct"
   );
   is(extra.blockeduritype, "inline", "violation's `blockeduritype` is correct");
@@ -148,4 +148,40 @@ add_task(async function test_pref_report_only() {
 
   await BrowserTestUtils.closeWindow(win);
   await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_blocks_script_src() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["security.csp.testing.allow_internal_csp_violation", true]],
+  });
+
+  let violationPromise = BrowserTestUtils.waitForEvent(
+    document,
+    "securitypolicyviolation"
+  );
+
+  let script = document.createElement("script");
+  script.src = "file:///foo.js"; // Use a different URL?
+  document.documentElement.append(script);
+  script.remove();
+
+  let violation = await violationPromise;
+  is(
+    violation.effectiveDirective,
+    "script-src-elem",
+    "effectiveDirective matches"
+  );
+  is(violation.blockedURI, "file:///foo.js", "blockedURI matches");
+  ok(
+    violation.sourceFile.endsWith("browser_csp_blocks.js"),
+    "sourceFile matches"
+  );
+  let reportOnly = Services.prefs.getBoolPref(
+    "security.browser_xhtml_csp.report-only"
+  );
+  is(
+    violation.disposition,
+    reportOnly ? "report" : "enforce",
+    "disposition matches"
+  );
 });
