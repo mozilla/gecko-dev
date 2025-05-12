@@ -108,65 +108,49 @@ nsClipboard::SetNativeClipboardData(nsITransferable* aTransferable,
   return NS_ERROR_FAILURE;
 }
 
-NS_IMETHODIMP
-nsClipboard::GetNativeClipboardData(nsITransferable* aTransferable,
+mozilla::Result<nsCOMPtr<nsISupports>, nsresult>
+nsClipboard::GetNativeClipboardData(const nsACString& aFlavor,
                                     ClipboardType aWhichClipboard) {
-  MOZ_DIAGNOSTIC_ASSERT(aTransferable);
   MOZ_DIAGNOSTIC_ASSERT(
       nsIClipboard::IsClipboardTypeSupported(aWhichClipboard));
 
   if (!jni::IsAvailable()) {
-    return NS_ERROR_NOT_AVAILABLE;
+    return Err(NS_ERROR_NOT_AVAILABLE);
   }
 
-  nsTArray<nsCString> flavors;
-  aTransferable->FlavorsTransferableCanImport(flavors);
-
-  for (auto& flavorStr : flavors) {
-    if (flavorStr.EqualsLiteral(kTextMime) ||
-        flavorStr.EqualsLiteral(kHTMLMime)) {
-      auto text = java::Clipboard::GetTextData(
-          java::GeckoAppShell::GetApplicationContext(), flavorStr);
-      if (!text) {
-        continue;
-      }
-      nsString buffer = text->ToString();
-      if (buffer.IsEmpty()) {
-        continue;
-      }
-      nsCOMPtr<nsISupports> wrapper;
-      nsPrimitiveHelpers::CreatePrimitiveForData(flavorStr, buffer.get(),
-                                                 buffer.Length() * 2,
-                                                 getter_AddRefs(wrapper));
-      if (wrapper) {
-        aTransferable->SetTransferData(flavorStr.get(), wrapper);
-        return NS_OK;
-      }
-      continue;
+  if (aFlavor.EqualsLiteral(kTextMime) || aFlavor.EqualsLiteral(kHTMLMime)) {
+    auto text = java::Clipboard::GetTextData(
+        java::GeckoAppShell::GetApplicationContext(), aFlavor);
+    if (!text) {
+      return nsCOMPtr<nsISupports>{};
     }
-
-    mozilla::jni::ByteArray::LocalRef bytes;
-    nsresult rv = java::Clipboard::GetRawData(flavorStr, &bytes);
-    if (NS_FAILED(rv) || !bytes) {
-      continue;
+    nsString buffer = text->ToString();
+    if (buffer.IsEmpty()) {
+      return nsCOMPtr<nsISupports>{};
     }
-    nsCOMPtr<nsIInputStream> byteStream;
-    rv = NS_NewByteInputStream(
-        getter_AddRefs(byteStream),
-        mozilla::Span(
-            reinterpret_cast<const char*>(bytes->GetElements().Elements()),
-            bytes->Length()),
-        NS_ASSIGNMENT_COPY);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      continue;
-    }
-    rv = aTransferable->SetTransferData(flavorStr.get(), byteStream);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      continue;
-    }
+    nsCOMPtr<nsISupports> wrapper;
+    nsPrimitiveHelpers::CreatePrimitiveForData(
+        aFlavor, buffer.get(), buffer.Length() * 2, getter_AddRefs(wrapper));
+    return std::move(wrapper);
   }
 
-  return NS_OK;
+  mozilla::jni::ByteArray::LocalRef bytes;
+  nsresult rv = java::Clipboard::GetRawData(aFlavor, &bytes);
+  if (NS_FAILED(rv) || !bytes) {
+    return nsCOMPtr<nsISupports>{};
+  }
+
+  nsCOMPtr<nsIInputStream> byteStream;
+  rv = NS_NewByteInputStream(getter_AddRefs(byteStream),
+                             mozilla::Span(reinterpret_cast<const char*>(
+                                               bytes->GetElements().Elements()),
+                                           bytes->Length()),
+                             NS_ASSIGNMENT_COPY);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return nsCOMPtr<nsISupports>{};
+  }
+
+  return nsCOMPtr<nsISupports>(std::move(byteStream));
 }
 
 nsresult nsClipboard::EmptyNativeClipboardData(ClipboardType aWhichClipboard) {
