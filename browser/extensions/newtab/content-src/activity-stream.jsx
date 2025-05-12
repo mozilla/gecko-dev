@@ -17,31 +17,46 @@ export const NewTab = ({ store }) => (
   </Provider>
 );
 
+function doRequestWhenReady() {
+  // If this document has already gone into the background by the time we've reached
+  // here, we can deprioritize the request until the event loop
+  // frees up. If, however, the visibility changes, we then send the request.
+  const doRequestPromise = new Promise(resolve => {
+    let didRequest = false;
+    let requestIdleCallbackId = 0;
+    function doRequest() {
+      if (!didRequest) {
+        if (requestIdleCallbackId) {
+          cancelIdleCallback(requestIdleCallbackId);
+        }
+        didRequest = true;
+        resolve();
+      }
+    }
+
+    if (document.hidden) {
+      requestIdleCallbackId = requestIdleCallback(doRequest);
+      addEventListener("visibilitychange", doRequest, { once: true });
+    } else {
+      resolve();
+    }
+  });
+
+  return doRequestPromise;
+}
+
 export function renderWithoutState() {
   const store = initStore(reducers);
   new DetectUserSessionStart(store).sendEventOrAddListener();
 
-  // If this document has already gone into the background by the time we've reached
-  // here, we can deprioritize requesting the initial state until the event loop
-  // frees up. If, however, the visibility changes, we then send the request.
-  let didRequest = false;
-  let requestIdleCallbackId = 0;
-  function doRequest() {
-    if (!didRequest) {
-      if (requestIdleCallbackId) {
-        cancelIdleCallback(requestIdleCallbackId);
-      }
-      didRequest = true;
-      store.dispatch(ac.AlsoToMain({ type: at.NEW_TAB_STATE_REQUEST }));
-    }
-  }
-
-  if (document.hidden) {
-    requestIdleCallbackId = requestIdleCallback(doRequest);
-    addEventListener("visibilitychange", doRequest, { once: true });
-  } else {
-    doRequest();
-  }
+  doRequestWhenReady().then(() => {
+    // If state events happened before we got here, we can request state again.
+    store.dispatch(ac.AlsoToMain({ type: at.NEW_TAB_STATE_REQUEST }));
+    // If we rendered without state, we don't need the startup cache.
+    store.dispatch(
+      ac.OnlyToMain({ type: at.NEW_TAB_STATE_REQUEST_WITHOUT_STARTUPCACHE })
+    );
+  });
 
   ReactDOM.hydrate(<NewTab store={store} />, document.getElementById("root"));
 }
@@ -49,6 +64,15 @@ export function renderWithoutState() {
 export function renderCache(initialState) {
   const store = initStore(reducers, initialState);
   new DetectUserSessionStart(store).sendEventOrAddListener();
+
+  doRequestWhenReady().then(() => {
+    // If state events happened before we got here,
+    // we can notify main that we need updates.
+    // The individual feeds know what state is not cached.
+    store.dispatch(
+      ac.OnlyToMain({ type: at.NEW_TAB_STATE_REQUEST_STARTUPCACHE })
+    );
+  });
 
   ReactDOM.hydrate(<NewTab store={store} />, document.getElementById("root"));
 }

@@ -219,7 +219,9 @@ export class BaseContent extends React.PureComponent {
       if (
         selectedWallpaper !== prevSelectedWallpaper || // selecting a new wallpaper
         uploadedWallpaper !== prevUploadedWallpaper || // uploading a new wallpaper
-        wallpaperList !== prevWallpaperList // remote settings wallpaper list updates
+        wallpaperList !== prevWallpaperList || // remote settings wallpaper list updates
+        this.props.App.isForStartupCache.Wallpaper !==
+          prevProps.App.isForStartupCache.Wallpaper // Startup cached page wallpaper is updating
       ) {
         this.updateWallpaper();
       }
@@ -437,17 +439,19 @@ export class BaseContent extends React.PureComponent {
         URL.revokeObjectURL(this.uploadedWallpaperUrl);
       }
 
-      const uploadedWallpaperUrl = URL.createObjectURL(uploadedWallpaper);
+      try {
+        const uploadedWallpaperUrl = URL.createObjectURL(uploadedWallpaper);
 
-      global.document?.body.style.setProperty(
-        "--newtab-wallpaper",
-        `url(${uploadedWallpaperUrl})`
-      );
+        global.document?.body.style.setProperty(
+          "--newtab-wallpaper",
+          `url(${uploadedWallpaperUrl})`
+        );
 
-      global.document?.body.style.setProperty(
-        "--newtab-wallpaper-color",
-        "transparent"
-      );
+        global.document?.body.style.setProperty(
+          "--newtab-wallpaper-color",
+          "transparent"
+        );
+      } catch (e) {}
 
       return;
     }

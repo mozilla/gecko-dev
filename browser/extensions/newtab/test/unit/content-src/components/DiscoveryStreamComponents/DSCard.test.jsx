@@ -582,7 +582,9 @@ describe("<DSCard>", () => {
     beforeEach(() => {
       const props = {
         App: {
-          isForStartupCache: true,
+          isForStartupCache: {
+            App: true,
+          },
         },
         DiscoveryStream: INITIAL_STATE.DiscoveryStream,
         Prefs: INITIAL_STATE.Prefs,

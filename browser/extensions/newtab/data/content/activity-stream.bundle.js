@@ -184,6 +184,8 @@ for (const type of [
   "NEW_TAB_LOAD",
   "NEW_TAB_REHYDRATED",
   "NEW_TAB_STATE_REQUEST",
+  "NEW_TAB_STATE_REQUEST_STARTUPCACHE",
+  "NEW_TAB_STATE_REQUEST_WITHOUT_STARTUPCACHE",
   "NEW_TAB_UNLOAD",
   "OPEN_ABOUT_FAKESPOT",
   "OPEN_DOWNLOAD_FILE",
@@ -3606,7 +3608,7 @@ class _DSCard extends (external_React_default()).PureComponent {
 
     // If this is for the about:home startup cache, then we always want
     // to render the DSCard, regardless of whether or not its been seen.
-    if (props.App.isForStartupCache) {
+    if (props.App.isForStartupCache.App) {
       this.state.isSeen = true;
     }
 
@@ -5164,7 +5166,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
     let editorsPicksCards = [];
     for (let index = 0; index < items; index++) {
       const rec = recs[index];
-      cards.push(topicsLoading || !rec || rec.placeholder || rec.flight_id && !spocsStartupCacheEnabled && this.props.App.isForStartupCache ? /*#__PURE__*/external_React_default().createElement(PlaceholderDSCard, {
+      cards.push(topicsLoading || !rec || rec.placeholder || rec.flight_id && !spocsStartupCacheEnabled && this.props.App.isForStartupCache.App ? /*#__PURE__*/external_React_default().createElement(PlaceholderDSCard, {
         key: `dscard-${index}`
       }) : /*#__PURE__*/external_React_default().createElement(DSCard, {
         key: `dscard-${rec.id}`,
@@ -7349,7 +7351,10 @@ const INITIAL_STATE = {
     // Have we received real data from the app yet?
     initialized: false,
     locale: "",
-    isForStartupCache: false,
+    isForStartupCache: {
+      App: false,
+      Wallpaper: false,
+    },
     customizeMenuVisible: false,
   },
   Ads: {
@@ -7500,15 +7505,24 @@ function App(prevState = INITIAL_STATE.App, action) {
     case actionTypes.TOP_SITES_UPDATED:
       // Toggle `isForStartupCache` when receiving the `TOP_SITES_UPDATE` action
       // so that sponsored tiles can be rendered as usual. See Bug 1826360.
-      return Object.assign({}, prevState, action.data || {}, {
-        isForStartupCache: false,
-      });
+      return {
+        ...prevState,
+        isForStartupCache: { ...prevState.isForStartupCache, App: false },
+      };
     case actionTypes.DISCOVERY_STREAM_SPOCS_UPDATE:
       // Toggle `isForStartupCache` when receiving the `DISCOVERY_STREAM_SPOCS_UPDATE_STARTUPCACHE` action
       // so that spoc cards can be rendered as usual.
-      return Object.assign({}, prevState, action.data || {}, {
-        isForStartupCache: false,
-      });
+      return {
+        ...prevState,
+        isForStartupCache: { ...prevState.isForStartupCache, App: false },
+      };
+    case actionTypes.WALLPAPERS_CUSTOM_SET:
+      // Toggle `isForStartupCache.Wallpaper` when receiving the `WALLPAPERS_CUSTOM_SET` action
+      // so that custom wallpaper can be rendered as usual.
+      return {
+        ...prevState,
+        isForStartupCache: { ...prevState.isForStartupCache, Wallpaper: false },
+      };
     case actionTypes.SHOW_PERSONALIZE:
       return Object.assign({}, prevState, {
         customizeMenuVisible: true,
@@ -9442,7 +9456,7 @@ class _TopSiteList extends (external_React_default()).PureComponent {
       let topSiteLink;
       // Use a placeholder if the link is empty or it's rendering a sponsored
       // tile for the about:home startup cache.
-      if (!link || props.App.isForStartupCache && isSponsored(link) || topSites[i]?.isAddButton) {
+      if (!link || props.App.isForStartupCache.App && isSponsored(link) || topSites[i]?.isAddButton) {
         if (link) {
           topSiteLink = /*#__PURE__*/external_React_default().createElement(TopSitePlaceholder, TopSite_extends({}, slotProps, commonProps, {
             isAddButton: topSites[i] && topSites[i].isAddButton,
@@ -14469,7 +14483,9 @@ class BaseContent extends (external_React_default()).PureComponent {
       // selecting a new wallpaper
       uploadedWallpaper !== prevUploadedWallpaper ||
       // uploading a new wallpaper
-      wallpaperList !== prevWallpaperList // remote settings wallpaper list updates
+      wallpaperList !== prevWallpaperList ||
+      // remote settings wallpaper list updates
+      this.props.App.isForStartupCache.Wallpaper !== prevProps.App.isForStartupCache.Wallpaper // Startup cached page wallpaper is updating
       ) {
         this.updateWallpaper();
       }
@@ -14675,9 +14691,11 @@ class BaseContent extends (external_React_default()).PureComponent {
       if (this.uploadedWallpaperUrl) {
         URL.revokeObjectURL(this.uploadedWallpaperUrl);
       }
-      const uploadedWallpaperUrl = URL.createObjectURL(uploadedWallpaper);
-      __webpack_require__.g.document?.body.style.setProperty("--newtab-wallpaper", `url(${uploadedWallpaperUrl})`);
-      __webpack_require__.g.document?.body.style.setProperty("--newtab-wallpaper-color", "transparent");
+      try {
+        const uploadedWallpaperUrl = URL.createObjectURL(uploadedWallpaper);
+        __webpack_require__.g.document?.body.style.setProperty("--newtab-wallpaper", `url(${uploadedWallpaperUrl})`);
+        __webpack_require__.g.document?.body.style.setProperty("--newtab-wallpaper-color", "transparent");
+      } catch (e) {}
       return;
     }
     if (wallpaperList) {
@@ -15199,34 +15217,46 @@ const NewTab = ({
 }) => /*#__PURE__*/external_React_default().createElement(external_ReactRedux_namespaceObject.Provider, {
   store: store
 }, /*#__PURE__*/external_React_default().createElement(Base, null));
+function doRequestWhenReady() {
+  // If this document has already gone into the background by the time we've reached
+  // here, we can deprioritize the request until the event loop
+  // frees up. If, however, the visibility changes, we then send the request.
+  const doRequestPromise = new Promise(resolve => {
+    let didRequest = false;
+    let requestIdleCallbackId = 0;
+    function doRequest() {
+      if (!didRequest) {
+        if (requestIdleCallbackId) {
+          cancelIdleCallback(requestIdleCallbackId);
+        }
+        didRequest = true;
+        resolve();
+      }
+    }
+    if (document.hidden) {
+      requestIdleCallbackId = requestIdleCallback(doRequest);
+      addEventListener("visibilitychange", doRequest, {
+        once: true
+      });
+    } else {
+      resolve();
+    }
+  });
+  return doRequestPromise;
+}
 function renderWithoutState() {
   const store = initStore(reducers);
   new DetectUserSessionStart(store).sendEventOrAddListener();
-
-  // If this document has already gone into the background by the time we've reached
-  // here, we can deprioritize requesting the initial state until the event loop
-  // frees up. If, however, the visibility changes, we then send the request.
-  let didRequest = false;
-  let requestIdleCallbackId = 0;
-  function doRequest() {
-    if (!didRequest) {
-      if (requestIdleCallbackId) {
-        cancelIdleCallback(requestIdleCallbackId);
-      }
-      didRequest = true;
-      store.dispatch(actionCreators.AlsoToMain({
-        type: actionTypes.NEW_TAB_STATE_REQUEST
-      }));
-    }
-  }
-  if (document.hidden) {
-    requestIdleCallbackId = requestIdleCallback(doRequest);
-    addEventListener("visibilitychange", doRequest, {
-      once: true
-    });
-  } else {
-    doRequest();
-  }
+  doRequestWhenReady().then(() => {
+    // If state events happened before we got here, we can request state again.
+    store.dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.NEW_TAB_STATE_REQUEST
+    }));
+    // If we rendered without state, we don't need the startup cache.
+    store.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.NEW_TAB_STATE_REQUEST_WITHOUT_STARTUPCACHE
+    }));
+  });
   external_ReactDOM_default().hydrate( /*#__PURE__*/external_React_default().createElement(NewTab, {
     store: store
   }), document.getElementById("root"));
@@ -15234,6 +15264,14 @@ function renderWithoutState() {
 function renderCache(initialState) {
   const store = initStore(reducers, initialState);
   new DetectUserSessionStart(store).sendEventOrAddListener();
+  doRequestWhenReady().then(() => {
+    // If state events happened before we got here,
+    // we can notify main that we need updates.
+    // The individual feeds know what state is not cached.
+    store.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.NEW_TAB_STATE_REQUEST_STARTUPCACHE
+    }));
+  });
   external_ReactDOM_default().hydrate( /*#__PURE__*/external_React_default().createElement(NewTab, {
     store: store
   }), document.getElementById("root"));

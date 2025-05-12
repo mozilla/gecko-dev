@@ -1447,16 +1447,16 @@ describe("<TopSiteForm>", () => {
 });
 
 describe("<TopSiteList>", () => {
-  const APP = { isForStartupCache: false };
+  const APP = { isForStartupCache: { App: false } };
 
   it("should render a TopSiteList element", () => {
-    const wrapper = shallow(<TopSiteList {...DEFAULT_PROPS} App={{ APP }} />);
+    const wrapper = shallow(<TopSiteList {...DEFAULT_PROPS} App={APP} />);
     assert.ok(wrapper.exists());
   });
   it("should render a TopSite for each link with the right url", () => {
     const rows = [{ url: "https://foo.com" }, { url: "https://bar.com" }];
     const wrapper = shallow(
-      <TopSiteList {...DEFAULT_PROPS} TopSites={{ rows }} App={{ APP }} />
+      <TopSiteList {...DEFAULT_PROPS} TopSites={{ rows }} App={APP} />
     );
     const links = wrapper.find(TopSite);
     assert.lengthOf(links, 2);
@@ -1478,7 +1478,7 @@ describe("<TopSiteList>", () => {
         {...DEFAULT_PROPS}
         TopSites={{ rows }}
         TopSitesRows={TOP_SITES_DEFAULT_ROWS}
-        App={{ APP }}
+        App={APP}
       />
     );
     const links = wrapper.find(TopSite);
@@ -1495,7 +1495,7 @@ describe("<TopSiteList>", () => {
         {...DEFAULT_PROPS}
         TopSites={{ rows }}
         TopSitesRows={availibleRows}
-        App={{ APP }}
+        App={APP}
       />
     );
     assert.lengthOf(wrapper.find(TopSite), 2, "topSites");
@@ -1518,7 +1518,7 @@ describe("<TopSiteList>", () => {
         {...DEFAULT_PROPS}
         TopSites={{ rows }}
         TopSitesRows={1}
-        App={{ isForStartupCache: true }}
+        App={{ isForStartupCache: { App: true } }}
       />
     );
     assert.lengthOf(wrapper.find(TopSite), 2, "topSites");
@@ -1532,7 +1532,7 @@ describe("<TopSiteList>", () => {
         {...DEFAULT_PROPS}
         TopSites={{ rows }}
         TopSitesRows={1}
-        App={{ APP }}
+        App={APP}
       />
     );
     assert.lengthOf(wrapper.find(TopSite), 2, "topSites");
@@ -1556,7 +1556,7 @@ describe("<TopSiteList>", () => {
     const site2 = { url: "https://bar.com" };
     const rows = [site1, site2];
     const wrapper = shallow(
-      <TopSiteList {...DEFAULT_PROPS} TopSites={{ rows }} App={{ APP }} />
+      <TopSiteList {...DEFAULT_PROPS} TopSites={{ rows }} App={APP} />
     );
     const instance = wrapper.instance();
     instance.setState({
@@ -1571,7 +1571,7 @@ describe("<TopSiteList>", () => {
   it("should dispatch events on drop", () => {
     const dispatch = sinon.spy();
     const wrapper = shallow(
-      <TopSiteList {...DEFAULT_PROPS} dispatch={dispatch} App={{ APP }} />
+      <TopSiteList {...DEFAULT_PROPS} dispatch={dispatch} App={APP} />
     );
     const instance = wrapper.instance();
     const index = 7;
@@ -1601,7 +1601,7 @@ describe("<TopSiteList>", () => {
     });
   });
   it("should make a topSitesPreview onDragEnter", () => {
-    const wrapper = shallow(<TopSiteList {...DEFAULT_PROPS} App={{ APP }} />);
+    const wrapper = shallow(<TopSiteList {...DEFAULT_PROPS} App={APP} />);
     const instance = wrapper.instance();
     const site = { url: "https://foo.com" };
     instance.setState({
@@ -1627,7 +1627,7 @@ describe("<TopSiteList>", () => {
         {...DEFAULT_PROPS}
         TopSites={{ rows }}
         TopSitesRows={1}
-        App={{ APP }}
+        App={APP}
       />
     );
     const addButton = { isAddButton: true };
@@ -1807,7 +1807,7 @@ describe("<TopSiteList>", () => {
         {...DEFAULT_PROPS}
         TopSites={{ rows }}
         TopSitesRows={1}
-        App={{ APP }}
+        App={APP}
       />
     );
     assert.lengthOf(wrapper.find("li.hide-for-narrow"), 2);

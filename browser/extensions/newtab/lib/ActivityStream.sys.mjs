@@ -32,6 +32,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://newtab/lib/RecommendationProvider.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   SectionsFeed: "resource://newtab/lib/SectionsManager.sys.mjs",
+  StartupCacheInit: "resource://newtab/lib/StartupCacheInit.sys.mjs",
   Store: "resource://newtab/lib/Store.sys.mjs",
   SystemTickFeed: "resource://newtab/lib/SystemTickFeed.sys.mjs",
   TelemetryFeed: "resource://newtab/lib/TelemetryFeed.sys.mjs",
@@ -1181,6 +1182,12 @@ const FEEDS_DATA = [
     name: "sections",
     factory: () => new lazy.SectionsFeed(),
     title: "Manages sections",
+    value: true,
+  },
+  {
+    name: "startupcacheinit",
+    factory: () => new lazy.StartupCacheInit(),
+    title: "Sends a copy of the state to the startup cache newtab",
     value: true,
   },
   {
