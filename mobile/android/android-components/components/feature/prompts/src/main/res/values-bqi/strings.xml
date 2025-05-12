@@ -140,6 +140,8 @@
   <string name="mozac_feature_prompts_account_picture">شؽوات هساو</string>
   <!-- Title of an account picker dialog for identity credentials. The %1$s will be replaced with the name of the provider -->
   <string name="mozac_feature_prompts_identity_credentials_choose_account_for_provider">وا هساو منتوری %1$s و من بیاین</string>
+  <!-- Text for the positive button of the Identity Credential dialogs. -->
+  <string name="mozac_feature_prompts_identity_credentials_continue">رئڌن وا پؽش</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_cancel">لقو</string>
 </resources>

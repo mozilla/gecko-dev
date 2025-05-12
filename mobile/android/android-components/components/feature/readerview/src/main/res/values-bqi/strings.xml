@@ -8,6 +8,10 @@
   <string name="mozac_feature_readerview_serif_font">سریف</string>
   <!-- Accessible description for the font option -->
   <string name="mozac_feature_readerview_serif_font_desc">فونت سریف</string>
+  <!-- Accessible description for decreasing the font size -->
+  <string name="mozac_feature_readerview_font_size_decrease_desc">بلم ٱووردن هندا فونت</string>
+  <!-- Accessible description for increasing the font size -->
+  <string name="mozac_feature_readerview_font_size_increase_desc">ب روء بوردن هندا فونت</string>
   <!-- Color option for the background -->
   <string name="mozac_feature_readerview_dark">تاریک</string>
   <!-- Accessible description for the color option -->

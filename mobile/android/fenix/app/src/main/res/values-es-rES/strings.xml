@@ -1480,12 +1480,33 @@
   <string name="download_multi_select_title">%1$d seleccionado(s)</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Eliminar</string>
+  <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
+  <string name="download_file_has_not_enough_storage_dialog_title">No hay espacio suficiente</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message">Este dispositivo no tiene suficiente espacio para descargar &lt;b&gt;%s&lt;/b&gt;.</string>
+  <!--
+    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will navigate the user to the device's storage management settings.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">Administrar archivos</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">Cancelar</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Eliminar</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Ir a la página anterior</string>
   <!-- Content description for the toolbar "Navigate up" button -->
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Navegar hacia arriba</string>
+  <!-- Content description for the toolbar back button while searching the downloads -->
+  <string name="download_close_search_description">Volver atrás y cerrar búsqueda</string>
+  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <string name="download_clear_search_description">Limpiar</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Compartir URL</string>
   <!-- Text for the button to share the download file -->

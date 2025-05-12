@@ -1378,6 +1378,8 @@
   <string name="tab_tray_multiselect_share_content_description">Jaa valitut välilehdet</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Valittujen välilehtien valikko</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Kotisivu</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Poista välilehti kokoelmasta</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1473,8 +1475,33 @@
   <string name="download_multi_select_title">%1$d valittu</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Poista</string>
+  <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
+  <string name="download_file_has_not_enough_storage_dialog_title">Ei tarpeeksi tilaa</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message">Tällä laitteella ei ole tarpeeksi tilaa tiedoston &lt;b&gt;%s&lt;/b&gt; lataamiseen.</string>
+  <!--
+    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will navigate the user to the device's storage management settings.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">Tiedostojen hallinta</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">Peruuta</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Poista</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">Siirry taaksepäin</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Liiku ylöspäin</string>
+  <!-- Content description for the toolbar back button while searching the downloads -->
+  <string name="download_close_search_description">Takaisin ja sulje haku</string>
+  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <string name="download_clear_search_description">Tyhjennä</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Jaa osoite</string>
   <!-- Text for the button to share the download file -->
@@ -1646,6 +1673,14 @@
   <string name="bookmark_menu_delete_button">Poista</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Tallenna</string>
+  <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_newest">Lajittele uusimman mukaan</string>
+  <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_oldest">Lajittele vanhimman mukaan</string>
+  <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_a_to_z">Lajittele A-Ö</string>
+  <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_z_to_a">Lajittele Ö-A</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected
@@ -3174,6 +3209,8 @@
   <string name="protection_panel_no_trackers_blocked">Seuraimia ei löytynyt</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">Tietosuoja- ja turvallisuusasetukset</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">Oikeudet</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.
@@ -3360,6 +3397,26 @@
   -->
   <string name="glean_debug_tools_title">Glean-vianjäljitystyökalut</string>
   <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Aluetyökalut</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Ohittaa tilapäisesti kotialueen ja nykyisen alueen arvot testausta varten.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Kotialue</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Nykyinen alue</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">Ohita kotialue</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">Ohita nykyinen alue</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">Ohita kotialue ja nykyinen alue</string>
+  <!--
     Messages explaining how to exit fullscreen mode
 
     Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
@@ -3471,6 +3528,8 @@
   <string name="setup_checklist_subtitle_5_steps_first_step">Hieno aloitus! Olet suorittanut yhden viidestä vaiheesta.</string>
   <!-- Subtitle for the setup checklist when the second task is completed. -->
   <string name="setup_checklist_subtitle_5_steps_second_step">Olet suorittanut kaksi vaihetta viidestä. Hienoa edistystä!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">Ylitit puolivälin! Kolme vaihetta suoritettu, kaksi jäljellä.</string>
   <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
   <string name="setup_checklist_subtitle_5_steps_fourth_step">Melkein valmista! Olet yhden vaiheen päässä maaliviivasta.</string>
   <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
@@ -3491,6 +3550,12 @@
   <string name="setup_checklist_task_explore_extensions">Selaa laajennuksia</string>
   <!-- The title of the search widget task for the setup checklist -->
   <string name="setup_checklist_task_search_widget">Asenna hakuwidget</string>
+  <!--
+    ===== Setup checklist feature: Group titles =====
+
+    The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_group_essentials">%1$s-perusasiat</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_group_customize">Mukauta %1$sia</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->

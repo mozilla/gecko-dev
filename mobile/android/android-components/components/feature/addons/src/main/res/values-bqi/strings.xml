@@ -36,6 +36,14 @@
   <string name="mozac_feature_addons_permissions_content_description_item">%1$s، %2$d ز %3$d</string>
   <!-- Description for tabs add-on permission. -->
   <string name="mozac_feature_addons_permissions_tabs_description">دسرسی و بلگه یل گشت گر</string>
+  <!-- Description for navigation permission. -->
+  <string name="mozac_feature_addons_permissions_web_navigation_description">دسرسی و فعالیتا مجال گشتن</string>
+  <!-- Description for bookmarks permission. -->
+  <string name="mozac_feature_addons_permissions_bookmarks_description">خوندن وو سامووݩ نشووکا</string>
+  <!-- Description for browser_setting permission. -->
+  <string name="mozac_feature_addons_permissions_browser_setting_description">خوندن وو آلشت سامووا گشت گر</string>
+  <!-- Description for browser_data permission. -->
+  <string name="mozac_feature_addons_permissions_browser_data_description">پاک کردن ویرگار گشت دیندایی، کۊکیا وو دووسمندیاسووݩ</string>
   <!-- Description for clipboard_read permission. -->
   <string name="mozac_feature_addons_permissions_clipboard_read_description">گرؽڌن داده یل ز کلیپ بورد</string>
   <!-- Description for clipboard_write permission. -->
@@ -44,6 +52,8 @@
   <string name="mozac_feature_addons_permissions_declarative_net_request_description">موئتوا ن من هر بلگه ای مسدۊد کوݩ</string>
   <!-- Description for declarativeNetRequestFeedback permission. -->
   <string name="mozac_feature_addons_permissions_declarative_net_request_feedback_description">ویرگار گشتن خوتووݩ ن بخۊوین</string>
+  <!-- Description for downloads permission. -->
+  <string name="mozac_feature_addons_permissions_downloads_description">گرؽڌن فایلا ویرگار گرؽڌه یل وو سامووݩ وو خوندن هونووݩ</string>
   <!-- Description for downloads_open permission. -->
   <string name="mozac_feature_addons_permissions_downloads_open_description">گۊشیڌن فایلا گرؽڌه بیڌه ری کامپیتر ایسا</string>
   <!-- Description for find permission. -->
@@ -82,6 +92,8 @@
   <string name="mozac_feature_addons_home_page">بلگه هووه ای</string>
   <!-- A link where users can find more information about add-ons permissions. -->
   <string name="mozac_feature_addons_learn_more">زبار موجوزا بیشتر دووسته بۊین</string>
+  <!-- The rating of the add-on. -->
+  <string name="mozac_feature_addons_rating">نومره داڌن</string>
   <!-- The settings of the add-on. -->
   <string name="mozac_feature_addons_settings">سامووا</string>
   <!-- Indicates the add-on is enabled. -->
@@ -158,6 +170,8 @@
   <string name="mozac_feature_addons_failed_to_install">شکست من پۊرستن %1$s</string>
   <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
   <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s نتره بپۊره چیناکه وا %2$s %3$s ساز نیاره.</string>
+  <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_successfully_enabled">%1$s و خۊوی فعال وابی</string>
   <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_failed_to_enable">شکست من فعال کردن %1$s</string>
   <!-- Text shown after successfully disabled an add-on. %1$s is the add-on name. -->
@@ -196,4 +210,8 @@
   <string name="mozac_feature_addons_status_learn_more">قلوه دووسته بۊین</string>
   <!-- "See details" link displayed below an add-on status message. -->
   <string name="mozac_feature_addons_status_see_details">نیشتن جۊزیات</string>
+  <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_status_unsigned">%1$s نتره و عونوان ٱمن قوۊل بۊ وو قیر فعال وابیڌه.</string>
+  <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
+  <string name="mozac_feature_addons_status_incompatible">%1$s وا نوسخه %2$s ایسا (نوسخه %3$s) ساز نیاره.</string>
 </resources>

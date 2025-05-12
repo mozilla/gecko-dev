@@ -2,6 +2,13 @@
 <resources>
   <!-- The tile for the list of external apps to open the link in -->
   <string name="mozac_feature_applinks_open_in">گۊشیڌن من…</string>
+  <!-- The description to warn users that their private browsing session changes -->
+  <string name="mozac_feature_applinks_confirm_dialog_title">گۊشیڌن من برنومه؟ فعالیت ایسا دی گاشڌ سیخومی نبۊوه.</string>
+  <!--
+    The description to warn users that their private browsing session changes
+    %s is a placeholder that will be replaced by an app name
+  -->
+  <string name="mozac_feature_applinks_confirm_dialog_title_with_app_name">من %s بوگوئشه؟ فعالیت ایسا دی گاشڌ سیخومی نمئنه.</string>
   <!-- The title of the prompt that warns users their normal browsing session is trying to open another app -->
   <string name="mozac_feature_applinks_normal_confirm_dialog_title">گۊشیڌن من برنومه یل دی</string>
   <!--
@@ -9,6 +16,11 @@
     %s is a placeholder that will be replaced by an app name
   -->
   <string name="mozac_feature_applinks_normal_confirm_dialog_title_with_app_name">گۊشیڌن من %s</string>
+  <!--
+    The message of the prompt to confirm with users that they want to open the link in another app
+    %s is a placeholder that will be replaced by the app name
+  -->
+  <string name="mozac_feature_applinks_normal_confirm_dialog_message">اخۊین %s ن هیلین وو رین تا ای موئتوا ن بنیرین؟</string>
   <!-- Opens the selected time -->
   <string name="mozac_feature_applinks_confirm_dialog_confirm">گۊشیڌن</string>
   <!-- Cancels the prompt -->

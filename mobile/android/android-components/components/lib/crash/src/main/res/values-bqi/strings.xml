@@ -2,6 +2,24 @@
 <resources>
   <!-- Label of the button closing the crash reporter dialog. -->
   <string name="mozac_lib_crash_dialog_button_close">بستن</string>
+  <!-- Label of the button closing the crash reporter dialog and restarting the app. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="mozac_lib_crash_dialog_button_restart">ر وندن دووارته %1$s</string>
+  <!-- Name of the "notification channel" used for displaying a notification when the app crashed and we can't show a prompt. See https://developer.android.com/training/notify-user/channels -->
+  <string name="mozac_lib_crash_channel">خراوی یل</string>
+  <!-- Title of the crash reporter notification for background process crashes. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="mozac_lib_crash_background_process_notification_title">وابخشی، موشکلی من %1$s پؽش ٱووڌ.</string>
+  <!-- Label of a notification action/button that will send the crash report to Mozilla. -->
+  <string name="mozac_lib_crash_notification_action_report">گوزارش</string>
+  <!-- Label of notification showing that the crash report service is running. %1$s is the name of the organization (for example "Mozilla"). -->
+  <string name="mozac_lib_send_crash_report_in_progress">هونی گوزارش خراوی ن افشنه و %1$s</string>
+  <!-- Label of notification showing that the crash handling service is gathering the crash data. -->
+  <string name="mozac_lib_gathering_crash_data_in_progress">جم کردن دووسمندیا خراوی</string>
+  <!-- Label of notification showing that the telemetry service is gathering the crash data. -->
+  <string name="mozac_lib_gathering_crash_telemetry_in_progress">جم کردن دووسمندیا دیرسنجی خراوی</string>
+  <!-- Title of the activity that shows the list of past crashes (similar to about:crashes) -->
+  <string name="mozac_lib_crash_activity_title">گوزارشا خراوی</string>
+  <!-- Text shown instead of crash list if no crashes have been submitted yet -->
+  <string name="mozac_lib_crash_no_crashes">گوزارش خراوی تا سکو نفشناڌه.</string>
   <!-- Text link that will show an app chooser to share a crash report with a third-party app (e.g. gmail) -->
   <string name="mozac_lib_crash_share">یک رسۊوی</string>
 </resources>
