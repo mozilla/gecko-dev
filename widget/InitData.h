@@ -83,7 +83,6 @@ struct InitData {
   bool mClipChildren = false;
   bool mClipSiblings = false;
   bool mRTL = false;
-  bool mNoAutoHide = false;   // true for noautohide panels
   bool mIsDragPopup = false;  // true for drag feedback panels
   // true if window creation animation is suppressed, e.g. for session restore
   bool mIsAnimationSuppressed = false;
