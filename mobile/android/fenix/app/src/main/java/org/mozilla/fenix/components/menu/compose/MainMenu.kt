@@ -16,6 +16,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.service.fxa.manager.AccountState
+import mozilla.components.service.fxa.manager.AccountState.Authenticated
+import mozilla.components.service.fxa.manager.AccountState.Authenticating
+import mozilla.components.service.fxa.manager.AccountState.AuthenticationProblem
 import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
 import mozilla.components.service.fxa.store.Account
 import org.mozilla.fenix.R
@@ -102,9 +105,6 @@ fun MainMenu(
     onRefreshButtonClick: (longPress: Boolean) -> Unit,
     onShareButtonClick: () -> Unit,
 ) {
-    account.hashCode()
-    accountState.hashCode()
-    onMozillaAccountButtonClick.hashCode()
     onHelpButtonClick.hashCode()
 
     MenuScaffold(
@@ -155,6 +155,14 @@ fun MainMenu(
         }
 
         MenuGroup {
+            MozillaAccountMenuItem(
+                account = account,
+                accountState = accountState,
+                onClick = onMozillaAccountButtonClick,
+            )
+
+            Divider(color = FirefoxTheme.colors.borderSecondary)
+
             MenuItem(
                 label = stringResource(id = R.string.browser_menu_settings),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_settings_24),
@@ -398,6 +406,56 @@ private fun HomepageMenuGroup(
             onClick = onNewInFirefoxMenuClick,
         )
     }
+}
+
+@Composable
+internal fun MozillaAccountMenuItem(
+    account: Account?,
+    accountState: AccountState,
+    onClick: () -> Unit,
+) {
+    val label: String
+    val description: String?
+
+    when (accountState) {
+        NotAuthenticated -> {
+            label = stringResource(id = R.string.browser_menu_sign_in)
+            description = stringResource(id = R.string.browser_menu_sign_in_caption)
+        }
+
+        AuthenticationProblem -> {
+            label = stringResource(id = R.string.browser_menu_sign_back_in_to_sync)
+            description = stringResource(id = R.string.browser_menu_syncing_paused_caption)
+        }
+
+        Authenticated -> {
+            label = account?.displayName ?: account?.email
+                ?: stringResource(id = R.string.browser_menu_account_settings)
+            description = null
+        }
+
+        is Authenticating -> {
+            label = ""
+            description = null
+        }
+    }
+
+    MenuItem(
+        label = label,
+        beforeIconPainter = painterResource(id = R.drawable.mozac_ic_avatar_circle_24),
+        description = description,
+        descriptionState = if (accountState is AuthenticationProblem) {
+            MenuItemState.WARNING
+        } else {
+            MenuItemState.ENABLED
+        },
+        afterIconPainter = if (accountState is AuthenticationProblem) {
+            painterResource(R.drawable.mozac_ic_warning_fill_24)
+        } else {
+            null
+        },
+        onClick = onClick,
+    )
 }
 
 @LightDarkPreview
