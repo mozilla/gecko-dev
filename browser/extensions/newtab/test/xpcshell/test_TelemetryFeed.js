@@ -2609,7 +2609,7 @@ add_task(async function test_handleBlockUrl_record_dismiss_on_action() {
     },
   ];
 
-  await instance.handleBlockUrl({ data });
+  await instance.handleBlockUrl({ data, source: "TOP_SITES" });
 
   let dismisses = Glean.topsites.dismiss.testGetValue();
   Assert.equal(dismisses.length, 1, "Should have recorded 1 dismiss");
@@ -2646,7 +2646,7 @@ add_task(
       },
     ];
 
-    await instance.handleBlockUrl({ data });
+    await instance.handleBlockUrl({ data, source: "TOP_SITES" });
 
     let dismisses = Glean.topsites.dismiss.testGetValue();
     Assert.equal(dismisses.length, 1, "Should have recorded 1 dismiss");
