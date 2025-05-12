@@ -10,9 +10,7 @@ const SAME_SITE_STATUSES = new Map([
   [Ci.nsICookie.SAMESITE_NONE, "no_restriction"],
   [Ci.nsICookie.SAMESITE_LAX, "lax"],
   [Ci.nsICookie.SAMESITE_STRICT, "strict"],
-
-  // FIXME: this should be "unspecified". Bug 1550032.
-  [Ci.nsICookie.SAMESITE_UNSET, "no_restriction"],
+  [Ci.nsICookie.SAMESITE_UNSET, "unspecified"],
 ]);
 
 const isIPv4 = host => {
@@ -703,6 +701,7 @@ this.cookies = class extends ExtensionAPIPersistent {
             // enforced by "sameSite" in schemas/cookies.json
             if (details.sameSite === v) {
               sameSite = k;
+              break;
             }
           }
 
