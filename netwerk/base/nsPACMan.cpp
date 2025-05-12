@@ -592,26 +592,29 @@ nsresult nsPACMan::GetPACFromDHCP(nsACString& aSpec) {
   mPACStringFromDHCP.Truncate();
 
   RefPtr<nsPACMan> self = this;
-  rv = NS_DispatchBackgroundTask(NS_NewRunnableFunction(
-      "nsPACMan::GetPACFromDHCP", [dhcpClient = nsCOMPtr{mDHCPClient}, self] {
-        nsAutoCString spec;
-        nsresult rv;
-        rv = dhcpClient->GetOption(MOZ_DHCP_WPAD_OPTION, spec);
-        if (NS_FAILED(rv)) {
-          LOG(
-              ("nsPACMan::GetPACFromDHCP DHCP option %d "
-               "query failed with result %d\n",
-               MOZ_DHCP_WPAD_OPTION, (uint32_t)rv));
-        } else {
-          LOG(
-              ("nsPACMan::GetPACFromDHCP DHCP option %d query succeeded,"
-               "finding PAC URL %s\n",
-               MOZ_DHCP_WPAD_OPTION, spec.BeginReading()));
-        }
-        MonitorAutoLock lock(self->mMonitor);
-        self->mPACStringFromDHCP = spec;
-        self->mMonitor.NotifyAll();
-      }));
+  rv = NS_DispatchBackgroundTask(
+      NS_NewRunnableFunction(
+          "nsPACMan::GetPACFromDHCP",
+          [dhcpClient = nsCOMPtr{mDHCPClient}, self] {
+            nsAutoCString spec;
+            nsresult rv;
+            rv = dhcpClient->GetOption(MOZ_DHCP_WPAD_OPTION, spec);
+            if (NS_FAILED(rv)) {
+              LOG(
+                  ("nsPACMan::GetPACFromDHCP DHCP option %d "
+                   "query failed with result %d\n",
+                   MOZ_DHCP_WPAD_OPTION, (uint32_t)rv));
+            } else {
+              LOG(
+                  ("nsPACMan::GetPACFromDHCP DHCP option %d query succeeded,"
+                   "finding PAC URL %s\n",
+                   MOZ_DHCP_WPAD_OPTION, spec.BeginReading()));
+            }
+            MonitorAutoLock lock(self->mMonitor);
+            self->mPACStringFromDHCP = spec;
+            self->mMonitor.NotifyAll();
+          }),
+      NS_DISPATCH_EVENT_MAY_BLOCK);
 
   if (NS_FAILED(rv)) {
     return rv;
