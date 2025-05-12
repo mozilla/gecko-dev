@@ -240,14 +240,8 @@ bool nsNativeThemeGTK::GetGtkWidgetAndState(StyleAppearance aAppearance,
       else
         aGtkWidgetType = MOZ_GTK_SPLITTER_HORIZONTAL;
       break;
-    case StyleAppearance::MozWindowTitlebar:
-      aGtkWidgetType = MOZ_GTK_HEADER_BAR;
-      break;
     case StyleAppearance::MozWindowDecorations:
       aGtkWidgetType = MOZ_GTK_WINDOW_DECORATION;
-      break;
-    case StyleAppearance::MozWindowTitlebarMaximized:
-      aGtkWidgetType = MOZ_GTK_HEADER_BAR_MAXIMIZED;
       break;
     case StyleAppearance::MozWindowButtonClose:
       aGtkWidgetType = MOZ_GTK_HEADER_BAR_BUTTON_CLOSE;
