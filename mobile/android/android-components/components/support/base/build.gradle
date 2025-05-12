@@ -7,22 +7,6 @@ apply plugin: 'kotlin-android'
 
 def generatedSrcDir = new File(layout.buildDirectory.get().asFile, "generated/components/src/main/java")
 
-// This vcsHash functionality is duplicated in publish.gradle.
-def getVcsHash = { ->
-    def proc = providers.exec {
-        commandLine('git', 'rev-parse', '--short', 'HEAD')
-        ignoreExitValue = true
-    }
-    if (proc.result.get().exitValue != 0) {
-        return providers.exec {
-            commandLine('hg', 'id', '--id')
-            environment('HGPLAIN', '1')
-            ignoreExitValue = true
-        }.standardOutput.asText.get().trim()
-    }
-    return proc.standardOutput.asText.get().trim()
-}
-
 android {
     defaultConfig {
         minSdkVersion = config.minSdkVersion
@@ -39,19 +23,17 @@ android {
         buildConfigField("String", "LIBRARY_VERSION", "\"" + config.componentsVersion + "\"")
         buildConfigField("String", "APPLICATION_SERVICES_VERSION", "\"" + appServicesVersion + "\"")
         buildConfigField("String", "GLEAN_SDK_VERSION", "\"" + libs.versions.mozilla.glean.get() + "\"")
-        buildConfigField("String", "VCS_HASH", "\"dev build\"")
+        if (gradle.mozconfig.substs.MOZ_INCLUDE_SOURCE_INFO) {
+            buildConfigField("String", "VCS_HASH", "\"" + gradle.mozconfig.source_repo.MOZ_SOURCE_STAMP + "\"")
+        } else {
+            buildConfigField("String", "VCS_HASH", "\"\"")
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-
-            if (gradle.ext.vcsHashFileContent) {
-                buildConfigField("String", "VCS_HASH", "\"" + gradle.ext.vcsHashFileContent + "\"")
-            } else {
-                buildConfigField("String", "VCS_HASH", "\"" + getVcsHash() + "\"")
-            }
         }
     }
 

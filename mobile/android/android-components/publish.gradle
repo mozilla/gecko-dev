@@ -4,9 +4,6 @@
 
 import groovy.transform.Memoized
 
-def libRepoName = properties.libRepositoryName
-def libUrl = properties.libUrl
-def libVcsUrl = properties.libVcsUrl
 def libLicense = properties.libLicense
 def libLicenseUrl = properties.libLicenseUrl
 
@@ -14,24 +11,6 @@ static def getLocalPublicationTimestamp() {
     def date = new Date()
     return date.format('yyyyMMddHHmmss')
 }
-
-// This vcsHash functionality is duplicated in :support-base build.gradle.
-@Memoized
-def getVcsHash() {
-    def proc = providers.exec {
-        commandLine('git', 'rev-parse', '--verify', 'HEAD') // via https://stackoverflow.com/a/949391/2219998
-        ignoreExitValue = true
-    }
-    if (proc.result.get().exitValue != 0) {
-        return providers.exec {
-            commandLine('hg', 'id', '--id')
-            environment('HGPLAIN', '1')
-            ignoreExitValue = true
-        }.standardOutput.asText.get().trim()
-    }
-    return proc.standardOutput.asText.get().trim()
-}
-
 
 ext.configurePublish = { groupIdArg, artifactIdArg, descriptionArg ->
     apply plugin: 'maven-publish'
@@ -78,13 +57,15 @@ ext.configurePublish = { groupIdArg, artifactIdArg, descriptionArg ->
                         }
 
                         scm {
-                            connection = libVcsUrl
-                            developerConnection = libVcsUrl
-                            url = libUrl
-                            if (gradle.ext.vcsHashFileContent) {
-                                tag = gradle.ext.vcsHashFileContent
+                            if (gradle.mozconfig.substs.MOZ_INCLUDE_SOURCE_INFO) {
+                                // URL is like "https://hg.mozilla.org/mozilla-central/rev/1e64b8a0c546a49459d404aaf930d5b1f621246a".
+                                connection = "scm:hg:${gradle.mozconfig.source_repo.MOZ_SOURCE_REPO}"
+                                url = gradle.mozconfig.source_repo.MOZ_SOURCE_URL
+                                tag = gradle.mozconfig.source_repo.MOZ_SOURCE_STAMP
                             } else {
-                                tag = getVcsHash()
+                                // Default to mozilla-central.
+                                connection = 'scm:hg:https://hg.mozilla.org/mozilla-central/'
+                                url = 'https://hg.mozilla.org/mozilla-central/'
                             }
                         }
                     }

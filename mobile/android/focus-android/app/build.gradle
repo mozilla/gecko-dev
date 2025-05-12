@@ -44,8 +44,11 @@ android {
         versionName Config.generateDebugVersionName()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: 'true'
-        // See override in release builds for why it's blank.
-        buildConfigField "String", "VCS_HASH", "\"\""
+        if (gradle.mozconfig.substs.MOZ_INCLUDE_SOURCE_INFO) {
+            buildConfigField("String", "VCS_HASH", "\"" + gradle.mozconfig.source_repo.MOZ_SOURCE_STAMP + "\"")
+        } else {
+            buildConfigField("String", "VCS_HASH", "\"\"")
+        }
 
         vectorDrawables.useSupportLibrary = true
     }
@@ -77,12 +80,6 @@ android {
             minifyEnabled = !project.hasProperty("disableOptimization")
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             matchingFallbacks = ['release']
-
-            if (gradle.ext.vcsHashFileContent) {
-                buildConfigField "String", "VCS_HASH", "\"hg-${gradle.ext.vcsHashFileContent}\""
-            } else {
-                buildConfigField "String", "VCS_HASH", "\"${Config.getVcsHash(project)}\""
-            }
 
             if (gradle.hasProperty("localProperties.autosignReleaseWithDebugKey") ||
                 gradle.mozconfig.substs.DEVELOPER_OPTIONS) {

@@ -65,7 +65,8 @@ android {
         testInstrumentationRunnerArguments "detect-leaks": 'true'
         resValue "bool", "IS_DEBUG", "false"
         buildConfigField "boolean", "USE_RELEASE_VERSIONING", "false"
-        buildConfigField "String", "VCS_HASH", "\"\"" // see override in release builds for why it's blank.
+        // Blank in debug builds so that tests are deterministic.
+        buildConfigField "String", "VCS_HASH", "\"\""
         // This should be the "public" base URL of AMO.
         buildConfigField "String", "AMO_BASE_URL", "\"https://addons.mozilla.org\""
         buildConfigField "String", "AMO_COLLECTION_NAME", "\"Extensions-for-Android\""
@@ -91,12 +92,9 @@ android {
         proguardFiles = [getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro']
         matchingFallbacks = ['release'] // Use on the "release" build type in dependencies (AARs)
 
-        // Changing the build config can cause files that depend on BuildConfig.java to recompile
-        // so we only set the vcs hash in release builds to avoid possible recompilation in debug builds.
-        if (gradle.ext.vcsHashFileContent) {
-            buildConfigField "String", "VCS_HASH", "\"hg-${gradle.ext.vcsHashFileContent}\""
-        } else {
-            buildConfigField "String", "VCS_HASH", "\"${Config.getVcsHash(project)}\""
+        // Present in release builds.
+        if (gradle.mozconfig.substs.MOZ_INCLUDE_SOURCE_INFO) {
+            buildConfigField("String", "VCS_HASH", "\"" + gradle.mozconfig.source_repo.MOZ_SOURCE_STAMP + "\"")
         }
 
         if (gradle.hasProperty("localProperties.autosignReleaseWithDebugKey") ||
