@@ -978,6 +978,10 @@ class gfxFontUtils {
   static uint16_t MapUVSToGlyphFormat14(const uint8_t* aBuf, uint32_t aCh,
                                         uint32_t aVS);
 
+  // Return whether <aCh, aVS> is supported as the default variation for aCh.
+  static bool IsDefaultUVSSequence(const uint8_t* aBuf, uint32_t aCh,
+                                   uint32_t aVS);
+
   // sCJKCompatSVSTable is a 'cmap' format 14 subtable that maps
   // <char + var-selector> pairs to the corresponding Unicode
   // compatibility ideograph codepoints.
