@@ -941,13 +941,18 @@ export var PlacesUIUtils = {
   },
 
   /**
-   * Determines whether a node contains a uri
+   * Determines whether a node represents a URI.
    *
-   * @param {nsINavHistoryResultNode | DOMElement} aNode A result node.
-   * @returns {boolean} whether the node contains a uri
+   * @param {nsINavHistoryResultNode | HTMLElement} aNode
+   *   A result node.
+   * @returns {boolean}
+   *   Whether the node represents a URI.
    */
   isURILike(aNode) {
-    return lazy.PlacesUtils.nodeIsURI(aNode) || !!aNode.uri;
+    if (aNode instanceof Ci.nsINavHistoryResultNode) {
+      return lazy.PlacesUtils.nodeIsURI(aNode);
+    }
+    return !!aNode.uri;
   },
 
   /**
