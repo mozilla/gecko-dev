@@ -982,6 +982,6 @@ class HTTP3Server {
       return ports[0];
     }
 
-    return undefined;
+    return -1;
   }
 }
