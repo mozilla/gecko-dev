@@ -4,8 +4,6 @@
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
-  ClientEnvironmentBase:
-    "resource://gre/modules/components-utils/ClientEnvironment.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
@@ -2022,7 +2020,6 @@ export class DiscoveryStreamFeed {
       const requestMetadata = {
         utc_offset: lazy.NewTabUtils.getUtcOffset(),
         coarse_os: lazy.NewTabUtils.normalizeOs(),
-        coarse_os_version: lazy.ClientEnvironmentBase.os.version,
         surface_id: prefs[PREF_SURFACE_ID] || "",
       };
 
