@@ -102,6 +102,7 @@
         is(checkboxes.length, 2, "Rendered two checkboxes");
         is(checkboxes[0].dataset.l10nId, LABEL_L10N_ID, "Label is set");
         is(checkboxes[0].checked, true, "First checkbox is checked");
+        is(checkboxes[0].disabled, false, "First checkbox is enabled");
         is(Services.prefs.getBoolPref(PREF_ONE), true, "First pref is true");
         is(checkboxes[1].checked, false, "Second checkbox is unchecked");
         is(Services.prefs.getBoolPref(PREF_TWO), false, "Second pref is false");
@@ -151,6 +152,23 @@
           "Second checkbox becomes unchecked after pref change"
         );
         is(Services.prefs.getBoolPref(PREF_TWO), false, "Second pref is false");
+
+        // Test pref locking
+        settingChanged = waitForSettingChange(
+          Preferences.getSetting(SETTING_ONE)
+        );
+        Services.prefs.lockPref(PREF_ONE);
+        await settingChanged;
+
+        is(checkboxes[0].disabled, true, "Checkbox is disabled when locked");
+
+        settingChanged = waitForSettingChange(
+          Preferences.getSetting(SETTING_ONE)
+        );
+        Services.prefs.unlockPref(PREF_ONE);
+        await settingChanged;
+
+        is(checkboxes[0].disabled, false, "Checkbox is enabled when unlocked");
       });
 
       add_task(async function testSupportLinkXulCheckbox() {

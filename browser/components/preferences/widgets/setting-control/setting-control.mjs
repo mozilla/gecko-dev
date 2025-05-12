@@ -58,6 +58,7 @@ export class SettingControl extends MozLitElement {
           .checked=${this.value}
           .supportPage=${this.config.supportPage}
           data-subcategory=${ifDefined(this.config.subcategory)}
+          ?disabled=${this.setting.locked}
           @change=${this.onChange}
         ></moz-checkbox>`;
     }

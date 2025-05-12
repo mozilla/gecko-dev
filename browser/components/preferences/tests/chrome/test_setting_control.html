@@ -92,6 +92,7 @@
         );
         is(control.inputEl.dataset.l10nId, LABEL_L10N_ID, "Label is set");
         is(control.inputEl.checked, true, "checkbox is checked");
+        is(control.inputEl.disabled, false, "checkbox is enabled");
         is(Services.prefs.getBoolPref(PREF), true, "pref is true");
 
         let settingChanged = waitForSettingChange(setting);
@@ -113,6 +114,21 @@
           "checkbox becomes checked after pfef change"
         );
         is(Services.prefs.getBoolPref(PREF), true, "pref is true");
+
+        // Pref locking
+        settingChanged = waitForSettingChange(setting);
+        Services.prefs.lockPref(PREF);
+        await settingChanged;
+        is(control.inputEl.disabled, true, "checkbox is disabled when locked");
+
+        settingChanged = waitForSettingChange(setting);
+        Services.prefs.unlockPref(PREF);
+        await settingChanged;
+        is(
+          control.inputEl.disabled,
+          false,
+          "checkbox is enabled when unlocked"
+        );
       });
 
       add_task(async function testSupportLinkCheckbox() {

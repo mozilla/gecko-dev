@@ -145,6 +145,42 @@
 
         is(setting.visible, false, "Setting is not visible");
       });
+
+      add_task(async function testPrefIsLocked() {
+        const PREF_ID = "test.setting.locked";
+        const SETTING_ID = "testSettingLocked";
+        const NO_PREF_ID = "noSettingLocked";
+        await SpecialPowers.pushPrefEnv({
+          set: [[PREF_ID, false]],
+        });
+        Preferences.add({
+          id: PREF_ID,
+          type: "bool",
+        });
+        Preferences.addSetting({
+          id: SETTING_ID,
+          pref: PREF_ID,
+        });
+        Preferences.addSetting({
+          id: NO_PREF_ID,
+          get: () => true,
+        });
+
+        let setting = Preferences.getSetting(SETTING_ID);
+        ok(setting, "Got a setting object");
+
+        is(setting.locked, false, "Setting is not locked");
+
+        Services.prefs.lockPref(PREF_ID);
+        is(setting.locked, true, "Setting is locked");
+
+        Services.prefs.unlockPref(PREF_ID);
+        is(setting.locked, false, "Setting is not unlocked");
+
+        let noPrefSetting = Preferences.getSetting(NO_PREF_ID);
+        ok(noPrefSetting, "Got a setting not backed by prefs");
+        is(noPrefSetting.locked, false, "Non-pref setting is not locked");
+      });
     </script>
   </head>
   <body>

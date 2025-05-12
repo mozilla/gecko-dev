@@ -714,6 +714,10 @@ const Preferences = (window.Preferences = (function () {
       }
     }
 
+    get locked() {
+      return this.pref?.locked ?? false;
+    }
+
     get visible() {
       return this.config.visible ? this.config.visible() : true;
     }
