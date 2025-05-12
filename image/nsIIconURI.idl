@@ -52,16 +52,23 @@ interface nsIMozIconURI : nsIURI
   readonly attribute nsIURL iconURL;
 
   /// imageSize: The image area in square pixels, defaults to 16 if unspecified.
-  readonly attribute unsigned long imageSize;
+  [infallible] readonly attribute unsigned long imageSize;
+
+  /// The scale of the icon.
+  [infallible] readonly attribute unsigned long imageScale;
+
+  /// imageDark: Returns whether dark or light mode was specified. Fails if not
+  /// specified at all.
+  readonly attribute boolean imageDark;
 
   /// stockIcon: The stock icon name requested from the OS.
-   readonly attribute ACString stockIcon;
+  readonly attribute ACString stockIcon;
 
   /// iconSize: The stock icon size requested from the OS.
-   readonly attribute ACString iconSize;
+  readonly attribute ACString iconSize;
 
   /// iconState: The stock icon state requested from the OS.
-   readonly attribute ACString iconState;
+  readonly attribute ACString iconState;
 
   /// contentType: A valid mime type, or the empty string.
   readonly attribute ACString contentType;

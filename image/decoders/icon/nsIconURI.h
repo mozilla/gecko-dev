@@ -46,10 +46,12 @@ class nsMozIconURI final : public nsIMozIconURI,
   nsCString mFileName;  // for if we don't have an actual file path, we're just
                         // given a filename with an extension
   nsCString mStockIcon;
-  int32_t mIconSize;   // -1 if not specified, otherwise index into
-                       // kSizeStrings
-  int32_t mIconState;  // -1 if not specified, otherwise index into
-                       // kStateStrings
+  int32_t mIconSize = -1;   // -1 if not specified, otherwise index into
+                            // kSizeStrings
+  int32_t mIconState = -1;  // -1 if not specified, otherwise index into
+                            // kStateStrings
+  uint32_t mScale = 1;
+  mozilla::Maybe<bool> mDark;
 
  private:
   nsresult Clone(nsIURI** aURI);
