@@ -15,6 +15,34 @@ add_setup(async function setup() {
   });
 });
 
+add_task(async function test_button_visibility_by_escape() {
+  info("Open pageproxystate valid page");
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "https://example.com/"
+  );
+  await assertState(false, "valid");
+
+  info("Open the result panel and select the first item");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "",
+  });
+  EventUtils.synthesizeKey("KEY_ArrowDown");
+  await assertState(true, "invalid");
+
+  info("Escape to close the result panel");
+  await UrlbarTestUtils.promisePopupClose(window, () =>
+    EventUtils.synthesizeKey("KEY_Escape")
+  );
+  await assertState(true, "invalid");
+
+  info("Escape to revert");
+  EventUtils.synthesizeKey("KEY_Escape");
+  await assertState(false, "valid");
+  BrowserTestUtils.removeTab(tab);
+});
+
 add_task(async function test_button_visibility_by_loaded_on_background() {
   info("Open valid page that loads slow");
   let tab1 = await BrowserTestUtils.openNewForegroundTab({
