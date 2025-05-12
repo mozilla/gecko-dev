@@ -6,6 +6,7 @@ task-defaults:
     worker-type: b-linux-gcp
     worker:
         max-run-time: 1800
+    use-python: default
 
 linux64-binutils-2.31.1:
     description: "Binutils toolchain build"
@@ -208,6 +209,7 @@ macosx64-xz:
         symbol: TM(xz)
     worker:
         max-run-time: 30000
+    use-python: system  # dependency of taskcluster python
     run:
         script: build-xz.sh
         toolchain-artifact: public/build/xz.tar.zst
