@@ -283,7 +283,7 @@ already_AddRefed<SharedThreadPool> GetMediaThreadPool(MediaThreadType aType) {
     #ifdef XP_WIN
     // libaom can require a larger stack size on Windows, because it uses
     // large stack buffers
-    minStackSize *= 2;
+    minStackSize *= 4;
     #endif
     uint32_t stackSize;
     MOZ_ALWAYS_SUCCEEDS(pool->GetThreadStackSize(&stackSize));
