@@ -183,9 +183,14 @@ nsresult NotificationParent::HandleAlertTopic(AlertTopic aTopic) {
       // alertshow happens first before alertfinished, and it should have
       // nullified mResolver. If not it means it failed to show and is bailing
       // out.
-      // XXX: Apparently XUL manual do not disturb mode does this without firing
-      // alertshow at all.
-      mResolver.take().value()(CopyableErrorResult(NS_ERROR_FAILURE));
+      // NOTE(krosylight): The spec does not define what to do when a
+      // permission-granted notification fails to open, we throw TypeError here
+      // as that's the error for when permission is denied.
+      CopyableErrorResult rv;
+      rv.ThrowTypeError(
+          "Failed to show notification, potentially because the browser did "
+          "not have the corresponding OS-level permission."_ns);
+      mResolver.take().value()(rv);
     }
 
     // Unpersisted already and being unregistered already by nsIAlertsService

@@ -101,6 +101,7 @@ async function setupServiceWorker(src, scope) {
   SimpleTest.registerCleanupFunction(async () => {
     await registration.unregister();
   });
+  return registration;
 }
 
 async function testFrame(src, args) {

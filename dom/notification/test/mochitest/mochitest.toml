@@ -14,6 +14,9 @@ skip-if = [
   "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
 ]
 
+["test_notification_browser_failure.html"]
+support-files = ["notification_empty_sw.js"]
+
 ["test_notification_crossorigin_iframe.html"]
 support-files = ["blank.html"]
 

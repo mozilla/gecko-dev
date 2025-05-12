@@ -29,6 +29,11 @@ function mockServicesChromeScript() {
       // fake async alert show event
       if (listener) {
         setTimeout(() => {
+          if (this.mockFailure) {
+            listener.observe(null, "alertfinished", alert.cookie);
+            return;
+          }
+
           listener.observe(null, "alertshow", alert.cookie);
           if (this.autoClick) {
             let subject;
@@ -142,6 +147,10 @@ function mockServicesChromeScript() {
     mockAlertsService.autoClick = action || true;
   });
 
+  addMessageListener("mock-alert-service:mock-failure", action => {
+    mockAlertsService.mockFailure = action || true;
+  });
+
   addMessageListener("mock-alert-service:get-notification-ids", () =>
     Object.keys(activeNotifications)
   );
@@ -203,6 +212,12 @@ const MockAlertsService = {
   async enableAutoClick(action) {
     await this._chromeScript.sendQuery(
       "mock-alert-service:enable-autoclick",
+      action
+    );
+  },
+  async mockFailure(action) {
+    await this._chromeScript.sendQuery(
+      "mock-alert-service:mock-failure",
       action
     );
   },
