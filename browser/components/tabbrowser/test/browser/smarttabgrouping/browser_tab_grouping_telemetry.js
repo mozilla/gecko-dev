@@ -39,6 +39,11 @@ async function setup({
     "text2text-generation": { modelRevision: "v0.3.4" },
     "feature-extraction": { modelRevision: "v0.1.0" },
   });
+
+  sinon
+    .stub(SmartTabGroupingManager.prototype, "initEmbeddingEngine")
+    .resolves({});
+
   sinon
     .stub(SmartTabGroupingManager.prototype, "preloadAllModels")
     .resolves([]);

@@ -187,6 +187,33 @@ export class SmartTabGroupingManager {
   }
 
   /**
+   *
+   * @param {MLEngine} engine the engine to check
+   * @return {boolean} true if the engine has not been initialized or closed
+   */
+  static isEngineClosed(engine) {
+    return !engine || engine?.engineStatus === "closed";
+  }
+
+  /**
+   * Initializes the embedding engine by running a test request
+   * This helps remove the init latency
+   */
+  async initEmbeddingEngine() {
+    if (!SmartTabGroupingManager.isEngineClosed(this.embeddingEngine)) {
+      return;
+    }
+    try {
+      this.embeddingEngine = await this._createMLEngine(this.config.embedding);
+      const request = {
+        args: ["Test"],
+        options: { pooling: "mean", normalize: true },
+      };
+      this.embeddingEngine.run(request);
+    } catch (e) {}
+  }
+
+  /**
    * Generates suggested tabs for an existing or provisional group
    * @param {object} group active group we are adding tabs to
    * @param {array} tabs list of tabs from gbrowser, some of which may be grouped in other groups
@@ -678,10 +705,7 @@ export class SmartTabGroupingManager {
       },
     };
 
-    if (
-      !this.embeddingEngine ||
-      this.embeddingEngine?.engineStatus === "closed"
-    ) {
+    if (SmartTabGroupingManager.isEngineClosed(this.embeddingEngine)) {
       this.embeddingEngine = await this._createMLEngine(this.config.embedding);
     }
     const request = {
@@ -1097,7 +1121,7 @@ export class SmartTabGroupingManager {
       },
     };
 
-    if (!this.topicEngine || this.topicEngine?.engineStatus === "closed") {
+    if (SmartTabGroupingManager.isEngineClosed(this.topicEngine)) {
       this.topicEngine = await this._createMLEngine(
         this.config.topicGeneration
       );

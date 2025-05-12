@@ -830,8 +830,15 @@
       this.#panel.openPopup(group.firstChild, {
         position: this.#panelPosition,
       });
+      if (!this.smartTabGroupsOptin) {
+        return;
+      }
       // If user has opted in kick off label generation
-      this.smartTabGroupsOptin && this.#initMlGroupLabel();
+      this.#initMlGroupLabel();
+      if (this.smartTabGroupsEnabled) {
+        // initialize the embedding engine in the background
+        this.#smartTabGroupingManager.initEmbeddingEngine();
+      }
     }
 
     /*
