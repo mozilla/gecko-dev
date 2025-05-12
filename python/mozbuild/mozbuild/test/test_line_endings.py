@@ -1,8 +1,8 @@
 import unittest
+from io import StringIO
 
 import mozunit
 from mozfile import NamedTemporaryFile
-from six import StringIO
 
 from mozbuild.preprocessor import Preprocessor
 

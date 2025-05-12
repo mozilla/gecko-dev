@@ -7,11 +7,10 @@ import json
 import os
 import tempfile
 import unittest
+from io import StringIO
 
 import mozunit
-import six
 from mozfile.mozfile import NamedTemporaryFile
-from six import StringIO
 
 from mozbuild.backend.configenvironment import ConfigEnvironment
 from mozbuild.mozinfo import build_dict, write_mozinfo
@@ -286,7 +285,7 @@ class TestWriteMozinfo(unittest.TestCase, Base):
 
     def setUp(self):
         fd, f = tempfile.mkstemp()
-        self.f = six.ensure_text(f)
+        self.f = f
         os.close(fd)
 
     def tearDown(self):

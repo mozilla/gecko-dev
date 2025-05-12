@@ -3,10 +3,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import pickle
 import unittest
 
 import mozpack.path as mozpath
-import six.moves.cPickle as pickle
 from mozpack.manifests import InstallManifest
 from mozunit import main
 

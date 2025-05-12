@@ -11,7 +11,6 @@ from tempfile import mkdtemp
 
 import buildconfig
 import mozpack.path as mozpath
-import six
 from mozfile import which
 from mozpack.files import FileFinder
 from mozunit import main
@@ -188,7 +187,7 @@ class TestBuild(unittest.TestCase):
         )
 
         result = {
-            p: six.ensure_text(f.open().read())
+            p: f.open().read().decode()
             for p, f in FileFinder(mozpath.join(config.topobjdir, "dist"))
         }
         self.assertTrue(len(result))

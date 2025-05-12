@@ -5,10 +5,10 @@
 import os
 import shutil
 import unittest
+from io import StringIO
 from tempfile import mkdtemp
 
 from mozunit import MockedOpen, main
-from six import StringIO
 
 from mozbuild.preprocessor import Preprocessor
 

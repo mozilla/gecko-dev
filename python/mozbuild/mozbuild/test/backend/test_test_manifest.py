@@ -3,9 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import pickle
 
 import mozpack.path as mozpath
-import six.moves.cPickle as pickle
 from mozunit import main
 
 from mozbuild.backend.test_manifest import TestManifestBackend

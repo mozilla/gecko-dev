@@ -12,7 +12,6 @@ import sys
 import unittest
 
 import pytest
-import six
 from mozfile.mozfile import NamedTemporaryFile
 from mozunit import main
 
@@ -838,7 +837,6 @@ class TestEnumString(unittest.TestCase):
 
 
 class TestHexDump(unittest.TestCase):
-    @unittest.skipUnless(six.PY3, "requires Python 3")
     def test_hexdump(self):
         self.assertEqual(
             hexdump("abcdef123💩ZYXWVU".encode()),

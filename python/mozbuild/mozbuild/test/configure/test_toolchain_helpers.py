@@ -6,11 +6,11 @@ import copy
 import re
 import unittest
 from fnmatch import fnmatch
+from io import StringIO
 from textwrap import dedent
 
 from mozpack import path as mozpath
 from mozunit import MockedOpen, main
-from six import StringIO
 
 from mozbuild.preprocessor import Preprocessor
 from mozbuild.util import ReadOnlyNamespace

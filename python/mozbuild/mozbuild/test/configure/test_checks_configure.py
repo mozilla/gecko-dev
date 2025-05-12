@@ -6,11 +6,11 @@ import os
 import sys
 import textwrap
 import unittest
+from io import StringIO
 
 from buildconfig import topsrcdir
 from mozpack import path as mozpath
 from mozunit import MockedOpen, main
-from six import StringIO
 
 from common import ConfigureTestSandbox, ensure_exe_extension, fake_short_path
 from mozbuild.configure import ConfigureError, ConfigureSandbox

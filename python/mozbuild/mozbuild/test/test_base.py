@@ -8,13 +8,13 @@ import shutil
 import sys
 import tempfile
 import unittest
+from io import StringIO
 
 import mozpack.path as mozpath
 from buildconfig import topobjdir, topsrcdir
 from mach.logging import LoggingManager
 from mozfile.mozfile import NamedTemporaryFile
 from mozunit import main
-from six import StringIO
 
 from mozbuild.backend.configenvironment import ConfigEnvironment
 from mozbuild.base import (

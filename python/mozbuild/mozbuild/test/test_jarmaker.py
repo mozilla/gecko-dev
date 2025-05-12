@@ -7,13 +7,12 @@ import os.path
 import sys
 import unittest
 from filecmp import dircmp
+from io import StringIO
 from shutil import copy2, rmtree
 from tempfile import mkdtemp
 from zipfile import ZipFile
 
 import mozunit
-import six
-from six import StringIO
 
 from mozbuild.jar import JarMaker
 
@@ -89,7 +88,7 @@ def symlinks_supported(path):
         # Add 1 for a trailing backslash if necessary, and 1 for the terminating
         # null character.
         volpath = ctypes.create_string_buffer(len(path) + 2)
-        rv = GetVolumePathName(six.ensure_binary(path), volpath, len(volpath))
+        rv = GetVolumePathName(path.encode(), volpath, len(volpath))
         if rv == 0:
             raise WinError()
 
@@ -109,7 +108,7 @@ def symlinks_supported(path):
 def _getfileinfo(path):
     """Return information for the given file. This only works on Windows."""
     fh = CreateFile(
-        six.ensure_binary(path),
+        path.encode(),
         GENERIC_READ,
         FILE_SHARE_READ,
         None,

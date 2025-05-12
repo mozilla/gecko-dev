@@ -4,9 +4,9 @@
 
 import os
 import unittest
+from io import StringIO
 
 from mozunit import main
-from six import StringIO
 
 from mozbuild.makeutil import Makefile, Rule, read_dep_makefile, write_dep_makefile
 

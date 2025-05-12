@@ -6,11 +6,10 @@ import os
 import sys
 import textwrap
 import unittest
+from io import StringIO
 
 import mozpack.path as mozpath
-import six
 from mozunit import MockedOpen, main
-from six import StringIO
 
 from mozbuild.configure import ConfigureError, ConfigureSandbox
 from mozbuild.configure.options import (
@@ -36,7 +35,7 @@ class TestConfigure(unittest.TestCase):
         sandbox.run(mozpath.join(test_data_path, configure))
 
         if "--help" in options:
-            return six.ensure_text(out.getvalue()), config
+            return out.getvalue(), config
         self.assertEqual("", out.getvalue())
         return config
 

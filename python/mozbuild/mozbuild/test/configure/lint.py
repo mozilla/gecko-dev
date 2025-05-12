@@ -5,7 +5,6 @@
 import os
 import unittest
 
-import six
 from buildconfig import topobjdir, topsrcdir
 from mozunit import main
 
@@ -35,9 +34,7 @@ class LintMeta(type):
         return type.__new__(mcs, name, bases, attrs)
 
 
-# We don't actually need python2 compat, but this makes flake8 happy.
-@six.add_metaclass(LintMeta)
-class Lint(unittest.TestCase):
+class Lint(unittest.TestCase, metaclass=LintMeta):
     def setUp(self):
         self._curdir = os.getcwd()
         os.chdir(topobjdir)
