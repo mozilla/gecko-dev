@@ -266,7 +266,7 @@ uint32_t gBlocklistInitFlags = eDllBlocklistInitFlagDefault;
 #if defined(XP_UNIX)
 static void ReserveDefaultFileDescriptors() {
   // Reserve the lower positions of the file descriptors to make sure
-  // we don't reuse stdin/stdout/stderr in case they we closed
+  // we don't reuse stdin/stdout/stderr in case they were closed
   // before launch.
   // Otherwise code explicitly writing to fd 1 or 2 might accidentally
   // write to something else, like in bug 1820896 where FD 1 is
