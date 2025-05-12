@@ -49,6 +49,9 @@ bool IsPackagedAppFileExists();
 inline bool IsRunningUnderFlatpakOrSnap() {
   return IsRunningUnderFlatpak() || IsRunningUnderSnap();
 }
+#ifdef MOZ_ENABLE_DBUS
+void RegisterHostApp();
+#endif
 
 enum class PortalKind {
   FilePicker,

@@ -28,6 +28,11 @@
 #include <dlfcn.h>
 #include <glib.h>
 
+#ifdef MOZ_ENABLE_DBUS
+#  include "mozilla/ClearOnShutdown.h"
+#  include "mozilla/widget/AsyncDBus.h"
+#endif  // MOZ_ENABLE_DBUS
+
 #ifdef MOZ_WAYLAND
 #  include "nsWaylandDisplay.h"
 #endif  // MOZ_WAYLAND
@@ -47,6 +52,13 @@ extern mozilla::LazyLogModule gWidgetLog;
 #endif /* MOZ_LOGGING */
 
 namespace mozilla::widget {
+
+#ifdef MOZ_ENABLE_DBUS
+constexpr char sXdpServiceName[] = "org.freedesktop.portal.Desktop";
+constexpr char sXdpDBusPath[] = "/org/freedesktop/portal/desktop";
+constexpr char sXdpRegistryInterfaceName[] =
+    "org.freedesktop.host.portal.Registry";
+#endif
 
 int32_t WidgetUtilsGTK::IsTouchDeviceSupportPresent() {
   int32_t result = 0;
@@ -153,6 +165,75 @@ bool IsRunningUnderFlatpak() {
   }();
   return sRunning;
 }
+
+#ifdef MOZ_ENABLE_DBUS
+static void DoRegisterHostApp() {
+  GUniquePtr<GError> error;
+
+  RefPtr<GDBusProxy> proxy = dont_AddRef(g_dbus_proxy_new_for_bus_sync(
+      G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE, nullptr, sXdpServiceName,
+      sXdpDBusPath, sXdpRegistryInterfaceName, nullptr /* cancellable */,
+      getter_Transfers(error)));
+  if (error) {
+    NS_WARNING(
+        nsPrintfCString("Failed to create DBus proxy : %s\n", error->message)
+            .get());
+    return;
+  }
+
+  GVariantBuilder builder;
+  g_variant_builder_init(&builder, G_VARIANT_TYPE("(sa{sv})"));
+  g_variant_builder_add(&builder, "s", "org.mozilla.firefox");
+  GVariantBuilder dict_builder;
+  g_variant_builder_init(&dict_builder, G_VARIANT_TYPE("a{sv}"));
+  g_variant_builder_add_value(&builder, g_variant_builder_end(&dict_builder));
+
+  RefPtr<GVariant> args =
+      dont_AddRef(g_variant_ref_sink(g_variant_builder_end(&builder)));
+
+  DBusProxyCall(proxy, "Register", args, G_DBUS_CALL_FLAGS_NONE, -1,
+                /* cancellable */ nullptr)
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             [](const DBusCallPromise::ResolveOrRejectValue& aValue) {
+               if (aValue.IsReject()) {
+                 NS_WARNING(
+                     "Failed to register host application for "
+                     "portals\n");
+               }
+             });
+}
+
+void RegisterHostApp() {
+  static bool sInitialized = false;
+
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(!sInitialized);
+
+  // Register unsandboxed application with an application ID that will be used
+  // in portals. It has to be called before any other portal call, which
+  // happens with gtk_init or in our LookAndFeel code. We also need to
+  // re-register again when the portal is restarted. Documentation:
+  // https://github.com/flatpak/xdg-desktop-portal/blob/main/data/org.freedesktop.host.portal.Registry.xml
+  if (sInitialized || IsRunningUnderFlatpakOrSnap() ||
+      g_getenv("XPCSHELL_TEST")) {
+    return;
+  }
+
+  sInitialized = true;
+
+  uint32_t DBusID = g_bus_watch_name(
+      G_BUS_TYPE_SESSION, sXdpServiceName, G_BUS_NAME_WATCHER_FLAGS_AUTO_START,
+      [](GDBusConnection*, const gchar*, const gchar*, gpointer data) -> void {
+        DoRegisterHostApp();
+      },
+      nullptr, nullptr, nullptr);
+
+  if (DBusID) {
+    RunOnShutdown([DBusID] { g_bus_unwatch_name(DBusID); });
+  }
+}
+#endif
 
 bool IsPackagedAppFileExists() {
   static bool sRunning = [] {
