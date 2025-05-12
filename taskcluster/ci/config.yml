@@ -409,6 +409,7 @@ merge-automation:
                   version-bump: "minor"
                 - filename: "browser/config/version_display.txt"
                   version-bump: "minor"
+                  new-suffix: "esr"
             replacements: []
             merge-old-head: false
             to-branch: 'esr115'
