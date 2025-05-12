@@ -14,7 +14,6 @@ import androidx.annotation.StringRes
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
@@ -111,7 +110,7 @@ private fun OriginView(
             else -> url
         }
     }
-    val longClickMenu = key(onLongClick) { onLongClick.buildMenu(onInteraction) }
+//    val longClickMenu = key(onLongClick) { onLongClick.buildMenu(onInteraction) }
     val textColor = AcornTheme.colors.textPrimary
 
     AndroidView(
@@ -146,7 +145,7 @@ private fun OriginView(
                 )
 
                 setOnClickListener { onInteraction(onClick) }
-                setLongClickHandling(onLongClick, longClickMenu, onInteraction)
+                setLongClickHandling(onLongClick, null, onInteraction)
             }
         },
         update = { container ->
@@ -160,7 +159,7 @@ private fun OriginView(
                 textSize = urlTextSize.value
             }
 
-            container.setLongClickHandling(onLongClick, longClickMenu, onInteraction)
+            container.setLongClickHandling(onLongClick, null, onInteraction)
         },
     )
 }

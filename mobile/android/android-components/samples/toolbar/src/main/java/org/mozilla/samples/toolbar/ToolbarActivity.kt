@@ -12,7 +12,6 @@ import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.isVisible
@@ -532,8 +531,6 @@ class ToolbarActivity : AppCompatActivity() {
 
         binding.composeToolbar.setContent {
             AcornTheme {
-                val iconPrimaryTint = AcornTheme.colors.iconPrimary.toArgb()
-
                 val store = remember {
                     BrowserToolbarStore(
                         initialState = BrowserToolbarState(
@@ -543,7 +540,6 @@ class ToolbarActivity : AppCompatActivity() {
                                     ActionButton(
                                         icon = iconsR.drawable.mozac_ic_cross_24,
                                         contentDescription = R.string.page_action_clear_input_description,
-                                        tint = iconPrimaryTint,
                                         onClick = object : BrowserToolbarEvent {},
                                     ),
                                 ),
@@ -551,7 +547,6 @@ class ToolbarActivity : AppCompatActivity() {
                                     ActionButton(
                                         icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
                                         contentDescription = R.string.page_action_refresh_description,
-                                        tint = iconPrimaryTint,
                                         onClick = object : BrowserToolbarEvent {},
                                     ),
                                 ),

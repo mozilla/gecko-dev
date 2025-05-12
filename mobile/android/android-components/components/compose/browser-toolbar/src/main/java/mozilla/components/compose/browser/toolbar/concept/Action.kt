@@ -5,7 +5,6 @@
 package mozilla.components.compose.browser.toolbar.concept
 
 import android.graphics.drawable.Drawable
-import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction
@@ -23,7 +22,6 @@ sealed class Action {
      *
      * @property icon The icon resource to be displayed for the action button.
      * @property contentDescription The content description for the action button.
-     * @property tint The color resource used to tint the icon.
      * @property highlighted Whether or not to highlight this button.
      * @property onClick [BrowserToolbarInteraction] describing how to handle this button being clicked.
      * @property onLongClick Optional [BrowserToolbarInteraction] describing how to handle this button
@@ -32,7 +30,6 @@ sealed class Action {
     data class ActionButton(
         @DrawableRes val icon: Int,
         @StringRes val contentDescription: Int,
-        @ColorInt val tint: Int,
         val highlighted: Boolean = false,
         val onClick: BrowserToolbarInteraction,
         val onLongClick: BrowserToolbarInteraction? = null,

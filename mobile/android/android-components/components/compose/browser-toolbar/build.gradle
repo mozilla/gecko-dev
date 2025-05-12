@@ -43,6 +43,7 @@ dependencies {
     implementation project(":ui-icons")
     implementation project(":ui-tabcounter")
     implementation project(":support-ktx")
+    implementation libs.accompanist.drawablepainter
     implementation libs.androidx.compose.ui
     implementation libs.androidx.compose.ui.tooling.preview
     implementation libs.androidx.compose.foundation

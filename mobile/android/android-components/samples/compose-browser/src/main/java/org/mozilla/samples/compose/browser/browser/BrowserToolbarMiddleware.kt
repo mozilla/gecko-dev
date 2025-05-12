@@ -5,8 +5,6 @@
 package org.mozilla.samples.compose.browser.browser
 
 import android.content.Context
-import androidx.annotation.ColorRes
-import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
@@ -105,7 +103,6 @@ internal class BrowserToolbarMiddleware(
         ActionButton(
             icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
             contentDescription = R.string.page_action_refresh_description,
-            tint = getColor(R.color.icon_tint),
             onClick = RefreshClicked,
         ),
     )
@@ -121,7 +118,6 @@ internal class BrowserToolbarMiddleware(
         ActionButton(
             icon = iconsR.drawable.mozac_ic_ellipsis_vertical_24,
             contentDescription = R.string.menu_button_description,
-            tint = getColor(R.color.icon_tint),
             onClick = BrowserToolbarMenu {
                 listOf(
                     BrowserToolbarMenuButton(
@@ -139,12 +135,9 @@ internal class BrowserToolbarMiddleware(
         ActionButton(
             icon = iconsR.drawable.mozac_ic_stop,
             contentDescription = R.string.clear_input_description,
-            tint = getColor(R.color.icon_tint),
             onClick = ClearClicked,
         ),
     )
-
-    private fun getColor(@ColorRes id: Int) = ContextCompat.getColor(dependencies.context, id)
 
     companion object {
         data class Dependencies(

@@ -14,12 +14,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.progressbar.AnimatedProgressBar
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
@@ -162,26 +162,23 @@ private fun BrowserDisplayToolbarPreview() {
                 gravity = Top,
             ),
             browserActionsStart = listOf(
-                Action.ActionButton(
+                ActionButton(
                     icon = mozilla.components.ui.icons.R.drawable.mozac_ic_home_24,
                     contentDescription = android.R.string.untitled,
-                    tint = AcornTheme.colors.iconPrimary.toArgb(),
                     onClick = object : BrowserToolbarEvent {},
                 ),
             ),
             pageActionsEnd = listOf(
-                Action.ActionButton(
+                ActionButton(
                     icon = mozilla.components.ui.icons.R.drawable.mozac_ic_arrow_clockwise_24,
                     contentDescription = android.R.string.untitled,
-                    tint = AcornTheme.colors.iconPrimary.toArgb(),
                     onClick = object : BrowserToolbarEvent {},
                 ),
             ),
             browserActionsEnd = listOf(
-                Action.ActionButton(
+                ActionButton(
                     icon = mozilla.components.ui.icons.R.drawable.mozac_ic_ellipsis_vertical_24,
                     contentDescription = android.R.string.untitled,
-                    tint = AcornTheme.colors.iconPrimary.toArgb(),
                     onClick = object : BrowserToolbarEvent {},
                 ),
             ),

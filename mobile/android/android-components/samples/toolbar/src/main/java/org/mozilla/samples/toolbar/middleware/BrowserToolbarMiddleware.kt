@@ -6,7 +6,6 @@ package org.mozilla.samples.toolbar.middleware
 
 import android.content.Context
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -154,22 +153,54 @@ internal class BrowserToolbarMiddleware(
         ActionButton(
             icon = iconsR.drawable.mozac_ic_home_24,
             contentDescription = R.string.browser_action_home_button_description,
-            tint = ContextCompat.getColor(
-                dependencies.context,
-                R.color.generic_button_tint,
-            ),
             onClick = HomeClicked,
         ),
     )
 
     private fun buildStartPageActions() = listOf(
+        DropdownAction(
+            icon = null,
+            iconResource = iconsR.drawable.mozac_ic_search_24,
+            contentDescription = R.string.clear_button_description,
+            menu = {
+                listOfNotNull(
+                    BrowserToolbarMenuButton(
+                        icon = null,
+                        iconResource = null,
+                        text = R.string.search_selector_header,
+                        contentDescription = R.string.search_selector_header,
+                        onClick = null,
+                    ),
+                    BrowserToolbarMenuButton(
+                        iconResource = iconsR.drawable.mozac_ic_bookmark_tray_24,
+                        text = R.string.bookmarks_search_engine_name,
+                        contentDescription = R.string.bookmarks_search_engine_description,
+                        onClick = BookmarksClicked,
+                    ),
+                    BrowserToolbarMenuButton(
+                        iconResource = iconsR.drawable.mozac_ic_tab_tray_24,
+                        text = R.string.tabs_search_engine_name,
+                        contentDescription = R.string.tabs_search_engine_description,
+                        onClick = TabsClicked,
+                    ),
+                    BrowserToolbarMenuButton(
+                        iconResource = iconsR.drawable.mozac_ic_history_24,
+                        text = R.string.history_search_engine_name,
+                        contentDescription = R.string.tabs_search_engine_description,
+                        onClick = HistoryClicked,
+                    ),
+                    BrowserToolbarMenuButton(
+                        iconResource = iconsR.drawable.mozac_ic_settings_24,
+                        text = R.string.search_settings,
+                        contentDescription = R.string.tabs_search_engine_description,
+                        onClick = SettingsClicked,
+                    ),
+                )
+            },
+        ),
         ActionButton(
             icon = iconsR.drawable.mozac_ic_lock_24,
             contentDescription = R.string.browser_action_security_lock_description,
-            tint = ContextCompat.getColor(
-                dependencies.context,
-                R.color.generic_button_tint,
-            ),
             highlighted = true,
             onClick = SecurityIndicatorClicked,
         ),
@@ -196,10 +227,6 @@ internal class BrowserToolbarMiddleware(
         ActionButton(
             icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
             contentDescription = R.string.page_action_refresh_description,
-            tint = ContextCompat.getColor(
-                dependencies.context,
-                R.color.generic_button_tint,
-            ),
             onClick = RefreshClicked,
         ),
     )
