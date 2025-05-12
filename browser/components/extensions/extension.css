@@ -68,11 +68,6 @@
     font: caption;
   }
 
-  button.browser-style::-moz-focus-inner {
-    border: 0;
-    outline: 0;
-  }
-
   /* Dropdowns */
   select.browser-style {
     background-color: #fbfbfb;

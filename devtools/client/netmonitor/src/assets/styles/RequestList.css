@@ -215,12 +215,6 @@
   background-color: transparent;
 }
 
-.requests-list-header-button::-moz-focus-inner,
-.message-list-header-button::-moz-focus-inner {
-  border: 0;
-  padding: 0;
-}
-
 .requests-list-header-button:hover {
   background-color: rgba(0, 0, 0, 0.1);
 }

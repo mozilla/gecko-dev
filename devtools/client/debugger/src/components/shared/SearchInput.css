@@ -172,10 +172,6 @@
   margin-inline-end: 8px;
 }
 
-.search-field .close-btn::-moz-focus-inner {
-  border: none;
-}
-
 .search-buttons-bar .pipe-divider {
   flex: none;
   align-self: stretch;

@@ -364,7 +364,3 @@ http://www.briangrinstead.com/blog/keep-aspect-ratio-with-html-and-css */
   cursor: pointer;
   outline: none;
 }
-
-.learn-more::-moz-focus-inner {
-  border: none;
-}

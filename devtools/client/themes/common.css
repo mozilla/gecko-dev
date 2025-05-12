@@ -356,11 +356,6 @@ iframe {
   }
 }
 
-/* Remove system form border from devtools-button. */
-.devtools-button::-moz-focus-inner {
-  border: 0;
-}
-
 /* Button with text */
 .devtools-button:not(:empty) {
   padding-inline: 5px;
@@ -479,10 +474,6 @@ iframe {
 /* Only apply active style on non High Contrast Mode */
 :root:not([forced-colors-active]) .devtools-togglebutton:active {
   background: var(--theme-toolbarbutton-active-background);
-}
-
-.devtools-togglebutton::-moz-focus-inner {
-  border-color: transparent;
 }
 
 /* Icons */

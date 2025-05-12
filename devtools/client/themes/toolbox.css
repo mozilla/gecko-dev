@@ -308,11 +308,6 @@
   color: var(--theme-toolbar-hover-color);
 }
 
-/* Remove system control border from devtools-tab. */
-.devtools-tab::-moz-focus-inner {
-  border: 0;
-}
-
 .devtools-tab:hover:active {
   background-color: var(--theme-toolbar-hover-active);
 }
