@@ -266,11 +266,6 @@ fi
 
 maybe_start_pulse
 
-# For telemetry purposes, the build process wants information about the
-# source it is running
-export MOZ_SOURCE_REPO="${GECKO_HEAD_REPOSITORY}"
-export MOZ_SOURCE_CHANGESET="${GECKO_HEAD_REV}"
-
 # support multiple, space delimited, config files
 config_cmds=""
 for cfg in $MOZHARNESS_CONFIG; do

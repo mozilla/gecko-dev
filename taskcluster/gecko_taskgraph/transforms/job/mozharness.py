@@ -23,7 +23,6 @@ from gecko_taskgraph.transforms.job.common import (
     get_expiration,
     setup_secrets,
 )
-from gecko_taskgraph.transforms.task import get_branch_repo, get_branch_rev
 from gecko_taskgraph.util.attributes import is_try
 
 mozharness_run_schema = Schema(
@@ -152,10 +151,6 @@ def mozharness_on_docker_worker_setup(config, job, taskdesc):
             "MOZHARNESS_CONFIG": " ".join(run.pop("config")),
             "MOZHARNESS_SCRIPT": run.pop("script"),
             "MH_BRANCH": config.params["project"],
-            "MOZ_SOURCE_CHANGESET": get_branch_rev(config),
-            "MOZ_SOURCE_REPO": get_branch_repo(config),
-            "MOZ_BUILD_DATE": config.params["moz_build_date"],
-            "MOZ_SCM_LEVEL": config.params["level"],
             "PYTHONUNBUFFERED": "1",
         }
     )
@@ -253,11 +248,7 @@ def mozharness_on_generic_worker(config, job, taskdesc):
     env = worker.setdefault("env", {})
     env.update(
         {
-            "MOZ_BUILD_DATE": config.params["moz_build_date"],
-            "MOZ_SCM_LEVEL": config.params["level"],
             "MH_BRANCH": config.params["project"],
-            "MOZ_SOURCE_CHANGESET": get_branch_rev(config),
-            "MOZ_SOURCE_REPO": get_branch_repo(config),
         }
     )
     if run.pop("use-simple-package"):
