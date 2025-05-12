@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.debugsettings.region
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +20,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import mozilla.components.browser.state.action.SearchAction
@@ -30,11 +33,16 @@ import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.compose.base.textfield.TextField
 import mozilla.components.lib.state.ext.observeAsState
+import org.mozilla.fenix.Config
 import org.mozilla.fenix.R
 import org.mozilla.fenix.theme.FirefoxTheme
 
 private const val DEFAULT_REGION = "XX"
 private const val MAX_REGION_LENGTH = 2
+
+// This is copied from Region manager
+private const val PREFERENCE_FILE = "mozac_feature_search_region"
+private const val PREFERENCE_KEY_HOME_REGION = "region.home"
 
 /**
  * Region UI that display region related tools.
@@ -137,6 +145,21 @@ fun RegionTools(
                 )
             },
         )
+
+        if (Config.channel.isNightlyOrDebug) {
+            val preferences = LocalContext.current.getSharedPreferences(
+                    PREFERENCE_FILE,
+                    Context.MODE_PRIVATE,
+                )
+
+            PrimaryButton(
+                text = stringResource(R.string.debug_drawer_override_home_region_permanently),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    preferences.edit { putString(PREFERENCE_KEY_HOME_REGION, homeRegion.ifBlank { DEFAULT_REGION }) }
+                },
+            )
+        }
     }
 }
 

@@ -3114,6 +3114,8 @@
     <string name="debug_drawer_override_current_region_label">Override current region</string>
     <!-- The title of the button for overriding home and current region. -->
     <string name="debug_drawer_override_region">Override home and current region</string>
+    <!-- The title of the button for overriding home region permanently. -->
+    <string name="debug_drawer_override_home_region_permanently">Override home region permanently</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
