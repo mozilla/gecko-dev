@@ -20,7 +20,7 @@ import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsState
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsStorage
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsStore
 import org.mozilla.fenix.debugsettings.gleandebugtools.PING_PREVIEW_URL
-import org.mozilla.fenix.utils.ClipboardHandler
+import mozilla.components.support.utils.ClipboardHandler
 
 @RunWith(AndroidJUnit4::class)
 class GleanDebugToolsStoreTest {

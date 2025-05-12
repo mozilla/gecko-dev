@@ -17,6 +17,7 @@ import android.webkit.URLUtil
 import androidx.annotation.VisibleForTesting
 import androidx.core.net.toUri
 import mozilla.components.lib.publicsuffixlist.PublicSuffixList
+import mozilla.components.support.base.utils.MAX_URI_LENGTH
 import mozilla.components.support.ktx.android.net.commonPrefixes
 import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
 import mozilla.components.support.ktx.util.URLStringUtils
@@ -45,11 +46,6 @@ private const val MAILTO = "mailto:"
 
 // Number of last digits to be shown when credit card number is obfuscated.
 private const val LAST_VISIBLE_DIGITS_COUNT = 4
-
-// This is used for truncating URLs to prevent extreme cases from
-// slowing down UI rendering e.g. in case of a bookmarklet or a data URI.
-// https://github.com/mozilla-mobile/android-components/issues/5249
-const val MAX_URI_LENGTH = 25000
 
 private const val FILE_PREFIX = "file://"
 private const val MAX_VALID_PORT = 65_535

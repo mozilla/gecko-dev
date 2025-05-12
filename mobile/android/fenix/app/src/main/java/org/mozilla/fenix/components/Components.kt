@@ -66,7 +66,7 @@ import org.mozilla.fenix.perf.StartupActivityLog
 import org.mozilla.fenix.perf.StartupStateProvider
 import org.mozilla.fenix.perf.StrictModeManager
 import org.mozilla.fenix.perf.lazyMonitored
-import org.mozilla.fenix.utils.ClipboardHandler
+import mozilla.components.support.utils.ClipboardHandler
 import org.mozilla.fenix.utils.Settings
 import org.mozilla.fenix.utils.isLargeScreenSize
 import org.mozilla.fenix.wifi.WifiConnectionMonitor

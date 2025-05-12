@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.utils
+package mozilla.components.support.utils
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -12,14 +12,14 @@ import android.os.PersistableBundle
 import android.view.textclassifier.TextClassifier
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.getSystemService
-import mozilla.components.support.ktx.kotlin.MAX_URI_LENGTH
-import mozilla.components.support.utils.SafeUrl
-import mozilla.components.support.utils.WebURLFinder
-import org.mozilla.fenix.perf.Performance.logger
+import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.base.utils.MAX_URI_LENGTH
 
 private const val MIME_TYPE_TEXT_PLAIN = "text/plain"
 private const val MIME_TYPE_TEXT_HTML = "text/html"
 private const val MIME_TYPE_TEXT_URL = "text/x-moz-url"
+
+private const val PERFORMANCE_LOGTAG = "ACPerf"
 
 /**
  * A clipboard utility class that allows copying and pasting links/text to & from the clipboard
@@ -108,8 +108,13 @@ class ClipboardHandler(val context: Context) {
             clipboard.isPrimaryClipUrlText()
     }
 
+    /**
+     * Check if the first available clipboard item is an URL.
+     *
+     * @return `true` if the if the first available clipboard item is an URL, `false` otherwise.
+     */
     @Suppress("MagicNumber")
-    internal fun containsURL(): Boolean {
+    fun containsURL(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val description = clipboard.primaryClipDescription
             // An IllegalStateException is thrown if the url is too long.
@@ -156,7 +161,7 @@ class ClipboardHandler(val context: Context) {
         get() = try {
             primaryClip?.getItemAt(0)
         } catch (exception: Exception) {
-            logger.error("Fetching clipboard content failed with: $exception")
+            Logger(PERFORMANCE_LOGTAG).error("Fetching clipboard content failed with: $exception")
             null
         }
 

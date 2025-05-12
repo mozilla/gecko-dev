@@ -7,7 +7,7 @@ package org.mozilla.fenix.debugsettings.gleandebugtools
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.support.ktx.kotlin.urlEncode
-import org.mozilla.fenix.utils.ClipboardHandler
+import mozilla.components.support.utils.ClipboardHandler
 
 internal const val PING_PREVIEW_URL = "https://debug-ping-preview.firebaseapp.com/"
 

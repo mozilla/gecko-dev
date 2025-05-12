@@ -26,7 +26,7 @@ import org.mozilla.fenix.settings.logins.LoginsFragmentStore
 import org.mozilla.fenix.settings.logins.fragment.AddLoginFragmentDirections
 import org.mozilla.fenix.settings.logins.fragment.EditLoginFragmentDirections
 import org.mozilla.fenix.settings.logins.mapToSavedLogin
-import org.mozilla.fenix.utils.ClipboardHandler
+import mozilla.components.support.utils.ClipboardHandler
 
 /**
  * Controller for all saved logins interactions with the password storage component
