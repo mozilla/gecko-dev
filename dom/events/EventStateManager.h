@@ -997,6 +997,11 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
         (PREFER_MOUSE_WHEEL_TRANSACTION |
          PREFER_ACTUAL_SCROLLABLE_TARGET_ALONG_X_AXIS |
          PREFER_ACTUAL_SCROLLABLE_TARGET_ALONG_Y_AXIS),
+    // Compute the default action target without considering the current wheel
+    // transaction.
+    COMPUTE_DEFAULT_ACTION_TARGET_WITHOUT_WHEEL_TRANSACTION =
+        (PREFER_ACTUAL_SCROLLABLE_TARGET_ALONG_X_AXIS |
+         PREFER_ACTUAL_SCROLLABLE_TARGET_ALONG_Y_AXIS),
     COMPUTE_DEFAULT_ACTION_TARGET_WITH_AUTO_DIR =
         (COMPUTE_DEFAULT_ACTION_TARGET | MAY_BE_ADJUSTED_BY_AUTO_DIR),
     // Look for the nearest scrollable ancestor which can be scrollable with

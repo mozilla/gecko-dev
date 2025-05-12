@@ -4363,9 +4363,36 @@ nsresult EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
               // For events that can trigger swipes, APZ needs to know whether
               // scrolling is possible in the requested direction. It does this
               // by looking at the scroll overflow values on mCanTriggerSwipe
-              // events after they have been processed.
-              allDeltaOverflown = !ComputeScrollTarget(
-                  mCurrentTarget, wheelEvent, COMPUTE_DEFAULT_ACTION_TARGET);
+              // events after they have been processed. When determining if
+              // a swipe should occur, we should not prefer the current wheel
+              // transaction.
+              nsIFrame* lastScrollFrame = WheelTransaction::GetScrollTargetFrame();
+              bool wheelTransactionHandlesInput = false;
+              if (lastScrollFrame) {
+                ScrollContainerFrame* scrollContainerFrame = lastScrollFrame->GetScrollTargetFrame();
+                if (scrollContainerFrame->IsRootScrollFrameOfDocument()) {
+                  // If the current wheel transaction target is the root scroll
+                  // frame and is not scrollable on the x-axis, all delta is
+                  // overflown and swipe-to-nav may occur.
+                  wheelTransactionHandlesInput = true;
+                  allDeltaOverflown = !WheelHandlingUtils::CanScrollOn(scrollContainerFrame,
+                                                                       wheelEvent->mDeltaX, 0.0);
+                } else if(WheelHandlingUtils::CanScrollOn(scrollContainerFrame,
+                                                          wheelEvent->mDeltaX,
+                                                          wheelEvent->mDeltaY)) {
+                  // If the current wheel transaction target is not the root
+                  // scroll frame, ensure that swipe to nav does not occur if
+                  // the scroll frame is scrollable on the x or y axis. If the
+                  // scroll frame cannot scroll, all delta _may_ be overflown.
+                  wheelTransactionHandlesInput = true;
+                  allDeltaOverflown = false;
+                }
+              }
+              if (!wheelTransactionHandlesInput) {
+                allDeltaOverflown = !ComputeScrollTarget(
+                    mCurrentTarget, wheelEvent,
+                    COMPUTE_DEFAULT_ACTION_TARGET_WITHOUT_WHEEL_TRANSACTION);
+              }
             }
           } else {
             // The event was processed neither by APZ nor by us, so all of the
