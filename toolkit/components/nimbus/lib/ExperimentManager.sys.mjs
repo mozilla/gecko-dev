@@ -102,7 +102,7 @@ export const UnenrollmentCause = {
  * A module for processes Experiment recipes, choosing and storing enrollment state,
  * and sending experiment-related Telemetry.
  */
-export class ExperimentManager {
+export class _ExperimentManager {
   constructor({ id = "experimentmanager", store } = {}) {
     this.id = id;
     this.store = store || new lazy.ExperimentStore();
@@ -137,6 +137,7 @@ export class ExperimentManager {
    *      is performed during the first startup
    *
    * @returns {Object} A context object
+   * @memberof _ExperimentManager
    */
   createTargetingContext() {
     let context = {
@@ -982,6 +983,7 @@ export class ExperimentManager {
    * @param {Branch[]} branches
    * @param {string} userId
    * @returns {Promise<Branch>}
+   * @memberof _ExperimentManager
    */
   async chooseBranch(slug, branches, userId = lazy.ClientEnvironment.userId) {
     const ratios = branches.map(({ ratio = 1 }) => ratio);
@@ -1206,7 +1208,7 @@ export class ExperimentManager {
             // If we are an unenrolling from an experiment, we have a rollout that would
             // set the same pref, so we update the pref to that value instead of
             // the original value.
-            newValue = ExperimentManager.getFeatureConfigFromBranch(
+            newValue = _ExperimentManager.getFeatureConfigFromBranch(
               conflictingEnrollment.branch,
               pref.featureId
             ).value[pref.variable];
@@ -1508,7 +1510,7 @@ export class ExperimentManager {
       }
     }
 
-    const feature = ExperimentManager.getFeatureConfigFromBranch(
+    const feature = _ExperimentManager.getFeatureConfigFromBranch(
       enrollments.at(-1).branch,
       pref.featureId
     );
@@ -1598,3 +1600,5 @@ export class ExperimentManager {
     return branch.features.find(f => f.featureId === featureId);
   }
 }
+
+export const ExperimentManager = new _ExperimentManager();

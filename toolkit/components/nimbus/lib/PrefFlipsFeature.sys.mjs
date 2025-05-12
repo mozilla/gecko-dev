@@ -5,8 +5,8 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  _ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
   UnenrollmentCause: "resource://nimbus/lib/ExperimentManager.sys.mjs",
 });
@@ -115,7 +115,7 @@ export class PrefFlipsFeature {
    * Construct a new prefFlips feature.
    *
    * @param {object} options
-   * @param {ExperimentManager} options.manager
+   * @param {_ExperimentManager} options.manager
    *        The ExperimentManager that owns this feature.
    */
   constructor({ manager }) {
@@ -282,7 +282,7 @@ export class PrefFlipsFeature {
   #addEnrollment(enrollment) {
     const { slug } = enrollment;
     const prefs =
-      lazy.ExperimentManager.getFeatureConfigFromBranch(
+      lazy._ExperimentManager.getFeatureConfigFromBranch(
         enrollment.branch,
         FEATURE_ID
       ).value.prefs ?? {};
