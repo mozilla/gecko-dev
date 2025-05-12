@@ -1480,6 +1480,23 @@
   <string name="download_multi_select_title">ເລືອກ %1$d ແລ້ວ</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">ລຶບ</string>
+  <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
+  <string name="download_file_has_not_enough_storage_dialog_title">ບໍ່ມີພື້ນທີ່ພຽງພໍ</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message">ອຸປະກອນນີ້ບໍ່ມີພື້ນທີ່ພຽງພໍເພື່ອດາວໂຫຼດ &lt;b&gt;%s&lt;/b&gt;.</string>
+  <!--
+    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will navigate the user to the device's storage management settings.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">ຈັດການໄຟລ໌</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">ຍົກເລີກ</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">ລຶບ</string>
   <!-- Content description for the toolbar "Navigate back" button -->

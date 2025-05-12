@@ -772,6 +772,8 @@
   <string name="preferences_https_only_title">Тек-HTTPS режимі</string>
   <!-- Preference title for using the screen lock to hide tabs in private browsing -->
   <string name="preferences_pbm_lock_screen_title">Жекелік шолуда беттерді жасыру үшін экран құлпын пайдаланыңыз</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary">Беттерді саусақ ізімен, бетті тану немесе PIN көмегімен қарау.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Cookie баннерлерін бұғаттаушы</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -900,6 +902,10 @@
   <string name="preferences_show_nonsponsored_suggestions_summary">Сіздің іздеуіңізге қатысты интернеттен ұсыныстар алыңыз</string>
   <!-- Preference for link sharing -->
   <string name="preferences_link_sharing">Сілтемені бөлісу</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">WhatsApp арқылы бөлісулерге %1$s жүктеп алу сілтемесін қосып отыру</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">WhatsApp желісінде сілтемені бөліскен сайын достарыңызды %1$s көмегімен жылдам әрі қауіпсіз шолуға шақырыңыз.</string>
   <!-- Snackbar message shown when user shares a link -->
   <string name="link_shared_snackbar_message">Сілтеме бөлісілді</string>
   <!-- Snackbar action label shown when user shares a link -->
@@ -1473,12 +1479,33 @@
   <string name="download_multi_select_title">%1$d таңдалды</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Өшіру</string>
+  <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
+  <string name="download_file_has_not_enough_storage_dialog_title">Орын жеткіліксіз</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message">Бұл құрылғыда &lt;b&gt;%s&lt;/b&gt; жүктеп алуға жеткілікті орын жоқ.</string>
+  <!--
+    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will navigate the user to the device's storage management settings.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">Файлдарды басқару</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">Бас тарту</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Өшіру</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Артқа өту</string>
   <!-- Content description for the toolbar "Navigate up" button -->
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Жоғарыға өту</string>
+  <!-- Content description for the toolbar back button while searching the downloads -->
+  <string name="download_close_search_description">Артқа және іздеуді жабу</string>
+  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <string name="download_clear_search_description">Тазарту</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">URL адресін бөлісу</string>
   <!-- Text for the button to share the download file -->
@@ -2303,6 +2330,8 @@
   <string name="preference_doh_default_protection_info_3">Мүмкін болса, жергілікті провайдерді пайдалану. %1$s</string>
   <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_4">VPN, ата-аналық бақылау немесе кәсіпорын саясаттары белсенді болғанда сөндіру</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">Желі %1$s атына қауіпсіз DNS-ті пайдаланбау керектігін айтқан кезде сөндіру. %2$s</string>
   <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection">Жақсартылған қорғаныс</string>
   <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
@@ -2820,6 +2849,11 @@
     Search suggestions title for Firefox Suggest.
   -->
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox ұсынысы</string>
+  <!--
+    Search suggestions title for trending search suggestions.
+    %s is a placeholder for the name of the search engine providing the trending search suggestions.
+  -->
+  <string name="trending_searches_header_2">%s ішінде әйгілі</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Google іздеу</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
@@ -3374,6 +3408,8 @@
     and the current region (device's detected location) for testing purposes.
   -->
   <string name="debug_drawer_region_tools_title">Аймақ құралдары</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Сынау үшін негізгі және ағымдағы аймақ мәндерін уақытша үстінен басу.</string>
   <!-- The text label for displaying home region. -->
   <string name="debug_drawer_home_region_label">Үй аймағы</string>
   <!-- The text label for displaying current region. -->
@@ -3456,10 +3492,52 @@
   <string name="setup_checklist_title_state_incomplete">%1$s баптауды аяқтау</string>
   <!-- Title for the setup checklist feature when the state is 'completed' -->
   <string name="setup_checklist_title_state_completed">Құттықтаймыз!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">Ең жақсы шолу тәжірибесі үшін %1$s баптаудың осы 3 қадамын орындаңыз.</string>
   <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
   <string name="setup_checklist_subtitle_3_steps_first_step">Керемет бастама! Сіз 3 қадамның 1-ін орындадыңыз.</string>
   <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
   <string name="setup_checklist_subtitle_3_steps_second_step">Жақында! Екі қадам аяқталды, 1 қадам қалды.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Сіз барлық 3 қадамды орындадыңыз. %1$s жылдамдығын, жекелігін және қауіпсіздігін пайдаланып, рахат алыңыз.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Ең жақсы шолу тәжірибесі үшін %1$s баптаудың барлық 6 қадамын орындаңыз.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">Керемет бастама! Сіз 6 қадамның 1-ін орындадыңыз.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">Сіз 6 қадамның 2-ін орындадыңыз. Тамаша прогресс!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">Сіз жарты жолдасыз! Үш қадам аяқталды және 3 қадам қалды.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">4 қадам аяқтадыңыз. Бар болғаны 2 қадам қалды!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">Жақындап қалдыңыз! Мәреге дейін 1 қадам ғана қалды.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">Сіз барлық 6 қадамды орындадыңыз. %1$s жылдамдығын, жекелігін және қауіпсіздігін пайдаланып, рахат алыңыз.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Ең жақсы шолу тәжірибесі үшін %1$s баптаудың барлық 5 қадамын орындаңыз.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">Керемет бастама! Сіз 5 қадамның 1-ін орындадыңыз.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Сіз 5 қадамның 2-ін орындадыңыз. Тамаша прогресс!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">Сіз жарты жолдасыз! Үш қадам аяқталды және 2 қадам қалды.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">Жақындап қалдыңыз! Мәреге дейін 1 қадам ғана қалды.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Сіз барлық 5 қадамды орындадыңыз. %1$s жылдамдығын, жекелігін және қауіпсіздігін пайдаланып, рахат алыңыз.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 
@@ -3487,6 +3565,12 @@
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">Пайдалы құралдар</string>
   <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">Тексеру тізімін өшіру</string>
+  <!--
     ===== Setup checklist feature: Accessibility =====
 
     Accessibility description for a check mark on a completed task
@@ -3504,6 +3588,10 @@
   <string name="pbm_authentication_unlock">Босату</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Жекелік беттер бұғаттауын ашу</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title">Жекелік беттерді жасыру үшін экран бұғататуын пайдалану керек пе?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
   <string name="private_tab_cfr_negative">Жоқ, рахмет</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive">Беттерді құлыптау</string>
 </resources>

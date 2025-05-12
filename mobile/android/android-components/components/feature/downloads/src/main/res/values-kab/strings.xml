@@ -41,6 +41,11 @@
     %1$s will be replaced with the name of the file.
   -->
   <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">%1$s yella yakan.</string>
+  <!--
+    Alert dialog confirmation before downloading a file without network connection, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">%1$s ur d-yettwasadar ara.</string>
   <!-- Alert dialog confirmation before downloading a file without network connection, this is the description. -->
   <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">Senqed tuqqn-k sakin ɛreḍ tikkelt niḍen.</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
