@@ -6036,6 +6036,19 @@ const ReportContent = spocs => {
   (0,external_React_namespaceObject.useEffect)(() => {
     if (report.visible && modal?.current) {
       modal.current.showModal();
+
+      // Clear any previously selected radio button
+      const radioGroup = radioGroupRef.current;
+      if (radioGroup) {
+        const selectedRadioButton = radioGroup.querySelector("moz-radio[checked]");
+        if (selectedRadioButton) {
+          selectedRadioButton.removeAttribute("checked");
+        }
+      }
+
+      // Clear out the states
+      setValueSelected(false);
+      setSelectedReason(null);
     } else if (!report.visible && modal?.current?.open) {
       modal.current.close();
     }

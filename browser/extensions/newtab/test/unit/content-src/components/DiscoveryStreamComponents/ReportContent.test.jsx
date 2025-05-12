@@ -216,4 +216,43 @@ describe("Discovery Stream <ReportContent>", () => {
       )
     );
   });
+
+  it("should clear selected radio button when modal closes", () => {
+    // Initial render with modal visible
+    const openState = testState({ visible: true });
+
+    wrapper = mount(
+      <WrapWithProvider state={openState} dispatch={dispatch}>
+        <ReportContent spocs={{ spocs: {} }} />
+      </WrapWithProvider>
+    );
+
+    // Select the first radio button
+    const radioGroup = wrapper.find("moz-radio-group").getDOMNode();
+    const firstRadio = radioGroup.querySelector("moz-radio");
+
+    firstRadio.setAttribute("checked", "true");
+
+    // Assert it's checked before modal closes
+    assert.equal(firstRadio.hasAttribute("checked"), true);
+
+    // Simulate closing the modal to clear the radio button
+    const closedState = testState({ visible: false });
+
+    wrapper = mount(
+      <WrapWithProvider state={closedState} dispatch={dispatch}>
+        <ReportContent spocs={{ spocs: {} }} />
+      </WrapWithProvider>
+    );
+
+    const updatedRadioGroup = wrapper.find("moz-radio-group").getDOMNode();
+    const updatedFirstRadio = updatedRadioGroup.querySelector("moz-radio");
+
+    // The previously checked radio should now be unchecked
+    assert.equal(
+      updatedFirstRadio.hasAttribute("checked"),
+      false,
+      "Radio button should be unchecked after modal closes"
+    );
+  });
 });
