@@ -391,9 +391,23 @@ export class MLEngineParent extends JSProcessActorParent {
    * the model hub root or an absolute URL.
    * @param {string} config.urlTemplate - The URL of the model file to fetch. Can be a path relative to
    * the model hub root or an absolute URL.
+   * @param {string} config.featureId - The engine id.
+   * @param {string} config.modelRevision - The model revision.
+   * @param {string} config.modelId - The model id
+   * @param {string} config.sessionId - Shared across the same model download session.
    * @returns {Promise<[string, object]>} The file local path and headers
    */
-  async getModelFile({ engineId, taskName, url, rootUrl, urlTemplate }) {
+  async getModelFile({
+    engineId,
+    taskName,
+    url,
+    rootUrl,
+    urlTemplate,
+    featureId,
+    modelRevision,
+    modelId,
+    sessionId,
+  }) {
     // Create the model hub instance if needed
     if (!this.modelHub) {
       lazy.console.debug("Creating model hub instance");
@@ -423,6 +437,10 @@ export class MLEngineParent extends JSProcessActorParent {
       modelHubRootUrl: rootUrl,
       modelHubUrlTemplate: urlTemplate,
       progressCallback: this.notificationsCallback?.bind(this),
+      featureId,
+      modelRevision,
+      modelId,
+      sessionId,
     });
 
     // Keep the latest revision for each task, model

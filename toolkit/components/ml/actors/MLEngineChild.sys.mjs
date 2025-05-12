@@ -607,6 +607,10 @@ class EngineDispatcher {
  * @param {string} config.modelHubRootUrl - root url of the model hub. When not provided, uses the default from prefs.
  * @param {string} config.modelHubUrlTemplate - url template of the model hub. When not provided, uses the default from prefs.
  * @param {?function(object):Promise<[string, object]>} config.getModelFileFn - A function that actually retrieves the model and headers.
+ * @param {string} config.modelId - The model id
+ * @param {string} config.featureId - The feature id
+ * @param {string} config.modelRevision - The model revision - defaults to latest if not set.
+ * @param {string} config.sessionId - Shared across the same session.
  * @returns {Promise} A promise that resolves to a Meta object containing the URL, response headers,
  * and model path.
  */
@@ -617,6 +621,10 @@ async function getModelFile({
   getModelFileFn,
   modelHubRootUrl,
   modelHubUrlTemplate,
+  modelId,
+  featureId,
+  modelRevision,
+  sessionId,
 }) {
   const [data, headers] = await getModelFileFn({
     engineId: engineId || lazy.DEFAULT_ENGINE_ID,
@@ -624,6 +632,10 @@ async function getModelFile({
     url,
     rootUrl: modelHubRootUrl || lazy.MODEL_HUB_ROOT_URL,
     urlTemplate: modelHubUrlTemplate || lazy.MODEL_HUB_URL_TEMPLATE,
+    modelId,
+    featureId,
+    modelRevision,
+    sessionId,
   });
   return new lazy.BasePromiseWorker.Meta([url, headers, data], {});
 }
@@ -662,7 +674,7 @@ class InferenceEngine {
       "chrome://global/content/ml/MLEngine.worker.mjs",
       { type: "module" },
       {
-        getModelFile: async url =>
+        getModelFile: async (url, sessionId = "") =>
           getModelFile({
             engineId: pipelineOptions.engineId,
             url,
@@ -670,6 +682,10 @@ class InferenceEngine {
             getModelFileFn,
             modelHubRootUrl: pipelineOptions.modelHubRootUrl,
             modelHubUrlTemplate: pipelineOptions.modelHubUrlTemplate,
+            modelId: pipelineOptions.modelId,
+            featureId: pipelineOptions.featureId,
+            modelRevision: pipelineOptions.modelRevision,
+            sessionId,
           }),
         getInferenceProcessInfo: getInferenceProcessInfoFn,
         onInferenceProgress: notificationsCallback,

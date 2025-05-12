@@ -1031,3 +1031,13 @@ export function engineIdToAddonId(engineId) {
   }
   return engineId.substring(ADDON_PREFIX.length);
 }
+
+/**
+ * Generates a random uuid to use where Services.uuid is not available,
+ * for instance pipelines
+ *
+ * @returns {string}
+ */
+export function generateUUID() {
+  return crypto.randomUUID();
+}

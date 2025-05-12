@@ -119,3 +119,46 @@ firefox.ai.runtime:
       - default-engine
       - smart-tab-embedding-engine
       - smart-tab-topic-engine
+
+  model_download:
+    type: event
+    description: >
+      An inference engine has failed to create
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1891685
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D238583
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - tziade@mozilla.com
+    expires: never
+    extra_keys:
+      modelDownloadId:
+        description: used to identify models files downloaded together in the pipeline
+        type: string
+      featureId:
+        description: feature id
+        type: string
+      engineId:
+        type: string
+        description: model id
+      modelId:
+        type: string
+        description: model id
+      step:
+        description: start / cancel / error / complete
+        type: string
+      duration:
+        description: how long it took to reach the step from start
+        type: quantity
+      when:
+        description: when the event was recorded
+        type: quantity
+
+      modelRevision:
+        description: model revision
+        type: string
+      error:
+        description: error class
+        type: string

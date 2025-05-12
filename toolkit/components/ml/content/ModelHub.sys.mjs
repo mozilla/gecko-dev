@@ -1585,6 +1585,10 @@ export class ModelHub {
    * @param {string} config.modelHubRootUrl - root url of the model hub
    * @param {string} config.modelHubUrlTemplate - url template of the model hub
    * @param {?function(ProgressAndStatusCallbackParams):void} config.progressCallback A function to call to indicate progress status.
+   * @param {string} config.featureId - feature id for the model
+   * @param {string} config.modelId - model id str
+   * @param {string} config.modelRevision - revision for the model
+   * @param {string} config.sessionId - shared across the same session
    * @returns {Promise<[string, headers]>} The local path to the file content and headers.
    */
   async getModelDataAsFile({
@@ -1596,6 +1600,10 @@ export class ModelHub {
     modelHubRootUrl,
     modelHubUrlTemplate,
     progressCallback,
+    featureId,
+    modelId,
+    modelRevision,
+    sessionId,
   }) {
     // Make sure inputs are clean. We don't sanitize them but throw an exception
     let checkError = this.#checkInput(model, revision, file);
@@ -1723,6 +1731,19 @@ export class ModelHub {
       })
     );
 
+    const start = Date.now();
+    Glean.firefoxAiRuntime.modelDownload.record({
+      modelDownloadId: sessionId,
+      featureId,
+      engineId,
+      modelId,
+      step: "start",
+      when: Math.floor(start),
+      duration: 0,
+      modelRevision,
+      error: "",
+    });
+
     lazy.console.debug(`Fetching ${url}`);
     try {
       let response = await this.#fetch(url);
@@ -1754,6 +1775,20 @@ export class ModelHub {
           isFirstCall = false;
         }
       );
+
+      const end = Date.now();
+      const duration = Math.floor(end - start);
+      Glean.firefoxAiRuntime.modelDownload.record({
+        modelDownloadId: sessionId,
+        featureId,
+        engineId,
+        modelId,
+        step: "complete",
+        when: Math.floor(end),
+        duration,
+        modelRevision,
+        error: "",
+      });
 
       if (response.ok) {
         const headers = {
@@ -1787,6 +1822,19 @@ export class ModelHub {
         return [localFilePath, headers];
       }
     } catch (error) {
+      const end = Date.now();
+      const duration = Math.floor(end - start);
+      Glean.firefoxAiRuntime.modelDownload.record({
+        modelDownloadId: sessionId,
+        featureId,
+        engineId,
+        modelId,
+        step: "error",
+        when: Math.floor(end),
+        duration,
+        modelRevision,
+        error: error.constructor.name,
+      });
       if (error instanceof ForbiddenURLError) {
         throw error;
       }

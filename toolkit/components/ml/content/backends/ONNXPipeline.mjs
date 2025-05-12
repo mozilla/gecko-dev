@@ -34,6 +34,7 @@ ChromeUtils.defineESModuleGetters(
   lazy,
   {
     Progress: "chrome://global/content/ml/Utils.sys.mjs",
+    generateUUID: "chrome://global/content/ml/Utils.sys.mjs",
   },
   { global: "current" }
 );
@@ -292,6 +293,17 @@ async function checkGPUSupport() {
   return !!adapter;
 }
 
+function createSessionAwareCache(worker, sessionId) {
+  return {
+    async match(key) {
+      return worker.matchWithSession(key, sessionId);
+    },
+    put() {
+      throw new Error("Method not implemented.");
+    },
+  };
+}
+
 /**
  * Represents a pipeline for processing machine learning tasks.
  */
@@ -330,7 +342,10 @@ export class ONNXPipeline {
     transformers.env.remoteHost = config.modelHubRootUrl;
     transformers.env.remotePathTemplate = config.modelHubUrlTemplate;
     transformers.env.useCustomCache = true;
-    transformers.env.customCache = this.#mlEngineWorker;
+    transformers.env.customCache = createSessionAwareCache(
+      this.#mlEngineWorker,
+      lazy.generateUUID()
+    );
     // using `NO_LOCAL` so when the custom cache is used, we don't try to fetch it (see MLEngineWorker.match)
     transformers.env.localModelPath = "NO_LOCAL";
     transformers.env.backends.onnx.wasm.numThreads = config.numThreads;
