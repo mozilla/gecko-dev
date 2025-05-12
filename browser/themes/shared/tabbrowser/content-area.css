@@ -340,16 +340,16 @@
     --box-block-margin: 4px;
     --box-ideal-width: 1000;
     --box-ideal-height: 650;
-    --box-max-width-margin: calc(100% - 2 * var(--box-inline-margin));
-    --box-max-height-margin: calc(100% - var(--box-top-px) - var(--box-block-margin));
+    --box-max-width-margin: calc(100vw - 2 * var(--box-inline-margin));
+    --box-max-height-margin: calc(100vh - var(--box-top-px) - var(--box-block-margin));
     --box-max-width-ratio: 70vw;
     --box-max-height-ratio: calc(var(--box-ideal-height) / var(--box-ideal-width) * var(--box-max-width-ratio));
-    --box-max-height-requested: 100%;
-    --box-max-width-requested: 100%;
-    --box-max-height-remaining: calc(100% - var(--box-top-px));
+    --box-max-height-requested: 100vh;
+    --box-max-width-requested: 100vw;
+    --box-max-height-remaining: calc(100vh - var(--box-top-px));
 
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     margin: 0;
 
     @media (min-width: 550px) {
