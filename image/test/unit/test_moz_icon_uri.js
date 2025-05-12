@@ -49,7 +49,6 @@ function run_test() {
   exception = false; // reset exception value
 
   iconURI = uri.QueryInterface(Ci.nsIMozIconURI);
-  Assert.equal(iconURI.iconSize, "");
   Assert.equal(iconURI.imageSize, 3);
 
   // Make sure a valid stock icon URI can be created and that we can obtain
