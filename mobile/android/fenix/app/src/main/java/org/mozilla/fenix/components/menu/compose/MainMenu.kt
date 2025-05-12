@@ -106,7 +106,6 @@ fun MainMenu(
     accountState.hashCode()
     onMozillaAccountButtonClick.hashCode()
     onHelpButtonClick.hashCode()
-    onSettingsButtonClick.hashCode()
 
     MenuScaffold(
         header = {
@@ -152,6 +151,14 @@ fun MainMenu(
             HomepageMenuGroup(
                 onCustomizeHomepageMenuClick = onCustomizeHomepageMenuClick,
                 onNewInFirefoxMenuClick = onNewInFirefoxMenuClick,
+            )
+        }
+
+        MenuGroup {
+            MenuItem(
+                label = stringResource(id = R.string.browser_menu_settings),
+                beforeIconPainter = painterResource(id = R.drawable.mozac_ic_settings_24),
+                onClick = onSettingsButtonClick,
             )
         }
 
