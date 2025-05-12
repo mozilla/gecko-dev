@@ -669,6 +669,20 @@ static ModuleObject* HostResolveImportedModule(
   return requestedModule;
 }
 
+static bool ModuleResolveExportImpl(JSContext* cx, Handle<ModuleObject*> module,
+                                    Handle<JSAtom*> exportName,
+                                    MutableHandle<ResolveSet> resolveSet,
+                                    MutableHandle<Value> result,
+                                    ModuleErrorInfo* errorInfoOut = nullptr) {
+  if (module->hasSyntheticModuleFields()) {
+    return SyntheticModuleResolveExport(cx, module, exportName, result,
+                                        errorInfoOut);
+  }
+
+  return CyclicModuleResolveExport(cx, module, exportName, resolveSet, result,
+                                   errorInfoOut);
+}
+
 // https://tc39.es/ecma262/#sec-resolveexport
 // ES2023 16.2.1.6.3 ResolveExport
 //
@@ -689,16 +703,11 @@ static bool ModuleResolveExport(JSContext* cx, Handle<ModuleObject*> module,
                                 Handle<JSAtom*> exportName,
                                 MutableHandle<Value> result,
                                 ModuleErrorInfo* errorInfoOut = nullptr) {
-  if (module->hasSyntheticModuleFields()) {
-    return SyntheticModuleResolveExport(cx, module, exportName, result,
-                                        errorInfoOut);
-  }
-
   // Step 1. If resolveSet is not present, set resolveSet to a new empty List.
   Rooted<ResolveSet> resolveSet(cx);
 
-  return CyclicModuleResolveExport(cx, module, exportName, &resolveSet, result,
-                                   errorInfoOut);
+  return ModuleResolveExportImpl(cx, module, exportName, &resolveSet, result,
+                                 errorInfoOut);
 }
 
 static bool CreateResolvedBindingObject(JSContext* cx,
@@ -787,8 +796,9 @@ static bool CyclicModuleResolveExport(JSContext* cx,
         // importedModule.ResolveExport(e.[[ImportName]],
         //                 resolveSet).
         name = e.importName();
-        return CyclicModuleResolveExport(cx, importedModule, name, resolveSet,
-                                         result, errorInfoOut);
+
+        return ModuleResolveExportImpl(cx, importedModule, name, resolveSet,
+                                       result, errorInfoOut);
       }
     }
   }
