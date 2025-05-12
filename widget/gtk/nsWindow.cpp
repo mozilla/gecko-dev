@@ -1036,31 +1036,6 @@ void nsWindow::ResizeInt(const Maybe<LayoutDeviceIntPoint>& aMove,
   }
 
   NativeMoveResize(moved, resized);
-
-  // We optimistically assume size/position changes immediately in two cases:
-  //
-  // 1. Popup: Size is controlled by only us.
-  // 2. Managed window that has not not yet received a size-allocate event:
-  //    Resize() Callers expect initial sizes to be applied synchronously.
-  //    If the size request is not honored, then we'll correct in
-  //    OnContainerSizeAllocate().
-  //
-  // When a managed window has already received a size-allocate, we cannot
-  // assume we'll always get a notification if our request does not get
-  // honored: "If the configure request has not changed, we don't ever resend
-  // it, because it could mean fighting the user or window manager."
-  // https://gitlab.gnome.org/GNOME/gtk/-/blob/3.24.31/gtk/gtkwindow.c#L9782
-  // So we don't update mBounds until OnContainerSizeAllocate() when we know the
-  // request is granted.
-  bool isOrWillBeVisible = mHasReceivedSizeAllocate || mNeedsShow || mIsShown;
-  if (!isOrWillBeVisible || IsPopup()) {
-    mBounds.SizeTo(aSize);
-    if (moved) {
-      mBounds.MoveTo(*aMove);
-      NotifyWindowMoved(mBounds.x, mBounds.y);
-    }
-    DispatchResized();
-  }
 }
 
 void nsWindow::Resize(double aWidth, double aHeight, bool aRepaint) {
@@ -3349,7 +3324,8 @@ void nsWindow::RecomputeBounds(MayChangeCsdMargin aMayChangeCsdMargin) {
     // NOTE(emilio): If we remove the early mBounds change in Move() /
     // Resize(), we should be able to remove this special case (but some tests
     // would need to be adjusted to deal with the async popup moves).
-    mBounds.MoveTo(mLastMoveRequest);
+    MOZ_ASSERT(mLastMoveRequest == oldBounds.TopLeft());
+    mBounds.MoveTo(oldBounds.TopLeft());
   }
 
   // Sometimes the window manager gives us garbage sizes (way past the maximum
@@ -6570,6 +6546,35 @@ void nsWindow::NativeMoveResize(bool aMoved, bool aResized) {
   // Does it need to be shown because bounds were previously insane?
   if (mNeedsShow && mIsShown && aResized) {
     NativeShow(true);
+  }
+
+  // We optimistically assume size/position changes immediately in two cases:
+  //
+  // 1. Popup: Size is controlled by only us.
+  // 2. Managed window that has not not yet received a size-allocate event:
+  //    Resize() Callers expect initial sizes to be applied synchronously.
+  //    If the size request is not honored, then we'll correct in
+  //    OnContainerSizeAllocate().
+  //
+  // When a managed window has already received a size-allocate, we cannot
+  // assume we'll always get a notification if our request does not get
+  // honored: "If the configure request has not changed, we don't ever resend
+  // it, because it could mean fighting the user or window manager."
+  // https://gitlab.gnome.org/GNOME/gtk/-/blob/3.24.31/gtk/gtkwindow.c#L9782
+  // So we don't update mBounds until OnContainerSizeAllocate() when we know
+  // the request is granted.
+  bool isOrWillBeVisible = mHasReceivedSizeAllocate || mNeedsShow || mIsShown;
+  if (!isOrWillBeVisible || IsPopup()) {
+    if (aResized) {
+      mBounds.SizeTo(mLastSizeRequest);
+    }
+    if (aMoved) {
+      mBounds.MoveTo(mLastMoveRequest);
+      NotifyWindowMoved(mBounds.x, mBounds.y);
+    }
+    if (aResized) {
+      DispatchResized();
+    }
   }
 }
 
