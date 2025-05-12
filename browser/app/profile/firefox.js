@@ -2021,7 +2021,11 @@ pref("browser.newtabpage.activity-stream.discoverystream.onboardingExperience.en
 // List of locales that get thumbs up/down on recommended stories by default.
 pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.locale-thumbs-config", "en-US, en-GB, en-CA");
 
-pref("browser.newtabpage.activity-stream.telemetry.privatePing.enabled", false);
+#ifdef NIGHTLY_BUILD
+  pref("browser.newtabpage.activity-stream.telemetry.privatePing.enabled", true);
+#else
+  pref("browser.newtabpage.activity-stream.telemetry.privatePing.enabled", false);
+#endif
 
 // surface ID sent from merino to the client from the curated-recommendations request
 pref("browser.newtabpage.activity-stream.telemetry.surfaceId", "");
