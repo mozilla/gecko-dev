@@ -5,7 +5,7 @@
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
 </head>
-<body onload="run()">
+<body>
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1024707">Mozilla Bug 1024707</a>
 
 <iframe id="iframe1" src="additional_sheets_helper.html"></iframe>
@@ -21,24 +21,83 @@ let gSSService = SpecialPowers.Cc["@mozilla.org/content/style-sheet-service;1"]
   .getService(SpecialPowers.Ci.nsIStyleSheetService);
 
 function test(win, sheet) {
-    let cs = win.getComputedStyle(win.document.body);
-    is(cs.getPropertyValue('color'), "rgb(0, 0, 0)", "should have default color");
-    var windowUtils = SpecialPowers.getDOMWindowUtils(win);
-    windowUtils.addSheet(sheet, SpecialPowers.Ci.nsIDOMWindowUtils.USER_SHEET);
-    is(cs.getPropertyValue('color'), "rgb(255, 0, 0)", "should have changed color to red");
+  let cs = win.getComputedStyle(win.document.body);
+  is(cs.getPropertyValue("color"), "rgb(0, 0, 0)", "should have default color");
+  var windowUtils = SpecialPowers.getDOMWindowUtils(win);
+  windowUtils.addSheet(sheet, SpecialPowers.Ci.nsIDOMWindowUtils.USER_SHEET);
+  is(cs.getPropertyValue("color"), "rgb(255, 0, 0)", "should have changed color to red");
 }
 
-function run() {
-    var uri = gIOService.newURI("data:text/css,body{color:red;}");
-    let sheet = gSSService.preloadSheet(uri, SpecialPowers.Ci.nsIStyleSheetService.USER_SHEET);
-
-    test(document.getElementById("iframe1").contentWindow, sheet);
-    test(document.getElementById("iframe2").contentWindow, sheet);
-
-    SimpleTest.finish();
+function onDocumentElementInserted(url, callback) {
+  const obs = SpecialPowers.Services.obs;
+  function observer(doc) {
+    if (doc.URL === url) {
+      obs.removeObserver(observer, "document-element-inserted");
+      callback(doc);
+    }
+  };
+  obs.addObserver(observer, "document-element-inserted");
 }
 
-SimpleTest.waitForExplicitFinish();
+// Resolves when the document (and iframe1 + iframe2) have loaded.
+const loadedPromise = new Promise(resolve => {
+  window.addEventListener("load", () => resolve(), { once: true });
+});
+add_setup(async () => loadedPromise);
+
+add_task(async function test_addSheet_in_existing_frame() {
+  var uri = gIOService.newURI("data:text/css,body{color:red;}");
+  let sheet = gSSService.preloadSheet(uri, SpecialPowers.Ci.nsIStyleSheetService.USER_SHEET);
+
+  test(document.getElementById("iframe1").contentWindow, sheet);
+  test(document.getElementById("iframe2").contentWindow, sheet);
+});
+
+// Regression test for https://bugzilla.mozilla.org/show_bug.cgi?id=1961064
+add_task(async function test_addSheet_order_in_new_frame() {
+  const USER_SHEET = SpecialPowers.Ci.nsIStyleSheetService.USER_SHEET;
+  var uri1 = gIOService.newURI("data:text/css,body{--css-var:1;}");
+  var uri2 = gIOService.newURI("data:text/css,body{--css-var:2;}");
+  var uri3 = gIOService.newURI("data:text/css,body{--css-var:3;}");
+  var uri4 = gIOService.newURI("data:text/css,body{--css-var:4;}");
+  let sheet1 = gSSService.preloadSheet(uri1, USER_SHEET);
+  let sheet2 = gSSService.preloadSheet(uri2, USER_SHEET);
+  let sheet3 = gSSService.preloadSheet(uri3, USER_SHEET);
+  let sheet4 = gSSService.preloadSheet(uri4, USER_SHEET);
+
+  let f = document.createElement("iframe");
+  f.src = "additional_sheets_helper.html?frame";
+  let elementInsertedPromise = new Promise(resolve => {
+    onDocumentElementInserted(f.src, doc => {
+      info("Testing addSheet at document-element-inserted");
+      // At this point, mStyleSetFilled == false, so the initialization
+      // of the styles is delayed until Document::FillStyleSet is called:
+      // https://bugzilla.mozilla.org/show_bug.cgi?id=1961064#c5
+      let windowUtils = SpecialPowers.getDOMWindowUtils(doc.defaultView);
+      windowUtils.addSheet(sheet1, USER_SHEET);
+      windowUtils.addSheet(sheet2, USER_SHEET);
+      resolve();
+    });
+  });
+  await new Promise(resolve => {
+    f.onload = resolve;
+    document.body.append(f);
+  });
+  await elementInsertedPromise;
+  let cs = f.contentWindow.getComputedStyle(f.contentDocument.body);
+  is(cs.getPropertyValue("--css-var"), "2", "Last addSheet (2) applies last");
+
+  info("Testing addSheet in an existing document");
+  // At this point, mStyleSetFilled == true, so the style sheets are applied
+  // immediately.
+  let windowUtils = SpecialPowers.getDOMWindowUtils(f.contentWindow);
+  windowUtils.addSheet(sheet3, USER_SHEET);
+  windowUtils.addSheet(sheet4, USER_SHEET);
+  is(cs.getPropertyValue("--css-var"), "4", "Last addSheet (4) applies last");
+
+  f.remove();
+});
+
 </script>
 </body>
 </html>
