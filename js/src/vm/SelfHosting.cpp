@@ -1988,18 +1988,11 @@ static bool intrinsic_ToTemporalDuration(JSContext* cx, unsigned argc,
 
 static const JSFunctionSpec intrinsic_functions[] = {
     // Intrinsic helper functions
-    JS_INLINABLE_FN("ArrayBufferByteLength",
-                    intrinsic_ArrayBufferByteLength<ArrayBufferObject>, 1, 0,
-                    IntrinsicArrayBufferByteLength),
-    JS_FN("ArrayBufferCopyData",
-          intrinsic_ArrayBufferCopyData<ArrayBufferObject>, 6, 0),
     JS_INLINABLE_FN("ArrayIteratorPrototypeOptimizable",
                     intrinsic_ArrayIteratorPrototypeOptimizable, 0, 0,
                     IntrinsicArrayIteratorPrototypeOptimizable),
     JS_FN("AssertionFailed", intrinsic_AssertionFailed, 1, 0),
     JS_FN("BigIntToNumber", intrinsic_BigIntToNumber, 1, 0),
-    JS_FN("CallArrayBufferMethodIfWrapped",
-          CallNonGenericSelfhostedMethod<Is<ArrayBufferObject>>, 2, 0),
     JS_FN("CallArrayIteratorMethodIfWrapped",
           CallNonGenericSelfhostedMethod<Is<ArrayIteratorObject>>, 2, 0),
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
@@ -2177,8 +2170,6 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_INLINABLE_FN("IsTypedArrayConstructor",
                     intrinsic_IsTypedArrayConstructor, 1, 0,
                     IntrinsicIsTypedArrayConstructor),
-    JS_FN("IsWrappedArrayBuffer",
-          intrinsic_IsWrappedInstanceOfBuiltin<ArrayBufferObject>, 1, 0),
     JS_FN("IsWrappedSharedArrayBuffer",
           intrinsic_IsWrappedInstanceOfBuiltin<SharedArrayBufferObject>, 1, 0),
     JS_INLINABLE_FN("NewArrayIterator", intrinsic_NewArrayIterator, 0, 0,
@@ -2196,10 +2187,6 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("NewWrapForValidIterator", intrinsic_NewWrapForValidIterator, 0, 0),
     JS_FN("NoPrivateGetter", intrinsic_NoPrivateGetter, 1, 0),
     JS_FN("NumberToBigInt", intrinsic_NumberToBigInt, 1, 0),
-    JS_INLINABLE_FN(
-        "PossiblyWrappedArrayBufferByteLength",
-        intrinsic_PossiblyWrappedArrayBufferByteLength<ArrayBufferObject>, 1, 0,
-        IntrinsicPossiblyWrappedArrayBufferByteLength),
     JS_FN(
         "PossiblyWrappedSharedArrayBufferByteLength",
         intrinsic_PossiblyWrappedArrayBufferByteLength<SharedArrayBufferObject>,

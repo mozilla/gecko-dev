@@ -17,8 +17,6 @@ static JSProtoKey ToProtoKey(BuiltinObjectKind kind) {
   switch (kind) {
     case BuiltinObjectKind::Array:
       return JSProto_Array;
-    case BuiltinObjectKind::ArrayBuffer:
-      return JSProto_ArrayBuffer;
     case BuiltinObjectKind::Int32Array:
       return JSProto_Int32Array;
     case BuiltinObjectKind::ListFormat:
@@ -61,7 +59,6 @@ static JSProtoKey ToProtoKey(BuiltinObjectKind kind) {
 static bool IsPrototype(BuiltinObjectKind kind) {
   switch (kind) {
     case BuiltinObjectKind::Array:
-    case BuiltinObjectKind::ArrayBuffer:
     case BuiltinObjectKind::Int32Array:
     case BuiltinObjectKind::ListFormat:
     case BuiltinObjectKind::Map:
@@ -93,9 +90,6 @@ BuiltinObjectKind js::BuiltinConstructorForName(
     frontend::TaggedParserAtomIndex name) {
   if (name == frontend::TaggedParserAtomIndex::WellKnown::Array()) {
     return BuiltinObjectKind::Array;
-  }
-  if (name == frontend::TaggedParserAtomIndex::WellKnown::ArrayBuffer()) {
-    return BuiltinObjectKind::ArrayBuffer;
   }
   if (name == frontend::TaggedParserAtomIndex::WellKnown::Int32Array()) {
     return BuiltinObjectKind::Int32Array;
@@ -171,8 +165,6 @@ const char* js::BuiltinObjectName(BuiltinObjectKind kind) {
   switch (kind) {
     case BuiltinObjectKind::Array:
       return "Array";
-    case BuiltinObjectKind::ArrayBuffer:
-      return "ArrayBuffer";
     case BuiltinObjectKind::Int32Array:
       return "Int32Array";
     case BuiltinObjectKind::ListFormat:

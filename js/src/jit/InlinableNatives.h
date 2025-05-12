@@ -243,8 +243,6 @@
   _(IntrinsicArrayIteratorPrototypeOptimizable)    \
                                                    \
   _(IntrinsicGuardToArrayBuffer)                   \
-  _(IntrinsicArrayBufferByteLength)                \
-  _(IntrinsicPossiblyWrappedArrayBufferByteLength) \
                                                    \
   _(IntrinsicGuardToSharedArrayBuffer)             \
                                                    \
