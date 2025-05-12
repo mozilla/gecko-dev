@@ -34,7 +34,6 @@ enum class BuiltinObjectKind : uint8_t {
   Promise,
   RegExp,
   Set,
-  SharedArrayBuffer,
   Symbol,
 
   // Built-in prototypes.

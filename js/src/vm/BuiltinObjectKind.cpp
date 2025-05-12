@@ -27,8 +27,6 @@ static JSProtoKey ToProtoKey(BuiltinObjectKind kind) {
       return JSProto_RegExp;
     case BuiltinObjectKind::Set:
       return JSProto_Set;
-    case BuiltinObjectKind::SharedArrayBuffer:
-      return JSProto_SharedArrayBuffer;
     case BuiltinObjectKind::Symbol:
       return JSProto_Symbol;
 
@@ -56,7 +54,6 @@ static bool IsPrototype(BuiltinObjectKind kind) {
     case BuiltinObjectKind::Promise:
     case BuiltinObjectKind::RegExp:
     case BuiltinObjectKind::Set:
-    case BuiltinObjectKind::SharedArrayBuffer:
     case BuiltinObjectKind::Symbol:
       return false;
 
@@ -93,9 +90,6 @@ BuiltinObjectKind js::BuiltinConstructorForName(
   }
   if (name == frontend::TaggedParserAtomIndex::WellKnown::Set()) {
     return BuiltinObjectKind::Set;
-  }
-  if (name == frontend::TaggedParserAtomIndex::WellKnown::SharedArrayBuffer()) {
-    return BuiltinObjectKind::SharedArrayBuffer;
   }
   if (name == frontend::TaggedParserAtomIndex::WellKnown::Symbol()) {
     return BuiltinObjectKind::Symbol;
@@ -149,8 +143,6 @@ const char* js::BuiltinObjectName(BuiltinObjectKind kind) {
       return "Promise";
     case BuiltinObjectKind::RegExp:
       return "RegExp";
-    case BuiltinObjectKind::SharedArrayBuffer:
-      return "SharedArrayBuffer";
     case BuiltinObjectKind::Set:
       return "Set";
     case BuiltinObjectKind::Symbol:
