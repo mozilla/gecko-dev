@@ -664,6 +664,13 @@ nsIContent* ContentIteratorBase<NodeType>::GetNextSibling(
       aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes) {
     // Could have nested slots
     while (HTMLSlotElement* slot = aNode->AsContent()->GetAssignedSlot()) {
+      if (!ShadowDOMSelectionHelpers::GetShadowRoot(
+              slot->GetContainingShadowHost(), aAllowCrossShadowBoundary)) {
+        // The corresponding shadow host isn't supported
+        // by ContentSubtreeIterator, so let's skip this slot.
+        break;
+      }
+
       // Next sibling of a slotted node should be the next slotted node
       auto currentIndex = slot->AssignedNodes().IndexOf(aNode);
       if (currentIndex < slot->AssignedNodes().Length() - 1) {
@@ -726,6 +733,12 @@ nsIContent* ContentIteratorBase<NodeType>::GetPrevSibling(
       aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes) {
     // Could have nested slots.
     while (HTMLSlotElement* slot = aNode->AsContent()->GetAssignedSlot()) {
+      if (!ShadowDOMSelectionHelpers::GetShadowRoot(
+              slot->GetContainingShadowHost(), aAllowCrossShadowBoundary)) {
+        // The corresponding shadow host isn't supported
+        // by ContentSubtreeIterator, so let's skip this slot.
+        break;
+      }
       // prev sibling of a slotted node should be the prev slotted node
       auto currentIndex = slot->AssignedNodes().IndexOf(aNode);
       if (currentIndex > 0) {
@@ -1026,15 +1039,19 @@ void ContentSubtreeIterator::CacheInclusiveAncestorsOfEndContainer() {
       break;
     }
 
-    const bool isDescendantInShadowTree =
-        IterAllowCrossShadowBoundary() && child->IsShadowRoot();
+    // `ShadowDOMSelectionHelpers::GetShadowRoot` would return non-null shadow
+    // root if parent is a shadow host that we support cross boundary selection.
+    const bool isChildAShadowRootForSelection =
+        ShadowDOMSelectionHelpers::GetShadowRoot(
+            parent, mAllowCrossShadowBoundary) == child;
 
     info.mAncestor = parent->AsContent();
     // mIsDescendantInShadowTree indicates that whether child is in the
     // shadow tree of parent or in the regular light DOM tree of parent.
     // So that later, when info.mAncestor is reached, we can decide whether
     // we should dive into the shadow tree.
-    info.mIsDescendantInShadowTree = isDescendantInShadowTree;
+    info.mIsDescendantInShadowTree =
+        IterAllowCrossShadowBoundary() && isChildAShadowRootForSelection;
   }
 }
 
@@ -1255,6 +1272,7 @@ void ContentSubtreeIterator::Next() {
     ShadowRoot* root = ShadowDOMSelectionHelpers::GetShadowRoot(
         nextNode, mAllowCrossShadowBoundary);
     if (mInclusiveAncestorsOfEndContainer[i].mIsDescendantInShadowTree) {
+      MOZ_ASSERT(root);
       nextNode = root->GetFirstChild();
     } else if (auto* slot = HTMLSlotElement::FromNode(nextNode);
                slot && IterAllowCrossShadowBoundary()) {
