@@ -16,7 +16,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
   NormandyUtils: "resource://normandy/lib/NormandyUtils.sys.mjs",
-  _ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
+  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   _RemoteSettingsExperimentLoader:
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
@@ -380,7 +380,7 @@ export const NimbusTestUtils = {
     },
 
     manager(store) {
-      const manager = new lazy._ExperimentManager({
+      const manager = new lazy.ExperimentManager({
         store: store ?? NimbusTestUtils.stubs.store(),
       });
       const addEnrollment = manager.store.addEnrollment.bind(manager.store);
@@ -485,12 +485,14 @@ export const NimbusTestUtils = {
    *         The ExperimentManager to clean up. Defaults to the global
    *         ExperimentManager.
    */
-  cleanupManager(slugs, { manager = ExperimentAPI.manager } = {}) {
+  cleanupManager(slugs, { manager } = {}) {
+    const experimentManager = manager ?? ExperimentAPI.manager;
+
     for (const slug of slugs) {
-      manager.unenroll(slug);
+      experimentManager.unenroll(slug);
     }
 
-    NimbusTestUtils.assert.storeIsEmpty(manager.store);
+    NimbusTestUtils.assert.storeIsEmpty(experimentManager.store);
   },
 
   /**
@@ -526,20 +528,19 @@ export const NimbusTestUtils = {
    *          A cleanup function that will unenroll from the enrolled recipe and
    *          remove it from the store.
    */
-  async enroll(
-    recipe,
-    { manager = ExperimentAPI.manager, source = "nimbus-test-utils" } = {}
-  ) {
+  async enroll(recipe, { manager, source = "nimbus-test-utils" } = {}) {
+    const experimentManager = manager ?? ExperimentAPI.manager;
+
     if (!recipe?.slug) {
       throw new Error("Experiment with slug is required");
     }
 
-    const enrollment = await manager.enroll(recipe, source);
-    manager.store._syncToChildren({ flush: true });
+    const enrollment = await experimentManager.enroll(recipe, source);
+    experimentManager.store._syncToChildren({ flush: true });
 
     return function doEnrollmentCleanup() {
-      manager.unenroll(enrollment.slug);
-      manager.store._deleteForTests(enrollment.slug);
+      experimentManager.unenroll(enrollment.slug);
+      experimentManager.store._deleteForTests(enrollment.slug);
     };
   },
 
@@ -580,15 +581,10 @@ export const NimbusTestUtils = {
    */
   async enrollWithFeatureConfig(
     featureConfig,
-    {
-      manager = ExperimentAPI.manager,
-      source,
-      slug,
-      branchSlug = "control",
-      isRollout = false,
-    } = {}
+    { manager, source, slug, branchSlug = "control", isRollout = false } = {}
   ) {
-    await manager.store.ready();
+    const experimentManager = manager ?? ExperimentAPI.manager;
+    await experimentManager.store.ready();
 
     const experimentId =
       slug ??
@@ -612,7 +608,7 @@ export const NimbusTestUtils = {
     });
 
     return NimbusTestUtils.enroll(recipe, {
-      manager,
+      manager: experimentManager,
       source,
     });
   },
@@ -677,7 +673,7 @@ export const NimbusTestUtils = {
    *           A RemoteSettingsExperimentLoader instance that has stubbed
    *           RemoteSettings clients.
    *
-   * @property {_ExperimentManager} manager
+   * @property {ExperimentManager} manager
    *           An ExperimentManager instance that will validate all enrollments
    *           added to its store.
    *
@@ -689,13 +685,7 @@ export const NimbusTestUtils = {
    */
 
   /**
-   * Set a Nimbus testing environment.
-   *
-   * This is intended to be used inside xpcshell tests -- browser mochitests
-   * already have a Nimbus environment.
-   *
    * @param {object?} options
-   *
    * @param {boolean?} options.init
    *        Initialize the Experiment API.
    *
@@ -740,7 +730,7 @@ export const NimbusTestUtils = {
     const loader = NimbusTestUtils.stubs.rsLoader(manager);
 
     sandbox.stub(ExperimentAPI, "_rsLoader").get(() => loader);
-    sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+    sandbox.stub(ExperimentAPI, "manager").get(() => manager);
     sandbox
       .stub(loader.remoteSettingsClients.experiments, "get")
       .resolves(Array.isArray(experiments) ? experiments : []);

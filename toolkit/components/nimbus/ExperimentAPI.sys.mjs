@@ -8,7 +8,6 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  _ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   CleanupManager: "resource://normandy/lib/CleanupManager.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   FeatureManifest: "resource://nimbus/FeatureManifest.sys.mjs",
@@ -73,8 +72,6 @@ const experimentBranchAccessor = {
   },
 };
 
-let initialized = false;
-
 /**
  * Metadata about an enrollment.
  *
@@ -111,6 +108,9 @@ export const EnrollmentType = Object.freeze({
   EXPERIMENT: "experiment",
   ROLLOUT: "rollout",
 });
+
+let initialized = false;
+let experimentManager = null;
 
 export const ExperimentAPI = {
   /**
@@ -198,17 +198,34 @@ export const ExperimentAPI = {
 
   /**
    * Return the global ExperimentManager.
+   *
+   * The ExperimentManager will be lazily created upon first access to this
+   * property.
    */
   get manager() {
-    return this._manager;
+    if (experimentManager === null) {
+      experimentManager = new lazy.ExperimentManager();
+    }
+
+    return experimentManager;
+  },
+
+  /**
+   * Return the global ExperimentManager.
+   *
+   * @deprecated Use ExperimentAPI.Manager instead of this property.
+   */
+  get _manager() {
+    return this.manager;
   },
 
   _resetForTests() {
     this._rsLoader.disable();
-    this.manager.store.off("update", this._annotateCrashReport);
     lazy.CleanupManager.removeCleanupHandler(
       ExperimentAPI._removeCrashReportAnnotator
     );
+    experimentManager?.store.off("update", this._annotateCrashReport);
+    experimentManager = null;
     initialized = false;
   },
 
@@ -257,7 +274,7 @@ export const ExperimentAPI = {
 
   _removeCrashReportAnnotator() {
     if (initialized) {
-      this.manager.store.off("update", this._annotateCrashReport);
+      experimentManager?.store.off("update", this._annotateCrashReport);
     }
   },
 
@@ -763,7 +780,7 @@ export class _ExperimentFeature {
         return undefined;
       }
 
-      const allValues = lazy._ExperimentManager.getFeatureConfigFromBranch(
+      const allValues = lazy.ExperimentManager.getFeatureConfigFromBranch(
         enrollment.branch,
         this.featureId
       )?.value;
@@ -800,10 +817,6 @@ ExperimentAPI._onStudiesEnabledChanged =
   ExperimentAPI._onStudiesEnabledChanged.bind(ExperimentAPI);
 ExperimentAPI._removeCrashReportAnnotator =
   ExperimentAPI._removeCrashReportAnnotator.bind(ExperimentAPI);
-
-ChromeUtils.defineLazyGetter(ExperimentAPI, "_manager", function () {
-  return lazy.ExperimentManager;
-});
 
 ChromeUtils.defineLazyGetter(ExperimentAPI, "_rsLoader", function () {
   return lazy.RemoteSettingsExperimentLoader;
