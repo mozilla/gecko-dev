@@ -25,20 +25,25 @@ int main() {
   jemalloc_bin_stats_t bin_stats[MAX_NUM_BINS] = {{0}};
   jemalloc_stats(&stats, bin_stats);
 
+  printf("\n");
+  printf("Parameters\n");
+  printf("----------\n\n");
   printf("Page size:    %5zu\n", stats.page_size);
   printf("Chunk size:   %5zuKiB\n", stats.chunksize / 1024);
-
   printf("Quantum:      %5zu\n", stats.quantum);
   printf("Quantum max:  %5zu\n", stats.quantum_max);
   printf("Sub-page max: %5zu\n", stats.page_size / 2);
   printf("Large max:    %5zuKiB\n", stats.large_max / 1024);
 
-  printf("\nBin stats:\n");
+  printf("\n");
+  printf("Run layout for each bin size\n");
+  printf("----------------------------\n\n");
+  printf(" Size | Run size\n");
+  printf("------|----------\n");
   for (unsigned i = 0; i < num_bins; i++) {
     auto& bin = bin_stats[i];
     if (bin.size) {
-      printf("  Bin %5zu has runs of %3zuKiB\n", bin.size,
-             bin.bytes_per_run / 1024);
+      printf("%5zu | %5zuKiB\n", bin.size, bin.bytes_per_run / 1024);
     }
   }
 
