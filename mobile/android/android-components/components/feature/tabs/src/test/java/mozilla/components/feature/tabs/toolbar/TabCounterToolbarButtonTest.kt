@@ -26,8 +26,8 @@ import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
 import mozilla.components.ui.tabcounter.R
-import mozilla.components.ui.tabcounter.TabCounter
 import mozilla.components.ui.tabcounter.TabCounterMenu
+import mozilla.components.ui.tabcounter.TabCounterView
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -76,7 +76,7 @@ class TabCounterToolbarButtonTest {
             ),
         )
 
-        val view = button.createView(LinearLayout(testContext) as ViewGroup) as TabCounter
+        val view = button.createView(LinearLayout(testContext) as ViewGroup) as TabCounterView
         val counterText: TextView = view.findViewById(R.id.counter_text)
         assertEquals("0", counterText.text)
     }
@@ -94,7 +94,7 @@ class TabCounterToolbarButtonTest {
             ),
         )
 
-        val view = button.createView(LinearLayout(testContext) as ViewGroup) as TabCounter
+        val view = button.createView(LinearLayout(testContext) as ViewGroup) as TabCounterView
         val counterMask: View = view.findViewById(R.id.counter_mask)
         assertFalse(counterMask.isVisible)
     }
@@ -114,7 +114,7 @@ class TabCounterToolbarButtonTest {
             ),
         )
 
-        val view = button.createView(LinearLayout(testContext) as ViewGroup) as TabCounter
+        val view = button.createView(LinearLayout(testContext) as ViewGroup) as TabCounterView
         val counterMask: View = view.findViewById(R.id.counter_mask)
         assertTrue(counterMask.isVisible)
     }
@@ -133,7 +133,7 @@ class TabCounterToolbarButtonTest {
         )
 
         whenever(button.updateCount(anyInt())).then { }
-        button.createView(LinearLayout(testContext) as ViewGroup) as TabCounter
+        button.createView(LinearLayout(testContext) as ViewGroup) as TabCounterView
 
         store.dispatch(
             TabListAction.AddTabAction(createTab("https://www.mozilla.org")),
@@ -156,7 +156,7 @@ class TabCounterToolbarButtonTest {
         )
 
         whenever(button.updateCount(anyInt())).then { }
-        button.createView(LinearLayout(testContext) as ViewGroup) as TabCounter
+        button.createView(LinearLayout(testContext) as ViewGroup) as TabCounterView
 
         store.dispatch(
             TabListAction.RestoreAction(
@@ -188,7 +188,7 @@ class TabCounterToolbarButtonTest {
         )
 
         whenever(button.updateCount(anyInt())).then { }
-        button.createView(LinearLayout(testContext) as ViewGroup) as TabCounter
+        button.createView(LinearLayout(testContext) as ViewGroup) as TabCounterView
 
         store.dispatch(TabListAction.RemoveTabAction(tab.id)).joinBlocking()
         verify(button).updateCount(eq(0))
@@ -210,7 +210,7 @@ class TabCounterToolbarButtonTest {
         whenever(button.updateCount(anyInt())).then { }
         whenever(button.isPrivate(store)).then { true }
 
-        button.createView(LinearLayout(testContext) as ViewGroup) as TabCounter
+        button.createView(LinearLayout(testContext) as ViewGroup) as TabCounterView
 
         store.dispatch(
             TabListAction.AddTabAction(createTab("https://www.mozilla.org", private = true)),
@@ -236,7 +236,7 @@ class TabCounterToolbarButtonTest {
         whenever(button.updateCount(anyInt())).then { }
         whenever(button.isPrivate(store)).then { true }
 
-        button.createView(LinearLayout(testContext) as ViewGroup) as TabCounter
+        button.createView(LinearLayout(testContext) as ViewGroup) as TabCounterView
 
         store.dispatch(TabListAction.RemoveTabAction(tab.id)).joinBlocking()
         verify(button).updateCount(eq(0))
@@ -261,7 +261,7 @@ class TabCounterToolbarButtonTest {
         val parent = spy(LinearLayout(testContext))
         doReturn(true).`when`(parent).isAttachedToWindow
 
-        val view = button.createView(parent) as TabCounter
+        val view = button.createView(parent) as TabCounterView
         view.performClick()
         assertTrue(callbackInvoked)
     }

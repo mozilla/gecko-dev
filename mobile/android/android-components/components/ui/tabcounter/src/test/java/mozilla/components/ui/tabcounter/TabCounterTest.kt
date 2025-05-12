@@ -24,12 +24,12 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class TabCounterTest {
 
-    private lateinit var tabCounter: TabCounter
+    private lateinit var tabCounter: TabCounterView
     private lateinit var binding: MozacUiTabcounterLayoutBinding
 
     @Before
     fun setUp() {
-        tabCounter = TabCounter(testContext)
+        tabCounter = TabCounterView(testContext)
         binding =
             MozacUiTabcounterLayoutBinding.inflate(LayoutInflater.from(testContext), tabCounter)
     }

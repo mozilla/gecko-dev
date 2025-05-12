@@ -33,7 +33,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteractio
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.CombinedEventAndMenu
 import mozilla.components.support.ktx.android.util.dpToPx
-import mozilla.components.ui.tabcounter.TabCounter
+import mozilla.components.ui.tabcounter.TabCounterView
 
 // Interim composable for a tab counter button that supports showing a menu on long press.
 // With this being implemented as an AndroidView the menu can be shown as low to the bottom of the screen as needed.
@@ -122,7 +122,7 @@ private fun TabCounterView(
 
     AndroidView(
         factory = { _ ->
-            TabCounter(context).apply {
+            TabCounterView(context).apply {
                 val minimumSize = BUTTON_DIMENSIONS_DP.dpToPx(context.resources.displayMetrics)
                 layoutParams = ViewGroup.LayoutParams(minimumSize, minimumSize)
             }

@@ -22,12 +22,12 @@ import mozilla.components.support.base.facts.Action
 import mozilla.components.support.base.facts.Fact
 import mozilla.components.support.base.facts.collect
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
-import mozilla.components.ui.tabcounter.TabCounter
 import mozilla.components.ui.tabcounter.TabCounterMenu
+import mozilla.components.ui.tabcounter.TabCounterView
 import java.lang.ref.WeakReference
 
 /**
- * A [Toolbar.Action] implementation that shows a [TabCounter].
+ * A [Toolbar.Action] implementation that shows a [TabCounterView].
  */
 open class TabCounterToolbarButton(
     private val lifecycleOwner: LifecycleOwner,
@@ -40,7 +40,7 @@ open class TabCounterToolbarButton(
     override val weight: () -> Int = { -1 },
 ) : Toolbar.Action {
 
-    private var reference = WeakReference<TabCounter>(null)
+    private var reference = WeakReference<TabCounterView>(null)
 
     override fun createView(parent: ViewGroup): View {
         store.flowScoped(lifecycleOwner) { flow ->
@@ -51,7 +51,7 @@ open class TabCounterToolbarButton(
                 }
         }
 
-        val tabCounter = TabCounter(parent.context).apply {
+        val tabCounter = TabCounterView(parent.context).apply {
             reference = WeakReference(this)
             setOnClickListener {
                 showTabs.invoke()

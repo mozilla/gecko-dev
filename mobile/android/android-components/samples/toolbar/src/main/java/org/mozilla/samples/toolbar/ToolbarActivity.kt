@@ -60,7 +60,7 @@ import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.support.ktx.android.view.setupPersistentInsets
 import mozilla.components.support.ktx.util.URLStringUtils
-import mozilla.components.ui.tabcounter.TabCounter
+import mozilla.components.ui.tabcounter.TabCounterView
 import org.mozilla.samples.toolbar.compose.BrowserToolbar
 import org.mozilla.samples.toolbar.databinding.ActivityToolbarBinding
 import org.mozilla.samples.toolbar.middleware.BrowserToolbarMiddleware
@@ -328,7 +328,7 @@ class ToolbarActivity : AppCompatActivity() {
     }
 
     private class FakeTabCounterToolbarButton : Toolbar.Action {
-        override fun createView(parent: ViewGroup): View = TabCounter(parent.context).apply {
+        override fun createView(parent: ViewGroup): View = TabCounterView(parent.context).apply {
             setCount(2)
             setBackgroundResource(
                 parent.context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless),

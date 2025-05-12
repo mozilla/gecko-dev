@@ -23,7 +23,7 @@ import mozilla.components.support.utils.DrawableUtils
 import mozilla.components.ui.tabcounter.databinding.MozacUiTabcounterLayoutBinding
 import java.text.NumberFormat
 
-class TabCounter @JvmOverloads constructor(
+class TabCounterView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyle: Int = 0,
@@ -46,9 +46,9 @@ class TabCounter @JvmOverloads constructor(
 
         setCount(internalCount)
 
-        context.obtainStyledAttributes(attrs, R.styleable.TabCounter, defStyle, 0).apply {
+        context.obtainStyledAttributes(attrs, R.styleable.TabCounterView, defStyle, 0).apply {
             counterColor = getColorStateList(
-                R.styleable.TabCounter_tabCounterTintColor,
+                R.styleable.TabCounterView_tabCounterTintColor,
             ) ?: ContextCompat.getColorStateList(context, R.color.mozac_ui_tabcounter_default_tint)
 
             counterColor?.let {

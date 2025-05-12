@@ -13,7 +13,6 @@ import io.mockk.verifyOrder
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.components.ui.tabcounter.TabCounter
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -33,6 +32,7 @@ import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.utils.Settings
+import mozilla.components.ui.tabcounter.TabCounterView as MozacTabCounter
 
 @RunWith(FenixRobolectricTestRunner::class)
 class TabCounterViewTest {
@@ -45,7 +45,7 @@ class TabCounterViewTest {
     private lateinit var settings: Settings
     private lateinit var modeDidChange: (BrowsingMode) -> Unit
     private lateinit var tabCounterView: TabCounterView
-    private lateinit var tabCounter: TabCounter
+    private lateinit var tabCounter: MozacTabCounter
 
     @Before
     fun setup() {
@@ -53,7 +53,7 @@ class TabCounterViewTest {
         settings = mockk(relaxed = true)
         modeDidChange = mockk(relaxed = true)
 
-        tabCounter = spyk(TabCounter(testContext))
+        tabCounter = spyk(MozacTabCounter(testContext))
 
         browsingModeManager = DefaultBrowsingModeManager(
             initialMode = BrowsingMode.Normal,

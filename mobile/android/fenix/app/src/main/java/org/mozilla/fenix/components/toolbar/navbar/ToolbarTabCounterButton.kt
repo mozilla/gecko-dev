@@ -19,8 +19,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import mozilla.components.compose.base.annotation.LightDarkPreview
-import mozilla.components.ui.tabcounter.TabCounter
 import mozilla.components.ui.tabcounter.TabCounterMenu
+import mozilla.components.ui.tabcounter.TabCounterView
 import org.mozilla.fenix.R
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
@@ -52,7 +52,7 @@ fun ToolbarTabCounterButton(
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     AndroidView(
         factory = { context ->
-            TabCounter(context).apply {
+            TabCounterView(context).apply {
                 setOnClickListener {
                     onClick()
                 }
