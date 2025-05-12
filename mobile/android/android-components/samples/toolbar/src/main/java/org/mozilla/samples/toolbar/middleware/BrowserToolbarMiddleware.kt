@@ -36,6 +36,7 @@ import org.mozilla.samples.toolbar.R
 import org.mozilla.samples.toolbar.middleware.PageActionsEndInteractions.RefreshClicked
 import org.mozilla.samples.toolbar.middleware.PageOriginInteractions.CopyOptionClicked
 import org.mozilla.samples.toolbar.middleware.PageOriginInteractions.PageOriginClicked
+import org.mozilla.samples.toolbar.middleware.PageOriginInteractions.PasteOptionClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.BookmarksClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.HistoryClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.SettingsClicked
@@ -65,6 +66,7 @@ private sealed class StartPageInteractions : BrowserToolbarEvent {
 private sealed class PageOriginInteractions : BrowserToolbarEvent {
     data object PageOriginClicked : PageOriginInteractions()
     data object CopyOptionClicked : PageOriginInteractions()
+    data object PasteOptionClicked : PageOriginInteractions()
 }
 
 private sealed class PageActionsEndInteractions : BrowserToolbarEvent {
@@ -214,10 +216,16 @@ internal class BrowserToolbarMiddleware(
         onLongClick = BrowserToolbarMenu {
             listOf(
                 BrowserToolbarMenuButton(
-                    iconResource = iconsR.drawable.mozac_ic_copy_24,
+                    iconResource = null,
                     text = R.string.copy_url_button,
                     contentDescription = R.string.copy_url_button_description,
                     onClick = CopyOptionClicked,
+                ),
+                BrowserToolbarMenuButton(
+                    iconResource = null,
+                    text = R.string.paste_url_button,
+                    contentDescription = R.string.paste_url_button_description,
+                    onClick = PasteOptionClicked,
                 ),
             )
         },

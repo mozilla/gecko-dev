@@ -6,38 +6,56 @@ package mozilla.components.compose.browser.toolbar.ui
 
 import android.content.res.Configuration.UI_MODE_NIGHT_YES
 import android.content.res.Configuration.UI_MODE_TYPE_NORMAL
-import android.view.Gravity
-import android.view.View
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import android.widget.LinearLayout
+import android.view.SoundEffectConstants
 import androidx.annotation.StringRes
-import androidx.appcompat.widget.AppCompatTextView
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Indication
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement.Center
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.Bottom
+import androidx.compose.ui.Alignment.Companion.Start
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role.Companion.Button
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.view.isVisible
-import mozilla.components.browser.menu2.BrowserMenuController
+import mozilla.components.compose.base.menu.CustomPlacementPopup
+import mozilla.components.compose.base.menu.CustomPlacementPopupHorizontalContent
+import mozilla.components.compose.base.modifier.thenConditional
+import mozilla.components.compose.base.text.FadedText
+import mozilla.components.compose.base.text.TruncationDirection.END
+import mozilla.components.compose.base.text.TruncationDirection.START
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.R
-import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FadeDirection
-import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FadeDirection.FADE_DIRECTION_END
-import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FadeDirection.FADE_DIRECTION_START
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TextGravity
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TextGravity.TEXT_GRAVITY_END
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TextGravity.TEXT_GRAVITY_START
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.CombinedEventAndMenu
 
 private const val URL_TEXT_SIZE_ALONE = 15
 private const val URL_TEXT_SIZE_WITH_TITLE = 12
+private const val FADE_LENGTH = 66
 
 /**
  * Custom layout for showing the origin - title and url of a webpage.
@@ -50,144 +68,153 @@ private const val URL_TEXT_SIZE_WITH_TITLE = 12
  * @param onLongClick Optional [BrowserToolbarInteraction] describing how to handle this layout being long clicked.
  * @param onInteraction [BrowserToolbarInteraction] to be dispatched when this layout is interacted with.
  * @param onInteraction Callback for handling [BrowserToolbarEvent]s on user interactions.
- * @param fadeDirection [FadeDirection] How the displayed text should be faded.
- * @param textGravity [TextGravity] How the displayed text should be aligned.
  */
+@OptIn(ExperimentalFoundationApi::class) // for combinedClickable
 @Composable
+@Suppress("LongMethod")
 internal fun Origin(
     @StringRes hint: Int,
     modifier: Modifier = Modifier,
     url: String? = null,
     title: String? = null,
+    textGravity: TextGravity = TEXT_GRAVITY_START,
     onClick: BrowserToolbarEvent,
     onLongClick: BrowserToolbarInteraction?,
     onInteraction: (BrowserToolbarEvent) -> Unit,
-    fadeDirection: FadeDirection,
-    textGravity: TextGravity,
 ) {
-    OriginView(
-        hint = stringResource(hint),
-        url = url,
-        title = title,
-        fadeDirection = fadeDirection,
-        textGravity = textGravity,
-        onClick = onClick,
-        onLongClick = onLongClick,
-        onInteraction = onInteraction,
-        modifier = modifier,
-    )
-}
-
-@Composable
-@Suppress("LongMethod", "LongParameterList")
-private fun OriginView(
-    hint: String,
-    url: String?,
-    title: String?,
-    fadeDirection: FadeDirection,
-    textGravity: TextGravity,
-    onClick: BrowserToolbarEvent,
-    onLongClick: BrowserToolbarInteraction?,
-    onInteraction: (BrowserToolbarEvent) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val shouldShowTitle = remember { title != null && title.isNotEmpty() }
+    val view = LocalView.current
+    val haptic = LocalHapticFeedback.current
+    val shouldReactToLongClicks = remember(onLongClick) { onLongClick != null }
+    var showMenu by remember { mutableStateOf(false) }
+    val shouldShowTitle = remember(title) { title != null && title.isNotBlank() }
     val urlTextSize = remember(shouldShowTitle) {
         when (shouldShowTitle) {
-            true -> URL_TEXT_SIZE_WITH_TITLE.sp
-            false -> URL_TEXT_SIZE_ALONE.sp
+            true -> URL_TEXT_SIZE_WITH_TITLE
+            false -> URL_TEXT_SIZE_ALONE
         }
     }
-    val urlGravity = remember(shouldShowTitle) {
-        when (shouldShowTitle) {
-            true -> Gravity.TOP or Gravity.LEFT
-            false -> Gravity.CENTER_VERTICAL or Gravity.LEFT
-        }
-    }
-    val urlToShow = remember(url) {
+
+    val hint = stringResource(hint)
+    val urlToShow: String = remember(url) {
         when (url == null || url.isBlank()) {
             true -> hint
             else -> url
         }
     }
-//    val longClickMenu = key(onLongClick) { onLongClick.buildMenu(onInteraction) }
-    val textColor = AcornTheme.colors.textPrimary
 
-    AndroidView(
-        modifier = modifier,
-        factory = { context ->
-            LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER_VERTICAL
-                isClickable = true
-                isFocusable = true
-                addView(
-                    CustomFadeAndGravityTextView(context, fadeDirection, textGravity).apply {
-                        text = title
-                        gravity = Gravity.BOTTOM or Gravity.LEFT
-                        setSingleLine()
-                        isVisible = shouldShowTitle
-                        textSize = URL_TEXT_SIZE_ALONE.sp.value
-                        setTextColor(textColor.toArgb())
-                        layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f)
-                    },
-                )
+    CompositionLocalProvider(LocalIndication provides NoRippleIndication) {
+        Box(
+            contentAlignment = Alignment.CenterStart,
+            modifier = modifier
+                .clearAndSetSemantics {
+                    this.contentDescription = "${title ?: ""} $urlToShow. $hint"
+                }
+                .clickable(
+                    enabled = !shouldReactToLongClicks,
+                ) {
+                    view.playSoundEffect(SoundEffectConstants.CLICK)
+                    onInteraction(onClick)
+                }
+                .thenConditional(
+                    Modifier.combinedClickable(
+                        role = Button,
+                        onClick = {
+                            view.playSoundEffect(SoundEffectConstants.CLICK)
+                            onInteraction(onClick)
+                        },
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            showMenu = true
+                        },
+                    ),
+                ) { shouldReactToLongClicks },
+        ) {
+            Column(
+                verticalArrangement = Center,
+            ) {
+                Title(title, textGravity)
 
-                addView(
-                    CustomFadeAndGravityTextView(context, fadeDirection, textGravity).apply {
-                        text = urlToShow
-                        gravity = urlGravity
-                        setSingleLine()
-                        textSize = urlTextSize.value
-                        setTextColor(textColor.toArgb())
-                        layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f)
-                    },
-                )
-
-                setOnClickListener { onInteraction(onClick) }
-                setLongClickHandling(onLongClick, null, onInteraction)
-            }
-        },
-        update = { container ->
-            (container.getChildAt(0) as? AppCompatTextView)?.apply {
-                text = title
-                isVisible = shouldShowTitle
-            }
-            (container.getChildAt(1) as? AppCompatTextView)?.apply {
-                text = urlToShow
-                gravity = urlGravity
-                textSize = urlTextSize.value
+                Url(urlToShow, urlTextSize, textGravity)
             }
 
-            container.setLongClickHandling(onLongClick, null, onInteraction)
-        },
+            LongPressMenu(showMenu, onLongClick, onInteraction) { showMenu = false }
+        }
+    }
+}
+
+@Composable
+private fun Title(
+    title: String?,
+    textGravity: TextGravity,
+) {
+    if (title != null) {
+        FadedText(
+            text = title,
+            style = TextStyle(
+                fontSize = URL_TEXT_SIZE_ALONE.sp,
+                color = AcornTheme.colors.textSecondary,
+            ),
+            truncationDirection = textGravity.toTextTruncationDirection(),
+            fadeLength = FADE_LENGTH.dp,
+        )
+    }
+}
+
+@Composable
+private fun Url(
+    url: String,
+    fontSize: Int,
+    textGravity: TextGravity,
+) {
+    FadedText(
+        text = url,
+        style = TextStyle(
+            fontSize = fontSize.sp,
+            color = AcornTheme.colors.textPrimary,
+        ),
+        truncationDirection = textGravity.toTextTruncationDirection(),
+        fadeLength = FADE_LENGTH.dp,
     )
 }
 
-private fun View.setLongClickHandling(
+private fun TextGravity.toTextTruncationDirection() = when (this) {
+    TEXT_GRAVITY_START -> END
+    TEXT_GRAVITY_END -> START
+}
+
+@Composable
+private fun LongPressMenu(
+    isVisible: Boolean,
     onLongClick: BrowserToolbarInteraction?,
-    longClickMenu: BrowserMenuController?,
     onInteraction: (BrowserToolbarEvent) -> Unit,
+    onDismiss: () -> Unit,
 ) {
-    if (onLongClick is BrowserToolbarEvent) {
-        setOnLongClickListener {
-            onInteraction(onLongClick)
-            true
+    CustomPlacementPopup(
+        isVisible = isVisible,
+        onDismissRequest = onDismiss,
+        horizontalAlignment = Start,
+        verticalAlignment = Bottom,
+    ) {
+        onLongClick?.let {
+            CustomPlacementPopupHorizontalContent {
+                items(it.toMenuItems()) { menuItem ->
+                    menuItemComposable(menuItem) { event ->
+                        onDismiss()
+                        onInteraction(event)
+                    }.invoke()
+                }
+            }
         }
-    } else if (onLongClick is BrowserToolbarMenu && longClickMenu != null) {
-        setOnLongClickListener {
-            longClickMenu.show(anchor = this)
-            true
-        }
-    } else if (onLongClick is CombinedEventAndMenu && longClickMenu != null) {
-        setOnLongClickListener {
-            onInteraction(onLongClick.event)
-            longClickMenu.show(anchor = this)
-            true
-        }
-    } else {
-        setOnLongClickListener(null)
     }
+}
+
+/**
+ * Custom indication disabling click ripples.
+ */
+private object NoRippleIndication : Indication {
+    override fun equals(other: Any?): Boolean = other === this
+
+    override fun hashCode(): Int = System.identityHashCode(this)
 }
 
 @Preview(showBackground = true)
@@ -201,8 +228,6 @@ private fun OriginPreviewWithJustTheHint() {
             onClick = object : BrowserToolbarEvent {},
             onLongClick = null,
             onInteraction = {},
-            fadeDirection = FADE_DIRECTION_END,
-            textGravity = TEXT_GRAVITY_START,
         )
     }
 }
@@ -219,8 +244,6 @@ private fun OriginPreviewWithTitleAndURL() {
             onClick = object : BrowserToolbarEvent {},
             onLongClick = null,
             onInteraction = {},
-            fadeDirection = FADE_DIRECTION_END,
-            textGravity = TEXT_GRAVITY_START,
         )
     }
 }
@@ -236,8 +259,6 @@ private fun OriginPreviewWithTitleAndURLStart() {
             onClick = object : BrowserToolbarEvent {},
             onLongClick = null,
             onInteraction = {},
-            fadeDirection = FADE_DIRECTION_END,
-            textGravity = TEXT_GRAVITY_START,
         )
     }
 }
@@ -251,11 +272,10 @@ private fun OriginPreviewWithTitleAndURLEnd() {
             modifier = Modifier.background(AcornTheme.colors.layer1),
             url = "https://mozilla.com/firefox-browser",
             title = "Test title",
+            textGravity = TEXT_GRAVITY_START,
             onClick = object : BrowserToolbarEvent {},
             onLongClick = null,
             onInteraction = {},
-            fadeDirection = FADE_DIRECTION_END,
-            textGravity = TEXT_GRAVITY_END,
         )
     }
 }
@@ -269,11 +289,10 @@ private fun OriginPreviewWithJustURLStart() {
             modifier = Modifier.background(AcornTheme.colors.layer1),
             url = "https://mozilla.com/firefox-browser",
             title = null,
+            textGravity = TEXT_GRAVITY_END,
             onClick = object : BrowserToolbarEvent {},
             onLongClick = null,
             onInteraction = {},
-            fadeDirection = FADE_DIRECTION_END,
-            textGravity = TEXT_GRAVITY_START,
         )
     }
 }
@@ -287,11 +306,10 @@ private fun OriginPreviewWithJustURLEnd() {
             modifier = Modifier.background(AcornTheme.colors.layer1),
             url = "https://mozilla.com/firefox-browser",
             title = null,
+            textGravity = TEXT_GRAVITY_START,
             onClick = object : BrowserToolbarEvent {},
             onLongClick = null,
             onInteraction = {},
-            fadeDirection = FADE_DIRECTION_START,
-            textGravity = TEXT_GRAVITY_END,
         )
     }
 }

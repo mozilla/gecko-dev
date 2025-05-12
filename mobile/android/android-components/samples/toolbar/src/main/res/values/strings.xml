@@ -24,4 +24,6 @@
     <string name="toolbar_search_hint">Search or enter address</string>
     <string name="copy_url_button">Copy</string>
     <string name="copy_url_button_description">Copy the current url</string>
+    <string name="paste_url_button">Paste</string>
+    <string name="paste_url_button_description">Paste url from clipboard</string>
 </resources>

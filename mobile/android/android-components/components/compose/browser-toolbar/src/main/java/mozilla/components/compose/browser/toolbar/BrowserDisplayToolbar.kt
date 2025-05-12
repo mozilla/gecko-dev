@@ -105,11 +105,10 @@ fun BrowserDisplayToolbar(
                         .weight(1f),
                     url = pageOrigin.url,
                     title = pageOrigin.title,
+                    textGravity = pageOrigin.textGravity,
                     onClick = pageOrigin.onClick,
                     onLongClick = pageOrigin.onLongClick,
                     onInteraction = onInteraction,
-                    fadeDirection = pageOrigin.fadeDirection,
-                    textGravity = pageOrigin.textGravity,
                 )
 
                 if (pageActionsEnd.isNotEmpty()) {
