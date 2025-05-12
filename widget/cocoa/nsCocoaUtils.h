@@ -510,6 +510,12 @@ class nsCocoaUtils {
                                     bool aAllowFileURL);
 
   /**
+   * Get data for specific type from NSPasteboardItem.
+   */
+  static already_AddRefed<nsISupports> GetDataFromPasteboardItem(
+      const nsACString& aFlavor, NSPasteboardItem* aItem);
+
+  /**
    * Set data for specific type from NSPasteboardItem to Transferable.
    */
   static void SetTransferDataForTypeFromPasteboardItem(
