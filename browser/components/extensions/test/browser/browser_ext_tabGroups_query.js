@@ -64,10 +64,6 @@ add_task(async function tabsGroups_query() {
 
   ext.sendMessage("runTests", [
     {
-      query: undefined,
-      expected: [0, 1, 2, 3, 4, 5, 6],
-    },
-    {
       query: {},
       expected: [0, 1, 2, 3, 4, 5, 6],
     },
@@ -94,6 +90,10 @@ add_task(async function tabsGroups_query() {
     {
       query: { title: "*" },
       expected: [0, 1, 2, 3, 4, 5, 6],
+    },
+    {
+      query: { title: "" },
+      expected: [],
     },
     {
       query: { windowId },
@@ -171,4 +171,36 @@ add_task(async function tabsGroups_query() {
 
   await ext.unload();
   await ext2.unload();
+});
+
+// Tests validation of tabGroups.query() parameters.
+// The following is covered by other tests:
+// - private browsing access in browser_ext_tabGroups_private.js.
+add_task(async function test_tabGroups_query_validation() {
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: ["tabGroups"],
+    },
+    async background() {
+      browser.test.assertThrows(
+        () => browser.tabGroups.query(),
+        "Incorrect argument types for tabGroups.query.",
+        "tabGroups.query() requires queryInfo parameter"
+      );
+      browser.test.assertThrows(
+        () => browser.tabGroups.query({ color: "gray" }),
+        `Type error for parameter queryInfo (Error processing color: Invalid enumeration value "gray") for tabGroups.query.`,
+        "tabGroups.query() does not accept unrecognized color values"
+      );
+      browser.test.assertThrows(
+        () => browser.tabGroups.query({ windowId: -3 }),
+        `Type error for parameter queryInfo (Error processing windowId: Integer -3 is too small (must be at least -2)) for tabGroups.query.`,
+        "tabGroups.query() does not accept windowId below -2"
+      );
+      browser.test.sendMessage("done");
+    },
+  });
+  await extension.startup();
+  await extension.awaitMessage("done");
+  await extension.unload();
 });
