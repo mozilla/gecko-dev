@@ -24,6 +24,7 @@
 #include "nsQueryObject.h"
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
+#include "mozilla/StaticPrefs_network.h"
 
 #include <algorithm>
 
@@ -480,9 +481,14 @@ void nsUnknownDecoder::DetermineContentType(nsIRequest* aRequest) {
     return;
   }
 
+  nsCOMPtr<nsIURI> uri;
+  NS_GetFinalChannelURI(channel, getter_AddRefs(uri));
+
   // We don't know what this is yet.  Before we just give up, try
   // the URI from the request.
-  if (SniffURI(aRequest)) {
+  if ((StaticPrefs::network_sniff_use_extension() ||
+       (uri && uri->SchemeIs("file"))) &&
+      SniffURI(aRequest)) {
 #ifdef DEBUG
     MutexAutoLock lock(mMutex);
     NS_ASSERTION(!mContentType.IsEmpty(),
@@ -558,7 +564,7 @@ bool nsUnknownDecoder::SniffForHTML(nsIRequest* aRequest) {
 
 bool nsUnknownDecoder::SniffForXML(nsIRequest* aRequest) {
   // First see whether we can glean anything from the uri...
-  if (!SniffURI(aRequest)) {
+  if (!StaticPrefs::network_sniff_use_extension() || !SniffURI(aRequest)) {
     // Oh well; just generic XML will have to do
     MutexAutoLock lock(mMutex);
     mContentType = TEXT_XML;
