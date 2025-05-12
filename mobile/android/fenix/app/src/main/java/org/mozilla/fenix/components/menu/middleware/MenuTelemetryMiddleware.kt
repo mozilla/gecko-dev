@@ -287,6 +287,9 @@ class MenuTelemetryMiddleware(
             is MenuAction.UpdateShowDisabledExtensionsOnboarding,
             is MenuAction.UpdateManageExtensionsMenuItemVisibility,
             is MenuAction.UpdateAvailableAddons,
+            is MenuAction.Navigate.Back,
+            is MenuAction.Navigate.Forward,
+            is MenuAction.Navigate.Reload,
             -> Unit
         }
     }

@@ -343,5 +343,32 @@ sealed class MenuAction : Action {
          * [Navigate] action dispatched when the user clicks to report a broken site.
          */
         data object WebCompatReporter : Navigate()
+
+        /**
+         * [Navigate] action dispatched when navigating back from the current page.
+         *
+         * @property viewHistory Whether the tab history menu should be displayed.
+         */
+        data class Back(
+            val viewHistory: Boolean,
+        ) : Navigate()
+
+        /**
+         * [Navigate] action dispatched when navigating forward from the current page.
+         *
+         * @property viewHistory Whether the tab history menu should be displayed.
+         */
+        data class Forward(
+            val viewHistory: Boolean,
+        ) : Navigate()
+
+        /**
+         * [Navigate] action dispatched when reloading the current page.
+         *
+         * @property bypassCache Whether or not the cache should be bypassed when reloading.
+         */
+        data class Reload(
+            val bypassCache: Boolean,
+        ) : Navigate()
     }
 }

@@ -60,6 +60,10 @@ import org.mozilla.fenix.theme.Theme
  * homepage menu item.
  * @param onNewInFirefoxMenuClick Invoked when the user clicks on the release note menu item.
  * @param onQuitMenuClick Invoked when the user clicks on the quit menu item.
+ * @param onBackButtonClick Invoked when the user clicks on the back button.
+ * @param onForwardButtonClick Invoked when the user clicks on the forward button.
+ * @param onRefreshButtonClick Invoked when the user clicks on the refresh button.
+ * @param onShareButtonClick Invoked when the user clicks on the share button.
  */
 @Suppress("LongParameterList")
 @Composable
@@ -93,6 +97,10 @@ fun MainMenu(
     onCustomizeHomepageMenuClick: () -> Unit,
     onNewInFirefoxMenuClick: () -> Unit,
     onQuitMenuClick: () -> Unit,
+    onBackButtonClick: (longPress: Boolean) -> Unit,
+    onForwardButtonClick: (longPress: Boolean) -> Unit,
+    onRefreshButtonClick: (longPress: Boolean) -> Unit,
+    onShareButtonClick: () -> Unit,
 ) {
     account.hashCode()
     accountState.hashCode()
@@ -103,10 +111,10 @@ fun MainMenu(
     MenuScaffold(
         header = {
             MenuNavHeader(
-                onBackButtonClick = {},
-                onForwardButtonClick = {},
-                onRefreshButtonClick = {},
-                onShareButtonClick = {},
+                onBackButtonClick = onBackButtonClick,
+                onForwardButtonClick = onForwardButtonClick,
+                onRefreshButtonClick = onRefreshButtonClick,
+                onShareButtonClick = onShareButtonClick,
             )
         },
         scrollState = scrollState,
@@ -423,6 +431,10 @@ private fun MenuDialogPreview() {
                 onCustomizeHomepageMenuClick = {},
                 onNewInFirefoxMenuClick = {},
                 onQuitMenuClick = {},
+                onBackButtonClick = {},
+                onForwardButtonClick = {},
+                onRefreshButtonClick = {},
+                onShareButtonClick = {},
             )
         }
     }
@@ -466,6 +478,10 @@ private fun MenuDialogPrivatePreview() {
                 onCustomizeHomepageMenuClick = {},
                 onNewInFirefoxMenuClick = {},
                 onQuitMenuClick = {},
+                onBackButtonClick = {},
+                onForwardButtonClick = {},
+                onRefreshButtonClick = {},
+                onShareButtonClick = {},
             )
         }
     }

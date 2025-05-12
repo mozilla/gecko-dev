@@ -19,9 +19,11 @@ import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.ReaderState
 import mozilla.components.browser.state.state.createCustomTab
 import mozilla.components.browser.state.state.createTab
+import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.pwa.WebAppUseCases
+import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.service.fxa.manager.AccountState.Authenticated
 import mozilla.components.service.fxa.manager.AccountState.AuthenticationProblem
 import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
@@ -57,6 +59,7 @@ class MenuNavigationMiddlewareTest {
     private val scope = coroutinesTestRule.scope
 
     private val navController: NavController = mockk(relaxed = true)
+    private val sessionUseCases: SessionUseCases = mockk(relaxed = true)
     private val fenixBrowserUseCases: FenixBrowserUseCases = mockk(relaxed = true)
     private val webAppUseCases: WebAppUseCases = mockk(relaxed = true)
     private val settings: Settings = mockk(relaxed = true)
@@ -700,8 +703,202 @@ class MenuNavigationMiddlewareTest {
         }
     }
 
+    @Test
+    fun `GIVEN view history is true WHEN navigate back action is dispatched THEN navigate to tab history dialog fragment`() = runTest {
+        val store = createStore(
+            menuState = MenuState(
+                customTabSessionId = "0",
+            ),
+        )
+
+        store.dispatch(MenuAction.Navigate.Back(viewHistory = true)).join()
+
+        verify {
+            navController.nav(
+                id = R.id.menuDialogFragment,
+                directions = MenuDialogFragmentDirections.actionGlobalTabHistoryDialogFragment(
+                    activeSessionId = store.state.customTabSessionId,
+                ),
+                navOptions = NavOptions.Builder()
+                    .setPopUpTo(R.id.browserFragment, false)
+                    .build(),
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN user is on a tab and view history is false WHEN navigate back action is dispatched THEN navigate back`() = runTest {
+        val tab = createTab(url = "https://www.mozilla.org")
+        var dismissWasCalled = false
+        val store = createStore(
+            customTab = null,
+            menuState = MenuState(
+                browserMenuState = BrowserMenuState(
+                    selectedTab = tab,
+                ),
+            ),
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.Navigate.Back(viewHistory = false)).join()
+
+        verify {
+            sessionUseCases.goBack.invoke(tab.id)
+        }
+        assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `GIVEN user is on a custom tab and view history is false WHEN navigate back action is dispatched THEN navigate back`() = runTest {
+        val customTab = createCustomTab(url = "https://www.mozilla.org")
+        var dismissWasCalled = false
+        val store = createStore(
+            customTab = customTab,
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.Navigate.Back(viewHistory = false)).join()
+
+        verify {
+            sessionUseCases.goBack.invoke(customTab.id)
+        }
+        assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `GIVEN view history is true WHEN navigate forward action is dispatched THEN navigate to tab history dialog fragment`() = runTest {
+        val store = createStore(
+            menuState = MenuState(
+                customTabSessionId = "0",
+            ),
+        )
+
+        store.dispatch(MenuAction.Navigate.Forward(viewHistory = true)).join()
+
+        verify {
+            navController.nav(
+                id = R.id.menuDialogFragment,
+                directions = MenuDialogFragmentDirections.actionGlobalTabHistoryDialogFragment(
+                    activeSessionId = store.state.customTabSessionId,
+                ),
+                navOptions = NavOptions.Builder()
+                    .setPopUpTo(R.id.browserFragment, false)
+                    .build(),
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN user is on a tab and view history is false WHEN navigate forward action is dispatched THEN navigate forward`() = runTest {
+        val tab = createTab(url = "https://www.mozilla.org")
+        var dismissWasCalled = false
+        val store = createStore(
+            customTab = null,
+            menuState = MenuState(
+                browserMenuState = BrowserMenuState(
+                    selectedTab = tab,
+                ),
+            ),
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.Navigate.Forward(viewHistory = false)).join()
+
+        verify {
+            sessionUseCases.goForward.invoke(tab.id)
+        }
+        assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `GIVEN user is on a custom tab and view history is false WHEN navigate forward action is dispatched THEN navigate forward`() = runTest {
+        val customTab = createCustomTab(url = "https://www.mozilla.org")
+        var dismissWasCalled = false
+        val store = createStore(
+            customTab = customTab,
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.Navigate.Forward(viewHistory = false)).join()
+
+        verify {
+            sessionUseCases.goForward.invoke(customTab.id)
+        }
+        assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `GIVEN bypass cache is true WHEN navigate reload action is dispatched THEN reload with bypass cache flag`() = runTest {
+        val tab = createTab(url = "https://www.mozilla.org")
+        var dismissWasCalled = false
+        val store = createStore(
+            customTab = null,
+            menuState = MenuState(
+                browserMenuState = BrowserMenuState(
+                    selectedTab = tab,
+                ),
+            ),
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.Navigate.Reload(bypassCache = true)).join()
+
+        verify {
+            sessionUseCases.reload.invoke(
+                tabId = tab.id,
+                flags = LoadUrlFlags.select(LoadUrlFlags.BYPASS_CACHE),
+            )
+        }
+        assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `GIVEN user is on a tab and bypass cache is false WHEN navigate reload action is dispatched THEN reload with no flags`() = runTest {
+        val tab = createTab(url = "https://www.mozilla.org")
+        var dismissWasCalled = false
+        val store = createStore(
+            customTab = null,
+            menuState = MenuState(
+                browserMenuState = BrowserMenuState(
+                    selectedTab = tab,
+                ),
+            ),
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.Navigate.Reload(bypassCache = false)).join()
+
+        verify {
+            sessionUseCases.reload.invoke(
+                tabId = tab.id,
+                flags = LoadUrlFlags.none(),
+            )
+        }
+        assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `GIVEN user is on a custom tab and bypass cache is false WHEN navigate reload action is dispatched THEN reload with no flags`() = runTest {
+        val customTab = createCustomTab(url = "https://www.mozilla.org")
+        var dismissWasCalled = false
+        val store = createStore(
+            customTab = customTab,
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.Navigate.Reload(bypassCache = false)).join()
+
+        verify {
+            sessionUseCases.reload.invoke(
+                tabId = customTab.id,
+                flags = LoadUrlFlags.none(),
+            )
+        }
+        assertTrue(dismissWasCalled)
+    }
+
     private fun createStore(
-        customTab: CustomTabSessionState = mockk(relaxed = true),
+        customTab: CustomTabSessionState? = mockk(relaxed = true),
         menuState: MenuState = MenuState(),
         browsingModeManager: BrowsingModeManager = mockk(relaxed = true),
         openToBrowser: (params: BrowserNavigationParams) -> Unit = {},
@@ -713,6 +910,7 @@ class MenuNavigationMiddlewareTest {
                 navController = navController,
                 browsingModeManager = browsingModeManager,
                 openToBrowser = openToBrowser,
+                sessionUseCases = sessionUseCases,
                 fenixBrowserUseCases = fenixBrowserUseCases,
                 webAppUseCases = webAppUseCases,
                 settings = settings,

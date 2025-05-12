@@ -12,8 +12,10 @@ import kotlinx.coroutines.launch
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.ext.getUrl
 import mozilla.components.browser.state.state.CustomTabSessionState
+import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.feature.pwa.WebAppUseCases
+import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.service.fxa.manager.AccountState.Authenticated
@@ -47,6 +49,7 @@ import org.mozilla.fenix.webcompat.WEB_COMPAT_REPORTER_URL
  * @param browsingModeManager [BrowsingModeManager] used for setting the browsing mode.
  * @param openToBrowser Callback to open the provided [BrowserNavigationParams]
  * in a new browser tab.
+ * @param sessionUseCases [SessionUseCases] used to reload the page and navigate back/forward.
  * @param fenixBrowserUseCases [FenixBrowserUseCases] used for adding new homepage tabs.
  * @param webAppUseCases [WebAppUseCases] used for adding items to the home screen.
  * @param settings Used to check [Settings] when adding items to the home screen.
@@ -59,6 +62,7 @@ class MenuNavigationMiddleware(
     private val navController: NavController,
     private val browsingModeManager: BrowsingModeManager,
     private val openToBrowser: (params: BrowserNavigationParams) -> Unit,
+    private val sessionUseCases: SessionUseCases,
     private val fenixBrowserUseCases: FenixBrowserUseCases,
     private val webAppUseCases: WebAppUseCases,
     private val settings: Settings,
@@ -268,6 +272,64 @@ class MenuNavigationMiddleware(
                                 BrowserNavigationParams(url = "$WEB_COMPAT_REPORTER_URL$tabUrl"),
                             )
                         }
+                    }
+                }
+
+                is MenuAction.Navigate.Back -> {
+                    if (action.viewHistory) {
+                        navController.nav(
+                            id = R.id.menuDialogFragment,
+                            directions = MenuDialogFragmentDirections.actionGlobalTabHistoryDialogFragment(
+                                activeSessionId = currentState.customTabSessionId,
+                            ),
+                            navOptions = NavOptions.Builder()
+                                .setPopUpTo(R.id.browserFragment, false)
+                                .build(),
+                        )
+                    } else {
+                        val session = customTab ?: currentState.browserMenuState?.selectedTab
+
+                        session?.let {
+                            sessionUseCases.goBack.invoke(it.id)
+                            onDismiss()
+                        }
+                    }
+                }
+
+                is MenuAction.Navigate.Forward -> {
+                    if (action.viewHistory) {
+                        navController.nav(
+                            id = R.id.menuDialogFragment,
+                            directions = MenuDialogFragmentDirections.actionGlobalTabHistoryDialogFragment(
+                                activeSessionId = currentState.customTabSessionId,
+                            ),
+                            navOptions = NavOptions.Builder()
+                                .setPopUpTo(R.id.browserFragment, false)
+                                .build(),
+                        )
+                    } else {
+                        val session = customTab ?: currentState.browserMenuState?.selectedTab
+
+                        session?.let {
+                            sessionUseCases.goForward.invoke(it.id)
+                            onDismiss()
+                        }
+                    }
+                }
+
+                is MenuAction.Navigate.Reload -> {
+                    val session = customTab ?: currentState.browserMenuState?.selectedTab
+
+                    session?.let {
+                        sessionUseCases.reload.invoke(
+                            tabId = it.id,
+                            flags = if (action.bypassCache) {
+                                LoadUrlFlags.select(LoadUrlFlags.BYPASS_CACHE)
+                            } else {
+                                LoadUrlFlags.none()
+                            },
+                        )
+                        onDismiss()
                     }
                 }
 
