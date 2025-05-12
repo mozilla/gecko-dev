@@ -41,14 +41,13 @@ async function createAndStartServer() {
     "network.trr.uri",
     `https://foo.example.com:${trrServer.port()}/dns-query`
   );
-}
-
-add_task(async function test_idle_telemetry() {
   // Disable backup connection
   Services.prefs.setBoolPref("network.dns.disableIPv6", true);
 
   Services.prefs.setIntPref("network.trr.mode", Ci.nsIDNSService.MODE_TRRONLY);
+}
 
+add_task(async function test_idle_telemetry() {
   await createAndStartServer();
   Services.dns.clearCache(true);
   Services.fog.testResetFOG();
@@ -96,5 +95,42 @@ add_task(async function test_idle_telemetry() {
   Assert.equal(
     await Glean.network.trrIdleCloseTimeH2.other.testGetValue(),
     null
+  );
+});
+
+add_task(async function test_idle_telemetry_http3() {
+  let h3port = await create_h3_server();
+  Assert.ok(Number.isInteger(h3port));
+
+  // Disable the second DoH request for looking up AAAA record.
+  Services.prefs.setBoolPref("network.dns.disableIPv6", true);
+  Services.prefs.setCharPref(
+    "network.trr.uri",
+    `https://foo.example.com/closeafter1000ms`
+  );
+  Services.prefs.setCharPref(
+    "network.http.http3.alt-svc-mapping-for-testing",
+    `foo.example.com;h3=:${h3port}`
+  );
+  Services.prefs.setIntPref("network.trr.mode", Ci.nsIDNSService.MODE_TRRONLY);
+
+  Services.dns.clearCache(true);
+  Services.fog.testResetFOG();
+  await new TRRDNSListener("testdomain2.com", { expectedSuccess: false });
+
+  let timeout = 1;
+  // Gets closed after 1 second, but wait one more.
+  await new Promise(resolve => do_timeout((timeout + 1) * 1000, resolve));
+  let distr = await Glean.network.trrIdleCloseTimeH3.other.testGetValue();
+  Assert.equal(distr.count, 1, "just one connection being killed");
+  Assert.greater(
+    distr.sum,
+    timeout * 1000000000,
+    "should be slightly longer than the timeout. Note timeout is in microseconds"
+  );
+  Assert.less(
+    distr.sum,
+    timeout * 1000000000 * 1.1,
+    "Shouldn't be much longer than the timeout."
   );
 });
