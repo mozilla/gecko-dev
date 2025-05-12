@@ -212,11 +212,11 @@ pub fn fog_ping_alloc_size(ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
   use malloc_size_of::MallocSizeOf;
 
   let mut n = 0;
-  n += ::once_cell::sync::Lazy::get(&not_baseline).map(|p| p.size_of(ops)).unwrap_or(0);
-  n += ::once_cell::sync::Lazy::get(&not_deletion_request).map(|p| p.size_of(ops)).unwrap_or(0);
-  n += ::once_cell::sync::Lazy::get(&not_events).map(|p| p.size_of(ops)).unwrap_or(0);
-  n += ::once_cell::sync::Lazy::get(&not_metrics).map(|p| p.size_of(ops)).unwrap_or(0);
-  n += ::once_cell::sync::Lazy::get(&not_ohttp).map(|p| p.size_of(ops)).unwrap_or(0);
-  n += ::once_cell::sync::Lazy::get(&ridealong_test).map(|p| p.size_of(ops)).unwrap_or(0);
+  n += not_baseline.size_of(ops);
+  n += not_deletion_request.size_of(ops);
+  n += not_events.size_of(ops);
+  n += not_metrics.size_of(ops);
+  n += not_ohttp.size_of(ops);
+  n += ridealong_test.size_of(ops);
   n
 }

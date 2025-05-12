@@ -133,7 +133,7 @@ pub fn fog_ping_alloc_size(ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
 
   let mut n = 0;
   {% for obj in all_objs['pings'].values() %}
-  n += ::once_cell::sync::Lazy::get(&{{ obj.name|snake_case }}).map(|p| p.size_of(ops)).unwrap_or(0);
+  n += {{ obj.name|snake_case }}.size_of(ops);
   {% endfor %}
   n
 }
