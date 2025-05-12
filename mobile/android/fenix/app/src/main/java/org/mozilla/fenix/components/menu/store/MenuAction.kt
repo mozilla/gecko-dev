@@ -237,11 +237,6 @@ sealed class MenuAction : Action {
         ) : Navigate()
 
         /**
-         * [Navigate] action dispatched when navigating to the help SUMO article.
-         */
-        data object Help : Navigate()
-
-        /**
          * [Navigate] action dispatched when navigating to the settings.
          */
         data object Settings : Navigate()

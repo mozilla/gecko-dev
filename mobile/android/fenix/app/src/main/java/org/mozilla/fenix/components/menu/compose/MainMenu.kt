@@ -45,7 +45,6 @@ import org.mozilla.fenix.theme.Theme
  * @param extensionsMenuItemDescription The label of extensions menu item description.
  * @param scrollState The [ScrollState] used for vertical scrolling.
  * @param onMozillaAccountButtonClick Invoked when the user clicks on Mozilla account button.
- * @param onHelpButtonClick Invoked when the user clicks on the help button.
  * @param onSettingsButtonClick Invoked when the user clicks on the settings button.
  * @param onNewTabMenuClick Invoked when the user clicks on the new tab menu item.
  * @param onNewPrivateTabMenuClick Invoked when the user clicks on the new private tab menu item.
@@ -84,7 +83,6 @@ fun MainMenu(
     extensionsMenuItemDescription: String,
     scrollState: ScrollState,
     onMozillaAccountButtonClick: () -> Unit,
-    onHelpButtonClick: () -> Unit,
     onSettingsButtonClick: () -> Unit,
     onNewTabMenuClick: () -> Unit,
     onNewPrivateTabMenuClick: () -> Unit,
@@ -105,8 +103,6 @@ fun MainMenu(
     onRefreshButtonClick: (longPress: Boolean) -> Unit,
     onShareButtonClick: () -> Unit,
 ) {
-    onHelpButtonClick.hashCode()
-
     MenuScaffold(
         header = {
             MenuNavHeader(
@@ -480,7 +476,6 @@ private fun MenuDialogPreview() {
                 extensionsMenuItemDescription = "No extensions enabled",
                 scrollState = ScrollState(0),
                 onMozillaAccountButtonClick = {},
-                onHelpButtonClick = {},
                 onSettingsButtonClick = {},
                 onNewTabMenuClick = {},
                 onNewPrivateTabMenuClick = {},
@@ -527,7 +522,6 @@ private fun MenuDialogPrivatePreview() {
                 extensionsMenuItemDescription = "No extensions enabled",
                 scrollState = ScrollState(0),
                 onMozillaAccountButtonClick = {},
-                onHelpButtonClick = {},
                 onSettingsButtonClick = {},
                 onNewTabMenuClick = {},
                 onNewPrivateTabMenuClick = {},

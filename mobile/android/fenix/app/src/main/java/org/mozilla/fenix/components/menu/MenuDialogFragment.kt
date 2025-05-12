@@ -473,9 +473,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                             )
                                         }
                                     },
-                                    onHelpButtonClick = {
-                                        store.dispatch(MenuAction.Navigate.Help)
-                                    },
                                     onSettingsButtonClick = {
                                         view?.slideDown {
                                             store.dispatch(MenuAction.Navigate.Settings)

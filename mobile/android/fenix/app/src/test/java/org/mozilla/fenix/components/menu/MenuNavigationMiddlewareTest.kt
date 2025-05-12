@@ -145,20 +145,6 @@ class MenuNavigationMiddlewareTest {
     }
 
     @Test
-    fun `WHEN navigate to help action is dispatched THEN navigate to SUMO Help topic`() = runTest {
-        var params: BrowserNavigationParams? = null
-        val store = createStore(
-            openToBrowser = {
-                params = it
-            },
-        )
-
-        store.dispatch(MenuAction.Navigate.Help).join()
-
-        assertEquals(SumoTopic.HELP, params?.sumoTopic)
-    }
-
-    @Test
     fun `WHEN navigate to bookmarks action is dispatched THEN navigate to bookmarks`() = runTest {
         val store = createStore()
         store.dispatch(MenuAction.Navigate.Settings).join()

@@ -150,16 +150,6 @@ class MenuTelemetryMiddlewareTest {
     }
 
     @Test
-    fun `WHEN navigating to the help SUMO page THEN record the help interaction telemetry`() {
-        val store = createStore()
-        assertNull(HomeMenu.helpTapped.testGetValue())
-
-        store.dispatch(MenuAction.Navigate.Help).joinBlocking()
-
-        assertTelemetryRecorded(HomeMenu.helpTapped)
-    }
-
-    @Test
     fun `WHEN navigating to history THEN record the history browser menu telemetry`() {
         val store = createStore()
         assertNull(Events.browserMenuAction.testGetValue())

@@ -110,10 +110,6 @@ class MenuNavigationMiddleware(
                     }
                 }
 
-                is MenuAction.Navigate.Help -> openToBrowser(
-                    BrowserNavigationParams(sumoTopic = SumoTopic.HELP),
-                )
-
                 is MenuAction.Navigate.Settings -> navController.nav(
                     R.id.menuDialogFragment,
                     MenuDialogFragmentDirections.actionGlobalSettingsFragment(),
