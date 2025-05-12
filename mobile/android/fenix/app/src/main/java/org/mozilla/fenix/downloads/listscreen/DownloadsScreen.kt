@@ -70,6 +70,7 @@ import org.mozilla.fenix.downloads.listscreen.store.HeaderItem
 import org.mozilla.fenix.downloads.listscreen.ui.DownloadSearchField
 import org.mozilla.fenix.downloads.listscreen.ui.FileListItem
 import org.mozilla.fenix.downloads.listscreen.ui.Filters
+import org.mozilla.fenix.downloads.listscreen.ui.ToolbarConfig
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**

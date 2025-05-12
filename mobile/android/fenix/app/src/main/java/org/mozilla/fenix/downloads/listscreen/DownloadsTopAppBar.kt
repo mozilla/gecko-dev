@@ -76,19 +76,6 @@ internal fun DownloadsTopAppBar(
 private val TopAppBarPaddingEnd = 8.dp
 private val TopAppBarPaddingStart = 0.dp
 
-/**
- * @property title The title text to display in the Toolbar.
- * @property backgroundColor The background color of the Toolbar.
- * @property textColor The color of the text (title) in the Toolbar.
- * @property iconColor The color of the icons (e.g., navigation icon, overflow icon) in the Toolbar.
- */
-data class ToolbarConfig(
-    val title: String,
-    val backgroundColor: Color,
-    val textColor: Color,
-    val iconColor: Color,
-)
-
 @Composable
 @FlexibleWindowLightDarkPreview
 private fun DownloadsTopAppBarPreview() {
