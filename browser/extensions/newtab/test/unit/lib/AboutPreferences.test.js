@@ -73,7 +73,20 @@ describe("AboutPreferences Feed", () => {
       );
     });
   });
+
   describe("#observe", () => {
+    let renderPreferenceSection;
+    let toggleRestoreDefaults;
+
+    beforeEach(() => {
+      // Stub out All The Things
+      renderPreferenceSection = sandbox.stub(
+        instance,
+        "renderPreferenceSection"
+      );
+      toggleRestoreDefaults = sandbox.stub(instance, "toggleRestoreDefaults");
+    });
+
     it("should watch for about:preferences loading", () => {
       sandbox.stub(Services.obs, "addObserver");
 
@@ -99,18 +112,6 @@ describe("AboutPreferences Feed", () => {
       );
     });
     it("should try to render on event", async () => {
-      const stub = sandbox.stub(instance, "renderPreferences");
-      Sections.push({});
-
-      await instance.observe(window, PREFERENCES_LOADED_EVENT);
-
-      assert.calledOnce(stub);
-      assert.equal(stub.firstCall.args[0], window);
-      assert.include(stub.firstCall.args[1], Sections[0]);
-    });
-    it("Hide topstories rows select in sections if discovery stream is enabled", async () => {
-      const stub = sandbox.stub(instance, "renderPreferences");
-
       Sections.push({
         rowsPref: "row_pref",
         maxRows: 3,
@@ -118,49 +119,30 @@ describe("AboutPreferences Feed", () => {
         learnMore: { link: "https://foo.com" },
         id: "topstories",
       });
-      DiscoveryStream = { config: { enabled: true } };
+
+      Sections.push({
+        rowsPref: "row_pref",
+        maxRows: 3,
+        pref: { descString: "foo" },
+        learnMore: { link: "https://foo.com" },
+        id: "highlights",
+      });
 
       await instance.observe(window, PREFERENCES_LOADED_EVENT);
 
-      assert.calledOnce(stub);
-      const [, structure] = stub.firstCall.args;
-      assert.equal(structure[0].id, "search");
-      assert.equal(structure[1].id, "weather");
-      assert.equal(structure[2].id, "topsites");
-      assert.equal(structure[3].id, "topstories");
-      assert.isEmpty(structure[3].rowsPref);
+      // Render all the prefs
+      assert.callCount(renderPreferenceSection, 5);
+
+      // Show or hide the "Restore defaults" button depending on prefs
+      assert.calledOnce(toggleRestoreDefaults);
     });
   });
-  describe("#renderPreferences", () => {
+
+  describe("#renderPreferenceSection", () => {
     let node;
-    let prefStructure;
     let Preferences;
-    let gHomePane;
-    const testRender = () =>
-      instance.renderPreferences(
-        {
-          document: {
-            createXULElement: sandbox.stub().returns(node),
-            l10n: {
-              setAttributes(el, id, args) {
-                el.setAttribute("data-l10n-id", id);
-                el.setAttribute("data-l10n-args", JSON.stringify(args));
-              },
-            },
-            createProcessingInstruction: sandbox.stub(),
-            createElementNS: sandbox.stub().callsFake(() => node),
-            getElementById: sandbox.stub().returns(node),
-            insertBefore: sandbox.stub().returnsArg(0),
-            querySelector: sandbox
-              .stub()
-              .returns({ appendChild: sandbox.stub() }),
-          },
-          Preferences,
-          gHomePane,
-        },
-        prefStructure,
-        DiscoveryStream.config
-      );
+    let document;
+
     beforeEach(() => {
       node = {
         appendChild: sandbox.stub().returnsArg(0),
@@ -172,118 +154,99 @@ describe("AboutPreferences Feed", () => {
         remove: sandbox.stub(),
         style: {},
       };
-      prefStructure = [];
+      document = {
+        createXULElement: sandbox.stub().returns(node),
+        l10n: {
+          setAttributes(el, id, args) {
+            el.setAttribute("data-l10n-id", id);
+            el.setAttribute("data-l10n-args", JSON.stringify(args));
+          },
+        },
+        createProcessingInstruction: sandbox.stub(),
+        createElementNS: sandbox.stub().callsFake(() => node),
+        getElementById: sandbox.stub().returns(node),
+        insertBefore: sandbox.stub().returnsArg(0),
+        querySelector: sandbox.stub().returns({ appendChild: sandbox.stub() }),
+      };
       Preferences = {
         add: sandbox.stub(),
         get: sandbox.stub().returns({
           on: sandbox.stub(),
         }),
       };
-      gHomePane = { toggleRestoreDefaultsBtn: sandbox.stub() };
     });
-    describe("#getString", () => {
-      it("should not fail if titleString is not provided", () => {
-        prefStructure = [{ pref: {} }];
 
-        testRender();
-        assert.calledWith(
-          node.setAttribute,
-          "data-l10n-id",
-          sinon.match.typeOf("undefined")
-        );
-      });
-      it("should return the string id if titleString is just a string", () => {
-        const titleString = "foo";
-        prefStructure = [{ pref: { titleString } }];
-
-        testRender();
-        assert.calledWith(node.setAttribute, "data-l10n-id", titleString);
-      });
-      it("should set id and args if titleString is an object with id and values", () => {
-        const titleString = { id: "foo", values: { provider: "bar" } };
-        prefStructure = [{ pref: { titleString } }];
-
-        testRender();
-        assert.calledWith(node.setAttribute, "data-l10n-id", titleString.id);
-        assert.calledWith(
-          node.setAttribute,
-          "data-l10n-args",
-          JSON.stringify(titleString.values)
-        );
-      });
-    });
     describe("#linkPref", () => {
       it("should add a pref to the global", () => {
-        prefStructure = [{ pref: { feed: "feed" } }];
-
-        testRender();
+        const sectionData = { pref: { feed: "feed" } };
+        instance.renderPreferenceSection(sectionData, document, Preferences);
 
         assert.calledOnce(Preferences.add);
       });
-      it("should skip adding if not shown", () => {
-        prefStructure = [{ shouldHidePref: true }];
 
-        testRender();
+      it("should skip adding if not shown", () => {
+        const sectionData = { shouldHidePref: true };
+        instance.renderPreferenceSection(sectionData, document, Preferences);
 
         assert.notCalled(Preferences.add);
       });
     });
+
     describe("title line", () => {
       it("should render a title", () => {
         const titleString = "the_title";
-        prefStructure = [{ pref: { titleString } }];
-
-        testRender();
+        const sectionData = { pref: { titleString } };
+        instance.renderPreferenceSection(sectionData, document, Preferences);
 
         assert.calledWith(node.setAttribute, "data-l10n-id", titleString);
       });
     });
+
     describe("top stories", () => {
       const href = "https://disclaimer/";
       const eventSource = "https://disclaimer/";
+      let sectionData;
+
       beforeEach(() => {
-        prefStructure = [
-          {
-            id: "topstories",
-            pref: { feed: "feed", learnMore: { link: { href } } },
-            eventSource,
-          },
-        ];
+        sectionData = {
+          id: "topstories",
+          pref: { feed: "feed", learnMore: { link: { href } } },
+          eventSource,
+        };
       });
-      it("should add a link for top stories", () => {
-        testRender();
-        assert.calledWith(node.setAttribute, "href", href);
-      });
+
       it("should setup a user event for top stories eventSource", () => {
         sinon.spy(instance, "setupUserEvent");
-        testRender();
+        instance.renderPreferenceSection(sectionData, document, Preferences);
+
         assert.calledWith(node.addEventListener, "command");
         assert.calledWith(instance.setupUserEvent, node, eventSource);
       });
+
       it("should setup a user event for top stories nested pref eventSource", () => {
         sinon.spy(instance, "setupUserEvent");
-        prefStructure = [
-          {
-            id: "topstories",
-            pref: {
-              feed: "feed",
-              learnMore: { link: { href } },
-              nestedPrefs: [
-                {
-                  name: "showSponsored",
-                  titleString:
-                    "home-prefs-recommended-by-option-sponsored-stories",
-                  icon: "icon-info",
-                  eventSource: "POCKET_SPOCS",
-                },
-              ],
-            },
+        const section = {
+          id: "topstories",
+          pref: {
+            feed: "feed",
+            learnMore: { link: { href } },
+            nestedPrefs: [
+              {
+                name: "showSponsored",
+                titleString:
+                  "home-prefs-recommended-by-option-sponsored-stories",
+                icon: "icon-info",
+                eventSource: "POCKET_SPOCS",
+              },
+            ],
           },
-        ];
-        testRender();
+        };
+        instance.renderPreferenceSection(section, document, Preferences);
+
         assert.calledWith(node.addEventListener, "command");
         assert.calledWith(instance.setupUserEvent, node, "POCKET_SPOCS");
       });
+
       it("should fire store dispatch with onCommand", () => {
         const element = {
           addEventListener: (command, action) => {
@@ -301,22 +264,39 @@ describe("AboutPreferences Feed", () => {
           })
         );
       });
+
+      // The Weather pref now has a link to learn more, other prefs such as Top Stories don't any more
+      it("should add a link for weather", () => {
+        const section = {
+          id: "weather",
+          pref: { feed: "feed", learnMore: { link: { href } } },
+          eventSource,
+        };
+
+        instance.renderPreferenceSection(section, document, Preferences);
+
+        assert.calledWith(node.setAttribute, "href", href);
+      });
     });
+
     describe("description line", () => {
       it("should render a description", () => {
         const descString = "the_desc";
-        prefStructure = [{ pref: { descString } }];
+        const sectionData = { pref: { descString } };
 
-        testRender();
+        instance.renderPreferenceSection(sectionData, document, Preferences);
 
         assert.calledWith(node.setAttribute, "data-l10n-id", descString);
       });
-      it("should render rows dropdown with appropriate number", () => {
-        prefStructure = [
-          { rowsPref: "row_pref", maxRows: 3, pref: { descString: "foo" } },
-        ];
 
-        testRender();
+      it("should render rows dropdown with appropriate number", () => {
+        const sectionData = {
+          rowsPref: "row_pref",
+          maxRows: 3,
+          pref: { descString: "foo" },
+        };
+
+        instance.renderPreferenceSection(sectionData, document, Preferences);
 
         assert.calledWith(node.setAttribute, "value", 1);
         assert.calledWith(node.setAttribute, "value", 2);
@@ -325,39 +305,44 @@ describe("AboutPreferences Feed", () => {
     });
     describe("nested prefs", () => {
       const titleString = "im_nested";
+      let sectionData;
+
       beforeEach(() => {
-        prefStructure = [{ pref: { nestedPrefs: [{ titleString }] } }];
+        sectionData = { pref: { nestedPrefs: [{ titleString }] } };
       });
+
       it("should render a nested pref", () => {
-        testRender();
+        instance.renderPreferenceSection(sectionData, document, Preferences);
 
         assert.calledWith(node.setAttribute, "data-l10n-id", titleString);
       });
-      it("should set node hidden to true", () => {
-        prefStructure[0].pref.nestedPrefs[0].hidden = true;
 
-        testRender();
+      it("should set node hidden to true", () => {
+        sectionData.pref.nestedPrefs[0].hidden = true;
+
+        instance.renderPreferenceSection(sectionData, document, Preferences);
 
         assert.isTrue(node.hidden);
       });
       it("should add a change event", () => {
-        testRender();
+        instance.renderPreferenceSection(sectionData, document, Preferences);
 
         assert.calledOnce(Preferences.get().on);
         assert.calledWith(Preferences.get().on, "change");
       });
+
       it("should default node disabled to false", async () => {
         Preferences.get = sandbox.stub().returns({
           on: sandbox.stub(),
           _value: true,
         });
 
-        testRender();
+        instance.renderPreferenceSection(sectionData, document, Preferences);
 
         assert.isFalse(node.disabled);
       });
       it("should default node disabled to true", async () => {
-        testRender();
+        instance.renderPreferenceSection(sectionData, document, Preferences);
 
         assert.isTrue(node.disabled);
       });
@@ -368,7 +353,7 @@ describe("AboutPreferences Feed", () => {
         };
         Preferences.get = sandbox.stub().returns(pref);
 
-        testRender();
+        instance.renderPreferenceSection(sectionData, document, Preferences);
         pref._value = !pref._value;
         await Preferences.get().on.firstCall.args[1]();
 
@@ -381,19 +366,46 @@ describe("AboutPreferences Feed", () => {
         };
         Preferences.get = sandbox.stub().returns(pref);
 
-        testRender();
+        instance.renderPreferenceSection(sectionData, document, Preferences);
         pref._value = !pref._value;
         await Preferences.get().on.firstCall.args[1]();
 
         assert.isFalse(node.disabled);
       });
     });
-    describe("restore defaults btn", () => {
-      it("should call toggleRestoreDefaultsBtn", () => {
-        testRender();
+  });
 
-        assert.calledOnce(gHomePane.toggleRestoreDefaultsBtn);
-      });
+  describe("#toggleRestoreDefaults", () => {
+    it("should call toggleRestoreDefaultsBtn", async () => {
+      let gHomePane;
+      gHomePane = { toggleRestoreDefaultsBtn: sandbox.stub() };
+
+      await instance.toggleRestoreDefaults(gHomePane);
+
+      assert.calledOnce(gHomePane.toggleRestoreDefaultsBtn);
+    });
+  });
+
+  describe("#getString", () => {
+    it("should not fail if titleString is not provided", () => {
+      const emptyPref = {};
+
+      const returnString = instance.getString(emptyPref);
+      assert.equal(returnString, undefined);
+    });
+
+    it("should return the string id if titleString is just a string", () => {
+      const titleString = "foo";
+
+      const returnString = instance.getString(titleString);
+      assert.equal(returnString, titleString);
+    });
+
+    it("should set id and args if titleString is an object with id and values", () => {
+      const titleString = { id: "foo", values: { provider: "bar" } };
+
+      const returnString = instance.getString(titleString);
+      assert.equal(returnString, titleString.id);
     });
   });
 });
