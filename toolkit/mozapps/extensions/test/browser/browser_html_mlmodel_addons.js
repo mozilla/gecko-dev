@@ -187,53 +187,27 @@ add_task(async function testModelHubDetails() {
   const id1 = "mockmodel1-without-size@tests.mozilla.org";
   const id2 = "mockmodel2-with-size@tests.mozilla.org";
 
-  const mockModel1 = {
-    id: id1,
-    model: "hostname/org/model-mock-1",
-    permissions: AddonManager.PERM_CAN_UNINSTALL,
-    type: "mlmodel",
-    totalSize: undefined,
-    lastUsed: new Date("2023-10-01T12:00:00Z"),
-    modelHomepageURL: "https://huggingface.co/org/model-mock-1",
-    modelIconURL: "chrome://mozapps/skin/extensions/extensionGeneric.svg",
-  };
-  const mockModel2 = {
-    id: id2,
-    model: "hostname/org/model-mock-2",
-    permissions: AddonManager.PERM_CAN_UNINSTALL,
-    type: "mlmodel",
-    totalSize: 5 * 1024 * 1024,
-    lastUsed: new Date("2023-10-01T12:00:00Z"),
-    modelHomepageURL: "https://huggingface.co/org/model-mock-2",
-    modelIconURL: "", // testing that empty icon sets to defult svg
-  };
+  mockProvider.createAddons([
+    {
+      id: id1,
+      name: "Model Mock 1",
+      permissions: AddonManager.PERM_CAN_UNINSTALL,
+      type: "mlmodel",
+      totalSize: undefined,
+    },
+    {
+      id: id2,
+      name: "Model Mock 2",
+      permissions: AddonManager.PERM_CAN_UNINSTALL,
+      type: "mlmodel",
+      totalSize: 5 * 1024 * 1024,
+    },
+  ]);
 
-  mockProvider.createAddons([mockModel1, mockModel2]);
+  await verifyAddonCardDetails(id1, "0 bytes");
+  await verifyAddonCardDetails(id2, "5.0 MB");
 
-  await verifyAddonCardDetails({
-    id: id1,
-    expectedTotalSize: "0 bytes",
-    expectedLastUsed: mockModel1.lastUsed,
-    expectedModelHomepageURL: mockModel1.modelHomepageURL,
-    expectedModelIconURL:
-      "chrome://mozapps/skin/extensions/extensionGeneric.svg",
-  });
-  await verifyAddonCardDetails({
-    id: id2,
-    expectedTotalSize: "5.0 MB",
-    expectedLastUsed: mockModel2.lastUsed,
-    expectedModelHomepageURL: mockModel2.modelHomepageURL,
-    expectedModelIconURL:
-      "chrome://mozapps/skin/extensions/extensionGeneric.svg",
-  });
-
-  async function verifyAddonCardDetails({
-    id,
-    expectedTotalSize,
-    expectedLastUsed,
-    expectedModelHomepageURL,
-    expectedModelIconURL,
-  }) {
+  async function verifyAddonCardDetails(id, expectedTotalSize) {
     let win = await loadInitialView("mlmodel");
     // Get the list view card DOM element for the given addon id.
     let card = getAddonCard(win, id);
@@ -275,7 +249,6 @@ add_task(async function testModelHubDetails() {
       "Expect the card options button to be hidden in the detail view"
     );
 
-    // Check the model total size
     let totalsizeEl = card.querySelector(".addon-detail-row-mlmodel-totalsize");
     ok(totalsizeEl, "Expect to see the total size");
     is(
@@ -283,39 +256,6 @@ add_task(async function testModelHubDetails() {
       expectedTotalSize,
       "Got the expected total size text"
     );
-
-    // Check the last used date
-    let lastUsedEl = card.querySelector(".addon-detail-row-mlmodel-lastused");
-    ok(lastUsedEl, "Expect to see the last used date");
-    is(
-      lastUsedEl?.querySelector("span")?.textContent.trim(),
-      expectedLastUsed.toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-      "Got the expected last used date text"
-    );
-
-    // Check the model card link
-    let modelCardEl = card.querySelector(".addon-detail-row-mlmodel-modelcard");
-    ok(modelCardEl, "Expect to see the model card link");
-    let modelHomepageURL = modelCardEl.querySelector("a");
-    ok(modelHomepageURL, "Expect to see the model card link element");
-    is(
-      modelHomepageURL?.href,
-      expectedModelHomepageURL,
-      "Got the expected model card link"
-    );
-
-    // Check the model version
-    let versionEl = card.querySelector(".addon-detail-row-version");
-    ok(versionEl, "Expect to see the model version");
-
-    // Check the model image
-    let iconSrc = card.querySelector(".card-heading-icon").getAttribute("src");
-    ok(iconSrc, "Expected to see model card image src");
-    is(iconSrc, expectedModelIconURL, "Got expected model card icon value");
 
     await closeView(win);
   }

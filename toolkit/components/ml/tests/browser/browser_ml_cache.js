@@ -749,8 +749,8 @@ add_task(async function test_ListModels() {
 
   const models = await cache.listModels();
   const expected = [
-    { name: "org1/modelA", revision: "v1", taskName: "task1" },
-    { name: "org2/modelB", revision: "v2", taskName: "task2" },
+    { name: "org1/modelA", revision: "v1" },
+    { name: "org2/modelB", revision: "v2" },
   ];
   Assert.deepEqual(models, expected, "All models should be listed");
   await deleteCache(cache);
@@ -930,7 +930,7 @@ add_task(async function test_DeleteModelsUsingNonExistingTaskName() {
 
   // Model should still be there.
   const models = await cache.listModels();
-  const expected = [{ name: model, revision, taskName }];
+  const expected = [{ name: model, revision }];
   Assert.deepEqual(models, expected, "All models should be listed");
 
   await deleteCache(cache);

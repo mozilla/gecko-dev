@@ -27,44 +27,29 @@ const MODELHUB_ADDON_TYPE = "mlmodel";
 export class ModelHubAddonWrapper {
   #provider;
   id;
-  model;
+  name;
   version;
   totalSize;
   lastUsed;
   updateDate;
-  modelIconURL;
 
   constructor(params) {
     this.#provider = params.provider;
     this.id = params.id;
-    this.model = params.model;
+    this.name = params.name;
     this.version = params.version;
     this.totalSize = params.totalSize;
     this.lastUsed = params.lastUsed;
     this.updateDate = params.updateDate;
-    this.modelIconURL = params.modelIconURL;
   }
 
   async uninstall() {
     await this.#provider.modelHub.deleteModels({
-      model: this.model,
+      model: this.name,
       revision: this.version,
     });
 
     await this.#provider.onUninstalled(this);
-  }
-
-  get name() {
-    const parts = this.model.split("/");
-    return parts.slice(2).join("/");
-  }
-
-  get modelHomepageURL() {
-    // Model card URL for models downloaded from "model-hub.mozilla.org" should point to the corresponding "https://huggingface.co" url.
-    return `https://${this.model}/`.replace(
-      "https://model-hub.mozilla.org/",
-      "https://huggingface.co/"
-    );
   }
 
   get isActive() {
@@ -81,14 +66,6 @@ export class ModelHubAddonWrapper {
 
   get type() {
     return MODELHUB_ADDON_TYPE;
-  }
-
-  // TODO(Bug 1965104): replace extensionGeneric.svg with a new mlmodel-specific fallback icon
-  get iconURL() {
-    return (
-      this.modelIconURL ||
-      "chrome://mozapps/skin/extensions/extensionGeneric.svg"
-    );
   }
 }
 
@@ -173,18 +150,16 @@ export const ModelHubProvider = {
         revision: model.revision,
       });
 
-      const modelIconURL = await this.modelHub.getOwnerIcon(model.name);
       const id = this.getWrapperIdForModel(model);
 
       const wrapper = new ModelHubAddonWrapper({
         provider: this,
         id,
-        model: model.name,
+        name: model.name,
         version: model.revision,
         totalSize: metadata.totalSize,
         lastUsed: new Date(metadata.lastUsed),
         updateDate: new Date(metadata.updateDate),
-        modelIconURL,
       });
       this.cache.set(wrapper.id, wrapper);
     }
