@@ -2382,12 +2382,6 @@ class Editor extends EventEmitter {
     const cm = editors.get(this);
     const { codemirrorLanguage } = this.#CodeMirror6;
 
-    // Converts the CM6 position to a source line
-    function posToLine(view, pos) {
-      const line = view.state.doc.lineAt(pos);
-      return line.number;
-    }
-
     const functionLocations = [];
 
     await lezerUtils.walkTree(cm, codemirrorLanguage, {
@@ -2395,8 +2389,8 @@ class Editor extends EventEmitter {
       enterVisitor: node => {
         functionLocations.push({
           name: node.name,
-          startLine: posToLine(cm, node.from),
-          endLine: posToLine(cm, node.to),
+          start: lezerUtils.positionToLocation(cm.state.doc, node.from),
+          end: lezerUtils.positionToLocation(cm.state.doc, node.to),
         });
       },
       forceParseTo: cm.viewport.to,

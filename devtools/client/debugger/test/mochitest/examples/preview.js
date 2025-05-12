@@ -115,4 +115,19 @@ function valueOfExpression() {
   a("foo")
 }
 
+const workers = [];
+let worker = null;
+// This is scenario is used to test `editor.getInScopeLines`
+function spawnWorker() {
+  worker = new Worker("worker.js?id=123");
+  workers.push(worker);
+  // Asserts that `worker` token on line 126 is detected as part of the outer scope
+  // so tooltip previews should be displayed for it.
+  worker.onmessage = function (e) {
+    console.log("Message received in main script, from ", e);
+  };
 
+  worker.onerror = function (e) {
+    debugger;
+  };
+}

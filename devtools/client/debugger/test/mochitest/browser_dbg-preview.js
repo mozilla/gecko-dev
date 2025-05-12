@@ -107,6 +107,10 @@ add_task(async function () {
     { line: 107, column: 6, expression: "value", result: "foo" },
   ]);
 
+  await testPreviews(dbg, "spawnWorker", [
+    { line: 126, column: 6, expression: "worker", result: "Worker" },
+  ]);
+
   // javascript.options.experimental.explicit_resource_management is set to true, but it's
   // only supported on Nightly at the moment, so only check for SuppressedError if
   // they're supported.
