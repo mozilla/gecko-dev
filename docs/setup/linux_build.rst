@@ -50,7 +50,7 @@ the interactive setup process.
 
 .. code-block:: shell
 
-    curl -L https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/python/mozboot/bin/bootstrap.py
+    curl -LO https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/python/mozboot/bin/bootstrap.py
 
     python3 bootstrap.py
 
