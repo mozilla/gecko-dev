@@ -87,33 +87,64 @@ const OVERLIMIT_PAGES_THRESHOLD = 1000;
 // Milliseconds in a day.
 const MSECS_PER_DAY = 86400000;
 
-// When we expire we can use these limits:
-// - SMALL for usual partial expirations, will expire a small chunk.
-// - LARGE for idle or shutdown expirations, will expire a large chunk.
-// - UNLIMITED will expire all the orphans.
-// - DEBUG will use a known limit, passed along with the debug notification.
+/**
+ * Represents the expiration limits.
+ *
+ * @readonly
+ * @enum {number}
+ */
 const LIMIT = {
+  /** SMALL for usual partial expirations, will expire a small chunk. */
   SMALL: 0,
+
+  /** LARGE for idle or shutdown expirations, will expire a large chunk. */
   LARGE: 1,
+
+  /** UNLIMITED will expire all the orphans. */
   UNLIMITED: 2,
+
+  /** DEBUG will use a known limit, passed along with the debug notification. */
   DEBUG: 3,
 };
 
-// Represents the status of history database.
+/**
+ * Represents the status of history database.
+ *
+ * Bug 1965962 - Freeze const objects and use the specific values for types.
+ *
+ * @readonly
+ * @enum {number}
+ */
 const STATUS = {
   CLEAN: 0,
   DIRTY: 1,
   UNKNOWN: 2,
 };
 
-// Represents actions on which a query will run.
+/**
+ * Represents actions on which a query will run.
+ *
+ * @readonly
+ * @enum {number}
+ */
 const ACTION = {
-  TIMED: 1 << 0, // happens every this.intervalSeconds
-  TIMED_OVERLIMIT: 1 << 1, // like TIMED but only when history is over limits
-  SHUTDOWN_DIRTY: 1 << 2, // happens at shutdown for DIRTY state
-  IDLE_DIRTY: 1 << 3, // happens on idle for DIRTY state
-  IDLE_DAILY: 1 << 4, // happens once a day on idle
-  DEBUG: 1 << 5, // happens on TOPIC_DEBUG_START_EXPIRATION
+  /** Happens every this.intervalSeconds. */
+  TIMED: 1 << 0, //
+
+  /** Like TIMED but only when history is over limits. */
+  TIMED_OVERLIMIT: 1 << 1,
+
+  /** Happens at shutdown for DIRTY state. */
+  SHUTDOWN_DIRTY: 1 << 2,
+
+  /** Happens on idle for DIRTY state. */
+  IDLE_DIRTY: 1 << 3,
+
+  /** Happens once a day on idle. */
+  IDLE_DAILY: 1 << 4,
+
+  /** Happens on TOPIC_DEBUG_START_EXPIRATION. */
+  DEBUG: 1 << 5,
 };
 
 // The queries we use to expire.
@@ -576,6 +607,7 @@ nsPlacesExpiration.prototype = {
     let expectedResults = row.getResultByName("expected_results");
     if (expectedResults > 0) {
       if (!("_expectedResultsCount" in this)) {
+        // @ts-ignore - Bug 1965966 this is dynamically created/deleted.
         this._expectedResultsCount = expectedResults;
       }
       if (this._expectedResultsCount > 0) {
@@ -592,7 +624,7 @@ nsPlacesExpiration.prototype = {
     );
 
     if (mostRecentExpiredVisit) {
-      let days = parseInt(
+      let days = Math.floor(
         (Date.now() - mostRecentExpiredVisit / 1000) / MSECS_PER_DAY
       );
       if (!this._mostRecentExpiredVisitDays) {
@@ -618,6 +650,12 @@ nsPlacesExpiration.prototype = {
   _shuttingDown: false,
 
   _status: STATUS.UNKNOWN,
+
+  /**
+   * Set the status of the history database.
+   *
+   * @param {STATUS} aNewStatus
+   */
   set status(aNewStatus) {
     if (aNewStatus != this._status) {
       // If status changes we should restart the timer.
@@ -628,15 +666,30 @@ nsPlacesExpiration.prototype = {
       this.expireOnIdle = aNewStatus == STATUS.DIRTY;
     }
   },
+
+  /**
+   * Get the status of the history database.
+   *
+   * @returns {STATUS}
+   */
   get status() {
     return this._status;
   },
 
+  /**
+   * Get the maximum number of pages that should be retained. This can expire
+   * old pages if a memory or disk threshold is exceeded.
+   *
+   * @returns {Promise<number>}
+   *   The maximum number of pages.
+   */
   async getPagesLimit() {
     if (this._pagesLimit != null) {
       return this._pagesLimit;
     }
+    // @ts-ignore - maxPages is dynamically added.
     if (this.maxPages >= 0) {
+      // @ts-ignore - maxPages is dynamically added.
       return (this._pagesLimit = this.maxPages);
     }
 
@@ -646,6 +699,7 @@ nsPlacesExpiration.prototype = {
     let memSizeBytes = MEMSIZE_FALLBACK_BYTES;
     try {
       // Limit the size on systems with small memory.
+      // @ts-ignore - Typescript is not able to infer the type from nsIVariant
       memSizeBytes = Services.sysinfo.getProperty("memsize");
     } catch (ex) {}
     if (memSizeBytes <= 0) {
@@ -712,6 +766,15 @@ nsPlacesExpiration.prototype = {
 
   _isIdleObserver: false,
   _expireOnIdle: false,
+
+  /**
+   * Sets if expiration should occur when the system is idle. It also manages
+   * idle observation and adjusts behavior based on shutdown state and
+   * debugging.
+   *
+   * @param {boolean} aExpireOnIdle
+   *   Whether to expire on idle time.
+   */
   set expireOnIdle(aExpireOnIdle) {
     // Observe idle regardless aExpireOnIdle, since we always want to stop
     // timed expiration on idle, to preserve mobile battery life.
@@ -732,6 +795,12 @@ nsPlacesExpiration.prototype = {
       this._expireOnIdle = aExpireOnIdle;
     }
   },
+
+  /**
+   * Whether to expire visits and orphans.
+   *
+   * @returns {boolean}
+   */
   get expireOnIdle() {
     return this._expireOnIdle;
   },
@@ -742,11 +811,10 @@ nsPlacesExpiration.prototype = {
   /**
    * Expires visits and orphans.
    *
-   * @param aAction
-   *        The ACTION we are expiring for.  See the ACTION const for values.
-   * @param aLimit
-   *        Whether to use small, large or no limits when expiring.  See the
-   *        LIMIT const for values.
+   * @param {ACTION} aAction
+   *   The ACTION we are expiring for.
+   * @param {LIMIT} aLimit
+   *   Whether to use small, large or no limits when expiring.
    */
   async _expire(aAction, aLimit) {
     // Don't try to further expire after shutdown.
@@ -827,13 +895,16 @@ nsPlacesExpiration.prototype = {
   /**
    * Generate a query used for expiration.
    *
-   * @param aQueryType
-   *        Type of the query.
-   * @param aLimit
-   *        Whether to use small, large or no limits when expiring.  See the
-   *        LIMIT const for values.
-   * @param aAction
-   *        Current action causing the expiration.  See the ACTION const.
+   * @param {string} aQueryType
+   *   Type of the query.
+   * @param {LIMIT} aLimit
+   *   Whether to use small, large or no limits when expiring.
+   * @param {ACTION} aAction
+   *   Current action causing the expiration.
+   *
+   * @returns {Promise<object|undefined>}
+   *   Resolves an object based on the query, or undefined if no valid query
+   *   type was provided.
    */
   async _getQueryParams(aQueryType, aLimit, aAction) {
     let baseLimit;
@@ -905,7 +976,9 @@ nsPlacesExpiration.prototype = {
   /**
    * Creates a new timer based on this.intervalSeconds.
    *
-   * @returns a REPEATING_SLACK nsITimer that runs every this.intervalSeconds.
+   * @returns {nsITimer|undefined}
+   *   A REPEATING_SLACK nsITimer that runs every this.intervalSeconds. Returns
+   *   undefined if this is shutting down.
    */
   _newTimer() {
     if (this._timer) {
@@ -916,14 +989,17 @@ nsPlacesExpiration.prototype = {
     }
 
     if (!this._isIdleObserver) {
+      // @ts-ignore - _idle is lazily instantiated.
       this._idle.addIdleObserver(this, IDLE_TIMEOUT_SECONDS);
       this._isIdleObserver = true;
     }
 
+    // @ts-ignore - this.intervalSeconds is lazily instantiated.
+    let seconds = this.intervalSeconds;
     let interval =
       this.status != STATUS.DIRTY
-        ? this.intervalSeconds * EXPIRE_AGGRESSIVITY_MULTIPLIER
-        : this.intervalSeconds;
+        ? seconds * EXPIRE_AGGRESSIVITY_MULTIPLIER
+        : seconds;
 
     let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     timer.initWithCallback(

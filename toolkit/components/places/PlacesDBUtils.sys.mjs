@@ -50,7 +50,7 @@ export var PlacesDBUtils = {
 
     Services.prefs.setIntPref(
       "places.database.lastMaintenance",
-      parseInt(Date.now() / 1000)
+      Math.floor(Date.now() / 1000)
     );
     Glean.places.idleMaintenanceTime.stopAndAccumulate(timerId);
     return taskStatusMap;
@@ -87,7 +87,7 @@ export var PlacesDBUtils = {
    * Note: although this function isn't actually async, we keep it async to
    * allow us to maintain a simple, consistent API for the tasks within this object.
    *
-   * @returns {Array} An empty array.
+   * @returns {Promise<void[]>} An empty array.
    */
   async _refreshUI() {
     PlacesObservers.notifyListeners([new PlacesPurgeCaches()]);
@@ -831,22 +831,22 @@ export var PlacesDBUtils = {
    * Note: although this function isn't actually async, we keep it async to
    * allow us to maintain a simple, consistent API for the tasks within this object.
    *
-   * @returns {Promise} resolves when database is vacuumed.
-   * @resolves to an array of logs for this task.
+   * @returns {Promise<Array<string>>}
+   *   Resolves when database is vacuumed to an array of logs for this task.
    * @rejects if we are unable to vacuum database.
    */
   async vacuum() {
     let logs = [];
     let placesDbPath = PathUtils.join(PathUtils.profileDir, "places.sqlite");
     let info = await IOUtils.stat(placesDbPath);
-    logs.push(`Initial database size is ${parseInt(info.size / 1024)}KiB`);
+    logs.push(`Initial database size is ${Math.floor(info.size / 1024)}KiB`);
     return lazy.PlacesUtils.withConnectionWrapper(
       "PlacesDBUtils: vacuum",
       async db => {
         await db.execute("VACUUM");
         logs.push("The database has been vacuumed");
         info = await IOUtils.stat(placesDbPath);
-        logs.push(`Final database size is ${parseInt(info.size / 1024)}KiB`);
+        logs.push(`Final database size is ${Math.floor(info.size / 1024)}KiB`);
         return logs;
       }
     ).catch(() => {
@@ -883,8 +883,11 @@ export var PlacesDBUtils = {
       );
     });
 
-    // Force an orphans expiration step.
-    expiration.observe(null, "places-debug-start-expiration", 0);
+    // Typescript sees that expiration can either be an object with the observe
+    // method or a function with the signature of observe.
+    if (typeof expiration !== "function") {
+      expiration.observe(null, "places-debug-start-expiration", "0");
+    }
     return returnPromise;
   },
 
@@ -899,13 +902,13 @@ export var PlacesDBUtils = {
     let logs = [];
     let placesDbPath = PathUtils.join(PathUtils.profileDir, "places.sqlite");
     let info = await IOUtils.stat(placesDbPath);
-    logs.push(`Places.sqlite size is ${parseInt(info.size / 1024)}KiB`);
+    logs.push(`Places.sqlite size is ${Math.floor(info.size / 1024)}KiB`);
     let faviconsDbPath = PathUtils.join(
       PathUtils.profileDir,
       "favicons.sqlite"
     );
     info = await IOUtils.stat(faviconsDbPath);
-    logs.push(`Favicons.sqlite size is ${parseInt(info.size / 1024)}KiB`);
+    logs.push(`Favicons.sqlite size is ${Math.floor(info.size / 1024)}KiB`);
 
     // Execute each step async.
     let pragmas = [
@@ -930,9 +933,19 @@ export var PlacesDBUtils = {
 
     // Get maximum number of unique URIs.
     try {
-      let limitURIs = await Cc["@mozilla.org/places/expiration;1"]
-        .getService(Ci.nsISupports)
-        .wrappedJSObject.getPagesLimit();
+      /**
+       * A partial shape of nsPlacesExpiration, just for what we use in stats.
+       *
+       * @typedef {object} ExpirationWrappedJSObject
+       * @property {function(): Promise<number>} getPagesLimit
+       */
+
+      // This has to be type cast because wrappedJSObject is an object.
+      let expiration = /** @type {ExpirationWrappedJSObject} */ (
+        Cc["@mozilla.org/places/expiration;1"].getService(Ci.nsISupports)
+          .wrappedJSObject
+      );
+      let limitURIs = await expiration.getPagesLimit();
       logs.push(
         "History can store a maximum of " + limitURIs + " unique pages"
       );
@@ -966,10 +979,10 @@ export var PlacesDBUtils = {
       return details.get(a).sizePerc - details.get(b).sizePerc;
     });
     for (let key of entities) {
-      let info = details.get(key);
+      let value = details.get(key);
       logs.push(
-        `${key}: ${info.sizeBytes / 1024}KiB (${info.sizePerc}%), ${
-          info.efficiencyPerc
+        `${key}: ${value.sizeBytes / 1024}KiB (${value.sizePerc}%), ${
+          value.efficiencyPerc
         }% eff.`
       );
     }
@@ -1079,7 +1092,7 @@ export var PlacesDBUtils = {
             "places.sqlite"
           );
           let info = await IOUtils.stat(placesDbPath);
-          return parseInt(info.size / BYTES_PER_MEBIBYTE);
+          return Math.floor(info.size / BYTES_PER_MEBIBYTE);
         },
       },
 
@@ -1091,7 +1104,7 @@ export var PlacesDBUtils = {
             "favicons.sqlite"
           );
           let info = await IOUtils.stat(faviconsDbPath);
-          return parseInt(info.size / BYTES_PER_MEBIBYTE);
+          return Math.floor(info.size / BYTES_PER_MEBIBYTE);
         },
       },
 
@@ -1107,8 +1120,8 @@ export var PlacesDBUtils = {
             let lastMaintenance = Services.prefs.getIntPref(
               "places.database.lastMaintenance"
             );
-            let nowSeconds = parseInt(Date.now() / 1000);
-            return parseInt((nowSeconds - lastMaintenance) / 86400);
+            let nowSeconds = Math.floor(Date.now() / 1000);
+            return Math.floor((nowSeconds - lastMaintenance) / 86400);
           } catch (ex) {
             return 60;
           }
@@ -1138,15 +1151,16 @@ export var PlacesDBUtils = {
       // Report the result of the probe through Telemetry.
       // The resulting promise cannot reject.
       if ("callback" in probe) {
-        val = await probe.callback(val);
+        val = await probe.callback();
       }
       if (probe.distribution) {
         // Memory distributions have the method named 'accumulate'
         // instead of 'accumulateSingleSample'.
-        (
-          probe.distribution.accumulateSingleSample ||
-          probe.distribution.accumulate
-        ).call(probe.distribution, val);
+        if ("accumulateSingleSample" in probe.distribution) {
+          probe.distribution.accumulateSingleSample(val);
+        } else if ("accumulate" in probe.distribution) {
+          probe.distribution.accumulate(val);
+        }
       } else if (probe.quantity) {
         probe.quantity.set(val);
       } else {
@@ -1158,7 +1172,8 @@ export var PlacesDBUtils = {
   /**
    * Remove old and useless places.sqlite.corrupt files.
    *
-   * @resolves to an array of logs for this task.
+   * @returns {Promise<Array<string>>}
+   *   Resolves to an array of logs for this task.
    */
   async removeOldCorruptDBs() {
     let logs = [];
@@ -1198,19 +1213,17 @@ export var PlacesDBUtils = {
   /**
    * Gets detailed statistics about database entities like tables and indices.
    *
-   * @returns {Map} a Map by table name, containing an object with the following
-   *          properties:
-   *            - efficiencyPerc: percentage filling of pages, an high
-   *              efficiency means most pages are filled up almost completely.
-   *              This value is not particularly useful with a low number of
-   *              pages.
-   *            - sizeBytes: size of the entity in bytes
-   *            - pages: number of pages of the entity
-   *            - sizePerc: percentage of the total database size
-   *            - sequentialityPerc: percentage of sequential pages, this is
-   *              a global value of the database, thus it's the same for every
-   *              entity, and it can be used to evaluate fragmentation and the
-   *              need for vacuum.
+   * @returns {Promise<Map<string, object>>}
+   *   A Map by table name, containing an object with the following properties:
+   *   - efficiencyPerc: percentage filling of pages, an high efficiency means
+   *     most pages are filled up almost completely. This value is not
+   *     particularly useful with a low number of pages.
+   *   - sizeBytes: size of the entity in bytes
+   *   - pages: number of pages of the entity
+   *   - sizePerc: percentage of the total database size
+   *   - sequentialityPerc: percentage of sequential pages, this is a global
+   *     value of the database, thus it's the same for every entity, and it can
+   *     be used to evaluate fragmentation and the need for vacuum.
    */
   async getEntitiesStats() {
     let db = await lazy.PlacesUtils.promiseDBConnection();
@@ -1249,10 +1262,11 @@ export var PlacesDBUtils = {
    * Gets detailed statistics about database entities and their respective row
    * counts.
    *
-   * @returns {Array} An array that augments each object returned by
-   *          {@link getEntitiesStats} with the following extra properties:
-   *            - entity: name of the entity
-   *            - count: row count of the entity
+   * @returns {Promise<Array<{entity: string, count: number}>>}
+   *   An array that augments each object returned by {@link getEntitiesStats}
+   *   with the following extra properties:
+   *   - entity: name of the entity
+   *   - count: row count of the entity
    */
   async getEntitiesStatsAndCounts() {
     let stats = await PlacesDBUtils.getEntitiesStats();
@@ -1281,14 +1295,15 @@ export var PlacesDBUtils = {
   /**
    * Runs a list of tasks, returning a Map when done.
    *
-   * @param tasks
-   *        Array of tasks to be executed, in form of pointers to methods in
-   *        this module.
-   * @returns {Promise}
-   *        A promise that resolves with a Map[taskName(String) -> Object].
-   *        The Object has the following properties:
-   *         - succeeded: boolean
-   *         - logs: an array of strings containing the messages logged by the task
+   * @param {Array<Function>} tasks
+   *   An array of tasks to be executed, in the form of pointers to methods in
+   *   this module.
+   *
+   * @returns {Promise<Map<string, {succeeded: boolean, logs: Array<string>}>>}
+   *   A promise that resolves with a Map. The key is the taskname (a string)
+   *   and the value is an object with the following properties:
+   *   - succeeded: Whether the task succeeded.
+   *   - logs: An array of strings containing the messages logged by the task.
    */
   async runTasks(tasks) {
     if (!this._registeredShutdownObserver) {
@@ -1327,12 +1342,14 @@ export var PlacesDBUtils = {
 
 async function integrity(dbName) {
   async function check(db) {
+    /** @type {mozIStorageRow?} */
     let row;
     await db.execute("PRAGMA integrity_check", null, (r, cancel) => {
       row = r;
       cancel();
     });
-    return row.getResultByIndex(0) === "ok";
+    // @ts-ignore - nsIVariant has no overlap with other Javascript types
+    return row?.getResultByIndex(0) === "ok";
   }
 
   // Create a new connection for this check, so we can operate independently
@@ -1352,7 +1369,7 @@ async function integrity(dbName) {
     try {
       await db.execute("REINDEX");
     } catch (ex) {
-      throw new Components.Exception(
+      throw Components.Exception(
         "Impossible to reindex database",
         Cr.NS_ERROR_FILE_CORRUPTED
       );
@@ -1360,7 +1377,7 @@ async function integrity(dbName) {
 
     // Check again.
     if (!(await check(db))) {
-      throw new Components.Exception(
+      throw Components.Exception(
         "The database is still corrupt",
         Cr.NS_ERROR_FILE_CORRUPTED
       );
@@ -1381,7 +1398,7 @@ PlacesDBUtilsIdleMaintenance.prototype = {
           "places.database.lastMaintenance",
           0
         );
-        let nowSeconds = parseInt(Date.now() / 1000);
+        let nowSeconds = Math.floor(Date.now() / 1000);
         if (lastMaintenance < nowSeconds - MAINTENANCE_INTERVAL_SECONDS) {
           PlacesDBUtils.maintenanceOnIdle();
         }
