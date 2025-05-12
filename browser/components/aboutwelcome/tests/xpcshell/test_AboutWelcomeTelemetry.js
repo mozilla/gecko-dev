@@ -21,6 +21,9 @@ add_setup(function setup() {
 });
 
 add_task(function test_enabled() {
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref(TELEMETRY_PREF);
+  });
   Services.prefs.setBoolPref(TELEMETRY_PREF, true);
 
   const AWTelemetry = new AboutWelcomeTelemetry();
@@ -30,24 +33,24 @@ add_task(function test_enabled() {
   Services.prefs.setBoolPref(TELEMETRY_PREF, false);
 
   equal(AWTelemetry.telemetryEnabled, false, "Telemetry should be off");
-
-  Services.prefs.clearUserPref(TELEMETRY_PREF);
 });
 
 add_task(async function test_pingPayload() {
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref(TELEMETRY_PREF);
+  });
   Services.prefs.setBoolPref(TELEMETRY_PREF, true);
-
   const AWTelemetry = new AboutWelcomeTelemetry();
   sinon.stub(AWTelemetry, "_createPing").resolves({ event: "MOCHITEST" });
 
-  await GleanPings.messagingSystem.testSubmission(
-    () => {
-      Assert.equal(Glean.messagingSystem.event.testGetValue(), "MOCHITEST");
-    },
-    () => AWTelemetry.sendTelemetry()
-  );
+  let pingSubmitted = false;
+  GleanPings.messagingSystem.testBeforeNextSubmit(() => {
+    pingSubmitted = true;
+    Assert.equal(Glean.messagingSystem.event.testGetValue(), "MOCHITEST");
+  });
+  await AWTelemetry.sendTelemetry();
 
-  Services.prefs.clearUserPref(TELEMETRY_PREF);
+  ok(pingSubmitted, "Glean ping was submitted");
 });
 
 add_task(function test_mayAttachAttribution() {

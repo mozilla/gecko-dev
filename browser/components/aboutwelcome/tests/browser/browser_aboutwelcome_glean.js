@@ -61,18 +61,15 @@ const TEST_DEFAULT_CONTENT = [
 
 const TEST_DEFAULT_JSON = JSON.stringify(TEST_DEFAULT_CONTENT);
 
-add_setup(async () => {
+add_task(async function test_welcome_telemetry() {
   // Have to turn on AS telemetry for anything to be recorded.
   await SpecialPowers.pushPrefEnv({
     set: [["browser.newtabpage.activity-stream.telemetry", true]],
   });
-
   registerCleanupFunction(async () => {
     await SpecialPowers.popPrefEnv();
   });
-});
 
-add_task(async function test_welcome_telemetry() {
   Services.fog.testResetFOG();
   // Let's check that there is nothing in the impression event.
   // This is useful in mochitests because glean inits fairly late in startup.
@@ -80,67 +77,71 @@ add_task(async function test_welcome_telemetry() {
   // when we call testGetValue() we get predictable behavior.
   Assert.equal(undefined, Glean.messagingSystem.messageId.testGetValue());
 
-  // We put the asserts inside the testSubmission callback because metric
-  // lifetimes are 'ping' and are cleared after submission.
+  // Setup testBeforeNextSubmit. We do this first, progress onboarding, submit
+  // and then check submission. We put the asserts inside testBeforeNextSubmit
+  // because metric lifetimes are 'ping' and are cleared after submission.
   // See: https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/instrumentation_tests.html#xpcshell-tests
-  let browser;
-  await GleanPings.messagingSystem.testSubmission(
-    () => {
+  let pingSubmitted = false;
+  GleanPings.messagingSystem.testBeforeNextSubmit(() => {
+    pingSubmitted = true;
+
+    const message = Glean.messagingSystem.messageId.testGetValue();
+    // Because of the asynchronous nature of receiving messages, we cannot
+    // guarantee that we will get the same message first. Instead we check
+    // that the one we get is a valid example of that type.
+    Assert.ok(
+      message.startsWith("MR_WELCOME_DEFAULT"),
+      "Ping is of an expected type"
+    );
+    Assert.equal(
+      Glean.messagingSystem.unknownKeyCount.testGetValue(),
+      undefined
+    );
+  });
+
+  let browser = await openAboutWelcome(TEST_DEFAULT_JSON);
+  // `openAboutWelcome` isn't synchronous wrt the onboarding flow impressing.
+  await TestUtils.waitForCondition(
+    () => pingSubmitted,
+    "Ping was submitted, callback was called."
+  );
+
+  // Let's reset and assert some values in the next button click.
+  pingSubmitted = false;
+  GleanPings.messagingSystem.testBeforeNextSubmit(() => {
+    pingSubmitted = true;
+
+    // Sometimes the impression for MR_WELCOME_DEFAULT_0_AW_STEP1_SS reaches
+    // the parent process before the button click does.
+    // See https://bugzilla.mozilla.org/show_bug.cgi?id=1834620
+    if (Glean.messagingSystem.event.testGetValue() === "IMPRESSION") {
+      Assert.equal(
+        Glean.messagingSystem.eventPage.testGetValue(),
+        "about:welcome"
+      );
       const message = Glean.messagingSystem.messageId.testGetValue();
-      // Because of the asynchronous nature of receiving messages, we cannot
-      // guarantee that we will get the same message first. Instead we check
-      // that the one we get is a valid example of that type.
       Assert.ok(
         message.startsWith("MR_WELCOME_DEFAULT"),
         "Ping is of an expected type"
       );
+    } else {
+      // This is the common and, to my mind, correct case:
+      // the click coming before the next steps' impression.
+      Assert.equal(Glean.messagingSystem.event.testGetValue(), "CLICK_BUTTON");
       Assert.equal(
-        Glean.messagingSystem.unknownKeyCount.testGetValue(),
-        undefined
+        Glean.messagingSystem.eventSource.testGetValue(),
+        "primary_button"
       );
-    },
-    async () => {
-      // `openAboutWelcome` isn't synchronous wrt the onboarding flow impressing.
-      browser = await openAboutWelcome(TEST_DEFAULT_JSON);
+      Assert.equal(
+        Glean.messagingSystem.messageId.testGetValue(),
+        "MR_WELCOME_DEFAULT_0_AW_STEP1"
+      );
     }
-  );
-
-  await GleanPings.messagingSystem.testSubmission(
-    () => {
-      // Sometimes the impression for MR_WELCOME_DEFAULT_0_AW_STEP1_SS reaches
-      // the parent process before the button click does.
-      // See https://bugzilla.mozilla.org/show_bug.cgi?id=1834620
-      if (Glean.messagingSystem.event.testGetValue() === "IMPRESSION") {
-        Assert.equal(
-          Glean.messagingSystem.eventPage.testGetValue(),
-          "about:welcome"
-        );
-        const message = Glean.messagingSystem.messageId.testGetValue();
-        Assert.ok(
-          message.startsWith("MR_WELCOME_DEFAULT"),
-          "Ping is of an expected type"
-        );
-      } else {
-        // This is the common and, to my mind, correct case:
-        // the click coming before the next steps' impression.
-        Assert.equal(
-          Glean.messagingSystem.event.testGetValue(),
-          "CLICK_BUTTON"
-        );
-        Assert.equal(
-          Glean.messagingSystem.eventSource.testGetValue(),
-          "primary_button"
-        );
-        Assert.equal(
-          Glean.messagingSystem.messageId.testGetValue(),
-          "MR_WELCOME_DEFAULT_0_AW_STEP1"
-        );
-      }
-      Assert.equal(
-        Glean.messagingSystem.unknownKeyCount.testGetValue(),
-        undefined
-      );
-    },
-    () => onButtonClick(browser, "button.primary")
-  );
+    Assert.equal(
+      Glean.messagingSystem.unknownKeyCount.testGetValue(),
+      undefined
+    );
+  });
+  await onButtonClick(browser, "button.primary");
+  Assert.ok(pingSubmitted, "Ping was submitted, callback was called.");
 });
