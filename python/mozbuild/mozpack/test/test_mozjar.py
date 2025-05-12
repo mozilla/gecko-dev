@@ -5,9 +5,9 @@
 import os
 import unittest
 from collections import OrderedDict
+from io import StringIO
 
 import mozunit
-import six
 
 import mozpack.path as mozpath
 from mozpack.files import FileFinder
@@ -303,7 +303,7 @@ class TestPreload(unittest.TestCase):
 
 class TestJarLog(unittest.TestCase):
     def test_jarlog(self):
-        s = six.moves.cStringIO(
+        s = StringIO(
             "\n".join(
                 [
                     "bar/baz.jar first",

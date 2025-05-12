@@ -2,14 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import functools
 import os
 import struct
 import zlib
 from collections import OrderedDict
 from io import BytesIO, UnsupportedOperation
 from zipfile import ZIP_DEFLATED, ZIP_STORED
-
-import six
 
 import mozpack.path as mozpath
 from mozbuild.util import ensure_bytes
@@ -287,7 +286,7 @@ class JarFileReader:
         # Copy some local file header fields.
         for name in ["compressed_size", "uncompressed_size", "crc32"]:
             setattr(self, name, header[name])
-        self.filename = six.ensure_text(header["filename"])
+        self.filename = header["filename"].decode()
         self.compressed = header["compression"] != JAR_STORED
         self.compress = header["compression"]
 
@@ -431,9 +430,9 @@ class JarReader:
             # Skip directories
             if (host == 0 and xattr & 0x10) or (host == 3 and xattr & (0o040000 << 16)):
                 continue
-            entries[six.ensure_text(entry["filename"])] = entry
+            entries[entry["filename"].decode()] = entry
             if entry["offset"] < preload:
-                self._last_preloaded = six.ensure_text(entry["filename"])
+                self._last_preloaded = entry["filename"].decode()
         self._entries = entries
         return entries
 
@@ -582,14 +581,14 @@ class JarWriter:
                     header[name] = entry[name]
             entry["offset"] = offset
             offset += len(content) + header.size
-            if six.ensure_text(entry["filename"]) == self._last_preloaded:
+            if entry["filename"].decode() == self._last_preloaded:
                 preload_size = offset
             headers[entry] = header
         # Prepare end of central directory
         end = JarCdirEnd()
         end["disk_entries"] = len(self._contents)
         end["cdir_entries"] = end["disk_entries"]
-        end["cdir_size"] = six.moves.reduce(
+        end["cdir_size"] = functools.reduce(
             lambda x, y: x + y[0].size, self._contents.values(), 0
         )
         # On optimized archives, store the preloaded size and the central
@@ -639,7 +638,9 @@ class JarWriter:
         JarFileReader instance. The latter two allow to avoid uncompressing
         data to recompress it.
         """
-        name = mozpath.normsep(six.ensure_text(name))
+        if isinstance(name, bytes):
+            name = name.decode()
+        name = mozpath.normsep(name)
 
         if name in self._contents and not skip_duplicates:
             raise JarWriterError("File %s already in JarWriter" % name)
@@ -690,7 +691,7 @@ class JarWriter:
         entry["crc32"] = deflater.crc32
         entry["compressed_size"] = deflater.compressed_size
         entry["uncompressed_size"] = deflater.uncompressed_size
-        entry["filename"] = six.ensure_binary(name)
+        entry["filename"] = name.encode()
         self._contents[name] = entry, deflater.compressed_data
 
     def preload(self, files):
@@ -743,7 +744,8 @@ class Deflater:
         """
         if isinstance(data, memoryview):
             data = data.tobytes()
-        data = six.ensure_binary(data)
+        if isinstance(data, str):
+            data = data.encode()
         self._data.write(data)
 
         if self.compress:

@@ -13,12 +13,11 @@ import stat
 import subprocess
 import uuid
 from collections import OrderedDict
-from io import BytesIO
+from io import BytesIO, StringIO
 from itertools import chain, takewhile
 from tarfile import TarFile, TarInfo
 from tempfile import NamedTemporaryFile, mkstemp
 
-import six
 from jsmin import JavascriptMinify
 
 import mozbuild.makeutil as makeutil
@@ -60,7 +59,7 @@ else:
 # Helper function; ensures we always open files with the correct encoding when
 # opening them in text mode.
 def _open(path, mode="r"):
-    if six.PY3 and "b" not in mode:
+    if "b" not in mode:
         return open(path, mode, encoding="utf-8")
     return open(path, mode)
 
@@ -92,8 +91,9 @@ class Dest:
         if self.mode != "w":
             self.file = _open(self.path, mode="wb")
             self.mode = "w"
-        to_write = six.ensure_binary(data)
-        return self.file.write(to_write)
+        if isinstance(data, str):
+            data = data.encode()
+        return self.file.write(data)
 
     def exists(self):
         return os.path.exists(self.path)
@@ -213,7 +213,7 @@ class BaseFile:
                 break
             # If the read content differs between origin and destination,
             # write what was read up to now, and copy the remainder.
-            if six.ensure_binary(dest_content) != six.ensure_binary(src_content):
+            if dest_content != src_content:
                 dest.write(b"".join(accumulated_src_content))
                 shutil.copyfileobj(src, dest)
                 break
@@ -606,7 +606,9 @@ class GeneratedFile(BaseFile):
     def content(self):
         if inspect.isfunction(self._content):
             self._content = self._content()
-        return six.ensure_binary(self._content)
+        if isinstance(self._content, str):
+            return self._content.encode()
+        return self._content
 
     @content.setter
     def content(self, content):
@@ -715,7 +717,7 @@ class ManifestFile(BaseFile):
             "%s\n" % e.rebase(self._base)
             for e in chain(self._entries, self._interfaces)
         )
-        return BytesIO(six.ensure_binary(content))
+        return BytesIO(content.encode())
 
     def __iter__(self):
         """
@@ -747,10 +749,10 @@ class MinifiedCommentStripped(BaseFile):
         """
         content = "".join(
             l
-            for l in [six.ensure_text(s) for s in self._file.open().readlines()]
+            for l in [s.decode() for s in self._file.open().readlines()]
             if not l.startswith("#")
         )
-        return BytesIO(six.ensure_binary(content))
+        return BytesIO(content.encode())
 
 
 class MinifiedJavaScript(BaseFile):
@@ -764,13 +766,13 @@ class MinifiedJavaScript(BaseFile):
         self._verify_command = verify_command
 
     def open(self):
-        output = six.StringIO()
+        output = StringIO()
         minify = JavascriptMinify(
             codecs.getreader("utf-8")(self._file.open()), output, quote_chars="'\"`"
         )
         minify.minify()
         output.seek(0)
-        output_source = six.ensure_binary(output.getvalue())
+        output_source = output.getvalue().encode()
         output = BytesIO(output_source)
 
         if not self._verify_command:
@@ -1135,12 +1137,10 @@ class MercurialFile(BaseFile):
     """File class for holding data from Mercurial."""
 
     def __init__(self, client, rev, path):
-        self._content = client.cat(
-            [six.ensure_binary(path)], rev=six.ensure_binary(rev)
-        )
+        self._content = client.cat([path.encode()], rev=rev.encode())
 
     def open(self):
-        return BytesIO(six.ensure_binary(self._content))
+        return BytesIO(self._content)
 
     def read(self):
         return self._content
@@ -1188,13 +1188,13 @@ class MercurialRevisionFinder(BaseFinder):
             [
                 b"files",
                 b"--rev",
-                six.ensure_binary(self._rev),
+                self._rev.encode(),
             ]
         )
         for relpath in out.splitlines():
             # Mercurial may use \ as path separator on Windows. So use
             # normpath().
-            self._files[six.ensure_text(mozpath.normpath(relpath))] = None
+            self._files[mozpath.normpath(relpath).decode()] = None
 
     def _find(self, pattern):
         if self._recognize_repo_paths:

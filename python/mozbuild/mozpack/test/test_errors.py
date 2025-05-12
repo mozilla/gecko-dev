@@ -4,16 +4,16 @@
 
 import sys
 import unittest
+from io import StringIO
 
 import mozunit
-import six
 
 from mozpack.errors import AccumulatedErrors, ErrorMessage, errors
 
 
 class TestErrors:
     def setUp(self):
-        errors.out = six.moves.cStringIO()
+        errors.out = StringIO()
         errors.ignore_errors(False)
 
     def tearDown(self):

@@ -5,8 +5,6 @@
 import json
 from contextlib import contextmanager
 
-import six
-
 import mozpack.path as mozpath
 
 from .files import (
@@ -181,9 +179,12 @@ class InstallManifest:
             if record_type == self.CONTENT:
                 dest, content = fields[1:]
 
-                self.add_content(
-                    six.ensure_text(self._decode_field_entry(content)), dest
-                )
+                deserialized_content = self._decode_field_entry(content)
+                if not isinstance(deserialized_content, str):
+                    raise TypeError(
+                        "not expecting type '%s'" % type(deserialized_content)
+                    )
+                self.add_content(deserialized_content, dest)
                 continue
 
             # Don't fail for non-actionable items, allowing
@@ -252,19 +253,11 @@ class InstallManifest:
                     for path in paths:
                         source = mozpath.join(base, path)
                         parts = ["%d" % type, mozpath.join(dest, path), source]
-                        fh.write(
-                            "%s\n"
-                            % self.FIELD_SEPARATOR.join(
-                                six.ensure_text(p) for p in parts
-                            )
-                        )
+                        fh.write("%s\n" % self.FIELD_SEPARATOR.join(parts))
                 else:
                     parts = ["%d" % entry[0], dest]
                     parts.extend(entry[1:])
-                    fh.write(
-                        "%s\n"
-                        % self.FIELD_SEPARATOR.join(six.ensure_text(p) for p in parts)
-                    )
+                    fh.write("%s\n" % self.FIELD_SEPARATOR.join(parts))
 
     def add_link(self, source, dest):
         """Add a link to this manifest.

@@ -6,7 +6,6 @@ import unittest
 from itertools import chain
 
 import mozunit
-import six
 
 import mozpack.path as mozpath
 from mozpack.chrome.manifest import (
@@ -303,7 +302,7 @@ def get_contents(registry, read_all=False, mode="rt"):
             if "b" in mode:
                 result[k] = v.open().read()
             else:
-                result[k] = six.ensure_text(v.open().read()).splitlines()
+                result[k] = v.open().read().decode().splitlines()
         else:
             result[k] = v
     return result
