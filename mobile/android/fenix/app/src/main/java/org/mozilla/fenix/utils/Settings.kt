@@ -2460,8 +2460,9 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates whether or not to show the checklist feature.
      */
-    var showSetupChecklist by booleanPreference(
+    var showSetupChecklist by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_setup_checklist_complete),
-        default = FxNimbus.features.setupChecklist.value().enabled,
+        default = { FxNimbus.features.setupChecklist.value().enabled },
+        featureFlag = true,
     )
 }
