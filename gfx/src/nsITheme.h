@@ -229,9 +229,6 @@ class nsITheme : public nsISupports {
    */
   virtual bool ThemeDrawsFocusForWidget(nsIFrame*, StyleAppearance) = 0;
 
-  // Whether we want an inner focus ring for buttons and menulists.
-  virtual bool ThemeWantsButtonInnerFocusRing() { return false; }
-
   /**
    * Should we insert a dropmarker inside of combobox button?
    */

@@ -583,17 +583,6 @@ input:is([type=reset], [type=button], [type=submit], [type=color]):active:hover 
   background-color: -moz-buttonactiveface;
 }
 
-::-moz-focus-inner {
-  /* Note this padding only affects the -moz-focus-inner ring, not the button itself */
-  padding-block: 0;
-  padding-inline: 2px;
-  border: 1px dotted transparent;
-}
-
-:focus-visible::-moz-focus-inner {
-  border-color: currentColor;
-}
-
 :is(:disabled, :disabled:active)::file-selector-button,
 button:is(:disabled, :disabled:active),
 input:is([type=reset], [type=button], [type=submit], [type=color]):is(:disabled, :disabled:active),
