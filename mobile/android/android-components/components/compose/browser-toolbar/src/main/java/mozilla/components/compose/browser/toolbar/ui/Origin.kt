@@ -47,11 +47,14 @@ import mozilla.components.compose.base.text.TruncationDirection.END
 import mozilla.components.compose.base.text.TruncationDirection.START
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.R
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.ContextualMenuOption
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TextGravity
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TextGravity.TEXT_GRAVITY_END
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TextGravity.TEXT_GRAVITY_START
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
+import mozilla.components.compose.browser.toolbar.utils.PageOriginContextualMenuBuilder
+import mozilla.components.support.utils.ClipboardHandler
 
 private const val URL_TEXT_SIZE_ALONE = 15
 private const val URL_TEXT_SIZE_WITH_TITLE = 12
@@ -78,14 +81,19 @@ internal fun Origin(
     url: String? = null,
     title: String? = null,
     textGravity: TextGravity = TEXT_GRAVITY_START,
+    contextualMenuOptions: List<ContextualMenuOption> = emptyList(),
     onClick: BrowserToolbarEvent,
-    onLongClick: BrowserToolbarInteraction?,
+    onLongClick: BrowserToolbarEvent?,
     onInteraction: (BrowserToolbarEvent) -> Unit,
 ) {
     val view = LocalView.current
     val haptic = LocalHapticFeedback.current
-    val shouldReactToLongClicks = remember(onLongClick) { onLongClick != null }
+    val shouldReactToLongClicks = remember(onLongClick, contextualMenuOptions) {
+        onLongClick != null || contextualMenuOptions.isNotEmpty()
+    }
     var showMenu by remember { mutableStateOf(false) }
+    val clipboardHandler = remember(view) { ClipboardHandler(view.context) }
+
     val shouldShowTitle = remember(title) { title != null && title.isNotBlank() }
     val urlTextSize = remember(shouldShowTitle) {
         when (shouldShowTitle) {
@@ -125,6 +133,7 @@ internal fun Origin(
                         onLongClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             showMenu = true
+                            onLongClick?.let { onInteraction(it) }
                         },
                     ),
                 ) { shouldReactToLongClicks },
@@ -137,7 +146,9 @@ internal fun Origin(
                 Url(urlToShow, urlTextSize, textGravity)
             }
 
-            LongPressMenu(showMenu, onLongClick, onInteraction) { showMenu = false }
+            LongPressMenu(showMenu, contextualMenuOptions, clipboardHandler, onInteraction) {
+                showMenu = false
+            }
         }
     }
 }
@@ -177,15 +188,11 @@ private fun Url(
     )
 }
 
-private fun TextGravity.toTextTruncationDirection() = when (this) {
-    TEXT_GRAVITY_START -> END
-    TEXT_GRAVITY_END -> START
-}
-
 @Composable
 private fun LongPressMenu(
     isVisible: Boolean,
-    onLongClick: BrowserToolbarInteraction?,
+    contextualMenuOptions: List<ContextualMenuOption>,
+    clipboard: ClipboardHandler,
     onInteraction: (BrowserToolbarEvent) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -195,17 +202,24 @@ private fun LongPressMenu(
         horizontalAlignment = Start,
         verticalAlignment = Bottom,
     ) {
-        onLongClick?.let {
-            CustomPlacementPopupHorizontalContent {
-                items(it.toMenuItems()) { menuItem ->
-                    menuItemComposable(menuItem) { event ->
-                        onDismiss()
-                        onInteraction(event)
-                    }.invoke()
-                }
+        val menuItems = PageOriginContextualMenuBuilder.buildMenuOptions(
+            clipboard = clipboard,
+            allowedMenuOptions = contextualMenuOptions,
+        )
+        CustomPlacementPopupHorizontalContent {
+            items(menuItems) { menuItem ->
+                menuItemComposable(menuItem) { event ->
+                    onDismiss()
+                    onInteraction(event)
+                }.invoke()
             }
         }
     }
+}
+
+private fun TextGravity.toTextTruncationDirection() = when (this) {
+    TEXT_GRAVITY_START -> END
+    TEXT_GRAVITY_END -> START
 }
 
 /**

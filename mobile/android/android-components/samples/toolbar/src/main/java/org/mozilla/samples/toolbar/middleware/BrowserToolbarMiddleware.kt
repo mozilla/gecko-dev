@@ -17,6 +17,8 @@ import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.ContextualMenuOption
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.PageOriginContextualMenuInteractions
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.UpdateProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
@@ -34,9 +36,8 @@ import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import org.mozilla.samples.toolbar.R
 import org.mozilla.samples.toolbar.middleware.PageActionsEndInteractions.RefreshClicked
-import org.mozilla.samples.toolbar.middleware.PageOriginInteractions.CopyOptionClicked
 import org.mozilla.samples.toolbar.middleware.PageOriginInteractions.PageOriginClicked
-import org.mozilla.samples.toolbar.middleware.PageOriginInteractions.PasteOptionClicked
+import org.mozilla.samples.toolbar.middleware.PageOriginInteractions.PageOriginLongClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.BookmarksClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.HistoryClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.SettingsClicked
@@ -65,8 +66,7 @@ private sealed class StartPageInteractions : BrowserToolbarEvent {
 
 private sealed class PageOriginInteractions : BrowserToolbarEvent {
     data object PageOriginClicked : PageOriginInteractions()
-    data object CopyOptionClicked : PageOriginInteractions()
-    data object PasteOptionClicked : PageOriginInteractions()
+    data object PageOriginLongClicked : PageOriginInteractions()
 }
 
 private sealed class PageActionsEndInteractions : BrowserToolbarEvent {
@@ -128,6 +128,7 @@ internal class BrowserToolbarMiddleware(
             is StartPageInteractions,
             is PageOriginInteractions,
             is PageActionsEndInteractions,
+            is PageOriginContextualMenuInteractions,
             -> Toast.makeText(dependencies.context, action.javaClass.simpleName, Toast.LENGTH_SHORT).show()
 
             is TabCounterClicked -> {
@@ -212,23 +213,9 @@ internal class BrowserToolbarMiddleware(
         hint = R.string.toolbar_search_hint,
         title = null,
         url = null,
+        contextualMenuOptions = ContextualMenuOption.entries,
         onClick = PageOriginClicked,
-        onLongClick = BrowserToolbarMenu {
-            listOf(
-                BrowserToolbarMenuButton(
-                    iconResource = null,
-                    text = R.string.copy_url_button,
-                    contentDescription = R.string.copy_url_button_description,
-                    onClick = CopyOptionClicked,
-                ),
-                BrowserToolbarMenuButton(
-                    iconResource = null,
-                    text = R.string.paste_url_button,
-                    contentDescription = R.string.paste_url_button_description,
-                    onClick = PasteOptionClicked,
-                ),
-            )
-        },
+        onLongClick = PageOriginLongClicked,
     )
 
     private fun buildPageActionsEnd() = listOf(

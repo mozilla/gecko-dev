@@ -154,6 +154,11 @@ sealed class AppAction : Action {
     ) : AppAction()
 
     /**
+     * Action dispatched when an URL has been copied to the clipboard.
+     */
+    data object URLCopiedToClipboard : AppAction()
+
+    /**
      * Action dispatched when open in firefox action is selected from custom tab.
      */
     data object OpenInFirefoxStarted : AppAction()

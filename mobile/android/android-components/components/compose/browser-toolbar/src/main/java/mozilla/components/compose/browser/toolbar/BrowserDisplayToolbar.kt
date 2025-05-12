@@ -84,6 +84,7 @@ fun BrowserDisplayToolbar(
             Row(
                 modifier = Modifier
                     .padding(vertical = 8.dp)
+                    .height(40.dp)
                     .background(
                         color = colors.urlBackground,
                         shape = ROUNDED_CORNER_SHAPE,
@@ -106,6 +107,7 @@ fun BrowserDisplayToolbar(
                     url = pageOrigin.url,
                     title = pageOrigin.title,
                     textGravity = pageOrigin.textGravity,
+                    contextualMenuOptions = pageOrigin.contextualMenuOptions,
                     onClick = pageOrigin.onClick,
                     onLongClick = pageOrigin.onLongClick,
                     onInteraction = onInteraction,

@@ -183,6 +183,7 @@ class BrowserToolbarComposable(
                     browserScreenStore = browserScreenStore,
                     browserStore = browserStore,
                     tabsUseCases = tabsUseCases,
+                    clipboard = context.components.clipboardHandler,
                     settings = settings,
                 ),
             ).get(BrowserToolbarMiddleware::class.java).also {
@@ -193,6 +194,7 @@ class BrowserToolbarComposable(
                         navController = navController,
                         browsingModeManager = browsingModeManager,
                         thumbnailsFeature = thumbnailsFeature,
+                        useCases = context.components.useCases,
                     ),
                 )
             } as T

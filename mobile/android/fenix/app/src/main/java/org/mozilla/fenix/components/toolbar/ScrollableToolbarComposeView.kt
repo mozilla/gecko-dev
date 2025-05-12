@@ -9,6 +9,7 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.AbstractComposeView
 import mozilla.components.concept.toolbar.ScrollableToolbar
+import org.mozilla.fenix.R
 
 /**
  * A composable View that also implements the [ScrollableToolbar] interface.
@@ -23,6 +24,10 @@ class ScrollableToolbarComposeView(
     private val scrollableToolbarDelegate: ScrollableToolbar,
     private val content: @Composable () -> Unit = {},
 ) : ScrollableToolbar, AbstractComposeView(context) {
+    init {
+        id = R.id.composable_toolbar
+    }
+
     override fun enableScrolling() = scrollableToolbarDelegate.enableScrolling()
 
     override fun disableScrolling() = scrollableToolbarDelegate.disableScrolling()

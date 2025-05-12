@@ -80,6 +80,8 @@ internal class HomeToolbarComposable(
     }
 
     override val layout = ComposeView(context).apply {
+        id = R.id.composable_toolbar
+
         setContent {
             val shouldShowDivider by remember { mutableStateOf(showDivider) }
             val shouldShowTabStrip: Boolean = remember { context.isTabStripEnabled() }
@@ -167,7 +169,11 @@ internal class HomeToolbarComposable(
         BrowserToolbarMiddleware::class.java ->
             ViewModelProvider(
                 lifecycleOwner,
-                BrowserToolbarMiddleware.viewModelFactory(appStore, browserStore),
+                BrowserToolbarMiddleware.viewModelFactory(
+                    appStore = appStore,
+                    browserStore = browserStore,
+                    clipboard = context.components.clipboardHandler,
+                ),
             ).get(BrowserToolbarMiddleware::class.java).also {
                 it.updateLifecycleDependencies(
                     LifecycleDependencies(
@@ -175,6 +181,7 @@ internal class HomeToolbarComposable(
                         lifecycleOwner = lifecycleOwner,
                         navController = navController,
                         browsingModeManager = browsingModeManager,
+                        useCases = context.components.useCases,
                     ),
                 )
             } as T

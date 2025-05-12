@@ -21,7 +21,13 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.ContextualMenuOption.LoadFromClipboard
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.ContextualMenuOption.PasteFromClipboard
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.PageOriginContextualMenuInteractions.LoadFromClipboardClicked
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.PageOriginContextualMenuInteractions.PasteFromClipboardClicked
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsEndUpdated
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageOriginUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.Init
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
@@ -32,6 +38,8 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.ext.flow
+import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.utils.ClipboardHandler
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserAnimator
@@ -40,10 +48,12 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Normal
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Private
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.UseCases
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.home.HomeFragmentDirections
 import org.mozilla.fenix.home.toolbar.DisplayActions.MenuClicked
+import org.mozilla.fenix.home.toolbar.PageOriginInteractions.OriginClicked
 import org.mozilla.fenix.home.toolbar.TabCounterInteractions.AddNewPrivateTab
 import org.mozilla.fenix.home.toolbar.TabCounterInteractions.AddNewTab
 import org.mozilla.fenix.home.toolbar.TabCounterInteractions.TabCounterClicked
@@ -62,6 +72,10 @@ internal sealed class TabCounterInteractions : BrowserToolbarEvent {
     data object AddNewPrivateTab : TabCounterInteractions()
 }
 
+internal sealed class PageOriginInteractions : BrowserToolbarEvent {
+    data object OriginClicked : PageOriginInteractions()
+}
+
 /**
  * [Middleware] responsible for configuring and handling interactions with the composable toolbar.
  *
@@ -69,10 +83,12 @@ internal sealed class TabCounterInteractions : BrowserToolbarEvent {
  *
  * @param appStore [AppStore] to sync from.
  * @param browserStore [BrowserStore] to sync from.
+ * @param clipboard [ClipboardHandler] to use for reading from device's clipboard.
  */
 class BrowserToolbarMiddleware(
     private val appStore: AppStore,
     private val browserStore: BrowserStore,
+    private val clipboard: ClipboardHandler,
 ) : Middleware<BrowserToolbarState, BrowserToolbarAction>, ViewModel() {
     private lateinit var dependencies: LifecycleDependencies
     private var store: BrowserToolbarStore? = null
@@ -98,6 +114,7 @@ class BrowserToolbarMiddleware(
             is Init -> {
                 store = context.store as BrowserToolbarStore
                 updateEndBrowserActions()
+                updatePageOrigin()
             }
 
             is MenuClicked -> {
@@ -127,15 +144,40 @@ class BrowserToolbarMiddleware(
                 openNewTab(Private)
             }
 
+            is OriginClicked -> {
+                openNewTab()
+            }
+            is PasteFromClipboardClicked -> {
+                openNewTab(searchTerms = clipboard.text)
+            }
+            is LoadFromClipboardClicked -> {
+                clipboard.extractURL()?.let {
+                    dependencies.useCases.fenixBrowserUseCases.loadUrlOrSearch(
+                        searchTermOrURL = it,
+                        newTab = true,
+                        private = dependencies.browsingModeManager.mode == Private,
+                    )
+                    dependencies.navController.navigate(R.id.browserFragment)
+                } ?: run {
+                    Logger("HomeOriginContextMenu").error("Clipboard contains URL but unable to read text")
+                }
+            }
+
             else -> next(action)
         }
     }
 
-    private fun openNewTab(browsingMode: BrowsingMode) {
-        dependencies.browsingModeManager.mode = browsingMode
+    private fun openNewTab(
+        browsingMode: BrowsingMode? = null,
+        searchTerms: String? = null,
+    ) {
+        browsingMode?.let { dependencies.browsingModeManager.mode = it }
         dependencies.navController.nav(
             R.id.homeFragment,
-            NavGraphDirections.actionGlobalSearchDialog(sessionId = null),
+            NavGraphDirections.actionGlobalSearchDialog(
+                sessionId = null,
+                pastedText = searchTerms,
+            ),
             BrowserAnimator.getToolbarNavOptions(dependencies.context),
         )
     }
@@ -143,6 +185,20 @@ class BrowserToolbarMiddleware(
     private fun getCurrentNumberOfOpenedTabs() = when (dependencies.browsingModeManager.mode) {
         Normal -> browserStore.state.normalTabs.size
         Private -> browserStore.state.privateTabs.size
+    }
+
+    private fun updatePageOrigin() {
+        store?.dispatch(
+            PageOriginUpdated(
+                PageOrigin(
+                    hint = R.string.search_hint,
+                    title = null,
+                    url = null,
+                    contextualMenuOptions = listOf(PasteFromClipboard, LoadFromClipboard),
+                    onClick = OriginClicked,
+                ),
+            ),
+        )
     }
 
     private fun updateEndBrowserActions() = store?.dispatch(
@@ -227,12 +283,14 @@ class BrowserToolbarMiddleware(
      * @property lifecycleOwner [LifecycleOwner] depending on which lifecycle related operations will be scheduled.
      * @property navController [NavController] to use for navigating to other in-app destinations.
      * @property browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
+     * @property useCases [UseCases] helping this integrate with other features of the applications.
      */
     data class LifecycleDependencies(
         val context: Context,
         val lifecycleOwner: LifecycleOwner,
         val navController: NavController,
         val browsingModeManager: BrowsingModeManager,
+        val useCases: UseCases,
     )
 
     /**
@@ -244,15 +302,17 @@ class BrowserToolbarMiddleware(
          *
          * @param appStore [AppStore] to sync from.
          * @param browserStore [BrowserStore] to sync from.
+         * @param clipboard [ClipboardHandler] to use for reading from device's clipboard.
          */
         fun viewModelFactory(
             appStore: AppStore,
             browserStore: BrowserStore,
+            clipboard: ClipboardHandler,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 if (modelClass.isAssignableFrom(BrowserToolbarMiddleware::class.java)) {
-                    return BrowserToolbarMiddleware(appStore, browserStore) as T
+                    return BrowserToolbarMiddleware(appStore, browserStore, clipboard) as T
                 }
                 throw IllegalArgumentException("Unknown ViewModel class")
             }

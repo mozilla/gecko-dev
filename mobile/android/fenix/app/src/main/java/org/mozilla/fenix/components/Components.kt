@@ -25,6 +25,7 @@ import mozilla.components.support.remotesettings.DefaultRemoteSettingsSyncSchedu
 import mozilla.components.support.remotesettings.RemoteSettingsServer
 import mozilla.components.support.remotesettings.RemoteSettingsService
 import mozilla.components.support.remotesettings.into
+import mozilla.components.support.utils.ClipboardHandler
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.FeatureFlags
@@ -66,7 +67,6 @@ import org.mozilla.fenix.perf.StartupActivityLog
 import org.mozilla.fenix.perf.StartupStateProvider
 import org.mozilla.fenix.perf.StrictModeManager
 import org.mozilla.fenix.perf.lazyMonitored
-import mozilla.components.support.utils.ClipboardHandler
 import org.mozilla.fenix.utils.Settings
 import org.mozilla.fenix.utils.isLargeScreenSize
 import org.mozilla.fenix.wifi.WifiConnectionMonitor

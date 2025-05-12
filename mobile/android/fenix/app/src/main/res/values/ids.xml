@@ -4,4 +4,5 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <resources>
     <item name="toolbar_navbar_container" type="id"/>
+    <item name="composable_toolbar" type="id"/>
 </resources>

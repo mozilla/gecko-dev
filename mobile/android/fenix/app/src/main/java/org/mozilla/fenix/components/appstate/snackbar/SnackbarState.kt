@@ -104,6 +104,11 @@ sealed class SnackbarState {
     data object CopyLinkToClipboard : SnackbarState()
 
     /**
+     * Display a snackbar when an URL has been copied to the clipboard.
+     */
+    data object URLCopiedToClipboard : SnackbarState()
+
+    /**
      * Display a snackbar when the WebCompat report has been successfully submitted.
      */
     data object WebCompatReportSent : SnackbarState()

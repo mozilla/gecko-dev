@@ -89,6 +89,26 @@ class SnackbarBehaviorTest {
     }
 
     @Test
+    fun `GIVEN a bottom composable toolbar is shown WHEN the snackbar is shown THEN place the snackbar above the composable toolbar`() {
+        dependency.id = R.id.composable_toolbar
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+
+        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
+
+        assertSnackbarPlacementAboveAnchor()
+    }
+
+    @Test
+    fun `GIVEN a top composable toolbar is shown WHEN the snackbar is shown THEN place the snackbar at the bottom of the screen`() {
+        dependency.id = R.id.composable_toolbar
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
+
+        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
+
+        assertSnackbarIsPlacedAtTheBottomOfTheScreen()
+    }
+
+    @Test
     fun `GIVEN a toolbar and a dynamic download dialog are shown WHEN the snackbar is shown THEN place the snackbar above the dialog`() {
         listOf(R.id.viewDynamicDownloadDialog, R.id.toolbar).forEach {
             parent.addView(View(testContext).apply { id = it })
