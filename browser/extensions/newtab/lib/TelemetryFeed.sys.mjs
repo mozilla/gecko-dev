@@ -1414,18 +1414,14 @@ export class TelemetryFeed {
         }
         continue;
       }
-      // Only log a topsites.dismiss telemetry event if the action came from TopSites section
-      if (action.source === "TOP_SITES") {
-        const { position, advertiser_name, tile_id, isSponsoredTopSite } =
-          datum;
-        Glean.topsites.dismiss.record({
-          advertiser_name,
-          tile_id,
-          newtab_visit_id: session.session_id,
-          is_sponsored: !!isSponsoredTopSite,
-          position,
-        });
-      }
+      const { position, advertiser_name, tile_id, isSponsoredTopSite } = datum;
+      Glean.topsites.dismiss.record({
+        advertiser_name,
+        tile_id,
+        newtab_visit_id: session.session_id,
+        is_sponsored: !!isSponsoredTopSite,
+        position,
+      });
     }
   }
 
