@@ -20,20 +20,20 @@
 /* ::::: Alert icons :::::*/
 
 .message-icon {
-  list-style-image: url("moz-icon://stock/gtk-dialog-info?size=dialog");
+  list-style-image: url("moz-icon://stock/gtk-dialog-info?size=48");
 }
 
 .alert-dialog #infoIcon,
 .alert-icon {
-  list-style-image: url("moz-icon://stock/gtk-dialog-warning?size=dialog");
+  list-style-image: url("moz-icon://stock/gtk-dialog-warning?size=48");
 }
 
 .error-icon {
-  list-style-image: url("moz-icon://stock/gtk-dialog-error?size=dialog");
+  list-style-image: url("moz-icon://stock/gtk-dialog-error?size=48");
 }
 
 .question-icon {
-  list-style-image: url("moz-icon://stock/gtk-dialog-question?size=dialog");
+  list-style-image: url("moz-icon://stock/gtk-dialog-question?size=48");
 }
 
 .authentication-icon {

@@ -14,7 +14,7 @@ menuitem[appHandlerIcon="ask"] {
 
 richlistitem[appHandlerIcon="save"],
 menuitem[appHandlerIcon="save"] {
-  list-style-image: url("moz-icon://stock/gtk-save?size=menu");
+  list-style-image: url("moz-icon://stock/gtk-save?size=16");
 }
 
 richlistitem[appHandlerIcon="plugin"],

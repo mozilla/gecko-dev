@@ -64,12 +64,6 @@ interface nsIMozIconURI : nsIURI
   /// stockIcon: The stock icon name requested from the OS.
   readonly attribute ACString stockIcon;
 
-  /// iconSize: The stock icon size requested from the OS.
-  readonly attribute ACString iconSize;
-
-  /// iconState: The stock icon state requested from the OS.
-  readonly attribute ACString iconState;
-
   /// contentType: A valid mime type, or the empty string.
   readonly attribute ACString contentType;
 
