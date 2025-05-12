@@ -26,9 +26,9 @@ add_task(async function () {
   await altClickElement(dbg, "gutterElement", 7);
   await waitForBreakpoint(dbg, "script-switching-01.js", 7);
 
-  info("Add another log breakpoint with static arguments");
+  info("Add another log breakpoint with multiple arguments");
   await dbg.actions.addBreakpoint(createLocation({ line: 8, source }), {
-    logValue: "'a', 'b', 'c'",
+    logValue: "'a', 'b', 'c', firstCall",
   });
 
   invokeInTab("firstCall");
@@ -40,7 +40,7 @@ add_task(async function () {
 
   const { link, value } = await findConsoleMessage(dbg, "a b c");
   is(link, "script-switching-01.js:8:2", "logs should have the relevant link");
-  is(value, "a b c", "logs should have multiple values");
+  is(value, "a b c \nfunction firstCall()", "logs should have multiple values");
   await removeBreakpoint(dbg, source.id, 7);
   await removeBreakpoint(dbg, source.id, 8);
 

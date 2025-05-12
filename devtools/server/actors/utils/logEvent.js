@@ -4,6 +4,12 @@
 
 "use strict";
 
+const DevToolsUtils = require("resource://devtools/shared/DevToolsUtils.js");
+loader.lazyRequireGetter(
+  this,
+  "ObjectUtils",
+  "resource://devtools/server/actors/object/utils.js"
+);
 const {
   formatDisplayName,
 } = require("resource://devtools/server/actors/frame.js");
@@ -66,14 +72,14 @@ function evalAndLogEvent({ threadActor, frame, level, expression, bindings }) {
     // The evaluation was killed (possibly by the slow script dialog).
     value = ["Evaluation failed"];
   } else if ("return" in completion) {
-    value = completion.return;
+    value = [];
+    const length = ObjectUtils.getArrayLength(completion.return);
+    for (let i = 0; i < length; i++) {
+      value.push(DevToolsUtils.getProperty(completion.return, i));
+    }
   } else {
     value = [getThrownMessage(completion)];
     level = `${level}Error`;
-  }
-
-  if (value && typeof value.unsafeDereference === "function") {
-    value = value.unsafeDereference();
   }
 
   ChromeUtils.addProfilerMarker("Debugger log point", undefined, value);
@@ -104,16 +110,7 @@ function logEvent({ threadActor, frame }) {
     return undefined;
   }
 
-  const args = [];
-  for (const arg of frame.arguments) {
-    args.push(
-      arg && typeof arg.unsafeDereference === "function"
-        ? arg.unsafeDereference()
-        : arg
-    );
-  }
-
-  emitConsoleMessage(threadActor, frameLocation, args, "logPoint");
+  emitConsoleMessage(threadActor, frameLocation, frame.arguments, "logPoint");
 
   return undefined;
 }
@@ -144,10 +141,15 @@ function emitConsoleMessage(threadActor, frameLocation, args, level) {
     TYPES.CONSOLE_MESSAGE
   );
   if (consoleMessageWatcher) {
-    consoleMessageWatcher.emitMessages([message]);
+    consoleMessageWatcher.emitMessages([message], false);
   } else {
     // Bug 1642296: Once we enable ConsoleMessage resource on the server, we should remove onConsoleAPICall
     // from the WebConsoleActor, and only support the ConsoleMessageWatcher codepath.
+    message.arguments = message.arguments.map(arg =>
+      arg && typeof arg.unsafeDereference === "function"
+        ? arg.unsafeDereference()
+        : arg
+    );
     targetActor._consoleActor.onConsoleAPICall(message);
   }
 }
