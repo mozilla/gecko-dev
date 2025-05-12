@@ -94,7 +94,7 @@ class nsRetrievalContext {
   static ClipboardTargets sPrimaryTargets;
 };
 
-class nsClipboard : public nsBaseClipboard, public nsIObserver {
+class nsClipboard final : public nsBaseClipboard, public nsIObserver {
  public:
   nsClipboard();
 
@@ -121,11 +121,11 @@ class nsClipboard : public nsBaseClipboard, public nsIObserver {
   // Implement the native clipboard behavior.
   NS_IMETHOD SetNativeClipboardData(nsITransferable* aTransferable,
                                     ClipboardType aWhichClipboard) override;
-  NS_IMETHOD GetNativeClipboardData(nsITransferable* aTransferable,
-                                    ClipboardType aWhichClipboard) override;
-  void AsyncGetNativeClipboardData(nsITransferable* aTransferable,
+  mozilla::Result<nsCOMPtr<nsISupports>, nsresult> GetNativeClipboardData(
+      const nsACString& aFlavor, ClipboardType aWhichClipboard) override;
+  void AsyncGetNativeClipboardData(const nsACString& aFlavor,
                                    ClipboardType aWhichClipboard,
-                                   GetDataCallback&& aCallback) override;
+                                   GetNativeDataCallback&& aCallback) override;
   nsresult EmptyNativeClipboardData(ClipboardType aWhichClipboard) override;
   mozilla::Result<bool, nsresult> HasNativeClipboardDataMatchingFlavors(
       const nsTArray<nsCString>& aFlavorList,
@@ -144,8 +144,7 @@ class nsClipboard : public nsBaseClipboard, public nsIObserver {
   void ClearTransferable(int32_t aWhichClipboard);
   void ClearCachedTargets(int32_t aWhichClipboard);
 
-  bool FilterImportedFlavors(int32_t aWhichClipboard,
-                             nsTArray<nsCString>& aFlavors);
+  bool HasSuitableData(int32_t aWhichClipboard, const nsACString& aFlavor);
 
   // Hang on to our transferables so we can transfer data when asked.
   nsCOMPtr<nsITransferable> mSelectionTransferable;
