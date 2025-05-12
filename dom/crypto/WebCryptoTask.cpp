@@ -2179,8 +2179,15 @@ class ImportOKPKeyTask : public ImportKeyTask {
       return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
     }
 
-    // Extract 'crv' parameter from JWKs.
+    // Extract 'crv' and "alg" parameter from JWKs.
     if (mFormat.EqualsLiteral(WEBCRYPTO_KEY_FORMAT_JWK)) {
+      if (mAlgName.EqualsLiteral(WEBCRYPTO_ALG_ED25519)) {
+        if (mJwk.mAlg.WasPassed() &&
+            !mJwk.mAlg.Value().EqualsLiteral(JWK_ALG_EDDSA) &&
+            !mJwk.mAlg.Value().EqualsLiteral(JWK_ALG_ED25519)) {
+          return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+        }
+      }
       if (!NormalizeToken(mJwk.mCrv.Value(), mNamedCurve)) {
         return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
       }
