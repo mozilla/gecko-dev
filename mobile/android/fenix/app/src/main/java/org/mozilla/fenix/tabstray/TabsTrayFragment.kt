@@ -755,6 +755,25 @@ class TabsTrayFragment : AppCompatDialogFragment() {
         }
     }
 
+    /**
+     * This can only turn the feature ON and should not handle turning the feature OFF.
+     */
+    private fun onTabsTrayPbmLockedClick() {
+        DefaultBiometricUtils.bindBiometricsCredentialsPromptOrShowWarning(
+            titleRes = R.string.pbm_authentication_enable_lock,
+            view = requireView(),
+            onShowPinVerification = { intent -> startForResult.launch(intent) },
+            onAuthSuccess = {
+                PrivateBrowsingLocked.authSuccess.record()
+                PrivateBrowsingLocked.featureEnabled.record()
+                requireContext().settings().privateBrowsingLockedEnabled = true
+            },
+            onAuthFailure = {
+                PrivateBrowsingLocked.authFailure.record()
+            },
+        )
+    }
+
     private fun onTabsTrayDismissed() {
         context?.components?.analytics?.crashReporter?.recordCrashBreadcrumb(
             Breadcrumb("TabsTrayFragment onTabsTrayDismissed"),
