@@ -279,7 +279,12 @@ already_AddRefed<SharedThreadPool> GetMediaThreadPool(MediaThreadType aType) {
 
   // Ensure a larger stack for platform decoder threads
   if (aType == MediaThreadType::PLATFORM_DECODER) {
-    const uint32_t minStackSize = 512 * 1024;
+    uint32_t minStackSize = 512 * 1024;
+    #ifdef XP_WIN
+    // libaom can require a larger stack size on Windows, because it uses
+    // large stack buffers
+    minStackSize *= 2;
+    #endif
     uint32_t stackSize;
     MOZ_ALWAYS_SUCCEEDS(pool->GetThreadStackSize(&stackSize));
     if (stackSize < minStackSize) {
