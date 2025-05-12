@@ -215,7 +215,7 @@ def output_file(objs, output_fd, options={}):
             for meta in known_metadata:
                 if meta in metric.metadata:
                     extra[meta] = metric.metadata.get(meta)
-            if len(extra):
+            if extra:
                 metric_arg_list.append(extra)
             dict_cat.append(metric_arg_list)
 

@@ -206,7 +206,7 @@ def _repack(app_finder, l10n_finder, copier, formatter, non_chrome=set()):
 
         if path:
             files = [f for p, f in l10n_finder.find(path)]
-            if not len(files):
+            if not files:
                 if base not in non_chrome:
                     finderBase = ""
                     if hasattr(l10n_finder, "base"):

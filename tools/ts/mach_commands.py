@@ -60,7 +60,7 @@ def build(ctx, lib):
             return build_required(lib, dir)
 
         files = [f for f in os.listdir(dir) if f.endswith(".d.json")]
-        if not len(files):
+        if not files:
             return build_required(lib, f"*.d.json files in {dir}")
 
         return node(ctx, "build_xpcom", lib_dts, dir, *files)

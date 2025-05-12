@@ -194,7 +194,7 @@ class Verifier:
             if not found:
                 new_mtests.append(mt)
 
-        if len(new_mtests):
+        if new_mtests:
             # Output an error for each manifest with a missing
             # test description
             for test_name in new_mtests:

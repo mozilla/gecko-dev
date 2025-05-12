@@ -221,7 +221,7 @@ class Client:
             else:
                 self.subscriptions[event] += 1
 
-        if len(must_sub):
+        if must_sub:
             await self.session.bidi_session.session.subscribe(events=must_sub)
 
     async def unsubscribe(self, events):
@@ -234,7 +234,7 @@ class Client:
             if not self.subscriptions[event]:
                 must_unsub.append(event)
 
-        if len(must_unsub):
+        if must_unsub:
             try:
                 await self.session.bidi_session.session.unsubscribe(events=must_unsub)
             except (InvalidArgumentException, NoSuchFrameException):
@@ -1064,7 +1064,7 @@ class Client:
         left_to_try = list(popup_close_button_finders)
         closed_one = False
         num_intercepted = 0
-        while len(left_to_try):
+        while left_to_try:
             finder = left_to_try.pop(0)
             try:
                 if self.try_closing_popup(finder, timeout=timeout):

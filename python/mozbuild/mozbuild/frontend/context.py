@@ -778,7 +778,7 @@ class FinalTargetValue(ContextDerivedValue, str):
 
 
 def Enum(*values):
-    assert len(values)
+    assert values
     default = values[0]
 
     class EnumClass:

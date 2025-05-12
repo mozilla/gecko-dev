@@ -185,7 +185,7 @@ def main():
 
     files.extend(cmdline_files)
 
-    if not len(files):
+    if not files:
         op.error("No IPDL files specified")
 
     ipcmessagestartpath = os.path.join(headersdir, "IPCMessageStart.h")

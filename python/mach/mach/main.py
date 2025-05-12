@@ -453,7 +453,7 @@ To see more help for a specific command, run:
             # command's fault.
             self._print_error_header(argv, sys.stdout)
 
-            if len(other_frames):
+            if other_frames:
                 print(MODULE_ERROR_TEMPLATE % handler.name)
             else:
                 print(COMMAND_ERROR_TEMPLATE % handler.name)
