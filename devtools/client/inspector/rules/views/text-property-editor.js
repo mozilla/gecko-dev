@@ -423,7 +423,19 @@ TextPropertyEditor.prototype = {
         start: this._onStartEditing,
         element: this.valueSpan,
         done: this._onValueDone,
-        destroy: this.update,
+        destroy: onValueDonePromise => {
+          const cb = this.update;
+          // The `done` callback is called before this `destroy` callback is.
+          // In _onValueDone, we might preview/set the property and we want to wait for
+          // that to be resolved before updating the view so all data are up to date (see Bug 1325145).
+          if (
+            onValueDonePromise &&
+            typeof onValueDonePromise.then === "function"
+          ) {
+            return onValueDonePromise.then(cb);
+          }
+          return cb();
+        },
         validate: this._onValidate,
         advanceChars: advanceValidate,
         contentType: InplaceEditor.CONTENT_TYPES.CSS_VALUE,
@@ -1274,13 +1286,13 @@ TextPropertyEditor.prototype = {
     // If the value is not empty (or is an empty variable) and unchanged,
     // revert the property back to its original value and enabled or disabled state
     if ((value.trim() || isVariable) && isValueUnchanged) {
-      this.ruleEditor.rule.previewPropertyValue(
+      const onPropertySet = this.ruleEditor.rule.previewPropertyValue(
         this.prop,
         val.value,
         val.priority
       );
       this.rule.setPropertyEnabled(this.prop, this.prop.enabled);
-      return;
+      return onPropertySet;
     }
 
     // Check if unit of value changed to add dragging feature
@@ -1293,7 +1305,7 @@ TextPropertyEditor.prototype = {
     this.telemetry.recordEvent("edit_rule", "ruleview");
 
     // First, set this property value (common case, only modified a property)
-    this.prop.setValue(val.value, val.priority);
+    const onPropertySet = this.prop.setValue(val.value, val.priority);
 
     if (!this.prop.enabled) {
       this.prop.setEnabled(true);
@@ -1322,6 +1334,8 @@ TextPropertyEditor.prototype = {
         }
       }, 0);
     }
+
+    return onPropertySet;
   },
 
   /**

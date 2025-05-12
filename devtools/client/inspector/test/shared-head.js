@@ -81,19 +81,25 @@ var openInspectorSidebarTab = async function (id) {
  * Open the toolbox, with the inspector tool visible, and the rule-view
  * sidebar tab selected.
  *
+ * @param {Object} options
+ * @param {Boolean} options.overrideDebounce: Whether to replace the rule view debounce
+ *        method with manual debounce (requires explicit calls to trigger the debounced calls).
+ *        Defaults to true.
  * @return a promise that resolves when the inspector is ready and the rule view
  * is visible and ready
  */
-async function openRuleView() {
+async function openRuleView({ overrideDebounce = true } = {}) {
   const { inspector, toolbox, highlighterTestFront } = await openInspector();
 
   const ruleViewPanel = inspector.getPanel("ruleview");
   await ruleViewPanel.readyPromise;
   const view = ruleViewPanel.view;
 
-  // Replace the view to use a custom debounce function that can be triggered manually
-  // through an additional ".flush()" property.
-  view.debounce = manualDebounce();
+  if (overrideDebounce) {
+    // Replace the view to use a custom debounce function that can be triggered manually
+    // through an additional ".flush()" property.
+    view.debounce = manualDebounce();
+  }
 
   return {
     toolbox,
