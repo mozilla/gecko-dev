@@ -198,6 +198,13 @@ Inspector.prototype = {
    * @param {Object} options
    * @param {NodeFront|undefined} options.defaultStartupNode: Optional node front that
    *        will be selected when the first root node is available.
+   * @param {ElementIdentifier|undefined} options.defaultStartupNodeDomReference: Optional
+   *        element identifier whose matching node front will be selected when the first
+   *        root node is available.
+   *        Will be ignored if defaultStartupNode is passed.
+   * @param {String|undefined} options.defaultStartupNodeSelectionReason: Optional string
+   *        that will be used as a reason for the node selection when either
+   *        defaultStartupNode or defaultStartupNodeDomReference is passed
    * @returns {Inspector}
    */
   async init(options = {}) {
@@ -219,9 +226,13 @@ Inspector.prototype = {
     // iframe if it had already been initialized.
     this.setupSplitter();
 
-    // Optional NodeFront set on inspector startup, to be selected once the first root
+    // Optional NodeFront/ElementIdentifier set on inspector startup, to be selected once the first root
     // node is available.
     this._defaultStartupNode = options.defaultStartupNode;
+    this._defaultStartupNodeDomReference =
+      options.defaultStartupNodeDomReference;
+    this._defaultStartupNodeSelectionReason =
+      options.defaultStartupNodeSelectionReason;
 
     // NodeFront for the DOM Element selected when opening the inspector, or after each
     // navigation (i.e. each time a new Root Node is available)
@@ -399,8 +410,11 @@ Inspector.prototype = {
       }
 
       this.selection.setNodeFront(defaultNode, {
-        reason: "inspector-default-selection",
+        reason:
+          this._defaultStartupNodeSelectionReason ??
+          "inspector-default-selection",
       });
+      this._defaultStartupNodeSelectionReason = null;
 
       await this._initMarkupView();
 
@@ -610,9 +624,11 @@ Inspector.prototype = {
    *        The current root node front for the top walker.
    */
   async _getDefaultNodeForSelection(rootNodeFront) {
+    let node;
     if (this._defaultStartupNode) {
-      const node = this._defaultStartupNode;
+      node = this._defaultStartupNode;
       this._defaultStartupNode = null;
+      this._defaultStartupNodeDomReference = null;
       return node;
     }
 
@@ -620,9 +636,34 @@ Inspector.prototype = {
     const pendingSelectionUnique = Symbol("pending-selection");
     this._pendingSelectionUnique = pendingSelectionUnique;
 
+    if (this._defaultStartupNodeDomReference) {
+      const domReference = this._defaultStartupNodeDomReference;
+      // nullify before calling the async getNodeActorFromContentDomReference so calls
+      // made to getDefaultNodeForSelection while the promise is pending will be properly
+      // ignored with the check on pendingSelectionUnique
+      this._defaultStartupNode = null;
+      this._defaultStartupNodeDomReference = null;
+
+      try {
+        node =
+          await this.inspectorFront.getNodeActorFromContentDomReference(
+            domReference
+          );
+      } catch (e) {
+        console.warn(
+          "Couldn't retrieve node front from dom reference",
+          domReference
+        );
+      }
+    }
+
     if (this._pendingSelectionUnique !== pendingSelectionUnique) {
       // If this method was called again while waiting, bail out.
       return null;
+    }
+
+    if (node) {
+      return node;
     }
 
     const walker = rootNodeFront.walkerFront;
@@ -644,7 +685,7 @@ Inspector.prototype = {
 
     // Try all default node selectors until a valid node is found.
     for (const selector of defaultNodeSelectors) {
-      const node = await selector();
+      node = await selector();
       if (this._pendingSelectionUnique !== pendingSelectionUnique) {
         // If this method was called again while waiting, bail out.
         return null;

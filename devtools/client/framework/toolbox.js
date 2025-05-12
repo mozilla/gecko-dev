@@ -250,19 +250,29 @@ const BOOLEAN_CONFIGURATION_PREFS = {
  * target. Visually, it's a document that includes the tools tabs and all
  * the iframes where the tool panels will be living in.
  *
- * @param {object} commands
+ * @param {object} options
+ * @param {object} options.commands
  *        The context to inspect identified by this commands.
- * @param {string} selectedTool
+ * @param {string} options.selectedTool
  *        Tool to select initially
- * @param {Toolbox.HostType} hostType
+ * @param {object} options.selectedToolOptions
+ *        Object that will be passed to the panel init function
+ * @param {Toolbox.HostType} options.hostType
  *        Type of host that will host the toolbox (e.g. sidebar, window)
- * @param {DOMWindow} contentWindow
+ * @param {DOMWindow} options.contentWindow
  *        The window object of the toolbox document
- * @param {string} frameId
+ * @param {string} options.frameId
  *        A unique identifier to differentiate toolbox documents from the
  *        chrome codebase when passing DOM messages
  */
-function Toolbox(commands, selectedTool, hostType, contentWindow, frameId) {
+function Toolbox({
+  commands,
+  selectedTool,
+  selectedToolOptions,
+  hostType,
+  contentWindow,
+  frameId,
+}) {
   this._win = contentWindow;
   this.frameId = frameId;
   this.selection = new Selection();
@@ -366,6 +376,7 @@ function Toolbox(commands, selectedTool, hostType, contentWindow, frameId) {
     selectedTool = Services.prefs.getCharPref(this._prefs.LAST_TOOL);
   }
   this._defaultToolId = selectedTool;
+  this._defaultToolOptions = selectedToolOptions;
 
   this._hostType = hostType;
 
@@ -1063,7 +1074,11 @@ Toolbox.prototype = {
         { timeout: 16 }
       );
 
-      await this.selectTool(this._defaultToolId, "initial_panel");
+      await this.selectTool(
+        this._defaultToolId,
+        "initial_panel",
+        this._defaultToolOptions
+      );
 
       // Wait until the original tool is selected so that the split
       // console input will receive focus.
