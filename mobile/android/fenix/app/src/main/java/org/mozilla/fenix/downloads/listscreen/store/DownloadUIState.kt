@@ -5,7 +5,6 @@
 package org.mozilla.fenix.downloads.listscreen.store
 
 import mozilla.components.lib.state.State
-import org.mozilla.fenix.Config
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState.Mode
 
 /**
@@ -17,7 +16,6 @@ import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState.Mode
  * @property isDeleteDialogVisible Flag indicating whether the delete confirmation dialog is currently visible.
  * @property searchQuery The search query entered by the user. This is used to filter the list of items.
  * @param isSearchFieldRequested Indicates whether the search field is requested to be shown.
- * @param isSearchEnabled Feature flag for search functionality.
  * @param userSelectedContentTypeFilter The user selected [FileItem.ContentTypeFilter].
  */
 data class DownloadUIState(
@@ -27,7 +25,6 @@ data class DownloadUIState(
     val isDeleteDialogVisible: Boolean = false,
     val searchQuery: String = "",
     private val isSearchFieldRequested: Boolean = false,
-    private val isSearchEnabled: Boolean = Config.channel.isNightlyOrDebug,
     private val userSelectedContentTypeFilter: FileItem.ContentTypeFilter = FileItem.ContentTypeFilter.All,
 ) : State {
 
@@ -53,14 +50,6 @@ data class DownloadUIState(
             }
         }
 
-    private val searchQueryPredicate: (FileItem) -> Boolean = {
-        if (isSearchEnabled) {
-            it.stringToMatchForSearchQuery.contains(searchQuery, ignoreCase = true)
-        } else {
-            true
-        }
-    }
-
     /**
      * The list of items to display grouped by the created time of the item.
      * The ungrouped list of items to display, excluding any items that are pending deletion and
@@ -68,7 +57,7 @@ data class DownloadUIState(
      */
     val itemsMatchingFilters = itemsNotPendingDeletion
         .filter { selectedContentTypeFilter.predicate(it.contentType) }
-        .filter(searchQueryPredicate)
+        .filter { it.stringToMatchForSearchQuery.contains(searchQuery, ignoreCase = true) }
 
     /**
      * The list of items to display grouped by the created time of the item.
@@ -106,11 +95,10 @@ data class DownloadUIState(
     }
 
     val isSearchFieldVisible: Boolean
-        get() = isSearchEnabled && isSearchFieldRequested && mode is Mode.Normal
+        get() = isSearchFieldRequested && mode is Mode.Normal
 
     val isSearchIconVisible: Boolean
-        get() = isSearchEnabled && itemsNotPendingDeletion.isNotEmpty() && !isSearchFieldVisible &&
-            mode is Mode.Normal
+        get() = itemsNotPendingDeletion.isNotEmpty() && !isSearchFieldVisible && mode is Mode.Normal
 
     val isBackHandlerEnabled: Boolean
         get() = isSearchFieldRequested || mode is Mode.Editing

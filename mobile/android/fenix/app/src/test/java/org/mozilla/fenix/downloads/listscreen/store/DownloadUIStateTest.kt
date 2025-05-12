@@ -340,7 +340,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isSearchEnabled = true,
             searchQuery = "firefox",
         )
 
@@ -398,7 +397,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isSearchEnabled = true,
             searchQuery = "file",
         )
 
@@ -462,7 +460,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isSearchEnabled = true,
             searchQuery = "blablah",
         )
 
@@ -477,7 +474,6 @@ class DownloadUIStateTest {
             items = emptyList(),
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isSearchEnabled = true,
         )
 
         val expected = DownloadUIState.ItemsState.NoItems
@@ -486,96 +482,11 @@ class DownloadUIStateTest {
     }
 
     @Test
-    fun `WHEN search is disabled THEN all items are displayed`() {
-        val fileItems = listOf(
-            fileItem(
-                id = "1",
-                fileName = "somefile",
-                displayedShortUrl = "firefox.com",
-                createdTime = CreatedTime.LAST_30_DAYS,
-            ),
-            fileItem(
-                id = "2",
-                fileName = "anotherfile",
-                displayedShortUrl = "mozilla.org",
-                createdTime = CreatedTime.LAST_30_DAYS,
-            ),
-            fileItem(
-                id = "3",
-                fileName = "yetanotherfile",
-                displayedShortUrl = "mozilla.com",
-                createdTime = CreatedTime.LAST_30_DAYS,
-            ),
-            fileItem(
-                id = "4",
-                fileName = "name",
-                displayedShortUrl = "firefox.com",
-                createdTime = CreatedTime.LAST_30_DAYS,
-            ),
-        )
-
-        val downloadUIState = DownloadUIState(
-            items = fileItems,
-            mode = DownloadUIState.Mode.Normal,
-            pendingDeletionIds = emptySet(),
-            isSearchEnabled = false,
-            searchQuery = "firefox",
-        )
-
-        val expected = DownloadUIState.ItemsState.Items(
-            listOf(
-                HeaderItem(createdTime = CreatedTime.LAST_30_DAYS),
-                fileItem(
-                    id = "1",
-                    fileName = "somefile",
-                    displayedShortUrl = "firefox.com",
-                    createdTime = CreatedTime.LAST_30_DAYS,
-                ),
-                fileItem(
-                    id = "2",
-                    fileName = "anotherfile",
-                    displayedShortUrl = "mozilla.org",
-                    createdTime = CreatedTime.LAST_30_DAYS,
-                ),
-                fileItem(
-                    id = "3",
-                    fileName = "yetanotherfile",
-                    displayedShortUrl = "mozilla.com",
-                    createdTime = CreatedTime.LAST_30_DAYS,
-                ),
-                fileItem(
-                    id = "4",
-                    fileName = "name",
-                    displayedShortUrl = "firefox.com",
-                    createdTime = CreatedTime.LAST_30_DAYS,
-                ),
-            ),
-        )
-
-        assertEquals(expected, downloadUIState.itemsState)
-    }
-
-    @Test
-    fun `WHEN search is not enabled THEN search icon is not visible`() {
-        val downloadUIState = DownloadUIState(
-            items = emptyList(),
-            mode = DownloadUIState.Mode.Normal,
-            pendingDeletionIds = emptySet(),
-            isSearchEnabled = false,
-            isSearchFieldRequested = true,
-            searchQuery = "",
-        )
-
-        assertEquals(false, downloadUIState.isSearchIconVisible)
-    }
-
-    @Test
     fun `WHEN there are not items THEN search icon is not visible`() {
         val downloadUIState = DownloadUIState(
             items = emptyList(),
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isSearchEnabled = true,
             isSearchFieldRequested = false,
             searchQuery = "",
         )
@@ -608,7 +519,6 @@ class DownloadUIStateTest {
                 selectedItems = setOf(fileItem1),
             ),
             pendingDeletionIds = emptySet(),
-            isSearchEnabled = true,
             isSearchFieldRequested = true,
             searchQuery = "",
         )
@@ -639,7 +549,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isSearchEnabled = true,
             isSearchFieldRequested = true,
             searchQuery = "",
         )
@@ -670,7 +579,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isSearchEnabled = true,
             isSearchFieldRequested = false,
             searchQuery = "",
         )
@@ -679,26 +587,11 @@ class DownloadUIStateTest {
     }
 
     @Test
-    fun `WHEN search is not enabled and field is requested and state is in normal mode THEN search field is not visible`() {
-        val downloadUIState = DownloadUIState(
-            items = emptyList(),
-            mode = DownloadUIState.Mode.Normal,
-            pendingDeletionIds = emptySet(),
-            isSearchEnabled = false,
-            isSearchFieldRequested = true,
-            searchQuery = "",
-        )
-
-        assertEquals(false, downloadUIState.isSearchFieldVisible)
-    }
-
-    @Test
     fun `WHEN search field is requested and state is in normal mode THEN search field is visible`() {
         val downloadUIState = DownloadUIState(
             items = emptyList(),
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isSearchEnabled = true,
             isSearchFieldRequested = true,
             searchQuery = "",
         )
@@ -714,7 +607,6 @@ class DownloadUIStateTest {
                 selectedItems = emptySet(),
             ),
             pendingDeletionIds = emptySet(),
-            isSearchEnabled = true,
             isSearchFieldRequested = true,
             searchQuery = "",
         )
@@ -730,7 +622,6 @@ class DownloadUIStateTest {
                 selectedItems = emptySet(),
             ),
             pendingDeletionIds = emptySet(),
-            isSearchEnabled = true,
             isSearchFieldRequested = false,
             searchQuery = "",
         )
@@ -744,7 +635,6 @@ class DownloadUIStateTest {
             items = emptyList(),
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isSearchEnabled = true,
             isSearchFieldRequested = true,
             searchQuery = "",
         )
@@ -761,7 +651,6 @@ class DownloadUIStateTest {
             items = emptyList(),
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            isSearchEnabled = true,
             isSearchFieldRequested = false,
             searchQuery = "",
         )
