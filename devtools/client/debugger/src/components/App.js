@@ -72,7 +72,7 @@ class App extends Component {
       openQuickOpen: PropTypes.func.isRequired,
       orientation: PropTypes.oneOf(["horizontal", "vertical"]).isRequired,
       quickOpenEnabled: PropTypes.bool.isRequired,
-      selectedLocation: PropTypes.object,
+      showWelcomeBox: PropTypes.bool.isRequired,
       setActiveSearch: PropTypes.func.isRequired,
       setOrientation: PropTypes.func.isRequired,
       setPrimaryPaneTab: PropTypes.func.isRequired,
@@ -259,7 +259,7 @@ class App extends Component {
           startPanelSize,
           endPanelSize,
         }),
-        !this.props.selectedLocation
+        this.props.showWelcomeBox
           ? React.createElement(WelcomeBox, {
               horizontal,
               toggleShortcutsModal: () => this.toggleShortcutsModal(),
@@ -377,7 +377,7 @@ const mapStateToProps = state => {
 
   return {
     showOriginalVariableMappingWarning,
-    selectedLocation,
+    showWelcomeBox: !selectedLocation,
     startPanelCollapsed: getPaneCollapse(state, "start"),
     endPanelCollapsed: getPaneCollapse(state, "end"),
     activeSearch: getActiveSearch(state),
