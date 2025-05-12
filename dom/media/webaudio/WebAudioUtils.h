@@ -32,7 +32,7 @@ const size_t MaxChannelCount = 32;
 // AudioContext::CreateBuffer() "must support sample-rates in at least the
 // range 22050 to 96000."
 const uint32_t MinSampleRate = 8000;
-const uint32_t MaxSampleRate = 192000;
+const uint32_t MaxSampleRate = 768000;
 
 inline bool FuzzyEqual(float v1, float v2) { return fabsf(v1 - v2) < 1e-7f; }
 inline bool FuzzyEqual(double v1, double v2) { return fabs(v1 - v2) < 1e-7; }
