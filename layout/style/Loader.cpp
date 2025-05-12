@@ -416,12 +416,6 @@ void SheetLoadData::SetLoadCompleted() {
   MOZ_ASSERT(mIsLoading, "Not loading?");
   MOZ_ASSERT(!mLoadStart.IsNull());
   mIsLoading = false;
-  // Belts and suspenders just in case.
-  if (MOZ_LIKELY(!mLoadStart.IsNull())) {
-    TimeDuration rawDuration = TimeStamp::Now() - mLoadStart;
-    glean::performance_pageload::async_sheet_load.AccumulateRawDuration(
-        rawDuration);
-  }
 }
 
 void SheetLoadData::OnCoalescedTo(const SheetLoadData& aExistingLoad) {
