@@ -40,6 +40,7 @@ import androidx.test.espresso.ViewAction
 import androidx.test.espresso.assertion.ViewAssertions
 import androidx.test.espresso.matcher.ViewMatchers
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import mozilla.components.ui.tabcounter.TabCounterTestTags
 import org.hamcrest.Matcher
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.AppAndSystemHelper.registerAndCleanupIdlingResources
@@ -792,7 +793,7 @@ private fun ComposeTestRule.dropdownMenuItemTabSettings() = onNodeWithTag(TabsTr
 /**
  * Obtains the normal tabs counter.
  */
-private fun ComposeTestRule.normalTabsCounter() = onNodeWithTag(TabsTrayTestTag.NORMAL_TABS_COUNTER)
+private fun ComposeTestRule.normalTabsCounter() = onNodeWithTag(TabCounterTestTags.NORMAL_TABS_COUNTER)
 
 /**
  * Obtains the Tabs Tray banner collections button.

@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.compose.ext
+package mozilla.components.compose.base.utils
 
-import org.junit.Assert.assertEquals
+import org.junit.Assert
 import org.junit.Test
-import java.util.Locale as JavaLocale
+import java.util.Locale
 
 class IntTest {
 
@@ -15,8 +15,8 @@ class IntTest {
         val expected = "٥"
         val numberUnderTest = 5
 
-        JavaLocale.setDefault(JavaLocale.forLanguageTag("ar"))
+        Locale.setDefault(Locale.forLanguageTag("ar"))
 
-        assertEquals(expected, numberUnderTest.toLocaleString())
+        Assert.assertEquals(expected, numberUnderTest.toLocaleString())
     }
 }

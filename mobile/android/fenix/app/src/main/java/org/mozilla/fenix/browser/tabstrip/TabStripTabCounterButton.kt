@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.compose.base.menu.DropdownMenu
 import mozilla.components.compose.base.menu.MenuItem
-import org.mozilla.fenix.compose.TabCounter
+import mozilla.components.ui.tabcounter.TabCounter
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**

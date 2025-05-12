@@ -11,7 +11,6 @@ internal object TabsTrayTestTag {
     const val BANNER_ROOT = "$TABS_TRAY.banner"
     const val BANNER_HANDLE = "$BANNER_ROOT.handle"
     const val NORMAL_TABS_PAGE_BUTTON = "$BANNER_ROOT.normalTabsPageButton"
-    const val NORMAL_TABS_COUNTER = "$NORMAL_TABS_PAGE_BUTTON.counter"
     const val PRIVATE_TABS_PAGE_BUTTON = "$BANNER_ROOT.privateTabsPageButton"
     const val SYNCED_TABS_PAGE_BUTTON = "$BANNER_ROOT.syncedTabsPageButton"
 

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.compose
+package mozilla.components.ui.tabcounter
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -31,10 +31,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.LightDarkPreview
-import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.ext.toLocaleString
-import org.mozilla.fenix.tabstray.TabsTrayTestTag
-import org.mozilla.fenix.theme.FirefoxTheme
+import mozilla.components.compose.base.theme.AcornTheme
+import mozilla.components.compose.base.utils.toLocaleString
+import mozilla.components.ui.tabcounter.TabCounterTestTags.NORMAL_TABS_COUNTER
+import mozilla.components.ui.icons.R as iconsR
 
 private const val MAX_SINGLE_DIGIT = 9
 private const val MAX_VISIBLE_TABS = 99
@@ -56,8 +56,8 @@ private const val TWO_DIGITS_SIZE_RATIO = 0.4f
 fun TabCounter(
     tabCount: Int,
     showPrivacyBadge: Boolean = false,
-    textColor: Color = FirefoxTheme.colors.textPrimary,
-    iconColor: Color = FirefoxTheme.colors.iconPrimary,
+    textColor: Color = AcornTheme.colors.textPrimary,
+    iconColor: Color = AcornTheme.colors.iconPrimary,
 ) {
     val formattedTabCount = remember(tabCount) { tabCount.toLocaleString() }
     val normalTabCountText by remember(tabCount) {
@@ -93,7 +93,7 @@ fun TabCounter(
     )
 
     val counterBoxWidthDp =
-        dimensionResource(id = mozilla.components.ui.tabcounter.R.dimen.mozac_tab_counter_box_width_height)
+        dimensionResource(id = R.dimen.mozac_tab_counter_box_width_height)
     val counterBoxWidthPx = LocalDensity.current.run { counterBoxWidthDp.roundToPx() }
     val counterTabsTextSize by remember(tabCountTextRatio) {
         mutableIntStateOf((tabCountTextRatio * counterBoxWidthPx).toInt())
@@ -102,7 +102,7 @@ fun TabCounter(
     Box(
         modifier = Modifier
             .semantics(mergeDescendants = true) {
-                testTag = TabsTrayTestTag.NORMAL_TABS_COUNTER
+                testTag = NORMAL_TABS_COUNTER
             },
         contentAlignment = Alignment.Center,
     ) {
@@ -127,7 +127,7 @@ fun TabCounter(
 
         if (showPrivacyBadge) {
             Image(
-                painter = painterResource(id = R.drawable.mozac_ic_private_mode_circle_fill_stroke_20),
+                painter = painterResource(id = iconsR.drawable.mozac_ic_private_mode_circle_fill_stroke_20),
                 contentDescription = null,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -138,13 +138,21 @@ fun TabCounter(
     }
 }
 
+/**
+ * Test tags for the [TabCounter] composable.
+ */
+object TabCounterTestTags {
+    private const val TAG = "TabCounterTestTags"
+    const val NORMAL_TABS_COUNTER = "$TAG.tabCounter"
+}
+
 @LightDarkPreview
 @Preview(locale = "ar")
 @Composable
 private fun TabCounterPreview() {
-    FirefoxTheme {
+    AcornTheme {
         Box(
-            modifier = Modifier.background(color = FirefoxTheme.colors.layer1),
+            modifier = Modifier.background(color = AcornTheme.colors.layer1),
         ) {
             TabCounter(tabCount = 55)
         }
@@ -155,9 +163,9 @@ private fun TabCounterPreview() {
 @Preview(locale = "ar")
 @Composable
 private fun InfiniteTabCounterPreview() {
-    FirefoxTheme {
+    AcornTheme {
         Box(
-            modifier = Modifier.background(color = FirefoxTheme.colors.layer1),
+            modifier = Modifier.background(color = AcornTheme.colors.layer1),
         ) {
             TabCounter(tabCount = 100)
         }

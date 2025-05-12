@@ -42,10 +42,10 @@ import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.menu.DropdownMenu
 import mozilla.components.compose.base.menu.MenuItem
+import mozilla.components.ui.tabcounter.TabCounter
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Banner
 import org.mozilla.fenix.compose.BottomSheetHandle
-import org.mozilla.fenix.compose.TabCounter
 import org.mozilla.fenix.tabstray.ext.getMenuItems
 import org.mozilla.fenix.theme.FirefoxTheme
 import kotlin.math.max
