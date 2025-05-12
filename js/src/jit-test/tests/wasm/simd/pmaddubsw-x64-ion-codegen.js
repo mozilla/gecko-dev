@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !wasmSimdEnabled() || wasmCompileMode() != "ion"
+// |jit-test| --setpref=wasm_unroll_loops=false; skip-if: !wasmSimdEnabled() || wasmCompileMode() != "ion"
 
 // Testing _mm_maddubs_epi16 / vpmaddubsw behavoir for all platforms.
 //

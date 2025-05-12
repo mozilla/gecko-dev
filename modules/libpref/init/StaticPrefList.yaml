@@ -8991,7 +8991,7 @@
 # both unrolling and peeling.
 - name: javascript.options.wasm_unroll_loops
   type: bool
-  value: false
+  value: true
   mirror: always
   set_spidermonkey_pref: always
 
