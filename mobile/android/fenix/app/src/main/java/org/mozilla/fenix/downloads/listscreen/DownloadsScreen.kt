@@ -6,7 +6,6 @@ package org.mozilla.fenix.downloads.listscreen
 
 import android.content.Context
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,23 +19,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ChipDefaults
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.FilterChip
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,9 +54,7 @@ import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.button.FloatingActionButton
 import org.mozilla.fenix.compose.core.Action
-import org.mozilla.fenix.compose.ext.isItemPartiallyVisible
 import org.mozilla.fenix.compose.list.ExpandableListHeader
-import org.mozilla.fenix.compose.list.SelectableListItem
 import org.mozilla.fenix.compose.snackbar.AcornSnackbarHostState
 import org.mozilla.fenix.compose.snackbar.SnackbarHost
 import org.mozilla.fenix.compose.snackbar.SnackbarState
@@ -80,6 +68,8 @@ import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
 import org.mozilla.fenix.downloads.listscreen.store.FileItem
 import org.mozilla.fenix.downloads.listscreen.store.HeaderItem
 import org.mozilla.fenix.downloads.listscreen.ui.DownloadSearchField
+import org.mozilla.fenix.downloads.listscreen.ui.FileListItem
+import org.mozilla.fenix.downloads.listscreen.ui.Filters
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -459,67 +449,6 @@ private fun DownloadsContent(
 }
 
 @Composable
-private fun FileListItem(
-    fileItem: FileItem,
-    isSelected: Boolean,
-    isMenuIconVisible: Boolean,
-    modifier: Modifier = Modifier,
-    onDeleteClick: (FileItem) -> Unit,
-    onShareUrlClick: (FileItem) -> Unit,
-    onShareFileClick: (FileItem) -> Unit,
-) {
-    SelectableListItem(
-        label = fileItem.fileName ?: fileItem.url,
-        description = fileItem.description,
-        isSelected = isSelected,
-        icon = fileItem.icon,
-        afterListAction = {
-            if (isMenuIconVisible) {
-                var menuExpanded by remember { mutableStateOf(false) }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                IconButton(
-                    onClick = { menuExpanded = true },
-                    modifier = Modifier
-                        .size(24.dp)
-                        .testTag("${DownloadsListTestTag.DOWNLOADS_LIST_ITEM_MENU}.${fileItem.fileName}"),
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.mozac_ic_ellipsis_vertical_24),
-                        contentDescription = stringResource(id = R.string.content_description_menu),
-                        tint = FirefoxTheme.colors.iconPrimary,
-                    )
-
-                    DropdownMenu(
-                        menuItems = listOf(
-                            MenuItem.TextItem(
-                                text = Text.Resource(R.string.download_share_url),
-                                onClick = { onShareUrlClick(fileItem) },
-                                level = MenuItem.FixedItem.Level.Default,
-                            ),
-                            MenuItem.TextItem(
-                                text = Text.Resource(R.string.download_share_file),
-                                onClick = { onShareFileClick(fileItem) },
-                                level = MenuItem.FixedItem.Level.Default,
-                            ),
-                            MenuItem.TextItem(
-                                text = Text.Resource(R.string.download_delete_item),
-                                onClick = { onDeleteClick(fileItem) },
-                                level = MenuItem.FixedItem.Level.Critical,
-                            ),
-                        ),
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false },
-                    )
-                }
-            }
-        },
-        modifier = modifier,
-    )
-}
-
-@Composable
 private fun HeaderListItem(
     headerItem: HeaderItem,
     modifier: Modifier = Modifier,
@@ -528,93 +457,6 @@ private fun HeaderListItem(
         ExpandableListHeader(
             headerText = stringResource(id = headerItem.createdTime.stringRes),
         )
-    }
-}
-
-@Composable
-private fun Filters(
-    selectedContentTypeFilter: FileItem.ContentTypeFilter,
-    contentTypeFilters: List<FileItem.ContentTypeFilter>,
-    modifier: Modifier = Modifier,
-    onContentTypeSelected: (FileItem.ContentTypeFilter) -> Unit,
-) {
-    val listState = rememberLazyListState()
-    LazyRow(
-        modifier = modifier,
-        state = listState,
-        horizontalArrangement = Arrangement.spacedBy(FirefoxTheme.layout.space.static100),
-        contentPadding = PaddingValues(horizontal = FirefoxTheme.layout.space.static200),
-    ) {
-        items(
-            items = contentTypeFilters,
-            key = { it },
-        ) { contentTypeParam ->
-            DownloadChip(
-                selected = selectedContentTypeFilter == contentTypeParam,
-                contentTypeFilter = contentTypeParam,
-                onContentTypeSelected = onContentTypeSelected,
-            )
-        }
-    }
-
-    LaunchedEffect(selectedContentTypeFilter) {
-        val selectedItemInfo =
-            listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == selectedContentTypeFilter }
-
-        if (selectedItemInfo == null || listState.isItemPartiallyVisible(selectedItemInfo)) {
-            listState.animateScrollToItem(contentTypeFilters.indexOf(selectedContentTypeFilter))
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterialApi::class)
-@Composable
-private fun DownloadChip(
-    selected: Boolean,
-    contentTypeFilter: FileItem.ContentTypeFilter,
-    modifier: Modifier = Modifier,
-    onContentTypeSelected: (FileItem.ContentTypeFilter) -> Unit,
-) {
-    FilterChip(
-        selected = selected,
-        onClick = { onContentTypeSelected(contentTypeFilter) },
-        shape = RoundedCornerShape(16.dp),
-        border = if (selected) {
-            null
-        } else {
-            BorderStroke(1.dp, FirefoxTheme.colors.borderPrimary)
-        },
-        colors = ChipDefaults.filterChipColors(
-            selectedBackgroundColor = FirefoxTheme.colors.layerAccentNonOpaque,
-            selectedContentColor = FirefoxTheme.colors.textPrimary,
-            backgroundColor = FirefoxTheme.colors.layer1,
-            contentColor = FirefoxTheme.colors.textPrimary,
-        ),
-        modifier = modifier.height(36.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            if (selected) {
-                // Custom content is used instead of using the `leadingIcon` parameter as the paddings
-                // are different and spec requires a specific padding between the icon and text.
-                Icon(
-                    painter = painterResource(id = R.drawable.mozac_ic_checkmark_24),
-                    contentDescription = null,
-                    tint = FirefoxTheme.colors.iconPrimary,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-            Text(
-                text = stringResource(id = contentTypeFilter.stringRes),
-                style = if (selected) {
-                    FirefoxTheme.typography.headline8
-                } else {
-                    FirefoxTheme.typography.body2
-                },
-            )
-        }
     }
 }
 
