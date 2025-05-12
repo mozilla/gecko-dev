@@ -6,7 +6,7 @@
 const { DefaultBrowserCheck } = ChromeUtils.importESModule(
   "moz-src:///browser/components/DefaultBrowserCheck.sys.mjs"
 );
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 const { ExperimentAPI } = ChromeUtils.importESModule(
@@ -180,7 +180,7 @@ add_task(async function showDefaultPrompt() {
     .returns(true);
   const promptSpy = sb.spy(DefaultBrowserCheck, "prompt");
   await ExperimentAPI.ready();
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: NimbusFeatures.setToDefaultPrompt.featureId,
       value: {
@@ -247,7 +247,7 @@ add_task(async function showPromptStyleSpotlight() {
   const showSpotlightSpy = sandbox.spy(SpecialMessageActions, "handleAction");
 
   await ExperimentAPI.ready();
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: NimbusFeatures.setToDefaultPrompt.featureId,
       value: {
