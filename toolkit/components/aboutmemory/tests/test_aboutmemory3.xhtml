@@ -179,6 +179,7 @@
 
   let expectedGood =
 "\
+Total resident memory (approximate) -- 0 B\n\
 Main Process (pid NNN)\n\
 Explicit Allocations\n\
 \n\
@@ -248,6 +249,7 @@ End of Other-only process\n\
 
   let expectedGood2 =
 "\
+Total resident memory (approximate) -- 0 B\n\
 Main Process (pid NNN)\n\
 Explicit Allocations\n\
 \n\
@@ -275,6 +277,7 @@ Error: Invalid memory report(s): missing 'hasMozMallocUsableSize' property\
   // This is the output for a non-verbose diff.
   let expectedDiffNonVerbose =
 "\
+Total resident memory (approximate) -- 0.00 MB\n\
 P\n\
 \n\
 WARNING: the 'heap-allocated' memory reporter does not work for this platform and/or configuration. This means that 'heap-unclassified' is not shown and the 'explicit' tree shows less memory than it should.\n\
@@ -380,6 +383,7 @@ End of P9\n\
   // This is the output for a verbose diff.
   let expectedDiffVerbose =
 "\
+Total resident memory (approximate) -- 0 B\n\
 P\n\
 \n\
 WARNING: the 'heap-allocated' memory reporter does not work for this platform and/or configuration. This means that 'heap-unclassified' is not shown and the 'explicit' tree shows less memory than it should.\n\
@@ -487,6 +491,7 @@ End of P9\n\
   // This is the output for the crash reports diff.
   let expectedDiff2 =
 "\
+Total resident memory (approximate) -- 0 B\n\
 Main Process (pid NNN)\n\
 Other Measurements\n\
 \n\
@@ -497,6 +502,7 @@ End of Main Process (pid NNN)\n\
 
   let expectedDiffFiss =
 "\
+Total resident memory (approximate) -- 0 B\n\
 P (pid NNN)\n\
 Explicit Allocations\n\
 \n\
