@@ -2319,7 +2319,7 @@ class AddonDetails extends HTMLElement {
 
     // Set the add-on for the mlmodel details.
     this.mlModelDetails = this.querySelector("addon-mlmodel-details");
-    this.mlModelDetails.addon = addon.type == "mlmodel" ? addon : null;
+    this.mlModelDetails.setAddon(addon.type == "mlmodel" ? addon : null);
     this.querySelector(".addon-detail-mlmodel").hidden =
       addon.type != "mlmodel";
 

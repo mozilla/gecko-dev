@@ -20,3 +20,12 @@ mlmodel-remove-addon-button =
   .aria-label = Remove
 # Label for the aggregated value of all files for a model
 mlmodel-addon-detail-totalsize-label = File size
+mlmodel-addon-detail-last-used-label = Last used
+# This is a section label to describe what extensions or features use a specific local AI model
+mlmodel-addon-detail-used-by-label = Used by
+# This is a section label to describe the link to the model card on the Hugging Face website
+mlmodel-addon-detail-model-card = Model Card
+# This is a label for the Model Card link to Hugging face
+mlmodel-addon-detail-model-card-link-label = View on Hugging Face
+# This is a label for the task the AI model is responsible for
+mlmodel-addon-detial-model-task-label = Task
