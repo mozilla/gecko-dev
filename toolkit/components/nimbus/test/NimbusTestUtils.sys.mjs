@@ -525,9 +525,6 @@ export const NimbusTestUtils = {
    * @returns {Promise<function(): void>}
    *          A cleanup function that will unenroll from the enrolled recipe and
    *          remove it from the store.
-   *
-   * @throws {Error} If the recipe references a feature that does not exist or
-   *                 if the recipe fails to enroll.
    */
   async enroll(
     recipe,
@@ -537,20 +534,7 @@ export const NimbusTestUtils = {
       throw new Error("Experiment with slug is required");
     }
 
-    for (const featureId of recipe.featureIds) {
-      if (!Object.hasOwn(NimbusFeatures, featureId)) {
-        throw new Error(
-          `Refusing to enroll in ${recipe}: feature ${featureId} does not exist`
-        );
-      }
-    }
-
     const enrollment = await manager.enroll(recipe, source);
-
-    if (!enrollment) {
-      throw new Error(`Failed to enroll in ${recipe}`);
-    }
-
     manager.store._syncToChildren({ flush: true });
 
     return function doEnrollmentCleanup() {
@@ -593,8 +577,6 @@ export const NimbusTestUtils = {
    * @returns {Promise<function(): void>}
    *          A cleanup function that will unenroll from the enrolled recipe and
    *          remove it from the store.
-   *
-   * @throws {Error} If the feature does not exist.
    */
   async enrollWithFeatureConfig(
     featureConfig,

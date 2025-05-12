@@ -538,20 +538,7 @@ export class _ExperimentManager {
     }
 
     for (const { featureId } of branch.features) {
-      const feature = lazy.NimbusFeatures[featureId];
-
-      if (!feature) {
-        // We do not submit telemetry about this because, if validation was
-        // enabled, we would have already rejected the recipe in
-        // RemoteSettingsExperimentLoader. This will likely only happen in a
-        // test where enroll is called directly.
-        lazy.log.debug(
-          `Skipping enrollment for ${slug}: no such feature ${featureId}`
-        );
-        return null;
-      }
-
-      if (feature.allowCoenrollment) {
+      if (lazy.NimbusFeatures[featureId]?.allowCoenrollment) {
         continue;
       }
 
