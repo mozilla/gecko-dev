@@ -10,7 +10,6 @@ import {
 } from "devtools/client/shared/vendor/react-dom-factories";
 import PropTypes from "devtools/client/shared/vendor/react-prop-types";
 import { connect } from "devtools/client/shared/vendor/react-redux";
-import { createSelector } from "devtools/client/shared/vendor/reselect";
 import actions from "../../../actions/index";
 
 import { CloseButton } from "../../shared/Button/index";
@@ -39,16 +38,16 @@ class Breakpoint extends PureComponent {
       disableBreakpoint: PropTypes.func.isRequired,
       editor: PropTypes.object.isRequired,
       enableBreakpoint: PropTypes.func.isRequired,
-      frame: PropTypes.object,
       openConditionalPanel: PropTypes.func.isRequired,
       removeBreakpoint: PropTypes.func.isRequired,
       selectSpecificLocation: PropTypes.func.isRequired,
-      selectedSource: PropTypes.object,
+      selectedBreakpointLocation: PropTypes.object.isRequired,
+      isCurrentlyPausedAtBreakpoint: PropTypes.bool.isRequired,
       source: PropTypes.object.isRequired,
-      blackboxedRangesForSource: PropTypes.array.isRequired,
       checkSourceOnIgnoreList: PropTypes.func.isRequired,
       isBreakpointLineBlackboxed: PropTypes.bool,
       showBreakpointContextMenu: PropTypes.func.isRequired,
+      breakpointText: PropTypes.string.isRequired,
     };
   }
 
@@ -62,19 +61,14 @@ class Breakpoint extends PureComponent {
     );
   };
 
-  get selectedLocation() {
-    const { breakpoint, selectedSource } = this.props;
-    return getSelectedLocation(breakpoint, selectedSource);
-  }
-
   stopClicks = event => event.stopPropagation();
 
   onDoubleClick = () => {
     const { breakpoint, openConditionalPanel } = this.props;
     if (breakpoint.options.condition) {
-      openConditionalPanel(this.selectedLocation);
+      openConditionalPanel(this.props.selectedBreakpointLocation);
     } else if (breakpoint.options.logValue) {
-      openConditionalPanel(this.selectedLocation, true);
+      openConditionalPanel(this.props.selectedBreakpointLocation, true);
     }
   };
 
@@ -94,7 +88,7 @@ class Breakpoint extends PureComponent {
   selectBreakpoint = event => {
     event.preventDefault();
     const { selectSpecificLocation } = this.props;
-    selectSpecificLocation(this.selectedLocation);
+    selectSpecificLocation(this.props.selectedBreakpointLocation);
   };
 
   removeBreakpoint = event => {
@@ -112,20 +106,9 @@ class Breakpoint extends PureComponent {
     }
   };
 
-  isCurrentlyPausedAtBreakpoint() {
-    const { frame } = this.props;
-    if (!frame) {
-      return false;
-    }
-
-    const bpId = makeBreakpointId(this.selectedLocation);
-    const frameId = makeBreakpointId(frame.selectedLocation);
-    return bpId == frameId;
-  }
-
   getBreakpointLocation() {
     const { source } = this.props;
-    const { column, line } = this.selectedLocation;
+    const { column, line } = this.props.selectedBreakpointLocation;
 
     const isWasm = source?.isWasm;
     // column is 0-based everywhere, but we want to display 1-based to the user.
@@ -137,26 +120,20 @@ class Breakpoint extends PureComponent {
     return bpLocation;
   }
 
-  getBreakpointText() {
-    const { breakpoint, selectedSource } = this.props;
-    const { condition, logValue } = breakpoint.options;
-    return logValue || condition || getSelectedText(breakpoint, selectedSource);
-  }
-
   highlightText(text = "", editor) {
     const htmlString = editor.highlightText(document, text);
     return { __html: htmlString };
   }
 
   render() {
-    const { breakpoint, editor, isBreakpointLineBlackboxed } = this.props;
-    const text = this.getBreakpointText();
+    const { breakpoint, editor, isBreakpointLineBlackboxed, breakpointText } =
+      this.props;
     const labelId = `${breakpoint.id}-label`;
     return div(
       {
         className: classnames({
           breakpoint,
-          paused: this.isCurrentlyPausedAtBreakpoint(),
+          paused: this.props.isCurrentlyPausedAtBreakpoint,
           disabled: breakpoint.disabled,
           "is-conditional": !!breakpoint.options.condition,
           "is-log": !!breakpoint.options.logValue,
@@ -167,7 +144,7 @@ class Breakpoint extends PureComponent {
         onKeyDown: this.onKeyDown,
         role: "button",
         tabIndex: 0,
-        title: text,
+        title: breakpointText,
       },
       input({
         id: breakpoint.id,
@@ -187,7 +164,7 @@ class Breakpoint extends PureComponent {
         },
         span({
           className: "cm-highlighted",
-          dangerouslySetInnerHTML: this.highlightText(text, editor),
+          dangerouslySetInnerHTML: this.highlightText(breakpointText, editor),
         })
       ),
       div(
@@ -209,34 +186,49 @@ class Breakpoint extends PureComponent {
   }
 }
 
-const getFormattedFrame = createSelector(
-  getSelectedSource,
-  getSelectedFrame,
-  (selectedSource, frame) => {
-    if (!frame) {
-      return null;
-    }
-
-    return {
-      ...frame,
-      selectedLocation: getSelectedLocation(frame, selectedSource),
-    };
+function isCurrentlyPausedAtBreakpoint(
+  state,
+  selectedBreakpointLocation,
+  selectedSource
+) {
+  const frame = getSelectedFrame(state);
+  if (!frame) {
+    return false;
   }
-);
+  const bpId = makeBreakpointId(selectedBreakpointLocation);
+  const frameId = makeBreakpointId(getSelectedLocation(frame, selectedSource));
+  return bpId == frameId;
+}
+
+function getBreakpointText(breakpoint, selectedSource) {
+  const { condition, logValue } = breakpoint.options;
+  return logValue || condition || getSelectedText(breakpoint, selectedSource);
+}
 
 const mapStateToProps = (state, props) => {
-  const blackboxedRangesForSource = getBlackBoxRanges(state)[props.source.url];
+  const { breakpoint, source } = props;
+  const selectedSource = getSelectedSource(state);
+  const selectedBreakpointLocation = getSelectedLocation(
+    breakpoint,
+    selectedSource
+  );
+  const blackboxedRangesForSource = getBlackBoxRanges(state)[source.url];
   const isSourceOnIgnoreList =
     isSourceMapIgnoreListEnabled(state) &&
-    isSourceOnSourceMapIgnoreList(state, props.source);
+    isSourceOnSourceMapIgnoreList(state, source);
   return {
-    selectedSource: getSelectedSource(state),
+    selectedBreakpointLocation,
+    isCurrentlyPausedAtBreakpoint: isCurrentlyPausedAtBreakpoint(
+      state,
+      selectedBreakpointLocation,
+      selectedSource
+    ),
     isBreakpointLineBlackboxed: isLineBlackboxed(
       blackboxedRangesForSource,
-      props.breakpoint.location.line,
+      breakpoint.location.line,
       isSourceOnIgnoreList
     ),
-    frame: getFormattedFrame(state),
+    breakpointText: getBreakpointText(breakpoint, selectedSource),
   };
 };
 
