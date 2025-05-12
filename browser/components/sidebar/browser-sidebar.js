@@ -2076,17 +2076,21 @@ var SidebarController = {
       case "popupshown":
         this.mouseEnterTask?.disarm();
         /* Temporarily remove MousePosTracker listener when a context menu is open */
-        MousePosTracker.removeListener(this);
+        if (e.composedTarget.id !== "tab-preview-panel") {
+          MousePosTracker.removeListener(this);
+        }
         break;
       case "popuphidden":
-        if (this._state.launcherExpanded) {
-          if (this._animationEnabled && !window.gReduceMotion) {
-            this._animateSidebarMain();
+        if (e.composedTarget.id !== "tab-preview-panel") {
+          if (this._state.launcherExpanded) {
+            if (this._animationEnabled && !window.gReduceMotion) {
+              this._animateSidebarMain();
+            }
+            this._state.launcherExpanded = false;
           }
-          this._state.launcherExpanded = false;
+          await this.waitUntilStable();
+          MousePosTracker.addListener(this);
         }
-        await this.waitUntilStable();
-        MousePosTracker.addListener(this);
         break;
       default:
         break;
