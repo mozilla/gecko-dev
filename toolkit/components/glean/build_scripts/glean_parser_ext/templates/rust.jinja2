@@ -200,7 +200,7 @@ pub mod {{ category_name|snake_case }} {
         None
         {%- endif -%})
         {% endif %};
-        {% if obj.type == "event" or obj.type == "object" or obj.labeled %}
+        {% if obj.type == "event" or obj.type == "object" %}
         {#
           event/object metrics don't have a map.
           They don't allocate anymore after instantiation, so it's enough to measure once.

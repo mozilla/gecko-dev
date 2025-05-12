@@ -99,13 +99,6 @@ pub mod test {
             };
         let metric = LabeledMetric::new(BaseMetricId(4), meta, None)
 ;
-        #[cfg(feature = "with_gecko")]
-        {
-            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
-                use malloc_size_of::MallocSizeOf;
-                super::count_memory_usage(metric.size_of(ops));
-            });
-        }
         metric
     });
 
@@ -176,13 +169,6 @@ pub mod test {
             };
         let metric = LabeledMetric::new(BaseMetricId(5), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
 ;
-        #[cfg(feature = "with_gecko")]
-        {
-            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
-                use malloc_size_of::MallocSizeOf;
-                super::count_memory_usage(metric.size_of(ops));
-            });
-        }
         metric
     });
 
@@ -205,13 +191,6 @@ pub mod test {
             };
         let metric = LabeledMetric::new(BaseMetricId(6), meta, None)
 ;
-        #[cfg(feature = "with_gecko")]
-        {
-            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
-                use malloc_size_of::MallocSizeOf;
-                super::count_memory_usage(metric.size_of(ops));
-            });
-        }
         metric
     });
 
@@ -258,13 +237,6 @@ pub mod test {
             };
         let metric = LabeledMetric::new(BaseMetricId(7), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
 ;
-        #[cfg(feature = "with_gecko")]
-        {
-            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
-                use malloc_size_of::MallocSizeOf;
-                super::count_memory_usage(metric.size_of(ops));
-            });
-        }
         metric
     });
 
@@ -287,13 +259,6 @@ pub mod test {
             };
         let metric = LabeledMetric::new(BaseMetricId(8), meta, None)
 ;
-        #[cfg(feature = "with_gecko")]
-        {
-            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
-                use malloc_size_of::MallocSizeOf;
-                super::count_memory_usage(metric.size_of(ops));
-            });
-        }
         metric
     });
 
@@ -340,13 +305,6 @@ pub mod test {
             };
         let metric = LabeledMetric::new(BaseMetricId(9), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
 ;
-        #[cfg(feature = "with_gecko")]
-        {
-            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
-                use malloc_size_of::MallocSizeOf;
-                super::count_memory_usage(metric.size_of(ops));
-            });
-        }
         metric
     });
 
@@ -509,13 +467,6 @@ pub mod test {
             };
         let metric = LabeledMetric::with_unordered_ipc(BaseMetricId(17), meta, None)
 ;
-        #[cfg(feature = "with_gecko")]
-        {
-            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
-                use malloc_size_of::MallocSizeOf;
-                super::count_memory_usage(metric.size_of(ops));
-            });
-        }
         metric
     });
 
@@ -885,13 +836,6 @@ pub mod test2 {
             };
         let metric = LabeledMetric::new(BaseMetricId(32), meta, None)
 ;
-        #[cfg(feature = "with_gecko")]
-        {
-            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
-                use malloc_size_of::MallocSizeOf;
-                super::count_memory_usage(metric.size_of(ops));
-            });
-        }
         metric
     });
 
@@ -962,13 +906,6 @@ pub mod test2 {
             };
         let metric = LabeledMetric::new(BaseMetricId(33), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
 ;
-        #[cfg(feature = "with_gecko")]
-        {
-            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
-                use malloc_size_of::MallocSizeOf;
-                super::count_memory_usage(metric.size_of(ops));
-            });
-        }
         metric
     });
 
@@ -991,13 +928,6 @@ pub mod test2 {
             };
         let metric = LabeledMetric::new(BaseMetricId(34), meta, None)
 ;
-        #[cfg(feature = "with_gecko")]
-        {
-            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
-                use malloc_size_of::MallocSizeOf;
-                super::count_memory_usage(metric.size_of(ops));
-            });
-        }
         metric
     });
 
@@ -1044,13 +974,6 @@ pub mod test2 {
             };
         let metric = LabeledMetric::new(BaseMetricId(35), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
 ;
-        #[cfg(feature = "with_gecko")]
-        {
-            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
-                use malloc_size_of::MallocSizeOf;
-                super::count_memory_usage(metric.size_of(ops));
-            });
-        }
         metric
     });
 
@@ -1073,13 +996,6 @@ pub mod test2 {
             };
         let metric = LabeledMetric::new(BaseMetricId(36), meta, None)
 ;
-        #[cfg(feature = "with_gecko")]
-        {
-            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
-                use malloc_size_of::MallocSizeOf;
-                super::count_memory_usage(metric.size_of(ops));
-            });
-        }
         metric
     });
 
@@ -1126,13 +1042,6 @@ pub mod test2 {
             };
         let metric = LabeledMetric::new(BaseMetricId(37), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
 ;
-        #[cfg(feature = "with_gecko")]
-        {
-            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
-                use malloc_size_of::MallocSizeOf;
-                super::count_memory_usage(metric.size_of(ops));
-            });
-        }
         metric
     });
 
@@ -1295,13 +1204,6 @@ pub mod test2 {
             };
         let metric = LabeledMetric::with_unordered_ipc(BaseMetricId(45), meta, None)
 ;
-        #[cfg(feature = "with_gecko")]
-        {
-            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
-                use malloc_size_of::MallocSizeOf;
-                super::count_memory_usage(metric.size_of(ops));
-            });
-        }
         metric
     });
 
