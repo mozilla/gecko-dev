@@ -8866,10 +8866,9 @@ var TabContextMenu = {
     let contextUngroupTab = document.getElementById("context_ungroupTab");
 
     if (gBrowser._tabGroupsEnabled) {
-      let groupableTabs = this.contextTabs.filter(t => !t.pinned);
       let selectedGroupCount = new Set(
         // The filter removes the "null" group for ungrouped tabs.
-        groupableTabs.map(t => t.group).filter(g => g)
+        this.contextTabs.map(t => t.group).filter(g => g)
       ).size;
 
       let availableGroupsToMoveTo = gBrowser
@@ -8881,16 +8880,13 @@ var TabContextMenu = {
       // Determine whether or not the "current" tab group should appear in the
       // "move tab to group" context menu.
       if (selectedGroupCount == 1) {
-        let groupToFilter = groupableTabs[0].group;
-        if (groupToFilter && groupableTabs.every(t => t.group)) {
+        let groupToFilter = this.contextTabs[0].group;
+        if (groupToFilter && this.contextTabs.every(t => t.group)) {
           availableGroupsToMoveTo = availableGroupsToMoveTo.filter(
             group => group !== groupToFilter
           );
         }
       }
-
-      contextMoveTabToGroup.disabled = !groupableTabs.length;
-      contextMoveTabToNewGroup.disabled = !groupableTabs.length;
       if (!availableGroupsToMoveTo.length) {
         contextMoveTabToGroup.hidden = true;
         contextMoveTabToNewGroup.hidden = false;
