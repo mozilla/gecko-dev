@@ -11,14 +11,10 @@
 #include "ImageContainer.h"
 #include "MediaContainerType.h"
 #include "MediaResource.h"
-#include "PDMFactory.h"
 #include "TimeUnits.h"
 #include "mozilla/Base64.h"
-#include "mozilla/EnumeratedRange.h"
 #include "mozilla/dom/ContentChild.h"
-#include "mozilla/gfx/gfxVars.h"
 #include "mozilla/SchedulerGroup.h"
-#include "mozilla/ScopeExit.h"
 #include "mozilla/SharedThreadPool.h"
 #include "mozilla/StaticPrefs_accessibility.h"
 #include "mozilla/StaticPrefs_media.h"
@@ -1238,13 +1234,12 @@ bool OnCellularConnection() {
     case nsINetworkLinkService::LINK_TYPE_ETHERNET:
     case nsINetworkLinkService::LINK_TYPE_USB:
     case nsINetworkLinkService::LINK_TYPE_WIFI:
+    default:
       return false;
     case nsINetworkLinkService::LINK_TYPE_WIMAX:
     case nsINetworkLinkService::LINK_TYPE_MOBILE:
       return true;
   }
-
-  return false;
 }
 
 bool IsWaveMimetype(const nsACString& aMimeType) {

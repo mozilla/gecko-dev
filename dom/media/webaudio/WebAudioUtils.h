@@ -11,7 +11,6 @@
 #include <limits>
 #include <type_traits>
 #include "fdlibm.h"
-#include "mozilla/FloatingPoint.h"
 #include "mozilla/Logging.h"
 #include "MediaSegment.h"
 
@@ -43,7 +42,8 @@ inline bool FuzzyEqual(double v1, double v2) { return fabs(v1 - v2) < 1e-7; }
  * value is 0.
  */
 inline float ConvertLinearToDecibels(float aLinearValue, float aMinDecibels) {
-  return aLinearValue ? 20.0f * fdlibm_log10f(aLinearValue) : aMinDecibels;
+  MOZ_ASSERT(aLinearValue >= 0);
+  return aLinearValue > 0.0f ? 20.0f * fdlibm_log10f(aLinearValue) : aMinDecibels;
 }
 
 /**
