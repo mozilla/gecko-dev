@@ -1430,6 +1430,7 @@ def build_treescript_payload(config, task, task_def):
         Optional("ignore-closed-tree"): bool,
         Optional("dontbuild"): bool,
         Optional("tags"): [Any("buildN", "release", None)],
+        Optional("force-dry-run"): bool,
         Optional("l10n-bump-info"): [
             {
                 Required("name"): str,
@@ -1447,6 +1448,7 @@ def build_treescript_payload(config, task, task_def):
             }
         ],
         Optional("bump-files"): [str],
+        Optional("merge-info"): object,
     },
 )
 def build_landoscript_payload(config, task, task_def):
@@ -1460,6 +1462,9 @@ def build_landoscript_payload(config, task, task_def):
 
     if worker.get("dontbuild"):
         task_def["payload"]["dontbuild"] = True
+
+    if worker.get("force-dry-run"):
+        task_def["payload"]["dry_run"] = True
 
     if worker.get("l10n-bump-info"):
         l10n_bump_info = []
@@ -1509,6 +1514,34 @@ def build_landoscript_payload(config, task, task_def):
         bump_info["files"] = worker["bump-files"]
         task_def["payload"]["version_bump_info"] = bump_info
         actions.append("version_bump")
+
+    if worker.get("merge-info"):
+        merge_info = {
+            merge_param_name.replace("-", "_"): merge_param_value
+            for merge_param_name, merge_param_value in worker["merge-info"].items()
+            if merge_param_name != "version-files"
+        }
+        merge_info["version_files"] = [
+            {
+                file_param_name.replace("-", "_"): file_param_value
+                for file_param_name, file_param_value in file_entry.items()
+            }
+            for file_entry in worker["merge-info"]["version-files"]
+        ]
+        # hack alert: co-opt the l10n_bump_info into the merge_info section
+        # this should be cleaned up to avoid l10n_bump_info ever existing
+        # in the payload
+        if task_def["payload"].get("l10n_bump_info"):
+            actions.remove("l10n_bump")
+            merge_info["l10n_bump_info"] = task_def["payload"].pop("l10n_bump_info")
+
+        task_def["payload"]["merge_info"] = merge_info
+        actions.append("merge_day")
+
+    scopes = set(task_def.get("scopes", []))
+    scopes.add(f"project:releng:lando:repo:{worker['lando-repo']}")
+    scopes.update([f"project:releng:lando:action:{action}" for action in actions])
+    task_def["scopes"] = sorted(scopes)
 
 
 @payload_builder(
