@@ -658,13 +658,29 @@ void NativeLayerWayland::UpdateLayer(double aScale) {
 
     mSurface->SetTransformFlippedLocked(surfaceLock, transform2D._11 < 0.0,
                                         transform2D._22 < 0.0);
-    gfx::IntPoint pos((int)floor(surfaceRectClipped.x / aScale),
-                      (int)floor(surfaceRectClipped.y / aScale));
-    mSurface->MoveLocked(surfaceLock, pos);
+    gfx::IntPoint pos((int)roundf(surfaceRectClipped.x),
+                      (int)roundf(surfaceRectClipped.y));
 
-    gfx::IntSize size((int)ceil(surfaceRectClipped.width / aScale),
-                      (int)ceil(surfaceRectClipped.height / aScale));
-    mSurface->SetViewPortDestLocked(surfaceLock, size);
+    // Only integer scale is supported right now
+    int scale = (int)roundf(aScale);
+    if (pos.x % scale || pos.y % scale) {
+      NS_WARNING(
+          "NativeLayerWayland: Tile position doesn't match scale, rendering "
+          "glitches ahead!");
+    }
+
+    mSurface->MoveLocked(surfaceLock,
+                         gfx::IntPoint(pos.x / scale, pos.y / scale));
+
+    gfx::IntSize size((int)roundf(surfaceRectClipped.width),
+                      (int)roundf(surfaceRectClipped.height));
+    if (size.width % scale || size.height % scale) {
+      NS_WARNING(
+          "NativeLayerWayland: Tile size doesn't match scale, rendering "
+          "glitches ahead!");
+    }
+    mSurface->SetViewPortDestLocked(
+        surfaceLock, gfx::IntSize(size.width / scale, size.height / scale));
 
     auto transform2DInversed = transform2D.Inverse();
     Rect bufferClip = transform2DInversed.TransformBounds(surfaceRectClipped);
