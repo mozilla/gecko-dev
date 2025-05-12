@@ -135,6 +135,19 @@ static NotNull<Accessible*> GetSelectionContainer(TextLeafRange& aRange) {
   return WrapNotNull(nsAccUtils::DocumentFor(acc));
 }
 
+static TextLeafPoint NormalizePoint(Accessible* aAcc, int32_t aOffset) {
+  if (!aAcc) {
+    return TextLeafPoint(aAcc, aOffset);
+  }
+  int32_t length = static_cast<int32_t>(nsAccUtils::TextLength(aAcc));
+  if (aOffset > length) {
+    // This range was created when this leaf contained more characters, but some
+    // characters were since removed. Restrict to the new length.
+    aOffset = length;
+  }
+  return TextLeafPoint(aAcc, aOffset);
+}
+
 // UiaTextRange
 
 UiaTextRange::UiaTextRange(const TextLeafRange& aRange) {
@@ -163,12 +176,12 @@ TextLeafRange UiaTextRange::GetRange() const {
   // handle this case.
   if (mIsEndOfLineInsertionPoint) {
     MOZ_ASSERT(mStartAcc == mEndAcc && mStartOffset == mEndOffset);
-    TextLeafPoint point(mStartAcc->Acc(), mStartOffset);
+    TextLeafPoint point = NormalizePoint(mStartAcc->Acc(), mStartOffset);
     point.mIsEndOfLineInsertionPoint = true;
     return TextLeafRange(point, point);
   }
-  return TextLeafRange({mStartAcc->Acc(), mStartOffset},
-                       {mEndAcc->Acc(), mEndOffset});
+  return TextLeafRange(NormalizePoint(mStartAcc->Acc(), mStartOffset),
+                       NormalizePoint(mEndAcc->Acc(), mEndOffset));
 }
 
 /* static */

@@ -1086,6 +1086,50 @@ addUiaTask(
 );
 
 /**
+ * Test the GetAttributeValue method when backspacing a character at the end of
+ * a document.
+ */
+addUiaTask(
+  `a<input id="input" value="bc">`,
+  async function testTextRangeGetAttributeValueBackspaceAtDocEnd(
+    browser,
+    docAcc
+  ) {
+    const input = findAccessibleChildByID(docAcc, "input");
+    info("Focusing input");
+    let moved = waitForEvent(EVENT_TEXT_CARET_MOVED, input);
+    input.takeFocus();
+    await moved;
+    info("Pressing end");
+    moved = waitForEvent(EVENT_TEXT_CARET_MOVED, input);
+    EventUtils.synthesizeKey("KEY_End");
+    await moved;
+    await runPython(`
+      global doc, range
+      doc = getDocUia()
+      input = findUiaByDomId(doc, "input")
+      text = getUiaPattern(input, "Text")
+      range = text.GetSelection().GetElement(0)
+    `);
+    // `range` is collapsed at the end of the input, after "c".
+    is(
+      await runPython(`range.GetAttributeValue(UIA_IsReadOnlyAttributeId)`),
+      false,
+      "IsReadOnly correct"
+    );
+    info("Backspacing c");
+    moved = waitForEvent(EVENT_TEXT_CARET_MOVED, input);
+    EventUtils.synthesizeKey("KEY_Backspace");
+    await moved;
+    is(
+      await runPython(`range.GetAttributeValue(UIA_IsReadOnlyAttributeId)`),
+      false,
+      "IsReadOnly correct"
+    );
+  }
+);
+
+/**
  * Test the TextRange pattern's Move method.
  */
 addUiaTask(
