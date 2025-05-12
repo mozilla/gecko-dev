@@ -65,6 +65,11 @@ class ProviderTabGroups extends ActionsProvider {
       }
     }
 
+    if (queryContext.isPrivate) {
+      // Tab groups can't be saved or reopened in private windows.
+      return results;
+    }
+
     for (let savedGroup of lazy.SessionStore.getSavedTabGroups()) {
       if (this.#matches(savedGroup.name, queryContext)) {
         results.push(

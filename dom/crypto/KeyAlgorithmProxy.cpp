@@ -236,6 +236,10 @@ nsString KeyAlgorithmProxy::JwkAlg() const {
     }
   }
 
+  if (mName.EqualsLiteral(WEBCRYPTO_ALG_ED25519)) {
+    return NS_LITERAL_STRING_FROM_CSTRING(JWK_ALG_ED25519);
+  }
+
   return nsString();
 }
 

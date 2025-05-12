@@ -471,7 +471,7 @@ class ClassificationProvider:
                 "suites": [Suites.RAPTOR.value],
                 "app-restrictions": {},
                 "tasks": [],
-                "description": "A group of Speedometer3 tests on various platforms and architectures, speedometer3 is"
+                "description": "A group of Speedometer3 tests on various platforms and architectures, speedometer3 is "
                 "currently the best benchmark we have for a baseline on real-world web performance",
             },
             "Responsiveness": {
@@ -489,7 +489,7 @@ class ClassificationProvider:
                     ],
                 },
                 "tasks": [],
-                "description": "A group of tests that ensure that the interactive part of the browser stays fast and"
+                "description": "A group of tests that ensure that the interactive part of the browser stays fast and "
                 "responsive",
             },
             "Benchmarks": {
@@ -552,7 +552,7 @@ class ClassificationProvider:
                     Suites.TALOS.value: [Apps.FIREFOX.value],
                 },
                 "tasks": [],
-                "description": "A group of tests that monitor resource usage of various metrics like power, CPU, and"
+                "description": "A group of tests that monitor resource usage of various metrics like power, CPU, and "
                 "memory",
             },
             "Graphics, & Media Playback": {

@@ -498,20 +498,22 @@ DevTools.prototype = {
    *
    * @param {Commands Object} commands
    *         The commands object which designates which context the toolbox will debug
-   * @param {Object}
-   *        - {String} toolId
-   *          The id of the tool to show
-   *        - {Toolbox.HostType} hostType
-   *          The type of host (bottom, window, left, right)
-   *        - {object} hostOptions
-   *          Options for host specifically
-   *        - {Number} startTime
-   *          Indicates the time at which the user event related to
-   *          this toolbox opening started. This is a `Cu.now()` timing.
-   *        - {string} reason
-   *          Reason the tool was opened
-   *        - {boolean} raise
-   *          Whether we need to raise the toolbox or not.
+   * @param {Object} options
+   * @param {String} options.toolId
+   *        The id of the tool to show
+   * @param {Object} options.toolOptions
+   *        Options that will be passed to the tool init function
+   * @param {Toolbox.HostType}options. hostType
+   *        The type of host (bottom, window, left, right)
+   * @param {object} options.hostOptions
+   *        Options for host specifically
+   * @param {Number} options.startTime
+   *        Indicates the time at which the user event related to
+   *        this toolbox opening started. This is a `Cu.now()` timing.
+   * @param {string} options.reason
+   *        Reason the tool was opened
+   * @param {boolean} options.raise
+   *        Whether we need to raise the toolbox or not.
    *
    * @return {Toolbox} toolbox
    *        The toolbox that was opened
@@ -520,6 +522,7 @@ DevTools.prototype = {
     commands,
     {
       toolId,
+      toolOptions,
       hostType,
       startTime,
       raise = true,
@@ -537,7 +540,7 @@ DevTools.prototype = {
       if (toolId != null) {
         // selectTool will either select the tool if not currently selected, or wait for
         // the tool to be loaded if needed.
-        await toolbox.selectTool(toolId, reason);
+        await toolbox.selectTool(toolId, reason, toolOptions);
       }
 
       if (raise) {
@@ -551,12 +554,12 @@ DevTools.prototype = {
       if (promise) {
         return promise;
       }
-      const toolboxPromise = this._createToolbox(
-        commands,
+      const toolboxPromise = this._createToolbox(commands, {
         toolId,
+        toolOptions,
         hostType,
-        hostOptions
-      );
+        hostOptions,
+      });
       this._creatingToolboxes.set(commands, toolboxPromise);
       toolbox = await toolboxPromise;
       this._creatingToolboxes.delete(commands);
@@ -603,7 +606,15 @@ DevTools.prototype = {
    */
   async showToolboxForTab(
     tab,
-    { toolId, hostType, startTime, raise, reason, hostOptions } = {}
+    {
+      toolId,
+      toolOptions,
+      hostType,
+      startTime,
+      raise,
+      reason,
+      hostOptions,
+    } = {}
   ) {
     // Popups are debugged via the toolbox of their opener document/tab.
     // So avoid opening dedicated toolbox for them.
@@ -626,6 +637,7 @@ DevTools.prototype = {
     const commands = await LocalTabCommandsFactory.createCommandsForTab(tab);
     return this.showToolbox(commands, {
       toolId,
+      toolOptions,
       hostType,
       startTime,
       raise,
@@ -729,10 +741,13 @@ DevTools.prototype = {
    * Unconditionally create a new Toolbox instance for the provided commands.
    * See `showToolbox` for the arguments' jsdoc.
    */
-  async _createToolbox(commands, toolId, hostType, hostOptions) {
+  async _createToolbox(
+    commands,
+    { toolId, toolOptions, hostType, hostOptions } = {}
+  ) {
     const manager = new ToolboxHostManager(commands, hostType, hostOptions);
 
-    const toolbox = await manager.create(toolId);
+    const toolbox = await manager.create(toolId, toolOptions);
 
     this._toolboxesPerCommands.set(commands, toolbox);
 
@@ -851,11 +866,24 @@ DevTools.prototype = {
    *         markup view.
    */
   async inspectNode(tab, domReference, startTime) {
+    const toolboxWasOpened = !!gDevTools.getToolboxForTab(tab);
     const toolbox = await gDevTools.showToolboxForTab(tab, {
       toolId: "inspector",
+      toolOptions: {
+        defaultStartupNodeDomReference: domReference,
+        defaultStartupNodeSelectionReason: "browser-context-menu",
+      },
       startTime,
       reason: "inspect_dom",
     });
+
+    // If the toolbox wasn't opened yet, the selection of the node will be handled by
+    // the defaultStartupNodeDomReference option, so we can stop here.
+    if (!toolboxWasOpened) {
+      return;
+    }
+
+    // But if the toolbox was already opened, we need to explicitely select the node.
     const inspector = toolbox.getCurrentPanel();
 
     const nodeFront =

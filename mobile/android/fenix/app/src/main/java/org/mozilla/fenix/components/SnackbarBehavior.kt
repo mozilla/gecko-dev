@@ -39,6 +39,7 @@ class SnackbarBehavior<V : View>(
         if (toolbarPosition == ToolbarPosition.BOTTOM) {
             add(R.id.toolbarLayout)
             add(R.id.toolbar)
+            add(R.id.composable_toolbar)
         }
     }
 

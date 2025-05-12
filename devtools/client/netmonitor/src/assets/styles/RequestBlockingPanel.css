@@ -113,10 +113,6 @@
   background-color: transparent;
 }
 
-.request-blocking-remove-button::-moz-focus-inner {
-  border: none;
-}
-
 .request-blocking-list li:hover .request-blocking-remove-button {
   opacity: 1;
 }

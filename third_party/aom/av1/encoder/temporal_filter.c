@@ -184,6 +184,10 @@ static void tf_motion_search(AV1_COMP *cpi, MACROBLOCK *mb,
   mbd->plane[0].pre[0].buf = ref_frame->y_buffer + y_offset;
   mbd->plane[0].pre[0].stride = y_stride;
   mbd->plane[0].pre[0].width = ref_width;
+  mbd->mi_row =
+      mb_row * (block_size_high[block_size] / block_size_high[BLOCK_4X4]);
+  mbd->mi_col =
+      mb_col * (block_size_wide[block_size] / block_size_wide[BLOCK_4X4]);
   *is_dc_diff_large = 0;
 
   const SEARCH_METHODS search_method = NSTEP;

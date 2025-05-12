@@ -5,7 +5,9 @@
 package mozilla.components.compose.browser.toolbar.concept
 
 import androidx.annotation.StringRes
-import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FadeDirection.FADE_DIRECTION_END
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.PageOriginContextualMenuInteractions.CopyToClipboardClicked
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.PageOriginContextualMenuInteractions.LoadFromClipboardClicked
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.PageOriginContextualMenuInteractions.PasteFromClipboardClicked
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TextGravity.TEXT_GRAVITY_START
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
@@ -19,7 +21,6 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteractio
  * @property onClick [BrowserToolbarInteraction] describing how to handle any page origin detail being clicked.
  * @property onLongClick Optional [BrowserToolbarInteraction] describing how to handle any page origin detail
  * being long clicked.
- * @property fadeDirection The direction in which the text should fade.
  * @property textGravity The gravity of the text - whether to show the start or end of long text
  * that does not fit the available space.
  */
@@ -27,33 +28,59 @@ data class PageOrigin(
     @StringRes val hint: Int,
     val title: String?,
     val url: String?,
-    val onClick: BrowserToolbarEvent,
-    val onLongClick: BrowserToolbarInteraction? = null,
-    val fadeDirection: FadeDirection = FADE_DIRECTION_END,
     val textGravity: TextGravity = TEXT_GRAVITY_START,
+    val contextualMenuOptions: List<ContextualMenuOption> = emptyList(),
+    val onClick: BrowserToolbarEvent,
+    val onLongClick: BrowserToolbarEvent? = null,
 ) {
     /**
      * Static values used in the configuration of the [PageOrigin] class.
      */
     companion object {
         /**
-         * The direction in which the text should fade if it does not fit the available space.
+         * All events dispatched when users interact with the contextual menu shown
+         * when long clicking on the page origin.
          */
-        enum class FadeDirection {
+        sealed class PageOriginContextualMenuInteractions : BrowserToolbarEvent {
             /**
-             * No text fading.
+             * [BrowserToolbarEvent] dispatched when the user clicks on the button from the contextual menu
+             * shown when long clicking on the page origin that allows copying the current URL to clipboard.
              */
-            FADE_DIRECTION_NONE,
+            data object CopyToClipboardClicked : PageOriginContextualMenuInteractions()
 
             /**
-             * Text that overflows the available space should be faded at the start.
+             * [BrowserToolbarEvent] dispatched when the user clicks on the button from the contextual menu
+             * shown when long clicking on the page origin that allows pasting the current text from clipboard.
              */
-            FADE_DIRECTION_START,
+            data object PasteFromClipboardClicked : PageOriginContextualMenuInteractions()
 
             /**
-             * Text that overflows the available space should be faded at the end.
+             * [BrowserToolbarEvent] dispatched when the user clicks on the button from the contextual menu
+             * shown when long clicking on the page origin that allows pasting the current text from clipboard
+             * with the intention to load it as an URL.
              */
-            FADE_DIRECTION_END,
+            data object LoadFromClipboardClicked : PageOriginContextualMenuInteractions()
+        }
+
+        /**
+         * Available options to show in the contextual menu from long clicking on the page origin.
+         */
+        enum class ContextualMenuOption(val event: PageOriginContextualMenuInteractions) {
+            /**
+             * Show a button that allows copying the current URL to device's clipboard.
+             */
+            CopyURLToClipboard(CopyToClipboardClicked),
+
+            /**
+             * Show a button that allows pasting the current text from device's clipboard.
+             */
+            PasteFromClipboard(PasteFromClipboardClicked),
+
+            /**
+             * Show a button that allows pasting the current text from device's clipboard with the
+             * intention to use it as an URL.
+             */
+            LoadFromClipboard(LoadFromClipboardClicked),
         }
 
         /**

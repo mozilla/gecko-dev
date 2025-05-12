@@ -16,6 +16,7 @@ import mozilla.components.service.sync.logins.InvalidRecordException
 import mozilla.components.service.sync.logins.SyncableLoginsStorage
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
+import mozilla.components.support.utils.ClipboardHandler
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -25,7 +26,6 @@ import org.mozilla.fenix.ext.directionsEq
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.logins.controller.SavedLoginsStorageController
 import org.mozilla.fenix.settings.logins.fragment.EditLoginFragmentDirections
-import org.mozilla.fenix.utils.ClipboardHandler
 
 @RunWith(FenixRobolectricTestRunner::class)
 class SavedLoginsStorageControllerTest {

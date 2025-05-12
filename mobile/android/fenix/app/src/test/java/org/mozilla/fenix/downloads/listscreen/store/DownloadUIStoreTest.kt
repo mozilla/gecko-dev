@@ -118,7 +118,6 @@ class DownloadUIStoreTest {
             pendingDeletionIds = emptySet(),
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
             searchQuery = "",
-            isSearchEnabled = true,
         )
         val store = DownloadUIStore(initialState)
 
@@ -165,7 +164,6 @@ class DownloadUIStoreTest {
             pendingDeletionIds = emptySet(),
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
             searchQuery = "",
-            isSearchEnabled = true,
         )
         val store = DownloadUIStore(initialState)
 
@@ -178,7 +176,6 @@ class DownloadUIStoreTest {
             pendingDeletionIds = emptySet(),
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.Image,
             searchQuery = "",
-            isSearchEnabled = true,
         )
 
         assertEquals(expected, store.state)
@@ -228,7 +225,6 @@ class DownloadUIStoreTest {
             pendingDeletionIds = emptySet(),
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
             searchQuery = "",
-            isSearchEnabled = true,
         )
         val store = DownloadUIStore(initialState)
 
@@ -242,7 +238,6 @@ class DownloadUIStoreTest {
             pendingDeletionIds = emptySet(),
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.Image,
             searchQuery = "url",
-            isSearchEnabled = true,
         )
 
         assertEquals(expected, store.state)

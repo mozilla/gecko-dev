@@ -17,7 +17,7 @@ const TEST_URI = `
 
 add_task(async function () {
   await addTab("data:text/html;charset=utf-8," + encodeURIComponent(TEST_URI));
-  const { inspector, view } = await openRuleView();
+  const { inspector, view } = await openRuleView({ overrideDebounce: false });
   await selectNode("#testid", inspector);
 
   const ruleEditor = getRuleViewRuleEditor(view, 1);
@@ -38,10 +38,27 @@ add_task(async function () {
     "#00F background color is set."
   );
 
-  await focusEditableField(view, propEditor.valueSpan);
+  const editor = await focusEditableField(view, propEditor.valueSpan);
+  info("Delete input value");
   const onValueDeleted = view.once("ruleview-changed");
-  await sendKeysAndWaitForFocus(view, ruleEditor.element, ["DELETE", "ESCAPE"]);
+  EventUtils.sendKey("DELETE", view.styleWindow);
   await onValueDeleted;
+
+  is(editor.input.value, "", "value input is empty");
+
+  await waitFor(() => view.popup?.isOpen);
+  ok(true, "autocomplete popup opened");
+
+  info("Hide autocomplete popup");
+  const onPopupClosed = once(view.popup, "popup-closed");
+  EventUtils.sendKey("ESCAPE", view.styleWindow);
+  await onPopupClosed;
+  ok(true, "popup was closed");
+
+  info("Cancel edit with escape key");
+  const onRuleViewChanged = view.once("ruleview-changed");
+  EventUtils.sendKey("ESCAPE", view.styleWindow);
+  await onRuleViewChanged;
 
   is(
     propEditor.valueSpan.textContent,
@@ -52,5 +69,11 @@ add_task(async function () {
     await getComputedStyleProperty("#testid", null, "background-color"),
     "rgb(0, 0, 255)",
     "#00F background color is set."
+  );
+
+  is(
+    propEditor.warning.hidden,
+    true,
+    "warning icon is hidden after cancelling the edit"
   );
 });

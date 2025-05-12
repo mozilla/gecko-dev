@@ -79,8 +79,6 @@ class nsNativeThemeWin final : public Theme {
 
   bool ThemeDrawsFocusForWidget(nsIFrame*, StyleAppearance) override;
 
-  bool ThemeWantsButtonInnerFocusRing() override { return true; }
-
   nsNativeThemeWin();
 
  protected:

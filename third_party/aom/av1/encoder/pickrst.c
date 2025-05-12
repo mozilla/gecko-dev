@@ -1507,7 +1507,6 @@ static int64_t finer_search_wiener(const RestSearchCtxt *rsc,
 
   WienerInfo *plane_wiener = &rui->wiener_info;
 
-  // printf("err  pre = %"PRId64"\n", err);
   const int start_step = 4;
   for (int s = start_step; s >= 1; s >>= 1) {
     for (int p = plane_off; p < WIENER_HALFWIN; ++p) {
@@ -1593,7 +1592,6 @@ static int64_t finer_search_wiener(const RestSearchCtxt *rsc,
       } while (1);
     }
   }
-  // printf("err post = %"PRId64"\n", err);
   return err;
 }
 
@@ -2051,6 +2049,8 @@ void av1_pick_filter_restoration(const YV12_BUFFER_CONFIG *src, AV1_COMP *cpi) {
   // cpi->sf.lpf_sf.min_lr_unit_size does not need to know the superblock size
   min_lr_unit_size =
       AOMMAX(min_lr_unit_size, block_size_wide[cm->seq_params->sb_size]);
+
+  max_lr_unit_size = AOMMAX(min_lr_unit_size, max_lr_unit_size);
 
   for (int plane = 0; plane < num_planes; ++plane) {
     cpi->pick_lr_ctxt.rusi[plane] = allocate_search_structs(

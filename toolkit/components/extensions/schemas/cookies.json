@@ -21,7 +21,7 @@
       {
         "id": "SameSiteStatus",
         "type": "string",
-        "enum": ["no_restriction", "lax", "strict"],
+        "enum": ["unspecified", "no_restriction", "lax", "strict"],
         "description": "A cookie's 'SameSite' state (https://tools.ietf.org/html/draft-west-first-party-cookies). 'no_restriction' corresponds to a cookie set without a 'SameSite' attribute, 'lax' to 'SameSite=Lax', and 'strict' to 'SameSite=Strict'."
       },
       {
@@ -307,7 +307,7 @@
                 "$ref": "SameSiteStatus",
                 "optional": true,
                 "description": "The cookie's same-site status.",
-                "default": "no_restriction"
+                "default": "unspecified"
               },
               "expirationDate": {
                 "type": "number",

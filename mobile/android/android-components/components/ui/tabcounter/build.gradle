@@ -2,9 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+plugins {
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+}
+
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'com.google.devtools.ksp'
 
 android {
     defaultConfig {
@@ -32,7 +35,13 @@ dependencies {
     implementation project(':support-ktx')
     implementation project(':support-utils')
 
+    implementation libs.androidx.compose.ui
+    implementation libs.androidx.compose.ui.tooling.preview
+    implementation libs.androidx.compose.foundation
+    implementation libs.androidx.compose.material
+
     implementation libs.androidx.core.ktx
+    implementation project(':compose-base')
     implementation project(':concept-menu')
     implementation project(':browser-menu2')
     implementation project(':support-base')

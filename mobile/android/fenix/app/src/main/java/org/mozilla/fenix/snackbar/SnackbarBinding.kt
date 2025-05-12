@@ -264,6 +264,13 @@ class SnackbarBinding(
                         appStore.dispatch(SnackbarAction.SnackbarShown)
                     }
 
+                    is SnackbarState.URLCopiedToClipboard -> {
+                        snackbarDelegate.show(
+                            text = context.getString(R.string.browser_toolbar_url_copied_to_clipboard_snackbar),
+                        )
+                        appStore.dispatch(SnackbarAction.SnackbarShown)
+                    }
+
                     SnackbarState.None -> Unit
                 }
             }

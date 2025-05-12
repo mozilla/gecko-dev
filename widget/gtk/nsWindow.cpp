@@ -249,17 +249,6 @@ static gboolean touch_event_cb(GtkWidget* aWidget, GdkEventTouch* aEvent);
 static gboolean generic_event_cb(GtkWidget* widget, GdkEvent* aEvent);
 static void widget_destroy_cb(GtkWidget* widget, gpointer user_data);
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-#ifdef MOZ_X11
-static GdkFilterReturn popup_take_focus_filter(GdkXEvent* gdk_xevent,
-                                               GdkEvent* event, gpointer data);
-#endif /* MOZ_X11 */
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-
 static gboolean drag_motion_event_cb(GtkWidget* aWidget,
                                      GdkDragContext* aDragContext, gint aX,
                                      gint aY, guint aTime, gpointer aData);
@@ -445,7 +434,6 @@ nsWindow::nsWindow()
       mPendingBoundsChangeMayChangeCsdMargin(false),
       mTitlebarBackdropState(false),
       mAlwaysOnTop(false),
-      mNoAutoHide(false),
       mIsTransparent(false),
       mHasReceivedSizeAllocate(false),
       mWidgetCursorLocked(false),
@@ -1048,31 +1036,6 @@ void nsWindow::ResizeInt(const Maybe<LayoutDeviceIntPoint>& aMove,
   }
 
   NativeMoveResize(moved, resized);
-
-  // We optimistically assume size changes immediately in two cases:
-  // 1. Override-redirect window: Size is controlled by only us.
-  // 2. Managed window that has not not yet received a size-allocate event:
-  //    Resize() Callers expect initial sizes to be applied synchronously.
-  //    If the size request is not honored, then we'll correct in
-  //    OnContainerSizeAllocate().
-  //
-  // When a managed window has already received a size-allocate, we cannot
-  // assume we'll always get a notification if our request does not get
-  // honored: "If the configure request has not changed, we don't ever resend
-  // it, because it could mean fighting the user or window manager."
-  // https://gitlab.gnome.org/GNOME/gtk/-/blob/3.24.31/gtk/gtkwindow.c#L9782
-  // So we don't update mBounds until OnContainerSizeAllocate() when we know the
-  // request is granted.
-  bool isOrWillBeVisible = mHasReceivedSizeAllocate || mNeedsShow || mIsShown;
-  if (!isOrWillBeVisible ||
-      gtk_window_get_window_type(GTK_WINDOW(mShell)) == GTK_WINDOW_POPUP) {
-    mBounds.SizeTo(aSize);
-    if (moved) {
-      mBounds.MoveTo(*aMove);
-      NotifyWindowMoved(mBounds.x, mBounds.y);
-    }
-    DispatchResized();
-  }
 }
 
 void nsWindow::Resize(double aWidth, double aHeight, bool aRepaint) {
@@ -3350,6 +3313,21 @@ void nsWindow::RecomputeBounds(MayChangeCsdMargin aMayChangeCsdMargin) {
   }();
   mClientMargin.EnsureAtLeast(LayoutDeviceIntMargin());
 
+  if (IsPopup()) {
+    // Popup windows not be moved by the window manager, and so any change in
+    // position is a result of our direction.
+    //
+    // mBounds has already been set in Move() or Resize(), and that is more
+    // up-to-date than the position in the ConfigureNotify event if the event
+    // is from an earlier window move.
+    //
+    // NOTE(emilio): If we remove the early mBounds change in Move() /
+    // Resize(), we should be able to remove this special case (but some tests
+    // would need to be adjusted to deal with the async popup moves).
+    MOZ_ASSERT(mLastMoveRequest == oldBounds.TopLeft());
+    mBounds.MoveTo(oldBounds.TopLeft());
+  }
+
   // Sometimes the window manager gives us garbage sizes (way past the maximum
   // texture size) causing crashes if we don't enforce size constraints again
   // here.
@@ -3360,32 +3338,6 @@ void nsWindow::RecomputeBounds(MayChangeCsdMargin aMayChangeCsdMargin) {
       ToString(mBounds).c_str(), ToString(unconstrainedBounds).c_str());
   LOG("margin: %s -> %s", ToString(oldMargin).c_str(),
       ToString(mClientMargin).c_str());
-
-  if (IsPopup()) {
-    // Override-redirect window.
-    //
-    // These windows should not be moved by the window manager, and so any
-    // change in position is a result of our direction.  mBounds has already
-    // been set in Move() or Resize(), and that is more up-to-date than the
-    // position in the ConfigureNotify event if the event is from an earlier
-    // window move.
-    //
-    // Skipping the WindowMoved call saves context menus from an infinite
-    // loop when nsXULPopupManager::PopupMoved moves the window to the new
-    // position and nsMenuPopupFrame::SetPopupPosition adds
-    // offsetForContextMenu on each iteration.
-    //
-    // FIXME(emilio): This might not be an issue anymore... Maybe try to remove
-    // this special case?
-    mBounds.MoveTo(mLastMoveRequest);
-
-    // Our back buffer might have been invalidated while we drew the last
-    // frame, and its contents might be incorrect. See bug 1280653 comment 7
-    // and comment 10. Specifically we must ensure we recomposite the frame
-    // as soon as possible to avoid the corrupted frame being displayed.
-    GetWindowRenderer()->FlushRendering(wr::RenderReasons::WIDGET);
-    return;
-  }
 
   const bool clientMarginsChanged = oldMargin != mClientMargin;
   if (clientMarginsChanged) {
@@ -6024,30 +5976,18 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
   }
 
   mAlwaysOnTop = aInitData && aInitData->mAlwaysOnTop;
-  // mNoAutoHide seems to be always false here.
-  // The mNoAutoHide state is set later on nsMenuPopupFrame level
-  // and can be changed so we use WaylandPopupIsPermanent() to get
-  // recent popup config (Bug 1728952).
-  mNoAutoHide = aInitData && aInitData->mNoAutoHide;
   mIsAlert = aInitData && aInitData->mIsAlert;
   mIsDragPopup = aInitData && aInitData->mIsDragPopup;
 
-  // Popups that are not noautohide are only temporary. The are used
-  // for menus and the like and disappear when another window is used.
-  // For most popups, use the standard GtkWindowType GTK_WINDOW_POPUP,
+  // For popups, use the standard GtkWindowType GTK_WINDOW_POPUP,
   // which will use a Window with the override-redirect attribute
   // (for temporary windows).
-  // For long-lived windows, their stacking order is managed by the
-  // window manager, as indicated by GTK_WINDOW_TOPLEVEL.
   // For Wayland we have to always use GTK_WINDOW_POPUP to control
   // popup window position.
   GtkWindowType type = GTK_WINDOW_TOPLEVEL;
   if (mWindowType == WindowType::Popup) {
     MOZ_ASSERT(aInitData);
     type = GTK_WINDOW_POPUP;
-    if (GdkIsX11Display() && mNoAutoHide) {
-      type = GTK_WINDOW_TOPLEVEL;
-    }
   }
   mShell = gtk_window_new(type);
 
@@ -6138,35 +6078,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
     mGtkWindowRoleName = "Popup";
 
     LOG("  nsWindow::Create() Popup");
-
-    if (mNoAutoHide) {
-      // ... but the window manager does not decorate this window,
-      // nor provide a separate taskbar icon.
-      if (mBorderStyle == BorderStyle::Default) {
-        gtk_window_set_decorated(GTK_WINDOW(mShell), FALSE);
-      } else {
-        bool decorate = bool(mBorderStyle & BorderStyle::Title);
-        gtk_window_set_decorated(GTK_WINDOW(mShell), decorate);
-        if (decorate) {
-          gtk_window_set_deletable(GTK_WINDOW(mShell),
-                                   bool(mBorderStyle & BorderStyle::Close));
-        }
-      }
-      gtk_window_set_skip_taskbar_hint(GTK_WINDOW(mShell), TRUE);
-      // Element focus is managed by the parent window so the
-      // WM_HINTS input field is set to False to tell the window
-      // manager not to set input focus to this window ...
-      gtk_window_set_accept_focus(GTK_WINDOW(mShell), FALSE);
-#ifdef MOZ_X11
-      // ... but when the window manager offers focus through
-      // WM_TAKE_FOCUS, focus is requested on the parent window.
-      if (GdkIsX11Display()) {
-        gtk_widget_realize(mShell);
-        gdk_window_add_filter(GetToplevelGdkWindow(), popup_take_focus_filter,
-                              nullptr);
-      }
-#endif
-    }
 
     if (mIsDragPopup) {
       gtk_window_set_type_hint(GTK_WINDOW(mShell), GDK_WINDOW_TYPE_HINT_DND);
@@ -6635,6 +6546,35 @@ void nsWindow::NativeMoveResize(bool aMoved, bool aResized) {
   // Does it need to be shown because bounds were previously insane?
   if (mNeedsShow && mIsShown && aResized) {
     NativeShow(true);
+  }
+
+  // We optimistically assume size/position changes immediately in two cases:
+  //
+  // 1. Popup: Size is controlled by only us.
+  // 2. Managed window that has not not yet received a size-allocate event:
+  //    Resize() Callers expect initial sizes to be applied synchronously.
+  //    If the size request is not honored, then we'll correct in
+  //    OnContainerSizeAllocate().
+  //
+  // When a managed window has already received a size-allocate, we cannot
+  // assume we'll always get a notification if our request does not get
+  // honored: "If the configure request has not changed, we don't ever resend
+  // it, because it could mean fighting the user or window manager."
+  // https://gitlab.gnome.org/GNOME/gtk/-/blob/3.24.31/gtk/gtkwindow.c#L9782
+  // So we don't update mBounds until OnContainerSizeAllocate() when we know
+  // the request is granted.
+  bool isOrWillBeVisible = mHasReceivedSizeAllocate || mNeedsShow || mIsShown;
+  if (!isOrWillBeVisible || IsPopup()) {
+    if (aResized) {
+      mBounds.SizeTo(mLastSizeRequest);
+    }
+    if (aMoved) {
+      mBounds.MoveTo(mLastMoveRequest);
+      NotifyWindowMoved(mBounds.x, mBounds.y);
+    }
+    if (aResized) {
+      DispatchResized();
+    }
   }
 }
 
@@ -8096,74 +8036,6 @@ static gboolean focus_out_event_cb(GtkWidget* widget, GdkEventFocus* event) {
 
   return FALSE;
 }
-
-#ifdef MOZ_X11
-// For long-lived popup windows that don't really take focus themselves but
-// may have elements that accept keyboard input when the parent window is
-// active, focus is handled specially.  These windows include noautohide
-// panels.  (This special handling is not necessary for temporary popups where
-// the keyboard is grabbed.)
-//
-// Mousing over or clicking on these windows should not cause them to steal
-// focus from their parent windows, so, the input field of WM_HINTS is set to
-// False to request that the window manager not set the input focus to this
-// window.  http://tronche.com/gui/x/icccm/sec-4.html#s-4.1.7
-//
-// However, these windows can still receive WM_TAKE_FOCUS messages from the
-// window manager, so they can still detect when the user has indicated that
-// they wish to direct keyboard input at these windows.  When the window
-// manager offers focus to these windows (after a mouse over or click, for
-// example), a request to make the parent window active is issued.  When the
-// parent window becomes active, keyboard events will be received.
-
-static GdkFilterReturn popup_take_focus_filter(GdkXEvent* gdk_xevent,
-                                               GdkEvent* event, gpointer data) {
-  auto* xevent = static_cast<XEvent*>(gdk_xevent);
-  if (xevent->type != ClientMessage) {
-    return GDK_FILTER_CONTINUE;
-  }
-
-  XClientMessageEvent& xclient = xevent->xclient;
-  if (xclient.message_type != gdk_x11_get_xatom_by_name("WM_PROTOCOLS")) {
-    return GDK_FILTER_CONTINUE;
-  }
-
-  Atom atom = xclient.data.l[0];
-  if (atom != gdk_x11_get_xatom_by_name("WM_TAKE_FOCUS")) {
-    return GDK_FILTER_CONTINUE;
-  }
-
-  guint32 timestamp = xclient.data.l[1];
-
-  GtkWidget* widget = get_gtk_widget_for_gdk_window(event->any.window);
-  if (!widget) {
-    return GDK_FILTER_CONTINUE;
-  }
-
-  GtkWindow* parent = gtk_window_get_transient_for(GTK_WINDOW(widget));
-  if (!parent) {
-    return GDK_FILTER_CONTINUE;
-  }
-
-  if (gtk_window_is_active(parent)) {
-    return GDK_FILTER_REMOVE;  // leave input focus on the parent
-  }
-
-  GdkWindow* parent_window = gtk_widget_get_window(GTK_WIDGET(parent));
-  if (!parent_window) {
-    return GDK_FILTER_CONTINUE;
-  }
-
-  // In case the parent has not been deiconified.
-  gdk_window_show_unraised(parent_window);
-
-  // Request focus on the parent window.
-  // Use gdk_window_focus rather than gtk_window_present to avoid
-  // raising the parent window.
-  gdk_window_focus(parent_window, timestamp);
-  return GDK_FILTER_REMOVE;
-}
-#endif /* MOZ_X11 */
 
 static gboolean key_press_event_cb(GtkWidget* widget, GdkEventKey* event) {
   LOGW("key_press_event_cb\n");
@@ -9800,12 +9672,6 @@ void nsWindow::OnMap() {
   }
 
   if (mWindowType == WindowType::Popup) {
-    if (mNoAutoHide) {
-      gint wmd = ConvertBorderStyles(mBorderStyle);
-      if (wmd != -1) {
-        gdk_window_set_decorations(mGdkWindow, (GdkWMDecoration)wmd);
-      }
-    }
     // If the popup ignores mouse events, set an empty input shape.
     SetInputRegion(mInputRegion);
   }

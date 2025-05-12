@@ -4,7 +4,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <resources>
 
-    <declare-styleable name="TabCounter">
+    <declare-styleable name="TabCounterView">
         <attr name="tabCounterTintColor" format="reference|color" />
     </declare-styleable>
 

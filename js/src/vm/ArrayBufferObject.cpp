@@ -43,8 +43,10 @@
 #include "js/Wrapper.h"
 #include "util/WindowsWrapper.h"
 #include "vm/GlobalObject.h"
+#include "vm/Interpreter.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
+#include "vm/SelfHosting.h"
 #include "vm/SharedArrayObject.h"
 #include "vm/Warnings.h"  // js::WarnNumberASCII
 #include "wasm/WasmConstants.h"
@@ -329,7 +331,7 @@ static const JSPropertySpec arraybuffer_properties[] = {
 };
 
 static const JSFunctionSpec arraybuffer_proto_functions[] = {
-    JS_SELF_HOSTED_FN("slice", "ArrayBufferSlice", 2, 0),
+    JS_FN("slice", ArrayBufferObject::slice, 2, 0),
     JS_FN("resize", ArrayBufferObject::resize, 1, 0),
     JS_FN("transfer", ArrayBufferObject::transfer, 0, 0),
     JS_FN("transferToFixedLength", ArrayBufferObject::transferToFixedLength, 0,
@@ -359,6 +361,7 @@ static const ClassSpec ArrayBufferObjectClassSpec = {
     arraybuffer_properties,
     arraybuffer_proto_functions,
     arraybuffer_proto_properties,
+    GenericFinishInit<WhichHasFuseProperty::ProtoAndCtor>,
 };
 
 static const ClassExtension FixedLengthArrayBufferObjectClassExtension = {
@@ -724,6 +727,190 @@ bool ArrayBufferObject::resize(JSContext* cx, unsigned argc, Value* vp) {
   // Steps 1-3.
   CallArgs args = CallArgsFromVp(argc, vp);
   return CallNonGenericMethod<IsResizableArrayBuffer, resizeImpl>(cx, args);
+}
+
+static bool IsArrayBufferSpecies(JSContext* cx, JSFunction* species) {
+  return IsSelfHostedFunctionWithName(species,
+                                      cx->names().dollar_ArrayBufferSpecies_);
+}
+
+static bool HasBuiltinArrayBufferSpecies(ArrayBufferObject* obj,
+                                         JSContext* cx) {
+  // Ensure `ArrayBuffer.prototype.constructor` and `ArrayBuffer[@@species]`
+  // haven't been mutated.
+  if (!cx->realm()->realmFuses.optimizeArrayBufferSpeciesFuse.intact()) {
+    return false;
+  }
+
+  // Ensure |obj|'s prototype is the actual ArrayBuffer.prototype.
+  auto* proto = cx->global()->maybeGetPrototype(JSProto_ArrayBuffer);
+  if (!proto || obj->staticPrototype() != proto) {
+    return false;
+  }
+
+  // Fail if |obj| has an own `constructor` property.
+  if (obj->containsPure(NameToId(cx->names().constructor))) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * ArrayBuffer.prototype.slice ( start, end )
+ *
+ * https://tc39.es/ecma262/#sec-arraybuffer.prototype.slice
+ */
+bool ArrayBufferObject::sliceImpl(JSContext* cx, const CallArgs& args) {
+  MOZ_ASSERT(IsArrayBuffer(args.thisv()));
+
+  Rooted<ArrayBufferObject*> obj(
+      cx, &args.thisv().toObject().as<ArrayBufferObject>());
+
+  // Step 4.
+  if (obj->isDetached()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TYPED_ARRAY_DETACHED);
+    return false;
+  }
+
+  // Step 5.
+  size_t len = obj->byteLength();
+
+  // Steps 6-9.
+  size_t first = 0;
+  if (args.hasDefined(0)) {
+    if (!ToIntegerIndex(cx, args[0], len, &first)) {
+      return false;
+    }
+  }
+
+  // Steps 10-13.
+  size_t final_ = len;
+  if (args.hasDefined(1)) {
+    if (!ToIntegerIndex(cx, args[1], len, &final_)) {
+      return false;
+    }
+  }
+
+  // Step 14.
+  size_t newLen = final_ >= first ? final_ - first : 0;
+  MOZ_ASSERT(newLen <= ArrayBufferObject::ByteLengthLimit);
+
+  // Steps 15-21.
+  Rooted<JSObject*> resultObj(cx);
+  ArrayBufferObject* unwrappedResult = nullptr;
+  if (HasBuiltinArrayBufferSpecies(obj, cx)) {
+    // Steps 15-16.
+    unwrappedResult = createZeroed(cx, newLen);
+    if (!unwrappedResult) {
+      return false;
+    }
+    resultObj.set(unwrappedResult);
+
+    // Steps 17-18. (Not applicable)
+
+    // Step 19.
+    MOZ_ASSERT(!unwrappedResult->isDetached());
+
+    // Step 20.
+    MOZ_ASSERT(unwrappedResult != obj);
+
+    // Step 21.
+    MOZ_ASSERT(unwrappedResult->byteLength() == newLen);
+  } else {
+    // Step 15.
+    Rooted<JSObject*> ctor(cx, SpeciesConstructor(cx, obj, JSProto_ArrayBuffer,
+                                                  IsArrayBufferSpecies));
+    if (!ctor) {
+      return false;
+    }
+
+    // Step 16.
+    {
+      FixedConstructArgs<1> cargs(cx);
+      cargs[0].setNumber(newLen);
+
+      Rooted<Value> ctorVal(cx, ObjectValue(*ctor));
+      if (!Construct(cx, ctorVal, cargs, ctorVal, &resultObj)) {
+        return false;
+      }
+    }
+
+    // Steps 17-18.
+    unwrappedResult = resultObj->maybeUnwrapIf<ArrayBufferObject>();
+    if (!unwrappedResult) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_NON_ARRAY_BUFFER_RETURNED);
+      return false;
+    }
+
+    // Step 19.
+    if (unwrappedResult->isDetached()) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_TYPED_ARRAY_DETACHED);
+      return false;
+    }
+
+    // Step 20.
+    if (unwrappedResult == obj) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_SAME_ARRAY_BUFFER_RETURNED);
+      return false;
+    }
+
+    // Step 21.
+    size_t resultByteLength = unwrappedResult->byteLength();
+    if (resultByteLength < newLen) {
+      ToCStringBuf resultLenCbuf;
+      const char* resultLenStr =
+          NumberToCString(&resultLenCbuf, double(resultByteLength));
+
+      ToCStringBuf newLenCbuf;
+      const char* newLenStr = NumberToCString(&newLenCbuf, double(newLen));
+
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_SHORT_ARRAY_BUFFER_RETURNED, newLenStr,
+                                resultLenStr);
+      return false;
+    }
+  }
+
+  // Steps 22-23.
+  if (obj->isDetached()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TYPED_ARRAY_DETACHED);
+    return false;
+  }
+
+  // Step 26.
+  //
+  // Reacquire the length in case the buffer has been resized.
+  size_t currentLen = obj->byteLength();
+
+  // Steps 24-25 and 27.
+  if (first < currentLen) {
+    // Step 27.a.
+    size_t count = std::min(newLen, currentLen - first);
+
+    // Steps 24-25 and 27.b.
+    ArrayBufferObject::copyData(unwrappedResult, 0, obj, first, count);
+  }
+
+  // Step 28.
+  args.rval().setObject(*resultObj);
+  return true;
+}
+
+/**
+ * ArrayBuffer.prototype.slice ( start, end )
+ *
+ * https://tc39.es/ecma262/#sec-arraybuffer.prototype.slice
+ */
+bool ArrayBufferObject::slice(JSContext* cx, unsigned argc, Value* vp) {
+  // Steps 1-3.
+  CallArgs args = CallArgsFromVp(argc, vp);
+  return CallNonGenericMethod<IsArrayBuffer, sliceImpl>(cx, args);
 }
 
 /*

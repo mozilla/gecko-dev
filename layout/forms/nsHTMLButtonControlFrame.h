@@ -42,13 +42,6 @@ class nsHTMLButtonControlFrame : public nsContainerFrame {
                        mozilla::WidgetGUIEvent* aEvent,
                        nsEventStatus* aEventStatus) override;
 
-  void Init(nsIContent* aContent, nsContainerFrame* aParent,
-            nsIFrame* aPrevInFlow) override;
-
-  ComputedStyle* GetAdditionalComputedStyle(int32_t aIndex) const override;
-  void SetAdditionalComputedStyle(int32_t aIndex,
-                                  ComputedStyle* aComputedStyle) override;
-
 #ifdef DEBUG
   void AppendFrames(ChildListID aListID, nsFrameList&& aFrameList) override;
   void InsertFrames(ChildListID aListID, nsIFrame* aPrevFrame,
@@ -75,14 +68,6 @@ class nsHTMLButtonControlFrame : public nsContainerFrame {
   // Return the ::-moz-button-content anonymous box.
   void AppendDirectlyOwnedAnonBoxes(nsTArray<OwnedAnonBox>& aResult) override;
 
-  mozilla::Maybe<nsCSSBorderRenderer> CreateInnerFocusBorderRenderer(
-      nsDisplayListBuilder* aBuilder, gfxContext* aRenderingContext,
-      const nsRect& aDirtyRect, const nsRect& aRect, bool* aBorderIsEmpty);
-
-  void PaintInnerFocusBorder(nsDisplayListBuilder* aBuilder,
-                             gfxContext& aRenderingContext,
-                             const nsRect& aDirtyRect, const nsRect& aRect);
-
  protected:
   nsHTMLButtonControlFrame(ComputedStyle* aStyle, nsPresContext* aPresContext,
                            nsIFrame::ClassID aID);
@@ -103,8 +88,6 @@ class nsHTMLButtonControlFrame : public nsContainerFrame {
   nscoord SynthesizeFallbackBaseline(
       mozilla::WritingMode aWM,
       BaselineSharingGroup aBaselineGroup) const override;
-
-  RefPtr<mozilla::ComputedStyle> mInnerFocusStyle;
 };
 
 #endif

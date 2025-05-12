@@ -185,7 +185,6 @@ class BrowserToolbarStoreTest {
     private fun fakeActionButton() = ActionButton(
         icon = Random.nextInt(),
         contentDescription = Random.nextInt(),
-        tint = Random.nextInt(),
         onClick = object : BrowserToolbarEvent {},
     )
 

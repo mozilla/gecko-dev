@@ -82,10 +82,10 @@ addLoadEvent(function() {
     context.createBuffer(2, 2048, 7999);
   }, DOMException.NOT_SUPPORTED_ERR);
   expectException(function() {
-    context.createBuffer(2, 2048, 192001);
+    context.createBuffer(2, 2048, 768001);
   }, DOMException.NOT_SUPPORTED_ERR);
   context.createBuffer(2, 2048, 8000);  // no exception
-  context.createBuffer(2, 2048, 192000); // no exception
+  context.createBuffer(2, 2048, 768000); // no exception
   context.createBuffer(32, 2048, 48000); // no exception
   // Null length
   expectException(function() {

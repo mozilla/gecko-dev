@@ -14,7 +14,7 @@ import mozilla.components.concept.menu.candidate.TextStyle
 import mozilla.components.ui.icons.R as iconsR
 
 /**
- * The menu that is shown when clicking on the [TabCounter]
+ * The menu that is shown when clicking on the [TabCounterView]
  *
  * @param context the context.
  * @param onItemTapped behavior for when an item in the menu is tapped.

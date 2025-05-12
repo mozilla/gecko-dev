@@ -1192,7 +1192,9 @@ def enable_system_icu_option(enable_system_icu):
     return enable_system_icu
 
 
-system_icu = pkg_check_modules("MOZ_ICU", "icu-i18n >= 76.1", when="--with-system-icu")
+system_icu = pkg_check_modules(
+    "MOZ_ICU", "icu-uc icu-i18n >= 76.1", when="--with-system-icu"
+)
 
 
 @depends(enable_system_icu_option)

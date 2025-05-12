@@ -115,8 +115,7 @@ body {
 }
 
 .devtools-button:focus,
-.devtools-button > .btn-content:focus,
-.devtools-button::-moz-focus-inner {
+.devtools-button > .btn-content:focus {
   outline: none;
 }
 
@@ -363,10 +362,6 @@ body {
   outline: 0;
 }
 
-.treeTable::-moz-focus-inner {
-  border: 0;
-}
-
 .treeTable:not(:focus, :focus-within) .treeRow.selected {
   background-color: var(--accessibility-unfocused-tree-focused-node-background);
 
@@ -535,10 +530,6 @@ body {
 
 .accessible .tree:focus {
   outline: 0;
-}
-
-.accessible .tree::-moz-focus-inner {
-  border: 0;
 }
 
 /* Unset tree styles leaking from reps.css */

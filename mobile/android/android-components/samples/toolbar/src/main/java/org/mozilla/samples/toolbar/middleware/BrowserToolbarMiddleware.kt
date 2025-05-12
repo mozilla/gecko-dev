@@ -6,7 +6,6 @@ package org.mozilla.samples.toolbar.middleware
 
 import android.content.Context
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -18,6 +17,8 @@ import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.ContextualMenuOption
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.PageOriginContextualMenuInteractions
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.UpdateProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
@@ -35,8 +36,8 @@ import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import org.mozilla.samples.toolbar.R
 import org.mozilla.samples.toolbar.middleware.PageActionsEndInteractions.RefreshClicked
-import org.mozilla.samples.toolbar.middleware.PageOriginInteractions.CopyOptionClicked
 import org.mozilla.samples.toolbar.middleware.PageOriginInteractions.PageOriginClicked
+import org.mozilla.samples.toolbar.middleware.PageOriginInteractions.PageOriginLongClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.BookmarksClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.HistoryClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.SettingsClicked
@@ -65,7 +66,7 @@ private sealed class StartPageInteractions : BrowserToolbarEvent {
 
 private sealed class PageOriginInteractions : BrowserToolbarEvent {
     data object PageOriginClicked : PageOriginInteractions()
-    data object CopyOptionClicked : PageOriginInteractions()
+    data object PageOriginLongClicked : PageOriginInteractions()
 }
 
 private sealed class PageActionsEndInteractions : BrowserToolbarEvent {
@@ -127,6 +128,7 @@ internal class BrowserToolbarMiddleware(
             is StartPageInteractions,
             is PageOriginInteractions,
             is PageActionsEndInteractions,
+            is PageOriginContextualMenuInteractions,
             -> Toast.makeText(dependencies.context, action.javaClass.simpleName, Toast.LENGTH_SHORT).show()
 
             is TabCounterClicked -> {
@@ -154,22 +156,54 @@ internal class BrowserToolbarMiddleware(
         ActionButton(
             icon = iconsR.drawable.mozac_ic_home_24,
             contentDescription = R.string.browser_action_home_button_description,
-            tint = ContextCompat.getColor(
-                dependencies.context,
-                R.color.generic_button_tint,
-            ),
             onClick = HomeClicked,
         ),
     )
 
     private fun buildStartPageActions() = listOf(
+        DropdownAction(
+            icon = null,
+            iconResource = iconsR.drawable.mozac_ic_search_24,
+            contentDescription = R.string.clear_button_description,
+            menu = {
+                listOfNotNull(
+                    BrowserToolbarMenuButton(
+                        icon = null,
+                        iconResource = null,
+                        text = R.string.search_selector_header,
+                        contentDescription = R.string.search_selector_header,
+                        onClick = null,
+                    ),
+                    BrowserToolbarMenuButton(
+                        iconResource = iconsR.drawable.mozac_ic_bookmark_tray_24,
+                        text = R.string.bookmarks_search_engine_name,
+                        contentDescription = R.string.bookmarks_search_engine_description,
+                        onClick = BookmarksClicked,
+                    ),
+                    BrowserToolbarMenuButton(
+                        iconResource = iconsR.drawable.mozac_ic_tab_tray_24,
+                        text = R.string.tabs_search_engine_name,
+                        contentDescription = R.string.tabs_search_engine_description,
+                        onClick = TabsClicked,
+                    ),
+                    BrowserToolbarMenuButton(
+                        iconResource = iconsR.drawable.mozac_ic_history_24,
+                        text = R.string.history_search_engine_name,
+                        contentDescription = R.string.tabs_search_engine_description,
+                        onClick = HistoryClicked,
+                    ),
+                    BrowserToolbarMenuButton(
+                        iconResource = iconsR.drawable.mozac_ic_settings_24,
+                        text = R.string.search_settings,
+                        contentDescription = R.string.tabs_search_engine_description,
+                        onClick = SettingsClicked,
+                    ),
+                )
+            },
+        ),
         ActionButton(
             icon = iconsR.drawable.mozac_ic_lock_24,
             contentDescription = R.string.browser_action_security_lock_description,
-            tint = ContextCompat.getColor(
-                dependencies.context,
-                R.color.generic_button_tint,
-            ),
             highlighted = true,
             onClick = SecurityIndicatorClicked,
         ),
@@ -179,27 +213,15 @@ internal class BrowserToolbarMiddleware(
         hint = R.string.toolbar_search_hint,
         title = null,
         url = null,
+        contextualMenuOptions = ContextualMenuOption.entries,
         onClick = PageOriginClicked,
-        onLongClick = BrowserToolbarMenu {
-            listOf(
-                BrowserToolbarMenuButton(
-                    iconResource = iconsR.drawable.mozac_ic_copy_24,
-                    text = R.string.copy_url_button,
-                    contentDescription = R.string.copy_url_button_description,
-                    onClick = CopyOptionClicked,
-                ),
-            )
-        },
+        onLongClick = PageOriginLongClicked,
     )
 
     private fun buildPageActionsEnd() = listOf(
         ActionButton(
             icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
             contentDescription = R.string.page_action_refresh_description,
-            tint = ContextCompat.getColor(
-                dependencies.context,
-                R.color.generic_button_tint,
-            ),
             onClick = RefreshClicked,
         ),
     )

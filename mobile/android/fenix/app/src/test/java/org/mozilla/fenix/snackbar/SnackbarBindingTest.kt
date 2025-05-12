@@ -49,6 +49,7 @@ import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
 import org.mozilla.fenix.components.appstate.AppAction.ShareAction
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.components.appstate.AppAction.TranslationsAction
+import org.mozilla.fenix.components.appstate.AppAction.URLCopiedToClipboard
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
 import org.mozilla.fenix.ext.tabClosedUndoMessage
 
@@ -494,6 +495,21 @@ class SnackbarBindingTest {
         )
         snackbarAction.value.invoke(mock())
         verify(undoUsecase).invoke()
+        assertEquals(SnackbarState.None, appStore.state.snackbarState)
+    }
+
+    @Test
+    fun `WHEN the current URL is copied to clipboard THEN display a snackbar`() {
+        val binding = buildSnackbarBinding()
+        binding.start()
+
+        appStore.dispatch(URLCopiedToClipboard)
+        waitForStoreToSettle()
+
+        verify(snackbarDelegate).show(
+            text = testContext.getString(R.string.browser_toolbar_url_copied_to_clipboard_snackbar),
+            duration = LENGTH_LONG,
+        )
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
     }
 

@@ -4,22 +4,35 @@
 
 package mozilla.components.compose.base.text
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.composed
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import mozilla.components.compose.base.modifier.FadeDirection
 import mozilla.components.compose.base.modifier.horizontalFadeGradient
+import mozilla.components.compose.base.modifier.thenConditional
 
 /**
  * A [Text] Composable that will have a horizontal fade and truncate the string.
@@ -38,65 +51,88 @@ fun FadedText(
     truncationDirection: TruncationDirection = TruncationDirection.START,
     fadeLength: Dp,
 ) {
-    val textMeasurer = rememberTextMeasurer()
-
-    val fadeDirection = if (
-        (truncationDirection == TruncationDirection.START) ==
-        (LocalLayoutDirection.current == LayoutDirection.Ltr)
-    ) {
-        FadeDirection.LEFT
-    } else {
-        FadeDirection.RIGHT
-    }
-
-    SubcomposeLayout(
-        modifier = modifier,
-    ) { constraints ->
-        val textLayoutResult = textMeasurer.measure(
-            text = text,
-            maxLines = 1,
-            style = style,
-            constraints = constraints,
-        )
-
-        val visibleCharacters = textLayoutResult.getLineEnd(0, true)
-        val isTextOverflowing = visibleCharacters < text.length
-
-        val placeable = when (isTextOverflowing) {
-            true -> {
-                val truncatedText = if (fadeDirection == FadeDirection.LEFT) {
-                    text.takeLast(visibleCharacters)
-                } else {
-                    text.take(visibleCharacters)
-                }
-
-                subcompose("truncated") {
-                    Text(
-                        text = truncatedText,
-                        modifier = modifier.horizontalFadeGradient(
-                            fadeLength = fadeLength,
-                            fadeDirection = fadeDirection,
-                        ),
-                        style = style,
-                        maxLines = 1,
-                    )
-                }.first().measure(constraints)
-            }
-
-            false -> subcompose("text") {
-                Text(
-                    text = text,
-                    style = style,
-                    maxLines = 1,
-                )
-            }.first().measure(constraints)
-        }
-
-        layout(placeable.width, placeable.height) {
-            placeable.place(0, 0)
-        }
-    }
+    Text(
+        text = text,
+        style = style,
+        softWrap = false,
+        maxLines = 1,
+        modifier = modifier
+            .fadeText(text, style, truncationDirection, fadeLength)
+            .truncateText(truncationDirection),
+    )
 }
+
+private fun Modifier.fadeText(
+    text: String,
+    textStyle: TextStyle,
+    truncationDirection: TruncationDirection,
+    fadeLength: Dp,
+) = composed(
+    factory = {
+        val layoutDirection = LocalLayoutDirection.current
+        val textMeasurer = rememberTextMeasurer()
+        var textLayoutState: TextLayoutResult? by remember { mutableStateOf(null) }
+        val fadeDirection = remember(truncationDirection) {
+            if (
+                (truncationDirection == TruncationDirection.START) ==
+                (layoutDirection == LayoutDirection.Ltr)
+            ) {
+                FadeDirection.LEFT
+            } else {
+                FadeDirection.RIGHT
+            }
+        }
+
+        onSizeChanged {
+            textLayoutState = textMeasurer.measure(
+                text = text,
+                maxLines = 1,
+                style = textStyle,
+                softWrap = false,
+                constraints = Constraints(maxWidth = it.width),
+            )
+        }.thenConditional(
+            horizontalFadeGradient(
+                fadeDirection = fadeDirection,
+                fadeLength = fadeLength,
+            ),
+        ) { textLayoutState?.didOverflowWidth == true }
+    },
+
+    inspectorInfo = {
+        name = "fade text"
+        properties["key"] = text
+        properties["text"] = text
+        properties["textStyle"] = textStyle
+        properties["truncationDirection"] = truncationDirection
+        properties["fadeLength"] = fadeLength
+    },
+)
+
+private fun Modifier.truncateText(
+    truncationDirection: TruncationDirection,
+) = composed(
+    factory = {
+        val scope = rememberCoroutineScope()
+        val scrollState = rememberScrollState()
+
+        // By default the text has it's beginning shown and it's end clipped it it does not fit.
+        // Get the reverse of this and clip the start of the text by scrolling to the end.
+        horizontalScroll(
+            state = scrollState,
+            enabled = false,
+        ).onPlaced {
+            if (truncationDirection == TruncationDirection.START) {
+                scope.launch { scrollState.scrollTo(scrollState.maxValue) }
+            }
+        }
+    },
+    inspectorInfo = {
+        name = "truncate text"
+        properties["key"] = truncationDirection
+        properties["truncationDirection"] = truncationDirection
+    },
+)
 
 /**
  * Describes the direction of truncation and fade for [FadedText].
@@ -106,6 +142,11 @@ enum class TruncationDirection {
     END,
 }
 
+// Text length that in combination with the value set to be displayed
+// would show in previews when the text is split by word
+// https://issuetracker.google.com/issues/414962882
+private const val TEXT_LENGTH = 320
+
 /**
  * Preview of a short[FadedText] with start truncation and fade.
  */
@@ -114,7 +155,7 @@ enum class TruncationDirection {
 fun ShortStartFadedTextPreview() {
     FadedText(
         text = "127.0.0.1",
-        modifier = Modifier.width(200.dp),
+        modifier = Modifier.width(TEXT_LENGTH.dp),
         style = TextStyle(fontSize = 16.sp),
         truncationDirection = TruncationDirection.START,
         fadeLength = 60.dp,
@@ -129,7 +170,7 @@ fun ShortStartFadedTextPreview() {
 fun StartFadedTextPreview() {
     FadedText(
         text = "https://data.stackexchange.com/stackoverflow/query/58883/test-long-url",
-        modifier = Modifier.width(200.dp),
+        modifier = Modifier.width(TEXT_LENGTH.dp),
         style = TextStyle(fontSize = 16.sp),
         truncationDirection = TruncationDirection.START,
         fadeLength = 60.dp,
@@ -144,7 +185,7 @@ fun StartFadedTextPreview() {
 fun ShortEndFadedTextPreview() {
     FadedText(
         text = "127.0.0.1",
-        modifier = Modifier.width(200.dp),
+        modifier = Modifier.width(TEXT_LENGTH.dp),
         style = TextStyle(fontSize = 16.sp),
         truncationDirection = TruncationDirection.END,
         fadeLength = 60.dp,
@@ -159,7 +200,7 @@ fun ShortEndFadedTextPreview() {
 fun EndFadedTextPreview() {
     FadedText(
         text = "https://data.stackexchange.com/stackoverflow/query/58883/test-long-url/",
-        modifier = Modifier.width(200.dp),
+        modifier = Modifier.width(TEXT_LENGTH.dp),
         style = TextStyle(fontSize = 16.sp),
         truncationDirection = TruncationDirection.END,
         fadeLength = 60.dp,
@@ -177,7 +218,7 @@ fun ShortRTLStartFadedTextPreview() {
     ) {
         FadedText(
             text = "127.0.0.1",
-            modifier = Modifier.width(200.dp),
+            modifier = Modifier.width(TEXT_LENGTH.dp),
             style = TextStyle(fontSize = 16.sp),
             truncationDirection = TruncationDirection.START,
             fadeLength = 60.dp,
@@ -196,7 +237,7 @@ fun RTLStartFadedTextPreview() {
     ) {
         FadedText(
             text = "https://data.stackexchange.com/stackoverflow/query/58883/test-long-url/",
-            modifier = Modifier.width(200.dp),
+            modifier = Modifier.width(TEXT_LENGTH.dp),
             style = TextStyle(fontSize = 16.sp),
             truncationDirection = TruncationDirection.START,
             fadeLength = 60.dp,
@@ -215,7 +256,7 @@ fun ShortRTLEndFadedTextPreview() {
     ) {
         FadedText(
             text = "127.0.0.1",
-            modifier = Modifier.width(200.dp),
+            modifier = Modifier.width(TEXT_LENGTH.dp),
             style = TextStyle(fontSize = 16.sp),
             truncationDirection = TruncationDirection.END,
             fadeLength = 60.dp,
@@ -234,7 +275,7 @@ fun RTLEndFadedTextPreview() {
     ) {
         FadedText(
             text = "https://data.stackexchange.com/stackoverflow/query/58883/test-long-url/",
-            modifier = Modifier.width(200.dp),
+            modifier = Modifier.width(TEXT_LENGTH.dp),
             style = TextStyle(fontSize = 16.sp),
             truncationDirection = TruncationDirection.END,
             fadeLength = 60.dp,

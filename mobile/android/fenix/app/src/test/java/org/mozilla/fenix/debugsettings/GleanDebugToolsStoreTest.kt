@@ -7,6 +7,7 @@ package org.mozilla.fenix.debugsettings
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import junit.framework.TestCase
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.utils.ClipboardHandler
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -20,7 +21,6 @@ import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsState
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsStorage
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsStore
 import org.mozilla.fenix.debugsettings.gleandebugtools.PING_PREVIEW_URL
-import org.mozilla.fenix.utils.ClipboardHandler
 
 @RunWith(AndroidJUnit4::class)
 class GleanDebugToolsStoreTest {

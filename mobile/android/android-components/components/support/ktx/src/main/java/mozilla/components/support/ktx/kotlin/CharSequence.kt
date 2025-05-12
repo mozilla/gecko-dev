@@ -4,6 +4,8 @@
 
 package mozilla.components.support.ktx.kotlin
 
+import mozilla.components.support.base.utils.MAX_URI_LENGTH
+
 /**
  * Returns a trimmed CharSequence. This is used to prevent extreme cases
  * from slowing down UI rendering with large strings.

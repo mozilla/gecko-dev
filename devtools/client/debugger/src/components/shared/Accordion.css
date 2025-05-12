@@ -93,10 +93,6 @@
   height: 16px;
 }
 
-.accordion ._header .header-buttons button::-moz-focus-inner {
-  border: none;
-}
-
 .accordion ._header .header-buttons button .img {
   display: block;
 }

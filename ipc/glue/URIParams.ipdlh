@@ -64,6 +64,8 @@ struct IconURIParams
   nsCString stockIcon;
   int32_t iconSize;
   int32_t iconState;
+  uint32_t iconScale;
+  bool? iconDark;
 };
 
 struct HostObjectURIParams

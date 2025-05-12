@@ -291,8 +291,8 @@
     <ID>UndocumentedPublicClass:SystemEngineView.kt$SystemEngineView$Companion</ID>
     <ID>UndocumentedPublicClass:SystemEngineView.kt$SystemEngineView$ImageHandler : Handler</ID>
     <ID>UndocumentedPublicClass:SystemPermissionRequest.kt$SystemPermissionRequest$Companion</ID>
-    <ID>UndocumentedPublicClass:TabCounter.kt$TabCounter : RelativeLayout</ID>
-    <ID>UndocumentedPublicClass:TabCounter.kt$TabCounter$Companion</ID>
+    <ID>UndocumentedPublicClass:TabCounterView.kt$TabCounterView : RelativeLayout</ID>
+    <ID>UndocumentedPublicClass:TabCounterView.kt$TabCounterView$Companion</ID>
     <ID>UndocumentedPublicClass:TabThumbnailView.kt$TabThumbnailView : AppCompatImageView</ID>
     <ID>UndocumentedPublicClass:TabViewHolder.kt$DefaultTabViewHolder$Companion</ID>
     <ID>UndocumentedPublicClass:TabsAdapter.kt$TabsAdapter$Companion</ID>
@@ -470,8 +470,8 @@
     <ID>UndocumentedPublicFunction:SystemEngineSession.kt$SystemEngineSession.WebSetting$operator fun getValue(thisRef: Any?, property: KProperty&lt;*&gt;): T</ID>
     <ID>UndocumentedPublicFunction:SystemEngineSession.kt$SystemEngineSession.WebSetting$operator fun setValue(thisRef: Any?, property: KProperty&lt;*&gt;, value: T)</ID>
     <ID>UndocumentedPublicFunction:SystemEngineSessionState.kt$SystemEngineSessionState.Companion$fun fromJSON(json: JSONObject): SystemEngineSessionState</ID>
-    <ID>UndocumentedPublicFunction:TabCounter.kt$TabCounter$fun setCount(count: Int)</ID>
-    <ID>UndocumentedPublicFunction:TabCounter.kt$TabCounter$fun setCountWithAnimation(count: Int)</ID>
+    <ID>UndocumentedPublicFunction:TabCounterView.kt$TabCounterView$fun setCount(count: Int)</ID>
+    <ID>UndocumentedPublicFunction:TabCounterView.kt$TabCounterView$fun setCountWithAnimation(count: Int)</ID>
     <ID>UndocumentedPublicFunction:TabsTrayPresenter.kt$TabsTrayPresenter$fun start()</ID>
     <ID>UndocumentedPublicFunction:TabsTrayPresenter.kt$TabsTrayPresenter$fun stop()</ID>
     <ID>UndocumentedPublicFunction:ThreadUtils.kt$ThreadUtils$fun assertOnUiThread()</ID>

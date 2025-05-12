@@ -14,6 +14,7 @@ import mozilla.appservices.search.SearchEngineClassification
 import mozilla.appservices.search.SearchEngineDefinition
 import mozilla.appservices.search.SearchUrlParam
 import mozilla.components.browser.icons.decoder.ICOIconDecoder
+import mozilla.components.browser.icons.decoder.SvgIconDecoder
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.feature.search.icons.AttachmentModel
 import mozilla.components.feature.search.middleware.SearchExtraParams
@@ -362,7 +363,7 @@ internal class SearchEngineReader(
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     private fun readImageAPI(iconUri: String, mimetype: String, builder: SearchEngineBuilder) {
-        val allowedTypes = setOf("image/jpeg", "image/png", "image/x-icon")
+        val allowedTypes = setOf("image/jpeg", "image/png", "image/x-icon", "image/svg+xml")
         require(mimetype in allowedTypes) { "Unsupported image type: $mimetype" }
         val raw: ByteArray
         try {
@@ -371,6 +372,10 @@ internal class SearchEngineReader(
             throw IllegalArgumentException("Failed to read image from location: $iconUri")
         }
         val bitmap = when (mimetype) {
+            "image/svg+xml" -> {
+                val decoder = SvgIconDecoder()
+                decoder.decode(raw, DesiredSize(TARGET_SIZE, TARGET_SIZE, MAX_SIZE, 2.0f))
+            }
             "image/x-icon" -> {
                 val decoder = ICOIconDecoder()
                 decoder.decode(raw, DesiredSize(TARGET_SIZE, TARGET_SIZE, MAX_SIZE, 2.0f))

@@ -788,29 +788,6 @@ static gint moz_gtk_tabpanels_paint(cairo_t* cr, GdkRectangle* rect,
   return MOZ_GTK_SUCCESS;
 }
 
-static gint moz_gtk_header_bar_paint(WidgetNodeType widgetType, cairo_t* cr,
-                                     GdkRectangle* rect,
-                                     GtkWidgetState* state) {
-  GtkStateFlags state_flags = GetStateFlagsFromGtkWidgetState(state);
-  GtkStyleContext* style = GetStyleContext(widgetType, state->image_scale,
-                                           GTK_TEXT_DIR_NONE, state_flags);
-
-  // Some themes like Elementary's style the container of the headerbar rather
-  // than the header bar itself.
-  if (HeaderBarShouldDrawContainer(widgetType)) {
-    auto containerType = widgetType == MOZ_GTK_HEADER_BAR
-                             ? MOZ_GTK_HEADERBAR_FIXED
-                             : MOZ_GTK_HEADERBAR_FIXED_MAXIMIZED;
-    style = GetStyleContext(containerType, state->image_scale,
-                            GTK_TEXT_DIR_NONE, state_flags);
-  }
-
-  gtk_render_background(style, cr, rect->x, rect->y, rect->width, rect->height);
-  gtk_render_frame(style, cr, rect->x, rect->y, rect->width, rect->height);
-
-  return MOZ_GTK_SUCCESS;
-}
-
 gint moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
                                gint* right, gint* bottom,
                                // NOTE: callers depend on direction being used
@@ -948,9 +925,6 @@ gint moz_gtk_widget_paint(WidgetNodeType widget, cairo_t* cr,
       return moz_gtk_hpaned_paint(cr, rect, state);
     case MOZ_GTK_WINDOW_DECORATION:
       return moz_gtk_window_decoration_paint(cr, rect, state, direction);
-    case MOZ_GTK_HEADER_BAR:
-    case MOZ_GTK_HEADER_BAR_MAXIMIZED:
-      return moz_gtk_header_bar_paint(widget, cr, rect, state);
     default:
       g_warning("Unknown widget type: %d", widget);
   }

@@ -11,14 +11,10 @@
 #include "ImageContainer.h"
 #include "MediaContainerType.h"
 #include "MediaResource.h"
-#include "PDMFactory.h"
 #include "TimeUnits.h"
 #include "mozilla/Base64.h"
-#include "mozilla/EnumeratedRange.h"
 #include "mozilla/dom/ContentChild.h"
-#include "mozilla/gfx/gfxVars.h"
 #include "mozilla/SchedulerGroup.h"
-#include "mozilla/ScopeExit.h"
 #include "mozilla/SharedThreadPool.h"
 #include "mozilla/StaticPrefs_accessibility.h"
 #include "mozilla/StaticPrefs_media.h"
@@ -279,7 +275,12 @@ already_AddRefed<SharedThreadPool> GetMediaThreadPool(MediaThreadType aType) {
 
   // Ensure a larger stack for platform decoder threads
   if (aType == MediaThreadType::PLATFORM_DECODER) {
-    const uint32_t minStackSize = 512 * 1024;
+    uint32_t minStackSize = 512 * 1024;
+    #ifdef XP_WIN
+    // libaom can require a larger stack size on Windows, because it uses
+    // large stack buffers
+    minStackSize *= 4;
+    #endif
     uint32_t stackSize;
     MOZ_ALWAYS_SUCCEEDS(pool->GetThreadStackSize(&stackSize));
     if (stackSize < minStackSize) {
@@ -1233,13 +1234,12 @@ bool OnCellularConnection() {
     case nsINetworkLinkService::LINK_TYPE_ETHERNET:
     case nsINetworkLinkService::LINK_TYPE_USB:
     case nsINetworkLinkService::LINK_TYPE_WIFI:
+    default:
       return false;
     case nsINetworkLinkService::LINK_TYPE_WIMAX:
     case nsINetworkLinkService::LINK_TYPE_MOBILE:
       return true;
   }
-
-  return false;
 }
 
 bool IsWaveMimetype(const nsACString& aMimeType) {

@@ -243,4 +243,16 @@ class AppStoreReducerTest {
             appStore.state.snackbarState,
         )
     }
+
+    @Test
+    fun `WHEN the current tab's URL has been copied THEN show a snackbar`() {
+        val appStore = AppStore()
+
+        appStore.dispatch(AppAction.URLCopiedToClipboard).joinBlocking()
+
+        assertEquals(
+            SnackbarState.URLCopiedToClipboard,
+            appStore.state.snackbarState,
+        )
+    }
 }

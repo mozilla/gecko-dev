@@ -68,6 +68,13 @@ internal fun Suggestions(
 
     val currentSuggestions by rememberUpdatedState(suggestions)
     val currentOnVisibilityStateUpdated by rememberUpdatedState(onVisibilityStateUpdated)
+    val currentFirstSuggestion by rememberUpdatedState(suggestions.values.firstOrNull())
+
+    LaunchedEffect(currentFirstSuggestion) {
+        if (currentFirstSuggestion != null) {
+            state.scrollToItem(0)
+        }
+    }
 
     LaunchedEffect(Unit) {
         // This effect is launched on the initial composition, and cancelled when `Suggestions` leaves the Composition.

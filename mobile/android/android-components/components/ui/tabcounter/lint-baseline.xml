@@ -7,7 +7,7 @@
         errorLine1="            ) ?: ContextCompat.getColorStateList(context, R.color.mozac_ui_tabcounter_default_tint)"
         errorLine2="                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/mozilla/components/ui/tabcounter/TabCounter.kt"
+            file="src/main/java/mozilla/components/ui/tabcounter/TabCounterView.kt"
             line="52"
             column="18"/>
     </issue>
@@ -18,7 +18,7 @@
         errorLine1="            false -> ContextCompat.getDrawable(context, drawableRes)"
         errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/mozilla/components/ui/tabcounter/TabCounter.kt"
+            file="src/main/java/mozilla/components/ui/tabcounter/TabCounterView.kt"
             line="127"
             column="22"/>
     </issue>

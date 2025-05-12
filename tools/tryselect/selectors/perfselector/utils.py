@@ -55,3 +55,6 @@ class LogProcessor:
             if match:
                 # Last line found is the revision we want for HG patches
                 self._hg_revision = match.group(1)
+
+    def flush(self):
+        pass

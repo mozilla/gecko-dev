@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -195,13 +194,11 @@ private fun BrowserEditToolbarPreview() {
                 ActionButton(
                     icon = iconsR.drawable.mozac_ic_microphone_24,
                     contentDescription = android.R.string.untitled,
-                    tint = AcornTheme.colors.iconPrimary.toArgb(),
                     onClick = object : BrowserToolbarEvent {},
                 ),
                 ActionButton(
                     icon = iconsR.drawable.mozac_ic_qr_code_24,
                     contentDescription = android.R.string.untitled,
-                    tint = AcornTheme.colors.iconPrimary.toArgb(),
                     onClick = object : BrowserToolbarEvent {},
                 ),
             ),

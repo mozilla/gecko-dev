@@ -151,10 +151,6 @@
   right: 0;
 }
 
-.tabpanel-summary-container.http-custom-input .http-custom-delete-button::-moz-focus-inner {
-  border: none;
-}
-
 .tabpanel-summary-container.http-custom-input:hover .http-custom-delete-button {
   opacity: 1;
 }

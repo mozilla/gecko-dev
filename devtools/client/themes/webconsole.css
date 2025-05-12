@@ -964,10 +964,6 @@ a.learn-more-link.webconsole-learn-more-link {
   transform: rotate(0);
 }
 
-.collapse-button::-moz-focus-inner {
-  border: none;
-}
-
 /* Hide the icon, so that we can use the collapse-button in its place */
 .message.network:not(:where(.network-message-blocked, .disabled)) > .icon,
 .message.startGroup > .icon,

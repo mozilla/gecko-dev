@@ -122,6 +122,7 @@ function isKeyIn(key, ...keys) {
  *        This function is called before the editor has been torn down.
  * @param {Function} options.destroy:
  *        Called when the editor is destroyed and has been torn down.
+ *        This may be called with the return value of the options.done callback (if it is passed).
  * @param {Function} options.contextMenu:
  *        Called when the user triggers a contextmenu event on the input.
  * @param {Object} options.advanceChars:
@@ -476,8 +477,12 @@ class InplaceEditor extends EventEmitter {
 
   /**
    * Get rid of the editor.
+   *
+   * @param {*|null} doneCallResult: When #clear is called after calling #apply, this will
+   *        be the returned value of the call to options.done that is done there.
+   *        Will be null when options.done is undefined.
    */
-  #clear() {
+  #clear(doneCallResult) {
     if (!this.input) {
       // Already cleared.
       return;
@@ -499,7 +504,7 @@ class InplaceEditor extends EventEmitter {
     delete this.elt;
 
     if (this.destroy) {
-      this.destroy();
+      this.destroy(doneCallResult);
     }
   }
 
@@ -1157,8 +1162,8 @@ class InplaceEditor extends EventEmitter {
     ) {
       this.#acceptPopupSuggestion();
     } else {
-      this.#apply();
-      this.#clear();
+      const onApplied = this.#apply();
+      this.#clear(onApplied);
     }
   };
 
@@ -1363,7 +1368,7 @@ class InplaceEditor extends EventEmitter {
         }
       }
 
-      this.#apply(direction, key);
+      const onApplied = this.#apply(direction, key);
 
       // Close the popup if open
       if (this.popup && this.popup.isOpen) {
@@ -1389,7 +1394,7 @@ class InplaceEditor extends EventEmitter {
         }
       }
 
-      this.#clear();
+      this.#clear(onApplied);
     } else if (isKeyIn(key, "ESCAPE")) {
       // Cancel and blur ourselves.
       // Now we don't want to suggest anything as we are moving out.
@@ -1399,8 +1404,8 @@ class InplaceEditor extends EventEmitter {
         this.#hideAutocompletePopup();
       } else {
         this.cancelled = true;
-        this.#apply();
-        this.#clear();
+        const onApplied = this.#apply();
+        this.#clear(onApplied);
       }
       prevent = true;
       event.stopPropagation();

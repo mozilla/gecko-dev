@@ -86,7 +86,16 @@ function ToolboxHostManager(commands, hostType, hostOptions) {
 }
 
 ToolboxHostManager.prototype = {
-  async create(toolId) {
+  /**
+   * Create a Toolbox
+   *
+   * @param {String} toolId
+   *        The id of the tool to show
+   * @param {Object} toolOptions
+   *        Options that will be passed to the tool init function
+   * @returns {Toolbox}
+   */
+  async create(toolId, toolOptions) {
     await this.host.create();
     if (this.currentTab) {
       this.hostPerTab.set(this.currentTab, this.host);
@@ -99,13 +108,14 @@ ToolboxHostManager.prototype = {
       { signal: this.eventController.signal }
     );
 
-    const toolbox = new Toolbox(
-      this.commands,
-      toolId,
-      this.host.type,
-      this.host.frame.contentWindow,
-      this.frameId
-    );
+    const toolbox = new Toolbox({
+      commands: this.commands,
+      selectedTool: toolId,
+      selectedToolOptions: toolOptions,
+      hostType: this.host.type,
+      contentWindow: this.host.frame.contentWindow,
+      frameId: this.frameId,
+    });
     toolbox.once("destroyed", this._onToolboxDestroyed.bind(this));
 
     // Prevent reloading the toolbox when loading the tools in a tab

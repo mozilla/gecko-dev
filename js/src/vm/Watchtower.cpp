@@ -452,6 +452,52 @@ static void MaybePopRegExpPrototypeFuses(JSContext* cx, NativeObject* obj,
   }
 }
 
+static void MaybePopArrayBufferConstructorFuses(JSContext* cx,
+                                                NativeObject* obj, jsid id) {
+  if (obj != obj->global().maybeGetConstructor(JSProto_ArrayBuffer)) {
+    return;
+  }
+  if (id.isWellKnownSymbol(JS::SymbolCode::species)) {
+    obj->realm()->realmFuses.optimizeArrayBufferSpeciesFuse.popFuse(
+        cx, obj->realm()->realmFuses);
+  }
+}
+
+static void MaybePopArrayBufferPrototypeFuses(JSContext* cx, NativeObject* obj,
+                                              jsid id) {
+  if (obj != obj->global().maybeGetPrototype(JSProto_ArrayBuffer)) {
+    return;
+  }
+  if (id.isAtom(cx->names().constructor)) {
+    obj->realm()->realmFuses.optimizeArrayBufferSpeciesFuse.popFuse(
+        cx, obj->realm()->realmFuses);
+  }
+}
+
+static void MaybePopSharedArrayBufferConstructorFuses(JSContext* cx,
+                                                      NativeObject* obj,
+                                                      jsid id) {
+  if (obj != obj->global().maybeGetConstructor(JSProto_SharedArrayBuffer)) {
+    return;
+  }
+  if (id.isWellKnownSymbol(JS::SymbolCode::species)) {
+    obj->realm()->realmFuses.optimizeSharedArrayBufferSpeciesFuse.popFuse(
+        cx, obj->realm()->realmFuses);
+  }
+}
+
+static void MaybePopSharedArrayBufferPrototypeFuses(JSContext* cx,
+                                                    NativeObject* obj,
+                                                    jsid id) {
+  if (obj != obj->global().maybeGetPrototype(JSProto_SharedArrayBuffer)) {
+    return;
+  }
+  if (id.isAtom(cx->names().constructor)) {
+    obj->realm()->realmFuses.optimizeSharedArrayBufferSpeciesFuse.popFuse(
+        cx, obj->realm()->realmFuses);
+  }
+}
+
 static void MaybePopFuses(JSContext* cx, NativeObject* obj, jsid id) {
   // Handle writes to Array constructor fuse properties.
   MaybePopArrayConstructorFuses(cx, obj, id);
@@ -488,6 +534,18 @@ static void MaybePopFuses(JSContext* cx, NativeObject* obj, jsid id) {
 
   // Handle writes to RegExp.prototype fuse properties.
   MaybePopRegExpPrototypeFuses(cx, obj, id);
+
+  // Handle writes to ArrayBuffer constructor fuse properties.
+  MaybePopArrayBufferConstructorFuses(cx, obj, id);
+
+  // Handle writes to ArrayBuffer.prototype fuse properties.
+  MaybePopArrayBufferPrototypeFuses(cx, obj, id);
+
+  // Handle writes to SharedArrayBuffer constructor fuse properties.
+  MaybePopSharedArrayBufferConstructorFuses(cx, obj, id);
+
+  // Handle writes to SharedArrayBuffer.prototype fuse properties.
+  MaybePopSharedArrayBufferPrototypeFuses(cx, obj, id);
 }
 
 // static

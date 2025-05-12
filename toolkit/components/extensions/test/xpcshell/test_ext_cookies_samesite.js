@@ -11,10 +11,17 @@ add_task(async function test_samesite_cookies() {
   // Bug 1617611 - Fix all the tests broken by "cookies SameSite=Lax by default"
   Services.prefs.setBoolPref("network.cookie.sameSite.laxByDefault", false);
 
+  // Without this, sameSite=none requires the 'secure' attribute, which requires a https server.
+  Services.prefs.setBoolPref(
+    "network.cookie.sameSite.noneRequiresSecure",
+    false
+  );
+
   function contentScript() {
     document.cookie = "test1=whatever";
     document.cookie = "test2=whatever; SameSite=lax";
     document.cookie = "test3=whatever; SameSite=strict";
+    document.cookie = "test4=whatever; SameSite=none";
     browser.runtime.sendMessage("do-check-cookies");
   }
   async function background() {
@@ -30,7 +37,7 @@ add_task(async function test_samesite_cookies() {
     // Baseline. Every cookie must have the expected sameSite.
     let cookie = await browser.cookies.get({ url, name: "test1" });
     browser.test.assertEq(
-      "no_restriction",
+      "unspecified",
       cookie.sameSite,
       "Expected sameSite for test1"
     );
@@ -49,6 +56,13 @@ add_task(async function test_samesite_cookies() {
       "Expected sameSite for test3"
     );
 
+    cookie = await browser.cookies.get({ url, name: "test4" });
+    browser.test.assertEq(
+      "no_restriction",
+      cookie.sameSite,
+      "Expected sameSite for test4"
+    );
+
     // Testing cookies.getAll + cookies.set
     let cookies = await browser.cookies.getAll({ url, name: "test3" });
     browser.test.assertEq(1, cookies.length, "There is only one test3 cookie");
@@ -59,12 +73,12 @@ add_task(async function test_samesite_cookies() {
       value: "newvalue",
     });
     browser.test.assertEq(
-      "no_restriction",
+      "unspecified",
       cookie.sameSite,
-      "sameSite defaults to no_restriction"
+      "sameSite defaults to unspecified"
     );
 
-    for (let sameSite of ["no_restriction", "lax", "strict"]) {
+    for (let sameSite of ["unspecified", "no_restriction", "lax", "strict"]) {
       cookie = await browser.cookies.set({ url, name: "test3", sameSite });
       browser.test.assertEq(
         sameSite,
@@ -111,4 +125,5 @@ add_task(async function test_samesite_cookies() {
   await extension.unload();
 
   Services.prefs.clearUserPref("network.cookie.sameSite.laxByDefault");
+  Services.prefs.clearUserPref("network.cookie.sameSite.noneRequiresSecure");
 });

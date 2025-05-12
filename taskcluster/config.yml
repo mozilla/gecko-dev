@@ -852,7 +852,7 @@ workers:
             provisioner: '{trust-domain}-t'
             implementation: docker-worker
             os: linux
-            worker-type: 't-linux-kvm-noscratch-gcp'
+            worker-type: 't-linux-docker-kvm'
         t-linux-talos:
             provisioner: releng-hardware
             implementation: generic-worker

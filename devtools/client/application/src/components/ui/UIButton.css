@@ -42,10 +42,6 @@
 .ui-button:-moz-focusring {
   outline: none;
 }
-.ui-button::-moz-focus-inner {
-  border: 0;
-  padding: 0;
-}
 
 .ui-button:enabled:hover {
   background: var(--button-background-hover-color);

@@ -176,8 +176,4 @@
     font-weight: 600;
     appearance: none;
   }
-
-  button::-moz-focus-inner {
-    border: 0;
-  }
 }

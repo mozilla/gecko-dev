@@ -150,6 +150,34 @@ struct OptimizeArraySpeciesFuse final : public InvalidatingRealmFuse {
   virtual void popFuse(JSContext* cx, RealmFuses& realmFuses) override;
 };
 
+// Fuse used to optimize @@species lookups for ArrayBuffers. If this fuse is
+// intact, the following invariants must hold:
+//
+// - The builtin `ArrayBuffer.prototype` object has a `constructor` property
+//   that's the builtin `ArrayBuffer` constructor.
+// - This `ArrayBuffer` constructor has a `Symbol.species` property that's the
+//   original accessor.
+struct OptimizeArrayBufferSpeciesFuse final : public RealmFuse {
+  virtual const char* name() override {
+    return "OptimizeArrayBufferSpeciesFuse";
+  }
+  virtual bool checkInvariant(JSContext* cx) override;
+};
+
+// Fuse used to optimize @@species lookups for SharedArrayBuffers. If this fuse
+// is intact, the following invariants must hold:
+//
+// - The builtin `SharedArrayBuffer.prototype` object has a `constructor`
+//   property that's the builtin `SharedArrayBuffer` constructor.
+// - This `SharedArrayBuffer` constructor has a `Symbol.species` property that's
+//   the original accessor.
+struct OptimizeSharedArrayBufferSpeciesFuse final : public RealmFuse {
+  virtual const char* name() override {
+    return "OptimizeSharedArrayBufferSpeciesFuse";
+  }
+  virtual bool checkInvariant(JSContext* cx) override;
+};
+
 // Fuse used to optimize various property lookups for promises. If this fuse is
 // intact, the following invariants must hold:
 //
@@ -281,6 +309,9 @@ struct OptimizeWeakSetPrototypeAddFuse final : public RealmFuse {
   FUSE(IteratorPrototypeHasObjectProto, iteratorPrototypeHasObjectProto)       \
   FUSE(ObjectPrototypeHasNoReturnProperty, objectPrototypeHasNoReturnProperty) \
   FUSE(OptimizeArraySpeciesFuse, optimizeArraySpeciesFuse)                     \
+  FUSE(OptimizeArrayBufferSpeciesFuse, optimizeArrayBufferSpeciesFuse)         \
+  FUSE(OptimizeSharedArrayBufferSpeciesFuse,                                   \
+       optimizeSharedArrayBufferSpeciesFuse)                                   \
   FUSE(OptimizePromiseLookupFuse, optimizePromiseLookupFuse)                   \
   FUSE(OptimizeRegExpPrototypeFuse, optimizeRegExpPrototypeFuse)               \
   FUSE(OptimizeStringPrototypeSymbolsFuse, optimizeStringPrototypeSymbolsFuse) \

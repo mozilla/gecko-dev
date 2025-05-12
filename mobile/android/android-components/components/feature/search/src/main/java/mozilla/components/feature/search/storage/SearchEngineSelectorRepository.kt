@@ -75,24 +75,40 @@ class SearchEngineSelectorRepository(
 
             val iconsList = searchConfigIconsUpdateService.fetchIcons(searchEngineSelectorConfig.service)
 
-            val searchEngineList = mutableListOf<SearchEngine>()
-
-            searchConfig.engines.forEach { engine ->
-                val iconAttachmentModel = findMatchingIcon(engine.identifier, iconsList)
-                iconAttachmentModel?.let {
-                    val searchEngine = reader.loadStreamAPI(
-                        engineDefinition = engine,
-                        attachmentModel = it,
-                    )
-                    searchEngineList.add(searchEngine)
-                }
-            }
+            val searchEngineList = buildSearchEngineList(
+                searchConfig = searchConfig,
+                iconsList = iconsList,
+            )
 
             return SearchMiddleware.BundleStorage.Bundle(searchEngineList, searchConfig.appDefaultEngineId ?: "")
         } catch (exception: Exception) {
             logger.error("exception in SearchEngineSelectorRepository.load")
         }
         return SearchMiddleware.BundleStorage.Bundle(emptyList(), "")
+    }
+
+    private fun buildSearchEngineList(
+        searchConfig: RefinedSearchConfig,
+        iconsList: List<SearchConfigIconsModel>,
+    ): List<SearchEngine> {
+        val searchEngineList = mutableListOf<SearchEngine>()
+        searchConfig.engines.forEach { engine ->
+            val iconAttachmentModel = findMatchingIcon(engine.identifier, iconsList)
+            iconAttachmentModel?.let {
+                val searchEngine = try {
+                    reader.loadStreamAPI(
+                        engineDefinition = engine,
+                        attachmentModel = it,
+                    )
+                } catch (exception: IllegalArgumentException) {
+                    return@forEach
+                } catch (exception: IllegalStateException) {
+                    return@forEach
+                }
+                searchEngineList.add(searchEngine)
+            }
+        }
+        return searchEngineList
     }
 
     private fun findMatchingIcon(

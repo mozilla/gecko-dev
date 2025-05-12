@@ -347,7 +347,7 @@ function MarkupView(inspector, frame, controllerWindow) {
     this.onHighlighterHidden
   );
 
-  this._onNewSelection();
+  this._onNewSelection(this.inspector.selection.nodeFront);
   if (this.inspector.selection.nodeFront) {
     this.expandNode(this.inspector.selection.nodeFront);
   }
@@ -1016,6 +1016,11 @@ MarkupView.prototype = {
    * React to new-node-front selection events.
    * Highlights the node if needed, and make sure it is shown and selected in
    * the view.
+   * Note that this might be called when the panel is initialized to properly setup
+   * all the listeners.
+   *
+   * @param {NodeFront|undefined} nodeFront
+   * @param {String|undefined} reason
    */
   _onNewSelection(nodeFront, reason) {
     const selection = this.inspector.selection;

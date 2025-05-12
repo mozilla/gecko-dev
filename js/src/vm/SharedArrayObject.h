@@ -255,6 +255,7 @@ class SharedArrayBufferObject : public ArrayBufferObjectMaybeShared {
   static bool maxByteLengthGetterImpl(JSContext* cx, const CallArgs& args);
   static bool growableGetterImpl(JSContext* cx, const CallArgs& args);
   static bool growImpl(JSContext* cx, const CallArgs& args);
+  static bool sliceImpl(JSContext* cx, const CallArgs& args);
 
  public:
   // RAWBUF_SLOT holds a pointer (as "private" data) to the
@@ -283,6 +284,8 @@ class SharedArrayBufferObject : public ArrayBufferObjectMaybeShared {
   static bool class_constructor(JSContext* cx, unsigned argc, Value* vp);
 
   static bool grow(JSContext* cx, unsigned argc, Value* vp);
+
+  static bool slice(JSContext* cx, unsigned argc, Value* vp);
 
   static bool isOriginalByteLengthGetter(Native native) {
     return native == byteLengthGetter;
@@ -325,9 +328,8 @@ class SharedArrayBufferObject : public ArrayBufferObjectMaybeShared {
                                      JS::ClassInfo* info,
                                      JS::RuntimeSizes* runtimeSizes);
 
-  static void copyData(Handle<ArrayBufferObjectMaybeShared*> toBuffer,
-                       size_t toIndex,
-                       Handle<ArrayBufferObjectMaybeShared*> fromBuffer,
+  static void copyData(ArrayBufferObjectMaybeShared* toBuffer, size_t toIndex,
+                       ArrayBufferObjectMaybeShared* fromBuffer,
                        size_t fromIndex, size_t count);
 
   SharedArrayRawBuffer* rawBufferObject() const;

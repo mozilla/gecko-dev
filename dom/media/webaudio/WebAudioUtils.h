@@ -11,7 +11,6 @@
 #include <limits>
 #include <type_traits>
 #include "fdlibm.h"
-#include "mozilla/FloatingPoint.h"
 #include "mozilla/Logging.h"
 #include "MediaSegment.h"
 
@@ -33,7 +32,7 @@ const size_t MaxChannelCount = 32;
 // AudioContext::CreateBuffer() "must support sample-rates in at least the
 // range 22050 to 96000."
 const uint32_t MinSampleRate = 8000;
-const uint32_t MaxSampleRate = 192000;
+const uint32_t MaxSampleRate = 768000;
 
 inline bool FuzzyEqual(float v1, float v2) { return fabsf(v1 - v2) < 1e-7f; }
 inline bool FuzzyEqual(double v1, double v2) { return fabs(v1 - v2) < 1e-7; }
@@ -43,7 +42,8 @@ inline bool FuzzyEqual(double v1, double v2) { return fabs(v1 - v2) < 1e-7; }
  * value is 0.
  */
 inline float ConvertLinearToDecibels(float aLinearValue, float aMinDecibels) {
-  return aLinearValue ? 20.0f * fdlibm_log10f(aLinearValue) : aMinDecibels;
+  MOZ_ASSERT(aLinearValue >= 0);
+  return aLinearValue > 0.0f ? 20.0f * fdlibm_log10f(aLinearValue) : aMinDecibels;
 }
 
 /**

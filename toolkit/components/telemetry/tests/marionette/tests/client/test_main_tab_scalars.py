@@ -24,7 +24,7 @@ class TestMainTabScalars(TelemetryTestCase):
                     "resource:///modules/BrowserUsageTelemetry.sys.mjs"
                 );
 
-                BrowserUsageTelemetry._onTabsOpenedTask._timeoutMs = 0;
+                BrowserUsageTelemetry._onTabsOpenedTask._idleTimeoutMs = 0;
                 """
             )
 

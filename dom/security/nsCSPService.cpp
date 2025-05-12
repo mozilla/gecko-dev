@@ -34,8 +34,8 @@ CSPService::~CSPService() = default;
 
 NS_IMPL_ISUPPORTS(CSPService, nsIContentPolicy, nsIChannelEventSink)
 
-// Helper function to identify protocols and content types not subject to CSP.
-bool subjectToCSP(nsIURI* aURI, nsContentPolicyType aContentType) {
+static bool SubjectToCSP(nsILoadInfo* aLoadInfo, nsIURI* aURI,
+                         nsContentPolicyType aContentType) {
   ExtContentPolicyType contentType =
       nsContentUtils::InternalContentPolicyTypeToExternal(aContentType);
 
@@ -56,6 +56,16 @@ bool subjectToCSP(nsIURI* aURI, nsContentPolicyType aContentType) {
   if (aURI->SchemeIs("data") || aURI->SchemeIs("blob") ||
       aURI->SchemeIs("filesystem")) {
     return true;
+  }
+
+  // For resources that will be used with a system principal we don't want to
+  // exempt any protocols from being subject to the CSP.
+  // TODO(bug 1945838): Extend this to all content types, not just scripts.
+  if (contentType == ExtContentPolicyType::TYPE_SCRIPT) {
+    if (BasePrincipal::Cast(aLoadInfo->GetLoadingPrincipal())
+            ->IsSystemPrincipal()) {
+      return true;
+    }
   }
 
   // Finally we have to allowlist "about:" which does not fall into
@@ -125,12 +135,11 @@ bool subjectToCSP(nsIURI* aURI, nsContentPolicyType aContentType) {
   // default decision, CSP can revise it if there's a policy to enforce
   *aDecision = nsIContentPolicy::ACCEPT;
 
-  // No need to continue processing if CSP is disabled or if the protocol
-  // or type is *not* subject to CSP.
-  // Please note, the correct way to opt-out of CSP using a custom
+  // No need to continue processing the CSP if the load should *not* be subject
+  // to CSP. Please note, the correct way to opt-out of CSP using a custom
   // protocolHandler is to set one of the nsIProtocolHandler flags
   // that are allowlistet in subjectToCSP()
-  if (!subjectToCSP(aContentLocation, contentType)) {
+  if (!SubjectToCSP(aLoadInfo, aContentLocation, contentType)) {
     return NS_OK;
   }
 
@@ -314,7 +323,7 @@ nsresult CSPService::ConsultCSPForRedirect(nsIURI* aOriginalURI,
   // protocolHandler is to set one of the nsIProtocolHandler flags
   // that are allowlistet in subjectToCSP()
   nsContentPolicyType policyType = aLoadInfo->InternalContentPolicyType();
-  if (!subjectToCSP(aNewURI, policyType)) {
+  if (!SubjectToCSP(aLoadInfo, aNewURI, policyType)) {
     return NS_OK;
   }
 

@@ -7,7 +7,7 @@ package org.mozilla.fenix.ext
 import android.text.Editable
 import androidx.compose.runtime.Composable
 import mozilla.components.compose.base.utils.inComposePreview
-import mozilla.components.support.ktx.kotlin.MAX_URI_LENGTH
+import mozilla.components.support.base.utils.MAX_URI_LENGTH
 import mozilla.components.support.ktx.kotlin.toShortUrl
 import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
 import org.mozilla.fenix.components.components

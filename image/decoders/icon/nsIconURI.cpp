@@ -50,10 +50,9 @@ NS_IMPL_CLASSINFO(nsMozIconURI, nullptr, nsIClassInfo::THREADSAFE,
 // Empty CI getter. We only need nsIClassInfo for Serialization
 NS_IMPL_CI_INTERFACE_GETTER0(nsMozIconURI)
 
-nsMozIconURI::nsMozIconURI()
-    : mSize(DEFAULT_IMAGE_SIZE), mIconSize(-1), mIconState(-1) {}
+nsMozIconURI::nsMozIconURI() : mSize(DEFAULT_IMAGE_SIZE) {}
 
-nsMozIconURI::~nsMozIconURI() {}
+nsMozIconURI::~nsMozIconURI() = default;
 
 NS_IMPL_ADDREF(nsMozIconURI)
 NS_IMPL_RELEASE(nsMozIconURI)
@@ -110,6 +109,16 @@ nsMozIconURI::GetSpec(nsACString& aSpec) {
   if (!mContentType.IsEmpty()) {
     aSpec += "&contentType=";
     aSpec += mContentType.get();
+  }
+
+  if (mScale != 1) {
+    aSpec += "&scale=";
+    aSpec.AppendInt(mScale);
+  }
+
+  if (mDark) {
+    aSpec += "&dark=";
+    aSpec.AppendInt(*mDark ? 1 : 0);
   }
 
   return NS_OK;
@@ -210,6 +219,8 @@ nsresult nsMozIconURI::SetSpecInternal(const nsACString& aSpec) {
   mStockIcon.Truncate();
   mIconSize = -1;
   mIconState = -1;
+  mScale = 1;
+  mDark.reset();
 
   nsAutoCString iconSpec(aSpec);
   if (!Substring(iconSpec, 0, MOZICON_SCHEME_LEN)
@@ -253,6 +264,22 @@ nsresult nsMozIconURI::SetSpecInternal(const nsACString& aSpec) {
           break;
         }
       }
+    }
+
+    nsAutoCString scaleString;
+    extractAttributeValue(iconSpec.get(), "scale=", scaleString);
+    if (!scaleString.IsEmpty()) {
+      int32_t scaleValue = atoi(scaleString.get());
+      if (scaleValue > 0) {
+        mScale = scaleValue;
+      }
+    }
+
+    nsAutoCString darkString;
+    extractAttributeValue(iconSpec.get(), "dark=", darkString);
+    if (!darkString.IsEmpty()) {
+      int32_t darkValue = atoi(darkString.get());
+      mDark = Some(darkValue != 0);
     }
   }
 
@@ -498,10 +525,23 @@ nsMozIconURI::GetIconURL(nsIURL** aFileUrl) {
 }
 
 NS_IMETHODIMP
-nsMozIconURI::GetImageSize(uint32_t* aImageSize)
-// measured by # of pixels in a row. defaults to 16.
-{
+nsMozIconURI::GetImageSize(uint32_t* aImageSize) {
   *aImageSize = mSize;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsMozIconURI::GetImageScale(uint32_t* aImageScale) {
+  *aImageScale = mScale;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsMozIconURI::GetImageDark(bool* aImageDark) {
+  if (!mDark) {
+    return NS_ERROR_FAILURE;
+  }
+  *aImageDark = *mDark;
   return NS_OK;
 }
 
@@ -587,6 +627,8 @@ void nsMozIconURI::Serialize(URIParams& aParams) {
   params.stockIcon() = mStockIcon;
   params.iconSize() = mIconSize;
   params.iconState() = mIconState;
+  params.iconScale() = mScale;
+  params.iconDark() = mDark;
 
   aParams = params;
 }
@@ -623,6 +665,9 @@ bool nsMozIconURI::Deserialize(const URIParams& aParams) {
     return false;
   }
   mIconState = params.iconState();
+
+  mScale = params.iconScale();
+  mDark = params.iconDark();
 
   return true;
 }

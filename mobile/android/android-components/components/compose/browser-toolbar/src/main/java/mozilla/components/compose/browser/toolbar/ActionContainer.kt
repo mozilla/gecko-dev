@@ -7,7 +7,6 @@ package mozilla.components.compose.browser.toolbar
 import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -41,7 +40,6 @@ fun ActionContainer(
                     ActionButtonComposable(
                         icon = action.icon,
                         contentDescription = action.contentDescription,
-                        tint = action.tint,
                         onClick = action.onClick,
                         highlighted = action.highlighted,
                         onLongClick = action.onLongClick,
@@ -52,7 +50,6 @@ fun ActionContainer(
                 is DropdownAction -> {
                     SearchSelector(
                         icon = action.icon,
-                        iconResource = action.iconResource,
                         contentDescription = stringResource(action.contentDescription),
                         menu = action.menu,
                         onInteraction = { onInteraction(it) },
@@ -87,7 +84,6 @@ private fun ActionContainerPreview() {
                 ActionButton(
                     icon = iconsR.drawable.mozac_ic_microphone_24,
                     contentDescription = R.string.mozac_clear_button_description,
-                    tint = AcornTheme.colors.iconPrimary.toArgb(),
                     onClick = object : BrowserToolbarEvent {},
                 ),
                 TabCounterAction(

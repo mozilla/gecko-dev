@@ -284,7 +284,6 @@ nsresult nsMenuPopupFrame::CreateWidgetForView(nsView* aView) {
   widgetData.mBorderStyle = widget::BorderStyle::Default;
   widgetData.mClipSiblings = true;
   widgetData.mPopupHint = mPopupType;
-  widgetData.mNoAutoHide = IsNoAutoHide();
 
   if (!mInContentShell) {
     // A drag popup may be used for non-static translucent drag feedback
@@ -300,7 +299,7 @@ nsresult nsMenuPopupFrame::CreateWidgetForView(nsView* aView) {
   const auto mode = nsLayoutUtils::GetFrameTransparency(this, this);
   widgetData.mHasRemoteContent = remote;
   widgetData.mTransparencyMode = mode;
-  widgetData.mPopupLevel = GetPopupLevel(widgetData.mNoAutoHide);
+  widgetData.mPopupLevel = GetPopupLevel(IsNoAutoHide());
 
   nsCOMPtr<nsIWidget> parentWidget = ComputeParentWidget();
   if (NS_WARN_IF(!parentWidget)) {
