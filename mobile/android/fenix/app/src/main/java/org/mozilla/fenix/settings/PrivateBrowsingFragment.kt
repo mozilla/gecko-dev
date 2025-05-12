@@ -4,11 +4,10 @@
 
 package org.mozilla.fenix.settings
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
-import androidx.biometric.BiometricPrompt
+import androidx.activity.result.ActivityResultLauncher
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
@@ -17,13 +16,17 @@ import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.PrivateShortcutCreateManager
+import org.mozilla.fenix.ext.registerForActivityResult
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
+import org.mozilla.fenix.settings.biometric.DefaultBiometricUtils
 
 /**
  * Lets the user customize Private browsing options.
  */
 class PrivateBrowsingFragment : PreferenceFragmentCompat() {
+    private lateinit var startForResult: ActivityResultLauncher<Intent>
+
     override fun onResume() {
         super.onResume()
         showToolbar(getString(R.string.preferences_private_browsing_options))
@@ -31,6 +34,10 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.private_browsing_preferences, rootKey)
+        startForResult = registerForActivityResult(
+            onFailure = { PrivateBrowsingLocked.authFailure.record() },
+            onSuccess = { onSuccessfulAuthenticationUsingFallbackPrompt() },
+        )
         updatePreferences()
     }
 
@@ -63,61 +70,69 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_private_browsing_locked_enabled).apply {
-            isPersistent = false
             isChecked = context.settings().privateBrowsingLockedEnabled
             isVisible = Config.channel.isDebug
 
             setOnPreferenceChangeListener { preference, newValue ->
-                val enablePrivateBrowsingLock = newValue as? Boolean
+                val pbmLockEnabled = newValue as? Boolean
                     ?: return@setOnPreferenceChangeListener false
 
-                val biometricPrompt = BiometricPrompt(
-                    this@PrivateBrowsingFragment,
-                    object : BiometricPrompt.AuthenticationCallback() {
-                        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                            super.onAuthenticationSucceeded(result)
-
-                            context.settings().privateBrowsingLockedEnabled =
-                                enablePrivateBrowsingLock
-
-                            if (enablePrivateBrowsingLock) {
-                                PrivateBrowsingLocked.featureEnabled.record()
-                            } else {
-                                PrivateBrowsingLocked.featureDisabled.record()
-                            }
-
-                            PrivateBrowsingLocked.authSuccess.record()
-
-                            // Update switch state manually
-                            (preference as? SwitchPreference)?.isChecked = enablePrivateBrowsingLock
-                        }
-
-                        override fun onAuthenticationFailed() {
-                            super.onAuthenticationFailed()
-                            PrivateBrowsingLocked.authFailure.record()
-                        }
-                    },
-                )
-
-                val titleRes = if (enablePrivateBrowsingLock) {
+                val titleRes = if (pbmLockEnabled) {
                     R.string.pbm_authentication_enable_lock
                 } else {
                     R.string.pbm_authentication_disable_lock
                 }
 
-                val promptInfo = BiometricPrompt.PromptInfo.Builder()
-                    .setTitle(requireContext().getString(titleRes))
-                    .setAllowedAuthenticators(
-                        DEVICE_CREDENTIAL or BiometricManager.Authenticators.BIOMETRIC_WEAK,
-                    )
-                    .build()
+                DefaultBiometricUtils.bindBiometricsCredentialsPromptOrShowWarning(
+                    titleRes = titleRes,
+                    view = requireView(),
+                    onShowPinVerification = { intent -> startForResult.launch(intent) },
+                    onAuthSuccess = {
+                        onSuccessfulAuthenticationUsingPrimaryPrompt(
+                            pbmLockEnabled = pbmLockEnabled,
+                            preference = preference,
+                        )
+                    },
+                    onAuthFailure = { PrivateBrowsingLocked.authFailure.record() },
+                )
 
                 PrivateBrowsingLocked.promptShown.record()
-                biometricPrompt.authenticate(promptInfo)
 
                 // Cancel toggle change until biometric is successful
                 false
             }
+        }
+    }
+
+    private fun onSuccessfulAuthenticationUsingFallbackPrompt() {
+        PrivateBrowsingLocked.authSuccess.record()
+
+        val newValue = !requireContext().settings().privateBrowsingLockedEnabled
+        recordPbmLockFeatureEnabledStateTelemetry(newValue)
+        requireContext().settings().privateBrowsingLockedEnabled = newValue
+        // Update switch state manually
+        requirePreference<SwitchPreference>(R.string.pref_key_private_browsing_locked_enabled).apply {
+            isChecked = !isChecked
+        }
+    }
+
+    private fun onSuccessfulAuthenticationUsingPrimaryPrompt(
+        pbmLockEnabled: Boolean,
+        preference: Preference,
+    ) {
+        PrivateBrowsingLocked.authSuccess.record()
+
+        recordPbmLockFeatureEnabledStateTelemetry(pbmLockEnabled)
+        requireContext().settings().privateBrowsingLockedEnabled = pbmLockEnabled
+        // Update switch state manually
+        (preference as? SwitchPreference)?.isChecked = pbmLockEnabled
+    }
+
+    private fun recordPbmLockFeatureEnabledStateTelemetry(pbmLockEnabled: Boolean) {
+        if (pbmLockEnabled) {
+            PrivateBrowsingLocked.featureEnabled.record()
+        } else {
+            PrivateBrowsingLocked.featureDisabled.record()
         }
     }
 }
