@@ -345,11 +345,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                     onBookmarkSelectedTabsClick = tabsTrayInteractor::onBookmarkSelectedTabsClicked,
                     onForceSelectedTabsAsInactiveClick = tabsTrayInteractor::onForceSelectedTabsAsInactiveClicked,
                     onTabsTrayDismiss = ::onTabsTrayDismissed,
-                    onTabsTrayPbmLockedClick = {
-                        requireContext().settings().privateBrowsingLockedEnabled = true
-                        requireContext().settings().shouldShowLockPbmBanner = false
-                        PrivateBrowsingLocked.bannerPositiveClicked.record()
-                    },
+                    onTabsTrayPbmLockedClick = ::onTabsTrayPbmLockedClick,
                     onTabsTrayPbmLockedDismiss = {
                         requireContext().settings().shouldShowLockPbmBanner = false
                         PrivateBrowsingLocked.bannerNegativeClicked.record()
@@ -764,9 +760,11 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             view = requireView(),
             onShowPinVerification = { intent -> startForResult.launch(intent) },
             onAuthSuccess = {
+                PrivateBrowsingLocked.bannerPositiveClicked.record()
                 PrivateBrowsingLocked.authSuccess.record()
                 PrivateBrowsingLocked.featureEnabled.record()
                 requireContext().settings().privateBrowsingLockedEnabled = true
+                requireContext().settings().shouldShowLockPbmBanner = false
             },
             onAuthFailure = {
                 PrivateBrowsingLocked.authFailure.record()
