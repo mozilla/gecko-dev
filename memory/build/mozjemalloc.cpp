@@ -5834,6 +5834,7 @@ inline void MozJemalloc::jemalloc_stats_internal(
           aBinStats[j].bytes_total +=
               bin->mNumRuns * (bytes_per_run - bin->mRunFirstRegionOffset);
           aBinStats[j].bytes_per_run = bytes_per_run;
+          aBinStats[j].regions_per_run = bin->mRunNumRegions;
         }
       }
     }
