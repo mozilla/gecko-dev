@@ -66,6 +66,7 @@ suites:
             "ML Smart Tab Clustering": ""
             "browser_ml_smart_tab_perf.js": ""
             "browser_ml_llama_summarizer_perf.js": ""
+            "ML Speech T5 TTS": ""
 
     intl/benchmarks/test/xpcshell:
         description: "Performance tests running through XPCShell for Intl code"

@@ -98,3 +98,30 @@ smollm2-360-instruct-gguf:
         revision: 593b5a2e04c8f3e4ee880263f93e0bd2901ad47f
         path-prefix: "onnx-models/HuggingFaceTB/SmolLM2-360M-Instruct-GGUF/main/"
         artifact-name: smollm2-360-instruct-gguf.tar.zst
+
+speecht5-tts:
+    description: microsoft/speecht5_tts with ONNX weights to be compatible with Transformers.js
+    fetch:
+        type: git
+        repo: https://huggingface.co/Xenova/speecht5_tts
+        revision: 73001d8bf5a9a7532c9cede52b5d3c21936939b1
+        path-prefix: "onnx-models/Xenova/speecht5_tts/main/"
+        artifact-name: speecht5_tts.tar.zst
+
+speecht5-tts-vocoder:
+    description: vocoder for speecht5_tts
+    fetch:
+        type: git
+        repo: https://huggingface.co/Xenova/speecht5_hifigan
+        revision: 05bbb2dea568f207f71113f71c9ecc216840238e
+        path-prefix: "onnx-models/Xenova/speecht5_hifigan/main/"
+        artifact-name: speecht5_tts_hifigan.tar.zst
+
+speecht5-tts-speaker:
+    description: speaker embedding for speecht5_tts
+    fetch:
+        type: git
+        repo: https://huggingface.co/datasets/Xenova/transformers.js-docs
+        revision: 4cc21eccd7f4ad1174c2f721c02468e43bf39b60
+        path-prefix: "onnx-models/Xenova/transformers.js-docs/main/"
+        artifact-name: speecht5_tts_speaker_embedding.tar.zst

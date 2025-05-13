@@ -541,3 +541,32 @@ ml-perf-smart-tab-cluster:
             --hooks toolkit/components/ml/tests/tools/hooks_local_hub.py
             --mochitest-name-change
             toolkit/components/ml/tests/browser/browser_ml_smart_tab_clustering_perf.js
+
+ml-perf-speecht5-tts:
+    fetches:
+        fetch:
+            - ort.jsep.wasm
+            - speecht5-tts
+            - speecht5-tts-vocoder
+            - speecht5-tts-speaker
+    description: Run ML speecht5-tts Model
+    worker:
+        max-run-time: 900
+    treeherder:
+        symbol: perftest(ml-perf-speecht5)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: [autoland, mozilla-central]
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox.exe
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks toolkit/components/ml/tests/tools/hooks_local_hub.py
+            --mochitest-name-change
+            toolkit/components/ml/tests/browser/browser_ml_speecht5_tts.js
