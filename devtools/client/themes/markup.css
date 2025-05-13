@@ -3,9 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :root {
-  --markup-hidden-attr-name-color: light-dark(var(--grey-43), #787878);
-  --markup-hidden-attr-value-color: light-dark(var(--grey-55), #a4a4a4);
-  --markup-hidden-punctuation-color: light-dark(var(--grey-43), #787878);
+  --markup-hidden-attr-color: light-dark(var(--grey-70), var(--grey-30));
+  --markup-hidden-punctuation-color: light-dark(var(--grey-50), var(--grey-40));
   --markup-pseudoclass-disk-color: #e9c600;
   --markup-hidden-tag-color: light-dark(var(--grey-50), var(--grey-45));
   --markup-outline: light-dark(var(--theme-splitter-color), var(--theme-selection-background));
@@ -17,8 +16,7 @@
   --markup-selected-focus-visible-non-highlighted-color: light-dark(var(--theme-body-color), var(--theme-text-color-strong));
 
   &[forced-colors-active] {
-    --markup-hidden-attr-name-color: GrayText;
-    --markup-hidden-attr-value-color: GrayText;
+    --markup-hidden-attr-color: GrayText;
     --markup-hidden-punctuation-color: GrayText;
     --markup-hidden-tag-color: GrayText;
     /* In regular mode, this variable relies on --theme-body-color, which is already set
@@ -512,12 +510,8 @@ ul.children + .tag-line::before {
   color: var(--markup-hidden-punctuation-color);
 }
 
-.not-displayed .attr-name {
-  color: var(--markup-hidden-attr-name-color);
-}
-
-.not-displayed .attr-value {
-  color: var(--markup-hidden-attr-value-color);
+.not-displayed :is(.attr-name, .attr-value) {
+  color: var(--markup-hidden-attr-color);
 }
 
 .not-displayed .tag {
