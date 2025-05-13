@@ -14,7 +14,8 @@
 #include "ds/Fifo.h"         // js::Fifo
 #include "js/AllocPolicy.h"  // js::SystemAllocPolicy
 #include "js/HashTable.h"    // js::DefaultHasher, js::HashSet
-#include "js/Promise.h"  // JS::Dispatchable, JS::Dispatchable::MaybeShuttingDown, JS::DispatchToEventLoopCallback
+#include "js/Promise.h"  // JS::Dispatchable, JS::Dispatchable::MaybeShuttingDown,
+                         // JS::DispatchToEventLoopCallback,
 #include "js/RootingAPI.h"                // JS::Handle, JS::PersistentRooted
 #include "threading/ConditionVariable.h"  // js::ConditionVariable
 #include "vm/PromiseObject.h"             // js::PromiseObject
@@ -31,7 +32,10 @@ class OffThreadPromiseRuntimeState;
 //
 // An OffThreadPromiseTask is an abstract base class holding a JavaScript
 // promise that will be resolved (fulfilled or rejected) with the results of a
-// task possibly performed by some other thread.
+// task possibly performed by some other thread. OffThreadPromiseTasks can be
+// undispatched (meaning that they can be dropped if the JSContext owning the
+// promise shuts down before the tasks resolves) or dispatched (meaning that
+// shutdown should wait for the task to join).
 //
 // An OffThreadPromiseTask's lifecycle is as follows:
 //
@@ -55,10 +59,10 @@ class OffThreadPromiseRuntimeState;
 //
 // - The JavaScript thread then deletes the OffThreadPromiseTask.
 //
-// During shutdown, the process is slightly different. Enqueuing runnables to
-// the JavaScript thread begins to fail. JSRuntime shutdown waits for all
-// outstanding tasks to call dispatchResolveAndDestroy, and then deletes them on
-// the main thread, without calling `resolve`.
+// JSRuntime shutdown waits for all outstanding dispatched tasks.
+// Those tasks' `run` method should be called on the main thread, with
+// MaybeShuttingDown::ShuttingDown, and the `run` method should
+// delete them, without calling `resolve`.
 //
 // For example, the JavaScript function WebAssembly.compile uses
 // OffThreadPromiseTask to manage the result of a helper thread task, accepting
@@ -90,9 +94,10 @@ class OffThreadPromiseRuntimeState;
 // says "queue a task", as the WebAssembly APIs do.
 //
 // An OffThreadPromiseTask has a JSContext, and must be constructed and have its
-// 'init' method called on that JSContext's thread. Once initialized, its
-// dispatchResolveAndDestroy method may be called from any thread. This is the
-// only safe way to destruct an OffThreadPromiseTask; doing so ensures the
+// 'init' method called on that JSContext's thread. Once
+// initialized, its dispatchResolveAndDestroy method may be called from any
+// thread. Other than calling `DestroyUndispatchedTask` during shutdown, this is
+// the only safe way to destruct an OffThreadPromiseTask; doing so ensures the
 // OffThreadPromiseTask's destructor will run on the JSContext's thread, either
 // from the event loop or during shutdown.
 //
@@ -106,7 +111,18 @@ class OffThreadPromiseTask : public JS::Dispatchable {
 
   JSRuntime* runtime_;
   JS::PersistentRooted<PromiseObject*> promise_;
+
+  // The registered_ flag indicates that this task is a member of the `live` set
+  // of OffThreadPromiseRuntimeState, and will be cleaned up if it is not
+  // executed by the embedding.
   bool registered_;
+
+  // An undispatched cancellable task may or may not be registered with the
+  // `live` set of OffThreadPromiseRuntimeState, but once it is set to `false`,
+  // it must both be registered, and a member of the `live` set. If cancellable
+  // is set to false, we can no longer terminate the task early, and must wait
+  // for the embedding to run it.
+  bool cancellable_;
 
   void operator=(const OffThreadPromiseTask&) = delete;
   OffThreadPromiseTask(const OffThreadPromiseTask&) = delete;
@@ -122,13 +138,27 @@ class OffThreadPromiseTask : public JS::Dispatchable {
   // JS::Dispatchable implementation. Ends with 'delete this'.
   void run(JSContext* cx, MaybeShuttingDown maybeShuttingDown) final;
 
+  // To be called by `destroy` during shutdown and implemented by the derived
+  // class (for undispatched tasks only). Gives the task a chance to clean up
+  // before being deleted.
+  virtual void prepareForCancel() {
+    MOZ_CRASH("Undispatched tasks should override prepareForCancel");
+  }
+
  public:
   ~OffThreadPromiseTask() override;
+  static void DestroyUndispatchedTask(OffThreadPromiseTask* task);
 
-  // Initializing an OffThreadPromiseTask informs the runtime that it must
+  // Calling `init` on an OffThreadPromiseTask informs the runtime that it must
   // wait on shutdown for this task to rejoin the active JSContext by calling
   // dispatchResolveAndDestroy().
   bool init(JSContext* cx);
+  bool init(JSContext* cx, const AutoLockHelperThreadState& lock);
+
+  // Cancellable initialization track the task in case it needs to be aborted
+  // before it is dispatched.
+  bool initCancellable(JSContext* cx);
+  bool initCancellable(JSContext* cx, const AutoLockHelperThreadState& lock);
 
   // An initialized OffThreadPromiseTask can be dispatched to an active
   // JSContext of its Promise's JSRuntime from any thread. Normally, this will
@@ -154,16 +184,26 @@ class OffThreadPromiseRuntimeState {
   void* dispatchToEventLoopClosure_;
 
   // A set of all OffThreadPromiseTasks that have successfully called 'init'.
-  // OffThreadPromiseTask's destructor removes them from the set.
+  // This set doesn't own tasks. OffThreadPromiseTask's destructor removes them
+  // from the set.
   HelperThreadLockData<OffThreadPromiseTaskSet> live_;
 
-  // The allCanceled_ condition is waited on and notified during engine
+  // The allFailed_ condition is waited on and notified during engine
   // shutdown, communicating when all off-thread tasks in live_ are safe to be
   // destroyed from the (shutting down) main thread. This condition is met when
-  // live_.count() == numCanceled_ where "canceled" means "the
-  // DispatchToEventLoopCallback failed after this task finished execution".
-  HelperThreadLockData<ConditionVariable> allCanceled_;
-  HelperThreadLockData<size_t> numCanceled_;
+  // live_.count() == numFailed_ where "failed" means "the
+  // DispatchToEventLoopCallback failed after this task was dispatched for
+  // execution".
+  HelperThreadLockData<ConditionVariable> allFailed_;
+  HelperThreadLockData<size_t> numFailed_;
+
+  // The numCancellable tracks the number of registered, but thusfar
+  // undispatched tasks. Not all undispatched tasks are cancellable, namely
+  // webassembly helpers are held in an undispatched state, but are not
+  // cancellable. The cancellable counter is useful for eagerly destroying tasks
+  // once dispatchResolveAndDestroy starts rejecting tasks, and we start the
+  // shutdown process.
+  HelperThreadLockData<size_t> numCancellable_;
 
   // The queue of JS::Dispatchables used by the DispatchToEventLoopCallback that
   // calling js::UseInternalJobQueues installs.
@@ -172,7 +212,7 @@ class OffThreadPromiseRuntimeState {
   HelperThreadLockData<bool> internalDispatchQueueClosed_;
 
   OffThreadPromiseTaskSet& live() { return live_.ref(); }
-  ConditionVariable& allCanceled() { return allCanceled_.ref(); }
+  ConditionVariable& allFailed() { return allFailed_.ref(); }
 
   DispatchableFifo& internalDispatchQueue() {
     return internalDispatchQueue_.ref();
@@ -198,6 +238,7 @@ class OffThreadPromiseRuntimeState {
   // called to periodically drain the dispatch queue before shutdown.
   void internalDrain(JSContext* cx);
   bool internalHasPending();
+  bool internalHasPending(AutoLockHelperThreadState& lock);
 
   // shutdown() must be called by the JSRuntime while the JSRuntime is valid.
   void shutdown(JSContext* cx);

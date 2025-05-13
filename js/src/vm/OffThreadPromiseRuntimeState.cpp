@@ -14,7 +14,7 @@
 
 #include "js/AllocPolicy.h"  // js::ReportOutOfMemory
 #include "js/HeapAPI.h"      // JS::shadow::Zone
-#include "js/Promise.h"  // JS::Dispatchable, JS::DispatchToEventLoopCallback
+#include "js/Promise.h"  // JS::Dispatchable, JS::DispatchToEventLoopCallback,
 #include "js/Utility.h"  // js_delete, js::AutoEnterOOMUnsafeRegion
 #include "threading/ProtectedData.h"  // js::UnprotectedData
 #include "vm/HelperThreads.h"         // js::AutoLockHelperThreadState
@@ -32,7 +32,10 @@ using js::OffThreadPromiseTask;
 
 OffThreadPromiseTask::OffThreadPromiseTask(JSContext* cx,
                                            JS::Handle<PromiseObject*> promise)
-    : runtime_(cx->runtime()), promise_(cx, promise), registered_(false) {
+    : runtime_(cx->runtime()),
+      promise_(cx, promise),
+      registered_(false),
+      cancellable_(false) {
   MOZ_ASSERT(runtime_ == promise_->zone()->runtimeFromMainThread());
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
   MOZ_ASSERT(cx->runtime()->offThreadPromiseState.ref().initialized());
@@ -50,13 +53,17 @@ OffThreadPromiseTask::~OffThreadPromiseTask() {
 }
 
 bool OffThreadPromiseTask::init(JSContext* cx) {
+  AutoLockHelperThreadState lock;
+  return init(cx, lock);
+}
+
+bool OffThreadPromiseTask::init(JSContext* cx,
+                                const AutoLockHelperThreadState& lock) {
   MOZ_ASSERT(cx->runtime() == runtime_);
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
 
   OffThreadPromiseRuntimeState& state = runtime_->offThreadPromiseState.ref();
   MOZ_ASSERT(state.initialized());
-
-  AutoLockHelperThreadState lock;
 
   if (!state.live().putNew(this)) {
     ReportOutOfMemory(cx);
@@ -67,9 +74,33 @@ bool OffThreadPromiseTask::init(JSContext* cx) {
   return true;
 }
 
+bool OffThreadPromiseTask::initCancellable(JSContext* cx) {
+  AutoLockHelperThreadState lock;
+  return initCancellable(cx, lock);
+}
+
+bool OffThreadPromiseTask::initCancellable(
+    JSContext* cx, const AutoLockHelperThreadState& lock) {
+  MOZ_ASSERT(cx->runtime() == runtime_);
+  MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
+  OffThreadPromiseRuntimeState& state = runtime_->offThreadPromiseState.ref();
+  MOZ_ASSERT(state.initialized());
+
+  if (!init(cx, lock)) {
+    return false;
+  }
+  cancellable_ = true;
+  state.numCancellable_++;
+  return true;
+}
+
 void OffThreadPromiseTask::unregister(OffThreadPromiseRuntimeState& state) {
   MOZ_ASSERT(registered_);
   AutoLockHelperThreadState lock;
+  if (cancellable_) {
+    cancellable_ = false;
+    state.numCancellable_--;
+  }
   state.live().remove(this);
   registered_ = false;
 }
@@ -103,6 +134,15 @@ void OffThreadPromiseTask::run(JSContext* cx,
   js_delete(this);
 }
 
+/* static */
+void OffThreadPromiseTask::DestroyUndispatchedTask(OffThreadPromiseTask* task) {
+  MOZ_ASSERT(CurrentThreadCanAccessRuntime(task->runtime_));
+  MOZ_ASSERT(task->registered_);
+  MOZ_ASSERT(task->cancellable_);
+  task->prepareForCancel();
+  js_delete(task);
+}
+
 void OffThreadPromiseTask::dispatchResolveAndDestroy() {
   AutoLockHelperThreadState lock;
   dispatchResolveAndDestroy(lock);
@@ -110,12 +150,15 @@ void OffThreadPromiseTask::dispatchResolveAndDestroy() {
 
 void OffThreadPromiseTask::dispatchResolveAndDestroy(
     const AutoLockHelperThreadState& lock) {
-  MOZ_ASSERT(registered_);
-
   OffThreadPromiseRuntimeState& state = runtime_->offThreadPromiseState.ref();
   MOZ_ASSERT(state.initialized());
-  MOZ_ASSERT(state.live().has(this));
+  MOZ_ASSERT(state.live().has(task.get()));
 
+  MOZ_ASSERT(registered_);
+  if (cancellable_) {
+    cancellable_ = false;
+    state.numCancellable_--;
+  }
   // If the dispatch succeeds, then we are guaranteed that run() will be
   // called on an active JSContext of runtime_.
   if (state.dispatchToEventLoopCallback_(state.dispatchToEventLoopClosure_,
@@ -123,26 +166,27 @@ void OffThreadPromiseTask::dispatchResolveAndDestroy(
     return;
   }
 
-  // The DispatchToEventLoopCallback has rejected this task, indicating that
-  // shutdown has begun. Count the number of rejected tasks that have called
-  // dispatchResolveAndDestroy, and when they account for the entire contents of
-  // live_, notify OffThreadPromiseRuntimeState::shutdown that it is safe to
-  // destruct them.
-  state.numCanceled_++;
-  if (state.numCanceled_ == state.live().count()) {
-    state.allCanceled().notify_one();
+  // The DispatchToEventLoopCallback has failed to dispatch this task,
+  // indicating that shutdown has begun. Count the number of failed tasks that
+  // have called dispatchResolveAndDestroy, and when they account for the entire
+  // contents of live_, notify OffThreadPromiseRuntimeState::shutdown that it is
+  // safe to destruct them.
+  state.numFailed_++;
+  if (state.numFailed_ == state.live().count()) {
+    state.allFailed().notify_one();
   }
 }
 
 OffThreadPromiseRuntimeState::OffThreadPromiseRuntimeState()
     : dispatchToEventLoopCallback_(nullptr),
       dispatchToEventLoopClosure_(nullptr),
-      numCanceled_(0),
+      numFailed_(0),
+      numCancellable_(0),
       internalDispatchQueueClosed_(false) {}
 
 OffThreadPromiseRuntimeState::~OffThreadPromiseRuntimeState() {
   MOZ_ASSERT(live_.refNoCheck().empty());
-  MOZ_ASSERT(numCanceled_ == 0);
+  MOZ_ASSERT(numFailed_ == 0);
   MOZ_ASSERT(internalDispatchQueue_.refNoCheck().empty());
   MOZ_ASSERT(!initialized());
 }
@@ -204,12 +248,13 @@ void OffThreadPromiseRuntimeState::internalDrain(JSContext* cx) {
 
       MOZ_ASSERT(!internalDispatchQueueClosed_);
       MOZ_ASSERT_IF(!internalDispatchQueue().empty(), !live().empty());
-      if (live().empty()) {
+      if (internalDispatchQueue().empty() && !internalHasPending(lock)) {
         return;
       }
 
-      // There are extant live OffThreadPromiseTasks. If none are in the queue,
-      // block until one of them finishes and enqueues a dispatchable.
+      // There are extant live dispatched OffThreadPromiseTasks.
+      // If none are in the queue, block until one of them finishes
+      // and enqueues a dispatchable.
       while (internalDispatchQueue().empty()) {
         internalDispatchQueueAppended().wait(lock);
       }
@@ -223,12 +268,17 @@ void OffThreadPromiseRuntimeState::internalDrain(JSContext* cx) {
 }
 
 bool OffThreadPromiseRuntimeState::internalHasPending() {
+  AutoLockHelperThreadState lock;
+  return internalHasPending(lock);
+}
+
+bool OffThreadPromiseRuntimeState::internalHasPending(
+    AutoLockHelperThreadState& lock) {
   MOZ_ASSERT(usingInternalDispatchQueue());
 
-  AutoLockHelperThreadState lock;
   MOZ_ASSERT(!internalDispatchQueueClosed_);
   MOZ_ASSERT_IF(!internalDispatchQueue().empty(), !live().empty());
-  return !live().empty();
+  return live().count() > numCancellable_;
 }
 
 void OffThreadPromiseRuntimeState::shutdown(JSContext* cx) {
@@ -237,6 +287,19 @@ void OffThreadPromiseRuntimeState::shutdown(JSContext* cx) {
   }
 
   AutoLockHelperThreadState lock;
+
+  // Cancel all undispatched tasks.
+  // We don't use an iterator here because we're releasing the lock,
+  // and this way we don't have to worry about iterator invalidation.
+  for (auto iter = live().iter(); !iter.done(); iter.next()) {
+    OffThreadPromiseTask* task = iter.get();
+
+    // Don't call DestroyUndispatchedTask() with lock held to avoid deadlock.
+    if (task->cancellable_) {
+      AutoUnlockHelperThreadState unlock(lock);
+      OffThreadPromiseTask::DestroyUndispatchedTask(task);
+    }
+  }
 
   // When the shell is using the internal event loop, we must simulate our
   // requirement of the embedding that, before shutdown, all successfully-
@@ -269,12 +332,12 @@ void OffThreadPromiseRuntimeState::shutdown(JSContext* cx) {
   // But although the embedding's DispatchToEventLoopCallback promises to run
   // every task it accepts before shutdown, when shutdown does begin it starts
   // rejecting tasks; we cannot count on 'run' to clean those up for us.
-  // Instead, dispatchResolveAndDestroy keeps a count of rejected ('canceled')
+  // Instead, dispatchResolveAndDestroy keeps a count of failed
   // tasks; once that count covers everything in live_, this function itself
   // runs only on the JSContext's thread, so we can delete them all here.
-  while (live().count() != numCanceled_) {
-    MOZ_ASSERT(numCanceled_ < live().count());
-    allCanceled().wait(lock);
+  while (live().count() != numFailed_) {
+    MOZ_ASSERT(numFailed_ < live().count());
+    allFailed().wait(lock);
   }
 
   // Now that live_ contains only cancelled tasks, we can just delete
@@ -290,7 +353,7 @@ void OffThreadPromiseRuntimeState::shutdown(JSContext* cx) {
     js_delete(task);
   }
   live().clear();
-  numCanceled_ = 0;
+  numFailed_ = 0;
 
   // After shutdown, there should be no OffThreadPromiseTask activity in this
   // JSRuntime. Revert to the !initialized() state to catch bugs.
