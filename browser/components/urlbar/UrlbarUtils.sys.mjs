@@ -1181,37 +1181,39 @@ export var UrlbarUtils = {
    * function is specifically designed for origin and up-to-the-next-slash URL
    * autofill. It should not be used for other types of autofill.
    *
-   * @param {string} url
+   * @param {string} urlString
    *                 The URL to test
-   * @param {string} candidate
+   * @param {string} candidateString
    *                 The candidate string to test against
    * @param {boolean} [checkFragmentOnly]
    *                 If want to check the fragment only, pass true.
    *                 Otherwise, check whole url.
    * @returns {boolean} true: can autofill
    */
-  canAutofillURL(url, candidate, checkFragmentOnly = false) {
+  canAutofillURL(urlString, candidateString, checkFragmentOnly = false) {
     // If the URL does not start with the candidate, it can't be autofilled.
     // The length check is an optimization to short-circuit the `startsWith()`.
     if (
       !checkFragmentOnly &&
-      (url.length <= candidate.length ||
-        !url.toLocaleLowerCase().startsWith(candidate.toLocaleLowerCase()))
+      (urlString.length <= candidateString.length ||
+        !urlString
+          .toLocaleLowerCase()
+          .startsWith(candidateString.toLocaleLowerCase()))
     ) {
       return false;
     }
 
     // Create `URL` objects to make the logic below easier. The strings must
     // include schemes for this to work.
-    if (!lazy.UrlbarTokenizer.REGEXP_PREFIX.test(url)) {
-      url = "http://" + url;
+    if (!lazy.UrlbarTokenizer.REGEXP_PREFIX.test(urlString)) {
+      urlString = "http://" + urlString;
     }
-    if (!lazy.UrlbarTokenizer.REGEXP_PREFIX.test(candidate)) {
-      candidate = "http://" + candidate;
+    if (!lazy.UrlbarTokenizer.REGEXP_PREFIX.test(candidateString)) {
+      candidateString = "http://" + candidateString;
     }
 
-    url = URL.parse(url);
-    candidate = URL.parse(candidate);
+    let url = URL.parse(urlString);
+    let candidate = URL.parse(candidateString);
     if (!url || !candidate) {
       return false;
     }
@@ -2213,21 +2215,26 @@ export class UrlbarQueryContext {
       "searchString",
     ]);
 
-    if (isNaN(parseInt(options.maxResults))) {
+    if (isNaN(options.maxResults)) {
       throw new Error(
         `Invalid maxResults property provided to UrlbarQueryContext`
       );
     }
 
-    // Manage optional properties of options.
-    for (let [prop, checkFn, defaultValue] of [
+    /**
+     * @type {[string, (any) => boolean, any?][]}
+     */
+    const optionalProperties = [
       ["currentPage", v => typeof v == "string" && !!v.length],
       ["formHistoryName", v => typeof v == "string" && !!v.length],
       ["prohibitRemoteResults", () => true, false],
-      ["providers", v => Array.isArray(v) && v.length],
+      ["providers", v => Array.isArray(v) && !!v.length],
       ["searchMode", v => v && typeof v == "object"],
-      ["sources", v => Array.isArray(v) && v.length],
-    ]) {
+      ["sources", v => Array.isArray(v) && !!v.length],
+    ];
+
+    // Manage optional properties of options.
+    for (let [prop, checkFn, defaultValue] of optionalProperties) {
       if (prop in options) {
         if (!checkFn(options[prop])) {
           throw new Error(`Invalid value for option "${prop}"`);
@@ -2970,6 +2977,32 @@ export class SkippableTimer {
 }
 
 /**
+ * @typedef L10nCachedMessage
+ *   A cached L10n message object is similar to `L10nMessage` (defined in
+ *   Localization.webidl) but its attributes are stored differently for
+ *   convenience.
+ *
+ *   For example, if we cache these strings from an ftl file:
+ *
+ *     foo = Foo's value
+ *     bar =
+ *       .label = Bar's label value
+ *
+ *   Then:
+ *
+ *     cache.get("foo")
+ *     // => { value: "Foo's value", attributes: null }
+ *     cache.get("bar")
+ *     // => { value: null, attributes: { label: "Bar's label value" }}
+ * @property {string} [value]
+ *   The bare value of the string. If the string does not have a bare value
+ *   (i.e., it has only attributes), this will be null.
+ * @property {{[key: string]: string}|null} [attributes]
+ *   A mapping from attribute names to their values. If the string doesn't have
+ *   any attributes, this will be null.
+ */
+
+/**
  * This class implements a cache for l10n strings. Cached strings can be
  * accessed synchronously, avoiding the asynchronicity of `data-l10n-id` and
  * `document.l10n.setAttributes`, which can lead to text pop-in and flickering
@@ -3008,38 +3041,10 @@ export class L10nCache {
    *   The Fluent arguments as passed to `l10n.setAttributes`.
    * @param {boolean} [options.excludeArgsFromCacheKey]
    *   Pass true if the string was cached using a key that excluded arguments.
-   * @returns {object}
-   *   The message object or undefined if it's not cached. The message object is
-   *   similar to `L10nMessage` (defined in Localization.webidl) but its
-   *   attributes are stored differently for convenience. It looks like this:
-   *
-   *     { value, attributes }
-   *
-   *   The properties are:
-   *
-   *     {string} value
-   *       The bare value of the string. If the string does not have a bare
-   *       value (i.e., it has only attributes), this will be null.
-   *     {object} attributes
-   *       A mapping from attribute names to their values. If the string doesn't
-   *       have any attributes, this will be null.
-   *
-   *   For example, if we cache these strings from an ftl file:
-   *
-   *     foo = Foo's value
-   *     bar =
-   *       .label = Bar's label value
-   *
-   *   Then:
-   *
-   *     cache.get("foo")
-   *     // => { value: "Foo's value", attributes: null }
-   *     cache.get("bar")
-   *     // => { value: null, attributes: { label: "Bar's label value" }}
    */
   get({ id, args = undefined, excludeArgsFromCacheKey = false }) {
-    return this._messagesByKey.get(
-      this._key({ id, args, excludeArgsFromCacheKey })
+    return this.#messagesByKey.get(
+      this.#key({ id, args, excludeArgsFromCacheKey })
     );
   }
 
@@ -3072,11 +3077,13 @@ export class L10nCache {
       );
       return;
     }
-    let message = messages[0];
-    if (message.attributes) {
+
+    /** @type {L10nCachedMessage} */
+    let message = { value: messages[0].value, attributes: null };
+    if (messages[0].attributes) {
       // Convert `attributes` from an array of `{ name, value }` objects to one
       // object mapping names to values.
-      message.attributes = message.attributes.reduce(
+      message.attributes = messages[0].attributes.reduce(
         (valuesByName, { name, value }) => {
           valuesByName[name] = value;
           return valuesByName;
@@ -3084,8 +3091,8 @@ export class L10nCache {
         {}
       );
     }
-    this._messagesByKey.set(
-      this._key({ id, args, excludeArgsFromCacheKey }),
+    this.#messagesByKey.set(
+      this.#key({ id, args, excludeArgsFromCacheKey }),
       message
     );
   }
@@ -3141,8 +3148,8 @@ export class L10nCache {
    *   arguments. If true, `args` is ignored.
    */
   delete({ id, args = undefined, excludeArgsFromCacheKey = false }) {
-    this._messagesByKey.delete(
-      this._key({ id, args, excludeArgsFromCacheKey })
+    this.#messagesByKey.delete(
+      this.#key({ id, args, excludeArgsFromCacheKey })
     );
   }
 
@@ -3150,16 +3157,14 @@ export class L10nCache {
    * Removes all cached strings.
    */
   clear() {
-    this._messagesByKey.clear();
+    this.#messagesByKey.clear();
   }
 
   /**
    * Returns the number of cached messages.
-   *
-   * @returns {number}
    */
   size() {
-    return this._messagesByKey.size;
+    return this.#messagesByKey.size;
   }
 
   /**
@@ -3323,11 +3328,13 @@ export class L10nCache {
 
   /**
    * Cache keys => cached message objects
+   *
+   * @type {Map<string, L10nCachedMessage>}
    */
-  _messagesByKey = new Map();
+  #messagesByKey = new Map();
 
   /**
-   * Returns a cache key for a string in `_messagesByKey`.
+   * Returns a cache key for a string in `#messagesByKey`.
    *
    * @param {object} options
    *   Options
@@ -3340,7 +3347,7 @@ export class L10nCache {
    * @returns {string}
    *   The cache key.
    */
-  _key({ id, args, excludeArgsFromCacheKey }) {
+  #key({ id, args, excludeArgsFromCacheKey }) {
     // Keys are `id` plus JSON'ed `args` values. `JSON.stringify` doesn't
     // guarantee a particular ordering of object properties, so instead of
     // stringifying `args` as is, sort its entries by key and then pull out the
