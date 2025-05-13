@@ -613,7 +613,9 @@ class AsyncFutexWaiter : public FutexWaiter {
     MOZ_ASSERT(!timeoutTask_);
     timeoutTask_ = task;
   }
+
   bool hasTimeout() const { return !!timeoutTask_; }
+  WaitAsyncTimeoutTask* timeoutTask() const { return timeoutTask_; }
 
   void maybeClearTimeout(AutoLockFutexAPI& lock);
 
@@ -638,7 +640,7 @@ class AsyncFutexWaiter : public FutexWaiter {
 // See [SMDOC] Atomics.wait for more details.
 class WaitAsyncNotifyTask : public OffThreadPromiseTask {
  public:
-  enum class Result { Ok, TimedOut };
+  enum class Result { Ok, TimedOut, Dead };
 
  private:
   Result result_ = Result::Ok;
@@ -667,6 +669,11 @@ class WaitAsyncNotifyTask : public OffThreadPromiseTask {
       case Result::TimedOut:
         resultMsg = StringValue(cx->names().timed_out_);
         break;
+      case Result::Dead:
+        // The underlying SharedArrayBuffer is no longer reachable, and no
+        // timeout is associated with this waiter. The promise will never
+        // resolve. There's nothing to do here.
+        return true;
     }
     return PromiseObject::resolve(cx, promise, resultMsg);
   }
@@ -709,6 +716,11 @@ static void AddWaiter(SharedArrayRawBuffer* sarb, FutexWaiter* node,
 
 // https://tc39.es/ecma262/#sec-removewaiter
 static void RemoveWaiterImpl(FutexWaiterListNode* node, AutoLockFutexAPI&) {
+  if (!node->prev()) {
+    MOZ_ASSERT(!node->next());
+    return;
+  }
+
   node->prev()->setNext(node->next());
   node->next()->setPrev(node->prev());
 
@@ -727,6 +739,50 @@ static void RemoveSyncWaiter(SyncFutexWaiter* waiter, AutoLockFutexAPI& lock) {
                                                   AutoLockFutexAPI& lock) {
   RemoveWaiterImpl(waiter, lock);
   return waiter;
+}
+
+FutexWaiterListHead::~FutexWaiterListHead() {
+  // When a SharedArrayRawBuffer is no longer reachable, the contents of its
+  // waiters list can no longer be notified. However, they can still resolve if
+  // they have an associated timeout. When the list head goes away, we walk
+  // through the remaining waiters and clean up the ones that don't have
+  // timeouts. We leave the remaining waiters in a free-floating linked list;
+  // they will remove themselves as the timeouts fire or the associated runtime
+  // shuts down.
+  AutoLockHelperThreadState helperLock;
+  AutoLockFutexAPI lock;
+
+  FutexWaiterListNode* iter = next();
+  while (iter != this) {
+    // All remaining FutexWaiters must be async. A sync waiter can only exist if
+    // a thread is waiting, and that thread must have a reference to the shared
+    // array buffer it's waiting on, so that buffer can't be freed.
+
+    AsyncFutexWaiter* removedWaiter =
+        RemoveAsyncWaiter(iter->toWaiter()->asAsync(), lock);
+    iter = iter->next();
+
+    if (removedWaiter->hasTimeout()) {
+      // If a timeout task exists, assert that the timeout task can still access
+      // it. This will allow it to clean it up when it runs.  See the comment in
+      // WaitAsyncTimeoutTask::run() or the the SMDOC in this file.
+      MOZ_ASSERT(removedWaiter->timeoutTask()->cleared(lock));
+      continue;
+    }
+    // In the case that a timeout task does not exist, the two live raw
+    // pointers at this point are WaitAsyncNotifyTask and the
+    // AsyncFutexWaiter. We can clean them up here as there is no way to
+    // notify them without the SAB or without waiting for the shutdown of the
+    // JS::Context. In order to do this, we store the removed waiter in a
+    // unique ptr, so that it is cleared after this function, and dispatch and
+    // destroy the notify task.
+    UniquePtr<AsyncFutexWaiter> ownedWaiter(removedWaiter);
+    WaitAsyncNotifyTask* task = ownedWaiter->notifyTask();
+    task->setResult(WaitAsyncNotifyTask::Result::Dead, lock);
+    task->removeFromCancellableListAndDispatch(helperLock);
+  }
+
+  RemoveWaiterImpl(this, lock);
 }
 
 // Creates an object to use as the return value of Atomics.waitAsync.

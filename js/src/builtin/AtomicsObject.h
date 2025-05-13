@@ -59,6 +59,7 @@ class FutexWaiterListHead : public FutexWaiterListNode {
     setNext(this);
     setPrev(this);
   }
+  ~FutexWaiterListHead();
 };
 
 class FutexThread {
