@@ -53,7 +53,7 @@ val defaultTypography = AcornTypography(
         fontSize = 24.sp,
         fontWeight = FontWeight.W400,
         letterSpacing = 0.18.sp,
-        lineHeight = 24.sp,
+        lineHeight = 32.sp,
     ),
 
     headline6 = TextStyle(
