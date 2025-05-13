@@ -641,7 +641,7 @@ JSLargeAllocationFailure:
     A large allocation couldn't be satisfied, check the JSOutOfMemory
     description for the possible values of this annotation.
   type: string
-  scope: report
+  scope: ping
 
 JSModuleLoadError:
   description: >
@@ -658,7 +658,7 @@ JSOutOfMemory:
     free some memory, and the last that the GC had managed to free enough memory
     to satisfy the allocation.
   type: string
-  scope: report
+  scope: ping
 
 
 LastInteractionDuration:
