@@ -13,6 +13,11 @@
   width: 16px;
 }
 
+/* work around a display: none in menu.css, see bug 1112310 */
+.searchengine-menuitem > .menu-icon {
+  display: flex;
+}
+
 #engineList {
   margin: .5em 0;
 }
