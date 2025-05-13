@@ -25,7 +25,6 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.PrivateBrowsingLockAction
 import org.mozilla.fenix.components.appstate.AppState
-import org.mozilla.fenix.tabstray.TabsTrayFragment
 
 /**
  * An interface to access and observe the enabled/disabled state of the Private Browsing Lock feature.
@@ -135,7 +134,6 @@ class PrivateBrowsingLockFeature(
 
     private fun start(isLocked: Boolean) {
         observePrivateTabsClosure()
-        observeSwitchingToNormalMode()
 
         appStore.dispatch(
             PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
@@ -175,66 +173,20 @@ class PrivateBrowsingLockFeature(
         }
     }
 
-    private fun observeSwitchingToNormalMode() {
-        appStoreScope = appStore.flowScoped { flow ->
-            flow
-                .map { it.mode }
-                .distinctUntilChanged()
-                .filter { it == BrowsingMode.Normal }
-                .collect {
-                    // When witching from private to normal mode with private tabs open,
-                    // we lock the private mode.
-                    val hasPrivateTabs = browserStore.state.privateTabs.isNotEmpty()
-                    if (hasPrivateTabs) {
-                        appStore.dispatch(
-                            PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
-                                isLocked = true,
-                            ),
-                        )
-                    }
-                }
-        }
-    }
-
     override fun onStop(owner: LifecycleOwner) {
         super.onStop(owner)
 
         if (!isFeatureEnabled) return
 
-        when (owner) {
-            // lock when activity hits onStop and it isn’t a config-change restart
-            is Activity -> {
-                if (!owner.isChangingConfigurations) {
-                    maybeLockPrivateModeOnStop()
-                }
-            }
-
-            // lock when tabs fragment is getting closed in regular mode
-            is TabsTrayFragment -> {
-                maybeLockPrivateModeOnTabsTrayClosure()
-            }
+        // lock when activity hits onStop and it isn’t a config-change restart
+        if (owner is Activity && !owner.isChangingConfigurations) {
+            maybeLockPrivateModeOnStop()
         }
     }
 
     private fun maybeLockPrivateModeOnStop() {
-        // When the app gets inactive in private mode with opened tabs, we lock the private mode.
-        val hasPrivateTabs = browserStore.state.privateTabs.isNotEmpty()
-        val isPrivateMode = appStore.state.mode == BrowsingMode.Private
-
-        if (isPrivateMode && hasPrivateTabs) {
-            appStore.dispatch(
-                PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
-                    isLocked = true,
-                ),
-            )
-        }
-    }
-
-    private fun maybeLockPrivateModeOnTabsTrayClosure() {
-        val hasPrivateTabs = browserStore.state.privateTabs.isNotEmpty()
-        val isNormalMode = appStore.state.mode == BrowsingMode.Normal
-
-        if (isNormalMode && hasPrivateTabs) {
+        // When the app gets inactive with opened tabs, we lock the private mode.
+        if (browserStore.state.privateTabs.isNotEmpty()) {
             appStore.dispatch(
                 PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
                     isLocked = true,

@@ -23,8 +23,6 @@ import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -163,125 +161,6 @@ class TabsTrayFragmentTest {
         assertEquals(1, position)
     }
 
-    // tests for shouldShowPrompt
-    @Test
-    fun `WHEN all valid conditions THEN shouldShowPrompt returns true`() {
-        every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
-            mockk(),
-            mockk(),
-        )
-        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
-        every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
-
-        val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
-        val result =
-            fragment.shouldShowPrompt(
-                biometricAuthenticationNeededInfo,
-                isPrivateTabPage = true,
-                isInPrivateMode = false,
-            )
-
-        assertTrue(result)
-    }
-
-    @Test
-    fun `WHEN isPrivateTabPage is false THEN shouldShowPrompt returns false`() {
-        every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
-            mockk(),
-            mockk(),
-        )
-        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
-        every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
-
-        val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
-        val result =
-            fragment.shouldShowPrompt(
-                biometricAuthenticationNeededInfo,
-                isPrivateTabPage = false,
-                isInPrivateMode = false,
-            )
-
-        assertFalse(result)
-    }
-
-    @Test
-    fun `WHEN hasPrivateTabs is false THEN shouldShowPrompt returns false`() {
-        every { fragment.requireComponents.core.store.state.privateTabs } returns emptyList()
-        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
-        every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
-
-        val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
-        val result =
-            fragment.shouldShowPrompt(
-                biometricAuthenticationNeededInfo,
-                isPrivateTabPage = true,
-                isInPrivateMode = false,
-            )
-
-        assertFalse(result)
-    }
-
-    @Test
-    fun `WHEN privateBrowsingLockedEnabled is false THEN shouldShowPrompt returns false`() {
-        every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
-            mockk(),
-            mockk(),
-        )
-        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns false
-        every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
-
-        val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
-        val result =
-            fragment.shouldShowPrompt(
-                biometricAuthenticationNeededInfo,
-                isPrivateTabPage = true,
-                isInPrivateMode = false,
-            )
-
-        assertFalse(result)
-    }
-
-    @Test
-    fun `WHEN shouldShowAuthenticationPrompt is false THEN shouldShowPrompt returns false`() {
-        every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
-            mockk(),
-            mockk(),
-        )
-        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
-        every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
-
-        val biometricAuthenticationNeededInfo =
-            BiometricAuthenticationNeededInfo(shouldShowAuthenticationPrompt = false)
-        val result =
-            fragment.shouldShowPrompt(
-                biometricAuthenticationNeededInfo,
-                isPrivateTabPage = true,
-                isInPrivateMode = false,
-            )
-
-        assertFalse(result)
-    }
-
-    @Test
-    fun `WHEN already on private page tabs THEN shouldShowPrompt returns false`() {
-        every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
-            mockk(),
-            mockk(),
-        )
-        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
-        every { fragment.tabsTrayStore.state.selectedPage } returns Page.PrivateTabs
-
-        val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
-        val result =
-            fragment.shouldShowPrompt(
-                biometricAuthenticationNeededInfo,
-                isPrivateTabPage = true,
-                isInPrivateMode = false,
-            )
-
-        assertFalse(result)
-    }
-
     // tests for onTabPageClick
     @Test
     fun `WHEN shouldShowPrompt is true THEN onTabPageClick sets the authentication status to authentication in progress and calls show prompt`() {
@@ -302,7 +181,7 @@ class TabsTrayFragmentTest {
             biometricUtils = biometricUtils,
             tabsTrayInteractor = tabsTrayInteractor,
             page = page,
-            isInPrivateMode = false,
+            isPrivateScreenLocked = true,
         )
 
         assertEquals(
@@ -340,7 +219,7 @@ class TabsTrayFragmentTest {
             biometricUtils = biometricUtils,
             tabsTrayInteractor = tabsTrayInteractor,
             page = page,
-            isInPrivateMode = true,
+            isPrivateScreenLocked = false,
         )
 
         assertEquals(
@@ -379,7 +258,7 @@ class TabsTrayFragmentTest {
             biometricUtils = biometricUtils,
             tabsTrayInteractor = tabsTrayInteractor,
             page = page,
-            isInPrivateMode = true,
+            isPrivateScreenLocked = false,
         )
 
         assertEquals(
