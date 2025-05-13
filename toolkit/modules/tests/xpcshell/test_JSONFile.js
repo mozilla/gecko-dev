@@ -9,6 +9,7 @@ ChromeUtils.defineESModuleGetters(this, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   FileTestUtils: "resource://testing-common/FileTestUtils.sys.mjs",
   JSONFile: "resource://gre/modules/JSONFile.sys.mjs",
+  sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
 /**
@@ -323,4 +324,33 @@ add_task(async function test_finalize_on_shutdown() {
   let storeForLoad = new JSONFile({ path });
   await storeForLoad.load();
   Assert.deepEqual(storeForLoad.data, TEST_DATA);
+});
+
+add_task(async function test_save_failure_handler() {
+  let path = getTempFile(TEST_STORE_FILE_NAME).path;
+  let saveFailureHandler = sinon.stub();
+  let storeForSave = new JSONFile({
+    path,
+    saveDelayMs: 10,
+    saveFailureHandler,
+  });
+  await storeForSave.load();
+
+  // Let's now add some invalid data that we'll fail to save.
+  let circularThing = {};
+  circularThing.circle = circularThing;
+
+  storeForSave.data = {
+    circularThing,
+  };
+  await storeForSave._save();
+  Assert.ok(saveFailureHandler.calledOnce, "Failure handler was called");
+  Assert.ok(
+    saveFailureHandler.calledWith(
+      sinon.match(error => {
+        return error.message == "cyclic object value";
+      })
+    ),
+    "Handler was passed Error"
+  );
 });
