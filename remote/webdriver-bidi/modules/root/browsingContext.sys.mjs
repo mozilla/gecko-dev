@@ -1751,6 +1751,48 @@ class BrowsingContextModule extends RootBiDiModule {
   }
 
   /**
+   * Wrapper around RootBiDiModule._emitEventForBrowsingContext to additionally
+   * check that the payload of the event contains a valid `context` id.
+   *
+   * All browsingContext module events should have such a property set, and a
+   * missing id usually indicates that the browsing context which triggered the
+   * event is out of scope for the current WebDriver BiDi session (eg. chrome or
+   * webextension).
+   *
+   * @param {string} browsingContextId
+   *     The ID of the browsing context to which the event should be emitted.
+   * @param {string} eventName
+   *     The name of the event to be emitted.
+   * @param {object} eventPayload
+   *     The payload to be sent with the event.
+   * @param {number|string} eventPayload.context
+   *     A unique context id computed by the TabManager.
+   */
+  #emitContextEventForBrowsingContext(
+    browsingContextId,
+    eventName,
+    eventPayload
+  ) {
+    // All browsingContext events should include a context id in the payload.
+    const { context = null } = eventPayload;
+    if (context === null) {
+      // If the context could not be found by the TabManager, the event is most
+      // likely related to an unsupported context: eg chrome (bug 1722679) or
+      // webextension (bug 1755014).
+      lazy.logger.trace(
+        `[${browsingContextId}] Skipping event ${eventName} because of a missing unique context id`
+      );
+      return;
+    }
+
+    this._emitEventForBrowsingContext(
+      browsingContextId,
+      eventName,
+      eventPayload
+    );
+  }
+
+  /**
    * Retrieves a browsing context based on its id.
    *
    * @param {number} contextId
@@ -1851,6 +1893,12 @@ class BrowsingContextModule extends RootBiDiModule {
         return;
       }
 
+      // Filter out notifications for webextension contexts until support gets
+      // added (bug 1755014).
+      if (browsingContext.currentRemoteType === "extension") {
+        return;
+      }
+
       const browsingContextInfo = this.#getBrowsingContextInfo(
         browsingContext,
         {
@@ -1858,7 +1906,7 @@ class BrowsingContextModule extends RootBiDiModule {
         }
       );
 
-      this._emitEventForBrowsingContext(
+      this.#emitContextEventForBrowsingContext(
         browsingContext.id,
         "browsingContext.contextCreated",
         browsingContextInfo
@@ -1885,6 +1933,12 @@ class BrowsingContextModule extends RootBiDiModule {
         return;
       }
 
+      // Filter out notifications for webextension contexts until support gets
+      // added (bug 1755014).
+      if (browsingContext.currentRemoteType === "extension") {
+        return;
+      }
+
       // If this event is for a child context whose top or parent context is also destroyed,
       // we don't need to send it, in this case the event for the top/parent context is enough.
       if (
@@ -1896,7 +1950,7 @@ class BrowsingContextModule extends RootBiDiModule {
 
       const browsingContextInfo = this.#getBrowsingContextInfo(browsingContext);
 
-      this._emitEventForBrowsingContext(
+      this.#emitContextEventForBrowsingContext(
         browsingContext.id,
         "browsingContext.contextDestroyed",
         browsingContextInfo
@@ -1915,7 +1969,7 @@ class BrowsingContextModule extends RootBiDiModule {
         timestamp: Date.now(),
         url,
       };
-      this._emitEventForBrowsingContext(
+      this.#emitContextEventForBrowsingContext(
         context.id,
         "browsingContext.fragmentNavigated",
         browsingContextInfo
@@ -1938,7 +1992,7 @@ class BrowsingContextModule extends RootBiDiModule {
         type: detail.promptType,
         userText: detail.userText,
       };
-      this._emitEventForBrowsingContext(
+      this.#emitContextEventForBrowsingContext(
         contentBrowser.browsingContext.id,
         "browsingContext.userPromptClosed",
         params
@@ -1975,7 +2029,7 @@ class BrowsingContextModule extends RootBiDiModule {
         eventPayload.defaultValue = await prompt.getInputText();
       }
 
-      this._emitEventForBrowsingContext(
+      this.#emitContextEventForBrowsingContext(
         contentBrowser.browsingContext.id,
         "browsingContext.userPromptOpened",
         eventPayload
@@ -1993,7 +2047,7 @@ class BrowsingContextModule extends RootBiDiModule {
         timestamp: Date.now(),
         url,
       };
-      this._emitEventForBrowsingContext(
+      this.#emitContextEventForBrowsingContext(
         contextId,
         "browsingContext.navigationFailed",
         eventPayload
@@ -2012,7 +2066,7 @@ class BrowsingContextModule extends RootBiDiModule {
         timestamp: Date.now(),
         url,
       };
-      this._emitEventForBrowsingContext(
+      this.#emitContextEventForBrowsingContext(
         context.id,
         "browsingContext.navigationStarted",
         eventPayload

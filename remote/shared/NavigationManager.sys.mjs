@@ -561,6 +561,12 @@ class NavigationRegistry extends EventEmitter {
       return;
     }
 
+    // Filter out notifications for webextension contexts until support gets
+    // added (bug 1755014).
+    if (browsingContext.currentRemoteType === "extension") {
+      return;
+    }
+
     const navigableId =
       lazy.TabManager.getIdForBrowsingContext(browsingContext);
     const navigation = this.#navigations.get(navigableId);
