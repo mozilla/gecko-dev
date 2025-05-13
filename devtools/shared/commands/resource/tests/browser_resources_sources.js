@@ -193,7 +193,7 @@ async function getExpectedResources(ignoreUnresurrectedSources = false) {
       },
       sourceContent: {
         contentType: "text/javascript",
-        source: "666",
+        source: "'666'",
       },
     },
     {
