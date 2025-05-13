@@ -5,6 +5,7 @@
 
 #include "DecoderFactory.h"
 
+#include "ImageUtils.h"
 #include "nsMimeTypes.h"
 #include "mozilla/RefPtr.h"
 
@@ -57,6 +58,8 @@ DecoderType DecoderFactory::GetDecoderType(const char* aMimeType) {
     type = DecoderType::JPEG;
   } else if (!strcmp(aMimeType, IMAGE_JPG)) {
     type = DecoderType::JPEG;
+  } else if (!strcmp(aMimeType, IMAGE_JPEG_PDF)) {
+    type = DecoderType::JPEG_PDF;
 
     // BMP
   } else if (!strcmp(aMimeType, IMAGE_BMP)) {
@@ -131,10 +134,12 @@ already_AddRefed<Decoder> DecoderFactory::GetDecoder(DecoderType aType,
       decoder = new nsGIFDecoder2(aImage);
       break;
     case DecoderType::JPEG:
+    case DecoderType::JPEG_PDF:
       // If we have all the data we don't want to waste cpu time doing
       // a progressive decode.
       decoder = new nsJPEGDecoder(
-          aImage, aIsRedecode ? Decoder::SEQUENTIAL : Decoder::PROGRESSIVE);
+          aImage, aIsRedecode ? Decoder::SEQUENTIAL : Decoder::PROGRESSIVE,
+          aType == DecoderType::JPEG_PDF);
       break;
     case DecoderType::BMP:
       decoder = new nsBMPDecoder(aImage);

@@ -36,7 +36,7 @@ extern "C" {
 #endif
 
 static void cmyk_convert_bgra(uint32_t* aInput, uint32_t* aOutput,
-                              int32_t aWidth);
+                              int32_t aWidth, bool aIsInverted);
 
 using mozilla::gfx::SurfaceFormat;
 
@@ -72,7 +72,7 @@ METHODDEF(void) progress_monitor(j_common_ptr info);
 #define MAX_JPEG_MARKER_LENGTH (((uint32_t)1 << 16) - 1)
 
 nsJPEGDecoder::nsJPEGDecoder(RasterImage* aImage,
-                             Decoder::DecodeStyle aDecodeStyle)
+                             Decoder::DecodeStyle aDecodeStyle, bool aIsPDF)
     : Decoder(aImage),
       mLexer(Transition::ToUnbuffered(State::FINISHED_JPEG_DATA,
                                       State::JPEG_DATA, SIZE_MAX),
@@ -80,7 +80,8 @@ nsJPEGDecoder::nsJPEGDecoder(RasterImage* aImage,
       mProfile(nullptr),
       mProfileLength(0),
       mCMSLine(nullptr),
-      mDecodeStyle(aDecodeStyle) {
+      mDecodeStyle(aDecodeStyle),
+      mIsPDF(aIsPDF) {
   this->mErr.pub.error_exit = nullptr;
   this->mErr.pub.emit_message = nullptr;
   this->mErr.pub.output_message = nullptr;
@@ -692,7 +693,7 @@ WriteState nsJPEGDecoder::OutputScanlines() {
           case JCS_CMYK:
             // Convert from CMYK to BGRA
             MOZ_ASSERT(mCMSLine);
-            cmyk_convert_bgra(mCMSLine, aPixelBlock, aBlockSize);
+            cmyk_convert_bgra(mCMSLine, aPixelBlock, aBlockSize, mIsPDF);
             break;
         }
 
@@ -961,7 +962,7 @@ term_source(j_decompress_ptr jd) {
 /// @param aOutput Points to row buffer to write BGRA to.
 /// @param aWidth Number of pixels in the row.
 static void cmyk_convert_bgra(uint32_t* aInput, uint32_t* aOutput,
-                              int32_t aWidth) {
+                              int32_t aWidth, bool aIsInverted) {
   uint8_t* input = reinterpret_cast<uint8_t*>(aInput);
 
   for (int32_t i = 0; i < aWidth; ++i) {
@@ -984,10 +985,16 @@ static void cmyk_convert_bgra(uint32_t* aInput, uint32_t* aOutput,
     // B = 1 - Y => 1 - (1 - iY*iK) => iY*iK
 
     // Convert from Inverted CMYK (0..255) to RGB (0..255)
-    const uint32_t iC = input[0];
-    const uint32_t iM = input[1];
-    const uint32_t iY = input[2];
-    const uint32_t iK = input[3];
+    uint32_t iC = input[0];
+    uint32_t iM = input[1];
+    uint32_t iY = input[2];
+    uint32_t iK = input[3];
+    if (MOZ_UNLIKELY(aIsInverted)) {
+      iC = 255 - iC;
+      iM = 255 - iM;
+      iY = 255 - iY;
+      iK = 255 - iK;
+    }
 
     const uint8_t r = iC * iK / 255;
     const uint8_t g = iM * iK / 255;

@@ -37,6 +37,7 @@ enum class DecoderType {
   PNG,
   GIF,
   JPEG,
+  JPEG_PDF,
   BMP,
   BMP_CLIPBOARD,
   ICO,

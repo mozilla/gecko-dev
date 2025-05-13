@@ -141,6 +141,7 @@
 #define IMAGE_JPEG "image/jpeg"
 #define IMAGE_JPG "image/jpg"
 #define IMAGE_PJPEG "image/pjpeg"
+#define IMAGE_JPEG_PDF "image/x-jpeg-pdf"
 #define IMAGE_PNG "image/png"
 #define IMAGE_APNG "image/apng"
 #define IMAGE_X_PNG "image/x-png"
