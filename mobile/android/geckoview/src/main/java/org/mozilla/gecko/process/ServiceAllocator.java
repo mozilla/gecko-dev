@@ -497,8 +497,9 @@ import org.mozilla.gecko.util.XPCOMEventTarget;
       }
 
       final String newId = UUID.randomUUID().toString();
-      mRunningServiceIds.add(newId);
-      return newId;
+      final String dashlessId = newId.replaceAll("\\-", "");
+      mRunningServiceIds.add(dashlessId);
+      return dashlessId;
     }
 
     /** Just drop the count of active services. */
