@@ -67,7 +67,8 @@ class VideoFrameSurface<LIBAV_VER> {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VideoFrameSurface)
 
-  explicit VideoFrameSurface(DMABufSurface* aSurface);
+  explicit VideoFrameSurface(DMABufSurface* aSurface,
+                             VASurfaceID aFFMPEGSurfaceID);
 
   void SetYUVColorSpace(mozilla::gfx::YUVColorSpace aColorSpace) {
     mSurface->GetAsDMABufSurfaceYUV()->SetYUVColorSpace(aColorSpace);
@@ -94,6 +95,8 @@ class VideoFrameSurface<LIBAV_VER> {
   VideoFrameSurface(const VideoFrameSurface&) = delete;
   const VideoFrameSurface& operator=(VideoFrameSurface const&) = delete;
 
+  void DisableRecycle();
+
  protected:
   // Lock VAAPI related data
   void LockVAAPIData(AVCodecContext* aAVCodecContext, AVFrame* aAVFrame,
@@ -104,14 +107,10 @@ class VideoFrameSurface<LIBAV_VER> {
 
   // Check if DMABufSurface is used by any gecko rendering process
   // (WebRender or GL compositor) or by DMABUFSurfaceImage/VideoData.
-  bool IsUsed() const { return mSurface->IsGlobalRefSet(); }
+  bool IsUsedByRenderer() const { return mSurface->IsGlobalRefSet(); }
 
   // Surface points to dmabuf memmory owned by ffmpeg.
   bool IsFFMPEGSurface() const { return !!mLib; }
-
-  void MarkAsUsed(VASurfaceID aFFMPEGSurfaceID) {
-    mFFMPEGSurfaceID = Some(aFFMPEGSurfaceID);
-  }
 
  private:
   virtual ~VideoFrameSurface();
@@ -120,7 +119,8 @@ class VideoFrameSurface<LIBAV_VER> {
   const FFmpegLibWrapper* mLib;
   AVBufferRef* mAVHWFrameContext;
   AVBufferRef* mHWAVBuffer;
-  Maybe<VASurfaceID> mFFMPEGSurfaceID;
+  VASurfaceID mFFMPEGSurfaceID;
+  bool mHoldByFFmpeg;
 };
 
 // VideoFramePool class is thread-safe.
@@ -142,11 +142,17 @@ class VideoFramePool<LIBAV_VER> {
       const layers::PlanarYCbCrData& aData, AVCodecContext* aAVCodecContext);
 
   void ReleaseUnusedVAAPIFrames();
+  void FlushFFmpegFrames();
 
  private:
-  RefPtr<VideoFrameSurface<LIBAV_VER>> GetFreeVideoFrameSurface();
+  RefPtr<VideoFrameSurface<LIBAV_VER>> GetTargetVideoFrameSurfaceLocked(
+      const MutexAutoLock& aProofOfLock, VASurfaceID aFFmpegSurfaceID,
+      bool aRecycleSurface);
+  RefPtr<VideoFrameSurface<LIBAV_VER>> GetFFmpegVideoFrameSurfaceLocked(
+      const MutexAutoLock& aProofOfLock, VASurfaceID aFFMPEGSurfaceID);
+  RefPtr<VideoFrameSurface<LIBAV_VER>> GetFreeVideoFrameSurfaceLocked(
+      const MutexAutoLock& aProofOfLock);
   bool ShouldCopySurface();
-  void CheckNewFFMPEGSurface(VASurfaceID aNewSurfaceID);
 
  private:
   // Protect mDMABufSurfaces pool access
