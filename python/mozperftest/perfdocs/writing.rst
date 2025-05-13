@@ -30,9 +30,9 @@ This is the list of fields:
 - **supportedPlatforms**: list of supported platforms (or "Any")
 - **tags**: a list of tags that describe the test
 
-Tests are registered using tests manifests and the **PERFTESTS_MANIFESTS**
+Most tests are registered using tests manifests and the **PERFTESTS_MANIFESTS**
 variable in `moz.build` files - it's good practice to name this file
-`perftest.toml`.
+`perftest.toml`. **This doesn't apply to mochitest tests**, they should use the manifest variable of the respective flavour/subsuite that the test is running in.
 
 Example of such a file: https://searchfox.org/mozilla-central/source/testing/performance/perftest.toml
 
@@ -65,6 +65,7 @@ Similar to ``xpcshell`` tests, these are standard ``mochitest`` tests with some 
 
 - the ``perfMetadata`` variable, as described in the previous section
 - calls to ``info("perfMetrics", ...)`` to send metrics to the ``perftest`` framework
+- does not require using the ``PERFTESTS_MANIFESTS`` for test manifest definition - use the variable needed for the flavour/subsuite it runs in
 
 Note that the ``perfMetadata`` variable can exist in any ``<script>...</script>`` element in the Mochitest HTML test file. The ``perfMetadata`` variable also needs a couple additional settings in Mochitest tests. These are the ``manifest``, and ``manifest_flavor`` options::
 
