@@ -1533,13 +1533,3 @@ richlistitem .text-link:hover {
 .search-header:has(.section-heading) {
   margin: 0;
 }
-
-/* Styles for the "sponsors support our mission" message and link on the Home tab */
-.mission-message {
-  border-color: var(--in-content-border-color);
-  margin-block-start: var(--space-large);
-}
-
-.mission-message-link {
-  margin-inline-start: var(--space-small);
-}
