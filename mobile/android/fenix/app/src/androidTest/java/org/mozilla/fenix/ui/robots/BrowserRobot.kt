@@ -392,6 +392,22 @@ class BrowserRobot {
         assertUIObjectExists(itemWithResId("$packageName:id/engineView"))
     }
 
+    fun createBookmark(url: Uri, folder: String? = null) {
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(url) {
+            // needs to wait for the right url to load before saving a bookmark
+            verifyUrl(url.toString())
+        }.openThreeDotMenu {
+        }.bookmarkPage {
+        }.takeIf { !folder.isNullOrBlank() }?.let {
+            it.openThreeDotMenu {
+            }.editBookmarkPage {
+                setParentFolder(folder!!)
+                saveEditBookmark()
+            }
+        }
+    }
+
     fun createBookmark(composeTestRule: ComposeTestRule, url: Uri, folder: String? = null) {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(url) {

@@ -83,7 +83,7 @@ class TextFragmentsTest : TestSetup() {
         }
         homeScreen {
         }.openThreeDotMenu {
-        }.openBookmarksMenu(activityTestRule) {
+        }.openBookmarks {
             verifyBookmarkTitle(genericPage.title)
         }.openBookmarkWithTitle(genericPage.title) {
             verifyTextFragmentsPageContent("Firefox")

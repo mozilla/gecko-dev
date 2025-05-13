@@ -6,7 +6,6 @@ package org.mozilla.fenix.syncintegration
 
 import android.os.SystemClock.sleep
 import android.widget.EditText
-import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.matcher.ViewMatchers.withId
@@ -25,7 +24,7 @@ import org.junit.Test
 import org.mozilla.fenix.R
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.AndroidAssetDispatcher
-import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
+import org.mozilla.fenix.helpers.HomeActivityTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.ext.waitNotNull
 import org.mozilla.fenix.ui.robots.accountSettings
@@ -38,7 +37,7 @@ class SyncIntegrationTest {
     private lateinit var mockWebServer: MockWebServer
 
     @get:Rule
-    val activityTestRule = AndroidComposeTestRule(HomeActivityIntentTestRule()) { it.activity }
+    val activityTestRule = HomeActivityTestRule()
 
     @Before
     fun setUp() {
@@ -78,7 +77,7 @@ class SyncIntegrationTest {
         tapReturnToPreviousApp()
         homeScreen {
         }.openThreeDotMenu {
-        }.openBookmarksMenu(activityTestRule) {}
+        }.openBookmarks { }
         bookmarkAfterSyncIsShown()
     }
 

@@ -193,8 +193,8 @@ class MainMenuTestCompose : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.url) {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
-        }.openBookmarks(composeTestRule) {
-            verifyEmptyBookmarksMenuView()
+        }.openBookmarks {
+            verifyBookmarksMenuView()
         }.goBackToBrowserScreen {
             verifyPageContent(testPage.content)
         }
@@ -436,9 +436,10 @@ class MainMenuTestCompose : TestSetup() {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             clickSaveButton()
-        }.clickEditBookmarkButton(composeTestRule) {
+        }.clickEditBookmarkButton {
             verifyEditBookmarksView()
-            clickDeleteBookmarkButtonInEditMode()
+            clickDeleteInEditModeButton()
+            confirmDeletion()
         }
         browserScreen {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {

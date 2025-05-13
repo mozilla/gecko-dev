@@ -329,7 +329,21 @@ class ThreeDotMenuMainRobot {
             return SyncSignInRobot.Transition()
         }
 
-        fun openBookmarksMenu(composeTestRule: ComposeTestRule, interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
+        fun openBookmarks(interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
+            Log.i(TAG, "openBookmarks: Trying to perform swipe down action on the three dot menu")
+            threeDotMenuRecyclerView().perform(swipeDown())
+            Log.i(TAG, "openBookmarks: Performed swipe down action on the three dot menu")
+            mDevice.waitNotNull(Until.findObject(By.text("Bookmarks")), waitingTime)
+            Log.i(TAG, "openBookmarks: Trying to click the \"Bookmarks\" button")
+            bookmarksButton().click()
+            Log.i(TAG, "openBookmarks: Clicked the \"Bookmarks\" button")
+            assertUIObjectExists(itemWithResId("$packageName:id/bookmark_list"))
+
+            BookmarksRobot().interact()
+            return BookmarksRobot.Transition()
+        }
+
+        fun openBookmarksMenu(composeTestRule: ComposeTestRule, interact: BookmarksRobotCompose.() -> Unit): BookmarksRobotCompose.Transition {
             Log.i(TAG, "openBookmarksMenu: Trying to perform swipe down action on the three dot menu")
             threeDotMenuRecyclerView().perform(swipeDown())
             Log.i(TAG, "openBookmarksMenu: Performed swipe down action on the three dot menu")
@@ -338,8 +352,8 @@ class ThreeDotMenuMainRobot {
             bookmarksButton().click()
             Log.i(TAG, "openBookmarksMenu: Clicked the \"Bookmarks\" button")
 
-            BookmarksRobot(composeTestRule).interact()
-            return BookmarksRobot.Transition(composeTestRule)
+            BookmarksRobotCompose(composeTestRule).interact()
+            return BookmarksRobotCompose.Transition(composeTestRule)
         }
 
         fun clickNewTabButton(interact: SearchRobot.() -> Unit): SearchRobot.Transition {
@@ -374,14 +388,24 @@ class ThreeDotMenuMainRobot {
             return BrowserRobot.Transition()
         }
 
-        fun editBookmarkPage(composeTestRule: ComposeTestRule, interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
+        fun editBookmarkPage(interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
             mDevice.waitNotNull(Until.findObject(By.text("Bookmarks")), waitingTime)
             Log.i(TAG, "editBookmarkPage: Trying to click the \"Edit\" button")
             editBookmarkButton().click()
             Log.i(TAG, "editBookmarkPage: Clicked the \"Edit\" button")
 
-            BookmarksRobot(composeTestRule).interact()
-            return BookmarksRobot.Transition(composeTestRule)
+            BookmarksRobot().interact()
+            return BookmarksRobot.Transition()
+        }
+
+        fun editBookmarkPage(composeTestRule: ComposeTestRule, interact: BookmarksRobotCompose.() -> Unit): BookmarksRobotCompose.Transition {
+            mDevice.waitNotNull(Until.findObject(By.text("Bookmarks")), waitingTime)
+            Log.i(TAG, "editBookmarkPage: Trying to click the \"Edit\" button")
+            editBookmarkButton().click()
+            Log.i(TAG, "editBookmarkPage: Clicked the \"Edit\" button")
+
+            BookmarksRobotCompose(composeTestRule).interact()
+            return BookmarksRobotCompose.Transition(composeTestRule)
         }
 
         fun openHelp(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {

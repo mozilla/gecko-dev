@@ -64,9 +64,9 @@ class DeepLinkTest : TestSetup() {
 
     @Test
     fun openBookmarks() {
-        robot.openBookmarks(activityTestRule) {
+        robot.openBookmarks {
             // verify we can see headings.
-            verifyEmptyBookmarksMenuView()
+            verifyFolderTitle("Desktop Bookmarks")
         }
     }
 
