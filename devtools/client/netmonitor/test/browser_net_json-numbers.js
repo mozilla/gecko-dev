@@ -129,3 +129,33 @@ add_task(async function () {
 
   await teardown(monitor);
 });
+
+add_task(async function testLargeRootInteger() {
+  const { tab, monitor } = await initNetMonitor(
+    JSON_BASIC_URL + "?name=large-root-integer",
+    { requestCount: 1 }
+  );
+
+  const { document, store, windowRequire } = monitor.panelWin;
+  const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
+
+  store.dispatch(Actions.batchEnable(false));
+
+  await performRequests(monitor, tab, 1);
+
+  const onCodeMirrorReady = waitForDOM(
+    document,
+    "#response-panel .CodeMirror-code"
+  );
+
+  store.dispatch(Actions.toggleNetworkDetails());
+  clickOnSidebarTab(document, "response");
+  const [codeMirrorCodeEl] = await onCodeMirrorReady;
+  is(
+    codeMirrorCodeEl.querySelector("pre.CodeMirror-line span").textContent,
+    "1516340399466235648",
+    "Large number is displayed in a CodeMirror editor"
+  );
+
+  await teardown(monitor);
+});

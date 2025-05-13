@@ -33,5 +33,8 @@ function handleRequest(request, response) {
         "exp": 1e2
       }`);
       break;
+    case "large-root-integer":
+      response.write(`1516340399466235648`);
+      break;
   }
 }

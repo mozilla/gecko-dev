@@ -16,6 +16,8 @@ ChromeUtils.defineESModuleGetters(
   {
     parseJsonLossless:
       "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs",
+    JSON_NUMBER:
+      "resource://devtools/client/shared/components/reps/reps/constants.mjs",
   },
   { global: "contextual" }
 );
@@ -731,11 +733,18 @@ function parseJSON(payloadUnclean) {
 
   // Do not present JSON primitives (e.g. boolean, strings in quotes, numbers)
   // as JSON expandable tree.
-  if (!error) {
-    if (typeof json !== "object") {
-      return {};
-    }
+  if (
+    !error &&
+    (typeof json !== "object" ||
+      // Parsed JSON numbers might be different than the source, for example
+      // JSON.parse("1516340399466235648") returns 1516340399466235600. In such case,
+      // parseJsonLossless will return an object with `type: JSON_NUMBER` property.
+      // We still want to display those numbers as the other numbers here.
+      json.type === lazy.JSON_NUMBER)
+  ) {
+    return {};
   }
+
   return {
     json,
     error,
