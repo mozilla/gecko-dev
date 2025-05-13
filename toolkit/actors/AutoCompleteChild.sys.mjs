@@ -285,6 +285,9 @@ export class AutoCompleteChild extends JSWindowActorChild {
       // want to show an autocomplete popup when there is no search result. For example,
       // <datalist> for FormHistory, insecure warning for LoginManager.
       const searchResult = result.find(r => r.actorName == provider.actorName);
+      if (!searchResult) {
+        continue;
+      }
       const acResult = provider.searchResultToAutoCompleteResult(
         searchString,
         input,
