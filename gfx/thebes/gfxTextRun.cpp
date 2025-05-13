@@ -3317,8 +3317,7 @@ already_AddRefed<gfxFont> gfxFontGroup::FindFontForChar(
       return true;
     }
     // Does the candidate font provide a color glyph for the current character?
-    bool hasColorGlyph = f->HasColorGlyphFor(aCh, aNextCh) ||
-        (!nextIsVarSelector && f->HasColorGlyphFor(aCh, kVariationSelector16));
+    bool hasColorGlyph = f->HasColorGlyphFor(aCh, aNextCh);
     // If the provided glyph matches the preference, accept the font.
     if (hasColorGlyph == PrefersColor(presentation)) {
       *aMatchType = t;
@@ -3330,7 +3329,7 @@ already_AddRefed<gfxFont> gfxFontGroup::FindFontForChar(
     // sequences).
     // TODO: reconsider all this as part of any fix for bug 543200.
     if (aNextCh == kVariationSelector16 &&
-        GetEmojiPresentation(aCh) == EmojiPresentation::TextDefault &&
+        presentation == FontPresentation::TextDefault &&
         f->HasCharacter(aNextCh) && f->GetFontEntry()->TryGetColorGlyphs()) {
       return true;
     }

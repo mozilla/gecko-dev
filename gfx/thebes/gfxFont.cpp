@@ -2826,19 +2826,10 @@ bool gfxFont::HasColorGlyphFor(uint32_t aCh, uint32_t aNextCh) {
   uint32_t gid = 0;
   if (gfxFontUtils::IsVarSelector(aNextCh)) {
     gid = shaper->GetVariationGlyph(aCh, aNextCh);
-    if (gid) {
-      if (aNextCh == kVariationSelector16) {
-        // If the font explicitly supports the character + VS16, we accept it
-        // as implying it will provide an emoji-style glyph.
-        return true;
-      }
-      if (aNextCh == kVariationSelector15) {
-        // Explicit support for VS15 implies a text-style glyph.
-        return false;
-      }
-    }
   }
-  gid = shaper->GetNominalGlyph(aCh);
+  if (!gid) {
+    gid = shaper->GetNominalGlyph(aCh);
+  }
   if (!gid) {
     return false;
   }
