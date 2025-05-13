@@ -2947,8 +2947,7 @@ bool CompilationStencil::delazifySelfHostedFunction(
     // store it in the cache.
     auto& jitCache = cx->runtime()->selfHostJitCache.ref();
     auto v = jitCache.readonlyThreadsafeLookup(jitCacheKey);
-    if (v && v->value()->method() &&
-        cx->isInsideCurrentZone(v->value()->method())) {
+    if (v && v->value()->method()) {
       if (!cx->zone()->ensureJitZoneExists(cx)) {
         return false;
       }
