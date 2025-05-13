@@ -19,7 +19,6 @@ bool nsAlertsUtils::IsActionablePrincipal(nsIPrincipal* aPrincipal) {
 /* static */
 void nsAlertsUtils::GetSourceHostPort(nsIPrincipal* aPrincipal,
                                       nsAString& aHostPort) {
-  aHostPort.Truncate();
   if (!IsActionablePrincipal(aPrincipal)) {
     return;
   }
@@ -28,14 +27,4 @@ void nsAlertsUtils::GetSourceHostPort(nsIPrincipal* aPrincipal,
     return;
   }
   CopyUTF8toUTF16(hostPort, aHostPort);
-}
-
-/* static */
-nsresult nsAlertsUtils::GetOrigin(nsIPrincipal* aPrincipal,
-                                  nsACString& aOrigin) {
-  aOrigin.Truncate();
-  if (!IsActionablePrincipal(aPrincipal)) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-  return aPrincipal->GetOrigin(aOrigin);
 }

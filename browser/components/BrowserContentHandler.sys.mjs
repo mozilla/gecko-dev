@@ -1394,16 +1394,11 @@ nsDefaultCommandLineHandler.prototype = {
           // window to perform the action in.
           let winForAction;
 
-          // Fall back to launchUrl to not break notifications opened from
-          // previous builds after browser updates, as such notification would
-          // still have the old field.
-          let origin = notificationData?.origin ?? notificationData?.launchUrl;
-
-          if (!tagWasHandled && origin && !opaqueRelaunchData) {
-            let originPrincipal =
-              Services.scriptSecurityManager.createContentPrincipalFromOrigin(
-                origin
-              );
+          if (
+            !tagWasHandled &&
+            notificationData?.launchUrl &&
+            !opaqueRelaunchData
+          ) {
             // Unprivileged Web Notifications contain a launch URL and are
             // handled slightly differently than privileged notifications with
             // actions. If the tag was not handled, then the notification was
@@ -1411,9 +1406,7 @@ nsDefaultCommandLineHandler.prototype = {
             // fallback behavior.
             let { uri, principal } = resolveURIInternal(
               cmdLine,
-              // TODO(krosylight): We should handle origin suffix to open the
-              // relevant container. See bug 1945501.
-              originPrincipal.originNoSuffix
+              notificationData.launchUrl
             );
             if (cmdLine.state != Ci.nsICommandLine.STATE_INITIAL_LAUNCH) {
               // Try to find an existing window and load our URI into the current

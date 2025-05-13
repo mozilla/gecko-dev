@@ -239,11 +239,6 @@ AlertNotification::GetSource(nsAString& aSource) {
 }
 
 NS_IMETHODIMP
-AlertNotification::GetOrigin(nsACString& aOrigin) {
-  return nsAlertsUtils::GetOrigin(mPrincipal, aOrigin);
-}
-
-NS_IMETHODIMP
 AlertNotification::GetOpaqueRelaunchData(nsAString& aOpaqueRelaunchData) {
   aOpaqueRelaunchData = mOpaqueRelaunchData;
   return NS_OK;
