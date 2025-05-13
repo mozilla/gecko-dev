@@ -117,11 +117,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">በአዲስ አሰሳ በፍጥነት ያስሱ</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">በአዲስ አሰሳ በፍጥነት ያስሱ</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">በድር ጣቢያ ላይ፣ ለተጨማሪ የአሰሳ ቦታ ወደ ታች ሲያሸብልሉ ይህ አሞሌ ይዘጋል።</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">በድር ጣቢያ ላይ፣ ለተጨማሪ የአሰሳ ቦታ ወደ ታች ሲያሸብልሉ ይህ አሞሌ ይዘጋል።</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">በዚህ ትር ታሪክ ውስጥ ባሉ ገፆች መካከል ለመዝለል ቀስቶቹን ነካ አድርገው ይያዙ።</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">በዚህ ትር ታሪክ ውስጥ ባሉ ገፆች መካከል ለመዝለል ቀስቶቹን ነካ አድርገው ይያዙ።</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -630,7 +630,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">ፈጣን እና ደህንነቱ የተጠበቀ የድር አሰሳ</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">እስማማለሁ እና ቀጥል</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">እስማማለሁ እና ቀጥል</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">በመቀጠል፣ በ%1$s ተስማምተዋል።</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1204,7 +1204,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">ትሮችን ለመክፈት የመሳሪያ አሞሌን ወደ ላይ ያንሸራትቱ</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">የአድራሻ አሞሌን እና የመሳሪያ አሞሌን ለመደበቅ ያሸብልሉ</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">የአድራሻ አሞሌን እና የመሳሪያ አሞሌን ለመደበቅ ያሸብልሉ</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">ትሮችን ለመቀየር የአድራሻ አሞሌን ወደ ጎን ያንሸራትቱ</string>
   <!--

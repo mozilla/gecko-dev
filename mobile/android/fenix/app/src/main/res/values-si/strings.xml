@@ -527,7 +527,7 @@
   <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here -->
   <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">ෆයර්ෆොක්ස් වෙත පිළිගනිමු</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">එකඟ වී ඉදිරියට</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">එකඟ වී ඉදිරියට</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
   <string name="onboarding_term_of_service_line_two_link_text">රහස්‍යතා දැන්වීම</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_three. -->

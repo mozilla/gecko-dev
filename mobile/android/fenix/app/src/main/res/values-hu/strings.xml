@@ -116,11 +116,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Böngésszen gyorsabban az új navigációval</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Böngésszen gyorsabban az új navigációval</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">Ezen a webhelyen a sáv eltűnik, ha lefelé görget, további teret adva a böngészésnek.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Ezen a webhelyen a sáv eltűnik, ha lefelé görget, további teret adva a böngészésnek.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Koppintson és tartsa lenyomva a nyilakat, hogy az oldalak között ugorjon ennek a lapnak az előzményeiben.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Koppintson és tartsa lenyomva a nyilakat, hogy az oldalak között ugorjon ennek a lapnak az előzményeiben.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -631,7 +631,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">Gyors és biztonságos webböngészés</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">Elfogadás és folytatás</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Elfogadás és folytatás</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">A folytatással elfogadja a %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1205,7 +1205,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Eszköztár felfelé csúsztatása a lapok megnyitásához</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">A címsáv és az eszköztár elrejtése görgetéskor</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">A címsáv és az eszköztár elrejtése görgetéskor</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Lapok közti váltás a címsáv csúsztatásával</string>
   <!--

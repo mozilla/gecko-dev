@@ -115,9 +115,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Uue navigeerimisega saad kiiremini sirvida</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Uue navigeerimisega saad kiiremini sirvida</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">Veebisaidil allapoole kerides tõmbub see riba kõrvale, et saada sirvimiseks lisaruumi.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Veebisaidil allapoole kerides tõmbub see riba kõrvale, et saada sirvimiseks lisaruumi.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Vajalik on ligipääs kaamerale. Mine Androidi sätetesse, puuduta õigusi ja seejärel puuduta lubamise valikut.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

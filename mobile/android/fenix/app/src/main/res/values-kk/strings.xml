@@ -114,11 +114,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Жаңа навигация арқылы жылдамырақ шолыңыз</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Жаңа навигация арқылы жылдамырақ шолыңыз</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">Веб-сайтта болған кезде, қосымша шолу кеңістігі үшін төмен айналдырған кезде бұл панель жасырылады.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Веб-сайтта болған кезде, қосымша шолу кеңістігі үшін төмен айналдырған кезде бұл панель жасырылады.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Осы бет тарихындағы беттер арасында өту үшін бағдарша пернесін басып, ұстап тұрыңыз.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Осы бет тарихындағы беттер арасында өту үшін бағдарша пернесін басып, ұстап тұрыңыз.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -629,7 +629,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">Интернетті жылдам және қауіпсіз шолу</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">Келісу және жалғастыру</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Келісу және жалғастыру</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Жалғастыру арқылы сіз %1$s шарттарымен келісесіз.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1203,7 +1203,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Беттерді ашу үшін құралдар тақтасын жоғары қарай сырғытыңыз</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">Адрестік жолақ және саймандар панелін жасыру үшін айналдыру</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">Адрестік жолақ және саймандар панелін жасыру үшін айналдыру</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Беттерді ауыстыру үшін адрестік жолақты сырғытыңыз</string>
   <!--

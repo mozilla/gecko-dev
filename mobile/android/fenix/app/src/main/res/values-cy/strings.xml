@@ -116,11 +116,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Porwch yn gyflymach gyda llywio newydd</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Porwch yn gyflymach gyda llywio newydd</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">Ar wefan, mae\'r bar hwn yn diflannu wrth i chi sgrolio i lawr a rhoi lle pori ychwanegol.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Ar wefan, mae\'r bar hwn yn diflannu wrth i chi sgrolio i lawr a rhoi lle pori ychwanegol.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Tapiwch a dal y saethau i symud rhwng tudalennau hanes y tab hwn.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Tapiwch a dal y saethau i symud rhwng tudalennau hanes y tab hwn.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -631,7 +631,9 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">Pori gwe cyflym a diogel</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">Cytuno a pharhau</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Cytuno a pharhau</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">Parhau</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Drwy barhau, rydych yn cytuno i %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1205,7 +1207,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Llusgo’r bar offer i fyny i agor tabiau</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">Sgrolio i guddio\'r bar cyfeiriad a\'r bar offer</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">Sgrolio i guddio\'r bar cyfeiriad a\'r bar offer</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Llusgo’r bar cyfeiriad ar draws i newid tabiau</string>
   <!--
@@ -1679,6 +1681,8 @@
   <string name="bookmark_menu_delete_button">Dileu</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Cadw</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">Trefnu yn ôl archeb arferol</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">Trefnu yn ôl mwyaf newydd</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3591,6 +3595,10 @@
   <string name="pbm_authentication_unlock">Datgloi</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Datgloi tabiau preifat</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">Galluogi clo sgrin tabiau preifat</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">Analluogi clo sgrin tabiau preifat</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">Defnyddio clo sgrin i guddio tabiau preifat?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->

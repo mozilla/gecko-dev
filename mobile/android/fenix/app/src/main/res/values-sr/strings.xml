@@ -114,11 +114,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Прегледајте брже уз нову навигацију</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Прегледајте брже уз нову навигацију</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">На сајту, ова трака се увлачи док скролујете према доле за додатни простор за претраживање.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">На сајту, ова трака се увлачи док скролујете према доле за додатни простор за претраживање.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Додирните и држите стрелице да пребацујете између страница у историји ове картице.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Додирните и држите стрелице да пребацујете између страница у историји ове картице.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -1041,7 +1041,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Превуците траку с алаткама на горе да отворите језичке</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">Скролујте да сакријете адресну и траку са алаткама</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">Скролујте да сакријете адресну и траку са алаткама</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Превуците адресну траку у страну да промените картице</string>
   <!--

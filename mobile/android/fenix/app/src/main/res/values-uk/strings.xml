@@ -116,11 +116,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Переглядайте швидше з новою навігацією</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Переглядайте швидше з новою навігацією</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">На вебсайті ця панель ховається, коли ви прокручуєте вниз, щоб збільшити простір огляду.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">На вебсайті ця панель ховається, коли ви прокручуєте вниз, щоб збільшити простір огляду.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Натисніть і утримуйте на стрілці, щоб переходити між сторінками в історії цієї вкладки.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Натисніть і утримуйте на стрілці, щоб переходити між сторінками в історії цієї вкладки.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -631,7 +631,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">Швидкість і безпека в інтернеті</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">Погодитись і продовжити</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Погодитись і продовжити</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Продовжуючи, ви приймаєте %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1205,7 +1205,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Провести вгору на панелі інструментів вгору для відкриття вкладок</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">Прокрутіть, щоб приховати панель адреси та інструментів</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">Прокрутіть, щоб приховати панель адреси та інструментів</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Посуньте вбік по панелі адреси, щоб перемкнути вкладки</string>
   <!--

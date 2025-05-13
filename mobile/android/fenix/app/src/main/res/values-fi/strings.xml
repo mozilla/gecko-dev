@@ -116,11 +116,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Selaa nopeammin uuden navigoinnin ansiosta</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Selaa nopeammin uuden navigoinnin ansiosta</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">Tämä palkki työntyy pois näkyvistä, kun vierität alas, jotta saat enemmän selaustilaa.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Tämä palkki työntyy pois näkyvistä, kun vierität alas, jotta saat enemmän selaustilaa.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Napauta ja pidä nuolia painettuna siirtyäksesi tämän välilehden historian sivujen välillä.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Napauta ja pidä nuolia painettuna siirtyäksesi tämän välilehden historian sivujen välillä.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -631,7 +631,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">Nopeaa ja turvallista verkkoselailua</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">Hyväksy ja jatka</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Hyväksy ja jatka</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Jatkamalla hyväksyt %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1199,7 +1199,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Pyyhkäise työkaluriviä ylös avataksesi välilehdet</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">Vieritä piilottaaksesi osoite- ja työkalupalkin</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">Vieritä piilottaaksesi osoite- ja työkalupalkin</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Vaihda välilehtiä pyyhkäisemällä osoitepalkkia sivuttain</string>
   <!--

@@ -118,11 +118,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Sneup flugger mei nije navigaasje</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Sneup flugger mei nije navigaasje</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">Op in website wurdt dizze balke, as jo omleech skowe, ferstoppe foar ekstra sneupromte.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Op in website wurdt dizze balke, as jo omleech skowe, ferstoppe foar ekstra sneupromte.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Hâld de pylken yndrukt om tusken siden yn de skiednis fan dit ljepblêd te springen.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Hâld de pylken yndrukt om tusken siden yn de skiednis fan dit ljepblêd te springen.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -633,7 +633,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">Fluch en feilich sneupe op it web</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">Akkoard en trochgean</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Akkoard en trochgean</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Troch fierder te gean, geane jo akkoard mei de %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1207,7 +1207,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Fei de wurkbalke omheech om ljepblêden te iepenjen</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">Skowe om adresbalke en arkbalke te ferstopjen</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">Skowe om adresbalke en arkbalke te ferstopjen</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">De arkbalke op side feie om fan ljepblêd te wikseljen</string>
   <!--

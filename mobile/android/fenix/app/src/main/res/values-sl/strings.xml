@@ -116,11 +116,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Brskajte hitreje z novo navigacijo</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Brskajte hitreje z novo navigacijo</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">Na spletni strani se ta vrstica umakne, ko se pomaknete navzdol, da napravi prostor za brskanje.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Na spletni strani se ta vrstica umakne, ko se pomaknete navzdol, da napravi prostor za brskanje.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Tapnite in pridržite puščici za preskakovanje med stranmi v zgodovini tega zavihka.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Tapnite in pridržite puščici za preskakovanje med stranmi v zgodovini tega zavihka.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -631,7 +631,9 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">Hitro in varno brskanje po spletu</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">Strinjam se, nadaljuj</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Strinjam se, nadaljuj</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">Nadaljuj</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Z nadaljevanjem se strinjate s %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1197,7 +1199,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Odpiranje zavihkov s potegom orodne vrstice navzgor</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">Ob pomikanju skrij naslovno in orodno vrstico</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">Ob pomikanju skrij naslovno in orodno vrstico</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Preklop med zavihki s potegom naslovne vrstice vstran</string>
   <!--

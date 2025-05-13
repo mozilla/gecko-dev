@@ -116,11 +116,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Yeni gezinti çubuğuyla daha hızlı dolaşın</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Yeni gezinti çubuğuyla daha hızlı dolaşın</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">Web sayfalarını aşağı kaydırdığınızda bu çubuk gizlenerek daha fazla gezinti alanı sağlar.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Web sayfalarını aşağı kaydırdığınızda bu çubuk gizlenerek daha fazla gezinti alanı sağlar.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Bu sekmenin geçmişindeki sayfalar arasında dolaşmak için oklara dokunup basılı tutun.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Bu sekmenin geçmişindeki sayfalar arasında dolaşmak için oklara dokunup basılı tutun.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -631,7 +631,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">Hızlı ve güvenli web gezintisi</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">Kabul et ve devam et</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Kabul et ve devam et</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Devam ettiğinizde %1$s’nı kabul etmiş sayılırsınız.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1205,7 +1205,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Sekmeleri açmak için araç çubuğunu yukarı kaydır</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">Adres ve araç çubuklarını gizlemek için kaydır</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">Adres ve araç çubuklarını gizlemek için kaydır</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Sekme değiştirmek için adres çubuğunu yana kaydır</string>
   <!--

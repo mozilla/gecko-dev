@@ -4,6 +4,8 @@
   <string name="mozac_feature_prompts_ok">خا</string>
   <!-- Text for confirmation for a negative action in dialog. -->
   <string name="mozac_feature_prompts_cancel">لقو</string>
+  <!-- When a page shows many dialogs, this checkbox will appear for letting the user choose to prevent showing more dialogs. -->
+  <string name="mozac_feature_prompts_no_more_dialogs">ز وورکل نیمدریا نۊ و دست ای بلگه جلاو گری بۊ.</string>
   <!-- Text for a positive button, when an user selects a date in date/time picker. -->
   <string name="mozac_feature_prompts_set_date">سامووݩ</string>
   <!-- Text for a button that clears the selected input in the date/time picker. -->
@@ -34,6 +36,12 @@
   <string name="mozac_feature_prompt_login_update_headline_2">رزم ورۊ رسۊوی بۊ؟</string>
   <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
   <string name="mozac_feature_prompt_login_add_username_headline_2">نوم منتوری ورۊ رسۊوی بۊ؟</string>
+  <!--
+    Text for a label for the field when prompt requesting a text is shown.
+
+    For more info take a look here https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt
+  -->
+  <string name="mozac_feature_prompts_content_description_input_label">برچسب سی و من ٱووردن ی هووه و من ٱووردن هؽل</string>
   <!-- Title of a color picker dialog, this text is shown above a color picker. -->
   <string name="mozac_feature_prompts_choose_a_color">ی رنگ پسند کۊنین</string>
   <!-- Text of a confirm button in dialog requesting to open a new window. -->
@@ -44,6 +52,8 @@
   <string name="mozac_feature_prompts_popup_dialog_title">هیلی ای وبگه بوگوئشه؟</string>
   <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
   <string name="mozac_feature_prompt_before_unload_dialog_title">الن هیمونه اخۊی؟</string>
+  <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
+  <string name="mozac_feature_prompt_before_unload_dialog_body">اخۊین ای وبگه ن هیلین وو ریوین؟ دووسمندیایی ک و من ٱوۊردین گاشڌ زفت نبۊن</string>
   <!-- Stay button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to stay in the website. -->
   <string name="mozac_feature_prompts_before_unload_stay">مندن</string>
   <!-- Leave button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to leave in the website. -->
@@ -120,6 +130,8 @@
   <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">کۊتال کردن کارتا زفت وابیڌه</string>
   <!-- Option in the expanded select card prompt that links to cards settings. -->
   <string name="mozac_feature_prompts_manage_credit_cards_2">دؽوۉداری کارتا</string>
+  <!-- Text for the title of a save credit card dialog. -->
+  <string name="mozac_feature_prompts_save_credit_card_prompt_title">ای کارت و جۊر ایمن زفت بۊ؟</string>
   <!--
     Address Autofill
 

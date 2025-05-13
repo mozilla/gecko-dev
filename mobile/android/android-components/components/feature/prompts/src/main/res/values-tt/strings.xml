@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!-- Text for confirmation for a positive action in dialog -->
   <string name="mozac_feature_prompts_ok">ОК</string>
   <!-- Text for confirmation for a negative action in dialog. -->
@@ -102,6 +102,8 @@
   <string name="mozac_feature_prompts_suggest_strong_password_message">Көчле серсүз кулланыгыз: %1$s</string>
   <!-- Title for using the suggest strong password confirmation dialog -->
   <string name="mozac_feature_prompts_suggest_strong_password_title">Көчле серсүз кулланылсынмы?</string>
+  <!-- Content description for the suggest strong password confirmation dialog -->
+  <string name="mozac_feature_prompts_suggest_strong_password_description_3">Көчле, очраклы рәвештә ясалган серсүз кулланып, хисабыгызны саклагыз. Ул киләчәктә куллану өчен хисабыгызда сакланачак.</string>
   <!-- Pressing this will use the suggested strong password -->
   <string name="mozac_feature_prompts_suggest_strong_password_use_password">Серсүзне куллану</string>
   <!-- Pressing this will dismiss the suggested strong password dialog -->
@@ -161,6 +163,8 @@
   <string name="mozac_feature_prompts_identity_credentials_choose_account_for_provider">%1$s хисабыгыз ярдәмендә керегез</string>
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">%1$s-ны керү тәэминатчысы итеп куллану</string>
+  <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">%1$s эченә %2$s хисабы белән керү аларның &lt;a href="%3$s"&gt;Хосусыйлык Сәясәте&lt;/a&gt; һәм &lt;a href="%4$s"&gt;Куллану Шартлары&lt;/a&gt; нигезендә башкарыла</string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Дәвам итү</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

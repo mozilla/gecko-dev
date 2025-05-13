@@ -116,11 +116,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">新しいナビゲーションバーで高速ブラウジング</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">新しいナビゲーションバーで高速ブラウジング</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">ウェブサイトで下にスクロールすると、このバーが隠れて閲覧スペースを広くします。</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">ウェブサイトで下にスクロールすると、このバーが隠れて閲覧スペースを広くします。</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">矢印を長押しすると、このタブの履歴内のページへ移動できます。</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">矢印を長押しすると、このタブの履歴内のページへ移動できます。</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -631,7 +631,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">高速で安全なウェブブラウジング</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">同意して続ける</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">同意して続ける</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">続けると、%1$s に同意したものとみなされます。</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1205,7 +1205,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">ツールバーの上スワイプでタブ表示</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">スクロール時にアドレスバーとツールバーを隠す</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">スクロール時にアドレスバーとツールバーを隠す</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">アドレスバーの横スワイプでタブを切り替える</string>
   <!--

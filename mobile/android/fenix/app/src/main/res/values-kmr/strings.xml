@@ -117,11 +117,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Bi navîgasyona nû zûtir bigere</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Bi navîgasyona nû zûtir bigere</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">Gava tu malpera bi xwarê ve kaş bikî ev şiv tê veşartin ku qada te ya gerê firehtir bibe.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Gava tu malpera bi xwarê ve kaş bikî ev şiv tê veşartin ku qada te ya gerê firehtir bibe.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Ji bo gera rûpelên raboriyê yên vê hilpekînê, pêl tîran bike û li serî bihêle.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Ji bo gera rûpelên raboriyê yên vê hilpekînê, pêl tîran bike û li serî bihêle.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -621,7 +621,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">Geroka webê ya bilez û ewle</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">Qebûl bike û dewam bike</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Qebûl bike û dewam bike</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Bi berdewamkirinê, tu %1$s qebûl dikî.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
