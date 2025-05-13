@@ -91,6 +91,7 @@ import org.mozilla.geckoview.CrashHandler;
 import org.mozilla.geckoview.DeprecationSchedule;
 import org.mozilla.geckoview.ExperimentDelegate;
 import org.mozilla.geckoview.GeckoDisplay;
+import org.mozilla.geckoview.GeckoPreferenceController;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoRuntimeSettings;
@@ -777,6 +778,16 @@ package org.mozilla.geckoview {
     field @Nullable public final T userValue;
   }
 
+  public static final class GeckoPreferenceController.Observer {
+    ctor public Observer();
+    method @AnyThread @NonNull public static GeckoResult<Void> registerPreference(@NonNull String);
+    method @NonNull @UiThread public static GeckoResult<Void> unregisterPreference(@NonNull String);
+  }
+
+  public static interface GeckoPreferenceController.Observer.Delegate {
+    method @AnyThread default public void onGeckoPreferenceChange(@NonNull GeckoPreferenceController.GeckoPreference<?>);
+  }
+
   @Retention(value=RetentionPolicy.SOURCE) public static interface GeckoPreferenceController.PrefBranch {
   }
 
@@ -852,6 +863,7 @@ package org.mozilla.geckoview {
     method @NonNull @UiThread public static synchronized GeckoRuntime getDefault(@NonNull Context);
     method @Nullable @UiThread public GeckoRuntime.Delegate getDelegate();
     method @NonNull @UiThread public OrientationController getOrientationController();
+    method @AnyThread @Nullable public GeckoPreferenceController.Observer.Delegate getPreferencesObserverDelegate();
     method @NonNull @UiThread public ProfilerController getProfilerController();
     method @Nullable @UiThread public GeckoRuntime.ServiceWorkerDelegate getServiceWorkerDelegate();
     method @AnyThread @NonNull public GeckoRuntimeSettings getSettings();
@@ -866,6 +878,7 @@ package org.mozilla.geckoview {
     method @UiThread public void setActivityDelegate(@Nullable GeckoRuntime.ActivityDelegate);
     method @UiThread public void setAutocompleteStorageDelegate(@Nullable Autocomplete.StorageDelegate);
     method @UiThread public void setDelegate(@Nullable GeckoRuntime.Delegate);
+    method @AnyThread public void setPreferencesObserverDelegate(@Nullable GeckoPreferenceController.Observer.Delegate);
     method @UiThread public void setServiceWorkerDelegate(@Nullable GeckoRuntime.ServiceWorkerDelegate);
     method @UiThread public void setWebNotificationDelegate(@Nullable WebNotificationDelegate);
     method @AnyThread public void shutdown();

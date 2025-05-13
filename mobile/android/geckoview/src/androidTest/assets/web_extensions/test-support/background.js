@@ -17,6 +17,9 @@ const APIS = {
   GetRequestedLocales() {
     return browser.test.getRequestedLocales();
   },
+  ClearUserPref({ pref }) {
+    return browser.test.clearUserPref(pref);
+  },
   GetLinkColor({ tab, selector }) {
     return browser.test.getLinkColor(tab.id, selector);
   },

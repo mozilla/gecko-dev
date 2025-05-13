@@ -272,6 +272,7 @@ public final class GeckoRuntime implements Parcelable {
   private GeckoRuntimeSettings mSettings;
   private Delegate mDelegate;
   private ServiceWorkerDelegate mServiceWorkerDelegate;
+  private GeckoPreferenceController.Observer.Delegate mPreferencesObserverDelegate;
   private WebNotificationDelegate mNotificationDelegate;
   private ActivityDelegate mActivityDelegate;
   private OrientationController mOrientationController;
@@ -413,6 +414,14 @@ public final class GeckoRuntime implements Parcelable {
                           callback.sendError(error + " Could not open tab.");
                           return null;
                         });
+          } else if ("GeckoView:GeckoPreferences:Change".equals(event)) {
+            final GeckoPreferenceController.GeckoPreference<?> observedPreference =
+                GeckoPreferenceController.GeckoPreference.fromBundle(message.getBundle("data"));
+            if (observedPreference != null) {
+              mPreferencesObserverDelegate.onGeckoPreferenceChange(observedPreference);
+            } else {
+              Log.w(LOGTAG, "Could not deserialize a message for onGeckoPreferenceChange!");
+            }
           }
         }
       };
@@ -571,7 +580,8 @@ public final class GeckoRuntime implements Parcelable {
             mEventListener,
             "Gecko:Exited",
             "GeckoView:Test:NewTab",
-            "GeckoView:ServiceWorkerOpenWindow");
+            "GeckoView:ServiceWorkerOpenWindow",
+            "GeckoView:GeckoPreferences:Change");
 
     // Attach and commit settings.
     mSettings.attachTo(this);
@@ -772,6 +782,28 @@ public final class GeckoRuntime implements Parcelable {
     @UiThread
     @NonNull
     GeckoResult<GeckoSession> onOpenWindow(@NonNull String url);
+  }
+
+  /**
+   * Set the {@link GeckoPreferenceController.Observer.Delegate} instance set on this runtime.
+   *
+   * @param delegate The delegate to set on the runtime.
+   */
+  @AnyThread
+  public void setPreferencesObserverDelegate(
+      @Nullable final GeckoPreferenceController.Observer.Delegate delegate) {
+    mPreferencesObserverDelegate = delegate;
+  }
+
+  /**
+   * Get the {@link GeckoPreferenceController.Observer.Delegate} instance set on this runtime, if
+   * any.
+   *
+   * @return The {@link GeckoPreferenceController.Observer.Delegate} set on this runtime.
+   */
+  @AnyThread
+  public @Nullable GeckoPreferenceController.Observer.Delegate getPreferencesObserverDelegate() {
+    return mPreferencesObserverDelegate;
   }
 
   /**

@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.json.JSONObject;
 import org.mozilla.geckoview.ContentBlocking;
 import org.mozilla.geckoview.ExperimentDelegate;
+import org.mozilla.geckoview.GeckoPreferenceController;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoRuntimeSettings;
@@ -32,6 +33,23 @@ public class RuntimeCreator {
   private static GeckoRuntime sRuntime;
   public static AtomicInteger sTestSupport = new AtomicInteger(0);
   public static WebExtension sTestSupportExtension;
+
+  /** Sets the GeckoPreferenceController.Observer.Delegate on the RuntimeCreator. */
+  public static class RuntimePreferenceDelegate
+      implements GeckoPreferenceController.Observer.Delegate {
+    public GeckoPreferenceController.Observer.Delegate delegate = null;
+
+    @Override
+    public void onGeckoPreferenceChange(
+        @NonNull final GeckoPreferenceController.GeckoPreference<?> observedGeckoPreference) {
+      if (delegate != null) {
+        delegate.onGeckoPreferenceChange(observedGeckoPreference);
+      }
+    }
+  }
+
+  public static RuntimePreferenceDelegate sRuntimePreferenceDelegateProxy =
+      new RuntimePreferenceDelegate();
 
   /**
    * The ExperimentDelegate can only be set when starting the RuntimeCreator, so for testing we are
@@ -134,6 +152,19 @@ public class RuntimeCreator {
     sRuntimeExperimentDelegateProxy.delegate = delegate;
   }
 
+  /**
+   * Set the {@link GeckoPreferenceController.Observer.Delegate} instance using the proxy.
+   *
+   * <p>Application code can only register the callbacks on this delegate when the {@link
+   * GeckoRuntime} is created, so we need to proxy it for test code.
+   *
+   * @param delegate the {@link GeckoPreferenceController.Observer.Delegate} for this test to use.
+   */
+  public static void setGeckoPreferenceDelegate(
+      final GeckoPreferenceController.Observer.Delegate delegate) {
+    sRuntimePreferenceDelegateProxy.delegate = delegate;
+  }
+
   public static void setPortDelegate(final WebExtension.PortDelegate portDelegate) {
     sPortDelegate = portDelegate;
   }
@@ -177,6 +208,7 @@ public class RuntimeCreator {
     registerTestSupport();
 
     sRuntime.setDelegate(() -> Process.killProcess(Process.myPid()));
+    sRuntime.setPreferencesObserverDelegate(sRuntimePreferenceDelegateProxy);
 
     return sRuntime;
   }

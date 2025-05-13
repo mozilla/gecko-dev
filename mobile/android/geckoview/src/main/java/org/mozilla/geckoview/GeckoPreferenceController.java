@@ -11,14 +11,67 @@ import androidx.annotation.AnyThread;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Objects;
+import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.util.GeckoBundle;
 
 public class GeckoPreferenceController {
   private static final String LOGTAG = "GeckoPreference";
   private static final boolean DEBUG = false;
+
+  /** The Observer class contains utilities for monitoring preference changes in Gecko. */
+  public static final class Observer {
+    private static final String REGISTER_PREF = "GeckoView:Preferences:RegisterObserver";
+    private static final String UNREGISTER_PREF = "GeckoView:Preferences:UnregisterObserver";
+
+    /**
+     * This will register preferences for observation.
+     *
+     * @param preferenceName The Gecko preference that should be placed under observation. e.g.,
+     *     "some.pref.item".
+     * @return The GeckoResult will complete with the current preference value when observation is
+     *     set or else return an error.
+     */
+    @AnyThread
+    public static @NonNull GeckoResult<Void> registerPreference(
+        @NonNull final String preferenceName) {
+      final GeckoBundle bundle = new GeckoBundle();
+      bundle.putString("pref", preferenceName);
+      return EventDispatcher.getInstance().queryVoid(REGISTER_PREF, bundle);
+    }
+
+    /**
+     * This will deregister preferences for observation.
+     *
+     * @param preferenceName The Gecko preference that should be removed from observation. e.g.,
+     *     "some.pref.item".
+     * @return The GeckoResult will complete when the observer is removed or else return an error.
+     *     If the item requested is not under observation, the function will still return.
+     */
+    @UiThread
+    public static @NonNull GeckoResult<Void> unregisterPreference(
+        @NonNull final String preferenceName) {
+      final GeckoBundle bundle = new GeckoBundle();
+      bundle.putString("pref", preferenceName);
+      return EventDispatcher.getInstance().queryVoid(UNREGISTER_PREF, bundle);
+    }
+
+    /** Delegate definition for observing Gecko preferences. */
+    public interface Delegate {
+      /**
+       * When a preference is registered using {@link #registerPreference(String)}, if the
+       * preference's value changes, then this callback will occur.
+       *
+       * @param observedGeckoPreference The new Gecko preference value that was recently observed.
+       */
+      @AnyThread
+      default void onGeckoPreferenceChange(
+          @NonNull final GeckoPreference<?> observedGeckoPreference) {}
+    }
+  }
 
   /**
    * Pref types as defined by Gecko in nsIPrefBranch.idl and should remain in sync.

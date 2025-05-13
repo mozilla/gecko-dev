@@ -70,6 +70,7 @@ import org.mozilla.geckoview.Autofill;
 import org.mozilla.geckoview.ContentBlocking;
 import org.mozilla.geckoview.ExperimentDelegate;
 import org.mozilla.geckoview.GeckoDisplay;
+import org.mozilla.geckoview.GeckoPreferenceController;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoRuntime.ActivityDelegate;
@@ -988,6 +989,14 @@ public class GeckoSessionTestRule implements TestRule {
   /** Sets an experiment delegate on the runtime creator. */
   public void setExperimentDelegate(final ExperimentDelegate delegate) {
     RuntimeCreator.setExperimentDelegate(delegate);
+  }
+
+  /**
+   * Convenience method to facilitate setting a preference delegate in order to use the test harness
+   * delegate callback framework.
+   */
+  public void setPreferenceDelegate(final GeckoPreferenceController.Observer.Delegate delegate) {
+    RuntimeCreator.setGeckoPreferenceDelegate(delegate);
   }
 
   public @Nullable GeckoDisplay getDisplay() {
@@ -2678,6 +2687,22 @@ public class GeckoSessionTestRule implements TestRule {
             args -> {
               args.put("prefs", new JSONArray(Arrays.asList(prefs)));
             });
+  }
+
+  /**
+   * Called to clear a user set value from a specific preference. This will, in effect, reset the
+   * value to the default value. If no default value exists the preference will cease to exist.
+   *
+   * <p>See nsIPrefBranch.idl for more details.
+   *
+   * @param pref Pref name.
+   */
+  public void clearUserPref(final @NonNull String pref) {
+    webExtensionApiCall(
+        "ClearUserPref",
+        args -> {
+          args.put("pref", pref);
+        });
   }
 
   /**

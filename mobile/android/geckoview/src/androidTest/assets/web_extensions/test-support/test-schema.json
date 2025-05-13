@@ -51,6 +51,18 @@
         ]
       },
       {
+        "name": "clearUserPref",
+        "type": "function",
+        "async": true,
+        "description": "Clears the user pref.",
+        "parameters": [
+          {
+            "name": "pref",
+            "type": "string"
+          }
+        ]
+      },
+      {
         "name": "getLinkColor",
         "type": "function",
         "async": true,
