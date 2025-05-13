@@ -16,6 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import mozilla.components.browser.state.selector.normalTabs
+import mozilla.components.support.base.feature.UserInteractionHandler
 import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
@@ -28,7 +29,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
 /**
  * Fragment used to display biometric authentication when the app is locked.
  */
-class UnlockPrivateTabsFragment : Fragment() {
+class UnlockPrivateTabsFragment : Fragment(), UserInteractionHandler {
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -50,12 +51,20 @@ class UnlockPrivateTabsFragment : Fragment() {
 
                 UnlockPrivateTabsScreen(
                     onUnlockClicked = { requestPrompt(title) },
-                    onLeaveClicked = { leavePrivateMode() },
+                    onLeaveClicked = {
+                        PrivateBrowsingLocked.seeOtherTabsClicked.record()
+                        closeFragment()
+                    },
                 )
 
                 requestPrompt(title)
             }
         }
+    }
+
+    override fun onBackPressed(): Boolean {
+        closeFragment()
+        return true
     }
 
     private fun requestPrompt(title: String) {
@@ -90,9 +99,7 @@ class UnlockPrivateTabsFragment : Fragment() {
      * If the users decides to leave the fragment, we want to navigate them to normal tabs page.
      * If they don't have regular opened tabs, we navigate back to homepage as a fallback.
      */
-    private fun leavePrivateMode() {
-        PrivateBrowsingLocked.seeOtherTabsClicked.record()
-
+    private fun closeFragment() {
         (activity as HomeActivity).browsingModeManager.mode = BrowsingMode.Normal
 
         findNavController().navigate(UnlockPrivateTabsFragmentDirections.actionGlobalHome())
