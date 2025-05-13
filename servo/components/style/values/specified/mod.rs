@@ -589,13 +589,17 @@ impl ToComputedValue for Opacity {
     }
 }
 
-/// A specified `<integer>`, optionally coming from a `calc()` expression.
+/// A specified `<integer>`, either a simple integer value or a calc expression.
+/// Note that a calc expression may not actually be an integer; it will be rounded
+/// at computed-value time.
 ///
 /// <https://drafts.csswg.org/css-values/#integers>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, PartialOrd, ToShmem)]
-pub struct Integer {
-    value: CSSInteger,
-    was_calc: bool,
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToShmem)]
+pub enum Integer {
+    /// A literal integer value.
+    Literal(CSSInteger),
+    /// A calc expression, whose value will be rounded later if necessary.
+    Calc(CSSFloat),
 }
 
 impl Zero for Integer {
@@ -606,7 +610,7 @@ impl Zero for Integer {
 
     #[inline]
     fn is_zero(&self) -> bool {
-        self.value() == 0
+        *self == 0
     }
 }
 
@@ -618,7 +622,7 @@ impl One for Integer {
 
     #[inline]
     fn is_one(&self) -> bool {
-        self.value() == 1
+        *self == 1
     }
 }
 
@@ -631,23 +635,20 @@ impl PartialEq<i32> for Integer {
 impl Integer {
     /// Trivially constructs a new `Integer` value.
     pub fn new(val: CSSInteger) -> Self {
-        Integer {
-            value: val,
-            was_calc: false,
-        }
+        Self::Literal(val)
     }
 
-    /// Returns the integer value associated with this value.
+    /// Returns the (rounded) integer value associated with this value.
     pub fn value(&self) -> CSSInteger {
-        self.value
+        match *self {
+            Self::Literal(i) => i,
+            Self::Calc(n) => (n + 0.5).floor() as CSSInteger,
+        }
     }
 
     /// Trivially constructs a new integer value from a `calc()` expression.
-    fn from_calc(val: CSSInteger) -> Self {
-        Integer {
-            value: val,
-            was_calc: true,
-        }
+    fn from_calc(val: CSSFloat) -> Self {
+        Self::Calc(val)
     }
 }
 
@@ -663,7 +664,7 @@ impl Parse for Integer {
             } => Ok(Integer::new(v)),
             Token::Function(ref name) => {
                 let function = CalcNode::math_function(context, name, location)?;
-                let result = CalcNode::parse_integer(context, input, function)?;
+                let result = CalcNode::parse_number(context, input, function)?;
                 Ok(Integer::from_calc(result))
             },
             ref t => Err(location.new_unexpected_token_error(t.clone())),
@@ -712,7 +713,7 @@ impl ToComputedValue for Integer {
 
     #[inline]
     fn to_computed_value(&self, _: &Context) -> i32 {
-        self.value
+        self.value()
     }
 
     #[inline]
@@ -726,14 +727,14 @@ impl ToCss for Integer {
     where
         W: Write,
     {
-        if self.was_calc {
-            dest.write_str("calc(")?;
+        match *self {
+            Integer::Literal(i) => i.to_css(dest),
+            Integer::Calc(n) => {
+                dest.write_str("calc(")?;
+                n.to_css(dest)?;
+                dest.write_char(')')
+            }
         }
-        self.value.to_css(dest)?;
-        if self.was_calc {
-            dest.write_char(')')?;
-        }
-        Ok(())
     }
 }
 

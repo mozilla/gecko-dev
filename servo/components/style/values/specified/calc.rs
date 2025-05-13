@@ -17,7 +17,7 @@ use crate::values::generics::calc::{
 use crate::values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
 use crate::values::specified::length::{ContainerRelativeLength, ViewportPercentageLength};
 use crate::values::specified::{self, Angle, Resolution, Time};
-use crate::values::{serialize_number, serialize_percentage, CSSFloat, CSSInteger, DashedIdent};
+use crate::values::{serialize_number, serialize_percentage, CSSFloat, DashedIdent};
 use cssparser::{CowRcStr, Parser, Token};
 use smallvec::SmallVec;
 use std::cmp;
@@ -1156,15 +1156,6 @@ impl CalcNode {
         };
 
         Ok(function)
-    }
-
-    /// Convenience parsing function for integers.
-    pub fn parse_integer<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-        function: MathFunction,
-    ) -> Result<CSSInteger, ParseError<'i>> {
-        Self::parse_number(context, input, function).map(|n| (n + 0.5).floor() as CSSInteger)
     }
 
     /// Convenience parsing function for `<length> | <percentage>`, and, optionally, `anchor()`.
