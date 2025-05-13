@@ -494,27 +494,22 @@ static void LoadInlineValueOperand(MacroAssembler& masm, ValueOperand dest) {
   masm.loadUnalignedValue(Address(pc, sizeof(jsbytecode)), dest);
 }
 
-template <>
-void BaselineCompilerCodeGen::loadScript(Register dest) {
-  if (handler.isSelfHosted()) {
+template <typename Handler>
+void BaselineCodeGen<Handler>::loadScript(Register dest) {
+  if (handler.realmIndependentJitcode()) {
     masm.loadPtr(frame.addressOfInterpreterScript(), dest);
   } else {
-    masm.movePtr(ImmGCPtr(handler.scriptInternal()), dest);
+    masm.movePtr(ImmGCPtr(handler.maybeScript()), dest);
   }
-}
-
-template <>
-void BaselineInterpreterCodeGen::loadScript(Register dest) {
-  masm.loadPtr(frame.addressOfInterpreterScript(), dest);
 }
 
 template <typename Handler>
 void BaselineCodeGen<Handler>::loadJitScript(Register dest) {
-  if (handler.isSelfHosted()) {
+  if (handler.realmIndependentJitcode()) {
     loadScript(dest);
     masm.loadPtr(Address(dest, JSScript::offsetOfWarmUpData()), dest);
   } else {
-    masm.movePtr(ImmPtr(handler.scriptInternal()->jitScript()), dest);
+    masm.movePtr(ImmPtr(handler.maybeScript()->jitScript()), dest);
   }
 }
 
@@ -1022,37 +1017,28 @@ void BaselineInterpreterCodeGen::subtractScriptSlotsSize(Register reg,
   masm.subPtr(scratch, reg);
 }
 
-template <>
-void BaselineCompilerCodeGen::loadGlobalLexicalEnvironment(Register dest) {
-  MOZ_ASSERT(!handler.script()->hasNonSyntacticScope());
-  masm.movePtr(ImmGCPtr(handler.globalLexicalEnvironment()), dest);
+template <typename Handler>
+void BaselineCodeGen<Handler>::loadGlobalLexicalEnvironment(Register dest) {
+  if (handler.realmIndependentJitcode()) {
+    masm.loadGlobalObjectData(dest);
+    masm.loadPtr(Address(dest, GlobalObjectData::offsetOfLexicalEnvironment()),
+                 dest);
+  } else {
+    MOZ_ASSERT(!handler.maybeScript()->hasNonSyntacticScope());
+    masm.movePtr(ImmGCPtr(handler.maybeGlobalLexicalEnvironment()), dest);
+  }
 }
 
-template <>
-void BaselineInterpreterCodeGen::loadGlobalLexicalEnvironment(Register dest) {
-  masm.loadGlobalObjectData(dest);
-  masm.loadPtr(Address(dest, GlobalObjectData::offsetOfLexicalEnvironment()),
-               dest);
-}
-
-template <>
-void BaselineCompilerCodeGen::pushGlobalLexicalEnvironmentValue(
+template <typename Handler>
+void BaselineCodeGen<Handler>::pushGlobalLexicalEnvironmentValue(
     ValueOperand scratch) {
-  if (handler.isSelfHosted()) {
+  if (handler.realmIndependentJitcode()) {
     loadGlobalLexicalEnvironment(scratch.scratchReg());
     masm.tagValue(JSVAL_TYPE_OBJECT, scratch.scratchReg(), scratch);
     frame.push(scratch);
   } else {
-    frame.push(ObjectValue(*handler.globalLexicalEnvironment()));
+    frame.push(ObjectValue(*handler.maybeGlobalLexicalEnvironment()));
   }
-}
-
-template <>
-void BaselineInterpreterCodeGen::pushGlobalLexicalEnvironmentValue(
-    ValueOperand scratch) {
-  loadGlobalLexicalEnvironment(scratch.scratchReg());
-  masm.tagValue(JSVAL_TYPE_OBJECT, scratch.scratchReg(), scratch);
-  frame.push(scratch);
 }
 
 template <>
@@ -1070,18 +1056,13 @@ void BaselineInterpreterCodeGen::loadGlobalThisValue(ValueOperand dest) {
   masm.loadValue(Address(scratch, SlotOffset), dest);
 }
 
-template <>
-void BaselineCompilerCodeGen::pushScriptArg() {
-  if (handler.isSelfHosted()) {
+template <typename Handler>
+void BaselineCodeGen<Handler>::pushScriptArg() {
+  if (handler.realmIndependentJitcode()) {
     pushArg(frame.addressOfInterpreterScript());
   } else {
-    pushArg(ImmGCPtr(handler.scriptInternal()));
+    pushArg(ImmGCPtr(handler.maybeScript()));
   }
-}
-
-template <>
-void BaselineInterpreterCodeGen::pushScriptArg() {
-  pushArg(frame.addressOfInterpreterScript());
 }
 
 template <>
@@ -1168,12 +1149,11 @@ template <>
 void BaselineCompilerCodeGen::loadScriptGCThing(ScriptGCThingType type,
                                                 Register dest,
                                                 Register scratch) {
-  if (handler.isSelfHosted()) {
+  if (handler.realmIndependentJitcode()) {
     masm.move32(Imm32(GET_GCTHING_INDEX(handler.pc())), scratch);
     loadScriptGCThingInternal(type, dest, scratch);
   } else {
-    gc::Cell* thing =
-        GetScriptGCThing(handler.scriptInternal(), handler.pc(), type);
+    gc::Cell* thing = GetScriptGCThing(handler.script(), handler.pc(), type);
     masm.movePtr(ImmGCPtr(thing), dest);
   }
 }
@@ -1198,26 +1178,18 @@ void BaselineInterpreterCodeGen::loadScriptGCThing(ScriptGCThingType type,
 #endif
 }
 
-template <>
-void BaselineCompilerCodeGen::pushScriptGCThingArg(ScriptGCThingType type,
-                                                   Register scratch1,
-                                                   Register scratch2) {
-  if (handler.isSelfHosted()) {
+template <typename Handler>
+void BaselineCodeGen<Handler>::pushScriptGCThingArg(ScriptGCThingType type,
+                                                    Register scratch1,
+                                                    Register scratch2) {
+  if (handler.realmIndependentJitcode()) {
     loadScriptGCThing(type, scratch1, scratch2);
     pushArg(scratch1);
   } else {
     gc::Cell* thing =
-        GetScriptGCThing(handler.scriptInternal(), handler.pc(), type);
+        GetScriptGCThing(handler.maybeScript(), handler.maybePC(), type);
     pushArg(ImmGCPtr(thing));
   }
-}
-
-template <>
-void BaselineInterpreterCodeGen::pushScriptGCThingArg(ScriptGCThingType type,
-                                                      Register scratch1,
-                                                      Register scratch2) {
-  loadScriptGCThing(type, scratch1, scratch2);
-  pushArg(scratch1);
 }
 
 template <typename Handler>
@@ -1292,7 +1264,8 @@ void BaselineCompilerCodeGen::emitInitFrameFields(Register nonFunctionEnv) {
   Register scratch2 = R2.scratchReg();
   MOZ_ASSERT(nonFunctionEnv != scratch && nonFunctionEnv != scratch2);
 
-  uint32_t flags = handler.isSelfHosted() ? BaselineFrame::SELF_HOSTED : 0;
+  uint32_t flags =
+      handler.realmIndependentJitcode() ? BaselineFrame::REALM_INDEPENDENT : 0;
   masm.store32(Imm32(flags), frame.addressOfFlags());
 
   if (handler.function()) {
@@ -1300,13 +1273,13 @@ void BaselineCompilerCodeGen::emitInitFrameFields(Register nonFunctionEnv) {
     masm.unboxObject(Address(scratch, JSFunction::offsetOfEnvironment()),
                      scratch2);
     masm.storePtr(scratch2, frame.addressOfEnvironmentChain());
-    if (handler.isSelfHosted()) {
+    if (handler.realmIndependentJitcode()) {
       masm.loadPrivate(Address(scratch, JSFunction::offsetOfJitInfoOrScript()),
                        scratch);
       masm.storePtr(scratch, frame.addressOfInterpreterScript());
     }
   } else {
-    if (handler.isSelfHosted()) {
+    if (handler.realmIndependentJitcode()) {
       masm.loadPtr(frame.addressOfCalleeToken(), scratch);
       masm.andPtr(Imm32(uint32_t(CalleeTokenMask)), scratch);
       masm.storePtr(scratch, frame.addressOfInterpreterScript());
@@ -1328,8 +1301,8 @@ void BaselineCompilerCodeGen::emitInitFrameFields(Register nonFunctionEnv) {
 
   // Otherwise, store this script's default ICSCript in the frame.
   masm.bind(&notInlined);
-  if (handler.isSelfHosted()) {
-    // When self-hosted JitCode is reused in a new realm, the frames baked into
+  if (handler.realmIndependentJitcode()) {
+    // When JitCode is reused in a new realm, the frames baked into
     // the native bytecode need to refer to the IC list for the new JitScript or
     // they will execute the IC scripts using the IC stub fields from the wrong
     // script.
@@ -1337,7 +1310,7 @@ void BaselineCompilerCodeGen::emitInitFrameFields(Register nonFunctionEnv) {
     masm.addPtr(Imm32(JitScript::offsetOfICScript()), scratch);
     masm.storePtr(scratch, frame.addressOfICScript());
   } else {
-    masm.storePtr(ImmPtr(handler.scriptInternal()->jitScript()->icScript()),
+    masm.storePtr(ImmPtr(handler.script()->jitScript()->icScript()),
                   frame.addressOfICScript());
   }
   masm.bind(&done);
@@ -1430,7 +1403,7 @@ bool BaselineCompilerCodeGen::initEnvironmentChain() {
   AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
   Register temp = regs.takeAny();
   Label done;
-  if (!handler.isSelfHosted()) {
+  if (!handler.realmIndependentJitcode()) {
     // Allocate a NamedLambdaObject and/or a CallObject. If the function needs
     // both, the NamedLambdaObject must enclose the CallObject. If one of the
     // allocations fails, we perform the whole operation in C++.
@@ -2728,9 +2701,9 @@ bool BaselineInterpreterCodeGen::emit_Double() {
   return true;
 }
 
-template <>
-bool BaselineCompilerCodeGen::emit_BigInt() {
-  if (handler.isSelfHosted()) {
+template <typename Handler>
+bool BaselineCodeGen<Handler>::emit_BigInt() {
+  if (handler.realmIndependentJitcode()) {
     frame.syncStack(0);
     Register scratch1 = R0.scratchReg();
     Register scratch2 = R1.scratchReg();
@@ -2738,25 +2711,15 @@ bool BaselineCompilerCodeGen::emit_BigInt() {
     masm.tagValue(JSVAL_TYPE_BIGINT, scratch1, R0);
     frame.push(R0);
   } else {
-    BigInt* bi = handler.scriptInternal()->getBigInt(handler.pc());
+    BigInt* bi = handler.maybeScript()->getBigInt(handler.maybePC());
     frame.push(BigIntValue(bi));
   }
   return true;
 }
 
-template <>
-bool BaselineInterpreterCodeGen::emit_BigInt() {
-  Register scratch1 = R0.scratchReg();
-  Register scratch2 = R1.scratchReg();
-  loadScriptGCThing(ScriptGCThingType::BigInt, scratch1, scratch2);
-  masm.tagValue(JSVAL_TYPE_BIGINT, scratch1, R0);
-  frame.push(R0);
-  return true;
-}
-
-template <>
-bool BaselineCompilerCodeGen::emit_String() {
-  if (handler.isSelfHosted()) {
+template <typename Handler>
+bool BaselineCodeGen<Handler>::emit_String() {
+  if (handler.realmIndependentJitcode()) {
     frame.syncStack(0);
     Register scratch1 = R0.scratchReg();
     Register scratch2 = R1.scratchReg();
@@ -2764,18 +2727,9 @@ bool BaselineCompilerCodeGen::emit_String() {
     masm.tagValue(JSVAL_TYPE_STRING, scratch1, R0);
     frame.push(R0);
   } else {
-    frame.push(StringValue(handler.scriptInternal()->getString(handler.pc())));
+    frame.push(
+        StringValue(handler.maybeScript()->getString(handler.maybePC())));
   }
-  return true;
-}
-
-template <>
-bool BaselineInterpreterCodeGen::emit_String() {
-  Register scratch1 = R0.scratchReg();
-  Register scratch2 = R1.scratchReg();
-  loadScriptGCThing(ScriptGCThingType::String, scratch1, scratch2);
-  masm.tagValue(JSVAL_TYPE_STRING, scratch1, R0);
-  frame.push(R0);
   return true;
 }
 
@@ -2801,27 +2755,18 @@ bool BaselineInterpreterCodeGen::emit_Symbol() {
   return true;
 }
 
-template <>
-bool BaselineCompilerCodeGen::emit_Object() {
-  if (handler.isSelfHosted()) {
+template <typename Handler>
+bool BaselineCodeGen<Handler>::emit_Object() {
+  if (handler.realmIndependentJitcode()) {
     Register scratch1 = R0.scratchReg();
     Register scratch2 = R1.scratchReg();
     loadScriptGCThing(ScriptGCThingType::Object, scratch1, scratch2);
     masm.tagValue(JSVAL_TYPE_OBJECT, scratch1, R0);
     frame.push(R0);
   } else {
-    frame.push(ObjectValue(*handler.scriptInternal()->getObject(handler.pc())));
+    frame.push(
+        ObjectValue(*handler.maybeScript()->getObject(handler.maybePC())));
   }
-  return true;
-}
-
-template <>
-bool BaselineInterpreterCodeGen::emit_Object() {
-  Register scratch1 = R0.scratchReg();
-  Register scratch2 = R1.scratchReg();
-  loadScriptGCThing(ScriptGCThingType::Object, scratch1, scratch2);
-  masm.tagValue(JSVAL_TYPE_OBJECT, scratch1, R0);
-  frame.push(R0);
   return true;
 }
 
@@ -3702,10 +3647,10 @@ bool BaselineCodeGen<Handler>::emit_GetGName() {
 
 template <>
 bool BaselineCompilerCodeGen::tryOptimizeBindUnqualifiedGlobalName() {
-  if (handler.isSelfHosted()) {
+  if (handler.realmIndependentJitcode()) {
     return false;
   }
-  JSScript* script = handler.scriptInternal();
+  JSScript* script = handler.script();
   MOZ_ASSERT(!script->hasNonSyntacticScope());
 
   if (handler.compilingOffThread()) {
@@ -6361,8 +6306,8 @@ bool BaselineCodeGen<Handler>::emitEnterGeneratorCode(Register script,
   masm.storePtr(scratch, icScriptAddr);
 
   Label noBaselineScript;
-  // Self-hosted frames need the interpreterScript pointer
-  if (handler.isSelfHosted()) {
+  // Frames with shared bytecode need the interpreterScript pointer
+  if (handler.realmIndependentJitcode()) {
     masm.storePtr(script, frame.addressOfInterpreterScript());
   }
   masm.loadJitScript(script, scratch);
@@ -6628,7 +6573,7 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
 
   // After the generator returns, we restore the stack pointer, switch back to
   // the current realm, push the return value, and we're done.
-  if (handler.maybeScript() && !handler.isSelfHosted()) {
+  if (!handler.realmIndependentJitcode()) {
     masm.switchToRealm(handler.maybeScript()->realm(), R2.scratchReg());
   } else {
     masm.switchToBaselineFrameRealm(R2.scratchReg());
@@ -6943,7 +6888,7 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
 
   frame.assertSyncedStack();
 
-  if (handler.maybeScript() && !handler.isSelfHosted()) {
+  if (!handler.realmIndependentJitcode()) {
     masm.debugAssertContextRealm(handler.maybeScript()->realm(),
                                  R1.scratchReg());
   }

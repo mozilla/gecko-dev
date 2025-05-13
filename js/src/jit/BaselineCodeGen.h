@@ -345,11 +345,6 @@ class BaselineCompilerHandler {
   }
 
   JSScript* script() const { return script_; }
-  // Use for any time the script or script data will be baked into the bytecode
-  JSScript* scriptInternal() const {
-    MOZ_ASSERT(!isSelfHosted());
-    return script_;
-  }
   JSScript* maybeScript() const { return script_; }
 
   JSFunction* function() const { return script_->function(); }
@@ -384,7 +379,7 @@ class BaselineCompilerHandler {
 
   bool canHaveFixedSlots() const { return script()->nfixed() != 0; }
 
-  JSObject* globalLexicalEnvironment() const {
+  JSObject* maybeGlobalLexicalEnvironment() const {
     return globalLexicalEnvironment_;
   }
   JSObject* globalThis() const { return globalThis_; }
@@ -406,7 +401,7 @@ class BaselineCompilerHandler {
     return true;
   }
 
-  bool isSelfHosted() const {
+  bool realmIndependentJitcode() const {
     return JS::Prefs::experimental_self_hosted_cache() &&
            script()->selfHosted();
   }
@@ -538,10 +533,11 @@ class BaselineInterpreterHandler {
   bool mustIncludeSlotsInStackCheck() const { return true; }
 
   bool canHaveFixedSlots() const { return true; }
+  JSObject* maybeGlobalLexicalEnvironment() const { return nullptr; }
 
   bool addEnvAllocSite() { return false; }  // Not supported.
 
-  bool isSelfHosted() const { return false; }
+  bool realmIndependentJitcode() const { return true; }
 };
 
 using BaselineInterpreterCodeGen = BaselineCodeGen<BaselineInterpreterHandler>;
