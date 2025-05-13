@@ -1315,6 +1315,7 @@ static nsLiteralCString sStyleSrcUnsafeInlineAllowList[] = {
 };
 // img-src data: blob:
 static nsLiteralCString sImgSrcDataBlobAllowList[] = {
+    "about:addons"_ns,
     "about:debugging"_ns,
     "about:devtools-toolbox"_ns,
     "about:firefoxview"_ns,

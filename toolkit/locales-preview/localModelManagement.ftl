@@ -9,14 +9,21 @@ addon-category-mlmodel = On-device AI
 addon-category-mlmodel-title =
   .title = On-device AI
 
-mlmodel-heading = Manage Local AI Models
+mlmodel-heading = Manage On-Device AI Models
 mlmodel-description =
-  Placeholder text. On-device AI Models are optional components that get added to { -brand-short-name } when they are first needed by a feature or extension you use.
-
-  They process your queries on your device, meaning they are more private than online AI providers, but sometimes slower depending on the performance of your device. <a data-l10n-name="learn-more">Learn more</a>
+  Some features and extensions in { -brand-short-name } are powered by AI models that work locally on your device. This approach protects your privacy and, in many cases, speeds up performance. <a data-l10n-name="learn-more">Learn more</a>
 
 # Label for button that when clicked removed local model
 mlmodel-remove-addon-button =
   .aria-label = Remove
 # Label for the aggregated value of all files for a model
 mlmodel-addon-detail-totalsize-label = File size
+mlmodel-addon-detail-last-used-label = Last used
+# This is a section label to describe what extensions or features use a specific local AI model
+mlmodel-addon-detail-used-by-label = Used by
+# This is a section label to describe the link to the model card on the Hugging Face website
+mlmodel-addon-detail-model-card = Model Card
+# This is a label for the Model Card link to Hugging face
+mlmodel-addon-detail-model-card-link-label = View on Hugging Face
+# This is a label for the task the AI model is responsible for
+mlmodel-addon-detial-model-task-label = Task
