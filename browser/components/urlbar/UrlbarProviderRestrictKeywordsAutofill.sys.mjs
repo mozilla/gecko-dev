@@ -37,6 +37,9 @@ class ProviderRestrictKeywordsAutofill extends UrlbarProvider {
     return "RestrictKeywordsAutofill";
   }
 
+  /**
+   * @returns {Values<typeof UrlbarUtils.PROVIDER_TYPE>}
+   */
   get type() {
     return UrlbarUtils.PROVIDER_TYPE.HEURISTIC;
   }

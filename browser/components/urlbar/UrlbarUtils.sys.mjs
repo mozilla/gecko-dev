@@ -79,7 +79,7 @@ export var UrlbarUtils = {
   }),
 
   // Defines provider types.
-  PROVIDER_TYPE: {
+  PROVIDER_TYPE: Object.freeze({
     // Should be executed immediately, because it returns heuristic results
     // that must be handed to the user asap.
     // WARNING: these providers must be extremely fast, because the urlbar will
@@ -92,7 +92,7 @@ export var UrlbarUtils = {
     NETWORK: 3,
     // Can be delayed, contains results coming from unknown sources.
     EXTENSION: 4,
-  },
+  }),
 
   // Defines UrlbarResult types.
   RESULT_TYPE: {

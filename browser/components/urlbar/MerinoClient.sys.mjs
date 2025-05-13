@@ -138,7 +138,7 @@ export class MerinoClient {
    * @param {object} options.otherParams
    *   If specified, the otherParams will be added as a query params. Currently
    *   used for accuweather's location autocomplete endpoint
-   * @returns {Array}
+   * @returns {Promise<object[]>}
    *   The Merino suggestions or null if there's an error or unexpected
    *   response.
    */

@@ -50,9 +50,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
   }
 
   /**
-   * Returns the type of this provider.
-   *
-   * @returns {integer} one of the types from UrlbarUtils.PROVIDER_TYPE.*
+   * @returns {Values<typeof UrlbarUtils.PROVIDER_TYPE>}
    */
   get type() {
     return UrlbarUtils.PROVIDER_TYPE.PROFILE;
@@ -81,7 +79,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
   /**
    * Return unique urls that are open for given user context id.
    *
-   * @param {integer|string} userContextId Containers user context id
+   * @param {number|string} userContextId Containers user context id
    * @param {boolean} [isInPrivateWindow] In private browsing window or not
    * @returns {Array} urls
    */
@@ -138,7 +136,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
    * Return urls registered in the memory table.
    * This is mostly for testing purposes.
    *
-   * @returns {Array} Array of {url, userContextId, count} objects.
+   * @returns {Promise<{url: string, userContextId: number, count: number}[]>}
    */
   static async getDatabaseRegisteredOpenTabsForTests() {
     let conn = await lazy.PlacesUtils.promiseLargeCacheDBConnection();
@@ -156,9 +154,9 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
    * Return userContextId that is used in the moz_openpages_temp table and
    * returned as part of the payload. It differs only for private windows.
    *
-   * @param {integer} userContextId Containers user context id
+   * @param {number} userContextId Containers user context id
    * @param {boolean} isInPrivateWindow In private browsing window or not
-   * @returns {interger} userContextId
+   * @returns {number} userContextId
    */
   static getUserContextIdForOpenPagesTable(userContextId, isInPrivateWindow) {
     return isInPrivateWindow ? PRIVATE_USER_CONTEXT_ID : userContextId;
@@ -167,7 +165,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
   /**
    * Return whether the provided userContextId is for a non-private tab.
    *
-   * @param {integer} userContextId the userContextId to evaluate
+   * @param {number} userContextId the userContextId to evaluate
    * @returns {boolean}
    */
   static isNonPrivateUserContextId(userContextId) {
@@ -177,7 +175,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
   /**
    * Return whether the provided userContextId is for a container.
    *
-   * @param {integer} userContextId the userContextId to evaluate
+   * @param {number} userContextId the userContextId to evaluate
    * @returns {boolean}
    */
   static isContainerUserContextId(userContextId) {
@@ -206,7 +204,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
    * Registers a tab as open.
    *
    * @param {string} url Address of the tab
-   * @param {integer|string} userContextId Containers user context id
+   * @param {number|string} userContextId Containers user context id
    * @param {boolean} isInPrivateWindow In private browsing window or not
    */
   static async registerOpenTab(url, userContextId, isInPrivateWindow) {
@@ -245,7 +243,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
    * Unregisters a previously registered open tab.
    *
    * @param {string} url Address of the tab
-   * @param {integer|string} userContextId Containers user context id
+   * @param {number|string} userContextId Containers user context id
    * @param {boolean} isInPrivateWindow In private browsing window or not
    */
   static async unregisterOpenTab(url, userContextId, isInPrivateWindow) {

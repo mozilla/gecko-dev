@@ -39,9 +39,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
   }
 
   /**
-   * The type of the provider.
-   *
-   * @returns {UrlbarUtils.PROVIDER_TYPE}
+   * @returns {Values<typeof UrlbarUtils.PROVIDER_TYPE>}
    */
   get type() {
     return UrlbarUtils.PROVIDER_TYPE.NETWORK;
@@ -542,7 +540,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
    *
    * @param {UrlbarResult} result
    *   The result to check.
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    *   Whether the result can be added.
    */
   async #canAddResult(result) {

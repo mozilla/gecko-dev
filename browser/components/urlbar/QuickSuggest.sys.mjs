@@ -373,7 +373,7 @@ class _QuickSuggest {
    *
    * @param {UrlbarResult} result
    *   The result to check.
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    *   Whether the result has been dismissed.
    */
   async isResultDismissed(result) {
@@ -444,7 +444,7 @@ class _QuickSuggest {
    * Whether there are any dismissed suggestions that can be cleared, including
    * individually dismissed suggestions and dismissed suggestion types.
    *
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    *   Whether dismissals can be cleared.
    */
   async canClearDismissedSuggestions() {

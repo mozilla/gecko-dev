@@ -133,9 +133,7 @@ class ProviderSearchTips extends UrlbarProvider {
   }
 
   /**
-   * The type of the provider.
-   *
-   * @returns {UrlbarUtils.PROVIDER_TYPE}
+   * @returns {Values<typeof UrlbarUtils.PROVIDER_TYPE>}
    */
   get type() {
     return UrlbarUtils.PROVIDER_TYPE.PROFILE;
@@ -473,7 +471,7 @@ async function isBrowserShowingNotification(window) {
  * @param {string} urlStr
  *   The URL to check, in string form.
  *
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
 async function isDefaultEngineHomepage(urlStr) {
   let defaultEngine = await Services.search.getDefault();

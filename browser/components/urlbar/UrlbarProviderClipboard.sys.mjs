@@ -38,6 +38,9 @@ class ProviderClipboard extends UrlbarProvider {
     return "UrlbarProviderClipboard";
   }
 
+  /**
+   * @returns {Values<typeof UrlbarUtils.PROVIDER_TYPE>}
+   */
   get type() {
     return UrlbarUtils.PROVIDER_TYPE.PROFILE;
   }

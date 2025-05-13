@@ -23,7 +23,7 @@ ChromeUtils.defineLazyGetter(lazy, "gFluentStrings", function () {
   return new Localization(["browser/browser.ftl"]);
 });
 
-/*
+/**
  * This Map stores key-value pairs where each key is a restrict token
  * and each value is an array containing the localized keyword and the
  * english keyword.
@@ -31,6 +31,8 @@ ChromeUtils.defineLazyGetter(lazy, "gFluentStrings", function () {
  * For example,
  * "*" maps to "Bookmarks" for english locales
  * "*" maps to "Marcadores, Bookmarks" for es-ES
+ *
+ * @type {Map<string, string[]>}
  */
 let tokenToKeywords = new Map();
 
@@ -137,8 +139,6 @@ export var UrlbarTokenizer = {
   /**
    * Gets the cached localized restrict keywords. If keywords are not cached
    * fetch the localized keywords first and then return the keywords.
-   *
-   * @returns {Map} The tokenToKeywords Map.
    */
   async getL10nRestrictKeywords() {
     if (tokenToKeywords.size === 0) {
@@ -156,7 +156,8 @@ export var UrlbarTokenizer = {
    *
    * @param {string} token
    *        The string token to verify
-   * @param {boolean} [requirePath] The url must have a path
+   * @param {object} [options]
+   * @param {boolean} [options.requirePath] The url must have a path
    * @returns {boolean} whether the token looks like a URL.
    */
   looksLikeUrl(token, { requirePath = false } = {}) {
@@ -340,11 +341,7 @@ const CHAR_TO_TYPE_MAP = new Map(
  *
  * @param {UrlbarQueryContext} queryContext
  *        The query context object to tokenize.
- * @param {string} queryContext.searchString
- *        The search string to split.
- * @param {object} queryContext.searchMode
- *        A search mode object.
- * @returns {Array} An array of string tokens.
+ * @returns {string[]} An array of string tokens.
  */
 function splitString({ searchString, searchMode }) {
   // The first step is splitting on unicode whitespaces. We ignore whitespaces

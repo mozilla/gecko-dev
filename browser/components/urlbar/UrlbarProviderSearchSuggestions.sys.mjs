@@ -73,9 +73,7 @@ class ProviderSearchSuggestions extends UrlbarProvider {
   }
 
   /**
-   * Returns the type of this provider.
-   *
-   * @returns {integer} one of the types from UrlbarUtils.PROVIDER_TYPE.*
+   * @returns {Values<typeof UrlbarUtils.PROVIDER_TYPE>}
    */
   get type() {
     return UrlbarUtils.PROVIDER_TYPE.NETWORK;
@@ -547,7 +545,7 @@ class ProviderSearchSuggestions extends UrlbarProvider {
    *
    * @param {UrlbarQueryContext} queryContext
    *   The query context object.
-   * @returns {EngineAlias?} aliasEngine
+   * @returns {Promise<EngineAlias?>} aliasEngine
    *   A representation of the aliased engine. Null if there's no match.
    */
   async _maybeGetAlias(queryContext) {

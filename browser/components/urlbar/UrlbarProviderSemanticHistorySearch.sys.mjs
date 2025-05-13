@@ -67,6 +67,9 @@ class ProviderSemanticHistorySearch extends UrlbarProvider {
     return "SemanticHistorySearch";
   }
 
+  /**
+   * @returns {Values<typeof UrlbarUtils.PROVIDER_TYPE>}
+   */
   get type() {
     return UrlbarUtils.PROVIDER_TYPE.PROFILE;
   }

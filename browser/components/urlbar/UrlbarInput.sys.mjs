@@ -3158,9 +3158,9 @@ export class UrlbarInput {
    *   The options object.
    * @param {string} options.value
    *   The value to autofill.
-   * @param {integer} options.selectionStart
+   * @param {number} options.selectionStart
    *   The new selectionStart.
-   * @param {integer} options.selectionEnd
+   * @param {number} options.selectionEnd
    *   The new selectionEnd.
    * @param {"origin" | "url" | "adaptive"} options.type
    *   The autofill type, one of: "origin", "url", "adaptive"

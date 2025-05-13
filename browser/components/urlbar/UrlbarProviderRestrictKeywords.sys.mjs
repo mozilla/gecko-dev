@@ -33,6 +33,9 @@ class ProviderRestrictKeywords extends UrlbarProvider {
     return "RestrictKeywords";
   }
 
+  /**
+   * @returns {Values<typeof UrlbarUtils.PROVIDER_TYPE>}
+   */
   get type() {
     return UrlbarUtils.PROVIDER_TYPE.HEURISTIC;
   }
