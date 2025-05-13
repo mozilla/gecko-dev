@@ -1,8 +1,6 @@
 
-"uitour-tag" ping (obsolete)
-============================
-
-Removed in Firefox v140 via bug 1963704.
+"uitour-tag" ping
+=================
 
 This ping is submitted via the UITour ``setTreatmentTag`` API. It may be used by
 the tour to record what settings were made by a user or to track the result of
@@ -24,3 +22,5 @@ Structure:
         tagValue: <string>
       }
     }
+
+See also: :doc:`common ping fields <common-ping>`
