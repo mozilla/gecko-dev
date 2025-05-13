@@ -689,33 +689,28 @@ static FutexThread::WaitResult AtomicsWait(
   // Validation and other guards should ensure that this does not happen.
   MOZ_ASSERT(sarb, "wait is only applicable to shared memory");
 
-  // Steps 8-9.
-  if (!cx->fx.canWait()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_ATOMICS_WAIT_NOT_ALLOWED);
-    return FutexThread::WaitResult::Error;
-  }
-
   SharedMem<T*> addr =
       sarb->dataPointerShared().cast<T*>() + (byteOffset / sizeof(T));
 
-  // Steps 15 (reordered), 17.a and 23 (through destructor).
+  // Steps 17 and 31 (through destructor).
   // This lock also protects the "waiters" field on SharedArrayRawBuffer,
   // and it provides the necessary memory fence.
   AutoLockFutexAPI lock;
 
-  // Steps 16-17.
+  // Steps 18-20.
   if (jit::AtomicOperations::loadSafeWhenRacy(addr) != value) {
     return FutexThread::WaitResult::NotEqual;
   }
 
-  // Steps 14, 18-22.
+  // Steps 14, 22-27
   SyncFutexWaiter w(cx, byteOffset);
+
+  // Steps 28-29
   AddWaiter(sarb, &w, lock);
   FutexThread::WaitResult retval = cx->fx.wait(cx, lock.unique(), timeout);
   RemoveWaiter(&w, lock);
 
-  // Steps 24-25.
+  // Step 32
   return retval;
 }
 
@@ -731,22 +726,22 @@ FutexThread::WaitResult js::atomics_wait_impl(
   return AtomicsWait(cx, sarb, byteOffset, value, timeout);
 }
 
-// ES2021 draft rev bd868f20b8c574ad6689fba014b62a1dba819e56
-// 24.4.11 Atomics.wait ( typedArray, index, value, timeout ), steps 6-25.
+// https://tc39.es/ecma262/#sec-dowait
+// DoWait ( mode, typedArray, index, value, timeout ), steps 8-35.
 template <typename T>
-static bool DoAtomicsWait(JSContext* cx,
+static bool DoAtomicsWait(JSContext* cx, bool isAsync,
                           Handle<TypedArrayObject*> unwrappedTypedArray,
                           size_t index, T value, HandleValue timeoutv,
                           MutableHandleValue r) {
   mozilla::Maybe<mozilla::TimeDuration> timeout;
   if (!timeoutv.isUndefined()) {
-    // Step 6.
+    // Step 8.
     double timeout_ms;
     if (!ToNumber(cx, timeoutv, &timeout_ms)) {
       return false;
     }
 
-    // Step 7.
+    // Step 9.
     if (!std::isnan(timeout_ms)) {
       if (timeout_ms < 0) {
         timeout = mozilla::Some(mozilla::TimeDuration::FromSeconds(0.0));
@@ -758,41 +753,102 @@ static bool DoAtomicsWait(JSContext* cx,
   }
 
   // Step 10.
+  if (!isAsync && !cx->fx.canWait()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_ATOMICS_WAIT_NOT_ALLOWED);
+    return false;
+  }
+
+  // Step 11.
   Rooted<SharedArrayBufferObject*> unwrappedSab(
       cx, unwrappedTypedArray->bufferShared());
 
-  // Step 11.
+  // Step 12
   mozilla::Maybe<size_t> offset = unwrappedTypedArray->byteOffset();
   MOZ_ASSERT(
       offset,
       "offset can't become invalid because shared buffers can only grow");
 
-  // Steps 12-13.
+  // Step 13.
   // The computation will not overflow because range checks have been
   // performed.
-  size_t indexedPosition = index * sizeof(T) + *offset;
+  size_t byteIndexInBuffer = index * sizeof(T) + *offset;
 
-  // Steps 8-9, 14-25.
-  switch (atomics_wait_impl(cx, unwrappedSab->rawBufferObject(),
-                            indexedPosition, value, timeout)) {
-    case FutexThread::WaitResult::NotEqual:
-      r.setString(cx->names().not_equal_);
-      return true;
-    case FutexThread::WaitResult::OK:
-      r.setString(cx->names().ok);
-      return true;
-    case FutexThread::WaitResult::TimedOut:
-      r.setString(cx->names().timed_out_);
-      return true;
-    case FutexThread::WaitResult::Error:
-      return false;
-    default:
-      MOZ_CRASH("Should not happen");
+  // Steps 14-35.
+  if (isAsync) {
+    MOZ_CRASH("TODO");
+  } else {
+    switch (atomics_wait_impl(cx, unwrappedSab->rawBufferObject(),
+                              byteIndexInBuffer, value, timeout)) {
+      case FutexThread::WaitResult::NotEqual:
+        r.setString(cx->names().not_equal_);
+        return true;
+      case FutexThread::WaitResult::OK:
+        r.setString(cx->names().ok);
+        return true;
+      case FutexThread::WaitResult::TimedOut:
+        r.setString(cx->names().timed_out_);
+        return true;
+      case FutexThread::WaitResult::Error:
+        return false;
+      default:
+        MOZ_CRASH("Should not happen");
+    }
   }
 }
 
-// ES2021 draft rev bd868f20b8c574ad6689fba014b62a1dba819e56
+// https://tc39.es/ecma262/#sec-dowait
+// DoWait ( mode, typedArray, index, value, timeout )
+static bool DoWait(JSContext* cx, bool isAsync, HandleValue objv,
+                   HandleValue index, HandleValue valv, HandleValue timeoutv,
+                   MutableHandleValue r) {
+  // Steps 1-2.
+  Rooted<TypedArrayObject*> unwrappedTypedArray(cx);
+  if (!ValidateIntegerTypedArray(cx, objv, true, &unwrappedTypedArray)) {
+    return false;
+  }
+  MOZ_ASSERT(unwrappedTypedArray->type() == Scalar::Int32 ||
+             unwrappedTypedArray->type() == Scalar::BigInt64);
+
+  // Step 3
+  if (!unwrappedTypedArray->isSharedMemory()) {
+    return ReportBadArrayType(cx);
+  }
+
+  // Step 4.
+  size_t intIndex;
+  if (!ValidateAtomicAccess(cx, unwrappedTypedArray, index, &intIndex)) {
+    return false;
+  }
+
+  // Step 5
+  if (unwrappedTypedArray->type() == Scalar::Int32) {
+    // Step 7.
+    int32_t value;
+    if (!ToInt32(cx, valv, &value)) {
+      return false;
+    }
+
+    // Steps 8-35.
+    return DoAtomicsWait(cx, isAsync, unwrappedTypedArray, intIndex, value,
+                         timeoutv, r);
+  }
+
+  MOZ_ASSERT(unwrappedTypedArray->type() == Scalar::BigInt64);
+
+  // Step 6.
+  RootedBigInt value(cx, ToBigInt(cx, valv));
+  if (!value) {
+    return false;
+  }
+
+  // Steps 8-35.
+  return DoAtomicsWait(cx, isAsync, unwrappedTypedArray, intIndex,
+                       BigInt::toInt64(value), timeoutv, r);
+}
+
 // 24.4.11 Atomics.wait ( typedArray, index, value, timeout )
+// https://tc39.es/ecma262/#sec-atomics.wait
 static bool atomics_wait(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   HandleValue objv = args.get(0);
@@ -801,63 +857,23 @@ static bool atomics_wait(JSContext* cx, unsigned argc, Value* vp) {
   HandleValue timeoutv = args.get(3);
   MutableHandleValue r = args.rval();
 
-  // Step 1.
-  Rooted<TypedArrayObject*> unwrappedTypedArray(cx);
-  if (!ValidateIntegerTypedArray(cx, objv, true, &unwrappedTypedArray)) {
-    return false;
-  }
-  MOZ_ASSERT(unwrappedTypedArray->type() == Scalar::Int32 ||
-             unwrappedTypedArray->type() == Scalar::BigInt64);
-
-  // https://github.com/tc39/ecma262/pull/1908
-  if (!unwrappedTypedArray->isSharedMemory()) {
-    return ReportBadArrayType(cx);
-  }
-
-  // Step 2.
-  size_t intIndex;
-  if (!ValidateAtomicAccess(cx, unwrappedTypedArray, index, &intIndex)) {
-    return false;
-  }
-
-  if (unwrappedTypedArray->type() == Scalar::Int32) {
-    // Step 5.
-    int32_t value;
-    if (!ToInt32(cx, valv, &value)) {
-      return false;
-    }
-
-    // Steps 6-25.
-    return DoAtomicsWait(cx, unwrappedTypedArray, intIndex, value, timeoutv, r);
-  }
-
-  MOZ_ASSERT(unwrappedTypedArray->type() == Scalar::BigInt64);
-
-  // Step 4.
-  RootedBigInt value(cx, ToBigInt(cx, valv));
-  if (!value) {
-    return false;
-  }
-
-  // Steps 6-25.
-  return DoAtomicsWait(cx, unwrappedTypedArray, intIndex,
-                       BigInt::toInt64(value), timeoutv, r);
+  return DoWait(cx, /*isAsync = */ false, objv, index, valv, timeoutv, r);
 }
 
-// ES2021 draft rev bd868f20b8c574ad6689fba014b62a1dba819e56
-// 24.4.12 Atomics.notify ( typedArray, index, count ), steps 10-16.
+// Atomics.notify ( typedArray, index, count ), steps 8-13.
+// https://tc39.es/ecma262/#sec-atomics.notify
 int64_t js::atomics_notify_impl(SharedArrayRawBuffer* sarb, size_t byteOffset,
                                 int64_t count) {
   // Validation should ensure this does not happen.
   MOZ_ASSERT(sarb, "notify is only applicable to shared memory");
 
-  // Steps 12 (reordered), 15 (through destructor).
-  AutoLockFutexAPI lock;
-
-  // Step 11 (reordered).
+  // Step 8
   int64_t woken = 0;
 
-  // Steps 10, 13-14.
+  // Steps 9, 12 (through destructor).
+  AutoLockFutexAPI lock;
+
+  // Steps 10-11
   FutexWaiterListNode* waiterListHead = sarb->waiters();
   FutexWaiterListNode* iter = waiterListHead->next();
   while (count && iter != waiterListHead) {
@@ -879,7 +895,7 @@ int64_t js::atomics_notify_impl(SharedArrayRawBuffer* sarb, size_t byteOffset,
     }
   }
 
-  // Step 16.
+  // Step 13.
   return woken;
 }
 
