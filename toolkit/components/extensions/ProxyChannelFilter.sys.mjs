@@ -411,6 +411,6 @@ export class ProxyChannelFilter {
   }
 
   destroy() {
-    lazy.ProxyService.unregisterFilter(this);
+    lazy.ProxyService.unregisterChannelFilter(this);
   }
 }
