@@ -686,7 +686,7 @@ bool Code::requestTierUp(uint32_t funcIndex) const {
 
 bool Code::finishTier2(UniqueCodeBlock tier2CodeBlock,
                        UniqueLinkData tier2LinkData,
-                       const TierStats& tier2Stats) const {
+                       const CompileAndLinkStats& tier2Stats) const {
   MOZ_RELEASE_ASSERT(mode_ == CompileMode::EagerTiering ||
                      mode_ == CompileMode::LazyTiering);
   MOZ_RELEASE_ASSERT(hasCompleteTier2_ == false &&
@@ -1179,6 +1179,7 @@ Code::Code(CompileMode mode, const CodeMetadata& codeMeta,
 Code::~Code() { printStats(); }
 
 void Code::printStats() const {
+#ifdef JS_JITSPEW
   auto guard = data_.readLock();
 
   JS_LOG(wasmPerf, Info, "CM=..%06lx  Code::~Code <<<<",
@@ -1191,17 +1192,18 @@ void Code::printStats() const {
   uint32_t numCallRefs = codeTailMeta_->numCallRefMetrics == UINT32_MAX
                              ? 0
                              : codeTailMeta_->numCallRefMetrics;
-  JS_LOG(wasmPerf, Info, "    %7u call_refs in module.", numCallRefs);
+  JS_LOG(wasmPerf, Info, "    %7u call_refs in module", numCallRefs);
 
   // Tier information
-  JS_LOG(wasmPerf, Info, "    Tier1:");
+  JS_LOG(wasmPerf, Info, "            ------ Tier 1 ------");
   guard->tier1Stats.print();
   if (mode() != CompileMode::Once) {
-    JS_LOG(wasmPerf, Info, "    Tier2:");
+    JS_LOG(wasmPerf, Info, "            ------ Tier 2 ------");
     guard->tier2Stats.print();
   }
 
   JS_LOG(wasmPerf, Info, ">>>>");
+#endif
 }
 
 bool Code::initialize(FuncImportVector&& funcImports,
@@ -1209,11 +1211,12 @@ bool Code::initialize(FuncImportVector&& funcImports,
                       UniqueLinkData sharedStubsLinkData,
                       UniqueCodeBlock tier1CodeBlock,
                       UniqueLinkData tier1LinkData,
-                      const TierStats& tier1Stats) {
+                      const CompileAndLinkStats& tier1Stats) {
   funcImports_ = std::move(funcImports);
 
   auto guard = data_.writeLock();
 
+  MOZ_ASSERT(guard->tier1Stats.empty());
   guard->tier1Stats = tier1Stats;
 
   sharedStubs_ = sharedStubs.get();

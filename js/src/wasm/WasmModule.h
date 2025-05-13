@@ -178,7 +178,7 @@ class Module : public JS::WasmModule {
   void startTier2(const ShareableBytes* codeSection,
                   JS::OptimizedEncodingListener* listener);
   bool finishTier2(UniqueCodeBlock tier2CodeBlock, UniqueLinkData tier2LinkData,
-                   const TierStats& tier2Stats) const;
+                   const CompileAndLinkStats& tier2Stats) const;
 
   void testingBlockOnTier2Complete() const;
   bool testingTier2Active() const { return testingTier2Active_; }

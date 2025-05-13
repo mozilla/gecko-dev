@@ -305,8 +305,8 @@ class RootCompiler {
   BytecodeOffsetVector inlinedCallerOffsets_;
   InlinedCallerOffsetIndex inlinedCallerOffsetsIndex_;
 
-  // Accumulated statistics about this tier.
-  TierStats tierStats_;
+  // Compilation statistics for this function.
+  CompileStats funcStats_;
 
   // Accumulated inlining statistics for this function.
   InliningStats inliningStats_;
@@ -359,7 +359,7 @@ class RootCompiler {
   MIRGenerator& mirGen() { return mirGen_; }
   int64_t inliningBudget() const { return localInliningBudget_; }
   FeatureUsage observedFeatures() const { return observedFeatures_; }
-  const TierStats& tierStats() const { return tierStats_; }
+  const CompileStats& funcStats() const { return funcStats_; }
 
   uint32_t loopDepth() const { return loopDepth_; }
   void startLoop() { loopDepth_++; }
@@ -10554,13 +10554,13 @@ bool RootCompiler::generate() {
 
   MOZ_ASSERT(loopDepth_ == 0);
 
-  tierStats_.numFuncs += 1;
-  tierStats_.bytecodeSize += func_.end - func_.begin;
-  tierStats_.inlinedDirectCallCount += inliningStats_.inlinedDirectFunctions;
-  tierStats_.inlinedCallRefCount += inliningStats_.inlinedCallRefFunctions;
-  tierStats_.inlinedDirectCallBytecodeSize +=
+  funcStats_.numFuncs += 1;
+  funcStats_.bytecodeSize += func_.end - func_.begin;
+  funcStats_.inlinedDirectCallCount += inliningStats_.inlinedDirectFunctions;
+  funcStats_.inlinedCallRefCount += inliningStats_.inlinedCallRefFunctions;
+  funcStats_.inlinedDirectCallBytecodeSize +=
       inliningStats_.inlinedDirectBytecodeSize;
-  tierStats_.inlinedCallRefBytecodeSize +=
+  funcStats_.inlinedCallRefBytecodeSize +=
       inliningStats_.inlinedCallRefBytecodeSize;
 
   if (codeTailMeta_) {
@@ -10581,7 +10581,7 @@ bool RootCompiler::generate() {
     // If this particular root function overran the function-level
     // limit, note that in the module too.
     if (localInliningBudget_ < 0) {
-      tierStats_.numInliningBudgetOverruns += 1;
+      funcStats_.numInliningBudgetOverruns += 1;
     }
   }
 
@@ -10707,9 +10707,6 @@ bool wasm::IonCompileFunctions(const CodeMetadata& codeMeta,
     FeatureUsage observedFeatures = rootCompiler.observedFeatures();
     code->featureUsage |= observedFeatures;
 
-    // Record our tier stats
-    code->tierStats.merge(rootCompiler.tierStats());
-
     // Compile MIR graph
     {
       jit::SpewBeginWasmFunction(&rootCompiler.mirGen(), func.index);
@@ -10754,6 +10751,9 @@ bool wasm::IonCompileFunctions(const CodeMetadata& codeMeta,
         }
       }
     }
+
+    // Record this function's compilation stats
+    code->compileStats.merge(rootCompiler.funcStats());
 
     // Record this function's specific feature usage
     if (!code->funcs.emplaceBack(func.index, observedFeatures)) {

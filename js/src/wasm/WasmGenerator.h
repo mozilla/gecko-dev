@@ -103,7 +103,7 @@ struct CompiledCode {
   FuncIonPerfSpewerVector funcIonSpewers;
   FuncBaselinePerfSpewerVector funcBaselineSpewers;
   FeatureUsage featureUsage;
-  TierStats tierStats;
+  CompileStats compileStats;
 
   [[nodiscard]] bool swap(jit::MacroAssembler& masm);
 
@@ -125,6 +125,7 @@ struct CompiledCode {
     funcIonSpewers.clear();
     funcBaselineSpewers.clear();
     featureUsage = FeatureUsage::None;
+    compileStats.clear();
     MOZ_ASSERT(empty());
   }
 
@@ -136,7 +137,7 @@ struct CompiledCode {
            stackMaps.empty() && codeRangeUnwindInfos.empty() &&
            callRefMetricsPatches.empty() && allocSitesPatches.empty() &&
            funcIonSpewers.empty() && funcBaselineSpewers.empty() &&
-           featureUsage == FeatureUsage::None;
+           featureUsage == FeatureUsage::None && compileStats.empty();
   }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
@@ -271,7 +272,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   uint32_t startOfUnpatchedCallsites_;
   uint32_t numCallRefMetrics_;
   uint32_t numAllocSites_;
-  TierStats tierStats_;
+  CompileAndLinkStats tierStats_;
 
   // Parallel compilation
   bool parallel_;
@@ -315,7 +316,8 @@ class MOZ_STACK_CLASS ModuleGenerator {
   // must be compiled, then finishTier must be called.
   [[nodiscard]] bool startPartialTier(uint32_t funcIndex);
   // Finishes a complete or partial tier of wasm code.
-  [[nodiscard]] bool finishTier(TierStats* tierStats, CodeBlockResult* result);
+  [[nodiscard]] bool finishTier(CompileAndLinkStats* tierStats,
+                                CodeBlockResult* result);
 
   bool isAsmJS() const { return codeMeta_->isAsmJS(); }
   Tier tier() const { return compilerEnv_->tier(); }

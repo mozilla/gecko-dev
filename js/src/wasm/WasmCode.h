@@ -973,8 +973,8 @@ class Code : public ShareableBase<Code> {
     SharedCodeSegmentVector lazyFuncSegments;
 
     // Statistics for tiers of code.
-    TierStats tier1Stats;
-    TierStats tier2Stats;
+    CompileAndLinkStats tier1Stats;
+    CompileAndLinkStats tier2Stats;
   };
   using ReadGuard = RWExclusiveData<ProtectedData>::ReadGuard;
   using WriteGuard = RWExclusiveData<ProtectedData>::WriteGuard;
@@ -1092,10 +1092,10 @@ class Code : public ShareableBase<Code> {
                                 UniqueLinkData sharedStubsLinkData,
                                 UniqueCodeBlock tier1CodeBlock,
                                 UniqueLinkData tier1LinkData,
-                                const TierStats& tier1Stats);
+                                const CompileAndLinkStats& tier1Stats);
   [[nodiscard]] bool finishTier2(UniqueCodeBlock tier2CodeBlock,
                                  UniqueLinkData tier2LinkData,
-                                 const TierStats& tier2Stats) const;
+                                 const CompileAndLinkStats& tier2Stats) const;
 
   [[nodiscard]] bool getOrCreateInterpEntry(uint32_t funcIndex,
                                             const FuncExport** funcExport,

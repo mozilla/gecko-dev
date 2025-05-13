@@ -1716,36 +1716,73 @@ using FuncBaselinePerfSpewerVector =
     Vector<FuncBaselinePerfSpewer, 8, SystemAllocPolicy>;
 using FuncBaselinePerfSpewerSpan = mozilla::Span<FuncBaselinePerfSpewer>;
 
-struct TierStats {
-  // number of functions compiled in this tier
-  size_t numFuncs = 0;
-  // bytecode size of the functions compiled in this tier
-  size_t bytecodeSize = 0;
+// This holds stats relating to compilation of some arbitrary set of functions.
+// If you add fields, don't forget to update its `clear` and `empty` methods.
+struct CompileStats {
+  // number of functions in the set
+  size_t numFuncs;
+  // bytecode size of the functions
+  size_t bytecodeSize;
   // number of direct-call / call-ref sites inlined
-  size_t inlinedDirectCallCount = 0;
-  size_t inlinedCallRefCount = 0;
+  size_t inlinedDirectCallCount;
+  size_t inlinedCallRefCount;
   // total extra bytecode size from direct-call / call-ref inlining
-  size_t inlinedDirectCallBytecodeSize = 0;
-  size_t inlinedCallRefBytecodeSize = 0;
+  size_t inlinedDirectCallBytecodeSize;
+  size_t inlinedCallRefBytecodeSize;
   // number of funcs for which inlining stopped due to budget overrun
-  size_t numInliningBudgetOverruns = 0;
-  // total mapped addr space for optimized-tier code (a multiple of the page
-  // size)
-  size_t codeBytesMapped = 0;
-  // total used space for optimized-tier code (will be less than the above)
-  size_t codeBytesUsed = 0;
+  size_t numInliningBudgetOverruns;
 
-  void merge(const TierStats& other) {
-    numFuncs += other.numFuncs;
-    bytecodeSize += other.bytecodeSize;
-    inlinedDirectCallCount += other.inlinedDirectCallCount;
-    inlinedCallRefCount += other.inlinedCallRefCount;
-    inlinedDirectCallBytecodeSize += other.inlinedDirectCallBytecodeSize;
-    inlinedCallRefBytecodeSize += other.inlinedCallRefBytecodeSize;
-    numInliningBudgetOverruns += other.numInliningBudgetOverruns;
-    codeBytesMapped += other.codeBytesMapped;
-    codeBytesUsed += other.codeBytesUsed;
+  void clear() {
+    numFuncs = 0;
+    bytecodeSize = 0;
+    inlinedDirectCallCount = 0;
+    inlinedCallRefCount = 0;
+    inlinedDirectCallBytecodeSize = 0;
+    inlinedCallRefBytecodeSize = 0;
+    numInliningBudgetOverruns = 0;
   }
+  CompileStats() { clear(); }
+
+  bool empty() const {
+    return 0 == (numFuncs | bytecodeSize | inlinedDirectCallCount |
+                 inlinedCallRefCount | inlinedDirectCallBytecodeSize |
+                 inlinedCallRefBytecodeSize | numInliningBudgetOverruns);
+  }
+
+  // Merge in the counts from `other`.  When using this, be careful to avoid
+  // double-accounting bugs -- conceptually, `other` should be zeroed out as a
+  // result of the merge.  Doing that as part of this routine would be nice but
+  // unfortunately interferes with `const` qualification and thread-safety, so
+  // that isn't done.
+  void merge(const CompileStats& other);
+};
+
+// Same as CompileStats, but includes info about compiled-code size.
+struct CompileAndLinkStats : public CompileStats {
+  // total mapped addr space for generated code (a multiple of the page size)
+  size_t codeBytesMapped;
+  // total used space for generated code (will be less than the above)
+  size_t codeBytesUsed;
+
+  void clear() {
+    CompileStats::clear();
+    codeBytesMapped = 0;
+    codeBytesUsed = 0;
+  }
+  CompileAndLinkStats() { clear(); }
+
+  bool empty() const {
+    return 0 == (codeBytesMapped | codeBytesUsed) && CompileStats::empty();
+  }
+
+  // Same comments as for CompileStats::merge apply.
+  void merge(const CompileAndLinkStats& other);
+
+  // Merge in just CompileStats from `other`.
+  void mergeCompileStats(const CompileStats& other) {
+    CompileStats::merge(other);
+  }
+
   void print() const;
 };
 

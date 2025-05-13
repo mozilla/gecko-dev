@@ -397,8 +397,8 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
   // Combine observed features from the compiled code into the metadata
   featureUsage_ |= code.featureUsage;
 
-  // Combine the tier stats from all compiled functions in this block
-  tierStats_.merge(code.tierStats);
+  // Fold in compilation stats from all compiled functions in this block
+  tierStats_.mergeCompileStats(code.compileStats);
 
   if (compilingTier1() && mode() == CompileMode::LazyTiering) {
     // All the CallRefMetrics from this batch of functions will start indexing
@@ -1194,7 +1194,7 @@ bool ModuleGenerator::startPartialTier(uint32_t funcIndex) {
   return true;
 }
 
-bool ModuleGenerator::finishTier(TierStats* tierStats,
+bool ModuleGenerator::finishTier(CompileAndLinkStats* tierStats,
                                  CodeBlockResult* result) {
   MOZ_ASSERT(finishedFuncDefs_);
 
@@ -1226,7 +1226,7 @@ bool ModuleGenerator::finishTier(TierStats* tierStats,
 
   // Return the tier statistics and clear them
   *tierStats = tierStats_;
-  tierStats_ = TierStats();
+  tierStats_.clear();
 
   return finishCodeBlock(result);
 }
@@ -1239,7 +1239,7 @@ SharedModule ModuleGenerator::finishModule(
   MOZ_ASSERT(compilingTier1());
 
   CodeBlockResult tier1Result;
-  TierStats tier1Stats;
+  CompileAndLinkStats tier1Stats;
   if (!finishTier(&tier1Stats, &tier1Result)) {
     return nullptr;
   }
@@ -1464,7 +1464,7 @@ SharedModule ModuleGenerator::finishModule(
       (mozilla::TimeStamp::Now() - completeTierStartTime_).ToSeconds();
   JS_LOG(wasmPerf, Info,
          "CM=..%06lx  ModuleGenerator::finishModule      "
-         "(%s tier, %.2f MB in %.3fs = %.2f MB/s)",
+         "(%s, %.2f MB in %.3fs = %.2f MB/s)",
          (unsigned long)(uintptr_t(codeMeta_) & 0xFFFFFFL),
          tier() == Tier::Baseline ? "baseline" : "optimizing",
          double(bytecodeSize) / 1.0e6, wallclockSeconds,
@@ -1487,7 +1487,7 @@ bool ModuleGenerator::finishTier2(const Module& module) {
   }
 
   CodeBlockResult tier2Result;
-  TierStats tier2Stats;
+  CompileAndLinkStats tier2Stats;
   if (!finishTier(&tier2Stats, &tier2Result)) {
     return false;
   }
@@ -1519,7 +1519,7 @@ bool ModuleGenerator::finishPartialTier2() {
   }
 
   CodeBlockResult tier2Result;
-  TierStats tier2Stats;
+  CompileAndLinkStats tier2Stats;
   if (!finishTier(&tier2Stats, &tier2Result)) {
     return false;
   }

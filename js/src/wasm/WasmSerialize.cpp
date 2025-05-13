@@ -1402,7 +1402,7 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
   if (!code || !code->initialize(
                    std::move(funcImports), std::move(sharedStubs),
                    std::move(sharedStubsLinkData), std::move(optimizedCode),
-                   std::move(optimizedCodeLinkData), TierStats())) {
+                   std::move(optimizedCodeLinkData), CompileAndLinkStats())) {
     return Err(OutOfMemory());
   }
 
