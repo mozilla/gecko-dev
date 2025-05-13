@@ -1,0 +1,78 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 13 May 2025 22:39:00 +0000
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit 5f535eef7f
+ r?pehrsons!
+
+Upstream commit: https://webrtc.googlesource.com/src/+/5f535eef7f1ba4619571eaad61dabae8fcc8de0e
+       In ScreenCapturerSck return permanent error after being stopped by the platform
+
+       Bug: webrtc:367915807
+       Change-Id: I473d0d9bdf0b09225fee79db5fc5859cf65f846c
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365091
+       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Reviewed-by: Johannes Kron <kron@webrtc.org>
+       Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
+       Cr-Commit-Position: refs/heads/main@{#44353}
+
+Differential Revision: https://phabricator.services.mozilla.com/D249159
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/37c4cd46ca2fa9f2761eaa470cc33e1c908e420e
+---
+ .../mac/screen_capturer_sck.mm                | 31 +++++++++++++++++++
+ 1 file changed, 31 insertions(+)
+
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index 1bc70cfce3..ecd818ee91 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -66,6 +66,9 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+   void CaptureFrame() override;
+   bool SelectSource(SourceId id) override;
+ 
++  // Called after a SCStreamDelegate stop notification.
++  void NotifyCaptureStopped(SCStream* stream);
++
+   // Called by SckHelper when shareable content is returned by ScreenCaptureKit.
+   // `content` will be nil if an error occurred. May run on an arbitrary thread.
+   void OnShareableContentCreated(SCShareableContent* content, NSError* error);
+@@ -214,6 +217,15 @@ void ScreenCapturerSck::CaptureFrame() {
+   }
+ }
+ 
++void ScreenCapturerSck::NotifyCaptureStopped(SCStream* stream) {
++  MutexLock lock(&lock_);
++  if (stream_ != stream) {
++    return;
++  }
++  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " " << __func__ << ".";
++  permanent_error_ = true;
++}
++
+ bool ScreenCapturerSck::SelectSource(SourceId id) {
+   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " SelectSource(id=" << id
+                    << ").";
+@@ -471,6 +483,25 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
+   }
+ }
+ 
++- (void)stream:(SCStream*)stream didStopWithError:(NSError*)error {
++  webrtc::MutexLock lock(&_capturer_lock);
++  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << _capturer << " " << __func__
++                   << ".";
++  if (_capturer) {
++    _capturer->NotifyCaptureStopped(stream);
++  }
++}
++
++- (void)userDidStopStream:(SCStream*)stream NS_SWIFT_NAME(userDidStopStream(_:))
++                              API_AVAILABLE(macos(14.4)) {
++  webrtc::MutexLock lock(&_capturer_lock);
++  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << _capturer << " " << __func__
++                   << ".";
++  if (_capturer) {
++    _capturer->NotifyCaptureStopped(stream);
++  }
++}
++
+ - (void)stream:(SCStream*)stream
+     didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
+                    ofType:(SCStreamOutputType)type {

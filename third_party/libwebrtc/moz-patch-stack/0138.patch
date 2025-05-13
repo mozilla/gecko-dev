@@ -1,24 +1,70 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Thu, 19 Dec 2024 14:39:00 +0000
-Subject: Bug 1918648 - Enable SCContentSharingPicker on macOS 14.
- r=jib,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 13 May 2025 22:38:00 +0000
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit 47a09bfafb
+ r?pehrsons!
 
-Differential Revision: https://phabricator.services.mozilla.com/D222595
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e7e99057db3afb4ea1df43c7607382976343f325
+Upstream commit: https://webrtc.googlesource.com/src/+/47a09bfafbb88dbf5429fe2b2ee33117d789461c
+       Add a function to check for SCK availability at runtime
+
+       Firefox uses this to decide whether to skip creating a
+       DesktopAndCursorComposer, since the Mac MouseCursorMonitor is quite
+       expensive.
+
+       Bug: webrtc:367915807
+       Change-Id: Idfb4c113391620c48f1e548bd5d876b7b3565d7d
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365082
+       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Reviewed-by: Johannes Kron <kron@webrtc.org>
+       Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
+       Cr-Commit-Position: refs/heads/main@{#44195}
+
+Differential Revision: https://phabricator.services.mozilla.com/D249150
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0042d02ba26864425753f258b88a31b6c10ad4b4
 ---
- modules/desktop_capture/mac/screen_capturer_sck.mm | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ modules/desktop_capture/mac/screen_capturer_sck.h  |  3 +++
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 13 +++++++++++--
+ 2 files changed, 14 insertions(+), 2 deletions(-)
 
-diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 0d48a340ae..3144c95873 100644
---- a/modules/desktop_capture/mac/screen_capturer_sck.mm
-+++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -26,7 +26,7 @@
- using webrtc::DesktopFrameIOSurface;
- 
- #define SCK_AVAILABLE @available(macOS 14.0, *)
--#define SCCSPICKER_AVAILABLE @available(macOS 15.0, *)
-+#define SCCSPICKER_AVAILABLE @available(macOS 14.0, *)
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.h b/modules/desktop_capture/mac/screen_capturer_sck.h
+index 2c5241d33e..105cbf0783 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.h
++++ b/modules/desktop_capture/mac/screen_capturer_sck.h
+@@ -18,6 +18,9 @@
  
  namespace webrtc {
- class ScreenCapturerSck;
+ 
++// Returns true if the ScreenCaptureKit capturer is available.
++bool ScreenCapturerSckAvailable();
++
+ // A DesktopCapturer implementation that uses ScreenCaptureKit.
+ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
+     const DesktopCaptureOptions& options);
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index fbec429ffe..098a169e08 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -374,13 +374,22 @@ void ScreenCapturerSck::StartOrReconfigureCapturer() {
+   [SCShareableContent getShareableContentWithCompletionHandler:handler];
+ }
+ 
++bool ScreenCapturerSckAvailable() {
++  static bool available = ([] {
++    if (@available(macOS 14.0, *)) {
++      return true;
++    }
++    return false;
++  })();
++  return available;
++}
++
+ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
+     const DesktopCaptureOptions& options) {
+   if (@available(macOS 14.0, *)) {
+     return std::make_unique<ScreenCapturerSck>(options);
+-  } else {
+-    return nullptr;
+   }
++  return nullptr;
+ }
+ 
+ }  // namespace webrtc

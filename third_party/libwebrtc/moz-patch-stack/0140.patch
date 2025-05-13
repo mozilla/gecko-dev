@@ -1,40 +1,44 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Tue, 28 Jan 2025 21:45:00 +0000
-Subject: Bug 1938047 - Link adapted_video_track_source.cc and generate webrtc
- moz.build files. r=ng,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 13 May 2025 22:38:00 +0000
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit d2534b3914
+ r?pehrsons!
 
-Differential Revision: https://phabricator.services.mozilla.com/D234863
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b6dd815fc9d2df718a1b48b96f58f99c0cfb7e19
+Upstream commit: https://webrtc.googlesource.com/src/+/d2534b3914f1b3c6a1aa3683e111fd76b8ff4893
+       In SCK backend move dpi to and set may_contain_cursor in frame callback
+
+       Bug: webrtc:367915807
+       Change-Id: Id29b979ab7909d21eb92bc926f9decdae3345381
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365084
+       Reviewed-by: Johannes Kron <kron@webrtc.org>
+       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
+       Cr-Commit-Position: refs/heads/main@{#44204}
+
+Differential Revision: https://phabricator.services.mozilla.com/D249152
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b96051c586abc47bd172b8433ca72ac516c3e18e
 ---
- media/BUILD.gn | 11 -----------
- 1 file changed, 11 deletions(-)
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/media/BUILD.gn b/media/BUILD.gn
-index a9c2fb44bd..09bf3a1e47 100644
---- a/media/BUILD.gn
-+++ b/media/BUILD.gn
-@@ -54,11 +54,6 @@ rtc_library("rtc_media_base") {
-     "base/video_broadcaster.h",  # Used downstream
-     "base/video_common.h",  # Used downstream
-   ]
--  if (build_with_mozilla) {
--    sources -= [
--      "base/adapted_video_track_source.h",
--    ]
--  }
-   deps = [
-     ":adapted_video_track_source",
-     ":codec",
-@@ -139,12 +134,6 @@ rtc_library("adapted_video_track_source") {
-     "base/adapted_video_track_source.cc",
-     "base/adapted_video_track_source.h",
-   ]
--  if (build_with_mozilla) {
--    sources -= [
--      "base/adapted_video_track_source.cc",
--      "base/adapted_video_track_source.h",
--    ]
--  }
-   deps = [
-     ":video_adapter",
-     ":video_broadcaster",
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index c8f5411bcd..7825d85a6a 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -171,7 +171,6 @@ void ScreenCapturerSck::CaptureFrame() {
+     MutexLock lock(&latest_frame_lock_);
+     if (latest_frame_) {
+       frame = latest_frame_->Share();
+-      frame->set_dpi(DesktopVector(latest_frame_dpi_, latest_frame_dpi_));
+       if (frame_is_dirty_) {
+         frame->mutable_updated_region()->AddRect(
+             DesktopRect::MakeSize(frame->size()));
+@@ -357,6 +356,9 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface,
+ 
+   if (dirty) {
+     MutexLock lock(&latest_frame_lock_);
++    frame->set_dpi(DesktopVector(latest_frame_dpi_, latest_frame_dpi_));
++    frame->set_may_contain_cursor(capture_options_.prefer_cursor_embedded());
++
+     frame_is_dirty_ = true;
+     std::swap(latest_frame_, frame);
+   }

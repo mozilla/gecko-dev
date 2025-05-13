@@ -1,0 +1,93 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 13 May 2025 22:39:00 +0000
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit f9badd37ba
+ r?pehrsons!
+
+Upstream commit: https://webrtc.googlesource.com/src/+/f9badd37bae6b2dfec7993ccd5d8443ce1b08fc2
+       In ScreenCapturerSck make it possible to reconfigure without creating a new filter
+
+       Bug: webrtc:367915807
+       Change-Id: Ib35a5cfe7187375ac70b3985d588490a6069a7b2
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365093
+       Reviewed-by: Johannes Kron <kron@webrtc.org>
+       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
+       Cr-Commit-Position: refs/heads/main@{#44355}
+
+Differential Revision: https://phabricator.services.mozilla.com/D249161
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/5769231c954c4d2c6b5daa65de06b1950b2c4ae5
+---
+ .../mac/screen_capturer_sck.mm                | 26 ++++++++++++++++---
+ 1 file changed, 23 insertions(+), 3 deletions(-)
+
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index 080ab23395..e77c6b1745 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -73,6 +73,10 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+   // `content` will be nil if an error occurred. May run on an arbitrary thread.
+   void OnShareableContentCreated(SCShareableContent* content, NSError* error);
+ 
++  // Start capture with the given filter. Creates or updates stream_ as needed.
++  void StartWithFilter(SCContentFilter* filter)
++      RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
++
+   // Called by SckHelper to notify of a newly captured frame. May run on an
+   // arbitrary thread.
+   void OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* attachment);
+@@ -109,6 +113,9 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+   // Provides captured desktop frames.
+   SCStream* __strong stream_ RTC_GUARDED_BY(lock_);
+ 
++  // Current filter on stream_.
++  SCContentFilter* __strong filter_ RTC_GUARDED_BY(lock_);
++
+   // Currently selected display, or 0 if the full desktop is selected. This
+   // capturer does not support full-desktop capture, and will fall back to the
+   // first display.
+@@ -311,12 +318,15 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content,
+   SCContentFilter* filter =
+       [[SCContentFilter alloc] initWithDisplay:captured_display
+                               excludingWindows:@[]];
++  StartWithFilter(filter);
++}
++
++void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
++  lock_.AssertHeld();
+   SCStreamConfiguration* config = [[SCStreamConfiguration alloc] init];
+   config.pixelFormat = kCVPixelFormatType_32BGRA;
+   config.colorSpaceName = kCGColorSpaceSRGB;
+   config.showsCursor = capture_options_.prefer_cursor_embedded();
+-  config.width = filter.contentRect.size.width * filter.pointPixelScale;
+-  config.height = filter.contentRect.size.height * filter.pointPixelScale;
+   config.captureResolution = SCCaptureResolutionNominal;
+   config.minimumFrameInterval = max_frame_rate_ > 0 ?
+       CMTimeMake(1, static_cast<int32_t>(max_frame_rate_)) :
+@@ -325,9 +335,18 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content,
+   {
+     MutexLock lock(&latest_frame_lock_);
+     latest_frame_dpi_ = filter.pointPixelScale * kStandardDPI;
+-    frame_reconfigure_img_size_ = std::nullopt;
++    if (filter_ != filter) {
++      frame_reconfigure_img_size_ = std::nullopt;
++    }
++    auto sourceImgRect = frame_reconfigure_img_size_.value_or(
++        CGSizeMake(filter.contentRect.size.width * filter.pointPixelScale,
++                   filter.contentRect.size.height * filter.pointPixelScale));
++    config.width = sourceImgRect.width;
++    config.height = sourceImgRect.height;
+   }
+ 
++  filter_ = filter;
++
+   if (stream_) {
+     RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this
+                      << " Updating stream configuration to size="
+@@ -351,6 +370,7 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content,
+                            error:&add_stream_output_error];
+     if (!add_stream_output_result) {
+       stream_ = nil;
++      filter_ = nil;
+       RTC_LOG(LS_ERROR) << "ScreenCapturerSck " << this
+                         << " addStreamOutput failed.";
+       permanent_error_ = true;

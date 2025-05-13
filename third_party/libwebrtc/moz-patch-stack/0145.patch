@@ -1,23 +1,81 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 7 Mar 2025 17:43:00 -0600
-Subject: Bug 1952339 - (fix-68e7b00928) add default param to emplace() to fix
- compile issue
+Date: Tue, 13 May 2025 22:39:00 +0000
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit eab708b022
+ r?pehrsons!
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/26c916591791b13a3d8888066c22c5ba49c86c47
+Upstream commit: https://webrtc.googlesource.com/src/+/eab708b022a250da68eaa0777cc2dd6e1f1ce910
+       For ScreenCapturerSck implement SetMaxFrameRate
+
+       Bug: webrtc:367915807
+       Change-Id: I2bb138fc8c5f9ce6dd8b7f6a10b0e03135ae9fc4
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365089
+       Reviewed-by: Johannes Kron <kron@webrtc.org>
+       Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
+       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Cr-Commit-Position: refs/heads/main@{#44219}
+
+Differential Revision: https://phabricator.services.mozilla.com/D249157
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/69b231ec4854509fa8c7958ee05a6541d4c359bb
 ---
- call/rtp_config.cc | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ .../mac/screen_capturer_sck.mm                | 27 ++++++++++++++++---
+ 1 file changed, 24 insertions(+), 3 deletions(-)
 
-diff --git a/call/rtp_config.cc b/call/rtp_config.cc
-index 115912cd46..5e08467d1f 100644
---- a/call/rtp_config.cc
-+++ b/call/rtp_config.cc
-@@ -258,7 +258,7 @@ RtpStreamConfig RtpConfig::GetStreamConfig(size_t index) const {
-   stream_config.raw_payload = raw_payload;
-   if (!rtx.ssrcs.empty()) {
-     RTC_DCHECK_EQ(ssrcs.size(), rtx.ssrcs.size());
--    auto& stream_config_rtx = stream_config.rtx.emplace();
-+    auto& stream_config_rtx = stream_config.rtx.emplace(RtpStreamConfig::Rtx());
-     stream_config_rtx.ssrc = rtx.ssrcs[index];
-     stream_config_rtx.payload_type = rtx.payload_type;
-   }
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index 479b5ba666..1bc70cfce3 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -111,6 +111,9 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+   // first display.
+   CGDirectDisplayID current_display_ RTC_GUARDED_BY(lock_) = 0;
+ 
++  // Configured maximum frame rate in frames per second.
++  uint32_t max_frame_rate_ RTC_GUARDED_BY(lock_) = 0;
++
+   // Used by CaptureFrame() to detect if the screen configuration has changed.
+   // Only used on the caller's thread.
+   MacDesktopConfiguration desktop_config_;
+@@ -151,8 +154,22 @@ void ScreenCapturerSck::Start(DesktopCapturer::Callback* callback) {
+   StartOrReconfigureCapturer();
+ }
+ 
+-void ScreenCapturerSck::SetMaxFrameRate(uint32_t /* max_frame_rate */) {
+-  // TODO: crbug.com/327458809 - Implement this.
++void ScreenCapturerSck::SetMaxFrameRate(uint32_t max_frame_rate) {
++  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " SetMaxFrameRate("
++                   << max_frame_rate << ").";
++  bool stream_started = false;
++  {
++    MutexLock lock(&lock_);
++    if (max_frame_rate_ == max_frame_rate) {
++      return;
++    }
++
++    max_frame_rate_ = max_frame_rate;
++    stream_started = stream_;
++  }
++  if (stream_started) {
++    StartOrReconfigureCapturer();
++  }
+ }
+ 
+ void ScreenCapturerSck::CaptureFrame() {
+@@ -275,6 +292,9 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content,
+   config.width = filter.contentRect.size.width * filter.pointPixelScale;
+   config.height = filter.contentRect.size.height * filter.pointPixelScale;
+   config.captureResolution = SCCaptureResolutionNominal;
++  config.minimumFrameInterval = max_frame_rate_ > 0 ?
++      CMTimeMake(1, static_cast<int32_t>(max_frame_rate_)) :
++      kCMTimeZero;
+ 
+   {
+     MutexLock lock(&latest_frame_lock_);
+@@ -284,7 +304,8 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content,
+   if (stream_) {
+     RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this
+                      << " Updating stream configuration to size="
+-                     << config.width << "x" << config.height << ".";
++                     << config.width << "x" << config.height
++                     << " and max_frame_rate=" << max_frame_rate_ << ".";
+     [stream_ updateContentFilter:filter completionHandler:nil];
+     [stream_ updateConfiguration:config completionHandler:nil];
+   } else {

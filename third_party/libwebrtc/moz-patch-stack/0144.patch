@@ -1,22 +1,35 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 7 Feb 2025 16:26:00 -0600
-Subject: Bug 1942428 - (fix-e500d46600) upstream removed p2p:rtc_p2p
+Date: Tue, 13 May 2025 22:38:00 +0000
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit 3039b61768
+ r?pehrsons!
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0155a8718d5d7f23b8391a1d04b1196e30127dad
+Upstream commit: https://webrtc.googlesource.com/src/+/3039b617687c2bb2e7ff8adf2500f44140667dc3
+       In ScreenCapturerSck don't restart on SelectSource if display didn't change
+
+       Bug: webrtc:367915807
+       Change-Id: I637b7f46a766fe9120f3f30c15f3903f5aec1d3d
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365087
+       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
+       Cr-Commit-Position: refs/heads/main@{#44210}
+
+Differential Revision: https://phabricator.services.mozilla.com/D249156
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d463d67dfde5b7db6c8df4804b48f9c57137378d
 ---
- BUILD.gn | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/BUILD.gn b/BUILD.gn
-index 5e49b71beb..3add82de2d 100644
---- a/BUILD.gn
-+++ b/BUILD.gn
-@@ -599,7 +599,7 @@ if (!build_with_chromium) {
-         "api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
-         "api/video_codecs:video_encoder_factory_template_open_h264_adapter",
-         "logging:rtc_event_log_api",
--        "p2p:rtc_p2p",
-+#        "p2p:rtc_p2p",
-         "pc:libjingle_peerconnection",
-         "pc:rtc_pc",
-         "sdk",
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index 9379940504..479b5ba666 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -203,6 +203,9 @@ bool ScreenCapturerSck::SelectSource(SourceId id) {
+   bool stream_started = false;
+   {
+     MutexLock lock(&lock_);
++    if (current_display_ == id) {
++      return true;
++    }
+     current_display_ = id;
+ 
+     if (stream_) {

@@ -1,49 +1,39 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Tue, 28 Jan 2025 21:45:00 +0000
-Subject: Bug 1938047 - Hook up VideoStreamFactory with EncoderInfo like the
- libwebrtc factory. r=webrtc-reviewers,dbaker
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 13 May 2025 22:38:00 +0000
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit 48bc3b0e7c
+ r?pehrsons!
 
-This is necessary for the factory to factor in the encoder's resolution
-alignment requirements when calculating stream resolutions.
+Upstream commit: https://webrtc.googlesource.com/src/+/48bc3b0e7c8552214ded0f6dcda48bfa04a9df38
+       Always request sRGB color space from ScreenCapturerSck
 
-Differential Revision: https://phabricator.services.mozilla.com/D235702
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8b5653392e88ccd0c2b0675c761bb22733364225
+       For accurate color handling, the color space has to be known to the
+       client. libyuv for instance assumes sRGB by default for RGB formats.
+       Clients that need HDR support in the backend would need add support
+       for communicating the color space through captured the frame.
+
+       Bug: webrtc:367915807
+       Change-Id: Ic614160c2afd39e659ea873cb2c51701b6d57c5d
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365085
+       Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
+       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Reviewed-by: Johannes Kron <kron@webrtc.org>
+       Cr-Commit-Position: refs/heads/main@{#44206}
+
+Differential Revision: https://phabricator.services.mozilla.com/D249153
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e7dfd784c03c214c6869b9d82196bba1b401454a
 ---
- video/config/video_encoder_config.h | 4 ++++
- video/video_stream_encoder.cc       | 1 +
- 2 files changed, 5 insertions(+)
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/video/config/video_encoder_config.h b/video/config/video_encoder_config.h
-index 59ee866f53..b062ca6563 100644
---- a/video/config/video_encoder_config.h
-+++ b/video/config/video_encoder_config.h
-@@ -23,6 +23,7 @@
- #include "api/video_codecs/scalability_mode.h"
- #include "api/video_codecs/sdp_video_format.h"
- #include "api/video_codecs/video_codec.h"
-+#include "api/video_codecs/video_encoder.h"
- #include "rtc_base/ref_count.h"
- 
- namespace webrtc {
-@@ -151,6 +152,9 @@ class VideoEncoderConfig {
-         int frame_height,
-         const VideoEncoderConfig& encoder_config) = 0;
- 
-+    // Mozilla: Patching in necessary info our custom VideoStreamFactory will need to know.
-+    virtual void SetEncoderInfo(const VideoEncoder::EncoderInfo& info) {}
-+
-    protected:
-     ~VideoStreamFactoryInterface() override {}
-   };
-diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
-index 6b24342dc8..e399c70f7c 100644
---- a/video/video_stream_encoder.cc
-+++ b/video/video_stream_encoder.cc
-@@ -1030,6 +1030,7 @@ void VideoStreamEncoder::ReconfigureEncoder() {
-   std::vector<VideoStream> streams;
-   if (encoder_config_.video_stream_factory) {
-     // Note: only tests set their own EncoderStreamFactory...
-+    encoder_config_.video_stream_factory->SetEncoderInfo(encoder_->GetEncoderInfo());
-     streams = encoder_config_.video_stream_factory->CreateEncoderStreams(
-         env_.field_trials(), last_frame_info_->width, last_frame_info_->height,
-         encoder_config_);
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index 7825d85a6a..aa34cda59f 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -247,6 +247,7 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
+                               excludingWindows:@[]];
+   SCStreamConfiguration* config = [[SCStreamConfiguration alloc] init];
+   config.pixelFormat = kCVPixelFormatType_32BGRA;
++  config.colorSpaceName = kCGColorSpaceSRGB;
+   config.showsCursor = capture_options_.prefer_cursor_embedded();
+   config.width = filter.contentRect.size.width * filter.pointPixelScale;
+   config.height = filter.contentRect.size.height * filter.pointPixelScale;

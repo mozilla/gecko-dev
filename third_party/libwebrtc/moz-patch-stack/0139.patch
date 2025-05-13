@@ -1,23 +1,35 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Mon, 13 Jan 2025 08:14:00 -0600
-Subject: Bug 1942428 - (fix-69cc695699) uncomment an arg that upstream thinks
- is unused
+Date: Tue, 13 May 2025 22:38:00 +0000
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit 48ccc95b0f
+ r?pehrsons!
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/73f9e0e64eb65e9f2579b0f3eb34b88e2b5e5d74
+Upstream commit: https://webrtc.googlesource.com/src/+/48ccc95b0f76af263e64dac5a97a61f8c8aeeba9
+       In screen_capturer_sck.mm make capture_options_ const.
+
+       Bug: webrtc:367915807
+       Change-Id: Ib473f5c57704c4cf6616cefc2a20ad932542c2e5
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365083
+       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
+       Reviewed-by: Johannes Kron <kron@webrtc.org>
+       Cr-Commit-Position: refs/heads/main@{#44203}
+
+Differential Revision: https://phabricator.services.mozilla.com/D249151
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/95a92396258db8b00761bb79c3daa564743d8a68
 ---
- modules/rtp_rtcp/source/rtcp_sender.cc | 2 +-
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
-index d3f80bdf9d..3d6261735b 100644
---- a/modules/rtp_rtcp/source/rtcp_sender.cc
-+++ b/modules/rtp_rtcp/source/rtcp_sender.cc
-@@ -220,7 +220,7 @@ bool RTCPSender::Sending() const {
-   return sending_;
- }
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index 098a169e08..c8f5411bcd 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -93,7 +93,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
  
--void RTCPSender::SetSendingStatus(const FeedbackState& /* feedback_state */,
-+void RTCPSender::SetSendingStatus(const FeedbackState& feedback_state,
-                                   bool sending) {
-   bool sendRTCPBye = false;
-   {
+   // Options passed to the constructor. May be accessed on any thread, but the
+   // options are unchanged during the capturer's lifetime.
+-  DesktopCaptureOptions capture_options_;
++  const DesktopCaptureOptions capture_options_;
+ 
+   // Signals that a permanent error occurred. This may be set on any thread, and
+   // is read by CaptureFrame() which runs on the caller's thread.

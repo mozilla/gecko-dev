@@ -1,24 +1,23 @@
-From: Randell Jesup <rjesup@mozilla.com>
-Date: Tue, 1 Oct 2024 21:28:00 +0000
-Subject: Bug 1922048: fix comma instead of semicolon in libwebrtc AEC code
- r=mjf,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 15 Oct 2024 16:46:00 -0500
+Subject: Bug 1924098 - (fix-e432503389) upstream changed signature of
+ LibvpxVp9Encoder::InitAndSetControlSettings
 
-Differential Revision: https://phabricator.services.mozilla.com/D224242
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fd7a2f8d10cf9d6e862b8f8bb8e675f0d9ddb4bf
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fadad7695efe0d9cc6b999a613b9e1f536e660bd
 ---
- modules/audio_processing/aec3/echo_canceller3.cc | 2 +-
+ modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/audio_processing/aec3/echo_canceller3.cc b/modules/audio_processing/aec3/echo_canceller3.cc
-index 2a60377364..069bd30bf5 100644
---- a/modules/audio_processing/aec3/echo_canceller3.cc
-+++ b/modules/audio_processing/aec3/echo_canceller3.cc
-@@ -795,7 +795,7 @@ EchoCanceller3::EchoCanceller3(
-     linear_output_framer_.reset(
-         new BlockFramer(/*num_bands=*/1, num_capture_channels_));
-     linear_output_block_ =
--        std::make_unique<Block>(/*num_bands=*/1, num_capture_channels_),
-+        std::make_unique<Block>(/*num_bands=*/1, num_capture_channels_);
-     linear_output_sub_frame_view_ =
-         std::vector<std::vector<rtc::ArrayView<float>>>(
-             1, std::vector<rtc::ArrayView<float>>(num_capture_channels_));
+diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+index 3d185a48c2..9bf9b015f7 100644
+--- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
++++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+@@ -1291,7 +1291,7 @@ int LibvpxVp9Encoder::UpdateCodecFrameSize(
+   // bugs in trying to do it the "right" way, we basically re-do
+   // the initialization.
+   vpx_codec_destroy(encoder_); // clean up old state
+-  int result = InitAndSetControlSettings(&codec_);
++  int result = InitAndSetControlSettings();
+   if (result == WEBRTC_VIDEO_CODEC_OK) {
+     // TODO: Mozilla rates have become much more complicated, we need to store
+     // more state or find another way of doing this.
