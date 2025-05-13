@@ -33,6 +33,14 @@ if CONFIG["TARGET_CPU"] == "x86_64":
         linkage=None,
     )
 
+if CONFIG["TARGET_CPU"] == "aarch64":
+    GeckoCppUnitTests(
+        [
+            "TestArm64Disassembler",
+        ],
+        linkage=None,
+    )
+
 OS_LIBS += [
     "advapi32",
     "ntdll",

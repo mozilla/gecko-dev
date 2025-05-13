@@ -50,8 +50,8 @@ MFBT_API LoadOrBranch BUncondImmDecode(const uintptr_t aPC,
 // Order is important here; more specific encoding tests must be placed before
 // less specific encoding tests.
 static const PCRelativeLoadTest gPCRelTests[] = {
-    {0x9FC00000, 0x10000000, nullptr},      // ADR
-    {0x9FC00000, 0x90000000, &ADRPDecode},  // ADRP
+    {0x9F000000, 0x10000000, nullptr},      // ADR
+    {0x9F000000, 0x90000000, &ADRPDecode},  // ADRP
     {0xFF000000, 0x58000000, nullptr},      // LDR (literal) 64-bit GPR
     {0x3B000000, 0x18000000, nullptr},      // LDR (literal) (remaining forms)
     {0x7C000000, 0x14000000, nullptr},      // B (unconditional immediate)
