@@ -834,7 +834,7 @@ where
                 "How did we return unknown?"
             );
             // Coerce the result to matched.
-            KleeneValue::True
+            KleeneValue::from(!context.in_negation())
         } else {
             result
         }
