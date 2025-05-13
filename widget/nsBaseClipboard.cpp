@@ -463,26 +463,10 @@ NS_IMETHODIMP nsBaseClipboard::GetData(
     // at this point we can't satisfy the request from cache data so let's look
     // for things other people put on the system clipboard
   }
-
-  nsTArray<nsCString> flavors;
-  nsresult rv = aTransferable->FlavorsTransferableCanImport(flavors);
+  nsresult rv = GetNativeClipboardData(aTransferable, aWhichClipboard);
   if (NS_FAILED(rv)) {
-    return NS_ERROR_FAILURE;
+    return rv;
   }
-
-  for (const auto& flavor : flavors) {
-    auto dataOrError = GetNativeClipboardData(flavor, aWhichClipboard);
-    if (dataOrError.isErr()) {
-      continue;
-    }
-
-    if (dataOrError.inspect()) {
-      aTransferable->SetTransferData(flavor.get(), dataOrError.inspect());
-      // XXX Maybe try to fill in more types? Is there a point?
-      break;
-    }
-  }
-
   if (!mozilla::contentanalysis::ContentAnalysis::
           CheckClipboardContentAnalysisSync(this, aWindowContext->Canonical(),
                                             aTransferable, aWhichClipboard)) {
@@ -889,9 +873,9 @@ void nsBaseClipboard::AsyncHasNativeClipboardDataMatchingFlavors(
 }
 
 void nsBaseClipboard::AsyncGetNativeClipboardData(
-    const nsACString& aFlavor, ClipboardType aWhichClipboard,
-    GetNativeDataCallback&& aCallback) {
-  aCallback(GetNativeClipboardData(aFlavor, aWhichClipboard));
+    nsITransferable* aTransferable, ClipboardType aWhichClipboard,
+    GetDataCallback&& aCallback) {
+  aCallback(GetNativeClipboardData(aTransferable, aWhichClipboard));
 }
 
 void nsBaseClipboard::ClearClipboardCache(ClipboardType aClipboardType) {
@@ -1067,8 +1051,8 @@ NS_IMETHODIMP nsBaseClipboard::ClipboardDataSnapshot::GetData(
 
   // Since this is an async operation, we need to check if the data is still
   // valid after we get the result.
-  GetDataInternal(
-      std::move(flavors), 0, aTransferable,
+  mClipboard->AsyncGetNativeClipboardData(
+      aTransferable, mClipboardType,
       [callback = nsCOMPtr{aCallback}, self = RefPtr{this},
        transferable = nsCOMPtr{aTransferable},
        contentAnalysisCallback =
@@ -1147,18 +1131,9 @@ NS_IMETHODIMP nsBaseClipboard::ClipboardDataSnapshot::GetDataSync(
     // for things other people put on the system clipboard.
   }
 
-  for (const auto& flavor : flavors) {
-    auto dataOrError =
-        mClipboard->GetNativeClipboardData(flavor, mClipboardType);
-    if (dataOrError.isErr()) {
-      continue;
-    }
-
-    if (dataOrError.inspect()) {
-      aTransferable->SetTransferData(flavor.get(), dataOrError.inspect());
-      // XXX Maybe try to fill in more types? Is there a point?
-      break;
-    }
+  rv = mClipboard->GetNativeClipboardData(aTransferable, mClipboardType);
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
   bool shouldAllowContent = mozilla::contentanalysis::ContentAnalysis::
@@ -1205,46 +1180,6 @@ bool nsBaseClipboard::ClipboardDataSnapshot::IsValid() {
   }
 
   return true;
-}
-
-void nsBaseClipboard::ClipboardDataSnapshot::GetDataInternal(
-    nsTArray<nsCString>&& aTypes, nsTArray<nsCString>::index_type aIndex,
-    nsITransferable* aTransferable, GetDataInternalCallback&& aCallback) {
-  MOZ_ASSERT(aIndex < aTypes.Length());
-
-  // Since this is an async operation, we need to check if the data is still
-  // valid after we get the result.
-  mClipboard->AsyncGetNativeClipboardData(
-      aTypes[aIndex], mClipboardType,
-      [self = RefPtr{this}, types = std::move(aTypes), index = aIndex,
-       transferable = nsCOMPtr{aTransferable}, callback = std::move(aCallback)](
-          mozilla::Result<nsCOMPtr<nsISupports>, nsresult> aResult) mutable {
-        MOZ_ASSERT(index < types.Length());
-
-        // `IsValid()` checks the clipboard sequence number to ensure the data
-        // we are requesting is still valid.
-        if (!self->IsValid()) {
-          callback(NS_ERROR_NOT_AVAILABLE);
-          return;
-        }
-
-        if (!aResult.isErr() && aResult.inspect()) {
-          MOZ_ASSERT(index < types.Length());
-          transferable->SetTransferData(types[index].get(), aResult.inspect());
-          callback(NS_OK);
-          return;
-        }
-
-        // No more types to try.
-        if (++index >= types.Length()) {
-          callback(NS_OK);
-          return;
-        }
-
-        // Recursively call GetDataInternal to try the next type.
-        self->GetDataInternal(std::move(types), index, transferable,
-                              std::move(callback));
-      });
 }
 
 NS_IMPL_ISUPPORTS(nsBaseClipboard::ClipboardPopulatedDataSnapshot,

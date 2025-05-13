@@ -960,125 +960,6 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
 }
 
 //-------------------------------------------------------------------------
-mozilla::Result<nsCOMPtr<nsISupports>, nsresult>
-nsClipboard::GetDataFromDataObject(IDataObject* aDataObject, UINT anIndex,
-                                   nsIWidget* aWindow,
-                                   const nsCString& aFlavor) {
-  MOZ_CLIPBOARD_LOG("%s", __FUNCTION__);
-
-  UINT format = GetFormat(aFlavor.get());
-
-  // Try to get the data using the desired flavor. This might fail, but all is
-  // not lost.
-  void* data = nullptr;
-  uint32_t dataLen = 0;
-  bool dataFound = false;
-  if (nullptr != aDataObject) {
-    if (NS_SUCCEEDED(GetNativeDataOffClipboard(
-            aDataObject, anIndex, format, aFlavor.get(), &data, &dataLen))) {
-      dataFound = true;
-    }
-  } else if (nullptr != aWindow) {
-    if (NS_SUCCEEDED(GetNativeDataOffClipboard(aWindow, anIndex, format, &data,
-                                               &dataLen))) {
-      dataFound = true;
-    }
-  }
-
-  // This is our second chance to try to find some data, having not found it
-  // when directly asking for the flavor. Let's try digging around in other
-  // flavors to help satisfy our craving for data.
-  if (!dataFound) {
-    if (aFlavor.EqualsLiteral(kTextMime)) {
-      dataFound =
-          FindUnicodeFromPlainText(aDataObject, anIndex, &data, &dataLen);
-    } else if (aFlavor.EqualsLiteral(kURLMime)) {
-      // drags from other windows apps expose the native
-      // CFSTR_INETURL{A,W} flavor
-      dataFound = FindURLFromNativeURL(aDataObject, anIndex, &data, &dataLen);
-      if (!dataFound) {
-        dataFound = FindURLFromLocalFile(aDataObject, anIndex, &data, &dataLen);
-      }
-    } else {
-      mozilla::Maybe<UINT> secondaryFormat = GetSecondaryFormat(aFlavor.get());
-      if (secondaryFormat) {
-        // Fall back to secondary format
-        dataFound = NS_SUCCEEDED(GetNativeDataOffClipboard(
-            aDataObject, anIndex, secondaryFormat.value(), aFlavor.get(), &data,
-            &dataLen));
-      }
-    }
-  }  // if we try one last ditch effort to find our data
-
-  if (!dataFound) {
-    return nsCOMPtr<nsISupports>{};
-  }
-
-  // Hopefully by this point we've found it and can go about our business
-  nsCOMPtr<nsISupports> genericDataWrapper;
-  if (aFlavor.EqualsLiteral(kFileMime)) {
-    // we have a file path in |data|. Create an nsLocalFile object.
-    nsDependentString filepath(reinterpret_cast<char16_t*>(data));
-    nsCOMPtr<nsIFile> file;
-    if (NS_SUCCEEDED(NS_NewLocalFile(filepath, getter_AddRefs(file)))) {
-      genericDataWrapper = do_QueryInterface(file);
-    }
-    free(data);
-  } else if (aFlavor.EqualsLiteral(kNativeHTMLMime)) {
-    uint32_t dummy;
-    // the editor folks want CF_HTML exactly as it's on the clipboard, no
-    // conversions, no fancy stuff. Pull it off the clipboard, stuff it into
-    // a wrapper and hand it back to them.
-    if (FindPlatformHTML(aDataObject, anIndex, &data, &dummy, &dataLen)) {
-      nsPrimitiveHelpers::CreatePrimitiveForData(
-          aFlavor, data, dataLen, getter_AddRefs(genericDataWrapper));
-    }
-    free(data);
-  } else if (aFlavor.EqualsLiteral(kHTMLMime)) {
-    uint32_t startOfData = 0;
-    // The JS folks want CF_HTML exactly as it is on the clipboard, but
-    // minus the CF_HTML header index information.
-    // It also needs to be converted to UTF16 and have linebreaks changed.
-    if (FindPlatformHTML(aDataObject, anIndex, &data, &startOfData, &dataLen)) {
-      dataLen -= startOfData;
-      nsPrimitiveHelpers::CreatePrimitiveForCFHTML(
-          static_cast<char*>(data) + startOfData, &dataLen,
-          getter_AddRefs(genericDataWrapper));
-    }
-    free(data);
-  } else if (aFlavor.EqualsLiteral(kJPEGImageMime) ||
-             aFlavor.EqualsLiteral(kJPGImageMime) ||
-             aFlavor.EqualsLiteral(kPNGImageMime)) {
-    nsIInputStream* imageStream = reinterpret_cast<nsIInputStream*>(data);
-    genericDataWrapper = do_QueryInterface(imageStream);
-    NS_IF_RELEASE(imageStream);
-  } else {
-    // Treat custom types as a string of bytes.
-    if (!aFlavor.EqualsLiteral(kCustomTypesMime)) {
-      bool isRTF = aFlavor.EqualsLiteral(kRTFMime);
-      // we probably have some form of text. The DOM only wants LF, so
-      // convert from Win32 line endings to DOM line endings.
-      int32_t signedLen = static_cast<int32_t>(dataLen);
-      nsLinebreakHelpers::ConvertPlatformToDOMLinebreaks(isRTF, &data,
-                                                         &signedLen);
-      dataLen = signedLen;
-
-      if (isRTF) {
-        // RTF on Windows is known to sometimes deliver an extra null byte.
-        if (dataLen > 0 && static_cast<char*>(data)[dataLen - 1] == '\0') {
-          dataLen--;
-        }
-      }
-    }
-
-    nsPrimitiveHelpers::CreatePrimitiveForData(
-        aFlavor, data, dataLen, getter_AddRefs(genericDataWrapper));
-    free(data);
-  }
-
-  return std::move(genericDataWrapper);
-}
-
 nsresult nsClipboard::GetDataFromDataObject(IDataObject* aDataObject,
                                             UINT anIndex, nsIWidget* aWindow,
                                             nsITransferable* aTransferable) {
@@ -1089,10 +970,12 @@ nsresult nsClipboard::GetDataFromDataObject(IDataObject* aDataObject,
     return NS_ERROR_INVALID_ARG;
   }
 
+  nsresult res = NS_ERROR_FAILURE;
+
   // get flavor list that includes all flavors that can be written (including
   // ones obtained through conversion)
   nsTArray<nsCString> flavors;
-  nsresult res = aTransferable->FlavorsTransferableCanImport(flavors);
+  res = aTransferable->FlavorsTransferableCanImport(flavors);
   if (NS_FAILED(res)) {
     return NS_ERROR_FAILURE;
   }
@@ -1100,22 +983,137 @@ nsresult nsClipboard::GetDataFromDataObject(IDataObject* aDataObject,
   // Walk through flavors and see which flavor is on the clipboard them on the
   // native clipboard,
   for (uint32_t i = 0; i < flavors.Length(); i++) {
-    const nsCString& flavorStr = flavors[i];
+    nsCString& flavorStr = flavors[i];
+    UINT format = GetFormat(flavorStr.get());
 
-    auto dataOrError =
-        GetDataFromDataObject(aDataObject, anIndex, aWindow, flavorStr);
-    if (dataOrError.isErr() || !dataOrError.inspect()) {
-      continue;
+    // Try to get the data using the desired flavor. This might fail, but all is
+    // not lost.
+    void* data = nullptr;
+    uint32_t dataLen = 0;
+    bool dataFound = false;
+    if (nullptr != aDataObject) {
+      if (NS_SUCCEEDED(GetNativeDataOffClipboard(aDataObject, anIndex, format,
+                                                 flavorStr.get(), &data,
+                                                 &dataLen))) {
+        dataFound = true;
+      }
+    } else if (nullptr != aWindow) {
+      if (NS_SUCCEEDED(GetNativeDataOffClipboard(aWindow, anIndex, format,
+                                                 &data, &dataLen))) {
+        dataFound = true;
+      }
     }
 
-    NS_ASSERTION(dataOrError.inspect(),
-                 "About to put null data into the transferable");
-    aTransferable->SetTransferData(flavorStr.get(), dataOrError.inspect());
-    // we found one, get out of the loop
-    break;
+    // This is our second chance to try to find some data, having not found it
+    // when directly asking for the flavor. Let's try digging around in other
+    // flavors to help satisfy our craving for data.
+    if (!dataFound) {
+      if (flavorStr.EqualsLiteral(kTextMime)) {
+        dataFound =
+            FindUnicodeFromPlainText(aDataObject, anIndex, &data, &dataLen);
+      } else if (flavorStr.EqualsLiteral(kURLMime)) {
+        // drags from other windows apps expose the native
+        // CFSTR_INETURL{A,W} flavor
+        dataFound = FindURLFromNativeURL(aDataObject, anIndex, &data, &dataLen);
+        if (!dataFound) {
+          dataFound =
+              FindURLFromLocalFile(aDataObject, anIndex, &data, &dataLen);
+        }
+      } else {
+        mozilla::Maybe<UINT> secondaryFormat =
+            GetSecondaryFormat(flavorStr.get());
+        if (secondaryFormat) {
+          // Fall back to secondary format
+          dataFound = NS_SUCCEEDED(GetNativeDataOffClipboard(
+              aDataObject, anIndex, secondaryFormat.value(), flavorStr.get(),
+              &data, &dataLen));
+        }
+      }
+    }  // if we try one last ditch effort to find our data
+
+    // Hopefully by this point we've found it and can go about our business
+    if (dataFound) {
+      nsCOMPtr<nsISupports> genericDataWrapper;
+      if (flavorStr.EqualsLiteral(kFileMime)) {
+        // we have a file path in |data|. Create an nsLocalFile object.
+        nsDependentString filepath(reinterpret_cast<char16_t*>(data));
+        nsCOMPtr<nsIFile> file;
+        if (NS_SUCCEEDED(NS_NewLocalFile(filepath, getter_AddRefs(file)))) {
+          genericDataWrapper = do_QueryInterface(file);
+        }
+        free(data);
+      } else if (flavorStr.EqualsLiteral(kNativeHTMLMime)) {
+        uint32_t dummy;
+        // the editor folks want CF_HTML exactly as it's on the clipboard, no
+        // conversions, no fancy stuff. Pull it off the clipboard, stuff it into
+        // a wrapper and hand it back to them.
+        if (FindPlatformHTML(aDataObject, anIndex, &data, &dummy, &dataLen)) {
+          nsPrimitiveHelpers::CreatePrimitiveForData(
+              flavorStr, data, dataLen, getter_AddRefs(genericDataWrapper));
+        } else {
+          free(data);
+          continue;  // something wrong with this flavor, keep looking for other
+                     // data
+        }
+        free(data);
+      } else if (flavorStr.EqualsLiteral(kHTMLMime)) {
+        uint32_t startOfData = 0;
+        // The JS folks want CF_HTML exactly as it is on the clipboard, but
+        // minus the CF_HTML header index information.
+        // It also needs to be converted to UTF16 and have linebreaks changed.
+        if (FindPlatformHTML(aDataObject, anIndex, &data, &startOfData,
+                             &dataLen)) {
+          dataLen -= startOfData;
+          nsPrimitiveHelpers::CreatePrimitiveForCFHTML(
+              static_cast<char*>(data) + startOfData, &dataLen,
+              getter_AddRefs(genericDataWrapper));
+        } else {
+          free(data);
+          continue;  // something wrong with this flavor, keep looking for other
+                     // data
+        }
+        free(data);
+      } else if (flavorStr.EqualsLiteral(kJPEGImageMime) ||
+                 flavorStr.EqualsLiteral(kJPGImageMime) ||
+                 flavorStr.EqualsLiteral(kPNGImageMime)) {
+        nsIInputStream* imageStream = reinterpret_cast<nsIInputStream*>(data);
+        genericDataWrapper = do_QueryInterface(imageStream);
+        NS_IF_RELEASE(imageStream);
+      } else {
+        // Treat custom types as a string of bytes.
+        if (!flavorStr.EqualsLiteral(kCustomTypesMime)) {
+          bool isRTF = flavorStr.EqualsLiteral(kRTFMime);
+          // we probably have some form of text. The DOM only wants LF, so
+          // convert from Win32 line endings to DOM line endings.
+          int32_t signedLen = static_cast<int32_t>(dataLen);
+          nsLinebreakHelpers::ConvertPlatformToDOMLinebreaks(isRTF, &data,
+                                                             &signedLen);
+          dataLen = signedLen;
+
+          if (isRTF) {
+            // RTF on Windows is known to sometimes deliver an extra null byte.
+            if (dataLen > 0 && static_cast<char*>(data)[dataLen - 1] == '\0') {
+              dataLen--;
+            }
+          }
+        }
+
+        nsPrimitiveHelpers::CreatePrimitiveForData(
+            flavorStr, data, dataLen, getter_AddRefs(genericDataWrapper));
+        free(data);
+      }
+
+      NS_ASSERTION(genericDataWrapper,
+                   "About to put null data into the transferable");
+      aTransferable->SetTransferData(flavorStr.get(), genericDataWrapper);
+      res = NS_OK;
+
+      // we found one, get out of the loop
+      break;
+    }
   }  // foreach flavor
 
-  return NS_OK;
+  return res;
 }
 
 //
@@ -1384,24 +1382,24 @@ bool nsClipboard ::IsInternetShortcut(const nsAString& inFileName) {
 }  // IsInternetShortcut
 
 //-------------------------------------------------------------------------
-mozilla::Result<nsCOMPtr<nsISupports>, nsresult>
-nsClipboard::GetNativeClipboardData(const nsACString& aFlavor,
+NS_IMETHODIMP
+nsClipboard::GetNativeClipboardData(nsITransferable* aTransferable,
                                     ClipboardType aWhichClipboard) {
+  MOZ_DIAGNOSTIC_ASSERT(aTransferable);
   MOZ_DIAGNOSTIC_ASSERT(
       nsIClipboard::IsClipboardTypeSupported(aWhichClipboard));
 
   MOZ_CLIPBOARD_LOG("%s aWhichClipboard=%i", __FUNCTION__, aWhichClipboard);
 
+  nsresult res;
   // This makes sure we can use the OLE functionality for the clipboard
   IDataObject* dataObj;
   if (S_OK == RepeatedlyTryOleGetClipboard(&dataObj)) {
-    auto dataObjRelease = mozilla::MakeScopeExit([&] { dataObj->Release(); });
     // Use OLE IDataObject for clipboard operations
     MOZ_CLIPBOARD_LOG("    use OLE IDataObject:");
     if (MOZ_CLIPBOARD_LOG_ENABLED()) {
       IEnumFORMATETC* pEnum = nullptr;
       if (S_OK == dataObj->EnumFormatEtc(DATADIR_GET, &pEnum)) {
-        auto pEnumRelease = mozilla::MakeScopeExit([&] { pEnum->Release(); });
         FORMATETC fEtc;
         while (S_OK == pEnum->Next(1, &fEtc, nullptr)) {
           nsAutoString format;
@@ -1411,13 +1409,16 @@ nsClipboard::GetNativeClipboardData(const nsACString& aFlavor,
                             NS_ConvertUTF16toUTF8(format).get());
         }
       }
+      pEnum->Release();
     }
 
-    return GetDataFromDataObject(dataObj, 0, nullptr, PromiseFlatCString(aFlavor));
+    res = GetDataFromDataObject(dataObj, 0, nullptr, aTransferable);
+    dataObj->Release();
+  } else {
+    // do it the old manual way
+    res = GetDataFromDataObject(nullptr, 0, mWindow, aTransferable);
   }
-
-  // do it the old manual way
-  return GetDataFromDataObject(nullptr, 0, mWindow, PromiseFlatCString(aFlavor));
+  return res;
 }
 
 nsresult nsClipboard::EmptyNativeClipboardData(ClipboardType aWhichClipboard) {
