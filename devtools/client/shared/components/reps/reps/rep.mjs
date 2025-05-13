@@ -91,7 +91,6 @@ const noGripReps = [
  * property.
  */
 const Rep = function (props) {
-  props.Rep = Rep;
   const { object, defaultRep } = props;
   const rep = getRep(
     object,
@@ -99,7 +98,12 @@ const Rep = function (props) {
     props.noGrip,
     props.mayUseCustomFormatter
   );
-  return rep(props);
+  return rep({
+    ...props,
+    // To avoid circulary dependencies, pass down `Rep` via Props.
+    // Clone `props` as this object is frozen when using Debug versions of React.
+    Rep,
+  });
 };
 
 const exportedReps = {
