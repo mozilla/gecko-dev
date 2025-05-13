@@ -586,9 +586,10 @@ std::pair<nsIContent*, uint32_t> TextLeafPoint::ToDOMPoint(
     MOZ_ASSERT(mOffset == 0 || mOffset == 1);
     nsIContent* parent = content->GetParent();
     MOZ_ASSERT(parent);
-    auto childIndex = parent->ComputeIndexOf(content);
-    MOZ_ASSERT(childIndex);
-    return {parent, mOffset == 0 ? *childIndex : *childIndex + 1};
+    // ComputeIndexOf() could return Nothing if this is an anonymous child.
+    if (auto childIndex = parent->ComputeIndexOf(content)) {
+      return {parent, mOffset == 0 ? *childIndex : *childIndex + 1};
+    }
   }
 
   // This could be an empty editable container, whitespace or an empty doc. In
