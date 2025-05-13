@@ -89,6 +89,7 @@ namespace layers {
   TransferFunction transferFunction;
   FileHandleWrapper[] fence;
   uint32_t uid;
+  uint32_t pid;
   FileDescriptor[] refCount;
   nullable FileHandleWrapper semaphoreFd;
 };

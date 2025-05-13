@@ -164,6 +164,17 @@ class DMABufSurface {
   // engine.
   uint32_t GetUID() const { return mUID; };
 
+  // Get PID of process where surface was created. PID+UID gives global
+  // surface ID which is unique for all used surfaces.
+  uint32_t GetPID() const { return mPID; };
+
+  bool Matches(DMABufSurface* aSurface) const {
+    return mUID == aSurface->mUID && mPID == aSurface->mPID;
+  }
+
+  bool CanRecycle() const { return mCanRecycle && mPID; }
+  void DisableRecycle() { mCanRecycle = false; }
+
   // Creates a global reference counter objects attached to the surface.
   // It's created as unreferenced, i.e. IsGlobalRefSet() returns false
   // right after GlobalRefCountCreate() call.
@@ -273,8 +284,23 @@ class DMABufSurface {
   RefPtr<mozilla::gfx::FileHandleWrapper> mSemaphoreFd;
   RefPtr<mozilla::gl::GLContext> mGL;
 
+  // Inter process properties, used to share DMABuf among various processes
+  // like RDD/Main.
+
+  // Global refcount tracks DMABuf usage by rendering process,
+  // it's used for surface recycle.
   int mGlobalRefCountFd;
+
+  // mUID/mPID is set when DMABuf is created and/or exported to different
+  // process. Allows to identify surfaces created by different process.
   uint32_t mUID;
+  uint32_t mPID;
+
+  // Internal DMABuf flag, it's not exported (Serialized).
+  // If set to false we can't recycle this surfaces as we can't ensure
+  // mUID/mPID consistency. Also mPID may be zero in this case.
+  // Applies to copied DMABuf surfaces for instance.
+  bool mCanRecycle;
 
   mozilla::Mutex mSurfaceLock MOZ_UNANNOTATED;
 

@@ -371,6 +371,8 @@ DMABufSurface::DMABufSurface(SurfaceType aSurfaceType)
       mSync(nullptr),
       mGlobalRefCountFd(0),
       mUID(gNewSurfaceUID++),
+      mPID(0),
+      mCanRecycle(true),
       mSurfaceLock("DMABufSurface") {
 }
 
@@ -935,6 +937,7 @@ bool DMABufSurfaceRGBA::ImportSurfaceDescriptor(
   mBufferModifier = desc.modifier()[0];
   MOZ_RELEASE_ASSERT(mBufferPlaneCount <= DMABUF_BUFFER_PLANES);
   mUID = desc.uid();
+  mPID = desc.pid();
 
   LOGDMABUF(
       "DMABufSurfaceRGBA::ImportSurfaceDescriptor() UID %d size %d x %d\n",
@@ -1004,7 +1007,8 @@ bool DMABufSurfaceRGBA::Serialize(
       mSurfaceType, mFOURCCFormat, modifiers, mGbmBufferFlags, fds, width,
       height, width, height, tmp, strides, offsets, GetYUVColorSpace(),
       mColorRange, mozilla::gfx::ColorSpace2::UNKNOWN,
-      mozilla::gfx::TransferFunction::Default, fenceFDs, mUID, refCountFDs,
+      mozilla::gfx::TransferFunction::Default, fenceFDs, mUID,
+      mCanRecycle ? getpid() : 0, refCountFDs,
       /* semaphoreFd */ nullptr);
   return true;
 }
@@ -1807,6 +1811,7 @@ bool DMABufSurfaceYUV::ImportSurfaceDescriptor(
   mTransferFunction = aDesc.transferFunction();
   mGbmBufferFlags = aDesc.flags();
   mUID = aDesc.uid();
+  mPID = aDesc.pid();
 
   LOGDMABUF("DMABufSurfaceYUV::ImportSurfaceDescriptor() UID %d", mUID);
 
@@ -1877,7 +1882,7 @@ bool DMABufSurfaceYUV::Serialize(
       mSurfaceType, mFOURCCFormat, modifiers, mGbmBufferFlags, fds, width,
       height, widthBytes, heightBytes, format, strides, offsets,
       GetYUVColorSpace(), mColorRange, mColorPrimaries, mTransferFunction,
-      fenceFDs, mUID, refCountFDs,
+      fenceFDs, mUID, mCanRecycle ? getpid() : 0, refCountFDs,
       /* semaphoreFd */ nullptr);
   return true;
 }
