@@ -13,13 +13,8 @@ import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.unmockkObject
 import io.mockk.verify
-import mozilla.components.support.locale.LocaleManager
-import mozilla.components.support.locale.LocaleManager.getSystemDefault
 import mozilla.components.support.test.robolectric.testContext
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -47,17 +42,8 @@ class ContextTest {
 
     @Before
     fun setup() {
-        mockkObject(LocaleManager)
-
         mockContext = mockk(relaxed = true)
         mockContext.resources.configuration.setLocale(selectedLocale)
-
-        every { LocaleManager.getCurrentLocale(mockContext) } returns selectedLocale
-    }
-
-    @After
-    fun teardown() {
-        unmockkObject(LocaleManager)
     }
 
     @Test
@@ -74,7 +60,6 @@ class ContextTest {
     fun `getStringWithArgSafe returns English locale for incorrect formatted string`() {
         val englishString = "Try the new %1s"
         val incorrectlyFormattedString = "Incearca noul %1&amp;s"
-        every { getSystemDefault() } returns Locale.forLanguageTag("en")
         every { mockContext.getString(mockId) } returns incorrectlyFormattedString
         every { format(mockContext.getString(mockId), appName) } returns format(englishString, appName)
 
