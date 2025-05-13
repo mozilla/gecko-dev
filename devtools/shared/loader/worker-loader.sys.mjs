@@ -314,6 +314,10 @@ function WorkerDebuggerLoader(options) {
 }
 
 var loader = {
+  // There is only one loader in the worker thread.
+  // This will be used by DevToolsServer to build server prefix and actor IDs.
+  id: 0,
+
   lazyGetter(object, name, lambda) {
     Object.defineProperty(object, name, {
       get() {

@@ -102,6 +102,7 @@ module.exports = [
   "devtools/client/preferences/",
 
   // Ignore devtools generated code
+  "devtools/**/*.snapshot.mjs",
   "devtools/client/webconsole/test/node/fixtures/stubs/*.js",
   "!devtools/client/webconsole/test/node/fixtures/stubs/index.js",
   "devtools/client/shared/source-map-loader/test/browser/fixtures/*.js",
