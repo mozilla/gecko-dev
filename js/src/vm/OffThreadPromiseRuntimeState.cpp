@@ -219,9 +219,13 @@ void OffThreadPromiseTask::DispatchResolveAndDestroy(
   MOZ_ASSERT(!task->cancellable_);
   // If the dispatch succeeds, then we are guaranteed that run() will be
   // called on an active JSContext of runtime_.
-  if (state.dispatchToEventLoopCallback_(state.dispatchToEventLoopClosure_,
-                                         std::move(task))) {
-    return;
+  {
+    // Hazard analysis can't tell that the callback does not GC.
+    JS::AutoSuppressGCAnalysis nogc;
+    if (state.dispatchToEventLoopCallback_(state.dispatchToEventLoopClosure_,
+                                           std::move(task))) {
+      return;
+    }
   }
 
   // The DispatchToEventLoopCallback has failed to dispatch this task,
