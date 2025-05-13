@@ -55,6 +55,9 @@ bool IsWorkerDebuggerGlobal(JSObject* global);
 
 bool IsWorkerDebuggerSandbox(JSObject* object);
 
+void UpdateWorkersPlaybackState(const nsPIDOMWindowInner& aWindow,
+                                bool aIsPlayingAudio);
+
 }  // namespace mozilla::dom
 
 #endif  // mozilla_dom_workers_WorkerCommon_h
