@@ -18,7 +18,6 @@ UNSUPPORTED_FEATURES = set(
     [
         "tail-call-optimization",
         "Intl.Locale-info",  # Bug 1693576
-        "Atomics.waitAsync",  # Bug 1467846
         "legacy-regexp",  # Bug 1306461
         "source-phase-imports",
         "source-phase-imports-module-source",
@@ -68,6 +67,7 @@ SHELL_OPTIONS = {
     "Error.isError": "--enable-error-iserror",
     "iterator-sequencing": "--enable-iterator-sequencing",
     "Math.sumPrecise": "--enable-math-sumprecise",
+    "Atomics.waitAsync": "-P atomics_wait_async",
 }
 
 INCLUDE_FEATURE_DETECTED_OPTIONAL_SHELL_OPTIONS = {}

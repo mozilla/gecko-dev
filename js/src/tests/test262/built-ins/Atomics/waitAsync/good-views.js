@@ -1,4 +1,4 @@
-// |reftest| skip async -- Atomics.waitAsync is not supported
+// |reftest| shell-option(--setpref=atomics_wait_async=true) skip-if(!this.hasOwnProperty('Atomics')||!xulRuntime.shell) async -- Atomics is not enabled unconditionally, requires shell-options
 // Copyright (C) 2020 Rick Waldron. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 
