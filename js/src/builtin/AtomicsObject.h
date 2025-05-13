@@ -27,6 +27,7 @@ enum class FutexWaiterKind { Sync, Async, ListHead };
 
 class FutexWaiter;
 class SyncFutexWaiter;
+class AsyncFutexWaiter;
 
 class FutexWaiterListNode {
  private:

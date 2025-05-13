@@ -21,6 +21,7 @@
 
 #include "jsnum.h"
 
+#include "builtin/Promise.h"
 #include "jit/AtomicOperations.h"
 #include "jit/InlinableNatives.h"
 #include "js/Class.h"
@@ -29,6 +30,8 @@
 #include "js/Result.h"
 #include "js/WaitCallbacks.h"
 #include "vm/GlobalObject.h"
+#include "vm/HelperThreads.h"                 // AutoLockHelperThreadState
+#include "vm/OffThreadPromiseRuntimeState.h"  // OffthreadPromiseTask
 #include "vm/TypedArrayObject.h"
 
 #include "vm/Compartment-inl.h"
@@ -527,6 +530,24 @@ static bool atomics_isLockFree(JSContext* cx, unsigned argc, Value* vp) {
 
 namespace js {
 
+class WaitAsyncNotifyTask;
+
+class AutoLockFutexAPI {
+  // We have to wrap this in a Maybe because of the way loading
+  // mozilla::Atomic pointers works.
+  mozilla::Maybe<js::UniqueLock<js::Mutex>> unique_;
+
+ public:
+  AutoLockFutexAPI() {
+    js::Mutex* lock = FutexThread::lock_;
+    unique_.emplace(*lock);
+  }
+
+  ~AutoLockFutexAPI() { unique_.reset(); }
+
+  js::UniqueLock<js::Mutex>& unique() { return *unique_; }
+};
+
 // Represents one waiter. This is the abstract base class for SyncFutexWaiter
 // and AsyncFutexWaiter.
 //
@@ -553,6 +574,11 @@ class FutexWaiter : public FutexWaiterListNode {
     return reinterpret_cast<SyncFutexWaiter*>(this);
   }
 
+  bool isAsync() const { return kind_ == FutexWaiterKind::Async; }
+  AsyncFutexWaiter* asAsync() {
+    MOZ_ASSERT(isAsync());
+    return reinterpret_cast<AsyncFutexWaiter*>(this);
+  }
   size_t offset() const { return offset_; }
   JSContext* cx() { return cx_; }
 };
@@ -567,20 +593,64 @@ class MOZ_STACK_CLASS SyncFutexWaiter : public FutexWaiter {
       : FutexWaiter(cx, offset, FutexWaiterKind::Sync) {}
 };
 
-class AutoLockFutexAPI {
-  // We have to wrap this in a Maybe because of the way loading
-  // mozilla::Atomic pointers works.
-  mozilla::Maybe<js::UniqueLock<js::Mutex>> unique_;
-
+// Represents a waiter asynchronously waiting after calling |Atomics.waitAsync|.
+// Instances of js::AsyncFutexWaiter are heap-allocated.
+// When this waiter is notified, the promise it holds will be resolved.
+class AsyncFutexWaiter : public FutexWaiter {
  public:
-  AutoLockFutexAPI() {
-    js::Mutex* lock = FutexThread::lock_;
-    unique_.emplace(*lock);
+  AsyncFutexWaiter(JSContext* cx, size_t offset)
+      : FutexWaiter(cx, offset, FutexWaiterKind::Async) {}
+
+  WaitAsyncNotifyTask* notifyTask() { return notifyTask_; }
+
+  void setNotifyTask(WaitAsyncNotifyTask* task) {
+    MOZ_ASSERT(!notifyTask_);
+    notifyTask_ = task;
   }
 
-  ~AutoLockFutexAPI() { unique_.reset(); }
+ private:
+  WaitAsyncNotifyTask* notifyTask_ = nullptr;
+};
 
-  js::UniqueLock<js::Mutex>& unique() { return *unique_; }
+// When an async waiter from a different context is notified, this
+// task is queued to resolve the promise on the thread to which it
+// belongs.
+class WaitAsyncNotifyTask : public OffThreadPromiseTask {
+ public:
+  enum class Result { Ok, TimedOut };
+
+ private:
+  Result result_ = Result::Ok;
+
+  // The waiter that owns this task and will dispatch it when
+  // notified.
+  AsyncFutexWaiter* waiter_ = nullptr;
+
+ public:
+  WaitAsyncNotifyTask(JSContext* cx, Handle<PromiseObject*> promise)
+      : OffThreadPromiseTask(cx, promise) {}
+
+  void setWaiter(AsyncFutexWaiter* waiter) {
+    MOZ_ASSERT(!waiter_);
+    waiter_ = waiter;
+  }
+
+  void setResult(Result result, AutoLockFutexAPI& lock) { result_ = result; }
+
+  bool resolve(JSContext* cx, Handle<PromiseObject*> promise) override {
+    RootedValue resultMsg(cx);
+    switch (result_) {
+      case Result::Ok:
+        resultMsg = StringValue(cx->names().ok);
+        break;
+      case Result::TimedOut:
+        resultMsg = StringValue(cx->names().timed_out_);
+        break;
+    }
+    return PromiseObject::resolve(cx, promise, resultMsg);
+  }
+
+  void prepareForCancel() override;
 };
 
 }  // namespace js
@@ -604,6 +674,12 @@ static void RemoveWaiter(FutexWaiterListNode* node, AutoLockFutexAPI&) {
 
   node->setNext(nullptr);
   node->setPrev(nullptr);
+}
+
+void WaitAsyncNotifyTask::prepareForCancel() {
+  AutoLockFutexAPI lock;
+  RemoveWaiter(waiter_, lock);
+  js_delete(waiter_);
 }
 
 template <typename T>
