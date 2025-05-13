@@ -4914,26 +4914,17 @@ var RestoreLastSessionObserver = {
       !PrivateBrowsingUtils.isWindowPrivate(window)
     ) {
       Services.obs.addObserver(this, "sessionstore-last-session-cleared", true);
-      Services.obs.addObserver(
-        this,
-        "sessionstore-last-session-re-enable",
-        true
-      );
       goSetCommandEnabled("Browser:RestoreLastSession", true);
     } else if (SessionStore.willAutoRestore) {
       document.getElementById("Browser:RestoreLastSession").hidden = true;
     }
   },
 
-  observe(aSubject, aTopic) {
-    switch (aTopic) {
-      case "sessionstore-last-session-cleared":
-        goSetCommandEnabled("Browser:RestoreLastSession", false);
-        break;
-      case "sessionstore-last-session-re-enable":
-        goSetCommandEnabled("Browser:RestoreLastSession", true);
-        break;
-    }
+  observe() {
+    // The last session can only be restored once so there's
+    // no way we need to re-enable our menu item.
+    Services.obs.removeObserver(this, "sessionstore-last-session-cleared");
+    goSetCommandEnabled("Browser:RestoreLastSession", false);
   },
 
   QueryInterface: ChromeUtils.generateQI([
