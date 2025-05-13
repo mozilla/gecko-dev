@@ -341,12 +341,10 @@ menuitem[highlightable] > .menu-text {
     margin-block: -2px;
     margin-inline-end: 6px;
   }
-  @media (-moz-platform: macos) or (-moz-platform: windows) {
-    /* On macOS and Windows, empty icons shouldn't take up any space */
-    menuitem:not(.menuitem-iconic, [image]) > &,
-    menu:not(.menu-iconic) > & {
-      display: none;
-    }
+  /* Empty icons shouldn't take up any space */
+  menuitem:not(.menuitem-iconic, [image]) > &,
+  menu:not(.menu-iconic) > & {
+    display: none;
   }
 }
 
@@ -386,12 +384,15 @@ menuitem[highlightable] > .menu-text {
 }
 
 menupopup[needsgutter] {
+  @media (-moz-platform: linux) {
+    > :is(menu, menuitem) > .menu-icon {
+      display: revert;
+    }
+  }
+
   @media (-moz-platform: windows) {
     > menu:not([icon], .menu-iconic),
     > menuitem:not([checked="true"], [icon], .menuitem-iconic) {
-      > .menu-iconic-left {
-        display: none;
-      }
       padding-inline-start: 36px;
     }
   }
