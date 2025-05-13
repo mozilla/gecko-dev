@@ -112,7 +112,6 @@ void ScriptLoadRequest::Cancel() {
 
 void ScriptLoadRequest::DropBytecodeCacheReferences() {
   mCacheInfo = nullptr;
-  DropJSObjects(this);
 }
 
 bool ScriptLoadRequest::HasScriptLoadContext() const {
