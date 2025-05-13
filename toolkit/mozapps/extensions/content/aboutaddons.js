@@ -2318,10 +2318,11 @@ class AddonDetails extends HTMLElement {
       addon.type !== "sitepermission";
 
     // Set the add-on for the mlmodel details.
-    this.mlModelDetails = this.querySelector("addon-mlmodel-details");
-    this.mlModelDetails.addon = addon.type == "mlmodel" ? addon : null;
-    this.querySelector(".addon-detail-mlmodel").hidden =
-      addon.type != "mlmodel";
+    if (addon.type == "mlmodel") {
+      this.mlModelDetails = this.querySelector("addon-mlmodel-details");
+      this.mlModelDetails.setAddon(addon);
+      this.querySelector(".addon-detail-mlmodel").hidden = false;
+    }
 
     // Set the add-on for the preferences section.
     this.inlineOptions = this.querySelector("inline-options-browser");
