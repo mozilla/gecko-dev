@@ -6,7 +6,6 @@ package org.mozilla.fenix.components
 
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkObject
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy
 import mozilla.components.support.test.robolectric.testContext
@@ -17,9 +16,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.Config
 import org.mozilla.fenix.R
-import org.mozilla.fenix.ReleaseChannel
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.utils.Settings
 
@@ -34,9 +31,6 @@ class TrackingProtectionPolicyFactoryTest {
 
     @Before
     fun setup() {
-        mockkObject(Config)
-        every { Config.channel } returns ReleaseChannel.Nightly
-
         all = testContext.resources.getString(R.string.all)
         social = testContext.resources.getString(R.string.social)
         thirdParty = testContext.resources.getString(R.string.third_party)

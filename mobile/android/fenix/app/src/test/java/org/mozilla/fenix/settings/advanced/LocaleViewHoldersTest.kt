@@ -11,9 +11,7 @@ import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
-import io.mockk.mockkObject
 import io.mockk.verify
-import mozilla.components.support.locale.LocaleManager
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -38,9 +36,6 @@ class LocaleViewHoldersTest {
 
     @Before
     fun setup() {
-        mockkObject(LocaleManager)
-        every { LocaleManager.getCurrentLocale(any()) } returns null
-
         view = LayoutInflater.from(testContext)
             .inflate(R.layout.locale_settings_item, null)
 

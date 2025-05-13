@@ -14,7 +14,6 @@ import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
 import io.mockk.mockkConstructor
-import io.mockk.mockkObject
 import io.mockk.spyk
 import io.mockk.verify
 import mozilla.components.browser.domains.autocomplete.BaseDomainAutocompleteProvider
@@ -38,7 +37,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.metrics.MetricsUtils
@@ -154,7 +152,6 @@ class HomeToolbarViewTest {
         every { context.settings().shouldShowBookmarkSuggestions } returns true
         every { context.settings().shouldAutocompleteInAwesomebar } returns false
         val view = buildToolbarView(false)
-        mockkObject(FeatureFlags)
 
         view.update(defaultState.copy(searchTerms = "search terms"))
 
@@ -169,7 +166,6 @@ class HomeToolbarViewTest {
         every { context.settings().shouldShowHistorySuggestions } returns true
         every { context.settings().shouldShowBookmarkSuggestions } returns true
         val view = buildToolbarView(false)
-        mockkObject(FeatureFlags)
 
         view.update(defaultState)
 

@@ -4,13 +4,11 @@
 
 package org.mozilla.fenix.distributions
 
-import io.mockk.unmockkObject
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.Config
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.robolectric.shadows.ShadowBuild
 
@@ -36,7 +34,6 @@ class DistributionIdManagerTest {
     fun tearDown() {
         providerValue = null
         storedId = null
-        unmockkObject(Config)
         ShadowBuild.reset()
     }
 
