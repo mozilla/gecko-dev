@@ -9,10 +9,10 @@
 requestLongerTimeout(2);
 
 const httpServer = createTestHTTPServer();
-httpServer.registerContentType("html", "text/html");
 
 httpServer.registerPathHandler("/doc_line_breaks.html", (request, response) => {
   response.setStatusLine(request.httpVersion, 200, "OK");
+  response.setHeader("Content-Type", "text/html");
   response.write(
     `TEST with line breaks\r\n<script>(function(){\r\n})('test')</script>`
   );
