@@ -4,12 +4,6 @@
 
 @import "chrome://browser/skin/downloads/downloads.inc.css";
 
-/*** Panel and outer controls ***/
-
-#downloadsHistory {
-  border: 0;
-}
-
 /*** List items and similar elements in the summary ***/
 
 :root {

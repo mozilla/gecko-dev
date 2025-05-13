@@ -7,6 +7,10 @@
 
 /*** Panel and outer controls ***/
 
+#downloadsHistory {
+  border: 0;
+}
+
 #downloadsListBox {
   background: transparent;
   color: inherit;
