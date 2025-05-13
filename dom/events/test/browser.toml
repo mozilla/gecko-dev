@@ -74,3 +74,9 @@ fail-if = ["a11y_checks"] # Bug 1854502 clicked tabbrowser-tabpanels may not be 
 ["browser_mouseout_notification_panel.js"]
 
 ["browser_shortcutkey_modifier_conflicts_with_content_accesskey_modifier.js"]
+
+["browser_swipe_navigation.js"]
+support-files = [
+  "!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js",
+  "!/gfx/layers/apz/test/mochitest/apz_test_utils.js",
+]
