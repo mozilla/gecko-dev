@@ -61,6 +61,9 @@ class NativeLayerRootWayland final : public NativeLayerRoot {
 
   void FrameCallbackHandler(uint32_t aTime);
 
+  RefPtr<widget::WaylandBuffer> BorrowExternalBuffer(
+      RefPtr<DMABufSurface> aDMABufSurface);
+
 #ifdef MOZ_LOGGING
   nsAutoCString GetDebugTag() const;
   void* GetLoggingWidget() const;
@@ -118,6 +121,10 @@ class NativeLayerRootWayland final : public NativeLayerRoot {
   // Child layers which needs to be updated on main thread,
   // they have been added or removed.
   nsTArray<RefPtr<NativeLayerWayland>> mMainThreadUpdateSublayers;
+
+  // External buffers (DMABuf) used by the layers.
+  // We want to cache and reuse wl_buffer of external images.
+  nsTArray<widget::WaylandBufferDMABUFHolder> mExternalBuffers;
 
   // We're between CompositorBeginFrame() / CompositorEndFrame() calls.
   mozilla::Atomic<bool, mozilla::Relaxed> mFrameInProcess{false};

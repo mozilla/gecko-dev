@@ -513,6 +513,32 @@ GdkWindow* NativeLayerRootWayland::GetGdkWindow() const {
   return mSurface->GetGdkWindow();
 }
 
+// Try to match stored wl_buffer with provided DMABufSurface or create
+// a new one.
+RefPtr<WaylandBuffer> NativeLayerRootWayland::BorrowExternalBuffer(
+    RefPtr<DMABufSurface> aDMABufSurface) {
+  LOG("NativeLayerRootWayland::BorrowExternalBuffer() WaylandSurface [%p] UID "
+      "%d PID %d",
+      aDMABufSurface.get(), aDMABufSurface->GetUID(), aDMABufSurface->GetPID());
+
+  RefPtr waylandBuffer =
+      widget::WaylandBufferDMABUF::CreateExternal(aDMABufSurface);
+  for (auto& b : mExternalBuffers) {
+    if (b.Matches(aDMABufSurface)) {
+      waylandBuffer->SetExternalWLBuffer(b.GetWLBuffer());
+      return waylandBuffer.forget();
+    }
+  }
+
+  wl_buffer* wlbuffer = waylandBuffer->CreateAndTakeWLBuffer();
+  if (!wlbuffer) {
+    return nullptr;
+  }
+
+  mExternalBuffers.EmplaceBack(aDMABufSurface, wlbuffer);
+  return waylandBuffer.forget();
+}
+
 NativeLayerWayland::NativeLayerWayland(NativeLayerRootWayland* aRootLayer,
                                        const IntSize& aSize, bool aIsOpaque)
     : mMutex("NativeLayerWayland"),
@@ -1008,9 +1034,12 @@ void NativeLayerWaylandExternal::AttachExternalImage(
   mSize = texture->GetSize(0);
   mDisplayRect = IntRect(IntPoint{}, mSize);
   mBufferInvalided = true;
-  mFrontBuffer =
-      widget::WaylandBufferDMABUF::CreateExternal(mTextureHost->GetSurface());
-  mIsHDR = mTextureHost->GetSurface()->IsHDRSurface();
+
+  auto surface = mTextureHost->GetSurface();
+  mFrontBuffer = surface->CanRecycle()
+                     ? mRootLayer->BorrowExternalBuffer(surface)
+                     : widget::WaylandBufferDMABUF::CreateExternal(surface);
+  mIsHDR = surface->IsHDRSurface();
 
   LOG("NativeLayerWaylandExternal::AttachExternalImage() host [%p] "
       "DMABufSurface [%p] DMABuf UID %d [%d x %d] HDR %d Opaque %d",
