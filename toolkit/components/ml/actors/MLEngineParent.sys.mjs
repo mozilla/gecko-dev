@@ -127,13 +127,12 @@ export class MLEngineParent extends JSProcessActorParent {
    * - 2 => Transformers < 3.1
    * - 3 => Transformers < 3.4
    * - 4 => Transformers >= 3.4.0
-   * - 5 => Transformers >= 3.5.1
    *
    * wllama:
    * - 3 => wllama 2.x
    */
   static WASM_MAJOR_VERSION = {
-    onnx: 5,
+    onnx: 4,
     wllama: 3,
   };
 
