@@ -15,7 +15,11 @@ import mozilla.components.feature.pwa.intent.WebAppIntentProcessor
 /**
  * This feature will intercept requests and reopen them in the corresponding installed PWA, if any.
  *
- * @param shortcutManager current shortcut manager instance to lookup web app install states
+ * @param context application context used for launching activities or accessing system services
+ * @param manifestStorage  Disk storage for [WebAppManifest]. Other components use this class to
+ * reload a saved manifest.
+ * @param launchFromInterceptor flag to determine whether intercepted requests should directly launch
+ * the PWA
  */
 class WebAppInterceptor(
     private val context: Context,
@@ -39,7 +43,7 @@ class WebAppInterceptor(
         val intent = createIntentFromUri(startUrl, uri)
 
         if (!launchFromInterceptor) {
-            return RequestInterceptor.InterceptionResponse.AppIntent(intent, uri)
+            return RequestInterceptor.InterceptionResponse.AppIntent(intent, uri, null, null)
         }
 
         intent.flags = intent.flags or Intent.FLAG_ACTIVITY_NEW_TASK
@@ -51,7 +55,10 @@ class WebAppInterceptor(
     /**
      * Creates a new VIEW_PWA intent for a URL.
      *
-     * @param uri target URL for the new intent
+     * @param startUrl the original start URL associated with the PWA
+     * @param urlOverride an optional override URL to open instead of the start URL; defaults to [startUrl]
+     *
+     * @return an [Intent] configured to launch the PWA with the given URL
      */
     private fun createIntentFromUri(startUrl: String, urlOverride: String = startUrl): Intent {
         return Intent(WebAppIntentProcessor.ACTION_VIEW_PWA, startUrl.toUri()).apply {

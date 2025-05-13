@@ -677,20 +677,6 @@ class AppLinksUseCasesTest {
     }
 
     @Test
-    fun `WHEN launch in app is updated to true THEN should redirect`() {
-        val context = createContext(Triple(appUrl, appPackage, ""))
-        val subject = AppLinksUseCases(context, { false })
-
-        var redirect = subject.interceptedAppLinkRedirect(appUrl)
-        assertFalse(redirect.isRedirect())
-
-        AppLinksUseCases.clearRedirectCache()
-        subject.updateLaunchInApp { true }
-        redirect = subject.interceptedAppLinkRedirect(appUrl)
-        assertTrue(redirect.isRedirect())
-    }
-
-    @Test
     fun `WHEN opening a app scheme uri WITH fallback URL WHERE the URL is Google PlayStore THEN ignore fallback URL`() {
         val context = createContext(Triple(appIntentWithPackageAndPlayStoreFallback, appPackage, ""))
 

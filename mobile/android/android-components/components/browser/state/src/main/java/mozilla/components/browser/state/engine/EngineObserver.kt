@@ -104,8 +104,18 @@ internal class EngineObserver(
         store.dispatch(ContentAction.UpdateLoadRequestAction(tabId, loadRequest))
     }
 
-    override fun onLaunchIntentRequest(url: String, appIntent: Intent?) {
-        store.dispatch(ContentAction.UpdateAppIntentAction(tabId, AppIntentState(url, appIntent)))
+    override fun onLaunchIntentRequest(
+        url: String,
+        appIntent: Intent?,
+        fallbackUrl: String?,
+        appName: String?,
+    ) {
+        store.dispatch(
+            ContentAction.UpdateAppIntentAction(
+                tabId,
+                AppIntentState(url, appIntent, fallbackUrl, appName),
+            ),
+        )
     }
 
     override fun onTitleChange(title: String) {

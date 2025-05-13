@@ -240,10 +240,6 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler, Activit
             customTabId = sessionId,
         )
 
-        components.appLinksInterceptor.updateFragmentManger(
-            fragmentManager = parentFragmentManager,
-        )
-
         // Observe the lifecycle for supported features
         lifecycle.addObservers(
             scrollFeature,
@@ -292,9 +288,6 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler, Activit
     }
     override fun onDestroyView() {
         super.onDestroyView()
-        components.appLinksInterceptor.updateFragmentManger(
-            fragmentManager = null,
-        )
 
         binding.engineView.setActivityContext(null)
         _binding = null

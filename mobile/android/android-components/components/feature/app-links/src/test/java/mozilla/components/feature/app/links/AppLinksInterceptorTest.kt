@@ -14,8 +14,6 @@ import mozilla.components.browser.state.state.ExternalPackage
 import mozilla.components.browser.state.state.PackageCategory
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.TabSessionState
-import mozilla.components.browser.state.state.createCustomTab
-import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.request.RequestInterceptor
@@ -28,7 +26,6 @@ import mozilla.components.feature.app.links.AppLinksInterceptor.Companion.lastAp
 import mozilla.components.feature.app.links.AppLinksInterceptor.Companion.userDoNotInterceptCache
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.support.test.any
-import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
@@ -39,9 +36,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
-import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.doReturn
-import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
@@ -65,7 +60,6 @@ class AppLinksInterceptorTest {
     private val intentUrl = "zxing://scan;S.browser_fallback_url=example.com"
     private val fallbackUrl = "https://getpocket.com"
     private val marketplaceUrl = "market://details?id=example.com"
-    private val aboutUrl = "about://scan"
 
     @Before
     fun setup() {
@@ -98,7 +92,6 @@ class AppLinksInterceptorTest {
 
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { true },
             useCases = mockUseCases,
         )
@@ -129,47 +122,27 @@ class AppLinksInterceptorTest {
     }
 
     @Test
-    fun `request is not intercepted when interceptLinkClicks is false`() {
+    fun `WHEN launchInApp preference is false THEN request is not intercepted`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = false,
+            launchInApp = { false },
+            useCases = mockUseCases,
+        )
+
+        val response = appLinksInterceptor.onLoadRequest(mockEngineSession, webUrlWithAppLink, null, true, false, false, false, false)
+        assertEquals(null, response)
+    }
+
+    @Test
+    fun `WHEN launchInApp preference is true THEN request is intercepted`() {
+        appLinksInterceptor = AppLinksInterceptor(
+            context = mockContext,
             launchInApp = { true },
             useCases = mockUseCases,
         )
 
         val response = appLinksInterceptor.onLoadRequest(mockEngineSession, webUrlWithAppLink, null, true, false, false, false, false)
-        assertEquals(null, response)
-    }
-
-    @Test
-    fun `request is not intercepted when launchInApp preference is false`() {
-        appLinksInterceptor = AppLinksInterceptor(
-            context = mockContext,
-            interceptLinkClicks = true,
-            launchInApp = { false },
-            useCases = mockUseCases,
-        )
-
-        val response = appLinksInterceptor.onLoadRequest(mockEngineSession, webUrlWithAppLink, null, true, false, false, false, false)
-        assertEquals(null, response)
-    }
-
-    @Test
-    fun `request is not intercepted when launchInApp preference is updated to false`() {
-        appLinksInterceptor = AppLinksInterceptor(
-            context = mockContext,
-            interceptLinkClicks = true,
-            launchInApp = { false },
-            useCases = mockUseCases,
-        )
-
-        val response = appLinksInterceptor.onLoadRequest(mockEngineSession, webUrlWithAppLink, null, true, false, false, false, false)
-        assertEquals(null, response)
-
-        appLinksInterceptor.updateLaunchInApp { true }
-        verify(mockUseCases).updateLaunchInApp(any())
-        val response2 = appLinksInterceptor.onLoadRequest(mockEngineSession, webUrlWithAppLink, null, true, false, false, false, false)
-        assert(response2 is RequestInterceptor.InterceptionResponse.AppIntent)
+        assert(response is RequestInterceptor.InterceptionResponse.AppIntent)
     }
 
     @Test
@@ -229,7 +202,6 @@ class AppLinksInterceptorTest {
         val blocklistedScheme = "blocklisted"
         val feature = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             alwaysDeniedSchemes = setOf(blocklistedScheme),
             launchInApp = { true },
             useCases = mockUseCases,
@@ -248,28 +220,8 @@ class AppLinksInterceptorTest {
         val supportedScheme = "supported"
         val feature = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             engineSupportedSchemes = setOf(supportedScheme),
             launchInApp = { false },
-            useCases = mockUseCases,
-        )
-
-        val supportedUrl = "$supportedScheme://example.com"
-        val supportedRedirect = AppLinkRedirect(Intent.parseUri(supportedUrl, 0), "", null, null)
-        whenever(mockGetRedirect.invoke(supportedUrl)).thenReturn(supportedRedirect)
-        val response = feature.onLoadRequest(engineSession, supportedUrl, null, true, false, false, false, false)
-        assertEquals(null, response)
-    }
-
-    @Test
-    fun `supported schemes request not launched if interceptLinkClicks is false`() {
-        val engineSession: EngineSession = mock()
-        val supportedScheme = "supported"
-        val feature = AppLinksInterceptor(
-            context = mockContext,
-            interceptLinkClicks = false,
-            engineSupportedSchemes = setOf(supportedScheme),
-            launchInApp = { true },
             useCases = mockUseCases,
         )
 
@@ -286,7 +238,6 @@ class AppLinksInterceptorTest {
         val supportedScheme = "supported"
         val feature = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             engineSupportedSchemes = setOf(supportedScheme),
             launchInApp = { true },
             useCases = mockUseCases,
@@ -300,14 +251,13 @@ class AppLinksInterceptorTest {
     }
 
     @Test
-    fun `not supported schemes request always intercepted regardless of hasUserGesture, interceptLinkClicks or launchInApp`() {
+    fun `WHEN request is in not supported schemes THEN it is always intercepted regardless of hasUserGesture or launchInApp`() {
         val engineSession: EngineSession = mock()
         val supportedScheme = "supported"
         val notSupportedScheme = "not_supported"
         val blocklistedScheme = "blocklisted"
         val feature = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = false,
             engineSupportedSchemes = setOf(supportedScheme),
             alwaysDeniedSchemes = setOf(blocklistedScheme),
             launchInApp = { false },
@@ -328,7 +278,6 @@ class AppLinksInterceptorTest {
         val notSupportedScheme = "not_supported"
         val feature = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = false,
             engineSupportedSchemes = setOf(supportedScheme),
             alwaysDeniedSchemes = setOf(notSupportedScheme),
             launchInApp = { false },
@@ -350,7 +299,6 @@ class AppLinksInterceptorTest {
         val blocklistedScheme = "blocklisted"
         val feature = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = false,
             engineSupportedSchemes = setOf(supportedScheme),
             alwaysDeniedSchemes = setOf(blocklistedScheme),
             launchInApp = { true },
@@ -372,7 +320,6 @@ class AppLinksInterceptorTest {
         val blocklistedScheme = "blocklisted"
         val feature = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             engineSupportedSchemes = setOf(supportedScheme),
             alwaysDeniedSchemes = setOf(blocklistedScheme),
             launchInApp = { false },
@@ -395,7 +342,6 @@ class AppLinksInterceptorTest {
         val blocklistedScheme = "blocklisted"
         val feature = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             engineSupportedSchemes = setOf(supportedScheme),
             alwaysDeniedSchemes = setOf(blocklistedScheme),
             launchInApp = { false },
@@ -415,7 +361,6 @@ class AppLinksInterceptorTest {
         val engineSession: EngineSession = mock()
         val feature = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = false,
             launchInApp = { false },
             useCases = mockUseCases,
         )
@@ -432,7 +377,6 @@ class AppLinksInterceptorTest {
         val engineSession: EngineSession = mock()
         val feature = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = false,
             launchInApp = { false },
             useCases = mockUseCases,
         )
@@ -472,11 +416,9 @@ class AppLinksInterceptorTest {
     fun `external app is launched when launch in app is set to true and it is user triggered`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { true },
             useCases = mockUseCases,
             launchFromInterceptor = true,
-            shouldPrompt = { false },
         )
 
         val response = appLinksInterceptor.onLoadRequest(mockEngineSession, webUrlWithAppLink, null, true, false, false, false, false)
@@ -488,15 +430,13 @@ class AppLinksInterceptorTest {
     fun `external app is launched when launchInApp settings is set to AlwaysAsk and it is user triggered`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { true },
             useCases = mockUseCases,
             launchFromInterceptor = true,
-            shouldPrompt = { true },
         )
 
         val response = appLinksInterceptor.onLoadRequest(mockEngineSession, webUrlWithAppLink, null, true, false, false, false, false)
-        assertNull(response)
+        assert(response is RequestInterceptor.InterceptionResponse.AppIntent)
         verify(mockOpenRedirect).invoke(any(), anyBoolean(), any())
     }
 
@@ -504,11 +444,9 @@ class AppLinksInterceptorTest {
     fun `WHEN launch from intercept is false AND launch in app is set to true and it is user triggered THEN app intent is returned`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { true },
             useCases = mockUseCases,
             launchFromInterceptor = false,
-            shouldPrompt = { false },
         )
 
         val response = appLinksInterceptor.onLoadRequest(mockEngineSession, webUrlWithAppLink, null, true, false, false, false, false)
@@ -520,7 +458,6 @@ class AppLinksInterceptorTest {
     fun `try to use fallback url if user preference is not to launch in third party app`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { false },
             useCases = mockUseCases,
             launchFromInterceptor = true,
@@ -532,17 +469,16 @@ class AppLinksInterceptorTest {
     }
 
     @Test
-    fun `external app is launched when url scheme is not supported by the engine`() {
+    fun `WHEN url scheme is not supported by the engine THEN external app is launched`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { false },
             useCases = mockUseCases,
             launchFromInterceptor = true,
         )
 
         val response = appLinksInterceptor.onLoadRequest(mockEngineSession, intentUrl, null, false, true, false, false, false)
-        assertNull(response)
+        assert(response is RequestInterceptor.InterceptionResponse.AppIntent)
         verify(mockOpenRedirect).invoke(any(), anyBoolean(), any())
     }
 
@@ -550,7 +486,6 @@ class AppLinksInterceptorTest {
     fun `WHEN url scheme is not supported by the engine AND launch from interceptor is false THEN app intent is returned`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { false },
             useCases = mockUseCases,
             launchFromInterceptor = false,
@@ -565,7 +500,6 @@ class AppLinksInterceptorTest {
     fun `do not use fallback url if trigger by user gesture and preference is to launch in app`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { true },
             useCases = mockUseCases,
             launchFromInterceptor = true,
@@ -580,7 +514,6 @@ class AppLinksInterceptorTest {
     fun `launch marketplace intent if available and no external app`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { true },
             useCases = mockUseCases,
             launchFromInterceptor = true,
@@ -595,7 +528,6 @@ class AppLinksInterceptorTest {
     fun `use fallback url if available and no external app`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { true },
             useCases = mockUseCases,
             launchFromInterceptor = true,
@@ -610,7 +542,6 @@ class AppLinksInterceptorTest {
     fun `WHEN url have same domain THEN is same domain returns true ELSE false`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { true },
             useCases = mockUseCases,
             launchFromInterceptor = true,
@@ -629,7 +560,6 @@ class AppLinksInterceptorTest {
     fun `WHEN request is in user do not intercept cache THEN request is not intercepted`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { true },
             useCases = mockUseCases,
         )
@@ -644,7 +574,6 @@ class AppLinksInterceptorTest {
     fun `WHEN request is in user do not intercept cache but there is a fallback THEN fallback is used`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { false },
             useCases = mockUseCases,
             launchFromInterceptor = true,
@@ -664,7 +593,6 @@ class AppLinksInterceptorTest {
         val blocklistedScheme = "blocklisted"
         val feature = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = false,
             engineSupportedSchemes = setOf(supportedScheme),
             alwaysDeniedSchemes = setOf(blocklistedScheme),
             launchInApp = { true },
@@ -687,7 +615,6 @@ class AppLinksInterceptorTest {
         val blocklistedScheme = "blocklisted"
         val feature = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = false,
             engineSupportedSchemes = setOf(supportedScheme),
             alwaysDeniedSchemes = setOf(blocklistedScheme),
             launchInApp = { false },
@@ -746,7 +673,6 @@ class AppLinksInterceptorTest {
     fun `WHEN request is redirecting to external app quickly THEN request is not intercepted`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { true },
             useCases = mockUseCases,
         )
@@ -762,7 +688,6 @@ class AppLinksInterceptorTest {
     fun `WHEN request is redirecting to different app quickly THEN request is intercepted`() {
         appLinksInterceptor = AppLinksInterceptor(
             context = mockContext,
-            interceptLinkClicks = true,
             launchInApp = { true },
             useCases = mockUseCases,
         )
@@ -775,340 +700,15 @@ class AppLinksInterceptorTest {
     }
 
     @Test
-    fun `WHEN should prompt AND in non-private mode THEN an external app dialog is shown`() {
-        appLinksInterceptor = spy(
-            AppLinksInterceptor(
-                context = mockContext,
-                store = store,
-                interceptLinkClicks = true,
-                launchInApp = { true },
-                useCases = mockUseCases,
-                shouldPrompt = { true },
-            ),
-        )
-
-        appLinksInterceptor.updateFragmentManger(mockFragmentManager)
-
-        val tab = createTab(webUrl)
-        val mockAppIntent: Intent = mock()
-        val mockComponentName: ComponentName = mock()
-        whenever(mockAppIntent.component).thenReturn(mockComponentName)
-        whenever(mockComponentName.packageName).thenReturn("com.zxing.app")
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any(), any())
-
-        appLinksInterceptor.handleIntent(tab, intentUrl, mockAppIntent, null, mock(), "")
-
-        verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
-        verify(mockOpenRedirect, never()).invoke(any(), anyBoolean(), any())
-    }
-
-    @Test
-    fun `WHEN should prompt AND only have marketing intent THEN an external app dialog is shown`() {
-        appLinksInterceptor = spy(
-            AppLinksInterceptor(
-                context = mockContext,
-                store = store,
-                interceptLinkClicks = true,
-                launchInApp = { true },
-                useCases = mockUseCases,
-                shouldPrompt = { true },
-            ),
-        )
-
-        appLinksInterceptor.updateFragmentManger(mockFragmentManager)
-
-        val tab = createTab(webUrl)
-        val mockMarketIntent: Intent = mock()
-        val mockComponentName: ComponentName = mock()
-        whenever(mockComponentName.packageName).thenReturn("com.zxing.app")
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any(), any())
-
-        appLinksInterceptor.handleIntent(tab, intentUrl, null, null, mockMarketIntent, "")
-
-        verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
-        verify(mockOpenRedirect, never()).invoke(any(), anyBoolean(), any())
-    }
-
-    @Test
-    fun `WHEN should not prompt AND in non-private mode THEN an external app dialog is not shown`() {
-        appLinksInterceptor = spy(
-            AppLinksInterceptor(
-                context = mockContext,
-                store = store,
-                interceptLinkClicks = true,
-                launchInApp = { true },
-                useCases = mockUseCases,
-                shouldPrompt = { false },
-            ),
-        )
-
-        appLinksInterceptor.updateFragmentManger(mockFragmentManager)
-
-        val tab = createTab(webUrl)
-        appLinksInterceptor.handleIntent(tab, intentUrl, mock(), null, mock(), "")
-
-        verify(mockDialog, never()).showNow(eq(mockFragmentManager), anyString())
-    }
-
-    @Test
-    fun `WHEN custom tab and caller is the same as external app THEN an external app dialog is not shown`() {
-        appLinksInterceptor = spy(
-            AppLinksInterceptor(
-                context = mockContext,
-                store = store,
-                interceptLinkClicks = true,
-                launchInApp = { true },
-                useCases = mockUseCases,
-                shouldPrompt = { true },
-            ),
-        )
-
-        appLinksInterceptor.updateFragmentManger(mockFragmentManager)
-
-        val tab = createCustomTab(
-            id = "c",
-            url = webUrl,
-            source = SessionState.Source.External.CustomTab(
-                ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY),
-            ),
-        )
-
-        val appIntent: Intent = mock()
-        val componentName: ComponentName = mock()
-        whenever(appIntent.component).thenReturn(componentName)
-        whenever(componentName.packageName).thenReturn("com.zxing.app")
-
-        appLinksInterceptor.handleIntent(tab, intentUrl, appIntent, null, null, "")
-
-        verify(mockDialog, never()).showNow(eq(mockFragmentManager), anyString())
-    }
-
-    @Test
-    fun `WHEN tab have action view and caller is the same as external app THEN an external app dialog is not shown`() {
-        appLinksInterceptor = spy(
-            AppLinksInterceptor(
-                context = mockContext,
-                store = store,
-                interceptLinkClicks = true,
-                launchInApp = { true },
-                useCases = mockUseCases,
-                shouldPrompt = { true },
-            ),
-        )
-
-        appLinksInterceptor.updateFragmentManger(mockFragmentManager)
-
-        val tab = createCustomTab(
-            id = "d",
-            url = webUrl,
-            source = SessionState.Source.External.ActionView(
-                ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY),
-            ),
-        )
-
-        val appIntent: Intent = mock()
-        val componentName: ComponentName = mock()
-        whenever(appIntent.component).thenReturn(componentName)
-        whenever(componentName.packageName).thenReturn("com.zxing.app")
-
-        appLinksInterceptor.handleIntent(tab, intentUrl, appIntent, null, null, "")
-
-        verify(mockDialog, never()).showNow(eq(mockFragmentManager), anyString())
-    }
-
-    @Test
-    fun `WHEN tab have action send and caller is the same as external app THEN an external app dialog is shown`() {
-        appLinksInterceptor = spy(
-            AppLinksInterceptor(
-                context = mockContext,
-                store = store,
-                interceptLinkClicks = true,
-                launchInApp = { true },
-                useCases = mockUseCases,
-                shouldPrompt = { true },
-            ),
-        )
-
-        appLinksInterceptor.updateFragmentManger(mockFragmentManager)
-
-        val tab = createCustomTab(
-            id = "d",
-            url = webUrl,
-            source = SessionState.Source.External.ActionSend(
-                ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY),
-            ),
-        )
-
-        val appIntent: Intent = mock()
-        val componentName: ComponentName = mock()
-        whenever(appIntent.component).thenReturn(componentName)
-        whenever(componentName.packageName).thenReturn("com.zxing.app")
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any(), any())
-
-        appLinksInterceptor.handleIntent(tab, intentUrl, appIntent, null, null, "")
-
-        verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
-        verify(mockOpenRedirect, never()).invoke(any(), anyBoolean(), any())
-    }
-
-    @Test
-    fun `WHEN tab have action search and caller is the same as external app THEN an external app dialog is shown`() {
-        appLinksInterceptor = spy(
-            AppLinksInterceptor(
-                context = mockContext,
-                store = store,
-                interceptLinkClicks = true,
-                launchInApp = { true },
-                useCases = mockUseCases,
-                shouldPrompt = { true },
-            ),
-        )
-
-        appLinksInterceptor.updateFragmentManger(mockFragmentManager)
-
-        val tab = createCustomTab(
-            id = "d",
-            url = webUrl,
-            source = SessionState.Source.External.ActionSearch(
-                ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY),
-            ),
-        )
-
-        val appIntent: Intent = mock()
-        val componentName: ComponentName = mock()
-        whenever(appIntent.component).thenReturn(componentName)
-        whenever(componentName.packageName).thenReturn("com.zxing.app")
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any(), any())
-
-        appLinksInterceptor.handleIntent(tab, intentUrl, appIntent, null, null, "")
-
-        verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
-        verify(mockOpenRedirect, never()).invoke(any(), anyBoolean(), any())
-    }
-
-    @Test
-    fun `WHEN should prompt and in private mode THEN an external app dialog is shown`() {
-        appLinksInterceptor = spy(
-            AppLinksInterceptor(
-                context = mockContext,
-                store = store,
-                interceptLinkClicks = true,
-                launchInApp = { true },
-                useCases = mockUseCases,
-                shouldPrompt = { true },
-            ),
-        )
-
-        appLinksInterceptor.updateFragmentManger(mockFragmentManager)
-
-        val tabSessionState = TabSessionState(
-            id = "tab1",
-            content = ContentState(
-                url = "https://mozilla.org",
-                private = true,
-                isProductUrl = false,
-            ),
-        )
-        val mockAppIntent: Intent = mock()
-        val mockComponentName: ComponentName = mock()
-        whenever(mockAppIntent.component).thenReturn(mockComponentName)
-        whenever(mockComponentName.packageName).thenReturn("com.zxing.app")
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any(), any())
-
-        appLinksInterceptor.handleIntent(tabSessionState, intentUrl, mockAppIntent, null, mock(), "")
-
-        verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
-        verify(mockOpenRedirect, never()).invoke(any(), anyBoolean(), any())
-    }
-
-    @Test
-    fun `WHEN should not prompt and in private mode THEN an external app dialog is shown`() {
-        appLinksInterceptor = spy(
-            AppLinksInterceptor(
-                context = mockContext,
-                store = store,
-                interceptLinkClicks = true,
-                launchInApp = { true },
-                useCases = mockUseCases,
-                shouldPrompt = { false },
-            ),
-        )
-
-        appLinksInterceptor.updateFragmentManger(mockFragmentManager)
-
-        val tabSessionState = TabSessionState(
-            id = "tab1",
-            content = ContentState(
-                url = "https://mozilla.org",
-                private = true,
-                isProductUrl = false,
-            ),
-        )
-        val mockAppIntent: Intent = mock()
-        val mockComponentName: ComponentName = mock()
-        whenever(mockAppIntent.component).thenReturn(mockComponentName)
-        whenever(mockComponentName.packageName).thenReturn("com.zxing.app")
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any(), any())
-
-        appLinksInterceptor.handleIntent(tabSessionState, intentUrl, mockAppIntent, null, mock(), "")
-
-        verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
-        verify(mockOpenRedirect, never()).invoke(any(), anyBoolean(), any())
-    }
-
-    @Test
-    fun `redirect dialog is only added once`() {
-        appLinksInterceptor = spy(
-            AppLinksInterceptor(
-                context = mockContext,
-                store = store,
-                interceptLinkClicks = true,
-                launchInApp = { true },
-                useCases = mockUseCases,
-                shouldPrompt = { true },
-            ),
-        )
-
-        appLinksInterceptor.updateFragmentManger(mockFragmentManager)
-        val tabSessionState = TabSessionState(
-            id = "tab1",
-            content = ContentState(
-                url = "https://mozilla.org",
-                private = false,
-                isProductUrl = false,
-            ),
-        )
-
-        val appIntent: Intent = mock()
-        val componentName: ComponentName = mock()
-        whenever(appIntent.component).thenReturn(componentName)
-        whenever(componentName.packageName).thenReturn("com.zxing.app")
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(anyBoolean(), any(), any())
-
-        appLinksInterceptor.handleIntent(tabSessionState, intentUrl, appIntent, null, null, "")
-
-        verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
-
-        doReturn(mockDialog).`when`(appLinksInterceptor).getOrCreateDialog(false, "", "")
-        doReturn(mockDialog).`when`(mockFragmentManager).findFragmentByTag(RedirectDialogFragment.FRAGMENT_TAG)
-        appLinksInterceptor.handleIntent(tabSessionState, intentUrl, mock(), null, mock(), "")
-        verify(mockDialog, times(1)).showNow(mockFragmentManager, RedirectDialogFragment.FRAGMENT_TAG)
-    }
-
-    @Test
     fun `WHEN caller and intent have the same package name THEN return true`() {
         appLinksInterceptor = spy(
             AppLinksInterceptor(
                 context = mockContext,
                 store = store,
-                interceptLinkClicks = true,
                 launchInApp = { true },
                 useCases = mockUseCases,
-                shouldPrompt = { true },
             ),
         )
-
-        appLinksInterceptor.updateFragmentManger(mockFragmentManager)
 
         val tabSessionState = TabSessionState(
             id = "tab1",
@@ -1120,11 +720,7 @@ class AppLinksInterceptorTest {
             source = SessionState.Source.External.CustomTab(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
         )
 
-        val appIntent: Intent = mock()
-        val componentName: ComponentName = mock()
-        whenever(appIntent.component).thenReturn(componentName)
-        whenever(componentName.packageName).thenReturn("com.zxing.app")
-        assertTrue(appLinksInterceptor.isAuthentication(tabSessionState, appIntent))
+        assertTrue(AppLinksInterceptor.isAuthentication(tabSessionState, "com.zxing.app"))
 
         val tabSessionState2 = TabSessionState(
             id = "tab1",
@@ -1134,7 +730,7 @@ class AppLinksInterceptorTest {
                 isProductUrl = false,
             ),
         )
-        assertFalse(appLinksInterceptor.isAuthentication(tabSessionState2, appIntent))
+        assertFalse(AppLinksInterceptor.isAuthentication(tabSessionState2, "com.zxing.app"))
 
         val tabSessionState3 = TabSessionState(
             id = "tab1",
@@ -1145,10 +741,8 @@ class AppLinksInterceptorTest {
             ),
             source = SessionState.Source.External.CustomTab(ExternalPackage("com.example.app", PackageCategory.PRODUCTIVITY)),
         )
-        assertFalse(appLinksInterceptor.isAuthentication(tabSessionState3, appIntent))
-
-        doReturn(null).`when`(componentName).packageName
-        assertFalse(appLinksInterceptor.isAuthentication(tabSessionState, appIntent))
+        assertFalse(AppLinksInterceptor.isAuthentication(tabSessionState3, "com.zxing.app"))
+        assertFalse(AppLinksInterceptor.isAuthentication(tabSessionState, null))
     }
 
     @Test
@@ -1157,18 +751,10 @@ class AppLinksInterceptorTest {
             AppLinksInterceptor(
                 context = mockContext,
                 store = store,
-                interceptLinkClicks = true,
                 launchInApp = { true },
                 useCases = mockUseCases,
-                shouldPrompt = { true },
             ),
         )
-
-        val appIntent: Intent = mock()
-        val componentName: ComponentName = mock()
-        whenever(appIntent.component).thenReturn(componentName)
-        whenever(componentName.packageName).thenReturn("com.zxing.app")
-        appLinksInterceptor.updateFragmentManger(mockFragmentManager)
 
         val tabSessionState = TabSessionState(
             id = "tab1",
@@ -1180,7 +766,7 @@ class AppLinksInterceptorTest {
             source = SessionState.Source.External.CustomTab(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
         )
 
-        assertTrue(appLinksInterceptor.isAuthentication(tabSessionState, appIntent))
+        assertTrue(AppLinksInterceptor.isAuthentication(tabSessionState, "com.zxing.app"))
 
         val tabSessionState2 = TabSessionState(
             id = "tab1",
@@ -1191,7 +777,7 @@ class AppLinksInterceptorTest {
             ),
             source = SessionState.Source.External.ActionView(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
         )
-        assertTrue(appLinksInterceptor.isAuthentication(tabSessionState2, appIntent))
+        assertTrue(AppLinksInterceptor.isAuthentication(tabSessionState2, "com.zxing.app"))
 
         val tabSessionState3 = TabSessionState(
             id = "tab1",
@@ -1202,7 +788,7 @@ class AppLinksInterceptorTest {
             ),
             source = SessionState.Source.External.ActionSend(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
         )
-        assertFalse(appLinksInterceptor.isAuthentication(tabSessionState3, appIntent))
+        assertFalse(AppLinksInterceptor.isAuthentication(tabSessionState3, "com.zxing.app"))
 
         val tabSessionState4 = TabSessionState(
             id = "tab1",
@@ -1213,7 +799,7 @@ class AppLinksInterceptorTest {
             ),
             source = SessionState.Source.External.ActionSearch(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
         )
-        assertFalse(appLinksInterceptor.isAuthentication(tabSessionState4, appIntent))
+        assertFalse(AppLinksInterceptor.isAuthentication(tabSessionState4, "com.zxing.app"))
     }
 
     @Test
@@ -1223,31 +809,5 @@ class AppLinksInterceptorTest {
         assertFalse(isSubframeAllowed("abc"))
         assertFalse(isSubframeAllowed("http")) // we should never allow http for subframes
         assertFalse(isSubframeAllowed("https")) // we should never allow https for subframes
-    }
-
-    @Test
-    fun `WHEN scheme is supported THEN loads URL`() {
-        val tab = createTab(webUrl, private = true)
-
-        appLinksInterceptor = spy(
-            AppLinksInterceptor(
-                context = mockContext,
-                store = store,
-                interceptLinkClicks = true,
-                launchInApp = { true },
-                useCases = mockUseCases,
-                shouldPrompt = { true },
-                loadUrlUseCase = mockLoadUrlUseCase,
-            ),
-        )
-
-        appLinksInterceptor.loadUrlIfSchemeSupported(tab, intentUrl)
-        verify(mockLoadUrlUseCase, never()).invoke(anyString(), anyString(), any(), any(), any())
-
-        appLinksInterceptor.loadUrlIfSchemeSupported(tab, webUrl)
-        verify(mockLoadUrlUseCase, times(1)).invoke(anyString(), anyString(), any(), any(), any())
-
-        appLinksInterceptor.loadUrlIfSchemeSupported(tab, aboutUrl)
-        verify(mockLoadUrlUseCase, times(2)).invoke(anyString(), anyString(), any(), any(), any())
     }
 }

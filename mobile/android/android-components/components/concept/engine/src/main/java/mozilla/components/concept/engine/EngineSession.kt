@@ -256,10 +256,14 @@ abstract class EngineSession(
          * @param url The string url that was requested.
          * @param appIntent The Android Intent that was requested.
          * web content (as opposed to via the browser chrome).
+         * @param fallbackUrl the fallback URL if launch failed or denied by user.
+         * @param appName the target application name.
          */
         fun onLaunchIntentRequest(
             url: String,
             appIntent: Intent?,
+            fallbackUrl: String?,
+            appName: String?,
         ) = Unit
 
         /**

@@ -1023,7 +1023,12 @@ class GeckoEngineSession(
                         is InterceptionResponse.AppIntent -> {
                             appRedirectUrl = lastLoadRequestUri
                             notifyObservers {
-                                onLaunchIntentRequest(url = url, appIntent = appIntent)
+                                onLaunchIntentRequest(
+                                    url = url,
+                                    appIntent = appIntent,
+                                    fallbackUrl = fallbackUrl,
+                                    appName = appName,
+                                )
                             }
                         }
 

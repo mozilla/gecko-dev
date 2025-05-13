@@ -79,7 +79,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onMediaFullscreenChanged(true, mediaSessionElementMetadata) }
         session.notifyInternalObservers { onCrash() }
         session.notifyInternalObservers { onLoadRequest("https://www.mozilla.org", true, true) }
-        session.notifyInternalObservers { onLaunchIntentRequest("https://www.mozilla.org", null) }
+        session.notifyInternalObservers { onLaunchIntentRequest("https://www.mozilla.org", null, null, null) }
         session.notifyInternalObservers { onProcessKilled() }
         session.notifyInternalObservers { onShowDynamicToolbar() }
 
@@ -114,7 +114,7 @@ class EngineSessionTest {
         verify(observer).onMediaFullscreenChanged(true, mediaSessionElementMetadata)
         verify(observer).onCrash()
         verify(observer).onLoadRequest("https://www.mozilla.org", true, true)
-        verify(observer).onLaunchIntentRequest("https://www.mozilla.org", null)
+        verify(observer).onLaunchIntentRequest("https://www.mozilla.org", null, null, null)
         verify(observer).onProcessKilled()
         verify(observer).onShowDynamicToolbar()
         verifyNoMoreInteractions(observer)
@@ -152,7 +152,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onWindowRequest(windowRequest) }
         session.notifyInternalObservers { onCrash() }
         session.notifyInternalObservers { onLoadRequest("https://www.mozilla.org", true, true) }
-        session.notifyInternalObservers { onLaunchIntentRequest("https://www.mozilla.org", null) }
+        session.notifyInternalObservers { onLaunchIntentRequest("https://www.mozilla.org", null, null, null) }
         session.notifyInternalObservers { onShowDynamicToolbar() }
         session.unregister(observer)
 
@@ -189,7 +189,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onMediaFullscreenChanged(true, mediaSessionElementMetadata) }
         session.notifyInternalObservers { onCrash() }
         session.notifyInternalObservers { onLoadRequest("https://www.mozilla.org", true, true) }
-        session.notifyInternalObservers { onLaunchIntentRequest("https://www.firefox.com", null) }
+        session.notifyInternalObservers { onLaunchIntentRequest("https://www.firefox.com", null, null, null) }
         session.notifyInternalObservers { onShowDynamicToolbar() }
 
         verify(observer).onScrollChange(1234, 4321)
@@ -211,7 +211,7 @@ class EngineSessionTest {
         verify(observer).onWindowRequest(windowRequest)
         verify(observer).onCrash()
         verify(observer).onLoadRequest("https://www.mozilla.org", true, true)
-        verify(observer).onLaunchIntentRequest("https://www.mozilla.org", null)
+        verify(observer).onLaunchIntentRequest("https://www.mozilla.org", null, null, null)
         verify(observer).onShowDynamicToolbar()
         verify(observer, never()).onScrollChange(2345, 5432)
         verify(observer, never()).onLocationChange("https://www.firefox.com", false)
@@ -239,7 +239,7 @@ class EngineSessionTest {
         verify(observer, never()).onMediaMuteChanged(true)
         verify(observer, never()).onMediaFullscreenChanged(true, mediaSessionElementMetadata)
         verify(observer, never()).onLoadRequest("https://www.mozilla.org", false, true)
-        verify(observer, never()).onLaunchIntentRequest("https://www.firefox.com", null)
+        verify(observer, never()).onLaunchIntentRequest("https://www.firefox.com", null, null, null)
         verifyNoMoreInteractions(observer)
     }
 
@@ -964,7 +964,7 @@ class EngineSessionTest {
         observer.onWindowRequest(windowRequest)
         observer.onCrash()
         observer.onLoadRequest("https://www.mozilla.org", true, true)
-        observer.onLaunchIntentRequest("https://www.mozilla.org", null)
+        observer.onLaunchIntentRequest("https://www.mozilla.org", null, null, null)
         observer.onProcessKilled()
         observer.onShowDynamicToolbar()
     }

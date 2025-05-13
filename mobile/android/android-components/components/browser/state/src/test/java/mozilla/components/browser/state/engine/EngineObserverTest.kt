@@ -1517,9 +1517,9 @@ class EngineObserverTest {
         val store: BrowserStore = mock()
         val observer = EngineObserver("test-id", store)
         val intent: Intent = mock()
-        observer.onLaunchIntentRequest(url = url, appIntent = intent)
+        observer.onLaunchIntentRequest(url = url, appIntent = intent, fallbackUrl = null, appName = null)
 
-        verify(store).dispatch(ContentAction.UpdateAppIntentAction("test-id", AppIntentState(url, intent)))
+        verify(store).dispatch(ContentAction.UpdateAppIntentAction("test-id", AppIntentState(url, intent, null, null)))
     }
 
     @Test

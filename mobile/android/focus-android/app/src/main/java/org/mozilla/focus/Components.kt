@@ -249,7 +249,6 @@ class Components(
     val appLinksInterceptor by lazy {
         AppLinksInterceptor(
             context,
-            interceptLinkClicks = true,
             launchInApp = {
                 context.settings.openLinksInExternalApp
             },

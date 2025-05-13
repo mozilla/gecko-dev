@@ -266,7 +266,12 @@ class SystemEngineView @JvmOverloads constructor(
                             is InterceptionResponse.AppIntent -> {
                                 if (request.isForMainFrame) {
                                     session.notifyObservers {
-                                        onLaunchIntentRequest(url = url, appIntent = appIntent)
+                                        onLaunchIntentRequest(
+                                            url = url,
+                                            appIntent = appIntent,
+                                            fallbackUrl = fallbackUrl,
+                                            appName = appName,
+                                        )
                                     }
                                 }
 

@@ -10,19 +10,13 @@ import android.content.Intent
 import android.os.SystemClock
 import androidx.annotation.VisibleForTesting
 import androidx.core.net.toUri
-import androidx.fragment.app.FragmentManager
 import mozilla.components.browser.state.selector.findTabOrCustomTab
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
-import mozilla.components.concept.engine.EngineSession.LoadUrlFlags.Companion.EXTERNAL
-import mozilla.components.concept.engine.EngineSession.LoadUrlFlags.Companion.LOAD_FLAGS_BYPASS_LOAD_URI_DELEGATE
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.feature.app.links.AppLinksUseCases.Companion.ALWAYS_DENY_SCHEMES
 import mozilla.components.feature.app.links.AppLinksUseCases.Companion.ENGINE_SUPPORTED_SCHEMES
-import mozilla.components.feature.app.links.RedirectDialogFragment.Companion.FRAGMENT_TAG
-import mozilla.components.feature.session.SessionUseCases
-import mozilla.components.support.ktx.android.content.appName
 import mozilla.components.support.ktx.android.net.isHttpOrHttps
 import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
 
@@ -53,26 +47,18 @@ private val ALLOWED_SCHEMES_IN_SUBFRAME: List<String> = listOf(
  * and https://github.com/mozilla-mobile/android-components/issues/2975.
  *
  * @param context Context the feature is associated with.
- * @param interceptLinkClicks If {true} then intercept link clicks.
  * @param engineSupportedSchemes List of schemes that the engine supports.
- * @param alwaysDeniedSchemes List of schemes that will never be opened in a third-party app even if
- * [interceptLinkClicks] is `true`.
+ * @param alwaysDeniedSchemes List of schemes that will never be opened in a third-party app
  * @param launchInApp If {true} then launch app links in third party app(s). Default to false because
  * of security concerns.
  * @param useCases These use cases allow for the detection of, and opening of links that other apps
  * have registered to open.
  * @param launchFromInterceptor If {true} then the interceptor will prompt and launch the link in
  * third-party apps if available.  Do not use this in conjunction with [AppLinksFeature]
- * @param showCheckbox if {true} then the checkbox will be visible on normal tabs within [SimpleRedirectDialogFragment]
  * @param store [BrowserStore] containing the information about the currently open tabs.
- * @param shouldPrompt If {true} then we should prompt the user before redirect.
- * @param failedToLaunchAction Action to perform when failing to launch in third party app.
- * @param checkboxCheckedAction Action to perform when checkbox is ticked and positive button is clicked
- * on redirect prompt.
  */
 class AppLinksInterceptor(
     private val context: Context,
-    private val interceptLinkClicks: Boolean = false,
     private val engineSupportedSchemes: Set<String> = ENGINE_SUPPORTED_SCHEMES,
     private val alwaysDeniedSchemes: Set<String> = ALWAYS_DENY_SCHEMES,
     private var launchInApp: () -> Boolean = { false },
@@ -82,32 +68,8 @@ class AppLinksInterceptor(
         alwaysDeniedSchemes = alwaysDeniedSchemes,
     ),
     private val launchFromInterceptor: Boolean = false,
-    private val showCheckbox: Boolean = false,
     private val store: BrowserStore? = null,
-    private val shouldPrompt: () -> Boolean = { true },
-    private val failedToLaunchAction: (fallbackUrl: String?) -> Unit = {},
-    private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase? = null,
-    private val checkboxCheckedAction: () -> Unit = {},
 ) : RequestInterceptor {
-    private var fragmentManager: FragmentManager? = null
-    private val dialog: RedirectDialogFragment? = null
-
-    /**
-     * Update [FragmentManager] for this instance of AppLinksInterceptor
-     * @param fragmentManager the new value of [FragmentManager]
-     */
-    fun updateFragmentManger(fragmentManager: FragmentManager?) {
-        this.fragmentManager = fragmentManager
-    }
-
-    /**
-     * Update launchInApp for this instance of AppLinksInterceptor
-     * @param launchInApp the new value of launchInApp
-     */
-    fun updateLaunchInApp(launchInApp: () -> Boolean) {
-        this.launchInApp = launchInApp
-        useCases.updateLaunchInApp(launchInApp)
-    }
 
     @Suppress("ComplexMethod", "ReturnCount")
     override fun onLoadRequest(
@@ -137,8 +99,8 @@ class AppLinksInterceptor(
                 (!hasUserGesture && !isAllowedRedirect && !isDirectNavigation) ||
                     isSameDomain(lastUri, uri)
                 ) && engineSupportsScheme -> true
-            // If scheme not in safelist then follow user preference
-            (!interceptLinkClicks || !launchInApp()) && engineSupportsScheme -> true
+            // If scheme not in supported list then follow user preference
+            !launchInApp() && !isPossibleAuthentication(tabSessionState) && engineSupportsScheme -> true
             // Never go to an external app when scheme is in blocklist
             alwaysDeniedSchemes.contains(uriScheme) -> true
             else -> false
@@ -151,10 +113,14 @@ class AppLinksInterceptor(
         val tabId = tabSessionState?.id ?: ""
         val redirect = useCases.interceptedAppLinkRedirect(uri)
         val result = handleRedirect(redirect, uri, tabId)
+        val packageName = redirect.appIntent?.component?.packageName
+
+        // Now that we have the package name,  check again if this is not authentication.
+        if (!launchInApp() && !isAuthentication(tabSessionState, packageName) && engineSupportsScheme) {
+            return null
+        }
 
         if (redirect.hasExternalApp()) {
-            val packageName = redirect.appIntent?.component?.packageName
-
             if (
                 lastApplinksPackageWithTimestamp.first == packageName && lastApplinksPackageWithTimestamp.second +
                 APP_LINKS_DO_NOT_INTERCEPT_INTERVAL > SystemClock.elapsedRealtime()
@@ -166,20 +132,9 @@ class AppLinksInterceptor(
         }
 
         if (redirect.isRedirect()) {
-            if (
-                launchFromInterceptor &&
-                result is RequestInterceptor.InterceptionResponse.AppIntent
-            ) {
-                handleIntent(
-                    sessionState = tabSessionState,
-                    url = uri,
-                    appIntent = redirect.appIntent,
-                    fallbackUrl = redirect.fallbackUrl,
-                    marketingIntent = redirect.marketplaceIntent,
-                    appName = redirect.appName,
-                )
-                // We can avoid loading the page only if openInApp settings is set to Always
-                return if (shouldPrompt()) null else result
+            if (launchFromInterceptor && result is RequestInterceptor.InterceptionResponse.AppIntent) {
+                result.appIntent.flags = result.appIntent.flags or Intent.FLAG_ACTIVITY_NEW_TASK
+                useCases.openAppLink(result.appIntent)
             }
 
             return result
@@ -211,19 +166,29 @@ class AppLinksInterceptor(
         }
 
         if (!redirect.hasExternalApp()) {
-            redirect.marketplaceIntent?.let {
-                return RequestInterceptor.InterceptionResponse.AppIntent(it, uri)
+            redirect.marketplaceIntent?.let { appIntent ->
+                return RequestInterceptor.InterceptionResponse.AppIntent(
+                    appIntent = appIntent,
+                    url = uri,
+                    fallbackUrl = redirect.fallbackUrl,
+                    appName = redirect.appName,
+                )
             }
 
-            redirect.fallbackUrl?.let {
-                return RequestInterceptor.InterceptionResponse.Url(it)
+            redirect.fallbackUrl?.let { fallbackUrl ->
+                return RequestInterceptor.InterceptionResponse.Url(url = fallbackUrl)
             }
 
             return null
         }
 
-        redirect.appIntent?.let {
-            return RequestInterceptor.InterceptionResponse.AppIntent(it, uri)
+        redirect.appIntent?.let { appIntent ->
+            return RequestInterceptor.InterceptionResponse.AppIntent(
+                appIntent = appIntent,
+                url = uri,
+                fallbackUrl = redirect.fallbackUrl,
+                appName = redirect.appName,
+            )
         }
 
         return null
@@ -245,153 +210,6 @@ class AppLinksInterceptor(
             url.startsWith(MOBILE) -> url.replaceFirst(MOBILE, "")
             url.startsWith(MAPS) -> url.replaceFirst(MAPS, "")
             else -> url
-        }
-    }
-
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun handleIntent(
-        sessionState: SessionState?,
-        url: String,
-        appIntent: Intent?,
-        fallbackUrl: String?,
-        marketingIntent: Intent?,
-        appName: String,
-    ) {
-        var isAuthenticationFlow = false
-
-        val targetIntent = when {
-            appIntent != null -> {
-                // Without fragment manager we are unable to prompt
-                // Only non private tabs can be redirected to external app without prompt
-                // Authentication flow should not prompt
-                isAuthenticationFlow =
-                    sessionState?.let { isAuthentication(sessionState, appIntent) } == true
-                appIntent
-            }
-            marketingIntent != null -> marketingIntent
-            else -> return
-        }
-
-        val fragmentManager = fragmentManager
-
-        val isPrivate = sessionState?.content?.private == true
-        val doNotOpenApp = {
-            addUserDoNotIntercept(url, targetIntent, sessionState?.id)
-            if (sessionState != null && fallbackUrl != null) {
-                loadUrlIfSchemeSupported(sessionState, fallbackUrl)
-            }
-        }
-
-        val doOpenApp = {
-            useCases.openAppLink(
-                targetIntent,
-                failedToLaunchAction = failedToLaunchAction,
-            )
-        }
-
-        val shouldShowPrompt = isPrivate || shouldPrompt()
-        if (fragmentManager == null || !shouldShowPrompt || isAuthenticationFlow) {
-            doOpenApp()
-            return
-        }
-
-        if (isADialogAlreadyCreated()) {
-            return
-        }
-
-        if (!fragmentManager.isStateSaved) {
-            getOrCreateDialog(isPrivate, url, appName).apply {
-                onConfirmRedirect = { isCheckboxTicked ->
-                    if (isCheckboxTicked) {
-                        checkboxCheckedAction()
-                    }
-                    doOpenApp()
-                }
-                onCancelRedirect = doNotOpenApp
-            }.showNow(fragmentManager, FRAGMENT_TAG)
-        }
-    }
-
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun getOrCreateDialog(
-        isPrivate: Boolean,
-        url: String,
-        targetAppName: String,
-    ): RedirectDialogFragment {
-        if (dialog != null) {
-            return dialog
-        }
-
-        val dialogTitle = when {
-            isPrivate && targetAppName.isNotBlank() -> {
-                context.getString(R.string.mozac_feature_applinks_confirm_dialog_title_with_app_name, targetAppName)
-            }
-            isPrivate -> {
-                context.getString(R.string.mozac_feature_applinks_confirm_dialog_title)
-            }
-            targetAppName.isNotBlank() -> {
-                context.getString(
-                    R.string.mozac_feature_applinks_normal_confirm_dialog_title_with_app_name,
-                    targetAppName,
-                )
-            }
-            else -> {
-                context.getString(R.string.mozac_feature_applinks_normal_confirm_dialog_title)
-            }
-        }
-
-        val dialogMessage = if (isPrivate) {
-            url
-        } else {
-            context.getString(
-                R.string.mozac_feature_applinks_normal_confirm_dialog_message,
-                context.appName,
-            )
-        }
-
-        return SimpleRedirectDialogFragment.newInstance(
-            dialogTitleString = dialogTitle,
-            dialogMessageString = dialogMessage,
-            showCheckbox = if (isPrivate) false else showCheckbox,
-            maxSuccessiveDialogMillisLimit = MAX_SUCCESSIVE_DIALOG_MILLIS_LIMIT,
-        )
-    }
-
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun loadUrlIfSchemeSupported(tab: SessionState, url: String) {
-        val schemeSupported = engineSupportedSchemes.contains(url.toUri().scheme)
-        if (schemeSupported) {
-            loadUrlUseCase?.invoke(
-                url = url,
-                sessionId = tab.id,
-                flags = EngineSession.LoadUrlFlags.select(EXTERNAL, LOAD_FLAGS_BYPASS_LOAD_URI_DELEGATE),
-            )
-        }
-    }
-
-    private fun isADialogAlreadyCreated(): Boolean {
-        return fragmentManager?.findFragmentByTag(FRAGMENT_TAG) as? RedirectDialogFragment != null
-    }
-
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun isAuthentication(sessionState: SessionState, appIntent: Intent): Boolean {
-        return when (sessionState.source) {
-            is SessionState.Source.External.ActionSend,
-            is SessionState.Source.External.ActionSearch,
-            -> false
-            // CustomTab and ActionView can be used for authentication
-            is SessionState.Source.External.CustomTab,
-            is SessionState.Source.External.ActionView,
-            -> {
-                (sessionState.source as? SessionState.Source.External)?.let { externalSource ->
-                    when (externalSource.caller?.packageId) {
-                        null -> false
-                        appIntent.component?.packageName -> true
-                        else -> false
-                    }
-                } ?: false
-            }
-            else -> false
         }
     }
 
@@ -443,7 +261,43 @@ class AppLinksInterceptor(
         @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
         internal const val APP_LINKS_DO_NOT_INTERCEPT_INTERVAL = 2000L // 2 second
 
-        // Minimum time for dialog to settle before accepting user interactions.
-        internal const val MAX_SUCCESSIVE_DIALOG_MILLIS_LIMIT: Int = 500 // 0.5 seconds
+        /**
+         * Determines whether a given tab session is being used for authentication purposes.
+         *
+         * @param sessionState The current [SessionState], representing the tab session to inspect.
+         *
+         * @return `true` if the tab session is possible authentication flow, `false` otherwise.
+         */
+        @VisibleForTesting
+        internal fun isPossibleAuthentication(sessionState: SessionState?): Boolean {
+            return when (sessionState?.source) {
+                // CustomTab and ActionView can be used for authentication
+                is SessionState.Source.External.CustomTab,
+                is SessionState.Source.External.ActionView,
+                    -> true
+                else -> false
+            }
+        }
+
+        /**
+         * Determines whether a given tab session is being used for authentication purposes.
+         *
+         * @param sessionState The current [SessionState], representing the tab session to inspect.
+         * @param packageName The target package name used to match with the caller's package name.
+         *
+         * @return `true` if the tab session is an authentication flow from the same app, `false` otherwise.
+         */
+        fun isAuthentication(sessionState: SessionState?, packageName: String?): Boolean {
+            if (packageName != null && isPossibleAuthentication(sessionState)) {
+                val callerPackageId =
+                    (sessionState?.source as? SessionState.Source.External)?.caller?.packageId
+
+                if (callerPackageId == packageName) {
+                    return true
+                }
+            }
+
+            return false
+        }
     }
 }

@@ -12,6 +12,10 @@ permalink: /changelog/
   * ⚠️ **Breaking change**: Added `downloadEstimator` property to `DownloadJobState`. [Bug 1956577](https://bugzilla.mozilla.org/show_bug.cgi?id=1956577).
   * ⚠️ **Breaking change**: Added new 'dateTimeProvider' abstract val to `AbstractFetchDownloadService`. [Bug 1956577](https://bugzilla.mozilla.org/show_bug.cgi?id=1956577).
   * ⚠️ **Breaking change**: Removed Deprecated `Long.toMegabyteOrKilobyteString` in v140. [Bug 1955689](https://bugzilla.mozilla.org/show_bug.cgi?id=1955689).
+* **feature-app-links**
+  * Added `alwaysOpenCheckboxAction` parameter to `AppLinksFeature`, this was moved from `AppLinksInterceptor`.
+  * ⚠️ **Breaking change**: Moved prompt functionality back to `AppLinksFeature`.
+  * ⚠️ **Breaking change**: Removed `interceptLinkClicks` parameter from `AppLinksInterceptor` since no usage sets this to false.
 
 # 139.0
 * **feature-downloads**

@@ -73,14 +73,6 @@ class AppLinksUseCases(
         }
     }
 
-    /**
-     * Update launchInApp for this instance of AppLinksUseCases
-     * @param launchInApp the new value of launchInApp
-     */
-    fun updateLaunchInApp(launchInApp: () -> Boolean) {
-        this.launchInApp = launchInApp
-    }
-
     private fun findDefaultActivity(intent: Intent): ResolveInfo? {
         return context.packageManager.resolveActivityCompat(intent, PackageManager.MATCH_DEFAULT_ONLY)
     }
