@@ -16,8 +16,7 @@ export class ThumbnailsChild extends JSWindowActorChild {
         let [width, height] = lazy.PageThumbUtils.getContentSize(
           this.contentWindow
         );
-        let documentElement = this.document.documentElement;
-        let body = this.document.body;
+        let { documentElement, body } = this.document;
         return {
           width,
           height,
@@ -26,9 +25,9 @@ export class ThumbnailsChild extends JSWindowActorChild {
             documentElement.clientHeight,
             documentElement.scrollHeight,
             documentElement.offsetHeight,
-            body.clientHeight,
-            body.scrollHeight,
-            body.offsetHeight
+            body?.clientHeight || 0,
+            body?.scrollHeight || 0,
+            body?.offsetHeight || 0
           ),
         };
       }

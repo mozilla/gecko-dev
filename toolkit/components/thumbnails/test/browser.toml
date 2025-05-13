@@ -62,6 +62,8 @@ skip-if = ["verify && debug && os == 'linux'"]
 
 ["browser_thumbnails_capture_parent_process.js"]
 
+["browser_thumbnails_capture_svg.js"]
+
 ["browser_thumbnails_expiration.js"]
 
 ["browser_thumbnails_fullViewport.js"]
