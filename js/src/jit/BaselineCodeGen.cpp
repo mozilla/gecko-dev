@@ -2951,7 +2951,8 @@ bool BaselineCompilerCodeGen::emitConstantStrictEq(JSOp op) {
       Label maybeDouble;
       masm.branchTestInt32(Assembler::NotEqual, value, &maybeDouble);
       masm.branch32(JSOpToCondition(op, true), value.payloadOrValueReg(),
-                    Imm32(constantVal), &pass);
+                    Imm32(constantVal), &pass,
+                    MacroAssembler::LhsHighBitsAreClean::No);
       masm.jump(&fail);
 
       masm.bind(&maybeDouble);
@@ -3056,7 +3057,7 @@ bool BaselineInterpreterCodeGen::emitConstantStrictEq(JSOp op) {
     Label maybeDouble;
     masm.branchTestInt32(Assembler::NotEqual, value, &maybeDouble);
     masm.branch32(JSOpToCondition(op, true), value.payloadOrValueReg(), payload,
-                  &pass);
+                  &pass, MacroAssembler::LhsHighBitsAreClean::No);
     masm.jump(&fail);
 
     masm.bind(&maybeDouble);

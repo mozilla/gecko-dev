@@ -1612,7 +1612,8 @@ void CodeGenerator::visitStrictConstantCompareInt32(
   Label fail, pass, done, maybeDouble;
   masm.branchTestInt32(Assembler::NotEqual, value, &maybeDouble);
   masm.branch32(JSOpToCondition(op, true), value.payloadOrValueReg(),
-                Imm32(constantVal), &pass);
+                Imm32(constantVal), &pass,
+                MacroAssembler::LhsHighBitsAreClean::No);
   masm.jump(&fail);
 
   masm.bind(&maybeDouble);
