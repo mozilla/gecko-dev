@@ -963,7 +963,6 @@ nsGlobalWindowInner::nsGlobalWindowInner(nsGlobalWindowOuter* aOuterWindow,
     os->AddObserver(mObserver, MEMORY_PRESSURE_OBSERVER_TOPIC, false);
     os->AddObserver(mObserver, PERMISSION_CHANGED_TOPIC, false);
     os->AddObserver(mObserver, "screen-information-changed", false);
-    os->AddObserver(mObserver, "audio-playback", false);
   }
 
   Preferences::AddStrongObserver(mObserver, "intl.accept_languages");
@@ -1254,7 +1253,6 @@ void nsGlobalWindowInner::FreeInnerObjects() {
       os->RemoveObserver(mObserver, MEMORY_PRESSURE_OBSERVER_TOPIC);
       os->RemoveObserver(mObserver, PERMISSION_CHANGED_TOPIC);
       os->RemoveObserver(mObserver, "screen-information-changed");
-      os->RemoveObserver(mObserver, "audio-playback");
     }
 
     RefPtr<StorageNotifierService> sns = StorageNotifierService::GetOrCreate();
@@ -2895,11 +2893,6 @@ bool nsGlobalWindowInner::HasOpenWebSockets() const {
 
   return mNumOfOpenWebSockets ||
          (mTopInnerWindow && mTopInnerWindow->mNumOfOpenWebSockets);
-}
-
-void nsGlobalWindowInner::AudioPlaybackChanged(bool aIsPlayingAudio) {
-  AUTO_PROFILER_MARKER_UNTYPED("AudioPlaybackChanged", DOM, {});
-  UpdateWorkersPlaybackState(*this, aIsPlayingAudio);
 }
 
 bool nsPIDOMWindowInner::IsCurrentInnerWindow() const {
@@ -5240,27 +5233,6 @@ nsGlobalWindowInner::ShowSlowScriptDialog(JSContext* aCx,
 
 nsresult nsGlobalWindowInner::Observe(nsISupports* aSubject, const char* aTopic,
                                       const char16_t* aData) {
-  if (!nsCRT::strcmp(aTopic, "audio-playback") &&
-      ToSupports(GetOuterWindow()) == aSubject) {
-    AUTO_PROFILER_MARKER_UNTYPED("audio-playback", DOM, {});
-
-    nsGlobalWindowOuter* outer =
-        nsGlobalWindowOuter::Cast(nsPIDOMWindowOuter::From(GetOuterWindow())
-                                      ->GetInProcessScriptableTop());
-    nsGlobalWindowInner* topInnerWindow =
-        outer ? nsGlobalWindowInner::Cast(outer->GetCurrentInnerWindow())
-              : nullptr;
-
-    if (topInnerWindow) {
-      const bool isPlayingAudio{IsPlayingAudio()};
-      topInnerWindow->AudioPlaybackChanged(isPlayingAudio);
-      topInnerWindow->CallOnInProcessDescendants(
-          &nsGlobalWindowInner::AudioPlaybackChanged, isPlayingAudio);
-    }
-
-    return NS_OK;
-  }
-
   if (!nsCRT::strcmp(aTopic, NS_IOSERVICE_OFFLINE_STATUS_TOPIC)) {
     if (!IsFrozen()) {
       // Fires an offline status event if the offline status has changed

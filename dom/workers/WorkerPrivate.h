@@ -312,17 +312,10 @@ class WorkerPrivate final
   // Mark worker private as running in the background tab
   // for further throttling
   void SetIsRunningInBackground();
-  void SetIsPlayingAudio(bool aIsPlayingAudio);
-
-  bool IsPlayingAudio() {
-    AssertIsOnWorkerThread();
-    return mIsPlayingAudio;
-  }
 
   void SetIsRunningInForeground();
 
   bool ChangeBackgroundStateInternal(bool aIsBackground);
-  bool ChangePlaybackStateInternal(bool aIsPlayingAudio);
 
   // returns true, if worker is running in the background tab
   bool IsRunningInBackground() const { return mIsInBackground; }
@@ -1671,7 +1664,6 @@ class WorkerPrivate final
 
   bool mDebuggerRegistered MOZ_GUARDED_BY(mMutex);
   mozilla::Atomic<bool> mIsInBackground;
-  bool mIsPlayingAudio{};
 
   // During registration, this worker may be marked as not being ready to
   // execute debuggee runnables or content.
