@@ -2529,16 +2529,6 @@ static bool TypedArray_lastIndexOf(JSContext* cx, const CallArgs& args) {
       return false;
     }
 
-    // Reacquire the length because side-effects may have detached or resized
-    // the array buffer.
-    len = std::min(len, tarray->length().valueOr(0));
-
-    // Return early if the new length is zero.
-    if (len == 0) {
-      args.rval().setInt32(-1);
-      return true;
-    }
-
     // Steps 6-8.
     if (fromIndex >= 0) {
       k = size_t(std::min(fromIndex, double(len - 1)));
@@ -2549,6 +2539,24 @@ static bool TypedArray_lastIndexOf(JSContext* cx, const CallArgs& args) {
         return true;
       }
       k = size_t(d);
+    }
+    MOZ_ASSERT(k < len);
+
+    // Reacquire the length because side-effects may have detached or resized
+    // the array buffer.
+    size_t currentLength = tarray->length().valueOr(0);
+
+    // Restrict the search index and length if the new length is smaller.
+    if (currentLength < len) {
+      // Return early if the new length is zero.
+      if (currentLength == 0) {
+        args.rval().setInt32(-1);
+        return true;
+      }
+
+      // Otherwise just restrict |k| and |len| to the current length.
+      k = std::min(k, currentLength - 1);
+      len = currentLength;
     }
   }
   MOZ_ASSERT(k < len);
