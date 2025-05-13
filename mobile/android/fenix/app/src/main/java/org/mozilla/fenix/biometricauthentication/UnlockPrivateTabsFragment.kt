@@ -15,8 +15,11 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import mozilla.components.browser.state.selector.normalTabs
 import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
+import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.home.HomeFragmentDirections
 import org.mozilla.fenix.tabstray.Page
@@ -83,11 +86,21 @@ class UnlockPrivateTabsFragment : Fragment() {
         biometricPrompt.authenticate(promptInfo)
     }
 
+    /**
+     * If the users decides to leave the fragment, we want to navigate them to normal tabs page.
+     * If they don't have regular opened tabs, we navigate back to homepage as a fallback.
+     */
     private fun leavePrivateMode() {
         PrivateBrowsingLocked.seeOtherTabsClicked.record()
 
-        findNavController().popBackStack(R.id.homeFragment, true)
-        findNavController().navigate(HomeFragmentDirections.actionGlobalTabsTrayFragment(page = Page.NormalTabs))
+        (activity as HomeActivity).browsingModeManager.mode = BrowsingMode.Normal
+
+        findNavController().navigate(UnlockPrivateTabsFragmentDirections.actionGlobalHome())
+
+        val hasNormalTabs = requireComponents.core.store.state.normalTabs.isNotEmpty()
+        if (hasNormalTabs) {
+            findNavController().navigate(HomeFragmentDirections.actionGlobalTabsTrayFragment(page = Page.NormalTabs))
+        }
     }
 
     private fun onAuthSuccess() {
