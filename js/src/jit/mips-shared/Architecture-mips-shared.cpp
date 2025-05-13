@@ -34,21 +34,20 @@ static uint32_t get_mips_flags() {
 #else
 #  ifdef __linux__
   FILE* fp = fopen("/proc/cpuinfo", "r");
-  if (!fp) {
-    return flags;
-  }
-
-  char buf[1024] = {};
-  (void)fread(buf, sizeof(char), sizeof(buf) - 1, fp);
-  fclose(fp);
-  if (strstr(buf, "FPU")) {
-    flags |= HWCAP_FPU;
-  }
-  if (strstr(buf, "Loongson")) {
-    flags |= HWCAP_LOONGSON;
-  }
-  if (strstr(buf, "mips32r2") || strstr(buf, "mips64r2")) {
-    flags |= HWCAP_R2;
+  if (fp) {
+    char buf[1024] = {};
+    size_t len = fread(buf, sizeof(char), sizeof(buf) - 1, fp);
+    fclose(fp);
+    buf[len] = 0;
+    if (strstr(buf, "FPU")) {
+      flags |= HWCAP_FPU;
+    }
+    if (strstr(buf, "Loongson")) {
+      flags |= HWCAP_LOONGSON;
+    }
+    if (strstr(buf, "mips32r2") || strstr(buf, "mips64r2")) {
+      flags |= HWCAP_R2;
+    }
   }
 #  endif
 #endif  // JS_SIMULATOR_MIPS64
