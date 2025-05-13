@@ -187,7 +187,7 @@ fun DownloadsScreen(
                                     context = context,
                                     undoAction = {
                                         downloadsStore.dispatch(
-                                            DownloadUIAction.UndoPendingDeletionSet(it),
+                                            DownloadUIAction.UndoPendingDeletion,
                                         )
                                     },
                                 )
