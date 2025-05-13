@@ -17,3 +17,18 @@ nimbus-targeting-context:
   notification_emails:
     - beth@mozilla.com
     - nimbus-team@mozilla.com
+
+heartbeat:
+  description: |
+    Reports the user's response to a Firefox Heartbeat survey,
+    after the survey is complete.
+    ("response" includes ignoring or abandoning the survey.)
+  include_client_id: true
+  send_if_empty: false
+  bugs:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1963706
+  data_reviews:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1963706
+  notification_emails:
+    - normandy-notifications@mozilla.com
+    - kardekani@mozilla.com

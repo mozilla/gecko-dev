@@ -136,6 +136,9 @@ profiles:
     notification_emails:
       - dtownsend@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - heartbeat
 
   reset_date:
     type: quantity
@@ -175,6 +178,9 @@ profiles:
     notification_emails:
       - dtownsend@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - heartbeat
 
   recovered_from_backup:
     type: quantity

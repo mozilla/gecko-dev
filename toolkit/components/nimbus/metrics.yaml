@@ -1073,3 +1073,180 @@ normandy:
           The type of experiment variant the user was enrolled into.
         type: string
     telemetry_mirror: Normandy_Expose_NimbusExperiment
+
+heartbeat:
+  flow_id:
+    type: uuid
+    description: |
+      An identifier for the rating flow, generated on the client.
+    bugs:
+      - https://bugzilla.mozilla.org/1963706
+    data_reviews:
+      - https://bugzilla.mozilla.org/1963706
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - normandy-notifications@mozilla.com
+    expires: never
+    send_in_pings:
+      - heartbeat
+
+  offered:
+    type: datetime
+    time_unit: millisecond
+    description: |
+      When the survey was shown to the user.
+    bugs:
+      - https://bugzilla.mozilla.org/1963706
+    data_reviews:
+      - https://bugzilla.mozilla.org/1963706
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - normandy-notifications@mozilla.com
+    expires: never
+    send_in_pings:
+      - heartbeat
+
+  learn_more:
+    type: datetime
+    time_unit: millisecond
+    description: |
+      When the user clicked on the "Learn More" link.
+    bugs:
+      - https://bugzilla.mozilla.org/1963706
+    data_reviews:
+      - https://bugzilla.mozilla.org/1963706
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - normandy-notifications@mozilla.com
+    expires: never
+    send_in_pings:
+      - heartbeat
+
+  voted:
+    type: datetime
+    time_unit: millisecond
+    description: |
+      When the user voted.
+    bugs:
+      - https://bugzilla.mozilla.org/1963706
+    data_reviews:
+      - https://bugzilla.mozilla.org/1963706
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - normandy-notifications@mozilla.com
+    expires: never
+    send_in_pings:
+      - heartbeat
+
+  engaged:
+    type: datetime
+    time_unit: millisecond
+    description: |
+      When the user clicked on the survey-provided button
+      (alternative to voting feature).
+    bugs:
+      - https://bugzilla.mozilla.org/1963706
+    data_reviews:
+      - https://bugzilla.mozilla.org/1963706
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - normandy-notifications@mozilla.com
+    expires: never
+    send_in_pings:
+      - heartbeat
+
+  closed:
+    type: datetime
+    time_unit: millisecond
+    description: |
+      When the Heartbeat notification bar was closed.
+    bugs:
+      - https://bugzilla.mozilla.org/1963706
+    data_reviews:
+      - https://bugzilla.mozilla.org/1963706
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - normandy-notifications@mozilla.com
+    expires: never
+    send_in_pings:
+      - heartbeat
+
+  expired:
+    type: datetime
+    time_unit: millisecond
+    description: |
+      When the survey expired, after 2 hours of no interaction.
+      (threshold regulated by `browser.uitour.surveyDuration` pref.)
+    bugs:
+      - https://bugzilla.mozilla.org/1963706
+    data_reviews:
+      - https://bugzilla.mozilla.org/1963706
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - normandy-notifications@mozilla.com
+    expires: never
+    send_in_pings:
+      - heartbeat
+
+  window_closed:
+    type: datetime
+    time_unit: millisecond
+    description: |
+      When the user closed the Firefox window containing the survey,
+      or when the whole browser is shut down during the survey,
+      thus ending it.
+    bugs:
+      - https://bugzilla.mozilla.org/1963706
+    data_reviews:
+      - https://bugzilla.mozilla.org/1963706
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - normandy-notifications@mozilla.com
+    expires: never
+    send_in_pings:
+      - heartbeat
+
+  score:
+    type: quantity
+    unit: star rating
+    description: |
+      The user's rating.
+    bugs:
+      - https://bugzilla.mozilla.org/1963706
+    data_reviews:
+      - https://bugzilla.mozilla.org/1963706
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - normandy-notifications@mozilla.com
+    expires: never
+    send_in_pings:
+      - heartbeat
+
+  survey_id:
+    type: string
+    description: |
+      Identifies the specific survey.
+      May contain a `::` followed by the Normandy client id if the Heartbeat
+      recipe asks for it to be included.
+      e.g. "hb-out-of-date-en" or "new-user-survey-en-us::<the Normandy client id>"
+    bugs:
+      - https://bugzilla.mozilla.org/1963706
+    data_reviews:
+      - https://bugzilla.mozilla.org/1963706
+    data_sensitivity:
+      - technical
+      - highly_sensitive
+    notification_emails:
+      - normandy-notifications@mozilla.com
+    expires: never
+    send_in_pings:
+      - heartbeat

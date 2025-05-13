@@ -58,24 +58,42 @@ function closeAllNotifications(targetWindow, notificationBox) {
 }
 
 /* Check that the correct telemetry was sent */
-function assertTelemetrySent(hb, eventNames) {
-  return new Promise(resolve => {
-    hb.eventEmitter.once("TelemetrySent", payload => {
-      const events = [0];
+async function assertTelemetrySent(hb, eventNames) {
+  let submitted = false;
+  await GleanPings.heartbeat.testSubmission(
+    () => {
+      let events = [0];
       for (const name of eventNames) {
-        Assert.equal(
-          typeof payload[name],
-          "number",
-          `payload field ${name} is a number`
-        );
-        events.push(payload[name]);
+        const metricName = name.slice(0, -2); // strip the "TS".
+        const ts = Glean.heartbeat[metricName].testGetValue().getTime();
+        Assert.equal(typeof ts, "number");
+        events.push(ts);
       }
       events.push(Date.now());
-
       assertOrdered(events);
-      resolve();
-    });
-  });
+      submitted = true;
+    },
+    async () => {
+      return new Promise(resolve => {
+        hb.eventEmitter.once("TelemetrySent", payload => {
+          const events = [0];
+          for (const name of eventNames) {
+            Assert.equal(
+              typeof payload[name],
+              "number",
+              `payload field ${name} is a number`
+            );
+            events.push(payload[name]);
+          }
+          events.push(Date.now());
+
+          assertOrdered(events);
+          Assert.ok(submitted, "'heartbeat' ping was submitted.");
+          resolve();
+        });
+      });
+    }
+  );
 }
 
 async function getUpdatedNotice(heartbeat) {
