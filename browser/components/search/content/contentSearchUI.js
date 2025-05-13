@@ -17,10 +17,10 @@ this.ContentSearchUIController = (function () {
    * The UI consists of an html:table that's inserted into the DOM after the given
    * text box and styled so that it appears as a dropdown below the text box.
    *
-   * @param {DOMElement} inputElement
+   * @param {HTMLInputElement} inputElement
    *        Search suggestions will be based on the text in this text box.
    *        Assumed to be an html:input.
-   * @param {DOMElement} tableParent
+   * @param {Element} tableParent
    *        The suggestion table is appended as a child to this element.  Since
    *        the table is absolutely positioned and its top and left values are set
    *        to be relative to the top and left of the page, either the parent and
@@ -32,7 +32,7 @@ this.ContentSearchUIController = (function () {
    *        record the search.
    * @param {string} searchPurpose
    *        Sent with search data, see nsISearchEngine.getSubmission.
-   * @param {sring} idPrefix
+   * @param {string} idPrefix
    *        The IDs of elements created by the object will be prefixed with this
    *        string.
    */

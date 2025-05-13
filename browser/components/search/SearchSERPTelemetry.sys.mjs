@@ -170,10 +170,10 @@ class TelemetryHandler {
   constructor() {
     this._contentHandler = new ContentHandler({
       browserInfoByURL: this._browserInfoByURL,
-      findBrowserItemForURL: (...args) => this._findBrowserItemForURL(...args),
-      checkURLForSerpMatch: (...args) => this._checkURLForSerpMatch(...args),
-      findItemForBrowser: (...args) => this.findItemForBrowser(...args),
-      urlIsKnownSERPSubframe: (...args) => this.urlIsKnownSERPSubframe(...args),
+      findBrowserItemForURL: this._findBrowserItemForURL.bind(this),
+      checkURLForSerpMatch: this._checkURLForSerpMatch.bind(this),
+      findItemForBrowser: this.findItemForBrowser.bind(this),
+      urlIsKnownSERPSubframe: this.urlIsKnownSERPSubframe.bind(this),
     });
   }
 
@@ -558,7 +558,7 @@ class TelemetryHandler {
     let searchTerm = this.urlSearchTerms(url, providerInfo);
     let searchTermChanged = previousSearchTerm !== searchTerm;
 
-    let isSerp = !!this._checkURLForSerpMatch(url, providerInfo);
+    let isSerp = !!this._checkURLForSerpMatch(url);
     let browserIsTracked = !!telemetryState;
     let isTabHistory = loadType & Ci.nsIDocShell.LOAD_CMD_HISTORY;
 
@@ -621,7 +621,7 @@ class TelemetryHandler {
    *
    * @param {object} browser The browser associated with the tab to stop being
    *   tracked.
-   * @param {string} abandonmentReason
+   * @param {string} [abandonmentReason]
    *   An optional parameter that specifies why the browser is deemed abandoned.
    *   The reason will be recorded as part of Glean abandonment telemetry.
    *   One of SearchSERPTelemetryUtils.ABANDONMENTS.
@@ -741,6 +741,12 @@ class TelemetryHandler {
     return "";
   }
 
+  /**
+   * Finds any SERP data associated with the given browser.
+   *
+   * @param {object} browser
+   * @returns {object}
+   */
   findItemForBrowser(browser) {
     return this.#browserToItemMap.get(browser);
   }
@@ -752,7 +758,7 @@ class TelemetryHandler {
    * set, we do optional fuzzy matching of URLs to fetch the most relevant item
    * that contains tracking information.
    *
-   * @param {string} url URL to fetch the tracking data for.
+   * @param {string} urlString URL to fetch the tracking data for.
    * @returns {object} Map containing the following members:
    *   - {WeakMap} browsers
    *     Map of browser elements that belong to `url` and their ad report state.
@@ -762,8 +768,8 @@ class TelemetryHandler {
    *     The number of browser element we can most accurately tell we're
    *     tracking, since they're inside a WeakMap.
    */
-  _findBrowserItemForURL(url) {
-    url = URL.parse(url);
+  _findBrowserItemForURL(urlString) {
+    let url = URL.parse(urlString);
     if (!url) {
       return null;
     }
@@ -837,6 +843,11 @@ class TelemetryHandler {
     this._unregisterWindow(win);
   }
 
+  /**
+   * Determines if a URL to be in this SERP's subframes.
+   *
+   * @param {string} url
+   */
   urlIsKnownSERPSubframe(url) {
     if (url) {
       for (let regexp of this.#subframeRegexps) {
@@ -1136,8 +1147,14 @@ class ContentHandler {
    *   The options for the handler.
    * @param {Map} options.browserInfoByURL
    *   The map of urls from TelemetryHandler.
-   * @param {Function} options.getProviderInfoForURL
-   *   A function that obtains the provider information for a url.
+   * @param {(urlString: string) => object} options.findBrowserItemForURL
+   *   The function for finding a browser item for the URL.
+   * @param {(url: string) => null|object} options.checkURLForSerpMatch
+   *   The function for checking a URL for a SERP match.
+   * @param {(browser: object) => object} options.findItemForBrowser
+   *   The function for finding an item for the browser.
+   * @param {(url: string) => boolean} options.urlIsKnownSERPSubframe
+   *   The function for determining if a URL is a known SERP sub frame.
    */
   constructor(options) {
     this._browserInfoByURL = options.browserInfoByURL;
@@ -1735,9 +1752,7 @@ class ContentHandler {
       lazy.logConsole.warn(
         "Expected to report a",
         info.action,
-        "engagement for",
-        info.url,
-        "but couldn't find an impression id."
+        "engagement but couldn't find an impression id."
       );
     }
   }
@@ -1797,8 +1812,7 @@ class ContentHandler {
       lazy.logConsole.debug("Non ad domains:", Array.from(info.nonAdDomains));
       let result = await lazy.SERPCategorization.maybeCategorizeSERP(
         info.nonAdDomains,
-        info.adDomains,
-        item.info.provider
+        info.adDomains
       );
       if (result) {
         telemetryState.categorizationInfo = result;

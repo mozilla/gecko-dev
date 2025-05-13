@@ -152,7 +152,7 @@ class Categorizer {
    *   Domains from organic results extracted from the page.
    * @param {Set} adDomains
    *   Domains from ad results extracted from the page.
-   * @returns {CategorizationResult | null}
+   * @returns {Promise<?CategorizationResult>}
    *   The final categorization result. Returns null if the map was empty.
    */
   async maybeCategorizeSERP(nonAdDomains, adDomains) {
@@ -163,6 +163,7 @@ class Categorizer {
       SERPCategorizationRecorder.recordMissingImpressionTelemetry();
       return null;
     }
+    /** @type {CategorizationResult} */
     let resultsToReport = {};
 
     let results = await this.applyCategorizationLogic(nonAdDomains);
@@ -188,7 +189,7 @@ class Categorizer {
    *
    * @param {Set} domains
    *   The domains extracted from the page.
-   * @returns {object} resultsToReport
+   * @returns {Promise<object>} resultsToReport
    *   The final categorization results. Keys are: "category", "num_domains",
    *   "num_unknown" and "num_inconclusive".
    */
@@ -587,9 +588,9 @@ class CategorizationRecorder {
  * @property {boolean} isDefault
  *  Whether the record is a default if the user's region does not contain a
  *  more specific set of mappings.
- * @property {Array<string>} includeRegions
+ * @property {string[]} includeRegions
  *  The region codes to include. If left blank, it applies to all regions.
- * @property {Array<string>} excludeRegions
+ * @property {string[]} excludeRegions
  *  The region codes to exclude.
  * @property {number} version
  *  The version of the record.
@@ -717,7 +718,7 @@ class DomainToCategoriesMap {
    * Given a domain, find categories and relevant scores.
    *
    * @param {string} domain Domain to lookup.
-   * @returns {Array<DomainCategoryScore>}
+   * @returns {Promise<DomainCategoryScore[]>}
    *  An array containing categories and their respective score. If no record
    *  for the domain is available, return an empty array.
    */
@@ -803,7 +804,7 @@ class DomainToCategoriesMap {
    *   set of records belonging to default mappings that apply to many regions.
    *   The more specific collection should override the default set.
    *
-   * @param {Array<DomainToCategoriesRecord>} records
+   * @param {DomainToCategoriesRecord[]} records
    *   The records from Remote Settings.
    * @param {string|null} region
    *   The region to match.
@@ -990,7 +991,7 @@ class DomainToCategoriesMap {
    * the same version number but if for any reason one entry has a lower
    * version number, the latest version can be used to filter it out.
    *
-   * @param {Array<DomainToCategoriesRecord>} records
+   * @param {DomainToCategoriesRecord[]} records
    *   An array containing the records from a Remote Settings collection.
    * @returns {number}
    */
@@ -1044,7 +1045,7 @@ class DomainToCategoriesMap {
    * records. If no attachments are found, or no record containing an
    * attachment contained the latest version, then nothing will change.
    *
-   * @param {Array<DomainToCategoriesRecord>} records
+   * @param {DomainToCategoriesRecord[]} records
    *  The records containing attachments.
    * @throws {Error}
    *  Will throw if it was not able to drop the store data, or it was unable
@@ -1346,7 +1347,7 @@ export class DomainToCategoriesStore {
    * it will attempt to drop existing data to ensure callers aren't accessing
    * a partially filled store.
    *
-   * @param {Array<ArrayBuffer>} fileContents
+   * @param {ArrayBufferLike[]} fileContents
    *   Contents to convert.
    * @param {number} version
    *   The version for the store.
@@ -1380,7 +1381,7 @@ export class DomainToCategoriesStore {
    *   The version for the store.
    * @param {boolean} isDefault
    *   Whether the mappings are from a default record.
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    *   Whether the operation was successful.
    */
   async insertObject(domainToCategoriesMap, version, isDefault) {
@@ -1399,7 +1400,7 @@ export class DomainToCategoriesStore {
    *
    * @param {string} key
    *   The value to lookup in the store.
-   * @returns {Array<number>}
+   * @returns {Promise<number[]>}
    *   An array of numbers corresponding to the category and score. If the key
    *   does not exist in the store or the store is having issues retrieving the
    *   value, returns an empty array.
@@ -1438,7 +1439,7 @@ export class DomainToCategoriesStore {
   /**
    * Retrieves the version number of the store.
    *
-   * @returns {number}
+   * @returns {Promise<number>}
    *   The version number. Returns 0 if the version was never set or if there
    *   was an issue accessing the version number.
    */
@@ -1471,7 +1472,7 @@ export class DomainToCategoriesStore {
    * Whether the data inside the store was derived from a default set of
    * records.
    *
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    */
   async isDefault() {
     if (this.#connection) {
@@ -1645,7 +1646,7 @@ export class DomainToCategoriesStore {
   /**
    * Inserts into the store.
    *
-   * @param {Array<ArrayBuffer>} fileContents
+   * @param {ArrayBufferLike[]} fileContents
    *   The data that should be converted and inserted into the store.
    * @param {number} version
    *   The version number that should be inserted into the store.

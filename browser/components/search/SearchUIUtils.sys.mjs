@@ -176,7 +176,7 @@ export var SearchUIUtils = {
    *   engine description file.
    * @param {object} browsingContext
    *   The browsing context any error prompt should be opened for.
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    *   Returns true if the engine was added.
    */
   async addOpenSearchEngine(locationURL, image, browsingContext) {

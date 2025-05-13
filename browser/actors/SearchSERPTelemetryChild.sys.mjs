@@ -1520,7 +1520,6 @@ export class SearchSERPTelemetryChild extends JSWindowActorChild {
         }
         this.sendAsyncMessage("SearchTelemetry:Action", {
           target: info.target,
-          url: info.url,
           action: info.action,
         });
       };

@@ -148,7 +148,7 @@ export class SearchOneOffs {
   }
 
   /**
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    *   True if we will hide the one-offs when they are requested.
    */
   async willHide() {
@@ -187,7 +187,7 @@ export class SearchOneOffs {
   /**
    * The popup that contains the one-offs.
    *
-   * @param {DOMElement} val
+   * @param {XULPopupElement} val
    *        The new value to set.
    */
   set popup(val) {
@@ -219,7 +219,7 @@ export class SearchOneOffs {
    * can leave it null/undefined, and in that case you should update the
    * query property manually.
    *
-   * @param {DOMElement} val
+   * @param {HTMLInputElement} val
    *        The new value to set.
    */
   set textbox(val) {
@@ -276,7 +276,7 @@ export class SearchOneOffs {
    * The selected one-off including the add-engine button
    * and the search-settings button.
    *
-   * @param {DOMElement|null} val
+   * @param {XULElement|null} val
    *        The selected one-off button. Null if no one-off is selected.
    */
   set selectedButton(val) {
@@ -560,7 +560,7 @@ export class SearchOneOffs {
     } else {
       let newTabPref = Services.prefs.getBoolPref("browser.search.openintab");
       if (
-        (KeyboardEvent.isInstance(aEvent) && aEvent.altKey) ^ newTabPref &&
+        (KeyboardEvent.isInstance(aEvent) && aEvent.altKey) != newTabPref &&
         !this.window.gBrowser.selectedTab.isEmpty
       ) {
         where = "tab";
@@ -931,7 +931,7 @@ export class SearchOneOffs {
    *
    * @param {event} event
    *        The event that triggered the pick.
-   * @param {nsISearchEngine|SearchEngine} engine
+   * @param {nsISearchEngine} engine
    *        The engine that was picked.
    * @param {boolean} forceNewTab
    *        True if the search results page should be loaded in a new tab.
@@ -945,7 +945,7 @@ export class SearchOneOffs {
    * Sets the tooltip for a one-off button with an engine.  This should set
    * either the `tooltiptext` attribute or the relevant l10n ID.
    *
-   * @param {element} button
+   * @param {XULElement} button
    *        The one-off button.
    */
   setTooltipForEngineButton(button) {
