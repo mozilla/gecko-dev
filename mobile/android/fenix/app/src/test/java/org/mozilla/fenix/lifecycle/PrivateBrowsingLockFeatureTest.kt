@@ -722,7 +722,6 @@ class PrivateBrowsingLockFeatureTest {
         override fun addFeatureStateListener(listener: (Boolean) -> Unit) {
             this.listener = listener
         }
-        override fun removeFeatureStateListener() {}
     }
 
     private fun createFeature(

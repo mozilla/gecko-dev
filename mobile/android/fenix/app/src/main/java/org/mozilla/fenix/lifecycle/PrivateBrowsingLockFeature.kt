@@ -42,11 +42,6 @@ interface PrivateBrowsingLockStorage {
      * @param listener A lambda that receives the new boolean value when it changes.
      */
     fun addFeatureStateListener(listener: (Boolean) -> Unit)
-
-    /**
-     * Removes the previously registered listener.
-     */
-    fun removeFeatureStateListener()
 }
 
 /**
@@ -66,17 +61,15 @@ class DefaultPrivateBrowsingLockStorage(
         }
     }
 
+    init {
+        preferences.registerOnSharedPreferenceChangeListener(onFeatureStateChanged)
+    }
+
     override val isFeatureEnabled: Boolean
         get() = preferences.getBoolean(privateBrowsingLockPrefKey, false)
 
     override fun addFeatureStateListener(listener: (Boolean) -> Unit) {
         this.listener = listener
-        preferences.registerOnSharedPreferenceChangeListener(onFeatureStateChanged)
-    }
-
-    override fun removeFeatureStateListener() {
-        preferences.unregisterOnSharedPreferenceChangeListener(onFeatureStateChanged)
-        listener = null
     }
 }
 
@@ -154,7 +147,6 @@ class PrivateBrowsingLockFeature(
     private fun stop() {
         browserStoreScope?.cancel()
         appStoreScope?.cancel()
-        storage.removeFeatureStateListener()
 
         browserStoreScope = null
         appStoreScope = null
