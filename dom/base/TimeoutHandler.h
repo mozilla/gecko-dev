@@ -108,8 +108,6 @@ class DelayedJSDispatchableHandler final : public TimeoutHandler {
 
  private:
   ~DelayedJSDispatchableHandler() override;
-  // mDispatchable cleans up itself in OffThreadPromiseTask::run. It remains
-  // alive until it runs.
   js::UniquePtr<JS::Dispatchable> mDispatchable;
 };
 

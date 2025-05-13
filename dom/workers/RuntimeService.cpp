@@ -704,7 +704,17 @@ static bool DispatchToEventLoop(
 static bool DelayedDispatchToEventLoop(
     void* aClosure, js::UniquePtr<JS::Dispatchable>&& aDispatchable,
     uint32_t delay) {
-  // TODO: Implement delay
+  // See comment at JS::InitDispatchsToEventLoop() below for how we know the
+  // WorkerPrivate is alive.
+  WorkerPrivate* workerPrivate = reinterpret_cast<WorkerPrivate*>(aClosure);
+
+  workerPrivate->AssertIsOnWorkerThread();
+
+  JSContext* cx = workerPrivate->GetJSContext();
+  TimeoutHandler* handler =
+      new DelayedJSDispatchableHandler(cx, std::move(aDispatchable));
+  workerPrivate->SetTimeout(cx, handler, delay, /* aIsInterval */ false,
+                            Timeout::Reason::eJSTimeout, IgnoreErrors());
 
   return true;
 }
