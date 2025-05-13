@@ -774,28 +774,6 @@ HttpConnectionBase* nsHttpConnectionMgr::FindCoalescableConnectionByHashKey(
   return nullptr;
 }
 
-static void BuildOriginFrameHashKey(nsACString& newKey,
-                                    nsHttpConnectionInfo* ci,
-                                    const nsACString& host, int32_t port) {
-  newKey.Assign(host);
-  if (ci->GetAnonymous()) {
-    newKey.AppendLiteral("~A:");
-  } else {
-    newKey.AppendLiteral("~.:");
-  }
-  if (ci->GetFallbackConnection()) {
-    newKey.AppendLiteral("~F:");
-  } else {
-    newKey.AppendLiteral("~.:");
-  }
-  newKey.AppendInt(port);
-  newKey.AppendLiteral("/[");
-  nsAutoCString suffix;
-  ci->GetOriginAttributes().CreateSuffix(suffix);
-  newKey.Append(suffix);
-  newKey.AppendLiteral("]viaORIGIN.FRAME");
-}
-
 HttpConnectionBase* nsHttpConnectionMgr::FindCoalescableConnection(
     ConnectionEntry* ent, bool justKidding, bool aNoHttp2, bool aNoHttp3) {
   MOZ_ASSERT(!aNoHttp2 || !aNoHttp3);
@@ -809,13 +787,11 @@ HttpConnectionBase* nsHttpConnectionMgr::FindCoalescableConnection(
     return nullptr;
   }
   // First try and look it up by origin frame
-  nsCString newKey;
-  BuildOriginFrameHashKey(newKey, ci, ci->GetOrigin(), ci->OriginPort());
   HttpConnectionBase* conn = FindCoalescableConnectionByHashKey(
-      ent, newKey, justKidding, aNoHttp2, aNoHttp3);
+      ent, ent->OriginFrameHashKey(), justKidding, aNoHttp2, aNoHttp3);
   if (conn) {
     LOG(("FindCoalescableConnection(%s) match conn %p on frame key %s\n",
-         ci->HashKey().get(), conn, newKey.get()));
+         ci->HashKey().get(), conn, ent->OriginFrameHashKey().get()));
     return conn;
   }
 
@@ -3649,8 +3625,8 @@ void nsHttpConnectionMgr::RegisterOriginCoalescingKey(HttpConnectionBase* conn,
     return;
   }
 
-  nsCString newKey;
-  BuildOriginFrameHashKey(newKey, ci, host, port);
+  nsAutoCString newKey;
+  nsHttpConnectionInfo::BuildOriginFrameHashKey(newKey, ci, host, port);
   mCoalescingHash.GetOrInsertNew(newKey, 1)->AppendElement(
       do_GetWeakReference(static_cast<nsISupportsWeakReference*>(conn)));
 

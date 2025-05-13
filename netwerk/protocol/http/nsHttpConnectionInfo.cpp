@@ -591,5 +591,29 @@ bool nsHttpConnectionInfo::HostIsLocalIPLiteral() const {
   return netAddr.IsIPAddrLocal();
 }
 
+// static
+void nsHttpConnectionInfo::BuildOriginFrameHashKey(nsACString& newKey,
+                                                   nsHttpConnectionInfo* ci,
+                                                   const nsACString& host,
+                                                   int32_t port) {
+  newKey.Assign(host);
+  if (ci->GetAnonymous()) {
+    newKey.AppendLiteral("~A:");
+  } else {
+    newKey.AppendLiteral("~.:");
+  }
+  if (ci->GetFallbackConnection()) {
+    newKey.AppendLiteral("~F:");
+  } else {
+    newKey.AppendLiteral("~.:");
+  }
+  newKey.AppendInt(port);
+  newKey.AppendLiteral("/[");
+  nsAutoCString suffix;
+  ci->GetOriginAttributes().CreateSuffix(suffix);
+  newKey.Append(suffix);
+  newKey.AppendLiteral("]viaORIGIN.FRAME");
+}
+
 }  // namespace net
 }  // namespace mozilla

@@ -1158,5 +1158,15 @@ ConnectionEntry::GetServerCertHashes() {
   return mServerCertHashes;
 }
 
+const nsCString& ConnectionEntry::OriginFrameHashKey() {
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+  if (mOriginFrameHashKey.IsEmpty()) {
+    nsHttpConnectionInfo::BuildOriginFrameHashKey(
+        mOriginFrameHashKey, mConnInfo, mConnInfo->GetOrigin(),
+        mConnInfo->OriginPort());
+  }
+  return mOriginFrameHashKey;
+}
+
 }  // namespace net
 }  // namespace mozilla

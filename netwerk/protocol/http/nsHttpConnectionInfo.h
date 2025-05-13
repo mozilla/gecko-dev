@@ -64,6 +64,10 @@ class nsHttpConnectionInfo final : public ARefBase {
   DeserializeHttpConnectionInfoCloneArgs(
       const HttpConnectionInfoCloneArgs& aInfoArgs);
 
+  static void BuildOriginFrameHashKey(nsACString& newKey,
+                                      nsHttpConnectionInfo* ci,
+                                      const nsACString& host, int32_t port);
+
  private:
   virtual ~nsHttpConnectionInfo() {
     MOZ_LOG(gHttpLog, LogLevel::Debug,
