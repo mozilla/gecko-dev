@@ -3740,8 +3740,8 @@ static bool array_toSpliced(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-// https://github.com/tc39/proposal-change-array-by-copy
-// Array.prototype.with()
+// ES2026 draft rev a562082b031d89d00ee667181ce8a6158656bd4b
+// Array.prototype.with ( index, value )
 static bool array_with(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "Array.prototype", "with");
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -3761,7 +3761,6 @@ static bool array_with(JSContext* cx, unsigned argc, Value* vp) {
   // Step 3. Let relativeIndex be ? ToIntegerOrInfinity(index).
   double relativeIndex;
   if (!ToInteger(cx, args.get(0), &relativeIndex)) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_BAD_INDEX);
     return false;
   }
 

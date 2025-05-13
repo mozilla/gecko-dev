@@ -1,2 +1,2 @@
-// |jit-test| error: RangeError
+// |jit-test| error: TypeError
 [].with(Symbol.hasInstance);
