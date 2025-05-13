@@ -33,6 +33,7 @@ interface nsIPrefBranch : nsISupports
 
   /**
    * Values describing the basic preference types.
+   * Manually reused in GeckoPreferences.java and should be synced when changed.
    *
    * @see getPrefType
    */

@@ -1,0 +1,242 @@
+/* -*- Mode: Java; c-basic-offset: 4; tab-width: 20; indent-tabs-mode: nil; -*-
+ * vim: ts=4 sw=4 expandtab:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+package org.mozilla.geckoview;
+
+import android.util.Log;
+import androidx.annotation.AnyThread;
+import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.util.Objects;
+import org.mozilla.gecko.util.GeckoBundle;
+
+public class GeckoPreferenceController {
+  private static final String LOGTAG = "GeckoPreference";
+  private static final boolean DEBUG = false;
+
+  /**
+   * Pref types as defined by Gecko in nsIPrefBranch.idl and should remain in sync.
+   *
+   * <p>Note: A Float preference will operate as a PREF_STRING due to Gecko's handling.
+   */
+  @Retention(RetentionPolicy.SOURCE)
+  @IntDef({PREF_TYPE_INVALID, PREF_TYPE_STRING, PREF_TYPE_INT, PREF_TYPE_BOOL})
+  public @interface PrefType {}
+
+  /** Used when the preference does not have a type (i.e. is not defined). */
+  public static final int PREF_TYPE_INVALID = 0;
+
+  /** Used when the preference conforms to type string. */
+  public static final int PREF_TYPE_STRING = 32;
+
+  /** Used when the preference conforms to type integer. */
+  public static final int PREF_TYPE_INT = 64;
+
+  /** Used when the preference conforms to type boolean. */
+  public static final int PREF_TYPE_BOOL = 128;
+
+  /**
+   * Convenience method for converting from {@link PrefType} to string. These values should remain
+   * in sync with nsIPrefBranch.idl.
+   *
+   * @param prefType The defined {@link PrefType}.
+   * @return The String representation of the construct.
+   */
+  @AnyThread
+  /* package */ static @NonNull String toTypeString(@PrefType final int prefType) {
+    switch (prefType) {
+      case PREF_TYPE_INVALID:
+        return "PREF_INVALID";
+      case PREF_TYPE_STRING:
+        return "PREF_STRING";
+      case PREF_TYPE_INT:
+        return "PREF_INT";
+      case PREF_TYPE_BOOL:
+        return "PREF_BOOL";
+      default:
+        return "UNKNOWN";
+    }
+  }
+
+  /** Pref branch used to distinguish user and default Gecko preferences. */
+  @Retention(RetentionPolicy.SOURCE)
+  @IntDef({PREF_BRANCH_USER, PREF_BRANCH_DEFAULT})
+  public @interface PrefBranch {}
+
+  /**
+   * Used when the preference is a "user" defined preference. A "user" preference is specified to be
+   * set as the current value of the preference. It will persist through restarts and is a part of
+   * the user's profile.
+   */
+  public static final int PREF_BRANCH_USER = 0;
+
+  /**
+   * Used when the preference is a default preference. A "default" preference is what is used when
+   * no user preference is set.
+   */
+  public static final int PREF_BRANCH_DEFAULT = 1;
+
+  /**
+   * Convenience method for converting from {@link #@PrefBranch} to string.
+   *
+   * @param prefBranch The defined {@link #@PrefBranch}.
+   * @return The String representation of the construct.
+   */
+  @AnyThread
+  /* package */ static @NonNull String toBranchString(@PrefBranch final int prefBranch) {
+    switch (prefBranch) {
+      case PREF_BRANCH_USER:
+        return "user";
+      case PREF_BRANCH_DEFAULT:
+        return "default";
+      default:
+        Log.w(LOGTAG, "Tried to convert an unknown pref branch of " + prefBranch + " !");
+        return "default";
+    }
+  }
+
+  /**
+   * This object represents information on a GeckoPreference.
+   *
+   * @param <T> The type of the preference.
+   */
+  public static class GeckoPreference<T> {
+
+    /** The Gecko preference name. (e.g., "some.pref.item") */
+    public final @NonNull String pref;
+
+    /** The Gecko type of preference. (e.g., "PREF_BOOL" or "PREF_STRING" or "PREF_INT") */
+    public final @PrefType int type;
+
+    /** The default value of the preference. Corresponds to the default branch's value. */
+    public final @Nullable T defaultValue;
+
+    /** The user value of the preference. Corresponds to the user branch's value. */
+    public final @Nullable T userValue;
+
+    /**
+     * The current value of the preference that is in operation.
+     *
+     * @return Will return the user value if set, if not then the default value.
+     */
+    @AnyThread
+    public @Nullable T getValue() {
+      if (userValue != null) {
+        return userValue;
+      }
+      return defaultValue;
+    }
+
+    /**
+     * Checks to see if the user value has changed from the default value.
+     *
+     * @return Whether the user value has diverged from the default value.
+     */
+    @AnyThread
+    public boolean getHasUserChangedValue() {
+      return userValue != null;
+    }
+
+    /**
+     * Constructor for a GeckoPreference.
+     *
+     * @param pref Name of preference. (e.g., "some.gecko.pref")
+     * @param type The Gecko type for the preference. (e.g., PREF_STRING )
+     * @param defaultValue The default value of the pref.
+     * @param userValue The user value of the pref. unknown.)
+     */
+    /* package */ GeckoPreference(
+        @NonNull final String pref,
+        @PrefType final int type,
+        @Nullable final T defaultValue,
+        @Nullable final T userValue) {
+      this.pref = pref;
+      this.type = type;
+      this.defaultValue = defaultValue;
+      this.userValue = userValue;
+    }
+
+    /**
+     * Convenience method to format the GeckoPreference object into a string.
+     *
+     * @return String representing GeckoPreference.
+     */
+    @NonNull
+    @Override
+    public String toString() {
+      final StringBuilder builder = new StringBuilder("GeckoPreference {");
+      builder
+          .append("pref=")
+          .append(pref)
+          .append(", type=")
+          .append(toTypeString(type))
+          .append(", defaultValue=")
+          .append(Objects.toString(defaultValue, "null"))
+          .append(", userValue=")
+          .append(Objects.toString(userValue, "null"))
+          .append("}");
+      return builder.toString();
+    }
+
+    /**
+     * Convenience method to deserialize preference information into a {@link GeckoPreference}.
+     *
+     * @param bundle The bundle containing the preference information. Should contain pref, type,
+     *     branch, status, and value.
+     * @return A typed preference object.
+     */
+    /* package */
+    static @Nullable GeckoPreference<?> fromBundle(@Nullable final GeckoBundle bundle) {
+      if (bundle == null) {
+        Log.w(LOGTAG, "Bundle is null when attempting to deserialize a GeckoPreference.");
+        return null;
+      }
+      try {
+        final String pref = bundle.getString("pref", "");
+        if (pref.isEmpty()) {
+          Log.w(LOGTAG, "Deserialized an empty preference name.");
+          return null;
+        }
+        final int type = bundle.getInt("type", 0);
+        switch (type) {
+          case PREF_TYPE_INVALID:
+            {
+              return new GeckoPreference<Object>(pref, type, null, null);
+            }
+          case PREF_TYPE_STRING:
+            {
+              final String defaultValue = bundle.getString("defaultValue");
+              final String userValue = bundle.getString("userValue");
+              return new GeckoPreference<String>(pref, type, defaultValue, userValue);
+            }
+          case PREF_TYPE_BOOL:
+            {
+              final Boolean defaultValue = bundle.getBooleanObject("defaultValue");
+              final Boolean userValue = bundle.getBooleanObject("userValue");
+              return new GeckoPreference<Boolean>(pref, type, defaultValue, userValue);
+            }
+          case PREF_TYPE_INT:
+            {
+              final Integer defaultValue = bundle.getInteger("defaultValue");
+              final Integer userValue = bundle.getInteger("userValue");
+              return new GeckoPreference<Integer>(pref, type, defaultValue, userValue);
+            }
+          default:
+            {
+              Log.w(LOGTAG, "Deserialized an unexpected preference type of " + type + ".");
+              return null;
+            }
+        }
+      } catch (final Exception e) {
+        Log.w(LOGTAG, "Could not deserialize GeckoPreference object: " + e);
+        return null;
+      }
+    }
+  }
+}

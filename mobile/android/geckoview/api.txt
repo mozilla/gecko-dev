@@ -758,6 +758,31 @@ package org.mozilla.geckoview {
     method @NonNull @UiThread public GeckoDisplay.SurfaceInfo.Builder surfaceControl(@Nullable SurfaceControl);
   }
 
+  public class GeckoPreferenceController {
+    ctor public GeckoPreferenceController();
+    field public static final int PREF_BRANCH_DEFAULT = 1;
+    field public static final int PREF_BRANCH_USER = 0;
+    field public static final int PREF_TYPE_BOOL = 128;
+    field public static final int PREF_TYPE_INT = 64;
+    field public static final int PREF_TYPE_INVALID = 0;
+    field public static final int PREF_TYPE_STRING = 32;
+  }
+
+  public static class GeckoPreferenceController.GeckoPreference<T> {
+    method @AnyThread public boolean getHasUserChangedValue();
+    method @AnyThread @Nullable public T getValue();
+    field @Nullable public final T defaultValue;
+    field @NonNull public final String pref;
+    field public final int type;
+    field @Nullable public final T userValue;
+  }
+
+  @Retention(value=RetentionPolicy.SOURCE) public static interface GeckoPreferenceController.PrefBranch {
+  }
+
+  @Retention(value=RetentionPolicy.SOURCE) public static interface GeckoPreferenceController.PrefType {
+  }
+
   @AnyThread public class GeckoResult<T> {
     ctor public GeckoResult();
     ctor public GeckoResult(Handler);
