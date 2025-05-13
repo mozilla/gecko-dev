@@ -57,9 +57,6 @@ const char* ContentWin32kLockdownStateToString(
     case nsIXULRuntime::ContentWin32kLockdownState::DisabledByEnvVar:
       return "Win32k Lockdown disabled -- MOZ_ENABLE_WIN32K is set";
 
-    case nsIXULRuntime::ContentWin32kLockdownState::DisabledBySafeMode:
-      return "Win32k Lockdown disabled -- Running in Safe Mode";
-
     case nsIXULRuntime::ContentWin32kLockdownState::DisabledByE10S:
       return "Win32k Lockdown disabled -- E10S is disabled";
 

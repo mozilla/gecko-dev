@@ -492,7 +492,7 @@ Specific keys are:
   - MissingRemoteWebGL = 5
   - MissingNonNativeTheming = 6
   - DisabledByEnvVar = 7 - MOZ_ENABLE_WIN32K is set
-  - DisabledBySafeMode = 8
+  - DisabledBySafeMode = 8 - From Firefox 140 onwards, this value will no longer appear in Telemetry.
   - DisabledByE10S = 9 - E10S is disabled for whatever reason
   - DisabledByUserPref = 10 - The user manually set security.sandbox.content.win32k-disable to false
   - EnabledByUserPref = 11 - The user manually set security.sandbox.content.win32k-disable to true

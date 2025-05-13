@@ -755,10 +755,6 @@ nsIXULRuntime::ContentWin32kLockdownState GetLiveWin32kLockdownState() {
   mozilla::EnsureWin32kInitialized();
   gfxPlatform::GetPlatform();
 
-  if (gSafeMode) {
-    return nsIXULRuntime::ContentWin32kLockdownState::DisabledBySafeMode;
-  }
-
   if (EnvHasValue("MOZ_ENABLE_WIN32K")) {
     return nsIXULRuntime::ContentWin32kLockdownState::DisabledByEnvVar;
   }
