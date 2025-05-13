@@ -73,12 +73,12 @@ add_task(
 
     const mockModels = [
       {
-        name: "model-hub.mozilla.org/org1/model-mock-1",
+        name: "MockName1",
         revision: "mockRevision1",
         engineIds: [],
       },
       {
-        name: "huggingface.co/org2/model-mock-2",
+        name: "MockName2",
         revision: "mockRevision2",
         engineIds: [],
       },
@@ -86,16 +86,10 @@ add_task(
     const mockListFilesResult = {
       metadata: {
         totalSize: 2048,
-        lastUsed: new Date("2023-10-01T12:00:00Z"),
+        lastUsed: 0,
         updateDate: 0,
       },
     };
-
-    const mockModelShortNames = ["model-mock-1", "model-mock-2"];
-    const mockModelsHomepageURLs = [
-      "https://huggingface.co/org1/model-mock-1/",
-      "https://huggingface.co/org2/model-mock-2/",
-    ];
 
     const listModelsStub = sinon
       .stub(ModelHubProvider.modelHub, "listModels")
@@ -104,10 +98,6 @@ add_task(
     const listFilesStub = sinon
       .stub(ModelHubProvider.modelHub, "listFiles")
       .resolves(mockListFilesResult);
-
-    const getOwnerIcon = sinon
-      .stub(ModelHubProvider.modelHub, "getOwnerIcon")
-      .resolves("chrome://mozapps/skin/extensions/extensionGeneric.svg");
 
     const modelWrappers = await AddonManager.getAddonsByTypes(["mlmodel"]);
 
@@ -121,12 +111,6 @@ add_task(
       listFilesStub.callCount,
       mockModels.length,
       "listFiles() getting files and file metadata once for each model"
-    );
-
-    Assert.equal(
-      getOwnerIcon.callCount,
-      mockModels.length,
-      "getOwnerIcon() getting image blob once for each model"
     );
 
     // Verify that the listFiles was called with the expected arguments.
@@ -157,12 +141,9 @@ add_task(
     for (const [idx, modelWrapper] of modelWrappers.entries()) {
       const { name, revision } = mockModels[idx];
       verifyModelAddonWrapper(modelWrapper, {
-        model: name,
-        name: mockModelShortNames[idx],
+        name,
         version: revision,
-        lastUsed: mockListFilesResult.metadata.lastUsed,
         totalSize: mockListFilesResult.metadata.totalSize,
-        modelHomepageURL: mockModelsHomepageURLs[idx],
       });
     }
 
@@ -229,10 +210,10 @@ add_task(
     sandbox.restore();
 
     function verifyModelAddonWrapper(modelWrapper, expected) {
-      const { name, model, version, lastUsed, modelHomepageURL } = expected;
+      const { name, version } = expected;
       info(`Verify model addon wrapper for ${name}:${version}`);
       const expectedId = ModelHubProvider.getWrapperIdForModel({
-        name: model,
+        name,
         revision: version,
       });
       Assert.equal(modelWrapper.id, expectedId, "Got the expected id");
@@ -242,14 +223,8 @@ add_task(
         AddonManager.PERM_CAN_UNINSTALL,
         "Got the expected permissions"
       );
-      Assert.equal(modelWrapper.model, model, "Got the expected name patch");
       Assert.equal(modelWrapper.name, name, "Got the expected name");
       Assert.equal(modelWrapper.version, version, "Got the expected version");
-      Assert.equal(
-        modelWrapper.lastUsed.toISOString(),
-        lastUsed.toISOString(),
-        "Got the expected lastUsed"
-      );
       Assert.equal(
         modelWrapper.totalSize,
         expected.totalSize,
@@ -264,11 +239,6 @@ add_task(
         modelWrapper.isCompatible,
         true,
         "Expect model AddonWrapper to be compatible"
-      );
-      Assert.equal(
-        modelWrapper.modelHomepageURL,
-        modelHomepageURL,
-        "Got the expect model homepage URL"
       );
     }
   }

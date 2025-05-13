@@ -21,8 +21,7 @@ export class MLModelListIntro extends MozLitElement {
           <a
             data-l10n-name="learn-more"
             is="moz-support-link"
-            support-page="on-device-models"
-            target="_blank"
+            support-page="local-models"
           ></a>
         </p>
       </header>

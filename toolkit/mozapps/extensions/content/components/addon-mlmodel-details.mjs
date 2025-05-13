@@ -19,21 +19,7 @@ export class AddonMLModelDetails extends MozLitElement {
       // MockProvider).
       reflect: false,
     },
-    lastUsed: { type: String },
-    modelSize: { type: String },
   };
-
-  setAddon(addon) {
-    this.addon = addon;
-    this.lastUsed = addon.lastUsed.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    this.modelSize = lazy.DownloadUtils.getTransferTotal(
-      this.addon.totalSize ?? 0
-    );
-  }
 
   // NOTE: opt-out from using the shadow dom as render root (and use the element
   // itself to host the custom element content instead).
@@ -42,28 +28,16 @@ export class AddonMLModelDetails extends MozLitElement {
   }
 
   render() {
-    if (!this.addon) {
-      return null;
-    }
+    return this.template;
+  }
 
+  get template() {
     return html`
       <div class="addon-detail-row addon-detail-row-mlmodel-totalsize">
         <label data-l10n-id="mlmodel-addon-detail-totalsize-label"></label>
-        <span>${this.modelSize}</span>
-      </div>
-
-      <div class="addon-detail-row addon-detail-row-mlmodel-lastused">
-        <label data-l10n-id="mlmodel-addon-detail-last-used-label"></label>
-        <span>${this.lastUsed}</span>
-      </div>
-
-      <div class="addon-detail-row addon-detail-row-mlmodel-modelcard">
-        <label data-l10n-id="mlmodel-addon-detail-model-card"></label>
-        <a
-          target="_blank"
-          href=${this.addon.modelHomepageURL}
-          data-l10n-id="mlmodel-addon-detail-model-card-link-label"
-        ></a>
+        <span>
+          ${lazy.DownloadUtils.getTransferTotal(this.addon?.totalSize ?? 0)}
+        </span>
       </div>
     `;
   }

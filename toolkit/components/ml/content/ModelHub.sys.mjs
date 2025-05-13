@@ -1188,13 +1188,11 @@ class IndexedDBCache {
 
     const models = [];
     // Process each key entry.
-    for (const { primaryKey } of modelRevisions) {
-      const taskName = primaryKey[0];
-      const model = primaryKey[1];
-      const revision = primaryKey[2];
+    for (const { key } of modelRevisions) {
+      const model = key[0];
+      const revision = key[1];
 
       models.push({
-        taskName,
         name: model,
         revision,
       });
