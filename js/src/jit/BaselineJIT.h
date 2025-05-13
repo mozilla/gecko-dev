@@ -612,6 +612,14 @@ struct DeletePolicy<js::jit::BaselineScript> {
   JSRuntime* rt_;
 };
 
+template <>
+struct GCPolicy<js::jit::BaselineScript*> {
+  static void trace(JSTracer* trc, js::jit::BaselineScript** thingp,
+                    const char* name) {
+    (*thingp)->trace(trc);
+  }
+};
+
 }  // namespace JS
 
 #endif /* jit_BaselineJIT_h */
