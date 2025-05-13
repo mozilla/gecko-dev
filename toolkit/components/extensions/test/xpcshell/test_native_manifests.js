@@ -296,6 +296,38 @@ add_task(async function test_nonexistent_manifest_with_registry_entry() {
   }
 });
 
+add_task(
+  { skip_if: () => AppConstants.platform !== "win" },
+  async function test_nonstring_registry_entry() {
+    registry.setValue(
+      Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
+      `${REGPATH}\\test`,
+      "",
+      42,
+      Ci.nsIWindowsRegKey.TYPE_INT
+    );
+
+    let { messages, result } = await promiseConsoleOutput(() =>
+      lookupApplication("test", context)
+    );
+    equal(
+      null,
+      result,
+      "lookupApplication returns null for non-string registry key"
+    );
+
+    let typeErrors = messages.filter(log =>
+      log.message.includes(`registry entry ${REGPATH}\\test must be a string`)
+    );
+
+    equal(
+      1,
+      typeErrors.length,
+      "lookupApplication logs an error for a non-string registry entry"
+    );
+  }
+);
+
 add_task(async function test_good_manifest() {
   await writeManifest(USER_TEST_JSON, templateManifest);
   if (registry) {

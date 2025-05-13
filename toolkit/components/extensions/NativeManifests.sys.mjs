@@ -81,6 +81,12 @@ export var NativeManifests = {
     if (!path) {
       return null;
     }
+    if (typeof path !== "string") {
+      Cu.reportError(
+        `Native manifest registry entry ${regPath} must be a string path`
+      );
+      return null;
+    }
 
     // Normalize in case the extension used / instead of \.
     path = path.replaceAll("/", "\\");
