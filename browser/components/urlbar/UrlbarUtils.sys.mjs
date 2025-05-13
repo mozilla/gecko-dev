@@ -7,6 +7,10 @@
  * helper functions that are useful to all components of the urlbar.
  */
 
+/**
+ * @typedef {import("UrlbarProvidersManager.sys.mjs").Query} Query
+ */
+
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
@@ -122,7 +126,7 @@ export var UrlbarUtils = {
   // results can be returned.
   // If you add new source types, consider checking if consumers of
   // "urlbar-user-start-navigation" need update as well.
-  RESULT_SOURCE: {
+  RESULT_SOURCE: Object.freeze({
     BOOKMARKS: 1,
     HISTORY: 2,
     SEARCH: 3,
@@ -131,7 +135,7 @@ export var UrlbarUtils = {
     OTHER_NETWORK: 6,
     ADDON: 7,
     ACTIONS: 8,
-  },
+  }),
 
   // Per-result exposure telemetry.
   EXPOSURE_TELEMETRY: {
@@ -2149,6 +2153,24 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
 };
 
 /**
+ * @typedef UrlbarSearchModeData
+ * @property {Values<typeof UrlbarUtils.RESULT_SOURCE>} source
+ *   The source from which search mode was entered.
+ * @property {string} [engineName]
+ *   The search engine name associated with the search mode.
+ */
+
+/**
+ * @typedef UrlbarSearchStringTokenData
+ * @property {Values<typeof lazy.UrlbarTokenizer.TYPE>} type
+ *   The type of the token.
+ * @property {string} value
+ *   The value of the token.
+ * @property {string} lowerCaseValue
+ *   The lower case version of the value.
+ */
+
+/**
  * UrlbarQueryContext defines a user's autocomplete input from within the urlbar.
  * It supplements it with details of how the search results should be obtained
  * and what they consist of.
@@ -2205,7 +2227,6 @@ export class UrlbarQueryContext {
       ["providers", v => Array.isArray(v) && v.length],
       ["searchMode", v => v && typeof v == "object"],
       ["sources", v => Array.isArray(v) && v.length],
-      ["view", () => true],
     ]) {
       if (prop in options) {
         if (!checkFn(options[prop])) {
@@ -2237,6 +2258,109 @@ export class UrlbarQueryContext {
   }
 
   /**
+   * @type {boolean}
+   *   Whether or not to allow providers to include autofill results.
+   */
+  allowAutofill;
+
+  /**
+   * @type {string}
+   *   URL of the page that was loaded when the search began.
+   */
+  currentPage;
+
+  /**
+   * @type {UrlbarResult}
+   *   The current firstResult.
+   */
+  firstResult;
+
+  /**
+   * @type {boolean}
+   *   Indicates if the first result has been changed changed.
+   */
+  firstResultChanged = false;
+
+  /**
+   * @type {string}
+   *   The form history name to use when saving search history.
+   */
+  formHistoryName;
+
+  /**
+   * @type {UrlbarResult}
+   *   The heuristic result associated with the context.
+   */
+  heuristicResult;
+
+  /**
+   * @type {boolean}
+   *   True if this query was started from a private browsing window.
+   */
+  isPrivate;
+
+  /**
+   * @type {number}
+   *   The maximum number of results that will be displayed for this query.
+   */
+  maxResults;
+
+  /**
+   * @type {boolean}
+   *   Whether or not to prohibit remote results.
+   */
+  prohibitRemoteResults;
+
+  /**
+   * @type {string[]}
+   *   List of registered provider names. Providers can be registered through
+   *   the UrlbarProvidersManager.
+   */
+  providers;
+
+  /**
+   * @type {?Values<typeof UrlbarUtils.RESULT_SOURCE>}
+   *   Set if this context is restricted to a single source.
+   */
+  restrictSource;
+
+  /**
+   * @type {UrlbarSearchStringTokenData}
+   *   The restriction token used to restrict the sources for this search.
+   */
+  restrictToken;
+
+  /**
+   * @type {UrlbarResult[]}
+   *   The results associated with this context.
+   */
+  results;
+
+  /**
+   * @type {UrlbarSearchModeData}
+   *   Details about the search mode associated with this context.
+   */
+  searchMode;
+
+  /**
+   * @type {string}
+   *   The string the user entered in autocomplete.
+   */
+  searchString;
+
+  /**
+   * @type {Values<typeof UrlbarUtils.RESULT_SOURCE>[]}
+   *   The possible sources of results for this context.
+   */
+  sources;
+
+  /**
+   * @type {UrlbarSearchStringTokenData[]}
+   *   A list of tokens extracted from the search string.
+   */
+  tokens;
+
+  /**
    * Checks the required options, saving them as it goes.
    *
    * @param {object} options The options object to check.
@@ -2259,8 +2383,6 @@ export class UrlbarQueryContext {
    * Only returns a subset of the properties from URIFixup. This is both to
    * reduce the memory footprint of UrlbarQueryContexts and to keep them
    * serializable so they can be sent to extensions.
-   *
-   * @returns {{ href: string; isSearch: boolean; }?}
    */
   get fixupInfo() {
     if (!this._fixupError && !this._fixupInfo && this.trimmedSearchString) {
@@ -2402,11 +2524,28 @@ export class UrlbarProvider {
   /**
    * The type of the provider, must be one of UrlbarUtils.PROVIDER_TYPE.
    *
+   * @returns {Values<typeof UrlbarUtils.PROVIDER_TYPE>}
    * @abstract
    */
   get type() {
     throw new Error("Trying to access the base class, must be overridden");
   }
+
+  /**
+   * @type {Query}
+   *   This can be used by the provider to check the query is still running
+   *   after executing async tasks:
+   *
+   * ```
+   *   let instance = this.queryInstance;
+   *   await ...
+   *   if (instance != this.queryInstance) {
+   *     // Query was canceled or a new one started.
+   *     return;
+   *   }
+   * ```
+   */
+  queryInstance;
 
   /**
    * Calls a method on the provider in a try-catch block and reports any error.

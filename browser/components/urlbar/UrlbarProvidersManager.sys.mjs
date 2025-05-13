@@ -500,7 +500,7 @@ export var UrlbarProvidersManager = new ProvidersManager();
  * controllers. Each query has to track its own status and delays separately,
  * to avoid conflicting with other ones.
  */
-class Query {
+export class Query {
   /**
    * Initializes the query object.
    *
