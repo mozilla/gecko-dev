@@ -34,7 +34,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExtensionSettingsStore:
     "resource://gre/modules/ExtensionSettingsStore.sys.mjs",
   HomePage: "resource:///modules/HomePage.sys.mjs",
-  Region: "resource://gre/modules/Region.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   UTEventReporting: "resource://newtab/lib/UTEventReporting.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
@@ -949,7 +948,8 @@ export class TelemetryFeed {
       Glean.newtabContent.followedSections.set(followed);
     }
     Glean.newtabContent.coarseOs.set(lazy.NewTabUtils.normalizeOs());
-    Glean.newtabContent.country.set(lazy.Region.home);
+    // if os.version is undefined pass "0"
+    Glean.newtabContent.coarseOsVersion.set(this.clientInfo.os.version || "0");
     Glean.newtabContent.utcOffset.set(lazy.NewTabUtils.getUtcOffset());
     Glean.newtabContent.activeExperiments.set(
       await expContext.activeExperiments
