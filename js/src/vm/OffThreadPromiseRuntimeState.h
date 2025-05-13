@@ -17,6 +17,7 @@
 #include "js/HashTable.h"      // js::DefaultHasher, js::HashSet
 #include "js/Promise.h"  // JS::Dispatchable, JS::Dispatchable::MaybeShuttingDown,
                          // JS::DispatchToEventLoopCallback,
+                         // JS::DelayedDispatchToEventLoopCallback
 #include "js/RootingAPI.h"                // JS::Handle, JS::PersistentRooted
 #include "threading/ConditionVariable.h"  // js::ConditionVariable
 #include "vm/PromiseObject.h"             // js::PromiseObject
@@ -209,6 +210,37 @@ using OffThreadPromiseTaskSet =
 using DispatchableFifo =
     Fifo<js::UniquePtr<JS::Dispatchable>, 0, SystemAllocPolicy>;
 
+class DelayedDispatchable {
+  js::UniquePtr<JS::Dispatchable> dispatchable_;
+  mozilla::TimeStamp endTime_;
+
+ public:
+  DelayedDispatchable(DelayedDispatchable&& other)
+      : dispatchable_(other.dispatchable()), endTime_(other.endTime()) {}
+
+  DelayedDispatchable(js::UniquePtr<JS::Dispatchable>&& dispatchable,
+                      mozilla::TimeStamp endTime)
+      : dispatchable_(std::move(dispatchable)), endTime_(endTime) {}
+
+  void operator=(DelayedDispatchable&& other) {
+    dispatchable_ = other.dispatchable();
+    endTime_ = other.endTime();
+  }
+  js::UniquePtr<JS::Dispatchable> dispatchable() {
+    return std::move(dispatchable_);
+  }
+  mozilla::TimeStamp endTime() const { return endTime_; }
+
+  static bool higherPriority(const DelayedDispatchable& a,
+                             const DelayedDispatchable& b) {
+    return a.endTime_ < b.endTime_;
+  }
+};
+
+using DelayedDispatchablePriorityQueue =
+    PriorityQueue<DelayedDispatchable, DelayedDispatchable, 0,
+                  SystemAllocPolicy>;
+
 class OffThreadPromiseRuntimeState {
   friend class OffThreadPromiseTask;
 
@@ -251,6 +283,8 @@ class OffThreadPromiseRuntimeState {
   HelperThreadLockData<DispatchableFifo> internalDispatchQueue_;
   HelperThreadLockData<ConditionVariable> internalDispatchQueueAppended_;
   HelperThreadLockData<bool> internalDispatchQueueClosed_;
+  HelperThreadLockData<DelayedDispatchablePriorityQueue>
+      internalDelayedDispatchPriorityQueue_;
 
   ConditionVariable& allFailed() { return allFailed_.ref(); }
 
@@ -263,6 +297,11 @@ class OffThreadPromiseRuntimeState {
   ConditionVariable& internalDispatchQueueAppended() {
     return internalDispatchQueueAppended_.ref();
   }
+  DelayedDispatchablePriorityQueue& internalDelayedDispatchPriorityQueue() {
+    return internalDelayedDispatchPriorityQueue_.ref();
+  }
+
+  void dispatchDelayedTasks();
 
   static bool internalDispatchToEventLoop(void*,
                                           js::UniquePtr<JS::Dispatchable>&&);

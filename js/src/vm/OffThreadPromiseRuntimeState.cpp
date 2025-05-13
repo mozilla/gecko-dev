@@ -284,6 +284,8 @@ bool OffThreadPromiseRuntimeState::internalDispatchToEventLoop(
     return false;
   }
 
+  state.dispatchDelayedTasks();
+
   // The JS API contract is that 'false' means shutdown, so be infallible
   // here (like Gecko).
   AutoEnterOOMUnsafeRegion noOOM;
@@ -301,9 +303,52 @@ bool OffThreadPromiseRuntimeState::internalDispatchToEventLoop(
 // Atomics.waitAsync.
 bool OffThreadPromiseRuntimeState::internalDelayedDispatchToEventLoop(
     void* closure, js::UniquePtr<JS::Dispatchable>&& d, uint32_t delay) {
-  // TODO: implement delayed dispatch
+  OffThreadPromiseRuntimeState& state =
+      *reinterpret_cast<OffThreadPromiseRuntimeState*>(closure);
+  MOZ_ASSERT(state.usingInternalDispatchQueue());
+  gHelperThreadLock.assertOwnedByCurrentThread();
+
+  if (state.internalDispatchQueueClosed_) {
+    return false;
+  }
+
+  state.dispatchDelayedTasks();
+
+  // endTime is calculated synchronously from the moment we call
+  // internalDelayedDispatchToEventLoop. The only current use-case is
+  // Atomics.waitAsync.
+  mozilla::TimeStamp endTime = mozilla::TimeStamp::Now() +
+                               mozilla::TimeDuration::FromMilliseconds(delay);
+  if (!state.internalDelayedDispatchPriorityQueue().insert(
+          DelayedDispatchable(std::move(d), endTime))) {
+    JS::Dispatchable::ReleaseFailedTask(std::move(d));
+    return false;
+  }
 
   return true;
+}
+
+void OffThreadPromiseRuntimeState::dispatchDelayedTasks() {
+  MOZ_ASSERT(usingInternalDispatchQueue());
+  gHelperThreadLock.assertOwnedByCurrentThread();
+
+  if (internalDispatchQueueClosed_) {
+    return;
+  }
+
+  mozilla::TimeStamp now = mozilla::TimeStamp::Now();
+  auto& queue = internalDelayedDispatchPriorityQueue();
+
+  while (!queue.empty() && queue.highest().endTime() <= now) {
+    DelayedDispatchable d(std::move(queue.highest()));
+    queue.popHighest();
+
+    AutoEnterOOMUnsafeRegion noOOM;
+    if (!internalDispatchQueue().pushBack(d.dispatchable())) {
+      noOOM.crash("dispatchDelayedTasks");
+    }
+    internalDispatchQueueAppended().notify_one();
+  }
 }
 
 bool OffThreadPromiseRuntimeState::usingInternalDispatchQueue() const {
@@ -326,6 +371,7 @@ void OffThreadPromiseRuntimeState::internalDrain(JSContext* cx) {
     js::UniquePtr<JS::Dispatchable> d;
     {
       AutoLockHelperThreadState lock;
+      dispatchDelayedTasks();
 
       MOZ_ASSERT(!internalDispatchQueueClosed_);
       MOZ_ASSERT_IF(!internalDispatchQueue().empty(), numRegistered_ > 0);
