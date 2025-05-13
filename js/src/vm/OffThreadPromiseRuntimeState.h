@@ -114,16 +114,15 @@ class OffThreadPromiseTask : public JS::Dispatchable {
   JSRuntime* runtime_;
   JS::PersistentRooted<PromiseObject*> promise_;
 
-  // The registered_ flag indicates that this task is a member of the `live` set
-  // of OffThreadPromiseRuntimeState, and will be cleaned up if it is not
-  // executed by the embedding.
+  // The registered_ flag indicates that this task is counted as part of
+  // numRegistered_ of OffThreadPromiseRuntimeState, which will wait untill
+  // all registered tasks have been run or destroyed.
   bool registered_;
 
-  // An undispatched cancellable task may or may not be registered with the
-  // `live` set of OffThreadPromiseRuntimeState, but once it is set to `false`,
-  // it must both be registered, and a member of the `live` set. If cancellable
-  // is set to false, we can no longer terminate the task early, and must wait
-  // for the embedding to run it.
+  // Indicates that this is an undispatched cancellable task, which is a member
+  // of the Cancellable list.  If cancellable is set to false, we can no longer
+  // terminate the task early, this means it is no longer tracked by the
+  // Cancellable list, and a dispatch has been attempted.
   bool cancellable_;
 
   void operator=(const OffThreadPromiseTask&) = delete;
@@ -167,12 +166,27 @@ class OffThreadPromiseTask : public JS::Dispatchable {
   bool init(JSContext* cx, const AutoLockHelperThreadState& lock);
 
   // Cancellable initialization track the task in case it needs to be aborted
-  // before it is dispatched.
-  bool initCancellable(JSContext* cx);
-  bool initCancellable(JSContext* cx, const AutoLockHelperThreadState& lock);
+  // before it is dispatched. Cancellable tasks are owned by the cancellable_
+  // hashMap until they are dispatched.
+  static bool InitCancellable(JSContext* cx,
+                              js::UniquePtr<OffThreadPromiseTask>&& task);
+  static bool InitCancellable(JSContext* cx,
+                              const AutoLockHelperThreadState& lock,
+                              js::UniquePtr<OffThreadPromiseTask>&& task);
+
+  // Remove the cancellable task from the runtime cancellable list and
+  // call DispatchResolveAndDestroy with a newly created UniquePtr,
+  // so that ownership moves to the embedding.
+  //
+  // If a task is never removed from the cancellable list, it is deleted on
+  // shutdown without running.
+  void removeFromCancellableListAndDispatch();
+  void removeFromCancellableListAndDispatch(
+      const AutoLockHelperThreadState& lock);
 
   // These first two methods will wrap a pointer in a uniquePtr for the purpose
-  // of passing it's ownership eventually to the embedding.
+  // of passing it's ownership eventually to the embedding. These are used by
+  // WASM and PromiseHelperTask.
   void dispatchResolveAndDestroy();
   void dispatchResolveAndDestroy(const AutoLockHelperThreadState& lock);
 
@@ -206,24 +220,30 @@ class OffThreadPromiseRuntimeState {
   // A set of all OffThreadPromiseTasks that have successfully called 'init'.
   // This set doesn't own tasks. OffThreadPromiseTask's destructor removes them
   // from the set.
-  HelperThreadLockData<OffThreadPromiseTaskSet> live_;
+  HelperThreadLockData<size_t> numRegistered_;
 
-  // The allFailed_ condition is waited on and notified during engine
-  // shutdown, communicating when all off-thread tasks in live_ are safe to be
-  // destroyed from the (shutting down) main thread. This condition is met when
-  // live_.count() == numFailed_ where "failed" means "the
-  // DispatchToEventLoopCallback failed after this task was dispatched for
-  // execution".
-  HelperThreadLockData<ConditionVariable> allFailed_;
-  HelperThreadLockData<size_t> numFailed_;
-
-  // The numCancellable tracks the number of registered, but thusfar
+  // The cancellable hashmap tracks the registered, but thusfar
   // undispatched tasks. Not all undispatched tasks are cancellable, namely
   // webassembly helpers are held in an undispatched state, but are not
-  // cancellable. The cancellable counter is useful for eagerly destroying tasks
-  // once dispatchResolveAndDestroy starts rejecting tasks, and we start the
-  // shutdown process.
-  HelperThreadLockData<size_t> numCancellable_;
+  // cancellable. Until the task is dispatched, this hashmap acts as the owner
+  // of the task. In order to place something in the cancellable list, use
+  // InitCancellable. Any task owned by the cancellable list cannot be
+  // dispatched using DispatchResolveAndDestroy. Instead, use the method on
+  // OffThreadPromiseTask removeFromCancellableAndDispatch.
+  HelperThreadLockData<OffThreadPromiseTaskSet> cancellable_;
+
+  // This list owns tasks that have failed to dispatch or failed to execute.
+  // The list is cleared on shutdown.
+  HelperThreadLockData<DispatchableFifo> failed_;
+
+  // The allFailed_ condition is waited on and notified during engine
+  // shutdown, communicating when all off-thread tasks in failed_ are safe to be
+  // destroyed from the (shutting down) main thread. This condition is met when
+  // numRegistered_ == failed().count(), where the collection of failed tasks
+  // mean "the DispatchToEventLoopCallback failed after this task was dispatched
+  // for execution".
+  HelperThreadLockData<ConditionVariable> allFailed_;
+  HelperThreadLockData<size_t> numFailed_;
 
   // The queue of JS::Dispatchables used by the DispatchToEventLoopCallback that
   // calling js::UseInternalJobQueues installs.
@@ -231,8 +251,10 @@ class OffThreadPromiseRuntimeState {
   HelperThreadLockData<ConditionVariable> internalDispatchQueueAppended_;
   HelperThreadLockData<bool> internalDispatchQueueClosed_;
 
-  OffThreadPromiseTaskSet& live() { return live_.ref(); }
   ConditionVariable& allFailed() { return allFailed_.ref(); }
+
+  DispatchableFifo& failed() { return failed_.ref(); }
+  OffThreadPromiseTaskSet& cancellable() { return cancellable_.ref(); }
 
   DispatchableFifo& internalDispatchQueue() {
     return internalDispatchQueue_.ref();
