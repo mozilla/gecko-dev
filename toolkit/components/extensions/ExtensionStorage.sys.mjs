@@ -92,8 +92,10 @@ function serialize(name, anonymizedName, value) {
   return value;
 }
 
+/** @import {JSONFile} from "resource://gre/modules/JSONFile.sys.mjs" */
+
 export var ExtensionStorage = {
-  /** @type {Map<string, Promise<typeof lazy.JSONFile>>} */
+  /** @type {Map<string, Promise<JSONFile>>} */
   jsonFilePromises: new Map(),
 
   listeners: new Map(),
@@ -104,7 +106,7 @@ export var ExtensionStorage = {
    *
    * @param {string} extensionId
    *        The ID of the extension for which to return a file.
-   * @returns {Promise<InstanceType<Lazy['JSONFile']>>}
+   * @returns {Promise<JSONFile>}
    */
   async _readFile(extensionId) {
     await IOUtils.makeDirectory(this.getExtensionDir(extensionId));
@@ -128,7 +130,7 @@ export var ExtensionStorage = {
    *
    * @param {string} extensionId
    *        The ID of the extension for which to return a file.
-   * @returns {Promise<InstanceType<Lazy['JSONFile']>>}
+   * @returns {Promise<JSONFile>}
    */
   getFile(extensionId) {
     let promise = this.jsonFilePromises.get(extensionId);

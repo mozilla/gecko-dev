@@ -62,6 +62,7 @@ export class FinderIterator {
    * The returned promise is resolved when 1) the limit is reached, 2) when all
    * the ranges have been found or 3) when `stop()` is called whilst iterating.
    *
+   * @param {object}  options
    * @param {Number}  [options.allowDistance] Allowed edit distance between the
    *                                          current word and `options.word`
    *                                          when the iterator is already running

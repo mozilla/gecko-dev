@@ -3091,7 +3091,7 @@ export class ExtensionData {
   /**
    * @param {Array<string>} dataPermissions An array of data collection permissions.
    *
-   * @returns {{msg: string, collectsTechnicalAndInteractionData: boolean, hasNone: boolean}} An
+   * @returns {{msg?: string, collectsTechnicalAndInteractionData?: boolean, hasNone: boolean}} An
    * object with information about data collection permissions for the UI.
    */
   static _formatDataCollectionPermissions(dataPermissions, type) {
@@ -3158,10 +3158,11 @@ export class ExtensionData {
    * @param {Array<string>} permissions A list of optional data collection
    * permissions.
    *
-   * @returns {Record<string, string>} A map of permission names to localized
+   * Returns an object mapping permission names to localized
    * strings representing the optional data collection permissions.
    */
   static _formatOptionalDataCollectionPermissions(permissions) {
+    /** @type {Record<string, string>} */
     const optionalDataCollectionPermissions = {};
 
     const odcKeys = [];

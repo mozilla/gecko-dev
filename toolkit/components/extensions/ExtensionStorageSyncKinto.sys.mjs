@@ -579,6 +579,7 @@ class CryptoCollection {
    */
   async getKeyRing() {
     const cryptoKeyRecord = await this.getKeyRingRecord();
+    /** @type {CollectionKeyManager & {uuid?}} */
     const collectionKeys = new lazy.CollectionKeyManager();
     if (cryptoKeyRecord.keys) {
       collectionKeys.setContents(

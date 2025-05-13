@@ -12,14 +12,14 @@ export var Observers = {
   /**
    * Register the given callback as an observer of the given topic.
    *
-   * @param   topic       {String}
+   * @param   {string}  topic
    *          the topic to observe
    *
-   * @param   callback    {Object}
+   * @param   {object}  callback
    *          the callback; an Object that implements nsIObserver or a Function
    *          that gets called when the notification occurs
    *
-   * @param   thisObject  {Object}  [optional]
+   * @param   {object}  [thisObject]
    *          the object to use as |this| when calling a Function callback
    *
    * @returns the observer
@@ -35,13 +35,13 @@ export var Observers = {
   /**
    * Unregister the given callback as an observer of the given topic.
    *
-   * @param topic       {String}
+   * @param {string}  topic
    *        the topic being observed
    *
-   * @param callback    {Object}
+   * @param {object}  callback
    *        the callback doing the observing
    *
-   * @param thisObject  {Object}  [optional]
+   * @param {object}  [thisObject]
    *        the object being used as |this| when calling a Function callback
    */
   remove(topic, callback, thisObject) {
@@ -64,13 +64,13 @@ export var Observers = {
   /**
    * Notify observers about something.
    *
-   * @param topic   {String}
+   * @param {string}  topic
    *        the topic to notify observers about
    *
-   * @param subject {Object}  [optional]
+   * @param {object}  [subject]
    *        some information about the topic; can be any JS object or primitive
    *
-   * @param data    {String}  [optional] [deprecated]
+   * @param {string}  [data] [deprecated]
    *        some more information about the topic; deprecated as the subject
    *        is sufficient to pass all needed information to the JS observers
    *        that this module targets; if you have multiple values to pass to

@@ -545,7 +545,7 @@ export var ExtensionSettingsStore = {
    *
    * @param {string} type The type of setting to be returned.
    * @param {string} key A string that uniquely identifies the setting.
-   * @param {string} id
+   * @param {string} [id]
    *        The id of the extension for which the setting is being retrieved.
    *        Defaults to undefined, in which case the top setting is returned.
    *

@@ -337,7 +337,7 @@ export class ProxyChannelFilter {
       let wrapper = ChannelWrapper.get(channel);
 
       let browserData = { tabId: -1, windowId: -1 };
-      if (wrapper.browserElement) {
+      if (XULElement.isInstance(wrapper.browserElement)) {
         browserData = lazy.tabTracker.getBrowserData(wrapper.browserElement);
       }
 

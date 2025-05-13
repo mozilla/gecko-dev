@@ -127,9 +127,9 @@ export var WebNavigationManager = {
    *   The data for the autocompleted item.
    * @param {object} [acData.result]
    *   The result information associated with the navigation action.
-   * @param {typeof lazy.UrlbarUtils.RESULT_TYPE} [acData.result.type]
+   * @param {Items<typeof lazy.UrlbarUtils.RESULT_TYPE>} [acData.result.type]
    *   The result type associated with the navigation action.
-   * @param {typeof lazy.UrlbarUtils.RESULT_SOURCE} [acData.result.source]
+   * @param {Items<typeof lazy.UrlbarUtils.RESULT_SOURCE>} [acData.result.source]
    *   The result source associated with the navigation action.
    */
   onURLBarUserStartNavigation(acData) {

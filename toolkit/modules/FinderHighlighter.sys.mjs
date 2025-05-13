@@ -249,11 +249,11 @@ FinderHighlighter.prototype = {
    * Toggle highlighting all occurrences of a word in a page. This method will
    * be called recursively for each (i)frame inside a page.
    *
-   * @param {Booolean} highlight    Whether highlighting should be turned on
-   * @param {String}   word         Needle to search for and highlight when found
-   * @param {Boolean}  linksOnly    Only consider nodes that are links for the search
-   * @param {Boolean}  drawOutline  Whether found links should be outlined.
-   * @param {Boolean}  useSubFrames Whether to iterate over subframes.
+   * @param {Booolean} highlight      Whether highlighting should be turned on
+   * @param {String}   [word]         Needle to search for and highlight when found
+   * @param {Boolean}  [linksOnly]    Only consider nodes that are links for the search
+   * @param {Boolean}  [drawOutline]  Whether found links should be outlined.
+   * @param {Boolean}  [useSubFrames] Whether to iterate over subframes.
    * @yield {Promise}  that resolves once the operation has finished
    */
   async highlight(highlight, word, linksOnly, drawOutline, useSubFrames) {

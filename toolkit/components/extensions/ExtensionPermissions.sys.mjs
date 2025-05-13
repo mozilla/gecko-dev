@@ -367,7 +367,7 @@ export var ExtensionPermissions = {
    * @typedef {object} Perms
    * @property {string[]} origins
    * @property {string[]} permissions
-   * @property {string[]} data_collection
+   * @property {string[]} [data_collection]
    *
    * @param {Perms} perms api permissions and origins to be added/removed.
    * @param {Perms} optional permissions and origins from the manifest.

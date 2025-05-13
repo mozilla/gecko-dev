@@ -134,11 +134,10 @@ export var CryptoUtils = {
   },
 
   /**
-   * @param {String} alg Hash algorithm (common values are SHA-1 or SHA-256)
-   * @param {ArrayBuffer} key
-   * @param {ArrayBuffer} data
-   * @param {Number} len Desired output length in bytes.
-   * @returns {Uint8Array}
+   * @param {string} alg Hash algorithm (common values are SHA-1 or SHA-256)
+   * @param {BufferSource} key
+   * @param {BufferSource} data
+   * @returns {Promise<Uint8Array>}
    */
   async hmac(alg, key, data) {
     const hmacKey = await crypto.subtle.importKey(

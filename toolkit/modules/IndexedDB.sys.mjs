@@ -116,7 +116,7 @@ function forwardMethods(cls, target, methods) {
   }
 }
 
-class Cursor {
+export class Cursor {
   constructor(cursorRequest, source) {
     this.cursorRequest = cursorRequest;
     this.source = source;
@@ -166,7 +166,7 @@ defineCursorUpdateMethods(Cursor, [
 forwardGetters(Cursor, "cursor", ["direction", "key", "primaryKey"]);
 wrapMethods(Cursor, "cursor", ["delete", "update"]);
 
-class CursorWithValue extends Cursor {}
+export class CursorWithValue extends Cursor {}
 
 forwardGetters(CursorWithValue, "cursor", ["value"]);
 
@@ -212,7 +212,7 @@ forwardGetters(Index, "index", [
   "unique",
 ]);
 
-class ObjectStore extends Cursed {
+export class ObjectStore extends Cursed {
   constructor(store) {
     super(store);
 
@@ -232,7 +232,7 @@ wrapMethods(ObjectStore, "store", ["add", "clear", "delete", "put"]);
 
 forwardMethods(ObjectStore, "store", ["deleteIndex"]);
 
-class Transaction {
+export class Transaction {
   constructor(transaction) {
     this.transaction = transaction;
 
@@ -339,6 +339,7 @@ export class IndexedDB {
   }
 
   constructor(db) {
+    /** @type {IDBDatabase} */
     this.db = db;
   }
 
@@ -347,7 +348,7 @@ export class IndexedDB {
   /**
    * Opens a transaction for the given object stores.
    *
-   * @param {Array<string>} storeNames
+   * @param {string | string[]} storeNames
    *        The names of the object stores for which to open a transaction.
    * @param {string} [mode = "readonly"]
    *        The mode in which to open the transaction.
