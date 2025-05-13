@@ -1,6 +1,6 @@
 import pytest
 
-from . import using_context
+from .. import using_context
 
 pytestmark = pytest.mark.asyncio
 

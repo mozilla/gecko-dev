@@ -1,0 +1,18 @@
+{
+
+  "description": "Popup test extension",
+  "manifest_version": 2,
+  "name": "TestPopupExtension",
+  "version": "1.0",
+
+  "permissions": [
+    "activeTab"
+  ],
+
+  "browser_action": {
+    "default_icon": "icons/icon-32.png",
+    "default_title": "TestPopupExtension",
+    "default_area": "navbar",
+    "default_popup": "popup/test.html"
+  }
+}

@@ -1,7 +1,7 @@
 import pytest
 from tests.support.asserts import assert_success
 
-from . import using_context
+from .. import using_context
 
 pytestmark = pytest.mark.asyncio
 
