@@ -85,6 +85,13 @@ class WaylandBuffer {
   virtual void DumpToFile(const char* aHint) = 0;
 #endif
 
+  // Create and move away wl_buffer and mark is as not managed.
+  // From this point wl_buffer is not owned by WaylandBuffer.
+  wl_buffer* CreateAndTakeWLBuffer();
+
+  // Set wl_buffer from external source (WaylandBufferDMABUFHolder).
+  void SetExternalWLBuffer(wl_buffer* aWLBuffer);
+
  protected:
   explicit WaylandBuffer(const LayoutDeviceIntSize& aSize);
   virtual ~WaylandBuffer() = default;
@@ -104,6 +111,11 @@ class WaylandBuffer {
   // and passes it to wayland compositor by wl_surface object.
   wl_buffer* mWLBuffer = nullptr;
   uintptr_t mWLBufferID = 0;
+
+  // Owns and manages WL buffer. If set to false, wl_buffer is managed by
+  // someone else (for instance WaylandBufferDMABUFHolder)
+  // and WaylandBuffer can't destroy it.
+  bool mManagingWLBuffer = true;
 
   // Wayland buffer is tied to WaylandSurface.
   // We keep reference to WaylandSurface until WaylandSurface returns the
@@ -190,6 +202,21 @@ class WaylandBufferDMABUF final : public WaylandBuffer {
   ~WaylandBufferDMABUF();
 
   RefPtr<DMABufSurface> mDMABufSurface;
+};
+
+class WaylandBufferDMABUFHolder final {
+ public:
+  bool Matches(DMABufSurface* aSurface) const;
+
+  wl_buffer* GetWLBuffer() { return mWLBuffer; }
+
+  WaylandBufferDMABUFHolder(DMABufSurface* aSurface, wl_buffer* aWLBuffer);
+  ~WaylandBufferDMABUFHolder();
+
+ private:
+  wl_buffer* mWLBuffer = nullptr;
+  uint32_t mUID = 0;
+  uint32_t mPID = 0;
 };
 
 }  // namespace mozilla::widget

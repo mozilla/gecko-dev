@@ -123,9 +123,15 @@ void WaylandBuffer::DeleteWlBuffer() {
   if (!mWLBuffer) {
     return;
   }
-  LOGWAYLAND("WaylandBuffer::DeleteWlBuffer() [%p] wl_buffer [%p]\n",
-             (void*)this, mWLBuffer);
-  MozClearPointer(mWLBuffer, wl_buffer_destroy);
+  LOGWAYLAND("WaylandBuffer::DeleteWlBuffer() [%p] wl_buffer [%p] managed %d",
+             (void*)this, mWLBuffer, mManagingWLBuffer);
+  if (mManagingWLBuffer) {
+    MozClearPointer(mWLBuffer, wl_buffer_destroy);
+  } else {
+    // Remove reference to this WaylandBuffer
+    wl_proxy_set_user_data((wl_proxy*)mWLBuffer, nullptr);
+    mWLBuffer = nullptr;
+  }
 }
 
 void WaylandBuffer::ReturnBufferDetached(WaylandSurfaceLock& aSurfaceLock) {
@@ -135,6 +141,28 @@ void WaylandBuffer::ReturnBufferDetached(WaylandSurfaceLock& aSurfaceLock) {
   DeleteWlBuffer();
   mIsAttachedToCompositor = false;
   mAttachedToSurface = nullptr;
+}
+
+wl_buffer* WaylandBuffer::CreateAndTakeWLBuffer() {
+  LOGWAYLAND("WaylandBuffer::CreateAndTakeWLBuffer() [%p]", (void*)this);
+  MOZ_DIAGNOSTIC_ASSERT(!mAttachedToSurface);
+
+  if (!CreateWlBuffer()) {
+    return nullptr;
+  }
+  mManagingWLBuffer = false;
+  return mWLBuffer;
+}
+
+void WaylandBuffer::SetExternalWLBuffer(wl_buffer* aWLBuffer) {
+  LOGWAYLAND("WaylandBuffer::SetExternalWLBuffer() [%p] wl_buffer %p",
+             (void*)this, aWLBuffer);
+  MOZ_DIAGNOSTIC_ASSERT(!mAttachedToSurface);
+  MOZ_DIAGNOSTIC_ASSERT(!mWLBuffer);
+
+  mManagingWLBuffer = false;
+  mWLBuffer = aWLBuffer;
+  mWLBufferID = reinterpret_cast<uintptr_t>(mWLBuffer);
 }
 
 struct SurfaceAndBuffer {
@@ -377,5 +405,28 @@ void WaylandBufferDMABUF::DumpToFile(const char* aHint) {
   LOGWAYLAND("Dumped wl_buffer to %s\n", filename.get());
 }
 #endif
+
+WaylandBufferDMABUFHolder::WaylandBufferDMABUFHolder(DMABufSurface* aSurface,
+                                                     wl_buffer* aWLBuffer)
+    : mWLBuffer(aWLBuffer) {
+  mUID = aSurface->GetUID();
+  mPID = aSurface->GetPID();
+  LOGWAYLAND(
+      "WaylandBufferDMABUFHolder::WaylandBufferDMABUFHolder wl_buffer [%p] UID "
+      "%d PID %d",
+      mWLBuffer, mUID, mPID);
+}
+
+WaylandBufferDMABUFHolder::~WaylandBufferDMABUFHolder() {
+  LOGWAYLAND(
+      "WaylandBufferDMABUFHolder::~WaylandBufferDMABUFHolder wl_buffer [%p] "
+      "UID %d PID %d",
+      mWLBuffer, mUID, mPID);
+  MozClearPointer(mWLBuffer, wl_buffer_destroy);
+}
+
+bool WaylandBufferDMABUFHolder::Matches(DMABufSurface* aSurface) const {
+  return mUID == aSurface->GetUID() && mPID == aSurface->GetPID();
+}
 
 }  // namespace mozilla::widget
