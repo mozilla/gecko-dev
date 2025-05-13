@@ -1757,6 +1757,11 @@ FFmpegVideoDecoder<LIBAV_VER>::ProcessFlush() {
   mPtsContext.Reset();
   mDurationMap.Clear();
 #endif
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
+  if (mVideoFramePool) {
+    mVideoFramePool->FlushFFmpegFrames();
+  }
+#endif
   mPerformanceRecorder.Record(std::numeric_limits<int64_t>::max());
   return FFmpegDataDecoder::ProcessFlush();
 }
