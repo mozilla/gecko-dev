@@ -215,6 +215,7 @@ class OffThreadPromiseRuntimeState {
   // These fields are initialized once before any off-thread usage and thus do
   // not require a lock.
   JS::DispatchToEventLoopCallback dispatchToEventLoopCallback_;
+  JS::DelayedDispatchToEventLoopCallback delayedDispatchToEventLoopCallback_;
   void* dispatchToEventLoopClosure_;
 
   // A set of all OffThreadPromiseTasks that have successfully called 'init'.
@@ -265,6 +266,8 @@ class OffThreadPromiseRuntimeState {
 
   static bool internalDispatchToEventLoop(void*,
                                           js::UniquePtr<JS::Dispatchable>&&);
+  static bool internalDelayedDispatchToEventLoop(
+      void*, js::UniquePtr<JS::Dispatchable>&&, uint32_t);
   bool usingInternalDispatchQueue() const;
 
   void operator=(const OffThreadPromiseRuntimeState&) = delete;
@@ -273,7 +276,9 @@ class OffThreadPromiseRuntimeState {
  public:
   OffThreadPromiseRuntimeState();
   ~OffThreadPromiseRuntimeState();
-  void init(JS::DispatchToEventLoopCallback callback, void* closure);
+  void init(JS::DispatchToEventLoopCallback callback,
+            JS::DelayedDispatchToEventLoopCallback delayCallback,
+            void* closure);
   void initInternalDispatchQueue();
   bool initialized() const;
 
@@ -284,6 +289,10 @@ class OffThreadPromiseRuntimeState {
   bool internalHasPending(AutoLockHelperThreadState& lock);
 
   void stealFailedTask(JS::Dispatchable* dispatchable);
+
+  bool dispatchToEventLoop(js::UniquePtr<JS::Dispatchable>&& dispatchable);
+  bool delayedDispatchToEventLoop(
+      js::UniquePtr<JS::Dispatchable>&& dispatchable, uint32_t delay);
 
   // shutdown() must be called by the JSRuntime while the JSRuntime is valid.
   void shutdown(JSContext* cx);

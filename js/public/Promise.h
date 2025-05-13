@@ -558,6 +558,10 @@ extern JS_PUBLIC_API bool SetPromiseUserInputEventHandlingState(
 extern JS_PUBLIC_API JSObject* GetWaitForAllPromise(
     JSContext* cx, JS::HandleObjectVector promises);
 
+/**
+ * The Dispatchable interface allows the embedding to call SpiderMonkey
+ * on a JSContext thread when requested via DispatchToEventLoopCallback.
+ */
 class JS_PUBLIC_API Dispatchable {
  public:
   // Destruction of Dispatchables is public in order to be used with
@@ -612,6 +616,13 @@ class JS_PUBLIC_API Dispatchable {
  * so the callback itself must be safe to call from any thread. It cannot
  * trigger a GC.
  *
+ * The DelayedDispatchToEventLoopCallback in addition takes a delay, and it
+ * must accept JS::Dispatchable instances and arrange for their `run` methods
+ * to be called after the delay on the JSContext's thread.
+ * The embeddings must have its own timeout manager to handle the delay.
+ * If a timeout manager is not available for given context, it should return
+ * false, optionally with a warning message printed.
+ *
  * If the callback returns `true`, it must eventually run the given
  * Dispatchable; otherwise, SpiderMonkey may leak memory or hang.
  *
@@ -621,7 +632,7 @@ class JS_PUBLIC_API Dispatchable {
  * all subsequently submitted runnables as well.
  *
  * To establish a DispatchToEventLoopCallback, the embedding may either call
- * InitDispatchToEventLoop to provide its own, or call js::UseInternalJobQueues
+ * InitDispatchsToEventLoop to provide its own, or call js::UseInternalJobQueues
  * to select a default implementation built into SpiderMonkey. This latter
  * depends on the embedding to call js::RunJobs on the JavaScript thread to
  * process queued Dispatchables at appropriate times.
@@ -630,8 +641,12 @@ class JS_PUBLIC_API Dispatchable {
 typedef bool (*DispatchToEventLoopCallback)(
     void* closure, js::UniquePtr<Dispatchable>&& dispatchable);
 
-extern JS_PUBLIC_API void InitDispatchToEventLoop(
-    JSContext* cx, DispatchToEventLoopCallback callback, void* closure);
+typedef bool (*DelayedDispatchToEventLoopCallback)(
+    void* closure, js::UniquePtr<Dispatchable>&& dispatchable, uint32_t delay);
+
+extern JS_PUBLIC_API void InitDispatchsToEventLoop(
+    JSContext* cx, DispatchToEventLoopCallback callback,
+    DelayedDispatchToEventLoopCallback delayedCallback, void* closure);
 
 /**
  * When a JSRuntime is destroyed it implicitly cancels all async tasks in

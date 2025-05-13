@@ -15,6 +15,7 @@
 #include "js/AllocPolicy.h"  // js::ReportOutOfMemory
 #include "js/HeapAPI.h"      // JS::shadow::Zone
 #include "js/Promise.h"  // JS::Dispatchable, JS::DispatchToEventLoopCallback,
+                         // JS::DelayedDispatchToEventLoopCallback
 #include "js/Utility.h"  // js_delete, js::AutoEnterOOMUnsafeRegion
 #include "threading/ProtectedData.h"  // js::UnprotectedData
 #include "vm/HelperThreads.h"         // js::AutoLockHelperThreadState
@@ -235,6 +236,7 @@ void OffThreadPromiseTask::DispatchResolveAndDestroy(
 
 OffThreadPromiseRuntimeState::OffThreadPromiseRuntimeState()
     : dispatchToEventLoopCallback_(nullptr),
+      delayedDispatchToEventLoopCallback_(nullptr),
       dispatchToEventLoopClosure_(nullptr),
       numRegistered_(0),
       internalDispatchQueueClosed_(false) {}
@@ -246,13 +248,27 @@ OffThreadPromiseRuntimeState::~OffThreadPromiseRuntimeState() {
 }
 
 void OffThreadPromiseRuntimeState::init(
-    JS::DispatchToEventLoopCallback callback, void* closure) {
+    JS::DispatchToEventLoopCallback callback,
+    JS::DelayedDispatchToEventLoopCallback delayedCallback, void* closure) {
   MOZ_ASSERT(!initialized());
 
   dispatchToEventLoopCallback_ = callback;
+  delayedDispatchToEventLoopCallback_ = delayedCallback;
   dispatchToEventLoopClosure_ = closure;
 
   MOZ_ASSERT(initialized());
+}
+
+bool OffThreadPromiseRuntimeState::dispatchToEventLoop(
+    js::UniquePtr<JS::Dispatchable>&& dispatchable) {
+  return dispatchToEventLoopCallback_(dispatchToEventLoopClosure_,
+                                      std::move(dispatchable));
+}
+
+bool OffThreadPromiseRuntimeState::delayedDispatchToEventLoop(
+    js::UniquePtr<JS::Dispatchable>&& dispatchable, uint32_t delay) {
+  return delayedDispatchToEventLoopCallback_(dispatchToEventLoopClosure_,
+                                             std::move(dispatchable), delay);
 }
 
 /* static */
@@ -280,12 +296,22 @@ bool OffThreadPromiseRuntimeState::internalDispatchToEventLoop(
   return true;
 }
 
+// This function (and all related delayedDispatch data structures), are in place
+// in order to make the JS Shell work as expected with delayed tasks such as
+// Atomics.waitAsync.
+bool OffThreadPromiseRuntimeState::internalDelayedDispatchToEventLoop(
+    void* closure, js::UniquePtr<JS::Dispatchable>&& d, uint32_t delay) {
+  // TODO: implement delayed dispatch
+
+  return true;
+}
+
 bool OffThreadPromiseRuntimeState::usingInternalDispatchQueue() const {
   return dispatchToEventLoopCallback_ == internalDispatchToEventLoop;
 }
 
 void OffThreadPromiseRuntimeState::initInternalDispatchQueue() {
-  init(internalDispatchToEventLoop, this);
+  init(internalDispatchToEventLoop, internalDelayedDispatchToEventLoop, this);
   MOZ_ASSERT(usingInternalDispatchQueue());
 }
 

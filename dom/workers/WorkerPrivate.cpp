@@ -6164,6 +6164,9 @@ bool WorkerPrivate::RunExpiredTimeouts(JSContext* aCx) {
       case Timeout::Reason::eDelayedWebTaskTimeout:
         reason = "delayedWebTask handler";
         break;
+      case Timeout::Reason::eJSTimeout:
+        reason = "JS timeout handler";
+        break;
       default:
         MOZ_ASSERT(info->mReason == Timeout::Reason::eAbortSignalTimeout);
         reason = "AbortSignal Timeout";

@@ -16,6 +16,7 @@
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/SourceLocation.h"
 #include "mozilla/dom/FunctionBinding.h"
+#include "js/Promise.h"  // JS::Dispatchable
 
 namespace mozilla::dom {
 
@@ -93,6 +94,23 @@ class CallbackTimeoutHandler final : public TimeoutHandler {
   nsCOMPtr<nsIGlobalObject> mGlobal;
   RefPtr<Function> mFunction;
   nsTArray<JS::Heap<JS::Value>> mArgs;
+};
+
+class DelayedJSDispatchableHandler final : public TimeoutHandler {
+ public:
+  DelayedJSDispatchableHandler(JSContext* aCx,
+                               js::UniquePtr<JS::Dispatchable>&& aDispatchable)
+      : TimeoutHandler(aCx), mDispatchable(std::move(aDispatchable)) {}
+
+  NS_DECL_ISUPPORTS
+
+  MOZ_CAN_RUN_SCRIPT bool Call(const char* /* unused */) override;
+
+ private:
+  ~DelayedJSDispatchableHandler() override;
+  // mDispatchable cleans up itself in OffThreadPromiseTask::run. It remains
+  // alive until it runs.
+  js::UniquePtr<JS::Dispatchable> mDispatchable;
 };
 
 }  // namespace mozilla::dom

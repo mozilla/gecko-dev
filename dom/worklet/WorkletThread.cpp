@@ -350,6 +350,15 @@ static bool DispatchToEventLoop(
   return NS_SUCCEEDED(rv);
 }
 
+static bool DelayedDispatchToEventLoop(
+    void* aClosure, js::UniquePtr<JS::Dispatchable>&& aDispatchable,
+    uint32_t delay) {
+  // Worklets do not support delayed dispatch. If something is trying to use it,
+  // it should fail. For now we are warning.
+  NS_WARNING("Trying to perform a delayed dispatch on a worklet.");
+  return false;
+}
+
 // static
 void WorkletThread::EnsureCycleCollectedJSContext(
     JSRuntime* aParentRuntime, const JS::ContextOptions& aOptions) {
@@ -379,8 +388,9 @@ void WorkletThread::EnsureCycleCollectedJSContext(
 
   // A thread lives strictly longer than its JSRuntime so we can safely
   // store a raw pointer as the callback's closure argument on the JSRuntime.
-  JS::InitDispatchToEventLoop(context->Context(), DispatchToEventLoop,
-                              NS_GetCurrentThread());
+  JS::InitDispatchsToEventLoop(context->Context(), DispatchToEventLoop,
+                               DelayedDispatchToEventLoop,
+                               NS_GetCurrentThread());
 
   JS_SetNativeStackQuota(context->Context(),
                          WORKLET_CONTEXT_NATIVE_STACK_LIMIT);

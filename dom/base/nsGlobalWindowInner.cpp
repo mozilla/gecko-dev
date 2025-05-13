@@ -6264,6 +6264,8 @@ static const char* GetTimeoutReasonString(Timeout* aTimeout) {
       return "AbortSignal timeout";
     case Timeout::Reason::eDelayedWebTaskTimeout:
       return "delayedWebTaskCallback handler (timed out)";
+    case Timeout::Reason::eJSTimeout:
+      return "JavaScript TimeoutJob (timed out)";
     default:
       MOZ_CRASH("Unexpected enum value");
       return "";

@@ -468,6 +468,7 @@ int32_t TimeoutManager::GetTimeoutId(Timeout::Reason aReason) {
         }
         break;
       case Timeout::Reason::eDelayedWebTaskTimeout:
+      case Timeout::Reason::eJSTimeout:
       default:
         return -1;  // no cancellation support
     }

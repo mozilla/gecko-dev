@@ -3139,9 +3139,11 @@ JS_PUBLIC_API JSObject* JS::GetWaitForAllPromise(
   return js::GetWaitForAllPromise(cx, promises);
 }
 
-JS_PUBLIC_API void JS::InitDispatchToEventLoop(
-    JSContext* cx, JS::DispatchToEventLoopCallback callback, void* closure) {
-  cx->runtime()->offThreadPromiseState.ref().init(callback, closure);
+JS_PUBLIC_API void JS::InitDispatchsToEventLoop(
+    JSContext* cx, JS::DispatchToEventLoopCallback callback,
+    JS::DelayedDispatchToEventLoopCallback delayCallback, void* closure) {
+  cx->runtime()->offThreadPromiseState.ref().init(callback, delayCallback,
+                                                  closure);
 }
 
 JS_PUBLIC_API void JS::ShutdownAsyncTasks(JSContext* cx) {

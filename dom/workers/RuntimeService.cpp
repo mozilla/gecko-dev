@@ -701,6 +701,14 @@ static bool DispatchToEventLoop(
   return r->Dispatch(workerPrivate);
 }
 
+static bool DelayedDispatchToEventLoop(
+    void* aClosure, js::UniquePtr<JS::Dispatchable>&& aDispatchable,
+    uint32_t delay) {
+  // TODO: Implement delay
+
+  return true;
+}
+
 static bool ConsumeStream(JSContext* aCx, JS::Handle<JSObject*> aObj,
                           JS::MimeType aMimeType,
                           JS::StreamConsumer* aConsumer) {
@@ -742,8 +750,9 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
 
   // A WorkerPrivate lives strictly longer than its JSRuntime so we can safely
   // store a raw pointer as the callback's closure argument on the JSRuntime.
-  JS::InitDispatchToEventLoop(aWorkerCx, DispatchToEventLoop,
-                              (void*)aWorkerPrivate);
+  JS::InitDispatchsToEventLoop(aWorkerCx, DispatchToEventLoop,
+                               DelayedDispatchToEventLoop,
+                               (void*)aWorkerPrivate);
 
   JS::InitConsumeStreamCallback(aWorkerCx, ConsumeStream,
                                 FetchUtil::ReportJSStreamError);
