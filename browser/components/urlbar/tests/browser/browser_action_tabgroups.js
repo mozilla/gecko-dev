@@ -44,20 +44,76 @@ async function simple_tabgroup_search_test(label, searchString) {
   );
 
   await BrowserTestUtils.closeWindow(win);
+  TabGroupTestUtils.forgetSavedTabGroups();
 }
 
 add_task(async function test_first_letter() {
   await simple_tabgroup_search_test("About Pages", "a");
-  TabGroupTestUtils.forgetSavedTabGroups();
 });
 
 add_task(async function test_substring() {
   await simple_tabgroup_search_test("My About Pages", "about");
-  TabGroupTestUtils.forgetSavedTabGroups();
 });
 
 add_task(async function test_words() {
   await simple_tabgroup_search_test("My About Pages", "abou pag");
+});
+
+add_task(async function test_last_accessed_order() {
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  let aboutRobotsTab = BrowserTestUtils.addTab(win.gBrowser, "about:robots");
+  let aboutMozillaTab = BrowserTestUtils.addTab(win.gBrowser, "about:mozilla");
+  let tabGroup1 = win.gBrowser.addTabGroup([aboutRobotsTab], {
+    color: "blue",
+    label: "group1",
+  });
+  tabGroup1.collapsed = true;
+  // Make sure we get a different time stamp for the next action.
+  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+  await new Promise(resolve => win.setTimeout(resolve, 10));
+  let tabGroup2 = win.gBrowser.addTabGroup([aboutMozillaTab], {
+    color: "blue",
+    label: "group2",
+  });
+  tabGroup2.collapsed = true;
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window: win,
+    value: "group",
+  });
+  await UrlbarTestUtils.promisePopupClose(win, () => {
+    EventUtils.synthesizeKey("KEY_Tab", {}, win);
+    EventUtils.synthesizeKey("KEY_Enter", {}, win);
+  });
+
+  Assert.ok(
+    !tabGroup2.collapsed,
+    "tab group 2 should have been opened since it's the most recently accessed one"
+  );
+  tabGroup2.collapsed = true;
+
+  // Make sure we get a different time stamp for the next action.
+  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+  await new Promise(resolve => win.setTimeout(resolve, 10));
+  win.gBrowser.selectedTab = tabGroup1.tabs[0];
+  tabGroup1.collapsed = true;
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window: win,
+    value: "group",
+  });
+  await UrlbarTestUtils.promisePopupClose(win, () => {
+    EventUtils.synthesizeKey("KEY_Tab", {}, win);
+    EventUtils.synthesizeKey("KEY_Enter", {}, win);
+  });
+
+  Assert.ok(
+    !tabGroup1.collapsed,
+    "tab group 1 should have been opened since it's the most recently accessed one"
+  );
+  tabGroup2.collapsed = true;
+
+  await BrowserTestUtils.closeWindow(win);
   TabGroupTestUtils.forgetSavedTabGroups();
 });
 

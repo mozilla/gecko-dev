@@ -3177,13 +3177,19 @@
       });
     }
 
-    getAllTabGroups() {
-      return BrowserWindowTracker.getOrderedWindows({
+    getAllTabGroups({ sortByLastSeenActive = false } = {}) {
+      let groups = BrowserWindowTracker.getOrderedWindows({
         private: PrivateBrowsingUtils.isWindowPrivate(window),
       }).reduce(
         (acc, thisWindow) => acc.concat(thisWindow.gBrowser.tabGroups),
         []
       );
+      if (sortByLastSeenActive) {
+        groups.sort(
+          (group1, group2) => group2.lastSeenActive - group1.lastSeenActive
+        );
+      }
+      return groups;
     }
 
     getTabGroupById(id) {
@@ -8867,11 +8873,9 @@ var TabContextMenu = {
         this.contextTabs.map(t => t.group).filter(g => g)
       ).size;
 
-      let availableGroupsToMoveTo = gBrowser
-        .getAllTabGroups()
-        .sort(
-          (group1, group2) => group2.lastSeenActive - group1.lastSeenActive
-        );
+      let availableGroupsToMoveTo = gBrowser.getAllTabGroups({
+        sortByLastSeenActive: true,
+      });
 
       // Determine whether or not the "current" tab group should appear in the
       // "move tab to group" context menu.

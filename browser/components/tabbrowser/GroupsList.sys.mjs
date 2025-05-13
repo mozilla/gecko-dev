@@ -99,11 +99,9 @@ export class GroupsPanel {
   #populate() {
     let fragment = this.doc.createDocumentFragment();
 
-    let openGroups = this.win.gBrowser.getAllTabGroups();
-    openGroups.sort(
-      (group1, group2) => group2.lastSeenActive - group1.lastSeenActive
-    );
-
+    let openGroups = this.win.gBrowser.getAllTabGroups({
+      sortByLastSeenActive: true,
+    });
     let savedGroups = [];
     if (!PrivateBrowsingUtils.isWindowPrivate(this.win)) {
       savedGroups = this.win.SessionStore.savedGroups.toSorted(

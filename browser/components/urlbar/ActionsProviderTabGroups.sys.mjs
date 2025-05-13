@@ -49,7 +49,9 @@ class ProviderTabGroups extends ActionsProvider {
     let results = [];
     let i = 0;
 
-    for (let group of window.gBrowser.getAllTabGroups()) {
+    for (let group of window.gBrowser.getAllTabGroups({
+      sortByLastSeenActive: true,
+    })) {
       if (this.#matches(group.label, queryContext)) {
         results.push(
           this.#makeResult({
