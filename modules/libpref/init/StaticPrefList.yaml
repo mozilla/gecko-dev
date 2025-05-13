@@ -8630,6 +8630,13 @@
   mirror: always
   set_spidermonkey_pref: always
 
+# Support for Atomics.waitAsync in JavaScript.
+- name: javascript.options.atomics_wait_async
+  type: bool
+  value: false
+  mirror: always
+  set_spidermonkey_pref: startup
+
 #ifdef NIGHTLY_BUILD
   # Experimental support for Async Iterator Helpers in JavaScript.
 -   name: javascript.options.experimental.async_iterator_helpers
