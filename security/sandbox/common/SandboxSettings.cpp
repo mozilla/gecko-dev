@@ -176,10 +176,8 @@ int GetEffectiveContentSandboxLevel() {
 #if defined(XP_WIN)
   // Sandbox level 8, which uses a USER_RESTRICTED access token level, breaks if
   // prefs moving processing out of the content process are not the default.
-  // We are also disabling for safe mode initially.
   if (level >= 8 &&
-      (gSafeMode || !IsWebglOutOfProcessEnabled() ||
-       !PDMFactory::AllDecodersAreRemote() ||
+      (!IsWebglOutOfProcessEnabled() || !PDMFactory::AllDecodersAreRemote() ||
        !StaticPrefs::network_process_enabled() ||
        !Preferences::GetBool("media.peerconnection.mtransport_process"))) {
     level = 7;
