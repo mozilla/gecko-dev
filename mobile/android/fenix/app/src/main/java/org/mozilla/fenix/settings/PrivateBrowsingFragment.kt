@@ -6,8 +6,10 @@ package org.mozilla.fenix.settings
 
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.result.ActivityResultLauncher
+import androidx.biometric.BiometricManager
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
@@ -19,7 +21,10 @@ import org.mozilla.fenix.components.PrivateShortcutCreateManager
 import org.mozilla.fenix.ext.registerForActivityResult
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
+import org.mozilla.fenix.settings.biometric.BiometricPromptFeature
 import org.mozilla.fenix.settings.biometric.DefaultBiometricUtils
+import org.mozilla.fenix.settings.biometric.ext.isEnrolled
+import org.mozilla.fenix.settings.biometric.ext.isHardwareAvailable
 
 /**
  * Lets the user customize Private browsing options.
@@ -30,6 +35,7 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
     override fun onResume() {
         super.onResume()
         showToolbar(getString(R.string.preferences_private_browsing_options))
+        updatePreferences()
     }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
@@ -69,9 +75,14 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
             }
         }
 
+        val biometricManager = BiometricManager.from(requireContext())
+        val deviceCapable = biometricManager.isHardwareAvailable()
+        val userHasEnabledCapability = biometricManager.isEnrolled()
+
         requirePreference<SwitchPreference>(R.string.pref_key_private_browsing_locked_enabled).apply {
             isChecked = context.settings().privateBrowsingLockedEnabled
-            isVisible = Config.channel.isDebug
+            isVisible = deviceCapable && Config.channel.isDebug
+            isEnabled = BiometricPromptFeature.canUseFeature(biometricManager)
 
             setOnPreferenceChangeListener { preference, newValue ->
                 val pbmLockEnabled = newValue as? Boolean
@@ -100,6 +111,15 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
 
                 // Cancel toggle change until biometric is successful
                 false
+            }
+        }
+
+        requirePreference<Preference>(R.string.pref_key_private_browsing_lock_device_feature_enabled).apply {
+            isVisible = deviceCapable && !userHasEnabledCapability
+
+            setOnPreferenceClickListener {
+                context.startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS))
+                true
             }
         }
     }
