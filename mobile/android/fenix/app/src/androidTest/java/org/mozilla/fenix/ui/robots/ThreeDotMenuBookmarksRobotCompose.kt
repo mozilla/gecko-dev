@@ -7,6 +7,7 @@ import androidx.compose.ui.test.performClick
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
+import org.mozilla.fenix.helpers.HomeActivityComposeTestRule
 
 class ThreeDotMenuBookmarksRobotCompose() {
     class Transition(private val composeTestRule: ComposeTestRule) {
@@ -29,13 +30,13 @@ class ThreeDotMenuBookmarksRobotCompose() {
             return TabDrawerRobot.Transition(composeTestRule)
         }
 
-        fun clickDelete(interact: BookmarksRobotCompose.() -> Unit): BookmarksRobotCompose.Transition {
+        fun clickDelete(interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
             Log.i(TAG, "clickDelete: Trying to click the \"Delete\" button")
             composeTestRule.deleteButton().performClick()
             Log.i(TAG, "clickDelete: Clicked the \"Delete\" button")
 
-            BookmarksRobotCompose(composeTestRule).interact()
-            return BookmarksRobotCompose.Transition(composeTestRule)
+            BookmarksRobot(composeTestRule).interact()
+            return BookmarksRobot.Transition(composeTestRule)
         }
 
         fun clickShare(interact: ShareOverlayRobot.() -> Unit): ShareOverlayRobot.Transition {
@@ -47,22 +48,40 @@ class ThreeDotMenuBookmarksRobotCompose() {
             return ShareOverlayRobot.Transition()
         }
 
-        fun clickEdit(interact: BookmarksRobotCompose.() -> Unit): BookmarksRobotCompose.Transition {
+        fun clickEdit(interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
             Log.i(TAG, "clickEdit: Trying to click the \"Edit\" button")
             composeTestRule.editButton().performClick()
             Log.i(TAG, "clickEdit: Clicked the \"Edit\" button")
 
-            BookmarksRobotCompose(composeTestRule).interact()
-            return BookmarksRobotCompose.Transition(composeTestRule)
+            BookmarksRobot(composeTestRule).interact()
+            return BookmarksRobot.Transition(composeTestRule)
         }
 
-        fun clickCopy(interact: BookmarksRobotCompose.() -> Unit): BookmarksRobotCompose.Transition {
+        fun clickCopy(interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
             Log.i(TAG, "clickCopy: Trying to click the \"Copy\" button")
             composeTestRule.copyButton().performClick()
             Log.i(TAG, "clickCopy: Clicked the \"Copy\" button")
 
-            BookmarksRobotCompose(composeTestRule).interact()
-            return BookmarksRobotCompose.Transition(composeTestRule)
+            BookmarksRobot(composeTestRule).interact()
+            return BookmarksRobot.Transition(composeTestRule)
+        }
+
+        fun clickOpenAllInTabs(composeTestRule: HomeActivityComposeTestRule, interact: TabDrawerRobot.() -> Unit): TabDrawerRobot.Transition {
+            Log.i(TAG, "clickOpenAllInTabs: Trying to click the \"Open all in new tabs\" button")
+            composeTestRule.openAllInTabsButton().performClick()
+            Log.i(TAG, "clickOpenAllInTabs: Clicked the \"Open all in new tabs\" button")
+
+            TabDrawerRobot(composeTestRule).interact()
+            return TabDrawerRobot.Transition(composeTestRule)
+        }
+
+        fun clickOpenAllInPrivateTabs(composeTestRule: HomeActivityComposeTestRule, interact: TabDrawerRobot.() -> Unit): TabDrawerRobot.Transition {
+            Log.i(TAG, "clickOpenAllInPrivateTabs: Trying to click the \"Open all in private tabs\" button")
+            composeTestRule.openAllInPrivateTabsButton().performClick()
+            Log.i(TAG, "clickOpenAllInPrivateTabs: Clicked the \"Open all in private tabs\" button")
+
+            TabDrawerRobot(composeTestRule).interact()
+            return TabDrawerRobot.Transition(composeTestRule)
         }
     }
 }
@@ -77,3 +96,7 @@ private fun ComposeTestRule.shareButton() = onNodeWithText(getStringResource(R.s
 private fun ComposeTestRule.deleteButton() = onNodeWithText(getStringResource(R.string.bookmark_menu_delete_button))
 
 private fun ComposeTestRule.copyButton() = onNodeWithText(getStringResource(R.string.bookmark_menu_copy_button))
+
+private fun ComposeTestRule.openAllInTabsButton() = onNodeWithText("Open all in new tabs")
+
+private fun ComposeTestRule.openAllInPrivateTabsButton() = onNodeWithText("Open all in private tabs")
