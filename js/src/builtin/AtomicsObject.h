@@ -23,6 +23,42 @@ class AtomicsObject : public NativeObject {
   static const JSClass class_;
 };
 
+enum class FutexWaiterKind { Sync, Async, ListHead };
+
+class FutexWaiter;
+class SyncFutexWaiter;
+
+class FutexWaiterListNode {
+ private:
+  FutexWaiterListNode* next_ = nullptr;  // Lower priority node in waiter list
+  FutexWaiterListNode* prev_ = nullptr;  // Higher priority node in waiter list
+
+ protected:
+  explicit FutexWaiterListNode(FutexWaiterKind kind) : kind_(kind) {}
+  FutexWaiterKind kind_;
+
+ public:
+  FutexWaiter* toWaiter() {
+    MOZ_ASSERT(kind_ != FutexWaiterKind::ListHead);
+    return reinterpret_cast<FutexWaiter*>(this);
+  }
+
+  FutexWaiterKind kind() const { return kind_; }
+
+  FutexWaiterListNode* next() { return next_; }
+  void setNext(FutexWaiterListNode* next) { next_ = next; }
+  FutexWaiterListNode* prev() { return prev_; }
+  void setPrev(FutexWaiterListNode* prev) { prev_ = prev; }
+};
+
+class FutexWaiterListHead : public FutexWaiterListNode {
+ public:
+  FutexWaiterListHead() : FutexWaiterListNode(FutexWaiterKind::ListHead) {
+    setNext(this);
+    setPrev(this);
+  }
+};
+
 class FutexThread {
   friend class AutoLockFutexAPI;
 

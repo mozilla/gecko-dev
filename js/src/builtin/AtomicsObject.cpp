@@ -527,29 +527,44 @@ static bool atomics_isLockFree(JSContext* cx, unsigned argc, Value* vp) {
 
 namespace js {
 
-// Represents one waiting worker.
+// Represents one waiter. This is the abstract base class for SyncFutexWaiter
+// and AsyncFutexWaiter.
 //
-// The type is declared opaque in SharedArrayObject.h.  Instances of
-// js::FutexWaiter are stack-allocated and linked onto a list across a
-// call to FutexThread::wait().
-//
-// The 'waiters' field of the SharedArrayRawBuffer points to the highest
-// priority waiter in the list, and lower priority nodes are linked through
-// the 'lower_pri' field.  The 'back' field goes the other direction.
-// The list is circular, so the 'lower_pri' field of the lowest priority
-// node points to the first node in the list.  The list has no dedicated
-// header node.
+// Waiter instances for a SharedArrayRawBuffer are connected in a
+// circular doubly-linked list, containing both sync and async
+// waiters. Sync waiters are stack allocated in the stack frame of the
+// waiting thread. Async waiters are heap-allocated. The 'waiters'
+// field of the SharedArrayRawBuffer is a dedicated list head node for
+// the list. Waiters are awoken in a first-in-first-out order. The
+// `next` field of the list head node points to the highest priority
+// waiter. The `prev` field points to the lowest priority waiter.
+class FutexWaiter : public FutexWaiterListNode {
+ protected:
+  FutexWaiter(JSContext* cx, size_t offset, FutexWaiterKind kind)
+      : FutexWaiterListNode(kind), offset_(offset), cx_(cx) {}
 
-class FutexWaiter {
+  size_t offset_;  // Element index within the SharedArrayBuffer
+  JSContext* cx_;  // The thread that called `wait` or `waitAsync`.
+
  public:
-  FutexWaiter(size_t offset, JSContext* cx)
-      : offset(offset), cx(cx), lower_pri(nullptr), back(nullptr) {}
+  bool isSync() const { return kind_ == FutexWaiterKind::Sync; }
+  SyncFutexWaiter* asSync() {
+    MOZ_ASSERT(isSync());
+    return reinterpret_cast<SyncFutexWaiter*>(this);
+  }
 
-  size_t offset;           // int32 element index within the SharedArrayBuffer
-  JSContext* cx;           // The waiting thread
-  FutexWaiter* lower_pri;  // Lower priority nodes in circular doubly-linked
-                           // list of waiters
-  FutexWaiter* back;       // Other direction
+  size_t offset() const { return offset_; }
+  JSContext* cx() { return cx_; }
+};
+
+// Represents a worker blocked while calling |Atomics.wait|.
+// Instances of js::SyncFutexWaiter are stack-allocated and linked
+// onto the waiter list across a call to FutexThread::wait().
+// When this waiter is notified, the worker will resume execution.
+class MOZ_STACK_CLASS SyncFutexWaiter : public FutexWaiter {
+ public:
+  SyncFutexWaiter(JSContext* cx, size_t offset)
+      : FutexWaiter(cx, offset, FutexWaiterKind::Sync) {}
 };
 
 class AutoLockFutexAPI {
@@ -570,8 +585,27 @@ class AutoLockFutexAPI {
 
 }  // namespace js
 
-// ES2021 draft rev bd868f20b8c574ad6689fba014b62a1dba819e56
-// 24.4.11 Atomics.wait ( typedArray, index, value, timeout ), steps 8-9, 14-25.
+// https://tc39.es/ecma262/#sec-addwaiter
+static void AddWaiter(SharedArrayRawBuffer* sarb, FutexWaiter* node,
+                      AutoLockFutexAPI&) {
+  FutexWaiterListNode* listHead = sarb->waiters();
+
+  // Step 3: Append waiterRecord to WL.[[Waiters]].
+  node->setNext(listHead);
+  node->setPrev(listHead->prev());
+  listHead->prev()->setNext(node);
+  listHead->setPrev(node);
+}
+
+// https://tc39.es/ecma262/#sec-removewaiter
+static void RemoveWaiter(FutexWaiterListNode* node, AutoLockFutexAPI&) {
+  node->prev()->setNext(node->next());
+  node->next()->setPrev(node->prev());
+
+  node->setNext(nullptr);
+  node->setPrev(nullptr);
+}
+
 template <typename T>
 static FutexThread::WaitResult AtomicsWait(
     JSContext* cx, SharedArrayRawBuffer* sarb, size_t byteOffset, T value,
@@ -600,28 +634,10 @@ static FutexThread::WaitResult AtomicsWait(
   }
 
   // Steps 14, 18-22.
-  FutexWaiter w(byteOffset, cx);
-  if (FutexWaiter* waiters = sarb->waiters()) {
-    w.lower_pri = waiters;
-    w.back = waiters->back;
-    waiters->back->lower_pri = &w;
-    waiters->back = &w;
-  } else {
-    w.lower_pri = w.back = &w;
-    sarb->setWaiters(&w);
-  }
-
+  SyncFutexWaiter w(cx, byteOffset);
+  AddWaiter(sarb, &w, lock);
   FutexThread::WaitResult retval = cx->fx.wait(cx, lock.unique(), timeout);
-
-  if (w.lower_pri == &w) {
-    sarb->setWaiters(nullptr);
-  } else {
-    w.lower_pri->back = w.back;
-    w.back->lower_pri = w.lower_pri;
-    if (sarb->waiters() == &w) {
-      sarb->setWaiters(w.lower_pri);
-    }
-  }
+  RemoveWaiter(&w, lock);
 
   // Steps 24-25.
   return retval;
@@ -766,27 +782,25 @@ int64_t js::atomics_notify_impl(SharedArrayRawBuffer* sarb, size_t byteOffset,
   int64_t woken = 0;
 
   // Steps 10, 13-14.
-  FutexWaiter* waiters = sarb->waiters();
-  if (waiters && count) {
-    FutexWaiter* iter = waiters;
-    do {
-      FutexWaiter* c = iter;
-      iter = iter->lower_pri;
-      if (c->offset != byteOffset || !c->cx->fx.isWaiting()) {
-        continue;
-      }
-      c->cx->fx.notify(FutexThread::NotifyExplicit);
-      // Overflow will be a problem only in two cases:
-      // (1) 128-bit systems with substantially more than 2^64 bytes of
-      //     memory per process, and a very lightweight
-      //     Atomics.waitAsync().  Obviously a future problem.
-      // (2) Bugs.
-      MOZ_RELEASE_ASSERT(woken < INT64_MAX);
-      ++woken;
-      if (count > 0) {
-        --count;
-      }
-    } while (count && iter != waiters);
+  FutexWaiterListNode* waiterListHead = sarb->waiters();
+  FutexWaiterListNode* iter = waiterListHead->next();
+  while (count && iter != waiterListHead) {
+    FutexWaiter* c = iter->toWaiter();
+    iter = iter->next();
+    if (c->offset() != byteOffset || !c->cx()->fx.isWaiting()) {
+      continue;
+    }
+    c->cx()->fx.notify(FutexThread::NotifyExplicit);
+    // Overflow will be a problem only in two cases:
+    // (1) 128-bit systems with substantially more than 2^64 bytes of
+    //     memory per process, and a very lightweight
+    //     Atomics.waitAsync().  Obviously a future problem.
+    // (2) Bugs.
+    MOZ_RELEASE_ASSERT(woken < INT64_MAX);
+    ++woken;
+    if (count > 0) {
+      --count;
+    }
   }
 
   // Step 16.

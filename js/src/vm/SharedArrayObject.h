@@ -11,13 +11,13 @@
 
 #include "jstypes.h"
 
+#include "builtin/AtomicsObject.h"
 #include "gc/Memory.h"
 #include "vm/ArrayBufferObject.h"
 #include "wasm/WasmMemory.h"
 
 namespace js {
 
-class FutexWaiter;
 class WasmSharedArrayRawBuffer;
 
 /*
@@ -64,9 +64,9 @@ class SharedArrayRawBuffer {
   mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> refcount_;
   mozilla::Atomic<size_t, mozilla::SequentiallyConsistent> length_;
 
-  // A list of structures representing tasks waiting on some
-  // location within this buffer.
-  FutexWaiter* waiters_ = nullptr;
+  // The header node of a circular doubly-linked list of structures
+  // representing tasks waiting on some location within this buffer.
+  FutexWaiterListHead waiters_;
 
  protected:
   SharedArrayRawBuffer(bool isGrowableJS, uint8_t* buffer, size_t length)
@@ -92,11 +92,7 @@ class SharedArrayRawBuffer {
 
   // This may be called from multiple threads.  The caller must take
   // care of mutual exclusion.
-  FutexWaiter* waiters() const { return waiters_; }
-
-  // This may be called from multiple threads.  The caller must take
-  // care of mutual exclusion.
-  void setWaiters(FutexWaiter* waiters) { waiters_ = waiters; }
+  FutexWaiterListNode* waiters() { return &waiters_; }
 
   inline SharedMem<uint8_t*> dataPointerShared() const;
 
