@@ -49,7 +49,9 @@ class FOGPingServer:
 
             ping_info = ping["payload"].get("ping_info")
             if ping_info:
-                log_message = f"{log_message} with reason '{ping_info['reason']}', seq {ping_info['seq']}"
+                reason = ping_info.get("reason")
+                seq = ping_info.get("seq")
+                log_message = f"{log_message} with reason '{reason}', seq {seq}"
 
             self._logger.info(log_message)
 
