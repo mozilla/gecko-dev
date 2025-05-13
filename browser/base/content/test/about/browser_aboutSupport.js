@@ -6,7 +6,7 @@
 const { ExperimentAPI } = ChromeUtils.importESModule(
   "resource://nimbus/ExperimentAPI.sys.mjs"
 );
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 const { RemoteSettings } = ChromeUtils.importESModule(
@@ -77,7 +77,7 @@ add_task(async function () {
 
 add_task(async function test_nimbus_experiments() {
   await ExperimentAPI.ready();
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: { enabled: true },
   });
@@ -112,7 +112,7 @@ add_task(async function test_nimbus_experiments() {
 
 add_task(async function test_remote_configuration() {
   await ExperimentAPI.ready();
-  let doCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  let doCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: NimbusFeatures.aboutwelcome.featureId,
       value: { enabled: true },

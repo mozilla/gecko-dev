@@ -16,7 +16,7 @@ ChromeUtils.defineESModuleGetters(this, {
   CustomizableUITestUtils:
     "resource://testing-common/CustomizableUITestUtils.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
+  NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
 });
 
 let gCUITestUtils = new CustomizableUITestUtils(window);
@@ -915,7 +915,7 @@ add_task(async function test_ui_my_services_signedin() {
 add_task(async function test_experiment_signin_button_signed_out() {
   // Enroll in Nimbus experiment
   await ExperimentAPI.ready();
-  let cleanupNimbus = await ExperimentFakes.enrollWithFeatureConfig({
+  let cleanupNimbus = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: NimbusFeatures.expandSignInButton.featureId,
     value: {
       ctaCopyVariant: "fxa-avatar-sign-in",
@@ -959,7 +959,7 @@ add_task(async function test_experiment_signin_button_signed_out() {
 add_task(async function test_experiment_signin_button_signed_in() {
   // Enroll in Nimbus experiment
   await ExperimentAPI.ready();
-  let cleanupNimbus = await ExperimentFakes.enrollWithFeatureConfig({
+  let cleanupNimbus = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: NimbusFeatures.expandSignInButton.featureId,
     value: {
       ctaCopyVariant: "fxa-avatar-sign-in",
