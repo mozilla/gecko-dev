@@ -15,7 +15,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FeatureManifest: "resource://nimbus/FeatureManifest.sys.mjs",
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
-  NormandyUtils: "resource://normandy/lib/NormandyUtils.sys.mjs",
   _ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   _RemoteSettingsExperimentLoader:
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
@@ -104,119 +103,6 @@ function validateFeatureValueEnum({ branch }) {
     }
   }
 }
-
-export const ExperimentTestUtils = {
-  validateExperiment(experiment) {
-    return NimbusTestUtils.validateExperiment(experiment);
-  },
-  validateEnrollment(enrollment) {
-    return NimbusTestUtils.validateEnrollment(enrollment);
-  },
-  addTestFeatures(...features) {
-    return NimbusTestUtils.addTestFeatures(...features);
-  },
-};
-export const ExperimentFakes = {
-  manager(store) {
-    return NimbusTestUtils.stubs.manager(store);
-  },
-  store(path) {
-    return NimbusTestUtils.stubs.store(path);
-  },
-  enrollWithFeatureConfig(...args) {
-    return NimbusTestUtils.enrollWithFeatureConfig(...args);
-  },
-  enrollmentHelper(...args) {
-    return NimbusTestUtils.enroll(...args);
-  },
-  cleanupAll(...args) {
-    return NimbusTestUtils.cleanupManager(...args);
-  },
-  cleanupStorePrefCache() {
-    return NimbusTestUtils.cleanupStorePrefCache();
-  },
-  rsLoader() {
-    return NimbusTestUtils.stubs.rsLoader();
-  },
-  experiment(slug, props = {}) {
-    return {
-      slug,
-      active: true,
-      branch: {
-        slug: "treatment",
-        ratio: 1,
-        features: [
-          {
-            featureId: "testFeature",
-            value: { testInt: 123, enabled: true },
-          },
-        ],
-        ...props,
-      },
-      source: "NimbusTestUtils",
-      isEnrollmentPaused: true,
-      experimentType: "NimbusTestUtils experiment",
-      userFacingName: "NimbusTestUtils experiment",
-      userFacingDescription: "NimbusTestUtils",
-      lastSeen: new Date().toJSON(),
-      featureIds: props?.branch?.features?.map(f => f.featureId) || [
-        "testFeature",
-      ],
-      ...props,
-    };
-  },
-  rollout(slug, props = {}) {
-    return {
-      slug,
-      active: true,
-      isRollout: true,
-      branch: {
-        slug: "treatment",
-        ratio: 1,
-        features: [
-          {
-            featureId: "testFeature",
-            value: { testInt: 123, enabled: true },
-          },
-        ],
-        ...props,
-      },
-      source: "NimbusTestUtils",
-      isEnrollmentPaused: true,
-      experimentType: "rollout",
-      userFacingName: "NimbusTestUtils rollout",
-      userFacingDescription: "NimbusTestUtils rollout",
-      lastSeen: new Date().toJSON(),
-      featureIds: (props?.branch?.features || props?.features)?.map(
-        f => f.featureId
-      ) || ["testFeature"],
-      ...props,
-    };
-  },
-  recipe(slug = lazy.NormandyUtils.generateUuid(), props = {}) {
-    return NimbusTestUtils.factories.recipe(slug, {
-      bucketConfig: ExperimentFakes.recipe.bucketConfig,
-      ...props,
-    });
-  },
-};
-Object.defineProperty(ExperimentFakes.recipe, "bucketConfig", {
-  get() {
-    return {
-      namespace: "nimbus-test-utils",
-      randomizationUnit: "normandy_id",
-      start: 0,
-      count: 100,
-      total: 1000,
-    };
-  },
-});
-
-Object.defineProperty(ExperimentFakes.recipe, "branches", {
-  get() {
-    return NimbusTestUtils.factories.recipe.branches;
-  },
-});
 
 let _testSuite = null;
 
