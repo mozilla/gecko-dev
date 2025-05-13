@@ -187,8 +187,12 @@ eval cmake \
 ninja -v $install
 
 if [ "$what" = "compiler-rt" ]; then
-  # ninja install doesn't copy the PDBs
+  # ninja install doesn't copy the PDBs, if any
   case "$target" in
+  aarch64-pc-windows-msvc)
+    # No pdb generated in that configuration.
+    find lib/windows -name '*pdb' | grep .
+    ;;
   *-pc-windows-msvc)
     cp lib/windows/*pdb $dir/lib/windows/
     ;;
