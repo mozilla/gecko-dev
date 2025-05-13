@@ -14,9 +14,9 @@ Background
 
 The following sections illustrate how breaking changes are expensive and
 frustrating as a consumer of GeckoView, as a Gecko engineer and as an external
-consumer, how they take away time from the Fenix team and reduce the average
-testing time on Nightly up to 30%. And finally, how breaking changes negate the
-very advantages that brought us to the current modularized architecture.
+consumer, how they take away time from the Fenix team. And finally, how
+breaking changes negate the very advantages that brought us to the current
+modularized architecture.
 
 Introduction
 ------------
@@ -27,9 +27,8 @@ way through which Gecko is consumed on Mozilla’s Android products.
 GeckoView provides Nightly, Beta and Release channels which update with the
 same cadence as Firefox Desktop does.
 
-Firefox for Android (code name Fenix) is developed on a standalone repository
-on GitHub and uses GeckoView through Android Components (AC for short), an
-Android library also developed on its own standalone repository.
+Firefox for Android (code name Fenix) uses GeckoView through Android Components
+(AC for short), an Android library.
 
 Fenix also provides Nightly, Beta and Release updates that mirror GeckoView and
 Firefox Desktop’s.
@@ -55,57 +54,6 @@ Engineering team.
 Assuming a 4 days report delay, each day where the Nightly build is delayed,
 due to reasons such as breaking changes, reduces the average testing time by
 10%.
-
-Nightly update
---------------
-
-Fenix Nightly consumes GeckoView indirectly through Android Components. Each
-day, an automated script makes a change in Fenix’s codebase to update AC’s
-version. This change is then submitted to Fenix’s CI and, if all tests pass, is
-merged to the codebase automatically.
-
-A new Fenix Nightly build is then generated and automatically published to
-Google’s Play Store, from where it gets distributed to all Nightly users on
-Android.
-
-Android Components has a similar automated process which publishes new versions
-every day, picking up the new GeckoView nightly build.
-
-The update process fails from time to time. The cause of the failure largely
-falls in one of the following three buckets.
-
-- An intermittent test failure
-- A bug introduced in the latest AC or GeckoView update which causes a test to
-  fail
-- A backward incompatible change has been made in AC or GeckoView that breaks
-  the build.
-
-The current mitigation for 1 is to disable or fix tests that fail
-intermittently, similarly to what happens in mozilla-central.
-
-2 and 3 are problems unique to Fenix and AC (as compared to Firefox Desktop)
-and are a direct consequence of the multi-package infrastructure of Fenix.
-
-Build breakages
----------------
-
-When the automated Nightly update fails, an engineer on the Fenix team needs to
-manually intervene to unblock the build.
-
-The need for a manual intervention automatically adds a day of Nightly build
-delay when the failure occurs outside of business hours, and 2 or 3 days of
-delay when the failure happens on a Friday night.
-
-Therefore, even assuming that a build breakage takes no time to fix, the
-average testing time is reduced by 7-30% for each build breakage that occurs.
-
-In the case where the breakage takes a few days or more to fix, the average
-testing time can be reduced to as much as half of what it would be on a
-breakage-free Nightly cycle.
-
-Build breakages put undue burden on the Fenix team, who has to jump on the
-breakage and has to drop their current work to avoid losing additional testing
-days.
 
 Reducing breakages
 ------------------
@@ -141,25 +89,6 @@ The process of testing new Gecko code in Fenix needs to be straightforward, as
 it’s often used by platform engineers that are unfamiliar with Android and
 Fenix itself, and are not likely to retain knowledge from running code on
 Android and would likely need help to do so from the GeckoView or Fenix team.
-
-Side-effects of build breakages
--------------------------------
-
-When a breakage lands in mozilla-central and until the breakage is fixed in the
-Fenix codebase, a locally built GeckoView is not compatible with the
-most-recent tip of Fenix.
-
-This can be confusing to an engineer that is unfamiliar to Fenix, and can cause
-frustration and time lost trying to figure out why upstream code, without
-modifications, fails to compile.
-
-Beyond confusion, an incompatibility on the GeckoView/Fenix combined history
-negates the primary advantage of building Fenix in a separate package:
-decoupling Gecko from the Android front-end.
-
-Building older versions from source is also harder, as the set of version
-couples (GeckoView, Fenix) that are compatible with each other is not
-explicitly documented anywhere.
 
 External consumers
 ------------------
