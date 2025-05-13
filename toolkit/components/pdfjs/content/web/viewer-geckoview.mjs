@@ -5373,18 +5373,13 @@ class PDFPageDetailView extends BasePDFPageView {
     }
     const {
       viewport,
+      maxCanvasPixels,
       capCanvasAreaFactor
     } = this.pageView;
     const visibleWidth = visibleArea.maxX - visibleArea.minX;
     const visibleHeight = visibleArea.maxY - visibleArea.minY;
-    let {
-      maxCanvasPixels
-    } = this.pageView;
-    if (capCanvasAreaFactor >= 0) {
-      maxCanvasPixels = Math.min(maxCanvasPixels, OutputScale.getCappedWindowArea(capCanvasAreaFactor));
-    }
     const visiblePixels = visibleWidth * visibleHeight * OutputScale.pixelRatio ** 2;
-    const maxDetailToVisibleLinearRatio = Math.sqrt(maxCanvasPixels / visiblePixels);
+    const maxDetailToVisibleLinearRatio = Math.sqrt(OutputScale.capPixels(maxCanvasPixels, capCanvasAreaFactor) / visiblePixels);
     const maxOverflowScale = (maxDetailToVisibleLinearRatio - 1) / 2;
     let overflowScale = Math.min(1, maxOverflowScale);
     if (overflowScale < 0) {
@@ -7059,7 +7054,7 @@ class PDFViewer {
   #supportsPinchToZoom = true;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "5.2.177";
+    const viewerVersion = "5.2.183";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -10614,8 +10609,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "5.2.177";
-const pdfjsBuild = "293506ada";
+const pdfjsVersion = "5.2.183";
+const pdfjsBuild = "3f1ecc1ba";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
