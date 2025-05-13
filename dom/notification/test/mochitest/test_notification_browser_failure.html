@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/dom/serviceworkers/test/utils.js"></script>
+<script src="MockAlertsService.js"></script>
+<script src="NotificationTest.js"></script>
+<link rel="stylesheet" href="/tests/SimpleTest/test.css">
+<script class="testbody">
+add_task(async function test_notification_browser_failure() {
+  /** @type {ServiceWorkerRegistration} */
+  const registration = await setupServiceWorker("notification_empty_sw.js", ".")
+  await MockAlertsService.mockFailure();
+
+  try {
+    await registration.showNotification("This must not succeed");
+    ok(false, "showNotification after mockFailure unexpectedly succeeded");
+  } catch (err) {
+    is(err.constructor, TypeError, "It should throw TypeError");
+    ok(
+      err.message.includes("Failed to show notification"),
+      `Failing with the proper error message, got: ${err.message}`
+    );
+  }
+});
+</script>

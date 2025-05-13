@@ -11,7 +11,14 @@ prefs = [
 ["test_notification_basics.html"]
 skip-if = [
   "xorigin", # Bug 1792790
-  "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
+  "os == 'android'", # Bug 1948752, Notification.onshow/close are broken on Android
+]
+
+["test_notification_browser_failure.html"]
+support-files = ["notification_empty_sw.js"]
+skip-if = [
+  "xorigin", # Bug 1792790
+  "os == 'android'", # Bug 1948752, Notification.onshow/close are broken on Android
 ]
 
 ["test_notification_crossorigin_iframe.html"]
@@ -93,13 +100,13 @@ support-files = ["create_notification.html"]
 
 ["test_notification_worker.html"]
 skip-if = [
-  "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
+  "os == 'android'", # Bug 1948752, Notification.onshow/close are broken on Android
 ]
 support-files = ["notification_worker.js"]
 
 ["test_notification_worker_child.html"]
 skip-if = [
-  "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
+  "os == 'android'", # Bug 1948752, Notification.onshow/close are broken on Android
 ]
 support-files = [
   "notification_worker_child-child.js",
@@ -108,7 +115,7 @@ support-files = [
 
 ["test_notification_worker_click.html"]
 skip-if = [
-  "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
+  "os == 'android'", # Bug 1948752, Notification.onshow/close are broken on Android
 ]
 
 ["test_notification_worker_permission.html"]
