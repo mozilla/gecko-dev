@@ -374,6 +374,9 @@ export class DiscoveryStreamFeed {
       })
     );
 
+    // sync redux store with PersistantCache personalization data
+    this.configureFollowedSections();
+
     this.store.dispatch(
       ac.BroadcastToContent({
         type: at.DISCOVERY_STREAM_COLLECTION_DISMISSIBLE_TOGGLE,
@@ -429,7 +432,7 @@ export class DiscoveryStreamFeed {
       );
     }
     this.store.dispatch(
-      ac.AlsoToMain({
+      ac.BroadcastToContent({
         type: at.SECTION_PERSONALIZATION_UPDATE,
         data: sectionPersonalization || {},
       })
@@ -2607,7 +2610,6 @@ export class DiscoveryStreamFeed {
         if (this.config.enabled) {
           await this.enable({ updateOpenTabs: true, isStartup: true });
         }
-        await this.configureFollowedSections();
         Services.prefs.addObserver(PREF_POCKET_BUTTON, this);
         // This function is async but just for devtools,
         // so we don't need to wait for it.
@@ -2873,8 +2875,15 @@ export class DiscoveryStreamFeed {
       case at.TOPIC_SELECTION_IMPRESSION:
         this.topicSelectionImpressionEvent();
         break;
-      case at.SECTION_PERSONALIZATION_UPDATE:
+      case at.SECTION_PERSONALIZATION_SET:
         await this.cache.set("sectionPersonalization", action.data);
+
+        this.store.dispatch(
+          ac.BroadcastToContent({
+            type: at.SECTION_PERSONALIZATION_UPDATE,
+            data: action.data,
+          })
+        );
     }
   }
 }

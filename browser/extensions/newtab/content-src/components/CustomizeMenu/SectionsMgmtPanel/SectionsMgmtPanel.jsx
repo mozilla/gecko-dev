@@ -61,7 +61,7 @@ function SectionsMgmtPanel({ exitEventFired }) {
     (sectionKey, receivedRank) => {
       dispatch(
         ac.AlsoToMain({
-          type: at.SECTION_PERSONALIZATION_UPDATE,
+          type: at.SECTION_PERSONALIZATION_SET,
           data: {
             ...sectionPersonalization,
             [sectionKey]: {
@@ -91,7 +91,7 @@ function SectionsMgmtPanel({ exitEventFired }) {
     (sectionKey, receivedRank) => {
       dispatch(
         ac.AlsoToMain({
-          type: at.SECTION_PERSONALIZATION_UPDATE,
+          type: at.SECTION_PERSONALIZATION_SET,
           data: {
             ...sectionPersonalization,
             [sectionKey]: {
@@ -123,7 +123,7 @@ function SectionsMgmtPanel({ exitEventFired }) {
       delete updatedSectionData[sectionKey];
       dispatch(
         ac.AlsoToMain({
-          type: at.SECTION_PERSONALIZATION_UPDATE,
+          type: at.SECTION_PERSONALIZATION_SET,
           data: updatedSectionData,
         })
       );
@@ -148,7 +148,7 @@ function SectionsMgmtPanel({ exitEventFired }) {
       delete updatedSectionData[sectionKey];
       dispatch(
         ac.AlsoToMain({
-          type: at.SECTION_PERSONALIZATION_UPDATE,
+          type: at.SECTION_PERSONALIZATION_SET,
           data: updatedSectionData,
         })
       );
