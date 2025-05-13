@@ -1731,6 +1731,28 @@ static bool str_toWellFormed(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+// Clamp |value| to a string index between 0 and |length|.
+static MOZ_ALWAYS_INLINE bool ToClampedStringIndex(JSContext* cx,
+                                                   Handle<Value> value,
+                                                   uint32_t length,
+                                                   uint32_t* result) {
+  // Handle the common case of int32 indices first.
+  if (value.isInt32()) {
+    int32_t i = value.toInt32();
+    *result = std::min(uint32_t(std::max(i, 0)), length);
+    return true;
+  }
+
+  double d;
+  if (!ToInteger(cx, value, &d)) {
+    return false;
+  }
+  *result = uint32_t(std::clamp(d, 0.0, double(length)));
+  return true;
+}
+
+// Return |Some(index)| if |value| is a string index between 0 and |length|.
+// Otherwise return |Nothing|.
 static MOZ_ALWAYS_INLINE bool ToStringIndex(JSContext* cx, Handle<Value> value,
                                             size_t length,
                                             mozilla::Maybe<size_t>* result) {
@@ -1753,6 +1775,8 @@ static MOZ_ALWAYS_INLINE bool ToStringIndex(JSContext* cx, Handle<Value> value,
   return true;
 }
 
+// Return |Some(index)| if |value| is a relative string index between 0 and
+// |length|. Otherwise return |Nothing|.
 static MOZ_ALWAYS_INLINE bool ToRelativeStringIndex(
     JSContext* cx, Handle<Value> value, size_t length,
     mozilla::Maybe<size_t>* result) {
@@ -2326,8 +2350,8 @@ static MOZ_ALWAYS_INLINE bool ReportErrorIfFirstArgIsRegExp(
   return true;
 }
 
-// ES2018 draft rev de77aaeffce115deaf948ed30c7dbe4c60983c0c
-// 21.1.3.7 String.prototype.includes ( searchString [ , position ] )
+// ES2026 draft rev a562082b031d89d00ee667181ce8a6158656bd4b
+// 22.1.3.8 String.prototype.includes ( searchString [ , position ] )
 bool js::str_includes(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "String.prototype", "includes");
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -2349,28 +2373,15 @@ bool js::str_includes(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // Step 6.
-  uint32_t pos = 0;
+  // Steps 6-9.
+  uint32_t start = 0;
   if (args.hasDefined(1)) {
-    if (args[1].isInt32()) {
-      int i = args[1].toInt32();
-      pos = (i < 0) ? 0U : uint32_t(i);
-    } else {
-      double d;
-      if (!ToInteger(cx, args[1], &d)) {
-        return false;
-      }
-      pos = uint32_t(std::clamp(d, 0.0, double(UINT32_MAX)));
+    if (!ToClampedStringIndex(cx, args[1], str->length(), &start)) {
+      return false;
     }
   }
 
-  // Step 7.
-  uint32_t textLen = str->length();
-
-  // Step 8.
-  uint32_t start = std::min(pos, textLen);
-
-  // Steps 9-10.
+  // Steps 10-12.
   JSLinearString* text = str->ensureLinear(cx);
   if (!text) {
     return false;
@@ -2396,43 +2407,31 @@ bool js::StringIncludes(JSContext* cx, HandleString string,
   return true;
 }
 
-/* ES6 20120927 draft 15.5.4.7. */
+// ES2026 draft rev a562082b031d89d00ee667181ce8a6158656bd4b
+// 22.1.3.9 String.prototype.indexOf ( searchString [ , position ] )
 bool js::str_indexOf(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "String.prototype", "indexOf");
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  // Steps 1, 2, and 3
+  // Steps 1-2.
   RootedString str(cx, ToStringForStringFunction(cx, "indexOf", args.thisv()));
   if (!str) {
     return false;
   }
 
-  // Steps 4 and 5
+  // Step 3.
   Rooted<JSLinearString*> searchStr(cx, ArgToLinearString(cx, args, 0));
   if (!searchStr) {
     return false;
   }
 
-  // Steps 6 and 7
-  uint32_t pos = 0;
+  // Steps 4-7.
+  uint32_t start = 0;
   if (args.hasDefined(1)) {
-    if (args[1].isInt32()) {
-      int i = args[1].toInt32();
-      pos = (i < 0) ? 0U : uint32_t(i);
-    } else {
-      double d;
-      if (!ToInteger(cx, args[1], &d)) {
-        return false;
-      }
-      pos = uint32_t(std::clamp(d, 0.0, double(UINT32_MAX)));
+    if (!ToClampedStringIndex(cx, args[1], str->length(), &start)) {
+      return false;
     }
   }
-
-  // Step 8
-  uint32_t textLen = str->length();
-
-  // Step 9
-  uint32_t start = std::min(pos, textLen);
 
   if (str == searchStr) {
     // AngularJS often invokes "false".indexOf("false"). This check should
@@ -2441,7 +2440,7 @@ bool js::str_indexOf(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
 
-  // Steps 10 and 11
+  // Steps 8-10.
   JSLinearString* text = str->ensureLinear(cx);
   if (!text) {
     return false;
@@ -2527,8 +2526,8 @@ static int32_t LastIndexOf(const JSLinearString* text,
                          searchLen, start);
 }
 
-// ES2017 draft rev 6859bb9ccaea9c6ede81d71e5320e3833b92cb3e
-// 21.1.3.9 String.prototype.lastIndexOf ( searchString [ , position ] )
+// ES2026 draft rev a562082b031d89d00ee667181ce8a6158656bd4b
+// 22.1.3.11 String.prototype.lastIndexOf ( searchString [ , position ] )
 static bool str_lastIndexOf(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "String.prototype", "lastIndexOf");
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -2546,13 +2545,13 @@ static bool str_lastIndexOf(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // Step 6.
+  // Step 7.
   size_t len = str->length();
 
   // Step 8.
   size_t searchLen = searchStr->length();
 
-  // Steps 4-5, 7.
+  // Steps 4-6 and 9.
   int start = len - searchLen;  // Start searching here
   if (args.hasDefined(1)) {
     if (args[1].isInt32()) {
@@ -2599,7 +2598,7 @@ static bool str_lastIndexOf(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // Step 9.
+  // Step 10-12.
   args.rval().setInt32(LastIndexOf(text, searchStr, start));
   return true;
 }
@@ -2642,8 +2641,8 @@ bool js::StringLastIndexOf(JSContext* cx, HandleString string,
   return true;
 }
 
-// ES2018 draft rev de77aaeffce115deaf948ed30c7dbe4c60983c0c
-// 21.1.3.20 String.prototype.startsWith ( searchString [ , position ] )
+// ES2026 draft rev a562082b031d89d00ee667181ce8a6158656bd4b
+// 22.1.3.24 String.prototype.startsWith ( searchString [ , position ] )
 bool js::str_startsWith(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "String.prototype", "startsWith");
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -2667,36 +2666,26 @@ bool js::str_startsWith(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 6.
-  uint32_t pos = 0;
-  if (args.hasDefined(1)) {
-    if (args[1].isInt32()) {
-      int i = args[1].toInt32();
-      pos = (i < 0) ? 0U : uint32_t(i);
-    } else {
-      double d;
-      if (!ToInteger(cx, args[1], &d)) {
-        return false;
-      }
-      pos = uint32_t(std::clamp(d, 0.0, double(UINT32_MAX)));
-    }
-  }
-
-  // Step 7.
   uint32_t textLen = str->length();
 
-  // Step 8.
-  uint32_t start = std::min(pos, textLen);
+  // Steps 7-8.
+  uint32_t start = 0;
+  if (args.hasDefined(1)) {
+    if (!ToClampedStringIndex(cx, args[1], textLen, &start)) {
+      return false;
+    }
+  }
 
   // Step 9.
   uint32_t searchLen = searchStr->length();
 
-  // Step 10.
+  // Step 12.
   if (searchLen + start < searchLen || searchLen + start > textLen) {
     args.rval().setBoolean(false);
     return true;
   }
 
-  // Steps 11-12.
+  // Steps 10-11 and 13-15.
   JSLinearString* text = str->ensureLinear(cx);
   if (!text) {
     return false;
@@ -2727,8 +2716,8 @@ bool js::StringStartsWith(JSContext* cx, HandleString string,
   return true;
 }
 
-// ES2018 draft rev de77aaeffce115deaf948ed30c7dbe4c60983c0c
-// 21.1.3.6 String.prototype.endsWith ( searchString [ , endPosition ] )
+// ES2026 draft rev a562082b031d89d00ee667181ce8a6158656bd4b
+// 22.1.3.7 String.prototype.endsWith ( searchString [ , endPosition ] )
 bool js::str_endsWith(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "String.prototype", "endsWith");
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -2753,37 +2742,27 @@ bool js::str_endsWith(JSContext* cx, unsigned argc, Value* vp) {
   // Step 6.
   uint32_t textLen = str->length();
 
-  // Step 7.
-  uint32_t pos = textLen;
+  // Steps 7-8.
+  uint32_t end = textLen;
   if (args.hasDefined(1)) {
-    if (args[1].isInt32()) {
-      int i = args[1].toInt32();
-      pos = (i < 0) ? 0U : uint32_t(i);
-    } else {
-      double d;
-      if (!ToInteger(cx, args[1], &d)) {
-        return false;
-      }
-      pos = uint32_t(std::clamp(d, 0.0, double(UINT32_MAX)));
+    if (!ToClampedStringIndex(cx, args[1], textLen, &end)) {
+      return false;
     }
   }
-
-  // Step 8.
-  uint32_t end = std::min(pos, textLen);
 
   // Step 9.
   uint32_t searchLen = searchStr->length();
 
-  // Step 11 (reordered).
+  // Step 12 (reordered).
   if (searchLen > end) {
     args.rval().setBoolean(false);
     return true;
   }
 
-  // Step 10.
+  // Step 11.
   uint32_t start = end - searchLen;
 
-  // Steps 12-13.
+  // Steps 10 and 13-15.
   JSLinearString* text = str->ensureLinear(cx);
   if (!text) {
     return false;
