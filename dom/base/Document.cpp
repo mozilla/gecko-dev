@@ -20337,11 +20337,8 @@ already_AddRefed<Document> Document::ParseHTMLUnsafe(
       return nullptr;
     }
 
-    // Step 6. Call sanitize on document’s root node with sanitizer and false.
-    nsCOMPtr<nsINode> root = doc->GetRootElement();
-    MOZ_DIAGNOSTIC_ASSERT(root,
-                          "HTML parser should have create the <html> root");
-    sanitizer->Sanitize(root, /* aSafe */ true, aError);
+    // Step 6. Call sanitize on document with sanitizer and false.
+    sanitizer->Sanitize(doc, /* aSafe */ true, aError);
     if (aError.Failed()) {
       return nullptr;
     }
@@ -20383,10 +20380,8 @@ already_AddRefed<Document> Document::ParseHTML(GlobalObject& aGlobal,
     return nullptr;
   }
 
-  // Step 5. Call sanitize on document’s root node with sanitizer and true.
-  nsCOMPtr<nsINode> root = doc->GetRootElement();
-  MOZ_DIAGNOSTIC_ASSERT(root, "HTML parser should have create the <html> root");
-  sanitizer->Sanitize(root, /* aSafe */ true, aError);
+  // Step 5. Call sanitize on document with sanitizer and true.
+  sanitizer->Sanitize(doc, /* aSafe */ true, aError);
   if (aError.Failed()) {
     return nullptr;
   }
