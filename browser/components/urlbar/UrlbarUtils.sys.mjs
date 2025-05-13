@@ -646,7 +646,7 @@ export var UrlbarUtils = {
    *    post data (object).
    */
   getSearchQueryUrl(engine, query) {
-    let submission = engine.getSubmission(query, null, "keyword");
+    let submission = engine.getSubmission(query);
     return [submission.uri.spec, submission.postData];
   },
 
@@ -3319,7 +3319,6 @@ export class L10nCache {
   async observe(subject, topic) {
     switch (topic) {
       case "intl:app-locales-changed": {
-        await this.l10n.ready;
         this.clear();
         break;
       }

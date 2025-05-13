@@ -393,7 +393,7 @@ export class UrlbarResult {
    */
   static addDynamicResultType(name, type = {}) {
     if (/[^a-z0-9_-]/i.test(name)) {
-      this.logger.error(`Illegal dynamic type name: ${name}`);
+      console.error(`Illegal dynamic type name: ${name}`);
       return;
     }
     this._dynamicResultTypesByName.set(name, type);
