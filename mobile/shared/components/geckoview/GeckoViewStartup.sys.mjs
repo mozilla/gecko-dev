@@ -222,6 +222,8 @@ export class GeckoViewStartup {
         GeckoViewUtils.addLazyGetter(this, "GeckoViewPreferences", {
           module: "resource://gre/modules/GeckoViewPreferences.sys.mjs",
           ged: [
+            "GeckoView:Preferences:GetPref",
+            "GeckoView:Preferences:SetPref",
             "GeckoView:Preferences:RegisterObserver",
             "GeckoView:Preferences:UnregisterObserver",
           ],

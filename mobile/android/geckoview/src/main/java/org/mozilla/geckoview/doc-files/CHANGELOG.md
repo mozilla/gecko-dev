@@ -16,10 +16,13 @@ exclude: true
 ## v140
 - Added a [`GeckoPreferenceController`][140.1] class to manage Gecko preferences.
 - Introduced a new [`preference observer delegate`][140.2] and a way to [`register`][140.3] preferences on the delegate.
+- Added options on [`GeckoPreferenceController`][140.1] to [`Get`][140.4] and [`Set`][140.5] Gecko preferences.
 
 [140.1]: {{javadoc_uri}}/GeckoPreferenceController.html
 [140.2]: {{javadoc_uri}}/GeckoPreferenceController.Observer.Delegate.html
 [140.3]: {{javadoc_uri}}/GeckoPreferenceController.Observer.html
+[140.4]: {{javadoc_URI}}/GeckoPreferenceController.html#getGeckoPref(java.lang.String,int)
+[140.5]: {{javadoc_URI}}/GeckoPreferenceController.html#setGeckoPref(java.lang.String,java.lang.String,int)
 
 ## v139
 - ⚠️ Removed deprecated [`GeckoSession.requestAnalysis`][118.4], [`GeckoSession.requestCreateAnalysis`][122.2], [`GeckoSession.requestAnalysisStatus`][137.1], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.pollForAnalysisCompleted`][137.2], [`GeckoSession.sendClickAttributionEvent`][121.4], [`GeckoSession.sendImpressionAttributionEvent`][121.5], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.requestRecommendations`][118.5], [`GeckoSession.reportBackInStock`][122.1], `AnalysisStatusResponse`, [`ReviewAnalysis`][120.2] and [`Recommendation`][120.3].
@@ -1725,4 +1728,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 6aaebbe176ff546f57778f60350af59a71f715da
+[api-version]: 056f7732d8a73559d0f4a7d44d7f424b2eaaedee

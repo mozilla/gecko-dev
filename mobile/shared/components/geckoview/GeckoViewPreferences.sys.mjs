@@ -24,6 +24,44 @@ export const GeckoViewPreferences = {
     debug`onEvent ${aEvent} ${aData}`;
 
     switch (aEvent) {
+      case "GeckoView:Preferences:GetPref": {
+        aCallback.onSuccess(this.getPreference(aData.pref));
+        return;
+      }
+      case "GeckoView:Preferences:SetPref": {
+        const branch =
+          aData.branch == "user"
+            ? Services.prefs
+            : Services.prefs.getDefaultBranch(null);
+
+        try {
+          switch (aData.type) {
+            case PREF_STRING:
+              branch.setStringPref(aData.pref, aData.value);
+              aCallback.onSuccess();
+              return;
+
+            case PREF_BOOL:
+              branch.setBoolPref(aData.pref, aData.value);
+              aCallback.onSuccess();
+              return;
+
+            case PREF_INT:
+              branch.setIntPref(aData.pref, aData.value);
+              aCallback.onSuccess();
+              return;
+
+            default:
+              warn`Attempted to set against an unknown type of: ${aData.type}`;
+              aCallback.onError(`Unable to set preference.`);
+          }
+        } catch (e) {
+          warn`There was an issue with the preference: ${e}`;
+          aCallback.onError(`There was an issue with the preference.`);
+        }
+        break;
+      }
+
       case "GeckoView:Preferences:RegisterObserver": {
         Services.prefs.addObserver(aData.pref, this);
         aCallback.onSuccess();

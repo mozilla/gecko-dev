@@ -761,6 +761,10 @@ package org.mozilla.geckoview {
 
   public class GeckoPreferenceController {
     ctor public GeckoPreferenceController();
+    method @AnyThread @NonNull public static GeckoResult<GeckoPreferenceController.GeckoPreference<?>> getGeckoPref(@NonNull String);
+    method @AnyThread @NonNull public static GeckoResult<Void> setGeckoPref(@NonNull String, @NonNull String, int);
+    method @AnyThread @NonNull public static GeckoResult<Void> setGeckoPref(@NonNull String, @NonNull Integer, int);
+    method @AnyThread @NonNull public static GeckoResult<Void> setGeckoPref(@NonNull String, @NonNull Boolean, int);
     field public static final int PREF_BRANCH_DEFAULT = 1;
     field public static final int PREF_BRANCH_USER = 0;
     field public static final int PREF_TYPE_BOOL = 128;

@@ -18,9 +18,103 @@ import java.util.Objects;
 import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.util.GeckoBundle;
 
+/** Used to access and manipulate Gecko preferences through GeckoView. */
 public class GeckoPreferenceController {
   private static final String LOGTAG = "GeckoPreference";
   private static final boolean DEBUG = false;
+
+  private static final String GET_PREF = "GeckoView:Preferences:GetPref";
+  private static final String SET_PREF = "GeckoView:Preferences:SetPref";
+
+  /**
+   * Retrieves the value of a given Gecko preference.
+   *
+   * @param prefName The preference to find the value of. e.g., some.pref.value.
+   * @return The typed Gecko preference that corresponds to this value.
+   */
+  @AnyThread
+  public static @NonNull GeckoResult<GeckoPreference<?>> getGeckoPref(
+      @NonNull final String prefName) {
+    final GeckoBundle bundle = new GeckoBundle(1);
+    bundle.putString("pref", prefName);
+    return EventDispatcher.getInstance()
+        .queryBundle(GET_PREF, bundle)
+        .map(
+            GeckoPreference::fromBundle,
+            exception -> new Exception("Could not retrieve the preference."));
+  }
+
+  /**
+   * Sets a String preference with Gecko. Float preferences should use this API.
+   *
+   * @param prefName The name of the preference to change. e.g., "some.pref.item".
+   * @param value The string value the preference should be set to.
+   * @param branch The preference branch to operate on. For most usage this will usually be {@link
+   *     #PREF_BRANCH_USER} to actively change the value that is active. {@link
+   *     #PREF_BRANCH_DEFAULT} will change the current default. If there is ever a user preference
+   *     value set, then the user value will be used over the default value. The user value will be
+   *     saved as a part of the user's profile. The default value will not be saved on the user's
+   *     profile.
+   * @return Will return a GeckoResult when the pref is set or else complete exceptionally.
+   */
+  @AnyThread
+  public static @NonNull GeckoResult<Void> setGeckoPref(
+      @NonNull final String prefName, @NonNull final String value, @PrefBranch final int branch) {
+    final GeckoBundle bundle = new GeckoBundle(1);
+    bundle.putString("pref", prefName);
+    bundle.putString("value", value);
+    bundle.putString("branch", toBranchString(branch));
+    bundle.putInt("type", PREF_TYPE_STRING);
+    return EventDispatcher.getInstance().queryVoid(SET_PREF, bundle);
+  }
+
+  /**
+   * Sets an Integer preference with Gecko.
+   *
+   * @param prefName The name of the preference to change. e.g., "some.pref.item".
+   * @param value The integer value the preference should be set to.
+   * @param branch The preference branch to operate on. For most usage this will usually be {@link
+   *     #PREF_BRANCH_USER} to actively change the value that is active. {@link
+   *     #PREF_BRANCH_DEFAULT} will change the current default. If there is ever a user preference
+   *     value set, then the user value will be used over the default value. The user value will be
+   *     saved as a part of the user's profile. The default value will not be saved on the user's
+   *     profile.
+   * @return Will return a GeckoResult when the pref is set or else complete exceptionally.
+   */
+  @AnyThread
+  public static @NonNull GeckoResult<Void> setGeckoPref(
+      @NonNull final String prefName, @NonNull final Integer value, @PrefBranch final int branch) {
+    final GeckoBundle bundle = new GeckoBundle(1);
+    bundle.putString("pref", prefName);
+    bundle.putInt("value", value);
+    bundle.putString("branch", toBranchString(branch));
+    bundle.putInt("type", PREF_TYPE_INT);
+    return EventDispatcher.getInstance().queryVoid(SET_PREF, bundle);
+  }
+
+  /**
+   * Sets a boolean preference with Gecko.
+   *
+   * @param prefName The name of the preference to change. e.g., "some.pref.item".
+   * @param value The boolean value the preference should be set to.
+   * @param branch The preference branch to operate on. For most usage this will usually be {@link
+   *     #PREF_BRANCH_USER} to actively change the value that is active. {@link
+   *     #PREF_BRANCH_DEFAULT} will change the current default. If there is ever a user preference
+   *     value set, then the user value will be used over the default value. The user value will be
+   *     saved as a part of the user's profile. The default value will not be saved on the user's
+   *     profile.
+   * @return Will return a GeckoResult when the pref is set or else complete exceptionally.
+   */
+  @AnyThread
+  public static @NonNull GeckoResult<Void> setGeckoPref(
+      @NonNull final String prefName, @NonNull final Boolean value, @PrefBranch final int branch) {
+    final GeckoBundle bundle = new GeckoBundle(1);
+    bundle.putString("pref", prefName);
+    bundle.putBoolean("value", value);
+    bundle.putString("branch", toBranchString(branch));
+    bundle.putInt("type", PREF_TYPE_BOOL);
+    return EventDispatcher.getInstance().queryVoid(SET_PREF, bundle);
+  }
 
   /** The Observer class contains utilities for monitoring preference changes in Gecko. */
   public static final class Observer {
