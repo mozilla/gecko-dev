@@ -634,7 +634,7 @@ bool ExceptionHandler::GenerateDump(
   static const char generate_msg[] = "ExceptionHandler::GenerateDump minidump "
                                      "generation ";
   static const char success_msg[] = "succeeded\n";
-  static const char fail_msg[] = "succeeded\n";
+  static const char fail_msg[] = "failed\n";
 
   logger::write(generate_msg, sizeof(generate_msg));
   if (success) {
