@@ -861,6 +861,8 @@ void InternalJobQueue::runJobs(JSContext* cx) {
         break;
       }
 
+      cx->runtime()->offThreadPromiseState.ref().internalDrain(cx);
+
       job = queue.front();
       queue.popFront();
 
