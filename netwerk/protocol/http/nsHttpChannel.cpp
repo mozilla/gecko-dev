@@ -2713,10 +2713,16 @@ nsresult nsHttpChannel::ContinueProcessResponse1(
       (httpStatus != 407)) {
     CookieVisitor cookieVisitor(mResponseHead.get());
     SetCookieHeaders(cookieVisitor.CookieHeaders());
-    nsCOMPtr<nsIParentChannel> parentChannel;
-    NS_QueryNotificationCallbacks(this, parentChannel);
-    if (RefPtr<HttpChannelParent> httpParent = do_QueryObject(parentChannel)) {
-      httpParent->SetCookieHeaders(cookieVisitor.CookieHeaders());
+    if (!LoadOnStartRequestCalled()) {
+      // This can only happen when a range request is created again in
+      // nsHttpChannel::ContinueOnStopRequest. If OnStartRequest is already
+      // called, we shouldn't call SetCookieHeaders.
+      nsCOMPtr<nsIParentChannel> parentChannel;
+      NS_QueryNotificationCallbacks(this, parentChannel);
+      if (RefPtr<HttpChannelParent> httpParent =
+              do_QueryObject(parentChannel)) {
+        httpParent->SetCookieHeaders(cookieVisitor.CookieHeaders());
+      }
     }
 
     // Given a successful connection, process any STS or PKP data that's
