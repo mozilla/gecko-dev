@@ -2263,6 +2263,10 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
       id == NameToId(cx->names().pause)) {
     return true;
   }
+  if (key == JSProto_Atomics && !JS::Prefs::atomics_wait_async() &&
+      id == NameToId(cx->names().waitAsync)) {
+    return true;
+  }
 
   return false;
 }

@@ -1818,8 +1818,8 @@ enum GetCapabilitiesExecutorSlots {
  * Promise ( executor )
  * https://tc39.es/ecma262/#sec-promise-executor
  */
-[[nodiscard]] static PromiseObject*
-CreatePromiseObjectWithoutResolutionFunctions(JSContext* cx) {
+[[nodiscard]] PromiseObject* js::CreatePromiseObjectWithoutResolutionFunctions(
+    JSContext* cx) {
   // Steps 3-7.
   PromiseObject* promise = CreatePromiseObjectInternal(cx);
   if (!promise) {

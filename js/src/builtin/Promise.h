@@ -255,6 +255,10 @@ struct PromiseReactionRecordBuilder {
 [[nodiscard]] PromiseObject* CreatePromiseObjectForAsyncGenerator(
     JSContext* cx);
 
+// This implements "Let promiseCapability be ! NewPromiseCapability(%Promise%)".
+[[nodiscard]] PromiseObject* CreatePromiseObjectWithoutResolutionFunctions(
+    JSContext* cx);
+
 [[nodiscard]] bool ResolvePromiseInternal(JSContext* cx,
                                           JS::Handle<JSObject*> promise,
                                           JS::Handle<JS::Value> resolutionVal);

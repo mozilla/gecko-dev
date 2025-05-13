@@ -650,6 +650,7 @@
   MACRO_(variable, "variable")                                                 \
   MACRO_(void_, "void")                                                        \
   MACRO_(void_0_, "(void 0)")                                                  \
+  MACRO_(waitAsync, "waitAsync")                                               \
   MACRO_(wasm, "wasm")                                                         \
   MACRO_(WasmAnyRef, "WasmAnyRef")                                             \
   MACRO_(wasmcall, "wasmcall")                                                 \

@@ -13,6 +13,7 @@
 #include "threading/ConditionVariable.h"
 #include "threading/ProtectedData.h"  // js::ThreadData
 #include "vm/NativeObject.h"
+#include "vm/PlainObject.h"
 
 namespace js {
 
@@ -163,6 +164,20 @@ class FutexThread {
 
 // Go to sleep if the int64_t value at the given address equals `value`.
 [[nodiscard]] FutexThread::WaitResult atomics_wait_impl(
+    JSContext* cx, SharedArrayRawBuffer* sarb, size_t byteOffset, int64_t value,
+    const mozilla::Maybe<mozilla::TimeDuration>& timeout);
+
+// If the int32_t value at the given address equals `value`, return a result
+// object containing a promise that will be resolved when that address is
+// notified.
+[[nodiscard]] PlainObject* atomics_wait_async_impl(
+    JSContext* cx, SharedArrayRawBuffer* sarb, size_t byteOffset, int32_t value,
+    const mozilla::Maybe<mozilla::TimeDuration>& timeout);
+
+// If the int64_t value at the given address equals `value`, return a result
+// object containing a promise that will be resolved when that address is
+// notified.
+[[nodiscard]] PlainObject* atomics_wait_async_impl(
     JSContext* cx, SharedArrayRawBuffer* sarb, size_t byteOffset, int64_t value,
     const mozilla::Maybe<mozilla::TimeDuration>& timeout);
 

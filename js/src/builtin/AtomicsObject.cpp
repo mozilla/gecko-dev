@@ -668,7 +668,7 @@ static void AddWaiter(SharedArrayRawBuffer* sarb, FutexWaiter* node,
 }
 
 // https://tc39.es/ecma262/#sec-removewaiter
-static void RemoveWaiter(FutexWaiterListNode* node, AutoLockFutexAPI&) {
+static void RemoveWaiterImpl(FutexWaiterListNode* node, AutoLockFutexAPI&) {
   node->prev()->setNext(node->next());
   node->next()->setPrev(node->prev());
 
@@ -676,12 +676,155 @@ static void RemoveWaiter(FutexWaiterListNode* node, AutoLockFutexAPI&) {
   node->setPrev(nullptr);
 }
 
-void WaitAsyncNotifyTask::prepareForCancel() {
-  AutoLockFutexAPI lock;
-  RemoveWaiter(waiter_, lock);
-  js_delete(waiter_);
+// Sync waiters are stack allocated and can simply be removed from the list.
+static void RemoveSyncWaiter(SyncFutexWaiter* waiter, AutoLockFutexAPI& lock) {
+  RemoveWaiterImpl(waiter, lock);
 }
 
+// Async waiters are heap allocated. After removing the waiter, the caller
+// is responsible for freeing it. Return the waiter to help enforce this.
+[[nodiscard]] AsyncFutexWaiter* RemoveAsyncWaiter(AsyncFutexWaiter* waiter,
+                                                  AutoLockFutexAPI& lock) {
+  RemoveWaiterImpl(waiter, lock);
+  return waiter;
+}
+
+// Creates an object to use as the return value of Atomics.waitAsync.
+static PlainObject* CreateAsyncResultObject(JSContext* cx, bool async,
+                                            HandleValue promiseOrString) {
+  Rooted<PlainObject*> resultObject(cx, NewPlainObject(cx));
+  if (!resultObject) {
+    return nullptr;
+  }
+
+  RootedValue isAsync(cx, BooleanValue(async));
+  if (!NativeDefineDataProperty(cx, resultObject, cx->names().async, isAsync,
+                                JSPROP_ENUMERATE)) {
+    return nullptr;
+  }
+
+  MOZ_ASSERT_IF(!async, promiseOrString.isString());
+  MOZ_ASSERT_IF(async, promiseOrString.isObject() &&
+                           promiseOrString.toObject().is<PromiseObject>());
+  if (!NativeDefineDataProperty(cx, resultObject, cx->names().value,
+                                promiseOrString, JSPROP_ENUMERATE)) {
+    return nullptr;
+  }
+
+  return resultObject;
+}
+
+void WaitAsyncNotifyTask::prepareForCancel() {
+  AutoLockFutexAPI lock;
+  UniquePtr<AsyncFutexWaiter> waiter(RemoveAsyncWaiter(waiter_, lock));
+}
+
+// DoWait Steps 17-31
+// https://tc39.es/ecma262/#sec-dowait
+template <typename T>
+static FutexThread::WaitResult AtomicsWaitAsyncCriticalSection(
+    JSContext* cx, SharedArrayRawBuffer* sarb, size_t byteOffset, T value,
+    const mozilla::Maybe<mozilla::TimeDuration>& timeout,
+    Handle<PromiseObject*> promise) {
+  // Step 17: Enter critical section.
+  // We need to initialize an OffThreadPromiseTask inside this critical section.
+  // To avoid deadlock, we claim the helper thread lock first.
+  AutoLockHelperThreadState helperThreadLock;
+  AutoLockFutexAPI futexLock;
+
+  // Steps 18-20:
+  SharedMem<T*> addr =
+      sarb->dataPointerShared().cast<T*>() + (byteOffset / sizeof(T));
+  if (jit::AtomicOperations::loadSafeWhenRacy(addr) != value) {
+    return FutexThread::WaitResult::NotEqual;
+  }
+
+  // Step 21
+  if (timeout.isSome() && timeout.value().IsZero()) {
+    return FutexThread::WaitResult::TimedOut;
+  }
+
+  // TODO: Support non-zero timeouts
+
+  // Steps 22-30
+  // To handle potential failures, we split this up into two phases:
+  // First, we allocate everything: the notify task, the waiter, and
+  // (if necessary) the timeout task. The allocations are managed
+  // using unique pointers, which will free them on failure. This
+  // phase has no external side-effects.
+
+  // Second, we transfer ownership of the allocations to the right places:
+  // the waiter owns the notify task, the shared array buffer owns the waiter,
+  // and the event loop owns the timeout task. This phase is infallible.
+  auto notifyTask = js::MakeUnique<WaitAsyncNotifyTask>(cx, promise);
+  if (!notifyTask) {
+    JS_ReportOutOfMemory(cx);
+    return FutexThread::WaitResult::Error;
+  }
+  auto waiter = js::MakeUnique<AsyncFutexWaiter>(cx, byteOffset);
+  if (!waiter) {
+    JS_ReportOutOfMemory(cx);
+    return FutexThread::WaitResult::Error;
+  }
+
+  notifyTask->setWaiter(waiter.get());
+  waiter->setNotifyTask(notifyTask.get());
+
+  // This is the last fallible operation. If it fails, all allocations
+  // will be freed. init has no side-effects if it fails.
+  if (!js::OffThreadPromiseTask::InitCancellable(cx, helperThreadLock,
+                                                 std::move(notifyTask))) {
+    return FutexThread::WaitResult::Error;
+  }
+
+  // Below this point, everything is infallible.
+  AddWaiter(sarb, waiter.release(), futexLock);
+
+  // Step 31: Leave critical section.
+  return FutexThread::WaitResult::OK;
+}
+
+// DoWait steps 12-35
+// https://tc39.es/ecma262/#sec-dowait
+// This implements the mode=ASYNC case.
+template <typename T>
+static PlainObject* AtomicsWaitAsync(
+    JSContext* cx, SharedArrayRawBuffer* sarb, size_t byteOffset, T value,
+    const mozilla::Maybe<mozilla::TimeDuration>& timeout) {
+  // Step 16a.
+  Rooted<PromiseObject*> promiseObject(
+      cx, CreatePromiseObjectWithoutResolutionFunctions(cx));
+  if (!promiseObject) {
+    return nullptr;
+  }
+
+  // Steps 17-31
+  switch (AtomicsWaitAsyncCriticalSection(cx, sarb, byteOffset, value, timeout,
+                                          promiseObject)) {
+    case FutexThread::WaitResult::NotEqual: {
+      // Steps 16b, 20c-e
+      RootedValue msg(cx, StringValue(cx->names().not_equal_));
+      return CreateAsyncResultObject(cx, false, msg);
+    }
+    case FutexThread::WaitResult::TimedOut: {
+      // Steps 16b, 21c-e
+      RootedValue msg(cx, StringValue(cx->names().timed_out_));
+      return CreateAsyncResultObject(cx, false, msg);
+    }
+    case FutexThread::WaitResult::Error:
+      return nullptr;
+    case FutexThread::WaitResult::OK:
+      break;
+  }
+
+  // Steps 15b, 33-35
+  RootedValue objectValue(cx, ObjectValue(*promiseObject));
+  return CreateAsyncResultObject(cx, true, objectValue);
+}
+
+// DoWait steps 12-32
+// https://tc39.es/ecma262/#sec-dowait
+// This implements the mode=SYNC case.
 template <typename T>
 static FutexThread::WaitResult AtomicsWait(
     JSContext* cx, SharedArrayRawBuffer* sarb, size_t byteOffset, T value,
@@ -708,7 +851,7 @@ static FutexThread::WaitResult AtomicsWait(
   // Steps 28-29
   AddWaiter(sarb, &w, lock);
   FutexThread::WaitResult retval = cx->fx.wait(cx, lock.unique(), timeout);
-  RemoveWaiter(&w, lock);
+  RemoveSyncWaiter(&w, lock);
 
   // Step 32
   return retval;
@@ -724,6 +867,18 @@ FutexThread::WaitResult js::atomics_wait_impl(
     JSContext* cx, SharedArrayRawBuffer* sarb, size_t byteOffset, int64_t value,
     const mozilla::Maybe<mozilla::TimeDuration>& timeout) {
   return AtomicsWait(cx, sarb, byteOffset, value, timeout);
+}
+
+PlainObject* js::atomics_wait_async_impl(
+    JSContext* cx, SharedArrayRawBuffer* sarb, size_t byteOffset, int32_t value,
+    const mozilla::Maybe<mozilla::TimeDuration>& timeout) {
+  return AtomicsWaitAsync(cx, sarb, byteOffset, value, timeout);
+}
+
+PlainObject* js::atomics_wait_async_impl(
+    JSContext* cx, SharedArrayRawBuffer* sarb, size_t byteOffset, int64_t value,
+    const mozilla::Maybe<mozilla::TimeDuration>& timeout) {
+  return AtomicsWaitAsync(cx, sarb, byteOffset, value, timeout);
 }
 
 // https://tc39.es/ecma262/#sec-dowait
@@ -776,24 +931,30 @@ static bool DoAtomicsWait(JSContext* cx, bool isAsync,
 
   // Steps 14-35.
   if (isAsync) {
-    MOZ_CRASH("TODO");
-  } else {
-    switch (atomics_wait_impl(cx, unwrappedSab->rawBufferObject(),
-                              byteIndexInBuffer, value, timeout)) {
-      case FutexThread::WaitResult::NotEqual:
-        r.setString(cx->names().not_equal_);
-        return true;
-      case FutexThread::WaitResult::OK:
-        r.setString(cx->names().ok);
-        return true;
-      case FutexThread::WaitResult::TimedOut:
-        r.setString(cx->names().timed_out_);
-        return true;
-      case FutexThread::WaitResult::Error:
-        return false;
-      default:
-        MOZ_CRASH("Should not happen");
+    PlainObject* resultObject = atomics_wait_async_impl(
+        cx, unwrappedSab->rawBufferObject(), byteIndexInBuffer, value, timeout);
+    if (!resultObject) {
+      return false;
     }
+    r.setObject(*resultObject);
+    return true;
+  }
+
+  switch (atomics_wait_impl(cx, unwrappedSab->rawBufferObject(),
+                            byteIndexInBuffer, value, timeout)) {
+    case FutexThread::WaitResult::NotEqual:
+      r.setString(cx->names().not_equal_);
+      return true;
+    case FutexThread::WaitResult::OK:
+      r.setString(cx->names().ok);
+      return true;
+    case FutexThread::WaitResult::TimedOut:
+      r.setString(cx->names().timed_out_);
+      return true;
+    case FutexThread::WaitResult::Error:
+      return false;
+    default:
+      MOZ_CRASH("Should not happen");
   }
 }
 
@@ -860,6 +1021,19 @@ static bool atomics_wait(JSContext* cx, unsigned argc, Value* vp) {
   return DoWait(cx, /*isAsync = */ false, objv, index, valv, timeoutv, r);
 }
 
+// Atomics.waitAsync ( typedArray, index, value, timeout )
+// https://tc39.es/ecma262/#sec-atomics.waitasync
+static bool atomics_wait_async(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  HandleValue objv = args.get(0);
+  HandleValue index = args.get(1);
+  HandleValue valv = args.get(2);
+  HandleValue timeoutv = args.get(3);
+  MutableHandleValue r = args.rval();
+
+  return DoWait(cx, /*isAsync = */ true, objv, index, valv, timeoutv, r);
+}
+
 // Atomics.notify ( typedArray, index, count ), steps 8-13.
 // https://tc39.es/ecma262/#sec-atomics.notify
 int64_t js::atomics_notify_impl(SharedArrayRawBuffer* sarb, size_t byteOffset,
@@ -871,18 +1045,42 @@ int64_t js::atomics_notify_impl(SharedArrayRawBuffer* sarb, size_t byteOffset,
   int64_t woken = 0;
 
   // Steps 9, 12 (through destructor).
+  AutoLockHelperThreadState helperLock;
   AutoLockFutexAPI lock;
 
   // Steps 10-11
   FutexWaiterListNode* waiterListHead = sarb->waiters();
   FutexWaiterListNode* iter = waiterListHead->next();
   while (count && iter != waiterListHead) {
-    FutexWaiter* c = iter->toWaiter();
+    FutexWaiter* waiter = iter->toWaiter();
     iter = iter->next();
-    if (c->offset() != byteOffset || !c->cx()->fx.isWaiting()) {
+    if (byteOffset != waiter->offset()) {
       continue;
     }
-    c->cx()->fx.notify(FutexThread::NotifyExplicit);
+
+    if (waiter->isSync()) {
+      // For sync waits, the context to notify is currently sleeping.
+      // We notify that context (unless it's already been notified by
+      // another thread).
+      if (!waiter->cx()->fx.isWaiting()) {
+        continue;
+      }
+      waiter->cx()->fx.notify(FutexThread::NotifyExplicit);
+    } else {
+      // For async waits, the context to notify may be executing
+      // arbitrary code. We dispatch a task to that context that will
+      // resolve the corresponding promise.
+
+      // Take ownership of the async waiter, so that it will be
+      // freed at the end of this block.
+      UniquePtr<AsyncFutexWaiter> asyncWaiter(
+          RemoveAsyncWaiter(waiter->asAsync(), lock));
+
+      // Dispatch a task to resolve the promise with value "ok".
+      asyncWaiter->notifyTask()->removeFromCancellableListAndDispatch(
+          helperLock);
+    }
+
     // Overflow will be a problem only in two cases:
     // (1) 128-bit systems with substantially more than 2^64 bytes of
     //     memory per process, and a very lightweight
@@ -1219,6 +1417,7 @@ const JSFunctionSpec AtomicsMethods[] = {
     JS_INLINABLE_FN("xor", atomics_xor, 3, 0, AtomicsXor),
     JS_INLINABLE_FN("isLockFree", atomics_isLockFree, 1, 0, AtomicsIsLockFree),
     JS_FN("wait", atomics_wait, 4, 0),
+    JS_FN("waitAsync", atomics_wait_async, 4, 0),
     JS_FN("notify", atomics_notify, 3, 0),
     JS_FN("wake", atomics_notify, 3, 0),  // Legacy name
     JS_INLINABLE_FN("pause", atomics_pause, 0, 0, AtomicsPause),
