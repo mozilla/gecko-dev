@@ -15,46 +15,12 @@ export function initialASTState() {
     // but only their values.
     // Note that all these dictionaries are storing objects as values
     // which all will have a threadActorId attribute.
-
-    // We have two maps, a first one for original sources.
-    // This is keyed by source id.
-    mutableOriginalSourcesSymbols: {},
-
-    // And another one, for generated sources.
-    // This is keyed by source actor id.
-    mutableSourceActorSymbols: {},
-
     mutableInScopeLines: {},
   };
 }
 
 function update(state = initialASTState(), action) {
   switch (action.type) {
-    case "SET_SYMBOLS": {
-      const { location } = action;
-      if (action.status === "start") {
-        return state;
-      }
-
-      const entry = {
-        value: action.value,
-        threadActorId: location.sourceActor?.thread,
-      };
-      if (location.source.isOriginal) {
-        state.mutableOriginalSourcesSymbols[location.source.id] = entry;
-      } else {
-        if (!location.sourceActor) {
-          throw new Error(
-            "Expects a location with a source actor when adding symbols for non-original sources"
-          );
-        }
-        state.mutableSourceActorSymbols[location.sourceActor.id] = entry;
-      }
-      return {
-        ...state,
-      };
-    }
-
     case "IN_SCOPE_LINES": {
       state.mutableInScopeLines[makeBreakpointId(action.location)] = {
         lines: action.lines,
@@ -77,8 +43,7 @@ function update(state = initialASTState(), action) {
           }
         }
       }
-      clearDict(state.mutableSourceActorSymbols, action.threadActorID);
-      clearDict(state.mutableOriginalSourcesSymbols, action.threadActorID);
+
       clearDict(state.mutableInScopeLines, action.threadActorID);
       return { ...state };
     }

@@ -25,7 +25,7 @@ export function willNavigate(event) {
     sourceQueue.clear();
     sourceMapLoader.clearSourceMaps();
     if (features.codemirrorNext) {
-      const editor = getEditor(features.codemirrorNext);
+      const editor = getEditor();
       editor.clearSources();
     }
     clearWasmStates();

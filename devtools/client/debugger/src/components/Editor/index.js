@@ -199,11 +199,7 @@ class Editor extends PureComponent {
     // Also if scope mapping is on, the babel parser worker
     // will be used instead (for scope mapping) as the preview data relies
     // on it for original variable mapping.
-    if (
-      nextProps.isPaused &&
-      features.codemirrorNext &&
-      !nextProps.isOriginalSourceAndMapScopesEnabled
-    ) {
+    if (nextProps.isPaused && !nextProps.isOriginalSourceAndMapScopesEnabled) {
       this.props.setInScopeLines(editor);
     }
   }

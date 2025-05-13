@@ -16,33 +16,18 @@ import {
   getSelectedTraceIndex,
   getAllTraces,
 } from "../selectors/index";
-import { features } from "../utils/prefs";
 
 import { getMappedExpression } from "./expressions";
 const {
   TRACER_FIELDS_INDEXES,
 } = require("resource://devtools/server/actors/tracer.js");
 
-async function findExpressionMatches(state, parserWorker, editor, tokenPos) {
+async function findExpressionMatches(state, editor, tokenPos) {
   const location = getSelectedLocation(state);
   if (!location) {
     return [];
   }
-  if (features.codemirrorNext) {
-    return editor.findBestMatchExpressions(tokenPos);
-  }
-
-  let match = await parserWorker.findBestMatchExpression(
-    location.source.id,
-    tokenPos
-  );
-  if (!match) {
-    // Fallback on expression from codemirror cursor,
-    // if parser worker misses symbols or is unable to find a match.
-    match = editor.getExpressionFromCoords(tokenPos);
-    return match ? [match] : [];
-  }
-  return [match];
+  return editor.findBestMatchExpressions(tokenPos);
 }
 
 /**
@@ -57,7 +42,7 @@ async function findExpressionMatches(state, parserWorker, editor, tokenPos) {
  */
 export function getTracerPreview(target, tokenPos, editor) {
   return async thunkArgs => {
-    const { getState, parserWorker } = thunkArgs;
+    const { getState } = thunkArgs;
     const selectedTraceIndex = getSelectedTraceIndex(getState());
     if (selectedTraceIndex == null) {
       return null;
@@ -71,12 +56,7 @@ export function getTracerPreview(target, tokenPos, editor) {
       return null;
     }
 
-    const matches = await findExpressionMatches(
-      getState(),
-      parserWorker,
-      editor,
-      tokenPos
-    );
+    const matches = await findExpressionMatches(getState(), editor, tokenPos);
     if (!matches.length) {
       return null;
     }
@@ -143,7 +123,7 @@ export function getTracerPreview(target, tokenPos, editor) {
  */
 export function getPausedPreview(target, tokenPos, editor) {
   return async thunkArgs => {
-    const { getState, client, parserWorker } = thunkArgs;
+    const { getState, client } = thunkArgs;
     if (
       !isSelectedFrameVisible(getState()) ||
       !isLineInScope(getState(), tokenPos.line)
@@ -160,12 +140,7 @@ export function getPausedPreview(target, tokenPos, editor) {
     if (!selectedFrame) {
       return null;
     }
-    const matches = await findExpressionMatches(
-      getState(),
-      parserWorker,
-      editor,
-      tokenPos
-    );
+    const matches = await findExpressionMatches(getState(), editor, tokenPos);
     if (!matches.length) {
       return null;
     }
@@ -244,13 +219,8 @@ export function getPausedPreview(target, tokenPos, editor) {
 }
 
 export function getExceptionPreview(target, tokenPos, editor) {
-  return async ({ getState, parserWorker }) => {
-    const matches = await findExpressionMatches(
-      getState(),
-      parserWorker,
-      editor,
-      tokenPos
-    );
+  return async ({ getState }) => {
+    const matches = await findExpressionMatches(getState(), editor, tokenPos);
     if (!matches.length) {
       return null;
     }

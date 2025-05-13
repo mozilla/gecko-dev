@@ -7,7 +7,6 @@ import { prefs } from "../../../utils/prefs";
 
 const ignoreList = [
   "ADD_BREAKPOINT_POSITIONS",
-  "SET_SYMBOLS",
   "OUT_OF_SCOPE_LOCATIONS",
   "MAP_SCOPES",
   "MAP_FRAMES",

@@ -121,7 +121,7 @@ async function updateFrameDisplayName(frame, thunkArgs) {
   }
 
   // As we now know that this frame relates to an original source...
-  // Fetch the symbols for it and compute the frame's originalDisplayName.
+  // Compute the frame's originalDisplayName.
   const originalDisplayName = location.source.isPrettyPrinted
     ? frame.displayName
     : await thunkArgs.dispatch(getOriginalFunctionDisplayName(location));
@@ -165,7 +165,6 @@ export function updateAllFrameDisplayNames(thread) {
  * e.g.
  * 1. When the debuggee pauses
  * 2. When a source is pretty printed
- * 3. When symbols are loaded
  * @memberof actions/pause
  * @static
  */

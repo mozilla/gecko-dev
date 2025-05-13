@@ -298,27 +298,6 @@ export function getFileURL(source, truncate = true) {
   return resolveFileURL(url, getUnicodeUrl, truncate);
 }
 
-/**
- * Returns amount of lines in the source. If source is a WebAssembly binary,
- * the function returns amount of bytes.
- */
-export function getSourceLineCount(content) {
-  if (content.type === "wasm") {
-    const { binary } = content.value;
-    return binary.length;
-  }
-
-  let count = 0;
-
-  for (let i = 0; i < content.value.length; ++i) {
-    if (content.value[i] === "\n") {
-      ++count;
-    }
-  }
-
-  return count + 1;
-}
-
 function getNthLine(str, lineNum) {
   let startIndex = -1;
 

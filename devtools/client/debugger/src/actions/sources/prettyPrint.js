@@ -367,7 +367,7 @@ export function prettyPrintAndSelectSource(source) {
     // This uses source map to map locations.
     // Also note that selecting a location force many things:
     // * opening tabs
-    // * fetching symbols/inline scope
+    // * fetching inline scope
     // * fetching breakable lines
     //
     // This isn't part of prettyPrintSource/doPrettyPrintSource

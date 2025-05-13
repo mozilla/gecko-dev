@@ -14,7 +14,7 @@ add_task(async function () {
   await addBreakpoint(dbg, longSrc, 66);
   invokeInTab("testModel");
   await waitForPaused(dbg, "long.js");
-  // Some spurious scroll may happen late related to text content *and* late fetching of symbols
+  // Some spurious scroll may happen late related to text content
   await waitForScrolling(dbg);
 
   ok(isScrolledPositionVisible(dbg, 66), "The paused line is visible");

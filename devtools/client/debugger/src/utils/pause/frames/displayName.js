@@ -64,7 +64,7 @@ const displayNameLibraryMap = {
  * @param {Object} frameOrFunc
  *        Either a frame or a func object.
  *        Frame object is typically created via create.js::createFrame
- *        Func object comes from ast reducer and getSymbols selector.
+ *        Func object comes from ast reducer.
  * @param {Boolean} shouldMapDisplayName
  *        True by default, will try to translate internal framework function name
  *        into a most explicit and simplier name.

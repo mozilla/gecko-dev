@@ -193,16 +193,6 @@ export function clearASTs(sourceIds) {
   }
 }
 
-export function traverseAst(sourceId, visitor, state) {
-  const ast = getAst(sourceId);
-  if (!ast || !Object.keys(ast).length) {
-    return null;
-  }
-
-  t.traverse(ast, visitor, state);
-  return ast;
-}
-
 export function hasNode(rootNode, predicate) {
   try {
     t.traverse(rootNode, {

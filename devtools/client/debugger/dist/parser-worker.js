@@ -14956,111 +14956,6 @@
 
     var libExports$2 = requireLib$2();
 
-    /* This Source Code Form is subject to the terms of the Mozilla Public
-     * License, v. 2.0. If a copy of the MPL was not distributed with this
-     * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
-
-    function createSimplePath(ancestors) {
-      if (ancestors.length === 0) {
-        return null;
-      }
-
-      // Slice the array because babel-types traverse may continue mutating
-      // the ancestors array in later traversal logic.
-      return new SimplePath(ancestors.slice());
-    }
-
-    /**
-     * Mimics @babel/traverse's NodePath API in a simpler fashion that isn't as
-     * heavy, but still allows the ease of passing paths around to process nested
-     * AST structures.
-     */
-    class SimplePath {
-      _index;
-      _ancestors;
-      _ancestor;
-
-      _parentPath;
-
-      constructor(ancestors, index = ancestors.length - 1) {
-        if (index < 0 || index >= ancestors.length) {
-          console.error(ancestors);
-          throw new Error("Created invalid path");
-        }
-
-        this._ancestors = ancestors;
-        this._ancestor = ancestors[index];
-        this._index = index;
-      }
-
-      get parentPath() {
-        let path = this._parentPath;
-        if (path === undefined) {
-          if (this._index === 0) {
-            path = null;
-          } else {
-            path = new SimplePath(this._ancestors, this._index - 1);
-          }
-          this._parentPath = path;
-        }
-
-        return path;
-      }
-
-      get parent() {
-        return this._ancestor.node;
-      }
-
-      get node() {
-        const { node, key, index } = this._ancestor;
-
-        if (typeof index === "number") {
-          return node[key][index];
-        }
-
-        return node[key];
-      }
-
-      get key() {
-        return this._ancestor.key;
-      }
-
-      get type() {
-        return this.node.type;
-      }
-
-      get inList() {
-        return typeof this._ancestor.index === "number";
-      }
-
-      get containerIndex() {
-        const { index } = this._ancestor;
-
-        if (typeof index !== "number") {
-          throw new Error("Cannot get index of non-array node");
-        }
-
-        return index;
-      }
-
-      find(predicate) {
-        for (let path = this; path; path = path.parentPath) {
-          if (predicate(path)) {
-            return path;
-          }
-        }
-        return null;
-      }
-
-      findParent(predicate) {
-        if (!this.parentPath) {
-          throw new Error("Cannot use findParent on root path");
-        }
-
-        return this.parentPath.find(predicate);
-      }
-    }
-
     var lib$1 = {};
 
     var hasRequiredLib$1;
@@ -30040,16 +29935,6 @@
       }
     }
 
-    function traverseAst(sourceId, visitor, state) {
-      const ast = getAst(sourceId);
-      if (!ast || !Object.keys(ast).length) {
-        return null;
-      }
-
-      libExports$2.traverse(ast, visitor, state);
-      return ast;
-    }
-
     function hasNode(rootNode, predicate) {
       try {
         libExports$2.traverse(rootNode, {
@@ -30079,6 +29964,1056 @@
       } else {
         parent.node[parent.key] = node;
       }
+    }
+
+    // Perform ES6's anonymous function name inference for all
+    // locations where static analysis is possible.
+    // eslint-disable-next-line complexity
+    function getFunctionName(node, parent) {
+      if (libExports$2.isIdentifier(node.id)) {
+        return node.id.name;
+      }
+
+      if (
+        libExports$2.isObjectMethod(node, { computed: false }) ||
+        libExports$2.isClassMethod(node, { computed: false }) ||
+        libExports$2.isClassPrivateMethod(node)
+      ) {
+        const { key } = node;
+
+        if (libExports$2.isIdentifier(key)) {
+          return key.name;
+        }
+        if (libExports$2.isStringLiteral(key)) {
+          return key.value;
+        }
+        if (libExports$2.isNumericLiteral(key)) {
+          return `${key.value}`;
+        }
+
+        if (libExports$2.isPrivateName(key)) {
+          return `#${key.id.name}`;
+        }
+      }
+
+      if (
+        libExports$2.isObjectProperty(parent, { computed: false, value: node }) ||
+        // TODO: Babylon 6 doesn't support computed class props. It is included
+        // here so that it is most flexible. Once Babylon 7 is used, this
+        // can change to use computed: false like ObjectProperty.
+        (libExports$2.isClassProperty(parent, { value: node }) && !parent.computed) ||
+        (libExports$2.isClassPrivateProperty(parent, { value: node }) && !parent.computed)
+      ) {
+        const { key } = parent;
+
+        if (libExports$2.isIdentifier(key)) {
+          return key.name;
+        }
+        if (libExports$2.isStringLiteral(key)) {
+          return key.value;
+        }
+        if (libExports$2.isNumericLiteral(key)) {
+          return `${key.value}`;
+        }
+
+        if (libExports$2.isPrivateName(key)) {
+          return `#${key.id.name}`;
+        }
+      }
+
+      if (libExports$2.isAssignmentExpression(parent, { operator: "=", right: node })) {
+        if (libExports$2.isIdentifier(parent.left)) {
+          return parent.left.name;
+        }
+
+        // This case is not supported in standard ES6 name inference, but it
+        // is included here since it is still a helpful case during debugging.
+        if (libExports$2.isMemberExpression(parent.left, { computed: false })) {
+          return parent.left.property.name;
+        }
+      }
+
+      if (
+        libExports$2.isAssignmentPattern(parent, { right: node }) &&
+        libExports$2.isIdentifier(parent.left)
+      ) {
+        return parent.left.name;
+      }
+
+      if (
+        libExports$2.isVariableDeclarator(parent, { init: node }) &&
+        libExports$2.isIdentifier(parent.id)
+      ) {
+        return parent.id.name;
+      }
+
+      if (
+        libExports$2.isExportDefaultDeclaration(parent, { declaration: node }) &&
+        libExports$2.isFunctionDeclaration(node)
+      ) {
+        return "default";
+      }
+
+      return "anonymous";
+    }
+
+    /**
+     * "implicit"
+     * Variables added automaticly like "this" and "arguments"
+     *
+     * "var"
+     * Variables declared with "var" or non-block function declarations
+     *
+     * "let"
+     * Variables declared with "let".
+     *
+     * "const"
+     * Variables declared with "const", or added as const
+     * bindings like inner function expressions and inner class names.
+     *
+     * "import"
+     * Imported binding names exposed from other modules.
+     *
+     * "global"
+     * Variables that reference undeclared global values.
+     */
+
+    // Location information about the expression immediartely surrounding a
+    // given binding reference.
+
+    function isGeneratedId(id) {
+      return !/\/originalSource/.test(id);
+    }
+
+    function parseSourceScopes(sourceId) {
+      const ast = getAst(sourceId);
+      if (!ast || !Object.keys(ast).length) {
+        return null;
+      }
+
+      return buildScopeList(ast, sourceId);
+    }
+
+    function buildScopeList(ast, sourceId) {
+      const { global, lexical } = createGlobalScope(ast, sourceId);
+
+      const state = {
+        // The id for the source that scope list is generated for
+        sourceId,
+
+        // A map of any free variables(variables which are used within the current scope but not
+        // declared within the scope). This changes when a new scope is created.
+        freeVariables: new Map(),
+
+        // A stack of all the free variables created across all the scopes that have
+        // been created.
+        freeVariableStack: [],
+
+        inType: null,
+
+        // The current scope, a new scope is potentially created on a visit to each node
+        // depending in the criteria. Initially set to the lexical global scope which is the
+        // child to the global scope.
+        scope: lexical,
+
+        // A stack of all the existing scopes, this is mainly used retrieve the parent scope
+        // (which is the last scope push onto the stack) on exiting a visited node.
+        scopeStack: [],
+
+        declarationBindingIds: new Set(),
+      };
+      libExports$2.traverse(ast, scopeCollectionVisitor, state);
+
+      for (const [key, freeVariables] of state.freeVariables) {
+        let binding = global.bindings[key];
+        if (!binding) {
+          binding = {
+            type: "global",
+            refs: [],
+          };
+          global.bindings[key] = binding;
+        }
+
+        binding.refs = freeVariables.concat(binding.refs);
+      }
+
+      // TODO: This should probably check for ".mjs" extension on the
+      // original file, and should also be skipped if the the generated
+      // code is an ES6 module rather than a script.
+      if (
+        isGeneratedId(sourceId) ||
+        (ast.program.sourceType === "script" && !looksLikeCommonJS(global))
+      ) {
+        stripModuleScope(global);
+      }
+
+      return toParsedScopes([global]) || [];
+    }
+
+    function toParsedScopes(children, sourceId) {
+      if (!children || children.length === 0) {
+        return undefined;
+      }
+      return children.map(scope => ({
+        // Removing unneed information from TempScope such as parent reference.
+        // We also need to convert BabelLocation to the Location type.
+        start: scope.loc.start,
+        end: scope.loc.end,
+        type:
+          scope.type === "module" || scope.type === "function-body"
+            ? "block"
+            : scope.type,
+        scopeKind: "",
+        displayName: scope.displayName,
+        bindings: scope.bindings,
+        children: toParsedScopes(scope.children),
+      }));
+    }
+
+    /**
+     * Create a new scope object and link the scope to it parent.
+     *
+     * @param {String} type - scope type
+     * @param {String} displayName - The scope display name
+     * @param {Object} parent - The parent object scope
+     * @param {Object} loc - The start and end postions (line/columns) of the scope
+     * @returns {Object} The newly created scope
+     */
+    function createTempScope(type, displayName, parent, loc) {
+      const scope = {
+        type,
+        displayName,
+        parent,
+
+        // A list of all the child scopes
+        children: [],
+        loc,
+
+        // All the bindings defined in this scope
+        // bindings = [binding, ...]
+        // binding = { type: "", refs: []}
+        bindings: Object.create(null),
+      };
+
+      if (parent) {
+        parent.children.push(scope);
+      }
+      return scope;
+    }
+
+    // Sets a new current scope and creates a new map to store the free variables
+    // that may exist in this scope.
+    function pushTempScope(state, type, displayName, loc) {
+      const scope = createTempScope(type, displayName, state.scope, loc);
+
+      state.scope = scope;
+
+      state.freeVariableStack.push(state.freeVariables);
+      state.freeVariables = new Map();
+      return scope;
+    }
+
+    function isNode(node, type) {
+      return node ? node.type === type : false;
+    }
+
+    // Walks up the scope tree to the top most variable scope
+    function getVarScope(scope) {
+      let s = scope;
+      while (s.type !== "function" && s.type !== "module") {
+        if (!s.parent) {
+          return s;
+        }
+        s = s.parent;
+      }
+      return s;
+    }
+
+    function fromBabelLocation(location, sourceId) {
+      return {
+        sourceId,
+        line: location.line,
+        column: location.column,
+      };
+    }
+
+    function parseDeclarator(
+      declaratorId,
+      targetScope,
+      type,
+      locationType,
+      declaration,
+      state
+    ) {
+      if (isNode(declaratorId, "Identifier")) {
+        let existing = targetScope.bindings[declaratorId.name];
+        if (!existing) {
+          existing = {
+            type,
+            refs: [],
+          };
+          targetScope.bindings[declaratorId.name] = existing;
+        }
+        state.declarationBindingIds.add(declaratorId);
+        existing.refs.push({
+          type: locationType,
+          start: fromBabelLocation(declaratorId.loc.start, state.sourceId),
+          end: fromBabelLocation(declaratorId.loc.end, state.sourceId),
+          declaration: {
+            start: fromBabelLocation(declaration.loc.start, state.sourceId),
+            end: fromBabelLocation(declaration.loc.end, state.sourceId),
+          },
+        });
+      } else if (isNode(declaratorId, "ObjectPattern")) {
+        declaratorId.properties.forEach(prop => {
+          parseDeclarator(
+            prop.value,
+            targetScope,
+            type,
+            locationType,
+            declaration,
+            state
+          );
+        });
+      } else if (isNode(declaratorId, "ArrayPattern")) {
+        declaratorId.elements.forEach(item => {
+          parseDeclarator(
+            item,
+            targetScope,
+            type,
+            locationType,
+            declaration,
+            state
+          );
+        });
+      } else if (isNode(declaratorId, "AssignmentPattern")) {
+        parseDeclarator(
+          declaratorId.left,
+          targetScope,
+          type,
+          locationType,
+          declaration,
+          state
+        );
+      } else if (isNode(declaratorId, "RestElement")) {
+        parseDeclarator(
+          declaratorId.argument,
+          targetScope,
+          type,
+          locationType,
+          declaration,
+          state
+        );
+      } else if (libExports$2.isTSParameterProperty(declaratorId)) {
+        parseDeclarator(
+          declaratorId.parameter,
+          targetScope,
+          type,
+          locationType,
+          declaration,
+          state
+        );
+      }
+    }
+
+    function isLetOrConst(node) {
+      return node.kind === "let" || node.kind === "const";
+    }
+
+    function hasLexicalDeclaration(node, parent) {
+      const nodes = [];
+      if (libExports$2.isSwitchStatement(node)) {
+        for (const caseNode of node.cases) {
+          nodes.push(...caseNode.consequent);
+        }
+      } else {
+        nodes.push(...node.body);
+      }
+
+      const isFunctionBody = libExports$2.isFunction(parent, { body: node });
+
+      return nodes.some(
+        child =>
+          isLexicalVariable(child) ||
+          libExports$2.isClassDeclaration(child) ||
+          (!isFunctionBody && libExports$2.isFunctionDeclaration(child))
+      );
+    }
+    function isLexicalVariable(node) {
+      return isNode(node, "VariableDeclaration") && isLetOrConst(node);
+    }
+
+    // Creates the global scopes for this source, the overall global scope
+    // and a lexical global scope.
+    function createGlobalScope(ast, sourceId) {
+      const global = createTempScope("object", "Global", null, {
+        start: fromBabelLocation(ast.loc.start, sourceId),
+        end: fromBabelLocation(ast.loc.end, sourceId),
+      });
+
+      const lexical = createTempScope("block", "Lexical Global", global, {
+        start: fromBabelLocation(ast.loc.start, sourceId),
+        end: fromBabelLocation(ast.loc.end, sourceId),
+      });
+
+      return { global, lexical };
+    }
+
+    const scopeCollectionVisitor = {
+      // eslint-disable-next-line complexity
+      enter(node, ancestors, state) {
+        state.scopeStack.push(state.scope);
+
+        const parentNode =
+          ancestors.length === 0 ? null : ancestors[ancestors.length - 1].node;
+
+        if (state.inType) {
+          return;
+        }
+
+        if (libExports$2.isProgram(node)) {
+          const scope = pushTempScope(state, "module", "Module", {
+            start: fromBabelLocation(node.loc.start, state.sourceId),
+            end: fromBabelLocation(node.loc.end, state.sourceId),
+          });
+          scope.bindings.this = {
+            type: "implicit",
+            refs: [],
+          };
+        } else if (libExports$2.isFunction(node)) {
+          let { scope } = state;
+
+          if (libExports$2.isFunctionExpression(node) && isNode(node.id, "Identifier")) {
+            scope = pushTempScope(state, "block", "Function Expression", {
+              start: fromBabelLocation(node.loc.start, state.sourceId),
+              end: fromBabelLocation(node.loc.end, state.sourceId),
+            });
+            state.declarationBindingIds.add(node.id);
+            scope.bindings[node.id.name] = {
+              type: "const",
+              refs: [
+                {
+                  type: "fn-expr",
+                  start: fromBabelLocation(node.id.loc.start, state.sourceId),
+                  end: fromBabelLocation(node.id.loc.end, state.sourceId),
+                  declaration: {
+                    start: fromBabelLocation(node.loc.start, state.sourceId),
+                    end: fromBabelLocation(node.loc.end, state.sourceId),
+                  },
+                },
+              ],
+            };
+          }
+
+          if (libExports$2.isFunctionDeclaration(node) && isNode(node.id, "Identifier")) {
+            // This ignores Annex B function declaration hoisting, which
+            // is probably a fine assumption.
+            state.declarationBindingIds.add(node.id);
+            const refs = [
+              {
+                type: "fn-decl",
+                start: fromBabelLocation(node.id.loc.start, state.sourceId),
+                end: fromBabelLocation(node.id.loc.end, state.sourceId),
+                declaration: {
+                  start: fromBabelLocation(node.loc.start, state.sourceId),
+                  end: fromBabelLocation(node.loc.end, state.sourceId),
+                },
+              },
+            ];
+
+            if (scope.type === "block") {
+              scope.bindings[node.id.name] = {
+                type: "let",
+                refs,
+              };
+            } else {
+              // Add the binding to the ancestor scope
+              getVarScope(scope).bindings[node.id.name] = {
+                type: "var",
+                refs,
+              };
+            }
+          }
+
+          scope = pushTempScope(
+            state,
+            "function",
+            getFunctionName(node, parentNode),
+            {
+              // Being at the start of a function doesn't count as
+              // being inside of it.
+              start: fromBabelLocation(
+                node.params[0] ? node.params[0].loc.start : node.loc.start,
+                state.sourceId
+              ),
+              end: fromBabelLocation(node.loc.end, state.sourceId),
+            }
+          );
+
+          node.params.forEach(param =>
+            parseDeclarator(param, scope, "var", "fn-param", node, state)
+          );
+
+          if (!libExports$2.isArrowFunctionExpression(node)) {
+            scope.bindings.this = {
+              type: "implicit",
+              refs: [],
+            };
+            scope.bindings.arguments = {
+              type: "implicit",
+              refs: [],
+            };
+          }
+
+          if (
+            libExports$2.isBlockStatement(node.body) &&
+            hasLexicalDeclaration(node.body, node)
+          ) {
+            scope = pushTempScope(state, "function-body", "Function Body", {
+              start: fromBabelLocation(node.body.loc.start, state.sourceId),
+              end: fromBabelLocation(node.body.loc.end, state.sourceId),
+            });
+          }
+        } else if (libExports$2.isClass(node)) {
+          if (libExports$2.isIdentifier(node.id)) {
+            // For decorated classes, the AST considers the first the decorator
+            // to be the start of the class. For the purposes of mapping class
+            // declarations however, we really want to look for the "class Foo"
+            // piece. To achieve that, we estimate the location of the declaration
+            // instead.
+            let declStart = node.loc.start;
+            if (node.decorators && node.decorators.length) {
+              // Estimate the location of the "class" keyword since it
+              // is unlikely to be a different line than the class name.
+              declStart = {
+                line: node.id.loc.start.line,
+                column: node.id.loc.start.column - "class ".length,
+              };
+            }
+
+            const declaration = {
+              start: fromBabelLocation(declStart, state.sourceId),
+              end: fromBabelLocation(node.loc.end, state.sourceId),
+            };
+
+            if (libExports$2.isClassDeclaration(node)) {
+              state.declarationBindingIds.add(node.id);
+              state.scope.bindings[node.id.name] = {
+                type: "let",
+                refs: [
+                  {
+                    type: "class-decl",
+                    start: fromBabelLocation(node.id.loc.start, state.sourceId),
+                    end: fromBabelLocation(node.id.loc.end, state.sourceId),
+                    declaration,
+                  },
+                ],
+              };
+            }
+
+            const scope = pushTempScope(state, "block", "Class", {
+              start: fromBabelLocation(node.loc.start, state.sourceId),
+              end: fromBabelLocation(node.loc.end, state.sourceId),
+            });
+
+            state.declarationBindingIds.add(node.id);
+            scope.bindings[node.id.name] = {
+              type: "const",
+              refs: [
+                {
+                  type: "class-inner",
+                  start: fromBabelLocation(node.id.loc.start, state.sourceId),
+                  end: fromBabelLocation(node.id.loc.end, state.sourceId),
+                  declaration,
+                },
+              ],
+            };
+          }
+        } else if (libExports$2.isForXStatement(node) || libExports$2.isForStatement(node)) {
+          const init = node.init || node.left;
+          if (isNode(init, "VariableDeclaration") && isLetOrConst(init)) {
+            // Debugger will create new lexical environment for the for.
+            pushTempScope(state, "block", "For", {
+              // Being at the start of a for loop doesn't count as
+              // being inside it.
+              start: fromBabelLocation(init.loc.start, state.sourceId),
+              end: fromBabelLocation(node.loc.end, state.sourceId),
+            });
+          }
+        } else if (libExports$2.isCatchClause(node)) {
+          const scope = pushTempScope(state, "block", "Catch", {
+            start: fromBabelLocation(node.loc.start, state.sourceId),
+            end: fromBabelLocation(node.loc.end, state.sourceId),
+          });
+          parseDeclarator(node.param, scope, "var", "catch", node, state);
+        } else if (
+          libExports$2.isBlockStatement(node) &&
+          // Function body's are handled in the function logic above.
+          !libExports$2.isFunction(parentNode) &&
+          hasLexicalDeclaration(node, parentNode)
+        ) {
+          // Debugger will create new lexical environment for the block.
+          pushTempScope(state, "block", "Block", {
+            start: fromBabelLocation(node.loc.start, state.sourceId),
+            end: fromBabelLocation(node.loc.end, state.sourceId),
+          });
+        } else if (
+          libExports$2.isVariableDeclaration(node) &&
+          (node.kind === "var" ||
+            // Lexical declarations in for statements are handled above.
+            !libExports$2.isForStatement(parentNode, { init: node }) ||
+            !libExports$2.isForXStatement(parentNode, { left: node }))
+        ) {
+          // Finds right lexical environment
+          const hoistAt = !isLetOrConst(node)
+            ? getVarScope(state.scope)
+            : state.scope;
+          node.declarations.forEach(declarator => {
+            parseDeclarator(
+              declarator.id,
+              hoistAt,
+              node.kind,
+              node.kind,
+              node,
+              state
+            );
+          });
+        } else if (
+          libExports$2.isImportDeclaration(node) &&
+          (!node.importKind || node.importKind === "value")
+        ) {
+          node.specifiers.forEach(spec => {
+            if (spec.importKind && spec.importKind !== "value") {
+              return;
+            }
+
+            if (libExports$2.isImportNamespaceSpecifier(spec)) {
+              state.declarationBindingIds.add(spec.local);
+
+              state.scope.bindings[spec.local.name] = {
+                // Imported namespaces aren't live import bindings, they are
+                // just normal const bindings.
+                type: "const",
+                refs: [
+                  {
+                    type: "import-ns-decl",
+                    start: fromBabelLocation(spec.local.loc.start, state.sourceId),
+                    end: fromBabelLocation(spec.local.loc.end, state.sourceId),
+                    declaration: {
+                      start: fromBabelLocation(node.loc.start, state.sourceId),
+                      end: fromBabelLocation(node.loc.end, state.sourceId),
+                    },
+                  },
+                ],
+              };
+            } else {
+              state.declarationBindingIds.add(spec.local);
+
+              state.scope.bindings[spec.local.name] = {
+                type: "import",
+                refs: [
+                  {
+                    type: "import-decl",
+                    start: fromBabelLocation(spec.local.loc.start, state.sourceId),
+                    end: fromBabelLocation(spec.local.loc.end, state.sourceId),
+                    importName: libExports$2.isImportDefaultSpecifier(spec)
+                      ? "default"
+                      : spec.imported.name,
+                    declaration: {
+                      start: fromBabelLocation(node.loc.start, state.sourceId),
+                      end: fromBabelLocation(node.loc.end, state.sourceId),
+                    },
+                  },
+                ],
+              };
+            }
+          });
+        } else if (libExports$2.isTSEnumDeclaration(node)) {
+          state.declarationBindingIds.add(node.id);
+          state.scope.bindings[node.id.name] = {
+            type: "const",
+            refs: [
+              {
+                type: "ts-enum-decl",
+                start: fromBabelLocation(node.id.loc.start, state.sourceId),
+                end: fromBabelLocation(node.id.loc.end, state.sourceId),
+                declaration: {
+                  start: fromBabelLocation(node.loc.start, state.sourceId),
+                  end: fromBabelLocation(node.loc.end, state.sourceId),
+                },
+              },
+            ],
+          };
+        } else if (libExports$2.isTSModuleDeclaration(node)) {
+          state.declarationBindingIds.add(node.id);
+          state.scope.bindings[node.id.name] = {
+            type: "const",
+            refs: [
+              {
+                type: "ts-namespace-decl",
+                start: fromBabelLocation(node.id.loc.start, state.sourceId),
+                end: fromBabelLocation(node.id.loc.end, state.sourceId),
+                declaration: {
+                  start: fromBabelLocation(node.loc.start, state.sourceId),
+                  end: fromBabelLocation(node.loc.end, state.sourceId),
+                },
+              },
+            ],
+          };
+        } else if (libExports$2.isTSModuleBlock(node)) {
+          pushTempScope(state, "block", "TypeScript Namespace", {
+            start: fromBabelLocation(node.loc.start, state.sourceId),
+            end: fromBabelLocation(node.loc.end, state.sourceId),
+          });
+        } else if (
+          libExports$2.isIdentifier(node) &&
+          libExports$2.isReferenced(node, parentNode) &&
+          // Babel doesn't cover this in 'isReferenced' yet, but it should
+          // eventually.
+          !libExports$2.isTSEnumMember(parentNode, { id: node }) &&
+          !libExports$2.isTSModuleDeclaration(parentNode, { id: node }) &&
+          // isReferenced above fails to see `var { foo } = ...` as a non-reference
+          // because the direct parent is not enough to know that the pattern is
+          // used within a variable declaration.
+          !state.declarationBindingIds.has(node)
+        ) {
+          let freeVariables = state.freeVariables.get(node.name);
+          if (!freeVariables) {
+            freeVariables = [];
+            state.freeVariables.set(node.name, freeVariables);
+          }
+
+          freeVariables.push({
+            type: "ref",
+            start: fromBabelLocation(node.loc.start, state.sourceId),
+            end: fromBabelLocation(node.loc.end, state.sourceId),
+            meta: buildMetaBindings(state.sourceId, node, ancestors),
+          });
+        } else if (isOpeningJSXIdentifier(node, ancestors)) {
+          let freeVariables = state.freeVariables.get(node.name);
+          if (!freeVariables) {
+            freeVariables = [];
+            state.freeVariables.set(node.name, freeVariables);
+          }
+
+          freeVariables.push({
+            type: "ref",
+            start: fromBabelLocation(node.loc.start, state.sourceId),
+            end: fromBabelLocation(node.loc.end, state.sourceId),
+            meta: buildMetaBindings(state.sourceId, node, ancestors),
+          });
+        } else if (libExports$2.isThisExpression(node)) {
+          let freeVariables = state.freeVariables.get("this");
+          if (!freeVariables) {
+            freeVariables = [];
+            state.freeVariables.set("this", freeVariables);
+          }
+
+          freeVariables.push({
+            type: "ref",
+            start: fromBabelLocation(node.loc.start, state.sourceId),
+            end: fromBabelLocation(node.loc.end, state.sourceId),
+            meta: buildMetaBindings(state.sourceId, node, ancestors),
+          });
+        } else if (libExports$2.isClassProperty(parentNode, { value: node })) {
+          const scope = pushTempScope(state, "function", "Class Field", {
+            start: fromBabelLocation(node.loc.start, state.sourceId),
+            end: fromBabelLocation(node.loc.end, state.sourceId),
+          });
+          scope.bindings.this = {
+            type: "implicit",
+            refs: [],
+          };
+          scope.bindings.arguments = {
+            type: "implicit",
+            refs: [],
+          };
+        } else if (
+          libExports$2.isSwitchStatement(node) &&
+          hasLexicalDeclaration(node, parentNode)
+        ) {
+          pushTempScope(state, "block", "Switch", {
+            start: fromBabelLocation(node.loc.start, state.sourceId),
+            end: fromBabelLocation(node.loc.end, state.sourceId),
+          });
+        }
+
+        if (
+          // In general Flow expressions are deleted, so they can't contain
+          // runtime bindings, but typecasts are the one exception there.
+          (libExports$2.isFlow(node) && !libExports$2.isTypeCastExpression(node)) ||
+          // In general TS items are deleted, but TS has a few wrapper node
+          // types that can contain general JS expressions.
+          (node.type.startsWith("TS") &&
+            !libExports$2.isTSTypeAssertion(node) &&
+            !libExports$2.isTSAsExpression(node) &&
+            !libExports$2.isTSNonNullExpression(node) &&
+            !libExports$2.isTSModuleDeclaration(node) &&
+            !libExports$2.isTSModuleBlock(node) &&
+            !libExports$2.isTSParameterProperty(node) &&
+            !libExports$2.isTSExportAssignment(node))
+        ) {
+          // Flag this node as a root "type" node. All items inside of this
+          // will be skipped entirely.
+          state.inType = node;
+        }
+      },
+      exit(node, ancestors, state) {
+        const currentScope = state.scope;
+        const parentScope = state.scopeStack.pop();
+        if (!parentScope) {
+          throw new Error("Assertion failure - unsynchronized pop");
+        }
+        state.scope = parentScope;
+
+        // It is possible, as in the case of function expressions, that a single
+        // node has added multiple scopes, so we need to traverse upward here
+        // rather than jumping stright to 'parentScope'.
+        for (
+          let scope = currentScope;
+          scope && scope !== parentScope;
+          scope = scope.parent
+        ) {
+          const { freeVariables } = state;
+          state.freeVariables = state.freeVariableStack.pop();
+          const parentFreeVariables = state.freeVariables;
+
+          // Match up any free variables that match this scope's bindings and
+          // merge then into the refs.
+          for (const key of Object.keys(scope.bindings)) {
+            const binding = scope.bindings[key];
+
+            const freeVars = freeVariables.get(key);
+            if (freeVars) {
+              binding.refs.push(...freeVars);
+              freeVariables.delete(key);
+            }
+          }
+
+          // Move any undeclared references in this scope into the parent for
+          // processing in higher scopes.
+          for (const [key, value] of freeVariables) {
+            let refs = parentFreeVariables.get(key);
+            if (!refs) {
+              refs = [];
+              parentFreeVariables.set(key, refs);
+            }
+
+            refs.push(...value);
+          }
+        }
+
+        if (state.inType === node) {
+          state.inType = null;
+        }
+      },
+    };
+
+    function isOpeningJSXIdentifier(node, ancestors) {
+      if (!libExports$2.isJSXIdentifier(node)) {
+        return false;
+      }
+
+      for (let i = ancestors.length - 1; i >= 0; i--) {
+        const { node: parent, key } = ancestors[i];
+
+        if (libExports$2.isJSXOpeningElement(parent) && key === "name") {
+          return true;
+        } else if (!libExports$2.isJSXMemberExpression(parent) || key !== "object") {
+          break;
+        }
+      }
+
+      return false;
+    }
+
+    function buildMetaBindings(
+      sourceId,
+      node,
+      ancestors,
+      parentIndex = ancestors.length - 1
+    ) {
+      if (parentIndex <= 1) {
+        return null;
+      }
+      const parent = ancestors[parentIndex].node;
+      const grandparent = ancestors[parentIndex - 1].node;
+
+      // Consider "0, foo" to be equivalent to "foo".
+      if (
+        libExports$2.isSequenceExpression(parent) &&
+        parent.expressions.length === 2 &&
+        libExports$2.isNumericLiteral(parent.expressions[0]) &&
+        parent.expressions[1] === node
+      ) {
+        let { start, end } = parent.loc;
+
+        if (libExports$2.isCallExpression(grandparent, { callee: parent })) {
+          // Attempt to expand the range around parentheses, e.g.
+          // (0, foo.bar)()
+          start = grandparent.loc.start;
+          end = Object.assign({}, end);
+          end.column += 1;
+        }
+
+        return {
+          type: "inherit",
+          start: fromBabelLocation(start, sourceId),
+          end: fromBabelLocation(end, sourceId),
+          parent: buildMetaBindings(sourceId, parent, ancestors, parentIndex - 1),
+        };
+      }
+
+      // Consider "Object(foo)", and "__webpack_require__.i(foo)" to be
+      // equivalent to "foo" since they are essentially identity functions.
+      if (
+        libExports$2.isCallExpression(parent) &&
+        (libExports$2.isIdentifier(parent.callee, { name: "Object" }) ||
+          (libExports$2.isMemberExpression(parent.callee, { computed: false }) &&
+            libExports$2.isIdentifier(parent.callee.object, { name: "__webpack_require__" }) &&
+            libExports$2.isIdentifier(parent.callee.property, { name: "i" }))) &&
+        parent.arguments.length === 1 &&
+        parent.arguments[0] === node
+      ) {
+        return {
+          type: "inherit",
+          start: fromBabelLocation(parent.loc.start, sourceId),
+          end: fromBabelLocation(parent.loc.end, sourceId),
+          parent: buildMetaBindings(sourceId, parent, ancestors, parentIndex - 1),
+        };
+      }
+
+      if (libExports$2.isMemberExpression(parent, { object: node })) {
+        if (parent.computed) {
+          if (libExports$2.isStringLiteral(parent.property)) {
+            return {
+              type: "member",
+              start: fromBabelLocation(parent.loc.start, sourceId),
+              end: fromBabelLocation(parent.loc.end, sourceId),
+              property: parent.property.value,
+              parent: buildMetaBindings(
+                sourceId,
+                parent,
+                ancestors,
+                parentIndex - 1
+              ),
+            };
+          }
+        } else {
+          return {
+            type: "member",
+            start: fromBabelLocation(parent.loc.start, sourceId),
+            end: fromBabelLocation(parent.loc.end, sourceId),
+            property: parent.property.name,
+            parent: buildMetaBindings(sourceId, parent, ancestors, parentIndex - 1),
+          };
+        }
+      }
+      if (
+        libExports$2.isCallExpression(parent, { callee: node }) &&
+        !parent.arguments.length
+      ) {
+        return {
+          type: "call",
+          start: fromBabelLocation(parent.loc.start, sourceId),
+          end: fromBabelLocation(parent.loc.end, sourceId),
+          parent: buildMetaBindings(sourceId, parent, ancestors, parentIndex - 1),
+        };
+      }
+
+      return null;
+    }
+
+    function looksLikeCommonJS(rootScope) {
+      const hasRefs = name =>
+        rootScope.bindings[name] && !!rootScope.bindings[name].refs.length;
+
+      return (
+        hasRefs("__dirname") ||
+        hasRefs("__filename") ||
+        hasRefs("require") ||
+        hasRefs("exports") ||
+        hasRefs("module")
+      );
+    }
+
+    function stripModuleScope(rootScope) {
+      const rootLexicalScope = rootScope.children[0];
+      const moduleScope = rootLexicalScope.children[0];
+      if (moduleScope.type !== "module") {
+        throw new Error("Assertion failure - should be module");
+      }
+
+      Object.keys(moduleScope.bindings).forEach(name => {
+        const binding = moduleScope.bindings[name];
+        if (binding.type === "let" || binding.type === "const") {
+          rootLexicalScope.bindings[name] = binding;
+        } else {
+          rootScope.bindings[name] = binding;
+        }
+      });
+      rootLexicalScope.children = moduleScope.children;
+      rootLexicalScope.children.forEach(child => {
+        child.parent = rootLexicalScope;
+      });
+    }
+
+    const parsedScopesCache = new Map();
+
+    function getScopes(location) {
+      const sourceId = location.source.id;
+      let parsedScopes = parsedScopesCache.get(sourceId);
+      if (!parsedScopes) {
+        parsedScopes = parseSourceScopes(sourceId);
+        parsedScopesCache.set(sourceId, parsedScopes);
+      }
+      return parsedScopes ? findScopes(parsedScopes, location) : [];
+    }
+
+    function clearScopes(sourceIds) {
+      for (const sourceId of sourceIds) {
+        parsedScopesCache.delete(sourceId);
+      }
+    }
+
+    /**
+     * Searches all scopes and their bindings at the specific location.
+     */
+    function findScopes(scopes, location) {
+      // Find inner most in the tree structure.
+      let searchInScopes = scopes;
+      const found = [];
+      while (searchInScopes) {
+        const foundOne = searchInScopes.some(s => {
+          if (
+            compareLocations(s.start, location) <= 0 &&
+            compareLocations(location, s.end) < 0
+          ) {
+            // Found the next scope, trying to search recusevly in its children.
+            found.unshift(s);
+            searchInScopes = s.children;
+            return true;
+          }
+          return false;
+        });
+        if (!foundOne) {
+          break;
+        }
+      }
+      return found.map(i => ({
+        type: i.type,
+        scopeKind: i.scopeKind,
+        displayName: i.displayName,
+        start: i.start,
+        end: i.end,
+        bindings: i.bindings,
+      }));
+    }
+
+    function compareLocations(a, b) {
+      // According to type of Location.column can be undefined, if will not be the
+      // case here, ignoring flow error.
+      return a.line == b.line ? a.column - b.column : a.line - b.line;
     }
 
     var lib = {};
@@ -39305,2001 +40240,6 @@ Please specify the "importAttributesKeyword" generator option, whose value can b
     var libExports = requireLib();
     var generate = /*@__PURE__*/getDefaultExportFromCjs(libExports);
 
-    function isFunction(node) {
-      return (
-        libExports$2.isFunction(node) ||
-        libExports$2.isArrowFunctionExpression(node) ||
-        libExports$2.isObjectMethod(node) ||
-        libExports$2.isClassMethod(node)
-      );
-    }
-
-    function isObjectShorthand(parent) {
-      if (!libExports$2.isObjectProperty(parent)) {
-        return false;
-      }
-
-      if (parent.value && parent.value.left) {
-        return (
-          parent.value.type === "AssignmentPattern" &&
-          parent.value.left.type === "Identifier"
-        );
-      }
-
-      return (
-        parent.value &&
-        parent.key.start == parent.value.start &&
-        parent.key.loc.identifierName === parent.value.loc.identifierName
-      );
-    }
-
-    function getObjectExpressionValue(node) {
-      const { value } = node;
-
-      if (libExports$2.isIdentifier(value)) {
-        return value.name;
-      }
-
-      if (libExports$2.isCallExpression(value) || libExports$2.isFunctionExpression(value)) {
-        return "";
-      }
-      const code = generate(value).code;
-
-      const shouldWrap = libExports$2.isObjectExpression(value);
-      return shouldWrap ? `(${code})` : code;
-    }
-
-    function getCode(node) {
-      return generate(node).code;
-    }
-
-    function getComments(ast) {
-      if (!ast || !ast.comments) {
-        return [];
-      }
-      return ast.comments.map(comment => ({
-        name: comment.location,
-        location: comment.loc,
-      }));
-    }
-
-    function isComputedExpression(expression) {
-      return /^\[/m.test(expression);
-    }
-
-    /**
-     * Add the identifiers for a given object pattern.
-     *
-     * @param {Array.<Object>} identifiers
-     *        the current list of identifiers where to push the new identifiers
-     *        related to this path.
-     * @param {Set<String>} identifiersKeys
-     *        List of currently registered identifier location key.
-     * @param {Object} pattern
-     */
-    function addPatternIdentifiers(identifiers, identifiersKeys, pattern) {
-      let items;
-      if (libExports$2.isObjectPattern(pattern)) {
-        items = pattern.properties.map(({ value }) => value);
-      }
-
-      if (libExports$2.isArrayPattern(pattern)) {
-        items = pattern.elements;
-      }
-
-      if (items) {
-        addIdentifiers(identifiers, identifiersKeys, items);
-      }
-    }
-
-    function addIdentifiers(identifiers, identifiersKeys, items) {
-      for (const item of items) {
-        if (libExports$2.isObjectPattern(item) || libExports$2.isArrayPattern(item)) {
-          addPatternIdentifiers(identifiers, identifiersKeys, item);
-        } else if (libExports$2.isIdentifier(item)) {
-          if (!identifiersKeys.has(nodeLocationKey(item.loc))) {
-            identifiers.push({
-              name: item.name,
-              expression: item.name,
-              location: item.loc,
-            });
-          }
-        }
-      }
-    }
-
-    // Top Level checks the number of "body" nodes in the ancestor chain
-    // if the node is top-level, then it shoul only have one body.
-    function isTopLevel(ancestors) {
-      return ancestors.filter(ancestor => ancestor.key == "body").length == 1;
-    }
-
-    function nodeLocationKey({ start, end }) {
-      return `${start.line}:${start.column}:${end.line}:${end.column}`;
-    }
-
-    function getFunctionParameterNames(path) {
-      if (path.node.params != null) {
-        return path.node.params.map(param => {
-          if (param.type !== "AssignmentPattern") {
-            return param.name;
-          }
-
-          // Parameter with default value
-          if (
-            param.left.type === "Identifier" &&
-            param.right.type === "Identifier"
-          ) {
-            return `${param.left.name} = ${param.right.name}`;
-          } else if (
-            param.left.type === "Identifier" &&
-            param.right.type === "StringLiteral"
-          ) {
-            return `${param.left.name} = ${param.right.value}`;
-          } else if (
-            param.left.type === "Identifier" &&
-            param.right.type === "ObjectExpression"
-          ) {
-            return `${param.left.name} = {}`;
-          } else if (
-            param.left.type === "Identifier" &&
-            param.right.type === "ArrayExpression"
-          ) {
-            return `${param.left.name} = []`;
-          } else if (
-            param.left.type === "Identifier" &&
-            param.right.type === "NullLiteral"
-          ) {
-            return `${param.left.name} = null`;
-          }
-
-          return null;
-        });
-      }
-      return [];
-    }
-
-    // the function class is inferred from a call like
-    // createClass or extend
-    function fromCallExpression(callExpression) {
-      const allowlist = ["extend", "createClass"];
-      const { callee } = callExpression.node;
-      if (!callee) {
-        return null;
-      }
-
-      const name = libExports$2.isMemberExpression(callee)
-        ? callee.property.name
-        : callee.name;
-
-      if (!allowlist.includes(name)) {
-        return null;
-      }
-
-      const variable = callExpression.findParent(p =>
-        libExports$2.isVariableDeclarator(p.node)
-      );
-      if (variable) {
-        return variable.node.id.name;
-      }
-
-      const assignment = callExpression.findParent(p =>
-        libExports$2.isAssignmentExpression(p.node)
-      );
-
-      if (!assignment) {
-        return null;
-      }
-
-      const { left } = assignment.node;
-
-      if (left.name) {
-        return name;
-      }
-
-      if (libExports$2.isMemberExpression(left)) {
-        return left.property.name;
-      }
-
-      return null;
-    }
-
-    // the function class is inferred from a prototype assignment
-    // e.g. TodoClass.prototype.render = function() {}
-    function fromPrototype(assignment) {
-      const { left } = assignment.node;
-      if (!left) {
-        return null;
-      }
-
-      if (
-        libExports$2.isMemberExpression(left) &&
-        left.object &&
-        libExports$2.isMemberExpression(left.object) &&
-        left.object.property.identifier === "prototype"
-      ) {
-        return left.object.object.name;
-      }
-
-      return null;
-    }
-
-    // infer class finds an appropriate class for functions
-    // that are defined inside of a class like thing.
-    // e.g. `class Foo`, `TodoClass.prototype.foo`,
-    //      `Todo = createClass({ foo: () => {}})`
-    function inferClassName(path) {
-      const classDeclaration = path.findParent(p => libExports$2.isClassDeclaration(p.node));
-      if (classDeclaration) {
-        return classDeclaration.node.id.name;
-      }
-
-      const callExpression = path.findParent(p => libExports$2.isCallExpression(p.node));
-      if (callExpression) {
-        return fromCallExpression(callExpression);
-      }
-
-      const assignment = path.findParent(p => libExports$2.isAssignmentExpression(p.node));
-      if (assignment) {
-        return fromPrototype(assignment);
-      }
-
-      return null;
-    }
-
-    // Perform ES6's anonymous function name inference for all
-    // locations where static analysis is possible.
-    // eslint-disable-next-line complexity
-    function getFunctionName(node, parent) {
-      if (libExports$2.isIdentifier(node.id)) {
-        return node.id.name;
-      }
-
-      if (
-        libExports$2.isObjectMethod(node, { computed: false }) ||
-        libExports$2.isClassMethod(node, { computed: false }) ||
-        libExports$2.isClassPrivateMethod(node)
-      ) {
-        const { key } = node;
-
-        if (libExports$2.isIdentifier(key)) {
-          return key.name;
-        }
-        if (libExports$2.isStringLiteral(key)) {
-          return key.value;
-        }
-        if (libExports$2.isNumericLiteral(key)) {
-          return `${key.value}`;
-        }
-
-        if (libExports$2.isPrivateName(key)) {
-          return `#${key.id.name}`;
-        }
-      }
-
-      if (
-        libExports$2.isObjectProperty(parent, { computed: false, value: node }) ||
-        // TODO: Babylon 6 doesn't support computed class props. It is included
-        // here so that it is most flexible. Once Babylon 7 is used, this
-        // can change to use computed: false like ObjectProperty.
-        (libExports$2.isClassProperty(parent, { value: node }) && !parent.computed) ||
-        (libExports$2.isClassPrivateProperty(parent, { value: node }) && !parent.computed)
-      ) {
-        const { key } = parent;
-
-        if (libExports$2.isIdentifier(key)) {
-          return key.name;
-        }
-        if (libExports$2.isStringLiteral(key)) {
-          return key.value;
-        }
-        if (libExports$2.isNumericLiteral(key)) {
-          return `${key.value}`;
-        }
-
-        if (libExports$2.isPrivateName(key)) {
-          return `#${key.id.name}`;
-        }
-      }
-
-      if (libExports$2.isAssignmentExpression(parent, { operator: "=", right: node })) {
-        if (libExports$2.isIdentifier(parent.left)) {
-          return parent.left.name;
-        }
-
-        // This case is not supported in standard ES6 name inference, but it
-        // is included here since it is still a helpful case during debugging.
-        if (libExports$2.isMemberExpression(parent.left, { computed: false })) {
-          return parent.left.property.name;
-        }
-      }
-
-      if (
-        libExports$2.isAssignmentPattern(parent, { right: node }) &&
-        libExports$2.isIdentifier(parent.left)
-      ) {
-        return parent.left.name;
-      }
-
-      if (
-        libExports$2.isVariableDeclarator(parent, { init: node }) &&
-        libExports$2.isIdentifier(parent.id)
-      ) {
-        return parent.id.name;
-      }
-
-      if (
-        libExports$2.isExportDefaultDeclaration(parent, { declaration: node }) &&
-        libExports$2.isFunctionDeclaration(node)
-      ) {
-        return "default";
-      }
-
-      return "anonymous";
-    }
-
-    const symbolDeclarations = new Map();
-
-    function extractFunctionSymbol(path, state, symbols) {
-      const name = getFunctionName(path.node, path.parent);
-
-      if (!state.fnCounts[name]) {
-        state.fnCounts[name] = 0;
-      }
-      const index = state.fnCounts[name]++;
-      symbols.functions.push({
-        name,
-        klass: inferClassName(path),
-        location: path.node.loc,
-        parameterNames: getFunctionParameterNames(path),
-        identifier: path.node.id,
-        // indicates the occurence of the function in a file
-        // e.g { name: foo, ... index: 4 } is the 4th foo function
-        // in the file
-        index,
-      });
-    }
-
-    function extractSymbol(path, symbols, state) {
-      if (isFunction(path)) {
-        extractFunctionSymbol(path, state, symbols);
-      }
-
-      if (libExports$2.isClassDeclaration(path)) {
-        symbols.classes.push(getClassDeclarationSymbol(path.node));
-      }
-
-      if (!symbols.importsReact) {
-        if (libExports$2.isImportDeclaration(path)) {
-          symbols.importsReact = isReactImport(path.node);
-        } else if (libExports$2.isCallExpression(path)) {
-          symbols.importsReact = isReactRequire(path.node);
-        }
-      }
-
-      if (libExports$2.isMemberExpression(path) || libExports$2.isOptionalMemberExpression(path)) {
-        symbols.memberExpressions.push(getMemberExpressionSymbol(path));
-      }
-
-      if (
-        (libExports$2.isStringLiteral(path) || libExports$2.isNumericLiteral(path)) &&
-        libExports$2.isMemberExpression(path.parentPath)
-      ) {
-        // We only need literals that are part of computed memeber expressions
-        const { start, end } = path.node.loc;
-        symbols.literals.push({
-          location: { start, end },
-          get expression() {
-            delete this.expression;
-            this.expression = getSnippet(path.parentPath);
-            return this.expression;
-          },
-        });
-      }
-
-      getIdentifierSymbols(symbols.identifiers, symbols.identifiersKeys, path);
-    }
-
-    function extractSymbols(sourceId) {
-      // This is used in the main thread by:
-      // * The `getFunctionSymbols` function which is used by the Outline, QuickOpen panels.
-      // * The `getClosestFunctionName` function used in the mapping of frame function names.
-      // * The `findOutOfScopeLocations` function use to determine in scope lines.
-      // functions: symbols.functions,
-      // The three following attributes are only used by `findBestMatchExpression` within the worker thread
-      // `memberExpressions`, `literals`, `identifiers`
-      //
-      // These three memberExpressions, literals and identifiers attributes are arrays containing objects whose attributes are:
-      // * name: string
-      // * location: object {start: number, end: number}
-      // * expression: string
-      // * computed: boolean (only for memberExpressions)
-      //
-      // `findBestMatchExpression` uses `location`, `computed` and `expression` (not name).
-      //    `expression` isn't used from the worker thread implementation of `findBestMatchExpression`.
-      //    The main thread only uses `expression` and `location`.
-      // This is used by the `getClassSymbols` function in the Outline panel
-      // `classes`
-      // This is only used by `findOutOfScopeLocations`:
-      // `comments`
-      const symbols = {
-        functions: [],
-        memberExpressions: [],
-        comments: [],
-        identifiers: [],
-        // This holds a set of unique identifier location key (string)
-        // It helps registering only the first identifier when there is duplicated ones for the same location.
-        identifiersKeys: new Set(),
-        classes: [],
-        literals: [],
-        importsReact: false,
-      };
-
-      const state = {
-        fnCounts: Object.create(null),
-      };
-
-      const ast = traverseAst(sourceId, {
-        enter(node, ancestors) {
-          try {
-            const path = createSimplePath(ancestors);
-            if (path) {
-              extractSymbol(path, symbols, state);
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        },
-      });
-
-      // comments are extracted separately from the AST
-      symbols.comments = getComments(ast);
-
-      return symbols;
-    }
-
-    function extendSnippet(name, expression, path, prevPath) {
-      const computed = path?.node.computed;
-      const optional = path?.node.optional;
-      const prevComputed = prevPath?.node.computed;
-      const prevArray = libExports$2.isArrayExpression(prevPath);
-      const array = libExports$2.isArrayExpression(path);
-      const value = path?.node.property?.extra?.raw || "";
-
-      if (expression === "") {
-        if (computed) {
-          return name === undefined ? `[${value}]` : `[${name}]`;
-        }
-        return name;
-      }
-
-      if (computed || array) {
-        if (prevComputed || prevArray) {
-          return `[${name}]${expression}`;
-        }
-        return `[${name === undefined ? value : name}].${expression}`;
-      }
-
-      if (prevComputed || prevArray) {
-        return `${name}${expression}`;
-      }
-
-      if (isComputedExpression(expression) && name !== undefined) {
-        return `${name}${expression}`;
-      }
-
-      if (optional) {
-        return `${name}?.${expression}`;
-      }
-
-      return `${name}.${expression}`;
-    }
-
-    function getMemberSnippet(node, expression = "", optional = false) {
-      if (libExports$2.isMemberExpression(node) || libExports$2.isOptionalMemberExpression(node)) {
-        const name = libExports$2.isPrivateName(node.property)
-          ? `#${node.property.id.name}`
-          : node.property.name;
-        const snippet = getMemberSnippet(
-          node.object,
-          extendSnippet(name, expression, { node }),
-          node.optional
-        );
-        return snippet;
-      }
-
-      if (libExports$2.isCallExpression(node)) {
-        return "";
-      }
-
-      if (libExports$2.isThisExpression(node)) {
-        if (expression.startsWith("[")) {
-          return `this${expression}`;
-        }
-        return `this.${expression}`;
-      }
-
-      if (libExports$2.isIdentifier(node)) {
-        if (isComputedExpression(expression)) {
-          return `${node.name}${expression}`;
-        }
-        if (optional) {
-          return `${node.name}?.${expression}`;
-        }
-        return `${node.name}.${expression}`;
-      }
-
-      return expression;
-    }
-
-    function getObjectSnippet(path, prevPath, expression = "") {
-      if (!path) {
-        return expression;
-      }
-
-      const { name } = path.node.key;
-
-      const extendedExpression = extendSnippet(name, expression, path, prevPath);
-
-      const nextPrevPath = path;
-      const nextPath = path.parentPath && path.parentPath.parentPath;
-
-      return getSnippet(nextPath, nextPrevPath, extendedExpression);
-    }
-
-    function getArraySnippet(path, prevPath, expression) {
-      if (!prevPath.parentPath) {
-        throw new Error("Assertion failure - path should exist");
-      }
-
-      const index = `${prevPath.parentPath.containerIndex}`;
-      const extendedExpression = extendSnippet(index, expression, path, prevPath);
-
-      const nextPrevPath = path;
-      const nextPath = path.parentPath && path.parentPath.parentPath;
-
-      return getSnippet(nextPath, nextPrevPath, extendedExpression);
-    }
-
-    function getSnippet(path, prevPath, expression = "") {
-      if (!path) {
-        return expression;
-      }
-
-      if (libExports$2.isVariableDeclaration(path)) {
-        const node = path.node.declarations[0];
-        const { name } = node.id;
-        return extendSnippet(name, expression, path, prevPath);
-      }
-
-      if (libExports$2.isVariableDeclarator(path)) {
-        const node = path.node.id;
-        if (libExports$2.isObjectPattern(node)) {
-          return expression;
-        }
-
-        const prop = extendSnippet(node.name, expression, path, prevPath);
-        return prop;
-      }
-
-      if (libExports$2.isAssignmentExpression(path)) {
-        const node = path.node.left;
-        const name = libExports$2.isMemberExpression(node)
-          ? getMemberSnippet(node)
-          : node.name;
-
-        const prop = extendSnippet(name, expression, path, prevPath);
-        return prop;
-      }
-
-      if (isFunction(path)) {
-        return expression;
-      }
-
-      if (libExports$2.isIdentifier(path)) {
-        return `${path.node.name}.${expression}`;
-      }
-
-      if (libExports$2.isObjectProperty(path)) {
-        return getObjectSnippet(path, prevPath, expression);
-      }
-
-      if (libExports$2.isObjectExpression(path)) {
-        const parentPath = prevPath?.parentPath;
-        return getObjectSnippet(parentPath, prevPath, expression);
-      }
-
-      if (libExports$2.isMemberExpression(path) || libExports$2.isOptionalMemberExpression(path)) {
-        return getMemberSnippet(path.node, expression);
-      }
-
-      if (libExports$2.isArrayExpression(path)) {
-        if (!prevPath) {
-          throw new Error("Assertion failure - path should exist");
-        }
-
-        return getArraySnippet(path, prevPath, expression);
-      }
-
-      return "";
-    }
-
-    function clearSymbols(sourceIds) {
-      for (const sourceId of sourceIds) {
-        symbolDeclarations.delete(sourceId);
-      }
-    }
-
-    function getInternalSymbols(sourceId) {
-      if (symbolDeclarations.has(sourceId)) {
-        const symbols = symbolDeclarations.get(sourceId);
-        if (symbols) {
-          return symbols;
-        }
-      }
-
-      const symbols = extractSymbols(sourceId);
-
-      symbolDeclarations.set(sourceId, symbols);
-      return symbols;
-    }
-
-    function getFunctionSymbols(sourceId, maxResults) {
-      const symbols = getInternalSymbols(sourceId);
-      if (!symbols) {
-        return [];
-      }
-      let { functions } = symbols;
-      // Avoid transferring more symbols than necessary
-      if (maxResults && functions.length > maxResults) {
-        functions = functions.slice(0, maxResults);
-      }
-      // The Outline & the Quick open panels do not need anonymous functions
-      return functions.filter(fn => fn.name !== "anonymous");
-    }
-
-    function getClassSymbols(sourceId) {
-      const symbols = getInternalSymbols(sourceId);
-      if (!symbols) {
-        return [];
-      }
-
-      return symbols.classes;
-    }
-
-    function containsPosition$1(a, b) {
-      const bColumn = b.column || 0;
-      const startsBefore =
-        a.start.line < b.line ||
-        (a.start.line === b.line && a.start.column <= bColumn);
-      const endsAfter =
-        a.end.line > b.line || (a.end.line === b.line && a.end.column >= bColumn);
-
-      return startsBefore && endsAfter;
-    }
-
-    function getClosestFunctionName(location) {
-      const symbols = getInternalSymbols(location.source.id);
-      if (!symbols || !symbols.functions) {
-        return "";
-      }
-
-      const closestFunction = symbols.functions.reduce((found, currNode) => {
-        if (
-          currNode.name === "anonymous" ||
-          !containsPosition$1(currNode.location, {
-            line: location.line,
-            column: location.column || 0,
-          })
-        ) {
-          return found;
-        }
-
-        if (!found) {
-          return currNode;
-        }
-
-        if (found.location.start.line > currNode.location.start.line) {
-          return found;
-        }
-        if (
-          found.location.start.line === currNode.location.start.line &&
-          found.location.start.column > currNode.location.start.column
-        ) {
-          return found;
-        }
-
-        return currNode;
-      }, null);
-
-      if (!closestFunction) {
-        return "";
-      }
-      return closestFunction.name;
-    }
-
-    // This is only called from the main thread and we return a subset of attributes
-    // Note: This is now used just to trigger the parser
-    function getSymbols(sourceId) {
-      getInternalSymbols(sourceId);
-      return {};
-    }
-
-    function getMemberExpressionSymbol(path) {
-      const { start, end } = path.node.property.loc;
-      return {
-        location: { start, end },
-        get expression() {
-          delete this.expression;
-          this.expression = getSnippet(path);
-          return this.expression;
-        },
-        computed: path.node.computed,
-      };
-    }
-
-    function isReactImport(node) {
-      return (
-        node.source.value == "react" &&
-        node.specifiers?.some(specifier => specifier.local?.name == "React")
-      );
-    }
-
-    function isReactRequire(node) {
-      const { callee } = node;
-      const name = libExports$2.isMemberExpression(callee)
-        ? callee.property.name
-        : callee.loc.identifierName;
-      return name == "require" && node.arguments.some(arg => arg.value == "react");
-    }
-
-    function getClassParentName(superClass) {
-      return libExports$2.isMemberExpression(superClass)
-        ? getCode(superClass)
-        : superClass.name;
-    }
-
-    function getClassParentSymbol(superClass) {
-      if (!superClass) {
-        return null;
-      }
-      return {
-        name: getClassParentName(superClass),
-        location: superClass.loc,
-      };
-    }
-
-    function getClassDeclarationSymbol(node) {
-      const { loc, superClass } = node;
-      return {
-        name: node.id.name,
-        parent: getClassParentSymbol(superClass),
-        location: loc,
-      };
-    }
-
-    /**
-     * Get a list of identifiers that are part of the given path.
-     *
-     * @param {Array.<Object>} identifiers
-     *        the current list of identifiers where to push the new identifiers
-     *        related to this path.
-     * @param {Set<String>} identifiersKeys
-     *        List of currently registered identifier location key.
-     * @param {Object} path
-     */
-    function getIdentifierSymbols(identifiers, identifiersKeys, path) {
-      if (libExports$2.isStringLiteral(path) && libExports$2.isProperty(path.parentPath)) {
-        if (!identifiersKeys.has(nodeLocationKey(path.node.loc))) {
-          identifiers.push({
-            name: path.node.value,
-            get expression() {
-              delete this.expression;
-              this.expression = getObjectExpressionValue(path.parent);
-              return this.expression;
-            },
-            location: path.node.loc,
-          });
-        }
-        return;
-      }
-
-      if (libExports$2.isIdentifier(path) && !libExports$2.isGenericTypeAnnotation(path.parent)) {
-        // We want to include function params, but exclude the function name
-        if (libExports$2.isClassMethod(path.parent) && !path.inList) {
-          return;
-        }
-
-        if (libExports$2.isProperty(path.parentPath) && !isObjectShorthand(path.parent)) {
-          if (!identifiersKeys.has(nodeLocationKey(path.node.loc))) {
-            identifiers.push({
-              name: path.node.name,
-              get expression() {
-                delete this.expression;
-                this.expression = getObjectExpressionValue(path.parent);
-                return this.expression;
-              },
-              location: path.node.loc,
-            });
-          }
-          return;
-        }
-
-        let { start, end } = path.node.loc;
-        if (path.node.typeAnnotation) {
-          const { column } = path.node.typeAnnotation.loc.start;
-          end = { ...end, column };
-        }
-
-        if (!identifiersKeys.has(nodeLocationKey({ start, end }))) {
-          identifiers.push({
-            name: path.node.name,
-            expression: path.node.name,
-            location: { start, end },
-          });
-        }
-      }
-
-      if (libExports$2.isThisExpression(path.node)) {
-        if (!identifiersKeys.has(nodeLocationKey(path.node.loc))) {
-          identifiers.push({
-            name: "this",
-            location: path.node.loc,
-            expression: "this",
-          });
-        }
-      }
-
-      if (libExports$2.isVariableDeclarator(path)) {
-        const nodeId = path.node.id;
-
-        addPatternIdentifiers(identifiers, identifiersKeys, nodeId);
-      }
-    }
-
-    /**
-     * "implicit"
-     * Variables added automaticly like "this" and "arguments"
-     *
-     * "var"
-     * Variables declared with "var" or non-block function declarations
-     *
-     * "let"
-     * Variables declared with "let".
-     *
-     * "const"
-     * Variables declared with "const", or added as const
-     * bindings like inner function expressions and inner class names.
-     *
-     * "import"
-     * Imported binding names exposed from other modules.
-     *
-     * "global"
-     * Variables that reference undeclared global values.
-     */
-
-    // Location information about the expression immediartely surrounding a
-    // given binding reference.
-
-    function isGeneratedId(id) {
-      return !/\/originalSource/.test(id);
-    }
-
-    function parseSourceScopes(sourceId) {
-      const ast = getAst(sourceId);
-      if (!ast || !Object.keys(ast).length) {
-        return null;
-      }
-
-      return buildScopeList(ast, sourceId);
-    }
-
-    function buildScopeList(ast, sourceId) {
-      const { global, lexical } = createGlobalScope(ast, sourceId);
-
-      const state = {
-        // The id for the source that scope list is generated for
-        sourceId,
-
-        // A map of any free variables(variables which are used within the current scope but not
-        // declared within the scope). This changes when a new scope is created.
-        freeVariables: new Map(),
-
-        // A stack of all the free variables created across all the scopes that have
-        // been created.
-        freeVariableStack: [],
-
-        inType: null,
-
-        // The current scope, a new scope is potentially created on a visit to each node
-        // depending in the criteria. Initially set to the lexical global scope which is the
-        // child to the global scope.
-        scope: lexical,
-
-        // A stack of all the existing scopes, this is mainly used retrieve the parent scope
-        // (which is the last scope push onto the stack) on exiting a visited node.
-        scopeStack: [],
-
-        declarationBindingIds: new Set(),
-      };
-      libExports$2.traverse(ast, scopeCollectionVisitor, state);
-
-      for (const [key, freeVariables] of state.freeVariables) {
-        let binding = global.bindings[key];
-        if (!binding) {
-          binding = {
-            type: "global",
-            refs: [],
-          };
-          global.bindings[key] = binding;
-        }
-
-        binding.refs = freeVariables.concat(binding.refs);
-      }
-
-      // TODO: This should probably check for ".mjs" extension on the
-      // original file, and should also be skipped if the the generated
-      // code is an ES6 module rather than a script.
-      if (
-        isGeneratedId(sourceId) ||
-        (ast.program.sourceType === "script" && !looksLikeCommonJS(global))
-      ) {
-        stripModuleScope(global);
-      }
-
-      return toParsedScopes([global]) || [];
-    }
-
-    function toParsedScopes(children, sourceId) {
-      if (!children || children.length === 0) {
-        return undefined;
-      }
-      return children.map(scope => ({
-        // Removing unneed information from TempScope such as parent reference.
-        // We also need to convert BabelLocation to the Location type.
-        start: scope.loc.start,
-        end: scope.loc.end,
-        type:
-          scope.type === "module" || scope.type === "function-body"
-            ? "block"
-            : scope.type,
-        scopeKind: "",
-        displayName: scope.displayName,
-        bindings: scope.bindings,
-        children: toParsedScopes(scope.children),
-      }));
-    }
-
-    /**
-     * Create a new scope object and link the scope to it parent.
-     *
-     * @param {String} type - scope type
-     * @param {String} displayName - The scope display name
-     * @param {Object} parent - The parent object scope
-     * @param {Object} loc - The start and end postions (line/columns) of the scope
-     * @returns {Object} The newly created scope
-     */
-    function createTempScope(type, displayName, parent, loc) {
-      const scope = {
-        type,
-        displayName,
-        parent,
-
-        // A list of all the child scopes
-        children: [],
-        loc,
-
-        // All the bindings defined in this scope
-        // bindings = [binding, ...]
-        // binding = { type: "", refs: []}
-        bindings: Object.create(null),
-      };
-
-      if (parent) {
-        parent.children.push(scope);
-      }
-      return scope;
-    }
-
-    // Sets a new current scope and creates a new map to store the free variables
-    // that may exist in this scope.
-    function pushTempScope(state, type, displayName, loc) {
-      const scope = createTempScope(type, displayName, state.scope, loc);
-
-      state.scope = scope;
-
-      state.freeVariableStack.push(state.freeVariables);
-      state.freeVariables = new Map();
-      return scope;
-    }
-
-    function isNode(node, type) {
-      return node ? node.type === type : false;
-    }
-
-    // Walks up the scope tree to the top most variable scope
-    function getVarScope(scope) {
-      let s = scope;
-      while (s.type !== "function" && s.type !== "module") {
-        if (!s.parent) {
-          return s;
-        }
-        s = s.parent;
-      }
-      return s;
-    }
-
-    function fromBabelLocation(location, sourceId) {
-      return {
-        sourceId,
-        line: location.line,
-        column: location.column,
-      };
-    }
-
-    function parseDeclarator(
-      declaratorId,
-      targetScope,
-      type,
-      locationType,
-      declaration,
-      state
-    ) {
-      if (isNode(declaratorId, "Identifier")) {
-        let existing = targetScope.bindings[declaratorId.name];
-        if (!existing) {
-          existing = {
-            type,
-            refs: [],
-          };
-          targetScope.bindings[declaratorId.name] = existing;
-        }
-        state.declarationBindingIds.add(declaratorId);
-        existing.refs.push({
-          type: locationType,
-          start: fromBabelLocation(declaratorId.loc.start, state.sourceId),
-          end: fromBabelLocation(declaratorId.loc.end, state.sourceId),
-          declaration: {
-            start: fromBabelLocation(declaration.loc.start, state.sourceId),
-            end: fromBabelLocation(declaration.loc.end, state.sourceId),
-          },
-        });
-      } else if (isNode(declaratorId, "ObjectPattern")) {
-        declaratorId.properties.forEach(prop => {
-          parseDeclarator(
-            prop.value,
-            targetScope,
-            type,
-            locationType,
-            declaration,
-            state
-          );
-        });
-      } else if (isNode(declaratorId, "ArrayPattern")) {
-        declaratorId.elements.forEach(item => {
-          parseDeclarator(
-            item,
-            targetScope,
-            type,
-            locationType,
-            declaration,
-            state
-          );
-        });
-      } else if (isNode(declaratorId, "AssignmentPattern")) {
-        parseDeclarator(
-          declaratorId.left,
-          targetScope,
-          type,
-          locationType,
-          declaration,
-          state
-        );
-      } else if (isNode(declaratorId, "RestElement")) {
-        parseDeclarator(
-          declaratorId.argument,
-          targetScope,
-          type,
-          locationType,
-          declaration,
-          state
-        );
-      } else if (libExports$2.isTSParameterProperty(declaratorId)) {
-        parseDeclarator(
-          declaratorId.parameter,
-          targetScope,
-          type,
-          locationType,
-          declaration,
-          state
-        );
-      }
-    }
-
-    function isLetOrConst(node) {
-      return node.kind === "let" || node.kind === "const";
-    }
-
-    function hasLexicalDeclaration(node, parent) {
-      const nodes = [];
-      if (libExports$2.isSwitchStatement(node)) {
-        for (const caseNode of node.cases) {
-          nodes.push(...caseNode.consequent);
-        }
-      } else {
-        nodes.push(...node.body);
-      }
-
-      const isFunctionBody = libExports$2.isFunction(parent, { body: node });
-
-      return nodes.some(
-        child =>
-          isLexicalVariable(child) ||
-          libExports$2.isClassDeclaration(child) ||
-          (!isFunctionBody && libExports$2.isFunctionDeclaration(child))
-      );
-    }
-    function isLexicalVariable(node) {
-      return isNode(node, "VariableDeclaration") && isLetOrConst(node);
-    }
-
-    // Creates the global scopes for this source, the overall global scope
-    // and a lexical global scope.
-    function createGlobalScope(ast, sourceId) {
-      const global = createTempScope("object", "Global", null, {
-        start: fromBabelLocation(ast.loc.start, sourceId),
-        end: fromBabelLocation(ast.loc.end, sourceId),
-      });
-
-      const lexical = createTempScope("block", "Lexical Global", global, {
-        start: fromBabelLocation(ast.loc.start, sourceId),
-        end: fromBabelLocation(ast.loc.end, sourceId),
-      });
-
-      return { global, lexical };
-    }
-
-    const scopeCollectionVisitor = {
-      // eslint-disable-next-line complexity
-      enter(node, ancestors, state) {
-        state.scopeStack.push(state.scope);
-
-        const parentNode =
-          ancestors.length === 0 ? null : ancestors[ancestors.length - 1].node;
-
-        if (state.inType) {
-          return;
-        }
-
-        if (libExports$2.isProgram(node)) {
-          const scope = pushTempScope(state, "module", "Module", {
-            start: fromBabelLocation(node.loc.start, state.sourceId),
-            end: fromBabelLocation(node.loc.end, state.sourceId),
-          });
-          scope.bindings.this = {
-            type: "implicit",
-            refs: [],
-          };
-        } else if (libExports$2.isFunction(node)) {
-          let { scope } = state;
-
-          if (libExports$2.isFunctionExpression(node) && isNode(node.id, "Identifier")) {
-            scope = pushTempScope(state, "block", "Function Expression", {
-              start: fromBabelLocation(node.loc.start, state.sourceId),
-              end: fromBabelLocation(node.loc.end, state.sourceId),
-            });
-            state.declarationBindingIds.add(node.id);
-            scope.bindings[node.id.name] = {
-              type: "const",
-              refs: [
-                {
-                  type: "fn-expr",
-                  start: fromBabelLocation(node.id.loc.start, state.sourceId),
-                  end: fromBabelLocation(node.id.loc.end, state.sourceId),
-                  declaration: {
-                    start: fromBabelLocation(node.loc.start, state.sourceId),
-                    end: fromBabelLocation(node.loc.end, state.sourceId),
-                  },
-                },
-              ],
-            };
-          }
-
-          if (libExports$2.isFunctionDeclaration(node) && isNode(node.id, "Identifier")) {
-            // This ignores Annex B function declaration hoisting, which
-            // is probably a fine assumption.
-            state.declarationBindingIds.add(node.id);
-            const refs = [
-              {
-                type: "fn-decl",
-                start: fromBabelLocation(node.id.loc.start, state.sourceId),
-                end: fromBabelLocation(node.id.loc.end, state.sourceId),
-                declaration: {
-                  start: fromBabelLocation(node.loc.start, state.sourceId),
-                  end: fromBabelLocation(node.loc.end, state.sourceId),
-                },
-              },
-            ];
-
-            if (scope.type === "block") {
-              scope.bindings[node.id.name] = {
-                type: "let",
-                refs,
-              };
-            } else {
-              // Add the binding to the ancestor scope
-              getVarScope(scope).bindings[node.id.name] = {
-                type: "var",
-                refs,
-              };
-            }
-          }
-
-          scope = pushTempScope(
-            state,
-            "function",
-            getFunctionName(node, parentNode),
-            {
-              // Being at the start of a function doesn't count as
-              // being inside of it.
-              start: fromBabelLocation(
-                node.params[0] ? node.params[0].loc.start : node.loc.start,
-                state.sourceId
-              ),
-              end: fromBabelLocation(node.loc.end, state.sourceId),
-            }
-          );
-
-          node.params.forEach(param =>
-            parseDeclarator(param, scope, "var", "fn-param", node, state)
-          );
-
-          if (!libExports$2.isArrowFunctionExpression(node)) {
-            scope.bindings.this = {
-              type: "implicit",
-              refs: [],
-            };
-            scope.bindings.arguments = {
-              type: "implicit",
-              refs: [],
-            };
-          }
-
-          if (
-            libExports$2.isBlockStatement(node.body) &&
-            hasLexicalDeclaration(node.body, node)
-          ) {
-            scope = pushTempScope(state, "function-body", "Function Body", {
-              start: fromBabelLocation(node.body.loc.start, state.sourceId),
-              end: fromBabelLocation(node.body.loc.end, state.sourceId),
-            });
-          }
-        } else if (libExports$2.isClass(node)) {
-          if (libExports$2.isIdentifier(node.id)) {
-            // For decorated classes, the AST considers the first the decorator
-            // to be the start of the class. For the purposes of mapping class
-            // declarations however, we really want to look for the "class Foo"
-            // piece. To achieve that, we estimate the location of the declaration
-            // instead.
-            let declStart = node.loc.start;
-            if (node.decorators && node.decorators.length) {
-              // Estimate the location of the "class" keyword since it
-              // is unlikely to be a different line than the class name.
-              declStart = {
-                line: node.id.loc.start.line,
-                column: node.id.loc.start.column - "class ".length,
-              };
-            }
-
-            const declaration = {
-              start: fromBabelLocation(declStart, state.sourceId),
-              end: fromBabelLocation(node.loc.end, state.sourceId),
-            };
-
-            if (libExports$2.isClassDeclaration(node)) {
-              state.declarationBindingIds.add(node.id);
-              state.scope.bindings[node.id.name] = {
-                type: "let",
-                refs: [
-                  {
-                    type: "class-decl",
-                    start: fromBabelLocation(node.id.loc.start, state.sourceId),
-                    end: fromBabelLocation(node.id.loc.end, state.sourceId),
-                    declaration,
-                  },
-                ],
-              };
-            }
-
-            const scope = pushTempScope(state, "block", "Class", {
-              start: fromBabelLocation(node.loc.start, state.sourceId),
-              end: fromBabelLocation(node.loc.end, state.sourceId),
-            });
-
-            state.declarationBindingIds.add(node.id);
-            scope.bindings[node.id.name] = {
-              type: "const",
-              refs: [
-                {
-                  type: "class-inner",
-                  start: fromBabelLocation(node.id.loc.start, state.sourceId),
-                  end: fromBabelLocation(node.id.loc.end, state.sourceId),
-                  declaration,
-                },
-              ],
-            };
-          }
-        } else if (libExports$2.isForXStatement(node) || libExports$2.isForStatement(node)) {
-          const init = node.init || node.left;
-          if (isNode(init, "VariableDeclaration") && isLetOrConst(init)) {
-            // Debugger will create new lexical environment for the for.
-            pushTempScope(state, "block", "For", {
-              // Being at the start of a for loop doesn't count as
-              // being inside it.
-              start: fromBabelLocation(init.loc.start, state.sourceId),
-              end: fromBabelLocation(node.loc.end, state.sourceId),
-            });
-          }
-        } else if (libExports$2.isCatchClause(node)) {
-          const scope = pushTempScope(state, "block", "Catch", {
-            start: fromBabelLocation(node.loc.start, state.sourceId),
-            end: fromBabelLocation(node.loc.end, state.sourceId),
-          });
-          parseDeclarator(node.param, scope, "var", "catch", node, state);
-        } else if (
-          libExports$2.isBlockStatement(node) &&
-          // Function body's are handled in the function logic above.
-          !libExports$2.isFunction(parentNode) &&
-          hasLexicalDeclaration(node, parentNode)
-        ) {
-          // Debugger will create new lexical environment for the block.
-          pushTempScope(state, "block", "Block", {
-            start: fromBabelLocation(node.loc.start, state.sourceId),
-            end: fromBabelLocation(node.loc.end, state.sourceId),
-          });
-        } else if (
-          libExports$2.isVariableDeclaration(node) &&
-          (node.kind === "var" ||
-            // Lexical declarations in for statements are handled above.
-            !libExports$2.isForStatement(parentNode, { init: node }) ||
-            !libExports$2.isForXStatement(parentNode, { left: node }))
-        ) {
-          // Finds right lexical environment
-          const hoistAt = !isLetOrConst(node)
-            ? getVarScope(state.scope)
-            : state.scope;
-          node.declarations.forEach(declarator => {
-            parseDeclarator(
-              declarator.id,
-              hoistAt,
-              node.kind,
-              node.kind,
-              node,
-              state
-            );
-          });
-        } else if (
-          libExports$2.isImportDeclaration(node) &&
-          (!node.importKind || node.importKind === "value")
-        ) {
-          node.specifiers.forEach(spec => {
-            if (spec.importKind && spec.importKind !== "value") {
-              return;
-            }
-
-            if (libExports$2.isImportNamespaceSpecifier(spec)) {
-              state.declarationBindingIds.add(spec.local);
-
-              state.scope.bindings[spec.local.name] = {
-                // Imported namespaces aren't live import bindings, they are
-                // just normal const bindings.
-                type: "const",
-                refs: [
-                  {
-                    type: "import-ns-decl",
-                    start: fromBabelLocation(spec.local.loc.start, state.sourceId),
-                    end: fromBabelLocation(spec.local.loc.end, state.sourceId),
-                    declaration: {
-                      start: fromBabelLocation(node.loc.start, state.sourceId),
-                      end: fromBabelLocation(node.loc.end, state.sourceId),
-                    },
-                  },
-                ],
-              };
-            } else {
-              state.declarationBindingIds.add(spec.local);
-
-              state.scope.bindings[spec.local.name] = {
-                type: "import",
-                refs: [
-                  {
-                    type: "import-decl",
-                    start: fromBabelLocation(spec.local.loc.start, state.sourceId),
-                    end: fromBabelLocation(spec.local.loc.end, state.sourceId),
-                    importName: libExports$2.isImportDefaultSpecifier(spec)
-                      ? "default"
-                      : spec.imported.name,
-                    declaration: {
-                      start: fromBabelLocation(node.loc.start, state.sourceId),
-                      end: fromBabelLocation(node.loc.end, state.sourceId),
-                    },
-                  },
-                ],
-              };
-            }
-          });
-        } else if (libExports$2.isTSEnumDeclaration(node)) {
-          state.declarationBindingIds.add(node.id);
-          state.scope.bindings[node.id.name] = {
-            type: "const",
-            refs: [
-              {
-                type: "ts-enum-decl",
-                start: fromBabelLocation(node.id.loc.start, state.sourceId),
-                end: fromBabelLocation(node.id.loc.end, state.sourceId),
-                declaration: {
-                  start: fromBabelLocation(node.loc.start, state.sourceId),
-                  end: fromBabelLocation(node.loc.end, state.sourceId),
-                },
-              },
-            ],
-          };
-        } else if (libExports$2.isTSModuleDeclaration(node)) {
-          state.declarationBindingIds.add(node.id);
-          state.scope.bindings[node.id.name] = {
-            type: "const",
-            refs: [
-              {
-                type: "ts-namespace-decl",
-                start: fromBabelLocation(node.id.loc.start, state.sourceId),
-                end: fromBabelLocation(node.id.loc.end, state.sourceId),
-                declaration: {
-                  start: fromBabelLocation(node.loc.start, state.sourceId),
-                  end: fromBabelLocation(node.loc.end, state.sourceId),
-                },
-              },
-            ],
-          };
-        } else if (libExports$2.isTSModuleBlock(node)) {
-          pushTempScope(state, "block", "TypeScript Namespace", {
-            start: fromBabelLocation(node.loc.start, state.sourceId),
-            end: fromBabelLocation(node.loc.end, state.sourceId),
-          });
-        } else if (
-          libExports$2.isIdentifier(node) &&
-          libExports$2.isReferenced(node, parentNode) &&
-          // Babel doesn't cover this in 'isReferenced' yet, but it should
-          // eventually.
-          !libExports$2.isTSEnumMember(parentNode, { id: node }) &&
-          !libExports$2.isTSModuleDeclaration(parentNode, { id: node }) &&
-          // isReferenced above fails to see `var { foo } = ...` as a non-reference
-          // because the direct parent is not enough to know that the pattern is
-          // used within a variable declaration.
-          !state.declarationBindingIds.has(node)
-        ) {
-          let freeVariables = state.freeVariables.get(node.name);
-          if (!freeVariables) {
-            freeVariables = [];
-            state.freeVariables.set(node.name, freeVariables);
-          }
-
-          freeVariables.push({
-            type: "ref",
-            start: fromBabelLocation(node.loc.start, state.sourceId),
-            end: fromBabelLocation(node.loc.end, state.sourceId),
-            meta: buildMetaBindings(state.sourceId, node, ancestors),
-          });
-        } else if (isOpeningJSXIdentifier(node, ancestors)) {
-          let freeVariables = state.freeVariables.get(node.name);
-          if (!freeVariables) {
-            freeVariables = [];
-            state.freeVariables.set(node.name, freeVariables);
-          }
-
-          freeVariables.push({
-            type: "ref",
-            start: fromBabelLocation(node.loc.start, state.sourceId),
-            end: fromBabelLocation(node.loc.end, state.sourceId),
-            meta: buildMetaBindings(state.sourceId, node, ancestors),
-          });
-        } else if (libExports$2.isThisExpression(node)) {
-          let freeVariables = state.freeVariables.get("this");
-          if (!freeVariables) {
-            freeVariables = [];
-            state.freeVariables.set("this", freeVariables);
-          }
-
-          freeVariables.push({
-            type: "ref",
-            start: fromBabelLocation(node.loc.start, state.sourceId),
-            end: fromBabelLocation(node.loc.end, state.sourceId),
-            meta: buildMetaBindings(state.sourceId, node, ancestors),
-          });
-        } else if (libExports$2.isClassProperty(parentNode, { value: node })) {
-          const scope = pushTempScope(state, "function", "Class Field", {
-            start: fromBabelLocation(node.loc.start, state.sourceId),
-            end: fromBabelLocation(node.loc.end, state.sourceId),
-          });
-          scope.bindings.this = {
-            type: "implicit",
-            refs: [],
-          };
-          scope.bindings.arguments = {
-            type: "implicit",
-            refs: [],
-          };
-        } else if (
-          libExports$2.isSwitchStatement(node) &&
-          hasLexicalDeclaration(node, parentNode)
-        ) {
-          pushTempScope(state, "block", "Switch", {
-            start: fromBabelLocation(node.loc.start, state.sourceId),
-            end: fromBabelLocation(node.loc.end, state.sourceId),
-          });
-        }
-
-        if (
-          // In general Flow expressions are deleted, so they can't contain
-          // runtime bindings, but typecasts are the one exception there.
-          (libExports$2.isFlow(node) && !libExports$2.isTypeCastExpression(node)) ||
-          // In general TS items are deleted, but TS has a few wrapper node
-          // types that can contain general JS expressions.
-          (node.type.startsWith("TS") &&
-            !libExports$2.isTSTypeAssertion(node) &&
-            !libExports$2.isTSAsExpression(node) &&
-            !libExports$2.isTSNonNullExpression(node) &&
-            !libExports$2.isTSModuleDeclaration(node) &&
-            !libExports$2.isTSModuleBlock(node) &&
-            !libExports$2.isTSParameterProperty(node) &&
-            !libExports$2.isTSExportAssignment(node))
-        ) {
-          // Flag this node as a root "type" node. All items inside of this
-          // will be skipped entirely.
-          state.inType = node;
-        }
-      },
-      exit(node, ancestors, state) {
-        const currentScope = state.scope;
-        const parentScope = state.scopeStack.pop();
-        if (!parentScope) {
-          throw new Error("Assertion failure - unsynchronized pop");
-        }
-        state.scope = parentScope;
-
-        // It is possible, as in the case of function expressions, that a single
-        // node has added multiple scopes, so we need to traverse upward here
-        // rather than jumping stright to 'parentScope'.
-        for (
-          let scope = currentScope;
-          scope && scope !== parentScope;
-          scope = scope.parent
-        ) {
-          const { freeVariables } = state;
-          state.freeVariables = state.freeVariableStack.pop();
-          const parentFreeVariables = state.freeVariables;
-
-          // Match up any free variables that match this scope's bindings and
-          // merge then into the refs.
-          for (const key of Object.keys(scope.bindings)) {
-            const binding = scope.bindings[key];
-
-            const freeVars = freeVariables.get(key);
-            if (freeVars) {
-              binding.refs.push(...freeVars);
-              freeVariables.delete(key);
-            }
-          }
-
-          // Move any undeclared references in this scope into the parent for
-          // processing in higher scopes.
-          for (const [key, value] of freeVariables) {
-            let refs = parentFreeVariables.get(key);
-            if (!refs) {
-              refs = [];
-              parentFreeVariables.set(key, refs);
-            }
-
-            refs.push(...value);
-          }
-        }
-
-        if (state.inType === node) {
-          state.inType = null;
-        }
-      },
-    };
-
-    function isOpeningJSXIdentifier(node, ancestors) {
-      if (!libExports$2.isJSXIdentifier(node)) {
-        return false;
-      }
-
-      for (let i = ancestors.length - 1; i >= 0; i--) {
-        const { node: parent, key } = ancestors[i];
-
-        if (libExports$2.isJSXOpeningElement(parent) && key === "name") {
-          return true;
-        } else if (!libExports$2.isJSXMemberExpression(parent) || key !== "object") {
-          break;
-        }
-      }
-
-      return false;
-    }
-
-    function buildMetaBindings(
-      sourceId,
-      node,
-      ancestors,
-      parentIndex = ancestors.length - 1
-    ) {
-      if (parentIndex <= 1) {
-        return null;
-      }
-      const parent = ancestors[parentIndex].node;
-      const grandparent = ancestors[parentIndex - 1].node;
-
-      // Consider "0, foo" to be equivalent to "foo".
-      if (
-        libExports$2.isSequenceExpression(parent) &&
-        parent.expressions.length === 2 &&
-        libExports$2.isNumericLiteral(parent.expressions[0]) &&
-        parent.expressions[1] === node
-      ) {
-        let { start, end } = parent.loc;
-
-        if (libExports$2.isCallExpression(grandparent, { callee: parent })) {
-          // Attempt to expand the range around parentheses, e.g.
-          // (0, foo.bar)()
-          start = grandparent.loc.start;
-          end = Object.assign({}, end);
-          end.column += 1;
-        }
-
-        return {
-          type: "inherit",
-          start: fromBabelLocation(start, sourceId),
-          end: fromBabelLocation(end, sourceId),
-          parent: buildMetaBindings(sourceId, parent, ancestors, parentIndex - 1),
-        };
-      }
-
-      // Consider "Object(foo)", and "__webpack_require__.i(foo)" to be
-      // equivalent to "foo" since they are essentially identity functions.
-      if (
-        libExports$2.isCallExpression(parent) &&
-        (libExports$2.isIdentifier(parent.callee, { name: "Object" }) ||
-          (libExports$2.isMemberExpression(parent.callee, { computed: false }) &&
-            libExports$2.isIdentifier(parent.callee.object, { name: "__webpack_require__" }) &&
-            libExports$2.isIdentifier(parent.callee.property, { name: "i" }))) &&
-        parent.arguments.length === 1 &&
-        parent.arguments[0] === node
-      ) {
-        return {
-          type: "inherit",
-          start: fromBabelLocation(parent.loc.start, sourceId),
-          end: fromBabelLocation(parent.loc.end, sourceId),
-          parent: buildMetaBindings(sourceId, parent, ancestors, parentIndex - 1),
-        };
-      }
-
-      if (libExports$2.isMemberExpression(parent, { object: node })) {
-        if (parent.computed) {
-          if (libExports$2.isStringLiteral(parent.property)) {
-            return {
-              type: "member",
-              start: fromBabelLocation(parent.loc.start, sourceId),
-              end: fromBabelLocation(parent.loc.end, sourceId),
-              property: parent.property.value,
-              parent: buildMetaBindings(
-                sourceId,
-                parent,
-                ancestors,
-                parentIndex - 1
-              ),
-            };
-          }
-        } else {
-          return {
-            type: "member",
-            start: fromBabelLocation(parent.loc.start, sourceId),
-            end: fromBabelLocation(parent.loc.end, sourceId),
-            property: parent.property.name,
-            parent: buildMetaBindings(sourceId, parent, ancestors, parentIndex - 1),
-          };
-        }
-      }
-      if (
-        libExports$2.isCallExpression(parent, { callee: node }) &&
-        !parent.arguments.length
-      ) {
-        return {
-          type: "call",
-          start: fromBabelLocation(parent.loc.start, sourceId),
-          end: fromBabelLocation(parent.loc.end, sourceId),
-          parent: buildMetaBindings(sourceId, parent, ancestors, parentIndex - 1),
-        };
-      }
-
-      return null;
-    }
-
-    function looksLikeCommonJS(rootScope) {
-      const hasRefs = name =>
-        rootScope.bindings[name] && !!rootScope.bindings[name].refs.length;
-
-      return (
-        hasRefs("__dirname") ||
-        hasRefs("__filename") ||
-        hasRefs("require") ||
-        hasRefs("exports") ||
-        hasRefs("module")
-      );
-    }
-
-    function stripModuleScope(rootScope) {
-      const rootLexicalScope = rootScope.children[0];
-      const moduleScope = rootLexicalScope.children[0];
-      if (moduleScope.type !== "module") {
-        throw new Error("Assertion failure - should be module");
-      }
-
-      Object.keys(moduleScope.bindings).forEach(name => {
-        const binding = moduleScope.bindings[name];
-        if (binding.type === "let" || binding.type === "const") {
-          rootLexicalScope.bindings[name] = binding;
-        } else {
-          rootScope.bindings[name] = binding;
-        }
-      });
-      rootLexicalScope.children = moduleScope.children;
-      rootLexicalScope.children.forEach(child => {
-        child.parent = rootLexicalScope;
-      });
-    }
-
-    const parsedScopesCache = new Map();
-
-    function getScopes(location) {
-      const sourceId = location.source.id;
-      let parsedScopes = parsedScopesCache.get(sourceId);
-      if (!parsedScopes) {
-        parsedScopes = parseSourceScopes(sourceId);
-        parsedScopesCache.set(sourceId, parsedScopes);
-      }
-      return parsedScopes ? findScopes(parsedScopes, location) : [];
-    }
-
-    function clearScopes(sourceIds) {
-      for (const sourceId of sourceIds) {
-        parsedScopesCache.delete(sourceId);
-      }
-    }
-
-    /**
-     * Searches all scopes and their bindings at the specific location.
-     */
-    function findScopes(scopes, location) {
-      // Find inner most in the tree structure.
-      let searchInScopes = scopes;
-      const found = [];
-      while (searchInScopes) {
-        const foundOne = searchInScopes.some(s => {
-          if (
-            compareLocations(s.start, location) <= 0 &&
-            compareLocations(location, s.end) < 0
-          ) {
-            // Found the next scope, trying to search recusevly in its children.
-            found.unshift(s);
-            searchInScopes = s.children;
-            return true;
-          }
-          return false;
-        });
-        if (!foundOne) {
-          break;
-        }
-      }
-      return found.map(i => ({
-        type: i.type,
-        scopeKind: i.scopeKind,
-        displayName: i.displayName,
-        start: i.start,
-        end: i.end,
-        bindings: i.bindings,
-      }));
-    }
-
-    function compareLocations(a, b) {
-      // According to type of Location.column can be undefined, if will not be the
-      // case here, ignoring flow error.
-      return a.line == b.line ? a.column - b.column : a.line - b.line;
-    }
-
-    /* This Source Code Form is subject to the terms of the Mozilla Public
-     * License, v. 2.0. If a copy of the MPL was not distributed with this
-     * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
-
-    function startsBefore(a, b) {
-      let before = a.start.line < b.line;
-      if (a.start.line === b.line) {
-        before =
-          a.start.column >= 0 && b.column >= 0 ? a.start.column <= b.column : true;
-      }
-      return before;
-    }
-
-    function endsAfter(a, b) {
-      let after = a.end.line > b.line;
-      if (a.end.line === b.line) {
-        after =
-          a.end.column >= 0 && b.column >= 0 ? a.end.column >= b.column : true;
-      }
-      return after;
-    }
-
-    function containsPosition(a, b) {
-      return startsBefore(a, b) && endsAfter(a, b);
-    }
-
-    function containsLocation(a, b) {
-      return containsPosition(a, b.start) && containsPosition(a, b.end);
-    }
-
-    function findSymbols(source) {
-      const { functions, comments } = getInternalSymbols(source);
-      return { functions, comments };
-    }
-
-    /**
-     * Returns the location for a given function path. If the path represents a
-     * function declaration, the location will begin after the function identifier
-     * but before the function parameters.
-     */
-
-    function getLocation(func) {
-      const location = { ...func.location };
-
-      // if the function has an identifier, start the block after it so the
-      // identifier is included in the "scope" of its parent
-      const identifierEnd = func?.identifier?.loc?.end;
-      if (identifierEnd) {
-        location.start = identifierEnd;
-      }
-
-      return location;
-    }
-
-    /**
-     * Find the nearest location containing the input position and
-     * return inner locations under that nearest location
-     *
-     * @param {Array<Object>} locations Notice! The locations MUST be sorted by `sortByStart`
-     *                  so that we can do linear time complexity operation.
-     * @returns {Array<Object>}
-     */
-    function getInnerLocations(locations, position) {
-      // First, let's find the nearest position-enclosing function location,
-      // which is to find the last location enclosing the position.
-      let parentIndex;
-      for (let i = locations.length - 1; i >= 0; i--) {
-        const loc = locations[i];
-        if (containsPosition(loc, position)) {
-          parentIndex = i;
-          break;
-        }
-      }
-
-      if (parentIndex == undefined) {
-        return [];
-      }
-      const parentLoc = locations[parentIndex];
-
-      // Then, from the nearest location, loop locations again and put locations into
-      // the innerLocations array until we get to a location not enclosed by the nearest location.
-      const innerLocations = [];
-      for (let i = parentIndex + 1; i < locations.length; i++) {
-        const loc = locations[i];
-        if (!containsLocation(parentLoc, loc)) {
-          break;
-        }
-
-        innerLocations.push(loc);
-      }
-
-      return innerLocations;
-    }
-
-    /**
-     * Return an new locations array which excludes
-     * items that are completely enclosed by another location in the input locations
-     *
-     * @param locations Notice! The locations MUST be sorted by `sortByStart`
-     *                  so that we can do linear time complexity operation.
-     */
-    function removeOverlaps(locations) {
-      if (!locations.length) {
-        return [];
-      }
-      const firstParent = locations[0];
-      return locations.reduce(deduplicateNode, [firstParent]);
-    }
-
-    function deduplicateNode(nodes, location) {
-      const parent = nodes[nodes.length - 1];
-      if (!containsLocation(parent, location)) {
-        nodes.push(location);
-      }
-      return nodes;
-    }
-
-    /**
-     * Sorts an array of locations by start position
-     */
-    function sortByStart(a, b) {
-      if (a.start.line < b.start.line) {
-        return -1;
-      } else if (a.start.line === b.start.line) {
-        return a.start.column - b.start.column;
-      }
-
-      return 1;
-    }
-
-    /**
-     * Returns an array of locations that are considered out of scope for the given
-     * location.
-     */
-    function findOutOfScopeLocations(location) {
-      const { functions, comments } = findSymbols(location.source.id);
-      const commentLocations = comments.map(c => c.location);
-      const locations = functions
-        .map(getLocation)
-        .concat(commentLocations)
-        .sort(sortByStart);
-
-      const innerLocations = getInnerLocations(locations, location);
-      const outerLocations = locations.filter(loc => {
-        if (innerLocations.includes(loc)) {
-          return false;
-        }
-
-        return !containsPosition(loc, location);
-      });
-      return removeOverlaps(outerLocations);
-    }
-
-    function findBestMatchExpression(sourceId, tokenPos) {
-      const symbols = getInternalSymbols(sourceId);
-      if (!symbols) {
-        return null;
-      }
-
-      const { line, column } = tokenPos;
-      const { memberExpressions, identifiers, literals } = symbols;
-
-      function matchExpression(expression) {
-        const { location } = expression;
-        const { start, end } = location;
-        return start.line == line && start.column <= column && end.column >= column;
-      }
-      function matchMemberExpression(expression) {
-        // For member expressions we ignore "computed" member expressions `foo[bar]`,
-        // to only match the one that looks like: `foo.bar`.
-        return !expression.computed && matchExpression(expression);
-      }
-      // Avoid duplicating these arrays and be careful about performance as they can be large
-      //
-      // Process member expressions first as they can be including identifiers which
-      // are subset of the member expression.
-      // Ex: `foo.bar` is a member expression made of `foo` and `bar` identifiers.
-      return (
-        memberExpressions.find(matchMemberExpression) ||
-        literals.find(matchExpression) ||
-        identifiers.find(matchExpression)
-      );
-    }
-
     // NOTE: this will only work if we are replacing an original identifier
     function replaceNode(ancestors, node) {
       const ancestor = ancestors[ancestors.length - 1];
@@ -41396,6 +40336,12 @@ Please specify the "importAttributesKeyword" generator option, whose value can b
       }
 
       return expression;
+    }
+
+    // Top Level checks the number of "body" nodes in the ancestor chain
+    // if the node is top-level, then it shoul only have one body.
+    function isTopLevel(ancestors) {
+      return ancestors.filter(ancestor => ancestor.key == "body").length == 1;
     }
 
     function getAssignmentTarget(node, bindings) {
@@ -41922,16 +40868,9 @@ Please specify the "importAttributesKeyword" generator option, whose value can b
       clearASTs(sourceIds);
       clearScopes(sourceIds);
       clearSources(sourceIds);
-      clearSymbols(sourceIds);
     }
 
     self.onmessage = workerUtilsExports.workerHandler({
-      findOutOfScopeLocations,
-      findBestMatchExpression,
-      getSymbols,
-      getFunctionSymbols,
-      getClassSymbols,
-      getClosestFunctionName,
       getScopes,
       clearSources: clearAllHelpersForSources,
       mapExpression,

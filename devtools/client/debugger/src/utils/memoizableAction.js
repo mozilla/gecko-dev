@@ -7,7 +7,7 @@ import { validateContext } from "./context";
 
 /*
  * memoizableActon is a utility for actions that should only be performed
- * once per key. It is useful for loading sources, parsing symbols ...
+ * once per key. It is useful for loading sources
  *
  * @getValue - gets the result from the redux store
  * @createKey - creates a key for the requests map

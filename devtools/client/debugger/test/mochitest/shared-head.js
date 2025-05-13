@@ -225,7 +225,6 @@ function waitForSelectedLocation(dbg, line, column) {
 function waitForSelectedSource(dbg, sourceOrUrl) {
   const {
     getSelectedSourceTextContent,
-    getSymbols,
     getBreakableLines,
     getSourceActorsForSource,
     getSourceActorBreakableLines,
@@ -254,20 +253,6 @@ function waitForSelectedSource(dbg, sourceOrUrl) {
         } else if (location.source.id != sourceOrUrl.id) {
           return false;
         }
-      }
-
-      const selectedFrame = getSelectedFrame(getCurrentThread());
-      // Wait for symbols/AST to be parsed only when CM5 is enabled
-      const hasSymbols = !isCm6Enabled ? getSymbols(location) : true;
-      // And this isn't a WASM source (which has no AST)
-      if (
-        // Only when we are paused on that specific source
-        selectedFrame?.location.source.id == location.source.id &&
-        !hasSymbols &&
-        // And this isn't a WASM source (which has no AST)
-        !isWasmBinarySource(location.source)
-      ) {
-        return false;
       }
 
       // Finaly wait for breakable lines to be set
@@ -628,8 +613,6 @@ async function waitForPaused(
     await waitForLoadedScopes(dbg);
   }
 
-  // Note that this will wait for symbols (when CM5 is enabled),
-  // which are fetched on pause
   await waitForSelectedSource(dbg, url);
 
   if (options.shouldWaitForInlinePreviews) {

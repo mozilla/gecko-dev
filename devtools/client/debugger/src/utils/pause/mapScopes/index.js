@@ -56,7 +56,7 @@ export async function buildMappedScopes(
   thunkArgs
 ) {
   const { getState, parserWorker } = thunkArgs;
-  if (!parserWorker.isLocationSupported(frame.location)) {
+  if (frame.location.source.isWasm) {
     return null;
   }
   const originalAstScopes = await parserWorker.getScopes(frame.location);

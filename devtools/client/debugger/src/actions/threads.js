@@ -5,7 +5,6 @@
 import { createThread } from "../client/firefox/create";
 import { getSourcesToRemoveForThread } from "../selectors/index";
 import { clearDocumentsForSources } from "../utils/editor/source-documents";
-import { features } from "../utils/prefs";
 import { getEditor } from "../utils/editor/index";
 
 export function addTarget(targetFront) {
@@ -46,10 +45,8 @@ export function removeTarget(targetFront) {
     });
     const sourceIds = sources.map(source => source.id);
     parserWorker.clearSources(sourceIds);
-    if (features.codemirrorNext) {
-      const editor = getEditor(features.codemirrorNext);
-      editor.clearSources(sourceIds);
-    }
+    const editor = getEditor();
+    editor.clearSources(sourceIds);
   };
 }
 

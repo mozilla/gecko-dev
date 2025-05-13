@@ -21,7 +21,6 @@ import { isPretty } from "../../utils/source";
 import { createLocation } from "../../utils/location";
 import { memoizeableAction } from "../../utils/memoizableAction";
 
-import { features } from "../../utils/prefs";
 import { getEditor } from "../../utils/editor/index";
 
 async function loadGeneratedSource(sourceActor, { client }) {
@@ -140,14 +139,10 @@ async function onSourceTextContentAvailable(
     : { type: "text", value: "", contentType: undefined };
 
   // Lezer parser uses the sources to map the original frame names
-  if (features.codemirrorNext) {
-    const editor = getEditor(features.codemirrorNext);
-    if (!editor.isWasm) {
-      editor.addSource(source.id, contentValue.value);
-    }
-  }
-  // The babel parser needs the sources to parse scopes
-  if (parserWorker.isLocationSupported(location)) {
+  const editor = getEditor();
+  if (!editor.isWasm) {
+    editor.addSource(source.id, contentValue.value);
+    // The babel parser needs the sources to parse scopes
     parserWorker.setSource(source.id, contentValue);
   }
 

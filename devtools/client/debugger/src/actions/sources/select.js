@@ -6,15 +6,12 @@
  * Redux actions for the sources state
  * @module actions/sources
  */
-
-import { setSymbols } from "../sources/symbols";
-import { setInScopeLines } from "../ast/index";
 import { prettyPrintSource, prettyPrintAndSelectSource } from "./prettyPrint";
 import { addTab, closeTab } from "../tabs";
 import { loadSourceText } from "./loadSourceText";
 import { setBreakableLines } from "./breakableLines";
 
-import { prefs, features } from "../../utils/prefs";
+import { prefs } from "../../utils/prefs";
 import { isMinified } from "../../utils/source";
 import { createLocation } from "../../utils/location";
 import {
@@ -36,8 +33,6 @@ import {
   hasSourceActor,
   hasPrettyTab,
   isSourceActorWithSourceMap,
-  getSelectedFrame,
-  getCurrentThread,
 } from "../../selectors/index";
 
 // This is only used by jest tests (and within this module)
@@ -325,31 +320,6 @@ export function selectLocation(
     ) {
       await dispatch(prettyPrintAndSelectSource(loadedSource));
       dispatch(closeTab(loadedSource));
-    }
-
-    const selectedFrame = getSelectedFrame(
-      getState(),
-      getCurrentThread(getState())
-    );
-    if (
-      selectedFrame &&
-      (selectedFrame.location.source.id == location.source.id ||
-        selectedFrame.generatedLocation.source.id == location.source.id) &&
-      // The parser worker only load symbols for in scope lines when CM5 is enabled
-      !features.codemirrorNext
-    ) {
-      // This is done from selectLocation and not from paused and selectFrame actions
-      // because we may select either original or generated location while being paused
-      // and we would like to also fetch the symbols.
-      await dispatch(setSymbols(location));
-
-      // Stop the async work if we started selecting another location
-      if (getSelectedLocation(getState()) != location) {
-        return;
-      }
-
-      // /!\ we don't historicaly wait for this async action
-      dispatch(setInScopeLines());
     }
 
     // When we select a generated source which has a sourcemap,
