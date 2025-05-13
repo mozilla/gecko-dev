@@ -2148,8 +2148,19 @@ add_task(async function test_prefFlips_cacheOriginalValues() {
     },
   });
 
-  // Force the store to save to disk
-  const storePath = await NimbusTestUtils.saveStore(manager.store);
+  const storePath = manager.store._store.path;
+
+  // We are intentionally *not* forcing a save -- we are only flushing a pending
+  // save to disk.
+  {
+    const jsonFile = manager.store._store;
+    if (jsonFile._saver.isRunning) {
+      await jsonFile._saver._runningPromise;
+    } else if (jsonFile._saver.isArmed) {
+      jsonFile._saver.disarm();
+      await jsonFile._save();
+    }
+  }
 
   const storeContents = await IOUtils.readJSON(storePath);
 
