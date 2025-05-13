@@ -93,3 +93,8 @@ through a different allocator. For example:
 
 Will replay the log against jemalloc4 (which is, as of writing, what
 libreplace_jemalloc.so contains).
+
+The log files can also be used for other analysis.  The logalloc_stats.py
+script will tally the allocation requests for small, large and huge
+allocations (as configured on a system with 4KiB pages).
+
