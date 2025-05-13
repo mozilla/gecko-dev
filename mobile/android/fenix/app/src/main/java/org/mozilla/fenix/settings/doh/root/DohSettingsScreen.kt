@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.settings.doh.root
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,14 +15,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,7 +53,6 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * Composable function that displays the root screen of DoH settings.
  *
  * @param state The current [DohSettingsState].
- * @param onNavigateUp Invoked when the user clicks the navigate up (back) button.
  * @param onLearnMoreClicked Invoked when the user wants to visit an external doc about DoH.
  * @param onExceptionsClicked Invoked when the user wants to manage exceptions.
  * @param onDohOptionSelected Invoked when the user selects a protection level.
@@ -71,7 +66,6 @@ import org.mozilla.fenix.theme.FirefoxTheme
 @Composable
 internal fun DohSettingsScreen(
     state: DohSettingsState,
-    onNavigateUp: () -> Unit = {},
     onLearnMoreClicked: (String) -> Unit = {},
     onExceptionsClicked: () -> Unit = {},
     onDohOptionSelected: (ProtectionLevel, Provider?) -> Unit = { _: ProtectionLevel, _: Provider? -> },
@@ -82,65 +76,34 @@ internal fun DohSettingsScreen(
     onIncreasedInfoClicked: () -> Unit = {},
     onMaxInfoClicked: () -> Unit = {},
 ) {
-    Scaffold(
-        topBar = {
-            Toolbar(onToolbarBackClick = onNavigateUp)
-        },
-        backgroundColor = FirefoxTheme.colors.layer1,
-    ) { paddingValues ->
-        Column(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(FirefoxTheme.colors.layer1),
+    ) {
+        DohSummary(
+            onLearnMoreClicked = onLearnMoreClicked,
+        )
+
+        DohSelection(
+            state = state,
+            onDohOptionSelected = onDohOptionSelected,
+            onCustomClicked = onCustomClicked,
+            onCustomCancelClicked = onCustomCancelClicked,
+            onCustomAddClicked = onCustomAddClicked,
+            onDefaultInfoClicked = onDefaultInfoClicked,
+            onIncreasedInfoClicked = onIncreasedInfoClicked,
+            onMaxInfoClicked = onMaxInfoClicked,
+        )
+
+        Divider(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(paddingValues),
-        ) {
-            DohSummary(
-                onLearnMoreClicked = onLearnMoreClicked,
-            )
+                .fillMaxWidth()
+                .padding(8.dp),
+        )
 
-            DohSelection(
-                state = state,
-                onDohOptionSelected = onDohOptionSelected,
-                onCustomClicked = onCustomClicked,
-                onCustomCancelClicked = onCustomCancelClicked,
-                onCustomAddClicked = onCustomAddClicked,
-                onDefaultInfoClicked = onDefaultInfoClicked,
-                onIncreasedInfoClicked = onIncreasedInfoClicked,
-                onMaxInfoClicked = onMaxInfoClicked,
-            )
-
-            Divider(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-            )
-
-            ExceptionsRow(onExceptionsClicked = onExceptionsClicked)
-        }
+        ExceptionsRow(onExceptionsClicked = onExceptionsClicked)
     }
-}
-
-@Composable
-private fun Toolbar(onToolbarBackClick: () -> Unit) {
-    TopAppBar(
-        backgroundColor = FirefoxTheme.colors.layer1,
-        title = {
-            Text(
-                color = FirefoxTheme.colors.textPrimary,
-                style = FirefoxTheme.typography.headline6,
-                text = stringResource(R.string.preference_doh_title),
-            )
-        },
-        navigationIcon = {
-            IconButton(onClick = onToolbarBackClick) {
-                Icon(
-                    painter = painterResource(R.drawable.mozac_ic_back_24),
-                    contentDescription = stringResource(R.string.preference_doh_up_description),
-                    tint = FirefoxTheme.colors.iconPrimary,
-                )
-            }
-        },
-    )
 }
 
 @Composable

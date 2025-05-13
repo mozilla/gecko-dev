@@ -13,11 +13,12 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.NavHostController
 import androidx.navigation.fragment.findNavController
 import org.mozilla.fenix.HomeActivity
+import org.mozilla.fenix.R
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.databinding.FragmentDohSettingsBinding
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.hideToolbar
 import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.ext.showToolbar
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -83,15 +84,25 @@ internal class DohSettingsFragment : Fragment() {
                 FirefoxTheme {
                     DohSettingsNavHost(
                         buildStore = buildStore,
+                        onUpdateToolbar = { titleResId ->
+                            safeShowToolbar(titleResId)
+                        },
                     )
                 }
             }
         }
     }
 
+    private fun safeShowToolbar(titleResId: Int) {
+        // Only update the toolbar if the Fragment is still visible
+        if (isResumed && isVisible) {
+            showToolbar(getString(titleResId))
+        }
+    }
+
     override fun onResume() {
         super.onResume()
-        hideToolbar()
+        showToolbar(getString(R.string.preference_doh_title))
     }
 
     override fun onDestroyView() {

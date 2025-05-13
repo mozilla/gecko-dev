@@ -9,8 +9,10 @@ import androidx.compose.runtime.getValue
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import mozilla.components.lib.state.ext.observeAsState
+import org.mozilla.fenix.R
 import org.mozilla.fenix.settings.doh.addexception.AddExceptionScreen
 import org.mozilla.fenix.settings.doh.exceptionslist.ExceptionsListScreen
 import org.mozilla.fenix.settings.doh.info.InfoScreen
@@ -25,9 +27,12 @@ import org.mozilla.fenix.settings.doh.root.DohSettingsScreen
 internal fun DohSettingsNavHost(
     buildStore: (NavHostController) -> DohSettingsStore,
     startDestination: String = DohSettingsDestinations.ROOT,
+    onUpdateToolbar: (Int) -> Unit,
 ) {
     val navController = rememberNavController()
     val store = buildStore(navController)
+
+    updateToolbar(navController = navController, onUpdateToolbar = onUpdateToolbar)
 
     NavHost(
         navController = navController,
@@ -37,11 +42,6 @@ internal fun DohSettingsNavHost(
             val state by store.observeAsState(store.state) { it }
             DohSettingsScreen(
                 state = state,
-                onNavigateUp = {
-                    store.dispatch(
-                        BackClicked,
-                    )
-                },
                 onLearnMoreClicked = { url ->
                     store.dispatch(
                         LearnMoreClicked(
@@ -101,11 +101,6 @@ internal fun DohSettingsNavHost(
         composable(route = DohSettingsDestinations.INFO_DEFAULT) {
             InfoScreen(
                 infoScreenTopic = InfoScreenTopic.DEFAULT,
-                onNavigateUp = {
-                    store.dispatch(
-                        BackClicked,
-                    )
-                },
                 onLearnMoreClicked = { url ->
                     store.dispatch(
                         LearnMoreClicked(
@@ -118,11 +113,6 @@ internal fun DohSettingsNavHost(
         composable(route = DohSettingsDestinations.INFO_INCREASED) {
             InfoScreen(
                 infoScreenTopic = InfoScreenTopic.INCREASED,
-                onNavigateUp = {
-                    store.dispatch(
-                        BackClicked,
-                    )
-                },
                 onLearnMoreClicked = { url ->
                     store.dispatch(
                         LearnMoreClicked(
@@ -135,11 +125,6 @@ internal fun DohSettingsNavHost(
         composable(route = DohSettingsDestinations.INFO_MAX) {
             InfoScreen(
                 infoScreenTopic = InfoScreenTopic.MAX,
-                onNavigateUp = {
-                    store.dispatch(
-                        BackClicked,
-                    )
-                },
                 onLearnMoreClicked = { url ->
                     store.dispatch(
                         LearnMoreClicked(
@@ -154,11 +139,6 @@ internal fun DohSettingsNavHost(
             val state by store.observeAsState(store.state) { it }
             ExceptionsListScreen(
                 state = state,
-                onNavigateUp = {
-                    store.dispatch(
-                        BackClicked,
-                    )
-                },
                 onAddExceptionsClicked = {
                     store.dispatch(
                         ExceptionsAction.AddExceptionsClicked,
@@ -181,11 +161,6 @@ internal fun DohSettingsNavHost(
             val state by store.observeAsState(store.state) { it }
             AddExceptionScreen(
                 state = state,
-                onNavigateUp = {
-                    store.dispatch(
-                        BackClicked,
-                    )
-                },
                 onSaveClicked = { url ->
                     store.dispatch(
                         ExceptionsAction.SaveClicked(url),
@@ -194,6 +169,24 @@ internal fun DohSettingsNavHost(
             )
         }
     }
+}
+
+@Composable
+private fun updateToolbar(
+    navController: NavHostController,
+    onUpdateToolbar: (Int) -> Unit,
+) {
+    val backstack by navController.currentBackStackEntryAsState()
+    val titleResId = when (backstack?.destination?.route) {
+        DohSettingsDestinations.ROOT -> R.string.preference_doh_title
+        DohSettingsDestinations.INFO_DEFAULT -> R.string.preference_doh_default_protection
+        DohSettingsDestinations.INFO_INCREASED -> R.string.preference_doh_increased_protection
+        DohSettingsDestinations.INFO_MAX -> R.string.preference_doh_max_protection
+        DohSettingsDestinations.EXCEPTIONS_LIST -> R.string.preference_doh_exceptions
+        DohSettingsDestinations.ADD_EXCEPTION -> R.string.preference_doh_exceptions_add
+        else -> R.string.preference_doh_title
+    }
+    onUpdateToolbar(titleResId)
 }
 
 /**

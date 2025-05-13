@@ -5,19 +5,15 @@
 package org.mozilla.fenix.settings.doh.info
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextDecoration
@@ -33,14 +29,12 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * Composable function that displays the info screen of DoH settings.
  *
  * @param infoScreenTopic The [infoScreenTopic] that we would like to display.
- * @param onNavigateUp Invoked when the user clicks the navigate up (back) button.
  * @param onLearnMoreClicked Invoked when the user wants to visit an external doc about DoH.
  */
 @Composable
 @Suppress("SpreadOperator")
 internal fun InfoScreen(
     infoScreenTopic: InfoScreenTopic,
-    onNavigateUp: () -> Unit = {},
     onLearnMoreClicked: (String) -> Unit = {},
 ) {
     val title = stringResource(infoScreenTopic.titleId)
@@ -60,62 +54,26 @@ internal fun InfoScreen(
         bulletText to sumoTopic
     }
 
-    Scaffold(
-        topBar = {
-            Toolbar(
-                title = title,
-                onToolbarBackClick = onNavigateUp,
-            )
-        },
-        backgroundColor = FirefoxTheme.colors.layer1,
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-        ) {
-            Title(
-                title = title,
-            )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(FirefoxTheme.colors.layer1),
+    ) {
+        Title(
+            title = title,
+        )
 
-            bulletPoints.forEach { (text, url) ->
-                val learnMoreUrl = url?.let {
-                    SupportUtils.getGenericSumoURLForTopic(it)
-                }
-                BulletTextWithOptionalLink(
-                    text = text,
-                    learnMoreUrl = learnMoreUrl,
-                    onLearnMoreClicked = onLearnMoreClicked,
-                )
+        bulletPoints.forEach { (text, url) ->
+            val learnMoreUrl = url?.let {
+                SupportUtils.getGenericSumoURLForTopic(it)
             }
+            BulletTextWithOptionalLink(
+                text = text,
+                learnMoreUrl = learnMoreUrl,
+                onLearnMoreClicked = onLearnMoreClicked,
+            )
         }
     }
-}
-
-@Composable
-private fun Toolbar(
-    title: String,
-    onToolbarBackClick: () -> Unit,
-) {
-    TopAppBar(
-        backgroundColor = FirefoxTheme.colors.layer1,
-        title = {
-            Text(
-                color = FirefoxTheme.colors.textPrimary,
-                style = FirefoxTheme.typography.headline6,
-                text = title,
-            )
-        },
-        navigationIcon = {
-            IconButton(onClick = onToolbarBackClick) {
-                Icon(
-                    painter = painterResource(R.drawable.mozac_ic_back_24),
-                    contentDescription = stringResource(R.string.preference_doh_up_description),
-                    tint = FirefoxTheme.colors.iconPrimary,
-                )
-            }
-        },
-    )
 }
 
 @Composable
