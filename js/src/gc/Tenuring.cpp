@@ -477,8 +477,6 @@ void js::gc::StoreBuffer::WholeCellBuffer::trace(TenuringTracer& mover,
 template <typename CharT>
 void JSDependentString::updateToPromotedBaseImpl(JSLinearString* base) {
   MOZ_ASSERT(!InCollectedNurseryRegion(this));
-  MOZ_ASSERT(IsInsideNursery(nurseryBaseOrRelocOverlay()));
-
   MOZ_ASSERT(IsInsideNursery(base));
   MOZ_ASSERT(!Forwarded(base)->hasBase(), "base chain should be collapsed");
   MOZ_ASSERT(base->isForwarded(), "root base should be kept alive");
