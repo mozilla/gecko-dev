@@ -3160,8 +3160,7 @@ class nsIFrame : public nsQueryFrame {
   void FinishReflowWithAbsoluteFrames(nsPresContext* aPresContext,
                                       ReflowOutput& aDesiredSize,
                                       const ReflowInput& aReflowInput,
-                                      nsReflowStatus& aStatus,
-                                      bool aConstrainBSize = true);
+                                      nsReflowStatus& aStatus);
 
   /**
    * Updates the overflow areas of the frame. This can be called if an
@@ -4564,8 +4563,7 @@ class nsIFrame : public nsQueryFrame {
   void ReflowAbsoluteFrames(nsPresContext* aPresContext,
                             ReflowOutput& aDesiredSize,
                             const ReflowInput& aReflowInput,
-                            nsReflowStatus& aStatus,
-                            bool aConstrainBSize = true);
+                            nsReflowStatus& aStatus);
 
  private:
   nscoord ComputeISizeValueFromAspectRatio(

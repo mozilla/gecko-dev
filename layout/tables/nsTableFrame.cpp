@@ -1862,8 +1862,8 @@ void nsTableFrame::FixupPositionedTableParts(nsPresContext* aPresContext,
     // FIXME: Unconditionally using NS_UNCONSTRAINEDSIZE for the bsize and
     // ignoring any change to the reflow status aren't correct. We'll never
     // paginate absolutely positioned frames.
-    positionedPart->FinishReflowWithAbsoluteFrames(
-        PresContext(), desiredSize, reflowInput, reflowStatus, true);
+    positionedPart->FinishReflowWithAbsoluteFrames(PresContext(), desiredSize,
+                                                   reflowInput, reflowStatus);
 
     // FinishReflowWithAbsoluteFrames has updated overflow on
     // |positionedPart|.  We need to make sure that update propagates

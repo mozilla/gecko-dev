@@ -7375,10 +7375,8 @@ void nsIFrame::DidReflow(nsPresContext* aPresContext,
 void nsIFrame::FinishReflowWithAbsoluteFrames(nsPresContext* aPresContext,
                                               ReflowOutput& aDesiredSize,
                                               const ReflowInput& aReflowInput,
-                                              nsReflowStatus& aStatus,
-                                              bool aConstrainBSize) {
-  ReflowAbsoluteFrames(aPresContext, aDesiredSize, aReflowInput, aStatus,
-                       aConstrainBSize);
+                                              nsReflowStatus& aStatus) {
+  ReflowAbsoluteFrames(aPresContext, aDesiredSize, aReflowInput, aStatus);
 
   FinishAndStoreOverflow(&aDesiredSize, aReflowInput.mStyleDisplay);
 }
@@ -7386,8 +7384,7 @@ void nsIFrame::FinishReflowWithAbsoluteFrames(nsPresContext* aPresContext,
 void nsIFrame::ReflowAbsoluteFrames(nsPresContext* aPresContext,
                                     ReflowOutput& aDesiredSize,
                                     const ReflowInput& aReflowInput,
-                                    nsReflowStatus& aStatus,
-                                    bool aConstrainBSize) {
+                                    nsReflowStatus& aStatus) {
   if (HasAbsolutelyPositionedChildren()) {
     nsAbsoluteContainingBlock* absoluteContainer = GetAbsoluteContainingBlock();
 
@@ -7406,10 +7403,8 @@ void nsIFrame::ReflowAbsoluteFrames(nsPresContext* aPresContext,
 
     nsRect containingBlock(0, 0, containingBlockWidth, containingBlockHeight);
     AbsPosReflowFlags flags =
-        AbsPosReflowFlags::CBWidthAndHeightChanged;  // XXX could be optimized
-    if (aConstrainBSize) {
-      flags |= AbsPosReflowFlags::ConstrainHeight;
-    }
+        AbsPosReflowFlags::CBWidthAndHeightChanged |  // XXX could be optimized
+        AbsPosReflowFlags::ConstrainHeight;
     absoluteContainer->Reflow(container, aPresContext, aReflowInput, aStatus,
                               containingBlock, flags,
                               &aDesiredSize.mOverflowAreas);
