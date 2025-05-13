@@ -3,7 +3,6 @@
 # file, # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import logging
-import subprocess
 import sys
 from pathlib import Path
 from platform import uname
@@ -25,6 +24,7 @@ else:
 TEST_REGION = "en-US"
 TEST_SOURCE_VERSION = "135.0.1"
 INSTALLED_APP_DIR = "fx_test"
+FX_DOWNLOAD_DIR_URL = "https://archive.mozilla.org/pub/firefox/releases/"
 
 
 def setup_update_argument_parser():
@@ -37,16 +37,40 @@ def setup_update_argument_parser():
     return parser
 
 
+def get_fx_executable_name(version):
+    u = uname()
+
+    if u.system == "Darwin":
+        platform = "mac"
+        executable_name = f"Firefox {version}.dmg"
+
+    if u.system == "Linux":
+        if "64" in u.machine:
+            platform = "linux-x86_64"
+        else:
+            platform = "linux-x86_64"
+        if int(version.split(".")[0]) < 135:
+            executable_name = f"firefox-{version}.tar.bz2"
+        else:
+            executable_name = f"firefox-{version}.tar.xz"
+
+    if u.system == "Windows":
+        if u.machine == "ARM64":
+            platform = "win64-aarch64"
+        elif "64" in u.machine:
+            platform = "win64"
+        else:
+            platform = "win32"
+        executable_name = f"Firefox Setup {version}.exe"
+
+    return platform, executable_name.replace(" ", "%20")
+
+
 def get_binary_path(**kwargs):
-    executable_url = subprocess.check_output(
-        [
-            "python3",
-            "testing/update/collect_executables.py",
-            TEST_REGION,
-            TEST_SOURCE_VERSION,
-        ],
-        text=True,
-    ).strip()
+    platform, executable_name = get_fx_executable_name(TEST_SOURCE_VERSION)
+
+    executable_url = rf"{FX_DOWNLOAD_DIR_URL}{TEST_SOURCE_VERSION}/{platform}/{TEST_REGION}/{executable_name}"
+
     installer_filename = Path(executable_url).name
     print(f"Downloading Fx from {executable_url}...")
     response = requests.get(executable_url)
