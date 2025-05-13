@@ -1489,6 +1489,7 @@ add_task(async function test_getting_file_disallowed_custom_hub() {
   const hub = new ModelHub({
     rootUrl: "https://localhost",
     urlTemplate: "{model}/boo/revision",
+    allowDenyList: [{ filter: "ALLOW", urlPrefix: "https://example.com" }],
   });
 
   // and we can't use APIs against another hub if it's not allowed
@@ -1501,8 +1502,23 @@ add_task(async function test_getting_file_disallowed_custom_hub() {
     modelHubUrlTemplate: "{model}/{revision}",
   };
 
+  // This catch the error returned by getEtag when checking if file is in cache
   try {
     await hub.getModelFileAsArrayBuffer(args);
+    throw new Error("Expected method to reject.");
+  } catch (error) {
+    Assert.throws(
+      () => {
+        throw error;
+      },
+      new RegExp(`ForbiddenURLError`),
+      `Should throw with https://forbidden.com`
+    );
+  }
+
+  // This catch the error returned when useCached is false
+  try {
+    await hub.getModelFileAsArrayBuffer({ ...args, revision: "v1" });
     throw new Error("Expected method to reject.");
   } catch (error) {
     Assert.throws(
@@ -1529,6 +1545,48 @@ add_task(async function test_getting_file_disallowed_custom_hub() {
 
   try {
     await hub.getModelFileAsResponse(args);
+    throw new Error("Expected method to reject.");
+  } catch (error) {
+    Assert.throws(
+      () => {
+        throw error;
+      },
+      new RegExp(`ForbiddenURLError`),
+      `Should throw with https://forbidden.com`
+    );
+  }
+
+  // This catch the error when http error codes are returned, useCached is false
+  try {
+    await hub.getModelFileAsArrayBuffer({
+      ...args,
+      revision: "v1",
+      modelHubRootUrl: "https://example.com",
+    });
+    throw new Error("Expected method to reject.");
+  } catch (error) {
+    Assert.throws(
+      () => {
+        throw error;
+      },
+      new RegExp(`HTTP error! Status: 404 Not Found`),
+      `Should throw with 404`
+    );
+  }
+
+  // This catch the error returned when useCached is true with no checks for etags
+  try {
+    // store a file in the hub
+    await hub.cache.put({
+      ...args,
+      model: "forbidden.com/acme/bert",
+      engineId: "engineOne",
+      revision: "v1",
+      data: createBlob(),
+      headers: null,
+    });
+
+    await hub.getModelFileAsArrayBuffer({ ...args, revision: "v1" });
     throw new Error("Expected method to reject.");
   } catch (error) {
     Assert.throws(

@@ -1249,7 +1249,15 @@ export class ModelHub {
     if (result && !result.allowed) {
       throw new ForbiddenURLError(url, result.rejectionType);
     }
-    return fetch(url, options);
+    const response = await fetch(url, options);
+
+    if (!response.ok) {
+      throw new Error(
+        `HTTP error! Status: ${response.status} ${response.statusText}`
+      );
+    }
+
+    return response;
   }
 
   /**
@@ -1745,8 +1753,11 @@ export class ModelHub {
     });
 
     lazy.console.debug(`Fetching ${url}`);
+    let caughtError;
     try {
-      let response = await this.#fetch(url);
+      const response = await this.#fetch(url);
+      // After above call, we are sure the response was ok & no errors was thrown
+
       let isFirstCall = true;
 
       const fileHandle = await lazy.OPFS.getFileHandle(localFilePath, {
@@ -1790,38 +1801,37 @@ export class ModelHub {
         error: "",
       });
 
-      if (response.ok) {
-        const headers = {
-          // We don't store the boundary or the charset, just the content type,
-          // so we drop what's after the semicolon.
-          "Content-Type": response.headers.get("Content-Type").split(";")[0],
-          "Content-Length": response.headers.get("Content-Length"),
-          ETag: response.headers.get("ETag"),
-          fileSize: (await fileHandle.getFile()).size,
-        };
+      const headers = {
+        // We don't store the boundary or the charset, just the content type,
+        // so we drop what's after the semicolon.
+        "Content-Type": response.headers.get("Content-Type").split(";")[0],
+        "Content-Length": response.headers.get("Content-Length"),
+        ETag: response.headers.get("ETag"),
+        fileSize: (await fileHandle.getFile()).size,
+      };
 
-        await this.cache.put({
-          engineId,
-          taskName,
-          model: modelWithHostname,
-          revision,
-          file,
-          data: localFilePath,
-          headers,
-        });
+      await this.cache.put({
+        engineId,
+        taskName,
+        model: modelWithHostname,
+        revision,
+        file,
+        data: localFilePath,
+        headers,
+      });
 
-        progressCallback?.(
-          new lazy.Progress.ProgressAndStatusCallbackParams({
-            ...statusInfo,
-            ...progressInfo,
-            type: lazy.Progress.ProgressType.DOWNLOAD,
-            statusText: lazy.Progress.ProgressStatusText.DONE,
-          })
-        );
+      progressCallback?.(
+        new lazy.Progress.ProgressAndStatusCallbackParams({
+          ...statusInfo,
+          ...progressInfo,
+          type: lazy.Progress.ProgressType.DOWNLOAD,
+          statusText: lazy.Progress.ProgressStatusText.DONE,
+        })
+      );
 
-        return [localFilePath, headers];
-      }
+      return [localFilePath, headers];
     } catch (error) {
+      caughtError = error;
       const end = Date.now();
       const duration = Math.floor(end - start);
       Glean.firefoxAiRuntime.modelDownload.record({
@@ -1835,9 +1845,7 @@ export class ModelHub {
         modelRevision,
         error: error.constructor.name,
       });
-      if (error instanceof ForbiddenURLError) {
-        throw error;
-      }
+
       lazy.console.error(`Failed to fetch ${url}:`, error);
     }
 
@@ -1852,7 +1860,12 @@ export class ModelHub {
       })
     );
 
-    throw new Error(`Failed to fetch the model file: ${url}`);
+    throw new Error(
+      `Failed to fetch the model file: ${url}. Reason: ${caughtError.message} ${caughtError.stack}`,
+      {
+        cause: caughtError,
+      }
+    );
   }
 
   /**
