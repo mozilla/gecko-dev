@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.71"
 name = "quinn-udp"
-version = "0.5.11"
+version = "0.5.12"
 build = "build.rs"
 autolib = false
 autobins = false
