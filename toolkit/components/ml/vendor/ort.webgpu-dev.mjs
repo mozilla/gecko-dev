@@ -1,5 +1,5 @@
 /*!
- * ONNX Runtime Web v1.22.0-dev.20250409-89f8206ba4
+ * ONNX Runtime Web v1.22.0-dev.20250306-ccf8fdd9ea
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
@@ -152,7 +152,7 @@ var version;
 var init_version = __esm({
   "common/dist/esm/version.js"() {
     "use strict";
-    version = "1.22.0-dev.20250409-89f8206ba4";
+    version = "1.22.0-dev.20250306-aafa8d170a";
   }
 });
 
@@ -1194,12 +1194,6 @@ var init_inference_session_impl = __esm({
       get outputNames() {
         return this.handler.outputNames;
       }
-      get inputMetadata() {
-        return this.handler.inputMetadata;
-      }
-      get outputMetadata() {
-        return this.handler.outputMetadata;
-      }
     };
   }
 });
@@ -1471,7 +1465,7 @@ var init_wasm_utils_import = __esm({
 });
 
 // web/lib/wasm/wasm-factory.ts
-var wasm, initialized, initializing, aborted, isMultiThreadSupported, isSimdSupported, isRelaxedSimdSupported, initializeWebAssembly, getInstance;
+var wasm, initialized, initializing, aborted, isMultiThreadSupported, isSimdSupported, initializeWebAssembly, getInstance;
 var init_wasm_factory = __esm({
   "web/lib/wasm/wasm-factory.ts"() {
     "use strict";
@@ -1592,56 +1586,6 @@ var init_wasm_factory = __esm({
         return false;
       }
     };
-    isRelaxedSimdSupported = () => {
-      try {
-        return WebAssembly.validate(
-          new Uint8Array([
-            0,
-            97,
-            115,
-            109,
-            1,
-            0,
-            0,
-            0,
-            1,
-            5,
-            1,
-            96,
-            0,
-            1,
-            123,
-            3,
-            2,
-            1,
-            0,
-            10,
-            19,
-            1,
-            17,
-            0,
-            65,
-            1,
-            253,
-            15,
-            65,
-            2,
-            253,
-            15,
-            65,
-            3,
-            253,
-            15,
-            253,
-            147,
-            2,
-            11
-          ])
-        );
-      } catch (e) {
-        return false;
-      }
-    };
     initializeWebAssembly = async (flags) => {
       if (initialized) {
         return Promise.resolve();
@@ -1655,12 +1599,7 @@ var init_wasm_factory = __esm({
       initializing = true;
       const timeout = flags.initTimeout;
       let numThreads = flags.numThreads;
-      if (flags.simd === false) {
-      } else if (flags.simd === "relaxed") {
-        if (!isRelaxedSimdSupported()) {
-          throw new Error("Relaxed WebAssembly SIMD is not supported in the current environment.");
-        }
-      } else if (!isSimdSupported()) {
+      if (!isSimdSupported()) {
         throw new Error("WebAssembly SIMD is not supported in the current environment.");
       }
       const multiThreadSupported = isMultiThreadSupported();
@@ -1864,7 +1803,7 @@ var init_run_options = __esm({
 });
 
 // web/lib/wasm/session-options.ts
-var getGraphOptimzationLevel, getExecutionMode, appendDefaultOptions, appendSessionConfig, setExecutionProviders, setSessionOptions;
+var getGraphOptimzationLevel, getExecutionMode, appendDefaultOptions, setExecutionProviders, setSessionOptions;
 var init_session_options = __esm({
   "web/lib/wasm/session-options.ts"() {
     "use strict";
@@ -1909,17 +1848,9 @@ var init_session_options = __esm({
         options.enableMemPattern = false;
       }
     };
-    appendSessionConfig = (sessionOptionsHandle, key, value, allocs) => {
-      const keyDataOffset = allocWasmString(key, allocs);
-      const valueDataOffset = allocWasmString(value, allocs);
-      if (getInstance()._OrtAddSessionConfigEntry(sessionOptionsHandle, keyDataOffset, valueDataOffset) !== 0) {
-        checkLastError(`Can't set a session config entry: ${key} - ${value}.`);
-      }
-    };
-    setExecutionProviders = async (sessionOptionsHandle, executionProviders, allocs) => {
+    setExecutionProviders = (sessionOptionsHandle, executionProviders, allocs) => {
       for (const ep of executionProviders) {
         let epName = typeof ep === "string" ? ep : ep.name;
-        const epOptions = [];
         switch (epName) {
           case "webnn":
             epName = "WEBNN";
@@ -1927,40 +1858,26 @@ var init_session_options = __esm({
               const webnnOptions = ep;
               const deviceType = webnnOptions?.deviceType;
               if (deviceType) {
-                appendSessionConfig(sessionOptionsHandle, "deviceType", deviceType, allocs);
+                const keyDataOffset = allocWasmString("deviceType", allocs);
+                const valueDataOffset = allocWasmString(deviceType, allocs);
+                if (getInstance()._OrtAddSessionConfigEntry(sessionOptionsHandle, keyDataOffset, valueDataOffset) !== 0) {
+                  checkLastError(`Can't set a session config entry: 'deviceType' - ${deviceType}.`);
+                }
               }
             }
             break;
           case "webgpu":
-            if (false) {
-              epName = "WebGPU";
-              let customDevice;
-              if (typeof ep !== "string") {
-                const customOptions = ep;
-                if (customOptions.device) {
-                  if (typeof GPUDevice !== "undefined" && customOptions.device instanceof GPUDevice) {
-                    customDevice = customOptions.device;
-                  } else {
-                    throw new Error("Invalid GPU device set in WebGPU EP options.");
-                  }
+            epName = "JS";
+            if (typeof ep !== "string") {
+              const webgpuOptions = ep;
+              if (webgpuOptions?.preferredLayout) {
+                if (webgpuOptions.preferredLayout !== "NCHW" && webgpuOptions.preferredLayout !== "NHWC") {
+                  throw new Error(`preferredLayout must be either 'NCHW' or 'NHWC': ${webgpuOptions.preferredLayout}`);
                 }
-              }
-              const info = getInstance().webgpuRegisterDevice(customDevice);
-              if (info) {
-                const [deviceId, instanceHandle, deviceHandle] = info;
-                appendEpOption(epOptions, "deviceId", deviceId.toString(), allocs);
-                appendEpOption(epOptions, "webgpuInstance", instanceHandle.toString(), allocs);
-                appendEpOption(epOptions, "webgpuDevice", deviceHandle.toString(), allocs);
-              }
-            } else {
-              epName = "JS";
-              if (typeof ep !== "string") {
-                const webgpuOptions = ep;
-                if (webgpuOptions?.preferredLayout) {
-                  if (webgpuOptions.preferredLayout !== "NCHW" && webgpuOptions.preferredLayout !== "NHWC") {
-                    throw new Error(`preferredLayout must be either 'NCHW' or 'NHWC': ${webgpuOptions.preferredLayout}`);
-                  }
-                  appendSessionConfig(sessionOptionsHandle, "preferredLayout", webgpuOptions.preferredLayout, allocs);
+                const keyDataOffset = allocWasmString("preferredLayout", allocs);
+                const valueDataOffset = allocWasmString(webgpuOptions.preferredLayout, allocs);
+                if (getInstance()._OrtAddSessionConfigEntry(sessionOptionsHandle, keyDataOffset, valueDataOffset) !== 0) {
+                  checkLastError(`Can't set a session config entry: 'preferredLayout' - ${webgpuOptions.preferredLayout}.`);
                 }
               }
             }
@@ -1972,31 +1889,12 @@ var init_session_options = __esm({
             throw new Error(`not supported execution provider: ${epName}`);
         }
         const epNameDataOffset = allocWasmString(epName, allocs);
-        const epOptionsCount = epOptions.length;
-        let keysOffset = 0;
-        let valuesOffset = 0;
-        if (epOptionsCount > 0) {
-          keysOffset = getInstance()._malloc(epOptionsCount * getInstance().PTR_SIZE);
-          allocs.push(keysOffset);
-          valuesOffset = getInstance()._malloc(epOptionsCount * getInstance().PTR_SIZE);
-          allocs.push(valuesOffset);
-          for (let i = 0; i < epOptionsCount; i++) {
-            getInstance().setValue(keysOffset + i * getInstance().PTR_SIZE, epOptions[i][0], "*");
-            getInstance().setValue(valuesOffset + i * getInstance().PTR_SIZE, epOptions[i][1], "*");
-          }
-        }
-        if (await getInstance()._OrtAppendExecutionProvider(
-          sessionOptionsHandle,
-          epNameDataOffset,
-          keysOffset,
-          valuesOffset,
-          epOptionsCount
-        ) !== 0) {
+        if (getInstance()._OrtAppendExecutionProvider(sessionOptionsHandle, epNameDataOffset) !== 0) {
           checkLastError(`Can't append execution provider: ${epName}.`);
         }
       }
     };
-    setSessionOptions = async (options) => {
+    setSessionOptions = (options) => {
       const wasm2 = getInstance();
       let sessionOptionsHandle = 0;
       const allocs = [];
@@ -2031,18 +1929,19 @@ var init_session_options = __esm({
           checkLastError("Can't create session options.");
         }
         if (sessionOptions.executionProviders) {
-          await setExecutionProviders(sessionOptionsHandle, sessionOptions.executionProviders, allocs);
+          setExecutionProviders(sessionOptionsHandle, sessionOptions.executionProviders, allocs);
         }
         if (sessionOptions.enableGraphCapture !== void 0) {
           if (typeof sessionOptions.enableGraphCapture !== "boolean") {
             throw new Error(`enableGraphCapture must be a boolean value: ${sessionOptions.enableGraphCapture}`);
           }
-          appendSessionConfig(
-            sessionOptionsHandle,
-            "enableGraphCapture",
-            sessionOptions.enableGraphCapture.toString(),
-            allocs
-          );
+          const keyDataOffset = allocWasmString("enableGraphCapture", allocs);
+          const valueDataOffset = allocWasmString(sessionOptions.enableGraphCapture.toString(), allocs);
+          if (wasm2._OrtAddSessionConfigEntry(sessionOptionsHandle, keyDataOffset, valueDataOffset) !== 0) {
+            checkLastError(
+              `Can't set a session config entry: 'enableGraphCapture' - ${sessionOptions.enableGraphCapture}.`
+            );
+          }
         }
         if (sessionOptions.freeDimensionOverrides) {
           for (const [name, value] of Object.entries(sessionOptions.freeDimensionOverrides)) {
@@ -2060,7 +1959,11 @@ var init_session_options = __esm({
         }
         if (sessionOptions.extra !== void 0) {
           iterateExtraOptions(sessionOptions.extra, "", /* @__PURE__ */ new WeakSet(), (key, value) => {
-            appendSessionConfig(sessionOptionsHandle, key, value, allocs);
+            const keyDataOffset = allocWasmString(key, allocs);
+            const valueDataOffset = allocWasmString(value, allocs);
+            if (wasm2._OrtAddSessionConfigEntry(sessionOptionsHandle, keyDataOffset, valueDataOffset) !== 0) {
+              checkLastError(`Can't set a session config entry: ${key} - ${value}.`);
+            }
           });
         }
         return [sessionOptionsHandle, allocs];
@@ -2375,6 +2278,354 @@ var init_log = __esm({
         LOG(...args);
       }
     };
+  }
+});
+
+// web/lib/wasm/jsep/tensor-view.ts
+var createView;
+var init_tensor_view = __esm({
+  "web/lib/wasm/jsep/tensor-view.ts"() {
+    "use strict";
+    init_wasm_common();
+    createView = (dataBuffer, type) => new (tensorTypeToTypedArrayConstructor(type))(dataBuffer);
+  }
+});
+
+// web/lib/wasm/jsep/webgpu/types.ts
+var init_types = __esm({
+  "web/lib/wasm/jsep/webgpu/types.ts"() {
+    "use strict";
+  }
+});
+
+// web/lib/wasm/jsep/webgpu/gpu-data-manager.ts
+var bucketFreelist, bucketArr, calcNormalizedBufferSize, calcBucketBufferSize, guid, createNewGpuDataId, downloadGpuData, GpuDataManagerImpl, createGpuDataManager;
+var init_gpu_data_manager = __esm({
+  "web/lib/wasm/jsep/webgpu/gpu-data-manager.ts"() {
+    "use strict";
+    init_log();
+    init_types();
+    bucketFreelist = /* @__PURE__ */ new Map([
+      [64, 250],
+      [128, 200],
+      [256, 200],
+      [512, 200],
+      [2048, 230],
+      [4096, 200],
+      [8192, 50],
+      [16384, 50],
+      [32768, 50],
+      [65536, 50],
+      [131072, 50],
+      [262144, 50],
+      [524288, 50],
+      [1048576, 50],
+      [2097152, 30],
+      [4194304, 20],
+      [8388608, 10],
+      [12582912, 10],
+      [16777216, 10],
+      [26214400, 15],
+      [33554432, 22],
+      [44236800, 2],
+      [58982400, 6],
+      // we don't want to cache the bucket sizes below but not caching them
+      // results in some major performance hits for models like sd-turbo.
+      [67108864, 6],
+      [134217728, 6],
+      [167772160, 6]
+    ]);
+    bucketArr = [];
+    calcNormalizedBufferSize = (size) => Math.ceil(Number(size) / 16) * 16;
+    calcBucketBufferSize = (size) => {
+      for (let idx = 0; idx < bucketArr.length; idx++) {
+        const sizeForBucket = bucketArr[idx];
+        if (size <= sizeForBucket) {
+          return sizeForBucket;
+        }
+      }
+      return Math.ceil(size / 16) * 16;
+    };
+    guid = 1;
+    createNewGpuDataId = () => guid++;
+    downloadGpuData = async (backend, gpuBuffer, originalSize, getTargetBuffer) => {
+      const bufferSize = calcNormalizedBufferSize(originalSize);
+      const gpuReadBuffer = backend.device.createBuffer(
+        // eslint-disable-next-line no-bitwise
+        { size: bufferSize, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ }
+      );
+      try {
+        const commandEncoder = backend.getCommandEncoder();
+        backend.endComputePass();
+        commandEncoder.copyBufferToBuffer(
+          gpuBuffer,
+          0,
+          gpuReadBuffer,
+          0,
+          bufferSize
+        );
+        backend.flush();
+        await gpuReadBuffer.mapAsync(GPUMapMode.READ);
+        const arrayBuffer = gpuReadBuffer.getMappedRange();
+        if (getTargetBuffer) {
+          const targetBuffer = getTargetBuffer();
+          targetBuffer.set(new Uint8Array(arrayBuffer, 0, originalSize));
+          return targetBuffer;
+        } else {
+          return new Uint8Array(arrayBuffer.slice(0, originalSize));
+        }
+      } finally {
+        gpuReadBuffer.destroy();
+      }
+    };
+    GpuDataManagerImpl = class {
+      constructor(backend) {
+        this.backend = backend;
+        this.storageCache = /* @__PURE__ */ new Map();
+        this.freeBuffers = /* @__PURE__ */ new Map();
+        this.freeUniformBuffers = /* @__PURE__ */ new Map();
+        this.buffersPending = [];
+        this.capturedPendingBuffers = /* @__PURE__ */ new Map();
+        for (const [key] of bucketFreelist) {
+          bucketArr.push(key);
+          this.freeBuffers.set(key, []);
+          this.freeUniformBuffers.set(key, []);
+        }
+        this.sessionCount = 0;
+      }
+      upload(id, data) {
+        const srcArrayBuffer = data.buffer;
+        const srcOffset = data.byteOffset;
+        const srcLength = data.byteLength;
+        const size = calcNormalizedBufferSize(srcLength);
+        const gpuDataCache = this.storageCache.get(id);
+        if (!gpuDataCache) {
+          throw new Error("gpu data for uploading does not exist");
+        }
+        if (Number(gpuDataCache.originalSize) !== srcLength) {
+          throw new Error(`inconsistent data size. gpu data size=${gpuDataCache.originalSize}, data size=${srcLength}`);
+        }
+        const gpuBufferForUploading = this.backend.device.createBuffer(
+          // eslint-disable-next-line no-bitwise
+          { mappedAtCreation: true, size, usage: GPUBufferUsage.MAP_WRITE | GPUBufferUsage.COPY_SRC }
+        );
+        const arrayBuffer = gpuBufferForUploading.getMappedRange();
+        new Uint8Array(arrayBuffer).set(new Uint8Array(srcArrayBuffer, srcOffset, srcLength));
+        gpuBufferForUploading.unmap();
+        const commandEncoder = this.backend.device.createCommandEncoder();
+        commandEncoder.copyBufferToBuffer(gpuBufferForUploading, 0, gpuDataCache.gpuData.buffer, 0, size);
+        this.backend.device.queue.submit([commandEncoder.finish()]);
+        gpuBufferForUploading.destroy();
+        LOG_DEBUG("verbose", () => `[WebGPU] GpuDataManager.upload(id=${id})`);
+      }
+      memcpy(sourceId, destinationId) {
+        const sourceGpuDataCache = this.storageCache.get(sourceId);
+        if (!sourceGpuDataCache) {
+          throw new Error("source gpu data for memcpy does not exist");
+        }
+        const destinationGpuDataCache = this.storageCache.get(destinationId);
+        if (!destinationGpuDataCache) {
+          throw new Error("destination gpu data for memcpy does not exist");
+        }
+        if (sourceGpuDataCache.originalSize !== destinationGpuDataCache.originalSize) {
+          throw new Error("inconsistent source and destination gpu data size");
+        }
+        const size = calcNormalizedBufferSize(sourceGpuDataCache.originalSize);
+        const commandEncoder = this.backend.getCommandEncoder();
+        this.backend.endComputePass();
+        commandEncoder.copyBufferToBuffer(
+          sourceGpuDataCache.gpuData.buffer,
+          0,
+          destinationGpuDataCache.gpuData.buffer,
+          0,
+          size
+        );
+      }
+      registerExternalBuffer(buffer, originalSize, previous) {
+        let id;
+        if (previous) {
+          id = previous[0];
+          if (buffer === previous[1]) {
+            LOG_DEBUG(
+              "verbose",
+              () => `[WebGPU] GpuDataManager.registerExternalBuffer(size=${originalSize}) => id=${id}, buffer is the same, skip.`
+            );
+            return id;
+          } else if (this.backend.capturedCommandList.has(this.backend.currentSessionId)) {
+            throw new Error(`Registering a different external buffer under graph capture mode is not supported yet.
+             Please use the previous external buffer!`);
+          }
+        } else {
+          id = createNewGpuDataId();
+        }
+        this.storageCache.set(id, { gpuData: { id, type: 0 /* default */, buffer }, originalSize });
+        LOG_DEBUG(
+          "verbose",
+          () => `[WebGPU] GpuDataManager.registerExternalBuffer(size=${originalSize}) => id=${id}, registered.`
+        );
+        return id;
+      }
+      unregisterExternalBuffer(id) {
+        if (id !== void 0) {
+          this.storageCache.delete(id);
+          LOG_DEBUG("verbose", () => `[WebGPU] GpuDataManager.unregisterExternalBuffer() => id=${id}`);
+        }
+      }
+      // eslint-disable-next-line no-bitwise
+      create(size, usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST) {
+        const bufferSize = calcBucketBufferSize(size);
+        let gpuBuffer;
+        const isStorage = (usage & GPUBufferUsage.STORAGE) === GPUBufferUsage.STORAGE;
+        const isUniform = (usage & GPUBufferUsage.UNIFORM) === GPUBufferUsage.UNIFORM;
+        if (isStorage || isUniform) {
+          const freeBuffers = isStorage ? this.freeBuffers : this.freeUniformBuffers;
+          const buffers = freeBuffers.get(bufferSize);
+          if (!buffers) {
+            gpuBuffer = this.backend.device.createBuffer({ size: bufferSize, usage });
+          } else {
+            if (buffers.length > 0) {
+              gpuBuffer = buffers.pop();
+            } else {
+              gpuBuffer = this.backend.device.createBuffer({ size: bufferSize, usage });
+            }
+          }
+        } else {
+          gpuBuffer = this.backend.device.createBuffer({ size: bufferSize, usage });
+        }
+        const gpuData = { id: createNewGpuDataId(), type: 0 /* default */, buffer: gpuBuffer };
+        this.storageCache.set(gpuData.id, { gpuData, originalSize: Number(size) });
+        LOG_DEBUG("verbose", () => `[WebGPU] GpuDataManager.create(size=${size}) => id=${gpuData.id}`);
+        return gpuData;
+      }
+      get(id) {
+        return this.storageCache.get(id)?.gpuData;
+      }
+      release(idInput) {
+        const id = typeof idInput === "bigint" ? Number(idInput) : idInput;
+        const cachedData = this.storageCache.get(id);
+        if (!cachedData) {
+          if (this.storageCache.size === 0) {
+            return 0;
+          } else {
+            throw new Error("releasing data does not exist");
+          }
+        }
+        LOG_DEBUG("verbose", () => `[WebGPU] GpuDataManager.release(id=${id}), gpuDataId=${cachedData.gpuData.id}`);
+        this.storageCache.delete(id);
+        this.buffersPending.push(cachedData.gpuData.buffer);
+        return cachedData.originalSize;
+      }
+      async download(id, getTargetBuffer) {
+        const cachedData = this.storageCache.get(Number(id));
+        if (!cachedData) {
+          throw new Error("data does not exist");
+        }
+        await downloadGpuData(this.backend, cachedData.gpuData.buffer, cachedData.originalSize, getTargetBuffer);
+      }
+      refreshPendingBuffers() {
+        if (this.buffersPending.length === 0) {
+          return;
+        }
+        if (this.backend.sessionStatus === "default") {
+          for (const buffer of this.buffersPending) {
+            const maxInFreeList = bucketFreelist.get(buffer.size);
+            if ((buffer.usage & GPUBufferUsage.STORAGE) === GPUBufferUsage.STORAGE) {
+              const freelist = this.freeBuffers.get(buffer.size) || [];
+              if (maxInFreeList === void 0 || freelist.length >= maxInFreeList) {
+                buffer.destroy();
+              } else {
+                freelist.push(buffer);
+              }
+            } else if ((buffer.usage & GPUBufferUsage.UNIFORM) === GPUBufferUsage.UNIFORM) {
+              const freelist = this.freeUniformBuffers.get(buffer.size) || [];
+              if (maxInFreeList === void 0 || freelist.length >= maxInFreeList) {
+                buffer.destroy();
+              } else {
+                freelist.push(buffer);
+              }
+            } else {
+              buffer.destroy();
+            }
+          }
+          this.buffersPending = [];
+        } else {
+          let capturedBuffers = this.capturedPendingBuffers.get(this.backend.currentSessionId);
+          if (!capturedBuffers) {
+            capturedBuffers = [];
+            this.capturedPendingBuffers.set(this.backend.currentSessionId, capturedBuffers);
+          }
+          for (const buffer of this.buffersPending) {
+            capturedBuffers.push(buffer);
+          }
+          this.buffersPending = [];
+        }
+      }
+      dispose() {
+        this.freeBuffers.forEach((buffers) => {
+          buffers.forEach((buffer) => {
+            buffer.destroy();
+          });
+        });
+        this.freeUniformBuffers.forEach((buffers) => {
+          buffers.forEach((buffer) => {
+            buffer.destroy();
+          });
+        });
+        this.storageCache.forEach((storage) => {
+          storage.gpuData.buffer.destroy();
+        });
+        this.capturedPendingBuffers.forEach((buffers) => {
+          buffers.forEach((buffer) => {
+            buffer.destroy();
+          });
+        });
+        this.storageCache = /* @__PURE__ */ new Map();
+        this.freeBuffers = /* @__PURE__ */ new Map();
+        this.freeUniformBuffers = /* @__PURE__ */ new Map();
+        this.capturedPendingBuffers = /* @__PURE__ */ new Map();
+      }
+      onCreateSession() {
+        this.sessionCount += 1;
+      }
+      onReleaseSession(sessionId) {
+        const pendingBuffers = this.capturedPendingBuffers.get(sessionId);
+        if (pendingBuffers) {
+          pendingBuffers.forEach((buffer) => {
+            buffer.destroy();
+          });
+          this.capturedPendingBuffers.delete(sessionId);
+        }
+        this.sessionCount -= 1;
+        if (this.sessionCount === 0) {
+          LOG_DEBUG("warning", () => "[WebGPU] Clearing webgpu buffer cache");
+          this.storageCache.forEach((storage) => {
+            storage.gpuData.buffer.destroy();
+          });
+          this.storageCache = /* @__PURE__ */ new Map();
+        }
+      }
+    };
+    createGpuDataManager = (...args) => new GpuDataManagerImpl(...args);
+  }
+});
+
+// web/lib/wasm/jsep/webgpu/attribute-with-cache-key.ts
+var AttributeWithCacheKeyImpl, createAttributeWithCacheKey;
+var init_attribute_with_cache_key = __esm({
+  "web/lib/wasm/jsep/webgpu/attribute-with-cache-key.ts"() {
+    "use strict";
+    AttributeWithCacheKeyImpl = class {
+      constructor(attribute) {
+        Object.assign(this, attribute);
+      }
+      get cacheKey() {
+        if (!this.key) {
+          this.key = Object.getOwnPropertyNames(this).sort().map((name) => `${this[name]}`).join(";");
+        }
+        return this.key;
+      }
+    };
+    createAttributeWithCacheKey = (attribute) => new AttributeWithCacheKeyImpl(attribute);
   }
 });
 
@@ -2818,974 +3069,6 @@ var init_util = __esm({
     };
     MIN_CLIP = -34028234663852886e22;
     MAX_CLIP = 34028234663852886e22;
-  }
-});
-
-// web/lib/wasm/jsep/tensor-view.ts
-var createView;
-var init_tensor_view = __esm({
-  "web/lib/wasm/jsep/tensor-view.ts"() {
-    "use strict";
-    init_wasm_common();
-    createView = (dataBuffer, type) => new (tensorTypeToTypedArrayConstructor(type))(dataBuffer);
-  }
-});
-
-// web/lib/wasm/jsep/webnn/tensor-manager.ts
-var convertInt64ToInt32, convertInt32ToInt64, tensorGuid, createNewTensorId, webnnDataTypeToSize, calculateByteLength, TensorWrapper, TensorIdTracker, TensorManagerImpl, createTensorManager;
-var init_tensor_manager = __esm({
-  "web/lib/wasm/jsep/webnn/tensor-manager.ts"() {
-    "use strict";
-    init_log();
-    convertInt64ToInt32 = (data, returnUint8 = true) => {
-      if (data.byteLength % 8 !== 0) {
-        throw new Error("Invalid Uint8Array length - must be a multiple of 8 (BigInt).");
-      }
-      const numElements = data.byteLength / 8;
-      const bigInt64Array = new BigInt64Array(data.buffer, data.byteOffset, numElements);
-      const int32Array = new Int32Array(numElements);
-      for (let i = 0; i < numElements; i++) {
-        const value = bigInt64Array[i];
-        if (value > 2147483647n || value < -2147483648n) {
-          throw new Error(`Overflow occurred when converting BigInt to Int32 at index ${i}: ${value}`);
-        }
-        int32Array[i] = Number(value);
-      }
-      return returnUint8 ? new Uint8Array(int32Array.buffer) : int32Array;
-    };
-    convertInt32ToInt64 = (data, returnUint8 = true) => {
-      if (data.byteLength % 4 !== 0) {
-        throw new Error("Invalid Uint8Array length - must be a multiple of 4 (Int32).");
-      }
-      const numElements = data.byteLength / 4;
-      const int32Array = new Int32Array(data.buffer, data.byteOffset, numElements);
-      const bigInt64Array = BigInt64Array.from(int32Array, BigInt);
-      return returnUint8 ? new Uint8Array(bigInt64Array.buffer) : bigInt64Array;
-    };
-    tensorGuid = 1;
-    createNewTensorId = () => tensorGuid++;
-    webnnDataTypeToSize = /* @__PURE__ */ new Map([
-      ["float32", 32],
-      ["float16", 16],
-      ["int32", 32],
-      ["uint32", 32],
-      ["int64", 64],
-      ["uint64", 64],
-      ["int8", 8],
-      ["uint8", 8],
-      ["int4", 4],
-      ["uint4", 4]
-    ]);
-    calculateByteLength = (dataType, shape) => {
-      const size = webnnDataTypeToSize.get(dataType);
-      if (!size) {
-        throw new Error("Unsupported data type.");
-      }
-      return shape.length > 0 ? Math.ceil(shape.reduce((a, b) => a * b) * size / 8) : 0;
-    };
-    TensorWrapper = class {
-      constructor(descriptor) {
-        // This flag is used to indicate whether we should convert data from int64 to int32.
-        this.shouldConvertInt64toInt32 = false;
-        this.isInt64ToInt32Converted = false;
-        const { sessionId, context, tensor, dataType, shape, shouldConvertInt64toInt32 = false } = descriptor;
-        this.sessionId = sessionId;
-        this.mlContext = context;
-        this.mlTensor = tensor;
-        this.dataType = dataType;
-        this.tensorShape = shape;
-        this.shouldConvertInt64toInt32 = shouldConvertInt64toInt32;
-      }
-      get tensor() {
-        return this.mlTensor;
-      }
-      get type() {
-        return this.dataType;
-      }
-      get shape() {
-        return this.tensorShape;
-      }
-      get byteLength() {
-        return calculateByteLength(this.dataType, this.tensorShape);
-      }
-      destroy() {
-        LOG_DEBUG("verbose", () => "[WebNN] TensorWrapper.destroy");
-        this.mlTensor.destroy();
-      }
-      write(data) {
-        this.mlContext.writeTensor(this.mlTensor, data);
-      }
-      async read(shouldConvertInt32ToInt64, dstBuffer) {
-        if (shouldConvertInt32ToInt64) {
-          const data = await this.mlContext.readTensor(this.mlTensor);
-          const int64Data = convertInt32ToInt64(new Uint8Array(data));
-          if (dstBuffer) {
-            const targetBuffer = dstBuffer instanceof ArrayBuffer ? new Uint8Array(dstBuffer) : new Uint8Array(dstBuffer.buffer, dstBuffer.byteOffset, dstBuffer.byteLength);
-            targetBuffer.set(int64Data);
-            return void 0;
-          } else {
-            return int64Data.buffer;
-          }
-        } else {
-          return dstBuffer ? this.mlContext.readTensor(this.mlTensor, dstBuffer) : this.mlContext.readTensor(this.mlTensor);
-        }
-      }
-      canReuseTensor(context, dataType, shape) {
-        return this.mlContext === context && this.dataType === dataType && this.tensorShape.length === shape.length && this.tensorShape.every((v, i) => v === shape[i]);
-      }
-      setIsInt64ToInt32Converted(isConverted) {
-        this.isInt64ToInt32Converted = isConverted;
-      }
-    };
-    TensorIdTracker = class {
-      constructor(tensorManager, wrapper) {
-        this.tensorManager = tensorManager;
-        this.wrapper = wrapper;
-      }
-      get tensorWrapper() {
-        return this.wrapper;
-      }
-      releaseTensor() {
-        if (this.tensorWrapper) {
-          this.tensorManager.releaseTensor(this.tensorWrapper);
-          this.wrapper = void 0;
-        }
-      }
-      async ensureTensor(sessionId, dataType, shape, copyOld) {
-        let newDataType = dataType;
-        const context = this.tensorManager.getMLContext(sessionId);
-        const shouldConvertInt64toInt32 = newDataType === "int64" && !context.opSupportLimits().input.dataTypes.includes("int64");
-        if (shouldConvertInt64toInt32) {
-          newDataType = "int32";
-          LOG_DEBUG("verbose", () => `[WebNN] TensorIdTracker.ensureTensor: convert dataType from int64 to int32`);
-        }
-        if (this.wrapper) {
-          if (this.wrapper.canReuseTensor(context, newDataType, shape)) {
-            return this.wrapper.tensor;
-          } else {
-            if (copyOld) {
-              if (this.wrapper.byteLength !== calculateByteLength(newDataType, shape)) {
-                throw new Error("Unable to copy data to tensor with different size.");
-              }
-              this.activeUpload = new Uint8Array(await this.wrapper.read());
-            }
-            this.tensorManager.releaseTensor(this.wrapper);
-          }
-        }
-        const usage = typeof MLTensorUsage == "undefined" ? void 0 : MLTensorUsage.READ | MLTensorUsage.WRITE;
-        this.wrapper = await this.tensorManager.getCachedTensor(
-          sessionId,
-          newDataType,
-          shape,
-          usage,
-          true,
-          true,
-          shouldConvertInt64toInt32
-        );
-        if (copyOld && this.activeUpload) {
-          this.wrapper.write(this.activeUpload);
-          this.activeUpload = void 0;
-        }
-        return this.wrapper.tensor;
-      }
-      upload(data) {
-        let newData = data;
-        if (this.wrapper) {
-          if (this.wrapper.shouldConvertInt64toInt32) {
-            newData = convertInt64ToInt32(data, true);
-            this.wrapper.setIsInt64ToInt32Converted(true);
-          }
-          if (newData.byteLength === this.wrapper.byteLength) {
-            this.wrapper.write(newData);
-            return;
-          } else {
-            LOG_DEBUG("verbose", () => "Data size does not match tensor size. Releasing tensor.");
-            this.releaseTensor();
-          }
-        }
-        if (this.activeUpload) {
-          this.activeUpload.set(newData);
-        } else {
-          this.activeUpload = new Uint8Array(newData);
-        }
-      }
-      async download(dstBuffer) {
-        if (this.activeUpload) {
-          const dstData = this.wrapper?.isInt64ToInt32Converted ? convertInt32ToInt64(this.activeUpload) : this.activeUpload;
-          if (dstBuffer) {
-            if (dstBuffer instanceof ArrayBuffer) {
-              new Uint8Array(dstBuffer).set(dstData);
-            } else {
-              new Uint8Array(dstBuffer.buffer, dstBuffer.byteOffset, dstBuffer.byteLength).set(dstData);
-            }
-            return;
-          } else {
-            return dstData.buffer;
-          }
-        }
-        if (!this.wrapper) {
-          throw new Error("Tensor has not been created.");
-        }
-        if (!dstBuffer) {
-          return this.wrapper.read(this.wrapper?.shouldConvertInt64toInt32);
-        }
-        return this.wrapper.read(this.wrapper?.shouldConvertInt64toInt32, dstBuffer);
-      }
-    };
-    TensorManagerImpl = class {
-      constructor(backend) {
-        this.backend = backend;
-        this.tensorTrackersById = /* @__PURE__ */ new Map();
-        this.freeTensors = [];
-        this.externalTensors = /* @__PURE__ */ new Set();
-      }
-      getMLContext(sessionId) {
-        const context = this.backend.getMLContext(sessionId);
-        if (!context) {
-          throw new Error("MLContext not found for session.");
-        }
-        return context;
-      }
-      reserveTensorId() {
-        const tensorId = createNewTensorId();
-        this.tensorTrackersById.set(tensorId, new TensorIdTracker(this));
-        return tensorId;
-      }
-      releaseTensorId(tensorId) {
-        const tensorTracker = this.tensorTrackersById.get(tensorId);
-        if (!tensorTracker) {
-          return;
-        }
-        this.tensorTrackersById.delete(tensorId);
-        if (tensorTracker.tensorWrapper) {
-          this.releaseTensor(tensorTracker.tensorWrapper);
-        }
-      }
-      async ensureTensor(sessionId, tensorId, dataType, shape, copyOld) {
-        LOG_DEBUG(
-          "verbose",
-          () => `[WebNN] TensorManager.ensureTensor {tensorId: ${tensorId}, dataType: ${dataType}, shape: ${shape}, copyOld: ${copyOld}}`
-        );
-        const tensor = this.tensorTrackersById.get(tensorId);
-        if (!tensor) {
-          throw new Error("Tensor not found.");
-        }
-        return tensor.ensureTensor(sessionId, dataType, shape, copyOld);
-      }
-      upload(tensorId, data) {
-        const tensor = this.tensorTrackersById.get(tensorId);
-        if (!tensor) {
-          throw new Error("Tensor not found.");
-        }
-        tensor.upload(data);
-      }
-      async download(tensorId, dstBuffer) {
-        LOG_DEBUG(
-          "verbose",
-          () => `[WebNN] TensorManager.download {tensorId: ${tensorId}, dstBuffer: ${dstBuffer?.byteLength}}`
-        );
-        const tensorTracker = this.tensorTrackersById.get(tensorId);
-        if (!tensorTracker) {
-          throw new Error("Tensor not found.");
-        }
-        return tensorTracker.download(dstBuffer);
-      }
-      releaseTensorsForSession(sessionId) {
-        for (const tensor of this.freeTensors) {
-          if (tensor.sessionId === sessionId) {
-            tensor.destroy();
-          }
-        }
-        this.freeTensors = this.freeTensors.filter((tensor) => tensor.sessionId !== sessionId);
-      }
-      registerTensor(sessionId, mlTensor, dataType, shape) {
-        const context = this.getMLContext(sessionId);
-        const tensorId = createNewTensorId();
-        const wrapper = new TensorWrapper({
-          sessionId,
-          context,
-          tensor: mlTensor,
-          dataType,
-          shape
-        });
-        this.tensorTrackersById.set(tensorId, new TensorIdTracker(this, wrapper));
-        this.externalTensors.add(wrapper);
-        return tensorId;
-      }
-      /**
-       * Get or create an MLTensor with the given data type and shape.
-       */
-      async getCachedTensor(sessionId, dataType, shape, usage, writable, readable, shouldConvertInt64toInt32 = false) {
-        const context = this.getMLContext(sessionId);
-        for (const [index, tensor2] of this.freeTensors.entries()) {
-          if (tensor2.canReuseTensor(context, dataType, shape)) {
-            LOG_DEBUG("verbose", () => `[WebNN] Reusing tensor {dataType: ${dataType}, shape: ${shape}}`);
-            const wrapper = this.freeTensors.splice(index, 1)[0];
-            wrapper.sessionId = sessionId;
-            return wrapper;
-          }
-        }
-        LOG_DEBUG("verbose", () => `[WebNN] MLContext.createTensor {dataType: ${dataType}, shape: ${shape}}`);
-        const tensor = await context.createTensor({
-          dataType,
-          shape,
-          dimensions: shape,
-          usage,
-          writable,
-          readable
-        });
-        return new TensorWrapper({ sessionId, context, tensor, dataType, shape, shouldConvertInt64toInt32 });
-      }
-      /**
-       * Release tensor for reuse unless external.
-       */
-      releaseTensor(tensorWrapper) {
-        if (this.externalTensors.has(tensorWrapper)) {
-          this.externalTensors.delete(tensorWrapper);
-        }
-        this.freeTensors.push(tensorWrapper);
-      }
-    };
-    createTensorManager = (...args) => new TensorManagerImpl(...args);
-  }
-});
-
-// web/lib/wasm/jsep/backend-webnn.ts
-var onnxDataTypeToWebnnDataType, compareMLContextOptions, WebNNBackend;
-var init_backend_webnn = __esm({
-  "web/lib/wasm/jsep/backend-webnn.ts"() {
-    "use strict";
-    init_wasm_common();
-    init_wasm_factory();
-    init_tensor_view();
-    init_tensor_manager();
-    init_log();
-    onnxDataTypeToWebnnDataType = /* @__PURE__ */ new Map([
-      [1 /* float */, "float32"],
-      [10 /* float16 */, "float16"],
-      [6 /* int32 */, "int32"],
-      [12 /* uint32 */, "uint32"],
-      [7 /* int64 */, "int64"],
-      [13 /* uint64 */, "uint64"],
-      [22 /* int4 */, "int4"],
-      [21 /* uint4 */, "uint4"],
-      [3 /* int8 */, "int8"],
-      [2 /* uint8 */, "uint8"],
-      [9 /* bool */, "uint8"]
-    ]);
-    compareMLContextOptions = (a, b) => {
-      if (a === b) {
-        return true;
-      }
-      if (a === void 0 || b === void 0) {
-        return false;
-      }
-      const aKeys = Object.keys(a).sort();
-      const bKeys = Object.keys(b).sort();
-      return aKeys.length === bKeys.length && aKeys.every((key, index) => key === bKeys[index] && a[key] === b[key]);
-    };
-    WebNNBackend = class {
-      constructor(env3) {
-        /**
-         * Tensor managers for each session.
-         */
-        this.tensorManager = createTensorManager(this);
-        /**
-         * Maps from session id to MLContexts.
-         */
-        this.mlContextBySessionId = /* @__PURE__ */ new Map();
-        /**
-         * Maps from MLContext to session ids.
-         */
-        this.sessionIdsByMLContext = /* @__PURE__ */ new Map();
-        /**
-         * Cache of MLContexts.
-         */
-        this.mlContextCache = [];
-        /**
-         * Maps from session id to list of graph inputs.
-         */
-        this.sessionGraphInputs = /* @__PURE__ */ new Map();
-        /**
-         * Temporary graph inputs for the current session.
-         * These inputs will be registered when the session is created.
-         */
-        this.temporaryGraphInputs = [];
-        /**
-         * Temporary tensors for the current session.
-         */
-        this.temporarySessionTensorIds = /* @__PURE__ */ new Map();
-        configureLogger(env3.logLevel, !!env3.debug);
-      }
-      get currentSessionId() {
-        if (this.activeSessionId === void 0) {
-          throw new Error("No active session");
-        }
-        return this.activeSessionId;
-      }
-      onRunStart(sessionId) {
-        LOG_DEBUG("verbose", () => `[WebNN] onRunStart {sessionId: ${sessionId}}`);
-        this.activeSessionId = sessionId;
-      }
-      onRunEnd(sessionId) {
-        LOG_DEBUG("verbose", () => `[WebNN] onRunEnd {sessionId: ${sessionId}}`);
-        const tensorIds = this.temporarySessionTensorIds.get(sessionId);
-        if (!tensorIds) {
-          return;
-        }
-        for (const tensorId of tensorIds) {
-          LOG_DEBUG("verbose", () => `[WebNN] releasing temporary tensor {tensorId: ${tensorId}}`);
-          this.tensorManager.releaseTensorId(tensorId);
-        }
-        this.temporarySessionTensorIds.delete(sessionId);
-        this.activeSessionId = void 0;
-      }
-      async createMLContext(optionsOrDevice) {
-        if (optionsOrDevice instanceof GPUDevice) {
-          const mlContextIndex2 = this.mlContextCache.findIndex((entry) => entry.gpuDevice === optionsOrDevice);
-          if (mlContextIndex2 !== -1) {
-            return this.mlContextCache[mlContextIndex2].mlContext;
-          } else {
-            const mlContext = await navigator.ml.createContext(optionsOrDevice);
-            this.mlContextCache.push({ gpuDevice: optionsOrDevice, mlContext });
-            return mlContext;
-          }
-        } else if (optionsOrDevice === void 0) {
-          const mlContextIndex2 = this.mlContextCache.findIndex(
-            (entry) => entry.options === void 0 && entry.gpuDevice === void 0
-          );
-          if (mlContextIndex2 !== -1) {
-            return this.mlContextCache[mlContextIndex2].mlContext;
-          } else {
-            const mlContext = await navigator.ml.createContext();
-            this.mlContextCache.push({ mlContext });
-            return mlContext;
-          }
-        }
-        const mlContextIndex = this.mlContextCache.findIndex(
-          (entry) => compareMLContextOptions(entry.options, optionsOrDevice)
-        );
-        if (mlContextIndex !== -1) {
-          return this.mlContextCache[mlContextIndex].mlContext;
-        } else {
-          const mlContext = await navigator.ml.createContext(optionsOrDevice);
-          this.mlContextCache.push({ options: optionsOrDevice, mlContext });
-          return mlContext;
-        }
-      }
-      registerMLContext(sessionId, mlContext) {
-        this.mlContextBySessionId.set(sessionId, mlContext);
-        let sessionIds = this.sessionIdsByMLContext.get(mlContext);
-        if (!sessionIds) {
-          sessionIds = /* @__PURE__ */ new Set();
-          this.sessionIdsByMLContext.set(mlContext, sessionIds);
-        }
-        sessionIds.add(sessionId);
-        if (this.temporaryGraphInputs.length > 0) {
-          this.sessionGraphInputs.set(sessionId, this.temporaryGraphInputs);
-          this.temporaryGraphInputs = [];
-        }
-      }
-      onReleaseSession(sessionId) {
-        this.sessionGraphInputs.delete(sessionId);
-        const mlContext = this.mlContextBySessionId.get(sessionId);
-        if (!mlContext) {
-          return;
-        }
-        this.tensorManager.releaseTensorsForSession(sessionId);
-        this.mlContextBySessionId.delete(sessionId);
-        const sessionIds = this.sessionIdsByMLContext.get(mlContext);
-        sessionIds.delete(sessionId);
-        if (sessionIds.size === 0) {
-          this.sessionIdsByMLContext.delete(mlContext);
-          const mlContextIndex = this.mlContextCache.findIndex((entry) => entry.mlContext === mlContext);
-          if (mlContextIndex !== -1) {
-            this.mlContextCache.splice(mlContextIndex, 1);
-          }
-        }
-      }
-      getMLContext(sessionId) {
-        return this.mlContextBySessionId.get(sessionId);
-      }
-      reserveTensorId() {
-        return this.tensorManager.reserveTensorId();
-      }
-      releaseTensorId(tensorId) {
-        LOG_DEBUG("verbose", () => `[WebNN] releaseTensorId {tensorId: ${tensorId}}`);
-        this.tensorManager.releaseTensorId(tensorId);
-      }
-      async ensureTensor(sessionId, tensorId, onnxDataType, dimensions, copyOld) {
-        const webnnDataType = onnxDataTypeToWebnnDataType.get(onnxDataType);
-        if (!webnnDataType) {
-          throw new Error(`Unsupported ONNX data type: ${onnxDataType}`);
-        }
-        return this.tensorManager.ensureTensor(
-          sessionId ?? this.currentSessionId,
-          tensorId,
-          webnnDataType,
-          dimensions,
-          copyOld
-        );
-      }
-      async createTemporaryTensor(sessionId, onnxDataType, shape) {
-        LOG_DEBUG("verbose", () => `[WebNN] createTemporaryTensor {onnxDataType: ${onnxDataType}, shape: ${shape}}`);
-        const dataType = onnxDataTypeToWebnnDataType.get(onnxDataType);
-        if (!dataType) {
-          throw new Error(`Unsupported ONNX data type: ${onnxDataType}`);
-        }
-        const tensorId = this.tensorManager.reserveTensorId();
-        await this.tensorManager.ensureTensor(sessionId, tensorId, dataType, shape, false);
-        const tensorIds = this.temporarySessionTensorIds.get(sessionId);
-        if (!tensorIds) {
-          this.temporarySessionTensorIds.set(sessionId, [tensorId]);
-        } else {
-          tensorIds.push(tensorId);
-        }
-        return tensorId;
-      }
-      uploadTensor(tensorId, data) {
-        const wasm2 = getInstance();
-        if (!wasm2.shouldTransferToMLTensor) {
-          throw new Error("Trying to upload to a MLTensor while shouldTransferToMLTensor is false");
-        }
-        LOG_DEBUG("verbose", () => `[WebNN] uploadTensor {tensorId: ${tensorId}, data: ${data.byteLength}}`);
-        this.tensorManager.upload(tensorId, data);
-      }
-      async downloadTensor(tensorId, dstBuffer) {
-        return this.tensorManager.download(tensorId, dstBuffer);
-      }
-      createMLTensorDownloader(tensorId, type) {
-        return async () => {
-          const data = await this.tensorManager.download(tensorId);
-          return createView(data, type);
-        };
-      }
-      registerMLTensor(sessionId, tensor, onnxDataType, dimensions) {
-        const webnnDataType = onnxDataTypeToWebnnDataType.get(onnxDataType);
-        if (!webnnDataType) {
-          throw new Error(`Unsupported ONNX data type: ${onnxDataType}`);
-        }
-        const id = this.tensorManager.registerTensor(sessionId, tensor, webnnDataType, dimensions);
-        LOG_DEBUG(
-          "verbose",
-          () => `[WebNN] registerMLTensor {tensor: ${tensor}, dataType: ${webnnDataType}, dimensions: ${dimensions}} -> {tensorId: ${id}}`
-        );
-        return id;
-      }
-      // Register a WebNN Constant operand from external data.
-      registerMLConstant(externalFilePath, dataOffset, dataLength, builder, desc, mountedFiles, shouldConvertInt64ToInt32 = false) {
-        if (!mountedFiles) {
-          throw new Error("External mounted files are not available.");
-        }
-        let filePath = externalFilePath;
-        if (externalFilePath.startsWith("./")) {
-          filePath = externalFilePath.substring(2);
-        }
-        const fileData = mountedFiles.get(filePath);
-        if (!fileData) {
-          throw new Error(`File with name ${filePath} not found in preloaded files.`);
-        }
-        if (dataOffset + dataLength > fileData.byteLength) {
-          throw new Error("Out of bounds: data offset and length exceed the external file data size.");
-        }
-        const buffer = fileData.slice(dataOffset, dataOffset + dataLength).buffer;
-        let bufferView;
-        switch (desc.dataType) {
-          case "float32":
-            bufferView = new Float32Array(buffer);
-            break;
-          case "float16":
-            bufferView = typeof Float16Array !== "undefined" && Float16Array.from ? new Float16Array(buffer) : new Uint16Array(buffer);
-            break;
-          case "int32":
-            bufferView = new Int32Array(buffer);
-            break;
-          case "uint32":
-            bufferView = new Uint32Array(buffer);
-            break;
-          case "int64":
-            if (shouldConvertInt64ToInt32) {
-              bufferView = convertInt64ToInt32(new Uint8Array(buffer), false);
-              desc.dataType = "int32";
-            } else {
-              bufferView = new BigInt64Array(buffer);
-            }
-            break;
-          case "uint64":
-            bufferView = new BigUint64Array(buffer);
-            break;
-          case "int8":
-            bufferView = new Int8Array(buffer);
-            break;
-          case "int4":
-          case "uint4":
-          case "uint8":
-            bufferView = new Uint8Array(buffer);
-            break;
-          default:
-            throw new Error(`Unsupported data type: ${desc.dataType} in creating WebNN Constant from external data.`);
-        }
-        LOG_DEBUG(
-          "verbose",
-          () => `[WebNN] registerMLConstant {dataType: ${desc.dataType}, shape: ${desc.shape}}} ${shouldConvertInt64ToInt32 ? "(Note: it was int64 data type and registered to int32 as workaround)" : ""}`
-        );
-        return builder.constant(desc, bufferView);
-      }
-      registerGraphInput(inputName) {
-        this.temporaryGraphInputs.push(inputName);
-      }
-      isGraphInput(sessionId, inputName) {
-        const inputNames = this.sessionGraphInputs.get(sessionId);
-        if (!inputNames) {
-          return false;
-        }
-        return inputNames.includes(inputName);
-      }
-      isInt64Supported(sessionId) {
-        const context = this.mlContextBySessionId.get(sessionId);
-        return !!context?.opSupportLimits().input.dataTypes.includes("int64");
-      }
-      flush() {
-      }
-    };
-  }
-});
-
-// web/lib/wasm/jsep/webgpu/types.ts
-var init_types = __esm({
-  "web/lib/wasm/jsep/webgpu/types.ts"() {
-    "use strict";
-  }
-});
-
-// web/lib/wasm/jsep/webgpu/gpu-data-manager.ts
-var bucketFreelist, bucketArr, calcNormalizedBufferSize, calcBucketBufferSize, guid, createNewGpuDataId, downloadGpuData, GpuDataManagerImpl, createGpuDataManager;
-var init_gpu_data_manager = __esm({
-  "web/lib/wasm/jsep/webgpu/gpu-data-manager.ts"() {
-    "use strict";
-    init_log();
-    init_types();
-    bucketFreelist = /* @__PURE__ */ new Map([
-      [64, 250],
-      [128, 200],
-      [256, 200],
-      [512, 200],
-      [2048, 230],
-      [4096, 200],
-      [8192, 50],
-      [16384, 50],
-      [32768, 50],
-      [65536, 50],
-      [131072, 50],
-      [262144, 50],
-      [524288, 50],
-      [1048576, 50],
-      [2097152, 30],
-      [4194304, 20],
-      [8388608, 10],
-      [12582912, 10],
-      [16777216, 10],
-      [26214400, 15],
-      [33554432, 22],
-      [44236800, 2],
-      [58982400, 6],
-      // we don't want to cache the bucket sizes below but not caching them
-      // results in some major performance hits for models like sd-turbo.
-      [67108864, 6],
-      [134217728, 6],
-      [167772160, 6]
-    ]);
-    bucketArr = [];
-    calcNormalizedBufferSize = (size) => Math.ceil(Number(size) / 16) * 16;
-    calcBucketBufferSize = (size) => {
-      for (let idx = 0; idx < bucketArr.length; idx++) {
-        const sizeForBucket = bucketArr[idx];
-        if (size <= sizeForBucket) {
-          return sizeForBucket;
-        }
-      }
-      return Math.ceil(size / 16) * 16;
-    };
-    guid = 1;
-    createNewGpuDataId = () => guid++;
-    downloadGpuData = async (backend, gpuBuffer, originalSize, getTargetBuffer) => {
-      const bufferSize = calcNormalizedBufferSize(originalSize);
-      const gpuReadBuffer = backend.device.createBuffer(
-        // eslint-disable-next-line no-bitwise
-        { size: bufferSize, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ }
-      );
-      try {
-        const commandEncoder = backend.getCommandEncoder();
-        backend.endComputePass();
-        commandEncoder.copyBufferToBuffer(
-          gpuBuffer,
-          0,
-          gpuReadBuffer,
-          0,
-          bufferSize
-        );
-        backend.flush();
-        await gpuReadBuffer.mapAsync(GPUMapMode.READ);
-        const arrayBuffer = gpuReadBuffer.getMappedRange();
-        if (getTargetBuffer) {
-          const targetBuffer = getTargetBuffer();
-          targetBuffer.set(new Uint8Array(arrayBuffer, 0, originalSize));
-          return targetBuffer;
-        } else {
-          return new Uint8Array(arrayBuffer.slice(0, originalSize));
-        }
-      } finally {
-        gpuReadBuffer.destroy();
-      }
-    };
-    GpuDataManagerImpl = class {
-      constructor(backend) {
-        this.backend = backend;
-        this.storageCache = /* @__PURE__ */ new Map();
-        this.freeBuffers = /* @__PURE__ */ new Map();
-        this.freeUniformBuffers = /* @__PURE__ */ new Map();
-        this.buffersPending = [];
-        this.capturedPendingBuffers = /* @__PURE__ */ new Map();
-        for (const [key] of bucketFreelist) {
-          bucketArr.push(key);
-          this.freeBuffers.set(key, []);
-          this.freeUniformBuffers.set(key, []);
-        }
-        this.sessionCount = 0;
-      }
-      upload(id, data) {
-        const srcArrayBuffer = data.buffer;
-        const srcOffset = data.byteOffset;
-        const srcLength = data.byteLength;
-        const size = calcNormalizedBufferSize(srcLength);
-        const gpuDataCache = this.storageCache.get(id);
-        if (!gpuDataCache) {
-          throw new Error("gpu data for uploading does not exist");
-        }
-        if (Number(gpuDataCache.originalSize) !== srcLength) {
-          throw new Error(`inconsistent data size. gpu data size=${gpuDataCache.originalSize}, data size=${srcLength}`);
-        }
-        const gpuBufferForUploading = this.backend.device.createBuffer(
-          // eslint-disable-next-line no-bitwise
-          { mappedAtCreation: true, size, usage: GPUBufferUsage.MAP_WRITE | GPUBufferUsage.COPY_SRC }
-        );
-        const arrayBuffer = gpuBufferForUploading.getMappedRange();
-        new Uint8Array(arrayBuffer).set(new Uint8Array(srcArrayBuffer, srcOffset, srcLength));
-        gpuBufferForUploading.unmap();
-        const commandEncoder = this.backend.device.createCommandEncoder();
-        commandEncoder.copyBufferToBuffer(gpuBufferForUploading, 0, gpuDataCache.gpuData.buffer, 0, size);
-        this.backend.device.queue.submit([commandEncoder.finish()]);
-        gpuBufferForUploading.destroy();
-        LOG_DEBUG("verbose", () => `[WebGPU] GpuDataManager.upload(id=${id})`);
-      }
-      memcpy(sourceId, destinationId) {
-        const sourceGpuDataCache = this.storageCache.get(sourceId);
-        if (!sourceGpuDataCache) {
-          throw new Error("source gpu data for memcpy does not exist");
-        }
-        const destinationGpuDataCache = this.storageCache.get(destinationId);
-        if (!destinationGpuDataCache) {
-          throw new Error("destination gpu data for memcpy does not exist");
-        }
-        if (sourceGpuDataCache.originalSize !== destinationGpuDataCache.originalSize) {
-          throw new Error("inconsistent source and destination gpu data size");
-        }
-        const size = calcNormalizedBufferSize(sourceGpuDataCache.originalSize);
-        const commandEncoder = this.backend.getCommandEncoder();
-        this.backend.endComputePass();
-        commandEncoder.copyBufferToBuffer(
-          sourceGpuDataCache.gpuData.buffer,
-          0,
-          destinationGpuDataCache.gpuData.buffer,
-          0,
-          size
-        );
-      }
-      registerExternalBuffer(buffer, originalSize, previous) {
-        let id;
-        if (previous) {
-          id = previous[0];
-          if (buffer === previous[1]) {
-            LOG_DEBUG(
-              "verbose",
-              () => `[WebGPU] GpuDataManager.registerExternalBuffer(size=${originalSize}) => id=${id}, buffer is the same, skip.`
-            );
-            return id;
-          } else if (this.backend.capturedCommandList.has(this.backend.currentSessionId)) {
-            throw new Error(`Registering a different external buffer under graph capture mode is not supported yet.
-             Please use the previous external buffer!`);
-          }
-        } else {
-          id = createNewGpuDataId();
-        }
-        this.storageCache.set(id, { gpuData: { id, type: 0 /* default */, buffer }, originalSize });
-        LOG_DEBUG(
-          "verbose",
-          () => `[WebGPU] GpuDataManager.registerExternalBuffer(size=${originalSize}) => id=${id}, registered.`
-        );
-        return id;
-      }
-      unregisterExternalBuffer(id) {
-        if (id !== void 0) {
-          this.storageCache.delete(id);
-          LOG_DEBUG("verbose", () => `[WebGPU] GpuDataManager.unregisterExternalBuffer() => id=${id}`);
-        }
-      }
-      // eslint-disable-next-line no-bitwise
-      create(size, usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST) {
-        const bufferSize = calcBucketBufferSize(size);
-        let gpuBuffer;
-        const isStorage = (usage & GPUBufferUsage.STORAGE) === GPUBufferUsage.STORAGE;
-        const isUniform = (usage & GPUBufferUsage.UNIFORM) === GPUBufferUsage.UNIFORM;
-        if (isStorage || isUniform) {
-          const freeBuffers = isStorage ? this.freeBuffers : this.freeUniformBuffers;
-          const buffers = freeBuffers.get(bufferSize);
-          if (!buffers) {
-            gpuBuffer = this.backend.device.createBuffer({ size: bufferSize, usage });
-          } else {
-            if (buffers.length > 0) {
-              gpuBuffer = buffers.pop();
-            } else {
-              gpuBuffer = this.backend.device.createBuffer({ size: bufferSize, usage });
-            }
-          }
-        } else {
-          gpuBuffer = this.backend.device.createBuffer({ size: bufferSize, usage });
-        }
-        const gpuData = { id: createNewGpuDataId(), type: 0 /* default */, buffer: gpuBuffer };
-        this.storageCache.set(gpuData.id, { gpuData, originalSize: Number(size) });
-        LOG_DEBUG("verbose", () => `[WebGPU] GpuDataManager.create(size=${size}) => id=${gpuData.id}`);
-        return gpuData;
-      }
-      get(id) {
-        return this.storageCache.get(id)?.gpuData;
-      }
-      release(idInput) {
-        const id = typeof idInput === "bigint" ? Number(idInput) : idInput;
-        const cachedData = this.storageCache.get(id);
-        if (!cachedData) {
-          if (this.storageCache.size === 0) {
-            return 0;
-          } else {
-            throw new Error("releasing data does not exist");
-          }
-        }
-        LOG_DEBUG("verbose", () => `[WebGPU] GpuDataManager.release(id=${id}), gpuDataId=${cachedData.gpuData.id}`);
-        this.storageCache.delete(id);
-        this.buffersPending.push(cachedData.gpuData.buffer);
-        return cachedData.originalSize;
-      }
-      async download(id, getTargetBuffer) {
-        const cachedData = this.storageCache.get(Number(id));
-        if (!cachedData) {
-          throw new Error("data does not exist");
-        }
-        await downloadGpuData(this.backend, cachedData.gpuData.buffer, cachedData.originalSize, getTargetBuffer);
-      }
-      refreshPendingBuffers() {
-        if (this.buffersPending.length === 0) {
-          return;
-        }
-        if (this.backend.sessionStatus === "default") {
-          for (const buffer of this.buffersPending) {
-            const maxInFreeList = bucketFreelist.get(buffer.size);
-            if ((buffer.usage & GPUBufferUsage.STORAGE) === GPUBufferUsage.STORAGE) {
-              const freelist = this.freeBuffers.get(buffer.size) || [];
-              if (maxInFreeList === void 0 || freelist.length >= maxInFreeList) {
-                buffer.destroy();
-              } else {
-                freelist.push(buffer);
-              }
-            } else if ((buffer.usage & GPUBufferUsage.UNIFORM) === GPUBufferUsage.UNIFORM) {
-              const freelist = this.freeUniformBuffers.get(buffer.size) || [];
-              if (maxInFreeList === void 0 || freelist.length >= maxInFreeList) {
-                buffer.destroy();
-              } else {
-                freelist.push(buffer);
-              }
-            } else {
-              buffer.destroy();
-            }
-          }
-          this.buffersPending = [];
-        } else {
-          let capturedBuffers = this.capturedPendingBuffers.get(this.backend.currentSessionId);
-          if (!capturedBuffers) {
-            capturedBuffers = [];
-            this.capturedPendingBuffers.set(this.backend.currentSessionId, capturedBuffers);
-          }
-          for (const buffer of this.buffersPending) {
-            capturedBuffers.push(buffer);
-          }
-          this.buffersPending = [];
-        }
-      }
-      dispose() {
-        this.freeBuffers.forEach((buffers) => {
-          buffers.forEach((buffer) => {
-            buffer.destroy();
-          });
-        });
-        this.freeUniformBuffers.forEach((buffers) => {
-          buffers.forEach((buffer) => {
-            buffer.destroy();
-          });
-        });
-        this.storageCache.forEach((storage) => {
-          storage.gpuData.buffer.destroy();
-        });
-        this.capturedPendingBuffers.forEach((buffers) => {
-          buffers.forEach((buffer) => {
-            buffer.destroy();
-          });
-        });
-        this.storageCache = /* @__PURE__ */ new Map();
-        this.freeBuffers = /* @__PURE__ */ new Map();
-        this.freeUniformBuffers = /* @__PURE__ */ new Map();
-        this.capturedPendingBuffers = /* @__PURE__ */ new Map();
-      }
-      onCreateSession() {
-        this.sessionCount += 1;
-      }
-      onReleaseSession(sessionId) {
-        const pendingBuffers = this.capturedPendingBuffers.get(sessionId);
-        if (pendingBuffers) {
-          pendingBuffers.forEach((buffer) => {
-            buffer.destroy();
-          });
-          this.capturedPendingBuffers.delete(sessionId);
-        }
-        this.sessionCount -= 1;
-        if (this.sessionCount === 0) {
-          LOG_DEBUG("warning", () => "[WebGPU] Clearing webgpu buffer cache");
-          this.storageCache.forEach((storage) => {
-            storage.gpuData.buffer.destroy();
-          });
-          this.storageCache = /* @__PURE__ */ new Map();
-        }
-      }
-    };
-    createGpuDataManager = (...args) => new GpuDataManagerImpl(...args);
-  }
-});
-
-// web/lib/wasm/jsep/webgpu/attribute-with-cache-key.ts
-var AttributeWithCacheKeyImpl, createAttributeWithCacheKey;
-var init_attribute_with_cache_key = __esm({
-  "web/lib/wasm/jsep/webgpu/attribute-with-cache-key.ts"() {
-    "use strict";
-    AttributeWithCacheKeyImpl = class {
-      constructor(attribute) {
-        Object.assign(this, attribute);
-      }
-      get cacheKey() {
-        if (!this.key) {
-          this.key = Object.getOwnPropertyNames(this).sort().map((name) => `${this[name]}`).join(";");
-        }
-        return this.key;
-      }
-    };
-    createAttributeWithCacheKey = (attribute) => new AttributeWithCacheKeyImpl(attribute);
   }
 });
 
@@ -10764,8 +10047,6 @@ var init_grid_sample = __esm({
           if (r >= 0 && r < H && c >=0 && c < W) {
             indices[${idxH}] = u32(r);
             indices[${idxW}] = u32(c);
-          } else {
-            return ${dataType}(0);
           }
         `;
         case "border":
@@ -11354,166 +10635,20 @@ fn calculateOutputIndex(index: u32) -> u32 {
   }
 });
 
-// web/lib/wasm/jsep/webgpu/ops/rotary-embedding.ts
-var validateInputs19, createRotaryEmbeddingProgramInfo, rotaryEmbedding;
-var init_rotary_embedding = __esm({
-  "web/lib/wasm/jsep/webgpu/ops/rotary-embedding.ts"() {
-    "use strict";
-    init_wasm_common();
-    init_util();
-    init_attribute_with_cache_key();
-    init_common();
-    validateInputs19 = (inputs, attributes) => {
-      const [input, positionIds, cosCache, sinCache] = inputs;
-      const { numHeads, rotaryEmbeddingDim } = attributes;
-      if (input.dims.length !== 3 && input.dims.length !== 4) {
-        throw new Error(`Input 'x' is expected to have 3 or 4 dimensions, got ${input.dims.length}`);
-      }
-      if (!ShapeUtil.areEqual(positionIds.dims, []) && !ShapeUtil.areEqual(positionIds.dims, [1]) && positionIds.dims.length !== 2) {
-        throw new Error(`Input 'position_ids' is expected to have 0, 1, or 2 dimensions, got ${positionIds.dims.length}`);
-      }
-      if (cosCache.dims.length !== 2) {
-        throw new Error(`Input 'cos_cache' is expected to have 2 dimensions, got ${cosCache.dims.length}`);
-      }
-      if (sinCache.dims.length !== 2) {
-        throw new Error(`Input 'sin_cache' is expected to have 2 dimensions, got ${sinCache.dims.length}`);
-      }
-      if (!ShapeUtil.areEqual(cosCache.dims, sinCache.dims)) {
-        throw new Error("Inputs 'cos_cache' and 'sin_cache' are expected to have the same shape");
-      }
-      if (rotaryEmbeddingDim > 0 && numHeads === 0) {
-        throw new Error("num_heads must be provided if rotary_embedding_dim is specified");
-      }
-      const batchSize = input.dims[0];
-      const sequenceLength = input.dims[input.dims.length - 2];
-      const maxSequenceLength = cosCache.dims[0];
-      const hiddenSize = ShapeUtil.sizeFromDimension(input.dims, 1) / sequenceLength;
-      const headSize = rotaryEmbeddingDim === 0 ? cosCache.dims[1] * 2 : hiddenSize / numHeads;
-      if (rotaryEmbeddingDim > headSize) {
-        throw new Error("rotary_embedding_dim must be less than or equal to head_size");
-      }
-      if (positionIds.dims.length === 2) {
-        if (batchSize !== positionIds.dims[0]) {
-          throw new Error(`Input 'position_ids' dimension 0 should be of size batch_size, got ${positionIds.dims[0]}`);
-        }
-        if (sequenceLength !== positionIds.dims[1]) {
-          throw new Error(`Input 'position_ids' dimension 1 should be of size sequence_length, got ${positionIds.dims[1]}`);
-        }
-      }
-      if (headSize / 2 !== cosCache.dims[1] && rotaryEmbeddingDim / 2 !== cosCache.dims[1]) {
-        throw new Error(
-          `Input 'cos_cache' dimension 1 should be same as head_size / 2 or rotary_embedding_dim / 2, got ${cosCache.dims[1]}`
-        );
-      }
-      if (sequenceLength > maxSequenceLength) {
-        throw new Error("Updating cos_cache and sin_cache in RotaryEmbedding is not currently supported");
-      }
-    };
-    createRotaryEmbeddingProgramInfo = (inputs, attributes) => {
-      const { interleaved, numHeads, rotaryEmbeddingDim, scale } = attributes;
-      const batchSize = inputs[0].dims[0];
-      const batchStride = ShapeUtil.sizeFromDimension(inputs[0].dims, 1);
-      const sequenceLength = inputs[0].dims[inputs[0].dims.length - 2];
-      const hiddenSize = batchStride / sequenceLength;
-      const halfRotaryEmbeddingDim = inputs[2].dims[1];
-      const headSize = rotaryEmbeddingDim === 0 ? halfRotaryEmbeddingDim * 2 : hiddenSize / numHeads;
-      const globalShape = new Array(
-        batchSize,
-        sequenceLength,
-        hiddenSize / headSize,
-        headSize - halfRotaryEmbeddingDim
-      );
-      const globalStrides = ShapeUtil.computeStrides(globalShape);
-      const programUniforms = [
-        { type: 1 /* float */, data: scale },
-        { type: 12 /* uint32 */, data: globalShape },
-        { type: 12 /* uint32 */, data: globalStrides },
-        // strides for addressing the input/output tensor, in permutated order to align with the unfolded global index,
-        // i.e. BSNH
-        ...inputs[0].dims.length === 3 ? new Array({ type: 12 /* uint32 */, data: [batchStride, hiddenSize, headSize, 1] }) : [],
-        ...inputs[0].dims.length === 4 ? new Array({
-          type: 12 /* uint32 */,
-          data: [batchStride, headSize, sequenceLength * headSize, 1]
-        }) : [],
-        ...createTensorShapeVariables(inputs[0].dims, inputs[1].dims, inputs[2].dims, inputs[3].dims, inputs[0].dims)
-      ];
-      const getShaderSource = (shaderHelper) => {
-        const input = inputVariable("input", inputs[0].dataType, inputs[0].dims.length);
-        const positionIds = inputVariable("position_ids", inputs[1].dataType, inputs[1].dims.length);
-        const cosCache = inputVariable("cos_cache", inputs[2].dataType, inputs[2].dims.length);
-        const sinCache = inputVariable("sin_cache", inputs[3].dataType, inputs[3].dims.length);
-        const output = outputVariable("output", inputs[0].dataType, inputs[0].dims.length);
-        shaderHelper.registerUniforms([
-          { name: "scale", type: "f32" },
-          { name: "global_shape", type: "u32", length: globalShape.length },
-          { name: "global_strides", type: "u32", length: globalStrides.length },
-          { name: "input_output_strides", type: "u32", length: globalStrides.length }
-        ]);
-        return `
-        ${shaderHelper.declareVariables(input, positionIds, cosCache, sinCache, output)}
-
-        ${shaderHelper.mainStart(WORKGROUP_SIZE)}
-          let half_rotary_emb_dim = uniforms.${cosCache.name}_shape[1];
-          let bsnh = global_idx / uniforms.global_strides % uniforms.global_shape;
-          let size = uniforms.global_shape[0] * uniforms.global_strides[0];
-          ${shaderHelper.guardAgainstOutOfBoundsWorkgroupSizes("size")}
-
-          if (bsnh[3] < half_rotary_emb_dim) {
-            let position_ids_idx =
-                ${positionIds.broadcastedIndicesToOffset("bsnh.xy", outputVariable("", positionIds.type.tensor, 2))};
-            let position_id =
-                u32(${positionIds.getByOffset("position_ids_idx")}) + select(0, bsnh[1], position_ids_idx == 0);
-            let i = dot(bsnh, uniforms.input_output_strides) + select(0, bsnh[3], ${interleaved});
-            let j = i + select(half_rotary_emb_dim, 1, ${interleaved});
-            let re = ${input.getByOffset("i")} * ${cosCache.get("position_id", "bsnh[3]")} -
-                ${input.getByOffset("j")} * ${sinCache.get("position_id", "bsnh[3]")};
-            ${output.setByOffset("i", "re")}
-            let im = ${input.getByOffset("i")} * ${sinCache.get("position_id", "bsnh[3]")} +
-                ${input.getByOffset("j")} * ${cosCache.get("position_id", "bsnh[3]")};
-            ${output.setByOffset("j", "im")}
-          } else {
-            let k = dot(bsnh, uniforms.input_output_strides) + half_rotary_emb_dim;
-            ${output.setByOffset("k", input.getByOffset("k"))}
-          }
-        }`;
-      };
-      return {
-        name: "RotaryEmbedding",
-        shaderCache: {
-          hint: createAttributeWithCacheKey({
-            interleaved
-          }).cacheKey,
-          inputDependencies: ["rank", "rank", "rank", "rank"]
-        },
-        getShaderSource,
-        getRunData: () => ({
-          outputs: [{ dims: inputs[0].dims, dataType: inputs[0].dataType }],
-          dispatchGroup: { x: Math.ceil(ShapeUtil.size(globalShape) / WORKGROUP_SIZE) },
-          programUniforms
-        })
-      };
-    };
-    rotaryEmbedding = (context, attributes) => {
-      validateInputs19(context.inputs, attributes);
-      context.compute(createRotaryEmbeddingProgramInfo(context.inputs, attributes));
-    };
-  }
-});
-
 // web/lib/wasm/jsep/webgpu/ops/group-query-attention.ts
-var validateInputs20, weightTransposeAttribute3, maybeTransposeToBNSH, generatePositionIdsProgramInfo, groupQueryAttention;
+var validateInputs19, weightTransposeAttribute3, maybeTransposeToBNSH, groupQueryAttention;
 var init_group_query_attention = __esm({
   "web/lib/wasm/jsep/webgpu/ops/group-query-attention.ts"() {
     "use strict";
     init_attribute_with_cache_key();
-    init_wasm_common();
     init_attention();
     init_multihead_attention();
     init_split();
     init_transpose();
-    init_rotary_embedding();
-    init_common();
-    validateInputs20 = (inputs, attributes) => {
+    validateInputs19 = (inputs, attributes) => {
+      if (attributes.doRotary) {
+        throw new Error("GroupQuerryAttention do_rotary attribute is not supported");
+      }
       if (attributes.doRotary && inputs.length <= 7) {
         throw new Error("cos_cache and sin_cache inputs are required if do_rotary is specified");
       }
@@ -11522,9 +10657,6 @@ var init_group_query_attention = __esm({
       const value = inputs[2];
       const pastKey = inputs[3];
       const pastValue = inputs[4];
-      if (attributes.doRotary !== 0 && inputs.length <= 7) {
-        throw new Error("cos_cast and sin_cache are expected if do_rotary attribute is non-zero");
-      }
       if (attributes.localWindowSize !== -1) {
         throw new Error("Local attention is not supported");
       }
@@ -11673,74 +10805,8 @@ var init_group_query_attention = __esm({
       }
       return reshapedInput;
     };
-    generatePositionIdsProgramInfo = (batchSize, sequenceLength, seqLens, totalSeqLen) => {
-      const outputDataType = 7 /* int64 */;
-      const inputDependencies = ["type", "type"];
-      const outputShape = [batchSize * sequenceLength];
-      const outputSize = batchSize * sequenceLength;
-      const programUniforms = [
-        { type: 12 /* uint32 */, data: outputSize },
-        { type: 12 /* uint32 */, data: sequenceLength },
-        { type: 12 /* uint32 */, data: batchSize }
-      ];
-      const getShaderSource = (shaderHelper) => {
-        const seqLensInputHelper = inputVariable("seq_lens", seqLens.dataType, seqLens.dims);
-        const totalSeqLenInputHelper = inputVariable("total_seq_lens", totalSeqLen.dataType, totalSeqLen.dims);
-        const positionIdsHelper = outputVariable("pos_ids", outputDataType, outputShape);
-        const uniforms = [
-          { name: "output_size", type: "u32" },
-          { name: "sequence_length", type: "u32" },
-          { name: "batch_size", type: "u32" }
-        ];
-        return `
-  ${shaderHelper.registerUniforms(uniforms).declareVariables(seqLensInputHelper, totalSeqLenInputHelper, positionIdsHelper)}
-  ${shaderHelper.mainStart()}
-    ${shaderHelper.guardAgainstOutOfBoundsWorkgroupSizes("uniforms.output_size")}
-    let total_sequence_length = u32(${totalSeqLenInputHelper.getByOffset("0")});
-    let is_subsequent_prompt = uniforms.sequence_length > 1 && uniforms.sequence_length != total_sequence_length;
-    let is_first_prompt = !is_subsequent_prompt && uniforms.sequence_length == total_sequence_length;
-    let batch_idx = global_idx / uniforms.sequence_length;
-    let sequence_idx = i32(global_idx % uniforms.sequence_length);
-    var pos_id: i32 = 0;
-    let seqlen = ${seqLensInputHelper.getByOffset("batch_idx")};
-    let total_seqlen = seqlen + 1;
-    if (is_first_prompt) {
-      if (sequence_idx < total_seqlen) {
-        pos_id = sequence_idx;
-      } else {
-        pos_id = 1;
-      }
-      ${positionIdsHelper.setByOffset("global_idx", "pos_id")}
-    } else if (is_subsequent_prompt) {
-      let past_seqlen = total_seqlen - i32(uniforms.sequence_length);
-      if (past_seqlen + sequence_idx < total_seqlen) {
-        pos_id = past_seqlen + sequence_idx;
-      } else {
-        pos_id = 1;
-      }
-      ${positionIdsHelper.setByOffset("global_idx", "pos_id")}
-    } else if (global_idx < uniforms.batch_size) {
-      ${positionIdsHelper.setByOffset("global_idx", "seqlen")}
-    };
-  }
-  `;
-      };
-      return {
-        name: "GeneratePositionIds",
-        shaderCache: { hint: `${batchSize};${sequenceLength}`, inputDependencies },
-        getRunData: () => ({
-          outputs: [{ dims: outputShape, dataType: outputDataType }],
-          dispatchGroup: { x: Math.ceil(
-            outputSize / 64
-            /* workgroup size */
-          ) },
-          programUniforms
-        }),
-        getShaderSource
-      };
-    };
     groupQueryAttention = (context, attributes) => {
-      const params = validateInputs20(context.inputs, attributes);
+      const params = validateInputs19(context.inputs, attributes);
       if (context.inputs[0].dims.length === 5) {
         throw new Error("Packed QKV is not implemented");
       }
@@ -11761,56 +10827,21 @@ var init_group_query_attention = __esm({
         splitSizes: [params.numHeads * params.headSize, kvNumHeads * params.headSize, kvNumHeads * params.headSize]
       });
       const [query, key, value] = !k && !v ? context.compute(createSplitProgramInfo([q], splitAttributes), { inputs: [q], outputs: [-1, -1, -1] }) : [q, k, v];
-      let qRotary;
-      let kRotary;
-      if (attributes.doRotary) {
-        const posIds = context.compute(
-          generatePositionIdsProgramInfo(params.batchSize, params.sequenceLength, seqLens, totalSequenceLengthInput),
-          { inputs: [seqLens, totalSequenceLengthInput], outputs: [-1] }
-        )[0];
-        const cosCache = context.inputs[7];
-        const sinCache = context.inputs[8];
-        const qRotaryEmbeddingAttributes = createAttributeWithCacheKey({
-          interleaved: attributes.rotaryInterleaved !== 0,
-          numHeads: params.numHeads,
-          rotaryEmbeddingDim: 0,
-          scale: attributes.scale
-        });
-        const inputs = [query, posIds, cosCache, sinCache];
-        const outputs = [-1];
-        qRotary = context.compute(createRotaryEmbeddingProgramInfo(inputs, qRotaryEmbeddingAttributes), {
-          inputs,
-          outputs
-        })[0];
-        inputs.splice(0, 1, key);
-        const kRotaryEmbeddingAttributes = createAttributeWithCacheKey({
-          interleaved: attributes.rotaryInterleaved !== 0,
-          numHeads: params.kvNumHeads,
-          rotaryEmbeddingDim: 0,
-          scale: attributes.scale
-        });
-        kRotary = context.compute(createRotaryEmbeddingProgramInfo(inputs, kRotaryEmbeddingAttributes), {
-          inputs,
-          outputs
-        })[0];
-      }
       const Q = maybeTransposeToBNSHAndAddBias(
         context,
         params.batchSize,
         params.numHeads,
         params.sequenceLength,
         params.headSize,
-        attributes.doRotary ? qRotary : query,
+        query,
         void 0,
         0
       );
-      const K = maybeTransposeToBNSH(context, attributes.doRotary ? kRotary : key, params);
-      const V = maybeTransposeToBNSH(context, value, params);
       applyAttention(
         context,
         Q,
-        K,
-        V,
+        maybeTransposeToBNSH(context, key, params),
+        maybeTransposeToBNSH(context, value, params),
         void 0,
         void 0,
         pastKey,
@@ -12060,14 +11091,14 @@ var init_instance_norm = __esm({
 });
 
 // web/lib/wasm/jsep/webgpu/ops/layer-norm.ts
-var validateInputs21, createLayerNormProgramInfo, layerNorm;
+var validateInputs20, createLayerNormProgramInfo, layerNorm;
 var init_layer_norm = __esm({
   "web/lib/wasm/jsep/webgpu/ops/layer-norm.ts"() {
     "use strict";
     init_wasm_common();
     init_util();
     init_common();
-    validateInputs21 = (inputs) => {
+    validateInputs20 = (inputs) => {
       if (!inputs || inputs.length < 2) {
         throw new Error("layerNorm requires at least 2 inputs.");
       }
@@ -12181,21 +11212,21 @@ var init_layer_norm = __esm({
       };
     };
     layerNorm = (context, attributes) => {
-      validateInputs21(context.inputs);
+      validateInputs20(context.inputs);
       context.compute(createLayerNormProgramInfo(context.inputs, attributes, context.outputCount));
     };
   }
 });
 
 // web/lib/wasm/jsep/webgpu/ops/matmul.ts
-var validateInputs22, matMul;
+var validateInputs21, matMul;
 var init_matmul = __esm({
   "web/lib/wasm/jsep/webgpu/ops/matmul.ts"() {
     "use strict";
     init_util();
     init_matmul_shaders();
     init_matmul_packed_webgpu();
-    validateInputs22 = (inputs) => {
+    validateInputs21 = (inputs) => {
       if (!inputs || inputs.length !== 2) {
         throw new Error("MatMul requires 2 inputs.");
       }
@@ -12204,7 +11235,7 @@ var init_matmul = __esm({
       }
     };
     matMul = (context) => {
-      validateInputs22(context.inputs);
+      validateInputs21(context.inputs);
       const outputShape = BroadcastUtil.calcShape(context.inputs[0].dims, context.inputs[1].dims, true);
       if (!outputShape) {
         throw new Error("Can't use matmul on the given tensors");
@@ -12234,7 +11265,7 @@ var init_matmul = __esm({
 });
 
 // web/lib/wasm/jsep/webgpu/ops/matmulnbits.ts
-var validateInputs23, createMatMulNBitsProgramInfo, createMatMulNBitsBlockSize32ProgramInfo, matMulNBits, parseMatMulNBitsAttributes;
+var validateInputs22, createMatMulNBitsProgramInfo, createMatMulNBitsBlockSize32ProgramInfo, matMulNBits, parseMatMulNBitsAttributes;
 var init_matmulnbits = __esm({
   "web/lib/wasm/jsep/webgpu/ops/matmulnbits.ts"() {
     "use strict";
@@ -12242,7 +11273,7 @@ var init_matmulnbits = __esm({
     init_util();
     init_attribute_with_cache_key();
     init_common();
-    validateInputs23 = (inputs, attributes) => {
+    validateInputs22 = (inputs, attributes) => {
       if (inputs.length < 3 || inputs.length > 4) {
         throw new Error("MatMulNBits requires 3 or 4 inputs");
       }
@@ -12611,7 +11642,7 @@ var init_matmulnbits = __esm({
       };
     };
     matMulNBits = (context, attributes) => {
-      validateInputs23(context.inputs, attributes);
+      validateInputs22(context.inputs, attributes);
       if (attributes.blockSize === 32 && context.adapterInfo.isVendor("intel") && context.adapterInfo.isArchitecture("gen-12lp")) {
         context.compute(createMatMulNBitsBlockSize32ProgramInfo(context.inputs, attributes));
       } else {
@@ -12623,14 +11654,14 @@ var init_matmulnbits = __esm({
 });
 
 // web/lib/wasm/jsep/webgpu/ops/pad.ts
-var validateInputs24, getPadConstant, getPadReflect, getPadEdge, getPadWrap, getPadSnippet, createPadProgramInfo, createPadAttributesFromInputs, pad;
+var validateInputs23, getPadConstant, getPadReflect, getPadEdge, getPadWrap, getPadSnippet, createPadProgramInfo, createPadAttributesFromInputs, pad;
 var init_pad = __esm({
   "web/lib/wasm/jsep/webgpu/ops/pad.ts"() {
     "use strict";
     init_wasm_common();
     init_util();
     init_common();
-    validateInputs24 = (inputs) => {
+    validateInputs23 = (inputs) => {
       if (!inputs || inputs.length < 1) {
         throw new Error("Too few inputs");
       }
@@ -12827,7 +11858,7 @@ var init_pad = __esm({
       }
     };
     pad = (context, attributes) => {
-      validateInputs24(context.inputs);
+      validateInputs23(context.inputs);
       const updatedAttributes = createPadAttributesFromInputs(context.inputs, attributes);
       context.compute(createPadProgramInfo(context.inputs, updatedAttributes), { inputs: [0] });
     };
@@ -12835,7 +11866,7 @@ var init_pad = __esm({
 });
 
 // web/lib/wasm/jsep/webgpu/ops/pool.ts
-var validateInputs25, getAdjustedPoolAttributesAndOutputShape, getUniformAndPadInfo, generatePoolingCode, createShaderKeyFromAttributes, createAveragePoolShaderKeyFromAttributes, createMaxPoolShaderKeyFromAttributes, parsePoolCommonAttributes, createAveragePoolProgramInfo, parseAveragePoolAttributes, averagePool, globalPoolAttributes, parseGlobalAveragePoolAttributes, globalAveragePool, createMaxPoolProgramInfo, maxPool, parseMaxPoolAttributes, parseGlobalMaxPoolAttributes, globalMaxPool;
+var validateInputs24, getAdjustedPoolAttributesAndOutputShape, getUniformAndPadInfo, generatePoolingCode, createShaderKeyFromAttributes, createAveragePoolShaderKeyFromAttributes, createMaxPoolShaderKeyFromAttributes, parsePoolCommonAttributes, createAveragePoolProgramInfo, parseAveragePoolAttributes, averagePool, globalPoolAttributes, parseGlobalAveragePoolAttributes, globalAveragePool, createMaxPoolProgramInfo, maxPool, parseMaxPoolAttributes, parseGlobalMaxPoolAttributes, globalMaxPool;
 var init_pool = __esm({
   "web/lib/wasm/jsep/webgpu/ops/pool.ts"() {
     "use strict";
@@ -12843,7 +11874,7 @@ var init_pool = __esm({
     init_wasm_common();
     init_util();
     init_common();
-    validateInputs25 = (inputs) => {
+    validateInputs24 = (inputs) => {
       if (env2.webgpu.validateInputContent && (!inputs || inputs.length !== 1)) {
         throw new Error("Pool ops requires 1 input.");
       }
@@ -13155,7 +12186,7 @@ var init_pool = __esm({
       return { ...averagePoolAttributes, cacheKey: createAveragePoolShaderKeyFromAttributes(averagePoolAttributes) };
     };
     averagePool = (context, attributes) => {
-      validateInputs25(context.inputs);
+      validateInputs24(context.inputs);
       context.compute(createAveragePoolProgramInfo("AveragePool", context.inputs[0], false, attributes));
     };
     globalPoolAttributes = {
@@ -13173,7 +12204,7 @@ var init_pool = __esm({
       return { format, ...globalPoolAttributes, cacheKey: format };
     };
     globalAveragePool = (context, attributes) => {
-      validateInputs25(context.inputs);
+      validateInputs24(context.inputs);
       context.compute(createAveragePoolProgramInfo("GlobalAveragePool", context.inputs[0], true, attributes));
     };
     createMaxPoolProgramInfo = (name, input, isGlobalOperator, attributes) => {
@@ -13224,7 +12255,7 @@ var init_pool = __esm({
       };
     };
     maxPool = (context, attributes) => {
-      validateInputs25(context.inputs);
+      validateInputs24(context.inputs);
       context.compute(createMaxPoolProgramInfo("MaxPool", context.inputs[0], false, attributes));
     };
     parseMaxPoolAttributes = (attributes) => {
@@ -13245,14 +12276,14 @@ var init_pool = __esm({
       return { format, ...globalPoolAttributes, cacheKey: format };
     };
     globalMaxPool = (context, attributes) => {
-      validateInputs25(context.inputs);
+      validateInputs24(context.inputs);
       context.compute(createMaxPoolProgramInfo("GlobalMaxPool", context.inputs[0], true, attributes));
     };
   }
 });
 
 // web/lib/wasm/jsep/webgpu/ops/quantize-linear.ts
-var validateInputs26, createDequantizeLinearProgramInfo, dequantizeLinear, parseDequantizeLinearAttributes;
+var validateInputs25, createDequantizeLinearProgramInfo, dequantizeLinear, parseDequantizeLinearAttributes;
 var init_quantize_linear = __esm({
   "web/lib/wasm/jsep/webgpu/ops/quantize-linear.ts"() {
     "use strict";
@@ -13260,7 +12291,7 @@ var init_quantize_linear = __esm({
     init_util();
     init_attribute_with_cache_key();
     init_common();
-    validateInputs26 = (inputs, attributes) => {
+    validateInputs25 = (inputs, attributes) => {
       if (inputs.length < 2 || inputs.length > 3) {
         throw new Error("DequantizeLinear requires 2 or 3 inputs.");
       }
@@ -13439,7 +12470,7 @@ var init_quantize_linear = __esm({
       };
     };
     dequantizeLinear = (context, attributes) => {
-      validateInputs26(context.inputs, attributes);
+      validateInputs25(context.inputs, attributes);
       context.compute(createDequantizeLinearProgramInfo(context.inputs, attributes));
     };
     parseDequantizeLinearAttributes = (attributes) => createAttributeWithCacheKey({ axis: attributes.axis, blockSize: attributes.blockSize });
@@ -13523,7 +12554,7 @@ var init_range = __esm({
 });
 
 // web/lib/wasm/jsep/webgpu/ops/scatter-nd.ts
-var atomicReductionSnippet, calcDataOffsetSnippet, updateElementsSnippet, createScatterNDProgramInfo, parseScatterNDAttributes, scatterND;
+var atomicReductionSnippet, createScatterNDProgramInfo, parseScatterNDAttributes, scatterND;
 var init_scatter_nd = __esm({
   "web/lib/wasm/jsep/webgpu/ops/scatter-nd.ts"() {
     "use strict";
@@ -13577,28 +12608,6 @@ var init_scatter_nd = __esm({
           throw new Error(`Reduction ${reduction} is not supported.`);
       }
     };
-    calcDataOffsetSnippet = (dataRank, parallel) => `${dataRank === 1 ? `
-    let element_count_dim = uniforms.output_strides;
-    let dim_value = uniforms.output_shape;` : `
-    let element_count_dim = uniforms.output_strides[${parallel ? "i - indices_start" : "i"}];
-    let dim_value = uniforms.output_shape[${parallel ? "i - indices_start" : "i"} + uniforms.last_index_dimension];`}
-    
-    if (index >= 0) {
-      if (index >= i32(dim_value)) {
-        index = i32(dim_value - 1);
-      }
-    } else {
-      if (index < -i32(dim_value)) {
-        index = 0;
-      } else {
-        index += i32(dim_value);
-      }
-    }
-    data_offset += u32((u32(index) * element_count_dim));`;
-    updateElementsSnippet = (attributes, outputTypeValue, parallel) => `for (var i = 0u; i < uniforms.num_updates_elements; i++) {
-        let value = updates[uniforms.num_updates_elements * ${parallel ? "global_idx" : "idx"} + i];
-        ${atomicReductionSnippet(attributes.reduction, "output[data_offset + i]", "value", outputTypeValue)}
-      }`;
     createScatterNDProgramInfo = (inputs, attributes) => {
       const inputShape = inputs[0].dims;
       const indicesShape = inputs[1].dims;
@@ -13607,7 +12616,6 @@ var init_scatter_nd = __esm({
       const outputSize = Math.ceil(ShapeUtil.size(indicesShape) / components);
       const lastIndexDimension = indicesShape[indicesShape.length - 1];
       const numUpdatesElements = ShapeUtil.sizeFromDimension(inputShape, lastIndexDimension);
-      const numIndicesElements = ShapeUtil.sizeFromDimension(indicesShape, 0) / lastIndexDimension;
       const programUniforms = [
         { type: 12 /* uint32 */, data: outputSize },
         { type: 12 /* uint32 */, data: lastIndexDimension },
@@ -13624,8 +12632,9 @@ var init_scatter_nd = __esm({
         ${shaderHelper.guardAgainstOutOfBoundsWorkgroupSizes("uniforms.output_size")}
   var hasDuplicates = false;
   if (${attributes.reduction === "none"}) {
-    for (var i = 0; i < ${numIndicesElements}; i = i + 1) {
-      for (var j = i + 1; j < ${numIndicesElements}; j = j + 1) {
+    let n = ${ShapeUtil.size(indicesShape)};
+    for (var i = 0; i < n; i = i + 1) {
+      for (var j = i + 1; j < n; j = j + 1) {
         var index_i = i32(indices[i].x);
         var index_j = i32(indices[j].x);
         if (index_i == index_j) {
@@ -13639,31 +12648,47 @@ var init_scatter_nd = __esm({
     }
   }
 
+  var data_offset = 0u;
+  var indices_start = uniforms.last_index_dimension * global_idx;
   if (${attributes.reduction === "none"} && hasDuplicates) {
     if (global_idx != 0u) {
       return;
     }
-    // Process each index-update pair individually when duplicates exist
-    for (var idx = 0u; idx < ${numIndicesElements}u; idx++) {
-      var data_offset = 0u;
-      for (var i = 0u; i < uniforms.last_index_dimension; i++) {
-        var index = i32(indices[idx * uniforms.last_index_dimension + i].x);
-        ${calcDataOffsetSnippet(inputShape.length, false)}
-      }
-      ${updateElementsSnippet(attributes, output.type.value, false)}
-    }
-    return;
+    indices_start = 0u;
   }
-
-  var data_offset = 0u;
-  var indices_start = uniforms.last_index_dimension * global_idx;
-  var indices_end = indices_start + uniforms.last_index_dimension;
+  let indices_end = indices_start + uniforms.last_index_dimension;
   for (var i = indices_start; i < indices_end; i++) {
     var index = i32(indices[i].x);
-    ${calcDataOffsetSnippet(inputShape.length, true)}
+    ${inputs[0].dims.length === 1 ? `
+    let element_count_dim = uniforms.output_strides;
+    let dim_value = uniforms.output_shape;` : `
+    let element_count_dim = uniforms.output_strides[i - indices_start];
+    let dim_value = uniforms.output_shape[i - indices_start + uniforms.last_index_dimension];`}
+    if (index >= 0) {
+      if (index >= i32(dim_value)) {
+        index = i32(dim_value - 1);
+      }
+    } else {
+      if (index < -i32(dim_value)) {
+        index = 0;
+      } else {
+        index += i32(dim_value);
+      }
+    }
+    data_offset += u32((u32(index) * element_count_dim));
   }
-  ${updateElementsSnippet(attributes, output.type.value, true)}
-  }`;
+
+  for (var i = 0u; i < uniforms.num_updates_elements; i++) {
+    let value = updates[uniforms.num_updates_elements * global_idx + i];
+    ${atomicReductionSnippet(
+          attributes.reduction,
+          "output[data_offset + i]",
+          "value",
+          output.type.value
+        )}
+  }
+
+      }`;
       };
       return {
         name: "ScatterND",
@@ -13693,7 +12718,7 @@ var init_scatter_nd = __esm({
 });
 
 // web/lib/wasm/jsep/webgpu/ops/resize.ts
-var validateScales, updateScales, validateInputs27, getSafeIntegerDivision, getOriginalCoordinateFromResizedCoordinate, getNearestPixelFromOriginal, updateRoI, initOutputShape, adjustOutputShape, calculateOriginalIndicesFromOutputIndices, calculateInputIndicesFromOutputIndices, checkInputIndices, setChannelAndBatchIndices, bilinearInterpolation, bicubicInterpolation, trilinearInterpolation, createResizeProgramInfo, getOpsetVersionFromCustomDataBuffer, resize, parseResizeAttributes;
+var validateScales, updateScales, validateInputs26, getSafeIntegerDivision, getOriginalCoordinateFromResizedCoordinate, getNearestPixelFromOriginal, updateRoI, initOutputShape, adjustOutputShape, calculateOriginalIndicesFromOutputIndices, calculateInputIndicesFromOutputIndices, checkInputIndices, setChannelAndBatchIndices, bilinearInterpolation, bicubicInterpolation, trilinearInterpolation, createResizeProgramInfo, getOpsetVersionFromCustomDataBuffer, resize, parseResizeAttributes;
 var init_resize = __esm({
   "web/lib/wasm/jsep/webgpu/ops/resize.ts"() {
     "use strict";
@@ -13732,7 +12757,7 @@ var init_resize = __esm({
       axes.forEach((value, index) => newScales[value] = scales[index]);
       return newScales;
     };
-    validateInputs27 = (inputs, attributes, opsetVersion, scales, sizes, roi) => {
+    validateInputs26 = (inputs, attributes, opsetVersion, scales, sizes, roi) => {
       const [roiInputIndex, scalesInputIndex, sizesInputIndex] = opsetVersion > 10 ? [1, 2, 3] : [-1, inputs.length > 1 ? 1 : -1, -1];
       const rank = inputs[0].dims.length;
       if (roiInputIndex > 0 && inputs.length > roiInputIndex && inputs[roiInputIndex].dims.length > 0) {
@@ -14276,7 +13301,7 @@ var init_resize = __esm({
       if (attributes.antialias !== 0) {
         throw Error("Only default value (0) for Antialias attribute is supported");
       }
-      validateInputs27(context.inputs, attributes, opsetVersion, scales, sizes, roi);
+      validateInputs26(context.inputs, attributes, opsetVersion, scales, sizes, roi);
       context.compute(createResizeProgramInfo(context.inputs[0], attributes, opsetVersion, scales, sizes, roi), {
         inputs: [0]
       });
@@ -14302,6 +13327,152 @@ var init_resize = __esm({
         mode,
         nearestMode
       });
+    };
+  }
+});
+
+// web/lib/wasm/jsep/webgpu/ops/rotary-embedding.ts
+var validateInputs27, createRotaryEmbeddingProgramInfo, rotaryEmbedding;
+var init_rotary_embedding = __esm({
+  "web/lib/wasm/jsep/webgpu/ops/rotary-embedding.ts"() {
+    "use strict";
+    init_wasm_common();
+    init_util();
+    init_attribute_with_cache_key();
+    init_common();
+    validateInputs27 = (inputs, attributes) => {
+      const [input, positionIds, cosCache, sinCache] = inputs;
+      const { numHeads, rotaryEmbeddingDim } = attributes;
+      if (input.dims.length !== 3 && input.dims.length !== 4) {
+        throw new Error(`Input 'x' is expected to have 3 or 4 dimensions, got ${input.dims.length}`);
+      }
+      if (!ShapeUtil.areEqual(positionIds.dims, []) && !ShapeUtil.areEqual(positionIds.dims, [1]) && positionIds.dims.length !== 2) {
+        throw new Error(`Input 'position_ids' is expected to have 0, 1, or 2 dimensions, got ${positionIds.dims.length}`);
+      }
+      if (cosCache.dims.length !== 2) {
+        throw new Error(`Input 'cos_cache' is expected to have 2 dimensions, got ${cosCache.dims.length}`);
+      }
+      if (sinCache.dims.length !== 2) {
+        throw new Error(`Input 'sin_cache' is expected to have 2 dimensions, got ${sinCache.dims.length}`);
+      }
+      if (!ShapeUtil.areEqual(cosCache.dims, sinCache.dims)) {
+        throw new Error("Inputs 'cos_cache' and 'sin_cache' are expected to have the same shape");
+      }
+      if (rotaryEmbeddingDim > 0 && numHeads === 0) {
+        throw new Error("num_heads must be provided if rotary_embedding_dim is specified");
+      }
+      const batchSize = input.dims[0];
+      const sequenceLength = input.dims[input.dims.length - 2];
+      const maxSequenceLength = cosCache.dims[0];
+      const hiddenSize = ShapeUtil.sizeFromDimension(input.dims, 1) / sequenceLength;
+      const headSize = rotaryEmbeddingDim === 0 ? cosCache.dims[1] * 2 : hiddenSize / numHeads;
+      if (rotaryEmbeddingDim > headSize) {
+        throw new Error("rotary_embedding_dim must be less than or equal to head_size");
+      }
+      if (positionIds.dims.length === 2) {
+        if (batchSize !== positionIds.dims[0]) {
+          throw new Error(`Input 'position_ids' dimension 0 should be of size batch_size, got ${positionIds.dims[0]}`);
+        }
+        if (sequenceLength !== positionIds.dims[1]) {
+          throw new Error(`Input 'position_ids' dimension 1 should be of size sequence_length, got ${positionIds.dims[1]}`);
+        }
+      }
+      if (headSize / 2 !== cosCache.dims[1] && rotaryEmbeddingDim / 2 !== cosCache.dims[1]) {
+        throw new Error(
+          `Input 'cos_cache' dimension 1 should be same as head_size / 2 or rotary_embedding_dim / 2, got ${cosCache.dims[1]}`
+        );
+      }
+      if (sequenceLength > maxSequenceLength) {
+        throw new Error("Updating cos_cache and sin_cache in RotaryEmbedding is not currently supported");
+      }
+    };
+    createRotaryEmbeddingProgramInfo = (inputs, attributes) => {
+      const { interleaved, numHeads, rotaryEmbeddingDim, scale } = attributes;
+      const batchSize = inputs[0].dims[0];
+      const batchStride = ShapeUtil.sizeFromDimension(inputs[0].dims, 1);
+      const sequenceLength = inputs[0].dims[inputs[0].dims.length - 2];
+      const hiddenSize = batchStride / sequenceLength;
+      const halfRotaryEmbeddingDim = inputs[2].dims[1];
+      const headSize = rotaryEmbeddingDim === 0 ? halfRotaryEmbeddingDim * 2 : hiddenSize / numHeads;
+      const globalShape = new Array(
+        batchSize,
+        sequenceLength,
+        hiddenSize / headSize,
+        headSize - halfRotaryEmbeddingDim
+      );
+      const globalStrides = ShapeUtil.computeStrides(globalShape);
+      const programUniforms = [
+        { type: 1 /* float */, data: scale },
+        { type: 12 /* uint32 */, data: globalShape },
+        { type: 12 /* uint32 */, data: globalStrides },
+        // strides for addressing the input/output tensor, in permutated order to align with the unfolded global index,
+        // i.e. BSNH
+        ...inputs[0].dims.length === 3 ? new Array({ type: 12 /* uint32 */, data: [batchStride, hiddenSize, headSize, 1] }) : [],
+        ...inputs[0].dims.length === 4 ? new Array({
+          type: 12 /* uint32 */,
+          data: [batchStride, headSize, sequenceLength * headSize, 1]
+        }) : [],
+        ...createTensorShapeVariables(inputs[0].dims, inputs[1].dims, inputs[2].dims, inputs[3].dims, inputs[0].dims)
+      ];
+      const getShaderSource = (shaderHelper) => {
+        const input = inputVariable("input", inputs[0].dataType, inputs[0].dims.length);
+        const positionIds = inputVariable("position_ids", inputs[1].dataType, inputs[1].dims.length);
+        const cosCache = inputVariable("cos_cache", inputs[2].dataType, inputs[2].dims.length);
+        const sinCache = inputVariable("sin_cache", inputs[3].dataType, inputs[3].dims.length);
+        const output = outputVariable("output", inputs[0].dataType, inputs[0].dims.length);
+        shaderHelper.registerUniforms([
+          { name: "scale", type: "f32" },
+          { name: "global_shape", type: "u32", length: globalShape.length },
+          { name: "global_strides", type: "u32", length: globalStrides.length },
+          { name: "input_output_strides", type: "u32", length: globalStrides.length }
+        ]);
+        return `
+        ${shaderHelper.declareVariables(input, positionIds, cosCache, sinCache, output)}
+
+        ${shaderHelper.mainStart(WORKGROUP_SIZE)}
+          let half_rotary_emb_dim = uniforms.${cosCache.name}_shape[1];
+          let bsnh = global_idx / uniforms.global_strides % uniforms.global_shape;
+          let size = uniforms.global_shape[0] * uniforms.global_strides[0];
+          ${shaderHelper.guardAgainstOutOfBoundsWorkgroupSizes("size")}
+
+          if (bsnh[3] < half_rotary_emb_dim) {
+            let position_ids_idx =
+                ${positionIds.broadcastedIndicesToOffset("bsnh.xy", outputVariable("", positionIds.type.tensor, 2))};
+            let position_id =
+                u32(${positionIds.getByOffset("position_ids_idx")}) + select(0, bsnh[1], position_ids_idx == 0);
+            let i = dot(bsnh, uniforms.input_output_strides) + select(0, bsnh[3], ${interleaved});
+            let j = i + select(half_rotary_emb_dim, 1, ${interleaved});
+            let re = ${input.getByOffset("i")} * ${cosCache.get("position_id", "bsnh[3]")} -
+                ${input.getByOffset("j")} * ${sinCache.get("position_id", "bsnh[3]")};
+            ${output.setByOffset("i", "re")}
+            let im = ${input.getByOffset("i")} * ${sinCache.get("position_id", "bsnh[3]")} +
+                ${input.getByOffset("j")} * ${cosCache.get("position_id", "bsnh[3]")};
+            ${output.setByOffset("j", "im")}
+          } else {
+            let k = dot(bsnh, uniforms.input_output_strides) + half_rotary_emb_dim;
+            ${output.setByOffset("k", input.getByOffset("k"))}
+          }
+        }`;
+      };
+      return {
+        name: "RotaryEmbedding",
+        shaderCache: {
+          hint: createAttributeWithCacheKey({
+            interleaved
+          }).cacheKey,
+          inputDependencies: ["rank", "rank", "rank", "rank"]
+        },
+        getShaderSource,
+        getRunData: () => ({
+          outputs: [{ dims: inputs[0].dims, dataType: inputs[0].dataType }],
+          dispatchGroup: { x: Math.ceil(ShapeUtil.size(globalShape) / WORKGROUP_SIZE) },
+          programUniforms
+        })
+      };
+    };
+    rotaryEmbedding = (context, attributes) => {
+      validateInputs27(context.inputs, attributes);
+      context.compute(createRotaryEmbeddingProgramInfo(context.inputs, attributes));
     };
   }
 });
@@ -15306,10 +14477,6 @@ ${userCode}`;
 });
 
 // web/lib/wasm/jsep/backend-webgpu.ts
-var backend_webgpu_exports = {};
-__export(backend_webgpu_exports, {
-  WebGpuBackend: () => WebGpuBackend
-});
 var getProgramInputTensorInfoDependencyKey, getProgramInfoUniqueKey, AdapterInfoImpl, WebGpuBackend;
 var init_backend_webgpu = __esm({
   "web/lib/wasm/jsep/backend-webgpu.ts"() {
@@ -15985,6 +15152,552 @@ var init_backend_webgpu = __esm({
   }
 });
 
+// web/lib/wasm/jsep/webnn/tensor-manager.ts
+var tensorGuid, createNewTensorId, webnnDataTypeToSize, calculateByteLength, TensorWrapper, TensorIdTracker, TensorManagerImpl, createTensorManager;
+var init_tensor_manager = __esm({
+  "web/lib/wasm/jsep/webnn/tensor-manager.ts"() {
+    "use strict";
+    init_log();
+    tensorGuid = 1;
+    createNewTensorId = () => tensorGuid++;
+    webnnDataTypeToSize = /* @__PURE__ */ new Map([
+      ["float32", 32],
+      ["float16", 16],
+      ["int32", 32],
+      ["uint32", 32],
+      ["int64", 64],
+      ["uint64", 64],
+      ["int8", 8],
+      ["uint8", 8],
+      ["int4", 4],
+      ["uint4", 4]
+    ]);
+    calculateByteLength = (dataType, shape) => {
+      const size = webnnDataTypeToSize.get(dataType);
+      if (!size) {
+        throw new Error("Unsupported data type.");
+      }
+      return shape.length > 0 ? Math.ceil(shape.reduce((a, b) => a * b) * size / 8) : 0;
+    };
+    TensorWrapper = class {
+      constructor(descriptor) {
+        this.sessionId = descriptor.sessionId;
+        this.mlContext = descriptor.context;
+        this.mlTensor = descriptor.tensor;
+        this.dataType = descriptor.dataType;
+        this.tensorShape = descriptor.shape;
+      }
+      get tensor() {
+        return this.mlTensor;
+      }
+      get type() {
+        return this.dataType;
+      }
+      get shape() {
+        return this.tensorShape;
+      }
+      get byteLength() {
+        return calculateByteLength(this.dataType, this.tensorShape);
+      }
+      destroy() {
+        LOG_DEBUG("verbose", () => "[WebNN] TensorWrapper.destroy");
+        this.mlTensor.destroy();
+      }
+      write(data) {
+        this.mlContext.writeTensor(this.mlTensor, data);
+      }
+      async read(dstBuffer) {
+        if (dstBuffer) {
+          return this.mlContext.readTensor(this.mlTensor, dstBuffer);
+        }
+        return this.mlContext.readTensor(this.mlTensor);
+      }
+      canReuseTensor(context, dataType, shape) {
+        return this.mlContext === context && this.dataType === dataType && this.tensorShape.length === shape.length && this.tensorShape.every((v, i) => v === shape[i]);
+      }
+    };
+    TensorIdTracker = class {
+      constructor(tensorManager, wrapper) {
+        this.tensorManager = tensorManager;
+        this.wrapper = wrapper;
+      }
+      get tensorWrapper() {
+        return this.wrapper;
+      }
+      releaseTensor() {
+        if (this.tensorWrapper) {
+          this.tensorManager.releaseTensor(this.tensorWrapper);
+          this.wrapper = void 0;
+        }
+      }
+      async ensureTensor(sessionId, dataType, shape, copyOld) {
+        const context = this.tensorManager.getMLContext(sessionId);
+        if (this.wrapper) {
+          if (this.wrapper.canReuseTensor(context, dataType, shape)) {
+            return this.wrapper.tensor;
+          } else {
+            if (copyOld) {
+              if (this.wrapper.byteLength !== calculateByteLength(dataType, shape)) {
+                throw new Error("Unable to copy data to tensor with different size.");
+              }
+              this.activeUpload = new Uint8Array(await this.wrapper.read());
+            }
+            this.tensorManager.releaseTensor(this.wrapper);
+          }
+        }
+        const usage = typeof MLTensorUsage == "undefined" ? void 0 : MLTensorUsage.READ | MLTensorUsage.WRITE;
+        this.wrapper = await this.tensorManager.getCachedTensor(sessionId, dataType, shape, usage, true, true);
+        if (copyOld && this.activeUpload) {
+          this.wrapper.write(this.activeUpload);
+          this.activeUpload = void 0;
+        }
+        return this.wrapper.tensor;
+      }
+      upload(data) {
+        if (this.wrapper) {
+          if (data.byteLength === this.wrapper.byteLength) {
+            this.wrapper.write(data);
+            return;
+          } else {
+            LOG_DEBUG("verbose", () => "Data size does not match tensor size. Releasing tensor.");
+            this.releaseTensor();
+          }
+        }
+        if (this.activeUpload) {
+          this.activeUpload.set(data);
+        } else {
+          this.activeUpload = new Uint8Array(data);
+        }
+      }
+      async download(dstBuffer) {
+        if (this.activeUpload) {
+          if (dstBuffer) {
+            if (dstBuffer instanceof ArrayBuffer) {
+              new Uint8Array(dstBuffer).set(this.activeUpload);
+            } else {
+              new Uint8Array(dstBuffer.buffer, dstBuffer.byteOffset, dstBuffer.byteLength).set(this.activeUpload);
+            }
+            return;
+          } else {
+            return this.activeUpload.buffer;
+          }
+        }
+        if (!this.wrapper) {
+          throw new Error("Tensor has not been created.");
+        }
+        if (!dstBuffer) {
+          return this.wrapper.read();
+        }
+        return this.wrapper.read(dstBuffer);
+      }
+    };
+    TensorManagerImpl = class {
+      constructor(backend) {
+        this.backend = backend;
+        this.tensorTrackersById = /* @__PURE__ */ new Map();
+        this.freeTensors = [];
+        this.externalTensors = /* @__PURE__ */ new Set();
+      }
+      getMLContext(sessionId) {
+        const context = this.backend.getMLContext(sessionId);
+        if (!context) {
+          throw new Error("MLContext not found for session.");
+        }
+        return context;
+      }
+      reserveTensorId() {
+        const tensorId = createNewTensorId();
+        this.tensorTrackersById.set(tensorId, new TensorIdTracker(this));
+        return tensorId;
+      }
+      releaseTensorId(tensorId) {
+        const tensorTracker = this.tensorTrackersById.get(tensorId);
+        if (!tensorTracker) {
+          return;
+        }
+        this.tensorTrackersById.delete(tensorId);
+        if (tensorTracker.tensorWrapper) {
+          this.releaseTensor(tensorTracker.tensorWrapper);
+        }
+      }
+      async ensureTensor(sessionId, tensorId, dataType, shape, copyOld) {
+        LOG_DEBUG(
+          "verbose",
+          () => `[WebNN] TensorManager.ensureTensor {tensorId: ${tensorId}, dataType: ${dataType}, shape: ${shape}, copyOld: ${copyOld}}`
+        );
+        const tensor = this.tensorTrackersById.get(tensorId);
+        if (!tensor) {
+          throw new Error("Tensor not found.");
+        }
+        return tensor.ensureTensor(sessionId, dataType, shape, copyOld);
+      }
+      upload(tensorId, data) {
+        const tensor = this.tensorTrackersById.get(tensorId);
+        if (!tensor) {
+          throw new Error("Tensor not found.");
+        }
+        tensor.upload(data);
+      }
+      async download(tensorId, dstBuffer) {
+        LOG_DEBUG(
+          "verbose",
+          () => `[WebNN] TensorManager.download {tensorId: ${tensorId}, dstBuffer: ${dstBuffer?.byteLength}}`
+        );
+        const tensorTracker = this.tensorTrackersById.get(tensorId);
+        if (!tensorTracker) {
+          throw new Error("Tensor not found.");
+        }
+        return tensorTracker.download(dstBuffer);
+      }
+      releaseTensorsForSession(sessionId) {
+        for (const tensor of this.freeTensors) {
+          if (tensor.sessionId === sessionId) {
+            tensor.destroy();
+          }
+        }
+        this.freeTensors = this.freeTensors.filter((tensor) => tensor.sessionId !== sessionId);
+      }
+      registerTensor(sessionId, mlTensor, dataType, shape) {
+        const context = this.getMLContext(sessionId);
+        const tensorId = createNewTensorId();
+        const wrapper = new TensorWrapper({
+          sessionId,
+          context,
+          tensor: mlTensor,
+          dataType,
+          shape
+        });
+        this.tensorTrackersById.set(tensorId, new TensorIdTracker(this, wrapper));
+        this.externalTensors.add(wrapper);
+        return tensorId;
+      }
+      /**
+       * Get or create an MLTensor with the given data type and shape.
+       */
+      async getCachedTensor(sessionId, dataType, shape, usage, writable, readable) {
+        const context = this.getMLContext(sessionId);
+        for (const [index, tensor2] of this.freeTensors.entries()) {
+          if (tensor2.canReuseTensor(context, dataType, shape)) {
+            LOG_DEBUG("verbose", () => `[WebNN] Reusing tensor {dataType: ${dataType}, shape: ${shape}}`);
+            const wrapper = this.freeTensors.splice(index, 1)[0];
+            wrapper.sessionId = sessionId;
+            return wrapper;
+          }
+        }
+        LOG_DEBUG("verbose", () => `[WebNN] MLContext.createTensor {dataType: ${dataType}, shape: ${shape}}`);
+        const tensor = await context.createTensor({
+          dataType,
+          shape,
+          dimensions: shape,
+          usage,
+          writable,
+          readable
+        });
+        return new TensorWrapper({ sessionId, context, tensor, dataType, shape });
+      }
+      /**
+       * Release tensor for reuse unless external.
+       */
+      releaseTensor(tensorWrapper) {
+        if (this.externalTensors.has(tensorWrapper)) {
+          this.externalTensors.delete(tensorWrapper);
+        }
+        this.freeTensors.push(tensorWrapper);
+      }
+    };
+    createTensorManager = (...args) => new TensorManagerImpl(...args);
+  }
+});
+
+// web/lib/wasm/jsep/backend-webnn.ts
+var onnxDataTypeToWebnnDataType, compareMLContextOptions, WebNNBackend;
+var init_backend_webnn = __esm({
+  "web/lib/wasm/jsep/backend-webnn.ts"() {
+    "use strict";
+    init_wasm_common();
+    init_wasm_factory();
+    init_tensor_view();
+    init_tensor_manager();
+    init_log();
+    onnxDataTypeToWebnnDataType = /* @__PURE__ */ new Map([
+      [1 /* float */, "float32"],
+      [10 /* float16 */, "float16"],
+      [6 /* int32 */, "int32"],
+      [12 /* uint32 */, "uint32"],
+      [7 /* int64 */, "int64"],
+      [13 /* uint64 */, "uint64"],
+      [22 /* int4 */, "int4"],
+      [21 /* uint4 */, "uint4"],
+      [3 /* int8 */, "int8"],
+      [2 /* uint8 */, "uint8"],
+      [9 /* bool */, "uint8"]
+    ]);
+    compareMLContextOptions = (a, b) => {
+      if (a === b) {
+        return true;
+      }
+      if (a === void 0 || b === void 0) {
+        return false;
+      }
+      const aKeys = Object.keys(a).sort();
+      const bKeys = Object.keys(b).sort();
+      return aKeys.length === bKeys.length && aKeys.every((key, index) => key === bKeys[index] && a[key] === b[key]);
+    };
+    WebNNBackend = class {
+      constructor(env3) {
+        /**
+         * Tensor managers for each session.
+         */
+        this.tensorManager = createTensorManager(this);
+        /**
+         * Maps from session id to MLContexts.
+         */
+        this.mlContextBySessionId = /* @__PURE__ */ new Map();
+        /**
+         * Maps from MLContext to session ids.
+         */
+        this.sessionIdsByMLContext = /* @__PURE__ */ new Map();
+        /**
+         * Cache of MLContexts.
+         */
+        this.mlContextCache = [];
+        /**
+         * Maps from session id to list of graph inputs.
+         */
+        this.sessionGraphInputs = /* @__PURE__ */ new Map();
+        /**
+         * Temporary graph inputs for the current session.
+         * These inputs will be registered when the session is created.
+         */
+        this.temporaryGraphInputs = [];
+        /**
+         * Temporary tensors for the current session.
+         */
+        this.temporarySessionTensorIds = /* @__PURE__ */ new Map();
+        configureLogger(env3.logLevel, !!env3.debug);
+      }
+      get currentSessionId() {
+        if (this.activeSessionId === void 0) {
+          throw new Error("No active session");
+        }
+        return this.activeSessionId;
+      }
+      onRunStart(sessionId) {
+        LOG_DEBUG("verbose", () => `[WebNN] onRunStart {sessionId: ${sessionId}}`);
+        this.activeSessionId = sessionId;
+      }
+      onRunEnd(sessionId) {
+        LOG_DEBUG("verbose", () => `[WebNN] onRunEnd {sessionId: ${sessionId}}`);
+        const tensorIds = this.temporarySessionTensorIds.get(sessionId);
+        if (!tensorIds) {
+          return;
+        }
+        for (const tensorId of tensorIds) {
+          LOG_DEBUG("verbose", () => `[WebNN] releasing temporary tensor {tensorId: ${tensorId}}`);
+          this.tensorManager.releaseTensorId(tensorId);
+        }
+        this.temporarySessionTensorIds.delete(sessionId);
+        this.activeSessionId = void 0;
+      }
+      async createMLContext(optionsOrDevice) {
+        if (optionsOrDevice instanceof GPUDevice) {
+          const mlContextIndex2 = this.mlContextCache.findIndex((entry) => entry.gpuDevice === optionsOrDevice);
+          if (mlContextIndex2 !== -1) {
+            return this.mlContextCache[mlContextIndex2].mlContext;
+          } else {
+            const mlContext = await navigator.ml.createContext(optionsOrDevice);
+            this.mlContextCache.push({ gpuDevice: optionsOrDevice, mlContext });
+            return mlContext;
+          }
+        } else if (optionsOrDevice === void 0) {
+          const mlContextIndex2 = this.mlContextCache.findIndex(
+            (entry) => entry.options === void 0 && entry.gpuDevice === void 0
+          );
+          if (mlContextIndex2 !== -1) {
+            return this.mlContextCache[mlContextIndex2].mlContext;
+          } else {
+            const mlContext = await navigator.ml.createContext();
+            this.mlContextCache.push({ mlContext });
+            return mlContext;
+          }
+        }
+        const mlContextIndex = this.mlContextCache.findIndex(
+          (entry) => compareMLContextOptions(entry.options, optionsOrDevice)
+        );
+        if (mlContextIndex !== -1) {
+          return this.mlContextCache[mlContextIndex].mlContext;
+        } else {
+          const mlContext = await navigator.ml.createContext(optionsOrDevice);
+          this.mlContextCache.push({ options: optionsOrDevice, mlContext });
+          return mlContext;
+        }
+      }
+      registerMLContext(sessionId, mlContext) {
+        this.mlContextBySessionId.set(sessionId, mlContext);
+        let sessionIds = this.sessionIdsByMLContext.get(mlContext);
+        if (!sessionIds) {
+          sessionIds = /* @__PURE__ */ new Set();
+          this.sessionIdsByMLContext.set(mlContext, sessionIds);
+        }
+        sessionIds.add(sessionId);
+        if (this.temporaryGraphInputs.length > 0) {
+          this.sessionGraphInputs.set(sessionId, this.temporaryGraphInputs);
+          this.temporaryGraphInputs = [];
+        }
+      }
+      onReleaseSession(sessionId) {
+        this.sessionGraphInputs.delete(sessionId);
+        const mlContext = this.mlContextBySessionId.get(sessionId);
+        if (!mlContext) {
+          return;
+        }
+        this.tensorManager.releaseTensorsForSession(sessionId);
+        this.mlContextBySessionId.delete(sessionId);
+        const sessionIds = this.sessionIdsByMLContext.get(mlContext);
+        sessionIds.delete(sessionId);
+        if (sessionIds.size === 0) {
+          this.sessionIdsByMLContext.delete(mlContext);
+          const mlContextIndex = this.mlContextCache.findIndex((entry) => entry.mlContext === mlContext);
+          if (mlContextIndex !== -1) {
+            this.mlContextCache.splice(mlContextIndex, 1);
+          }
+        }
+      }
+      getMLContext(sessionId) {
+        return this.mlContextBySessionId.get(sessionId);
+      }
+      reserveTensorId() {
+        return this.tensorManager.reserveTensorId();
+      }
+      releaseTensorId(tensorId) {
+        LOG_DEBUG("verbose", () => `[WebNN] releaseTensorId {tensorId: ${tensorId}}`);
+        this.tensorManager.releaseTensorId(tensorId);
+      }
+      async ensureTensor(sessionId, tensorId, onnxDataType, dimensions, copyOld) {
+        const webnnDataType = onnxDataTypeToWebnnDataType.get(onnxDataType);
+        if (!webnnDataType) {
+          throw new Error(`Unsupported ONNX data type: ${onnxDataType}`);
+        }
+        return this.tensorManager.ensureTensor(
+          sessionId ?? this.currentSessionId,
+          tensorId,
+          webnnDataType,
+          dimensions,
+          copyOld
+        );
+      }
+      async createTemporaryTensor(sessionId, onnxDataType, shape) {
+        LOG_DEBUG("verbose", () => `[WebNN] createTemporaryTensor {onnxDataType: ${onnxDataType}, shape: ${shape}}`);
+        const dataType = onnxDataTypeToWebnnDataType.get(onnxDataType);
+        if (!dataType) {
+          throw new Error(`Unsupported ONNX data type: ${onnxDataType}`);
+        }
+        const tensorId = this.tensorManager.reserveTensorId();
+        await this.tensorManager.ensureTensor(sessionId, tensorId, dataType, shape, false);
+        const tensorIds = this.temporarySessionTensorIds.get(sessionId);
+        if (!tensorIds) {
+          this.temporarySessionTensorIds.set(sessionId, [tensorId]);
+        } else {
+          tensorIds.push(tensorId);
+        }
+        return tensorId;
+      }
+      uploadTensor(tensorId, data) {
+        const wasm2 = getInstance();
+        if (!wasm2.shouldTransferToMLTensor) {
+          throw new Error("Trying to upload to a MLTensor while shouldTransferToMLTensor is false");
+        }
+        LOG_DEBUG("verbose", () => `[WebNN] uploadTensor {tensorId: ${tensorId}, data: ${data.byteLength}}`);
+        this.tensorManager.upload(tensorId, data);
+      }
+      async downloadTensor(tensorId, dstBuffer) {
+        return this.tensorManager.download(tensorId, dstBuffer);
+      }
+      createMLTensorDownloader(tensorId, type) {
+        return async () => {
+          const data = await this.tensorManager.download(tensorId);
+          return createView(data, type);
+        };
+      }
+      registerMLTensor(sessionId, tensor, onnxDataType, dimensions) {
+        const webnnDataType = onnxDataTypeToWebnnDataType.get(onnxDataType);
+        if (!webnnDataType) {
+          throw new Error(`Unsupported ONNX data type: ${onnxDataType}`);
+        }
+        const id = this.tensorManager.registerTensor(sessionId, tensor, webnnDataType, dimensions);
+        LOG_DEBUG(
+          "verbose",
+          () => `[WebNN] registerMLTensor {tensor: ${tensor}, dataType: ${webnnDataType}, dimensions: ${dimensions}} -> {tensorId: ${id}}`
+        );
+        return id;
+      }
+      // Register a WebNN Constant operand from external data.
+      registerMLConstant(externalFilePath, dataOffset, dataLength, builder, desc, mountedFiles) {
+        if (!mountedFiles) {
+          throw new Error("External mounted files are not available.");
+        }
+        let filePath = externalFilePath;
+        if (externalFilePath.startsWith("./")) {
+          filePath = externalFilePath.substring(2);
+        }
+        const fileData = mountedFiles.get(filePath);
+        if (!fileData) {
+          throw new Error(`File with name ${filePath} not found in preloaded files.`);
+        }
+        if (dataOffset + dataLength > fileData.byteLength) {
+          throw new Error("Out of bounds: data offset and length exceed the external file data size.");
+        }
+        const buffer = fileData.slice(dataOffset, dataOffset + dataLength).buffer;
+        let bufferView;
+        switch (desc.dataType) {
+          case "float32":
+            bufferView = new Float32Array(buffer);
+            break;
+          case "float16":
+            bufferView = typeof Float16Array !== "undefined" && Float16Array.from ? new Float16Array(buffer) : new Uint16Array(buffer);
+            break;
+          case "int32":
+            bufferView = new Int32Array(buffer);
+            break;
+          case "uint32":
+            bufferView = new Uint32Array(buffer);
+            break;
+          case "int64":
+            bufferView = new BigInt64Array(buffer);
+            break;
+          case "uint64":
+            bufferView = new BigUint64Array(buffer);
+            break;
+          case "int8":
+            bufferView = new Int8Array(buffer);
+            break;
+          case "int4":
+          case "uint4":
+          case "uint8":
+            bufferView = new Uint8Array(buffer);
+            break;
+          default:
+            throw new Error(`Unsupported data type: ${desc.dataType} in creating WebNN Constant from external data.`);
+        }
+        LOG_DEBUG("verbose", () => `[WebNN] registerMLConstant {dataType: ${desc.dataType}, shape: ${desc.shape}}}`);
+        return builder.constant(desc, bufferView);
+      }
+      registerGraphInput(inputName) {
+        this.temporaryGraphInputs.push(inputName);
+      }
+      isGraphInput(sessionId, inputName) {
+        const inputNames = this.sessionGraphInputs.get(sessionId);
+        if (!inputNames) {
+          return false;
+        }
+        return inputNames.includes(inputName);
+      }
+      flush() {
+      }
+    };
+  }
+});
+
 // web/lib/wasm/jsep/init.ts
 var init_exports = {};
 __export(init_exports, {
@@ -15995,6 +15708,7 @@ var init_init = __esm({
   "web/lib/wasm/jsep/init.ts"() {
     "use strict";
     init_wasm_common();
+    init_backend_webgpu();
     init_log();
     init_util();
     init_backend_webnn();
@@ -16124,71 +15838,68 @@ var init_init = __esm({
         throw new Error("Failed to initialize JSEP. The WebAssembly module is not built with JSEP support.");
       }
       if (name === "webgpu") {
-        if (true) {
-          const webGpuBackendImpl = (init_backend_webgpu(), __toCommonJS(backend_webgpu_exports)).WebGpuBackend;
-          const backend = new webGpuBackendImpl();
-          await backend.initialize(env3, gpuAdapter);
-          jsepInit("webgpu", [
-            // backend
-            backend,
-            // jsepAlloc()
-            (size) => backend.alloc(Number(size)),
-            // jsepFree()
-            (ptr) => backend.free(ptr),
-            // jsepCopy(src, dst, size, isSourceGpu)
-            (src, dst, size, isSourceGpu = false) => {
-              if (isSourceGpu) {
-                LOG_DEBUG(
-                  "verbose",
-                  () => `[WebGPU] jsepCopyGpuToGpu: src=${Number(src)}, dst=${Number(dst)}, size=${Number(size)}`
-                );
-                backend.memcpy(Number(src), Number(dst));
-              } else {
-                LOG_DEBUG(
-                  "verbose",
-                  () => `[WebGPU] jsepCopyCpuToGpu: dataOffset=${Number(src)}, gpuDataId=${Number(dst)}, size=${Number(size)}`
-                );
-                const data = module.HEAPU8.subarray(Number(src >>> 0), Number(src >>> 0) + Number(size));
-                backend.upload(Number(dst), data);
-              }
-            },
-            // jsepCopyAsync(src, dst, size)
-            async (gpuDataId, dataOffset, size) => {
+        const backend = new WebGpuBackend();
+        await backend.initialize(env3, gpuAdapter);
+        jsepInit("webgpu", [
+          // backend
+          backend,
+          // jsepAlloc()
+          (size) => backend.alloc(Number(size)),
+          // jsepFree()
+          (ptr) => backend.free(ptr),
+          // jsepCopy(src, dst, size, isSourceGpu)
+          (src, dst, size, isSourceGpu = false) => {
+            if (isSourceGpu) {
               LOG_DEBUG(
                 "verbose",
-                () => `[WebGPU] jsepCopyGpuToCpu: gpuDataId=${gpuDataId}, dataOffset=${dataOffset}, size=${size}`
+                () => `[WebGPU] jsepCopyGpuToGpu: src=${Number(src)}, dst=${Number(dst)}, size=${Number(size)}`
               );
-              await backend.download(
-                Number(gpuDataId),
-                () => module.HEAPU8.subarray(Number(dataOffset) >>> 0, Number(dataOffset + size) >>> 0)
-              );
-            },
-            // jsepCreateKernel
-            (kernelType, kernelId, attribute) => backend.createKernel(
-              kernelType,
-              Number(kernelId),
-              attribute,
-              module.UTF8ToString(module._JsepGetNodeName(Number(kernelId)))
-            ),
-            // jsepReleaseKernel
-            (kernel) => backend.releaseKernel(kernel),
-            // jsepRun
-            (kernel, contextDataOffset, sessionHandle, errors) => {
+              backend.memcpy(Number(src), Number(dst));
+            } else {
               LOG_DEBUG(
                 "verbose",
-                () => `[WebGPU] jsepRun: sessionHandle=${sessionHandle}, kernel=${kernel}, contextDataOffset=${contextDataOffset}`
+                () => `[WebGPU] jsepCopyCpuToGpu: dataOffset=${Number(src)}, gpuDataId=${Number(dst)}, size=${Number(size)}`
               );
-              const context = new ComputeContextImpl(module, backend, Number(contextDataOffset));
-              return backend.computeKernel(Number(kernel), context, errors);
-            },
-            // jsepCaptureBegin
-            () => backend.captureBegin(),
-            // jsepCaptureEnd
-            () => backend.captureEnd(),
-            // jsepReplay
-            () => backend.replay()
-          ]);
-        }
+              const data = module.HEAPU8.subarray(Number(src >>> 0), Number(src >>> 0) + Number(size));
+              backend.upload(Number(dst), data);
+            }
+          },
+          // jsepCopyAsync(src, dst, size)
+          async (gpuDataId, dataOffset, size) => {
+            LOG_DEBUG(
+              "verbose",
+              () => `[WebGPU] jsepCopyGpuToCpu: gpuDataId=${gpuDataId}, dataOffset=${dataOffset}, size=${size}`
+            );
+            await backend.download(
+              Number(gpuDataId),
+              () => module.HEAPU8.subarray(Number(dataOffset) >>> 0, Number(dataOffset + size) >>> 0)
+            );
+          },
+          // jsepCreateKernel
+          (kernelType, kernelId, attribute) => backend.createKernel(
+            kernelType,
+            Number(kernelId),
+            attribute,
+            module.UTF8ToString(module._JsepGetNodeName(Number(kernelId)))
+          ),
+          // jsepReleaseKernel
+          (kernel) => backend.releaseKernel(kernel),
+          // jsepRun
+          (kernel, contextDataOffset, sessionHandle, errors) => {
+            LOG_DEBUG(
+              "verbose",
+              () => `[WebGPU] jsepRun: sessionHandle=${sessionHandle}, kernel=${kernel}, contextDataOffset=${contextDataOffset}`
+            );
+            const context = new ComputeContextImpl(module, backend, Number(contextDataOffset));
+            return backend.computeKernel(Number(kernel), context, errors);
+          },
+          // jsepCaptureBegin
+          () => backend.captureBegin(),
+          // jsepCaptureEnd
+          () => backend.captureEnd(),
+          // jsepReplay
+          () => backend.replay()
+        ]);
       } else {
         const backend = new WebNNBackend(env3);
         jsepInit("webnn", [
@@ -16212,7 +15923,7 @@ var init_init = __esm({
 });
 
 // web/lib/wasm/wasm-core-impl.ts
-var initOrt, initRuntime, initEp, activeSessions, getSessionInputOutputCount, getSessionInputOutputMetadata, copyFromExternalBuffer, createSession, releaseSession, prepareInputOutputTensor, run, endProfiling, extractTransferableBuffers;
+var initOrt, initRuntime, initEp, activeSessions, getSessionInputOutputCount, copyFromExternalBuffer, createSession, releaseSession, prepareInputOutputTensor, run, endProfiling, extractTransferableBuffers;
 var init_wasm_core_impl = __esm({
   "web/lib/wasm/wasm-core-impl.ts"() {
     "use strict";
@@ -16232,15 +15943,9 @@ var init_wasm_core_impl = __esm({
       initOrt(env3.wasm.numThreads, logLevelStringToEnum(env3.logLevel));
     };
     initEp = async (env3, epName) => {
-      getInstance().asyncInit?.();
-      if (epName === "webgpu" && false) {
-        getInstance().webgpuInit((device) => {
-          env3.webgpu.device = device;
-        });
-      }
       if (true) {
         const initJsep = (init_init(), __toCommonJS(init_exports)).init;
-        if (epName === "webgpu" && true) {
+        if (epName === "webgpu") {
           if (typeof navigator === "undefined" || !navigator.gpu) {
             throw new Error("WebGPU is not supported in current environment");
           }
@@ -16292,39 +15997,6 @@ var init_wasm_core_impl = __esm({
         wasm2.stackRestore(stack);
       }
     };
-    getSessionInputOutputMetadata = (sessionHandle, index) => {
-      const wasm2 = getInstance();
-      const stack = wasm2.stackSave();
-      let metadataOffset = 0;
-      try {
-        const ptrSize = wasm2.PTR_SIZE;
-        const dataOffset = wasm2.stackAlloc(2 * ptrSize);
-        const errorCode = wasm2._OrtGetInputOutputMetadata(sessionHandle, index, dataOffset, dataOffset + ptrSize);
-        if (errorCode !== 0) {
-          checkLastError("Can't get session input/output metadata.");
-        }
-        const nameOffset = Number(wasm2.getValue(dataOffset, "*"));
-        metadataOffset = Number(wasm2.getValue(dataOffset + ptrSize, "*"));
-        const elementType = wasm2.HEAP32[metadataOffset / 4];
-        if (elementType === 0) {
-          return [nameOffset, 0];
-        }
-        const dimsCount = wasm2.HEAPU32[metadataOffset / 4 + 1];
-        const dims = [];
-        for (let i = 0; i < dimsCount; i++) {
-          const symbolicDimNameOffset = Number(wasm2.getValue(metadataOffset + 8 + i * ptrSize, "*"));
-          dims.push(
-            symbolicDimNameOffset !== 0 ? wasm2.UTF8ToString(symbolicDimNameOffset) : Number(wasm2.getValue(metadataOffset + 8 + (i + dimsCount) * ptrSize, "*"))
-          );
-        }
-        return [nameOffset, elementType, dims];
-      } finally {
-        wasm2.stackRestore(stack);
-        if (metadataOffset !== 0) {
-          wasm2._OrtFree(metadataOffset);
-        }
-      }
-    };
     copyFromExternalBuffer = (model) => {
       const wasm2 = getInstance();
       const modelDataOffset = wasm2._malloc(model.byteLength);
@@ -16351,7 +16023,7 @@ var init_wasm_core_impl = __esm({
       const inputNamesUTF8Encoded = [];
       const outputNamesUTF8Encoded = [];
       try {
-        [sessionOptionsHandle, allocs] = await setSessionOptions(options);
+        [sessionOptionsHandle, allocs] = setSessionOptions(options);
         if (options?.externalData && wasm2.mountExternalData) {
           const loadingPromises = [];
           for (const file of options.externalData) {
@@ -16377,24 +16049,23 @@ var init_wasm_core_impl = __esm({
               if (context) {
                 wasm2.currentContext = context;
               } else if (gpuDevice) {
-                wasm2.currentContext = await wasm2.webnnCreateMLContext(gpuDevice);
+                wasm2.currentContext = await wasm2.jsepCreateMLContext(gpuDevice);
               } else {
-                wasm2.currentContext = await wasm2.webnnCreateMLContext({ deviceType, powerPreference });
+                wasm2.currentContext = await wasm2.jsepCreateMLContext({ deviceType, powerPreference });
               }
             } else {
-              wasm2.currentContext = await wasm2.webnnCreateMLContext();
+              wasm2.currentContext = await wasm2.jsepCreateMLContext();
             }
             break;
           }
         }
         sessionHandle = await wasm2._OrtCreateSession(modelDataOffset, modelDataLength, sessionOptionsHandle);
-        wasm2.webgpuOnCreateSession?.(sessionHandle);
         if (sessionHandle === 0) {
           checkLastError("Can't create a session.");
         }
         wasm2.jsepOnCreateSession?.();
         if (wasm2.currentContext) {
-          wasm2.webnnRegisterMLContext(sessionHandle, wasm2.currentContext);
+          wasm2.jsepRegisterMLContext(sessionHandle, wasm2.currentContext);
           wasm2.currentContext = void 0;
           wasm2.shouldTransferToMLTensor = true;
         }
@@ -16402,32 +16073,23 @@ var init_wasm_core_impl = __esm({
         const enableGraphCapture = !!options?.enableGraphCapture;
         const inputNames = [];
         const outputNames = [];
-        const inputMetadata = [];
-        const outputMetadata = [];
         const outputPreferredLocations = [];
         for (let i = 0; i < inputCount; i++) {
-          const [nameOffset, elementType, shape] = getSessionInputOutputMetadata(sessionHandle, i);
-          if (nameOffset === 0) {
+          const name = wasm2._OrtGetInputName(sessionHandle, i);
+          if (name === 0) {
             checkLastError("Can't get an input name.");
           }
-          inputNamesUTF8Encoded.push(nameOffset);
-          const name = wasm2.UTF8ToString(nameOffset);
-          inputNames.push(name);
-          inputMetadata.push(
-            elementType === 0 ? { name, isTensor: false } : { name, isTensor: true, type: tensorDataTypeEnumToString(elementType), shape }
-          );
+          inputNamesUTF8Encoded.push(name);
+          inputNames.push(wasm2.UTF8ToString(name));
         }
         for (let i = 0; i < outputCount; i++) {
-          const [nameOffset, elementType, shape] = getSessionInputOutputMetadata(sessionHandle, i + inputCount);
-          if (nameOffset === 0) {
+          const name = wasm2._OrtGetOutputName(sessionHandle, i);
+          if (name === 0) {
             checkLastError("Can't get an output name.");
           }
-          outputNamesUTF8Encoded.push(nameOffset);
-          const nameString = wasm2.UTF8ToString(nameOffset);
+          outputNamesUTF8Encoded.push(name);
+          const nameString = wasm2.UTF8ToString(name);
           outputNames.push(nameString);
-          outputMetadata.push(
-            elementType === 0 ? { name: nameString, isTensor: false } : { name: nameString, isTensor: true, type: tensorDataTypeEnumToString(elementType), shape }
-          );
           if (true) {
             if (enableGraphCapture && options?.preferredOutputLocation === void 0) {
               outputPreferredLocations.push("gpu-buffer");
@@ -16465,7 +16127,7 @@ var init_wasm_core_impl = __esm({
           enableGraphCapture,
           false
         ]);
-        return [sessionHandle, inputNames, outputNames, inputMetadata, outputMetadata];
+        return [sessionHandle, inputNames, outputNames];
       } catch (e) {
         inputNamesUTF8Encoded.forEach((buf) => wasm2._OrtFree(buf));
         outputNamesUTF8Encoded.forEach((buf) => wasm2._OrtFree(buf));
@@ -16509,8 +16171,6 @@ var init_wasm_core_impl = __esm({
         }
       }
       wasm2.jsepOnReleaseSession?.(sessionId);
-      wasm2.webnnOnReleaseSession?.(sessionId);
-      wasm2.webgpuOnReleaseSession?.(sessionId);
       inputNamesUTF8Encoded.forEach((buf) => wasm2._OrtFree(buf));
       outputNamesUTF8Encoded.forEach((buf) => wasm2._OrtFree(buf));
       if (wasm2._OrtReleaseSession(sessionHandle) !== 0) {
@@ -16518,7 +16178,7 @@ var init_wasm_core_impl = __esm({
       }
       activeSessions.delete(sessionId);
     };
-    prepareInputOutputTensor = async (tensor, tensorHandles, allocs, sessionId, tensorNameUTF8Encoded, index, enableGraphCapture = false) => {
+    prepareInputOutputTensor = async (tensor, tensorHandles, allocs, sessionId, index, enableGraphCapture = false) => {
       if (!tensor) {
         tensorHandles.push(0);
         return;
@@ -16542,23 +16202,15 @@ var init_wasm_core_impl = __esm({
       if (location2 === "gpu-buffer") {
         const gpuBuffer = tensor[2].gpuBuffer;
         dataByteLength = calculateTensorSizeInBytes(tensorDataTypeStringToEnum(dataType), dims);
-        if (false) {
-          const registerBuffer = wasm2.webgpuRegisterBuffer;
-          if (!registerBuffer) {
-            throw new Error('Tensor location "gpu-buffer" is not supported without using WebGPU.');
-          }
-          rawData = registerBuffer(gpuBuffer, sessionId);
-        } else {
-          const registerBuffer = wasm2.jsepRegisterBuffer;
-          if (!registerBuffer) {
-            throw new Error('Tensor location "gpu-buffer" is not supported without using WebGPU.');
-          }
-          rawData = registerBuffer(sessionId, index, gpuBuffer, dataByteLength);
+        const registerBuffer = wasm2.jsepRegisterBuffer;
+        if (!registerBuffer) {
+          throw new Error('Tensor location "gpu-buffer" is not supported without using WebGPU.');
         }
+        rawData = registerBuffer(sessionId, index, gpuBuffer, dataByteLength);
       } else if (location2 === "ml-tensor") {
         const mlTensor = tensor[2].mlTensor;
         dataByteLength = calculateTensorSizeInBytes(tensorDataTypeStringToEnum(dataType), dims);
-        const registerMLTensor = wasm2.webnnRegisterMLTensor;
+        const registerMLTensor = wasm2.jsepRegisterMLTensor;
         if (!registerMLTensor) {
           throw new Error('Tensor location "ml-tensor" is not supported without using WebNN.');
         }
@@ -16576,15 +16228,16 @@ var init_wasm_core_impl = __esm({
             wasm2.setValue(rawData + i * ptrSize, allocWasmString(data[i], allocs), "*");
           }
         } else {
-          const isGraphInput = wasm2.webnnIsGraphInput;
+          const isGraphInput = wasm2.jsepIsGraphInput;
           if (dataType !== "string" && isGraphInput) {
-            const tensorName = wasm2.UTF8ToString(tensorNameUTF8Encoded);
+            const tensorNameUTF8 = wasm2._OrtGetInputName(sessionId, index);
+            const tensorName = wasm2.UTF8ToString(tensorNameUTF8);
             if (isGraphInput(sessionId, tensorName)) {
               const dataTypeEnum = tensorDataTypeStringToEnum(dataType);
               dataByteLength = calculateTensorSizeInBytes(dataTypeEnum, dims);
               actualLocation = "ml-tensor";
-              const createTemporaryTensor = wasm2.webnnCreateTemporaryTensor;
-              const uploadTensor = wasm2.webnnUploadTensor;
+              const createTemporaryTensor = wasm2.jsepCreateTemporaryTensor;
+              const uploadTensor = wasm2.jsepUploadTensor;
               if (!createTemporaryTensor || !uploadTensor) {
                 throw new Error('Tensor location "ml-tensor" is not supported without using WebNN.');
               }
@@ -16658,7 +16311,6 @@ var init_wasm_core_impl = __esm({
             inputTensorHandles,
             inputOutputAllocs,
             sessionId,
-            inputNamesUTF8Encoded[inputIndices[i]],
             inputIndices[i],
             enableGraphCapture
           );
@@ -16669,7 +16321,6 @@ var init_wasm_core_impl = __esm({
             outputTensorHandles,
             inputOutputAllocs,
             sessionId,
-            outputNamesUTF8Encoded[outputIndices[i]],
             inputCount + outputIndices[i],
             enableGraphCapture
           );
@@ -16726,7 +16377,6 @@ var init_wasm_core_impl = __esm({
           ]);
         }
         wasm2.jsepOnRunStart?.(sessionHandle);
-        wasm2.webnnOnRunStart?.(sessionHandle);
         let errorCode;
         if (ioBindingState) {
           errorCode = await wasm2._OrtRunWithBinding(
@@ -16802,7 +16452,7 @@ var init_wasm_core_impl = __esm({
               output.push([type, dims, stringData, "cpu"]);
             } else {
               if (preferredLocation === "gpu-buffer" && size > 0) {
-                const getBuffer = false ? wasm2.webgpuGetBuffer : wasm2.jsepGetBuffer;
+                const getBuffer = wasm2.jsepGetBuffer;
                 if (!getBuffer) {
                   throw new Error('preferredLocation "gpu-buffer" is not supported without using WebGPU.');
                 }
@@ -16812,57 +16462,28 @@ var init_wasm_core_impl = __esm({
                   throw new Error(`Unsupported data type: ${type}`);
                 }
                 keepOutputTensor = true;
-                if (false) {
-                  wasm2.webgpuRegisterBuffer(gpuBuffer, sessionId, dataOffset);
-                  const downloadDataFunction = wasm2.webgpuCreateDownloader(gpuBuffer, bufferSize, sessionId);
-                  output.push([
-                    type,
-                    dims,
-                    {
-                      gpuBuffer,
-                      download: async () => {
-                        const arrayBuffer = await downloadDataFunction();
-                        const data = new (tensorTypeToTypedArrayConstructor(type))(arrayBuffer);
-                        return data;
-                      },
-                      dispose: () => {
-                        if (wasm2._OrtReleaseTensor(tensor) !== 0) {
-                          checkLastError("Can't release tensor.");
-                        }
+                output.push([
+                  type,
+                  dims,
+                  {
+                    gpuBuffer,
+                    download: wasm2.jsepCreateDownloader(gpuBuffer, bufferSize, type),
+                    dispose: () => {
+                      if (wasm2._OrtReleaseTensor(tensor) !== 0) {
+                        checkLastError("Can't release tensor.");
                       }
-                    },
-                    "gpu-buffer"
-                  ]);
-                } else {
-                  output.push([
-                    type,
-                    dims,
-                    {
-                      gpuBuffer,
-                      download: wasm2.jsepCreateDownloader(gpuBuffer, bufferSize, type),
-                      dispose: () => {
-                        if (wasm2._OrtReleaseTensor(tensor) !== 0) {
-                          checkLastError("Can't release tensor.");
-                        }
-                      }
-                    },
-                    "gpu-buffer"
-                  ]);
-                }
+                    }
+                  },
+                  "gpu-buffer"
+                ]);
               } else if (preferredLocation === "ml-tensor" && size > 0) {
-                const ensureTensor = wasm2.webnnEnsureTensor;
-                const isInt64Supported = wasm2.webnnIsInt64Supported;
-                if (!ensureTensor || !isInt64Supported) {
+                const ensureTensor = wasm2.jsepEnsureTensor;
+                if (!ensureTensor) {
                   throw new Error('preferredLocation "ml-tensor" is not supported without using WebNN.');
                 }
                 const tensorSize = calculateTensorSizeInBytes(dataType, size);
                 if (tensorSize === void 0 || !isMLTensorSupportedType(type)) {
                   throw new Error(`Unsupported data type: ${type}`);
-                }
-                if (type === "int64" && !isInt64Supported(sessionId)) {
-                  throw new Error(
-                    `preferredLocation "ml-tensor" for int64 output is not supported by current WebNN Context.`
-                  );
                 }
                 const mlTensor = await ensureTensor(sessionId, dataOffset, dataType, dims, false);
                 keepOutputTensor = true;
@@ -16871,9 +16492,9 @@ var init_wasm_core_impl = __esm({
                   dims,
                   {
                     mlTensor,
-                    download: wasm2.webnnCreateMLTensorDownloader(dataOffset, type),
+                    download: wasm2.jsepCreateMLTensorDownloader(dataOffset, type),
                     dispose: () => {
-                      wasm2.webnnReleaseTensorId(dataOffset);
+                      wasm2.jsepReleaseTensorId(dataOffset);
                       wasm2._OrtReleaseTensor(tensor);
                     }
                   },
@@ -16896,7 +16517,7 @@ var init_wasm_core_impl = __esm({
             if (!keepOutputTensor) {
               wasm2._OrtReleaseTensor(tensor);
             }
-            wasm2.webnnOnRunEnd?.(sessionHandle);
+            wasm2.jsepOnRunEnd?.(sessionHandle);
           }
         }
         if (ioBindingState && !enableGraphCapture) {
@@ -16915,18 +16536,6 @@ var init_wasm_core_impl = __esm({
         return output;
       } finally {
         wasm2.stackRestore(beforeRunStack);
-        if (false) {
-          inputTensors.forEach((t) => {
-            if (t && t[3] === "gpu-buffer") {
-              wasm2.webgpuUnregisterBuffer(t[2].gpuBuffer);
-            }
-          });
-          outputTensors.forEach((t) => {
-            if (t && t[3] === "gpu-buffer") {
-              wasm2.webgpuUnregisterBuffer(t[2].gpuBuffer);
-            }
-          });
-        }
         inputTensorHandles.forEach((v) => wasm2._OrtReleaseTensor(v));
         outputTensorHandles.forEach((v) => wasm2._OrtReleaseTensor(v));
         inputOutputAllocs.forEach((p) => wasm2._free(p));
@@ -17228,10 +16837,7 @@ var init_session_handler_inference = __esm({
         } else {
           model = pathOrBuffer;
         }
-        [this.sessionId, this.inputNames, this.outputNames, this.inputMetadata, this.outputMetadata] = await createSession2(
-          model,
-          options
-        );
+        [this.sessionId, this.inputNames, this.outputNames] = await createSession2(model, options);
         TRACE_FUNC_END();
       }
       async dispose() {
@@ -17304,12 +16910,10 @@ var init_backend_wasm = __esm({
       if (typeof env2.wasm.initTimeout !== "number" || env2.wasm.initTimeout < 0) {
         env2.wasm.initTimeout = 0;
       }
-      const simd = env2.wasm.simd;
-      if (typeof simd !== "boolean" && simd !== void 0 && simd !== "fixed" && simd !== "relaxed") {
+      if (env2.wasm.simd === false) {
         console.warn(
-          `Property "env.wasm.simd" is set to unknown value "${simd}". Reset it to \`false\` and ignore SIMD feature checking.`
+          'Deprecated property "env.wasm.simd" is set to false. non-SIMD build is no longer provided, and this setting will be ignored.'
         );
-        env2.wasm.simd = false;
       }
       if (typeof env2.wasm.proxy !== "boolean") {
         env2.wasm.proxy = false;
@@ -17343,7 +16947,7 @@ var init_backend_wasm = __esm({
       async createInferenceSessionHandler(pathOrBuffer, options) {
         const handler = new OnnxruntimeWebAssemblySessionHandler();
         await handler.loadModel(pathOrBuffer, options);
-        return handler;
+        return Promise.resolve(handler);
       }
     };
     wasmBackend = new OnnxruntimeWebAssemblyBackend();
@@ -17356,7 +16960,7 @@ init_esm();
 init_esm();
 
 // web/lib/version.ts
-var version2 = "1.22.0-dev.20250409-89f8206ba4";
+var version2 = "1.22.0-dev.20250306-ccf8fdd9ea";
 
 // web/lib/index.ts
 var index_default = esm_exports;
