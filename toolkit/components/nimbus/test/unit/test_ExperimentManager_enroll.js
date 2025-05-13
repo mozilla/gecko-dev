@@ -671,13 +671,6 @@ add_task(async function enroll_in_reference_aw_experiment() {
 });
 
 add_task(async function test_forceEnroll_cleanup() {
-  Services.fog.applyServerKnobsConfig(
-    JSON.stringify({
-      metrics_enabled: {
-        "nimbus_events.enrollment_status": false,
-      },
-    })
-  );
   const { sandbox, manager, cleanup } = await setupTest();
 
   sandbox.spy(manager, "_unenroll");
