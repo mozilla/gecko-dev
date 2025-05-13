@@ -185,9 +185,12 @@ class FutexThread {
 // Notify some waiters on the given address.  If `count` is negative then notify
 // all.  The return value is nonnegative and is the number of waiters woken.  If
 // the number of waiters woken exceeds INT64_MAX then this never returns.  If
-// `count` is nonnegative then the return value is never greater than `count`.
-[[nodiscard]] int64_t atomics_notify_impl(SharedArrayRawBuffer* sarb,
-                                          size_t byteOffset, int64_t count);
+// `count` is nonnegative then the woken out parameter is never greater than
+// `count`.
+[[nodiscard]] bool atomics_notify_impl(JSContext* cx,
+                                       SharedArrayRawBuffer* sarb,
+                                       size_t byteOffset, int64_t count,
+                                       int64_t* woken);
 
 } /* namespace js */
 

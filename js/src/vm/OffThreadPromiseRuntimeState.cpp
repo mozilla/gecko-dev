@@ -159,7 +159,7 @@ void OffThreadPromiseTask::DestroyUndispatchedTask(OffThreadPromiseTask* task) {
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(task->runtime_));
   MOZ_ASSERT(task->registered_);
   MOZ_ASSERT(task->cancellable_);
-  // Cleanup Steps from 3. in SMDOC for Atomics.waitAsync
+  // Cleanup Steps from 4. in SMDOC for Atomics.waitAsync
   task->prepareForCancel();
   js_delete(task);
 }
@@ -508,4 +508,27 @@ void OffThreadPromiseRuntimeState::shutdown(JSContext* cx) {
   // JSRuntime. Revert to the !initialized() state to catch bugs.
   dispatchToEventLoopCallback_ = nullptr;
   MOZ_ASSERT(!initialized());
+}
+
+/* static */
+js::PromiseObject* OffThreadPromiseTask::ExtractAndForget(
+    OffThreadPromiseTask* task, const AutoLockHelperThreadState& lock) {
+  OffThreadPromiseRuntimeState& state =
+      task->runtime()->offThreadPromiseState.ref();
+  MOZ_ASSERT(state.initialized());
+  MOZ_ASSERT(task->registered_);
+
+  // TODO: This has overlap with removeFromCancellableListAndDispatch.
+  // The two methods should be refactored so that they are consistant and
+  // we don't have unnecessary repetition or distribution of responsibilities.
+  state.numRegistered_--;
+  if (task->cancellable_) {
+    state.cancellable().remove(task);
+  }
+  task->registered_ = false;
+
+  js::PromiseObject* promise = task->promise_;
+  js_delete(task);
+
+  return promise;
 }

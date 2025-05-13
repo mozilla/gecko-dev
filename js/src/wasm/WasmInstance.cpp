@@ -487,8 +487,11 @@ static int32_t PerformWake(Instance* instance, PtrT byteOffset, int32_t count,
   }
 
   MOZ_ASSERT(byteOffset <= SIZE_MAX, "Bounds check is broken");
-  int64_t woken = atomics_notify_impl(instance->sharedMemoryBuffer(memoryIndex),
-                                      size_t(byteOffset), int64_t(count));
+  int64_t woken;
+  if (!atomics_notify_impl(cx, instance->sharedMemoryBuffer(memoryIndex),
+                           size_t(byteOffset), int64_t(count), &woken)) {
+    return -1;
+  }
 
   if (woken > INT32_MAX) {
     ReportTrapError(cx, JSMSG_WASM_WAKE_OVERFLOW);

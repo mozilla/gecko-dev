@@ -94,15 +94,21 @@ class OffThreadPromiseRuntimeState;
 // the browser's main event loop. The microtask queue is implemented
 // by JS::JobQueue, used for promises and gets drained before returning to
 // the event loop. Thus OffThreadPromiseTask can only be used when the spec
-// says "queue a task", as the WebAssembly APIs do.
+// says "queue a task", as the WebAssembly APIs do. In some cases, like
+// Atomics.waitAsync, the choice between queuing a task or a microtask depends
+// on whether the promise is being resolved from the owning thread or another
+// thread. In such cases, ExtractAndForget can be used from the owning thread to
+// cancel the task and return the underlying promise, which can then be resolved
+// the normal way.
 //
 // An OffThreadPromiseTask has a JSContext, and must be constructed and have its
 // 'init' method called on that JSContext's thread. Once
 // initialized, its dispatchResolveAndDestroy method may be called from any
-// thread. Other than calling `DestroyUndispatchedTask` during shutdown, this is
-// the only safe way to destruct an OffThreadPromiseTask; doing so ensures the
-// OffThreadPromiseTask's destructor will run on the JSContext's thread, either
-// from the event loop or during shutdown.
+// thread. Other than calling `ExtractAndForget`, or `DestroyUndispatchedTask`
+// during shutdown, this is the only safe way to destruct an
+// OffThreadPromiseTask; doing so ensures the OffThreadPromiseTask's destructor
+// will run on the JSContext's thread, either from the event loop or during
+// shutdown.
 //
 // OffThreadPromiseTask::dispatchResolveAndDestroy uses the
 // JS::DispatchToEventLoopCallback provided by the embedding to enqueue
@@ -201,6 +207,9 @@ class OffThreadPromiseTask : public JS::Dispatchable {
   static void DispatchResolveAndDestroy(
       js::UniquePtr<OffThreadPromiseTask>&& task,
       const AutoLockHelperThreadState& lock);
+
+  static PromiseObject* ExtractAndForget(OffThreadPromiseTask* task,
+                                         const AutoLockHelperThreadState& lock);
 };
 
 using OffThreadPromiseTaskSet =
