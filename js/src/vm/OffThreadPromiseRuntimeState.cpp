@@ -159,6 +159,7 @@ void OffThreadPromiseTask::DestroyUndispatchedTask(OffThreadPromiseTask* task) {
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(task->runtime_));
   MOZ_ASSERT(task->registered_);
   MOZ_ASSERT(task->cancellable_);
+  // Cleanup Steps from 3. in SMDOC for Atomics.waitAsync
   task->prepareForCancel();
   js_delete(task);
 }

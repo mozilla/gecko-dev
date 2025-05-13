@@ -530,6 +530,178 @@ static bool atomics_isLockFree(JSContext* cx, unsigned argc, Value* vp) {
 
 namespace js {
 
+/*
+ * [SMDOC] Atomics.wait, Atomics.waitAsync, and Atomics.notify
+ *
+ * `wait`, `waitAsync`, and `notify` are provided as low-level primitives for
+ * thread synchronization. The primary use case is to take code that looks like
+ * this:
+ *
+ *     const ValueIndex = 0;
+ *     const FlagIndex = 1;
+ *
+ *     THREAD A:
+ *       // Write a value.
+ *       Atomics.store(sharedBuffer, ValueIndex, value);
+ *       // Update a flag to indicate that the value was written.
+ *       Atomics.store(sharedBuffer, FlagIndex, 1);
+ *
+ *     THREAD B:
+ *       // Busy-wait for the flag to be updated.
+ *       while (Atomics.load(sharedBuffer, FlagIndex) == 0) {}
+ *       // Load the value.
+ *       let value = Atomics.load(sharedBuffer, ValueIndex);
+ *
+ * ...and replace the busy-wait:
+ *
+ *     THREAD A':
+ *       // Write the value and update the flag.
+ *       Atomics.store(sharedBuffer, ValueIndex, value);
+ *       Atomics.store(sharedBuffer, FlagIndex, 1);
+ *       // Notify that the flag has been written.
+ *       Atomics.notify(sharedBuffer, FlagIndex);
+ *
+ *     THREAD B':
+ *       // Wait until the flag is notified.
+ *       // If it's already non-zero, no wait occurs.
+ *       Atomics.wait(sharedBuffer, FlagIndex, 0);
+ *       // Load the value.
+ *       let value = Atomics.load(sharedBuffer, ValueIndex);
+ *
+ * `wait` puts the calling thread to sleep until it is notified (or an optional
+ * timeout expires). This can't be used on the main thread.
+ *
+ * `waitAsync` instead creates a Promise which will be resolved when the
+ * position is notified (or an optional timeout expires).
+ *
+ * When `wait` or `waitAsync` is called, a waiter is created and registered with
+ * the SharedArrayBuffer. Waiter instances for a SharedArrayRawBuffer are
+ * connected in a circular doubly-linked list, containing both sync and async
+ * waiters. Sync waiters are stack allocated in the stack frame of the waiting
+ * thread. Async waiters are heap-allocated. The `waiters` field of the
+ * SharedArrayRawBuffer is a dedicated list head node for the list. Waiters are
+ * awoken in a first-in-first-out order. The `next` field of the list head node
+ * points to the highest priority waiter. The `prev` field points to the lowest
+ * priority waiter. This list is traversed when `notify` is called to find the
+ * waiters that should be woken up.
+ *
+ * Synchronous waits are implemented using a per-context condition variable. See
+ * FutexThread::wait.
+ *
+ * Asynchronous waits are more complicated, particularly with respect to
+ * timeouts. In addition to the AsyncFutexWaiter that is added to the list of
+ * waiters, we also create:
+ *
+ *   1. A Promise object to return to the caller. The promise will be resolved
+ *      when the waiter is notified or times out.
+ *   2. A WaitAsyncNotifyTask (derived from OffThreadPromiseTask) wrapping that
+ *      promise. `notify` can be called from any thread, but the promise must be
+ *      resolved on the thread that owns it. To resolve the promise, we dispatch
+ *      the task to enqueue a promise resolution task in the target's event
+ *      loop. The notify task is stored in the AsyncFutexWaiter.
+ *   3. If there is a non-zero timeout, a WaitAsyncTimeoutTask (derived from
+ *      JS::Dispatchable) containing a pointer to the async waiter. We dispatch
+ *      this task to the embedding's event loop, with a delay. When the timeout
+ *      expires and the task runs, if the promise has not yet been resolved, we
+ *      resolve it with "timed-out".
+ *
+ * `waitAsync` Lifetimes
+ * ---------------------
+ *           ┌─────┐
+ *           │ SAB │
+ *           └─────┘
+ *        ┌────► ◄────┐ bi-directional linked list
+ *        │           │
+ *        ▼           ▼
+ *      *waiter      *waiter
+ *        ▲           ▲
+ *        │           │
+ *        └───► *  ◄──┘
+ *              │
+ *      ┌───────▼────────┐
+ *      │AsyncFutexWaiter│ ◄───────────┐
+ *      └────────────────┘             │
+ *              │                      │
+ *              │ borrow               │ borrow
+ *              ▼                      ▼
+ *      ┌────────────────────┐       ┌───────────────────┐
+ *      │WaitAsyncTimeoutTask│       │WaitAsyncNotifyTask│ ◄─────┐
+ *      └────────────────────┘       └───┬───────────────┘       │
+ *              ▲                        │             ▲         │
+ *              │                        │             │         │ (transfered)
+ *              │ own                    ▼             │         │ own
+ *      ┌───────────────────────────┐ ┌─────────────┐  │ ┌─────────────────────┐
+ *      │DelayedJSDispatchaleHandler│ │PromiseObject│  │ │JSDispatchableHandler│
+ *      └───────────────────────────┘ └─────────────┘  │ └─────────────────────┘
+ *              ▲                        ▲             │
+ *     ┌────────┼────────────────────────┼──────┐      │
+ *     │ ┌──────┴───────┐           ┌────┴────┐ │      │ own (initialized)
+ *     │ │TimeoutManager│           │JSContext┼─┼──────┘
+ *     │ └──────────────┘           └─────────┘ │   Cancellable List
+ *     │                                        │
+ *     │     Runtime (MainThread or Worker)     │
+ *     └────────────────────────────────────────┘
+ *
+ *
+ * The data representing an async wait is divided between the JSContext in which
+ * it was created and the SharedArrayBuffer being waited on. There are three
+ * potential components:
+ *
+ * A) The AsyncFutexWaiter itself (shared by the SharedArrayRawBuffer,
+ *    WaitAsyncNotifyTask, and WaitAsyncTimeoutTask if it exists). It
+ *    will be cleaned up manually.
+ * B) The corresponding WaitAsyncNotifyTask (owned by the JS::Context). It
+ *    destroys itself on run.
+ * C) The WaitAsyncTimeoutTask (owned by the embedding's job queue). It
+ *    destroys itself on run.
+ *
+ * WaitAsyncNotifyTask and WaitAsyncTimeoutTask (if it exists) delete
+ * themselves. When either task is run or destroyed, they also trigger the
+ * destruction and unlinking of the AsyncFutexWaiter. There are
+ * four scenarios:
+ *
+ * 1. A call to `Atomics.notify` notifies the waiter (atomics_notify_impl)
+ *    A) The async waiter is removed from the list.
+ *    B) The notify task is removed from OffThreadPromiseRuntimeState's
+ *       cancelable list and is dispatched to resolve the promise with "ok".
+ *       The task then destroys itself.
+ *    C) The WaitAsyncTimeoutTask is disabled. It will fire and do nothing.
+ *       See AsyncFutexWaiter::maybeCancelTimeout in atomics_notify_impl.
+ *    D) The async waiter is destroyed.
+ *
+ * 2. The timeout expires without notification (WaitAsyncTimeoutTask::run)
+ *    A) The async waiter is removed from the list.
+ *    B) The notify task is dispatched to resolve the promise with "timed-out"
+ *       and destroys itself.
+ *    C) The timeout task is running and will be destroyed when it's done.
+ *    D) The async waiter is destroyed.
+ *
+ * 3. The context is destroyed (OffThreadPromiseRuntimeState::shutdown):
+ *    A) The async waiter is removed and destroyed by
+ *       WaitAsyncNotifyTask::prepareForCancel.
+ *    B) The notify task is cancelled and destroyed by
+ *       OffThreadPromiseRuntimeState::shutdown.
+ *    C) The WaitAsyncTimeoutTask is disabled.
+ *       See AsyncFutexWaiter::maybeCancelTimeout in prepareForCancel.
+ *
+ * 4. The SharedArrayBuffer is collected by the GC (~FutexWaiterListHead)
+ *    A) Async waiters without timeouts can no longer resolve. They are removed.
+ *    B) If no timeout task exists, the notify task is dispatched and
+ *       destroys itself, without resolving the promise.
+ *    C) If there is an enqueued timeout, the waiter can still be resolved.
+ *       In this case it will not be destroyed until it times out.
+ *
+ * The UniquePtr can be thought of as a "runnable handle" that gives exclusive
+ * access to executing a runnable by a given owner. The runnable will still
+ * delete itself (via js_delete, see OffThreadPromiseRuntimeState.cpp
+ * implementation of OffThreadPromiseTask::run). If somehow the UniquePtr is not
+ * passed to embedding code that will run the code, the task is released from
+ * the pointer. We then use the list of raw pointers in
+ * OffThreadPromiseRuntimeState's cancellable and dead lists are used to
+ * identify which were never dispatched, and which failed to dispatch, and clear
+ * them when the engine has an opportunity to do so (i.e. shutdown).
+ */
+
 class WaitAsyncNotifyTask;
 class WaitAsyncTimeoutTask;
 
@@ -552,14 +724,6 @@ class AutoLockFutexAPI {
 // Represents one waiter. This is the abstract base class for SyncFutexWaiter
 // and AsyncFutexWaiter.
 //
-// Waiter instances for a SharedArrayRawBuffer are connected in a
-// circular doubly-linked list, containing both sync and async
-// waiters. Sync waiters are stack allocated in the stack frame of the
-// waiting thread. Async waiters are heap-allocated. The 'waiters'
-// field of the SharedArrayRawBuffer is a dedicated list head node for
-// the list. Waiters are awoken in a first-in-first-out order. The
-// `next` field of the list head node points to the highest priority
-// waiter. The `prev` field points to the lowest priority waiter.
 class FutexWaiter : public FutexWaiterListNode {
  protected:
   FutexWaiter(JSContext* cx, size_t offset, FutexWaiterKind kind)
@@ -645,8 +809,8 @@ class WaitAsyncNotifyTask : public OffThreadPromiseTask {
  private:
   Result result_ = Result::Ok;
 
-  // The waiter that owns this task and will dispatch it when
-  // notified.
+  // A back-edge to the waiter so that it can be cleaned up when the
+  // Notify Task is dispatched and destroyed.
   AsyncFutexWaiter* waiter_ = nullptr;
 
  public:
@@ -681,8 +845,11 @@ class WaitAsyncNotifyTask : public OffThreadPromiseTask {
   void prepareForCancel() override;
 };
 
-// WaitAsyncTimeoutTask is primarily responsible for triggering a timeout
-// on the WaitAsyncNotifyTask if the timer runs out.
+// WaitAsyncNotifyTask (derived from OffThreadPromiseTask) is wrapping that
+// promise. `notify` can be called from any thread, but the promise must be
+// resolved on the thread that owns it. To resolve the promise, we dispatch
+// the task to enqueue a promise resolution task in the target's event
+// loop.
 //
 // See [SMDOC] Atomics.wait for more details.
 class WaitAsyncTimeoutTask : public JS::Dispatchable {
@@ -742,6 +909,7 @@ static void RemoveSyncWaiter(SyncFutexWaiter* waiter, AutoLockFutexAPI& lock) {
 }
 
 FutexWaiterListHead::~FutexWaiterListHead() {
+  // Cleanup steps from 4. in SMDOC for Atomics.waitAsync
   // When a SharedArrayRawBuffer is no longer reachable, the contents of its
   // waiters list can no longer be notified. However, they can still resolve if
   // they have an associated timeout. When the list head goes away, we walk
@@ -827,6 +995,7 @@ void WaitAsyncTimeoutTask::run(JSContext* cx,
     return;
   }
 
+  // Cleanup steps from 2. and 4. lifecycle in SMDOC for Atomics.waitAsync
   // Take ownership of the async waiter, so that it will be freed
   // when we return.
   UniquePtr<AsyncFutexWaiter> asyncWaiter(RemoveAsyncWaiter(waiter_, lock));
@@ -1231,6 +1400,7 @@ int64_t js::atomics_notify_impl(SharedArrayRawBuffer* sarb, size_t byteOffset,
       // arbitrary code. We dispatch a task to that context that will
       // resolve the corresponding promise.
 
+      // Steps to clean up case 1. in SMDOC for Atomics.waitAsync
       // Take ownership of the async waiter, so that it will be
       // freed at the end of this block.
       UniquePtr<AsyncFutexWaiter> asyncWaiter(
