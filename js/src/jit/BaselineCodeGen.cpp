@@ -480,7 +480,7 @@ static void LoadInlineValueOperand(MacroAssembler& masm, ValueOperand dest) {
 
 template <>
 void BaselineCompilerCodeGen::loadScript(Register dest) {
-  masm.movePtr(ImmGCPtr(handler.script()), dest);
+  masm.movePtr(ImmGCPtr(handler.scriptInternal()), dest);
 }
 
 template <>
@@ -698,7 +698,7 @@ bool BaselineCompilerCodeGen::emitNextIC() {
   // ICEntry order in JitScript: first the non-op IC entries for |this| and
   // formal arguments, then the for-op IC entries for JOF_IC ops.
 
-  JSScript* script = handler.script();
+  JSScript* script = handler.scriptInternal();
   uint32_t pcOffset = script->pcToOffset(handler.pc());
 
   // We don't use every ICEntry and we can skip unreachable ops, so we have
@@ -952,7 +952,7 @@ bool BaselineCompilerCodeGen::emitHandleCodeCoverageAtPrologue() {
 
   // If the main instruction is not a jump target, then we emit the
   // corresponding code coverage counter.
-  JSScript* script = handler.script();
+  JSScript* script = handler.scriptInternal();
   jsbytecode* main = script->main();
   if (!BytecodeIsJumpTarget(JSOp(*main))) {
     MaybeIncrementCodeCoverageCounter(masm, script, main);
@@ -972,7 +972,7 @@ bool BaselineInterpreterCodeGen::emitHandleCodeCoverageAtPrologue() {
 template <>
 void BaselineCompilerCodeGen::subtractScriptSlotsSize(Register reg,
                                                       Register scratch) {
-  uint32_t slotsSize = handler.script()->nslots() * sizeof(Value);
+  uint32_t slotsSize = handler.scriptInternal()->nslots() * sizeof(Value);
   masm.subPtr(Imm32(slotsSize), reg);
 }
 
@@ -994,7 +994,7 @@ void BaselineInterpreterCodeGen::subtractScriptSlotsSize(Register reg,
 
 template <>
 void BaselineCompilerCodeGen::loadGlobalLexicalEnvironment(Register dest) {
-  MOZ_ASSERT(!handler.script()->hasNonSyntacticScope());
+  MOZ_ASSERT(!handler.scriptInternal()->hasNonSyntacticScope());
   masm.movePtr(ImmGCPtr(handler.globalLexicalEnvironment()), dest);
 }
 
@@ -1036,7 +1036,7 @@ void BaselineInterpreterCodeGen::loadGlobalThisValue(ValueOperand dest) {
 
 template <>
 void BaselineCompilerCodeGen::pushScriptArg() {
-  pushArg(ImmGCPtr(handler.script()));
+  pushArg(ImmGCPtr(handler.scriptInternal()));
 }
 
 template <>
@@ -1233,13 +1233,25 @@ void BaselineCompilerCodeGen::emitInitFrameFields(Register nonFunctionEnv) {
   Register scratch2 = R2.scratchReg();
   MOZ_ASSERT(nonFunctionEnv != scratch && nonFunctionEnv != scratch2);
 
-  masm.store32(Imm32(0), frame.addressOfFlags());
+  uint32_t flags = handler.isSelfHosted() ? BaselineFrame::SELF_HOSTED : 0;
+  masm.store32(Imm32(flags), frame.addressOfFlags());
+
   if (handler.function()) {
     masm.loadFunctionFromCalleeToken(frame.addressOfCalleeToken(), scratch);
     masm.unboxObject(Address(scratch, JSFunction::offsetOfEnvironment()),
-                     scratch);
-    masm.storePtr(scratch, frame.addressOfEnvironmentChain());
+                     scratch2);
+    masm.storePtr(scratch2, frame.addressOfEnvironmentChain());
+    if (handler.isSelfHosted()) {
+      masm.loadPrivate(Address(scratch, JSFunction::offsetOfJitInfoOrScript()),
+                       scratch);
+      masm.storePtr(scratch, frame.addressOfInterpreterScript());
+    }
   } else {
+    if (handler.isSelfHosted()) {
+      masm.loadPtr(frame.addressOfCalleeToken(), scratch);
+      masm.andPtr(Imm32(uint32_t(CalleeTokenMask)), scratch);
+      masm.storePtr(scratch, frame.addressOfInterpreterScript());
+    }
     masm.storePtr(nonFunctionEnv, frame.addressOfEnvironmentChain());
   }
 
@@ -1257,8 +1269,19 @@ void BaselineCompilerCodeGen::emitInitFrameFields(Register nonFunctionEnv) {
 
   // Otherwise, store this script's default ICSCript in the frame.
   masm.bind(&notInlined);
-  masm.storePtr(ImmPtr(handler.script()->jitScript()->icScript()),
-                frame.addressOfICScript());
+  if (handler.isSelfHosted()) {
+    // When self-hosted JitCode is reused in a new realm, the frames baked into
+    // the native bytecode need to refer to the IC list for the new JitScript or
+    // they will execute the IC scripts using the IC stub fields from the wrong
+    // script.
+    masm.loadPtr(frame.addressOfInterpreterScript(), scratch);
+    masm.loadPtr(Address(scratch, JSScript::offsetOfWarmUpData()), scratch);
+    masm.addPtr(Imm32(JitScript::offsetOfICScript()), scratch);
+    masm.storePtr(scratch, frame.addressOfICScript());
+  } else {
+    masm.storePtr(ImmPtr(handler.scriptInternal()->jitScript()->icScript()),
+                  frame.addressOfICScript());
+  }
   masm.bind(&done);
 }
 
@@ -1342,7 +1365,7 @@ bool BaselineCompilerCodeGen::initEnvironmentChain() {
   if (!handler.function()) {
     return true;
   }
-  if (!handler.script()->needsFunctionEnvironmentObjects()) {
+  if (!handler.scriptInternal()->needsFunctionEnvironmentObjects()) {
     return true;
   }
 
@@ -1501,7 +1524,7 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
   // JIT code. This is right before the warm-up check in the Baseline JIT code,
   // to make sure we can immediately enter Ion if the script is warm enough or
   // if --ion-eager is used.
-  JSScript* script = handler.script();
+  JSScript* script = handler.scriptInternal();
   jsbytecode* pc = handler.pc();
   if (JSOp(*pc) == JSOp::LoopHead) {
     uint32_t pcOffset = script->pcToOffset(pc);
@@ -2156,7 +2179,7 @@ template <typename F1, typename F2>
 [[nodiscard]] bool BaselineCompilerCodeGen::emitTestScriptFlag(
     JSScript::ImmutableFlags flag, const F1& ifSet, const F2& ifNotSet,
     Register scratch) {
-  if (handler.script()->hasFlag(flag)) {
+  if (handler.scriptInternal()->hasFlag(flag)) {
     return ifSet();
   }
   return ifNotSet();
@@ -2194,7 +2217,7 @@ template <typename F>
 [[nodiscard]] bool BaselineCompilerCodeGen::emitTestScriptFlag(
     JSScript::ImmutableFlags flag, bool value, const F& emit,
     Register scratch) {
-  if (handler.script()->hasFlag(flag) == value) {
+  if (handler.scriptInternal()->hasFlag(flag) == value) {
     return emit();
   }
   return true;
@@ -4336,7 +4359,7 @@ bool BaselineCompilerCodeGen::emitFormalArgAccess(JSOp op) {
 
   // Fast path: the script does not use |arguments| or formals don't
   // alias the arguments object.
-  if (!handler.script()->argsObjAliasesFormals()) {
+  if (!handler.scriptInternal()->argsObjAliasesFormals()) {
     if (op == JSOp::GetArg) {
       frame.pushArg(arg);
     } else {
@@ -6248,6 +6271,10 @@ bool BaselineCodeGen<Handler>::emitEnterGeneratorCode(Register script,
   masm.storePtr(scratch, icScriptAddr);
 
   Label noBaselineScript;
+  // Self-hosted frames need the interpreterScript pointer
+  if (handler.isSelfHosted()) {
+    masm.storePtr(script, frame.addressOfInterpreterScript());
+  }
   masm.loadJitScript(script, scratch);
   masm.loadPtr(Address(scratch, JitScript::offsetOfBaselineScript()), scratch);
   masm.branchPtr(Assembler::BelowOrEqual, scratch,

@@ -338,6 +338,7 @@ class BaselineCompilerHandler {
   }
 
   JSScript* script() const { return script_; }
+  JSScript* scriptInternal() const { return script_; }
   JSScript* maybeScript() const { return script_; }
 
   JSFunction* function() const { return script_->function(); }
@@ -393,6 +394,8 @@ class BaselineCompilerHandler {
     needsEnvAllocSite_ = true;
     return true;
   }
+
+  bool isSelfHosted() const { return script()->selfHosted(); }
 };
 
 using BaselineCompilerCodeGen = BaselineCodeGen<BaselineCompilerHandler>;
@@ -523,6 +526,8 @@ class BaselineInterpreterHandler {
   bool canHaveFixedSlots() const { return true; }
 
   bool addEnvAllocSite() { return false; }  // Not supported.
+
+  bool isSelfHosted() const { return false; }
 };
 
 using BaselineInterpreterCodeGen = BaselineCodeGen<BaselineInterpreterHandler>;

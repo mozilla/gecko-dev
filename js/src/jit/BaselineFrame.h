@@ -54,11 +54,14 @@ class BaselineFrame {
     // See comment above 'isDebuggee' in vm/Realm.h for explanation
     // of invariants of debuggee compartments, scripts, and frames.
     DEBUGGEE = 1 << 6,
+    SELF_HOSTED = 1 << 7,
   };
 
  protected:  // Silence Clang warning about unused private fields.
-  // The fields below are only valid if RUNNING_IN_INTERPRETER.
+  // The fields below are only valid if RUNNING_IN_INTERPRETER or
+  // isSelfHosted().
   JSScript* interpreterScript_;
+  // The fields below are only valid if RUNNING_IN_INTERPRETER.
   jsbytecode* interpreterPC_;
   ICEntry* interpreterICEntry_;
 
@@ -200,7 +203,6 @@ class BaselineFrame {
     // Clearing the RUNNING_IN_INTERPRETER flag is sufficient, but we also null
     // out the interpreter fields to ensure we don't use stale values.
     flags_ &= ~RUNNING_IN_INTERPRETER;
-    interpreterScript_ = nullptr;
     interpreterPC_ = nullptr;
   }
 
@@ -241,6 +243,7 @@ class BaselineFrame {
   }
 
   bool runningInInterpreter() const { return flags_ & RUNNING_IN_INTERPRETER; }
+  bool isSelfHosted() const { return flags_ & SELF_HOSTED; }
 
   JSScript* interpreterScript() const {
     MOZ_ASSERT(runningInInterpreter());
