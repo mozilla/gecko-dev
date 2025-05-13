@@ -531,6 +531,7 @@ static bool atomics_isLockFree(JSContext* cx, unsigned argc, Value* vp) {
 namespace js {
 
 class WaitAsyncNotifyTask;
+class WaitAsyncTimeoutTask;
 
 class AutoLockFutexAPI {
   // We have to wrap this in a Maybe because of the way loading
@@ -608,13 +609,33 @@ class AsyncFutexWaiter : public FutexWaiter {
     notifyTask_ = task;
   }
 
+  void setTimeoutTask(WaitAsyncTimeoutTask* task) {
+    MOZ_ASSERT(!timeoutTask_);
+    timeoutTask_ = task;
+  }
+  bool hasTimeout() const { return !!timeoutTask_; }
+
+  void maybeClearTimeout(AutoLockFutexAPI& lock);
+
  private:
+  // Both of these pointers are borrowed pointers. The notifyTask is owned by
+  // the runtime's cancellable list, while the timeout task (if it exists) is
+  // owned by the embedding's timeout manager.
   WaitAsyncNotifyTask* notifyTask_ = nullptr;
+  WaitAsyncTimeoutTask* timeoutTask_ = nullptr;
 };
 
 // When an async waiter from a different context is notified, this
 // task is queued to resolve the promise on the thread to which it
 // belongs.
+//
+// WaitAsyncNotifyTask (derived from OffThreadPromiseTask) is wrapping that
+// promise. `Atomics.notify` can be called from any thread, but the promise must
+// be resolved on the thread that owns it. To resolve the promise, we dispatch
+// the task to enqueue a promise resolution task in the target's event
+// loop.
+//
+// See [SMDOC] Atomics.wait for more details.
 class WaitAsyncNotifyTask : public OffThreadPromiseTask {
  public:
   enum class Result { Ok, TimedOut };
@@ -651,6 +672,25 @@ class WaitAsyncNotifyTask : public OffThreadPromiseTask {
   }
 
   void prepareForCancel() override;
+};
+
+// WaitAsyncTimeoutTask is primarily responsible for triggering a timeout
+// on the WaitAsyncNotifyTask if the timer runs out.
+//
+// See [SMDOC] Atomics.wait for more details.
+class WaitAsyncTimeoutTask : public JS::Dispatchable {
+  AsyncFutexWaiter* waiter_;
+
+ public:
+  explicit WaitAsyncTimeoutTask(AsyncFutexWaiter* waiter) : waiter_(waiter) {
+    MOZ_ASSERT(waiter_);
+  }
+
+  void clear(AutoLockFutexAPI&) { waiter_ = nullptr; }
+  bool cleared(AutoLockFutexAPI&) { return !waiter_; }
+
+  void run(JSContext*, MaybeShuttingDown maybeshuttingdown) final;
+  void transferToRuntime() final;
 };
 
 }  // namespace js
@@ -717,6 +757,48 @@ static PlainObject* CreateAsyncResultObject(JSContext* cx, bool async,
 void WaitAsyncNotifyTask::prepareForCancel() {
   AutoLockFutexAPI lock;
   UniquePtr<AsyncFutexWaiter> waiter(RemoveAsyncWaiter(waiter_, lock));
+  waiter->maybeClearTimeout(lock);
+}
+
+void WaitAsyncTimeoutTask::run(JSContext* cx,
+                               MaybeShuttingDown maybeShuttingDown) {
+  AutoLockHelperThreadState helperLock;
+  AutoLockFutexAPI lock;
+
+  // If the waiter was notified while this task was enqueued, do nothing.
+  if (cleared(lock)) {
+    js_delete(this);
+    return;
+  }
+
+  // Take ownership of the async waiter, so that it will be freed
+  // when we return.
+  UniquePtr<AsyncFutexWaiter> asyncWaiter(RemoveAsyncWaiter(waiter_, lock));
+
+  // Dispatch a task to resolve the promise with value "timed-out".
+  WaitAsyncNotifyTask* task = asyncWaiter->notifyTask();
+  task->setResult(WaitAsyncNotifyTask::Result::TimedOut, lock);
+  task->removeFromCancellableListAndDispatch(helperLock);
+  js_delete(this);
+}
+
+void WaitAsyncTimeoutTask::transferToRuntime() {
+  // Clear and delete. Clearing this task will result in the cancellable
+  // notify task being cleaned up on shutdown, as it can no longer be triggered.
+  // In as sense, the task "transfered" for cleanup is the notify task.
+  {
+    AutoLockFutexAPI lock;
+    clear(lock);
+  }
+  // As we are not managing any state, the runtime is not tracking this task,
+  // and we have nothing to run, we can delete.
+  js_delete(this);
+}
+
+void AsyncFutexWaiter::maybeClearTimeout(AutoLockFutexAPI& lock) {
+  if (timeoutTask_) {
+    timeoutTask_->clear(lock);
+  }
 }
 
 // DoWait Steps 17-31
@@ -740,11 +822,10 @@ static FutexThread::WaitResult AtomicsWaitAsyncCriticalSection(
   }
 
   // Step 21
-  if (timeout.isSome() && timeout.value().IsZero()) {
+  bool hasTimeout = timeout.isSome();
+  if (hasTimeout && timeout.value().IsZero()) {
     return FutexThread::WaitResult::TimedOut;
   }
-
-  // TODO: Support non-zero timeouts
 
   // Steps 22-30
   // To handle potential failures, we split this up into two phases:
@@ -770,6 +851,16 @@ static FutexThread::WaitResult AtomicsWaitAsyncCriticalSection(
   notifyTask->setWaiter(waiter.get());
   waiter->setNotifyTask(notifyTask.get());
 
+  UniquePtr<WaitAsyncTimeoutTask> timeoutTask;
+  if (hasTimeout) {
+    timeoutTask = js::MakeUnique<WaitAsyncTimeoutTask>(waiter.get());
+    if (!timeoutTask) {
+      JS_ReportOutOfMemory(cx);
+      return FutexThread::WaitResult::Error;
+    }
+    waiter->setTimeoutTask(timeoutTask.get());
+  }
+
   // This is the last fallible operation. If it fails, all allocations
   // will be freed. init has no side-effects if it fails.
   if (!js::OffThreadPromiseTask::InitCancellable(cx, helperThreadLock,
@@ -779,6 +870,19 @@ static FutexThread::WaitResult AtomicsWaitAsyncCriticalSection(
 
   // Below this point, everything is infallible.
   AddWaiter(sarb, waiter.release(), futexLock);
+
+  if (hasTimeout) {
+    MOZ_ASSERT(!!timeoutTask);
+    OffThreadPromiseRuntimeState& state =
+        cx->runtime()->offThreadPromiseState.ref();
+    // We are not tracking the dispatch of the timeout task using the
+    // OffThreadPromiseRuntimeState, so we ignore the return value. If this
+    // fails, the embeddings should call transferToRuntime on timeoutTask
+    // which will clear itself, and set the notify task to be cleaned on
+    // shutdown.
+    (void)state.delayedDispatchToEventLoop(std::move(timeoutTask),
+                                           timeout.value().ToMilliseconds());
+  }
 
   // Step 31: Leave critical section.
   return FutexThread::WaitResult::OK;
@@ -1075,6 +1179,8 @@ int64_t js::atomics_notify_impl(SharedArrayRawBuffer* sarb, size_t byteOffset,
       // freed at the end of this block.
       UniquePtr<AsyncFutexWaiter> asyncWaiter(
           RemoveAsyncWaiter(waiter->asAsync(), lock));
+
+      asyncWaiter->maybeClearTimeout(lock);
 
       // Dispatch a task to resolve the promise with value "ok".
       asyncWaiter->notifyTask()->removeFromCancellableListAndDispatch(
