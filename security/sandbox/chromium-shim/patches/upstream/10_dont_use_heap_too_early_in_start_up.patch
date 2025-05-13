@@ -1,0 +1,167 @@
+# HG changeset patch
+# User Bob Owen <bobowencode@gmail.com>
+# Date 1747070870 -3600
+#      Mon May 12 18:27:50 2025 +0100
+# Node ID 73d6e5ffce5bd487521b4a28e98ffa6c2e1fc54c
+# Parent  a6117fd7a8ce0ad6b6d5313d7d7b2abd83a57f95
+Bug 1963797: Don't try and use heap in chromium sandbox code in early start-up. r=handyman!
+
+Using the heap too early can cause crashes, in particular when certain exploit
+mitigations cause the application verifier DLL to load.
+
+This is a cherry-pick and rebase of chromium commit:
+f1abab03e72635bf675f41715faadd78579086fc
+
+diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_nt_util.h b/security/sandbox/chromium/sandbox/win/src/sandbox_nt_util.h
+--- a/security/sandbox/chromium/sandbox/win/src/sandbox_nt_util.h
++++ b/security/sandbox/chromium/sandbox/win/src/sandbox_nt_util.h
+@@ -210,11 +210,19 @@ class AutoProtectMemory {
+ };
+ 
+ // Returns true if the file_rename_information structure is supported by our
+ // rename handler.
+ bool IsSupportedRenameCall(FILE_RENAME_INFORMATION* file_info,
+                            DWORD length,
+                            uint32_t file_info_class);
+ 
++// Version of memset that can be called before the CRT is initialized.
++__forceinline void Memset(void* ptr, int value, size_t num_bytes) {
++  unsigned char* byte_ptr = static_cast<unsigned char*>(ptr);
++  while (num_bytes--) {
++    *byte_ptr++ = static_cast<unsigned char>(value);
++  }
++}
++
+ }  // namespace sandbox
+ 
+ #endif  // SANDBOX_SRC_SANDBOX_NT_UTIL_H__
+diff --git a/security/sandbox/chromium/sandbox/win/src/signed_interception.cc b/security/sandbox/chromium/sandbox/win/src/signed_interception.cc
+--- a/security/sandbox/chromium/sandbox/win/src/signed_interception.cc
++++ b/security/sandbox/chromium/sandbox/win/src/signed_interception.cc
+@@ -13,16 +13,19 @@
+ #include "sandbox/win/src/sandbox_factory.h"
+ #include "sandbox/win/src/sandbox_nt_util.h"
+ #include "sandbox/win/src/sharedmem_ipc_client.h"
+ #include "sandbox/win/src/target_services.h"
+ #include "mozilla/sandboxing/sandboxLogging.h"
+ 
+ namespace sandbox {
+ 
++// Note that this shim may be called before the heap is available, we must get
++// as far as |QueryBroker| without using the heap, for example when AppVerifier
++// is enabled.
+ NTSTATUS WINAPI
+ TargetNtCreateSection(NtCreateSectionFunction orig_CreateSection,
+                       PHANDLE section_handle,
+                       ACCESS_MASK desired_access,
+                       POBJECT_ATTRIBUTES object_attributes,
+                       PLARGE_INTEGER maximum_size,
+                       ULONG section_page_protection,
+                       ULONG allocation_attributes,
+@@ -45,34 +48,46 @@ TargetNtCreateSection(NtCreateSectionFun
+ 
+     mozilla::sandboxing::LogBlocked("NtCreateSection");
+ 
+     // IPC must be fully started.
+     void* memory = GetGlobalIPCMemory();
+     if (!memory)
+       break;
+ 
+-    std::unique_ptr<wchar_t, NtAllocDeleter> path;
++    // As mentioned at the top of the function, we need to use the stack here
++    // because the heap may not be available.
++    constexpr ULONG path_buffer_size =
++        (MAX_PATH * sizeof(wchar_t)) + sizeof(OBJECT_NAME_INFORMATION);
++    // Avoid memset inserted by -ftrivial-auto-var-init=pattern.
++    STACK_UNINITIALIZED char path_buffer[path_buffer_size];
++    OBJECT_NAME_INFORMATION* path =
++        reinterpret_cast<OBJECT_NAME_INFORMATION*>(path_buffer);
++    ULONG out_buffer_size = 0;
++    NTSTATUS status = g_nt.QueryObject(file_handle, ObjectNameInformation, path,
++                                       path_buffer_size, &out_buffer_size);
+ 
+-    if (!NtGetPathFromHandle(file_handle, &path))
++    if (!NT_SUCCESS(status)) {
+       break;
+-
+-    const wchar_t* const_name = path.get();
++    }
+ 
+     CountedParameterSet<NameBased> params;
+-    params[NameBased::NAME] = ParamPickerMake(const_name);
++    params[NameBased::NAME] = ParamPickerMake(path->ObjectName.Buffer);
+ 
+     // Check if this will be sent to the broker.
+     if (!QueryBroker(IpcTag::NTCREATESECTION, params.GetBase()))
+       break;
+ 
+     if (!ValidParameter(section_handle, sizeof(HANDLE), WRITE))
+       break;
+ 
+-    CrossCallReturn answer = {0};
++    // Avoid memset inserted by -ftrivial-auto-var-init=pattern on debug builds.
++    STACK_UNINITIALIZED CrossCallReturn answer;
++    Memset(&answer, 0, sizeof(answer));
++
+     answer.nt_status = STATUS_INVALID_IMAGE_HASH;
+     SharedMemIPCClient ipc(memory);
+     ResultCode code =
+         CrossCall(ipc, IpcTag::NTCREATESECTION, file_handle, &answer);
+ 
+     if (code != SBOX_ALL_OK)
+       break;
+ 
+diff --git a/security/sandbox/chromium/sandbox/win/src/target_interceptions.cc b/security/sandbox/chromium/sandbox/win/src/target_interceptions.cc
+--- a/security/sandbox/chromium/sandbox/win/src/target_interceptions.cc
++++ b/security/sandbox/chromium/sandbox/win/src/target_interceptions.cc
+@@ -41,44 +41,39 @@ TargetNtMapViewOfSection(NtMapViewOfSect
+ 
+   do {
+     if (!NT_SUCCESS(ret))
+       break;
+ 
+     if (!IsSameProcess(process))
+       break;
+ 
+-    // Only check for verifier.dll or kernel32.dll loading if we haven't moved
+-    // past that state yet.
+     if (s_state == kBeforeKernel32) {
+       const char* ansi_module_name =
+           GetAnsiImageInfoFromModule(reinterpret_cast<HMODULE>(*base));
+ 
+       // _strnicmp below may hit read access violations for some sections. We
+       // find what looks like a valid export directory for a PE module but the
+       // pointer to the module name will be pointing to invalid memory.
+       __try {
+-        // Don't initialize the heap if verifier.dll is being loaded. This
+-        // indicates Application Verifier is enabled and we should wait until
+-        // the next module is loaded.
+-        if (ansi_module_name &&
+-            (g_nt._strnicmp(
+-                 ansi_module_name, base::win::kApplicationVerifierDllName,
+-                 g_nt.strlen(base::win::kApplicationVerifierDllName) + 1) == 0))
+-          break;
+-
+         if (ansi_module_name &&
+             (g_nt._strnicmp(ansi_module_name, KERNEL32_DLL_NAME,
+                             sizeof(KERNEL32_DLL_NAME)) == 0)) {
+           s_state = kAfterKernel32;
+         }
+       } __except (EXCEPTION_EXECUTE_HANDLER) {
+       }
+     }
+ 
++    // Assume the heap may not be initialized before kernel32 loads, which is
++    // the case when AppVerifier is enabled.
++    if (s_state == kBeforeKernel32) {
++      break;
++    }
++
+     if (!InitHeap())
+       break;
+ 
+     if (!IsValidImageSection(section, base, offset, view_size))
+       break;
+ 
+     UINT image_flags;
+     UNICODE_STRING* module_name =
