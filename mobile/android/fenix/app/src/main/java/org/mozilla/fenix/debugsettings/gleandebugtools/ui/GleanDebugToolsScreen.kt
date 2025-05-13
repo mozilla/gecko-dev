@@ -274,6 +274,12 @@ private fun GleanDebugToolsPreview() {
                     initialState = GleanDebugToolsState(
                         logPingsToConsoleEnabled = false,
                         debugViewTag = "",
+                        pingTypes = listOf(
+                            "metrics",
+                            "baseline",
+                            "ping type 3",
+                            "ping type 4",
+                        ),
                     ),
                 ),
             )
