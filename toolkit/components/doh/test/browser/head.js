@@ -118,10 +118,15 @@ async function setup() {
   // Zscaler override
   gDNSOverride.addIPOverride("sitereview.zscaler.com.", "3.1.1.1");
 
+  // Helper domains when checking the canary
+  gDNSOverride.addIPOverride("firefox.com.", "9.8.7.6");
+  gDNSOverride.addIPOverride("mozilla.org.", "8.7.6.5");
   // Global canary
   gDNSOverride.addIPOverride("use-application-dns.net.", "4.1.1.1");
 
   await DoHTestUtils.resetRemoteSettingsConfig(false);
+
+  Services.telemetry.clearEvents();
 
   await DoHConfigController.init();
   await DoHController.init();
