@@ -201,7 +201,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.homepageSyncShown)
-        store.dispatch(CfrToolsAction.HomepageSyncCfrUpdated(true))
+        store.dispatch(CfrToolsAction.HomepageSyncCfrLoaded(true))
         assertTrue(store.state.homepageSyncShown)
     }
 
@@ -214,7 +214,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.homepageSyncShown)
-        store.dispatch(CfrToolsAction.HomepageSyncCfrUpdated(false))
+        store.dispatch(CfrToolsAction.HomepageSyncCfrLoaded(false))
         assertFalse(store.state.homepageSyncShown)
     }
 
@@ -227,7 +227,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.homepageSearchBarShown)
-        store.dispatch(CfrToolsAction.HomepageSearchbarCfrUpdated(true))
+        store.dispatch(CfrToolsAction.HomepageSearchbarCfrLoaded(true))
         assertTrue(store.state.homepageSearchBarShown)
     }
 
@@ -240,7 +240,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.homepageSearchBarShown)
-        store.dispatch(CfrToolsAction.HomepageSearchbarCfrUpdated(false))
+        store.dispatch(CfrToolsAction.HomepageSearchbarCfrLoaded(false))
         assertFalse(store.state.homepageSearchBarShown)
     }
 
@@ -253,7 +253,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.tabAutoCloseBannerShown)
-        store.dispatch(CfrToolsAction.TabAutoCloseBannerCfrUpdated(true))
+        store.dispatch(CfrToolsAction.TabAutoCloseBannerCfrLoaded(true))
         assertTrue(store.state.tabAutoCloseBannerShown)
     }
 
@@ -266,7 +266,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.tabAutoCloseBannerShown)
-        store.dispatch(CfrToolsAction.TabAutoCloseBannerCfrUpdated(false))
+        store.dispatch(CfrToolsAction.TabAutoCloseBannerCfrLoaded(false))
         assertFalse(store.state.tabAutoCloseBannerShown)
     }
 
@@ -279,7 +279,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.inactiveTabsShown)
-        store.dispatch(CfrToolsAction.InactiveTabsCfrUpdated(true))
+        store.dispatch(CfrToolsAction.InactiveTabsCfrLoaded(true))
         assertTrue(store.state.inactiveTabsShown)
     }
 
@@ -292,7 +292,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.inactiveTabsShown)
-        store.dispatch(CfrToolsAction.InactiveTabsCfrUpdated(false))
+        store.dispatch(CfrToolsAction.InactiveTabsCfrLoaded(false))
         assertFalse(store.state.inactiveTabsShown)
     }
 
@@ -305,7 +305,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.openInAppShown)
-        store.dispatch(CfrToolsAction.OpenInAppCfrUpdated(true))
+        store.dispatch(CfrToolsAction.OpenInAppCfrLoaded(true))
         assertTrue(store.state.openInAppShown)
     }
 
@@ -318,7 +318,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.openInAppShown)
-        store.dispatch(CfrToolsAction.OpenInAppCfrUpdated(false))
+        store.dispatch(CfrToolsAction.OpenInAppCfrLoaded(false))
         assertFalse(store.state.openInAppShown)
     }
 
@@ -331,7 +331,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.pwaShown)
-        store.dispatch(CfrToolsAction.PwaCfrUpdated(true))
+        store.dispatch(CfrToolsAction.PwaCfrLoaded(true))
         assertTrue(store.state.pwaShown)
     }
 
@@ -344,7 +344,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.pwaShown)
-        store.dispatch(CfrToolsAction.PwaCfrUpdated(false))
+        store.dispatch(CfrToolsAction.PwaCfrLoaded(false))
         assertFalse(store.state.pwaShown)
     }
 }

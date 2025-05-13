@@ -97,27 +97,27 @@ class CfrToolsPreferencesMiddlewareTest {
         preferenceUpdates.forEach {
             when (it.preferenceType) {
                 CfrPreferencesRepository.CfrPreference.HomepageSync -> {
-                    val actual = middleware.mapRepoUpdateToStoreAction(it) as CfrToolsAction.HomepageSyncCfrUpdated
+                    val actual = middleware.mapRepoUpdateToStoreAction(it) as CfrToolsAction.HomepageSyncCfrLoaded
                     val actualValue = !actual.newValue
                     assertEquals(it.value, actualValue)
                 }
                 CfrPreferencesRepository.CfrPreference.HomepageSearchBar -> {
-                    val actual = middleware.mapRepoUpdateToStoreAction(it) as CfrToolsAction.HomepageSearchbarCfrUpdated
+                    val actual = middleware.mapRepoUpdateToStoreAction(it) as CfrToolsAction.HomepageSearchbarCfrLoaded
                     val actualValue = !actual.newValue
                     assertEquals(it.value, actualValue)
                 }
                 CfrPreferencesRepository.CfrPreference.TabAutoCloseBanner -> {
-                    val actual = middleware.mapRepoUpdateToStoreAction(it) as CfrToolsAction.TabAutoCloseBannerCfrUpdated
+                    val actual = middleware.mapRepoUpdateToStoreAction(it) as CfrToolsAction.TabAutoCloseBannerCfrLoaded
                     val actualValue = !actual.newValue
                     assertEquals(it.value, actualValue)
                 }
                 CfrPreferencesRepository.CfrPreference.InactiveTabs -> {
-                    val actual = middleware.mapRepoUpdateToStoreAction(it) as CfrToolsAction.InactiveTabsCfrUpdated
+                    val actual = middleware.mapRepoUpdateToStoreAction(it) as CfrToolsAction.InactiveTabsCfrLoaded
                     val actualValue = !actual.newValue
                     assertEquals(it.value, actualValue)
                 }
                 CfrPreferencesRepository.CfrPreference.OpenInApp -> {
-                    val actual = middleware.mapRepoUpdateToStoreAction(it) as CfrToolsAction.OpenInAppCfrUpdated
+                    val actual = middleware.mapRepoUpdateToStoreAction(it) as CfrToolsAction.OpenInAppCfrLoaded
                     val actualValue = !actual.newValue
                     assertEquals(it.value, actualValue)
                 }

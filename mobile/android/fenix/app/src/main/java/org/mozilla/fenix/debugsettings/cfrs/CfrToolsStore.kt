@@ -76,54 +76,54 @@ sealed class CfrToolsAction : Action {
     /**
      * [Action] fired when the user toggles a CFR.
      */
-    sealed interface CfrPreferenceUpdate
+    sealed interface LoadCfrPreference
 
     /**
-     * [CfrPreferenceUpdate] fired when the user toggles the homepage sync CFR.
+     * Action fired when initializing the [CfrPreferencesRepository]
      *
      * @property newValue The updated value of the pref indicating whether or not to show the homepage
      * sync CFR.
      */
-    data class HomepageSyncCfrUpdated(val newValue: Boolean) : CfrToolsAction(), CfrPreferenceUpdate
+    data class HomepageSyncCfrLoaded(val newValue: Boolean) : CfrToolsAction(), LoadCfrPreference
 
     /**
-     * [CfrPreferenceUpdate] fired when the user toggles the homepage searchbar CFR.
+     * [LoadCfrPreference] fired when the user toggles the homepage searchbar CFR.
      *
      * @property newValue The updated value of the pref indicating whether or not to show the homepage
      * searchbar CFR.
      */
-    data class HomepageSearchbarCfrUpdated(val newValue: Boolean) : CfrToolsAction(), CfrPreferenceUpdate
+    data class HomepageSearchbarCfrLoaded(val newValue: Boolean) : CfrToolsAction(), LoadCfrPreference
 
     /**
-     * [CfrPreferenceUpdate] fired when the user toggles the tab auto close banner CFR.
+     * [LoadCfrPreference] fired when the user toggles the tab auto close banner CFR.
      *
      * @property newValue The updated value of the pref indicating whether or not to show the tab auto
      * close banner CFR.
      */
-    data class TabAutoCloseBannerCfrUpdated(val newValue: Boolean) : CfrToolsAction(), CfrPreferenceUpdate
+    data class TabAutoCloseBannerCfrLoaded(val newValue: Boolean) : CfrToolsAction(), LoadCfrPreference
 
     /**
-     * [CfrPreferenceUpdate] fired when the user toggles the inactive tabs CFR.
+     * [LoadCfrPreference] fired when the user toggles the inactive tabs CFR.
      *
      * @property newValue The updated value of the pref indicating whether or not to show the inactive
      * tabs CFR.
      */
-    data class InactiveTabsCfrUpdated(val newValue: Boolean) : CfrToolsAction(), CfrPreferenceUpdate
+    data class InactiveTabsCfrLoaded(val newValue: Boolean) : CfrToolsAction(), LoadCfrPreference
 
     /**
-     * [CfrPreferenceUpdate] fired when the user toggles the open in app CFR.
+     * [LoadCfrPreference] fired when the user toggles the open in app CFR.
      *
      * @property newValue The updated value of the pref indicating whether or not to show the open in
      * app CFR.
      */
-    data class OpenInAppCfrUpdated(val newValue: Boolean) : CfrToolsAction(), CfrPreferenceUpdate
+    data class OpenInAppCfrLoaded(val newValue: Boolean) : CfrToolsAction(), LoadCfrPreference
 
     /**
-     * [CfrPreferenceUpdate] fired when the user toggles the PWA CFR.
+     * [LoadCfrPreference] fired when the user toggles the PWA CFR.
      *
      * @property newValue The updated value of the pref indicating whether or not to show PWA CFR.
      */
-    data class PwaCfrUpdated(val newValue: Boolean) : CfrToolsAction(), CfrPreferenceUpdate
+    data class PwaCfrLoaded(val newValue: Boolean) : CfrToolsAction(), LoadCfrPreference
 }
 
 /**
@@ -147,17 +147,17 @@ internal object CfrToolsReducer {
             is CfrToolsAction.PwaShownToggled ->
                 state.copy(pwaShown = !state.pwaShown)
             is CfrToolsAction.ResetLastCFRTimestampButtonClicked -> state
-            is CfrToolsAction.HomepageSearchbarCfrUpdated ->
+            is CfrToolsAction.HomepageSearchbarCfrLoaded ->
                 state.copy(homepageSearchBarShown = action.newValue)
-            is CfrToolsAction.HomepageSyncCfrUpdated ->
+            is CfrToolsAction.HomepageSyncCfrLoaded ->
                 state.copy(homepageSyncShown = action.newValue)
-            is CfrToolsAction.InactiveTabsCfrUpdated ->
+            is CfrToolsAction.InactiveTabsCfrLoaded ->
                 state.copy(inactiveTabsShown = action.newValue)
-            is CfrToolsAction.OpenInAppCfrUpdated ->
+            is CfrToolsAction.OpenInAppCfrLoaded ->
                 state.copy(openInAppShown = action.newValue)
-            is CfrToolsAction.PwaCfrUpdated ->
+            is CfrToolsAction.PwaCfrLoaded ->
                 state.copy(pwaShown = action.newValue)
-            is CfrToolsAction.TabAutoCloseBannerCfrUpdated ->
+            is CfrToolsAction.TabAutoCloseBannerCfrLoaded ->
                 state.copy(tabAutoCloseBannerShown = action.newValue)
         }
     }
