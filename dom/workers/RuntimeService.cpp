@@ -621,7 +621,7 @@ void CTypesActivityCallback(JSContext* aCx, JS::CTypesActivityType aType) {
 // being called, DispatchToEventLoopCallback failure is expected to happen
 // during shutdown.
 class JSDispatchableRunnable final : public WorkerThreadRunnable {
-  JS::Dispatchable* mDispatchable;
+  js::UniquePtr<JS::Dispatchable> mDispatchable;
 
   ~JSDispatchableRunnable() { MOZ_ASSERT(!mDispatchable); }
 
@@ -632,17 +632,19 @@ class JSDispatchableRunnable final : public WorkerThreadRunnable {
 
   void PostDispatch(WorkerPrivate* aWorkerPrivate,
                     bool aDispatchResult) override {
-    // For the benefit of the destructor assert.
     if (!aDispatchResult) {
-      mDispatchable = nullptr;
+      // It is possible (for example in WASM failed compilation) that a
+      // worker will not run, and in this case we need to
+      // release the task as a failed task for deletion by the JS runtime.
+      JS::Dispatchable::ReleaseFailedTask(std::move(mDispatchable));
     }
   }
 
  public:
   JSDispatchableRunnable(WorkerPrivate* aWorkerPrivate,
-                         JS::Dispatchable* aDispatchable)
+                         js::UniquePtr<JS::Dispatchable>&& aDispatchable)
       : WorkerThreadRunnable("JSDispatchableRunnable"),
-        mDispatchable(aDispatchable) {
+        mDispatchable(std::move(aDispatchable)) {
     MOZ_ASSERT(mDispatchable);
   }
 
@@ -653,9 +655,11 @@ class JSDispatchableRunnable final : public WorkerThreadRunnable {
     AutoJSAPI jsapi;
     jsapi.Init();
 
-    mDispatchable->run(aWorkerPrivate->GetJSContext(),
-                       JS::Dispatchable::NotShuttingDown);
-    mDispatchable = nullptr;  // mDispatchable may delete itself
+    JS::Dispatchable::Run(aWorkerPrivate->GetJSContext(),
+                          std::move(mDispatchable),
+                          JS::Dispatchable::NotShuttingDown);
+    // mDispatchable is no longer valid after this point.
+    // The delete has been handled on the JS engine side
 
     return true;
   }
@@ -666,16 +670,23 @@ class JSDispatchableRunnable final : public WorkerThreadRunnable {
     AutoJSAPI jsapi;
     jsapi.Init();
 
-    mDispatchable->run(GetCurrentThreadWorkerPrivate()->GetJSContext(),
-                       JS::Dispatchable::ShuttingDown);
-    mDispatchable = nullptr;  // mDispatchable may delete itself
+    // TODO: Make this make more sense
+    // Why are we calling Run here? Because the way the API was designed
+    // is so that once control is passed to the runnable, then both cancellation
+    // and running are handled through `Run` by either passing NotShuttingDown
+    // or ShuttingDown (for cancellation).
+    JS::Dispatchable::Run(GetCurrentThreadWorkerPrivate()->GetJSContext(),
+                          std::move(mDispatchable),
+                          JS::Dispatchable::ShuttingDown);
+    // mDispatchable is no longer valid after this point.
+    // The delete has been handled on the JS engine side
 
     return NS_OK;
   }
 };
 
-static bool DispatchToEventLoop(void* aClosure,
-                                JS::Dispatchable* aDispatchable) {
+static bool DispatchToEventLoop(
+    void* aClosure, js::UniquePtr<JS::Dispatchable>&& aDispatchable) {
   // This callback may execute either on the worker thread or a random
   // JS-internal helper thread.
 
@@ -686,7 +697,7 @@ static bool DispatchToEventLoop(void* aClosure,
   // Dispatch is expected to fail during shutdown for the reasons outlined in
   // the JSDispatchableRunnable comment above.
   RefPtr<JSDispatchableRunnable> r =
-      new JSDispatchableRunnable(workerPrivate, aDispatchable);
+      new JSDispatchableRunnable(workerPrivate, std::move(aDispatchable));
   return r->Dispatch(workerPrivate);
 }
 

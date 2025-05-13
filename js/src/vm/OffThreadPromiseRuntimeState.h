@@ -11,9 +11,10 @@
 
 #include "jstypes.h"  // JS_PUBLIC_API
 
-#include "ds/Fifo.h"         // js::Fifo
-#include "js/AllocPolicy.h"  // js::SystemAllocPolicy
-#include "js/HashTable.h"    // js::DefaultHasher, js::HashSet
+#include "ds/Fifo.h"           // js::Fifo
+#include "ds/PriorityQueue.h"  // js::PriorityQueue
+#include "js/AllocPolicy.h"    // js::SystemAllocPolicy
+#include "js/HashTable.h"      // js::DefaultHasher, js::HashSet
 #include "js/Promise.h"  // JS::Dispatchable, JS::Dispatchable::MaybeShuttingDown,
                          // JS::DispatchToEventLoopCallback,
 #include "js/RootingAPI.h"                // JS::Handle, JS::PersistentRooted
@@ -59,10 +60,11 @@ class OffThreadPromiseRuntimeState;
 //
 // - The JavaScript thread then deletes the OffThreadPromiseTask.
 //
-// JSRuntime shutdown waits for all outstanding dispatched tasks.
-// Those tasks' `run` method should be called on the main thread, with
-// MaybeShuttingDown::ShuttingDown, and the `run` method should
-// delete them, without calling `resolve`.
+// During shutdown, the process is slightly different. Enqueuing runnables to
+// the JavaScript thread begins to fail. Undispatched tasks are immediately
+// destroyed. JSRuntime shutdown waits for all outstanding dispatched tasks
+// to call their run methods, and then deletes them on the main thread,
+// without calling `resolve`.
 //
 // For example, the JavaScript function WebAssembly.compile uses
 // OffThreadPromiseTask to manage the result of a helper thread task, accepting
@@ -133,10 +135,17 @@ class OffThreadPromiseTask : public JS::Dispatchable {
   OffThreadPromiseTask(JSContext* cx, JS::Handle<PromiseObject*> promise);
 
   // To be called by OffThreadPromiseTask and implemented by the derived class.
-  virtual bool resolve(JSContext* cx, JS::Handle<PromiseObject*> promise) = 0;
+  virtual bool resolve(JSContext* cx, JS::Handle<PromiseObject*> promise) {
+    MOZ_CRASH("Tasks should override resolve");
+  };
 
-  // JS::Dispatchable implementation. Ends with 'delete this'.
+  // JS::Dispatchable override implementation.
+  // Runs the task, and ends with 'js_delete(this)'.
   void run(JSContext* cx, MaybeShuttingDown maybeShuttingDown) final;
+
+  // JS::Dispatchable override implementation, moves ownership to
+  // OffThreadPromiseRuntimeState's failed_ list, for cleanup on shutdown.
+  void transferToRuntime() final;
 
   // To be called by `destroy` during shutdown and implemented by the derived
   // class (for undispatched tasks only). Gives the task a chance to clean up
@@ -149,6 +158,8 @@ class OffThreadPromiseTask : public JS::Dispatchable {
   ~OffThreadPromiseTask() override;
   static void DestroyUndispatchedTask(OffThreadPromiseTask* task);
 
+  JSRuntime* runtime() { return runtime_; }
+
   // Calling `init` on an OffThreadPromiseTask informs the runtime that it must
   // wait on shutdown for this task to rejoin the active JSContext by calling
   // dispatchResolveAndDestroy().
@@ -160,20 +171,29 @@ class OffThreadPromiseTask : public JS::Dispatchable {
   bool initCancellable(JSContext* cx);
   bool initCancellable(JSContext* cx, const AutoLockHelperThreadState& lock);
 
+  // These first two methods will wrap a pointer in a uniquePtr for the purpose
+  // of passing it's ownership eventually to the embedding.
+  void dispatchResolveAndDestroy();
+  void dispatchResolveAndDestroy(const AutoLockHelperThreadState& lock);
+
   // An initialized OffThreadPromiseTask can be dispatched to an active
   // JSContext of its Promise's JSRuntime from any thread. Normally, this will
   // lead to resolve() being called on JSContext thread, given the Promise.
   // However, if shutdown interrupts, resolve() may not be called, though the
   // OffThreadPromiseTask will be destroyed on a JSContext thread.
-  void dispatchResolveAndDestroy();
-  void dispatchResolveAndDestroy(const AutoLockHelperThreadState& lock);
+  static void DispatchResolveAndDestroy(
+      js::UniquePtr<OffThreadPromiseTask>&& task);
+  static void DispatchResolveAndDestroy(
+      js::UniquePtr<OffThreadPromiseTask>&& task,
+      const AutoLockHelperThreadState& lock);
 };
 
 using OffThreadPromiseTaskSet =
     HashSet<OffThreadPromiseTask*, DefaultHasher<OffThreadPromiseTask*>,
             SystemAllocPolicy>;
 
-using DispatchableFifo = Fifo<JS::Dispatchable*, 0, SystemAllocPolicy>;
+using DispatchableFifo =
+    Fifo<js::UniquePtr<JS::Dispatchable>, 0, SystemAllocPolicy>;
 
 class OffThreadPromiseRuntimeState {
   friend class OffThreadPromiseTask;
@@ -221,7 +241,8 @@ class OffThreadPromiseRuntimeState {
     return internalDispatchQueueAppended_.ref();
   }
 
-  static bool internalDispatchToEventLoop(void*, JS::Dispatchable*);
+  static bool internalDispatchToEventLoop(void*,
+                                          js::UniquePtr<JS::Dispatchable>&&);
   bool usingInternalDispatchQueue() const;
 
   void operator=(const OffThreadPromiseRuntimeState&) = delete;
@@ -239,6 +260,8 @@ class OffThreadPromiseRuntimeState {
   void internalDrain(JSContext* cx);
   bool internalHasPending();
   bool internalHasPending(AutoLockHelperThreadState& lock);
+
+  void stealFailedTask(JS::Dispatchable* dispatchable);
 
   // shutdown() must be called by the JSRuntime while the JSRuntime is valid.
   void shutdown(JSContext* cx);

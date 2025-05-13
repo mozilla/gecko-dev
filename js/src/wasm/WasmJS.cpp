@@ -4418,7 +4418,7 @@ static bool AsyncInstantiate(JSContext* cx, const Module& module,
     return RejectWithPendingException(cx, promise);
   }
 
-  task.release()->dispatchResolveAndDestroy();
+  OffThreadPromiseTask::DispatchResolveAndDestroy(std::move(task));
   return true;
 }
 

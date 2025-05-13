@@ -558,32 +558,59 @@ extern JS_PUBLIC_API bool SetPromiseUserInputEventHandlingState(
 extern JS_PUBLIC_API JSObject* GetWaitForAllPromise(
     JSContext* cx, JS::HandleObjectVector promises);
 
-/**
- * The Dispatchable interface allows the embedding to call SpiderMonkey
- * on a JSContext thread when requested via DispatchToEventLoopCallback.
- */
 class JS_PUBLIC_API Dispatchable {
- protected:
-  // Dispatchables are created and destroyed by SpiderMonkey.
-  Dispatchable() = default;
+ public:
+  // Destruction of Dispatchables is public in order to be used with
+  // UniquePtrs. Their destruction by SpiderMonkey is enforced by
+  // ReleaseFailedTask.
   virtual ~Dispatchable() = default;
 
- public:
   // ShuttingDown indicates that SpiderMonkey should abort async tasks to
   // expedite shutdown.
   enum MaybeShuttingDown { NotShuttingDown, ShuttingDown };
 
   // Called by the embedding after DispatchToEventLoopCallback succeeds.
+  // Used to correctly release the unique ptr and call the run task.
+  static void Run(JSContext* cx, js::UniquePtr<Dispatchable>&& task,
+                  MaybeShuttingDown maybeShuttingDown);
+
+  // Used to correctly release the unique ptr. Relies on the
+  // OffThreadRuntimePromiseState to handle cleanup via iteration over the
+  // live() set.
+  static void ReleaseFailedTask(js::UniquePtr<Dispatchable>&& task);
+
+ protected:
+  // Dispatchables are created exclusively by SpiderMonkey.
+  Dispatchable() = default;
+
+  // These two methods must be implemented in order to correctly handle
+  // success and failure cases for the task.
+
+  // Used to execute the task, run on the owning thread.
+  // A subclass should override this method to
+  //   1) execute the task as necessary and
+  //   2) delete the task.
   virtual void run(JSContext* cx, MaybeShuttingDown maybeShuttingDown) = 0;
+
+  // Used to transfer the task back to the runtime if the embedding, upon
+  // taking ownership of the task, fails to dispatch and run it. This allows
+  // the runtime to delete the task during shutdown. This method can be called
+  // from any thread.
+  // Typically, this will be used with a UniquePtr like so:
+  //   auto task = myTask.release();
+  //   task->transferToRuntime();
+  virtual void transferToRuntime() = 0;
 };
 
 /**
- * Callback to dispatch a JS::Dispatchable to a JSContext's thread's event loop.
+ * Callbacks to dispatch a JS::Dispatchable to a JSContext's thread's event
+ * loop.
  *
  * The DispatchToEventLoopCallback set on a particular JSContext must accept
  * JS::Dispatchable instances and arrange for their `run` methods to be called
  * eventually on the JSContext's thread. This is used for cross-thread dispatch,
- * so the callback itself must be safe to call from any thread.
+ * so the callback itself must be safe to call from any thread. It cannot
+ * trigger a GC.
  *
  * If the callback returns `true`, it must eventually run the given
  * Dispatchable; otherwise, SpiderMonkey may leak memory or hang.
@@ -600,8 +627,8 @@ class JS_PUBLIC_API Dispatchable {
  * process queued Dispatchables at appropriate times.
  */
 
-typedef bool (*DispatchToEventLoopCallback)(void* closure,
-                                            Dispatchable* dispatchable);
+typedef bool (*DispatchToEventLoopCallback)(
+    void* closure, js::UniquePtr<Dispatchable>&& dispatchable);
 
 extern JS_PUBLIC_API void InitDispatchToEventLoop(
     JSContext* cx, DispatchToEventLoopCallback callback, void* closure);

@@ -134,6 +134,18 @@ void OffThreadPromiseTask::run(JSContext* cx,
   js_delete(this);
 }
 
+void OffThreadPromiseTask::transferToRuntime() {
+  MOZ_ASSERT(registered_);
+
+  // The unregister method synchronizes on the helper thread lock and ensures
+  // that we don't delete the task while the helper thread is still running.
+  OffThreadPromiseRuntimeState& state = runtime_->offThreadPromiseState.ref();
+  MOZ_ASSERT(state.initialized());
+
+  // Task is now owned by the state and will be deleted on ::shutdown.
+  state.stealFailedTask(this);
+}
+
 /* static */
 void OffThreadPromiseTask::DestroyUndispatchedTask(OffThreadPromiseTask* task) {
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(task->runtime_));
@@ -145,33 +157,49 @@ void OffThreadPromiseTask::DestroyUndispatchedTask(OffThreadPromiseTask* task) {
 
 void OffThreadPromiseTask::dispatchResolveAndDestroy() {
   AutoLockHelperThreadState lock;
-  dispatchResolveAndDestroy(lock);
+  js::UniquePtr<OffThreadPromiseTask> task(this);
+  DispatchResolveAndDestroy(std::move(task), lock);
 }
 
 void OffThreadPromiseTask::dispatchResolveAndDestroy(
     const AutoLockHelperThreadState& lock) {
-  OffThreadPromiseRuntimeState& state = runtime_->offThreadPromiseState.ref();
+  js::UniquePtr<OffThreadPromiseTask> task(this);
+  DispatchResolveAndDestroy(std::move(task), lock);
+}
+
+/* static */
+void OffThreadPromiseTask::DispatchResolveAndDestroy(
+    js::UniquePtr<OffThreadPromiseTask>&& task) {
+  AutoLockHelperThreadState lock;
+  DispatchResolveAndDestroy(std::move(task), lock);
+}
+
+/* static */
+void OffThreadPromiseTask::DispatchResolveAndDestroy(
+    js::UniquePtr<OffThreadPromiseTask>&& task,
+    const AutoLockHelperThreadState& lock) {
+  OffThreadPromiseRuntimeState& state =
+      task->runtime()->offThreadPromiseState.ref();
   MOZ_ASSERT(state.initialized());
   MOZ_ASSERT(state.live().has(task.get()));
 
-  MOZ_ASSERT(registered_);
-  if (cancellable_) {
-    cancellable_ = false;
+  MOZ_ASSERT(task->registered_);
+  if (task->cancellable_) {
+    task->cancellable_ = false;
     state.numCancellable_--;
   }
   // If the dispatch succeeds, then we are guaranteed that run() will be
   // called on an active JSContext of runtime_.
   if (state.dispatchToEventLoopCallback_(state.dispatchToEventLoopClosure_,
-                                         this)) {
+                                         std::move(task))) {
     return;
   }
 
-  // The DispatchToEventLoopCallback has failed to dispatch this task,
-  // indicating that shutdown has begun. Count the number of failed tasks that
-  // have called dispatchResolveAndDestroy, and when they account for the entire
-  // contents of live_, notify OffThreadPromiseRuntimeState::shutdown that it is
-  // safe to destruct them.
-  state.numFailed_++;
+  // The DispatchToEventLoopCallback has failed to dispatch this task.
+  // Count the number of failed tasks that have called
+  // dispatchResolveAndDestroy, and when they account for the entire contents of
+  // live_, notify OffThreadPromiseRuntimeState::shutdown that it is safe to
+  // destruct them.
   if (state.numFailed_ == state.live().count()) {
     state.allFailed().notify_one();
   }
@@ -203,20 +231,21 @@ void OffThreadPromiseRuntimeState::init(
 
 /* static */
 bool OffThreadPromiseRuntimeState::internalDispatchToEventLoop(
-    void* closure, JS::Dispatchable* d) {
+    void* closure, js::UniquePtr<JS::Dispatchable>&& d) {
   OffThreadPromiseRuntimeState& state =
       *reinterpret_cast<OffThreadPromiseRuntimeState*>(closure);
   MOZ_ASSERT(state.usingInternalDispatchQueue());
   gHelperThreadLock.assertOwnedByCurrentThread();
 
   if (state.internalDispatchQueueClosed_) {
+    JS::Dispatchable::ReleaseFailedTask(std::move(d));
     return false;
   }
 
   // The JS API contract is that 'false' means shutdown, so be infallible
   // here (like Gecko).
   AutoEnterOOMUnsafeRegion noOOM;
-  if (!state.internalDispatchQueue().pushBack(d)) {
+  if (!state.internalDispatchQueue().pushBack(std::move(d))) {
     noOOM.crash("internalDispatchToEventLoop");
   }
 
@@ -242,7 +271,7 @@ void OffThreadPromiseRuntimeState::internalDrain(JSContext* cx) {
   MOZ_ASSERT(usingInternalDispatchQueue());
 
   for (;;) {
-    JS::Dispatchable* d;
+    js::UniquePtr<JS::Dispatchable> d;
     {
       AutoLockHelperThreadState lock;
 
@@ -259,11 +288,13 @@ void OffThreadPromiseRuntimeState::internalDrain(JSContext* cx) {
         internalDispatchQueueAppended().wait(lock);
       }
 
-      d = internalDispatchQueue().popCopyFront();
+      d = std::move(internalDispatchQueue().front());
+      internalDispatchQueue().popFront();
     }
 
-    // Don't call run() with lock held to avoid deadlock.
-    d->run(cx, JS::Dispatchable::NotShuttingDown);
+    // Don't call Run() with lock held to avoid deadlock.
+    OffThreadPromiseTask::Run(cx, std::move(d),
+                              JS::Dispatchable::NotShuttingDown);
   }
 }
 
@@ -279,6 +310,10 @@ bool OffThreadPromiseRuntimeState::internalHasPending(
   MOZ_ASSERT(!internalDispatchQueueClosed_);
   MOZ_ASSERT_IF(!internalDispatchQueue().empty(), !live().empty());
   return live().count() > numCancellable_;
+}
+
+void OffThreadPromiseRuntimeState::stealFailedTask(JS::Dispatchable* task) {
+  numFailed_++;
 }
 
 void OffThreadPromiseRuntimeState::shutdown(JSContext* cx) {
@@ -314,8 +349,11 @@ void OffThreadPromiseRuntimeState::shutdown(JSContext* cx) {
 
     // Don't call run() with lock held to avoid deadlock.
     AutoUnlockHelperThreadState unlock(lock);
-    for (JS::Dispatchable* d : dispatchQueue) {
-      d->run(cx, JS::Dispatchable::ShuttingDown);
+    while (!dispatchQueue.empty()) {
+      js::UniquePtr<JS::Dispatchable> d = std::move(dispatchQueue.front());
+      dispatchQueue.popFront();
+      OffThreadPromiseTask::Run(cx, std::move(d),
+                                JS::Dispatchable::ShuttingDown);
     }
   }
 
