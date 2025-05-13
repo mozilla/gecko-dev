@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +24,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.R
+import mozilla.components.compose.base.button.IconButton
 import mozilla.components.compose.base.text.Text
 import mozilla.components.compose.base.text.value
 import mozilla.components.compose.base.theme.AcornTheme
@@ -70,10 +70,13 @@ class TrailingIconScope(rowScope: RowScope) : RowScope by rowScope {
         tint: Color,
         onTrailingIconClick: () -> Unit,
     ) {
-        IconButton(onClick = onTrailingIconClick) {
+        IconButton(
+          onClick = onTrailingIconClick,
+          contentDescription = contentDescription?.value ?: "",
+        ) {
             Icon(
                 painter = painterResource(id = iconId),
-                contentDescription = contentDescription?.value,
+                contentDescription = null,
                 tint = tint,
             )
         }
