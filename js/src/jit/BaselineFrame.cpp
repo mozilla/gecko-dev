@@ -52,7 +52,7 @@ void BaselineFrame::trace(JSTracer* trc, const JSJitFrameIter& frameIterator) {
     TraceRoot(trc, &argsObj_, "baseline-args-obj");
   }
 
-  if (runningInInterpreter() || isRealmIndependent()) {
+  if (runningInInterpreter()) {
     TraceRoot(trc, &interpreterScript_, "baseline-interpreterScript");
   }
 

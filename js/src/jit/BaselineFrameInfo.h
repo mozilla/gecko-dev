@@ -217,10 +217,6 @@ class FrameInfo {
                    BaselineFrame::reverseOffsetOfDebugFrameSize());
   }
 #endif
-  Address addressOfInterpreterScript() const {
-    return Address(FramePointer,
-                   BaselineFrame::reverseOffsetOfInterpreterScript());
-  }
 };
 
 class CompilerFrameInfo : public FrameInfo {
@@ -420,6 +416,10 @@ class InterpreterFrameInfo : public FrameInfo {
 
   void bumpInterpreterICEntry();
 
+  Address addressOfInterpreterScript() const {
+    return Address(FramePointer,
+                   BaselineFrame::reverseOffsetOfInterpreterScript());
+  }
   Address addressOfInterpreterPC() const {
     return Address(FramePointer, BaselineFrame::reverseOffsetOfInterpreterPC());
   }

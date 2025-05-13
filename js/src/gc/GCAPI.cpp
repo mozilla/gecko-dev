@@ -102,8 +102,6 @@ void js::ReleaseAllJITCode(JS::GCContext* gcx) {
       jitZone->discardStubs();
     }
   }
-
-  gcx->runtime()->clearSelfHostedJitCache();
 }
 
 AutoSuppressGC::AutoSuppressGC(JSContext* cx)

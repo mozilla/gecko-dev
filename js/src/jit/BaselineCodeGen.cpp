@@ -295,56 +295,47 @@ bool BaselineCompiler::compileImpl() {
 
 bool BaselineCompiler::finishCompile(JSContext* cx) {
   Rooted<JSScript*> script(cx, handler.script());
-  bool isSelfHostedJitCodeShared =
-      JS::Prefs::experimental_self_hosted_cache() && script->selfHosted();
+
+  AutoCreatedBy acb2(masm, "exception_tail");
+  Linker linker(masm);
+  if (masm.oom()) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
+  JitCode* code = linker.newCode(cx, CodeKind::Baseline);
+  if (!code) {
+    return false;
+  }
 
   UniquePtr<BaselineScript> baselineScript(
-      nullptr, JS::DeletePolicy<BaselineScript>(cx->runtime()));
-  JitCode* code = nullptr;
-  {
-    mozilla::Maybe<AutoAllocInAtomsZone> ar;
-    if (isSelfHostedJitCodeShared) {
-      ar.emplace(cx);
-    }
-
-    AutoCreatedBy acb2(masm, "exception_tail");
-    Linker linker(masm);
-    if (masm.oom()) {
-      ReportOutOfMemory(cx);
-      return false;
-    }
-
-    code = linker.newCode(cx, CodeKind::Baseline);
-    if (!code) {
-      return false;
-    }
-
-    baselineScript.reset(BaselineScript::New(
-        cx, warmUpCheckPrologueOffset_.offset(),
-        profilerEnterFrameToggleOffset_.offset(),
-        profilerExitFrameToggleOffset_.offset(),
-        handler.retAddrEntries().length(), handler.osrEntries().length(),
-        debugTrapEntries_.length(), script->resumeOffsets().size()));
-    if (!baselineScript) {
-      return false;
-    }
-
-    baselineScript->setMethod(code);
-
-    JitSpew(JitSpew_BaselineScripts,
-            "Created BaselineScript %p (raw %p) for %s:%u:%u",
-            (void*)baselineScript.get(), (void*)code->raw(), script->filename(),
-            script->lineno(), script->column().oneOriginValue());
-
-    // If profiler instrumentation is enabled, toggle instrumentation on.
-    if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(
-            cx->runtime())) {
-      baselineScript->toggleProfilerInstrumentation(true);
-    }
+      BaselineScript::New(
+          cx, warmUpCheckPrologueOffset_.offset(),
+          profilerEnterFrameToggleOffset_.offset(),
+          profilerExitFrameToggleOffset_.offset(),
+          handler.retAddrEntries().length(), handler.osrEntries().length(),
+          debugTrapEntries_.length(), script->resumeOffsets().size()),
+      JS::DeletePolicy<BaselineScript>(cx->runtime()));
+  if (!baselineScript) {
+    return false;
   }
+
+  baselineScript->setMethod(code);
+
+  JitSpew(JitSpew_BaselineScripts,
+          "Created BaselineScript %p (raw %p) for %s:%u:%u",
+          (void*)baselineScript.get(), (void*)code->raw(), script->filename(),
+          script->lineno(), script->column().oneOriginValue());
+
   baselineScript->copyRetAddrEntries(handler.retAddrEntries().begin());
   baselineScript->copyOSREntries(handler.osrEntries().begin());
   baselineScript->copyDebugTrapEntries(debugTrapEntries_.begin());
+
+  // If profiler instrumentation is enabled, toggle instrumentation on.
+  if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(
+          cx->runtime())) {
+    baselineScript->toggleProfilerInstrumentation(true);
+  }
 
   // Compute native resume addresses for the script's resume offsets.
   baselineScript->computeResumeNativeOffsets(script, resumeOffsetEntries_);
@@ -364,10 +355,8 @@ bool BaselineCompiler::finishCompile(JSContext* cx) {
   // turned on with baseline jitcode on stack, and baseline jitcode cannot be
   // invalidated.
   {
-    UniqueJitcodeGlobalEntry entry;
     JitSpew(JitSpew_Profiling,
-            "Added JitcodeGlobalEntry for baseline %sscript %s:%u:%u (%p)",
-            isSelfHostedJitCodeShared ? "shared self-hosted " : "",
+            "Added JitcodeGlobalEntry for baseline script %s:%u:%u (%p)",
             script->filename(), script->lineno(),
             script->column().oneOriginValue(), baselineScript.get());
 
@@ -377,13 +366,8 @@ bool BaselineCompiler::finishCompile(JSContext* cx) {
       return false;
     }
 
-    if (isSelfHostedJitCodeShared) {
-      entry = MakeJitcodeGlobalEntry<SelfHostedSharedEntry>(
-          cx, code, code->raw(), code->rawEnd(), std::move(str));
-    } else {
-      entry = MakeJitcodeGlobalEntry<BaselineEntry>(
-          cx, code, code->raw(), code->rawEnd(), script, std::move(str));
-    }
+    auto entry = MakeJitcodeGlobalEntry<BaselineEntry>(
+        cx, code, code->raw(), code->rawEnd(), script, std::move(str));
     if (!entry) {
       return false;
     }
@@ -494,23 +478,14 @@ static void LoadInlineValueOperand(MacroAssembler& masm, ValueOperand dest) {
   masm.loadUnalignedValue(Address(pc, sizeof(jsbytecode)), dest);
 }
 
-template <typename Handler>
-void BaselineCodeGen<Handler>::loadScript(Register dest) {
-  if (handler.realmIndependentJitcode()) {
-    masm.loadPtr(frame.addressOfInterpreterScript(), dest);
-  } else {
-    masm.movePtr(ImmGCPtr(handler.maybeScript()), dest);
-  }
+template <>
+void BaselineCompilerCodeGen::loadScript(Register dest) {
+  masm.movePtr(ImmGCPtr(handler.script()), dest);
 }
 
-template <typename Handler>
-void BaselineCodeGen<Handler>::loadJitScript(Register dest) {
-  if (handler.realmIndependentJitcode()) {
-    loadScript(dest);
-    masm.loadPtr(Address(dest, JSScript::offsetOfWarmUpData()), dest);
-  } else {
-    masm.movePtr(ImmPtr(handler.maybeScript()->jitScript()), dest);
-  }
+template <>
+void BaselineInterpreterCodeGen::loadScript(Register dest) {
+  masm.loadPtr(frame.addressOfInterpreterScript(), dest);
 }
 
 template <>
@@ -1017,28 +992,31 @@ void BaselineInterpreterCodeGen::subtractScriptSlotsSize(Register reg,
   masm.subPtr(scratch, reg);
 }
 
-template <typename Handler>
-void BaselineCodeGen<Handler>::loadGlobalLexicalEnvironment(Register dest) {
-  if (handler.realmIndependentJitcode()) {
-    masm.loadGlobalObjectData(dest);
-    masm.loadPtr(Address(dest, GlobalObjectData::offsetOfLexicalEnvironment()),
-                 dest);
-  } else {
-    MOZ_ASSERT(!handler.maybeScript()->hasNonSyntacticScope());
-    masm.movePtr(ImmGCPtr(handler.maybeGlobalLexicalEnvironment()), dest);
-  }
+template <>
+void BaselineCompilerCodeGen::loadGlobalLexicalEnvironment(Register dest) {
+  MOZ_ASSERT(!handler.script()->hasNonSyntacticScope());
+  masm.movePtr(ImmGCPtr(handler.globalLexicalEnvironment()), dest);
 }
 
-template <typename Handler>
-void BaselineCodeGen<Handler>::pushGlobalLexicalEnvironmentValue(
+template <>
+void BaselineInterpreterCodeGen::loadGlobalLexicalEnvironment(Register dest) {
+  masm.loadGlobalObjectData(dest);
+  masm.loadPtr(Address(dest, GlobalObjectData::offsetOfLexicalEnvironment()),
+               dest);
+}
+
+template <>
+void BaselineCompilerCodeGen::pushGlobalLexicalEnvironmentValue(
     ValueOperand scratch) {
-  if (handler.realmIndependentJitcode()) {
-    loadGlobalLexicalEnvironment(scratch.scratchReg());
-    masm.tagValue(JSVAL_TYPE_OBJECT, scratch.scratchReg(), scratch);
-    frame.push(scratch);
-  } else {
-    frame.push(ObjectValue(*handler.maybeGlobalLexicalEnvironment()));
-  }
+  frame.push(ObjectValue(*handler.globalLexicalEnvironment()));
+}
+
+template <>
+void BaselineInterpreterCodeGen::pushGlobalLexicalEnvironmentValue(
+    ValueOperand scratch) {
+  loadGlobalLexicalEnvironment(scratch.scratchReg());
+  masm.tagValue(JSVAL_TYPE_OBJECT, scratch.scratchReg(), scratch);
+  frame.push(scratch);
 }
 
 template <>
@@ -1056,13 +1034,14 @@ void BaselineInterpreterCodeGen::loadGlobalThisValue(ValueOperand dest) {
   masm.loadValue(Address(scratch, SlotOffset), dest);
 }
 
-template <typename Handler>
-void BaselineCodeGen<Handler>::pushScriptArg() {
-  if (handler.realmIndependentJitcode()) {
-    pushArg(frame.addressOfInterpreterScript());
-  } else {
-    pushArg(ImmGCPtr(handler.maybeScript()));
-  }
+template <>
+void BaselineCompilerCodeGen::pushScriptArg() {
+  pushArg(ImmGCPtr(handler.script()));
+}
+
+template <>
+void BaselineInterpreterCodeGen::pushScriptArg() {
+  pushArg(frame.addressOfInterpreterScript());
 }
 
 template <>
@@ -1100,10 +1079,23 @@ static gc::Cell* GetScriptGCThing(JSScript* script, jsbytecode* pc,
   MOZ_CRASH("Unexpected GCThing type");
 }
 
-template <typename Handler>
-void BaselineCodeGen<Handler>::loadScriptGCThingInternal(ScriptGCThingType type,
-                                                         Register dest,
-                                                         Register scratch) {
+template <>
+void BaselineCompilerCodeGen::loadScriptGCThing(ScriptGCThingType type,
+                                                Register dest,
+                                                Register scratch) {
+  gc::Cell* thing = GetScriptGCThing(handler.script(), handler.pc(), type);
+  masm.movePtr(ImmGCPtr(thing), dest);
+}
+
+template <>
+void BaselineInterpreterCodeGen::loadScriptGCThing(ScriptGCThingType type,
+                                                   Register dest,
+                                                   Register scratch) {
+  MOZ_ASSERT(dest != scratch);
+
+  // Load the index in |scratch|.
+  LoadInt32Operand(masm, scratch);
+
   // Load the GCCellPtr.
   loadScript(dest);
   masm.loadPtr(Address(dest, JSScript::offsetOfPrivateData()), dest);
@@ -1143,31 +1135,6 @@ void BaselineCodeGen<Handler>::loadScriptGCThingInternal(ScriptGCThingType type,
       masm.xorPtr(Imm32(JS::OutOfLineTraceKindMask), dest);
       break;
   }
-}
-
-template <>
-void BaselineCompilerCodeGen::loadScriptGCThing(ScriptGCThingType type,
-                                                Register dest,
-                                                Register scratch) {
-  if (handler.realmIndependentJitcode()) {
-    masm.move32(Imm32(GET_GCTHING_INDEX(handler.pc())), scratch);
-    loadScriptGCThingInternal(type, dest, scratch);
-  } else {
-    gc::Cell* thing = GetScriptGCThing(handler.script(), handler.pc(), type);
-    masm.movePtr(ImmGCPtr(thing), dest);
-  }
-}
-
-template <>
-void BaselineInterpreterCodeGen::loadScriptGCThing(ScriptGCThingType type,
-                                                   Register dest,
-                                                   Register scratch) {
-  MOZ_ASSERT(dest != scratch);
-
-  // Load the index in |scratch|.
-  LoadInt32Operand(masm, scratch);
-
-  loadScriptGCThingInternal(type, dest, scratch);
 
 #ifdef DEBUG
   // Assert low bits are not set.
@@ -1178,18 +1145,20 @@ void BaselineInterpreterCodeGen::loadScriptGCThing(ScriptGCThingType type,
 #endif
 }
 
-template <typename Handler>
-void BaselineCodeGen<Handler>::pushScriptGCThingArg(ScriptGCThingType type,
-                                                    Register scratch1,
-                                                    Register scratch2) {
-  if (handler.realmIndependentJitcode()) {
-    loadScriptGCThing(type, scratch1, scratch2);
-    pushArg(scratch1);
-  } else {
-    gc::Cell* thing =
-        GetScriptGCThing(handler.maybeScript(), handler.maybePC(), type);
-    pushArg(ImmGCPtr(thing));
-  }
+template <>
+void BaselineCompilerCodeGen::pushScriptGCThingArg(ScriptGCThingType type,
+                                                   Register scratch1,
+                                                   Register scratch2) {
+  gc::Cell* thing = GetScriptGCThing(handler.script(), handler.pc(), type);
+  pushArg(ImmGCPtr(thing));
+}
+
+template <>
+void BaselineInterpreterCodeGen::pushScriptGCThingArg(ScriptGCThingType type,
+                                                      Register scratch1,
+                                                      Register scratch2) {
+  loadScriptGCThing(type, scratch1, scratch2);
+  pushArg(scratch1);
 }
 
 template <typename Handler>
@@ -1264,26 +1233,13 @@ void BaselineCompilerCodeGen::emitInitFrameFields(Register nonFunctionEnv) {
   Register scratch2 = R2.scratchReg();
   MOZ_ASSERT(nonFunctionEnv != scratch && nonFunctionEnv != scratch2);
 
-  uint32_t flags =
-      handler.realmIndependentJitcode() ? BaselineFrame::REALM_INDEPENDENT : 0;
-  masm.store32(Imm32(flags), frame.addressOfFlags());
-
+  masm.store32(Imm32(0), frame.addressOfFlags());
   if (handler.function()) {
     masm.loadFunctionFromCalleeToken(frame.addressOfCalleeToken(), scratch);
     masm.unboxObject(Address(scratch, JSFunction::offsetOfEnvironment()),
-                     scratch2);
-    masm.storePtr(scratch2, frame.addressOfEnvironmentChain());
-    if (handler.realmIndependentJitcode()) {
-      masm.loadPrivate(Address(scratch, JSFunction::offsetOfJitInfoOrScript()),
-                       scratch);
-      masm.storePtr(scratch, frame.addressOfInterpreterScript());
-    }
+                     scratch);
+    masm.storePtr(scratch, frame.addressOfEnvironmentChain());
   } else {
-    if (handler.realmIndependentJitcode()) {
-      masm.loadPtr(frame.addressOfCalleeToken(), scratch);
-      masm.andPtr(Imm32(uint32_t(CalleeTokenMask)), scratch);
-      masm.storePtr(scratch, frame.addressOfInterpreterScript());
-    }
     masm.storePtr(nonFunctionEnv, frame.addressOfEnvironmentChain());
   }
 
@@ -1301,18 +1257,8 @@ void BaselineCompilerCodeGen::emitInitFrameFields(Register nonFunctionEnv) {
 
   // Otherwise, store this script's default ICSCript in the frame.
   masm.bind(&notInlined);
-  if (handler.realmIndependentJitcode()) {
-    // When JitCode is reused in a new realm, the frames baked into
-    // the native bytecode need to refer to the IC list for the new JitScript or
-    // they will execute the IC scripts using the IC stub fields from the wrong
-    // script.
-    loadJitScript(scratch);
-    masm.addPtr(Imm32(JitScript::offsetOfICScript()), scratch);
-    masm.storePtr(scratch, frame.addressOfICScript());
-  } else {
-    masm.storePtr(ImmPtr(handler.script()->jitScript()->icScript()),
-                  frame.addressOfICScript());
-  }
+  masm.storePtr(ImmPtr(handler.script()->jitScript()->icScript()),
+                frame.addressOfICScript());
   masm.bind(&done);
 }
 
@@ -1400,83 +1346,80 @@ bool BaselineCompilerCodeGen::initEnvironmentChain() {
     return true;
   }
 
+  // Allocate a NamedLambdaObject and/or a CallObject. If the function needs
+  // both, the NamedLambdaObject must enclose the CallObject. If one of the
+  // allocations fails, we perform the whole operation in C++.
+
+  auto [callObjectTemplate, namedLambdaTemplate] =
+      handler.script()->jitScript()->functionEnvironmentTemplates(
+          handler.function());
+  MOZ_ASSERT(namedLambdaTemplate || callObjectTemplate);
+
   AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
+  Register newEnv = regs.takeAny();
+  Register enclosingEnv = regs.takeAny();
+  Register callee = regs.takeAny();
   Register temp = regs.takeAny();
-  Label done;
-  if (!handler.realmIndependentJitcode()) {
-    // Allocate a NamedLambdaObject and/or a CallObject. If the function needs
-    // both, the NamedLambdaObject must enclose the CallObject. If one of the
-    // allocations fails, we perform the whole operation in C++.
+  Register siteRegister;
 
-    auto [callObjectTemplate, namedLambdaTemplate] =
-        handler.script()->jitScript()->functionEnvironmentTemplates(
-            handler.function());
-    MOZ_ASSERT(namedLambdaTemplate || callObjectTemplate);
+  Label fail;
+  masm.loadPtr(frame.addressOfEnvironmentChain(), enclosingEnv);
+  masm.loadFunctionFromCalleeToken(frame.addressOfCalleeToken(), callee);
 
-    Register newEnv = regs.takeAny();
-    Register enclosingEnv = regs.takeAny();
-    Register callee = regs.takeAny();
-    Register siteRegister;
-
-    Label fail;
-    masm.loadPtr(frame.addressOfEnvironmentChain(), enclosingEnv);
-    masm.loadFunctionFromCalleeToken(frame.addressOfCalleeToken(), callee);
-
-    AllocSiteInput site;
-    if (handler.addEnvAllocSite()) {
-      siteRegister = regs.takeAny();
-      masm.loadPtr(frame.addressOfICScript(), temp);
-      masm.loadPtr(Address(temp, ICScript::offsetOfEnvAllocSite()),
-                   siteRegister);
-      site = AllocSiteInput(siteRegister);
-    }
-
-    // Allocate a NamedLambdaObject if needed.
-    if (namedLambdaTemplate) {
-      TemplateObject templateObject(namedLambdaTemplate);
-      masm.createGCObject(newEnv, temp, templateObject, gc::Heap::Default,
-                          &fail, true, site);
-
-      // Store enclosing environment.
-      Address enclosingSlot(newEnv,
-                            NamedLambdaObject::offsetOfEnclosingEnvironment());
-      masm.storeValue(JSVAL_TYPE_OBJECT, enclosingEnv, enclosingSlot);
-      AssertCanElidePostWriteBarrier(masm, newEnv, enclosingEnv, temp);
-
-      // Store callee.
-      Address lambdaSlot(newEnv, NamedLambdaObject::offsetOfLambdaSlot());
-      masm.storeValue(JSVAL_TYPE_OBJECT, callee, lambdaSlot);
-      AssertCanElidePostWriteBarrier(masm, newEnv, callee, temp);
-
-      if (callObjectTemplate) {
-        masm.movePtr(newEnv, enclosingEnv);
-      }
-    }
-
-    // Allocate a CallObject if needed.
-    if (callObjectTemplate) {
-      TemplateObject templateObject(callObjectTemplate);
-      masm.createGCObject(newEnv, temp, templateObject, gc::Heap::Default,
-                          &fail, true, site);
-
-      // Store enclosing environment.
-      Address enclosingSlot(newEnv, CallObject::offsetOfEnclosingEnvironment());
-      masm.storeValue(JSVAL_TYPE_OBJECT, enclosingEnv, enclosingSlot);
-      AssertCanElidePostWriteBarrier(masm, newEnv, enclosingEnv, temp);
-
-      // Store callee.
-      Address calleeSlot(newEnv, CallObject::offsetOfCallee());
-      masm.storeValue(JSVAL_TYPE_OBJECT, callee, calleeSlot);
-      AssertCanElidePostWriteBarrier(masm, newEnv, callee, temp);
-    }
-
-    // Update the frame's environment chain and mark it initialized.
-    masm.storePtr(newEnv, frame.addressOfEnvironmentChain());
-    masm.or32(Imm32(BaselineFrame::HAS_INITIAL_ENV), frame.addressOfFlags());
-    masm.jump(&done);
-
-    masm.bind(&fail);
+  AllocSiteInput site;
+  if (handler.addEnvAllocSite()) {
+    siteRegister = regs.takeAny();
+    masm.loadPtr(frame.addressOfICScript(), temp);
+    masm.loadPtr(Address(temp, ICScript::offsetOfEnvAllocSite()), siteRegister);
+    site = AllocSiteInput(siteRegister);
   }
+
+  // Allocate a NamedLambdaObject if needed.
+  if (namedLambdaTemplate) {
+    TemplateObject templateObject(namedLambdaTemplate);
+    masm.createGCObject(newEnv, temp, templateObject, gc::Heap::Default, &fail,
+                        true, site);
+
+    // Store enclosing environment.
+    Address enclosingSlot(newEnv,
+                          NamedLambdaObject::offsetOfEnclosingEnvironment());
+    masm.storeValue(JSVAL_TYPE_OBJECT, enclosingEnv, enclosingSlot);
+    AssertCanElidePostWriteBarrier(masm, newEnv, enclosingEnv, temp);
+
+    // Store callee.
+    Address lambdaSlot(newEnv, NamedLambdaObject::offsetOfLambdaSlot());
+    masm.storeValue(JSVAL_TYPE_OBJECT, callee, lambdaSlot);
+    AssertCanElidePostWriteBarrier(masm, newEnv, callee, temp);
+
+    if (callObjectTemplate) {
+      masm.movePtr(newEnv, enclosingEnv);
+    }
+  }
+
+  // Allocate a CallObject if needed.
+  if (callObjectTemplate) {
+    TemplateObject templateObject(callObjectTemplate);
+    masm.createGCObject(newEnv, temp, templateObject, gc::Heap::Default, &fail,
+                        true, site);
+
+    // Store enclosing environment.
+    Address enclosingSlot(newEnv, CallObject::offsetOfEnclosingEnvironment());
+    masm.storeValue(JSVAL_TYPE_OBJECT, enclosingEnv, enclosingSlot);
+    AssertCanElidePostWriteBarrier(masm, newEnv, enclosingEnv, temp);
+
+    // Store callee.
+    Address calleeSlot(newEnv, CallObject::offsetOfCallee());
+    masm.storeValue(JSVAL_TYPE_OBJECT, callee, calleeSlot);
+    AssertCanElidePostWriteBarrier(masm, newEnv, callee, temp);
+  }
+
+  // Update the frame's environment chain and mark it initialized.
+  Label done;
+  masm.storePtr(newEnv, frame.addressOfEnvironmentChain());
+  masm.or32(Imm32(BaselineFrame::HAS_INITIAL_ENV), frame.addressOfFlags());
+  masm.jump(&done);
+
+  masm.bind(&fail);
 
   prepareVMCall();
 
@@ -2701,35 +2644,36 @@ bool BaselineInterpreterCodeGen::emit_Double() {
   return true;
 }
 
-template <typename Handler>
-bool BaselineCodeGen<Handler>::emit_BigInt() {
-  if (handler.realmIndependentJitcode()) {
-    frame.syncStack(0);
-    Register scratch1 = R0.scratchReg();
-    Register scratch2 = R1.scratchReg();
-    loadScriptGCThing(ScriptGCThingType::BigInt, scratch1, scratch2);
-    masm.tagValue(JSVAL_TYPE_BIGINT, scratch1, R0);
-    frame.push(R0);
-  } else {
-    BigInt* bi = handler.maybeScript()->getBigInt(handler.maybePC());
-    frame.push(BigIntValue(bi));
-  }
+template <>
+bool BaselineCompilerCodeGen::emit_BigInt() {
+  BigInt* bi = handler.script()->getBigInt(handler.pc());
+  frame.push(BigIntValue(bi));
   return true;
 }
 
-template <typename Handler>
-bool BaselineCodeGen<Handler>::emit_String() {
-  if (handler.realmIndependentJitcode()) {
-    frame.syncStack(0);
-    Register scratch1 = R0.scratchReg();
-    Register scratch2 = R1.scratchReg();
-    loadScriptGCThing(ScriptGCThingType::String, scratch1, scratch2);
-    masm.tagValue(JSVAL_TYPE_STRING, scratch1, R0);
-    frame.push(R0);
-  } else {
-    frame.push(
-        StringValue(handler.maybeScript()->getString(handler.maybePC())));
-  }
+template <>
+bool BaselineInterpreterCodeGen::emit_BigInt() {
+  Register scratch1 = R0.scratchReg();
+  Register scratch2 = R1.scratchReg();
+  loadScriptGCThing(ScriptGCThingType::BigInt, scratch1, scratch2);
+  masm.tagValue(JSVAL_TYPE_BIGINT, scratch1, R0);
+  frame.push(R0);
+  return true;
+}
+
+template <>
+bool BaselineCompilerCodeGen::emit_String() {
+  frame.push(StringValue(handler.script()->getString(handler.pc())));
+  return true;
+}
+
+template <>
+bool BaselineInterpreterCodeGen::emit_String() {
+  Register scratch1 = R0.scratchReg();
+  Register scratch2 = R1.scratchReg();
+  loadScriptGCThing(ScriptGCThingType::String, scratch1, scratch2);
+  masm.tagValue(JSVAL_TYPE_STRING, scratch1, R0);
+  frame.push(R0);
   return true;
 }
 
@@ -2755,18 +2699,19 @@ bool BaselineInterpreterCodeGen::emit_Symbol() {
   return true;
 }
 
-template <typename Handler>
-bool BaselineCodeGen<Handler>::emit_Object() {
-  if (handler.realmIndependentJitcode()) {
-    Register scratch1 = R0.scratchReg();
-    Register scratch2 = R1.scratchReg();
-    loadScriptGCThing(ScriptGCThingType::Object, scratch1, scratch2);
-    masm.tagValue(JSVAL_TYPE_OBJECT, scratch1, R0);
-    frame.push(R0);
-  } else {
-    frame.push(
-        ObjectValue(*handler.maybeScript()->getObject(handler.maybePC())));
-  }
+template <>
+bool BaselineCompilerCodeGen::emit_Object() {
+  frame.push(ObjectValue(*handler.script()->getObject(handler.pc())));
+  return true;
+}
+
+template <>
+bool BaselineInterpreterCodeGen::emit_Object() {
+  Register scratch1 = R0.scratchReg();
+  Register scratch2 = R1.scratchReg();
+  loadScriptGCThing(ScriptGCThingType::Object, scratch1, scratch2);
+  masm.tagValue(JSVAL_TYPE_OBJECT, scratch1, R0);
+  frame.push(R0);
   return true;
 }
 
@@ -3647,9 +3592,6 @@ bool BaselineCodeGen<Handler>::emit_GetGName() {
 
 template <>
 bool BaselineCompilerCodeGen::tryOptimizeBindUnqualifiedGlobalName() {
-  if (handler.realmIndependentJitcode()) {
-    return false;
-  }
   JSScript* script = handler.script();
   MOZ_ASSERT(!script->hasNonSyntacticScope());
 
@@ -4976,12 +4918,12 @@ bool BaselineCodeGen<Handler>::emit_Finally() {
   return emitInterruptCheck();
 }
 
-template <typename Handler>
-void BaselineCodeGen<Handler>::loadBaselineScriptResumeEntries(
-    Register dest, Register scratch) {
+static void LoadBaselineScriptResumeEntries(MacroAssembler& masm,
+                                            JSScript* script, Register dest,
+                                            Register scratch) {
   MOZ_ASSERT(dest != scratch);
 
-  loadJitScript(dest);
+  masm.movePtr(ImmPtr(script->jitScript()), dest);
   masm.loadPtr(Address(dest, JitScript::offsetOfBaselineScript()), dest);
   masm.load32(Address(dest, BaselineScript::offsetOfResumeEntriesOffset()),
               scratch);
@@ -5018,7 +4960,7 @@ template <>
 void BaselineCompilerCodeGen::jumpToResumeEntry(Register resumeIndex,
                                                 Register scratch1,
                                                 Register scratch2) {
-  loadBaselineScriptResumeEntries(scratch1, scratch2);
+  LoadBaselineScriptResumeEntries(masm, handler.script(), scratch1, scratch2);
   masm.loadPtr(
       BaseIndex(scratch1, resumeIndex, ScaleFromElemWidth(sizeof(uintptr_t))),
       scratch1);
@@ -5729,7 +5671,7 @@ void BaselineCompilerCodeGen::emitTableSwitchJump(Register key,
   // |firstResumeIndex * sizeof(uintptr_t)| fits in int32_t.
   uint32_t firstResumeIndex =
       GET_RESUMEINDEX(handler.pc() + TableSwitchOpFirstResumeIndexOffset);
-  loadBaselineScriptResumeEntries(scratch1, scratch2);
+  LoadBaselineScriptResumeEntries(masm, handler.script(), scratch1, scratch2);
   masm.loadPtr(BaseIndex(scratch1, key, ScaleFromElemWidth(sizeof(uintptr_t)),
                          firstResumeIndex * sizeof(uintptr_t)),
                scratch1);
@@ -6306,10 +6248,6 @@ bool BaselineCodeGen<Handler>::emitEnterGeneratorCode(Register script,
   masm.storePtr(scratch, icScriptAddr);
 
   Label noBaselineScript;
-  // Frames with shared bytecode need the interpreterScript pointer
-  if (handler.realmIndependentJitcode()) {
-    masm.storePtr(script, frame.addressOfInterpreterScript());
-  }
   masm.loadJitScript(script, scratch);
   masm.loadPtr(Address(scratch, JitScript::offsetOfBaselineScript()), scratch);
   masm.branchPtr(Assembler::BelowOrEqual, scratch,
@@ -6573,8 +6511,8 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
 
   // After the generator returns, we restore the stack pointer, switch back to
   // the current realm, push the return value, and we're done.
-  if (!handler.realmIndependentJitcode()) {
-    masm.switchToRealm(handler.maybeScript()->realm(), R2.scratchReg());
+  if (JSScript* script = handler.maybeScript()) {
+    masm.switchToRealm(script->realm(), R2.scratchReg());
   } else {
     masm.switchToBaselineFrameRealm(R2.scratchReg());
   }
@@ -6888,9 +6826,8 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
 
   frame.assertSyncedStack();
 
-  if (!handler.realmIndependentJitcode()) {
-    masm.debugAssertContextRealm(handler.maybeScript()->realm(),
-                                 R1.scratchReg());
+  if (JSScript* script = handler.maybeScript()) {
+    masm.debugAssertContextRealm(script->realm(), R1.scratchReg());
   }
 
   if (!emitDebugPrologue()) {

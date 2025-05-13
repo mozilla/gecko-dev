@@ -172,11 +172,7 @@ void JSScript::releaseJitScriptOnFinalize(JS::GCContext* gcx) {
 
   if (hasBaselineScript()) {
     BaselineScript* baseline = jitScript()->clearBaselineScript(gcx, this);
-    // Self-hosted scripts cache their BaselineScript so the JSRuntime manages
-    // its lifetime
-    if (!selfHosted()) {
-      jit::BaselineScript::Destroy(gcx, baseline);
-    }
+    jit::BaselineScript::Destroy(gcx, baseline);
   }
 
   releaseJitScript(gcx);

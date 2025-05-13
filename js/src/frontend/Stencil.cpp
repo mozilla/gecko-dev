@@ -32,15 +32,11 @@
 #include "frontend/StencilXdr.h"  // XDRStencilEncoder, XDRStencilDecoder
 #include "gc/AllocKind.h"         // gc::AllocKind
 #include "gc/Tracer.h"            // TraceNullableRoot
-#include "jit/BaselineJIT.h"      // jit::BaselineScript
-#include "jit/JitRuntime.h"       // jit::JitRuntime
-#include "jit/JitScript.h"        // AutoKeepJitScripts
 #include "js/CallArgs.h"          // JSNative
 #include "js/CompileOptions.h"  // JS::DecodeOptions, JS::ReadOnlyDecodeOptions
 #include "js/experimental/CompileScript.h"  // JS::PrepareForInstantiate
 #include "js/experimental/JSStencil.h"      // JS::Stencil
 #include "js/GCAPI.h"                       // JS::AutoCheckCannotGC
-#include "js/Prefs.h"                       // JS::Prefs
 #include "js/Printer.h"                     // js::Fprinter
 #include "js/RealmOptions.h"                // JS::RealmBehaviors
 #include "js/RootingAPI.h"                  // Rooted
@@ -52,7 +48,6 @@
 #include "vm/BindingKind.h"  // BindingKind
 #include "vm/EnvironmentObject.h"
 #include "vm/GeneratorAndAsyncKind.h"  // GeneratorKind, FunctionAsyncKind
-#include "vm/JSAtomUtils.h"            // AtomToPrintableString
 #include "vm/JSContext.h"              // JSContext
 #include "vm/JSFunction.h"  // JSFunction, GetFunctionPrototype, NewFunctionWithProto
 #include "vm/JSObject.h"      // JSObject, TenuredObject
@@ -68,10 +63,8 @@
 #include "vm/StringType.h"    // JSAtom, js::CopyChars
 #include "wasm/AsmJS.h"       // InstantiateAsmJS
 
-#include "jit/JitScript-inl.h"         // AutoKeepJitScripts constructor
 #include "vm/EnvironmentObject-inl.h"  // JSObject::enclosingEnvironment
 #include "vm/JSFunction-inl.h"         // JSFunction::create
-#include "vm/JSScript-inl.h"           // JSScript::baselineScript
 
 using namespace js;
 using namespace js::frontend;
@@ -2848,7 +2841,7 @@ JSFunction* CompilationStencil::instantiateSelfHostedLazyFunction(
 
 bool CompilationStencil::delazifySelfHostedFunction(
     JSContext* cx, CompilationAtomCache& atomCache, ScriptIndexRange range,
-    Handle<JSAtom*> name, HandleFunction fun) {
+    HandleFunction fun) {
   // Determine the equivalent ScopeIndex range by looking at the outermost scope
   // of the scripts defining the range. Take special care if this is the last
   // script in the list.
@@ -2861,7 +2854,6 @@ bool CompilationStencil::delazifySelfHostedFunction(
   ScopeIndex scopeLimit = (range.limit < scriptData.size())
                               ? getOutermostScope(range.limit)
                               : ScopeIndex(scopeData.size());
-  Rooted<JSAtom*> jitCacheKey(cx, name);
 
   // Prepare to instantiate by allocating the output arrays. We also set a base
   // index to avoid allocations in most cases.
@@ -2934,90 +2926,9 @@ bool CompilationStencil::delazifySelfHostedFunction(
   //       `InstantiateTopLevel` helper and directly create the JSScript. Our
   //       caller also handles the `AllowRelazify` flag for us since self-hosted
   //       delazification is a special case.
-  Rooted<JSScript*> script(
-      cx,
-      JSScript::fromStencil(cx, atomCache, *this, gcOutput.get(), range.start));
-  if (!script) {
+  if (!JSScript::fromStencil(cx, atomCache, *this, gcOutput.get(),
+                             range.start)) {
     return false;
-  }
-
-  if (JS::Prefs::experimental_self_hosted_cache()) {
-    // We eagerly baseline-compile self-hosted functions, and cache their
-    // JitCode for reuse across the runtime. If the cache already contains an
-    // entry for this function, update the JitScript. If not, compile it now and
-    // store it in the cache.
-    UniqueChars nameStr;
-    if (JS_SHOULD_LOG(selfHosted, Debug)) {
-      nameStr = AtomToPrintableString(cx, name);
-    }
-    auto& jitCache = cx->runtime()->selfHostJitCache.ref();
-    auto v = jitCache.readonlyThreadsafeLookup(jitCacheKey);
-    if (v && v->value()->method()) {
-      JS_LOG(selfHosted, Debug,
-             "self_hosted_cache: reusing JIT code for script '%s'",
-             nameStr.get());
-
-      if (!cx->zone()->ensureJitZoneExists(cx)) {
-        return false;
-      }
-      jit::AutoKeepJitScripts keepJitScript(cx);
-      if (!script->ensureHasJitScript(cx, keepJitScript)) {
-        return false;
-      }
-      MOZ_ASSERT(!script->hasBaselineScript());
-
-      // JSScript destroys its BaselineScript on finalize, so we need another
-      // copy here (for now)
-      jit::BaselineScript* baselineScript =
-          jit::BaselineScript::Copy(cx, v->value());
-      if (!baselineScript) {
-        return false;
-      }
-      mozilla::DebugOnly<bool> instrumentationEnabled =
-          cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(
-              cx->runtime());
-      MOZ_ASSERT(instrumentationEnabled ==
-                 baselineScript->isProfilerInstrumentationOn());
-      script->jitScript()->setBaselineScript(script, baselineScript);
-    } else if (jit::IsBaselineJitEnabled(cx) && script->canBaselineCompile() &&
-               !script->hasBaselineScript() &&
-               jit::CanBaselineInterpretScript(script)) {
-      JS_LOG(selfHosted, Debug,
-             "self_hosted_cache: new JIT code entry for script '%s'",
-             nameStr.get());
-
-      if (!cx->zone()->ensureJitZoneExists(cx)) {
-        return false;
-      }
-
-      jit::AutoKeepJitScripts keep(cx);
-      if (!script->ensureHasJitScript(cx, keep)) {
-        return false;
-      }
-
-      jit::BaselineOptions options(
-          {jit::BaselineOption::ForceMainThreadCompilation});
-      jit::MethodStatus result =
-          jit::BaselineCompile(cx, script.get(), options);
-      if (result != jit::Method_Compiled) {
-        return false;
-      }
-      MOZ_ASSERT(script->hasBaselineScript());
-
-      jit::BaselineScript* baselineScript =
-          jit::BaselineScript::Copy(cx, script->baselineScript());
-      if (!baselineScript) {
-        return false;
-      }
-      if (!jitCache.put(jitCacheKey, baselineScript)) {
-        return false;
-      }
-    } else {
-      JS_LOG(selfHosted, Debug,
-             "self_hosted_cache: script '%s' is not eligible for Baseline "
-             "compilation",
-             nameStr.get());
-    }
   }
 
   // Phase 6: Update lazy scripts.

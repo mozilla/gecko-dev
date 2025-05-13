@@ -91,7 +91,6 @@ class LogModule {
   _(thenable)             /* Thenable on standard proto*/                    \
   _(startup)              /* engine startup logging */                       \
   _(teleporting)          /* Shape Teleporting */                            \
-  _(selfHosted)           /* self-hosted script logging */                   \
   JITSPEW_CHANNEL_LIST(_) /* A module for each JitSpew channel. */
 
 // Declare Log modules
@@ -107,9 +106,6 @@ FOR_EACH_JS_LOG_MODULE(DECLARE_MODULE);
 
 // The core logging macro for the JS Engine.
 #ifdef JS_LOGGING
-#  define JS_SHOULD_LOG(name, log_level) \
-    name##Module.shouldLog(LogLevel::log_level)
-
 #  define JS_LOG(name, log_level, ...)                                     \
     do {                                                                   \
       if (name##Module.shouldLog(LogLevel::log_level)) {                   \
