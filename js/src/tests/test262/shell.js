@@ -634,6 +634,8 @@ $262.agent = (function (global) {
 
     var {getSharedArrayBuffer} = global;
 
+    var _finished = { done: false };
+
     var _ia = new Int32Array(getSharedArrayBuffer());
     var agent = {
         receiveBroadcast(receiver) {
@@ -646,6 +648,7 @@ $262.agent = (function (global) {
             while (Atomics_load(_ia, ${_MSG_LOC}) === k)
                 ;
             receiver(received_sab, received_id);
+            waitForDone(_finished);
         },
 
         report(msg) {
@@ -665,7 +668,9 @@ $262.agent = (function (global) {
             Atomics_wait(_ia, ${_SLEEP_LOC}, 0, s);
         },
 
-        leaving() {},
+        leaving() {
+            _finished.done = true;
+        },
 
         monotonicNow: global.monotonicNow,
     };

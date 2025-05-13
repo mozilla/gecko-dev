@@ -4670,6 +4670,8 @@ static void WorkerMain(UniquePtr<WorkerInput> input) {
     }
     RootedValue result(cx);
     JS_ExecuteScript(cx, script, &result);
+
+    RunShellJobs(cx);
   } while (0);
 
   KillWatchdog(cx);

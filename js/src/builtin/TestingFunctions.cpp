@@ -9669,6 +9669,35 @@ static bool HadOutOfMemory(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+static bool WaitForDone(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  if (args.length() != 1) {
+    JS_ReportErrorASCII(cx, "The function takes exactly one argument.");
+    return false;
+  }
+
+  if (!args[0].isObject()) {
+    JS_ReportErrorASCII(cx, "The first argument should be an object.");
+    return false;
+  }
+
+  RootedObject obj(cx, &args[0].toObject());
+  RootedValue val(cx);
+  if (!JS_GetProperty(cx, obj, "done", &val)) {
+    return false;
+  }
+
+  args.rval().setUndefined();
+
+  while (!val.isBoolean() || !val.toBoolean()) {
+    js::RunJobs(cx);
+    if (!JS_GetProperty(cx, obj, "done", &val)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // clang-format off
 static const JSFunctionSpecWithHelp TestingFunctions[] = {
     JS_FN_HELP("gc", ::GC, 0, 0,
@@ -10786,6 +10815,10 @@ JS_FN_HELP("waitForDelazificationOf", WaitForDelazificationOf, 1, 0,
 "waitForDelazificationOf(fun)",
 "  Block main thread execution until the function is made available in the\n"
 "  shared stencils. If this function isn't sharing stencils, return immediately."),
+
+JS_FN_HELP("waitForDone", WaitForDone, 1, 0,
+"waitForDone(obj)",
+"  Loop calling `RunJobs` until the `done` value of `obj` is true"),
 
 JS_FN_HELP("getInnerMostEnvironmentObject", GetInnerMostEnvironmentObject, 0, 0,
 "getInnerMostEnvironmentObject()",
