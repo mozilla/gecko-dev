@@ -27,6 +27,14 @@ const { SYNC_DATA_PREF_BRANCH, SYNC_DEFAULTS_PREF_BRANCH } = ExperimentStore;
 
 add_setup(function test_setup() {
   Services.fog.initializeFOG();
+
+  registerCleanupFunction(
+    NimbusTestUtils.addTestFeatures(
+      new ExperimentFeature("optin", {}),
+      new ExperimentFeature("pink", {}),
+      new ExperimentFeature("force-enrollment", {})
+    )
+  );
 });
 
 function setupTest({ ...args } = {}) {

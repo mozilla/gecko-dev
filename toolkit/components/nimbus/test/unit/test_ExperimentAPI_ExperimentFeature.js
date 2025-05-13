@@ -8,43 +8,44 @@ const { PrefUtils } = ChromeUtils.importESModule(
 );
 
 const TEST_FALLBACK_PREF = "testprefbranch.config";
-const FAKE_FEATURE_MANIFEST = {
-  description: "Test feature",
-  exposureDescription: "Used in tests",
-  variables: {
-    enabled: {
-      type: "boolean",
-      fallbackPref: "testprefbranch.enabled",
-    },
-    config: {
-      type: "json",
-      fallbackPref: TEST_FALLBACK_PREF,
-    },
-    remoteValue: {
-      type: "boolean",
-    },
-    test: {
-      type: "boolean",
-    },
-    title: {
-      type: "string",
-    },
-  },
-};
 
 add_setup(function test_setup() {
   Services.fog.initializeFOG();
 });
 
 function setupTest(options) {
-  return NimbusTestUtils.setupTest({ ...options, clearTelemetry: true });
+  return NimbusTestUtils.setupTest({
+    ...options,
+    clearTelemetry: true,
+    features: [
+      new ExperimentFeature("foo", {
+        variables: {
+          enabled: {
+            type: "boolean",
+            fallbackPref: "testprefbranch.enabled",
+          },
+          config: {
+            type: "json",
+            fallbackPref: TEST_FALLBACK_PREF,
+          },
+          remoteValue: {
+            type: "boolean",
+          },
+          test: {
+            type: "boolean",
+          },
+          title: {
+            type: "string",
+          },
+        },
+      }),
+    ],
+  });
 }
 
 add_task(async function test_ExperimentFeature_test_helper_ready() {
   const { manager, cleanup } = await setupTest();
   await manager.store.ready();
-
-  const featureInstance = new ExperimentFeature("foo", FAKE_FEATURE_MANIFEST);
 
   const cleanupExperiment = await NimbusTestUtils.enrollWithFeatureConfig(
     {
@@ -58,7 +59,7 @@ add_task(async function test_ExperimentFeature_test_helper_ready() {
   );
 
   Assert.equal(
-    featureInstance.getVariable("remoteValue"),
+    NimbusFeatures.foo.getVariable("remoteValue"),
     "mochitest",
     "set by remote config"
   );
@@ -70,16 +71,13 @@ add_task(async function test_ExperimentFeature_test_helper_ready() {
 add_task(async function test_record_exposure_event() {
   Services.fog.testResetFOG();
 
-  const featureInstance = new ExperimentFeature("foo", FAKE_FEATURE_MANIFEST);
-  const cleanupFeature = NimbusTestUtils.addTestFeatures(featureInstance);
-
   const { sandbox, manager, cleanup } = await setupTest();
 
   sandbox.spy(NimbusTelemetry, "recordExposure");
   sandbox.spy(NimbusFeatures.foo, "getEnrollmentMetadata");
 
   NimbusTestUtils.assert.storeIsEmpty(manager.store);
-  featureInstance.recordExposureEvent();
+  NimbusFeatures.foo.recordExposureEvent();
 
   Assert.ok(
     NimbusTelemetry.recordExposure.notCalled,
@@ -112,7 +110,7 @@ add_task(async function test_record_exposure_event() {
     "test"
   );
 
-  featureInstance.recordExposureEvent();
+  NimbusFeatures.foo.recordExposureEvent();
 
   Assert.ok(
     NimbusTelemetry.recordExposure.calledOnce,
@@ -149,13 +147,11 @@ add_task(async function test_record_exposure_event() {
 
   manager.unenroll("blah");
   cleanup();
-  cleanupFeature();
 });
 
 add_task(async function test_record_exposure_event_once() {
   const { sandbox, manager, cleanup } = await setupTest();
 
-  const featureInstance = new ExperimentFeature("foo", FAKE_FEATURE_MANIFEST);
   const exposureSpy = sandbox.spy(NimbusTelemetry, "recordExposure");
 
   await manager.enroll(
@@ -167,9 +163,9 @@ add_task(async function test_record_exposure_event_once() {
     "test"
   );
 
-  featureInstance.recordExposureEvent({ once: true });
-  featureInstance.recordExposureEvent({ once: true });
-  featureInstance.recordExposureEvent({ once: true });
+  NimbusFeatures.foo.recordExposureEvent({ once: true });
+  NimbusFeatures.foo.recordExposureEvent({ once: true });
+  NimbusFeatures.foo.recordExposureEvent({ once: true });
 
   Assert.ok(
     exposureSpy.calledOnce,
@@ -188,7 +184,6 @@ add_task(async function test_record_exposure_event_once() {
 add_task(async function test_allow_multiple_exposure_events() {
   const { sandbox, manager, cleanup } = await setupTest();
 
-  const featureInstance = new ExperimentFeature("foo", FAKE_FEATURE_MANIFEST);
   const exposureSpy = sandbox.spy(NimbusTelemetry, "recordExposure");
 
   // Clear any pre-existing data in Glean
@@ -202,9 +197,9 @@ add_task(async function test_allow_multiple_exposure_events() {
     { manager }
   );
 
-  featureInstance.recordExposureEvent();
-  featureInstance.recordExposureEvent();
-  featureInstance.recordExposureEvent();
+  NimbusFeatures.foo.recordExposureEvent();
+  NimbusFeatures.foo.recordExposureEvent();
+  NimbusFeatures.foo.recordExposureEvent();
 
   Assert.equal(
     exposureSpy.callCount,
@@ -225,17 +220,12 @@ add_task(async function test_onUpdate_after_store_ready() {
   const { sandbox, manager, cleanup } = await setupTest();
   const stub = sandbox.stub();
 
-  const featureInstance = new ExperimentFeature(
-    "test-feature",
-    FAKE_FEATURE_MANIFEST
-  );
-
   const rollout = NimbusTestUtils.factories.rollout("foo", {
     branch: {
       slug: "slug",
       features: [
         {
-          featureId: featureInstance.featureId,
+          featureId: "foo",
           value: {
             title: "hello",
             enabled: true,
@@ -247,10 +237,10 @@ add_task(async function test_onUpdate_after_store_ready() {
 
   sandbox.stub(manager.store, "getAllActiveRollouts").returns([rollout]);
 
-  featureInstance.onUpdate(stub);
+  NimbusFeatures.foo.onUpdate(stub);
 
   Assert.ok(stub.calledOnce, "Callback called");
-  Assert.equal(stub.firstCall.args[0], "featureUpdate:test-feature");
+  Assert.equal(stub.firstCall.args[0], "featureUpdate:foo");
   Assert.equal(stub.firstCall.args[1], "rollout-updated");
 
   PrefUtils.setPref(TEST_FALLBACK_PREF, JSON.stringify({ foo: true }), {
@@ -258,12 +248,12 @@ add_task(async function test_onUpdate_after_store_ready() {
   });
 
   Assert.deepEqual(
-    featureInstance.getVariable("config"),
+    NimbusFeatures.foo.getVariable("config"),
     { foo: true },
     "Feature is ready even when initialized after store update"
   );
   Assert.equal(
-    featureInstance.getVariable("title"),
+    NimbusFeatures.foo.getVariable("title"),
     "hello",
     "Returns the NimbusTestUtils rollout default value"
   );
