@@ -98,6 +98,13 @@ using MFMediaEngineError = MF_MEDIA_ENGINE_ERR;
   PROFILER_MARKER(markerName, MEDIA_PLAYBACK, {}, MediaEngineTextMarker, Id(), \
                   text)
 
+#ifdef MOZ_WMF_CDM
+ // This eror can happen during OS sleep/resume, or moving video to different
+ // graphics adapters.
+  inline constexpr HRESULT DRM_E_TEE_INVALID_HWDRM_STATE =
+      static_cast<HRESULT>(0x8004CD12);
+#endif
+
 const char* MediaEventTypeToStr(MediaEventType aType);
 const char* MediaEngineEventToStr(MF_MEDIA_ENGINE_EVENT aEvent);
 const char* MFMediaEngineErrorToStr(MFMediaEngineError aError);
