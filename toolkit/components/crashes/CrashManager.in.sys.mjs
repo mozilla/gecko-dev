@@ -872,6 +872,8 @@ CrashManager.prototype = Object.freeze({
         availablePhysical: "AvailablePhysicalMemory",
         availableSwap: "AvailableSwapMemory",
         availableVirtual: "AvailableVirtualMemory",
+        jsLargeAllocationFailure: "JSLargeAllocationFailure",
+        jsOutOfMemory: "JSOutOfMemory",
         lowPhysical: "LowPhysicalMemoryEvents",
         oomAllocationSize: "OOMAllocationSize",
         purgeablePhysical: "PurgeablePhysicalMemory",
