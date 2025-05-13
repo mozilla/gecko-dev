@@ -694,7 +694,9 @@ class BacktrackingAllocator : protected RegisterAllocator {
     QueueItem(LiveBundle* bundle, size_t priority)
         : bundle(bundle), priority_(priority) {}
 
-    static size_t priority(const QueueItem& v) { return v.priority_; }
+    static bool higherPriority(const QueueItem& a, const QueueItem& b) {
+      return a.priority_ > b.priority_;
+    }
 
    private:
     size_t priority_;
