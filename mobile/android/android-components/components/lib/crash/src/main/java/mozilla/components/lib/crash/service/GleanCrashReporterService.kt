@@ -154,6 +154,8 @@ class GleanCrashReporterService(
                     GleanMemory.availablePhysical.setIfNonNull(extras["AvailablePhysicalMemory"])
                     GleanMemory.availableSwap.setIfNonNull(extras["AvailableSwapMemory"])
                     GleanMemory.availableVirtual.setIfNonNull(extras["AvailableVirtualMemory"])
+                    GleanMemory.jsLargeAllocationFailure.setIfNonNull(extras["JSLargeAllocationFailure"])
+                    GleanMemory.jsOutOfMemory.setIfNonNull(extras["JSOutOfMemory"])
                     GleanMemory.lowPhysical.setIfNonNull(extras["LowPhysicalMemoryEvents"])
                     GleanMemory.oomAllocationSize.setIfNonNull(extras["OOMAllocationSize"])
                     GleanMemory.purgeablePhysical.setIfNonNull(extras["PurgeablePhysicalMemory"])

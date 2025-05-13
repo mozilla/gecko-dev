@@ -651,7 +651,9 @@ class GleanCrashReporterServiceTest {
                 "TotalPhysicalMemory": 100,
                 "AsyncShutdownTimeout": "{\"phase\":\"abcd\",\"conditions\":[{\"foo\":\"bar\"}],\"brokenAddBlockers\":[\"foo\"]}",
                 "QuotaManagerShutdownTimeout": "line1\nline2\nline3",
-                "StackTraces": $stackTracesAnnotation
+                "StackTraces": $stackTracesAnnotation,
+                "JSLargeAllocationFailure": "reporting",
+                "JSOutOfMemory": "recovered"
             }
             """.trimIndent(),
         )
@@ -687,6 +689,8 @@ class GleanCrashReporterServiceTest {
                 assertEquals("beta", GleanCrash.appChannel.testGetValue())
                 assertEquals("123.0.0", GleanCrash.appDisplayVersion.testGetValue())
                 assertEquals(100L, GleanMemory.totalPhysical.testGetValue())
+                assertEquals("reporting", GleanMemory.jsLargeAllocationFailure.testGetValue())
+                assertEquals("recovered", GleanMemory.jsOutOfMemory.testGetValue())
                 assertEquals(
                     JsonObject(
                         mapOf(

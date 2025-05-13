@@ -701,6 +701,40 @@ memory:
     send_in_pings:
       - crash
 
+  js_large_allocation_failure:
+    type: string
+    description: >
+      A large allocation couldn't be satisfied: What was
+      its state when the crash happened.
+    notification_emails:
+      - mgaudet@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1964092
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1964092
+    data_sensitivity:
+      - technical
+    expires: never
+    send_in_pings:
+      - crash
+
+  js_out_of_memory:
+    type: string
+    description: >
+      A small allocation couldn't be satisfied: What was
+      its state when the crash happened.
+    notification_emails:
+      - mgaudet@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1964092
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1964092
+    data_sensitivity:
+      - technical
+    expires: never
+    send_in_pings:
+      - crash
+
   low_physical:
     type: quantity
     unit: events
