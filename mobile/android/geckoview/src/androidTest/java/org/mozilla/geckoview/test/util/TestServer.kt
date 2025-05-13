@@ -3,6 +3,7 @@ package org.mozilla.geckoview.test.util
 import android.content.Context
 import android.content.res.AssetManager
 import android.os.SystemClock
+import android.webkit.MimeTypeMap
 import com.koushikdutta.async.ByteBufferList
 import com.koushikdutta.async.http.server.AsyncHttpServer
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest
@@ -53,31 +54,10 @@ class TestServer @JvmOverloads constructor(
 
         val assetsCallback = HttpServerRequestCallback { request, response ->
             try {
-                val fileName = request.path.substring("/assets/".length)
-                val asset = assets.open(fileName).readBytes()
-
-                val extension = fileName.substringAfterLast('.', "")
-                val mimeType = when (extension.lowercase(Locale.ROOT)) {
-                    "html", "htm" -> "text/html"
-                    "js" -> "application/javascript"
-                    "css" -> "text/css"
-                    "json" -> "application/json"
-                    "webmanifest" -> "application/manifest+json"
-                    "png" -> "image/png"
-                    "jpg", "jpeg" -> "image/jpeg"
-                    "gif" -> "image/gif"
-                    "webp" -> "image/webp"
-                    "svg" -> "image/svg+xml"
-                    "ico" -> "image/x-icon"
-                    "mp4" -> "video/mp4"
-                    "webm" -> "video/webm"
-                    "mp3" -> "audio/mpeg"
-                    "pdf" -> "application/pdf"
-                    "sjs" -> "application/javascript"
-                    else -> "application/octet-stream"
-                }
-
-                response.headers.set("Content-Type", mimeType)
+                val mimeType = MimeTypeMap.getSingleton()
+                    .getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(request.path))
+                val name = request.path.substring("/assets/".count())
+                val asset = assets.open(name).readBytes()
 
                 customHeaders?.forEach { (header, value) ->
                     response.headers.set(header, value)

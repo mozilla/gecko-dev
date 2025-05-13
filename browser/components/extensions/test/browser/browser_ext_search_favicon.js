@@ -26,8 +26,7 @@ SearchTestUtils.init(this);
 const FAKE_ICON_DATA = "RmFrZSBpY29uIGRhdGE=";
 
 // Base64-encoded "HTTP icon data".
-const HTTP_ICON_DATA =
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4//8/AAX+Av7czFnnAAAAAElFTkSuQmCC";
+const HTTP_ICON_DATA = "SFRUUCBpY29uIGRhdGE=";
 const HTTP_ICON_URL = "http://example.org/ico.png";
 
 const IMAGE_DATA_URI =
@@ -38,7 +37,6 @@ add_setup(async () => {
     hosts: ["example.org"],
   });
   server.registerPathHandler("/ico.png", (request, response) => {
-    response.setHeader("Content-Type", "image/png");
     response.write(atob(HTTP_ICON_DATA));
   });
 
