@@ -6,6 +6,7 @@ package org.mozilla.fenix.settings.biometric.ext
 
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
+import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE
 import androidx.biometric.BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE
 import androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS
@@ -22,6 +23,6 @@ fun BiometricManager.isHardwareAvailable(): Boolean {
  * Checks if the user can use the [BiometricManager] and is therefore enrolled.
  */
 fun BiometricManager.isEnrolled(): Boolean {
-    val status = canAuthenticate(BIOMETRIC_WEAK)
+    val status = canAuthenticate(BIOMETRIC_WEAK or DEVICE_CREDENTIAL)
     return status == BIOMETRIC_SUCCESS
 }

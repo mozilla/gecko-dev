@@ -35,6 +35,10 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
     override fun onResume() {
         super.onResume()
         showToolbar(getString(R.string.preferences_private_browsing_options))
+
+        // If user changes their device lock status (i.e. adds or removes device lock),
+        // check the device pin status and determine if private browsing lock toggle
+        // should be shown upon resuming.
         updatePreferences()
     }
 
