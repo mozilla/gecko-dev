@@ -54,6 +54,9 @@ skip-if = ["os == 'linux' && bits == 64"] # Bug 1577395
 
 ["browser_identityPopup_clearSiteData_extensions.js"]
 
+
+["browser_identityPopup_clearSiteData_privateBrowsingMode.js"]
+
 ["browser_identityPopup_custom_roots.js"]
 https_first_disabled = true
 
