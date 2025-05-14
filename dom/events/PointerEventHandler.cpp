@@ -564,8 +564,30 @@ Element* PointerEventHandler::GetPointerCapturingElement(uint32_t aPointerId) {
 }
 
 /* static */
+Element* PointerEventHandler::GetPendingPointerCapturingElement(
+    uint32_t aPointerId) {
+  PointerCaptureInfo* pointerCaptureInfo = GetPointerCaptureInfo(aPointerId);
+  if (pointerCaptureInfo) {
+    return pointerCaptureInfo->mPendingElement;
+  }
+  return nullptr;
+}
+
+/* static */
 Element* PointerEventHandler::GetPointerCapturingElement(
-    WidgetGUIEvent* aEvent) {
+    const WidgetGUIEvent* aEvent) {
+  return GetPointerCapturingElementInternal(CapturingState::Override, aEvent);
+}
+
+/* static */
+Element* PointerEventHandler::GetPendingPointerCapturingElement(
+    const WidgetGUIEvent* aEvent) {
+  return GetPointerCapturingElementInternal(CapturingState::Pending, aEvent);
+}
+
+/* static */
+Element* PointerEventHandler::GetPointerCapturingElementInternal(
+    CapturingState aCapturingState, const WidgetGUIEvent* aEvent) {
   if ((aEvent->mClass != ePointerEventClass &&
        aEvent->mClass != eMouseEventClass) ||
       aEvent->mMessage == ePointerDown || aEvent->mMessage == eMouseDown) {
@@ -584,11 +606,13 @@ Element* PointerEventHandler::GetPointerCapturingElement(
     return nullptr;
   }
 
-  WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
+  const WidgetMouseEvent* const mouseEvent = aEvent->AsMouseEvent();
   if (!mouseEvent) {
     return nullptr;
   }
-  return GetPointerCapturingElement(mouseEvent->pointerId);
+  return aCapturingState == CapturingState::Pending
+             ? GetPendingPointerCapturingElement(mouseEvent->pointerId)
+             : GetPointerCapturingElement(mouseEvent->pointerId);
 }
 
 /* static */
