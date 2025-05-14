@@ -35,19 +35,22 @@ add_setup(async function () {
   await ExperimentAPI.ready();
   EXPERIMENT_CLEANUPS = [
     await NimbusTestUtils.enrollWithFeatureConfig(
-      { featureId: "feature", value: { enabled: true } },
+      { featureId: "no-feature-firefox-desktop", value: {} },
       { slug: "test-experiment", branchSlug: "branch" }
     ),
     await NimbusTestUtils.enrollWithFeatureConfig(
-      { featureId: "feature", value: { enabled: true } },
+      { featureId: "no-feature-firefox-desktop", value: {} },
       { slug: "test-experiment-rollout", isRollout: true, branchSlug: "branch" }
     ),
+    () =>
+      ExperimentAPI.manager.store._deleteForTests("test-experiment-disabled"),
   ];
-  const disable = await NimbusTestUtils.enrollWithFeatureConfig(
-    { featureId: "feature-disabled", value: { enabled: false } },
-    { slug: "test-experiment-disabled", active: false }
+
+  await NimbusTestUtils.enrollWithFeatureConfig(
+    { featureId: "no-feature-firefox-desktop", value: {} },
+    { slug: "test-experiment-disabled" }
   );
-  disable();
+  ExperimentAPI.manager.unenroll("test-experiment-disabled");
 });
 
 add_task(async function testSendButton() {
