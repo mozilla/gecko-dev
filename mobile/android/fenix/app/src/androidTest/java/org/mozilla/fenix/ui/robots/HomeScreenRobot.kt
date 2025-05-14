@@ -158,24 +158,6 @@ class HomeScreenRobot {
     fun verifyWallpaperImageApplied(isEnabled: Boolean) =
         assertUIObjectExists(itemWithResId("$packageName:id/wallpaperImageView"), exists = isEnabled)
 
-    // Upgrading users onboarding dialog
-    fun verifyUpgradingUserOnboardingFirstScreen(testRule: ComposeTestRule) {
-        testRule.also {
-            Log.i(TAG, "verifyUpgradingUserOnboardingFirstScreen: Trying to verify that the upgrading user first onboarding screen title is displayed")
-            it.onNodeWithText(getStringResource(R.string.onboarding_home_welcome_title_2))
-                .assertIsDisplayed()
-            Log.i(TAG, "verifyUpgradingUserOnboardingFirstScreen: Verified that the upgrading user first onboarding screen title is displayed")
-            Log.i(TAG, "verifyUpgradingUserOnboardingFirstScreen: Trying to verify that the upgrading user first onboarding screen description is displayed")
-            it.onNodeWithText(getStringResource(R.string.onboarding_home_welcome_description))
-                .assertIsDisplayed()
-            Log.i(TAG, "verifyUpgradingUserOnboardingFirstScreen: Verified that the upgrading user first onboarding screen description is displayed")
-            Log.i(TAG, "verifyUpgradingUserOnboardingFirstScreen: Trying to verify that the upgrading user first onboarding \"Get started\" button is displayed")
-            it.onNodeWithText(getStringResource(R.string.onboarding_home_get_started_button))
-                .assertIsDisplayed()
-            Log.i(TAG, "verifyUpgradingUserOnboardingFirstScreen: Verified that the upgrading user first onboarding  \"Get started\" button is displayed")
-        }
-    }
-
     fun verifyFirstOnboardingCard(composeTestRule: ComposeTestRule) {
         composeTestRule.also {
             Log.i(TAG, "verifyFirstOnboardingCard: Trying to verify that the first onboarding screen title exists")
@@ -296,27 +278,6 @@ class HomeScreenRobot {
         Log.i(TAG, "clickCloseButton: Trying to click close onboarding button")
         testRule.onNode(hasContentDescription("Close")).performClick()
         Log.i(TAG, "clickCloseButton: Clicked close onboarding button")
-    }
-
-    fun verifyUpgradingUserOnboardingSecondScreen(testRule: ComposeTestRule) {
-        testRule.also {
-            Log.i(TAG, "verifyUpgradingUserOnboardingSecondScreen: Trying to verify that the upgrading user second onboarding screen title is displayed")
-            it.onNodeWithText(getStringResource(R.string.onboarding_home_sync_title_3))
-                .assertIsDisplayed()
-            Log.i(TAG, "verifyUpgradingUserOnboardingSecondScreen: Verified that the upgrading user second onboarding screen title is displayed")
-            Log.i(TAG, "verifyUpgradingUserOnboardingSecondScreen: Trying to verify that the upgrading user second onboarding screen description is displayed")
-            it.onNodeWithText(getStringResource(R.string.onboarding_home_sync_description))
-                .assertIsDisplayed()
-            Log.i(TAG, "verifyUpgradingUserOnboardingSecondScreen: Verified that the upgrading user second onboarding screen description is displayed")
-            Log.i(TAG, "verifyUpgradingUserOnboardingSecondScreen: Trying to verify that the upgrading user second onboarding \"Sign in\" button is displayed")
-            it.onNodeWithText(getStringResource(R.string.onboarding_home_sign_in_button))
-                .assertIsDisplayed()
-            Log.i(TAG, "verifyUpgradingUserOnboardingSecondScreen: Verified that the upgrading user second onboarding \"Sign in\" button is displayed")
-            Log.i(TAG, "verifyUpgradingUserOnboardingSecondScreen: Trying to that the verify upgrading user second onboarding \"Skip\" button is displayed")
-            it.onNodeWithText(getStringResource(R.string.onboarding_home_skip_button))
-                .assertIsDisplayed()
-            Log.i(TAG, "verifyUpgradingUserOnboardingSecondScreen: Verified that the upgrading user second onboarding \"Skip\" button is displayed")
-        }
     }
 
     fun clickSkipButton(testRule: ComposeTestRule) {
