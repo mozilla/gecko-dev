@@ -2,7 +2,6 @@ import os
 import unittest
 
 import mozharness.base.python as python
-import mozunit
 
 here = os.path.dirname(os.path.abspath(__file__))
 
@@ -37,4 +36,4 @@ class TestVirtualenvMixin(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    mozunit.main()
+    unittest.main()

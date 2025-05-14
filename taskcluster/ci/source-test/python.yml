@@ -171,12 +171,14 @@ mozbase:
 
 mozharness:
     description: mozharness integration tests
-    python-version: [3]
     treeherder:
-        symbol: mh
+        symbol: py3(mh)
     run:
-        using: python-test
-        subsuite: mozharness
+        using: run-task
+        cache-dotcache: true
+        cwd: '{checkout}/testing/mozharness'
+        command: >
+            /usr/local/bin/tox -e py39-hg5.2
     when:
         files-changed:
             - 'testing/mozharness/**'
