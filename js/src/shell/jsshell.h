@@ -113,7 +113,6 @@ extern bool enableWasm;
 extern bool enableSharedMemory;
 extern bool enableWasmBaseline;
 extern bool enableWasmOptimizing;
-extern bool enableWasmVerbose;
 extern bool enableTestWasmAwaitTier2;
 extern bool enableSourcePragmas;
 extern bool enableAsyncStacks;

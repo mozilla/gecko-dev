@@ -87,6 +87,7 @@ class LogModule {
 #define FOR_EACH_JS_LOG_MODULE(_)                                            \
   _(debug)                /* A predefined log module for casual debugging */ \
   _(wasmPerf)             /* Wasm performance statistics */                  \
+  _(wasmApi)              /* Wasm JS-API tracing */                          \
   _(fuseInvalidation)     /* Invalidation triggered by a fuse  */            \
   _(thenable)             /* Thenable on standard proto*/                    \
   _(startup)              /* engine startup logging */                       \

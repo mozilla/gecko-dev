@@ -24,7 +24,6 @@ class JS_PUBLIC_API ContextOptions {
   ContextOptions()
       : wasm_(true),
         wasmForTrustedPrinciples_(true),
-        wasmVerbose_(false),
         wasmBaseline_(true),
         wasmIon_(true),
         testWasmAwaitTier2_(false),
@@ -64,12 +63,6 @@ class JS_PUBLIC_API ContextOptions {
   bool wasmForTrustedPrinciples() const { return wasmForTrustedPrinciples_; }
   ContextOptions& setWasmForTrustedPrinciples(bool flag) {
     wasmForTrustedPrinciples_ = flag;
-    return *this;
-  }
-
-  bool wasmVerbose() const { return wasmVerbose_; }
-  ContextOptions& setWasmVerbose(bool flag) {
-    wasmVerbose_ = flag;
     return *this;
   }
 
@@ -179,7 +172,6 @@ class JS_PUBLIC_API ContextOptions {
   // WASM options.
   bool wasm_ : 1;
   bool wasmForTrustedPrinciples_ : 1;
-  bool wasmVerbose_ : 1;
   bool wasmBaseline_ : 1;
   bool wasmIon_ : 1;
   bool testWasmAwaitTier2_ : 1;

@@ -839,7 +839,6 @@ bool shell::enableWasm = false;
 bool shell::enableSharedMemory = SHARED_MEMORY_DEFAULT;
 bool shell::enableWasmBaseline = false;
 bool shell::enableWasmOptimizing = false;
-bool shell::enableWasmVerbose = false;
 bool shell::enableTestWasmAwaitTier2 = false;
 bool shell::enableSourcePragmas = true;
 bool shell::enableAsyncStacks = false;
@@ -11832,7 +11831,6 @@ static void SetWorkerContextOptions(JSContext* cx) {
       .setWasmBaseline(enableWasmBaseline)
       .setWasmIon(enableWasmOptimizing)
 
-      .setWasmVerbose(enableWasmVerbose)
       .setTestWasmAwaitTier2(enableTestWasmAwaitTier2)
       .setSourcePragmas(enableSourcePragmas);
 
@@ -13358,7 +13356,6 @@ bool SetContextWasmOptions(JSContext* cx, const OptionParser& op) {
     }
   }
 
-  enableWasmVerbose = op.getBoolOption("wasm-verbose");
   enableTestWasmAwaitTier2 = op.getBoolOption("test-wasm-await-tier2");
 
   JS::ContextOptionsRef(cx)
