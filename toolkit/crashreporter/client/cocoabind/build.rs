@@ -42,6 +42,15 @@ const TYPES: &[&str] = &[
 ];
 
 fn main() {
+    // Ignore BINDGEN_SYSTEM_FLAGS' -std=gnu++## flag. cocoabind parses Cocoa.h
+    // with `-x objective-c` and bindgen/libclang rejects `-std=gnu++##` (and
+    // `-std=c++##`) as incompatible with Objective-C.
+    let cflags: Vec<&str> = CFLAGS
+        .iter()
+        .copied()
+        .filter(|flag| !flag.starts_with("-std=gnu++") && !flag.starts_with("-std=c++"))
+        .collect();
+
     let mut builder = bindgen::Builder::default()
         .header_contents(
             "cocoa_bindings.h",
@@ -51,7 +60,7 @@ fn main() {
         )
         .generate_block(true)
         .prepend_enum_name(false)
-        .clang_args(CFLAGS)
+        .clang_args(cflags)
         .clang_args(["-x", "objective-c"])
         .clang_arg("-fblocks")
         .derive_default(true)
