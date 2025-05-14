@@ -16,12 +16,37 @@ ChromeUtils.defineESModuleGetters(
   ES_MODULES_OPTIONS
 );
 
-ChromeUtils.defineLazyGetter(lazy, "console", () => {
-  return console.createInstance({
-    maxLogLevelPref: IN_WORKER ? "Error" : "browser.ml.logLevel",
-    prefix: "ML:Utils",
+/**
+ * Log level set by the pipeline.
+ *
+ * @type {string}
+ */
+let logLevel = "Error";
+
+/**
+ * Sets the log level.
+ *
+ * @param {string} level - The log level.
+ */
+export function setLogLevel(level) {
+  logLevel = level;
+}
+
+if (IN_WORKER) {
+  ChromeUtils.defineLazyGetter(lazy, "console", () => {
+    return console.createInstance({
+      maxLogLevel: logLevel, // we can't use maxLogLevelPref in workers.
+      prefix: "ML:Utils",
+    });
   });
-});
+} else {
+  ChromeUtils.defineLazyGetter(lazy, "console", () => {
+    return console.createInstance({
+      maxLogLevelPref: "browser.ml.logLevel",
+      prefix: "ML:Utils",
+    });
+  });
+}
 
 /** The name of the remote settings collection holding block list */
 const RS_BLOCK_LIST_COLLECTION = "ml-inference-words-block-list";
@@ -1039,5 +1064,6 @@ export function engineIdToAddonId(engineId) {
  * @returns {string}
  */
 export function generateUUID() {
+  lazy.console.debug("generating uuid");
   return crypto.randomUUID();
 }

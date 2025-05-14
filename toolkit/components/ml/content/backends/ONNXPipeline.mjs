@@ -35,6 +35,7 @@ ChromeUtils.defineESModuleGetters(
   {
     Progress: "chrome://global/content/ml/Utils.sys.mjs",
     generateUUID: "chrome://global/content/ml/Utils.sys.mjs",
+    setLogLevel: "chrome://global/content/ml/Utils.sys.mjs",
   },
   { global: "current" }
 );
@@ -489,6 +490,7 @@ export class ONNXPipeline {
 
     if (options.logLevel) {
       _logLevel = options.logLevel;
+      lazy.setLogLevel(options.logLevel); // setting Utils log level
     }
     const taskName = options.taskName;
     lazy.console.debug(`Initializing Pipeline for task ${taskName}`);
