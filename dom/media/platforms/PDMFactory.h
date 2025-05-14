@@ -68,6 +68,13 @@ class PDMFactory final {
 
   static bool AllDecodersAreRemote();
 
+  // For GTests
+  class MOZ_RAII AutoForcePDM {
+   public:
+    explicit AutoForcePDM(PlatformDecoderModule* aPDM) { ForcePDM(aPDM); }
+    ~AutoForcePDM() { ForcePDM(nullptr); }
+  };
+
  private:
   virtual ~PDMFactory();
 
@@ -101,6 +108,7 @@ class PDMFactory final {
 
   friend class RemoteVideoDecoderParent;
   static void EnsureInit();
+  static void ForcePDM(PlatformDecoderModule* aPDM);
 };
 
 }  // namespace mozilla
