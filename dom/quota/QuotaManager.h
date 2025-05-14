@@ -497,7 +497,11 @@ class QuotaManager final : public BackgroundThreadObject {
 
  public:
   RefPtr<BoolPromise> InitializePersistentClient(
-      const PrincipalInfo& aPrincipalInfo, Client::Type aClientType);
+      const ClientMetadata& aClientMetadata);
+
+  RefPtr<BoolPromise> InitializePersistentClient(
+      const ClientMetadata& aClientMetadata,
+      RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
   // Returns a pair of an nsIFile object referring to the directory, and a bool
   // indicating whether the directory was newly created.
@@ -505,8 +509,11 @@ class QuotaManager final : public BackgroundThreadObject {
   EnsurePersistentClientIsInitialized(const ClientMetadata& aClientMetadata);
 
   RefPtr<BoolPromise> InitializeTemporaryClient(
-      PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo,
-      Client::Type aClientType);
+      const ClientMetadata& aClientMetadata);
+
+  RefPtr<BoolPromise> InitializeTemporaryClient(
+      const ClientMetadata& aClientMetadata,
+      RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
   // Returns a pair of an nsIFile object referring to the directory, and a bool
   // indicating whether the directory was newly created.
