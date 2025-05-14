@@ -93,7 +93,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
 
   // Options passed to the constructor. May be accessed on any thread, but the
   // options are unchanged during the capturer's lifetime.
-  DesktopCaptureOptions capture_options_;
+  const DesktopCaptureOptions capture_options_;
 
   // Signals that a permanent error occurred. This may be set on any thread, and
   // is read by CaptureFrame() which runs on the caller's thread.
