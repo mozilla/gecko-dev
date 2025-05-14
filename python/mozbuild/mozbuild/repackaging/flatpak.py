@@ -152,7 +152,7 @@ def repackage_flatpak(
             "FLATPAK_BRANCH": flatpak_branch,
             "VERSION": version,
             "DATE": date,
-            "DEB_PKG_NAME": release_product,
+            "PKG_NAME": release_product,
             "DBusActivatable": "false",
             "Icon": flatpak_name,
             "StartupWMClass": release_product,
