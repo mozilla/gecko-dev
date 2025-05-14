@@ -140,12 +140,10 @@ export class LoginForm extends MozLitElement {
           <moz-button
             type="icon ghost"
             iconSrc="chrome://browser/skin/back.svg"
+            data-l10n-id="contextual-manager-passwords-remove-login-card-back-message"
             @click=${this.#toggleDeleteCard}
           >
           </moz-button>
-          <p
-            data-l10n-id="contextual-manager-passwords-remove-login-card-back-message"
-          ></p>
         </div>
         <div class="remove-card-text">
           <h3
