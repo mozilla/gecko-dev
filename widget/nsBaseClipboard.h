@@ -76,7 +76,11 @@ class nsBaseClipboard : public nsIClipboard {
       mozilla::dom::WindowContext* aRequestingWindowContext,
       nsIClipboardGetDataSnapshotCallback* aCallback);
 
+  // TODO: This will be removed in a subsequent patch after all platforms
+  // implement the new version of GetNativeClipboardData().
   using GetDataCallback = mozilla::MoveOnlyFunction<void(nsresult)>;
+  using GetNativeDataCallback = mozilla::MoveOnlyFunction<void(
+      mozilla::Result<nsCOMPtr<nsISupports>, nsresult>)>;
   using HasMatchingFlavorsCallback = mozilla::MoveOnlyFunction<void(
       mozilla::Result<nsTArray<nsCString>, nsresult>)>;
 
@@ -104,11 +108,23 @@ class nsBaseClipboard : public nsIClipboard {
   // Implement the native clipboard behavior.
   NS_IMETHOD SetNativeClipboardData(nsITransferable* aTransferable,
                                     ClipboardType aWhichClipboard) = 0;
+  // TODO: This will be removed in a subsequent patch after all platforms
+  // implement the new version of GetNativeClipboardData().
   NS_IMETHOD GetNativeClipboardData(nsITransferable* aTransferable,
-                                    ClipboardType aWhichClipboard) = 0;
+                                    ClipboardType aWhichClipboard);
+  virtual mozilla::Result<nsCOMPtr<nsISupports>, nsresult>
+  GetNativeClipboardData(const nsACString& aFlavor,
+                         ClipboardType aWhichClipboard) {
+    return mozilla::Err(NS_ERROR_NOT_IMPLEMENTED);
+  }
+  // TODO: This will be removed in a subsequent patch after all platforms
+  // implement the new version of AsyncGetNativeClipboardData().
   virtual void AsyncGetNativeClipboardData(nsITransferable* aTransferable,
                                            ClipboardType aWhichClipboard,
                                            GetDataCallback&& aCallback);
+  virtual void AsyncGetNativeClipboardData(const nsACString& aFlavor,
+                                           ClipboardType aWhichClipboard,
+                                           GetNativeDataCallback&& aCallback);
   virtual nsresult EmptyNativeClipboardData(ClipboardType aWhichClipboard) = 0;
   virtual mozilla::Result<bool, nsresult> HasNativeClipboardDataMatchingFlavors(
       const nsTArray<nsCString>& aFlavorList,
