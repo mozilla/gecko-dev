@@ -24,7 +24,6 @@
 #include "wasm/WasmModuleTypes.h"
 #include "wasm/WasmOpIter.h"
 #include "wasm/WasmTypeDef.h"
-#include "wasm/WasmValidate.h"
 #include "wasm/WasmValType.h"
 
 namespace js {
@@ -121,14 +120,14 @@ extern void DumpFunctionBody(const CodeMetadata& codeMeta, uint32_t funcIndex,
                              const uint8_t* bodyStart, uint32_t bodySize,
                              StructuredPrinter& out);
 
-struct OpDumper : BaseOpDumper {
+struct OpDumper {
   StructuredPrinter& out;
   const TypeContext* types;
   int numOps = 0;
   explicit OpDumper(StructuredPrinter& out, const TypeContext* types = nullptr)
       : out(out), types(types) {}
 
-  void dumpOpBegin(OpBytes op) override {
+  void dumpOpBegin(OpBytes op) {
     out.brk(" ", "\n");
     out.put(op.toString());
     numOps += 1;
@@ -136,8 +135,8 @@ struct OpDumper : BaseOpDumper {
       out.expand();
     }
   }
-  void dumpOpEnd() override {}
-  void dumpTypeIndex(uint32_t typeIndex, bool asTypeUse = false) override {
+  void dumpOpEnd() {}
+  void dumpTypeIndex(uint32_t typeIndex, bool asTypeUse = false) {
     if (asTypeUse) {
       out.put(" (type");
     }
@@ -146,31 +145,31 @@ struct OpDumper : BaseOpDumper {
       out.put(")");
     }
   }
-  void dumpFuncIndex(uint32_t funcIndex) override {
+  void dumpFuncIndex(uint32_t funcIndex) {
     out.printf(" %" PRIu32, funcIndex);
   }
-  void dumpTableIndex(uint32_t tableIndex) override {
+  void dumpTableIndex(uint32_t tableIndex) {
     out.printf(" %" PRIu32, tableIndex);
   }
-  void dumpGlobalIndex(uint32_t globalIndex) override {
+  void dumpGlobalIndex(uint32_t globalIndex) {
     out.printf(" %" PRIu32, globalIndex);
   }
-  void dumpMemoryIndex(uint32_t memoryIndex) override {
+  void dumpMemoryIndex(uint32_t memoryIndex) {
     out.printf(" %" PRIu32, memoryIndex);
   }
-  void dumpElemIndex(uint32_t elemIndex) override {
+  void dumpElemIndex(uint32_t elemIndex) {
     out.printf(" %" PRIu32, elemIndex);
   }
-  void dumpDataIndex(uint32_t dataIndex) override {
+  void dumpDataIndex(uint32_t dataIndex) {
     out.printf(" %" PRIu32, dataIndex);
   }
-  void dumpTagIndex(uint32_t tagIndex) override {
+  void dumpTagIndex(uint32_t tagIndex) {
     out.printf(" %" PRIu32, tagIndex);
   }
-  void dumpLocalIndex(uint32_t localIndex) override {
+  void dumpLocalIndex(uint32_t localIndex) {
     out.printf(" %" PRIu32, localIndex);
   }
-  void dumpBlockType(BlockType type) override {
+  void dumpBlockType(BlockType type) {
     if (type.params().length() > 0) {
       out.put(" (param");
       for (uint32_t i = 0; i < type.params().length(); i++) {
@@ -186,15 +185,15 @@ struct OpDumper : BaseOpDumper {
       out.put(")");
     }
   }
-  void dumpI32Const(int32_t constant) override {
+  void dumpI32Const(int32_t constant) {
     out.printf(" %" PRId32, constant);
   }
-  void dumpI64Const(int64_t constant) override {
+  void dumpI64Const(int64_t constant) {
     out.printf(" %" PRId64, constant);
   }
-  void dumpF32Const(float constant) override { out.printf(" %f", constant); }
-  void dumpF64Const(double constant) override { out.printf(" %lf", constant); }
-  void dumpV128Const(V128 constant) override {
+  void dumpF32Const(float constant) { out.printf(" %f", constant); }
+  void dumpF64Const(double constant) { out.printf(" %lf", constant); }
+  void dumpV128Const(V128 constant) {
     out.printf("i8x16 %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
                constant.bytes[0], constant.bytes[1], constant.bytes[2],
                constant.bytes[3], constant.bytes[4], constant.bytes[5],
@@ -203,26 +202,26 @@ struct OpDumper : BaseOpDumper {
                constant.bytes[12], constant.bytes[13], constant.bytes[14],
                constant.bytes[15]);
   }
-  void dumpVectorMask(V128 mask) override {
+  void dumpVectorMask(V128 mask) {
     out.printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d", mask.bytes[0],
                mask.bytes[1], mask.bytes[2], mask.bytes[3], mask.bytes[4],
                mask.bytes[5], mask.bytes[6], mask.bytes[7], mask.bytes[8],
                mask.bytes[9], mask.bytes[10], mask.bytes[11], mask.bytes[12],
                mask.bytes[13], mask.bytes[14], mask.bytes[15]);
   }
-  void dumpRefType(RefType type) override {
+  void dumpRefType(RefType type) {
     out.put(" ");
     wasm::DumpRefType(type, out, types);
   }
-  void dumpHeapType(RefType type) override {
+  void dumpHeapType(RefType type) {
     out.put(" ");
     wasm::DumpHeapType(type, out, types);
   }
-  void dumpValType(ValType type) override {
+  void dumpValType(ValType type) {
     out.put(" ");
     wasm::DumpValType(type, out, types);
   }
-  void dumpTryTableCatches(const TryTableCatchVector& catches) override {
+  void dumpTryTableCatches(const TryTableCatchVector& catches) {
     for (uint32_t i = 0; i < catches.length(); i++) {
       const TryTableCatch& tryCatch = catches[i];
       if (tryCatch.tagIndex == CatchAllIndex) {
@@ -243,7 +242,7 @@ struct OpDumper : BaseOpDumper {
     }
   }
   void dumpLinearMemoryAddress(
-      LinearMemoryAddress<mozilla::Nothing> addr) override {
+      LinearMemoryAddress<mozilla::Nothing> addr) {
     if (addr.memoryIndex != 0) {
       out.printf(" %d", addr.memoryIndex);
     }
@@ -254,26 +253,26 @@ struct OpDumper : BaseOpDumper {
       out.printf(" align=%d", addr.align);
     }
   }
-  void dumpBlockDepth(uint32_t relativeDepth) override {
+  void dumpBlockDepth(uint32_t relativeDepth) {
     out.printf(" %d", relativeDepth);
   }
-  void dumpBlockDepths(const Uint32Vector& relativeDepths) override {
+  void dumpBlockDepths(const Uint32Vector& relativeDepths) {
     for (uint32_t i = 0; i < relativeDepths.length(); i++) {
       out.printf(" %d", relativeDepths[i]);
     }
   }
-  void dumpFieldIndex(uint32_t fieldIndex) override {
+  void dumpFieldIndex(uint32_t fieldIndex) {
     out.printf(" %d", fieldIndex);
   }
-  void dumpNumElements(uint32_t numElements) override {
+  void dumpNumElements(uint32_t numElements) {
     out.printf(" %d", numElements);
   }
-  void dumpLaneIndex(uint32_t laneIndex) override {
+  void dumpLaneIndex(uint32_t laneIndex) {
     out.printf(" %d", laneIndex);
   }
 
-  void startScope() override { out.pushScope(); }
-  void endScope() override { out.popScope(); }
+  void startScope() { out.pushScope(); }
+  void endScope() { out.popScope(); }
 };
 
 }  // namespace wasm

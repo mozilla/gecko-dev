@@ -172,44 +172,43 @@ using ValidatingOpIter = OpIter<ValidatingPolicy>;
 [[nodiscard]] bool Validate(JSContext* cx, const BytecodeSource& bytecode,
                             const FeatureOptions& options, UniqueChars* error);
 
-// A base type for dumping wasm ops. Does nothing by default; extend to add
-// actual behavior.
-struct BaseOpDumper {
-  virtual void dumpOpBegin(OpBytes op) {}
-  virtual void dumpOpEnd() {}
-  virtual void dumpTypeIndex(uint32_t typeIndex, bool asTypeUse = false) {}
-  virtual void dumpFuncIndex(uint32_t funcIndex) {}
-  virtual void dumpTableIndex(uint32_t tableIndex) {}
-  virtual void dumpGlobalIndex(uint32_t globalIndex) {}
-  virtual void dumpMemoryIndex(uint32_t memoryIndex) {}
-  virtual void dumpElemIndex(uint32_t elemIndex) {}
-  virtual void dumpDataIndex(uint32_t dataIndex) {}
-  virtual void dumpTagIndex(uint32_t tagIndex) {}
-  virtual void dumpLocalIndex(uint32_t localIndex) {}
-  virtual void dumpBlockType(BlockType type) {}
-  virtual void dumpI32Const(int32_t constant) {}
-  virtual void dumpI64Const(int64_t constant) {}
-  virtual void dumpF32Const(float constant) {}
-  virtual void dumpF64Const(double constant) {}
-  virtual void dumpV128Const(V128 constant) {}
-  virtual void dumpVectorMask(V128 mask) {}
-  virtual void dumpRefType(RefType type) {}
-  virtual void dumpHeapType(RefType type) {}
-  virtual void dumpValType(ValType type) {}
-  virtual void dumpTryTableCatches(const TryTableCatchVector& catches) {}
-  virtual void dumpLinearMemoryAddress(
+struct NopOpDumper {
+  void dumpOpBegin(OpBytes op) {}
+  void dumpOpEnd() {}
+  void dumpTypeIndex(uint32_t typeIndex, bool asTypeUse = false) {}
+  void dumpFuncIndex(uint32_t funcIndex) {}
+  void dumpTableIndex(uint32_t tableIndex) {}
+  void dumpGlobalIndex(uint32_t globalIndex) {}
+  void dumpMemoryIndex(uint32_t memoryIndex) {}
+  void dumpElemIndex(uint32_t elemIndex) {}
+  void dumpDataIndex(uint32_t dataIndex) {}
+  void dumpTagIndex(uint32_t tagIndex) {}
+  void dumpLocalIndex(uint32_t localIndex) {}
+  void dumpBlockType(BlockType type) {}
+  void dumpI32Const(int32_t constant) {}
+  void dumpI64Const(int64_t constant) {}
+  void dumpF32Const(float constant) {}
+  void dumpF64Const(double constant) {}
+  void dumpV128Const(V128 constant) {}
+  void dumpVectorMask(V128 mask) {}
+  void dumpRefType(RefType type) {}
+  void dumpHeapType(RefType type) {}
+  void dumpValType(ValType type) {}
+  void dumpTryTableCatches(const TryTableCatchVector& catches) {}
+  void dumpLinearMemoryAddress(
       LinearMemoryAddress<mozilla::Nothing> addr) {}
-  virtual void dumpBlockDepth(uint32_t relativeDepth) {}
-  virtual void dumpBlockDepths(const Uint32Vector& relativeDepths) {}
-  virtual void dumpFieldIndex(uint32_t fieldIndex) {}
-  virtual void dumpNumElements(uint32_t numElements) {}
-  virtual void dumpLaneIndex(uint32_t laneIndex) {}
+  void dumpBlockDepth(uint32_t relativeDepth) {}
+  void dumpBlockDepths(const Uint32Vector& relativeDepths) {}
+  void dumpFieldIndex(uint32_t fieldIndex) {}
+  void dumpNumElements(uint32_t numElements) {}
+  void dumpLaneIndex(uint32_t laneIndex) {}
 
-  virtual void startScope() {};
-  virtual void endScope() {};
+  void startScope() {};
+  void endScope() {};
 };
 
-[[nodiscard]] bool ValidateOps(ValidatingOpIter& iter, BaseOpDumper& dumper,
+template<class T>
+[[nodiscard]] bool ValidateOps(ValidatingOpIter& iter, T& dumper,
                                const CodeMetadata& codeMeta);
 
 }  // namespace wasm
