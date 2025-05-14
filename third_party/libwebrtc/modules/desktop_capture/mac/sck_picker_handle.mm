@@ -13,7 +13,7 @@
 #import <ScreenCaptureKit/ScreenCaptureKit.h>
 
 #include "absl/base/attributes.h"
-#include "api/sequence_checker.h"
+#include "rtc_base/synchronization/mutex.h"
 
 #include <memory>
 #include <optional>
@@ -25,62 +25,53 @@ class SckPickerProxy;
 class API_AVAILABLE(macos(14.0)) SckPickerProxy {
  public:
   static SckPickerProxy* Get() {
-    static SckPickerProxy* g_picker = new SckPickerProxy();
-    return g_picker;
+    static SckPickerProxy* sPicker = new SckPickerProxy();
+    return sPicker;
   }
-
-  SckPickerProxy() : thread_checker_(SequenceChecker::kDetached) {}
 
   bool AtCapacity() const {
-    RTC_DCHECK_RUN_ON(&thread_checker_);
-    return handle_count_ == kMaximumStreamCount;
+    MutexLock lock(&mutex_);
+    return AtCapacityLocked();
   }
 
-  SCContentSharingPicker* GetPicker() const {
-    return SCContentSharingPicker.sharedPicker;
-  }
+  SCContentSharingPicker* GetPicker() const { return SCContentSharingPicker.sharedPicker; }
 
-  ABSL_MUST_USE_RESULT std::optional<DesktopCapturer::SourceId>
-      AcquireSourceId() {
-    RTC_DCHECK_RUN_ON(&thread_checker_);
-    if (AtCapacity()) {
+  ABSL_MUST_USE_RESULT std::optional<DesktopCapturer::SourceId> AcquireSourceId() {
+    MutexLock lock(&mutex_);
+    if (AtCapacityLocked()) {
       return std::nullopt;
     }
-    if (handle_count_ == 0) {
+    if (handle_count_++ == 0) {
       auto* picker = GetPicker();
-      picker.maximumStreamCount =
-          [NSNumber numberWithUnsignedInt:kMaximumStreamCount];
+      picker.maximumStreamCount = [NSNumber numberWithUnsignedInt:maximumStreamCount];
       picker.active = YES;
     }
-    handle_count_ += 1;
-    unique_source_id_ += 1;
-    return unique_source_id_;
+    return ++unique_source_id_;
   }
 
   void RelinquishSourceId(DesktopCapturer::SourceId source) {
-    RTC_DCHECK_RUN_ON(&thread_checker_);
-    handle_count_ -= 1;
-    if (handle_count_ > 0) {
+    MutexLock lock(&mutex_);
+    if (--handle_count_ > 0) {
       return;
     }
-    // Detach now in case the next user (possibly after a long time) uses a
-    // different thread.
-    thread_checker_.Detach();
     GetPicker().active = NO;
   }
 
  private:
-  webrtc::SequenceChecker thread_checker_;
-  // 100 is an arbitrary number that seems high enough to never get reached,
-  // while still providing a reasonably low upper bound.
-  static constexpr size_t kMaximumStreamCount = 100;
-  size_t handle_count_ RTC_GUARDED_BY(thread_checker_) = 0;
-  DesktopCapturer::SourceId unique_source_id_ RTC_GUARDED_BY(thread_checker_) =
-      0;
+  bool AtCapacityLocked() const {
+    mutex_.AssertHeld();
+    return handle_count_ == maximumStreamCount;
+  }
+
+  mutable Mutex mutex_;
+  // 100 is an arbitrary number that seems high enough to never get reached, while still providing
+  // a reasonably low upper bound.
+  static constexpr size_t maximumStreamCount = 100;
+  size_t handle_count_ RTC_GUARDED_BY(mutex_) = 0;
+  DesktopCapturer::SourceId unique_source_id_ RTC_GUARDED_BY(mutex_) = 0;
 };
 
-class API_AVAILABLE(macos(14.0)) SckPickerHandle
-    : public SckPickerHandleInterface {
+class API_AVAILABLE(macos(14.0)) SckPickerHandle : public SckPickerHandleInterface {
  public:
   static std::unique_ptr<SckPickerHandle> Create(SckPickerProxy* proxy) {
     std::optional<DesktopCapturer::SourceId> id = proxy->AcquireSourceId();
@@ -92,9 +83,7 @@ class API_AVAILABLE(macos(14.0)) SckPickerHandle
 
   ~SckPickerHandle() { proxy_->RelinquishSourceId(source_); }
 
-  SCContentSharingPicker* GetPicker() const override {
-    return proxy_->GetPicker();
-  }
+  SCContentSharingPicker* GetPicker() const override { return proxy_->GetPicker(); }
 
   DesktopCapturer::SourceId Source() const override { return source_; }
 
