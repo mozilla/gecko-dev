@@ -1591,11 +1591,6 @@ impl Renderer {
                     "Received frame depends on a later GPU cache epoch ({:?}) than one we received last via `UpdateGpuCache` ({:?})",
                     frame.gpu_cache_frame_id, self.gpu_cache_frame_id);
 
-                {
-                    profile_scope!("gl.flush");
-                    self.device.gl().flush();  // early start on gpu cache updates
-                }
-
                 self.draw_frame(
                     frame,
                     device_size,
@@ -5049,10 +5044,6 @@ impl Renderer {
                 &mut self.device,
                 &pass.textures_to_invalidate,
             );
-            {
-                profile_scope!("gl.flush");
-                self.device.gl().flush();
-            }
         }
 
         self.composite_frame(
