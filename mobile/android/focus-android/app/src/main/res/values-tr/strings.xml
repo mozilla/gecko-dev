@@ -488,6 +488,8 @@
   <string name="onboarding_first_screen_privacy_notice_link">Gizlilik Bildirimi</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Kabul et ve devam et</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue_2">Devam et</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
   <string name="a11y_link_available">Kullanılabilir bağlantı var</string>
   <!--

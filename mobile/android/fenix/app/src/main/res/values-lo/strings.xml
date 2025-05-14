@@ -115,11 +115,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">ຊອກຫາໄດ້ໄວຂຶ້ນດ້ວຍການນຳທາງໃໝ່</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">ຊອກຫາໄດ້ໄວຂຶ້ນດ້ວຍການນຳທາງໃໝ່</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">ໃນເວັບໄຊທ໌ໃດຫນຶ່ງ, ແຖບນີ້ tucks ທັນທີທີ່ທ່ານເລື່ອນລົງສໍາລັບພື້ນທີ່ຄົ້ນຫາເພີ່ມເຕີມ.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">ໃນເວັບໄຊທ໌ໃດຫນຶ່ງ, ແຖບນີ້ tucks ທັນທີທີ່ທ່ານເລື່ອນລົງສໍາລັບພື້ນທີ່ຄົ້ນຫາເພີ່ມເຕີມ.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">ແຕະລູກສອນຄ້າງໄວ້ເພື່ອໂດດໄປມາລະຫວ່າງໜ້າຕ່າງໆໃນປະຫວັດຂອງແຖບນີ້.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">ແຕະລູກສອນຄ້າງໄວ້ເພື່ອໂດດໄປມາລະຫວ່າງໜ້າຕ່າງໆໃນປະຫວັດຂອງແຖບນີ້.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -630,7 +630,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">ການທ່ອງເວັບທີ່ວ່ອງໄວ ແລະ ປອດໄພ</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">ເຫັນດີ ແລະ ສືບຕໍ່</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">ເຫັນດີ ແລະ ສືບຕໍ່</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">ໂດຍການດຳເນີນການຕໍ່, ທ່ານເຫັນດີນຳ %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1204,7 +1204,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">ປັດແຖບເຄື່ອງມືຂຶ້ນເພື່ອເປີດແທັບ</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">ເລື່ອນເພື່ອເຊື່ອງແຖບທີ່ຢູ່ ແລະ ແຖບເຄື່ອງມື</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">ເລື່ອນເພື່ອເຊື່ອງແຖບທີ່ຢູ່ ແລະ ແຖບເຄື່ອງມື</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">ປັດແຖບທີ່ຢູ່ທາງຂ້າງເພື່ອສະຫຼັບແຖບ</string>
   <!--

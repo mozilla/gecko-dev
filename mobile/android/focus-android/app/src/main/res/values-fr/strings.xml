@@ -488,6 +488,8 @@
   <string name="onboarding_first_screen_privacy_notice_link">Politique de confidentialité.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Accepter et continuer</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue_2">Continuer</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
   <string name="a11y_link_available">Lien disponible</string>
   <!--

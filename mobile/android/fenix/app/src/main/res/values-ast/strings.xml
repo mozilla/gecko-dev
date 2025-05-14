@@ -111,11 +111,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Restola más rápido cola navegación nueva</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Restola más rápido cola navegación nueva</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">Nun sitiu web, esta barra escuéndese a midida que te desplaces p\'abaxo pa consiguir más espaciu.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Nun sitiu web, esta barra escuéndese a midida que te desplaces p\'abaxo pa consiguir más espaciu.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Ten primíes les fleches pa saltar de páxina nel historial d\'esta llingüeta.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Ten primíes les fleches pa saltar de páxina nel historial d\'esta llingüeta.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
   <string name="camera_permissions_needed_positive_button_text">Dir a Configuración</string>
   <!-- Text for the negative action button to dismiss the dialog. -->

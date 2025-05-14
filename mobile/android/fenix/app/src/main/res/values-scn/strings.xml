@@ -117,11 +117,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Nàvica cchiù lestu câ navicazzioni nova</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Nàvica cchiù lestu câ navicazzioni nova</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">Nnôn situ, sta sbarra s\'ammuccia quannu tiri versu jusu p\'aviri cchiù spazziu di navicazzioni.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Nnôn situ, sta sbarra s\'ammuccia quannu tiri versu jusu p\'aviri cchiù spazziu di navicazzioni.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Tocca e teni ammaccati i filecci pi sautari ntra i pàggini nnâ crunuluggìa di sta scheda.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Tocca e teni ammaccati i filecci pi sautari ntra i pàggini nnâ crunuluggìa di sta scheda.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -632,7 +632,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">Navicazzioni lesta e sicura</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">Accetta e cuntinua</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Accetta e cuntinua</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Cuntinuannu, accetti i %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1206,7 +1206,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Tira susu pi gràpiri i schedi</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">Tira p\'ammucciari a barra dî nnirizzi e chiḍḍa dî stigghi</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">Tira p\'ammucciari a barra dî nnirizzi e chiḍḍa dî stigghi</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Tira a barra dî nnirizzi di ciancu pi canciari schedi</string>
   <!--

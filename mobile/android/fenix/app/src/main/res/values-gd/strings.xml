@@ -115,11 +115,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Dèan brabhsadh nas luaithe leis an t-seòladaireachd ùr</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Dèan brabhsadh nas luaithe leis an t-seòladaireachd ùr</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">Air làrach-lìn, crìonaidh am bàr seo air falbh is tu a’ sgroladh sìos airson ’s gum bi barrachd àite agad.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Air làrach-lìn, crìonaidh am bàr seo air falbh is tu a’ sgroladh sìos airson ’s gum bi barrachd àite agad.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Thoir gnogag air na saighdean is cùm iad airson leum a ghearradh eadar duilleagan eachdraidh an taba seo.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Thoir gnogag air na saighdean is cùm iad airson leum a ghearradh eadar duilleagan eachdraidh an taba seo.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Tha feum air inntrigeadh dhan chamara. Tadhail air roghainnean Android, thoir gnogag air na ceadan is an uairsin air “Ceadaich”.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1028,7 +1028,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Grad-shlaighd am bàr-inneal suas airson tabaichean fhosgladh</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">Dèan sgroladh airson bàr an t-seòlaidh is am bàr-inneal a chur am falach</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">Dèan sgroladh airson bàr an t-seòlaidh is am bàr-inneal a chur am falach</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Grad-shlaighd bàr an t-seòlaidh gu taobh airson leum a ghearradh gu taba eile</string>
   <!--

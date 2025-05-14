@@ -114,7 +114,7 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Аглядайце хутчэй з новай навігацыяй</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Аглядайце хутчэй з новай навігацыяй</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 

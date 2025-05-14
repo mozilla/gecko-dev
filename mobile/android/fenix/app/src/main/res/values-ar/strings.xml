@@ -114,11 +114,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">تصفح أسرع مع نظام التنقل الجديد</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">تصفح أسرع مع نظام التنقل الجديد</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">على موقع الويب، يختفي هذا الشريط أثناء التمرير لأسفل للحصول على مساحة تصفح إضافية.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">على موقع الويب، يختفي هذا الشريط أثناء التمرير لأسفل للحصول على مساحة تصفح إضافية.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">اضغط مع الاستمرار على الأسهم للتنقل بين الصفحات في سجل علامة التبويب هذه.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">اضغط مع الاستمرار على الأسهم للتنقل بين الصفحات في سجل علامة التبويب هذه.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">الوصول إلى الكمرة مطلوب. افتح إعدادات أندرويد، وانقر ”الأذونات“ ثم انقر ”سماح“.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -526,7 +526,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">تصفح الويب بسرعة وأمان</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">موافقة ومتابعة</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">موافقة ومتابعة</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
   <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">شروط استخدام Firefox</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_two. -->

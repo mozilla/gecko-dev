@@ -116,11 +116,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">גלישה מהירה יותר עם ניווט חדש</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">גלישה מהירה יותר עם ניווט חדש</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">בעת גלישה באתרים, סרגל זה מתחבא בעת גלילה כלפי מטה, לקבלת שטח גלישה נוסף.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">בעת גלישה באתרים, סרגל זה מתחבא בעת גלילה כלפי מטה, לקבלת שטח גלישה נוסף.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">יש להקיש ולהחזיק את החצים כדי לדלג בין דפים בהיסטוריה של לשונית זו.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">יש להקיש ולהחזיק את החצים כדי לדלג בין דפים בהיסטוריה של לשונית זו.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -629,7 +629,9 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">גלישה מהירה ומאובטחת באינטרנט</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">הסכמה והמשך</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">הסכמה והמשך</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">המשך</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">בחירה בהמשך מהווה הסכמה ל%1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1203,7 +1205,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">החלקה על סרגל הכלים כלפי מעלה לפתיחת לשוניות</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">גלילה להסתרת שורת הכתובת וסרגל הכלים</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">גלילה להסתרת שורת הכתובת וסרגל הכלים</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">החלקה על שורת הכתובת כלפי הצדדים למעבר בין לשוניות</string>
   <!--
@@ -1677,6 +1679,8 @@
   <string name="bookmark_menu_delete_button">מחיקה</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">שמירה</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">מיון לפי סדר מותאם אישית</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">מיון לפי החדש ביותר</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3582,6 +3586,10 @@
   <string name="pbm_authentication_unlock">שחרור נעילה</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">שחרור נעילת לשוניות פרטיות</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">הפעלה של נעילת המסך בלשוניות פרטיות</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">השבתה של נעילת המסך בלשוניות פרטיות</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">להשתמש בנעילת מסך כדי להסתיר לשוניות פרטיות?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->

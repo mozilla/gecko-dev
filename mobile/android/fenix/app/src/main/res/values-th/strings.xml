@@ -114,11 +114,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">เรียกดูเร็วขึ้นด้วยการนำทางแบบใหม่</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">เรียกดูเร็วขึ้นด้วยการนำทางแบบใหม่</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">เมื่อเข้าเว็บไซต์ แถบนี้จะซ่อนตัวเมื่อคุณเลื่อนหน้าจอลง เพื่อเพิ่มเนื้อที่สำหรับการเรียกดูเว็บ</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">เมื่อเข้าเว็บไซต์ แถบนี้จะซ่อนตัวเมื่อคุณเลื่อนหน้าจอลง เพื่อเพิ่มเนื้อที่สำหรับการเรียกดูเว็บ</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">แตะค้างที่ลูกศรเพื่อข้ามไปมาระหว่างหน้าต่างๆ ในประวัติของแท็บนี้​​​​​​​​​​​​​​​​</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">แตะค้างที่ลูกศรเพื่อข้ามไปมาระหว่างหน้าต่างๆ ในประวัติของแท็บนี้​​​​​​​​​​​​​​​​</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -629,7 +629,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">เรียกดูเว็บได้อย่างรวดเร็วและปลอดภัย</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">ยินยอมและดำเนินต่อ</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">ยินยอมและดำเนินต่อ</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">เมื่อดำเนินการต่อ แสดงว่าคุณยอมรับ%1$s</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1199,7 +1199,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">ปัดแถบเครื่องมือไปด้านบนเพื่อเปิดแท็บ</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">เลื่อนเพื่อซ่อนแถบที่อยู่และแถบเครื่องมือ</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">เลื่อนเพื่อซ่อนแถบที่อยู่และแถบเครื่องมือ</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">ปัดแถบที่อยู่ไปด้านข้างเพื่อสลับแท็บ</string>
   <!--

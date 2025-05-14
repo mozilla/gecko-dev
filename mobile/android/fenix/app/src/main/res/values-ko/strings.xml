@@ -117,11 +117,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">새로운 네비게이션으로 더 빠르게 탐색</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">새로운 네비게이션으로 더 빠르게 탐색</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">웹 사이트에서, 아래로 스크롤하면 이 막대는 사라져 추가 탐색 공간을 확보할 수 있습니다.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">웹 사이트에서, 아래로 스크롤하면 이 막대는 사라져 추가 탐색 공간을 확보할 수 있습니다.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">이 탭의 기록에서 페이지 사이를 이동하려면 화살표를 길게 누르세요.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">이 탭의 기록에서 페이지 사이를 이동하려면 화살표를 길게 누르세요.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -632,7 +632,9 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">빠르고 안전한 웹 브라우징</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">동의 및 계속</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">동의 및 계속</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">계속</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">계속하면 %1$s에 동의하게 됩니다.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1206,7 +1208,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">도구 모음을 위로 밀어서 탭 열기</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">스크롤 중 주소 표시줄 및 도구 모음 숨기기</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">스크롤 중 주소 표시줄 및 도구 모음 숨기기</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">주소 표시줄을 옆으로 밀어서 탭 전환</string>
   <!--
@@ -1680,6 +1682,8 @@
   <string name="bookmark_menu_delete_button">삭제</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">저장</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">사용자 지정 순으로 정렬</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">최신순 정렬</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3591,6 +3595,10 @@
   <string name="pbm_authentication_unlock">잠금 해제</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">사생활 보호 탭 잠금 해제</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">사생활 보호 탭 화면 잠금 활성화</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">사생활 보호 탭 화면 잠금 비활성화</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">사생활 보호 탭을 숨기기 위해 화면 잠금을 사용하시겠습니까?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->

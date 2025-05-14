@@ -114,11 +114,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">പുതിയ വഴികാട്ടല്വവസ്ഥയൊപ്പം ഇനിയും വേഗത്തിൽ പരതുക</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">പുതിയ വഴികാട്ടല്വവസ്ഥയൊപ്പം ഇനിയും വേഗത്തിൽ പരതുക</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">ഒരു വെബ്‌സൈറ്റിൽ, കൂടുതൽ തിരച്ചിൽ സ്ഥലത്തിനായി താങ്ങൾ താഴേക്ക് ഗതിമാറ്റുമ്പോൾ ഈ പട്ട അകന്നുപോകുന്നു.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">ഒരു വെബ്‌സൈറ്റിൽ, കൂടുതൽ തിരച്ചിൽ സ്ഥലത്തിനായി താങ്ങൾ താഴേക്ക് ഗതിമാറ്റുമ്പോൾ ഈ പട്ട അകന്നുപോകുന്നു.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">ഈ ടാബിന്റെ നാൾവഴിത്തിലേ താളുകൾക്കിടയിൽ ചാടാൻ അമ്പടയാളങ്ങൾ പിടിച്ചുവയ്ക്കുക.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">ഈ ടാബിന്റെ നാൾവഴിത്തിലേ താളുകൾക്കിടയിൽ ചാടാൻ അമ്പടയാളങ്ങൾ പിടിച്ചുവയ്ക്കുക.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -619,7 +619,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">വേഗതയേറിയതും സുരക്ഷിതവുമായ വെബ് തിരയൽ</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">സമ്മതിച്ച് തുടരുക</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">സമ്മതിച്ച് തുടരുക</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">തുടരുന്നതിലൂടെ, താങ്ങൾ %1$s അംഗീകരിക്കുന്നു.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1134,7 +1134,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">ടാബുകൾ തുറക്കുന്നതിന് കരുപ്പട്ട മുകളിലേക്ക് സ്വൈപ്പുചെയ്യുക</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">വിലാസപ്പട്ടയും കരുപ്പട്ടയും മറയ്ക്കാൻ ഗതിമാറ്റുക</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">വിലാസപ്പട്ടയും കരുപ്പട്ടയും മറയ്ക്കാൻ ഗതിമാറ്റുക</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">ടാബുകൾ മാറാൻ വിലാസപ്പട്ട ഒരുവശത്തേക്കു് നീക്കുക</string>
   <!--

@@ -105,7 +105,7 @@
   <!-- Text for the negative action button -->
   <string name="open_in_app_cfr_negative_button_text">Iscarta</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Toca e mantene is fritzas pro brincare intre pàginas de sa cronologia de custa ischeda.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Toca e mantene is fritzas pro brincare intre pàginas de sa cronologia de custa ischeda.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Atzessu rechestu a sa fotocàmera. Bae a sa cunfiguratzione de Android, toca is permissos e sèbera permite.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -989,7 +989,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Iscurre sa barra de ainas in artu pro abèrrere ischedas</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">Iscurre pro cuare sa barra de indiritzos e sa barra de ainas</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">Iscurre pro cuare sa barra de indiritzos e sa barra de ainas</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Càmbia de ischeda cun iscurrimentu laterale dae sa barra de indiritzos</string>
   <!--

@@ -112,7 +112,7 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Kaka ñama jíí a jía</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Kaka ñama jíí a jía</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Jiniñu\'u kua\'anu kivɨ nu ka̱a̱ nátava. Kua\'a nu ke\'i Android, kauxin permisos jee kachi de kuvi.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

@@ -112,11 +112,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Kotéktak leuwih gancang ku navigasi anyar</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Kotéktak leuwih gancang ku navigasi anyar</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">Dina situs wéb, papan ieu ngagulung nalika anjeun nyorolokkeun ka handap pikeun nambahan widang panyungsian.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Dina situs wéb, papan ieu ngagulung nalika anjeun nyorolokkeun ka handap pikeun nambahan widang panyungsian.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Ketok jeung tahan panah pikeun luncat antara kaca dina jujutan tab ieu.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Ketok jeung tahan panah pikeun luncat antara kaca dina jujutan tab ieu.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Butuh aksés kaméra. Buka setélan Android, toél idin, laju toél idinan.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -958,7 +958,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Gilerkeun tulbar ka luhur pikeun muka tab</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">Gulirkeun pikeun nyumputkeun wilah alamat jeung wilah parabot</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">Gulirkeun pikeun nyumputkeun wilah alamat jeung wilah parabot</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Toel wilah alamat ka sisi pikeun mindahkeun tab</string>
   <!--

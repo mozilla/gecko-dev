@@ -84,7 +84,7 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Яңа навигация белән тизрәк гизегез</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Яңа навигация белән тизрәк гизегез</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Камера куллануга рөхсәт кирәк. Android көйләүләренә кереп, "рөхсәтләр" дигән битне ачып, "рөхсәт итү" дигәнгә басыгыз.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

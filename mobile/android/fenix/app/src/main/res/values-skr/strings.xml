@@ -117,11 +117,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">نویں نیویگیشݨ نال تکھیرا براؤز کرو</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">نویں نیویگیشݨ نال تکھیرا براؤز کرو</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">ہک ویب سائٹ تے، ڄݙݨ  تساں وادھو براؤزنگ دی جاء تے  ہیٹھاں سکرول کریندے ہو تاں ایہ بار دور تھی ویندا ہے۔</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">ہک ویب سائٹ تے، ڄݙݨ  تساں وادھو براؤزنگ دی جاء تے  ہیٹھاں سکرول کریندے ہو تاں ایہ بار دور تھی ویندا ہے۔</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">ٹیب دی تاریخ دے ورقیاں دے وچکار ٹپ مارݨ کیتے تیراں تے انگل لاؤ تے روکو۔</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">ٹیب دی تاریخ دے ورقیاں دے وچکار ٹپ مارݨ کیتے تیراں تے انگل لاؤ تے روکو۔</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">کیمرے تائیں رسائی دی لوڑ ہے۔ انڈرائیڈ دیاں ترتیباں تے ون٘ڄو، اجازتاں تے ٹیپ کرو تے اجازت ݙیوو تے انگل پھیرو۔</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -989,7 +989,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">ٹیباں کھولݨ کیتے ٹول بار کوں سوائپ کرو</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">پتہ بار تے ٹولبار کوں لکاوݨ کیتے سکرول کرو</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">پتہ بار تے ٹولبار کوں لکاوݨ کیتے سکرول کرو</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">ٹیباں تبدیل کرݨ کیتے پتہ بار تے پاسے ول انگل پھیرو</string>
   <!--

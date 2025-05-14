@@ -116,11 +116,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
-  <string name="navbar_cfr_title">Shfletoni më shpejt, me menunë e re të lëvizjeve</string>
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Shfletoni më shpejt, me menunë e re të lëvizjeve</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2">Në një sajt, kjo shtyllë tkurret teksa rrëshqisni poshtë për hapësirë ekstra shfletimi.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Në një sajt, kjo shtyllë tkurret teksa rrëshqisni poshtë për hapësirë ekstra shfletimi.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-  <string name="navbar_navigation_buttons_cfr_message">Prekni dhe mbani të prekura shigjetat, për të kaluar nëpër faqe në historikun e kësaj skede.</string>
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Prekni dhe mbani të prekura shigjetat, për të kaluar nëpër faqe në historikun e kësaj skede.</string>
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
@@ -631,7 +631,7 @@
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">Shfletim i shpejtë dhe siguruar</string>
   <!-- Terms of service onboarding page continue button label. -->
-  <string name="onboarding_term_of_service_agree_and_continue_button_label">Shprehni pajtimin dhe vazhdoni</string>
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Shprehni pajtimin dhe vazhdoni</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Duke vazhduar, pajtoheni me %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1205,7 +1205,7 @@
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Fërkoni panelin për sipër, që të hapen skeda</string>
   <!-- Preference for using the dynamic toolbars -->
-  <string name="preference_gestures_dynamic_toolbar_2">Rrëshqiteni, për fshehje të shtyllës së adresave dhe panelit</string>
+  <string name="preference_gestures_dynamic_toolbar_2" moz:removedIn="140" tools:ignore="UnusedResources">Rrëshqiteni, për fshehje të shtyllës së adresave dhe panelit</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
   <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Që të ndërroni skeda, fërkojeni për anash shtyllën e adresave</string>
   <!--
