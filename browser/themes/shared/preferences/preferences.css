@@ -412,6 +412,9 @@ radio {
 
 .typeIcon {
   margin-inline: 10px 9px !important;
+  &:not([srcset]) {
+    visibility: hidden;
+  }
 }
 
 #handlersView .actionsMenu::part(icon),

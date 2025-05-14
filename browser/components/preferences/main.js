@@ -3969,8 +3969,7 @@ function getLocalHandlerApp(aFile) {
 let gHandlerListItemFragment = MozXULElement.parseXULToFragment(`
   <richlistitem>
     <hbox class="typeContainer" flex="1" align="center">
-      <image class="typeIcon" width="16" height="16"
-              src="moz-icon://goat?size=16"/>
+      <html:img class="typeIcon" width="16" height="16" />
       <label class="typeDescription" flex="1" crop="end"/>
     </hbox>
     <hbox class="actionContainer" flex="1" align="center">
@@ -4024,7 +4023,7 @@ class HandlerListItem {
     let typeDescription = this.handlerInfoWrapper.typeDescription;
     this.setOrRemoveAttributes([
       [null, "type", this.handlerInfoWrapper.type],
-      [".typeIcon", "src", this.handlerInfoWrapper.smallIcon],
+      [".typeIcon", "srcset", this.handlerInfoWrapper.iconSrcSet],
     ]);
     localizeElement(
       this.node.querySelector(".typeDescription"),
@@ -4336,17 +4335,25 @@ class HandlerInfoWrapper {
     gHandlerService.store(this.wrappedHandlerInfo);
   }
 
-  get smallIcon() {
-    return this._getIcon(16);
+  get iconSrcSet() {
+    let srcset = [];
+    for (let scale of [1, 2]) {
+      let icon = this._getIcon(16, scale);
+      if (!icon) {
+        return null;
+      }
+      srcset.push(`${icon} ${scale}x`);
+    }
+    return srcset.join(", ");
   }
 
-  _getIcon(aSize) {
+  _getIcon(aSize, aScale = 1) {
     if (this.primaryExtension) {
-      return "moz-icon://goat." + this.primaryExtension + "?size=" + aSize;
+      return `moz-icon://goat.${this.primaryExtension}?size=${aSize}&scale=${aScale}`;
     }
 
     if (this.wrappedHandlerInfo instanceof Ci.nsIMIMEInfo) {
-      return "moz-icon://goat?size=" + aSize + "&contentType=" + this.type;
+      return `moz-icon://goat?size=${aSize}&scale=${aScale}&contentType=${this.type}`;
     }
 
     // FIXME: consider returning some generic icon when we can't get a URL for
