@@ -26,6 +26,11 @@ var provider = {
 };
 
 function run_test() {
+  // XPCShell does not get a profile by default. The geolocation service
+  // depends on the settings service which uses IndexedDB and IndexedDB
+  // needs a place where it can store databases.
+  do_get_profile();
+
   Components.manager.nsIComponentRegistrar.registerFactory(
     providerCID,
     "Unit test geo provider",
