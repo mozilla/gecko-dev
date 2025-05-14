@@ -352,12 +352,10 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
   if (!CrashReporter::IsDummy()) {
     auto crashReporterArg = geckoargs::sCrashReporter.Get(aArgc, aArgv);
     if (crashReporterArg) {
-      CrashReporter::ProcessId crashHelperPid = base::kInvalidProcessId;
+      Maybe<CrashReporter::ProcessId> crashHelperPid;
 #if defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
-      auto crashHelperPidArg = geckoargs::sCrashHelperPid.Get(aArgc, aArgv);
-      MOZ_ASSERT(crashHelperPidArg);
-      crashHelperPid =
-          static_cast<CrashReporter::ProcessId>(*crashHelperPidArg);
+      crashHelperPid = geckoargs::sCrashHelperPid.Get(aArgc, aArgv);
+      MOZ_ASSERT(crashHelperPid.isSome());
 #endif  // defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
 
       exceptionHandlerIsSet = CrashReporter::SetRemoteExceptionHandler(

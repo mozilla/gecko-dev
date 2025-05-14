@@ -258,7 +258,7 @@ static char* androidUserSerial = nullptr;
 static const char* androidStartServiceCommand = nullptr;
 #endif
 
-static ProcessId gCrashHelperPid = 0;
+static Maybe<ProcessId> gCrashHelperPid;
 
 // this holds additional data sent via the API
 static Mutex* notesFieldLock;
@@ -1723,10 +1723,10 @@ static void PrepareForMinidump() {
   DllBlocklist_Shutdown();
 #  endif
 #elif defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
-  if (gCrashHelperPid) {
+  if (gCrashHelperPid.isSome()) {
     // Ignore the return value because we're in the exception handler, so
     // there's not much we can do safely, not even log the error.
-    Unused << prctl(PR_SET_PTRACER, gCrashHelperPid);
+    Unused << prctl(PR_SET_PTRACER, gCrashHelperPid.value());
   }
 #endif
 }
@@ -3350,7 +3350,7 @@ ProcessId GetCrashHelperPid() {
 #endif  // defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
 
 bool SetRemoteExceptionHandler(CrashPipeType aCrashPipe,
-                               ProcessId aCrashHelperPid) {
+                               Maybe<ProcessId> aCrashHelperPid) {
   MOZ_ASSERT(!gExceptionHandler, "crash client already init'd");
   gCrashHelperPid = aCrashHelperPid;
   RegisterRuntimeExceptionModule();
