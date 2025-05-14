@@ -13,6 +13,10 @@ const BUF_MIN = 64 * 1024;
 const BUF_CHANGE_MIN = 16 * 1024 * 1024;
 const BUF_64KB = new ArrayBuffer(BUF_MIN);
 
+// Don't warn about asm.js deprecation, that will get in the way of testing
+// for the presence or absence of other asm.js warnings.
+setPrefValue("warn_asmjs_deprecation", false);
+
 function asmCompile()
 {
     var f = Function.apply(null, arguments);

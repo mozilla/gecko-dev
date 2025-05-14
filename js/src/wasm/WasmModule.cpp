@@ -28,8 +28,10 @@
 #include "js/StreamConsumer.h"
 #include "threading/LockGuard.h"
 #include "threading/Thread.h"
+#include "util/DifferentialTesting.h"
 #include "vm/HelperThreadState.h"  // Tier2GeneratorTask
 #include "vm/PlainObject.h"        // js::PlainObject
+#include "vm/Warnings.h"           // WarnNumberASCII
 #include "wasm/WasmBaselineCompile.h"
 #include "wasm/WasmCompile.h"
 #include "wasm/WasmDebug.h"
@@ -981,6 +983,28 @@ bool Module::instantiate(JSContext* cx, ImportValues& imports,
       codeMeta().isAsmJS() ? JSUseCounter::ASMJS : JSUseCounter::WASM;
   cx->runtime()->setUseCounter(instance, useCounter);
   SetUseCountersForFeatureUsage(cx, instance, moduleMeta().featureUsage);
+
+  // Warn for deprecated features. Don't do this with differential testing as
+  // that will think these warnings are significant.
+  if (!js::SupportDifferentialTesting()) {
+    // Warn if the user is using the legacy exceptions proposal.
+    if (moduleMeta().featureUsage & FeatureUsage::LegacyExceptions) {
+      if (!js::WarnNumberASCII(cx, JSMSG_WASM_LEGACY_EXCEPTIONS_DEPRECATED)) {
+        if (cx->isExceptionPending()) {
+          cx->clearPendingException();
+        }
+      }
+    }
+
+    // Warn if the user is using asm.js still.
+    if (JS::Prefs::warn_asmjs_deprecation() && codeMeta().isAsmJS()) {
+      if (!js::WarnNumberASCII(cx, JSMSG_USE_ASM_DEPRECATED)) {
+        if (cx->isExceptionPending()) {
+          cx->clearPendingException();
+        }
+      }
+    }
+  }
 
   if (cx->options().testWasmAwaitTier2() &&
       code().mode() != CompileMode::LazyTiering) {

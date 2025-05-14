@@ -9132,6 +9132,13 @@
   value: false
   mirror: always
 
+# Whether to show a warning if asm.js is used.
+- name: javascript.options.warn_asmjs_deprecation
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: always
+
 # Whether to disable the jit within the main process
 - name: javascript.options.main_process_disable_jit
   type: bool
