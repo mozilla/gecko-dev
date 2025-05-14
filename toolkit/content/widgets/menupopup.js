@@ -30,7 +30,10 @@
   document.addEventListener(
     "popupshowing",
     function (e) {
-      if (e.target.nodeName == "menupopup") {
+      if (
+        e.target.nodeName == "menupopup" &&
+        e.target.getAttribute("needsgutter") != "always"
+      ) {
         e.target.toggleAttribute(
           "needsgutter",
           !!e.target.querySelector(GUTTER_SELECTOR)

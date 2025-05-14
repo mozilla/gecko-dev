@@ -205,6 +205,7 @@
                          placespopup="true"
                          is="places-popup"
 #endif
+                         needsgutter="always"
                          tooltip="bhTooltip"
                          popupsinherittooltip="true">
                 <menuitem id="menu_showAllHistory"
@@ -263,6 +264,7 @@
                placespopup="true"
                is="places-popup"
 #endif
+               needsgutter="always"
                context="placesContext"
                openInTabs="children"
                tooltip="bhTooltip" popupsinherittooltip="true">
