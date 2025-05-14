@@ -1752,10 +1752,8 @@ main section {
     margin-block-start: 0;
   }
 }
-@media (min-width: 1390px) {
-  .layout-variant-b.has-recommended-stories.no-search.has-sections-grid .body-wrapper {
-    margin-block-start: 0;
-  }
+.layout-variant-b.has-recommended-stories.no-search.has-sections-grid .body-wrapper {
+  margin-block-start: 96px;
 }
 .layout-variant-b.has-recommended-stories.no-search.has-sections-grid .logo-and-wordmark {
   inset-inline-start: 20px;

@@ -202,11 +202,11 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
     }
   }
 
+  // Bug 1961633 - Keep shortcuts/feed below the logo/weather widget (var b layout)
   &.no-search.has-sections-grid {
     .body-wrapper {
-      @media (min-width: $break-point-sections-variant) {
-        margin-block-start: 0;
-      }
+      // 96px is the margin necessary to maintain the same spacing with/without the search bar
+      margin-block-start: 96px;
     }
 
     .logo-and-wordmark {
