@@ -190,8 +190,14 @@ if [ "$what" = "compiler-rt" ]; then
   # ninja install doesn't copy the PDBs, if any
   case "$target" in
   aarch64-pc-windows-msvc)
-    # No pdb generated in that configuration.
-    find lib/windows -name '*pdb' | grep .
+      # No pdb generated in that platform/arch configuration since
+      # https://github.com/llvm/llvm-project/commit/655933070219f2b6f3a457c7e5af7edd4b5291b4
+      if echo "$@" | grep -q trunk
+      then
+        test -z "$(find -name "*.pdb")"
+      else
+        cp lib/windows/*pdb $dir/lib/windows/
+      fi
     ;;
   *-pc-windows-msvc)
     cp lib/windows/*pdb $dir/lib/windows/
