@@ -5,6 +5,7 @@ import tempfile
 import unittest
 
 import mozharness.base.vcs.mercurial as mercurial
+import mozunit
 
 test_string = """foo
 bar
@@ -393,4 +394,4 @@ class TestHg(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    mozunit.main()
