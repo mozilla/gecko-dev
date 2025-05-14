@@ -14,6 +14,7 @@
 
 #include <atomic>
 
+#include "api/sequence_checker.h"
 #include "modules/desktop_capture/mac/desktop_frame_iosurface.h"
 #include "modules/desktop_capture/shared_desktop_frame.h"
 #include "rtc_base/logging.h"
@@ -89,15 +90,17 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
   // caller's thread.
   void StartOrReconfigureCapturer();
 
+  // Calls to the public API must happen on a single thread.
+  webrtc::SequenceChecker api_checker_;
+
   // Helper object to receive Objective-C callbacks from ScreenCaptureKit and
   // call into this C++ object. The helper may outlive this C++ instance, if a
   // completion-handler is passed to ScreenCaptureKit APIs and the C++ object is
   // deleted before the handler executes.
   SckHelper* __strong helper_;
 
-  // Callback for returning captured frames, or errors, to the caller. Only used
-  // on the caller's thread.
-  Callback* callback_ = nullptr;
+  // Callback for returning captured frames, or errors, to the caller.
+  Callback* callback_ RTC_GUARDED_BY(api_checker_) = nullptr;
 
   // Options passed to the constructor. May be accessed on any thread, but the
   // options are unchanged during the capturer's lifetime.
@@ -125,8 +128,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
   uint32_t max_frame_rate_ RTC_GUARDED_BY(lock_) = 0;
 
   // Used by CaptureFrame() to detect if the screen configuration has changed.
-  // Only used on the caller's thread.
-  MacDesktopConfiguration desktop_config_;
+  MacDesktopConfiguration desktop_config_ RTC_GUARDED_BY(api_checker_);
 
   Mutex latest_frame_lock_ RTC_ACQUIRED_AFTER(lock_);
   std::unique_ptr<SharedDesktopFrame> latest_frame_
@@ -152,18 +154,20 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
 };
 
 ScreenCapturerSck::ScreenCapturerSck(const DesktopCaptureOptions& options)
-    : capture_options_(options) {
+    : api_checker_(SequenceChecker::kDetached), capture_options_(options) {
   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " created";
   helper_ = [[SckHelper alloc] initWithCapturer:this];
 }
 
 ScreenCapturerSck::~ScreenCapturerSck() {
+  RTC_DCHECK_RUN_ON(&api_checker_);
   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " destroyed.";
   [stream_ stopCaptureWithCompletionHandler:nil];
   [helper_ releaseCapturer];
 }
 
 void ScreenCapturerSck::Start(DesktopCapturer::Callback* callback) {
+  RTC_DCHECK_RUN_ON(&api_checker_);
   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " " << __func__ << ".";
   callback_ = callback;
   desktop_config_ =
@@ -172,6 +176,7 @@ void ScreenCapturerSck::Start(DesktopCapturer::Callback* callback) {
 }
 
 void ScreenCapturerSck::SetMaxFrameRate(uint32_t max_frame_rate) {
+  RTC_DCHECK_RUN_ON(&api_checker_);
   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " SetMaxFrameRate("
                    << max_frame_rate << ").";
   bool stream_started = false;
@@ -190,6 +195,7 @@ void ScreenCapturerSck::SetMaxFrameRate(uint32_t max_frame_rate) {
 }
 
 void ScreenCapturerSck::CaptureFrame() {
+  RTC_DCHECK_RUN_ON(&api_checker_);
   int64_t capture_start_time_millis = rtc::TimeMillis();
 
   if (permanent_error_) {
@@ -248,6 +254,7 @@ void ScreenCapturerSck::NotifyCaptureStopped(SCStream* stream) {
 }
 
 bool ScreenCapturerSck::SelectSource(SourceId id) {
+  RTC_DCHECK_RUN_ON(&api_checker_);
   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " SelectSource(id=" << id
                    << ").";
   bool stream_started = false;
