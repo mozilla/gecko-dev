@@ -591,6 +591,7 @@ RemoteSettingsServer.Custom = class extends RemoteSettingsServer{
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeRemoteSettingsServer extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return new RemoteSettingsServer.Prod(
@@ -611,6 +612,7 @@ export class FfiConverterTypeRemoteSettingsServer extends FfiConverterArrayBuffe
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value instanceof RemoteSettingsServer.Prod) {
             dataStream.writeInt32(1);
             return;
