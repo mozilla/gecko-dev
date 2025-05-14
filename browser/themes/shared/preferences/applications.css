@@ -1,0 +1,55 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+richlistitem[appHandlerIcon="handleInternally"] .actionIcon,
+richlistitem[appHandlerIcon="handleInternally"] .actionsMenu::part(icon),
+menuitem[appHandlerIcon="handleInternally"] > .menu-icon {
+  content: url("chrome://branding/content/icon32.png");
+}
+
+richlistitem[appHandlerIcon="ask"] .actionIcon,
+richlistitem[appHandlerIcon="ask"] .actionsMenu::part(icon),
+menuitem[appHandlerIcon="ask"] > .menu-icon {
+  content: url("chrome://browser/skin/preferences/alwaysAsk.png");
+}
+
+richlistitem[appHandlerIcon="save"] .actionIcon,
+richlistitem[appHandlerIcon="save"] .actionsMenu::part(icon),
+menuitem[appHandlerIcon="save"] > .menu-icon {
+  content: url("chrome://browser/skin/preferences/saveFile.png");
+  @media (-moz-platform: linux) {
+    content: image-set(
+      "moz-icon://stock/document-save?size=16" 1x,
+      "moz-icon://stock/document-save?size=16&scale=2" 2x
+    );
+  }
+}
+
+@media (-moz-platform: macos) {
+  /* Repeat what menu.css does for .menuitem-iconic */
+  menuitem[appHandlerIcon] {
+    padding-top: 1px;
+    padding-bottom: 3px;
+  }
+}
+
+#appList {
+  min-height: 212px;
+}
+
+#appList > richlistitem {
+  align-items: center;
+}
+
+#appList > richlistitem > image {
+  margin: 5px;
+  width: 32px;
+  height: 32px;
+}
+
+#appList > richlistitem > label {
+  margin: 0;
+  padding: 5px;
+  white-space: nowrap;
+}

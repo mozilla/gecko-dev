@@ -379,9 +379,19 @@ nsIFrame* NS_NewImageFrame(PresShell* aPresShell, ComputedStyle* aStyle) {
                                        nsImageFrame::Kind::ImageLoadingContent);
 }
 
+static bool ShouldCreateImageFrameForContentProperty(
+    const ComputedStyle& aStyle) {
+  Span<const StyleContentItem> items =
+      aStyle.StyleContent()->NonAltContentItems();
+  return items.Length() == 1 && items[0].IsImage();
+}
+
 nsIFrame* NS_NewXULImageFrame(PresShell* aPresShell, ComputedStyle* aStyle) {
-  return new (aPresShell) nsImageFrame(aStyle, aPresShell->GetPresContext(),
-                                       nsImageFrame::Kind::XULImage);
+  auto kind = ShouldCreateImageFrameForContentProperty(*aStyle)
+                  ? nsImageFrame::Kind::ContentProperty
+                  : nsImageFrame::Kind::XULImage;
+  return new (aPresShell)
+      nsImageFrame(aStyle, aPresShell->GetPresContext(), kind);
 }
 
 nsIFrame* NS_NewImageFrameForContentProperty(PresShell* aPresShell,
@@ -1119,9 +1129,7 @@ bool nsImageFrame::ShouldCreateImageFrameForContentProperty(
   if (aElement.IsRootOfNativeAnonymousSubtree()) {
     return false;
   }
-  Span<const StyleContentItem> items =
-      aStyle.StyleContent()->NonAltContentItems();
-  return items.Length() == 1 && items[0].IsImage();
+  return ::ShouldCreateImageFrameForContentProperty(aStyle);
 }
 
 // Check if we want to use an image frame or just let the frame constructor make
