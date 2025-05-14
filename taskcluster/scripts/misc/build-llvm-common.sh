@@ -191,7 +191,7 @@ if [ "$what" = "compiler-rt" ]; then
   case "$target" in
   aarch64-pc-windows-msvc)
     # No pdb generated in that configuration.
-    test -z "$(find -name "*.pdb")"
+    find lib/windows -name '*pdb' | grep .
     ;;
   *-pc-windows-msvc)
     cp lib/windows/*pdb $dir/lib/windows/
