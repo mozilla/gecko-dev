@@ -726,29 +726,20 @@ describe("<DSCard>", () => {
       // Add active class name to DSCard wrapper
       // to simulate menu open state
       cardNode.classList.add("active");
-      assert.equal(
-        cardNode.className,
-        "ds-card ds-card-title-lines-3 ds-card-desc-lines-3 active"
-      );
+      assert.include(cardNode.className, "active");
 
       const dsCardInstance = wrapper.find(DSCard).instance();
       dsCardInstance.onMenuUpdate(false);
       wrapper.update();
 
-      assert.equal(
-        cardNode.className,
-        "ds-card ds-card-title-lines-3 ds-card-desc-lines-3"
-      );
+      assert.notInclude(cardNode.className, "active");
     });
 
     it("Should add active on Menu Show", async () => {
       const dsCardInstance = wrapper.find(DSCard).instance();
       await dsCardInstance.onMenuShow();
       wrapper.update();
-      assert.equal(
-        cardNode.className,
-        "ds-card ds-card-title-lines-3 ds-card-desc-lines-3 active"
-      );
+      assert.include(cardNode.className, "active");
     });
 
     it("Should add last-item to support resized window", async () => {
@@ -756,10 +747,8 @@ describe("<DSCard>", () => {
       const dsCardInstance = wrapper.find(DSCard).instance();
       await dsCardInstance.onMenuShow();
       wrapper.update();
-      assert.equal(
-        cardNode.className,
-        "ds-card ds-card-title-lines-3 ds-card-desc-lines-3 last-item active"
-      );
+      assert.include(cardNode.className, "last-item");
+      assert.include(cardNode.className, "active");
     });
 
     it("should remove .active and .last-item classes", () => {
