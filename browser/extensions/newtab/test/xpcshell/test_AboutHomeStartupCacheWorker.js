@@ -210,7 +210,10 @@ add_task(async function test_cache_worker() {
   // it through ReactDOMServer by setting App.isForStartupCache to true.
   // This allows React components to change their behaviour if the cache
   // is being generated.
-  state.App.isForStartupCache = true;
+  state.App.isForStartupCache = {
+    App: true,
+    Wallpaper: true,
+  };
 
   // Some of the properties on the state might have values set to undefined.
   // There is no way to express a named undefined property on an object in

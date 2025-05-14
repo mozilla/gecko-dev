@@ -19,7 +19,10 @@ export const INITIAL_STATE = {
     // Have we received real data from the app yet?
     initialized: false,
     locale: "",
-    isForStartupCache: false,
+    isForStartupCache: {
+      App: false,
+      Wallpaper: false,
+    },
     customizeMenuVisible: false,
   },
   Ads: {
@@ -170,15 +173,24 @@ function App(prevState = INITIAL_STATE.App, action) {
     case at.TOP_SITES_UPDATED:
       // Toggle `isForStartupCache` when receiving the `TOP_SITES_UPDATE` action
       // so that sponsored tiles can be rendered as usual. See Bug 1826360.
-      return Object.assign({}, prevState, action.data || {}, {
-        isForStartupCache: false,
-      });
+      return {
+        ...prevState,
+        isForStartupCache: { ...prevState.isForStartupCache, App: false },
+      };
     case at.DISCOVERY_STREAM_SPOCS_UPDATE:
       // Toggle `isForStartupCache` when receiving the `DISCOVERY_STREAM_SPOCS_UPDATE_STARTUPCACHE` action
       // so that spoc cards can be rendered as usual.
-      return Object.assign({}, prevState, action.data || {}, {
-        isForStartupCache: false,
-      });
+      return {
+        ...prevState,
+        isForStartupCache: { ...prevState.isForStartupCache, App: false },
+      };
+    case at.WALLPAPERS_CUSTOM_SET:
+      // Toggle `isForStartupCache.Wallpaper` when receiving the `WALLPAPERS_CUSTOM_SET` action
+      // so that custom wallpaper can be rendered as usual.
+      return {
+        ...prevState,
+        isForStartupCache: { ...prevState.isForStartupCache, Wallpaper: false },
+      };
     case at.SHOW_PERSONALIZE:
       return Object.assign({}, prevState, {
         customizeMenuVisible: true,

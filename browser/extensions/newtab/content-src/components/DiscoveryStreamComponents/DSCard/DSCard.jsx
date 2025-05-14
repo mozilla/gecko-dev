@@ -227,7 +227,7 @@ export class _DSCard extends React.PureComponent {
 
     // If this is for the about:home startup cache, then we always want
     // to render the DSCard, regardless of whether or not its been seen.
-    if (props.App.isForStartupCache) {
+    if (props.App.isForStartupCache.App) {
       this.state.isSeen = true;
     }
 

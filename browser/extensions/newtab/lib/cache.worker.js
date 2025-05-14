@@ -146,7 +146,9 @@ let Agent = {
    *     The generated script for the document.
    */
   _construct(state) {
-    state.App.isForStartupCache = true;
+    for (const key of Object.keys(state.App.isForStartupCache)) {
+      state.App.isForStartupCache[key] = true;
+    }
 
     // ReactDOMServer.renderToString expects a Redux store to pull
     // the state from, so we mock out a minimal store implementation.
