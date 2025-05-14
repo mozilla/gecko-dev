@@ -5,7 +5,7 @@
 /* eslint-env mozilla/remote-page */
 
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
-import { html } from "chrome://global/content/vendor/lit.all.mjs";
+import { html, ifDefined } from "chrome://global/content/vendor/lit.all.mjs";
 
 /**
  * Like DeferredTask but usable from content.
@@ -345,12 +345,15 @@ export class EditProfileCard extends MozLitElement {
       value=${this.profile.themeId}
       data-l10n-id="edit-profile-page-theme-header-2"
       name="theme"
-      id="themes"
       @click=${this.handleThemeClick}
     >
       ${this.themes.map(
         t =>
-          html`<profiles-group-item l10nId=${t.dataL10nId} value=${t.id}>
+          html`<profiles-group-item
+            l10nId=${ifDefined(t.dataL10nId)}
+            name=${ifDefined(t.name)}
+            value=${t.id}
+          >
             <profiles-theme-card
               .theme=${t}
               value=${t.id}

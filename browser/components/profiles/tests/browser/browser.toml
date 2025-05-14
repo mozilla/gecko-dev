@@ -39,6 +39,8 @@ skip-if = ["os == 'mac' && os_version == '15.30' && arch == 'aarch64' && opt && 
 ["browser_preferences.js"]
 fail-if = ["a11y_checks"] # Bug 1955503
 
+["browser_test_current_theme_from_amo.js"]
+
 ["browser_test_last_tab.js"]
 
 ["browser_test_nimbus_feature.js"]

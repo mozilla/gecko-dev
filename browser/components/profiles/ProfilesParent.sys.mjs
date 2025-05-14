@@ -390,25 +390,30 @@ export class ProfilesParent extends JSWindowActorParent {
     let themes = [];
     for (let [themeId, themeObj] of PROFILE_THEMES_MAP) {
       let theme = await lazy.AddonManager.getAddonByID(themeId);
-      if (theme) {
-        themes.push({
-          id: themeId,
-          dataL10nId: themeObj.dataL10nId,
-          isActive: theme.isActive,
-          ...themeObj.colors,
-          isDark: themeObj.isDark,
-          useInAutomation: themeObj?.useInAutomation,
-        });
-      } else {
-        themes.push({
-          id: themeId,
-          dataL10nId: themeObj.dataL10nId,
-          isActive: false,
-          ...themeObj.colors,
-          isDark: themeObj.isDark,
-          useInAutomation: themeObj?.useInAutomation,
-        });
-      }
+      themes.push({
+        id: themeId,
+        dataL10nId: themeObj.dataL10nId,
+        isActive: theme?.isActive ?? false,
+        ...themeObj.colors,
+        isDark: themeObj.isDark,
+        useInAutomation: themeObj?.useInAutomation,
+      });
+    }
+
+    let activeAddons = await lazy.AddonManager.getActiveAddons(["theme"]);
+    let currentTheme = activeAddons.addons[0];
+
+    // Only add the current theme if it's not one of the default 10 themes.
+    if (!themes.find(t => t.id === currentTheme.id)) {
+      let safeCurrentTheme = {
+        id: currentTheme.id,
+        name: currentTheme.name,
+        isActive: currentTheme.isActive,
+        chromeColor: SelectableProfileService.currentProfile.theme.themeBg,
+        toolbarColor: SelectableProfileService.currentProfile.theme.themeFg,
+      };
+
+      themes.push(safeCurrentTheme);
     }
 
     return themes;

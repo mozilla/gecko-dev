@@ -58,6 +58,13 @@ moz-card {
   border-top-left-radius: var(--preview-image-border-radius);
   border-top-right-radius: var(--preview-image-border-radius);
 
+  /*
+   * We set the background color here in case the
+   * ProfilesThemeCard.theme.contentColor doesn't exist. For example, when the
+   * theme card is a theme from AMO and not one of the default themes.
+   */
+  background-color: var(--newtab-background-color, var(--in-content-page-background));
+
   > img {
     -moz-context-properties: fill, stroke, fill-opacity;
     width: 100%;

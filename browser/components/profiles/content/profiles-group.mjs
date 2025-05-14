@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /* eslint-disable jsdoc/check-tag-names */
 
-import { html } from "chrome://global/content/vendor/lit.all.mjs";
+import { html, ifDefined } from "chrome://global/content/vendor/lit.all.mjs";
 import {
   MozRadioGroup,
   MozRadio,
@@ -96,6 +96,7 @@ export class ProfilesGroupItem extends MozRadio {
 
   static properties = {
     l10nId: { type: String },
+    name: { type: String },
   };
 
   connectedCallback() {
@@ -119,8 +120,8 @@ export class ProfilesGroupItem extends MozRadio {
           is="moz-label"
           part="label"
           for="input"
-          data-l10n-id=${this.l10nId}
-        ></label
+          data-l10n-id=${ifDefined(this.l10nId)}
+          >${this.name}</label
         >${super.inputTemplate()}
         <slot></slot>
       </div>

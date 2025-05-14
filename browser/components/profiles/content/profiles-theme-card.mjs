@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
-import { html } from "chrome://global/content/vendor/lit.all.mjs";
+import { html, ifDefined } from "chrome://global/content/vendor/lit.all.mjs";
 
 /**
  * Element used for displaying a theme on the about:editprofile and about:newprofile pages.
@@ -20,11 +20,6 @@ export class ProfilesThemeCard extends MozLitElement {
     imgHolder: ".img-holder",
   };
 
-  firstUpdated() {
-    super.firstUpdated();
-    this.updateThemeImage();
-  }
-
   updateThemeImage() {
     if (!this.theme) {
       return;
@@ -34,17 +29,20 @@ export class ProfilesThemeCard extends MozLitElement {
       // For system theme, we use a special SVG that shows the light/dark wave design
       this.backgroundImg.src =
         "chrome://browser/content/profiles/assets/system-theme-background.svg";
-      // Reset any inline styles since the SVG has its own colors
-      this.backgroundImg.style.fill = "";
-      this.backgroundImg.style.stroke = "";
-      this.imgHolder.style.backgroundColor = "";
     } else {
+      let contentColor;
+      if (!this.theme.contentColor) {
+        let styles = window.getComputedStyle(document.body);
+        contentColor = styles.getPropertyValue("background-color");
+      }
+
       // For other themes, use the standard SVG with dynamic colors
       this.backgroundImg.src =
         "chrome://browser/content/profiles/assets/theme-selector-background.svg";
       this.backgroundImg.style.fill = this.theme.chromeColor;
       this.backgroundImg.style.stroke = this.theme.toolbarColor;
-      this.imgHolder.style.backgroundColor = this.theme.contentColor;
+      this.imgHolder.style.backgroundColor =
+        this.theme.contentColor ?? contentColor;
     }
   }
 
@@ -71,9 +69,11 @@ export class ProfilesThemeCard extends MozLitElement {
           </div>
           <div
             class="theme-name"
-            id=${this.theme.dataL10nId}
-            data-l10n-id=${this.theme.dataL10nId}
-          ></div>
+            id=${this.theme.name}
+            data-l10n-id=${ifDefined(this.theme.dataL10nId)}
+          >
+            ${this.theme.name}
+          </div>
         </div>
       </moz-card>`;
   }
