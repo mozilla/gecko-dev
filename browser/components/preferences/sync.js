@@ -133,7 +133,7 @@ var gSyncPane = {
       if (location.href.includes("action=pair")) {
         gSyncPane.pairAnotherDevice();
       } else if (location.href.includes("action=choose-what-to-sync")) {
-        gSyncPane._chooseWhatToSync(false);
+        gSyncPane._chooseWhatToSync(false, "callToAction");
       }
     }
   },
@@ -239,10 +239,10 @@ var gSyncPane = {
       }
     });
     setEventListener("syncSetup", "command", function () {
-      this._chooseWhatToSync(false);
+      this._chooseWhatToSync(false, "setupSync");
     });
     setEventListener("syncChangeOptions", "command", function () {
-      this._chooseWhatToSync(true);
+      this._chooseWhatToSync(true, "manageSyncSettings");
     });
     setEventListener("syncNow", "command", function () {
       // syncing can take a little time to send the "started" notification, so
@@ -286,7 +286,12 @@ var gSyncPane = {
     }
   },
 
-  async _chooseWhatToSync(isSyncConfigured) {
+  async _chooseWhatToSync(isSyncConfigured, why = null) {
+    // Record the user opening the choose what to sync menu.
+    fxAccounts.telemetry.recordOpenCWTSMenu(why).catch(err => {
+      console.error("Failed to record open CWTS menu event", err);
+    });
+
     // Assuming another device is syncing and we're not,
     // we update the engines selection so the correct
     // checkboxes are pre-filed.
@@ -307,6 +312,12 @@ var gSyncPane = {
       {
         closingCallback: event => {
           if (event.detail.button == "accept") {
+            // Record when the user saves sync settings regardless of the
+            // `isAlreadySyncing` status.
+            fxAccounts.telemetry.recordSaveSyncSettings().catch(err => {
+              console.error("Failed to record save sync settings event", err);
+            });
+
             // Sync wasn't previously configured, but the user has accepted
             // so we want to now start syncing!
             if (!isSyncConfigured) {

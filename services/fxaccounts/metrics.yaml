@@ -88,3 +88,38 @@ fxa:
     expires: never
     extra_keys: *fxa_connect_extra
     telemetry_mirror: Fxa_Disconnect_Account
+
+sync_settings:
+  open_choose_what_to_sync_menu:
+    type: event
+    description: |
+      Records when the user opens the choose what to sync menu.
+    bugs:
+      - https://bugzil.la/1964832
+    data_reviews:
+      - https://bugzil.la/1964832
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
+    extra_keys:
+      why:
+        description: |
+          Records why the user opened the choose what to sync menu. Value is callToAction, setupSync,
+          or manageSyncSettings.
+        type: string
+
+  save:
+    type: event
+    description: |
+      Records when the user clicks the save button after opening the choose what to sync menu.
+    bugs:
+      - https://bugzil.la/1964832
+    data_reviews:
+      - https://bugzil.la/1964832
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
