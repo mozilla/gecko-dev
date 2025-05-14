@@ -483,7 +483,7 @@ export const LinkMenuOptions = {
           // Once the user confirmed their intention to block this section,
           // update their preferences.
           ac.AlsoToMain({
-            type: at.SECTION_PERSONALIZATION_UPDATE,
+            type: at.SECTION_PERSONALIZATION_SET,
             data: {
               ...sectionPersonalization,
               [sectionKey]: {
@@ -527,7 +527,7 @@ export const LinkMenuOptions = {
   }) => ({
     id: "newtab-menu-section-unfollow",
     action: ac.AlsoToMain({
-      type: at.SECTION_PERSONALIZATION_UPDATE,
+      type: at.SECTION_PERSONALIZATION_SET,
       data: (({ sectionKey: _sectionKey, ...remaining }) => remaining)(
         sectionPersonalization
       ),

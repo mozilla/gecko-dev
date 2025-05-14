@@ -107,7 +107,7 @@ function InterestPicker({ title, subtitle, interests, receivedFeedRank }) {
     );
     dispatch(
       ac.AlsoToMain({
-        type: at.SECTION_PERSONALIZATION_UPDATE,
+        type: at.SECTION_PERSONALIZATION_SET,
         data: updatedSections,
       })
     );

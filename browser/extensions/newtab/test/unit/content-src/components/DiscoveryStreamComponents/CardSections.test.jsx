@@ -307,7 +307,7 @@ describe("<CardSections />", () => {
     button.simulate("click", {});
 
     assert.deepEqual(dispatch.getCall(0).firstArg, {
-      type: "SECTION_PERSONALIZATION_UPDATE",
+      type: "SECTION_PERSONALIZATION_SET",
       data: {
         section_key_2: {
           isFollowed: true,
@@ -343,7 +343,7 @@ describe("<CardSections />", () => {
     button.simulate("click", {});
 
     assert.calledWith(dispatch.getCall(2), {
-      type: "SECTION_PERSONALIZATION_UPDATE",
+      type: "SECTION_PERSONALIZATION_SET",
       data: {},
       meta: {
         from: "ActivityStream:Content",

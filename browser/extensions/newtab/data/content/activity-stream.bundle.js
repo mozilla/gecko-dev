@@ -226,6 +226,7 @@ for (const type of [
   "SECTION_DISABLE",
   "SECTION_ENABLE",
   "SECTION_OPTIONS_CHANGED",
+  "SECTION_PERSONALIZATION_SET",
   "SECTION_PERSONALIZATION_UPDATE",
   "SECTION_REGISTER",
   "SECTION_UPDATE",
@@ -2174,7 +2175,7 @@ const LinkMenuOptions = {
           // Once the user confirmed their intention to block this section,
           // update their preferences.
           actionCreators.AlsoToMain({
-            type: actionTypes.SECTION_PERSONALIZATION_UPDATE,
+            type: actionTypes.SECTION_PERSONALIZATION_SET,
             data: {
               ...sectionPersonalization,
               [sectionKey]: {
@@ -2218,7 +2219,7 @@ const LinkMenuOptions = {
   }) => ({
     id: "newtab-menu-section-unfollow",
     action: actionCreators.AlsoToMain({
-      type: actionTypes.SECTION_PERSONALIZATION_UPDATE,
+      type: actionTypes.SECTION_PERSONALIZATION_SET,
       data: (({ sectionKey: _sectionKey, ...remaining }) => remaining)(
         sectionPersonalization
       ),
@@ -10935,7 +10936,7 @@ function InterestPicker({
       }
     }));
     dispatch(actionCreators.AlsoToMain({
-      type: actionTypes.SECTION_PERSONALIZATION_UPDATE,
+      type: actionTypes.SECTION_PERSONALIZATION_SET,
       data: updatedSections
     }));
   }
@@ -11295,7 +11296,7 @@ function CardSection({
       }
     };
     dispatch(actionCreators.AlsoToMain({
-      type: actionTypes.SECTION_PERSONALIZATION_UPDATE,
+      type: actionTypes.SECTION_PERSONALIZATION_SET,
       data: updatedSectionData
     }));
     // Telemetry Event Dispatch
@@ -11314,7 +11315,7 @@ function CardSection({
     };
     delete updatedSectionData[sectionKey];
     dispatch(actionCreators.AlsoToMain({
-      type: actionTypes.SECTION_PERSONALIZATION_UPDATE,
+      type: actionTypes.SECTION_PERSONALIZATION_SET,
       data: updatedSectionData
     }));
 
@@ -11981,7 +11982,7 @@ function SectionsMgmtPanel({
   }
   const onFollowClick = (0,external_React_namespaceObject.useCallback)((sectionKey, receivedRank) => {
     dispatch(actionCreators.AlsoToMain({
-      type: actionTypes.SECTION_PERSONALIZATION_UPDATE,
+      type: actionTypes.SECTION_PERSONALIZATION_SET,
       data: {
         ...sectionPersonalization,
         [sectionKey]: {
@@ -12003,7 +12004,7 @@ function SectionsMgmtPanel({
   }, [dispatch, sectionPersonalization]);
   const onBlockClick = (0,external_React_namespaceObject.useCallback)((sectionKey, receivedRank) => {
     dispatch(actionCreators.AlsoToMain({
-      type: actionTypes.SECTION_PERSONALIZATION_UPDATE,
+      type: actionTypes.SECTION_PERSONALIZATION_SET,
       data: {
         ...sectionPersonalization,
         [sectionKey]: {
@@ -12029,7 +12030,7 @@ function SectionsMgmtPanel({
     };
     delete updatedSectionData[sectionKey];
     dispatch(actionCreators.AlsoToMain({
-      type: actionTypes.SECTION_PERSONALIZATION_UPDATE,
+      type: actionTypes.SECTION_PERSONALIZATION_SET,
       data: updatedSectionData
     }));
     // Telemetry Event Dispatch
@@ -12048,7 +12049,7 @@ function SectionsMgmtPanel({
     };
     delete updatedSectionData[sectionKey];
     dispatch(actionCreators.AlsoToMain({
-      type: actionTypes.SECTION_PERSONALIZATION_UPDATE,
+      type: actionTypes.SECTION_PERSONALIZATION_SET,
       data: updatedSectionData
     }));
     // Telemetry Event Dispatch
