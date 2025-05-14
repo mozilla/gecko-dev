@@ -607,6 +607,8 @@ if (is_mac) {
       "mac/desktop_frame_iosurface.mm",
       "mac/desktop_frame_provider.h",
       "mac/desktop_frame_provider.mm",
+      "mac/sck_picker_handle.h",
+      "mac/sck_picker_handle.mm",
       "mac/screen_capturer_mac.h",
       "mac/screen_capturer_mac.mm",
       "mac/screen_capturer_sck.h",
@@ -638,6 +640,8 @@ if (is_mac) {
       "../../rtc_base/synchronization:mutex",
       "../../rtc_base/system:rtc_export",
       "../../sdk:helpers_objc",
+      "//third_party/abseil-cpp/absl/base:core_headers",
+      "//third_party/abseil-cpp/absl/strings:str_format",
     ]
     frameworks = [
       "AppKit.framework",
