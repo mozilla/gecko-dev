@@ -70,6 +70,7 @@ export class FormAutofillHandler {
 
   #formMutationObserver = null;
 
+  #visibilityObserver = null;
   #visibilityStateObserverByElement = new WeakMap();
 
   /**
@@ -221,20 +222,10 @@ export class FormAutofillHandler {
     return this.#filledStateByElement.get(element);
   }
 
-  isVisiblityStateObserverSetUpByElement(element) {
-    return this.#visibilityStateObserverByElement.has(element);
-  }
-
-  setVisibilityStateObserverByElement(element, observer) {
-    this.#visibilityStateObserverByElement.set(element, observer);
-  }
-
-  clearVisibilityStateObserverByElement(element) {
-    if (this.isVisiblityStateObserverSetUpByElement(element)) {
-      const observer = this.#visibilityStateObserverByElement.get(element);
-      observer.disconnect();
-      this.#visibilityStateObserverByElement.delete(element);
-    }
+  #clearVisibilityObserver() {
+    this.#visibilityObserver.disconnect();
+    this.#visibilityObserver = null;
+    this.#visibilityStateObserverByElement = new WeakMap();
   }
 
   /**
@@ -662,81 +653,80 @@ export class FormAutofillHandler {
     this.setUpFormNodesMutationObserver();
   }
 
+  #initializeIntersectionObserver() {
+    this.#visibilityObserver ??= new this.window.IntersectionObserver(
+      (entries, _observer) => {
+        const nowVisible = [];
+        const nowInvisible = [];
+        entries.forEach(entry => {
+          let observedElement = entry.target;
+
+          let oldState =
+            this.#visibilityStateObserverByElement.get(observedElement);
+          let newState = FormAutofillUtils.isFieldVisible(observedElement);
+          if (oldState == newState) {
+            return;
+          }
+
+          if (newState) {
+            nowVisible.push(observedElement);
+          } else {
+            nowInvisible.push(observedElement);
+          }
+        });
+
+        if (!nowVisible.length && !nowInvisible.length) {
+          return;
+        }
+
+        let changes = {};
+        if (nowVisible.length) {
+          changes[FORM_CHANGE_REASON.ELEMENT_VISIBLE] = nowVisible;
+        }
+        if (nowInvisible.length) {
+          changes[FORM_CHANGE_REASON.ELEMENT_INVISIBLE] = nowInvisible;
+        }
+
+        // Clear all of the observer state. The notification will add a new
+        // observer if needed.
+        this.#clearVisibilityObserver();
+
+        const formChangedEvent = new CustomEvent("form-changed", {
+          detail: {
+            form: this.form.rootElement,
+            changes,
+          },
+          bubbles: true,
+        });
+        this.form.ownerDocument.dispatchEvent(formChangedEvent);
+      },
+      {
+        root: this.form.rootElement,
+        // intersection ratio between 0.0 (invisible element) and 1.0 (visible element)
+        threshold: [0, 1],
+      }
+    );
+  }
+
   /**
-   * Iterates through handler.form.elements and sets up an IntersectionObserver for each (in-)visible
-   * address/cc input element that is not observed yet (see handler.#visibilityStateObserverByElement).
-   * The observer notifies of intersections between the (in-)visible element and the intersection target (handler.form).
-   * This is the case if e.g. a visible element becomes invisible or an invisible element becomes visible.
-   * If a visibility state change is observed, a "form-changes" event is dispatched.
+   * Sets up an IntersectionObserver to handle each (in-)visible address/cc input element
+   * in a form. The observer notifies of intersections between the (in-)visible element and
+   * the intersection target (handler.form). This is the case if e.g. a visible element becomes
+   * invisible or an invisible element becomes visible. If a visibility state change is observed,
+   * a "form-changes" event is dispatched.
    */
   setUpElementVisibilityObserver() {
-    const VISIBILITY_STATE = {
-      VISIBLE: true,
-      INVISIBLE: false,
-    };
-
-    // Setting up an observer for an element's changing visibility state
-    const setUpIntersectionObserver = (element, visibilityState) => {
-      const visibilityStateObserver = new this.window.IntersectionObserver(
-        (entries, observer) => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting != visibilityState) {
-              return;
-            }
-            if (
-              entry.target.checkVisibility({
-                checkOpacity: true,
-                checkVisibilityCSS: true,
-              }) != visibilityState
-            ) {
-              // The observer notified that the element reached the intersection threshold
-              // (meaning the element's visibility state changed to either visible or invisible.
-              // But checkVisibility doesn't confirm that.
-              // For these mismatches we disconnect the observer to avoid an infinite loop.
-              observer.disconnect();
-              return;
-            }
-            const changes = {};
-            const reason =
-              visibilityState == VISIBILITY_STATE.VISIBLE
-                ? FORM_CHANGE_REASON.ELEMENT_VISIBLE
-                : FORM_CHANGE_REASON.ELEMENT_INVISIBLE;
-            changes[reason] = [entry.target];
-
-            const formChangedEvent = new CustomEvent("form-changed", {
-              detail: {
-                form: this.form.rootElement,
-                changes,
-              },
-              bubbles: true,
-            });
-            this.form.ownerDocument.dispatchEvent(formChangedEvent);
-
-            this.clearVisibilityStateObserverByElement(element);
-            observer.disconnect();
-          });
-        },
-        {
-          root: this.form.rootElement,
-          // intersection reatio between 0.0 (invisible element) and 1.0 (visible element)
-          threshold: visibilityState === VISIBILITY_STATE.INVISIBLE ? 0 : 1,
-        }
-      );
-      visibilityStateObserver.observe(element);
-      this.setVisibilityStateObserverByElement(
-        element,
-        visibilityStateObserver
-      );
-    };
-
     for (let element of this.form.elements) {
       if (!FormAutofillUtils.isCreditCardOrAddressFieldType(element)) {
         continue;
       }
-      if (this.isVisiblityStateObserverSetUpByElement(element)) {
+
+      if (this.#visibilityStateObserverByElement.has(element)) {
         continue;
       }
-      if (FormAutofillUtils.isFieldVisible(element)) {
+
+      let state = FormAutofillUtils.isFieldVisible(element);
+      if (state) {
         // We don't care about visibility state changes for fields that are not recognized
         // by our heuristics. We only handle this for visible fields because we currently
         // don't run field detection heuristics for invisible fields.
@@ -744,13 +734,12 @@ export class FormAutofillHandler {
         if (!fieldDetail.fieldName) {
           continue;
         }
-
-        // Setting up an observer that notifies when the visible element becomes invisible
-        setUpIntersectionObserver(element, VISIBILITY_STATE.INVISIBLE);
-      } else {
-        // Setting up an observer that notifies when the invisible element becomes visible
-        setUpIntersectionObserver(element, VISIBILITY_STATE.VISIBLE);
       }
+
+      this.#initializeIntersectionObserver();
+
+      this.#visibilityObserver.observe(element);
+      this.#visibilityStateObserverByElement.set(element, state);
     }
   }
 
@@ -864,9 +853,7 @@ export class FormAutofillHandler {
       return;
     }
     // Disconnect intersection observers
-    for (let element of this.form.elements) {
-      this.clearVisibilityStateObserverByElement(element);
-    }
+    this.#clearVisibilityObserver();
     // Disconnect mutation observer
     this.#formMutationObserver.disconnect();
     this.#isObservingFormMutations = false;
