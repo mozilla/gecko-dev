@@ -12,5 +12,8 @@
 }
 
 #sanitizeEverythingWarningIcon {
-  list-style-image: url("moz-icon://stock/gtk-dialog-warning?size=dialog");
+  list-style-image: image-set(
+    "moz-icon://stock/dialog-warning?size=48" 1x,
+    "moz-icon://stock/dialog-warning?size=48&scale=2" 2x
+  );
 }

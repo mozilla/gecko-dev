@@ -35,9 +35,9 @@
   <hbox>
     <vbox>
 #ifdef MOZ_WIDGET_GTK
-      <image src="moz-icon://stock/gtk-dialog-warning?size=48"/>
+      <html:img srcset="moz-icon://stock/dialog-warning?size=48 1x, moz-icon://stock/dialog-warning?size=48&scale=2 2x"/>
 #else
-      <image src="chrome://global/skin/icons/warning-large.png"/>
+      <html:img src="chrome://global/skin/icons/warning-large.png"/>
 #endif
       <spacer flex="1"/>
     </vbox>
