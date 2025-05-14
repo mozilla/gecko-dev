@@ -675,7 +675,6 @@ export class BaseContent extends React.PureComponent {
       prefs["discoverystream.sections.customizeMenuPanel.enabled"];
     const sectionsPersonalizationEnabled =
       prefs["discoverystream.sections.personalization.enabled"];
-
     // Logic to show follow/block topic mgmt panel in Customize panel
     const mayHavePersonalizedTopicSections =
       sectionsPersonalizationEnabled &&
