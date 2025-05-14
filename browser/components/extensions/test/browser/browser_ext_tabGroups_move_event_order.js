@@ -173,3 +173,74 @@ add_task(async function tabGroups_move_multiple_tabs_to_other_window() {
   await extension.awaitMessage("done");
   await extension.unload();
 });
+
+// Tests that tabs.onMoved fires with the expected fromIndex / toIndex details
+// when tabGroups.move() is used.
+// Regression test for https://bugzilla.mozilla.org/show_bug.cgi?id=1963830
+add_task(async function tabGroups_move_tabs_onMoved_order() {
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: ["tabGroups"],
+    },
+    async background() {
+      // Set up window (with one tab) and 2 additional tabs in a group.
+      const { id: windowId } = await browser.windows.create({});
+      const { id: tabId1 } = await browser.tabs.create({ windowId });
+      const { id: tabId2 } = await browser.tabs.create({ windowId });
+
+      let eventCount = 0;
+      let { promise, resolve: resolveDone } = Promise.withResolvers();
+      browser.tabs.onMoved.addListener((movedTabId, moveInfo) => {
+        let i = eventCount++;
+        if (i === 0) {
+          browser.test.assertEq(tabId1, movedTabId, "tabs.onMoved for tab 1");
+          browser.test.assertDeepEq(
+            { windowId, fromIndex: 1, toIndex: 0 },
+            moveInfo,
+            "Moved first tab first when tab group is moved backwards"
+          );
+        } else if (i == 1) {
+          browser.test.assertEq(tabId2, movedTabId, "tabs.onMoved for tab 2");
+          browser.test.assertDeepEq(
+            { windowId, fromIndex: 2, toIndex: 1 },
+            moveInfo,
+            "Moved last tab last when tab group is moved backwards"
+          );
+        } else if (i == 2) {
+          browser.test.assertEq(tabId2, movedTabId, "tabs.onMoved for tab 2");
+          browser.test.assertDeepEq(
+            { windowId, fromIndex: 1, toIndex: 2 },
+            moveInfo,
+            "Moved last tab first when tab group is moved forwards"
+          );
+        } else if (i == 3) {
+          browser.test.assertEq(tabId1, movedTabId, "tabs.onMoved for tab 1");
+          browser.test.assertDeepEq(
+            { windowId, fromIndex: 0, toIndex: 1 },
+            moveInfo,
+            "Moved first tab last when tab group is moved forwards"
+          );
+          resolveDone();
+        } else {
+          browser.test.fail(
+            `Unexpected tabs.onMoved: ${movedTabId} ${JSON.stringify(moveInfo)}`
+          );
+        }
+      });
+
+      browser.test.log("Creating tab group");
+      const groupId = await browser.tabs.group({ tabIds: [tabId1, tabId2] });
+      browser.test.log("Moving tab group backwards");
+      await browser.tabGroups.move(groupId, { index: 0 });
+      browser.test.log("Moving tab group forwards");
+      await browser.tabGroups.move(groupId, { index: -1 });
+
+      await promise;
+      await browser.windows.remove(windowId);
+      browser.test.sendMessage("done");
+    },
+  });
+  await extension.startup();
+  await extension.awaitMessage("done");
+  await extension.unload();
+});
