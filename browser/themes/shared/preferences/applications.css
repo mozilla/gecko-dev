@@ -17,7 +17,9 @@ menuitem[appHandlerIcon="ask"] > .menu-icon {
 richlistitem[appHandlerIcon="save"] .actionIcon,
 richlistitem[appHandlerIcon="save"] .actionsMenu::part(icon),
 menuitem[appHandlerIcon="save"] > .menu-icon {
-  content: url("chrome://browser/skin/preferences/saveFile.png");
+  @media not (-moz-platform: linux) {
+    content: url("chrome://browser/skin/preferences/saveFile.png");
+  }
   @media (-moz-platform: linux) {
     content: image-set(
       "moz-icon://stock/document-save?size=16" 1x,
