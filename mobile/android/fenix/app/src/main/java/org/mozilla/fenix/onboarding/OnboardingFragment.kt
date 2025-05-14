@@ -19,8 +19,10 @@ import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.fragment.findNavController
+import kotlinx.coroutines.launch
 import mozilla.components.concept.engine.webextension.InstallationMethod
 import mozilla.components.service.nimbus.evalJexlSafe
 import mozilla.components.service.nimbus.messaging.use
@@ -360,12 +362,15 @@ class OnboardingFragment : Fragment() {
         requireComponents.fenixOnboarding.finish()
 
         val settings = requireContext().settings()
-        initializeGlean(
-            requireContext().applicationContext,
-            logger,
-            settings.isTelemetryEnabled,
-            requireComponents.core.client,
-        )
+        viewLifecycleOwner.lifecycleScope.launch {
+            initializeGlean(
+                requireContext().applicationContext,
+                logger,
+                settings.isTelemetryEnabled,
+                requireComponents.core.client,
+            )
+        }
+
         if (!settings.isTelemetryEnabled) {
             Pings.onboardingOptOut.setEnabled(true)
             Pings.onboardingOptOut.submit()
