@@ -108,9 +108,10 @@ DynamicImage::GetIntrinsicSize(ImageIntrinsicSize* aIntrinsicSize) {
 
 NS_IMETHODIMP
 DynamicImage::GetIntrinsicSizeInAppUnits(nsSize* aSize) {
-  // XXXdholbert This probably needs to be scaled; see bug 1965106.
   IntSize intSize(mDrawable->Size());
-  *aSize = nsSize(intSize.width, intSize.height);
+
+  *aSize = nsSize(nsPresContext::CSSPixelsToAppUnits(intSize.width),
+                  nsPresContext::CSSPixelsToAppUnits(intSize.height));
   return NS_OK;
 }
 
