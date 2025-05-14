@@ -5,6 +5,7 @@
 package mozilla.components.compose.browser.toolbar
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -51,6 +52,11 @@ fun HomepageDisplayToolbar(
         Row(
             modifier = Modifier
                 .padding(vertical = 8.dp)
+                .border(
+                    width = 1.dp,
+                    color = AcornTheme.colors.borderPrimary,
+                    shape = ROUNDED_CORNER_SHAPE,
+                )
                 .background(
                     color = colors.urlBackground,
                     shape = ROUNDED_CORNER_SHAPE,
