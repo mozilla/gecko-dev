@@ -1429,13 +1429,6 @@ class BrowsingContextModule extends RootBiDiModule {
       userContexts: userContextIds = null,
     } = options;
 
-    if (lazy.AppInfo.isAndroid) {
-      // Bug 1840084: Add Android support for modifying the viewport.
-      throw new lazy.error.UnsupportedOperationError(
-        `Command not yet supported for ${lazy.AppInfo.name}`
-      );
-    }
-
     const userContexts = new Set();
 
     if (contextId !== null) {
@@ -1521,6 +1514,13 @@ class BrowsingContextModule extends RootBiDiModule {
       );
 
       navigables.add(navigable);
+    }
+
+    if (lazy.AppInfo.isAndroid) {
+      // Bug 1840084: Add Android support for modifying the viewport.
+      throw new lazy.error.UnsupportedOperationError(
+        `Command not yet supported for ${lazy.AppInfo.name}`
+      );
     }
 
     const viewportOverride = {
