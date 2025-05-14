@@ -12,4 +12,7 @@ config = {
         "MOZ_OBJDIR": "%(abs_obj_dir)s",
     },
     "src_mozconfig": "browser/config/mozconfigs/linux64/source",
+    "upload_env": {
+        "UPLOAD_PATH": "/builds/worker/artifacts/",
+    },
 }
