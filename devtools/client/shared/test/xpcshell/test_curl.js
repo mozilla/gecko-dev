@@ -227,9 +227,9 @@ add_task(async function () {
 
   // Check binary data
   const dataBinaryPos = cmd.indexOf("--data-binary");
-  const dataBinaryParam = `--data-binary ${isWin() ? "^\n  " : "\\\n  $"}${escapeNewline(
-    quote(request.postDataText)
-  )}`;
+  const dataBinaryParam = `--data-binary ${
+    isWin() ? "^\n  " : "\\\n  $"
+  }${escapeNewline(quote(request.postDataText))}`;
 
   ok(dataBinaryPos !== -1, "--data-binary param present in curl output");
   equal(
