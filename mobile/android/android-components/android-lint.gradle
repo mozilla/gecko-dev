@@ -15,7 +15,7 @@ android {
                 // "We do not impose rules on locales"
                 // https://github.com/mozilla-mobile/android-components/pull/11069
                 'TypographyDashes'
-        sarifReport true
-        sarifOutput file("../../../build/reports/lint/lint-report-${project.name}.sarif.json")
+        sarifReport = true
+        sarifOutput = file("../../../build/reports/lint/lint-report-${project.name}.sarif.json")
     }
 }
