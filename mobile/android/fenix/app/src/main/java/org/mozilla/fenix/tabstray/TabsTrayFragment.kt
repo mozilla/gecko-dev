@@ -260,9 +260,21 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                         requireComponents.settings.showSecretDebugMenuThisSession,
                     shouldShowTabAutoCloseBanner = requireContext().settings().shouldShowAutoCloseTabsBanner &&
                         requireContext().settings().canShowCfr,
-                    shouldShowLockPbmBanner = shouldShowLockPbmBanner(requireContext()),
+                    shouldShowLockPbmBanner =
+                        if (FeatureFlags.privateBrowsingLock) {
+                            shouldShowLockPbmBanner(
+                                isPrivateMode = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
+                                hasPrivateTabs = requireComponents.core.store.state.privateTabs.isNotEmpty(),
+                                biometricAvailable = BiometricManager.from(requireContext())
+                                    .isHardwareAvailable(),
+                                privateLockEnabled = requireContext().settings().privateBrowsingLockedEnabled,
+                                shouldShowBanner = requireContext().settings().shouldShowLockPbmBanner,
+                            )
+                        } else {
+                            false
+                        },
                     shouldShowInactiveTabsAutoCloseDialog =
-                    requireContext().settings()::shouldShowInactiveTabsAutoCloseDialog,
+                        requireContext().settings()::shouldShowInactiveTabsAutoCloseDialog,
                     onTabPageClick = { page ->
                         onTabPageClick(
                             tabsTrayInteractor = tabsTrayInteractor,
@@ -829,6 +841,46 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             }
             tabsTrayInteractor.onTrayPositionSelected(page.ordinal, false)
         }
+    }
+
+    @VisibleForTesting
+    internal fun shouldShowPrompt(
+        biometricAuthenticationNeededInfo: BiometricAuthenticationNeededInfo,
+        isPrivateTabPage: Boolean,
+        isInPrivateMode: Boolean,
+    ): Boolean {
+        val hasPrivateTabs = requireComponents.core.store.state.privateTabs.isNotEmpty()
+        val biometricLockEnabled = requireContext().settings().privateBrowsingLockedEnabled
+        val shouldShowAuthenticationPrompt =
+            biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt
+        val isNotOnPrivateTabsPage = tabsTrayStore.state.selectedPage != Page.PrivateTabs
+
+        return isPrivateTabPage && hasPrivateTabs && biometricLockEnabled &&
+            shouldShowAuthenticationPrompt && isNotOnPrivateTabsPage && !isInPrivateMode
+    }
+
+    /**
+     * Determines whether the Lock Private Browsing Mode banner should be shown.
+     *
+     * The banner is shown only when all of the following conditions are met:
+     * - The app is currently in private browsing mode
+     * - There are existing private tabs open
+     * - Biometric hardware is available on the device
+     * - The user has not already enabled the private browsing lock
+     * - The user has not already dismissed or acknowledged the Pbm banner from tabs tray
+     *
+     * We only want to show the banner when the feature is available,
+     * applicable, and relevant to the current user context.
+     */
+    @VisibleForTesting
+    internal fun shouldShowLockPbmBanner(
+        isPrivateMode: Boolean,
+        hasPrivateTabs: Boolean,
+        biometricAvailable: Boolean,
+        privateLockEnabled: Boolean,
+        shouldShowBanner: Boolean,
+    ): Boolean {
+        return isPrivateMode && hasPrivateTabs && biometricAvailable && !privateLockEnabled && shouldShowBanner
     }
 
     companion object {

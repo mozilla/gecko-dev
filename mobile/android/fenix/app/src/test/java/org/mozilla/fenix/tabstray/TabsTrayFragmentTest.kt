@@ -23,6 +23,8 @@ import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -275,5 +277,57 @@ class TabsTrayFragmentTest {
                 any(),
             )
         }
+    }
+
+    @Test
+    fun `WHEN all conditions are met THEN shouldShowLockPbmBanner returns true`() {
+        val result = testShouldShowLockPbmBanner()
+        assertTrue(result)
+    }
+
+    @Test
+    fun `WHEN isPrivateMode is false THEN shouldShowLockPbmBanner returns false`() {
+        val result = testShouldShowLockPbmBanner(isPrivateMode = false)
+        assertFalse(result)
+    }
+
+    @Test
+    fun `WHEN hasPrivateTabs is false THEN shouldShowLockPbmBanner returns false`() {
+        val result = testShouldShowLockPbmBanner(hasPrivateTabs = false)
+        assertFalse(result)
+    }
+
+    @Test
+    fun `WHEN biometricAvailable is false THEN shouldShowLockPbmBanner returns false`() {
+        val result = testShouldShowLockPbmBanner(biometricAvailable = false)
+        assertFalse(result)
+    }
+
+    @Test
+    fun `WHEN privateLockEnabled is true THEN shouldShowLockPbmBanner returns false`() {
+        val result = testShouldShowLockPbmBanner(privateLockEnabled = true)
+        assertFalse(result)
+    }
+
+    @Test
+    fun `WHEN shouldShowBanner is false THEN shouldShowLockPbmBanner returns false`() {
+        val result = testShouldShowLockPbmBanner(shouldShowBanner = false)
+        assertFalse(result)
+    }
+
+    private fun testShouldShowLockPbmBanner(
+        isPrivateMode: Boolean = true,
+        hasPrivateTabs: Boolean = true,
+        biometricAvailable: Boolean = true,
+        privateLockEnabled: Boolean = false,
+        shouldShowBanner: Boolean = true,
+    ): Boolean {
+        return fragment.shouldShowLockPbmBanner(
+            isPrivateMode = isPrivateMode,
+            hasPrivateTabs = hasPrivateTabs,
+            biometricAvailable = biometricAvailable,
+            privateLockEnabled = privateLockEnabled,
+            shouldShowBanner = shouldShowBanner,
+        )
     }
 }
