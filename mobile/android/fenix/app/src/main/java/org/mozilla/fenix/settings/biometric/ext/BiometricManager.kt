@@ -11,6 +11,8 @@ import androidx.biometric.BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE
 import androidx.biometric.BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE
 import androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS
 
+private const val AUTHENTICATORS = BIOMETRIC_WEAK or DEVICE_CREDENTIAL
+
 /**
  * Checks if the hardware requirements are met for using the [BiometricManager].
  */
@@ -23,6 +25,13 @@ fun BiometricManager.isHardwareAvailable(): Boolean {
  * Checks if the user can use the [BiometricManager] and is therefore enrolled.
  */
 fun BiometricManager.isEnrolled(): Boolean {
-    val status = canAuthenticate(BIOMETRIC_WEAK or DEVICE_CREDENTIAL)
+    val status = canAuthenticate(BIOMETRIC_WEAK)
     return status == BIOMETRIC_SUCCESS
+}
+
+/**
+ * Checks if the user has an authenticator set.
+ */
+fun BiometricManager.isAuthenticatorAvailable(): Boolean {
+    return canAuthenticate(AUTHENTICATORS) == BIOMETRIC_SUCCESS
 }
