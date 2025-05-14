@@ -1372,6 +1372,8 @@ export class AddonWrapper {
   /**
    * Returns true if the addon is configured to be installed
    * by enterprise policy.
+   *
+   * Should be kept in sync with Extension.sys.mjs
    */
   get isInstalledByEnterprisePolicy() {
     const policySettings = Services.policies?.getExtensionSettings(this.id);
