@@ -2068,8 +2068,8 @@ bool NativeLayerCA::WillUpdateAffectLayers(
 }
 
 // Called when mMutex is already being held by the current thread.
-Maybe<NativeLayerCA::SurfaceWithInvalidRegion>
-NativeLayerCA::GetUnusedSurfaceAndCleanUp(const MutexAutoLock& aProofOfLock) {
+Maybe<SurfaceWithInvalidRegion> NativeLayerCA::GetUnusedSurfaceAndCleanUp(
+    const MutexAutoLock& aProofOfLock) {
   std::vector<SurfaceWithInvalidRegionAndCheckCount> usedSurfaces;
   Maybe<SurfaceWithInvalidRegion> unusedSurface;
 

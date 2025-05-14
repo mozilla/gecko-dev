@@ -268,6 +268,7 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("cocoa", "uikit"):
     EXPORTS.mozilla.layers += [
         "GpuFenceMTLSharedEvent.h",
         "NativeLayerCA.h",
+        "NativeLayerMacSurfaceHandler.h",
         "SurfacePoolCA.h",
     ]
     EXPORTS += [
@@ -276,6 +277,7 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("cocoa", "uikit"):
     ]
     UNIFIED_SOURCES += [
         "NativeLayerCA.mm",
+        "NativeLayerMacSurfaceHandler.mm",
         "SurfacePoolCA.mm",
     ]
     SOURCES += [
