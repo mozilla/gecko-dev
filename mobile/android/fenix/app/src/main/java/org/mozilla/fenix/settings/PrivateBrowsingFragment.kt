@@ -21,10 +21,8 @@ import org.mozilla.fenix.components.PrivateShortcutCreateManager
 import org.mozilla.fenix.ext.registerForActivityResult
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
-import org.mozilla.fenix.settings.biometric.BiometricPromptFeature
 import org.mozilla.fenix.settings.biometric.DefaultBiometricUtils
 import org.mozilla.fenix.settings.biometric.ext.isAuthenticatorAvailable
-import org.mozilla.fenix.settings.biometric.ext.isEnrolled
 import org.mozilla.fenix.settings.biometric.ext.isHardwareAvailable
 
 /**
@@ -82,13 +80,13 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
 
         val biometricManager = BiometricManager.from(requireContext())
         val deviceCapable = biometricManager.isHardwareAvailable()
-        val userHasEnabledCapability = biometricManager.isEnrolled()
+        val userHasEnabledCapability = biometricManager.isAuthenticatorAvailable()
 
         requirePreference<SwitchPreference>(R.string.pref_key_private_browsing_locked_enabled).apply {
             isChecked = context.settings().privateBrowsingLockedEnabled &&
                 biometricManager.isAuthenticatorAvailable()
             isVisible = deviceCapable && Config.channel.isDebug
-            isEnabled = BiometricPromptFeature.canUseFeature(biometricManager)
+            isEnabled = userHasEnabledCapability
 
             setOnPreferenceChangeListener { preference, newValue ->
                 val pbmLockEnabled = newValue as? Boolean
