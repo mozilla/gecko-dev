@@ -1739,6 +1739,33 @@ var XPIStates = {
           FILE_XPI_STATES
         ),
         finalizeAt: AddonManagerPrivate.finalShutdown,
+        saveFailureHandler(ex) {
+          logger.error(`Failed to save ${FILE_XPI_STATES} data to disk`, ex);
+          let profile_state;
+          if (Services.appinfo.lastAppVersion == null) {
+            profile_state = "new";
+          } else if (
+            Services.appinfo.version === Services.appinfo.lastAppVersion &&
+            Services.appinfo.appBuildID === Services.appinfo.lastAppBuildID
+          ) {
+            profile_state = "existing";
+          } else {
+            profile_state = "existingWithVersionChanged";
+          }
+          let error_type = "Unknown";
+          if (ex?.message?.includes("too much recursion")) {
+            // This error is associated to a known issue (Bug 1964281) and so it is
+            // special handled here to make sure we can tell it apart from
+            // any other InternalError error object that may be raised from IOUtils.
+            error_type = "TooMuchRecursion";
+          } else if (ex?.name) {
+            error_type = ex.name;
+          }
+          Glean.addonsManager.xpistatesWriteErrors.record({
+            error_type,
+            profile_state,
+          });
+        },
         compression: "lz4",
       });
       this._jsonFile.data = this;
