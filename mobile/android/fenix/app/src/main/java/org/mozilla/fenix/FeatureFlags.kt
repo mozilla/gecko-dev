@@ -69,11 +69,6 @@ object FeatureFlags {
     const val META_ATTRIBUTION_ENABLED = true
 
     /**
-     * Enables Homepage as a New Tab.
-     */
-    const val HOMEPAGE_AS_NEW_TAB = false
-
-    /**
      * Enables the Unified Trust Panel.
      */
     const val UNIFIED_TRUST_PANEL = false

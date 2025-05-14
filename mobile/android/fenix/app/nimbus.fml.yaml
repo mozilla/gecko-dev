@@ -698,6 +698,15 @@ features:
         type: Boolean
         default: false
 
+  homepage-as-new-tab:
+    description: Enables homepage as a a new tab.
+    variables:
+      enabled:
+        description: >
+          Whether or not to enable homepage as a new tab
+        type: Boolean
+        default: false
+
   homepage-search-bar:
     description: Enables the homepage search bar.
     variables:

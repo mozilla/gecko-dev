@@ -2008,9 +2008,10 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates if the Homepage as a New Tab is enabled.
      */
-    var enableHomepageAsNewTab by booleanPreference(
+    var enableHomepageAsNewTab by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_homepage_as_new_tab),
-        default = FeatureFlags.HOMEPAGE_AS_NEW_TAB,
+        default = { FxNimbus.features.homepageAsNewTab.value().enabled },
+        featureFlag = true,
     )
 
     /**
