@@ -45,7 +45,7 @@
   -->
   <string name="home_bookmarks_title">نشووکا</string>
   <!-- Content description for the button which navigates the user to show all of their bookmarks. -->
-  <string name="home_bookmarks_show_all_content_description">نشۉݩ داڌن پوی نشووکا</string>
+  <string name="home_bookmarks_show_all_content_description">نشووݩ داڌن پوی نشووکا</string>
   <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
   <string name="home_bookmarks_menu_item_remove">پاک کردن</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
@@ -103,7 +103,7 @@
   -->
   <string name="recent_tabs_header">وورگرتین و من</string>
   <!-- Button text for showing all the tabs in the tabs tray -->
-  <string name="recent_tabs_show_all">نشۉݩ داڌن پوی</string>
+  <string name="recent_tabs_show_all">نشووݩ داڌن پوی</string>
   <!-- Content description for the button which navigates the user to show all recent tabs in the tabs tray. -->
   <string name="recent_tabs_show_all_content_description_2">نشۉ« داڌن دویمه پوی بلگه یل دیندایی</string>
   <!-- Text for the dropdown menu to remove a recent synced tab from the homescreen -->
@@ -487,27 +487,27 @@
   <!-- Preference for data choices -->
   <string name="preferences_data_choices">پسند داده یل</string>
   <!-- Preference title for switch preference to show search suggestions -->
-  <string name="preferences_show_search_suggestions">نشۉݩ داڌن پؽشنهاڌا پیتینیڌن</string>
+  <string name="preferences_show_search_suggestions">نشووݩ داڌن پؽشنهاڌا پیتینیڌن</string>
   <!-- Preference title for switch preference to show voice search button -->
-  <string name="preferences_show_voice_search">نشۉݩ داڌن پیتینیڌن دونگی</string>
+  <string name="preferences_show_voice_search">نشووݩ داڌن پیتینیڌن دونگی</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
-  <string name="preferences_show_trending_search_suggestions">نشۉݩ داڌن پؽشنهاڌا هؽزگر</string>
+  <string name="preferences_show_trending_search_suggestions">نشووݩ داڌن پؽشنهاڌا هؽزگر</string>
   <!-- Preference title for switch preference to show recent search suggestions -->
-  <string name="preferences_show_recent_search_suggestions">نشۉݩ داڌن پیتینیڌنا دیندایی</string>
+  <string name="preferences_show_recent_search_suggestions">نشووݩ داڌن پیتینیڌنا دیندایی</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
-  <string name="preferences_show_clipboard_suggestions">نشۉݩ داڌن پؽشنهاڌا کلیپ بورد</string>
+  <string name="preferences_show_clipboard_suggestions">نشووݩ داڌن پؽشنهاڌا کلیپ بورد</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">پیتینیڌن ویرگار گشتن</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">پیتینیڌن نشووکا</string>
   <!-- Preference title for switch preference to show shortcuts when searching -->
-  <string name="preferences_show_shortcuts">نشۉݩ داڌن ر نهنگا</string>
+  <string name="preferences_show_shortcuts">نشووݩ داڌن ر نهنگا</string>
   <!-- Preference for account settings -->
   <string name="preferences_account_settings">سامووا هساو</string>
   <!-- Preference for enabling url autocomplete -->
   <string name="preferences_enable_autocomplete_urls">کامل کردن خوتکار نشۊوی اینترنتی</string>
   <!-- Preference title for switch preference to show sponsored Firefox Suggest search suggestions -->
-  <string name="preferences_show_sponsored_suggestions">پؽشنهاڌا ز هؽزگرۉݩ</string>
+  <string name="preferences_show_sponsored_suggestions">پؽشنهاڌا ز هؽزگرووݩ</string>
   <!--
     Preference title for switch preference to show Firefox Suggest search suggestions for web content.
     %1$s is the name of the app (for example "Firefox").
@@ -550,11 +550,11 @@
   <!-- Title for the customize home screen section with bookmarks. -->
   <string name="customize_toggle_bookmarks">نشووکا</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
-  <string name="customize_toggle_pocket_sponsored">وزعیتا هؽزگرۉݩ</string>
+  <string name="customize_toggle_pocket_sponsored">وزعیتا هؽزگرووݩ</string>
   <!-- Title for the opening wallpaper settings screen -->
   <string name="customize_wallpapers">کاقز دیواری یل</string>
   <!-- Title for the customize home screen section with sponsored shortcuts. -->
-  <string name="customize_toggle_contile">ر نهنگا هؽزگرۉݩ</string>
+  <string name="customize_toggle_contile">ر نهنگا هؽزگرووݩ</string>
   <!--
     Wallpapers
 
@@ -564,7 +564,7 @@
   <!-- Snackbar message for when wallpaper is selected -->
   <string name="wallpaper_updated_snackbar_message">کاقز دیواری ورۊ وابی!</string>
   <!-- Snackbar label for action to view selected wallpaper -->
-  <string name="wallpaper_updated_snackbar_action">نشۉݩ داڌن</string>
+  <string name="wallpaper_updated_snackbar_action">نشووݩ داڌن</string>
   <!-- Snackbar message for when wallpaper couldn't be downloaded -->
   <string name="wallpaper_download_error_snackbar_message">نترست کاقز دیواری ن دانلود کونه</string>
   <!-- Snackbar label for action to retry downloading the wallpaper -->
@@ -628,7 +628,7 @@
   -->
   <string name="fxa_tabs_closed_notification_title">%1$s بلگه بسته وابین: %2$d</string>
   <!-- The body for a "closed synced tabs" notification. -->
-  <string name="fxa_tabs_closed_text">نشۉݩ داڌن بلگه یلی ک سکو بسته وابین</string>
+  <string name="fxa_tabs_closed_text">نشووݩ داڌن بلگه یلی ک سکو بسته وابین</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">قلوه دووسته بۊین</string>
   <!-- Preference switch for usage and technical learn more link -->
@@ -851,6 +851,8 @@
   <string name="download_undo_delete_snackbar_action">وورگندن</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">تا سکو فایلی دانلود نوابیڌه</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">هنی هیچ دانلودی نڌاشتینه</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -858,6 +860,11 @@
   <string name="download_multi_select_title">%1$d پسند وابی</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">پاک کردن</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message">ای دسگا جاگه کافی سی دانلود &lt;b&gt;%s&lt;/b&gt; ن نڌاره.</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">پاک کردن</string>
   <!-- Content description for the search bar clear text button on the downloads screen -->
@@ -1413,7 +1420,7 @@
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">گۊشیڌن وبگه من گشت گر</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->
-  <string name="saved_login_reveal_password">نشۉݩ داڌن رزم</string>
+  <string name="saved_login_reveal_password">نشووݩ داڌن رزم</string>
   <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
   <string name="saved_login_hide_password">بؽڌار کردن رزم</string>
   <!-- Content description (not visible, for screen readers etc.) -->
@@ -1586,7 +1593,7 @@
   <!-- Text for the menu button to open the homepage settings. -->
   <string name="top_sites_menu_settings">سامووا</string>
   <!-- Text for the menu button to navigate to sponsors and privacy support articles. '&amp;' is replaced with the ampersand symbol: & -->
-  <string name="top_sites_menu_sponsor_privacy">هؽزگرۉݩ ایما وو هریم سیخومی ایسا</string>
+  <string name="top_sites_menu_sponsor_privacy">هؽزگرووݩ ایما وو هریم سیخومی ایسا</string>
   <!-- Label text displayed for a sponsored top site. -->
   <string name="top_sites_sponsored_label">هؽزگری وابیڌه</string>
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
@@ -1838,7 +1845,7 @@
 
     The default content description for the eye trailing icon button in TextField
   -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">نشۉݩ داڌن هؽل بؽڌاری</string>
+  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">نشووݩ داڌن هؽل بؽڌاری</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">پاک کردن هؽل</string>
   <!--

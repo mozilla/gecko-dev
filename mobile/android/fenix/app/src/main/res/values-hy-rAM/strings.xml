@@ -631,6 +631,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">Արագ և անվտանգ վեբ դիտարկում</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Համաձայնել և շարունակել</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">Շարունակել</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Շարունակելով՝ դուք համաձայնում եք %1$s-ին:</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1678,6 +1680,8 @@
   <string name="bookmark_menu_delete_button">Ջնջել</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Պահպանել</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">Տեսակավորել ըստ հարմարեցված կարգի</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">Տեսակավորել ըստ ամենանորի</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3421,6 +3425,8 @@
   <string name="debug_drawer_override_current_region_label">Գերազդել ներկայիս տարածաշրջանը</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">Գերազդել տնային և ներկայիս տարածաշրջանը</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Մշտապես չեղարկել տնային տարածաշրջանը</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3589,6 +3595,10 @@
   <string name="pbm_authentication_unlock">Ապակողպել</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Ապակողպել գաղտնի ներդիրները</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">Միացնել գաղտնի ներդիրների էկրանի կողպումը</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">Անջատել գաղտնի ներդիրների էկրանի կողպումը</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">Օգտագործե՞լ էկրանի կողպումը՝ անձնական ներդիրները թաքցնելու համար։</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->

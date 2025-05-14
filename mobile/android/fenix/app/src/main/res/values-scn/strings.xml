@@ -3427,6 +3427,8 @@
   <string name="debug_drawer_override_current_region_label">Suprascrivi a riggiuni attuali</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">Suprascrivi a riggiuni casa e chiḍḍa attuali</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Sustituisci pirmanenti a riggiuni casa</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

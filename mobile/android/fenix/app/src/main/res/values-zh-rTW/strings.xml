@@ -3426,6 +3426,8 @@
   <string name="debug_drawer_override_current_region_label">覆蓋目前地區</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">覆蓋原始與目前地區</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">永久覆蓋原始地區</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

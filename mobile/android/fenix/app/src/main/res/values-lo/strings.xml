@@ -631,6 +631,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">ການທ່ອງເວັບທີ່ວ່ອງໄວ ແລະ ປອດໄພ</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">ເຫັນດີ ແລະ ສືບຕໍ່</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">ສືບຕໍ່</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">ໂດຍການດຳເນີນການຕໍ່, ທ່ານເຫັນດີນຳ %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->

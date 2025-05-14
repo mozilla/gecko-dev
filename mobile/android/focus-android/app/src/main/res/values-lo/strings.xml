@@ -488,6 +488,8 @@
   <string name="onboarding_first_screen_privacy_notice_link">ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">ເຫັນດີ ແລະ ສືບຕໍ່</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue_2">ສືບຕໍ່</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
   <string name="a11y_link_available">ມີລິ້ງ</string>
   <!--

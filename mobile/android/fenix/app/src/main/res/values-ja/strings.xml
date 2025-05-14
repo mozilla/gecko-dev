@@ -632,6 +632,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">高速で安全なウェブブラウジング</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">同意して続ける</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">続ける</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">続けると、%1$s に同意したものとみなされます。</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1504,6 +1506,10 @@
   <string name="download_navigate_back_description">前のページへ戻ります</string>
   <!-- Content description for the toolbar "Navigate up" button -->
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">上へ移動します</string>
+  <!-- Content description for the toolbar back button while searching the downloads -->
+  <string name="download_close_search_description">戻って検索を閉じる</string>
+  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <string name="download_clear_search_description">消去</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">URL を共有</string>
   <!-- Text for the button to share the download file -->
@@ -1675,6 +1681,8 @@
   <string name="bookmark_menu_delete_button">削除</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">保存</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">指定の順序で並べ替え</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">新しい順に並べ替え</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3568,4 +3576,14 @@
   <string name="pbm_authentication_unlock">ロック解除</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">プライベートタブのロックを解除</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">プライベートタブの画面ロックを有効化</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">プライベートタブの画面ロックを無効化</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title">画面をロックしてプライベートタブを非表示にしますか？</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative">いいえ</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive">タブをロック</string>
 </resources>

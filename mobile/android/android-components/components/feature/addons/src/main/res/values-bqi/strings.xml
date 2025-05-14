@@ -63,13 +63,13 @@
   <!-- Description for history permission. -->
   <string name="mozac_feature_addons_permissions_history_description">دسرسی و ویرگار گشتنا</string>
   <!-- Description for notifications permission. -->
-  <string name="mozac_feature_addons_permissions_notifications_description">نشۉݩ داڌن وارسۊویا ری بلگه سی ایسا</string>
+  <string name="mozac_feature_addons_permissions_notifications_description">نشووݩ داڌن وارسۊویا ری بلگه سی ایسا</string>
   <!-- Description for proxy permission. -->
   <string name="mozac_feature_addons_permissions_proxy_description">کونتورول سامووا پروکسی گشت گر</string>
   <!-- Description for sessions permission. -->
   <string name="mozac_feature_addons_permissions_sessions_description">دسرسی و بلگه یل بسته وابیڌه دیندایی</string>
   <!-- Description for tab_hide permission. -->
-  <string name="mozac_feature_addons_permissions_tab_hide_description">بؽڌار کردن وو نشۉݩ داڌن بلگه یل گشت گر</string>
+  <string name="mozac_feature_addons_permissions_tab_hide_description">بؽڌار کردن وو نشووݩ داڌن بلگه یل گشت گر</string>
   <!-- Description for top_sites permission. -->
   <string name="mozac_feature_addons_permissions_top_sites_description">دسرسی و ویرگار گشتنا</string>
   <!-- Description for trialML permission. -->
@@ -79,9 +79,9 @@
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">بولند کردن ٱوزارا برنومه نویسووݩ سی دسرسی و داده یل ایسا و ری بلگه یل واز</string>
   <!-- Description for text button that expands the list of domain permissions -->
-  <string name="mozac_feature_addons_permissions_show_all_sites">نشۉݩ داڌن پوی وبگه یل</string>
+  <string name="mozac_feature_addons_permissions_show_all_sites">نشووݩ داڌن پوی وبگه یل</string>
   <!-- Description for text button that hides the majority of the list of domain permissions -->
-  <string name="mozac_feature_addons_permissions_show_fewer_sites">نشۉݩ داڌن تئداد کمتری ز وبگه یل</string>
+  <string name="mozac_feature_addons_permissions_show_fewer_sites">نشووݩ داڌن تئداد کمتری ز وبگه یل</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">نوسخه</string>
   <!-- The author of an add-on. -->

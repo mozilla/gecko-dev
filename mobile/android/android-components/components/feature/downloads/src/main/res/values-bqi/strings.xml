@@ -72,6 +72,8 @@
   <string name="mozac_feature_downloads_unable_to_open_third_party_app">نترست %1$s ن بوگوشه</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the title -->
   <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">دانلودا سیخومی لقو بۊن؟</string>
+  <!-- Alert dialog confirmation before cancelling private downloads, this is the body. %1$s will be replaced with the name of the file. -->
+  <string name="mozac_feature_downloads_cancel_active_private_downloads_warning_content_body">ٱر هیم سکو پوی بلگه یل سیخومی ن بووندین، دانلود %1$s لقو ابۊ. الن اخۊین ز گشت سیخومی کۊنین ب در؟</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the positive action. -->
   <string name="mozac_feature_downloads_cancel_active_downloads_accept">لقو دانلودا</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the negative action. Leaves user in Private browsing -->

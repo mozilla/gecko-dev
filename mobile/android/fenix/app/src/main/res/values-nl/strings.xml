@@ -3428,6 +3428,8 @@
   <string name="debug_drawer_override_current_region_label">Huidige regio overschrijven</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">Thuisregio en huidige regio overschrijven</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Thuisregio permanent overschrijven</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

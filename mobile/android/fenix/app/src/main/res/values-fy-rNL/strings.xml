@@ -634,6 +634,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">Fluch en feilich sneupe op it web</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Akkoard en trochgean</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">Trochgean</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Troch fierder te gean, geane jo akkoard mei de %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1681,6 +1683,8 @@
   <string name="bookmark_menu_delete_button">Fuortsmite</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Bewarje</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">Sortearje op oanpaste folchoarder</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">Sortearje op nijste</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3425,6 +3429,8 @@
   <string name="debug_drawer_override_current_region_label">Aktuele regio oerskriuwe</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">Thúsregio en aktuele regio oerskriuwe</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Thúsregio permanint oerskriuwe</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3593,6 +3599,10 @@
   <string name="pbm_authentication_unlock">Untskoattelje</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Priveeljepblêden ûntskoattelje</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">Skermbeskoatteling fan priveeljepblêden ynskeakelje</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">Skermbeskoatteling fan priveeljepblêden útskeakelje</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">Skermbeskoatteling brûke om priveeljepblêden te ferstopjen?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
