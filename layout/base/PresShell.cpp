@@ -11508,59 +11508,23 @@ nsIFrame* PresShell::GetAbsoluteContainingBlock(nsIFrame* aFrame) {
 
 nsIFrame* PresShell::GetAnchorPosAnchor(const nsAtom* aName) const {
   MOZ_ASSERT(aName);
-  if (const auto& entry = mAnchorPosAnchors.Lookup(aName)) {
-    return entry->SafeLastElement(nullptr);
+  if (auto entry = mAnchorPosAnchors.Lookup(aName)) {
+    return entry.Data();
   }
-
   return nullptr;
 }
 
 void PresShell::AddAnchorPosAnchor(const nsAtom* aName, nsIFrame* aFrame) {
   MOZ_ASSERT(aName);
-
-  auto& entry = mAnchorPosAnchors.LookupOrInsertWith(
-      aName, []() { return nsTArray<nsIFrame*>(); });
-
-  if (entry.IsEmpty()) {
-    entry.AppendElement(aFrame);
-    return;
-  }
-
-  struct FrameTreeComparator {
-    nsIFrame* mFrame;
-
-    constexpr int32_t operator()(nsIFrame* aOther) const {
-      return nsLayoutUtils::CompareTreePosition(aOther, mFrame, nullptr);
-    }
-  };
-
-  FrameTreeComparator cmp{aFrame};
-
-  size_t matchOrInsertionIdx = entry.Length();
-  // If the same element is already in the array,
-  // someone forgot to call RemoveAnchorPosAnchor.
-  if (BinarySearchIf(entry, 0, entry.Length(), cmp, &matchOrInsertionIdx)) {
-    MOZ_ASSERT_UNREACHABLE("Anchor added already");
-    return;
-  }
-
-  *entry.InsertElementAt(matchOrInsertionIdx) = aFrame;
+  mAnchorPosAnchors.InsertOrUpdate(aName, aFrame);
 }
 
 void PresShell::RemoveAnchorPosAnchor(const nsAtom* aName, nsIFrame* aFrame) {
   MOZ_ASSERT(aName);
-  auto entry = mAnchorPosAnchors.Lookup(aName);
-  if (!entry) {
-    return;  // Nothing to remove.
-  }
-
-  auto& anchorArray = entry.Data();
-  MOZ_ASSERT(!anchorArray.IsEmpty());
-  MOZ_ASSERT(anchorArray.Contains(aFrame));
-
-  anchorArray.RemoveElement(aFrame);
-  if (anchorArray.IsEmpty()) {
-    entry.Remove();
+  if (auto entry = mAnchorPosAnchors.Lookup(aName)) {
+    if (entry.Data() == aFrame) {
+      entry.Remove();
+    }
   }
 }
 

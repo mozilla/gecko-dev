@@ -3029,7 +3029,7 @@ class PresShell final : public nsStubDocumentObserver,
   // A hash table of heap allocated weak frames.
   nsTHashSet<WeakFrame*> mWeakFrames;
 
-  nsTHashMap<RefPtr<const nsAtom>, nsTArray<nsIFrame*>> mAnchorPosAnchors;
+  nsTHashMap<RefPtr<const nsAtom>, nsIFrame*> mAnchorPosAnchors;
 
   // Reflow roots that need to be reflowed.
   DepthOrderedFrameList mDirtyRoots;
