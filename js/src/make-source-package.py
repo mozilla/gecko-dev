@@ -187,7 +187,6 @@ rsync_filter_list = """
 + /testing/mach_commands.py
 + /testing/moz.build
 + /testing/mozbase/**
-+ /testing/mozharness/**
 + /testing/performance/**
 + /testing/web-platform/*.ini
 + /testing/web-platform/*.py
