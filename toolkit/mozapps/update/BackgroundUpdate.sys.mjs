@@ -15,7 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
     "resource:///modules/asrouter/ASRouterTargeting.sys.mjs",
   BackgroundTasksUtils: "resource://gre/modules/BackgroundTasksUtils.sys.mjs",
-  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   JSONFile: "resource://gre/modules/JSONFile.sys.mjs",
   TaskScheduler: "resource://gre/modules/TaskScheduler.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
@@ -792,7 +792,7 @@ export var BackgroundUpdate = {
         // flexibility when restrictions of this type are added.
         let latestData = await lazy.ASRouterTargeting.getEnvironmentSnapshot({
           targets: [
-            lazy.ExperimentManager.createTargetingContext(),
+            lazy.ExperimentAPI.manager.createTargetingContext(),
             lazy.ASRouterTargeting.Environment,
           ],
         });
@@ -810,7 +810,7 @@ export var BackgroundUpdate = {
     // data.
     snapshot.data = await lazy.ASRouterTargeting.getEnvironmentSnapshot(
       lazy.ASRouterTargeting.Environment,
-      lazy.ExperimentManager.createTargetingContext()
+      lazy.ExperimentAPI.manager.createTargetingContext()
     );
 
     // Persist.
