@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 /**
@@ -42,6 +41,8 @@ const ALLOWED_HEADERS_KEYS = [
 const MOZILLA_HUB_HOSTNAME = "model-hub.mozilla.org";
 const HF_HUB_HOSTNAME = "huggingface.co";
 const MOCHITESTS_HOSTNAME = "mochitests";
+const DEFAULT_CONTENT_TYPE = "application/octet-stream";
+const DEFAULT_DELETE_TIMEOUT_MS = 5000;
 
 // Default indexedDB revision.
 const DEFAULT_MODEL_REVISION = 6;
@@ -193,6 +194,13 @@ class IndexedDBCache {
   db = null;
 
   /**
+   * Reference to the IndexedDB principal.
+   *
+   * @type {Ci.nsIPrincipal|null}
+   */
+  #principal = null;
+
+  /**
    * Version of the database. Null if not set.
    *
    * @type {number|null}
@@ -271,11 +279,13 @@ class IndexedDBCache {
    * @param {string} config.dbName - The name of the database file.
    * @param {number} config.version - The version number of the database.
    * @param {number} config.maxSize Maximum size of the cache in GiB. Defaults to "browser.ml.modelCacheMaxSize".
+   * @param {principal} config.principal - The principal to use for the database.
    */
   constructor({
     dbName = "modelFiles",
     version = DEFAULT_MODEL_REVISION,
     maxSize = lazy.DEFAULT_MAX_CACHE_SIZE,
+    principal,
   } = {}) {
     this.dbName = dbName;
     this.dbVersion = version;
@@ -284,6 +294,48 @@ class IndexedDBCache {
     this.taskStoreName = "tasks";
     this.enginesStoreName = "engines";
     this.#maxSize = maxSize;
+    this.#principal = principal;
+  }
+
+  /**
+   * Delete a database and wait for it to close.
+   */
+  static async deleteDatabaseAndWait(
+    principal,
+    dbName,
+    timeoutMs = DEFAULT_DELETE_TIMEOUT_MS
+  ) {
+    try {
+      await lazy.OPFS.remove(dbName, { recursive: true });
+    } catch (e) {
+      // can be empty
+    }
+
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.deleteForPrincipal(principal, dbName);
+
+      const timer = lazy.setTimeout(() => {
+        reject(new Error("Request timed out (possibly blocked forever)"));
+      }, timeoutMs);
+
+      request.onsuccess = () => {
+        lazy.clearTimeout(timer);
+        resolve({ status: "success" });
+      };
+
+      request.onerror = () => {
+        lazy.clearTimeout(timer);
+        lazy.console.warn("Request error:", request.error);
+        resolve({ status: "error", error: request.error });
+      };
+
+      request.onblocked = () => {
+        lazy.console.warn(
+          "Request blocked — waiting for other connections to close"
+        );
+        // Let it continue to wait
+      };
+    });
   }
 
   /**
@@ -293,17 +345,30 @@ class IndexedDBCache {
    * @param {string} [config.dbName="modelFiles"] - The name of the database.
    * @param {number} [config.version] - The version number of the database.
    * @param {number} config.maxSize Maximum size of the cache in bytes. Defaults to "browser.ml.modelCacheMaxSize".
+   * @param {boolean} [config.reset=false] - Whether to reset the database.
    * @returns {Promise<IndexedDBCache>} An initialized instance of IndexedDBCache.
    */
   static async init({
     dbName = "modelFiles",
     version = DEFAULT_MODEL_REVISION,
     maxSize = lazy.DEFAULT_MAX_CACHE_SIZE,
+    reset = false,
   } = {}) {
+    const principal = DEFAULT_PRINCIPAL_ORIGIN
+      ? Services.scriptSecurityManager.createContentPrincipalFromOrigin(
+          DEFAULT_PRINCIPAL_ORIGIN
+        )
+      : Services.scriptSecurityManager.getSystemPrincipal();
+
+    if (reset) {
+      await IndexedDBCache.deleteDatabaseAndWait(principal, dbName);
+    }
+
     const cacheInstance = new IndexedDBCache({
       dbName,
       version,
       maxSize,
+      principal,
     });
     cacheInstance.db = await cacheInstance.#openDB();
 
@@ -367,14 +432,13 @@ class IndexedDBCache {
   /**
    * Enable persistence for a principal.
    *
-   * @param {Ci.nsIPrincipal} principal - The principal
    * @returns {Promise<boolean>} Wether persistence was successfully enabled.
    */
 
-  async #ensurePersistentStorage(principal) {
+  async #ensurePersistentStorage() {
     try {
       const { promise, resolve, reject } = Promise.withResolvers();
-      const request = Services.qms.persist(principal);
+      const request = Services.qms.persist(this.#principal);
 
       request.callback = () => {
         if (request.resultCode === Cr.NS_OK) {
@@ -382,7 +446,7 @@ class IndexedDBCache {
         } else {
           reject(
             new Error(
-              `Failed to persist storage for principal: ${principal.originNoSuffix}`
+              `Failed to persist storage for principal: ${this.#principal.originNoSuffix}`
             )
           );
         }
@@ -403,18 +467,12 @@ class IndexedDBCache {
    */
   async #openDB() {
     return new Promise((resolve, reject) => {
-      const principal = DEFAULT_PRINCIPAL_ORIGIN
-        ? Services.scriptSecurityManager.createContentPrincipalFromOrigin(
-            DEFAULT_PRINCIPAL_ORIGIN
-          )
-        : Services.scriptSecurityManager.getSystemPrincipal();
-
       if (DEFAULT_PRINCIPAL_ORIGIN) {
-        this.#ensurePersistentStorage(principal);
+        this.#ensurePersistentStorage();
       }
 
       const request = indexedDB.openForPrincipal(
-        principal,
+        this.#principal,
         this.dbName,
         this.dbVersion
       );
@@ -911,8 +969,7 @@ class IndexedDBCache {
 
     // Update headers store - whith defaults for ETag and Content-Type
     headers = headers || {};
-    headers["Content-Type"] =
-      headers["Content-Type"] ?? "application/octet-stream";
+    headers["Content-Type"] = headers["Content-Type"] ?? DEFAULT_CONTENT_TYPE;
     headers.fileSize = fileSize;
     headers.ETag = headers.ETag ?? NO_ETAG;
     headers.lastUpdated = currentTimeSinceEpoch;
@@ -1214,11 +1271,13 @@ export class ModelHub {
    * @param {string} config.rootUrl - Root URL used to download models.
    * @param {string} config.urlTemplate - The template to retrieve the full URL using a model name and revision.
    * @param {Array<{filter: 'ALLOW'|'DENY', urlPrefix: string}>} config.allowDenyList - Array of URL patterns with filters.
+   * @param {boolean} [config.reset=false] - Whether to reset the database.
    */
   constructor({
     rootUrl = lazy.DEFAULT_ROOT_URL,
     urlTemplate = lazy.DEFAULT_URL_TEMPLATE,
     allowDenyList = null,
+    reset = false,
   } = {}) {
     this.rootUrl = rootUrl;
     this.cache = null;
@@ -1237,13 +1296,14 @@ export class ModelHub {
     } else {
       this.allowDenyList = new lazy.URLChecker(allowDenyList);
     }
+    this.reset = reset;
   }
 
   async #initCache() {
     if (this.cache) {
       return;
     }
-    this.cache = await IndexedDBCache.init();
+    this.cache = await IndexedDBCache.init({ reset: this.reset });
   }
 
   async #fetch(url, options) {
@@ -1582,6 +1642,20 @@ export class ModelHub {
     return [await blob.arrayBuffer(), headers];
   }
 
+  extractHeaders(response) {
+    return {
+      // We don't store the boundary or the charset, just the content type,
+      // so we drop what's after the semicolon.
+      "Content-Type": (
+        response.headers.get("Content-Type") || DEFAULT_CONTENT_TYPE
+      )
+        .split(";")[0]
+        .trim(),
+      "Content-Length": response.headers.get("Content-Length"),
+      ETag: response.headers.get("ETag"),
+    };
+  }
+
   /**
    * Given an organization, model, and version, fetch a model file in the hub
    * while supporting status callback.
@@ -1803,14 +1877,8 @@ export class ModelHub {
         error: "",
       });
 
-      const headers = {
-        // We don't store the boundary or the charset, just the content type,
-        // so we drop what's after the semicolon.
-        "Content-Type": response.headers.get("Content-Type").split(";")[0],
-        "Content-Length": response.headers.get("Content-Length"),
-        ETag: response.headers.get("ETag"),
-        fileSize: (await fileHandle.getFile()).size,
-      };
+      const headers = this.extractHeaders(response);
+      headers.fileSize = (await fileHandle.getFile()).size;
 
       await this.cache.put({
         engineId,

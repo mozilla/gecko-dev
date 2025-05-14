@@ -166,6 +166,43 @@ add_task(async function test_getting_file() {
 });
 
 /**
+ * Test that we can retrieve a file as an ArrayBuffer even if we don't have headers
+ */
+add_task(async function test_getting_file_no_headers() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      // Enabled by default.
+      ["browser.ml.logLevel", "All"],
+    ],
+  });
+
+  const hub = new ModelHub({
+    rootUrl: FAKE_HUB,
+    urlTemplate: FAKE_URL_TEMPLATE,
+    reset: true,
+  });
+
+  // Return empty headers
+  sinon.stub(hub, "extractHeaders").callsFake(function () {
+    return {};
+  });
+
+  let [array, headers] = await hub.getModelFileAsArrayBuffer(FAKE_MODEL_ARGS);
+
+  Assert.equal(headers["Content-Type"], "application/octet-stream"); // default content type
+
+  // check the content of the file.
+  let jsonData = JSON.parse(
+    String.fromCharCode.apply(null, new Uint8Array(array))
+  );
+
+  Assert.equal(jsonData.hidden_size, 768);
+
+  hub.extractHeaders.restore();
+  await deleteCache(hub.cache);
+});
+
+/**
  * Test that we can retrieve a file from a released model and skip head calls
  */
 add_task(async function test_getting_released_file() {
