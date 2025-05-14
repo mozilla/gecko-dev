@@ -165,7 +165,7 @@ interface nsIClipboard : nsISupports
    /**
     * Filters the flavors aTransferable can import (see
     * `nsITransferable::flavorsTransferableCanImport`) and gets the data for the
-    * first flavor. That data is set for aTransferable.
+    * first available flavor. That data is set for aTransferable.
     *
     * @param  aTransferable The transferable
     * @param  aWhichClipboard Specifies the clipboard to which this operation applies.
