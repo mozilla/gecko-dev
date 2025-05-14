@@ -97,6 +97,9 @@ enum TextureAllocationFlags {
 
   // Force allocation of remote/recorded texture, or fail if not possible.
   ALLOC_FORCE_REMOTE = 1 << 9,
+
+  // Prefer to use keyed mutex than D3D11Fence on Windows
+  USE_D3D11_KEYED_MUTEX = 1 << 10,
 };
 
 enum class BackendSelector { Content, Canvas };

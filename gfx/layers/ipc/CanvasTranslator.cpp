@@ -51,6 +51,12 @@ UniquePtr<TextureData> CanvasTranslator::CreateTextureData(
   switch (mTextureType) {
 #ifdef XP_WIN
     case TextureType::D3D11: {
+      // Prefer keyed mutex than D3D11Fence if remote canvas is enabled. See Bug
+      // 1966082
+      if (gfxVars::RemoteCanvasEnabled()) {
+        allocFlags =
+            (TextureAllocationFlags)(allocFlags | USE_D3D11_KEYED_MUTEX);
+      }
       textureData =
           D3D11TextureData::Create(aSize, aFormat, allocFlags, mDevice);
       break;
