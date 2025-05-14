@@ -712,10 +712,10 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       new Pref<Boolean>("network.cookie.cookieBehavior.optInPartitioning.pbmode", false);
   /* package */ final Pref<Integer> mCertificateTransparencyMode =
       new Pref<Integer>("security.pki.certificate_transparency.mode", 0);
-  /* package */ final Pref<Boolean> mPostQuantumKeyExchangeTLSEnabled =
-      new Pref<Boolean>("security.tls.enable_kyber", false);
-  /* package */ final Pref<Boolean> mPostQuantumKeyExchangeHttp3Enabled =
-      new Pref<Boolean>("network.http.http3.enable_kyber", false);
+  /* package */ final PrefWithoutDefault<Boolean> mPostQuantumKeyExchangeTLSEnabled =
+      new PrefWithoutDefault<Boolean>("security.tls.enable_kyber");
+  /* package */ final PrefWithoutDefault<Boolean> mPostQuantumKeyExchangeHttp3Enabled =
+      new PrefWithoutDefault<Boolean>("network.http.http3.enable_kyber");
 
   /* package */ int mPreferredColorScheme = COLOR_SCHEME_SYSTEM;
 
@@ -2061,7 +2061,9 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
    * @return Whether post-quantum key exchange mechanisms are enabled.
    */
   public @NonNull boolean getPostQuantumKeyExchangeEnabled() {
-    return mPostQuantumKeyExchangeTLSEnabled.get() && mPostQuantumKeyExchangeHttp3Enabled.get();
+    final Boolean tlsEnabled = mPostQuantumKeyExchangeTLSEnabled.get();
+    final Boolean h3Enabled = mPostQuantumKeyExchangeHttp3Enabled.get();
+    return (tlsEnabled != null && tlsEnabled) && (h3Enabled != null && h3Enabled);
   }
 
   // For internal use only

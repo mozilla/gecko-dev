@@ -775,8 +775,8 @@ features:
       postQuantumKeyExchangeEnabled:
         description: >
           Toggles the security.tls.enable_kyber and network.http.http3.enable_kyber preferences.
-        type: Boolean
-        default: false
+        type: Option<Boolean>
+        default: null
 
   javascript:
     description: Enables Javascript Engine (Spidermonkey) features

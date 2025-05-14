@@ -339,7 +339,7 @@ abstract class Settings {
      * Setting to control whether post-quantum key exchange mechanisms are used
      * in TLS and HTTP/3.
      */
-    open var postQuantumKeyExchangeEnabled: Boolean by UnsupportedSetting()
+    open var postQuantumKeyExchangeEnabled: Boolean? by UnsupportedSetting()
 }
 
 /**
@@ -407,7 +407,7 @@ data class DefaultSettings(
     override var cookieBehaviorOptInPartitioning: Boolean = false,
     override var cookieBehaviorOptInPartitioningPBM: Boolean = false,
     override var certificateTransparencyMode: Int = 0,
-    override var postQuantumKeyExchangeEnabled: Boolean = false,
+    override var postQuantumKeyExchangeEnabled: Boolean? = null,
 ) : Settings() {
     override val desktopModeEnabled: Boolean
         get() = getDesktopMode()

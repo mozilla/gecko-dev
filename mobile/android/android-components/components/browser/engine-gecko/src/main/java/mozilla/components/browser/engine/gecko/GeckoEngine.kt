@@ -1472,9 +1472,9 @@ class GeckoEngine(
             get() = runtime.settings.certificateTransparencyMode
             set(value) { runtime.settings.setCertificateTransparencyMode(value) }
 
-        override var postQuantumKeyExchangeEnabled: Boolean
-            get() = runtime.settings.postQuantumKeyExchangeEnabled
-            set(value) { runtime.settings.setPostQuantumKeyExchangeEnabled(value) }
+        override var postQuantumKeyExchangeEnabled: Boolean?
+            get() = runtime.settings.postQuantumKeyExchangeEnabled.or(false)
+            set(value) { value?.let { runtime.settings.setPostQuantumKeyExchangeEnabled(value) } }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
