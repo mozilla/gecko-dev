@@ -1380,6 +1380,19 @@ newtabMarsOhttp:
       description: >-
         Enables using OHTTP for unified ads API requests
 
+newtabRefinedCardsLayout:
+  description: Enable layout and styling refinements for content and ad cards across different card sizes
+  owner: rhamoui@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.refinedCardsLayout.enabled
+      description: Enables the refined cards layout for newtab
+
+
 pocketNewtab:
   description: The Pocket section in newtab
   owner: sdowne@mozilla.com
