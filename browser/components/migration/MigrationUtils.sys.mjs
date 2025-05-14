@@ -863,6 +863,18 @@ class MigrationUtils {
   }
 
   /**
+   * Called by MigrationWizardParent during a migration to indicate that a
+   * manual migration of logins occurred via import from a CSV / TSV file, and
+   * should be counted towards the total number of imported logins.
+   *
+   * @param {number} totalLogins
+   *   The number of logins imported manually from a CSV / TSV file.
+   */
+  notifyLoginsManuallyImported(totalLogins) {
+    this._importQuantities.logins += totalLogins;
+  }
+
+  /**
    * Iterates through the favicons, sniffs for a mime type,
    * and uses the mime type to properly import the favicon.
    *

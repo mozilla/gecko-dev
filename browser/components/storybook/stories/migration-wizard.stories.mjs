@@ -11,6 +11,10 @@ import { MigrationWizardConstants } from "chrome://browser/content/migration/mig
 // Imported for side-effects.
 import "toolkit-widgets/named-deck.js";
 
+window.MozXULElement.insertFTLIfNeeded(
+  "locales-preview/migrationWizardChromeWindows.ftl"
+);
+
 export default {
   title: "Domain-specific UI Widgets/Migration Wizard",
   component: "migration-wizard",
@@ -589,6 +593,14 @@ SafariPasswordPermissions.args = {
   dialogMode: true,
   state: {
     page: MigrationWizardConstants.PAGES.SAFARI_PASSWORD_PERMISSION,
+  },
+};
+
+export const ChromeWindowsPasswordPermissions = Template.bind({});
+ChromeWindowsPasswordPermissions.args = {
+  dialogMode: true,
+  state: {
+    page: MigrationWizardConstants.PAGES.CHROME_WINDOWS_PASSWORD_PERMISSION,
   },
 };
 

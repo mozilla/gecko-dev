@@ -655,6 +655,18 @@ export class SafariProfileMigrator extends MigratorBase {
     return false;
   }
 
+  /**
+   * For Safari on macOS, we show a specialized flow for importing passwords
+   * from a CSV file.
+   *
+   * @returns {boolean}
+   */
+  get showsManualPasswordImport() {
+    // Since this migrator will only ever be used on macOS, all conditions are
+    // met and we can always return true.
+    return true;
+  }
+
   get mainPreferencesPropertyList() {
     if (this._mainPreferencesPropertyList === undefined) {
       let file = FileUtils.getDir("UsrPrfs", []);
