@@ -452,10 +452,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             } else {
                 StartOnHome.enterHomeScreen.record(NoExtras())
             }
-
-            if (settings().showHomeOnboardingDialog && components.fenixOnboarding.userHasBeenOnboarded()) {
-                navHost.navController.navigate(NavGraphDirections.actionGlobalHomeOnboardingDialog())
-            }
         }
 
         Performance.processIntentIfPerformanceTest(intent, this)
