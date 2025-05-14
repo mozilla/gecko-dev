@@ -26,7 +26,7 @@ class DesktopFrameIOSurface final : public DesktopFrame {
   // Lock an IOSurfaceRef containing a snapshot of a display. Return NULL if
   // failed to lock.
   static std::unique_ptr<DesktopFrameIOSurface> Wrap(
-      rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface, CGRect rect = {});
+      rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface);
 
   ~DesktopFrameIOSurface() override;
 
@@ -35,12 +35,7 @@ class DesktopFrameIOSurface final : public DesktopFrame {
 
  private:
   // This constructor expects `io_surface` to hold a non-null IOSurfaceRef.
-  DesktopFrameIOSurface(
-      rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface,
-      uint8_t* data,
-      int32_t width,
-      int32_t height,
-      int32_t stride);
+  explicit DesktopFrameIOSurface(rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface);
 
   const rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface_;
 };
