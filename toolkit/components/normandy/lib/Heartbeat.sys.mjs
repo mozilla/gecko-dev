@@ -285,16 +285,6 @@ export var Heartbeat = class {
         addEnvironment: true,
       });
 
-      const gleanOmittedFields = ["version", "survey_version", "testing"];
-      for (const [k, v] of Object.entries(payload)) {
-        if (gleanOmittedFields.includes(k)) {
-          continue;
-        }
-        const metricName = k.endsWith("TS") ? k.slice(0, -2) : k;
-        Glean.heartbeat[metricName].set(v);
-      }
-      GleanPings.heartbeat.submit();
-
       // only for testing
       this.eventEmitter.emit("TelemetrySent", payload);
 
