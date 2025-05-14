@@ -43,21 +43,6 @@ export const LinkPreview = {
   _windowStates: new Map(),
   linkPreviewPanelId: "link-preview-panel",
 
-  shouldShowContextMenu(nsContextMenu) {
-    // In a future patch, we can further analyze the link, etc.
-    //link url value: nsContextMenu.linkURL
-    // For now, let’s rely on whether LinkPreview is enabled and region supported
-    //link conditions are borrowed from context-stripOnShareLink
-
-    return (
-      this._isRegionSupported() &&
-      lazy.enabled &&
-      (nsContextMenu.onLink || nsContextMenu.onPlainTextLink) &&
-      !nsContextMenu.onMailtoLink &&
-      !nsContextMenu.onTelLink &&
-      !nsContextMenu.onMozExtLink
-    );
-  },
   /**
    * Handles the preference change for enabling/disabling Link Preview.
    * It adds or removes event listeners for all tracked windows based on the new preference value.
@@ -446,16 +431,5 @@ export const LinkPreview = {
     if (url && this.keyboardComboActive) {
       this.renderLinkPreviewPanel(win, url);
     }
-  },
-  /**
-   * Handles the link preview context menu click using the provided URL
-   * and nsContextMenu, prompting the link preview panel to open.
-   *
-   * @param {string} url - The URL of the link to be previewed.
-   * @param {object} nsContextMenu - The context menu object containing browser information.
-   */
-  async handleContextMenuClick(url, nsContextMenu) {
-    let win = nsContextMenu.browser.ownerGlobal;
-    this.renderLinkPreviewPanel(win, url, "context");
   },
 };
