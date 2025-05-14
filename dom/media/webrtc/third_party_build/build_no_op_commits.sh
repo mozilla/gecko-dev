@@ -73,8 +73,15 @@ for commit in $COMMITS; do
 
 done
 
-# This section checks for commits that may have been cherry-picked in more
-# than one release branch.
+# This section checks for commits that may have been cherry-picked in
+# more than one release branch.  An example of multiple cherry-picks
+# across release branches can be seen when starting the following
+# updates:
+#   Bug 1934695 - updated default_config_env for v132
+#   Bug 1903098 - updated default_config_env for v126 (this is moz
+#     cherry-pick that is then cherry-picked in the upcoming release
+#     branch)
+
 TARGET_RELEASE_BASE=`git merge-base $MOZ_TARGET_UPSTREAM_BRANCH_HEAD master`
 
 COMMIT_RANGE="$TARGET_RELEASE_BASE..$MOZ_TARGET_UPSTREAM_BRANCH_HEAD"
