@@ -1,6 +1,7 @@
 import unittest
 from unittest import mock
 
+import mozunit
 from mozharness.base.diskutils import DiskInfo, DiskSize, DiskutilsError, convert_to
 import mozunit
 

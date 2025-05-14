@@ -1,7 +1,6 @@
 import gc
 import os
 import re
-import shutil
 import tempfile
 import types
 import unittest
