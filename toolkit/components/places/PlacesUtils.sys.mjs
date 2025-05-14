@@ -545,7 +545,7 @@ export var PlacesUtils = {
    *   Microseconds from the epoch.
    */
   toPRTime(date) {
-    if (date instanceof Date && !isNaN(date.getTime())) {
+    if (date.constructor.name == "Date" && !isNaN(date.getTime())) {
       return date.getTime() * 1000;
     } else if (typeof date == "number" && !isNaN(date)) {
       return date * 1000;
@@ -1731,16 +1731,14 @@ export var PlacesUtils = {
         copyProps("parentGuid");
       }
 
-      // Bug 1966462
       /** @type {number} */
-      let itemId = /** @type {any} */ (aRow.getResultByName("id"));
+      let itemId = aRow.getResultByName("id");
       if (aOptions.includeItemIds) {
         item.id = itemId;
       }
 
-      // Bug 1966462
       /** @type {number} */
-      let type = /** @type {any} */ (aRow.getResultByName("type"));
+      let type = aRow.getResultByName("type");
       item.typeCode = type;
       if (type == Ci.nsINavBookmarksService.TYPE_BOOKMARK) {
         copyProps("charset", "tags", "iconUri");
@@ -1751,7 +1749,6 @@ export var PlacesUtils = {
           item.type = PlacesUtils.TYPE_X_MOZ_PLACE;
           // If this fails due to an invalid url, the item will be skipped.
           item.uri = URL.parse(
-            // @ts-expect-error - Bug 1966462
             /** @type {string} */ aRow.getResultByName("url")
           )?.href;
           if (!item.uri) {

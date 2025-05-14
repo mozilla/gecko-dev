@@ -48,12 +48,6 @@ const OBSERVER_DEBOUNCE_TIMEOUT_MS = 5000;
  */
 
 /**
- * Types returnable from the observer.
- *
- * @typedef {PlacesVisitRemoved | PlacesVisit | PlacesHistoryCleared | PlacesVisitTitle} PlacesEventObserved
- */
-
-/**
  * Queries the places database using an async read only connection. Maintains
  * an internal cache of query results which is live-updated by adding listeners
  * to `PlacesObservers`. When the results are no longer needed, call `close` to
@@ -66,9 +60,9 @@ export class PlacesQuery {
   cachedHistoryOptions = null;
   /** @type {Map<string, Set<HistoryVisit>>} */
   #cachedHistoryPerUrl = null;
-  /** @type {function(PlacesEventObserved[]): any} */
+  /** @type {function(PlacesEvent[])} */
   #historyListener = null;
-  /** @type {function(CachedHistory): any} */
+  /** @type {function(CachedHistory)} */
   #historyListenerCallback = null;
   /** @type {DeferredTask} */
   #historyObserverTask = null;
@@ -99,7 +93,7 @@ export class PlacesQuery {
    *   - "site": Group visits based on host, excluding any "www." prefix.
    *   - "datesite": Group visits based on date, then sub-group based on host.
    *   - "lastvisited": Ungrouped list of visits sorted by recency.
-   * @returns {Promise<CachedHistory>}
+   * @returns {CachedHistory}
    *   History visits obtained from the database query.
    */
   async getHistory({ daysOld = 60, limit, sortBy = "date" } = {}) {
@@ -186,7 +180,7 @@ export class PlacesQuery {
    *   The search query.
    * @param {number} [limit]
    *   The maximum number of visits to return.
-   * @returns {Promise<HistoryVisit[]>}
+   * @returns {HistoryVisit[]}
    *   The matching visits.
    */
   async searchHistory(query, limit) {
@@ -247,22 +241,19 @@ export class PlacesQuery {
    */
   #insertSortedIntoCache(visit) {
     const container = this.#getContainerForVisit(visit);
-    if (this.#cachedHistoryPerUrl.has(visit.url)) {
-      const existingVisitsForUrl = this.#cachedHistoryPerUrl.get(visit.url);
-      for (const existingVisit of existingVisitsForUrl) {
-        if (this.#getContainerForVisit(existingVisit) === container) {
-          if (existingVisit.date.getTime() >= visit.date.getTime()) {
-            // Existing visit is more recent. Don't insert this one.
-            return;
-          }
-          // Remove the existing visit, then insert the new one.
-          container.splice(container.indexOf(existingVisit), 1);
-          existingVisitsForUrl.delete(existingVisit);
-          break;
+    const existingVisitsForUrl = this.#cachedHistoryPerUrl.get(visit.url) ?? [];
+    for (const existingVisit of existingVisitsForUrl) {
+      if (this.#getContainerForVisit(existingVisit) === container) {
+        if (existingVisit.date.getTime() >= visit.date.getTime()) {
+          // Existing visit is more recent. Don't insert this one.
+          return;
         }
+        // Remove the existing visit, then insert the new one.
+        container.splice(container.indexOf(existingVisit), 1);
+        existingVisitsForUrl.delete(existingVisit);
+        break;
       }
     }
-
     let insertionPoint = 0;
     if (visit.date.getTime() < container[0]?.date.getTime()) {
       insertionPoint = lazy.BinarySearch.insertionIndexOf(
@@ -303,14 +294,11 @@ export class PlacesQuery {
       case "datesite": {
         const dateKey = this.#getMapKeyForVisit(visit, "date");
         const siteKey = this.#getMapKeyForVisit(visit, "site");
-        // @ts-expect-error - Bug 1966240
         if (!this.cachedHistory.has(dateKey)) {
           const siteContainer = [];
-          // @ts-expect-error - Bug 1966240
           this.cachedHistory.set(dateKey, new Map([[siteKey, siteContainer]]));
           return siteContainer;
         }
-        // @ts-expect-error - Bug 1966240
         const dateContainer = this.cachedHistory.get(dateKey);
         if (!dateContainer.has(siteKey)) {
           const siteContainer = [];
@@ -320,17 +308,14 @@ export class PlacesQuery {
         return dateContainer.get(siteKey);
       }
       case "lastvisited":
-        // @ts-expect-error - Bug 1966240
         return this.cachedHistory;
       case "date":
       case "site":
       default: {
         const mapKey = this.#getMapKeyForVisit(visit);
-        // @ts-expect-error - Bug 1966240
         let container = this.cachedHistory?.get(mapKey);
         if (!container) {
           container = [];
-          // @ts-expect-error - Bug 1966240
           this.cachedHistory?.set(mapKey, container);
         }
         return container;
@@ -357,7 +342,7 @@ export class PlacesQuery {
    * is given the new list of visits. Only one callback can be active at a time
    * (per instance). If one already exists, it will be replaced.
    *
-   * @param {function(CachedHistory): any} callback
+   * @param {function(CachedHistory)} callback
    *   The function to call when changes are made.
    */
   observeHistory(callback) {
@@ -418,15 +403,13 @@ export class PlacesQuery {
         for (const event of events) {
           switch (event.type) {
             case "page-visited":
-              this.handlePageVisited(/** @type {PlacesVisit} */ (event));
+              this.handlePageVisited(event);
               break;
             case "history-cleared":
               this.initializeCache();
               break;
             case "page-title-changed":
-              this.handlePageTitleChanged(
-                /** @type {PlacesVisitTitle} */ (event)
-              );
+              this.handlePageTitleChanged(event);
               break;
           }
         }
@@ -442,7 +425,7 @@ export class PlacesQuery {
   /**
    * Handle a page visited event.
    *
-   * @param {PlacesVisit} event
+   * @param {PlacesEvent} event
    *   The event.
    * @returns {HistoryVisit}
    *   The visit that was inserted, or `null` if no visit was inserted.
@@ -459,7 +442,7 @@ export class PlacesQuery {
   /**
    * Handle a page title changed event.
    *
-   * @param {PlacesVisitTitle} event
+   * @param {PlacesEvent} event
    *   The event.
    */
   handlePageTitleChanged(event) {
@@ -513,9 +496,7 @@ export class PlacesQuery {
   formatRowAsVisit(row) {
     return {
       date: lazy.PlacesUtils.toDate(row.getResultByName("visit_date")),
-      // @ts-expect-error - Bug 1966462
       title: row.getResultByName("title"),
-      // @ts-expect-error - Bug 1966462
       url: row.getResultByName("url"),
     };
   }
@@ -523,7 +504,7 @@ export class PlacesQuery {
   /**
    * Format a page visited event as a history visit.
    *
-   * @param {PlacesVisit} event
+   * @param {PlacesEvent} event
    *   The event to format.
    * @returns {HistoryVisit}
    *   The resulting history visit.
