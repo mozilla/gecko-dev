@@ -1,6 +1,7 @@
 import unittest
 from unittest import mock
 
+import mozunit
 from mozharness.base.diskutils import DiskInfo, DiskSize, DiskutilsError, convert_to
 
 
@@ -87,3 +88,7 @@ class TestDiskSpace(unittest.TestCase):
         self.assertRaises(
             DiskutilsError, lambda: DiskSize().get_size(path="/", unit="GB")
         )
+
+
+if __name__ == "__main__":
+    mozunit.main()
