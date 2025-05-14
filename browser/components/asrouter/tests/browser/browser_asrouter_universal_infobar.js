@@ -35,6 +35,9 @@ add_task(async function showNotificationAllWindows() {
     { gBrowser: { selectedBrowser: "win3" } },
   ];
 
+  sinon.stub(InfoBar, "maybeLoadCustomElement");
+  sinon.stub(InfoBar, "maybeInsertFTL");
+
   let origWinManager = Services.wm;
   // Using sinon.stub won’t work here, because Services.wm is a frozen,
   // non-configurable object and its methods cannot be replaced via typical JS

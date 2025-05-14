@@ -230,6 +230,8 @@ export const InfoBar = {
 
   async showNotificationAllWindows(notification) {
     for (let win of Services.wm.getEnumerator(null)) {
+      this.maybeLoadCustomElement(win);
+      this.maybeInsertFTL(win);
       const browser = win.gBrowser.selectedBrowser;
       await notification.showNotification(browser);
     }
