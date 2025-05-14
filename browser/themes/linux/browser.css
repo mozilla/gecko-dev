@@ -189,36 +189,24 @@
   padding-inline: calc(env(-moz-gtk-csd-titlebar-button-spacing) / 2);
 
   > .toolbarbutton-icon {
-    appearance: auto;
-  }
-
-  /* stylelint-disable-next-line media-query-no-invalid */
-  @media -moz-pref("widget.gtk.non-native-titlebar-buttons.enabled") {
-    /* When using lightweight themes, use our own buttons since native ones might
-     * assume a native background in order to be visible. */
-    :root[lwtheme] & {
-      padding-inline: 3px;
-
-      > .toolbarbutton-icon {
-        appearance: none;
-        border-radius: 100%;
-        background-position: center center;
-        background-repeat: no-repeat;
-        -moz-context-properties: stroke;
-        stroke: currentColor;
-        /* Roughly the Adwaita size */
-        width: 24px;
-        height: 24px;
-      }
-    }
+    border-radius: 100%;
+    background-position: center center;
+    background-repeat: no-repeat;
+    -moz-context-properties: stroke;
+    stroke: currentColor;
+    /* Roughly the Adwaita size */
+    width: 24px;
+    height: 24px;
+    /* Matches the libadwaita transition */
+    transition: background-color .2s ease;
   }
 
   &:hover > .toolbarbutton-icon {
-    background-color: color-mix(in srgb, currentColor 12%, transparent);
+    background-color: color-mix(in srgb, currentColor 15%, transparent);
   }
 
   &:hover:active > .toolbarbutton-icon {
-    background-color: color-mix(in srgb, currentColor 20%, transparent);
+    background-color: color-mix(in srgb, currentColor 30%, transparent);
   }
 
   &:focus-visible > .toolbarbutton-icon {
@@ -230,16 +218,32 @@
 .titlebar-max {
   order: env(-moz-gtk-csd-maximize-button-position);
   > .toolbarbutton-icon {
-    -moz-default-appearance: -moz-window-button-maximize;
-    background-image: url(chrome://browser/skin/window-controls/maximize.svg);
+    background-image: image-set(
+      url(moz-icon://stock/window-maximize-symbolic?dark=0),
+      url(moz-icon://stock/window-maximize-symbolic?dark=0&scale=2) 2x
+    );
+    @media (prefers-color-scheme: dark) {
+      background-image: image-set(
+        url(moz-icon://stock/window-maximize-symbolic?dark=1),
+        url(moz-icon://stock/window-maximize-symbolic?dark=1&scale=2) 2x
+      );
+    }
   }
 }
 
 .titlebar-restore {
   order: env(-moz-gtk-csd-maximize-button-position);
   > .toolbarbutton-icon {
-    -moz-default-appearance: -moz-window-button-restore;
-    background-image: url(chrome://browser/skin/window-controls/restore.svg);
+    background-image: image-set(
+      url(moz-icon://stock/window-restore-symbolic?dark=0),
+      url(moz-icon://stock/window-restore-symbolic?dark=0&scale=2) 2x
+    );
+    @media (prefers-color-scheme: dark) {
+      background-image: image-set(
+        url(moz-icon://stock/window-restore-symbolic?dark=1),
+        url(moz-icon://stock/window-restore-symbolic?dark=1&scale=2) 2x
+      );
+    }
   }
 }
 
@@ -254,17 +258,16 @@
   order: env(-moz-gtk-csd-close-button-position);
 
   > .toolbarbutton-icon {
-    -moz-default-appearance: -moz-window-button-close;
-    background-image: url(chrome://browser/skin/window-controls/close.svg);
-  }
-
-  &:hover > .toolbarbutton-icon {
-    background-color: #d70022;
-    color: white;
-  }
-
-  &:hover:active > .toolbarbutton-icon {
-    background-color: #ff0039;
+    background-image: image-set(
+      url(moz-icon://stock/window-close-symbolic?dark=0),
+      url(moz-icon://stock/window-close-symbolic?dark=0&scale=2) 2x
+    );
+    @media (prefers-color-scheme: dark) {
+      background-image: image-set(
+        url(moz-icon://stock/window-close-symbolic?dark=1),
+        url(moz-icon://stock/window-close-symbolic?dark=1&scale=2) 2x
+      );
+    }
   }
 
   @media not (-moz-gtk-csd-close-button) {
@@ -276,8 +279,16 @@
   order: env(-moz-gtk-csd-minimize-button-position);
 
   > .toolbarbutton-icon {
-    -moz-default-appearance: -moz-window-button-minimize;
-    background-image: url(chrome://browser/skin/window-controls/minimize.svg);
+    background-image: image-set(
+      url(moz-icon://stock/window-minimize-symbolic?dark=0),
+      url(moz-icon://stock/window-minimize-symbolic?dark=0&scale=2) 2x
+    );
+    @media (prefers-color-scheme: dark) {
+      background-image: image-set(
+        url(moz-icon://stock/window-minimize-symbolic?dark=1),
+        url(moz-icon://stock/window-minimize-symbolic?dark=1&scale=2) 2x
+      );
+    }
   }
 
   @media not (-moz-gtk-csd-minimize-button) {
