@@ -13,6 +13,7 @@ TESTING_JS_MODULES += [
     "Assert.sys.mjs",
     "CoverageUtils.sys.mjs",
     "FileTestUtils.sys.mjs",
+    "Mochia.js",
     "MockRegistrar.sys.mjs",
     "sinon-7.2.7.js",
     "Sinon.sys.mjs",
