@@ -7,14 +7,11 @@ const { ASRouter } = ChromeUtils.importESModule(
 const { RemoteSettingsExperimentLoader } = ChromeUtils.importESModule(
   "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
 );
-const { EnrollmentType } = ChromeUtils.importESModule(
+const { EnrollmentType, ExperimentAPI } = ChromeUtils.importESModule(
   "resource://nimbus/ExperimentAPI.sys.mjs"
 );
 const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
-);
-const { ExperimentManager } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/ExperimentManager.sys.mjs"
 );
 const { NimbusTelemetry } = ChromeUtils.importESModule(
   "resource://nimbus/lib/Telemetry.sys.mjs"
@@ -293,7 +290,7 @@ add_task(async function test_forceEnrollUpdatesMessages() {
 
   await assertMessageInState("xman_test_message");
 
-  await ExperimentManager.unenroll(`optin-${experiment.slug}`);
+  await ExperimentAPI.manager.unenroll(`optin-${experiment.slug}`);
   await SpecialPowers.popPrefEnv();
   await cleanup();
 });
