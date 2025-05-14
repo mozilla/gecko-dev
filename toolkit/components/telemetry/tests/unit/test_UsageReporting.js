@@ -2,6 +2,18 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
+const { ProfileAge } = ChromeUtils.importESModule(
+  "resource://gre/modules/ProfileAge.sys.mjs"
+);
+
+const { UsageReporting } = ChromeUtils.importESModule(
+  "resource://gre/modules/UsageReporting.sys.mjs"
+);
+
+const { ClientEnvironmentBase } = ChromeUtils.importESModule(
+  "resource://gre/modules/components-utils/ClientEnvironment.sys.mjs"
+);
+
 add_task(async function setup() {
   // Trigger a proper telemetry init.
   do_get_profile(true);
@@ -66,25 +78,19 @@ add_task(async function test_prefs() {
   // Enable the pref: we should witness a rising edge.
   Services.prefs.setBoolPref("datareporting.usage.uploadEnabled", true);
 
-  // Set some values for additional metrics to check within the ping.
-  const testOs = "test-os";
-  Glean.usage.os.set(testOs);
-  const testOsVersion = "v1.2.3-test";
-  Glean.usage.osVersion.set(testOsVersion);
-  const testWindowsBuildNumber = 8675309;
-  Glean.usage.windowsBuildNumber.set(testWindowsBuildNumber);
-  const testAppBuild = "test-appBuild";
-  Glean.usage.appBuild.set(testAppBuild);
-  const testAppDisplayVersion = "v136.0.0";
-  Glean.usage.appDisplayVersion.set(testAppDisplayVersion);
-  const testChannel = "test";
-  Glean.usage.appChannel.set(testChannel);
-  const testIsDefault = true;
-  Glean.usage.isDefaultBrowser.set(testIsDefault);
-  const testDistributionId = "test-distribution";
-  Glean.usage.distributionId.set(testDistributionId);
-  const testFirstRunDate = new Date("2020-06-11T00:00:00");
-  Glean.usage.firstRunDate.set(testFirstRunDate.getTime() * 1000);
+  // Collect values for additional metrics to check within the ping.
+  let os = ClientEnvironmentBase.os;
+  const testOs = Services.appinfo.OS;
+  const testOsVersion = os.version;
+  const testWindowsBuildNumber = os.windowsBuildNumber;
+  const testAppBuild = Services.appinfo.appBuildID;
+  const testAppDisplayVersion = ClientEnvironmentBase.version;
+  const testChannel = ClientEnvironmentBase.channel;
+  const testIsDefault = ClientEnvironmentBase.isDefaultBrowser;
+  const testDistributionId = ClientEnvironmentBase.distribution;
+  await UsageReporting.ensureInitialized();
+  let profileAccessor = await ProfileAge();
+  let firstUse = new Date(await profileAccessor.firstUse);
 
   let usageReportingSubmitted = false;
   GleanPings.usageReporting.testBeforeNextSubmit(_reason => {
@@ -133,8 +139,15 @@ add_task(async function test_prefs() {
       testDistributionId,
       Glean.usage.distributionId.testGetValue("usage-reporting")
     );
+    // Truncate the firstUse to the same granularity as used by the Glean
+    // `usage.firstRunDate` metric.
+    let firstUsedTruncatedToDay = new Date(firstUse);
+    firstUsedTruncatedToDay.setHours(0);
+    firstUsedTruncatedToDay.setMinutes(0);
+    firstUsedTruncatedToDay.setSeconds(0);
+    firstUsedTruncatedToDay.setMilliseconds(0);
     Assert.equal(
-      testFirstRunDate.getTime(),
+      firstUsedTruncatedToDay.getTime(),
       Glean.usage.firstRunDate.testGetValue("usage-reporting").getTime()
     );
   });
