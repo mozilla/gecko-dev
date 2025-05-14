@@ -1002,8 +1002,8 @@ var dataProviders = {
       ChromeUtils.importESModule(
         "resource://normandy/lib/PreferenceRollouts.sys.mjs"
       );
-    const { ExperimentManager } = ChromeUtils.importESModule(
-      "resource://nimbus/lib/ExperimentManager.sys.mjs"
+    const { ExperimentAPI } = ChromeUtils.importESModule(
+      "resource://nimbus/ExperimentAPI.sys.mjs"
     );
 
     // Get Normandy data in parallel, and sort each group by slug.
@@ -1018,12 +1018,12 @@ var dataProviders = {
         NormandyAddonStudies.getAllActive(),
         NormandyPreferenceRollouts.getAllActive(),
         NormandyPreferenceStudies.getAllActive(),
-        ExperimentManager.store
+        ExperimentAPI.manager.store
           .ready()
-          .then(() => ExperimentManager.store.getAllActiveExperiments()),
-        ExperimentManager.store
+          .then(() => ExperimentAPI.manager.store.getAllActiveExperiments()),
+        ExperimentAPI.manager.store
           .ready()
-          .then(() => ExperimentManager.store.getAllActiveRollouts()),
+          .then(() => ExperimentAPI.manager.store.getAllActiveRollouts()),
       ].map(promise =>
         promise
           .catch(error => {
