@@ -89,4 +89,28 @@
     </vbox>
   </hbox>
 </groupbox>
+<groupbox id="homeContentsGroup"
+          data-category="paneHome"
+          data-subcategory="contents"
+          hidden="true">
+  <label><html:h2 data-l10n-id="home-prefs-content-header2" /></label>
+  <description class="description-deemphasized" data-l10n-id="home-prefs-content-description2" />
+
+  <vbox id="search" />
+  <vbox id="weather" />
+  <vbox id="topsites" />
+  <vbox id="topstories" />
+
+  <html:moz-box-item class="mission-message">
+    <div class="slotted">
+      <span data-l10n-id="home-prefs-mission-message" />
+      <a class="mission-message-link"
+          href="https://getpocket.com/firefox/new_tab_learn_more"
+          target="_blank"
+          data-l10n-id="home-prefs-mission-message-learn-more-link" />
+    </div>
+  </html:moz-box-item>
+
+  <vbox id="highlights" />
+</groupbox>
 </html:template>

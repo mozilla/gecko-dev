@@ -741,6 +741,9 @@ home-prefs-weather-header =
 home-prefs-weather-description = Today’s forecast at a glance
 home-prefs-weather-learn-more-link = Learn more
 
+home-prefs-mission-message = Our sponsors support our mission to build a better web
+home-prefs-mission-message-learn-more-link = Find out how
+
 # Variables:
 #   $num (number) - Number of rows displayed
 home-prefs-sections-rows-option =
