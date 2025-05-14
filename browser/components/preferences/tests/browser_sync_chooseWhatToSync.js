@@ -3,6 +3,9 @@
 
 "use strict";
 
+const { Service } = ChromeUtils.importESModule(
+  "resource://services-sync/service.sys.mjs"
+);
 const { UIState } = ChromeUtils.importESModule(
   "resource://services-sync/UIState.sys.mjs"
 );
@@ -176,3 +179,109 @@ add_task(async function testDialogLaunchFromURI() {
     }
   );
 });
+
+// After CWTS is saved, we should immediately sync to update the server
+add_task(async function testSyncCalledAfterSavingCWTS() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["identity.fxaccounts.enabled", true]],
+  });
+
+  // Store original methods
+  const svc = Weave.Service;
+  const origLocked = svc._locked;
+  const origSync = svc.sync;
+  let syncCalls = 0;
+
+  // Override sync functions, emulate user not currently syncing
+  svc._locked = false;
+  svc.sync = () => {
+    syncCalls++;
+    return Promise.resolve();
+  };
+
+  // Open the dialog and accept to emulate user saving their options
+  await runWithCWTSDialog(async win => {
+    let doc = win.document;
+    let syncDialog = doc.getElementById("syncChooseOptions");
+
+    let promiseUnloaded = BrowserTestUtils.waitForEvent(win, "unload");
+    syncDialog.acceptDialog();
+
+    info("waiting for dialog to unload");
+    await promiseUnloaded;
+
+    // Since _locked is false, sync() should fire right away.
+    await TestUtils.waitForCondition(
+      () => syncCalls == 1,
+      "Immediate sync() call when service._locked is false"
+    );
+  });
+
+  // Clean up
+  svc._locked = origLocked;
+  svc.sync = origSync;
+});
+
+// After CWTS is saved and the user is still syncing, we should schedule a follow-up
+// sync after the in-flight one
+add_task(async function testSyncScheduledWhileSyncing() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["identity.fxaccounts.enabled", true]],
+  });
+
+  // Store original methods
+  const svc = Weave.Service;
+  const origLocked = svc._locked;
+  const origSync = svc.sync;
+  let syncCalls = 0;
+
+  // Override sync functions, emulate user not currently syncing
+  svc._locked = true;
+  svc.sync = () => {
+    syncCalls++;
+    return Promise.resolve();
+  };
+
+  // Open the dialog and accept to emulate user saving their options
+  await runWithCWTSDialog(async win => {
+    let doc = win.document;
+    let syncDialog = doc.getElementById("syncChooseOptions");
+
+    let promiseUnloaded = BrowserTestUtils.waitForEvent(win, "unload");
+    syncDialog.acceptDialog();
+
+    info("waiting for dialog to unload");
+    await promiseUnloaded;
+
+    // Should *not* have called svc.sync() immediately
+    Assert.equal(syncCalls, 0, "No immediate sync when _locked is true");
+
+    // Now fire the “sync finished” notification
+    Services.obs.notifyObservers(null, "weave:service:sync:finish");
+
+    // And wait for our queued sync()
+    await TestUtils.waitForCondition(
+      () => syncCalls === 1,
+      "Pending sync should fire once service finishes"
+    );
+  });
+
+  // Clean up
+  svc._locked = origLocked;
+  svc.sync = origSync;
+});
+
+async function runWithCWTSDialog(test) {
+  await openPreferencesViaOpenPreferencesAPI("paneSync", { leaveOpen: true });
+
+  let promiseSubDialogLoaded = promiseLoadSubDialog(
+    "chrome://browser/content/preferences/dialogs/syncChooseWhatToSync.xhtml"
+  );
+  gBrowser.contentWindow.gSyncPane._chooseWhatToSync(true);
+
+  let win = await promiseSubDialogLoaded;
+
+  await test(win);
+
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+}
