@@ -1335,6 +1335,13 @@ nsresult Database::InitSchema(bool* aDatabaseMigrated) {
 
       // Firefox 140 uses schema version 79
 
+      if (currentSchemaVersion < 80) {
+        rv = MigrateV80Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      // Firefox 140 uses schema version 80
+
       // Schema Upgrades must add migration code here.
       // >>> IMPORTANT! <<<
       // NEVER MIX UP SYNC AND ASYNC EXECUTION IN MIGRATORS, YOU MAY LOCK THE
@@ -2182,12 +2189,22 @@ nsresult Database::MigrateV79Up() {
     NS_ENSURE_SUCCESS(rv, rv);
     rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_NEWTAB_STORY_IMPRESSION);
     NS_ENSURE_SUCCESS(rv, rv);
-    // Add newtab_story timestamp index.
-    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_NEWTAB_STORY_CLICK_TIMESTAMP);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_NEWTAB_IMPRESSION_TIMESTAMP);
-    NS_ENSURE_SUCCESS(rv, rv);
   }
+  return NS_OK;
+}
+
+nsresult Database::MigrateV80Up() {
+  // v79 indices had a typo so we're recreating them here.
+  nsresult rv = mMainConn->ExecuteSimpleSQL(
+      "DROP INDEX IF EXISTS idx_newtab_impression_timestamp"_ns);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mMainConn->ExecuteSimpleSQL(
+      "DROP INDEX IF EXISTS idx_newtab_click_timestamp"_ns);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_NEWTAB_STORY_CLICK_TIMESTAMP);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_NEWTAB_IMPRESSION_TIMESTAMP);
+  NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
 }
 

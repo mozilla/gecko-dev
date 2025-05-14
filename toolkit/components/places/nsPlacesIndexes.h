@@ -117,11 +117,11 @@
 
 // moz_newtab_story
 #define CREATE_IDX_MOZ_NEWTAB_STORY_CLICK_TIMESTAMP \
-  CREATE_PLACES_IDX("idx_newtab_click_timestamp",   \
+  CREATE_PLACES_IDX("newtab_click_timestampindex",  \
                     "moz_newtab_story_click", "timestamp_s", "")
 
-#define CREATE_IDX_MOZ_NEWTAB_IMPRESSION_TIMESTAMP     \
-  CREATE_PLACES_IDX("idx_newtab_impression_timestamp", \
-                    "moz_newtab_story_click", "timestamp_s", "")
+#define CREATE_IDX_MOZ_NEWTAB_IMPRESSION_TIMESTAMP      \
+  CREATE_PLACES_IDX("newtab_impression_timestampindex", \
+                    "moz_newtab_story_impression", "timestamp_s", "")
 
 #endif  // nsPlacesIndexes_h__
