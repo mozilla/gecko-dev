@@ -170,10 +170,14 @@ xpcshell:
                     - linux64-fix-stacks
                     - linux-python-dbusmock
                     - linux64-2404-dbus-python
-                macosx.*:
+                macosx.*-64.*:
                     - macosx64-node
                     - macosx64-minidump-stackwalk
                     - macosx64-fix-stacks
+                macosx.*-aarch64.*:
+                    - macosx64-aarch64-node
+                    - macosx64-aarch64-minidump-stackwalk
+                    - macosx64-aarch64-fix-stacks
                 win.*-64.*:
                     - win64-node
                     - win32-minidump-stackwalk
@@ -218,10 +222,14 @@ xpcshell-failures:
     fetches:
         toolchain:
             by-test-platform:
-                macosx.*:
+                macosx.*-64.*:
                     - macosx64-node
                     - macosx64-minidump-stackwalk
                     - macosx64-fix-stacks
+                macosx.*-aarch64.*:
+                    - macosx64-aarch64-node
+                    - macosx64-aarch64-minidump-stackwalk
+                    - macosx64-aarch64-fix-stacks
                 win.*32.*:
                     - win32-node
                     - win32-minidump-stackwalk

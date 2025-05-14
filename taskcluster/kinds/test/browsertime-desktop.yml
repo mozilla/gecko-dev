@@ -68,25 +68,18 @@ task-defaults:
                             - win64-custom-car
                             - win64-minidump-stackwalk
                             - win64-fix-stacks
-                        macosx1400.*:
+                        macosx.*-aarch64.*:
                             - macosx-arm64-custom-car
                             - macosx64-aarch64-minidump-stackwalk
                             - macosx64-aarch64-fix-stacks
-                        macosx1500.*:
-                            - macosx-arm64-custom-car
-                            - macosx64-aarch64-minidump-stackwalk
-                            - macosx64-aarch64-fix-stacks
-                        macosx1470.*:
+                        macosx.*-64.*:
                             - macosx-custom-car
                             - macosx64-minidump-stackwalk
                             - macosx64-fix-stacks
                         default: []
                 safari-tp:
                     by-test-platform:
-                        macosx1400.*:
-                            - macosx64-aarch64-minidump-stackwalk
-                            - macosx64-aarch64-fix-stacks
-                        macosx1500.*:
+                        macosx.*-aarch64.*:
                             - macosx64-aarch64-minidump-stackwalk
                             - macosx64-aarch64-fix-stacks
                         default: []
@@ -98,10 +91,7 @@ task-defaults:
                         windows.*-64.*:
                             - win64-minidump-stackwalk
                             - win64-fix-stacks
-                        macosx1400.*:
-                            - macosx64-aarch64-minidump-stackwalk
-                            - macosx64-aarch64-fix-stacks
-                        macosx1500.*:
+                        macosx.*-aarch64.*:
                             - macosx64-aarch64-minidump-stackwalk
                             - macosx64-aarch64-fix-stacks
                         default:

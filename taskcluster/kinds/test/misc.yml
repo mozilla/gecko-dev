@@ -126,10 +126,14 @@ test-verify:
                     - linux64-fix-stacks
                     - linux-python-dbusmock
                     - linux64-2404-dbus-python
-                macosx.*:
+                macosx.*-64.*:
                     - macosx64-node
                     - macosx64-minidump-stackwalk
                     - macosx64-fix-stacks
+                macosx.*-aarch64.*:
+                    - macosx64-aarch64-node
+                    - macosx64-aarch64-minidump-stackwalk
+                    - macosx64-aarch64-fix-stacks
                 win.*-64.*:
                     - win64-node
                     - win32-minidump-stackwalk
@@ -246,10 +250,14 @@ test-coverage:
                     - linux64-node
                     - linux64-minidump-stackwalk
                     - linux64-fix-stacks
-                macosx.*:
+                macosx.*-64.*:
                     - macosx64-node
                     - macosx64-minidump-stackwalk
                     - macosx64-fix-stacks
+                macosx.*-aarch64.*:
+                    - macosx64-aarch64-node
+                    - macosx64-aarch64-minidump-stackwalk
+                    - macosx64-aarch64-fix-stacks
                 win.*-64.*:
                     - win64-node
                     - win32-minidump-stackwalk
