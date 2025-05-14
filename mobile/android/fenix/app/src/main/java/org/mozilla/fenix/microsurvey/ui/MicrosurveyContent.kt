@@ -29,9 +29,9 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.list.RadioButtonListItem
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -117,7 +117,7 @@ private fun Header(icon: Int, question: String) {
  * Preview for [MicrosurveyContent].
  */
 @PreviewScreenSizes
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 fun MicrosurveyContentPreview() {
     FirefoxTheme {

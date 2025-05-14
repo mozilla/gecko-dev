@@ -31,9 +31,9 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.DialogFragment
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.lib.crash.store.CrashAction
 import org.mozilla.fenix.R
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -129,7 +129,7 @@ private fun CrashCard(
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun CrashDialogPreview() {
     FirefoxTheme {

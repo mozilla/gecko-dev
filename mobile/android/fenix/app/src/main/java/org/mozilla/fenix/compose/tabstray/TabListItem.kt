@@ -39,11 +39,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.support.base.utils.MAX_URI_LENGTH
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.FeatureFlags
@@ -342,7 +342,7 @@ private fun Thumbnail(
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun TabListItemPreview() {
     FirefoxTheme {
         TabListItem(
@@ -356,7 +356,7 @@ private fun TabListItemPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun SelectedTabListItemPreview() {
     FirefoxTheme {
         TabListItem(

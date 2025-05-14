@@ -22,8 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.feature.tab.collections.Tab
 import org.mozilla.fenix.R
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -79,7 +79,7 @@ fun DismissedTabBackground(
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun DismissedTabBackgroundPreview() {
     FirefoxTheme {
         Column {

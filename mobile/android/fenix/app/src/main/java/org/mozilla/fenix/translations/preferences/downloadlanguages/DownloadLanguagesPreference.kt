@@ -40,9 +40,9 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Divider
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.concept.engine.translate.Language
 import mozilla.components.concept.engine.translate.LanguageModel
 import mozilla.components.concept.engine.translate.ModelState
@@ -593,7 +593,7 @@ internal fun getLanguageListPreference(): List<DownloadLanguageItemPreference> {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun DownloadLanguagesPreferencePreview() {
     FirefoxTheme {
         DownloadLanguagesPreference(

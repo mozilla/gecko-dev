@@ -27,10 +27,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.button.PrimaryButton
 import org.mozilla.fenix.R
 import org.mozilla.fenix.shopping.ui.ext.headingResource
@@ -237,7 +237,7 @@ private class PreviewModelParameterProvider : PreviewParameterProvider<InfoType>
     override val values = enumValues<InfoType>().asSequence()
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun InfoCardPreview(
     @PreviewParameter(PreviewModelParameterProvider::class) type: InfoType,

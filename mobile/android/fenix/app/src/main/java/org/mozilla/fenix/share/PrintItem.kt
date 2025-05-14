@@ -18,8 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import org.mozilla.fenix.R
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -59,7 +59,7 @@ fun PrintItem(
 
 @Composable
 @Preview
-@LightDarkPreview
+@PreviewLightDark
 private fun PrintItemPreview() {
     FirefoxTheme {
         PrintItem {}

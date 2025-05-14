@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
@@ -29,7 +30,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import mozilla.components.browser.state.action.SearchAction
 import mozilla.components.browser.state.search.RegionState
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.compose.base.textfield.TextField
 import mozilla.components.lib.state.ext.observeAsState
@@ -180,7 +180,7 @@ class RegionToolsViewModel : ViewModel() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun RegionScreenPreview() {
     FirefoxTheme {
         Box(

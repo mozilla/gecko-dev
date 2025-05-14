@@ -16,8 +16,8 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.theme.AcornTheme
 
 /**
@@ -41,7 +41,7 @@ fun Divider(
  * An example of a vertical divider.
  */
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun VerticalDividerPreview() {
     AcornTheme {
         Box(
@@ -75,7 +75,7 @@ private fun VerticalDividerPreview() {
  * An example of divider usage in a list menu.
  */
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun HorizontalDividerPreview() {
     AcornTheme {
         Box(

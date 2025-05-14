@@ -10,7 +10,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import mozilla.components.compose.base.annotation.LightDarkPreview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import mozilla.components.compose.base.theme.AcornTheme
 import java.util.Locale
 
@@ -53,7 +53,7 @@ fun TextButton(
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun TextButtonPreview() {
     AcornTheme {
         Column(Modifier.background(AcornTheme.colors.layer1)) {

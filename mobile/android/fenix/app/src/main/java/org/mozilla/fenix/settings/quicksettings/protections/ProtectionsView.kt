@@ -26,9 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.core.view.isVisible
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.QuicksettingsProtectionsPanelBinding
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -202,7 +202,7 @@ private fun CookieBannerItem(
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun CookieBannerItemPreview() {
     FirefoxTheme {
         Box(Modifier.background(FirefoxTheme.colors.layer1)) {

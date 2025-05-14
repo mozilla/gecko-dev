@@ -26,9 +26,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.service.nimbus.messaging.Message
 import org.mozilla.fenix.R
@@ -235,7 +235,7 @@ data class MessageCardColors(
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun MessageCardPreview() {
     FirefoxTheme {
         Box(
@@ -253,7 +253,7 @@ private fun MessageCardPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun MessageCardWithoutTitlePreview() {
     FirefoxTheme {
         Box(
@@ -271,7 +271,7 @@ private fun MessageCardWithoutTitlePreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun MessageCardWithButtonLabelPreview() {
     FirefoxTheme {
         Box(

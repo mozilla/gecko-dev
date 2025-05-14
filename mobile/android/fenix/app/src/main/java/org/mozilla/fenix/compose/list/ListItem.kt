@@ -48,10 +48,10 @@ import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Divider
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.modifier.thenConditional
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.R
@@ -1004,7 +1004,7 @@ private fun FaviconListItemPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun ImageListItemPreview() {
     FirefoxTheme {
         Column(Modifier.background(FirefoxTheme.colors.layer1)) {
@@ -1027,7 +1027,7 @@ private fun ImageListItemPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun RadioButtonListItemPreview() {
     val radioOptions =
         listOf("Radio button first item", "Radio button second item", "Radio button third item")
@@ -1047,7 +1047,7 @@ private fun RadioButtonListItemPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun SelectableFaviconListItemPreview() {
     FirefoxTheme {
         Column(Modifier.background(FirefoxTheme.colors.layer1)) {
@@ -1208,7 +1208,7 @@ private fun SelectableIconListItemPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun SelectableListItemPreview() {
     FirefoxTheme {
         Column(Modifier.background(FirefoxTheme.colors.layer1)) {

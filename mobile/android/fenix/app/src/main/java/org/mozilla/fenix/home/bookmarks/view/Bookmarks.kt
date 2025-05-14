@@ -38,10 +38,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.browser.icons.compose.Loader
 import mozilla.components.browser.icons.compose.Placeholder
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.utils.inComposePreview
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.components.components
@@ -221,7 +221,7 @@ private fun FallbackBookmarkFaviconImage(
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun BookmarksPreview() {
     FirefoxTheme {
         Bookmarks(

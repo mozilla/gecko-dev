@@ -27,8 +27,8 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import org.mozilla.fenix.theme.FirefoxTheme
 import androidx.compose.material.Switch as MaterialSwitch
 
@@ -149,7 +149,7 @@ private fun Switch(
     )
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun SwitchWithLabelPreview() {
     FirefoxTheme {

@@ -36,11 +36,11 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.button.TextButton
 import mozilla.components.compose.cfr.CFRPopup
 import mozilla.components.compose.cfr.CFRPopupLayout
@@ -296,7 +296,7 @@ private fun InactiveTabsAutoClosePrompt(
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun InactiveTabsAutoClosePromptPreview() {
     FirefoxTheme {
         Box(Modifier.background(FirefoxTheme.colors.layer1)) {
@@ -309,7 +309,7 @@ private fun InactiveTabsAutoClosePromptPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun InactiveTabsListPreview() {
     var expanded by remember { mutableStateOf(true) }
     var showAutoClosePrompt by remember { mutableStateOf(true) }

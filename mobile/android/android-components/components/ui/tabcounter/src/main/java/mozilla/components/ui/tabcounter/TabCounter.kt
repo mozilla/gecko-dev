@@ -29,8 +29,8 @@ import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.base.utils.toLocaleString
 import mozilla.components.ui.tabcounter.TabCounterTestTags.NORMAL_TABS_COUNTER
@@ -146,7 +146,7 @@ object TabCounterTestTags {
     const val NORMAL_TABS_COUNTER = "$TAG.tabCounter"
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Preview(locale = "ar")
 @Composable
 private fun TabCounterPreview() {
@@ -159,7 +159,7 @@ private fun TabCounterPreview() {
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Preview(locale = "ar")
 @Composable
 private fun InfiniteTabCounterPreview() {

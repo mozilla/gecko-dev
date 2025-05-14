@@ -19,9 +19,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Divider
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.Addon.Companion.isAllURLsPermission
 import mozilla.components.feature.addons.Addon.Permission
@@ -274,7 +274,7 @@ private fun OptionalPermissionSwitch(
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun AddonPermissionsScreenPreview() {
     val permissions: List<String> = listOf("Permission required 1", "Permission required 2")
     val optionalPermissions: List<Addon.LocalizedPermission> = listOf(
@@ -317,7 +317,7 @@ private fun AddonPermissionsScreenPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun AddonPermissionsScreenWithPermissionsPreview() {
     FirefoxTheme {
         Column(modifier = Modifier.background(FirefoxTheme.colors.layer1)) {
@@ -338,7 +338,7 @@ private fun AddonPermissionsScreenWithPermissionsPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun AddonPermissionsScreenWithUserScriptsPermissionsPreview() {
     val optionalPermissions: List<Addon.LocalizedPermission> = listOf(
         Addon.LocalizedPermission(

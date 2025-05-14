@@ -34,8 +34,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.button.PrimaryButton
 import org.mozilla.fenix.R
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -155,7 +155,7 @@ internal fun rotationAnimation(): Float {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun DownloadIconIndicatorPreview() {
     FirefoxTheme {
         Column(
@@ -175,7 +175,7 @@ private fun DownloadIconIndicatorPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun DownloadInProgressIndicatorPreview() {
     FirefoxTheme {
         Column(
@@ -194,7 +194,7 @@ private fun DownloadInProgressIndicatorPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun DownloadIndicatorPreview() {
     FirefoxTheme {
         Column(

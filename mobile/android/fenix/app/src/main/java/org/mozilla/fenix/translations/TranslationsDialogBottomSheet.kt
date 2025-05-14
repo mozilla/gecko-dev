@@ -31,10 +31,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Dropdown
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.compose.base.button.TextButton
 import mozilla.components.compose.base.menu.MenuItem.CheckableItem
@@ -668,7 +668,7 @@ private fun getLongestLanguageWidth(languages: List<Language>, style: TextStyle)
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun TranslationsDialogBottomSheetPreview() {
     FirefoxTheme {
         TranslationsDialogBottomSheet(

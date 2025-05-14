@@ -26,8 +26,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.ui.icons.R as iconsR
 
@@ -92,7 +92,7 @@ fun IconButton(
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun IconButtonPreview() {
     AcornTheme {
@@ -110,7 +110,7 @@ private fun IconButtonPreview() {
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TextButtonPreview() {
     AcornTheme {

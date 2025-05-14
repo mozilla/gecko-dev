@@ -30,9 +30,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Divider
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.list.IconListItem
 import org.mozilla.fenix.compose.list.ImageListItem
@@ -268,7 +268,7 @@ private fun getIconTint(state: MenuItemState): Color {
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun WebExtensionMenuItemPreview() {
     FirefoxTheme {
@@ -289,7 +289,7 @@ private fun WebExtensionMenuItemPreview() {
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun MenuItemPreview() {
     FirefoxTheme {

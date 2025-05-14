@@ -26,9 +26,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Divider
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Favicon
@@ -156,7 +156,7 @@ private fun ProtectionPanelIcon(
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun ProtectionPanelHeaderPreview() {
     FirefoxTheme {

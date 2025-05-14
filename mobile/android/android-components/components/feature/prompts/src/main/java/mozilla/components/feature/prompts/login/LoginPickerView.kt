@@ -35,10 +35,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.withStyledAttributes
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.concept.storage.Login
 import mozilla.components.feature.prompts.R
 import mozilla.components.support.ktx.android.content.getColorFromAttr
@@ -276,7 +276,7 @@ fun LoginPicker(
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun LoginPreview() {
     var isExpanded by remember { mutableStateOf(true) }

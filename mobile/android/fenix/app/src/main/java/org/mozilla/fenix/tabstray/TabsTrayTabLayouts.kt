@@ -35,11 +35,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.SwipeToDismissState
 import org.mozilla.fenix.compose.SwipeToDismissState2
@@ -354,7 +354,7 @@ private fun TabList(
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabListPreview() {
     val tabs = remember { generateFakeTabsList().toMutableStateList() }
@@ -381,7 +381,7 @@ private fun TabListPreview() {
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabGridPreview() {
     val tabs = remember { generateFakeTabsList().toMutableStateList() }
@@ -408,7 +408,7 @@ private fun TabGridPreview() {
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabGridSmallPreview() {
     val tabs = remember { generateFakeTabsList().toMutableStateList() }
@@ -438,7 +438,7 @@ private fun TabGridSmallPreview() {
 }
 
 @Suppress("MagicNumber")
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabGridMultiSelectPreview() {
     val tabs = generateFakeTabsList()

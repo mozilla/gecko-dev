@@ -12,8 +12,8 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.button.FloatingActionButton
@@ -91,7 +91,7 @@ fun TabsTrayFab(
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabsTraySyncFabPreview() {
     val store = TabsTrayStore(
@@ -112,7 +112,7 @@ private fun TabsTraySyncFabPreview() {
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabsTrayPrivateFabPreview() {
     val store = TabsTrayStore(

@@ -34,11 +34,11 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.lib.state.ext.observeAsComposableState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.appstate.AppAction
@@ -459,7 +459,7 @@ private class DisableForwardSwipeNestedScrollConnection(
         }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun OnboardingScreenPreview() {
     val pageCount = defaultPreviewPages().size

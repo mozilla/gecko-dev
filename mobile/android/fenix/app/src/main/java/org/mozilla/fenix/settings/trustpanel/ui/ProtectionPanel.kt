@@ -37,9 +37,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Divider
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.menu.DropdownMenu
 import mozilla.components.compose.base.menu.MenuItem.CheckableItem
 import mozilla.components.compose.base.text.Text
@@ -347,7 +347,7 @@ private fun AutoplayDropdownMenu(
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun ProtectionPanelPreview() {
     FirefoxTheme {

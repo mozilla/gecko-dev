@@ -16,8 +16,8 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.button.TextButton
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -68,7 +68,7 @@ fun Banner(
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun BannerPreview() {
     FirefoxTheme {

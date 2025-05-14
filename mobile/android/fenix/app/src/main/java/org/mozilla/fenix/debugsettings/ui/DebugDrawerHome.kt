@@ -22,10 +22,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import mozilla.components.compose.base.Divider
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.utils.inComposePreview
 import mozilla.components.support.ktx.android.content.appName
 import mozilla.components.support.ktx.android.content.appVersionName
@@ -109,7 +109,7 @@ fun DebugDrawerHome(
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun DebugDrawerHomePreview() {
     val scope = rememberCoroutineScope()
     val snackbarState = remember { AcornSnackbarHostState() }

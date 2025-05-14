@@ -18,8 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.concept.engine.translate.Language
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.InfoCard
@@ -141,7 +141,7 @@ internal fun getAutomaticTranslationListPreferences(): List<AutomaticTranslation
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun AutomaticTranslationPreferencePreview() {
     FirefoxTheme {
         AutomaticTranslationPreference(

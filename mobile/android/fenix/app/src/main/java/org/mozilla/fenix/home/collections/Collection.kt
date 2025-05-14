@@ -27,8 +27,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.feature.tab.collections.TabCollection
 import org.mozilla.fenix.R
 import org.mozilla.fenix.R.drawable
@@ -150,7 +150,7 @@ fun Collection(
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun CollectionExpandedPreview() {
     FirefoxTheme {
         var expanded by remember { mutableStateOf(true) }
@@ -168,7 +168,7 @@ private fun CollectionExpandedPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun CollectionPreview() {
     FirefoxTheme {
         var expanded by remember { mutableStateOf(false) }

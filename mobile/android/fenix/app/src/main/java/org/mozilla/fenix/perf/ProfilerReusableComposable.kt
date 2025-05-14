@@ -24,9 +24,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.button.RadioButton
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -114,7 +114,7 @@ fun WaitForProfilerDialog(
  * Preview example of [ProfilerLabeledRadioButton].
  */
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun ProfilerLabeledRadioButtonPreview() {
     val radioOptions = listOf("Firefox", "Graphics", "Media", "Networking")
     val selectedOption = remember { mutableStateOf("Firefox") }

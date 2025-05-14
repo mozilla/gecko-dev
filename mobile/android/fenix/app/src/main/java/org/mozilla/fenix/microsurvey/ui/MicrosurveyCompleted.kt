@@ -24,9 +24,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import org.mozilla.fenix.R
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -87,7 +87,7 @@ fun MicrosurveyCompleted(
  * Preview for [MicrosurveyCompleted].
  */
 @PreviewScreenSizes
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 fun MicrosurveyCompletedPreview() {
     FirefoxTheme {

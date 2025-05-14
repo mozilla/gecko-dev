@@ -29,9 +29,9 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Divider
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.feature.addons.Addon
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.compose.header.SubmenuHeader
@@ -196,7 +196,7 @@ private fun RecommendedAddons(
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun ExtensionsSubmenuPreview() {
     FirefoxTheme {

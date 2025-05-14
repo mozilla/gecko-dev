@@ -22,8 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -137,7 +137,7 @@ private fun SelectableChipColors.toMaterialChipColors() = filterChipColors(
 )
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun ChipPreview() {
     FirefoxTheme {
         Column(

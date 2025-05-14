@@ -34,12 +34,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.compose.base.Divider
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.menu.DropdownMenu
 import mozilla.components.compose.base.menu.MenuItem
 import mozilla.components.ui.tabcounter.TabCounter
@@ -445,7 +445,7 @@ private fun MultiSelectBanner(
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabsTrayBannerPreview() {
     TabsTrayBannerPreviewRoot(
@@ -454,7 +454,7 @@ private fun TabsTrayBannerPreview() {
     )
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabsTrayBannerInfinityPreview() {
     TabsTrayBannerPreviewRoot(
@@ -462,7 +462,7 @@ private fun TabsTrayBannerInfinityPreview() {
     )
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabsTrayBannerAutoClosePreview() {
     TabsTrayBannerPreviewRoot(
@@ -470,7 +470,7 @@ private fun TabsTrayBannerAutoClosePreview() {
     )
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabsTrayBannerMultiselectPreview() {
     TabsTrayBannerPreviewRoot(
@@ -493,7 +493,7 @@ private fun TabsTrayBannerMultiselectPreview() {
     )
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabsTrayBannerMultiselectNoTabsSelectedPreview() {
     TabsTrayBannerPreviewRoot(

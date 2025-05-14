@@ -12,8 +12,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.button.TextButton
 import mozilla.components.feature.downloads.DefaultFileSizeFormatter
 import mozilla.components.feature.downloads.FileSizeFormatter
@@ -108,7 +108,7 @@ fun DeleteLanguageFileDialog(
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun DeleteLanguageFileDialogPreview() {
     FirefoxTheme {
         DeleteLanguageFileDialog(
@@ -123,7 +123,7 @@ private fun DeleteLanguageFileDialogPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun DeleteAllLanguagesFileDialogPreview() {
     FirefoxTheme {
         DeleteLanguageFileDialog(

@@ -11,14 +11,12 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.button.TextButton
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.parseHtml
 import org.mozilla.fenix.theme.FirefoxTheme
-
-internal const val CLEAR_SITE_DATA_DIALOG_ROUTE = "clear_site_data_dialog"
 
 /**
  * Clear Site Data Dialog.
@@ -72,7 +70,7 @@ fun ClearSiteDataDialog(
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun ClearSiteDataDialogPreview() {
     FirefoxTheme {
         ClearSiteDataDialog(

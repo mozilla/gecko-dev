@@ -49,13 +49,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.text.BidiFormatter
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.compose.base.Divider
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.support.base.utils.MAX_URI_LENGTH
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.FeatureFlags
@@ -377,7 +377,7 @@ private fun Thumbnail(
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun TabGridItemPreview() {
     FirefoxTheme {
         TabContent(
@@ -394,7 +394,7 @@ private fun TabGridItemPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun TabGridItemSelectedPreview() {
     FirefoxTheme {
         TabContent(
@@ -410,7 +410,7 @@ private fun TabGridItemSelectedPreview() {
 }
 
 @Composable
-@LightDarkPreview
+@PreviewLightDark
 private fun TabGridItemMultiSelectedPreview() {
     FirefoxTheme {
         TabContent(

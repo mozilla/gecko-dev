@@ -27,13 +27,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.storage.sync.TabEntry
 import mozilla.components.compose.base.Divider
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.tabstray.ext.isNormalTab
 import org.mozilla.fenix.tabstray.syncedtabs.SyncedTabsListItem
@@ -275,7 +275,7 @@ fun TabsTray(
     }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabsTrayPreview() {
     val tabs = generateFakeTabsList()
@@ -292,7 +292,7 @@ private fun TabsTrayPreview() {
 }
 
 @Suppress("MagicNumber")
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabsTrayMultiSelectPreview() {
     val tabs = generateFakeTabsList()
@@ -303,7 +303,7 @@ private fun TabsTrayMultiSelectPreview() {
     )
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabsTrayInactiveTabsPreview() {
     TabsTrayPreviewRoot(
@@ -314,7 +314,7 @@ private fun TabsTrayInactiveTabsPreview() {
     )
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabsTrayPrivateTabsPreview() {
     TabsTrayPreviewRoot(
@@ -323,7 +323,7 @@ private fun TabsTrayPrivateTabsPreview() {
     )
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabsTraySyncedTabsPreview() {
     TabsTrayPreviewRoot(
@@ -332,7 +332,7 @@ private fun TabsTraySyncedTabsPreview() {
     )
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun TabsTrayAutoCloseBannerPreview() {
     TabsTrayPreviewRoot(

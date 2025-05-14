@@ -16,8 +16,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.feature.tab.collections.Tab
 import mozilla.components.feature.tab.collections.TabCollection
 import org.mozilla.fenix.R
@@ -139,7 +139,7 @@ private fun getMenuItems(
     )
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun CollectionsPreview() {
     val expandedCollections: MutableState<Set<Long>> = remember { mutableStateOf(setOf(1L)) }
