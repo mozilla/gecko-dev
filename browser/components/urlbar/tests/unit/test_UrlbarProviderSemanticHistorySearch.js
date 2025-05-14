@@ -8,6 +8,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   sinon: "resource://testing-common/Sinon.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  EnrollmentType: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
 
 const { UrlbarProviderSemanticHistorySearch } = ChromeUtils.importESModule(
@@ -17,6 +19,28 @@ let sandbox;
 
 add_task(async function setup() {
   sandbox = lazy.sinon.createSandbox();
+
+  const { PlacesSemanticHistoryManager } = ChromeUtils.importESModule(
+    "resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs"
+  );
+
+  sandbox
+    .stub(
+      PlacesSemanticHistoryManager.prototype,
+      "hasSufficientEntriesForSearching"
+    )
+    .returns(true);
+
+  // stub getEnrollmentMetadata once, then configure for both cases:
+  const getEnrollmentStub = sandbox.stub(
+    lazy.NimbusFeatures.urlbar,
+    "getEnrollmentMetadata"
+  );
+  getEnrollmentStub
+    .withArgs(lazy.EnrollmentType.EXPERIMENT)
+    .returns({ slug: "test-slug", branch: "control" });
+  getEnrollmentStub.withArgs(lazy.EnrollmentType.ROLLOUT).returns(null);
+  sandbox.stub(lazy.NimbusFeatures.urlbar, "recordExposureEvent");
 });
 
 add_task(async function test_startQuery_adds_results() {
@@ -33,7 +57,7 @@ add_task(async function test_startQuery_adds_results() {
   const queryContext = { searchString: "test page" };
 
   // Trigger isActive() to initialize the semantic manager
-  Assert.ok(provider.isActive(queryContext), "Provider should be active");
+  Assert.ok(await provider.isActive(queryContext), "Provider should be active");
 
   const semanticManager = provider.ensureSemanticManagerInitialized();
 
@@ -83,14 +107,14 @@ add_task(async function test_isActive_conditions() {
   // Pref is disabled
   Services.prefs.setBoolPref("browser.urlbar.suggest.semanticHistory", false);
   Assert.ok(
-    !provider.isActive(validQuery),
+    !(await provider.isActive(validQuery)),
     "Should be inactive when pref is disabled"
   );
 
   // Pref enabled, but string too short
   Services.prefs.setBoolPref("browser.urlbar.suggest.semanticHistory", true);
   Assert.ok(
-    !provider.isActive(shortQuery),
+    !(await provider.isActive(shortQuery)),
     "Should be inactive for short search strings"
   );
 
@@ -101,14 +125,14 @@ add_task(async function test_isActive_conditions() {
   );
   canUseStub.get(() => false);
   Assert.ok(
-    !provider.isActive(validQuery),
+    !(await provider.isActive(validQuery)),
     "Should be inactive if canUseSemanticSearch returns false"
   );
 
   // All conditions met
   canUseStub.get(() => true);
   Assert.ok(
-    provider.isActive(validQuery),
+    await provider.isActive(validQuery),
     "Should be active when all conditions are met"
   );
 });

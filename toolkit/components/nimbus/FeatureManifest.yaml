@@ -513,6 +513,14 @@ urlbar:
         branch: user
         pref: places.semanticHistory.featureGate
       description: use semanticHistory Search feature.
+    semanticHistoryCompletionThreshold:
+      type: string
+      setPref:
+        branch: user
+        pref: places.semanticHistory.completionThreshold
+      description: >-
+        Fraction (0.0 – 1.0) of top Places rows that must have embeddings
+        before semantic-history search is enabled. 0.5 = 50 %.
     suggestSemanticHistory:
       type: boolean
       setPref:

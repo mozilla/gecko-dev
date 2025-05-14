@@ -58,6 +58,7 @@ export class PlacesSemanticHistoryManager {
   embedder;
   qualifiedForSemanticSearch = false;
   #promiseRemoved = null;
+  enoughEntries = false;
 
   /**
    * Constructor for PlacesSemanticHistoryManager.
@@ -180,6 +181,72 @@ export class PlacesSemanticHistoryManager {
       });
     }
     return this.#promiseConn;
+  }
+
+  /**
+   * Checks whether the semantic-history vector DB is *sufficiently populated*.
+   *
+   * We look at the **top N** Places entries (N = `#rowLimit`, ordered by
+   * `#samplingAttrib`) and count how many of them already have an embedding in
+   * `vec_history_mapping`.  If **more than completionThreshold %** are *missing* we consider the
+   * DB **not ready** and set to true when the completionThreshold reaches
+   *
+   * The boolean result is memoised in `this.enoughEntries`; subsequent
+   * calls return that cached value to avoid repeating the query.
+   *
+   * @returns {Promise<boolean>}
+   *   `true`  – **not enough** entries yet (pending / total ≥ completionThreshold)
+   *   `false` – DB is sufficiently populated (pending / total < completionThreshold)
+   */
+  async hasSufficientEntriesForSearching() {
+    if (this.enoughEntries) {
+      // Return cached answer if we already ran once.
+      return true;
+    }
+    let conn = await this.getConnection();
+
+    // Compute total candidates and how many of them updated with vectors.
+    const [row] = await conn.execute(
+      `
+        WITH top_places AS (
+          SELECT url_hash
+            FROM places.moz_places
+          WHERE title NOTNULL
+            AND length(title) > 2
+            AND last_visit_date NOTNULL
+          ORDER BY :samplingAttrib DESC
+          LIMIT  :rowLimit
+        )
+        SELECT
+          (SELECT COUNT(*) FROM top_places) AS total,
+          (SELECT COUNT(*) FROM top_places tp
+            JOIN vec_history_mapping map ON tp.url_hash = map.url_hash) AS completed
+        `,
+      { samplingAttrib: this.#samplingAttrib, rowLimit: this.#rowLimit }
+    );
+
+    const total = row.getResultByName("total");
+    const completed = row.getResultByName("completed");
+    const ratio = total ? completed / total : 0;
+
+    const completionThreshold = Services.prefs.getFloatPref(
+      "places.semanticHistory.completionThreshold",
+      "0.5"
+    );
+    // Ready once ≥ completionThreshold % completed.
+    this.enoughEntries = ratio >= completionThreshold;
+
+    if (this.enoughEntries) {
+      lazy.logger.debug(
+        `Semantic-DB status — completed: ${completed}/${total} ` +
+          `(${(ratio * 100).toFixed(1)} %). ` +
+          (this.enoughEntries
+            ? "Threshold met; update task can run at normal cadence."
+            : "Below threshold; updater remains armed for frequent updates.")
+      );
+    }
+
+    return this.enoughEntries;
   }
 
   /**

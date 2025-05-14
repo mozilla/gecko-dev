@@ -76,6 +76,7 @@ add_task(async function test_canUseSemanticSearch_all_conditions_met() {
   Services.prefs.setBoolPref("places.semanticHistory.featureGate", true);
 
   manager.qualifiedForSemanticSearch = true;
+  manager.enoughEntries = true;
 
   Assert.ok(
     manager.canUseSemanticSearch,
@@ -90,6 +91,7 @@ add_task(async function test_canUseSemanticSearch_ml_disabled() {
   Services.prefs.setBoolPref("places.semanticHistory.featureGate", true);
 
   manager.qualifiedForSemanticSearch = true;
+  manager.enoughEntries = true;
 
   Assert.ok(
     !manager.canUseSemanticSearch,
@@ -104,6 +106,7 @@ add_task(async function test_canUseSemanticSearch_featureGate_disabled() {
   Services.prefs.setBoolPref("places.semanticHistory.featureGate", false);
 
   manager.qualifiedForSemanticSearch = true;
+  manager.enoughEntries = true;
 
   Assert.ok(
     !manager.canUseSemanticSearch,
@@ -118,6 +121,7 @@ add_task(async function test_canUseSemanticSearch_not_qualified() {
   Services.prefs.setBoolPref("places.semanticHistory.featureGate", true);
 
   manager.qualifiedForSemanticSearch = false;
+  manager.enoughEntries = true;
 
   Assert.ok(
     !manager.canUseSemanticSearch,
