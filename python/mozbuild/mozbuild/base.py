@@ -20,6 +20,7 @@ from mozversioncontrol import (
     GitRepository,
     HgRepository,
     InvalidRepoPath,
+    JujutsuRepository,
     MissingConfigureInfo,
     MissingVCSTool,
     get_repository_from_build_config,
@@ -1040,6 +1041,14 @@ class MachCommandConditions:
         """Must have a git source checkout."""
         try:
             return isinstance(cls.repository, GitRepository)
+        except InvalidRepoPath:
+            return False
+
+    @staticmethod
+    def is_jj(cls):
+        """Must have a jj source checkout."""
+        try:
+            return isinstance(cls.repository, JujutsuRepository)
         except InvalidRepoPath:
             return False
 

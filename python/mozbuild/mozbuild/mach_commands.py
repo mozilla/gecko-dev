@@ -551,6 +551,14 @@ def clobber(command_context, what, full=False):
             raise
 
     if "python" in what:
+        topsrcdir = Path(command_context.topsrcdir)
+
+        def _pure_python_clean(srcdir: Path):
+            for file in srcdir.rglob("*.py[cod]"):
+                file.unlink()
+            for cache_dir in srcdir.rglob("__pycache__"):
+                shutil.rmtree(cache_dir, ignore_errors=True)
+
         if conditions.is_hg(command_context):
             cmd = [
                 "hg",
@@ -563,26 +571,20 @@ def clobber(command_context, what, full=False):
                 "-I",
                 "glob:**/__pycache__",
             ]
-        elif conditions.is_git(command_context):
+            ret = subprocess.call(cmd, cwd=topsrcdir)
+        elif conditions.is_git(command_context) or conditions.is_jj(command_context):
             cmd = ["git", "clean", "-d", "-f", "-x", "*.py[cdo]", "*/__pycache__/*"]
+            result = subprocess.run(cmd, cwd=topsrcdir, stderr=subprocess.DEVNULL)
+            # We assume the `jj` repo is a colocated `git` repo, if not, fall back to a pure python approach
+            if conditions.is_jj(command_context) and result.returncode != 0:
+                _pure_python_clean(topsrcdir)
         else:
-            cmd = ["find", ".", "-type", "f", "-name", "*.py[cdo]", "-delete"]
-            subprocess.call(cmd, cwd=command_context.topsrcdir)
-            cmd = [
-                "find",
-                ".",
-                "-type",
-                "d",
-                "-name",
-                "__pycache__",
-                "-empty",
-                "-delete",
-            ]
-        ret = subprocess.call(cmd, cwd=command_context.topsrcdir)
+            # If no supported vcs we use a pure python approach
+            _pure_python_clean(topsrcdir)
 
         # We'll keep this around to delete the legacy "_virtualenv" dir folders
         # so that people don't get confused if they see it and try to manipulate
-        # it but it has no effect.
+        # it, but it has no effect.
         shutil.rmtree(
             mozpath.join(command_context.topobjdir, "_virtualenvs"),
             ignore_errors=True,
