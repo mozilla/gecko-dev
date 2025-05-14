@@ -359,6 +359,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="browser_tools_menu_handlebar_content_description">Mdel tiferkit n wumuɣ n yifecka</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Mdel tiferkit n wumuɣ n waccaren udmawanen</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2">Askar n tɣuri, suqel, mmel asmel yerrẓen, siggez, bḍu, ldi deg usnas</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
   <string name="browser_menu_tools_description_with_translate_without_report_site">Askar n tɣuri, suqel, siggez, bḍu, ldi deg usnas</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
@@ -760,6 +762,10 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="preferences_add_private_browsing_shortcut">Rnu anegzum i tunigin tusligin</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">Askar HTTPS-Only</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">Seqdec asekkeṛ n ugdil i tuffra n waccaren deg tunigin tusligt</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary">Wali accaren s udsil umḍin, tukksa n usekkeṛ s wudem, neɣ s PIN.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Amsewḥel n yiɣarracen n yinagan n tuqqna</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -890,6 +896,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="preferences_link_sharing">Beṭṭu n useɣwen</string>
   <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
   <string name="link_sharing_toggle_title">Seddu aseɣwen n usader n %1$s deg ibeṭṭuyen ɣef WhatsApp..</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">Nced imeddukkal-ik ad inigen s zzerb, s tɣellist s %1$s yal tikkelt mi ara tebduḍ aseɣwen deg WhatsApp.</string>
   <!-- Snackbar message shown when user shares a link -->
   <string name="link_shared_snackbar_message">Aseɣwen yettwabḍa</string>
   <!-- Snackbar action label shown when user shares a link -->
@@ -1117,6 +1125,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="preference_usage_data_learn_more">Issin ugar</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Isefka yerzan ibenk-ik, tawila n warrum akked useqdec-ik, ttεawanen-aɣ ad nesnerni timahilin, tamlellit akked urkad n Firefox.</string>
+  <!-- Preference switch for campaign measurement data (marketing data) collection -->
+  <string name="preferences_marketing_data_2">Isefka n usket n tudrin</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Issin ugar ɣef yisefka n ulzuz</string>
   <!-- Preference switch for daily usage ping data collection -->
@@ -1455,9 +1465,14 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   -->
   <string name="download_multi_select_title">%1$d yettwafren</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Kkes</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Kkes</string>
   <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
   <string name="download_file_has_not_enough_storage_dialog_title">Ulac ddeqs n tallunt</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message">Ibenk-a ulac fell-as aṭas n tallunt i usader n &lt;b&gt;%s&lt;/b&gt;.</string>
   <!--
     Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
     This button will navigate the user to the device's storage management settings.
@@ -1649,6 +1664,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="bookmark_menu_delete_button">Kkes</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Sekles</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">Smizwer s umizwer udmawan</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">Smizwer s umaynut</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -2290,6 +2307,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="preference_doh_add_site_description">Rnu asmel</string>
   <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection">Ammesten s wudem amezwer</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s yeɣtes melmi ara yesseqdec DNS aɣellsan akken ad immesten tabaḍnit-ik.</string>
   <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_1">Seqdec asaǧǧaw i tferneḍ</string>
   <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
@@ -3327,6 +3346,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     The title of the Addresses feature in the Debug Drawer.
   -->
   <string name="debug_drawer_addresses_title">Tansiwin</string>
+  <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+  <string name="debug_drawer_addresses_debug_locales_header">Seɣti idigan ara yettwaremden</string>
   <!-- The title of the header for the section for managing addresses. -->
   <string name="debug_drawer_addresses_management_header">Sefrek tansiwin</string>
   <!-- The title of the button in the debug drawer for adding a new address. -->
@@ -3424,6 +3445,18 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   -->
   <string name="setup_checklist_subtitle_3_steps_initial_state">Smed kraḍ-a 3 takkayin i usbeddi n %1$s i tirmit n tunigin igerrzen.</string>
   <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Smed akk 6 takkayin i usbeddi n %1$s i tirmit n tunigin igerrzen.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Smed akk 5 takkayin i usbeddi n %1$s i tirmit n tunigin igerrzen.</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
@@ -3473,6 +3506,10 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="pbm_authentication_unlock">Serreḥ</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Seḥbes accaren usligen</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">Rmed asekker n ugdil n waccaren usligen</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">Sens asekker n ugdil n waccaren usligen</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
   <string name="private_tab_cfr_negative">Ala, tanemmirt</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->

@@ -620,6 +620,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">വേഗതയേറിയതും സുരക്ഷിതവുമായ വെബ് തിരയൽ</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">സമ്മതിച്ച് തുടരുക</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">തുടരുക</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">തുടരുന്നതിലൂടെ, താങ്ങൾ %1$s അംഗീകരിക്കുന്നു.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1404,7 +1406,7 @@
   -->
   <string name="download_multi_select_title">%1$d തിരഞ്ഞെടുത്തിരിക്കുന്നു</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">മാറ്റുക</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">മാറ്റുക</string>
   <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
   <string name="download_file_has_not_enough_storage_dialog_title">ഇടക്കുറവു്</string>
   <!--
@@ -1603,6 +1605,8 @@
   <string name="bookmark_menu_delete_button">നീക്കം ചെയ്യുക</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">സൂക്ഷിക്കുക</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">ഇഷ്ടാനുസൃതക്രമത്തിലാക്കുക</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">ഏറ്റവും പുതിയത് അനുസരിച്ച് അടുക്കുക</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -2116,6 +2120,8 @@
   <string name="preference_enhanced_tracking_protection_standard_info_button">സ്റ്റാൻഡേർഡ് പിന്തുടർച്ച പരിരക്ഷണം എന്തെല്ലാം തടഞ്ഞു</string>
   <!-- Preference for enhanced tracking protection for the strict protection settings -->
   <string name="preference_enhanced_tracking_protection_strict">കർശനം</string>
+  <!-- Preference description for enhanced tracking protection for the strict protection settings -->
+  <string name="preference_enhanced_tracking_protection_strict_description_4">കരുത്തുറ്റ പിന്തുടൎച്ച പരിരക്ഷണവും വേഗേറിയ പ്രകടനവും എന്നാൽ ചില വെബിടങ്ങൾ ശരിയായിട്ടു് പ്രവൎത്തിക്കത്തില്ല.</string>
   <!-- Accessibility text for the Strict protection information icon -->
   <string name="preference_enhanced_tracking_protection_strict_info_button">കർശന പിന്തുടർച്ച സംരക്ഷണം എന്തെല്ലാം തടയുന്നു</string>
   <!-- Preference for enhanced tracking protection for the custom protection settings -->
@@ -3399,6 +3405,10 @@
   <string name="pbm_authentication_unlock">പൂട്ടുതുറക്കുക</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">സ്വകാര്യ ടാബുകളിലുള്ള പൂട്ടുതുറക്കുക</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">സ്വകാര്യ ടാബുപ്രതലപ്പൂട്ടൽ പ്രവൎത്തനക്ഷമമാക്കുക</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">സ്വകാര്യ ടാബുപ്രതലപ്പൂട്ടൽ പ്രവൎത്തനരഹിതമാക്കുക</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">സ്വകാര്യ ടാബുകൾ മറയ്ക്കാൻ പ്രതലപ്പൂട്ടുപയോഗിക്കണോ?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->

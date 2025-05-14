@@ -16,7 +16,7 @@
   <string name="action_ok">Vai</string>
   <string name="action_save">Arregistrà</string>
   <!-- This text is shown in the URL bar when it's empty -->
-  <string name="urlbar_hint">Ricerca o indirizzu</string>
+  <string name="urlbar_hint">Circà o stampittà un indirizzu</string>
   <string name="teaser">Navigazione privata autumatica.\nNavigate. Squassate. Ripitite.</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
   <string name="feedback_erase">A vostra cronolugia di navigazione hè stata squassata.</string>

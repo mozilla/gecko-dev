@@ -11,6 +11,10 @@
   -->
   <string name="content_description_menu">گۊزینه یل بیشتر</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+  <string name="content_description_private_browsing_button">فعال کردن هالت گشت گر سیخومی</string>
+  <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+  <string name="content_description_disable_private_browsing_button">قیر فعال کردن هالت گشت گر سیخومی</string>
+  <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_private_browsing">گشتن سیخومی</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">پیتینیڌن یا زیڌن نشۊوی</string>
@@ -24,6 +28,12 @@
   <string name="tab_search_hint">پیتینیڌن بلگه یل</string>
   <!-- Placeholder text shown in the search bar when using application search engines -->
   <string name="application_search_hint">هؽل پیتینیڌن ن بزنین</string>
+  <!-- No Open Tabs Message Description -->
+  <string name="no_open_tabs_description">بلگه یل واز ایسا ایچو نشووݩ داڌه ابۊن.</string>
+  <!-- No Private Tabs Message Description -->
+  <string name="no_private_tabs_description">بلگه یل سیخومی ایسا من ایچو نشووݩ داڌه ابۊن.</string>
+  <!-- Tab tray multi select title in app bar. %1$d is the number of tabs selected -->
+  <string name="tab_tray_multi_select_title">%1$d بلگه پسند وابی</string>
   <!-- Label of editable text in create collection dialog for naming a new collection -->
   <string name="tab_tray_add_new_collection_name">نوم</string>
   <!-- Content description for close button while in multiselect mode in tab tray -->
@@ -847,7 +857,7 @@
   -->
   <string name="download_multi_select_title">%1$d پسند وابی</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">پاک کردن</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">پاک کردن</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">پاک کردن</string>
   <!-- Content description for the search bar clear text button on the downloads screen -->

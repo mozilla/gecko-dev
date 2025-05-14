@@ -18,4 +18,6 @@
   <string name="mozac_close_tab">بستن بلگه</string>
   <!-- Menu option to duplicate the current tab -->
   <string name="mozac_ui_tabcounter_duplicate_tab">لف گیری بلگه</string>
+  <!-- Content description of the tab counter toolbar button -->
+  <string name="mozac_tab_counter_content_description">دویمه نوار ٱوزار شومارنده بلگه یل.</string>
 </resources>

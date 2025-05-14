@@ -1474,7 +1474,7 @@
   -->
   <string name="download_multi_select_title">%1$d izbranih</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Odstrani</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Odstrani</string>
   <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
   <string name="download_file_has_not_enough_storage_dialog_title">Ni dovolj prostora</string>
   <!--
@@ -3502,6 +3502,8 @@
   <string name="setup_checklist_task_toolbar_selection">Izberite postavitev orodne vrstice</string>
   <!-- The title of the explore extensions task for the setup checklist -->
   <string name="setup_checklist_task_explore_extensions">Razišči razširitve</string>
+  <!-- The title of the search widget task for the setup checklist -->
+  <string name="setup_checklist_task_search_widget">Namestite pripomoček za iskanje</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_group_customize">Prilagodite svoj %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->

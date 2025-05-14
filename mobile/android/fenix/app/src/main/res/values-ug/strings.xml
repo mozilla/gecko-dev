@@ -1482,7 +1482,7 @@
   -->
   <string name="download_multi_select_title">%1$d تاللاندى</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">چىقىرىۋەت</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">چىقىرىۋەت</string>
   <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
   <string name="download_file_has_not_enough_storage_dialog_title">يېتەرلىك بوشلۇق يوق</string>
   <!--
