@@ -484,7 +484,6 @@ class Bootstrapper:
             if should_configure_git:
                 configure_git(
                     git,
-                    to_optional_path(which("git-cinnabar")),
                     state_dir,
                     checkout_root,
                 )
@@ -858,9 +857,9 @@ def current_firefox_checkout(env, hg: Optional[Path] = None):
     )
 
 
-def update_git_tools(git: Optional[Path], root_state_dir: Path):
+def update_git_cinnabar(root_state_dir: Path):
     """Update git tools, hooks and extensions"""
-    # Ensure git-cinnabar is up to date.
+    # Ensure git-cinnabar is up-to-date.
     cinnabar_dir = root_state_dir / "git-cinnabar"
     cinnabar_exe = cinnabar_dir / "git-cinnabar"
 
@@ -898,6 +897,7 @@ def update_git_tools(git: Optional[Path], root_state_dir: Path):
     exists = cinnabar_exe.exists()
     if exists:
         try:
+            print("\nUpdating git-cinnabar...")
             subprocess.check_call([str(cinnabar_exe), "self-update"])
         except subprocess.CalledProcessError as e:
             print(e)
@@ -990,7 +990,6 @@ def ensure_watchman(topsrcdir: Path, git_str: str):
 
 def configure_git(
     git: Path,
-    cinnabar: Optional[Path],
     root_state_dir: Path,
     topsrcdir: Path,
 ):
@@ -1050,8 +1049,8 @@ def configure_git(
 
     # Only do cinnabar checks if we're a git cinnabar repo
     if repo.is_cinnabar_repo():
-        cinnabar_dir = str(update_git_tools(git, root_state_dir))
-
+        cinnabar_dir = str(update_git_cinnabar(root_state_dir))
+        cinnabar = to_optional_path(which("git-cinnabar"))
         if not cinnabar:
             if "MOZILLABUILD" in os.environ:
                 # Slightly modify the path on Windows to be correct

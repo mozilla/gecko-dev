@@ -101,10 +101,10 @@ def vcs_setup(command_context, update_only=False):
 
     if update_only:
         if repo.name == "git":
-            bootstrap.update_git_tools(
-                vcs,
-                Path(command_context._mach_context.state_dir),
-            )
+            if repo.is_cinnabar_repo():
+                bootstrap.update_git_cinnabar(
+                    Path(command_context._mach_context.state_dir),
+                )
         else:
             bootstrap.configure_mercurial(
                 vcs, Path(command_context._mach_context.state_dir), update_only=True
@@ -113,7 +113,6 @@ def vcs_setup(command_context, update_only=False):
         if repo.name == "git":
             bootstrap.configure_git(
                 vcs,
-                to_optional_path(which("git-cinnabar")),
                 Path(command_context._mach_context.state_dir),
                 Path(command_context._mach_context.topdir),
             )
