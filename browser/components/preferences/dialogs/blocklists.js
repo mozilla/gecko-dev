@@ -142,11 +142,11 @@ var gBlocklistManager = {
     let l10nKey = branch.getCharPref(id);
 
     const messageIdsMap = {
-      std: {
+      "moz-std": {
         name: "blocklist-item-moz-std-listName",
         description: "blocklist-item-moz-std-description",
       },
-      full: {
+      "moz-full": {
         name: "blocklist-item-moz-full-listName",
         description: "blocklist-item-moz-full-description",
       },
