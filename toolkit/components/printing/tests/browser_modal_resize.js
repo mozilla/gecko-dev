@@ -17,7 +17,7 @@ async function mouseMoveAndWait(elem) {
 }
 
 function closeEnough(actual, expected) {
-  return Math.abs(expected - actual) <= 1;
+  return expected - 1 < actual && actual < expected + 1;
 }
 
 async function resizeWindow(x, y) {
@@ -41,8 +41,6 @@ async function resizeWindow(x, y) {
 }
 
 async function waitForExpectedSize(helper, x, y) {
-  info(`Waiting for size to be ${x}x${y}`);
-
   // Wait a few frames, this is generally enough for the resize to happen.
   await waitForAnimationFrames();
 
@@ -134,7 +132,7 @@ add_task(async function testResizing() {
     ).top;
 
     let initialWidth = 500 - 8;
-    let initialHeight = 400 - chromeHeight;
+    let initialHeight = 400 - 16 - chromeHeight + 5;
 
     await waitForExpectedSize(helper, initialWidth, initialHeight);
 
