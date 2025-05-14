@@ -5,6 +5,7 @@ from unittest import mock
 
 import mozharness.base.script as script
 import mozharness.mozilla.l10n.locales as locales
+import mozunit
 
 ALL_LOCALES = ["ar", "be", "de", "es-ES"]
 
@@ -115,4 +116,4 @@ class TestLocalesMixin(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    mozunit.main()

@@ -10,7 +10,7 @@ with Files("remote*"):
 
 SPHINX_TREES["/testing"] = "docs"
 
-DIRS += ["mozbase"]
+DIRS += ["mozbase", "mozharness"]
 
 PERFTESTS_MANIFESTS += [
     "performance/perftest.ini",
