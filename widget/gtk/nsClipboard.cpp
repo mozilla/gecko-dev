@@ -64,7 +64,12 @@ const int kClipboardFastIterationNum = 3;
 static const char kHTMLMarkupPrefix[] =
     R"(<meta http-equiv="content-type" content="text/html; charset=utf-8">)";
 
+// TODO: Merge with defines at nsDragService
 static const char kURIListMime[] = "text/uri-list";
+static const char kTextMimeUTF8[] = "text/plain;charset=utf-8";
+static const char kUTF8String[] = "UTF8_STRING";
+static const char kCompoundText[] = "COMPOUND_TEXT";
+static const char kString[] = "STRING";
 
 MOZ_CONSTINIT ClipboardTargets nsRetrievalContext::sClipboardTargets;
 MOZ_CONSTINIT ClipboardTargets nsRetrievalContext::sPrimaryTargets;
@@ -613,22 +618,36 @@ nsClipboard::GetNativeClipboardData(nsITransferable* aTransferable,
       MOZ_CLIPBOARD_LOG("    Getting text %s MIME clipboard data\n",
                         flavorStr.get());
 
-      auto clipboardData = mContext->GetClipboardText(aWhichClipboard);
+      // Emulate what Gtk3/request_text_received_func() does but add
+      // Mozilla types and process output as UTF8 and not C string.
+      static const char* textMimeTypes[] = {kTextMimeUTF8, kUTF8String,
+                                            kCompoundText, kString, kTextMime};
+
+      ClipboardData clipboardData;
+      for (auto& mimeType : textMimeTypes) {
+        MOZ_CLIPBOARD_LOG("    Asking for %s", mimeType);
+        if ((clipboardData =
+                 mContext->GetClipboardData(mimeType, aWhichClipboard))) {
+          MOZ_CLIPBOARD_LOG("    Got it, len %d bytes",
+                            (int)clipboardData.AsSpan().Length());
+          break;
+        }
+      }
+
       if (!clipboardData) {
-        MOZ_CLIPBOARD_LOG("    failed to get text data\n");
-        // If the type was text/plain and we couldn't get
-        // text off the clipboard, run the next loop
-        // iteration.
+        MOZ_CLIPBOARD_LOG("    %s type is missing", kTextMime);
         continue;
       }
 
       // Convert utf-8 into our text format.
-      NS_ConvertUTF8toUTF16 ucs2string(clipboardData.get());
+      NS_ConvertUTF8toUTF16 ucs2string(clipboardData.AsSpan().data(),
+                                       clipboardData.AsSpan().Length());
       SetTransferableData(aTransferable, flavorStr,
                           (const char*)ucs2string.BeginReading(),
                           ucs2string.Length() * 2);
 
-      MOZ_CLIPBOARD_LOG("    got text data, length %zd\n", ucs2string.Length());
+      MOZ_CLIPBOARD_LOG("    got UTF16 text data, length %zd\n",
+                        ucs2string.Length());
       return NS_OK;
     }
 
