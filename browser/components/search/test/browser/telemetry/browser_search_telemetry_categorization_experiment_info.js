@@ -123,7 +123,7 @@ add_task(async function test_1_non_search_experiment() {
 
   let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
-      featureId: "no-feature-firefox-desktop",
+      featureId: "notSearch",
     },
     {
       slug: "non-search-experiment",
@@ -273,7 +273,7 @@ add_task(
 
     let doExperimentCleanup1 = await NimbusTestUtils.enrollWithFeatureConfig(
       {
-        featureId: "no-feature-firefox-desktop",
+        featureId: "notSearch",
       },
       {
         slug: "non-search-experiment",
@@ -343,7 +343,7 @@ add_task(
 
     let doExperimentCleanup1 = await NimbusTestUtils.enrollWithFeatureConfig(
       {
-        featureId: "no-feature-firefox-desktop",
+        featureId: "notSearch",
       },
       {
         slug: "non-search-experiment",

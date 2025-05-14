@@ -161,4 +161,4 @@ add_task(async function test_non_experiment_prefs() {
   Assert.equal(uiPref(), false, "Pref did not change without experiment");
   doExperimentCleanup();
   await SpecialPowers.popPrefEnv();
-}).skip(); // The privatesearch feature does not exist.
+});
