@@ -3,6 +3,8 @@
 
 import { UniFFITypeError } from "resource://gre/modules/UniFFI.sys.mjs";
 
+
+
 // Objects intended to be used in the unit tests
 export var UnitTestObjs = {};
 
@@ -165,23 +167,6 @@ class ArrayBufferDataStream {
         this.writeUint8(elt);
       })
     }
-
-    // Reads a pointer from the data stream
-    // UniFFI Pointers are **always** 8 bytes long. That is enforced
-    // by the C++ and Rust Scaffolding code.
-    readPointer(pointerId) {
-        const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
-        this.pos += 8;
-        return res;
-    }
-
-    // Writes a pointer into the data stream
-    // UniFFI Pointers are **always** 8 bytes long. That is enforced
-    // by the C++ and Rust Scaffolding code.
-    writePointer(pointerId, value) {
-        UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
-        this.pos += 8;
-    }
 }
 
 function handleRustResult(result, liftCallback, liftErrCallback) {
@@ -280,10 +265,43 @@ const uniffiObjectPtr = Symbol("uniffiObjectPtr");
 const constructUniffiObject = Symbol("constructUniffiObject");
 UnitTestObjs.uniffiObjectPtr = uniffiObjectPtr;
 
+// Export the FFIConverter object to make external types work.
+export class FfiConverterString extends FfiConverter {
+    static checkType(value) {
+        super.checkType(value);
+        if (typeof value !== "string") {
+            throw new UniFFITypeError(`${value} is not a string`);
+        }
+    }
+
+    static lift(buf) {
+        const decoder = new TextDecoder();
+        const utf8Arr = new Uint8Array(buf);
+        return decoder.decode(utf8Arr);
+    }
+    static lower(value) {
+        const encoder = new TextEncoder();
+        return encoder.encode(value).buffer;
+    }
+
+    static write(dataStream, value) {
+        dataStream.writeString(value);
+    }
+
+    static read(dataStream) {
+        return dataStream.readString();
+    }
+
+    static computeSize(value) {
+        const encoder = new TextEncoder();
+        return 4 + encoder.encode(value).length
+    }
+}
+
 
 /**
  * Enumeration for the different types of device.
- * 
+ *
  * Firefox Accounts separates devices into broad categories for display purposes,
  * such as distinguishing a desktop PC from a mobile phone. Upon signin, the
  * application should inspect the device it is running on and select an appropriate
@@ -293,34 +311,36 @@ export const DeviceType = {
     /**
      * DESKTOP
      */
-    DESKTOP: 0,
+    DESKTOP:0,
     /**
      * MOBILE
      */
-    MOBILE: 1,
+    MOBILE:1,
     /**
      * TABLET
      */
-    TABLET: 2,
+    TABLET:2,
     /**
      * VR
      */
-    VR: 3,
+    VR:3,
     /**
      * TV
      */
-    TV: 4,
+    TV:4,
     /**
      * UNKNOWN
      */
-    UNKNOWN: 5,
+    UNKNOWN:5,
 };
-Object.freeze(DeviceType);
 
+Object.freeze(DeviceType);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeDeviceType extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(DeviceType);
+
     static read(dataStream) {
-        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
+        // Use sequential indices (1-based) for the wire format to match Python bindings
         switch (dataStream.readInt32()) {
             case 1:
                 return DeviceType.DESKTOP
@@ -340,7 +360,6 @@ export class FfiConverterTypeDeviceType extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
-        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === DeviceType.DESKTOP) {
             dataStream.writeInt32(1);
             return;
@@ -373,35 +392,14 @@ export class FfiConverterTypeDeviceType extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 6) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for DeviceType`);
       }
     }
 }
-// Export the FFIConverter object to make external types work.
-export class FfiConverterUInt8 extends FfiConverter {
-    static checkType(value) {
-        super.checkType(value);
-        if (!Number.isInteger(value)) {
-            throw new UniFFITypeError(`${value} is not an integer`);
-        }
-        if (value < 0 || value > 256) {
-            throw new UniFFITypeError(`${value} exceeds the U8 bounds`);
-        }
-    }
-    static computeSize(_value) {
-        return 1;
-    }
-    static lift(value) {
-        return value;
-    }
-    static lower(value) {
-        return value;
-    }
-    static write(dataStream, value) {
-        dataStream.writeUint8(value)
-    }
-    static read(dataStream) {
-        return dataStream.readUint8()
-    }
-}
+
+
+
+
+

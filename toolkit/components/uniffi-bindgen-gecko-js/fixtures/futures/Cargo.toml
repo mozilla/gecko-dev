@@ -1,0 +1,22 @@
+[package]
+name = "uniffi-fixture-futures"
+version = "0.21.0"
+edition = "2021"
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "uniffi_fixture_futures"
+
+[dependencies]
+log = "0.4"
+# This needs to be optional, since we want to build this library to generate the bindings from, but
+# moz-task can only currently be built from inside `./mach build`.
+moz_task = { path = "../../../../../xpcom/rust/moz_task/", optional = true }
+uniffi = { workspace = true }
+
+[build-dependencies]
+uniffi = { workspace = true, features = ["build"] }
+
+[dev-dependencies]
+uniffi = { workspace = true, features = ["bindgen-tests"] }

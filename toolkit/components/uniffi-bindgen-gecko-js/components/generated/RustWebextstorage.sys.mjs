@@ -3,6 +3,8 @@
 
 import { UniFFITypeError } from "resource://gre/modules/UniFFI.sys.mjs";
 
+
+
 // Objects intended to be used in the unit tests
 export var UnitTestObjs = {};
 
@@ -166,22 +168,45 @@ class ArrayBufferDataStream {
       })
     }
 
-    // Reads a pointer from the data stream
+    // Reads a WebExtStorageBridgedEngine pointer from the data stream
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
-    readPointer(pointerId) {
+    readPointerWebExtStorageBridgedEngine() {
+        const pointerId = 10; // webextstorage:WebExtStorageBridgedEngine
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
     }
 
-    // Writes a pointer into the data stream
+    // Writes a WebExtStorageBridgedEngine pointer into the data stream
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
-    writePointer(pointerId, value) {
+    writePointerWebExtStorageBridgedEngine(value) {
+        const pointerId = 10; // webextstorage:WebExtStorageBridgedEngine
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
+    
+
+    // Reads a WebExtStorageStore pointer from the data stream
+    // UniFFI Pointers are **always** 8 bytes long. That is enforced
+    // by the C++ and Rust Scaffolding code.
+    readPointerWebExtStorageStore() {
+        const pointerId = 11; // webextstorage:WebExtStorageStore
+        const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
+        this.pos += 8;
+        return res;
+    }
+
+    // Writes a WebExtStorageStore pointer into the data stream
+    // UniFFI Pointers are **always** 8 bytes long. That is enforced
+    // by the C++ and Rust Scaffolding code.
+    writePointerWebExtStorageStore(value) {
+        const pointerId = 11; // webextstorage:WebExtStorageStore
+        UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
+        this.pos += 8;
+    }
+    
 }
 
 function handleRustResult(result, liftCallback, liftErrCallback) {
@@ -281,6 +306,59 @@ const constructUniffiObject = Symbol("constructUniffiObject");
 UnitTestObjs.uniffiObjectPtr = uniffiObjectPtr;
 
 // Export the FFIConverter object to make external types work.
+export class FfiConverterU64 extends FfiConverter {
+    static checkType(value) {
+        super.checkType(value);
+        if (!Number.isSafeInteger(value)) {
+            throw new UniFFITypeError(`${value} exceeds the safe integer bounds`);
+        }
+        if (value < 0) {
+            throw new UniFFITypeError(`${value} exceeds the U64 bounds`);
+        }
+    }
+    static computeSize(_value) {
+        return 8;
+    }
+    static lift(value) {
+        return value;
+    }
+    static lower(value) {
+        return value;
+    }
+    static write(dataStream, value) {
+        dataStream.writeUint64(value)
+    }
+    static read(dataStream) {
+        return dataStream.readUint64()
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterI64 extends FfiConverter {
+    static checkType(value) {
+        super.checkType(value);
+        if (!Number.isSafeInteger(value)) {
+            throw new UniFFITypeError(`${value} exceeds the safe integer bounds`);
+        }
+    }
+    static computeSize(_value) {
+        return 8;
+    }
+    static lift(value) {
+        return value;
+    }
+    static lower(value) {
+        return value;
+    }
+    static write(dataStream, value) {
+        dataStream.writeInt64(value)
+    }
+    static read(dataStream) {
+        return dataStream.readInt64()
+    }
+}
+
+// Export the FFIConverter object to make external types work.
 export class FfiConverterString extends FfiConverter {
     static checkType(value) {
         super.checkType(value);
@@ -312,81 +390,739 @@ export class FfiConverterString extends FfiConverter {
         return 4 + encoder.encode(value).length
     }
 }
-// Export the FFIConverter object to make external types work.
-export class FfiConverterTypeJsonValue extends FfiConverter {
-    static lift(buf) {
-        return FfiConverterString.lift(buf);    
+
+/**
+ * WebExtStorageBridgedEngine
+ */
+export class WebExtStorageBridgedEngine {
+    // Use `init` to instantiate this class.
+    // DO NOT USE THIS CONSTRUCTOR DIRECTLY
+    constructor(opts) {
+        if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
+            throw new UniFFIError("Attempting to construct an object using the JavaScript constructor directly" +
+            "Please use a UDL defined constructor, or the init function for the primary constructor")
+        }
+        if (!(opts[constructUniffiObject] instanceof UniFFIPointer)) {
+            throw new UniFFIError("Attempting to create a UniFFI object with a pointer that is not an instance of UniFFIPointer")
+        }
+        this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
-    
-    static lower(buf) {
-        return FfiConverterString.lower(buf);
+
+    /**
+     * apply
+     * @returns {Array.<string>}
+     */
+    apply() {
+        const liftResult = (result) => FfiConverterSequencestring.lift(result);
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                83, // webextstorage:uniffi_webext_storage_fn_method_webextstoragebridgedengine_apply
+                FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
     }
-    
-    static write(dataStream, value) {
-        FfiConverterString.write(dataStream, value);
-    } 
-    
-    static read(buf) {
-        return FfiConverterString.read(buf);
+
+    /**
+     * ensureCurrentSyncId
+     * @returns {string}
+     */
+    ensureCurrentSyncId(newSyncId) {
+        const liftResult = (result) => FfiConverterString.lift(result);
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(newSyncId)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("newSyncId");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                84, // webextstorage:uniffi_webext_storage_fn_method_webextstoragebridgedengine_ensure_current_sync_id
+                FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
+                FfiConverterString.lower(newSyncId),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
     }
-    
-    static computeSize(value) {
-        return FfiConverterString.computeSize(value);
+
+    /**
+     * lastSync
+     * @returns {number}
+     */
+    lastSync() {
+        const liftResult = (result) => FfiConverterI64.lift(result);
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                85, // webextstorage:uniffi_webext_storage_fn_method_webextstoragebridgedengine_last_sync
+                FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
     }
+
+    /**
+     * prepareForSync
+     */
+    prepareForSync(clientData) {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(clientData)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("clientData");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                86, // webextstorage:uniffi_webext_storage_fn_method_webextstoragebridgedengine_prepare_for_sync
+                FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
+                FfiConverterString.lower(clientData),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * reset
+     */
+    reset() {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                87, // webextstorage:uniffi_webext_storage_fn_method_webextstoragebridgedengine_reset
+                FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * resetSyncId
+     * @returns {string}
+     */
+    resetSyncId() {
+        const liftResult = (result) => FfiConverterString.lift(result);
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                88, // webextstorage:uniffi_webext_storage_fn_method_webextstoragebridgedengine_reset_sync_id
+                FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * setLastSync
+     */
+    setLastSync(lastSync) {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterI64.checkType(lastSync)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("lastSync");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                89, // webextstorage:uniffi_webext_storage_fn_method_webextstoragebridgedengine_set_last_sync
+                FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
+                FfiConverterI64.lower(lastSync),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * setUploaded
+     */
+    setUploaded(serverModifiedMillis,guids) {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterI64.checkType(serverModifiedMillis)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("serverModifiedMillis");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterSequenceTypeGuid.checkType(guids)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("guids");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                90, // webextstorage:uniffi_webext_storage_fn_method_webextstoragebridgedengine_set_uploaded
+                FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
+                FfiConverterI64.lower(serverModifiedMillis),
+                FfiConverterSequenceTypeGuid.lower(guids),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * storeIncoming
+     */
+    storeIncoming(incoming) {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterSequencestring.checkType(incoming)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("incoming");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                91, // webextstorage:uniffi_webext_storage_fn_method_webextstoragebridgedengine_store_incoming
+                FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
+                FfiConverterSequencestring.lower(incoming),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * syncFinished
+     */
+    syncFinished() {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                92, // webextstorage:uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_finished
+                FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * syncId
+     * @returns {?string}
+     */
+    syncId() {
+        const liftResult = (result) => FfiConverterOptionalstring.lift(result);
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                93, // webextstorage:uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_id
+                FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * syncStarted
+     */
+    syncStarted() {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                94, // webextstorage:uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_started
+                FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * wipe
+     */
+    wipe() {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                95, // webextstorage:uniffi_webext_storage_fn_method_webextstoragebridgedengine_wipe
+                FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
 }
 
-// TODO: We should also allow JS to customize the type eventually.
 // Export the FFIConverter object to make external types work.
-export class FfiConverterOptionalTypeJsonValue extends FfiConverterArrayBuffer {
-    static checkType(value) {
-        if (value !== undefined && value !== null) {
-            FfiConverterTypeJsonValue.checkType(value)
+export class FfiConverterTypeWebExtStorageBridgedEngine extends FfiConverter {
+    static lift(value) {
+        const opts = {};
+        opts[constructUniffiObject] = value;
+        return new WebExtStorageBridgedEngine(opts);
+    }
+
+    static lower(value) {
+        const ptr = value[uniffiObjectPtr];
+        if (!(ptr instanceof UniFFIPointer)) {
+            throw new UniFFITypeError("Object is not a 'WebExtStorageBridgedEngine' instance");
         }
+        return ptr;
     }
 
     static read(dataStream) {
-        const code = dataStream.readUint8(0);
-        switch (code) {
-            case 0:
-                return null
-            case 1:
-                return FfiConverterTypeJsonValue.read(dataStream)
-            default:
-                throw new UniFFIError(`Unexpected code: ${code}`);
-        }
+        return this.lift(dataStream.readPointerWebExtStorageBridgedEngine());
     }
 
     static write(dataStream, value) {
-        if (value === null || value === undefined) {
-            dataStream.writeUint8(0);
-            return;
-        }
-        dataStream.writeUint8(1);
-        FfiConverterTypeJsonValue.write(dataStream, value)
+        dataStream.writePointerWebExtStorageBridgedEngine(value[uniffiObjectPtr]);
     }
 
     static computeSize(value) {
-        if (value === null || value === undefined) {
-            return 1;
-        }
-        return 1 + FfiConverterTypeJsonValue.computeSize(value)
+        return 8;
     }
 }
+
+/**
+ * WebExtStorageStore
+ */
+export class WebExtStorageStore {
+    // Use `init` to instantiate this class.
+    // DO NOT USE THIS CONSTRUCTOR DIRECTLY
+    constructor(opts) {
+        if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
+            throw new UniFFIError("Attempting to construct an object using the JavaScript constructor directly" +
+            "Please use a UDL defined constructor, or the init function for the primary constructor")
+        }
+        if (!(opts[constructUniffiObject] instanceof UniFFIPointer)) {
+            throw new UniFFIError("Attempting to create a UniFFI object with a pointer that is not an instance of UniFFIPointer")
+        }
+        this[uniffiObjectPtr] = opts[constructUniffiObject];
+    }
+    /**
+     * init
+     * @returns {WebExtStorageStore}
+     */
+    static init(path) {
+        const liftResult = (result) => FfiConverterTypeWebExtStorageStore.lift(result);
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(path)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("path");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                104, // webextstorage:uniffi_webext_storage_fn_constructor_webextstoragestore_new
+                FfiConverterString.lower(path),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }}
+
+    /**
+     * bridgedEngine
+     * @returns {WebExtStorageBridgedEngine}
+     */
+    bridgedEngine() {
+        const liftResult = (result) => FfiConverterTypeWebExtStorageBridgedEngine.lift(result);
+        const liftError = null;
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                96, // webextstorage:uniffi_webext_storage_fn_method_webextstoragestore_bridged_engine
+                FfiConverterTypeWebExtStorageStore.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * clear
+     * @returns {StorageChanges}
+     */
+    clear(extId) {
+        const liftResult = (result) => FfiConverterTypeStorageChanges.lift(result);
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(extId)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("extId");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                97, // webextstorage:uniffi_webext_storage_fn_method_webextstoragestore_clear
+                FfiConverterTypeWebExtStorageStore.lower(this),
+                FfiConverterString.lower(extId),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * close
+     */
+    close() {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                98, // webextstorage:uniffi_webext_storage_fn_method_webextstoragestore_close
+                FfiConverterTypeWebExtStorageStore.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * get
+     * @returns {JsonValue}
+     */
+    get(extId,keys) {
+        const liftResult = (result) => FfiConverterTypeJsonValue.lift(result);
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(extId)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("extId");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterTypeJsonValue.checkType(keys)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("keys");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                99, // webextstorage:uniffi_webext_storage_fn_method_webextstoragestore_get
+                FfiConverterTypeWebExtStorageStore.lower(this),
+                FfiConverterString.lower(extId),
+                FfiConverterTypeJsonValue.lower(keys),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * getBytesInUse
+     * @returns {number}
+     */
+    getBytesInUse(extId,keys) {
+        const liftResult = (result) => FfiConverterU64.lift(result);
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(extId)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("extId");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterTypeJsonValue.checkType(keys)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("keys");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                100, // webextstorage:uniffi_webext_storage_fn_method_webextstoragestore_get_bytes_in_use
+                FfiConverterTypeWebExtStorageStore.lower(this),
+                FfiConverterString.lower(extId),
+                FfiConverterTypeJsonValue.lower(keys),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * getSyncedChanges
+     * @returns {Array.<SyncedExtensionChange>}
+     */
+    getSyncedChanges() {
+        const liftResult = (result) => FfiConverterSequenceTypeSyncedExtensionChange.lift(result);
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                101, // webextstorage:uniffi_webext_storage_fn_method_webextstoragestore_get_synced_changes
+                FfiConverterTypeWebExtStorageStore.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * remove
+     * @returns {StorageChanges}
+     */
+    remove(extId,keys) {
+        const liftResult = (result) => FfiConverterTypeStorageChanges.lift(result);
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(extId)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("extId");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterTypeJsonValue.checkType(keys)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("keys");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                102, // webextstorage:uniffi_webext_storage_fn_method_webextstoragestore_remove
+                FfiConverterTypeWebExtStorageStore.lower(this),
+                FfiConverterString.lower(extId),
+                FfiConverterTypeJsonValue.lower(keys),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * set
+     * @returns {StorageChanges}
+     */
+    set(extId,val) {
+        const liftResult = (result) => FfiConverterTypeStorageChanges.lift(result);
+        const liftError = (data) => FfiConverterTypeWebExtStorageApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(extId)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("extId");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterTypeJsonValue.checkType(val)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("val");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                103, // webextstorage:uniffi_webext_storage_fn_method_webextstoragestore_set
+                FfiConverterTypeWebExtStorageStore.lower(this),
+                FfiConverterString.lower(extId),
+                FfiConverterTypeJsonValue.lower(val),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeWebExtStorageStore extends FfiConverter {
+    static lift(value) {
+        const opts = {};
+        opts[constructUniffiObject] = value;
+        return new WebExtStorageStore(opts);
+    }
+
+    static lower(value) {
+        const ptr = value[uniffiObjectPtr];
+        if (!(ptr instanceof UniFFIPointer)) {
+            throw new UniFFITypeError("Object is not a 'WebExtStorageStore' instance");
+        }
+        return ptr;
+    }
+
+    static read(dataStream) {
+        return this.lift(dataStream.readPointerWebExtStorageStore());
+    }
+
+    static write(dataStream, value) {
+        dataStream.writePointerWebExtStorageStore(value[uniffiObjectPtr]);
+    }
+
+    static computeSize(value) {
+        return 8;
+    }
+}
+
+/**
+ * StorageChanges
+ */
+export class StorageChanges {
+    constructor({ changes } = { changes: undefined }) {
+        try {
+            FfiConverterSequenceTypeStorageValueChange.checkType(changes)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("changes");
+            }
+            throw e;
+        }
+        /**
+         * @type {Array.<StorageValueChange>}
+         */
+        this.changes = changes;
+    }
+
+    equals(other) {
+        return (
+            this.changes == other.changes
+        )
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeStorageChanges extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        return new StorageChanges({
+            changes: FfiConverterSequenceTypeStorageValueChange.read(dataStream),
+        });
+    }
+    static write(dataStream, value) {
+        FfiConverterSequenceTypeStorageValueChange.write(dataStream, value.changes);
+    }
+
+    static computeSize(value) {
+        let totalSize = 0;
+        totalSize += FfiConverterSequenceTypeStorageValueChange.computeSize(value.changes);
+        return totalSize
+    }
+
+    static checkType(value) {
+        super.checkType(value);
+        if (!(value instanceof StorageChanges)) {
+            throw new UniFFITypeError(`Expected 'StorageChanges', found '${typeof value}'`);
+        }
+        try {
+            FfiConverterSequenceTypeStorageValueChange.checkType(value.changes);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".changes");
+            }
+            throw e;
+        }
+    }
+}
+
 /**
  * StorageValueChange
  */
 export class StorageValueChange {
-    constructor(
-        {
-            key, 
-            oldValue, 
-            newValue
-        } = {
-            key: undefined, 
-            oldValue: undefined, 
-            newValue: undefined
-        }
-    ) {
+    constructor({ key, oldValue, newValue } = { key: undefined, oldValue: undefined, newValue: undefined }) {
         try {
             FfiConverterString.checkType(key)
         } catch (e) {
@@ -412,24 +1148,24 @@ export class StorageValueChange {
             throw e;
         }
         /**
-         * key
+         * @type {string}
          */
         this.key = key;
         /**
-         * oldValue
+         * @type {?JsonValue}
          */
         this.oldValue = oldValue;
         /**
-         * newValue
+         * @type {?JsonValue}
          */
         this.newValue = newValue;
     }
 
     equals(other) {
         return (
-            this.key == other.key
-            && this.oldValue == other.oldValue
-            && this.newValue == other.newValue
+            this.key == other.key &&
+            this.oldValue == other.oldValue &&
+            this.newValue == other.newValue
         )
     }
 }
@@ -488,126 +1224,12 @@ export class FfiConverterTypeStorageValueChange extends FfiConverterArrayBuffer 
         }
     }
 }
-// Export the FFIConverter object to make external types work.
-export class FfiConverterSequenceTypeStorageValueChange extends FfiConverterArrayBuffer {
-    static read(dataStream) {
-        const len = dataStream.readInt32();
-        const arr = [];
-        for (let i = 0; i < len; i++) {
-            arr.push(FfiConverterTypeStorageValueChange.read(dataStream));
-        }
-        return arr;
-    }
 
-    static write(dataStream, value) {
-        dataStream.writeInt32(value.length);
-        value.forEach((innerValue) => {
-            FfiConverterTypeStorageValueChange.write(dataStream, innerValue);
-        })
-    }
-
-    static computeSize(value) {
-        // The size of the length
-        let size = 4;
-        for (const innerValue of value) {
-            size += FfiConverterTypeStorageValueChange.computeSize(innerValue);
-        }
-        return size;
-    }
-
-    static checkType(value) {
-        if (!Array.isArray(value)) {
-            throw new UniFFITypeError(`${value} is not an array`);
-        }
-        value.forEach((innerValue, idx) => {
-            try {
-                FfiConverterTypeStorageValueChange.checkType(innerValue);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart(`[${idx}]`);
-                }
-                throw e;
-            }
-        })
-    }
-}
-/**
- * StorageChanges
- */
-export class StorageChanges {
-    constructor(
-        {
-            changes
-        } = {
-            changes: undefined
-        }
-    ) {
-        try {
-            FfiConverterSequenceTypeStorageValueChange.checkType(changes)
-        } catch (e) {
-            if (e instanceof UniFFITypeError) {
-                e.addItemDescriptionPart("changes");
-            }
-            throw e;
-        }
-        /**
-         * changes
-         */
-        this.changes = changes;
-    }
-
-    equals(other) {
-        return (
-            this.changes == other.changes
-        )
-    }
-}
-
-// Export the FFIConverter object to make external types work.
-export class FfiConverterTypeStorageChanges extends FfiConverterArrayBuffer {
-    static read(dataStream) {
-        return new StorageChanges({
-            changes: FfiConverterSequenceTypeStorageValueChange.read(dataStream),
-        });
-    }
-    static write(dataStream, value) {
-        FfiConverterSequenceTypeStorageValueChange.write(dataStream, value.changes);
-    }
-
-    static computeSize(value) {
-        let totalSize = 0;
-        totalSize += FfiConverterSequenceTypeStorageValueChange.computeSize(value.changes);
-        return totalSize
-    }
-
-    static checkType(value) {
-        super.checkType(value);
-        if (!(value instanceof StorageChanges)) {
-            throw new UniFFITypeError(`Expected 'StorageChanges', found '${typeof value}'`);
-        }
-        try {
-            FfiConverterSequenceTypeStorageValueChange.checkType(value.changes);
-        } catch (e) {
-            if (e instanceof UniFFITypeError) {
-                e.addItemDescriptionPart(".changes");
-            }
-            throw e;
-        }
-    }
-}
 /**
  * SyncedExtensionChange
  */
 export class SyncedExtensionChange {
-    constructor(
-        {
-            extId, 
-            changes
-        } = {
-            extId: undefined, 
-            changes: undefined
-        }
-    ) {
+    constructor({ extId, changes } = { extId: undefined, changes: undefined }) {
         try {
             FfiConverterString.checkType(extId)
         } catch (e) {
@@ -625,19 +1247,19 @@ export class SyncedExtensionChange {
             throw e;
         }
         /**
-         * extId
+         * @type {string}
          */
         this.extId = extId;
         /**
-         * changes
+         * @type {string}
          */
         this.changes = changes;
     }
 
     equals(other) {
         return (
-            this.extId == other.extId
-            && this.changes == other.changes
+            this.extId == other.extId &&
+            this.changes == other.changes
         )
     }
 }
@@ -686,6 +1308,7 @@ export class FfiConverterTypeSyncedExtensionChange extends FfiConverterArrayBuff
     }
 }
 
+
 /**
  * QuotaReason
  */
@@ -693,22 +1316,24 @@ export const QuotaReason = {
     /**
      * TOTAL_BYTES
      */
-    TOTAL_BYTES: 0,
+    TOTAL_BYTES:0,
     /**
      * ITEM_BYTES
      */
-    ITEM_BYTES: 1,
+    ITEM_BYTES:1,
     /**
      * MAX_ITEMS
      */
-    MAX_ITEMS: 2,
+    MAX_ITEMS:2,
 };
-Object.freeze(QuotaReason);
 
+Object.freeze(QuotaReason);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeQuotaReason extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(QuotaReason);
+
     static read(dataStream) {
-        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
+        // Use sequential indices (1-based) for the wire format to match Python bindings
         switch (dataStream.readInt32()) {
             case 1:
                 return QuotaReason.TOTAL_BYTES
@@ -722,7 +1347,6 @@ export class FfiConverterTypeQuotaReason extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
-        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === QuotaReason.TOTAL_BYTES) {
             dataStream.writeInt32(1);
             return;
@@ -743,11 +1367,16 @@ export class FfiConverterTypeQuotaReason extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 3) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for QuotaReason`);
       }
     }
 }
+
+
+
+
 
 /**
  * WebExtStorageApiError
@@ -867,32 +1496,83 @@ export class FfiConverterTypeWebExtStorageApiError extends FfiConverterArrayBuff
 
     static errorClass = WebExtStorageApiError;
 }
+
 // Export the FFIConverter object to make external types work.
-export class FfiConverterTypeGuid extends FfiConverter {
-    static lift(buf) {
-        return FfiConverterString.lift(buf);    
+export class FfiConverterOptionalstring extends FfiConverterArrayBuffer {
+    static checkType(value) {
+        if (value !== undefined && value !== null) {
+            FfiConverterString.checkType(value)
+        }
     }
-    
-    static lower(buf) {
-        return FfiConverterString.lower(buf);
+
+    static read(dataStream) {
+        const code = dataStream.readUint8(0);
+        switch (code) {
+            case 0:
+                return null
+            case 1:
+                return FfiConverterString.read(dataStream)
+            default:
+                throw new UniFFIError(`Unexpected code: ${code}`);
+        }
     }
-    
+
     static write(dataStream, value) {
-        FfiConverterString.write(dataStream, value);
-    } 
-    
-    static read(buf) {
-        return FfiConverterString.read(buf);
+        if (value === null || value === undefined) {
+            dataStream.writeUint8(0);
+            return;
+        }
+        dataStream.writeUint8(1);
+        FfiConverterString.write(dataStream, value)
     }
-    
+
     static computeSize(value) {
-        return FfiConverterString.computeSize(value);
+        if (value === null || value === undefined) {
+            return 1;
+        }
+        return 1 + FfiConverterString.computeSize(value)
     }
 }
 
-// TODO: We should also allow JS to customize the type eventually.
 // Export the FFIConverter object to make external types work.
-export class FfiConverterSequenceString extends FfiConverterArrayBuffer {
+export class FfiConverterOptionalTypeJsonValue extends FfiConverterArrayBuffer {
+    static checkType(value) {
+        if (value !== undefined && value !== null) {
+            FfiConverterTypeJsonValue.checkType(value)
+        }
+    }
+
+    static read(dataStream) {
+        const code = dataStream.readUint8(0);
+        switch (code) {
+            case 0:
+                return null
+            case 1:
+                return FfiConverterTypeJsonValue.read(dataStream)
+            default:
+                throw new UniFFIError(`Unexpected code: ${code}`);
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === null || value === undefined) {
+            dataStream.writeUint8(0);
+            return;
+        }
+        dataStream.writeUint8(1);
+        FfiConverterTypeJsonValue.write(dataStream, value)
+    }
+
+    static computeSize(value) {
+        if (value === null || value === undefined) {
+            return 1;
+        }
+        return 1 + FfiConverterTypeJsonValue.computeSize(value)
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterSequencestring extends FfiConverterArrayBuffer {
     static read(dataStream) {
         const len = dataStream.readInt32();
         const arr = [];
@@ -934,37 +1614,14 @@ export class FfiConverterSequenceString extends FfiConverterArrayBuffer {
         })
     }
 }
+
 // Export the FFIConverter object to make external types work.
-export class FfiConverterInt64 extends FfiConverter {
-    static checkType(value) {
-        super.checkType(value);
-        if (!Number.isSafeInteger(value)) {
-            throw new UniFFITypeError(`${value} exceeds the safe integer bounds`);
-        }
-    }
-    static computeSize(_value) {
-        return 8;
-    }
-    static lift(value) {
-        return value;
-    }
-    static lower(value) {
-        return value;
-    }
-    static write(dataStream, value) {
-        dataStream.writeInt64(value)
-    }
-    static read(dataStream) {
-        return dataStream.readInt64()
-    }
-}
-// Export the FFIConverter object to make external types work.
-export class FfiConverterSequenceTypeGuid extends FfiConverterArrayBuffer {
+export class FfiConverterSequenceTypeStorageValueChange extends FfiConverterArrayBuffer {
     static read(dataStream) {
         const len = dataStream.readInt32();
         const arr = [];
         for (let i = 0; i < len; i++) {
-            arr.push(FfiConverterTypeGuid.read(dataStream));
+            arr.push(FfiConverterTypeStorageValueChange.read(dataStream));
         }
         return arr;
     }
@@ -972,7 +1629,7 @@ export class FfiConverterSequenceTypeGuid extends FfiConverterArrayBuffer {
     static write(dataStream, value) {
         dataStream.writeInt32(value.length);
         value.forEach((innerValue) => {
-            FfiConverterTypeGuid.write(dataStream, innerValue);
+            FfiConverterTypeStorageValueChange.write(dataStream, innerValue);
         })
     }
 
@@ -980,7 +1637,7 @@ export class FfiConverterSequenceTypeGuid extends FfiConverterArrayBuffer {
         // The size of the length
         let size = 4;
         for (const innerValue of value) {
-            size += FfiConverterTypeGuid.computeSize(innerValue);
+            size += FfiConverterTypeStorageValueChange.computeSize(innerValue);
         }
         return size;
     }
@@ -991,7 +1648,7 @@ export class FfiConverterSequenceTypeGuid extends FfiConverterArrayBuffer {
         }
         value.forEach((innerValue, idx) => {
             try {
-                FfiConverterTypeGuid.checkType(innerValue);
+                FfiConverterTypeStorageValueChange.checkType(innerValue);
             } catch (e) {
                 if (e instanceof UniFFITypeError) {
                     e.addItemDescriptionPart(`[${idx}]`);
@@ -1001,342 +1658,7 @@ export class FfiConverterSequenceTypeGuid extends FfiConverterArrayBuffer {
         })
     }
 }
-// Export the FFIConverter object to make external types work.
-export class FfiConverterOptionalString extends FfiConverterArrayBuffer {
-    static checkType(value) {
-        if (value !== undefined && value !== null) {
-            FfiConverterString.checkType(value)
-        }
-    }
 
-    static read(dataStream) {
-        const code = dataStream.readUint8(0);
-        switch (code) {
-            case 0:
-                return null
-            case 1:
-                return FfiConverterString.read(dataStream)
-            default:
-                throw new UniFFIError(`Unexpected code: ${code}`);
-        }
-    }
-
-    static write(dataStream, value) {
-        if (value === null || value === undefined) {
-            dataStream.writeUint8(0);
-            return;
-        }
-        dataStream.writeUint8(1);
-        FfiConverterString.write(dataStream, value)
-    }
-
-    static computeSize(value) {
-        if (value === null || value === undefined) {
-            return 1;
-        }
-        return 1 + FfiConverterString.computeSize(value)
-    }
-}
-/**
- * WebExtStorageBridgedEngine
- */
-export class WebExtStorageBridgedEngine {
-    // Use `init` to instantiate this class.
-    // DO NOT USE THIS CONSTRUCTOR DIRECTLY
-    constructor(opts) {
-        if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
-            throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
-            "Please use a UDL defined constructor, or the init function for the primary constructor")
-        }
-        if (!(opts[constructUniffiObject] instanceof UniFFIPointer)) {
-            throw new UniFFIError("Attempting to create a UniFFI object with a pointer that is not an instance of UniFFIPointer")
-        }
-        this[uniffiObjectPtr] = opts[constructUniffiObject];
-    }
-
-    /**
-     * apply
-     */
-    async apply() {
-       
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            84, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_apply
-            FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterSequenceString.lift.bind(FfiConverterSequenceString),
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * ensureCurrentSyncId
-     */
-    async ensureCurrentSyncId(
-        newSyncId) {
-       
-        FfiConverterString.checkType(newSyncId);
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            85, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_ensure_current_sync_id
-            FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
-            FfiConverterString.lower(newSyncId),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterString.lift.bind(FfiConverterString),
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * lastSync
-     */
-    async lastSync() {
-       
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            86, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_last_sync
-            FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterInt64.lift.bind(FfiConverterInt64),
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * prepareForSync
-     */
-    async prepareForSync(
-        clientData) {
-       
-        FfiConverterString.checkType(clientData);
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            87, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_prepare_for_sync
-            FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
-            FfiConverterString.lower(clientData),
-        )
-        return handleRustResult(
-            result,
-            (result) => undefined,
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * reset
-     */
-    async reset() {
-       
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            88, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_reset
-            FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
-        )
-        return handleRustResult(
-            result,
-            (result) => undefined,
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * resetSyncId
-     */
-    async resetSyncId() {
-       
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            89, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_reset_sync_id
-            FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterString.lift.bind(FfiConverterString),
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * setLastSync
-     */
-    async setLastSync(
-        lastSync) {
-       
-        FfiConverterInt64.checkType(lastSync);
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            90, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_set_last_sync
-            FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
-            FfiConverterInt64.lower(lastSync),
-        )
-        return handleRustResult(
-            result,
-            (result) => undefined,
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * setUploaded
-     */
-    async setUploaded(
-        serverModifiedMillis, 
-        guids) {
-       
-        FfiConverterInt64.checkType(serverModifiedMillis);
-        FfiConverterSequenceTypeGuid.checkType(guids);
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            91, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_set_uploaded
-            FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
-            FfiConverterInt64.lower(serverModifiedMillis),
-            FfiConverterSequenceTypeGuid.lower(guids),
-        )
-        return handleRustResult(
-            result,
-            (result) => undefined,
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * storeIncoming
-     */
-    async storeIncoming(
-        incoming) {
-       
-        FfiConverterSequenceString.checkType(incoming);
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            92, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_store_incoming
-            FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
-            FfiConverterSequenceString.lower(incoming),
-        )
-        return handleRustResult(
-            result,
-            (result) => undefined,
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * syncFinished
-     */
-    async syncFinished() {
-       
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            93, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_finished
-            FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
-        )
-        return handleRustResult(
-            result,
-            (result) => undefined,
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * syncId
-     */
-    async syncId() {
-       
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            94, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_id
-            FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterOptionalString.lift.bind(FfiConverterOptionalString),
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * syncStarted
-     */
-    async syncStarted() {
-       
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            95, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_started
-            FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
-        )
-        return handleRustResult(
-            result,
-            (result) => undefined,
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * wipe
-     */
-    async wipe() {
-       
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            96, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_wipe
-            FfiConverterTypeWebExtStorageBridgedEngine.lower(this),
-        )
-        return handleRustResult(
-            result,
-            (result) => undefined,
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-}
-
-// Export the FFIConverter object to make external types work.
-export class FfiConverterTypeWebExtStorageBridgedEngine extends FfiConverter {
-    static lift(value) {
-        const opts = {};
-        opts[constructUniffiObject] = value;
-        return new WebExtStorageBridgedEngine(opts);
-    }
-
-    static lower(value) {
-        const ptr = value[uniffiObjectPtr];
-        if (!(ptr instanceof UniFFIPointer)) {
-            throw new UniFFITypeError("Object is not a 'WebExtStorageBridgedEngine' instance");
-        }
-        return ptr;
-    }
-
-    static read(dataStream) {
-        return this.lift(dataStream.readPointer(11));
-    }
-
-    static write(dataStream, value) {
-        dataStream.writePointer(11, this.lower(value));
-    }
-
-    static computeSize(value) {
-        return 8;
-    }
-}
-// Export the FFIConverter object to make external types work.
-export class FfiConverterUInt64 extends FfiConverter {
-    static checkType(value) {
-        super.checkType(value);
-        if (!Number.isSafeInteger(value)) {
-            throw new UniFFITypeError(`${value} exceeds the safe integer bounds`);
-        }
-        if (value < 0) {
-            throw new UniFFITypeError(`${value} exceeds the U64 bounds`);
-        }
-    }
-    static computeSize(_value) {
-        return 8;
-    }
-    static lift(value) {
-        return value;
-    }
-    static lower(value) {
-        return value;
-    }
-    static write(dataStream, value) {
-        dataStream.writeUint64(value)
-    }
-    static read(dataStream) {
-        return dataStream.readUint64()
-    }
-}
 // Export the FFIConverter object to make external types work.
 export class FfiConverterSequenceTypeSyncedExtensionChange extends FfiConverterArrayBuffer {
     static read(dataStream) {
@@ -1380,247 +1702,99 @@ export class FfiConverterSequenceTypeSyncedExtensionChange extends FfiConverterA
         })
     }
 }
-/**
- * WebExtStorageStore
- */
-export class WebExtStorageStore {
-    // Use `init` to instantiate this class.
-    // DO NOT USE THIS CONSTRUCTOR DIRECTLY
-    constructor(opts) {
-        if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
-            throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
-            "Please use a UDL defined constructor, or the init function for the primary constructor")
-        }
-        if (!(opts[constructUniffiObject] instanceof UniFFIPointer)) {
-            throw new UniFFIError("Attempting to create a UniFFI object with a pointer that is not an instance of UniFFIPointer")
-        }
-        this[uniffiObjectPtr] = opts[constructUniffiObject];
-    }
-    
-    static async init(
-        path) {
-       
-        FfiConverterString.checkType(path);
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            97, // uniffi_webext_storage_fn_constructor_webextstoragestore_new
-            FfiConverterString.lower(path),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterTypeWebExtStorageStore.lift.bind(FfiConverterTypeWebExtStorageStore),
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * bridgedEngine
-     */
-    async bridgedEngine() {
-       
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            98, // uniffi_webext_storage_fn_method_webextstoragestore_bridged_engine
-            FfiConverterTypeWebExtStorageStore.lower(this),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterTypeWebExtStorageBridgedEngine.lift.bind(FfiConverterTypeWebExtStorageBridgedEngine),
-            null,
-        )
-    }
-
-    /**
-     * clear
-     */
-    async clear(
-        extId) {
-       
-        FfiConverterString.checkType(extId);
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            99, // uniffi_webext_storage_fn_method_webextstoragestore_clear
-            FfiConverterTypeWebExtStorageStore.lower(this),
-            FfiConverterString.lower(extId),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterTypeStorageChanges.lift.bind(FfiConverterTypeStorageChanges),
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * close
-     */
-    async close() {
-       
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            100, // uniffi_webext_storage_fn_method_webextstoragestore_close
-            FfiConverterTypeWebExtStorageStore.lower(this),
-        )
-        return handleRustResult(
-            result,
-            (result) => undefined,
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * get
-     */
-    async get(
-        extId, 
-        keys) {
-       
-        FfiConverterString.checkType(extId);
-        FfiConverterTypeJsonValue.checkType(keys);
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            101, // uniffi_webext_storage_fn_method_webextstoragestore_get
-            FfiConverterTypeWebExtStorageStore.lower(this),
-            FfiConverterString.lower(extId),
-            FfiConverterTypeJsonValue.lower(keys),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterTypeJsonValue.lift.bind(FfiConverterTypeJsonValue),
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * getBytesInUse
-     */
-    async getBytesInUse(
-        extId, 
-        keys) {
-       
-        FfiConverterString.checkType(extId);
-        FfiConverterTypeJsonValue.checkType(keys);
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            102, // uniffi_webext_storage_fn_method_webextstoragestore_get_bytes_in_use
-            FfiConverterTypeWebExtStorageStore.lower(this),
-            FfiConverterString.lower(extId),
-            FfiConverterTypeJsonValue.lower(keys),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterUInt64.lift.bind(FfiConverterUInt64),
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * getSyncedChanges
-     */
-    async getSyncedChanges() {
-       
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            103, // uniffi_webext_storage_fn_method_webextstoragestore_get_synced_changes
-            FfiConverterTypeWebExtStorageStore.lower(this),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterSequenceTypeSyncedExtensionChange.lift.bind(FfiConverterSequenceTypeSyncedExtensionChange),
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * remove
-     */
-    async remove(
-        extId, 
-        keys) {
-       
-        FfiConverterString.checkType(extId);
-        FfiConverterTypeJsonValue.checkType(keys);
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            104, // uniffi_webext_storage_fn_method_webextstoragestore_remove
-            FfiConverterTypeWebExtStorageStore.lower(this),
-            FfiConverterString.lower(extId),
-            FfiConverterTypeJsonValue.lower(keys),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterTypeStorageChanges.lift.bind(FfiConverterTypeStorageChanges),
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-    /**
-     * set
-     */
-    async set(
-        extId, 
-        val) {
-       
-        FfiConverterString.checkType(extId);
-        FfiConverterTypeJsonValue.checkType(val);
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            105, // uniffi_webext_storage_fn_method_webextstoragestore_set
-            FfiConverterTypeWebExtStorageStore.lower(this),
-            FfiConverterString.lower(extId),
-            FfiConverterTypeJsonValue.lower(val),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterTypeStorageChanges.lift.bind(FfiConverterTypeStorageChanges),
-            FfiConverterTypeWebExtStorageApiError.lift.bind(FfiConverterTypeWebExtStorageApiError),
-        )
-    }
-
-}
 
 // Export the FFIConverter object to make external types work.
-export class FfiConverterTypeWebExtStorageStore extends FfiConverter {
-    static lift(value) {
-        const opts = {};
-        opts[constructUniffiObject] = value;
-        return new WebExtStorageStore(opts);
-    }
-
-    static lower(value) {
-        const ptr = value[uniffiObjectPtr];
-        if (!(ptr instanceof UniFFIPointer)) {
-            throw new UniFFITypeError("Object is not a 'WebExtStorageStore' instance");
-        }
-        return ptr;
-    }
-
+export class FfiConverterSequenceTypeGuid extends FfiConverterArrayBuffer {
     static read(dataStream) {
-        return this.lift(dataStream.readPointer(12));
+        const len = dataStream.readInt32();
+        const arr = [];
+        for (let i = 0; i < len; i++) {
+            arr.push(FfiConverterTypeGuid.read(dataStream));
+        }
+        return arr;
     }
 
     static write(dataStream, value) {
-        dataStream.writePointer(12, this.lower(value));
+        dataStream.writeInt32(value.length);
+        value.forEach((innerValue) => {
+            FfiConverterTypeGuid.write(dataStream, innerValue);
+        })
     }
 
     static computeSize(value) {
-        return 8;
+        // The size of the length
+        let size = 4;
+        for (const innerValue of value) {
+            size += FfiConverterTypeGuid.computeSize(innerValue);
+        }
+        return size;
     }
-}
-// Export the FFIConverter object to make external types work.
-export class FfiConverterUInt8 extends FfiConverter {
+
     static checkType(value) {
-        super.checkType(value);
-        if (!Number.isInteger(value)) {
-            throw new UniFFITypeError(`${value} is not an integer`);
+        if (!Array.isArray(value)) {
+            throw new UniFFITypeError(`${value} is not an array`);
         }
-        if (value < 0 || value > 256) {
-            throw new UniFFITypeError(`${value} exceeds the U8 bounds`);
-        }
-    }
-    static computeSize(_value) {
-        return 1;
-    }
-    static lift(value) {
-        return value;
-    }
-    static lower(value) {
-        return value;
-    }
-    static write(dataStream, value) {
-        dataStream.writeUint8(value)
-    }
-    static read(dataStream) {
-        return dataStream.readUint8()
+        value.forEach((innerValue, idx) => {
+            try {
+                FfiConverterTypeGuid.checkType(innerValue);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart(`[${idx}]`);
+                }
+                throw e;
+            }
+        })
     }
 }
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeGuid extends FfiConverter {
+    static lift(buf) {
+        return FfiConverterString.lift(buf);    
+    }
+    
+    static lower(buf) {
+        return FfiConverterString.lower(buf);
+    }
+    
+    static write(dataStream, value) {
+        FfiConverterString.write(dataStream, value);
+    } 
+    
+    static read(buf) {
+        return FfiConverterString.read(buf);
+    }
+    
+    static computeSize(value) {
+        return FfiConverterString.computeSize(value);
+    }
+}
+// TODO: We should also allow JS to customize the type eventually.
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeJsonValue extends FfiConverter {
+    static lift(buf) {
+        return FfiConverterString.lift(buf);    
+    }
+    
+    static lower(buf) {
+        return FfiConverterString.lower(buf);
+    }
+    
+    static write(dataStream, value) {
+        FfiConverterString.write(dataStream, value);
+    } 
+    
+    static read(buf) {
+        return FfiConverterString.read(buf);
+    }
+    
+    static computeSize(value) {
+        return FfiConverterString.computeSize(value);
+    }
+}
+// TODO: We should also allow JS to customize the type eventually.
+
+
+
+

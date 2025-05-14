@@ -49,8 +49,8 @@ void DeregisterCallbackHandler(uint64_t aInterfaceId, ErrorResult& aError);
 class UniffiCallbackMethodHandlerBase {
  protected:
   // Name of the callback interface
-  const char* mUniffiInterfaceName;
-  FfiValueInt<uint64_t> mUniffiHandle;
+  const char* mInterfaceName;
+  uint64_t mObjectHandle;
 
   // Invoke the callback method using a JS handler
   MOZ_CAN_RUN_SCRIPT
@@ -59,9 +59,8 @@ class UniffiCallbackMethodHandlerBase {
 
  public:
   UniffiCallbackMethodHandlerBase(const char* aInterfaceName,
-                                  uint64_t aUniffiHandle)
-      : mUniffiInterfaceName(aInterfaceName),
-        mUniffiHandle(FfiValueInt<uint64_t>::FromRust(aUniffiHandle)) {}
+                                  uint64_t aObjectHandle)
+      : mInterfaceName(aInterfaceName), mObjectHandle(aObjectHandle) {}
 
   virtual ~UniffiCallbackMethodHandlerBase() = default;
 

@@ -1,24 +1,23 @@
 // Export the FFIConverter object to make external types work.
-export class {{ custom|ffi_converter }} extends FfiConverter {
+export class {{ ffi_converter }} extends FfiConverter {
     static lift(buf) {
-        return {{ custom.builtin|lift_fn }}(buf);    
+        return {{ builtin.ffi_converter() }}.lift(buf);    
     }
     
     static lower(buf) {
-        return {{ custom.builtin|lower_fn }}(buf);
+        return {{ builtin.ffi_converter() }}.lower(buf);
     }
     
     static write(dataStream, value) {
-        {{ custom.builtin|write_fn }}(dataStream, value);
+        {{ builtin.ffi_converter() }}.write(dataStream, value);
     } 
     
     static read(buf) {
-        return {{ custom.builtin|read_fn }}(buf);
+        return {{ builtin.ffi_converter() }}.read(buf);
     }
     
     static computeSize(value) {
-        return {{ custom.builtin|compute_size_fn }}(value);
+        return {{ builtin.ffi_converter() }}.computeSize(value);
     }
 }
-
 // TODO: We should also allow JS to customize the type eventually.
