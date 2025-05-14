@@ -581,6 +581,13 @@ LazyInstantiator::get_accChild(VARIANT varChild, IDispatch** ppdispChild) {
     return S_OK;
   }
 
+  if (NS_WARN_IF(!NS_IsMainThread())) {
+    // Bug 1965216: The COM runtime occasionally calls this method on the wrong
+    // thread, violating COM rules. We can't reproduce this and don't understand
+    // what causes it.
+    return RPC_E_WRONG_THREAD;
+  }
+
   RESOLVE_ROOT;
   return mWeakAccessible->get_accChild(varChild, ppdispChild);
 }
