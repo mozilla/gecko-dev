@@ -4,15 +4,13 @@
 
 package org.mozilla.fenix.biometricauthentication
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
-import androidx.biometric.BiometricPrompt
+import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import mozilla.components.browser.state.selector.normalTabs
@@ -21,8 +19,10 @@ import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
+import org.mozilla.fenix.ext.registerForActivityResult
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.home.HomeFragmentDirections
+import org.mozilla.fenix.settings.biometric.DefaultBiometricUtils
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -30,12 +30,18 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * Fragment used to display biometric authentication when the app is locked.
  */
 class UnlockPrivateTabsFragment : Fragment(), UserInteractionHandler {
+    private lateinit var startForResult: ActivityResultLauncher<Intent>
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
+        startForResult = registerForActivityResult(
+            onSuccess = { onAuthSuccess() },
+            onFailure = { onAuthFailure() },
+        )
+
         return ComposeView(requireContext()).apply {
             isTransitionGroup = true
         }
@@ -47,17 +53,15 @@ class UnlockPrivateTabsFragment : Fragment(), UserInteractionHandler {
 
         (view as ComposeView).setContent {
             FirefoxTheme {
-                val title = stringResource(R.string.pbm_authentication_unlock_private_tabs)
-
                 UnlockPrivateTabsScreen(
-                    onUnlockClicked = { requestPrompt(title) },
+                    onUnlockClicked = { requestPrompt() },
                     onLeaveClicked = {
                         PrivateBrowsingLocked.seeOtherTabsClicked.record()
                         closeFragment()
                     },
                 )
 
-                requestPrompt(title)
+                requestPrompt()
             }
         }
     }
@@ -67,32 +71,14 @@ class UnlockPrivateTabsFragment : Fragment(), UserInteractionHandler {
         return true
     }
 
-    private fun requestPrompt(title: String) {
-        val biometricPrompt = BiometricPrompt(
-            this,
-            object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationSucceeded(
-                    result: BiometricPrompt.AuthenticationResult,
-                ) {
-                    super.onAuthenticationSucceeded(result)
-
-                    onAuthSuccess()
-                }
-
-                override fun onAuthenticationFailed() {
-                    super.onAuthenticationFailed()
-
-                    onAuthFailure()
-                }
-            },
+    private fun requestPrompt() {
+        DefaultBiometricUtils.bindBiometricsCredentialsPromptOrShowWarning(
+            titleRes = R.string.pbm_authentication_unlock_private_tabs,
+            view = requireView(),
+            onShowPinVerification = { intent -> startForResult.launch(intent) },
+            onAuthSuccess = ::onAuthSuccess,
+            onAuthFailure = ::onAuthFailure,
         )
-
-        val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle(title)
-            .setAllowedAuthenticators(DEVICE_CREDENTIAL or BiometricManager.Authenticators.BIOMETRIC_WEAK)
-            .build()
-
-        biometricPrompt.authenticate(promptInfo)
     }
 
     /**
