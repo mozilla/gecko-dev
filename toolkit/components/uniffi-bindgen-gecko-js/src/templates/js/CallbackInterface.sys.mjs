@@ -1,13 +1,11 @@
-{%- let cbi = ci.get_callback_interface_definition(name).unwrap() %}
-{#- See CallbackInterfaceRuntime.sys.mjs and CallbackInterfaceHandler.sys.mjs for the callback interface handler definition, referenced here as `{{ cbi.handler() }}` #}
 // Export the FFIConverter object to make external types work.
-export class {{ ffi_converter }} extends FfiConverter {
+export class {{ cbi|ffi_converter }} extends FfiConverter {
     static lower(callbackObj) {
-        return {{ cbi.handler() }}.storeCallbackObj(callbackObj)
+        return {{ cbi.js_handler_var }}.storeCallbackObj(callbackObj)
     }
 
     static lift(handleId) {
-        return {{ cbi.handler() }}.getCallbackObj(handleId)
+        return {{ cbi.js_handler_var }}.getCallbackObj(handleId)
     }
 
     static read(dataStream) {
@@ -22,3 +20,23 @@ export class {{ ffi_converter }} extends FfiConverter {
         return 8;
     }
 }
+
+const {{ cbi.js_handler_var }} = new UniFFICallbackHandler(
+    "{{ cbi.name }}",
+    {{ cbi.id }},
+    [
+        {%- for vtable_method in cbi.vtable.methods %}
+        new UniFFICallbackMethodHandler(
+            "{{ vtable_method.callable.name }}",
+            [
+                {%- for arg in vtable_method.callable.arguments %}
+                {{ arg|ffi_converter }},
+                {%- endfor %}
+            ],
+        ),
+        {%- endfor %}
+    ]
+);
+
+// Allow the shutdown-related functionality to be tested in the unit tests
+UnitTestObjs.{{ cbi.js_handler_var }} = {{ cbi.js_handler_var }};

@@ -31,7 +31,7 @@ void UniffiCallbackMethodHandlerBase::FireAndForget(
         if (!jsHandler) {
           MOZ_LOG(gUniffiLogger, LogLevel::Error,
                   ("[UniFFI] %s called, but JS handler not registered",
-                   handler->mInterfaceName));
+                   handler->mUniffiInterfaceName));
           return;
         }
 
@@ -39,11 +39,11 @@ void UniffiCallbackMethodHandlerBase::FireAndForget(
         if (!global) {
           MOZ_LOG(gUniffiLogger, LogLevel::Error,
                   ("[UniFFI] JS handler for %s has null global",
-                   handler->mInterfaceName));
+                   handler->mUniffiInterfaceName));
           return;
         }
 
-        dom::AutoEntryScript aes(global, handler->mInterfaceName);
+        dom::AutoEntryScript aes(global, handler->mUniffiInterfaceName);
 
         IgnoredErrorResult error;
         handler->MakeCall(aes.cx(), jsHandler, error);
@@ -51,7 +51,7 @@ void UniffiCallbackMethodHandlerBase::FireAndForget(
         if (error.Failed()) {
           MOZ_LOG(gUniffiLogger, LogLevel::Error,
                   ("[UniFFI] Error invoking JS handler for %s",
-                   handler->mInterfaceName));
+                   handler->mUniffiInterfaceName));
           return;
         }
       }));
@@ -65,7 +65,7 @@ void UniffiCallbackMethodHandlerBase::FireAndForget(
 void UniffiCallbackFreeHandler::MakeCall(JSContext* aCx,
                                          dom::UniFFICallbackHandler* aJsHandler,
                                          ErrorResult& aError) {
-  aJsHandler->Destroy(mObjectHandle, aError);
+  aJsHandler->Destroy(mUniffiHandle.IntoRust(), aError);
 }
 
 }  // namespace mozilla::uniffi

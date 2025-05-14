@@ -1,0 +1,4 @@
+Tests fixtures for bindings generators
+
+This is used to test the UniFFI builtin bindings and can also be used to test external bindings.
+See `uniffi_bindgen/src/bindings/python/bindgen_tests.rs` for example usage.

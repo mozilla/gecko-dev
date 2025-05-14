@@ -1,11 +1,11 @@
 // Export the FFIConverter object to make external types work.
-export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
+export class {{ map|ffi_converter }} extends FfiConverterArrayBuffer {
     static read(dataStream) {
         const len = dataStream.readInt32();
         const map = {};
         for (let i = 0; i < len; i++) {
-            const key = {{ key_type.ffi_converter() }}.read(dataStream);
-            const value = {{ value_type.ffi_converter() }}.read(dataStream);
+            const key = {{ map.key|read_fn }}(dataStream);
+            const value = {{ map.value|read_fn }}(dataStream);
             map[key] = value;
         }
 
@@ -15,8 +15,8 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
     static write(dataStream, value) {
         dataStream.writeInt32(Object.keys(value).length);
         for (const key in value) {
-            {{ key_type.ffi_converter() }}.write(dataStream, key);
-            {{ value_type.ffi_converter() }}.write(dataStream, value[key]);
+            {{ map.key|write_fn }}(dataStream, key);
+            {{ map.value|write_fn }}(dataStream, value[key]);
         }
     }
 
@@ -24,8 +24,8 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
         // The size of the length
         let size = 4;
         for (const key in value) {
-            size += {{ key_type.ffi_converter() }}.computeSize(key);
-            size += {{ value_type.ffi_converter() }}.computeSize(value[key]);
+            size += {{ map.key|compute_size_fn }}(key);
+            size += {{ map.value|compute_size_fn }}(value[key]);
         }
         return size;
     }
@@ -33,7 +33,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
     static checkType(value) {
         for (const key in value) {
             try {
-                {{ key_type.ffi_converter() }}.checkType(key);
+                {{ map.key|check_type_fn }}(key);
             } catch (e) {
                 if (e instanceof UniFFITypeError) {
                     e.addItemDescriptionPart("(key)");
@@ -42,7 +42,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
             }
 
             try {
-                {{ value_type.ffi_converter() }}.checkType(value[key]);
+                {{ map.value|check_type_fn }}(value[key]);
             } catch (e) {
                 if (e instanceof UniFFITypeError) {
                     e.addItemDescriptionPart(`[${key}]`);
