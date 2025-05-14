@@ -9,6 +9,7 @@ kind-dependencies:
     - post-beetmover-dummy
     - release-balrog-submit-toplevel
     - release-update-verify-config-next
+    - toolchain
 
 transforms:
     - gecko_taskgraph.transforms.release:run_on_releases
@@ -71,3 +72,6 @@ tasks:
         shipping-product: firefox
         attributes:
             build_platform: macosx64-shippable
+        fetches:
+            toolchain:
+                - linux64-libdmg
