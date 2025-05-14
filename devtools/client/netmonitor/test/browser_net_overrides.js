@@ -3,6 +3,9 @@
 
 "use strict";
 
+// This test might take a very long time on slow platforms such as TSAN.
+requestLongerTimeout(2);
+
 /* import-globals-from network-overrides-test-helpers.js */
 Services.scriptloader.loadSubScript(
   CHROME_URL_ROOT + "network-overrides-test-helpers.js",
