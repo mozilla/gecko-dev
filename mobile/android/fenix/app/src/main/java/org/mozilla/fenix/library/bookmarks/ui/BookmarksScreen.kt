@@ -893,6 +893,10 @@ private fun BookmarkListOverflowMenu(
 ) {
     val menuItems = listOf(
         MenuItem(
+            title = stringResource(R.string.bookmark_menu_select_all_bookmarks),
+            onClick = { store.dispatch(BookmarksListMenuAction.SelectAll) },
+        ),
+        MenuItem(
             title = stringResource(R.string.bookmark_menu_open_in_new_tab_button),
             onClick = { store.dispatch(BookmarksListMenuAction.MultiSelect.OpenInNormalTabsClicked) },
         ),

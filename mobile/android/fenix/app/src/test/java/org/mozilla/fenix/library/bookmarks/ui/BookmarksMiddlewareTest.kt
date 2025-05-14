@@ -96,6 +96,20 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN a nested bookmark structure WHEN SelectAll is clicked THEN all bookmarks are selected and reflected in state`() = runTestOnMain {
+        val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+        `when`(bookmarksStorage.countBookmarksInTrees(store.state.bookmarkItems.map { it.guid })).thenReturn(35u)
+        store.dispatch(BookmarksListMenuAction.SelectAll)
+        store.waitUntilIdle()
+        assertEquals(store.state.selectedItems.size, store.state.bookmarkItems.size)
+        assertEquals(35, store.state.recursiveSelectedCount)
+    }
+
+    @Test
     fun `GIVEN bookmarks in storage and not signed into sync WHEN store is initialized THEN bookmarks will be loaded as display format`() = runTestOnMain {
         `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())

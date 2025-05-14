@@ -38,6 +38,8 @@ internal data class RecursiveSelectionCountLoaded(
 ) : BookmarksAction
 
 internal sealed class BookmarksListMenuAction : BookmarksAction {
+    internal data object SelectAll : BookmarksListMenuAction()
+
     internal sealed class Bookmark : BookmarksListMenuAction() {
         data class EditClicked(val bookmark: BookmarkItem.Bookmark) : Bookmark()
         data class CopyClicked(val bookmark: BookmarkItem.Bookmark) : Bookmark()
