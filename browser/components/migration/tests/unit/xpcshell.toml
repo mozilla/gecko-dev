@@ -31,7 +31,10 @@ run-if = ["os == 'linux'"]
 ["test_Chrome_corrupt_history.js"]
 
 ["test_Chrome_credit_cards.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"]
+skip-if = [
+  "os == 'win'", # We no longer support importing payment methods from Chrome on Windows.
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+]
 
 ["test_Chrome_extensions.js"]
 
