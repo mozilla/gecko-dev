@@ -49,6 +49,10 @@ tlsfuzzer_init()
     # We could use tlslite-ng from pip, but the pip command installed
     # on TC is too old to support --pre
     ${QADIR}/../fuzz/config/git-copy.sh https://github.com/tomato42/tlslite-ng/ v0.8.0-alpha42 tlslite-ng
+    if [ $? != 0 ]; then
+       echo "Error setting up tlslite-ng"
+       exit $?
+    fi
 
     pushd "$TLSFUZZER"
     ln -s ../tlslite-ng/tlslite tlslite
@@ -56,7 +60,18 @@ tlsfuzzer_init()
 
     # Install tlslite-ng dependencies
     ${QADIR}/../fuzz/config/git-copy.sh https://github.com/warner/python-ecdsa master python-ecdsa
+    if [ $? != 0 ]; then
+       echo "Error setting up python-ecdsa"
+       exit $?
+    fi
+
     ${QADIR}/../fuzz/config/git-copy.sh https://github.com/benjaminp/six main six
+    if [ $? != 0 ]; then
+       echo "Error setting up six"
+       exit $?
+    fi
+
+
 
     pushd "$TLSFUZZER"
     ln -s ../python-ecdsa/src/ecdsa ecdsa

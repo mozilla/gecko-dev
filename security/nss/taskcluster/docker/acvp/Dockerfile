@@ -1,5 +1,5 @@
 # Minimal image with clang-format 3.9.
-FROM rust:1.74
+FROM rust:1.86
 LABEL maintainer="iaroslav.gridin@tuni.fi"
 
 VOLUME /builds/worker/checkouts

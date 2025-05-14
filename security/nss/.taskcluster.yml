@@ -98,7 +98,7 @@ tasks:
         retries: 0
 
         payload:
-          image: mozillareleases/taskgraph:decision-v13.0.0@sha256:57e4c2d2ad92cea663dcc02cacbfd88b3506edde80e19fbd8a57b3dfe37ae9bd
+          image: mozillareleases/taskgraph:decision-v14.2.1@sha256:f4e3a22df9ec0017a2534b3a7b4cd9b60318f86619e0c2156c12c1ec1a0e32cb
 
           env:
             $merge:

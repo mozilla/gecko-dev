@@ -547,8 +547,8 @@ dumpSignature(CK_ATTRIBUTE_TYPE attribute, SDB *keydb, PRBool isKey,
         return;
     }
     snprintf(id, sizeof(id), META_SIG_TEMPLATE,
-            isKey ? "key" : "cert",
-            (unsigned int)objectID, (unsigned int)attribute);
+             isKey ? "key" : "cert",
+             (unsigned int)objectID, (unsigned int)attribute);
     printf("        Signature %s:", id);
     signText.data = signData;
     signText.len = sizeof(signData);
@@ -556,8 +556,8 @@ dumpSignature(CK_ATTRIBUTE_TYPE attribute, SDB *keydb, PRBool isKey,
     crv = (*keydb->sdb_GetMetaData)(keydb, id, &signText, NULL);
     if ((crv != CKR_OK) && isKey) {
         snprintf(id, sizeof(id), META_SIG_TEMPLATE,
-                isKey ? "key" : "cert", (unsigned int)(objectID | SFTK_KEYDB_TYPE | SFTK_TOKEN_TYPE),
-                (unsigned int)attribute);
+                 isKey ? "key" : "cert", (unsigned int)(objectID | SFTK_KEYDB_TYPE | SFTK_TOKEN_TYPE),
+                 (unsigned int)attribute);
         crv = (*keydb->sdb_GetMetaData)(keydb, id, &signText, NULL);
     }
     if (crv != CKR_OK) {

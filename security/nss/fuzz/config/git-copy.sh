@@ -28,7 +28,18 @@ fi
 
 rm -rf "$DIR"
 git init -q "$DIR"
-git -C "$DIR" fetch -q --depth=1 "$REPO" "$COMMIT"
+
+RETRIES=3
+COUNT=1
+while [ $COUNT -lt $RETRIES ]; do
+  git -C "$DIR" fetch -q --depth=1 "$REPO" "$COMMIT"
+  if [ $? -eq 0 ]; then
+    COUNT=0
+    break
+  fi
+  COUNT=$((COUNT+1))
+done
+
 git -C "$DIR" reset -q --hard FETCH_HEAD
 git -C "$DIR" rev-parse --verify HEAD > "$DIR"/.git-copy
 rm -rf "$DIR"/.git

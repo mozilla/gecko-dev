@@ -53,3 +53,9 @@ for name in "${!tls_targets[@]}"; do
         copy_fuzzer nssfuzz-$name $name
     fi
 done
+
+# Fuzz introspector picks up files in the out/Debug directory as fuzz
+# targets, messing up the generated reports.
+# To avoid this, we clear the build directory at the end. NSS libraries
+# are statically linked to the fuzz targets.
+rm -rf out/

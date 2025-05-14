@@ -28,6 +28,7 @@ struct NSSCMSDecoderContextStr {
     void *cb_arg;
     PRBool first_decoded;
     PRBool need_indefinite_finish;
+    unsigned int max_asn_len;
 };
 
 struct NSSCMSDecoderDataStr {
@@ -51,6 +52,15 @@ static void nss_cms_decoder_work_data(NSSCMSDecoderContext *p7dcx,
 static NSSCMSDecoderData *nss_cms_create_decoder_data(PLArenaPool *poolp);
 
 extern const SEC_ASN1Template NSSCMSMessageTemplate[];
+
+void
+nss_cms_set_max_asn_length(NSSCMSDecoderContext *p7dcx, unsigned int max_asn_len)
+{
+    p7dcx->max_asn_len = max_asn_len;
+    if (p7dcx->dcx && max_asn_len) {
+        SEC_ASN1DecoderSetMaximumElementSize(p7dcx->dcx, max_asn_len);
+    }
+}
 
 static NSSCMSDecoderData *
 nss_cms_create_decoder_data(PLArenaPool *poolp)
@@ -88,7 +98,7 @@ nss_cms_decoder_notify(void *arg, PRBool before, void *dest, int depth)
     /* XXX error handling: need to set p7dcx->error */
 
 #ifdef CMSDEBUG
-    fprintf(stderr, "%6.6s, dest = 0x%08x, depth = %d\n", before ? "before" : "after",
+    fprintf(stderr, "%6.6s, dest = 0x%p, depth = %d\n", before ? "before" : "after",
             dest, depth);
 #endif
 
@@ -134,7 +144,10 @@ nss_cms_decoder_notify(void *arg, PRBool before, void *dest, int depth)
             /* get this data type's inner contentInfo */
             cinfo = NSS_CMSContent_GetContentInfo(p7dcx->content.pointer,
                                                   p7dcx->type);
-
+            if (cinfo == NULL) {
+                p7dcx->error = SEC_ERROR_BAD_DATA;
+                return;
+            }
             if (before && dest == &(cinfo->contentType)) {
                 /* at this point, set up the &%$&$ back pointer */
                 /* we cannot do it later, because the content itself
@@ -251,7 +264,7 @@ nss_cms_before_data(NSSCMSDecoderContext *p7dcx)
     if ((template = NSS_CMSUtil_GetTemplateByTypeTag(childtype)) == NULL)
         return SECFailure;
 
-    childp7dcx = PORT_ZNew(NSSCMSDecoderContext);
+    childp7dcx = PORT_ArenaZNew(poolp, NSSCMSDecoderContext);
     if (childp7dcx == NULL)
         return SECFailure;
 
@@ -271,6 +284,10 @@ nss_cms_before_data(NSSCMSDecoderContext *p7dcx)
                                            template);
     if (childp7dcx->dcx == NULL)
         goto loser;
+
+    if (p7dcx->max_asn_len) {
+        nss_cms_set_max_asn_length(childp7dcx, p7dcx->max_asn_len);
+    }
 
     /* the new decoder needs to notify, too */
     SEC_ASN1DecoderSetNotifyProc(childp7dcx->dcx, nss_cms_decoder_notify,
@@ -331,16 +348,10 @@ nss_cms_after_data(NSSCMSDecoderContext *p7dcx)
                 childp7dcx->need_indefinite_finish = PR_FALSE;
             }
 
-            if (SEC_ASN1DecoderFinish(childp7dcx->dcx) != SECSuccess) {
-                /* do what? free content? */
-                rv = SECFailure;
-            } else {
-                rv = nss_cms_after_end(childp7dcx);
-            }
+            rv = nss_cms_after_end(childp7dcx);
             if (rv != SECSuccess)
                 goto done;
         }
-        PORT_Free(p7dcx->childp7dcx);
         p7dcx->childp7dcx = NULL;
     }
 
@@ -376,7 +387,21 @@ done:
 static SECStatus
 nss_cms_after_end(NSSCMSDecoderContext *p7dcx)
 {
-    SECStatus rv = SECSuccess;
+    SECStatus rv = SECSuccess, rv1 = SECSuccess, rv2 = SECSuccess;
+
+    /* Finish any child decoders */
+    if (p7dcx->childp7dcx) {
+        rv1 = nss_cms_after_end(p7dcx->childp7dcx) != SECSuccess;
+        p7dcx->childp7dcx = NULL;
+    }
+    /* Finish our asn1 decoder */
+    if (p7dcx->dcx) {
+        rv2 = SEC_ASN1DecoderFinish(p7dcx->dcx);
+        p7dcx->dcx = NULL;
+    }
+    if (rv1 != SECSuccess || rv2 != SECSuccess || p7dcx->error != 0) {
+        return SECFailure;
+    }
 
     switch (p7dcx->type) {
         case SEC_OID_PKCS7_SIGNED_DATA:
@@ -685,12 +710,8 @@ loser:
         return SECSuccess;
 
     /* there has been a problem, let's finish the decoder */
-    if (p7dcx->dcx != NULL) {
-        (void)SEC_ASN1DecoderFinish(p7dcx->dcx);
-        p7dcx->dcx = NULL;
-    }
+    nss_cms_after_end(p7dcx);
     PORT_SetError(p7dcx->error);
-
     return SECFailure;
 }
 
@@ -700,8 +721,7 @@ loser:
 void
 NSS_CMSDecoder_Cancel(NSSCMSDecoderContext *p7dcx)
 {
-    if (p7dcx->dcx != NULL)
-        (void)SEC_ASN1DecoderFinish(p7dcx->dcx);
+    nss_cms_after_end(p7dcx);
     NSS_CMSMessage_Destroy(p7dcx->cmsg);
     PORT_Free(p7dcx);
 }
@@ -716,9 +736,7 @@ NSS_CMSDecoder_Finish(NSSCMSDecoderContext *p7dcx)
 
     cmsg = p7dcx->cmsg;
 
-    if (p7dcx->dcx == NULL ||
-        SEC_ASN1DecoderFinish(p7dcx->dcx) != SECSuccess ||
-        nss_cms_after_end(p7dcx) != SECSuccess) {
+    if (nss_cms_after_end(p7dcx) != SECSuccess) {
         NSS_CMSMessage_Destroy(cmsg); /* get rid of pool if it's ours */
         cmsg = NULL;
     }
@@ -739,8 +757,11 @@ NSS_CMSMessage_CreateFromDER(SECItem *DERmessage,
     /* first arg(poolp) == NULL => create our own pool */
     p7dcx = NSS_CMSDecoder_Start(NULL, cb, cb_arg, pwfn, pwfn_arg,
                                  decrypt_key_cb, decrypt_key_cb_arg);
-    if (p7dcx == NULL)
+    if (p7dcx == NULL) {
         return NULL;
+    }
+    nss_cms_set_max_asn_length(p7dcx, DERmessage->len);
+
     NSS_CMSDecoder_Update(p7dcx, (char *)DERmessage->data, DERmessage->len);
     return NSS_CMSDecoder_Finish(p7dcx);
 }

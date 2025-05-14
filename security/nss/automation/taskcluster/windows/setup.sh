@@ -17,7 +17,7 @@ hg_clone() {
 
 export SSL_CERT_FILE=/c/mozilla-build/python3/Lib/site-packages/certifi/cacert.pem
 
-/c/mozilla-build/python/python.exe /c/builds/tooltool.py -c /c/builds/tooltool_cache --url ${TASKCLUSTER_PROXY_URL}/tooltool.mozilla-releng.net/ --overwrite -m $(dirname $0)/releng.manifest fetch
+/c/mozilla-build/python3/python3.exe /c/mozilla-build/tooltool.py -c /c/mozilla-build/tooltool_cache --url ${TASKCLUSTER_PROXY_URL}/tooltool.mozilla-releng.net/ --overwrite -m $(dirname $0)/releng.manifest fetch
 
 # This needs $m to be set.
 if [ -n "$m" ]; then

@@ -13,6 +13,8 @@ task-defaults:
         checkout:
             nss:
                 path: nss
+            nspr:
+                path: nspr
     worker:
         artifacts:
             - path: /builds/worker/artifacts

@@ -2157,6 +2157,10 @@ tls13_MaybeGreaseEch(sslSocket *ss, const sslBuffer *preamble, sslBuffer *buf)
         return SECSuccess;
     }
 
+    if (ss->firstHsDone) {
+        sslBuffer_Clear(&ss->ssl3.hs.greaseEchBuf);
+    }
+
     /* In draft-09, CH2 sends exactly the same GREASE ECH extension. */
     if (ss->ssl3.hs.helloRetry) {
         return ssl3_EmplaceExtension(ss, buf, ssl_tls13_encrypted_client_hello_xtn,
@@ -2269,6 +2273,7 @@ tls13_MaybeGreaseEch(sslSocket *ss, const sslBuffer *preamble, sslBuffer *buf)
     }
 
     /* Stash the GREASE ECH extension - in the case of HRR, CH2 must echo it. */
+    PORT_Assert(ss->ssl3.hs.greaseEchBuf.len == 0);
     ss->ssl3.hs.greaseEchBuf = greaseBuf;
 
     sslBuffer_Clear(&chInnerXtns);

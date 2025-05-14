@@ -5217,7 +5217,7 @@ sftk_searchDatabase(SFTKDBHandle *handle, SFTKSearchResults *search,
     CK_RV crv;
     int objectListSize = search->array_size - search->size;
     CK_OBJECT_HANDLE *array = &search->handles[search->size];
-    SDBFind *find;
+    SDBFind *find = NULL;
     CK_ULONG count;
 
     crv = sftkdb_FindObjectsInit(handle, pTemplate, ulCount, &find);

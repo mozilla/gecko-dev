@@ -242,10 +242,11 @@ NSS_CMSMessage_ContainsCertsOrCrls(NSSCMSMessage *cmsg)
     /* descend into CMS message */
     for (cinfo = &(cmsg->contentInfo); cinfo != NULL;
          cinfo = NSS_CMSContentInfo_GetChildContentInfo(cinfo)) {
-        if (!NSS_CMSType_IsData(NSS_CMSContentInfo_GetContentTypeTag(cinfo)))
+        SECOidTag tag = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
+        if (tag != SEC_OID_PKCS7_SIGNED_DATA)
             continue; /* next level */
 
-        if (NSS_CMSSignedData_ContainsCertsOrCrls(cinfo->content.signedData))
+        if (NSS_CMSSignedData_ContainsCertsOrCrls(NSS_CMSContentInfo_GetContent(cinfo)))
             return PR_TRUE;
         /* callback here for generic wrappers? */
     }

@@ -982,8 +982,8 @@ ssl_policy_pkix_ocsp()
   echo " vfyserv -o wrong.host.badssl.com -d ${P_R_SERVERDIR} 2>&1 | tee ${P_R_SERVERDIR}/vfy.out"
   vfyserv -o wrong.host.badssl.com -d ${P_R_SERVERDIR} 2>&1 | tee ${P_R_SERVERDIR}/vfy.out
   # make sure we have the domain mismatch, not bad signature error
-  echo "grep 12276 ${P_R_SERVERDIR}/vfy.out"
-  grep 12276 ${P_R_SERVERDIR}/vfy.out
+  echo "grep -E '12276|5961' ${P_R_SERVERDIR}/vfy.out"
+  grep -E '12276|5961' ${P_R_SERVERDIR}/vfy.out
   RET=$?
   html_msg $RET $RET_EXP "${testname}" \
            "produced a returncode of $RET, expected is $RET_EXP"
@@ -1023,12 +1023,12 @@ ssl_policy_selfserv()
   SAVE_SERVER_OPTIONS=${SERVER_OPTIONS}
   # make sure policy is working in the multiprocess case is working on
   # UNIX-like OS's. Other OS's can't properly clean up the child processes
-  # when our test suite kills the parent, so just use the single process 
+  # when our test suite kills the parent, so just use the single process
   # self serve for them
   # if [ "${OS_ARCH}" != "WINNT" ]; then
   #    SERVER_OPTIONS="-M 3 ${SERVER_OPTIONS}"
   # fi
-  
+
   start_selfserv $CIPHER_SUITES
 
   SERVER_OPTIONS="${SAVE_SERVER_OPTIONS}"

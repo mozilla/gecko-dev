@@ -9,8 +9,8 @@ origin:
   description: nss
   url: https://hg-edge.mozilla.org/projects/nss
 
-  release: 2229e39b016857c0f4f2d17695487258f7216351
-  revision: 2229e39b016857c0f4f2d17695487258f7216351
+  release: eadff367560ec67f7f6863c9b50b6358dcf0a0d6 (2025-05-14T10:03:45Z).
+  revision: eadff367560ec67f7f6863c9b50b6358dcf0a0d6
 
   license: MPL-2.0
   license-file: COPYING

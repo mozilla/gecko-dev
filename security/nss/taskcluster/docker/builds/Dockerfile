@@ -13,6 +13,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
     clang-4.0 \
     clang-10 \
+    clang-18 \
     cmake \
     g++-4.8-multilib \
     g++-5-multilib \
@@ -24,10 +25,10 @@ RUN apt-get update \
     clang-format-10 \
     libabigail-dev \
     abigail-tools \
-    software-properties-common \ 
- && add-apt-repository ppa:ubuntu-toolchain-r/test -y \ 
+    software-properties-common \
+ && add-apt-repository ppa:ubuntu-toolchain-r/test -y \
  && apt-get update \
- && apt-get install --no-install-recommends -y \ 
+ && apt-get install --no-install-recommends -y \
     gcc-11-multilib \
     g++-11-multilib \
  && rm -rf /var/lib/apt/lists/* \

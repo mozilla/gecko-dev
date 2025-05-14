@@ -145,10 +145,10 @@ if [ "$opt_build" = 1 ] && [ "$fuzz" = 1 ]; then
     exit 1
 fi
 
-if [ -n "${sanitizers["tsan"]:-}" ] && ([ "$CC" != "clang" ] ||
-                                        [ "$CCC" != "clang++" ] ||
-                                        [ "$CXX" != "clang++" ]); then
-    echo "Specifying --tsan requires clang." >&2
+if [ -n "${sanitizers["tsan"]:-}" ] && ([ "$CC" = "gcc" ] ||
+                                        [ "$CCC" = "g++" ] ||
+                                        [ "$CXX" = "g++" ]); then
+    echo "Specifying --tsan with gcc results in false positives whilst building NSPR." >&2
     exit 1
 fi
 
