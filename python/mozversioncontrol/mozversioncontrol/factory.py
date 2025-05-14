@@ -26,8 +26,8 @@ from mozversioncontrol.repo.mercurial import HgRepository
 from mozversioncontrol.repo.source import SrcRepository
 
 MINIMUM_SUPPORTED_JJ_VERSION = Version("0.28")
+USING_JJ_DETECTED = 'Using JujutsuRepository because a ".jj/" directory was detected!'
 USING_JJ_WARNING = """\
-Using JujutsuRepository because a ".jj/" directory was detected!
 
 Warning: jj support is currently experimental, and may be disabled by setting the
 environment variable MOZ_AVOID_JJ_VCS=1. (This warning may be suppressed by
@@ -40,9 +40,7 @@ class UnsupportedJujutsuVersionError(Exception):
     pass
 
 
-def get_repository_object(
-    path: Optional[Union[str, Path]], hg="hg", git="git", jj="jj", src="src"
-):
+def get_repository_object(path: Optional[Union[str, Path]]):
     """Get a repository object for the repository at `path`.
     If `path` is not a known VCS repository, raise an exception.
     """
@@ -51,8 +49,8 @@ def get_repository_object(
     # watchman with that path and watchman will spew errors.
     path = Path(path).resolve()
     if (path / ".hg").is_dir():
-        return HgRepository(path, hg=hg)
-    if (path / ".jj").is_dir() and jj is not None:
+        return HgRepository(path)
+    if (path / ".jj").is_dir():
         avoid = os.getenv("MOZ_AVOID_JJ_VCS")
         try_using_jj = avoid in (None, "0", "")
         if try_using_jj:
@@ -86,16 +84,17 @@ def get_repository_object(
                     # jj without warning. If it is set to anything else, do not use jj (so
                     # eg fall back to git if .git exists.)
                     get_repository_object._warned = True
+                    print(USING_JJ_DETECTED, file=sys.stderr)
                     print(USING_JJ_WARNING, file=sys.stderr)
 
-                return JujutsuRepository(path, jj=jj, git=git)
+                return JujutsuRepository(path)
 
             except OSError:
                 print(".jj/ directory exists but jj binary not usable", file=sys.stderr)
     if (path / ".git").exists():
-        return GitRepository(path, git=git)
+        return GitRepository(path)
     if (path / "config" / "milestone.txt").exists():
-        return SrcRepository(path, src=src)
+        return SrcRepository(path)
     raise InvalidRepoPath(f"Unknown VCS, or not a source checkout: {path}")
 
 

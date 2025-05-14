@@ -2,6 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import json
 import os
 import platform
 import re
@@ -12,7 +13,7 @@ import sys
 import time
 from collections import OrderedDict
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 # Use distro package to retrieve linux platform information
 import distro
@@ -934,7 +935,19 @@ def update_git_cinnabar(root_state_dir: Path):
     return cinnabar_dir
 
 
-def set_git_config(git_str: str, topsrcdir: Path, key: str, value: str):
+def get_git_config_key_value(key: str):
+    try:
+        value = subprocess.check_output(
+            ["git", "config", "--get", key],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        return value or None
+    except subprocess.CalledProcessError:
+        return None
+
+
+def set_git_config_key_value(git_str: str, topsrcdir: Path, key: str, value: str):
     """
     Set a git config value in the given repo and print
     logging output indicating what was done.
@@ -984,66 +997,77 @@ def ensure_watchman(topsrcdir: Path, git_str: str):
         ]
         print(f"Copying {watchman_sample} to {watchman_config}")
         subprocess.check_call(copy_cmd, cwd=str(topsrcdir))
-
-    set_git_config(git_str, topsrcdir, key="core.fsmonitor", value=watchman_config)
+    set_git_config_key_value(
+        git_str, topsrcdir, key="core.fsmonitor", value=watchman_config
+    )
 
 
 def configure_git(
     git: Path,
     root_state_dir: Path,
     topsrcdir: Path,
+    update_only: bool = False,
 ):
     """Run the Git configuration steps."""
-    git_str = str(git)
+    if not update_only:
+        git_str = str(git)
 
-    print("Configuring git...")
+        print("Configuring git...")
 
-    match = re.search(
-        r"(\d+\.\d+\.\d+)",
-        subprocess.check_output([git_str, "--version"], universal_newlines=True),
-    )
-    if not match:
-        raise Exception("Could not find git version")
-    git_version = Version(match.group(1))
-
-    moz_automation = os.environ.get("MOZ_AUTOMATION")
-    # This hard error is to force users to upgrade for performance benefits. If a CI worker on an old
-    # distro gets here, but can't upgrade to a newer git version, that's not a blocker, so we skip
-    # this check in CI to avoid that scenario.
-    if not moz_automation:
-        if git_version < MINIMUM_GIT_VERSION:
-            raise GitVersionError(
-                f"Your version of git ({git_version}) is too old. "
-                f"Please upgrade to at least version '{MINIMUM_GIT_VERSION}' to ensure "
-                "full compatibility and performance."
-            )
-
-    system = platform.system()
-
-    # https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreuntrackedCache
-    set_git_config(git_str, topsrcdir, key="core.untrackedCache", value="true")
-
-    # https://git-scm.com/docs/git-config#Documentation/git-config.txt-corefsmonitor
-    if system == "Windows":
-        # On Windows we enable the built-in fsmonitor which is superior to Watchman.
-        set_git_config(git_str, topsrcdir, key="core.fscache", value="true")
-        # https://github.com/git-for-windows/git/blob/eaeb5b51c389866f207c52f1546389a336914e07/Documentation/config/core.adoc?plain=1#L688-L692
-        # We can also enable fscache (only supported on git-for-windows).
-        set_git_config(git_str, topsrcdir, key="core.fsmonitor", value="true")
-    elif system == "Darwin":
-        # On macOS (Darwin) we enable the built-in fsmonitor which is superior to Watchman.
-        set_git_config(git_str, topsrcdir, key="core.fsmonitor", value="true")
-    elif system == "Linux":
-        # On Linux the built-in fsmonitor isn’t available, so we unset it and attempt to set up
-        # Watchman to achieve similar fsmonitor-style speedups.
-        subprocess.run(
-            [git_str, "config", "--unset-all", "core.fsmonitor"],
-            cwd=str(topsrcdir),
-            check=False,
+        match = re.search(
+            r"(\d+\.\d+\.\d+)",
+            subprocess.check_output([git_str, "--version"], universal_newlines=True),
         )
-        print("Unset git config: `core.fsmonitor`")
+        if not match:
+            raise Exception("Could not find git version")
+        git_version = Version(match.group(1))
 
-        ensure_watchman(topsrcdir, git_str)
+        moz_automation = os.environ.get("MOZ_AUTOMATION")
+        # This hard error is to force users to upgrade for performance benefits. If a CI worker on an old
+        # distro gets here, but can't upgrade to a newer git version, that's not a blocker, so we skip
+        # this check in CI to avoid that scenario.
+        if not moz_automation:
+            if git_version < MINIMUM_GIT_VERSION:
+                raise GitVersionError(
+                    f"Your version of git ({git_version}) is too old. "
+                    f"Please upgrade to at least version '{MINIMUM_GIT_VERSION}' to ensure "
+                    "full compatibility and performance."
+                )
+
+        system = platform.system()
+
+        # https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreuntrackedCache
+        set_git_config_key_value(
+            git_str, topsrcdir, key="core.untrackedCache", value="true"
+        )
+
+        # https://git-scm.com/docs/git-config#Documentation/git-config.txt-corefsmonitor
+        if system == "Windows":
+            # On Windows we enable the built-in fsmonitor which is superior to Watchman.
+            set_git_config_key_value(
+                git_str, topsrcdir, key="core.fscache", value="true"
+            )
+            # https://github.com/git-for-windows/git/blob/eaeb5b51c389866f207c52f1546389a336914e07/Documentation/config/core.adoc?plain=1#L688-L692
+            # We can also enable fscache (only supported on git-for-windows).
+            set_git_config_key_value(
+                git_str, topsrcdir, key="core.fsmonitor", value="true"
+            )
+        elif system == "Darwin":
+            # On macOS (Darwin) we enable the built-in fsmonitor which is superior to Watchman.
+            set_git_config_key_value(
+                git_str, topsrcdir, key="core.fsmonitor", value="true"
+            )
+        elif system == "Linux":
+            # On Linux the built-in fsmonitor isn’t available, so we unset it and attempt to set up
+            # Watchman to achieve similar fsmonitor-style speedups.
+            subprocess.run(
+                [git_str, "config", "--unset-all", "core.fsmonitor"],
+                cwd=str(topsrcdir),
+                check=False,
+            )
+            print("Unset git config: `core.fsmonitor`")
+
+            ensure_watchman(topsrcdir, git_str)
 
     repo = get_repository_object(topsrcdir)
 
@@ -1066,6 +1090,120 @@ def configure_git(
                 print(
                     ADD_GIT_CINNABAR_PATH.format(prefix="~", cinnabar_dir=cinnabar_dir)
                 )
+
+
+def jj_config_key_list_value_missing(jj_str: str, key: str):
+    cmd = [jj_str, "config", "list", key]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    output = (result.stdout or result.stderr).strip()
+
+    warning_prefix = "Warning: No matching config key"
+    if output.startswith(warning_prefix):
+        return True
+
+    if output.startswith(key):
+        return False
+
+    raise ValueError(f"Unexpected output: {output}")
+
+
+def set_jj_config_key_value(jj_str: str, key: str, value: Any):
+    value_str = json.dumps(value)
+    cmd = [jj_str, "config", "set", "--repo", key, value_str]
+    print(f'Set jj config: "{key} = {value_str}"')
+    subprocess.run(cmd, capture_output=False, check=True)
+
+
+def configure_jujutsu(jj: Path, topsrcdir: Path, update_only=False):
+    """Run the Jujutsu configuration steps."""
+    jj_str = str(jj)
+
+    if not update_only:
+        print("\nConfiguring jj...")
+
+        from mozversioncontrol.factory import MINIMUM_SUPPORTED_JJ_VERSION
+
+        version_str = subprocess.check_output([jj_str, "--version"], text=True)
+        if match := re.search(r"(\d+\.\d+\.\d+)", version_str):
+            jj_version = Version(match.group(1))
+        else:
+            raise Exception("Could not find jj version")
+
+        if jj_version < MINIMUM_SUPPORTED_JJ_VERSION:
+            raise GitVersionError(
+                f"Your version of jj ({jj_version}) is too old. "
+                f"Please upgrade to at least version '{MINIMUM_SUPPORTED_JJ_VERSION}' to ensure "
+                "full compatibility and performance."
+            )
+
+        print(f"Detected jj version `{jj_version}`, which is sufficiently modern.")
+
+        git_dir = topsrcdir / ".git"
+        if not git_dir.exists():
+            raise Exception(f"Could not find a `.git` directory at: {git_dir}\n")
+
+        jj_dir = topsrcdir / ".jj"
+        if not jj_dir.exists():
+            print("Initializing a git colocated jj repository...")
+            subprocess.run([jj_str, "git", "init", "--colocate"])
+            pass
+
+        # Only set these values if they haven't been set yet so that we
+        # don't overwrite existing user preferences.
+
+        # Copy over the user.name and user.email if they've been set there by not for jj
+        username_key = "user.name"
+        username = get_git_config_key_value(username_key)
+        if username and jj_config_key_list_value_missing(jj_str, username_key):
+            set_jj_config_key_value(jj_str, username_key, username)
+
+        email_key = "user.email"
+        email = get_git_config_key_value(email_key)
+        if email and jj_config_key_list_value_missing(jj_str, email_key):
+            set_jj_config_key_value(jj_str, email_key, email)
+
+        jj_revset_immutable_heads_key = 'revset-aliases."immutable_heads()"'
+        if jj_config_key_list_value_missing(jj_str, jj_revset_immutable_heads_key):
+            jj_revset_immutable_heads_value = (
+                "builtin_immutable_heads() | remote_bookmarks(glob:'*', 'origin')"
+            )
+            set_jj_config_key_value(
+                jj_str, jj_revset_immutable_heads_key, jj_revset_immutable_heads_value
+            )
+
+        # This enables `jj fix` which does `./mach lint --fix` on every commit in parallel
+        jj_fix_command_key = "fix.tools.mozlint.command"
+        if jj_config_key_list_value_missing(jj_str, jj_fix_command_key):
+            jj_fix_command_value = [
+                f"{topsrcdir.as_posix()}/tools/lint/pipelint",
+                "$path",
+            ]
+            if sys.platform.startswith("win"):
+                # On Windows pipelint must be invoked via Python explicitly
+                jj_fix_command_value.insert(0, "python3")
+            set_jj_config_key_value(jj_str, jj_fix_command_key, jj_fix_command_value)
+
+        jj_fix_patterns_key = "fix.tools.mozlint.patterns"
+        if jj_config_key_list_value_missing(jj_str, jj_fix_patterns_key):
+            jj_fix_patterns_value = ["glob:**/*"]
+            set_jj_config_key_value(jj_str, jj_fix_patterns_key, jj_fix_patterns_value)
+
+        # This enables watchman, if it's installed.
+        if which("watchman"):
+            jj_watchman_key = "core.fsmonitor"
+            if jj_config_key_list_value_missing(jj_str, jj_watchman_key):
+                jj_watchman_value = "watchman"
+                set_jj_config_key_value(jj_str, jj_watchman_key, jj_watchman_value)
+
+            jj_watchman_snapshot_key = "core.watchman.register-snapshot-trigger"
+            if jj_config_key_list_value_missing(jj_str, jj_watchman_snapshot_key):
+                jj_watchman_snapshot_value = False
+                set_jj_config_key_value(
+                    jj_str, jj_watchman_snapshot_key, jj_watchman_snapshot_value
+                )
+
+    print("Checking if watchman is enabled...")
+    subprocess.run([jj_str, "debug", "watchman", "status"])
 
 
 def _warn_if_risky_revision(path: Path):

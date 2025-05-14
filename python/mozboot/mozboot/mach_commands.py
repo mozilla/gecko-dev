@@ -61,20 +61,22 @@ def bootstrap(
     action="store_true",
     help="Only update recommended extensions, don't run the wizard.",
 )
-def vcs_setup(command_context, update_only=False):
-    """Ensure a Version Control System (Mercurial or Git) is optimally
-    configured.
+@CommandArgument(
+    "--vcs",
+    choices=("hg", "git", "jj"),
+    help="Force a specific VCS backend instead of auto-detecting.",
+)
+def vcs_setup(command_context, update_only=False, vcs=None):
+    """Ensure a Version Control System (Mercurial, Git, or
+    Git + Jujutsu) is optimally configured.
 
     This command will inspect your VCS configuration and
     guide you through an interactive wizard helping you configure the
     VCS for optimal use on Mozilla projects.
 
-    User choice is respected: no changes are made without explicit
-    confirmation from you.
-
     If "--update-only" is used, the interactive wizard is disabled
     and this command only ensures that remote repositories providing
-    VCS extensions are up to date.
+    VCS extensions are up-to-date.
     """
     import mozversioncontrol
     from mach.util import to_optional_path
@@ -82,11 +84,17 @@ def vcs_setup(command_context, update_only=False):
 
     import mozboot.bootstrap as bootstrap
 
-    repo = mozversioncontrol.get_repository_object(
-        command_context._mach_context.topdir, jj=None
-    )
+    topsrcdir = Path(command_context._mach_context.topdir)
+    state_dir = Path(command_context._mach_context.state_dir)
+
+    repo = mozversioncontrol.get_repository_object(topsrcdir)
+
+    if not vcs:
+        vcs = repo.name
+        print(f"Automatically detected a {vcs} repository.")
+
     tool = "hg"
-    if repo.name == "git":
+    if repo.name == "git" or repo.name == "jj":
         tool = "git"
 
     # "hg" is an executable script with a shebang, which will be found by
@@ -95,28 +103,25 @@ def vcs_setup(command_context, update_only=False):
     if sys.platform in ("win32", "msys"):
         tool += ".exe"
 
-    vcs = to_optional_path(which(tool))
-    if not vcs:
+    vcs_exe = to_optional_path(which(tool))
+    if not vcs_exe:
         raise OSError(errno.ENOENT, f"Could not find {tool} on $PATH")
 
-    if update_only:
-        if repo.name == "git":
-            if repo.is_cinnabar_repo():
-                bootstrap.update_git_cinnabar(
-                    Path(command_context._mach_context.state_dir),
-                )
-        else:
-            bootstrap.configure_mercurial(
-                vcs, Path(command_context._mach_context.state_dir), update_only=True
-            )
+    if vcs == "git":
+        bootstrap.configure_git(vcs_exe, state_dir, topsrcdir, update_only=update_only)
+    elif vcs == "hg":
+        bootstrap.configure_mercurial(vcs_exe, state_dir, update_only=update_only)
+    elif vcs == "jj":
+        from mozversioncontrol.factory import USING_JJ_WARNING
+
+        print(USING_JJ_WARNING, file=sys.stderr)
+        print(
+            "\nOur jj support currently relies on Git; checks will run for both jj and Git.\n"
+        )
+        jj_exe = to_optional_path(which("jj"))
+        if not jj_exe:
+            raise OSError(errno.ENOENT, f"Could not find {jj_exe} on $PATH")
+        bootstrap.configure_git(vcs_exe, state_dir, topsrcdir, update_only=update_only)
+        bootstrap.configure_jujutsu(jj_exe, topsrcdir, update_only=update_only)
     else:
-        if repo.name == "git":
-            bootstrap.configure_git(
-                vcs,
-                Path(command_context._mach_context.state_dir),
-                Path(command_context._mach_context.topdir),
-            )
-        else:
-            bootstrap.configure_mercurial(
-                vcs, Path(command_context._mach_context.state_dir)
-            )
+        raise ValueError(f"Unsupported VCS: {repo.name}")
