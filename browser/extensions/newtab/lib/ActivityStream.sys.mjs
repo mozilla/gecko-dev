@@ -500,13 +500,6 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
-    "newtabWallpapers.v2.enabled",
-    {
-      title: "Boolean flag to turn wallpaper v2 functionality on and off",
-      value: false,
-    },
-  ],
-  [
     "newtabWallpapers.customColor.enabled",
     {
       title: "Boolean flag to turn show custom color select box",

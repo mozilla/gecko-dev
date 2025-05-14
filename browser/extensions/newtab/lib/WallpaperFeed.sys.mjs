@@ -19,10 +19,6 @@ const PREF_WALLPAPERS_ENABLED =
 const PREF_WALLPAPERS_HIGHLIGHT_SEEN_COUNTER =
   "browser.newtabpage.activity-stream.newtabWallpapers.highlightSeenCounter";
 
-const PREF_WALLPAPERS_V2_ENABLED =
-  "browser.newtabpage.activity-stream.newtabWallpapers.v2.enabled";
-
-const WALLPAPER_REMOTE_SETTINGS_COLLECTION = "newtab-wallpapers";
 const WALLPAPER_REMOTE_SETTINGS_COLLECTION_V2 = "newtab-wallpapers-v2";
 
 const PREF_WALLPAPERS_CUSTOM_WALLPAPER_ENABLED =
@@ -62,22 +58,12 @@ export class WallpaperFeed {
       PREF_WALLPAPERS_ENABLED
     );
 
-    const wallpapersV2Enabled = Services.prefs.getBoolPref(
-      PREF_WALLPAPERS_V2_ENABLED
-    );
-
-    if (wallpapersEnabled || wallpapersV2Enabled) {
+    if (wallpapersEnabled) {
       if (!this.wallpaperClient) {
         // getting collection
-        if (wallpapersV2Enabled) {
-          this.wallpaperClient = this.RemoteSettings(
-            WALLPAPER_REMOTE_SETTINGS_COLLECTION_V2
-          );
-        } else {
-          this.wallpaperClient = this.RemoteSettings(
-            WALLPAPER_REMOTE_SETTINGS_COLLECTION
-          );
-        }
+        this.wallpaperClient = this.RemoteSettings(
+          WALLPAPER_REMOTE_SETTINGS_COLLECTION_V2
+        );
       }
 
       this.wallpaperClient.on("sync", this._onSync);
@@ -314,8 +300,7 @@ export class WallpaperFeed {
           action.data.name ===
             "newtabWallpapers.newtabWallpapers.customColor.enabled" ||
           action.data.name === "newtabWallpapers.customWallpaper.enabled" ||
-          action.data.name === "newtabWallpapers.enabled" ||
-          action.data.name === "newtabWallpapers.v2.enabled"
+          action.data.name === "newtabWallpapers.enabled"
         ) {
           this.wallpaperTeardown();
           await this.wallpaperSetup(false /* isStartup */);

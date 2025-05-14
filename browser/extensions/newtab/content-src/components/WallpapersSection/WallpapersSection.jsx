@@ -23,12 +23,10 @@ export class _WallpapersSection extends React.PureComponent {
 
   handleChange(event) {
     const { id } = event.target;
-    const prefs = this.props.Prefs.values;
 
-    if (prefs["newtabWallpapers.v2.enabled"]) {
-      // If we don't care about color mode, set both to the same wallpaper.
-      this.props.setPref(`newtabWallpapers.wallpaper`, id);
-    }
+    // If we don't care about color mode, set both to the same wallpaper.
+    this.props.setPref(`newtabWallpapers.wallpaper`, id);
+
     this.handleUserEvent({
       selected_wallpaper: id,
       hadPreviousWallpaper: !!this.props.activeWallpaper,
@@ -36,10 +34,7 @@ export class _WallpapersSection extends React.PureComponent {
   }
 
   handleReset() {
-    const prefs = this.props.Prefs.values;
-    if (prefs["newtabWallpapers.v2.enabled"]) {
-      this.props.setPref("newtabWallpapers.wallpaper", "");
-    }
+    this.props.setPref("newtabWallpapers.wallpaper", "");
     this.handleUserEvent({
       selected_wallpaper: "none",
       hadPreviousWallpaper: !!this.props.activeWallpaper,
@@ -59,14 +54,10 @@ export class _WallpapersSection extends React.PureComponent {
   render() {
     const { wallpaperList } = this.props.Wallpapers;
     const { activeWallpaper } = this.props;
-    const prefs = this.props.Prefs.values;
-    let fieldsetClassname = `wallpaper-list`;
-    if (prefs["newtabWallpapers.v2.enabled"]) {
-      fieldsetClassname += " ignore-color-mode";
-    }
+
     return (
       <div>
-        <fieldset className={fieldsetClassname}>
+        <fieldset className="wallpaper-list ignore-color-mode">
           {wallpaperList.map(({ title, theme, fluent_id }) => {
             return (
               <>

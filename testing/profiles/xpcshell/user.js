@@ -42,7 +42,6 @@ user_pref("browser.topsites.contile.enabled", false);
 user_pref("browser.newtabpage.activity-stream.discoverystream.region-weather-config", "");
 // Don't pull wallpaper content from the network
 user_pref("browser.newtabpage.activity-stream.newtabWallpapers.enabled", false);
-user_pref("browser.newtabpage.activity-stream.newtabWallpapers.v2.enabled", false);
 // Don't pull sponsored Top Sites content from the network
 user_pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false);
 user_pref("security.turn_off_all_security_so_that_viruses_can_take_over_this_computer", true);

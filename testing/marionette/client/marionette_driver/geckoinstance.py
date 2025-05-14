@@ -50,6 +50,7 @@ class GeckoInstance:
         "browser.newtabpage.activity-stream.discoverystream.region-weather-config": "",
         # Don't pull wallpaper content from the network
         "browser.newtabpage.activity-stream.newtabWallpapers.enabled": False,
+        # Remove once Firefox 140 is no longer supported (see bug 1902921)
         "browser.newtabpage.activity-stream.newtabWallpapers.v2.enabled": False,
         # Don't pull sponsored Top Sites content from the network
         "browser.newtabpage.activity-stream.showSponsoredTopSites": False,

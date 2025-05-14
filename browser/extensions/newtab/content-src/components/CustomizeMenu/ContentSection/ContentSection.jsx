@@ -5,7 +5,6 @@
 import React from "react";
 import { actionCreators as ac } from "common/Actions.mjs";
 import { SectionsMgmtPanel } from "../SectionsMgmtPanel/SectionsMgmtPanel";
-import { WallpapersSection } from "../../WallpapersSection/WallpapersSection";
 import { WallpaperCategories } from "../../WallpapersSection/WallpaperCategories";
 
 export class ContentSection extends React.PureComponent {
@@ -99,7 +98,6 @@ export class ContentSection extends React.PureComponent {
       mayHaveWeather,
       openPreferences,
       wallpapersEnabled,
-      wallpapersV2Enabled,
       activeWallpaper,
       setPref,
       mayHaveTopicSections,
@@ -116,15 +114,7 @@ export class ContentSection extends React.PureComponent {
 
     return (
       <div className="home-section">
-        {!wallpapersV2Enabled && wallpapersEnabled && (
-          <div className="wallpapers-section">
-            <WallpapersSection
-              setPref={setPref}
-              activeWallpaper={activeWallpaper}
-            />
-          </div>
-        )}
-        {wallpapersV2Enabled && (
+        {wallpapersEnabled && (
           <>
             <div className="wallpapers-section">
               <WallpaperCategories
