@@ -122,10 +122,10 @@ export class MigrationWizardChild extends JSWindowActorChild {
         break;
       }
 
-      case "MigrationWizard:SelectSafariPasswordFile": {
-        let path = await this.sendQuery("SelectSafariPasswordFile");
+      case "MigrationWizard:SelectManualPasswordFile": {
+        let path = await this.sendQuery("SelectManualPasswordFile");
         if (path) {
-          event.detail.safariPasswordFilePath = path;
+          event.detail.manualPasswordFilePath = path;
 
           let passwordResourceIndex = event.detail.resourceTypes.indexOf(
             MigrationWizardConstants.DISPLAYED_RESOURCE_TYPES.PASSWORDS
@@ -321,7 +321,7 @@ export class MigrationWizardChild extends JSWindowActorChild {
       migrationDetails.resourceTypes.includes(
         MigrationWizardConstants.DISPLAYED_RESOURCE_TYPES.PASSWORDS
       ) &&
-      !migrationDetails.safariPasswordFilePath
+      !migrationDetails.manualPasswordFilePath
     ) {
       this.#sendTelemetryEvent("safariPasswordFile");
       this.setComponentState({
