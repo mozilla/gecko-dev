@@ -12979,6 +12979,7 @@ nsresult nsDocShell::OnLinkClick(
   loadState->SetTextDirectiveUserActivation(
       ownerDoc->ConsumeTextDirectiveUserActivation() ||
       hasValidUserGestureActivation);
+  loadState->SetUserNavigationInvolvement(aUserInvolvement);
 
   nsCOMPtr<nsIRunnable> ev = new OnLinkClickEvent(
       this, aContent, loadState, noOpenerImplied, aTriggeringPrincipal);

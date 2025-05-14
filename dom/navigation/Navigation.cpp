@@ -526,7 +526,7 @@ bool Navigation::FireTraverseNavigateEvent(
       /* aSourceElement */ nullptr,
       /* aFormDataEntryList*/ Nothing(),
       /* aClassicHistoryAPIState */ nullptr,
-      /* aDownloadRequestFilename */ u""_ns);
+      /* aDownloadRequestFilename */ VoidString());
 }
 
 // https://html.spec.whatwg.org/#fire-a-push/replace/reload-navigate-event
@@ -552,7 +552,7 @@ bool Navigation::FirePushReplaceReloadNavigateEvent(
       aCx, aNavigationType, destination,
       aUserInvolvement.valueOr(UserNavigationInvolvement::None), aSourceElement,
       aFormDataEntryList, aClassicHistoryAPIState,
-      /* aDownloadRequestFilename */ u""_ns);
+      /* aDownloadRequestFilename */ VoidString());
 }
 
 // https://html.spec.whatwg.org/#fire-a-download-request-navigate-event
