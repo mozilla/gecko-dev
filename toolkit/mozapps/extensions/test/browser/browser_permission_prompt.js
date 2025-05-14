@@ -1576,5 +1576,57 @@ add_task(async function testVerifyPostInstallPopupWithDataCollection() {
     }
   );
 
+  // Same as above with keyboard navigation.
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "about:robots" },
+    async () => {
+      const dialogPromise = promisePopupNotificationShown(
+        "addon-webext-permissions"
+      );
+      gURLBar.value = extension.path;
+      gURLBar.focus();
+      EventUtils.synthesizeKey("KEY_Enter");
+      const popupContentEl = await dialogPromise;
+
+      // Install the add-on.
+      let notificationPromise = waitAppMenuNotificationShown(
+        "addon-installed",
+        extensionId
+      );
+      popupContentEl.button.click();
+      let notification = await notificationPromise;
+
+      // Verify the post-install popup.
+      let settingsLink = notification.querySelector(
+        "#addon-install-description > a"
+      );
+      Assert.ok(settingsLink, "Expected a link in the post-install popup");
+      const tabPromise = BrowserTestUtils.waitForNewTab(
+        gBrowser,
+        "about:addons",
+        true
+      );
+      const focused = BrowserTestUtils.waitForEvent(settingsLink, "focus");
+      settingsLink.focus();
+      await focused;
+      EventUtils.synthesizeKey("KEY_Enter");
+      const tab = await tabPromise;
+      Assert.ok(tab, "Expected tab");
+      is(
+        gBrowser.selectedBrowser.contentWindow.gViewController.currentViewId,
+        `addons://detail/${encodeURIComponent(extensionId)}`,
+        "Expected about:addons to show the detail view of the extension"
+      );
+      BrowserTestUtils.removeTab(tab);
+
+      // Dismiss the popup by clicking "OK".
+      notification.button.click();
+
+      const addon = await AddonManager.getAddonByID(extensionId);
+      Assert.ok(addon, "Expected add-on");
+      await addon.uninstall();
+    }
+  );
+
   await SpecialPowers.popPrefEnv();
 });

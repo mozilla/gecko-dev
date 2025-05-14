@@ -800,6 +800,8 @@ customElements.define(
         const link = document.createElementNS(HTML_NS, "a");
         link.setAttribute("id", this.#settingsLinkId);
         link.setAttribute("data-l10n-name", "settings-link");
+        // Make the link both accessible and keyboard-friendly.
+        link.href = "#";
         this.descriptionEl.append(link);
 
         fluentId = "appmenu-addon-post-install-message-with-data-collection";
