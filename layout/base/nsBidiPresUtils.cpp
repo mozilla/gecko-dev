@@ -1393,9 +1393,13 @@ void nsBidiPresUtils::TraverseFrames(nsIFrame* aCurrentFrame,
         // "...inline objects (such as graphics) are treated as if they are ...
         // U+FFFC"
         // <wbr>, however, is treated as U+200B ZERO WIDTH SPACE. See
-        // http://dev.w3.org/html5/spec/Overview.html#phrasing-content-1
-        aBpd->AppendUnichar(
-            content->IsHTMLElement(nsGkAtoms::wbr) ? kZWSP : kObjectSubstitute);
+        // http://dev.w3.org/html5/spec/Overview.html#phrasing-content-1.
+        // Empty inline frames are also treated as kZWSP, to avoid unexpected
+        // bidi reordering of the surrounding content.
+        aBpd->AppendUnichar(content->IsHTMLElement(nsGkAtoms::wbr) ||
+                                    (frame->IsInlineFrame() && frame->IsEmpty())
+                                ? kZWSP
+                                : kObjectSubstitute);
         if (!frame->IsInlineOutside()) {
           // if it is not inline, end the paragraph
           ResolveParagraphWithinBlock(aBpd);
