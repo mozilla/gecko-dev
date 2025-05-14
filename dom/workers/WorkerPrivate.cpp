@@ -100,6 +100,7 @@
 #include "mozilla/dom/ServiceWorkerEvents.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
 #include "mozilla/net/CookieJarSettings.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "WorkerCSPEventListener.h"
 #include "WorkerDebugger.h"
 #include "WorkerDebuggerManager.h"
@@ -534,6 +535,23 @@ class ChangeBackgroundStateRunnable final : public WorkerControlRunnable {
                          WorkerPrivate* aWorkerPrivate) override {
     return aWorkerPrivate->ChangeBackgroundStateInternal(mIsBackground);
   }
+};
+
+class ChangePlaybackStateRunnable final : public WorkerControlRunnable {
+ public:
+  ChangePlaybackStateRunnable() = delete;
+  explicit ChangePlaybackStateRunnable(WorkerPrivate* aWorkerPrivate) = delete;
+  ChangePlaybackStateRunnable(WorkerPrivate* aWorkerPrivate,
+                              bool aIsPlayingAudio)
+      : WorkerControlRunnable("ChangePlaybackStateRunnable"),
+        mIsPlayingAudio(aIsPlayingAudio) {}
+
+ private:
+  virtual bool WorkerRun(JSContext* aCx,
+                         WorkerPrivate* aWorkerPrivate) override {
+    return aWorkerPrivate->ChangePlaybackStateInternal(mIsPlayingAudio);
+  }
+  bool mIsPlayingAudio = false;
 };
 
 class PropagateStorageAccessPermissionGrantedRunnable final
@@ -2882,6 +2900,9 @@ WorkerPrivate::WorkerPrivate(
     if (aParent->IsRunningInBackground()) {
       mIsInBackground = true;
     }
+    if (aParent->IsPlayingAudio()) {
+      mIsPlayingAudio = true;
+    }
 
     mIsPrivilegedAddonGlobal = aParent->mIsPrivilegedAddonGlobal;
   } else {
@@ -2959,6 +2980,11 @@ WorkerPrivate::WorkerPrivate(
     if (mLoadInfo.mWindow && mLoadInfo.mWindow->GetOuterWindow() &&
         mLoadInfo.mWindow->GetOuterWindow()->IsBackground()) {
       mIsInBackground = true;
+    }
+
+    if (mLoadInfo.mWindow &&
+        nsGlobalWindowInner::Cast(mLoadInfo.mWindow)->IsPlayingAudio()) {
+      SetIsPlayingAudio(true);
     }
   }
 
@@ -3227,6 +3253,17 @@ void WorkerPrivate::SetIsRunningInForeground() {
   runnable->Dispatch(this);
 
   LOG(WorkerLog(), ("SetIsRunningInForeground [%p]", this));
+}
+
+void WorkerPrivate::SetIsPlayingAudio(bool aIsPlayingAudio) {
+  AssertIsOnParentThread();
+
+  RefPtr<ChangePlaybackStateRunnable> runnable =
+      new ChangePlaybackStateRunnable(this, aIsPlayingAudio);
+  runnable->Dispatch(this);
+
+  AUTO_PROFILER_MARKER_UNTYPED("WorkerPrivate::SetIsPlayingAudio", DOM, {});
+  LOG(WorkerLog(), ("SetIsPlayingAudio [%p]", this));
 }
 
 nsresult WorkerPrivate::SetIsDebuggerReady(bool aReady) {
@@ -4802,6 +4839,17 @@ bool WorkerPrivate::ChangeBackgroundStateInternal(bool aIsBackground) {
     } else {
       data->mChildWorkers[index]->SetIsRunningInForeground();
     }
+  }
+  return true;
+}
+
+bool WorkerPrivate::ChangePlaybackStateInternal(bool aIsPlayingAudio) {
+  AssertIsOnWorkerThread();
+  mIsPlayingAudio = aIsPlayingAudio;
+  auto data = mWorkerThreadAccessible.Access();
+
+  for (uint32_t index = 0; index < data->mChildWorkers.Length(); index++) {
+    data->mChildWorkers[index]->SetIsPlayingAudio(aIsPlayingAudio);
   }
   return true;
 }

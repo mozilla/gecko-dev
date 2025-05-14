@@ -338,6 +338,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   virtual bool HasActiveIndexedDBDatabases() const override;
   virtual bool HasActivePeerConnections() override;
   virtual bool HasOpenWebSockets() const override;
+  virtual void AudioPlaybackChanged(bool aIsPlayingAudio);
   virtual bool HasScheduledNormalOrHighPriorityWebTasks() const override;
   void SyncStateFromParentWindow();
   virtual void UpdateWebSocketCount(int32_t aDelta) override;
@@ -1043,7 +1044,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   template <typename Method, typename... Args>
   mozilla::CallState CallOnInProcessDescendants(Method aMethod,
                                                 Args&&... aArgs) {
-    MOZ_ASSERT(IsCurrentInnerWindow());
     return CallOnInProcessDescendantsInternal(GetBrowsingContext(), false,
                                               aMethod, aArgs...);
   }
@@ -1180,7 +1180,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   friend class nsPIDOMWindowOuter;
 
   bool IsBackgroundInternal() const override;
-  bool IsPlayingAudio() override;
 
   // NOTE: Chrome Only
   void DisconnectAndClearGroupMessageManagers() {
@@ -1218,6 +1217,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
  public:
   static uint32_t GetShortcutsPermission(nsIPrincipal* aPrincipal);
+  bool IsPlayingAudio() override;
 
   // Dispatch a runnable related to the global.
   nsresult Dispatch(already_AddRefed<nsIRunnable>&& aRunnable) const final;

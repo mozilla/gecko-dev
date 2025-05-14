@@ -2142,6 +2142,16 @@ void RuntimeService::DumpRunningWorkers() {
   }
 }
 
+void RuntimeService::UpdateWorkersPlaybackState(
+    const nsPIDOMWindowInner& aWindow, bool aIsPlayingAudio) {
+  AssertIsOnMainThread();
+
+  for (WorkerPrivate* const worker : GetWorkersForWindow(aWindow)) {
+    MOZ_ASSERT(!worker->IsSharedWorker());
+    worker->SetIsPlayingAudio(aIsPlayingAudio);
+  }
+}
+
 bool LogViolationDetailsRunnable::MainThreadRun() {
   AssertIsOnMainThread();
   MOZ_ASSERT(mWorkerRef);
@@ -2504,6 +2514,15 @@ JSObject* GetCurrentThreadWorkerDebuggerGlobal() {
     return nullptr;
   }
   return scope->GetGlobalJSObject();
+}
+
+void UpdateWorkersPlaybackState(const nsPIDOMWindowInner& aWindow,
+                                bool aIsPlayingAudio) {
+  AssertIsOnMainThread();
+  RuntimeService* runtime = RuntimeService::GetService();
+  if (runtime) {
+    runtime->UpdateWorkersPlaybackState(aWindow, aIsPlayingAudio);
+  }
 }
 
 }  // namespace dom

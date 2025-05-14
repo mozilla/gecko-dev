@@ -172,6 +172,9 @@ class RuntimeService final : public nsIObserver {
 
   void DumpRunningWorkers();
 
+  void UpdateWorkersPlaybackState(const nsPIDOMWindowInner& aWindow,
+                                  bool aIsPlayingAudio);
+
  private:
   RuntimeService();
   ~RuntimeService();

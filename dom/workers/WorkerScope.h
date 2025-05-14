@@ -228,6 +228,11 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
     return mNumOfIndexedDBDatabases;
   }
 
+  bool IsPlayingAudio() override {
+    AssertIsOnWorkerThread();
+    return mWorkerPrivate && mWorkerPrivate->IsPlayingAudio();
+  }
+
   void TriggerUpdateCCFlag() override {
     mWorkerPrivate->UpdateCCFlag(WorkerPrivate::CCFlag::EligibleForTimeout);
   }
