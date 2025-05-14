@@ -36,6 +36,9 @@ run-if = ["os == 'win'"]
 
 ["browser_forced_colors.js"]
 
+["browser_handle_notification.js"]
+run-if = ["os == 'win'"]
+
 ["browser_initial_tab_remoteType.js"]
 https_first_disabled = true
 
