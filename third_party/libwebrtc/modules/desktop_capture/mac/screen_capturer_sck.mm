@@ -203,6 +203,9 @@ bool ScreenCapturerSck::SelectSource(SourceId id) {
   bool stream_started = false;
   {
     MutexLock lock(&lock_);
+    if (current_display_ == id) {
+      return true;
+    }
     current_display_ = id;
 
     if (stream_) {
