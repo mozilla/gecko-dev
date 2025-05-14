@@ -9,7 +9,6 @@ import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.Reducer
 import mozilla.components.lib.state.UiStore
 import org.mozilla.fenix.HomeActivity
-import org.webrtc.EglBase.Context
 
 /**
  * A helper class to be able to change the reference to objects that get replaced when the activity
