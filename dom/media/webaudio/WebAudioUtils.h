@@ -22,6 +22,8 @@ namespace mozilla {
 extern LazyLogModule gWebAudioAPILog;
 #define WEB_AUDIO_API_LOG(...) \
   MOZ_LOG(gWebAudioAPILog, LogLevel::Debug, (__VA_ARGS__))
+#define WEB_AUDIO_API_LOG_TEST(...) \
+  MOZ_LOG_TEST(gWebAudioAPILog, LogLevel::Debug)
 
 namespace dom::WebAudioUtils {
 
