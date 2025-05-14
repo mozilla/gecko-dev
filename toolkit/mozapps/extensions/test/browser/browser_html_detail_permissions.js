@@ -14,6 +14,11 @@ const { PERMISSION_L10N, PERMISSION_L10N_ID_OVERRIDES } =
 
 AddonTestUtils.initMochitest(this);
 
+Services.prefs.setBoolPref(
+  "extensions.dataCollectionPermissions.enabled",
+  true
+);
+
 const addonsBundle = new Localization(["toolkit/about/aboutAddons.ftl"], true);
 
 const assertVisibleSections = async (permsSection, expectedHeaders) => {
@@ -623,14 +628,6 @@ async function testPermissionsView({
   await SpecialPowers.popPrefEnv();
 }
 
-add_setup(async () => {
-  await SpecialPowers.pushPrefEnv({
-    // TODO: Bug 1960273 - Update this test and remove this pref set when we
-    // enable the data collection permissions on all channels.
-    set: [["extensions.dataCollectionPermissions.enabled", false]],
-  });
-});
-
 add_task(async function testPermissionsView_MV2_manifestV3disabled() {
   await testPermissionsView({ manifestV3enabled: false, manifest_version: 2 });
 });
@@ -920,6 +917,7 @@ add_task(async function test_OneOfMany_AllSites_toggle() {
   Assert.deepEqual(granted, {
     permissions: [],
     origins: ["http://*/*", "https://*/*"],
+    data_collection: [],
   });
 
   await closeView(view);
@@ -1020,10 +1018,6 @@ webext-perms-description-test-tabs = Custom description for the tabs permission
 });
 
 add_task(async function test_data_collection() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.dataCollectionPermissions.enabled", true]],
-  });
-
   const TEST_CASES = [
     {
       title: "no permissions",
@@ -1453,15 +1447,9 @@ add_task(async function test_data_collection() {
     await closeView(view);
     await extension.unload();
   }
-
-  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_data_collection_and_disabled_extension() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.dataCollectionPermissions.enabled", true]],
-  });
-
   const extensionId = "@some-id";
   const extension = ExtensionTestUtils.loadExtension({
     manifest: {
@@ -1533,6 +1521,4 @@ add_task(async function test_data_collection_and_disabled_extension() {
 
   await closeView(view);
   await extension.unload();
-
-  await SpecialPowers.popPrefEnv();
 });
