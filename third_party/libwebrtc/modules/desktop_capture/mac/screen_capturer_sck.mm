@@ -114,7 +114,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
   // Only used on the caller's thread.
   MacDesktopConfiguration desktop_config_;
 
-  Mutex latest_frame_lock_;
+  Mutex latest_frame_lock_ RTC_ACQUIRED_AFTER(lock_);
   std::unique_ptr<SharedDesktopFrame> latest_frame_
       RTC_GUARDED_BY(latest_frame_lock_);
 
@@ -220,26 +220,24 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
     return;
   }
 
+  MutexLock lock(&lock_);
   SCDisplay* captured_display;
-  {
-    MutexLock lock(&lock_);
-    for (SCDisplay* display in content.displays) {
-      if (current_display_ == display.displayID) {
-        captured_display = display;
-        break;
-      }
+  for (SCDisplay* display in content.displays) {
+    if (current_display_ == display.displayID) {
+      captured_display = display;
+      break;
     }
-    if (!captured_display) {
-      if (current_display_ ==
-          static_cast<CGDirectDisplayID>(kFullDesktopScreenId)) {
-        RTC_LOG(LS_WARNING) << "Full screen capture is not supported, falling "
-                               "back to first display.";
-      } else {
-        RTC_LOG(LS_WARNING) << "Display " << current_display_
-                            << " not found, falling back to first display.";
-      }
-      captured_display = content.displays.firstObject;
+  }
+  if (!captured_display) {
+    if (current_display_ ==
+        static_cast<CGDirectDisplayID>(kFullDesktopScreenId)) {
+      RTC_LOG(LS_WARNING) << "Full screen capture is not supported, falling "
+                             "back to first display.";
+    } else {
+      RTC_LOG(LS_WARNING) << "Display " << current_display_
+                          << " not found, falling back to first display.";
     }
+    captured_display = content.displays.firstObject;
   }
 
   SCContentFilter* filter =
@@ -257,8 +255,6 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
     MutexLock lock(&latest_frame_lock_);
     latest_frame_dpi_ = filter.pointPixelScale * kStandardDPI;
   }
-
-  MutexLock lock(&lock_);
 
   if (stream_) {
     RTC_LOG(LS_INFO) << "Updating stream configuration.";
