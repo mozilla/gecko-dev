@@ -270,7 +270,6 @@ browsertime-tp6-essential:
                 firefox:
                     by-test-platform:
                         windows.*-32.*: []
-                        macosx1100.*shippable.*: [mozilla-central]
                         .*64(?!.*nightlyasrelease).*shippable.*: [trunk]
                         default: []
                 default: []
@@ -304,7 +303,6 @@ browsertime-tp6-bytecode:
             firefox:
                 by-test-platform:
                     windows.*-32.*: []
-                    macosx1100.*shippable.*: [mozilla-central]
                     .*64(?!.*nightlyasrelease).*shippable.*: [trunk]
                     default: []
             default: []

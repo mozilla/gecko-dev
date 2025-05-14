@@ -16,7 +16,7 @@
       - android-em-7.0-x86_64-qr/debug
       - linux1804-64-qr/debug
       - macosx1015-64-qr/debug
-      - macosx1100-aarch64-qr/debug
+      - macosx1500-aarch64/debug
       - macosx1470-64/debug
       - windows10-64-2009-qr/debug
       - windows11-32-24h2/opt

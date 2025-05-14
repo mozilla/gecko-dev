@@ -5,10 +5,6 @@
 task-defaults:
     max-run-time: 3600
     suite: talos
-    tier:
-        by-test-platform:
-            macosx1100.*: 2
-            default: default
     virtualization: hardware
     mozharness:
         script: talos_script.py
