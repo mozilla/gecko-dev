@@ -1,8 +1,9 @@
 # !/bin/bash
 set -xe
 
-TRANSFORMERS_VERSION=3.4.0
-ONNXRUNTIME_VERSION=1.22.0-dev.20250306-ccf8fdd9ea
+
+TRANSFORMERS_VERSION=3.5.1
+ONNXRUNTIME_VERSION=1.22.0-dev.20250409-89f8206ba4
 
 # grabbing and patching transformers.js for gecko
 rm -rf tmp
