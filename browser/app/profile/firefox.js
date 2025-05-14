@@ -1986,7 +1986,10 @@ pref("browser.newtabpage.activity-stream.discoverystream.sections.personalizatio
 pref("browser.newtabpage.activity-stream.discoverystream.sections.interestPicker.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.sections.interestPicker.visibleSections", "");
 
-
+// List of regions for contextual ads.
+pref("browser.newtabpage.activity-stream.discoverystream.sections.contextualAds.region-config", "");
+// List of locales for contextual ads.
+pref("browser.newtabpage.activity-stream.discoverystream.sections.contextualAds.locale-config", "en-US,en-GB,en-CA");
 
 pref("browser.newtabpage.activity-stream.discoverystream.merino-provider.endpoint", "merino.services.mozilla.com");
 pref("browser.newtabpage.activity-stream.discoverystream.merino-provider.ohttp.enabled", false);

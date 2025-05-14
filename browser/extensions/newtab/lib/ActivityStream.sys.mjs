@@ -81,6 +81,11 @@ const REGION_CONTEXTUAL_CONTENT_CONFIG =
 const LOCALE_CONTEXTUAL_CONTENT_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.contextualContent.locale-content-config";
 
+const REGION_CONTEXTUAL_AD_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.sections.contextualAds.region-config";
+const LOCALE_CONTEXTUAL_AD_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.sections.contextualAds.locale-config";
+
 const REGION_SECTIONS_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.sections.region-content-config";
 const LOCALE_SECTIONS_CONFIG =
@@ -104,6 +109,13 @@ function useInferredPersonalization({ geo, locale }) {
   return (
     csvPrefHasValue(REGION_INFERRED_PERSONALIZATION_CONFIG, geo) &&
     csvPrefHasValue(LOCALE_INFERRED_PERSONALIZATION_CONFIG, locale)
+  );
+}
+
+function useContextualAds({ geo, locale }) {
+  return (
+    csvPrefHasValue(REGION_CONTEXTUAL_AD_CONFIG, geo) &&
+    csvPrefHasValue(LOCALE_CONTEXTUAL_AD_CONFIG, locale)
   );
 }
 
@@ -644,6 +656,13 @@ export const PREFS_CONFIG = new Map([
       title:
         "Boolean flag to enable revised pocket story card UI in recommended stories",
       value: false,
+    },
+  ],
+  [
+    "browser.newtabpage.activity-stream.discoverystream.sections.contextualAds.enabled",
+    {
+      title: "Boolean flag to enable contextual ads",
+      getValue: useContextualAds,
     },
   ],
   [

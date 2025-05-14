@@ -1335,6 +1335,27 @@ newTabSectionsExperiment:
         pref: browser.newtabpage.activity-stream.discoverystream.sections.customizeMenuPanel.enabled
       description: >-
         Enable personalized sections menu panel. Allow users to follow/unfollow topic sections.
+    sectionsContextualAdsEnabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.sections.contextualAds.enabled
+      description: >-
+        Enable contextual ads in sections.
+    regionSectionsContextualAdsConfig:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.sections.contextualAds.region-config
+      description: >-
+        A comma-separated list of regions that get contextual ads by default.
+    localeSectionsContextualAdsConfig:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.sections.contextualAds.locale-config
+      description: >-
+        A comma-separated list of locales that get contextual ads by default.
 
 newtabPrivatePing:
   description: The newtab-content ping, sent through OHTTP
