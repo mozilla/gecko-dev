@@ -99,6 +99,9 @@
                 class="context-menu-open-link"
                 data-l10n-id="main-context-menu-open-link-new-private-window"
                 />
+      <menuitem id="context-previewlink"
+                data-l10n-id="main-context-menu-preview-link"
+                />
       <menuseparator id="context-sep-open"/>
       <menuitem id="context-bookmarklink"
                 data-l10n-id="main-context-menu-bookmark-link-2"

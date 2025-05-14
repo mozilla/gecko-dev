@@ -230,6 +230,114 @@ add_task(async function test_link_in_shadow_dom() {
   );
 });
 
+add_task(async function test_linkpreviewcommand() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.linkPreview.prefetchOnEnable", false]],
+  });
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.linkPreview.enabled", true]],
+  });
+  await test_contextmenu("#test-link", [
+    "context-openlinkintab",
+    true,
+    ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
+    // We need a blank entry here because the containers submenu is
+    // dynamically generated with no ids.
+    ...(hasContainers ? ["", null] : []),
+    "context-openlink",
+    true,
+    "context-openlinkprivate",
+    true,
+    "context-previewlink",
+    true,
+    "---",
+    null,
+    "context-bookmarklink",
+    true,
+    "context-savelink",
+    true,
+    ...(hasPocket ? ["context-savelinktopocket", true] : []),
+    "context-copylink",
+    true,
+    ...(hasStripOnShare ? ["context-stripOnShareLink", true] : []),
+    "---",
+    null,
+    "context-searchselect",
+    true,
+    "context-searchselect-private",
+    true,
+    ...(hasSelectTranslations ? ["context-translate-selection", true] : []),
+  ]);
+
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_linkpreviewcommand_disabled() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.linkPreview.enabled", false]],
+  });
+  await test_contextmenu("#test-link", [
+    "context-openlinkintab",
+    true,
+    ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
+    // We need a blank entry here because the containers submenu is
+    // dynamically generated with no ids.
+    ...(hasContainers ? ["", null] : []),
+    "context-openlink",
+    true,
+    "context-openlinkprivate",
+    true,
+    //missing context-previewlink is expected
+    "---",
+    null,
+    "context-bookmarklink",
+    true,
+    "context-savelink",
+    true,
+    ...(hasPocket ? ["context-savelinktopocket", true] : []),
+    "context-copylink",
+    true,
+    ...(hasStripOnShare ? ["context-stripOnShareLink", true] : []),
+    "---",
+    null,
+    "context-searchselect",
+    true,
+    "context-searchselect-private",
+    true,
+    ...(hasSelectTranslations ? ["context-translate-selection", true] : []),
+  ]);
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_linkpreviewcommand_not_on_text() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.linkPreview.prefetchOnEnable", false]],
+  });
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.linkPreview.enabled", true]],
+  });
+
+  // Verify that context-previewlink doesn't appear in the context menu for text elements
+  await test_contextmenu("#test-text", [
+    ...NAVIGATION_ITEMS,
+    "context-savepage",
+    true,
+    ...(hasPocket ? ["context-pocket", true] : []),
+    "context-selectall",
+    true,
+    "---",
+    null,
+    "context-take-screenshot",
+    true,
+    "---",
+    null,
+    "context-viewsource",
+    true,
+  ]);
+
+  await SpecialPowers.popPrefEnv();
+});
+
 add_task(async function test_link_over_shadow_dom() {
   await test_contextmenu("#shadow-host-in-link", kLinkItems, {
     offsetX: 6,
