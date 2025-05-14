@@ -434,7 +434,7 @@ bool ScreenCapturerSck::GetSourceList(SourceList* sources) {
   RTC_DCHECK_RUN_ON(&api_checker_);
   sources->clear();
   if (capture_options_.allow_sck_system_picker() && picker_handle_) {
-    sources->push_back({picker_handle_->Source(), std::string()});
+    sources->push_back({picker_handle_->Source(), 0, std::string()});
   }
   return true;
 }
