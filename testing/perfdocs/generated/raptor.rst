@@ -638,32 +638,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
 
 
-   .. list-table:: **test-macosx1400-64-shippable-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **browsertime-benchmark-chrome-jetstream2**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-jetstream2**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-firefox-jetstream2**
-        - ✅
-        - ❌
-        - ❌
-        - ❌
-
-
    .. list-table:: **test-macosx1470-64-nightlyasrelease/opt**
       :widths: 30 15 15 15 15
       :header-rows: 1
@@ -968,32 +942,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
 
 
-   .. list-table:: **test-macosx1400-64-shippable-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **browsertime-benchmark-chrome-jetstream2**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-jetstream2**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-firefox-jetstream2**
-        - ✅
-        - ❌
-        - ❌
-        - ❌
-
-
    .. list-table:: **test-macosx1470-64-nightlyasrelease/opt**
       :widths: 30 15 15 15 15
       :header-rows: 1
@@ -1261,42 +1209,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
       * - **browsertime-benchmark-firefox-jetstream3**
         - ✅
         - ✅
-        - ❌
-        - ❌
-
-
-   .. list-table:: **test-macosx1400-64-shippable-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **browsertime-benchmark-chrome-jetstream3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-jetstream3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-firefox-jetstream3**
-        - ✅
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-jetstream3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-tp-jetstream3**
-        - ❌
-        - ❌
         - ❌
         - ❌
 
@@ -1582,42 +1494,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
       * - **browsertime-benchmark-firefox-jetstream3**
         - ✅
         - ✅
-        - ❌
-        - ❌
-
-
-   .. list-table:: **test-macosx1400-64-shippable-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **browsertime-benchmark-chrome-jetstream3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-jetstream3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-firefox-jetstream3**
-        - ✅
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-jetstream3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-tp-jetstream3**
-        - ❌
-        - ❌
         - ❌
         - ❌
 
@@ -2180,37 +2056,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
 
 
-   .. list-table:: **test-macosx1400-64-shippable-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **browsertime-benchmark-chrome-motionmark-1-3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-motionmark-1-3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-firefox-motionmark-1-3**
-        - ✅
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-motionmark-1-3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-
-
    .. list-table:: **test-macosx1470-64-nightlyasrelease/opt**
       :widths: 30 15 15 15 15
       :header-rows: 1
@@ -2543,37 +2388,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
       * - **browsertime-benchmark-firefox-motionmark-1-3**
         - ✅
         - ✅
-        - ❌
-        - ❌
-
-
-   .. list-table:: **test-macosx1400-64-shippable-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **browsertime-benchmark-chrome-motionmark-1-3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-motionmark-1-3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-firefox-motionmark-1-3**
-        - ✅
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-motionmark-1-3**
-        - ❌
-        - ❌
         - ❌
         - ❌
 
@@ -2925,37 +2739,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
 
 
-   .. list-table:: **test-macosx1400-64-shippable-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **browsertime-benchmark-chrome-motionmark-htmlsuite-1-3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-motionmark-htmlsuite-1-3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-firefox-motionmark-htmlsuite-1-3**
-        - ✅
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-motionmark-htmlsuite-1-3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-
-
    .. list-table:: **test-macosx1470-64-nightlyasrelease/opt**
       :widths: 30 15 15 15 15
       :header-rows: 1
@@ -3288,37 +3071,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
       * - **browsertime-benchmark-firefox-motionmark-htmlsuite-1-3**
         - ✅
         - ✅
-        - ❌
-        - ❌
-
-
-   .. list-table:: **test-macosx1400-64-shippable-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **browsertime-benchmark-chrome-motionmark-htmlsuite-1-3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-motionmark-htmlsuite-1-3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-firefox-motionmark-htmlsuite-1-3**
-        - ✅
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-motionmark-htmlsuite-1-3**
-        - ❌
-        - ❌
         - ❌
         - ❌
 
@@ -3764,37 +3516,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
 
 
-   .. list-table:: **test-macosx1400-64-shippable-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **browsertime-benchmark-chrome-speedometer**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-speedometer**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-firefox-speedometer**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-speedometer**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-
-
    .. list-table:: **test-macosx1470-64-nightlyasrelease/opt**
       :widths: 30 15 15 15 15
       :header-rows: 1
@@ -4222,37 +3943,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
       * - **browsertime-benchmark-firefox-speedometer**
         - ✅
         - ✅
-        - ❌
-        - ❌
-
-
-   .. list-table:: **test-macosx1400-64-shippable-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **browsertime-benchmark-chrome-speedometer**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-speedometer**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-firefox-speedometer**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-speedometer**
-        - ❌
-        - ❌
         - ❌
         - ❌
 
@@ -4701,42 +4391,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
       * - **browsertime-benchmark-firefox-speedometer3**
         - ✅
         - ✅
-        - ❌
-        - ❌
-
-
-   .. list-table:: **test-macosx1400-64-shippable-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **browsertime-benchmark-chrome-speedometer3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-speedometer3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-firefox-speedometer3**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-speedometer3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-tp-speedometer3**
-        - ✅
-        - ❌
         - ❌
         - ❌
 
@@ -5243,42 +4897,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
       * - **browsertime-benchmark-firefox-speedometer3**
         - ✅
         - ✅
-        - ❌
-        - ❌
-
-
-   .. list-table:: **test-macosx1400-64-shippable-qr/opt**
-      :widths: 30 15 15 15 15
-      :header-rows: 1
-
-      * - **Test Name**
-        - mozilla-central
-        - autoland
-        - mozilla-release
-        - mozilla-beta
-      * - **browsertime-benchmark-chrome-speedometer3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-speedometer3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-firefox-speedometer3**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-speedometer3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-tp-speedometer3**
-        - ✅
-        - ❌
         - ❌
         - ❌
 

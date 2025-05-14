@@ -391,11 +391,6 @@ macosx1015-64-qr/debug:
     test-sets:
         - macosx1015-64-qr-tests
 
-macosx1400-64-shippable-qr/opt:
-    build-platform: macosx64-shippable/opt
-    test-sets:
-        - macosx1500-64-perftests
-
 ##
 # Android platforms (matching /android-em.*/)
 #
