@@ -141,15 +141,18 @@
       color: var(--organizer-selected-color);
     }
 
-    > .menubar-text {
-      margin-block: 0 !important; /* override menu.css */
-      padding-inline-end: 8px;
-      background: url(chrome://global/skin/icons/arrow-down-12.svg) right center no-repeat;
-      background-size: 6px;
+    &::after {
+      display: flex;
+      width: 12px;
+      height: 12px;
+      margin-inline-start: 2px;
+      content: url("chrome://global/skin/icons/arrow-down-12.svg");
+      -moz-context-properties: fill;
+      fill: currentColor;
+    }
 
-      &:-moz-locale-dir(rtl) {
-        background-position-x: left;
-      }
+    > .menu-icon {
+      display: flex;
     }
   }
 }
