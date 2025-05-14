@@ -987,6 +987,9 @@ void NativeLayerWaylandRender::NotifySurfaceReady() {
   MOZ_DIAGNOSTIC_ASSERT(!mFrontBuffer);
   MOZ_DIAGNOSTIC_ASSERT(mInProgressBuffer);
   mFrontBuffer = std::move(mInProgressBuffer);
+  if (mSurfacePoolHandle->gl()) {
+    mSurfacePoolHandle->gl()->FlushIfHeavyGLCallsSinceLastFlush();
+  }
 }
 
 void NativeLayerWaylandRender::DiscardBackbuffersLocked(
