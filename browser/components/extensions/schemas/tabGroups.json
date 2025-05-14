@@ -217,7 +217,19 @@
         "name": "onRemoved",
         "type": "function",
         "description": "Fired when a tab group is removed.",
-        "parameters": [{ "$ref": "TabGroup", "name": "group" }]
+        "parameters": [
+          { "$ref": "TabGroup", "name": "group" },
+          {
+            "type": "object",
+            "name": "removeInfo",
+            "properties": {
+              "isWindowClosing": {
+                "type": "boolean",
+                "description": "True when the tab group is being closed because its window is being closed."
+              }
+            }
+          }
+        ]
       },
       {
         "name": "onUpdated",
