@@ -10,6 +10,7 @@ import androidx.preference.CheckBoxPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
+import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.CustomizeHome
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
@@ -17,7 +18,6 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.navigateWithBreadcrumb
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
-import org.mozilla.fenix.home.pocket.ContentRecommendationsFeatureHelper
 import org.mozilla.fenix.utils.view.addToRadioGroup
 
 /**
@@ -101,7 +101,7 @@ class HomeSettingsFragment : PreferenceFragmentCompat() {
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_pocket_homescreen_recommendations).apply {
-            isVisible = ContentRecommendationsFeatureHelper.isPocketRecommendationsFeatureEnabled(context)
+            isVisible = FeatureFlags.isPocketRecommendationsFeatureEnabled(context)
             isChecked = context.settings().showPocketRecommendationsFeature
             summary = context.getString(
                 R.string.customize_toggle_pocket_summary,
@@ -122,7 +122,7 @@ class HomeSettingsFragment : PreferenceFragmentCompat() {
         }
 
         requirePreference<CheckBoxPreference>(R.string.pref_key_pocket_sponsored_stories).apply {
-            isVisible = ContentRecommendationsFeatureHelper.isPocketSponsoredStoriesFeatureEnabled(context)
+            isVisible = FeatureFlags.isPocketSponsoredStoriesFeatureEnabled(context)
             isChecked = context.settings().showPocketSponsoredStories
             onPreferenceChangeListener = object : SharedPreferenceUpdater() {
                 override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
