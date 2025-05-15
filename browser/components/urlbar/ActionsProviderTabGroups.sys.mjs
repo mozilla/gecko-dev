@@ -52,19 +52,27 @@ class ProviderTabGroups extends ActionsProvider {
     for (let group of window.gBrowser.getAllTabGroups({
       sortByLastSeenActive: true,
     })) {
-      if (this.#matches(group.label, queryContext)) {
-        results.push(
-          this.#makeResult({
-            key: `tabgroup-${i++}`,
-            l10nId: "urlbar-result-action-switch-to-tabgroup",
-            l10nArgs: { group: group.label },
-            onPick: (_queryContext, _controller) => {
-              this.#switchToGroup(group);
-            },
-            color: group.color,
-          })
-        );
+      if (
+        group.ownerGlobal == window &&
+        window.gBrowser.selectedTab.group == group
+      ) {
+        // This group is already the active group, so don't offer switching to it.
+        continue;
       }
+      if (!this.#matches(group.label, queryContext)) {
+        continue;
+      }
+      results.push(
+        this.#makeResult({
+          key: `tabgroup-${i++}`,
+          l10nId: "urlbar-result-action-switch-to-tabgroup",
+          l10nArgs: { group: group.label },
+          onPick: (_queryContext, _controller) => {
+            this.#switchToGroup(group);
+          },
+          color: group.color,
+        })
+      );
     }
 
     if (queryContext.isPrivate) {
@@ -73,26 +81,27 @@ class ProviderTabGroups extends ActionsProvider {
     }
 
     for (let savedGroup of lazy.SessionStore.getSavedTabGroups()) {
-      if (this.#matches(savedGroup.name, queryContext)) {
-        results.push(
-          this.#makeResult({
-            key: `tabgroup-${i++}`,
-            l10nId: "urlbar-result-action-open-saved-tabgroup",
-            l10nArgs: { group: savedGroup.name },
-            onPick: (_queryContext, _controller) => {
-              let group = lazy.SessionStore.openSavedTabGroup(
-                savedGroup.id,
-                window,
-                {
-                  source: lazy.TabMetrics.METRIC_SOURCE.SUGGEST,
-                }
-              );
-              this.#switchToGroup(group);
-            },
-            color: savedGroup.color,
-          })
-        );
+      if (!this.#matches(savedGroup.name, queryContext)) {
+        continue;
       }
+      results.push(
+        this.#makeResult({
+          key: `tabgroup-${i++}`,
+          l10nId: "urlbar-result-action-open-saved-tabgroup",
+          l10nArgs: { group: savedGroup.name },
+          onPick: (_queryContext, _controller) => {
+            let group = lazy.SessionStore.openSavedTabGroup(
+              savedGroup.id,
+              window,
+              {
+                source: lazy.TabMetrics.METRIC_SOURCE.SUGGEST,
+              }
+            );
+            this.#switchToGroup(group);
+          },
+          color: savedGroup.color,
+        })
+      );
     }
 
     return results;

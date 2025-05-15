@@ -18,6 +18,22 @@ add_setup(async function () {
   });
 });
 
+/**
+ * Returns the first ActionsResult produced by the ActionsProviderTabGroups,
+ * if present in the search results.
+ *
+ * @param {UrlbarQueryContext} queryContext
+ * @returns {ActionsResult|undefined}
+ */
+function getTabGroupResult(queryContext) {
+  const firstAction = queryContext.results.find(
+    result => result.source == UrlbarUtils.RESULT_SOURCE.ACTIONS
+  );
+  return firstAction?.payload.actionsResults.find(actionResult =>
+    actionResult.key.startsWith("tabgroup-")
+  );
+}
+
 async function simple_tabgroup_search_test(label, searchString) {
   info(`Attempting to find tab group '${label}' by typing '${searchString}'`);
   const win = await BrowserTestUtils.openNewBrowserWindow();
@@ -57,6 +73,51 @@ add_task(async function test_substring() {
 
 add_task(async function test_words() {
   await simple_tabgroup_search_test("My About Pages", "abou pag");
+});
+
+add_task(async function test_active_group() {
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  let originalTab = win.gBrowser.selectedTab;
+  let aboutRobotsTab = BrowserTestUtils.addTab(win.gBrowser, "about:robots");
+  let aboutMozillaTab = BrowserTestUtils.addTab(win.gBrowser, "about:mozilla");
+  let tabGroup = win.gBrowser.addTabGroup([aboutRobotsTab, aboutMozillaTab], {
+    color: "blue",
+    label: "group1",
+  });
+  win.gBrowser.selectedTab = aboutMozillaTab;
+
+  let queryContext = await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window: win,
+    value: "group",
+  });
+  Assert.ok(
+    !getTabGroupResult(queryContext),
+    "Group not offered as a result since it's already active"
+  );
+  await UrlbarTestUtils.promisePopupClose(win, () => {
+    EventUtils.synthesizeKey("KEY_Escape", {}, win);
+    EventUtils.synthesizeKey("KEY_Escape", {}, win);
+  });
+
+  win.gBrowser.selectedTab = originalTab;
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window: win,
+    value: "group",
+  });
+  await UrlbarTestUtils.promisePopupClose(win, () => {
+    EventUtils.synthesizeKey("KEY_Tab", {}, win);
+    EventUtils.synthesizeKey("KEY_Enter", {}, win);
+  });
+
+  Assert.equal(
+    win.gBrowser.selectedTab,
+    tabGroup.tabs[0],
+    "Selecting the group result switches to the group's first tab"
+  );
+
+  await BrowserTestUtils.closeWindow(win);
+  TabGroupTestUtils.forgetSavedTabGroups();
 });
 
 add_task(async function test_last_accessed_order() {
@@ -116,22 +177,6 @@ add_task(async function test_last_accessed_order() {
   await BrowserTestUtils.closeWindow(win);
   TabGroupTestUtils.forgetSavedTabGroups();
 });
-
-/**
- * Returns the first ActionsResult produced by the ActionsProviderTabGroups,
- * if present in the search results.
- *
- * @param {UrlbarQueryContext} queryContext
- * @returns {ActionsResult|undefined}
- */
-function getTabGroupResult(queryContext) {
-  const firstAction = queryContext.results.find(
-    result => result.source == UrlbarUtils.RESULT_SOURCE.ACTIONS
-  );
-  return firstAction?.payload.actionsResults.find(actionResult =>
-    actionResult.key.startsWith("tabgroup-")
-  );
-}
 
 add_task(async function test_private_window() {
   info(
