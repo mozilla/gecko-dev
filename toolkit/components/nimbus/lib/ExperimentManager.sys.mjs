@@ -614,6 +614,7 @@ export class ExperimentManager {
       userFacingDescription,
       lastSeen: new Date().toJSON(),
       featureIds,
+      isRollout,
       prefs,
     };
 
@@ -630,10 +631,6 @@ export class ExperimentManager {
         firefoxLabsGroup,
         requiresRestart,
       });
-    }
-
-    if (typeof isRollout !== "undefined") {
-      enrollment.isRollout = isRollout;
     }
 
     this.store.addEnrollment(enrollment);
