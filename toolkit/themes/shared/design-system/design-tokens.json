@@ -1064,28 +1064,28 @@
       },
       "information": {
         "value": {
-          "light": "{color.blue.70}",
+          "light": "{color.blue.60}",
           "dark": "{color.blue.20}",
           "prefersContrast": "{icon.color.@base}"
         }
       },
       "success": {
         "value": {
-          "light": "{color.green.70}",
+          "light": "{color.green.60}",
           "dark": "{color.green.20}",
           "prefersContrast": "{icon.color.@base}"
         }
       },
       "warning": {
         "value": {
-          "light": "{color.yellow.70}",
+          "light": "{color.yellow.60}",
           "dark": "{color.yellow.20}",
           "prefersContrast": "{icon.color.@base}"
         }
       },
       "critical": {
         "value": {
-          "light": "{color.red.70}",
+          "light": "{color.red.60}",
           "dark": "{color.red.20}",
           "prefersContrast": "{icon.color.@base}"
         }

@@ -236,10 +236,10 @@
 
     /** Icon **/
     --icon-color: light-dark(var(--color-gray-70), var(--color-gray-05));
-    --icon-color-critical: light-dark(var(--color-red-70), var(--color-red-20));
-    --icon-color-information: light-dark(var(--color-blue-70), var(--color-blue-20));
-    --icon-color-success: light-dark(var(--color-green-70), var(--color-green-20));
-    --icon-color-warning: light-dark(var(--color-yellow-70), var(--color-yellow-20));
+    --icon-color-critical: light-dark(var(--color-red-60), var(--color-red-20));
+    --icon-color-information: light-dark(var(--color-blue-60), var(--color-blue-20));
+    --icon-color-success: light-dark(var(--color-green-60), var(--color-green-20));
+    --icon-color-warning: light-dark(var(--color-yellow-60), var(--color-yellow-20));
     --icon-size-default: var(--icon-size-small);
     --icon-size-small: var(--size-item-small);
     --icon-size-medium: 20px;

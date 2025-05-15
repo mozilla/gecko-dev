@@ -352,22 +352,22 @@
     "forcedColors": "{Theme$text/color}"
   },
   "icon/color/information": {
-    "light": "{Colors$color/blue/70}",
+    "light": "{Colors$color/blue/60}",
     "dark": "{Colors$color/blue/20}",
     "forcedColors": "{Theme$icon/color}"
   },
   "icon/color/success": {
-    "light": "{Colors$color/green/70}",
+    "light": "{Colors$color/green/60}",
     "dark": "{Colors$color/green/20}",
     "forcedColors": "{Theme$icon/color}"
   },
   "icon/color/warning": {
-    "light": "{Colors$color/yellow/70}",
+    "light": "{Colors$color/yellow/60}",
     "dark": "{Colors$color/yellow/20}",
     "forcedColors": "{Theme$icon/color}"
   },
   "icon/color/critical": {
-    "light": "{Colors$color/red/70}",
+    "light": "{Colors$color/red/60}",
     "dark": "{Colors$color/red/20}",
     "forcedColors": "{Theme$icon/color}"
   },
