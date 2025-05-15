@@ -4,6 +4,7 @@
 
 import logging
 import sys
+import tempfile
 from pathlib import Path
 from platform import uname
 from shutil import copytree, unpack_archive
@@ -23,8 +24,8 @@ else:
     MAR_CHANNEL = "firefox-mozilla-central"
 TEST_REGION = "en-US"
 TEST_SOURCE_VERSION = "135.0.1"
-INSTALLED_APP_DIR = "fx_test"
 FX_DOWNLOAD_DIR_URL = "https://archive.mozilla.org/pub/firefox/releases/"
+APP_DIR_NAME = "fx_test"
 
 
 def setup_update_argument_parser():
@@ -66,19 +67,21 @@ def get_fx_executable_name(version):
     return platform, executable_name.replace(" ", "%20")
 
 
-def get_binary_path(**kwargs):
+def get_binary_path(tempdir, **kwargs) -> str:
+    # Install correct Fx and return executable location
     platform, executable_name = get_fx_executable_name(TEST_SOURCE_VERSION)
 
     executable_url = rf"{FX_DOWNLOAD_DIR_URL}{TEST_SOURCE_VERSION}/{platform}/{TEST_REGION}/{executable_name}"
 
-    installer_filename = Path(executable_url).name
+    installer_filename = Path(tempdir, Path(executable_url).name)
+    installed_app_dir = Path(tempdir, APP_DIR_NAME)
     print(f"Downloading Fx from {executable_url}...")
     response = requests.get(executable_url)
     if 199 < response.status_code < 300:
         print(f"Download successful, status {response.status_code}")
     with open(installer_filename, "wb") as fh:
         fh.write(response.content)
-    fx_location = mozinstall.install(installer_filename, INSTALLED_APP_DIR)
+    fx_location = mozinstall.install(installer_filename, installed_app_dir)
     print(f"Firefox installed to {fx_location}")
     return fx_location
 
@@ -92,11 +95,16 @@ def get_binary_path(**kwargs):
 )
 @CommandArgument("--binary_path", help="Firefox executable path is needed")
 def build(command_context, binary_path, **kwargs):
+    tempdir = tempfile.TemporaryDirectory()
+    # If we have a symlink to the tmp directory, resolve it
+    tempdir_name = str(Path(tempdir.name).resolve())
     try:
-        if not binary_path:
-            kwargs["binary"] = str(get_binary_path(**kwargs))
-        else:
-            kwargs["binary"] = binary_path
+        kwargs["binary"] = set_up(
+            binary_path or get_binary_path(tempdir_name, **kwargs), tempdir=tempdir_name
+        )
+        return run_tests(
+            topsrcdir=command_context.topsrcdir, tempdir=tempdir_name, **kwargs
+        )
     except BinaryNotFoundException as e:
         command_context.log(
             logging.ERROR,
@@ -106,12 +114,11 @@ def build(command_context, binary_path, **kwargs):
         )
         command_context.log(logging.INFO, "update-test", {"help": e.help()}, "{help}")
         return 1
+    finally:
+        tempdir.cleanup()
 
-    kwargs["binary"] = str(set_up(kwargs["binary"]))
-    return run_tests(topsrcdir=command_context.topsrcdir, **kwargs)
 
-
-def run_tests(binary=None, topsrcdir=None, **kwargs):
+def run_tests(binary=None, topsrcdir=None, tempdir=None, **kwargs):
     from argparse import Namespace
 
     from marionette_harness.runtests import MarionetteHarness, MarionetteTestRunner
@@ -144,28 +151,30 @@ def run_tests(binary=None, topsrcdir=None, **kwargs):
     return 0
 
 
-def install_macos_binary(binary_path):
-    executable_path = Path(binary_path)
+def copy_macos_channelprefs(tempdir) -> str:
+    # Copy ChannelPrefs.framework to the correct location on MacOS,
+    # return the location of the Fx executable
+    installed_app_dir = Path(tempdir, APP_DIR_NAME)
 
     bz_channelprefs_link = "https://bugzilla.mozilla.org/attachment.cgi?id=9417387"
 
     resp = requests.get(bz_channelprefs_link)
-    with open("channelprefs.zip", "wb") as fh:
+    download_target = Path(tempdir, "channelprefs.zip")
+    unpack_target = str(download_target).rsplit(".", 1)[0]
+    with open(download_target, "wb") as fh:
         fh.write(resp.content)
 
-    unpack_archive("channelprefs.zip", "channelprefs")
-    src = Path("channelprefs", TEST_UPDATE_CHANNEL)
-    dst = Path(INSTALLED_APP_DIR, "Contents", "Frameworks")
-
-    # Cannot write on /Volumes, copy to a local dir
-    copytree(
-        Path(executable_path),
-        "Firefox.app",
-        dirs_exist_ok=True,
+    unpack_archive(download_target, unpack_target)
+    print(
+        f"Downloaded channelprefs.zip to {download_target} and unpacked to {unpack_target}"
     )
 
-    Path("Firefox.app").chmod(455)  # rwx for all users
+    src = Path(tempdir, "channelprefs", TEST_UPDATE_CHANNEL)
+    dst = Path(installed_app_dir, "Contents", "Frameworks")
 
+    Path(installed_app_dir, "Firefox.app").chmod(455)  # rwx for all users
+
+    print(f"Copying ChannelPrefs.framework from {src} to {dst}")
     copytree(
         Path(src, "ChannelPrefs.framework"),
         Path(dst, "ChannelPrefs.framework"),
@@ -173,18 +182,20 @@ def install_macos_binary(binary_path):
     )
 
     # test against the binary that was copied to local
-    fx_executable = Path("Firefox.app", "Contents", "MacOS", "firefox")
-    return fx_executable
+    fx_executable = Path(
+        installed_app_dir, "Firefox.app", "Contents", "MacOS", "firefox"
+    )
+    return str(fx_executable)
 
 
-def set_up(binary_path):
+def set_up(binary_path, tempdir):
     # Set channel prefs for all OS targets
     binary_path_str = mozinstall.get_binary(binary_path, "Firefox")
     print(f"Binary path: {binary_path_str}")
     binary_dir = Path(binary_path_str).absolute().parent
 
     if uname().system == "Darwin":
-        return install_macos_binary(binary_path)
+        return copy_macos_channelprefs(tempdir)
     else:
         with Path(binary_dir, "update-settings.ini").open("w") as f:
             f.write("[Settings]\n")
