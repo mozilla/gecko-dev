@@ -24,7 +24,6 @@ class MemoryFront extends FrontClassWithSpec(memorySpec) {
   constructor(client, targetFront, parentFront) {
     super(client, targetFront, parentFront);
     this._client = client;
-    this.heapSnapshotFileActorID = null;
 
     // Attribute name from which to retrieve the actorID out of the target actor's form
     this.formAttributeName = "memoryActor";
@@ -71,17 +70,11 @@ class MemoryFront extends FrontClassWithSpec(memorySpec) {
    * @returns Promise<String>
    */
   async transferHeapSnapshot(snapshotId) {
-    if (!this.heapSnapshotFileActorID) {
-      const form = await this._client.mainRoot.rootForm;
-      this.heapSnapshotFileActorID = form.heapSnapshotFileActor;
-    }
+    const heapSnapshotFileFront =
+      await this._client.mainRoot.getFront("heapSnapshotFile");
 
     try {
-      const request = this._client.request({
-        to: this.heapSnapshotFileActorID,
-        type: "transferHeapSnapshot",
-        snapshotId,
-      });
+      const request = heapSnapshotFileFront.transferHeapSnapshot(snapshotId);
 
       const outFilePath =
         HeapSnapshotFileUtils.getNewUniqueHeapSnapshotTempFilePath();

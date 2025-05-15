@@ -103,11 +103,10 @@ const Types = (exports.__TypesForTests = [
     spec: "devtools/shared/specs/frame",
     front: "devtools/client/fronts/frame",
   },
-  /* heap snapshot has old fashion client and no front */
   {
     types: ["heapSnapshotFile"],
     spec: "devtools/shared/specs/heap-snapshot-file",
-    front: null,
+    front: "devtools/client/fronts/heap-snapshot-file",
   },
   {
     types: ["customhighlighter"],

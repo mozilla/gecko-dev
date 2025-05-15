@@ -23,6 +23,7 @@ DevToolsModules(
     "css-properties.js",
     "device.js",
     "frame.js",
+    "heap-snapshot-file.js",
     "highlighters.js",
     "inspector.js",
     "layout.js",

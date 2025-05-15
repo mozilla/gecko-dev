@@ -44,8 +44,16 @@ exports.HeapSnapshotFileActor = class HeapSnapshotFileActor extends Actor {
 
   /**
    * @see MemoryFront.prototype.transferHeapSnapshot
+   *
+   * @param {String} snapshotId
+   *        The ID returned by MemoryActor's saveHeapSnapshot method.
+   * @param {Function} startBulkSend
+   *        Function provided by protocol.js Actor framework to initiate
+   *        the bulk reply. This methods returns a promise resolving to
+   *        a StreamCopier instance, whose `copyFrom` method allows
+   *        to send the data back to the client via an input stream.
    */
-  async transferHeapSnapshot(snapshotId) {
+  async transferHeapSnapshot(snapshotId, startBulkSend) {
     const snapshotFilePath =
       HeapSnapshotFileUtils.getHeapSnapshotTempFilePath(snapshotId);
     if (!snapshotFilePath) {
@@ -55,11 +63,7 @@ exports.HeapSnapshotFileActor = class HeapSnapshotFileActor extends Actor {
     const streamPromise = DevToolsUtils.openFileStream(snapshotFilePath);
 
     const { size } = await IOUtils.stat(snapshotFilePath);
-    const bulkPromise = this.conn.startBulkSend({
-      actor: this.actorID,
-      type: "heap-snapshot",
-      length: size,
-    });
+    const bulkPromise = startBulkSend(size);
 
     const [bulk, stream] = await Promise.all([bulkPromise, streamPromise]);
 

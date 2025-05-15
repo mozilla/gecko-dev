@@ -6,6 +6,7 @@
 const {
   Arg,
   generateActorSpec,
+  BULK_RESPONSE,
 } = require("resource://devtools/shared/protocol.js");
 
 const heapSnapshotFileSpec = generateActorSpec({
@@ -16,6 +17,7 @@ const heapSnapshotFileSpec = generateActorSpec({
       request: {
         snapshotId: Arg(0, "string"),
       },
+      response: BULK_RESPONSE,
     },
   },
 });
