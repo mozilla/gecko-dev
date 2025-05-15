@@ -6,8 +6,9 @@ import shutil
 import tempfile
 
 try:
-    import ujson as json
+    import orjson
 except ImportError:
+    orjson = None
     import json
 
 from mozlog import get_proxy_logger
@@ -18,8 +19,11 @@ LOG = get_proxy_logger("profiler")
 
 
 def save_gecko_profile(profile, filename):
-    with open(filename, "w") as f:
-        json.dump(profile, f)
+    with open(filename, "wb") as f:
+        if orjson is not None:
+            f.write(orjson.dumps(profile))
+        else:
+            f.write(json.dumps(profile).encode("utf-8"))
 
 
 def symbolicate_profile_json(profile_path, firefox_symbols_path):
@@ -67,8 +71,11 @@ def symbolicate_profile_json(profile_path, firefox_symbols_path):
     )
 
     try:
-        with open(profile_path, encoding="utf-8") as profile_file:
-            profile = json.load(profile_file)
+        with open(profile_path, "rb", encoding="utf-8") as profile_file:
+            if orjson is not None:
+                profile = orjson.loads(profile_file.read())
+            else:
+                profile = json.load(profile_file)
         symbolicator.dump_and_integrate_missing_symbols(profile, missing_symbols_zip)
         symbolicator.symbolicate_profile(profile)
         # Overwrite the profile in place.
