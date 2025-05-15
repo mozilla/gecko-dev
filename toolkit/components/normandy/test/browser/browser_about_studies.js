@@ -9,9 +9,6 @@ const { RecipeRunner } = ChromeUtils.importESModule(
 const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
-const { ExperimentManager } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/ExperimentManager.sys.mjs"
-);
 const { ExperimentAPI } = ChromeUtils.importESModule(
   "resource://nimbus/ExperimentAPI.sys.mjs"
 );
@@ -649,7 +646,7 @@ add_task(async function test_nimbus_about_studies_experiment() {
   const recipe = NimbusTestUtils.factories.recipe("about-studies-foo");
   const {
     branch: { slug: activeBranchSlug },
-  } = await ExperimentManager.enroll(recipe);
+  } = await ExperimentAPI.manager.enroll(recipe);
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:studies", activeBranchSlug },
     async browser => {
@@ -680,7 +677,7 @@ add_task(async function test_nimbus_about_studies_experiment() {
       );
     }
   );
-  ExperimentManager.unenroll(recipe.slug);
+  ExperimentAPI.manager.unenroll(recipe.slug);
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:studies", activeBranchSlug },
     async browser => {
@@ -712,8 +709,8 @@ add_task(async function test_nimbus_about_studies_experiment() {
     }
   );
   // Cleanup for multiple test runs
-  ExperimentManager.store._deleteForTests(recipe.slug);
-  Assert.equal(ExperimentManager.store.getAll().length, 0, "Cleanup done");
+  ExperimentAPI.manager.store._deleteForTests(recipe.slug);
+  Assert.equal(ExperimentAPI.manager.store.getAll().length, 0, "Cleanup done");
 });
 
 add_task(async function test_nimbus_about_studies_rollout() {
@@ -725,7 +722,7 @@ add_task(async function test_nimbus_about_studies_rollout() {
     branches: [recipe.branches[0]],
     isRollout: true,
   };
-  await ExperimentManager.enroll(rollout);
+  await ExperimentAPI.manager.enroll(rollout);
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:studies" },
     async browser => {
@@ -780,7 +777,7 @@ add_task(async function test_nimbus_about_studies_rollout() {
     }
   );
   // Cleanup for multiple test runs
-  ExperimentManager.store._deleteForTests(rollout.slug);
+  ExperimentAPI.manager.store._deleteForTests(rollout.slug);
   Services.prefs.clearUserPref("nimbus.debug");
 });
 
@@ -872,8 +869,8 @@ add_task(async function test_forceEnroll() {
     });
 
     // Enrolls in the experiment and rollout
-    await ExperimentManager.enroll(experiment);
-    await ExperimentManager.enroll(rollout);
+    await ExperimentAPI.manager.enroll(experiment);
+    await ExperimentAPI.manager.enroll(rollout);
 
     // Checks about:studies to ensure they are both in the active section
     await BrowserTestUtils.withNewTab(
@@ -910,8 +907,8 @@ add_task(async function test_forceEnroll() {
     );
 
     // Unenrolls from the experiment and rollout
-    ExperimentManager.unenroll(experiment.slug);
-    ExperimentManager.unenroll(rollout.slug);
+    ExperimentAPI.manager.unenroll(experiment.slug);
+    ExperimentAPI.manager.unenroll(rollout.slug);
 
     // Checks about:studies to ensure they are both in the inactive section
     await BrowserTestUtils.withNewTab(
@@ -948,8 +945,8 @@ add_task(async function test_forceEnroll() {
     );
 
     // Cleanup for multiple test runs
-    ExperimentManager.store._deleteForTests(experiment.slug);
-    ExperimentManager.store._deleteForTests(rollout.slug);
+    ExperimentAPI.manager.store._deleteForTests(experiment.slug);
+    ExperimentAPI.manager.store._deleteForTests(rollout.slug);
   });
 
   sandbox.restore();

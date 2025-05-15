@@ -1,8 +1,5 @@
 "use strict";
 
-const { ExperimentManager } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/ExperimentManager.sys.mjs"
-);
 const { FirstStartup } = ChromeUtils.importESModule(
   "resource://gre/modules/FirstStartup.sys.mjs"
 );
@@ -25,7 +22,7 @@ const DEBUG_PREF = "nimbus.debug";
 add_task(async function test_real_exp_manager() {
   equal(
     RemoteSettingsExperimentLoader.manager,
-    ExperimentManager,
+    ExperimentAPI.manager,
     "should reference ExperimentManager singleton by default"
   );
 });
