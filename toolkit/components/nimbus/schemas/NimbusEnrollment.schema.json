@@ -44,10 +44,6 @@
       "format": "date-time",
       "description": "The last time the experiment was seen."
     },
-    "force": {
-      "type": "boolean",
-      "description": "Whether or not this was a force enrollment."
-    },
     "prefs": {
       "type": "array",
       "description": "Information about prefs set by this enrollment.",
