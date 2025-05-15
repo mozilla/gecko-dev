@@ -1857,7 +1857,7 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "onpointerover", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "onpointerrawupdate", disabled: true },
+  { name: "onpointerrawupdate" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "onpointerup", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
