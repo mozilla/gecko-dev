@@ -36,6 +36,8 @@ const DEFAULT_PORT = 9222;
 // their values when the application is restarted internally.
 const ENV_ALLOW_SYSTEM_ACCESS = "MOZ_REMOTE_ALLOW_SYSTEM_ACCESS";
 
+const SHARED_DATA_ACTIVE_KEY = "RemoteAgent:Active";
+
 const isRemote =
   Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT;
 
@@ -69,8 +71,6 @@ class RemoteAgentParentProcess {
     // Supported protocols
     this.#cdp = null;
     this.#webDriverBiDi = null;
-
-    Services.ppmm.addMessageListener("RemoteAgent:IsRunning", this);
   }
 
   get allowHosts() {
@@ -166,6 +166,16 @@ class RemoteAgentParentProcess {
 
   get server() {
     return this.#server;
+  }
+
+  /**
+   * Syncs the WebDriver active flag with the web content processes.
+   *
+   * @param {boolean} value - Flag indicating if Remote Agent is active or not.
+   */
+  updateWebdriverActiveFlag(value) {
+    Services.ppmm.sharedData.set(SHARED_DATA_ACTIVE_KEY, value);
+    Services.ppmm.sharedData.flush();
   }
 
   get webDriverBiDi() {
@@ -326,6 +336,8 @@ class RemoteAgentParentProcess {
         this.server.identity.add("http", this.#host, this.#port);
       }
 
+      this.updateWebdriverActiveFlag(true);
+
       Services.obs.notifyObservers(null, "remote-listening", true);
 
       await Promise.all([this.#webDriverBiDi?.start(), this.#cdp?.start()]);
@@ -407,6 +419,9 @@ class RemoteAgentParentProcess {
     try {
       await this.#server.stop();
       this.#server = null;
+
+      this.updateWebdriverActiveFlag(false);
+
       Services.obs.notifyObservers(null, "remote-listening");
     } catch (e) {
       // this function must never fail
@@ -554,12 +569,7 @@ class RemoteAgentParentProcess {
 
 class RemoteAgentContentProcess {
   get running() {
-    let reply = Services.cpmm.sendSyncMessage("RemoteAgent:IsRunning");
-    if (!reply.length) {
-      lazy.logger.warn("No reply from parent process");
-      return false;
-    }
-    return reply[0];
+    return Services.cpmm.sharedData.get(SHARED_DATA_ACTIVE_KEY) ?? false;
   }
 
   get QueryInterface() {

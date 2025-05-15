@@ -21,6 +21,7 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
 ChromeUtils.defineLazyGetter(lazy, "textEncoder", () => new TextEncoder());
 
 const NOTIFY_LISTENING = "marionette-listening";
+const SHARED_DATA_ACTIVE_KEY = "Marionette:Active";
 
 // Complements -marionette flag for starting the Marionette server.
 // We also set this if Marionette is running in order to start the server
@@ -56,8 +57,6 @@ class MarionetteParentProcess {
     // Initially set the enabled state based on the environment variable.
     this.enabled = Services.env.exists(ENV_ENABLED);
 
-    Services.ppmm.addMessageListener("Marionette:IsRunning", this);
-
     this.#browserStartupFinished = lazy.Deferred();
   }
 
@@ -90,15 +89,14 @@ class MarionetteParentProcess {
     return !!this.server && this.server.alive;
   }
 
-  receiveMessage({ name }) {
-    switch (name) {
-      case "Marionette:IsRunning":
-        return this.running;
-
-      default:
-        lazy.logger.warn("Unknown IPC message to parent process: " + name);
-        return null;
-    }
+  /**
+   * Syncs the Marionette active flag with the web content processes.
+   *
+   * @param {boolean} value - Flag indicating if Marionette is active or not.
+   */
+  updateWebdriverActiveFlag(value) {
+    Services.ppmm.sharedData.set(SHARED_DATA_ACTIVE_KEY, value);
+    Services.ppmm.sharedData.flush();
   }
 
   handle(cmdLine) {
@@ -235,6 +233,8 @@ class MarionetteParentProcess {
       return;
     }
 
+    this.updateWebdriverActiveFlag(true);
+
     Services.env.set(ENV_ENABLED, "1");
     Services.obs.notifyObservers(this, NOTIFY_LISTENING, true);
     lazy.logger.debug("Marionette is listening");
@@ -258,8 +258,9 @@ class MarionetteParentProcess {
   async uninit() {
     if (this.running) {
       await this.server.stop();
+      this.updateWebdriverActiveFlag(false);
+
       Services.obs.notifyObservers(this, NOTIFY_LISTENING);
-      lazy.logger.debug("Marionette stopped listening");
 
       try {
         await IOUtils.remove(this._activePortPath);
@@ -268,6 +269,8 @@ class MarionetteParentProcess {
           `Failed to remove ${this._activePortPath} (${e.message})`
         );
       }
+
+      lazy.logger.debug("Marionette stopped listening");
     }
   }
 
@@ -286,12 +289,7 @@ class MarionetteContentProcess {
   }
 
   get running() {
-    let reply = Services.cpmm.sendSyncMessage("Marionette:IsRunning");
-    if (!reply.length) {
-      lazy.logger.warn("No reply from parent process");
-      return false;
-    }
-    return reply[0];
+    return Services.cpmm.sharedData.get(SHARED_DATA_ACTIVE_KEY) ?? false;
   }
 
   get QueryInterface() {
