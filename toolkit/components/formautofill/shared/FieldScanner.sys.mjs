@@ -259,16 +259,22 @@ export class FieldScanner {
   }
 
   /**
-   * Return the index of the first field found with the given name.
+   * Return the index of the first visible field found with the given name.
    *
    * @param {string} fieldName
    *        The field name to find.
+   * @param {string} includeInvisible
+   *        Whether to find non-visible fields.
    * @returns {number}
    *          The index of the element or -1 if not found.
    */
-  getFieldIndexByName(fieldName) {
+  getFieldIndexByName(fieldName, includeInvisible = false) {
     for (let idx = 0; this.elementExisting(idx); idx++) {
-      if (this.#fieldDetails[idx].fieldName == fieldName) {
+      let field = this.#fieldDetails[idx];
+      if (
+        field.fieldName == fieldName &&
+        (includeInvisible || field.isVisible)
+      ) {
         return idx;
       }
     }

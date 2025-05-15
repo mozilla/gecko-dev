@@ -364,4 +364,108 @@ add_autofill_heuristic_tests([
       },
     ],
   },
+  {
+    description:
+      "Suburb matches address-level2 when another address-level2 is present but not visible",
+    fixtureData: `<form>
+      <label>Name <input id="field1"/></label>
+      <label>Address Line 1 <input id="field2"/></label>
+      <label>Address Line 2<input id="field3"/></label>
+      <label>City / Suburb<input id="field4"></label>
+      <label>Postcode<input id="field5"></label>
+      <label style="display: none;">City<select id="field6">
+        <option val="a1">Here</option>
+        <option val="a2">Sampletown</option>
+      </select></label>
+    </form>`,
+    profile: TEST_PROFILE_BR,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          {
+            fieldName: "name",
+            autofill:
+              TEST_PROFILE_BR["given-name"] +
+              " " +
+              TEST_PROFILE_BR["family-name"],
+          },
+          { fieldName: "address-line1", autofill: "160 Rua Acores" },
+          {
+            fieldName: "address-line2",
+            autofill: "Apartment 300",
+            reason: "update-heuristic",
+          },
+          {
+            fieldName: "address-level2",
+            autofill: TEST_PROFILE_BR["address-level2"],
+            reason: "update-heuristic",
+          },
+          {
+            fieldName: "postal-code",
+            autofill: TEST_PROFILE_BR["postal-code"],
+          },
+          {
+            fieldName: "address-level2",
+            autofill: "",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    description:
+      "Suburb matches address-level2 when another address-level2 is present but not visible in another order",
+    fixtureData: `<form>
+      <label>Name <input id="field1"/></label>
+      <label>Address Line 1 <input id="field2"/></label>
+      <label>Address Line 2<input id="field3"/></label>
+      <label style="display: none;">City<select id="field4">
+        <option val="a1">Here</option>
+        <option val="a2">Sampletown</option>
+      </select></label>
+      <label>Postcode<input id="field5"></label>
+      <label>City / Suburb<select id="field6">
+        <option val="a1">Here</option>
+        <option val="a2">Sampletown</option>
+      </select></label>
+    </form>`,
+    profile: TEST_PROFILE_BR,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          {
+            fieldName: "name",
+            autofill:
+              TEST_PROFILE_BR["given-name"] +
+              " " +
+              TEST_PROFILE_BR["family-name"],
+          },
+          { fieldName: "address-line1", autofill: "160 Rua Acores" },
+          {
+            fieldName: "address-line2",
+            autofill: "Apartment 300",
+            reason: "update-heuristic",
+          },
+          {
+            fieldName: "address-level2",
+            autofill: "",
+          },
+          {
+            fieldName: "postal-code",
+            autofill: TEST_PROFILE_BR["postal-code"],
+          },
+          {
+            fieldName: "address-level2",
+            autofill: TEST_PROFILE_BR["address-level2"],
+          },
+        ],
+      },
+    ],
+  },
 ]);
