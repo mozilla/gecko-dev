@@ -1,0 +1,15 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * calculator.net - Text-selection UI interrupts users
+ * Bug #1918995 - https://bugzilla.mozilla.org/show_bug.cgi?id=1918995
+ * WebCompat issue #141610 - https://webcompat.com/issues/141610
+ *
+ * The text-selection copy/paste UI is not disabled on the keys of the
+ * calculator, which can lead to frustration. This CSS prevents that.
+ */
+#sciout :has(.scinm) {
+  user-select: none;
+}

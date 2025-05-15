@@ -2933,6 +2933,23 @@
       }
     ]
   },
+  "1918995": {
+    "label": "calculator.net",
+    "bugs": {
+      "1918995": {
+        "issue": "user-interface-frustration",
+        "matches": ["*://www.calculator.net/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "css": ["bug1918995-calculator.net-hide-copypaste-ui-for-buttons.css"]
+        }
+      }
+    ]
+  },
   "1935598": {
     "label": "testbook.com",
     "bugs": {
