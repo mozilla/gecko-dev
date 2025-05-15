@@ -24,12 +24,21 @@ class CoalescedInputData {
 
   UniquePtr<InputEventType> mCoalescedInputEvent;
   ScrollableLayerGuid mGuid;
-  uint64_t mInputBlockId;
+  uint64_t mInputBlockId = 0;
+  uint32_t mGeneration = 0;
+
+  void AdvanceGeneration() {
+    if (!IsEmpty()) {
+      mGeneration++;
+    }
+  }
 
  public:
-  CoalescedInputData() : mInputBlockId(0) {}
+  CoalescedInputData() = default;
 
   void RetrieveDataFrom(CoalescedInputData& aSource) {
+    aSource.AdvanceGeneration();
+    AdvanceGeneration();
     mCoalescedInputEvent = std::move(aSource.mCoalescedInputEvent);
     mGuid = aSource.mGuid;
     mInputBlockId = aSource.mInputBlockId;
@@ -42,12 +51,23 @@ class CoalescedInputData {
                    const uint64_t& aInputBlockId);
 
   UniquePtr<InputEventType> TakeCoalescedEvent() {
+    AdvanceGeneration();
     return std::move(mCoalescedInputEvent);
   }
 
   ScrollableLayerGuid GetScrollableLayerGuid() { return mGuid; }
 
   uint64_t GetInputBlockId() { return mInputBlockId; }
+
+  /**
+   * The generation number of the latest state stored by the instance.
+   * It'll be incremented when the coalesced event data is retrieved or taken.
+   * So, this is useful to avoid handling same coalesced events twice when
+   * a nested event loop may handle this.
+   * NOTE: You should compare the value only with `==` or `!=`.  Do not use
+   * `<` nor `>` because the value may circulate to 0 from UINT32_MAX.
+   */
+  [[nodiscard]] uint32_t Generation() const { return mGeneration; }
 };
 
 class CoalescedInputFlusher : public nsARefreshObserver {
@@ -61,12 +81,17 @@ class CoalescedInputFlusher : public nsARefreshObserver {
   void StartObserver();
   void RemoveObserver();
 
+  /**
+   * Return a refresh driver which is proper one for BrowserChild.
+   * Note that this is not a getter of mRefreshDriver.
+   */
+  [[nodiscard]] nsRefreshDriver* GetRefreshDriver();
+
  protected:
   virtual ~CoalescedInputFlusher();
 
-  nsRefreshDriver* GetRefreshDriver();
-
   BrowserChild* mBrowserChild;
+  // A refresh driver which this instance waits for the next refresh of.
   RefPtr<nsRefreshDriver> mRefreshDriver;
 };
 }  // namespace mozilla::dom

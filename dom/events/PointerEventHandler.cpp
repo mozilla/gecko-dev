@@ -715,7 +715,9 @@ void PointerEventHandler::InitPointerEventFromTouch(
     WidgetPointerEvent& aPointerEvent, const WidgetTouchEvent& aTouchEvent,
     const mozilla::dom::Touch& aTouch) {
   // Use mButton/mButtons only when mButton got a value (from pen input)
-  int16_t button = aTouchEvent.mMessage == eTouchMove ? MouseButton::eNotPressed
+  int16_t button = aTouchEvent.mMessage == eTouchRawUpdate ||
+                           aTouchEvent.mMessage == eTouchMove
+                       ? MouseButton::eNotPressed
                    : aTouchEvent.mButton != MouseButton::eNotPressed
                        ? aTouchEvent.mButton
                        : MouseButton::ePrimary;
@@ -783,6 +785,9 @@ EventMessage PointerEventHandler::ToPointerEventMessage(
   MOZ_ASSERT(aMouseOrTouchEvent);
 
   switch (aMouseOrTouchEvent->mMessage) {
+    case eMouseRawUpdate:
+    case eTouchRawUpdate:
+      return ePointerRawUpdate;
     case eMouseMove:
       return ePointerMove;
     case eMouseUp:
@@ -807,6 +812,15 @@ EventMessage PointerEventHandler::ToPointerEventMessage(
     default:
       return eVoidEvent;
   }
+}
+
+/* static */
+bool PointerEventHandler::NeedToDispatchPointerRawUpdate(
+    const Document* aDocument) {
+  const nsPIDOMWindowInner* const innerWindow =
+      aDocument ? aDocument->GetInnerWindow() : nullptr;
+  return innerWindow && innerWindow->HasPointerRawUpdateEventListeners() &&
+         innerWindow->IsSecureContext();
 }
 
 /* static */
@@ -838,10 +852,8 @@ void PointerEventHandler::DispatchPointerFromMouseOrTouch(
     }
 
     // 1. If it is not mouse then it is likely will come as touch event
-    // 2. We don't synthesize pointer events for those events that are not
-    //    dispatched to DOM.
-    if (!mouseEvent->convertToPointer ||
-        !aMouseOrTouchEvent->IsAllowedToDispatchDOMEvent()) {
+    // 2. We don't synthesize pointer events for synthesized mouse move
+    if (!mouseEvent->convertToPointer || mouseEvent->IsSynthesized()) {
       return;
     }
 
@@ -849,6 +861,30 @@ void PointerEventHandler::DispatchPointerFromMouseOrTouch(
     if (pointerMessage == eVoidEvent) {
       return;
     }
+#ifdef DEBUG
+    if (pointerMessage == ePointerRawUpdate) {
+      const nsIContent* const targetContent =
+          aEventTargetContent ? aEventTargetContent
+                              : aEventTargetFrame->GetContent();
+      NS_ASSERTION(targetContent, "Where do we want to try to dispatch?");
+      if (targetContent) {
+        NS_ASSERTION(
+            targetContent->IsInComposedDoc(),
+            nsPrintfCString("Do we want to dispatch ePointerRawUpdate onto "
+                            "disconnected content? (targetContent=%s)",
+                            ToString(*targetContent).c_str())
+                .get());
+        if (!NeedToDispatchPointerRawUpdate(targetContent->OwnerDoc())) {
+          NS_ASSERTION(
+              false,
+              nsPrintfCString(
+                  "Did we fail to retarget the document? (targetContent=%s)",
+                  ToString(*targetContent).c_str())
+                  .get());
+        }
+      }
+    }
+#endif  // #ifdef DEBUG
     WidgetPointerEvent event(*mouseEvent);
     InitPointerEventFromMouse(&event, mouseEvent, pointerMessage);
     event.convertToPointer = mouseEvent->convertToPointer = false;
@@ -927,7 +963,7 @@ void PointerEventHandler::DispatchPointerFromMouseOrTouch(
         // all pointer events should be dispatched to the same target as their
         // corresponding touch events. Call PresShell::HandleEvent so that we do
         // hit test for pointer events.
-        // FIXME: If aDontRetargetEvents is true and the event is fired on
+        // FIXME: If aDontRetargetEvents is false and the event is fired on
         // different document, we cannot track the pointer event target when
         // it's removed from the tree.
         PreHandlePointerEventsPreventDefault(&event, aMouseOrTouchEvent);
@@ -992,9 +1028,15 @@ void PointerEventHandler::NotifyDestroyPresContext(
 bool PointerEventHandler::IsDragAndDropEnabled(WidgetMouseEvent& aEvent) {
   // We shouldn't start a drag session if the event is synthesized one because
   // aEvent doesn't have enough information for initializing the ePointerCancel.
-  if (!aEvent.IsReal()) {
+  if (aEvent.IsSynthesized()) {
     return false;
   }
+  // And we should not start with raw update events, which should be used only
+  // for notifying web apps of the pointer state changes ASAP.
+  if (aEvent.mMessage == ePointerRawUpdate) {
+    return false;
+  }
+  MOZ_ASSERT(aEvent.mMessage != eMouseRawUpdate);
 #ifdef XP_WIN
   if (StaticPrefs::dom_w3c_pointer_events_dispatch_by_pointer_messages()) {
     // WM_POINTER does not support drag and drop, see bug 1692277

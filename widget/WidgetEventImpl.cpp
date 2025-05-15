@@ -174,6 +174,12 @@ bool IsForbiddenDispatchingToNonElementContent(EventMessage aMessage) {
     case eTouchPointerCancel:
       return true;
 
+    case eMouseRawUpdate:
+    case eTouchRawUpdate:
+      MOZ_ASSERT_UNREACHABLE(
+          "Internal raw update events shouldn't be dispatched to the DOM");
+      return true;
+
     default:
       return false;
   }
@@ -384,6 +390,7 @@ bool WidgetEvent::HasMouseEventMessage() const {
     case eMouseOut:
     case eMouseHitTest:
     case eMouseMove:
+    case eMouseRawUpdate:
       return true;
     // TODO: Perhaps, we should rename this method.
     case ePointerClick:
@@ -531,7 +538,7 @@ bool WidgetEvent::IsTargetedAtFocusedContent() const {
 bool WidgetEvent::IsAllowedToDispatchDOMEvent() const {
   switch (mClass) {
     case eMouseEventClass:
-      if (mMessage == eMouseTouchDrag) {
+      if (mMessage == eMouseRawUpdate || mMessage == eMouseTouchDrag) {
         return false;
       }
       [[fallthrough]];
@@ -541,7 +548,7 @@ bool WidgetEvent::IsAllowedToDispatchDOMEvent() const {
       // DOM events.
       // Synthesized button up events also do not cause DOM events because they
       // do not have a reliable mRefPoint.
-      return AsMouseEvent()->mReason == WidgetMouseEvent::eReal;
+      return AsMouseEvent()->IsReal();
 
     case eWheelEventClass: {
       // wheel event whose all delta values are zero by user pref applied, it
@@ -551,7 +558,7 @@ bool WidgetEvent::IsAllowedToDispatchDOMEvent() const {
              wheelEvent->mDeltaZ != 0.0;
     }
     case eTouchEventClass:
-      return mMessage != eTouchPointerCancel;
+      return mMessage != eTouchRawUpdate && mMessage != eTouchPointerCancel;
     // Following events are handled in EventStateManager, so, we don't need to
     // dispatch DOM event for them into the DOM tree.
     case eQueryContentEventClass:
@@ -908,6 +915,7 @@ float WidgetMouseEventBase::ComputeMouseButtonPressure() const {
   switch (mMessage) {
     // This method is designed for mouse events.
     case eMouseMove:
+    case eMouseRawUpdate:
     case eMouseUp:
     case eMouseDown:
     case eMouseEnterIntoWidget:
@@ -936,6 +944,7 @@ float WidgetMouseEventBase::ComputeMouseButtonPressure() const {
     case ePointerClick:
     case ePointerAuxClick:
     case ePointerMove:
+    case ePointerRawUpdate:
     case ePointerUp:
     case ePointerDown:
     case ePointerCancel:

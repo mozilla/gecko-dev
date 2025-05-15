@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test for number of pointerrawupdate events of touch</title>
+  <script src="/tests/SimpleTest/EventUtils.js"></script>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<div id="target0" style="margin: 50px; width: 50px; height: 50px; background: green"></div>
+<script>
+"use strict";
+
+SimpleTest.waitForExplicitFinish();
+SimpleTest.requestCompleteLog();
+
+if (!window.opener) {
+  // the utils function in apz can't not be used in remote iframe, so run the
+  // test in a new tab.
+  info("run tests in a new tab");
+  window.open("test_pointerrawupdate_event_count_touch.html");
+} else {
+  function runTests() {
+    const target0 = window.document.getElementById("target0");
+    const utils = SpecialPowers.getDOMWindowUtils(window);
+    utils.advanceTimeAndRefresh(0);
+    const allEvents = [];
+    const pointerRawUpdateEvents = [];
+    const coalescedPointerMoveEvents = [];
+
+    function stringifyPointerEvent(event) {
+      return `{ screenX: ${event.screenX}, screenY: ${
+        event.screenY
+      }, clientX: ${event.clientX}, clientY:${event.clientY}, buttons:${
+        event.buttons
+      } }`;
+    }
+
+    SimpleTest.executeSoon(async () => {
+      function onPointerRawUpdate(event) {
+        allEvents.push(event);
+        pointerRawUpdateEvents.push(event);
+        // Currently, we need to compute the coordinates of the coalesced events
+        // while the host event is being dispatched. See bug 1960530.
+        event.getCoalescedEvents();
+      }
+      target0.addEventListener("pointerrawupdate", onPointerRawUpdate);
+      const waitForPointerMove = new Promise(resolve => {
+        function onPointerMove(event) {
+          allEvents.push(event);
+          for (const coalescedEvent of event.getCoalescedEvents()) {
+            coalescedPointerMoveEvents.push(coalescedEvent);
+          }
+          if (pointerRawUpdateEvents.length > 1) {
+            target0.removeEventListener("pointermove", onPointerMove);
+            target0.removeEventListener("pointerrawupdate", onPointerRawUpdate);
+            resolve();
+          }
+        }
+        target0.addEventListener("pointermove", onPointerMove);
+      });
+
+      target0.addEventListener("pointerup", async event => {
+        utils.restoreNormalRefresh();
+        await waitForPointerMove;
+        for (const event of allEvents) {
+          info(`${event.type}: ${stringifyPointerEvent(event)}`);
+        }
+        opener.ok(!!pointerRawUpdateEvents.length, "At least one pointerrawupdate event should be fired");
+        opener.is(
+          pointerRawUpdateEvents.length,
+          coalescedPointerMoveEvents.length,
+          `pointermove.getCoalescedEvents().length should be same as the number of preceding pointerrawupdate`
+        );
+        {
+          let i = 0;
+          for (const pointerRawUpdateEvent of pointerRawUpdateEvents) {
+            const coalescedEvents = pointerRawUpdateEvent.getCoalescedEvents();
+            opener.is(
+              coalescedEvents.length,
+              1,
+              `pointerrawupdate(${i}): should have only one coalesced event`
+            );
+            opener.is(
+              `${coalescedEvents[0].type}: ${stringifyPointerEvent(coalescedEvents[0])}`,
+              `${pointerRawUpdateEvent.type}: ${stringifyPointerEvent(pointerRawUpdateEvent)}`,
+              `pointerrawupdate(${i++}): the coalesced event should have same values as the host event`
+            );
+          }
+        }
+        for (let i = 0; i < Math.min(pointerRawUpdateEvents.length, coalescedPointerMoveEvents.length); i++) {
+          opener.is(
+            stringifyPointerEvent(pointerRawUpdateEvents[i]),
+            stringifyPointerEvent(coalescedPointerMoveEvents[i]),
+            `pointerrawupdate(${i++}): should have same values as coalesced pointermove events`
+          );
+        }
+        opener.SimpleTest.finish();
+        window.close();
+      }, { once: true });
+
+      let positions = [];
+      for (let i = 10; i <= 40; i+=5) {
+        positions.push([{ x: i, y: i }]);
+      }
+
+      await synthesizeNativeTouchSequences(target0, positions);
+    });
+  }
+
+  SimpleTest.waitForFocus(() => {
+    SpecialPowers.pushPrefEnv({"set": [
+      ["dom.event.pointer.rawupdate.enabled", true],
+      ["dom.events.coalesce.touchmove", true],
+      ["dom.events.compress.touchmove", false],
+    ]}, runTests);
+  });
+}
+
+</script>
+</body>
+</html>

@@ -641,13 +641,35 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   // may reentry the event loop and access to the same hashtable. It's
   // called when dispatching some mouse events other than mousemove.
   void FlushAllCoalescedMouseData();
+
   void ProcessPendingCoalescedMouseDataAndDispatchEvents();
 
   void ProcessPendingCoalescedTouchData();
 
+  /**
+   * Dispatch an eMouseRawUpdate event for dispatching ePointerRawUpdate event
+   * into the DOM immediately when aPendingEvent will be dispatched later.
+   * This does nothing if there is no window which has at least one
+   * `pointerrawupdate` event listener.
+   */
+  void HandleMouseRawUpdateEvent(const WidgetMouseEvent& aPendingMouseEvent,
+                                 const ScrollableLayerGuid& aGuid,
+                                 const uint64_t& aInputBlockId);
+
   void HandleRealMouseButtonEvent(const WidgetMouseEvent& aEvent,
                                   const ScrollableLayerGuid& aGuid,
                                   const uint64_t& aInputBlockId);
+
+  /**
+   * Dispatch an eTouchRawUpdate event for dispatching ePointerRawUpdate event
+   * into the DOM immediately when aPendingEvent will be dispatched later.
+   * This does nothing if there is no window which has at least one
+   * `pointerrawupdate` event listener.
+   */
+  void HandleTouchRawUpdateEvent(const WidgetTouchEvent& aPendingTouchEvent,
+                                 const ScrollableLayerGuid& aGuid,
+                                 const uint64_t& aInputBlockId,
+                                 const nsEventStatus& aApzResponse);
 
   void SetCancelContentJSEpoch(int32_t aEpoch) {
     mCancelContentJSEpoch = aEpoch;
@@ -716,7 +738,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   void OnPointerRawUpdateEventListenerAdded(const nsPIDOMWindowInner* aWindow);
   void OnPointerRawUpdateEventListenerRemoved(
       const nsPIDOMWindowInner* aWindow);
-  [[nodiscard]] bool HasWindowHavingPointerRawUpdateEventListeners() const {
+  [[nodiscard]] bool HasPointerRawUpdateEventListeners() const {
     return !!mPointerRawUpdateWindowCount;
   }
 

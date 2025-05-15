@@ -100,6 +100,20 @@ skip-if = [
 
 ["test_pointermove_isPrimary_subsequent_pens.html"]
 
+["test_pointerrawupdate_event_count.html"]
+scheme = "https"
+skip-if = ["os == 'android'"]  # Bug 1312791
+
+["test_pointerrawupdate_event_count_touch.html"]
+scheme = "https"
+skip-if = [
+  "os == 'android'",  # Bug 1312791
+  "verify && os == 'win'",  # Bug 1659744
+  "win11_2009", # Bug 1781388
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1781388
+]
+support-files = ["!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js"]
+
 ["test_remove_frame_when_got_pointer_capture.html"]
 
 ["test_synthesized_touch.html"]

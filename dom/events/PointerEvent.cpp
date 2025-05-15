@@ -385,7 +385,9 @@ void PointerEvent::GetCoalescedEvents(
 
 void PointerEvent::EnsureFillingCoalescedEvents(
     WidgetPointerEvent& aWidgetEvent) {
-  if (!aWidgetEvent.IsTrusted() || aWidgetEvent.mMessage != ePointerMove ||
+  if (!aWidgetEvent.IsTrusted() ||
+      (aWidgetEvent.mMessage != ePointerMove &&
+       aWidgetEvent.mMessage != ePointerRawUpdate) ||
       !mCoalescedEvents.IsEmpty() ||
       (aWidgetEvent.mCoalescedWidgetEvents &&
        !aWidgetEvent.mCoalescedWidgetEvents->mEvents.IsEmpty()) ||

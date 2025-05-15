@@ -1,0 +1,129 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test for number of pointerrawupdate events</title>
+  <script src="/tests/SimpleTest/EventUtils.js"></script>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<div id="target0" style="width: 50px; height: 50px; background: green"></div>
+<script>
+SimpleTest.waitForExplicitFinish();
+SimpleTest.requestCompleteLog();
+SimpleTest.waitForFocus(async () => {
+  await SpecialPowers.pushPrefEnv({"set": [
+    ["dom.event.pointer.rawupdate.enabled", true],
+    ["dom.events.coalesce.mousemove", true],
+    ["test.events.async.enabled", true],
+  ]});
+
+  const target0 = window.document.getElementById("target0");
+
+  // First for flushing pending events in the main process, we should synthesize
+  // a simple click and wait for that.
+  info("Waiting for a click for waiting for stable state...");
+  await new Promise(resolve => {
+    target0.addEventListener("click", resolve, {once: true});
+    synthesizeMouseAtCenter(target0, {});
+  });
+  info("Got a click which must be synthesized by us!");
+
+  const utils = SpecialPowers.getDOMWindowUtils(window);
+  utils.advanceTimeAndRefresh(0);
+  await new Promise(resolve => SimpleTest.executeSoon(resolve));
+
+  function stringifyPointerEvent(event) {
+    return `{ screenX: ${event.screenX}, screenY: ${
+      event.screenY
+    }, clientX: ${event.clientX}, clientY:${event.clientY}, buttons:${
+      event.buttons
+    } }`;
+  }
+
+  const allEvents = [];
+  const pointerRawUpdateEvents = [];
+  function onPointerRawUpdate(event) {
+    allEvents.push(event);
+    pointerRawUpdateEvents.push(event);
+    // Currently, we need to compute the coordinates of the coalesced events
+    // while the host event is being dispatched. See bug 1960530.
+    event.getCoalescedEvents();
+    if (pointerRawUpdateEvents.length == 4) {
+      utils.restoreNormalRefresh();
+    }
+  }
+  target0.addEventListener("pointerrawupdate", onPointerRawUpdate);
+
+  const coalescedPointerMoveEvents = [];
+  const waitForPointerMove = new Promise(function (resolve) {
+    function onPointerMove(event) {
+      allEvents.push(event);
+      for (const coalescedEvent of event.getCoalescedEvents()) {
+        coalescedPointerMoveEvents.push(coalescedEvent);
+      }
+      if (coalescedPointerMoveEvents.length == 4) {
+        target0.removeEventListener("pointermove", onPointerMove);
+        target0.removeEventListener("pointerrawupdate", onPointerRawUpdate);
+        resolve();
+      }
+    };
+    target0.addEventListener("pointermove", onPointerMove);
+  });
+
+  info("Synthesizing mouse moves....");
+  synthesizeMouse(target0, 5, 5, {type: "mousemove"});
+  synthesizeMouse(target0, 10, 10, {type: "mousemove"});
+  synthesizeMouse(target0, 15, 15, {type: "mousemove"});
+  synthesizeMouse(target0, 20, 20, {type: "mousemove"});
+  info("Waiting for 4 coalesced pointermove events...");
+  await waitForPointerMove;
+
+  for (const event of allEvents) {
+    info(`${event.type}: ${stringifyPointerEvent(event)}`);
+  }
+
+  ok(!!pointerRawUpdateEvents.length, "At least one pointerrawupdate event should be fired");
+  is(
+    pointerRawUpdateEvents.length,
+    coalescedPointerMoveEvents.length,
+    `pointermove.getCoalescedEvents().length should be same as the number of preceding pointerrawupdate`
+  );
+  {
+    let i = 0;
+    for (const pointerRawUpdateEvent of pointerRawUpdateEvents) {
+      const coalescedEvents = pointerRawUpdateEvent.getCoalescedEvents();
+      is(
+        coalescedEvents.length,
+        1,
+        `pointerrawupdate(${i}): should have only one coalesced event`
+      );
+      is(
+        `${coalescedEvents[0].type}: ${stringifyPointerEvent(coalescedEvents[0])}`,
+        `${pointerRawUpdateEvent.type}: ${stringifyPointerEvent(pointerRawUpdateEvent)}`,
+        `pointerrawupdate(${i++}): the coalesced event should have same values as the host event`
+      );
+    }
+  }
+  for (let i = 0; i < Math.min(pointerRawUpdateEvents.length, coalescedPointerMoveEvents.length); i++) {
+    is(
+      stringifyPointerEvent(pointerRawUpdateEvents[i]),
+      stringifyPointerEvent(coalescedPointerMoveEvents[i]),
+      `pointerrawupdate(${i++}): should have same values as coalesced pointermove events`
+    );
+  }
+
+  info("Waiting for a click for waiting for stable state after the test...");
+  await new Promise(resolve => {
+    target0.addEventListener("click", resolve, {once: true});
+    synthesizeMouseAtCenter(target0, {});
+  });
+  info("Got a click after the test!");
+  utils.restoreNormalRefresh();
+  SimpleTest.finish();
+});
+</script>
+</body>
+</html>
