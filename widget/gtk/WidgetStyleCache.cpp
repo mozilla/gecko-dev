@@ -779,10 +779,6 @@ static GtkStyleContext* GetCssNodeStyleInternal(WidgetNodeType aNodeType) {
     case MOZ_GTK_FRAME_BORDER:
       style = CreateChildCSSNode("border", MOZ_GTK_FRAME);
       break;
-    case MOZ_GTK_TREEVIEW_VIEW:
-      // TODO - create from CSS node
-      style = CreateSubStyleWithClass(MOZ_GTK_TREEVIEW, GTK_STYLE_CLASS_VIEW);
-      break;
     case MOZ_GTK_SPLITTER_SEPARATOR_HORIZONTAL:
       style = CreateChildCSSNode("separator", MOZ_GTK_SPLITTER_HORIZONTAL);
       break;
@@ -870,9 +866,6 @@ static GtkStyleContext* GetWidgetStyleInternal(WidgetNodeType aNodeType) {
       break;
     case MOZ_GTK_FRAME_BORDER:
       return GetWidgetRootStyle(MOZ_GTK_FRAME);
-    case MOZ_GTK_TREEVIEW_VIEW:
-      style = CreateSubStyleWithClass(MOZ_GTK_TREEVIEW, GTK_STYLE_CLASS_VIEW);
-      break;
     case MOZ_GTK_SPLITTER_SEPARATOR_HORIZONTAL:
       style = CreateSubStyleWithClass(MOZ_GTK_SPLITTER_HORIZONTAL,
                                       GTK_STYLE_CLASS_PANE_SEPARATOR);
