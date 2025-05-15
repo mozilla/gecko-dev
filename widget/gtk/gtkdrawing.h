@@ -164,14 +164,6 @@ enum WidgetNodeType : int {
   MOZ_GTK_MENUITEM,
   /* Menubar menuitem for foreground colors. */
   MOZ_GTK_MENUBARITEM,
-  /* GtkVPaned base class */
-  MOZ_GTK_SPLITTER_HORIZONTAL,
-  /* GtkHPaned base class */
-  MOZ_GTK_SPLITTER_VERTICAL,
-  /* Paints a GtkVPaned separator */
-  MOZ_GTK_SPLITTER_SEPARATOR_HORIZONTAL,
-  /* Paints a GtkHPaned separator */
-  MOZ_GTK_SPLITTER_SEPARATOR_VERTICAL,
   /* Paints the background of a window, dialog or page. */
   MOZ_GTK_WINDOW,
   /* Used only as a container for MOZ_GTK_HEADER_BAR. */

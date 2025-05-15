@@ -220,12 +220,6 @@ bool nsNativeThemeGTK::GetGtkWidgetAndState(StyleAppearance aAppearance,
         if (IsFirstTab(aFrame)) *aWidgetFlags |= MOZ_GTK_TAB_FIRST;
       }
     } break;
-    case StyleAppearance::Splitter:
-      if (IsHorizontal(aFrame))
-        aGtkWidgetType = MOZ_GTK_SPLITTER_VERTICAL;
-      else
-        aGtkWidgetType = MOZ_GTK_SPLITTER_HORIZONTAL;
-      break;
     case StyleAppearance::MozWindowDecorations:
       aGtkWidgetType = MOZ_GTK_WINDOW_DECORATION;
       break;
@@ -772,22 +766,7 @@ LayoutDeviceIntSize nsNativeThemeGTK::GetMinimumWidgetSize(
   if (IsWidgetAlwaysNonNative(aFrame, aAppearance)) {
     return Theme::GetMinimumWidgetSize(aPresContext, aFrame, aAppearance);
   }
-
-  CSSIntSize result;
-  switch (aAppearance) {
-    case StyleAppearance::Splitter: {
-      if (IsHorizontal(aFrame)) {
-        moz_gtk_splitter_get_metrics(GTK_ORIENTATION_HORIZONTAL, &result.width);
-      } else {
-        moz_gtk_splitter_get_metrics(GTK_ORIENTATION_VERTICAL, &result.height);
-      }
-    } break;
-    default:
-      break;
-  }
-
-  return LayoutDeviceIntSize::Round(CSSSize(result) *
-                                    GetWidgetScaleFactor(aFrame));
+  return {};
 }
 
 bool nsNativeThemeGTK::WidgetAttributeChangeRequiresRepaint(
@@ -825,7 +804,6 @@ nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
     case StyleAppearance::Tab:
     // case StyleAppearance::Tabpanel:
     case StyleAppearance::Tabpanels:
-    case StyleAppearance::Splitter:
     case StyleAppearance::MozWindowTitlebar:
     case StyleAppearance::MozWindowTitlebarMaximized:
     case StyleAppearance::MozWindowDecorations:
