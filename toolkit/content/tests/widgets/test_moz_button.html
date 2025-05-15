@@ -117,12 +117,12 @@
         assertButtonPropertiesMatch(one, {
           backgroundColor: "--button-background-color",
           color: "--button-text-color",
-          height: "--button-min-height",
+          minHeight: "--button-min-height",
         });
         assertButtonPropertiesMatch(two, {
           backgroundColor: "--button-background-color",
           color: "--button-text-color",
-          height: "--button-min-height",
+          minHeight: "--button-min-height",
         });
         assertButtonPropertiesMatch(three, {
           backgroundColor: "--button-background-color-primary",
@@ -150,7 +150,7 @@
         assertButtonPropertiesMatch(seven, {
           backgroundColor: "--button-background-color",
           color: "--button-text-color",
-          height: "--button-min-height",
+          minHeight: "--button-min-height",
         });
 
         buttons.forEach(btn => (btn.size = "small"));
@@ -158,13 +158,13 @@
         await Promise.all(buttons.map(btn => btn.updateComplete));
 
         assertButtonPropertiesMatch(one, {
-          height: "--button-min-height-small",
+          minHeight: "--button-min-height-small",
         });
         assertButtonPropertiesMatch(two, {
-          height: "--button-min-height-small",
+          minHeight: "--button-min-height-small",
         });
         assertButtonPropertiesMatch(three, {
-          height: "--button-min-height-small",
+          minHeight: "--button-min-height-small",
         });
         assertButtonPropertiesMatch(four, {
           width: "--button-size-icon-small",
@@ -179,7 +179,7 @@
           height: "--button-size-icon-small",
         });
         assertButtonPropertiesMatch(seven, {
-          height: "--button-min-height-small",
+          minHeight: "--button-min-height-small",
         });
       });
 

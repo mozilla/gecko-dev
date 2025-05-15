@@ -55,7 +55,7 @@ html|ul.webext-perm-domains-list {
   margin-block: var(--space-small);
   margin-inline: calc(var(--size-item-small) + var(--space-small)) 0;
   padding-block: var(--space-xsmall);
-  padding-inline-start: var(--size-item-medium);
+  padding-inline: calc(var(--space-xlarge) + var(--space-xsmall));
 
   max-width: 80vw;
   overflow: auto;
