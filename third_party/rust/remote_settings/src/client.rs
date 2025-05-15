@@ -507,9 +507,15 @@ impl RemoteSettingsClient<ViaductApiClient> {
         Self::new_from_parts(collection_name, storage, jexl_filter, api_client)
     }
 
-    pub fn update_config(&self, server_url: BaseUrl, bucket_name: String) -> Result<()> {
+    pub fn update_config(
+        &self,
+        server_url: BaseUrl,
+        bucket_name: String,
+        context: Option<RemoteSettingsContext>,
+    ) -> Result<()> {
         let mut inner = self.inner.lock();
         inner.api_client = ViaductApiClient::new(server_url, &bucket_name, &self.collection_name);
+        inner.jexl_filter = JexlFilter::new(context);
         inner.storage.empty()
     }
 }
@@ -2034,6 +2040,76 @@ mod jexl_tests {
             JexlFilter::new(Some(context)),
             api_client,
         );
+
+        assert_eq!(
+            rs_client.get_records(false).expect("Error getting records"),
+            Some(vec![])
+        );
+    }
+
+    #[test]
+    fn test_update_jexl_context() {
+        let mut api_client = MockApiClient::new();
+        let records = vec![RemoteSettingsRecord {
+            id: "record-0001".into(),
+            last_modified: 100,
+            deleted: false,
+            attachment: None,
+            fields: serde_json::json!({
+                "filter_expression": "env.country == \"US\""
+            })
+            .as_object()
+            .unwrap()
+            .clone(),
+        }];
+        let changeset = ChangesetResponse {
+            changes: records.clone(),
+            timestamp: 42,
+            metadata: CollectionMetadata::default(),
+        };
+        api_client.expect_collection_url().returning(|| {
+            "http://rs.example.com/v1/buckets/main/collections/test-collection".into()
+        });
+        api_client.expect_fetch_changeset().returning({
+            let changeset = changeset.clone();
+            move |timestamp| {
+                assert_eq!(timestamp, None);
+                Ok(changeset.clone())
+            }
+        });
+        api_client.expect_is_prod_server().returning(|| Ok(false));
+
+        let context = RemoteSettingsContext {
+            country: Some("US".to_string()),
+            ..Default::default()
+        };
+
+        let mut storage = Storage::new(":memory:".into());
+        let _ = storage.insert_collection_content(
+            "http://rs.example.com/v1/buckets/main/collections/test-collection",
+            &records,
+            42,
+            CollectionMetadata::default(),
+        );
+
+        let rs_client = RemoteSettingsClient::new_from_parts(
+            "test-collection".into(),
+            storage,
+            JexlFilter::new(Some(context)),
+            api_client,
+        );
+
+        assert_eq!(
+            rs_client.get_records(false).expect("Error getting records"),
+            Some(records)
+        );
+
+        // We can't call `update_config` directly, since that only works with a real API client.
+        // Instead, just execute the code from that method that updates the JEXL filter.
+        rs_client.inner.lock().jexl_filter = JexlFilter::new(Some(RemoteSettingsContext {
+            country: Some("UK".to_string()),
+            ..Default::default()
+        }));
 
         assert_eq!(
             rs_client.get_records(false).expect("Error getting records"),

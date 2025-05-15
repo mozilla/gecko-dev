@@ -105,12 +105,15 @@ impl RemoteSettingsService {
         let bucket_name = config.bucket_name.unwrap_or_else(|| String::from("main"));
         let mut inner = self.inner.lock();
         for client in inner.active_clients() {
-            client
-                .internal
-                .update_config(base_url.clone(), bucket_name.clone())?;
+            client.internal.update_config(
+                base_url.clone(),
+                bucket_name.clone(),
+                config.app_context.clone(),
+            )?;
         }
         inner.base_url = base_url;
         inner.bucket_name = bucket_name;
+        inner.app_context = config.app_context;
         Ok(())
     }
 }
