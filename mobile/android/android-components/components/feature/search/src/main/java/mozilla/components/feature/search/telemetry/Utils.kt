@@ -83,13 +83,15 @@ private fun getTrackKeyFromCookies(
 ): TrackKeyInfo? {
     // Especially Bing requires lots of extra work related to cookies.
     provider.followOnCookies?.forEach { followOnCookie ->
-        val eCode = uri.getQueryParameter(followOnCookie.extraCodeParamName.lowercase())
+        if (followOnCookie.extraCodeParamName != "") {
+            val eCode = uri.getQueryParameter(followOnCookie.extraCodeParamName.lowercase())
 
-        if (eCode == null || !followOnCookie.extraCodePrefixes.any { prefix ->
-                eCode.startsWith(prefix)
+            if (eCode == null || !followOnCookie.extraCodePrefixes.any { prefix ->
+                    eCode.startsWith(prefix)
+                }
+            ) {
+                return@forEach
             }
-        ) {
-            return@forEach
         }
 
         // If this cookie is present, it's probably an SAP follow-on.
