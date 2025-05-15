@@ -273,6 +273,11 @@ var gBrowserInit = {
         if (gBrowser.isTabGroupLabel(tabToAdopt)) {
           gBrowser.adoptTabGroup(tabToAdopt.group, 0);
           gBrowser.removeTab(gBrowser.selectedTab);
+        } else if (gBrowser.isTabGroup(tabToAdopt)) {
+          // Via gBrowser.replaceGroupWithWindow
+          gBrowser.adoptTabGroup(tabToAdopt, 0);
+          gBrowser.removeTab(gBrowser.selectedTab);
+          Glean.tabgroup.groupInteractions.move_window.add(1);
         } else {
           if (tabToAdopt.group) {
             Glean.tabgroup.tabInteractions.remove_new_window.add();

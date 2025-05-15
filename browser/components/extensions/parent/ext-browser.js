@@ -624,8 +624,10 @@ class TabTracker extends TabTrackerBase {
       // by the first MozAfterPaint event. That code handles finally
       // adopting the tab, and clears it from the arguments list in the
       // process, so if we run later than it, we're too late.
-      let adoptedBy = window.gBrowser.tabs[0];
-      this.adopt(adoptedBy, tabToAdopt);
+      if (window.gBrowser.isTab(tabToAdopt)) {
+        let adoptedBy = window.gBrowser.tabs[0];
+        this.adopt(adoptedBy, tabToAdopt);
+      }
     } else {
       for (let nativeTab of window.gBrowser.tabs) {
         this.emitCreated(nativeTab);
