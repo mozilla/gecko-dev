@@ -35,6 +35,7 @@
 #include "p2p/base/port.h"
 #include "p2p/base/stun_dictionary.h"
 #include "p2p/base/transport_description.h"
+#include "p2p/dtls/dtls_stun_piggyback_callbacks.h"
 #include "rtc_base/callback_list.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/network_constants.h"
@@ -409,14 +410,10 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
   virtual const webrtc::FieldTrialsView* field_trials() const {
     return nullptr;
   }
-  virtual void SetDtlsPiggybackingCallbacks(
-      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
-          dtls_piggyback_get_data,
-      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
-          dtls_piggyback_get_ack,
-      absl::AnyInvocable<void(const StunByteStringAttribute*,
-                              const StunByteStringAttribute*)>
-          dtls_piggyback_report_data) {}
+
+  virtual void ResetDtlsStunPiggybackCallbacks() {}
+  virtual void SetDtlsStunPiggybackCallbacks(
+      DtlsStunPiggybackCallbacks&& callbacks) {}
 
  protected:
   void SendGatheringStateEvent() { gathering_state_callback_list_.Send(this); }

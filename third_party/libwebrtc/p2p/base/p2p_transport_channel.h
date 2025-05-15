@@ -59,6 +59,7 @@
 #include "p2p/base/regathering_controller.h"
 #include "p2p/base/stun_dictionary.h"
 #include "p2p/base/transport_description.h"
+#include "p2p/dtls/dtls_stun_piggyback_callbacks.h"
 #include "rtc_base/async_packet_socket.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/dscp.h"
@@ -251,14 +252,10 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
   const webrtc::FieldTrialsView* field_trials() const override {
     return field_trials_;
   }
-  void SetDtlsPiggybackingCallbacks(
-      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
-          dtls_piggyback_get_data,
-      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
-          dtls_piggyback_get_ack,
-      absl::AnyInvocable<void(const StunByteStringAttribute*,
-                              const StunByteStringAttribute*)>
-          dtls_piggyback_report_data) override;
+
+  void ResetDtlsStunPiggybackCallbacks() override;
+  void SetDtlsStunPiggybackCallbacks(
+      DtlsStunPiggybackCallbacks&& callbacks) override;
 
  private:
   P2PTransportChannel(
@@ -525,13 +522,7 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
   StunDictionaryView stun_dict_view_;
 
   // DTLS-STUN piggybacking callbacks.
-  absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
-      dtls_piggyback_get_data_;
-  absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
-      dtls_piggyback_get_ack_;
-  absl::AnyInvocable<void(const StunByteStringAttribute*,
-                          const StunByteStringAttribute*)>
-      dtls_piggyback_report_data_;
+  DtlsStunPiggybackCallbacks dtls_stun_piggyback_callbacks_;
 };
 
 }  // namespace cricket

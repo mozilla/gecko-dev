@@ -37,6 +37,7 @@
 #include "p2p/base/port_interface.h"
 #include "p2p/base/stun_request.h"
 #include "p2p/base/transport_description.h"
+#include "p2p/dtls/dtls_stun_piggyback_callbacks.h"
 #include "rtc_base/async_packet_socket.h"
 #include "rtc_base/network.h"
 #include "rtc_base/network/received_packet.h"
@@ -360,22 +361,11 @@ class RTC_EXPORT Connection : public CandidatePairInterface {
     goog_delta_ack_consumer_ = std::nullopt;
   }
 
-  void RegisterDtlsPiggyback(
-      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
-          data_producer,
-      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
-          ack_producer,
-      absl::AnyInvocable<void(const StunByteStringAttribute*,
-                              const StunByteStringAttribute*)> consumer) {
-    dtls_stun_piggyback_data_producer_ = std::move(data_producer);
-    dtls_stun_piggyback_ack_producer_ = std::move(ack_producer);
-    dtls_stun_piggyback_consumer_ = std::move(consumer);
+  void RegisterDtlsPiggyback(DtlsStunPiggybackCallbacks&& callbacks) {
+    dtls_stun_piggyback_callbacks_ = std::move(callbacks);
   }
-  void DeregisterDtlsPiggyback() {
-    dtls_stun_piggyback_consumer_ = nullptr;
-    dtls_stun_piggyback_data_producer_ = nullptr;
-    dtls_stun_piggyback_ack_producer_ = nullptr;
-  }
+
+  void DeregisterDtlsPiggyback() { dtls_stun_piggyback_callbacks_.reset(); }
 
  protected:
   // A ConnectionRequest is a simple STUN ping used to determine writability.
@@ -531,13 +521,7 @@ class RTC_EXPORT Connection : public CandidatePairInterface {
       received_packet_callback_;
 
   void MaybeAddDtlsPiggybackingAttributes(StunMessage* msg);
-  absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
-      dtls_stun_piggyback_data_producer_ = nullptr;
-  absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
-      dtls_stun_piggyback_ack_producer_ = nullptr;
-  absl::AnyInvocable<void(const StunByteStringAttribute*,
-                          const StunByteStringAttribute*)>
-      dtls_stun_piggyback_consumer_ = nullptr;
+  DtlsStunPiggybackCallbacks dtls_stun_piggyback_callbacks_;
 };
 
 // ProxyConnection defers all the interesting work to the port.

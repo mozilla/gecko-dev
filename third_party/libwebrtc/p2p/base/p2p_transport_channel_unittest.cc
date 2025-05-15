@@ -7581,4 +7581,72 @@ TEST_F(P2PTransportChannelTest, TestIceNoOldCandidatesAfterIceRestart) {
   DestroyChannels();
 }
 
+class P2PTransportChannelTestDtlsInStun : public P2PTransportChannelTestBase {
+ public:
+  P2PTransportChannelTestDtlsInStun() : P2PTransportChannelTestBase() {
+    // DTLS server hello done message as test data.
+    std::vector<uint8_t> dtls_server_hello = {
+        0x16, 0xfe, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x0c, 0x0e, 0x00, 0x00, 0x00, 0x00,
+        0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    };
+    pending_packet_.SetData(dtls_server_hello);
+  }
+
+ protected:
+  void Run(bool ep1_support, bool ep2_support) {
+    const Environment env = CreateEnvironment();
+    CreatePortAllocators(env);
+    IceConfig ep1_config;
+    ep1_config.dtls_handshake_in_stun = ep1_support;
+    IceConfig ep2_config;
+    ep2_config.dtls_handshake_in_stun = ep2_support;
+    CreateChannels(env, ep1_config, ep2_config);
+    if (ep1_support) {
+      ep1_ch1()->SetDtlsStunPiggybackCallbacks(DtlsStunPiggybackCallbacks(
+          [&](auto type) { return data_to_piggyback_func(type); },
+          [&](auto data, auto ack) { piggyback_data_received(data, ack); }));
+    }
+    if (ep2_support) {
+      ep2_ch1()->SetDtlsStunPiggybackCallbacks(DtlsStunPiggybackCallbacks(
+          [&](auto type) { return data_to_piggyback_func(type); },
+          [&](auto data, auto ack) { piggyback_data_received(data, ack); }));
+    }
+    EXPECT_THAT(
+        webrtc::WaitUntil(
+            [&] { return CheckConnected(ep1_ch1(), ep2_ch1()); }, IsTrue(),
+            {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout),
+             .clock = &clock_}),
+        webrtc::IsRtcOk());
+    DestroyChannels();
+  }
+
+  std::pair<std::optional<absl::string_view>, std::optional<absl::string_view>>
+  data_to_piggyback_func(StunMessageType type) {
+    return make_pair(absl::string_view(pending_packet_), std::nullopt);
+  }
+
+  void piggyback_data_received(const StunByteStringAttribute* data,
+                               const StunByteStringAttribute* ack) {}
+
+  rtc::ScopedFakeClock clock_;
+  rtc::Buffer pending_packet_;
+};
+
+TEST_F(P2PTransportChannelTestDtlsInStun, NotSupportedByEither) {
+  Run(false, false);
+}
+
+TEST_F(P2PTransportChannelTestDtlsInStun, SupportedByClient) {
+  Run(true, false);
+}
+
+TEST_F(P2PTransportChannelTestDtlsInStun, SupportedByServer) {
+  Run(false, true);
+}
+
+TEST_F(P2PTransportChannelTestDtlsInStun, SupportedByBoth) {
+  Run(true, true);
+}
+
 }  // namespace cricket

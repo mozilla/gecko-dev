@@ -179,7 +179,7 @@ DtlsTransport::DtlsTransport(IceTransportInternal* ice_transport,
 
 DtlsTransport::~DtlsTransport() {
   if (ice_transport_) {
-    ice_transport_->SetDtlsPiggybackingCallbacks(nullptr, nullptr, nullptr);
+    ice_transport_->ResetDtlsStunPiggybackCallbacks();
     ice_transport_->DeregisterReceivedPacketCallback(this);
   }
 }
@@ -563,20 +563,17 @@ void DtlsTransport::ConnectToIceTransport() {
       this, &DtlsTransport::OnReceivingState);
   ice_transport_->SignalNetworkRouteChanged.connect(
       this, &DtlsTransport::OnNetworkRouteChanged);
-  ice_transport_->SetDtlsPiggybackingCallbacks(
-      [this](StunMessageType stun_message_type) {
-        return dtls_stun_piggyback_controller_.GetDataToPiggyback(
+  ice_transport_->SetDtlsStunPiggybackCallbacks(DtlsStunPiggybackCallbacks(
+      [&](auto stun_message_type) {
+        auto data = dtls_stun_piggyback_controller_.GetDataToPiggyback(
             stun_message_type);
-      },
-      [this](StunMessageType stun_message_type) {
-        return dtls_stun_piggyback_controller_.GetAckToPiggyback(
+        auto ack = dtls_stun_piggyback_controller_.GetAckToPiggyback(
             stun_message_type);
+        return std::make_pair(data, ack);
       },
-      [this](const StunByteStringAttribute* data,
-             const StunByteStringAttribute* ack) {
+      [&](auto data, auto ack) {
         dtls_stun_piggyback_controller_.ReportDataPiggybacked(data, ack);
-      });
-
+      }));
   SetPiggybackDtlsDataCallback([this](rtc::PacketTransportInternal* transport,
                                       const rtc::ReceivedPacket& packet) {
     RTC_DCHECK(dtls_active_);
@@ -625,8 +622,7 @@ void DtlsTransport::OnWritableState(rtc::PacketTransportInternal* transport) {
       (dtls_state() == webrtc::DtlsTransportState::kConnecting ||
        dtls_state() == webrtc::DtlsTransportState::kNew)) {
     RTC_LOG(LS_INFO) << "DTLS piggybacking not supported, restarting...";
-    ice_transport_->SetDtlsPiggybackingCallbacks(nullptr, nullptr, nullptr);
-
+    ice_transport_->ResetDtlsStunPiggybackCallbacks();
     downward_->SetDtlsStunPiggybackController(nullptr);
     dtls_.reset(nullptr);
     set_dtls_state(webrtc::DtlsTransportState::kNew);

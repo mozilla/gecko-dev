@@ -156,6 +156,7 @@ rtc_library("connection") {
   deps = [
     ":candidate_pair_interface",
     ":connection_info",
+    ":dtls_stun_piggyback_controller",
     ":ice_credentials_iterator",
     ":p2p_constants",
     ":p2p_transport_channel_ice_field_trials",
@@ -377,6 +378,7 @@ rtc_library("ice_transport_internal") {
     ":candidate_pair_interface",
     ":connection",
     ":connection_info",
+    ":dtls_stun_piggyback_controller",
     ":p2p_constants",
     ":packet_transport_internal",
     ":port",
@@ -421,6 +423,7 @@ rtc_library("p2p_transport_channel") {
     ":candidate_pair_interface",
     ":connection",
     ":connection_info",
+    ":dtls_stun_piggyback_controller",
     ":ice_agent_interface",
     ":ice_controller_factory_interface",
     ":ice_controller_interface",
@@ -660,6 +663,7 @@ rtc_library("dtls_utils") {
 
 rtc_library("dtls_stun_piggyback_controller") {
   sources = [
+    "dtls/dtls_stun_piggyback_callbacks.h",
     "dtls/dtls_stun_piggyback_controller.cc",
     "dtls/dtls_stun_piggyback_controller.h",
   ]
