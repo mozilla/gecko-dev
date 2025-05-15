@@ -19,7 +19,8 @@ TEST(ResistFingerprinting, UserCharacteristics_Simple)
 {
   mozilla::glean::characteristics::max_touch_points.Set(7);
 
-  ASSERT_TRUE(mozilla::glean_pings::UserCharacteristics.TestSubmission(
+  bool submitted = false;
+  mozilla::glean_pings::UserCharacteristics.TestBeforeNextSubmit(
       [&submitted](const nsACString& aReason) {
         submitted = true;
 
@@ -27,8 +28,9 @@ TEST(ResistFingerprinting, UserCharacteristics_Simple)
             7, mozilla::glean::characteristics::max_touch_points.TestGetValue()
                    .unwrap()
                    .ref());
-      },
-      []() { mozilla::glean_pings::UserCharacteristics.Submit(); }));
+      });
+  mozilla::glean_pings::UserCharacteristics.Submit();
+  ASSERT_TRUE(submitted);
 }
 
 TEST(ResistFingerprinting, UserCharacteristics_Complex)
@@ -36,7 +38,8 @@ TEST(ResistFingerprinting, UserCharacteristics_Complex)
   nsUserCharacteristics::PopulateDataAndEventuallySubmit(
       /* aUpdatePref = */ false, /* aTesting = */ true);
 
-  ASSERT_TRUE(mozilla::glean_pings::UserCharacteristics.TestSubmission(
+  bool submitted = false;
+  mozilla::glean_pings::UserCharacteristics.TestBeforeNextSubmit(
       [&submitted](const nsACString& aReason) {
         submitted = true;
 
@@ -64,15 +67,16 @@ TEST(ResistFingerprinting, UserCharacteristics_Complex)
             mozilla::glean::characteristics::max_touch_points.TestGetValue()
                 .unwrap()
                 .ref());
-      },
-      []() { nsUserCharacteristics::SubmitPing(); }));
+      });
+  nsUserCharacteristics::SubmitPing();
+  ASSERT_TRUE(submitted);
 }
 
 TEST(ResistFingerprinting, UserCharacteristics_ClearPref)
 {
   nsCString originalUUID;
 
-  ASSERT_TRUE(mozilla::glean_pings::UserCharacteristics.TestSubmission(
+  mozilla::glean_pings::UserCharacteristics.TestBeforeNextSubmit(
       [&originalUUID](const nsACString& aReason) {
         originalUUID =
             mozilla::glean::characteristics::client_identifier.TestGetValue()
@@ -98,29 +102,27 @@ TEST(ResistFingerprinting, UserCharacteristics_ClearPref)
                 .unwrap()
                 .value()
                 .get());
-      },
-      []() {
-        nsUserCharacteristics::PopulateDataAndEventuallySubmit(
-            /* aUpdatePref = */ false, /* aTesting = */ true);
-        nsUserCharacteristics::SubmitPing();
-      }));
+      });
+  nsUserCharacteristics::PopulateDataAndEventuallySubmit(
+      /* aUpdatePref = */ false, /* aTesting = */ true);
+  nsUserCharacteristics::SubmitPing();
 
   auto original_value =
       Preferences::GetBool("datareporting.healthreport.uploadEnabled");
   Preferences::SetBool("datareporting.healthreport.uploadEnabled", true);
   Preferences::SetBool("datareporting.healthreport.uploadEnabled", false);
 
-  ASSERT_TRUE(mozilla::glean_pings::UserCharacteristics.TestSubmission(
+  mozilla::glean_pings::UserCharacteristics.TestBeforeNextSubmit(
       [](const nsACString& aReason) {
         // Assert that the pref is blank
         nsAutoCString uuidValue;
         Preferences::GetCString(kUUIDPref, uuidValue);
         ASSERT_STREQ("", uuidValue.get());
-      },
-      []() { nsUserCharacteristics::SubmitPing(); }));
+      });
+  nsUserCharacteristics::SubmitPing();
 
   Preferences::SetBool("datareporting.healthreport.uploadEnabled", true);
-  ASSERT_TRUE(mozilla::glean_pings::UserCharacteristics.TestSubmission(
+  mozilla::glean_pings::UserCharacteristics.TestBeforeNextSubmit(
       [&originalUUID](const nsACString& aReason) {
         // Assert that the new UUID is different from the old one
         ASSERT_STRNE(
@@ -134,12 +136,10 @@ TEST(ResistFingerprinting, UserCharacteristics_ClearPref)
         nsAutoCString uuidValue;
         Preferences::GetCString(kUUIDPref, uuidValue);
         ASSERT_STRNE("", uuidValue.get());
-      },
-      []() {
-        nsUserCharacteristics::PopulateDataAndEventuallySubmit(
-            /* aUpdatePref = */ false, /* aTesting = */ true);
-        nsUserCharacteristics::SubmitPing();
-      }));
+      });
+  nsUserCharacteristics::PopulateDataAndEventuallySubmit(
+      /* aUpdatePref = */ false, /* aTesting = */ true);
+  nsUserCharacteristics::SubmitPing();
 
   Preferences::SetBool("datareporting.healthreport.uploadEnabled",
                        original_value);
