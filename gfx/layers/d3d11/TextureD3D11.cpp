@@ -556,8 +556,10 @@ D3D11TextureData* D3D11TextureData::Create(IntSize aSize, SurfaceFormat aFormat,
   if (!NS_IsMainThread()) {
     // On the main thread we use the syncobject to handle synchronization.
     if (!(aFlags & ALLOC_MANUAL_SYNCHRONIZATION)) {
-      auto* fencesHolderMap = CompositeProcessD3D11FencesHolderMap::Get();
-      useFence = fencesHolderMap && FenceD3D11::IsSupported(device);
+      if (!(aFlags & USE_D3D11_KEYED_MUTEX)) {
+        auto* fencesHolderMap = CompositeProcessD3D11FencesHolderMap::Get();
+        useFence = fencesHolderMap && FenceD3D11::IsSupported(device);
+      }
       if (!useFence) {
         newDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_NTHANDLE |
                             D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
