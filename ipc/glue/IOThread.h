@@ -79,8 +79,8 @@ class IOThreadChild : public IOThread {
 };
 
 inline void AssertIOThread() {
-  MOZ_ASSERT(IOThread::Get()->GetEventTarget()->IsOnCurrentThread(),
-             "should be on the async IO event target");
+  MOZ_ASSERT(MessageLoop::TYPE_IO == MessageLoop::current()->type(),
+             "should be on the IO thread!");
 }
 
 }  // namespace mozilla::ipc

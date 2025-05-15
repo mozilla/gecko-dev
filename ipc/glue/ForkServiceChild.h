@@ -103,6 +103,8 @@ class ForkServiceChild final {
   Mutex mMutex;
   UniquePtr<MiniTransceiver> mTcver MOZ_GUARDED_BY(mMutex);
   bool mFailed MOZ_GUARDED_BY(mMutex);  // crashed or disconnected.
+  // mProcess is accessed only by the dtor so should be inherently
+  // thread-safe
   GeckoChildProcessHost* mProcess;
 };
 
@@ -123,8 +125,8 @@ class ForkServerLauncher final : public nsIObserver {
 
   static void RestartForkServer();
 
-  static bool mHaveStartedClient;
-  static StaticRefPtr<ForkServerLauncher> mSingleton;
+  static bool sHaveStartedClient;
+  static StaticRefPtr<ForkServerLauncher> sSingleton;
 };
 
 }  // namespace ipc

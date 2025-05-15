@@ -38,8 +38,6 @@
 #  include "nsAppDirectoryServiceDefs.h"
 #endif
 
-#include <sys/stat.h>
-
 #include "ProtocolUtils.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Logging.h"
@@ -442,14 +440,7 @@ GeckoChildProcessHost::~GeckoChildProcessHost() {
 #endif
 
     if (mChildProcessHandle != 0) {
-      ProcessWatcher::EnsureProcessTerminated(
-          mChildProcessHandle
-#ifdef NS_FREE_PERMANENT_DATA
-          // If we're doing leak logging, shutdown can be slow.
-          ,
-          false  // don't "force"
-#endif
-      );
+      ProcessWatcher::EnsureProcessTerminated(mChildProcessHandle);
       mChildProcessHandle = 0;
     }
   }
@@ -498,6 +489,19 @@ void GeckoChildProcessHost::Destroy() {
 
   using Value = ProcessHandlePromise::ResolveOrRejectValue;
   mDestroying = true;
+
+  // Synchronously invoke `delete this` if we're already shutting the IO thread
+  // down to ensure we're cleaned up before the thread dies. This is safe as we
+  // can never resolve `mHandlePromise` after the IO thread goes away.
+  MessageLoop* loop = MessageLoop::current();
+  if (loop && MessageLoop::TYPE_IO == loop->type() &&
+      !loop->IsAcceptingTasks()) {
+    delete this;
+    return;
+  }
+
+  // If we're not in shutdown, do this async, as we may still be waiting for the
+  // child process PID from the launcher thread.
   whenReady->Then(XRE_GetAsyncIOEventTarget(), __func__,
                   [this](const Value&) { delete this; });
 }

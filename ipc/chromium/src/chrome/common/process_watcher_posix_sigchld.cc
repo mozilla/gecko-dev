@@ -18,6 +18,7 @@
 #include "base/process_util.h"
 #include "mozilla/DataMutex.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/ipc/IOThread.h"
 #include "nsITimer.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
@@ -96,6 +97,7 @@ struct PendingChild {
 static mozilla::StaticDataMutex<mozilla::StaticAutoPtr<nsTArray<PendingChild>>>
     gPendingChildren("ProcessWatcher::gPendingChildren");
 static int gSignalPipe[2] = {-1, -1};
+static mozilla::Atomic<bool> gProcessWatcherShutdown;
 
 // A wrapper around WaitForProcess to simplify the result (true if the
 // process exited and the pid is now freed for reuse, false if it's
@@ -284,6 +286,7 @@ class ProcessCleaner final : public MessageLoopForIO::Watcher,
   }
 
   void WillDestroyCurrentMessageLoop() override {
+    gProcessWatcherShutdown = true;
     mWatcher.StopWatchingFileDescriptor();
     auto lock = gPendingChildren.Lock();
     auto& children = lock.ref();
@@ -315,6 +318,9 @@ class ProcessCleaner final : public MessageLoopForIO::Watcher,
       }
       children = nullptr;
     }
+#ifdef MOZ_ENABLE_FORKSERVER
+    mozilla::ipc::ForkServiceChild::StopForkServer();
+#endif
     delete this;
   }
 
@@ -433,6 +439,30 @@ void ProcessWatcher::EnsureProcessTerminated(base::ProcessHandle process,
                                              bool force) {
   DCHECK(process != base::GetCurrentProcId());
   DCHECK(process > 0);
+
+  if (gProcessWatcherShutdown) {
+    // This late in shutdown, should only come from the I/O thread;
+    // see further comments below.
+    mozilla::ipc::AssertIOThread();
+    // This should always be true given that gProcessWatcherShutdown
+    // is set, but just in case something changes with MessageLoop
+    // shutdown:
+    DCHECK(!MessageLoop::current()->IsAcceptingTasks());
+
+    // This is for the fork server itself, being torn down late
+    // in shutdown.  Generally won't be reached with force=true,
+    // because build types that default to it will QuickExit first.
+    // It's not strictly necessary to wait for child processes when
+    // the parent process is about to exit (pid 1 should clean them
+    // up).
+    //
+    // However, if called in "wait forever" mode, let's wait for it
+    // and log the exit status if it was abnormal:
+    if (!force) {
+      (void)IsProcessDead(process, BlockingWait::Yes);
+    }
+    return;
+  }
 
   EnsureProcessWatcher();
 
