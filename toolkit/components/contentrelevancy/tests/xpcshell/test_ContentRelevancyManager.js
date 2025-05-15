@@ -7,8 +7,6 @@ ChromeUtils.defineESModuleGetters(this, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   ContentRelevancyManager:
     "resource://gre/modules/ContentRelevancyManager.sys.mjs",
-  SharedRemoteSettingsService:
-    "resource://gre/modules/RustSharedRemoteSettingsService.sys.mjs",
   exposedForTesting: "resource://gre/modules/ContentRelevancyManager.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
@@ -64,10 +62,8 @@ add_task(function test_store_manager() {
   );
   Assert.equal(fakeRustRelevancyStore.init.callCount, 1);
   Assert.deepEqual(fakeRustRelevancyStore.init.firstCall.args[0], "test-path");
-  Assert.strictEqual(
-    fakeRustRelevancyStore.init.firstCall.args[1],
-    SharedRemoteSettingsService.rustService()
-  );
+  // TODO (1956519): test that the second arg is the app-wide RemoteSettingsService
+  // store should throw before the manager is enabled
   Assert.throws(() => storeManager.store, /StoreDisabledError/);
   // Once the manager is enabled, store should return the RustRelevancyStore
   storeManager.enable();
