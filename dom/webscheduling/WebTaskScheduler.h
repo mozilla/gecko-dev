@@ -45,9 +45,9 @@ class WebTaskSchedulingState {
   AbortSignal* GetAbortSource() { return mAbortSource; }
   TaskSignal* GetPrioritySource() { return mPrioritySource; }
 
-  void SetPrioritySource(TaskSignal* aPrioritySource) {
-    MOZ_ASSERT(aPrioritySource->IsTaskSignal());
+  void SetPrioritySource(already_AddRefed<TaskSignal> aPrioritySource) {
     mPrioritySource = aPrioritySource;
+    MOZ_ASSERT(mPrioritySource->IsTaskSignal());
   }
 
  private:

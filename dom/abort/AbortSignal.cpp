@@ -23,16 +23,17 @@ namespace mozilla::dom {
 // AbortSignalImpl
 // ----------------------------------------------------------------------------
 
-AbortSignalImpl::AbortSignalImpl(bool aAborted, JS::Handle<JS::Value> aReason)
+AbortSignalImpl::AbortSignalImpl(SignalAborted aAborted,
+                                 JS::Handle<JS::Value> aReason)
     : mReason(aReason), mAborted(aAborted) {
-  MOZ_ASSERT_IF(!mReason.isUndefined(), mAborted);
+  MOZ_ASSERT_IF(!mReason.isUndefined(), Aborted());
 }
 
-bool AbortSignalImpl::Aborted() const { return mAborted; }
+bool AbortSignalImpl::Aborted() const { return mAborted == SignalAborted::Yes; }
 
 void AbortSignalImpl::GetReason(JSContext* aCx,
                                 JS::MutableHandle<JS::Value> aReason) {
-  if (!mAborted) {
+  if (!Aborted()) {
     return;
   }
   MaybeAssignAbortError(aCx);
@@ -44,7 +45,7 @@ JS::Value AbortSignalImpl::RawReason() const { return mReason.get(); }
 // https://dom.spec.whatwg.org/#abortsignal-signal-abort
 void AbortSignalImpl::SignalAbort(JS::Handle<JS::Value> aReason) {
   // Step 1: If signal is aborted, then return.
-  if (mAborted) {
+  if (Aborted()) {
     return;
   }
 
@@ -84,7 +85,7 @@ void AbortSignalImpl::RunAbortSteps() {
 }
 
 void AbortSignalImpl::SetAborted(JS::Handle<JS::Value> aReason) {
-  mAborted = true;
+  mAborted = SignalAborted::Yes;
   mReason = aReason;
 }
 
@@ -99,7 +100,7 @@ void AbortSignalImpl::Unlink(AbortSignalImpl* aSignal) {
 }
 
 void AbortSignalImpl::MaybeAssignAbortError(JSContext* aCx) {
-  MOZ_ASSERT(mAborted);
+  MOZ_ASSERT(Aborted());
   if (!mReason.isUndefined()) {
     return;
   }
@@ -151,13 +152,31 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 NS_IMPL_ADDREF_INHERITED(AbortSignal, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(AbortSignal, DOMEventTargetHelper)
 
-AbortSignal::AbortSignal(nsIGlobalObject* aGlobalObject, bool aAborted,
+already_AddRefed<AbortSignal> AbortSignal::Create(
+    nsIGlobalObject* aGlobalObject, SignalAborted aAborted,
+    JS::Handle<JS::Value> aReason) {
+  RefPtr<AbortSignal> signal =
+      new AbortSignal(aGlobalObject, aAborted, aReason);
+  signal->Init();
+  return signal.forget();
+}
+
+void AbortSignal::Init() {
+  // Init is use to separate this HoldJSObjects call to avoid calling
+  // it in the constructor.
+  //
+  // We can't call HoldJSObjects in the constructor because it'll
+  // addref `this` before the vtable is set up properly, so the parent
+  // type gets stored in the CC participant table. This is problematic
+  // for classes that inherit AbortSignal.
+  mozilla::HoldJSObjects(this);
+}
+
+AbortSignal::AbortSignal(nsIGlobalObject* aGlobalObject, SignalAborted aAborted,
                          JS::Handle<JS::Value> aReason)
     : DOMEventTargetHelper(aGlobalObject),
       AbortSignalImpl(aAborted, aReason),
-      mDependent(false) {
-  mozilla::HoldJSObjects(this);
-}
+      mDependent(false) {}
 
 JSObject* AbortSignal::WrapObject(JSContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
@@ -168,7 +187,8 @@ already_AddRefed<AbortSignal> AbortSignal::Abort(
     GlobalObject& aGlobal, JS::Handle<JS::Value> aReason) {
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
 
-  RefPtr<AbortSignal> abortSignal = new AbortSignal(global, true, aReason);
+  RefPtr<AbortSignal> abortSignal =
+      AbortSignal::Create(global, SignalAborted::Yes, aReason);
   return abortSignal.forget();
 }
 
@@ -256,7 +276,7 @@ already_AddRefed<AbortSignal> AbortSignal::Timeout(GlobalObject& aGlobal,
 
   // Step 1. Let signal be a new AbortSignal object.
   RefPtr<AbortSignal> signal =
-      new AbortSignal(global, false, JS::UndefinedHandleValue);
+      AbortSignal::Create(global, SignalAborted::No, JS::UndefinedHandleValue);
 
   // Step 3. Run steps after a timeout given global, "AbortSignal-timeout",
   // milliseconds, and the following step: ...
@@ -283,17 +303,20 @@ already_AddRefed<AbortSignal> AbortSignal::Any(
     GlobalObject& aGlobal,
     const Sequence<OwningNonNull<AbortSignal>>& aSignals) {
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
-  mozilla::Span span{aSignals.Elements(), aSignals.Length()};
-  return Any(global, span);
+  return Any(global, aSignals, [](nsIGlobalObject* aGlobal) {
+    return AbortSignal::Create(aGlobal, SignalAborted::No,
+                               JS::UndefinedHandleValue);
+  });
 }
 
 already_AddRefed<AbortSignal> AbortSignal::Any(
     nsIGlobalObject* aGlobal,
-    const Span<const OwningNonNull<AbortSignal>>& aSignals) {
+    const Span<const OwningNonNull<AbortSignal>>& aSignals,
+    FunctionRef<already_AddRefed<AbortSignal>(nsIGlobalObject* aGlobal)>
+        aCreateResultSignal) {
   // Step 1. Let resultSignal be a new object implementing AbortSignal using
   // realm
-  RefPtr<AbortSignal> resultSignal =
-      new AbortSignal(aGlobal, false, JS::UndefinedHandleValue);
+  RefPtr<AbortSignal> resultSignal = aCreateResultSignal(aGlobal);
 
   if (!aSignals.IsEmpty()) {
     // (Prepare for step 2 which uses the reason of this. Cannot use
@@ -441,7 +464,7 @@ AbortFollower::~AbortFollower() { Unfollow(); }
 // https://dom.spec.whatwg.org/#abortsignal-add
 void AbortFollower::Follow(AbortSignalImpl* aSignal) {
   // Step 1.
-  if (aSignal->mAborted) {
+  if (aSignal->Aborted()) {
     return;
   }
 

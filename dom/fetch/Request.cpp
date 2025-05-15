@@ -63,7 +63,10 @@ Request::Request(nsIGlobalObject* aOwner, SafeRefPtr<InternalRequest> aRequest,
     // If we don't have a signal as argument, we will create it when required by
     // content, otherwise the Request's signal must follow what has been passed.
     AutoTArray<OwningNonNull<AbortSignal>, 1> array{OwningNonNull(*aSignal)};
-    mSignal = AbortSignal::Any(aOwner, mozilla::Span{array});
+    mSignal = AbortSignal::Any(aOwner, array, [](nsIGlobalObject* aGlobal) {
+      return AbortSignal::Create(aGlobal, SignalAborted::No,
+                                 JS::UndefinedHandleValue);
+    });
   }
 }
 
@@ -507,7 +510,8 @@ Headers* Request::Headers_() {
 
 AbortSignal* Request::GetOrCreateSignal() {
   if (!mSignal) {
-    mSignal = new AbortSignal(mOwner, false, JS::UndefinedHandleValue);
+    mSignal = AbortSignal::Create(mOwner, SignalAborted::No,
+                                  JS::UndefinedHandleValue);
   }
 
   return mSignal;

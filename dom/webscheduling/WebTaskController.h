@@ -28,6 +28,10 @@ class WebTaskController : public AbortController {
   void SetPriority(TaskPriority aPriority, ErrorResult& aRv);
 
  private:
+  // https://wicg.github.io/scheduling-apis/#tasksignal-signal-priority-change
+  void SignalPriorityChange(TaskSignal* aTaskSignal, TaskPriority aPriority,
+                            ErrorResult& aRv);
+
   ~WebTaskController() = default;
 };
 }  // namespace mozilla::dom

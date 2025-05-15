@@ -55,7 +55,8 @@ nsIGlobalObject* AbortController::GetParentObject() const { return mGlobal; }
 AbortSignal* AbortController::Signal() {
   if (!mSignal) {
     JS::Rooted<JS::Value> reason(RootingCx(), mReason);
-    mSignal = new AbortSignal(mGlobal, mAborted, reason);
+    mSignal = AbortSignal::Create(
+        mGlobal, mAborted ? SignalAborted::Yes : SignalAborted::No, reason);
   }
 
   return mSignal;

@@ -13,14 +13,20 @@
 #include "mozilla/dom/WebTaskSchedulingBinding.h"
 
 namespace mozilla::dom {
-class TaskSignal : public AbortSignal {
+class TaskSignal final : public AbortSignal {
  public:
-  TaskSignal(nsIGlobalObject* aGlobal, TaskPriority aPriority)
-      : AbortSignal(aGlobal, false, JS::UndefinedHandleValue),
-        mPriority(aPriority),
-        mPriorityChanging(false) {}
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(TaskSignal, AbortSignal)
 
   IMPL_EVENT_HANDLER(prioritychange);
+
+  static already_AddRefed<TaskSignal> Create(nsIGlobalObject* aGlobalObject,
+                                             TaskPriority aPriority);
+
+  static already_AddRefed<TaskSignal> Any(
+      GlobalObject& aGlobal,
+      const Sequence<OwningNonNull<AbortSignal>>& aSignals,
+      const TaskSignalAnyInit& aInit);
 
   TaskPriority Priority() const { return mPriority; }
 
@@ -43,12 +49,33 @@ class TaskSignal : public AbortSignal {
 
   void SetWebTaskScheduler(WebTaskScheduler* aScheduler);
 
+  // https://wicg.github.io/scheduling-apis/#tasksignal-has-fixed-priority
+  bool HasFixedPriority() const { return mDependent && !mSourceTaskSignal; }
+
+  nsTArray<RefPtr<TaskSignal>>& DependentTaskSignals() {
+    return mDependentTaskSignals;
+  }
+
  private:
+  TaskSignal(nsIGlobalObject* aGlobal, TaskPriority aPriority)
+      : AbortSignal(aGlobal, SignalAborted::No, JS::UndefinedHandleValue),
+        mPriority(aPriority),
+        mPriorityChanging(false) {
+    AbortSignal::Init();
+  }
+
   TaskPriority mPriority;
 
+  // https://wicg.github.io/scheduling-apis/#tasksignal-priority-changing
   bool mPriorityChanging;
 
   nsTArray<WeakPtr<WebTaskScheduler>> mSchedulers;
+
+  // https://wicg.github.io/scheduling-apis/#tasksignal-source-signal
+  WeakPtr<TaskSignal> mSourceTaskSignal;
+
+  // https://wicg.github.io/scheduling-apis/#tasksignal-dependent-signals
+  nsTArray<RefPtr<TaskSignal>> mDependentTaskSignals;
 
   ~TaskSignal() = default;
 };

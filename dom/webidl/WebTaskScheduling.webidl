@@ -8,8 +8,14 @@ enum TaskPriority {
   "background"
 };
 
+dictionary TaskSignalAnyInit {
+  (TaskPriority or TaskSignal) priority = "user-visible";
+};
+
 [Exposed=(Window, Worker), Pref="dom.enable_web_task_scheduling"]
 interface TaskSignal : AbortSignal {
+  [NewObject] static TaskSignal _any(sequence<AbortSignal> signals, optional TaskSignalAnyInit init = {});
+
   readonly attribute TaskPriority priority;
 
   attribute EventHandler onprioritychange;

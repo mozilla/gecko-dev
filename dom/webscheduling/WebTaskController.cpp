@@ -16,12 +16,14 @@ WebTaskController::WebTaskController(nsIGlobalObject* aGlobal,
                                      TaskPriority aPriority)
     : AbortController(aGlobal) {
   MOZ_ASSERT(!mSignal);
-  mSignal = new TaskSignal(aGlobal, aPriority);
+  mSignal = TaskSignal::Create(aGlobal, aPriority);
 }
 
-void WebTaskController::SetPriority(TaskPriority aPriority, ErrorResult& aRv) {
-  // https://wicg.github.io/scheduling-apis/#tasksignal-signal-priority-change
-  RefPtr<TaskSignal> taskSignal = static_cast<TaskSignal*>(mSignal.get());
+void WebTaskController::SignalPriorityChange(TaskSignal* aTaskSignal,
+                                             TaskPriority aPriority,
+                                             ErrorResult& aRv) {
+  RefPtr<TaskSignal> taskSignal = aTaskSignal;
+
   MOZ_ASSERT(taskSignal);
   if (taskSignal->PriorityChanging()) {
     aRv.ThrowNotAllowedError("Signal's priority changing is true");
@@ -47,7 +49,19 @@ void WebTaskController::SetPriority(TaskPriority aPriority, ErrorResult& aRv) {
   event->SetTrusted(true);
 
   taskSignal->DispatchEvent(*event);
+
+  for (const RefPtr<TaskSignal>& dependentSignal :
+       taskSignal->DependentTaskSignals().Clone()) {
+    SignalPriorityChange(dependentSignal, aPriority, aRv);
+  }
+
   taskSignal->SetPriorityChanging(false);
+}
+
+void WebTaskController::SetPriority(TaskPriority aPriority, ErrorResult& aRv) {
+  MOZ_ASSERT(mSignal->IsTaskSignal());
+  // mSignal for WebTaskController should always be a TaskSignal.
+  SignalPriorityChange(static_cast<TaskSignal*>(mSignal.get()), aPriority, aRv);
 }
 
 already_AddRefed<WebTaskController> WebTaskController::Constructor(

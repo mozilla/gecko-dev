@@ -31,11 +31,12 @@ class AbortSignal : public DOMEventTargetHelper, public AbortSignalImpl {
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(AbortSignal,
                                                          DOMEventTargetHelper)
 
-  AbortSignal(nsIGlobalObject* aGlobalObject, bool aAborted,
-              JS::Handle<JS::Value> aReason);
+  static already_AddRefed<AbortSignal> Create(nsIGlobalObject* aGlobalObject,
+                                              SignalAborted aAborted,
+                                              JS::Handle<JS::Value> aReason);
 
-  JSObject* WrapObject(JSContext* aCx,
-                       JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
   IMPL_EVENT_HANDLER(abort);
 
@@ -51,7 +52,9 @@ class AbortSignal : public DOMEventTargetHelper, public AbortSignalImpl {
       const Sequence<OwningNonNull<AbortSignal>>& aSignals);
   static already_AddRefed<AbortSignal> Any(
       nsIGlobalObject* aGlobal,
-      const Span<const OwningNonNull<AbortSignal>>& aSignals);
+      const Span<const OwningNonNull<AbortSignal>>& aSignals,
+      FunctionRef<already_AddRefed<AbortSignal>(nsIGlobalObject* aGlobal)>
+          aCreateResultSignal);
 
   void ThrowIfAborted(JSContext* aCx, ErrorResult& aRv);
 
@@ -60,7 +63,12 @@ class AbortSignal : public DOMEventTargetHelper, public AbortSignalImpl {
   bool Dependent() const;
 
  protected:
-  ~AbortSignal();
+  AbortSignal(nsIGlobalObject* aGlobalObject, SignalAborted aAborted,
+              JS::Handle<JS::Value> aReason);
+
+  void Init();
+
+  virtual ~AbortSignal();
 
   void MakeDependentOn(AbortSignal* aSignal);
 
