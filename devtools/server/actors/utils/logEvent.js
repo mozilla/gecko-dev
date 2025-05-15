@@ -121,8 +121,13 @@ function emitConsoleMessage(threadActor, frameLocation, args, level) {
 
   const message = {
     filename: sourceActor.url,
+
+    // The line is 1-based
     lineNumber: line,
-    columnNumber: column,
+    // `frameLocation` comes from the SourcesManager which uses 0-base column
+    // whereas CONSOLE_MESSAGE resources emits 1-based columns.
+    columnNumber: column + 1,
+
     arguments: args,
     level,
     timeStamp: ChromeUtils.dateNow(),

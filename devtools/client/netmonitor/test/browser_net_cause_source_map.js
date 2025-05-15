@@ -53,8 +53,8 @@ add_task(async function () {
 
   const frames = document.querySelectorAll(".frame-link");
   is(frames.length, 3, "should have 3 stack frames");
-  is(frames[0].textContent, `reallydoxhr xhr_original.js:6`);
-  is(frames[1].textContent, `doxhr xhr_original.js:10`);
+  is(frames[0].textContent, `reallydoxhr xhr_original.js:6:1`);
+  is(frames[1].textContent, `doxhr xhr_original.js:10:1`);
 
   await teardown(monitor);
 });

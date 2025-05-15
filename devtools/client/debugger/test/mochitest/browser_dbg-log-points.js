@@ -39,7 +39,7 @@ add_task(async function () {
   await hasConsoleMessage(dbg, "a b c");
 
   const { link, value } = await findConsoleMessage(dbg, "a b c");
-  is(link, "script-switching-01.js:8:2", "logs should have the relevant link");
+  is(link, "script-switching-01.js:8:3", "logs should have the relevant link");
   is(value, "a b c \nfunction firstCall()", "logs should have multiple values");
   await removeBreakpoint(dbg, source.id, 7);
   await removeBreakpoint(dbg, source.id, 8);

@@ -246,10 +246,15 @@ function prepareConsoleMessageForRemote(
           return createValueGripForTarget(targetActor, dbgObj);
         })
       : [],
+
+    // The line is 1-based.
+    lineNumber: message.lineNumber,
+    // The column is also 1-based as it ultimately derivates from SavedFrame's 1-based column
     columnNumber: message.columnNumber,
+
     filename: message.filename,
     level: message.level,
-    lineNumber: message.lineNumber,
+
     // messages emitted from Console.sys.mjs don't have a microSecondTimeStamp property
     timeStamp: message.microSecondTimeStamp
       ? message.microSecondTimeStamp / 1000

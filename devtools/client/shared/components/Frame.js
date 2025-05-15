@@ -35,8 +35,14 @@ function savedFrameToLocation(frame) {
   const { source: url, line, column, sourceId } = frame;
   return {
     url,
+
+    // Line is 1-based everywhere.
     line,
-    column,
+
+    // The column received from spidermonkey Frame objects are 1-based,
+    // while most of DevTools frontend consider it to be 0-based.
+    column: column - 1,
+
     // The sourceId will be a string if it's a source actor ID, otherwise
     // it is either a Spidermonkey-internal ID from a SavedFrame or missing,
     // and in either case we can't use the ID for anything useful.
@@ -152,8 +158,11 @@ class Frame extends Component {
     const source = currentLocation.url || "";
     const line =
       currentLocation.line != void 0 ? Number(currentLocation.line) : null;
+    // column is 0-based while we always display 1-based numbers
     const column =
-      currentLocation.column != void 0 ? Number(currentLocation.column) : null;
+      currentLocation.column != void 0
+        ? Number(currentLocation.column) + 1
+        : null;
     return {
       source,
       line,

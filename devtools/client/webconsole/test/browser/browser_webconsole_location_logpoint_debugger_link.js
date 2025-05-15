@@ -57,8 +57,8 @@ add_task(async function () {
     text: "undefinedVariable is not defined",
     typeSelector: ".logPointError",
     expectUrl: true,
-    expectLine: false,
-    expectColumn: false,
+    expectLine: true,
+    expectColumn: true,
     logPointExpr: "undefinedVariable",
   });
 
@@ -68,8 +68,8 @@ add_task(async function () {
     text: "a is 1",
     typeSelector: ".logPoint",
     expectUrl: true,
-    expectLine: false,
-    expectColumn: false,
+    expectLine: true,
+    expectColumn: true,
     logPointExpr: "`a is ${a}`",
   });
 

@@ -628,8 +628,10 @@ async function checkClickOnNode(
     const column = frameLinkNode.getAttribute("data-column");
     ok(column, `source column found ("${column}")`);
 
+    // Redux location object uses 0-based column, while we display a 1-based one.
     is(
-      parseInt(dbg._selectors.getSelectedLocation(dbg._getState()).column, 10),
+      parseInt(dbg._selectors.getSelectedLocation(dbg._getState()).column, 10) +
+        1,
       parseInt(column, 10),
       "expected source column"
     );
