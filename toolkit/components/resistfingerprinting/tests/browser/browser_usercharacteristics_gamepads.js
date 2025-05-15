@@ -17,26 +17,24 @@ add_setup(async function setup() {
 async function promiseObserverNotification() {
   await TestUtils.topicObserved("user-characteristics-populating-data-done");
 
-  await GleanPings.userCharacteristics.testSubmission(
-    () => {
-      let gamepads = Glean.characteristics.gamepads.testGetValue();
+  GleanPings.userCharacteristics.testBeforeNextSubmit(_ => {
+    let gamepads = Glean.characteristics.gamepads.testGetValue();
 
-      is(gamepads.length, 2, "Two gamepads were reported");
+    is(gamepads.length, 2, "Two gamepads were reported");
 
-      is(
-        gamepads[0],
-        `["test gamepad 1","",4,4,0,0,0]`,
-        "The first gamepads metrics is expected."
-      );
+    is(
+      gamepads[0],
+      `["test gamepad 1","",4,4,0,0,0]`,
+      "The first gamepads metrics is expected."
+    );
 
-      is(
-        gamepads[1],
-        `["test gamepad 2","right",10,4,2,0,0]`,
-        "The second gamepads metrics is expected."
-      );
-    },
-    () => GleanPings.userCharacteristics.submit()
-  );
+    is(
+      gamepads[1],
+      `["test gamepad 2","right",10,4,2,0,0]`,
+      "The second gamepads metrics is expected."
+    );
+  });
+  GleanPings.userCharacteristics.submit();
 }
 
 add_task(async function test() {
