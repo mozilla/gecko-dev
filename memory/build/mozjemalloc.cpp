@@ -124,7 +124,6 @@
 #include "mozmemory_wrap.h"
 #include "mozjemalloc.h"
 #include "mozjemalloc_types.h"
-#include "mozjemalloc_profiling.h"
 
 #include <cstring>
 #include <cerrno>
@@ -156,7 +155,6 @@
 #include "mozilla/Literals.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/RandomNum.h"
-#include "mozilla/RefPtr.h"
 // Note: MozTaggedAnonymousMmap() could call an LD_PRELOADed mmap
 // instead of the one defined here; use only MozTagAnonymousMemory().
 #include "mozilla/TaggedAnonymousMemory.h"
@@ -643,14 +641,6 @@ static Atomic<size_t> gRecycledSize;
 #define DIRTY_MAX_DEFAULT (1U << 8)
 
 static size_t opt_dirty_max = DIRTY_MAX_DEFAULT;
-
-#ifdef MOZJEMALLOC_PROFILING_CALLBACKS
-// MallocProfilerCallbacks is refcounted so that one thread cannot destroy it
-// while another thread accesses it.  This means that clearing this value or
-// otherwise dropping a reference to it must not be done while holding an
-// arena's lock.
-static RefPtr<MallocProfilerCallbacks> sCallbacks;
-#endif
 
 // Return the smallest chunk multiple that is >= s.
 #define CHUNK_CEILING(s) (((s) + kChunkSizeMask) & ~kChunkSizeMask)
@@ -1308,12 +1298,6 @@ struct arena_t {
   // released after a concurrent purge completes.
   bool mMustDeleteAfterPurge MOZ_GUARDED_BY(mLock) = false;
 
-  // mLabel describes the label for the firefox profiler.  It's stored in a
-  // fixed size area including a null terminating byte.  The actual maximum
-  // length of the string is one less than LABEL_MAX_CAPACITY;
-  static constexpr size_t LABEL_MAX_CAPACITY = 128;
-  char mLabel[LABEL_MAX_CAPACITY];
-
  private:
   // Size/address-ordered tree of this arena's available runs.  This tree
   // is used for first-best-fit run allocation.
@@ -1451,6 +1435,20 @@ struct arena_t {
       MOZ_REQUIRES(mLock);
 #endif
 
+  enum PurgeResult {
+    // The stop threshold of dirty pages was reached.
+    Done,
+
+    // There's more chunks in this arena that could be purged.
+    Continue,
+
+    // The only chunks with dirty pages are busy being purged by other threads.
+    Busy,
+
+    // The arena needs to be destroyed by the caller.
+    Dying,
+  };
+
   // Purge some dirty pages.
   //
   // When this is called the caller has already tested ShouldStartPurge()
@@ -1467,23 +1465,7 @@ struct arena_t {
   //
   // This must be called without the mLock held (it'll take the lock).
   //
-  ArenaPurgeResult Purge(PurgeCondition aCond, PurgeStats& aStats)
-      MOZ_EXCLUDES(mLock);
-
-  // Run Purge() in a loop. If sCallback is non-null then collect statistics and
-  // publish them through the callback,  aCaller should be used to identify the
-  // caller in the profiling data.
-  //
-  // aCond         - when to stop purging
-  // aCaller       - a string representing the caller, this is used for
-  //                 profiling
-  // aReuseGraceMS - Stop purging the arena if it was used within this many
-  //                 milliseconds.  Or 0 to ignore recent reuse.
-  // aKeepGoing    - Optional function to implement a time budget.
-  //
-  ArenaPurgeResult PurgeLoop(
-      PurgeCondition aCond, const char* aCaller, uint32_t aReuseGraceMS = 0,
-      Maybe<std::function<bool()>> aKeepGoing = Nothing()) MOZ_EXCLUDES(mLock);
+  PurgeResult Purge(PurgeCondition aCond) MOZ_EXCLUDES(mLock);
 
   class PurgeInfo {
    private:
@@ -1497,10 +1479,6 @@ struct arena_t {
 
     arena_chunk_t* mChunk = nullptr;
 
-   private:
-    PurgeStats& mPurgeStats;
-
-   public:
     size_t FreeRunLenBytes() const { return mFreeRunLen << gPageSize2Pow; }
 
     // The last index of the free run.
@@ -1534,8 +1512,8 @@ struct arena_t {
     // is dying, or we hit the arena-level threshold.
     void FinishPurgingInChunk(bool aAddToMAdvised) MOZ_REQUIRES(mArena.mLock);
 
-    explicit PurgeInfo(arena_t& arena, arena_chunk_t* chunk, PurgeStats& stats)
-        : mArena(arena), mChunk(chunk), mPurgeStats(stats) {}
+    explicit PurgeInfo(arena_t& arena, arena_chunk_t* chunk)
+        : mArena(arena), mChunk(chunk) {}
   };
 
   void HardPurge();
@@ -1553,8 +1531,7 @@ struct arena_t {
   inline purge_action_t ShouldStartPurge() MOZ_REQUIRES(mLock);
 
   // Take action according to ShouldStartPurge.
-  inline void MayDoOrQueuePurge(purge_action_t aAction, const char* aCaller)
-      MOZ_EXCLUDES(mLock);
+  inline void MayDoOrQueuePurge(purge_action_t aAction) MOZ_EXCLUDES(mLock);
 
   // Check the EffectiveHalfMaxDirty threshold to decide if we continue purge.
   // This threshold is lower than ShouldStartPurge to have some hysteresis.
@@ -1615,7 +1592,6 @@ class ArenaCollection {
     arena_params_t params;
     // The main arena allows more dirty pages than the default for other arenas.
     params.mMaxDirty = opt_dirty_max;
-    params.mLabel = "Default";
     mDefaultArena =
         mLock.Init() ? CreateArena(/* aIsPrivate = */ false, &params) : nullptr;
     mPurgeListLock.Init();
@@ -1787,7 +1763,7 @@ class ArenaCollection {
       }
     }
     if (ret != aEnable) {
-      MayPurgeAll(PurgeIfThreshold, __func__);
+      MayPurgeAll(PurgeIfThreshold);
     }
     return ret;
   }
@@ -1803,12 +1779,12 @@ class ArenaCollection {
       MOZ_EXCLUDES(mPurgeListLock);
 
   // Execute all outstanding purge requests, if any.
-  void MayPurgeAll(PurgeCondition aCond, const char* aCaller);
+  void MayPurgeAll(PurgeCondition aCond);
 
   // Purge some dirty memory, based on purge requests, returns true if there are
   // more to process.
   //
-  // Returns a may_purge_now_result_t with the following meaning:
+  // Returns a purge_result_t with the following meaning:
   // Done:       Purge has completed for all arenas.
   // NeedsMore:  There may be some arenas that needs to be purged now.
   // WantsLater: There is at least one arena that might want a purge later,
@@ -1825,9 +1801,8 @@ class ArenaCollection {
   //  - There are more requests but aKeepGoing() returned false. (returns true)
   //  - One arena is completely purged, (returns true).
   //
-  may_purge_now_result_t MayPurgeSteps(
-      bool aPeekOnly, uint32_t aReuseGraceMS,
-      const Maybe<std::function<bool()>>& aKeepGoing);
+  purge_result_t MayPurgeSteps(bool aPeekOnly, uint32_t aReuseGraceMS,
+                               const Maybe<std::function<bool()>>& aKeepGoing);
 
  private:
   const static arena_id_t MAIN_THREAD_ARENA_BIT = 0x1;
@@ -2194,17 +2169,6 @@ void* MozVirtualAlloc(void* lpAddress, size_t dwSize, uint32_t flAllocationType,
 }  // namespace mozilla
 
 #endif  // XP_WIN
-
-#ifdef MOZJEMALLOC_PROFILING_CALLBACKS
-namespace mozilla {
-
-void jemalloc_set_profiler_callbacks(
-    RefPtr<MallocProfilerCallbacks>&& aCallbacks) {
-  sCallbacks = aCallbacks;
-}
-
-}  // namespace mozilla
-#endif
 
 // ***************************************************************************
 
@@ -2976,9 +2940,8 @@ static inline arena_t* thread_local_arena(bool enabled) {
     // called with `false`, but it doesn't matter at the moment.
     // because in practice nothing actually calls this function
     // with `false`, except maybe at shutdown.
-    arena_params_t params;
-    params.mLabel = "Thread local";
-    arena = gArenas.CreateArena(/* aIsPrivate = */ false, &params);
+    arena =
+        gArenas.CreateArena(/* aIsPrivate = */ false, /* aParams = */ nullptr);
   } else {
     arena = gArenas.GetDefault();
   }
@@ -3538,7 +3501,7 @@ size_t arena_t::ExtraCommitPages(size_t aReqPages, size_t aRemainingPages) {
 }
 #endif
 
-ArenaPurgeResult arena_t::Purge(PurgeCondition aCond, PurgeStats& aStats) {
+arena_t::PurgeResult arena_t::Purge(PurgeCondition aCond) {
   arena_chunk_t* chunk;
 
   // The first critical section will find a chunk and mark dirty pages in it as
@@ -3562,7 +3525,7 @@ ArenaPurgeResult arena_t::Purge(PurgeCondition aCond, PurgeStats& aStats) {
 
     if (!ShouldContinuePurge(aCond)) {
       mIsPurgePending = false;
-      return ReachedThreshold;
+      return Done;
     }
 
     // Take a single chunk and attempt to purge some of its dirty pages.  The
@@ -3594,7 +3557,6 @@ ArenaPurgeResult arena_t::Purge(PurgeCondition aCond, PurgeStats& aStats) {
     MOZ_ASSERT(!chunk->mIsPurging);
     mChunksDirty.Remove(chunk);
     chunk->mIsPurging = true;
-    aStats.chunks++;
   }  // MaybeMutexAutoLock
 
   // True if we should continue purging memory from this arena.
@@ -3610,7 +3572,7 @@ ArenaPurgeResult arena_t::Purge(PurgeCondition aCond, PurgeStats& aStats) {
   while (continue_purge_chunk && continue_purge_arena) {
     // This structure is used to communicate between the two PurgePhase
     // functions.
-    PurgeInfo purge_info(*this, chunk, aStats);
+    PurgeInfo purge_info(*this, chunk);
 
     {
       // Phase 1: Find pages that need purging.
@@ -3640,7 +3602,7 @@ ArenaPurgeResult arena_t::Purge(PurgeCondition aCond, PurgeStats& aStats) {
       }
       // There's nothing else to do here, our caller may execute Purge() again
       // if continue_purge_arena is true.
-      return continue_purge_arena ? NotDone : ReachedThreshold;
+      return continue_purge_arena ? Continue : Done;
     }
 
 #ifdef MALLOC_DECOMMIT
@@ -3689,44 +3651,7 @@ ArenaPurgeResult arena_t::Purge(PurgeCondition aCond, PurgeStats& aStats) {
     purged_once = true;
   }
 
-  return continue_purge_arena ? NotDone : ReachedThreshold;
-}
-
-ArenaPurgeResult arena_t::PurgeLoop(PurgeCondition aCond, const char* aCaller,
-                                    uint32_t aReuseGraceMS,
-                                    Maybe<std::function<bool()>> aKeepGoing) {
-  PurgeStats purge_stats(mId, mLabel, aCaller);
-
-#ifdef MOZJEMALLOC_PROFILING_CALLBACKS
-  // We hold our own reference to callbacks for the duration of PurgeLoop to
-  // make sure it's not released during purging.
-  RefPtr<MallocProfilerCallbacks> callbacks = sCallbacks;
-  TimeStamp start;
-  if (callbacks) {
-    start = TimeStamp::Now();
-  }
-#endif
-
-  uint64_t reuseGraceNS = (uint64_t)aReuseGraceMS * 1000 * 1000;
-  uint64_t now = aReuseGraceMS ? 0 : GetTimestampNS();
-  ArenaPurgeResult pr;
-  do {
-    pr = Purge(aCond, purge_stats);
-    now = aReuseGraceMS ? 0 : GetTimestampNS();
-  } while (
-      pr == NotDone &&
-      (!aReuseGraceMS || (now - mLastSignificantReuseNS >= reuseGraceNS)) &&
-      (!aKeepGoing || (*aKeepGoing)()));
-
-#ifdef MOZJEMALLOC_PROFILING_CALLBACKS
-  if (callbacks) {
-    TimeStamp end = TimeStamp::Now();
-    // We can't hold an arena lock while committing profiler markers.
-    callbacks->OnPurge(start, end, purge_stats, pr);
-  }
-#endif
-
-  return pr;
+  return continue_purge_arena ? Continue : Done;
 }
 
 bool arena_t::PurgeInfo::FindDirtyPages(bool aPurgedOnce) {
@@ -3837,8 +3762,6 @@ std::pair<bool, arena_chunk_t*> arena_t::PurgeInfo::UpdatePagesAndCounts() {
 #endif
 
   mArena.mStats.committed -= mDirtyNPages;
-  mPurgeStats.pages += mDirtyNPages;
-  mPurgeStats.system_calls++;
 
   if (mChunk->mDying) {
     // A dying chunk doesn't need to be coaleased, it will already have one
@@ -4835,7 +4758,7 @@ static inline void arena_dalloc(void* aPtr, size_t aOffset, arena_t* aArena) {
     chunk_dealloc((void*)chunk_dealloc_delay, kChunkSize, ARENA_CHUNK);
   }
 
-  arena->MayDoOrQueuePurge(purge_action, "arena_dalloc");
+  arena->MayDoOrQueuePurge(purge_action);
 }
 
 static inline void idalloc(void* ptr, arena_t* aArena) {
@@ -4865,8 +4788,7 @@ inline purge_action_t arena_t::ShouldStartPurge() {
   return purge_action_t::None;
 }
 
-inline void arena_t::MayDoOrQueuePurge(purge_action_t aAction,
-                                       const char* aCaller) {
+inline void arena_t::MayDoOrQueuePurge(purge_action_t aAction) {
   switch (aAction) {
     case purge_action_t::Queue:
       // Note that this thread committed earlier by setting
@@ -4876,14 +4798,16 @@ inline void arena_t::MayDoOrQueuePurge(purge_action_t aAction,
       // ShouldStartPurge() or Purge() next time.
       gArenas.AddToOutstandingPurges(this);
       break;
-    case purge_action_t::PurgeNow: {
-      ArenaPurgeResult pr = PurgeLoop(PurgeIfThreshold, aCaller);
+    case purge_action_t::PurgeNow:
+      PurgeResult pr;
+      do {
+        pr = Purge(PurgeIfThreshold);
+      } while (pr == arena_t::PurgeResult::Continue);
       // Arenas cannot die here because the caller is still using the arena, if
       // they did it'd be a use-after-free: the arena is destroyed but then used
       // afterwards.
-      MOZ_RELEASE_ASSERT(pr != ArenaPurgeResult::Dying);
+      MOZ_RELEASE_ASSERT(pr != arena_t::PurgeResult::Dying);
       break;
-    }
     case purge_action_t::None:
       // do nothing.
       break;
@@ -4914,7 +4838,7 @@ void arena_t::RallocShrinkLarge(arena_chunk_t* aChunk, void* aPtr, size_t aSize,
 
     purge_action = ShouldStartPurge();
   }
-  MayDoOrQueuePurge(purge_action, "RallocShrinkLarge");
+  MayDoOrQueuePurge(purge_action);
 }
 
 // Returns whether reallocation was successful.
@@ -5080,22 +5004,9 @@ arena_t::arena_t(arena_params_t* aParams, bool aIsPrivate) {
 
     mMaxDirtyIncreaseOverride = aParams->mMaxDirtyIncreaseOverride;
     mMaxDirtyDecreaseOverride = aParams->mMaxDirtyDecreaseOverride;
-
-    if (aParams->mLabel) {
-      // The string may be truncated so always place a null-byte in the last
-      // position.
-      strncpy(mLabel, aParams->mLabel, LABEL_MAX_CAPACITY - 1);
-      mLabel[LABEL_MAX_CAPACITY - 1] = 0;
-      // In debug builds we assert if the string needed truncating.
-      MOZ_ASSERT(strlen(aParams->mLabel) < LABEL_MAX_CAPACITY);
-    } else {
-      mLabel[0] = 0;
-    }
   } else {
     mMaxDirtyIncreaseOverride = 0;
     mMaxDirtyDecreaseOverride = 0;
-
-    mLabel[0] = 0;
   }
 
   mLastSignificantReuseNS = GetTimestampNS();
@@ -6069,13 +5980,13 @@ inline void MozJemalloc::jemalloc_purge_freed_pages() {
 
 inline void MozJemalloc::jemalloc_free_dirty_pages(void) {
   if (malloc_initialized) {
-    gArenas.MayPurgeAll(PurgeUnconditional, __func__);
+    gArenas.MayPurgeAll(PurgeUnconditional);
   }
 }
 
 inline void MozJemalloc::jemalloc_free_excess_dirty_pages(void) {
   if (malloc_initialized) {
-    gArenas.MayPurgeAll(PurgeIfThreshold, __func__);
+    gArenas.MayPurgeAll(PurgeIfThreshold);
   }
 }
 
@@ -6201,7 +6112,7 @@ inline bool MozJemalloc::moz_enable_deferred_purge(bool aEnabled) {
   return gArenas.SetDeferredPurge(aEnabled);
 }
 
-inline may_purge_now_result_t MozJemalloc::moz_may_purge_now(
+inline purge_result_t MozJemalloc::moz_may_purge_now(
     bool aPeekOnly, uint32_t aReuseGraceMS,
     const Maybe<std::function<bool()>>& aKeepGoing) {
   return gArenas.MayPurgeSteps(aPeekOnly, aReuseGraceMS, aKeepGoing);
@@ -6231,7 +6142,7 @@ inline bool ArenaCollection::RemoveFromOutstandingPurges(arena_t* aArena) {
   return false;
 }
 
-may_purge_now_result_t ArenaCollection::MayPurgeSteps(
+purge_result_t ArenaCollection::MayPurgeSteps(
     bool aPeekOnly, uint32_t aReuseGraceMS,
     const Maybe<std::function<bool()>>& aKeepGoing) {
   // This only works on the main thread because it may process main-thread-only
@@ -6244,7 +6155,7 @@ may_purge_now_result_t ArenaCollection::MayPurgeSteps(
   {
     MutexAutoLock lock(mPurgeListLock);
     if (mOutstandingPurges.isEmpty()) {
-      return may_purge_now_result_t::Done;
+      return purge_result_t::Done;
     }
     for (arena_t& arena : mOutstandingPurges) {
       if (now - arena.mLastSignificantReuseNS >= reuseGraceNS) {
@@ -6254,10 +6165,10 @@ may_purge_now_result_t ArenaCollection::MayPurgeSteps(
     }
 
     if (!found) {
-      return may_purge_now_result_t::WantsLater;
+      return purge_result_t::WantsLater;
     }
     if (aPeekOnly) {
-      return may_purge_now_result_t::NeedsMore;
+      return purge_result_t::NeedsMore;
     }
 
     // We need to avoid the invalid state where mIsDeferredPurgePending is set
@@ -6266,10 +6177,15 @@ may_purge_now_result_t ArenaCollection::MayPurgeSteps(
     mOutstandingPurges.remove(found);
   }
 
-  ArenaPurgeResult pr =
-      found->PurgeLoop(PurgeIfThreshold, __func__, aReuseGraceMS, aKeepGoing);
+  arena_t::PurgeResult pr;
+  do {
+    pr = found->Purge(PurgeIfThreshold);
+    now = GetTimestampNS();
+  } while (pr == arena_t::PurgeResult::Continue &&
+           (now - found->mLastSignificantReuseNS >= reuseGraceNS) &&
+           aKeepGoing && (*aKeepGoing)());
 
-  if (pr == ArenaPurgeResult::NotDone) {
+  if (pr == arena_t::PurgeResult::Continue) {
     // If there's more work to do we re-insert the arena into the purge queue.
     // If the arena was busy we don't since the other thread that's purging it
     // will finish that work.
@@ -6286,7 +6202,7 @@ may_purge_now_result_t ArenaCollection::MayPurgeSteps(
       // to increase the probability to find it fast.
       mOutstandingPurges.pushFront(found);
     }
-  } else if (pr == ArenaPurgeResult::Dying) {
+  } else if (pr == arena_t::PurgeResult::Dying) {
     delete found;
   }
 
@@ -6294,22 +6210,25 @@ may_purge_now_result_t ArenaCollection::MayPurgeSteps(
   // us again and we will do the above checks then and return their result.
   // Note that in the current surrounding setting this may (rarely) cause a
   // new slice of our idle task runner if we are exceeding idle budget.
-  return may_purge_now_result_t::NeedsMore;
+  return purge_result_t::NeedsMore;
 }
 
-void ArenaCollection::MayPurgeAll(PurgeCondition aCond, const char* aCaller) {
+void ArenaCollection::MayPurgeAll(PurgeCondition aCond) {
   MutexAutoLock lock(mLock);
   for (auto* arena : iter()) {
     // Arenas that are not IsMainThreadOnly can be purged from any thread.
     // So we do what we can even if called from another thread.
     if (!arena->IsMainThreadOnly() || IsOnMainThreadWeak()) {
       RemoveFromOutstandingPurges(arena);
-      ArenaPurgeResult pr = arena->PurgeLoop(aCond, aCaller);
+      arena_t::PurgeResult pr;
+      do {
+        pr = arena->Purge(aCond);
+      } while (pr == arena_t::PurgeResult::Continue);
 
       // No arena can die here because we're holding the arena collection lock.
       // Arenas are removed from the collection before setting their mDying
       // flag.
-      MOZ_RELEASE_ASSERT(pr != ArenaPurgeResult::Dying);
+      MOZ_RELEASE_ASSERT(pr != arena_t::PurgeResult::Dying);
     }
   }
 }

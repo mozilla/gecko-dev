@@ -922,31 +922,7 @@ void ScheduleIdleMemoryCleanup(uint32_t aWantsLaterDelay) {
       "TaskController::IdlePurgeRunner", TimeDuration(), maxPurgeDelay,
       minPurgeBudget, true, nullptr, nullptr);
 }
-}  // namespace mozilla
 
-namespace geckoprofiler::markers {
-struct IdlePurgePeekMarker : mozilla::BaseMarkerType<IdlePurgePeekMarker> {
-  static constexpr const char* Name = "IdlePurgePeek";
-  static constexpr const char* Description = "Check if we should purge memory";
-
-  using MS = mozilla::MarkerSchema;
-  using String8View = mozilla::ProfilerString8View;
-
-  static constexpr MS::PayloadField PayloadFields[] = {
-      {"status", MS::InputType::CString, "Status", MS::Format::String}};
-
-  static void StreamJSONMarkerData(
-      mozilla::baseprofiler::SpliceableJSONWriter& aWriter,
-      const String8View& aStatus) {
-    aWriter.StringProperty("status", aStatus);
-  }
-
-  static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
-                                               MS::Location::MarkerTable};
-};
-}  // namespace geckoprofiler::markers
-
-namespace mozilla {
 // Check if a purge needs to be scheduled now or later.
 // Both used as timer callback and directly from MayScheduleIdleMemoryCleanup.
 //
@@ -958,8 +934,12 @@ namespace mozilla {
 // (very cheap) check actually runs.
 //
 // aTimer:   Not used
-// aClosure: Not used
+// aClosure: Supposed to point to a name literal to be used for profile
+//           markers.
 void CheckIdleMemoryCleanupNeeded(nsITimer* aTimer, void* aClosure) {
+  MOZ_ASSERT(aClosure);
+  const char* name = (const char*)aClosure;
+
   uint32_t reuseGracePeriod =
       StaticPrefs::memory_lazypurge_reuse_grace_period();
 
@@ -975,7 +955,7 @@ void CheckIdleMemoryCleanupNeeded(nsITimer* aTimer, void* aClosure) {
   auto result =
       moz_may_purge_now(/* aPeekOnly */ true, reuseGracePeriod, Nothing());
   switch (result) {
-    case may_purge_now_result_t::Done:
+    case purge_result_t::Done:
       // Currently we unqueue purge requests only:
       // if we run moz_may_purge_one_now with aPeekOnly==false and that happens
       // only in the IdleTaskRunner which cancels itself when done
@@ -984,33 +964,29 @@ void CheckIdleMemoryCleanupNeeded(nsITimer* aTimer, void* aClosure) {
       // jemalloc_free_(excess)_dirty_pages or moz_set_max_dirty_page_modifier)
       // which can happen anytime.
       if (sIdleMemoryCleanupRunner || sIdleMemoryCleanupWantsLaterScheduled) {
-        PROFILER_MARKER("IdlePurgePeek", GCCC, MarkerTiming::InstantNow(),
-                        IdlePurgePeekMarker,
-                        ProfilerString8View::WrapNullTerminatedString(
-                            "Done (Cancel timer or runner)"));
+        PROFILER_MARKER_TEXT(
+            ProfilerString8View::WrapNullTerminatedString(name), OTHER, {},
+            "Done (Cancel timer or runner)"_ns);
         CancelIdleMemoryCleanupTimerAndRunner();
       }
       break;
-    case may_purge_now_result_t::WantsLater:
+    case purge_result_t::WantsLater:
       if (!sIdleMemoryCleanupWantsLaterScheduled) {
-        PROFILER_MARKER(
-            "IdlePurgePeek", GCCC, MarkerTiming::InstantNow(),
-            IdlePurgePeekMarker,
-            ProfilerString8View::WrapNullTerminatedString(
-                "WantsLater (First schedule of low priority timer)"));
+        PROFILER_MARKER_TEXT(
+            ProfilerString8View::WrapNullTerminatedString(name), OTHER, {},
+            "WantsLater (First schedule of low priority timer)"_ns);
       }
       // We always want to (re-)schedule the timer to prevent it from firing
       // as much as possible.
       ScheduleWantsLaterTimer(wantsLaterDelay);
       break;
-    case may_purge_now_result_t::NeedsMore:
+    case purge_result_t::NeedsMore:
       // We can get here from the main thread going repeatedly idle after we
       // already scheduled a runner. Just keep it.
       if (!sIdleMemoryCleanupRunner) {
-        PROFILER_MARKER("IdlePurgePeek", GCCC, MarkerTiming::InstantNow(),
-                        IdlePurgePeekMarker,
-                        ProfilerString8View::WrapNullTerminatedString(
-                            "NeedsMore (Schedule as-soon-as-idle cleanup)"));
+        PROFILER_MARKER_TEXT(
+            ProfilerString8View::WrapNullTerminatedString(name), OTHER, {},
+            "NeedsMore (Schedule as-soon-as-idle cleanup)"_ns);
         ScheduleIdleMemoryCleanup(wantsLaterDelay);
       } else {
         MOZ_ASSERT(!sIdleMemoryCleanupWantsLaterScheduled);
@@ -1018,35 +994,6 @@ void CheckIdleMemoryCleanupNeeded(nsITimer* aTimer, void* aClosure) {
       break;
   }
 }
-}  // namespace mozilla
-
-namespace geckoprofiler::markers {
-struct IdlePurgeMarker : mozilla::BaseMarkerType<IdlePurgeMarker> {
-  static constexpr const char* Name = "IdlePurge";
-  static constexpr const char* Description =
-      "Purge memory from mozjemalloc in idle time";
-
-  using MS = mozilla::MarkerSchema;
-  using String8View = mozilla::ProfilerString8View;
-
-  static constexpr MS::PayloadField PayloadFields[] = {
-      {"num_calls", MS::InputType::Uint32, "Number of PurgeNow() calls",
-       MS::Format::Integer},
-      {"next", MS::InputType::CString, "Last result", MS::Format::String}};
-
-  static void StreamJSONMarkerData(
-      mozilla::baseprofiler::SpliceableJSONWriter& aWriter, uint32_t aNumCalls,
-      const String8View& aLastResult) {
-    aWriter.IntProperty("num_calls", aNumCalls);
-    aWriter.StringProperty("last_result", aLastResult);
-  }
-
-  static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
-                                               MS::Location::MarkerTable};
-};
-}  // namespace geckoprofiler::markers
-
-namespace mozilla {
 
 // Do some purging until our idle budget is used.
 //
@@ -1061,44 +1008,39 @@ namespace mozilla {
 //                   allowed to consume time.
 // aWantsLaterDelay: (Minimum) delay to be used for the WantsLater timer.
 bool RunIdleMemoryCleanup(TimeStamp aDeadline, uint32_t aWantsLaterDelay) {
-  MOZ_ASSERT(!sIdleMemoryCleanupWantsLaterScheduled);
+  AUTO_PROFILER_MARKER_TEXT("RunIdleMemoryCleanup", OTHER, {}, ""_ns);
 
-  TimeStamp start_time = TimeStamp::Now();
-  uint32_t num_calls = 0;
+  MOZ_ASSERT(!sIdleMemoryCleanupWantsLaterScheduled);
 
   uint32_t reuseGracePeriod =
       StaticPrefs::memory_lazypurge_reuse_grace_period();
 
-  may_purge_now_result_t result;
+  purge_result_t result;
   do {
-    num_calls++;
     result = moz_may_purge_now(
         /* aPeekOnly */ false, reuseGracePeriod, Some([aDeadline] {
           return aDeadline.IsNull() || TimeStamp::Now() <= aDeadline;
         }));
-  } while ((result == may_purge_now_result_t::NeedsMore) &&
+  } while ((result == purge_result_t::NeedsMore) &&
            (aDeadline.IsNull() || TimeStamp::Now() <= aDeadline));
 
-  const char* last_result;
   switch (result) {
-    case may_purge_now_result_t::Done:
-      last_result = "Done (Cancel timer and runner)";
+    case purge_result_t::Done:
+      PROFILER_MARKER_TEXT("RunIdleMemoryCleanup", OTHER, {},
+                           "Done (Cancel timer and runner)"_ns);
       CancelIdleMemoryCleanupTimerAndRunner();
       break;
-    case may_purge_now_result_t::WantsLater:
-      last_result = "WantsLater (First schedule of low priority timer)";
+    case purge_result_t::WantsLater:
+      PROFILER_MARKER_TEXT(
+          "RunIdleMemoryCleanup", OTHER, {},
+          "WantsLater (First schedule of low priority timer)"_ns);
       ScheduleWantsLaterTimer(aWantsLaterDelay);
       break;
-    case may_purge_now_result_t::NeedsMore:
-      last_result = "NeedsMore (wait for next idle slice)";
+    case purge_result_t::NeedsMore:
+      PROFILER_MARKER_TEXT("RunIdleMemoryCleanup", OTHER, {},
+                           "NeedsMore (wait for next idle slice)."_ns);
       break;
   }
-
-  PROFILER_MARKER("IdlePurge", GCCC,
-                  MarkerTiming::IntervalUntilNowFrom(start_time),
-                  IdlePurgeMarker, num_calls,
-                  ProfilerString8View::WrapNullTerminatedString(last_result));
-
   return true;
 };
 

@@ -86,4 +86,3 @@ OS_LIBS += CONFIG["DL_LIBS"]
 DisableStlWrapping()
 
 include("/mozglue/build/replace_malloc.mozbuild")
-include("/mozglue/misc/timestamp.mozbuild")

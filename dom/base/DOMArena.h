@@ -10,7 +10,6 @@
 #include "mozmemory.h"
 
 #include "mozilla/mozalloc_oom.h"  // for mozalloc_handle_oom
-#include "nsString.h"
 
 #define NS_DECL_DOMARENA_DESTROY void Destroy(void);
 
@@ -35,13 +34,10 @@ namespace mozilla::dom {
 class DOMArena {
  public:
   friend class DocGroup;
-  explicit DOMArena(const nsACString& aLabel) {
-    nsCString label = PromiseFlatCString("DOMArena "_ns + aLabel);
-
+  DOMArena() {
     arena_params_t params;
     params.mMaxDirtyIncreaseOverride = 7;
     params.mFlags = ARENA_FLAG_THREAD_MAIN_THREAD_ONLY;
-    params.mLabel = label.get();
     mArenaId = moz_create_arena_with_params(&params);
   }
 
