@@ -928,11 +928,11 @@ void KeymapWrapper::KeyboardHandlerForWayland(uint32_t aSerial,
     // This runnable will be run after GDK's key event.
     //
     // Next key press of GDK will be after repeat's delay ms.
-    // But event time in next key press wonn't updated.
+    // But event time in next key press won't updated.
     //
     // The delay's default is 400ms in GTK/wayland. Even if we can get this
     // information from repeat_info, if we wait for this time, it is too late.
-    // We guess that 10ms will be enough durration to set repeat state.
+    // We guess that 10ms will be enough duration to set repeat state.
 
     NS_DelayedDispatchToCurrentThread(
         NS_NewRunnableFunction(
