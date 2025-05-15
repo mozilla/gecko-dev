@@ -498,8 +498,6 @@ MediaSourceTrackDemuxer::DoGetSamples(int32_t aNumSamples) {
     }
   }
   MOZ_DIAGNOSTIC_ASSERT(sample);
-  RefPtr<SamplesHolder> samples = new SamplesHolder;
-  samples->AppendSample(sample);
   {
     MutexAutoLock lock(Mutex());
     mLock.ClearCurrentAccess();
@@ -515,6 +513,8 @@ MediaSourceTrackDemuxer::DoGetSamples(int32_t aNumSamples) {
           mType, MediaSourceDemuxer::EOS_FUZZ);
     }
   }
+  RefPtr<SamplesHolder> samples = new SamplesHolder;
+  samples->AppendSample(std::move(sample));
   return SamplesPromise::CreateAndResolve(samples, __func__);
 }
 

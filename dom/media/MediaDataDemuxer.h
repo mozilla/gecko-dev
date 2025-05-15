@@ -100,9 +100,9 @@ class MediaTrackDemuxer : public DecoderDoctorLifeLogger<MediaTrackDemuxer> {
    public:
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SamplesHolder)
 
-    void AppendSample(RefPtr<MediaRawData>& aSample) {
+    void AppendSample(RefPtr<MediaRawData> aSample) {
       MOZ_DIAGNOSTIC_ASSERT(aSample->HasValidTime());
-      mSamples.AppendElement(aSample);
+      mSamples.AppendElement(std::move(aSample));
     }
 
     const nsTArray<RefPtr<MediaRawData>>& GetSamples() const {

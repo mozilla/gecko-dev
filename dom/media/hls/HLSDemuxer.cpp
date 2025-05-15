@@ -290,8 +290,8 @@ RefPtr<HLSTrackDemuxer::SamplesPromise> HLSTrackDemuxer::DoGetSamples(
                                              __func__);
     }
     MOZ_ASSERT(mQueuedSample->mKeyframe, "mQueuedSample must be a keyframe");
-    samples->AppendSample(mQueuedSample);
-    mQueuedSample = nullptr;
+    samples->AppendSample(std::move(mQueuedSample));
+    MOZ_ASSERT(!mQueuedSample);
     aNumSamples--;
   }
   if (aNumSamples == 0) {
@@ -332,7 +332,7 @@ RefPtr<HLSTrackDemuxer::SamplesPromise> HLSTrackDemuxer::DoGetSamples(
       return SamplesPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_DEMUXER_ERR,
                                              __func__);
     }
-    samples->AppendSample(mrd);
+    samples->AppendSample(std::move(mrd));
   }
   if (mType == TrackInfo::kVideoTrack &&
       (mNextKeyframeTime.isNothing() ||

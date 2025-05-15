@@ -360,7 +360,7 @@ RefPtr<WAVTrackDemuxer::SamplesPromise> WAVTrackDemuxer::GetSamples(
       return SamplesPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_DEMUXER_ERR,
                                              __func__);
     }
-    datachunks->AppendSample(datachunk);
+    datachunks->AppendSample(std::move(datachunk));
   }
 
   if (datachunks->GetSamples().IsEmpty()) {

@@ -234,7 +234,7 @@ RefPtr<ADTSTrackDemuxer::SamplesPromise> ADTSTrackDemuxer::GetSamples(
   while (aNumSamples--) {
     RefPtr<MediaRawData> frame(GetNextFrame(FindNextFrame()));
     if (!frame) break;
-    frames->AppendSample(frame);
+    frames->AppendSample(std::move(frame));
   }
 
   ADTSLOGV(

@@ -851,7 +851,7 @@ RefPtr<FlacTrackDemuxer::SamplesPromise> FlacTrackDemuxer::GetSamples(
       return SamplesPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_DEMUXER_ERR,
                                              __func__);
     }
-    frames->AppendSample(frame);
+    frames->AppendSample(std::move(frame));
   }
 
   LOGV("GetSamples() End mSamples.Length=%zu aNumSamples=%d offset=%" PRId64

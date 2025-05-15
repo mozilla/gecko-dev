@@ -1271,7 +1271,7 @@ RefPtr<WebMTrackDemuxer::SamplesPromise> WebMTrackDemuxer::GetSamples(
                                              __func__);
     }
     mNeedKeyframe = false;
-    samples->AppendSample(sample);
+    samples->AppendSample(std::move(sample));
     aNumSamples--;
   }
 

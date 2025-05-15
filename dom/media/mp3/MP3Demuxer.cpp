@@ -263,7 +263,7 @@ RefPtr<MP3TrackDemuxer::SamplesPromise> MP3TrackDemuxer::GetSamples(
       return SamplesPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_DEMUXER_ERR,
                                              __func__);
     }
-    frames->AppendSample(frame);
+    frames->AppendSample(std::move(frame));
   }
 
   MP3LOGV("GetSamples() End mSamples.Size()=%zu aNumSamples=%d mOffset=%" PRIu64

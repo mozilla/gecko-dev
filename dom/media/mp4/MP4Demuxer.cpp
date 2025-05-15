@@ -529,8 +529,8 @@ RefPtr<MP4TrackDemuxer::SamplesPromise> MP4TrackDemuxer::GetSamples(
 
   if (mQueuedSample) {
     NS_ASSERTION(mQueuedSample->mKeyframe, "mQueuedSample must be a keyframe");
-    samples->AppendSample(mQueuedSample);
-    mQueuedSample = nullptr;
+    samples->AppendSample(std::move(mQueuedSample));
+    MOZ_ASSERT(!mQueuedSample);
     aNumSamples--;
   }
   RefPtr<MediaRawData> sample;
@@ -539,7 +539,7 @@ RefPtr<MP4TrackDemuxer::SamplesPromise> MP4TrackDemuxer::GetSamples(
       continue;
     }
     MOZ_DIAGNOSTIC_ASSERT(sample->HasValidTime());
-    samples->AppendSample(sample);
+    samples->AppendSample(std::move(sample));
     aNumSamples--;
   }
 

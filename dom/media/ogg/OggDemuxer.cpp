@@ -1458,7 +1458,7 @@ RefPtr<OggTrackDemuxer::SamplesPromise> OggTrackDemuxer::GetSamples(
       return SamplesPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_DEMUXER_ERR,
                                              __func__);
     }
-    samples->AppendSample(sample);
+    samples->AppendSample(std::move(sample));
     aNumSamples--;
   }
 
