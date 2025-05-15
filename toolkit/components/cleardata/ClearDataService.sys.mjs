@@ -67,6 +67,12 @@ function maybeFixupIpv6(host) {
   if (!host?.includes(":")) {
     return host;
   }
+
+  // don't fixup an ipv6 that already has [...]
+  if (host.startsWith("[") && host.endsWith("]")) {
+    return host;
+  }
+
   return `[${host}]`;
 }
 
