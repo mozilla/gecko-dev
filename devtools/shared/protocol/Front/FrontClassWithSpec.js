@@ -4,6 +4,10 @@
 
 "use strict";
 
+var {
+  BULK_REQUEST,
+  BULK_RESPONSE,
+} = require("resource://devtools/shared/protocol/types.js");
 var { Front } = require("resource://devtools/shared/protocol/Front.js");
 
 /**
@@ -20,7 +24,7 @@ var generateRequestMethods = function (actorSpec, frontProto) {
   // Generate request methods.
   const methods = actorSpec.methods;
   methods.forEach(spec => {
-    const name = spec.name;
+    const { name } = spec;
 
     frontProto[name] = function (...args) {
       // If the front is destroyed, the request will not be able to complete.
@@ -44,7 +48,25 @@ var generateRequestMethods = function (actorSpec, frontProto) {
         return undefined;
       }
 
-      return this.request(packet).then(response => {
+      // Check if the client request should be sent as a bulk request
+      const isSendingBulkData = spec.request.template === BULK_REQUEST;
+
+      // If so, pass the last front argument as the bulk initialization callback
+      const clientBulkCallback = isSendingBulkData ? args.at(-1) : null;
+
+      return this.request(packet, {
+        bulk: isSendingBulkData,
+        clientBulkCallback,
+      }).then(response => {
+        // If the request returns bulk data, return the transport response as-is.
+        // We do not expect any custom packet/attributes for bulk responses,
+        // the transport will handle the binary stream communication and expose
+        // the StreamCopier as resolution value in the returned Promise.
+        const isReceivingBulkData = spec.response.template === BULK_RESPONSE;
+        if (isReceivingBulkData) {
+          return response;
+        }
+
         let ret;
         if (!this.conn) {
           throw new Error("Missing conn on " + this);

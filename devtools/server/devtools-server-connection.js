@@ -439,7 +439,8 @@ DevToolsServerConnection.prototype = {
     let ret;
     if (actor.requestTypes?.[type]) {
       try {
-        ret = actor.requestTypes[type].call(actor, packet);
+        // Protocol.js Actor.js expects the connection to be passed as second argument.
+        ret = actor.requestTypes[type].call(actor, packet, this);
       } catch (error) {
         const prefix = `error occurred while processing bulk packet '${type}'`;
         this.transport.send(this._unknownError(actorKey, prefix, error));

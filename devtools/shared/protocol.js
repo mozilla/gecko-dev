@@ -11,6 +11,8 @@ var {
   registerFront,
   getFront,
   createRootFront,
+  BULK_REQUEST,
+  BULK_RESPONSE,
 } = require("resource://devtools/shared/protocol/types.js");
 var { Front } = require("resource://devtools/shared/protocol/Front.js");
 var {
@@ -26,6 +28,8 @@ exports.Front = Front;
 exports.Pool = Pool;
 exports.Actor = Actor;
 exports.types = types;
+exports.BULK_REQUEST = BULK_REQUEST;
+exports.BULK_RESPONSE = BULK_RESPONSE;
 exports.generateActorSpec = generateActorSpec;
 exports.FrontClassWithSpec = FrontClassWithSpec;
 exports.Arg = Arg;

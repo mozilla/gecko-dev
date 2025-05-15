@@ -560,6 +560,12 @@ DevToolsClient.prototype = {
       return;
     }
 
+    const front = this.getFrontByID(actor);
+    if (front) {
+      front.onBulkPacket(packet);
+      return;
+    }
+
     // See if we have a handler function waiting for a reply from this
     // actor.
     if (!this._activeRequests.has(actor)) {

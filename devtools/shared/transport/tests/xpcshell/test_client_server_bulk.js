@@ -8,79 +8,98 @@ var { FileUtils } = ChromeUtils.importESModule(
 );
 var Pipe = Components.Constructor("@mozilla.org/pipe;1", "nsIPipe", "init");
 
-function run_test() {
+add_task(async function () {
   initTestDevToolsServer();
   add_test_bulk_actor();
 
-  add_task(async function () {
-    await test_bulk_request_cs(socket_transport, "jsonReply", "json");
-    await test_bulk_request_cs(local_transport, "jsonReply", "json");
-    await test_bulk_request_cs(socket_transport, "bulkEcho", "bulk");
-    await test_bulk_request_cs(local_transport, "bulkEcho", "bulk");
-    await test_json_request_cs(socket_transport, "bulkReply", "bulk");
-    await test_json_request_cs(local_transport, "bulkReply", "bulk");
-    DevToolsServer.destroy();
-  });
+  dump(" ################# JSON REPLY\n");
+  await test_bulk_request_cs(socket_transport, "jsonReply", "json");
+  await test_bulk_request_cs(local_transport, "jsonReply", "json");
 
-  run_next_test();
-}
+  dump(" ################# BULK ECHO\n");
+  await test_bulk_request_cs(socket_transport, "bulkEcho", "bulk");
+  await test_bulk_request_cs(local_transport, "bulkEcho", "bulk");
+
+  dump(" ################# BULK REPLY\n");
+  await test_json_request_cs(socket_transport, "bulkReply", "bulk");
+  await test_json_request_cs(local_transport, "bulkReply", "bulk");
+
+  DevToolsServer.destroy();
+});
 
 /** * Sample Bulk Actor ***/
+const protocol = require("resource://devtools/shared/protocol.js");
+const { Arg, RetVal } = protocol;
 const { Actor } = require("resource://devtools/shared/protocol/Actor.js");
+
+const testBulkSpec = protocol.generateActorSpec({
+  typeName: "testBulk",
+
+  methods: {
+    bulkEcho: {
+      request: protocol.BULK_REQUEST,
+      response: protocol.BULK_RESPONSE,
+    },
+    bulkReply: {
+      request: { foo: Arg(0, "number") },
+      response: protocol.BULK_RESPONSE,
+    },
+    jsonReply: {
+      request: protocol.BULK_REQUEST,
+      response: { allDone: RetVal("number") },
+    },
+  },
+});
+
+class TestBulkFront extends protocol.FrontClassWithSpec(testBulkSpec) {
+  formAttributeName = "testBulk";
+  form(form) {
+    this.actor = form.actor;
+  }
+}
+protocol.registerFront(TestBulkFront);
+
 class TestBulkActor extends Actor {
   constructor(conn) {
-    super(conn, { typeName: "testBulk", methods: [] });
-
-    this.requestTypes = {
-      bulkEcho: this.bulkEcho,
-      bulkReply: this.bulkReply,
-      jsonReply: this.jsonReply,
-    };
+    super(conn, testBulkSpec);
   }
 
-  bulkEcho({ actor, type, length, copyTo }) {
+  // Receives data as bulk and respond as bulk
+  async bulkEcho({ length, copyTo }, startBulkResponse) {
     Assert.equal(length, really_long().length);
-    this.conn
-      .startBulkSend({
-        actor,
-        type,
-        length,
-      })
-      .then(({ copyFrom }) => {
-        // We'll just echo back the same thing
-        const pipe = new Pipe(true, true, 0, 0, null);
-        copyTo(pipe.outputStream).then(() => {
-          pipe.outputStream.close();
-        });
-        copyFrom(pipe.inputStream).then(() => {
-          pipe.inputStream.close();
-        });
-      });
+
+    const { copyFrom } = await startBulkResponse(length);
+
+    // We'll just echo back the same thing
+    const pipe = new Pipe(true, true, 0, 0, null);
+    copyTo(pipe.outputStream).then(() => {
+      pipe.outputStream.close();
+    });
+    copyFrom(pipe.inputStream).then(() => {
+      pipe.inputStream.close();
+    });
   }
 
-  bulkReply({ to, type }) {
-    this.conn
-      .startBulkSend({
-        actor: to,
-        type,
-        length: really_long().length,
-      })
-      .then(({ copyFrom }) => {
-        NetUtil.asyncFetch(
-          {
-            uri: NetUtil.newURI(getTestTempFile("bulk-input")),
-            loadUsingSystemPrincipal: true,
-          },
-          input => {
-            copyFrom(input).then(() => {
-              input.close();
-            });
-          }
-        );
-      });
+  // Receives data as json and respond as bulk
+  async bulkReply({ foo }, startBulkResponse) {
+    Assert.equal(foo, 42);
+
+    const { copyFrom } = await startBulkResponse(really_long().length);
+    const input = await new Promise(resolve => {
+      NetUtil.asyncFetch(
+        {
+          uri: NetUtil.newURI(getTestTempFile("bulk-input")),
+          loadUsingSystemPrincipal: true,
+        },
+        resolve
+      );
+    });
+    await copyFrom(input);
+    input.close();
   }
 
-  jsonReply({ length, copyTo }) {
+  // Receives data as bulk and response as json
+  async jsonReply({ length, copyTo }) {
     Assert.equal(length, really_long().length);
 
     const outputFile = getTestTempFile("bulk-output", true);
@@ -88,14 +107,11 @@ class TestBulkActor extends Actor {
 
     const output = FileUtils.openSafeFileOutputStream(outputFile);
 
-    return copyTo(output)
-      .then(() => {
-        FileUtils.closeSafeFileOutputStream(output);
-        return verify_files();
-      })
-      .then(() => {
-        return { allDone: true };
-      }, do_throw);
+    await copyTo(output);
+    FileUtils.closeSafeFileOutputStream(output);
+    await verify_files();
+
+    return 24;
   }
 }
 
@@ -112,33 +128,24 @@ function add_test_bulk_actor() {
 /** * Reply Handlers ***/
 
 var replyHandlers = {
-  json(request) {
+  async json(reply) {
     // Receive JSON reply from server
-    return new Promise(resolve => {
-      request.on("json-reply", reply => {
-        Assert.ok(reply.allDone);
-        resolve();
-      });
-    });
+    Assert.equal(reply, 24, "The returned JSON value is correct");
   },
 
-  bulk(request) {
+  async bulk({ length, copyTo }) {
     // Receive bulk data reply from server
-    return new Promise(resolve => {
-      request.on("bulk-reply", ({ length, copyTo }) => {
-        Assert.equal(length, really_long().length);
+    Assert.equal(length, really_long().length);
 
-        const outputFile = getTestTempFile("bulk-output", true);
-        outputFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, parseInt("666", 8));
+    const outputFile = getTestTempFile("bulk-output", true);
+    outputFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, parseInt("666", 8));
 
-        const output = FileUtils.openSafeFileOutputStream(outputFile);
+    const output = FileUtils.openSafeFileOutputStream(outputFile);
 
-        copyTo(output).then(() => {
-          FileUtils.closeSafeFileOutputStream(output);
-          resolve(verify_files());
-        });
-      });
-    });
+    await copyTo(output);
+    FileUtils.closeSafeFileOutputStream(output);
+
+    await verify_files();
   },
 };
 
@@ -146,17 +153,12 @@ var replyHandlers = {
 
 var test_bulk_request_cs = async function (
   transportFactory,
-  actorType,
+  frontMethod,
   replyType
 ) {
   // Ensure test files are not present from a failed run
   cleanup_files();
   writeTestTempFile("bulk-input", really_long());
-
-  let clientResolve;
-  const clientDeferred = new Promise(resolve => {
-    clientResolve = resolve;
-  });
 
   let serverResolve;
   const serverDeferred = new Promise(resolve => {
@@ -171,9 +173,8 @@ var test_bulk_request_cs = async function (
   const transport = await transportFactory();
 
   const client = new DevToolsClient(transport);
-  client.connect().then(() => {
-    client.mainRoot.rootForm.then(clientResolve);
-  });
+  await client.connect();
+  await client.mainRoot.rootForm;
 
   function bulkSendReadyCallback({ copyFrom }) {
     NetUtil.asyncFetch(
@@ -190,47 +191,37 @@ var test_bulk_request_cs = async function (
     );
   }
 
-  clientDeferred
-    .then(response => {
-      const request = client.startBulkRequest({
-        actor: response.testBulk,
-        type: actorType,
-        length: really_long().length,
-      });
+  const front = await client.mainRoot.getFront("testBulk");
+  const response = await front[frontMethod](
+    { length: really_long().length },
+    bulkSendReadyCallback
+  );
 
-      // Send bulk data to server
-      request.on("bulk-send-ready", bulkSendReadyCallback);
+  // Set up reply handling for this type
+  await replyHandlers[replyType](response);
 
-      // Set up reply handling for this type
-      replyHandlers[replyType](request).then(() => {
-        client.close();
-        transport.close();
-      });
-    })
-    .catch(do_throw);
-
-  DevToolsServer.on("connectionchange", type => {
+  const connectionListener = type => {
     if (type === "closed") {
+      DevToolsServer.off("connectionchange", connectionListener);
       serverResolve();
     }
-  });
+  };
+  DevToolsServer.on("connectionchange", connectionListener);
 
-  return Promise.all([clientDeferred, bulkCopyDeferred, serverDeferred]);
+  client.close();
+  transport.close();
+
+  await Promise.all([bulkCopyDeferred, serverDeferred]);
 };
 
 var test_json_request_cs = async function (
   transportFactory,
-  actorType,
+  frontMethod,
   replyType
 ) {
   // Ensure test files are not present from a failed run
   cleanup_files();
   writeTestTempFile("bulk-input", really_long());
-
-  let clientResolve;
-  const clientDeferred = new Promise(resolve => {
-    clientResolve = resolve;
-  });
 
   let serverResolve;
   const serverDeferred = new Promise(resolve => {
@@ -241,30 +232,23 @@ var test_json_request_cs = async function (
 
   const client = new DevToolsClient(transport);
   await client.connect();
-  client.mainRoot.rootForm.then(clientResolve);
+  await client.mainRoot.rootForm;
+  const front = await client.mainRoot.getFront("testBulk");
+  const response = await front[frontMethod]({ foo: 42 });
 
-  clientDeferred
-    .then(response => {
-      const request = client.request({
-        to: response.testBulk,
-        type: actorType,
-      });
+  await replyHandlers[replyType](response);
 
-      // Set up reply handling for this type
-      replyHandlers[replyType](request).then(() => {
-        client.close();
-        transport.close();
-      });
-    })
-    .catch(do_throw);
-
-  DevToolsServer.on("connectionchange", type => {
+  const connectionListener = type => {
     if (type === "closed") {
+      DevToolsServer.off("connectionchange", connectionListener);
       serverResolve();
     }
-  });
+  };
+  DevToolsServer.on("connectionchange", connectionListener);
+  client.close();
+  transport.close();
 
-  return Promise.all([clientDeferred, serverDeferred]);
+  return serverDeferred;
 };
 
 /** * Test Utils ***/

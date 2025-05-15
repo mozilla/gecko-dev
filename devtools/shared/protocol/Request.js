@@ -9,17 +9,32 @@ var {
   findPlaceholders,
   getPath,
 } = require("resource://devtools/shared/protocol/utils.js");
-var { types } = require("resource://devtools/shared/protocol/types.js");
+var {
+  types,
+  BULK_REQUEST,
+} = require("resource://devtools/shared/protocol/types.js");
 
 /**
  * Manages a request template.
  *
+ * @param string type
+ *    The type defined in the specification for this request.
+ *    For methods, it will be the attribute name in "methods" dictionary.
+ *    For events, it will be the attribute name in "events" dictionary.
  * @param object template
  *    The request template.
  * @construcor
  */
-var Request = function (template = {}) {
-  this.type = template.type;
+var Request = function (type, template = {}) {
+  // The EventEmitter event name (this.type, attribute name in the event specification file) emitted on the Actor/Front,
+  // may be different from the RDP JSON packet event name (ret[type], type attribute value in the event specification file)
+  // In the specification:
+  //   "my-event": { // <= EventEmitter name
+  //     type: "myEvent", // <= RDP packet type attribute
+  //     ...
+  //   }
+  this.type = template.type || type;
+
   this.template = template;
   this.args = findPlaceholders(template, Arg);
 };
@@ -35,17 +50,35 @@ Request.prototype = {
    * @returns a request packet.
    */
   write(fnArgs, ctx) {
-    const ret = {};
+    // Bulk request can't send custom attributes/custom JSON packet.
+    // Only communicate "type" and "length" attributes to the transport layer,
+    // which will emit a JSON RDP packet with an additional "actor attribute.
+    if (this.template === BULK_REQUEST) {
+      // The Front's method is expected to be called with a unique object argument
+      // with a "length" attribute, which refers to the total size of bytes to be
+      // sent via a the bulk StreamCopier.
+      if (typeof fnArgs[0].length != "number") {
+        throw new Error(
+          "This front's method is expected to send a bulk request and should be called with an object argument with a length attribute."
+        );
+      }
+      return { type: this.type, length: fnArgs[0].length };
+    }
+
+    const ret = {
+      type: this.type,
+    };
     for (const key in this.template) {
       const value = this.template[key];
-      if (value instanceof Arg) {
+      if (value instanceof Arg || value instanceof Option) {
         ret[key] = value.write(
           value.index in fnArgs ? fnArgs[value.index] : undefined,
           ctx,
           key
         );
       } else if (key == "type") {
-        ret[key] = value;
+        // Ignore the type attribute which have already been considered in the constructor.
+        continue;
       } else {
         throw new Error(
           "Request can only an object with `Arg` or `Option` properties"
@@ -65,6 +98,13 @@ Request.prototype = {
    * @returns an arguments array
    */
   read(packet, ctx) {
+    if (this.template === BULK_REQUEST) {
+      // The transport layer will convey a custom packet object with length and copyTo
+      // which we transfer to the Actor's method via a unique object argument.
+      // This help know about the incoming data size and read the binary buffer via `copyTo`.
+      return [{ length: packet.length, copyTo: packet.copyTo }];
+    }
+
     const fnArgs = [];
     for (const templateArg of this.args) {
       const arg = templateArg.placeholder;

@@ -272,23 +272,43 @@ class Front extends Pool {
 
   /**
    * Send a packet on the connection.
+   *
+   * @param {Object} packet
+   * @param {Object} options
+   * @param {Boolean} options.bulk
+   *        To be set to true, if the packet relates to bulk request.
+   *        Bulk request allows to send raw bytes over the wire instead of
+   *        having to create a JSON string packet.
+   * @param {Function} options.clientBulkCallback
+   *        For bulk request, function called with a StreamWriter as only argument.
+   *        This is called when the StreamWriter is available in order to send
+   *        bytes to the server.
    */
-  send(packet) {
-    if (packet.to) {
+  send(packet, { bulk = false, clientBulkCallback = null } = {}) {
+    // The connection might be closed during the promise resolution
+    if (!this.conn?._transport) {
+      return;
+    }
+
+    if (!bulk) {
+      if (!packet.to) {
+        packet.to = this.actorID;
+      }
       this.conn._transport.send(packet);
     } else {
-      packet.to = this.actorID;
-      // The connection might be closed during the promise resolution
-      if (this.conn && this.conn._transport) {
-        this.conn._transport.send(packet);
+      if (!packet.actor) {
+        packet.actor = this.actorID;
       }
+      this.conn._transport.startBulkSend(packet).then(clientBulkCallback);
     }
   }
 
   /**
    * Send a two-way request on the connection.
+   *
+   * See `send()` jsdoc for parameters definition.
    */
-  request(packet) {
+  request(packet, { bulk = false, clientBulkCallback = null } = {}) {
     const deferred = Promise.withResolvers();
     // Save packet basics for debugging
     const { to, type } = packet;
@@ -298,8 +318,9 @@ class Front extends Pool {
       type,
       packet,
       stack: getStack(),
+      clientBulkCallback,
     });
-    this.send(packet);
+    this.send(packet, { bulk, clientBulkCallback });
     return deferred.promise;
   }
 
@@ -394,6 +415,14 @@ class Front extends Pool {
       stack,
       "DevTools RDP"
     );
+  }
+
+  /**
+   * DevToolsClient will notify Fronts about bulk packet via this method.
+   */
+  onBulkPacket(packet) {
+    // We can actually consider the bulk packet as a regular packet.
+    this.onPacket(packet);
   }
 
   hasRequests() {

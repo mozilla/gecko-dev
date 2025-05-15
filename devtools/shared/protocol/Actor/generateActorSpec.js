@@ -27,9 +27,7 @@ var generateActorSpec = function (actorDesc) {
       const spec = {};
 
       spec.name = methodSpec.name || name;
-      spec.request = new Request(
-        Object.assign({ type: spec.name }, methodSpec.request || undefined)
-      );
+      spec.request = new Request(spec.name, methodSpec.request || undefined);
       spec.response = new Response(methodSpec.response || undefined);
       spec.release = methodSpec.release;
       spec.oneway = methodSpec.oneway;
@@ -44,10 +42,7 @@ var generateActorSpec = function (actorDesc) {
     for (const name in actorDesc.events) {
       const eventRequest = actorDesc.events[name];
       Object.freeze(eventRequest);
-      actorSpec.events.set(
-        name,
-        new Request(Object.assign({ type: name }, eventRequest))
-      );
+      actorSpec.events.set(name, new Request(name, eventRequest));
     }
   }
 

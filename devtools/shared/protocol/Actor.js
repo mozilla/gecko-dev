@@ -6,6 +6,14 @@
 
 var { Pool } = require("resource://devtools/shared/protocol/Pool.js");
 
+// Lazy load this symbol in order to prevent a dependency cycle between Actor and types.
+loader.lazyRequireGetter(
+  this,
+  "BULK_RESPONSE",
+  "resource://devtools/shared/protocol/types.js",
+  true
+);
+
 /**
  * Keep track of which actorSpecs have been created. If a replica of a spec
  * is created, it can be caught, and specs which inherit from other specs will
@@ -195,11 +203,33 @@ var generateRequestTypes = function (actorSpec) {
               ` method that isn't implemented by the actor`
           );
         }
+
+        // If this method is flaged to be returning a bulk response,
+        // expose a method as last argument which will initiate the bulk response
+        // and return a promise resolving to a StreamCopier instance.
+        const isBulkResponse = spec.response.template === BULK_RESPONSE;
+        if (isBulkResponse) {
+          args.push(length => {
+            return this.conn.startBulkSend({
+              actor: this.actorID,
+              length,
+            });
+          });
+        }
         const ret = this[spec.name].apply(this, args);
 
         const sendReturn = retToSend => {
           if (spec.oneway) {
             // No need to send a response.
+            return;
+          }
+          if (isBulkResponse) {
+            if (retToSend) {
+              throw new Actor(
+                `Actor method '${this.typeName}.${spec.name}' is supposed to return a bulk response, but returned some value.`
+              );
+            }
+            // Bulk response are one-way requests and are not replying any JSON packet.
             return;
           }
           if (this.isDestroyed()) {
