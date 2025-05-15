@@ -533,12 +533,11 @@ nsresult nsXRemoteClient::DoSendCommandLine(Window aWindow, int32_t argc,
   *aDestroyed = false;
 
   int commandLineLength;
-  char* commandLine =
+  mozilla::UniquePtr<char[]> commandLine =
       ConstructCommandLine(argc, argv, aStartupToken, &commandLineLength);
   XChangeProperty(mDisplay, aWindow, mMozCommandLineAtom, XA_STRING, 8,
-                  PropModeReplace, (unsigned char*)commandLine,
+                  PropModeReplace, (unsigned char*)commandLine.get(),
                   commandLineLength);
-  free(commandLine);
 
   char* response;
   if (!WaitForResponse(aWindow, &response, aDestroyed, mMozCommandLineAtom))

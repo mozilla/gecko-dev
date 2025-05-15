@@ -274,7 +274,7 @@ void DBusHandleResultMetas(
 static void ActivateResultID(
     RefPtr<nsGNOMEShellHistorySearchResult> aSearchResult,
     const char* aResultID, uint32_t aTimeStamp) {
-  char* commandLine = nullptr;
+  mozilla::UniquePtr<char[]>commandLine;
   int len;
 
   if (strncmp(aResultID, KEYWORD_SEARCH_STRING, KEYWORD_SEARCH_STRING_LEN) ==
@@ -321,9 +321,8 @@ static void ActivateResultID(
   }
 
   if (commandLine) {
-    aSearchResult->HandleCommandLine(mozilla::Span(commandLine, len),
+    aSearchResult->HandleCommandLine(mozilla::Span(commandLine.get(), len),
                                      aTimeStamp);
-    free(commandLine);
   }
 }
 
@@ -373,12 +372,11 @@ static void DBusLaunchWithAllResults(
   }
 
   int len;
-  char* commandLine =
+  mozilla::UniquePtr<char[]> commandLine =
       ConstructCommandLine(urlListElements, urlList, nullptr, &len);
   if (commandLine) {
-    aSearchResult->HandleCommandLine(mozilla::Span(commandLine, len),
+    aSearchResult->HandleCommandLine(mozilla::Span(commandLine.get(), len),
                                      aTimeStamp);
-    free(commandLine);
   }
 
   for (int i = 0; i < urlListElements; i++) {

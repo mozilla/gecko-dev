@@ -46,7 +46,7 @@ nsresult nsDBusRemoteClient::SendCommandLine(const char* aProgram,
   LOG("nsDBusRemoteClient::SendCommandLine");
 
   int commandLineLength;
-  char* commandLine = ConstructCommandLine(
+  mozilla::UniquePtr<char[]> commandLine = ConstructCommandLine(
       argc, argv,
       mStartupToken.IsEmpty() ? nullptr
                               : PromiseFlatCString(mStartupToken).get(),
@@ -56,8 +56,7 @@ nsresult nsDBusRemoteClient::SendCommandLine(const char* aProgram,
     return NS_ERROR_FAILURE;
   }
 
-  nsresult rv = DoSendDBusCommandLine(aProfile, commandLine, commandLineLength);
-  free(commandLine);
+  nsresult rv = DoSendDBusCommandLine(aProfile, commandLine.get(), commandLineLength);
 
   LOG("DoSendDBusCommandLine %s", NS_SUCCEEDED(rv) ? "OK" : "FAILED");
   return rv;

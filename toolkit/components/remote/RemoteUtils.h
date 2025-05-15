@@ -51,7 +51,7 @@ static void BuildClassName(const char* aProgram, const char* aProfile,
 }
 #endif
 
-char* ConstructCommandLine(int32_t argc, const char** argv,
+mozilla::UniquePtr<char[]>  ConstructCommandLine(int32_t argc, const char** argv,
                            const char* aStartupToken, int* aCommandLineLength);
 
 #endif  // TOOLKIT_COMPONENTS_REMOTE_REMOTEUTILS_H_

@@ -10,6 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+#include "mozilla/UniquePtr.h"
 
 #include "RemoteUtils.h"
 
@@ -38,10 +39,11 @@ static char* estrcpy(const char* s, char* d) {
 }
 
 /* Construct a command line from given args and desktop startup ID.
- * Returned buffer must be released by free().
+ * Returned buffer is managed by mozilla::UniquePtr<char[]>.
  */
-char* ConstructCommandLine(int32_t argc, const char** argv,
-                           const char* aStartupToken, int* aCommandLineLength) {
+mozilla::UniquePtr<char[]> ConstructCommandLine(int32_t argc, const char** argv,
+                                                const char* aStartupToken,
+                                                int* aCommandLineLength) {
   char cwdbuf[MAX_PATH];
   if (!getcwd(cwdbuf, MAX_PATH)) return nullptr;
 
@@ -62,18 +64,18 @@ char* ConstructCommandLine(int32_t argc, const char** argv,
     argvlen += len;
   }
 
-  auto* buffer =
-      (int32_t*)malloc(argvlen + argc + 1 + sizeof(int32_t) * (argc + 1));
-  if (!buffer) return nullptr;
+  mozilla::UniquePtr<char[]> buffer = mozilla::MakeUnique<char[]>(
+      argvlen + argc + 1 + sizeof(int32_t) * (argc + 1));
 
-  buffer[0] = TO_LITTLE_ENDIAN32(argc);
+  int32_t* bufferInt = reinterpret_cast<int32_t*>(buffer.get());
+  bufferInt[0] = TO_LITTLE_ENDIAN32(argc);
 
-  auto* bufend = (char*)(buffer + argc + 1);
+  char* bufend = reinterpret_cast<char*>(bufferInt + argc + 1);
 
   bufend = estrcpy(cwdbuf, bufend);
 
   for (int i = 0; i < argc; ++i) {
-    buffer[i + 1] = TO_LITTLE_ENDIAN32(bufend - ((char*)buffer));
+    bufferInt[i + 1] = TO_LITTLE_ENDIAN32(bufend - buffer.get());
     bufend = estrcpy(argv[i], bufend);
     if (i == 0 && aStartupToken) {
       bufend = estrcpy(startupTokenPrefix, bufend - 1);
@@ -82,8 +84,8 @@ char* ConstructCommandLine(int32_t argc, const char** argv,
   }
 
 #ifdef DEBUG_command_line
-  int32_t debug_argc = TO_LITTLE_ENDIAN32(*buffer);
-  char* debug_workingdir = (char*)(buffer + argc + 1);
+  int32_t debug_argc = TO_LITTLE_ENDIAN32(*bufferInt);
+  char* debug_workingdir = reinterpret_cast<char*>(bufferInt + argc + 1);
 
   printf(
       "Sending command line:\n"
@@ -91,12 +93,12 @@ char* ConstructCommandLine(int32_t argc, const char** argv,
       "  argc:\t%i",
       debug_workingdir, debug_argc);
 
-  int32_t* debug_offset = buffer + 1;
+  int32_t* debug_offset = bufferInt + 1;
   for (int debug_i = 0; debug_i < debug_argc; ++debug_i)
     printf("  argv[%i]:\t%s\n", debug_i,
-           ((char*)buffer) + TO_LITTLE_ENDIAN32(debug_offset[debug_i]));
+           buffer.get() + TO_LITTLE_ENDIAN32(debug_offset[debug_i]));
 #endif
 
-  *aCommandLineLength = bufend - reinterpret_cast<char*>(buffer);
-  return reinterpret_cast<char*>(buffer);
+  *aCommandLineLength = static_cast<int>(bufend - buffer.get());
+  return buffer;
 }
