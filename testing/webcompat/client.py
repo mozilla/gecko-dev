@@ -979,6 +979,8 @@ class Client:
                     if len(result):
                         if condition:
                             result = self.session.execute_script(condition, [result])
+                            if not len(result):
+                                continue
                         found[i] = result[0] if not all else result
                         return found
                 except webdriver.error.NoSuchElementException as e:

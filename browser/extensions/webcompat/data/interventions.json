@@ -3616,6 +3616,23 @@
       }
     ]
   },
+  "1963270": {
+    "label": "app.kosmi.io",
+    "bugs": {
+      "1963270": {
+        "issue": "blocked-content",
+        "matches": ["*://app.kosmi.io/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1963270-app.kosmi.io-unprefix-mozCaptureStream.js"]
+        }
+      }
+    ]
+  },
   "1963302": {
     "label": "lefties.com",
     "bugs": {
