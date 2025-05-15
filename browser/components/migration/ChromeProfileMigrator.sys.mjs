@@ -250,16 +250,9 @@ export class ChromeProfileMigrator extends MigratorBase {
         ];
         if (lazy.ChromeMigrationUtils.supportsLoginsForPlatform) {
           possibleResourcePromises.push(
-            this._GetPasswordsResource(profileFolder)
+            this._GetPasswordsResource(profileFolder),
+            this._GetPaymentMethodsResource(profileFolder, this.constructor.key)
           );
-
-          // We no longer support importing payment methods from Chrome on
-          // Windows.
-          if (AppConstants.platform != "win") {
-            possibleResourcePromises.push(
-              this._GetPaymentMethodsResource(profileFolder)
-            );
-          }
         }
 
         // Some of these Promises might reject due to things like database
@@ -544,13 +537,19 @@ export class ChromeProfileMigrator extends MigratorBase {
       },
     };
   }
-  async _GetPaymentMethodsResource(aProfileFolder) {
+  async _GetPaymentMethodsResource(aProfileFolder, aBrowserKey = "chrome") {
     if (
       !Services.prefs.getBoolPref(
         "browser.migrate.chrome.payment_methods.enabled",
         false
       )
     ) {
+      return null;
+    }
+
+    // We no longer support importing payment methods from Chrome on
+    // Windows.
+    if (AppConstants.platform == "win" && aBrowserKey == "chrome") {
       return null;
     }
 
