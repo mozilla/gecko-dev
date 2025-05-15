@@ -22,7 +22,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
@@ -30,6 +29,7 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getPreferenceKey
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.mozilla.fenix.home.pocket.ContentRecommendationsFeatureHelper
 import org.mozilla.fenix.utils.Settings
 import org.robolectric.Robolectric
 
@@ -72,8 +72,8 @@ internal class HomeSettingsFragmentTest {
 
     @Test
     fun `GIVEN the Pocket sponsored stories feature is disabled for the app WHEN accessing settings THEN the settings for it are not visible`() {
-        mockkObject(FeatureFlags) {
-            every { FeatureFlags.isPocketSponsoredStoriesFeatureEnabled(any()) } returns false
+        mockkObject(ContentRecommendationsFeatureHelper) {
+            every { ContentRecommendationsFeatureHelper.isPocketSponsoredStoriesFeatureEnabled(any()) } returns false
 
             activateFragment()
 
@@ -83,8 +83,8 @@ internal class HomeSettingsFragmentTest {
 
     @Test
     fun `GIVEN the Pocket sponsored stories feature is enabled for the app WHEN accessing settings THEN the settings for it are visible`() {
-        mockkObject(FeatureFlags) {
-            every { FeatureFlags.isPocketSponsoredStoriesFeatureEnabled(any()) } returns true
+        mockkObject(ContentRecommendationsFeatureHelper) {
+            every { ContentRecommendationsFeatureHelper.isPocketSponsoredStoriesFeatureEnabled(any()) } returns true
 
             activateFragment()
 
