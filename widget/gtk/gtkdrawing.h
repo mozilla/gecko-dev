@@ -152,6 +152,8 @@ enum WidgetNodeType : int {
   MOZ_GTK_TABPANELS,
   /* Paints the expander and border of a GtkTreeView */
   MOZ_GTK_TREEVIEW,
+  /* Paints the border of a GtkTreeView */
+  MOZ_GTK_TREEVIEW_VIEW,
   /* Paints treeheader cells */
   MOZ_GTK_TREE_HEADER_CELL,
   /* Paints the background of menus, context menus. */
@@ -164,6 +166,14 @@ enum WidgetNodeType : int {
   MOZ_GTK_MENUITEM,
   /* Menubar menuitem for foreground colors. */
   MOZ_GTK_MENUBARITEM,
+  /* GtkVPaned base class */
+  MOZ_GTK_SPLITTER_HORIZONTAL,
+  /* GtkHPaned base class */
+  MOZ_GTK_SPLITTER_VERTICAL,
+  /* Paints a GtkVPaned separator */
+  MOZ_GTK_SPLITTER_SEPARATOR_HORIZONTAL,
+  /* Paints a GtkHPaned separator */
+  MOZ_GTK_SPLITTER_SEPARATOR_VERTICAL,
   /* Paints the background of a window, dialog or page. */
   MOZ_GTK_WINDOW,
   /* Used only as a container for MOZ_GTK_HEADER_BAR. */

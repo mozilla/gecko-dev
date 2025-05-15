@@ -153,6 +153,17 @@ void moz_gtk_refresh() {
   ResetWidgetCache();
 }
 
+gint moz_gtk_splitter_get_metrics(gint orientation, gint* size) {
+  GtkStyleContext* style;
+  if (orientation == GTK_ORIENTATION_HORIZONTAL) {
+    style = GetStyleContext(MOZ_GTK_SPLITTER_HORIZONTAL);
+  } else {
+    style = GetStyleContext(MOZ_GTK_SPLITTER_VERTICAL);
+  }
+  gtk_style_context_get_style(style, "handle_size", size, NULL);
+  return MOZ_GTK_SUCCESS;
+}
+
 static void CalculateToolbarButtonMetrics(WidgetNodeType aAppearance,
                                           ToolbarButtonGTKMetrics* aMetrics,
                                           gint* aMaxInlineMargin) {
@@ -312,6 +323,56 @@ static gint moz_gtk_window_decoration_paint(cairo_t* cr,
                         rect->height);
   gtk_render_frame(decorationStyle, cr, rect->x, rect->y, rect->width,
                    rect->height);
+  return MOZ_GTK_SUCCESS;
+}
+
+static gint moz_gtk_hpaned_paint(cairo_t* cr, GdkRectangle* rect,
+                                 GtkWidgetState* state) {
+  GtkStyleContext* style =
+      GetStyleContext(MOZ_GTK_SPLITTER_SEPARATOR_HORIZONTAL, state->image_scale,
+                      GTK_TEXT_DIR_LTR, GetStateFlagsFromGtkWidgetState(state));
+  gtk_render_handle(style, cr, rect->x, rect->y, rect->width, rect->height);
+  return MOZ_GTK_SUCCESS;
+}
+
+static gint moz_gtk_vpaned_paint(cairo_t* cr, GdkRectangle* rect,
+                                 GtkWidgetState* state) {
+  GtkStyleContext* style =
+      GetStyleContext(MOZ_GTK_SPLITTER_SEPARATOR_VERTICAL, state->image_scale,
+                      GTK_TEXT_DIR_LTR, GetStateFlagsFromGtkWidgetState(state));
+  gtk_render_handle(style, cr, rect->x, rect->y, rect->width, rect->height);
+  return MOZ_GTK_SUCCESS;
+}
+
+static gint moz_gtk_treeview_paint(cairo_t* cr, GdkRectangle* rect,
+                                   GtkWidgetState* state,
+                                   GtkTextDirection direction) {
+  gint xthickness, ythickness;
+  GtkStyleContext* style;
+  GtkStyleContext* style_tree;
+  GtkStateFlags state_flags;
+  GtkBorder border;
+
+  /* only handle disabled and normal states, otherwise the whole background
+   * area will be painted differently with other states */
+  state_flags =
+      state->disabled ? GTK_STATE_FLAG_INSENSITIVE : GTK_STATE_FLAG_NORMAL;
+
+  style =
+      GetStyleContext(MOZ_GTK_SCROLLED_WINDOW, state->image_scale, direction);
+  gtk_style_context_get_border(style, state_flags, &border);
+  xthickness = border.left;
+  ythickness = border.top;
+
+  style_tree =
+      GetStyleContext(MOZ_GTK_TREEVIEW_VIEW, state->image_scale, direction);
+  gtk_render_background(style_tree, cr, rect->x + xthickness,
+                        rect->y + ythickness, rect->width - 2 * xthickness,
+                        rect->height - 2 * ythickness);
+
+  style =
+      GetStyleContext(MOZ_GTK_SCROLLED_WINDOW, state->image_scale, direction);
+  gtk_render_frame(style, cr, rect->x, rect->y, rect->width, rect->height);
   return MOZ_GTK_SUCCESS;
 }
 
@@ -588,6 +649,11 @@ gint moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
   *left = *top = *right = *bottom = 0;
 
   switch (widget) {
+    case MOZ_GTK_TREEVIEW: {
+      style = GetStyleContext(MOZ_GTK_SCROLLED_WINDOW);
+      moz_gtk_add_style_border(style, left, top, right, bottom);
+      return MOZ_GTK_SUCCESS;
+    }
     case MOZ_GTK_TABPANELS:
       w = GetWidget(MOZ_GTK_TABPANELS);
       break;
@@ -595,6 +661,8 @@ gint moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
       w = GetWidget(MOZ_GTK_FRAME);
       break;
     /* These widgets have no borders, since they are not containers. */
+    case MOZ_GTK_SPLITTER_HORIZONTAL:
+    case MOZ_GTK_SPLITTER_VERTICAL:
     case MOZ_GTK_HEADER_BAR:
     case MOZ_GTK_HEADER_BAR_MAXIMIZED:
     /* These widgets have no borders.*/
@@ -680,6 +748,8 @@ gint moz_gtk_widget_paint(WidgetNodeType widget, cairo_t* cr,
   cairo_new_path(cr);
 
   switch (widget) {
+    case MOZ_GTK_TREEVIEW:
+      return moz_gtk_treeview_paint(cr, rect, state, direction);
     case MOZ_GTK_FRAME:
       return moz_gtk_frame_paint(cr, rect, state, direction);
     case MOZ_GTK_RESIZER:
@@ -690,6 +760,10 @@ gint moz_gtk_widget_paint(WidgetNodeType widget, cairo_t* cr,
                                widget);
     case MOZ_GTK_TABPANELS:
       return moz_gtk_tabpanels_paint(cr, rect, state, direction);
+    case MOZ_GTK_SPLITTER_HORIZONTAL:
+      return moz_gtk_vpaned_paint(cr, rect, state);
+    case MOZ_GTK_SPLITTER_VERTICAL:
+      return moz_gtk_hpaned_paint(cr, rect, state);
     case MOZ_GTK_WINDOW_DECORATION:
       return moz_gtk_window_decoration_paint(cr, rect, state, direction);
     default:
