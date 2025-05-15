@@ -224,12 +224,11 @@ class LookupCache {
 
   void GetCacheInfo(nsIUrlClassifierCacheInfo** aCache) const;
 
-  bool MaybeVerifyCRC32();
   nsresult VerifyCRC32(nsCOMPtr<nsIInputStream>& aIn);
 
   virtual nsresult Open();
   virtual nsresult Init();
-
+  ;
   virtual nsresult ClearPrefixes();
   virtual nsresult Has(const Completion& aCompletion, bool* aHas,
                        uint32_t* aMatchLength, bool* aConfirmed) = 0;
@@ -286,8 +285,6 @@ class LookupCache {
                       bool* aConfirmed);
 
   bool mPrimed;  // true when the PrefixSet has been loaded (or constructed)
-  bool mNeedCRC32Verification;  // true when the CRC32 checksum needs to be
-                                // verified
   const nsCString mTableName;
   const nsCString mProvider;
   nsCOMPtr<nsIFile> mRootStoreDirectory;
