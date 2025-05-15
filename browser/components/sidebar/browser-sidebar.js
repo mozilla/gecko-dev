@@ -2074,7 +2074,6 @@ var SidebarController = {
   async handleEvent(e) {
     switch (e.type) {
       case "popupshown":
-        this.mouseEnterTask?.disarm();
         /* Temporarily remove MousePosTracker listener when a context menu is open */
         if (e.composedTarget.id !== "tab-preview-panel") {
           MousePosTracker.removeListener(this);
