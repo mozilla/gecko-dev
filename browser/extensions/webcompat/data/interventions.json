@@ -2243,6 +2243,23 @@
       }
     ]
   },
+  "1899829": {
+    "label": "animeflv.net",
+    "bugs": {
+      "1899829": {
+        "issue": "broken-images",
+        "matches": ["*://www3.animeflv.net/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "css": ["bug1899829-animeflv.net-fix-premiere-labels.css"]
+        }
+      }
+    ]
+  },
   "1899929": {
     "label": "selecionases.saude.pe.gov.br",
     "bugs": {

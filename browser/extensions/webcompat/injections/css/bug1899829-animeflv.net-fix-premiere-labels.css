@@ -1,0 +1,15 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * www3.animeflv.net - Green premiere labels are under the anime thumbnails
+ * Bug #1899829 - https://bugzilla.mozilla.org/show_bug.cgi?id=1899829
+ * WebCompat issue #60176 - https://webcompat.com/issues/60176
+ *
+ * The premiere labels are hidden due to a stacking order interop issue.
+ * This CSS fixes it.
+ */
+.Anime > a {
+  display: block;
+}
