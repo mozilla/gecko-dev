@@ -463,4 +463,18 @@ add_task(async function test_ipv6_cookies() {
 
   // Assert that all cookies were removed.
   Assert.equal(Services.cookies.cookies.length, 0);
+
+  // bug 1962120 - check that ipv6-host cookies are removed by data cleaner
+  addCookiesForHost("[::1]");
+  Assert.equal(Services.cookies.cookies.length, 1);
+  await new Promise(aResolve => {
+    Services.clearData.deleteDataFromSite(
+      "[::1]",
+      {},
+      false,
+      Ci.nsIClearDataService.CLEAR_COOKIES,
+      aResolve
+    );
+  });
+  Assert.equal(Services.cookies.cookies.length, 0);
 });
