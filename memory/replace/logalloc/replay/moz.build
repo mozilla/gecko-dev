@@ -29,6 +29,11 @@ if CONFIG["OS_TARGET"] == "Darwin":
     # when building with MACOSX_DEPLOYMENT_TARGET < 10.15 with >= 10.15 SDK.
     # We have our own definition of the function, so it doesn't matter what the SDK says.
     SOURCES["Replay.cpp"].flags += ["-Wno-unguarded-availability-new"]
+elif CONFIG["OS_TARGET"] == "Android":
+    # Work around "warning: 'aligned_alloc' is only available on Android 27 or
+    # lower. We have our own definition of the function, so it doesn't matter.
+    SOURCES["Replay.cpp"].flags += ["-Wno-unguarded-availability"]
+
 
 if CONFIG["MOZ_REPLACE_MALLOC_STATIC"] and (CONFIG["MOZ_DMD"] or CONFIG["MOZ_PHC"]):
     UNIFIED_SOURCES += [

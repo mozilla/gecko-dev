@@ -274,11 +274,29 @@ def extra_toolchain_flags(android_sysroot, toolchain_dir):
 
 @depends(extra_toolchain_flags)
 def android_flags(extra_toolchain_flags):
+    wead_symbols_defines = [
+        "-D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__",
+    ]
+    weak_symbols_flags = wead_symbols_defines + [
+        "-Werror=unguarded-availability",
+    ]
     return namespace(
-        cflags=extra_toolchain_flags + ["-fno-short-enums"],
-        cxxflags=extra_toolchain_flags + ["-fno-short-enums"],
+        cflags=extra_toolchain_flags
+        + [
+            "-fno-short-enums",
+        ]
+        + weak_symbols_flags,
+        cxxflags=extra_toolchain_flags
+        + [
+            "-fno-short-enums",
+        ]
+        + weak_symbols_flags,
         ldflags=extra_toolchain_flags,
-        asflags=extra_toolchain_flags + ["-DANDROID"],
+        asflags=extra_toolchain_flags
+        + [
+            "-DANDROID",
+        ]
+        + wead_symbols_defines,
     )
 
 
