@@ -7,6 +7,7 @@
 #ifndef PerfStats_h
 #define PerfStats_h
 
+#include "mozilla/Atomics.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
@@ -168,7 +169,7 @@ class PerfStats {
   RefPtr<PerfStatsPromise> CollectPerfStatsJSONInternal();
   nsCString CollectLocalPerfStatsJSONInternal();
 
-  static MetricMask sCollectionMask;
+  static Atomic<MetricMask, MemoryOrdering::Relaxed> sCollectionMask;
   static StaticMutex sMutex MOZ_UNANNOTATED;
   static StaticAutoPtr<PerfStats> sSingleton;
   TimeStamp mRecordedStarts[static_cast<uint64_t>(Metric::Max)];

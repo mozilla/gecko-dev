@@ -26,7 +26,8 @@ static const char* const sMetricNames[] = {
 #undef METRIC_NAME
         "Invalid"};
 
-PerfStats::MetricMask PerfStats::sCollectionMask = 0;
+Atomic<PerfStats::MetricMask, MemoryOrdering::Relaxed>
+    PerfStats::sCollectionMask{0};
 StaticMutex PerfStats::sMutex;
 StaticAutoPtr<PerfStats> PerfStats::sSingleton;
 
