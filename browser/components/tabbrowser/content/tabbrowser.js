@@ -2650,8 +2650,9 @@
         forceAllowDataURI,
         fromExternal,
         inBackground = true,
-        index,
         elementIndex,
+        tabIndex,
+        index,
         lazyTabTitle,
         name,
         noInitialLabel,
@@ -2753,11 +2754,14 @@
           skipBackgroundNotify,
         });
         if (insertTab) {
+          // Insert the tab into the tab container in the correct position.
+          // For now, we support `index` as an alias for `tabIndex`.
           if (typeof index == "number") {
-            elementIndex = this.#tabIndexToElementIndex(index);
+            tabIndex = index;
           }
-          // insert the tab into the tab container in the correct position
-          this.#insertTabAtElementIndex(t, elementIndex, {
+          this.#insertTabAtIndex(t, {
+            elementIndex,
+            tabIndex,
             ownerTab,
             openerTab,
             pinned,
@@ -2923,19 +2927,6 @@
         element = element.group.tabs[0];
       }
       return element._tPos;
-    }
-
-    #tabIndexToElementIndex(tabIndex) {
-      if (tabIndex < 0) {
-        return -1;
-      }
-      let tab;
-      while ((tab = this.tabs.at(tabIndex)) && !tab.visible) {
-        tabIndex++;
-      }
-      return tab?.visible
-        ? tab.elementIndex
-        : this.tabContainer.ariaFocusableItems.length;
     }
 
     /**
@@ -3152,10 +3143,12 @@
 
     /**
      * @param {MozTabbrowserTabGroup} group
-     * @param {number} elementIndex
+     * @param {object} [options]
+     * @param {number} [options.elementIndex]
+     * @param {number} [options.tabIndex]
      * @returns {MozTabbrowserTabGroup}
      */
-    adoptTabGroup(group, elementIndex) {
+    adoptTabGroup(group, { elementIndex, tabIndex } = {}) {
       if (group.ownerDocument == document) {
         return group;
       }
@@ -3164,8 +3157,11 @@
 
       let newTabs = [];
       for (let tab of group.tabs) {
-        newTabs.push(this.adoptTab(tab, { elementIndex }));
-        ++elementIndex;
+        let adoptedTab = this.adoptTab(tab, { elementIndex, tabIndex });
+        newTabs.push(adoptedTab);
+        // Put next tab after current one.
+        elementIndex = undefined;
+        tabIndex = adoptedTab._tPos + 1;
       }
 
       return this.addTabGroup(newTabs, {
@@ -3865,15 +3861,23 @@
      * and inserts it.
      *
      * @param {MozTabbrowserTab} tab
-     * @param {number} index
      * @param {object} [options]
+     * @param {number} [options.elementIndex]
+     * @param {number} [options.tabIndex]
      * @param {MozTabbrowserTabGroup} [options.tabGroup]
      *   A related tab group where this tab should be added, when applicable.
      */
-    #insertTabAtElementIndex(
+    #insertTabAtIndex(
       tab,
-      index,
-      { ownerTab, openerTab, pinned, bulkOrderedOpen, tabGroup } = {}
+      {
+        tabIndex,
+        elementIndex,
+        ownerTab,
+        openerTab,
+        pinned,
+        bulkOrderedOpen,
+        tabGroup,
+      } = {}
     ) {
       // If this new tab is owned by another, assert that relationship
       if (ownerTab) {
@@ -3881,9 +3885,9 @@
       }
 
       // Ensure we have an index if one was not provided.
-      if (typeof index != "number") {
+      if (typeof elementIndex != "number" && typeof tabIndex != "number") {
         // Move the new tab after another tab if needed, to the end otherwise.
-        index = Infinity;
+        elementIndex = Infinity;
         if (
           !bulkOrderedOpen &&
           ((openerTab &&
@@ -3904,11 +3908,11 @@
             ) &&
             previousTab.pinned
           ) {
-            index = Infinity;
+            elementIndex = Infinity;
           } else if (previousTab.visible) {
-            index = previousTab.elementIndex + 1;
+            elementIndex = previousTab.elementIndex + 1;
           } else if (previousTab == FirefoxViewHandler.tab) {
-            index = 0;
+            elementIndex = 0;
           }
 
           if (lastRelatedTab) {
@@ -3923,21 +3927,30 @@
         }
       }
 
-      // Prevent a flash of unstyled content by setting up the tab content
-      // and inherited attributes before appending it (see Bug 1592054):
-      tab.initialize();
-
+      let allItems;
+      let index;
+      if (typeof elementIndex == "number") {
+        allItems = this.tabContainer.ariaFocusableItems;
+        index = elementIndex;
+      } else {
+        allItems = this.tabs;
+        index = tabIndex;
+      }
       // Ensure index is within bounds.
       if (tab.pinned) {
         index = Math.max(index, 0);
         index = Math.min(index, this.pinnedTabCount);
       } else {
         index = Math.max(index, this.pinnedTabCount);
-        index = Math.min(index, this.tabContainer.ariaFocusableItems.length);
+        index = Math.min(index, allItems.length);
       }
-
       /** @type {MozTabbrowserTab|undefined} */
-      let itemAfter = this.tabContainer.ariaFocusableItems.at(index);
+      let itemAfter = allItems.at(index);
+
+      // Prevent a flash of unstyled content by setting up the tab content
+      // and inherited attributes before appending it (see Bug 1592054):
+      tab.initialize();
+
       this.tabContainer._invalidateCachedTabs();
 
       if (tabGroup) {
@@ -6292,12 +6305,17 @@
       // windows). We also ensure that the tab we create to swap into has
       // the same remote type and process as the one we're swapping in.
       // This makes sure we don't get a short-lived process for the new tab.
-      if (typeof tabIndex == "number") {
-        elementIndex = this.#tabIndexToElementIndex(tabIndex);
-      }
       let linkedBrowser = aTab.linkedBrowser;
       let createLazyBrowser = !aTab.linkedPanel;
-      let nextElement = this.tabContainer.ariaFocusableItems.at(elementIndex);
+      let index;
+      let nextElement;
+      if (typeof elementIndex == "number") {
+        index = elementIndex;
+        nextElement = this.tabContainer.ariaFocusableItems.at(elementIndex);
+      } else {
+        index = tabIndex;
+        nextElement = this.tabs.at(tabIndex);
+      }
       let tabInGroup = !!aTab.group;
       let params = {
         eventDetail: { adoptedTab: aTab },
@@ -6305,15 +6323,13 @@
         initialBrowsingContextGroupId: linkedBrowser.browsingContext?.group.id,
         skipAnimation: true,
         elementIndex,
+        tabIndex,
         tabGroup: this.isTab(nextElement) && nextElement.group,
         createLazyBrowser,
       };
 
       let numPinned = this.pinnedTabCount;
-      if (
-        elementIndex < numPinned ||
-        (aTab.pinned && elementIndex == numPinned)
-      ) {
+      if (index < numPinned || (aTab.pinned && index == numPinned)) {
         params.pinned = true;
       }
 

@@ -184,7 +184,7 @@ add_task(async function test_saveOpenTabGroupsOnWindowClose() {
     savedTabGroup,
     "TabGroupRemoved"
   );
-  win.gBrowser.adoptTabGroup(window.gBrowser.tabGroups[0], 2);
+  win.gBrowser.adoptTabGroup(window.gBrowser.tabGroups[0], { elementIndex: 2 });
   await savedTabRemoval;
 
   Assert.equal(
