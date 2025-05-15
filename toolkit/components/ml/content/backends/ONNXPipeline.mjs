@@ -457,14 +457,7 @@ export class ONNXPipeline {
     lazy.console.debug("Pipeline initialized");
   }
 
-  async #metricsSnapShot({ name, snapshot, collectMemory = true }) {
-    if (!snapshot) {
-      if (collectMemory) {
-        snapshot = await this.#mlEngineWorker.getInferenceProcessInfo();
-      } else {
-        snapshot = {};
-      }
-    }
+  async #metricsSnapShot({ name, snapshot = {} }) {
     if (!("when" in snapshot)) {
       snapshot.when = Date.now();
     }
@@ -485,7 +478,6 @@ export class ONNXPipeline {
   static async initialize(mlEngineWorker, runtime, options, errorFactory) {
     let snapShot = {
       when: Date.now(),
-      ...(await mlEngineWorker.getInferenceProcessInfo()),
     };
 
     if (options.logLevel) {

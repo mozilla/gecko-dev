@@ -225,10 +225,6 @@ export class MLEngineChild extends JSProcessActorChild {
     return this.sendQuery("MLEngine:GetModelFile", config);
   }
 
-  getInferenceProcessInfo() {
-    return this.sendQuery("MLEngine:GetInferenceProcessInfo");
-  }
-
   /**
    * Removes an engine by its ID. Optionally shuts down if no engines remain.
    *
@@ -373,8 +369,6 @@ class EngineDispatcher {
       pipelineOptions: mergedOptions,
       notificationsCallback,
       getModelFileFn: this.mlEngineChild.getModelFile.bind(this.mlEngineChild),
-      getInferenceProcessInfoFn:
-        this.mlEngineChild.getInferenceProcessInfo.bind(this.mlEngineChild),
     });
   }
 
@@ -655,7 +649,6 @@ class InferenceEngine {
    * @param {PipelineOptions} config.pipelineOptions
    * @param {?function(ProgressAndStatusCallbackParams):void} config.notificationsCallback The callback to call for updating about notifications such as dowload progress status.
    * @param {?function(object):Promise<[string, object]>} config.getModelFileFn - A function that actually retrieves the model and headers.
-   * @param {?function(object):Promise<object>} config.getInferenceProcessInfoFn - A function to get inference process info
    * @returns {InferenceEngine}
    */
   static async create({
@@ -663,7 +656,6 @@ class InferenceEngine {
     pipelineOptions,
     notificationsCallback, // eslint-disable-line no-unused-vars
     getModelFileFn,
-    getInferenceProcessInfoFn,
   }) {
     // Check for the numThreads value. If it's not set, use the best value for the platform, which is the number of physical cores
     pipelineOptions.numThreads =
@@ -687,7 +679,6 @@ class InferenceEngine {
             modelRevision: pipelineOptions.modelRevision,
             sessionId,
           }),
-        getInferenceProcessInfo: getInferenceProcessInfoFn,
         onInferenceProgress: notificationsCallback,
       }
     );
