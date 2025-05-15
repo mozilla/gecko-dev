@@ -117,7 +117,7 @@ function main(root_dir, paths_json, lib_lazy) {
     files,
     uris,
     modules,
-    path.relative(path.dirname(paths_json), root_dir)
+    path.relative(path.dirname(paths_json), root_dir).replaceAll("\\", "/")
   );
   console.log(`[INFO] ${paths_json} (${json.length.toLocaleString()} bytes)`);
   fs.writeFileSync(paths_json, json);

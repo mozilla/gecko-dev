@@ -125,9 +125,6 @@
       "chrome://browser/content/shopping/letter-grade.mjs": [
         "browser/components/shopping/content/letter-grade.mjs"
       ],
-      "chrome://browser/content/shopping/new-position-notification-card.mjs": [
-        "browser/components/shopping/content/new-position-notification-card.mjs"
-      ],
       "chrome://browser/content/shopping/recommended-ad.mjs": [
         "browser/components/shopping/content/recommended-ad.mjs"
       ],
@@ -1231,9 +1228,6 @@
       ],
       "resource:///modules/ResetPBMPanel.sys.mjs": [
         "browser/components/privatebrowsing/ResetPBMPanel.sys.mjs"
-      ],
-      "resource:///modules/ReviewCheckerManager.sys.mjs": [
-        "browser/components/shopping/ReviewCheckerManager.sys.mjs"
       ],
       "resource:///modules/SafariProfileMigrator.sys.mjs": [
         "browser/components/migration/SafariProfileMigrator.sys.mjs"
@@ -6308,6 +6302,9 @@
       "resource://gre/modules/RFPHelper.sys.mjs": [
         "toolkit/components/resistfingerprinting/RFPHelper.sys.mjs"
       ],
+      "resource://gre/modules/RFPTargetConstants.sys.mjs": [
+        "tools/@types/subs/RFPTargetConstants.sys.d.mts"
+      ],
       "resource://gre/modules/Readerable.sys.mjs": [
         "tools/@types/subs/Readerable.sys.d.mts"
       ],
@@ -6827,6 +6824,12 @@
       "resource://gre/modules/vtt.sys.mjs": [
         "dom/media/webvtt/vtt.sys.mjs"
       ],
+      "resource://gre/modules/workers/PromiseWorker.js": [
+        "tools/@types/subs/PromiseWorker.d.ts"
+      ],
+      "resource://gre/modules/workers/PromiseWorker.mjs": [
+        "tools/@types/subs/PromiseWorker.d.mts"
+      ],
       "resource://httpd-server/httpd.sys.mjs": [
         "netwerk/test/httpserver/httpd.sys.mjs"
       ],
@@ -6929,6 +6932,9 @@
       "resource://newtab/lib/SiteClassifier.sys.mjs": [
         "browser/extensions/newtab/lib/SiteClassifier.sys.mjs"
       ],
+      "resource://newtab/lib/StartupCacheInit.sys.mjs": [
+        "browser/extensions/newtab/lib/StartupCacheInit.sys.mjs"
+      ],
       "resource://newtab/lib/Store.sys.mjs": [
         "browser/extensions/newtab/lib/Store.sys.mjs"
       ],
@@ -6955,6 +6961,9 @@
       ],
       "resource://nimbus/ExperimentAPI.sys.mjs": [
         "toolkit/components/nimbus/ExperimentAPI.sys.mjs"
+      ],
+      "resource://nimbus/FeatureManifest.sys.mjs": [
+        "tools/@types/subs/FeatureManifest.sys.d.mts"
       ],
       "resource://nimbus/FirefoxLabs.sys.mjs": [
         "toolkit/components/nimbus/FirefoxLabs.sys.mjs"
@@ -7424,6 +7433,9 @@
       "resource://testing-common/AddonTestUtils.sys.mjs": [
         "toolkit/mozapps/extensions/internal/AddonTestUtils.sys.mjs"
       ],
+      "resource://testing-common/AllJavascriptTypes.mjs": [
+        "devtools/shared/tests/objects/AllJavascriptTypes.mjs"
+      ],
       "resource://testing-common/AppData.sys.mjs": [
         "testing/modules/AppData.sys.mjs"
       ],
@@ -7483,6 +7495,9 @@
       ],
       "resource://testing-common/InflightAssetsMessageProvider.sys.mjs": [
         "browser/components/asrouter/tests/InflightAssetsMessageProvider.sys.mjs"
+      ],
+      "resource://testing-common/JSObjectsTestUtils.sys.mjs": [
+        "devtools/shared/tests/objects/JSObjectsTestUtils.sys.mjs"
       ],
       "resource://testing-common/LangPackMatcherTestUtils.sys.mjs": [
         "intl/locale/tests/LangPackMatcherTestUtils.sys.mjs"
@@ -7768,18 +7783,6 @@
       ],
       "resource://gre/modules/components-utils/ClientEnvironment.sys.mjs": [
         "toolkit/components/utils/ClientEnvironment.sys.mjs"
-      ],
-      "resource://gre/modules/RFPTargetConstants.sys.mjs": [
-        "toolkit/components/resistfingerprinting/RFPTargetConstants.sys.mjs"
-      ],
-      "resource://gre/modules/workers/PromiseWorker.js": [
-        "toolkit/components/promiseworker/worker/PromiseWorker.js"
-      ],
-      "resource://gre/modules/workers/PromiseWorker.mjs": [
-        "toolkit/components/promiseworker/worker/PromiseWorker.mjs"
-      ],
-      "resource://nimbus/FeatureManifest.sys.mjs": [
-        "toolkit/components/nimbus/FeatureManifest.sys.mjs"
       ],
       "resource://passwordmgr/passwordstorage.sys.mjs": [
         "toolkit/components/passwordmgr/storage-desktop.sys.mjs"

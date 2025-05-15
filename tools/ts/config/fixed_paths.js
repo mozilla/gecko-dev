@@ -51,21 +51,9 @@ exports.fixed = {
   "resource://gre/modules/components-utils/ClientEnvironment.sys.mjs": [
     "toolkit/components/utils/ClientEnvironment.sys.mjs",
   ],
-  "resource://gre/modules/RFPTargetConstants.sys.mjs": [
-    "toolkit/components/resistfingerprinting/RFPTargetConstants.sys.mjs",
-  ],
   "resource://gre/modules/worker/myModule.js": undefined,
   "resource://gre/modules/workers/Logger.js": undefined,
-  "resource://gre/modules/workers/PromiseWorker.js": [
-    "toolkit/components/promiseworker/worker/PromiseWorker.js",
-  ],
-  "resource://gre/modules/workers/PromiseWorker.mjs": [
-    "toolkit/components/promiseworker/worker/PromiseWorker.mjs",
-  ],
   "resource://gre/modules/workers/SimpleTest.js": undefined,
-  "resource://nimbus/FeatureManifest.sys.mjs": [
-    "toolkit/components/nimbus/FeatureManifest.sys.mjs",
-  ],
   "resource://passwordmgr/passwordstorage.sys.mjs": [
     "toolkit/components/passwordmgr/storage-desktop.sys.mjs",
   ],
