@@ -3357,6 +3357,23 @@
       }
     ]
   },
+  "1954144": {
+    "label": "td.com",
+    "bugs": {
+      "1954144": {
+        "issue": "extra-scrollbars",
+        "matches": ["*://*.td.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "css": ["bug1954144-td.com-scrollbar-fix.css"]
+        }
+      }
+    ]
+  },
   "1955932": {
     "label": "coopvoce.it",
     "bugs": {

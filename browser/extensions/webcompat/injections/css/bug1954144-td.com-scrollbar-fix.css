@@ -1,0 +1,16 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * td.com - scrollbars on videos are not styled correctly
+ * Bug #1954144 - https://bugzilla.mozilla.org/show_bug.cgi?id=1954144
+ *
+ * They are using non-standard webkit-scrollbar CSS to style the scrollbar, but we
+ * provide a standards-based analogue.
+ */
+.overlay-video-modal .cmp-dialog__details {
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #616161 #fff;
+}
