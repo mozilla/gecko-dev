@@ -62,8 +62,10 @@ inline void WaitFor(MediaEventSourceImpl<Lp, void>& aEvent) {
 }
 
 /**
- * Variant of WaitFor that blocks the caller until a MozPromise has either been
- * resolved or rejected.
+ * Variant of WaitFor that spins the event loop until a MozPromise has either
+ * been resolved or rejected.  Result accepts R and E only if their types
+ * differ.  Consider also WaitForResolve() and WaitForReject(), which are
+ * suitable even when resolve and reject types are the same.
  */
 template <typename R, typename E, bool Exc>
 inline Result<R, E> WaitFor(const RefPtr<MozPromise<R, E, Exc>>& aPromise) {
@@ -80,6 +82,46 @@ inline Result<R, E> WaitFor(const RefPtr<MozPromise<R, E, Exc>>& aPromise) {
     return success.extract();
   }
   return Err(error.extract());
+}
+
+/**
+ * Variation on WaitFor that spins the event loop until a MozPromise has been
+ * resolved.
+ */
+template <typename R, typename E, bool Exc>
+inline R WaitForResolve(const RefPtr<MozPromise<R, E, Exc>>& aPromise) {
+  Maybe<R> success;
+  // Use r-value reference for exclusive promises to support move-only types.
+  using RRef = typename std::conditional_t<Exc, R&&, const R&>;
+  using ERef = typename std::conditional_t<Exc, E&&, const E&>;
+  aPromise->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [&](RRef aResult) { success.emplace(std::forward<RRef>(aResult)); },
+      [&](ERef aError) { MOZ_CRASH("rejection was not expected"); });
+  SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
+      "WaitForResolve(const RefPtr<MozPromise<R, E, Exc>>& aPromise)"_ns,
+      [&] { return success.isSome(); });
+  return success.extract();
+}
+
+/**
+ * Variation on WaitFor that spins the event loop until a MozPromise has been
+ * rejected.
+ */
+template <typename R, typename E, bool Exc>
+inline E WaitForReject(const RefPtr<MozPromise<R, E, Exc>>& aPromise) {
+  Maybe<E> error;
+  // Use r-value reference for exclusive promises to support move-only types.
+  using RRef = typename std::conditional_t<Exc, R&&, const R&>;
+  using ERef = typename std::conditional_t<Exc, E&&, const E&>;
+  aPromise->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [&](RRef aResult) { MOZ_CRASH("resolution was not expected"); },
+      [&](ERef aError) { error.emplace(std::forward<ERef>(aError)); });
+  SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
+      "WaitForReject(const RefPtr<MozPromise<R, E, Exc>>& aPromise)"_ns,
+      [&] { return error.isSome(); });
+  return error.extract();
 }
 
 /**
