@@ -6,8 +6,6 @@
 
 #include "AndroidHardwareBuffer.h"
 
-#include <dlfcn.h>
-
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/layers/ImageBridgeChild.h"
@@ -55,41 +53,22 @@ void AndroidHardwareBufferApi::Shutdown() { sInstance = nullptr; }
 AndroidHardwareBufferApi::AndroidHardwareBufferApi() {}
 
 bool AndroidHardwareBufferApi::Load() {
-  void* handle = dlopen("libandroid.so", RTLD_LAZY | RTLD_LOCAL);
-  MOZ_ASSERT(handle);
-  if (!handle) {
-    gfxCriticalNote << "Failed to load libandroid.so";
-    return false;
-  }
-
-  mAHardwareBuffer_allocate =
-      (_AHardwareBuffer_allocate)dlsym(handle, "AHardwareBuffer_allocate");
-  mAHardwareBuffer_acquire =
-      (_AHardwareBuffer_acquire)dlsym(handle, "AHardwareBuffer_acquire");
-  mAHardwareBuffer_release =
-      (_AHardwareBuffer_release)dlsym(handle, "AHardwareBuffer_release");
-  mAHardwareBuffer_describe =
-      (_AHardwareBuffer_describe)dlsym(handle, "AHardwareBuffer_describe");
-  mAHardwareBuffer_lock =
-      (_AHardwareBuffer_lock)dlsym(handle, "AHardwareBuffer_lock");
-  mAHardwareBuffer_unlock =
-      (_AHardwareBuffer_unlock)dlsym(handle, "AHardwareBuffer_unlock");
-  mAHardwareBuffer_sendHandleToUnixSocket =
-      (_AHardwareBuffer_sendHandleToUnixSocket)dlsym(
-          handle, "AHardwareBuffer_sendHandleToUnixSocket");
-  mAHardwareBuffer_recvHandleFromUnixSocket =
-      (_AHardwareBuffer_recvHandleFromUnixSocket)dlsym(
-          handle, "AHardwareBuffer_recvHandleFromUnixSocket");
-
-  if (!mAHardwareBuffer_allocate || !mAHardwareBuffer_acquire ||
-      !mAHardwareBuffer_release || !mAHardwareBuffer_describe ||
-      !mAHardwareBuffer_lock || !mAHardwareBuffer_unlock ||
-      !mAHardwareBuffer_sendHandleToUnixSocket ||
-      !mAHardwareBuffer_recvHandleFromUnixSocket) {
+  if (__builtin_available(android 26, *)) {
+    mAHardwareBuffer_allocate = AHardwareBuffer_allocate;  // API 26
+    mAHardwareBuffer_acquire = AHardwareBuffer_acquire;    // API 26
+    mAHardwareBuffer_release = AHardwareBuffer_release;    // API 26
+    mAHardwareBuffer_describe = AHardwareBuffer_describe;  // API 26
+    mAHardwareBuffer_lock = AHardwareBuffer_lock;          // API 26
+    mAHardwareBuffer_unlock = AHardwareBuffer_unlock;      // API 26
+    mAHardwareBuffer_sendHandleToUnixSocket =
+        AHardwareBuffer_sendHandleToUnixSocket;  // API 26
+    mAHardwareBuffer_recvHandleFromUnixSocket =
+        AHardwareBuffer_recvHandleFromUnixSocket;  // API 26
+    return true;
+  } else {
     gfxCriticalNote << "Failed to load AHardwareBuffer";
     return false;
   }
-  return true;
 }
 
 void AndroidHardwareBufferApi::Allocate(const AHardwareBuffer_Desc* aDesc,
