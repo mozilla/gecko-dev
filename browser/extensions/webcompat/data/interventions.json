@@ -3382,6 +3382,21 @@
       }
     ]
   },
+  "1962642": {
+    "label": "hoanghamobile.com",
+    "bugs": {
+      "1962642": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://hoanghamobile.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
+      }
+    ]
+  },
   "1963302": {
     "label": "lefties.com",
     "bugs": {
