@@ -1025,6 +1025,23 @@ newtab:
       - mconley@mozilla.com
     expires: never
 
+  activity_stream_ctor_success:
+    type: boolean
+    description: >
+      Records technical data about whether Activity Stream
+      construction completed successfully
+    bugs:
+      - https://bugzil.la/1965278
+    data_reviews:
+      - https://bugzil.la/1965278
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - pdahiya@mozilla.com
+      - mconley@mozilla.com
+    expires: never
+
+
 newtab.search:
   enabled:
     lifetime: application

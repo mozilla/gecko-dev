@@ -177,7 +177,18 @@ export const AboutNewTab = {
       this.uninstallAddon();
     }
 
-    this.activityStream = new lazy.ActivityStream();
+    try {
+      this.activityStream = new lazy.ActivityStream();
+      Glean.newtab.activityStreamCtorSuccess.set(true);
+    } catch (error) {
+      // Send Activity Stream loading failure telemetry
+      // This probe will help to monitor if ActivityStream failure has crossed
+      // a threshold and send alert. See Bug 1965278
+      Glean.newtab.activityStreamCtorSuccess.set(false);
+      console.error(error);
+      throw error;
+    }
+
     try {
       this.activityStream.init();
       this._subscribeToActivityStream();
