@@ -21,10 +21,6 @@ add_task(async function () {
 
   await getDebuggerSplitConsole(dbg);
   await hasConsoleMessage(dbg, "timer");
-  const { link } = await findConsoleMessage(dbg, "timer");
-  is(
-    link,
-    "simple-worker.js:4:9",
-    "message should include the url and linenumber"
-  );
+  await waitForConsoleMessageLink(dbg.toolbox, "timer", "simple-worker.js:4:9");
+  ok(true, "message includes the url and linenumber");
 });

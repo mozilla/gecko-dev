@@ -3287,15 +3287,6 @@ async function findConsoleMessage({ toolbox }, query) {
   return { value, link };
 }
 
-async function findConsoleMessages(toolbox, query) {
-  const webConsole = await toolbox.getPanel("webconsole");
-  const win = webConsole._frameWindow;
-  return Array.prototype.filter.call(
-    win.document.querySelectorAll(".message"),
-    e => e.innerText.includes(query)
-  );
-}
-
 async function hasConsoleMessage({ toolbox }, msg) {
   return waitFor(async () => {
     const messages = await findConsoleMessages(toolbox, msg);

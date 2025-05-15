@@ -2536,3 +2536,48 @@ async function _maybeOpenAncestorMenu(menuItem) {
   parentMenu.openMenu(true);
   await shown;
 }
+
+/**
+ * Returns the list of console messages DOM Element display in the Web Console
+ * which contains a given string.
+ *
+ * @param {Toolbox} toolbox
+ * @param {String} query
+ * @return {Array<DOMElement>}
+ */
+async function findConsoleMessages(toolbox, query) {
+  const webConsole = await toolbox.getPanel("webconsole");
+  const win = webConsole._frameWindow;
+  return Array.prototype.filter.call(
+    win.document.querySelectorAll(".message"),
+    e => e.innerText.includes(query)
+  );
+}
+
+/**
+ * Wait for a console message to appear with a given text and a given link to
+ * a specific location in a JS source.
+ * Returns the DOM Element in the Web Console for the link to the JS Source.
+ *
+ * @param {Toolbox} toolbox
+ * @param {String} messageText
+ * @param {String} linkText
+ * @return {DOMElement}
+ */
+async function waitForConsoleMessageLink(toolbox, messageText, linkText) {
+  await toolbox.selectTool("webconsole");
+
+  return waitFor(async () => {
+    // Wait until the message updates.
+    const [message] = await findConsoleMessages(toolbox, messageText);
+    if (!message) {
+      return false;
+    }
+    const linkEl = message.querySelector(".frame-link-source");
+    if (!linkEl || linkEl.textContent !== linkText) {
+      return false;
+    }
+
+    return linkEl;
+  });
+}

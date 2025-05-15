@@ -46,10 +46,12 @@ add_task(async function () {
   await hasConsoleMessage(dbg, "λ foo");
   await hasConsoleMessage(dbg, "λ bar");
 
-  const traceMessages = await findConsoleMessages(dbg.toolbox, "λ main");
-  is(traceMessages.length, 1, "We got a unique trace for 'main' function call");
-  const sourceLink = traceMessages[0].querySelector(".frame-link-source");
-  sourceLink.click();
+  const linkEl = await waitForConsoleMessageLink(
+    dbg.toolbox,
+    "λ main",
+    "simple1.js:1:17"
+  );
+  linkEl.click();
   info("Wait for the main function to be highlighted in the debugger");
   await waitForSelectedSource(dbg, "simple1.js");
   await waitForSelectedLocation(dbg, 1, 17);
@@ -151,17 +153,13 @@ add_task(async function () {
 
   invokeInTab("logMessage");
 
-  await hasConsoleMessage(dbg, "λ logMessage");
-
   // Test clicking on the function to open the precise related location
-  const traceMessages2 = await findConsoleMessages(dbg.toolbox, "λ logMessage");
-  is(
-    traceMessages2.length,
-    1,
-    "We got a unique trace for 'logMessage' function call"
+  const linkEl2 = await waitForConsoleMessageLink(
+    dbg.toolbox,
+    "λ logMessage",
+    "main.js:4:3"
   );
-  const sourceLink2 = traceMessages2[0].querySelector(".frame-link-source");
-  sourceLink2.click();
+  linkEl2.click();
 
   info("Wait for the 'logMessage' function to be highlighted in the debugger");
   await waitForSelectedSource(dbg, "main.js");
