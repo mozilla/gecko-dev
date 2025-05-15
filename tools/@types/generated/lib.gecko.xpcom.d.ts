@@ -3083,6 +3083,13 @@ interface nsIScriptError extends nsIConsoleMessage {
   initSourceId(sourceId: u32): void;
 }
 
+// https://searchfox.org/mozilla-central/source/dom/bindings/test/mozITestInterfaceJS.idl
+
+interface mozITestInterfaceJS extends nsISupports {
+  testThrowNsresult(): void;
+  testThrowNsresultFromNative(): void;
+}
+
 // https://searchfox.org/mozilla-central/source/dom/interfaces/events/nsIDOMEventListener.idl
 
 // https://searchfox.org/mozilla-central/source/dom/interfaces/geolocation/nsIDOMGeoPosition.idl
@@ -5273,6 +5280,37 @@ interface nsIStyleSheetService extends nsISupports {
   preloadSheet(sheetURI: nsIURI, type: u32): nsIPreloadedStyleSheet;
   preloadSheetAsync(sheetURI: nsIURI, type: u32): any;
   unregisterSheet(sheetURI: nsIURI, type: u32): void;
+}
+
+// https://searchfox.org/mozilla-central/source/layout/tools/layout-debug/src/nsILayoutDebuggingTools.idl
+
+}  // global
+
+declare enum nsILayoutDebuggingTools_DumpFrameFlags {
+  DUMP_FRAME_FLAGS_CSS_PIXELS = 1,
+  DUMP_FRAME_FLAGS_DETERMINISTIC = 2,
+}
+
+declare global {
+
+namespace nsILayoutDebuggingTools {
+  type DumpFrameFlags = nsILayoutDebuggingTools_DumpFrameFlags;
+}
+
+interface nsILayoutDebuggingTools extends nsISupports, Enums<typeof nsILayoutDebuggingTools_DumpFrameFlags> {
+  init(win: mozIDOMWindow): void;
+  forceRefresh(): void;
+  setReflowCounts(enabled: boolean): void;
+  setPagedMode(enabled: boolean): void;
+  dumpContent(anonymousSubtrees: boolean): void;
+  dumpFrames(flags: u8): void;
+  dumpTextRuns(): void;
+  dumpViews(): void;
+  dumpCounterManager(): void;
+  dumpStyleSheets(): void;
+  dumpMatchedRules(): void;
+  dumpComputedStyles(): void;
+  dumpReflowStats(): void;
 }
 
 // https://searchfox.org/mozilla-central/source/layout/xul/tree/nsITreeSelection.idl
@@ -10168,6 +10206,13 @@ interface mozISandboxSettings extends nsISupports {
   readonly contentWin32kLockdownStateString: string;
 }
 
+// https://searchfox.org/mozilla-central/source/security/sandbox/common/test/mozISandboxTest.idl
+
+interface mozISandboxTest extends nsISupports {
+  startTests(aProcessesList: string[]): void;
+  finishTests(): void;
+}
+
 // https://searchfox.org/mozilla-central/source/toolkit/components/satchel/nsIFormFillController.idl
 
 interface nsIFormFillController extends nsISupports {
@@ -11148,7 +11193,7 @@ interface nsIContentAnalysisResponse extends nsIContentAnalysisResult, Enums<typ
   readonly requestToken: string;
   readonly userActionId: string;
   readonly isCachedResponse: boolean;
-  readonly isAgentResponse: boolean;
+  readonly isSyntheticResponse: boolean;
   acknowledge(aCaa: nsIContentAnalysisAcknowledgement): void;
 }
 
@@ -12835,7 +12880,7 @@ interface nsIDragSession extends nsISupports {
   updateDragEffect(): void;
   updateDragImage(aImage: Node, aImageX: i32, aImageY: i32): void;
   setDragEndPoint(aScreenX: i32, aScreenY: i32): void;
-  setDragEndPointForTests(aScreenX: i32, aScreenY: i32): void;
+  setDragEndPointForTests(aScreenX: float, aScreenY: float): void;
   endDragSession(aDoneDrag: boolean, aKeyModifiers?: u32): void;
   sendStoreDropTargetAndDelayEndDragSession(aEvent: DragEvent): void;
   sendDispatchToDropTargetAndResumeEndDragSession(aShouldDrop: boolean): void;
@@ -15448,6 +15493,7 @@ interface nsIXPCComponents_Interfaces {
   nsITextInputProcessorCallback: nsJSIID<nsITextInputProcessorCallback>;
   nsIScriptErrorNote: nsJSIID<nsIScriptErrorNote>;
   nsIScriptError: nsJSIID<nsIScriptError>;
+  mozITestInterfaceJS: nsJSIID<mozITestInterfaceJS>;
   nsIDOMGeoPosition: nsJSIID<nsIDOMGeoPosition>;
   nsIDOMGeoPositionCallback: nsJSIID<nsIDOMGeoPositionCallback>;
   nsIDOMGeoPositionCoords: nsJSIID<nsIDOMGeoPositionCoords>;
@@ -15641,6 +15687,7 @@ interface nsIXPCComponents_Interfaces {
   nsIPreloadedStyleSheet: nsJSIID<nsIPreloadedStyleSheet>;
   nsISVGPaintContext: nsJSIID<nsISVGPaintContext>;
   nsIStyleSheetService: nsJSIID<nsIStyleSheetService>;
+  nsILayoutDebuggingTools: nsJSIID<nsILayoutDebuggingTools, typeof nsILayoutDebuggingTools_DumpFrameFlags>;
   nsITreeSelection: nsJSIID<nsITreeSelection>;
   nsITreeView: nsJSIID<nsITreeView>;
   mozILocaleService: nsJSIID<mozILocaleService>;
@@ -16015,6 +16062,7 @@ interface nsIXPCComponents_Interfaces {
   nsIApplicationReputationQuery: nsJSIID<nsIApplicationReputationQuery>;
   nsIApplicationReputationCallback: nsJSIID<nsIApplicationReputationCallback>;
   mozISandboxSettings: nsJSIID<mozISandboxSettings>;
+  mozISandboxTest: nsJSIID<mozISandboxTest>;
   nsIFormFillController: nsJSIID<nsIFormFillController>;
   nsIFormFillCompleteObserver: nsJSIID<nsIFormFillCompleteObserver>;
   mozIAppServicesLogger: nsJSIID<mozIAppServicesLogger>;

@@ -348,7 +348,7 @@ export const ContentAnalysis = {
             response.requestToken,
             response.userActionId,
             responseResult,
-            response.isAgentResponse,
+            response.isSyntheticResponse,
             response.cancelError
           );
         }
@@ -791,7 +791,7 @@ export const ContentAnalysis = {
    * @param {string} aRequestToken
    * @param {string} aUserActionId
    * @param {number} aCAResult
-   * @param {boolean} aIsAgentResponse
+   * @param {boolean} aIsSyntheticResponse
    * @param {number} aRequestCancelError
    * @returns {Promise<NotificationInfo?>} a notification object (if shown)
    */
@@ -801,7 +801,7 @@ export const ContentAnalysis = {
     aRequestToken,
     aUserActionId,
     aCAResult,
-    aIsAgentResponse,
+    aIsSyntheticResponse,
     aRequestCancelError
   ) {
     let message = null;
@@ -866,7 +866,7 @@ export const ContentAnalysis = {
         return null;
       }
       case Ci.nsIContentAnalysisResponse.eBlock: {
-        if (aIsAgentResponse && !lazy.showBlockedResult) {
+        if (!aIsSyntheticResponse && !lazy.showBlockedResult) {
           // Don't show anything
           return null;
         }

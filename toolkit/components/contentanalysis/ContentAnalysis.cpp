@@ -878,7 +878,7 @@ static void LogRequest(
 ContentAnalysisResponse::ContentAnalysisResponse(
     content_analysis::sdk::ContentAnalysisResponse&& aResponse,
     const nsCString& aUserActionId)
-    : mUserActionId(aUserActionId), mIsAgentResponse(true) {
+    : mUserActionId(aUserActionId) {
   mAction = Action::eUnspecified;
   for (const auto& result : aResponse.results()) {
     if (!result.has_status() ||
@@ -909,7 +909,8 @@ ContentAnalysisResponse::ContentAnalysisResponse(
     const nsACString& aUserActionId)
     : mAction(aAction),
       mRequestToken(aRequestToken),
-      mUserActionId(aUserActionId) {
+      mUserActionId(aUserActionId),
+      mIsSyntheticResponse(true) {
   MOZ_ASSERT(mAction != Action::eUnspecified);
 }
 
@@ -1021,8 +1022,8 @@ ContentAnalysisResponse::GetIsCachedResponse(bool* aIsCachedResponse) {
 }
 
 NS_IMETHODIMP
-ContentAnalysisResponse::GetIsAgentResponse(bool* aIsAgentResponse) {
-  *aIsAgentResponse = mIsAgentResponse;
+ContentAnalysisResponse::GetIsSyntheticResponse(bool* aIsSyntheticResponse) {
+  *aIsSyntheticResponse = mIsSyntheticResponse;
   return NS_OK;
 }
 
@@ -4149,8 +4150,11 @@ NS_IMETHODIMP ContentAnalysis::MakeResponseForTest(
     nsIContentAnalysisResponse::Action aAction, const nsACString& aToken,
     const nsACString& aUserActionId,
     nsIContentAnalysisResponse** aNewResponse) {
-  MakeRefPtr<ContentAnalysisResponse>(aAction, aToken, aUserActionId)
-      .forget(aNewResponse);
+  auto response =
+      MakeRefPtr<ContentAnalysisResponse>(aAction, aToken, aUserActionId);
+  // Pretend this is not synthetic so dialogs will show in tests
+  response->SetIsSyntheticResponse(false);
+  response.forget(aNewResponse);
   return NS_OK;
 }
 

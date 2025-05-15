@@ -3631,6 +3631,10 @@ interface SetHTMLOptions {
     sanitizer?: Sanitizer | SanitizerConfig | SanitizerPresets;
 }
 
+interface SetHTMLUnsafeOptions {
+    sanitizer?: Sanitizer | SanitizerConfig | SanitizerPresets;
+}
+
 interface ShadowRootInit {
     clonable?: boolean;
     delegatesFocus?: boolean;
@@ -7533,7 +7537,7 @@ declare var Document: {
     readonly KEYPRESS_EVENT_MODEL_CONFLATED: 2;
     isInstance: IsInstance<Document>;
     parseHTML(html: string, options?: SetHTMLOptions): Document;
-    parseHTMLUnsafe(html: TrustedHTML | string): Document;
+    parseHTMLUnsafe(html: TrustedHTML | string, options?: SetHTMLUnsafeOptions): Document;
 };
 
 interface DocumentFragment extends Node, NonElementParentNode, ParentNode {
@@ -7813,7 +7817,7 @@ interface Element extends Node, ARIAMixin, Animatable, ChildNode, GeometryUtils,
     setCapture(retargetToElement?: boolean): void;
     setCaptureAlways(retargetToElement?: boolean): void;
     setHTML(aInnerHTML: string, options?: SetHTMLOptions): void;
-    setHTMLUnsafe(html: TrustedHTML | string): void;
+    setHTMLUnsafe(html: TrustedHTML | string, options?: SetHTMLUnsafeOptions): void;
     setPointerCapture(pointerId: number): void;
     toggleAttribute(name: string, force?: boolean): boolean;
     webkitMatchesSelector(selector: string): boolean;
@@ -18844,7 +18848,8 @@ interface ShadowRoot extends DocumentFragment, DocumentOrShadowRoot {
     getHTML(options?: GetHTMLOptions): string;
     importNodeAndAppendChildAt(parentNode: Node, node: Node, deep?: boolean): Node;
     isUAWidget(): boolean;
-    setHTMLUnsafe(html: TrustedHTML | string): void;
+    setHTML(aInnerHTML: string, options?: SetHTMLOptions): void;
+    setHTMLUnsafe(html: TrustedHTML | string, options?: SetHTMLUnsafeOptions): void;
     setIsUAWidget(): void;
     addEventListener<K extends keyof ShadowRootEventMap>(type: K, listener: (this: ShadowRoot, ev: ShadowRootEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
     addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;

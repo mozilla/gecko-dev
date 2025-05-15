@@ -514,6 +514,9 @@ class ContentAnalysisResponse final : public nsIContentAnalysisResponse {
   void DoNotAcknowledge() { mDoNotAcknowledge = true; }
   void SetCancelError(CancelError aCancelError);
   void SetIsCachedResponse() { mIsCachedResponse = true; }
+  void SetIsSyntheticResponse(bool aIsSyntheticResponse) {
+    mIsSyntheticResponse = aIsSyntheticResponse;
+  }
 
  private:
   virtual ~ContentAnalysisResponse() = default;
@@ -563,11 +566,12 @@ class ContentAnalysisResponse final : public nsIContentAnalysisResponse {
   // so any dialogs (for block/warn) should not be shown.
   bool mIsCachedResponse = false;
 
-  // Whether this is a response from an agent or one synthesized by Firefox.
+  // Whether this is a synthesizic response from Firefox (as opposed to a
+  // response from a DLP agent).
   // Synthetic responses ignore browser.contentanalysis.show_blocked_result and
   // always show a blocked result for blocked content, since there is no agent
   // that could have shown one for us.
-  bool mIsAgentResponse = false;
+  bool mIsSyntheticResponse = false;
 
   friend class ContentAnalysis;
 };
