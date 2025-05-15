@@ -258,7 +258,7 @@ class ResultRecorder:
     def record_error(self, report):
         # error in setup/teardown
         if report.when != "call":
-            message = "%s error" % report.when
+            message = f"{report.when} error"
         self.record(report.nodeid, "ERROR", message, report.longrepr)
 
     def record_skip(self, report):

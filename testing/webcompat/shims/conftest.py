@@ -55,8 +55,7 @@ async def test_config(request, driver):
     use_shims = params.get("shims")
     if use_shims is None:
         raise ValueError(
-            "Missing shims marker in %s:%s"
-            % (request.fspath, request.function.__name__)
+            f"Missing shims marker in {request.fspath}:{request.function.__name__}"
         )
 
     return {
