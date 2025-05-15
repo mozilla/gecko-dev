@@ -82,7 +82,6 @@
   "gPrivateBrowsingUI",
   "switchToTabHavingURI",
   "RestoreLastSessionObserver",
-  "MenuTouchModeObserver",
   "safeModeRestart",
   "duplicateTabIn",
   "MousePosTracker",

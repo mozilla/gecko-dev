@@ -4938,27 +4938,6 @@ var RestoreLastSessionObserver = {
   ]),
 };
 
-/* Observes menus and adjusts their size for better
- * usability when opened via a touch screen. */
-var MenuTouchModeObserver = {
-  init() {
-    window.addEventListener("popupshowing", this, true);
-  },
-
-  handleEvent(event) {
-    let target = event.originalTarget;
-    if (event.inputSource == MouseEvent.MOZ_SOURCE_TOUCH) {
-      target.setAttribute("touchmode", "true");
-    } else {
-      target.removeAttribute("touchmode");
-    }
-  },
-
-  uninit() {
-    window.removeEventListener("popupshowing", this, true);
-  },
-};
-
 // Prompt user to restart the browser in safe mode
 function safeModeRestart() {
   if (Services.appinfo.inSafeMode) {

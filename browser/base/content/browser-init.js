@@ -471,7 +471,6 @@ var gBrowserInit = {
     }
 
     FullScreen.init();
-    MenuTouchModeObserver.init();
 
     if (AppConstants.MOZ_DATA_REPORTING) {
       gDataNotificationInfoBar.init();
@@ -1110,7 +1109,6 @@ var gBrowserInit = {
         "intl:app-locales-changed"
       );
 
-      MenuTouchModeObserver.uninit();
       BrowserOffline.uninit();
       CanvasPermissionPromptHelper.uninit();
       WebAuthnPromptHelper.uninit();
