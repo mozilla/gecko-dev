@@ -207,6 +207,12 @@ void MediaFormatReader::DecoderData::Flush() {
   mFlushed = true;
 }
 
+void MediaFormatReader::DecoderData::RequestDrain() {
+  LOG("");
+  MOZ_RELEASE_ASSERT(mDrainState == DrainState::None);
+  mDrainState = DrainState::DrainRequested;
+}
+
 class MediaFormatReader::DecoderFactory {
   using InitPromise = MediaDataDecoder::InitPromise;
   using TokenPromise = AllocPolicy::Promise;
@@ -2330,17 +2336,19 @@ void MediaFormatReader::DrainDecoder(TrackType aTrack) {
   decoder.mDecoder->Drain()
       ->Then(
           mTaskQueue, __func__,
-          [self, aTrack, &decoder](MediaDataDecoder::DecodedData&& aResults) {
+          [this, self, aTrack,
+           &decoder](MediaDataDecoder::DecodedData&& aResults) {
             decoder.mDrainRequest.Complete();
             DDLOGEX(self.get(), DDLogCategory::Log, "drained", DDNoValue{});
             if (aResults.IsEmpty()) {
+              LOG("DrainDecoder drained");
               decoder.mDrainState = DrainState::DrainCompleted;
             } else {
-              self->NotifyNewOutput(aTrack, std::move(aResults));
+              NotifyNewOutput(aTrack, std::move(aResults));
               // Let's see if we have any more data available to drain.
               decoder.mDrainState = DrainState::PartialDrainPending;
             }
-            self->ScheduleUpdate(aTrack);
+            ScheduleUpdate(aTrack);
           },
           [self, aTrack, &decoder](const MediaResult& aError) {
             decoder.mDrainRequest.Complete();

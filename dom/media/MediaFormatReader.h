@@ -254,6 +254,9 @@ class MediaFormatReader final
     return mTrackInfoUpdatedEvent;
   }
 
+  template <typename T>
+  friend struct DDLoggedTypeTraits;  // For DecoderData
+
  private:
   bool HasVideo() const { return mVideo.mTrackDemuxer; }
   bool HasAudio() const { return mAudio.mTrackDemuxer; }
@@ -469,10 +472,7 @@ class MediaFormatReader final
       return mDrainState == DrainState::DrainCompleted ||
              mDrainState == DrainState::DrainAborted;
     }
-    void RequestDrain() {
-      MOZ_RELEASE_ASSERT(mDrainState == DrainState::None);
-      mDrainState = DrainState::DrainRequested;
-    }
+    void RequestDrain();
 
     void StartRecordDecodingPerf(const TrackType aTrack,
                                  const MediaRawData* aSample);
@@ -906,6 +906,8 @@ class MediaFormatReader final
   // encrypted stream later.
   Atomic<bool> mEncryptedCustomIdent;
 };
+
+DDLoggedTypeCustomName(MediaFormatReader::DecoderData, DecoderData);
 
 }  // namespace mozilla
 
