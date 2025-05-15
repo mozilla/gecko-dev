@@ -111,3 +111,4 @@ pypi-optional:glean-sdk==64.2.0:telemetry will not be collected
 pypi-optional:psutil>=5.4.2,<=5.9.4:telemetry will be missing some data
 pypi-optional:zstandard>=0.11.1,<=0.23.0:zstd archives will not be possible to extract
 pypi-optional:ujson==5.7.0:symbolicating profiles will be slower
+pypi-optional:orjson==3.10.18:writing task graph files will be slower
