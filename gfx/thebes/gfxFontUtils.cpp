@@ -587,6 +587,31 @@ typedef struct Format14Cmap {
   VarSelectorRecord varSelectorRecords[1];
 } Format14Cmap;
 
+typedef struct DefUVSTable {
+  AutoSwap_PRUint32 numUnicodeValueRanges;
+
+  typedef struct {
+    AutoSwap_PRUint24 startUnicodeValue;
+    uint8_t additionalCount;
+  } UnicodeRange;
+
+  UnicodeRange ranges[1];
+} DefUVSTable;
+
+typedef struct UnicodeRangeComparator {
+  explicit UnicodeRangeComparator(uint32_t aTarget) : mTarget(aTarget) {}
+  int operator()(std::pair<uint32_t, uint32_t> aVal) const {
+    if (mTarget < aVal.first) {
+      return -1;
+    }
+    if (mTarget > aVal.second) {
+      return 1;
+    }
+    return 0;
+  }
+  const uint32_t mTarget;
+} UnicodeRangeComparator;
+
 typedef struct NonDefUVSTable {
   AutoSwap_PRUint32 numUVSMappings;
 
@@ -746,6 +771,16 @@ struct Format14CmapWrapper {
   }
 };
 
+struct DefUVSTableWrapper {
+  const DefUVSTable& mTable;
+  explicit DefUVSTableWrapper(const DefUVSTable& table) : mTable(table) {}
+  std::pair<uint32_t, uint32_t> operator[](size_t index) const {
+    const auto& range = mTable.ranges[index];
+    return std::make_pair(range.startUnicodeValue,
+                          range.startUnicodeValue + range.additionalCount);
+  }
+};
+
 struct NonDefUVSTableWrapper {
   const NonDefUVSTable& mTable;
   explicit NonDefUVSTableWrapper(const NonDefUVSTable& table) : mTable(table) {}
@@ -782,6 +817,35 @@ uint16_t gfxFontUtils::MapUVSToGlyphFormat14(const uint8_t* aBuf, uint32_t aCh,
   }
 
   return 0;
+}
+
+bool gfxFontUtils::IsDefaultUVSSequence(const uint8_t* aBuf, uint32_t aCh,
+                                        uint32_t aVS) {
+  using mozilla::BinarySearch;
+  const Format14Cmap* cmap14 = reinterpret_cast<const Format14Cmap*>(aBuf);
+
+  size_t index;
+  if (!BinarySearch(Format14CmapWrapper(*cmap14), 0,
+                    cmap14->numVarSelectorRecords, aVS, &index)) {
+    return false;
+  }
+
+  const uint32_t defUVSOffset =
+      cmap14->varSelectorRecords[index].defaultUVSOffset;
+  if (!defUVSOffset) {
+    return false;
+  }
+
+  const DefUVSTable* table =
+      reinterpret_cast<const DefUVSTable*>(aBuf + defUVSOffset);
+
+  if (BinarySearchIf(DefUVSTableWrapper(*table), 0,
+                     table->numUnicodeValueRanges, UnicodeRangeComparator(aCh),
+                     &index)) {
+    return true;
+  }
+
+  return false;
 }
 
 uint32_t gfxFontUtils::MapCharToGlyph(const uint8_t* aCmapBuf,

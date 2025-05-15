@@ -212,33 +212,42 @@ hb_codepoint_t gfxHarfBuzzShaper::GetVariationGlyph(
   uint32_t length;
   const uint8_t* data = (const uint8_t*)hb_blob_get_data(mCmapTable, &length);
 
+  uint32_t ch = 0;
   if (mUVSTableOffset) {
     hb_codepoint_t gid = gfxFontUtils::MapUVSToGlyphFormat14(
         data + mUVSTableOffset, unicode, variation_selector);
     if (gid) {
       return gid;
     }
+    // If <unicode, variation_selector> is a "default UVS sequence" for this
+    // font, we'll return the result of looking up the bare unicode codepoint.
+    if (gfxFontUtils::IsDefaultUVSSequence(data + mUVSTableOffset, unicode,
+                                           variation_selector)) {
+      ch = unicode;
+    }
+  }
+  if (!ch) {
+    ch = gfxFontUtils::GetUVSFallback(unicode, variation_selector);
+  }
+  if (!ch) {
+    return 0;
   }
 
-  uint32_t compat = gfxFontUtils::GetUVSFallback(unicode, variation_selector);
-  if (compat) {
-    switch (mCmapFormat) {
-      case 4:
-        if (compat < UNICODE_BMP_LIMIT) {
-          return gfxFontUtils::MapCharToGlyphFormat4(
-              data + mSubtableOffset, length - mSubtableOffset, compat);
-        }
-        break;
-      case 10:
-        return gfxFontUtils::MapCharToGlyphFormat10(data + mSubtableOffset,
-                                                    compat);
-        break;
-      case 12:
-      case 13:
-        return gfxFontUtils::MapCharToGlyphFormat12or13(data + mSubtableOffset,
-                                                        compat);
-        break;
-    }
+  switch (mCmapFormat) {
+    case 4:
+      if (ch < UNICODE_BMP_LIMIT) {
+        return gfxFontUtils::MapCharToGlyphFormat4(
+            data + mSubtableOffset, length - mSubtableOffset, ch);
+      }
+      break;
+    case 10:
+      return gfxFontUtils::MapCharToGlyphFormat10(data + mSubtableOffset, ch);
+      break;
+    case 12:
+    case 13:
+      return gfxFontUtils::MapCharToGlyphFormat12or13(data + mSubtableOffset,
+                                                      ch);
+      break;
   }
 
   return 0;
