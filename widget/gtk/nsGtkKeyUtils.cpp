@@ -1992,13 +1992,13 @@ void KeymapWrapper::InitKeyEvent(WidgetKeyboardEvent& aKeyEvent,
       gKeyLog, LogLevel::Info,
       ("%p InitKeyEvent, modifierState=0x%08X "
        "aKeyEvent={ mMessage=%s, isShift=%s, isControl=%s, "
-       "isAlt=%s, isMeta=%s , mKeyCode=0x%02X, mCharCode=%s, "
+       "isAlt=%s, isMeta=%s, isAltGraph=%s mKeyCode=0x%02X, mCharCode=%s, "
        "mKeyNameIndex=%s, mKeyValue=%s, mCodeNameIndex=%s, mCodeValue=%s, "
        "mLocation=%s, mIsRepeat=%s }",
        keymapWrapper, modifierState, ToChar(aKeyEvent.mMessage),
        GetBoolName(aKeyEvent.IsShift()), GetBoolName(aKeyEvent.IsControl()),
        GetBoolName(aKeyEvent.IsAlt()), GetBoolName(aKeyEvent.IsMeta()),
-       aKeyEvent.mKeyCode,
+       GetBoolName(aKeyEvent.IsAltGraph()), aKeyEvent.mKeyCode,
        GetCharacterCodeName(static_cast<char16_t>(aKeyEvent.mCharCode)).get(),
        ToString(aKeyEvent.mKeyNameIndex).get(),
        GetCharacterCodeNames(aKeyEvent.mKeyValue).get(),
