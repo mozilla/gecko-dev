@@ -3474,6 +3474,21 @@
       }
     ]
   },
+  "1959444": {
+    "label": "m.modanisa.com",
+    "bugs": {
+      "1959444": {
+        "issue": "incorrect-viewport-dimensions",
+        "matches": ["*://m.modanisa.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["change_Firefox_to_FireFox"]
+      }
+    ]
+  },
   "1960316": {
     "label": "wms.sso.biglobe.ne.jp",
     "bugs": {
