@@ -358,6 +358,7 @@ jobs:
           type: decision-task
           treeherder-symbol: perftest
           target-tasks-method: perftest
+          include-push-tasks: true
       run-on-projects:
           - mozilla-central
       when:
@@ -368,6 +369,7 @@ jobs:
           type: decision-task
           treeherder-symbol: perftest-auto
           target-tasks-method: perftest-on-autoland
+          include-push-tasks: true
       when: []
 
     - name: scriptworker-canary
