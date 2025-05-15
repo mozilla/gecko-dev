@@ -56,35 +56,41 @@ const kSaveDelayMs = 1500;
 /**
  * Handles serialization of the data and persistence into a file.
  *
- * @param config An object containing following members:
- *        - path: String containing the file path where data should be saved.
- *        - sanitizedBasename: Sanitized string identifier used for logging,
- *                             shutdown debugging, and telemetry.  Defaults to
- *                             basename of given `path`, sanitized.
- *        - dataPostProcessor: Function triggered when data is just loaded. The
- *                             data object will be passed as the first argument
- *                             and should be returned no matter it's modified or
- *                             not. Its failure leads to the failure of load()
- *                             and ensureDataReady().
- *        - saveDelayMs: Number indicating the delay (in milliseconds) between a
- *                       change to the data and the related save operation. The
- *                       default value will be applied if omitted.
- *        - beforeSave: Promise-returning function triggered just before the
- *                      data is written to disk. This can be used to create any
- *                      intermediate directories before saving. The file will
- *                      not be saved if the promise rejects or the function
- *                      throws an exception.
- *        - finalizeAt: An `IOUtils` phase or barrier client that should
- *                      automatically finalize the file when triggered. Defaults
- *                      to `profileBeforeChange`; exposed as an option for
- *                      testing.
- *        - compression: A compression algorithm to use when reading and
- *                       writing the data.
- *        - backupTo: A string value indicating where writeAtomic should create
- *                    a backup before writing to json files. Note that using this
- *                    option currently ensures that we automatically restore backed
- *                    up json files in load() and ensureDataReady() when original
- *                    files are missing or corrupt.
+ * @param {Object} config An object containing following members:
+ * @param {string} config.path
+ *   String containing the file path where data should be saved.
+ * @param {string} [config.sanitizedBasename]
+ *   Sanitized string identifier used for logging,
+ *   shutdown debugging, and telemetry. Defaults to basename of given `path`,
+ *   sanitized.
+ * @param {Function} [config.dataPostProcessor]
+ *   Function triggered when data is just loaded. The data object will be passed
+ *   as the first argument and should be returned no matter if it's modified or
+ *   not. Its failure leads to the failure of load() and ensureDataReady().
+ * @param {number} [config.saveDelayMs]
+ *   Number indicating the delay (in milliseconds) between a change to the data
+ *   and the related save operation. The default value will be applied if
+ *   omitted.
+ * @param {Function} [config.beforeSave]
+ *   Promise-returning function triggered just before the data is written to
+ *   disk. This can be used to create any intermediate directories before
+ *   saving. The file will not be saved if the promise rejects or the function
+ *   throws an exception.
+ * @param {nsIAsyncShutdownClient} [config.finalizeAt]
+ *   An `IOUtils` phase or barrier client that should automatically finalize the
+ *   file when triggered. Defaults to `profileBeforeChange`; exposed as an
+ *   option for testing.
+ * @param {string} [config.compression]
+ *   A compression algorithm to use when reading and writing the data.
+ * @param {string} [config.backupTo]
+ *   A string value indicating where writeAtomic should create a backup before
+ *   writing to json files. Note that using this option currently ensures that
+ *   we automatically restore backed up json files in load() and
+ *   ensureDataReady() when original files are missing or corrupt.
+ * @param {Function} [config.saveFailureHandler]
+ *   A synchronous function that will be called if saving the data object ever
+ *   causes an exception to be thrown (and toJSONSafe is not implemented on
+ *   data).
  */
 export function JSONFile(config) {
   this.path = config.path;
@@ -113,6 +119,10 @@ export function JSONFile(config) {
 
   if (config.backupTo) {
     this._options.backupFile = this._options.backupTo = config.backupTo;
+  }
+
+  if (config.saveFailureHandler) {
+    this._saveFailureHandler = config.saveFailureHandler;
   }
 
   this._finalizeAt = config.finalizeAt || IOUtils.profileBeforeChange;
@@ -144,6 +154,12 @@ JSONFile.prototype = {
    * DeferredTask that handles the save operation.
    */
   _saver: null,
+
+  /**
+   * A function that will be called if saving the data results in an exception
+   * being thrown.
+   */
+  _saveFailureHandler: () => {},
 
   /**
    * Internal data object.
@@ -421,6 +437,20 @@ JSONFile.prototype = {
           this._data.toJSONSafe(),
           Object.assign({ tmpPath: this.path + ".tmp" }, this._options)
         );
+      } else {
+        // Something went wrong with saving that we cannot recover from. If
+        // the consumer of JSONFile has supplied a save failure handler, we'll
+        // at least let them know.
+        try {
+          this._saveFailureHandler(ex);
+        } catch (saveFailureEx) {
+          console.error(
+            "Failed to handle ",
+            ex,
+            " in save failure handler due to ",
+            saveFailureEx
+          );
+        }
       }
     }
   },
