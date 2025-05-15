@@ -1,0 +1,15 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * coopvoce.it - Radio buttons do not work
+ * Bug #1955932 - https://bugzilla.mozilla.org/show_bug.cgi?id=1955932
+ * WebCompat issue #150799 - https://webcompat.com/issues/150799
+ *
+ * The site relies on a Chromium bug (https://issues.chromium.org/issues/365052666)
+ * to not make radiobuttons inaccessible. This CSS works around that issue.
+ */
+input[name="numRicarica"] {
+  appearance: none;
+}
