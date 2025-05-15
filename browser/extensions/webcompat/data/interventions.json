@@ -3369,6 +3369,21 @@
       }
     ]
   },
+  "1953091": {
+    "label": "slc-ut-us.avolvecloud.com",
+    "bugs": {
+      "1953091": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://slc-ut-us.avolvecloud.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1954002": {
     "label": "advancedmd.com",
     "bugs": {
