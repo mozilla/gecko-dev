@@ -27,17 +27,22 @@ struct PurgeArenaMarker : mozilla::BaseMarkerType<PurgeArenaMarker> {
       {"caller", MS::InputType::CString, "Caller", MS::Format::String},
       {"pages", MS::InputType::Uint32, "Number of pages", MS::Format::Integer},
       {"syscalls", MS::InputType::Uint32, "Number of system calls",
-       MS::Format::Integer}};
+       MS::Format::Integer},
+      {"chunks", MS::InputType::Uint32, "Number of chunks processed",
+       MS::Format::Integer},
+      {"result", MS::InputType::CString, "Result", MS::Format::String}};
 
   static void StreamJSONMarkerData(
       mozilla::baseprofiler::SpliceableJSONWriter& aWriter, uint32_t aId,
       const String8View& aLabel, const String8View& aCaller, uint32_t aPages,
-      uint32_t aSyscalls) {
+      uint32_t aSyscalls, uint32_t aChunks, const String8View& aResult) {
     aWriter.IntProperty("id", aId);
     aWriter.StringProperty("label", aLabel);
     aWriter.StringProperty("caller", aCaller);
     aWriter.IntProperty("pages", aPages);
     aWriter.IntProperty("syscalls", aSyscalls);
+    aWriter.IntProperty("chunks", aChunks);
+    aWriter.StringProperty("result", aResult);
   }
 
   static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
@@ -51,13 +56,31 @@ namespace profiler {
 class GeckoProfilerMallocCallbacks : public MallocProfilerCallbacks {
  public:
   virtual void OnPurge(TimeStamp aStart, TimeStamp aEnd,
-                       const PurgeStats& aStats) override {
+                       const PurgeStats& aStats,
+                       ArenaPurgeResult aResult) override {
+    const char* result = nullptr;
+    switch (aResult) {
+      case ReachedThreshold:
+        result = "Reached dirty page threshold";
+        break;
+      case NotDone:
+        result = "Purge exited early (eg caller set a time budget)";
+        break;
+      case Busy:
+        result = "Last chunk is busy being purged on another thread";
+        break;
+      case Dying:
+        result = "Arena is being destroyed";
+        break;
+    }
+
     PROFILER_MARKER(
         "PurgeArena", GCCC, MarkerTiming::Interval(aStart, aEnd),
         PurgeArenaMarker, aStats.arena_id,
         ProfilerString8View::WrapNullTerminatedString(aStats.arena_label),
         ProfilerString8View::WrapNullTerminatedString(aStats.caller),
-        aStats.pages, aStats.system_calls);
+        aStats.pages, aStats.system_calls, aStats.chunks,
+        ProfilerString8View::WrapNullTerminatedString(result));
   }
 };
 }  // namespace profiler
