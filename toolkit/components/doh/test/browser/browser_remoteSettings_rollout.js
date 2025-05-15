@@ -50,7 +50,7 @@ add_task(async function testPrefFirstRollout() {
   );
 
   defaults.deleteBranch(`${kRegionalPrefNamespace}.enabled`);
-  await restartDoHController();
+  await DoHController.resetPromise;
 
   is(
     DoHConfigController.currentConfig.enabled,
