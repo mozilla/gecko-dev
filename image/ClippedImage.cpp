@@ -212,8 +212,8 @@ ClippedImage::GetIntrinsicSizeInAppUnits(nsSize* aSize) {
     return InnerImage()->GetIntrinsicSizeInAppUnits(aSize);
   }
 
-  *aSize = nsSize(nsPresContext::CSSPixelsToAppUnits(mClip.Width()),
-                  nsPresContext::CSSPixelsToAppUnits(mClip.Height()));
+  // XXXdholbert This probably needs to be scaled; see bug 1965106.
+  *aSize = nsSize(mClip.Width(), mClip.Height());
   return NS_OK;
 }
 
