@@ -224,6 +224,7 @@ export class GeckoViewStartup {
           ged: [
             "GeckoView:Preferences:GetPref",
             "GeckoView:Preferences:SetPref",
+            "GeckoView:Preferences:ClearPref",
             "GeckoView:Preferences:RegisterObserver",
             "GeckoView:Preferences:UnregisterObserver",
           ],

@@ -25,6 +25,7 @@ public class GeckoPreferenceController {
 
   private static final String GET_PREF = "GeckoView:Preferences:GetPref";
   private static final String SET_PREF = "GeckoView:Preferences:SetPref";
+  private static final String CLEAR_PREF = "GeckoView:Preferences:ClearPref";
 
   /**
    * Retrieves the value of a given Gecko preference.
@@ -114,6 +115,23 @@ public class GeckoPreferenceController {
     bundle.putString("branch", toBranchString(branch));
     bundle.putInt("type", PREF_TYPE_BOOL);
     return EventDispatcher.getInstance().queryVoid(SET_PREF, bundle);
+  }
+
+  /***
+   * Restated from nsIPrefBranch.idl's clearUserPref:
+   * <p>
+   * Called to clear a user set value from a specific preference. This will, in
+   * effect, reset the value to the default value. If no default value exists
+   * the preference will cease to exist.
+   *
+   * @param prefName The name of the preference to clear. e.g., "some.pref.item".
+   * @return Will return a GeckoResult once the pref is cleared.
+   */
+  @AnyThread
+  public static @NonNull GeckoResult<Void> clearGeckoUserPref(@NonNull final String prefName) {
+    final GeckoBundle bundle = new GeckoBundle(1);
+    bundle.putString("pref", prefName);
+    return EventDispatcher.getInstance().queryVoid(CLEAR_PREF, bundle);
   }
 
   /** The Observer class contains utilities for monitoring preference changes in Gecko. */

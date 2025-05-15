@@ -750,4 +750,39 @@ class PreferencesTest : BaseSessionTest() {
         assertEquals("Pref type matches as expected.", PREF_TYPE_INT, result.type)
         assertEquals("Pref value matches as expected.", intInitial, result.value)
     }
+
+    /**
+     * Basic test of clearing a user pref.
+     */
+    @Test
+    fun clearUserPref() {
+        val arbitraryPref = "some.arbitrary.pref.test"
+        val arbitraryPrefValue = "hello-world"
+        sessionRule.setPrefsUntilTestEnd(
+            mapOf(
+                arbitraryPref to arbitraryPrefValue,
+            ),
+        )
+        val initiallyExists =
+            sessionRule.waitForResult(
+                GeckoPreferenceController.getGeckoPref(
+                    arbitraryPref,
+                ),
+            )
+        assertEquals("Pref exists as expected.", arbitraryPref, initiallyExists.pref)
+        assertEquals("Pref value is as expected.", arbitraryPrefValue, initiallyExists.value)
+        assertEquals("Pref type is as expected.", PREF_TYPE_STRING, initiallyExists.type)
+
+        sessionRule.waitForResult(GeckoPreferenceController.clearGeckoUserPref(arbitraryPref))
+
+        val postClearing =
+            sessionRule.waitForResult(
+                GeckoPreferenceController.getGeckoPref(
+                    arbitraryPref,
+                ),
+            )
+        assertEquals("Pref name after clearing is as expected.", arbitraryPref, postClearing.pref)
+        assertEquals("Pref value after clearing is null as expected.", null, postClearing.value)
+        assertEquals("Pref type after clearing is as expected.", PREF_TYPE_INVALID, postClearing.type)
+    }
 }
