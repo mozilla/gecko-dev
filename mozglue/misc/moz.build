@@ -48,12 +48,9 @@ SOURCES += [
     "Debug.cpp",
     "LoggingCore.cpp",
     "MmapFaultHandler.cpp",
-    "Now.cpp",
     "Printf.cpp",
     "SIMD.cpp",
     "StackWalk.cpp",
-    "TimeStamp.cpp",
-    "Uptime.cpp",
 ]
 
 if CONFIG["TARGET_CPU"].startswith("x86"):
@@ -94,7 +91,6 @@ if CONFIG["OS_ARCH"] == "WINNT":
     ]
     SOURCES += [
         "GetKnownFolderPath.cpp",
-        "TimeStamp_windows.cpp",
         "WindowsDiagnostics.cpp",
         "WindowsDllMain.cpp",
         "WindowsDpiInitialization.cpp",
@@ -111,17 +107,6 @@ if CONFIG["OS_ARCH"] == "WINNT":
             "/ipc/mscom/ProcessRuntime.cpp",
             "PreXULSkeletonUI.cpp",
         ]
-
-elif CONFIG["OS_ARCH"] == "Darwin":
-    SOURCES += [
-        "TimeStamp_darwin.cpp",
-    ]
-elif CONFIG["HAVE_CLOCK_MONOTONIC"]:
-    SOURCES += [
-        "TimeStamp_posix.cpp",
-    ]
-elif CONFIG["COMPILE_ENVIRONMENT"]:
-    error("No TimeStamp implementation on this platform.  Build will not succeed")
 
 if CONFIG["OS_ARCH"] == "WINNT":
     SOURCES += [
@@ -157,3 +142,5 @@ if CONFIG["CC_TYPE"] in ("clang", "clang-cl"):
 
 for var in ("MOZ_APP_BASENAME", "MOZ_APP_VENDOR"):
     DEFINES[var] = '"%s"' % CONFIG[var]
+
+include("/mozglue/misc/timestamp.mozbuild")
