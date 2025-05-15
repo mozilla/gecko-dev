@@ -24,8 +24,8 @@ namespace ipc {
 
 extern LazyLogModule gForkServiceLog;
 
-MOZ_RUNINIT mozilla::UniquePtr<ForkServiceChild>
-    ForkServiceChild::sForkServiceChild;
+StaticMutex ForkServiceChild::sMutex;
+StaticRefPtr<ForkServiceChild> ForkServiceChild::sSingleton;
 Atomic<bool> ForkServiceChild::sForkServiceUsed;
 
 #ifndef SOCK_CLOEXEC
@@ -82,14 +82,35 @@ void ForkServiceChild::StartForkServer() {
   }
 
   sForkServiceUsed = true;
-  sForkServiceChild =
-      mozilla::MakeUnique<ForkServiceChild>(server.release(), subprocess);
+  StaticMutexAutoLock smal(sMutex);
+  // Can't use MakeRefPtr; ctor is private.
+  MOZ_ASSERT(sSingleton == nullptr);
+  sSingleton = new ForkServiceChild(server.release(), subprocess);
 }
 
-void ForkServiceChild::StopForkServer() { sForkServiceChild = nullptr; }
+void ForkServiceChild::StopForkServer() {
+  RefPtr<ForkServiceChild> oldChild;
+  {
+    StaticMutexAutoLock smal(sMutex);
+    oldChild = sSingleton.forget();
+  }
+  // Drop the old reference outside of the lock to avoid lock order
+  // cycles via the GeckoChildProcessHost dtor.
+}
+
+RefPtr<ForkServiceChild> ForkServiceChild::Get() {
+  RefPtr<ForkServiceChild> child;
+  {
+    StaticMutexAutoLock smal(sMutex);
+    child = sSingleton;
+  }
+  return child;
+}
 
 ForkServiceChild::ForkServiceChild(int aFd, GeckoChildProcessHost* aProcess)
-    : mFailed(false), mProcess(aProcess) {
+    : mMutex("mozilla.ipc.ForkServiceChild.mMutex"),
+      mFailed(false),
+      mProcess(aProcess) {
   mTcver = MakeUnique<MiniTransceiver>(aFd);
 }
 
@@ -106,6 +127,11 @@ Result<Ok, LaunchError> ForkServiceChild::SendForkNewSubprocess(
   MOZ_ASSERT(!aOptions.full_env);
   MOZ_ASSERT(!aOptions.wait);
   MOZ_ASSERT(aOptions.fds_to_remap.size() == aArgs.mFiles.size());
+
+  MutexAutoLock lock(mMutex);
+  if (mFailed) {
+    return Err(LaunchError("FSC::SFNS::Failed"));
+  }
 
   UniqueFileHandle execParent;
   {
