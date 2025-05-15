@@ -3322,6 +3322,21 @@
       }
     ]
   },
+  "1950807": {
+    "label": "sus.softadmin.se",
+    "bugs": {
+      "1950807": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://sus.softadmin.se/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
+      }
+    ]
+  },
   "1953077": {
     "label": "Nintendo movie guidebook",
     "bugs": {
