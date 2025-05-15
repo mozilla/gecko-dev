@@ -1133,6 +1133,8 @@ void nsGlobalWindowInner::FreeInnerObjects() {
   }
   StartDying();
 
+  ClearHasPointerRawUpdateEventListeners();
+
   if (mDoc && mDoc->GetWindowContext()) {
     // The document is about to lose its window, so this is a good time to send
     // our page use counters.
@@ -7687,6 +7689,26 @@ TrustedTypePolicyFactory* nsGlobalWindowInner::TrustedTypes() {
   return mTrustedTypePolicyFactory;
 }
 
+void nsPIDOMWindowInner::MaybeSetHasPointerRawUpdateEventListeners() {
+  if (HasPointerRawUpdateEventListeners() || !IsSecureContext()) {
+    return;
+  }
+  mMayHavePointerRawUpdateEventListener = true;
+  if (BrowserChild* const browserChild = BrowserChild::GetFrom(this)) {
+    browserChild->OnPointerRawUpdateEventListenerAdded(this);
+  }
+}
+
+void nsPIDOMWindowInner::ClearHasPointerRawUpdateEventListeners() {
+  if (!HasPointerRawUpdateEventListeners()) {
+    return;
+  }
+  mMayHavePointerRawUpdateEventListener = false;
+  if (BrowserChild* const browserChild = BrowserChild::GetFrom(this)) {
+    browserChild->OnPointerRawUpdateEventListenerRemoved(this);
+  }
+}
+
 nsIURI* nsPIDOMWindowInner::GetDocumentURI() const {
   return mDoc ? mDoc->GetDocumentURI() : mDocumentURI.get();
 }
@@ -7777,29 +7799,7 @@ CloseWatcherManager* nsPIDOMWindowInner::EnsureCloseWatcherManager() {
 
 nsPIDOMWindowInner::nsPIDOMWindowInner(nsPIDOMWindowOuter* aOuterWindow,
                                        WindowGlobalChild* aActor)
-    : mMutationBits(0),
-      mIsDocumentLoaded(false),
-      mIsHandlingResizeEvent(false),
-      mMayHaveDOMActivateEventListeners(false),
-      mMayHaveTouchEventListener(false),
-      mMayHaveSelectionChangeEventListener(false),
-      mMayHaveFormSelectEventListener(false),
-      mMayHaveMouseEnterLeaveEventListener(false),
-      mMayHavePointerEnterLeaveEventListener(false),
-      mMayHaveTransitionEventListener(false),
-      mMayHaveSMILTimeEventListener(false),
-      mMayHaveBeforeInputEventListenerForTelemetry(false),
-      mMutationObserverHasObservedNodeForTelemetry(false),
-      mOuterWindow(aOuterWindow),
-      mWindowID(0),
-      mHasNotifiedGlobalCreated(false),
-      mMarkedCCGeneration(0),
-      mHasTriedToCacheTopInnerWindow(false),
-      mNumOfIndexedDBDatabases(0),
-      mNumOfOpenWebSockets(0),
-      mEvent(nullptr),
-      mWindowGlobalChild(aActor),
-      mWasSuspendedByGroup(false) {
+    : mOuterWindow(aOuterWindow), mWindowGlobalChild(aActor) {
   MOZ_ASSERT(aOuterWindow);
   mBrowsingContext = aOuterWindow->GetBrowsingContext();
 

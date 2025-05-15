@@ -225,6 +225,8 @@ EVENT(pointerover, ePointerOver, EventNameType_All, ePointerEventClass)
 EVENT(pointerout, ePointerOut, EventNameType_All, ePointerEventClass)
 EVENT(pointerenter, ePointerEnter, EventNameType_All, ePointerEventClass)
 EVENT(pointerleave, ePointerLeave, EventNameType_All, ePointerEventClass)
+EVENT(pointerrawupdate, ePointerRawUpdate, EventNameType_All,
+      ePointerEventClass)
 EVENT(gotpointercapture, ePointerGotCapture, EventNameType_All,
       ePointerEventClass)
 EVENT(lostpointercapture, ePointerLostCapture, EventNameType_All,
