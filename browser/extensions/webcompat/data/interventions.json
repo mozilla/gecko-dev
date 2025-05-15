@@ -3398,5 +3398,20 @@
         }
       }
     ]
+  },
+  "1964015": {
+    "label": "kickasstorrents.cr",
+    "bugs": {
+      "1964015": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://kickasstorrents.cr/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
+      }
+    ]
   }
 }
