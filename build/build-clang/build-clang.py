@@ -210,6 +210,7 @@ def build_one_stage(
     targets,
     is_final_stage=False,
     profile=None,
+    bolt=False,
 ):
     if not os.path.exists(stage_dir):
         os.mkdir(stage_dir)
@@ -228,6 +229,10 @@ def build_one_stage(
             machine_targets = "AArch64"
         else:
             machine_targets = "X86"
+
+        # see llvm-project/clang/cmake/caches/BOLT.cmake
+        if bolt:
+            ldflags.append("-Wl,--emit-relocs,-znow")
 
         cmake_args = [
             "-GNinja",
@@ -273,6 +278,11 @@ def build_one_stage(
             projects.append("clang-tools-extra")
         else:
             cmake_args.append("-DLLVM_TOOL_LLI_BUILD=OFF")
+
+        if bolt:
+            projects.append("bolt")
+            cmake_args.append("-DCLANG_BOLT=INSTRUMENT")
+            cmake_args.append("-DCLANG_INCLUDE_TESTS=ON")
 
         cmake_args.append("-DLLVM_ENABLE_PROJECTS=%s" % ";".join(projects))
 
@@ -594,6 +604,9 @@ def main():
         pgo = config["pgo"]
         if pgo not in (True, False):
             raise ValueError("Only boolean values are accepted for pgo.")
+    bolt = config.get("bolt", False)
+    if bolt not in (True, False):
+        raise ValueError("Only boolean values are accepted for bolt.")
     build_type = "Release"
     if "build_type" in config:
         build_type = config["build_type"]
@@ -883,6 +896,7 @@ def main():
             targets,
             is_final_stage=(stages == 4),
             profile=profile,
+            bolt=bolt,
         )
 
     if build_clang_tidy:
