@@ -1811,7 +1811,7 @@ guint KeymapWrapper::GetModifierState(GdkEventKey* aGdkKeyEvent,
   }
 #endif
 #ifdef MOZ_WAYLAND
-  int mask = 0;
+  guint mask = 0;
   switch (aGdkKeyEvent->keyval) {
     case GDK_Shift_L:
     case GDK_Shift_R:
@@ -1836,6 +1836,13 @@ guint KeymapWrapper::GetModifierState(GdkEventKey* aGdkKeyEvent,
     case GDK_Meta_L:
     case GDK_Meta_R:
       mask = aWrapper->GetGdkModifierMask(META);
+      break;
+    case GDK_ISO_Level3_Shift:
+    case GDK_Mode_switch:
+      mask = aWrapper->GetGdkModifierMask(LEVEL3);
+      break;
+    case GDK_ISO_Level5_Shift:
+      mask = aWrapper->GetGdkModifierMask(LEVEL5);
       break;
     default:
       break;
