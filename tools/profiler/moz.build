@@ -33,6 +33,11 @@ if CONFIG["MOZ_GECKO_PROFILER"]:
         UNIFIED_SOURCES += [
             "core/memory_counter.cpp",
         ]
+        if CONFIG["NIGHTLY_BUILD"]:
+            DEFINES["MOZJEMALLOC_PROFILING_CALLBACKS"] = True
+            UNIFIED_SOURCES += [
+                "core/memory_markers.cpp",
+            ]
     if CONFIG["MOZ_REPLACE_MALLOC"] and CONFIG["MOZ_PROFILER_MEMORY"]:
         SOURCES += [
             "core/memory_hooks.cpp",  # Non-unified because of order of #includes
