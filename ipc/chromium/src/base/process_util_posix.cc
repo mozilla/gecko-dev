@@ -203,123 +203,51 @@ void CloseSuperfluousFds(void* aCtx, bool (*aShouldPreserve)(void*, int)) {
   }
 }
 
-#ifdef MOZ_ENABLE_FORKSERVER
-// Returns whether a process (assumed to still exist) is in the zombie
-// state.  Any failures (if the process doesn't exist, if /proc isn't
-// mounted, etc.) will return true, so that we don't try again.
-static bool IsZombieProcess(pid_t pid) {
-#  ifdef XP_LINUX
-  auto path = mozilla::Smprintf("/proc/%d/stat", pid);
-  int fd = open(path.get(), O_RDONLY | O_CLOEXEC);
-  if (fd < 0) {
-    int e = errno;
-    DLOG(ERROR) << "failed to open " << path.get() << ": " << strerror(e);
-    return true;
-  }
-
-  // /proc/%d/stat format is approximately:
-  //
-  // %d (%s) %c %d %d %d %d %d ...
-  //
-  // The state is the third field; the second field is the thread
-  // name, in parentheses, but it can contain arbitrary characters.
-  // So, we read the whole line, check for the last ')' because all of
-  // the following fields are numeric, and move forward from there.
-  //
-  // And because (unlike other uses of this info the codebase) we
-  // don't care about those other fields, we can read a smaller amount
-  // of the file.
-
-  char buffer[64];
-  ssize_t len = HANDLE_EINTR(read(fd, buffer, sizeof(buffer) - 1));
-  int e = errno;
-  close(fd);
-  if (len < 1) {
-    DLOG(ERROR) << "failed to read " << path.get() << ": " << strerror(e);
-    return true;
-  }
-
-  buffer[len] = '\0';
-  char* rparen = strrchr(buffer, ')');
-  if (!rparen || rparen[1] != ' ' || rparen[2] == '\0') {
-    DCHECK(false) << "/proc/{pid}/stat parse error";
-    CHROMIUM_LOG(ERROR) << "bad data in /proc/" << pid << "/stat";
-    return true;
-  }
-  if (rparen[2] == 'Z') {
-    DLOG(ERROR) << "process " << pid << " is a zombie";
-    return true;
-  }
-  return false;
-#  else  // not XP_LINUX
-  // The situation where this matters is Linux-specific (pid
-  // namespaces), so we don't need to bother on other Unixes.
-  return false;
-#  endif
-}
-#endif  // MOZ_ENABLE_FORKSERVER
-
 ProcessStatus WaitForProcess(ProcessHandle handle, BlockingWait blocking,
                              int* info_out) {
   *info_out = 0;
 
-  // Abstraction of the fork server workaround, inserted into the
-  // appropriate point in the waitid and waitpid paths; returns
-  // Nothing if the fork server isn't involved, or Some(rv) to return
-  // rv from WaitForProcess.
+#if defined(MOZ_ENABLE_FORKSERVER) || !defined(HAVE_WAITID)
+  auto handleStatus = [&](int status) -> ProcessStatus {
+    if (WIFEXITED(status)) {
+      *info_out = WEXITSTATUS(status);
+      return ProcessStatus::Exited;
+    }
+    if (WIFSIGNALED(status)) {
+      *info_out = WTERMSIG(status);
+      return ProcessStatus::Killed;
+    }
+    LOG_AND_ASSERT << "unexpected wait status: " << status;
+    return ProcessStatus::Error;
+  };
+#endif
+
   auto handleForkServer = [&]() -> mozilla::Maybe<ProcessStatus> {
 #ifdef MOZ_ENABLE_FORKSERVER
-    // With the current design of the fork server we can't waitpid
-    // directly.  Instead, we simulate it by polling with `kill(pid, 0)`;
-    // this is unreliable because pids can be reused, so we could report
-    // that the process is still running when it's exited.
-    //
-    // Because of that possibility, the "blocking" mode has an arbitrary
-    // limit on the amount of polling it does for the process's
-    // nonexistence; if that limit is exceeded, an error is returned.
-    //
-    // See also bug 1752638 to improve the fork server so we can get
-    // accurate process information.
-    static constexpr long kDelayMS = 500;
-    static constexpr int kAttempts = 10;
-
     if (errno != ECHILD || !mozilla::ipc::ForkServiceChild::WasUsed()) {
       return mozilla::Nothing();
     }
 
-    // Note that this loop won't loop in the BlockingWait::No case.
-    for (int attempt = 0; attempt < kAttempts; ++attempt) {
-      const int rv = kill(handle, 0);
-      if (rv == 0) {
-        // Process is still running (or its pid was reassigned; oops).
-        if (blocking == BlockingWait::No) {
-          // Annoying edge case (bug 1881386): if pid 1 isn't a real
-          // `init`, like in some container environments, and if the child
-          // exited after the fork server, it could become a permanent
-          // zombie.  We treat it as dead in that case.
-          return mozilla::Some(IsZombieProcess(handle)
-                                   ? ProcessStatus::Exited
-                                   : ProcessStatus::Running);
-        }
-      } else {
-        if (errno == ESRCH) {
-          return mozilla::Some(ProcessStatus::Exited);
-        }
-        // Some other error (permissions, if it's the wrong process?).
-        *info_out = errno;
-        CHROMIUM_LOG(WARNING) << "Unexpected error probing process " << handle;
-        return mozilla::Some(ProcessStatus::Error);
-      }
-
-      // Wait and try again.
-      DCHECK(blocking == BlockingWait::Yes);
-      struct timespec delay = {(kDelayMS / 1000),
-                               (kDelayMS % 1000) * 1000 * 1000};
-      HANDLE_EINTR(nanosleep(&delay, &delay));
+    auto forkService = mozilla::ipc::ForkServiceChild::Get();
+    if (!forkService) {
+      DLOG(WARNING) << "fork server exited too soon";
+      return mozilla::Nothing();
     }
 
-    *info_out = ETIME;  // "Timer expired"; close enough.
-    return mozilla::Some(ProcessStatus::Error);
+    auto result =
+        forkService->SendWaitPid(handle, blocking == BlockingWait::Yes);
+    if (result.isOk()) {
+      return mozilla::Some(handleStatus(result.unwrap().status));
+    }
+
+    int err = result.unwrapErr();
+    if (err == ECHILD) {
+      return mozilla::Nothing();
+    }
+
+    *info_out = err;
+    return mozilla::Some(err == 0 ? ProcessStatus::Running
+                                  : ProcessStatus::Error);
 #else
     return mozilla::Nothing();
 #endif
@@ -328,7 +256,6 @@ ProcessStatus WaitForProcess(ProcessHandle handle, BlockingWait blocking,
   const int maybe_wnohang = (blocking == BlockingWait::No) ? WNOHANG : 0;
 
 #ifdef HAVE_WAITID
-
   // We use `WNOWAIT` to read the process status without
   // side-effecting it, in case it's something unexpected like a
   // ptrace-stop for the crash reporter.  If is an exit, the call is
@@ -343,7 +270,8 @@ ProcessStatus WaitForProcess(ProcessHandle handle, BlockingWait blocking,
       return *forkServerReturn;
     }
 
-    CHROMIUM_LOG(ERROR) << "waitid failed pid:" << handle << " errno:" << errno;
+    CHROMIUM_LOG(INFO) << "waitid failed pid:" << handle
+                       << " errno:" << wait_err;
     *info_out = wait_err;
     return ProcessStatus::Error;
   }
@@ -394,35 +322,26 @@ ProcessStatus WaitForProcess(ProcessHandle handle, BlockingWait blocking,
   DCHECK(si.si_code == old_si_code);
   return status;
 
-#else  // no waitid
+#else   // no waitid
 
   int status;
   const int result = waitpid(handle, &status, maybe_wnohang);
   if (result == -1) {
-    *info_out = errno;
+    int wait_err = errno;
     if (auto forkServerReturn = handleForkServer()) {
       return *forkServerReturn;
     }
 
-    CHROMIUM_LOG(ERROR) << "waitpid failed pid:" << handle
-                        << " errno:" << errno;
+    CHROMIUM_LOG(INFO) << "waitpid failed pid:" << handle
+                       << " errno:" << wait_err;
+    *info_out = wait_err;
     return ProcessStatus::Error;
   }
   if (result == 0) {
     return ProcessStatus::Running;
   }
 
-  if (WIFEXITED(status)) {
-    *info_out = WEXITSTATUS(status);
-    return ProcessStatus::Exited;
-  }
-  if (WIFSIGNALED(status)) {
-    *info_out = WTERMSIG(status);
-    return ProcessStatus::Killed;
-  }
-  LOG_AND_ASSERT << "unexpected wait status: " << status;
-  return ProcessStatus::Error;
-
+  return handleStatus(status);
 #endif  // waitid
 }
 

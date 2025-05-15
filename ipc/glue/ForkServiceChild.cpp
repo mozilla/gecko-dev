@@ -6,6 +6,7 @@
 
 #include "ForkServiceChild.h"
 #include "ForkServer.h"
+#include "chrome/common/process_watcher.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Logging.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
@@ -75,6 +76,7 @@ void ForkServiceChild::StartForkServer() {
 
   geckoargs::ChildProcessArgs extraOpts;
   geckoargs::sIPCHandle.Put(std::move(client), extraOpts);
+  geckoargs::sSignalPipe.Put(ProcessWatcher::GetSignalPipe(), extraOpts);
 
   if (!subprocess->LaunchAndWaitForProcessHandle(std::move(extraOpts))) {
     MOZ_LOG(gForkServiceLog, LogLevel::Error, ("failed to launch fork server"));
@@ -191,6 +193,58 @@ Result<Ok, LaunchError> ForkServiceChild::SendForkNewSubprocess(
   reader.EndRead();
 
   return Ok();
+}
+
+auto ForkServiceChild::SendWaitPid(pid_t aPid, bool aBlock)
+    -> Result<ProcStatus, int> {
+  MutexAutoLock lock(mMutex);
+  if (mFailed) {
+    return Err(ECONNRESET);
+  }
+
+  IPC::Message msg(MSG_ROUTING_CONTROL, Msg_WaitPid__ID);
+  IPC::MessageWriter writer(msg);
+  WriteParam(&writer, aPid);
+  WriteParam(&writer, aBlock);
+
+  if (!mTcver->Send(msg)) {
+    MOZ_LOG(gForkServiceLog, LogLevel::Verbose,
+            ("the pipe to the fork server is closed or having errors"));
+    OnError();
+    return Err(ECONNRESET);
+  }
+
+  UniquePtr<IPC::Message> reply;
+  if (!mTcver->Recv(reply)) {
+    MOZ_LOG(gForkServiceLog, LogLevel::Verbose,
+            ("the pipe to the fork server is closed or having errors"));
+    OnError();
+    return Err(ECONNRESET);
+  }
+
+  if (reply->type() != Reply_WaitPid__ID) {
+    MOZ_LOG(gForkServiceLog, LogLevel::Verbose,
+            ("unknown reply type %d", reply->type()));
+    OnError();
+    return Err(EPROTO);
+  }
+  IPC::MessageReader reader(*reply);
+
+  // Both sides of the Result are isomorphic to int.
+  bool isErr = false;
+  int value = 0;
+  if (!ReadParam(&reader, &isErr) || !ReadParam(&reader, &value)) {
+    MOZ_LOG(gForkServiceLog, LogLevel::Verbose,
+            ("deserialization error in waitpid reply"));
+    OnError();
+    return Err(EPROTO);
+  }
+
+  // This can't use ?: because the types are different.
+  if (isErr) {
+    return Err(value);
+  }
+  return ProcStatus{value};
 }
 
 void ForkServiceChild::OnError() {

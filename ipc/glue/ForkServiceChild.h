@@ -51,6 +51,26 @@ class ForkServiceChild final {
       pid_t* aPid) MOZ_EXCLUDES(mMutex);
 
   /**
+   * Contains a status value as from waitpid (for use with macros
+   * like WIFEXITED).
+   */
+  struct ProcStatus {
+    int status;
+  };
+
+  /**
+   * Ask the fork server to call waitpid on a child process.
+   *
+   * \param aPid The process ID of the child process.
+   * \param aBlock Whether to block until the child process exits;
+   *               use with caution.
+   *
+   * \return Ok(status) if the process exited; Err(0) if the process
+   *         is still running; and Err(errno) if there was an error.
+   */
+  Result<ProcStatus, int> SendWaitPid(pid_t aPid, bool aBlock);
+
+  /**
    * Create a fork server process and the singleton of this class.
    *
    * This function uses |GeckoChildProcessHost| to launch the fork

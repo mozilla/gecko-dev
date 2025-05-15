@@ -1315,9 +1315,12 @@ Result<Ok, LaunchError> PosixProcessLauncher::DoSetup() {
   mChildArgs.mArgs.push_back(ChildProcessType());
 
 #  ifdef MOZ_ENABLE_FORKSERVER
+  // Any unexpected fds given to the fork server could be leaked into
+  // child processes if they aren't closed properly; this assertion is
+  // a reminder to deal with that.
   MOZ_ASSERT(mProcessType != GeckoProcessType_ForkServer ||
-                 mChildArgs.mFiles.size() == 1,
-             "The ForkServer only expects a single FD argument");
+                 mChildArgs.mFiles.size() == 2,
+             "wrong number of FDs for the fork server");
 #  endif
 
 #  if !defined(MOZ_WIDGET_ANDROID)

@@ -9,6 +9,9 @@
 
 #include "base/basictypes.h"
 #include "base/process_util.h"
+#ifdef XP_UNIX
+#  include "mozilla/UniquePtrExtensions.h"
+#endif
 
 class ProcessWatcher {
  public:
@@ -27,6 +30,10 @@ class ProcessWatcher {
   //
   static void EnsureProcessTerminated(base::ProcessHandle process_handle,
                                       bool force = true);
+
+#ifdef XP_UNIX
+  static mozilla::UniqueFileHandle GetSignalPipe();
+#endif
 
  private:
   // Do not instantiate this class.

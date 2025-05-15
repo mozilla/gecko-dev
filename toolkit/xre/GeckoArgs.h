@@ -256,6 +256,11 @@ static CommandLineArg<UniqueFileHandle> sChrootClient{"-chrootClient",
                                                       "chrootclient"};
 #endif
 
+#ifdef MOZ_ENABLE_FORKSERVER
+static CommandLineArg<UniqueFileHandle> sSignalPipe{"-signalPipe",
+                                                    "signalpipe"};
+#endif
+
 #if defined(__GNUC__)
 #  pragma GCC diagnostic pop
 #endif

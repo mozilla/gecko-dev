@@ -7,3 +7,5 @@
 #include "chrome/common/process_watcher.h"
 
 void ProcessWatcher::EnsureProcessTerminated(base::ProcessHandle, bool) {}
+
+mozilla::UniqueFileHandle GetSignalPipe() { return {}; }
