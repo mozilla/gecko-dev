@@ -399,7 +399,8 @@ class KeymapWrapper {
   /**
    * Signal handlers.
    */
-  static void OnKeysChanged(GdkKeymap* aKeymap, KeymapWrapper* aKeymapWrapper);
+  static void OnKeysChanged(GdkKeymap* aGdkKeymap,
+                            KeymapWrapper* aKeymapWrapper);
   static void OnDirectionChanged(GdkKeymap* aGdkKeymap,
                                  KeymapWrapper* aKeymapWrapper);
 
