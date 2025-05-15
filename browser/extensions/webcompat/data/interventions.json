@@ -3457,6 +3457,21 @@
       }
     ]
   },
+  "1959117": {
+    "label": "cesupils.lv",
+    "bugs": {
+      "1959117": {
+        "issue": "page-fails-to-load",
+        "matches": ["*://cesupils.lv/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1959132": {
     "label": "www.samsung.com (columns fix)",
     "bugs": {
