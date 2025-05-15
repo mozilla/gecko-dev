@@ -1213,7 +1213,8 @@ nsresult nsCSPContext::SendReports(
   EnsureIPCPoliciesRead();
   NS_ENSURE_ARG_MAX(aViolatedPolicyIndex, mPolicies.Length() - 1);
 
-  if (ShouldThrottleReport(aViolationEventInit)) {
+  if (!StaticPrefs::security_csp_reporting_enabled() ||
+      ShouldThrottleReport(aViolationEventInit)) {
     return NS_OK;
   }
 
@@ -1228,7 +1229,7 @@ nsresult nsCSPContext::SendReports(
   nsTArray<nsString> reportURIs;
   mPolicies[aViolatedPolicyIndex]->getReportURIs(reportURIs);
 
-  //[Deprecated] CSP Level 2 Reporting
+  // [Deprecated] CSP Level 2 Reporting
   if (!reportURIs.IsEmpty()) {
     return SendReportsToURIs(reportURIs, aViolationEventInit);
   }

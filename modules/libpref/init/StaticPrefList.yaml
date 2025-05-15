@@ -16267,6 +16267,12 @@
   value: 2
   mirror: always
 
+# Enable/disable CSP reporting (report-uri and report-to)
+- name: security.csp.reporting.enabled
+  type: bool
+  value: true
+  mirror: always
+
 #ifdef DEBUG
 # Crash on CSP violations on internal pages (i.e. chrome:)
 - name: security.csp.testing.allow_internal_csp_violation
