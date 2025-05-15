@@ -93,6 +93,7 @@ const extraBrowserTestPaths = [
   "browser/base/content/test/gesture/",
   "browser/base/content/test/historySwipeAnimation/",
   "browser/base/content/test/keyboard/",
+  "browser/base/content/test/linkHandling/",
   "browser/base/content/test/menubar/",
   "browser/base/content/test/metaTags/",
   "browser/base/content/test/notificationbox/",

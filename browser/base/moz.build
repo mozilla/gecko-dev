@@ -33,6 +33,7 @@ BROWSER_CHROME_MANIFESTS += [
     "content/test/historySwipeAnimation/browser.toml",
     "content/test/keyboard/browser.toml",
     "content/test/keyboard/browserSidebarRevamp.toml",
+    "content/test/linkHandling/browser.toml",
     "content/test/menubar/browser.toml",
     "content/test/metaTags/browser.toml",
     "content/test/notificationbox/browser.toml",

@@ -1,0 +1,4 @@
+["browser_contentAreaClick_subframe_javascript.js"]
+support-files = [
+  "file_contentAreaClick_subframe_javascript.html"
+]
