@@ -3301,6 +3301,24 @@
       }
     ]
   },
+  "1954002": {
+    "label": "advancedmd.com",
+    "bugs": {
+      "1954002": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.advancedmd.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1898952-digits.t-mobile.com.js"]
+        },
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1956165": {
     "label": "m.youtube.com picture-in-picture fix",
     "bugs": {
