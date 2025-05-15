@@ -73,10 +73,7 @@ class GetEventStateName : public nsAutoCString {
     if (aState & GDK_MOD4_MASK) {
       AppendModifier("mod4");
     }
-    if (aState & GDK_MOD4_MASK) {
-      AppendModifier("mod5");
-    }
-    if (aState & GDK_MOD4_MASK) {
+    if (aState & GDK_MOD5_MASK) {
       AppendModifier("mod5");
     }
     switch (aIMContextID) {
