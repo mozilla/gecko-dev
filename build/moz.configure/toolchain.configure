@@ -338,7 +338,7 @@ with only_when(target_is_ios):
         "--enable-ios-target",
         env="IPHONEOS_DEPLOYMENT_TARGET",
         nargs=1,
-        default="17.4",
+        default="18.4",
         help="Set the minimum iOS version needed at runtime",
     )
 
@@ -365,7 +365,7 @@ with only_when(target_is_ios):
         return target.cpu == "x86_64" or target.raw_os == "ios-sim"
 
     def ios_sdk_min_version():
-        return "17.4"
+        return "18.4"
 
     @depends(target_is_ios_simulator)
     def ios_sdk_name(target_is_ios_simulator):
