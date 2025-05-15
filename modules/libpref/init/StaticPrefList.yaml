@@ -17810,6 +17810,11 @@
   value: 90000
   mirror: always
 
+# Whether to delay the CRC32 check of prefix files until the update.
+- name: urlclassifier.delay_prefixes_crc32_check
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
 #---------------------------------------------------------------------------
 # Prefs starting with "view_source."
 #---------------------------------------------------------------------------

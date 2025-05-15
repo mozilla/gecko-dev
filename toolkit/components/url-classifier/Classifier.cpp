@@ -1651,10 +1651,12 @@ nsresult Classifier::LoadHashStore(nsIFile* aDirectory, nsACString& aResult,
     HashStore store(table, GetProvider(table), mRootStoreDirectory);
 
     nsresult rv = store.Open();
-    if (NS_FAILED(rv) || !GetLookupCache(table)) {
+    RefPtr<LookupCache> cache = GetLookupCache(table);
+
+    if (NS_FAILED(rv) || !cache || !cache->MaybeVerifyCRC32()) {
       // TableRequest is called right before applying an update.
       // If we cannot retrieve metadata for a given table or we fail to
-      // load the prefixes for a table, reset the table to esnure we
+      // load the prefixes for a table, reset the table to ensure we
       // apply a full update to the table.
       LOG(("Failed to get metadata for v2 table %s", table.get()));
       aFailedTableNames.AppendElement(table);
@@ -1710,7 +1712,7 @@ nsresult Classifier::LoadMetadata(nsIFile* aDirectory, nsACString& aResult,
     RefPtr<LookupCache> c = GetLookupCache(table);
     RefPtr<LookupCacheV4> lookupCacheV4 = LookupCache::Cast<LookupCacheV4>(c);
 
-    if (!lookupCacheV4) {
+    if (!lookupCacheV4 || !lookupCacheV4->MaybeVerifyCRC32()) {
       aFailedTableNames.AppendElement(table);
       continue;
     }
