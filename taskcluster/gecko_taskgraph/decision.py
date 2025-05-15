@@ -2,14 +2,18 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-
-import json
 import logging
 import os
 import shutil
 import sys
 import time
 from collections import defaultdict
+
+try:
+    import orjson
+except ImportError:
+    orjson = None
+    import json
 
 import yaml
 from redo import retry
@@ -118,6 +122,20 @@ PER_PROJECT_PARAMETERS = {
         "target_tasks_method": "default",
     },
 }
+
+
+def load_json(fh):
+    if orjson is not None:
+        return orjson.loads(fh.read())
+    else:
+        return json.load(fh)
+
+
+def dump_json(fh, data):
+    if orjson is not None:
+        fh.write(orjson.dumps(data))
+    else:
+        fh.write(json.dumps(data, separators=(",", ": ")).encode("utf-8"))
 
 
 def full_task_graph_to_runnable_jobs(full_task_json):
@@ -459,8 +477,8 @@ def get_existing_tasks(rebuild_kinds, parameters, graph_config):
 def set_try_config(parameters, task_config_file):
     if os.path.isfile(task_config_file):
         logger.info(f"using try tasks from {task_config_file}")
-        with open(task_config_file) as fh:
-            task_config = json.load(fh)
+        with open(task_config_file, "rb") as fh:
+            task_config = load_json(fh)
         task_config_version = task_config.pop("version", 1)
         if task_config_version == 1:
             parameters["try_mode"] = "try_task_config"
@@ -507,13 +525,13 @@ def write_artifact(filename, data):
         with open(path, "w") as f:
             yaml.safe_dump(data, f, allow_unicode=True, default_flow_style=False)
     elif filename.endswith(".json"):
-        with open(path, "w") as f:
-            json.dump(data, f, separators=(",", ": "))
+        with open(path, "wb") as f:
+            dump_json(f, data)
     elif filename.endswith(".json.gz"):
         import gzip
 
         with gzip.open(path, "wb") as f:
-            f.write(json.dumps(data).encode("utf-8"))
+            dump_json(f, data)
     else:
         raise TypeError(f"Don't know how to write to {filename}")
 
@@ -523,13 +541,13 @@ def read_artifact(filename):
     if filename.endswith(".yml"):
         return load_yaml(path, filename)
     if filename.endswith(".json"):
-        with open(path) as f:
-            return json.load(f)
+        with open(path, "rb") as f:
+            return load_json(f)
     if filename.endswith(".json.gz"):
         import gzip
 
         with gzip.open(path, "rb") as f:
-            return json.load(f.decode("utf-8"))
+            return load_json(f)
     else:
         raise TypeError(f"Don't know how to read {filename}")
 
