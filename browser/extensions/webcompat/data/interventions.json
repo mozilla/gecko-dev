@@ -1741,6 +1741,23 @@
       }
     ]
   },
+  "1878024": {
+    "label": "g1.globo.com",
+    "bugs": {
+      "1878024": {
+        "issue": "broken-layout",
+        "matches": ["*://g1.globo.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "js": ["bug1878024-g1.globo.com-fix-account-icon.js"]
+        }
+      }
+    ]
+  },
   "1884779": {
     "label": "memurlar.net",
     "bugs": {
