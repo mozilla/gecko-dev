@@ -8,39 +8,28 @@ const emptyPage =
     "https://example.com"
   ) + "empty.html";
 
-function promiseObserverNotification() {
-  return TestUtils.topicObserved(
-    "user-characteristics-populating-data-done",
-    _ => {
-      var submitted = false;
-      GleanPings.userCharacteristics.testBeforeNextSubmit(_ => {
-        submitted = true;
-
-        // Did we assign a value we got out of about:fingerprintingprotection?
-        Assert.notEqual("", Glean.characteristics.canvasdata1.testGetValue());
-      });
-      GleanPings.userCharacteristics.submit();
-
-      return submitted;
-    }
-  );
-}
-
 add_task(async function run_test() {
   info("Starting test...");
 
-  await BrowserTestUtils.withNewTab(
-    { gBrowser, url: emptyPage },
-    async function tabTask(_) {
-      let promise = promiseObserverNotification();
-
-      Services.obs.notifyObservers(
-        null,
-        "user-characteristics-testing-please-populate-data"
-      );
-
-      let submitted = await promise;
-      Assert.ok(submitted);
-    }
+  await BrowserTestUtils.withNewTab({ gBrowser, url: emptyPage }, () =>
+    GleanPings.userCharacteristics.testSubmission(
+      () => {
+        // Did we assign a value we got out of about:fingerprintingprotection?
+        const value = Glean.characteristics.canvasdata1.testGetValue();
+        Assert.notEqual(value, "");
+      },
+      async () => {
+        const populated = TestUtils.topicObserved(
+          "user-characteristics-populating-data-done",
+          () => true
+        );
+        Services.obs.notifyObservers(
+          null,
+          "user-characteristics-testing-please-populate-data"
+        );
+        await populated;
+        GleanPings.userCharacteristics.submit();
+      }
+    )
   );
 });
