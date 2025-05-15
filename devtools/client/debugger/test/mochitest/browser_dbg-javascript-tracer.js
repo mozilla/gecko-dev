@@ -52,7 +52,7 @@ add_task(async function () {
   sourceLink.click();
   info("Wait for the main function to be highlighted in the debugger");
   await waitForSelectedSource(dbg, "simple1.js");
-  await waitForSelectedLocation(dbg, 1, 16);
+  await waitForSelectedLocation(dbg, 1, 17);
 
   // Trigger a click to verify we do trace DOM events
   BrowserTestUtils.synthesizeMouseAtCenter(
@@ -165,7 +165,7 @@ add_task(async function () {
 
   info("Wait for the 'logMessage' function to be highlighted in the debugger");
   await waitForSelectedSource(dbg, "main.js");
-  await waitForSelectedLocation(dbg, 4, 2);
+  await waitForSelectedLocation(dbg, 4, 3);
   ok(true, "The selected source and location is on the original file");
 
   await dbg.toolbox.closeToolbox();

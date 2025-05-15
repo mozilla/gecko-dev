@@ -38,7 +38,7 @@ add_task(async function testJumpToDefinition() {
   info("Click on the function to jump to its location");
   await clickElement(dbg, "previewPopupObjectFunctionJumpToDefinition");
 
-  await waitForSelectedLocation(dbg, 6, 12);
+  await waitForSelectedLocation(dbg, 6, 13);
 });
 
 add_task(async function testJumpToDefinitionInPrettyPrintedSource() {
@@ -62,7 +62,7 @@ add_task(async function testJumpToDefinitionInPrettyPrintedSource() {
   info("Click on the function to jump to its location");
   await clickElement(dbg, "previewPopupObjectFunctionJumpToDefinition");
 
-  await waitForSelectedLocation(dbg, 6, 10);
+  await waitForSelectedLocation(dbg, 6, 11);
 });
 
 add_task(async function testJumpToDefinitionOfObjectProperty() {
@@ -80,5 +80,5 @@ add_task(async function testJumpToDefinitionOfObjectProperty() {
   info("Click on the function to jump to its location");
   await clickElement(dbg, "previewPopupObjectFunctionJumpToDefinition");
 
-  await waitForSelectedLocation(dbg, 6, 12);
+  await waitForSelectedLocation(dbg, 6, 13);
 });

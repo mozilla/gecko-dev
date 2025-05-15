@@ -59,7 +59,7 @@ add_task(async function () {
   EventUtils.synthesizeMouse(traces[1], 0, 0, {}, dbg.win);
 
   info("Wait for the trace location to be selected");
-  await waitForSelectedLocation(dbg, 0, 69);
+  await waitForSelectedLocation(dbg, 1, 70);
 
   const focusedTrace = tracerTree.querySelector(
     ".tree-node.focused .trace-line"

@@ -35,7 +35,7 @@ add_task(async function () {
   await dispatched;
   await waitForRequestsToSettle(dbg);
   await waitForSelectedSource(dbg, "simple1.js");
-  await waitForSelectedLocation(dbg, 4, 18);
+  await waitForSelectedLocation(dbg, 4, 19);
 
   pausedLocation = findElementWithSelector(dbg, ".paused-location");
   ok(

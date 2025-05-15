@@ -175,7 +175,7 @@ add_task(async function () {
     }
   );
   await waitForPaused(dbg);
-  await waitForSelectedLocation(dbg, 1, 0);
+  await waitForSelectedLocation(dbg, 1, 1);
 
   focusedPausedFrame = findElementWithSelector(dbg, ".frames .frame.selected");
   ok(
@@ -189,7 +189,7 @@ add_task(async function () {
   info("Re select the tracer frame while being paused");
   EventUtils.synthesizeMouseAtCenter(traces[1], {}, dbg.win);
 
-  await waitForSelectedLocation(dbg, 1, 12);
+  await waitForSelectedLocation(dbg, 1, 13);
   focusedPausedFrame = findElementWithSelector(dbg, ".frames .frame.selected");
   ok(
     !focusedPausedFrame,

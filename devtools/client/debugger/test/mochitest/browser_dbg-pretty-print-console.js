@@ -24,7 +24,7 @@ add_task(async function () {
   info("Click on the link to open the debugger");
   minifiedLink.click();
   await waitForSelectedSource(dbg, "math.min.js");
-  await waitForSelectedLocation(dbg, 4);
+  await waitForSelectedLocation(dbg, 4, 74);
 
   info("Click on pretty print button and wait for the file to be formatted");
   clickElement(dbg, "prettyPrintButton");
@@ -43,7 +43,7 @@ add_task(async function () {
   );
   formattedLink.click();
   await selectSource(dbg, "math.min.js:formatted");
-  await waitForSelectedLocation(dbg, 31);
+  await waitForSelectedLocation(dbg, 31, 24);
 });
 
 async function waitForConsoleLink(dbg, messageText, linkText) {

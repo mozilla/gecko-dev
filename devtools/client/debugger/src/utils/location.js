@@ -27,10 +27,28 @@ export function createLocation({
     sourceActor,
     sourceActorId: sourceActor?.id,
 
-    // `line` and `column` are 1-based.
+    // # Quick overview of 1-based versus 0-based lines and columns #
+    //
+    // In the Debugger frontend, we use these location objects to refer to a precise line and column.
+    // Locations objects use 1-based `line` and 0-based `column`.
+    //
+    // In the frontend, the Source Map library, as well as CodeMirror 6, both match the location objects convention
+    // and use 1-based for lines and 0-based for columns.
+    // CodeMirror 5 uses 0-based lines and 0-based columns.
+    //
+    // This also matches RDP conventions.
+    // Breakpoints sent to the RDP server and breakable positions fetched from the RDP server
+    // are using 1-based lines and 0-based columns.
+    //
+    // But within the RDP server, there is a mapping between RDP packets and Spidermonkey
+    // as Spidermonkey use 1-based lines **and** columns.
     // This data is mostly coming from and driven by
     // JSScript::lineno and JSScript::column
-    // https://searchfox.org/mozilla-central/rev/90dce6b0223b4dc17bb10f1125b44f70951585f9/js/src/vm/JSScript.h#1545-1548
+    // https://searchfox.org/mozilla-central/rev/4c065f1df299065c305fb48b36cdae571a43d97c/js/src/vm/JSScript.h#1567-1570
+    //
+    // Spidermonkey also matches the lines and columns mentioned in tests to assert the (selected) locations.
+    // We are using human readeable numbers and both lines and columns are 1-based.
+    // This actually matches the numbers displayed in the UI to the user as we always display 1-based numbers.
     line,
     column,
   };

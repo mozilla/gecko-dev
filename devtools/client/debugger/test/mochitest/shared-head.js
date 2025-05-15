@@ -207,8 +207,10 @@ function waitForSelectedLocation(dbg, line, column) {
     const location = dbg.selectors.getSelectedLocation();
     return (
       location &&
-      (line ? location.line == line : true) &&
-      (column ? location.column == column : true)
+      location.line == line &&
+      // location's column is 0-based, while all line and columns mentioned in tests
+      // are 1-based.
+      (typeof column == "number" ? location.column + 1 == column : true)
     );
   });
 }
