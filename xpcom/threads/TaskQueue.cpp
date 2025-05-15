@@ -82,8 +82,13 @@ TaskQueue::~TaskQueue() {
 
 NS_IMPL_ADDREF_INHERITED(TaskQueue, SupportsThreadSafeWeakPtr<TaskQueue>)
 NS_IMPL_RELEASE_INHERITED(TaskQueue, SupportsThreadSafeWeakPtr<TaskQueue>)
-NS_IMPL_QUERY_INTERFACE(TaskQueue, nsIDirectTaskDispatcher,
-                        nsISerialEventTarget, nsIEventTarget)
+
+NS_INTERFACE_MAP_BEGIN(TaskQueue)
+  NS_INTERFACE_MAP_ENTRY(nsIDirectTaskDispatcher)
+  NS_INTERFACE_MAP_ENTRY(nsISerialEventTarget)
+  NS_INTERFACE_MAP_ENTRY(nsIEventTarget)
+  NS_INTERFACE_MAP_ENTRY_CONCRETE(TaskQueue)
+NS_INTERFACE_MAP_END
 
 TaskDispatcher& TaskQueue::TailDispatcher() {
   MOZ_ASSERT(IsCurrentThreadIn());

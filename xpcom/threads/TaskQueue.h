@@ -18,6 +18,9 @@
 #include "nsIDirectTaskDispatcher.h"
 #include "nsThreadUtils.h"
 
+#define MOZILLA_TASKQUEUE_IID \
+  {0xb5181e3a, 0x39cf, 0x4d32, {0x81, 0x4a, 0xea, 0x86, 0x94, 0x16, 0x95, 0xd1}}
+
 namespace mozilla {
 
 typedef MozPromise<bool, bool, false> ShutdownPromise;
@@ -58,6 +61,7 @@ class TaskQueue final : public AbstractThread,
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDIRECTTASKDISPATCHER
   MOZ_DECLARE_REFCOUNTED_TYPENAME(TaskQueue)
+  NS_INLINE_DECL_STATIC_IID(MOZILLA_TASKQUEUE_IID)
 
   static RefPtr<TaskQueue> Create(already_AddRefed<nsIEventTarget> aTarget,
                                   const char* aName,
