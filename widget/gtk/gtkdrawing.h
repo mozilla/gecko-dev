@@ -152,8 +152,6 @@ enum WidgetNodeType : int {
   MOZ_GTK_TABPANELS,
   /* Paints the expander and border of a GtkTreeView */
   MOZ_GTK_TREEVIEW,
-  /* Paints the border of a GtkTreeView */
-  MOZ_GTK_TREEVIEW_VIEW,
   /* Paints treeheader cells */
   MOZ_GTK_TREE_HEADER_CELL,
   /* Paints the background of menus, context menus. */

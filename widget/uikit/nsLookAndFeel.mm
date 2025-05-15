@@ -186,10 +186,6 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aColorScheme,
       // For inactive list selection
       aResult = NS_RGB(0xaa, 0xaa, 0xaa);
       break;
-    case ColorID::MozEventreerow:
-      // Background color of even list rows.
-      aResult = NS_RGB(0xff, 0xff, 0xff);
-      break;
     case ColorID::MozOddtreerow:
       // Background color of odd list rows.
       aResult = NS_TRANSPARENT;

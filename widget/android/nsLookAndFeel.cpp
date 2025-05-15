@@ -223,7 +223,6 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aColorScheme,
     case ColorID::Field:
     case ColorID::Threedhighlight:
     case ColorID::MozCombobox:
-    case ColorID::MozEventreerow:
       aColor = NS_RGB(0xff, 0xff, 0xff);
       break;
 

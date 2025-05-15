@@ -270,9 +270,8 @@ pub enum SystemColor {
     /// Used for menubar item text when hovered.
     MozMenubarhovertext,
 
-    /// On platforms where these colors are the same as -moz-field, use
-    /// -moz-fieldtext as foreground color
-    MozEventreerow,
+    /// On platforms where this color is the same as field, or transparent, use fieldtext as
+    /// foreground color.
     MozOddtreerow,
 
     /// Used for button text when pressed.

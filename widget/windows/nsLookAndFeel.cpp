@@ -402,7 +402,6 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
     case ColorID::Fieldtext:
       idx = mHighContrastOn ? COLOR_BTNTEXT : COLOR_WINDOWTEXT;
       break;
-    case ColorID::MozEventreerow:
     case ColorID::MozOddtreerow:
     case ColorID::MozSidebar:
     case ColorID::MozCombobox:
