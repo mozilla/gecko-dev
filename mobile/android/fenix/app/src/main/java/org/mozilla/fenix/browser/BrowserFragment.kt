@@ -153,8 +153,8 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     }
 
     private fun initSharePageAction(context: Context) {
-        // Only adding share page action if tab strip is enabled
-        if (context.isTabStripEnabled()) {
+        // Only adding share page action if tab strip is disabled.
+        if (!context.isTabStripEnabled()) {
             val sharePageAction = BrowserToolbar.createShareBrowserAction(
                 context = context,
             ) {
