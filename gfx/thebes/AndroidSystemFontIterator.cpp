@@ -8,7 +8,7 @@
 #include "mozilla/Assertions.h"
 #include "nsDebug.h"
 
-#include <dlfcn.h>
+#include <android/system_fonts.h>
 
 namespace mozilla {
 
@@ -36,25 +36,14 @@ AndroidSystemFontIterator::~AndroidSystemFontIterator() {
 
 bool AndroidSystemFontIterator::Init() {
   if (!sSystemFontIterator_open) {
-    void* handle = dlopen("libandroid.so", RTLD_LAZY | RTLD_LOCAL);
-    MOZ_ASSERT(handle);
-
-    sSystemFontIterator_open =
-        (_ASystemFontIterator_open)dlsym(handle, "ASystemFontIterator_open");
-    sSystemFontIterator_next =
-        (_ASystemFontIterator_next)dlsym(handle, "ASystemFontIterator_next");
-    sSystemFontIterator_close =
-        (_ASystemFontIterator_close)dlsym(handle, "ASystemFontIterator_close");
-    AndroidFont::sFont_getFontFilePath =
-        (_AFont_getFontFilePath)dlsym(handle, "AFont_getFontFilePath");
-    AndroidFont::sFont_close = (_AFont_close)dlsym(handle, "AFont_close");
-
-    if (NS_WARN_IF(!sSystemFontIterator_open) ||
-        NS_WARN_IF(!sSystemFontIterator_next) ||
-        NS_WARN_IF(!sSystemFontIterator_close) ||
-        NS_WARN_IF(!AndroidFont::sFont_getFontFilePath) ||
-        NS_WARN_IF(!AndroidFont::sFont_close)) {
-      sSystemFontIterator_open = nullptr;
+    if (__builtin_available(android 29, *)) {
+      sSystemFontIterator_open = ASystemFontIterator_open;
+      sSystemFontIterator_next = ASystemFontIterator_next;
+      sSystemFontIterator_close = ASystemFontIterator_close;
+      AndroidFont::sFont_getFontFilePath = AFont_getFontFilePath;
+      AndroidFont::sFont_close = AFont_close;
+    } else {
+      NS_WARN_IF(false);
       return false;
     }
   }
@@ -73,7 +62,7 @@ Maybe<AndroidFont> AndroidSystemFontIterator::Next() {
     return Nothing();
   }
 
-  void* font = sSystemFontIterator_next(mIterator);
+  AFont* font = sSystemFontIterator_next(mIterator);
   if (!font) {
     sSystemFontIterator_close(mIterator);
     mIterator = nullptr;
