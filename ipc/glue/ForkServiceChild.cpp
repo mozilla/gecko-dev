@@ -107,8 +107,6 @@ Result<Ok, LaunchError> ForkServiceChild::SendForkNewSubprocess(
   MOZ_ASSERT(!aOptions.wait);
   MOZ_ASSERT(aOptions.fds_to_remap.size() == aArgs.mFiles.size());
 
-  mRecvPid = -1;
-
   UniqueFileHandle execParent;
   {
     UniqueFileHandle execChild;
@@ -153,25 +151,20 @@ Result<Ok, LaunchError> ForkServiceChild::SendForkNewSubprocess(
     OnError();
     return Err(LaunchError("FSC::SFNS::Recv"));
   }
-  OnMessageReceived(std::move(reply));
 
-  MOZ_ASSERT(mRecvPid != -1);
-  *aPid = mRecvPid;
-  return Ok();
-}
-
-void ForkServiceChild::OnMessageReceived(UniquePtr<IPC::Message> message) {
-  if (message->type() != Reply_ForkNewSubprocess__ID) {
+  if (reply->type() != Reply_ForkNewSubprocess__ID) {
     MOZ_LOG(gForkServiceLog, LogLevel::Verbose,
-            ("unknown reply type %d", message->type()));
-    return;
+            ("unknown reply type %d", reply->type()));
+    return Err(LaunchError("FSC::SFNS::Type"));
   }
-  IPC::MessageReader reader(*message);
+  IPC::MessageReader reader(*reply);
 
-  if (!ReadIPDLParam(&reader, nullptr, &mRecvPid)) {
+  if (!ReadIPDLParam(&reader, nullptr, aPid)) {
     MOZ_CRASH("Error deserializing 'pid_t'");
   }
   reader.EndRead();
+
+  return Ok();
 }
 
 void ForkServiceChild::OnError() {
