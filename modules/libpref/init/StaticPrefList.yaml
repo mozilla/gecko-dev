@@ -13973,6 +13973,13 @@
   value: 20000
   mirror: always
 
+# When resolving a native HTTPS query with native APIs
+# the MacOS implementation has a max timeout
+- name: network.dns.native_https_timeout_mac
+  type: RelaxedAtomicInt32
+  value: 5000
+  mirror: always
+
 # When this pref is true, we copy the host name to a fresh string before
 # calling into getaddrinfo.
 - name: network.dns.copy_string_before_call
