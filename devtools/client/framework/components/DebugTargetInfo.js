@@ -369,13 +369,13 @@ class DebugTargetInfo extends PureComponent {
           className: "qa-back-button",
           icon: "chrome://browser/skin/back.svg",
           l10nId: "toolbox.debugTargetInfo.back",
-          onClick: () => this.props.toolbox.target.goBack(),
+          onClick: () => this.props.toolbox.commands.targetCommand.goBack(),
         }),
         this.renderNavigationButton({
           className: "qa-forward-button",
           icon: "chrome://browser/skin/forward.svg",
           l10nId: "toolbox.debugTargetInfo.forward",
-          onClick: () => this.props.toolbox.target.goForward(),
+          onClick: () => this.props.toolbox.commands.targetCommand.goForward(),
         })
       );
     }

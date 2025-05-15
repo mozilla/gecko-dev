@@ -79,7 +79,7 @@ class TabDescriptorActor extends Actor {
         watcher: true,
         supportsReloadDescriptor: true,
         // Tab descriptor is the only one to support navigation
-        supportsNavigateTo: true,
+        supportsNavigation: true,
       },
       url: this._getUrl(),
     };
@@ -302,6 +302,22 @@ class TabDescriptorActor extends Actor {
       listener,
       Ci.nsIWebProgress.NOTIFY_STATE_WINDOW
     );
+  }
+
+  goBack() {
+    if (!this._browser || !this._browser.browsingContext) {
+      throw new Error("Tab is destroyed");
+    }
+
+    this._browser.browsingContext.goBack();
+  }
+
+  goForward() {
+    if (!this._browser || !this._browser.browsingContext) {
+      throw new Error("Tab is destroyed");
+    }
+
+    this._browser.browsingContext.goForward();
   }
 
   reloadDescriptor({ bypassCache }) {

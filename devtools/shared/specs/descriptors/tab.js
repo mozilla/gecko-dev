@@ -41,6 +41,16 @@ const tabDescriptorSpec = generateActorSpec({
       },
       response: {},
     },
+    // Added in Firefox 140
+    goBack: {
+      request: {},
+      response: {},
+    },
+    // Added in Firefox 140
+    goForward: {
+      request: {},
+      response: {},
+    },
     reloadDescriptor: {
       request: {
         bypassCache: Option(0, "boolean"),

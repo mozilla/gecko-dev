@@ -1101,7 +1101,7 @@ class TargetCommand extends EventEmitter {
    *        and if waitForLoad is true, resolved only once the target url is fully loaded.
    */
   navigateTo(url, waitForLoad = true) {
-    if (this.descriptorFront.traits.supportsNavigateTo) {
+    if (this.descriptorFront.traits.supportsNavigation) {
       return this.descriptorFront.navigateTo(url, waitForLoad);
     }
 
@@ -1109,9 +1109,37 @@ class TargetCommand extends EventEmitter {
     // Also, this method should only be used by about:debugging's remote toolboxes
     // when debugging tabs.
     //
-    // Once we only support Firefox 140, we can start throwing when supportsNavigateTo traits
+    // Once we only support Firefox 140, we can start throwing when supportsNavigation traits
     // doesn't exists and only support the descriptor's codepath.
     return this.targetFront.navigateTo({ url });
+  }
+
+  goBack() {
+    if (this.descriptorFront.traits.supportsNavigation) {
+      return this.descriptorFront.goBack();
+    }
+
+    // @backward-compat { version 140 } Tab descriptor started supporting `goBack`.
+    // Also, this method should only be used by about:debugging's remote toolboxes
+    // when debugging tabs.
+    //
+    // Once we only support Firefox 140, we can start throwing when supportsNavigation traits
+    // doesn't exists and only support the descriptor's codepath.
+    return this.targetFront.goBack();
+  }
+
+  goForward() {
+    if (this.descriptorFront.traits.supportsNavigation) {
+      return this.descriptorFront.goForward();
+    }
+
+    // @backward-compat { version 140 } Tab descriptor started supporting `goBack`.
+    // Also, this method should only be used by about:debugging's remote toolboxes
+    // when debugging tabs.
+    //
+    // Once we only support Firefox 140, we can start throwing when supportsNavigation traits
+    // doesn't exists and only support the descriptor's codepath.
+    return this.targetFront.goForward();
   }
 
   /**
