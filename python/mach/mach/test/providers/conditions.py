@@ -14,19 +14,19 @@ def is_false(cls):
 
 
 @Command("cmd_condition_true", category="testing", conditions=[is_true])
-def run_condition_true(self, command_context):
+def run_condition_true(command_context):
     pass
 
 
 @Command("cmd_condition_false", category="testing", conditions=[is_false])
-def run_condition_false(self, command_context):
+def run_condition_false(command_context):
     pass
 
 
 @Command(
     "cmd_condition_true_and_false", category="testing", conditions=[is_true, is_false]
 )
-def run_condition_true_and_false(self, command_context):
+def run_condition_true_and_false(command_context):
     pass
 
 
@@ -41,15 +41,15 @@ def is_ctx_bar(cls):
 
 
 @Command("cmd_foo_ctx", category="testing", conditions=[is_ctx_foo])
-def run_foo_ctx(self, command_context):
+def run_foo_ctx(command_context):
     pass
 
 
 @Command("cmd_bar_ctx", category="testing", conditions=[is_ctx_bar])
-def run_bar_ctx(self, command_context):
+def run_bar_ctx(command_context):
     pass
 
 
 @Command("cmd_foobar_ctx", category="testing", conditions=[is_ctx_foo, is_ctx_bar])
-def run_foobar_ctx(self, command_context):
+def run_foobar_ctx(command_context):
     pass

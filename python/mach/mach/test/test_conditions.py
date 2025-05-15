@@ -56,23 +56,24 @@ class TestConditions(TestBase):
         """Test that commands which do not pass all their conditions
         print the proper failure message."""
 
-        def is_bar():
+        def is_ctx_bar():
             """Bar must be true"""
 
-        fail_conditions = [is_bar]
+        def is_false():
+            False
 
         for name in ("cmd_condition_false", "cmd_condition_true_and_false"):
             result, stdout, stderr = self._run([name])
             self.assertEqual(1, result)
 
-            fail_msg = Registrar._condition_failed_message(name, fail_conditions)
+            fail_msg = Registrar._condition_failed_message(name, [is_false])
             self.assertEqual(fail_msg.rstrip(), stdout.rstrip())
 
         for name in ("cmd_bar_ctx", "cmd_foobar_ctx"):
             result, stdout, stderr = self._run([name], _populate_context)
             self.assertEqual(1, result)
 
-            fail_msg = Registrar._condition_failed_message(name, fail_conditions)
+            fail_msg = Registrar._condition_failed_message(name, [is_ctx_bar])
             self.assertEqual(fail_msg.rstrip(), stdout.rstrip())
 
     def test_invalid_type(self):

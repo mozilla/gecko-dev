@@ -4,7 +4,6 @@ subsuite = "mach"
 ["test_commands.py"]
 
 ["test_conditions.py"]
-skip-if = ["true"]
 
 ["test_config.py"]
 
@@ -17,7 +16,6 @@ skip-if = ["true"]
 ["test_entry_point.py"]
 
 ["test_error_output.py"]
-skip-if = ["true"]
 
 ["test_logger.py"]
 
@@ -26,6 +24,7 @@ skip-if = ["true"]
 ["test_site.py"]
 
 ["test_site_activation.py"]
+skip-if = ["automation == false"]
 
 ["test_site_compatibility.py"]
 # The Windows and Mac workers only use the internal PyPI mirror,
@@ -33,4 +32,5 @@ skip-if = ["true"]
 skip-if = [
   "os == 'win'",
   "os == 'mac'",
+  "automation == false",
 ]
