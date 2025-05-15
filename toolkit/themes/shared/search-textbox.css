@@ -82,6 +82,8 @@ input {
 
 .textbox-search-clear {
   list-style-image: url(resource://content-accessible/close-12.svg);
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 .textbox-search-icon:not([disabled]) {
