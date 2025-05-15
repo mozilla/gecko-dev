@@ -18,6 +18,7 @@
 #include "gfxUtils.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/SVGImageContext.h"
+#include "nsPresContext.h"
 
 #include "mozilla/gfx/2D.h"
 
@@ -212,8 +213,8 @@ ClippedImage::GetIntrinsicSizeInAppUnits(nsSize* aSize) {
     return InnerImage()->GetIntrinsicSizeInAppUnits(aSize);
   }
 
-  // XXXdholbert This probably needs to be scaled; see bug 1965106.
-  *aSize = nsSize(mClip.Width(), mClip.Height());
+  *aSize = nsSize(nsPresContext::CSSPixelsToAppUnits(mClip.Width()),
+                  nsPresContext::CSSPixelsToAppUnits(mClip.Height()));
   return NS_OK;
 }
 
