@@ -20,6 +20,18 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN the SelectAll action is received, all bookmark items are selected`() {
+        val bookmark1 = generateBookmark(1)
+        val bookmark2 = generateBookmark(2)
+        val bookmark3 = generateBookmark(3)
+        val items = listOf(bookmark1, bookmark2, bookmark3)
+
+        val result = bookmarksReducer(state = BookmarksState.default.copy(bookmarkItems = items), action = BookmarksListMenuAction.SelectAll)
+
+        assertEquals(result.bookmarkItems, result.selectedItems)
+    }
+
+    @Test
     fun `WHEN bookmarks are loaded THEN they are added to state with their parent folder data`() {
         val state = BookmarksState.default
         val items = List(5) {

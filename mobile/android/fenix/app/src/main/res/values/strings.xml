@@ -1487,6 +1487,8 @@
     <string name="bookmark_menu_copy_button">Copy</string>
     <!-- Bookmark overflow menu share button -->
     <string name="bookmark_menu_share_button">Share</string>
+    <!-- Bookmark overflow menu select all bookmarks -->
+    <string name="bookmark_menu_select_all_bookmarks">Select all</string>
     <!-- Bookmark overflow menu open in new tab button -->
     <string name="bookmark_menu_open_in_new_tab_button">Open in new tab</string>
     <!-- Bookmark overflow menu open in private tab button -->

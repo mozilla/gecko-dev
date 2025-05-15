@@ -317,6 +317,7 @@ private fun BookmarksState.handleListMenuAction(action: BookmarksListMenuAction)
                 destination = currentFolder.guid,
             ),
         )
+        is BookmarksListMenuAction.SelectAll -> copy(selectedItems = bookmarkItems)
         is BookmarksListMenuAction.SortMenu -> handleSortMenuAction(action)
         else -> this
     }.let { updatedState ->
