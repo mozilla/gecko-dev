@@ -582,7 +582,6 @@ internal class BookmarksMiddleware(
             is BookmarksListMenuAction.SortMenu -> scope.launch {
                 saveBookmarkSortOrder(store.state.sortOrder)
             }
-            is BookmarksListMenuAction.SelectAll -> store.tryDispatchReceivedRecursiveCountUpdate()
             is BookmarksListMenuAction.MultiSelect.DeleteClicked,
             is BookmarksListMenuAction.Folder.DeleteClicked,
             is BookmarksListMenuAction.Bookmark.DeleteClicked,

@@ -124,7 +124,6 @@ internal class BookmarksTelemetryMiddleware : Middleware<BookmarksState, Bookmar
             BookmarksListMenuAction.MultiSelect.DeleteClicked,
             BookmarksListMenuAction.MultiSelect.EditClicked,
             BookmarksListMenuAction.MultiSelect.MoveClicked,
-            BookmarksListMenuAction.SelectAll,
             is BookmarksLoaded,
             EditBookmarkAction.DeleteClicked,
             is EditBookmarkClicked,
