@@ -2205,7 +2205,6 @@ class Document : public nsINode,
   }
   bool IsXMLDocument() const { return !IsHTMLDocument(); }
   bool IsSVGDocument() const { return mType == eSVG; }
-  bool IsUnstyledDocument() { return IsLoadedAsData(); }
   bool LoadsFullXULStyleSheetUpFront() {
     if (IsSVGDocument()) {
       return false;
