@@ -271,3 +271,22 @@ MOZ_EXPORT int xkb_keymap_key_repeats(struct xkb_keymap* keymap,
                                       xkb_keycode_t kc) {
   return 0;
 }
+
+MOZ_EXPORT struct xkb_state* xkb_state_new(struct xkb_keymap* keymap) {
+  return NULL;
+}
+
+MOZ_EXPORT void xkb_state_unref(struct xkb_state* state) {}
+
+MOZ_EXPORT enum xkb_state_component xkb_state_update_mask(
+    struct xkb_state* state, xkb_mod_mask_t depressed_mods,
+    xkb_mod_mask_t latched_mods, xkb_mod_mask_t locked_mods,
+    xkb_layout_index_t depressed_layout, xkb_layout_index_t latched_layout,
+    xkb_layout_index_t locked_layout) {
+  return 0;
+}
+
+MOZ_EXPORT xkb_mod_mask_t xkb_state_serialize_mods(
+    struct xkb_state* state, enum xkb_state_component components) {
+  return 0;
+}
