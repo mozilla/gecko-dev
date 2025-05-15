@@ -14,6 +14,8 @@ support-files = [
 
 ["browser_menu_and_alerts.js"]
 
+["browser_tab_name_change.js"]
+
 ["browser_test_A11yUtils_announce.js"]
 
 ["browser_test_caret_move_granularity.js"]
