@@ -3567,6 +3567,23 @@
       }
     ]
   },
+  "1962353": {
+    "label": "cartlow.com",
+    "bugs": {
+      "1962353": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://www.cartlow.com/uae/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1962353-cartlow.com-fix-product-filters.js"]
+        }
+      }
+    ]
+  },
   "1962642": {
     "label": "hoanghamobile.com",
     "bugs": {
