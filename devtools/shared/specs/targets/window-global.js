@@ -76,6 +76,9 @@ const windowGlobalTargetSpecPrototype = {
       },
       response: {},
     },
+    // @backward-compat { legacy }
+    //                  navigateTo is preserved for third party tools. See Bug 1717837.
+    //                  DevTools should use Descriptor::navigateTo instead.
     navigateTo: {
       request: {
         url: Option(0, "string"),

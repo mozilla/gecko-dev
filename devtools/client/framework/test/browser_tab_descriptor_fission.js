@@ -34,7 +34,7 @@ add_task(async function () {
     "The toolbox target is also the target associated with the tab descriptor"
   );
 
-  await navigateTo(EXAMPLE_ORG_URI);
+  await tabDescriptor.navigateTo(EXAMPLE_ORG_URI, true);
 
   info("Call list tabs again to update the tab descriptor forms");
   await client.mainRoot.listTabs();

@@ -1091,6 +1091,30 @@ class TargetCommand extends EventEmitter {
   }
 
   /**
+   * Navigate the top level document to a new URL.
+   *
+   * @param {String} url
+   * @param {Boolean} waitForLoad
+   *        Default to true and wait for the document to be fully loaded before resolving.
+   * @return Promise
+   *        Promise resolved once the navigation has been proceeded by the remote runtime,
+   *        and if waitForLoad is true, resolved only once the target url is fully loaded.
+   */
+  navigateTo(url, waitForLoad = true) {
+    if (this.descriptorFront.traits.supportsNavigateTo) {
+      return this.descriptorFront.navigateTo(url, waitForLoad);
+    }
+
+    // @backward-compat { version 140 } Tab descriptor started supporting `navigateTo`.
+    // Also, this method should only be used by about:debugging's remote toolboxes
+    // when debugging tabs.
+    //
+    // Once we only support Firefox 140, we can start throwing when supportsNavigateTo traits
+    // doesn't exists and only support the descriptor's codepath.
+    return this.targetFront.navigateTo({ url });
+  }
+
+  /**
    * Called when the top level target is replaced by a new one.
    * Typically when we navigate to another domain which requires to be loaded in a distinct process.
    *

@@ -78,6 +78,8 @@ class TabDescriptorActor extends Actor {
         // Supports the Watcher actor. Can be removed as part of Bug 1680280.
         watcher: true,
         supportsReloadDescriptor: true,
+        // Tab descriptor is the only one to support navigation
+        supportsNavigateTo: true,
       },
       url: this._getUrl(),
     };
@@ -236,6 +238,70 @@ class TabDescriptorActor extends Actor {
     const tabbrowser = this._tabbrowser;
     const tab = tabbrowser ? tabbrowser.getTabForBrowser(this._browser) : null;
     return tab?.hasAttribute && tab.hasAttribute("pending");
+  }
+
+  /**
+   * Navigate this tab to a new URL.
+   *
+   * @param {String} url
+   * @param {Boolean} waitForLoad
+   * @return {Promise}
+   *         A promise which resolves only once the requested URL is fully loaded.
+   */
+  async navigateTo(url, waitForLoad = true) {
+    if (!this._browser || !this._browser.browsingContext) {
+      throw new Error("Tab is destroyed");
+    }
+
+    let validURL;
+    try {
+      validURL = Services.io.newURI(url);
+    } catch (e) {
+      throw new Error("Error: Cannot navigate to invalid URL: " + url);
+    }
+
+    // Setup a nsIWebProgressListener in order to be able to know when the
+    // new document is done loading.
+    const deferred = Promise.withResolvers();
+    const listener = {
+      onStateChange(webProgress, request, stateFlags) {
+        if (
+          webProgress.isTopLevel &&
+          stateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW &&
+          stateFlags &
+            // Either wait for the start or the end of the document load
+            (waitForLoad
+              ? Ci.nsIWebProgressListener.STATE_STOP
+              : Ci.nsIWebProgressListener.STATE_START)
+        ) {
+          const loadedURL = request.QueryInterface(Ci.nsIChannel).originalURI
+            .spec;
+          if (loadedURL === validURL.spec) {
+            deferred.resolve();
+          }
+        }
+      },
+
+      QueryInterface: ChromeUtils.generateQI([
+        "nsIWebProgressListener",
+        "nsISupportsWeakReference",
+      ]),
+    };
+    this._browser.addProgressListener(
+      listener,
+      Ci.nsIWebProgress.NOTIFY_STATE_WINDOW
+    );
+
+    this._browser.browsingContext.loadURI(validURL, {
+      triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+    });
+
+    await deferred.promise;
+
+    this._browser.removeProgressListener(
+      listener,
+      Ci.nsIWebProgress.NOTIFY_STATE_WINDOW
+    );
   }
 
   reloadDescriptor({ bypassCache }) {

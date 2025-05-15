@@ -6,6 +6,7 @@
 const {
   generateActorSpec,
   Option,
+  Arg,
   RetVal,
 } = require("resource://devtools/shared/protocol.js");
 
@@ -31,6 +32,14 @@ const tabDescriptorSpec = generateActorSpec({
         isPopupDebuggingEnabled: Option(0, "boolean"),
       },
       response: RetVal("watcher"),
+    },
+    // Added in Firefox 140
+    navigateTo: {
+      request: {
+        url: Arg(0, "string"),
+        waitForLoad: Arg(1, "boolean"),
+      },
+      response: {},
     },
     reloadDescriptor: {
       request: {

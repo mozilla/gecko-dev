@@ -184,7 +184,7 @@ class DebugTargetInfo extends PureComponent {
       console.error(ex);
     }
 
-    this.props.toolbox.target.navigateTo({ url });
+    this.props.toolbox.commands.targetCommand.navigateTo(url);
   }
 
   shallRenderConnection() {
