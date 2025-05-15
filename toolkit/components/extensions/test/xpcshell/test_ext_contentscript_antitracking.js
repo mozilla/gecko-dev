@@ -23,6 +23,12 @@ server.registerPathHandler("/dummy", (request, response) => {
   );
 });
 
+server.registerPathHandler("/iframe", (request, response) => {
+  response.setStatusLine(request.httpVersion, 200, "OK");
+  response.setHeader("Content-Type", "text/html", false);
+  response.write("<!DOCTYPE html><html><h1>iframe</h1></html>");
+});
+
 // Small red image.
 const IMG_BYTES = atob(
   "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12" +
@@ -77,15 +83,22 @@ async function runTest(pref) {
 
   let extensionData = {
     manifest: {
-      host_permissions: ["http://example.com/"],
+      host_permissions: ["http://example.com/", "http://example.org/"],
 
       content_scripts: [
         {
-          matches: ["http://example.com/dummy"],
+          matches: ["http://example.com/*", "http://example.org/*"],
           run_at: "document_end",
           js: ["contentscript.js"],
         },
         {
+          all_frames: true,
+          matches: ["http://example.com/*", "http://example.org/*"],
+          run_at: "document_end",
+          js: ["contentscript_iframe.js"],
+        },
+        {
+          all_frames: true,
           matches: ["http://example.com/dummy"],
           run_at: "document_start",
           css: ["content.css"],
@@ -120,6 +133,34 @@ async function runTest(pref) {
 
         browser.test.sendMessage("images_loaded");
       },
+      "contentscript_iframe.js": async () => {
+        if (top === window) {
+          let iframe = document.createElement("iframe");
+          iframe.src = "http://example.com/iframe?iframeSO";
+          document.body.prepend(iframe);
+
+          iframe = document.createElement("iframe");
+          iframe.src = "http://example.org/iframe?iframeCO";
+          document.body.prepend(iframe);
+        } else if (
+          location.search === "?iframeSO" ||
+          location.search === "?iframeCO"
+        ) {
+          let storageAccess = false;
+          try {
+            sessionStorage.setItem("x", "storage OK");
+            sessionStorage.getItem("x");
+            storageAccess = true;
+          } catch (e) {
+            browser.test.assertEq("The operation is insecure.", e.message);
+          }
+
+          browser.test.sendMessage(
+            location.search.replace("?iframe", "storage"),
+            storageAccess
+          );
+        }
+      },
       "content.css": `
         body {
           background-image: url("http://example.com/img_from_style.png");
@@ -135,6 +176,12 @@ async function runTest(pref) {
   );
 
   await extension.awaitMessage("images_loaded");
+
+  const storageSO = await extension.awaitMessage("storageSO");
+  Assert.equal(storageSO, !pref, "Same-Origin storage access granted");
+
+  const storageCO = await extension.awaitMessage("storageCO");
+  Assert.equal(storageCO, !pref, "Cross-Origin storage access granted");
 
   await contentPage.close();
   await extension.unload();
