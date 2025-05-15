@@ -941,17 +941,13 @@ export class RemoteSettingsService {
                 }
                 throw e;
             }
-            return UniFFIScaffolding.callAsyncWrapper(
+            return UniFFIScaffolding.callSync(
                 25, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_update_config
                 FfiConverterTypeRemoteSettingsService.lower(this),
                 FfiConverterTypeRemoteSettingsConfig2.lower(config),
             )
         }
-        try {
-            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
-        }  catch (error) {
-            return Promise.reject(error)
-        }
+        return handleRustResult(functionCall(), liftResult, liftError);
     }
 
 }

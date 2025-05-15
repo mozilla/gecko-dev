@@ -13,6 +13,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Region: "resource://gre/modules/Region.sys.mjs",
   RemoteSettingsServer:
     "resource://testing-common/RemoteSettingsServer.sys.mjs",
+  SharedRemoteSettingsService:
+    "resource://gre/modules/RustSharedRemoteSettingsService.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
   Suggestion: "resource://gre/modules/RustSuggest.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
@@ -237,10 +239,13 @@ class _QuickSuggestTestUtils {
     }
 
     // Tell the Rust backend to use the local remote setting server.
-    await lazy.QuickSuggest.rustBackend._test_setRemoteSettingsConfig({
+    lazy.SharedRemoteSettingsService.updateServer({
+      url: this.#remoteSettingsServer.url.toString(),
       bucketName: "main",
-      serverUrl: this.#remoteSettingsServer.url.toString(),
     });
+    await lazy.QuickSuggest.rustBackend._test_setRemoteSettingsService(
+      lazy.SharedRemoteSettingsService.rustService()
+    );
 
     // Wait for the Rust backend to finish syncing.
     await this.forceSync();
@@ -290,7 +295,7 @@ class _QuickSuggestTestUtils {
       lazy.UrlbarPrefs.clear("quicksuggest.dataCollection.enabled");
     }
 
-    await lazy.QuickSuggest.rustBackend._test_setRemoteSettingsConfig(null);
+    await lazy.QuickSuggest.rustBackend._test_setRemoteSettingsService(null);
 
     this.#log("#uninitQuickSuggest", "Done");
   }
@@ -1418,7 +1423,7 @@ class _QuickSuggestTestUtils {
 
     let originalHome = lazy.Region.home;
     if (homeRegion) {
-      lazy.Region._setHomeRegion(homeRegion, false);
+      lazy.Region._setHomeRegion(homeRegion, true);
     }
 
     let available = Services.locale.availableLocales;
@@ -1439,7 +1444,7 @@ class _QuickSuggestTestUtils {
     await callback();
 
     if (homeRegion) {
-      lazy.Region._setHomeRegion(originalHome, false);
+      lazy.Region._setHomeRegion(originalHome, true);
     }
 
     promise = promiseChanges(requested);

@@ -13,11 +13,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   InterruptKind: "resource://gre/modules/RustSuggest.sys.mjs",
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
-  Region: "resource://gre/modules/Region.sys.mjs",
-  RemoteSettingsConfig2: "resource://gre/modules/RustRemoteSettings.sys.mjs",
-  RemoteSettingsContext: "resource://gre/modules/RustRemoteSettings.sys.mjs",
-  RemoteSettingsServer: "resource://gre/modules/RustRemoteSettings.sys.mjs",
-  RemoteSettingsService: "resource://gre/modules/RustRemoteSettings.sys.mjs",
+  SharedRemoteSettingsService:
+    "resource://gre/modules/RustSharedRemoteSettingsService.sys.mjs",
   SuggestIngestionConstraints: "resource://gre/modules/RustSuggest.sys.mjs",
   SuggestStoreBuilder: "resource://gre/modules/RustSuggest.sys.mjs",
   Suggestion: "resource://gre/modules/RustSuggest.sys.mjs",
@@ -97,18 +94,16 @@ export class SuggestBackendRust extends SuggestBackend {
     // which is a "cannot-be-a-base" URL. The error is harmless, but it can be
     // logged many times during a test suite.
     //
-    // To prevent Suggest from using the dummy URL, we skip setting the initial
-    // RS config here during tests, which prevents the Suggest store from being
+    // To prevent Suggest from using the dummy URL, we skip setting the
+    // remoteSettingsService, which prevents the Suggest store from being
     // created, effectively disabling Rust suggestions. Suggest tests manually
     // set the RS config when they set up the mock RS server, so they'll work
     // fine. Alternatively the test harnesses could disable Suggest by default
     // just like they set the server pref to the dummy URL, but Suggest is more
     // than Rust suggestions.
     if (!lazy.Utils.shouldSkipRemoteActivityDueToTests) {
-      this.#setRemoteSettingsConfig({
-        serverUrl: lazy.Utils.SERVER_URL,
-        bucketName: lazy.Utils.actualBucketName("main"),
-      });
+      this.#remoteSettingsService =
+        lazy.SharedRemoteSettingsService.rustService();
     }
   }
 
@@ -460,15 +455,6 @@ export class SuggestBackendRust extends SuggestBackend {
   }
 
   /**
-   * @returns {string}
-   *   The path of the directory that should contain the remote settings cache
-   *   used internally by the Rust component.
-   */
-  get #remoteSettingsStoragePath() {
-    return Services.dirsvc.get("ProfLD", Ci.nsIFile).path;
-  }
-
-  /**
    * @returns {Array}
    *   Each item in this array identifies an enabled Rust suggestion type and
    *   related data. Items have the following properties:
@@ -548,44 +534,8 @@ export class SuggestBackendRust extends SuggestBackend {
   }
 
   #makeStore() {
-    this.logger.info("Creating SuggestStore", {
-      server: this.#remoteSettingsServer,
-      bucketName: this.#remoteSettingsBucketName,
-      dataPath: this.#storeDataPath,
-      storagePath: this.#remoteSettingsStoragePath,
-    });
-
-    if (!this.#remoteSettingsServer) {
-      return null;
-    }
-
-    let rsContext = {
-      formFactor: "desktop",
-      appId: Services.appinfo.ID || "",
-      channel: AppConstants.IS_ESR ? "esr" : AppConstants.MOZ_UPDATE_CHANNEL,
-      appVersion: Services.appinfo.version,
-      locale: Services.locale.appLocaleAsBCP47,
-      os: AppConstants.platform,
-      osVersion: Services.sysinfo.get("version"),
-    };
-
-    // We assume `QuickSuggest` init already awaited `Region.init()`.
-    if (lazy.Region.home) {
-      rsContext.country = lazy.Region.home;
-    }
-
-    let rsService;
-    try {
-      rsService = lazy.RemoteSettingsService.init(
-        this.#remoteSettingsStoragePath,
-        new lazy.RemoteSettingsConfig2({
-          server: this.#remoteSettingsServer,
-          bucketName: this.#remoteSettingsBucketName,
-          appContext: new lazy.RemoteSettingsContext(rsContext),
-        })
-      );
-    } catch (error) {
-      this.logger.error("Error creating RemoteSettingsService", error);
+    this.logger.info("Creating SuggestStore");
+    if (!this.#remoteSettingsService) {
       return null;
     }
 
@@ -593,7 +543,7 @@ export class SuggestBackendRust extends SuggestBackend {
     try {
       builder = lazy.SuggestStoreBuilder.init()
         .dataPath(this.#storeDataPath)
-        .remoteSettingsService(rsService)
+        .remoteSettingsService(this.#remoteSettingsService)
         .loadExtension(
           AppConstants.SQLITE_LIBRARY_FILENAME,
           "sqlite3_fts5_init"
@@ -727,14 +677,6 @@ export class SuggestBackendRust extends SuggestBackend {
     return lazy.SuggestionProvider[key];
   }
 
-  #setRemoteSettingsConfig(options) {
-    let { serverUrl, bucketName } = options || {};
-    this.#remoteSettingsServer = serverUrl
-      ? new lazy.RemoteSettingsServer.Custom(serverUrl)
-      : null;
-    this.#remoteSettingsBucketName = bucketName;
-  }
-
   /**
    * Dismissals are stored in the Rust component but were previously stored as
    * URL digests in a pref. This method migrates the pref to the Rust component
@@ -808,8 +750,8 @@ export class SuggestBackendRust extends SuggestBackend {
     return this.#enabledSuggestionTypes;
   }
 
-  async _test_setRemoteSettingsConfig(options) {
-    this.#setRemoteSettingsConfig(options);
+  async _test_setRemoteSettingsService(remoteSettingsService) {
+    this.#remoteSettingsService = remoteSettingsService;
     if (this.isEnabled) {
       // Recreate the store and re-ingest.
       Services.prefs.clearUserPref(INGEST_TIMER_LAST_UPDATE_PREF);
@@ -840,8 +782,7 @@ export class SuggestBackendRust extends SuggestBackend {
 
   #ingestQueue;
   #shutdownBlocker;
-  #remoteSettingsServer;
-  #remoteSettingsBucketName;
+  #remoteSettingsService;
 }
 
 /**
