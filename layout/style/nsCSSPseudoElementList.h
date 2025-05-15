@@ -37,8 +37,7 @@ CSS_PSEUDO_ELEMENT(marker, ":marker", 0)
 
 CSS_PSEUDO_ELEMENT(backdrop, ":backdrop", 0)
 
-CSS_PSEUDO_ELEMENT(cue, ":cue", CSS_PSEUDO_ELEMENT_IS_JS_CREATED_NAC |
-                                CSS_PSEUDO_ELEMENT_SUPPORTS_STYLE_ATTRIBUTE)
+CSS_PSEUDO_ELEMENT(cue, ":cue", CSS_PSEUDO_ELEMENT_IS_JS_CREATED_NAC)
 
 CSS_PSEUDO_ELEMENT(firstLetter, ":first-letter", CSS_PSEUDO_ELEMENT_IS_CSS2)
 CSS_PSEUDO_ELEMENT(firstLine, ":first-line", CSS_PSEUDO_ELEMENT_IS_CSS2)
@@ -93,7 +92,6 @@ CSS_PSEUDO_ELEMENT(mozMeterBar, ":-moz-meter-bar",
 CSS_PSEUDO_ELEMENT(placeholder, ":placeholder",
                    CSS_PSEUDO_ELEMENT_SUPPORTS_USER_ACTION_STATE)
 CSS_PSEUDO_ELEMENT(mozColorSwatch, ":-moz-color-swatch",
-                   CSS_PSEUDO_ELEMENT_SUPPORTS_STYLE_ATTRIBUTE |
                    CSS_PSEUDO_ELEMENT_SUPPORTS_USER_ACTION_STATE)
 // The root of the text value anonymous content inside an <input> or <textarea>.
 CSS_PSEUDO_ELEMENT(mozTextControlEditingRoot, ":-moz-text-control-editing-root",

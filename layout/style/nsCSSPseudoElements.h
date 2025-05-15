@@ -21,9 +21,6 @@
 //
 // Note: We also rely on this for IsEagerlyCascadedInServo.
 #define CSS_PSEUDO_ELEMENT_IS_CSS2 (1 << 0)
-// Flag to add the ability to take into account style attribute set for the
-// pseudo element (by default it's ignored).
-#define CSS_PSEUDO_ELEMENT_SUPPORTS_STYLE_ATTRIBUTE (1 << 2)
 // Flag that indicate the pseudo-element supports a user action pseudo-class
 // following it, such as :active or :hover.  This would normally correspond
 // to whether the pseudo-element is tree-like, but we don't support these
@@ -83,12 +80,6 @@ class nsCSSPseudoElements {
   // PseudoType::CSSPseudoElementsEnd.
   // This only ever returns static atoms, so it's fine to return a raw pointer.
   static nsAtom* GetPseudoAtom(Type aType);
-
-  static bool PseudoElementSupportsStyleAttribute(const Type aType) {
-    MOZ_ASSERT(aType < Type::CSSPseudoElementsEnd);
-    return PseudoElementHasFlags(aType,
-                                 CSS_PSEUDO_ELEMENT_SUPPORTS_STYLE_ATTRIBUTE);
-  }
 
   static bool PseudoElementSupportsUserActionState(const Type aType);
 
