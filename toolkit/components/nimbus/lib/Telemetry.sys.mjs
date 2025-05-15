@@ -78,9 +78,6 @@ const UnenrollReason = Object.freeze({
   ...ValidationFailureReason,
 });
 
-const EXPERIMENT_TYPE_ROLLOUT = "rollout";
-const EXPERIMENT_TYPE_NIMBUS = "nimbus";
-
 export const NimbusTelemetry = {
   EnrollmentFailureReason,
   EnrollmentSource,
@@ -92,20 +89,15 @@ export const NimbusTelemetry = {
 
   recordEnrollment(enrollment) {
     this.setExperimentActive(enrollment);
-
-    const experimentType = enrollment.isRollout
-      ? EXPERIMENT_TYPE_ROLLOUT
-      : EXPERIMENT_TYPE_NIMBUS;
-
     Glean.normandy.enrollNimbusExperiment.record({
       value: enrollment.slug,
+      experimentType: enrollment.experimentType,
       branch: enrollment.branch.slug,
-      experimentType,
     });
     Glean.nimbusEvents.enrollment.record({
       experiment: enrollment.slug,
       branch: enrollment.branch.slug,
-      experiment_type: experimentType,
+      experiment_type: enrollment.experimentType,
     });
 
     this.recordEnrollmentStatus({
@@ -276,10 +268,7 @@ export const NimbusTelemetry = {
   },
 
   setExperimentActive(enrollment) {
-    const experimentType = enrollment.isRollout
-      ? EXPERIMENT_TYPE_ROLLOUT
-      : EXPERIMENT_TYPE_NIMBUS;
-    const type = `${EXPERIMENT_ACTIVE_PREFIX}${experimentType}`;
+    const type = `${EXPERIMENT_ACTIVE_PREFIX}${enrollment.experimentType}`;
     lazy.TelemetryEnvironment.setExperimentActive(
       enrollment.slug,
       enrollment.branch.slug,
