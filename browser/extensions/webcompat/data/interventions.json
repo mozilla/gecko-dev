@@ -3337,6 +3337,21 @@
       }
     ]
   },
+  "1952832": {
+    "label": "supermappex.it",
+    "bugs": {
+      "1952832": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.supermappex.it/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1953077": {
     "label": "Nintendo movie guidebook",
     "bugs": {
