@@ -39,7 +39,7 @@ class ProviderActionsSearchMode extends UrlbarProvider {
     return UrlbarUtils.PROVIDER_TYPE.PROFILE;
   }
 
-  isActive(queryContext) {
+  async isActive(queryContext) {
     return queryContext.searchMode?.source == UrlbarUtils.RESULT_SOURCE.ACTIONS;
   }
 

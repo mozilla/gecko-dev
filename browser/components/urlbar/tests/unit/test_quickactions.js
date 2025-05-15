@@ -91,7 +91,7 @@ add_task(async function minimum_search_string() {
     for (let i = 1; i < 4; i++) {
       let context = createContext(searchString.substring(0, i), {});
       let result = await ActionsProviderQuickActions.queryActions(context);
-      let isActive = ActionsProviderQuickActions.isActive(context);
+      let isActive = await ActionsProviderQuickActions.isActive(context);
 
       if (i >= minimumSearchString) {
         Assert.ok(result[0].key == "newaction", "Matched the new action");
@@ -107,7 +107,7 @@ add_task(async function minimum_search_string() {
 add_task(async function interventions_disabled() {
   let context = createContext("test", { isPrivate: false });
   Assert.ok(
-    !UrlbarProviderInterventions.isActive(context),
+    !(await UrlbarProviderInterventions.isActive(context)),
     "Urlbar interventions are disabled when actions are enabled"
   );
 });

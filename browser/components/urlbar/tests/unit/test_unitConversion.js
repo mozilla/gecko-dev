@@ -455,7 +455,7 @@ const TEST_DATA = [
   },
 ];
 
-add_task(function () {
+add_task(async function () {
   // Enable unit conversion.
   Services.prefs.setBoolPref("browser.urlbar.unitConversion.enabled", true);
   registerCleanupFunction(() => {
@@ -472,7 +472,7 @@ add_task(function () {
       }
 
       const context = createContext(queryString);
-      const isActive = UrlbarProviderUnitConversion.isActive(context);
+      const isActive = await UrlbarProviderUnitConversion.isActive(context);
       Assert.equal(isActive, !!expected || !!assertResult);
 
       if (isActive) {

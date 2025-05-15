@@ -7,6 +7,10 @@
  * the connection between such providers and a UrlbarController.
  */
 
+/**
+ * @typedef {import("UrlbarUtils.sys.mjs").UrlbarProvider} UrlbarProvider
+ */
+
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -100,6 +104,9 @@ class ProvidersManager {
   constructor() {
     // Tracks the available providers.  This is a sorted array, with HEURISTIC
     // providers at the front.
+    /**
+     * @type {UrlbarProvider[]}
+     */
     this.providers = [];
     this.providersByNotificationType = {
       onEngagement: new Set(),
@@ -504,13 +511,13 @@ export class Query {
   /**
    * Initializes the query object.
    *
-   * @param {object} queryContext
+   * @param {UrlbarQueryContext} queryContext
    *        The query context
-   * @param {object} controller
+   * @param {UrlbarController} controller
    *        The controller to be notified
    * @param {object} muxer
    *        The muxer to sort results
-   * @param {Array} providers
+   * @param {UrlbarProvider[]} providers
    *        Array of all the providers.
    */
   constructor(queryContext, controller, muxer, providers) {
@@ -556,12 +563,8 @@ export class Query {
       //   }
       provider.queryInstance = this;
       activePromises.push(
-        // Not all isActive implementations are async, so wrap the call in a
-        // promise so we can be sure we can call `then` on it.  Note that
-        // Promise.resolve returns its arg directly if it's already a promise.
-        Promise.resolve(
-          provider.tryMethod("isActive", this.context, this.controller)
-        )
+        provider
+          .isActive(this.context, this.controller)
           .then(isActive => {
             if (isActive && !this.canceled) {
               let priority = provider.tryMethod("getPriority", this.context);

@@ -49,7 +49,7 @@ class ProviderClipboard extends UrlbarProvider {
     this.#previousClipboard.value = newValue;
   }
 
-  isActive(queryContext, controller) {
+  async isActive(queryContext, controller) {
     // Return clipboard results only for empty searches.
     if (
       !lazy.UrlbarPrefs.get("clipboard.featureGate") ||

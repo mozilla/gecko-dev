@@ -158,7 +158,7 @@ add_task(async function test_filter_isActive() {
     get type() {
       return UrlbarUtils.PROVIDER_TYPE.PROFILE;
     }
-    isActive(context) {
+    async isActive(context) {
       info("Acceptable sources: " + context.sources);
       return context.sources.includes(UrlbarUtils.RESULT_SOURCE.BOOKMARKS);
     }
@@ -205,7 +205,7 @@ add_task(async function test_filter_queryContext() {
     get type() {
       return UrlbarUtils.PROVIDER_TYPE.PROFILE;
     }
-    isActive(_context) {
+    async isActive(_context) {
       return true;
     }
     async startQuery(_context, _add) {
@@ -306,7 +306,7 @@ add_task(async function test_nofilter_restrict() {
         results: matches,
       });
     }
-    isActive(context) {
+    async isActive(context) {
       Assert.equal(context.sources.length, 1, "Check acceptable sources");
       return true;
     }

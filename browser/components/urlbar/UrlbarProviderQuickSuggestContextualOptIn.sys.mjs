@@ -152,7 +152,7 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
     return Date.now() / 1000 - lastDismissedTime > time;
   }
 
-  isActive(queryContext) {
+  async isActive(queryContext) {
     if (!this.#shouldDisplayContextualOptIn(queryContext)) {
       return false;
     }

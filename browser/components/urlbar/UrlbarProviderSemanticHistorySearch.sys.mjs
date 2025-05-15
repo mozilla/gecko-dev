@@ -86,8 +86,6 @@ class ProviderSemanticHistorySearch extends UrlbarProvider {
    *
    * @param {object} queryContext
    *   The context of the query, including the search string.
-   * @returns {boolean}
-   *   `true` if the provider is active; `false` otherwise.
    */
   async isActive(queryContext) {
     const semanticHistoryFlag = lazy.UrlbarPrefs.get("suggest.semanticHistory");

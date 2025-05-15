@@ -441,7 +441,7 @@ async function doTest({
     keywords.filter(
       ({ keyword }) => keyword == context.trimmedLowerCaseSearchString
     );
-  provider.isActive = context => {
+  provider.isActive = async context => {
     return !!getMatchingKeywords(context).length;
   };
   provider.startQuery = (context, addCallback) => {

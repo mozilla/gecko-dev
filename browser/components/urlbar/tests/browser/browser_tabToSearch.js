@@ -285,7 +285,7 @@ add_task(async function tab_key_race() {
       get type() {
         return UrlbarUtils.PROVIDER_TYPE.PROFILE;
       }
-      isActive(_context) {
+      async isActive(_context) {
         executeSoon(resolve);
         return false;
       }

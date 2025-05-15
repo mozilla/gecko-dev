@@ -90,9 +90,8 @@ class ProviderRemoteTabs extends UrlbarProvider {
    * with this provider, to save on resources.
    *
    * @param {UrlbarQueryContext} queryContext The query context object
-   * @returns {boolean} Whether this provider should be invoked for the search.
    */
-  isActive(queryContext) {
+  async isActive(queryContext) {
     return (
       lazy.syncUsernamePref &&
       lazy.UrlbarPrefs.get("suggest.remotetab") &&

@@ -46,7 +46,7 @@ class ProviderRecentSearches extends UrlbarProvider {
     return UrlbarUtils.PROVIDER_TYPE.PROFILE;
   }
 
-  isActive(queryContext) {
+  async isActive(queryContext) {
     return (
       lazy.UrlbarPrefs.get(ENABLED_PREF) &&
       lazy.UrlbarPrefs.get(SUGGEST_PREF) &&

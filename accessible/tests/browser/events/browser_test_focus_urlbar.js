@@ -68,7 +68,7 @@ class TipTestProvider extends UrlbarProvider {
   get type() {
     return UrlbarUtils.PROVIDER_TYPE.PROFILE;
   }
-  isActive() {
+  async isActive() {
     return true;
   }
   isRestricting() {

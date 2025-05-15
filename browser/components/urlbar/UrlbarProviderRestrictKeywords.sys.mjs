@@ -44,7 +44,7 @@ class ProviderRestrictKeywords extends UrlbarProvider {
     return 1;
   }
 
-  isActive(queryContext) {
+  async isActive(queryContext) {
     if (!lazy.UrlbarPrefs.getScotchBonnetPref(RESTRICT_KEYWORDS_FEATURE_GATE)) {
       return false;
     }

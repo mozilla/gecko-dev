@@ -2579,11 +2579,15 @@ export class UrlbarProvider {
    * If this method returns false, the providers manager won't start a query
    * with this provider, to save on resources.
    *
-   * @param {UrlbarQueryContext} _queryContext The query context object
-   * @returns {boolean} Whether this provider should be invoked for the search.
+   * @param {UrlbarQueryContext} _queryContext
+   *   The query context object
+   * @param {UrlbarController} _controller
+   *   The current controller.
+   * @returns {Promise<boolean>}
+   *   Whether this provider should be invoked for the search.
    * @abstract
    */
-  isActive(_queryContext) {
+  async isActive(_queryContext, _controller) {
     throw new Error("Trying to access the base class, must be overridden");
   }
 

@@ -143,11 +143,9 @@ class ProviderSearchTips extends UrlbarProvider {
    * Whether this provider should be invoked for the given context.
    * If this method returns false, the providers manager won't start a query
    * with this provider, to save on resources.
-   *
-   * @returns {boolean} Whether this provider should be invoked for the search.
    */
-  isActive() {
-    return this.currentTip && lazy.cfrFeaturesUserPref;
+  async isActive() {
+    return !!this.currentTip && lazy.cfrFeaturesUserPref;
   }
 
   /**

@@ -486,9 +486,8 @@ class ProviderInterventions extends UrlbarProvider {
    * with this provider, to save on resources.
    *
    * @param {UrlbarQueryContext} queryContext The query context object
-   * @returns {boolean} Whether this provider should be invoked for the search.
    */
-  isActive(queryContext) {
+  async isActive(queryContext) {
     if (
       !queryContext.searchString ||
       queryContext.searchString.length > UrlbarUtils.MAX_TEXT_LENGTH ||
@@ -497,7 +496,7 @@ class ProviderInterventions extends UrlbarProvider {
       ) ||
       !EN_LOCALE_MATCH.test(Services.locale.appLocaleAsBCP47) ||
       !Services.policies.isAllowed("urlbarinterventions") ||
-      lazy.UrlbarProviderGlobalActions.isActive(queryContext)
+      (await lazy.UrlbarProviderGlobalActions.isActive(queryContext))
     ) {
       return false;
     }

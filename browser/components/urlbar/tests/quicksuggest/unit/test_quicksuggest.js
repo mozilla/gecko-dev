@@ -399,7 +399,7 @@ add_task(async function emptySearchStringsAndSpaces() {
       matches: [],
     });
     Assert.ok(
-      !UrlbarProviderQuickSuggest.isActive(context),
+      !(await UrlbarProviderQuickSuggest.isActive(context)),
       "Provider should not be active for search string: " + msg
     );
   }

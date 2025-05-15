@@ -102,10 +102,8 @@ class ProviderUnitConversion extends UrlbarProvider {
    *
    * @param {UrlbarQueryContext} queryContext
    *   The query context object.
-   * @returns {boolean}
-   *   Whether this provider should be invoked for the search.
    */
-  isActive({ searchString }) {
+  async isActive({ searchString }) {
     if (!lazy.UrlbarPrefs.get("unitConversion.enabled")) {
       return false;
     }

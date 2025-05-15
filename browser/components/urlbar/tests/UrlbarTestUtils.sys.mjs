@@ -1616,7 +1616,7 @@ class TestProvider extends UrlbarProvider {
     return this.priority;
   }
 
-  isActive(_context) {
+  async isActive(_context) {
     return true;
   }
 

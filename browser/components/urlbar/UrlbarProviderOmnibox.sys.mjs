@@ -56,10 +56,8 @@ class ProviderOmnibox extends UrlbarProvider {
    *
    * @param {UrlbarQueryContext} queryContext
    *   The query context object.
-   * @returns {boolean}
-   *   Whether this provider should be invoked for the search.
    */
-  isActive(queryContext) {
+  async isActive(queryContext) {
     if (
       queryContext.tokens[0] &&
       queryContext.tokens[0].value.length &&

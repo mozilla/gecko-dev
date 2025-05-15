@@ -85,9 +85,8 @@ class ProviderSearchSuggestions extends UrlbarProvider {
    * with this provider, to save on resources.
    *
    * @param {UrlbarQueryContext} queryContext The query context object
-   * @returns {boolean} Whether this provider should be invoked for the search.
    */
-  isActive(queryContext) {
+  async isActive(queryContext) {
     // If the sources don't include search or the user used a restriction
     // character other than search, don't allow any suggestions.
     if (
@@ -116,7 +115,9 @@ class ProviderSearchSuggestions extends UrlbarProvider {
       lazy.UrlbarPrefs.get("maxHistoricalSearchSuggestions") &&
       queryContext.trimmedSearchString;
 
-    return wantsLocalSuggestions || this._allowRemoteSuggestions(queryContext);
+    return (
+      !!wantsLocalSuggestions || this._allowRemoteSuggestions(queryContext)
+    );
   }
 
   /**
