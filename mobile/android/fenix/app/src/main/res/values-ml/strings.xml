@@ -970,6 +970,8 @@
   <string name="wallpaper_classic_title">ക്ലാസിക് %s</string>
   <!-- Wallpaper onboarding dialog header text. -->
   <string name="wallpapers_onboarding_dialog_title_text">നിറത്തിന്റെ നീർത്തെറിപ്പ് ഉരച്ചുനോക്കുക</string>
+  <!-- Wallpaper onboarding dialog body text. -->
+  <string name="wallpapers_onboarding_dialog_body_text">താങ്ങൾക്കു് കൊള്ളുന്നയൊരു ചുവൎക്കടലാസ്സു് തിരഞ്ഞെടുക്കുക.</string>
   <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
   <string name="wallpapers_onboarding_dialog_explore_more_button_text">ഇനിയും ചുവർകടലാസുകൾ ആരായുക</string>
   <!--
@@ -1080,6 +1082,8 @@
   <string name="preference_usage_data_learn_more">കൂടുതലറിയുക</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">വില്പനദത്തയെ കുറിച്ചു് കൂടുതൽ അറിയുക</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">പ്രതിദിന ഉപയോഗ പിംഗ്</string>
   <string name="preferences_daily_usage_ping_description">സജീവ ഉപയോക്താക്കളുടെ കണക്കെടുക്കാൻ ഇതു് മോസ്സില്ലയെ സഹായിക്കുന്നു.</string>
   <!-- Preference switch title for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_title">തകർച്ച വിവരങ്ങൾ തന്നെതാന്നെ അയയ്ക്കുക</string>
@@ -1168,6 +1172,11 @@
     %d is a placeholder for the number of tabs that will be opened
   -->
   <string name="open_all_warning_title">%d ടാബുകൾ തുറക്കണോ?</string>
+  <!--
+    Message to warn users that a large number of tabs will be opened
+    %s will be replaced by app name.
+  -->
+  <string name="open_all_warning_message"> താളുകള്‍ ലഭ്യമാക്കുമ്പോഴു് ഇത്രോളം ടാബുകൾ തുറന്നാൽ %s-ന്റെ വേഗത കുറയ്ക്കുവാന്‍ ഇതു് ചിലപ്പോള്‍ കാരണമാകുന്നു. തുടരണമെന്നു് ഉറപ്പാണോ?</string>
   <!-- Dialog button text for confirming open all tabs -->
   <string name="open_all_warning_confirm">തുറന്ന ടാബുകള്‍</string>
   <!-- Dialog button text for canceling open all tabs -->
@@ -2816,6 +2825,8 @@
   <string name="translations_bottom_sheet_title_translation_completed">%1$s നിന്നു് %2$s-ലേക്കു് വിവർത്തനം ചെയ്തു</string>
   <!-- Title for the translation dialog that allows a user to translate the webpage when a user uses the translation feature the first time. %1$s is the name of the app (for example "Firefox"). -->
   <string name="translations_bottom_sheet_title_first_time">%1$s-ൽ സ്വകാര്യ വിവർത്തനങ്ങൾ പരിശോധിച്ചു് നോക്കൂ</string>
+  <!-- Additional information on the translation dialog that appears when a user uses the translation feature the first time. %1$s is a link using translations_bottom_sheet_info_message_learn_more as text. -->
+  <string name="translations_bottom_sheet_info_message">താങ്ങളുടെ സ്വകാര്യതയ്ക്കു് വേണ്ടി വിവൎത്തനങ്ങൾ ഒരിക്കലും താങ്ങളുടെ ഉപകരണത്തിൽ നിന്നു് പുറത്തുപോകത്തില്ല. പുതിയ ഭാഷകളും പുതുമകളും ഉടൻ വരുന്നു! %1$s</string>
   <!-- Text that links to additional information about the Firefox translations feature. -->
   <string name="translations_bottom_sheet_info_message_learn_more">കൂടുതല്‍ അറിയുക</string>
   <!-- Label for the dropdown to select which language to translate from on the translations dialog. Usually the translate from language selected will be the same as the page language. -->
@@ -3341,6 +3352,8 @@
   <string name="setup_checklist_title_state_incomplete">%1$s സജ്ജീകരിക്കുന്നതു് തീൎക്കുക</string>
   <!-- Title for the setup checklist feature when the state is 'completed' -->
   <string name="setup_checklist_title_state_completed">അഭിനന്ദനങ്ങള്‍!</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">നല്ല തുടക്കം. താങ്ങൾ 3-ൽ 1 പടി തീൎത്തു.</string>
   <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
   <string name="setup_checklist_subtitle_3_steps_second_step">ഏതാണ്ടു് തീരാറായി! രണ്ടു പടി കഴിഞ്ഞിരിക്കുന്നു, ഇനി ഒരു പടി കൂടെ മിച്ചമിരിപ്പുണ്ടു്.</string>
   <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->

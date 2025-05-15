@@ -1681,6 +1681,8 @@
   <string name="bookmark_menu_delete_button">Odstranit</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Uložit</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">Seřadit podle vlastního pořadí</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">Seřadit podle nejnovějších</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
