@@ -603,16 +603,11 @@ SubDialog.prototype = {
       if (sizeTo == "limitheight") {
         this._overlay.style.setProperty("--doc-height-px", getDocHeight());
         contentPane?.classList.add("sizeDetermined");
-      } else {
-        if (docEl.style.maxHeight) {
-          this._box.style.setProperty(
-            "--box-max-height-requested",
-            this._emToPx(docEl.style.maxHeight)
-          );
-        }
-        // Inform the CSS of the toolbar height so the bottom padding can be
-        // correctly calculated.
-        this._box.style.setProperty("--box-top-px", `${boxRect.top}px`);
+      } else if (docEl.style.maxHeight) {
+        this._box.style.setProperty(
+          "--box-max-height-requested",
+          this._emToPx(docEl.style.maxHeight)
+        );
       }
       return;
     }
