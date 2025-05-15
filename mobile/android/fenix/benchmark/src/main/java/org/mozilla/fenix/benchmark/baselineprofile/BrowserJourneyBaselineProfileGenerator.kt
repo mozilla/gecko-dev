@@ -16,9 +16,7 @@ import org.mozilla.fenix.benchmark.utils.TARGET_PACKAGE
 import org.mozilla.fenix.benchmark.utils.clearPackageData
 import org.mozilla.fenix.benchmark.utils.completeBrowserJourney
 import org.mozilla.fenix.benchmark.utils.completeOnboarding
-import org.mozilla.fenix.benchmark.utils.dismissWallpaperOnboarding
 import org.mozilla.fenix.benchmark.utils.isFirstIteration
-import org.mozilla.fenix.benchmark.utils.isWallpaperOnboardingShown
 
 /**
  * This test class generates a baseline profile on a critical user journey, that does some web browsing,
@@ -48,7 +46,8 @@ import org.mozilla.fenix.benchmark.utils.isWallpaperOnboardingShown
 @RequiresApi(Build.VERSION_CODES.P)
 @RunWith(AndroidJUnit4::class)
 @BaselineProfileGenerator
-@Ignore("Disabled: https://bugzilla.mozilla.org/show_bug.cgi?id=1964970")
+@Ignore("Disabled: https://bugzilla.mozilla.org/show_bug.cgi?id=1964970, " +
+    "https://bugzilla.mozilla.org/show_bug.cgi?id=1966228")
 class BrowserJourneyBaselineProfileGenerator {
 
     @get:Rule
