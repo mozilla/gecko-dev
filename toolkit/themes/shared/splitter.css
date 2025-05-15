@@ -14,16 +14,11 @@ splitter {
   align-items: center;
   justify-content: center;
   cursor: ew-resize;
-
-  @media (-moz-platform: linux) {
-    appearance: auto;
-    -moz-default-appearance: splitter;
-  }
   @media (-moz-platform: macos) {
     min-width: 9px;
     min-height: 9px;
   }
-  @media (-moz-platform: windows) {
+  @media (-moz-platform: windows) or (-moz-platform: linux) {
     border-width: 0 1px;
     border-style: solid;
     border-inline-start-color: ThreeDHighlight;
@@ -52,7 +47,7 @@ splitter[state="collapsed"][substate="before"]:-moz-locale-dir(rtl) {
 splitter[orient="vertical"] {
   cursor: ns-resize;
 
-  @media (-moz-platform: windows) {
+  @media (-moz-platform: windows) or (-moz-platform: linux) {
     border-width: 1px 0;
     border-top-color: ThreeDHighlight;
     border-bottom-color: ThreeDShadow;

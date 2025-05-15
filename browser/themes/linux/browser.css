@@ -103,15 +103,12 @@
 
 /* Content area */
 
-/* stylelint-disable-next-line media-query-no-invalid */
-@media not -moz-pref("sidebar.revamp") {
-  .sidebar-splitter {
-    appearance: none;
-    width: 6px;
-    background-color: -moz-dialog;
-    border: 1px ThreeDShadow;
-    border-style: none solid;
-  }
+.sidebar-splitter {
+  appearance: none;
+  width: 6px;
+  background-color: -moz-dialog;
+  border: 1px ThreeDShadow;
+  border-style: none solid;
 }
 
 /* Tabstrip */

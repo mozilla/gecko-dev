@@ -153,17 +153,6 @@ void moz_gtk_refresh() {
   ResetWidgetCache();
 }
 
-gint moz_gtk_splitter_get_metrics(gint orientation, gint* size) {
-  GtkStyleContext* style;
-  if (orientation == GTK_ORIENTATION_HORIZONTAL) {
-    style = GetStyleContext(MOZ_GTK_SPLITTER_HORIZONTAL);
-  } else {
-    style = GetStyleContext(MOZ_GTK_SPLITTER_VERTICAL);
-  }
-  gtk_style_context_get_style(style, "handle_size", size, NULL);
-  return MOZ_GTK_SUCCESS;
-}
-
 static void CalculateToolbarButtonMetrics(WidgetNodeType aAppearance,
                                           ToolbarButtonGTKMetrics* aMetrics,
                                           gint* aMaxInlineMargin) {
@@ -323,24 +312,6 @@ static gint moz_gtk_window_decoration_paint(cairo_t* cr,
                         rect->height);
   gtk_render_frame(decorationStyle, cr, rect->x, rect->y, rect->width,
                    rect->height);
-  return MOZ_GTK_SUCCESS;
-}
-
-static gint moz_gtk_hpaned_paint(cairo_t* cr, GdkRectangle* rect,
-                                 GtkWidgetState* state) {
-  GtkStyleContext* style =
-      GetStyleContext(MOZ_GTK_SPLITTER_SEPARATOR_HORIZONTAL, state->image_scale,
-                      GTK_TEXT_DIR_LTR, GetStateFlagsFromGtkWidgetState(state));
-  gtk_render_handle(style, cr, rect->x, rect->y, rect->width, rect->height);
-  return MOZ_GTK_SUCCESS;
-}
-
-static gint moz_gtk_vpaned_paint(cairo_t* cr, GdkRectangle* rect,
-                                 GtkWidgetState* state) {
-  GtkStyleContext* style =
-      GetStyleContext(MOZ_GTK_SPLITTER_SEPARATOR_VERTICAL, state->image_scale,
-                      GTK_TEXT_DIR_LTR, GetStateFlagsFromGtkWidgetState(state));
-  gtk_render_handle(style, cr, rect->x, rect->y, rect->width, rect->height);
   return MOZ_GTK_SUCCESS;
 }
 
@@ -624,8 +595,6 @@ gint moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
       w = GetWidget(MOZ_GTK_FRAME);
       break;
     /* These widgets have no borders, since they are not containers. */
-    case MOZ_GTK_SPLITTER_HORIZONTAL:
-    case MOZ_GTK_SPLITTER_VERTICAL:
     case MOZ_GTK_HEADER_BAR:
     case MOZ_GTK_HEADER_BAR_MAXIMIZED:
     /* These widgets have no borders.*/
@@ -721,10 +690,6 @@ gint moz_gtk_widget_paint(WidgetNodeType widget, cairo_t* cr,
                                widget);
     case MOZ_GTK_TABPANELS:
       return moz_gtk_tabpanels_paint(cr, rect, state, direction);
-    case MOZ_GTK_SPLITTER_HORIZONTAL:
-      return moz_gtk_vpaned_paint(cr, rect, state);
-    case MOZ_GTK_SPLITTER_VERTICAL:
-      return moz_gtk_hpaned_paint(cr, rect, state);
     case MOZ_GTK_WINDOW_DECORATION:
       return moz_gtk_window_decoration_paint(cr, rect, state, direction);
     default:
