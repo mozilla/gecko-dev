@@ -1816,6 +1816,7 @@ export class DiscoveryStreamFeed {
                   subtitle: sectionData.subtitle || "",
                   receivedRank: sectionData.receivedFeedRank,
                   layout: sectionData.layout,
+                  iab: sectionData.iab,
                   // property if initially shown (with interest picker)
                   visible: sectionData.isInitiallyVisible,
                 });
