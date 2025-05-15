@@ -110,4 +110,4 @@ pypi-optional:glean-sdk==64.2.0:telemetry will not be collected
 # support down to the oldest locally-installed version (5.4.2).
 pypi-optional:psutil>=5.4.2,<=5.9.4:telemetry will be missing some data
 pypi-optional:zstandard>=0.11.1,<=0.23.0:zstd archives will not be possible to extract
-pypi-optional:orjson==3.10.18:json operations will be slower in various tools
+pypi-optional:orjson>=3.10.15:json operations will be slower in various tools
