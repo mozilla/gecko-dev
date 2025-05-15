@@ -132,6 +132,14 @@ export var CommonUtils = {
    * Return a timer that is scheduled to call the callback after waiting the
    * provided time or as soon as possible. The timer will be set as a property
    * of the provided object with the given timer name.
+   *
+   * Note that an existing timer with the same name on the same object will be
+   * canceled and rescheduled with the new callback if you call this function
+   * before it fired.
+   * This may race with the imminent firing of the existing timer, so be
+   * prepared to see it firing twice once in a while if called multiple times
+   * for the same timer (the alternative would be to see it firing once right
+   * now and to see nothing happen after the expected delay).
    */
   namedTimer: function namedTimer(callback, wait, thisObj, name) {
     if (!thisObj || !name) {
@@ -140,22 +148,23 @@ export var CommonUtils = {
       );
     }
 
-    // Delay an existing timer if it exists
+    let timer = null;
+    // Take an existing timer if it exists
     if (name in thisObj && thisObj[name] instanceof Ci.nsITimer) {
-      thisObj[name].delay = wait;
-      return thisObj[name];
+      // Setting just the delay on an existing but inactive timer will not
+      // schedule the timer again. Let's go through initWithCallback always.
+      timer = thisObj[name];
+    } else {
+      // Create a special timer that we can add extra properties
+      timer = Object.create(
+        Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer)
+      );
+      // Provide an easy way to clear out the timer
+      timer.clear = function () {
+        thisObj[name] = null;
+        timer.cancel();
+      };
     }
-
-    // Create a special timer that we can add extra properties
-    let timer = Object.create(
-      Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer)
-    );
-
-    // Provide an easy way to clear out the timer
-    timer.clear = function () {
-      thisObj[name] = null;
-      timer.cancel();
-    };
 
     // Initialize the timer with a smart callback
     timer.initWithCallback(
