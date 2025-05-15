@@ -1,0 +1,18 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * www.samsung.com - Layout shows one column instead of two on Android
+ * Bug #1959132 - https://bugzilla.mozilla.org/show_bug.cgi?id=1959132
+ * WebCompat issue #152559 - https://webcompat.com/issues/152559
+ *
+ * The site is using a grid gap which is a bit too large, and Firefox
+ * dutifully mis-arranges the columns as instructed. Making the gap a
+ * bit smaller seems to work better across browsers.
+ */
+@media screen and (max-width: 800px) {
+  .mo_ver2.pf-container .pf-prd-cardlist.col-2 .list-product .list {
+    gap: 3.3vw;
+  }
+}

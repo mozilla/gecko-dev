@@ -769,7 +769,7 @@
     ]
   },
   "1799968": {
-    "label": "www.samsung.com",
+    "label": "www.samsung.com (scrolling fix)",
     "bugs": {
       "1799968": {
         "issue": "broken-scrolling",
@@ -1633,7 +1633,7 @@
     ]
   },
   "1860417": {
-    "label": "www.samsung.com",
+    "label": "www.samsung.com (images fix)",
     "bugs": {
       "1860417": {
         "issue": "broken-images",
@@ -3366,6 +3366,23 @@
         "platforms": ["fenix"],
         "content_scripts": {
           "js": ["bug1956165-www.youtube.com-picture-in-picture-fix.js"]
+        }
+      }
+    ]
+  },
+  "1959132": {
+    "label": "www.samsung.com (columns fix)",
+    "bugs": {
+      "1959132": {
+        "issue": "broken-layout",
+        "matches": ["*://www.samsung.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "css": ["bug1959132-www.samsung.com-column-size-fix.css"]
         }
       }
     ]
