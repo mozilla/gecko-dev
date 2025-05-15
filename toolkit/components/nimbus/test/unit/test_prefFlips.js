@@ -2661,10 +2661,11 @@ add_task(async function test_prefFlips_update_failure() {
   Assert.equal(Services.prefs.getStringPref("pref.one"), "one");
   Assert.equal(Services.prefs.getStringPref("pref.two"), "two");
 
+  cleanupExperiment();
+
   Services.prefs.deleteBranch("pref.one");
   Services.prefs.deleteBranch("pref.two");
 
-  cleanupExperiment();
   cleanup();
 });
 
