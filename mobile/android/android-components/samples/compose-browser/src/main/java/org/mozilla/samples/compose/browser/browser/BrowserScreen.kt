@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.navigation.NavController
 import mozilla.components.browser.state.helper.Target
+import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.awesomebar.AwesomeBar
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
@@ -79,50 +80,55 @@ fun BrowserScreen(navController: NavController) {
     BackHandler(enabled = toolbarState.isEditMode()) {
         toolbarStore.dispatch(BrowserToolbarAction.ToggleEditMode(false))
     }
-
-    Box {
-        Column {
-            BrowserToolbar(
-                store = toolbarStore,
-                browserStore = components().store,
-                target = target,
-                onTextCommit = { text ->
-                    toolbarStore.dispatch(BrowserToolbarAction.ToggleEditMode(false))
-                    loadUrl(text)
-                },
-                onTextEdit = { text ->
-                    toolbarStore.dispatch(BrowserEditToolbarAction.UpdateEditText(text))
-                },
-            )
-
-            Box {
-                WebContent(
-                    components().engine,
-                    components().store,
-                    Target.SelectedTab,
+    AcornTheme {
+        Box {
+            Column {
+                BrowserToolbar(
+                    store = toolbarStore,
+                    browserStore = components().store,
+                    target = target,
+                    onTextCommit = { text ->
+                        toolbarStore.dispatch(BrowserToolbarAction.ToggleEditMode(false))
+                        loadUrl(text)
+                    },
+                    onTextEdit = { text ->
+                        toolbarStore.dispatch(BrowserEditToolbarAction.UpdateEditText(text))
+                    },
                 )
 
-                val url = toolbarState.editState.editText
-                if (toolbarState.isEditMode() && url != null) {
-                    Suggestions(
-                        url,
-                        onSuggestionClicked = { suggestion ->
-                            toolbarStore.dispatch(BrowserToolbarAction.ToggleEditMode(false))
-                            suggestion.onSuggestionClicked?.invoke()
-                        },
-                        onAutoComplete = { suggestion ->
-                            toolbarStore.dispatch(BrowserEditToolbarAction.UpdateEditText(suggestion.editSuggestion!!))
-                        },
+                Box {
+                    WebContent(
+                        components().engine,
+                        components().store,
+                        Target.SelectedTab,
                     )
+
+                    val url = toolbarState.editState.editText
+                    if (toolbarState.isEditMode() && url != null) {
+                        Suggestions(
+                            url,
+                            onSuggestionClicked = { suggestion ->
+                                toolbarStore.dispatch(BrowserToolbarAction.ToggleEditMode(false))
+                                suggestion.onSuggestionClicked?.invoke()
+                            },
+                            onAutoComplete = { suggestion ->
+                                toolbarStore.dispatch(
+                                    BrowserEditToolbarAction.UpdateEditText(
+                                        suggestion.editSuggestion!!,
+                                    ),
+                                )
+                            },
+                        )
+                    }
                 }
             }
-        }
 
-        if (showTabs.value == true) {
-            TabsTray(
-                store = store,
-                toolbarStore = toolbarStore,
-            )
+            if (showTabs.value == true) {
+                TabsTray(
+                    store = store,
+                    toolbarStore = toolbarStore,
+                )
+            }
         }
     }
 }

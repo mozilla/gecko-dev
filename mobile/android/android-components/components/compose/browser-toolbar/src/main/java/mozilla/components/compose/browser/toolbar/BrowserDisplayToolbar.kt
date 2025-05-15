@@ -34,7 +34,6 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
  * controls ("display mode").
  *
  * @param pageOrigin Details about the website origin.
- * @param colors The color scheme to use in the browser display toolbar.
  * @param progressBarConfig [ProgressBarConfig] configuration for the progress bar.
  * If `null` a progress bar will not be displayed.
  * @param browserActionsStart List of browser [Action]s to be displayed at the start of the
@@ -58,7 +57,6 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
 @Composable
 fun BrowserDisplayToolbar(
     pageOrigin: PageOrigin,
-    colors: BrowserDisplayToolbarColors,
     progressBarConfig: ProgressBarConfig?,
     browserActionsStart: List<Action> = emptyList(),
     pageActionsStart: List<Action> = emptyList(),
@@ -68,7 +66,7 @@ fun BrowserDisplayToolbar(
 ) {
     Box(
         modifier = Modifier
-            .background(color = colors.background)
+            .background(color = AcornTheme.colors.layer1)
             .fillMaxWidth(),
     ) {
         Row(
@@ -86,7 +84,7 @@ fun BrowserDisplayToolbar(
                     .padding(vertical = 8.dp)
                     .height(40.dp)
                     .background(
-                        color = colors.urlBackground,
+                        color = AcornTheme.colors.layer3,
                         shape = ROUNDED_CORNER_SHAPE,
                     )
                     .weight(1f),
@@ -152,11 +150,6 @@ private fun BrowserDisplayToolbarPreview() {
                 title = null,
                 url = null,
                 onClick = object : BrowserToolbarEvent {},
-            ),
-            colors = BrowserDisplayToolbarColors(
-                background = AcornTheme.colors.layer1,
-                urlBackground = AcornTheme.colors.layer3,
-                text = AcornTheme.colors.textPrimary,
             ),
             progressBarConfig = ProgressBarConfig(
                 progress = 66,

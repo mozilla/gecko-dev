@@ -8,8 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import mozilla.components.compose.browser.toolbar.BrowserDisplayToolbar
 import mozilla.components.compose.browser.toolbar.BrowserEditToolbar
-import mozilla.components.compose.browser.toolbar.BrowserToolbarColors
-import mozilla.components.compose.browser.toolbar.BrowserToolbarDefaults
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.lib.state.ext.observeAsState
@@ -24,7 +22,6 @@ import mozilla.components.lib.state.ext.observeAsState
  * @param onTextEdit Invoked when the user edits the text in the toolbar in "edit" mode.
  * @param onTextCommit Invoked when the user has finished editing the URL and wants
  * to commit the entered text.
- * @param colors The color scheme the browser toolbar will use for the UI.
  */
 @Suppress("MagicNumber")
 @Composable
@@ -32,7 +29,6 @@ fun BrowserToolbar(
     store: BrowserToolbarStore,
     onTextEdit: (String) -> Unit,
     onTextCommit: (String) -> Unit,
-    colors: BrowserToolbarColors = BrowserToolbarDefaults.colors(),
     url: String = "",
 ) {
     val uiState by store.observeAsState(initialValue = store.state) { it }
@@ -46,7 +42,6 @@ fun BrowserToolbar(
     if (uiState.isEditMode()) {
         BrowserEditToolbar(
             url = input,
-            colors = colors.editToolbarColors,
             editActionsStart = uiState.editState.editActionsStart,
             editActionsEnd = uiState.editState.editActionsEnd,
             onUrlCommitted = { text -> onTextCommit(text) },
@@ -56,7 +51,6 @@ fun BrowserToolbar(
     } else {
         BrowserDisplayToolbar(
             pageOrigin = uiState.displayState.pageOrigin,
-            colors = colors.displayToolbarColors,
             progressBarConfig = progressBarConfig,
             browserActionsStart = uiState.displayState.browserActionsStart,
             pageActionsStart = uiState.displayState.pageActionsStart,

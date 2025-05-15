@@ -43,7 +43,6 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
  * URL ("edit mode").
  *
  * @param url The initial URL to be edited.
- * @param colors The color scheme to use in the browser edit toolbar.
  * @param useComposeTextField Whether or not to use the Compose [TextField] or a view-based
  * inline autocomplete text field.
  * @param editActionsStart List of [Action]s to be displayed at the start of the URL of
@@ -60,7 +59,6 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
 @Suppress("LongMethod")
 fun BrowserEditToolbar(
     url: String,
-    colors: BrowserEditToolbarColors,
     useComposeTextField: Boolean = false,
     editActionsStart: List<Action> = emptyList(),
     editActionsEnd: List<Action> = emptyList(),
@@ -70,10 +68,10 @@ fun BrowserEditToolbar(
 ) {
     Row(
         modifier = Modifier
-            .background(color = colors.background)
+            .background(color = AcornTheme.colors.layer1)
             .padding(all = 8.dp)
             .background(
-                color = colors.urlBackground,
+                color = AcornTheme.colors.layer3,
                 shape = ROUNDED_CORNER_SHAPE,
             ),
         verticalAlignment = Alignment.CenterVertically,
@@ -85,7 +83,7 @@ fun BrowserEditToolbar(
                     onUrlEdit(value)
                 },
                 colors = TextFieldDefaults.textFieldColors(
-                    textColor = colors.text,
+                    textColor = AcornTheme.colors.textPrimary,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     disabledIndicatorColor = Color.Transparent,
@@ -116,7 +114,7 @@ fun BrowserEditToolbar(
 
                         if (url.isNotEmpty()) {
                             ClearButton(
-                                tint = colors.clearButton,
+                                tint = AcornTheme.colors.iconPrimary,
                                 onButtonClicked = { onUrlEdit("") },
                             )
                         }
@@ -131,7 +129,6 @@ fun BrowserEditToolbar(
 
             InlineAutocompleteTextField(
                 url = url,
-                colors = colors,
                 modifier = Modifier.weight(1f),
                 onUrlEdit = onUrlEdit,
                 onUrlCommitted = onUrlCommitted,
@@ -144,7 +141,7 @@ fun BrowserEditToolbar(
 
             if (url.isNotEmpty()) {
                 ClearButton(
-                    tint = colors.clearButton,
+                    tint = AcornTheme.colors.iconPrimary,
                     onButtonClicked = { onUrlEdit("") },
                 )
             }
@@ -181,7 +178,6 @@ private fun BrowserEditToolbarPreview() {
     AcornTheme {
         BrowserEditToolbar(
             url = "http://www.mozilla.org",
-            colors = BrowserToolbarDefaults.colors().editToolbarColors,
             useComposeTextField = true,
             editActionsStart = listOf(
                 DropdownAction(

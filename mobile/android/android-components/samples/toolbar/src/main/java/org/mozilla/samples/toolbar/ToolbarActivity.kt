@@ -39,7 +39,6 @@ import mozilla.components.browser.menu2.BrowserMenuController
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.display.DisplayToolbar
 import mozilla.components.compose.base.theme.AcornTheme
-import mozilla.components.compose.browser.toolbar.BrowserToolbarDefaults
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
@@ -559,7 +558,6 @@ class ToolbarActivity : AppCompatActivity() {
                     store = store,
                     onTextEdit = {},
                     onTextCommit = {},
-                    colors = BrowserToolbarDefaults.colors(),
                     url = "https://www.mozilla.org/en-US/firefox/mobile/",
                 )
             }

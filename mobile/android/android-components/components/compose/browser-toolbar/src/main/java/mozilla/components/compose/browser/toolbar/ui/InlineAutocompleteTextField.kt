@@ -14,7 +14,6 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.viewinterop.AndroidView
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserEditToolbar
-import mozilla.components.compose.browser.toolbar.BrowserEditToolbarColors
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
 
 /**
@@ -24,18 +23,19 @@ import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
 @Composable
 internal fun InlineAutocompleteTextField(
     url: String,
-    colors: BrowserEditToolbarColors,
     modifier: Modifier = Modifier,
     onUrlEdit: (String) -> Unit = {},
     onUrlCommitted: (String) -> Unit = {},
 ) {
+    val textColor = AcornTheme.colors.textPrimary
+
     AndroidView(
         factory = { context ->
             InlineAutocompleteEditText(context).apply {
                 inputType = TYPE_CLASS_TEXT or TYPE_TEXT_VARIATION_URI
                 gravity = Gravity.CENTER_VERTICAL
                 setLines(1)
-                setTextColor(colors.text.toArgb())
+                setTextColor(textColor.toArgb())
 
                 setText(text = url, shouldAutoComplete = false)
 
@@ -55,15 +55,7 @@ internal fun InlineAutocompleteTextField(
 @PreviewLightDark
 @Composable
 private fun BrowserEditToolbarPreview() {
-    AcornTheme {
-        InlineAutocompleteTextField(
-            url = "http://www.mozilla.org",
-            colors = BrowserEditToolbarColors(
-                background = AcornTheme.colors.layer1,
-                urlBackground = AcornTheme.colors.layer3,
-                text = AcornTheme.colors.textPrimary,
-                clearButton = AcornTheme.colors.iconPrimary,
-            ),
-        )
-    }
+    InlineAutocompleteTextField(
+        url = "http://www.mozilla.org",
+    )
 }

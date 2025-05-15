@@ -37,13 +37,12 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
 @Composable
 fun HomepageDisplayToolbar(
     url: String,
-    colors: BrowserDisplayToolbarColors,
     textStyle: TextStyle = LocalTextStyle.current,
     onUrlClicked: () -> Unit = {},
 ) {
     Row(
         modifier = Modifier
-            .background(color = colors.background)
+            .background(color = AcornTheme.colors.layer1)
             .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -58,7 +57,7 @@ fun HomepageDisplayToolbar(
                     shape = ROUNDED_CORNER_SHAPE,
                 )
                 .background(
-                    color = colors.urlBackground,
+                    color = AcornTheme.colors.layer3,
                     shape = ROUNDED_CORNER_SHAPE,
                 )
                 .weight(1f),
@@ -66,7 +65,7 @@ fun HomepageDisplayToolbar(
         ) {
             Text(
                 url,
-                color = colors.text,
+                color = AcornTheme.colors.textPrimary,
                 modifier = Modifier
                     .clickable { onUrlClicked() }
                     .padding(8.dp)
@@ -86,11 +85,6 @@ private fun HomepageDisplayToolbarPreview() {
     AcornTheme {
         HomepageDisplayToolbar(
             url = "http://www.mozilla.org",
-            colors = BrowserDisplayToolbarColors(
-                background = AcornTheme.colors.layer1,
-                urlBackground = AcornTheme.colors.layer3,
-                text = AcornTheme.colors.textPrimary,
-            ),
         )
     }
 }

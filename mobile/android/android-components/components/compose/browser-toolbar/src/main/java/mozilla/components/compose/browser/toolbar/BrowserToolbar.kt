@@ -6,10 +6,19 @@ package mozilla.components.compose.browser.toolbar
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import mozilla.components.browser.state.helper.Target
+import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.compose.base.theme.AcornTheme
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.compose.browser.toolbar.store.DisplayState
+import mozilla.components.compose.browser.toolbar.store.EditState
+import mozilla.components.compose.browser.toolbar.store.Mode
 import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.lib.state.ext.observeAsState
 
@@ -27,7 +36,6 @@ import mozilla.components.lib.state.ext.observeAsState
  * "edit" mode.
  * @param onTextCommit Function to get executed when the user has finished editing the URL and wants
  * to load the entered text.
- * @param colors The color scheme the browser toolbar will use for the UI.
  */
 @Composable
 fun BrowserToolbar(
@@ -36,7 +44,6 @@ fun BrowserToolbar(
     target: Target,
     onTextEdit: (String) -> Unit,
     onTextCommit: (String) -> Unit,
-    colors: BrowserToolbarColors = BrowserToolbarDefaults.colors(),
 ) {
     val uiState by store.observeAsState(initialValue = store.state) { it }
     val selectedTab: SessionState? by target.observeAsComposableStateFrom(
@@ -54,7 +61,6 @@ fun BrowserToolbar(
     if (uiState.isEditMode()) {
         BrowserEditToolbar(
             url = input,
-            colors = colors.editToolbarColors,
             editActionsStart = uiState.editState.editActionsStart,
             editActionsEnd = uiState.editState.editActionsEnd,
             onUrlCommitted = { text -> onTextCommit(text) },
@@ -64,13 +70,77 @@ fun BrowserToolbar(
     } else {
         BrowserDisplayToolbar(
             pageOrigin = uiState.displayState.pageOrigin,
-            colors = colors.displayToolbarColors,
             progressBarConfig = progressBarConfig,
             browserActionsStart = uiState.displayState.browserActionsStart,
             pageActionsStart = uiState.displayState.pageActionsStart,
             pageActionsEnd = uiState.displayState.pageActionsEnd,
             browserActionsEnd = uiState.displayState.browserActionsEnd,
             onInteraction = { store.dispatch(it) },
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun BrowserToolbarPreview_EditMode() {
+    // Mock edit state
+    val editState = EditState(
+        editText = "https://www.mozilla.org",
+        editActionsStart = emptyList(),
+        editActionsEnd = emptyList(),
+    )
+    val toolbarState = BrowserToolbarState(
+        mode = Mode.EDIT,
+        editState = editState,
+    )
+    val store = BrowserToolbarStore(initialState = toolbarState)
+    val browserStore = BrowserStore(BrowserState())
+    val target = Target.SelectedTab
+
+    AcornTheme {
+        BrowserToolbar(
+            store = store,
+            browserStore = browserStore,
+            target = target,
+            onTextEdit = {},
+            onTextCommit = {},
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun BrowserToolbarPreview_DisplayMode() {
+    val mockPageOrigin = PageOrigin(
+        hint = 0,
+        title = "Preview Title",
+        url = "https://www.mozilla.org",
+        onClick = object : BrowserToolbarInteraction.BrowserToolbarEvent {},
+        onLongClick = null,
+        textGravity = PageOrigin.Companion.TextGravity.TEXT_GRAVITY_START,
+    )
+    val displayState = DisplayState(
+        pageOrigin = mockPageOrigin,
+        browserActionsStart = emptyList(),
+        pageActionsStart = emptyList(),
+        pageActionsEnd = emptyList(),
+        browserActionsEnd = emptyList(),
+    )
+    val toolbarState = BrowserToolbarState(
+        mode = Mode.DISPLAY,
+        displayState = displayState,
+    )
+    val store = BrowserToolbarStore(initialState = toolbarState)
+    val browserStore = BrowserStore(BrowserState())
+    val target = Target.SelectedTab
+
+    AcornTheme {
+        BrowserToolbar(
+            store = store,
+            browserStore = browserStore,
+            target = target,
+            onTextEdit = {},
+            onTextCommit = {},
         )
     }
 }
