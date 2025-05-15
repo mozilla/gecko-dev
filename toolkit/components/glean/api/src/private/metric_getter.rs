@@ -519,7 +519,12 @@ macro_rules! define_metric_metadata_getter {
                 }
 
                 // A dynamic ID means that we have a JOG metric
-                // Look up the wrapped labeled metric from the dynamic maps
+                // Look up the wrapped labeled metric from the dynamic maps.
+                //
+                // Warning: We acquire the read lock for the labeled map here, and the lock
+                // remains held until `dynamic_map` is dropped at the end of this function.
+                // Nothing called from this function is allowed grab a write lock on the dynamic
+                // map, or there will be a deadlock!
                 let dynamic_map =
                     once_cell::sync::Lazy::get(&crate::factory::__jog_metric_maps::$labeled_map)
                         .ok_or(crate::private::LookupError::JOGMetricMapWasUninit)?
@@ -531,27 +536,35 @@ macro_rules! define_metric_metadata_getter {
                     .get(&id)
                     .ok_or(crate::private::LookupError::JOGMetricMapLookupFailed)?;
 
-                // We can't directly use labeled to get a metric instance, as
-                // we don't know the label. Instead, we use the base metric
-                // id to find the label using the static submetric map.
-                let map =
-                    crate::metrics::__glean_metric_maps::submetric_maps::LABELED_METRICS_TO_IDS
-                        .read()
-                        .or(Err(
-                            crate::private::LookupError::FOGSubmetricMapLockWasPoisoned,
-                        ))?;
+                let label_string = {
+                    // We can't directly use labeled to get a metric instance, as
+                    // we don't know the label. Instead, we use the base metric
+                    // id to find the label using the static submetric map.
+                    // Warning: We acquire the read lock for LABELED_METRICS_TO_IDS
+                    // here, and the lock remains held until `map` is dropped at the end of
+                    // this scope.
+                    let map =
+                        crate::metrics::__glean_metric_maps::submetric_maps::LABELED_METRICS_TO_IDS
+                            .read()
+                            .or(Err(
+                                crate::private::LookupError::FOGSubmetricMapLockWasPoisoned,
+                            ))?;
 
-                // Iterate over the hash table to find the ID, and extract the
-                // corresponding label.
-                let label = map
-                    .iter()
-                    .find(|((id, _), _)| id == id)
-                    .map(|((_, label), _)| label.clone())
-                    .ok_or(crate::private::LookupError::ReverseSubmetricLookupFailed)?;
+                    // Iterate over the keys of the hash table to find the ID, and extract the
+                    // corresponding label.
+                    map.keys()
+                        .find_map(|(key_id, key_label)| {
+                            if *key_id == id {
+                                Some(key_label.clone())
+                            } else {
+                                None
+                            }
+                        })
+                        .ok_or(crate::private::LookupError::ReverseSubmetricLookupFailed)?
+                };
 
-                let metric = labeled.get(label.as_ref());
-
-                Ok((metric.as_ref().get_metadata(), Some(label.clone())))
+                let metadata = labeled.get(&label_string).get_metadata();
+                Ok((metadata, Some(label_string)))
             }
 
             fn get_sub_metric_metadata_by_id(

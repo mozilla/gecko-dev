@@ -992,104 +992,112 @@ add_task(async function test_jog_labeled_boolean_with_static_labels_markers() {
   ]);
 });
 
-add_task(async function test_fog_event_markers() {
-  let markers = await runWithProfilerAndGetMarkers("EventMetric", () => {
-    // Record an event that produces a marker with `extra` undefined:
-    Glean.testOnlyIpc.noExtraEvent.record();
+add_task(
+  {
+    // Event metrics don't support profile markers in artifact builds due to
+    // having no centralized metric instance storage.
+    skip_if: () =>
+      Services.prefs.getBoolPref("telemetry.fog.artifact_build", false),
+  },
+  async function test_fog_event_markers() {
+    let markers = await runWithProfilerAndGetMarkers("EventMetric", () => {
+      // Record an event that produces a marker with `extra` undefined:
+      Glean.testOnlyIpc.noExtraEvent.record();
 
-    let extra = { extra1: "can set extras", extra2: "passing more data" };
-    Glean.testOnlyIpc.anEvent.record(extra);
+      let extra = { extra1: "can set extras", extra2: "passing more data" };
+      Glean.testOnlyIpc.anEvent.record(extra);
 
-    // Corner case: Event with extra with `undefined` value.
-    // Should pretend that the extra key (extra1) isn't there.
-    let extraWithUndef = { extra1: undefined, extra2: "defined" };
-    Glean.testOnlyIpc.anEvent.record(extraWithUndef);
+      // Corner case: Event with extra with `undefined` value.
+      // Should pretend that the extra key (extra1) isn't there.
+      let extraWithUndef = { extra1: undefined, extra2: "defined" };
+      Glean.testOnlyIpc.anEvent.record(extraWithUndef);
 
-    let extra2 = {
-      extra1: "can set extras",
-      extra2: 37,
-      extra3_longer_name: false,
-    };
-    Glean.testOnlyIpc.eventWithExtra.record(extra2);
-
-    // camelCase extras work.
-    let extra5 = {
-      extra4CamelCase: false,
-    };
-    Glean.testOnlyIpc.eventWithExtra.record(extra5);
-
-    // Passing `null` works.
-    Glean.testOnlyIpc.eventWithExtra.record(null);
-
-    // Invalid extra keys don't crash, the event is not recorded,
-    // but an error and marker are recorded.
-    let extra3 = {
-      extra1_nonexistent_extra: "this does not crash",
-    };
-    Glean.testOnlyIpc.eventWithExtra.record(extra3);
-
-    // Supplying extras when there aren't any defined results in the event not
-    // being recorded, but an error is, along with a marker
-    Glean.testOnlyIpc.noExtraEvent.record(extra3);
-  });
-
-  let expected_markers = [
-    {
-      type: "EventMetric",
-      id: "testOnlyIpc.noExtraEvent",
-    },
-    {
-      type: "EventMetric",
-      id: "testOnlyIpc.anEvent",
-      extra: { extra1: "can set extras", extra2: "passing more data" },
-    },
-    {
-      type: "EventMetric",
-      id: "testOnlyIpc.anEvent",
-      extra: { extra2: "defined" },
-    },
-    {
-      type: "EventMetric",
-      id: "testOnlyIpc.eventWithExtra",
-      extra: {
-        extra3_longer_name: "false",
-        extra2: "37",
+      let extra2 = {
         extra1: "can set extras",
+        extra2: 37,
+        extra3_longer_name: false,
+      };
+      Glean.testOnlyIpc.eventWithExtra.record(extra2);
+
+      // camelCase extras work.
+      let extra5 = {
+        extra4CamelCase: false,
+      };
+      Glean.testOnlyIpc.eventWithExtra.record(extra5);
+
+      // Passing `null` works.
+      Glean.testOnlyIpc.eventWithExtra.record(null);
+
+      // Invalid extra keys don't crash, the event is not recorded,
+      // but an error and marker are recorded.
+      let extra3 = {
+        extra1_nonexistent_extra: "this does not crash",
+      };
+      Glean.testOnlyIpc.eventWithExtra.record(extra3);
+
+      // Supplying extras when there aren't any defined results in the event not
+      // being recorded, but an error is, along with a marker
+      Glean.testOnlyIpc.noExtraEvent.record(extra3);
+    });
+
+    let expected_markers = [
+      {
+        type: "EventMetric",
+        id: "testOnlyIpc.noExtraEvent",
       },
-    },
-    {
-      type: "EventMetric",
-      id: "testOnlyIpc.eventWithExtra",
-      extra: { extra4CamelCase: "false" },
-    },
-    {
-      type: "EventMetric",
-      id: "testOnlyIpc.eventWithExtra",
-    },
-    // This event throws an error in glean, but we still record a marker
-    {
-      type: "EventMetric",
-      id: "testOnlyIpc.eventWithExtra",
-      extra: { extra1_nonexistent_extra: "this does not crash" },
-    },
-    // This event throws an error in glean, but we still record a marker
-    {
-      type: "EventMetric",
-      id: "testOnlyIpc.noExtraEvent",
-      extra: { extra1_nonexistent_extra: "this does not crash" },
-    },
-  ];
+      {
+        type: "EventMetric",
+        id: "testOnlyIpc.anEvent",
+        extra: { extra1: "can set extras", extra2: "passing more data" },
+      },
+      {
+        type: "EventMetric",
+        id: "testOnlyIpc.anEvent",
+        extra: { extra2: "defined" },
+      },
+      {
+        type: "EventMetric",
+        id: "testOnlyIpc.eventWithExtra",
+        extra: {
+          extra3_longer_name: "false",
+          extra2: "37",
+          extra1: "can set extras",
+        },
+      },
+      {
+        type: "EventMetric",
+        id: "testOnlyIpc.eventWithExtra",
+        extra: { extra4CamelCase: "false" },
+      },
+      {
+        type: "EventMetric",
+        id: "testOnlyIpc.eventWithExtra",
+      },
+      // This event throws an error in glean, but we still record a marker
+      {
+        type: "EventMetric",
+        id: "testOnlyIpc.eventWithExtra",
+        extra: { extra1_nonexistent_extra: "this does not crash" },
+      },
+      // This event throws an error in glean, but we still record a marker
+      {
+        type: "EventMetric",
+        id: "testOnlyIpc.noExtraEvent",
+        extra: { extra1_nonexistent_extra: "this does not crash" },
+      },
+    ];
 
-  // Parse the `extra` field of each marker into a JS object so that we can do
-  // a deep equality check, ignoring undefined extras.
-  markers.forEach(m => {
-    if (m.extra !== undefined) {
-      m.extra = JSON.parse(m.extra);
-    }
-  });
+    // Parse the `extra` field of each marker into a JS object so that we can do
+    // a deep equality check, ignoring undefined extras.
+    markers.forEach(m => {
+      if (m.extra !== undefined) {
+        m.extra = JSON.parse(m.extra);
+      }
+    });
 
-  Assert.deepEqual(markers, expected_markers);
-});
+    Assert.deepEqual(markers, expected_markers);
+  }
+);
 
 add_task(async function test_fog_memory_distribution() {
   let markers = await runWithProfilerAndGetMarkers("DistMetric", () => {
@@ -1830,144 +1838,58 @@ add_task(async function test_fog_text_unusual_character() {
   ]);
 });
 
-add_task(async function test_fog_object_markers() {
-  if (!Glean.testOnly.balloons) {
-    // FIXME(bug 1883857): object metric type not available, e.g. in artifact builds.
-    // Skipping this test.
-    return;
-  }
-  let markers = await runWithProfilerAndGetMarkers("ObjectMetric", () => {
-    let balloons = [
-      { colour: "red", diameter: 5 },
-      { colour: "blue", diameter: 7 },
-      { colour: "orange" },
-    ];
-    Glean.testOnly.balloons.set(balloons);
-
-    // These values are coerced to null or removed.
-    balloons = [
-      { colour: "inf", diameter: Infinity },
-      { colour: "negative-inf", diameter: -1 / 0 },
-      { colour: "nan", diameter: NaN },
-      { colour: "undef", diameter: undefined },
-    ];
-    Glean.testOnly.balloons.set(balloons);
-
-    // colour != color.
-    // This is invalid, but still produces a marker!
-    let invalid = [{ color: "orange" }, { color: "red", diameter: "small" }];
-    Glean.testOnly.balloons.set(invalid);
-
-    Services.fog.testResetFOG();
-
-    // set again to ensure it's stored
-    balloons = [
-      { colour: "red", diameter: 5 },
-      { colour: "blue", diameter: 7 },
-    ];
-    Glean.testOnly.balloons.set(balloons);
-
-    // Again, invalid, but produces a marker
-    invalid = [{ colour: "red", diameter: 5, extra: "field" }];
-    Glean.testOnly.balloons.set(invalid);
-
-    // More complex objects:
-    Glean.testOnly.crashStack.set({});
-
-    let stack = {
-      status: "OK",
-      crash_info: {
-        typ: "main",
-        address: "0xf001ba11",
-        crashing_thread: 1,
-      },
-      main_module: 0,
-      modules: [
-        {
-          base_addr: "0x00000000",
-          end_addr: "0x00004000",
-        },
-      ],
-    };
-
-    Glean.testOnly.crashStack.set(stack);
-
-    stack = {
-      status: "OK",
-      modules: [
-        {
-          base_addr: "0x00000000",
-          end_addr: "0x00004000",
-        },
-      ],
-    };
-    Glean.testOnly.crashStack.set(stack);
-
-    stack = {
-      status: "OK",
-      modules: [],
-    };
-    Glean.testOnly.crashStack.set(stack);
-
-    stack = {
-      status: "OK",
-    };
-    Glean.testOnly.crashStack.set(stack);
-  });
-
-  let expected_markers = [
-    {
-      type: "ObjectMetric",
-      id: "testOnly.balloons",
-      value: [
+add_task(
+  {
+    // Object metrics don't support profile markers in artifact builds due to
+    // having no centralized metric instance storage.
+    skip_if: () =>
+      Services.prefs.getBoolPref("telemetry.fog.artifact_build", false),
+  },
+  async function test_fog_object_markers() {
+    if (!Glean.testOnly.balloons) {
+      // FIXME(bug 1883857): object metric type not available, e.g. in artifact builds.
+      // Skipping this test.
+      return;
+    }
+    let markers = await runWithProfilerAndGetMarkers("ObjectMetric", () => {
+      let balloons = [
         { colour: "red", diameter: 5 },
         { colour: "blue", diameter: 7 },
         { colour: "orange" },
-      ],
-    },
-    // Check that values are coerced or removed
-    {
-      type: "ObjectMetric",
-      id: "testOnly.balloons",
-      value: [
-        { colour: "inf", diameter: null },
-        { colour: "negative-inf", diameter: null },
-        { colour: "nan", diameter: null },
-        { colour: "undef" },
-      ],
-    },
-    // Invalid glean object, but still produces a marker
-    {
-      type: "ObjectMetric",
-      id: "testOnly.balloons",
-      value: [{ color: "orange" }, { color: "red", diameter: "small" }],
-    },
+      ];
+      Glean.testOnly.balloons.set(balloons);
 
-    {
-      type: "ObjectMetric",
-      id: "testOnly.balloons",
-      value: [
+      // These values are coerced to null or removed.
+      balloons = [
+        { colour: "inf", diameter: Infinity },
+        { colour: "negative-inf", diameter: -1 / 0 },
+        { colour: "nan", diameter: NaN },
+        { colour: "undef", diameter: undefined },
+      ];
+      Glean.testOnly.balloons.set(balloons);
+
+      // colour != color.
+      // This is invalid, but still produces a marker!
+      let invalid = [{ color: "orange" }, { color: "red", diameter: "small" }];
+      Glean.testOnly.balloons.set(invalid);
+
+      Services.fog.testResetFOG();
+
+      // set again to ensure it's stored
+      balloons = [
         { colour: "red", diameter: 5 },
         { colour: "blue", diameter: 7 },
-      ],
-    },
-    // Invalid glean object, but still produces a marker
-    {
-      type: "ObjectMetric",
-      id: "testOnly.balloons",
-      value: [{ colour: "red", diameter: 5, extra: "field" }],
-    },
+      ];
+      Glean.testOnly.balloons.set(balloons);
 
-    {
-      type: "ObjectMetric",
-      id: "testOnly.crashStack",
-      value: {},
-    },
+      // Again, invalid, but produces a marker
+      invalid = [{ colour: "red", diameter: 5, extra: "field" }];
+      Glean.testOnly.balloons.set(invalid);
 
-    {
-      type: "ObjectMetric",
-      id: "testOnly.crashStack",
-      value: {
+      // More complex objects:
+      Glean.testOnly.crashStack.set({});
+
+      let stack = {
         status: "OK",
         crash_info: {
           typ: "main",
@@ -1975,41 +1897,135 @@ add_task(async function test_fog_object_markers() {
           crashing_thread: 1,
         },
         main_module: 0,
-        modules: [{ base_addr: "0x00000000", end_addr: "0x00004000" }],
-      },
-    },
-    {
-      type: "ObjectMetric",
-      id: "testOnly.crashStack",
-      value: {
+        modules: [
+          {
+            base_addr: "0x00000000",
+            end_addr: "0x00004000",
+          },
+        ],
+      };
+
+      Glean.testOnly.crashStack.set(stack);
+
+      stack = {
         status: "OK",
-        modules: [{ base_addr: "0x00000000", end_addr: "0x00004000" }],
+        modules: [
+          {
+            base_addr: "0x00000000",
+            end_addr: "0x00004000",
+          },
+        ],
+      };
+      Glean.testOnly.crashStack.set(stack);
+
+      stack = {
+        status: "OK",
+        modules: [],
+      };
+      Glean.testOnly.crashStack.set(stack);
+
+      stack = {
+        status: "OK",
+      };
+      Glean.testOnly.crashStack.set(stack);
+    });
+
+    let expected_markers = [
+      {
+        type: "ObjectMetric",
+        id: "testOnly.balloons",
+        value: [
+          { colour: "red", diameter: 5 },
+          { colour: "blue", diameter: 7 },
+          { colour: "orange" },
+        ],
       },
-    },
-    // Modules gets erased within Glean, but it still shows up in a marker
-    {
-      type: "ObjectMetric",
-      id: "testOnly.crashStack",
-      value: { status: "OK", modules: [] },
-    },
+      // Check that values are coerced or removed
+      {
+        type: "ObjectMetric",
+        id: "testOnly.balloons",
+        value: [
+          { colour: "inf", diameter: null },
+          { colour: "negative-inf", diameter: null },
+          { colour: "nan", diameter: null },
+          { colour: "undef" },
+        ],
+      },
+      // Invalid glean object, but still produces a marker
+      {
+        type: "ObjectMetric",
+        id: "testOnly.balloons",
+        value: [{ color: "orange" }, { color: "red", diameter: "small" }],
+      },
 
-    {
-      type: "ObjectMetric",
-      id: "testOnly.crashStack",
-      value: { status: "OK" },
-    },
-  ];
+      {
+        type: "ObjectMetric",
+        id: "testOnly.balloons",
+        value: [
+          { colour: "red", diameter: 5 },
+          { colour: "blue", diameter: 7 },
+        ],
+      },
+      // Invalid glean object, but still produces a marker
+      {
+        type: "ObjectMetric",
+        id: "testOnly.balloons",
+        value: [{ colour: "red", diameter: 5, extra: "field" }],
+      },
 
-  // Parse the `value` field of each marker into a JS object so that we can do
-  // a deep equality check, ignoring undefined values.
-  markers.forEach(m => {
-    if (m.value !== undefined) {
-      m.value = JSON.parse(m.value);
-    }
-  });
+      {
+        type: "ObjectMetric",
+        id: "testOnly.crashStack",
+        value: {},
+      },
 
-  Assert.deepEqual(markers, expected_markers);
-});
+      {
+        type: "ObjectMetric",
+        id: "testOnly.crashStack",
+        value: {
+          status: "OK",
+          crash_info: {
+            typ: "main",
+            address: "0xf001ba11",
+            crashing_thread: 1,
+          },
+          main_module: 0,
+          modules: [{ base_addr: "0x00000000", end_addr: "0x00004000" }],
+        },
+      },
+      {
+        type: "ObjectMetric",
+        id: "testOnly.crashStack",
+        value: {
+          status: "OK",
+          modules: [{ base_addr: "0x00000000", end_addr: "0x00004000" }],
+        },
+      },
+      // Modules gets erased within Glean, but it still shows up in a marker
+      {
+        type: "ObjectMetric",
+        id: "testOnly.crashStack",
+        value: { status: "OK", modules: [] },
+      },
+
+      {
+        type: "ObjectMetric",
+        id: "testOnly.crashStack",
+        value: { status: "OK" },
+      },
+    ];
+
+    // Parse the `value` field of each marker into a JS object so that we can do
+    // a deep equality check, ignoring undefined values.
+    markers.forEach(m => {
+      if (m.value !== undefined) {
+        m.value = JSON.parse(m.value);
+      }
+    });
+
+    Assert.deepEqual(markers, expected_markers);
+  }
+);
 
 add_task(
   // FIXME(1898464): ride-along pings are not handled correctly in artifact builds.
