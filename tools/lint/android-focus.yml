@@ -1,7 +1,7 @@
 ---
 android-focus:
     description: Android formatting lint for Focus
-    include: ['mobile/android']
+    include: ['mobile/android/focus-android']
     exclude: []
     extensions: ['java', 'kt']
     support-files:
