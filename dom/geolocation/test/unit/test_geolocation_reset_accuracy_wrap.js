@@ -26,9 +26,9 @@ var provider = {
 };
 
 function run_test() {
-  // XPCShell does not get a profile by default. The geolocation service
-  // depends on the settings service which uses IndexedDB and IndexedDB
-  // needs a place where it can store databases.
+  // XPCShell does not get a profile by default. The ContentParent
+  // depends on the remote settings service which uses IndexedDB and
+  // IndexedDB needs a place where it can store databases.
   do_get_profile();
 
   Components.manager.nsIComponentRegistrar.registerFactory(
