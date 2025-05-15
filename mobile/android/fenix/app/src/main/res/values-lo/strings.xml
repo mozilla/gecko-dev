@@ -631,6 +631,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">ການທ່ອງເວັບທີ່ວ່ອງໄວ ແລະ ປອດໄພ</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">ເຫັນດີ ແລະ ສືບຕໍ່</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">ສືບຕໍ່</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">ໂດຍການດຳເນີນການຕໍ່, ທ່ານເຫັນດີນຳ %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1479,7 +1481,7 @@
   -->
   <string name="download_multi_select_title">ເລືອກ %1$d ແລ້ວ</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">ລຶບ</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">ລຶບ</string>
   <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
   <string name="download_file_has_not_enough_storage_dialog_title">ບໍ່ມີພື້ນທີ່ພຽງພໍ</string>
   <!--

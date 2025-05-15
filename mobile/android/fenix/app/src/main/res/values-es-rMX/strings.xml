@@ -1436,7 +1436,7 @@
   -->
   <string name="download_multi_select_title">%1$d seleccionadas</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Remover</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Remover</string>
   <!--
     WebCompat Reporter
 

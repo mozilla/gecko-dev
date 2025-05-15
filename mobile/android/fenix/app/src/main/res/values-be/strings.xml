@@ -1228,7 +1228,7 @@
   -->
   <string name="download_multi_select_title">Вылучана: %1$d</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Выдаліць</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Выдаліць</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other_1">Іншыя</string>
   <!--

@@ -845,7 +845,7 @@
   -->
   <string name="download_multi_select_title">Ôbrane: %1$d</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Skasuj</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Skasuj</string>
   <!--
     Crashes
 

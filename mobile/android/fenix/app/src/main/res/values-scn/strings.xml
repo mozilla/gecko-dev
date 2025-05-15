@@ -633,6 +633,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">Navicazzioni lesta e sicura</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Accetta e cuntinua</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">Cuntinua</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Cuntinuannu, accetti i %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1481,7 +1483,7 @@
   -->
   <string name="download_multi_select_title">%1$d scartati</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Leva</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Leva</string>
   <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
   <string name="download_file_has_not_enough_storage_dialog_title">Ammanca spazziu</string>
   <!--
@@ -1680,6 +1682,8 @@
   <string name="bookmark_menu_delete_button">Scancella</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Sarba</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">Arringu pirsunalizzatu</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">Prima chiḍḍi cchiù novi</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3423,6 +3427,8 @@
   <string name="debug_drawer_override_current_region_label">Suprascrivi a riggiuni attuali</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">Suprascrivi a riggiuni casa e chiḍḍa attuali</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Sustituisci pirmanenti a riggiuni casa</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3591,6 +3597,10 @@
   <string name="pbm_authentication_unlock">Sblocca</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Sblocca i schedi privati</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">Abbìlita bloccu schirmu dî schedi privati</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">Sdisabbìlita bloccu schirmu dî schedi privati</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">Vo\' usari u bloccu dû schermu p\'ammucciari i schedi privati?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->

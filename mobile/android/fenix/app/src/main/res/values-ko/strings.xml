@@ -1483,7 +1483,7 @@
   -->
   <string name="download_multi_select_title">%1$d개 선택됨</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">삭제</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">삭제</string>
   <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
   <string name="download_file_has_not_enough_storage_dialog_title">공간이 충분하지 않음</string>
   <!--
@@ -3427,6 +3427,8 @@
   <string name="debug_drawer_override_current_region_label">현재 지역 재정의</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">홈 및 현재 지역 재정의</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">홈 지역 영구적으로 재정의</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

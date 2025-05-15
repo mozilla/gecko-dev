@@ -632,6 +632,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">Hratt og öruggt vafur á netinu</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Samþykkja og halda áfram</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">Halda áfram</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Með því að halda áfram, samþykkir þú %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1480,7 +1482,7 @@
   -->
   <string name="download_multi_select_title">%1$d valið</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Fjarlægja</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Fjarlægja</string>
   <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
   <string name="download_file_has_not_enough_storage_dialog_title">Ekki nægilegt pláss</string>
   <!--
@@ -1679,6 +1681,8 @@
   <string name="bookmark_menu_delete_button">Eyða</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Vista</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">Raða eftir sérsniðinni röð</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">Raða eftir nýjasta</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3591,6 +3595,10 @@
   <string name="pbm_authentication_unlock">Aflæsa</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Aflæsa huliðsflipum</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">Virkja skjálás fyrir huliðsflipa</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">Gera skjálás fyrir huliðsflipa óvirkan</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">Nota skjálás til að fela huliðsflipa?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
