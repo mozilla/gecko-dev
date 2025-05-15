@@ -40,17 +40,11 @@ CSS_PSEUDO_ELEMENT(backdrop, ":backdrop", 0)
 CSS_PSEUDO_ELEMENT(cue, ":cue", CSS_PSEUDO_ELEMENT_IS_JS_CREATED_NAC |
                                 CSS_PSEUDO_ELEMENT_SUPPORTS_STYLE_ATTRIBUTE)
 
-CSS_PSEUDO_ELEMENT(firstLetter, ":first-letter",
-                   CSS_PSEUDO_ELEMENT_IS_CSS2 |
-                   CSS_PSEUDO_ELEMENT_CONTAINS_ELEMENTS)
-CSS_PSEUDO_ELEMENT(firstLine, ":first-line",
-                   CSS_PSEUDO_ELEMENT_IS_CSS2 |
-                   CSS_PSEUDO_ELEMENT_CONTAINS_ELEMENTS)
+CSS_PSEUDO_ELEMENT(firstLetter, ":first-letter", CSS_PSEUDO_ELEMENT_IS_CSS2)
+CSS_PSEUDO_ELEMENT(firstLine, ":first-line", CSS_PSEUDO_ELEMENT_IS_CSS2)
+
 CSS_PSEUDO_ELEMENT(highlight, ":highlight", 0)
-
-CSS_PSEUDO_ELEMENT(selection, ":selection",
-                   CSS_PSEUDO_ELEMENT_CONTAINS_ELEMENTS)
-
+CSS_PSEUDO_ELEMENT(selection, ":selection", 0)
 CSS_PSEUDO_ELEMENT(targetText, ":target-text", 0)
 
 CSS_PSEUDO_ELEMENT(viewTransition, ":view-transition",

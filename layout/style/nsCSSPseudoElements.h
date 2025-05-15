@@ -21,15 +21,6 @@
 //
 // Note: We also rely on this for IsEagerlyCascadedInServo.
 #define CSS_PSEUDO_ELEMENT_IS_CSS2 (1 << 0)
-// Is this pseudo-element a pseudo-element that can contain other
-// elements?
-// (Currently pseudo-elements are either leaves of the tree (relative to
-// real elements) or they contain other elements in a non-tree-like
-// manner (i.e., like incorrectly-nested start and end tags).  It's
-// possible that in the future there might be container pseudo-elements
-// that form a properly nested tree structure.  If that happens, we
-// should probably split this flag into two.)
-#define CSS_PSEUDO_ELEMENT_CONTAINS_ELEMENTS (1 << 1)
 // Flag to add the ability to take into account style attribute set for the
 // pseudo element (by default it's ignored).
 #define CSS_PSEUDO_ELEMENT_SUPPORTS_STYLE_ATTRIBUTE (1 << 2)
@@ -92,10 +83,6 @@ class nsCSSPseudoElements {
   // PseudoType::CSSPseudoElementsEnd.
   // This only ever returns static atoms, so it's fine to return a raw pointer.
   static nsAtom* GetPseudoAtom(Type aType);
-
-  static bool PseudoElementContainsElements(const Type aType) {
-    return PseudoElementHasFlags(aType, CSS_PSEUDO_ELEMENT_CONTAINS_ELEMENTS);
-  }
 
   static bool PseudoElementSupportsStyleAttribute(const Type aType) {
     MOZ_ASSERT(aType < Type::CSSPseudoElementsEnd);
