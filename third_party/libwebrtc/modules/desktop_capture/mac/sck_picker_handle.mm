@@ -29,10 +29,8 @@ class API_AVAILABLE(macos(14.0)) SckPickerProxy {
     return g_picker;
   }
 
-  SckPickerProxy() : thread_checker_(SequenceChecker::kDetached) {}
-
-  bool AtCapacity() const {
-    RTC_DCHECK_RUN_ON(&thread_checker_);
+  bool AtCapacityLocked() const {
+    mutex_.AssertHeld();
     return handle_count_ == kMaximumStreamCount;
   }
 
@@ -41,9 +39,9 @@ class API_AVAILABLE(macos(14.0)) SckPickerProxy {
   }
 
   ABSL_MUST_USE_RESULT std::optional<DesktopCapturer::SourceId>
-      AcquireSourceId() {
-    RTC_DCHECK_RUN_ON(&thread_checker_);
-    if (AtCapacity()) {
+  AcquireSourceId() {
+    MutexLock lock(&mutex_);
+    if (AtCapacityLocked()) {
       return std::nullopt;
     }
     if (handle_count_ == 0) {
@@ -58,25 +56,26 @@ class API_AVAILABLE(macos(14.0)) SckPickerProxy {
   }
 
   void RelinquishSourceId(DesktopCapturer::SourceId source) {
-    RTC_DCHECK_RUN_ON(&thread_checker_);
+    MutexLock lock(&mutex_);
     handle_count_ -= 1;
     if (handle_count_ > 0) {
       return;
     }
-    // Detach now in case the next user (possibly after a long time) uses a
-    // different thread.
-    thread_checker_.Detach();
     GetPicker().active = NO;
   }
 
  private:
-  webrtc::SequenceChecker thread_checker_;
+  // SckPickerProxy is a process-wide singleton. ScreenCapturerSck and
+  // SckPickerHandle are largely single-threaded but may be used on different
+  // threads. For instance some clients use a capturer on one thread for
+  // enumeration and on another for frame capture. Since all those capturers
+  // share the same SckPickerProxy instance, it must be thread-safe.
+  Mutex mutex_;
   // 100 is an arbitrary number that seems high enough to never get reached,
   // while still providing a reasonably low upper bound.
   static constexpr size_t kMaximumStreamCount = 100;
-  size_t handle_count_ RTC_GUARDED_BY(thread_checker_) = 0;
-  DesktopCapturer::SourceId unique_source_id_ RTC_GUARDED_BY(thread_checker_) =
-      0;
+  size_t handle_count_ RTC_GUARDED_BY(mutex_) = 0;
+  DesktopCapturer::SourceId unique_source_id_ RTC_GUARDED_BY(mutex_) = 0;
 };
 
 class API_AVAILABLE(macos(14.0)) SckPickerHandle
@@ -90,7 +89,10 @@ class API_AVAILABLE(macos(14.0)) SckPickerHandle
     return std::unique_ptr<SckPickerHandle>(new SckPickerHandle(proxy, *id));
   }
 
-  ~SckPickerHandle() { proxy_->RelinquishSourceId(source_); }
+  ~SckPickerHandle() {
+    RTC_DCHECK_RUN_ON(&thread_checker_);
+    proxy_->RelinquishSourceId(source_);
+  }
 
   SCContentSharingPicker* GetPicker() const override {
     return proxy_->GetPicker();
@@ -100,8 +102,11 @@ class API_AVAILABLE(macos(14.0)) SckPickerHandle
 
  private:
   SckPickerHandle(SckPickerProxy* proxy, DesktopCapturer::SourceId source)
-      : proxy_(proxy), source_(source) {}
+      : proxy_(proxy), source_(source) {
+    RTC_DCHECK_RUN_ON(&thread_checker_);
+  }
 
+  webrtc::SequenceChecker thread_checker_;
   SckPickerProxy* const proxy_;
   const DesktopCapturer::SourceId source_;
 };
