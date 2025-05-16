@@ -190,7 +190,7 @@ export const ExperimentAPI = {
     // If Nimbus was disabled between the start of this function and registering
     // the pref observers we have not handled it yet.
     if (studiesEnabled !== this.studiesEnabled) {
-      this._onStudiesEnabledChanged();
+      await this._onStudiesEnabledChanged();
     }
 
     return true;
@@ -278,10 +278,12 @@ export const ExperimentAPI = {
     }
   },
 
-  _onStudiesEnabledChanged() {
+  async _onStudiesEnabledChanged() {
     if (!this.studiesEnabled) {
       this.manager._handleStudiesOptOut();
     }
+
+    await this._rsLoader.onEnabledPrefChange();
 
     Services.obs.notifyObservers(null, this.STUDIES_ENABLED_CHANGED);
   },

@@ -49,8 +49,6 @@ const NIMBUS_DEBUG_PREF = "nimbus.debug";
 const NIMBUS_VALIDATION_PREF = "nimbus.validation.enabled";
 const NIMBUS_APPID_PREF = "nimbus.appId";
 
-const STUDIES_ENABLED_CHANGED = "nimbus:studies-enabled-changed";
-
 const SECURE_EXPERIMENTS_COLLECTION_ID = "nimbus-secure-experiments";
 
 const EXPERIMENTS_COLLECTION = "experiments";
@@ -203,8 +201,6 @@ export class _RemoteSettingsExperimentLoader {
         return lazy.RemoteSettings(SECURE_EXPERIMENTS_COLLECTION_ID);
       }
     );
-
-    Services.obs.addObserver(this, STUDIES_ENABLED_CHANGED);
 
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
@@ -596,20 +592,14 @@ export class _RemoteSettingsExperimentLoader {
    * Changing this pref to false will turn off any recipe fetching and
    * processing.
    */
-  onEnabledPrefChange() {
+  async onEnabledPrefChange() {
     if (this._enabled && !lazy.ExperimentAPI.studiesEnabled) {
       this.disable();
     } else if (!this._enabled && lazy.ExperimentAPI.studiesEnabled) {
       // If the feature pref is turned on then turn on recipe processing.
       // If the opt in pref is turned on then turn on recipe processing only if
       // the feature pref is also enabled.
-      this.enable();
-    }
-  }
-
-  observe(aSubect, aTopic) {
-    if (aTopic === STUDIES_ENABLED_CHANGED) {
-      this.onEnabledPrefChange();
+      await this.enable();
     }
   }
 
