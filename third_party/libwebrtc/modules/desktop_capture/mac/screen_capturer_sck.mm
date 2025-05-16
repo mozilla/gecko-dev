@@ -73,6 +73,10 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
   // `content` will be nil if an error occurred. May run on an arbitrary thread.
   void OnShareableContentCreated(SCShareableContent* content, NSError* error);
 
+  // Start capture with the given filter. Creates or updates stream_ as needed.
+  void StartWithFilter(SCContentFilter* filter)
+      RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
+
   // Called by SckHelper to notify of a newly captured frame. May run on an
   // arbitrary thread.
   void OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* attachment);
@@ -108,6 +112,9 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
 
   // Provides captured desktop frames.
   SCStream* __strong stream_ RTC_GUARDED_BY(lock_);
+
+  // Current filter on stream_.
+  SCContentFilter* __strong filter_ RTC_GUARDED_BY(lock_);
 
   // Currently selected display, or 0 if the full desktop is selected. This
   // capturer does not support full-desktop capture, and will fall back to the
@@ -311,12 +318,15 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content,
   SCContentFilter* filter =
       [[SCContentFilter alloc] initWithDisplay:captured_display
                               excludingWindows:@[]];
+  StartWithFilter(filter);
+}
+
+void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
+  lock_.AssertHeld();
   SCStreamConfiguration* config = [[SCStreamConfiguration alloc] init];
   config.pixelFormat = kCVPixelFormatType_32BGRA;
   config.colorSpaceName = kCGColorSpaceSRGB;
   config.showsCursor = capture_options_.prefer_cursor_embedded();
-  config.width = filter.contentRect.size.width * filter.pointPixelScale;
-  config.height = filter.contentRect.size.height * filter.pointPixelScale;
   config.captureResolution = SCCaptureResolutionNominal;
   config.minimumFrameInterval = max_frame_rate_ > 0 ?
       CMTimeMake(1, static_cast<int32_t>(max_frame_rate_)) :
@@ -325,8 +335,17 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content,
   {
     MutexLock lock(&latest_frame_lock_);
     latest_frame_dpi_ = filter.pointPixelScale * kStandardDPI;
-    frame_reconfigure_img_size_ = std::nullopt;
+    if (filter_ != filter) {
+      frame_reconfigure_img_size_ = std::nullopt;
+    }
+    auto sourceImgRect = frame_reconfigure_img_size_.value_or(
+        CGSizeMake(filter.contentRect.size.width * filter.pointPixelScale,
+                   filter.contentRect.size.height * filter.pointPixelScale));
+    config.width = sourceImgRect.width;
+    config.height = sourceImgRect.height;
   }
+
+  filter_ = filter;
 
   if (stream_) {
     RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this
@@ -351,6 +370,7 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content,
                            error:&add_stream_output_error];
     if (!add_stream_output_result) {
       stream_ = nil;
+      filter_ = nil;
       RTC_LOG(LS_ERROR) << "ScreenCapturerSck " << this
                         << " addStreamOutput failed.";
       permanent_error_ = true;
