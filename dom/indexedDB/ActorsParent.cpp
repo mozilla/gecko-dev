@@ -120,7 +120,6 @@
 #include "mozilla/dom/ipc/IdType.h"
 #include "mozilla/dom/quota/Assertions.h"
 #include "mozilla/dom/quota/CachingDatabaseConnection.h"
-#include "mozilla/dom/quota/CheckedUnsafePtr.h"
 #include "mozilla/dom/quota/Client.h"
 #include "mozilla/dom/quota/ClientDirectoryLock.h"
 #include "mozilla/dom/quota/ClientDirectoryLockHandle.h"
@@ -2931,9 +2930,8 @@ class VersionChangeTransaction final
       const OpenCursorParams& aParams) override;
 };
 
-class FactoryOp
-    : public DatabaseOperationBase,
-      public SupportsCheckedUnsafePtr<CheckIf<DiagnosticAssertEnabled>> {
+class FactoryOp : public DatabaseOperationBase,
+                  public LinkedListElement<FactoryOp> {
  public:
   struct MaybeBlockedDatabaseInfo final {
     SafeRefPtr<Database> mDatabase;
@@ -3110,6 +3108,7 @@ class FactoryOp
     // MSVC 2010 fails to link for some reason if it is not inlined here...
     MOZ_ASSERT_IF(OperationMayProceed(),
                   mState == State::Initial || mState == State::Completed);
+    MOZ_DIAGNOSTIC_ASSERT(!isInList());
   }
 
   nsresult Open();
@@ -5878,7 +5877,13 @@ nsresult RemoveDatabaseFilesAndDirectory(nsIFile& aBaseDirectory,
 // Counts the number of "live" Factory, FactoryOp and Database instances.
 uint64_t gBusyCount = 0;
 
-using FactoryOpArray = nsTArray<CheckedUnsafePtr<FactoryOp>>;
+// We don't use LinkedList<CheckedUnsafePtr<FactoryOp>> because
+// CheckedUnsafePtr is not suitable for use within LinkedList. While it's
+// theoretically possible to adapt LinkedList to support it, doing so would
+// introduce unnecessary overhead. Instead, we use a simpler and more
+// efficient approach. Each FactoryOp instance asserts !isInList() in its
+// destructor to catch dangling pointer issues.
+using FactoryOpArray = LinkedList<FactoryOp>;
 
 StaticAutoPtr<FactoryOpArray> gFactoryOps;
 
@@ -5983,7 +5988,7 @@ void DecreaseBusyCount() {
     gLiveDatabaseHashtable = nullptr;
 
     MOZ_ASSERT(gFactoryOps);
-    MOZ_ASSERT(gFactoryOps->IsEmpty());
+    MOZ_ASSERT(gFactoryOps->isEmpty());
     gFactoryOps = nullptr;
 
 #ifdef DEBUG
@@ -9085,7 +9090,7 @@ Factory::AllocPBackgroundIDBFactoryRequestParent(
     }
   }();
 
-  gFactoryOps->AppendElement(actor);
+  gFactoryOps->insertBack(actor);
 
   // Balanced in CleanupMetadata() which is/must always called by SendResults().
   IncreaseBusyCount();
@@ -9152,7 +9157,7 @@ mozilla::ipc::IPCResult Factory::RecvGetDatabases(
                                        aPersistenceType, aPrincipalInfo,
                                        std::move(aResolve));
 
-  gFactoryOps->AppendElement(op);
+  gFactoryOps->insertBack(op);
 
   // Balanced in CleanupMetadata() which is/must always called by SendResults().
   IncreaseBusyCount();
@@ -12605,7 +12610,7 @@ void QuotaClient::InitiateShutdown() {
 }
 
 bool QuotaClient::IsShutdownCompleted() const {
-  return (!gFactoryOps || gFactoryOps->IsEmpty()) &&
+  return (!gFactoryOps || gFactoryOps->isEmpty()) &&
          (!gLiveDatabaseHashtable || !gLiveDatabaseHashtable->Count()) &&
          !mCurrentMaintenance && !DeleteFilesRunnable::IsDeletionPending();
 }
@@ -12619,17 +12624,17 @@ nsCString QuotaClient::GetShutdownStatus() const {
 
   nsCString data;
 
-  if (gFactoryOps && !gFactoryOps->IsEmpty()) {
+  if (gFactoryOps && !gFactoryOps->isEmpty()) {
     data.Append("FactoryOperations: "_ns +
-                IntToCString(static_cast<uint32_t>(gFactoryOps->Length())) +
+                IntToCString(static_cast<uint32_t>(gFactoryOps->length())) +
                 " ("_ns);
 
     // XXX It might be confusing to remove duplicates here, as the actual list
     // won't match the count then.
     nsTHashSet<nsCString> ids;
 
-    std::transform(gFactoryOps->cbegin(), gFactoryOps->cend(),
-                   MakeInserter(ids), [](const auto& factoryOp) {
+    std::transform(gFactoryOps->begin(), gFactoryOps->end(), MakeInserter(ids),
+                   [](const FactoryOp* const factoryOp) {
                      MOZ_ASSERT(factoryOp);
 
                      nsCString id;
@@ -13430,9 +13435,10 @@ nsresult Maintenance::BeginDatabaseMaintenance() {
    public:
     static bool IsSafeToRunMaintenance(const nsAString& aDatabasePath) {
       if (gFactoryOps) {
-        for (uint32_t index = gFactoryOps->Length(); index > 0; index--) {
-          CheckedUnsafePtr<FactoryOp>& existingOp = (*gFactoryOps)[index - 1];
-
+        // XXX LinkedList should support reverse iteration via rbegin() and
+        // rend(), see bug 1964967.
+        for (const FactoryOp* existingOp = gFactoryOps->getLast(); existingOp;
+             existingOp = existingOp->getPrevious()) {
           if (existingOp->DatabaseNameRef().isNothing()) {
             return false;
           }
@@ -14913,7 +14919,10 @@ nsresult FactoryOp::DirectoryWorkDone() {
     bool foundThis = false;
     bool blocked = false;
 
-    for (const auto& existingOp : Reversed(*gFactoryOps)) {
+    // XXX LinkedList should support reverse iteration via rbegin() and rend(),
+    // see bug 1964967.
+    for (FactoryOp* existingOp = gFactoryOps->getLast(); existingOp;
+         existingOp = existingOp->getPrevious()) {
       if (existingOp == &self) {
         foundThis = true;
         continue;
@@ -15005,7 +15014,7 @@ void FactoryOp::CleanupMetadata() {
   mBlocking.Clear();
 
   MOZ_ASSERT(gFactoryOps);
-  gFactoryOps->RemoveElement(this);
+  removeFrom(*gFactoryOps);
 
   // We might get here even after QuotaManagerOpen failed, so we need to check
   // if we have a quota manager.
