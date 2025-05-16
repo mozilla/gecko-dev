@@ -6,9 +6,6 @@
 const { UpdateUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/UpdateUtils.sys.mjs"
 );
-const { AppConstants } = ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
-);
 const { getAppInfo, updateAppInfo } = ChromeUtils.importESModule(
   "resource://testing-common/AppInfo.sys.mjs"
 );

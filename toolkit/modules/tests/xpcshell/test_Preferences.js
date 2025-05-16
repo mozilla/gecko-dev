@@ -1,10 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { Preferences } = ChromeUtils.importESModule(
-  "resource://gre/modules/Preferences.sys.mjs"
-);
-
 add_test(function test_set_get_pref() {
   Preferences.set("test_set_get_pref.integer", 1);
   Assert.equal(Preferences.get("test_set_get_pref.integer"), 1);

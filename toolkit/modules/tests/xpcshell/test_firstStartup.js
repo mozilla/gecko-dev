@@ -1,8 +1,5 @@
 "use strict";
 
-const { AppConstants } = ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
-);
 const { FirstStartup } = ChromeUtils.importESModule(
   "resource://gre/modules/FirstStartup.sys.mjs"
 );

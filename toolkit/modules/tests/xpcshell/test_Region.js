@@ -6,9 +6,6 @@ const { HttpServer } = ChromeUtils.importESModule(
 const { setTimeout } = ChromeUtils.importESModule(
   "resource://gre/modules/Timer.sys.mjs"
 );
-const { TestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/TestUtils.sys.mjs"
-);
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );

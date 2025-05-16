@@ -6,9 +6,6 @@
 const { NewTabUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/NewTabUtils.sys.mjs"
 );
-const { AppConstants } = ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
-);
 const { PlacesTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/PlacesTestUtils.sys.mjs"
 );
