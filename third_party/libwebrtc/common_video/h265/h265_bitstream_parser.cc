@@ -11,12 +11,17 @@
 
 #include <stdlib.h>
 
+#include <cmath>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <vector>
 
+#include "api/array_view.h"
 #include "common_video/h265/h265_common.h"
-#include "rtc_base/bit_buffer.h"
+#include "common_video/h265/h265_pps_parser.h"
+#include "common_video/h265/h265_sps_parser.h"
+#include "common_video/h265/h265_vps_parser.h"
 #include "rtc_base/bitstream_reader.h"
 #include "rtc_base/logging.h"
 
@@ -381,8 +386,10 @@ H265BitstreamParser::Result H265BitstreamParser::ParseNonParameterSetNalu(
         int32_t wp_offset_half_range_y = (1 << 7);
         if (chroma_array_type != 0) {
           // delta_chroma_log2_weight_denom: se(v)
-          chroma_log2_weight_denom +=
+          int32_t delta_chroma_log2_weight_denom =
               slice_reader.ReadSignedExponentialGolomb();
+          IN_RANGE_OR_RETURN(delta_chroma_log2_weight_denom, -7, 7);
+          chroma_log2_weight_denom += delta_chroma_log2_weight_denom;
         }
         IN_RANGE_OR_RETURN(chroma_log2_weight_denom, 0, 7);
 
