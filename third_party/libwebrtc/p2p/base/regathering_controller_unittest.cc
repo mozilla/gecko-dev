@@ -14,9 +14,8 @@
 #include <memory>
 #include <vector>
 
-#include "api/packet_socket_factory.h"
+#include "api/environment/environment_factory.h"
 #include "api/transport/enums.h"
-#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/port.h"
@@ -32,7 +31,6 @@
 #include "rtc_base/thread.h"
 #include "rtc_base/virtual_socket_server.h"
 #include "test/gtest.h"
-#include "test/scoped_key_value_config.h"
 
 namespace {
 
@@ -59,12 +57,9 @@ class RegatheringControllerTest : public ::testing::Test,
       : vss_(std::make_unique<VirtualSocketServer>()),
         thread_(vss_.get()),
         ice_transport_(std::make_unique<MockIceTransport>()),
-        packet_socket_factory_(
-            std::make_unique<BasicPacketSocketFactory>(vss_.get())),
-        allocator_(std::make_unique<cricket::FakePortAllocator>(
-            Thread::Current(),
-            packet_socket_factory_.get(),
-            &field_trials_)) {
+        allocator_(
+            std::make_unique<cricket::FakePortAllocator>(CreateEnvironment(),
+                                                         vss_.get())) {
     BasicRegatheringController::Config regathering_config;
     regathering_config.regather_on_failed_networks_interval = 0;
     regathering_controller_.reset(new BasicRegatheringController(
@@ -116,12 +111,10 @@ class RegatheringControllerTest : public ::testing::Test,
   }
 
  private:
-  webrtc::test::ScopedKeyValueConfig field_trials_;
   std::unique_ptr<VirtualSocketServer> vss_;
   AutoSocketServerThread thread_;
   std::unique_ptr<IceTransportInternal> ice_transport_;
   std::unique_ptr<BasicRegatheringController> regathering_controller_;
-  std::unique_ptr<PacketSocketFactory> packet_socket_factory_;
   std::unique_ptr<PortAllocator> allocator_;
   std::unique_ptr<PortAllocatorSession> allocator_session_;
   std::map<IceRegatheringReason, int> count_;

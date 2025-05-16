@@ -13,15 +13,17 @@
 #include <memory>
 #include <utility>
 
+#include "api/environment/environment_factory.h"
 #include "api/ice_transport_factory.h"
+#include "api/ice_transport_interface.h"
 #include "api/make_ref_counted.h"
 #include "api/scoped_refptr.h"
-#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/test/fake_ice_transport.h"
 #include "p2p/test/fake_port_allocator.h"
 #include "rtc_base/internal/default_socket_server.h"
+#include "rtc_base/socket_server.h"
+#include "rtc_base/thread.h"
 #include "test/gtest.h"
-#include "test/scoped_key_value_config.h"
 
 namespace webrtc {
 
@@ -32,8 +34,6 @@ class IceTransportTest : public ::testing::Test {
         main_thread_(socket_server_.get()) {}
 
   SocketServer* socket_server() const { return socket_server_.get(); }
-
-  test::ScopedKeyValueConfig field_trials_;
 
  private:
   std::unique_ptr<SocketServer> socket_server_;
@@ -51,12 +51,10 @@ TEST_F(IceTransportTest, CreateNonSelfDeletingTransport) {
 }
 
 TEST_F(IceTransportTest, CreateSelfDeletingTransport) {
-  std::unique_ptr<cricket::FakePortAllocator> port_allocator(
-      std::make_unique<cricket::FakePortAllocator>(
-          nullptr, std::make_unique<BasicPacketSocketFactory>(socket_server()),
-          &field_trials_));
+  cricket::FakePortAllocator port_allocator(CreateEnvironment(),
+                                            socket_server());
   IceTransportInit init;
-  init.set_port_allocator(port_allocator.get());
+  init.set_port_allocator(&port_allocator);
   auto ice_transport = CreateIceTransport(std::move(init));
   EXPECT_NE(nullptr, ice_transport->internal());
 }

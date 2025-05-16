@@ -11,16 +11,23 @@
 #include "p2p/base/port_allocator.h"
 
 #include <memory>
+#include <vector>
 
 #include "absl/strings/string_view.h"
-#include "p2p/base/basic_packet_socket_factory.h"
+#include "api/candidate.h"
+#include "api/transport/enums.h"
+#include "p2p/base/port.h"
+#include "p2p/base/port_interface.h"
 #include "p2p/test/fake_port_allocator.h"
+#include "rtc_base/ip_address.h"
+#include "rtc_base/socket_address.h"
+#include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/virtual_socket_server.h"
 #include "test/gtest.h"
-#include "test/scoped_key_value_config.h"
 
-using webrtc::IceCandidateType;
+using ::webrtc::CreateEnvironment;
+using ::webrtc::IceCandidateType;
 
 static const char kContentName[] = "test content";
 // Based on ICE_UFRAG_LENGTH
@@ -35,12 +42,9 @@ class PortAllocatorTest : public ::testing::Test, public sigslot::has_slots<> {
   PortAllocatorTest()
       : vss_(std::make_unique<webrtc::VirtualSocketServer>()),
         main_(vss_.get()),
-        packet_socket_factory_(
-            std::make_unique<webrtc::BasicPacketSocketFactory>(vss_.get())),
-        allocator_(std::make_unique<cricket::FakePortAllocator>(
-            webrtc::Thread::Current(),
-            packet_socket_factory_.get(),
-            &field_trials_)) {}
+        allocator_(
+            std::make_unique<cricket::FakePortAllocator>(CreateEnvironment(),
+                                                         vss_.get())) {}
 
  protected:
   void SetConfigurationWithPoolSize(int candidate_pool_size) {
@@ -87,10 +91,8 @@ class PortAllocatorTest : public ::testing::Test, public sigslot::has_slots<> {
     return count;
   }
 
-  webrtc::test::ScopedKeyValueConfig field_trials_;
   std::unique_ptr<webrtc::VirtualSocketServer> vss_;
   webrtc::AutoSocketServerThread main_;
-  std::unique_ptr<webrtc::PacketSocketFactory> packet_socket_factory_;
   std::unique_ptr<cricket::FakePortAllocator> allocator_;
   webrtc::SocketAddress stun_server_1{"11.11.11.11", 3478};
   webrtc::SocketAddress stun_server_2{"22.22.22.22", 3478};

@@ -13,15 +13,18 @@
 
 #include <cstdint>
 #include <memory>
-#include <string>
-#include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
 #include "api/candidate.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/field_trials_view.h"
 #include "api/packet_socket_factory.h"
+#include "api/task_queue/task_queue_base.h"
+#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/port.h"
 #include "p2p/base/port_allocator.h"
 #include "p2p/base/port_interface.h"
@@ -30,9 +33,9 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/memory/always_valid_pointer.h"
-#include "rtc_base/net_helpers.h"
 #include "rtc_base/net_test_helpers.h"
 #include "rtc_base/network.h"
+#include "rtc_base/socket_factory.h"
 #include "rtc_base/task_queue_for_test.h"
 #include "rtc_base/thread.h"
 
@@ -90,19 +93,20 @@ class TestUDPPort : public UDPPort {
 // not disabled.
 class FakePortAllocatorSession : public webrtc::PortAllocatorSession {
  public:
-  FakePortAllocatorSession(webrtc::PortAllocator* allocator,
-                           webrtc::Thread* network_thread,
+  FakePortAllocatorSession(const webrtc::Environment& env,
+                           webrtc::PortAllocator* allocator,
+                           webrtc::TaskQueueBase* network_thread,
                            webrtc::PacketSocketFactory* factory,
                            absl::string_view content_name,
                            int component,
                            absl::string_view ice_ufrag,
-                           absl::string_view ice_pwd,
-                           const webrtc::FieldTrialsView* field_trials)
+                           absl::string_view ice_pwd)
       : webrtc::PortAllocatorSession(content_name,
                                      component,
                                      ice_ufrag,
                                      ice_pwd,
                                      allocator->flags()),
+        env_(env),
         allocator_(allocator),
         network_thread_(network_thread),
         factory_(factory),
@@ -117,8 +121,7 @@ class FakePortAllocatorSession : public webrtc::PortAllocatorSession {
         port_(),
         port_config_count_(0),
         stun_servers_(allocator->stun_servers()),
-        turn_servers_(allocator->turn_servers()),
-        field_trials_(field_trials) {
+        turn_servers_(allocator->turn_servers()) {
     ipv4_network_.AddIP(webrtc::IPAddress(INADDR_LOOPBACK));
     ipv6_network_.AddIP(webrtc::IPAddress(in6addr_loopback));
   }
@@ -138,7 +141,7 @@ class FakePortAllocatorSession : public webrtc::PortAllocatorSession {
                                        .network = &network,
                                        .ice_username_fragment = username(),
                                        .ice_password = password(),
-                                       .field_trials = field_trials_},
+                                       .field_trials = &env_.field_trials()},
                                       0, 0, false));
       RTC_DCHECK(port_);
       port_->SetIceTiebreaker(allocator_->ice_tiebreaker());
@@ -213,8 +216,9 @@ class FakePortAllocatorSession : public webrtc::PortAllocatorSession {
     port_.release();
   }
 
+  const webrtc::Environment env_;
   webrtc::PortAllocator* allocator_;
-  webrtc::Thread* network_thread_;
+  webrtc::TaskQueueBase* network_thread_;
   webrtc::PacketSocketFactory* factory_;
   rtc::Network ipv4_network_;
   rtc::Network ipv6_network_;
@@ -229,23 +233,32 @@ class FakePortAllocatorSession : public webrtc::PortAllocatorSession {
   uint32_t candidate_filter_ = webrtc::CF_ALL;
   int transport_info_update_count_ = 0;
   bool running_ = false;
-  const webrtc::FieldTrialsView* field_trials_;
 };
 
 class FakePortAllocator : public webrtc::PortAllocator {
  public:
+  // TODO: bugs.webrtc.org/405883462 - Delete when chromium is updated
   FakePortAllocator(webrtc::Thread* network_thread,
                     webrtc::PacketSocketFactory* factory,
                     const webrtc::FieldTrialsView* field_trials)
-      : FakePortAllocator(network_thread, factory, nullptr, field_trials) {}
+      : env_(webrtc::CreateEnvironment(field_trials)),
+        network_thread_(network_thread),
+        factory_(factory) {
+    RTC_CHECK(network_thread);
+    SendTask(network_thread_, [this] { Initialize(); });
+  }
 
-  FakePortAllocator(webrtc::Thread* network_thread,
-                    std::unique_ptr<webrtc::PacketSocketFactory> factory,
-                    const webrtc::FieldTrialsView* field_trials)
-      : FakePortAllocator(network_thread,
-                          nullptr,
-                          std::move(factory),
-                          field_trials) {}
+  FakePortAllocator(const webrtc::Environment& env,
+                    absl::Nonnull<webrtc::SocketFactory*> socket_factory,
+                    absl::Nonnull<webrtc::TaskQueueBase*> network_thread =
+                        webrtc::TaskQueueBase::Current())
+      : env_(env),
+        network_thread_(network_thread),
+        factory_(std::make_unique<webrtc::BasicPacketSocketFactory>(
+            socket_factory)) {
+    RTC_CHECK(network_thread);
+    SendTask(network_thread_, [this] { Initialize(); });
+  }
 
   void SetNetworkIgnoreMask(int /* network_ignore_mask */) override {}
 
@@ -254,9 +267,9 @@ class FakePortAllocator : public webrtc::PortAllocator {
       int component,
       absl::string_view ice_ufrag,
       absl::string_view ice_pwd) override {
-    return new FakePortAllocatorSession(
-        this, network_thread_, factory_.get(), std::string(content_name),
-        component, std::string(ice_ufrag), std::string(ice_pwd), field_trials_);
+    return new FakePortAllocatorSession(env_, this, network_thread_,
+                                        factory_.get(), content_name, component,
+                                        ice_ufrag, ice_pwd);
   }
 
   bool initialized() const { return initialized_; }
@@ -270,25 +283,10 @@ class FakePortAllocator : public webrtc::PortAllocator {
   }
 
  private:
-  FakePortAllocator(webrtc::Thread* network_thread,
-                    webrtc::PacketSocketFactory* factory,
-                    std::unique_ptr<webrtc::PacketSocketFactory> owned_factory,
-                    const webrtc::FieldTrialsView* field_trials)
-      : network_thread_(network_thread),
-        factory_(std::move(owned_factory), factory),
-        field_trials_(field_trials) {
-    if (network_thread_ == nullptr) {
-      network_thread_ = webrtc::Thread::Current();
-      Initialize();
-      return;
-    }
-    SendTask(network_thread_, [this] { Initialize(); });
-  }
-
-  webrtc::Thread* network_thread_;
+  const webrtc::Environment env_;
+  absl::Nonnull<webrtc::TaskQueueBase*> network_thread_;
   const webrtc::AlwaysValidPointerNoDefault<webrtc::PacketSocketFactory>
       factory_;
-  const webrtc::FieldTrialsView* field_trials_;
   bool mdns_obfuscation_enabled_ = false;
 };
 

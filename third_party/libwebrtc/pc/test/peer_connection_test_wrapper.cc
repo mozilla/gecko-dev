@@ -26,6 +26,7 @@
 #include "api/create_peerconnection_factory.h"
 #include "api/data_channel_interface.h"
 #include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/field_trials_view.h"
 #include "api/jsep.h"
 #include "api/make_ref_counted.h"
@@ -55,8 +56,6 @@
 #include "api/video_codecs/video_encoder_factory_template_libvpx_vp9_adapter.h"
 #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"
 #include "media/engine/simulcast_encoder_adapter.h"
-#include "p2p/base/basic_packet_socket_factory.h"
-#include "p2p/base/port_allocator.h"
 #include "p2p/test/fake_port_allocator.h"
 #include "pc/test/fake_audio_capture_module.h"
 #include "pc/test/fake_periodic_video_source.h"
@@ -176,11 +175,8 @@ bool PeerConnectionTestWrapper::CreatePc(
     std::unique_ptr<webrtc::VideoEncoderFactory> video_encoder_factory,
     std::unique_ptr<webrtc::VideoDecoderFactory> video_decoder_factory,
     std::unique_ptr<webrtc::FieldTrialsView> field_trials) {
-  std::unique_ptr<webrtc::PortAllocator> port_allocator(
-      new cricket::FakePortAllocator(
-          network_thread_,
-          std::make_unique<webrtc::BasicPacketSocketFactory>(socket_server_),
-          field_trials.get()));
+  auto port_allocator = std::make_unique<cricket::FakePortAllocator>(
+      CreateEnvironment(field_trials.get()), socket_server_, network_thread_);
 
   RTC_DCHECK_RUN_ON(&pc_thread_checker_);
 

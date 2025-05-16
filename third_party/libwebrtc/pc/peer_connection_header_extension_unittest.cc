@@ -16,7 +16,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "api/field_trials.h"
+#include "api/environment/environment_factory.h"
 #include "api/jsep.h"
 #include "api/media_types.h"
 #include "api/peer_connection_interface.h"
@@ -28,7 +28,6 @@
 #include "api/scoped_refptr.h"
 #include "api/task_queue/default_task_queue_factory.h"
 #include "media/base/fake_media_engine.h"
-#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/test/fake_port_allocator.h"
 #include "pc/peer_connection_wrapper.h"
 #include "pc/session_description.h"
@@ -93,9 +92,7 @@ class PeerConnectionHeaderExtensionTest
         CreateModularPeerConnectionFactory(std::move(factory_dependencies));
 
     auto fake_port_allocator = std::make_unique<cricket::FakePortAllocator>(
-        Thread::Current(),
-        std::make_unique<BasicPacketSocketFactory>(socket_server_.get()),
-        field_trials_.get());
+        CreateEnvironment(), socket_server_.get());
     auto observer = std::make_unique<MockPeerConnectionObserver>();
     PeerConnectionInterface::RTCConfiguration config;
     if (semantics)
@@ -110,7 +107,6 @@ class PeerConnectionHeaderExtensionTest
         pc_factory, result.MoveValue(), std::move(observer));
   }
 
-  std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
   std::unique_ptr<SocketServer> socket_server_;
   AutoSocketServerThread main_thread_;
   std::vector<RtpHeaderExtensionCapability> extensions_;

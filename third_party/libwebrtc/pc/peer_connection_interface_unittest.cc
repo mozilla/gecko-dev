@@ -28,12 +28,11 @@
 #include "api/create_peerconnection_factory.h"
 #include "api/data_channel_interface.h"
 #include "api/enable_media_with_defaults.h"
-#include "api/field_trials.h"
+#include "api/environment/environment_factory.h"
 #include "api/jsep.h"
 #include "api/make_ref_counted.h"
 #include "api/media_stream_interface.h"
 #include "api/media_types.h"
-#include "api/packet_socket_factory.h"
 #include "api/rtc_error.h"
 #include "api/rtc_event_log/rtc_event_log.h"
 #include "api/rtc_event_log/rtc_event_log_factory.h"
@@ -63,7 +62,6 @@
 #include "media/base/media_config.h"
 #include "media/base/stream_params.h"
 #include "media/sctp/sctp_transport_internal.h"
-#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/port.h"
 #include "p2p/base/port_allocator.h"
@@ -711,11 +709,8 @@ class PeerConnectionInterfaceBaseTest : public ::testing::Test {
       pc_->Close();
       pc_ = nullptr;
     }
-    std::unique_ptr<cricket::FakePortAllocator> port_allocator(
-        new cricket::FakePortAllocator(
-            Thread::Current(),
-            std::make_unique<BasicPacketSocketFactory>(vss_.get()),
-            field_trials_.get()));
+    auto port_allocator = std::make_unique<cricket::FakePortAllocator>(
+        CreateEnvironment(), vss_.get());
     port_allocator_ = port_allocator.get();
 
     // Create certificate generator unless DTLS constraint is explicitly set to
@@ -1258,7 +1253,6 @@ class PeerConnectionInterfaceBaseTest : public ::testing::Test {
 
   SocketServer* socket_server() const { return vss_.get(); }
 
-  std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
   std::unique_ptr<VirtualSocketServer> vss_;
   AutoSocketServerThread main_;
   rtc::scoped_refptr<FakeAudioCaptureModule> fake_audio_capture_module_;
@@ -1362,11 +1356,8 @@ TEST_P(PeerConnectionInterfaceTest, CreatePeerConnectionWithPooledCandidates) {
 TEST_P(PeerConnectionInterfaceTest,
        CreatePeerConnectionAppliesNetworkConfigToPortAllocator) {
   // Create fake port allocator.
-  std::unique_ptr<PacketSocketFactory> packet_socket_factory(
-      new BasicPacketSocketFactory(socket_server()));
-  std::unique_ptr<cricket::FakePortAllocator> port_allocator(
-      new cricket::FakePortAllocator(
-          Thread::Current(), packet_socket_factory.get(), field_trials_.get()));
+  auto port_allocator = std::make_unique<cricket::FakePortAllocator>(
+      CreateEnvironment(), socket_server());
   cricket::FakePortAllocator* raw_port_allocator = port_allocator.get();
 
   // Create RTCConfiguration with some network-related fields relevant to

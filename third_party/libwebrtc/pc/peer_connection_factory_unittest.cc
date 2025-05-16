@@ -25,12 +25,10 @@
 #include "api/enable_media.h"
 #include "api/enable_media_with_defaults.h"
 #include "api/environment/environment_factory.h"
-#include "api/field_trials.h"
 #include "api/jsep.h"
 #include "api/make_ref_counted.h"
 #include "api/media_stream_interface.h"
 #include "api/media_types.h"
-#include "api/packet_socket_factory.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtp_parameters.h"
 #include "api/scoped_refptr.h"
@@ -51,7 +49,6 @@
 #include "media/base/fake_frame_source.h"
 #include "media/base/media_constants.h"
 #include "modules/audio_processing/include/mock_audio_processing.h"
-#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/port.h"
 #include "p2p/base/port_allocator.h"
 #include "p2p/base/port_interface.h"
@@ -168,10 +165,8 @@ class PeerConnectionFactoryTest : public ::testing::Test {
         nullptr /* audio_mixer */, nullptr /* audio_processing */);
 
     ASSERT_TRUE(factory_.get() != NULL);
-    packet_socket_factory_.reset(
-        new BasicPacketSocketFactory(socket_server_.get()));
-    port_allocator_.reset(new cricket::FakePortAllocator(
-        Thread::Current(), packet_socket_factory_.get(), field_trials_.get()));
+    port_allocator_ = std::make_unique<cricket::FakePortAllocator>(
+        CreateEnvironment(), socket_server_.get());
     raw_port_allocator_ = port_allocator_.get();
   }
 
@@ -266,12 +261,10 @@ class PeerConnectionFactoryTest : public ::testing::Test {
     }
   }
 
-  std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
   std::unique_ptr<SocketServer> socket_server_;
   AutoSocketServerThread main_thread_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> factory_;
   NullPeerConnectionObserver observer_;
-  std::unique_ptr<PacketSocketFactory> packet_socket_factory_;
   std::unique_ptr<cricket::FakePortAllocator> port_allocator_;
   // Since the PC owns the port allocator after it's been initialized,
   // this should only be used when known to be safe.

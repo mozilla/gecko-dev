@@ -20,18 +20,16 @@
 
 #include "api/candidate.h"
 #include "api/enable_media_with_defaults.h"
-#include "api/field_trials.h"
+#include "api/environment/environment_factory.h"
 #include "api/ice_transport_interface.h"
 #include "api/jsep.h"
 #include "api/make_ref_counted.h"
 #include "api/media_types.h"
-#include "api/packet_socket_factory.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtc_error.h"
 #include "api/scoped_refptr.h"
 #include "api/test/rtc_error_matchers.h"
 #include "api/units/time_delta.h"
-#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/port_allocator.h"
@@ -1465,12 +1463,8 @@ class PeerConnectionIceConfigTest : public ::testing::Test {
         nullptr /* audio_mixer */, nullptr /* audio_processing */);
   }
   void CreatePeerConnection(const RTCConfiguration& config) {
-    packet_socket_factory_.reset(
-        new BasicPacketSocketFactory(socket_server_.get()));
-    std::unique_ptr<cricket::FakePortAllocator> port_allocator(
-        new cricket::FakePortAllocator(Thread::Current(),
-                                       packet_socket_factory_.get(),
-                                       field_trials_.get()));
+    auto port_allocator = std::make_unique<cricket::FakePortAllocator>(
+        CreateEnvironment(), socket_server_.get());
     port_allocator_ = port_allocator.get();
     PeerConnectionDependencies pc_dependencies(&observer_);
     pc_dependencies.allocator = std::move(port_allocator);
@@ -1480,12 +1474,10 @@ class PeerConnectionIceConfigTest : public ::testing::Test {
     pc_ = result.MoveValue();
   }
 
-  std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
   std::unique_ptr<SocketServer> socket_server_;
   AutoSocketServerThread main_thread_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_ = nullptr;
   rtc::scoped_refptr<PeerConnectionInterface> pc_ = nullptr;
-  std::unique_ptr<PacketSocketFactory> packet_socket_factory_;
   cricket::FakePortAllocator* port_allocator_ = nullptr;
 
   MockPeerConnectionObserver observer_;
