@@ -12,6 +12,20 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import androidx.annotation.ColorInt
 import androidx.annotation.VisibleForTesting
+import androidx.core.view.isVisible
+import androidx.lifecycle.findViewTreeLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenu.Orientation
 import mozilla.components.browser.menu.BrowserMenuBuilder
@@ -35,6 +49,7 @@ import mozilla.components.support.ktx.android.view.hideKeyboard
  *
  * If you are using a browser toolbar, do not use this class directly.
  */
+@OptIn(FlowPreview::class)
 class MenuButton @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -43,6 +58,18 @@ class MenuButton @JvmOverloads constructor(
     MenuButton,
     View.OnClickListener,
     Observable<MenuButton.Observer> by ObserverRegistry() {
+
+    /**
+     * Trigger [kotlinx.coroutines.flow.Flow] to help debounce the [getHighlight] & [setHighlight]
+     * calls when [setHighlightStatus] has been called.
+     */
+    private val highlightStatusTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /**
+     * Flag to let us know if we already started observing the [highlightStatusTrigger]. This is to
+     * avoid observing the flow multiple times.
+     */
+    private var isObservingHighlightStatusTrigger = false
 
     private val menuControllerObserver = object : MenuController.Observer {
         /**
@@ -78,6 +105,25 @@ class MenuButton @JvmOverloads constructor(
     var getOrientation: () -> Orientation = {
         BrowserMenu.determineMenuOrientation(parent as? View?)
     }
+
+    /**
+     * [CoroutineDispatcher] to use for background tasks. Default value is [Dispatchers.Default].
+     *
+     * This is captured in a variable for overriding in tests.
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    var backgroundTaskDispatcher: CoroutineDispatcher = Dispatchers.Default
+
+    /**
+     * [CoroutineScope] to use for background tasks.
+     *
+     * In production code, it uses [findViewTreeLifecycleOwner]'s
+     * lifecycle scope, and it is set in [onAttachedToWindow], when the view has been attached.
+     *
+     * This is captured in a variable for overriding in tests.
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    var coroutineScope: CoroutineScope? = findViewTreeLifecycleOwner()?.lifecycleScope
 
     /**
      * Sets a [MenuController] that will be used to create a menu when this button is clicked.
@@ -216,7 +262,51 @@ class MenuButton @JvmOverloads constructor(
      */
     fun setHighlightStatus() {
         if (menuBuilder != null) {
-            setHighlight(menuBuilder?.items?.getHighlight())
+            observeAndDebounceSetHighlightStatusRequests()
+            highlightStatusTrigger.tryEmit(Unit)
         }
+    }
+
+    /**
+     * This function helps to listen to and debounce requests to set highlight status using
+     * [highlightStatusTrigger].
+     *
+     * The reason we are debouncing the [setHighlightStatus] calls is because we call [setHighlightStatus]
+     * multiple times in quick successions especially during app startups.
+     *
+     * See [https://bugzilla.mozilla.org/show_bug.cgi?id=1947534](https://bugzilla.mozilla.org/show_bug.cgi?id=1947534)
+     * for more.
+     */
+    private fun observeAndDebounceSetHighlightStatusRequests() {
+        if (isObservingHighlightStatusTrigger) return
+        isObservingHighlightStatusTrigger = true
+
+        val scope = coroutineScope ?: findViewTreeLifecycleOwner()?.lifecycleScope
+        scope?.launch {
+            highlightStatusTrigger
+                .debounce(HIGHLIGHT_STATUS_DEBOUNCE_MS)
+                .map { menuBuilder?.items?.getHighlight() }
+                .flowOn(backgroundTaskDispatcher)
+                .collectLatest { highlights ->
+                    withContext(Dispatchers.Main) {
+                        setHighlight(highlights)
+                    }
+                }
+        }
+    }
+
+    /**
+     * This function should be used only in tests.
+     *
+     * Returns true when there is a highlight on this menu button. Uses [highlightView]'s
+     * or [notificationIconView]'s visibility to infer whether or not there's a highlight.
+     */
+    @VisibleForTesting
+    internal fun hasHighlight(): Boolean {
+        return highlightView.isVisible || notificationIconView.isVisible
+    }
+
+    internal companion object {
+        const val HIGHLIGHT_STATUS_DEBOUNCE_MS = 500L
     }
 }

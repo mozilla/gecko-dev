@@ -59,7 +59,7 @@ class WebExtensionBrowserMenuItemTest {
     }
 
     @Test
-    fun `view is disabled if browser action is disabled`() {
+    fun `view is disabled if browser action is disabled`() = runTest {
         val icon: Bitmap = mock()
         val imageView: ImageView = mock()
         val badgeView: TextView = mock()
@@ -71,7 +71,7 @@ class WebExtensionBrowserMenuItemTest {
         whenever(view.findViewById<TextView>(R.id.badge_text)).thenReturn(badgeView)
         whenever(view.findViewById<TextView>(R.id.action_label)).thenReturn(labelView)
         whenever(view.findViewById<View>(R.id.container)).thenReturn(container)
-        whenever(view.context).thenReturn(mock())
+        whenever(view.context).thenReturn(testContext)
 
         val browserAction = Action(
             title = "title",
@@ -90,7 +90,7 @@ class WebExtensionBrowserMenuItemTest {
     }
 
     @Test
-    fun bind() {
+    fun bind() = runTest {
         val icon: Bitmap = mock()
         val imageView: ImageView = mock()
         val badgeView: TextView = mock()
@@ -131,7 +131,7 @@ class WebExtensionBrowserMenuItemTest {
     }
 
     @Test
-    fun `badge text view is invisible if action badge text is empty`() {
+    fun `badge text view is invisible if action badge text is empty`() = runTest {
         val icon: Bitmap = mock()
         val imageView: ImageView = mock()
         val badgeView: TextView = spy(TextView(testContext))
@@ -208,7 +208,7 @@ class WebExtensionBrowserMenuItemTest {
         whenever(view.findViewById<TextView>(R.id.badge_text)).thenReturn(badgeView)
         whenever(view.findViewById<TextView>(R.id.action_label)).thenReturn(labelView)
         whenever(view.findViewById<View>(R.id.container)).thenReturn(container)
-        whenever(view.context).thenReturn(mock())
+        whenever(view.context).thenReturn(testContext)
 
         val browserAction = Action(
             title = "title",
@@ -233,7 +233,7 @@ class WebExtensionBrowserMenuItemTest {
     }
 
     @Test
-    fun `labelView and badgeView redraws when invalidate is triggered`() {
+    fun `labelView and badgeView redraws when invalidate is triggered`() = runTest {
         val icon: Bitmap = mock()
         val imageView: ImageView = mock()
         val badgeView: TextView = mock()
@@ -245,7 +245,7 @@ class WebExtensionBrowserMenuItemTest {
         whenever(view.findViewById<TextView>(R.id.badge_text)).thenReturn(badgeView)
         whenever(view.findViewById<TextView>(R.id.action_label)).thenReturn(labelView)
         whenever(view.findViewById<View>(R.id.container)).thenReturn(container)
-        whenever(view.context).thenReturn(mock())
+        whenever(view.context).thenReturn(testContext)
 
         val browserAction = Action(
             title = "title",
