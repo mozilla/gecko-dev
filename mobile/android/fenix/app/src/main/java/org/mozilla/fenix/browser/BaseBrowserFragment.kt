@@ -447,7 +447,7 @@ abstract class BaseBrowserFragment :
             scope = viewLifecycleOwner.lifecycleScope,
             appStore = requireComponents.appStore,
             onPrivateModeLocked = {
-                findNavController().navigate(R.id.unlockPrivateTabsFragment)
+                findNavController().navigate(NavGraphDirections.actionGlobalUnlockPrivateTabsFragment())
             },
         )
 
