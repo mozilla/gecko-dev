@@ -3,7 +3,9 @@
 
 "use strict";
 
-/* exported clickUnifiedExtensionsItem,
+/* exported assertExtensionsButtonHidden,
+            assertExtensionsButtonVisible,
+            clickUnifiedExtensionsItem,
             closeExtensionsPanel,
             createExtensions,
             ensureMaximizedWindow,
@@ -17,6 +19,22 @@
             promiseSetToolbarVisibility
 */
 
+const assertExtensionsButtonHidden = (win = window) => {
+  const { button } = win.gUnifiedExtensions;
+  ok(BrowserTestUtils.isHidden(button), "Extensions button should be hidden");
+  if (win.document.querySelector("#nav-bar[unifiedextensionsbuttonshown]")) {
+    ok(false, "Found unexpected unifiedextensionsbuttonshown attribute");
+  }
+};
+
+const assertExtensionsButtonVisible = (win = window) => {
+  const { button } = win.gUnifiedExtensions;
+  ok(BrowserTestUtils.isVisible(button), "Extensions button should be visible");
+  if (!win.document.querySelector("#nav-bar[unifiedextensionsbuttonshown]")) {
+    ok(false, "Missing unifiedextensionsbuttonshown attribute");
+  }
+};
+
 const getListView = (win = window) => {
   const { panel } = win.gUnifiedExtensions;
   ok(panel, "expected panel to be created");
@@ -25,7 +43,7 @@ const getListView = (win = window) => {
 
 const openExtensionsPanel = async (win = window) => {
   const { button } = win.gUnifiedExtensions;
-  ok(button, "expected button");
+  assertExtensionsButtonVisible(win);
 
   const listView = getListView(win);
   ok(listView, "expected list view");
@@ -37,7 +55,7 @@ const openExtensionsPanel = async (win = window) => {
 
 const closeExtensionsPanel = async (win = window) => {
   const { button } = win.gUnifiedExtensions;
-  ok(button, "expected button");
+  assertExtensionsButtonVisible(win);
 
   const hidden = BrowserTestUtils.waitForEvent(
     win.gUnifiedExtensions.panel,

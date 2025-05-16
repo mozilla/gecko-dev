@@ -1818,6 +1818,7 @@ var BrowserAddonUI = {
 // "redeclaration" syntax error.
 var gUnifiedExtensions = {
   _initialized: false,
+  // buttonAlwaysVisible: true, -- based on pref, declared later.
 
   // We use a `<deck>` in the extension items to show/hide messages below each
   // extension name. We have a default message for origin controls, and
@@ -1834,13 +1835,9 @@ var gUnifiedExtensions = {
       return;
     }
 
+    // Button is hidden by default, declared in navigator-toolbox.inc.xhtml.
     this._button = document.getElementById("unified-extensions-button");
-    // TODO: Bug 1778684 - Auto-hide button when there is no active extension.
-    this._button.hidden = false;
-
-    document
-      .getElementById("nav-bar")
-      .setAttribute("unifiedextensionsbuttonshown", true);
+    this.updateButtonVisibility();
 
     gBrowser.addTabsProgressListener(this);
     window.addEventListener("TabSelect", () => this.updateAttention());
@@ -1883,6 +1880,21 @@ var gUnifiedExtensions = {
       !(flags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT)
     ) {
       this.updateAttention();
+    }
+  },
+
+  updateButtonVisibility() {
+    const navbar = document.getElementById("nav-bar");
+
+    // TODO: Bug 1778684 - Auto-hide button when there is no active extension.
+    let shouldShowButton = this.buttonAlwaysVisible;
+
+    if (shouldShowButton) {
+      this._button.hidden = false;
+      navbar.setAttribute("unifiedextensionsbuttonshown", true);
+    } else {
+      this._button.hidden = true;
+      navbar.removeAttribute("unifiedextensionsbuttonshown");
     }
   },
 
@@ -2727,3 +2739,14 @@ var gUnifiedExtensions = {
     );
   },
 };
+XPCOMUtils.defineLazyPreferenceGetter(
+  gUnifiedExtensions,
+  "buttonAlwaysVisible",
+  "extensions.unifiedExtensions.button.always_visible",
+  true,
+  () => {
+    if (gUnifiedExtensions._initialized) {
+      gUnifiedExtensions.updateButtonVisibility();
+    }
+  }
+);

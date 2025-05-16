@@ -49,18 +49,6 @@ add_setup(async function () {
   });
 });
 
-add_task(async function test_button_enabled_by_pref() {
-  const { button } = gUnifiedExtensions;
-  is(button.hidden, false, "expected button to be visible");
-  is(
-    document
-      .getElementById("nav-bar")
-      .getAttribute("unifiedextensionsbuttonshown"),
-    "true",
-    "expected attribute on nav-bar"
-  );
-});
-
 add_task(async function test_open_panel_on_button_click() {
   const extensions = createExtensions([
     { name: "Extension #1" },
