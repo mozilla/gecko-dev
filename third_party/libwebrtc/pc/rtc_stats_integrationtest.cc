@@ -841,7 +841,9 @@ class RTCStatsReportVerifier {
           outbound_stream.frames_sent);
       verifier.TestAttributeIsNonNegative<uint32_t>(
           outbound_stream.huge_frames_sent);
-      verifier.MarkAttributeTested(outbound_stream.rid, true);
+      // RID and simulcast index are N/A because this test uses singlecast.
+      verifier.TestAttributeIsUndefined(outbound_stream.rid);
+      verifier.TestAttributeIsUndefined(outbound_stream.simulcast_index);
       verifier.TestAttributeIsDefined(outbound_stream.scalability_mode);
       verifier.TestAttributeIsNonNegative<uint32_t>(outbound_stream.rtx_ssrc);
     } else {
@@ -857,11 +859,11 @@ class RTCStatsReportVerifier {
       verifier.TestAttributeIsUndefined(
           outbound_stream.quality_limitation_resolution_changes);
       verifier.TestAttributeIsUndefined(outbound_stream.content_type);
-      // TODO(hbos): Implement for audio as well.
       verifier.TestAttributeIsUndefined(outbound_stream.encoder_implementation);
       verifier.TestAttributeIsUndefined(
           outbound_stream.power_efficient_encoder);
       verifier.TestAttributeIsUndefined(outbound_stream.rid);
+      verifier.TestAttributeIsUndefined(outbound_stream.simulcast_index);
       verifier.TestAttributeIsUndefined(outbound_stream.frames_per_second);
       verifier.TestAttributeIsUndefined(outbound_stream.frame_height);
       verifier.TestAttributeIsUndefined(outbound_stream.frame_width);

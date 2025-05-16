@@ -2534,6 +2534,12 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::GetPerLayerVideoSenderInfos(
   // with the outbound-rtp stats objects.
   auto outbound_rtp_substreams =
       MergeInfoAboutOutboundRtpSubstreams(stats.substreams);
+  // The streams are ordered by SSRC, but the SSRCs are randomly assigned so we
+  // need map for index lookup by SSRC.
+  std::map<uint32_t, size_t> simulcast_index_by_ssrc;
+  for (size_t i = 0; i < parameters_.config.rtp.ssrcs.size(); ++i) {
+    simulcast_index_by_ssrc[parameters_.config.rtp.ssrcs[i]] = i;
+  }
   // If SVC is used, one stream is configured but multiple encodings exist. This
   // is not spec-compliant, but it is how we've implemented SVC so this affects
   // how the RTP stream's "active" value is determined.
@@ -2544,6 +2550,10 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::GetPerLayerVideoSenderInfos(
     uint32_t ssrc = pair.first;
     info.add_ssrc(ssrc);
     info.rid = parameters_.config.rtp.GetRidForSsrc(ssrc);
+    if (outbound_rtp_substreams.size() > 1 &&
+        simulcast_index_by_ssrc.find(ssrc) != simulcast_index_by_ssrc.end()) {
+      info.simulcast_index = simulcast_index_by_ssrc[ssrc];
+    }
     info.active = IsActiveFromEncodings(
         !is_svc ? std::optional<uint32_t>(ssrc) : std::nullopt,
         rtp_parameters_.encodings);
@@ -2595,6 +2605,7 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::GetAggregatedVideoSenderInfo(
     return infos[0];
   }
   VideoSenderInfo info = infos[0];
+  info.simulcast_index = std::nullopt;  // An aggregated info has no index.
   info.local_stats.clear();
   for (uint32_t ssrc : parameters_.config.rtp.ssrcs) {
     info.add_ssrc(ssrc);

@@ -2612,6 +2612,8 @@ TEST_F(RTCStatsCollectorTest, CollectRTCOutboundRtpStreamStats_Video) {
   video_media_info.senders.push_back(cricket::VideoSenderInfo());
   video_media_info.senders[0].local_stats.push_back(cricket::SsrcSenderInfo());
   video_media_info.senders[0].local_stats[0].ssrc = 1;
+  video_media_info.senders[0].rid = "q";
+  video_media_info.senders[0].simulcast_index = 0;
   video_media_info.senders[0].firs_received = 2;
   video_media_info.senders[0].plis_received = 3;
   video_media_info.senders[0].nacks_received = 4;
@@ -2653,6 +2655,12 @@ TEST_F(RTCStatsCollectorTest, CollectRTCOutboundRtpStreamStats_Video) {
   codec_parameters.clock_rate = 0;
   video_media_info.send_codecs.insert(
       std::make_pair(codec_parameters.payload_type, codec_parameters));
+  // Copy the sender info into a second simulcast layer and update ssrc, rid and
+  // simulcast index to be unique.
+  video_media_info.senders.push_back(video_media_info.senders[0]);
+  video_media_info.senders[1].local_stats[0].ssrc = 2;
+  video_media_info.senders[1].rid = "h";
+  video_media_info.senders[1].simulcast_index = 1;
 
   auto video_media_channels =
       pc_->AddVideoChannel("VideoMid", "TransportName", video_media_info);
@@ -2663,13 +2671,22 @@ TEST_F(RTCStatsCollectorTest, CollectRTCOutboundRtpStreamStats_Video) {
   rtc::scoped_refptr<const RTCStatsReport> report = stats_->GetStatsReport();
 
   auto stats_of_my_type = report->GetStatsOfType<RTCOutboundRtpStreamStats>();
-  ASSERT_EQ(1U, stats_of_my_type.size());
+  ASSERT_EQ(2U, stats_of_my_type.size());
+  std::string id_of_first_ssrc;
+  for (const auto* outbound_rtp : stats_of_my_type) {
+    if (outbound_rtp->ssrc.value_or(0) == 1) {
+      id_of_first_ssrc = outbound_rtp->id();
+      break;
+    }
+  }
 
-  RTCOutboundRtpStreamStats expected_video(stats_of_my_type[0]->id(),
+  RTCOutboundRtpStreamStats expected_video(id_of_first_ssrc,
                                            report->timestamp());
   expected_video.media_source_id = "SV50";
   // `expected_video.remote_id` should be undefined.
   expected_video.mid = "VideoMid";
+  expected_video.rid = "q";
+  expected_video.simulcast_index = 0;
   expected_video.ssrc = 1;
   expected_video.kind = "video";
   expected_video.transport_id = "TTransportName1";

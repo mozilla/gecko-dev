@@ -332,6 +332,10 @@ class RTC_EXPORT RTCOutboundRtpStreamStats final
   std::optional<std::string> remote_id;
   std::optional<std::string> mid;
   std::optional<std::string> rid;
+  // C++-only metric. Useful for apps that don't use RIDs and need to know which
+  // SSRC belong to which encoding, or stats processing which does not know the
+  // app-specific RID-to-index mapping (e.g. chrome://webrtc-internals/).
+  std::optional<uint32_t> simulcast_index;
   std::optional<uint64_t> retransmitted_packets_sent;
   std::optional<uint64_t> header_bytes_sent;
   std::optional<uint64_t> retransmitted_bytes_sent;

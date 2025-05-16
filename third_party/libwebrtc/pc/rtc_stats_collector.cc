@@ -849,6 +849,9 @@ CreateOutboundRTPStreamStatsFromVideoSenderInfo(
   if (video_sender_info.rid.has_value()) {
     outbound_video->rid = *video_sender_info.rid;
   }
+  if (video_sender_info.simulcast_index.has_value()) {
+    outbound_video->simulcast_index = *video_sender_info.simulcast_index;
+  }
   if (video_sender_info.power_efficient_encoder.has_value()) {
     outbound_video->power_efficient_encoder =
         *video_sender_info.power_efficient_encoder;
