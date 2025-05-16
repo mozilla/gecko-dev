@@ -20,22 +20,22 @@ http://wiki.mozilla.org/Gecko:Effective_TLD_Service
 
 
 def getEffectiveTLDs(path):
-    file = codecs.open(path, "r", "UTF-8")
-    domains = set()
-    for line in file:
-        # line always contains a line terminator unless the file is empty
-        if len(line) == 0:
-            raise StopIteration
-        line = line.rstrip()
-        # comment, empty, or superfluous line for explicitness purposes
-        if line.startswith("//") or not line.strip():
-            continue
-        line = re.split(r"[ \t\n]", line, 1)[0]
-        entry = EffectiveTLDEntry(line)
-        domain = entry.domain()
-        assert domain not in domains, "repeating domain %s makes no sense" % domain
-        domains.add(domain)
-        yield entry
+    with codecs.open(path, "r", "UTF-8") as file:
+        domains = set()
+        for line in file:
+            # line always contains a line terminator unless the file is empty
+            if len(line) == 0:
+                raise StopIteration
+            line = line.rstrip()
+            # comment, empty, or superfluous line for explicitness purposes
+            if line.startswith("//") or not line.strip():
+                continue
+            line = re.split(r"[ \t\n]", line, 1)[0]
+            entry = EffectiveTLDEntry(line)
+            domain = entry.domain()
+            assert domain not in domains, "repeating domain %s makes no sense" % domain
+            domains.add(domain)
+            yield entry
 
 
 def _normalizeHostname(domain):
