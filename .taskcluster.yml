@@ -211,6 +211,7 @@ tasks:
                             # This causes cached_task digest generation to be random for
                             # some tasks. Disable bytecode generation to work around that.
                             PYTHONDONTWRITEBYTECODE: '1'
+                            MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE: 'system'
                           - $if: 'tasks_for == "action"'
                             then:
                                 ACTION_TASK_GROUP_ID: '${action.taskGroupId}'  # taskGroupId of the target task
