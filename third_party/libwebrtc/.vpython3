@@ -80,7 +80,7 @@ wheel: <
 >
 wheel: <
   name: "infra/python/wheels/protobuf-py3"
-  version: "version:5.29.3"
+  version: "version:6.30.1"
 >
 wheel: <
   name: "infra/python/wheels/requests-py3"
