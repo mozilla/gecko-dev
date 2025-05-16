@@ -50,6 +50,8 @@ VERSIONS:
 
 cff-font-creation.patch: make cairo_cff_font_t allocation consistent
 
+27-windows-sdk-26100.patch: fix build bustage with Windows SDK 26100
+
 ==== pixman patches ====
 
 pixman-armasm.patch: add an ifdef guard around pixman-config.h include
