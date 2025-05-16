@@ -141,7 +141,7 @@ MALLOC_DECL(moz_enable_deferred_purge, bool, bool)
 
 // Perform some purging.
 //
-// Returns a purge_result_t with the following meaning:
+// Returns a may_purge_now_result_t with the following meaning:
 // Done:       Purge has completed for all arenas.
 // NeedsMore:  There may be an arena that needs to be purged now.  The caller
 //             may call moz_may_purge_one_now again.
@@ -163,7 +163,7 @@ MALLOC_DECL(moz_enable_deferred_purge, bool, bool)
 // lock/unlock and iterating the list of purges. The mutex is never held during
 // expensive operations.
 #    ifdef __cplusplus
-MALLOC_DECL(moz_may_purge_now, purge_result_t, bool, uint32_t,
+MALLOC_DECL(moz_may_purge_now, may_purge_now_result_t, bool, uint32_t,
             const mozilla::Maybe<std::function<bool()>>&)
 #    endif
 

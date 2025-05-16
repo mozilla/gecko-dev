@@ -220,8 +220,8 @@ static inline bool jemalloc_ptr_is_freed_page(jemalloc_ptr_info_t* info) {
   return info->tag == TagFreedPage;
 }
 
-// The result of a purge step.
-enum purge_result_t {
+// The result of calling moz_may_purge_now().
+enum may_purge_now_result_t {
   // Done: No more purge requests are pending.
   Done,
 
