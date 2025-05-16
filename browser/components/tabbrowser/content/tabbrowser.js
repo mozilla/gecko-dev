@@ -4798,7 +4798,6 @@
         }
       }
 
-      aTab.closing = true;
       this.tabContainer._invalidateCachedVisibleTabs();
 
       // this._switcher would normally cover removing a tab from this
@@ -4819,7 +4818,11 @@
 
       var closeWindow = false;
       var newTab = false;
-      if (!this.visibleTabs.length && !this.tabsInCollapsedTabGroups.length) {
+      if (
+        aTab.visible &&
+        this.visibleTabs.length == 1 &&
+        !this.tabsInCollapsedTabGroups.length
+      ) {
         closeWindow =
           closeWindowWithLastTab != null
             ? closeWindowWithLastTab
@@ -4880,6 +4883,7 @@
         aTab.linkedBrowser.mute(true);
       }
 
+      aTab.closing = true;
       this._removingTabs.add(aTab);
       this.tabContainer._invalidateCachedTabs();
 
