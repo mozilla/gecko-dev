@@ -889,11 +889,6 @@ rtc_source_set("transport_info") {
   ]
 }
 
-rtc_source_set("udp_port") {
-  sources = [ "base/udp_port.h" ]
-  deps = [ ":stun_port" ]
-}
-
 rtc_library("turn_port") {
   sources = [
     "base/turn_port.cc",
