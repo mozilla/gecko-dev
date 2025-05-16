@@ -37,6 +37,7 @@
 #include "test/peer_scenario/peer_scenario_client.h"
 
 #if WEBRTC_ENABLE_PROTOBUF
+#include "api/test/network_emulation/network_config_schedule.pb.h"
 #include "api/test/network_emulation/schedulable_network_node_builder.h"
 #endif
 
@@ -191,7 +192,7 @@ TEST(BweRampupTest, RampUpWithUndemuxableRtpPackets) {
 
   DataRate final_bwe = GetAvailableSendBitrate(GetStatsAndProcess(s, caller));
   // Ensure BWE has increased from the initial BWE. BWE will not increase unless
-  // RTCP feedback is recevied. The increase is just an arbitrary value to
+  // RTCP feedback is received. The increase is just an arbitrary value to
   // ensure BWE has increased beyond noise levels.
   EXPECT_GT(final_bwe, initial_bwe + DataRate::KilobitsPerSec(345));
 }
