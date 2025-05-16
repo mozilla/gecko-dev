@@ -83,7 +83,7 @@ class MOZ_IS_REFPTR RefPtr {
 
   // Constructors
 
-  RefPtr()
+  constexpr RefPtr()
       : mRawPtr(nullptr)
   // default constructor
   {}
