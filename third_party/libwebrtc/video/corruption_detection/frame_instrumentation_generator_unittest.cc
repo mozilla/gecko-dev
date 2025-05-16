@@ -16,13 +16,16 @@
 #include <variant>
 #include <vector>
 
+#include "api/make_ref_counted.h"
 #include "api/scoped_refptr.h"
+#include "api/video/corruption_detection_filter_settings.h"
 #include "api/video/encoded_image.h"
 #include "api/video/i420_buffer.h"
 #include "api/video/video_codec_type.h"
 #include "api/video/video_frame.h"
 #include "api/video/video_frame_type.h"
 #include "common_video/frame_instrumentation_data.h"
+#include "rtc_base/ref_counted_object.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 
@@ -709,7 +712,7 @@ TEST(FrameInstrumentationGeneratorTest, QueuesAtMostThreeInputFrames) {
   for (int i = 0; i < 4; ++i) {
     generator->OnCapturedFrame(
         VideoFrame::Builder()
-            .set_video_frame_buffer(rtc::make_ref_counted<TestBuffer>(
+            .set_video_frame_buffer(make_ref_counted<TestBuffer>(
                 kDefaultScaledWidth, kDefaultScaledHeight,
                 &frames_destroyed[i]))
             .set_rtp_timestamp(1 + (33 * i))
