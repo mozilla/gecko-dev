@@ -11,6 +11,8 @@
 #ifndef P2P_BASE_CONNECTION_INFO_H_
 #define P2P_BASE_CONNECTION_INFO_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <vector>
 

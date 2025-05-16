@@ -10,8 +10,15 @@
 
 #include "p2p/base/packet_transport_internal.h"
 
+#include <optional>
+#include <utility>
+
+#include "absl/functional/any_invocable.h"
 #include "api/sequence_checker.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/network/received_packet.h"
+#include "rtc_base/network_route.h"
+#include "rtc_base/socket.h"
 
 namespace rtc {
 

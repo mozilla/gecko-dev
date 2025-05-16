@@ -10,6 +10,34 @@
 
 #include "p2p/base/basic_ice_controller.h"
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <iterator>
+#include <map>
+#include <optional>
+#include <utility>
+#include <vector>
+
+#include "absl/algorithm/container.h"
+#include "api/candidate.h"
+#include "api/transport/enums.h"
+#include "p2p/base/connection.h"
+#include "p2p/base/connection_info.h"
+#include "p2p/base/ice_controller_factory_interface.h"
+#include "p2p/base/ice_controller_interface.h"
+#include "p2p/base/ice_switch_reason.h"
+#include "p2p/base/ice_transport_internal.h"
+#include "p2p/base/p2p_constants.h"
+#include "p2p/base/transport_description.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/ip_address.h"
+#include "rtc_base/logging.h"
+#include "rtc_base/net_helper.h"
+#include "rtc_base/network.h"
+#include "rtc_base/network_constants.h"
+#include "rtc_base/time_utils.h"
+
 namespace {
 
 // The minimum improvement in RTT that justifies a switch.

@@ -11,15 +11,16 @@
 #ifndef P2P_TEST_TURN_SERVER_H_
 #define P2P_TEST_TURN_SERVER_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <list>
 #include <map>
 #include <memory>
-#include <set>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include "absl/strings/string_view.h"
+#include "api/array_view.h"
 #include "api/packet_socket_factory.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
@@ -27,10 +28,13 @@
 #include "api/units/time_delta.h"
 #include "p2p/base/port_interface.h"
 #include "rtc_base/async_packet_socket.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/network/received_packet.h"
+#include "rtc_base/socket.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/ssl_adapter.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
+#include "rtc_base/thread_annotations.h"
 
 namespace rtc {
 class ByteBufferWriter;

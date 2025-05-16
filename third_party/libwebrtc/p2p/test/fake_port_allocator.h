@@ -11,6 +11,7 @@
 #ifndef P2P_TEST_FAKE_PORT_ALLOCATOR_H_
 #define P2P_TEST_FAKE_PORT_ALLOCATOR_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -18,13 +19,20 @@
 
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
-#include "p2p/base/basic_packet_socket_factory.h"
+#include "api/candidate.h"
+#include "api/field_trials_view.h"
+#include "api/packet_socket_factory.h"
+#include "p2p/base/port.h"
 #include "p2p/base/port_allocator.h"
-#include "p2p/base/udp_port.h"
+#include "p2p/base/port_interface.h"
+#include "p2p/base/stun_port.h"
+#include "rtc_base/async_packet_socket.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/memory/always_valid_pointer.h"
 #include "rtc_base/net_helpers.h"
 #include "rtc_base/net_test_helpers.h"
-#include "rtc_base/socket_factory.h"
+#include "rtc_base/network.h"
 #include "rtc_base/task_queue_for_test.h"
 #include "rtc_base/thread.h"
 

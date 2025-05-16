@@ -11,18 +11,32 @@
 #ifndef P2P_BASE_STUN_PORT_H_
 #define P2P_BASE_STUN_PORT_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
-#include "api/task_queue/pending_task_safety_flag.h"
+#include "api/async_dns_resolver.h"
+#include "api/candidate.h"
+#include "api/field_trials_view.h"
+#include "api/packet_socket_factory.h"
+#include "api/task_queue/task_queue_base.h"
+#include "p2p/base/connection.h"
 #include "p2p/base/port.h"
+#include "p2p/base/port_interface.h"
 #include "p2p/base/stun_request.h"
 #include "rtc_base/async_packet_socket.h"
+#include "rtc_base/dscp.h"
+#include "rtc_base/network.h"
 #include "rtc_base/network/received_packet.h"
+#include "rtc_base/network/sent_packet.h"
+#include "rtc_base/network_constants.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/system/rtc_export.h"
 
 namespace cricket {

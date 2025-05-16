@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <set>
@@ -22,13 +23,25 @@
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
 #include "api/async_dns_resolver.h"
+#include "api/candidate.h"
+#include "api/packet_socket_factory.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/task_queue/task_queue_base.h"
+#include "api/transport/stun.h"
+#include "p2p/base/connection.h"
 #include "p2p/base/port.h"
 #include "p2p/base/port_allocator.h"
+#include "p2p/base/port_interface.h"
+#include "p2p/base/stun_request.h"
 #include "p2p/client/relay_port_factory_interface.h"
 #include "rtc_base/async_packet_socket.h"
+#include "rtc_base/dscp.h"
+#include "rtc_base/ip_address.h"
+#include "rtc_base/logging.h"
 #include "rtc_base/network/received_packet.h"
+#include "rtc_base/network/sent_packet.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/ssl_certificate.h"
 
 namespace webrtc {

@@ -10,9 +10,16 @@
 
 #include "p2p/test/test_stun_server.h"
 
+#include <functional>
 #include <memory>
 
+#include "api/sequence_checker.h"
+#include "api/transport/stun.h"
+#include "p2p/test/stun_server.h"
+#include "rtc_base/async_udp_socket.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/socket_server.h"
 
 namespace webrtc {

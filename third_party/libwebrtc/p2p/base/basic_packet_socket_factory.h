@@ -14,7 +14,6 @@
 #include <stdint.h>
 
 #include <memory>
-#include <string>
 
 #include "api/async_dns_resolver.h"
 #include "api/packet_socket_factory.h"

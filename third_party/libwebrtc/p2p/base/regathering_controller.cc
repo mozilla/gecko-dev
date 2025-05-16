@@ -10,8 +10,12 @@
 
 #include "p2p/base/regathering_controller.h"
 
+#include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/units/time_delta.h"
+#include "p2p/base/ice_transport_internal.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/thread.h"
 
 namespace webrtc {
 

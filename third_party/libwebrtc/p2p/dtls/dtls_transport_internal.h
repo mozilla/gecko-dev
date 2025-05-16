@@ -27,8 +27,8 @@
 #include "p2p/base/packet_transport_internal.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/callback_list.h"
+#include "rtc_base/rtc_certificate.h"
 #include "rtc_base/ssl_certificate.h"
-#include "rtc_base/ssl_fingerprint.h"
 #include "rtc_base/ssl_stream_adapter.h"
 
 namespace cricket {

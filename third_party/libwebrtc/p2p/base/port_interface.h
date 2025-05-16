@@ -11,21 +11,25 @@
 #ifndef P2P_BASE_PORT_INTERFACE_H_
 #define P2P_BASE_PORT_INTERFACE_H_
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
 #include "api/candidate.h"
-#include "api/field_trials_view.h"
 #include "api/packet_socket_factory.h"
 #include "api/task_queue/task_queue_base.h"
 #include "p2p/base/transport_description.h"
 #include "rtc_base/async_packet_socket.h"
-#include "rtc_base/callback_list.h"
+#include "rtc_base/dscp.h"
+#include "rtc_base/network/sent_packet.h"
+#include "rtc_base/socket.h"
 #include "rtc_base/socket_address.h"
+#include "rtc_base/third_party/sigslot/sigslot.h"
 
 namespace rtc {
 class Network;

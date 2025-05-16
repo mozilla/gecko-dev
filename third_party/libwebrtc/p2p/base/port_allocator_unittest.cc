@@ -13,6 +13,7 @@
 #include <memory>
 
 #include "absl/strings/string_view.h"
+#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/test/fake_port_allocator.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/virtual_socket_server.h"

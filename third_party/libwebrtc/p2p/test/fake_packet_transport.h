@@ -11,11 +11,19 @@
 #ifndef P2P_TEST_FAKE_PACKET_TRANSPORT_H_
 #define P2P_TEST_FAKE_PACKET_TRANSPORT_H_
 
+#include <cstddef>
 #include <map>
+#include <optional>
 #include <string>
 
+#include "api/transport/ecn_marking.h"
+#include "api/units/timestamp.h"
 #include "p2p/base/packet_transport_internal.h"
 #include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/network/received_packet.h"
+#include "rtc_base/network_route.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/time_utils.h"
 
 namespace webrtc {

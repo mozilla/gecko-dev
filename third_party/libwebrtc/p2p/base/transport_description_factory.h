@@ -15,6 +15,7 @@
 #include <utility>
 
 #include "api/field_trials_view.h"
+#include "api/scoped_refptr.h"
 #include "p2p/base/ice_credentials_iterator.h"
 #include "p2p/base/transport_description.h"
 #include "rtc_base/rtc_certificate.h"

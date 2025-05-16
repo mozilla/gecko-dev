@@ -12,15 +12,28 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 
 #include "api/array_view.h"
 #include "p2p/test/nat_socket_factory.h"
+#include "p2p/test/nat_types.h"
+#include "rtc_base/async_packet_socket.h"
+#include "rtc_base/async_udp_socket.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/net_helpers.h"
 #include "rtc_base/network/received_packet.h"
+#include "rtc_base/proxy_server.h"
+#include "rtc_base/server_socket_adapters.h"
+#include "rtc_base/socket.h"
 #include "rtc_base/socket_adapters.h"
 #include "rtc_base/socket_address.h"
+#include "rtc_base/socket_address_pair.h"
+#include "rtc_base/socket_factory.h"
+#include "rtc_base/synchronization/mutex.h"
+#include "rtc_base/thread.h"
 
 namespace webrtc {
 

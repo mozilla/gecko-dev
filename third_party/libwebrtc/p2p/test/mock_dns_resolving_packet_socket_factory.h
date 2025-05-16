@@ -14,8 +14,10 @@
 #include <functional>
 #include <memory>
 
+#include "api/async_dns_resolver.h"
 #include "api/test/mock_async_dns_resolver.h"
 #include "p2p/base/basic_packet_socket_factory.h"
+#include "rtc_base/socket_factory.h"
 
 namespace webrtc {
 

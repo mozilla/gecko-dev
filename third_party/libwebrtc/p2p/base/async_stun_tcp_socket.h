@@ -13,6 +13,9 @@
 
 #include <stddef.h>
 
+#include <cstdint>
+
+#include "api/array_view.h"
 #include "rtc_base/async_packet_socket.h"
 #include "rtc_base/async_tcp_socket.h"
 #include "rtc_base/socket.h"

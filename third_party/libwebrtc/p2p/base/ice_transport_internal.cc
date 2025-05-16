@@ -11,9 +11,19 @@
 #include "p2p/base/ice_transport_internal.h"
 
 #include <algorithm>
+#include <optional>
+#include <utility>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "api/candidate.h"
+#include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
 #include "p2p/base/p2p_constants.h"
+#include "p2p/base/port.h"
+#include "p2p/base/transport_description.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/net_helper.h"
 
 namespace webrtc {
 namespace {

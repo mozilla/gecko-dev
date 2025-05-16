@@ -12,7 +12,6 @@
 #define P2P_BASE_WRAPPING_ACTIVE_ICE_CONTROLLER_H_
 
 #include <memory>
-#include <optional>
 
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "p2p/base/active_ice_controller_interface.h"

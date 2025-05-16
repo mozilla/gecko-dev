@@ -15,8 +15,10 @@
 #include <string>
 
 #include "api/ice_transport_interface.h"
+#include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
 #include "p2p/base/p2p_transport_channel.h"
-#include "rtc_base/thread.h"
+#include "rtc_base/thread_annotations.h"
 
 namespace webrtc {
 

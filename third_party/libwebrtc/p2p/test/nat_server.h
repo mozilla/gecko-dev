@@ -11,12 +11,16 @@
 #ifndef P2P_TEST_NAT_SERVER_H_
 #define P2P_TEST_NAT_SERVER_H_
 
+#include <cstddef>
 #include <map>
 #include <set>
 
 #include "p2p/test/nat_types.h"
+#include "rtc_base/async_packet_socket.h"
 #include "rtc_base/async_udp_socket.h"
+#include "rtc_base/network/received_packet.h"
 #include "rtc_base/proxy_server.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/socket_address_pair.h"
 #include "rtc_base/socket_factory.h"
 #include "rtc_base/synchronization/mutex.h"

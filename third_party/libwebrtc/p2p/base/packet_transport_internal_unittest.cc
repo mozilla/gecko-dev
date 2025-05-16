@@ -10,11 +10,14 @@
 
 #include "p2p/base/packet_transport_internal.h"
 
+#include <optional>
+
 #include "p2p/test/fake_packet_transport.h"
-#include "rtc_base/gunit.h"
+#include "rtc_base/network/ecn_marking.h"
 #include "rtc_base/network/received_packet.h"
-#include "rtc_base/third_party/sigslot/sigslot.h"
+#include "rtc_base/socket_address.h"
 #include "test/gmock.h"
+#include "test/gtest.h"
 
 namespace {
 

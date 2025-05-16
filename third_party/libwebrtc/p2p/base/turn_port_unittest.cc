@@ -14,6 +14,7 @@
 #include "absl/functional/any_invocable.h"
 #include "api/array_view.h"
 #include "api/candidate.h"
+#include "api/packet_socket_factory.h"
 #include "api/test/mock_async_dns_resolver.h"
 #include "api/test/rtc_error_matchers.h"
 #include "api/transport/stun.h"

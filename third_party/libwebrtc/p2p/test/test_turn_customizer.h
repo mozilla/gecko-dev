@@ -11,10 +11,13 @@
 #ifndef P2P_TEST_TEST_TURN_CUSTOMIZER_H_
 #define P2P_TEST_TEST_TURN_CUSTOMIZER_H_
 
+#include <cstddef>
 #include <memory>
 
+#include "api/transport/stun.h"
 #include "api/turn_customizer.h"
-#include "rtc_base/gunit.h"
+#include "p2p/base/port_interface.h"
+#include "test/gtest.h"
 
 namespace webrtc {
 

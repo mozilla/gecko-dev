@@ -10,10 +10,16 @@
 
 #include "p2p/base/stun_dictionary.h"
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <string>
+#include <vector>
 
-#include "rtc_base/gunit.h"
+#include "api/transport/stun.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/socket_address.h"
 #include "test/gtest.h"
 
 namespace {

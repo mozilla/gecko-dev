@@ -15,6 +15,10 @@
 
 #include "p2p/base/active_ice_controller_factory_interface.h"
 #include "p2p/base/active_ice_controller_interface.h"
+#include "p2p/base/connection.h"
+#include "p2p/base/ice_switch_reason.h"
+#include "p2p/base/ice_transport_internal.h"
+#include "p2p/base/transport_description.h"
 #include "test/gmock.h"
 
 namespace webrtc {

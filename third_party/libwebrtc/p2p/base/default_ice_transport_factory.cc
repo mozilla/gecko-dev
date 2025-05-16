@@ -10,11 +10,18 @@
 
 #include "p2p/base/default_ice_transport_factory.h"
 
+#include <memory>
+#include <string>
 #include <utility>
 
+#include "api/ice_transport_interface.h"
 #include "api/make_ref_counted.h"
+#include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
 #include "p2p/base/basic_ice_controller.h"
 #include "p2p/base/ice_controller_factory_interface.h"
+#include "p2p/base/ice_controller_interface.h"
+#include "p2p/base/p2p_transport_channel.h"
 
 namespace {
 

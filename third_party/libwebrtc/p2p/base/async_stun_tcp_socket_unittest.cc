@@ -13,7 +13,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <cstdint>
 #include <list>
 #include <memory>
 #include <string>
@@ -21,11 +20,13 @@
 
 #include "absl/memory/memory.h"
 #include "api/array_view.h"
+#include "rtc_base/async_packet_socket.h"
+#include "rtc_base/async_tcp_socket.h"
 #include "rtc_base/buffer.h"
-#include "rtc_base/byte_buffer.h"
 #include "rtc_base/network/received_packet.h"
 #include "rtc_base/network/sent_packet.h"
 #include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/virtual_socket_server.h"

@@ -68,23 +68,38 @@
 
 #include <errno.h>
 
+#include <cstddef>
+#include <cstdint>
+#include <list>
 #include <utility>
-#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
+#include "api/candidate.h"
+#include "api/packet_socket_factory.h"
+#include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
+#include "api/transport/stun.h"
 #include "api/units/time_delta.h"
+#include "p2p/base/connection.h"
+#include "p2p/base/connection_info.h"
 #include "p2p/base/p2p_constants.h"
+#include "p2p/base/port.h"
+#include "p2p/base/port_interface.h"
+#include "p2p/base/stun_request.h"
+#include "rtc_base/async_packet_socket.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/net_helper.h"
 #include "rtc_base/network/received_packet.h"
+#include "rtc_base/network/sent_packet.h"
 #include "rtc_base/rate_tracker.h"
-#include "rtc_base/thread.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/time_utils.h"
+#include "rtc_base/weak_ptr.h"
 
 namespace cricket {
 using ::webrtc::IceCandidateType;

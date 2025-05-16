@@ -20,10 +20,14 @@
 #include "api/array_view.h"
 #include "api/transport/stun.h"
 #include "api/units/timestamp.h"
+#include "rtc_base/async_packet_socket.h"
+#include "rtc_base/async_tcp_socket.h"
 #include "rtc_base/byte_order.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/network/received_packet.h"
 #include "rtc_base/network/sent_packet.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/time_utils.h"
 
 namespace webrtc {

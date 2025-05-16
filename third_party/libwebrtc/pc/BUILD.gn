@@ -2196,6 +2196,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../media:rtc_media_tests_utils",
       "../media:stream_params",
       "../modules/rtp_rtcp:rtp_rtcp_format",
+      "../p2p:basic_packet_socket_factory",
       "../p2p:candidate_pair_interface",
       "../p2p:dtls_transport",
       "../p2p:dtls_transport_factory",

@@ -17,6 +17,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "api/transport/stun.h"
+#include "rtc_base/checks.h"
 
 namespace cricket {
 

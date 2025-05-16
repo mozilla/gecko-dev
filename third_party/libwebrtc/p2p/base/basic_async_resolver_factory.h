@@ -11,11 +11,11 @@
 #ifndef P2P_BASE_BASIC_ASYNC_RESOLVER_FACTORY_H_
 #define P2P_BASE_BASIC_ASYNC_RESOLVER_FACTORY_H_
 
-#include <functional>
 #include <memory>
-#include <utility>
 
+#include "absl/functional/any_invocable.h"
 #include "api/async_dns_resolver.h"
+#include "rtc_base/socket_address.h"
 
 namespace webrtc {
 

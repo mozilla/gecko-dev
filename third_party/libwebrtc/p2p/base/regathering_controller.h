@@ -12,10 +12,15 @@
 #define P2P_BASE_REGATHERING_CONTROLLER_H_
 
 #include <memory>
+#include <optional>
 
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "p2p/base/ice_transport_internal.h"
+#include "p2p/base/p2p_constants.h"
+#include "p2p/base/packet_transport_internal.h"
 #include "p2p/base/port_allocator.h"
+#include "rtc_base/network_route.h"
+#include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 
 namespace webrtc {

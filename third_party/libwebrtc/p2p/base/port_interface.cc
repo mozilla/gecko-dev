@@ -10,9 +10,7 @@
 
 #include "p2p/base/port_interface.h"
 
-#include <string>
 
-#include "absl/strings/string_view.h"
 
 namespace webrtc {
 

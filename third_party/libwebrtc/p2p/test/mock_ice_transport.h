@@ -11,11 +11,18 @@
 #ifndef P2P_TEST_MOCK_ICE_TRANSPORT_H_
 #define P2P_TEST_MOCK_ICE_TRANSPORT_H_
 
-#include <memory>
+#include <cstddef>
+#include <optional>
 #include <string>
-#include <vector>
 
+#include "api/candidate.h"
+#include "api/transport/enums.h"
+#include "p2p/base/candidate_pair_interface.h"
+#include "p2p/base/connection.h"
 #include "p2p/base/ice_transport_internal.h"
+#include "p2p/base/transport_description.h"
+#include "rtc_base/async_packet_socket.h"
+#include "rtc_base/socket.h"
 #include "test/gmock.h"
 
 namespace webrtc {

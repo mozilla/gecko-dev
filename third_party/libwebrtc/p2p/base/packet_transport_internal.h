@@ -11,13 +11,12 @@
 #ifndef P2P_BASE_PACKET_TRANSPORT_INTERNAL_H_
 #define P2P_BASE_PACKET_TRANSPORT_INTERNAL_H_
 
+#include <cstddef>
 #include <optional>
 #include <string>
-#include <utility>
-#include <vector>
 
 #include "absl/functional/any_invocable.h"
-#include "p2p/base/port.h"
+#include "api/sequence_checker.h"
 #include "rtc_base/async_packet_socket.h"
 #include "rtc_base/callback_list.h"
 #include "rtc_base/network/received_packet.h"
@@ -25,6 +24,7 @@
 #include "rtc_base/socket.h"
 #include "rtc_base/system/rtc_export.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
+#include "rtc_base/thread_annotations.h"
 
 namespace rtc {
 struct PacketOptions;

@@ -10,7 +10,10 @@
 
 #include "p2p/base/ice_credentials_iterator.h"
 
+#include <vector>
+
 #include "p2p/base/p2p_constants.h"
+#include "p2p/base/transport_description.h"
 #include "rtc_base/crypto_random.h"
 
 namespace cricket {

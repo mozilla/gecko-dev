@@ -14,12 +14,20 @@
 #include <utility>
 #include <vector>
 
+#include "api/units/time_delta.h"
 #include "p2p/base/connection.h"
+#include "p2p/base/ice_controller_factory_interface.h"
+#include "p2p/base/ice_controller_interface.h"
+#include "p2p/base/ice_switch_reason.h"
+#include "p2p/base/ice_transport_internal.h"
+#include "p2p/base/transport_description.h"
 #include "p2p/test/mock_ice_agent.h"
 #include "p2p/test/mock_ice_controller.h"
+#include "rtc_base/event.h"
 #include "rtc_base/fake_clock.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/thread.h"
+#include "test/gmock.h"
+#include "test/gtest.h"
 
 namespace {
 

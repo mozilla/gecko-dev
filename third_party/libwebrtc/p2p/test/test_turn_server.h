@@ -11,6 +11,7 @@
 #ifndef P2P_TEST_TEST_TURN_SERVER_H_
 #define P2P_TEST_TEST_TURN_SERVER_H_
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <utility>
@@ -20,10 +21,17 @@
 #include "api/sequence_checker.h"
 #include "api/transport/stun.h"
 #include "p2p/base/basic_packet_socket_factory.h"
+#include "p2p/base/port_interface.h"
 #include "p2p/test/turn_server.h"
 #include "rtc_base/async_udp_socket.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/net_helpers.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
+#include "rtc_base/socket_factory.h"
 #include "rtc_base/ssl_adapter.h"
 #include "rtc_base/ssl_identity.h"
+#include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/thread.h"
 
 namespace webrtc {

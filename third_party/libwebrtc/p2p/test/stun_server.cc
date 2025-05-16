@@ -10,15 +10,20 @@
 
 #include "p2p/test/stun_server.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/strings/string_view.h"
 #include "api/sequence_checker.h"
+#include "api/transport/stun.h"
 #include "rtc_base/async_packet_socket.h"
+#include "rtc_base/async_udp_socket.h"
 #include "rtc_base/byte_buffer.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/network/received_packet.h"
+#include "rtc_base/socket_address.h"
 
 namespace webrtc {
 

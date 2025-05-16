@@ -12,19 +12,26 @@
 
 #include <map>
 #include <memory>
-#include <string>
 #include <vector>
 
-#include "api/scoped_refptr.h"
+#include "api/packet_socket_factory.h"
+#include "api/transport/enums.h"
+#include "p2p/base/basic_packet_socket_factory.h"
+#include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/port.h"
+#include "p2p/base/port_allocator.h"
+#include "p2p/base/port_interface.h"
 #include "p2p/test/fake_port_allocator.h"
 #include "p2p/test/mock_ice_transport.h"
 #include "p2p/test/stun_server.h"
+#include "rtc_base/fake_clock.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/socket_address.h"
+#include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/virtual_socket_server.h"
+#include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
 
 namespace {

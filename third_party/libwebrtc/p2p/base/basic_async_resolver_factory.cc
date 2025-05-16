@@ -13,10 +13,10 @@
 #include <memory>
 #include <utility>
 
-#include "absl/memory/memory.h"
+#include "absl/functional/any_invocable.h"
 #include "api/async_dns_resolver.h"
 #include "rtc_base/async_dns_resolver.h"
-#include "rtc_base/logging.h"
+#include "rtc_base/socket_address.h"
 
 namespace webrtc {
 

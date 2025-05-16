@@ -10,12 +10,30 @@
 
 #include "p2p/test/nat_socket_factory.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <set>
+
+#include "api/array_view.h"
+#include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "p2p/test/nat_server.h"
+#include "p2p/test/nat_types.h"
 #include "rtc_base/arraysize.h"
 #include "rtc_base/buffer.h"
+#include "rtc_base/byte_order.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/net_helpers.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
+#include "rtc_base/socket_factory.h"
+#include "rtc_base/socket_server.h"
+#include "rtc_base/third_party/sigslot/sigslot.h"
+#include "rtc_base/thread.h"
 #include "rtc_base/virtual_socket_server.h"
 
 namespace webrtc {

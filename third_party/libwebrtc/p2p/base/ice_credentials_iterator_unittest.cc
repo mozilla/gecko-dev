@@ -12,6 +12,7 @@
 
 #include <vector>
 
+#include "p2p/base/transport_description.h"
 #include "test/gtest.h"
 
 using cricket::IceCredentialsIterator;
