@@ -46,6 +46,7 @@ class nsIHttpChannel;
 class nsIRequest;
 class nsISerialEventTarget;
 class nsIWebProgress;
+class nsPIDOMWindowInner;
 class nsWebBrowser;
 class nsDocShellLoadState;
 
@@ -712,6 +713,13 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   mozilla::ipc::IPCResult RecvDispatchToDropTargetAndResumeEndDragSession(
       bool aShouldDrop);
 
+  void OnPointerRawUpdateEventListenerAdded(const nsPIDOMWindowInner* aWindow);
+  void OnPointerRawUpdateEventListenerRemoved(
+      const nsPIDOMWindowInner* aWindow);
+  [[nodiscard]] bool HasWindowHavingPointerRawUpdateEventListeners() const {
+    return !!mPointerRawUpdateWindowCount;
+  }
+
  protected:
   virtual ~BrowserChild();
 
@@ -823,6 +831,8 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   Maybe<CodeNameIndex> mPreviousConsumedKeyDownCode;
   uint32_t mChromeFlags;
   uint32_t mMaxTouchPoints;
+  // The number of windows which may have ePointerRawUpdate event listener.
+  uint32_t mPointerRawUpdateWindowCount = 0;
   layers::LayersId mLayersId;
   CSSRect mUnscaledOuterRect;
   Maybe<bool> mLayersConnected;

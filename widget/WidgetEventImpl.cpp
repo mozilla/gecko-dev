@@ -73,6 +73,7 @@ bool IsPointerEventMessage(EventMessage aMessage) {
     case ePointerOut:
     case ePointerEnter:
     case ePointerLeave:
+    case ePointerRawUpdate:
     case ePointerGotCapture:
     case ePointerLostCapture:
     case ePointerClick:
@@ -121,6 +122,7 @@ bool IsForbiddenDispatchingToNonElementContent(EventMessage aMessage) {
     case ePointerOut:
     case ePointerEnter:
     case ePointerLeave:
+    case ePointerRawUpdate:
     case ePointerCancel:
     case ePointerGotCapture:
     case ePointerLostCapture:

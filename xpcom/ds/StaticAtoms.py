@@ -1955,6 +1955,7 @@ STATIC_ATOMS = [
     Atom("onpointerout", "onpointerout"),
     Atom("onpointerenter", "onpointerenter"),
     Atom("onpointerleave", "onpointerleave"),
+    Atom("onpointerrawupdate", "onpointerrawupdate"),
     Atom("ongotpointercapture", "ongotpointercapture"),
     Atom("onlostpointercapture", "onlostpointercapture"),
     # orientation support

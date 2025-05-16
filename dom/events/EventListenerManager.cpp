@@ -25,8 +25,12 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/ScopeExit.h"
+#include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/TimeStamp.h"
 #include "mozilla/dom/AbortSignal.h"
 #include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/ChromeUtils.h"
 #include "mozilla/dom/EventCallbackDebuggerNotification.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Event.h"
@@ -37,9 +41,6 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/TouchEvent.h"
 #include "mozilla/dom/UserActivation.h"
-#include "mozilla/ScopeExit.h"
-#include "mozilla/TimeStamp.h"
-#include "mozilla/dom/ChromeUtils.h"
 
 #include "EventListenerService.h"
 #include "nsCOMPtr.h"
@@ -145,6 +146,7 @@ EventListenerManagerBase::EventListenerManagerBase()
       mMayHaveTouchEventListener(false),
       mMayHaveMouseEnterLeaveEventListener(false),
       mMayHavePointerEnterLeaveEventListener(false),
+      mMayHavePointerRawUpdateEventListener(false),
       mMayHaveSelectionChangeEventListener(false),
       mMayHaveFormSelectEventListener(false),
       mMayHaveTransitionEventListener(false),
@@ -411,6 +413,18 @@ void EventListenerManager::AddEventListenerInternal(
               "Please do not use pointerenter/leave events in chrome. "
               "They are slower than pointerover/out!");
           window->SetHasPointerEnterLeaveEventListeners();
+        }
+        break;
+      case ePointerRawUpdate:
+        if (!StaticPrefs::dom_event_pointer_rawupdate_enabled()) {
+          break;
+        }
+        mMayHavePointerRawUpdateEventListener = true;
+        if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {
+          NS_WARNING_ASSERTION(
+              !nsContentUtils::IsChromeDoc(window->GetExtantDoc()),
+              "Please do not use pointerrawupdate event in chrome.");
+          window->MaybeSetHasPointerRawUpdateEventListeners();
         }
         break;
       case eGamepadButtonDown:
@@ -862,6 +876,15 @@ void EventListenerManager::RemoveEventListenerInternal(
       DisableDevice(aUserType);
     }
   }
+
+  // XXX Should we clear mMayHavePointerRawUpdateEventListener if the last
+  // pointerrawupdate event listener is removed?  If so, nsPIDOMWindowInner
+  // needs to count how may event listener managers had some pointerrawupdate
+  // event listener.  If we've notified the window of having a pointerrawupdate
+  // event listener, some behavior is changed because pointerrawupdate event
+  // dispatcher needs to handle some things before dispatching an event to the
+  // DOM.  However, it is expected that web apps using `pointerrawupdate` don't
+  // remove the event listeners.
 }
 
 static bool IsDefaultPassiveWhenOnRoot(EventMessage aMessage) {
