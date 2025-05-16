@@ -2,6 +2,13 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 "use strict";
 
+// TODO bug 1938594: moving a tab to another window sometimes triggers this
+// error. See https://bugzilla.mozilla.org/show_bug.cgi?id=1966823#c3 for an
+// analysis, copied to: https://bugzilla.mozilla.org/show_bug.cgi?id=1938594#c4
+PromiseTestUtils.allowMatchingRejectionsGlobally(
+  /Unexpected undefined tabState for onMoveToNewWindow/
+);
+
 add_task(async function test_tabGroups_move_index() {
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
