@@ -213,11 +213,15 @@ interface nsIQuotaManagerService : nsISupports
    *        initialized.
    * @param aClientType
    *        A string that tells what client type will be initialized.
+   * @param aCreateIfNonExistent
+   *        An optional boolean to indicate creation of client directory if it
+   *        doesn't exist yet.
    */
   [must_use] nsIQuotaRequest
   initializeTemporaryClient(in ACString aPersistenceType,
                             in nsIPrincipal aPrincipal,
-                            in AString aClientType);
+                            in AString aClientType,
+                            [optional] in boolean aCreateIfNonExistent);
 
   /**
    * Gets full origin metadata cached in memory for the given persistence type

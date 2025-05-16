@@ -348,12 +348,13 @@ void QuotaManagerDependencyFixture::ClearStoragesForOrigin(
 
 // static
 void QuotaManagerDependencyFixture::InitializeTemporaryClient(
-    const ClientMetadata& aClientMetadata) {
-  PerformOnBackgroundThread([aClientMetadata]() {
+    const ClientMetadata& aClientMetadata, bool aCreateIfNonExistent) {
+  PerformOnBackgroundThread([aClientMetadata, aCreateIfNonExistent]() {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    Await(quotaManager->InitializeTemporaryClient(aClientMetadata));
+    Await(quotaManager->InitializeTemporaryClient(aClientMetadata,
+                                                  aCreateIfNonExistent));
   });
 }
 

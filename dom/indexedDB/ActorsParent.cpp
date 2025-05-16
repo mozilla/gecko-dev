@@ -16883,7 +16883,8 @@ nsresult GetDatabasesOp::DoDatabaseWork() {
         }
 
         QM_TRY_RETURN(quotaManager->EnsureTemporaryClientIsInitialized(
-            ClientMetadata{mOriginMetadata, Client::IDB}));
+            ClientMetadata{mOriginMetadata, Client::IDB},
+            /* aCreateIfNonExistent */ true));
       }()
                   .map([](const auto& res) { return res.first; })));
 

@@ -122,7 +122,7 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentClientOp(
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializeTemporaryClientOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const ClientMetadata& aClientMetadata,
+    const ClientMetadata& aClientMetadata, bool aCreateIfNonExistent,
     RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
 RefPtr<QuotaRequestBase> CreateGetFullOriginMetadataOp(

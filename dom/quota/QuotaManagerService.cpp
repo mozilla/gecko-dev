@@ -973,7 +973,8 @@ QuotaManagerService::InitializePersistentClient(nsIPrincipal* aPrincipal,
 NS_IMETHODIMP
 QuotaManagerService::InitializeTemporaryClient(
     const nsACString& aPersistenceType, nsIPrincipal* aPrincipal,
-    const nsAString& aClientType, nsIQuotaRequest** _retval) {
+    const nsAString& aClientType, bool aCreateIfNonExistent,
+    nsIQuotaRequest** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(nsContentUtils::IsCallerChrome());
@@ -1024,7 +1025,7 @@ QuotaManagerService::InitializeTemporaryClient(
 
   mBackgroundActor
       ->SendInitializeTemporaryClient(persistenceType, principalInfo,
-                                      clientType)
+                                      clientType, aCreateIfNonExistent)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              BoolResponsePromiseResolveOrRejectCallback(request));
 

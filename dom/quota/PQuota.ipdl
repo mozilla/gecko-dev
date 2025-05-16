@@ -168,7 +168,8 @@ parent:
 
   async InitializeTemporaryClient(PersistenceType persistenceType,
                                   PrincipalInfo principalInfo,
-                                  Type clientType)
+                                  Type clientType,
+                                  bool createIfNonExistent)
       returns(BoolResponse response);
 
   async InitializeTemporaryStorage()

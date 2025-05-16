@@ -601,9 +601,12 @@ class InitializePersistentClientOp : public InitializeClientBase {
 };
 
 class InitializeTemporaryClientOp : public InitializeClientBase {
+  const bool mCreateIfNonExistent;
+
  public:
   InitializeTemporaryClientOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
                               const ClientMetadata& aClientMetadata,
+                              bool aCreateIfNonExistent,
                               RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
  private:
@@ -1126,10 +1129,11 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentClientOp(
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializeTemporaryClientOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const ClientMetadata& aClientMetadata,
+    const ClientMetadata& aClientMetadata, bool aCreateIfNonExistent,
     RefPtr<UniversalDirectoryLock> aDirectoryLock) {
   return MakeRefPtr<InitializeTemporaryClientOp>(
-      std::move(aQuotaManager), aClientMetadata, std::move(aDirectoryLock));
+      std::move(aQuotaManager), aClientMetadata, aCreateIfNonExistent,
+      std::move(aDirectoryLock));
 }
 
 RefPtr<QuotaRequestBase> CreateGetFullOriginMetadataOp(
@@ -2354,11 +2358,12 @@ bool InitializePersistentClientOp::UnwrapResolveValue() {
 
 InitializeTemporaryClientOp::InitializeTemporaryClientOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const ClientMetadata& aClientMetadata,
+    const ClientMetadata& aClientMetadata, bool aCreateIfNonExistent,
     RefPtr<UniversalDirectoryLock> aDirectoryLock)
     : InitializeClientBase(std::move(aQuotaManager),
                            "dom::quota::InitializeTemporaryClientOp",
-                           aClientMetadata, std::move(aDirectoryLock)) {
+                           aClientMetadata, std::move(aDirectoryLock)),
+      mCreateIfNonExistent(aCreateIfNonExistent) {
   AssertIsOnOwningThread();
 }
 
@@ -2378,10 +2383,11 @@ nsresult InitializeTemporaryClientOp::DoDirectoryWork(
              mClientMetadata)),
          NS_ERROR_FAILURE);
 
-  QM_TRY_UNWRAP(
-      mCreated,
-      (aQuotaManager.EnsureTemporaryClientIsInitialized(mClientMetadata)
-           .map([](const auto& res) { return res.second; })));
+  QM_TRY_UNWRAP(mCreated,
+                (aQuotaManager
+                     .EnsureTemporaryClientIsInitialized(mClientMetadata,
+                                                         mCreateIfNonExistent)
+                     .map([](const auto& res) { return res.second; })));
 
   return NS_OK;
 }

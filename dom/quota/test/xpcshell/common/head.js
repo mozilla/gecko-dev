@@ -218,11 +218,18 @@ function initPersistentClient(principal, client, callback) {
   return request;
 }
 
-function initTemporaryClient(persistence, principal, client, callback) {
+function initTemporaryClient(
+  persistence,
+  principal,
+  client,
+  createIfNonExistent = true,
+  callback
+) {
   let request = SpecialPowers._getQuotaManager().initializeTemporaryClient(
     persistence,
     principal,
-    client
+    client,
+    createIfNonExistent
   );
   request.callback = callback;
 

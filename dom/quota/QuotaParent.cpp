@@ -645,6 +645,7 @@ mozilla::ipc::IPCResult Quota::RecvInitializePersistentClient(
 mozilla::ipc::IPCResult Quota::RecvInitializeTemporaryClient(
     const PersistenceType& aPersistenceType,
     const PrincipalInfo& aPrincipalInfo, const Type& aClientType,
+    const bool& aCreateIfNonExistent,
     InitializeTemporaryClientResolver&& aResolve) {
   AssertIsOnBackgroundThread();
 
@@ -675,7 +676,7 @@ mozilla::ipc::IPCResult Quota::RecvInitializeTemporaryClient(
 
   ClientMetadata clientMetadata{std::move(originMetadata), aClientType};
 
-  quotaManager->InitializeTemporaryClient(clientMetadata)
+  quotaManager->InitializeTemporaryClient(clientMetadata, aCreateIfNonExistent)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              BoolPromiseResolveOrRejectCallback(this, std::move(aResolve)));
 

@@ -509,16 +509,17 @@ class QuotaManager final : public BackgroundThreadObject {
   EnsurePersistentClientIsInitialized(const ClientMetadata& aClientMetadata);
 
   RefPtr<BoolPromise> InitializeTemporaryClient(
-      const ClientMetadata& aClientMetadata);
+      const ClientMetadata& aClientMetadata, bool aCreateIfNonExistent);
 
   RefPtr<BoolPromise> InitializeTemporaryClient(
-      const ClientMetadata& aClientMetadata,
+      const ClientMetadata& aClientMetadata, bool aCreateIfNonExistent,
       RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
   // Returns a pair of an nsIFile object referring to the directory, and a bool
   // indicating whether the directory was newly created.
   Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult>
-  EnsureTemporaryClientIsInitialized(const ClientMetadata& aClientMetadata);
+  EnsureTemporaryClientIsInitialized(const ClientMetadata& aClientMetadata,
+                                     bool aCreateIfNonExistent);
 
   RefPtr<BoolPromise> InitializeTemporaryStorage();
 

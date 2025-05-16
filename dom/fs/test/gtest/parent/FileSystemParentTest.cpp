@@ -59,7 +59,7 @@ void FileSystemParentTest::GetCachedOriginUsage(quota::UsageInfo& aResult) {
 void FileSystemParentTest::InitializeTemporaryClient() {
   ASSERT_NO_FATAL_FAILURE(
       QuotaManagerDependencyFixture::InitializeTemporaryClient(
-          GetTestClientMetadata()));
+          GetTestClientMetadata(), /* aCreateIfNonExistent */ true));
 }
 
 // static
