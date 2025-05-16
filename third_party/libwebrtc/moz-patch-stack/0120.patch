@@ -659,7 +659,7 @@ index b1ccaece8f..d1c9d485db 100644
  
  if (rtc_build_libsrtp) {
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 1dd6922017..788b11d286 100644
+index 303d51ea03..a88fc71c97 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -9,8 +9,8 @@
@@ -812,7 +812,7 @@ index de26d6abff..f1b470b913 100644
      deps = [ ":google_test_runner_delegate" ]
    }
 diff --git a/test/fuzzers/BUILD.gn b/test/fuzzers/BUILD.gn
-index a617dd66e8..9563f66ccb 100644
+index 60a9d18b99..08d77f5771 100644
 --- a/test/fuzzers/BUILD.gn
 +++ b/test/fuzzers/BUILD.gn
 @@ -6,7 +6,7 @@

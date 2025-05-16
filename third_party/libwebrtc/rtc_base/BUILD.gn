@@ -1830,6 +1830,19 @@ rtc_library("task_queue_for_test") {
   ]
 }
 
+rtc_library("base64") {
+  sources = [
+    "base64.cc",
+    "base64.h",
+  ]
+  deps = [
+    ":checks",
+    "../api:array_view",
+    "third_party/base64",
+    "//third_party/abseil-cpp/absl/strings:string_view",
+  ]
+}
+
 if (rtc_include_tests) {
   rtc_library("sigslot_unittest") {
     testonly = true
@@ -1925,6 +1938,7 @@ if (rtc_include_tests) {
     rtc_library("rtc_base_approved_unittests") {
       testonly = true
       sources = [
+        "base64_unittest.cc",
         "bit_buffer_unittest.cc",
         "bitrate_tracker_unittest.cc",
         "bitstream_reader_unittest.cc",
@@ -1972,6 +1986,7 @@ if (rtc_include_tests) {
       deps = [
         ":async_packet_socket",
         ":async_udp_socket",
+        ":base64",
         ":bit_buffer",
         ":bitrate_tracker",
         ":bitstream_reader",
