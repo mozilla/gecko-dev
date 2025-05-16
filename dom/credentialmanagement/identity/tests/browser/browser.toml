@@ -20,6 +20,8 @@ support-files = [
   "server_manifest.json^headers^",
 ]
 
+["browser_autoreauthn_doesnt_show_ui.js"]
+
 ["browser_close_prompt_on_timeout.js"]
 
 ["browser_disconnect.js"]
