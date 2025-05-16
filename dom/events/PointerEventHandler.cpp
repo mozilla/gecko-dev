@@ -430,7 +430,7 @@ void PointerEventHandler::CheckPointerCaptureState(WidgetPointerEvent* aEvent) {
     return;
   }
 
-  const RefPtr<Element> overrideElement = captureInfo->mOverrideElement;
+  RefPtr<Element> overrideElement = captureInfo->mOverrideElement;
   RefPtr<Element> pendingElement = captureInfo->mPendingElement;
 
   // Update captureInfo before dispatching event since sPointerCaptureList may
@@ -438,36 +438,15 @@ void PointerEventHandler::CheckPointerCaptureState(WidgetPointerEvent* aEvent) {
   captureInfo->mOverrideElement = captureInfo->mPendingElement;
   if (captureInfo->Empty()) {
     sPointerCaptureList->Remove(aEvent->pointerId);
-    captureInfo = nullptr;
   }
 
   if (overrideElement) {
     DispatchGotOrLostPointerCaptureEvent(/* aIsGotCapture */ false, aEvent,
                                          overrideElement);
-    // A `lostpointercapture` event listener may have removed the new pointer
-    // capture element from the tree.  Then, we shouldn't dispatch
-    // `gotpointercapture` on the node.
-    if (pendingElement && !pendingElement->IsInComposedDoc()) {
-      // We won't dispatch `gotpointercapture`, so, we should never fire
-      // `lostpointercapture` on it at processing the next pending pointer
-      // capture.
-      if ((captureInfo = GetPointerCaptureInfo(aEvent->pointerId)) &&
-          captureInfo->mOverrideElement == pendingElement) {
-        captureInfo->mOverrideElement = nullptr;
-        if (captureInfo->Empty()) {
-          sPointerCaptureList->Remove(aEvent->pointerId);
-          captureInfo = nullptr;
-        }
-      }
-      pendingElement = nullptr;
-    } else {
-      captureInfo = nullptr;  // Maybe destroyed
-    }
   }
   if (pendingElement) {
     DispatchGotOrLostPointerCaptureEvent(/* aIsGotCapture */ true, aEvent,
                                          pendingElement);
-    captureInfo = nullptr;  // Maybe destroyed
   }
 
   // If nobody captures the pointer and the pointer will not be removed, we need
@@ -648,10 +627,9 @@ void PointerEventHandler::ReleasePointerCapturingElementAtLastPointerUp() {
 
 /* static */
 void PointerEventHandler::ReleaseIfCaptureByDescendant(nsIContent* aContent) {
-  MOZ_ASSERT(aContent);
   // We should check that aChild does not contain pointer capturing elements.
   // If it does we should release the pointer capture for the elements.
-  if (!sPointerCaptureList->IsEmpty() && aContent->IsElement()) {
+  if (!sPointerCaptureList->IsEmpty()) {
     for (const auto& entry : *sPointerCaptureList) {
       PointerCaptureInfo* data = entry.GetWeak();
       if (data && data->mPendingElement &&
@@ -1101,12 +1079,8 @@ bool PointerEventHandler::HasActiveTouchPointer() {
 void PointerEventHandler::DispatchGotOrLostPointerCaptureEvent(
     bool aIsGotCapture, const WidgetPointerEvent* aPointerEvent,
     Element* aCaptureTarget) {
-  // Don't allow uncomposed element to capture a pointer.
-  if (NS_WARN_IF(aIsGotCapture && !aCaptureTarget->IsInComposedDoc())) {
-    return;
-  }
-  const OwningNonNull<Document> targetDoc = *aCaptureTarget->OwnerDoc();
-  const RefPtr<PresShell> presShell = targetDoc->GetPresShell();
+  Document* targetDoc = aCaptureTarget->OwnerDoc();
+  RefPtr<PresShell> presShell = targetDoc->GetPresShell();
   if (NS_WARN_IF(!presShell || presShell->IsDestroying())) {
     return;
   }
