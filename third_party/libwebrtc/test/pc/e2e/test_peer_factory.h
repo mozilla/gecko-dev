@@ -15,8 +15,6 @@
 #include <optional>
 #include <string>
 
-#include "absl/base/macros.h"
-#include "api/task_queue/task_queue_base.h"
 #include "api/test/pclf/media_configuration.h"
 #include "api/test/pclf/peer_configurer.h"
 #include "api/test/time_controller.h"
@@ -55,15 +53,6 @@ class TestPeerFactory {
       : signaling_thread_(signaling_thread),
         time_controller_(time_controller),
         video_analyzer_helper_(video_analyzer_helper) {}
-
-  ABSL_DEPRECATE_AND_INLINE()
-  TestPeerFactory(Thread* signaling_thread,
-                  TimeController& time_controller,
-                  VideoQualityAnalyzerInjectionHelper* video_analyzer_helper,
-                  TaskQueueBase* /*task_queue*/)
-      : TestPeerFactory(signaling_thread,
-                        time_controller,
-                        video_analyzer_helper) {}
 
   // Setups all components, that should be provided to WebRTC
   // PeerConnectionFactory and PeerConnection creation methods,
