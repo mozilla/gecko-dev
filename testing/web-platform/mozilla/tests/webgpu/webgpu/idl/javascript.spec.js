@@ -538,3 +538,27 @@ fn((t) => {
     assert(origValue2.foo === undefined);
   }
 });
+
+const kClassInheritanceTests = {
+  GPUDevice: () => GPUDevice.prototype instanceof EventTarget,
+  GPUPipelineError: () => GPUPipelineError.prototype instanceof DOMException,
+  GPUValidationError: () => GPUValidationError.prototype instanceof GPUError,
+  GPUOutOfMemoryError: () => GPUOutOfMemoryError.prototype instanceof GPUError,
+  GPUInternalError: () => GPUInternalError.prototype instanceof GPUError,
+  GPUUncapturedErrorEvent: () => GPUUncapturedErrorEvent.prototype instanceof Event
+};
+
+g.test('inheritance').
+desc(
+  `
+Test that objects inherit from the correct base class
+
+This is important because apps might patch the base class
+and expect instances of these classes to respond correctly.
+`
+).
+params((u) => u.combine('type', keysOf(kClassInheritanceTests))).
+fn((t) => {
+  const fn = kClassInheritanceTests[t.params.type];
+  t.expect(fn(), fn.toString());
+});
