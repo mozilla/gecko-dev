@@ -30,6 +30,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ClientEnvironmentBase:
     "resource://gre/modules/components-utils/ClientEnvironment.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
+  ContextId: "moz-src:///browser/modules/ContextId.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExtensionSettingsStore:
     "resource://gre/modules/ExtensionSettingsStore.sys.mjs",
@@ -85,17 +86,6 @@ const ONBOARDING_ALLOWED_PAGE_VALUES = [
   "about:home",
   "about:newtab",
 ];
-
-// `contextId` is a unique identifier used by Contextual Services
-const CONTEXT_ID_PREF = "browser.contextual-services.contextId";
-ChromeUtils.defineLazyGetter(lazy, "contextId", () => {
-  let _contextId = Services.prefs.getStringPref(CONTEXT_ID_PREF, null);
-  if (!_contextId) {
-    _contextId = String(Services.uuid.generateUUID());
-    Services.prefs.setStringPref(CONTEXT_ID_PREF, _contextId);
-  }
-  return _contextId;
-});
 
 const ACTIVITY_STREAM_PREF_BRANCH = "browser.newtabpage.activity-stream.";
 const NEWTAB_PING_PREFS = {
@@ -191,7 +181,11 @@ export class TelemetryFeed {
     );
     // Set two scalars for the "deletion-request" ping (See bug 1602064 and 1729474)
     Glean.deletionRequest.impressionId.set(this._impressionId);
-    Glean.deletionRequest.contextId.set(lazy.contextId);
+    if (!lazy.ContextId.rotationEnabled) {
+      Glean.deletionRequest.contextId.set(
+        lazy.ContextId.requestSynchronously()
+      );
+    }
     Glean.newtab.locale.set(Services.locale.appLocaleAsBCP47);
     Glean.newtabHandoffPreference.enabled.set(
       lazy.handoffToAwesomebarPrefValue
@@ -473,7 +467,7 @@ export class TelemetryFeed {
     }
   }
 
-  handleTopSitesSponsoredImpressionStats(action) {
+  async handleTopSitesSponsoredImpressionStats(action) {
     const { data } = action;
     const {
       type,
@@ -533,7 +527,7 @@ export class TelemetryFeed {
       Glean.topSites.reportingUrl.set(data.reporting_url);
     }
     Glean.topSites.advertiser.set(advertiser_name);
-    Glean.topSites.contextId.set(lazy.contextId);
+    Glean.topSites.contextId.set(await lazy.ContextId.request());
     GleanPings.topSites.submit();
 
     if (data.reporting_url && this.canSendUnifiedAdsTilesCallbacks) {

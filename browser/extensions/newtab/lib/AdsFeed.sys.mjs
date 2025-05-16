@@ -7,19 +7,9 @@ const lazy = {
 };
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ContextId: "moz-src:///browser/modules/ContextId.sys.mjs",
   ObliviousHTTP: "resource://gre/modules/ObliviousHTTP.sys.mjs",
   PersistentCache: "resource://newtab/lib/PersistentCache.sys.mjs",
-});
-
-// `contextId` is a unique identifier used by Contextual Services
-const CONTEXT_ID_PREF = "browser.contextual-services.contextId";
-ChromeUtils.defineLazyGetter(lazy, "contextId", () => {
-  let _contextId = Services.prefs.getStringPref(CONTEXT_ID_PREF, null);
-  if (!_contextId) {
-    _contextId = String(Services.uuid.generateUUID());
-    Services.prefs.setStringPref(CONTEXT_ID_PREF, _contextId);
-  }
-  return _contextId;
 });
 
 import {
@@ -269,7 +259,7 @@ export class AdsFeed {
       method: "POST",
       headers,
       body: JSON.stringify({
-        context_id: lazy.contextId,
+        context_id: await lazy.ContextId.request(),
         placements: placements.map((placement, index) => ({
           placement,
           count: counts[index],
