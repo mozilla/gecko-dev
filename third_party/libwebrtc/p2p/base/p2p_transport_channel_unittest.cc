@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "absl/base/nullability.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
@@ -57,6 +56,7 @@
 #include "p2p/base/stun_dictionary.h"
 #include "p2p/base/transport_description.h"
 #include "p2p/client/basic_port_allocator.h"
+#include "p2p/dtls/dtls_stun_piggyback_callbacks.h"
 #include "p2p/test/fake_port_allocator.h"
 #include "p2p/test/mock_active_ice_controller.h"
 #include "p2p/test/mock_ice_controller.h"
@@ -65,6 +65,7 @@
 #include "p2p/test/stun_server.h"
 #include "p2p/test/test_stun_server.h"
 #include "p2p/test/test_turn_server.h"
+#include "rtc_base/buffer.h"
 #include "rtc_base/byte_buffer.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/dscp.h"
@@ -225,7 +226,7 @@ std::unique_ptr<cricket::BasicPortAllocator> CreateBasicPortAllocator(
   std::vector<webrtc::RelayServerConfig> turn_servers(1, turn_server);
 
   auto allocator = std::make_unique<cricket::BasicPortAllocator>(
-      network_manager, socket_factory, nullptr, nullptr, &env.field_trials());
+      env, network_manager, socket_factory);
   allocator->Initialize();
   allocator->SetConfiguration(stun_servers, turn_servers, 0, webrtc::NO_PRUNE);
   return allocator;

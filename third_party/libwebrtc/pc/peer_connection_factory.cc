@@ -289,9 +289,8 @@ PeerConnectionFactory::CreatePeerConnectionOrError(
 
   if (!dependencies.allocator) {
     dependencies.allocator = std::make_unique<cricket::BasicPortAllocator>(
-        context_->default_network_manager(), context_->default_socket_factory(),
-        configuration.turn_customizer, /*relay_port_factory=*/nullptr,
-        &env.field_trials());
+        env, context_->default_network_manager(),
+        context_->default_socket_factory(), configuration.turn_customizer);
     dependencies.allocator->SetPortRange(
         configuration.port_allocator_config.min_port,
         configuration.port_allocator_config.max_port);

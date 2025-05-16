@@ -9,29 +9,37 @@
  */
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <tuple>
 
 #include "api/candidate.h"
 #include "api/crypto/crypto_options.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
+#include "api/field_trials.h"
 #include "api/scoped_refptr.h"
 #include "api/test/create_network_emulation_manager.h"
-#include "api/test/create_time_controller.h"
+#include "api/test/network_emulation/network_emulation_interfaces.h"
 #include "api/test/network_emulation_manager.h"
 #include "api/test/rtc_error_matchers.h"
 #include "api/test/simulated_network.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "p2p/base/basic_packet_socket_factory.h"
+#include "p2p/base/connection_info.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_transport_channel.h"
 #include "p2p/base/port_allocator.h"
 #include "p2p/base/transport_description.h"
 #include "p2p/client/basic_port_allocator.h"
 #include "p2p/dtls/dtls_transport.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/fake_clock.h"
 #include "rtc_base/fake_network.h"
+#include "rtc_base/logging.h"
+#include "rtc_base/network.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/ssl_fingerprint.h"
@@ -40,7 +48,6 @@
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/virtual_socket_server.h"
-#include "test/explicit_key_value_config.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/wait_until.h"
@@ -53,10 +60,13 @@ namespace cricket {
 
 using ::testing::IsTrue;
 using ::webrtc::BuiltInNetworkBehaviorConfig;
+using ::webrtc::CreateEnvironment;
 using ::webrtc::EmulatedEndpoint;
 using ::webrtc::EmulatedEndpointConfig;
 using ::webrtc::EmulatedNetworkManagerInterface;
 using ::webrtc::EmulatedNetworkNode;
+using ::webrtc::Environment;
+using ::webrtc::FieldTrials;
 using ::webrtc::NetworkEmulationManager;
 
 class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
@@ -78,7 +88,8 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
  private:
   struct Endpoint {
     explicit Endpoint(bool dtls_in_stun)
-        : field_trials(dtls_in_stun ? "WebRTC-IceHandshakeDtls/Enabled/" : ""),
+        : env(CreateEnvironment(FieldTrials::CreateNoGlobal(
+              dtls_in_stun ? "WebRTC-IceHandshakeDtls/Enabled/" : ""))),
           dtls_stun_piggyback(dtls_in_stun) {}
     webrtc::EmulatedNetworkManagerInterface* emulated_network_manager = nullptr;
     std::unique_ptr<rtc::NetworkManager> network_manager;
@@ -92,7 +103,7 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
     bool store_but_dont_set_remote_fingerprint = false;
     std::unique_ptr<rtc::SSLFingerprint> remote_fingerprint;
 
-    webrtc::test::ExplicitKeyValueConfig field_trials;
+    Environment env;
     bool dtls_stun_piggyback;
   };
 
@@ -138,7 +149,7 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
     thread(ep)->BlockingCall([&]() {
       if (network_emulation_manager_ == nullptr) {
         ep.allocator = std::make_unique<BasicPortAllocator>(
-            &network_manager_, socket_factory_.get());
+            ep.env, &network_manager_, socket_factory_.get());
       } else {
         ep.network_manager =
             ep.emulated_network_manager->ReleaseNetworkManager();
@@ -146,13 +157,13 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
             std::make_unique<webrtc::BasicPacketSocketFactory>(
                 ep.emulated_network_manager->socket_factory());
         ep.allocator = std::make_unique<BasicPortAllocator>(
-            ep.network_manager.get(), ep.packet_socket_factory.get());
+            ep.env, ep.network_manager.get(), ep.packet_socket_factory.get());
       }
       ep.allocator->set_flags(ep.allocator->flags() |
                               webrtc::PORTALLOCATOR_DISABLE_TCP);
       ep.ice = std::make_unique<P2PTransportChannel>(
           client ? "client_transport" : "server_transport", 0,
-          ep.allocator.get(), &ep.field_trials);
+          ep.allocator.get(), &ep.env.field_trials());
       ep.dtls = std::make_unique<DtlsTransport>(
           ep.ice.get(), webrtc::CryptoOptions(),
           /*event_log=*/nullptr, std::get<2>(GetParam()));

@@ -14,12 +14,15 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
 #include "api/candidate.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/test/rtc_error_matchers.h"
 #include "api/transport/enums.h"
 #include "api/units/time_delta.h"
@@ -47,7 +50,6 @@
 #include "rtc_base/net_test_helpers.h"
 #include "rtc_base/network.h"
 #include "rtc_base/network_constants.h"
-#include "rtc_base/network_monitor.h"
 #include "rtc_base/socket.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
@@ -59,12 +61,14 @@
 #include "test/scoped_key_value_config.h"
 #include "test/wait_until.h"
 
-using rtc::IPAddress;
-using testing::Contains;
+using ::rtc::IPAddress;
+using ::testing::Contains;
 using ::testing::Eq;
 using ::testing::IsTrue;
-using testing::Not;
-using webrtc::IceCandidateType;
+using ::testing::Not;
+using ::webrtc::CreateEnvironment;
+using ::webrtc::Environment;
+using ::webrtc::IceCandidateType;
 using ::webrtc::SocketAddress;
 
 #define MAYBE_SKIP_IPV4                        \
@@ -169,9 +173,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
                      kTurnUdpIntAddr,
                      kTurnUdpExtAddr),
         candidate_allocation_done_(false) {
-    allocator_ = std::make_unique<BasicPortAllocator>(
-        &network_manager_, &socket_factory_, /*customizer=*/nullptr,
-        /*relay_port_factory=*/nullptr, &field_trials_);
+    allocator_.emplace(env_, &network_manager_, &socket_factory_);
     allocator_->SetConfiguration({kStunAddr}, {}, 0, webrtc::NO_PRUNE, nullptr);
 
     allocator_->Initialize();
@@ -210,8 +212,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
   }
   // Endpoint is on the public network. No STUN or TURN.
   void ResetWithNoServersOrNat() {
-    allocator_.reset(
-        new BasicPortAllocator(&network_manager_, &socket_factory_));
+    allocator_.emplace(env_, &network_manager_, &socket_factory_);
     allocator_->Initialize();
     allocator_->set_step_delay(webrtc::kMinimumStepDelay);
   }
@@ -498,10 +499,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
     if (!stun_server.IsNil()) {
       stun_servers.insert(stun_server);
     }
-    allocator_ = std::make_unique<BasicPortAllocator>(
-        &network_manager_, nat_socket_factory_.get(),
-        /*customizer=*/nullptr,
-        /*relay_port_factory=*/nullptr, &field_trials_);
+    allocator_.emplace(env_, &network_manager_, nat_socket_factory_.get());
     allocator_->SetConfiguration(stun_servers, {}, 0, webrtc::NO_PRUNE,
                                  nullptr);
 
@@ -509,6 +507,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
     allocator_->set_step_delay(webrtc::kMinimumStepDelay);
   }
 
+  Environment env_ = CreateEnvironment();
   std::unique_ptr<webrtc::VirtualSocketServer> vss_;
   std::unique_ptr<webrtc::FirewallSocketServer> fss_;
   webrtc::BasicPacketSocketFactory socket_factory_;
@@ -519,12 +518,11 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
   webrtc::TestStunServer::StunServerPtr stun_server_;
   webrtc::TestTurnServer turn_server_;
   webrtc::FakeNetworkManager network_manager_;
-  std::unique_ptr<BasicPortAllocator> allocator_;
+  std::optional<BasicPortAllocator> allocator_;
   std::unique_ptr<webrtc::PortAllocatorSession> session_;
   std::vector<webrtc::PortInterface*> ports_;
   std::vector<webrtc::Candidate> candidates_;
   bool candidate_allocation_done_;
-  webrtc::test::ScopedKeyValueConfig field_trials_;
 };
 
 class BasicPortAllocatorTestWithRealClock : public BasicPortAllocatorTestBase {
@@ -607,8 +605,7 @@ class BasicPortAllocatorTest : public FakeClockBase,
     // Add two IP addresses on the same interface.
     AddInterface(kClientAddr, "net1");
     AddInterface(kClientIPv6Addr, "net1");
-    allocator_.reset(
-        new BasicPortAllocator(&network_manager_, &socket_factory_));
+    allocator_.emplace(env_, &network_manager_, &socket_factory_);
     allocator_->Initialize();
     allocator_->SetConfiguration(allocator_->stun_servers(),
                                  allocator_->turn_servers(), 0,
@@ -659,8 +656,7 @@ class BasicPortAllocatorTest : public FakeClockBase,
       bool tcp_pruned) {
     turn_server_.AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
     AddInterface(kClientAddr);
-    allocator_.reset(
-        new BasicPortAllocator(&network_manager_, &socket_factory_));
+    allocator_.emplace(env_, &network_manager_, &socket_factory_);
     allocator_->Initialize();
     allocator_->SetConfiguration(allocator_->stun_servers(),
                                  allocator_->turn_servers(), 0, prune_policy);
@@ -719,8 +715,7 @@ class BasicPortAllocatorTest : public FakeClockBase,
     AddInterface(kClientIPv6Addr, "net1", rtc::ADAPTER_TYPE_WIFI);
     AddInterface(kClientAddr2, "net2", rtc::ADAPTER_TYPE_CELLULAR);
     AddInterface(kClientIPv6Addr2, "net2", rtc::ADAPTER_TYPE_CELLULAR);
-    allocator_.reset(
-        new BasicPortAllocator(&network_manager_, &socket_factory_));
+    allocator_.emplace(env_, &network_manager_, &socket_factory_);
     allocator_->Initialize();
     allocator_->SetConfiguration(allocator_->stun_servers(),
                                  allocator_->turn_servers(), 0,
@@ -1914,7 +1909,7 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketWithNat) {
 TEST_F(BasicPortAllocatorTest, TestSharedSocketWithoutNatUsingTurn) {
   turn_server_.AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
   AddInterface(kClientAddr);
-  allocator_.reset(new BasicPortAllocator(&network_manager_, &socket_factory_));
+  allocator_.emplace(env_, &network_manager_, &socket_factory_);
   allocator_->Initialize();
 
   AddTurnServers(kTurnUdpIntAddr, kTurnTcpIntAddr);
@@ -2054,7 +2049,7 @@ TEST_F(BasicPortAllocatorTestWithRealClock,
   turn_server_.AddInternalSocket(webrtc::SocketAddress("127.0.0.1", 3478),
                                  webrtc::PROTO_UDP);
   AddInterface(kClientAddr);
-  allocator_.reset(new BasicPortAllocator(&network_manager_, &socket_factory_));
+  allocator_.emplace(env_, &network_manager_, &socket_factory_);
   allocator_->Initialize();
   webrtc::RelayServerConfig turn_server;
   webrtc::RelayCredentials credentials(kTurnUsername, kTurnPassword);

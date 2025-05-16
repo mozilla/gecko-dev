@@ -19,9 +19,12 @@
 #include <vector>
 
 #include "absl/base/attributes.h"
+#include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
 #include "api/candidate.h"
+#include "api/environment/environment.h"
 #include "api/field_trials_view.h"
+#include "api/packet_socket_factory.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/transport/enums.h"
 #include "api/transport/field_trial_based_config.h"
@@ -30,6 +33,8 @@
 #include "p2p/base/port_allocator.h"
 #include "p2p/base/port_interface.h"
 #include "p2p/client/relay_port_factory_interface.h"
+#include "p2p/client/turn_port_factory.h"
+#include "rtc_base/async_packet_socket.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/memory/always_valid_pointer.h"
@@ -44,9 +49,19 @@ namespace cricket {
 
 class RTC_EXPORT BasicPortAllocator : public webrtc::PortAllocator {
  public:
+  BasicPortAllocator(
+      const webrtc::Environment& env,
+      absl::Nonnull<rtc::NetworkManager*> network_manager,
+      absl::Nonnull<rtc::PacketSocketFactory*> socket_factory,
+      absl::Nullable<webrtc::TurnCustomizer*> turn_customizer = nullptr,
+      absl::Nullable<RelayPortFactoryInterface*> relay_port_factory = nullptr);
+
   // The NetworkManager is a mandatory argument. The other arguments are
   // optional. All pointers are owned by caller and must have a life time
   // that exceeds that of BasicPortAllocator.
+  // Deprecated, prefer constructor above.
+  // TODO: bugs.webrtc.org/405883462 - mark [[deprecated]] or remove when
+  // chromium migrated not to use this constructor.
   BasicPortAllocator(rtc::NetworkManager* network_manager,
                      webrtc::PacketSocketFactory* socket_factory,
                      webrtc::TurnCustomizer* customizer = nullptr,
@@ -85,7 +100,7 @@ class RTC_EXPORT BasicPortAllocator : public webrtc::PortAllocator {
 
   RelayPortFactoryInterface* relay_port_factory() {
     CheckRunOnValidThreadIfInitialized();
-    return relay_port_factory_;
+    return relay_port_factory_.get();
   }
 
   void SetVpnList(const std::vector<rtc::NetworkMask>& vpn_list) override;
@@ -97,6 +112,10 @@ class RTC_EXPORT BasicPortAllocator : public webrtc::PortAllocator {
  private:
   bool MdnsObfuscationEnabled() const override;
 
+  // TODO: bugs.webrtc.org/405883462 - Make Environment non-optional and remove
+  // `field_trials_` member when BasicPortAllocator without 'Environment' is
+  // removed.
+  std::optional<webrtc::Environment> env_;
   webrtc::AlwaysValidPointer<const webrtc::FieldTrialsView,
                              webrtc::FieldTrialBasedConfig>
       field_trials_;
@@ -105,10 +124,8 @@ class RTC_EXPORT BasicPortAllocator : public webrtc::PortAllocator {
   webrtc::PacketSocketFactory* const socket_factory_;
   int network_ignore_mask_ = rtc::kDefaultNetworkIgnoreMask;
 
-  // This instance is created if caller does pass a factory.
-  const std::unique_ptr<RelayPortFactoryInterface> default_relay_port_factory_;
-  // This is the factory being used.
-  RelayPortFactoryInterface* const relay_port_factory_;
+  webrtc::AlwaysValidPointer<RelayPortFactoryInterface, TurnPortFactory>
+      relay_port_factory_;
 };
 
 struct PortConfiguration;

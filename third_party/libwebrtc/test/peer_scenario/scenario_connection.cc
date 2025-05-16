@@ -50,6 +50,7 @@
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/task_queue_for_test.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
+#include "rtc_base/thread.h"
 #include "rtc_base/thread_annotations.h"
 #include "test/network/network_emulation_manager.h"
 
@@ -139,6 +140,7 @@ ScenarioIceConnectionImpl::ScenarioIceConnectionImpl(
       network_manager_(manager_->ReleaseNetworkManager()),
       packet_socket_factory_(manager_->socket_factory()),
       port_allocator_(std::make_unique<cricket::BasicPortAllocator>(
+          env,
           network_manager_.get(),
           &packet_socket_factory_)),
       jsep_controller_(

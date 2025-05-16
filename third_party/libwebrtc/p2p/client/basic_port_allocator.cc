@@ -22,9 +22,11 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/base/nullability.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
 #include "api/candidate.h"
+#include "api/environment/environment.h"
 #include "api/field_trials_view.h"
 #include "api/packet_socket_factory.h"
 #include "api/sequence_checker.h"
@@ -38,7 +40,6 @@
 #include "p2p/base/tcp_port.h"
 #include "p2p/base/turn_port.h"
 #include "p2p/client/relay_port_factory_interface.h"
-#include "p2p/client/turn_port_factory.h"
 #include "rtc_base/async_packet_socket.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/crypto_random.h"
@@ -181,7 +182,23 @@ const uint32_t DISABLE_ALL_PHASES =
     webrtc::PORTALLOCATOR_DISABLE_UDP | webrtc::PORTALLOCATOR_DISABLE_TCP |
     webrtc::PORTALLOCATOR_DISABLE_STUN | webrtc::PORTALLOCATOR_DISABLE_RELAY;
 
-// BasicPortAllocator
+BasicPortAllocator::BasicPortAllocator(
+    const webrtc::Environment& env,
+    absl::Nonnull<rtc::NetworkManager*> network_manager,
+    absl::Nonnull<rtc::PacketSocketFactory*> socket_factory,
+    absl::Nullable<webrtc::TurnCustomizer*> turn_customizer,
+    absl::Nullable<RelayPortFactoryInterface*> relay_port_factory)
+    : env_(env),
+      field_trials_(&env_->field_trials()),
+      network_manager_(network_manager),
+      socket_factory_(socket_factory),
+      relay_port_factory_(relay_port_factory) {
+  RTC_CHECK(socket_factory_);
+  RTC_DCHECK(network_manager_);
+  SetConfiguration(ServerAddresses(), std::vector<RelayServerConfig>(), 0,
+                   webrtc::NO_PRUNE, turn_customizer);
+}
+
 BasicPortAllocator::BasicPortAllocator(
     rtc::NetworkManager* network_manager,
     webrtc::PacketSocketFactory* socket_factory,
@@ -191,13 +208,8 @@ BasicPortAllocator::BasicPortAllocator(
     : field_trials_(field_trials),
       network_manager_(network_manager),
       socket_factory_(socket_factory),
-      default_relay_port_factory_(relay_port_factory ? nullptr
-                                                     : new TurnPortFactory()),
-      relay_port_factory_(relay_port_factory
-                              ? relay_port_factory
-                              : default_relay_port_factory_.get()) {
+      relay_port_factory_(relay_port_factory) {
   RTC_CHECK(socket_factory_);
-  RTC_DCHECK(relay_port_factory_);
   RTC_DCHECK(network_manager_);
   SetConfiguration(ServerAddresses(), std::vector<webrtc::RelayServerConfig>(),
                    0, webrtc::NO_PRUNE, customizer);
