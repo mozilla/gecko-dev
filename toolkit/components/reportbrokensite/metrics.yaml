@@ -202,6 +202,23 @@ broken_site_report.tab_info.antitracking:
     send_in_pings:
       - broken-site-report
 
+  etp_category:
+    type: string
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      The current ETP category, either `standard`, `strict`, or `custom`.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963608
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340#c16
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+
 broken_site_report.tab_info.frameworks:
   fastclick:
     type: boolean

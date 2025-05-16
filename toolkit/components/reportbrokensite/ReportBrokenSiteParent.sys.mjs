@@ -17,6 +17,16 @@ export class ReportBrokenSiteParent extends JSWindowActorParent {
     return trackingTable.includes("content") ? "strict" : "basic";
   }
 
+  #getETPCategory() {
+    // Note that the pref will be set to "custom" if the user disables ETP on
+    // mobile.
+    const etpState = Services.prefs.getStringPref(
+      "browser.contentblocking.category",
+      "standard"
+    );
+    return etpState;
+  }
+
   #getAntitrackingInfo(browsingContext) {
     // Ask BounceTrackingProtection whether it has recently purged state for the
     // site in the current top level context.
@@ -54,6 +64,7 @@ export class ReportBrokenSiteParent extends JSWindowActorParent {
         Ci.nsIWebProgressListener.STATE_BLOCKED_MIXED_DISPLAY_CONTENT
       ),
       btpHasPurgedSite,
+      etpCategory: this.#getETPCategory(),
     };
   }
 

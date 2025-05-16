@@ -831,6 +831,7 @@ async function setupStrictETP() {
         "urlclassifier.trackingTable",
         "content-track-digest256,mochitest2-track-simple",
       ],
+      ["browser.contentblocking.category", "strict"],
     ],
   });
 }

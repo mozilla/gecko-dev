@@ -122,6 +122,7 @@ class WebCompatReporterSubmissionMiddleware(
     private fun setTabAntiTrackingMetrics(antiTracking: WebCompatInfoDto.WebCompatAntiTrackingDto) {
         BrokenSiteReportTabInfoAntitracking.blockList.set(antiTracking.blockList)
         BrokenSiteReportTabInfoAntitracking.btpHasPurgedSite.set(antiTracking.btpHasPurgedSite)
+        BrokenSiteReportTabInfoAntitracking.etpCategory.set(antiTracking.etpCategory)
         BrokenSiteReportTabInfoAntitracking.hasMixedActiveContentBlocked.set(
             antiTracking.hasMixedActiveContentBlocked,
         )

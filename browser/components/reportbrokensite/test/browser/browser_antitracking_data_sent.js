@@ -38,6 +38,7 @@ add_task(async function testSendButton() {
       hasMixedActiveContentBlocked: true,
       hasMixedDisplayContentBlocked: true,
       btpHasPurgedSite: false,
+      etpCategory: "strict",
     },
     frameworks: {
       fastclick: true,
@@ -66,6 +67,7 @@ add_task(async function testSendingMoreInfo() {
       hasMixedActiveContentBlocked: true,
       hasMixedDisplayContentBlocked: true,
       btpHasPurgedSite: false,
+      etpCategory: "strict",
     },
     frameworks: { fastclick: true, mobify: true, marfeel: true },
     consoleLog: [

@@ -311,6 +311,7 @@ export class ReportBrokenSiteChild extends JSWindowActorChild {
         hasMixedDisplayContentBlocked,
         hasTrackingContentBlocked,
         btpHasPurgedSite,
+        etpCategory,
       } = antitracking;
 
       message.blockList = blockList;
@@ -359,6 +360,7 @@ export class ReportBrokenSiteChild extends JSWindowActorChild {
         hasTrackingContentBlocked,
         btpHasPurgedSite,
         isPB: isPrivateBrowsing,
+        etpCategory,
         languages,
         locales,
         memoryMB,
