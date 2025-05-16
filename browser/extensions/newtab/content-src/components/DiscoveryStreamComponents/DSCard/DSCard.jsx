@@ -132,14 +132,12 @@ export const DefaultMeta = ({
             {excerpt && <p className="excerpt clamp">{excerpt}</p>}
           </>
         )}
-        {/* Rectangle format is returned for English clients only.*/}
         {format === "rectangle" && (
-          <>
-            <h3 className="title clamp">Sponsored</h3>
-            <p className="excerpt clamp">
-              Sponsored content supports our mission to build a better web.
-            </p>
-          </>
+          // eslint-disable-next-line jsx-a11y/heading-has-content
+          <h3
+            className="title clamp"
+            data-l10n-id="newtab-label-sponsored-fixed"
+          />
         )}
       </div>
       {!isListCard &&

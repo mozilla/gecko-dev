@@ -191,6 +191,9 @@ newtab-label-sponsored-by = Sponsored by { $sponsor }
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } min
 
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Sponsored
+
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
 

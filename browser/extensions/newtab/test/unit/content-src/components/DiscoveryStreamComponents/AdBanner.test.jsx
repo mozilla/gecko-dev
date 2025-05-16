@@ -64,7 +64,7 @@ describe("Discovery Stream <AdBanner>", () => {
   it("should have 'sponsored' text visible", () => {
     assert.ok(wrapper.find(".ad-banner-sponsored").exists());
     assert.ok(
-      wrapper.find("[data-l10n-id='newtab-topsite-sponsored']").exists()
+      wrapper.find("[data-l10n-id='newtab-label-sponsored-fixed']").exists()
     );
   });
 

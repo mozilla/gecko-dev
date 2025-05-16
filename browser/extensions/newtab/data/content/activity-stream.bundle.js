@@ -3549,11 +3549,13 @@ const DefaultMeta = ({
     className: "title clamp"
   }, title), excerpt && /*#__PURE__*/external_React_default().createElement("p", {
     className: "excerpt clamp"
-  }, excerpt)), format === "rectangle" && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("h3", {
-    className: "title clamp"
-  }, "Sponsored"), /*#__PURE__*/external_React_default().createElement("p", {
-    className: "excerpt clamp"
-  }, "Sponsored content supports our mission to build a better web."))), !isListCard && format !== "rectangle" && !mayHaveSectionsCards && mayHaveThumbsUpDown && /*#__PURE__*/external_React_default().createElement(DSThumbsUpDownButtons, {
+  }, excerpt)), format === "rectangle" &&
+  /*#__PURE__*/
+  // eslint-disable-next-line jsx-a11y/heading-has-content
+  external_React_default().createElement("h3", {
+    className: "title clamp",
+    "data-l10n-id": "newtab-label-sponsored-fixed"
+  })), !isListCard && format !== "rectangle" && !mayHaveSectionsCards && mayHaveThumbsUpDown && /*#__PURE__*/external_React_default().createElement(DSThumbsUpDownButtons, {
     onThumbsDownClick: onThumbsDownClick,
     onThumbsUpClick: onThumbsUpClick,
     sponsor: sponsor,
@@ -4844,7 +4846,7 @@ const AdBanner = ({
     className: "ad-banner-sponsored"
   }, /*#__PURE__*/external_React_default().createElement("span", {
     className: "ad-banner-sponsored-label",
-    "data-l10n-id": "newtab-topsite-sponsored"
+    "data-l10n-id": "newtab-label-sponsored-fixed"
   }))));
 };
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/CardGrid/CardGrid.jsx

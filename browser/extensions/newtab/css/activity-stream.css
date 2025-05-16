@@ -6601,7 +6601,6 @@ main section {
   padding-block: var(--space-medium);
 }
 .ds-card-grid.ad-sizing-variant-a .ds-card.ds-spoc-rectangle .meta .title, .ds-section-grid.ad-sizing-variant-a .ds-card.ds-spoc-rectangle .meta .title {
-  text-transform: uppercase;
   font-size: var(--font-size-small);
   font-weight: normal;
   color: var(--newtab-contextual-text-secondary-color);
