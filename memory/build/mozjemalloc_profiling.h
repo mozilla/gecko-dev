@@ -7,6 +7,9 @@
 #ifndef _MOZJEMALLOC_PROFILING_H
 #define _MOZJEMALLOC_PROFILING_H
 
+#include "mozilla/Atomics.h"
+#include "mozilla/RefCounted.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/TimeStamp.h"
 #include "mozjemalloc_types.h"
 #include "mozmemory_wrap.h"
@@ -25,17 +28,20 @@ struct PurgeStats {
 };
 
 #ifdef MOZJEMALLOC_PROFILING_CALLBACKS
-class MallocProfilerCallbacks {
+class MallocProfilerCallbacks
+    : public external::AtomicRefCounted<MallocProfilerCallbacks> {
  public:
   virtual ~MallocProfilerCallbacks() {}
 
   using TS = mozilla::TimeStamp;
 
   virtual void OnPurge(TS aStart, TS aEnd, const PurgeStats& aStats) = 0;
+
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(ClassName);
 };
 
 MOZ_JEMALLOC_API void jemalloc_set_profiler_callbacks(
-    MallocProfilerCallbacks* aCallbacks);
+    RefPtr<MallocProfilerCallbacks>&& aCallbacks);
 #endif
 
 }  // namespace mozilla
