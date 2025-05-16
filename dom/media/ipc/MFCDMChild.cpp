@@ -126,15 +126,13 @@ void MFCDMChild::EnsureRemote() {
 
 void MFCDMChild::Shutdown() {
   MOZ_ASSERT(!mShutdown);
-
   mShutdown = true;
-  mProxyCallback = nullptr;
-
   if (mState == NS_OK) {
     mManagerThread->Dispatch(
         NS_NewRunnableFunction(__func__, [self = RefPtr{this}, this]() {
           mRemoteRequest.DisconnectIfExists();
           mInitRequest.DisconnectIfExists();
+          mProxyCallback = nullptr;
 
           {
             MutexAutoLock lock(mMutex);
@@ -238,21 +236,22 @@ RefPtr<MFCDMChild::InitPromise> MFCDMChild::Init(
     return InitPromise::CreateAndReject(mState, __func__);
   }
 
-  mProxyCallback = aProxyCallback;
+  RefPtr<WMFCDMProxyCallback> callback = aProxyCallback;
   MFCDMInitParamsIPDL params{nsString(aOrigin),  aInitDataTypes,
                              aDistinctiveID,     aPersistentState,
                              aAudioCapabilities, aVideoCapabilities};
-  auto doSend = [self = RefPtr{this}, this, params]() {
+  auto doSend = [self = RefPtr{this}, this, params, callback]() {
     SendInit(params)
         ->Then(
             mManagerThread, __func__,
-            [self, this](MFCDMInitResult&& aResult) {
+            [self, callback, this](MFCDMInitResult&& aResult) {
               mInitRequest.Complete();
               if (aResult.type() == MFCDMInitResult::Tnsresult) {
                 nsresult rv = aResult.get_nsresult();
                 mInitPromiseHolder.RejectIfExists(rv, __func__);
                 return;
               }
+              mProxyCallback = callback;
               mId = aResult.get_MFCDMInitIPDL().id();
               mInitPromiseHolder.ResolveIfExists(aResult.get_MFCDMInitIPDL(),
                                                  __func__);
@@ -437,6 +436,7 @@ mozilla::ipc::IPCResult MFCDMChild::RecvOnSessionKeyMessage(
     const MFCDMKeyMessage& aMessage) {
   LOG("RecvOnSessionKeyMessage, sessionId=%s",
       NS_ConvertUTF16toUTF8(aMessage.sessionId()).get());
+  MOZ_ASSERT(mManagerThread);
   MOZ_ASSERT(mProxyCallback);
   mProxyCallback->OnSessionMessage(aMessage);
   return IPC_OK();
@@ -446,6 +446,7 @@ mozilla::ipc::IPCResult MFCDMChild::RecvOnSessionKeyStatusesChanged(
     const MFCDMKeyStatusChange& aKeyStatuses) {
   LOG("RecvOnSessionKeyStatusesChanged, sessionId=%s",
       NS_ConvertUTF16toUTF8(aKeyStatuses.sessionId()).get());
+  MOZ_ASSERT(mManagerThread);
   MOZ_ASSERT(mProxyCallback);
   mProxyCallback->OnSessionKeyStatusesChange(aKeyStatuses);
   return IPC_OK();
@@ -455,6 +456,7 @@ mozilla::ipc::IPCResult MFCDMChild::RecvOnSessionKeyExpiration(
     const MFCDMKeyExpiration& aExpiration) {
   LOG("RecvOnSessionKeyExpiration, sessionId=%s",
       NS_ConvertUTF16toUTF8(aExpiration.sessionId()).get());
+  MOZ_ASSERT(mManagerThread);
   MOZ_ASSERT(mProxyCallback);
   mProxyCallback->OnSessionKeyExpiration(aExpiration);
   return IPC_OK();
