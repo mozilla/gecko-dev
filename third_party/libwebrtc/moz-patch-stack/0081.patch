@@ -18,10 +18,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2f1a0ba74bf71cfa0
  6 files changed, 24 insertions(+), 4 deletions(-)
 
 diff --git a/api/frame_transformer_interface.h b/api/frame_transformer_interface.h
-index 2bcc32d531..8ab8c13659 100644
+index fd53f30af4..538d538749 100644
 --- a/api/frame_transformer_interface.h
 +++ b/api/frame_transformer_interface.h
-@@ -103,6 +103,7 @@ class TransformableVideoFrameInterface : public TransformableFrameInterface {
+@@ -105,6 +105,7 @@ class TransformableVideoFrameInterface : public TransformableFrameInterface {
    RTC_EXPORT explicit TransformableVideoFrameInterface(Passkey passkey);
    virtual ~TransformableVideoFrameInterface() = default;
    virtual bool IsKeyFrame() const = 0;
