@@ -15,10 +15,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c12307f3817bec877
  1 file changed, 13 insertions(+)
 
 diff --git a/modules/video_capture/device_info_impl.cc b/modules/video_capture/device_info_impl.cc
-index 82f8a2db81..95059abc07 100644
+index ba69a46334..14db41937d 100644
 --- a/modules/video_capture/device_info_impl.cc
 +++ b/modules/video_capture/device_info_impl.cc
-@@ -100,10 +100,23 @@ int32_t DeviceInfoImpl::GetBestMatchedCapability(
+@@ -107,10 +107,23 @@ int32_t DeviceInfoImpl::GetBestMatchedCapability(
    const int32_t numberOfCapabilies =
        static_cast<int32_t>(_captureCapabilities.size());
  

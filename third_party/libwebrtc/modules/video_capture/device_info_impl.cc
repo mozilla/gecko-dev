@@ -12,9 +12,16 @@
 
 #include <stdlib.h>
 
+#include <cstdint>
+
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
+#include "api/video/video_rotation.h"
+#include "common_video/libyuv/include/webrtc_libyuv.h"
+#include "modules/video_capture/video_capture_defines.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/synchronization/mutex.h"
 
 #ifndef abs
 #define abs(a) (a >= 0 ? a : -a)
@@ -171,6 +178,7 @@ int32_t DeviceInfoImpl::GetBestMatchedCapability(
                 if (capability.height == requested.height &&
                     capability.width == requested.width &&
                     capability.maxFPS >= requested.maxFPS) {
+                  bestVideoType = capability.videoType;
                   bestformatIndex = tmp;
                 }
               } else  // Better frame rate

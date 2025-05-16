@@ -1003,10 +1003,10 @@ index 8cefe5653c..b8d75865f7 100644
    }
  }
 diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
-index c15dcedc2a..1a737e1596 100644
+index 22f5ff2acc..a88e742c88 100644
 --- a/modules/video_capture/BUILD.gn
 +++ b/modules/video_capture/BUILD.gn
-@@ -129,21 +129,12 @@ if (!build_with_chromium || is_linux || is_chromeos) {
+@@ -130,21 +130,12 @@ if (!build_with_chromium || is_linux || is_chromeos) {
          "strmiids.lib",
          "user32.lib",
        ]

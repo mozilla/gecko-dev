@@ -48,10 +48,10 @@ index 53b294c6f3..4db7816bc4 100644
      }
    }
 diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
-index 27fc21df11..42a5011b49 100644
+index 80cfd15cfd..b7acd84839 100644
 --- a/modules/video_capture/BUILD.gn
 +++ b/modules/video_capture/BUILD.gn
-@@ -110,7 +110,7 @@ if (!build_with_chromium || is_linux || is_chromeos) {
+@@ -111,7 +111,7 @@ if (!build_with_chromium || is_linux || is_chromeos) {
          ]
          if (build_with_mozilla) {
            configs -= [ "../portal:pipewire_base" ]

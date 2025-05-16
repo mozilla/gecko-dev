@@ -932,10 +932,10 @@ index 61dd81530b..1988c61d19 100644
    RTC_CHECK_NOTREACHED();
  }
 diff --git a/modules/video_capture/device_info_impl.cc b/modules/video_capture/device_info_impl.cc
-index d55ea6dcce..82f8a2db81 100644
+index dc49d8abb9..ba69a46334 100644
 --- a/modules/video_capture/device_info_impl.cc
 +++ b/modules/video_capture/device_info_impl.cc
-@@ -65,7 +65,7 @@ int32_t DeviceInfoImpl::GetCapability(const char* deviceUniqueIdUTF8,
+@@ -72,7 +72,7 @@ int32_t DeviceInfoImpl::GetCapability(const char* deviceUniqueIdUTF8,
  
    // Make sure the number is valid
    if (deviceCapabilityNumber >= (unsigned int)_captureCapabilities.size()) {
