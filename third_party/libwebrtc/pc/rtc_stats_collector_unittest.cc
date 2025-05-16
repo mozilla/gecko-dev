@@ -2614,7 +2614,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCOutboundRtpStreamStats_Video) {
   video_media_info.senders[0].local_stats.push_back(cricket::SsrcSenderInfo());
   video_media_info.senders[0].local_stats[0].ssrc = 1;
   video_media_info.senders[0].rid = "q";
-  video_media_info.senders[0].simulcast_index = 0;
+  video_media_info.senders[0].encoding_index = 0;
   video_media_info.senders[0].firs_received = 2;
   video_media_info.senders[0].plis_received = 3;
   video_media_info.senders[0].nacks_received = 4;
@@ -2661,7 +2661,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCOutboundRtpStreamStats_Video) {
   video_media_info.senders.push_back(video_media_info.senders[0]);
   video_media_info.senders[1].local_stats[0].ssrc = 2;
   video_media_info.senders[1].rid = "h";
-  video_media_info.senders[1].simulcast_index = 1;
+  video_media_info.senders[1].encoding_index = 1;
 
   auto video_media_channels =
       pc_->AddVideoChannel("VideoMid", "TransportName", video_media_info);
@@ -2687,7 +2687,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCOutboundRtpStreamStats_Video) {
   // `expected_video.remote_id` should be undefined.
   expected_video.mid = "VideoMid";
   expected_video.rid = "q";
-  expected_video.simulcast_index = 0;
+  expected_video.encoding_index = 0;
   expected_video.ssrc = 1;
   expected_video.kind = "video";
   expected_video.transport_id = "TTransportName1";

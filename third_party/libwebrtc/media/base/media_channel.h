@@ -572,7 +572,7 @@ struct VoiceReceiverInfo : public MediaReceiverInfo {
 struct VideoSenderInfo : public MediaSenderInfo {
   VideoSenderInfo();
   ~VideoSenderInfo();
-  std::optional<size_t> simulcast_index;
+  std::optional<size_t> encoding_index;
   std::vector<SsrcGroup> ssrc_groups;
   std::optional<std::string> encoder_implementation_name;
   int firs_received = 0;
