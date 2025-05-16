@@ -2550,8 +2550,7 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::GetPerLayerVideoSenderInfos(
     uint32_t ssrc = pair.first;
     info.add_ssrc(ssrc);
     info.rid = parameters_.config.rtp.GetRidForSsrc(ssrc);
-    if (outbound_rtp_substreams.size() > 1 &&
-        encoding_index_by_ssrc.find(ssrc) != encoding_index_by_ssrc.end()) {
+    if (encoding_index_by_ssrc.find(ssrc) != encoding_index_by_ssrc.end()) {
       info.encoding_index = encoding_index_by_ssrc[ssrc];
     }
     info.active = IsActiveFromEncodings(

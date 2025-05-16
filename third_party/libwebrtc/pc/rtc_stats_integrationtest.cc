@@ -841,9 +841,12 @@ class RTCStatsReportVerifier {
           outbound_stream.frames_sent);
       verifier.TestAttributeIsNonNegative<uint32_t>(
           outbound_stream.huge_frames_sent);
-      // RID and simulcast index are N/A because this test uses singlecast.
+      // RID is N/A because this test uses singlecast.
       verifier.TestAttributeIsUndefined(outbound_stream.rid);
-      verifier.TestAttributeIsUndefined(outbound_stream.encoding_index);
+      // In singlecast, the only encoding that exists has index 0.
+      verifier.TestAttributeIsDefined(outbound_stream.encoding_index);
+      EXPECT_TRUE(outbound_stream.encoding_index.has_value() &&
+                  outbound_stream.encoding_index.value() == 0);
       verifier.TestAttributeIsDefined(outbound_stream.scalability_mode);
       verifier.TestAttributeIsNonNegative<uint32_t>(outbound_stream.rtx_ssrc);
     } else {
