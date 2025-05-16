@@ -55,7 +55,6 @@ LIB_TO_LICENSES_DICT = {
     'libaom': ['third_party/libaom/source/libaom/LICENSE'],
     'libc++': ['third_party/libc++/src/LICENSE.TXT'],
     'libc++abi': ['third_party/libc++abi/src/LICENSE.TXT'],
-    'libevent': ['third_party/libevent/LICENSE'],
     'libjpeg_turbo': ['third_party/libjpeg_turbo/LICENSE.md'],
     'libsrtp': ['third_party/libsrtp/LICENSE'],
     'libunwind': ['third_party/libunwind/src/LICENSE.TXT'],
