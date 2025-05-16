@@ -383,6 +383,7 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
         }
 
         fun openBookmarks(
+            composeTestRule: ComposeTestRule,
             interact: BookmarksRobot.() -> Unit,
         ): BookmarksRobot.Transition {
             Log.i(
@@ -392,8 +393,8 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
             composeTestRule.bookmarksButton().performClick()
             Log.i(TAG, "openSettings: Clicked the Bookmarks button from the new main menu design.")
 
-            BookmarksRobot().interact()
-            return BookmarksRobot.Transition()
+            BookmarksRobot(composeTestRule).interact()
+            return BookmarksRobot.Transition(composeTestRule)
         }
 
         fun openHistory(
@@ -477,13 +478,13 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
             return BrowserRobot.Transition()
         }
 
-        fun clickEditBookmarkButton(interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
+        fun clickEditBookmarkButton(composeTestRule: ComposeTestRule, interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
             Log.i(TAG, "clickEditBookmarkButton: Trying to click the \"Edit bookmark\" button from the new main menu design.")
             composeTestRule.editBookmarkButton().performClick()
             Log.i(TAG, "clickEditBookmarkButton: Clicked the \"Edit bookmark\" button from the new main menu design.")
 
-            BookmarksRobot().interact()
-            return BookmarksRobot.Transition()
+            BookmarksRobot(composeTestRule).interact()
+            return BookmarksRobot.Transition(composeTestRule)
         }
 
         fun clickAddToHomeScreenButton(interact: AddToHomeScreenRobot.() -> Unit): AddToHomeScreenRobot.Transition {

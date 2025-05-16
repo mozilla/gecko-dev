@@ -76,9 +76,9 @@ class MainMenuTest : TestSetup() {
         homeScreen {
         }.openThreeDotMenu {
             verifyHomeThreeDotMainMenuItems()
-        }.openBookmarks {
-            verifyBookmarksMenuView()
-        }.goBack {
+        }.openBookmarksMenu(composeTestRule) {
+            verifyEmptyBookmarksMenuView()
+        }.goBackToHomeScreen {
         }.openThreeDotMenu {
         }.openHistory {
             verifyHistoryMenuView()
