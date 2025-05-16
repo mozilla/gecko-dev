@@ -1290,9 +1290,6 @@ bool TryPreserveWrapper(JS::Handle<JSObject*> obj) {
     return true;
   }
 
-  // The addProperty hook for WebIDL classes does wrapper preservation, and
-  // nothing else, so call it, if present.
-
   const JSClass* clasp = JS::GetClass(obj);
   const DOMJSClass* domClass = GetDOMClass(clasp);
 
@@ -1300,17 +1297,23 @@ bool TryPreserveWrapper(JS::Handle<JSObject*> obj) {
   MOZ_RELEASE_ASSERT(clasp->isNativeObject(),
                      "Should not call addProperty for proxies.");
 
-  JSAddPropertyOp addProperty = clasp->getAddProperty();
-  if (!addProperty) {
+  if (!clasp->preservesWrapper()) {
     return true;
   }
 
-  // The class should have an addProperty hook iff it is a CC participant.
-  MOZ_RELEASE_ASSERT(domClass->mParticipant);
+  WrapperCacheGetter getter = domClass->mWrapperCacheGetter;
+  MOZ_RELEASE_ASSERT(getter);
 
-  JS::Rooted<jsid> dummyId(RootingCx());
-  JS::Rooted<JS::Value> dummyValue(RootingCx());
-  return addProperty(nullptr, obj, dummyId, dummyValue);
+  nsWrapperCache* cache = getter(obj);
+  // We obviously can't preserve if we're not initialized, we don't want
+  // to preserve if we don't have a wrapper or if the object is in the
+  // process of being finalized.
+  if (cache && cache->GetWrapperPreserveColor()) {
+    cache->PreserveWrapper(
+        cache, reinterpret_cast<nsScriptObjectTracer*>(domClass->mParticipant));
+  }
+
+  return true;
 }
 
 bool HasReleasedWrapper(JS::Handle<JSObject*> obj) {
@@ -2440,6 +2443,7 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
   // propertyHolder. Otherwise, an object with |foo.x === foo| will
   // crash when JS_CopyOwnPropertiesAndPrivateFields tries to call wrap() on
   // foo.x.
+  static_assert(DOM_OBJECT_SLOT == JS_OBJECT_WRAPPER_SLOT);
   JS::SetReservedSlot(newobj, DOM_OBJECT_SLOT,
                       JS::GetReservedSlot(aObj, DOM_OBJECT_SLOT));
   JS::SetReservedSlot(aObj, DOM_OBJECT_SLOT, JS::PrivateValue(nullptr));

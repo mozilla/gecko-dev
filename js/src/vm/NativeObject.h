@@ -1730,6 +1730,11 @@ class NativeObject : public JSObject {
                             /* isFixedSlot = */ false);
   }
 
+  bool hasUnpreservedWrapper() const {
+    return getClass()->preservesWrapper() &&
+           !shape()->hasObjectFlag(ObjectFlag::HasPreservedWrapper);
+  }
+
   /* JIT Accessors */
   static size_t offsetOfElements() { return offsetof(NativeObject, elements_); }
   static size_t offsetOfFixedElements() {

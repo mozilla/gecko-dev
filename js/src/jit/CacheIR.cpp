@@ -4963,7 +4963,8 @@ static bool CanAttachAddElement(NativeObject* obj, bool isInit,
     const JSClass* clasp = obj->getClass();
     if (clasp != &ArrayObject::class_ &&
         (clasp->getAddProperty() || clasp->getResolve() ||
-         clasp->getOpsLookupProperty() || clasp->getOpsSetProperty())) {
+         clasp->getOpsLookupProperty() || clasp->getOpsSetProperty() ||
+         obj->hasUnpreservedWrapper())) {
       return false;
     }
 
@@ -5735,7 +5736,10 @@ AttachDecision SetPropIRGenerator::tryAttachAddSlotStub(
   DebugOnly<uint32_t> index;
   MOZ_ASSERT_IF(obj->is<ArrayObject>(), !IdIsIndex(id, &index));
   bool mustCallAddPropertyHook =
-      obj->getClass()->getAddProperty() && !obj->is<ArrayObject>();
+      !obj->is<ArrayObject>() &&
+      (obj->getClass()->getAddProperty() ||
+       (obj->getClass()->preservesWrapper() &&
+        !oldShape->hasObjectFlag(ObjectFlag::HasPreservedWrapper)));
 
   if (mustCallAddPropertyHook) {
     writer.addSlotAndCallAddPropHook(objId, rhsValId, newShape);

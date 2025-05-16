@@ -550,7 +550,10 @@ inline bool IsConstructor(const Value& v) {
 }
 
 static inline bool MaybePreserveDOMWrapper(JSContext* cx, HandleObject obj) {
-  if (!obj->getClass()->isDOMClass()) {
+  if (!obj->getClass()->preservesWrapper()) {
+    return true;
+  }
+  if (JS::GetReservedSlot(obj, JS_OBJECT_WRAPPER_SLOT).isUndefined()) {
     return true;
   }
 

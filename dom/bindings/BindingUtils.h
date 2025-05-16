@@ -1029,55 +1029,22 @@ using ToWrapperCacheHelper = std::conditional_t<
     CastableToWrapperCache<CastableToWrapperCacheHelper::OffsetOf<T>()>,
     NeedsQIToWrapperCache>;
 
-template <class Base>
-class NativeTypeHelpersBase_nsISupports : public Base {
- public:
-  static bool AddProperty(JSContext* cx, JS::Handle<JSObject*> aObj,
-                          JS::Handle<jsid>, JS::Handle<JS::Value>) {
-    nsISupports* self =
-        UnwrapPossiblyNotInitializedDOMObject<nsISupports>(aObj);
-    // We obviously can't preserve if we're not initialized.
-    if (self) {
-      nsWrapperCache* cache = Base::GetWrapperCache(self);
-      // We don't want to preserve if we don't have a wrapper.
-      if (cache->GetWrapperPreserveColor()) {
-        cache->PreserveWrapper(self);
-      }
-    }
-    return true;
-  }
-};
-
 template <class T,
           bool CastableToWrapperCache = std::is_base_of_v<nsWrapperCache, T>>
 class NativeTypeHelpers_nsISupports;
 
 template <class T>
 class NativeTypeHelpers_nsISupports<T, true>
-    : public NativeTypeHelpersBase_nsISupports<
-          CastableToWrapperCache<CastableToWrapperCacheHelper::OffsetOf<T>()>> {
-};
+    : public CastableToWrapperCache<
+          CastableToWrapperCacheHelper::OffsetOf<T>()> {};
 
 template <class T>
-class NativeTypeHelpers_nsISupports<T, false>
-    : public NativeTypeHelpersBase_nsISupports<NeedsQIToWrapperCache> {};
+class NativeTypeHelpers_nsISupports<T, false> : public NeedsQIToWrapperCache {};
 
 template <class T>
 class NativeTypeHelpers_Other
     : public CastableToWrapperCache<
-          CastableToWrapperCacheHelper::OffsetOf<T>()> {
- public:
-  static bool AddProperty(JSContext* cx, JS::Handle<JSObject*> aObj,
-                          JS::Handle<jsid>, JS::Handle<JS::Value>) {
-    T* self = UnwrapPossiblyNotInitializedDOMObject<T>(aObj);
-    // We obviously can't preserve if we're not initialized, and we don't want
-    // to preserve if we don't have a wrapper.
-    if (self && self->GetWrapperPreserveColor()) {
-      self->PreserveWrapper(self, NS_CYCLE_COLLECTION_PARTICIPANT(T));
-    }
-    return true;
-  }
-};
+          CastableToWrapperCacheHelper::OffsetOf<T>()> {};
 
 template <class T>
 using NativeTypeHelpers = std::conditional_t<std::is_base_of_v<nsISupports, T>,
