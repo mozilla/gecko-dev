@@ -43,7 +43,6 @@ import org.mozilla.focus.settings.permissions.SitePermissionsFragment
 import org.mozilla.focus.settings.permissions.permissionoptions.SitePermission
 import org.mozilla.focus.settings.permissions.permissionoptions.SitePermissionOptionsFragment
 import org.mozilla.focus.settings.privacy.PrivacySecuritySettingsFragment
-import org.mozilla.focus.settings.privacy.studies.StudiesFragment
 import org.mozilla.focus.state.AppAction
 import org.mozilla.focus.state.Screen
 import org.mozilla.focus.utils.ViewUtils
@@ -275,7 +274,6 @@ class MainActivityNavigation(
             Screen.Settings.Page.PrivacyExceptions -> ExceptionsListFragment()
             Screen.Settings.Page.PrivacyExceptionsRemove -> ExceptionsRemoveFragment()
             Screen.Settings.Page.SitePermissions -> SitePermissionsFragment()
-            Screen.Settings.Page.Studies -> StudiesFragment()
             Screen.Settings.Page.SecretSettings -> SecretSettingsFragment()
             Screen.Settings.Page.SearchList -> InstalledSearchEnginesSettingsFragment()
             Screen.Settings.Page.SearchRemove -> RemoveSearchEnginesSettingsFragment()

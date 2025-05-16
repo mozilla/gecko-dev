@@ -25,7 +25,6 @@ import org.mozilla.focus.nimbus.FocusNimbus
 import org.mozilla.focus.settings.BaseSettingsFragment
 import org.mozilla.focus.state.AppAction
 import org.mozilla.focus.state.Screen
-import org.mozilla.focus.telemetry.GleanMetricsService
 import org.mozilla.focus.widget.CookiesPreference
 
 class PrivacySecuritySettingsFragment :
@@ -88,8 +87,6 @@ class PrivacySecuritySettingsFragment :
         updateStealthToggleAvailability()
         updateExceptionSettingAvailability()
 
-        updateStudiesLabel()
-
         preferenceManager.sharedPreferences?.registerOnSharedPreferenceChangeListener(this)
 
         // Update title and icons when returning to fragments.
@@ -106,15 +103,6 @@ class PrivacySecuritySettingsFragment :
             recordTelemetry(it, sharedPreferences.all[key])
         }
         updateStealthToggleAvailability()
-        if (key == getString(R.string.pref_key_telemetry)) {
-            updateStudiesLabel()
-        }
-    }
-
-    private fun updateStudiesLabel() {
-        val experimentPreference =
-            findPreference<Preference>(getString(R.string.pref_key_studies_v2))
-        experimentPreference?.isEnabled = GleanMetricsService.isTelemetryEnabled(requireContext())
     }
 
     private fun recordTelemetry(key: String, newValue: Any?) {
@@ -217,10 +205,6 @@ class PrivacySecuritySettingsFragment :
             resources.getString(R.string.pref_key_site_permissions) ->
                 requireComponents.appStore.dispatch(
                     AppAction.OpenSettings(page = Screen.Settings.Page.SitePermissions),
-                )
-            resources.getString(R.string.pref_key_studies_v2) ->
-                requireComponents.appStore.dispatch(
-                    AppAction.OpenSettings(page = Screen.Settings.Page.Studies),
                 )
         }
         return super.onPreferenceTreeClick(preference)

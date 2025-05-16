@@ -66,7 +66,6 @@ object SupportUtils {
         TRACKERS("trackers"),
         USAGE_PING_SETTINGS("usage-ping-settings-mobile"),
         SEARCH_SUGGESTIONS("search-suggestions-focus-android"),
-        STUDIES("how-opt-out-studies-firefox-focus-android"),
         HTTPS_ONLY("https-only-prefs-focus"),
         COOKIE_BANNER("cookie-banner-reduction-firefox-focus-android"),
     }

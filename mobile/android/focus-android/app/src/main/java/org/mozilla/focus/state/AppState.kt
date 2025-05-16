@@ -111,7 +111,6 @@ sealed class Screen {
             PrivacyExceptionsRemove,
             CookieBanner,
             SitePermissions,
-            Studies,
             SecretSettings,
 
             SearchList,

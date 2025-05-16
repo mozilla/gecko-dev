@@ -865,72 +865,6 @@
         errorLine1=" * file, You can obtain one at http://mozilla.org/MPL/2.0/. */"
         errorLine2="                                                             ~">
         <location
-            file="src/main/java/org/mozilla/focus/settings/privacy/studies/StudiesAdapter.kt"
-            line="3"
-            column="62"/>
-    </issue>
-
-    <issue
-        id="InvalidLicenseFormat"
-        message="The license comment must be followed by a newline character"
-        errorLine1=" * file, You can obtain one at http://mozilla.org/MPL/2.0/. */"
-        errorLine2="                                                             ~">
-        <location
-            file="src/main/java/org/mozilla/focus/settings/privacy/studies/StudiesFragment.kt"
-            line="3"
-            column="62"/>
-    </issue>
-
-    <issue
-        id="InvalidLicenseFormat"
-        message="The license comment must be followed by a newline character"
-        errorLine1=" * file, You can obtain one at http://mozilla.org/MPL/2.0/. */"
-        errorLine2="                                                             ~">
-        <location
-            file="src/main/java/org/mozilla/focus/settings/privacy/studies/StudiesListItem.kt"
-            line="3"
-            column="62"/>
-    </issue>
-
-    <issue
-        id="InvalidLicenseFormat"
-        message="The license comment must be followed by a newline character"
-        errorLine1=" * file, You can obtain one at http://mozilla.org/MPL/2.0/. */"
-        errorLine2="                                                             ~">
-        <location
-            file="src/main/java/org/mozilla/focus/settings/privacy/studies/StudiesRecyclerView.kt"
-            line="3"
-            column="62"/>
-    </issue>
-
-    <issue
-        id="InvalidLicenseFormat"
-        message="The license comment must be followed by a newline character"
-        errorLine1=" * file, You can obtain one at http://mozilla.org/MPL/2.0/. */"
-        errorLine2="                                                             ~">
-        <location
-            file="src/main/java/org/mozilla/focus/settings/privacy/studies/StudiesViewHolder.kt"
-            line="3"
-            column="62"/>
-    </issue>
-
-    <issue
-        id="InvalidLicenseFormat"
-        message="The license comment must be followed by a newline character"
-        errorLine1=" * file, You can obtain one at http://mozilla.org/MPL/2.0/. */"
-        errorLine2="                                                             ~">
-        <location
-            file="src/main/java/org/mozilla/focus/settings/privacy/studies/StudiesViewModel.kt"
-            line="3"
-            column="62"/>
-    </issue>
-
-    <issue
-        id="InvalidLicenseFormat"
-        message="The license comment must be followed by a newline character"
-        errorLine1=" * file, You can obtain one at http://mozilla.org/MPL/2.0/. */"
-        errorLine2="                                                             ~">
-        <location
             file="src/main/java/org/mozilla/focus/session/ui/TabsPopup.kt"
             line="3"
             column="62"/>
@@ -1022,28 +956,6 @@
             file="src/main/java/org/mozilla/focus/open/InstallBannerViewHolder.kt"
             line="37"
             column="31"/>
-    </issue>
-
-    <issue
-        id="NonConstantResourceId"
-        message="Resource IDs will be non-final by default in Android Gradle Plugin version 8.0, avoid using them in const fields"
-        errorLine1="const val SECTION_LAYOUT_ID = R.layout.studies_section_item"
-        errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/focus/settings/privacy/studies/StudiesViewHolder.kt"
-            line="15"
-            column="31"/>
-    </issue>
-
-    <issue
-        id="NonConstantResourceId"
-        message="Resource IDs will be non-final by default in Android Gradle Plugin version 8.0, avoid using them in const fields"
-        errorLine1="const val ACTIVE_STUDY_LAYOUT_ID = R.layout.active_study_item"
-        errorLine2="                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/focus/settings/privacy/studies/StudiesViewHolder.kt"
-            line="16"
-            column="36"/>
     </issue>
 
     <issue
@@ -1318,17 +1230,6 @@
         <location
             file="src/main/res/layout/fragment_settings.xml"
             line="11"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="Overdraw"
-        message="Possible overdraw: Root element paints background `@color/settings_background` with a theme that also paints a background (inferred theme is `@style/Theme.App.Starting`)"
-        errorLine1="    android:background=&quot;@color/settings_background&quot;>"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/fragment_studies.xml"
-            line="10"
             column="5"/>
     </issue>
 
