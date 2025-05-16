@@ -84,9 +84,6 @@
 .toolbarButton:hover:active {
   background-color: var(--toolbarbutton-active-background);
 }
-.toolbarButton::-moz-focus-inner {
-  border: none;
-}
 .toolbarButton:focus {
   z-index: 1;
 }

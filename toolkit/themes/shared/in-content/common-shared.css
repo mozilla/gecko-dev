@@ -317,10 +317,6 @@ button {
   margin-inline: 4px;
 }
 
-::-moz-focus-inner {
-  border: none;
-}
-
 button:focus-visible,
 html|select:focus-visible,
 html|input:where([type="color"]):focus-visible,

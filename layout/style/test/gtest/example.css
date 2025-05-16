@@ -2625,9 +2625,6 @@ html .breakpoints-list .breakpoint.paused {
   height: 16px;
 }
 
-.accordion .header-buttons button::-moz-focus-inner {
-  border: none;
-}
 .command-bar {
   flex: 0 0 30px;
   border-bottom: 1px solid var(--theme-splitter-color);

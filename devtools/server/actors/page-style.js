@@ -781,16 +781,6 @@ class PageStyleActor extends Actor {
     );
   }
 
-  _nodeIsButtonLike(node) {
-    if (node.nodeName == "BUTTON") {
-      return true;
-    }
-    return (
-      node.nodeName == "INPUT" &&
-      ["submit", "color", "button"].includes(node.type)
-    );
-  }
-
   _nodeIsListItem(node) {
     const display = CssLogic.getComputedStyle(node).getPropertyValue("display");
     // This is written this way to handle `inline list-item` and such.
@@ -851,8 +841,6 @@ class PageStyleActor extends Actor {
       case "::placeholder":
       case "::-moz-placeholder":
         return !inherited && this._nodeIsTextfieldLike(node);
-      case "::-moz-focus-inner":
-        return !inherited && this._nodeIsButtonLike(node);
       case "::-moz-meter-bar":
         return !inherited && node.nodeName == "METER";
       case "::-moz-progress-bar":

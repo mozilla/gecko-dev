@@ -410,10 +410,6 @@ button:disabled {
   fill: var(--icon-disabled-fill) !important;
 }
 
-.toolbar button::-moz-focus-inner {
-  border: 0;
-}
-
 .toolbar-button {
   position: relative;
   width: 32px;

@@ -62,10 +62,6 @@ CSS_PSEUDO_ELEMENT(mozSnapshotContainingBlock,
                    ":-moz-snapshot-containing-block",
                    CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS)
 
-// XXXbz should we really allow random content to style these?  Maybe
-// use our flags to prevent that?
-CSS_PSEUDO_ELEMENT(mozFocusInner, ":-moz-focus-inner", 0)
-
 // HTML5 Forms pseudo elements
 CSS_PSEUDO_ELEMENT(mozNumberSpinBox, ":-moz-number-spin-box",
                    CSS_PSEUDO_ELEMENT_SUPPORTS_USER_ACTION_STATE |
