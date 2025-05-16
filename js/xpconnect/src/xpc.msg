@@ -262,3 +262,6 @@ XPC_MSG_DEF(NS_ERROR_WDBA_NO_PROGID                   , "The ProgID classes had 
 XPC_MSG_DEF(NS_ERROR_WDBA_HASH_CHECK                  , "The existing UserChoice Hash could not be verified.")
 XPC_MSG_DEF(NS_ERROR_WDBA_REJECTED                    , "UserChoice was set, but checking the default did not return our ProgID.")
 XPC_MSG_DEF(NS_ERROR_WDBA_BUILD                       , "The existing UserChoice Hash was verified, but we're on an older, unsupported Windows build, so do not attempt to update the UserChoice hash.")
+
+/* Codes related to QuotaManager */
+XPC_MSG_DEF(NS_ERROR_DOM_QM_CLIENT_INIT_ORIGIN_UNINITIALIZED, "Client initialization attempted before origin has been initialized.")

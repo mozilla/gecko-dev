@@ -413,6 +413,17 @@ void LogError(const nsACString& aExpr, const Maybe<nsresult> aMaybeRv,
   if (maybeRv) {
     nsresult rv = *maybeRv;
 
+    // Ignore this special error code, as it's an expected failure in certain
+    // cases, especially preloading of datastores for LSNG. See the related
+    // comment in InitializeTemporaryClientOp::DoDirectoryWork.
+    //
+    // Note: For now, this simple check is sufficient. However, if more cases
+    // like this are added in the future, it may be worth introducing a more
+    // structured system for handling expected errors.
+    if (rv == NS_ERROR_DOM_QM_CLIENT_INIT_ORIGIN_UNINITIALIZED) {
+      return;
+    }
+
     rvCode = nsPrintfCString("0x%" PRIX32, static_cast<uint32_t>(rv));
 
     // XXX NS_ERROR_MODULE_WIN32 should be handled in GetErrorName directly.

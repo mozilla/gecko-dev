@@ -32,6 +32,29 @@ async function testSteps() {
   request = initTemporaryStorage();
   await requestFinished(request);
 
+  info("Initializing temporary client");
+
+  request = initTemporaryClient(
+    clientMetadata.persistence,
+    clientMetadata.principal,
+    clientMetadata.client,
+    /* createIfNonExistent */ true
+  );
+
+  try {
+    await requestFinished(request);
+    ok(false, "Should have thrown");
+  } catch (e) {
+    ok(true, "Should have thrown");
+    Assert.strictEqual(
+      e.resultCode,
+      Cr.NS_ERROR_DOM_QM_CLIENT_INIT_ORIGIN_UNINITIALIZED,
+      "Threw right result code"
+    );
+  }
+
+  ok(!clientMetadata.file.exists(), "Client directory does not exist");
+
   info("Initializing temporary origin");
 
   request = initTemporaryOrigin(

@@ -2379,9 +2379,17 @@ nsresult InitializeTemporaryClientOp::DoDirectoryWork(
   QM_TRY(MOZ_TO_RESULT(aQuotaManager.IsTemporaryStorageInitializedInternal()),
          NS_ERROR_FAILURE);
 
+  // Return a special error code so the caller (or QM_TRY logging) can treat it
+  // as a non-critical, expected case. Due to optimizations like LSNG datastore
+  // preloading, temporary client initialization may be attempted before the
+  // corresponding temporary origin has been initialized. In such cases, it's
+  // not an actual error, it's used to signal early that there's nothing to
+  // preload.
   QM_TRY(MOZ_TO_RESULT(aQuotaManager.IsTemporaryOriginInitializedInternal(
-             mClientMetadata)),
-         NS_ERROR_FAILURE);
+                           mClientMetadata))
+             .mapErr([](const nsresult) {
+               return NS_ERROR_DOM_QM_CLIENT_INIT_ORIGIN_UNINITIALIZED;
+             }));
 
   QM_TRY_UNWRAP(mCreated,
                 (aQuotaManager
