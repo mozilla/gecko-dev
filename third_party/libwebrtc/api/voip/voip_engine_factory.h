@@ -30,16 +30,6 @@ namespace webrtc {
 // marked with comments as either mandatory or optional and default
 // implementations that applications can use.
 struct VoipEngineConfig {
-  // TODO: bugs.webrtc.org/369904700 - Remove explicit default constructors
-  // when deprecated `audio_processing` is removed and thus implicit
-  // constructors won't be considered deprecated.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-  VoipEngineConfig() = default;
-  VoipEngineConfig(VoipEngineConfig&&) = default;
-  VoipEngineConfig& operator=(VoipEngineConfig&&) = default;
-#pragma clang diagnostic pop
-
   // Mandatory (e.g. api/audio_codec/builtin_audio_encoder_factory).
   // AudioEncoderFactory provides a set of audio codecs for VoipEngine to encode
   // the audio input sample. Application can choose to limit the set to reduce
@@ -78,10 +68,6 @@ struct VoipEngineConfig {
   // such functionalities to perform on audio input samples received from
   // AudioDeviceModule.
   std::unique_ptr<AudioProcessingBuilderInterface> audio_processing_builder;
-
-  // TODO: bugs.webrtc.org/369904700 - Remove when users are migrated to set
-  // `audio_processing_builder` instead.
-  [[deprecated]] scoped_refptr<AudioProcessing> audio_processing;
 };
 
 // Creates a VoipEngine instance with provided VoipEngineConfig.

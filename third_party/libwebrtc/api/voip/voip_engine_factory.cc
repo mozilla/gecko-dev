@@ -35,13 +35,7 @@ std::unique_ptr<VoipEngine> CreateVoipEngine(VoipEngineConfig config) {
           ? *config.env
           : CreateEnvironment(std::move(config.task_queue_factory));
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-  RTC_CHECK(config.audio_processing == nullptr ||
-            config.audio_processing_builder == nullptr);
-  scoped_refptr<AudioProcessing> audio_processing =
-      std::move(config.audio_processing);
-#pragma clang diagnostic pop
+  scoped_refptr<AudioProcessing> audio_processing;
   if (config.audio_processing_builder != nullptr) {
     audio_processing = std::move(config.audio_processing_builder)->Build(env);
   }
