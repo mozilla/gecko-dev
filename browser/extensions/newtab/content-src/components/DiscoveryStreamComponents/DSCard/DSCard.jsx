@@ -133,7 +133,6 @@ export const DefaultMeta = ({
           </>
         )}
         {format === "rectangle" && (
-          // eslint-disable-next-line jsx-a11y/heading-has-content
           <h3
             className="title clamp"
             data-l10n-id="newtab-label-sponsored-fixed"

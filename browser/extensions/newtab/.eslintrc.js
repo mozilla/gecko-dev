@@ -26,6 +26,7 @@ module.exports = {
         "content-src/components/TopSites/**",
         "content-src/components/MoreRecommendations/MoreRecommendations.jsx",
         "content-src/components/CollapsibleSection/CollapsibleSection.jsx",
+        "content-src/components/DiscoveryStreamComponents/DSCard/DSCard.jsx",
         "content-src/components/DiscoveryStreamComponents/DSEmptyState/DSEmptyState.jsx",
         "content-src/components/DiscoveryStreamComponents/DSPrivacyModal/DSPrivacyModal.jsx",
         "content-src/components/CustomizeMenu/**",
