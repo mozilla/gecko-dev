@@ -374,13 +374,22 @@ void ScreenCapturerSck::StartOrReconfigureCapturer() {
   [SCShareableContent getShareableContentWithCompletionHandler:handler];
 }
 
+bool ScreenCapturerSckAvailable() {
+  static bool available = ([] {
+    if (@available(macOS 14.0, *)) {
+      return true;
+    }
+    return false;
+  })();
+  return available;
+}
+
 std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
     const DesktopCaptureOptions& options) {
   if (@available(macOS 14.0, *)) {
     return std::make_unique<ScreenCapturerSck>(options);
-  } else {
-    return nullptr;
   }
+  return nullptr;
 }
 
 }  // namespace webrtc
