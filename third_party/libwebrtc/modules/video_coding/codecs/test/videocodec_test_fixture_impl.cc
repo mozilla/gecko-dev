@@ -202,7 +202,7 @@ SdpVideoFormat CreateSdpVideoFormat(
 VideoCodecTestFixtureImpl::Config::Config() = default;
 
 void VideoCodecTestFixtureImpl::Config::SetCodecSettings(
-    std::string codec_name,
+    std::string codec_name_to_set,
     size_t num_simulcast_streams,
     size_t num_spatial_layers,
     size_t num_temporal_layers,
@@ -211,7 +211,7 @@ void VideoCodecTestFixtureImpl::Config::SetCodecSettings(
     bool spatial_resize_on,
     size_t width,
     size_t height) {
-  this->codec_name = codec_name;
+  codec_name = codec_name_to_set;
   VideoCodecType codec_type = PayloadStringToCodecType(codec_name);
   webrtc::test::CodecSettings(codec_type, &codec_settings);
 
