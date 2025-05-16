@@ -20,8 +20,6 @@ import org.mozilla.fenix.GleanMetrics.PerfStartup
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.perf.StartupPathProvider.StartupPath
 
-private val activityClass = HomeActivity::class.java
-
 private val logger = Logger("StartupTypeTelemetry")
 
 /**
@@ -35,10 +33,13 @@ private val logger = Logger("StartupTypeTelemetry")
  * N.B.: this class is lightly hardcoded to HomeActivity.
  */
 class StartupTypeTelemetry(
-    private val startupStateProvider: StartupStateProvider,
     private val startupPathProvider: StartupPathProvider,
+    private val startupStateDetector: StartupStateDetector,
 ) {
 
+    /**
+     * Attaches to the [HomeActivity] which we use to detect start up types.
+     */
     fun attachOnHomeActivityOnCreate(lifecycle: Lifecycle) {
         lifecycle.addObserver(StartupTypeLifecycleObserver())
     }
@@ -69,13 +70,13 @@ class StartupTypeTelemetry(
     fun getTestCallbacks() = StartupTypeLifecycleObserver()
 
     /**
-     * Record startup telemetry based on the available [startupStateProvider] and [startupPathProvider].
+     * Record startup telemetry based on the available [startupStateDetector] and [startupPathProvider].
      *
      * @param dispatcher used to control the thread on which telemetry will be recorded. Defaults to [Dispatchers.IO].
      */
     @VisibleForTesting(otherwise = PRIVATE)
     fun record(dispatcher: CoroutineDispatcher = Dispatchers.IO) {
-        val startupState = startupStateProvider.getStartupStateForStartedActivity(activityClass)
+        val startupState = startupStateDetector.getStartupState()
         val startupPath = startupPathProvider.startupPathForActivity
         val label = getTelemetryLabel(startupState, startupPath)
 
