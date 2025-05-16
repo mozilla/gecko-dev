@@ -397,6 +397,17 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
     return weatherTable;
   }
 
+  renderPersonalizationData() {
+    const { interestVector } = this.props.state.InferredPersonalization;
+    return (
+      <div>
+        {" "}
+        Interest Vector:
+        <pre>{JSON.stringify(interestVector, null, 2)}</pre>
+      </div>
+    );
+  }
+
   renderFeedData(url) {
     const { feeds } = this.props.state.DiscoveryStream;
     const feed = feeds.data[url].data;
@@ -723,6 +734,8 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
         <div className="large-data-container">{this.renderBlocksData()}</div>
         <h3>Weather Data</h3>
         {this.renderWeatherData()}
+        <h3>Personalization Data</h3>
+        {this.renderPersonalizationData()}
       </div>
     );
   }
@@ -760,6 +773,7 @@ export class DiscoveryStreamAdminInner extends React.PureComponent {
                 DiscoveryStream: this.props.DiscoveryStream,
                 Personalization: this.props.Personalization,
                 Weather: this.props.Weather,
+                InferredPersonalization: this.props.InferredPersonalization,
               }}
               otherPrefs={this.props.Prefs.values}
               dispatch={this.props.dispatch}
@@ -847,6 +861,7 @@ export const DiscoveryStreamAdmin = connect(state => ({
   Sections: state.Sections,
   DiscoveryStream: state.DiscoveryStream,
   Personalization: state.Personalization,
+  InferredPersonalization: state.InferredPersonalization,
   Prefs: state.Prefs,
   Weather: state.Weather,
 }))(_DiscoveryStreamAdmin);

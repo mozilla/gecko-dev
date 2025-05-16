@@ -9,29 +9,38 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
 });
 
+import { FeatureModel } from "resource://newtab/lib/InferredModel/FeatureModel.sys.mjs";
+
+import {
+  FORMAT,
+  AggregateResultKeys,
+  DEFAULT_INFERRED_MODEL_DATA,
+} from "resource://newtab/lib/InferredModel/InferredConstants.sys.mjs";
+
 import {
   actionTypes as at,
   actionCreators as ac,
 } from "resource://newtab/common/Actions.mjs";
 
+import { MODEL_TYPE } from "./InferredModel/InferredConstants.sys.mjs";
+
 const CACHE_KEY = "inferred_personalization_feed";
+const DISCOVERY_STREAM_CACHE_KEY = "discovery_stream";
 const INTEREST_VECTOR_UPDATE_TIME = 4 * 60 * 60 * 1000; // 4 hours
 const PREF_USER_INFERRED_PERSONALIZATION =
   "discoverystream.sections.personalization.inferred.user.enabled";
 const PREF_SYSTEM_INFERRED_PERSONALIZATION =
   "discoverystream.sections.personalization.inferred.enabled";
+const PREF_SYSTEM_INFERRED_MODEL_OVERRIDE =
+  "discoverystream.sections.personalization.inferred.model.override";
 
-const FORMAT_ENUM = {
-  SMALL: 0,
-  MEDIUM: 1,
-  LARGE: 2,
-};
+function timeMSToSeconds(timeMS) {
+  return Math.round(timeMS / 1000);
+}
 
-const FORMAT = {
-  "small-card": FORMAT_ENUM.SMALL,
-  "medium-card": FORMAT_ENUM.MEDIUM,
-  "large-card": FORMAT_ENUM.LARGE,
-};
+const CLICK_TABLE = "moz_newtab_story_click";
+const IMPRESSION_TABLE = "moz_newtab_story_impression";
+const TEST_MODEL_ID = "TEST";
 
 /**
  * A feature that periodically generates a interest vector for inferred personalization.
@@ -65,9 +74,88 @@ export class InferredPersonalizationFeed {
     await this.loadInterestVector(true /* isStartup */);
   }
 
+  async queryDatabaseForTimeIntervals(intervals, table) {
+    let results = [];
+    for (const interval of intervals) {
+      const agg = await this.fetchInferredPersonalizationSummary(
+        interval.start,
+        interval.end,
+        table
+      );
+      results.push(agg);
+    }
+    return results;
+  }
+
+  /**
+   * Get Inferrred model raw data
+   * @returns JSON of inferred model
+   */
+  async getInferredModelData() {
+    const modelOverrideRaw =
+      this.store.getState().Prefs.values[PREF_SYSTEM_INFERRED_MODEL_OVERRIDE];
+    if (modelOverrideRaw) {
+      if (modelOverrideRaw === TEST_MODEL_ID) {
+        return {
+          model_id: TEST_MODEL_ID,
+          model_data: DEFAULT_INFERRED_MODEL_DATA,
+        };
+      }
+      try {
+        return JSON.parse(modelOverrideRaw);
+      } catch (_error) {}
+    }
+    const dsCache = this.PersistentCache(DISCOVERY_STREAM_CACHE_KEY, true);
+    const cachedData = (await dsCache.get()) || {};
+    let { inferredModel } = cachedData;
+    return inferredModel;
+  }
+
   async generateInterestVector() {
-    // TODO items and model should be props passed in, or fetched in this function.
-    // TODO Run items and model to generate interest vector.
+    const inferredModel = await this.getInferredModelData();
+    if (!inferredModel || !inferredModel.model_data) {
+      return {};
+    }
+    const model = FeatureModel.fromJSON(inferredModel.model_data);
+
+    const intervals = model.getDateIntervals(this.Date().now());
+    const schema = {
+      [AggregateResultKeys.FEATURE]: 0,
+      [AggregateResultKeys.FORMAT_ENUM]: 1,
+      [AggregateResultKeys.VALUE]: 2,
+    };
+
+    const aggClickPerInterval = await this.queryDatabaseForTimeIntervals(
+      intervals,
+      CLICK_TABLE
+    );
+
+    const ivClicks = model.computeInterestVector({
+      dataForIntervals: aggClickPerInterval,
+      indexSchema: schema,
+    });
+
+    if (model.modelType === MODEL_TYPE.CLICKS) {
+      return { ...ivClicks, model_id: inferredModel.model_id };
+    }
+
+    if (model.modelType === MODEL_TYPE.CLICK_IMP_PAIR) {
+      const aggImpressionsPerInterval =
+        await this.queryDatabaseForTimeIntervals(intervals, IMPRESSION_TABLE);
+      const ivImpressions = model.computeInterestVector({
+        dataForIntervals: aggImpressionsPerInterval,
+        indexSchema: schema,
+      });
+      const res = {
+        c: ivClicks,
+        i: ivImpressions,
+        model_id: inferredModel.model_id,
+      };
+      return res;
+    }
+
+    // unsupported modelType
+    return {};
   }
 
   async loadInterestVector(isStartup = false) {
@@ -82,6 +170,7 @@ export class InferredPersonalizationFeed {
         INTEREST_VECTOR_UPDATE_TIME
       )
     ) {
+      // TODO Get model from Merino/DiscoveryStreamFeed
       interest_vector = {
         data: await this.generateInterestVector(),
         lastUpdated: this.Date().now(),
@@ -89,6 +178,7 @@ export class InferredPersonalizationFeed {
     }
     await this.cache.set("interest_vector", interest_vector);
     this.loaded = true;
+
     this.store.dispatch(
       ac.OnlyToMain({
         type: at.INFERRED_PERSONALIZATION_UPDATE,
@@ -142,15 +232,13 @@ export class InferredPersonalizationFeed {
   }
 
   async recordInferredPersonalizationImpression(tile) {
-    await this.recordInferredPersonalizationInteraction(
-      "moz_newtab_story_impression",
-      tile
-    );
+    await this.recordInferredPersonalizationInteraction(IMPRESSION_TABLE, tile);
   }
   async recordInferredPersonalizationClick(tile) {
     await this.recordInferredPersonalizationInteraction(
-      "moz_newtab_story_click",
-      tile
+      CLICK_TABLE,
+      tile,
+      true
     );
   }
 
@@ -159,47 +247,60 @@ export class InferredPersonalizationFeed {
       "moz_newtab_story_impression"
     );
   }
-  async fetchInferredPersonalizationClick() {
-    return await this.fetchInferredPersonalizationInteraction(
-      "moz_newtab_story_click"
-    );
+
+  async fetchInferredPersonalizationSummary(startTime, endTime, table) {
+    let sql = `SELECT feature, card_format_enum, SUM(feature_value) FROM ${table}
+      WHERE timestamp_s > ${timeMSToSeconds(startTime)}
+      AND timestamp_s < ${timeMSToSeconds(endTime)}
+       GROUP BY feature, card_format_enum`;
+    const { activityStreamProvider } = lazy.NewTabUtils;
+    const interactions = await activityStreamProvider.executePlacesQuery(sql);
+    return interactions;
   }
 
-  async recordInferredPersonalizationInteraction(table, tile) {
-    const feature = tile.topic;
-    const timestamp_s = this.Date().now() / 1000;
+  async recordInferredPersonalizationInteraction(
+    table,
+    tile,
+    extraClickEvent = false
+  ) {
+    const timestamp_s = timeMSToSeconds(this.Date().now());
     const card_format_enum = FORMAT[tile.format];
     const position = tile.pos;
     const section_position = tile.section_position || 0;
-    // TODO This needs to be attached to the tile, and coming from Merino.
-    // TODO This is now in tile.features.
-    // TODO It may be undefined if previous data was cached before Merino started returning features.
-    const feature_value = 0.5;
-
-    if (
-      table !== "moz_newtab_story_impression" &&
-      table !== "moz_newtab_story_click"
-    ) {
+    let featureValuePairs = [];
+    if (extraClickEvent) {
+      featureValuePairs.push(["click", 1]);
+    }
+    if (tile.features) {
+      featureValuePairs = featureValuePairs.concat(
+        Object.entries(tile.features)
+      );
+    }
+    if (table !== CLICK_TABLE && table !== IMPRESSION_TABLE) {
       return;
     }
+    const primaryValues = {
+      timestamp_s,
+      card_format_enum,
+      position,
+      section_position,
+    };
 
+    const insertValues = featureValuePairs.map(pair =>
+      Object.assign({}, primaryValues, {
+        feature: pair[0],
+        feature_value: pair[1],
+      })
+    );
+
+    let sql = `
+    INSERT INTO ${table}(feature, timestamp_s, card_format_enum, position, section_position, feature_value)
+    VALUES (:feature, :timestamp_s, :card_format_enum, :position, :section_position, :feature_value)
+    `;
     await lazy.PlacesUtils.withConnectionWrapper(
-      "newtab/lib/TelemetryFeed.sys.mjs: recordInferredPersonalizationImpression",
+      "newtab/lib/InferredPersonalizationFeed.sys.mjs: recordInferredPersonalizationImpression",
       async db => {
-        await db.execute(
-          `
-          INSERT INTO ${table}(feature, timestamp_s, card_format_enum, position, section_position, feature_value)
-          VALUES (:feature, :timestamp_s, :card_format_enum, :position, :section_position, :feature_value)
-        `,
-          {
-            feature,
-            timestamp_s,
-            card_format_enum,
-            position,
-            section_position,
-            feature_value,
-          }
-        );
+        await db.execute(sql, insertValues);
       }
     );
   }

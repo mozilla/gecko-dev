@@ -675,6 +675,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.sections.personalization.inferred.model.override",
+    {
+      title:
+        "Override inferred personalization model JSON string that typically comes from rec API. Or 'TEST' for a test model",
+    },
+  ],
+  [
     "discoverystream.sections.cards.thumbsUpDown.enabled",
     {
       title:

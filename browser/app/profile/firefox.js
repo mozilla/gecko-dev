@@ -1974,6 +1974,8 @@ pref("browser.newtabpage.activity-stream.discoverystream.sections.personalizatio
 pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.locale-config", "en-US,en-GB,en-CA");
 
 pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.user.enabled", true);
+// Override inferred personalization model JSON string that typically comes from rec API. Or "TEST" for a test model.
+pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.model.override", "");
 
 pref("browser.newtabpage.activity-stream.discoverystream.sections.interestPicker.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.sections.interestPicker.visibleSections", "");

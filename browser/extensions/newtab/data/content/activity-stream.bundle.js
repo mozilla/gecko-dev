@@ -170,6 +170,7 @@ for (const type of [
   "HIDE_PERSONALIZE",
   "HIDE_PRIVACY_INFO",
   "HIDE_TOAST_MESSAGE",
+  "INFERRED_PERSONALIZATION_MODEL_UPDATE",
   "INFERRED_PERSONALIZATION_REFRESH",
   "INFERRED_PERSONALIZATION_RESET",
   "INFERRED_PERSONALIZATION_UPDATE",
@@ -932,6 +933,12 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     }
     return weatherTable;
   }
+  renderPersonalizationData() {
+    const {
+      interestVector
+    } = this.props.state.InferredPersonalization;
+    return /*#__PURE__*/external_React_default().createElement("div", null, " ", "Interest Vector:", /*#__PURE__*/external_React_default().createElement("pre", null, JSON.stringify(interestVector, null, 2)));
+  }
   renderFeedData(url) {
     const {
       feeds
@@ -1135,7 +1142,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       className: "large-data-container"
     }, this.renderImpressionsData()), /*#__PURE__*/external_React_default().createElement("h3", null, "Blocked Data"), /*#__PURE__*/external_React_default().createElement("div", {
       className: "large-data-container"
-    }, this.renderBlocksData()), /*#__PURE__*/external_React_default().createElement("h3", null, "Weather Data"), this.renderWeatherData());
+    }, this.renderBlocksData()), /*#__PURE__*/external_React_default().createElement("h3", null, "Weather Data"), this.renderWeatherData(), /*#__PURE__*/external_React_default().createElement("h3", null, "Personalization Data"), this.renderPersonalizationData());
   }
 }
 class DiscoveryStreamAdminInner extends (external_React_default()).PureComponent {
@@ -1159,7 +1166,8 @@ class DiscoveryStreamAdminInner extends (external_React_default()).PureComponent
       state: {
         DiscoveryStream: this.props.DiscoveryStream,
         Personalization: this.props.Personalization,
-        Weather: this.props.Weather
+        Weather: this.props.Weather,
+        InferredPersonalization: this.props.InferredPersonalization
       },
       otherPrefs: this.props.Prefs.values,
       dispatch: this.props.dispatch
@@ -1229,6 +1237,7 @@ const DiscoveryStreamAdmin = (0,external_ReactRedux_namespaceObject.connect)(sta
   Sections: state.Sections,
   DiscoveryStream: state.DiscoveryStream,
   Personalization: state.Personalization,
+  InferredPersonalization: state.InferredPersonalization,
   Prefs: state.Prefs,
   Weather: state.Weather
 }))(_DiscoveryStreamAdmin);

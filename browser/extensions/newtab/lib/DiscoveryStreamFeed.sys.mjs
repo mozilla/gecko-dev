@@ -1866,7 +1866,14 @@ export class DiscoveryStreamFeed {
               return { sectionId, title };
             });
         }
-
+        if (feedResponse.inferredLocalModel) {
+          this.store.dispatch(
+            ac.AlsoToMain({
+              type: at.INFERRED_PERSONALIZATION_MODEL_UPDATE,
+              data: feedResponse.inferredLocalModel || {},
+            })
+          );
+        }
         // We can cleanup any impressions we have that are old before we rotate.
         // In theory we can do this anywhere, but doing it just before rotate is optimal.
         // Rotate is also the only place that uses these impressions.
@@ -2877,13 +2884,15 @@ export class DiscoveryStreamFeed {
         break;
       case at.SECTION_PERSONALIZATION_SET:
         await this.cache.set("sectionPersonalization", action.data);
-
         this.store.dispatch(
           ac.BroadcastToContent({
             type: at.SECTION_PERSONALIZATION_UPDATE,
             data: action.data,
           })
         );
+        break;
+      case at.INFERRED_PERSONALIZATION_MODEL_UPDATE:
+        await this.cache.set("inferred_model", action.data);
     }
   }
 }

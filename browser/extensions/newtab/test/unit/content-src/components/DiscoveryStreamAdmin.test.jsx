@@ -77,6 +77,9 @@ describe("DiscoveryStreamAdmin", () => {
             Weather: {
               suggestions: [],
             },
+            InferredPersonalization: {
+              interestVector: {},
+            },
           }}
         />
       );
@@ -107,6 +110,9 @@ describe("DiscoveryStreamAdmin", () => {
             DiscoveryStream: state,
             Weather: {
               suggestions: [],
+            },
+            InferredPersonalization: {
+              interestVector: {},
             },
           }}
         />
