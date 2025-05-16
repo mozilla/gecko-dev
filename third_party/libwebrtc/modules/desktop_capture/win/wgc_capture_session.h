@@ -30,7 +30,10 @@ namespace webrtc {
 
 class WgcCaptureSession final {
  public:
-  // `source_id` is used to retreive the HMONITOR for the captured window.
+  // WgcCaptureSession supports capturing a window as well as a screen.
+  // If it is a window, `source_id` is the HWND of the window to be
+  // captured, which is never `0`'. If it is a screen, `source_id` is a number
+  // in a 0-based monitor index.
   WgcCaptureSession(
       intptr_t source_id,
       Microsoft::WRL::ComPtr<ID3D11Device> d3d11_device,
@@ -151,6 +154,10 @@ class WgcCaptureSession final {
 
   // The unique id to represent a Source of current DesktopCapturer.
   intptr_t source_id_;
+
+  // The source type of the capture session. It can be either a window or a
+  // screen.
+  bool is_window_source_;
 
   SequenceChecker sequence_checker_;
 };
