@@ -17,6 +17,8 @@
 
 #include "mozilla/gfx/MacIOSurface.h"
 #include "mozilla/layers/NativeLayer.h"
+#include "mozilla/layers/NativeLayerMacSurfaceHandler.h"
+#include "mozilla/webrender/RenderMacIOSurfaceTextureHost.h"
 #include "CFTypeRefPtr.h"
 #include "nsRegion.h"
 #include "nsISupportsImpl.h"
@@ -42,7 +44,6 @@ namespace layers {
 #ifdef XP_MACOSX
 class NativeLayerRootSnapshotterCA;
 #endif
-class SurfacePoolHandleCA;
 
 enum class VideoLowPowerType {
   // These must be kept synchronized with the telemetry histogram enums.
@@ -322,16 +323,6 @@ class NativeLayerCA : public NativeLayer {
   void HandlePartialUpdate(const MutexAutoLock& aProofOfLock,
                            const gfx::IntRect& aDisplayRect,
                            const gfx::IntRegion& aUpdateRegion, F&& aCopyFn);
-
-  struct SurfaceWithInvalidRegion {
-    CFTypeRefPtr<IOSurfaceRef> mSurface;
-    gfx::IntRegion mInvalidRegion;
-  };
-
-  struct SurfaceWithInvalidRegionAndCheckCount {
-    SurfaceWithInvalidRegion mEntry;
-    uint32_t mCheckCount;  // The number of calls to IOSurfaceIsInUse
-  };
 
   Maybe<SurfaceWithInvalidRegion> GetUnusedSurfaceAndCleanUp(
       const MutexAutoLock& aProofOfLock);
