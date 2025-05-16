@@ -15,6 +15,7 @@
 
 #include "absl/strings/string_view.h"
 #include "api/candidate.h"
+#include "api/environment/environment_factory.h"
 #include "api/transport/enums.h"
 #include "p2p/base/port.h"
 #include "p2p/base/port_interface.h"
