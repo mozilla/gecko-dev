@@ -1819,6 +1819,7 @@ var BrowserAddonUI = {
 var gUnifiedExtensions = {
   _initialized: false,
   // buttonAlwaysVisible: true, -- based on pref, declared later.
+  _buttonShownBeforeButtonOpen: null,
 
   // We use a `<deck>` in the extension items to show/hide messages below each
   // extension name. We have a default message for origin controls, and
@@ -1838,6 +1839,8 @@ var gUnifiedExtensions = {
     // Button is hidden by default, declared in navigator-toolbox.inc.xhtml.
     this._button = document.getElementById("unified-extensions-button");
     this.updateButtonVisibility();
+    this._buttonAttrObs = new MutationObserver(() => this.onButtonOpenChange());
+    this._buttonAttrObs.observe(this._button, { attributeFilter: ["open"] });
 
     gBrowser.addTabsProgressListener(this);
     window.addEventListener("TabSelect", () => this.updateAttention());
@@ -1857,6 +1860,8 @@ var gUnifiedExtensions = {
     if (!this._initialized) {
       return;
     }
+
+    this._buttonAttrObs.disconnect();
 
     window.removeEventListener("toolbarvisibilitychange", this);
 
@@ -1887,7 +1892,12 @@ var gUnifiedExtensions = {
     const navbar = document.getElementById("nav-bar");
 
     // TODO: Bug 1778684 - Auto-hide button when there is no active extension.
-    let shouldShowButton = this.buttonAlwaysVisible;
+    let shouldShowButton =
+      this.buttonAlwaysVisible ||
+      // If anything is anchored to the button, keep it visible.
+      this._button.open ||
+      // Button will be open soon - see ensureButtonShownBeforeAttachingPanel.
+      this._buttonShownBeforeButtonOpen;
 
     if (shouldShowButton) {
       this._button.hidden = false;
@@ -1895,6 +1905,26 @@ var gUnifiedExtensions = {
     } else {
       this._button.hidden = true;
       navbar.removeAttribute("unifiedextensionsbuttonshown");
+    }
+  },
+
+  ensureButtonShownBeforeAttachingPanel(panel) {
+    if (!this.buttonAlwaysVisible && !this._button.open) {
+      // When the panel is anchored to the button, its "open" attribute will be
+      // set, which visually renders as a "button pressed". Until we get there,
+      // we need to make sure that the button is visible so that it can serve
+      // as anchor.
+      this._buttonShownBeforeButtonOpen = panel;
+      this.updateButtonVisibility();
+    }
+  },
+
+  onButtonOpenChange() {
+    if (this._button.open) {
+      this._buttonShownBeforeButtonOpen = false;
+    }
+    if (!this.buttonAlwaysVisible && !this._button.open) {
+      this.updateButtonVisibility();
     }
   },
 
@@ -2308,6 +2338,7 @@ var gUnifiedExtensions = {
         }
 
         panel.hidden = false;
+        this.ensureButtonShownBeforeAttachingPanel(panel);
         PanelMultiView.openPopup(panel, this._button, {
           position: "bottomright topright",
           triggerEvent: aEvent,

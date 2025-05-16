@@ -750,6 +750,8 @@ skip-if = [
 
 ["browser_unified_extensions_button_visibility.js"]
 
+["browser_unified_extensions_button_visibility_browserAction.js"]
+
 ["browser_unified_extensions_context_menu.js"]
 
 ["browser_unified_extensions_cui.js"]
