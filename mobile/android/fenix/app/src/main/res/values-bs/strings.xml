@@ -3425,6 +3425,8 @@
   <string name="debug_drawer_override_current_region_label">Poništi trenutnu regiju</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">Poništi matičnu i trenutnu regiju</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Trajno promijeni regiju prebivališta</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

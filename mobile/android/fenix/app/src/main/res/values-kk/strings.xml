@@ -3424,6 +3424,8 @@
   <string name="debug_drawer_override_current_region_label">Ағымдағы аймақты қайта анықтау</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">Үй және ағымдағы аймақты қайта анықтау</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Үй аймағын біржола қайта анықтау</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
