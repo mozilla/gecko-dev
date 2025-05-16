@@ -17,15 +17,18 @@ is ingested and made available in BigQuery through the usual Glean infrastructur
 Ping Definitions
 ----------------
 * `Desktop crash ping <https://dictionary.telemetry.mozilla.org/apps/firefox_desktop/pings/crash>`_
-    * `Desktop metrics definition
-      <https://searchfox.org/mozilla-central/source/toolkit/components/crashes/metrics.yaml>`_
-    * `Desktop ping definition
-      <https://searchfox.org/mozilla-central/source/toolkit/components/crashes/pings.yaml>`_
+
+  * `Desktop metrics definition
+    <https://searchfox.org/mozilla-central/source/toolkit/components/crashes/metrics.yaml>`_
+  * `Desktop ping definition
+    <https://searchfox.org/mozilla-central/source/toolkit/components/crashes/pings.yaml>`_
+
 * `Fenix crash ping <https://dictionary.telemetry.mozilla.org/apps/fenix/pings/crash>`_
-    * `Fenix metrics definition
-      <https://searchfox.org/mozilla-central/source/mobile/android/android-components/components/lib/crash/metrics.yaml>`_
-    * `Fenix ping definition
-      <https://searchfox.org/mozilla-central/source/mobile/android/android-components/components/lib/crash/pings.yaml>`_
+
+  * `Fenix metrics definition
+    <https://searchfox.org/mozilla-central/source/mobile/android/android-components/components/lib/crash/metrics.yaml>`_
+  * `Fenix ping definition
+    <https://searchfox.org/mozilla-central/source/mobile/android/android-components/components/lib/crash/pings.yaml>`_
 
 BigQuery Tables
 ---------------
@@ -37,17 +40,23 @@ BigQuery Tables
   the desktop ping. As a result, it's a little verbose to combine fenix and desktop pings in a
   query, however most metrics exist in both with the same name.
 
-**NOTE**: When querying the source data, you should always use the `crash.app_channel`,
+**NOTE**: When querying the source data, you should always prefer the `crash.app_channel`,
 `crash.app_display_version`, and `crash.app_build` metrics rather than the similarly named fields of
 the Glean `client_info` struct. These values correspond to the application information *at the time
-of the crash*, and moreover the crash reporter client can't fully populate the client_info.
+of the crash*, and moreover the crash reporter client can't fully populate the client_info. However,
+it is best to fall back to the `client_info` if these are null (see `bug 1966213
+<https://bugzilla.mozilla.org/show_bug.cgi?id=1966213>`__). Java exception pings on Fenix are known
+to be missing these metrics (see `bug 1966210
+<https://bugzilla.mozilla.org/show_bug.cgi?id=1966210>`__). This can be easily achieved with e.g.
+``IFNULL(metrics.string.crash_app_channel, client_info.app_channel)``.
 
 Source
 ------
 All crash ping metrics are set in bulk at the same time, and typically come directly from `crash annotations <https://searchfox.org/mozilla-central/source/toolkit/crashreporter/CrashAnnotations.yaml>`_:
-* `Desktop <https://searchfox.org/mozilla-central/rev/b598575345077063c55b618e43ccaa6249505d02/toolkit/components/crashes/CrashManager.in.sys.mjs#787>`_
-* `Crashreporter client <https://searchfox.org/mozilla-central/rev/b598575345077063c55b618e43ccaa6249505d02/toolkit/crashreporter/client/app/src/net/ping/glean.rs#11>`_
-* `Fenix <https://searchfox.org/mozilla-central/rev/b598575345077063c55b618e43ccaa6249505d02/mobile/android/android-components/components/lib/crash/src/main/java/mozilla/components/lib/crash/service/GleanCrashReporterService.kt#312>`_
+
+* `Desktop <https://searchfox.org/mozilla-central/rev/b598575345077063c55b618e43ccaa6249505d02/toolkit/components/crashes/CrashManager.in.sys.mjs#787>`__
+* `Crashreporter client <https://searchfox.org/mozilla-central/rev/b598575345077063c55b618e43ccaa6249505d02/toolkit/crashreporter/client/app/src/net/ping/glean.rs#11>`__
+* `Fenix <https://searchfox.org/mozilla-central/rev/b598575345077063c55b618e43ccaa6249505d02/mobile/android/android-components/components/lib/crash/src/main/java/mozilla/components/lib/crash/service/GleanCrashReporterService.kt#312>`__
 
 
 Post-Processing
