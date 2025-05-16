@@ -453,12 +453,23 @@ bool nsINode::IsSelected(const uint32_t aStartOffset, const uint32_t aEndOffset,
           }
         }
 
+        auto ComparePoints = [](const ConstRawRangeBoundary& aBoundary1,
+                                const RangeBoundary& aBoundary2,
+                                nsContentUtils::NodeIndexCache* aCache) {
+          if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
+            return nsContentUtils::ComparePoints<TreeKind::Flat>(
+                aBoundary1, aBoundary2, aCache);
+          }
+          return nsContentUtils::ComparePoints<TreeKind::ShadowIncludingDOM>(
+              aBoundary1, aBoundary2, aCache);
+        };
+
         const AbstractRange* middlePlus1;
         const AbstractRange* middleMinus1;
         // if node end > start of middle+1, result = 1
         if (middle + 1 < high &&
             (middlePlus1 = selection->GetAbstractRangeAt(middle + 1)) &&
-            nsContentUtils::ComparePoints(
+            ComparePoints(
                 ConstRawRangeBoundary(this, aEndOffset,
                                       RangeBoundaryIsMutationObserved::No),
                 middlePlus1->StartRef(), &cache)
@@ -467,11 +478,10 @@ bool nsINode::IsSelected(const uint32_t aStartOffset, const uint32_t aEndOffset,
           // if node start < end of middle - 1, result = -1
         } else if (middle >= 1 &&
                    (middleMinus1 = selection->GetAbstractRangeAt(middle - 1)) &&
-                   nsContentUtils::ComparePoints(
-                       ConstRawRangeBoundary(
-                           this, aStartOffset,
-                           RangeBoundaryIsMutationObserved::No),
-                       middleMinus1->EndRef(), &cache)
+                   ComparePoints(ConstRawRangeBoundary(
+                                     this, aStartOffset,
+                                     RangeBoundaryIsMutationObserved::No),
+                                 middleMinus1->EndRef(), &cache)
                            .valueOr(1) < 0) {
           result = -1;
         } else {

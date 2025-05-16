@@ -531,6 +531,9 @@ template Maybe<int32_t>
 nsContentUtils::ComparePoints<TreeKind::ShadowIncludingDOM>(
     const ConstRawRangeBoundary& aFirstBoundary,
     const RangeBoundary& aSecondBoundary, NodeIndexCache* aIndexCache);
+template Maybe<int32_t> nsContentUtils::ComparePoints<TreeKind::Flat>(
+    const ConstRawRangeBoundary& aFirstBoundary,
+    const RangeBoundary& aSecondBoundary, NodeIndexCache* aIndexCache);
 
 template Maybe<int32_t>
 nsContentUtils::ComparePoints<TreeKind::ShadowIncludingDOM>(
