@@ -15,7 +15,7 @@ We have two:
 
 ## I have a question\! Who can help?
 
-Questions regarding security bugs or our bounty programs can be directed to [security@mozilla.com](mailto:security@mozilla.com). An encryption key for sending [GPG encrypted mails](https://www.mozilla.org/en-US/security/#pgpkey) is also available. 
+Questions regarding security bugs or our bounty programs can be directed to [security@mozilla.com](mailto:security@mozilla.com). An encryption key for sending [GPG encrypted mails](https://www.mozilla.org/en-US/security/#pgpkey) is also available.
 
 ## Where can I find security advisories?
 
