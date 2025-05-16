@@ -1856,7 +1856,7 @@ nsresult nsHttpChannel::InitTransaction() {
       LoadUploadStreamHasHeaders(), GetCurrentSerialEventTarget(), callbacks,
       this, mBrowserId, category, mRequestContext, mClassOfService,
       mInitialRwin, LoadResponseTimeoutEnabled(), mChannelId,
-      std::move(observer), nullptr, nullptr, 0);
+      std::move(observer));
   if (NS_FAILED(rv)) {
     mTransaction = nullptr;
     return rv;

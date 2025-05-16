@@ -69,10 +69,6 @@ class HttpTransactionParent final : public PHttpTransactionParent,
       const TimeStamp& aLastActiveTabOptHit,
       const TimeStamp& aOnStopRequestStartTime);
   mozilla::ipc::IPCResult RecvOnInitFailed(const nsresult& aStatus);
-
-  mozilla::ipc::IPCResult RecvOnH2PushStream(const uint32_t& aPushedStreamId,
-                                             const nsCString& aResourceUrl,
-                                             const nsCString& aRequestString);
   mozilla::ipc::IPCResult RecvEarlyHint(const nsCString& aValue,
                                         const nsACString& aReferrerPolicy,
                                         const nsACString& aCSPHeader);
@@ -177,7 +173,6 @@ class HttpTransactionParent final : public PHttpTransactionParent,
   TimeStamp mOnDataAvailableStartTime;
   TimeStamp mOnStopRequestStartTime;
   TransactionObserverFunc mTransactionObserver;
-  OnPushCallback mOnPushCallback;
   nsTArray<uint8_t> mDataForSniffer;
   std::function<void()> mCallOnResume;
   uint32_t mHTTPSSVCReceivedStage{};

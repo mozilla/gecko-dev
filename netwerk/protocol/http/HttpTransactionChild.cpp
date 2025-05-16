@@ -69,29 +69,12 @@ nsresult HttpTransactionChild::InitInternal(
     uint64_t browserId, uint8_t httpTrafficCategory, uint64_t requestContextID,
     ClassOfService classOfService, uint32_t initialRwin,
     bool responseTimeoutEnabled, uint64_t channelId,
-    bool aHasTransactionObserver,
-    const Maybe<H2PushedStreamArg>& aPushedStreamArg) {
+    bool aHasTransactionObserver) {
   LOG(("HttpTransactionChild::InitInternal [this=%p caps=%x]\n", this, caps));
 
   RefPtr<nsHttpConnectionInfo> cinfo =
       nsHttpConnectionInfo::DeserializeHttpConnectionInfoCloneArgs(infoArgs);
   nsCOMPtr<nsIRequestContext> rc = CreateRequestContext(requestContextID);
-
-  HttpTransactionShell::OnPushCallback pushCallback = nullptr;
-  if (caps & NS_HTTP_ONPUSH_LISTENER) {
-    RefPtr<HttpTransactionChild> self = this;
-    pushCallback = [self](uint32_t aPushedStreamId, const nsACString& aUrl,
-                          const nsACString& aRequestString,
-                          HttpTransactionShell* aTransaction) {
-      bool res = false;
-      if (self->CanSend()) {
-        res =
-            self->SendOnH2PushStream(aPushedStreamId, PromiseFlatCString(aUrl),
-                                     PromiseFlatCString(aRequestString));
-      }
-      return res ? NS_OK : NS_ERROR_FAILURE;
-    };
-  }
 
   std::function<void(TransactionObserverResult&&)> observer;
   if (aHasTransactionObserver) {
@@ -103,23 +86,13 @@ nsresult HttpTransactionChild::InitInternal(
     };
   }
 
-  RefPtr<nsHttpTransaction> transWithPushedStream;
-  uint32_t pushedStreamId = 0;
-  if (aPushedStreamArg) {
-    HttpTransactionChild* transChild = static_cast<HttpTransactionChild*>(
-        aPushedStreamArg.ref().transWithPushedStream().AsChild().get());
-    transWithPushedStream = transChild->GetHttpTransaction();
-    pushedStreamId = aPushedStreamArg.ref().pushedStreamId();
-  }
-
   nsresult rv = mTransaction->Init(
       caps, cinfo, requestHead, requestBody, requestContentLength,
       requestBodyHasHeaders, GetCurrentSerialEventTarget(),
       nullptr,  // TODO: security callback, fix in bug 1512479.
       this, browserId, static_cast<HttpTrafficCategory>(httpTrafficCategory),
       rc, classOfService, initialRwin, responseTimeoutEnabled, channelId,
-      std::move(observer), std::move(pushCallback), transWithPushedStream,
-      pushedStreamId);
+      std::move(observer));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     mTransaction = nullptr;
     return rv;
@@ -173,7 +146,6 @@ mozilla::ipc::IPCResult HttpTransactionChild::RecvInit(
     const ClassOfService& aClassOfService, const uint32_t& aInitialRwin,
     const bool& aResponseTimeoutEnabled, const uint64_t& aChannelId,
     const bool& aHasTransactionObserver,
-    const Maybe<H2PushedStreamArg>& aPushedStreamArg,
     const mozilla::Maybe<PInputChannelThrottleQueueChild*>& aThrottleQueue,
     const bool& aIsDocumentLoad, const TimeStamp& aRedirectStart,
     const TimeStamp& aRedirectEnd) {
@@ -197,8 +169,7 @@ mozilla::ipc::IPCResult HttpTransactionChild::RecvInit(
       aCaps, aArgs, &mRequestHead, mUploadStream, aReqContentLength,
       aReqBodyIncludesHeaders, aTopLevelOuterContentWindowId,
       aHttpTrafficCategory, aRequestContextID, aClassOfService, aInitialRwin,
-      aResponseTimeoutEnabled, aChannelId, aHasTransactionObserver,
-      aPushedStreamArg);
+      aResponseTimeoutEnabled, aChannelId, aHasTransactionObserver);
   if (NS_FAILED(rv)) {
     LOG(("HttpTransactionChild::RecvInit: [this=%p] InitInternal failed!\n",
          this));

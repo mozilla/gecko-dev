@@ -92,9 +92,7 @@ nsresult HttpTransactionParent::Init(
     uint64_t browserId, HttpTrafficCategory trafficCategory,
     nsIRequestContext* requestContext, ClassOfService classOfService,
     uint32_t initialRwin, bool responseTimeoutEnabled, uint64_t channelId,
-    TransactionObserverFunc&& transactionObserver,
-    OnPushCallback&& aOnPushCallback,
-    HttpTransactionShell* aTransWithPushedStream, uint32_t aPushedStreamId) {
+    TransactionObserverFunc&& transactionObserver) {
   LOG(("HttpTransactionParent::Init [this=%p caps=%x]\n", this, caps));
 
   if (!CanSend()) {
@@ -105,7 +103,6 @@ nsresult HttpTransactionParent::Init(
   mTargetThread = GetCurrentSerialEventTarget();
   mChannelId = channelId;
   mTransactionObserver = std::move(transactionObserver);
-  mOnPushCallback = std::move(aOnPushCallback);
   mCaps = caps;
   mConnInfo = cinfo->Clone();
   mIsHttp3Used = cinfo->IsHttp3();
@@ -120,14 +117,6 @@ nsresult HttpTransactionParent::Init(
   }
 
   uint64_t requestContextID = requestContext ? requestContext->GetID() : 0;
-
-  Maybe<H2PushedStreamArg> pushedStreamArg;
-  if (aTransWithPushedStream && aPushedStreamId) {
-    MOZ_ASSERT(aTransWithPushedStream->AsHttpTransactionParent());
-    pushedStreamArg.emplace(
-        WrapNotNull(aTransWithPushedStream->AsHttpTransactionParent()),
-        aPushedStreamId);
-  }
 
   nsCOMPtr<nsIThrottledInputChannel> throttled = do_QueryInterface(mEventsink);
   Maybe<NotNull<PInputChannelThrottleQueueParent*>> throttleQueue;
@@ -150,8 +139,8 @@ nsresult HttpTransactionParent::Init(
                 requestBodyHasHeaders, browserId,
                 static_cast<uint8_t>(trafficCategory), requestContextID,
                 classOfService, initialRwin, responseTimeoutEnabled, mChannelId,
-                !!mTransactionObserver, pushedStreamArg, throttleQueue,
-                mIsDocumentLoad, mRedirectStart, mRedirectEnd)) {
+                !!mTransactionObserver, throttleQueue, mIsDocumentLoad,
+                mRedirectStart, mRedirectEnd)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -690,15 +679,6 @@ mozilla::ipc::IPCResult HttpTransactionParent::RecvOnInitFailed(
   }
   return IPC_OK();
 }
-
-mozilla::ipc::IPCResult HttpTransactionParent::RecvOnH2PushStream(
-    const uint32_t& aPushedStreamId, const nsCString& aResourceUrl,
-    const nsCString& aRequestString) {
-  MOZ_ASSERT(mOnPushCallback);
-
-  mOnPushCallback(aPushedStreamId, aResourceUrl, aRequestString, this);
-  return IPC_OK();
-}  // namespace net
 
 mozilla::ipc::IPCResult HttpTransactionParent::RecvEarlyHint(
     const nsCString& aValue, const nsACString& aReferrerPolicy,

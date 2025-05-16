@@ -26,11 +26,6 @@ using nsIRequest::TRRMode from "nsIRequest.h";
 namespace mozilla {
 namespace net {
 
-struct H2PushedStreamArg {
-  PHttpTransaction transWithPushedStream;
-  uint32_t pushedStreamId;
-};
-
 struct NetworkAddressArg {
   NetAddr selfAddr;
   NetAddr peerAddr;
@@ -79,9 +74,6 @@ parent:
                       TimeStamp lastActiveTabOptimization,
                       TimeStamp onStopRequestStart);
   async OnInitFailed(nsresult status);
-  async OnH2PushStream(uint32_t pushedStreamId,
-                       nsCString resourceUrl,
-                       nsCString requestString);
   async EarlyHint(nsCString linkHeader, nsCString referrerPolicy, nsCString cspHeader);
 
 child:
@@ -100,7 +92,6 @@ child:
              bool responseTimeoutEnabled,
              uint64_t channelId,
              bool hasTransactionObserver,
-             H2PushedStreamArg? pushedStreamArg,
              PInputChannelThrottleQueue? throttleQueue,
              bool aIsDocumentLoad,
              TimeStamp aRedirectStart,

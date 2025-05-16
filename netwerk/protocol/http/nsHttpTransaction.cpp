@@ -171,9 +171,7 @@ nsresult nsHttpTransaction::Init(
     uint64_t browserId, HttpTrafficCategory trafficCategory,
     nsIRequestContext* requestContext, ClassOfService classOfService,
     uint32_t initialRwin, bool responseTimeoutEnabled, uint64_t channelId,
-    TransactionObserverFunc&& transactionObserver,
-    OnPushCallback&& aOnPushCallback,
-    HttpTransactionShell* transWithPushedStream, uint32_t aPushedStreamId) {
+    TransactionObserverFunc&& transactionObserver) {
   nsresult rv;
 
   LOG1(("nsHttpTransaction::Init [this=%p caps=%x]\n", this, caps));
