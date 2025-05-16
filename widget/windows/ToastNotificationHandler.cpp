@@ -342,10 +342,8 @@ nsString ToastNotificationHandler::ActionArgsJSONString(
       w.StringProperty("privilegedName", NS_ConvertUTF16toUTF8(mName));
     }
   } else {
-    nsAutoCString origin;
-    nsresult rv = mAlertNotification->GetOrigin(origin);
-    if (NS_SUCCEEDED(rv) && !origin.IsVoid()) {
-      w.StringProperty("origin", origin);
+    if (!mHostPort.IsEmpty()) {
+      w.StringProperty("launchUrl", NS_ConvertUTF16toUTF8(mHostPort));
     }
   }
 
