@@ -229,12 +229,12 @@ this.tabGroups = class extends ExtensionAPIPersistent {
             }
           }
 
+          let tabIndex = adjustIndexForMove(group, win, index);
           if (win !== group.ownerGlobal) {
-            let last = win.gBrowser.tabContainer.ariaFocusableItems.length + 1;
-            let elementIndex = index === -1 ? last : Math.min(index, last);
-            group = win.gBrowser.adoptTabGroup(group, elementIndex);
+            // TODO bug 1966617: adoptTabGroup takes elementIndex, but we have
+            // tabIndex here.
+            group = win.gBrowser.adoptTabGroup(group, tabIndex);
           } else {
-            let tabIndex = adjustIndexForMove(group, win, index);
             win.gBrowser.moveTabTo(group, { tabIndex });
           }
           return this.convert(group);
