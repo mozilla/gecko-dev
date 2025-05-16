@@ -53,3 +53,48 @@ add_task(async function test_show_button_before_new_window() {
   await BrowserTestUtils.closeWindow(win);
   resetButtonVisibilityToDefault();
 });
+
+// Until the "Hide Extensions Button" feature finished its implementation, the
+// UI to trigger hiding should be disabled by default.
+add_task(async function test_remove_from_toolbar_disabled_by_default() {
+  const contextMenu = await openChromeContextMenu(
+    "toolbar-context-menu",
+    "#unified-extensions-button"
+  );
+  const removeFromToolbar = contextMenu.querySelector(
+    ".customize-context-removeFromToolbar"
+  );
+  ok(removeFromToolbar.hasAttribute("disabled"), "removeFromToolbar disabled");
+  await closeChromeContextMenu(contextMenu.id, null);
+});
+
+add_task(async function test_hide_button_via_contextmenu() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.unifiedExtensions.button.customizable", true]],
+  });
+  // Open another window, just to see that removal from the toolbar in one
+  // window also applies to another.
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+
+  const contextMenu = await openChromeContextMenu(
+    "toolbar-context-menu",
+    "#unified-extensions-button",
+    win
+  );
+  const removeFromToolbar = contextMenu.querySelector(
+    ".customize-context-removeFromToolbar"
+  );
+  is(removeFromToolbar.hidden, false, "removeFromToolbar is visible");
+  ok(!removeFromToolbar.hasAttribute("disabled"), "removeFromToolbar enabled");
+  await closeChromeContextMenu(contextMenu.id, removeFromToolbar, win);
+
+  info("Extensions button should hide after choosing 'Remove from Toolbar'");
+  assertExtensionsButtonHidden(win);
+
+  info("Extensions button should also be hidden in another window");
+  assertExtensionsButtonHidden(window);
+
+  await BrowserTestUtils.closeWindow(win);
+  resetButtonVisibilityToDefault();
+  await SpecialPowers.popPrefEnv();
+});

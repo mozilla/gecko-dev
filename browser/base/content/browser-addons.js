@@ -2738,6 +2738,14 @@ var gUnifiedExtensions = {
       )
     );
   },
+
+  hideExtensionsButtonFromToolbar() {
+    // All browser windows will observe this and call updateButtonVisibility().
+    Services.prefs.setBoolPref(
+      "extensions.unifiedExtensions.button.always_visible",
+      false
+    );
+  },
 };
 XPCOMUtils.defineLazyPreferenceGetter(
   gUnifiedExtensions,
