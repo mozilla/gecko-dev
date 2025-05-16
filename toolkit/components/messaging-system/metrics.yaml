@@ -337,3 +337,67 @@ messaging_experiments:
     expires: never
     extra_keys: *messaging_experiments_reach_extra
     telemetry_mirror: Messaging_experiments_Reach_FxmsMessage11
+
+  reach_fxms_message_12:
+    type: event
+    description: >
+      This records whether a branch's targeting is satisfied for Messaging
+      System experiments. All qualified branch ID(s) will be recorded in
+      the 'extra_keys' for each active experiment, and the event 'value'
+      will be the experiment ID
+      This event was generated to correspond to the Legacy Telemetry event
+      messaging_experiments.reach#fxms_message_12.
+    bugs: *messaging_experiments_reach_bugs
+    data_reviews: *messaging_experiments_reach_data_reviews
+    notification_emails: *messaging_experiments_reach_emails
+    expires: never
+    extra_keys: *messaging_experiments_reach_extra
+    telemetry_mirror: Messaging_experiments_Reach_FxmsMessage12
+
+  reach_fxms_message_13:
+    type: event
+    description: >
+      This records whether a branch's targeting is satisfied for Messaging
+      System experiments. All qualified branch ID(s) will be recorded in
+      the 'extra_keys' for each active experiment, and the event 'value'
+      will be the experiment ID
+      This event was generated to correspond to the Legacy Telemetry event
+      messaging_experiments.reach#fxms_message_13.
+    bugs: *messaging_experiments_reach_bugs
+    data_reviews: *messaging_experiments_reach_data_reviews
+    notification_emails: *messaging_experiments_reach_emails
+    expires: never
+    extra_keys: *messaging_experiments_reach_extra
+    telemetry_mirror: Messaging_experiments_Reach_FxmsMessage13
+
+  reach_fxms_message_14:
+    type: event
+    description: >
+      This records whether a branch's targeting is satisfied for Messaging
+      System experiments. All qualified branch ID(s) will be recorded in
+      the 'extra_keys' for each active experiment, and the event 'value'
+      will be the experiment ID
+      This event was generated to correspond to the Legacy Telemetry event
+      messaging_experiments.reach#fxms_message_14.
+    bugs: *messaging_experiments_reach_bugs
+    data_reviews: *messaging_experiments_reach_data_reviews
+    notification_emails: *messaging_experiments_reach_emails
+    expires: never
+    extra_keys: *messaging_experiments_reach_extra
+    telemetry_mirror: Messaging_experiments_Reach_FxmsMessage14
+
+  reach_fxms_message_15:
+    type: event
+    description: >
+      This records whether a branch's targeting is satisfied for Messaging
+      System experiments. All qualified branch ID(s) will be recorded in
+      the 'extra_keys' for each active experiment, and the event 'value'
+      will be the experiment ID
+      This event was generated to correspond to the Legacy Telemetry event
+      messaging_experiments.reach#fxms_message_15.
+    bugs: *messaging_experiments_reach_bugs
+    data_reviews: *messaging_experiments_reach_data_reviews
+    notification_emails: *messaging_experiments_reach_emails
+    expires: never
+    extra_keys: *messaging_experiments_reach_extra
+    telemetry_mirror: Messaging_experiments_Reach_FxmsMessage15
