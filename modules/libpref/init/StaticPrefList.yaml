@@ -2823,7 +2823,7 @@
 # Whether pointerrawupdate event is enabled or disabled.
 - name: dom.event.pointer.rawupdate.enabled
   type: bool
-  value: false
+  value: true
   mirror: always
 
 # Whether wheel event target's should be grouped. When enabled, all wheel
