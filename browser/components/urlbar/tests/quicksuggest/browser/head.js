@@ -297,11 +297,11 @@ async function doImpressionOnlyTest({
   info("Waiting for page to load after clicking different row");
   await loadPromise;
 
-  Assert.equal(
-    expectedPings.length,
-    gleanPingCount.value,
-    "Submitted one Glean ping per expected ping"
-  );
+  // The pings are sent asynchronously, so we wait until we've seen them all
+  // be sent.
+  await TestUtils.waitForCondition(() => {
+    return expectedPings.length == gleanPingCount.value;
+  }, "Submitted one Glean ping per expected ping");
 
   // Clean up.
   await PlacesUtils.history.clear();
@@ -357,11 +357,11 @@ async function doClickTest({
   await loadPromise;
   await TestUtils.waitForTick();
 
-  Assert.equal(
-    expectedPings.length,
-    gleanPingCount.value,
-    "Submitted one Glean ping per expected ping"
-  );
+  // The pings are sent asynchronously, so we wait until we've seen them all
+  // be sent.
+  await TestUtils.waitForCondition(() => {
+    return expectedPings.length == gleanPingCount.value;
+  }, "Submitted one Glean ping per expected ping");
 
   await PlacesUtils.history.clear();
 
@@ -437,11 +437,11 @@ async function doCommandTest({
     }
   }
 
-  Assert.equal(
-    expectedPings.length,
-    gleanPingCount.value,
-    "Submitted one Glean ping per expected ping"
-  );
+  // The pings are sent asynchronously, so we wait until we've seen them all
+  // be sent.
+  await TestUtils.waitForCondition(() => {
+    return expectedPings.length == gleanPingCount.value;
+  }, "Submitted one Glean ping per expected ping");
 
   if (command == "dismiss") {
     await QuickSuggest.clearDismissedSuggestions();

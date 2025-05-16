@@ -5,21 +5,11 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ContextId: "moz-src:///browser/modules/ContextId.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SearchSERPTelemetry:
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
-});
-
-// `contextId` is a unique identifier used by Contextual Services
-const CONTEXT_ID_PREF = "browser.contextual-services.contextId";
-ChromeUtils.defineLazyGetter(lazy, "contextId", () => {
-  let _contextId = Services.prefs.getStringPref(CONTEXT_ID_PREF, null);
-  if (!_contextId) {
-    _contextId = Services.uuid.generateUUID().toString();
-    Services.prefs.setStringPref(CONTEXT_ID_PREF, _contextId);
-  }
-  return _contextId;
 });
 
 // A map of known search origins.
@@ -292,9 +282,9 @@ class BrowserSearchTelemetryHandler {
    * @param {string} reportingUrl
    *   The url to be sent to contextual services.
    */
-  #reportSearchInGlean(reportingUrl) {
+  async #reportSearchInGlean(reportingUrl) {
     let defaultValuesByGleanKey = {
-      contextId: lazy.contextId,
+      contextId: await lazy.ContextId.request(),
     };
 
     let sendGleanPing = valuesByGleanKey => {
