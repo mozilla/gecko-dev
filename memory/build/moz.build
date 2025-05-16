@@ -6,6 +6,7 @@
 
 EXPORTS += [
     "malloc_decls.h",
+    "mozjemalloc_profiling.h",
     "mozjemalloc_types.h",
     "mozmemory.h",
     "mozmemory_utils.h",
@@ -72,3 +73,4 @@ TEST_DIRS += ["test"]
 
 if CONFIG["NIGHTLY_BUILD"]:
     DEFINES["NON_RANDOM_ARENA_IDS"] = True
+    DEFINES["MOZJEMALLOC_PROFILING_CALLBACKS"] = True
