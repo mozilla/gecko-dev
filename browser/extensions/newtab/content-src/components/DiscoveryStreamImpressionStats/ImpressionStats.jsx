@@ -119,6 +119,7 @@ export class ImpressionStats extends React.PureComponent {
               recommended_at: link.recommended_at,
               received_rank: link.received_rank,
               topic: link.topic,
+              features: link.features,
               is_list_card: link.is_list_card,
               ...(link.format
                 ? { format: link.format }

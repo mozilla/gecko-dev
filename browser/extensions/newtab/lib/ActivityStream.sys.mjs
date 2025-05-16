@@ -18,6 +18,8 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AboutPreferences: "resource://newtab/lib/AboutPreferences.sys.mjs",
   AdsFeed: "resource://newtab/lib/AdsFeed.sys.mjs",
+  InferredPersonalizationFeed:
+    "resource://newtab/lib/InferredPersonalizationFeed.sys.mjs",
   DEFAULT_SITES: "resource://newtab/lib/DefaultSites.sys.mjs",
   DefaultPrefs: "resource://newtab/lib/ActivityStreamPrefs.sys.mjs",
   DiscoveryStreamFeed: "resource://newtab/lib/DiscoveryStreamFeed.sys.mjs",
@@ -1315,6 +1317,13 @@ const FEEDS_DATA = [
     name: "adsfeed",
     factory: () => new lazy.AdsFeed(),
     title: "Handles fetching and caching ads data",
+    value: true,
+  },
+  {
+    name: "inferredpersonalizationfeed",
+    factory: () => new lazy.InferredPersonalizationFeed(),
+    title:
+      "Handles generating and caching an interest vector for inferred personalization",
     value: true,
   },
   {

@@ -392,6 +392,7 @@ export class _CardGrid extends React.PureComponent {
             time_to_read={rec.time_to_read}
             title={rec.title}
             topic={rec.topic}
+            features={rec.features}
             showTopics={showTopics}
             selectedTopics={selectedTopics}
             availableTopics={availableTopics}

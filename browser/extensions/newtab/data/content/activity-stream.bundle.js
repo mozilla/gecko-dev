@@ -170,6 +170,9 @@ for (const type of [
   "HIDE_PERSONALIZE",
   "HIDE_PRIVACY_INFO",
   "HIDE_TOAST_MESSAGE",
+  "INFERRED_PERSONALIZATION_REFRESH",
+  "INFERRED_PERSONALIZATION_RESET",
+  "INFERRED_PERSONALIZATION_UPDATE",
   "INIT",
   "INLINE_SELECTION_CLICK",
   "INLINE_SELECTION_IMPRESSION",
@@ -732,6 +735,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     this.handleWeatherSubmit = this.handleWeatherSubmit.bind(this);
     this.handleWeatherUpdate = this.handleWeatherUpdate.bind(this);
     this.resetBlocks = this.resetBlocks.bind(this);
+    this.refreshInferredPersonalization = this.refreshInferredPersonalization.bind(this);
     this.refreshTopicSelectionCache = this.refreshTopicSelectionCache.bind(this);
     this.toggleTBRFeed = this.toggleTBRFeed.bind(this);
     this.handleSectionsToggle = this.handleSectionsToggle.bind(this);
@@ -762,6 +766,11 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     this.props.dispatch(actionCreators.OnlyToMain({
       type: actionTypes.DISCOVERY_STREAM_CONFIG_CHANGE,
       data: config
+    }));
+  }
+  refreshInferredPersonalization() {
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.INFERRED_PERSONALIZATION_REFRESH
     }));
   }
   refreshTopicSelectionCache() {
@@ -1055,6 +1064,9 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       className: "button",
       onClick: this.idleDaily
     }, "Trigger Idle Daily"), /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("button", {
+      className: "button",
+      onClick: this.refreshInferredPersonalization
+    }, "Refresh Inferred Personalization"), /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("button", {
       className: "button",
       onClick: this.syncRemoteSettings
     }, "Sync Remote Settings"), " ", /*#__PURE__*/external_React_default().createElement("button", {
@@ -2854,6 +2866,7 @@ class ImpressionStats_ImpressionStats extends (external_React_default()).PureCom
             recommended_at: link.recommended_at,
             received_rank: link.received_rank,
             topic: link.topic,
+            features: link.features,
             is_list_card: link.is_list_card,
             ...(link.format ? {
               format: link.format
@@ -3722,6 +3735,7 @@ class _DSCard extends (external_React_default()).PureComponent {
             recommended_at: this.props.recommended_at,
             received_rank: this.props.received_rank,
             topic: this.props.topic,
+            features: this.props.features,
             matches_selected_topic: matchesSelectedTopic,
             selected_topics: this.props.selectedTopics,
             is_list_card: this.props.isListCard,
@@ -4081,6 +4095,7 @@ class _DSCard extends (external_React_default()).PureComponent {
         recommended_at: this.props.recommended_at,
         received_rank: this.props.received_rank,
         topic: this.props.topic,
+        features: this.props.features,
         is_list_card: isListCard,
         ...(format ? {
           format
@@ -5179,6 +5194,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
         time_to_read: rec.time_to_read,
         title: rec.title,
         topic: rec.topic,
+        features: rec.features,
         showTopics: showTopics,
         selectedTopics: selectedTopics,
         availableTopics: availableTopics,
@@ -7464,6 +7480,11 @@ const INITIAL_STATE = {
     lastUpdated: null,
     initialized: false,
   },
+  InferredPersonalization: {
+    initialized: false,
+    lastUpdated: null,
+    interestVector: {},
+  },
   Search: {
     // When search hand-off is enabled, we render a big button that is styled to
     // look like a search textbox. If the button is clicked, we style
@@ -7950,6 +7971,25 @@ function Reducers_sys_Personalization(prevState = INITIAL_STATE.Personalization,
   }
 }
 
+function InferredPersonalization(
+  prevState = INITIAL_STATE.InferredPersonalization,
+  action
+) {
+  switch (action.type) {
+    case actionTypes.INFERRED_PERSONALIZATION_UPDATE:
+      return {
+        ...prevState,
+        initialized: true,
+        interestVector: action.data.interestVector,
+        lastUpdated: action.data.lastUpdated,
+      };
+    case actionTypes.INFERRED_PERSONALIZATION_RESET:
+      return { ...INITIAL_STATE.InferredPersonalization };
+    default:
+      return prevState;
+  }
+}
+
 // eslint-disable-next-line complexity
 function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
   // Return if action data is empty, or spocs or feeds data is not loaded
@@ -8403,6 +8443,7 @@ const reducers = {
   Notifications,
   Pocket,
   Personalization: Reducers_sys_Personalization,
+  InferredPersonalization,
   DiscoveryStream,
   Search,
   Wallpapers,
@@ -11406,6 +11447,7 @@ function CardSection({
       time_to_read: rec.time_to_read,
       title: rec.title,
       topic: rec.topic,
+      features: rec.features,
       excerpt: rec.excerpt,
       url: rec.url,
       id: rec.id,

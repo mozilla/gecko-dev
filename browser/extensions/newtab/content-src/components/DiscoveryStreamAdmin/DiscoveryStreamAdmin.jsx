@@ -141,6 +141,8 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
     this.handleWeatherSubmit = this.handleWeatherSubmit.bind(this);
     this.handleWeatherUpdate = this.handleWeatherUpdate.bind(this);
     this.resetBlocks = this.resetBlocks.bind(this);
+    this.refreshInferredPersonalization =
+      this.refreshInferredPersonalization.bind(this);
     this.refreshTopicSelectionCache =
       this.refreshTopicSelectionCache.bind(this);
     this.toggleTBRFeed = this.toggleTBRFeed.bind(this);
@@ -175,6 +177,14 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
       ac.OnlyToMain({
         type: at.DISCOVERY_STREAM_CONFIG_CHANGE,
         data: config,
+      })
+    );
+  }
+
+  refreshInferredPersonalization() {
+    this.props.dispatch(
+      ac.OnlyToMain({
+        type: at.INFERRED_PERSONALIZATION_REFRESH,
       })
     );
   }
@@ -602,6 +612,13 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
         </button>{" "}
         <button className="button" onClick={this.idleDaily}>
           Trigger Idle Daily
+        </button>
+        <br />
+        <button
+          className="button"
+          onClick={this.refreshInferredPersonalization}
+        >
+          Refresh Inferred Personalization
         </button>
         <br />
         <button className="button" onClick={this.syncRemoteSettings}>
