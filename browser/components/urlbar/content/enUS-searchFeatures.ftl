@@ -168,12 +168,6 @@ firefox-suggest-pocket-bottom-text = { -pocket-brand-name } · Related to <stron
 
 ## These strings are used for Yelp suggestions in the urlbar.
 
-# This string is shown as the title in Yelp suggestions when the suggestion
-# subject is a general service instead of a business name.
-# Variables:
-#   $service (string) - The title of the service, e.g., "coffee shops".
-firefox-suggest-yelp-service-title = Top results for { $service }
-
 # This string is shown in Yelp suggestions and indicates the suggestion is for
 # Yelp.
 firefox-suggest-yelp-bottom-text = Yelp · Sponsored

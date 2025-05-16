@@ -1705,46 +1705,6 @@ export var UrlbarUtils = {
 
     return action;
   },
-
-  /**
-   * Adds text content to a node, placing substrings that should be highlighted
-   * inside <strong> nodes.
-   *
-   * @param {Element} parentNode
-   *   The text content will be added to this node.
-   * @param {string} textContent
-   *   The text content to give the node.
-   * @param {Array} highlights
-   *   Array of highlights as returned by `UrlbarUtils.getTokenMatches()` or
-   *   `UrlbarResult.payloadAndSimpleHighlights()`.
-   */
-  addTextContentWithHighlights(parentNode, textContent, highlights) {
-    parentNode.textContent = "";
-    if (!textContent) {
-      return;
-    }
-
-    highlights = (highlights || []).concat([[textContent.length, 0]]);
-    let index = 0;
-    for (let [highlightIndex, highlightLength] of highlights) {
-      if (highlightIndex - index > 0) {
-        parentNode.appendChild(
-          parentNode.ownerDocument.createTextNode(
-            textContent.substring(index, highlightIndex)
-          )
-        );
-      }
-      if (highlightLength > 0) {
-        let strong = parentNode.ownerDocument.createElement("strong");
-        strong.textContent = textContent.substring(
-          highlightIndex,
-          highlightIndex + highlightLength
-        );
-        parentNode.appendChild(strong);
-      }
-      index = highlightIndex + highlightLength;
-    }
-  },
 };
 
 ChromeUtils.defineLazyGetter(UrlbarUtils.ICON, "DEFAULT", () => {
@@ -1765,12 +1725,6 @@ const L10N_SCHEMA = {
       type: "string",
     },
     args: {
-      type: "object",
-      additionalProperties: true,
-    },
-    // This object is parallel to args and should include an entry for each arg
-    // to which highlights should be applied. See L10nCache.setElementL10n().
-    argsHighlights: {
       type: "object",
       additionalProperties: true,
     },
@@ -3236,11 +3190,6 @@ export class L10nCache {
    *   The l10n string ID.
    * @param {object} [options.args]
    *   The l10n string arguments.
-   * @param {object} [options.argsHighlights]
-   *   If this is set, apply substring highlighting to the corresponding l10n
-   *   arguments in `args`. Each value in this object should be an array of
-   *   highlights as returned by `UrlbarUtils.getTokenMatches()` or
-   *   `UrlbarResult.payloadAndSimpleHighlights()`.
    * @param {string} [options.attribute]
    *   If the string applies to an attribute on the element, pass the name of
    *   the attribute. The string in the Fluent file should define a value for
@@ -3280,7 +3229,6 @@ export class L10nCache {
     {
       id,
       args = undefined,
-      argsHighlights = undefined,
       attribute = undefined,
       parseMarkup = false,
       cacheable = false,
@@ -3328,22 +3276,6 @@ export class L10nCache {
         element.setAttribute("data-l10n-attrs", attribute);
       } else {
         element.removeAttribute("data-l10n-attrs");
-
-        if (argsHighlights) {
-          // To avoid contamination args because we cache it, create a new
-          // instance.
-          args = { ...args };
-
-          let span = element.ownerDocument.createElement("span");
-          for (let key in argsHighlights) {
-            UrlbarUtils.addTextContentWithHighlights(
-              span,
-              args[key],
-              argsHighlights[key]
-            );
-            args[key] = span.innerHTML;
-          }
-        }
       }
       element.ownerDocument.l10n.setAttributes(element, id, args);
     }
