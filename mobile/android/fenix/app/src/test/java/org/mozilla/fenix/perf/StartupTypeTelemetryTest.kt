@@ -27,7 +27,6 @@ import org.mozilla.fenix.GleanMetrics.PerfStartup
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.perf.StartupPathProvider.StartupPath
-import org.mozilla.fenix.perf.StartupStateProvider.StartupState
 
 private val validTelemetryLabels = run {
     val allStates = listOf("cold", "warm", "hot", "unknown")

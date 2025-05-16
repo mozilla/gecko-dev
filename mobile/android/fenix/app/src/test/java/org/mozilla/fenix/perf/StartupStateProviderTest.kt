@@ -16,7 +16,6 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.IntentReceiverActivity
 import org.mozilla.fenix.perf.AppStartReasonProvider.StartReason
 import org.mozilla.fenix.perf.StartupActivityLog.LogEntry
-import org.mozilla.fenix.perf.StartupStateProvider.StartupState
 
 class StartupStateProviderTest {
 
