@@ -83,7 +83,10 @@
         is(shadowRoot.lastChild, span, "<span> inserted");
 
         const parser = new win.DOMParser();
-        let parserDoc = parser.parseFromString(
+
+        is("parseFromString" in parser, false, "No DOMParser.parseFromString");
+
+        let parserDoc = parser.parseFromSafeString(
           `<div xmlns="http://www.w3.org/1999/xhtml">Hello from DOMParser!</div>`,
           "application/xml"
         );

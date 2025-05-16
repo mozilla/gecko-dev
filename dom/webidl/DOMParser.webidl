@@ -23,7 +23,9 @@ interface DOMParser {
   [Throws]
   constructor();
 
-  [NewObject, NeedsSubjectPrincipal=NonSystem, Throws, UseCounter]
+  // For UA Widgets use parseFromSafeString instead.
+  // This avoids Trusted Types in the web content unexpectedly breaking the widget.
+  [NewObject, NeedsSubjectPrincipal=NonSystem, Throws, UseCounter, Func="IsNotUAWidget"]
   Document parseFromString((TrustedHTML or DOMString) str, SupportedType type);
 
   // Mozilla-specific stuff
