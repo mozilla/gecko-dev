@@ -1,6 +1,5 @@
 import unittest
 
-import mozunit
 from mozharness.base.parallel import ChunkingMixin
 import mozunit
 
