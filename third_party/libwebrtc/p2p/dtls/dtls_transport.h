@@ -230,6 +230,13 @@ class DtlsTransport : public DtlsTransportInternal {
     return sb.Release();
   }
 
+  // Number of times "DTLS retransmission" has been triggered.
+  // Currently used for testing but maybe put into stats in the future?
+  int GetRetransmissionCount() const;
+
+  // Number of times data has been received from a STUN BINDING.
+  int GetStunDataCount() const;
+
   // Two methods for testing.
   bool IsDtlsPiggybackSupportedByPeer();
   bool WasDtlsCompletedByPiggybacking();

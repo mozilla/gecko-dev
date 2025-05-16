@@ -350,7 +350,9 @@ class FakeIceTransport : public webrtc::IceTransportInternal {
     send_packet_.AppendData(data, len);
     if (!combine_outgoing_packets_ || send_packet_.size() > len) {
       rtc::CopyOnWriteBuffer packet(std::move(send_packet_));
-      SendPacketInternal(packet, options, flags);
+      if (!SendPacketInternal(packet, options, flags)) {
+        return -1;
+      }
     }
 
     rtc::SentPacket sent_packet(options.packet_id, webrtc::TimeMillis());
@@ -490,7 +492,13 @@ class FakeIceTransport : public webrtc::IceTransportInternal {
     return received_stun_messages_per_type[type];
   }
 
+  int GetCountOfReceivedPackets() { return received_packets_; }
+
   const webrtc::FieldTrialsView* field_trials() const { return &field_trials_; }
+
+  void set_drop_non_stun_unless_writable(bool value) {
+    drop_non_stun_unless_writable_ = value;
+  }
 
  private:
   void set_writable(bool writable)
@@ -515,18 +523,28 @@ class FakeIceTransport : public webrtc::IceTransportInternal {
     SignalReceivingState(this);
   }
 
-  void SendPacketInternal(const rtc::CopyOnWriteBuffer& packet,
+  bool SendPacketInternal(const rtc::CopyOnWriteBuffer& packet,
                           const rtc::PacketOptions& options,
                           int flags)
       RTC_EXCLUSIVE_LOCKS_REQUIRED(network_thread_) {
     last_sent_packet_ = packet;
+    bool is_stun =
+        StunMessage::ValidateFingerprint(packet.data<char>(), packet.size());
     if (packet_send_filter_func_ &&
         packet_send_filter_func_(packet.data<char>(), packet.size(), options,
                                  flags)) {
-      RTC_DLOG(LS_INFO) << name_ << ": dropping packet len=" << packet.size()
-                        << ", data[0]: "
-                        << static_cast<uint8_t>(packet.data()[0]);
-      return;
+      RTC_LOG(LS_INFO) << name_ << ": dropping packet len=" << packet.size()
+                       << ", data[0]: "
+                       << static_cast<uint8_t>(packet.data()[0]);
+      return false;
+    }
+
+    if (drop_non_stun_unless_writable_ && !writable_ && !is_stun) {
+      RTC_LOG(LS_INFO) << name_
+                       << ": dropping non stun packet len=" << packet.size()
+                       << ", data[0]: "
+                       << static_cast<uint8_t>(packet.data()[0]);
+      return false;
     }
     if (async_) {
       network_thread_->PostDelayedTask(
@@ -543,12 +561,17 @@ class FakeIceTransport : public webrtc::IceTransportInternal {
         dest_->ReceivePacketInternal(packet);
       }
     }
+    return true;
   }
 
   void ReceivePacketInternal(const rtc::CopyOnWriteBuffer& packet) {
     RTC_DCHECK_RUN_ON(network_thread_);
     auto now = webrtc::TimeMicros();
     if (auto msg = GetStunMessage(packet)) {
+      RTC_LOG(LS_INFO) << name_ << ": RECV STUN message: "
+                       << ", data[0]: "
+                       << static_cast<uint8_t>(packet.data()[0]);
+
       const auto* dtls_piggyback_attr =
           msg->GetByteString(STUN_ATTR_META_DTLS_IN_STUN);
       const auto* dtls_piggyback_ack =
@@ -579,6 +602,7 @@ class FakeIceTransport : public webrtc::IceTransportInternal {
                         << ", data[0]: "
                         << static_cast<uint8_t>(packet.data()[0]);
     } else {
+      received_packets_++;
       NotifyPacketReceived(rtc::ReceivedPacket::CreateFromLegacy(
           packet.data(), packet.size(), now));
     }
@@ -636,7 +660,9 @@ class FakeIceTransport : public webrtc::IceTransportInternal {
       packet_recv_filter_func_ RTC_GUARDED_BY(network_thread_) = nullptr;
   DtlsStunPiggybackCallbacks dtls_stun_piggyback_callbacks_;
   std::map<int, int> received_stun_messages_per_type;
+  int received_packets_ = 0;
   webrtc::test::ExplicitKeyValueConfig field_trials_;
+  bool drop_non_stun_unless_writable_ = false;
 };
 
 class FakeIceTransportWrapper : public webrtc::IceTransportInterface {

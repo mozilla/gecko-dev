@@ -167,6 +167,7 @@ class DtlsTestClient : public sigslot::has_slots<> {
   // Connect the fake ICE transports so that packets flows from one to other.
   bool ConnectIceTransport(DtlsTestClient* peer) {
     fake_ice_transport()->SetDestinationNotWritable(peer->fake_ice_transport());
+    fake_ice_transport()->set_drop_non_stun_unless_writable(true);
     return true;
   }
 
@@ -1353,6 +1354,9 @@ TEST_P(DtlsTransportDtlsInStunTest, Handshake1) {
   EXPECT_TRUE(client1_.dtls_transport()->writable());
   EXPECT_TRUE(client2_.dtls_transport()->writable());
 
+  EXPECT_EQ(client1_.dtls_transport()->GetRetransmissionCount(), 0);
+  EXPECT_EQ(client2_.dtls_transport()->GetRetransmissionCount(), 0);
+
   ClearPacketFilters();
 }
 
@@ -1400,6 +1404,9 @@ TEST_P(DtlsTransportDtlsInStunTest, Handshake2) {
 
   EXPECT_TRUE(client1_.dtls_transport()->writable());
   EXPECT_TRUE(client2_.dtls_transport()->writable());
+
+  EXPECT_EQ(client1_.dtls_transport()->GetRetransmissionCount(), 0);
+  EXPECT_EQ(client2_.dtls_transport()->GetRetransmissionCount(), 0);
 
   ClearPacketFilters();
 }
@@ -1454,6 +1461,9 @@ TEST_P(DtlsTransportDtlsInStunTest, PartiallyPiggybacked) {
 
   EXPECT_TRUE(client1_.dtls_transport()->writable());
   EXPECT_TRUE(client2_.dtls_transport()->writable());
+
+  EXPECT_EQ(client1_.dtls_transport()->GetRetransmissionCount(), 0);
+  EXPECT_EQ(client2_.dtls_transport()->GetRetransmissionCount(), 0);
 
   ClearPacketFilters();
 }
@@ -1516,11 +1526,90 @@ TEST_P(DtlsTransportDtlsInStunTest,
   EXPECT_TRUE(client1_.dtls_transport()->writable());
   EXPECT_TRUE(client2_.dtls_transport()->writable());
 
+  if (dtls_in_stun) {
+    EXPECT_EQ(client1_.dtls_transport()->GetRetransmissionCount(), 0);
+    EXPECT_EQ(client2_.dtls_transport()->GetRetransmissionCount(), 0);
+  }
+
   ClearPacketFilters();
 }
 
 INSTANTIATE_TEST_SUITE_P(DtlsTransportDtlsInStunTest,
                          DtlsTransportDtlsInStunTest,
                          testing::ValuesIn(AllEndpointVariants()));
+
+class DtlsInStunTest : public DtlsTransportDtlsInStunTest {};
+
+std::vector<std::tuple<EndpointConfig, EndpointConfig>> Dtls13WithDtlsInStun() {
+  return {
+      std::make_tuple(
+          EndpointConfig{
+              .max_protocol_version = webrtc::SSL_PROTOCOL_DTLS_13,
+              .dtls_in_stun = true,
+              .ice_role = ICEROLE_CONTROLLING,
+              .ssl_role = webrtc::SSL_CLIENT,
+          },
+          EndpointConfig{
+              .max_protocol_version = webrtc::SSL_PROTOCOL_DTLS_13,
+              .dtls_in_stun = true,
+              .ice_role = ICEROLE_CONTROLLED,
+              .ssl_role = webrtc::SSL_SERVER,
+          }),
+  };
+}
+
+INSTANTIATE_TEST_SUITE_P(DtlsInStunTest,
+                         DtlsInStunTest,
+                         testing::ValuesIn(Dtls13WithDtlsInStun()));
+
+TEST_P(DtlsInStunTest, OptimalDtls13Handshake) {
+  RTC_LOG(LS_INFO) << "client1: " << std::get<0>(GetParam());
+  RTC_LOG(LS_INFO) << "client2: " << std::get<1>(GetParam());
+
+  Prepare(/* rtt_estimate= */ true);
+  AddPacketLogging();
+
+  ASSERT_TRUE(client1_.ConnectIceTransport(&client2_));
+
+  client2_.SendIcePing();
+  client1_.SendIcePing();
+  ASSERT_TRUE(WaitUntil([&] {
+    return client1_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+               STUN_BINDING_REQUEST) == 1;
+  }));
+  ASSERT_TRUE(WaitUntil([&] {
+    return client2_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+               STUN_BINDING_REQUEST) == 1;
+  }));
+
+  client2_.SendIcePingConf();
+  client1_.SendIcePingConf();
+  ASSERT_TRUE(WaitUntil([&] {
+    return client1_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+               STUN_BINDING_RESPONSE) == 1;
+  }));
+  EXPECT_TRUE(client1_.dtls_transport()->writable());
+  ASSERT_TRUE(WaitUntil([&] {
+    return client2_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+               STUN_BINDING_RESPONSE) == 1;
+  }));
+  EXPECT_FALSE(client2_.dtls_transport()->writable());
+
+  // Here client1 sends one more packet, which should make client2 (server) also
+  // writable. Wait for that to arrive
+  int expected_packets =
+      1 + client2_.fake_ice_transport()->GetCountOfReceivedPackets();
+
+  EXPECT_TRUE(WaitUntil([&] {
+    return client2_.fake_ice_transport()->GetCountOfReceivedPackets() ==
+           expected_packets;
+  }));
+  EXPECT_TRUE(client2_.dtls_transport()->writable());
+
+  EXPECT_EQ(client1_.dtls_transport()->GetRetransmissionCount(), 0);
+  EXPECT_EQ(client2_.dtls_transport()->GetRetransmissionCount(), 0);
+
+  ClearPacketFilters();
+}
 
 }  // namespace cricket

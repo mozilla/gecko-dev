@@ -360,6 +360,13 @@ TEST_P(DtlsIceIntegrationTest, SmokeTest) {
   EXPECT_EQ(server_.dtls->WasDtlsCompletedByPiggybacking(),
             client_.dtls_stun_piggyback && server_.dtls_stun_piggyback);
 
+  if (client_.dtls_stun_piggyback && server_.dtls_stun_piggyback) {
+    EXPECT_EQ(client_.dtls->GetStunDataCount(), 2);
+    EXPECT_EQ(server_.dtls->GetStunDataCount(), 1);
+  }
+  EXPECT_EQ(client_.dtls->GetRetransmissionCount(), 0);
+  EXPECT_EQ(server_.dtls->GetRetransmissionCount(), 0);
+
   // Validate that we can add new Connections (that become writable).
   network_manager_.AddInterface(webrtc::SocketAddress("192.168.2.1", 0));
   EXPECT_THAT(webrtc::WaitUntil(
@@ -400,6 +407,9 @@ TEST_P(DtlsIceIntegrationTest, ClientLateCertificate) {
             client_.dtls_stun_piggyback && server_.dtls_stun_piggyback);
   EXPECT_EQ(server_.dtls->WasDtlsCompletedByPiggybacking(),
             client_.dtls_stun_piggyback && server_.dtls_stun_piggyback);
+
+  EXPECT_EQ(client_.dtls->GetRetransmissionCount(), 0);
+  EXPECT_EQ(server_.dtls->GetRetransmissionCount(), 0);
 }
 
 TEST_P(DtlsIceIntegrationTest, TestWithPacketLoss) {

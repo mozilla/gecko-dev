@@ -264,6 +264,10 @@ class SSLStreamAdapter : public StreamInterface {
   // authentication.
   bool GetClientAuthEnabled() const { return client_auth_enabled_; }
 
+  // Return number of times DTLS retransmission has been triggered.
+  // Used for testing (and maybe put into stats?).
+  virtual int GetRetransmissionCount() const = 0;
+
  private:
   // If true (default), the client is required to provide a certificate during
   // handshake. If no certificate is given, handshake fails. This applies to

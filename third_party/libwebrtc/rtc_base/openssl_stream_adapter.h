@@ -133,6 +133,10 @@ class OpenSSLStreamAdapter final : public webrtc::SSLStreamAdapter {
   // Return max DTLS SSLProtocolVersion supported by implementation.
   static webrtc::SSLProtocolVersion GetMaxSupportedDTLSProtocolVersion();
 
+  // Return number of times DTLS retransmission has been triggered.
+  // Used for testing (and maybe put into stats?).
+  int GetRetransmissionCount() const override { return retransmission_count_; }
+
  private:
   enum SSLState {
     // Before calling one of the StartSSL methods, data flows
@@ -248,6 +252,8 @@ class OpenSSLStreamAdapter final : public webrtc::SSLStreamAdapter {
   // 1 == Max
   // 2 == Enabled (both min and max)
   const int force_dtls_13_ = 0;
+
+  int retransmission_count_ = 0;
 };
 
 /////////////////////////////////////////////////////////////////////////////

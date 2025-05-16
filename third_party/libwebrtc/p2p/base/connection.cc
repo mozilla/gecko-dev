@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "absl/base/attributes.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
@@ -580,15 +579,6 @@ void Connection::OnReadPacket(const rtc::ReceivedPacket& packet) {
       // This doesn't just check, it makes callbacks if transaction
       // id's match.
     case STUN_BINDING_RESPONSE:
-      if (!dtls_stun_piggyback_callbacks_.empty()) {
-        const StunByteStringAttribute* dtls_piggyback_attribute =
-            msg->GetByteString(STUN_ATTR_META_DTLS_IN_STUN);
-        const StunByteStringAttribute* dtls_piggyback_ack =
-            msg->GetByteString(STUN_ATTR_META_DTLS_IN_STUN_ACK);
-        dtls_stun_piggyback_callbacks_.recv_data(dtls_piggyback_attribute,
-                                                 dtls_piggyback_ack);
-      }
-      ABSL_FALLTHROUGH_INTENDED;
     case STUN_BINDING_ERROR_RESPONSE:
       requests_.CheckResponse(msg.get());
       break;

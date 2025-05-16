@@ -112,6 +112,8 @@ void DtlsStunPiggybackController::ReportDataPiggybacked(
     const StunByteStringAttribute* ack) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
 
+  data_recv_count_ += (data != nullptr);
+
   // Drop silently when receiving acked data when the peer previously did not
   // support or we already moved to the complete state.
   if (state_ == State::OFF || state_ == State::COMPLETE) {
