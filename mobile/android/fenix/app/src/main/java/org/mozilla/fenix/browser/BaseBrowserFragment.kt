@@ -141,7 +141,6 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.Events
-import org.mozilla.fenix.GleanMetrics.Logins
 import org.mozilla.fenix.GleanMetrics.MediaState
 import org.mozilla.fenix.GleanMetrics.PullToRefreshInBrowser
 import org.mozilla.fenix.HomeActivity
@@ -349,8 +348,6 @@ abstract class BaseBrowserFragment :
     private var currentStartDownloadDialog: StartDownloadDialog? = null
     private var firstPartyDownloadDialog: AlertDialog? = null
 
-    private lateinit var savedLoginsLauncher: ActivityResultLauncher<Intent>
-
     private var lastSavedGeneratedPassword: String? = null
 
     // Registers a photo picker activity launcher in single-select mode.
@@ -369,7 +366,6 @@ abstract class BaseBrowserFragment :
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        savedLoginsLauncher = registerForActivityResult { navigateToSavedLoginsFragment() }
     }
 
     private fun getFragment(): Fragment {
@@ -2506,15 +2502,6 @@ abstract class BaseBrowserFragment :
 
     private fun removeLastSavedGeneratedPassword() {
         lastSavedGeneratedPassword = null
-    }
-
-    private fun navigateToSavedLoginsFragment() {
-        val navController = findNavController()
-        if (navController.currentDestination?.id == R.id.browserFragment) {
-            Logins.openLogins.record(NoExtras())
-            val directions = BrowserFragmentDirections.actionLoginsListFragment()
-            navController.navigate(directions)
-        }
     }
 
     private fun launchFindInPageFeature(view: View, store: BrowserStore) {
