@@ -25,6 +25,7 @@ const SUGGESTED_INDEX_TABS_MODE = 0;
 const SCOTCH_BONNET_PREF = "scotchBonnet.enableOverride";
 const ACTIONS_PREF = "secondaryActions.featureGate";
 const QUICK_ACTIONS_PREF = "suggest.quickactions";
+const MAX_ACTIONS_PREF = "secondaryActions.maxActionsShown";
 
 // Prefs relating to the onboarding label shown to new users.
 const TIMES_TO_SHOW_PREF = "quickactions.timesToShowOnboardingLabel";
@@ -89,6 +90,10 @@ class ProviderGlobalActions extends UrlbarProvider {
 
     if (!actionsResults.length) {
       return;
+    }
+
+    if (actionsResults.length > lazy.UrlbarPrefs.get(MAX_ACTIONS_PREF)) {
+      actionsResults.length = lazy.UrlbarPrefs.get(MAX_ACTIONS_PREF);
     }
 
     let showOnboardingLabel =

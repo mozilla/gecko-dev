@@ -247,3 +247,41 @@ add_task(async function test_opensearch() {
     });
   }
 });
+
+add_task(async function test_quickaction() {
+  let MAX_ACTIONS = 3;
+  UrlbarPrefs.set("secondaryActions.maxActionsShown", MAX_ACTIONS);
+
+  let addAction = name =>
+    ActionsProviderQuickActions.addAction(name, {
+      commands: [name],
+      label: "quickactions-downloads2",
+    });
+
+  addAction("matching1");
+  addAction("matching2");
+  addAction("matching3");
+  addAction("matching4");
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "matching",
+  });
+
+  Assert.equal(
+    window.document.querySelectorAll(".urlbarView-action-btn").length,
+    MAX_ACTIONS,
+    `Only ${MAX_ACTIONS} are displayed`
+  );
+
+  await UrlbarTestUtils.promisePopupClose(window, () => {
+    EventUtils.synthesizeKey("KEY_Escape", {}, window);
+    EventUtils.synthesizeKey("KEY_Escape", {}, window);
+  });
+
+  ActionsProviderQuickActions.removeAction("matching1");
+  ActionsProviderQuickActions.removeAction("matching2");
+  ActionsProviderQuickActions.removeAction("matching3");
+  ActionsProviderQuickActions.removeAction("matching4");
+  UrlbarPrefs.clear("secondaryActions.maxActionsShown");
+});
