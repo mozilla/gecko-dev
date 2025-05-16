@@ -537,15 +537,26 @@ export var PlacesUtils = {
   },
 
   /**
-   * Convert a Date object to a PRTime (microseconds).
+   * Convert a Date object or a timestamp (in milliseconds) to a PRTime
+   * (microseconds).
    *
    * @param {Date|number} date
-   *   The Date object to convert.
+   *   The Date object or a number representing milliseconds to convert.
    * @returns {number}
    *   Microseconds from the epoch.
+   * @throws {Error}
+   *   If the input is neither a valid Date nor a number.
    */
   toPRTime(date) {
-    if (date.constructor.name == "Date" && !isNaN(date.getTime())) {
+    // Use constructor name comparison instead of `instanceof` because the
+    // caller may come from a different Javascript realm/context. Typescript
+    // does not infer types using constructor name checks, so we also exclude
+    // the value is a number to aid type narrowing.
+    if (
+      date.constructor.name == "Date" &&
+      typeof date != "number" &&
+      !isNaN(date.getTime())
+    ) {
       return date.getTime() * 1000;
     } else if (typeof date == "number" && !isNaN(date)) {
       return date * 1000;
@@ -1731,14 +1742,16 @@ export var PlacesUtils = {
         copyProps("parentGuid");
       }
 
+      // Bug 1966462
       /** @type {number} */
-      let itemId = aRow.getResultByName("id");
+      let itemId = /** @type {any} */ (aRow.getResultByName("id"));
       if (aOptions.includeItemIds) {
         item.id = itemId;
       }
 
+      // Bug 1966462
       /** @type {number} */
-      let type = aRow.getResultByName("type");
+      let type = /** @type {any} */ (aRow.getResultByName("type"));
       item.typeCode = type;
       if (type == Ci.nsINavBookmarksService.TYPE_BOOKMARK) {
         copyProps("charset", "tags", "iconUri");
@@ -1749,6 +1762,7 @@ export var PlacesUtils = {
           item.type = PlacesUtils.TYPE_X_MOZ_PLACE;
           // If this fails due to an invalid url, the item will be skipped.
           item.uri = URL.parse(
+            // @ts-expect-error - Bug 1966462
             /** @type {string} */ aRow.getResultByName("url")
           )?.href;
           if (!item.uri) {
