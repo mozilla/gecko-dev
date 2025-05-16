@@ -319,9 +319,9 @@ class WindowGlobalParent final : public WindowContext,
   mozilla::ipc::IPCResult RecvReloadWithHttpsOnlyException();
 
   mozilla::ipc::IPCResult RecvGetIdentityCredential(
-      IdentityCredentialRequestOptions&& aOptions,
+      const IdentityCredentialRequestOptions& aOptions,
       const CredentialMediationRequirement& aMediationRequirement,
-      bool aHasUserActivation, const GetIdentityCredentialResolver& aResolver);
+      const GetIdentityCredentialResolver& aResolver);
   mozilla::ipc::IPCResult RecvStoreIdentityCredential(
       const IPCIdentityCredential& aCredential,
       const StoreIdentityCredentialResolver& aResolver);
