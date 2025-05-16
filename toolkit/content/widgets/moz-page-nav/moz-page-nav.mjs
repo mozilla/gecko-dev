@@ -31,22 +31,19 @@ export default class MozPageNav extends MozLitElement {
   };
 
   get pageNavButtons() {
-    return this.getVisibleSlottedChildren(this.primaryNavGroupSlot);
+    return this.primaryNavGroupSlot
+      ?.assignedNodes()
+      .filter(
+        node => node?.localName === "moz-page-nav-button" && !node.hidden
+      );
   }
 
   get secondaryNavButtons() {
-    return this.getVisibleSlottedChildren(this.secondaryNavGroupSlot);
-  }
-
-  getVisibleSlottedChildren(el) {
-    return el?.assignedNodes().filter(
-      node =>
-        node?.localName === "moz-page-nav-button" &&
-        node.checkVisibility({
-          visibilityProperty: true,
-          opacityProperty: true,
-        })
-    );
+    return this.secondaryNavGroupSlot
+      ?.assignedNodes()
+      .filter(
+        node => node?.localName === "moz-page-nav-button" && !node.hidden
+      );
   }
 
   onChangeView(e) {
