@@ -2133,28 +2133,6 @@ BrowserGlue.prototype = {
     gBrowser.selectedTab = tab;
   },
 
-  async _showPreOnboardingModal() {
-    const { gBrowser } = lazy.BrowserWindowTracker.getTopWindow();
-    const data = await lazy.NimbusFeatures.preonboarding.getAllVariables();
-
-    const config = {
-      type: "SHOW_SPOTLIGHT",
-      data: {
-        content: {
-          template: "multistage",
-          id: data?.id || "PRE_ONBOARDING_MODAL",
-          backdrop: data?.backdrop,
-          screens: data?.screens,
-          UTMTerm: data?.UTMTerm,
-          disableEscClose: data?.requireAction,
-          // displayed as a window modal by default
-        },
-      },
-    };
-
-    lazy.SpecialMessageActions.handleAction(config, gBrowser);
-  },
-
   async _showSetToDefaultSpotlight(message, browser) {
     const config = {
       type: "SHOW_SPOTLIGHT",
