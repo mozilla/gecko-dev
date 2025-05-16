@@ -1642,6 +1642,9 @@ main section {
     width: 720px;
   }
 }
+.search-wrapper .search-inner-wrapper.no-handoff input {
+  padding-inline-end: calc(48px + var(--space-medium));
+}
 .search-wrapper .search-handoff-button,
 .search-wrapper input {
   background: var(--newtab-background-color-secondary) var(--newtab-search-icon) 16px center no-repeat;

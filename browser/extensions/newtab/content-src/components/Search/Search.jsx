@@ -153,7 +153,7 @@ export class _Search extends React.PureComponent {
       <div className={wrapperClassName}>
         {this.props.showLogo && <Logo />}
         {!this.props.handoffEnabled && (
-          <div className="search-inner-wrapper">
+          <div className="search-inner-wrapper no-handoff">
             <input
               id="newtab-search-text"
               data-l10n-id="newtab-search-box-input"
