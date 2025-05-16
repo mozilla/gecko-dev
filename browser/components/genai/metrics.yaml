@@ -839,4 +839,4 @@ genai.linkpreview:
         description: Reusing existing panel
       source:
         type: string
-        description: Entrypoint shortcut or context
+        description: Entrypoint shortcut (shift, shift-alt) or context

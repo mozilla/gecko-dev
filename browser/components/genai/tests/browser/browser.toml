@@ -3,6 +3,7 @@ prefs = [
   "browser.ml.chat.enabled=true",
   "browser.ml.chat.openSidebarOnProviderChange=false",
   "browser.ml.linkPreview.prefetchOnEnable=false",
+  "browser.ml.linkPreview.shiftAlt=true",
 ]
 
 ["browser_chat_contextmenu.js"]

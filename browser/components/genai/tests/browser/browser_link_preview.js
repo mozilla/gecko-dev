@@ -117,7 +117,7 @@ add_task(async function test_link_preview_with_shift_alt_key_event() {
     })
   );
 
-  ok(!LinkPreview.keyboardComboActive, "just shift insufficient");
+  ok(LinkPreview.keyboardComboActive, "just shift is sufficient");
 
   window.dispatchEvent(
     new KeyboardEvent("keydown", {
@@ -296,7 +296,7 @@ add_task(async function test_link_preview_panel_shown() {
   const READABLE_PAGE_URL =
     "https://example.com/browser/browser/components/genai/tests/browser/data/readableEn.html";
 
-  LinkPreview.keyboardComboActive = true;
+  LinkPreview.keyboardComboActive = "shift";
   XULBrowserWindow.setOverLink(READABLE_PAGE_URL, {});
 
   const panel = await TestUtils.waitForCondition(() =>
@@ -305,7 +305,7 @@ add_task(async function test_link_preview_panel_shown() {
   ok(panel, "Panel created for link preview");
   let events = Glean.genaiLinkpreview.start.testGetValue();
   is(events[0].extra.cached, "false", "not cached");
-  is(events[0].extra.source, "shortcut", "source is shortcut");
+  is(events[0].extra.source, "shift", "source is keyboard combo");
 
   await BrowserTestUtils.waitForEvent(panel, "popupshown");
 

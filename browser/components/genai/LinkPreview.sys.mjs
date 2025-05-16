@@ -25,14 +25,24 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
+  "noKeyPointsRegions",
+  "browser.ml.linkPreview.noKeyPointsRegions"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
   "prefetchOnEnable",
   "browser.ml.linkPreview.prefetchOnEnable",
   true
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "noKeyPointsRegions",
-  "browser.ml.linkPreview.noKeyPointsRegions"
+  "shift",
+  "browser.ml.linkPreview.shift"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "shiftAlt",
+  "browser.ml.linkPreview.shiftAlt"
 );
 
 export const LinkPreview = {
@@ -169,10 +179,20 @@ export const LinkPreview = {
    */
   _onKeyEvent(event) {
     const win = event.currentTarget;
-    // Save the last state of the keyboard with both alt and shift pressed
-    // without other modifiers.
-    this.keyboardComboActive =
-      event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey;
+    // Keyboard combos requires shift and neither ctrl nor meta.
+    this.keyboardComboActive = false;
+    if (!event.shiftKey || event.ctrlKey || event.metaKey) {
+      return;
+    }
+
+    // Handle shift without alt if preference is set.
+    if (!event.altKey && lazy.shift) {
+      this.keyboardComboActive = "shift";
+    }
+    // Handle shift with alt if preference is set.
+    else if (event.altKey && lazy.shiftAlt) {
+      this.keyboardComboActive = "shift-alt";
+    }
     // New presses or releases can result in desired combo for previewing.
     this._maybeLinkPreview(win);
   },
@@ -444,9 +464,10 @@ export const LinkPreview = {
     const stateObject = this._windowStates.get(win);
     const url = stateObject.overLink;
     if (url && this.keyboardComboActive) {
-      this.renderLinkPreviewPanel(win, url);
+      this.renderLinkPreviewPanel(win, url, this.keyboardComboActive);
     }
   },
+
   /**
    * Handles the link preview context menu click using the provided URL
    * and nsContextMenu, prompting the link preview panel to open.
