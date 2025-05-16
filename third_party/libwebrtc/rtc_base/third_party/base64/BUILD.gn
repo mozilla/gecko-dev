@@ -19,3 +19,20 @@ rtc_library("base64") {
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 }
+
+if (rtc_include_tests) {
+  rtc_library("base64_unittest") {
+    testonly = true
+    sources = [
+      "base64_unittest.cc",
+      "test_base64.h",
+    ]
+    deps = [
+      ":base64",
+      "../..:logging",
+      "../../../test:test_main",
+      "../../../test:test_support",
+      "//third_party/abseil-cpp/absl/strings:string_view",
+    ]
+  }
+}

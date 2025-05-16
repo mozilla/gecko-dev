@@ -1754,7 +1754,6 @@ rtc_library("rtc_base_tests_utils") {
     "proxy_server.h",
     "server_socket_adapters.cc",
     "server_socket_adapters.h",
-    "test_base64.h",
     "test_certificate_verifier.h",
     "test_echo_server.cc",
     "test_echo_server.h",
@@ -1926,7 +1925,6 @@ if (rtc_include_tests) {
     rtc_library("rtc_base_approved_unittests") {
       testonly = true
       sources = [
-        "base64_unittest.cc",
         "bit_buffer_unittest.cc",
         "bitrate_tracker_unittest.cc",
         "bitstream_reader_unittest.cc",
@@ -2044,7 +2042,7 @@ if (rtc_include_tests) {
         "network:received_packet",
         "synchronization:mutex",
         "task_utils:repeating_task",
-        "third_party/base64",
+        "third_party/base64:base64_unittest",
         "third_party/sigslot",
         "//third_party/abseil-cpp/absl/base:core_headers",
         "//third_party/abseil-cpp/absl/memory",

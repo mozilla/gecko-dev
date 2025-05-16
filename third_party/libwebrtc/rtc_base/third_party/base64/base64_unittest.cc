@@ -14,9 +14,10 @@
 #include <string.h>
 
 #include <algorithm>
+#include <string>
 
 #include "rtc_base/logging.h"
-#include "rtc_base/test_base64.h"
+#include "rtc_base/third_party/base64/test_base64.h"
 #include "test/gtest.h"
 
 namespace rtc {
