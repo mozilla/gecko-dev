@@ -15,7 +15,6 @@ from io import BytesIO
 from zipfile import ZipFile
 
 import mozpack.path as mozpath
-import six
 from mozpack.copier import FileCopier
 from mozpack.files import JarFinder
 from mozpack.mozjar import JarReader
@@ -65,7 +64,7 @@ def fat_aar(distdir, aars_paths, no_process=False, no_compatibility_check=False)
                     diffs[f"{path}!/{r}"][fingerprint].append(arch)
 
             else:
-                fingerprint = sha1(six.ensure_binary(fileobj.open().read())).hexdigest()
+                fingerprint = sha1(fileobj.open().read()).hexdigest()
                 # There's no need to distinguish `target.maven.zip` from `assets/omni.ja` here,
                 # since in practice they will never overlap.
                 diffs[path][fingerprint].append(arch)

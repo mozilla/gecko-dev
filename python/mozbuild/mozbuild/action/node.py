@@ -7,7 +7,6 @@ import subprocess
 import sys
 
 import buildconfig
-import six
 
 from mozbuild.shellutil import quote as shell_quote
 
@@ -73,7 +72,7 @@ def execute_node_cmd(node_cmd_list):
         # (intentionally or inadvertently) remove deps.  Do we want this?
         deps = []
         for line in stdout.splitlines():
-            line = six.ensure_text(line)
+            line = line.decode()
             if "dep:" in line:
                 deps.append(line.replace("dep:", ""))
             else:
@@ -121,7 +120,6 @@ def generate(output, node_script, *files):
         )
         sys.exit(1)
 
-    node_script = six.ensure_text(node_script)
     if not isinstance(node_script, str):
         print(
             "moz.build file didn't pass a valid node script name to execute",
