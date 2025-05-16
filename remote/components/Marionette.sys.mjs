@@ -51,9 +51,6 @@ class MarionetteParentProcess {
     this.server = null;
     this._activePortPath;
 
-    this.classID = Components.ID("{786a1369-dca5-4adc-8486-33d23c88010a}");
-    this.helpInfo = "  --marionette       Enable remote control server.\n";
-
     // Initially set the enabled state based on the environment variable.
     this.enabled = Services.env.exists(ENV_ENABLED);
 
@@ -274,27 +271,25 @@ class MarionetteParentProcess {
     }
   }
 
-  get QueryInterface() {
-    return ChromeUtils.generateQI([
-      "nsICommandLineHandler",
-      "nsIMarionette",
-      "nsIObserver",
-    ]);
-  }
+  // XPCOM
+
+  helpInfo = "  --marionette       Enable remote control server.\n";
+
+  QueryInterface = ChromeUtils.generateQI([
+    "nsICommandLineHandler",
+    "nsIMarionette",
+    "nsIObserver",
+  ]);
 }
 
 class MarionetteContentProcess {
-  constructor() {
-    this.classID = Components.ID("{786a1369-dca5-4adc-8486-33d23c88010a}");
-  }
-
   get running() {
     return Services.cpmm.sharedData.get(SHARED_DATA_ACTIVE_KEY) ?? false;
   }
 
-  get QueryInterface() {
-    return ChromeUtils.generateQI(["nsIMarionette"]);
-  }
+  // XPCOM
+
+  QueryInterface = ChromeUtils.generateQI(["nsIMarionette"]);
 }
 
 export var Marionette;

@@ -46,7 +46,6 @@ class RemoteAgentParentProcess {
   #allowOrigins;
   #allowSystemAccess;
   #browserStartupFinished;
-  #classID;
   #enabled;
   #host;
   #port;
@@ -60,7 +59,6 @@ class RemoteAgentParentProcess {
     this.#allowOrigins = null;
     this.#allowSystemAccess = Services.env.exists(ENV_ALLOW_SYSTEM_ACCESS);
     this.#browserStartupFinished = lazy.Deferred();
-    this.#classID = Components.ID("{8f685a9d-8181-46d6-a71d-869289099c6d}");
     this.#enabled = false;
 
     // Configuration for httpd.js
@@ -543,12 +541,7 @@ class RemoteAgentParentProcess {
 
   // XPCOM
 
-  get classID() {
-    return this.#classID;
-  }
-
-  get helpInfo() {
-    return `  --remote-debugging-port [<port>] Start the Firefox Remote Agent,
+  helpInfo = `  --remote-debugging-port [<port>] Start the Firefox Remote Agent,
                      which is a low-level remote debugging interface used for WebDriver
                      BiDi and CDP. Defaults to port 9222.
   --remote-allow-hosts <hosts> Values of the Host header to allow for incoming requests.
@@ -556,15 +549,12 @@ class RemoteAgentParentProcess {
   --remote-allow-origins <origins> Values of the Origin header to allow for incoming requests.
                      Please read security guidelines at https://firefox-source-docs.mozilla.org/remote/Security.html
   --remote-allow-system-access Enable privileged access to the application's parent process\n`;
-  }
 
-  get QueryInterface() {
-    return ChromeUtils.generateQI([
-      "nsICommandLineHandler",
-      "nsIObserver",
-      "nsIRemoteAgent",
-    ]);
-  }
+  QueryInterface = ChromeUtils.generateQI([
+    "nsICommandLineHandler",
+    "nsIObserver",
+    "nsIRemoteAgent",
+  ]);
 }
 
 class RemoteAgentContentProcess {
@@ -572,9 +562,9 @@ class RemoteAgentContentProcess {
     return Services.cpmm.sharedData.get(SHARED_DATA_ACTIVE_KEY) ?? false;
   }
 
-  get QueryInterface() {
-    return ChromeUtils.generateQI(["nsIRemoteAgent"]);
-  }
+  // XPCOM
+
+  QueryInterface = ChromeUtils.generateQI(["nsIRemoteAgent"]);
 }
 
 export var RemoteAgent;

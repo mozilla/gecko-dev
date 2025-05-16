@@ -51,7 +51,5 @@ export class WebDriverNewSessionHandler {
 
   // XPCOM
 
-  get QueryInterface() {
-    return ChromeUtils.generateQI(["nsIHttpRequestHandler"]);
-  }
+  QueryInterface = ChromeUtils.generateQI(["nsIHttpRequestHandler"]);
 }

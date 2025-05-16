@@ -148,7 +148,7 @@ export class ConsoleListener {
     });
   };
 
-  get QueryInterface() {
-    return ChromeUtils.generateQI(["nsIConsoleListener"]);
-  }
+  // XPCOM
+
+  QueryInterface = ChromeUtils.generateQI(["nsIConsoleListener"]);
 }

@@ -538,10 +538,10 @@ export class ProgressListener {
     return `[object ${this.constructor.name}]`;
   }
 
-  get QueryInterface() {
-    return ChromeUtils.generateQI([
-      "nsIWebProgressListener",
-      "nsISupportsWeakReference",
-    ]);
-  }
+  // XPCOM
+
+  QueryInterface = ChromeUtils.generateQI([
+    "nsIWebProgressListener",
+    "nsISupportsWeakReference",
+  ]);
 }

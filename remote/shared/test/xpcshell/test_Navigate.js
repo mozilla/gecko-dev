@@ -33,9 +33,7 @@ class MockRequest {
     this.originalURI = uri;
   }
 
-  get QueryInterface() {
-    return ChromeUtils.generateQI(["nsIRequest", "nsIChannel"]);
-  }
+  QueryInterface = ChromeUtils.generateQI(["nsIRequest", "nsIChannel"]);
 }
 
 class MockWebProgress {
