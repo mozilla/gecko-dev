@@ -175,6 +175,98 @@ urlbar:
       - fx-search-telemetry@mozilla.com
     expires: never
 
+  disable:
+    type: event
+    description: >
+      Recorded after a search containing a Suggest result is engaged
+      or abandoned. Number of seconds is controlled by hidden
+      browser.urlbar.disableSuggestEvent.maxSecondsFromLastSearch pref.
+      Reported values refer to the last search.
+    extra_keys:
+      sap:
+        description: >
+          `sap` is the meaning of `search access point`. It records where the
+          user started the search action from. The possible values are: `urlbar`
+          , `handoff`, `urlbar_newtab` and `urlbar_addonpage`.
+        type: string
+      interaction:
+        description: >
+          How the user started the search action. The possible values are:
+          `typed`, `pasted`, `topsite_search` (clicked on a topsite search
+          shortcut), `topsites` (selected a topsite result with empty search
+          string), `returned` (The user abandoned a search, then returned to it)
+          , `restarted` (The user abandoned a search, then returned to it,
+          cleared it and typed a completely different string), `refined` (The
+          user abandoned a search, then returned to it, and partially modified
+          the string), `persisted_search_terms` (The user returned to a previous
+          successful search that persisted terms in the urlbar),
+          `persisted_search_terms_restarted` (The user returned to a previous
+          successful search that persisted terms in the urlbar, then cleared it
+          and typed a completely different string) and
+          `persisted_search_terms_refined` (The user returned to a previous
+          successful search that persisted terms in the urlbar, and partially
+          modified the string).
+        type: string
+      search_mode:
+        description: >
+          If the urlbar is in search mode, thus restricting results to a
+          specific search engine or local source, this is set to the search mode
+          source. The possible sources are: `actions`, `bookmarks`, `history`,
+          `search_engine`, and `tabs`. If search mode is active but the source
+          did not fall into any of these categories, this will be `unknown`. If
+          search mode is not active, this will be an empty string.
+        type: string
+      search_engine_default_id:
+        description: >
+          The telemetry id of the search engine.
+          Reflects `search.engine.default.engine_id`.
+        type: string
+      n_chars:
+        description: >
+          The length of string used for the search. It includes whitespaces.
+        type: quantity
+      n_words:
+        description: >
+          The length of words used for the search. The words are made by
+          splitting the search string by whitespaces, thus this doesn’t support
+          CJK languages. For performance reasons a maximum of 255 characters are
+          considered when splitting.
+        type: quantity
+      n_results:
+        description: >
+          The number of results shown to the user. If this is high the results
+          list below may be truncated due to technical limitations. Also note in
+          that case not all the results may be physically visible due to the
+          screen size limitation.
+        type: quantity
+      selected_result:
+        description: >
+          The type of the result the user selected. If the last search was an engagement,
+          it will be set to the selected_result value of the engagement event, otherwise in
+          the case of the abandonment event, it will be set to `none`.
+        type: string
+      results:
+        description: >
+          Comma separated list of result types in the order they were shown to
+          the user. The `unknown` type should not occur and indicates a bug. The
+          types are one of the values defined for the engagement event results property.
+        type: string
+      feature:
+        description: >
+          The specific feature that is being disabled. The possible types are:
+          `suggest`
+          More values may be added in the future.
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1960836
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1960836
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+
   engagement:
     type: event
     description: Recorded when the user executes an action on a result.

@@ -100,6 +100,10 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // 0 - never resolve; 1 - use heuristics (default); 2 - always resolve
   ["dnsResolveSingleWordsAfterSearch", 0],
 
+  // If Suggest is disabled before these seconds from a search, then send a
+  // disable event.
+  ["events.disableSuggest.maxSecondsFromLastSearch", 300],
+
   // Whether we expand the font size when when the urlbar is
   // focused.
   ["experimental.expandTextOnFocus", false],
