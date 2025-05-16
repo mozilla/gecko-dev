@@ -52,14 +52,6 @@ class InputModule extends WindowGlobalBiDiModule {
   async _dispatchEvent(options) {
     const { eventName, details } = options;
 
-    const windowUtils = this.messageHandler.window.windowUtils;
-    const microTaskLevel = windowUtils.microTaskLevel;
-    // Since we're being called as a webidl callback,
-    // CallbackObjectBase::CallSetup::CallSetup has increased the microtask
-    // level. Undo that temporarily so that microtask handling works closer
-    // the way it would work when dispatching events natively.
-    windowUtils.microTaskLevel = 0;
-
     try {
       switch (eventName) {
         case "synthesizeKeyDown":
@@ -106,8 +98,6 @@ class InputModule extends WindowGlobalBiDiModule {
       }
 
       throw e;
-    } finally {
-      windowUtils.microTaskLevel = microTaskLevel;
     }
   }
 

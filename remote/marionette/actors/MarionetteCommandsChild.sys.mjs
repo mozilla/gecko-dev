@@ -71,13 +71,6 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
     const { eventName, details } = options;
     const win = this.contentWindow;
 
-    const windowUtils = win.windowUtils;
-    const microTaskLevel = windowUtils.microTaskLevel;
-    // Since we're being called as a webidl callback,
-    // CallbackObjectBase::CallSetup::CallSetup has increased the microtask
-    // level. Undo that temporarily so that microtask handling works closer
-    // the way it would work when dispatching events natively.
-    windowUtils.microTaskLevel = 0;
     try {
       switch (eventName) {
         case "synthesizeKeyDown":
@@ -121,8 +114,6 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
       }
 
       throw e;
-    } finally {
-      windowUtils.microTaskLevel = microTaskLevel;
     }
   }
 

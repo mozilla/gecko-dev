@@ -105,7 +105,6 @@
 #include "nsIBaseWindow.h"
 #include "nsIDocShellTreeOwner.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/Preferences.h"
 #include "nsContentPermissionHelper.h"
 #include "nsCSSPseudoElements.h"  // for PseudoStyleType
@@ -4986,20 +4985,4 @@ nsDOMWindowUtils::SendMozMouseHitTestEvent(float aX, float aY,
       0 /* aInputSourceArg */, DEFAULT_MOUSE_POINTER_ID /* aIdentifier */,
       false /* aToWindow */, nullptr /* aPreventDefault */,
       true /* aIsDOMEventSynthesized */, true /* aIsWidgetEventSynthesized */);
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::GetMicroTaskLevel(uint32_t* aLevel) {
-  CycleCollectedJSContext* ccjs = CycleCollectedJSContext::Get();
-  NS_ENSURE_STATE(ccjs);
-  *aLevel = ccjs->MicroTaskLevel();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::SetMicroTaskLevel(uint32_t aLevel) {
-  CycleCollectedJSContext* ccjs = CycleCollectedJSContext::Get();
-  NS_ENSURE_STATE(ccjs);
-  ccjs->SetMicroTaskLevel(aLevel);
-  return NS_OK;
 }
