@@ -27,7 +27,7 @@ class TypedCodecVendor {
   // vendor will always return an empty codec list.
   TypedCodecVendor() {}
   TypedCodecVendor(MediaEngineInterface* media_engine,
-                   MediaType type,
+                   webrtc::MediaType type,
                    bool is_sender,
                    bool rtx_enabled,
                    const webrtc::FieldTrialsView& trials);

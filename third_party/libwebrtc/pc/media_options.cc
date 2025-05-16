@@ -73,7 +73,7 @@ void MediaDescriptionOptions::AddSenderInternal(
   sender_options.push_back(options);
 }
 
-bool MediaSessionOptions::HasMediaDescription(MediaType type) const {
+bool MediaSessionOptions::HasMediaDescription(webrtc::MediaType type) const {
   return absl::c_any_of(
       media_description_options,
       [type](const MediaDescriptionOptions& t) { return t.type == type; });

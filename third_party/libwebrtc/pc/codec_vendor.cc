@@ -89,7 +89,7 @@ void StripCNCodecs(CodecList& audio_codecs) {
 }
 
 bool IsMediaContentOfType(const webrtc::ContentInfo* content,
-                          MediaType media_type) {
+                          webrtc::MediaType media_type) {
   if (!content || !content->media_description()) {
     return false;
   }

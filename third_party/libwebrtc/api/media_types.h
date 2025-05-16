@@ -13,6 +13,7 @@
 
 #include <string>
 
+#include "absl/base/macros.h"
 #include "rtc_base/system/rtc_export.h"
 
 namespace webrtc {
@@ -24,11 +25,11 @@ enum class MediaType {
   UNSUPPORTED,
   ANY,
   // Backwards compatibility values for webrtc::MediaType users
-  // TODO: https://issues.webrtc.org/42222911 - deprecate and remove
-  MEDIA_TYPE_AUDIO = AUDIO,
-  MEDIA_TYPE_VIDEO = VIDEO,
-  MEDIA_TYPE_DATA = DATA,
-  MEDIA_TYPE_UNSUPPORTED = UNSUPPORTED,
+  // TODO: https://issues.webrtc.org/42222911 - remove
+  MEDIA_TYPE_AUDIO [[deprecated("Use AUDIO")]] = AUDIO,
+  MEDIA_TYPE_VIDEO [[deprecated("Use VIDEO")]] = VIDEO,
+  MEDIA_TYPE_DATA [[deprecated("Use DATA")]] = DATA,
+  MEDIA_TYPE_UNSUPPORTED [[deprecated("Use UNSUPPORTED")]] = UNSUPPORTED,
 };
 
 RTC_EXPORT std::string MediaTypeToString(MediaType type);
@@ -50,18 +51,19 @@ extern const char kMediaTypeData[];
 
 namespace cricket {
 
-using MediaType = webrtc::MediaType;
+using MediaType ABSL_DEPRECATE_AND_INLINE() = webrtc::MediaType;
 using webrtc::kMediaTypeAudio;
 using webrtc::kMediaTypeData;
 using webrtc::kMediaTypeVideo;
 using webrtc::MediaTypeToString;
 
-// Backwards compatibility values for webrtc::MediaType users
-// TODO: https://issues.webrtc.org/42222911 - deprecate and remove
-constexpr MediaType MEDIA_TYPE_AUDIO = webrtc::MediaType::AUDIO;
-constexpr MediaType MEDIA_TYPE_VIDEO = webrtc::MediaType::VIDEO;
-constexpr MediaType MEDIA_TYPE_DATA = webrtc::MediaType::DATA;
-constexpr MediaType MEDIA_TYPE_UNSUPPORTED = webrtc::MediaType::UNSUPPORTED;
+// Backwards compatibility values for cricket::MediaType users
+// TODO: https://issues.webrtc.org/42222911 - remove
+[[deprecated]] constexpr MediaType MEDIA_TYPE_AUDIO = webrtc::MediaType::AUDIO;
+[[deprecated]] constexpr MediaType MEDIA_TYPE_VIDEO = webrtc::MediaType::VIDEO;
+[[deprecated]] constexpr MediaType MEDIA_TYPE_DATA = webrtc::MediaType::DATA;
+[[deprecated]] constexpr MediaType MEDIA_TYPE_UNSUPPORTED =
+    webrtc::MediaType::UNSUPPORTED;
 
 }  // namespace cricket
 

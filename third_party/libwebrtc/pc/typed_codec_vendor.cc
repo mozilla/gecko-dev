@@ -97,7 +97,7 @@ std::vector<Codec> CollectAudioCodecs(
 }  // namespace
 
 TypedCodecVendor::TypedCodecVendor(MediaEngineInterface* media_engine,
-                                   MediaType type,
+                                   webrtc::MediaType type,
                                    bool is_sender,
                                    bool rtx_enabled,
                                    const webrtc::FieldTrialsView& trials) {

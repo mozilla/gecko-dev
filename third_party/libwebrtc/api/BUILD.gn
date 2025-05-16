@@ -578,6 +578,7 @@ rtc_library("rtp_parameters") {
     "../rtc_base/system:rtc_export",
     "video:resolution",
     "video_codecs:scalability_mode",
+    "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/strings:str_format",
     "//third_party/abseil-cpp/absl/strings:string_view",

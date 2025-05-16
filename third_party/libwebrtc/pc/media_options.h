@@ -44,7 +44,7 @@ struct SenderOptions {
 
 // Options for an individual media description/"m=" section.
 struct MediaDescriptionOptions {
-  MediaDescriptionOptions(MediaType type,
+  MediaDescriptionOptions(webrtc::MediaType type,
                           const std::string& mid,
                           webrtc::RtpTransceiverDirection direction,
                           bool stopped)
@@ -60,7 +60,7 @@ struct MediaDescriptionOptions {
                       const SimulcastLayerList& simulcast_layers,
                       int num_sim_layers);
 
-  MediaType type;
+  webrtc::MediaType type;
   std::string mid;
   webrtc::RtpTransceiverDirection direction;
   bool stopped;
@@ -98,7 +98,7 @@ struct MediaSessionOptions {
   }
   bool has_data() const { return HasMediaDescription(webrtc::MediaType::DATA); }
 
-  bool HasMediaDescription(MediaType type) const;
+  bool HasMediaDescription(webrtc::MediaType type) const;
 
   bool vad_enabled = true;  // When disabled, removes all CN codecs from SDP.
   bool rtcp_mux_enabled = true;
