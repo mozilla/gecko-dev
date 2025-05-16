@@ -110,6 +110,25 @@ enum class StreamCaptureBehavior : uint8_t {
   FINISH_WHEN_ENDED
 };
 
+/**
+ * Possible values of the 'preload' attribute.
+ */
+enum MediaPreloadAttrValue : uint8_t {
+  PRELOAD_ATTR_NONE,      // set to "none"
+  PRELOAD_ATTR_METADATA,  // set to "metadata"
+  PRELOAD_ATTR_AUTO       // set to "auto"
+};
+
+// Mappings from 'preload' attribute strings to an enumeration.
+static const nsAttrValue::EnumTableEntry kPreloadTable[] = {
+    {"none", MediaPreloadAttrValue::PRELOAD_ATTR_NONE},
+    {"metadata", MediaPreloadAttrValue::PRELOAD_ATTR_METADATA},
+    {"auto", MediaPreloadAttrValue::PRELOAD_ATTR_AUTO},
+};
+
+static constexpr const nsAttrValue::EnumTableEntry* kPreloadDefaultType =
+    &kPreloadTable[std::size(kPreloadTable) - 1];
+
 class HTMLMediaElement : public nsGenericHTMLElement,
                          public MediaDecoderOwner,
                          public PrincipalChangeObserver<MediaStreamTrack>,
@@ -521,7 +540,7 @@ class HTMLMediaElement : public nsGenericHTMLElement,
       nsGkAtoms::none->ToString(aValue);
       return;
     }
-    GetEnumAttr(nsGkAtoms::preload, nullptr, aValue);
+    GetEnumAttr(nsGkAtoms::preload, kPreloadDefaultType->tag, aValue);
   }
   void SetPreload(const nsAString& aValue, ErrorResult& aRv) {
     if (mSrcAttrStream) {
@@ -1164,16 +1183,6 @@ class HTMLMediaElement : public nsGenericHTMLElement,
    * Called when "xpcom-shutdown" event is received.
    */
   void NotifyShutdownEvent();
-
-  /**
-   * Possible values of the 'preload' attribute.
-   */
-  enum PreloadAttrValue : uint8_t {
-    PRELOAD_ATTR_EMPTY,     // set to ""
-    PRELOAD_ATTR_NONE,      // set to "none"
-    PRELOAD_ATTR_METADATA,  // set to "metadata"
-    PRELOAD_ATTR_AUTO       // set to "auto"
-  };
 
   /**
    * The preloading action to perform. These dictate how we react to the

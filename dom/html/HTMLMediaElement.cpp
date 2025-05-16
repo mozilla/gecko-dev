@@ -3129,20 +3129,20 @@ bool HTMLMediaElement::AllowedToPlay() const {
 
 uint32_t HTMLMediaElement::GetPreloadDefault() const {
   if (mMediaSource) {
-    return HTMLMediaElement::PRELOAD_ATTR_METADATA;
+    return HTMLMediaElement::PRELOAD_METADATA;
   }
   if (OnCellularConnection()) {
     return Preferences::GetInt("media.preload.default.cellular",
-                               HTMLMediaElement::PRELOAD_ATTR_NONE);
+                               HTMLMediaElement::PRELOAD_NONE);
   }
   return Preferences::GetInt("media.preload.default",
-                             HTMLMediaElement::PRELOAD_ATTR_METADATA);
+                             HTMLMediaElement::PRELOAD_METADATA);
 }
 
 uint32_t HTMLMediaElement::GetPreloadDefaultAuto() const {
   if (OnCellularConnection()) {
     return Preferences::GetInt("media.preload.auto.cellular",
-                               HTMLMediaElement::PRELOAD_ATTR_METADATA);
+                               HTMLMediaElement::PRELOAD_METADATA);
   }
   return Preferences::GetInt("media.preload.auto",
                              HTMLMediaElement::PRELOAD_ENOUGH);
@@ -3167,14 +3167,13 @@ void HTMLMediaElement::UpdatePreloadAction() {
       // media.preload.default pref, or just preload metadata if not present.
       nextAction = static_cast<PreloadAction>(preloadDefault);
     } else if (val->Type() == nsAttrValue::eEnum) {
-      PreloadAttrValue attr =
-          static_cast<PreloadAttrValue>(val->GetEnumValue());
-      if (attr == HTMLMediaElement::PRELOAD_ATTR_EMPTY ||
-          attr == HTMLMediaElement::PRELOAD_ATTR_AUTO) {
+      MediaPreloadAttrValue attr =
+          static_cast<MediaPreloadAttrValue>(val->GetEnumValue());
+      if (attr == MediaPreloadAttrValue::PRELOAD_ATTR_AUTO) {
         nextAction = static_cast<PreloadAction>(preloadAuto);
-      } else if (attr == HTMLMediaElement::PRELOAD_ATTR_METADATA) {
+      } else if (attr == MediaPreloadAttrValue::PRELOAD_ATTR_METADATA) {
         nextAction = HTMLMediaElement::PRELOAD_METADATA;
-      } else if (attr == HTMLMediaElement::PRELOAD_ATTR_NONE) {
+      } else if (attr == MediaPreloadAttrValue::PRELOAD_ATTR_NONE) {
         nextAction = HTMLMediaElement::PRELOAD_NONE;
       }
     } else {
@@ -4946,21 +4945,16 @@ bool HTMLMediaElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                       const nsAString& aValue,
                                       nsIPrincipal* aMaybeScriptedPrincipal,
                                       nsAttrValue& aResult) {
-  // Mappings from 'preload' attribute strings to an enumeration.
-  static const nsAttrValue::EnumTableEntry kPreloadTable[] = {
-      {"", HTMLMediaElement::PRELOAD_ATTR_EMPTY},
-      {"none", HTMLMediaElement::PRELOAD_ATTR_NONE},
-      {"metadata", HTMLMediaElement::PRELOAD_ATTR_METADATA},
-      {"auto", HTMLMediaElement::PRELOAD_ATTR_AUTO},
-  };
-
   if (aNamespaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::crossorigin) {
       ParseCORSValue(aValue, aResult);
       return true;
     }
     if (aAttribute == nsGkAtoms::preload) {
-      return aResult.ParseEnumValue(aValue, kPreloadTable, false);
+      return aResult.ParseEnumValue(aValue, kPreloadTable, false,
+                                    // The default value is "auto" if aValue is
+                                    // not a recognised value.
+                                    kPreloadDefaultType);
     }
   }
 

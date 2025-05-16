@@ -957,8 +957,6 @@ skip-if = ["appname == 'seamonkey'"] #  Seamonkey: Bug 598252, bug 1307337, bug 
 
 ["test_preload_actions.html"]
 
-["test_preload_attribute.html"]
-
 ["test_preload_suspend.html"]
 
 ["test_preserve_playbackrate_after_ui_play.html"]
