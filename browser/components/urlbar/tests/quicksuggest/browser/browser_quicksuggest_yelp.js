@@ -10,6 +10,7 @@ const REMOTE_SETTINGS_RECORDS = [
     type: "yelp-suggestions",
     attachment: {
       subjects: ["ramen"],
+      businessSubjects: ["the shop"],
       preModifiers: ["best"],
       postModifiers: ["delivery"],
       locationSigns: ["in"],
@@ -49,7 +50,7 @@ add_task(async function basic() {
     Assert.equal(UrlbarTestUtils.getResultCount(window), 2);
 
     const details = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
-    const { result } = details;
+    const { element, result } = details;
     Assert.equal(
       result.providerName,
       UrlbarProviderQuickSuggest.name,
@@ -60,7 +61,11 @@ add_task(async function basic() {
       result.payload.url,
       "https://www.yelp.com/search?find_desc=RaMeN&find_loc=Tokyo%2C+Tokyo-to&utm_medium=partner&utm_source=mozilla"
     );
-    Assert.equal(result.payload.title, "RaMeN iN Tokyo, Tokyo-to");
+    const titleElement = element.row.querySelector(".urlbarView-title");
+    Assert.equal(
+      titleElement.innerHTML,
+      `Top results for <strong xmlns=\"http://www.w3.org/1999/xhtml\">RaMeN</strong> <strong xmlns=\"http://www.w3.org/1999/xhtml\">iN</strong> <strong xmlns=\"http://www.w3.org/1999/xhtml\">Tokyo</strong>, <strong xmlns=\"http://www.w3.org/1999/xhtml\">Tokyo</strong>-to`
+    );
 
     const { row } = details.element;
     const bottom = row.querySelector(".urlbarView-row-body-bottom");
@@ -78,6 +83,39 @@ add_task(async function basic() {
     await UrlbarTestUtils.promisePopupClose(window);
     await SpecialPowers.popPrefEnv();
   }
+});
+
+add_task(async function businessSubject() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.quicksuggest.yelpPriority", true]],
+  });
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "the shop to",
+  });
+  Assert.equal(UrlbarTestUtils.getResultCount(window), 2);
+
+  const details = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
+  const { element, result } = details;
+  Assert.equal(
+    result.providerName,
+    UrlbarProviderQuickSuggest.name,
+    "The result should be from the expected provider"
+  );
+  Assert.equal(result.payload.provider, "Yelp");
+  Assert.equal(
+    result.payload.url,
+    "https://www.yelp.com/search?find_desc=the+shop&find_loc=Tokyo%2C+Tokyo-to&utm_medium=partner&utm_source=mozilla"
+  );
+  const titleElement = element.row.querySelector(".urlbarView-title");
+  Assert.equal(
+    titleElement.innerHTML,
+    `<strong xmlns=\"http://www.w3.org/1999/xhtml\">the</strong> <strong xmlns=\"http://www.w3.org/1999/xhtml\">shop</strong> in <strong xmlns=\"http://www.w3.org/1999/xhtml\">To</strong>kyo, <strong xmlns=\"http://www.w3.org/1999/xhtml\">To</strong>kyo-<strong xmlns=\"http://www.w3.org/1999/xhtml\">to</strong>`
+  );
+
+  await UrlbarTestUtils.promisePopupClose(window);
+  await SpecialPowers.popPrefEnv();
 });
 
 // Tests the "Show less frequently" result menu command.

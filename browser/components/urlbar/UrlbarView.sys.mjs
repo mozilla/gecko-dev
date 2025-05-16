@@ -1884,7 +1884,7 @@ export class UrlbarView {
           ...result.payload.tags.map((tag, i) => {
             const element = this.#createElement("span");
             element.className = "urlbarView-tag";
-            this.#addTextContentWithHighlights(
+            lazy.UrlbarUtils.addTextContentWithHighlights(
               element,
               tag,
               result.payloadHighlights.tags[i]
@@ -2035,7 +2035,11 @@ export class UrlbarView {
         displayedUrl = "\u200e" + displayedUrl;
         urlHighlights = this.#offsetHighlights(urlHighlights, 1);
       }
-      this.#addTextContentWithHighlights(url, displayedUrl, urlHighlights);
+      lazy.UrlbarUtils.addTextContentWithHighlights(
+        url,
+        displayedUrl,
+        urlHighlights
+      );
       this.#updateOverflowTooltip(url, result.payload.displayUrl);
     } else {
       url.textContent = "";
@@ -2169,7 +2173,7 @@ export class UrlbarView {
       if (update.l10n) {
         this.#l10nCache.setElementL10n(node, update.l10n);
       } else if (update.textContent) {
-        this.#addTextContentWithHighlights(
+        lazy.UrlbarUtils.addTextContentWithHighlights(
           node,
           update.textContent,
           update.highlights
@@ -2809,7 +2813,7 @@ export class UrlbarView {
     }
 
     this.#l10nCache.removeElementL10n(titleNode);
-    this.#addTextContentWithHighlights(
+    lazy.UrlbarUtils.addTextContentWithHighlights(
       titleNode,
       result.title,
       result.titleHighlights
@@ -2913,44 +2917,6 @@ export class UrlbarView {
       this.#l10nCache.setElementL10n(actionNode, {
         id: "urlbar-result-action-switch-tab",
       });
-    }
-  }
-
-  /**
-   * Adds text content to a node, placing substrings that should be highlighted
-   * inside <em> nodes.
-   *
-   * @param {Element} parentNode
-   *   The text content will be added to this node.
-   * @param {string} textContent
-   *   The text content to give the node.
-   * @param {Array} highlights
-   *   The matches to highlight in the text.
-   */
-  #addTextContentWithHighlights(parentNode, textContent, highlights) {
-    parentNode.textContent = "";
-    if (!textContent) {
-      return;
-    }
-    highlights = (highlights || []).concat([[textContent.length, 0]]);
-    let index = 0;
-    for (let [highlightIndex, highlightLength] of highlights) {
-      if (highlightIndex - index > 0) {
-        parentNode.appendChild(
-          this.document.createTextNode(
-            textContent.substring(index, highlightIndex)
-          )
-        );
-      }
-      if (highlightLength > 0) {
-        let strong = this.#createElement("strong");
-        strong.textContent = textContent.substring(
-          highlightIndex,
-          highlightIndex + highlightLength
-        );
-        parentNode.appendChild(strong);
-      }
-      index = highlightIndex + highlightLength;
     }
   }
 
