@@ -94,12 +94,12 @@
         function verifySelectedPickerItem(selectedItem, setsFocus) {
           ok(selectedItem.checked, "The selected picker item is checked.");
           is(
-            selectedItem.inputEl.getAttribute("aria-checked"),
+            selectedItem.itemEl.getAttribute("aria-checked"),
             "true",
             "The checked item has the correct aria-checked value."
           );
           is(
-            selectedItem.inputEl.tabIndex,
+            selectedItem.itemEl.tabIndex,
             0,
             "The selected picker item is focusable."
           );
@@ -115,12 +115,12 @@
             .forEach(item => {
               ok(!item.checked, "All other picker items are unchecked.");
               is(
-                item.inputEl.getAttribute("aria-checked"),
+                item.itemEl.getAttribute("aria-checked"),
                 "false",
                 "All other items have the correct aria-checked value."
               );
               is(
-                item.inputEl.tabIndex,
+                item.itemEl.tabIndex,
                 -1,
                 "All other items are not focusable."
               );
@@ -316,7 +316,7 @@
         );
         [secondItem, thirdItem].forEach(item =>
           is(
-            item.inputEl.getAttribute("tabindex"),
+            item.itemEl.getAttribute("tabindex"),
             "-1",
             "All other items are not tab focusable."
           )
@@ -399,7 +399,7 @@
         picker.addEventListener("input", trackEvent);
 
         // Verify that clicking on a item emits the right events in the correct order.
-        synthesizeMouseAtCenter(thirdItem.inputEl, {});
+        synthesizeMouseAtCenter(thirdItem.itemEl, {});
         await TestUtils.waitForTick();
 
         verifyEvents([
