@@ -10,21 +10,45 @@
 
 #include "video/rtp_video_stream_receiver2.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <memory>
-#include <utility>
+#include <optional>
+#include <string>
+#include <variant>
+#include <vector>
 
+#include "api/array_view.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
+#include "api/frame_transformer_interface.h"
+#include "api/make_ref_counted.h"
+#include "api/rtp_headers.h"
+#include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
 #include "api/task_queue/task_queue_base.h"
+#include "api/task_queue/task_queue_factory.h"
 #include "api/test/mock_frame_transformer.h"
+#include "api/transport/rtp/corruption_detection_message.h"
+#include "api/transport/rtp/dependency_descriptor.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
+#include "api/video/color_space.h"
+#include "api/video/encoded_frame.h"
 #include "api/video/video_codec_type.h"
 #include "api/video/video_frame_type.h"
+#include "api/video/video_timing.h"
+#include "call/rtp_packet_sink_interface.h"
 #include "call/test/mock_rtp_packet_sink_interface.h"
+#include "call/video_receive_stream.h"
+#include "common_video/frame_instrumentation_data.h"
 #include "common_video/h264/h264_common.h"
 #include "media/base/media_constants.h"
+#include "modules/include/module_common_types.h"
+#include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/source/corruption_detection_extension.h"
-#include "modules/rtp_rtcp/source/frame_object.h"
-#include "modules/rtp_rtcp/source/rtp_descriptor_authentication.h"
+#include "modules/rtp_rtcp/source/rtp_dependency_descriptor_extension.h"
 #include "modules/rtp_rtcp/source/rtp_format.h"
 #include "modules/rtp_rtcp/source/rtp_format_vp9.h"
 #include "modules/rtp_rtcp/source/rtp_generic_frame_descriptor.h"
@@ -32,17 +56,18 @@
 #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
-#include "modules/video_coding/include/video_coding_defines.h"
-#include "modules/video_coding/rtp_frame_reference_finder.h"
+#include "modules/rtp_rtcp/source/rtp_video_header.h"
+#include "modules/video_coding/codecs/h264/include/h264_globals.h"
+#include "modules/video_coding/codecs/vp9/include/vp9_globals.h"
+#include "modules/video_coding/nack_requester.h"
 #include "rtc_base/byte_buffer.h"
-#include "rtc_base/logging.h"
-#include "system_wrappers/include/clock.h"
+#include "rtc_base/copy_on_write_buffer.h"
+#include "system_wrappers/include/ntp_time.h"
 #include "test/explicit_key_value_config.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/mock_transport.h"
 #include "test/rtcp_packet_parser.h"
-#include "test/time_controller/simulated_task_queue.h"
 #include "test/time_controller/simulated_time_controller.h"
 
 namespace webrtc {

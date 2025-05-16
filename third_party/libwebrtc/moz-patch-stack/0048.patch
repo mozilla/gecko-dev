@@ -159,10 +159,10 @@ index e14072c0fc..02828619a6 100644
    // Within this list, the sender-source SSRC pair is unique and per-pair the
    // ReportBlockData represents the latest Report Block that was received for
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index d6b2de74be..ebf3611c72 100644
+index bd483bba7a..5ba85f6ea9 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
-@@ -1183,9 +1183,10 @@ std::optional<int64_t> RtpVideoStreamReceiver2::LastReceivedKeyframePacketMs()
+@@ -1179,9 +1179,10 @@ std::optional<int64_t> RtpVideoStreamReceiver2::LastReceivedKeyframePacketMs()
  // seem to be any support for these stats right now. So, we hack this in.
  void RtpVideoStreamReceiver2::RemoteRTCPSenderInfo(
      uint32_t* packet_count, uint32_t* octet_count,
@@ -176,10 +176,10 @@ index d6b2de74be..ebf3611c72 100644
  
  std::optional<RtpRtcpInterface::SenderReportStats>
 diff --git a/video/rtp_video_stream_receiver2.h b/video/rtp_video_stream_receiver2.h
-index 8db89b87ad..927c78acbd 100644
+index d46acba850..3a6f3c9540 100644
 --- a/video/rtp_video_stream_receiver2.h
 +++ b/video/rtp_video_stream_receiver2.h
-@@ -217,7 +217,8 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
+@@ -232,7 +232,8 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
    // stats at all, and even on the most recent libwebrtc code there does not
    // seem to be any support for these stats right now. So, we hack this in.
    void RemoteRTCPSenderInfo(uint32_t* packet_count, uint32_t* octet_count,

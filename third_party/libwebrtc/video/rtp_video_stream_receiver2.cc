@@ -876,28 +876,29 @@ void RtpVideoStreamReceiver2::OnInsertedPacket(
   std::vector<rtc::ArrayView<const uint8_t>> payloads;
   RtpPacketInfos::vector_type packet_infos;
 
-  bool frame_boundary = true;
+  bool skip_frame = false;
   for (auto& packet : result.packets) {
-    int64_t unwrapped_rtp_seq_num = packet->sequence_number;
+    if (skip_frame && !packet->is_first_packet_in_frame()) {
+      continue;
+    }
+    skip_frame = false;
 
     // Every time `FrameDecoded` is called outdated information is cleaned up,
     // and because of that `packet_infos_` might not contain any information
     // about some of the packets in the assembled frame. To avoid creating a
     // frame with missing `packet_infos_`, simply drop this (old/duplicate)
     // frame.
-    if (unwrapped_rtp_seq_num <= last_decoded_unwrapped_seq_num_) {
+    int64_t unwrapped_rtp_seq_num = packet->sequence_number;
+    auto packet_info_it = packet_infos_.find(unwrapped_rtp_seq_num);
+    if (packet_info_it == packet_infos_.end()) {
+      skip_frame = true;
       continue;
     }
 
-    // If some packets were skipped make sure the next frame still start on a
-    // `frame_boundary`.
-    if (frame_boundary != packet->is_first_packet_in_frame()) {
-      continue;
-    }
-
-    RTC_DCHECK_GT(packet_infos_.count(unwrapped_rtp_seq_num), 0);
-    RtpPacketInfo& packet_info = packet_infos_[unwrapped_rtp_seq_num];
+    RtpPacketInfo& packet_info = packet_info_it->second;
     if (packet->is_first_packet_in_frame()) {
+      payloads.clear();
+      packet_infos.clear();
       first_packet = packet.get();
       max_nack_count = packet->times_nacked;
       min_recv_time = packet_info.receive_time().ms();
@@ -918,8 +919,6 @@ void RtpVideoStreamReceiver2::OnInsertedPacket(
     }
     payloads.emplace_back(packet->video_payload);
     packet_infos.push_back(packet_info);
-
-    frame_boundary = packet->is_last_packet_in_frame();
 
     packet->video_header.absolute_capture_time =
         packet_info.absolute_capture_time();
@@ -957,11 +956,8 @@ void RtpVideoStreamReceiver2::OnInsertedPacket(
           last_packet.video_header.frame_instrumentation_data,     //
           RtpPacketInfos(std::move(packet_infos)),                 //
           std::move(bitstream)));
-      payloads.clear();
-      packet_infos.clear();
     }
   }
-  RTC_DCHECK(frame_boundary);
   if (result.buffer_cleared) {
     last_received_rtp_system_time_.reset();
     last_received_keyframe_rtp_system_time_.reset();
@@ -1408,10 +1404,9 @@ void RtpVideoStreamReceiver2::FrameDecoded(int64_t picture_id) {
   }
 
   if (seq_num != -1) {
-    last_decoded_unwrapped_seq_num_ = rtp_seq_num_unwrapper_.Unwrap(seq_num);
-    packet_infos_.erase(
-        packet_infos_.begin(),
-        packet_infos_.upper_bound(*last_decoded_unwrapped_seq_num_));
+    int64_t unwrapped_rtp_seq_num = rtp_seq_num_unwrapper_.Unwrap(seq_num);
+    packet_infos_.erase(packet_infos_.begin(),
+                        packet_infos_.upper_bound(unwrapped_rtp_seq_num));
     uint32_t num_packets_cleared = packet_buffer_.ClearTo(seq_num);
     if (num_packets_cleared > 0) {
       TRACE_EVENT2("webrtc",

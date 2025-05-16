@@ -50,7 +50,7 @@ index c99260831e..7c081513f1 100644
    Clock* const clock_;
    bool short_circuit_ RTC_GUARDED_BY(network_sequence_checker_) = false;
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 8ca8e82d56..4410329f4b 100644
+index db83815c2f..95016b8dd3 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -383,7 +383,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
