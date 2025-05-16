@@ -219,7 +219,7 @@
       url(moz-icon://stock/window-maximize-symbolic?dark=0),
       url(moz-icon://stock/window-maximize-symbolic?dark=0&scale=2) 2x
     );
-    @media (prefers-color-scheme: dark) {
+    toolbar[brighttext] & {
       background-image: image-set(
         url(moz-icon://stock/window-maximize-symbolic?dark=1),
         url(moz-icon://stock/window-maximize-symbolic?dark=1&scale=2) 2x
@@ -235,7 +235,7 @@
       url(moz-icon://stock/window-restore-symbolic?dark=0),
       url(moz-icon://stock/window-restore-symbolic?dark=0&scale=2) 2x
     );
-    @media (prefers-color-scheme: dark) {
+    toolbar[brighttext] & {
       background-image: image-set(
         url(moz-icon://stock/window-restore-symbolic?dark=1),
         url(moz-icon://stock/window-restore-symbolic?dark=1&scale=2) 2x
@@ -259,7 +259,7 @@
       url(moz-icon://stock/window-close-symbolic?dark=0),
       url(moz-icon://stock/window-close-symbolic?dark=0&scale=2) 2x
     );
-    @media (prefers-color-scheme: dark) {
+    toolbar[brighttext] & {
       background-image: image-set(
         url(moz-icon://stock/window-close-symbolic?dark=1),
         url(moz-icon://stock/window-close-symbolic?dark=1&scale=2) 2x
@@ -280,7 +280,7 @@
       url(moz-icon://stock/window-minimize-symbolic?dark=0),
       url(moz-icon://stock/window-minimize-symbolic?dark=0&scale=2) 2x
     );
-    @media (prefers-color-scheme: dark) {
+    toolbar[brighttext] & {
       background-image: image-set(
         url(moz-icon://stock/window-minimize-symbolic?dark=1),
         url(moz-icon://stock/window-minimize-symbolic?dark=1&scale=2) 2x
