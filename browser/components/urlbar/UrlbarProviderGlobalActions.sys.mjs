@@ -182,6 +182,7 @@ class ProviderGlobalActions extends UrlbarProvider {
           {
             name: `label-${i}`,
             tag: "span",
+            classList: ["urlbarView-action-btn-label"],
           },
         ],
       };

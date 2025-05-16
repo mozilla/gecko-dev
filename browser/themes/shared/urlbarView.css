@@ -1056,10 +1056,6 @@
   white-space: wrap;
 }
 
-.urlbarView-row[dynamicType="actions"] {
-  display: inline-flex;
-}
-
 /* To align the label and action button */
 .urlbarView-row[secondary-action] {
   flex-direction: column;
@@ -1109,6 +1105,7 @@
   &[data-action^=tabgroup-] {
     color: light-dark(var(--tab-group-color-pale), var(--tab-group-label-text-dark));
     background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
+    max-width: 30%;
 
     /* Add offset to the focus / selection indicator as the outline color could
        be close to the group color. */
@@ -1117,6 +1114,11 @@
 
     &:hover {
       opacity: 0.8;
+    }
+
+    > .urlbarView-action-btn-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 }
