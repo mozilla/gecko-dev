@@ -228,16 +228,16 @@ static CommandLineArg<bool> sNotForBrowser{"-notForBrowser", "notforbrowser"};
 static CommandLineArg<const char*> sPluginPath{"-pluginPath", "pluginpath"};
 static CommandLineArg<bool> sPluginNativeEvent{"-pluginNativeEvent",
                                                "pluginnativeevent"};
-#if defined(XP_LINUX)
-static CommandLineArg<UniqueFileHandle> sCrashReporter{"-crashReporter",
-                                                       "crashreporter"};
-#  if !defined(MOZ_WIDGET_ANDROID)
-static CommandLineArg<uint64_t> sCrashHelperPid{"-crashHelperPid",
-                                                "crashhelperpid"};
-#  endif  // !defined(MOZ_WIDGET_ANDROID)
-#else
+#if defined(XP_WIN) || defined(XP_MACOSX) || defined(XP_IOS)
 static CommandLineArg<const char*> sCrashReporter{"-crashReporter",
                                                   "crashreporter"};
+#else
+static CommandLineArg<UniqueFileHandle> sCrashReporter{"-crashReporter",
+                                                       "crashreporter"};
+#  if defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
+static CommandLineArg<uint64_t> sCrashHelperPid{"-crashHelperPid",
+                                                "crashhelperpid"};
+#  endif  // defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
 #endif
 
 #if defined(XP_WIN)
