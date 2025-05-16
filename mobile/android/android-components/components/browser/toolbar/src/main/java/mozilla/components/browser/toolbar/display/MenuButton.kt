@@ -9,14 +9,10 @@ import androidx.annotation.VisibleForTesting
 import androidx.core.view.isVisible
 import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.menu.ext.asCandidateList
+import mozilla.components.browser.menu.ext.getHighlight
 import mozilla.components.browser.toolbar.facts.emitOpenMenuFact
 import mozilla.components.concept.menu.MenuController
 
-/**
- * Wrapper for [mozilla.components.browser.menu.view.MenuButton].
- *
- * @param impl The [mozilla.components.browser.menu.view.MenuButton]
- */
 internal class MenuButton(
     @get:VisibleForTesting internal val impl: mozilla.components.browser.menu.view.MenuButton,
 ) {
@@ -71,7 +67,7 @@ internal class MenuButton(
         } else {
             // Invalidate the BrowserMenu
             impl.invalidateBrowserMenu()
-            impl.setHighlightStatus()
+            impl.setHighlight(menuBuilder?.items?.getHighlight())
         }
     }
 
