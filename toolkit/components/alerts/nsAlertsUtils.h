@@ -25,5 +25,11 @@ class nsAlertsUtils final {
    * empty string if |aPrincipal| is not actionable.
    */
   static void GetSourceHostPort(nsIPrincipal* aPrincipal, nsAString& aHostPort);
+
+  /**
+   * Sets |aOrigin| to the origin from |aPrincipal|, or an error if |aPrincipal|
+   * is not actionable.
+   */
+  static nsresult GetOrigin(nsIPrincipal* aPrincipal, nsACString& aOrigin);
 };
 #endif /* nsAlertsUtils_h */

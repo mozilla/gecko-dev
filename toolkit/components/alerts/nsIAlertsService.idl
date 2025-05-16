@@ -220,6 +220,12 @@ interface nsIAlertNotification : nsISupports
   readonly attribute AString source;
 
   /**
+   * The origin of the originating page, or an empty string if the alert is not
+   * actionable. This corresponds to `nsIPrincipal.origin`.
+   */
+  readonly attribute ACString origin;
+
+  /**
    * On Windows, chrome-privileged notifications -- i.e., those with a
    * non-actionable principal -- can have `opaqueRelaunchData`.  This data will
    * be provided to the application at relaunch and can trigger specific

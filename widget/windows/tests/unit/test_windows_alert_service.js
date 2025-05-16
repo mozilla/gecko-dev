@@ -195,7 +195,7 @@ function testAlert(when, { serverEnabled, profD, isBackgroundTaskMode } = {}) {
     ? ""
     : `<action content="Notification settings"/>`;
 
-  let parsedSettingsAction = hostport => {
+  let parsedSettingsAction = origin => {
     if (isBackgroundTaskMode) {
       return [];
     }
@@ -209,8 +209,8 @@ function testAlert(when, { serverEnabled, profD, isBackgroundTaskMode } = {}) {
             {
               action: "settings",
             },
-            hostport && {
-              launchUrl: hostport,
+            origin && {
+              origin,
             }
           )
         ),
@@ -219,7 +219,7 @@ function testAlert(when, { serverEnabled, profD, isBackgroundTaskMode } = {}) {
     ];
   };
 
-  let parsedSnoozeAction = hostport => {
+  let parsedSnoozeAction = (hostport, origin) => {
     let content = `Disable notifications from ${hostport}`;
     return [
       content,
@@ -230,8 +230,8 @@ function testAlert(when, { serverEnabled, profD, isBackgroundTaskMode } = {}) {
             {
               action: "snooze",
             },
-            hostport && {
-              launchUrl: hostport,
+            origin && {
+              origin,
             }
           )
         ),
@@ -414,8 +414,8 @@ function testAlert(when, { serverEnabled, profD, isBackgroundTaskMode } = {}) {
   );
 
   // But content unprivileged alerts can't use `windowsSystemActivationType`.
-  let launchUrl = "https://example.com/foo/bar.html";
-  const principaluri = Services.io.newURI(launchUrl);
+  let path = "https://example.com/foo/bar.html";
+  const principaluri = Services.io.newURI(path);
   const principal = Services.scriptSecurityManager.createContentPrincipal(
     principaluri,
     {}
@@ -436,19 +436,19 @@ function testAlert(when, { serverEnabled, profD, isBackgroundTaskMode } = {}) {
       {
         launch: parsedArgumentString({
           action: "",
-          launchUrl: principaluri.hostPort,
+          origin: principal.origin,
         }),
         actions: Object.fromEntries(
           [
-            parsedSnoozeAction(principaluri.hostPort),
-            parsedSettingsAction(principaluri.hostPort),
+            parsedSnoozeAction(principal.hostPort, principal.origin),
+            parsedSettingsAction(principal.origin),
             [
               "dismissTitle",
               {
                 content: "dismissTitle",
                 arguments: parsedArgumentString({
                   action: "dismiss",
-                  launchUrl: principaluri.hostPort,
+                  origin: principal.origin,
                 }),
               },
             ],
@@ -458,7 +458,7 @@ function testAlert(when, { serverEnabled, profD, isBackgroundTaskMode } = {}) {
                 content: "snoozeTitle",
                 arguments: parsedArgumentString({
                   action: "snooze",
-                  launchUrl: principaluri.hostPort,
+                  origin: principal.origin,
                 }),
               },
             ],
@@ -514,12 +514,12 @@ function testAlert(when, { serverEnabled, profD, isBackgroundTaskMode } = {}) {
       {
         launch: parsedArgumentString({
           action: "",
-          launchUrl: principaluri.hostPort,
+          origin: principal.origin,
         }),
         actions: Object.fromEntries(
           [
-            parsedSnoozeAction(principaluri.hostPort),
-            parsedSettingsAction(principaluri.hostPort),
+            parsedSnoozeAction(principal.hostPort, principal.origin),
+            parsedSettingsAction(principal.origin),
           ].filter(x => x.length)
         ),
       },
