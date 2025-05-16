@@ -225,7 +225,7 @@ class StudyList extends React.Component {
 
     for (const study of experiments) {
       const clonedStudy = Object.assign({}, study, {
-        type: study.experimentType,
+        type: study.isRollout ? "rollout" : "nimbus",
         sortDate: new Date(study.lastSeen),
       });
       if (!study.active) {

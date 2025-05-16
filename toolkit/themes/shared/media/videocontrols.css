@@ -173,7 +173,6 @@
   -moz-context-properties: fill;
   fill: currentColor;
   color: inherit;
-  /* We don't suppress ::-moz-focus-inner, so that does for a focus indicator */
   outline: none;
 }
 

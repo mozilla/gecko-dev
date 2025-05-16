@@ -635,10 +635,13 @@ if (is_mac) {
       "../../rtc_base:event_tracer",
       "../../rtc_base:logging",
       "../../rtc_base:macromagic",
+      "../../rtc_base:safe_conversions",
       "../../rtc_base:timeutils",
       "../../rtc_base/synchronization:mutex",
       "../../rtc_base/system:rtc_export",
       "../../sdk:helpers_objc",
+      "//third_party/abseil-cpp/absl/base:core_headers",
+      "//third_party/abseil-cpp/absl/strings:str_format",
     ]
     frameworks = [
       "AppKit.framework",

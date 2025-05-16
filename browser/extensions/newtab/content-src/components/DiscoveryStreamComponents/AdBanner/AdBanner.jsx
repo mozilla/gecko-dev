@@ -130,7 +130,7 @@ export const AdBanner = ({
         <div className="ad-banner-sponsored">
           <span
             className="ad-banner-sponsored-label"
-            data-l10n-id="newtab-topsite-sponsored"
+            data-l10n-id="newtab-label-sponsored-fixed"
           />
         </div>
       </div>

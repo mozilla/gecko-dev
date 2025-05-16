@@ -6,6 +6,7 @@ package org.mozilla.fenix.ui.robots
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.platform.app.InstrumentationRegistry
 import org.mozilla.fenix.BuildConfig.DEEP_LINK_SCHEME
@@ -40,8 +41,8 @@ class DeepLinkRobot {
     fun openHomeScreen(interact: HomeScreenRobot.() -> Unit) =
         openDeepLink("home").run { homeScreen(interact) }
 
-    fun openBookmarks(interact: BookmarksRobot.() -> Unit) =
-        openDeepLink("urls_bookmarks").run { bookmarksMenu(interact) }
+    fun openBookmarks(composeTestRule: ComposeTestRule, interact: BookmarksRobot.() -> Unit) =
+        openDeepLink("urls_bookmarks").run { composeBookmarksMenu(composeTestRule, interact) }
 
     fun openHistory(interact: HistoryRobot.() -> Unit) =
         openDeepLink("urls_history").run { historyMenu(interact) }

@@ -14,6 +14,8 @@
 
 #include <atomic>
 
+#include "absl/strings/str_format.h"
+#include "api/sequence_checker.h"
 #include "modules/desktop_capture/mac/desktop_frame_iosurface.h"
 #include "modules/desktop_capture/shared_desktop_frame.h"
 #include "rtc_base/logging.h"
@@ -24,9 +26,6 @@
 #include "sdk/objc/helpers/scoped_cftyperef.h"
 
 using webrtc::DesktopFrameIOSurface;
-
-#define SCK_AVAILABLE @available(macOS 14.0, *)
-#define SCCSPICKER_AVAILABLE @available(macOS 14.0, *)
 
 namespace webrtc {
 class ScreenCapturerSck;
@@ -43,7 +42,8 @@ API_AVAILABLE(macos(14.0))
 
 - (instancetype)initWithCapturer:(webrtc::ScreenCapturerSck*)capturer;
 
-- (void)onShareableContentCreated:(SCShareableContent*)content;
+- (void)onShareableContentCreated:(SCShareableContent*)content
+                            error:(NSError*)error;
 
 // Called just before the capturer is destroyed. This avoids a dangling pointer,
 // and prevents any new calls into a deleted capturer. If any method-call on the
@@ -54,22 +54,6 @@ API_AVAILABLE(macos(14.0))
 @end
 
 namespace webrtc {
-
-bool ScreenCapturerSckAvailable() {
-  bool sonomaOrHigher = false;
-  if (SCK_AVAILABLE) {
-    sonomaOrHigher = true;
-  }
-  return sonomaOrHigher;
-}
-
-bool GenericCapturerSckWithPickerAvailable() {
-  bool available = false;
-  if (SCCSPICKER_AVAILABLE) {
-    available = true;
-  }
-  return available;
-}
 
 class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
     : public DesktopCapturer {
@@ -88,6 +72,8 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
   void CaptureFrame() override;
   bool GetSourceList(SourceList* sources) override;
   bool SelectSource(SourceId id) override;
+  // Creates the SckPickerHandle if needed and not already done.
+  void EnsurePickerHandle();
   // Prep for implementing DelegatedSourceListController interface, for now used
   // by Start(). Triggers SCContentSharingPicker. Runs on the caller's thread.
   void EnsureVisible();
@@ -102,7 +88,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
 
   // Called by SckHelper when shareable content is returned by ScreenCaptureKit.
   // `content` will be nil if an error occurred. May run on an arbitrary thread.
-  void OnShareableContentCreated(SCShareableContent* content);
+  void OnShareableContentCreated(SCShareableContent* content, NSError* error);
 
   // Start capture with the given filter. Creates or updates stream_ as needed.
   void StartWithFilter(SCContentFilter* filter)
@@ -120,30 +106,32 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
   // caller's thread.
   void StartOrReconfigureCapturer();
 
+  // Calls to the public API must happen on a single thread.
+  webrtc::SequenceChecker api_checker_;
+
   // Helper object to receive Objective-C callbacks from ScreenCaptureKit and
   // call into this C++ object. The helper may outlive this C++ instance, if a
   // completion-handler is passed to ScreenCaptureKit APIs and the C++ object is
   // deleted before the handler executes.
   SckHelper* __strong helper_;
 
-  // Callback for returning captured frames, or errors, to the caller. Only used
-  // on the caller's thread.
-  Callback* callback_ = nullptr;
+  // Callback for returning captured frames, or errors, to the caller.
+  Callback* callback_ RTC_GUARDED_BY(api_checker_) = nullptr;
 
   // Helper class that tracks the number of capturers needing
-  // SCContentSharingPicker to stay active. Only used on the caller's thread.
-  std::unique_ptr<SckPickerHandleInterface> picker_handle_;
+  // SCContentSharingPicker to stay active.
+  std::unique_ptr<SckPickerHandleInterface> picker_handle_
+      RTC_GUARDED_BY(api_checker_);
 
   // Flag to track if we have added ourselves as observer to picker_handle_.
-  // Only used on the caller's thread.
-  bool picker_handle_registered_ = false;
+  bool picker_handle_registered_ RTC_GUARDED_BY(api_checker_) = false;
 
   // Options passed to the constructor. May be accessed on any thread, but the
   // options are unchanged during the capturer's lifetime.
   const DesktopCaptureOptions capture_options_;
 
-  // Modes to use iff using the system picker. See docs on
-  // SCContentSharingPickerMode.
+  // Modes to use iff using the system picker.
+  // See docs on SCContentSharingPickerMode.
   const SCContentSharingPickerMode picker_modes_;
 
   // Signals that a permanent error occurred. This may be set on any thread, and
@@ -164,9 +152,11 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
   // first display.
   CGDirectDisplayID current_display_ RTC_GUARDED_BY(lock_) = 0;
 
+  // Configured maximum frame rate in frames per second.
+  uint32_t max_frame_rate_ RTC_GUARDED_BY(lock_) = 0;
+
   // Used by CaptureFrame() to detect if the screen configuration has changed.
-  // Only used on the caller's thread.
-  MacDesktopConfiguration desktop_config_;
+  MacDesktopConfiguration desktop_config_ RTC_GUARDED_BY(api_checker_);
 
   Mutex latest_frame_lock_ RTC_ACQUIRED_AFTER(lock_);
   std::unique_ptr<SharedDesktopFrame> latest_frame_
@@ -191,50 +181,60 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
       RTC_GUARDED_BY(latest_frame_lock_);
 };
 
-ScreenCapturerSck::ScreenCapturerSck(const DesktopCaptureOptions& options)
-    : ScreenCapturerSck(options, SCContentSharingPickerModeSingleDisplay) {}
+/* Helper class for stringifying SCContentSharingPickerMode. Needed as
+ * SCContentSharingPickerMode is a typedef to NSUInteger which we cannot add a
+ * AbslStringify function for. */
+struct StringifiableSCContentSharingPickerMode {
+  const SCContentSharingPickerMode modes_;
+
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink,
+                            const StringifiableSCContentSharingPickerMode& m) {
+    auto modes = m.modes_;
+    if (@available(macos 14, *)) {
+      bool empty = true;
+      const std::tuple<SCContentSharingPickerMode, const char*> all_modes[] = {
+          {SCContentSharingPickerModeSingleWindow, "SingleWindow"},
+          {SCContentSharingPickerModeMultipleWindows, "MultiWindow"},
+          {SCContentSharingPickerModeSingleApplication, "SingleApp"},
+          {SCContentSharingPickerModeMultipleApplications, "MultiApp"},
+          {SCContentSharingPickerModeSingleDisplay, "SingleDisplay"}};
+      for (const auto& [mode, text] : all_modes) {
+        if (modes & mode) {
+          modes = modes & (~mode);
+          absl::Format(&sink, "%s%s", empty ? "" : "|", text);
+          empty = false;
+        }
+      }
+      if (modes) {
+        absl::Format(&sink, "%sRemaining=%v", empty ? "" : "|", modes);
+      }
+      return;
+    }
+    absl::Format(&sink, "%v", modes);
+  }
+};
 
 ScreenCapturerSck::ScreenCapturerSck(const DesktopCaptureOptions& options,
                                      SCContentSharingPickerMode modes)
-    : capture_options_(options), picker_modes_(modes) {
-  picker_handle_ = CreateSckPickerHandle();
-  RTC_LOG(LS_INFO)
-      << "ScreenCapturerSck " << this << " created. allow_sck_system_picker="
-      << capture_options_.allow_sck_system_picker()
-      << ", source=" << (picker_handle_ ? picker_handle_->Source() : -1)
-      << ", mode=" << ([&modes] {
-           std::stringstream ss;
-           bool empty = true;
-           auto maybeAppend = [&](auto mode, auto* str) {
-             if (modes & mode) {
-               if (!empty) {
-                 ss << "|";
-               }
-               empty = false;
-               ss << str;
-             }
-           };
-           maybeAppend(SCContentSharingPickerModeSingleWindow, "SingleWindow");
-           maybeAppend(SCContentSharingPickerModeMultipleWindows,
-                       "MultiWindow");
-           maybeAppend(SCContentSharingPickerModeSingleApplication,
-                       "SingleApp");
-           maybeAppend(SCContentSharingPickerModeMultipleApplications,
-                       "MultiApp");
-           maybeAppend(SCContentSharingPickerModeSingleDisplay,
-                       "SingleDisplay");
-           return ss.str();
-         })();
+    : api_checker_(SequenceChecker::kDetached),
+      capture_options_(options),
+      picker_modes_(modes) {
   helper_ = [[SckHelper alloc] initWithCapturer:this];
 }
 
+ScreenCapturerSck::ScreenCapturerSck(const DesktopCaptureOptions& options)
+    : ScreenCapturerSck(options, SCContentSharingPickerModeSingleDisplay) {}
+
 ScreenCapturerSck::~ScreenCapturerSck() {
+  RTC_DCHECK_RUN_ON(&api_checker_);
   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " destroyed.";
   [stream_ stopCaptureWithCompletionHandler:nil];
   [helper_ releaseCapturer];
 }
 
 void ScreenCapturerSck::Start(DesktopCapturer::Callback* callback) {
+  RTC_DCHECK_RUN_ON(&api_checker_);
   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " " << __func__ << ".";
   callback_ = callback;
   desktop_config_ =
@@ -246,11 +246,27 @@ void ScreenCapturerSck::Start(DesktopCapturer::Callback* callback) {
   StartOrReconfigureCapturer();
 }
 
-void ScreenCapturerSck::SetMaxFrameRate(uint32_t /* max_frame_rate */) {
-  // TODO: crbug.com/327458809 - Implement this.
+void ScreenCapturerSck::SetMaxFrameRate(uint32_t max_frame_rate) {
+  RTC_DCHECK_RUN_ON(&api_checker_);
+  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " SetMaxFrameRate("
+                   << max_frame_rate << ").";
+  bool stream_started = false;
+  {
+    MutexLock lock(&lock_);
+    if (max_frame_rate_ == max_frame_rate) {
+      return;
+    }
+
+    max_frame_rate_ = max_frame_rate;
+    stream_started = stream_;
+  }
+  if (stream_started) {
+    StartOrReconfigureCapturer();
+  }
 }
 
 void ScreenCapturerSck::CaptureFrame() {
+  RTC_DCHECK_RUN_ON(&api_checker_);
   int64_t capture_start_time_millis = rtc::TimeMillis();
 
   if (permanent_error_) {
@@ -273,7 +289,6 @@ void ScreenCapturerSck::CaptureFrame() {
     MutexLock lock(&latest_frame_lock_);
     if (latest_frame_) {
       frame = latest_frame_->Share();
-      frame->set_dpi(DesktopVector(latest_frame_dpi_, latest_frame_dpi_));
       if (frame_is_dirty_) {
         frame->mutable_updated_region()->AddRect(
             DesktopRect::MakeSize(frame->size()));
@@ -282,6 +297,10 @@ void ScreenCapturerSck::CaptureFrame() {
     }
     needs_reconfigure = frame_needs_reconfigure_;
     frame_needs_reconfigure_ = false;
+  }
+
+  if (needs_reconfigure) {
+    StartOrReconfigureCapturer();
   }
 
   if (frame) {
@@ -294,14 +313,27 @@ void ScreenCapturerSck::CaptureFrame() {
                         << " CaptureFrame() -> ERROR_TEMPORARY";
     callback_->OnCaptureResult(Result::ERROR_TEMPORARY, nullptr);
   }
+}
 
-  if (needs_reconfigure) {
-    StartOrReconfigureCapturer();
+void ScreenCapturerSck::EnsurePickerHandle() {
+  RTC_DCHECK_RUN_ON(&api_checker_);
+  if (!picker_handle_ && capture_options_.allow_sck_system_picker()) {
+    picker_handle_ = CreateSckPickerHandle();
+    RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this
+                     << " Created picker handle. allow_sck_system_picker="
+                     << capture_options_.allow_sck_system_picker()
+                     << ", source="
+                     << (picker_handle_ ? picker_handle_->Source() : -1)
+                     << ", modes="
+                     << StringifiableSCContentSharingPickerMode{
+                            .modes_ = picker_modes_};
   }
 }
 
 void ScreenCapturerSck::EnsureVisible() {
+  RTC_DCHECK_RUN_ON(&api_checker_);
   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " " << __func__ << ".";
+  EnsurePickerHandle();
   if (picker_handle_) {
     if (!picker_handle_registered_) {
       picker_handle_registered_ = true;
@@ -352,9 +384,9 @@ void ScreenCapturerSck::EnsureVisible() {
              picker_modes_ == SCContentSharingPickerModeMultipleApplications) {
     style = SCShareableContentStyleApplication;
   }
-  // This dies silently if maximumStreamCount is already running. We need our
-  // own stream count bookkeeping because of this, and to be able to unset
-  // `active`.
+  // This dies silently if maximumStreamCount streams are already running. We
+  // need our own stream count bookkeeping because of this, and to be able to
+  // unset `active`.
   [picker presentPickerForStream:stream usingContentStyle:style];
 }
 
@@ -408,9 +440,11 @@ void ScreenCapturerSck::NotifyCaptureStopped(SCStream* stream) {
 }
 
 bool ScreenCapturerSck::GetSourceList(SourceList* sources) {
+  RTC_DCHECK_RUN_ON(&api_checker_);
   sources->clear();
-  if (capture_options_.allow_sck_system_picker() && picker_handle_) {
-    sources->push_back({picker_handle_->Source()});
+  EnsurePickerHandle();
+  if (picker_handle_) {
+    sources->push_back({picker_handle_->Source(), 0, std::string()});
   }
   return true;
 }
@@ -425,6 +459,9 @@ bool ScreenCapturerSck::SelectSource(SourceId id) {
   bool stream_started = false;
   {
     MutexLock lock(&lock_);
+    if (current_display_ == id) {
+      return true;
+    }
     current_display_ = id;
 
     if (stream_) {
@@ -441,10 +478,12 @@ bool ScreenCapturerSck::SelectSource(SourceId id) {
   return true;
 }
 
-void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
+void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content,
+                                                  NSError* error) {
   if (!content) {
     RTC_LOG(LS_ERROR) << "ScreenCapturerSck " << this
-                      << " getShareableContent failed.";
+                      << " getShareableContent failed with error code "
+                      << (error ? error.code : 0) << ".";
     permanent_error_ = true;
     return;
   }
@@ -460,26 +499,26 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " " << __func__
                    << ". current_display_=" << current_display_;
   SCDisplay* captured_display;
-  {
-    for (SCDisplay* display in content.displays) {
-      if (current_display_ == display.displayID) {
-        captured_display = display;
-        break;
-      }
+  for (SCDisplay* display in content.displays) {
+    if (current_display_ == display.displayID) {
+      captured_display = display;
+      break;
     }
-    if (!captured_display) {
-      if (current_display_ ==
-          static_cast<CGDirectDisplayID>(kFullDesktopScreenId)) {
-        RTC_LOG(LS_WARNING) << "ScreenCapturerSck " << this
-                            << " Full screen capture is not supported, falling "
-                               "back to first display.";
-      } else {
-        RTC_LOG(LS_WARNING)
-            << "ScreenCapturerSck " << this << " Display " << current_display_
-            << " not found, falling back to first display.";
-      }
-      captured_display = content.displays.firstObject;
+  }
+  if (!captured_display) {
+    if (current_display_ ==
+        static_cast<CGDirectDisplayID>(kFullDesktopScreenId)) {
+      RTC_LOG(LS_WARNING) << "ScreenCapturerSck " << this
+                          << " Full screen "
+                             "capture is not supported, falling back to first "
+                             "display.";
+    } else {
+      RTC_LOG(LS_WARNING) << "ScreenCapturerSck " << this << " Display "
+                          << current_display_
+                          << " not found, falling back to "
+                             "first display.";
     }
+    captured_display = content.displays.firstObject;
   }
 
   SCContentFilter* filter =
@@ -494,7 +533,10 @@ void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
   config.pixelFormat = kCVPixelFormatType_32BGRA;
   config.colorSpaceName = kCGColorSpaceSRGB;
   config.showsCursor = capture_options_.prefer_cursor_embedded();
-  config.captureResolution = SCCaptureResolutionAutomatic;
+  config.captureResolution = SCCaptureResolutionNominal;
+  config.minimumFrameInterval =
+      max_frame_rate_ > 0 ? CMTimeMake(1, static_cast<int32_t>(max_frame_rate_))
+                          : kCMTimeZero;
 
   {
     MutexLock lock(&latest_frame_lock_);
@@ -514,7 +556,8 @@ void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
   if (stream_) {
     RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this
                      << " Updating stream configuration to size="
-                     << config.width << "x" << config.height << ".";
+                     << config.width << "x" << config.height
+                     << " and max_frame_rate=" << max_frame_rate_ << ".";
     [stream_ updateContentFilter:filter completionHandler:nil];
     [stream_ updateConfiguration:config completionHandler:nil];
   } else {
@@ -559,66 +602,58 @@ void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
 
 void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface,
                                        NSDictionary* attachment) {
-  double scaleFactor = 1;
-  double contentScale = 1;
-  CGRect contentRect = {};
-  CGRect boundingRect = {};
-  CGRect overlayRect = {};
-  SCFrameStatus status = SCFrameStatusStopped;
-  const auto* dirty_rects = (NSArray*)attachment[SCStreamFrameInfoDirtyRects];
+  bool has_frame_to_process = false;
+  if (auto status_nr = (NSNumber*)attachment[SCStreamFrameInfoStatus]) {
+    auto status = (SCFrameStatus)[status_nr integerValue];
+    has_frame_to_process =
+        status == SCFrameStatusComplete || status == SCFrameStatusStarted;
+  }
+  if (!has_frame_to_process) {
+    return;
+  }
+
+  double scale_factor = 1;
   if (auto factor = (NSNumber*)attachment[SCStreamFrameInfoScaleFactor]) {
-    scaleFactor = [factor floatValue];
+    scale_factor = [factor floatValue];
   }
+  double content_scale = 1;
   if (auto scale = (NSNumber*)attachment[SCStreamFrameInfoContentScale]) {
-    contentScale = [scale floatValue];
+    content_scale = [scale floatValue];
   }
-  if (const auto* rectDict =
+  CGRect content_rect = {};
+  if (const auto* rect_dict =
           (__bridge CFDictionaryRef)attachment[SCStreamFrameInfoContentRect]) {
-    if (!CGRectMakeWithDictionaryRepresentation(rectDict, &contentRect)) {
-      contentRect = CGRect();
+    if (!CGRectMakeWithDictionaryRepresentation(rect_dict, &content_rect)) {
+      content_rect = CGRect();
     }
   }
-  if (const auto* rectDict =
+  CGRect bounding_rect = {};
+  if (const auto* rect_dict =
           (__bridge CFDictionaryRef)attachment[SCStreamFrameInfoBoundingRect]) {
-    if (!CGRectMakeWithDictionaryRepresentation(rectDict, &boundingRect)) {
-      boundingRect = CGRect();
+    if (!CGRectMakeWithDictionaryRepresentation(rect_dict, &bounding_rect)) {
+      bounding_rect = CGRect();
     }
   }
+  CGRect overlay_rect = {};
   if (@available(macOS 14.2, *)) {
-    if (const auto* rectDict = (__bridge CFDictionaryRef)
+    if (const auto* rect_dict = (__bridge CFDictionaryRef)
             attachment[SCStreamFrameInfoPresenterOverlayContentRect]) {
-      if (!CGRectMakeWithDictionaryRepresentation(rectDict, &overlayRect)) {
-        overlayRect = CGRect();
+      if (!CGRectMakeWithDictionaryRepresentation(rect_dict, &overlay_rect)) {
+        overlay_rect = CGRect();
       }
     }
   }
+  const auto* dirty_rects = (NSArray*)attachment[SCStreamFrameInfoDirtyRects];
 
-  if (auto statusNr = (NSNumber*)attachment[SCStreamFrameInfoStatus]) {
-    status = (SCFrameStatus)[statusNr integerValue];
-  }
-
-  switch (status) {
-    case SCFrameStatusBlank:
-    case SCFrameStatusIdle:
-    case SCFrameStatusSuspended:
-    case SCFrameStatusStopped:
-      // No new frame. Ignore.
-      return;
-    case SCFrameStatusComplete:
-    case SCFrameStatusStarted:
-      // New frame. Process it.
-      break;
-  }
-
-  auto imgBoundingRect = CGRectMake(scaleFactor * boundingRect.origin.x,
-                                    scaleFactor * boundingRect.origin.y,
-                                    scaleFactor * boundingRect.size.width,
-                                    scaleFactor * boundingRect.size.height);
+  auto img_bounding_rect = CGRectMake(scale_factor * bounding_rect.origin.x,
+                                      scale_factor * bounding_rect.origin.y,
+                                      scale_factor * bounding_rect.size.width,
+                                      scale_factor * bounding_rect.size.height);
 
   rtc::ScopedCFTypeRef<IOSurfaceRef> scoped_io_surface(
       io_surface, rtc::RetainPolicy::RETAIN);
   std::unique_ptr<DesktopFrameIOSurface> desktop_frame_io_surface =
-      DesktopFrameIOSurface::Wrap(scoped_io_surface, imgBoundingRect);
+      DesktopFrameIOSurface::Wrap(scoped_io_surface, img_bounding_rect);
   if (!desktop_frame_io_surface) {
     RTC_LOG(LS_ERROR) << "Failed to lock IOSurface.";
     return;
@@ -629,16 +664,16 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface,
 
   RTC_LOG(LS_VERBOSE) << "ScreenCapturerSck " << this << " " << __func__
                       << ". New surface: width=" << width
-                      << ", height=" << height << ", contentRect="
-                      << NSStringFromRect(contentRect).UTF8String
-                      << ", boundingRect="
-                      << NSStringFromRect(boundingRect).UTF8String
-                      << ", overlayRect=("
-                      << NSStringFromRect(overlayRect).UTF8String
-                      << ", scaleFactor=" << scaleFactor
-                      << ", contentScale=" << contentScale
+                      << ", height=" << height << ", content_rect="
+                      << NSStringFromRect(content_rect).UTF8String
+                      << ", bounding_rect="
+                      << NSStringFromRect(bounding_rect).UTF8String
+                      << ", overlay_rect=("
+                      << NSStringFromRect(overlay_rect).UTF8String
+                      << ", scale_factor=" << scale_factor
+                      << ", content_scale=" << content_scale
                       << ". Cropping to rect "
-                      << NSStringFromRect(imgBoundingRect).UTF8String << ".";
+                      << NSStringFromRect(img_bounding_rect).UTF8String << ".";
 
   std::unique_ptr<SharedDesktopFrame> frame =
       SharedDesktopFrame::Wrap(std::move(desktop_frame_io_surface));
@@ -676,13 +711,16 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface,
   }
 
   MutexLock lock(&latest_frame_lock_);
-  if (contentScale > 0 && contentScale < 1) {
+  if (content_scale > 0 && content_scale < 1) {
     frame_needs_reconfigure_ = true;
-    double scale = 1 / contentScale;
+    double scale = 1 / content_scale;
     frame_reconfigure_img_size_ =
         CGSizeMake(std::ceil(scale * width), std::ceil(scale * height));
   }
   if (dirty) {
+    frame->set_dpi(DesktopVector(latest_frame_dpi_, latest_frame_dpi_));
+    frame->set_may_contain_cursor(capture_options_.prefer_cursor_embedded());
+
     frame_is_dirty_ = true;
     std::swap(latest_frame_, frame);
   }
@@ -702,29 +740,46 @@ void ScreenCapturerSck::StartOrReconfigureCapturer() {
   // Accessing `helper_` inside the block is equivalent to `this->helper_` and
   // would crash (UAF) if `this` is deleted before the block is executed.
   SckHelper* local_helper = helper_;
-  auto handler = ^(SCShareableContent* content, NSError* /* error */) {
-    [local_helper onShareableContentCreated:content];
+  auto handler = ^(SCShareableContent* content, NSError* error) {
+    [local_helper onShareableContentCreated:content error:error];
   };
 
   [SCShareableContent getShareableContentWithCompletionHandler:handler];
 }
 
+bool ScreenCapturerSckAvailable() {
+  static bool available = ([] {
+    if (@available(macOS 14.0, *)) {
+      return true;
+    }
+    return false;
+  })();
+  return available;
+}
+
 std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
     const DesktopCaptureOptions& options) {
-  if (SCK_AVAILABLE) {
+  if (@available(macOS 14.0, *)) {
     return std::make_unique<ScreenCapturerSck>(options);
   }
   return nullptr;
 }
 
+bool GenericCapturerSckWithPickerAvailable() {
+  bool available = false;
+  if (@available(macOS 14.0, *)) {
+    available = true;
+  }
+  return available;
+}
+
 std::unique_ptr<DesktopCapturer> CreateGenericCapturerSck(
     const DesktopCaptureOptions& options) {
-  if (SCCSPICKER_AVAILABLE) {
+  if (@available(macOS 14.0, *)) {
     if (options.allow_sck_system_picker()) {
       return std::make_unique<ScreenCapturerSck>(
-          options,
-          SCContentSharingPickerModeSingleDisplay |
-              SCContentSharingPickerModeMultipleWindows);
+          options, SCContentSharingPickerModeSingleDisplay |
+                       SCContentSharingPickerModeMultipleWindows);
     }
   }
   return nullptr;
@@ -747,10 +802,11 @@ std::unique_ptr<DesktopCapturer> CreateGenericCapturerSck(
   return self;
 }
 
-- (void)onShareableContentCreated:(SCShareableContent*)content {
+- (void)onShareableContentCreated:(SCShareableContent*)content
+                            error:(NSError*)error {
   webrtc::MutexLock lock(&_capturer_lock);
   if (_capturer) {
-    _capturer->OnShareableContentCreated(content);
+    _capturer->OnShareableContentCreated(content, error);
   }
 }
 
@@ -840,5 +896,3 @@ std::unique_ptr<DesktopCapturer> CreateGenericCapturerSck(
 }
 
 @end
-
-#undef SCK_AVAILABLE

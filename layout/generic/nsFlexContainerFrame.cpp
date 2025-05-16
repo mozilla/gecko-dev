@@ -61,17 +61,6 @@ static mozilla::LazyLogModule gFlexContainerLog("FlexContainer");
 
 static const char* BoolToYesNo(bool aArg) { return aArg ? "yes" : "no"; }
 
-// Returns true if aFlexContainer is a frame for some element that has
-// display:-webkit-{inline-}box (or -moz-{inline-}box). aFlexContainer is
-// expected to be an instance of nsFlexContainerFrame (enforced with an assert);
-// otherwise, this function's state-bit-check here is bogus.
-static bool IsLegacyBox(const nsIFrame* aFlexContainer) {
-  MOZ_ASSERT(aFlexContainer->IsFlexContainerFrame(),
-             "only flex containers may be passed to this function");
-  return aFlexContainer->HasAnyStateBits(
-      NS_STATE_FLEX_IS_EMULATING_LEGACY_WEBKIT_BOX);
-}
-
 // Returns the OrderState enum we should pass to CSSOrderAwareFrameIterator
 // (depending on whether aFlexContainer has
 // NS_STATE_FLEX_NORMAL_FLOW_CHILDREN_IN_CSS_ORDER state bit).
@@ -87,7 +76,7 @@ static CSSOrderAwareFrameIterator::OrderState OrderStateForIter(
 // CSSOrderAwareFrameIterator (depending on whether it's a legacy box).
 static CSSOrderAwareFrameIterator::OrderingProperty OrderingPropertyForIter(
     const nsFlexContainerFrame* aFlexContainer) {
-  return IsLegacyBox(aFlexContainer)
+  return aFlexContainer->IsLegacyWebkitBox()
              ? CSSOrderAwareFrameIterator::OrderingProperty::BoxOrdinalGroup
              : CSSOrderAwareFrameIterator::OrderingProperty::Order;
 }
@@ -145,6 +134,20 @@ static StyleContentDistribution ConvertLegacyStyleToJustifyContent(
 // initial value for now.
 static inline bool IsAutoOrEnumOnBSize(const StyleSize& aSize, bool aIsInline) {
   return aSize.IsAuto() || (!aIsInline && !aSize.IsLengthPercentage());
+}
+
+// Returns true if the flex container should be treated as a single-line
+// container.
+static bool IsSingleLine(const nsIFrame* aFlexContainer,
+                         const nsStylePosition* aStylePos) {
+  MOZ_ASSERT(aFlexContainer->IsFlexContainerFrame());
+
+  if (aFlexContainer->IsLegacyWebkitBox()) {
+    // For legacy -webkit-{inline-}box, ignore the flex-wrap property.
+    // These containers are always treated as single-line.
+    return true;
+  }
+  return aStylePos->mFlexWrap == StyleFlexWrap::Nowrap;
 }
 
 // Encapsulates our flex container's main & cross axes. This class is backed by
@@ -1381,8 +1384,8 @@ nsFlexContainerFrame::UsedAlignSelfAndFlagsForItem(
     const nsIFrame* aFlexItem) const {
   MOZ_ASSERT(aFlexItem->IsFlexItem());
 
-  if (IsLegacyBox(this)) {
-    // For -webkit-{inline-}box and -moz-{inline-}box, we need to:
+  if (IsLegacyWebkitBox()) {
+    // For -webkit-{inline-}box, we need to:
     // (1) Use prefixed "box-align" instead of "align-items" to determine the
     //     container's cross-axis alignment behavior.
     // (2) Suppress the ability for flex items to override that with their own
@@ -1435,7 +1438,7 @@ void nsFlexContainerFrame::GenerateFlexItemForChild(
   // below will use and resolve its flex base size rather than its corresponding
   // preferred main size property (only for modern CSS flexbox).
   StyleSizeOverrides sizeOverrides;
-  if (!IsLegacyBox(this)) {
+  if (!IsLegacyWebkitBox()) {
     Maybe<StyleSize> styleFlexBaseSize;
 
     // When resolving flex base size, flex items use their 'flex-basis' property
@@ -1485,7 +1488,7 @@ void nsFlexContainerFrame::GenerateFlexItemForChild(
   // FLEX GROW & SHRINK WEIGHTS
   // --------------------------
   float flexGrow, flexShrink;
-  if (IsLegacyBox(this)) {
+  if (IsLegacyWebkitBox()) {
     flexGrow = flexShrink = aChildFrame->StyleXUL()->mBoxFlex;
   } else {
     flexGrow = stylePos->mFlexGrow;
@@ -1533,9 +1536,8 @@ void nsFlexContainerFrame::GenerateFlexItemForChild(
   // have a single-line (nowrap) flex container which itself has a definite
   // cross-size.  Otherwise, we'll wait to do stretching, since (in other
   // cases) we don't know how much the item should stretch yet.
-  const bool isSingleLine =
-      StyleFlexWrap::Nowrap == aParentReflowInput.mStylePosition->mFlexWrap;
-  if (isSingleLine) {
+  if (IsSingleLine(aParentReflowInput.mFrame,
+                   aParentReflowInput.mStylePosition)) {
     // Is container's cross size "definite"?
     // - If it's column-oriented, then "yes", because its cross size is its
     // inline-size which is always definite from its descendants' perspective.
@@ -1692,7 +1694,7 @@ void nsFlexContainerFrame::ResolveAutoFlexBasisAndMinSize(
   nscoord resolvedMinSize;  // (only set/used if isMainMinSizeAuto==true)
   bool minSizeNeedsToMeasureContent = false;  // assume the best
   if (isMainMinSizeAuto) {
-    if (IsLegacyBox(this)) {
+    if (IsLegacyWebkitBox()) {
       // Allow flex items in a legacy flex container to shrink below their
       // automatic minimum size by setting the resolved minimum size to zero.
       // This behavior is not in the spec, but it aligns with blink and webkit's
@@ -2958,8 +2960,6 @@ void nsFlexContainerFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
     displayInside = GetParent()->StyleDisplay()->DisplayInside();
   }
 
-  // Figure out if we should set a frame state bit to indicate that this frame
-  // represents a legacy -moz-{inline-}box or -webkit-{inline-}box container.
   if (displayInside == StyleDisplayInside::WebkitBox) {
     AddStateBits(NS_STATE_FLEX_IS_EMULATING_LEGACY_WEBKIT_BOX);
   }
@@ -3640,9 +3640,7 @@ CrossAxisPositionTracker::CrossAxisPositionTracker(
     mAlignContent.primary = StyleAlignFlags::STRETCH;
   }
 
-  const bool isSingleLine =
-      StyleFlexWrap::Nowrap == aReflowInput.mStylePosition->mFlexWrap;
-  if (isSingleLine) {
+  if (IsSingleLine(aReflowInput.mFrame, aReflowInput.mStylePosition)) {
     MOZ_ASSERT(aLines.Length() == 1,
                "If we're styled as single-line, we should only have 1 line");
     // "If the flex container is single-line and has a definite cross size, the
@@ -4106,7 +4104,7 @@ void SingleLineCrossAxisPositionTracker::EnterAlignPackingSpace(
 FlexboxAxisInfo::FlexboxAxisInfo(const nsIFrame* aFlexContainer) {
   MOZ_ASSERT(aFlexContainer && aFlexContainer->IsFlexContainerFrame(),
              "Only flex containers may be passed to this constructor!");
-  if (IsLegacyBox(aFlexContainer)) {
+  if (aFlexContainer->IsLegacyWebkitBox()) {
     InitAxesFromLegacyProps(aFlexContainer);
   } else {
     InitAxesFromModernProps(aFlexContainer);
@@ -4190,15 +4188,12 @@ void nsFlexContainerFrame::GenerateFlexLines(
     return aLines.EmplaceBack(aMainGapSize);
   };
 
-  const bool isSingleLine =
-      StyleFlexWrap::Nowrap == aReflowInput.mStylePosition->mFlexWrap;
-
   // We have at least one FlexLine. Even an empty flex container has a single
   // (empty) flex line.
   FlexLine* curLine = ConstructNewFlexLine();
 
   nscoord wrapThreshold;
-  if (isSingleLine) {
+  if (IsSingleLine(aReflowInput.mFrame, aReflowInput.mStylePosition)) {
     // Not wrapping. Set threshold to sentinel value that tells us not to wrap.
     wrapThreshold = NS_UNCONSTRAINEDSIZE;
   } else {
@@ -5252,7 +5247,7 @@ bool nsFlexContainerFrame::IsItemInlineAxisMainAxis(nsIFrame* aFrame) {
   const WritingMode flexItemWM = aFrame->GetWritingMode();
   const nsIFrame* flexContainer = aFrame->GetParent();
 
-  if (IsLegacyBox(flexContainer)) {
+  if (flexContainer->IsLegacyWebkitBox()) {
     // For legacy boxes, the main axis is determined by "box-orient", and we can
     // just directly check if that's vertical, and compare that to whether the
     // item's WM is also vertical:
@@ -5433,7 +5428,7 @@ nsFlexContainerFrame::FlexLayoutResult nsFlexContainerFrame::DoFlexLayout(
   }
 
   const auto justifyContent =
-      IsLegacyBox(aReflowInput.mFrame)
+      aReflowInput.mFrame->IsLegacyWebkitBox()
           ? ConvertLegacyStyleToJustifyContent(StyleXUL())
           : aReflowInput.mStylePosition->mJustifyContent;
 
@@ -5595,7 +5590,7 @@ std::tuple<nscoord, nsReflowStatus> nsFlexContainerFrame::ReflowChildren(
   FrameHashtable overflowIncompleteItems;
 
   const bool isSingleLine =
-      StyleFlexWrap::Nowrap == aReflowInput.mStylePosition->mFlexWrap;
+      IsSingleLine(aReflowInput.mFrame, aReflowInput.mStylePosition);
   const FlexLine& startmostLine = StartmostLine(aFlr.mLines, aAxisTracker);
   const FlexLine& endmostLine = EndmostLine(aFlr.mLines, aAxisTracker);
   const FlexItem* startmostItem =
@@ -6500,7 +6495,7 @@ nscoord nsFlexContainerFrame::ComputeIntrinsicISize(
 
   const bool useMozBoxCollapseBehavior =
       StyleVisibility()->UseLegacyCollapseBehavior();
-  const bool isSingleLine = StyleFlexWrap::Nowrap == stylePos->mFlexWrap;
+  const bool isSingleLine = IsSingleLine(this, stylePos);
   const auto flexWM = GetWritingMode();
 
   // The loop below sets aside space for a gap before each item besides the

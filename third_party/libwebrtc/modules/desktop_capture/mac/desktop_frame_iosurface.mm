@@ -12,6 +12,7 @@
 
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/numerics/safe_conversions.h"
 
 namespace webrtc {
 
@@ -42,33 +43,38 @@ std::unique_ptr<DesktopFrameIOSurface> DesktopFrameIOSurface::Wrap(
     return nullptr;
   }
 
-  size_t surfaceWidth = IOSurfaceGetWidth(io_surface.get());
-  size_t surfaceHeight = IOSurfaceGetHeight(io_surface.get());
-  uint8_t* data =
+  const size_t surface_width = IOSurfaceGetWidth(io_surface.get());
+  const size_t surface_height = IOSurfaceGetHeight(io_surface.get());
+  const int32_t stride =
+      checked_cast<int32_t>(IOSurfaceGetBytesPerRow(io_surface.get()));
+  uint8_t* const data =
       static_cast<uint8_t*>(IOSurfaceGetBaseAddress(io_surface.get()));
-  size_t offset = 0;
-  size_t width = surfaceWidth;
-  size_t height = surfaceHeight;
-  size_t offsetColumns = 0;
-  size_t offsetRows = 0;
-  int32_t stride = IOSurfaceGetBytesPerRow(io_surface.get());
+  int32_t width = checked_cast<int32_t>(surface_width);
+  int32_t height = checked_cast<int32_t>(surface_height);
+  ptrdiff_t offset = 0;
+  ptrdiff_t offset_columns = 0;
+  ptrdiff_t offset_rows = 0;
   if (rect.size.width > 0 && rect.size.height > 0) {
-    width = std::floor(rect.size.width);
-    height = std::floor(rect.size.height);
-    offsetColumns = std::ceil(rect.origin.x);
-    offsetRows = std::ceil(rect.origin.y);
-    RTC_CHECK_GE(surfaceWidth, offsetColumns + width);
-    RTC_CHECK_GE(surfaceHeight, offsetRows + height);
-    offset = stride * offsetRows + bytes_per_pixel * offsetColumns;
+    width = checked_cast<int32_t>(std::floor(rect.size.width));
+    height = checked_cast<int32_t>(std::floor(rect.size.height));
+    offset_columns = checked_cast<ptrdiff_t>(std::ceil(rect.origin.x));
+    offset_rows = checked_cast<ptrdiff_t>(std::ceil(rect.origin.y));
+    offset = stride * offset_rows + bytes_per_pixel * offset_columns;
   }
 
   RTC_LOG(LS_VERBOSE) << "DesktopFrameIOSurface wrapping IOSurface with size "
-                      << surfaceWidth << "x" << surfaceHeight
-                      << ". Cropping to (" << offsetColumns << "," << offsetRows
-                      << "; " << width << "x" << height
+                      << surface_width << "x" << surface_height
+                      << ". Cropping to (" << offset_columns << ","
+                      << offset_rows << "; " << width << "x" << height
                       << "). Stride=" << stride / bytes_per_pixel
                       << ", buffer-offset-px=" << offset / bytes_per_pixel
                       << ", buffer-offset-bytes=" << offset;
+
+  RTC_CHECK_GE(surface_width, offset_columns + width);
+  RTC_CHECK_GE(surface_height, offset_rows + height);
+  RTC_CHECK_GE(offset, 0);
+  RTC_CHECK_LE(offset + ((height - 1) * stride) + (width * bytes_per_pixel) - 1,
+               IOSurfaceGetAllocSize(io_surface.get()));
 
   return std::unique_ptr<DesktopFrameIOSurface>(new DesktopFrameIOSurface(
       io_surface, data + offset, width, height, stride));

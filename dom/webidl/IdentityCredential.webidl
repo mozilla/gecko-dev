@@ -20,8 +20,14 @@ interface IdentityCredential : Credential {
  constructor(IdentityCredentialInit init);
 };
 
+enum IdentityCredentialRequestOptionsMode {
+  "active",
+  "passive"
+};
+
 dictionary IdentityCredentialRequestOptions {
  required sequence<IdentityProviderRequestOptions> providers;
+ IdentityCredentialRequestOptionsMode mode = "passive";
 };
 
 enum IdentityLoginTargetType { "redirect", "popup" };

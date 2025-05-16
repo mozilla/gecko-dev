@@ -2531,7 +2531,6 @@ STATIC_ATOMS = [
     PseudoElementAtom("PseudoElement_viewTransitionOld", ":view-transition-old"),
     PseudoElementAtom("PseudoElement_viewTransitionNew", ":view-transition-new"),
     PseudoElementAtom("PseudoElement_mozSnapshotContainingBlock", ":-moz-snapshot-containing-block"),
-    PseudoElementAtom("PseudoElement_mozFocusInner", ":-moz-focus-inner"),
     PseudoElementAtom("PseudoElement_mozNumberSpinBox", ":-moz-number-spin-box"),
     PseudoElementAtom("PseudoElement_mozNumberSpinUp", ":-moz-number-spin-up"),
     PseudoElementAtom("PseudoElement_mozNumberSpinDown", ":-moz-number-spin-down"),

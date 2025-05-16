@@ -30,7 +30,7 @@
 #include "modules/desktop_capture/linux/wayland/base_capturer_pipewire.h"
 #endif
 
-#if defined(WEBRTC_MAC)
+#if defined(WEBRTC_MAC) && !defined(WEBRTC_IOS)
 #include "modules/desktop_capture/mac/screen_capturer_sck.h"
 #endif
 
@@ -121,7 +121,7 @@ std::unique_ptr<DesktopCapturer> DesktopCapturer::CreateGenericCapturer(
     capturer = std::make_unique<BaseCapturerPipeWire>(
         options, CaptureType::kAnyScreenContent);
   }
-#elif defined(WEBRTC_MAC)
+#elif defined(WEBRTC_MAC) && !defined(WEBRTC_IOS)
   capturer = CreateGenericCapturerSck(options);
 #endif
 

@@ -4699,6 +4699,13 @@ class nsIFrame : public nsQueryFrame {
   inline bool IsFlexOrGridContainer() const;
 
   /**
+   * Is this flex container emulating legacy display:-webkit-{inline-}box?
+   *
+   * @note only valid to call on nsFlexContainerFrames.
+   */
+  inline bool IsLegacyWebkitBox() const;
+
+  /**
    * Return true if this frame has masonry layout in aAxis.
    * @note only valid to call on nsGridContainerFrames
    */

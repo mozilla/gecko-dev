@@ -20,10 +20,14 @@ support-files = [
   "server_manifest.json^headers^",
 ]
 
+["browser_autoreauthn_doesnt_show_ui.js"]
+
 ["browser_close_prompt_on_timeout.js"]
 
 ["browser_disconnect.js"]
 
 ["browser_loginStatus.js"]
+
+["browser_passive_requires_connected.js"]
 
 ["browser_single_concurrent_identity_request.js"]

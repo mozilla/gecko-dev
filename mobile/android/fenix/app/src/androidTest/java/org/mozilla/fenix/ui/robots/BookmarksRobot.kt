@@ -1,254 +1,109 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-@file:Suppress("TooManyFunctions")
-
 package org.mozilla.fenix.ui.robots
 
-import android.net.Uri
 import android.util.Log
-import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.action.ViewActions.clearText
-import androidx.test.espresso.action.ViewActions.longClick
-import androidx.test.espresso.action.ViewActions.replaceText
-import androidx.test.espresso.action.ViewActions.typeText
-import androidx.test.espresso.assertion.ViewAssertions.matches
-import androidx.test.espresso.matcher.RootMatchers
-import androidx.test.espresso.matcher.ViewMatchers
-import androidx.test.espresso.matcher.ViewMatchers.hasSibling
-import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
-import androidx.test.espresso.matcher.ViewMatchers.withChild
-import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
-import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
-import androidx.test.espresso.matcher.ViewMatchers.withId
-import androidx.test.espresso.matcher.ViewMatchers.withParent
-import androidx.test.espresso.matcher.ViewMatchers.withText
-import androidx.test.uiautomator.By
-import androidx.test.uiautomator.By.res
-import androidx.test.uiautomator.UiSelector
-import androidx.test.uiautomator.Until
-import org.hamcrest.Matchers.allOf
-import org.hamcrest.Matchers.containsString
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.hasAnySibling
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onChildAt
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import org.mozilla.fenix.R
+import org.mozilla.fenix.helpers.Constants.LONG_CLICK_DURATION
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
-import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
-import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
-import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
-import org.mozilla.fenix.helpers.TestHelper.mDevice
-import org.mozilla.fenix.helpers.TestHelper.packageName
-import org.mozilla.fenix.helpers.TestHelper.snackbarButton
-import org.mozilla.fenix.helpers.TestHelper.waitUntilSnackbarGone
-import org.mozilla.fenix.helpers.click
-import org.mozilla.fenix.helpers.ext.waitNotNull
+import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.ADD_BOOKMARK_FOLDER_NAME_TEXT_FIELD
+import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.EDIT_BOOKMARK_ITEM_TITLE_TEXT_FIELD
+import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.EDIT_BOOKMARK_ITEM_URL_TEXT_FIELD
 
-/**
- * Implementation of Robot Pattern for the bookmarks menu.
- */
-class BookmarksRobot {
+class BookmarksRobot(private val composeTestRule: ComposeTestRule) {
 
-    fun verifyBookmarksMenuView() {
-        Log.i(TAG, "verifyBookmarksMenuView: Waiting for $waitingTimeShort ms for bookmarks view to exist")
-        mDevice.findObject(
-            UiSelector().text("Bookmarks"),
-        ).waitForExists(waitingTimeShort)
-        Log.i(TAG, "verifyBookmarksMenuView: Waited for $waitingTimeShort ms for bookmarks view to exist")
-        Log.i(TAG, "verifyBookmarksMenuView: Trying to verify bookmarks view is displayed")
-        onView(
-            allOf(
-                withText("Bookmarks"),
-                withParent(withId(R.id.navigationToolbar)),
-            ),
-        ).check(matches(isDisplayed()))
-        Log.i(TAG, "verifyBookmarksMenuView: Verified bookmarks view is displayed")
-    }
-
-    fun verifyAddFolderButton() {
-        Log.i(TAG, "verifyAddFolderButton: Trying to verify add bookmarks folder button is visible")
-        addFolderButton().check(matches(withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)))
-        Log.i(TAG, "verifyAddFolderButton: Verified add bookmarks folder button is visible")
-    }
-
-    fun verifyCloseButton() {
-        Log.i(TAG, "verifyCloseButton: Trying to verify close bookmarks section button is visible")
-        closeButton().check(matches(withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)))
-        Log.i(TAG, "verifyCloseButton: Verified close bookmarks section button is visible")
-    }
-
-    fun verifyBookmarkFavicon(forUrl: Uri) {
-        Log.i(TAG, "verifyBookmarkFavicon: Trying to verify bookmarks favicon for $forUrl is visible")
-        bookmarkFavicon(forUrl.toString()).check(
-            matches(
-                withEffectiveVisibility(
-                    ViewMatchers.Visibility.VISIBLE,
-                ),
-            ),
+    @OptIn(ExperimentalTestApi::class)
+    fun verifyEmptyBookmarksMenuView() {
+        Log.i(TAG, "verifyBookmarksMenuView: Waiting for bookmarks header to exist.")
+        composeTestRule.waitUntilExactlyOneExists(
+            hasText("Bookmarks")
+                .and(hasAnySibling(hasContentDescription("Navigate back"))),
         )
-        Log.i(TAG, "verifyBookmarkFavicon: Verified bookmarks favicon for $forUrl is visible")
+        Log.i(TAG, "verifyBookmarksMenuView: Waited for bookmarks header to exist.")
+        Log.i(TAG, "verifyBookmarksMenuView: Trying to verify the empty bookmarks list is displayed.")
+        composeTestRule.onNodeWithText(
+            getStringResource(R.string.bookmark_empty_list_guest_description),
+        ).assertIsDisplayed()
+        Log.i(TAG, "verifyBookmarksMenuView: Verified the empty bookmarks list is displayed.")
     }
 
     fun verifyBookmarkedURL(url: String) {
         Log.i(TAG, "verifyBookmarkedURL: Trying to verify bookmarks url: $url is displayed")
-        bookmarkURL(url).check(matches(isDisplayed()))
+        composeTestRule.onNodeWithText(url).assertIsDisplayed()
         Log.i(TAG, "verifyBookmarkedURL: Verified bookmarks url: $url is displayed")
     }
 
+    @OptIn(ExperimentalTestApi::class)
     fun verifyFolderTitle(title: String) {
-        Log.i(TAG, "verifyFolderTitle: Waiting for $waitingTime ms for bookmarks folder with title: $title to exist")
-        mDevice.findObject(UiSelector().text(title)).waitForExists(waitingTime)
-        Log.i(TAG, "verifyFolderTitle: Waited for $waitingTime ms for bookmarks folder with title: $title to exist")
+        composeTestRule.waitUntilAtLeastOneExists(hasText(title), waitingTime)
         Log.i(TAG, "verifyFolderTitle: Trying to verify bookmarks folder with title: $title is displayed")
-        onView(withText(title)).check(matches(isDisplayed()))
+        composeTestRule.onNodeWithText(title).assertIsDisplayed()
         Log.i(TAG, "verifyFolderTitle: Verified bookmarks folder with title: $title is displayed")
     }
 
-    fun verifyBookmarkFolderIsNotCreated(title: String) {
-        Log.i(TAG, "verifyBookmarkFolderIsNotCreated: Waiting for $waitingTime ms for bookmarks folder with title: $title to exist")
-        mDevice.findObject(
-            UiSelector()
-                .resourceId("$packageName:id/bookmarks_wrapper"),
-        ).waitForExists(waitingTime)
-        Log.i(TAG, "verifyBookmarkFolderIsNotCreated: Waited for $waitingTime ms for bookmarks folder with title: $title to exist")
-
-        assertUIObjectExists(itemContainingText(title), exists = false)
-    }
-
     fun verifyBookmarkTitle(title: String) {
-        Log.i(TAG, "verifyBookmarkTitle: Waiting for $waitingTime ms for bookmark with title: $title to exist")
-        mDevice.findObject(UiSelector().text(title)).waitForExists(waitingTime)
-        Log.i(TAG, "verifyBookmarkTitle: Waited for $waitingTime ms for bookmark with title: $title to exist")
         Log.i(TAG, "verifyBookmarkTitle: Trying to verify bookmark with title: $title is displayed")
-        onView(withText(title)).check(matches(isDisplayed()))
+        composeTestRule.onNodeWithText(title).assertIsDisplayed()
         Log.i(TAG, "verifyBookmarkTitle: Verified bookmark with title: $title is displayed")
     }
 
     fun verifyBookmarkIsDeleted(expectedTitle: String) {
-        Log.i(TAG, "verifyBookmarkIsDeleted: Waiting for $waitingTime ms for bookmarks view to exist")
-        mDevice.findObject(
-            UiSelector()
-                .resourceId("$packageName:id/bookmarks_wrapper"),
-        ).waitForExists(waitingTime)
-        Log.i(TAG, "verifyBookmarkIsDeleted: Waited for $waitingTime ms for bookmarks view to exist")
-        assertUIObjectExists(
-            itemWithResIdContainingText(
-                "$packageName:id/title",
-                expectedTitle,
-            ),
-            exists = false,
-        )
+        Log.i(TAG, "verifyBookmarkIsDeleted: Trying to verify that the bookmarked item : $expectedTitle is not displayed")
+        composeTestRule.onNodeWithText(expectedTitle).assertIsNotDisplayed()
+        Log.i(TAG, "verifyBookmarkIsDeleted: Verified that the bookmarked item : $expectedTitle is not displayed")
     }
 
-    fun verifyUndoDeleteSnackBarButton() {
-        Log.i(TAG, "verifyUndoDeleteSnackBarButton: Trying to verify bookmark deletion undo snack bar button")
-        assertTrue(snackbarButton!!.children.count { it.text == "UNDO" } == 1)
-        Log.i(TAG, "verifyUndoDeleteSnackBarButton: Verified bookmark deletion undo snack bar button")
+    fun verifyEditBookmarksView() {
+        Log.i(TAG, "verifyEditBookmarksView: Trying to verify that the edit bookmark view items are displayed")
+        composeTestRule.onNodeWithContentDescription(getStringResource(R.string.bookmark_navigate_back_button_content_description))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(getStringResource(R.string.edit_bookmark_fragment_title))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription(getStringResource(R.string.bookmark_delete_bookmark_content_description))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithTag(EDIT_BOOKMARK_ITEM_TITLE_TEXT_FIELD)
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithTag(EDIT_BOOKMARK_ITEM_URL_TEXT_FIELD)
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText("Bookmarks").assertIsDisplayed()
+        Log.i(TAG, "verifyEditBookmarksView: Verified that the edit bookmark view items are displayed")
     }
 
-    fun verifySnackBarHidden() {
-        Log.i(TAG, "verifySnackBarHidden: Waiting until undo snack bar button is gone")
-        mDevice.waitNotNull(
-            Until.gone(By.text("UNDO")),
-            waitingTime,
-        )
-        Log.i(TAG, "verifySnackBarHidden: Waited until undo snack bar button was gone")
-        Log.i(TAG, "verifySnackBarHidden: Trying to verify bookmark snack bar does not exist")
-        waitUntilSnackbarGone()
-        Log.i(TAG, "verifySnackBarHidden: Verified bookmark snack bar does not exist")
+    fun clickDeleteBookmarkButtonInEditMode() {
+        Log.i(TAG, "clickDeleteBookmark: Trying to click delete bookmark button in edit mode.")
+        composeTestRule.onNodeWithContentDescription(getStringResource(R.string.bookmark_delete_bookmark_content_description))
+            .performClick()
+        Log.i(TAG, "clickDeleteBookmark: Clicked delete bookmark button in edit mode")
     }
 
-    fun verifyEditBookmarksView() =
-        assertUIObjectExists(
-            itemWithDescription("Navigate up"),
-            itemWithText(getStringResource(R.string.edit_bookmark_fragment_title)),
-            itemWithResId("$packageName:id/delete_bookmark_button"),
-            itemWithResId("$packageName:id/save_bookmark_button"),
-            itemWithResId("$packageName:id/bookmarkNameEdit"),
-            itemWithResId("$packageName:id/bookmarkUrlEdit"),
-            itemWithResId("$packageName:id/bookmarkParentFolderSelector"),
-        )
-
-    fun verifyKeyboardHidden(isExpectedToBeVisible: Boolean) {
-        Log.i(TAG, "assertKeyboardVisibility: Trying to verify that the keyboard is visible: $isExpectedToBeVisible")
-        assertEquals(
-            isExpectedToBeVisible,
-            mDevice
-                .executeShellCommand("dumpsys input_method | grep mInputShown")
-                .contains("mInputShown=true"),
-        )
-        Log.i(TAG, "assertKeyboardVisibility: Verified that the keyboard is visible: $isExpectedToBeVisible")
-    }
-
-    fun verifyShareOverlay() {
-        Log.i(TAG, "verifyShareOverlay: Trying to verify bookmarks sharing overlay is displayed")
-        onView(withId(R.id.shareWrapper)).check(matches(isDisplayed()))
-        Log.i(TAG, "verifyShareOverlay: Verified bookmarks sharing overlay is displayed")
-    }
-
-    fun verifyShareBookmarkFavicon() {
-        Log.i(TAG, "verifyShareBookmarkFavicon: Trying to verify shared bookmarks favicon is displayed")
-        onView(withId(R.id.share_tab_favicon)).check(matches(isDisplayed()))
-        Log.i(TAG, "verifyShareBookmarkFavicon: Verified shared bookmarks favicon is displayed")
-    }
-
-    fun verifyShareBookmarkTitle() {
-        Log.i(TAG, "verifyShareBookmarkTitle: Trying to verify shared bookmarks title is displayed")
-        onView(withId(R.id.share_tab_title)).check(matches(isDisplayed()))
-        Log.i(TAG, "verifyShareBookmarkTitle: Verified shared bookmarks title is displayed")
-    }
-
-    fun verifyShareBookmarkUrl() {
-        Log.i(TAG, "verifyShareBookmarkUrl: Trying to verify shared bookmarks url is displayed")
-        onView(withId(R.id.share_tab_url)).check(matches(isDisplayed()))
-        Log.i(TAG, "verifyShareBookmarkUrl: Verified shared bookmarks url is displayed")
-    }
-
-    fun verifyCurrentFolderTitle(title: String) {
-        Log.i(TAG, "verifyCurrentFolderTitle: Waiting for $waitingTimeShort ms for bookmark with title: $title to exist")
-        mDevice.findObject(
-            UiSelector().resourceId("$packageName:id/navigationToolbar")
-                .textContains(title),
-        ).waitForExists(waitingTimeShort)
-        Log.i(TAG, "verifyCurrentFolderTitle: Waited for $waitingTimeShort ms for bookmark with title: $title to exist")
-        Log.i(TAG, "verifyCurrentFolderTitle: Trying to verify bookmark with title: $title is displayed")
-        onView(
-            allOf(
-                withText(title),
-                withParent(withId(R.id.navigationToolbar)),
-            ),
-        ).check(matches(isDisplayed()))
-        Log.i(TAG, "verifyCurrentFolderTitle: Verified bookmark with title: $title is displayed")
-    }
-
-    fun waitForBookmarksFolderContentToExist(parentFolderName: String, childFolderName: String) {
-        Log.i(TAG, "waitForBookmarksFolderContentToExist: Waiting for $waitingTimeShort ms for navigation toolbar containing bookmark folder with title: $parentFolderName to exist")
-        itemWithResIdContainingText("$packageName:id/navigationToolbar", parentFolderName).waitForExists(waitingTimeShort)
-        Log.i(TAG, "waitForBookmarksFolderContentToExist: Waited for $waitingTimeShort ms for navigation toolbar containing bookmark folder with title: $parentFolderName to exist")
-        Log.i(TAG, "waitForBookmarksFolderContentToExist: Waiting for $waitingTimeShort ms for $childFolderName to exist")
-        itemContainingText(childFolderName).waitForExists(waitingTimeShort)
-        Log.i(TAG, "waitForBookmarksFolderContentToExist: Waited for $waitingTimeShort ms for $childFolderName to exist")
-    }
-
-    fun verifySyncSignInButton() {
-        Log.i(TAG, "verifySyncSignInButton: Trying to verify sign in to sync button is visible")
-        syncSignInButton().check(matches(withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)))
-        Log.i(TAG, "verifySyncSignInButton: Verified sign in to sync button is visible")
+    fun verifyAddFolderView() {
+        Log.i(TAG, "verifyAddFolderView: Trying to verify that the folder name title field is displayed")
+        composeTestRule.addFolderTitleField().assertIsDisplayed()
+        Log.i(TAG, "verifyAddFolderView: Verified that the folder name title field is displayed")
+        Log.i(TAG, "verifyAddFolderView: Trying to verify that the bookmark folder selector is displayed")
+        composeTestRule.bookmarkFolderSelector().assertIsDisplayed()
+        Log.i(TAG, "verifyAddFolderView: Verified that the bookmark folder selector is displayed")
     }
 
     fun cancelFolderDeletion() {
         Log.i(TAG, "cancelFolderDeletion: Trying to click \"Cancel\" bookmarks folder deletion dialog button")
-        onView(withText("CANCEL"))
-            .inRoot(RootMatchers.isDialog())
-            .check(matches(isDisplayed()))
-            .click()
+        composeTestRule.onNodeWithText(getStringResource(R.string.bookmark_delete_negative).uppercase()).performClick()
         Log.i(TAG, "cancelFolderDeletion: Clicked \"Cancel\" bookmarks folder deletion dialog button")
     }
 
@@ -269,244 +124,173 @@ class BookmarksRobot {
 
     fun clickAddFolderButton() {
         Log.i(TAG, "clickAddFolderButton: Trying to click add bookmarks folder button")
-        addFolderButton().click()
+        composeTestRule.addFolderButton().performClick()
         Log.i(TAG, "clickAddFolderButton: Clicked add bookmarks folder button")
+        composeTestRule.waitForIdle()
     }
 
-    fun clickAddNewFolderButtonFromSelectFolderView() {
-        itemWithResId("$packageName:id/add_folder_button")
-            .also {
-                Log.i(TAG, "clickAddNewFolderButtonFromSelectFolderView: Waiting for $waitingTime ms for add bookmarks folder button from folder selection view to exist")
-                it.waitForExists(waitingTime)
-                Log.i(TAG, "clickAddNewFolderButtonFromSelectFolderView: Waited for $waitingTime ms for add bookmarks folder button from folder selection view to exist")
-                Log.i(TAG, "clickAddNewFolderButtonFromSelectFolderView: Trying to click add bookmarks folder button from folder selection view")
-                it.click()
-                Log.i(TAG, "clickAddNewFolderButtonFromSelectFolderView: Clicked add bookmarks folder button from folder selection view")
-            }
+    fun clickSelectFolderNewFolderButton() {
+        Log.i(TAG, "clickSelectFolderNewFolderButton: Trying to click the select new folder button")
+        composeTestRule.selectFolderNewFolderButton().performClick()
+        Log.i(TAG, "clickSelectFolderNewFolderButton: Clicked the select new folder button")
     }
 
     fun addNewFolderName(name: String) {
-        Log.i(TAG, "addNewFolderName: Trying to click add folder name field")
-        addFolderTitleField().click()
-        Log.i(TAG, "addNewFolderName: Clicked to click add folder name field")
         Log.i(TAG, "addNewFolderName: Trying to set bookmarks folder name to: $name")
-        addFolderTitleField().perform(replaceText(name))
+        composeTestRule.addFolderTitleField().performTextInput(name)
         Log.i(TAG, "addNewFolderName: Bookmarks folder name was set to: $name")
     }
 
     fun saveNewFolder() {
-        Log.i(TAG, "saveNewFolder: Trying to click save folder button")
-        saveFolderButton().click()
-        Log.i(TAG, "saveNewFolder: Clicked save folder button")
+        Log.i(TAG, "saveNewFolder: Trying to click navigate up toolbar button")
+        composeTestRule.navigateUpButton().performClick()
+        Log.i(TAG, "saveNewFolder: Clicked the navigate up toolbar button")
     }
 
     fun navigateUp() {
         Log.i(TAG, "navigateUp: Trying to click navigate up toolbar button")
-        goBackButton().click()
+        composeTestRule.navigateUpButton().performClick()
         Log.i(TAG, "navigateUp: Clicked navigate up toolbar button")
     }
 
     fun changeBookmarkTitle(newTitle: String) {
         Log.i(TAG, "changeBookmarkTitle: Trying to clear bookmark name text box")
-        bookmarkNameEditBox().perform(clearText())
+        composeTestRule.bookmarkNameEditBox().performTextClearance()
         Log.i(TAG, "changeBookmarkTitle: Cleared bookmark name text box")
         Log.i(TAG, "changeBookmarkTitle: Trying to set bookmark title to: $newTitle")
-        bookmarkNameEditBox().perform(typeText(newTitle))
+        composeTestRule.bookmarkNameEditBox().performTextInput(newTitle)
         Log.i(TAG, "changeBookmarkTitle: Bookmark title was set to: $newTitle")
     }
 
     fun changeBookmarkUrl(newUrl: String) {
         Log.i(TAG, "changeBookmarkUrl: Trying to clear bookmark url text box")
-        bookmarkURLEditBox().perform(clearText())
+        composeTestRule.bookmarkURLEditBox().performTextClearance()
         Log.i(TAG, "changeBookmarkUrl: Cleared bookmark url text box")
         Log.i(TAG, "changeBookmarkUrl: Trying to set bookmark url to: $newUrl")
-        bookmarkURLEditBox().perform(typeText(newUrl))
+        composeTestRule.bookmarkURLEditBox().performTextInput(newUrl)
         Log.i(TAG, "changeBookmarkUrl: Bookmark url was set to: $newUrl")
     }
 
     fun saveEditBookmark() {
-        Log.i(TAG, "saveEditBookmark: Trying to click save bookmark button")
-        saveBookmarkButton().click()
-        Log.i(TAG, "saveEditBookmark: Clicked save bookmark button")
-        Log.i(TAG, "saveEditBookmark: Waiting for $waitingTime ms for bookmarks list to exist")
-        mDevice.findObject(UiSelector().resourceId("org.mozilla.fenix.debug:id/bookmark_list")).waitForExists(waitingTime)
-        Log.i(TAG, "saveEditBookmark: Waited for $waitingTime ms for bookmarks list to exist")
+        Log.i(TAG, "saveEditBookmark: Trying to click navigate up toolbar button")
+        composeTestRule.navigateUpButton().performClick()
+        Log.i(TAG, "saveEditBookmark: Clicked navigate up toolbar button")
     }
 
     fun clickParentFolderSelector() {
         Log.i(TAG, "clickParentFolderSelector: Trying to click folder selector")
-        bookmarkFolderSelector().click()
+        composeTestRule.bookmarkFolderSelector().performClick()
         Log.i(TAG, "clickParentFolderSelector: Clicked folder selector")
     }
 
     fun selectFolder(title: String) {
         Log.i(TAG, "selectFolder: Trying to click folder with title: $title")
-        onView(withText(title)).click()
+        composeTestRule.onNodeWithText(title).performClick()
         Log.i(TAG, "selectFolder: Clicked folder with title: $title")
     }
 
-    fun longTapDesktopFolder(title: String) {
-        Log.i(TAG, "longTapDesktopFolder: Trying to long tap folder with title: $title")
-        onView(withText(title)).perform(longClick())
-        Log.i(TAG, "longTapDesktopFolder: Long tapped folder with title: $title")
+    fun longClickBookmarkedItem(title: String) {
+        Log.i(TAG, "longClickBookmarkedItem: Trying to long click bookmark with title: $title")
+        composeTestRule.onNodeWithText(title).performTouchInput { longClick(durationMillis = LONG_CLICK_DURATION) }
+        Log.i(TAG, "longClickBookmarkedItem: Long clicked bookmark with title: $title")
     }
 
-    fun cancelDeletion() {
-        val cancelButton = mDevice.findObject(UiSelector().textContains("CANCEL"))
-        Log.i(TAG, "cancelDeletion: Waiting for $waitingTime ms for \"Cancel\" bookmarks deletion button to exist")
-        cancelButton.waitForExists(waitingTime)
-        Log.i(TAG, "cancelDeletion: Waited for $waitingTime ms for \"Cancel\" bookmarks deletion button to exist")
-        Log.i(TAG, "cancelDeletion: Trying to click \"Cancel\" bookmarks deletion button")
-        cancelButton.click()
-        Log.i(TAG, "cancelDeletion: Clicked \"Cancel\" bookmarks deletion button")
+    fun selectBookmarkedItem(title: String) {
+        Log.i(TAG, "selectBookmarkedItem: Trying to click and select bookmark with title: $title")
+        composeTestRule.onNodeWithText(title).performClick()
+        Log.i(TAG, "selectBookmarkedItem: Clicked and selected bookmark with title: $title")
     }
 
     fun confirmDeletion() {
         Log.i(TAG, "confirmDeletion: Trying to click \"Delete\" bookmarks deletion button")
-        onView(withText(R.string.delete_browsing_data_prompt_allow))
-            .inRoot(RootMatchers.isDialog())
-            .check(matches(isDisplayed()))
-            .click()
+        composeTestRule.onNodeWithText("DELETE").performClick()
         Log.i(TAG, "confirmDeletion: Clicked \"Delete\" bookmarks deletion button")
     }
 
-    fun clickDeleteInEditModeButton() {
-        Log.i(TAG, "clickDeleteInEditModeButton: Trying to click delete bookmarks button while in edit mode")
-        deleteInEditModeButton().click()
-        Log.i(TAG, "clickDeleteInEditModeButton: Clicked delete bookmarks button while in edit mode")
+    @OptIn(ExperimentalTestApi::class)
+    fun waitForBookmarksSnackBarToBeGone(snackbarText: String) {
+        Log.i(TAG, "waitForBookmarksSnackBarToBeGone: Waiting for $waitingTime for snackbar: $snackbarText to be gone")
+        composeTestRule.waitUntilDoesNotExist(hasText(snackbarText), waitingTime)
+        Log.i(TAG, "waitForBookmarksSnackBarToBeGone: Waited for $waitingTime for snackbar: $snackbarText to be gone")
     }
 
-    fun selectItem(title: String) {
-        Log.i(TAG, "selectItem: Trying to click item with title: $title")
-        onView(withText(title)).click()
-        Log.i(TAG, "selectItem: Clicked item with title: $title")
-    }
-
-    class Transition {
-        fun closeMenu(interact: HomeScreenRobot.() -> Unit): Transition {
-            Log.i(TAG, "closeMenu: Trying to click close bookmarks section button")
-            closeButton().click()
-            Log.i(TAG, "closeMenu: Clicked close bookmarks section button")
-
-            HomeScreenRobot().interact()
-            return Transition()
-        }
-
-        fun openThreeDotMenu(bookmark: String, interact: ThreeDotMenuBookmarksRobot.() -> Unit): ThreeDotMenuBookmarksRobot.Transition {
-            mDevice.waitNotNull(Until.findObject(res("$packageName:id/overflow_menu")))
-            Log.i(TAG, "openThreeDotMenu: Trying to click three dot button for bookmark item: $bookmark")
-            threeDotMenu(bookmark).click()
-            Log.i(TAG, "openThreeDotMenu: Clicked three dot button for bookmark item: $bookmark")
+    class Transition(private val composeTestRule: ComposeTestRule) {
+        fun openThreeDotMenu(bookmarkedItem: String, interact: ThreeDotMenuBookmarksRobot.() -> Unit): ThreeDotMenuBookmarksRobot.Transition {
+            Log.i(TAG, "openThreeDotMenu: Trying to click three dot button for bookmark item: $bookmarkedItem")
+            composeTestRule.threeDotMenuButton(bookmarkedItem).performClick()
+            Log.i(TAG, "openThreeDotMenu: Clicked three dot button for bookmark item: $bookmarkedItem")
 
             ThreeDotMenuBookmarksRobot().interact()
-            return ThreeDotMenuBookmarksRobot.Transition()
-        }
-
-        fun clickSingInToSyncButton(interact: SettingsTurnOnSyncRobot.() -> Unit): SettingsTurnOnSyncRobot.Transition {
-            Log.i(TAG, "clickSingInToSyncButton: Trying to click sign in to sync button")
-            syncSignInButton().click()
-            Log.i(TAG, "clickSingInToSyncButton: Clicked sign in to sync button")
-
-            SettingsTurnOnSyncRobot().interact()
-            return SettingsTurnOnSyncRobot.Transition()
-        }
-
-        fun goBack(interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition {
-            Log.i(TAG, "goBack: Trying to click go back button")
-            goBackButton().click()
-            Log.i(TAG, "goBack: Clicked go back button")
-
-            HomeScreenRobot().interact()
-            return HomeScreenRobot.Transition()
-        }
-
-        fun goBackToBrowserScreen(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
-            Log.i(TAG, "goBackToBrowserScreen: Trying to click go back button")
-            goBackButton().click()
-            Log.i(TAG, "goBackToBrowserScreen: Clicked go back button")
-
-            BrowserRobot().interact()
-            return BrowserRobot.Transition()
-        }
-
-        fun closeEditBookmarkSection(interact: BookmarksRobot.() -> Unit): Transition {
-            Log.i(TAG, "goBackToBrowserScreen: Trying to click go back button")
-            goBackButton().click()
-            Log.i(TAG, "goBackToBrowserScreen: Clicked go back button")
-
-            BookmarksRobot().interact()
-            return Transition()
+            return ThreeDotMenuBookmarksRobot.Transition(composeTestRule)
         }
 
         fun openBookmarkWithTitle(bookmarkTitle: String, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
-            itemWithResIdAndText("$packageName:id/title", bookmarkTitle)
-                .also {
-                    Log.i(TAG, "openBookmarkWithTitle: Waiting for $waitingTime ms for bookmark with title: $bookmarkTitle")
-                    it.waitForExists(waitingTime)
-                    Log.i(TAG, "openBookmarkWithTitle: Waited for $waitingTime ms for bookmark with title: $bookmarkTitle")
-                    Log.i(TAG, "openBookmarkWithTitle: Trying to click bookmark with title: $bookmarkTitle and wait for $waitingTimeShort ms for a new window")
-                    it.clickAndWaitForNewWindow(waitingTimeShort)
-                    Log.i(TAG, "openBookmarkWithTitle: Clicked bookmark with title: $bookmarkTitle and waited for $waitingTimeShort ms for a new window")
-                }
+            Log.i(TAG, "openBookmarkWithTitle: Trying to click bookmark with title: $bookmarkTitle")
+            composeTestRule.onNodeWithText(bookmarkTitle).performClick()
+            Log.i(TAG, "openBookmarkWithTitle: Clicked bookmark with title: $bookmarkTitle")
 
             BrowserRobot().interact()
             return BrowserRobot.Transition()
         }
 
+        @OptIn(ExperimentalTestApi::class)
         fun clickSearchButton(interact: SearchRobot.() -> Unit): SearchRobot.Transition {
+            Log.i(TAG, "clickSearchButton: Waiting for the search bookmarks button to exist")
+            composeTestRule.waitUntilAtLeastOneExists(hasContentDescription(getStringResource(R.string.bookmark_search_button_content_description)))
+            Log.i(TAG, "clickSearchButton: Waiting for the search bookmarks button to exist")
             Log.i(TAG, "clickSearchButton: Trying to click search bookmarks button")
-            itemWithResId("$packageName:id/bookmark_search").click()
+            composeTestRule.onNodeWithContentDescription(getStringResource(R.string.bookmark_search_button_content_description)).performClick()
             Log.i(TAG, "clickSearchButton: Clicked search bookmarks button")
 
             SearchRobot().interact()
             return SearchRobot.Transition()
         }
+
+        fun goBackToBrowserScreen(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "goBackToBrowserScreen: Trying to click go back button")
+            composeTestRule.onNodeWithContentDescription(getStringResource(R.string.bookmark_navigate_back_button_content_description)).performClick()
+            Log.i(TAG, "goBackToBrowserScreen: Clicked go back button")
+
+            BrowserRobot().interact()
+            return BrowserRobot.Transition()
+        }
+
+        fun goBackToHomeScreen(interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition {
+            Log.i(TAG, "goBackToBrowserScreen: Trying to click go back button")
+            composeTestRule.onNodeWithContentDescription(getStringResource(R.string.bookmark_navigate_back_button_content_description)).performClick()
+            Log.i(TAG, "goBackToBrowserScreen: Clicked go back button")
+
+            HomeScreenRobot().interact()
+            return HomeScreenRobot.Transition()
+        }
     }
 }
 
-fun bookmarksMenu(interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
-    BookmarksRobot().interact()
-    return BookmarksRobot.Transition()
+fun composeBookmarksMenu(composeTestRule: ComposeTestRule, interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
+    BookmarksRobot(composeTestRule).interact()
+    return BookmarksRobot.Transition(composeTestRule)
 }
 
-private fun closeButton() = onView(withId(R.id.close_bookmarks))
+private fun ComposeTestRule.addFolderButton() =
+    onNodeWithContentDescription(getStringResource(R.string.bookmark_select_folder_new_folder_button_title))
 
-private fun goBackButton() = onView(withContentDescription("Navigate up"))
+private fun ComposeTestRule.addFolderTitleField() =
+    onNodeWithTag(ADD_BOOKMARK_FOLDER_NAME_TEXT_FIELD).onChildAt(0)
 
-private fun bookmarkFavicon(url: String) = onView(
-    allOf(
-        withId(R.id.favicon),
-        withParent(
-            withParent(
-                withChild(allOf(withId(R.id.url), withText(url))),
-            ),
-        ),
-    ),
-)
+private fun ComposeTestRule.navigateUpButton() =
+    onNodeWithContentDescription(getStringResource(R.string.bookmark_navigate_back_button_content_description))
 
-private fun bookmarkURL(url: String) = onView(allOf(withId(R.id.url), withText(containsString(url))))
+private fun ComposeTestRule.threeDotMenuButton(bookmarkedItem: String) =
+    onNodeWithContentDescription("Item Menu for $bookmarkedItem")
 
-private fun addFolderButton() = onView(withId(R.id.add_bookmark_folder))
+private fun ComposeTestRule.bookmarkNameEditBox() =
+    onNodeWithTag(EDIT_BOOKMARK_ITEM_TITLE_TEXT_FIELD).onChildAt(0)
 
-private fun addFolderTitleField() = onView(withId(R.id.bookmarkNameEdit))
+private fun ComposeTestRule.bookmarkFolderSelector() =
+    onNodeWithText("Bookmarks")
 
-private fun saveFolderButton() = onView(withId(R.id.confirm_add_folder_button))
+private fun ComposeTestRule.bookmarkURLEditBox() =
+    onNodeWithTag(EDIT_BOOKMARK_ITEM_URL_TEXT_FIELD).onChildAt(0)
 
-private fun threeDotMenu(bookmark: String) = onView(
-    allOf(
-        withId(R.id.overflow_menu),
-        hasSibling(withText(bookmark)),
-    ),
-)
-
-private fun bookmarkNameEditBox() = onView(withId(R.id.bookmarkNameEdit))
-
-private fun bookmarkFolderSelector() = onView(withId(R.id.bookmarkParentFolderSelector))
-
-private fun bookmarkURLEditBox() = onView(withId(R.id.bookmarkUrlEdit))
-
-private fun saveBookmarkButton() = onView(withId(R.id.save_bookmark_button))
-
-private fun deleteInEditModeButton() = onView(withId(R.id.delete_bookmark_button))
-
-private fun syncSignInButton() = onView(withId(R.id.bookmark_folders_sign_in))
+private fun ComposeTestRule.selectFolderNewFolderButton() =
+    onNodeWithText(getStringResource(R.string.bookmark_select_folder_new_folder_button_title))

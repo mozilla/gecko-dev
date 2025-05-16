@@ -34,6 +34,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExtensionSettingsStore:
     "resource://gre/modules/ExtensionSettingsStore.sys.mjs",
   HomePage: "resource:///modules/HomePage.sys.mjs",
+  Region: "resource://gre/modules/Region.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   UTEventReporting: "resource://newtab/lib/UTEventReporting.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
@@ -59,7 +60,6 @@ const PREF_SHOW_SPONSORED_STORIES = "showSponsored";
 const PREF_SHOW_SPONSORED_TOPSITES = "showSponsoredTopSites";
 const BLANK_HOMEPAGE_URL = "chrome://browser/content/blanktab.html";
 const PREF_PRIVATE_PING_ENABLED = "telemetry.privatePing.enabled";
-const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
 const PREF_NEWTAB_PING_ENABLED = "browser.newtabpage.ping.enabled";
 
 // This is a mapping table between the user preferences and its encoding code
@@ -218,21 +218,25 @@ export class TelemetryFeed {
   }
 
   /**
-   * Retrieves most recently followed sections, ordered alphabetically. (maximum 2 sections)
+   * Retrieves most recently followed sections (maximum 2 sections)
    * @returns {String[]} comma separated string of section UUID's
    */
   getFollowedSections() {
-    const followedString = this._prefs.get(PREF_FOLLOWED_SECTIONS);
+    const sections =
+      this.store.getState()?.DiscoveryStream.sectionPersonalization;
 
-    if (followedString?.length) {
-      const items = followedString
-        .split(",")
-        .map(item => item.trim())
-        .filter(_item => _item);
-      return items.slice(-2).sort();
-    }
+    // filter to only include followedTopics
+    const followed = Object.entries(sections).filter(
+      ([, info]) => info.isFollowed
+    );
+    // sort from most recently followed to oldest. If followedAt is falsey, treat it as the oldest
+    followed.sort((a, b) => {
+      const aDate = a[1].followedAt ? new Date(a[1].followedAt) : 0;
+      const bDate = b[1].followedAt ? new Date(b[1].followedAt) : 0;
+      return bDate - aDate;
+    });
 
-    return [];
+    return followed.slice(0, 2).map(([sectionId]) => sectionId);
   }
 
   setLoadTriggerInfo(port) {
@@ -952,8 +956,7 @@ export class TelemetryFeed {
       Glean.newtabContent.followedSections.set(followed);
     }
     Glean.newtabContent.coarseOs.set(lazy.NewTabUtils.normalizeOs());
-    // if os.version is undefined pass "0"
-    Glean.newtabContent.coarseOsVersion.set(this.clientInfo.os.version || "0");
+    Glean.newtabContent.country.set(lazy.Region.home);
     Glean.newtabContent.utcOffset.set(lazy.NewTabUtils.getUtcOffset());
     Glean.newtabContent.activeExperiments.set(
       await expContext.activeExperiments

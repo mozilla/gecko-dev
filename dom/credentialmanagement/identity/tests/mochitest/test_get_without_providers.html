@@ -10,6 +10,7 @@
     SimpleTest.waitForExplicitFinish();
     setupTest("get_without_providers").then(
       function () {
+        SpecialPowers.wrap(document).notifyUserGestureActivation();
         return navigator.credentials.get({
           identity: {
           }

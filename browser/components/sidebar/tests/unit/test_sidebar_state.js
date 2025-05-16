@@ -8,7 +8,7 @@ const { sinon } = ChromeUtils.importESModule(
 );
 
 const { SidebarState } = ChromeUtils.importESModule(
-  "resource:///modules/SidebarState.sys.mjs"
+  "moz-src:///browser/components/sidebar/SidebarState.sys.mjs"
 );
 
 const mockElement = {

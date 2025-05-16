@@ -31,8 +31,6 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
 
 /** @typedef {import("./PrefFlipsFeature.sys.mjs").PrefBranch} PrefBranch */
 
-const TELEMETRY_DEFAULT_EXPERIMENT_TYPE = "nimbus";
-
 const IS_MAIN_PROCESS =
   Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT;
 
@@ -581,7 +579,6 @@ export class ExperimentManager {
   _enroll(
     {
       slug,
-      experimentType = TELEMETRY_DEFAULT_EXPERIMENT_TYPE,
       userFacingName,
       userFacingDescription,
       featureIds,
@@ -612,12 +609,12 @@ export class ExperimentManager {
       slug,
       branch,
       active: true,
-      experimentType,
       source,
       userFacingName,
       userFacingDescription,
       lastSeen: new Date().toJSON(),
       featureIds,
+      isRollout,
       prefs,
     };
 
@@ -636,16 +633,7 @@ export class ExperimentManager {
       });
     }
 
-    if (typeof isRollout !== "undefined") {
-      enrollment.isRollout = isRollout;
-    }
-
-    if (isRollout) {
-      enrollment.experimentType = "rollout";
-      this.store.addEnrollment(enrollment);
-    } else {
-      this.store.addEnrollment(enrollment);
-    }
+    this.store.addEnrollment(enrollment);
 
     lazy.NimbusTelemetry.recordEnrollment(enrollment);
 

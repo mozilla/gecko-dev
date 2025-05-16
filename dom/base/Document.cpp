@@ -20258,7 +20258,6 @@ bool Document::AllowsDeclarativeShadowRoots() const {
 }
 
 static already_AddRefed<Document> CreateHTMLDocument(GlobalObject& aGlobal,
-                                                     bool aLoadedAsData,
                                                      ErrorResult& aError) {
   nsCOMPtr<nsIURI> uri;
   aError = NS_NewURI(getter_AddRefs(uri), "about:blank");
@@ -20267,9 +20266,9 @@ static already_AddRefed<Document> CreateHTMLDocument(GlobalObject& aGlobal,
   }
 
   nsCOMPtr<Document> doc;
-  aError =
-      NS_NewHTMLDocument(getter_AddRefs(doc), aGlobal.GetSubjectPrincipal(),
-                         aGlobal.GetSubjectPrincipal(), aLoadedAsData);
+  aError = NS_NewHTMLDocument(
+      getter_AddRefs(doc), aGlobal.GetSubjectPrincipal(),
+      aGlobal.GetSubjectPrincipal(), /* aLoadedAsData */ true);
   if (aError.Failed()) {
     return nullptr;
   }
@@ -20309,9 +20308,7 @@ already_AddRefed<Document> Document::ParseHTMLUnsafe(
 
   // Step 2. Let document be a new Document, whose content type is "text/html".
   // Step 3. Set document’s allow declarative shadow roots to true.
-  // TODO: Figure out if we can always loadAsData.
-  RefPtr<Document> doc =
-      CreateHTMLDocument(aGlobal, /* aLoadedAsData */ sanitize, aError);
+  RefPtr<Document> doc = CreateHTMLDocument(aGlobal, aError);
   if (aError.Failed()) {
     return nullptr;
   }
@@ -20356,8 +20353,7 @@ already_AddRefed<Document> Document::ParseHTML(GlobalObject& aGlobal,
                                                ErrorResult& aError) {
   // Step 1. Let document be a new Document, whose content type is "text/html".
   // Step 2. Set document’s allow declarative shadow roots to true.
-  RefPtr<Document> doc =
-      CreateHTMLDocument(aGlobal, /* aLoadedAsData */ true, aError);
+  RefPtr<Document> doc = CreateHTMLDocument(aGlobal, aError);
   if (aError.Failed()) {
     return nullptr;
   }

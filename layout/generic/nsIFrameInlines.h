@@ -35,6 +35,13 @@ bool nsIFrame::IsFlexOrGridItem() const {
          GetParent()->IsFlexOrGridContainer();
 }
 
+bool nsIFrame::IsLegacyWebkitBox() const {
+  MOZ_ASSERT(
+      IsFlexContainerFrame(),
+      "The state-bit is meaningful when this is a nsFlexContainerFrame!");
+  return HasAnyStateBits(NS_STATE_FLEX_IS_EMULATING_LEGACY_WEBKIT_BOX);
+}
+
 bool nsIFrame::IsMasonry(mozilla::LogicalAxis aAxis) const {
   MOZ_DIAGNOSTIC_ASSERT(IsGridContainerFrame());
   return HasAnyStateBits(aAxis == mozilla::LogicalAxis::Block

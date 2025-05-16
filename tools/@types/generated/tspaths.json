@@ -1259,12 +1259,6 @@
       "resource:///modules/ShoppingUtils.sys.mjs": [
         "browser/components/shopping/ShoppingUtils.sys.mjs"
       ],
-      "resource:///modules/SidebarManager.sys.mjs": [
-        "browser/components/sidebar/SidebarManager.sys.mjs"
-      ],
-      "resource:///modules/SidebarState.sys.mjs": [
-        "browser/components/sidebar/SidebarState.sys.mjs"
-      ],
       "resource:///modules/SiteDataManager.sys.mjs": [
         "browser/modules/SiteDataManager.sys.mjs"
       ],

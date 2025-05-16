@@ -367,13 +367,15 @@ class IsItemInRangeComparator {
     Maybe<int32_t> cmp = ComparePoints(
         &mNode, mEndOffset, aRange->GetMayCrossShadowBoundaryStartContainer(),
         aRange->MayCrossShadowBoundaryStartOffset(), mCache);
-    MOZ_ASSERT(cmp.isSome());  // Should always be connected at this point.
-    if (cmp.value() == 1) {
+    // nsContentUtils::ComparePoints would return Nothing when nodes
+    // are disconnected, ComparePoints_Deprecated used to return 1
+    // for that case. Hence valueOr(1) to keep the legacy result.
+    if (cmp.valueOr(1) == 1) {
       cmp = ComparePoints(&mNode, mStartOffset,
                           aRange->GetMayCrossShadowBoundaryEndContainer(),
                           aRange->MayCrossShadowBoundaryEndOffset(), mCache);
-      MOZ_ASSERT(cmp.isSome());
-      if (cmp.value() == -1) {
+      // Same reason as above.
+      if (cmp.valueOr(1) == -1) {
         return 0;
       }
       return 1;
@@ -453,12 +455,23 @@ bool nsINode::IsSelected(const uint32_t aStartOffset, const uint32_t aEndOffset,
           }
         }
 
+        auto ComparePoints = [](const ConstRawRangeBoundary& aBoundary1,
+                                const RangeBoundary& aBoundary2,
+                                nsContentUtils::NodeIndexCache* aCache) {
+          if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
+            return nsContentUtils::ComparePoints<TreeKind::Flat>(
+                aBoundary1, aBoundary2, aCache);
+          }
+          return nsContentUtils::ComparePoints<TreeKind::ShadowIncludingDOM>(
+              aBoundary1, aBoundary2, aCache);
+        };
+
         const AbstractRange* middlePlus1;
         const AbstractRange* middleMinus1;
         // if node end > start of middle+1, result = 1
         if (middle + 1 < high &&
             (middlePlus1 = selection->GetAbstractRangeAt(middle + 1)) &&
-            nsContentUtils::ComparePoints(
+            ComparePoints(
                 ConstRawRangeBoundary(this, aEndOffset,
                                       RangeBoundaryIsMutationObserved::No),
                 middlePlus1->StartRef(), &cache)
@@ -467,11 +480,10 @@ bool nsINode::IsSelected(const uint32_t aStartOffset, const uint32_t aEndOffset,
           // if node start < end of middle - 1, result = -1
         } else if (middle >= 1 &&
                    (middleMinus1 = selection->GetAbstractRangeAt(middle - 1)) &&
-                   nsContentUtils::ComparePoints(
-                       ConstRawRangeBoundary(
-                           this, aStartOffset,
-                           RangeBoundaryIsMutationObserved::No),
-                       middleMinus1->EndRef(), &cache)
+                   ComparePoints(ConstRawRangeBoundary(
+                                     this, aStartOffset,
+                                     RangeBoundaryIsMutationObserved::No),
+                                 middleMinus1->EndRef(), &cache)
                            .valueOr(1) < 0) {
           result = -1;
         } else {

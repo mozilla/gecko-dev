@@ -1,0 +1,32 @@
+<!doctype html>
+<head>
+<link rel="match" href="cross-shadow-boundary-slot-complex-4-ref.html"/>
+</head>
+<div>
+  <template shadowrootmode="open">
+    <div>
+      <div>
+        <div>
+          <slot name="s1"></slot>
+        </div>
+      </div>
+      <div>
+        <div>
+          <slot name="s2"></slot>
+        </div>
+      </div>
+    </div>
+  </template>
+  <div slot="s2">
+    <span>Prev</span>
+    <span id="end">End</span>
+  </div>
+  <div slot="s1">
+    <span id="start">Start</span>
+  </div>
+</div>
+<script>
+  // Start
+  // Prev
+  window.getSelection().setBaseAndExtent(start,0,end, 0);
+</script>

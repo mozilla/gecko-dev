@@ -90,7 +90,7 @@ class MOZ_STACK_CLASS FlexboxAxisInfo final {
   // Helpers for constructor which determine the orientation of our axes, based
   // on legacy box properties (-webkit-box-orient, -webkit-box-direction) or
   // modern flexbox properties (flex-direction, flex-wrap) depending on whether
-  // the flex container is a "legacy box" (as determined by IsLegacyBox).
+  // the flex container is a "legacy webkit box".
   void InitAxesFromLegacyProps(const nsIFrame* aFlexContainer);
   void InitAxesFromModernProps(const nsIFrame* aFlexContainer);
 };
@@ -100,8 +100,7 @@ class MOZ_STACK_CLASS FlexboxAxisInfo final {
  * "display: flex" or "display: inline-flex".
  *
  * We also use this class for elements with "display: -webkit-box" or
- * "display: -webkit-inline-box" (but not "-moz-box" / "-moz-inline-box" --
- * those are rendered with old-school XUL frame classes).
+ * "display: -webkit-inline-box".
  *
  * Note: we represent the -webkit-box family of properties (-webkit-box-orient,
  * -webkit-box-flex, etc.) as aliases for their -moz equivalents.  And for

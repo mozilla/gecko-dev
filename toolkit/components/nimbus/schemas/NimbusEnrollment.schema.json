@@ -31,10 +31,6 @@
       "$ref": "#/$defs/DesktopExperimentBranch",
       "description": "Branch configuration for the experiment"
     },
-    "experimentType": {
-      "type": "string",
-      "description": "What kind of experiment this enrollment corresponds to."
-    },
     "active": {
       "type": "boolean",
       "description": "Whether or not the enrollment is active."
@@ -43,10 +39,6 @@
       "type": "string",
       "format": "date-time",
       "description": "The last time the experiment was seen."
-    },
-    "force": {
-      "type": "boolean",
-      "description": "Whether or not this was a force enrollment."
     },
     "prefs": {
       "type": "array",

@@ -42,7 +42,8 @@ class API_AVAILABLE(macos(14.0)) SckPickerHandleInterface {
 
 // Returns a newly created picker handle if the stream count limit has not been
 // reached, null otherwise.
-std::unique_ptr<SckPickerHandleInterface> API_AVAILABLE(macos(14.0)) CreateSckPickerHandle();
+std::unique_ptr<SckPickerHandleInterface> API_AVAILABLE(macos(14.0))
+    CreateSckPickerHandle();
 
 }  // namespace webrtc
 

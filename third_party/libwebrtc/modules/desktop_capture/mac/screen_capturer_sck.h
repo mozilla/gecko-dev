@@ -21,8 +21,8 @@ namespace webrtc {
 // Returns true if the ScreenCaptureKit capturer is available.
 bool ScreenCapturerSckAvailable();
 
-// Returns true if the ScreenCaptureKit capturer is available using SCContentSharingPicker
-// for picking a generic source.
+// Returns true if the ScreenCaptureKit capturer is available using
+// SCContentSharingPicker for picking a generic source.
 bool GenericCapturerSckWithPickerAvailable();
 
 // A DesktopCapturer implementation that uses ScreenCaptureKit.

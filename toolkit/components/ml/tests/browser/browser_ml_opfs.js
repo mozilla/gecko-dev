@@ -11,8 +11,7 @@ const { OPFS } = ChromeUtils.importESModule(
 );
 
 add_task(async function test_opfs_file() {
-  const iconUrl =
-    "chrome://mochitests/content/browser/toolkit/components/ml/tests/browser/data/mozilla-logo.webp";
+  const iconUrl = "chrome://global/content/ml/mozilla-logo.webp";
   const icon = await new OPFS.File({
     urls: [iconUrl],
     localPath: "/icons/icon.webp",

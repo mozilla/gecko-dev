@@ -937,7 +937,9 @@ void Selection::SetAnchorFocusRange(size_t aIndex) {
   mAnchorFocusRange = anchorFocusRange->AsDynamicRange();
 }
 
-template <typename PT, typename RT>
+template <TreeKind aKind, typename PT, typename RT,
+          typename = std::enable_if_t<aKind == TreeKind::ShadowIncludingDOM ||
+                                      aKind == TreeKind::Flat>>
 static int32_t CompareToRangeStart(
     const RangeBoundaryBase<PT, RT>& aCompareBoundary,
     const AbstractRange& aRange, nsContentUtils::NodeIndexCache* aCache) {
@@ -952,26 +954,25 @@ static int32_t CompareToRangeStart(
         "`CompareToRangeStart` couldn't compare nodes, pretending some order.");
     return 1;
   }
-
-  nsINode* start = aRange.GetMayCrossShadowBoundaryStartContainer();
-  uint32_t startOffset = aRange.MayCrossShadowBoundaryStartOffset();
-  if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
-    return *nsContentUtils::ComparePoints<TreeKind::Flat>(
-        aCompareBoundary, ConstRawRangeBoundary{start, startOffset}, aCache);
-  }
-
-  return *nsContentUtils::ComparePoints<TreeKind::ShadowIncludingDOM>(
-      aCompareBoundary, ConstRawRangeBoundary{start, startOffset}, aCache);
+  return *nsContentUtils::ComparePoints<aKind>(
+      aCompareBoundary,
+      ConstRawRangeBoundary{aRange.GetMayCrossShadowBoundaryStartContainer(),
+                            aRange.MayCrossShadowBoundaryStartOffset()},
+      aCache);
 }
 
-template <typename PT, typename RT>
+template <TreeKind aKind, typename PT, typename RT,
+          typename = std::enable_if_t<aKind == TreeKind::ShadowIncludingDOM ||
+                                      aKind == TreeKind::Flat>>
 static int32_t CompareToRangeStart(
     const RangeBoundaryBase<PT, RT>& aCompareBoundary,
     const AbstractRange& aRange) {
-  return CompareToRangeStart(aCompareBoundary, aRange, nullptr);
+  return CompareToRangeStart<aKind>(aCompareBoundary, aRange, nullptr);
 }
 
-template <typename PT, typename RT>
+template <TreeKind aKind, typename PT, typename RT,
+          typename = std::enable_if_t<aKind == TreeKind::ShadowIncludingDOM ||
+                                      aKind == TreeKind::Flat>>
 static int32_t CompareToRangeEnd(
     const RangeBoundaryBase<PT, RT>& aCompareBoundary,
     const AbstractRange& aRange) {
@@ -1053,10 +1054,22 @@ nsresult Selection::StyledRanges::SubtractRange(
   }
 
   // First we want to compare to the range start
-  int32_t cmp{CompareToRangeStart(range->StartRef(), aSubtract)};
+  int32_t cmp = [&range, &aSubtract]() {
+    if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
+      return CompareToRangeStart<TreeKind::Flat>(range->StartRef(), aSubtract);
+    }
+    return CompareToRangeStart<TreeKind::ShadowIncludingDOM>(range->StartRef(),
+                                                             aSubtract);
+  }();
 
   // Also, make a comparison to the range end
-  int32_t cmp2{CompareToRangeEnd(range->EndRef(), aSubtract)};
+  int32_t cmp2 = [&range, &aSubtract]() {
+    if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
+      return CompareToRangeEnd<TreeKind::Flat>(range->EndRef(), aSubtract);
+    }
+    return CompareToRangeEnd<TreeKind::ShadowIncludingDOM>(range->EndRef(),
+                                                           aSubtract);
+  }();
 
   // If the existing range left overlaps the new range (aSubtract) then
   // cmp < 0, and cmp2 < 0
@@ -1425,8 +1438,15 @@ nsresult Selection::StyledRanges::MaybeAddRangeAndTruncateOverlaps(
 
   // Insert the new element into our "leftovers" array
   // `aRange` is positioned, so it has to have a start container.
-  size_t insertionPoint{
-      FindInsertionPoint(&temp, aRange->StartRef(), CompareToRangeStart)};
+  size_t insertionPoint = [&temp, &aRange]() {
+    if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
+      return FindInsertionPoint(&temp, aRange->StartRef(),
+                                CompareToRangeStart<TreeKind::Flat>);
+    };
+    return FindInsertionPoint(
+        &temp, aRange->StartRef(),
+        CompareToRangeStart<TreeKind::ShadowIncludingDOM>);
+  }();
 
   temp.InsertElementAt(insertionPoint, StyledRange(aRange));
 
@@ -1659,8 +1679,12 @@ void Selection::StyledRanges::ReorderRangesIfNecessary() {
       // Calling ComparePoints here saves one call of
       // AbstractRange::StartOffset() per iteration (which is surprisingly
       // expensive).
-      const Maybe<int32_t> compareResult = nsContentUtils::ComparePoints(
-          range.mRange->StartRef(), previousStartRef, &cache);
+      const Maybe<int32_t> compareResult =
+          StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
+              ? nsContentUtils::ComparePoints<TreeKind::Flat>(
+                    range.mRange->StartRef(), previousStartRef, &cache)
+              : nsContentUtils::ComparePoints<TreeKind::ShadowIncludingDOM>(
+                    range.mRange->StartRef(), previousStartRef, &cache);
       // If the nodes are in different subtrees, the Maybe is empty.
       // Since CompareToRangeStart pretends ranges to be ordered, this aligns
       // to that behavior.
@@ -1671,9 +1695,19 @@ void Selection::StyledRanges::ReorderRangesIfNecessary() {
       previousStartRef = range.mRange->StartRef().AsRaw();
     }
     if (rangeOrderHasChanged) {
-      mRanges.Sort([&cache](const StyledRange& a, const StyledRange& b) -> int {
-        return CompareToRangeStart(a.mRange->StartRef(), *b.mRange, &cache);
-      });
+      std::function<int32_t(const StyledRange&, const StyledRange&)> compare;
+      if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
+        compare = [&cache](const StyledRange& a, const StyledRange& b) {
+          return CompareToRangeStart<TreeKind::Flat>(a.mRange->StartRef(),
+                                                     *b.mRange, &cache);
+        };
+      } else {
+        compare = [&cache](const StyledRange& a, const StyledRange& b) {
+          return CompareToRangeStart<TreeKind::ShadowIncludingDOM>(
+              a.mRange->StartRef(), *b.mRange, &cache);
+        };
+      }
+      mRanges.Sort(compare);
     }
     mDocumentGeneration = currentDocumentGeneration;
     mRangesMightHaveChanged = false;
@@ -1706,11 +1740,20 @@ nsresult Selection::StyledRanges::GetIndicesForInterval(
 
   // Ranges that end before the given interval and begin after the given
   // interval can be discarded
-  size_t endsBeforeIndex{FindInsertionPoint(
-      &mRanges,
-      ConstRawRangeBoundary(aEndNode, aEndOffset,
-                            RangeBoundaryIsMutationObserved::No),
-      &CompareToRangeStart)};
+  size_t endsBeforeIndex = [this, &aEndNode, &aEndOffset]() {
+    if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
+      return FindInsertionPoint(
+          &mRanges,
+          ConstRawRangeBoundary(aEndNode, aEndOffset,
+                                RangeBoundaryIsMutationObserved::No),
+          &CompareToRangeStart<TreeKind::Flat>);
+    }
+    return FindInsertionPoint(
+        &mRanges,
+        ConstRawRangeBoundary(aEndNode, aEndOffset,
+                              RangeBoundaryIsMutationObserved::No),
+        &CompareToRangeStart<TreeKind::ShadowIncludingDOM>);
+  }();
 
   if (endsBeforeIndex == 0) {
     const AbstractRange* endRange = mRanges[endsBeforeIndex].mRange;
@@ -1731,11 +1774,20 @@ nsresult Selection::StyledRanges::GetIndicesForInterval(
   }
   aEndIndex.emplace(endsBeforeIndex);
 
-  size_t beginsAfterIndex{FindInsertionPoint(
-      &mRanges,
-      ConstRawRangeBoundary(aBeginNode, aBeginOffset,
-                            RangeBoundaryIsMutationObserved::No),
-      &CompareToRangeEnd)};
+  size_t beginsAfterIndex = [this, &aBeginNode, &aBeginOffset]() {
+    if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
+      return FindInsertionPoint(
+          &mRanges,
+          ConstRawRangeBoundary(aBeginNode, aBeginOffset,
+                                RangeBoundaryIsMutationObserved::No),
+          &CompareToRangeEnd<TreeKind::Flat>);
+    }
+    return FindInsertionPoint(
+        &mRanges,
+        ConstRawRangeBoundary(aBeginNode, aBeginOffset,
+                              RangeBoundaryIsMutationObserved::No),
+        &CompareToRangeEnd<TreeKind::ShadowIncludingDOM>);
+  }();
 
   if (beginsAfterIndex == mRanges.Length()) {
     return NS_OK;  // optimization: all ranges are strictly before us
@@ -4281,7 +4333,8 @@ void Selection::SetBaseAndExtentInternal(InLimiter aInLimiter,
   //     new nsRange instance?
   SelectionBatcher batch(this, __FUNCTION__);
   const Maybe<int32_t> order =
-      StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
+      StaticPrefs::dom_shadowdom_selection_across_boundary_enabled() &&
+              !IsEditorSelection()
           ? nsContentUtils::ComparePoints<TreeKind::Flat>(aAnchorRef, aFocusRef)
           : nsContentUtils::ComparePoints<TreeKind::ShadowIncludingDOM>(
                 aAnchorRef, aFocusRef);
