@@ -76,7 +76,7 @@ To Setup Firefox for Android
 
 .. code-block:: shell
 
-    $ curl -L  https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/python/mozboot/bin/bootstrap.py -O
+    $ curl -L https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/python/mozboot/bin/bootstrap.py -O
 
     $ python3 bootstrap.py
 
@@ -96,6 +96,11 @@ linting and other features integrated, saves you time and will help with reducin
 build and reviews cycles.
 
 See our :ref:`editor page for more information about how to set up your favorite editor <Editor / IDE integration>`.
+
+More advanced git configuration
+-------------------------------
+
+See the :ref:`Git tips and tricks page <Git Tricks>` to use a personal fork, and for other useful git configurations.
 
 To build & run
 --------------
