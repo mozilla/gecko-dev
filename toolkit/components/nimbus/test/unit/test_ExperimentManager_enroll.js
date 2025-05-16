@@ -313,6 +313,14 @@ add_task(async function test_failure_name_conflict() {
 
   sandbox.spy(NimbusTelemetry, "recordEnrollmentFailure");
 
+  Services.fog.applyServerKnobsConfig(
+    JSON.stringify({
+      metrics_enabled: {
+        "nimbus_events.enrollment_status": true,
+      },
+    })
+  );
+
   // Check that there aren't any Glean enroll_failed events yet
   Assert.equal(
     Glean.nimbusEvents.enrollFailed.testGetValue("events"),
@@ -683,6 +691,14 @@ add_task(async function test_forceEnroll_cleanup() {
 
   await manager.enroll(existingRecipe, "test_forceEnroll_cleanup");
 
+  Services.fog.applyServerKnobsConfig(
+    JSON.stringify({
+      metrics_enabled: {
+        "nimbus_events.enrollment_status": true,
+      },
+    })
+  );
+
   sandbox.spy(NimbusTelemetry, "setExperimentActive");
   manager.forceEnroll(forcedRecipe, forcedRecipe.branches[0]);
 
@@ -691,12 +707,6 @@ add_task(async function test_forceEnroll_cleanup() {
       .testGetValue("events")
       ?.map(ev => ev.extra),
     [
-      {
-        slug: "foo",
-        branch: "treatment",
-        reason: "Qualified",
-        status: "Enrolled",
-      },
       {
         slug: "foo",
         branch: "treatment",

@@ -1701,6 +1701,13 @@ add_task(async function test_prefChange() {
     expectedUser = null,
   }) {
     Services.fog.testResetFOG();
+    Services.fog.applyServerKnobsConfig(
+      JSON.stringify({
+        metrics_enabled: {
+          "nimbus_events.enrollment_status": true,
+        },
+      })
+    );
     Services.telemetry.snapshotEvents(
       Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
       /* clear = */ true
