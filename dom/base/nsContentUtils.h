@@ -3665,6 +3665,9 @@ class nsContentUtils {
    * Return 1 if aChild2 is a preceding sibling of a child at aOffset1.
    * Return Nothing if aChild2 is a root of the native anonymous subtree.
    */
+  template <TreeKind aKind,
+            typename = std::enable_if_t<aKind == TreeKind::ShadowIncludingDOM ||
+                                        aKind == TreeKind::Flat>>
   static mozilla::Maybe<int32_t> CompareChildOffsetAndChildNode(
       uint32_t aOffset1, const nsINode& aChild2,
       NodeIndexCache* aIndexCache = nullptr);
@@ -3675,6 +3678,9 @@ class nsContentUtils {
    * Return 1 if aChild1 is a following sibling of a child at aOffset2.
    * Return Nothing if aChild1 is a root of the native anonymous subtree.
    */
+  template <TreeKind aKind,
+            typename = std::enable_if_t<aKind == TreeKind::ShadowIncludingDOM ||
+                                        aKind == TreeKind::Flat>>
   static mozilla::Maybe<int32_t> CompareChildNodeAndChildOffset(
       const nsINode& aChild1, uint32_t aOffset2,
       NodeIndexCache* aIndexCache = nullptr);

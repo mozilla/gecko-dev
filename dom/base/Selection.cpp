@@ -4333,7 +4333,8 @@ void Selection::SetBaseAndExtentInternal(InLimiter aInLimiter,
   //     new nsRange instance?
   SelectionBatcher batch(this, __FUNCTION__);
   const Maybe<int32_t> order =
-      StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
+      StaticPrefs::dom_shadowdom_selection_across_boundary_enabled() &&
+              !IsEditorSelection()
           ? nsContentUtils::ComparePoints<TreeKind::Flat>(aAnchorRef, aFocusRef)
           : nsContentUtils::ComparePoints<TreeKind::ShadowIncludingDOM>(
                 aAnchorRef, aFocusRef);
