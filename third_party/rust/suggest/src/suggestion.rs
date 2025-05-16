@@ -16,6 +16,16 @@ const TIMESTAMP_TEMPLATE: &str = "%YYYYMMDDHH%";
 /// 2 bytes shorter than [`TIMESTAMP_TEMPLATE`].
 const TIMESTAMP_LENGTH: usize = 10;
 
+/// Subject type for Yelp suggestion.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, uniffi::Enum)]
+#[repr(u8)]
+pub enum YelpSubjectType {
+    // Service such as sushi, ramen, yoga etc.
+    Service = 0,
+    // Specific business such as the shop name.
+    Business = 1,
+}
+
 /// A suggestion from the database to show in the address bar.
 #[derive(Clone, Debug, PartialEq, uniffi::Enum)]
 pub enum Suggestion {
@@ -66,6 +76,7 @@ pub enum Suggestion {
         score: f64,
         has_location_sign: bool,
         subject_exact_match: bool,
+        subject_type: YelpSubjectType,
         location_param: String,
     },
     Mdn {

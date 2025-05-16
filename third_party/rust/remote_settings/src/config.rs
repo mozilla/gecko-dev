@@ -165,4 +165,8 @@ impl BaseUrl {
         // error for cannot-be-a-base URLs.
         self.url.path_segments_mut().unwrap()
     }
+
+    pub fn query_pairs_mut(&mut self) -> url::form_urlencoded::Serializer<'_, url::UrlQuery<'_>> {
+        self.url.query_pairs_mut()
+    }
 }

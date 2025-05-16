@@ -4,7 +4,7 @@
 
 //! Test data that we use in many tests
 
-use crate::{suggestion::FtsMatchInfo, testing::MockIcon, Suggestion};
+use crate::{suggestion::FtsMatchInfo, suggestion::YelpSubjectType, testing::MockIcon, Suggestion};
 use serde_json::json;
 use serde_json::Value as JsonValue;
 
@@ -294,6 +294,7 @@ pub fn burnout_suggestion(is_top_pick: bool) -> Suggestion {
 pub fn ramen_yelp() -> JsonValue {
     json!({
         "subjects": ["ramen", "spicy ramen", "spicy random ramen", "rats", "raven", "raccoon", "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789Z"],
+        "businessSubjects": ["the shop"],
         "preModifiers": ["best", "super best", "same_modifier"],
         "postModifiers": ["delivery", "super delivery", "same_modifier"],
         "locationSigns": [
@@ -319,6 +320,7 @@ pub fn ramen_suggestion(title: &str, url: &str) -> Suggestion {
         score: 0.5,
         has_location_sign: true,
         subject_exact_match: true,
+        subject_type: YelpSubjectType::Service,
         location_param: "find_loc".into(),
     }
 }

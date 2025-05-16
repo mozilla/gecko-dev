@@ -474,6 +474,8 @@ impl ToSql for DownloadedYelpLocationSign {
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct DownloadedYelpSuggestion {
     pub subjects: Vec<String>,
+    #[serde(rename = "businessSubjects")]
+    pub business_subjects: Option<Vec<String>>,
     #[serde(rename = "preModifiers")]
     pub pre_modifiers: Vec<String>,
     #[serde(rename = "postModifiers")]

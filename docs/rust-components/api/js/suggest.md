@@ -68,6 +68,10 @@
     :members:
     :exclude-members: SuggestionProvider
 ```
+```{js:autoclass} RustSuggest.sys.YelpSubjectType
+    :members:
+    :exclude-members: YelpSubjectType
+```
 ```{js:autoclass} RustSuggest.sys.Network
     :members:
     :exclude-members: Network

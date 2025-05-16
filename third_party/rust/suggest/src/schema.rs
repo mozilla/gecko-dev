@@ -23,7 +23,7 @@ use sql_support::{
 ///     `clear_database()` by adding their names to `conditional_tables`, unless
 ///     they are cleared via a deletion trigger or there's some other good
 ///     reason not to do so.
-pub const VERSION: u32 = 37;
+pub const VERSION: u32 = 38;
 
 /// The current Suggest database schema.
 pub const SQL: &str = "
@@ -161,6 +161,7 @@ CREATE TABLE icons(
 
 CREATE TABLE yelp_subjects(
     keyword TEXT PRIMARY KEY,
+    subject_type INTEGER NOT NULL DEFAULT 0,
     record_id TEXT NOT NULL
 ) WITHOUT ROWID;
 
@@ -645,6 +646,20 @@ impl ConnectionInitializer for SuggestConnectionInitializer<'_> {
             }
             36 => {
                 tx.execute_batch("DROP TABLE IF EXISTS yelp_location_signs;")?;
+                Ok(())
+            }
+            37 => {
+                clear_database(tx)?;
+                tx.execute_batch(
+                    "
+                    DROP TABLE yelp_subjects;
+                    CREATE TABLE yelp_subjects(
+                        keyword TEXT PRIMARY KEY,
+                        subject_type INTEGER NOT NULL DEFAULT 0,
+                        record_id TEXT NOT NULL
+                    ) WITHOUT ROWID;
+                    ",
+                )?;
                 Ok(())
             }
             _ => Err(open_database::Error::IncompatibleVersion(version)),

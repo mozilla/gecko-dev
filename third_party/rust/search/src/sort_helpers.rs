@@ -32,7 +32,7 @@ pub(crate) fn sort(
     // See Bug 1945295: https://bugzilla.mozilla.org/show_bug.cgi?id=1945295
     // If order is equal and order_hint is None for both, fall back to alphabetical sorting
     if order == std::cmp::Ordering::Equal {
-        return a.identifier.cmp(&b.identifier);
+        return a.name.cmp(&b.name);
     }
 
     order
@@ -76,9 +76,14 @@ mod tests {
     use crate::types::*;
     use pretty_assertions::assert_eq;
 
-    fn create_engine(engine_id: &str, order_hint: Option<u32>) -> SearchEngineDefinition {
+    fn create_engine(
+        engine_id: &str,
+        order_hint: Option<u32>,
+        name: Option<&str>,
+    ) -> SearchEngineDefinition {
         SearchEngineDefinition {
             identifier: engine_id.to_string(),
+            name: name.unwrap_or(engine_id).to_string(),
             order_hint,
             ..Default::default()
         }
@@ -87,9 +92,9 @@ mod tests {
     #[test]
     fn test_find_engine_with_match_mut_starts_with() {
         let mut engines = vec![
-            create_engine("wiki-ca", None),
-            create_engine("wiki-uk", None),
-            create_engine("test-engine", None),
+            create_engine("wiki-ca", None, None),
+            create_engine("wiki-uk", None, None),
+            create_engine("test-engine", None, None),
         ];
         let found_engine = find_engine_with_match_mut(&mut engines, &"wiki*".to_string());
 
@@ -103,9 +108,9 @@ mod tests {
     #[test]
     fn test_set_engine_order_full_list() {
         let mut engines = vec![
-            create_engine("last-engine", None),
-            create_engine("secondary-engine", None),
-            create_engine("primary-engine", None),
+            create_engine("last-engine", None, None),
+            create_engine("secondary-engine", None, None),
+            create_engine("primary-engine", None, None),
         ];
         let ordered_engines_list = vec![
             "primary-engine".to_string(),
@@ -133,9 +138,9 @@ mod tests {
     #[test]
     fn test_set_engine_order_partial_list() {
         let mut engines = vec![
-            create_engine("secondary-engine", None),
-            create_engine("primary-engine", None),
-            create_engine("no-order-hint-engine", None),
+            create_engine("secondary-engine", None, None),
+            create_engine("primary-engine", None, None),
+            create_engine("no-order-hint-engine", None, None),
         ];
         let ordered_engines_list =
             vec!["primary-engine".to_string(), "secondary-engine".to_string()];
@@ -161,9 +166,9 @@ mod tests {
         let default_engine_id = None;
         let default_private_engine_id = None;
         let mut engines = vec![
-            create_engine("c-engine", Some(3)),
-            create_engine("b-engine", Some(2)),
-            create_engine("a-engine", Some(1)),
+            create_engine("c-engine", Some(3), None),
+            create_engine("b-engine", Some(2), None),
+            create_engine("a-engine", Some(1), None),
         ];
         engines.sort_by(|a, b| {
             sort(
@@ -187,9 +192,9 @@ mod tests {
         let default_engine_id = None;
         let default_private_engine_id = None;
         let mut engines = vec![
-            create_engine("c-engine", None),
-            create_engine("b-engine", None),
-            create_engine("a-engine", None),
+            create_engine("c-engine", None, None),
+            create_engine("b-engine", None, None),
+            create_engine("a-engine", None, None),
         ];
         engines.sort_by(|a, b| {
             sort(
@@ -213,12 +218,14 @@ mod tests {
         let default_engine_id = None;
         let default_private_engine_id = None;
         let mut engines = vec![
-            create_engine("f-engine", None),
-            create_engine("e-engine", None),
-            create_engine("d-engine", None),
-            create_engine("c-engine", Some(4)),
-            create_engine("b-engine", Some(5)),
-            create_engine("a-engine", Some(6)),
+            // Identifiers are the opposite order to the names, so that we
+            // can show that we are sorting alphabetically by name.
+            create_engine("d-engine", None, Some("Charlie")),
+            create_engine("e-engine", None, Some("Beta")),
+            create_engine("f-engine", None, Some("Alpha")),
+            create_engine("c-engine", Some(4), None),
+            create_engine("b-engine", Some(5), None),
+            create_engine("a-engine", Some(6), None),
         ];
         engines.sort_by(|a, b| {
             sort(
@@ -231,7 +238,7 @@ mod tests {
 
         let actual_order: Vec<&str> = engines.iter().map(|e| e.identifier.as_str()).collect();
         let expected_order = vec![
-            "a-engine", "b-engine", "c-engine", "d-engine", "e-engine", "f-engine",
+            "a-engine", "b-engine", "c-engine", "f-engine", "e-engine", "d-engine",
         ];
         assert_eq!(
             actual_order, expected_order,
@@ -244,9 +251,9 @@ mod tests {
         let default_engine_id = Some("a-engine".to_string());
         let default_private_engine_id = Some("b-engine".to_string());
         let mut engines = vec![
-            create_engine("c-engine", Some(3)),
-            create_engine("a-engine", Some(1)), // Default engine should be first
-            create_engine("b-engine", Some(2)), // Default private engine should be second
+            create_engine("c-engine", Some(3), None),
+            create_engine("a-engine", Some(1), None), // Default engine should be first
+            create_engine("b-engine", Some(2), None), // Default private engine should be second
         ];
         engines.sort_by(|a, b| {
             sort(

@@ -975,6 +975,7 @@ impl SuggestStoreDbs {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+    use crate::suggestion::YelpSubjectType;
 
     use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -2246,6 +2247,25 @@ pub(crate) mod tests {
                 "https://www.yelp.com/search?find_desc=ramen&find_loc=I+Tokyo"
             )
             .has_location_sign(false)],
+        );
+        // Business subject.
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("the shop tokyo")),
+            vec![ramen_suggestion(
+                "the shop tokyo",
+                "https://www.yelp.com/search?find_desc=the+shop&find_loc=tokyo"
+            )
+            .has_location_sign(false)
+            .subject_type(YelpSubjectType::Business)]
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("the sho")),
+            vec![
+                ramen_suggestion("the shop", "https://www.yelp.com/search?find_desc=the+shop")
+                    .has_location_sign(false)
+                    .subject_exact_match(false)
+                    .subject_type(YelpSubjectType::Business)
+            ]
         );
 
         Ok(())

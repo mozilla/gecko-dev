@@ -294,6 +294,12 @@ impl<C: ApiClient> RemoteSettingsClient<C> {
         })
     }
 
+    pub fn get_last_modified_timestamp(&self) -> Result<Option<u64>> {
+        let mut inner = self.inner.lock();
+        let collection_url = inner.api_client.collection_url();
+        inner.storage.get_last_modified_timestamp(&collection_url)
+    }
+
     /// Synchronizes the local collection with the remote server by performing the following steps:
     /// 1. Fetches the last modified timestamp of the collection from local storage.
     /// 2. Fetches the changeset from the remote server based on the last modified timestamp.
@@ -507,9 +513,15 @@ impl RemoteSettingsClient<ViaductApiClient> {
         Self::new_from_parts(collection_name, storage, jexl_filter, api_client)
     }
 
-    pub fn update_config(&self, server_url: BaseUrl, bucket_name: String) -> Result<()> {
+    pub fn update_config(
+        &self,
+        server_url: BaseUrl,
+        bucket_name: String,
+        context: Option<RemoteSettingsContext>,
+    ) -> Result<()> {
         let mut inner = self.inner.lock();
         inner.api_client = ViaductApiClient::new(server_url, &bucket_name, &self.collection_name);
+        inner.jexl_filter = JexlFilter::new(context);
         inner.storage.empty()
     }
 }
@@ -554,12 +566,12 @@ impl ViaductApiClient {
 
     fn make_request(&mut self, url: Url) -> Result<Response> {
         log::trace!("make_request: {url}");
-        self.ensure_no_backoff()?;
+        self.remote_state.ensure_no_backoff()?;
 
         let req = Request::get(url);
         let resp = req.send()?;
 
-        self.handle_backoff_hint(&resp)?;
+        self.remote_state.handle_backoff_hint(&resp)?;
 
         if resp.is_success() {
             Ok(resp)
@@ -569,46 +581,6 @@ impl ViaductApiClient {
                 resp.status
             )))
         }
-    }
-
-    fn ensure_no_backoff(&mut self) -> Result<()> {
-        if let BackoffState::Backoff {
-            observed_at,
-            duration,
-        } = self.remote_state.backoff
-        {
-            let elapsed_time = observed_at.elapsed();
-            if elapsed_time >= duration {
-                self.remote_state.backoff = BackoffState::Ok;
-            } else {
-                let remaining = duration - elapsed_time;
-                return Err(Error::BackoffError(remaining.as_secs()));
-            }
-        }
-        Ok(())
-    }
-
-    fn handle_backoff_hint(&mut self, response: &Response) -> Result<()> {
-        let extract_backoff_header = |header| -> Result<u64> {
-            Ok(response
-                .headers
-                .get_as::<u64, _>(header)
-                .transpose()
-                .unwrap_or_default() // Ignore number parsing errors.
-                .unwrap_or(0))
-        };
-        // In practice these two headers are mutually exclusive.
-        let backoff = extract_backoff_header(HEADER_BACKOFF)?;
-        let retry_after = extract_backoff_header(HEADER_RETRY_AFTER)?;
-        let max_backoff = backoff.max(retry_after);
-
-        if max_backoff > 0 {
-            self.remote_state.backoff = BackoffState::Backoff {
-                observed_at: Instant::now(),
-                duration: Duration::from_secs(max_backoff),
-            };
-        }
-        Ok(())
     }
 }
 
@@ -803,14 +775,14 @@ impl Client {
 
     fn make_request(&self, url: Url) -> Result<Response> {
         let mut current_remote_state = self.remote_state.lock();
-        self.ensure_no_backoff(&mut current_remote_state.backoff)?;
+        current_remote_state.ensure_no_backoff()?;
         drop(current_remote_state);
 
         let req = Request::get(url);
         let resp = req.send()?;
 
         let mut current_remote_state = self.remote_state.lock();
-        self.handle_backoff_hint(&resp, &mut current_remote_state.backoff)?;
+        current_remote_state.handle_backoff_hint(&resp)?;
 
         if resp.is_success() {
             Ok(resp)
@@ -820,50 +792,6 @@ impl Client {
                 resp.status
             )))
         }
-    }
-
-    fn ensure_no_backoff(&self, current_state: &mut BackoffState) -> Result<()> {
-        if let BackoffState::Backoff {
-            observed_at,
-            duration,
-        } = *current_state
-        {
-            let elapsed_time = observed_at.elapsed();
-            if elapsed_time >= duration {
-                *current_state = BackoffState::Ok;
-            } else {
-                let remaining = duration - elapsed_time;
-                return Err(Error::BackoffError(remaining.as_secs()));
-            }
-        }
-        Ok(())
-    }
-
-    fn handle_backoff_hint(
-        &self,
-        response: &Response,
-        current_state: &mut BackoffState,
-    ) -> Result<()> {
-        let extract_backoff_header = |header| -> Result<u64> {
-            Ok(response
-                .headers
-                .get_as::<u64, _>(header)
-                .transpose()
-                .unwrap_or_default() // Ignore number parsing errors.
-                .unwrap_or(0))
-        };
-        // In practice these two headers are mutually exclusive.
-        let backoff = extract_backoff_header(HEADER_BACKOFF)?;
-        let retry_after = extract_backoff_header(HEADER_RETRY_AFTER)?;
-        let max_backoff = backoff.max(retry_after);
-
-        if max_backoff > 0 {
-            *current_state = BackoffState::Backoff {
-                observed_at: Instant::now(),
-                duration: Duration::from_secs(max_backoff),
-            };
-        }
-        Ok(())
     }
 }
 
@@ -1024,6 +952,48 @@ impl Default for RemoteState {
             attachments_base_url: None,
             backoff: BackoffState::Ok,
         }
+    }
+}
+
+impl RemoteState {
+    pub fn handle_backoff_hint(&mut self, response: &Response) -> Result<()> {
+        let extract_backoff_header = |header| -> Result<u64> {
+            Ok(response
+                .headers
+                .get_as::<u64, _>(header)
+                .transpose()
+                .unwrap_or_default() // Ignore number parsing errors.
+                .unwrap_or(0))
+        };
+        // In practice these two headers are mutually exclusive.
+        let backoff = extract_backoff_header(HEADER_BACKOFF)?;
+        let retry_after = extract_backoff_header(HEADER_RETRY_AFTER)?;
+        let max_backoff = backoff.max(retry_after);
+
+        if max_backoff > 0 {
+            self.backoff = BackoffState::Backoff {
+                observed_at: Instant::now(),
+                duration: Duration::from_secs(max_backoff),
+            };
+        }
+        Ok(())
+    }
+
+    pub fn ensure_no_backoff(&mut self) -> Result<()> {
+        if let BackoffState::Backoff {
+            observed_at,
+            duration,
+        } = self.backoff
+        {
+            let elapsed_time = observed_at.elapsed();
+            if elapsed_time >= duration {
+                self.backoff = BackoffState::Ok;
+            } else {
+                let remaining = duration - elapsed_time;
+                return Err(Error::BackoffError(remaining.as_secs()));
+            }
+        }
+        Ok(())
     }
 }
 
@@ -2034,6 +2004,76 @@ mod jexl_tests {
             JexlFilter::new(Some(context)),
             api_client,
         );
+
+        assert_eq!(
+            rs_client.get_records(false).expect("Error getting records"),
+            Some(vec![])
+        );
+    }
+
+    #[test]
+    fn test_update_jexl_context() {
+        let mut api_client = MockApiClient::new();
+        let records = vec![RemoteSettingsRecord {
+            id: "record-0001".into(),
+            last_modified: 100,
+            deleted: false,
+            attachment: None,
+            fields: serde_json::json!({
+                "filter_expression": "env.country == \"US\""
+            })
+            .as_object()
+            .unwrap()
+            .clone(),
+        }];
+        let changeset = ChangesetResponse {
+            changes: records.clone(),
+            timestamp: 42,
+            metadata: CollectionMetadata::default(),
+        };
+        api_client.expect_collection_url().returning(|| {
+            "http://rs.example.com/v1/buckets/main/collections/test-collection".into()
+        });
+        api_client.expect_fetch_changeset().returning({
+            let changeset = changeset.clone();
+            move |timestamp| {
+                assert_eq!(timestamp, None);
+                Ok(changeset.clone())
+            }
+        });
+        api_client.expect_is_prod_server().returning(|| Ok(false));
+
+        let context = RemoteSettingsContext {
+            country: Some("US".to_string()),
+            ..Default::default()
+        };
+
+        let mut storage = Storage::new(":memory:".into());
+        let _ = storage.insert_collection_content(
+            "http://rs.example.com/v1/buckets/main/collections/test-collection",
+            &records,
+            42,
+            CollectionMetadata::default(),
+        );
+
+        let rs_client = RemoteSettingsClient::new_from_parts(
+            "test-collection".into(),
+            storage,
+            JexlFilter::new(Some(context)),
+            api_client,
+        );
+
+        assert_eq!(
+            rs_client.get_records(false).expect("Error getting records"),
+            Some(records)
+        );
+
+        // We can't call `update_config` directly, since that only works with a real API client.
+        // Instead, just execute the code from that method that updates the JEXL filter.
+        rs_client.inner.lock().jexl_filter = JexlFilter::new(Some(RemoteSettingsContext {
+            country: Some("UK".to_string()),
+            ..Default::default()
+        }));
 
         assert_eq!(
             rs_client.get_records(false).expect("Error getting records"),

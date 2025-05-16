@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-use rusqlite::types::ToSqlOutput;
+use rusqlite::types::{FromSql, FromSqlResult, ToSqlOutput, ValueRef};
 use rusqlite::{named_params, Result as RusqliteResult, ToSql};
 use sql_support::ConnExt;
 use url::form_urlencoded;
@@ -13,6 +13,7 @@ use crate::{
     provider::SuggestionProvider,
     rs::{DownloadedYelpSuggestion, SuggestRecordId},
     suggestion::Suggestion,
+    suggestion::YelpSubjectType,
     Result, SuggestionQuery,
 };
 
@@ -28,6 +29,22 @@ enum Modifier {
 impl ToSql for Modifier {
     fn to_sql(&self) -> RusqliteResult<ToSqlOutput<'_>> {
         Ok(ToSqlOutput::from(*self as u8))
+    }
+}
+
+impl ToSql for YelpSubjectType {
+    fn to_sql(&self) -> RusqliteResult<ToSqlOutput<'_>> {
+        Ok(ToSqlOutput::from(*self as u8))
+    }
+}
+
+impl FromSql for YelpSubjectType {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        if value.as_i64().unwrap_or_default() == 0 {
+            Ok(YelpSubjectType::Service)
+        } else {
+            Ok(YelpSubjectType::Business)
+        }
     }
 }
 
@@ -57,6 +74,18 @@ const MAX_MODIFIER_WORDS_NUMBER: usize = 2;
 /// At least this many characters must be typed for a subject to be matched.
 const SUBJECT_PREFIX_MATCH_THRESHOLD: usize = 2;
 
+#[derive(Debug, PartialEq)]
+struct FindSubjectData<'a> {
+    // The keyword in DB (but the case is inherited by query).
+    subject: String,
+    // Whether or not the keyword is exact match.
+    exact_match: bool,
+    // The subject type.
+    subject_type: YelpSubjectType,
+    // Words after removed matching subject.
+    rest: &'a [&'a str],
+}
+
 impl SuggestDao<'_> {
     /// Inserts the suggestions for Yelp attachment into the database.
     pub(crate) fn insert_yelp_suggestions(
@@ -67,10 +96,23 @@ impl SuggestDao<'_> {
         for keyword in &suggestion.subjects {
             self.scope.err_if_interrupted()?;
             self.conn.execute_cached(
-                "INSERT INTO yelp_subjects(record_id, keyword) VALUES(:record_id, :keyword)",
+                "INSERT INTO yelp_subjects(record_id, keyword, subject_type) VALUES(:record_id, :keyword, :subject_type)",
                 named_params! {
                     ":record_id": record_id.as_str(),
                     ":keyword": keyword,
+                    ":subject_type": YelpSubjectType::Service,
+                },
+            )?;
+        }
+
+        for keyword in suggestion.business_subjects.as_ref().unwrap_or(&vec![]) {
+            self.scope.err_if_interrupted()?;
+            self.conn.execute_cached(
+                "INSERT INTO yelp_subjects(record_id, keyword, subject_type) VALUES(:record_id, :keyword, :subject_type)",
+                named_params! {
+                    ":record_id": record_id.as_str(),
+                    ":keyword": keyword,
+                    ":subject_type": YelpSubjectType::Business,
                 },
             )?;
         }
@@ -163,10 +205,10 @@ impl SuggestDao<'_> {
             query_words = rest;
         }
 
-        let Some(subject_tuple) = self.find_subject(query_words)? else {
+        let Some(subject_data) = self.find_subject(query_words)? else {
             return Ok(vec![]);
         };
-        query_words = subject_tuple.2;
+        query_words = subject_data.rest;
 
         let post_modifier_tuple =
             self.find_modifier(query_words, Modifier::Post, FindFrom::First)?;
@@ -194,8 +236,9 @@ impl SuggestDao<'_> {
 
         let (icon, icon_mimetype, score) = self.fetch_custom_details()?;
         let builder = SuggestionBuilder {
-            subject: &subject_tuple.0,
-            subject_exact_match: subject_tuple.1,
+            subject: &subject_data.subject,
+            subject_exact_match: subject_data.exact_match,
+            subject_type: subject_data.subject_type,
             pre_modifier: pre_modifier_tuple.map(|(words, _)| words.to_string()),
             post_modifier: post_modifier_tuple.map(|(words, _)| words.to_string()),
             location_sign: location_sign_tuple.map(|(words, _)| words.to_string()),
@@ -266,16 +309,8 @@ impl SuggestDao<'_> {
     }
 
     /// Find the subject for given query.
-    /// It returns Option<tuple> as follows:
-    /// (
-    ///   String: The keyword in DB (but the case is inherited by query).
-    ///   bool: Whether or not the keyword is exact match.
-    ///   &[&str]: Words after removed matching subject.
-    /// )
-    fn find_subject<'a>(
-        &self,
-        query_words: &'a [&'a str],
-    ) -> Result<Option<(String, bool, &'a [&'a str])>> {
+    /// It returns Option<FindSubjectData>.
+    fn find_subject<'a>(&self, query_words: &'a [&'a str]) -> Result<Option<FindSubjectData<'a>>> {
         if query_words.is_empty() {
             return Ok(None);
         }
@@ -283,8 +318,8 @@ impl SuggestDao<'_> {
         let mut query_string = query_words.join(" ");
 
         // This checks if keyword is a substring of the query.
-        if let Some(keyword_lowercase) = self.conn.try_query_one::<String, _>(
-            "SELECT keyword
+        if let Ok((keyword_lowercase, subject_type)) = self.conn.query_row_and_then_cachable(
+            "SELECT keyword, subject_type
              FROM yelp_subjects
              WHERE :query BETWEEN keyword AND keyword || ' ' || x'FFFF'
              ORDER BY LENGTH(keyword) ASC, keyword ASC
@@ -292,16 +327,20 @@ impl SuggestDao<'_> {
             named_params! {
                 ":query": query_string.to_lowercase(),
             },
+            |row| -> Result<_> {
+                Ok((row.get::<_, String>(0)?, row.get::<_, YelpSubjectType>(1)?))
+            },
             true,
-        )? {
+        ) {
             // Preserve the query as the user typed it including its case.
             return Ok(query_string.get(0..keyword_lowercase.len()).map(|keyword| {
                 let count = keyword.split_whitespace().count();
-                (
-                    keyword.to_string(),
-                    true,
-                    query_words.get(count..).unwrap_or_default(),
-                )
+                FindSubjectData {
+                    subject: keyword.to_string(),
+                    exact_match: true,
+                    subject_type,
+                    rest: query_words.get(count..).unwrap_or_default(),
+                }
             }));
         };
 
@@ -310,8 +349,8 @@ impl SuggestDao<'_> {
         }
 
         // Oppositely, this checks if the query is a substring of keyword.
-        if let Some(keyword_lowercase) = self.conn.try_query_one::<String, _>(
-            "SELECT keyword
+        if let Ok((keyword_lowercase, subject_type)) = self.conn.query_row_and_then_cachable(
+            "SELECT keyword, subject_type
              FROM yelp_subjects
              WHERE keyword BETWEEN :query AND :query || x'FFFF'
              ORDER BY LENGTH(keyword) ASC, keyword ASC
@@ -319,8 +358,11 @@ impl SuggestDao<'_> {
             named_params! {
                 ":query": query_string.to_lowercase(),
             },
+            |row| -> Result<_> {
+                Ok((row.get::<_, String>(0)?, row.get::<_, YelpSubjectType>(1)?))
+            },
             true,
-        )? {
+        ) {
             // Preserve the query as the user typed it including its case.
             return Ok(keyword_lowercase
                 .get(query_string.len()..)
@@ -328,11 +370,12 @@ impl SuggestDao<'_> {
                     query_string.push_str(keyword_rest);
                     let count =
                         std::cmp::min(query_words.len(), query_string.split_whitespace().count());
-                    (
-                        query_string,
-                        false,
-                        query_words.get(count..).unwrap_or_default(),
-                    )
+                    FindSubjectData {
+                        subject: query_string,
+                        exact_match: false,
+                        subject_type,
+                        rest: query_words.get(count..).unwrap_or_default(),
+                    }
                 }));
         };
 
@@ -383,6 +426,7 @@ impl SuggestDao<'_> {
 struct SuggestionBuilder<'a> {
     subject: &'a str,
     subject_exact_match: bool,
+    subject_type: YelpSubjectType,
     pre_modifier: Option<String>,
     post_modifier: Option<String>,
     location_sign: Option<String>,
@@ -435,6 +479,7 @@ impl<'a> From<SuggestionBuilder<'a>> for Suggestion {
             score: builder.score,
             has_location_sign: builder.location_sign.is_some(),
             subject_exact_match: builder.subject_exact_match,
+            subject_type: builder.subject_type,
             location_param: "find_loc".to_string(),
         }
     }
@@ -645,31 +690,114 @@ mod tests {
                 );
             }
 
-            type FindSubjectTestCase<'a> = (&'a str, Option<(String, bool, &'a [&'a str])>);
+            type FindSubjectTestCase<'a> = (&'a str, Option<FindSubjectData<'a>>);
             let find_subject_tests: &[FindSubjectTestCase] = &[
                 // Query, Expected result.
                 ("", None),
                 ("r", None),
-                ("ra", Some(("rats".to_string(), false, &[]))),
-                ("ram", Some(("ramen".to_string(), false, &[]))),
-                ("rame", Some(("ramen".to_string(), false, &[]))),
-                ("ramen", Some(("ramen".to_string(), true, &[]))),
-                ("spi", Some(("spicy ramen".to_string(), false, &[]))),
-                ("spicy ra ", Some(("spicy ramen".to_string(), false, &[]))),
-                ("spicy ramen", Some(("spicy ramen".to_string(), true, &[]))),
+                (
+                    "ra",
+                    Some(FindSubjectData {
+                        subject: "rats".to_string(),
+                        exact_match: false,
+                        subject_type: YelpSubjectType::Service,
+                        rest: &[],
+                    }),
+                ),
+                (
+                    "ram",
+                    Some(FindSubjectData {
+                        subject: "ramen".to_string(),
+                        exact_match: false,
+                        subject_type: YelpSubjectType::Service,
+                        rest: &[],
+                    }),
+                ),
+                (
+                    "rame",
+                    Some(FindSubjectData {
+                        subject: "ramen".to_string(),
+                        exact_match: false,
+                        subject_type: YelpSubjectType::Service,
+                        rest: &[],
+                    }),
+                ),
+                (
+                    "ramen",
+                    Some(FindSubjectData {
+                        subject: "ramen".to_string(),
+                        exact_match: true,
+                        subject_type: YelpSubjectType::Service,
+                        rest: &[],
+                    }),
+                ),
+                (
+                    "spi",
+                    Some(FindSubjectData {
+                        subject: "spicy ramen".to_string(),
+                        exact_match: false,
+                        subject_type: YelpSubjectType::Service,
+                        rest: &[],
+                    }),
+                ),
+                (
+                    "spicy ra ",
+                    Some(FindSubjectData {
+                        subject: "spicy ramen".to_string(),
+                        exact_match: false,
+                        subject_type: YelpSubjectType::Service,
+                        rest: &[],
+                    }),
+                ),
+                (
+                    "spicy ramen",
+                    Some(FindSubjectData {
+                        subject: "spicy ramen".to_string(),
+                        exact_match: true,
+                        subject_type: YelpSubjectType::Service,
+                        rest: &[],
+                    }),
+                ),
                 (
                     "spicy ramen gogo",
-                    Some(("spicy ramen".to_string(), true, &["gogo"])),
+                    Some(FindSubjectData {
+                        subject: "spicy ramen".to_string(),
+                        exact_match: true,
+                        subject_type: YelpSubjectType::Service,
+                        rest: &["gogo"],
+                    }),
                 ),
                 (
                     "SpIcY rAmEn GoGo",
-                    Some(("SpIcY rAmEn".to_string(), true, &["GoGo"])),
+                    Some(FindSubjectData {
+                        subject: "SpIcY rAmEn".to_string(),
+                        exact_match: true,
+                        subject_type: YelpSubjectType::Service,
+                        rest: &["GoGo"],
+                    }),
                 ),
                 ("ramenabc", None),
                 ("ramenabc xyz", None),
                 ("spicy ramenabc", None),
                 ("spicy ramenabc xyz", None),
-                ("ramen abc", Some(("ramen".to_string(), true, &["abc"]))),
+                (
+                    "ramen abc",
+                    Some(FindSubjectData {
+                        subject: "ramen".to_string(),
+                        exact_match: true,
+                        subject_type: YelpSubjectType::Service,
+                        rest: &["abc"],
+                    }),
+                ),
+                (
+                    "the shop",
+                    Some(FindSubjectData {
+                        subject: "the shop".to_string(),
+                        exact_match: true,
+                        subject_type: YelpSubjectType::Business,
+                        rest: &[],
+                    }),
+                ),
             ];
             for (query, expected) in find_subject_tests {
                 assert_eq!(

@@ -1592,7 +1592,7 @@ mod tests {
                   "recordType": "engine",
                   "identifier": "b-engine",
                   "base": {
-                    "name": "b-engine",
+                    "name": "First Alphabetical",
                     "classification": "general",
                     "urls": {
                       "search": {
@@ -1611,7 +1611,7 @@ mod tests {
                   "recordType": "engine",
                   "identifier": "a-engine",
                   "base": {
-                    "name": "a-engine",
+                    "name": "Last Alphabetical",
                     "classification": "general",
                     "urls": {
                       "search": {
@@ -1731,10 +1731,10 @@ mod tests {
                 "default-engine".to_string(),
                 "default-private-engine".to_string(),
                 "after-defaults".to_string(),
-                "a-engine".to_string(),
                 "b-engine".to_string(),
+                "a-engine".to_string(),
             ],
-            "Should order the default engine first, default private engine second, and the rest of the engines based on order hint then alphabetically."
+            "Should order the default engine first, default private engine second, and the rest of the engines based on order hint then alphabetically by name."
         );
 
         let starts_with_wiki_config = Arc::clone(&selector).set_search_config(
@@ -1919,6 +1919,18 @@ mod tests {
         selector
     }
 
+    fn mock_changes_endpoint() -> mockito::Mock {
+        mock(
+            "GET",
+            "/v1/buckets/monitor/collections/changes/changeset?_expected=0",
+        )
+        .with_body(response_body_changes())
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_header("etag", "\"1000\"")
+        .create()
+    }
+
     fn response_body() -> String {
         json!({
           "metadata": {
@@ -2017,6 +2029,20 @@ mod tests {
               "last_modified": 1000,
             }
           ]
+        })
+        .to_string()
+    }
+
+    fn response_body_changes() -> String {
+        json!({
+          "timestamp": 1000,
+          "changes": [
+            {
+              "collection": "search-config-v2",
+              "bucket": "main",
+              "last_modified": 1000,
+            }
+        ],
         })
         .to_string()
     }
@@ -2129,6 +2155,7 @@ mod tests {
 
     #[test]
     fn test_remote_settings_empty_search_config_records_throws_error() {
+        let changes_mock = mock_changes_endpoint();
         let m = mock(
             "GET",
             "/v1/buckets/main/collections/search-config-v2/changeset?_expected=0",
@@ -2168,11 +2195,13 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("No search config v2 records received from remote settings"));
+        changes_mock.expect(1).assert();
         m.expect(1).assert();
     }
 
     #[test]
     fn test_remote_settings_search_config_records_is_none_throws_error() {
+        let changes_mock = mock_changes_endpoint();
         let m1 = mock(
             "GET",
             "/v1/buckets/main/collections/search-config-v2/changeset?_expected=0",
@@ -2197,11 +2226,13 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("No search config v2 records received from remote settings"));
+        changes_mock.expect(1).assert();
         m1.expect(1).assert();
     }
 
     #[test]
     fn test_remote_settings_empty_search_config_overrides_filtered_without_error() {
+        let changes_mock = mock_changes_endpoint();
         let m1 = mock(
             "GET",
             "/v1/buckets/main/collections/search-config-v2/changeset?_expected=0",
@@ -2248,12 +2279,14 @@ mod tests {
             "Should have filtered the configuration using an empty search config overrides without causing an error. {:?}",
             result
         );
+        changes_mock.expect(1).assert();
         m1.expect(1).assert();
         m2.expect(1).assert();
     }
 
     #[test]
     fn test_remote_settings_search_config_overrides_records_is_none_throws_error() {
+        let changes_mock = mock_changes_endpoint();
         let m1 = mock(
             "GET",
             "/v1/buckets/main/collections/search-config-v2/changeset?_expected=0",
@@ -2288,12 +2321,14 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("No search config overrides v2 records received from remote settings"));
+        changes_mock.expect(1).assert();
         m1.expect(1).assert();
         m2.expect(1).assert();
     }
 
     #[test]
     fn test_filter_with_remote_settings_overrides() {
+        let changes_mock = mock_changes_endpoint();
         let m1 = mock(
             "GET",
             "/v1/buckets/main/collections/search-config-v2/changeset?_expected=0",
@@ -2355,12 +2390,15 @@ mod tests {
             test_engine.clone(),
             "Should have applied the overrides to the matching engine"
         );
+        changes_mock.expect(1).assert();
         m1.expect(1).assert();
         m2.expect(1).assert();
     }
 
     #[test]
     fn test_filter_with_remote_settings() {
+        let changes_mock = mock_changes_endpoint();
+
         let m = mock(
             "GET",
             "/v1/buckets/main/collections/search-config-v2/changeset?_expected=0",
@@ -2468,11 +2506,13 @@ mod tests {
             },
             "Should have selected the private default engine for the matching specific default"
         );
+        changes_mock.expect(1).assert();
         m.expect(1).assert();
     }
 
     #[test]
     fn test_filter_with_remote_settings_negotiate_locales() {
+        let changes_mock = mock_changes_endpoint();
         let m = mock(
             "GET",
             "/v1/buckets/main/collections/search-config-v2/changeset?_expected=0",
@@ -2551,6 +2591,7 @@ mod tests {
             },
             "Should have selected the en-us engine when given another english locale we don't support"
         );
+        changes_mock.expect(1).assert();
         m.expect(1).assert();
     }
 

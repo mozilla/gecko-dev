@@ -18,6 +18,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
+  YelpSubjectType: "resource://gre/modules/RustSuggest.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
@@ -960,6 +961,7 @@ class _QuickSuggestTestUtils {
     isSuggestedIndexRelativeToGroup = true,
     originalUrl = undefined,
     displayUrl = undefined,
+    suggestedType = lazy.YelpSubjectType.SERVICE,
   }) {
     const utmParameters = "&utm_medium=partner&utm_source=mozilla";
 
@@ -1012,6 +1014,7 @@ class _QuickSuggestTestUtils {
         0.2, // score
         false, // hasLocationSign
         false, // subjectExactMatch
+        suggestedType, // subjectType
         "find_loc" // locationParam
       );
     }
