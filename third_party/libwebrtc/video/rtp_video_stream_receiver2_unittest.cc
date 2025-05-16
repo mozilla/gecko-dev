@@ -828,13 +828,13 @@ TEST_P(RtpVideoStreamReceiver2TestH264, InBandSpsPps) {
 }
 
 TEST_P(RtpVideoStreamReceiver2TestH264, OutOfBandFmtpSpsPps) {
-  constexpr int kPayloadType = 99;
+  constexpr int kH264PayloadType = 99;
   webrtc::CodecParameterMap codec_params;
   // Example parameter sets from https://tools.ietf.org/html/rfc3984#section-8.2
   // .
   codec_params.insert(
       {cricket::kH264FmtpSpropParameterSets, "Z0IACpZTBYmI,aMljiA=="});
-  rtp_video_stream_receiver_->AddReceiveCodec(kPayloadType, kVideoCodecH264,
+  rtp_video_stream_receiver_->AddReceiveCodec(kH264PayloadType, kVideoCodecH264,
                                               codec_params,
                                               /*raw_payload=*/false);
   rtp_video_stream_receiver_->StartReceive();
@@ -853,7 +853,7 @@ TEST_P(RtpVideoStreamReceiver2TestH264, OutOfBandFmtpSpsPps) {
   RtpPacketReceived rtp_packet;
   RTPVideoHeader video_header = GetDefaultH264VideoHeader();
   AddIdr(&video_header, 0);
-  rtp_packet.SetPayloadType(kPayloadType);
+  rtp_packet.SetPayloadType(kH264PayloadType);
   rtp_packet.SetSequenceNumber(2);
   rtp_packet.SetMarker(true);
   video_header.is_first_packet_in_frame = true;
@@ -877,7 +877,6 @@ TEST_P(RtpVideoStreamReceiver2TestH264, OutOfBandFmtpSpsPps) {
 }
 
 TEST_P(RtpVideoStreamReceiver2TestH264, ForceSpsPpsIdrIsKeyframe) {
-  constexpr int kPayloadType = 99;
   webrtc::CodecParameterMap codec_params;
   // Forcing can be done either with field trial or codec_params.
   if (!env_.field_trials().IsEnabled("WebRTC-SpsPpsIdrIsH264Keyframe")) {
@@ -1265,10 +1264,10 @@ TEST_F(RtpVideoStreamReceiver2Test, ParseGenericDescriptorRawPayload) {
 
 TEST_F(RtpVideoStreamReceiver2Test, UnwrapsFrameId) {
   const std::vector<uint8_t> data = {0, 1, 2, 3, 4};
-  const int kPayloadType = 123;
+  const int kPayloadTypeGeneric = 123;
 
-  rtp_video_stream_receiver_->AddReceiveCodec(kPayloadType, kVideoCodecGeneric,
-                                              {},
+  rtp_video_stream_receiver_->AddReceiveCodec(kPayloadTypeGeneric,
+                                              kVideoCodecGeneric, {},
                                               /*raw_payload=*/true);
   rtp_video_stream_receiver_->StartReceive();
   RtpHeaderExtensionMap extension_map;
@@ -1292,7 +1291,7 @@ TEST_F(RtpVideoStreamReceiver2Test, UnwrapsFrameId) {
     mock_on_complete_frame_callback_.AppendExpectedBitstream(data.data(),
                                                              data.size());
     rtp_packet.SetMarker(true);
-    rtp_packet.SetPayloadType(kPayloadType);
+    rtp_packet.SetPayloadType(kPayloadTypeGeneric);
     rtp_packet.SetSequenceNumber(++rtp_sequence_number);
     rtp_video_stream_receiver_->OnRtpPacket(rtp_packet);
   };

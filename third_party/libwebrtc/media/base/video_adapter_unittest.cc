@@ -1122,24 +1122,25 @@ TEST_P(VideoAdapterTest, AdaptResolutionInStepsFirst3_4) {
 }
 
 TEST_P(VideoAdapterTest, AdaptResolutionInStepsFirst2_3) {
-  const int kWidth = 1920;
-  const int kHeight = 1080;
-  OnOutputFormatRequest(kWidth, kHeight, std::nullopt);  // 16:9 aspect.
+  const int kWidth1080p = 1920;
+  const int kHeight1080p = 1080;
+  OnOutputFormatRequest(kWidth1080p, kHeight1080p,
+                        std::nullopt);  // 16:9 aspect.
 
   // Scale factors: 2/3, 3/4, 2/3, 3/4, ...
   // Scale:         2/3, 1/2, 1/3, 1/4, 1/6, 1/8, 1/12.
   const int kExpectedWidths[] = {1280, 960, 640, 480, 320, 240, 160};
   const int kExpectedHeights[] = {720, 540, 360, 270, 180, 135, 90};
 
-  int request_width = kWidth;
-  int request_height = kHeight;
+  int request_width = kWidth1080p;
+  int request_height = kHeight1080p;
 
   for (size_t i = 0; i < arraysize(kExpectedWidths); ++i) {
     // Adapt down one step.
     adapter_.OnSinkWants(BuildSinkWants(std::nullopt,
                                         request_width * request_height - 1,
                                         std::numeric_limits<int>::max()));
-    EXPECT_TRUE(adapter_.AdaptFrameResolution(kWidth, kHeight, 0,
+    EXPECT_TRUE(adapter_.AdaptFrameResolution(kWidth1080p, kHeight1080p, 0,
                                               &cropped_width_, &cropped_height_,
                                               &out_width_, &out_height_));
     EXPECT_EQ(kExpectedWidths[i], out_width_);
@@ -1150,26 +1151,27 @@ TEST_P(VideoAdapterTest, AdaptResolutionInStepsFirst2_3) {
 }
 
 TEST_P(VideoAdapterTest, AdaptResolutionInStepsFirst2x2_3) {
-  const int kWidth = 1440;
-  const int kHeight = 1080;
-  OnOutputFormatRequest(kWidth, kHeight, std::nullopt);  // 4:3 aspect.
+  const int kWidth1080p4to3 = 1440;
+  const int kHeight1080p4to3 = 1080;
+  OnOutputFormatRequest(kWidth1080p4to3, kHeight1080p4to3,
+                        std::nullopt);  // 4:3 aspect.
 
   // Scale factors: 2/3, 2/3, 3/4, 2/3, 3/4, ...
   // Scale        : 2/3, 4/9, 1/3, 2/9, 1/6, 1/9, 1/12, 1/18, 1/24, 1/36.
   const int kExpectedWidths[] = {960, 640, 480, 320, 240, 160, 120, 80, 60, 40};
   const int kExpectedHeights[] = {720, 480, 360, 240, 180, 120, 90, 60, 45, 30};
 
-  int request_width = kWidth;
-  int request_height = kHeight;
+  int request_width = kWidth1080p4to3;
+  int request_height = kHeight1080p4to3;
 
   for (size_t i = 0; i < arraysize(kExpectedWidths); ++i) {
     // Adapt down one step.
     adapter_.OnSinkWants(BuildSinkWants(std::nullopt,
                                         request_width * request_height - 1,
                                         std::numeric_limits<int>::max()));
-    EXPECT_TRUE(adapter_.AdaptFrameResolution(kWidth, kHeight, 0,
-                                              &cropped_width_, &cropped_height_,
-                                              &out_width_, &out_height_));
+    EXPECT_TRUE(adapter_.AdaptFrameResolution(
+        kWidth1080p4to3, kHeight1080p4to3, 0, &cropped_width_, &cropped_height_,
+        &out_width_, &out_height_));
     EXPECT_EQ(kExpectedWidths[i], out_width_);
     EXPECT_EQ(kExpectedHeights[i], out_height_);
     request_width = out_width_;
