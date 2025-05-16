@@ -104,16 +104,23 @@ struct ParamTraits<mozilla::dom::IdentityCredentialRequestOptions> {
 
   static void Write(MessageWriter* aWriter, const paramType& aParam) {
     WriteParam(aWriter, aParam.mProviders);
+    WriteParam(aWriter, aParam.mMode);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
-    return ReadParam(aReader, &aResult->mProviders);
+    return ReadParam(aReader, &aResult->mProviders) &&
+           ReadParam(aReader, &aResult->mMode);
   }
 };
 
 template <>
 struct ParamTraits<mozilla::dom::LoginStatus>
     : public mozilla::dom::WebIDLEnumSerializer<mozilla::dom::LoginStatus> {};
+
+template <>
+struct ParamTraits<mozilla::dom::IdentityCredentialRequestOptionsMode>
+    : public mozilla::dom::WebIDLEnumSerializer<
+          mozilla::dom::IdentityCredentialRequestOptionsMode> {};
 
 }  // namespace IPC
 

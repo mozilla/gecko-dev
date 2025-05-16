@@ -1,5 +1,5 @@
 {
-  "accounts_endpoint": "https://example.net/browser/dom/credentialmanagement/identity/tests/browser/server_accounts.json",
-  "id_assertion_endpoint": "https://example.net/browser/dom/credentialmanagement/identity/tests/browser/server_idtoken.json",
-  "disconnect_endpoint": "https://example.net/browser/dom/credentialmanagement/identity/tests/browser/server_disconnect.json"
+  "accounts_endpoint": "server_accounts.json",
+  "id_assertion_endpoint": "server_idtoken.json",
+  "disconnect_endpoint": "server_disconnect.json"
 }

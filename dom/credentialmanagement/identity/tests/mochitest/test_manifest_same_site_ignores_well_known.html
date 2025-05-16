@@ -10,6 +10,7 @@
     SimpleTest.waitForExplicitFinish();
     setupTest("same_site_ignores_well_known", "https://test1.example.com").then(
       function () {
+        SpecialPowers.wrap(document).notifyUserGestureActivation();
         return navigator.credentials.get({
           identity: {
             providers: [{

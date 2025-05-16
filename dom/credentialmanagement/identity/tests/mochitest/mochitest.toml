@@ -75,6 +75,8 @@ support-files = [
 
 ["test_simple.html"]
 
+["test_simple_no_user_activation.html"]
+
 ["test_two_accounts.html"]
 
 ["test_two_providers.html"]
