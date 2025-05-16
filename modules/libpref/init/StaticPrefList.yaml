@@ -8566,7 +8566,7 @@
 # Use better error message when accessing property of null or undefined.
 - name: javascript.options.property_error_message_fix
   type: bool
-  value: @IS_NIGHTLY_OR_DEV_EDITION@
+  value: true
   mirror: always
   set_spidermonkey_pref: startup
 
