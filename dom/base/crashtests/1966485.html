@@ -1,0 +1,18 @@
+<script>
+addEventListener("DOMContentLoaded", () => {
+  const s = window.getSelection()
+  const r = document.createRange()
+  r.selectNode(document.getElementById('a'))
+  s.addRange(r)
+  s.modify('move', 'left', 'line')
+  s.addRange(r)
+  document.documentElement.style.display = 'none'
+  document.documentElement.getBoundingClientRect()
+  document.documentElement.style.display = ''
+})
+</script>
+<body>
+<button>
+<textarea cols='219'></textarea>
+</button>
+<track id='a'/>

@@ -367,13 +367,15 @@ class IsItemInRangeComparator {
     Maybe<int32_t> cmp = ComparePoints(
         &mNode, mEndOffset, aRange->GetMayCrossShadowBoundaryStartContainer(),
         aRange->MayCrossShadowBoundaryStartOffset(), mCache);
-    MOZ_ASSERT(cmp.isSome());  // Should always be connected at this point.
-    if (cmp.value() == 1) {
+    // nsContentUtils::ComparePoints would return Nothing when nodes
+    // are disconnected, ComparePoints_Deprecated used to return 1
+    // for that case. Hence valueOr(1) to keep the legacy result.
+    if (cmp.valueOr(1) == 1) {
       cmp = ComparePoints(&mNode, mStartOffset,
                           aRange->GetMayCrossShadowBoundaryEndContainer(),
                           aRange->MayCrossShadowBoundaryEndOffset(), mCache);
-      MOZ_ASSERT(cmp.isSome());
-      if (cmp.value() == -1) {
+      // Same reason as above.
+      if (cmp.valueOr(1) == -1) {
         return 0;
       }
       return 1;
