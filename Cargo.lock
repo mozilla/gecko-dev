@@ -971,6 +971,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "context_id"
+version = "0.1.0"
+source = "git+https://github.com/mozilla/application-services?rev=fa8a72a77f88bc8b3743b50d76fb85cb37a38285#fa8a72a77f88bc8b3743b50d76fb85cb37a38285"
+dependencies = [
+ "chrono",
+ "error-support",
+ "lazy_static",
+ "log",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "thiserror 1.999.999",
+ "uniffi",
+ "url",
+ "uuid",
+ "viaduct",
+]
+
+[[package]]
 name = "cookie"
 version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2629,6 +2648,7 @@ dependencies = [
 name = "gkrust-uniffi-components"
 version = "0.1.0"
 dependencies = [
+ "context_id",
  "relevancy",
  "search",
  "suggest",
