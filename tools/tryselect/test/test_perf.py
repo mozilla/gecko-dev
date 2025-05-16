@@ -1758,9 +1758,6 @@ def test_preview_description(options, call_count):
         (["awsy", "tp5n", "amazon"], 4, 3),
         (["awsy", "tp5n", "xperf"], 2, 3),
         (["non-existent"], 0, 0),
-        (["perftest_finder_ml_engine_perf.js"], 1, 1),
-        (["perftest/test/finder/path"], 1, 1),
-        (["perftest/test/finder/path/perftest_finder_ml_engine_perf.js"], 1, 1),
     ],
 )
 def test_test_selection(tests, tasks_found, categories_produced):
@@ -1768,7 +1765,9 @@ def test_test_selection(tests, tasks_found, categories_produced):
         "tryselect.selectors.perfselector.classification.pathlib"
     ), mock.patch(
         "tryselect.selectors.perfselector.classification.json"
-    ) as mocked_json:
+    ) as mocked_json, mock.patch(
+        "tryselect.selectors.perfselector.classification.ScriptInfo"
+    ):
 
         def mocked_json_load(*args, **kwargs):
             return {
@@ -1780,6 +1779,42 @@ def test_test_selection(tests, tasks_found, categories_produced):
             }
 
         mocked_json.load.side_effect = mocked_json_load
+
+        with category_reset():
+            all_tasks = PerfParser.set_categories_for_test(FTG_SAMPLE_PATH, tests)
+
+            assert len(all_tasks) == tasks_found
+            assert len(PerfParser.categories) == categories_produced
+
+
+@pytest.mark.parametrize(
+    "tests, tasks_found, categories_produced",
+    [
+        (["perftest_finder_ml_engine_perf.js"], 1, 1),
+        (["perftest/test/finder/path"], 1, 1),
+        (["perftest/test/finder/path/perftest_finder_ml_engine_perf.js"], 1, 1),
+        (["background-resource"], 1, 1),
+    ],
+)
+def test_perftest_test_selection(tests, tasks_found, categories_produced):
+    with mock.patch("pathlib.Path.is_file", return_value=True), mock.patch(
+        "tryselect.selectors.perfselector.classification.ScriptInfo"
+    ) as mock_script_info, mock.patch(
+        "mozperftest.argparser.PerftestArgumentParser.parse_known_args"
+    ) as mock_parse_args:
+
+        mock_si_instance = mock_script_info.return_value
+        mock_si_instance.get.return_value = "background-resource"
+        mock_si_instance.script = pathlib.Path(
+            "perftest/test/finder/path/perftest_finder_ml_engine_perf.js"
+        )
+
+        class DummyArgs:
+            tests = [
+                "testing/performance/android-resource/main-background.sh",
+            ]
+
+        mock_parse_args.return_value = (DummyArgs(), [])
 
         with category_reset():
             all_tasks = PerfParser.set_categories_for_test(FTG_SAMPLE_PATH, tests)
