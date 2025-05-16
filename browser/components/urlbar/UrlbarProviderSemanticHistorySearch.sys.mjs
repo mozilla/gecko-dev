@@ -88,13 +88,14 @@ class ProviderSemanticHistorySearch extends UrlbarProvider {
    *   The context of the query, including the search string.
    */
   async isActive(queryContext) {
-    const semanticHistoryFlag = lazy.UrlbarPrefs.get("suggest.semanticHistory");
     const minSearchStringLength = lazy.UrlbarPrefs.get(
       "suggest.semanticHistory.minLength"
     );
     if (
-      semanticHistoryFlag &&
-      queryContext.searchString.length >= minSearchStringLength
+      lazy.UrlbarPrefs.get("suggest.history") &&
+      queryContext.searchString.length >= minSearchStringLength &&
+      (!queryContext.searchMode ||
+        queryContext.searchMode.source == UrlbarUtils.RESULT_SOURCE.HISTORY)
     ) {
       const semanticManager = this.ensureSemanticManagerInitialized();
 

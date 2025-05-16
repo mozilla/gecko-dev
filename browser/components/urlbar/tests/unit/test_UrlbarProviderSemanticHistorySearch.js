@@ -49,7 +49,7 @@ add_task(async function test_startQuery_adds_results() {
   // Set required prefs
   Services.prefs.setBoolPref("browser.ml.enable", true);
   Services.prefs.setBoolPref("places.semanticHistory.featureGate", true);
-  Services.prefs.setBoolPref("browser.urlbar.suggest.semanticHistory", true);
+  Services.prefs.setBoolPref("browser.urlbar.suggest.history", true);
   Services.prefs
     .getDefaultBranch("")
     .setIntPref("browser.urlbar.suggest.semanticHistory.minLength", 5);
@@ -95,7 +95,7 @@ add_task(async function test_isActive_conditions() {
   const canUseStub = sandbox.stub(semanticManager, "canUseSemanticSearch");
 
   // Default settings
-  Services.prefs.setBoolPref("browser.urlbar.suggest.semanticHistory", true);
+  Services.prefs.setBoolPref("browser.urlbar.suggest.history", true);
   Services.prefs.setIntPref(
     "browser.urlbar.suggest.semanticHistory.minLength",
     5
@@ -105,14 +105,14 @@ add_task(async function test_isActive_conditions() {
   const validQuery = { searchString: "hello world" };
 
   // Pref is disabled
-  Services.prefs.setBoolPref("browser.urlbar.suggest.semanticHistory", false);
+  Services.prefs.setBoolPref("browser.urlbar.suggest.history", false);
   Assert.ok(
     !(await provider.isActive(validQuery)),
     "Should be inactive when pref is disabled"
   );
 
   // Pref enabled, but string too short
-  Services.prefs.setBoolPref("browser.urlbar.suggest.semanticHistory", true);
+  Services.prefs.setBoolPref("browser.urlbar.suggest.history", true);
   Assert.ok(
     !(await provider.isActive(shortQuery)),
     "Should be inactive for short search strings"
@@ -135,6 +135,24 @@ add_task(async function test_isActive_conditions() {
     await provider.isActive(validQuery),
     "Should be active when all conditions are met"
   );
+
+  const engineSearchMode = createContext("hello world", {
+    searchMode: { engineName: "testEngine" },
+  });
+  Assert.ok(
+    !provider.isActive(engineSearchMode),
+    "Should not be active when in search engine mode"
+  );
+
+  const historySearchMode = createContext("hello world", {
+    searchMode: { source: UrlbarUtils.RESULT_SOURCE.HISTORY },
+  });
+  Assert.ok(
+    provider.isActive(historySearchMode),
+    "Should be active when in history search mode"
+  );
+
+  sinon.restore();
 });
 
 add_task(function cleanup() {
