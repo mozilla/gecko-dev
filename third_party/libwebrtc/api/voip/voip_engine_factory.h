@@ -12,11 +12,13 @@
 #define API_VOIP_VOIP_ENGINE_FACTORY_H_
 
 #include <memory>
+#include <optional>
 
 #include "api/audio/audio_device.h"
 #include "api/audio/audio_processing.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
 #include "api/audio_codecs/audio_encoder_factory.h"
+#include "api/environment/environment.h"
 #include "api/scoped_refptr.h"
 #include "api/task_queue/task_queue_factory.h"
 #include "api/voip/voip_engine.h"
@@ -50,9 +52,10 @@ struct VoipEngineConfig {
   // to limit the set to reduce application footprint.
   scoped_refptr<AudioDecoderFactory> decoder_factory;
 
-  // Mandatory (e.g. api/task_queue/default_task_queue_factory).
-  // TaskQeueuFactory provided for VoipEngine to work asynchronously on its
+  // Optional (e.g. api/task_queue/default_task_queue_factory).
+  // TaskQueueFactory provided for VoipEngine to work asynchronously on its
   // encoding flow.
+  // It is an error to provide both `env` and `task_queue_factory`.
   std::unique_ptr<TaskQueueFactory> task_queue_factory;
 
   // Mandatory (e.g. modules/audio_device/include).
@@ -60,6 +63,13 @@ struct VoipEngineConfig {
   // recording device (e.g. microphone) and requests audio output samples to
   // play through its output device (e.g. speaker).
   scoped_refptr<AudioDeviceModule> audio_device_module;
+
+  // Optional. When not set, VoipEngine will use a default Environment created
+  // with `CreateEnvironment`, see api/environment/environment_factory.h
+  // Provides
+  // - TaskQueueFactory to work asynchronously on VoipEngine encoding flow
+  // - FieldTrialsView for experimentations
+  std::optional<Environment> env;
 
   // Optional (e.g. api/audio/builtin_audio_processing_builder).
   // AudioProcessing provides audio procesing functionalities (e.g. acoustic
