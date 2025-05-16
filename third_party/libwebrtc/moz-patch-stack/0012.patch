@@ -127,10 +127,10 @@ index fe18813064..244d6cdde4 100644
        return -1;
  #elif defined(WEBRTC_POSIX)
 diff --git a/system_wrappers/source/cpu_info.cc b/system_wrappers/source/cpu_info.cc
-index 7e53eb78fa..b47a9b4022 100644
+index 8f72653269..498cc176a9 100644
 --- a/system_wrappers/source/cpu_info.cc
 +++ b/system_wrappers/source/cpu_info.cc
-@@ -12,7 +12,7 @@
+@@ -14,7 +14,7 @@
  
  #if defined(WEBRTC_WIN)
  #include <windows.h>
@@ -139,7 +139,7 @@ index 7e53eb78fa..b47a9b4022 100644
  #include <unistd.h>
  #elif defined(WEBRTC_MAC)
  #include <sys/sysctl.h>
-@@ -30,7 +30,7 @@ static int DetectNumberOfCores() {
+@@ -33,7 +33,7 @@ static int DetectNumberOfCores() {
    SYSTEM_INFO si;
    GetNativeSystemInfo(&si);
    number_of_cores = static_cast<int>(si.dwNumberOfProcessors);

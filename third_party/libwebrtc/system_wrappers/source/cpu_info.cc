@@ -10,6 +10,8 @@
 
 #include "system_wrappers/include/cpu_info.h"
 
+#include <cstdint>
+
 #if defined(WEBRTC_WIN)
 #include <windows.h>
 #elif defined(WEBRTC_LINUX) || defined(WEBRTC_BSD)
@@ -20,6 +22,7 @@
 #include <zircon/syscalls.h>
 #endif
 
+#include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 
 namespace internal {
