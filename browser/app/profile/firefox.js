@@ -679,6 +679,11 @@ pref("browser.urlbar.addons.featureGate", true);
 // Feature gate pref for semanticHistory
 pref("places.semanticHistory.featureGate", false);
 
+// If `places.semanticHistory.featureGate` is enabled
+// then this will control whether semantic search will be enabled
+// for history.
+pref("browser.urlbar.suggest.semanticHistory", false);
+
 // Minimum length threshold for semantic history search
 pref("browser.urlbar.suggest.semanticHistory.minLength", 5);
 
