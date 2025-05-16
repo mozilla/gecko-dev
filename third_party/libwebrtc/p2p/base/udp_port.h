@@ -10,8 +10,9 @@
 
 #ifndef P2P_BASE_UDP_PORT_H_
 #define P2P_BASE_UDP_PORT_H_
-
+// IWYU pragma: begin_keep
 // StunPort will be handling UDPPort functionality.
 #include "p2p/base/stun_port.h"
+// IWYU pragma: end_keep
 
 #endif  // P2P_BASE_UDP_PORT_H_

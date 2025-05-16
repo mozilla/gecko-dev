@@ -13,7 +13,6 @@
 
 #include <stdint.h>
 
-#include <deque>
 #include <memory>
 #include <optional>
 #include <string>
@@ -32,7 +31,6 @@
 #include "rtc_base/ssl_certificate.h"
 #include "rtc_base/system/rtc_export.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
-#include "rtc_base/thread.h"
 
 namespace webrtc {
 
