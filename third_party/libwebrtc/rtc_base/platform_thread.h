@@ -76,7 +76,7 @@ class PlatformThread final {
   // For a PlatformThread that's been spawned joinable, the destructor suspends
   // the calling thread until the created thread exits unless the thread has
   // already exited.
-  virtual ~PlatformThread();
+  ~PlatformThread();
 
   // Finalizes any allocated resources.
   // For a PlatformThread that's been spawned joinable, Finalize() suspends

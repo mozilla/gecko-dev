@@ -10,7 +10,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bb6417a4cfac1416a
  1 file changed, 7 insertions(+)
 
 diff --git a/rtc_base/platform_thread.h b/rtc_base/platform_thread.h
-index 0d1c40d451..a3a888fd35 100644
+index db2b105da2..c70736888a 100644
 --- a/rtc_base/platform_thread.h
 +++ b/rtc_base/platform_thread.h
 @@ -22,8 +22,13 @@
