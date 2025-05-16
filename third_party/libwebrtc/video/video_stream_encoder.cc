@@ -11,57 +11,88 @@
 #include "video/video_stream_encoder.h"
 
 #include <algorithm>
-#include <array>
-#include <limits>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
-#include <numeric>
 #include <optional>
+#include <string>
+#include <tuple>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/cleanup/cleanup.h"
+#include "api/adaptation/resource.h"
+#include "api/environment/environment.h"
+#include "api/fec_controller_override.h"
 #include "api/field_trials_view.h"
+#include "api/make_ref_counted.h"
+#include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_sender_interface.h"
+#include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
+#include "api/task_queue/pending_task_safety_flag.h"
 #include "api/task_queue/task_queue_base.h"
+#include "api/units/data_rate.h"
+#include "api/units/data_size.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "api/video/encoded_image.h"
-#include "api/video/i420_buffer.h"
 #include "api/video/render_resolution.h"
+#include "api/video/video_adaptation_counters.h"
 #include "api/video/video_adaptation_reason.h"
+#include "api/video/video_bitrate_allocation.h"
+#include "api/video/video_bitrate_allocator.h"
 #include "api/video/video_bitrate_allocator_factory.h"
 #include "api/video/video_codec_constants.h"
+#include "api/video/video_codec_type.h"
+#include "api/video/video_frame_buffer.h"
+#include "api/video/video_frame_type.h"
 #include "api/video/video_layers_allocation.h"
+#include "api/video/video_source_interface.h"
 #include "api/video/video_stream_encoder_settings.h"
+#include "api/video/video_timing.h"
+#include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/sdp_video_format.h"
+#include "api/video_codecs/video_codec.h"
 #include "api/video_codecs/video_encoder.h"
+#include "api/video_codecs/video_encoder_factory.h"
+#include "call/adaptation/adaptation_constraint.h"
+#include "call/adaptation/degradation_preference_provider.h"
+#include "call/adaptation/encoder_settings.h"
 #include "call/adaptation/resource_adaptation_processor.h"
 #include "call/adaptation/video_source_restrictions.h"
 #include "call/adaptation/video_stream_adapter.h"
 #include "common_video/frame_instrumentation_data.h"
 #include "media/base/media_channel.h"
+#include "modules/video_coding/codecs/interface/common_constants.h"
 #include "modules/video_coding/include/video_codec_initializer.h"
 #include "modules/video_coding/include/video_codec_interface.h"
 #include "modules/video_coding/svc/scalability_mode_util.h"
 #include "modules/video_coding/svc/svc_rate_allocator.h"
-#include "modules/video_coding/utility/vp8_constants.h"
-#include "rtc_base/arraysize.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/event.h"
 #include "rtc_base/experiments/encoder_info_settings.h"
+#include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/experiments/rate_control_settings.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/numerics/safe_conversions.h"
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/system/no_unique_address.h"
 #include "rtc_base/thread_annotations.h"
 #include "rtc_base/trace_event.h"
-#include "system_wrappers/include/metrics.h"
+#include "video/adaptation/overuse_frame_detector.h"
 #include "video/adaptation/video_stream_encoder_resource_manager.h"
 #include "video/alignment_adjuster.h"
 #include "video/config/encoder_stream_factory.h"
 #include "video/config/video_encoder_config.h"
 #include "video/corruption_detection/frame_instrumentation_generator.h"
+#include "video/encoder_bitrate_adjuster.h"
 #include "video/frame_cadence_adapter.h"
 #include "video/frame_dumping_encoder.h"
+#include "video/video_stream_encoder_observer.h"
 
 namespace webrtc {
 
@@ -1214,22 +1245,18 @@ void VideoStreamEncoder::ReconfigureEncoder() {
   SimpleStringBuilder log_stream(log_stream_buf);
   log_stream << "ReconfigureEncoder: simulcast streams: ";
   for (size_t i = 0; i < codec.numberOfSimulcastStreams; ++i) {
-    std::optional<ScalabilityMode> scalability_mode =
-        codec.simulcastStream[i].GetScalabilityMode();
-    if (scalability_mode) {
-      log_stream << "{" << i << ": " << codec.simulcastStream[i].width << "x"
-                 << codec.simulcastStream[i].height << " "
-                 << ScalabilityModeToString(*scalability_mode)
-                 << ", min_kbps: " << codec.simulcastStream[i].minBitrate
-                 << ", target_kbps: " << codec.simulcastStream[i].targetBitrate
-                 << ", max_kbps: " << codec.simulcastStream[i].maxBitrate
-                 << ", max_fps: " << codec.simulcastStream[i].maxFramerate
-                 << ", max_qp: " << codec.simulcastStream[i].qpMax
-                 << ", num_tl: "
-                 << codec.simulcastStream[i].numberOfTemporalLayers
-                 << ", active: "
-                 << (codec.simulcastStream[i].active ? "true" : "false") << "}";
-    }
+    log_stream << "{" << i << ": " << codec.simulcastStream[i].width << "x"
+               << codec.simulcastStream[i].height << " "
+               << ScalabilityModeToString(
+                      codec.simulcastStream[i].GetScalabilityMode())
+               << ", min_kbps: " << codec.simulcastStream[i].minBitrate
+               << ", target_kbps: " << codec.simulcastStream[i].targetBitrate
+               << ", max_kbps: " << codec.simulcastStream[i].maxBitrate
+               << ", max_fps: " << codec.simulcastStream[i].maxFramerate
+               << ", max_qp: " << codec.simulcastStream[i].qpMax << ", num_tl: "
+               << codec.simulcastStream[i].numberOfTemporalLayers
+               << ", active: "
+               << (codec.simulcastStream[i].active ? "true" : "false") << "}";
   }
   if (encoder_config_.codec_type == kVideoCodecVP9 ||
       encoder_config_.codec_type == kVideoCodecAV1
