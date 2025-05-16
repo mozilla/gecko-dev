@@ -136,6 +136,20 @@ static inline bool IsAutoOrEnumOnBSize(const StyleSize& aSize, bool aIsInline) {
   return aSize.IsAuto() || (!aIsInline && !aSize.IsLengthPercentage());
 }
 
+// Returns true if the flex container should be treated as a single-line
+// container.
+static bool IsSingleLine(const nsIFrame* aFlexContainer,
+                         const nsStylePosition* aStylePos) {
+  MOZ_ASSERT(aFlexContainer->IsFlexContainerFrame());
+
+  if (aFlexContainer->IsLegacyWebkitBox()) {
+    // For legacy -webkit-{inline-}box, ignore the flex-wrap property.
+    // These containers are always treated as single-line.
+    return true;
+  }
+  return aStylePos->mFlexWrap == StyleFlexWrap::Nowrap;
+}
+
 // Encapsulates our flex container's main & cross axes. This class is backed by
 // a FlexboxAxisInfo helper member variable, and it adds some convenience APIs
 // on top of what that struct offers.
@@ -1522,9 +1536,8 @@ void nsFlexContainerFrame::GenerateFlexItemForChild(
   // have a single-line (nowrap) flex container which itself has a definite
   // cross-size.  Otherwise, we'll wait to do stretching, since (in other
   // cases) we don't know how much the item should stretch yet.
-  const bool isSingleLine =
-      StyleFlexWrap::Nowrap == aParentReflowInput.mStylePosition->mFlexWrap;
-  if (isSingleLine) {
+  if (IsSingleLine(aParentReflowInput.mFrame,
+                   aParentReflowInput.mStylePosition)) {
     // Is container's cross size "definite"?
     // - If it's column-oriented, then "yes", because its cross size is its
     // inline-size which is always definite from its descendants' perspective.
@@ -3627,9 +3640,7 @@ CrossAxisPositionTracker::CrossAxisPositionTracker(
     mAlignContent.primary = StyleAlignFlags::STRETCH;
   }
 
-  const bool isSingleLine =
-      StyleFlexWrap::Nowrap == aReflowInput.mStylePosition->mFlexWrap;
-  if (isSingleLine) {
+  if (IsSingleLine(aReflowInput.mFrame, aReflowInput.mStylePosition)) {
     MOZ_ASSERT(aLines.Length() == 1,
                "If we're styled as single-line, we should only have 1 line");
     // "If the flex container is single-line and has a definite cross size, the
@@ -4177,15 +4188,12 @@ void nsFlexContainerFrame::GenerateFlexLines(
     return aLines.EmplaceBack(aMainGapSize);
   };
 
-  const bool isSingleLine =
-      StyleFlexWrap::Nowrap == aReflowInput.mStylePosition->mFlexWrap;
-
   // We have at least one FlexLine. Even an empty flex container has a single
   // (empty) flex line.
   FlexLine* curLine = ConstructNewFlexLine();
 
   nscoord wrapThreshold;
-  if (isSingleLine) {
+  if (IsSingleLine(aReflowInput.mFrame, aReflowInput.mStylePosition)) {
     // Not wrapping. Set threshold to sentinel value that tells us not to wrap.
     wrapThreshold = NS_UNCONSTRAINEDSIZE;
   } else {
@@ -5582,7 +5590,7 @@ std::tuple<nscoord, nsReflowStatus> nsFlexContainerFrame::ReflowChildren(
   FrameHashtable overflowIncompleteItems;
 
   const bool isSingleLine =
-      StyleFlexWrap::Nowrap == aReflowInput.mStylePosition->mFlexWrap;
+      IsSingleLine(aReflowInput.mFrame, aReflowInput.mStylePosition);
   const FlexLine& startmostLine = StartmostLine(aFlr.mLines, aAxisTracker);
   const FlexLine& endmostLine = EndmostLine(aFlr.mLines, aAxisTracker);
   const FlexItem* startmostItem =
@@ -6487,7 +6495,7 @@ nscoord nsFlexContainerFrame::ComputeIntrinsicISize(
 
   const bool useMozBoxCollapseBehavior =
       StyleVisibility()->UseLegacyCollapseBehavior();
-  const bool isSingleLine = StyleFlexWrap::Nowrap == stylePos->mFlexWrap;
+  const bool isSingleLine = IsSingleLine(this, stylePos);
   const auto flexWM = GetWritingMode();
 
   // The loop below sets aside space for a gap before each item besides the
