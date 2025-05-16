@@ -43,22 +43,22 @@ class WidgetPointerEventHolder final {
 
 class WidgetPointerHelper {
  public:
-  uint32_t pointerId;
-  int32_t tiltX;
-  int32_t tiltY;
-  int32_t twist;
-  float tangentialPressure;
-  bool convertToPointer;
+  uint32_t pointerId = 0;
+  int32_t tiltX = 0;
+  int32_t tiltY = 0;
+  int32_t twist = 0;
+  float tangentialPressure = 0.0f;
+  bool convertToPointer = true;
+  // When convertToPointerRawUpdate is set to true, the event or the touch may
+  // cause ePointerRawUpdate event in PresShell::HandleEvent() if it's requested
+  // by the web app.  This is set to false if the source mouse event or the
+  // source touch move event is not dispatched immediately by BrowserChild
+  // because BrowserChild dispatches only eMouseRawUpdate or eTouchRawUpdate to
+  // dispatch ePointerRawUpdate immediately.
+  bool convertToPointerRawUpdate = true;
   RefPtr<WidgetPointerEventHolder> mCoalescedWidgetEvents;
 
-  WidgetPointerHelper()
-      : pointerId(0),
-        tiltX(0),
-        tiltY(0),
-        twist(0),
-        tangentialPressure(0),
-        convertToPointer(true) {}
-
+  WidgetPointerHelper() = default;
   WidgetPointerHelper(uint32_t aPointerId, uint32_t aTiltX, uint32_t aTiltY,
                       uint32_t aTwist = 0, float aTangentialPressure = 0)
       : pointerId(aPointerId),
@@ -108,6 +108,7 @@ class WidgetPointerHelper {
     twist = aEvent.twist;
     tangentialPressure = aEvent.tangentialPressure;
     convertToPointer = aEvent.convertToPointer;
+    convertToPointerRawUpdate = aEvent.convertToPointerRawUpdate;
     if (aCopyCoalescedEvents) {
       mCoalescedWidgetEvents = aEvent.mCoalescedWidgetEvents;
     }
@@ -413,7 +414,13 @@ class WidgetMouseEvent : public WidgetMouseEventBase,
    * Returns true if the event is a real mouse event.  Otherwise, i.e., it's
    * a synthesized event by scroll or something, returns false.
    */
-  bool IsReal() const { return mReason == eReal; }
+  [[nodiscard]] bool IsReal() const { return mReason == eReal; }
+
+  /**
+   * Returns true if the event is synthesized for scroll or layout change.
+   * Do not confuse this with a synthesized event for tests.
+   */
+  [[nodiscard]] bool IsSynthesized() const { return mReason == eSynthesized; }
 
   /**
    * Returns true if middle click paste is enabled.

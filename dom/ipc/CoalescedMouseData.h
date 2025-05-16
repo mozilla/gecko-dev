@@ -27,7 +27,8 @@ class CoalescedMouseData final : public CoalescedInputData<WidgetMouseEvent> {
 
   bool CanCoalesce(const WidgetMouseEvent& aEvent,
                    const ScrollableLayerGuid& aGuid,
-                   const uint64_t& aInputBlockId);
+                   const uint64_t& aInputBlockId,
+                   const nsRefreshDriver* aRefreshDriver);
 };
 
 class CoalescedMouseMoveFlusher final : public CoalescedInputFlusher {

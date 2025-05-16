@@ -995,6 +995,7 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     if (touchEvent->mMessage == eTouchMove) {
       GenerateDragGesture(aPresContext, touchEvent);
     } else {
+      MOZ_ASSERT(touchEvent->mMessage != eTouchRawUpdate);
       mInTouchDrag = false;
       StopTrackingDragGesture(true);
     }
@@ -1142,7 +1143,8 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       }
       [[fallthrough]];
     case eMouseMove:
-    case ePointerMove: {
+    case ePointerMove:
+    case ePointerRawUpdate: {
       if (aEvent->mMessage == ePointerMove) {
         PointerEventHandler::UpdateActivePointerState(mouseEvent,
                                                       aTargetContent);
@@ -5564,7 +5566,8 @@ void EventStateManager::GeneratePointerEnterExit(EventMessage aMessage,
 /* static */
 void EventStateManager::UpdateLastRefPointOfMouseEvent(
     WidgetMouseEvent* aMouseEvent) {
-  if (aMouseEvent->mMessage != eMouseMove &&
+  if (aMouseEvent->mMessage != ePointerRawUpdate &&
+      aMouseEvent->mMessage != eMouseMove &&
       aMouseEvent->mMessage != ePointerMove) {
     return;
   }
@@ -5597,7 +5600,8 @@ void EventStateManager::UpdateLastRefPointOfMouseEvent(
 void EventStateManager::ResetPointerToWindowCenterWhilePointerLocked(
     WidgetMouseEvent* aMouseEvent) {
   MOZ_ASSERT(PointerLockManager::IsLocked());
-  if ((aMouseEvent->mMessage != eMouseMove &&
+  if ((aMouseEvent->mMessage != ePointerRawUpdate &&
+       aMouseEvent->mMessage != eMouseMove &&
        aMouseEvent->mMessage != ePointerMove) ||
       !aMouseEvent->mWidget) {
     return;
@@ -5658,6 +5662,7 @@ void EventStateManager::GenerateMouseEnterExit(WidgetMouseEvent* aMouseEvent) {
   switch (aMouseEvent->mMessage) {
     case eMouseMove:
     case ePointerMove:
+    case ePointerRawUpdate:
     case ePointerDown:
     case ePointerGotCapture: {
       // Get the target content target (mousemove target == mouseover target)

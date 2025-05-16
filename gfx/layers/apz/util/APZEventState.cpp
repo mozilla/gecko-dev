@@ -336,6 +336,9 @@ void APZEventState::ProcessTouchEvent(
       break;
     }
 
+    case eTouchRawUpdate:
+      break;
+
     default:
       MOZ_ASSERT_UNREACHABLE("Unknown touch event type");
       break;

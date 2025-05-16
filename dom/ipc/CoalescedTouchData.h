@@ -27,6 +27,8 @@ class CoalescedTouchData final : public CoalescedInputData<WidgetTouchEvent> {
 
   nsEventStatus GetApzResponse() { return mApzResponse; }
 
+  void NotifyTouchRawUpdateOfHandled(const WidgetTouchEvent& aEvent);
+
  private:
   Touch* GetTouch(int32_t aIdentifier);
 

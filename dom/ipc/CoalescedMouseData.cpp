@@ -58,17 +58,29 @@ void CoalescedMouseData::Coalesce(const WidgetMouseEvent& aEvent,
 
 bool CoalescedMouseData::CanCoalesce(const WidgetMouseEvent& aEvent,
                                      const ScrollableLayerGuid& aGuid,
-                                     const uint64_t& aInputBlockId) {
+                                     const uint64_t& aInputBlockId,
+                                     const nsRefreshDriver* aRefreshDriver) {
   MOZ_ASSERT(aEvent.mMessage == eMouseMove);
-  return !mCoalescedInputEvent ||
-         (!mCoalescedInputEvent->mFlags.mIsSynthesizedForTests &&
-          !aEvent.mFlags.mIsSynthesizedForTests &&
-          mCoalescedInputEvent->mModifiers == aEvent.mModifiers &&
-          mCoalescedInputEvent->mInputSource == aEvent.mInputSource &&
-          mCoalescedInputEvent->pointerId == aEvent.pointerId &&
-          mCoalescedInputEvent->mButton == aEvent.mButton &&
-          mCoalescedInputEvent->mButtons == aEvent.mButtons && mGuid == aGuid &&
-          mInputBlockId == aInputBlockId);
+  if (!mCoalescedInputEvent) {
+    return true;
+  }
+  if (mCoalescedInputEvent->mFlags.mIsSynthesizedForTests !=
+          aEvent.mFlags.mIsSynthesizedForTests ||
+      mCoalescedInputEvent->mModifiers != aEvent.mModifiers ||
+      mCoalescedInputEvent->mInputSource != aEvent.mInputSource ||
+      mCoalescedInputEvent->pointerId != aEvent.pointerId ||
+      mCoalescedInputEvent->mButton != aEvent.mButton ||
+      mCoalescedInputEvent->mButtons != aEvent.mButtons || mGuid != aGuid ||
+      mInputBlockId != aInputBlockId) {
+    return false;
+  }
+  // Basically, tests do not want to coalesces the consecutive mouse events.
+  // However, if the test calls nsIDOMWindowUtils::AdvanceTimeAndRefresh(0),
+  // they must try to check coalesced mouse move events.
+  if (!aEvent.mFlags.mIsSynthesizedForTests) {
+    return true;
+  }
+  return aRefreshDriver && aRefreshDriver->IsTestControllingRefreshesEnabled();
 }
 
 CoalescedMouseMoveFlusher::CoalescedMouseMoveFlusher(
