@@ -271,7 +271,7 @@ var gBrowserInit = {
 
       let swapBrowsers = () => {
         if (gBrowser.isTabGroupLabel(tabToAdopt)) {
-          gBrowser.adoptTabGroup(tabToAdopt.group, 0);
+          gBrowser.adoptTabGroup(tabToAdopt.group, { elementIndex: 0 });
           gBrowser.removeTab(gBrowser.selectedTab);
         } else {
           if (tabToAdopt.group) {

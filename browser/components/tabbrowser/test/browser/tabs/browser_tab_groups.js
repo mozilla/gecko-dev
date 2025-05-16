@@ -483,7 +483,7 @@ add_task(async function test_tabGroupMoveToNewWindow() {
     fgWindow,
     "TabGroupCreate"
   );
-  fgWindow.gBrowser.adoptTabGroup(group, 0);
+  fgWindow.gBrowser.adoptTabGroup(group, { elementIndex: 0 });
   let [, tabGroupCreateEvent] = await Promise.all([
     removePromise,
     tabGroupCreate,
