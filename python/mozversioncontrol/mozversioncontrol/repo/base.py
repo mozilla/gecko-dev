@@ -57,6 +57,17 @@ class Repository:
     def __exit__(self, exc_type, exc_value, exc_tb):
         pass
 
+    def _repo_root_relative_path(self, path: Union[str, Path]):
+        repo_root = Path(self.path).resolve()
+        absolute_path = Path(path).resolve()
+        try:
+            relative_path = absolute_path.relative_to(repo_root)
+        except ValueError:
+            raise ValueError(
+                f"Path {absolute_path} is outside of repository root {repo_root}."
+            )
+        return relative_path.as_posix()
+
     def _process_run_args(self, *args, **runargs):
         return_codes = runargs.get("return_codes", [])
         env = self._env
