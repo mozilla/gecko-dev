@@ -5,7 +5,6 @@ support-files = [
   "../fixtures/autocomplete_basic.html",
   "../fixtures/autocomplete_iframe.html",
   "../fixtures/autocomplete_iframe_sandboxed.html",
-  "../fixtures/autocomplete_multiple_emails_checkout.html",
   "../fixtures/autocomplete_simple_basic.html",
   "../fixtures/dynamic_forms.html",
   "../fixtures/dynamic_formless_fields_updated_due_to_node_mutations.html",
@@ -83,8 +82,6 @@ skip-if = [
   "win11_2009", # Bug 1797751
   "os == 'linux'" , # Bug 1788900
 ]
-
-["browser_email_dropdown.js"]
 
 ["browser_fathom_cc.js"]
 
