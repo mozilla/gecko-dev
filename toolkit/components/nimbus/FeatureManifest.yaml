@@ -4820,3 +4820,31 @@ expandSignInButton:
           - fxa-avatar-sign-up
         empty will be assumed default experience
       type: string
+
+contextID:
+  description: >-
+    Controls the behaviour of the context ID, which is a unique identifier used
+    by Contextual Services.
+  owner: mconley@mozilla.com
+  hasExposure: false
+  variables:
+    rotationPeriodInDays:
+      type: int
+      setPref:
+        branch: user
+        pref: "browser.contextual-services.contextId.rotation-in-days"
+      description: >-
+        The number of days since the creation of the context ID after which the
+        context ID should be regenerated. Set to 0 to disable rotation. This
+        value only takes effect if rustBackendEnabled is also true, otherwise
+        no rotation will occur regardless of the value.
+
+        This setting will only be applied after the next restart.
+    rustBackendEnabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref: "browser.contextual-services.contextId.rust-component.enabled"
+      description: >-
+        Enables the Rust component backend for ContextId.sys.mjs, which is
+        a prerequisite for doing rotations.

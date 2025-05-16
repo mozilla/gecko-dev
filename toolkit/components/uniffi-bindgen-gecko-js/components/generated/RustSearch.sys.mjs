@@ -172,7 +172,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerSearchEngineSelector() {
-        const pointerId = 4; // search:SearchEngineSelector
+        const pointerId = 5; // search:SearchEngineSelector
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -182,7 +182,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerSearchEngineSelector(value) {
-        const pointerId = 4; // search:SearchEngineSelector
+        const pointerId = 5; // search:SearchEngineSelector
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -396,7 +396,7 @@ export class SearchEngineSelector {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                32, // search:uniffi_search_fn_constructor_searchengineselector_new
+                36, // search:uniffi_search_fn_constructor_searchengineselector_new
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
@@ -411,7 +411,7 @@ export class SearchEngineSelector {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                27, // search:uniffi_search_fn_method_searchengineselector_clear_search_config
+                31, // search:uniffi_search_fn_method_searchengineselector_clear_search_config
                 FfiConverterTypeSearchEngineSelector.lower(this),
             )
         }
@@ -437,7 +437,7 @@ export class SearchEngineSelector {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                28, // search:uniffi_search_fn_method_searchengineselector_filter_engine_configuration
+                32, // search:uniffi_search_fn_method_searchengineselector_filter_engine_configuration
                 FfiConverterTypeSearchEngineSelector.lower(this),
                 FfiConverterTypeSearchUserEnvironment.lower(userEnvironment),
             )
@@ -461,7 +461,7 @@ export class SearchEngineSelector {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                29, // search:uniffi_search_fn_method_searchengineselector_set_config_overrides
+                33, // search:uniffi_search_fn_method_searchengineselector_set_config_overrides
                 FfiConverterTypeSearchEngineSelector.lower(this),
                 FfiConverterString.lower(overrides),
             )
@@ -489,7 +489,7 @@ export class SearchEngineSelector {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                30, // search:uniffi_search_fn_method_searchengineselector_set_search_config
+                34, // search:uniffi_search_fn_method_searchengineselector_set_search_config
                 FfiConverterTypeSearchEngineSelector.lower(this),
                 FfiConverterString.lower(configuration),
             )
@@ -530,7 +530,7 @@ export class SearchEngineSelector {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                31, // search:uniffi_search_fn_method_searchengineselector_use_remote_settings_server
+                35, // search:uniffi_search_fn_method_searchengineselector_use_remote_settings_server
                 FfiConverterTypeSearchEngineSelector.lower(this),
                 FfiConverterTypeRemoteSettingsService.lower(service),
                 FfiConverterBool.lower(applyEngineOverrides),

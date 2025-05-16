@@ -167,6 +167,26 @@ class ArrayBufferDataStream {
         this.writeUint8(elt);
       })
     }
+
+    // Reads a ContextIdComponent pointer from the data stream
+    // UniFFI Pointers are **always** 8 bytes long. That is enforced
+    // by the C++ and Rust Scaffolding code.
+    readPointerContextIdComponent() {
+        const pointerId = 0; // context_id:ContextIDComponent
+        const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
+        this.pos += 8;
+        return res;
+    }
+
+    // Writes a ContextIdComponent pointer into the data stream
+    // UniFFI Pointers are **always** 8 bytes long. That is enforced
+    // by the C++ and Rust Scaffolding code.
+    writePointerContextIdComponent(value) {
+        const pointerId = 0; // context_id:ContextIDComponent
+        UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
+        this.pos += 8;
+    }
+    
 }
 
 function handleRustResult(result, liftCallback, liftErrCallback) {
@@ -460,18 +480,18 @@ class UniFFICallbackHandleMapEntry {
 }
 
 // Export the FFIConverter object to make external types work.
-export class FfiConverterU32 extends FfiConverter {
+export class FfiConverterU8 extends FfiConverter {
     static checkType(value) {
         super.checkType(value);
         if (!Number.isInteger(value)) {
             throw new UniFFITypeError(`${value} is not an integer`);
         }
-        if (value < 0 || value > 4294967295) {
-            throw new UniFFITypeError(`${value} exceeds the U32 bounds`);
+        if (value < 0 || value > 256) {
+            throw new UniFFITypeError(`${value} exceeds the U8 bounds`);
         }
     }
     static computeSize(_value) {
-        return 4;
+        return 1;
     }
     static lift(value) {
         return value;
@@ -480,10 +500,58 @@ export class FfiConverterU32 extends FfiConverter {
         return value;
     }
     static write(dataStream, value) {
-        dataStream.writeUint32(value)
+        dataStream.writeUint8(value)
     }
     static read(dataStream) {
-        return dataStream.readUint32()
+        return dataStream.readUint8()
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterI64 extends FfiConverter {
+    static checkType(value) {
+        super.checkType(value);
+        if (!Number.isSafeInteger(value)) {
+            throw new UniFFITypeError(`${value} exceeds the safe integer bounds`);
+        }
+    }
+    static computeSize(_value) {
+        return 8;
+    }
+    static lift(value) {
+        return value;
+    }
+    static lower(value) {
+        return value;
+    }
+    static write(dataStream, value) {
+        dataStream.writeInt64(value)
+    }
+    static read(dataStream) {
+        return dataStream.readInt64()
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterBool extends FfiConverter {
+    static computeSize(_value) {
+        return 1;
+    }
+    static lift(value) {
+        return value == 1;
+    }
+    static lower(value) {
+        if (value) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+    static write(dataStream, value) {
+        dataStream.writeUint8(this.lower(value))
+    }
+    static read(dataStream) {
+        return this.lift(dataStream.readUint8())
     }
 }
 
@@ -520,15 +588,242 @@ export class FfiConverterString extends FfiConverter {
     }
 }
 
+/**
+ * Top-level API for the context_id component
+ */
+export class ContextIdComponent {
+    // Use `init` to instantiate this class.
+    // DO NOT USE THIS CONSTRUCTOR DIRECTLY
+    constructor(opts) {
+        if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
+            throw new UniFFIError("Attempting to construct an object using the JavaScript constructor directly" +
+            "Please use a UDL defined constructor, or the init function for the primary constructor")
+        }
+        if (!(opts[constructUniffiObject] instanceof UniFFIPointer)) {
+            throw new UniFFIError("Attempting to create a UniFFI object with a pointer that is not an instance of UniFFIPointer")
+        }
+        this[uniffiObjectPtr] = opts[constructUniffiObject];
+    }
+    /**
+     * Construct a new [ContextIDComponent].
+     *
+     * If no creation timestamp is provided, the current time will be used.
+     * @returns {ContextIdComponent}
+     */
+    static init(initContextId,creationTimestampS,runningInTestAutomation,callback) {
+        const liftResult = (result) => FfiConverterTypeContextIdComponent.lift(result);
+        const liftError = (data) => FfiConverterTypeApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(initContextId)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("initContextId");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterI64.checkType(creationTimestampS)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("creationTimestampS");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterBool.checkType(runningInTestAutomation)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("runningInTestAutomation");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterTypeContextIdCallback.checkType(callback)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("callback");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callSync(
+                3, // context_id:uniffi_context_id_fn_constructor_contextidcomponent_new
+                FfiConverterString.lower(initContextId),
+                FfiConverterI64.lower(creationTimestampS),
+                FfiConverterBool.lower(runningInTestAutomation),
+                FfiConverterTypeContextIdCallback.lower(callback),
+            )
+        }
+        return handleRustResult(functionCall(), liftResult, liftError);}
+
+    /**
+     * Regenerate the context ID.
+     */
+    forceRotation() {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeApiError.lift(data);
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                0, // context_id:uniffi_context_id_fn_method_contextidcomponent_force_rotation
+                FfiConverterTypeContextIdComponent.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * Return the current context ID string.
+     * @returns {string}
+     */
+    request(rotationDaysInS) {
+        const liftResult = (result) => FfiConverterString.lift(result);
+        const liftError = (data) => FfiConverterTypeApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterU8.checkType(rotationDaysInS)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("rotationDaysInS");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                1, // context_id:uniffi_context_id_fn_method_contextidcomponent_request
+                FfiConverterTypeContextIdComponent.lower(this),
+                FfiConverterU8.lower(rotationDaysInS),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * Unset the callbacks set during construction, and use a default
+     * no-op ContextIdCallback instead.
+     */
+    unsetCallback() {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeApiError.lift(data);
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                2, // context_id:uniffi_context_id_fn_method_contextidcomponent_unset_callback
+                FfiConverterTypeContextIdComponent.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+}
 
 // Export the FFIConverter object to make external types work.
-export class FfiConverterTypeApplicationErrorReporter extends FfiConverter {
+export class FfiConverterTypeContextIdComponent extends FfiConverter {
+    static lift(value) {
+        const opts = {};
+        opts[constructUniffiObject] = value;
+        return new ContextIdComponent(opts);
+    }
+
+    static lower(value) {
+        const ptr = value[uniffiObjectPtr];
+        if (!(ptr instanceof UniFFIPointer)) {
+            throw new UniFFITypeError("Object is not a 'ContextIdComponent' instance");
+        }
+        return ptr;
+    }
+
+    static read(dataStream) {
+        return this.lift(dataStream.readPointerContextIdComponent());
+    }
+
+    static write(dataStream, value) {
+        dataStream.writePointerContextIdComponent(value[uniffiObjectPtr]);
+    }
+
+    static computeSize(value) {
+        return 8;
+    }
+}
+
+
+
+
+/**
+ * ApiError
+ */
+export class ApiError extends Error {}
+
+
+/**
+ * Other
+ */
+export class Other extends ApiError {
+
+    constructor(
+        reason,
+        ...params
+    ) {
+        const message = `reason: ${ reason }`;
+        super(message, ...params);
+        this.reason = reason;
+    }
+    toString() {
+        return `Other: ${super.toString()}`
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeApiError extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        switch (dataStream.readInt32()) {
+            case 1:
+                return new Other(
+                    FfiConverterString.read(dataStream)
+                    );
+            default:
+                throw new UniFFITypeError("Unknown ApiError variant");
+        }
+    }
+    static computeSize(value) {
+        // Size of the Int indicating the variant
+        let totalSize = 4;
+        if (value instanceof Other) {
+            totalSize += FfiConverterString.computeSize(value.reason);
+            return totalSize;
+        }
+        throw new UniFFITypeError("Unknown ApiError variant");
+    }
+    static write(dataStream, value) {
+        if (value instanceof Other) {
+            dataStream.writeInt32(1);
+            FfiConverterString.write(dataStream, value.reason);
+            return;
+        }
+        throw new UniFFITypeError("Unknown ApiError variant");
+    }
+
+    static errorClass = ApiError;
+}
+
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeContextIdCallback extends FfiConverter {
     static lower(callbackObj) {
-        return callbackHandlerApplicationErrorReporter.storeCallbackObj(callbackObj)
+        return callbackHandlerContextIdCallback.storeCallbackObj(callbackObj)
     }
 
     static lift(handleId) {
-        return callbackHandlerApplicationErrorReporter.getCallbackObj(handleId)
+        return callbackHandlerContextIdCallback.getCallbackObj(handleId)
     }
 
     static read(dataStream) {
@@ -547,80 +842,29 @@ export class FfiConverterTypeApplicationErrorReporter extends FfiConverter {
 
 // Define callback interface handlers, this must come after the type loop since they reference the FfiConverters defined above.
 
-const callbackHandlerApplicationErrorReporter = new UniFFICallbackHandler(
-    "errorsupport:ApplicationErrorReporter",
-    1,
+const callbackHandlerContextIdCallback = new UniFFICallbackHandler(
+    "context_id:ContextIdCallback",
+    0,
     [
         new UniFFICallbackMethodHandler(
-            "reportError",
+            "persist",
             [
                 FfiConverterString,
-                FfiConverterString,
+                FfiConverterI64,
             ],
         ),
         new UniFFICallbackMethodHandler(
-            "reportBreadcrumb",
+            "rotated",
             [
                 FfiConverterString,
-                FfiConverterString,
-                FfiConverterU32,
-                FfiConverterU32,
             ],
         ),
     ]
 );
 
 // Allow the shutdown-related functionality to be tested in the unit tests
-UnitTestObjs.callbackHandlerApplicationErrorReporter = callbackHandlerApplicationErrorReporter;
+UnitTestObjs.callbackHandlerContextIdCallback = callbackHandlerContextIdCallback;
 
 
 
 
-
-/**
- * Set the global error reporter.  This is typically done early in startup.
- */
-export function setApplicationErrorReporter(errorReporter) {
-
-        const liftResult = (result) => undefined;
-        const liftError = null;
-        const functionCall = () => {
-            try {
-                FfiConverterTypeApplicationErrorReporter.checkType(errorReporter)
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("errorReporter");
-                }
-                throw e;
-            }
-            return UniFFIScaffolding.callAsyncWrapper(
-                4, // errorsupport:uniffi_error_support_fn_func_set_application_error_reporter
-                FfiConverterTypeApplicationErrorReporter.lower(errorReporter),
-            )
-        }
-        try {
-            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
-        }  catch (error) {
-            return Promise.reject(error)
-        }
-}
-
-/**
- * Unset the global error reporter.  This is typically done at shutdown for
- * platforms that want to cleanup references like Desktop.
- */
-export function unsetApplicationErrorReporter() {
-
-        const liftResult = (result) => undefined;
-        const liftError = null;
-        const functionCall = () => {
-            return UniFFIScaffolding.callAsyncWrapper(
-                5, // errorsupport:uniffi_error_support_fn_func_unset_application_error_reporter
-            )
-        }
-        try {
-            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
-        }  catch (error) {
-            return Promise.reject(error)
-        }
-}

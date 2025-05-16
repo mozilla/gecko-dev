@@ -172,7 +172,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerRemoteCommandStore() {
-        const pointerId = 7; // tabs:RemoteCommandStore
+        const pointerId = 8; // tabs:RemoteCommandStore
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -182,7 +182,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerRemoteCommandStore(value) {
-        const pointerId = 7; // tabs:RemoteCommandStore
+        const pointerId = 8; // tabs:RemoteCommandStore
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -192,7 +192,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerTabsBridgedEngine() {
-        const pointerId = 8; // tabs:TabsBridgedEngine
+        const pointerId = 9; // tabs:TabsBridgedEngine
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -202,7 +202,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerTabsBridgedEngine(value) {
-        const pointerId = 8; // tabs:TabsBridgedEngine
+        const pointerId = 9; // tabs:TabsBridgedEngine
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -212,7 +212,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerTabsStore() {
-        const pointerId = 9; // tabs:TabsStore
+        const pointerId = 10; // tabs:TabsStore
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -222,7 +222,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerTabsStore(value) {
-        const pointerId = 9; // tabs:TabsStore
+        const pointerId = 10; // tabs:TabsStore
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -448,7 +448,7 @@ export class RemoteCommandStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                58, // tabs:uniffi_tabs_fn_method_remotecommandstore_add_remote_command
+                62, // tabs:uniffi_tabs_fn_method_remotecommandstore_add_remote_command
                 FfiConverterTypeRemoteCommandStore.lower(this),
                 FfiConverterString.lower(deviceId),
                 FfiConverterTypeRemoteCommand.lower(command),
@@ -494,7 +494,7 @@ export class RemoteCommandStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                59, // tabs:uniffi_tabs_fn_method_remotecommandstore_add_remote_command_at
+                63, // tabs:uniffi_tabs_fn_method_remotecommandstore_add_remote_command_at
                 FfiConverterTypeRemoteCommandStore.lower(this),
                 FfiConverterString.lower(deviceId),
                 FfiConverterTypeRemoteCommand.lower(command),
@@ -517,7 +517,7 @@ export class RemoteCommandStore {
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                60, // tabs:uniffi_tabs_fn_method_remotecommandstore_get_unsent_commands
+                64, // tabs:uniffi_tabs_fn_method_remotecommandstore_get_unsent_commands
                 FfiConverterTypeRemoteCommandStore.lower(this),
             )
         }
@@ -554,7 +554,7 @@ export class RemoteCommandStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                61, // tabs:uniffi_tabs_fn_method_remotecommandstore_remove_remote_command
+                65, // tabs:uniffi_tabs_fn_method_remotecommandstore_remove_remote_command
                 FfiConverterTypeRemoteCommandStore.lower(this),
                 FfiConverterString.lower(deviceId),
                 FfiConverterTypeRemoteCommand.lower(command),
@@ -584,7 +584,7 @@ export class RemoteCommandStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                62, // tabs:uniffi_tabs_fn_method_remotecommandstore_set_pending_command_sent
+                66, // tabs:uniffi_tabs_fn_method_remotecommandstore_set_pending_command_sent
                 FfiConverterTypeRemoteCommandStore.lower(this),
                 FfiConverterTypePendingCommand.lower(command),
             )
@@ -655,7 +655,7 @@ export class TabsBridgedEngine {
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                63, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_apply
+                67, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_apply
                 FfiConverterTypeTabsBridgedEngine.lower(this),
             )
         }
@@ -683,7 +683,7 @@ export class TabsBridgedEngine {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                64, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_ensure_current_sync_id
+                68, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_ensure_current_sync_id
                 FfiConverterTypeTabsBridgedEngine.lower(this),
                 FfiConverterString.lower(newSyncId),
             )
@@ -704,7 +704,7 @@ export class TabsBridgedEngine {
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                65, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_last_sync
+                69, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_last_sync
                 FfiConverterTypeTabsBridgedEngine.lower(this),
             )
         }
@@ -731,7 +731,7 @@ export class TabsBridgedEngine {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                66, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_prepare_for_sync
+                70, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_prepare_for_sync
                 FfiConverterTypeTabsBridgedEngine.lower(this),
                 FfiConverterString.lower(clientData),
             )
@@ -751,7 +751,7 @@ export class TabsBridgedEngine {
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                67, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_reset
+                71, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_reset
                 FfiConverterTypeTabsBridgedEngine.lower(this),
             )
         }
@@ -771,7 +771,7 @@ export class TabsBridgedEngine {
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                68, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_reset_sync_id
+                72, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_reset_sync_id
                 FfiConverterTypeTabsBridgedEngine.lower(this),
             )
         }
@@ -798,7 +798,7 @@ export class TabsBridgedEngine {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                69, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_set_last_sync
+                73, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_set_last_sync
                 FfiConverterTypeTabsBridgedEngine.lower(this),
                 FfiConverterI64.lower(lastSync),
             )
@@ -834,7 +834,7 @@ export class TabsBridgedEngine {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                70, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_set_uploaded
+                74, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_set_uploaded
                 FfiConverterTypeTabsBridgedEngine.lower(this),
                 FfiConverterI64.lower(newTimestamp),
                 FfiConverterSequenceTypeTabsGuid.lower(uploadedIds),
@@ -863,7 +863,7 @@ export class TabsBridgedEngine {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                71, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_store_incoming
+                75, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_store_incoming
                 FfiConverterTypeTabsBridgedEngine.lower(this),
                 FfiConverterSequencestring.lower(incomingEnvelopesAsJson),
             )
@@ -883,7 +883,7 @@ export class TabsBridgedEngine {
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                72, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_sync_finished
+                76, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_sync_finished
                 FfiConverterTypeTabsBridgedEngine.lower(this),
             )
         }
@@ -903,7 +903,7 @@ export class TabsBridgedEngine {
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                73, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_sync_id
+                77, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_sync_id
                 FfiConverterTypeTabsBridgedEngine.lower(this),
             )
         }
@@ -922,7 +922,7 @@ export class TabsBridgedEngine {
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                74, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_sync_started
+                78, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_sync_started
                 FfiConverterTypeTabsBridgedEngine.lower(this),
             )
         }
@@ -941,7 +941,7 @@ export class TabsBridgedEngine {
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                75, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_wipe
+                79, // tabs:uniffi_tabs_fn_method_tabsbridgedengine_wipe
                 FfiConverterTypeTabsBridgedEngine.lower(this),
             )
         }
@@ -1016,7 +1016,7 @@ export class TabsStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                82, // tabs:uniffi_tabs_fn_constructor_tabsstore_new
+                86, // tabs:uniffi_tabs_fn_constructor_tabsstore_new
                 FfiConverterString.lower(path),
             )
         }
@@ -1035,7 +1035,7 @@ export class TabsStore {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                76, // tabs:uniffi_tabs_fn_method_tabsstore_bridged_engine
+                80, // tabs:uniffi_tabs_fn_method_tabsstore_bridged_engine
                 FfiConverterTypeTabsStore.lower(this),
             )
         }
@@ -1054,7 +1054,7 @@ export class TabsStore {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                77, // tabs:uniffi_tabs_fn_method_tabsstore_close_connection
+                81, // tabs:uniffi_tabs_fn_method_tabsstore_close_connection
                 FfiConverterTypeTabsStore.lower(this),
             )
         }
@@ -1074,7 +1074,7 @@ export class TabsStore {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                78, // tabs:uniffi_tabs_fn_method_tabsstore_get_all
+                82, // tabs:uniffi_tabs_fn_method_tabsstore_get_all
                 FfiConverterTypeTabsStore.lower(this),
             )
         }
@@ -1094,7 +1094,7 @@ export class TabsStore {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                79, // tabs:uniffi_tabs_fn_method_tabsstore_new_remote_command_store
+                83, // tabs:uniffi_tabs_fn_method_tabsstore_new_remote_command_store
                 FfiConverterTypeTabsStore.lower(this),
             )
         }
@@ -1113,7 +1113,7 @@ export class TabsStore {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                80, // tabs:uniffi_tabs_fn_method_tabsstore_register_with_sync_manager
+                84, // tabs:uniffi_tabs_fn_method_tabsstore_register_with_sync_manager
                 FfiConverterTypeTabsStore.lower(this),
             )
         }
@@ -1140,7 +1140,7 @@ export class TabsStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                81, // tabs:uniffi_tabs_fn_method_tabsstore_set_local_tabs
+                85, // tabs:uniffi_tabs_fn_method_tabsstore_set_local_tabs
                 FfiConverterTypeTabsStore.lower(this),
                 FfiConverterSequenceTypeRemoteTabRecord.lower(remoteTabs),
             )
