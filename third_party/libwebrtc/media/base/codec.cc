@@ -383,8 +383,8 @@ void AddH264ConstrainedBaselineProfileToSupportedFormats(
                });
 
   if (supported_formats->size() > original_size) {
-    RTC_LOG(LS_WARNING) << "Explicitly added H264 constrained baseline to list "
-                           "of supported formats.";
+    RTC_LOG(LS_INFO) << "Explicitly added H264 constrained baseline to list "
+                        "of supported formats.";
   }
 }
 
