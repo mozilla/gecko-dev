@@ -149,8 +149,7 @@ InternalRequest::InternalRequest(const IPCInternalRequest& aIPCRequest)
                                    aIPCRequest.headersGuard())),
       mBodyLength(aIPCRequest.bodySize()),
       mPreferredAlternativeDataType(aIPCRequest.preferredAlternativeDataType()),
-      mContentPolicyType(
-          static_cast<nsContentPolicyType>(aIPCRequest.contentPolicyType())),
+      mContentPolicyType(aIPCRequest.contentPolicyType()),
       mInternalPriority(aIPCRequest.internalPriority()),
       mReferrer(aIPCRequest.referrer()),
       mReferrerPolicy(aIPCRequest.referrerPolicy()),
@@ -164,8 +163,8 @@ InternalRequest::InternalRequest(const IPCInternalRequest& aIPCRequest)
       mKeepalive(aIPCRequest.keepalive()),
       mFragment(aIPCRequest.fragment()),
       mEmbedderPolicy(aIPCRequest.embedderPolicy()),
-      mInterceptionContentPolicyType(static_cast<nsContentPolicyType>(
-          aIPCRequest.interceptionContentPolicyType())),
+      mInterceptionContentPolicyType(
+          aIPCRequest.interceptionContentPolicyType()),
       mInterceptionRedirectChain(aIPCRequest.interceptionRedirectChain()),
       mInterceptionFromThirdParty(aIPCRequest.interceptionFromThirdParty()) {
   if (aIPCRequest.principalInfo()) {

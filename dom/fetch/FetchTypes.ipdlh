@@ -19,6 +19,7 @@ using mozilla::dom::RequestPriority from "mozilla/dom/RequestBinding.h";
 using mozilla::dom::ResponseType from "mozilla/dom/ResponseBinding.h";
 using struct nsID from "nsID.h";
 using mozilla::dom::FetchDriverObserver::EndReason from "mozilla/dom/FetchDriver.h";
+using nsContentPolicyType from "nsIContentPolicy.h";
 using nsILoadInfo::CrossOriginEmbedderPolicy from "nsILoadInfo.h";
 [RefCounted] using class mozilla::RemoteLazyInputStream from "mozilla/RemoteLazyInputStream.h";
 [RefCounted] using class nsITransportSecurityInfo from "nsITransportSecurityInfo.h";
@@ -59,7 +60,7 @@ struct IPCInternalRequest {
   BodyStreamVariant? body;
   int64_t bodySize;
   nsCString preferredAlternativeDataType;
-  uint32_t contentPolicyType;
+  nsContentPolicyType contentPolicyType;
   int32_t internalPriority;
   nsCString referrer;
   ReferrerPolicy referrerPolicy;
@@ -74,7 +75,7 @@ struct IPCInternalRequest {
   nsCString fragment;
   PrincipalInfo? principalInfo;
   PrincipalInfo? interceptionTriggeringPrincipalInfo;
-  uint32_t interceptionContentPolicyType;
+  nsContentPolicyType interceptionContentPolicyType;
   RedirectHistoryEntryInfo[] interceptionRedirectChain;
   bool interceptionFromThirdParty;
   CrossOriginEmbedderPolicy embedderPolicy;
