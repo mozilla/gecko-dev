@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/audio_codecs/audio_encoder.h"
@@ -274,6 +275,9 @@ class ChannelSend : public ChannelSendInterface,
 
   void InitFrameTransformerDelegate(
       rtc::scoped_refptr<webrtc::FrameTransformerInterface> frame_transformer);
+
+  // Calls the encoder on the encoder queue (instead of blocking).
+  void CallEncoderAsync(absl::AnyInvocable<void(AudioEncoder*)> modifier);
 
   const Environment env_;
 
@@ -665,14 +669,15 @@ void ChannelSend::CallEncoder(FunctionView<void(AudioEncoder*)> modifier) {
   });
 }
 
+void ChannelSend::CallEncoderAsync(
+    absl::AnyInvocable<void(AudioEncoder*)> modifier) {
+  encoder_queue_->PostTask([this, modifier = std::move(modifier)]() mutable {
+    CallEncoder(modifier);
+  });
+}
+
 void ChannelSend::OnBitrateAllocation(BitrateAllocationUpdate update) {
-  // This method can be called on the worker thread, module process thread
-  // or on a TaskQueue via VideoSendStreamImpl::OnEncoderConfigurationChanged.
-  // TODO(solenberg): Figure out a good way to check this or enforce calling
-  // rules.
-  // RTC_DCHECK(worker_thread_checker_.IsCurrent() ||
-  //            module_process_thread_checker_.IsCurrent());
-  CallEncoder([&](AudioEncoder* encoder) {
+  CallEncoderAsync([update](AudioEncoder* encoder) {
     encoder->OnReceivedUplinkAllocation(update);
   });
   retransmission_rate_limiter_->SetMaxRate(update.target_bitrate.bps());
@@ -684,7 +689,7 @@ int ChannelSend::GetTargetBitrate() const {
 
 void ChannelSend::OnReportBlockDataUpdated(ReportBlockData report_block) {
   float packet_loss_rate = report_block.fraction_lost();
-  CallEncoder([&](AudioEncoder* encoder) {
+  CallEncoderAsync([packet_loss_rate](AudioEncoder* encoder) {
     encoder->OnReceivedUplinkPacketLossFraction(packet_loss_rate);
   });
 }
@@ -956,8 +961,7 @@ void ChannelSend::SetEncoderToPacketizerFrameTransformer(
 }
 
 void ChannelSend::OnReceivedRtt(int64_t rtt_ms) {
-  // Invoke audio encoders OnReceivedRtt().
-  CallEncoder(
+  CallEncoderAsync(
       [rtt_ms](AudioEncoder* encoder) { encoder->OnReceivedRtt(rtt_ms); });
 }
 
