@@ -658,7 +658,9 @@ TEST_P(PeerConnectionIceTest, VerifyUfragPwdLength) {
     auto offer = pc->CreateOffer();
     SetIceUfragPwd(offer.get(), std::string(ufrag_len, 'x'),
                    std::string(pwd_len, 'x'));
-    return pc->SetLocalDescription(std::move(offer));
+    bool result = pc->SetLocalDescription(std::move(offer));
+    pc->pc()->Close();
+    return result;
   };
 
   auto set_remote_description_with_ufrag_pwd_length = [this](int ufrag_len,
@@ -667,7 +669,9 @@ TEST_P(PeerConnectionIceTest, VerifyUfragPwdLength) {
     auto offer = pc->CreateOffer();
     SetIceUfragPwd(offer.get(), std::string(ufrag_len, 'x'),
                    std::string(pwd_len, 'x'));
-    return pc->SetRemoteDescription(std::move(offer));
+    bool result = pc->SetRemoteDescription(std::move(offer));
+    pc->pc()->Close();
+    return result;
   };
 
   EXPECT_FALSE(set_local_description_with_ufrag_pwd_length(3, 22));

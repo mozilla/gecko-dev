@@ -10,18 +10,25 @@
 
 #include "pc/simulcast_sdp_serializer.h"
 
+#include <algorithm>
 #include <map>
 #include <optional>
 #include <string>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
+#include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
+#include "media/base/codec.h"
 #include "media/base/codec_comparators.h"
+#include "media/base/rid_description.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "pc/session_description.h"
+#include "pc/simulcast_description.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/logging.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/string_to_number.h"
 #include "rtc_base/strings/string_builder.h"
@@ -293,9 +300,11 @@ std::string SimulcastSdpSerializer::SerializeRidDescription(
         });
     // The desired codec from setParameters() may not have been negotiated, e.g.
     // if excluded with setCodecPreferences().
-    if (it == media_desc.codecs().end() ||
-        it->id == cricket::Codec::kIdNotSet) {
-      RTC_DCHECK_NE(it->id, cricket::Codec::kIdNotSet);
+    if (it == media_desc.codecs().end()) {
+      break;
+    }
+    if (it->id == cricket::Codec::kIdNotSet) {
+      RTC_DCHECK_NOTREACHED();
       break;
     }
     payload_types.push_back(it->id);
