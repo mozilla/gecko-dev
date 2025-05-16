@@ -11,16 +11,24 @@
 #include "modules/video_coding/codecs/av1/dav1d_decoder.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <optional>
 
+#include "api/environment/environment.h"
+#include "api/ref_counted_base.h"
 #include "api/scoped_refptr.h"
 #include "api/video/encoded_image.h"
+#include "api/video/video_frame.h"
 #include "api/video/video_frame_buffer.h"
+#include "api/video_codecs/video_decoder.h"
 #include "common_video/include/video_frame_buffer.h"
 #include "modules/video_coding/include/video_error_codes.h"
 #include "rtc_base/logging.h"
+#include "third_party/dav1d/libdav1d/include/dav1d/data.h"
 #include "third_party/dav1d/libdav1d/include/dav1d/dav1d.h"
-#include "third_party/libyuv/include/libyuv/convert.h"
-#include "third_party/libyuv/include/libyuv/planar_functions.h"
+#include "third_party/dav1d/libdav1d/include/dav1d/headers.h"
+#include "third_party/dav1d/libdav1d/include/dav1d/picture.h"
 
 namespace webrtc {
 namespace {
@@ -47,7 +55,7 @@ class Dav1dDecoder : public VideoDecoder {
   Dav1dContext* context_ = nullptr;
   DecodedImageCallback* decode_complete_callback_ = nullptr;
 
-  const bool crop_to_render_resolution_ = true;
+  const bool crop_to_render_resolution_ = false;
 };
 
 class ScopedDav1dData {
@@ -80,7 +88,7 @@ void NullFreeCallback(const uint8_t* /* buffer */, void* /* opaque */) {}
 Dav1dDecoder::Dav1dDecoder() = default;
 
 Dav1dDecoder::Dav1dDecoder(const Environment& env)
-    : crop_to_render_resolution_(!env.field_trials().IsDisabled(
+    : crop_to_render_resolution_(env.field_trials().IsEnabled(
           "WebRTC-Dav1dDecoder-CropToRenderResolution")) {}
 
 Dav1dDecoder::~Dav1dDecoder() {

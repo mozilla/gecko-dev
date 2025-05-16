@@ -34,6 +34,7 @@ rtc_library("dav1d_decoder") {
 
   deps = [
     "../..:video_codec_interface",
+    "../../../../api:refcountedbase",
     "../../../../api:scoped_refptr",
     "../../../../api/environment",
     "../../../../api/video:encoded_image",
@@ -97,7 +98,6 @@ if (rtc_include_tests) {
       "../../../../api/video_codecs:video_codecs_api",
       "../../../../test:explicit_key_value_config",
       "../../../../test:test_support",
-      "//third_party/abseil-cpp/absl/functional:any_invocable",
     ]
 
     if (enable_libaom) {

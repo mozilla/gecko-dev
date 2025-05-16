@@ -10,12 +10,11 @@
 
 #include "modules/video_coding/codecs/av1/dav1d_decoder.h"
 
+#include <cstdint>
 #include <memory>
 #include <optional>
-#include <string>
 #include <utility>
 
-#include "absl/functional/any_invocable.h"
 #include "api/array_view.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
@@ -88,15 +87,25 @@ class TestAv1Decoder : public DecodedImageCallback {
   std::optional<VideoFrame> decoded_frame_;
 };
 
-TEST(Dav1dDecoderTest, CropsToRenderResolutionByDefault) {
+TEST(Dav1dDecoderTest, KeepsDecodedResolutionByDefault) {
   TestAv1Decoder decoder(CreateEnvironment());
+  decoder.Decode(
+      CreateEncodedImage(kAv1FrameWith36x20EncodededAnd32x16RenderResolution));
+  EXPECT_EQ(decoder.decoded_frame().width(), 36);
+  EXPECT_EQ(decoder.decoded_frame().height(), 20);
+}
+
+TEST(Dav1dDecoderTest, CropsToRenderResolutionWhenCropIsEnabled) {
+  TestAv1Decoder decoder(
+      CreateEnvironment(std::make_unique<ExplicitKeyValueConfig>(
+          "WebRTC-Dav1dDecoder-CropToRenderResolution/Enabled/")));
   decoder.Decode(
       CreateEncodedImage(kAv1FrameWith36x20EncodededAnd32x16RenderResolution));
   EXPECT_EQ(decoder.decoded_frame().width(), 32);
   EXPECT_EQ(decoder.decoded_frame().height(), 16);
 }
 
-TEST(Dav1dDecoderTest, KeepsDecodedResolutionWhenCropIsDisabled) {
+TEST(Dav1dDecoderTest, DoesNotCropToRenderResolutionWhenCropIsDisabled) {
   TestAv1Decoder decoder(
       CreateEnvironment(std::make_unique<ExplicitKeyValueConfig>(
           "WebRTC-Dav1dDecoder-CropToRenderResolution/Disabled/")));
