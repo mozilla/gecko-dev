@@ -178,7 +178,7 @@ this.TextRecognitionWidget = class {
     this.isInitialized = true;
 
     const parser = new this.window.DOMParser();
-    let parserDoc = parser.parseFromString(
+    let parserDoc = parser.parseFromSafeString(
       `<div class="textrecognition" xmlns="http://www.w3.org/1999/xhtml" role="none">
         <link rel="stylesheet" href="chrome://global/skin/media/textrecognition.css" />
         <canvas />
