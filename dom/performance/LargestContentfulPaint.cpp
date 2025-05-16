@@ -269,10 +269,7 @@ void LCPHelpers::FinalizeLCPEntryForImage(
 
   RefPtr<LargestContentfulPaint> entry = new LargestContentfulPaint(
       performance, lcpTimings.mRenderTime.ref(), lcpTimings.mLoadTime, 0,
-      requestURI, aContainingBlock,
-      taoPassed ||
-          StaticPrefs::
-              dom_performance_largest_contentful_paint_coarsened_rendertime_enabled());
+      requestURI, aContainingBlock, taoPassed);
 
   entry->UpdateSize(aContainingBlock, aTargetRectRelativeToSelf, performance,
                     true);
@@ -313,7 +310,15 @@ DOMHighResTimeStamp LargestContentfulPaint::LoadTime() const {
 }
 
 DOMHighResTimeStamp LargestContentfulPaint::StartTime() const {
-  return mShouldExposeRenderTime ? RenderTime() : LoadTime();
+  if (mShouldExposeRenderTime) {
+    return GetReducedTimePrecisionDOMHighRes(mPerformance, mRenderTime);
+  }
+
+  if (mLoadTime.isNothing()) {
+    return 0;
+  }
+
+  return GetReducedTimePrecisionDOMHighRes(mPerformance, mLoadTime.ref());
 }
 
 /* static */
