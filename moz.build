@@ -55,6 +55,9 @@ with Files("**/l10n.toml"):
 with Files("README.txt"):
     BUG_COMPONENT = ("Core", "General")
 
+with Files("SECURITY.md"):
+    BUG_COMPONENT = ("Core", "DOM: Security")
+
 with Files("nsprpub/**"):
     BUG_COMPONENT = ("NSPR", "NSPR")
 
