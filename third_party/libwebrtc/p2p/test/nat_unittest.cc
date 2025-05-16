@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "absl/memory/memory.h"
+#include "api/environment/environment_factory.h"
 #include "api/test/rtc_error_matchers.h"
 #include "p2p/test/nat_server.h"
 #include "p2p/test/nat_socket_factory.h"
@@ -39,11 +40,12 @@
 #include "rtc_base/virtual_socket_server.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
-#include "test/scoped_key_value_config.h"
 #include "test/wait_until.h"
 
 namespace rtc {
 namespace {
+
+using ::webrtc::CreateEnvironment;
 
 bool CheckReceive(webrtc::TestClient* client,
                   bool should_receive,
@@ -246,10 +248,9 @@ bool TestConnectivity(const webrtc::SocketAddress& src,
 }
 
 void TestPhysicalInternal(const webrtc::SocketAddress& int_addr) {
-  webrtc::test::ScopedKeyValueConfig field_trials;
   webrtc::AutoThread main_thread;
   webrtc::PhysicalSocketServer socket_server;
-  BasicNetworkManager network_manager(nullptr, &socket_server, &field_trials);
+  BasicNetworkManager network_manager(CreateEnvironment(), &socket_server);
   network_manager.StartUpdating();
   // Process pending messages so the network list is updated.
   webrtc::Thread::Current()->ProcessMessages(0);

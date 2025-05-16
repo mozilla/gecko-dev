@@ -10,17 +10,24 @@
 
 #include "pc/connection_context.h"
 
-#include <type_traits>
+#include <memory>
 #include <utility>
-#include <vector>
 
 #include "api/environment/environment.h"
+#include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
+#include "api/transport/sctp_transport_factory_interface.h"
 #include "media/base/media_engine.h"
 #include "media/sctp/sctp_transport_factory.h"
+#include "p2p/base/basic_packet_socket_factory.h"
 #include "pc/media_factory.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/crypto_random.h"
 #include "rtc_base/internal/default_socket_server.h"
+#include "rtc_base/network.h"
+#include "rtc_base/socket_factory.h"
 #include "rtc_base/socket_server.h"
+#include "rtc_base/thread.h"
 #include "rtc_base/time_utils.h"
 
 namespace webrtc {
@@ -153,7 +160,7 @@ ConnectionContext::ConnectionContext(
     // If network_monitor_factory_ is non-null, it will be used to create a
     // network monitor while on the network thread.
     default_network_manager_ = std::make_unique<rtc::BasicNetworkManager>(
-        network_monitor_factory_.get(), socket_factory, &env_.field_trials());
+        env, socket_factory, network_monitor_factory_.get());
   }
   if (!default_socket_factory_) {
     default_socket_factory_ =

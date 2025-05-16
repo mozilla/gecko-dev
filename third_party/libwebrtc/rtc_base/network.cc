@@ -10,8 +10,38 @@
 
 #include "rtc_base/network.h"
 
+#include <cctype>
+#include <cerrno>
+#include <cstdint>
+#include <cstring>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "absl/algorithm/container.h"
+#include "absl/base/nullability.h"
+#include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
-#include "rtc_base/experiments/field_trial_parser.h"
+#include "api/array_view.h"
+#include "api/environment/environment.h"
+#include "api/field_trials_view.h"
+#include "api/sequence_checker.h"
+#include "api/task_queue/pending_task_safety_flag.h"
+#include "api/units/time_delta.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/ip_address.h"
+#include "rtc_base/logging.h"
+#include "rtc_base/mdns_responder_interface.h"
+#include "rtc_base/network_constants.h"
+#include "rtc_base/network_monitor.h"
+#include "rtc_base/network_monitor_factory.h"
+#include "rtc_base/socket.h"  // includes something that makes windows happy
+#include "rtc_base/socket_address.h"
+#include "rtc_base/socket_factory.h"
+#include "rtc_base/strings/string_builder.h"
+#include "rtc_base/thread.h"
 
 #if defined(WEBRTC_POSIX)
 #include <net/if.h>
@@ -20,31 +50,18 @@
 #if defined(WEBRTC_WIN)
 #include <iphlpapi.h>
 
+#include "rtc_base/experiments/field_trial_parser.h"
+#include "rtc_base/string_utils.h"
 #include "rtc_base/win32.h"
 #elif !defined(__native_client__)
 #include "rtc_base/ifaddrs_converter.h"
 #endif
 
-#include <memory>
-
-#include "absl/algorithm/container.h"
-#include "absl/memory/memory.h"
-#include "absl/strings/match.h"
-#include "absl/strings/string_view.h"
-#include "api/task_queue/pending_task_safety_flag.h"
-#include "api/units/time_delta.h"
-#include "rtc_base/checks.h"
-#include "rtc_base/logging.h"
-#include "rtc_base/network_monitor.h"
-#include "rtc_base/socket.h"  // includes something that makes windows happy
-#include "rtc_base/string_encode.h"
-#include "rtc_base/string_utils.h"
-#include "rtc_base/strings/string_builder.h"
-#include "rtc_base/thread.h"
-
 namespace rtc {
 namespace {
+using ::webrtc::Environment;
 using ::webrtc::SafeTask;
+using ::webrtc::SocketFactory;
 using ::webrtc::TimeDelta;
 
 // List of MAC addresses of known VPN (for windows).
@@ -542,6 +559,21 @@ bool NetworkManagerBase::IsVpnMacAddress(
     }
   }
   return false;
+}
+
+BasicNetworkManager::BasicNetworkManager(
+    const Environment& env,
+    absl::Nonnull<SocketFactory*> socket_factory,
+    absl::Nullable<NetworkMonitorFactory*> network_monitor_factory)
+    : env_(env),
+      field_trials_(&env_->field_trials()),
+      network_monitor_factory_(network_monitor_factory),
+      socket_factory_(socket_factory),
+      allow_mac_based_ipv6_(
+          env_->field_trials().IsEnabled("WebRTC-AllowMACBasedIPv6")),
+      bind_using_ifname_(
+          !env_->field_trials().IsDisabled("WebRTC-BindUsingInterfaceName")) {
+  RTC_DCHECK(socket_factory_);
 }
 
 BasicNetworkManager::BasicNetworkManager(

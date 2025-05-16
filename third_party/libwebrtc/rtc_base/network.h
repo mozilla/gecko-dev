@@ -13,22 +13,27 @@
 
 #include <stdint.h>
 
-#include <deque>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "absl/base/attributes.h"
+#include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/environment/environment.h"
 #include "api/field_trials_view.h"
+#include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/transport/field_trial_based_config.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/mdns_responder_interface.h"
 #include "rtc_base/memory/always_valid_pointer.h"
+#include "rtc_base/network_constants.h"
 #include "rtc_base/network_monitor.h"
 #include "rtc_base/network_monitor_factory.h"
 #include "rtc_base/socket_factory.h"
@@ -489,7 +494,13 @@ class RTC_EXPORT BasicNetworkManager : public NetworkManagerBase,
                                        public webrtc::NetworkBinderInterface,
                                        public sigslot::has_slots<> {
  public:
-  // This is used by lots of downstream code.
+  BasicNetworkManager(
+      const webrtc::Environment& env,
+      absl::Nonnull<webrtc::SocketFactory*> socket_factory,
+      absl::Nullable<NetworkMonitorFactory*> network_monitor_factory = nullptr);
+
+  // TODO: bugs.webrtc.org/405883462 - Deprecate and remove two constructors
+  // below when chromium is updated not to use these constructors.
   BasicNetworkManager(webrtc::SocketFactory* socket_factory,
                       const webrtc::FieldTrialsView* field_trials = nullptr)
       : BasicNetworkManager(/* network_monitor_factory= */ nullptr,
@@ -574,6 +585,10 @@ class RTC_EXPORT BasicNetworkManager : public NetworkManagerBase,
   // Only updates the networks; does not reschedule the next update.
   void UpdateNetworksOnce() RTC_RUN_ON(thread_);
 
+  // TODO: bugs.webrtc.org/405883462 - Make non-optional and remove
+  // `field_trials_` when all users are migrated to constructor providing
+  // Environment.
+  std::optional<webrtc::Environment> env_;
   webrtc::Thread* thread_ = nullptr;
   bool sent_first_update_ = true;
   int start_count_ = 0;
@@ -582,8 +597,8 @@ class RTC_EXPORT BasicNetworkManager : public NetworkManagerBase,
                              webrtc::FieldTrialBasedConfig>
       field_trials_;
   std::vector<std::string> network_ignore_list_;
-  NetworkMonitorFactory* const network_monitor_factory_;
-  webrtc::SocketFactory* const socket_factory_;
+  absl::Nullable<NetworkMonitorFactory*> const network_monitor_factory_;
+  absl::Nonnull<webrtc::SocketFactory*> const socket_factory_;
   std::unique_ptr<webrtc::NetworkMonitorInterface> network_monitor_
       RTC_GUARDED_BY(thread_);
   bool allow_mac_based_ipv6_ RTC_GUARDED_BY(thread_) = false;
