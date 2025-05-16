@@ -50,7 +50,7 @@ add_task(async function test_fetch_recipe_and_branch_no_debug() {
   const cleanup = await setup([recipe]);
 
   await Assert.rejects(
-    ExperimentAPI.optInToExperiment({
+    RemoteSettingsExperimentLoader.optInToExperiment({
       slug,
       branch: "control",
     }),
@@ -65,7 +65,7 @@ add_task(async function test_fetch_recipe_and_branch_no_debug() {
 
   Services.prefs.setBoolPref("nimbus.debug", true);
 
-  await ExperimentAPI.optInToExperiment({
+  await RemoteSettingsExperimentLoader.optInToExperiment({
     slug,
     branch: "control",
   });
@@ -79,7 +79,7 @@ add_task(async function test_fetch_recipe_and_branch_badslug() {
   const cleanup = await setup([]);
 
   await Assert.rejects(
-    ExperimentAPI.optInToExperiment({
+    RemoteSettingsExperimentLoader.optInToExperiment({
       slug: "other_slug",
       branch: "control",
     }),
@@ -101,7 +101,7 @@ add_task(async function test_fetch_recipe_and_branch_badbranch() {
   const cleanup = await setup([recipe]);
 
   await Assert.rejects(
-    ExperimentAPI.optInToExperiment({
+    RemoteSettingsExperimentLoader.optInToExperiment({
       slug,
       branch: "other_branch",
     }),
@@ -122,7 +122,7 @@ add_task(async function test_fetch_recipe_and_branch() {
   const recipe = NimbusTestUtils.factories.recipe(slug, { targeting: "false" });
   const cleanup = await setup([recipe]);
 
-  await ExperimentAPI.optInToExperiment({
+  await RemoteSettingsExperimentLoader.optInToExperiment({
     slug,
     branch: "control",
   });
@@ -148,7 +148,7 @@ add_task(async function test_invalid_recipe() {
   const cleanup = await setup([recipe]);
 
   await Assert.rejects(
-    ExperimentAPI.optInToExperiment({
+    RemoteSettingsExperimentLoader.optInToExperiment({
       slug,
       branch: "control",
     }),
@@ -188,7 +188,7 @@ add_task(async function test_invalid_branch_variablesOnly() {
   const cleanup = await setup([recipe]);
 
   await Assert.rejects(
-    ExperimentAPI.optInToExperiment({
+    RemoteSettingsExperimentLoader.optInToExperiment({
       slug,
       branch: "control",
     }),
@@ -225,7 +225,7 @@ add_task(async function test_invalid_branch_schema() {
   const cleanup = await setup([recipe]);
 
   await Assert.rejects(
-    ExperimentAPI.optInToExperiment({
+    RemoteSettingsExperimentLoader.optInToExperiment({
       slug,
       branch: "control",
     }),
@@ -261,7 +261,7 @@ add_task(async function test_invalid_branch_featureId() {
   const cleanup = await setup([recipe]);
 
   await Assert.rejects(
-    ExperimentAPI.optInToExperiment({
+    RemoteSettingsExperimentLoader.optInToExperiment({
       slug,
       branch: "control",
     }),

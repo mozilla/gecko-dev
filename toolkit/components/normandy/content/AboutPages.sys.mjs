@@ -15,6 +15,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PreferenceExperiments:
     "resource://normandy/lib/PreferenceExperiments.sys.mjs",
   RecipeRunner: "resource://normandy/lib/RecipeRunner.sys.mjs",
+  RemoteSettingsExperimentLoader:
+    "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
   UnenrollmentCause: "resource://nimbus/lib/ExperimentManager.sys.mjs",
 });
 
@@ -106,7 +108,7 @@ ChromeUtils.defineLazyGetter(AboutPages, "aboutStudies", () => {
 
     async optInToExperiment(data) {
       try {
-        await lazy.ExperimentAPI.optInToExperiment(data);
+        await lazy.RemoteSettingsExperimentLoader.optInToExperiment(data);
         return {
           error: false,
           message: "Opt-in was successful.",
