@@ -438,6 +438,36 @@ addons_manager:
       - addons-dev-internal@mozilla.com
     expires: never
 
+  xpistates_write_errors:
+    type: event
+    description: |
+      Sent when saving addonStartup.json.lz4 data back to disk fails.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966154
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966154
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+    extra_keys:
+      error_type:
+        description: |
+          A string set to determine which kind of errors originated from IOUtils.writeJSON
+          was hit by JSONFile.save. The expected values are:
+          - "TooMuchRecursion" (if the error hit was an "too much recursion" InternalError
+          - the value set on `name` property of the error object instance
+          - "Unknown" as a fallback if the error object did not have a `name` property and
+            it wasn't detected as a "too much recursion" error.
+        type: string
+      profile_state:
+        description: |
+          A string set to determine whether the profile was a new or existing profile,
+          and if the application version was changing, while the write error was hit.
+          The expected values are: "new", "existing" "existingWithVersionChanged"
+        type: string
+    expires: 147
+
 blocklist:
   last_modified_rs_addons_mblf:
     type: datetime

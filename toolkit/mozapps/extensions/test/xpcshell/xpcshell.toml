@@ -54,6 +54,8 @@ skip-if = ["condprof"] # Bug 1769184 - by design for now
 
 ["test_addonStartup.js"]
 
+["test_addonStartup_save_failures.js"]
+
 ["test_addon_manager_telemetry_events.js"]
 
 ["test_amo_stats_telemetry.js"]
