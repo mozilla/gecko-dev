@@ -130,6 +130,8 @@
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">ትሮችን ለመቀየር የመሳሪያ አሞሌውን ያንሸራትቱ</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">ለመቀየር ወደ ግራ ወይም ቀኝ ያንሸራትቱ። አዲስ ትር ለመክፈት በመጨረሻው ትር ላይ ወደ ግራ ያንሸራትቱ።</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">ትሮችን ለመቀየር የመሳሪያ አሞሌውን ወደ ግራ ወይም ቀኝ ያንሸራትቱ።</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">የካሜራ ፈቃድ ያስፈልጋል። ወደ አንድሮይድ ቅንብሮች ይሂዱ፣ ፈቃዶችን ይንኩ እና ፍቀድን ይንኩ።</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -631,6 +633,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">ፈጣን እና ደህንነቱ የተጠበቀ የድር አሰሳ</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">እስማማለሁ እና ቀጥል</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">ቀጥል</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">በመቀጠል፣ በ%1$s ተስማምተዋል።</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1480,8 +1484,33 @@
   <string name="download_multi_select_title">%1$d ተመርጧል</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">አስወግድ</string>
+  <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
+  <string name="download_file_has_not_enough_storage_dialog_title">በቂ ቦታ የለም</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message">ይህ መሳሪያ &lt;b&gt;%s&lt;/b&gt;ን ለማውረድ በቂ ቦታ የለውም።</string>
+  <!--
+    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will navigate the user to the device's storage management settings.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">ፋይሎችን አስተዳድር</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">ተወው</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">ሰርዝ</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">ወደ ኋላ ዳስስ</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">ወደ ላይ አስስ</string>
+  <!-- Content description for the toolbar back button while searching the downloads -->
+  <string name="download_close_search_description">ተመለስ እና ፍለጋን ዝጋ</string>
+  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <string name="download_clear_search_description">አጽዳ</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">URL አጋራ</string>
   <!-- Text for the button to share the download file -->
@@ -1653,6 +1682,8 @@
   <string name="bookmark_menu_delete_button">ሰርዝ</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">አስቀምጥ</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">በብጁ ትዕዛዝ ደርድር</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">በአዲሱ ደርድር</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -1934,6 +1965,10 @@
   <string name="sync_add_new_device_learn_button">ትሮችን ስለመላክ ይወቁ…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">ሌላ መሳሪያ ያገናኙ…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nከ%2$s የተላከ 🦊 የሞባይል አሳሹን ይሞክሩ፡- %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nከ%2$s 🦊 %3$s የተላከ</string>
   <!--
     Notifications
 
@@ -3152,6 +3187,8 @@
   <string name="protection_panel_no_trackers_blocked">ምንም መከታተያዎች አልተገኙም</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">የግላዊነት እና የደህንነት ቅንብሮች</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">ፈቃዶች</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.
@@ -3434,4 +3471,10 @@
   <string name="pbm_authentication_unlock">ክፈት</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">የግል ትሮችን ይክፈቱ</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">የግል ትሮች የማያ ገጽ መቆለፊያን አንቃ</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative">አልፈልግም፣አመሰግናለሁ</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive">ትሮችን ቆልፍ</string>
 </resources>

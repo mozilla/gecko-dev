@@ -3426,6 +3426,8 @@
   <string name="debug_drawer_override_current_region_label">Reemplazar región actual</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">Reemplazar la región de inicio y la actual</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Anular la región de origen de forma permanente</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

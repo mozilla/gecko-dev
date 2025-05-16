@@ -632,6 +632,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">مرور وب سریع و امن</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">موافقت و ادامه</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">ادامه</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">با ادامه دادن، شما با %1$s موافقت می‌کنید.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -904,6 +906,10 @@
   <string name="preferences_show_nonsponsored_suggestions_summary">دریافت پیشنهادات از وب مرتبط با جستجوی شما</string>
   <!-- Preference for link sharing -->
   <string name="preferences_link_sharing">هم‌رسانی پیوند</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">شامل %1$s پیوند بارگیری در هم‌رسانی‌های واتس‌اپ</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">با هر بار هم‌رسانی پیوند روی واتس‌اپ، دوستان‌تان را دعوت به امتحان کردن مرور امن‌تر و سریع‌تر وب با %1$s کنید.</string>
   <!-- Snackbar message shown when user shares a link -->
   <string name="link_shared_snackbar_message">پیوند هم‌رسانی شد</string>
   <!-- Snackbar action label shown when user shares a link -->
@@ -1445,16 +1451,31 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">بارگیری‌ها حذف شدند</string>
+  <!--
+    Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
+    %1$d is the number of items deleted.
+  -->
+  <string name="download_delete_multiple_items_snackbar_2">موارد پاک شده: %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s حذف شد</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">«%1$s» پاک شد</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">بارگیری در جریان…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
   <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">جزئیات</string>
+  <!-- Text for the snackbar to confirm that a download has completed. -->
+  <string name="download_completed_snackbar" tools:ignore="UnusedResources">بارگیری کامل شد</string>
   <!-- Text for the snackbar action button to open a completed download. -->
   <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">باز کردن</string>
   <!-- Text for the snackbar action button to undo deleting a download. -->
   <string name="download_undo_delete_snackbar_action">برگردان</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">تا به حال پرونده‌ای بارگیری نشده است</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">چیزی تاکنون بارگیری نشده است</string>
+  <!-- Text description shown when no download exists -->
+  <string name="download_empty_description">پرونده‌هایی را که بارگیری می‌کنید اینجا نمایش می‌یابند.</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1462,8 +1483,39 @@
   <string name="download_multi_select_title">%1$d انتخاب شد</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">حذف</string>
+  <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
+  <string name="download_file_has_not_enough_storage_dialog_title">فضای کافی موجود نیست</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message">این دستگاه فضای کافی برای بارگیری &lt;b&gt;%s&lt;/b&gt; را ندارد.</string>
+  <!--
+    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will navigate the user to the device's storage management settings.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">مدیریت پرونده‌ها</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">لغو</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">حذف</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">بازگشت به عقب</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">پیمایش به بالا</string>
+  <!-- Content description for the toolbar back button while searching the downloads -->
+  <string name="download_close_search_description">بازگشت و بستن جستجو</string>
+  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <string name="download_clear_search_description">پاک کردن</string>
+  <!-- Text for the button to share the download URL -->
+  <string name="download_share_url">هم‌رسانی نشانی</string>
+  <!-- Text for the button to share the download file -->
+  <string name="download_share_file">هم‌رسانی پرونده</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
+  <string name="download_delete_multi_select_dialog_confirmation">برای پاک کردن موارد انتخاب‌شده مطمئن هستید؟</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
   <string name="download_delete_multi_select_dialog_confirm">حذف</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
@@ -1484,6 +1536,23 @@
   <string name="download_time_period_last_30_days">۳۰ روز گذشته</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">‏‏قدیمی‌تر</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s از %2$s • %3$s باقی مانده است</string>
+  <!-- Text to indicate that an in progress download is paused. -->
+  <string name="download_item_status_paused" tools:ignore="UnusedResources">متوقف شده</string>
+  <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
+  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">در انتظار</string>
+  <!-- Text to indicate that a download has failed to download. -->
+  <string name="download_item_status_failed" tools:ignore="UnusedResources">بارگیری‌ شکست خورد</string>
+  <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
+  <string name="download_search_placeholder">جستجو در بارگیری‌ها</string>
+  <!-- Text to indicate that no downloads match the search query. -->
+  <string name="download_search_no_results_found">نتیجه‌ای یافت نشد</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
   <string name="download_select_all_items">انتخاب همه</string>
   <!--
@@ -1496,6 +1565,12 @@
   <string name="download_content_type_filter_image">تصاویر</string>
   <!-- Text for the filter button to show only video files in the downloads list -->
   <string name="download_content_type_filter_video">ویدیوها</string>
+  <!-- Text for the filter button to show only documents in the downloads list -->
+  <string name="download_content_type_filter_document">اسناد</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">سایر</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other_1">سایر</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.
@@ -1606,6 +1681,16 @@
   <string name="bookmark_menu_delete_button">حذف</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">ذخیره</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">به ترتیب چینش سفارشی</string>
+  <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_newest">به ترتیب تازگی</string>
+  <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_oldest">به ترتیب کهنگی</string>
+  <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_a_to_z">به ترتیب الف تا ی</string>
+  <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_z_to_a">به ترتیب ی تا الف</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected
@@ -1879,6 +1964,10 @@
   <string name="sync_add_new_device_learn_button">در مورد ارسال زبانه‌ها بیشتر بدانید…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">اتصال به دستگاه دیگر…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\n از %2$s فرستاده شده است 🦊 مرورگر همراه را امتحان کنید: %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\n از %2$s فرستاده شده است 🦊 %3$s</string>
   <!--
     Notifications
 
@@ -2217,6 +2306,14 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">نقشک ترجیحات استثناهای محافظت در برابر ردیابی ارتقا یافته</string>
+  <!--
+    DNS over HTTPS (DoH)
+
+    Preference title for DNS over HTTPS settings
+  -->
+  <string name="preference_doh_title">ساناد روی HTTPS</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">سامانهٔ نام دامنه یا ساناد (DNS) روی HTTPS درخواست‌های شما برای یک نام دامنه را از طریق یک ارتباط رمزنگاری‌شده ارسال می‌کند که این کار باعث افزایش ایمنی ساناد شده و این امکان را که دیگران بتوانند بفهمند چه وبگاهی را می‌خواهید ببینید دشوارتر می‌کند. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">بیشتر بدانید</string>
   <!-- Content description for the toolbar "Navigate up" button -->
@@ -2227,6 +2324,8 @@
   <string name="preference_doh_info_description">اطلاعات</string>
   <!-- Content description for the "Add Site" button -->
   <string name="preference_doh_add_site_description">افزودن وبگاه</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">محافظت پیش‌فرض</string>
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">خاموش</string>
   <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->

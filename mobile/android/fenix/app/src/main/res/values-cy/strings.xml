@@ -1489,7 +1489,7 @@
     Message for the dialog that is shown when there is not enough storage space to download a file.
     %s is the name of the file to download.
   -->
-  <string name="download_file_has_not_enough_storage_dialog_message">Nid oes gan y ddyfais hon ddigon o le i lawrlwytho &lt;b&gt;%s&lt;/b&gt;.</string>
+  <string name="download_file_has_not_enough_storage_dialog_message">Does gan y ddyfais hon ddim digon o le i lwytho &lt;b&gt;%s&lt;/b&gt; i lawr.</string>
   <!--
     Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
     This button will navigate the user to the device's storage management settings.
@@ -1507,7 +1507,7 @@
   <!-- Content description for the toolbar "Navigate up" button -->
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Symud i fyny</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
-  <string name="download_close_search_description">Nôl a chau chwiliad</string>
+  <string name="download_close_search_description">Nôl a chau chwilio</string>
   <!-- Content description for the search bar clear text button on the downloads screen -->
   <string name="download_clear_search_description">Clirio</string>
   <!-- Text for the button to share the download URL -->
@@ -1682,7 +1682,7 @@
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Cadw</string>
   <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
-  <string name="bookmark_sort_menu_custom">Trefnu yn ôl archeb arferol</string>
+  <string name="bookmark_sort_menu_custom">Trefnu yn ôl y drefn gyfaddas</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">Trefnu yn ôl mwyaf newydd</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
