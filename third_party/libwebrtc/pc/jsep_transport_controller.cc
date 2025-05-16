@@ -278,7 +278,21 @@ RTCErrorOr<webrtc::PayloadType> JsepTransportController::SuggestPayloadType(
     auto remote_result =
         transport->remote_payload_types().LookupPayloadType(codec);
     if (remote_result.ok()) {
-      return remote_result;
+      RTCErrorOr<cricket::Codec> local_result =
+          transport->local_payload_types().LookupCodec(remote_result.value());
+      if (local_result.ok()) {
+        // Already in use, possibly for something else.
+        // Fall through to SuggestMapping.
+        RTC_LOG(LS_WARNING) << "Ignoring remote suggestion of PT "
+                            << static_cast<int>(remote_result.value())
+                            << " for " << codec << "; already in use";
+      } else {
+        // Tell the local payload type registry that we've taken this
+        RTC_DCHECK(local_result.error().type() ==
+                   RTCErrorType::INVALID_PARAMETER);
+        AddLocalMapping(mid, remote_result.value(), codec);
+        return remote_result;
+      }
     }
     return payload_type_picker_.SuggestMapping(
         codec, &transport->local_payload_types());

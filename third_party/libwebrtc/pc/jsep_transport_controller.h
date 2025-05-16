@@ -27,7 +27,6 @@
 #include "api/candidate.h"
 #include "api/crypto/crypto_options.h"
 #include "api/environment/environment.h"
-#include "api/ice_transport_factory.h"
 #include "api/ice_transport_interface.h"
 #include "api/jsep.h"
 #include "api/peer_connection_interface.h"
@@ -244,6 +243,9 @@ class JsepTransportController : public PayloadTypeSuggester,
   RTCError AddLocalMapping(const std::string& mid,
                            PayloadType payload_type,
                            const cricket::Codec& codec) override;
+  const PayloadTypePicker& PayloadTypePickerForTesting() const {
+    return payload_type_picker_;
+  }
 
   bool GetStats(const std::string& mid, cricket::TransportStats* stats) const;
 

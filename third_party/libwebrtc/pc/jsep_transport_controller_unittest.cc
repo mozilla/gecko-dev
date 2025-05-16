@@ -18,6 +18,7 @@
 #include <utility>
 #include <vector>
 
+#include "api/candidate.h"
 #include "api/crypto/crypto_options.h"
 #include "api/dtls_transport_interface.h"
 #include "api/environment/environment.h"
@@ -26,13 +27,16 @@
 #include "api/jsep.h"
 #include "api/make_ref_counted.h"
 #include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
 #include "api/scoped_refptr.h"
 #include "api/test/rtc_error_matchers.h"
 #include "api/transport/data_channel_transport_interface.h"
 #include "api/transport/enums.h"
 #include "api/units/time_delta.h"
+#include "call/payload_type.h"
 #include "call/payload_type_picker.h"
-#include "p2p/base/candidate_pair_interface.h"
+#include "media/base/codec.h"
+#include "media/base/media_constants.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/port_allocator.h"
@@ -51,6 +55,7 @@
 #include "rtc_base/fake_ssl_identity.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/net_helper.h"
+#include "rtc_base/rtc_certificate.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/ssl_fingerprint.h"
 #include "rtc_base/ssl_identity.h"
@@ -2993,6 +2998,70 @@ TEST_F(JsepTransportControllerTest,
   EXPECT_TRUE(transport_controller_
                   ->SetRemoteDescription(SdpType::kOffer, nullptr, offer.get())
                   .ok());
+}
+
+TEST_F(JsepTransportControllerTest, SuggestPayloadTypeBasic) {
+  auto config = JsepTransportController::Config();
+  CreateJsepTransportController(std::move(config));
+  cricket::Codec pcmu_codec =
+      cricket::CreateAudioCodec(-1, cricket::kPcmuCodecName, 8000, 1);
+  RTCErrorOr<PayloadType> pcmu_pt =
+      transport_controller_->SuggestPayloadType("mid", pcmu_codec);
+  ASSERT_TRUE(pcmu_pt.ok());
+  EXPECT_EQ(pcmu_pt.value(), PayloadType(0));
+}
+
+TEST_F(JsepTransportControllerTest, SuggestPayloadTypeReusesRemotePayloadType) {
+  auto config = JsepTransportController::Config();
+  CreateJsepTransportController(std::move(config));
+  const PayloadType remote_lyra_pt(99);
+  cricket::Codec remote_lyra_codec =
+      cricket::CreateAudioCodec(remote_lyra_pt, "lyra", 8000, 1);
+  auto offer = std::make_unique<SessionDescription>();
+  AddAudioSection(offer.get(), kAudioMid1, kIceUfrag1, kIcePwd1,
+                  cricket::ICEMODE_FULL, cricket::CONNECTIONROLE_ACTPASS,
+                  nullptr);
+  offer->contents()[0].media_description()->set_codecs({remote_lyra_codec});
+  EXPECT_TRUE(transport_controller_
+                  ->SetRemoteDescription(SdpType::kOffer, nullptr, offer.get())
+                  .ok());
+  cricket::Codec local_lyra_codec =
+      cricket::CreateAudioCodec(-1, "lyra", 8000, 1);
+  RTCErrorOr<PayloadType> lyra_pt =
+      transport_controller_->SuggestPayloadType(kAudioMid1, local_lyra_codec);
+  ASSERT_TRUE(lyra_pt.ok());
+  EXPECT_EQ(lyra_pt.value(), remote_lyra_pt);
+}
+
+TEST_F(JsepTransportControllerTest,
+       SuggestPayloadTypeAvoidsRemoteLocalConflict) {
+  auto config = JsepTransportController::Config();
+  CreateJsepTransportController(std::move(config));
+  // libwebrtc will normally allocate 110 to DTMF/48000
+  const PayloadType remote_opus_pt(110);
+  cricket::Codec remote_opus_codec =
+      cricket::CreateAudioCodec(remote_opus_pt, "opus", 48000, 2);
+  auto offer = std::make_unique<SessionDescription>();
+  AddAudioSection(offer.get(), kAudioMid1, kIceUfrag1, kIcePwd1,
+                  cricket::ICEMODE_FULL, cricket::CONNECTIONROLE_ACTPASS,
+                  nullptr);
+  offer->contents()[0].media_description()->set_codecs({remote_opus_codec});
+  EXPECT_TRUE(transport_controller_
+                  ->SetRemoteDescription(SdpType::kOffer, nullptr, offer.get())
+                  .ok());
+  // Check that we get the Opus codec back with the remote PT
+  cricket::Codec local_opus_codec =
+      cricket::CreateAudioCodec(-1, "opus", 48000, 2);
+  RTCErrorOr<PayloadType> local_opus_pt =
+      transport_controller_->SuggestPayloadType(kAudioMid1, local_opus_codec);
+  EXPECT_EQ(local_opus_pt.value(), remote_opus_pt);
+  // Check that we don't get 110 allocated for DTMF, since it's in use for opus
+  cricket::Codec local_other_codec =
+      cricket::CreateAudioCodec(-1, cricket::kDtmfCodecName, 48000, 1);
+  RTCErrorOr<PayloadType> other_pt =
+      transport_controller_->SuggestPayloadType(kAudioMid1, local_other_codec);
+  ASSERT_TRUE(other_pt.ok());
+  EXPECT_NE(other_pt.value(), remote_opus_pt);
 }
 
 }  // namespace webrtc
