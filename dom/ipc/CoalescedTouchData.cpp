@@ -28,7 +28,6 @@ void CoalescedTouchData::CreateCoalescedTouchEvent(
     PointerEventHandler::InitPointerEventFromTouch(*event, aEvent, *touch);
     event->mFlags.mBubbles = false;
     event->mFlags.mCancelable = false;
-    event->convertToPointerRawUpdate = false;
   }
 }
 
@@ -48,9 +47,10 @@ void CoalescedTouchData::Coalesce(const WidgetTouchEvent& aEvent,
     MOZ_ASSERT(mCoalescedInputEvent->mModifiers == aEvent.mModifiers);
     MOZ_ASSERT(mCoalescedInputEvent->mInputSource == aEvent.mInputSource);
 
-    for (const RefPtr<Touch>& touch : aEvent.mTouches) {
+    for (size_t i = 0; i < aEvent.mTouches.Length(); i++) {
+      const RefPtr<Touch>& touch = aEvent.mTouches[i];
       // Get the same touch in the original event
-      const RefPtr<Touch> sameTouch = GetTouch(touch->Identifier());
+      RefPtr<Touch> sameTouch = GetTouch(touch->Identifier());
       // The checks in CoalescedTouchData::CanCoalesce ensure it should never
       // be null.
       MOZ_ASSERT(sameTouch);
@@ -58,7 +58,6 @@ void CoalescedTouchData::Coalesce(const WidgetTouchEvent& aEvent,
       MOZ_ASSERT(!sameTouch->mCoalescedWidgetEvents->mEvents.IsEmpty());
       if (!sameTouch->Equals(touch)) {
         sameTouch->SetSameAs(touch);
-        sameTouch->convertToPointerRawUpdate = touch->convertToPointerRawUpdate;
         WidgetPointerEvent* event =
             sameTouch->mCoalescedWidgetEvents->mEvents.AppendElement(
                 WidgetPointerEvent(aEvent.IsTrusted(), ePointerMove,
@@ -70,18 +69,6 @@ void CoalescedTouchData::Coalesce(const WidgetTouchEvent& aEvent,
     }
 
     mCoalescedInputEvent->mTimeStamp = aEvent.mTimeStamp;
-  }
-}
-
-void CoalescedTouchData::NotifyTouchRawUpdateOfHandled(
-    const WidgetTouchEvent& aEvent) {
-  if (IsEmpty()) {
-    return;
-  }
-  for (const RefPtr<Touch>& touch : aEvent.mTouches) {
-    if (const RefPtr<Touch> sameTouch = GetTouch(touch->Identifier())) {
-      sameTouch->convertToPointerRawUpdate = false;
-    }
   }
 }
 

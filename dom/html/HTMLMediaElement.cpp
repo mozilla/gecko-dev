@@ -4895,16 +4895,13 @@ void HTMLMediaElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
   // element, allowing media control exclusive consumption on these events,
   // and preventing the content from handling them.
   switch (aVisitor.mEvent->mMessage) {
-    case eTouchRawUpdate:
-      MOZ_FALLTHROUGH_ASSERT(
-          "eTouchRawUpdate event shouldn't be dispatched into the DOM");
+    case ePointerDown:
+    case ePointerUp:
+    case eTouchEnd:
     // Always prevent touchmove captured in video element from being handled by
     // content, since we always do that for touchstart.
     case eTouchMove:
-    case eTouchEnd:
     case eTouchStart:
-    case ePointerDown:
-    case ePointerUp:
     case ePointerClick:
     case eMouseDoubleClick:
     case eMouseDown:
@@ -4912,13 +4909,9 @@ void HTMLMediaElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
       aVisitor.mCanHandle = false;
       return;
 
-    // The *move events however are only consumed when the range input is being
+    // The *move events however are only comsumed when the range input is being
     // dragged.
-    case eMouseRawUpdate:
-      MOZ_FALLTHROUGH_ASSERT(
-          "eMouseRawUpdate event shouldn't be dispatched into the DOM");
     case ePointerMove:
-    case ePointerRawUpdate:
     case eMouseMove: {
       nsINode* node =
           nsINode::FromEventTargetOrNull(aVisitor.mEvent->mOriginalTarget);

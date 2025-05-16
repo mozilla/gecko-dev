@@ -3656,9 +3656,6 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
         if (elm->MayHavePointerEnterLeaveEventListener()) {
           window->SetHasPointerEnterLeaveEventListeners();
         }
-        if (elm->MayHavePointerRawUpdateEventListener()) {
-          window->MaybeSetHasPointerRawUpdateEventListeners();
-        }
         if (elm->MayHaveSelectionChangeEventListener()) {
           window->SetHasSelectionChangeEventListeners();
         }

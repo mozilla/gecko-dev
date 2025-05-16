@@ -1489,7 +1489,7 @@ void BrowserChild::ProcessPendingCoalescedMouseDataAndDispatchEvents() {
   // mToBeDispatchedMouseData while dispatching an event.
 
   // We may have some pending coalesced data while dispatch an event and reentry
-  // the event loop. In that case we don't have chance to consume the remaining
+  // the event loop. In that case we don't have chance to consume the remainding
   // pending data until we get new mouse events. Get some helps from
   // mCoalescedMouseEventFlusher to trigger it.
   mCoalescedMouseEventFlusher->StartObserver();
@@ -1500,13 +1500,6 @@ void BrowserChild::ProcessPendingCoalescedMouseDataAndDispatchEvents() {
 
     UniquePtr<WidgetMouseEvent> event = data->TakeCoalescedEvent();
     if (event) {
-      // When the real mouse event receivers put the received event into the
-      // queue, they should dispatch eMouseRawUpdate event immediately (if and
-      // only if it's required).  Therefore, unless the event is the last one
-      // of the queue, the pending events should've been marked as "Do not
-      // convert to "pointerrawupdate".
-      MOZ_ASSERT_IF(mToBeDispatchedMouseData.GetSize() > 0,
-                    !event->convertToPointerRawUpdate);
       // Dispatch the pending events. Using HandleRealMouseButtonEvent
       // to bypass the coalesce handling in RecvRealMouseMoveEvent. Can't use
       // RecvRealMouseButtonEvent because we may also put some mouse events
@@ -1563,20 +1556,11 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealMouseMoveEvent(
     CoalescedMouseData* data =
         mCoalescedMouseData.GetOrInsertNew(aEvent.pointerId);
     MOZ_ASSERT(data);
-    if (data->CanCoalesce(aEvent, aGuid, aInputBlockId,
-                          mCoalescedMouseEventFlusher->GetRefreshDriver())) {
-      // We don't need to dispatch aEvent immediately.  However, we need to
-      // dispatch eMouseRawUpdate immediately if there is a `pointerrawupdate`
-      // event listener.  Therefore, the cloned event in the queue shouldn't
-      // cause eMouseRawUpdate later when it'll be dispatched.
-      WidgetMouseEvent pendingMouseMoveEvent(aEvent);
-      pendingMouseMoveEvent.convertToPointerRawUpdate = false;
-      data->Coalesce(pendingMouseMoveEvent, aGuid, aInputBlockId);
+    if (data->CanCoalesce(aEvent, aGuid, aInputBlockId)) {
+      data->Coalesce(aEvent, aGuid, aInputBlockId);
       mCoalescedMouseEventFlusher->StartObserver();
-      HandleMouseRawUpdateEvent(pendingMouseMoveEvent, aGuid, aInputBlockId);
       return IPC_OK();
     }
-
     // Can't coalesce current mousemove event. Put the coalesced mousemove data
     // with the same pointer id to mToBeDispatchedMouseData, coalesce the
     // current one, and process all pending data in mToBeDispatchedMouseData.
@@ -1591,48 +1575,15 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealMouseMoveEvent(
         mCoalescedMouseData
             .InsertOrUpdate(aEvent.pointerId, MakeUnique<CoalescedMouseData>())
             .get();
-    // We don't want to dispatch aEvent immediately.  However, we need to
-    // dispatch eMouseRawUpdate immediately if there is a `pointerrawupdate`
-    // event listener.  Therefore, the cloned event in the queue shouldn't
-    // cause eMouseRawUpdate later when it'll be dispatched.
-    WidgetMouseEvent pendingMouseMoveEvent(aEvent);
-    pendingMouseMoveEvent.convertToPointerRawUpdate = false;
-    newData->Coalesce(pendingMouseMoveEvent, aGuid, aInputBlockId);
+    newData->Coalesce(aEvent, aGuid, aInputBlockId);
 
-    // Dispatch all pending mouse events which does NOT include aEvent.
+    // Dispatch all pending mouse events.
     ProcessPendingCoalescedMouseDataAndDispatchEvents();
-
     mCoalescedMouseEventFlusher->StartObserver();
-    // Finally, dispatch eMouseRawUpdate for aEvent right now.
-    HandleMouseRawUpdateEvent(pendingMouseMoveEvent, aGuid, aInputBlockId);
-    return IPC_OK();
-  }
-
-  if (!RecvRealMouseButtonEvent(aEvent, aGuid, aInputBlockId)) {
+  } else if (!RecvRealMouseButtonEvent(aEvent, aGuid, aInputBlockId)) {
     return IPC_FAIL_NO_REASON(this);
   }
   return IPC_OK();
-}
-
-void BrowserChild::HandleMouseRawUpdateEvent(
-    const WidgetMouseEvent& aPendingMouseEvent,
-    const ScrollableLayerGuid& aGuid, const uint64_t& aInputBlockId) {
-  // If there is no window containing pointerrawupdate event listeners or the
-  // event is a synthesized mousemove, we don't need to dispatch eMouseRawUpdate
-  // event.
-  if (!mPointerRawUpdateWindowCount || aPendingMouseEvent.IsSynthesized()) {
-    return;
-  }
-  WidgetMouseEvent mouseRawUpdateEvent(aPendingMouseEvent);
-  mouseRawUpdateEvent.mMessage = eMouseRawUpdate;
-  mouseRawUpdateEvent.mCoalescedWidgetEvents = nullptr;
-  mouseRawUpdateEvent.convertToPointer = true;
-  // Nobody checks `convertToPointerRawUpdate` of eMouseRawUpdate event.
-  // However, the name indicates that it would cause ePointerRawUpdate.
-  // For avoiding to make the developers who watch the value with the debugger
-  // confused, here sets it to `true`.
-  mouseRawUpdateEvent.convertToPointerRawUpdate = true;
-  HandleRealMouseButtonEvent(mouseRawUpdateEvent, aGuid, aInputBlockId);
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvRealMouseMoveEventForTests(
@@ -1686,16 +1637,9 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealMouseButtonEvent(
     UniquePtr<CoalescedMouseData> dispatchData =
         MakeUnique<CoalescedMouseData>();
 
-    // We'll dispatch aEvent immediately via
-    // ProcessPendingCoalescedMouseDataAndDispatchEvents().
-    // Therefore, PresShell should convert it to eMouseRawUpdate when it starts
-    // handling aEvent if and only if there is a `pointerrawupdate` event
-    // listener.  Therefore, let's assert the allowing flag to convert it to
-    // eMouseRawUpdate here.
-    MOZ_ASSERT(aEvent.convertToPointerRawUpdate);
     dispatchData->Coalesce(aEvent, aGuid, aInputBlockId);
-
     mToBeDispatchedMouseData.Push(dispatchData.release());
+
     ProcessPendingCoalescedMouseDataAndDispatchEvents();
     return IPC_OK();
   }
@@ -1886,7 +1830,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealTouchEvent(
       ProcessPendingCoalescedTouchData();
     }
 
-    if (aEvent.mMessage != eTouchMove && aEvent.mMessage != eTouchRawUpdate) {
+    if (aEvent.mMessage != eTouchMove) {
       sConsecutiveTouchMoveCount = 0;
     }
   }
@@ -1949,88 +1893,33 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealTouchMoveEvent(
     ++sConsecutiveTouchMoveCount;
     if (mCoalescedTouchMoveEventFlusher) {
       MOZ_ASSERT(aEvent.mMessage == eTouchMove);
-      // NOTE: While dispatching eTouchMove or eTouchRawUpdate,
-      // sConsecutiveTouchMoveCount may be changed by the event loop spun,
-      // e.g., an event listener uses sync XHR or calling window.alert().
-      const auto PostponeDispatchingTouchMove = [&]() {
-        return sConsecutiveTouchMoveCount > 1;
-      };
       if (mCoalescedTouchData.IsEmpty() ||
           mCoalescedTouchData.CanCoalesce(aEvent, aGuid, aInputBlockId,
                                           aApzResponse)) {
-        if (PostponeDispatchingTouchMove()) {
-          WidgetTouchEvent pendingTouchMoveEvent(
-              aEvent, WidgetTouchEvent::CloneTouches::Yes);
-          // We don't dispatch aEvent immediately here.  However, we need to
-          // dispatch eTouchRawUpdate immediately if and only if there is a
-          // `pointerrawupdate` event listener.  Therefore, the cloned event in
-          // the queue and it shouldn't cause eTouchRawUpdate again.
-          pendingTouchMoveEvent.SetConvertToPointerRawUpdate(false);
-          mCoalescedTouchData.Coalesce(pendingTouchMoveEvent, aGuid,
-                                       aInputBlockId, aApzResponse);
-          MOZ_ASSERT(PostponeDispatchingTouchMove());
-          mCoalescedTouchMoveEventFlusher->StartObserver();
-          // Let's notify the web app of `pointerrawupdate` immediately if and
-          // only if they listen to it.
-          HandleTouchRawUpdateEvent(pendingTouchMoveEvent, aGuid, aInputBlockId,
-                                    aApzResponse);
-          return IPC_OK();
-        }
-
-        // We'll dispatch aEvent via ProcessPendingCoalescedTouchData() below.
-        // Therefore, the touches should cause eTouchRawUpdate event.
-        MOZ_ASSERT(aEvent.CanConvertToPointerRawUpdate());
         mCoalescedTouchData.Coalesce(aEvent, aGuid, aInputBlockId,
                                      aApzResponse);
-        MOZ_ASSERT(!PostponeDispatchingTouchMove());
       } else {
         UniquePtr<WidgetTouchEvent> touchMoveEvent =
             mCoalescedTouchData.TakeCoalescedEvent();
-        MOZ_ASSERT(touchMoveEvent->mMessage == eTouchMove);
 
-        // Before dispatching touchMoveEvent, we need to put aEvent into the
-        // queue for keeping the event order even if an event listener spins the
-        // event loop and we'll receive another touch event.  So, aEvent may be
-        // dispatched while we're dispatching touchMoveEvent. Therefore, we need
-        // to make it convertible to eTouchRawUpdate.
-        MOZ_ASSERT(aEvent.CanConvertToPointerRawUpdate());
         mCoalescedTouchData.Coalesce(aEvent, aGuid, aInputBlockId,
                                      aApzResponse);
-        MOZ_ASSERT(!PostponeDispatchingTouchMove());
 
-        // touchMoveEvent was stored by mCoalescedTouchData before receiving
-        // aEvent.  Therefore, the receiver should've already dispatched
-        // eTouchRawUpdate for dispatching `pointerrawupdate` and let web apps
-        // know the update immediately (with sacrificing the performance).
-        // Therefore, we don't need to dispatch eTouchRawUpdate here before
-        // dispatching the touchMoveEvent.
-        MOZ_ASSERT(!touchMoveEvent->CanConvertToPointerRawUpdate());
-        const uint32_t generation = mCoalescedTouchData.Generation();
         if (!RecvRealTouchEvent(*touchMoveEvent,
                                 mCoalescedTouchData.GetScrollableLayerGuid(),
                                 mCoalescedTouchData.GetInputBlockId(),
                                 mCoalescedTouchData.GetApzResponse())) {
           return IPC_FAIL_NO_REASON(this);
         }
-        // RecvRealTouchEvent() may have caused spinning the event loop and
-        // changed sConsecutiveTouchMoveCount.  So, we need to check it now.
-        if (PostponeDispatchingTouchMove()) {
-          mCoalescedTouchMoveEventFlusher->StartObserver();
-          if (generation == mCoalescedTouchData.Generation()) {
-            // Let's notify the web app of `pointerrawupdate` immediately if and
-            // only if they listen to it.  Additionally, we don't want to notify
-            // eTouchRawUpdate when ProcessPendingCoalescedTouchData() is called
-            // later.
-            mCoalescedTouchData.NotifyTouchRawUpdateOfHandled(aEvent);
-            HandleTouchRawUpdateEvent(aEvent, aGuid, aInputBlockId,
-                                      aApzResponse);
-          }
-          return IPC_OK();
-        }
       }
-      // Flush the pending coalesced touch in order to avoid the first
-      // touchmove be overridden by the second one, this contains aEvent.
-      ProcessPendingCoalescedTouchData();
+
+      if (sConsecutiveTouchMoveCount > 1) {
+        mCoalescedTouchMoveEventFlusher->StartObserver();
+      } else {
+        // Flush the pending coalesced touch in order to avoid the first
+        // touchmove be overridden by the second one.
+        ProcessPendingCoalescedTouchData();
+      }
       return IPC_OK();
     }
   }
@@ -2039,30 +1928,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealTouchMoveEvent(
     return IPC_FAIL_NO_REASON(this);
   }
   return IPC_OK();
-}
-
-void BrowserChild::HandleTouchRawUpdateEvent(
-    const WidgetTouchEvent& aPendingTouchEvent,
-    const ScrollableLayerGuid& aGuid, const uint64_t& aInputBlockId,
-    const nsEventStatus& aApzResponse) {
-  if (!mPointerRawUpdateWindowCount) {
-    return;  // There is no window containing pointerrawupdate event listeners
-  }
-
-  WidgetTouchEvent touchRawUpdateEvent(aPendingTouchEvent,
-                                       WidgetTouchEvent::CloneTouches::Yes);
-  touchRawUpdateEvent.mMessage = eTouchRawUpdate;
-  for (Touch* const touch : touchRawUpdateEvent.mTouches) {
-    touch->mMessage = eTouchRawUpdate;
-    touch->mCoalescedWidgetEvents = nullptr;
-    touch->convertToPointer = true;
-    // Although nobody checks `convertToPointerRawUpdate` of eTouchRawUpdate.
-    // However, the name indicates it would cause ePointerRawUpdate or not, so,
-    // for avoiding to make developers confused when they watch the value with
-    // the debugger, we should set this to `true`.
-    touch->convertToPointerRawUpdate = true;
-  }
-  RecvRealTouchEvent(touchRawUpdateEvent, aGuid, aInputBlockId, aApzResponse);
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvNormalPriorityRealTouchMoveEvent(
@@ -4167,27 +4032,6 @@ already_AddRefed<nsIDragSession> BrowserChild::GetDragSession() {
 
 void BrowserChild::SetDragSession(nsIDragSession* aSession) {
   mDragSession = aSession;
-}
-
-LazyLogModule gPointerRawUpdateEventListenersLog(
-    "PointerRawUpdateEventListeners");
-
-void BrowserChild::OnPointerRawUpdateEventListenerAdded(
-    const nsPIDOMWindowInner* aWindow) {
-  mPointerRawUpdateWindowCount++;
-  MOZ_LOG(gPointerRawUpdateEventListenersLog, LogLevel::Info,
-          ("Added for %p (total: %u)", aWindow, mPointerRawUpdateWindowCount));
-}
-
-void BrowserChild::OnPointerRawUpdateEventListenerRemoved(
-    const nsPIDOMWindowInner* aWindow) {
-  MOZ_ASSERT(mPointerRawUpdateWindowCount);
-  if (MOZ_LIKELY(mPointerRawUpdateWindowCount)) {
-    mPointerRawUpdateWindowCount--;
-  }
-  MOZ_LOG(gPointerRawUpdateEventListenersLog, LogLevel::Info,
-          ("Removed for %p (remaining: %u)", aWindow,
-           mPointerRawUpdateWindowCount));
 }
 
 BrowserChildMessageManager::BrowserChildMessageManager(

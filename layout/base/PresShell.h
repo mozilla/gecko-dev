@@ -1996,15 +1996,6 @@ class PresShell final : public nsStubDocumentObserver,
   // Utility method to restore the root scrollframe state
   void RestoreRootScrollPosition();
 
-  /**
-   * Dispatch eMouseRawUpdate or eTouchRawUpdate event if aSourceEvent requires
-   * a preceding "pointerrawupdate" event and there are some windows which have
-   * its listener.
-   */
-  MOZ_CAN_RUN_SCRIPT nsresult EnsurePrecedingPointerRawUpdate(
-      AutoWeakFrame& aWeakFrameForPresShell, const WidgetGUIEvent& aSourceEvent,
-      bool aDontRetargetEvents);
-
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void MaybeReleaseCapturingContent();
 
   class DelayedEvent {

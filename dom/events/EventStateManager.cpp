@@ -995,7 +995,6 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     if (touchEvent->mMessage == eTouchMove) {
       GenerateDragGesture(aPresContext, touchEvent);
     } else {
-      MOZ_ASSERT(touchEvent->mMessage != eTouchRawUpdate);
       mInTouchDrag = false;
       StopTrackingDragGesture(true);
     }
@@ -1143,8 +1142,7 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       }
       [[fallthrough]];
     case eMouseMove:
-    case ePointerMove:
-    case ePointerRawUpdate: {
+    case ePointerMove: {
       if (aEvent->mMessage == ePointerMove) {
         PointerEventHandler::UpdateActivePointerState(mouseEvent,
                                                       aTargetContent);
@@ -4368,22 +4366,20 @@ nsresult EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
               // events after they have been processed. When determining if
               // a swipe should occur, we should not prefer the current wheel
               // transaction.
-              nsIFrame* lastScrollFrame =
-                  WheelTransaction::GetScrollTargetFrame();
+              nsIFrame* lastScrollFrame = WheelTransaction::GetScrollTargetFrame();
               bool wheelTransactionHandlesInput = false;
               if (lastScrollFrame) {
-                ScrollContainerFrame* scrollContainerFrame =
-                    lastScrollFrame->GetScrollTargetFrame();
+                ScrollContainerFrame* scrollContainerFrame = lastScrollFrame->GetScrollTargetFrame();
                 if (scrollContainerFrame->IsRootScrollFrameOfDocument()) {
                   // If the current wheel transaction target is the root scroll
                   // frame and is not scrollable on the x-axis, all delta is
                   // overflown and swipe-to-nav may occur.
                   wheelTransactionHandlesInput = true;
-                  allDeltaOverflown = !WheelHandlingUtils::CanScrollOn(
-                      scrollContainerFrame, wheelEvent->mDeltaX, 0.0);
-                } else if (WheelHandlingUtils::CanScrollOn(
-                               scrollContainerFrame, wheelEvent->mDeltaX,
-                               wheelEvent->mDeltaY)) {
+                  allDeltaOverflown = !WheelHandlingUtils::CanScrollOn(scrollContainerFrame,
+                                                                       wheelEvent->mDeltaX, 0.0);
+                } else if(WheelHandlingUtils::CanScrollOn(scrollContainerFrame,
+                                                          wheelEvent->mDeltaX,
+                                                          wheelEvent->mDeltaY)) {
                   // If the current wheel transaction target is not the root
                   // scroll frame, ensure that swipe to nav does not occur if
                   // the scroll frame is scrollable on the x or y axis. If the
@@ -5568,8 +5564,7 @@ void EventStateManager::GeneratePointerEnterExit(EventMessage aMessage,
 /* static */
 void EventStateManager::UpdateLastRefPointOfMouseEvent(
     WidgetMouseEvent* aMouseEvent) {
-  if (aMouseEvent->mMessage != ePointerRawUpdate &&
-      aMouseEvent->mMessage != eMouseMove &&
+  if (aMouseEvent->mMessage != eMouseMove &&
       aMouseEvent->mMessage != ePointerMove) {
     return;
   }
@@ -5602,8 +5597,7 @@ void EventStateManager::UpdateLastRefPointOfMouseEvent(
 void EventStateManager::ResetPointerToWindowCenterWhilePointerLocked(
     WidgetMouseEvent* aMouseEvent) {
   MOZ_ASSERT(PointerLockManager::IsLocked());
-  if ((aMouseEvent->mMessage != ePointerRawUpdate &&
-       aMouseEvent->mMessage != eMouseMove &&
+  if ((aMouseEvent->mMessage != eMouseMove &&
        aMouseEvent->mMessage != ePointerMove) ||
       !aMouseEvent->mWidget) {
     return;
@@ -5664,7 +5658,6 @@ void EventStateManager::GenerateMouseEnterExit(WidgetMouseEvent* aMouseEvent) {
   switch (aMouseEvent->mMessage) {
     case eMouseMove:
     case ePointerMove:
-    case ePointerRawUpdate:
     case ePointerDown:
     case ePointerGotCapture: {
       // Get the target content target (mousemove target == mouseover target)

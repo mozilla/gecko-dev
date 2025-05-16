@@ -159,7 +159,6 @@ class EventListenerManagerBase {
   uint16_t mMayHaveTouchEventListener : 1;
   uint16_t mMayHaveMouseEnterLeaveEventListener : 1;
   uint16_t mMayHavePointerEnterLeaveEventListener : 1;
-  uint16_t mMayHavePointerRawUpdateEventListener : 1;
   uint16_t mMayHaveSelectionChangeEventListener : 1;
   uint16_t mMayHaveFormSelectEventListener : 1;
   uint16_t mMayHaveTransitionEventListener : 1;
@@ -554,9 +553,6 @@ class EventListenerManager final : public EventListenerManagerBase {
   }
   bool MayHavePointerEnterLeaveEventListener() const {
     return mMayHavePointerEnterLeaveEventListener;
-  }
-  bool MayHavePointerRawUpdateEventListener() const {
-    return mMayHavePointerRawUpdateEventListener;
   }
   bool MayHaveSelectionChangeEventListener() const {
     return mMayHaveSelectionChangeEventListener;

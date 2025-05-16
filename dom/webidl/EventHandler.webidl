@@ -116,8 +116,6 @@ interface mixin GlobalEventHandlers {
            attribute EventHandler onpointerover;
            attribute EventHandler onpointerenter;
            attribute EventHandler onpointerleave;
-           [SecureContext, Pref="dom.event.pointer.rawupdate.enabled"]
-           attribute EventHandler onpointerrawupdate;
            attribute EventHandler ongotpointercapture;
            attribute EventHandler onlostpointercapture;
 
