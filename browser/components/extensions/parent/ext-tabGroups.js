@@ -117,12 +117,24 @@ this.tabGroups = class extends ExtensionAPIPersistent {
         if (!this.extension.canAccessWindow(event.originalTarget.ownerGlobal)) {
           return;
         }
-        fire.async(this.convert(event.originalTarget));
+        fire.async(this.convert(event.originalTarget), {
+          isWindowClosing: false,
+        });
+      };
+      let onClosed = window => {
+        if (!this.extension.canAccessWindow(window)) {
+          return;
+        }
+        for (const group of window.gBrowser.tabGroups) {
+          fire.async(this.convert(group), { isWindowClosing: true });
+        }
       };
       windowTracker.addListener("TabGroupRemoved", onRemove);
+      windowTracker.addListener("domwindowclosed", onClosed);
       return {
         unregister() {
           windowTracker.removeListener("TabGroupRemoved", onRemove);
+          windowTracker.removeListener("domwindowclosed", onClosed);
         },
         convert(_fire) {
           fire = _fire;

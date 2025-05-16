@@ -27,12 +27,22 @@ add_task(async function tabGroups_move_to_other_window() {
       const tab2 = await browser.tabs.create({ windowId });
       browser.test.assertEq(1, tab2.index, `Two tabs in window ${windowId}`);
 
+      let resolveOnRemovedOnWindowClose;
       const events = [];
       browser.tabGroups.onCreated.addListener(group => {
         browser.test.fail(`Unexpected tabGroups.onCreated: ${group.id}`);
       });
-      browser.tabGroups.onRemoved.addListener(group => {
-        browser.test.fail(`Unexpected tabGroups.onRemoved: ${group.id}`);
+      browser.tabGroups.onRemoved.addListener((group, removeInfo) => {
+        if (resolveOnRemovedOnWindowClose) {
+          // Expected event when calling windows.remove(), not tabGroups.move.
+          browser.test.assertTrue(removeInfo.isWindowClosing, "window closing");
+          browser.test.assertEq(groupId, group.id, "onRemoved fired for group");
+          browser.test.assertEq(windowId, group.windowId, "windowId");
+          resolveOnRemovedOnWindowClose();
+          resolveOnRemovedOnWindowClose = null;
+        } else {
+          browser.test.fail(`Unexpected tabGroups.onRemoved: ${group.id}`);
+        }
       });
       browser.tabGroups.onMoved.addListener(group => {
         browser.test.assertEq(groupId, group.id, "onMoved fired for group");
@@ -72,7 +82,11 @@ add_task(async function tabGroups_move_to_other_window() {
         "Tab appears at the expected index"
       );
 
+      let onRemovedPromise = new Promise(resolve => {
+        resolveOnRemovedOnWindowClose = resolve;
+      });
       await browser.windows.remove(windowId);
+      await onRemovedPromise;
       browser.test.assertDeepEq(
         ["tabs.onDetached", "tabs.onAttached", "tabGroups.onMoved"],
         events,
@@ -107,12 +121,22 @@ add_task(async function tabGroups_move_multiple_tabs_to_other_window() {
       const tab2 = await browser.tabs.create({ windowId });
       browser.test.assertEq(1, tab2.index, `Two tabs in window ${windowId}`);
 
+      let resolveOnRemovedOnWindowClose;
       const events = [];
       browser.tabGroups.onCreated.addListener(group => {
         browser.test.fail(`Unexpected tabGroups.onCreated: ${group.id}`);
       });
-      browser.tabGroups.onRemoved.addListener(group => {
-        browser.test.fail(`Unexpected tabGroups.onRemoved: ${group.id}`);
+      browser.tabGroups.onRemoved.addListener((group, removeInfo) => {
+        if (resolveOnRemovedOnWindowClose) {
+          // Expected event when calling windows.remove(), not tabGroups.move.
+          browser.test.assertTrue(removeInfo.isWindowClosing, "window closing");
+          browser.test.assertEq(groupId, group.id, "onRemoved fired for group");
+          browser.test.assertEq(windowId, group.windowId, "windowId");
+          resolveOnRemovedOnWindowClose();
+          resolveOnRemovedOnWindowClose = null;
+        } else {
+          browser.test.fail(`Unexpected tabGroups.onRemoved: ${group.id}`);
+        }
       });
       browser.tabGroups.onMoved.addListener(group => {
         browser.test.assertEq(groupId, group.id, "onMoved fired for group");
@@ -153,7 +177,11 @@ add_task(async function tabGroups_move_multiple_tabs_to_other_window() {
         `Second tab appears at the expected index`
       );
 
+      let onRemovedPromise = new Promise(resolve => {
+        resolveOnRemovedOnWindowClose = resolve;
+      });
       await browser.windows.remove(windowId);
+      await onRemovedPromise;
       browser.test.assertDeepEq(
         [
           `tabs.onDetached:1:${tabIds[0]}`,
