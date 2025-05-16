@@ -8,6 +8,7 @@ toolkit.jar:
     content/global/ml/EngineProcess.sys.mjs     	        (content/EngineProcess.sys.mjs)
     content/global/ml/MLEngine.worker.mjs       	        (content/MLEngine.worker.mjs)
     content/global/ml/ModelHub.sys.mjs          	        (content/ModelHub.sys.mjs)
+    content/global/ml/mozilla-logo.webp                   (content/mozilla-logo.webp)
     content/global/ml/backends/ONNXPipeline.mjs           (content/backends/ONNXPipeline.mjs)
     content/global/ml/backends/Pipeline.mjs               (content/backends/Pipeline.mjs)
     content/global/ml/Utils.sys.mjs             	        (content/Utils.sys.mjs)
