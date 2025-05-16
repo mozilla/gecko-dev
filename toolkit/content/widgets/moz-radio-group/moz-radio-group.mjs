@@ -54,6 +54,8 @@ export class MozRadioGroup extends MozLitElement {
   #radioButtons;
   #value;
 
+  static childElementName = "moz-radio";
+
   static properties = {
     disabled: { type: Boolean, reflect: true },
     description: { type: String, fluent: true },
@@ -100,7 +102,9 @@ export class MozRadioGroup extends MozLitElement {
         this.shadowRoot
           ?.querySelector("slot:not([name])")
           ?.assignedElements() || [...this.children]
-      )?.filter(el => el.localName === "moz-radio" && !el.slot);
+      )?.filter(
+        el => el.localName === this.constructor.childElementName && !el.slot
+      );
       this.#radioButtons.forEach(button => customElements.upgrade(button));
     }
     return this.#radioButtons;
@@ -277,6 +281,15 @@ export class MozRadio extends MozBaseInputElement {
     return this.#controller;
   }
 
+  get isDisabled() {
+    return (
+      this.disabled ||
+      this.#controller.disabled ||
+      this.parentDisabled ||
+      this.#controller.parentDisabled
+    );
+  }
+
   constructor() {
     super();
     this.checked = false;
@@ -330,8 +343,12 @@ export class MozRadio extends MozBaseInputElement {
   }
 
   handleClick() {
+    if (this.isDisabled || this.checked) {
+      return;
+    }
+
     this.#controller.value = this.value;
-    if (this.getRootNode().activeElement?.localName == "moz-radio") {
+    if (this.getRootNode().activeElement?.localName == this.localName) {
       this.focus();
     }
   }
@@ -342,11 +359,6 @@ export class MozRadio extends MozBaseInputElement {
   }
 
   inputTemplate() {
-    let isDisabled =
-      this.disabled ||
-      this.#controller.disabled ||
-      this.parentDisabled ||
-      this.#controller.parentDisabled;
     return html`<input
       type="radio"
       id="input"
@@ -356,7 +368,7 @@ export class MozRadio extends MozBaseInputElement {
       aria-checked=${this.checked}
       aria-describedby="description"
       tabindex=${this.inputTabIndex}
-      ?disabled=${isDisabled}
+      ?disabled=${this.isDisabled}
       accesskey=${ifDefined(this.accessKey)}
       @click=${this.handleClick}
       @change=${this.handleChange}

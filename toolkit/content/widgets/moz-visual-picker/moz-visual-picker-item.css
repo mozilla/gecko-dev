@@ -1,0 +1,34 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+:host {
+  --visual-picker-item-border-radius: var(--border-radius-medium);
+  --visual-picker-item-border-width: var(--border-width);
+}
+
+.picker-item {
+  border: var(--visual-picker-item-border-width) solid var(--border-color-interactive);
+  border-radius: var(--visual-picker-item-border-radius);
+  margin: 2px;
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-offset);
+  }
+
+  &[checked] {
+    --visual-picker-item-border-width: 3px;
+    border-color: var(--color-accent-primary);
+    margin: 0;
+  }
+
+  ::slotted(:first-child) {
+    --visual-picker-item-child-border-radius: calc(var(--visual-picker-item-border-radius) - var(--visual-picker-item-border-width));
+    border-radius: var(--visual-picker-item-child-border-radius);
+  }
+}
