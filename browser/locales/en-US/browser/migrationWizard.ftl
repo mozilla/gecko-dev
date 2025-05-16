@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-migration-wizard-selection-header = Import Browser Data
+migration-wizard-selection-header = Import browser data
 migration-wizard-selection-list = Select the data you’d like to import.
 
 # Shown in the new migration wizard's dropdown selector for choosing the browser
@@ -93,8 +93,8 @@ migration-cookies-option-label = Cookies
 migration-session-option-label = Windows and tabs
 migration-otherdata-option-label = Other data
 
-migration-passwords-from-file-progress-header = Import Passwords File
-migration-passwords-from-file-success-header = Passwords Imported Successfully
+migration-passwords-from-file-progress-header = Import passwords file
+migration-passwords-from-file-success-header = Passwords imported successfully
 migration-passwords-from-file = Checking file for passwords
 migration-passwords-new = New passwords
 migration-passwords-updated = Existing passwords
@@ -138,10 +138,10 @@ migration-wizard-progress-success-updated-passwords =
        *[other] { $updatedEntries } updated
     }
 
-migration-bookmarks-from-file-picker-title = Import Bookmarks File
-migration-bookmarks-from-file-progress-header = Importing Bookmarks
+migration-bookmarks-from-file-picker-title = Import bookmarks file
+migration-bookmarks-from-file-progress-header = Importing bookmarks
 migration-bookmarks-from-file = Bookmarks
-migration-bookmarks-from-file-success-header = Bookmarks Imported Successfully
+migration-bookmarks-from-file-success-header = Bookmarks imported successfully
 migration-bookmarks-from-file-no-valid-data = The file doesn’t include any bookmark data. Pick another file.
 
 # A description for the .html file format that may be shown as the file type
@@ -168,8 +168,8 @@ migration-wizard-progress-success-new-bookmarks =
     }
 
 migration-import-button-label = Import
-migration-choose-to-import-from-file-button-label = Import From File
-migration-import-from-file-button-label = Select File
+migration-choose-to-import-from-file-button-label = Import from file
+migration-import-from-file-button-label = Select file
 migration-cancel-button-label = Cancel
 migration-done-button-label = Done
 migration-continue-button-label = Continue
@@ -196,39 +196,39 @@ migration-list-payment-methods-label = payment methods
 
 ##
 
-migration-wizard-progress-header = Importing Data
+migration-wizard-progress-header = Importing data
 
 # This header appears in the final page of the migration wizard only if
 # all resources were imported successfully.
-migration-wizard-progress-done-header = Data Imported Successfully
+migration-wizard-progress-done-header = Data imported successfully
 
 # This header appears in the final page of the migration wizard if only
 # some of the resources were imported successfully. This is meant to be
 # distinct from migration-wizard-progress-done-header, which is only shown
 # if all resources were imported successfully.
-migration-wizard-progress-done-with-warnings-header = Data Import Complete
+migration-wizard-progress-done-with-warnings-header = Data import complete
 
 migration-wizard-progress-icon-in-progress =
   .aria-label = Importing…
 migration-wizard-progress-icon-completed =
   .aria-label = Completed
 
-migration-safari-password-import-header = Import Passwords from Safari
+migration-safari-password-import-header = Import passwords from Safari
 migration-safari-password-import-steps-header = To import Safari passwords:
 migration-safari-password-import-step1 = In Safari, open “Safari” menu and go to Preferences > Passwords
 migration-safari-password-import-step2 = Select the <img data-l10n-name="safari-icon-3dots"/> button and choose “Export All Passwords”
 migration-safari-password-import-step3 = Save the passwords file
-migration-safari-password-import-step4 = Use “Select File” below to choose the passwords file you saved
+migration-safari-password-import-step4 = Use “Select file” below to choose the passwords file you saved
 
 migration-chrome-windows-password-import-header = How to import passwords from Chrome
 migration-chrome-windows-password-import-steps-header = In Chrome:
 migration-chrome-windows-password-import-step1 = Open the main menu <img data-l10n-name="chrome-icon-3dots"/> and go to Passwords and Autofill > Google Password Manager.
 migration-chrome-windows-password-import-step2 = Select “Settings” from the menu.
 migration-chrome-windows-password-import-step3 = Choose “Download file” and save it to your device.
-migration-chrome-windows-password-import-step4 = Return here and “Select File” to finish import.
+migration-chrome-windows-password-import-step4 = Return here and “Select file” to finish import.
 
 migration-manual-password-import-skip-button = Skip
-migration-manual-password-import-select-button = Select File
+migration-manual-password-import-select-button = Select file
 
 # Shown in the migration wizard after importing bookmarks from another
 # browser has completed.
