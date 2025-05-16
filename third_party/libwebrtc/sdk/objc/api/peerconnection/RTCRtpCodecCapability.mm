@@ -47,10 +47,7 @@
       case cricket::MEDIA_TYPE_VIDEO:
         _kind = kRTCMediaStreamTrackKindVideo;
         break;
-      case cricket::MEDIA_TYPE_DATA:
-        RTC_DCHECK_NOTREACHED();
-        break;
-      case cricket::MEDIA_TYPE_UNSUPPORTED:
+      default:
         RTC_DCHECK_NOTREACHED();
         break;
     }

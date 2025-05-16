@@ -754,7 +754,7 @@ void ChannelReceive::ReceivePacket(const uint8_t* packet,
     char buf[1024];
     SimpleStringBuilder mime_type(buf);
     auto it = payload_type_map_.find(header.payloadType);
-    mime_type << MediaTypeToString(cricket::MEDIA_TYPE_AUDIO) << "/"
+    mime_type << cricket::MediaTypeToString(cricket::MEDIA_TYPE_AUDIO) << "/"
               << (it != payload_type_map_.end() ? it->second.name
                                                 : "x-unknown");
     frame_transformer_delegate_->Transform(payload_data, header, remote_ssrc_,

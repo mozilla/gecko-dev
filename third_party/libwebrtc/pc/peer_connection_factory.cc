@@ -166,9 +166,7 @@ RtpCapabilities PeerConnectionFactory::GetRtpSenderCapabilities(
           GetDefaultEnabledRtpHeaderExtensions(media_engine()->video());
       return ToRtpCapabilities(cricket_codecs, extensions);
     }
-    case cricket::MEDIA_TYPE_DATA:
-      return RtpCapabilities();
-    case cricket::MEDIA_TYPE_UNSUPPORTED:
+    default:
       return RtpCapabilities();
   }
   RTC_DLOG(LS_ERROR) << "Got unexpected MediaType " << kind;
@@ -193,9 +191,7 @@ RtpCapabilities PeerConnectionFactory::GetRtpReceiverCapabilities(
           GetDefaultEnabledRtpHeaderExtensions(media_engine()->video());
       return ToRtpCapabilities(cricket_codecs, extensions);
     }
-    case cricket::MEDIA_TYPE_DATA:
-      return RtpCapabilities();
-    case cricket::MEDIA_TYPE_UNSUPPORTED:
+    default:
       return RtpCapabilities();
   }
   RTC_DLOG(LS_ERROR) << "Got unexpected MediaType " << kind;
