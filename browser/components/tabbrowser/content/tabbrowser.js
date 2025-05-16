@@ -5996,7 +5996,7 @@
         element,
         () => {
           let neighbor = this.tabs[tabIndex];
-          if (forceUngrouped && neighbor.group) {
+          if (forceUngrouped && neighbor?.group) {
             neighbor = neighbor.group;
           }
           if (neighbor && this.isTab(element) && tabIndex > element._tPos) {

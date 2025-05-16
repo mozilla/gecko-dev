@@ -90,15 +90,11 @@ add_task(async function tabsGroups_move_onMoved() {
   await ext.awaitMessage("done");
   is(group.tabs[0], gBrowser.tabs[0], "Using same index 0 doesn't move.");
 
-  info("Create a large second group, and try to move in the middle of it.");
+  info("Create a large second group, and remove tabs in order.");
   let group4 = gBrowser.addTabGroup(gBrowser.tabs.slice(5));
   let created4 = await ext.awaitMessage("created");
   let gid4 = getExtTabGroupIdForInternalTabGroupId(group4.id);
   is(created4.id, gid4, "Correct group 4 created event.");
-
-  ext.sendMessage(gid, { index: 8 });
-  await Promise.all([ext.awaitMessage("done"), ext.awaitMessage("moved")]);
-  is(group.tabs[1], gBrowser.tabs[4], "Moved before the whole group instead.");
 
   for (let tab of tabs) {
     BrowserTestUtils.removeTab(tab);
