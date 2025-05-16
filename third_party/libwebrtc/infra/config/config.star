@@ -848,7 +848,7 @@ try_builder("win11_debug", cq = None)
 chromium_try_builder("win_chromium_compile")
 chromium_try_builder("win_chromium_compile_dbg")
 
-try_builder("iwyu_verifier", cq = None)
+try_builder("iwyu_verifier")
 
 try_builder(
     "presubmit",
