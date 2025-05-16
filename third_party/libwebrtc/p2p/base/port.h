@@ -33,6 +33,7 @@
 #include "api/transport/stun.h"
 #include "p2p/base/candidate_pair_interface.h"
 #include "p2p/base/connection.h"
+#include "p2p/base/p2p_constants.h"  // IWYU pragma: keep
 #include "p2p/base/port_interface.h"
 #include "p2p/base/transport_description.h"
 #include "rtc_base/async_packet_socket.h"
