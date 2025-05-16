@@ -2,7 +2,7 @@ schema: 1
 
 bugzilla:
   product: Core
-  component: "PSM"
+  component: "Security: PSM"
 
 origin:
   name: NSS
