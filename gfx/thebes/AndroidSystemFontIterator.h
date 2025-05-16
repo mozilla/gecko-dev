@@ -7,19 +7,23 @@
 #define AndroidSystemFontIterator_h__
 
 #include "mozilla/Maybe.h"
+#include <android/font.h>
+#include <android/system_fonts.h>
 
 namespace mozilla {
 
-typedef void* (*_ASystemFontIterator_open)();
-typedef void* (*_ASystemFontIterator_next)(void*);
-typedef void (*_ASystemFontIterator_close)(void*);
-
-typedef const char* (*_AFont_getFontFilePath)(const void*);
-typedef void (*_AFont_close)(void*);
+typedef ASystemFontIterator* _Nullable (*_ASystemFontIterator_open)();
+typedef AFont* _Nullable (*_ASystemFontIterator_next)(
+    ASystemFontIterator* _Nonnull iterator);
+typedef void (*_ASystemFontIterator_close)(
+    ASystemFontIterator* _Nullable iterator);
+typedef const char* _Nonnull (*_AFont_getFontFilePath)(
+    const AFont* _Nonnull font);
+typedef void (*_AFont_close)(AFont* _Nullable font);
 
 class AndroidFont final {
  public:
-  explicit AndroidFont(void* aFont) : mFont(aFont) {};
+  explicit AndroidFont(AFont* _Nullable aFont) : mFont(aFont) {};
 
   AndroidFont() = delete;
   AndroidFont(AndroidFont&) = delete;
@@ -31,13 +35,13 @@ class AndroidFont final {
 
   ~AndroidFont();
 
-  const char* GetFontFilePath();
+  const char* _Nullable GetFontFilePath();
 
  private:
-  void* mFont;
+  AFont* _Nullable mFont;
 
-  static _AFont_getFontFilePath sFont_getFontFilePath;
-  static _AFont_close sFont_close;
+  static _AFont_getFontFilePath _Nullable sFont_getFontFilePath;
+  static _AFont_close _Nullable sFont_close;
 
   friend class AndroidSystemFontIterator;
 };
@@ -53,11 +57,11 @@ class AndroidSystemFontIterator final {
   Maybe<AndroidFont> Next();
 
  private:
-  void* mIterator = nullptr;
+  ASystemFontIterator* _Nullable mIterator = nullptr;
 
-  static _ASystemFontIterator_open sSystemFontIterator_open;
-  static _ASystemFontIterator_next sSystemFontIterator_next;
-  static _ASystemFontIterator_close sSystemFontIterator_close;
+  static _ASystemFontIterator_open _Nullable sSystemFontIterator_open;
+  static _ASystemFontIterator_next _Nullable sSystemFontIterator_next;
+  static _ASystemFontIterator_close _Nullable sSystemFontIterator_close;
 };
 
 }  // namespace mozilla
