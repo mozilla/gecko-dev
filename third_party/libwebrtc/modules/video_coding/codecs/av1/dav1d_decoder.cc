@@ -28,6 +28,7 @@ namespace {
 class Dav1dDecoder : public VideoDecoder {
  public:
   Dav1dDecoder();
+  explicit Dav1dDecoder(const Environment& env);
   Dav1dDecoder(const Dav1dDecoder&) = delete;
   Dav1dDecoder& operator=(const Dav1dDecoder&) = delete;
 
@@ -45,6 +46,8 @@ class Dav1dDecoder : public VideoDecoder {
  private:
   Dav1dContext* context_ = nullptr;
   DecodedImageCallback* decode_complete_callback_ = nullptr;
+
+  const bool crop_to_render_resolution_ = true;
 };
 
 class ScopedDav1dData {
@@ -75,6 +78,10 @@ constexpr char kDav1dName[] = "dav1d";
 void NullFreeCallback(const uint8_t* /* buffer */, void* /* opaque */) {}
 
 Dav1dDecoder::Dav1dDecoder() = default;
+
+Dav1dDecoder::Dav1dDecoder(const Environment& env)
+    : crop_to_render_resolution_(!env.field_trials().IsDisabled(
+          "WebRTC-Dav1dDecoder-CropToRenderResolution")) {}
 
 Dav1dDecoder::~Dav1dDecoder() {
   Release();
@@ -157,8 +164,10 @@ int32_t Dav1dDecoder::Decode(const EncodedImage& encoded_image,
 
   int width = dav1d_picture.p.w;
   int height = dav1d_picture.p.h;
-  if (dav1d_picture.frame_hdr) {
-    // Remove padding.
+
+  if (crop_to_render_resolution_ && dav1d_picture.frame_hdr) {
+    // Interpret render_width/height as resolution decoded frame should be
+    // cropped to.
     if (dav1d_picture.frame_hdr->render_width > 0 &&
         dav1d_picture.frame_hdr->render_height > 0) {
       width = std::min(width, dav1d_picture.frame_hdr->render_width);
@@ -223,6 +232,10 @@ int32_t Dav1dDecoder::Decode(const EncodedImage& encoded_image,
 
 std::unique_ptr<VideoDecoder> CreateDav1dDecoder() {
   return std::make_unique<Dav1dDecoder>();
+}
+
+std::unique_ptr<VideoDecoder> CreateDav1dDecoder(const Environment& env) {
+  return std::make_unique<Dav1dDecoder>(env);
 }
 
 }  // namespace webrtc

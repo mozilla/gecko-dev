@@ -37,7 +37,7 @@ namespace {
 constexpr bool kDav1dIsIncluded = true;
 #else
 constexpr bool kDav1dIsIncluded = false;
-std::unique_ptr<VideoDecoder> CreateDav1dDecoder() {
+std::unique_ptr<VideoDecoder> CreateDav1dDecoder(const Environment& env) {
   return nullptr;
 }
 #endif
@@ -99,7 +99,7 @@ std::unique_ptr<VideoDecoder> InternalDecoderFactory::Create(
 
   if (absl::EqualsIgnoreCase(format.name, cricket::kAv1CodecName) &&
       kDav1dIsIncluded) {
-    return CreateDav1dDecoder();
+    return CreateDav1dDecoder(env);
   }
 
   RTC_DCHECK_NOTREACHED();

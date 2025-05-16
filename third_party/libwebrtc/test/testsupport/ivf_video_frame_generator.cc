@@ -41,7 +41,7 @@ std::unique_ptr<VideoDecoder> CreateDecoder(const Environment& env,
     case VideoCodecType::kVideoCodecH264:
       return H264Decoder::Create();
     case VideoCodecType::kVideoCodecAV1:
-      return CreateDav1dDecoder();
+      return CreateDav1dDecoder(env);
     case VideoCodecType::kVideoCodecH265:
       // No H.265 SW decoder implementation will be provided.
       return nullptr;

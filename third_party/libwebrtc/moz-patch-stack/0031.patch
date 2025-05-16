@@ -9,7 +9,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ef548d7758c7de6e7
  1 file changed, 2 insertions(+)
 
 diff --git a/media/engine/internal_decoder_factory.cc b/media/engine/internal_decoder_factory.cc
-index 101dc07bf6..18b1ce2b1e 100644
+index bd4fc224c7..bfd12222d7 100644
 --- a/media/engine/internal_decoder_factory.cc
 +++ b/media/engine/internal_decoder_factory.cc
 @@ -53,10 +53,12 @@ std::vector<SdpVideoFormat> InternalDecoderFactory::GetSupportedFormats()

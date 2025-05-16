@@ -12,27 +12,44 @@
 
 #include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 
 #include "absl/functional/any_invocable.h"
+#include "api/array_view.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/video/encoded_image.h"
 #include "api/video/video_frame.h"
 #include "api/video_codecs/video_decoder.h"
 #include "modules/video_coding/include/video_error_codes.h"
+#include "test/explicit_key_value_config.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 
 namespace webrtc {
+namespace test {
 namespace {
 
+using ::testing::Eq;
+using ::testing::Not;
 using ::testing::NotNull;
+
+constexpr uint8_t kAv1FrameWith36x20EncodededAnd32x16RenderResolution[] = {
+    0x12, 0x00, 0x0a, 0x06, 0x18, 0x15, 0x23, 0x9f, 0x60, 0x10, 0x32, 0x18,
+    0x20, 0x03, 0xe0, 0x01, 0xf2, 0xb0, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00,
+    0x00, 0xf2, 0x44, 0xd6, 0xa5, 0x3b, 0x7c, 0x8b, 0x7c, 0x8c, 0x6b, 0x9a};
+
+EncodedImage CreateEncodedImage(rtc::ArrayView<const uint8_t> data) {
+  EncodedImage image;
+  image.SetEncodedData(EncodedImageBuffer::Create(data.data(), data.size()));
+  return image;
+}
 
 class TestAv1Decoder : public DecodedImageCallback {
  public:
-  using DecodeCallback =
-      absl::AnyInvocable<void(const VideoFrame& decoded_frame)>;
-
-  TestAv1Decoder() : decoder_(CreateDav1dDecoder()) {
+  explicit TestAv1Decoder(const Environment& env)
+      : decoder_(CreateDav1dDecoder(env)) {
     if (decoder_ == nullptr) {
       ADD_FAILURE() << "Failed to create decoder";
       return;
@@ -45,60 +62,50 @@ class TestAv1Decoder : public DecodedImageCallback {
   TestAv1Decoder(const TestAv1Decoder&) = delete;
   TestAv1Decoder& operator=(const TestAv1Decoder&) = delete;
 
-  void Decode(const EncodedImage& image, DecodeCallback callback = nullptr) {
+  void Decode(const EncodedImage& image) {
     ASSERT_THAT(decoder_, NotNull());
-    callback_ = std::move(callback);
+    decoded_frame_ = std::nullopt;
     int32_t error =
         decoder_->Decode(image, /*render_time_ms=*/image.capture_time_ms_);
-    if (error != WEBRTC_VIDEO_CODEC_OK) {
-      ADD_FAILURE() << "Failed to decode frame with timestamp "
-                    << image.RtpTimestamp() << " with error code " << error;
-      return;
-    }
+    ASSERT_EQ(error, WEBRTC_VIDEO_CODEC_OK);
+    ASSERT_THAT(decoded_frame_, Not(Eq(std::nullopt)));
   }
+
+  VideoFrame& decoded_frame() { return *decoded_frame_; }
 
  private:
   int32_t Decoded(VideoFrame& decoded_frame) override {
-    Decoded(decoded_frame, /*decode_time_ms=*/std::nullopt,
-            /*qp=*/std::nullopt);
+    decoded_frame_ = std::move(decoded_frame);
     return 0;
   }
   void Decoded(VideoFrame& decoded_frame,
                std::optional<int32_t> /*decode_time_ms*/,
                std::optional<uint8_t> /*qp*/) override {
-    if (callback_) {
-      callback_(decoded_frame);
-      callback_ = nullptr;
-    }
+    Decoded(decoded_frame);
   }
 
   const std::unique_ptr<VideoDecoder> decoder_;
-  DecodeCallback callback_;
+  std::optional<VideoFrame> decoded_frame_;
 };
 
-TEST(Dav1dDecoderTest, DeliversRenderResolution) {
-  // Verifies that dav1d decoder sets render resolution in decoded frame and
-  // that the decoder wrapper removes padding.
+TEST(Dav1dDecoderTest, CropsToRenderResolutionByDefault) {
+  TestAv1Decoder decoder(CreateEnvironment());
+  decoder.Decode(
+      CreateEncodedImage(kAv1FrameWith36x20EncodededAnd32x16RenderResolution));
+  EXPECT_EQ(decoder.decoded_frame().width(), 32);
+  EXPECT_EQ(decoder.decoded_frame().height(), 16);
+}
 
-  // AV1 bitstream containing a single frame of 36x20 encoded and 32x16 render
-  // resolution.
-  uint8_t data[] = {0x12, 0x00, 0x0a, 0x06, 0x18, 0x15, 0x23, 0x9f, 0x60,
-                    0x10, 0x32, 0x18, 0x20, 0x03, 0xe0, 0x01, 0xf2, 0xb0,
-                    0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0xf2, 0x44,
-                    0xd6, 0xa5, 0x3b, 0x7c, 0x8b, 0x7c, 0x8c, 0x6b, 0x9a};
-  EncodedImage encoded_frame;
-  encoded_frame.SetEncodedData(EncodedImageBuffer::Create(data, sizeof(data)));
-
-  TestAv1Decoder decoder;
-  int num_decoded_frames = 0;
-  decoder.Decode(encoded_frame,
-                 [&num_decoded_frames](const VideoFrame& decoded_frame) {
-                   EXPECT_EQ(decoded_frame.width(), 32);
-                   EXPECT_EQ(decoded_frame.height(), 16);
-                   ++num_decoded_frames;
-                 });
-  EXPECT_EQ(num_decoded_frames, 1);
+TEST(Dav1dDecoderTest, KeepsDecodedResolutionWhenCropIsDisabled) {
+  TestAv1Decoder decoder(
+      CreateEnvironment(std::make_unique<ExplicitKeyValueConfig>(
+          "WebRTC-Dav1dDecoder-CropToRenderResolution/Disabled/")));
+  decoder.Decode(
+      CreateEncodedImage(kAv1FrameWith36x20EncodededAnd32x16RenderResolution));
+  EXPECT_EQ(decoder.decoded_frame().width(), 36);
+  EXPECT_EQ(decoder.decoded_frame().height(), 20);
 }
 
 }  // namespace
+}  // namespace test
 }  // namespace webrtc
