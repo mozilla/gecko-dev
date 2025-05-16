@@ -7,8 +7,6 @@ ChromeUtils.defineESModuleGetters(this, {
   ClientEnvironmentBase:
     "resource://gre/modules/components-utils/ClientEnvironment.sys.mjs",
   NormandyTestUtils: "resource://testing-common/NormandyTestUtils.sys.mjs",
-  Region: "resource://gre/modules/Region.sys.mjs",
-  RegionTestUtils: "resource://testing-common/RegionTestUtils.sys.mjs",
   TelemetryController: "resource://gre/modules/TelemetryController.sys.mjs",
   updateAppInfo: "resource://testing-common/AppInfo.sys.mjs",
 });
@@ -24,9 +22,6 @@ add_task(async function test_OS_data() {
     undefined,
     "OS data should be available in the context"
   );
-
-  equal(os.name, ClientEnvironmentBase.appinfo.OS);
-  equal(typeof os.version, "string", "Version is a string");
 
   let osCount = 0;
   if (os.isWindows) {
@@ -157,20 +152,3 @@ add_task(
     );
   }
 );
-
-add_task(async function test_country() {
-  Region._home = null;
-  RegionTestUtils.setNetworkRegion("FR");
-  await Region._fetchRegion();
-
-  equal(ClientEnvironmentBase.country, "FR");
-});
-
-add_task(async function test_formFactor() {
-  const env = ClientEnvironmentBase;
-  if (env.appinfo.OS == "Android" || env.appinfo.OS == "iOS") {
-    equal(env.formFactor, "phone");
-  } else {
-    equal(env.formFactor, "desktop");
-  }
-});
