@@ -4,6 +4,8 @@
 
 import { html, ifDefined } from "./vendor/lit.all.mjs";
 import { MozLitElement } from "./lit-utils.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/elements/moz-fieldset.mjs";
 
 const NAVIGATION_FORWARD = "forward";
 const NAVIGATION_BACKWARD = "backward";

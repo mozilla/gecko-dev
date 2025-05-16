@@ -93,11 +93,11 @@ export class EditProfileCard extends MozLitElement {
   clearSavedMessageTimer = null;
 
   get avatars() {
-    return this.avatarsPicker.radioButtons;
+    return this.avatarsPicker.childElements;
   }
 
   get themeCards() {
-    return this.themesPicker.radioButtons;
+    return this.themesPicker.childElements;
   }
 
   constructor() {

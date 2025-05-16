@@ -4,10 +4,8 @@
 /* eslint-disable jsdoc/check-tag-names */
 
 import { html, ifDefined } from "chrome://global/content/vendor/lit.all.mjs";
-import {
-  MozRadioGroup,
-  MozRadio,
-} from "chrome://global/content/elements/moz-radio-group.mjs";
+import { MozRadio } from "chrome://global/content/elements/moz-radio-group.mjs";
+import { SelectControlBaseElement } from "chrome://global/content/lit-select-control.mjs";
 
 const NAVIGATION_FORWARD = "forward";
 const NAVIGATION_BACKWARD = "backward";
@@ -31,12 +29,13 @@ const NAVIGATION_VALUE = {
  *  state of profiles-group-item children and vice versa.
  * @slot default - The radio group's content, intended for profiles-group-item elements.
  */
-export class ProfilesGroup extends MozRadioGroup {
-  #radioButtons;
+export class ProfilesGroup extends SelectControlBaseElement {
+  static childElementName = "profiles-group-item";
+  static orientation = "horizontal";
 
   get currentFocus() {
-    let focusedIndex = this.radioButtons.findIndex(
-      button => button.inputTabIndex === 0
+    let focusedIndex = this.childElements.findIndex(
+      button => button.itemTabIndex === 0
     );
 
     if (focusedIndex !== -1) {
@@ -46,44 +45,26 @@ export class ProfilesGroup extends MozRadioGroup {
     return this.focusableIndex;
   }
 
-  // Query for child elements the first time they are needed + ensure they
-  // have been upgraded so we can access properties.
-  get radioButtons() {
-    if (!this.#radioButtons) {
-      this.#radioButtons = (
-        this.shadowRoot
-          ?.querySelector("slot:not([name])")
-          ?.assignedElements() || [...this.children]
-      )?.filter(el => el.localName === "profiles-group-item" && !el.slot);
-      this.#radioButtons.forEach(button => customElements.upgrade(button));
-    }
-    return this.#radioButtons;
-  }
-
   updateFocusIndex(focusIndex) {
-    this.radioButtons.forEach((button, index) => {
-      button.inputTabIndex = focusIndex === index ? 0 : -1;
+    this.childElements.forEach((button, index) => {
+      button.itemTabIndex = focusIndex === index ? 0 : -1;
     });
   }
 
   navigate(direction) {
     let currentIndex = this.currentFocus;
-    let indexStep = this.radioButtons.length + NAVIGATION_VALUE[direction];
+    let indexStep = this.childElements.length + NAVIGATION_VALUE[direction];
 
-    for (let i = 1; i < this.radioButtons.length; i++) {
-      let nextIndex = (currentIndex + indexStep * i) % this.radioButtons.length;
-      let nextButton = this.radioButtons[nextIndex];
+    for (let i = 1; i < this.childElements.length; i++) {
+      let nextIndex =
+        (currentIndex + indexStep * i) % this.childElements.length;
+      let nextButton = this.childElements[nextIndex];
       if (!nextButton.disabled) {
         this.updateFocusIndex(nextIndex);
-        this.radioButtons[nextIndex].focus();
+        this.childElements[nextIndex].focus();
         return;
       }
     }
-  }
-
-  handleSlotChange() {
-    this.#radioButtons = null;
-    this.syncStateToRadioButtons();
   }
 }
 customElements.define("profiles-group", ProfilesGroup);
