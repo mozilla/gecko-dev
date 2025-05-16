@@ -82,12 +82,17 @@ typedef struct arena_params_s {
 
   uint32_t mFlags;
 
+  // The label will be copied into fixed-size storage (currently 128 bytes)
+  // within the arena.  It may be null for unamed arenas
+  const char* mLabel;
+
 #ifdef __cplusplus
   arena_params_s()
       : mMaxDirty(0),
         mMaxDirtyIncreaseOverride(0),
         mMaxDirtyDecreaseOverride(0),
-        mFlags(0) {}
+        mFlags(0),
+        mLabel(nullptr) {}
 #endif
 } arena_params_t;
 
