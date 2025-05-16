@@ -47,7 +47,7 @@ class MockRtpReceiverInternal : public RtpReceiverInternal {
               streams,
               (),
               (const, override));
-  MOCK_METHOD(cricket::MediaType, media_type, (), (const, override));
+  MOCK_METHOD(webrtc::MediaType, media_type, (), (const, override));
   MOCK_METHOD(std::string, id, (), (const, override));
   MOCK_METHOD(RtpParameters, GetParameters, (), (const, override));
   MOCK_METHOD(void, SetObserver, (RtpReceiverObserverInterface*), (override));

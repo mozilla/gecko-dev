@@ -40,7 +40,7 @@ class RtpReceiverObserverInterface {
   // In the future, it's likely that an RtpReceiver will only call
   // OnFirstPacketReceived when a packet is received specifically for its
   // SSRC/mid.
-  virtual void OnFirstPacketReceived(cricket::MediaType media_type) = 0;
+  virtual void OnFirstPacketReceived(webrtc::MediaType media_type) = 0;
 
  protected:
   virtual ~RtpReceiverObserverInterface() {}
@@ -68,7 +68,7 @@ class RTC_EXPORT RtpReceiverInterface : public webrtc::RefCountInterface,
   virtual std::vector<rtc::scoped_refptr<MediaStreamInterface>> streams() const;
 
   // Audio or video receiver?
-  virtual cricket::MediaType media_type() const = 0;
+  virtual webrtc::MediaType media_type() const = 0;
 
   // Not to be confused with "mid", this is a field we can temporarily use
   // to uniquely identify a receiver until we implement Unified Plan SDP.

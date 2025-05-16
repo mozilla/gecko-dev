@@ -598,12 +598,12 @@ PeerConnection::PeerConnection(
     rtp_manager_->transceivers()->Add(
         RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
             signaling_thread(), rtc::make_ref_counted<RtpTransceiver>(
-                                    cricket::MEDIA_TYPE_AUDIO, context_.get(),
+                                    webrtc::MediaType::AUDIO, context_.get(),
                                     codec_lookup_helper_.get())));
     rtp_manager_->transceivers()->Add(
         RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
             signaling_thread(), rtc::make_ref_counted<RtpTransceiver>(
-                                    cricket::MEDIA_TYPE_VIDEO, context_.get(),
+                                    webrtc::MediaType::VIDEO, context_.get(),
                                     codec_lookup_helper_.get())));
   }
 
@@ -937,11 +937,11 @@ RTCError PeerConnection::RemoveTrackOrError(
     }
   } else {
     bool removed;
-    if (sender->media_type() == cricket::MEDIA_TYPE_AUDIO) {
+    if (sender->media_type() == webrtc::MediaType::AUDIO) {
       removed = rtp_manager()->GetAudioTransceiver()->internal()->RemoveSender(
           sender.get());
     } else {
-      RTC_DCHECK_EQ(cricket::MEDIA_TYPE_VIDEO, sender->media_type());
+      RTC_DCHECK_EQ(webrtc::MediaType::VIDEO, sender->media_type());
       removed = rtp_manager()->GetVideoTransceiver()->internal()->RemoveSender(
           sender.get());
     }
@@ -986,11 +986,11 @@ PeerConnection::AddTransceiver(
   if (!track) {
     LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_PARAMETER, "track is null");
   }
-  cricket::MediaType media_type;
+  webrtc::MediaType media_type;
   if (track->kind() == MediaStreamTrackInterface::kAudioKind) {
-    media_type = cricket::MEDIA_TYPE_AUDIO;
+    media_type = webrtc::MediaType::AUDIO;
   } else if (track->kind() == MediaStreamTrackInterface::kVideoKind) {
-    media_type = cricket::MEDIA_TYPE_VIDEO;
+    media_type = webrtc::MediaType::VIDEO;
   } else {
     LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_PARAMETER,
                          "Track kind is not audio or video");
@@ -999,12 +999,12 @@ PeerConnection::AddTransceiver(
 }
 
 RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>
-PeerConnection::AddTransceiver(cricket::MediaType media_type) {
+PeerConnection::AddTransceiver(webrtc::MediaType media_type) {
   return AddTransceiver(media_type, RtpTransceiverInit());
 }
 
 RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>
-PeerConnection::AddTransceiver(cricket::MediaType media_type,
+PeerConnection::AddTransceiver(webrtc::MediaType media_type,
                                const RtpTransceiverInit& init) {
   RTC_DCHECK_RUN_ON(signaling_thread());
   if (!ConfiguredForMedia()) {
@@ -1013,8 +1013,8 @@ PeerConnection::AddTransceiver(cricket::MediaType media_type,
   }
   RTC_CHECK(IsUnifiedPlan())
       << "AddTransceiver is only available with Unified Plan SdpSemantics";
-  if (!(media_type == cricket::MEDIA_TYPE_AUDIO ||
-        media_type == cricket::MEDIA_TYPE_VIDEO)) {
+  if (!(media_type == webrtc::MediaType::AUDIO ||
+        media_type == webrtc::MediaType::VIDEO)) {
     LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_PARAMETER,
                          "media type is not audio or video");
   }
@@ -1023,7 +1023,7 @@ PeerConnection::AddTransceiver(cricket::MediaType media_type,
 
 RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>
 PeerConnection::AddTransceiver(
-    cricket::MediaType media_type,
+    webrtc::MediaType media_type,
     rtc::scoped_refptr<MediaStreamTrackInterface> track,
     const RtpTransceiverInit& init,
     bool update_negotiation_needed) {
@@ -1032,13 +1032,13 @@ PeerConnection::AddTransceiver(
     LOG_AND_RETURN_ERROR(RTCErrorType::UNSUPPORTED_OPERATION,
                          "Not configured for media");
   }
-  RTC_DCHECK((media_type == cricket::MEDIA_TYPE_AUDIO ||
-              media_type == cricket::MEDIA_TYPE_VIDEO));
+  RTC_DCHECK((media_type == webrtc::MediaType::AUDIO ||
+              media_type == webrtc::MediaType::VIDEO));
   if (track) {
     RTC_DCHECK_EQ(media_type,
                   (track->kind() == MediaStreamTrackInterface::kAudioKind
-                       ? cricket::MEDIA_TYPE_AUDIO
-                       : cricket::MEDIA_TYPE_VIDEO));
+                       ? webrtc::MediaType::AUDIO
+                       : webrtc::MediaType::VIDEO));
   }
 
   size_t num_rids = absl::c_count_if(init.send_encodings,
@@ -1073,7 +1073,7 @@ PeerConnection::AddTransceiver(
 
   // Encodings are dropped from the tail if too many are provided.
   size_t max_simulcast_streams =
-      media_type == cricket::MEDIA_TYPE_VIDEO ? kMaxSimulcastStreams : 1u;
+      media_type == webrtc::MediaType::VIDEO ? kMaxSimulcastStreams : 1u;
   if (parameters.encodings.size() > max_simulcast_streams) {
     parameters.encodings.erase(
         parameters.encodings.begin() + max_simulcast_streams,
@@ -1111,7 +1111,7 @@ PeerConnection::AddTransceiver(
   // codec selection against supported values.
   cricket::CodecVendor codec_vendor(context_->media_engine(), false,
                                     context_->env().field_trials());
-  if (media_type == cricket::MEDIA_TYPE_VIDEO) {
+  if (media_type == webrtc::MediaType::VIDEO) {
     codecs = codec_vendor.video_send_codecs().codecs();
   } else {
     codecs = codec_vendor.audio_send_codecs().codecs();
@@ -1126,7 +1126,7 @@ PeerConnection::AddTransceiver(
     LOG_AND_RETURN_ERROR(result.type(), result.message());
   }
 
-  RTC_LOG(LS_INFO) << "Adding " << cricket::MediaTypeToString(media_type)
+  RTC_LOG(LS_INFO) << "Adding " << webrtc::MediaTypeToString(media_type)
                    << " transceiver in response to a call to AddTransceiver.";
   // Set the sender ID equal to the track ID if the track is specified unless
   // that sender ID is already in use.
@@ -2588,12 +2588,12 @@ void PeerConnection::ReportSdpBundleUsage(
   int num_data_mlines = 0;
   for (const ContentInfo& content :
        remote_description.description()->contents()) {
-    cricket::MediaType media_type = content.media_description()->type();
-    if (media_type == cricket::MEDIA_TYPE_AUDIO) {
+    webrtc::MediaType media_type = content.media_description()->type();
+    if (media_type == webrtc::MediaType::AUDIO) {
       num_audio_mlines += 1;
-    } else if (media_type == cricket::MEDIA_TYPE_VIDEO) {
+    } else if (media_type == webrtc::MediaType::VIDEO) {
       num_video_mlines += 1;
-    } else if (media_type == cricket::MEDIA_TYPE_DATA) {
+    } else if (media_type == webrtc::MediaType::DATA) {
       num_data_mlines += 1;
     }
   }
@@ -2739,7 +2739,7 @@ void PeerConnection::ReportTransportStats(
     std::vector<RtpTransceiverProxyRefPtr> transceivers) {
   TRACE_EVENT0("webrtc", "PeerConnection::ReportTransportStats");
   Thread::ScopedDisallowBlockingCalls no_blocking_calls;
-  std::map<std::string, std::set<cricket::MediaType>>
+  std::map<std::string, std::set<webrtc::MediaType>>
       media_types_by_transport_name;
   for (const auto& transceiver : transceivers) {
     if (transceiver->internal()->channel()) {
@@ -2755,13 +2755,13 @@ void PeerConnection::ReportTransportStats(
         transport_controller_->GetDtlsTransport(*sctp_mid_n_);
     if (dtls_transport) {
       media_types_by_transport_name[dtls_transport->transport_name()].insert(
-          cricket::MEDIA_TYPE_DATA);
+          webrtc::MediaType::DATA);
     }
   }
 
   for (const auto& entry : media_types_by_transport_name) {
     const std::string& transport_name = entry.first;
-    const std::set<cricket::MediaType> media_types = entry.second;
+    const std::set<webrtc::MediaType> media_types = entry.second;
     cricket::TransportStats stats;
     if (transport_controller_->GetStats(transport_name, &stats)) {
       ReportBestConnectionState(stats);
@@ -2824,7 +2824,7 @@ void PeerConnection::ReportBestConnectionState(
 void PeerConnection::ReportNegotiatedCiphers(
     bool dtls_enabled,
     const cricket::TransportStats& stats,
-    const std::set<cricket::MediaType>& media_types) {
+    const std::set<webrtc::MediaType>& media_types) {
   if (!dtls_enabled || stats.channel_stats.empty()) {
     return;
   }
@@ -2837,19 +2837,19 @@ void PeerConnection::ReportNegotiatedCiphers(
   }
 
   if (ssl_cipher_suite != kTlsNullWithNullNull) {
-    for (cricket::MediaType media_type : media_types) {
+    for (webrtc::MediaType media_type : media_types) {
       switch (media_type) {
-        case cricket::MEDIA_TYPE_AUDIO:
+        case webrtc::MediaType::AUDIO:
           RTC_HISTOGRAM_ENUMERATION_SPARSE(
               "WebRTC.PeerConnection.SslCipherSuite.Audio", ssl_cipher_suite,
               kSslCipherSuiteMaxValue);
           break;
-        case cricket::MEDIA_TYPE_VIDEO:
+        case webrtc::MediaType::VIDEO:
           RTC_HISTOGRAM_ENUMERATION_SPARSE(
               "WebRTC.PeerConnection.SslCipherSuite.Video", ssl_cipher_suite,
               kSslCipherSuiteMaxValue);
           break;
-        case cricket::MEDIA_TYPE_DATA:
+        case webrtc::MediaType::DATA:
           RTC_HISTOGRAM_ENUMERATION_SPARSE(
               "WebRTC.PeerConnection.SslCipherSuite.Data", ssl_cipher_suite,
               kSslCipherSuiteMaxValue);
@@ -2864,19 +2864,19 @@ void PeerConnection::ReportNegotiatedCiphers(
   uint16_t ssl_peer_signature_algorithm =
       stats.channel_stats[0].ssl_peer_signature_algorithm;
   if (ssl_peer_signature_algorithm != kSslSignatureAlgorithmUnknown) {
-    for (cricket::MediaType media_type : media_types) {
+    for (webrtc::MediaType media_type : media_types) {
       switch (media_type) {
-        case cricket::MEDIA_TYPE_AUDIO:
+        case webrtc::MediaType::AUDIO:
           RTC_HISTOGRAM_ENUMERATION_SPARSE(
               "WebRTC.PeerConnection.SslPeerSignatureAlgorithm.Audio",
               ssl_peer_signature_algorithm, kSslSignatureAlgorithmMaxValue);
           break;
-        case cricket::MEDIA_TYPE_VIDEO:
+        case webrtc::MediaType::VIDEO:
           RTC_HISTOGRAM_ENUMERATION_SPARSE(
               "WebRTC.PeerConnection.SslPeerSignatureAlgorithm.Video",
               ssl_peer_signature_algorithm, kSslSignatureAlgorithmMaxValue);
           break;
-        case cricket::MEDIA_TYPE_DATA:
+        case webrtc::MediaType::DATA:
           RTC_HISTOGRAM_ENUMERATION_SPARSE(
               "WebRTC.PeerConnection.SslPeerSignatureAlgorithm.Data",
               ssl_peer_signature_algorithm, kSslSignatureAlgorithmMaxValue);

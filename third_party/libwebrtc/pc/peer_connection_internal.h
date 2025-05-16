@@ -119,7 +119,7 @@ class PeerConnectionSdpMethods {
   // Internal implementation for AddTransceiver family of methods. If
   // `fire_callback` is set, fires OnRenegotiationNeeded callback if successful.
   virtual RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>
-  AddTransceiver(cricket::MediaType media_type,
+  AddTransceiver(webrtc::MediaType media_type,
                  rtc::scoped_refptr<MediaStreamTrackInterface> track,
                  const RtpTransceiverInit& init,
                  bool fire_callback = true) = 0;

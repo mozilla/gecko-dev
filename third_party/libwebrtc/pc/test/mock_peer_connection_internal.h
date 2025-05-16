@@ -106,11 +106,11 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
               (override));
   MOCK_METHOD(RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>,
               AddTransceiver,
-              (cricket::MediaType),
+              (webrtc::MediaType),
               (override));
   MOCK_METHOD(RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>,
               AddTransceiver,
-              (cricket::MediaType, const RtpTransceiverInit&),
+              (webrtc::MediaType, const RtpTransceiverInit&),
               (override));
   MOCK_METHOD(rtc::scoped_refptr<RtpSenderInterface>,
               CreateSender,
@@ -304,7 +304,7 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
               (override));
   MOCK_METHOD(RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>,
               AddTransceiver,
-              (cricket::MediaType,
+              (webrtc::MediaType,
                rtc::scoped_refptr<MediaStreamTrackInterface>,
                const RtpTransceiverInit&,
                bool),

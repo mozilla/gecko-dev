@@ -399,14 +399,14 @@ SdpMungingType DetermineSdpMungingType(
       continue;
     }
     // Validate video and audio contents.
-    cricket::MediaType media_type = last_created_media_description->type();
-    if (media_type == cricket::MEDIA_TYPE_VIDEO) {
+    webrtc::MediaType media_type = last_created_media_description->type();
+    if (media_type == webrtc::MediaType::VIDEO) {
       type = DetermineVideoSdpMungingType(last_created_media_description,
                                           media_description_to_set);
       if (type != SdpMungingType::kNoModification) {
         return type;
       }
-    } else if (media_type == cricket::MEDIA_TYPE_AUDIO) {
+    } else if (media_type == webrtc::MediaType::AUDIO) {
       type = DetermineAudioSdpMungingType(last_created_media_description,
                                           media_description_to_set);
       if (type != SdpMungingType::kNoModification) {
@@ -426,7 +426,7 @@ SdpMungingType DetermineSdpMungingType(
         // Codec position swapped.
         for (size_t j = i + 1; j < last_created_codecs.size(); j++) {
           if (last_created_codecs[i] == codecs_to_set[j]) {
-            return media_type == cricket::MEDIA_TYPE_AUDIO
+            return media_type == webrtc::MediaType::AUDIO
                        ? SdpMungingType::kAudioCodecsReordered
                        : SdpMungingType::kVideoCodecsReordered;
           }
@@ -437,13 +437,13 @@ SdpMungingType DetermineSdpMungingType(
           return SdpMungingType::kPayloadTypes;
         }
         if (last_created_codecs[i].params != codecs_to_set[i].params) {
-          return media_type == cricket::MEDIA_TYPE_AUDIO
+          return media_type == webrtc::MediaType::AUDIO
                      ? SdpMungingType::kAudioCodecsFmtp
                      : SdpMungingType::kVideoCodecsFmtp;
         }
         if (last_created_codecs[i].feedback_params !=
             codecs_to_set[i].feedback_params) {
-          return media_type == cricket::MEDIA_TYPE_AUDIO
+          return media_type == webrtc::MediaType::AUDIO
                      ? SdpMungingType::kAudioCodecsRtcpFb
                      : SdpMungingType::kVideoCodecsRtcpFb;
         }

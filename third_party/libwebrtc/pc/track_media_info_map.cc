@@ -11,13 +11,20 @@
 #include "pc/track_media_info_map.h"
 
 #include <cstdint>
+#include <map>
+#include <optional>
 #include <set>
-#include <type_traits>
 #include <utility>
 
+#include "api/array_view.h"
+#include "api/media_stream_interface.h"
 #include "api/media_types.h"
 #include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
+#include "media/base/media_channel.h"
 #include "media/base/stream_params.h"
+#include "pc/rtp_receiver.h"
+#include "pc/rtp_sender.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/thread.h"
 
@@ -51,7 +58,7 @@ void GetAudioAndVideoTrackBySsrc(
   RTC_DCHECK(remote_audio_track_by_ssrc->empty());
   RTC_DCHECK(remote_video_track_by_ssrc->empty());
   for (const auto& rtp_sender : rtp_senders) {
-    cricket::MediaType media_type = rtp_sender->media_type();
+    webrtc::MediaType media_type = rtp_sender->media_type();
     MediaStreamTrackInterface* track = rtp_sender->track().get();
     if (!track) {
       continue;
@@ -59,7 +66,7 @@ void GetAudioAndVideoTrackBySsrc(
     // TODO(deadbeef): `ssrc` should be removed in favor of `GetParameters`.
     uint32_t ssrc = rtp_sender->ssrc();
     if (ssrc != 0) {
-      if (media_type == cricket::MEDIA_TYPE_AUDIO) {
+      if (media_type == webrtc::MediaType::AUDIO) {
         RTC_DCHECK(local_audio_track_by_ssrc->find(ssrc) ==
                    local_audio_track_by_ssrc->end());
         (*local_audio_track_by_ssrc)[ssrc] =
@@ -73,21 +80,21 @@ void GetAudioAndVideoTrackBySsrc(
     }
   }
   for (const auto& rtp_receiver : rtp_receivers) {
-    cricket::MediaType media_type = rtp_receiver->media_type();
+    webrtc::MediaType media_type = rtp_receiver->media_type();
     MediaStreamTrackInterface* track = rtp_receiver->track().get();
     RTC_DCHECK(track);
     RtpParameters params = rtp_receiver->GetParameters();
     for (const RtpEncodingParameters& encoding : params.encodings) {
       if (!encoding.ssrc) {
-        if (media_type == cricket::MEDIA_TYPE_AUDIO) {
+        if (media_type == webrtc::MediaType::AUDIO) {
           *unsignaled_audio_track = static_cast<AudioTrackInterface*>(track);
         } else {
-          RTC_DCHECK(media_type == cricket::MEDIA_TYPE_VIDEO);
+          RTC_DCHECK(media_type == webrtc::MediaType::VIDEO);
           *unsignaled_video_track = static_cast<VideoTrackInterface*>(track);
         }
         continue;
       }
-      if (media_type == cricket::MEDIA_TYPE_AUDIO) {
+      if (media_type == webrtc::MediaType::AUDIO) {
         RTC_DCHECK(remote_audio_track_by_ssrc->find(*encoding.ssrc) ==
                    remote_audio_track_by_ssrc->end());
         (*remote_audio_track_by_ssrc)[*encoding.ssrc] =

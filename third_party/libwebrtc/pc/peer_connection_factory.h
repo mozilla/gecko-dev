@@ -65,10 +65,10 @@ class PeerConnectionFactory : public PeerConnectionFactoryInterface {
       PeerConnectionDependencies dependencies) override;
 
   RtpCapabilities GetRtpSenderCapabilities(
-      cricket::MediaType kind) const override;
+      webrtc::MediaType kind) const override;
 
   RtpCapabilities GetRtpReceiverCapabilities(
-      cricket::MediaType kind) const override;
+      webrtc::MediaType kind) const override;
 
   rtc::scoped_refptr<MediaStreamInterface> CreateLocalMediaStream(
       const std::string& stream_id) override;

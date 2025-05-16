@@ -46,7 +46,7 @@ class PeerConnectionSVCIntegrationTest
       absl::string_view codec_name) {
     RtpCapabilities capabilities =
         caller()->pc_factory()->GetRtpReceiverCapabilities(
-            cricket::MEDIA_TYPE_VIDEO);
+            webrtc::MediaType::VIDEO);
     std::vector<RtpCodecCapability> codecs;
     for (const RtpCodecCapability& codec_capability : capabilities.codecs) {
       if (codec_capability.name == codec_name)
@@ -101,7 +101,7 @@ TEST_F(PeerConnectionSVCIntegrationTest, SetParametersAcceptsL1T3WithVP8) {
 
   RtpCapabilities capabilities =
       caller()->pc_factory()->GetRtpReceiverCapabilities(
-          cricket::MEDIA_TYPE_VIDEO);
+          webrtc::MediaType::VIDEO);
   std::vector<RtpCodecCapability> vp8_codec;
   for (const RtpCodecCapability& codec_capability : capabilities.codecs) {
     if (codec_capability.name == cricket::kVp8CodecName)
@@ -244,7 +244,7 @@ TEST_F(PeerConnectionSVCIntegrationTest, FallbackToL1Tx) {
 
   RtpCapabilities capabilities =
       caller()->pc_factory()->GetRtpReceiverCapabilities(
-          cricket::MEDIA_TYPE_VIDEO);
+          webrtc::MediaType::VIDEO);
   std::vector<RtpCodecCapability> send_codecs = capabilities.codecs;
   // Only keep VP9 in the caller
   send_codecs.erase(std::partition(send_codecs.begin(), send_codecs.end(),

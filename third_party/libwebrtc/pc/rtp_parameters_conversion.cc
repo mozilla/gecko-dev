@@ -79,8 +79,8 @@ RtpCodecCapability ToRtpCodecCapability(const cricket::Codec& cricket_codec) {
   RtpCodecCapability codec;
   codec.name = cricket_codec.name;
   codec.kind = cricket_codec.type == cricket::Codec::Type::kAudio
-                   ? cricket::MEDIA_TYPE_AUDIO
-                   : cricket::MEDIA_TYPE_VIDEO;
+                   ? webrtc::MediaType::AUDIO
+                   : webrtc::MediaType::VIDEO;
   codec.clock_rate.emplace(cricket_codec.clockrate);
   codec.preferred_payload_type.emplace(cricket_codec.id);
   for (const cricket::FeedbackParam& cricket_feedback :

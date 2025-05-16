@@ -503,8 +503,8 @@ class FakeVoiceMediaReceiveChannel
   VoiceMediaReceiveChannelInterface* AsVoiceReceiveChannel() override {
     return this;
   }
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_AUDIO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::AUDIO;
   }
 
   bool SetReceiverParameters(const AudioReceiverParameters& params) override;
@@ -595,8 +595,8 @@ class FakeVoiceMediaSendChannel
     return nullptr;
   }
   VoiceMediaSendChannelInterface* AsVoiceSendChannel() override { return this; }
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_AUDIO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::AUDIO;
   }
 
   bool SetSenderParameters(const AudioSenderParameter& params) override;
@@ -673,8 +673,8 @@ class FakeVideoMediaReceiveChannel
   VoiceMediaReceiveChannelInterface* AsVoiceReceiveChannel() override {
     return nullptr;
   }
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_VIDEO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::VIDEO;
   }
 
   const std::vector<Codec>& recv_codecs() const;
@@ -747,8 +747,8 @@ class FakeVideoMediaSendChannel
   VoiceMediaSendChannelInterface* AsVoiceSendChannel() override {
     return nullptr;
   }
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_VIDEO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::VIDEO;
   }
 
   const std::vector<Codec>& send_codecs() const;

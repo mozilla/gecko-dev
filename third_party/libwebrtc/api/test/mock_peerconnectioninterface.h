@@ -88,11 +88,11 @@ class MockPeerConnectionInterface : public webrtc::PeerConnectionInterface {
               (override));
   MOCK_METHOD(RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>,
               AddTransceiver,
-              (cricket::MediaType),
+              (webrtc::MediaType),
               (override));
   MOCK_METHOD(RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>,
               AddTransceiver,
-              (cricket::MediaType, const RtpTransceiverInit&),
+              (webrtc::MediaType, const RtpTransceiverInit&),
               (override));
   MOCK_METHOD(rtc::scoped_refptr<RtpSenderInterface>,
               CreateSender,

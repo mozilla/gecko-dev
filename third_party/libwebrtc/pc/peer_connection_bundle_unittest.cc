@@ -104,7 +104,7 @@ class PeerConnectionWrapperForBundleTest : public PeerConnectionWrapper {
   using PeerConnectionWrapper::PeerConnectionWrapper;
 
   bool AddIceCandidateToMedia(Candidate* candidate,
-                              cricket::MediaType media_type) {
+                              webrtc::MediaType media_type) {
     auto* desc = pc()->remote_description()->description();
     for (size_t i = 0; i < desc->contents().size(); i++) {
       const auto& content = desc->contents()[i];
@@ -126,7 +126,7 @@ class PeerConnectionWrapperForBundleTest : public PeerConnectionWrapper {
   cricket::VoiceChannel* voice_channel() {
     auto transceivers = GetInternalPeerConnection()->GetTransceiversInternal();
     for (const auto& transceiver : transceivers) {
-      if (transceiver->media_type() == cricket::MEDIA_TYPE_AUDIO) {
+      if (transceiver->media_type() == webrtc::MediaType::AUDIO) {
         return static_cast<cricket::VoiceChannel*>(
             transceiver->internal()->channel());
       }
@@ -141,7 +141,7 @@ class PeerConnectionWrapperForBundleTest : public PeerConnectionWrapper {
   cricket::VideoChannel* video_channel() {
     auto transceivers = GetInternalPeerConnection()->GetTransceiversInternal();
     for (const auto& transceiver : transceivers) {
-      if (transceiver->media_type() == cricket::MEDIA_TYPE_VIDEO) {
+      if (transceiver->media_type() == webrtc::MediaType::VIDEO) {
         return static_cast<cricket::VideoChannel*>(
             transceiver->internal()->channel());
       }
@@ -662,15 +662,15 @@ TEST_P(PeerConnectionBundleTest,
 
   Candidate audio_candidate1 = CreateLocalUdpCandidate(kAudioAddress1);
   ASSERT_TRUE(caller->AddIceCandidateToMedia(&audio_candidate1,
-                                             cricket::MEDIA_TYPE_AUDIO));
+                                             webrtc::MediaType::AUDIO));
 
   Candidate video_candidate = CreateLocalUdpCandidate(kVideoAddress);
   ASSERT_TRUE(caller->AddIceCandidateToMedia(&video_candidate,
-                                             cricket::MEDIA_TYPE_VIDEO));
+                                             webrtc::MediaType::VIDEO));
 
   Candidate audio_candidate2 = CreateLocalUdpCandidate(kAudioAddress2);
   ASSERT_TRUE(caller->AddIceCandidateToMedia(&audio_candidate2,
-                                             cricket::MEDIA_TYPE_AUDIO));
+                                             webrtc::MediaType::AUDIO));
 
   EXPECT_THAT(
       WaitUntil(

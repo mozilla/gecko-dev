@@ -403,14 +403,13 @@ bool IsSameRtpCodecIgnoringLevel(const Codec& codec,
   // Some video codecs are compatible with others (e.g. same profile but
   // different level). This comparison looks at the relevant parameters,
   // ignoring ones that are either irrelevant or unrecognized.
-  if (rtp_codec.kind == cricket::MediaType::MEDIA_TYPE_VIDEO &&
-      rtp_codec.IsMediaCodec()) {
+  if (rtp_codec.kind == webrtc::MediaType::VIDEO && rtp_codec.IsMediaCodec()) {
     return IsSameCodecSpecific(rtp_codec.name, params1, rtp_codec2.name,
                                params2);
   }
   // audio/RED should ignore the parameters which specify payload types so
   // can not be compared.
-  if (rtp_codec.kind == cricket::MediaType::MEDIA_TYPE_AUDIO &&
+  if (rtp_codec.kind == webrtc::MediaType::AUDIO &&
       rtp_codec.name == cricket::kRedCodecName) {
     return true;
   }

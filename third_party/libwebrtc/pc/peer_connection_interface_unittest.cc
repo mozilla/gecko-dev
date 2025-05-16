@@ -843,7 +843,7 @@ class PeerConnectionInterfaceBaseTest : public ::testing::Test {
   }
 
   rtc::scoped_refptr<RtpReceiverInterface> GetFirstReceiverOfType(
-      cricket::MediaType media_type) {
+      webrtc::MediaType media_type) {
     for (auto receiver : pc_->GetReceivers()) {
       if (receiver->media_type() == media_type) {
         return receiver;
@@ -1931,7 +1931,7 @@ TEST_P(PeerConnectionInterfaceTest, GetStatsForSpecificTrack) {
 // Test that we can get stats on a video track.
 TEST_P(PeerConnectionInterfaceTest, GetStatsForVideoTrack) {
   InitiateCall();
-  auto video_receiver = GetFirstReceiverOfType(cricket::MEDIA_TYPE_VIDEO);
+  auto video_receiver = GetFirstReceiverOfType(webrtc::MediaType::VIDEO);
   ASSERT_TRUE(video_receiver);
   EXPECT_TRUE(DoGetStats(video_receiver->track().get()));
 }
@@ -2457,8 +2457,8 @@ TEST_P(PeerConnectionInterfaceTest, CloseAndTestStreamsAndStates) {
     EXPECT_EQ(2u, pc_->GetTransceivers().size());
   }
 
-  auto audio_receiver = GetFirstReceiverOfType(cricket::MEDIA_TYPE_AUDIO);
-  auto video_receiver = GetFirstReceiverOfType(cricket::MEDIA_TYPE_VIDEO);
+  auto audio_receiver = GetFirstReceiverOfType(webrtc::MediaType::AUDIO);
+  auto video_receiver = GetFirstReceiverOfType(webrtc::MediaType::VIDEO);
   if (sdp_semantics_ == SdpSemantics::kPlanB_DEPRECATED) {
     ASSERT_TRUE(audio_receiver);
     ASSERT_TRUE(video_receiver);
@@ -2608,9 +2608,9 @@ TEST_P(PeerConnectionInterfaceTest, RejectMediaContent) {
   // First create and set a remote offer, then reject its video content in our
   // answer.
   CreateAndSetRemoteOffer(kSdpStringWithStream1PlanB);
-  auto audio_receiver = GetFirstReceiverOfType(cricket::MEDIA_TYPE_AUDIO);
+  auto audio_receiver = GetFirstReceiverOfType(webrtc::MediaType::AUDIO);
   ASSERT_TRUE(audio_receiver);
-  auto video_receiver = GetFirstReceiverOfType(cricket::MEDIA_TYPE_VIDEO);
+  auto video_receiver = GetFirstReceiverOfType(webrtc::MediaType::VIDEO);
   ASSERT_TRUE(video_receiver);
 
   rtc::scoped_refptr<MediaStreamTrackInterface> remote_audio =
@@ -3719,7 +3719,7 @@ TEST_P(PeerConnectionInterfaceTest,
   std::vector<rtc::scoped_refptr<RtpSenderInterface>> rtp_senders =
       pc_->GetSenders();
   ASSERT_EQ(rtp_senders.size(), 1u);
-  ASSERT_EQ(rtp_senders[0]->media_type(), cricket::MEDIA_TYPE_VIDEO);
+  ASSERT_EQ(rtp_senders[0]->media_type(), webrtc::MediaType::VIDEO);
   rtc::scoped_refptr<RtpSenderInterface> video_rtp_sender = rtp_senders[0];
   RtpParameters parameters = video_rtp_sender->GetParameters();
   ASSERT_NE(parameters.degradation_preference,

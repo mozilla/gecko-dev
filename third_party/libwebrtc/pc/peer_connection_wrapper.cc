@@ -277,7 +277,7 @@ bool PeerConnectionWrapper::ExchangeOfferAnswerWith(
 }
 
 rtc::scoped_refptr<RtpTransceiverInterface>
-PeerConnectionWrapper::AddTransceiver(cricket::MediaType media_type) {
+PeerConnectionWrapper::AddTransceiver(webrtc::MediaType media_type) {
   RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>> result =
       pc()->AddTransceiver(media_type);
   EXPECT_EQ(RTCErrorType::NONE, result.error().type());
@@ -285,7 +285,7 @@ PeerConnectionWrapper::AddTransceiver(cricket::MediaType media_type) {
 }
 
 rtc::scoped_refptr<RtpTransceiverInterface>
-PeerConnectionWrapper::AddTransceiver(cricket::MediaType media_type,
+PeerConnectionWrapper::AddTransceiver(webrtc::MediaType media_type,
                                       const RtpTransceiverInit& init) {
   RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>> result =
       pc()->AddTransceiver(media_type, init);

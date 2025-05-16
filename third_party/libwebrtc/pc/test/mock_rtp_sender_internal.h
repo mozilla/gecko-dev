@@ -48,7 +48,7 @@ class MockRtpSenderInternal : public RtpSenderInternal {
               dtls_transport,
               (),
               (const, override));
-  MOCK_METHOD(cricket::MediaType, media_type, (), (const, override));
+  MOCK_METHOD(webrtc::MediaType, media_type, (), (const, override));
   MOCK_METHOD(std::string, id, (), (const, override));
   MOCK_METHOD(std::vector<std::string>, stream_ids, (), (const, override));
   MOCK_METHOD(std::vector<RtpEncodingParameters>,

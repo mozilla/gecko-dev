@@ -115,7 +115,7 @@ TaskQueueBase* GetCurrentTaskQueueOrThread() {
 
 }  // namespace
 
-RtpTransceiver::RtpTransceiver(cricket::MediaType media_type,
+RtpTransceiver::RtpTransceiver(webrtc::MediaType media_type,
                                ConnectionContext* context,
                                cricket::CodecLookupHelper* codec_lookup_helper)
     : thread_(GetCurrentTaskQueueOrThread()),
@@ -123,8 +123,8 @@ RtpTransceiver::RtpTransceiver(cricket::MediaType media_type,
       media_type_(media_type),
       context_(context),
       codec_lookup_helper_(codec_lookup_helper) {
-  RTC_DCHECK(media_type == cricket::MEDIA_TYPE_AUDIO ||
-             media_type == cricket::MEDIA_TYPE_VIDEO);
+  RTC_DCHECK(media_type == webrtc::MediaType::AUDIO ||
+             media_type == webrtc::MediaType::VIDEO);
   RTC_DCHECK(context_);
   RTC_DCHECK(codec_lookup_helper_);
 }
@@ -146,11 +146,11 @@ RtpTransceiver::RtpTransceiver(
           std::move(header_extensions_to_negotiate)),
       on_negotiation_needed_(std::move(on_negotiation_needed)) {
   RTC_DCHECK(context_);
-  RTC_DCHECK(media_type_ == cricket::MEDIA_TYPE_AUDIO ||
-             media_type_ == cricket::MEDIA_TYPE_VIDEO);
+  RTC_DCHECK(media_type_ == webrtc::MediaType::AUDIO ||
+             media_type_ == webrtc::MediaType::VIDEO);
   RTC_DCHECK_EQ(sender->media_type(), receiver->media_type());
   sender->internal()->SetSendCodecs(
-      sender->media_type() == cricket::MEDIA_TYPE_VIDEO
+      sender->media_type() == webrtc::MediaType::VIDEO
           ? codec_vendor().video_send_codecs().codecs()
           : codec_vendor().audio_send_codecs().codecs());
   senders_.push_back(sender);
@@ -218,7 +218,7 @@ RTCError RtpTransceiver::CreateChannel(
   }
 
   std::unique_ptr<cricket::ChannelInterface> new_channel;
-  if (media_type() == cricket::MEDIA_TYPE_AUDIO) {
+  if (media_type() == webrtc::MediaType::AUDIO) {
     // TODO(bugs.webrtc.org/11992): CreateVideoChannel internally switches to
     // the worker thread. We shouldn't be using the `call_ptr_` hack here but
     // simply be on the worker thread and use `call_` (update upstream code).
@@ -254,7 +254,7 @@ RTCError RtpTransceiver::CreateChannel(
           context()->ssrc_generator());
     });
   } else {
-    RTC_DCHECK_EQ(cricket::MEDIA_TYPE_VIDEO, media_type());
+    RTC_DCHECK_EQ(webrtc::MediaType::VIDEO, media_type());
 
     // TODO(bugs.webrtc.org/11992): CreateVideoChannel internally switches to
     // the worker thread. We shouldn't be using the `call_ptr_` hack here but
@@ -405,7 +405,7 @@ void RtpTransceiver::AddSender(
   RTC_DCHECK(!absl::c_linear_search(senders_, sender));
 
   std::vector<cricket::Codec> send_codecs =
-      media_type() == cricket::MEDIA_TYPE_VIDEO
+      media_type() == webrtc::MediaType::VIDEO
           ? codec_vendor().video_send_codecs().codecs()
           : codec_vendor().audio_send_codecs().codecs();
   sender->internal()->SetSendCodecs(send_codecs);
@@ -472,7 +472,7 @@ rtc::scoped_refptr<RtpReceiverInternal> RtpTransceiver::receiver_internal()
   return rtc::scoped_refptr<RtpReceiverInternal>(receivers_[0]->internal());
 }
 
-cricket::MediaType RtpTransceiver::media_type() const {
+webrtc::MediaType RtpTransceiver::media_type() const {
   return media_type_;
 }
 
@@ -682,10 +682,10 @@ RTCError RtpTransceiver::UpdateCodecPreferencesCaches(
     const std::vector<RtpCodecCapability>& codecs) {
   // Get codec capabilities from media engine.
   std::vector<cricket::Codec> send_codecs, recv_codecs;
-  if (media_type_ == cricket::MEDIA_TYPE_AUDIO) {
+  if (media_type_ == webrtc::MediaType::AUDIO) {
     send_codecs = codec_vendor().audio_send_codecs().codecs();
     recv_codecs = codec_vendor().audio_recv_codecs().codecs();
-  } else if (media_type_ == cricket::MEDIA_TYPE_VIDEO) {
+  } else if (media_type_ == webrtc::MediaType::VIDEO) {
     send_codecs = codec_vendor().video_send_codecs().codecs();
     recv_codecs = codec_vendor().video_recv_codecs().codecs();
   }

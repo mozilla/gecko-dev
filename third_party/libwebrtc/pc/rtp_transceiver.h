@@ -92,7 +92,7 @@ class RtpTransceiver : public RtpTransceiverInterface {
   // channel set.
   // `media_type` specifies the type of RtpTransceiver (and, by transitivity,
   // the type of senders, receivers, and channel). Can either by audio or video.
-  RtpTransceiver(cricket::MediaType media_type,
+  RtpTransceiver(webrtc::MediaType media_type,
                  ConnectionContext* context,
                  cricket::CodecLookupHelper* codec_lookup_helper);
   // Construct a Unified Plan-style RtpTransceiver with the given sender and
@@ -264,7 +264,7 @@ class RtpTransceiver : public RtpTransceiverInterface {
   void StopTransceiverProcedure();
 
   // RtpTransceiverInterface implementation.
-  cricket::MediaType media_type() const override;
+  webrtc::MediaType media_type() const override;
   std::optional<std::string> mid() const override;
   rtc::scoped_refptr<RtpSenderInterface> sender() const override;
   rtc::scoped_refptr<RtpReceiverInterface> receiver() const override;
@@ -332,7 +332,7 @@ class RtpTransceiver : public RtpTransceiverInterface {
   // Enforce that this object is created, used and destroyed on one thread.
   TaskQueueBase* const thread_;
   const bool unified_plan_;
-  const cricket::MediaType media_type_;
+  const webrtc::MediaType media_type_;
   rtc::scoped_refptr<PendingTaskSafetyFlag> signaling_thread_safety_;
   std::vector<rtc::scoped_refptr<RtpSenderProxyWithInternal<RtpSenderInternal>>>
       senders_;
@@ -376,7 +376,7 @@ class RtpTransceiver : public RtpTransceiverInterface {
 BEGIN_PRIMARY_PROXY_MAP(RtpTransceiver)
 
 PROXY_PRIMARY_THREAD_DESTRUCTOR()
-BYPASS_PROXY_CONSTMETHOD0(cricket::MediaType, media_type)
+BYPASS_PROXY_CONSTMETHOD0(webrtc::MediaType, media_type)
 PROXY_CONSTMETHOD0(std::optional<std::string>, mid)
 PROXY_CONSTMETHOD0(rtc::scoped_refptr<RtpSenderInterface>, sender)
 PROXY_CONSTMETHOD0(rtc::scoped_refptr<RtpReceiverInterface>, receiver)

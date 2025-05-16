@@ -1260,7 +1260,7 @@ TEST_F(PeerConnectionSignalingUnifiedPlanTest,
   auto caller = CreatePeerConnection();
   EXPECT_FALSE(caller->observer()->has_negotiation_needed_event());
   auto transceiver =
-      caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, RtpTransceiverInit());
+      caller->AddTransceiver(webrtc::MediaType::AUDIO, RtpTransceiverInit());
   EXPECT_TRUE(caller->observer()->has_negotiation_needed_event());
   EXPECT_TRUE(caller->pc()->ShouldFireNegotiationNeededEvent(
       caller->observer()->latest_negotiation_needed_event()));
@@ -1271,7 +1271,7 @@ TEST_F(PeerConnectionSignalingUnifiedPlanTest,
   auto caller = CreatePeerConnection();
   EXPECT_FALSE(caller->observer()->has_negotiation_needed_event());
   auto transceiver =
-      caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, RtpTransceiverInit());
+      caller->AddTransceiver(webrtc::MediaType::AUDIO, RtpTransceiverInit());
   EXPECT_TRUE(caller->observer()->has_negotiation_needed_event());
 
   auto observer = rtc::make_ref_counted<MockCreateSessionDescriptionObserver>();
@@ -1302,7 +1302,7 @@ TEST_F(PeerConnectionSignalingUnifiedPlanTest,
 
   EXPECT_FALSE(caller->observer()->has_negotiation_needed_event());
   auto transceiver =
-      callee->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, RtpTransceiverInit());
+      callee->AddTransceiver(webrtc::MediaType::AUDIO, RtpTransceiverInit());
   EXPECT_TRUE(callee->observer()->has_negotiation_needed_event());
 
   // Change signaling state (to "have-remote-offer") by setting a remote offer.
@@ -1379,7 +1379,7 @@ TEST_F(PeerConnectionSignalingUnifiedPlanTest, LoopbackSdpIsPossible) {
   // and triggered surprising behavior.
   auto caller = CreatePeerConnection();
   auto transceiver =
-      caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, RtpTransceiverInit());
+      caller->AddTransceiver(webrtc::MediaType::AUDIO, RtpTransceiverInit());
 
   auto offer = caller->CreateOffer(RTCOfferAnswerOptions());
   std::string offer_sdp;

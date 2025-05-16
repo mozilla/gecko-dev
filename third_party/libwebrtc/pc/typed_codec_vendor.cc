@@ -24,6 +24,7 @@
 #include "media/base/codec_list.h"
 #include "media/base/media_constants.h"
 #include "media/base/media_engine.h"
+#include "rtc_base/logging.h"
 
 namespace cricket {
 
@@ -102,7 +103,7 @@ TypedCodecVendor::TypedCodecVendor(MediaEngineInterface* media_engine,
                                    const webrtc::FieldTrialsView& trials) {
   if (trials.IsEnabled("WebRTC-PayloadTypesInTransport")) {
     // Get the capabilities from the factory and compute the codecs.
-    if (type == MEDIA_TYPE_AUDIO) {
+    if (type == webrtc::MediaType::AUDIO) {
       if (is_sender) {
         if (media_engine->voice().encoder_factory()) {
           codecs_ = CodecList::CreateFromTrustedData(CollectAudioCodecs(
@@ -133,7 +134,7 @@ TypedCodecVendor::TypedCodecVendor(MediaEngineInterface* media_engine,
     }
   } else {
     // Use current mechanisms for getting codecs from media engine.
-    if (type == MEDIA_TYPE_AUDIO) {
+    if (type == webrtc::MediaType::AUDIO) {
       if (is_sender) {
         codecs_ = CodecList::CreateFromTrustedData(
             media_engine->voice().LegacySendCodecs());

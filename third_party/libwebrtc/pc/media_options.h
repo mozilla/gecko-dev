@@ -90,9 +90,13 @@ struct MediaDescriptionOptions {
 struct MediaSessionOptions {
   MediaSessionOptions() {}
 
-  bool has_audio() const { return HasMediaDescription(MEDIA_TYPE_AUDIO); }
-  bool has_video() const { return HasMediaDescription(MEDIA_TYPE_VIDEO); }
-  bool has_data() const { return HasMediaDescription(MEDIA_TYPE_DATA); }
+  bool has_audio() const {
+    return HasMediaDescription(webrtc::MediaType::AUDIO);
+  }
+  bool has_video() const {
+    return HasMediaDescription(webrtc::MediaType::VIDEO);
+  }
+  bool has_data() const { return HasMediaDescription(webrtc::MediaType::DATA); }
 
   bool HasMediaDescription(MediaType type) const;
 

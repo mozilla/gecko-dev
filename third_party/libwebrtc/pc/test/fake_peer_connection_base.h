@@ -116,12 +116,12 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
   }
 
   RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>> AddTransceiver(
-      cricket::MediaType media_type) override {
+      webrtc::MediaType media_type) override {
     return RTCError(RTCErrorType::UNSUPPORTED_OPERATION, "Not implemented");
   }
 
   RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>> AddTransceiver(
-      cricket::MediaType media_type,
+      webrtc::MediaType media_type,
       const RtpTransceiverInit& init) override {
     return RTCError(RTCErrorType::UNSUPPORTED_OPERATION, "Not implemented");
   }
@@ -382,7 +382,7 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
   }
 
   RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>> AddTransceiver(
-      cricket::MediaType media_type,
+      webrtc::MediaType media_type,
       rtc::scoped_refptr<MediaStreamTrackInterface> track,
       const RtpTransceiverInit& init,
       bool fire_callback = true) override {

@@ -25,7 +25,7 @@ class MockFrameEncryptor : public FrameEncryptorInterface {
  public:
   MOCK_METHOD(int,
               Encrypt,
-              (cricket::MediaType,
+              (webrtc::MediaType,
                uint32_t,
                rtc::ArrayView<const uint8_t>,
                rtc::ArrayView<const uint8_t>,
@@ -35,7 +35,7 @@ class MockFrameEncryptor : public FrameEncryptorInterface {
 
   MOCK_METHOD(size_t,
               GetMaxCiphertextByteSize,
-              (cricket::MediaType media_type, size_t frame_size),
+              (webrtc::MediaType media_type, size_t frame_size),
               (override));
 };
 

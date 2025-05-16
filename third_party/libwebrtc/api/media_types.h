@@ -23,7 +23,7 @@ enum class MediaType {
   DATA,
   UNSUPPORTED,
   ANY,
-  // Backwards compatibility values for cricket::MediaType users
+  // Backwards compatibility values for webrtc::MediaType users
   // TODO: https://issues.webrtc.org/42222911 - deprecate and remove
   MEDIA_TYPE_AUDIO = AUDIO,
   MEDIA_TYPE_VIDEO = VIDEO,
@@ -56,7 +56,7 @@ using webrtc::kMediaTypeData;
 using webrtc::kMediaTypeVideo;
 using webrtc::MediaTypeToString;
 
-// Backwards compatibility values for cricket::MediaType users
+// Backwards compatibility values for webrtc::MediaType users
 // TODO: https://issues.webrtc.org/42222911 - deprecate and remove
 constexpr MediaType MEDIA_TYPE_AUDIO = webrtc::MediaType::AUDIO;
 constexpr MediaType MEDIA_TYPE_VIDEO = webrtc::MediaType::VIDEO;

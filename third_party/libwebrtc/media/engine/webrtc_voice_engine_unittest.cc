@@ -1449,7 +1449,7 @@ TEST_P(WebRtcVoiceEngineTestFake,
 
   webrtc::RtpCodec opus_rtp_codec;
   opus_rtp_codec.name = "opus";
-  opus_rtp_codec.kind = cricket::MEDIA_TYPE_AUDIO;
+  opus_rtp_codec.kind = webrtc::MediaType::AUDIO;
   opus_rtp_codec.num_channels = 2;
   opus_rtp_codec.clock_rate = 48000;
   initial_params.encodings[0].codec = opus_rtp_codec;

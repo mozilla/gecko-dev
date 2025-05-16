@@ -458,8 +458,8 @@ RTCError ValidateBundledPayloadTypes(const SessionDescription& description) {
         continue;
       }
       const auto type = media_description->type();
-      if (type == cricket::MEDIA_TYPE_AUDIO ||
-          type == cricket::MEDIA_TYPE_VIDEO) {
+      if (type == webrtc::MediaType::AUDIO ||
+          type == webrtc::MediaType::VIDEO) {
         for (const auto& c : media_description->codecs()) {
           auto error = FindDuplicateCodecParameters(
               c.ToCodecParameters(), payload_to_codec_parameters);
@@ -591,8 +591,7 @@ RTCError ValidatePayloadTypes(const SessionDescription& description) {
       continue;
     }
     const auto type = media_description->type();
-    if (type == cricket::MEDIA_TYPE_AUDIO ||
-        type == cricket::MEDIA_TYPE_VIDEO) {
+    if (type == webrtc::MediaType::AUDIO || type == webrtc::MediaType::VIDEO) {
       for (const auto& codec : media_description->codecs()) {
         if (!PayloadType::IsValid(codec.id, media_description->rtcp_mux())) {
           LOG_AND_RETURN_ERROR(
@@ -719,15 +718,15 @@ RTCError DisableSimulcastInSender(
 
 // The SDP parser used to populate these values by default for the 'content
 // name' if an a=mid line was absent.
-absl::string_view GetDefaultMidForPlanB(cricket::MediaType media_type) {
+absl::string_view GetDefaultMidForPlanB(webrtc::MediaType media_type) {
   switch (media_type) {
-    case cricket::MEDIA_TYPE_AUDIO:
+    case webrtc::MediaType::AUDIO:
       return cricket::CN_AUDIO;
-    case cricket::MEDIA_TYPE_VIDEO:
+    case webrtc::MediaType::VIDEO:
       return cricket::CN_VIDEO;
-    case cricket::MEDIA_TYPE_DATA:
+    case webrtc::MediaType::DATA:
       return cricket::CN_DATA;
-    case cricket::MEDIA_TYPE_UNSUPPORTED:
+    case webrtc::MediaType::UNSUPPORTED:
       return "not supported";
     default:
       // Fall through to RTC_CHECK_NOTREACHED
@@ -745,13 +744,13 @@ void AddPlanBRtpSenderOptions(
     cricket::MediaDescriptionOptions* video_media_description_options,
     int num_sim_layers) {
   for (const auto& sender : senders) {
-    if (sender->media_type() == cricket::MEDIA_TYPE_AUDIO) {
+    if (sender->media_type() == webrtc::MediaType::AUDIO) {
       if (audio_media_description_options) {
         audio_media_description_options->AddAudioSender(
             sender->id(), sender->internal()->stream_ids());
       }
     } else {
-      RTC_DCHECK(sender->media_type() == cricket::MEDIA_TYPE_VIDEO);
+      RTC_DCHECK(sender->media_type() == webrtc::MediaType::VIDEO);
       if (video_media_description_options) {
         video_media_description_options->AddVideoSender(
             sender->id(), sender->internal()->stream_ids(), {},
@@ -1947,7 +1946,7 @@ RTCError SdpOfferAnswerHandler::ApplyLocalDescription(
         GetFirstAudioContent(local_description()->description());
     if (audio_content) {
       if (audio_content->rejected) {
-        RemoveSenders(cricket::MEDIA_TYPE_AUDIO);
+        RemoveSenders(webrtc::MediaType::AUDIO);
       } else {
         const MediaContentDescription* audio_desc =
             audio_content->media_description();
@@ -1959,7 +1958,7 @@ RTCError SdpOfferAnswerHandler::ApplyLocalDescription(
         GetFirstVideoContent(local_description()->description());
     if (video_content) {
       if (video_content->rejected) {
-        RemoveSenders(cricket::MEDIA_TYPE_VIDEO);
+        RemoveSenders(webrtc::MediaType::VIDEO);
       } else {
         const MediaContentDescription* video_desc =
             video_content->media_description();
@@ -2334,7 +2333,7 @@ void SdpOfferAnswerHandler::PlanBUpdateSendersAndReceivers(
   // and MediaStreams.
   if (audio_content) {
     if (audio_content->rejected) {
-      RemoveSenders(cricket::MEDIA_TYPE_AUDIO);
+      RemoveSenders(webrtc::MediaType::AUDIO);
     } else {
       bool default_audio_track_needed =
           !remote_peer_supports_msid_ &&
@@ -2349,7 +2348,7 @@ void SdpOfferAnswerHandler::PlanBUpdateSendersAndReceivers(
   // and MediaStreams.
   if (video_content) {
     if (video_content->rejected) {
-      RemoveSenders(cricket::MEDIA_TYPE_VIDEO);
+      RemoveSenders(webrtc::MediaType::VIDEO);
     } else {
       bool default_video_track_needed =
           !remote_peer_supports_msid_ &&
@@ -3784,8 +3783,8 @@ RTCError SdpOfferAnswerHandler::ValidateSessionDescription(
     // media section.
     for (const ContentInfo& content : sdesc->description()->contents()) {
       const MediaContentDescription& desc = *content.media_description();
-      if ((desc.type() == cricket::MEDIA_TYPE_AUDIO ||
-           desc.type() == cricket::MEDIA_TYPE_VIDEO) &&
+      if ((desc.type() == webrtc::MediaType::AUDIO ||
+           desc.type() == webrtc::MediaType::VIDEO) &&
           desc.streams().size() > 1u) {
         LOG_AND_RETURN_ERROR(
             RTCErrorType::INVALID_PARAMETER,
@@ -3832,13 +3831,13 @@ RTCError SdpOfferAnswerHandler::UpdateTransceiversAndDataChannels(
   const ContentInfos& new_contents = new_session.description()->contents();
   for (size_t i = 0; i < new_contents.size(); ++i) {
     const ContentInfo& new_content = new_contents[i];
-    cricket::MediaType media_type = new_content.media_description()->type();
+    webrtc::MediaType media_type = new_content.media_description()->type();
     mid_generator_.AddKnownId(new_content.mid());
     auto it = bundle_groups_by_mid.find(new_content.mid());
     const ContentGroup* bundle_group =
         it != bundle_groups_by_mid.end() ? it->second : nullptr;
-    if (media_type == cricket::MEDIA_TYPE_AUDIO ||
-        media_type == cricket::MEDIA_TYPE_VIDEO) {
+    if (media_type == webrtc::MediaType::AUDIO ||
+        media_type == webrtc::MediaType::VIDEO) {
       const ContentInfo* old_local_content = nullptr;
       if (old_local_description &&
           i < old_local_description->description()->contents().size()) {
@@ -3899,7 +3898,7 @@ RTCError SdpOfferAnswerHandler::UpdateTransceiversAndDataChannels(
       if (!error.ok()) {
         return error;
       }
-    } else if (media_type == cricket::MEDIA_TYPE_DATA) {
+    } else if (media_type == webrtc::MediaType::DATA) {
       const auto data_mid = pc_->sctp_mid();
       if (data_mid && new_content.mid() != data_mid.value()) {
         // Ignore all but the first data section.
@@ -3912,7 +3911,7 @@ RTCError SdpOfferAnswerHandler::UpdateTransceiversAndDataChannels(
       if (!error.ok()) {
         return error;
       }
-    } else if (media_type == cricket::MEDIA_TYPE_UNSUPPORTED) {
+    } else if (media_type == webrtc::MediaType::UNSUPPORTED) {
       RTC_LOG(LS_INFO) << "Ignoring unsupported media type";
     } else {
       LOG_AND_RETURN_ERROR(RTCErrorType::INTERNAL_ERROR,
@@ -3978,7 +3977,7 @@ SdpOfferAnswerHandler::AssociateTransceiver(
     // recvonly direction.
     if (!transceiver) {
       RTC_LOG(LS_INFO) << "Adding "
-                       << cricket::MediaTypeToString(media_desc->type())
+                       << webrtc::MediaTypeToString(media_desc->type())
                        << " transceiver for MID=" << content.mid()
                        << " at i=" << mline_index
                        << " in response to the remote description.";
@@ -4178,7 +4177,7 @@ void SdpOfferAnswerHandler::FillInMissingRemoteMids(
 
 rtc::scoped_refptr<RtpTransceiverProxyWithInternal<RtpTransceiver>>
 SdpOfferAnswerHandler::FindAvailableTransceiverToReceive(
-    cricket::MediaType media_type) const {
+    webrtc::MediaType media_type) const {
   RTC_DCHECK_RUN_ON(signaling_thread());
   RTC_DCHECK(IsUnifiedPlan());
   // From JSEP section 5.10 (Applying a Remote Description):
@@ -4309,7 +4308,7 @@ void SdpOfferAnswerHandler::GetOptionsForPlanBOffer(
     // Add audio/video/data m= sections to the end if needed.
     if (!audio_index && offer_new_audio_description) {
       cricket::MediaDescriptionOptions options(
-          cricket::MEDIA_TYPE_AUDIO, cricket::CN_AUDIO,
+          webrtc::MediaType::AUDIO, cricket::CN_AUDIO,
           RtpTransceiverDirectionFromSendRecv(send_audio, recv_audio), false);
       options.header_extensions =
           media_engine()->voice().GetRtpHeaderExtensions();
@@ -4318,7 +4317,7 @@ void SdpOfferAnswerHandler::GetOptionsForPlanBOffer(
     }
     if (!video_index && offer_new_video_description) {
       cricket::MediaDescriptionOptions options(
-          cricket::MEDIA_TYPE_VIDEO, cricket::CN_VIDEO,
+          webrtc::MediaType::VIDEO, cricket::CN_VIDEO,
           RtpTransceiverDirectionFromSendRecv(send_video, recv_video), false);
       options.header_extensions =
           media_engine()->video().GetRtpHeaderExtensions();
@@ -4381,11 +4380,11 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanOffer(
         (current_remote_content && current_remote_content->rejected);
     const std::string& mid =
         (local_content ? local_content->mid() : remote_content->mid());
-    cricket::MediaType media_type =
+    webrtc::MediaType media_type =
         (local_content ? local_content->media_description()->type()
                        : remote_content->media_description()->type());
-    if (media_type == cricket::MEDIA_TYPE_AUDIO ||
-        media_type == cricket::MEDIA_TYPE_VIDEO) {
+    if (media_type == webrtc::MediaType::AUDIO ||
+        media_type == webrtc::MediaType::VIDEO) {
       // A media section is considered eligible for recycling if it is marked as
       // rejected in either the current local or current remote description.
       auto transceiver = transceivers()->FindByMid(mid);
@@ -4420,14 +4419,14 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanOffer(
           transceiver->internal()->set_mline_index(i);
         }
       }
-    } else if (media_type == cricket::MEDIA_TYPE_UNSUPPORTED) {
+    } else if (media_type == webrtc::MediaType::UNSUPPORTED) {
       RTC_DCHECK(local_content->rejected);
       session_options->media_description_options.push_back(
           cricket::MediaDescriptionOptions(media_type, mid,
                                            RtpTransceiverDirection::kInactive,
                                            /*stopped=*/true));
     } else {
-      RTC_CHECK_EQ(cricket::MEDIA_TYPE_DATA, media_type);
+      RTC_CHECK_EQ(webrtc::MediaType::DATA, media_type);
       if (had_been_rejected) {
         session_options->media_description_options.push_back(
             GetMediaDescriptionOptionsForRejectedData(mid));
@@ -4485,7 +4484,7 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanOffer(
     for (size_t i = 0; i < session_options->media_description_options.size();
          i++) {
       auto media_description = session_options->media_description_options[i];
-      if (media_description.type == cricket::MEDIA_TYPE_DATA &&
+      if (media_description.type == webrtc::MediaType::DATA &&
           media_description.stopped) {
         session_options->media_description_options[i] =
             GetMediaDescriptionOptionsForActiveData(media_description.mid);
@@ -4594,9 +4593,9 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanAnswer(
   RTC_DCHECK(remote_description()->GetType() == SdpType::kOffer);
   for (const ContentInfo& content :
        remote_description()->description()->contents()) {
-    cricket::MediaType media_type = content.media_description()->type();
-    if (media_type == cricket::MEDIA_TYPE_AUDIO ||
-        media_type == cricket::MEDIA_TYPE_VIDEO) {
+    webrtc::MediaType media_type = content.media_description()->type();
+    if (media_type == webrtc::MediaType::AUDIO ||
+        media_type == webrtc::MediaType::VIDEO) {
       auto transceiver = transceivers()->FindByMid(content.mid());
       if (transceiver) {
         session_options->media_description_options.push_back(
@@ -4611,14 +4610,14 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanAnswer(
                                              RtpTransceiverDirection::kInactive,
                                              /*stopped=*/true));
       }
-    } else if (media_type == cricket::MEDIA_TYPE_UNSUPPORTED) {
+    } else if (media_type == webrtc::MediaType::UNSUPPORTED) {
       RTC_DCHECK(content.rejected);
       session_options->media_description_options.push_back(
           cricket::MediaDescriptionOptions(media_type, content.mid(),
                                            RtpTransceiverDirection::kInactive,
                                            /*stopped=*/true));
     } else {
-      RTC_CHECK_EQ(cricket::MEDIA_TYPE_DATA, media_type);
+      RTC_CHECK_EQ(webrtc::MediaType::DATA, media_type);
       // Reject all data sections if data channels are disabled.
       // Reject a data section if it has already been rejected.
       // Reject all data sections except for the first one.
@@ -4673,9 +4672,9 @@ RTCError SdpOfferAnswerHandler::HandleLegacyOfferOptions(
 
   if (options.offer_to_receive_audio == 0) {
     RemoveRecvDirectionFromReceivingTransceiversOfType(
-        cricket::MEDIA_TYPE_AUDIO);
+        webrtc::MediaType::AUDIO);
   } else if (options.offer_to_receive_audio == 1) {
-    AddUpToOneReceivingTransceiverOfType(cricket::MEDIA_TYPE_AUDIO);
+    AddUpToOneReceivingTransceiverOfType(webrtc::MediaType::AUDIO);
   } else if (options.offer_to_receive_audio > 1) {
     LOG_AND_RETURN_ERROR(RTCErrorType::UNSUPPORTED_PARAMETER,
                          "offer_to_receive_audio > 1 is not supported.");
@@ -4683,9 +4682,9 @@ RTCError SdpOfferAnswerHandler::HandleLegacyOfferOptions(
 
   if (options.offer_to_receive_video == 0) {
     RemoveRecvDirectionFromReceivingTransceiversOfType(
-        cricket::MEDIA_TYPE_VIDEO);
+        webrtc::MediaType::VIDEO);
   } else if (options.offer_to_receive_video == 1) {
-    AddUpToOneReceivingTransceiverOfType(cricket::MEDIA_TYPE_VIDEO);
+    AddUpToOneReceivingTransceiverOfType(webrtc::MediaType::VIDEO);
   } else if (options.offer_to_receive_video > 1) {
     LOG_AND_RETURN_ERROR(RTCErrorType::UNSUPPORTED_PARAMETER,
                          "offer_to_receive_video > 1 is not supported.");
@@ -4695,12 +4694,12 @@ RTCError SdpOfferAnswerHandler::HandleLegacyOfferOptions(
 }
 
 void SdpOfferAnswerHandler::RemoveRecvDirectionFromReceivingTransceiversOfType(
-    cricket::MediaType media_type) {
+    webrtc::MediaType media_type) {
   for (const auto& transceiver : GetReceivingTransceiversOfType(media_type)) {
     RtpTransceiverDirection new_direction =
         RtpTransceiverDirectionWithRecvSet(transceiver->direction(), false);
     if (new_direction != transceiver->direction()) {
-      RTC_LOG(LS_INFO) << "Changing " << cricket::MediaTypeToString(media_type)
+      RTC_LOG(LS_INFO) << "Changing " << webrtc::MediaTypeToString(media_type)
                        << " transceiver (MID="
                        << transceiver->mid().value_or("<not set>") << ") from "
                        << RtpTransceiverDirectionToString(
@@ -4714,11 +4713,11 @@ void SdpOfferAnswerHandler::RemoveRecvDirectionFromReceivingTransceiversOfType(
 }
 
 void SdpOfferAnswerHandler::AddUpToOneReceivingTransceiverOfType(
-    cricket::MediaType media_type) {
+    webrtc::MediaType media_type) {
   RTC_DCHECK_RUN_ON(signaling_thread());
   if (GetReceivingTransceiversOfType(media_type).empty()) {
     RTC_LOG(LS_INFO)
-        << "Adding one recvonly " << cricket::MediaTypeToString(media_type)
+        << "Adding one recvonly " << webrtc::MediaTypeToString(media_type)
         << " transceiver since CreateOffer specified offer_to_receive=1";
     RtpTransceiverInit init;
     init.direction = RtpTransceiverDirection::kRecvOnly;
@@ -4729,7 +4728,7 @@ void SdpOfferAnswerHandler::AddUpToOneReceivingTransceiverOfType(
 
 std::vector<rtc::scoped_refptr<RtpTransceiverProxyWithInternal<RtpTransceiver>>>
 SdpOfferAnswerHandler::GetReceivingTransceiversOfType(
-    cricket::MediaType media_type) {
+    webrtc::MediaType media_type) {
   std::vector<
       rtc::scoped_refptr<RtpTransceiverProxyWithInternal<RtpTransceiver>>>
       receiving_transceivers;
@@ -4774,7 +4773,7 @@ void SdpOfferAnswerHandler::RemoveRemoteStreamsIfEmpty(
   }
 }
 
-void SdpOfferAnswerHandler::RemoveSenders(cricket::MediaType media_type) {
+void SdpOfferAnswerHandler::RemoveSenders(webrtc::MediaType media_type) {
   RTC_DCHECK_RUN_ON(signaling_thread());
   UpdateLocalSenders(std::vector<cricket::StreamParams>(), media_type);
   UpdateRemoteSendersList(std::vector<cricket::StreamParams>(), false,
@@ -4783,7 +4782,7 @@ void SdpOfferAnswerHandler::RemoveSenders(cricket::MediaType media_type) {
 
 void SdpOfferAnswerHandler::UpdateLocalSenders(
     const std::vector<cricket::StreamParams>& streams,
-    cricket::MediaType media_type) {
+    webrtc::MediaType media_type) {
   TRACE_EVENT0("webrtc", "SdpOfferAnswerHandler::UpdateLocalSenders");
   RTC_DCHECK_RUN_ON(signaling_thread());
   std::vector<RtpSenderInfo>* current_senders =
@@ -4825,7 +4824,7 @@ void SdpOfferAnswerHandler::UpdateLocalSenders(
 void SdpOfferAnswerHandler::UpdateRemoteSendersList(
     const cricket::StreamParamsVec& streams,
     bool default_sender_needed,
-    cricket::MediaType media_type,
+    webrtc::MediaType media_type,
     StreamCollection* new_streams) {
   TRACE_EVENT0("webrtc", "SdpOfferAnswerHandler::UpdateRemoteSendersList");
   RTC_DCHECK_RUN_ON(signaling_thread());
@@ -4912,7 +4911,7 @@ void SdpOfferAnswerHandler::UpdateRemoteSendersList(
       remote_streams_->AddStream(default_stream);
       new_streams->AddStream(default_stream);
     }
-    std::string default_sender_id = (media_type == cricket::MEDIA_TYPE_AUDIO)
+    std::string default_sender_id = (media_type == webrtc::MediaType::AUDIO)
                                         ? kDefaultAudioSenderId
                                         : kDefaultVideoSenderId;
     const RtpSenderInfo* default_sender_info = rtp_manager()->FindSenderInfo(
@@ -5352,12 +5351,12 @@ void SdpOfferAnswerHandler::DestroyMediaChannels() {
   RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(0);
 
   for (const auto& transceiver : list) {
-    if (transceiver->media_type() == cricket::MEDIA_TYPE_VIDEO) {
+    if (transceiver->media_type() == webrtc::MediaType::VIDEO) {
       transceiver->internal()->ClearChannel();
     }
   }
   for (const auto& transceiver : list) {
-    if (transceiver->media_type() == cricket::MEDIA_TYPE_AUDIO) {
+    if (transceiver->media_type() == webrtc::MediaType::AUDIO) {
       transceiver->internal()->ClearChannel();
     }
   }
@@ -5379,12 +5378,12 @@ void SdpOfferAnswerHandler::GenerateMediaDescriptionOptions(
       if (*audio_index) {
         session_options->media_description_options.push_back(
             cricket::MediaDescriptionOptions(
-                cricket::MEDIA_TYPE_AUDIO, content.mid(),
+                webrtc::MediaType::AUDIO, content.mid(),
                 RtpTransceiverDirection::kInactive, /*stopped=*/true));
       } else {
         bool stopped = (audio_direction == RtpTransceiverDirection::kInactive);
         session_options->media_description_options.push_back(
-            cricket::MediaDescriptionOptions(cricket::MEDIA_TYPE_AUDIO,
+            cricket::MediaDescriptionOptions(webrtc::MediaType::AUDIO,
                                              content.mid(), audio_direction,
                                              stopped));
         *audio_index = session_options->media_description_options.size() - 1;
@@ -5396,12 +5395,12 @@ void SdpOfferAnswerHandler::GenerateMediaDescriptionOptions(
       if (*video_index) {
         session_options->media_description_options.push_back(
             cricket::MediaDescriptionOptions(
-                cricket::MEDIA_TYPE_VIDEO, content.mid(),
+                webrtc::MediaType::VIDEO, content.mid(),
                 RtpTransceiverDirection::kInactive, /*stopped=*/true));
       } else {
         bool stopped = (video_direction == RtpTransceiverDirection::kInactive);
         session_options->media_description_options.push_back(
-            cricket::MediaDescriptionOptions(cricket::MEDIA_TYPE_VIDEO,
+            cricket::MediaDescriptionOptions(webrtc::MediaType::VIDEO,
                                              content.mid(), video_direction,
                                              stopped));
         *video_index = session_options->media_description_options.size() - 1;
@@ -5410,7 +5409,7 @@ void SdpOfferAnswerHandler::GenerateMediaDescriptionOptions(
           media_engine()->video().GetRtpHeaderExtensions();
     } else if (IsUnsupportedContent(&content)) {
       session_options->media_description_options.push_back(
-          cricket::MediaDescriptionOptions(cricket::MEDIA_TYPE_UNSUPPORTED,
+          cricket::MediaDescriptionOptions(webrtc::MediaType::UNSUPPORTED,
                                            content.mid(),
                                            RtpTransceiverDirection::kInactive,
                                            /*stopped=*/true));
@@ -5435,7 +5434,7 @@ SdpOfferAnswerHandler::GetMediaDescriptionOptionsForActiveData(
   RTC_DCHECK_RUN_ON(signaling_thread());
   // Direction for data sections is meaningless, but legacy endpoints might
   // expect sendrecv.
-  cricket::MediaDescriptionOptions options(cricket::MEDIA_TYPE_DATA, mid,
+  cricket::MediaDescriptionOptions options(webrtc::MediaType::DATA, mid,
                                            RtpTransceiverDirection::kSendRecv,
                                            /*stopped=*/false);
   return options;
@@ -5445,7 +5444,7 @@ cricket::MediaDescriptionOptions
 SdpOfferAnswerHandler::GetMediaDescriptionOptionsForRejectedData(
     const std::string& mid) const {
   RTC_DCHECK_RUN_ON(signaling_thread());
-  cricket::MediaDescriptionOptions options(cricket::MEDIA_TYPE_DATA, mid,
+  cricket::MediaDescriptionOptions options(webrtc::MediaType::DATA, mid,
                                            RtpTransceiverDirection::kInactive,
                                            /*stopped=*/true);
   return options;
@@ -5498,15 +5497,15 @@ bool SdpOfferAnswerHandler::UpdatePayloadTypeDemuxingState(
       // Ignore transceivers that are not receiving.
       continue;
     }
-    const cricket::MediaType media_type =
+    const webrtc::MediaType media_type =
         content_info.media_description()->type();
-    if (media_type == cricket::MediaType::MEDIA_TYPE_AUDIO ||
-        media_type == cricket::MediaType::MEDIA_TYPE_VIDEO) {
-      if (media_type == cricket::MediaType::MEDIA_TYPE_AUDIO &&
+    if (media_type == webrtc::MediaType::AUDIO ||
+        media_type == webrtc::MediaType::VIDEO) {
+      if (media_type == webrtc::MediaType::AUDIO &&
           !mid_header_extension_missing_audio) {
         mid_header_extension_missing_audio =
             !ContentHasHeaderExtension(content_info, RtpExtension::kMidUri);
-      } else if (media_type == cricket::MEDIA_TYPE_VIDEO &&
+      } else if (media_type == webrtc::MediaType::VIDEO &&
                  !mid_header_extension_missing_video) {
         mid_header_extension_missing_video =
             !ContentHasHeaderExtension(content_info, RtpExtension::kMidUri);
@@ -5514,16 +5513,16 @@ bool SdpOfferAnswerHandler::UpdatePayloadTypeDemuxingState(
       const MediaContentDescription* media_desc =
           content_info.media_description();
       for (const cricket::Codec& codec : media_desc->codecs()) {
-        if (media_type == cricket::MediaType::MEDIA_TYPE_AUDIO) {
+        if (media_type == webrtc::MediaType::AUDIO) {
           if (payload_types->audio_payload_types.count(codec.id)) {
             // Two m= sections are using the same payload type, thus demuxing
             // by payload type is not possible.
-            if (media_type == cricket::MediaType::MEDIA_TYPE_AUDIO) {
+            if (media_type == webrtc::MediaType::AUDIO) {
               payload_types->pt_demuxing_possible_audio = false;
             }
           }
           payload_types->audio_payload_types.insert(codec.id);
-        } else if (media_type == cricket::MEDIA_TYPE_VIDEO) {
+        } else if (media_type == webrtc::MediaType::VIDEO) {
           if (payload_types->video_payload_types.count(codec.id)) {
             // Two m= sections are using the same payload type, thus demuxing
             // by payload type is not possible.
@@ -5565,9 +5564,9 @@ bool SdpOfferAnswerHandler::UpdatePayloadTypeDemuxingState(
       continue;
     }
 
-    const cricket::MediaType media_type = channel->media_type();
-    if (media_type != cricket::MediaType::MEDIA_TYPE_AUDIO &&
-        media_type != cricket::MediaType::MEDIA_TYPE_VIDEO) {
+    const webrtc::MediaType media_type = channel->media_type();
+    if (media_type != webrtc::MediaType::AUDIO &&
+        media_type != webrtc::MediaType::VIDEO) {
       continue;
     }
 
@@ -5581,7 +5580,7 @@ bool SdpOfferAnswerHandler::UpdatePayloadTypeDemuxingState(
     const ContentGroup* bundle_group =
         bundle_it != bundle_groups_by_mid.end() ? bundle_it->second : nullptr;
     bool pt_demux_enabled = RtpTransceiverDirectionHasRecv(local_direction);
-    if (media_type == cricket::MediaType::MEDIA_TYPE_AUDIO) {
+    if (media_type == webrtc::MediaType::AUDIO) {
       pt_demux_enabled &=
           !bundle_group ||
           (bundled_pt_demux_allowed_audio &&
@@ -5590,7 +5589,7 @@ bool SdpOfferAnswerHandler::UpdatePayloadTypeDemuxingState(
         pt_demuxing_has_been_used_audio_ = true;
       }
     } else {
-      RTC_DCHECK_EQ(media_type, cricket::MediaType::MEDIA_TYPE_VIDEO);
+      RTC_DCHECK_EQ(media_type, webrtc::MediaType::VIDEO);
       pt_demux_enabled &=
           !bundle_group ||
           (bundled_pt_demux_allowed_video &&

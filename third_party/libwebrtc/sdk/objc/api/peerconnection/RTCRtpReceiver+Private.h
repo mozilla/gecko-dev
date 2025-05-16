@@ -22,7 +22,7 @@ class RtpReceiverDelegateAdapter : public RtpReceiverObserverInterface {
  public:
   RtpReceiverDelegateAdapter(RTC_OBJC_TYPE(RTCRtpReceiver) * receiver);
 
-  void OnFirstPacketReceived(cricket::MediaType media_type) override;
+  void OnFirstPacketReceived(webrtc::MediaType media_type) override;
 
  private:
   __weak RTC_OBJC_TYPE(RTCRtpReceiver) * receiver_;
@@ -44,9 +44,9 @@ class RtpReceiverDelegateAdapter : public RtpReceiverObserverInterface {
     NS_DESIGNATED_INITIALIZER;
 
 + (RTCRtpMediaType)mediaTypeForNativeMediaType:
-    (cricket::MediaType)nativeMediaType;
+    (webrtc::MediaType)nativeMediaType;
 
-+ (cricket::MediaType)nativeMediaTypeForMediaType:(RTCRtpMediaType)mediaType;
++ (webrtc::MediaType)nativeMediaTypeForMediaType:(RTCRtpMediaType)mediaType;
 
 + (NSString *)stringForMediaType:(RTCRtpMediaType)mediaType;
 

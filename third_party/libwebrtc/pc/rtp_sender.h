@@ -367,8 +367,8 @@ class AudioRtpSender : public DtmfProviderInterface, public RtpSenderBase {
   // ObserverInterface implementation.
   void OnChanged() override;
 
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_AUDIO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::AUDIO;
   }
   std::string track_kind() const override {
     return MediaStreamTrackInterface::kAudioKind;
@@ -429,8 +429,8 @@ class VideoRtpSender : public RtpSenderBase {
   // ObserverInterface implementation
   void OnChanged() override;
 
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_VIDEO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::VIDEO;
   }
   std::string track_kind() const override {
     return MediaStreamTrackInterface::kVideoKind;

@@ -16,7 +16,6 @@
 #include <utility>
 
 #include "absl/algorithm/container.h"
-#include "api/create_peerconnection_factory.h"
 #include "api/enable_media_with_defaults.h"
 #include "api/field_trials.h"
 #include "api/field_trials_view.h"
@@ -105,7 +104,7 @@ TEST_F(PeerConnectionFieldTrialTest, EnableDependencyDescriptorAdvertised) {
       "WebRTC-DependencyDescriptorAdvertised/Enabled/"));
 
   WrapperPtr caller = CreatePeerConnection();
-  caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+  caller->AddTransceiver(webrtc::MediaType::VIDEO);
 
   auto offer = caller->CreateOffer();
   auto contents1 = offer->description()->contents();
@@ -113,7 +112,7 @@ TEST_F(PeerConnectionFieldTrialTest, EnableDependencyDescriptorAdvertised) {
 
   const MediaContentDescription* media_description1 =
       contents1[0].media_description();
-  EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, media_description1->type());
+  EXPECT_EQ(webrtc::MediaType::VIDEO, media_description1->type());
   const cricket::RtpHeaderExtensions& rtp_header_extensions1 =
       media_description1->rtp_header_extensions();
 
@@ -139,7 +138,7 @@ TEST_F(PeerConnectionFieldTrialTest, MAYBE_InjectDependencyDescriptor) {
 
   WrapperPtr caller = CreatePeerConnection();
   WrapperPtr callee = CreatePeerConnection();
-  caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+  caller->AddTransceiver(webrtc::MediaType::VIDEO);
 
   auto offer = caller->CreateOffer();
   cricket::ContentInfos& contents1 = offer->description()->contents();
@@ -147,7 +146,7 @@ TEST_F(PeerConnectionFieldTrialTest, MAYBE_InjectDependencyDescriptor) {
 
   MediaContentDescription* media_description1 =
       contents1[0].media_description();
-  EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, media_description1->type());
+  EXPECT_EQ(webrtc::MediaType::VIDEO, media_description1->type());
   cricket::RtpHeaderExtensions rtp_header_extensions1 =
       media_description1->rtp_header_extensions();
 
@@ -191,7 +190,7 @@ TEST_F(PeerConnectionFieldTrialTest, MAYBE_InjectDependencyDescriptor) {
 
   MediaContentDescription* media_description2 =
       contents2[0].media_description();
-  EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, media_description2->type());
+  EXPECT_EQ(webrtc::MediaType::VIDEO, media_description2->type());
   cricket::RtpHeaderExtensions rtp_header_extensions2 =
       media_description2->rtp_header_extensions();
 

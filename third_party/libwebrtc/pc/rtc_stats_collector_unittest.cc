@@ -56,6 +56,8 @@
 #include "api/video_codecs/scalability_mode.h"
 #include "call/call.h"
 #include "common_video/include/quality_limitation_reason.h"
+#include "json/reader.h"
+#include "json/value.h"
 #include "media/base/media_channel.h"
 #include "media/base/stream_params.h"
 #include "modules/rtp_rtcp/include/report_block_data.h"
@@ -87,7 +89,6 @@
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/string_encode.h"
-#include "rtc_base/strings/json.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/time_utils.h"
@@ -313,30 +314,30 @@ class FakeVideoTrackForStats : public MediaStreamTrack<VideoTrackInterface> {
 };
 
 rtc::scoped_refptr<MediaStreamTrackInterface> CreateFakeTrack(
-    cricket::MediaType media_type,
+    webrtc::MediaType media_type,
     const std::string& track_id,
     MediaStreamTrackInterface::TrackState track_state,
     bool create_fake_audio_processor = false) {
-  if (media_type == cricket::MEDIA_TYPE_AUDIO) {
+  if (media_type == webrtc::MediaType::AUDIO) {
     return FakeAudioTrackForStats::Create(track_id, track_state,
                                           create_fake_audio_processor);
   } else {
-    RTC_DCHECK_EQ(media_type, cricket::MEDIA_TYPE_VIDEO);
+    RTC_DCHECK_EQ(media_type, webrtc::MediaType::VIDEO);
     return FakeVideoTrackForStats::Create(track_id, track_state, nullptr);
   }
 }
 
 rtc::scoped_refptr<MockRtpSenderInternal> CreateMockSender(
-    cricket::MediaType media_type,
+    webrtc::MediaType media_type,
     rtc::scoped_refptr<MediaStreamTrackInterface> track,
     uint32_t ssrc,
     int attachment_id,
     std::vector<std::string> local_stream_ids) {
   RTC_DCHECK(!track ||
              (track->kind() == MediaStreamTrackInterface::kAudioKind &&
-              media_type == cricket::MEDIA_TYPE_AUDIO) ||
+              media_type == webrtc::MediaType::AUDIO) ||
              (track->kind() == MediaStreamTrackInterface::kVideoKind &&
-              media_type == cricket::MEDIA_TYPE_VIDEO));
+              media_type == webrtc::MediaType::VIDEO));
   auto sender = rtc::make_ref_counted<MockRtpSenderInternal>();
   EXPECT_CALL(*sender, track()).WillRepeatedly(Return(track));
   EXPECT_CALL(*sender, ssrc()).WillRepeatedly(Return(ssrc));
@@ -372,8 +373,8 @@ rtc::scoped_refptr<MockRtpReceiverInternal> CreateMockReceiver(
   EXPECT_CALL(*receiver, media_type())
       .WillRepeatedly(
           Return(track->kind() == MediaStreamTrackInterface::kAudioKind
-                     ? cricket::MEDIA_TYPE_AUDIO
-                     : cricket::MEDIA_TYPE_VIDEO));
+                     ? webrtc::MediaType::AUDIO
+                     : webrtc::MediaType::VIDEO));
   EXPECT_CALL(*receiver, GetParameters()).WillRepeatedly(Invoke([ssrc]() {
     RtpParameters params;
     params.encodings.push_back(RtpEncodingParameters());
@@ -426,7 +427,7 @@ class RTCStatsCollectorWrapper {
   }
 
   rtc::scoped_refptr<MockRtpSenderInternal> SetupLocalTrackAndSender(
-      cricket::MediaType media_type,
+      webrtc::MediaType media_type,
       const std::string& track_id,
       uint32_t ssrc,
       bool add_stream,
@@ -438,7 +439,7 @@ class RTCStatsCollectorWrapper {
     }
 
     rtc::scoped_refptr<MediaStreamTrackInterface> track;
-    if (media_type == cricket::MEDIA_TYPE_AUDIO) {
+    if (media_type == webrtc::MediaType::AUDIO) {
       track = CreateFakeTrack(media_type, track_id,
                               MediaStreamTrackInterface::kLive);
       if (add_stream) {
@@ -464,7 +465,7 @@ class RTCStatsCollectorWrapper {
   }
 
   rtc::scoped_refptr<MockRtpReceiverInternal> SetupRemoteTrackAndReceiver(
-      cricket::MediaType media_type,
+      webrtc::MediaType media_type,
       const std::string& track_id,
       const std::string& stream_id,
       uint32_t ssrc) {
@@ -473,7 +474,7 @@ class RTCStatsCollectorWrapper {
     pc_->mutable_remote_streams()->AddStream(remote_stream);
 
     rtc::scoped_refptr<MediaStreamTrackInterface> track;
-    if (media_type == cricket::MEDIA_TYPE_AUDIO) {
+    if (media_type == webrtc::MediaType::AUDIO) {
       track = CreateFakeTrack(media_type, track_id,
                               MediaStreamTrackInterface::kLive);
       remote_stream->AddTrack(rtc::scoped_refptr<AudioTrackInterface>(
@@ -529,7 +530,7 @@ class RTCStatsCollectorWrapper {
 
       voice_media_info.senders.push_back(voice_sender_info);
       rtc::scoped_refptr<MockRtpSenderInternal> rtp_sender = CreateMockSender(
-          cricket::MEDIA_TYPE_AUDIO,
+          webrtc::MediaType::AUDIO,
           rtc::scoped_refptr<MediaStreamTrackInterface>(local_audio_track),
           voice_sender_info.local_stats[0].ssrc,
           voice_sender_info.local_stats[0].ssrc + 10, local_stream_ids);
@@ -568,7 +569,7 @@ class RTCStatsCollectorWrapper {
       video_media_info.senders.push_back(video_sender_info);
       video_media_info.aggregated_senders.push_back(video_sender_info);
       rtc::scoped_refptr<MockRtpSenderInternal> rtp_sender = CreateMockSender(
-          cricket::MEDIA_TYPE_VIDEO,
+          webrtc::MediaType::VIDEO,
           rtc::scoped_refptr<MediaStreamTrackInterface>(local_video_track),
           video_sender_info.local_stats[0].ssrc,
           video_sender_info.local_stats[0].ssrc + 10, local_stream_ids);
@@ -724,10 +725,10 @@ class RTCStatsCollectorTest : public ::testing::Test {
     pc_->AddVideoChannel("VideoMid", "TransportName", video_media_info);
     // outbound-rtp's sender
     graph.sender = stats_->SetupLocalTrackAndSender(
-        cricket::MEDIA_TYPE_VIDEO, "LocalVideoTrackID", 3, false, 50);
+        webrtc::MediaType::VIDEO, "LocalVideoTrackID", 3, false, 50);
     // inbound-rtp's receiver
     graph.receiver = stats_->SetupRemoteTrackAndReceiver(
-        cricket::MEDIA_TYPE_VIDEO, "RemoteVideoTrackID", "RemoteStreamId", 4);
+        webrtc::MediaType::VIDEO, "RemoteVideoTrackID", "RemoteStreamId", 4);
     // peer-connection
     graph.peer_connection_id = "P";
     // media-source (kind: video)
@@ -825,10 +826,10 @@ class RTCStatsCollectorTest : public ::testing::Test {
     pc_->AddVoiceChannel("VoiceMid", "TransportName", media_info);
     // outbound-rtp's sender
     graph.sender = stats_->SetupLocalTrackAndSender(
-        cricket::MEDIA_TYPE_AUDIO, "LocalAudioTrackID", kLocalSsrc, false, 50);
+        webrtc::MediaType::AUDIO, "LocalAudioTrackID", kLocalSsrc, false, 50);
     // inbound-rtp's receiver
     graph.receiver = stats_->SetupRemoteTrackAndReceiver(
-        cricket::MEDIA_TYPE_AUDIO, "RemoteAudioTrackID", "RemoteStreamId",
+        webrtc::MediaType::AUDIO, "RemoteAudioTrackID", "RemoteStreamId",
         kRemoteSsrc);
     // peer-connection
     graph.peer_connection_id = "P";
@@ -1082,7 +1083,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCCodecStatsOnlyIfReferenced) {
 
   RtpCodecParameters inbound_audio_codec;
   inbound_audio_codec.payload_type = 1;
-  inbound_audio_codec.kind = cricket::MEDIA_TYPE_AUDIO;
+  inbound_audio_codec.kind = webrtc::MediaType::AUDIO;
   inbound_audio_codec.name = "opus";
   inbound_audio_codec.clock_rate = 1337;
   inbound_audio_codec.num_channels = 1;
@@ -1092,7 +1093,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCCodecStatsOnlyIfReferenced) {
 
   RtpCodecParameters outbound_audio_codec;
   outbound_audio_codec.payload_type = 2;
-  outbound_audio_codec.kind = cricket::MEDIA_TYPE_AUDIO;
+  outbound_audio_codec.kind = webrtc::MediaType::AUDIO;
   outbound_audio_codec.name = "isac";
   outbound_audio_codec.clock_rate = 1338;
   outbound_audio_codec.num_channels = 2;
@@ -1104,7 +1105,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCCodecStatsOnlyIfReferenced) {
 
   RtpCodecParameters inbound_video_codec;
   inbound_video_codec.payload_type = 3;
-  inbound_video_codec.kind = cricket::MEDIA_TYPE_VIDEO;
+  inbound_video_codec.kind = webrtc::MediaType::VIDEO;
   inbound_video_codec.name = "H264";
   inbound_video_codec.clock_rate = 1339;
   inbound_video_codec.parameters = {{"level-asymmetry-allowed", "1"},
@@ -1115,7 +1116,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCCodecStatsOnlyIfReferenced) {
 
   RtpCodecParameters outbound_video_codec;
   outbound_video_codec.payload_type = 4;
-  outbound_video_codec.kind = cricket::MEDIA_TYPE_VIDEO;
+  outbound_video_codec.kind = webrtc::MediaType::VIDEO;
   outbound_video_codec.name = "VP8";
   outbound_video_codec.clock_rate = 1340;
   video_media_info.send_codecs.insert(
@@ -1227,14 +1228,14 @@ TEST_F(RTCStatsCollectorTest, CodecStatsAreCollectedPerTransport) {
   // PT=10
   RtpCodecParameters outbound_codec_pt10;
   outbound_codec_pt10.payload_type = 10;
-  outbound_codec_pt10.kind = cricket::MEDIA_TYPE_VIDEO;
+  outbound_codec_pt10.kind = webrtc::MediaType::VIDEO;
   outbound_codec_pt10.name = "VP8";
   outbound_codec_pt10.clock_rate = 9000;
 
   // PT=11
   RtpCodecParameters outbound_codec_pt11;
   outbound_codec_pt11.payload_type = 11;
-  outbound_codec_pt11.kind = cricket::MEDIA_TYPE_VIDEO;
+  outbound_codec_pt11.kind = webrtc::MediaType::VIDEO;
   outbound_codec_pt11.name = "VP8";
   outbound_codec_pt11.clock_rate = 9000;
 
@@ -1292,7 +1293,7 @@ TEST_F(RTCStatsCollectorTest, SamePayloadTypeButDifferentFmtpLines) {
   // PT=111, useinbandfec=0
   RtpCodecParameters inbound_codec_pt111_nofec;
   inbound_codec_pt111_nofec.payload_type = 111;
-  inbound_codec_pt111_nofec.kind = cricket::MEDIA_TYPE_AUDIO;
+  inbound_codec_pt111_nofec.kind = webrtc::MediaType::AUDIO;
   inbound_codec_pt111_nofec.name = "opus";
   inbound_codec_pt111_nofec.clock_rate = 48000;
   inbound_codec_pt111_nofec.parameters.insert(
@@ -1301,7 +1302,7 @@ TEST_F(RTCStatsCollectorTest, SamePayloadTypeButDifferentFmtpLines) {
   // PT=111, useinbandfec=1
   RtpCodecParameters inbound_codec_pt111_fec;
   inbound_codec_pt111_fec.payload_type = 111;
-  inbound_codec_pt111_fec.kind = cricket::MEDIA_TYPE_AUDIO;
+  inbound_codec_pt111_fec.kind = webrtc::MediaType::AUDIO;
   inbound_codec_pt111_fec.name = "opus";
   inbound_codec_pt111_fec.clock_rate = 48000;
   inbound_codec_pt111_fec.parameters.insert(
@@ -1349,7 +1350,7 @@ TEST_F(RTCStatsCollectorTest, SamePayloadTypeButDifferentFmtpLines) {
   // PT=112, useinbandfec=1
   RtpCodecParameters inbound_codec_pt112_fec;
   inbound_codec_pt112_fec.payload_type = 112;
-  inbound_codec_pt112_fec.kind = cricket::MEDIA_TYPE_AUDIO;
+  inbound_codec_pt112_fec.kind = webrtc::MediaType::AUDIO;
   inbound_codec_pt112_fec.name = "opus";
   inbound_codec_pt112_fec.clock_rate = 48000;
   inbound_codec_pt112_fec.parameters.insert(
@@ -2199,7 +2200,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCInboundRtpStreamStats_Audio) {
 
   RtpCodecParameters codec_parameters;
   codec_parameters.payload_type = 42;
-  codec_parameters.kind = cricket::MEDIA_TYPE_AUDIO;
+  codec_parameters.kind = webrtc::MediaType::AUDIO;
   codec_parameters.name = "dummy";
   codec_parameters.clock_rate = 0;
   voice_media_info.receive_codecs.insert(
@@ -2208,7 +2209,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCInboundRtpStreamStats_Audio) {
   auto voice_media_channels =
       pc_->AddVoiceChannel("AudioMid", "TransportName", voice_media_info);
   stats_->SetupRemoteTrackAndReceiver(
-      cricket::MEDIA_TYPE_AUDIO, "RemoteAudioTrackID", "RemoteStreamId", 1);
+      webrtc::MediaType::AUDIO, "RemoteAudioTrackID", "RemoteStreamId", 1);
 
   // Needed for playoutId to be populated.
   pc_->SetAudioDeviceStats(AudioDeviceModule::Stats());
@@ -2289,7 +2290,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCInboundRtpStreamStats_Audio_PlayoutId) {
 
   pc_->AddVoiceChannel("AudioMid", "TransportName", voice_media_info);
   stats_->SetupRemoteTrackAndReceiver(
-      cricket::MEDIA_TYPE_AUDIO, "RemoteAudioTrackID", "RemoteStreamId", 1);
+      webrtc::MediaType::AUDIO, "RemoteAudioTrackID", "RemoteStreamId", 1);
   // Needed for playoutId to be populated.
   pc_->SetAudioDeviceStats(AudioDeviceModule::Stats());
 
@@ -2377,7 +2378,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCInboundRtpStreamStats_Video) {
 
   RtpCodecParameters codec_parameters;
   codec_parameters.payload_type = 42;
-  codec_parameters.kind = cricket::MEDIA_TYPE_VIDEO;
+  codec_parameters.kind = webrtc::MediaType::VIDEO;
   codec_parameters.name = "dummy";
   codec_parameters.clock_rate = 0;
   video_media_info.receive_codecs.insert(
@@ -2386,7 +2387,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCInboundRtpStreamStats_Video) {
   auto video_media_channels =
       pc_->AddVideoChannel("VideoMid", "TransportName", video_media_info);
   stats_->SetupRemoteTrackAndReceiver(
-      cricket::MEDIA_TYPE_VIDEO, "RemoteVideoTrackID", "RemoteStreamId", 1);
+      webrtc::MediaType::VIDEO, "RemoteVideoTrackID", "RemoteStreamId", 1);
 
   rtc::scoped_refptr<const RTCStatsReport> report = stats_->GetStatsReport();
 
@@ -2487,7 +2488,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCAudioPlayoutStats) {
 
   pc_->AddVoiceChannel("AudioMid", "TransportName", {});
   stats_->SetupRemoteTrackAndReceiver(
-      cricket::MEDIA_TYPE_AUDIO, "RemoteAudioTrackID", "RemoteStreamId", 1);
+      webrtc::MediaType::AUDIO, "RemoteAudioTrackID", "RemoteStreamId", 1);
 
   rtc::scoped_refptr<const RTCStatsReport> report = stats_->GetStatsReport();
   auto stats_of_track_type = report->GetStatsOfType<RTCAudioPlayoutStats>();
@@ -2532,7 +2533,7 @@ TEST_F(RTCStatsCollectorTest, CollectGoogTimingFrameInfo) {
 
   pc_->AddVideoChannel("Mid0", "Transport0", video_media_info);
   stats_->SetupRemoteTrackAndReceiver(
-      cricket::MEDIA_TYPE_VIDEO, "RemoteVideoTrackID", "RemoteStreamId", 1);
+      webrtc::MediaType::VIDEO, "RemoteVideoTrackID", "RemoteStreamId", 1);
 
   rtc::scoped_refptr<const RTCStatsReport> report = stats_->GetStatsReport();
   auto inbound_rtps = report->GetStatsOfType<RTCInboundRtpStreamStats>();
@@ -2561,14 +2562,14 @@ TEST_F(RTCStatsCollectorTest, CollectRTCOutboundRtpStreamStats_Audio) {
 
   RtpCodecParameters codec_parameters;
   codec_parameters.payload_type = 42;
-  codec_parameters.kind = cricket::MEDIA_TYPE_AUDIO;
+  codec_parameters.kind = webrtc::MediaType::AUDIO;
   codec_parameters.name = "dummy";
   codec_parameters.clock_rate = 0;
   voice_media_info.send_codecs.insert(
       std::make_pair(codec_parameters.payload_type, codec_parameters));
 
   pc_->AddVoiceChannel("AudioMid", "TransportName", voice_media_info);
-  stats_->SetupLocalTrackAndSender(cricket::MEDIA_TYPE_AUDIO,
+  stats_->SetupLocalTrackAndSender(webrtc::MediaType::AUDIO,
                                    "LocalAudioTrackID", 1, true,
                                    /*attachment_id=*/50);
 
@@ -2650,7 +2651,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCOutboundRtpStreamStats_Video) {
   video_media_info.aggregated_senders.push_back(video_media_info.senders[0]);
   RtpCodecParameters codec_parameters;
   codec_parameters.payload_type = 42;
-  codec_parameters.kind = cricket::MEDIA_TYPE_AUDIO;
+  codec_parameters.kind = webrtc::MediaType::AUDIO;
   codec_parameters.name = "dummy";
   codec_parameters.clock_rate = 0;
   video_media_info.send_codecs.insert(
@@ -2664,7 +2665,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCOutboundRtpStreamStats_Video) {
 
   auto video_media_channels =
       pc_->AddVideoChannel("VideoMid", "TransportName", video_media_info);
-  stats_->SetupLocalTrackAndSender(cricket::MEDIA_TYPE_VIDEO,
+  stats_->SetupLocalTrackAndSender(webrtc::MediaType::VIDEO,
                                    "LocalVideoTrackID", 1, true,
                                    /*attachment_id=*/50);
 
@@ -3009,7 +3010,7 @@ TEST_F(RTCStatsCollectorTest, CollectNoStreamRTCOutboundRtpStreamStats_Audio) {
 
   RtpCodecParameters codec_parameters;
   codec_parameters.payload_type = 42;
-  codec_parameters.kind = cricket::MEDIA_TYPE_AUDIO;
+  codec_parameters.kind = webrtc::MediaType::AUDIO;
   codec_parameters.name = "dummy";
   codec_parameters.clock_rate = 0;
   voice_media_info.send_codecs.insert(
@@ -3017,7 +3018,7 @@ TEST_F(RTCStatsCollectorTest, CollectNoStreamRTCOutboundRtpStreamStats_Audio) {
 
   // Emulates the case where AddTrack is used without an associated MediaStream
   pc_->AddVoiceChannel("AudioMid", "TransportName", voice_media_info);
-  stats_->SetupLocalTrackAndSender(cricket::MEDIA_TYPE_AUDIO,
+  stats_->SetupLocalTrackAndSender(webrtc::MediaType::AUDIO,
                                    "LocalAudioTrackID", 1, false,
                                    /*attachment_id=*/50);
 
@@ -3063,7 +3064,7 @@ TEST_F(RTCStatsCollectorTest, RTCAudioSourceStatsCollectedForSenderWithTrack) {
   voice_media_info.senders[0].apm_statistics.echo_return_loss_enhancement =
       52.0;
   pc_->AddVoiceChannel("AudioMid", "TransportName", voice_media_info);
-  stats_->SetupLocalTrackAndSender(cricket::MEDIA_TYPE_AUDIO,
+  stats_->SetupLocalTrackAndSender(webrtc::MediaType::AUDIO,
                                    "LocalAudioTrackID", kSsrc, false,
                                    kAttachmentId);
 
@@ -3107,7 +3108,7 @@ TEST_F(RTCStatsCollectorTest, RTCVideoSourceStatsCollectedForSenderWithTrack) {
   auto video_track = FakeVideoTrackForStats::Create(
       "LocalVideoTrackID", MediaStreamTrackInterface::kLive, video_source);
   rtc::scoped_refptr<MockRtpSenderInternal> sender = CreateMockSender(
-      cricket::MEDIA_TYPE_VIDEO, video_track, kSsrc, kAttachmentId, {});
+      webrtc::MediaType::VIDEO, video_track, kSsrc, kAttachmentId, {});
   EXPECT_CALL(*sender, Stop());
   EXPECT_CALL(*sender, SetMediaChannel(_));
   EXPECT_CALL(*sender, SetSendCodecs(_));
@@ -3152,7 +3153,7 @@ TEST_F(RTCStatsCollectorTest,
   auto video_track = FakeVideoTrackForStats::Create(
       "LocalVideoTrackID", MediaStreamTrackInterface::kLive, video_source);
   rtc::scoped_refptr<MockRtpSenderInternal> sender = CreateMockSender(
-      cricket::MEDIA_TYPE_VIDEO, video_track, kNoSsrc, kAttachmentId, {});
+      webrtc::MediaType::VIDEO, video_track, kNoSsrc, kAttachmentId, {});
   EXPECT_CALL(*sender, Stop());
   EXPECT_CALL(*sender, SetMediaChannel(_));
   EXPECT_CALL(*sender, SetSendCodecs(_));
@@ -3183,7 +3184,7 @@ TEST_F(RTCStatsCollectorTest,
       "LocalVideoTrackID", MediaStreamTrackInterface::kLive,
       /*source=*/nullptr);
   rtc::scoped_refptr<MockRtpSenderInternal> sender = CreateMockSender(
-      cricket::MEDIA_TYPE_VIDEO, video_track, kSsrc, kAttachmentId, {});
+      webrtc::MediaType::VIDEO, video_track, kSsrc, kAttachmentId, {});
   EXPECT_CALL(*sender, Stop());
   EXPECT_CALL(*sender, SetMediaChannel(_));
   EXPECT_CALL(*sender, SetSendCodecs(_));
@@ -3207,7 +3208,7 @@ TEST_F(RTCStatsCollectorTest,
   voice_media_info.senders[0].local_stats[0].ssrc = kSsrc;
   pc_->AddVoiceChannel("AudioMid", "TransportName", voice_media_info);
   rtc::scoped_refptr<MockRtpSenderInternal> sender = CreateMockSender(
-      cricket::MEDIA_TYPE_AUDIO, /*track=*/nullptr, kSsrc, kAttachmentId, {});
+      webrtc::MediaType::AUDIO, /*track=*/nullptr, kSsrc, kAttachmentId, {});
   EXPECT_CALL(*sender, Stop());
   EXPECT_CALL(*sender, SetMediaChannel(_));
   EXPECT_CALL(*sender, SetSendCodecs(_));
@@ -3217,21 +3218,21 @@ TEST_F(RTCStatsCollectorTest,
   EXPECT_FALSE(report->Get("SA42"));
 }
 
-// Parameterized tests on cricket::MediaType (audio or video).
+// Parameterized tests on webrtc::MediaType (audio or video).
 class RTCStatsCollectorTestWithParamKind
     : public RTCStatsCollectorTest,
-      public ::testing::WithParamInterface<cricket::MediaType> {
+      public ::testing::WithParamInterface<webrtc::MediaType> {
  public:
   RTCStatsCollectorTestWithParamKind() : media_type_(GetParam()) {
-    RTC_DCHECK(media_type_ == cricket::MEDIA_TYPE_AUDIO ||
-               media_type_ == cricket::MEDIA_TYPE_VIDEO);
+    RTC_DCHECK(media_type_ == webrtc::MediaType::AUDIO ||
+               media_type_ == webrtc::MediaType::VIDEO);
   }
 
   std::string MediaTypeCharStr() const {
     switch (media_type_) {
-      case cricket::MEDIA_TYPE_AUDIO:
+      case webrtc::MediaType::AUDIO:
         return "A";
-      case cricket::MEDIA_TYPE_VIDEO:
+      case webrtc::MediaType::VIDEO:
         return "V";
       default:
         RTC_DCHECK_NOTREACHED();
@@ -3241,9 +3242,9 @@ class RTCStatsCollectorTestWithParamKind
 
   std::string MediaTypeKind() const {
     switch (media_type_) {
-      case cricket::MEDIA_TYPE_AUDIO:
+      case webrtc::MediaType::AUDIO:
         return "audio";
-      case cricket::MEDIA_TYPE_VIDEO:
+      case webrtc::MediaType::VIDEO:
         return "video";
       default:
         RTC_DCHECK_NOTREACHED();
@@ -3258,7 +3259,7 @@ class RTCStatsCollectorTestWithParamKind
       const std::vector<ReportBlockData>& report_block_datas,
       std::optional<RtpCodecParameters> codec) {
     switch (media_type_) {
-      case cricket::MEDIA_TYPE_AUDIO: {
+      case webrtc::MediaType::AUDIO: {
         cricket::VoiceMediaInfo voice_media_info;
         for (const auto& report_block_data : report_block_datas) {
           cricket::VoiceSenderInfo sender;
@@ -3275,7 +3276,7 @@ class RTCStatsCollectorTestWithParamKind
         pc_->AddVoiceChannel("mid", transport_name, voice_media_info);
         return;
       }
-      case cricket::MEDIA_TYPE_VIDEO: {
+      case webrtc::MediaType::VIDEO: {
         cricket::VideoMediaInfo video_media_info;
         for (const auto& report_block_data : report_block_datas) {
           cricket::VideoSenderInfo sender;
@@ -3293,14 +3294,14 @@ class RTCStatsCollectorTestWithParamKind
         pc_->AddVideoChannel("mid", transport_name, video_media_info);
         return;
       }
-      case cricket::MEDIA_TYPE_DATA:
+      case webrtc::MediaType::DATA:
       default:
         RTC_DCHECK_NOTREACHED();
     }
   }
 
  protected:
-  cricket::MediaType media_type_;
+  webrtc::MediaType media_type_;
 };
 
 // Verifies RTCRemoteInboundRtpStreamStats members that don't require
@@ -3515,8 +3516,8 @@ TEST_P(RTCStatsCollectorTestWithParamKind,
 
 INSTANTIATE_TEST_SUITE_P(All,
                          RTCStatsCollectorTestWithParamKind,
-                         ::testing::Values(cricket::MEDIA_TYPE_AUDIO,    // "/0"
-                                           cricket::MEDIA_TYPE_VIDEO));  // "/1"
+                         ::testing::Values(webrtc::MediaType::AUDIO,    // "/0"
+                                           webrtc::MediaType::VIDEO));  // "/1"
 
 // Checks that no remote outbound stats are collected if not available in
 // `VoiceMediaInfo`.
@@ -3567,7 +3568,7 @@ TEST_F(RTCStatsCollectorTest,
   pc_->AddVideoChannel("VideoMid", "TransportName", video_media_info);
 
   rtc::scoped_refptr<MockRtpSenderInternal> sender = CreateMockSender(
-      cricket::MEDIA_TYPE_VIDEO, /*track=*/nullptr, kSsrc, kAttachmentId, {});
+      webrtc::MediaType::VIDEO, /*track=*/nullptr, kSsrc, kAttachmentId, {});
   EXPECT_CALL(*sender, Stop());
   EXPECT_CALL(*sender, SetMediaChannel(_));
   EXPECT_CALL(*sender, SetSendCodecs(_));
@@ -3586,7 +3587,7 @@ TEST_F(RTCStatsCollectorTest, CollectEchoReturnLossFromTrackAudioProcessor) {
 
   // Local audio track
   rtc::scoped_refptr<MediaStreamTrackInterface> local_audio_track =
-      CreateFakeTrack(cricket::MEDIA_TYPE_AUDIO, "LocalAudioTrackID",
+      CreateFakeTrack(webrtc::MediaType::AUDIO, "LocalAudioTrackID",
                       MediaStreamTrackInterface::kEnded,
                       /*create_fake_audio_processor=*/true);
   local_stream->AddTrack(rtc::scoped_refptr<AudioTrackInterface>(
@@ -3686,11 +3687,10 @@ TEST_F(RTCStatsCollectorTest, GetStatsWithNullReceiverSelector) {
 // Before SetLocalDescription() senders don't have an SSRC.
 // To simulate this case we create a mock sender with SSRC=0.
 TEST_F(RTCStatsCollectorTest, RtpIsMissingWhileSsrcIsZero) {
-  rtc::scoped_refptr<MediaStreamTrackInterface> track =
-      CreateFakeTrack(cricket::MEDIA_TYPE_AUDIO, "audioTrack",
-                      MediaStreamTrackInterface::kLive);
+  rtc::scoped_refptr<MediaStreamTrackInterface> track = CreateFakeTrack(
+      webrtc::MediaType::AUDIO, "audioTrack", MediaStreamTrackInterface::kLive);
   rtc::scoped_refptr<MockRtpSenderInternal> sender =
-      CreateMockSender(cricket::MEDIA_TYPE_AUDIO, track, 0, 49, {});
+      CreateMockSender(webrtc::MediaType::AUDIO, track, 0, 49, {});
   EXPECT_CALL(*sender, Stop());
   EXPECT_CALL(*sender, SetSendCodecs(_));
   pc_->AddSender(sender);
@@ -3704,11 +3704,10 @@ TEST_F(RTCStatsCollectorTest, RtpIsMissingWhileSsrcIsZero) {
 // We may also be in a case where the SSRC has been assigned but no
 // `voice_sender_info` stats exist yet.
 TEST_F(RTCStatsCollectorTest, DoNotCrashIfSsrcIsKnownButInfosAreStillMissing) {
-  rtc::scoped_refptr<MediaStreamTrackInterface> track =
-      CreateFakeTrack(cricket::MEDIA_TYPE_AUDIO, "audioTrack",
-                      MediaStreamTrackInterface::kLive);
+  rtc::scoped_refptr<MediaStreamTrackInterface> track = CreateFakeTrack(
+      webrtc::MediaType::AUDIO, "audioTrack", MediaStreamTrackInterface::kLive);
   rtc::scoped_refptr<MockRtpSenderInternal> sender =
-      CreateMockSender(cricket::MEDIA_TYPE_AUDIO, track, 4711, 49, {});
+      CreateMockSender(webrtc::MediaType::AUDIO, track, 4711, 49, {});
   EXPECT_CALL(*sender, Stop());
   EXPECT_CALL(*sender, SetSendCodecs(_));
   pc_->AddSender(sender);

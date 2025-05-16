@@ -13,23 +13,31 @@
 #include <stdio.h>
 
 #include <cstdint>
+#include <memory>
 #include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "api/audio/audio_processing_statistics.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/candidate.h"
 #include "api/data_channel_interface.h"
+#include "api/legacy_stats_types.h"
+#include "api/make_ref_counted.h"
+#include "api/media_stream_interface.h"
 #include "api/media_stream_track.h"
 #include "api/media_types.h"
+#include "api/peer_connection_interface.h"
 #include "api/rtp_sender_interface.h"
 #include "api/scoped_refptr.h"
 #include "call/call.h"
 #include "media/base/media_channel.h"
+#include "p2p/base/connection_info.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "pc/media_stream.h"
-#include "pc/rtp_receiver.h"
-#include "pc/rtp_sender.h"
+#include "pc/peer_connection_internal.h"
 #include "pc/sctp_data_channel.h"
 #include "pc/test/fake_peer_connection_for_stats.h"
 #include "pc/test/fake_video_track_source.h"
@@ -37,9 +45,11 @@
 #include "pc/test/mock_rtp_sender_internal.h"
 #include "pc/transport_stats.h"
 #include "pc/video_track.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/fake_ssl_identity.h"
 #include "rtc_base/message_digest.h"
 #include "rtc_base/net_helper.h"
+#include "rtc_base/network_constants.h"
 #include "rtc_base/null_socket_server.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/socket_address.h"
@@ -736,8 +746,8 @@ static rtc::scoped_refptr<MockRtpSenderInternal> CreateMockSender(
   EXPECT_CALL(*sender, media_type())
       .WillRepeatedly(
           Return(track->kind() == MediaStreamTrackInterface::kAudioKind
-                     ? cricket::MEDIA_TYPE_AUDIO
-                     : cricket::MEDIA_TYPE_VIDEO));
+                     ? webrtc::MediaType::AUDIO
+                     : webrtc::MediaType::VIDEO));
   EXPECT_CALL(*sender, SetMediaChannel(_)).Times(AtMost(2));
   EXPECT_CALL(*sender, SetTransceiverAsStopped()).Times(AtMost(1));
   EXPECT_CALL(*sender, Stop());
@@ -753,8 +763,8 @@ static rtc::scoped_refptr<MockRtpReceiverInternal> CreateMockReceiver(
   EXPECT_CALL(*receiver, media_type())
       .WillRepeatedly(
           Return(track->kind() == MediaStreamTrackInterface::kAudioKind
-                     ? cricket::MEDIA_TYPE_AUDIO
-                     : cricket::MEDIA_TYPE_VIDEO));
+                     ? webrtc::MediaType::AUDIO
+                     : webrtc::MediaType::VIDEO));
   EXPECT_CALL(*receiver, SetMediaChannel(_)).WillRepeatedly(Return());
   EXPECT_CALL(*receiver, Stop()).WillRepeatedly(Return());
   return receiver;

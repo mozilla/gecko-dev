@@ -79,7 +79,7 @@ class PeerConnectionTestWrapper
       const webrtc::DataChannelInit& init);
 
   std::optional<webrtc::RtpCodecCapability> FindFirstSendCodecWithName(
-      cricket::MediaType media_type,
+      webrtc::MediaType media_type,
       const std::string& name) const;
 
   void WaitForNegotiation();

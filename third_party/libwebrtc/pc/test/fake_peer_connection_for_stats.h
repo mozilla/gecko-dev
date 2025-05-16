@@ -336,12 +336,11 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
         std::move(voice_media_receive_channel), mid, kDefaultSrtpRequired,
         CryptoOptions(), context_->ssrc_generator(), transport_name);
     auto transceiver =
-        GetOrCreateFirstTransceiverOfType(cricket::MEDIA_TYPE_AUDIO)
-            ->internal();
+        GetOrCreateFirstTransceiverOfType(webrtc::MediaType::AUDIO)->internal();
     if (transceiver->channel()) {
       // This transceiver already has a channel, create a new one.
       transceiver =
-          CreateTransceiverOfType(cricket::MEDIA_TYPE_AUDIO)->internal();
+          CreateTransceiverOfType(webrtc::MediaType::AUDIO)->internal();
     }
     RTC_DCHECK(!transceiver->channel());
     transceiver->SetChannel(std::move(voice_channel),
@@ -370,12 +369,11 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
         std::move(video_media_receive_channel), mid, kDefaultSrtpRequired,
         CryptoOptions(), context_->ssrc_generator(), transport_name);
     auto transceiver =
-        GetOrCreateFirstTransceiverOfType(cricket::MEDIA_TYPE_VIDEO)
-            ->internal();
+        GetOrCreateFirstTransceiverOfType(webrtc::MediaType::VIDEO)->internal();
     if (transceiver->channel()) {
       // This transceiver already has a channel, create a new one.
       transceiver =
-          CreateTransceiverOfType(cricket::MEDIA_TYPE_VIDEO)->internal();
+          CreateTransceiverOfType(webrtc::MediaType::VIDEO)->internal();
     }
     RTC_DCHECK(!transceiver->channel());
     transceiver->SetChannel(std::move(video_channel),
@@ -551,7 +549,7 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
   }
 
   rtc::scoped_refptr<RtpTransceiverProxyWithInternal<RtpTransceiver>>
-  GetOrCreateFirstTransceiverOfType(cricket::MediaType media_type) {
+  GetOrCreateFirstTransceiverOfType(webrtc::MediaType media_type) {
     for (auto transceiver : transceivers_) {
       if (transceiver->internal()->media_type() == media_type) {
         return transceiver;
@@ -561,7 +559,7 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
   }
 
   rtc::scoped_refptr<RtpTransceiverProxyWithInternal<RtpTransceiver>>
-  CreateTransceiverOfType(cricket::MediaType media_type) {
+  CreateTransceiverOfType(webrtc::MediaType media_type) {
     auto transceiver = RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
         signaling_thread_,
         rtc::make_ref_counted<RtpTransceiver>(media_type, context_.get(),

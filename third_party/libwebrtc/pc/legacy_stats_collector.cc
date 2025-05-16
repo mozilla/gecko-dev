@@ -15,9 +15,11 @@
 
 #include <algorithm>
 #include <cmath>
-#include <list>
+#include <map>
+#include <memory>
 #include <optional>
 #include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -27,19 +29,24 @@
 #include "api/candidate.h"
 #include "api/data_channel_interface.h"
 #include "api/field_trials_view.h"
+#include "api/legacy_stats_types.h"
+#include "api/media_stream_interface.h"
 #include "api/media_types.h"
+#include "api/peer_connection_interface.h"
 #include "api/rtp_sender_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
 #include "api/video/video_content_type.h"
-#include "api/video/video_timing.h"
 #include "call/call.h"
 #include "media/base/media_channel.h"
+#include "p2p/base/connection_info.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
+#include "p2p/base/port.h"
 #include "pc/channel.h"
 #include "pc/channel_interface.h"
 #include "pc/data_channel_utils.h"
+#include "pc/peer_connection_internal.h"
 #include "pc/rtp_receiver.h"
 #include "pc/rtp_receiver_proxy.h"
 #include "pc/rtp_sender_proxy.h"
@@ -48,8 +55,10 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/network_constants.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/socket_address.h"
+#include "rtc_base/ssl_certificate.h"
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/thread.h"
@@ -1060,7 +1069,7 @@ void LegacyStatsCollector::ExtractBweInfo() {
   auto transceivers = pc_->GetTransceiversInternal();
   std::vector<cricket::VideoMediaSendChannelInterface*> video_media_channels;
   for (const auto& transceiver : transceivers) {
-    if (transceiver->media_type() != cricket::MEDIA_TYPE_VIDEO) {
+    if (transceiver->media_type() != webrtc::MediaType::VIDEO) {
       continue;
     }
     auto* video_channel = transceiver->internal()->channel();
@@ -1193,11 +1202,11 @@ class VideoChannelStatsGatherer final : public ChannelStatsGatherer {
 std::unique_ptr<ChannelStatsGatherer> CreateChannelStatsGatherer(
     cricket::ChannelInterface* channel) {
   RTC_DCHECK(channel);
-  if (channel->media_type() == cricket::MEDIA_TYPE_AUDIO) {
+  if (channel->media_type() == webrtc::MediaType::AUDIO) {
     return std::make_unique<VoiceChannelStatsGatherer>(
         channel->AsVoiceChannel());
   } else {
-    RTC_DCHECK_EQ(channel->media_type(), cricket::MEDIA_TYPE_VIDEO);
+    RTC_DCHECK_EQ(channel->media_type(), webrtc::MediaType::VIDEO);
     return std::make_unique<VideoChannelStatsGatherer>(
         channel->AsVideoChannel());
   }

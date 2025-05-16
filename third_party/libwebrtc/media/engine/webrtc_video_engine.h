@@ -170,7 +170,7 @@ class WebRtcVideoSendChannel : public MediaChannelUtil,
       webrtc::VideoBitrateAllocatorFactory* bitrate_allocator_factory);
   ~WebRtcVideoSendChannel() override;
 
-  MediaType media_type() const override { return MEDIA_TYPE_VIDEO; }
+  MediaType media_type() const override { return webrtc::MediaType::VIDEO; }
   // Type manipulations
   VideoMediaSendChannelInterface* AsVideoSendChannel() override { return this; }
   VoiceMediaSendChannelInterface* AsVoiceSendChannel() override {
@@ -574,7 +574,7 @@ class WebRtcVideoReceiveChannel : public MediaChannelUtil,
   ~WebRtcVideoReceiveChannel() override;
 
  public:
-  MediaType media_type() const override { return MEDIA_TYPE_VIDEO; }
+  MediaType media_type() const override { return webrtc::MediaType::VIDEO; }
   VideoMediaReceiveChannelInterface* AsVideoReceiveChannel() override {
     return this;
   }

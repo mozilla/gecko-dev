@@ -384,7 +384,7 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
   // Returns an RtpTransceiver, if available, that can be used to receive the
   // given media type according to JSEP rules.
   rtc::scoped_refptr<RtpTransceiverProxyWithInternal<RtpTransceiver>>
-  FindAvailableTransceiverToReceive(cricket::MediaType media_type) const;
+  FindAvailableTransceiverToReceive(webrtc::MediaType media_type) const;
 
   // Returns a MediaSessionOptions struct with options decided by `options`,
   // the local MediaStreams and DataChannels.
@@ -430,12 +430,12 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
   RTCError HandleLegacyOfferOptions(
       const PeerConnectionInterface::RTCOfferAnswerOptions& options);
   void RemoveRecvDirectionFromReceivingTransceiversOfType(
-      cricket::MediaType media_type) RTC_RUN_ON(signaling_thread());
-  void AddUpToOneReceivingTransceiverOfType(cricket::MediaType media_type);
+      webrtc::MediaType media_type) RTC_RUN_ON(signaling_thread());
+  void AddUpToOneReceivingTransceiverOfType(webrtc::MediaType media_type);
 
   std::vector<
       rtc::scoped_refptr<RtpTransceiverProxyWithInternal<RtpTransceiver>>>
-  GetReceivingTransceiversOfType(cricket::MediaType media_type)
+  GetReceivingTransceiversOfType(webrtc::MediaType media_type)
       RTC_RUN_ON(signaling_thread());
 
   // Runs the algorithm specified in
@@ -458,14 +458,14 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
 
   // Remove all local and remote senders of type `media_type`.
   // Called when a media type is rejected (m-line set to port 0).
-  void RemoveSenders(cricket::MediaType media_type);
+  void RemoveSenders(webrtc::MediaType media_type);
 
   // Loops through the vector of `streams` and finds added and removed
   // StreamParams since last time this method was called.
   // For each new or removed StreamParam, OnLocalSenderSeen or
   // OnLocalSenderRemoved is invoked.
   void UpdateLocalSenders(const std::vector<cricket::StreamParams>& streams,
-                          cricket::MediaType media_type);
+                          webrtc::MediaType media_type);
 
   // Makes sure a MediaStreamTrack is created for each StreamParam in `streams`,
   // and existing MediaStreamTracks are removed if there is no corresponding
@@ -476,7 +476,7 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
   void UpdateRemoteSendersList(
       const std::vector<cricket::StreamParams>& streams,
       bool default_track_needed,
-      cricket::MediaType media_type,
+      webrtc::MediaType media_type,
       StreamCollection* new_streams);
 
   // Enables media channels to allow sending of media.

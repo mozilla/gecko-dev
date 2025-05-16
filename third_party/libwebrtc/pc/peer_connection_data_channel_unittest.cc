@@ -210,10 +210,10 @@ TEST_P(PeerConnectionDataChannelTest, SctpContentAndTransportNameSetCorrectly) {
 
   auto offer = caller->CreateOffer();
   const auto& offer_contents = offer->description()->contents();
-  ASSERT_EQ(cricket::MEDIA_TYPE_AUDIO,
+  ASSERT_EQ(webrtc::MediaType::AUDIO,
             offer_contents[0].media_description()->type());
   auto audio_mid = offer_contents[0].mid();
-  ASSERT_EQ(cricket::MEDIA_TYPE_DATA,
+  ASSERT_EQ(webrtc::MediaType::DATA,
             offer_contents[2].media_description()->type());
   auto data_mid = offer_contents[2].mid();
 

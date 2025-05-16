@@ -461,6 +461,7 @@ rtc_library("typed_codec_vendor") {
     "../media:codec_list",
     "../media:media_constants",
     "../media:media_engine",
+    "../rtc_base:logging",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 }
@@ -2630,6 +2631,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "//third_party/abseil-cpp/absl/memory",
       "//third_party/abseil-cpp/absl/strings",
       "//third_party/abseil-cpp/absl/strings:string_view",
+      "//third_party/jsoncpp",
     ]
 
     # These deps are kept separately because they can't be automatically

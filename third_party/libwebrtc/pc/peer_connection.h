@@ -150,9 +150,9 @@ class PeerConnection : public PeerConnectionInternal,
       rtc::scoped_refptr<MediaStreamTrackInterface> track,
       const RtpTransceiverInit& init) override;
   RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>> AddTransceiver(
-      cricket::MediaType media_type) override;
+      webrtc::MediaType media_type) override;
   RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>> AddTransceiver(
-      cricket::MediaType media_type,
+      webrtc::MediaType media_type,
       const RtpTransceiverInit& init) override;
 
   rtc::scoped_refptr<RtpSenderInterface> CreateSender(
@@ -416,7 +416,7 @@ class PeerConnection : public PeerConnectionInternal,
   // Internal implementation for AddTransceiver family of methods. If
   // `fire_callback` is set, fires OnRenegotiationNeeded callback if successful.
   RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>> AddTransceiver(
-      cricket::MediaType media_type,
+      webrtc::MediaType media_type,
       rtc::scoped_refptr<MediaStreamTrackInterface> track,
       const RtpTransceiverInit& init,
       bool fire_callback = true) override;
@@ -587,7 +587,7 @@ class PeerConnection : public PeerConnectionInternal,
   static void ReportNegotiatedCiphers(
       bool dtls_enabled,
       const cricket::TransportStats& stats,
-      const std::set<cricket::MediaType>& media_types);
+      const std::set<webrtc::MediaType>& media_types);
   void ReportIceCandidateCollected(const Candidate& candidate)
       RTC_RUN_ON(signaling_thread());
 

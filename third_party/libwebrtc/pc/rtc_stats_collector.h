@@ -172,7 +172,7 @@ class RTCStatsCollector : public RefCountInterface {
   // then `mid` and `transport_name` will be null.
   struct RtpTransceiverStatsInfo {
     rtc::scoped_refptr<RtpTransceiver> transceiver;
-    cricket::MediaType media_type;
+    webrtc::MediaType media_type;
     std::optional<std::string> mid;
     std::optional<std::string> transport_name;
     TrackMediaInfoMap track_media_info_map;

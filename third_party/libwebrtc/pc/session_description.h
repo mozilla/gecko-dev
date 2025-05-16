@@ -59,7 +59,7 @@ class MediaContentDescription {
   MediaContentDescription() = default;
   virtual ~MediaContentDescription() = default;
 
-  virtual cricket::MediaType type() const = 0;
+  virtual webrtc::MediaType type() const = 0;
 
   // Try to cast this media description to an AudioContentDescription. Returns
   // nullptr if the cast fails.
@@ -298,7 +298,7 @@ class AudioContentDescription : public RtpMediaContentDescription {
     RTC_DCHECK(cricket::IsRtpProtocol(protocol));
     protocol_ = std::string(protocol);
   }
-  cricket::MediaType type() const override { return cricket::MEDIA_TYPE_AUDIO; }
+  webrtc::MediaType type() const override { return webrtc::MediaType::AUDIO; }
   AudioContentDescription* as_audio() override { return this; }
   const AudioContentDescription* as_audio() const override { return this; }
 
@@ -314,7 +314,7 @@ class VideoContentDescription : public RtpMediaContentDescription {
     RTC_DCHECK(cricket::IsRtpProtocol(protocol));
     protocol_ = std::string(protocol);
   }
-  cricket::MediaType type() const override { return cricket::MEDIA_TYPE_VIDEO; }
+  webrtc::MediaType type() const override { return webrtc::MediaType::VIDEO; }
   VideoContentDescription* as_video() override { return this; }
   const VideoContentDescription* as_video() const override { return this; }
 
@@ -332,7 +332,7 @@ class SctpDataContentDescription : public MediaContentDescription {
         use_sctpmap_(o.use_sctpmap_),
         port_(o.port_),
         max_message_size_(o.max_message_size_) {}
-  cricket::MediaType type() const override { return cricket::MEDIA_TYPE_DATA; }
+  webrtc::MediaType type() const override { return webrtc::MediaType::DATA; }
   SctpDataContentDescription* as_sctp() override { return this; }
   const SctpDataContentDescription* as_sctp() const override { return this; }
 
@@ -366,8 +366,8 @@ class UnsupportedContentDescription : public MediaContentDescription {
  public:
   explicit UnsupportedContentDescription(absl::string_view media_type)
       : media_type_(media_type) {}
-  cricket::MediaType type() const override {
-    return cricket::MEDIA_TYPE_UNSUPPORTED;
+  webrtc::MediaType type() const override {
+    return webrtc::MediaType::UNSUPPORTED;
   }
 
   UnsupportedContentDescription* as_unsupported() override { return this; }

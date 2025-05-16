@@ -139,7 +139,7 @@ class SdpOfferAnswerTest : public ::testing::Test {
   }
 
   std::optional<RtpCodecCapability> FindFirstSendCodecWithName(
-      cricket::MediaType media_type,
+      webrtc::MediaType media_type,
       const std::string& name) const {
     std::vector<RtpCodecCapability> codecs =
         pc_factory_->GetRtpSenderCapabilities(media_type).codecs;
@@ -163,7 +163,7 @@ TEST_F(SdpOfferAnswerTest, OnTrackReturnsProxiedObject) {
   auto caller = CreatePeerConnection();
   auto callee = CreatePeerConnection();
 
-  auto audio_transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto audio_transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
 
   ASSERT_TRUE(caller->ExchangeOfferAnswerWith(callee.get()));
   // Verify that caller->observer->OnTrack() has been called with a
@@ -607,7 +607,7 @@ TEST_F(SdpOfferAnswerTest, SimulcastAnswerWithNoRidsIsRejected) {
   rid2.rid = "2";
   init.send_encodings.push_back(rid2);
 
-  auto transceiver = pc->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+  auto transceiver = pc->AddTransceiver(webrtc::MediaType::VIDEO, init);
   EXPECT_TRUE(pc->CreateOfferAndSetAsLocal());
   auto mid = pc->pc()->local_description()->description()->contents()[0].mid();
 
@@ -659,11 +659,11 @@ TEST_F(SdpOfferAnswerTest, SimulcastOfferWithMixedCodec) {
       FieldTrials::CreateNoGlobal("WebRTC-MixedCodecSimulcast/Enabled/"));
 
   std::optional<RtpCodecCapability> vp8_codec_capability =
-      FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+      FindFirstSendCodecWithName(webrtc::MediaType::VIDEO,
                                  cricket::kVp8CodecName);
   ASSERT_TRUE(vp8_codec_capability);
   std::optional<RtpCodecCapability> vp9_codec_capability =
-      FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+      FindFirstSendCodecWithName(webrtc::MediaType::VIDEO,
                                  cricket::kVp9CodecName);
   ASSERT_TRUE(vp9_codec_capability);
 
@@ -677,7 +677,7 @@ TEST_F(SdpOfferAnswerTest, SimulcastOfferWithMixedCodec) {
   rid2.codec = *vp9_codec_capability;
   init.send_encodings.push_back(rid2);
 
-  auto transceiver = pc->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+  auto transceiver = pc->AddTransceiver(webrtc::MediaType::VIDEO, init);
   auto offer = pc->CreateOffer();
   auto& offer_contents = offer->description()->contents();
   auto send_codecs = offer_contents[0].media_description()->codecs();
@@ -1620,8 +1620,8 @@ TEST_F(SdpOfferAnswerTest, ReducedSizeNegotiated) {
   auto caller = CreatePeerConnection();
   auto callee = CreatePeerConnection();
 
-  auto audio_transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
-  auto video_transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+  auto audio_transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
+  auto video_transceiver = caller->AddTransceiver(webrtc::MediaType::VIDEO);
 
   ASSERT_TRUE(caller->ExchangeOfferAnswerWith(callee.get()));
   auto receivers = callee->pc()->GetReceivers();
@@ -1643,8 +1643,8 @@ TEST_F(SdpOfferAnswerTest, ReducedSizeNotNegotiated) {
   auto caller = CreatePeerConnection();
   auto callee = CreatePeerConnection();
 
-  auto audio_transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
-  auto video_transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+  auto audio_transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
+  auto video_transceiver = caller->AddTransceiver(webrtc::MediaType::VIDEO);
 
   auto offer = caller->CreateOfferAndSetAsLocal();
   ASSERT_NE(offer, nullptr);
@@ -1678,9 +1678,9 @@ TEST_F(SdpOfferAnswerTest, PayloadTypeMatchingWithSubsequentOfferAnswer) {
 
   // 1. Restrict codecs and set a local description and remote description.
   //    with a different payload type.
-  auto video_transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+  auto video_transceiver = caller->AddTransceiver(webrtc::MediaType::VIDEO);
   std::vector<RtpCodecCapability> codec_caps =
-      pc_factory_->GetRtpReceiverCapabilities(cricket::MEDIA_TYPE_VIDEO).codecs;
+      pc_factory_->GetRtpReceiverCapabilities(webrtc::MediaType::VIDEO).codecs;
   codec_caps.erase(std::remove_if(codec_caps.begin(), codec_caps.end(),
                                   [](const RtpCodecCapability& codec) {
                                     return !absl::EqualsIgnoreCase(codec.name,
@@ -1710,7 +1710,7 @@ TEST_F(SdpOfferAnswerTest, PayloadTypeMatchingWithSubsequentOfferAnswer) {
 
   // 3. sCP to reenable that codec. Payload type is not matched at this point.
   codec_caps =
-      pc_factory_->GetRtpReceiverCapabilities(cricket::MEDIA_TYPE_VIDEO).codecs;
+      pc_factory_->GetRtpReceiverCapabilities(webrtc::MediaType::VIDEO).codecs;
   codec_caps.erase(
       std::remove_if(codec_caps.begin(), codec_caps.end(),
                      [](const RtpCodecCapability& codec) {
@@ -1754,8 +1754,8 @@ TEST_F(SdpOfferAnswerMungingTest, DISABLED_ReportUMAMetricsWithNoMunging) {
   auto caller = CreatePeerConnection();
   auto callee = CreatePeerConnection();
 
-  caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
-  caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+  caller->AddTransceiver(webrtc::MediaType::AUDIO);
+  caller->AddTransceiver(webrtc::MediaType::VIDEO);
 
   // Negotiate, gather candidates, then exchange ICE candidates.
   ASSERT_TRUE(caller->ExchangeOfferAnswerWith(callee.get()));

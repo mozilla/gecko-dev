@@ -28,7 +28,7 @@ RtpReceiverDelegateAdapter::RtpReceiverDelegateAdapter(
 }
 
 void RtpReceiverDelegateAdapter::OnFirstPacketReceived(
-    cricket::MediaType media_type) {
+    webrtc::MediaType media_type) {
   RTCRtpMediaType packet_media_type =
       [RTC_OBJC_TYPE(RTCRtpReceiver) mediaTypeForNativeMediaType:media_type];
   RTC_OBJC_TYPE(RTCRtpReceiver) *receiver = receiver_;

@@ -188,10 +188,10 @@ class SignalingMessageReceiver {
 
 class MockRtpReceiverObserver : public RtpReceiverObserverInterface {
  public:
-  explicit MockRtpReceiverObserver(cricket::MediaType media_type)
+  explicit MockRtpReceiverObserver(webrtc::MediaType media_type)
       : expected_media_type_(media_type) {}
 
-  void OnFirstPacketReceived(cricket::MediaType media_type) override {
+  void OnFirstPacketReceived(webrtc::MediaType media_type) override {
     ASSERT_EQ(expected_media_type_, media_type);
     first_packet_received_ = true;
   }
@@ -202,15 +202,15 @@ class MockRtpReceiverObserver : public RtpReceiverObserverInterface {
 
  private:
   bool first_packet_received_ = false;
-  cricket::MediaType expected_media_type_;
+  webrtc::MediaType expected_media_type_;
 };
 
 class MockRtpSenderObserver : public RtpSenderObserverInterface {
  public:
-  explicit MockRtpSenderObserver(cricket::MediaType media_type)
+  explicit MockRtpSenderObserver(webrtc::MediaType media_type)
       : expected_media_type_(media_type) {}
 
-  void OnFirstPacketSent(cricket::MediaType media_type) override {
+  void OnFirstPacketSent(webrtc::MediaType media_type) override {
     ASSERT_EQ(expected_media_type_, media_type);
     first_packet_sent_ = true;
   }
@@ -221,7 +221,7 @@ class MockRtpSenderObserver : public RtpSenderObserverInterface {
 
  private:
   bool first_packet_sent_ = false;
-  cricket::MediaType expected_media_type_;
+  webrtc::MediaType expected_media_type_;
 };
 
 // Helper class that wraps a peer connection, observes it, and can accept
@@ -397,7 +397,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   }
 
   std::vector<rtc::scoped_refptr<RtpReceiverInterface>> GetReceiversOfType(
-      cricket::MediaType media_type) {
+      webrtc::MediaType media_type) {
     std::vector<rtc::scoped_refptr<RtpReceiverInterface>> receivers;
     for (const auto& receiver : pc()->GetReceivers()) {
       if (receiver->media_type() == media_type) {
@@ -408,7 +408,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   }
 
   rtc::scoped_refptr<RtpTransceiverInterface> GetFirstTransceiverOfType(
-      cricket::MediaType media_type) {
+      webrtc::MediaType media_type) {
     for (auto transceiver : pc()->GetTransceivers()) {
       if (transceiver->receiver()->media_type() == media_type) {
         return transceiver;
@@ -714,7 +714,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
 
   void NegotiateCorruptionDetectionHeader() {
     for (const auto& transceiver : pc()->GetTransceivers()) {
-      if (transceiver->media_type() != cricket::MEDIA_TYPE_VIDEO) {
+      if (transceiver->media_type() != webrtc::MediaType::VIDEO) {
         continue;
       }
       auto extensions = transceiver->GetHeaderExtensionsToNegotiate();
@@ -925,7 +925,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
       // Note - we don't check for direction here. This function is called
       // before direction is set, and in that case, we should not remove
       // the renderer.
-      if (transceiver->receiver()->media_type() == cricket::MEDIA_TYPE_VIDEO) {
+      if (transceiver->receiver()->media_type() == webrtc::MediaType::VIDEO) {
         active_renderers.insert(transceiver->receiver()->track()->id());
       }
     }
@@ -1027,7 +1027,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   void OnAddTrack(rtc::scoped_refptr<RtpReceiverInterface> receiver,
                   const std::vector<rtc::scoped_refptr<MediaStreamInterface>>&
                       streams) override {
-    if (receiver->media_type() == cricket::MEDIA_TYPE_VIDEO) {
+    if (receiver->media_type() == webrtc::MediaType::VIDEO) {
       rtc::scoped_refptr<VideoTrackInterface> video_track(
           static_cast<VideoTrackInterface*>(receiver->track().get()));
       ASSERT_TRUE(fake_video_renderers_.find(video_track->id()) ==
@@ -1038,7 +1038,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   }
   void OnRemoveTrack(
       rtc::scoped_refptr<RtpReceiverInterface> receiver) override {
-    if (receiver->media_type() == cricket::MEDIA_TYPE_VIDEO) {
+    if (receiver->media_type() == webrtc::MediaType::VIDEO) {
       auto it = fake_video_renderers_.find(receiver->track()->id());
       if (it != fake_video_renderers_.end()) {
         fake_video_renderers_.erase(it);

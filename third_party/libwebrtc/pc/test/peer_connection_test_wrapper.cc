@@ -247,7 +247,7 @@ PeerConnectionTestWrapper::CreateDataChannel(
 
 std::optional<webrtc::RtpCodecCapability>
 PeerConnectionTestWrapper::FindFirstSendCodecWithName(
-    cricket::MediaType media_type,
+    webrtc::MediaType media_type,
     const std::string& name) const {
   std::vector<webrtc::RtpCodecCapability> codecs =
       peer_connection_factory_->GetRtpSenderCapabilities(media_type).codecs;

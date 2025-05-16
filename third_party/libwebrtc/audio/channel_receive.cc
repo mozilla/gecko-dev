@@ -719,14 +719,14 @@ void ChannelReceive::ReceivePacket(const uint8_t* packet,
   rtc::Buffer decrypted_audio_payload;
   if (frame_decryptor_ != nullptr) {
     const size_t max_plaintext_size = frame_decryptor_->GetMaxPlaintextByteSize(
-        cricket::MEDIA_TYPE_AUDIO, payload_length);
+        webrtc::MediaType::AUDIO, payload_length);
     decrypted_audio_payload.SetSize(max_plaintext_size);
 
     const std::vector<uint32_t> csrcs(header.arrOfCSRCs,
                                       header.arrOfCSRCs + header.numCSRCs);
     const FrameDecryptorInterface::Result decrypt_result =
         frame_decryptor_->Decrypt(
-            cricket::MEDIA_TYPE_AUDIO, csrcs,
+            webrtc::MediaType::AUDIO, csrcs,
             /*additional_data=*/
             nullptr,
             rtc::ArrayView<const uint8_t>(payload, payload_data_length),
@@ -754,7 +754,7 @@ void ChannelReceive::ReceivePacket(const uint8_t* packet,
     char buf[1024];
     SimpleStringBuilder mime_type(buf);
     auto it = payload_type_map_.find(header.payloadType);
-    mime_type << cricket::MediaTypeToString(cricket::MEDIA_TYPE_AUDIO) << "/"
+    mime_type << webrtc::MediaTypeToString(webrtc::MediaType::AUDIO) << "/"
               << (it != payload_type_map_.end() ? it->second.name
                                                 : "x-unknown");
     frame_transformer_delegate_->Transform(payload_data, header, remote_ssrc_,

@@ -31,7 +31,7 @@ namespace webrtc {
 // implementation of BaseChannel.
 class MockChannelInterface : public cricket::ChannelInterface {
  public:
-  MOCK_METHOD(cricket::MediaType, media_type, (), (const, override));
+  MOCK_METHOD(webrtc::MediaType, media_type, (), (const, override));
   MOCK_METHOD(cricket::VideoChannel*, AsVideoChannel, (), (override));
   MOCK_METHOD(cricket::VoiceChannel*, AsVoiceChannel, (), (override));
   MOCK_METHOD(cricket::MediaSendChannelInterface*,

@@ -100,8 +100,8 @@ void MediaChannelParametersFromMediaDescription(
     const RtpHeaderExtensions& extensions,
     bool is_stream_active,
     MediaChannelParameters* params) {
-  RTC_DCHECK(desc->type() == MEDIA_TYPE_AUDIO ||
-             desc->type() == MEDIA_TYPE_VIDEO);
+  RTC_DCHECK(desc->type() == webrtc::MediaType::AUDIO ||
+             desc->type() == webrtc::MediaType::VIDEO);
   params->is_stream_active = is_stream_active;
   params->codecs = desc->codecs();
   // TODO(bugs.webrtc.org/11513): See if we really need

@@ -44,11 +44,11 @@ class MockPeerConnectionFactoryInterface
               (override));
   MOCK_METHOD(RtpCapabilities,
               GetRtpSenderCapabilities,
-              (cricket::MediaType),
+              (webrtc::MediaType),
               (const, override));
   MOCK_METHOD(RtpCapabilities,
               GetRtpReceiverCapabilities,
-              (cricket::MediaType),
+              (webrtc::MediaType),
               (const, override));
   MOCK_METHOD(rtc::scoped_refptr<MediaStreamInterface>,
               CreateLocalMediaStream,

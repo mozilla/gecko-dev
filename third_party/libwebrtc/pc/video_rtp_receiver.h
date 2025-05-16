@@ -68,8 +68,8 @@ class VideoRtpReceiver : public RtpReceiverInternal {
   std::vector<std::string> stream_ids() const override;
   std::vector<rtc::scoped_refptr<MediaStreamInterface>> streams()
       const override;
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_VIDEO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::VIDEO;
   }
 
   std::string id() const override { return id_; }

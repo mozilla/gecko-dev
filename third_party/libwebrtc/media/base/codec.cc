@@ -203,11 +203,11 @@ webrtc::RtpCodecParameters Codec::ToCodecParameters() const {
   switch (type) {
     case Type::kAudio: {
       codec_params.num_channels = static_cast<int>(channels);
-      codec_params.kind = MEDIA_TYPE_AUDIO;
+      codec_params.kind = webrtc::MediaType::AUDIO;
       break;
     }
     case Type::kVideo: {
-      codec_params.kind = MEDIA_TYPE_VIDEO;
+      codec_params.kind = webrtc::MediaType::VIDEO;
       break;
     }
   }

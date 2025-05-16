@@ -861,15 +861,14 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   AddTransceiver(rtc::scoped_refptr<MediaStreamTrackInterface> track,
                  const RtpTransceiverInit& init) = 0;
 
-  // Adds a transceiver with the given kind. Can either be MEDIA_TYPE_AUDIO or
-  // MEDIA_TYPE_VIDEO.
-  // Errors:
-  // - INVALID_PARAMETER: `media_type` is not MEDIA_TYPE_AUDIO or
-  //                      MEDIA_TYPE_VIDEO.
+  // Adds a transceiver with the given kind. Can either be
+  // webrtc::MediaType::AUDIO or webrtc::MediaType::VIDEO. Errors:
+  // - INVALID_PARAMETER: `media_type` is not webrtc::MediaType::AUDIO or
+  //                      webrtc::MediaType::VIDEO.
   virtual RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>
-  AddTransceiver(cricket::MediaType media_type) = 0;
+  AddTransceiver(webrtc::MediaType media_type) = 0;
   virtual RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>
-  AddTransceiver(cricket::MediaType media_type,
+  AddTransceiver(webrtc::MediaType media_type,
                  const RtpTransceiverInit& init) = 0;
 
   // Creates a sender without a track. Can be used for "early media"/"warmup"
@@ -1541,14 +1540,16 @@ class RTC_EXPORT PeerConnectionFactoryInterface
       PeerConnectionDependencies dependencies) = 0;
 
   // Returns the capabilities of an RTP sender of type `kind`.
-  // If for some reason you pass in MEDIA_TYPE_DATA, returns an empty structure.
+  // If for some reason you pass in webrtc::MediaType::DATA, returns an empty
+  // structure.
   virtual RtpCapabilities GetRtpSenderCapabilities(
-      cricket::MediaType kind) const = 0;
+      webrtc::MediaType kind) const = 0;
 
   // Returns the capabilities of an RTP receiver of type `kind`.
-  // If for some reason you pass in MEDIA_TYPE_DATA, returns an empty structure.
+  // If for some reason you pass in webrtc::MediaType::DATA, returns an empty
+  // structure.
   virtual RtpCapabilities GetRtpReceiverCapabilities(
-      cricket::MediaType kind) const = 0;
+      webrtc::MediaType kind) const = 0;
 
   virtual rtc::scoped_refptr<MediaStreamInterface> CreateLocalMediaStream(
       const std::string& stream_id) = 0;

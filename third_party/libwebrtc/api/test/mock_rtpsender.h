@@ -50,7 +50,7 @@ class MockRtpSender : public RtpSenderInterface {
               (),
               (const, override));
   MOCK_METHOD(uint32_t, ssrc, (), (const, override));
-  MOCK_METHOD(cricket::MediaType, media_type, (), (const, override));
+  MOCK_METHOD(webrtc::MediaType, media_type, (), (const, override));
   MOCK_METHOD(std::string, id, (), (const, override));
   MOCK_METHOD(std::vector<std::string>, stream_ids, (), (const, override));
   MOCK_METHOD(void, SetStreams, (const std::vector<std::string>&), (override));

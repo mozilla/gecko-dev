@@ -106,7 +106,7 @@ class TestPeer final : public StatsProvider {
                             std::string* error_out = nullptr);
 
   rtc::scoped_refptr<RtpTransceiverInterface> AddTransceiver(
-      cricket::MediaType media_type,
+      webrtc::MediaType media_type,
       const RtpTransceiverInit& init) {
     RTC_CHECK(wrapper_) << "TestPeer is already closed";
     return wrapper_->AddTransceiver(media_type, init);

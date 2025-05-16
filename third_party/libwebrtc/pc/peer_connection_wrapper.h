@@ -132,9 +132,9 @@ class PeerConnectionWrapper {
   // AddTransceiver method. They return the result of calling AddTransceiver
   // with the given arguments, DCHECKing if there is an error.
   rtc::scoped_refptr<RtpTransceiverInterface> AddTransceiver(
-      cricket::MediaType media_type);
+      webrtc::MediaType media_type);
   rtc::scoped_refptr<RtpTransceiverInterface> AddTransceiver(
-      cricket::MediaType media_type,
+      webrtc::MediaType media_type,
       const RtpTransceiverInit& init);
   rtc::scoped_refptr<RtpTransceiverInterface> AddTransceiver(
       rtc::scoped_refptr<MediaStreamTrackInterface> track);

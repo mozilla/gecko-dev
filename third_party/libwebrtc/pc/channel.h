@@ -412,8 +412,8 @@ class VoiceChannel : public BaseChannel {
     return receive_channel();
   }
 
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_AUDIO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::AUDIO;
   }
 
  private:
@@ -481,8 +481,8 @@ class VideoChannel : public BaseChannel {
     return receive_channel();
   }
 
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_VIDEO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::VIDEO;
   }
 
  private:

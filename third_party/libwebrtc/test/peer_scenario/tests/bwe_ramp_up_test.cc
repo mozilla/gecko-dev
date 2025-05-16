@@ -9,9 +9,18 @@
  */
 
 #include <atomic>
+#include <string>
 #include <utility>
 
+#include "api/jsep.h"
+#include "api/make_ref_counted.h"
+#include "api/media_types.h"
+#include "api/rtp_sender_interface.h"
+#include "api/rtp_transceiver_direction.h"
+#include "api/scoped_refptr.h"
+#include "api/stats/rtc_stats_report.h"
 #include "api/stats/rtcstats_objects.h"
+#include "api/test/network_emulation/network_emulation_interfaces.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
@@ -20,6 +29,7 @@
 #include "modules/rtp_rtcp/source/rtp_util.h"
 #include "pc/media_session.h"
 #include "pc/test/mock_peer_connection_observers.h"
+#include "rtc_base/checks.h"
 #include "test/create_frame_generator_capturer.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
@@ -209,7 +219,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 class MockRtpSenderObserver : public RtpSenderObserverInterface {
  public:
-  MOCK_METHOD(void, OnFirstPacketSent, (cricket::MediaType));
+  MOCK_METHOD(void, OnFirstPacketSent, (webrtc::MediaType));
 };
 
 // Test that caller and callee BWE rampup even if no media packets are sent.
@@ -222,7 +232,7 @@ TEST_P(BweRampupWithInitialProbeTest, BweRampUpBothDirectionsWithoutMedia) {
   PeerScenarioClient* caller = s.CreateClient({});
   PeerScenarioClient* callee = s.CreateClient({});
 
-  auto transceiver = caller->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+  auto transceiver = caller->pc()->AddTransceiver(webrtc::MediaType::VIDEO);
   ASSERT_TRUE(transceiver.error().ok());
 
   MockRtpSenderObserver observer;

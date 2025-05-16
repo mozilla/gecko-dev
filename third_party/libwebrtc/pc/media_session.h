@@ -197,12 +197,12 @@ bool IsVideoContent(const ContentInfo* content);
 bool IsDataContent(const ContentInfo* content);
 bool IsUnsupportedContent(const ContentInfo* content);
 const ContentInfo* GetFirstMediaContent(const cricket::ContentInfos& contents,
-                                        cricket::MediaType media_type);
+                                        webrtc::MediaType media_type);
 const ContentInfo* GetFirstAudioContent(const cricket::ContentInfos& contents);
 const ContentInfo* GetFirstVideoContent(const cricket::ContentInfos& contents);
 const ContentInfo* GetFirstDataContent(const cricket::ContentInfos& contents);
 const ContentInfo* GetFirstMediaContent(const SessionDescription* sdesc,
-                                        cricket::MediaType media_type);
+                                        webrtc::MediaType media_type);
 const ContentInfo* GetFirstAudioContent(const SessionDescription* sdesc);
 const ContentInfo* GetFirstVideoContent(const SessionDescription* sdesc);
 const ContentInfo* GetFirstDataContent(const SessionDescription* sdesc);
@@ -215,12 +215,12 @@ const SctpDataContentDescription* GetFirstSctpDataContentDescription(
 // Non-const versions of the above functions.
 // Useful when modifying an existing description.
 ContentInfo* GetFirstMediaContent(cricket::ContentInfos* contents,
-                                  cricket::MediaType media_type);
+                                  webrtc::MediaType media_type);
 ContentInfo* GetFirstAudioContent(cricket::ContentInfos* contents);
 ContentInfo* GetFirstVideoContent(cricket::ContentInfos* contents);
 ContentInfo* GetFirstDataContent(cricket::ContentInfos* contents);
 ContentInfo* GetFirstMediaContent(SessionDescription* sdesc,
-                                  cricket::MediaType media_type);
+                                  webrtc::MediaType media_type);
 ContentInfo* GetFirstAudioContent(SessionDescription* sdesc);
 ContentInfo* GetFirstVideoContent(SessionDescription* sdesc);
 ContentInfo* GetFirstDataContent(SessionDescription* sdesc);

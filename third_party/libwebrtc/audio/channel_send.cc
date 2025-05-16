@@ -412,7 +412,7 @@ int32_t ChannelSend::SendData(AudioFrameType frameType,
     // is transformed, the delegate will call SendRtpAudio to send it.
     char buf[1024];
     SimpleStringBuilder mime_type(buf);
-    mime_type << cricket::MediaTypeToString(cricket::MEDIA_TYPE_AUDIO) << "/"
+    mime_type << webrtc::MediaTypeToString(webrtc::MediaType::AUDIO) << "/"
               << encoder_format_.name;
     frame_transformer_delegate_->Transform(
         frameType, payloadType, rtp_timestamp + rtp_rtcp_->StartTimestamp(),
@@ -444,15 +444,15 @@ int32_t ChannelSend::SendRtpAudio(AudioFrameType frameType,
       // TODO(benwright@webrtc.org) - Allocate enough to always encrypt inline.
       // Allocate a buffer to hold the maximum possible encrypted payload.
       size_t max_ciphertext_size = frame_encryptor_->GetMaxCiphertextByteSize(
-          cricket::MEDIA_TYPE_AUDIO, payload.size());
+          webrtc::MediaType::AUDIO, payload.size());
       encrypted_audio_payload.SetSize(max_ciphertext_size);
 
       // Encrypt the audio payload into the buffer.
       size_t bytes_written = 0;
-      int encrypt_status = frame_encryptor_->Encrypt(
-          cricket::MEDIA_TYPE_AUDIO, rtp_rtcp_->SSRC(),
-          /*additional_data=*/nullptr, payload, encrypted_audio_payload,
-          &bytes_written);
+      int encrypt_status =
+          frame_encryptor_->Encrypt(webrtc::MediaType::AUDIO, rtp_rtcp_->SSRC(),
+                                    /*additional_data=*/nullptr, payload,
+                                    encrypted_audio_payload, &bytes_written);
       if (encrypt_status != 0) {
         RTC_DLOG(LS_ERROR)
             << "Channel::SendData() failed encrypt audio payload: "

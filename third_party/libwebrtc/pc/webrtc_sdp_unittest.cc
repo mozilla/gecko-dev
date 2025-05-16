@@ -3611,9 +3611,9 @@ TEST_F(WebRtcSdpTest, MediaContentOrderMaintainedRoundTrip) {
   JsepSessionDescription jdesc(kDummyType);
   const std::string media_content_sdps[3] = {kSdpAudioString, kSdpVideoString,
                                              kSdpSctpDataChannelString};
-  const cricket::MediaType media_types[3] = {cricket::MEDIA_TYPE_AUDIO,
-                                             cricket::MEDIA_TYPE_VIDEO,
-                                             cricket::MEDIA_TYPE_DATA};
+  const webrtc::MediaType media_types[3] = {webrtc::MediaType::AUDIO,
+                                            webrtc::MediaType::VIDEO,
+                                            webrtc::MediaType::DATA};
 
   // Verifies all 6 permutations.
   for (size_t i = 0; i < 6; ++i) {

@@ -259,7 +259,7 @@
 
 - (RTC_OBJC_TYPE(RTCRtpCapabilities) *)rtpSenderCapabilitiesForKind:
     (NSString *)kind {
-  cricket::MediaType mediaType = [[self class] mediaTypeForKind:kind];
+  webrtc::MediaType mediaType = [[self class] mediaTypeForKind:kind];
 
   webrtc::RtpCapabilities rtpCapabilities =
       _nativeFactory->GetRtpSenderCapabilities(mediaType);
@@ -269,7 +269,7 @@
 
 - (RTC_OBJC_TYPE(RTCRtpCapabilities) *)rtpReceiverCapabilitiesForKind:
     (NSString *)kind {
-  cricket::MediaType mediaType = [[self class] mediaTypeForKind:kind];
+  webrtc::MediaType mediaType = [[self class] mediaTypeForKind:kind];
 
   webrtc::RtpCapabilities rtpCapabilities =
       _nativeFactory->GetRtpReceiverCapabilities(mediaType);
@@ -431,14 +431,14 @@
 
 #pragma mark - Private
 
-+ (cricket::MediaType)mediaTypeForKind:(NSString *)kind {
++ (webrtc::MediaType)mediaTypeForKind:(NSString *)kind {
   if (kind == kRTCMediaStreamTrackKindAudio) {
-    return cricket::MEDIA_TYPE_AUDIO;
+    return webrtc::MediaType::AUDIO;
   } else if (kind == kRTCMediaStreamTrackKindVideo) {
-    return cricket::MEDIA_TYPE_VIDEO;
+    return webrtc::MediaType::VIDEO;
   } else {
     RTC_DCHECK_NOTREACHED();
-    return cricket::MEDIA_TYPE_UNSUPPORTED;
+    return webrtc::MediaType::UNSUPPORTED;
   }
 }
 

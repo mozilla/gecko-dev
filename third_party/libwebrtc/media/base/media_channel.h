@@ -187,7 +187,7 @@ class MediaSendChannelInterface {
   virtual VideoMediaSendChannelInterface* AsVideoSendChannel() = 0;
 
   virtual VoiceMediaSendChannelInterface* AsVoiceSendChannel() = 0;
-  virtual cricket::MediaType media_type() const = 0;
+  virtual webrtc::MediaType media_type() const = 0;
 
   // Gets the currently set codecs/payload types to be used for outgoing media.
   virtual std::optional<Codec> GetSendCodec() const = 0;
@@ -263,7 +263,7 @@ class MediaReceiveChannelInterface {
   virtual VideoMediaReceiveChannelInterface* AsVideoReceiveChannel() = 0;
   virtual VoiceMediaReceiveChannelInterface* AsVoiceReceiveChannel() = 0;
 
-  virtual cricket::MediaType media_type() const = 0;
+  virtual webrtc::MediaType media_type() const = 0;
   // Creates a new incoming media stream with SSRCs, CNAME as described
   // by sp. In the case of a sp without SSRCs, the unsignaled sp is cached
   // to be used later for unsignaled streams received.

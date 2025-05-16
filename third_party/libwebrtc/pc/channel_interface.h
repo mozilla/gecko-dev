@@ -49,7 +49,7 @@ struct MediaConfig;
 class ChannelInterface {
  public:
   virtual ~ChannelInterface() = default;
-  virtual cricket::MediaType media_type() const = 0;
+  virtual webrtc::MediaType media_type() const = 0;
 
   virtual VideoChannel* AsVideoChannel() = 0;
   virtual VoiceChannel* AsVoiceChannel() = 0;

@@ -261,7 +261,7 @@ class PeerConnectionEncodingsIntegrationTest : public ::testing::Test {
       absl::string_view codec_name) {
     std::vector<RtpCodecCapability> codecs =
         pc_wrapper->pc_factory()
-            ->GetRtpReceiverCapabilities(cricket::MEDIA_TYPE_VIDEO)
+            ->GetRtpReceiverCapabilities(webrtc::MediaType::VIDEO)
             .codecs;
     return std::find_if(codecs.begin(), codecs.end(),
                         [&codec_name](const RtpCodecCapability& codec) {
@@ -274,7 +274,7 @@ class PeerConnectionEncodingsIntegrationTest : public ::testing::Test {
       absl::string_view codec_name) {
     std::vector<RtpCodecCapability> codecs =
         pc_wrapper->pc_factory()
-            ->GetRtpReceiverCapabilities(cricket::MEDIA_TYPE_VIDEO)
+            ->GetRtpReceiverCapabilities(webrtc::MediaType::VIDEO)
             .codecs;
     codecs.erase(std::remove_if(codecs.begin(), codecs.end(),
                                 [&codec_name](const RtpCodecCapability& codec) {
@@ -590,7 +590,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   // codec preferences because we want the sender to think SVC is a possibility.
   std::vector<RtpCodecCapability> codecs =
       local_pc_wrapper->pc_factory()
-          ->GetRtpSenderCapabilities(cricket::MEDIA_TYPE_VIDEO)
+          ->GetRtpSenderCapabilities(webrtc::MediaType::VIDEO)
           .codecs;
   EXPECT_THAT(codecs[0].name, StrCaseEq("VP8"));
   // Attempt SVC (L3T3_KEY), which is not possible with VP8, but the sender does
@@ -1365,7 +1365,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::AUDIO);
   rtc::scoped_refptr<RtpTransceiverInterface> audio_transceiver =
       transceiver_or_error.MoveValue();
   RtpParameters parameters = audio_transceiver->sender()->GetParameters();
@@ -1377,7 +1377,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::VIDEO);
   rtc::scoped_refptr<RtpTransceiverInterface> video_transceiver =
       transceiver_or_error.MoveValue();
   RtpParameters parameters = video_transceiver->sender()->GetParameters();
@@ -1396,7 +1396,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<AudioTrackInterface> track = stream->GetAudioTracks()[0];
 
   std::optional<RtpCodecCapability> pcmu =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::AUDIO,
                                                    "pcmu");
   ASSERT_TRUE(pcmu);
 
@@ -1437,7 +1437,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<VideoTrackInterface> track = stream->GetVideoTracks()[0];
 
   std::optional<RtpCodecCapability> vp9 =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::VIDEO,
                                                    "vp9");
   ASSERT_TRUE(vp9);
 
@@ -1484,7 +1484,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<AudioTrackInterface> track = stream->GetAudioTracks()[0];
 
   std::optional<RtpCodecCapability> pcmu =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::AUDIO,
                                                    "pcmu");
 
   auto transceiver_or_error = local_pc_wrapper->pc()->AddTransceiver(track);
@@ -1521,7 +1521,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<AudioTrackInterface> track = stream->GetAudioTracks()[0];
 
   std::optional<RtpCodecCapability> pcmu =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::AUDIO,
                                                    "pcmu");
 
   auto transceiver_or_error = local_pc_wrapper->pc()->AddTransceiver(track);
@@ -1570,7 +1570,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<VideoTrackInterface> track = stream->GetVideoTracks()[0];
 
   std::optional<RtpCodecCapability> vp9 =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::VIDEO,
                                                    "vp9");
 
   auto transceiver_or_error = local_pc_wrapper->pc()->AddTransceiver(track);
@@ -1614,7 +1614,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<VideoTrackInterface> track = stream->GetVideoTracks()[0];
 
   std::optional<RtpCodecCapability> vp9 =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::VIDEO,
                                                    "vp9");
 
   auto transceiver_or_error = local_pc_wrapper->pc()->AddTransceiver(track);
@@ -1660,7 +1660,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
 
   RtpCodec dummy_codec;
-  dummy_codec.kind = cricket::MEDIA_TYPE_AUDIO;
+  dummy_codec.kind = webrtc::MediaType::AUDIO;
   dummy_codec.name = "FOOBAR";
   dummy_codec.clock_rate = 90000;
   dummy_codec.num_channels = 2;
@@ -1672,7 +1672,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   init.send_encodings.push_back(encoding_parameters);
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, init);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::AUDIO, init);
   EXPECT_FALSE(transceiver_or_error.ok());
   EXPECT_EQ(transceiver_or_error.error().type(),
             RTCErrorType::UNSUPPORTED_OPERATION);
@@ -1683,7 +1683,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
 
   RtpCodec dummy_codec;
-  dummy_codec.kind = cricket::MEDIA_TYPE_VIDEO;
+  dummy_codec.kind = webrtc::MediaType::VIDEO;
   dummy_codec.name = "FOOBAR";
   dummy_codec.clock_rate = 90000;
 
@@ -1694,7 +1694,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   init.send_encodings.push_back(encoding_parameters);
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::VIDEO, init);
   EXPECT_FALSE(transceiver_or_error.ok());
   EXPECT_EQ(transceiver_or_error.error().type(),
             RTCErrorType::UNSUPPORTED_OPERATION);
@@ -1705,13 +1705,13 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
 
   RtpCodec dummy_codec;
-  dummy_codec.kind = cricket::MEDIA_TYPE_AUDIO;
+  dummy_codec.kind = webrtc::MediaType::AUDIO;
   dummy_codec.name = "FOOBAR";
   dummy_codec.clock_rate = 90000;
   dummy_codec.num_channels = 2;
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::AUDIO);
   ASSERT_TRUE(transceiver_or_error.ok());
   rtc::scoped_refptr<RtpTransceiverInterface> audio_transceiver =
       transceiver_or_error.MoveValue();
@@ -1727,12 +1727,12 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
 
   RtpCodec dummy_codec;
-  dummy_codec.kind = cricket::MEDIA_TYPE_VIDEO;
+  dummy_codec.kind = webrtc::MediaType::VIDEO;
   dummy_codec.name = "FOOBAR";
   dummy_codec.clock_rate = 90000;
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::VIDEO);
   ASSERT_TRUE(transceiver_or_error.ok());
   rtc::scoped_refptr<RtpTransceiverInterface> video_transceiver =
       transceiver_or_error.MoveValue();
@@ -1750,13 +1750,13 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
   std::optional<RtpCodecCapability> opus =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::AUDIO,
                                                    "opus");
   ASSERT_TRUE(opus);
 
   std::vector<RtpCodecCapability> not_opus_codecs =
       local_pc_wrapper->pc_factory()
-          ->GetRtpSenderCapabilities(cricket::MEDIA_TYPE_AUDIO)
+          ->GetRtpSenderCapabilities(webrtc::MediaType::AUDIO)
           .codecs;
   not_opus_codecs.erase(
       std::remove_if(not_opus_codecs.begin(), not_opus_codecs.end(),
@@ -1766,7 +1766,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
       not_opus_codecs.end());
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::AUDIO);
   ASSERT_TRUE(transceiver_or_error.ok());
   rtc::scoped_refptr<RtpTransceiverInterface> audio_transceiver =
       transceiver_or_error.MoveValue();
@@ -1789,13 +1789,13 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
   std::optional<RtpCodecCapability> opus =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::AUDIO,
                                                    "opus");
   ASSERT_TRUE(opus);
 
   std::vector<RtpCodecCapability> not_opus_codecs =
       local_pc_wrapper->pc_factory()
-          ->GetRtpSenderCapabilities(cricket::MEDIA_TYPE_AUDIO)
+          ->GetRtpSenderCapabilities(webrtc::MediaType::AUDIO)
           .codecs;
   not_opus_codecs.erase(
       std::remove_if(not_opus_codecs.begin(), not_opus_codecs.end(),
@@ -1805,7 +1805,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
       not_opus_codecs.end());
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::AUDIO);
   ASSERT_TRUE(transceiver_or_error.ok());
   rtc::scoped_refptr<RtpTransceiverInterface> audio_transceiver =
       transceiver_or_error.MoveValue();
@@ -1856,7 +1856,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::VIDEO);
   ASSERT_TRUE(transceiver_or_error.ok());
   rtc::scoped_refptr<RtpTransceiverInterface> video_transceiver =
       transceiver_or_error.MoveValue();
@@ -1917,13 +1917,13 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
   std::optional<RtpCodecCapability> vp8 =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::VIDEO,
                                                    "vp8");
   ASSERT_TRUE(vp8);
 
   std::vector<RtpCodecCapability> not_vp8_codecs =
       local_pc_wrapper->pc_factory()
-          ->GetRtpSenderCapabilities(cricket::MEDIA_TYPE_VIDEO)
+          ->GetRtpSenderCapabilities(webrtc::MediaType::VIDEO)
           .codecs;
   not_vp8_codecs.erase(
       std::remove_if(not_vp8_codecs.begin(), not_vp8_codecs.end(),
@@ -1933,7 +1933,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
       not_vp8_codecs.end());
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::VIDEO);
   ASSERT_TRUE(transceiver_or_error.ok());
   rtc::scoped_refptr<RtpTransceiverInterface> video_transceiver =
       transceiver_or_error.MoveValue();
@@ -1956,13 +1956,13 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
   std::optional<RtpCodecCapability> vp8 =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::VIDEO,
                                                    "vp8");
   ASSERT_TRUE(vp8);
 
   std::vector<RtpCodecCapability> not_vp8_codecs =
       local_pc_wrapper->pc_factory()
-          ->GetRtpSenderCapabilities(cricket::MEDIA_TYPE_VIDEO)
+          ->GetRtpSenderCapabilities(webrtc::MediaType::VIDEO)
           .codecs;
   not_vp8_codecs.erase(
       std::remove_if(not_vp8_codecs.begin(), not_vp8_codecs.end(),
@@ -1972,7 +1972,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
       not_vp8_codecs.end());
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::VIDEO);
   ASSERT_TRUE(transceiver_or_error.ok());
   rtc::scoped_refptr<RtpTransceiverInterface> video_transceiver =
       transceiver_or_error.MoveValue();
@@ -2018,13 +2018,13 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
   std::optional<RtpCodecCapability> opus =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::AUDIO,
                                                    "opus");
   ASSERT_TRUE(opus);
 
   std::vector<RtpCodecCapability> not_opus_codecs =
       local_pc_wrapper->pc_factory()
-          ->GetRtpSenderCapabilities(cricket::MEDIA_TYPE_AUDIO)
+          ->GetRtpSenderCapabilities(webrtc::MediaType::AUDIO)
           .codecs;
   not_opus_codecs.erase(
       std::remove_if(not_opus_codecs.begin(), not_opus_codecs.end(),
@@ -2040,7 +2040,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   init.send_encodings.push_back(encoding_parameters);
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, init);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::AUDIO, init);
   ASSERT_TRUE(transceiver_or_error.ok());
   rtc::scoped_refptr<RtpTransceiverInterface> audio_transceiver =
       transceiver_or_error.MoveValue();
@@ -2067,16 +2067,16 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
 
   std::vector<RtpCodecCapability> send_codecs =
       local_pc_wrapper->pc_factory()
-          ->GetRtpSenderCapabilities(cricket::MEDIA_TYPE_AUDIO)
+          ->GetRtpSenderCapabilities(webrtc::MediaType::AUDIO)
           .codecs;
 
   std::optional<RtpCodecCapability> opus =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::AUDIO,
                                                    "opus");
   ASSERT_TRUE(opus);
 
   std::optional<RtpCodecCapability> red =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::AUDIO,
                                                    "red");
   ASSERT_TRUE(red);
 
@@ -2087,7 +2087,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   init.send_encodings.push_back(encoding_parameters);
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, init);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::AUDIO, init);
   ASSERT_TRUE(transceiver_or_error.ok());
   rtc::scoped_refptr<RtpTransceiverInterface> audio_transceiver =
       transceiver_or_error.MoveValue();
@@ -2122,7 +2122,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
 
   std::optional<RtpCodecCapability> vp8 =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::VIDEO,
                                                    "vp8");
   ASSERT_TRUE(vp8);
 
@@ -2134,7 +2134,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   init.send_encodings.push_back(encoding_parameters);
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::VIDEO, init);
   ASSERT_TRUE(transceiver_or_error.ok());
   rtc::scoped_refptr<RtpTransceiverInterface> video_transceiver =
       transceiver_or_error.MoveValue();
@@ -2152,13 +2152,13 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
   std::optional<RtpCodecCapability> vp8 =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::VIDEO,
                                                    "vp8");
   ASSERT_TRUE(vp8);
 
   std::vector<RtpCodecCapability> not_vp8_codecs =
       local_pc_wrapper->pc_factory()
-          ->GetRtpSenderCapabilities(cricket::MEDIA_TYPE_VIDEO)
+          ->GetRtpSenderCapabilities(webrtc::MediaType::VIDEO)
           .codecs;
   not_vp8_codecs.erase(
       std::remove_if(not_vp8_codecs.begin(), not_vp8_codecs.end(),
@@ -2179,7 +2179,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   init.send_encodings.push_back(encoding_parameters);
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::VIDEO, init);
   ASSERT_TRUE(transceiver_or_error.ok());
   rtc::scoped_refptr<RtpTransceiverInterface> video_transceiver =
       transceiver_or_error.MoveValue();
@@ -2210,11 +2210,11 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
   std::optional<RtpCodecCapability> vp8 =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::VIDEO,
                                                    "vp8");
   ASSERT_TRUE(vp8);
   std::optional<RtpCodecCapability> vp9 =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::VIDEO,
                                                    "vp9");
   ASSERT_TRUE(vp9);
 
@@ -2231,7 +2231,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   init.send_encodings.push_back(encoding_parameters);
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::VIDEO, init);
   ASSERT_FALSE(transceiver_or_error.ok());
   EXPECT_EQ(transceiver_or_error.error().type(),
             RTCErrorType::UNSUPPORTED_OPERATION);
@@ -2248,11 +2248,11 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
   std::optional<RtpCodecCapability> vp8 =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::VIDEO,
                                                    "vp8");
   ASSERT_TRUE(vp8);
   std::optional<RtpCodecCapability> vp9 =
-      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+      local_pc_wrapper->FindFirstSendCodecWithName(webrtc::MediaType::VIDEO,
                                                    "vp9");
   ASSERT_TRUE(vp9);
 
@@ -2269,7 +2269,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   init.send_encodings.push_back(encoding_parameters);
 
   auto transceiver_or_error =
-      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+      local_pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::VIDEO, init);
   ASSERT_TRUE(transceiver_or_error.ok());
 }
 
@@ -2285,7 +2285,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest, ScaleToParameterChecking) {
   encoding.scale_resolution_down_to = {.width = 1280, .height = 720};
   init.send_encodings.push_back(encoding);
   auto transceiver_or_error =
-      pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+      pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::VIDEO, init);
   EXPECT_FALSE(transceiver_or_error.ok());
   EXPECT_EQ(transceiver_or_error.error().type(),
             RTCErrorType::UNSUPPORTED_OPERATION);
@@ -2295,7 +2295,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest, ScaleToParameterChecking) {
                                                      .height = 0};
   init.send_encodings[1].scale_resolution_down_to = {.width = 0, .height = 720};
   transceiver_or_error =
-      pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+      pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::VIDEO, init);
   EXPECT_FALSE(transceiver_or_error.ok());
   EXPECT_EQ(transceiver_or_error.error().type(),
             RTCErrorType::UNSUPPORTED_OPERATION);
@@ -2309,7 +2309,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest, ScaleToParameterChecking) {
                                                      .height = 720};
   init.send_encodings[1].scale_resolution_down_by = 2.0;
   transceiver_or_error =
-      pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+      pc_wrapper->pc()->AddTransceiver(webrtc::MediaType::VIDEO, init);
   ASSERT_TRUE(transceiver_or_error.ok());
 
   // SetParameters: If `scale_resolution_down_to` is specified on any active
@@ -3161,7 +3161,7 @@ TEST_F(PeerConnectionEncodingsFakeCodecsIntegrationTest, H265Singlecast) {
 
   rtc::scoped_refptr<RtpTransceiverInterface> transceiver =
       local_pc_wrapper->pc()
-          ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO)
+          ->AddTransceiver(webrtc::MediaType::VIDEO)
           .MoveValue();
   std::vector<RtpCodecCapability> preferred_codecs =
       GetCapabilitiesAndRestrictToCodec(local_pc_wrapper, "H265");
@@ -3248,7 +3248,7 @@ TEST_F(PeerConnectionEncodingsFakeCodecsIntegrationTest,
   // H265.
   std::vector<RtpCodecCapability> sender_codecs =
       local_pc_wrapper->pc_factory()
-          ->GetRtpSenderCapabilities(cricket::MEDIA_TYPE_VIDEO)
+          ->GetRtpSenderCapabilities(webrtc::MediaType::VIDEO)
           .codecs;
   auto it = std::find_if(sender_codecs.begin(), sender_codecs.end(),
                          [](const RtpCodecCapability codec_capability) {
@@ -3294,7 +3294,7 @@ TEST_F(PeerConnectionEncodingsFakeCodecsIntegrationTest,
 
   rtc::scoped_refptr<RtpTransceiverInterface> transceiver =
       local_pc_wrapper->pc()
-          ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO)
+          ->AddTransceiver(webrtc::MediaType::VIDEO)
           .MoveValue();
 
   // Filter on codec name and assert that sender capabilities have codecs for
@@ -3302,7 +3302,7 @@ TEST_F(PeerConnectionEncodingsFakeCodecsIntegrationTest,
   // {sendrecv, recvonly}.
   std::vector<RtpCodecCapability> send_codecs =
       local_pc_wrapper->pc_factory()
-          ->GetRtpSenderCapabilities(cricket::MEDIA_TYPE_VIDEO)
+          ->GetRtpSenderCapabilities(webrtc::MediaType::VIDEO)
           .codecs;
   send_codecs.erase(std::remove_if(send_codecs.begin(), send_codecs.end(),
                                    [](const RtpCodecCapability& codec) {
@@ -3311,7 +3311,7 @@ TEST_F(PeerConnectionEncodingsFakeCodecsIntegrationTest,
                     send_codecs.end());
   std::vector<RtpCodecCapability> recv_codecs =
       local_pc_wrapper->pc_factory()
-          ->GetRtpReceiverCapabilities(cricket::MEDIA_TYPE_VIDEO)
+          ->GetRtpReceiverCapabilities(webrtc::MediaType::VIDEO)
           .codecs;
   recv_codecs.erase(std::remove_if(recv_codecs.begin(), recv_codecs.end(),
                                    [](const RtpCodecCapability& codec) {

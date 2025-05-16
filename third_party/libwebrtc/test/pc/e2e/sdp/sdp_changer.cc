@@ -10,15 +10,34 @@
 
 #include "test/pc/e2e/sdp/sdp_changer.h"
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
-#include "absl/memory/memory.h"
+#include "api/array_view.h"
+#include "api/jsep.h"
 #include "api/jsep_session_description.h"
+#include "api/media_types.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_transceiver_direction.h"
 #include "api/test/pclf/media_configuration.h"
 #include "media/base/media_constants.h"
+#include "media/base/rid_description.h"
+#include "media/base/stream_params.h"
 #include "p2p/base/p2p_constants.h"
+#include "p2p/base/transport_description.h"
+#include "p2p/base/transport_info.h"
 #include "pc/sdp_utils.h"
+#include "pc/session_description.h"
+#include "pc/simulcast_description.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/strings/string_builder.h"
+#include "rtc_base/unique_id_generator.h"
 
 namespace webrtc {
 namespace webrtc_pc_e2e {
@@ -114,7 +133,7 @@ void SignalingInterceptor::FillSimulcastContext(
     SessionDescriptionInterface* offer) {
   for (auto& content : offer->description()->contents()) {
     MediaContentDescription* media_desc = content.media_description();
-    if (media_desc->type() != cricket::MediaType::MEDIA_TYPE_VIDEO) {
+    if (media_desc->type() != webrtc::MediaType::VIDEO) {
       continue;
     }
     if (media_desc->HasSimulcast()) {
@@ -170,7 +189,7 @@ LocalAndRemoteSdp SignalingInterceptor::PatchOffer(
   for (auto& content : offer->description()->contents()) {
     context_.mids_order.push_back(content.mid());
     MediaContentDescription* media_desc = content.media_description();
-    if (media_desc->type() != cricket::MediaType::MEDIA_TYPE_VIDEO) {
+    if (media_desc->type() != webrtc::MediaType::VIDEO) {
       continue;
     }
     if (content.media_description()->streams().empty()) {
@@ -315,8 +334,7 @@ LocalAndRemoteSdp SignalingInterceptor::PatchVp9Offer(
   }
 
   for (auto& content : offer->description()->contents()) {
-    if (content.media_description()->type() !=
-        cricket::MediaType::MEDIA_TYPE_VIDEO) {
+    if (content.media_description()->type() != webrtc::MediaType::VIDEO) {
       // We are interested in only video tracks
       continue;
     }
@@ -365,7 +383,7 @@ LocalAndRemoteSdp SignalingInterceptor::PatchAnswer(
     const VideoCodecConfig& first_codec) {
   for (auto& content : answer->description()->contents()) {
     MediaContentDescription* media_desc = content.media_description();
-    if (media_desc->type() != cricket::MediaType::MEDIA_TYPE_VIDEO) {
+    if (media_desc->type() != webrtc::MediaType::VIDEO) {
       continue;
     }
     if (content.media_description()->direction() !=

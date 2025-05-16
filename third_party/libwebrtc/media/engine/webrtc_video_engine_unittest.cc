@@ -5108,7 +5108,7 @@ TEST_F(WebRtcVideoChannelTest,
 
   webrtc::RtpCodec vp9_rtp_codec;
   vp9_rtp_codec.name = "VP9";
-  vp9_rtp_codec.kind = cricket::MEDIA_TYPE_VIDEO;
+  vp9_rtp_codec.kind = webrtc::MediaType::VIDEO;
   vp9_rtp_codec.clock_rate = 90000;
   initial_params.encodings[0].codec = vp9_rtp_codec;
 

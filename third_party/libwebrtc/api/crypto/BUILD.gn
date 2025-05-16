@@ -34,6 +34,7 @@ rtc_source_set("frame_decryptor_interface") {
   sources = [ "frame_decryptor_interface.h" ]
   deps = [
     "..:array_view",
+    "..:ref_count",
     "..:rtp_parameters",
     "../../rtc_base:refcount",
   ]
@@ -44,6 +45,7 @@ rtc_source_set("frame_encryptor_interface") {
   sources = [ "frame_encryptor_interface.h" ]
   deps = [
     "..:array_view",
+    "..:ref_count",
     "..:rtp_parameters",
     "../../rtc_base:refcount",
   ]

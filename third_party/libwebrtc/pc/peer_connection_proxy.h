@@ -53,10 +53,10 @@ PROXY_METHOD2(RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>,
               const RtpTransceiverInit&)
 PROXY_METHOD1(RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>,
               AddTransceiver,
-              cricket::MediaType)
+              webrtc::MediaType)
 PROXY_METHOD2(RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>,
               AddTransceiver,
-              cricket::MediaType,
+              webrtc::MediaType,
               const RtpTransceiverInit&)
 PROXY_METHOD2(rtc::scoped_refptr<RtpSenderInterface>,
               CreateSender,

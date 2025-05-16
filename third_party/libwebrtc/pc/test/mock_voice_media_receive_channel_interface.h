@@ -88,7 +88,7 @@ class MockVoiceMediaReceiveChannelInterface
               AsVoiceReceiveChannel,
               (),
               (override));
-  MOCK_METHOD(cricket::MediaType, media_type, (), (const, override));
+  MOCK_METHOD(webrtc::MediaType, media_type, (), (const, override));
   MOCK_METHOD(bool, AddRecvStream, (const StreamParams& sp), (override));
   MOCK_METHOD(bool, RemoveRecvStream, (uint32_t ssrc), (override));
   MOCK_METHOD(void, ResetUnsignaledRecvStream, (), (override));
