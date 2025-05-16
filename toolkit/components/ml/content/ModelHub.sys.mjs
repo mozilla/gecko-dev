@@ -156,17 +156,20 @@ class ModelOwner {
 
     const hubRootUrl = `https://${this.hostname}/`;
     const filePath = this.#getIconFilePath();
-    let possibleUrls;
+    let possibleUrls = [];
 
     if (this.hostname === MOCHITESTS_HOSTNAME) {
-      possibleUrls = ["chrome://global/content/ml/mozilla-logo.webp"];
+      possibleUrls.push(
+        "chrome://mochitests/content/browser/toolkit/components/ml/tests/browser/data/mozilla-logo.webp"
+      );
     } else {
-      // Attempt to fetch (org first, then user, then default)
-      possibleUrls = [
-        `${hubRootUrl}api/organizations/${this.owner}/avatar?redirect=true`,
-        `${hubRootUrl}api/users/${this.owner}/avatar?redirect=true`,
-        "chrome://global/content/ml/mozilla-logo.webp",
-      ];
+      // Attempt to fetch (org first, then user)
+      possibleUrls.push(
+        `${hubRootUrl}api/organizations/${this.owner}/avatar?redirect=true`
+      );
+      possibleUrls.push(
+        `${hubRootUrl}api/users/${this.owner}/avatar?redirect=true`
+      );
     }
 
     lazy.console.debug("Fetching icon", filePath, possibleUrls);
