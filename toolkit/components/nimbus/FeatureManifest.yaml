@@ -521,12 +521,6 @@ urlbar:
       description: >-
         Fraction (0.0 – 1.0) of top Places rows that must have embeddings
         before semantic-history search is enabled. 0.5 = 50 %.
-    suggestSemanticHistory:
-      type: boolean
-      setPref:
-        branch: user
-        pref: browser.urlbar.suggest.semanticHistory
-      description: Whether semanticHistory Search will be enabled.
     suggestSemanticHistoryMinLength:
       type: int
       setPref:

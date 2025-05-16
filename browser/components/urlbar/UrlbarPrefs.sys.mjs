@@ -487,9 +487,6 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // How old history results have to be to be deduplicated.
   ["deduplication.thresholdDays", 0],
 
-  // Whether semanticHistory search will be enabled.
-  ["suggest.semanticHistory", false],
-
   // semanticHistory search query minLength threshold to be enabled.
   ["suggest.semanticHistory.minLength", 5],
 
