@@ -3286,7 +3286,8 @@ nsStyleUIReset::nsStyleUIReset(const nsStyleUIReset& aSource)
       mViewTimelineAxisCount(aSource.mViewTimelineAxisCount),
       mViewTimelineInsetCount(aSource.mViewTimelineInsetCount),
       mFieldSizing(aSource.mFieldSizing),
-      mViewTransitionName(aSource.mViewTransitionName) {
+      mViewTransitionName(aSource.mViewTransitionName),
+      mViewTransitionClass(aSource.mViewTransitionClass) {
   MOZ_COUNT_CTOR(nsStyleUIReset);
 }
 
@@ -3329,6 +3330,10 @@ nsChangeHint nsStyleUIReset::CalcDifference(
     } else {
       hint |= nsChangeHint_NeutralChange;
     }
+  }
+
+  if (mViewTransitionClass != aNewData.mViewTransitionClass) {
+    hint |= nsChangeHint_NeutralChange;
   }
 
   if (!hint &&

@@ -13,7 +13,8 @@ use style_traits::{CssWriter, ToCss};
 
 pub use crate::values::specified::animation::{
     AnimationComposition, AnimationDirection, AnimationFillMode, AnimationName, AnimationPlayState,
-    ScrollAxis, TimelineName, TransitionBehavior, TransitionProperty, ViewTransitionName,
+    ScrollAxis, TimelineName, TransitionBehavior, TransitionProperty, ViewTransitionClass,
+    ViewTransitionName,
 };
 
 /// A computed value for the `animation-duration` property.

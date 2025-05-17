@@ -14377,6 +14377,29 @@ if (IsCSSPropertyPrefEnabled("dom.viewTransitions.enabled")) {
       ],
       invalid_values: ["auto", "abc --bounce", "10px", "rgb(1, 2, 3)"],
     },
+    "view-transition-class": {
+      domProp: "viewTransitionClass",
+      inherited: false,
+      type: CSS_TYPE_LONGHAND,
+      initial_values: ["none"],
+      other_values: [
+        "all",
+        "ball",
+        "mall",
+        "color",
+        "foobar",
+        "\\32bounce",
+        "-bounce",
+        "-\\32bounce",
+        "\\32 0bounce",
+        "-\\32 0bounce",
+        "\\2bounce",
+        "-\\2bounce",
+        "abc abc",
+        "\\32bounce abc",
+      ],
+      invalid_values: ["abc none", "10px", "rgb(1, 2, 3)", "default"],
+    },
   });
 }
 

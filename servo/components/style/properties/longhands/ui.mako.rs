@@ -439,3 +439,16 @@ ${helpers.predefined_type(
     affects="",
     enabled_in="ua",
 )}
+
+${helpers.predefined_type(
+    "view-transition-class",
+    "ViewTransitionClass",
+    "computed::ViewTransitionClass::none()",
+    engines="gecko servo",
+    servo_pref="layout.unimplemented",
+    animation_type="discrete",
+    gecko_pref="dom.viewTransitions.enabled",
+    spec="https://drafts.csswg.org/css-view-transitions-2/#view-transition-class-prop",
+    affects="",
+    enabled_in="ua",
+)}
