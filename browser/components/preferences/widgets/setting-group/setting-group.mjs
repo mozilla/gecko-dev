@@ -28,64 +28,13 @@ export class SettingGroup extends MozLitElement {
     ></setting-control>`;
   }
 
-  xulCheckboxTemplate(item, setting) {
-    let result;
-    let checkbox = document.createXULElement("checkbox");
-    checkbox.id = item.id;
-    document.l10n.setAttributes(checkbox, item.l10nId);
-    checkbox.addEventListener("command", e =>
-      setting.userChange(e.target.checked)
-    );
-
-    function setValue() {
-      checkbox.checked = setting.value;
-      checkbox.disabled = setting.locked;
-    }
-    setting.on("change", setValue);
-    setValue();
-
-    if (item.supportPage) {
-      let container = document.createXULElement("hbox");
-      container.setAttribute("align", "center");
-      let supportLink = document.createElement("a", { is: "moz-support-link" });
-      supportLink.supportPage = item.supportPage;
-      checkbox.classList.add("tail-with-learn-more");
-      container.append(checkbox, supportLink);
-      result = container;
-    } else {
-      result = checkbox;
-    }
-    if (item.subcategory) {
-      result.dataset.subcategory = item.subcategory;
-    }
-    return result;
-  }
-
-  xulItemTemplate(item) {
-    let setting = this.getSetting(item.id);
-    if (!setting.visible) {
-      return "";
-    }
-    switch (item.control) {
-      case "checkbox":
-      default:
-        return this.xulCheckboxTemplate(item, setting);
-    }
-  }
-
   render() {
     if (!this.config) {
       return "";
     }
-    if (
-      window.IS_STORYBOOK ||
-      Services.prefs.getBoolPref("settings.revamp.design", false)
-    ) {
-      return html`<moz-fieldset data-l10n-id=${ifDefined(this.config.l10nId)}
-        >${this.config.items.map(item => this.itemTemplate(item))}</moz-fieldset
-      >`;
-    }
-    return this.config.items.map(item => this.xulItemTemplate(item));
+    return html`<moz-fieldset data-l10n-id=${ifDefined(this.config.l10nId)}
+      >${this.config.items.map(item => this.itemTemplate(item))}</moz-fieldset
+    >`;
   }
 }
 customElements.define("setting-group", SettingGroup);
