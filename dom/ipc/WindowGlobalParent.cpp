@@ -1448,12 +1448,12 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvReloadWithHttpsOnlyException() {
 }
 
 IPCResult WindowGlobalParent::RecvGetIdentityCredential(
-    IdentityCredentialRequestOptions&& aOptions,
+    const IdentityCredentialRequestOptions& aOptions,
     const CredentialMediationRequirement& aMediationRequirement,
-    bool aHasUserActivation, const GetIdentityCredentialResolver& aResolver) {
+    const GetIdentityCredentialResolver& aResolver) {
   IdentityCredential::GetCredentialInMainProcess(
-      DocumentPrincipal(), this->BrowsingContext(), std::move(aOptions),
-      aMediationRequirement, aHasUserActivation)
+      DocumentPrincipal(), this->BrowsingContext(), aOptions,
+      aMediationRequirement)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [aResolver](const IPCIdentityCredential& aResult) {

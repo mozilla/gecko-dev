@@ -12,10 +12,8 @@
       setupTest("well_known_multiple_config_wrong_account_endpoint")
     }).then(
       function () {
-        SpecialPowers.wrap(document).notifyUserGestureActivation();
         return navigator.credentials.get({
           identity: {
-            mode: "active",
             providers: [{
               configURL: "https://example.net/tests/dom/credentialmanagement/identity/tests/mochitest/server_manifest.sjs",
               clientId: "mochitest",
