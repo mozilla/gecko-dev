@@ -32,6 +32,16 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
+  "longPress",
+  "browser.ml.linkPreview.longPress"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "longPressMs",
+  "browser.ml.linkPreview.longPressMs"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
   "noKeyPointsRegions",
   "browser.ml.linkPreview.noKeyPointsRegions"
 );
@@ -63,6 +73,7 @@ export const LinkPreview = {
   // Shared downloading state to use across multiple previews
   progress: -1, // -1 = off, 0-100 = download progress
 
+  cancelLongPress: null,
   keyboardComboActive: false,
   _windowStates: new Map(),
   linkPreviewPanelId: "link-preview-panel",
@@ -214,6 +225,7 @@ export const LinkPreview = {
     win.addEventListener("OverLink", this, true);
     win.addEventListener("keydown", this, true);
     win.addEventListener("keyup", this, true);
+    win.addEventListener("mousedown", this, true);
   },
 
   /**
@@ -225,6 +237,10 @@ export const LinkPreview = {
     win.removeEventListener("OverLink", this, true);
     win.removeEventListener("keydown", this, true);
     win.removeEventListener("keyup", this, true);
+    win.removeEventListener("mousedown", this, true);
+
+    // Long press might have added listeners to this window.
+    this.cancelLongPress?.();
   },
 
   /**
@@ -241,6 +257,11 @@ export const LinkPreview = {
         break;
       case "OverLink":
         this._onLinkPreview(event);
+        break;
+      case "dragstart":
+      case "mousedown":
+      case "mouseup":
+        this._onPressEvent(event);
         break;
       default:
         break;
@@ -289,6 +310,42 @@ export const LinkPreview = {
 
     if (this.keyboardComboActive) {
       this._maybeLinkPreview(win);
+    }
+  },
+
+  /**
+   * Handles long press events.
+   *
+   * @param {MouseEvent} event - The mouse related events to be processed.
+   */
+  _onPressEvent(event) {
+    if (!lazy.longPress) {
+      return;
+    }
+
+    // Check for the start of a long press on a link.
+    const win = event.currentTarget;
+    const stateObject = this._windowStates.get(win);
+    if (event.type == "mousedown" && stateObject.overLink) {
+      // Detect events to cancel the long press.
+      win.addEventListener("dragstart", this, true);
+      win.addEventListener("mouseup", this, true);
+
+      // Show preview after a delay if not cancelled.
+      const timer = win.setTimeout(() => {
+        this.cancelLongPress();
+        this.renderLinkPreviewPanel(win, stateObject.overLink, "longpress");
+      }, lazy.longPressMs);
+
+      // Provide a way to clean up.
+      this.cancelLongPress = () => {
+        win.clearTimeout(timer);
+        win.removeEventListener("dragstart", this, true);
+        win.removeEventListener("mouseup", this, true);
+        this.cancelLongPress = null;
+      };
+    } else {
+      this.cancelLongPress?.();
     }
   },
 

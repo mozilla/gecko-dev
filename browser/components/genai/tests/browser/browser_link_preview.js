@@ -154,6 +154,48 @@ add_task(async function test_link_preview_with_shift_alt_key_event() {
 });
 
 /**
+ * Tests long press of mouse to trigger link preview.
+ */
+add_task(async function test_link_preview_with_long_press() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.ml.linkPreview.enabled", true],
+      ["browser.ml.linkPreview.longPressMs", 0],
+    ],
+  });
+
+  const stub = sinon.stub(LinkPreview, "renderLinkPreviewPanel");
+
+  XULBrowserWindow.setOverLink(TEST_LINK_URL, {});
+
+  is(LinkPreview.cancelLongPress, null, "long press not started");
+
+  window.dispatchEvent(new MouseEvent("mousedown"));
+
+  ok(LinkPreview.cancelLongPress, "long press timer started");
+
+  window.dispatchEvent(new MouseEvent("mouseup"));
+
+  is(LinkPreview.cancelLongPress, null, "long press cancelled");
+  is(stub.callCount, 0, "no link preview shown");
+
+  window.dispatchEvent(new MouseEvent("mousedown"));
+
+  await TestUtils.waitForCondition(
+    () => stub.callCount,
+    "waiting for long press timer"
+  );
+
+  is(LinkPreview.cancelLongPress, null, "long press completed");
+  is(stub.callCount, 1, "preview shown");
+  is(stub.firstCall.args[0], window, "link preview shown for correct window");
+  is(stub.firstCall.args[1], TEST_LINK_URL, "preview test link");
+  is(stub.firstCall.args[2], "longpress", "source set for long press");
+
+  stub.restore();
+});
+
+/**
  * Tests that no event is dispatched when the Link Preview feature is disabled, even if the Alt key is pressed.
  *
  * This test performs the following steps:
