@@ -49,7 +49,6 @@ class AppleVTEncoder final : public MediaDataEncoder {
   }
 
   nsCString GetDescriptionName() const override {
-    MOZ_ASSERT(mSession);
     return mIsHardwareAccelerated ? "apple hardware VT encoder"_ns
                                   : "apple software VT encoder"_ns;
   }
