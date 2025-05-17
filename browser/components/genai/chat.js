@@ -287,15 +287,19 @@ function renderMore() {
       ],
     ].forEach(([type, l10n, command, checked]) => {
       const item = menu.appendChild(topDoc.createXULElement(type));
-      if (type == "menuitem") {
-        document.l10n.setAttributes(item, ...l10n);
-        item.addEventListener("command", () => {
-          command();
-          Glean.genaiChatbot.sidebarMoreMenuClick.record({
-            action: command.name,
-            provider: providerId,
-          });
+      if (type != "menuitem") {
+        return;
+      }
+      document.l10n.setAttributes(item, ...l10n);
+      item.addEventListener("command", () => {
+        command();
+        Glean.genaiChatbot.sidebarMoreMenuClick.record({
+          action: command.name,
+          provider: providerId,
         });
+      });
+      if (checked !== undefined) {
+        item.setAttribute("type", "checkbox");
         if (checked) {
           item.setAttribute("checked", true);
         }
