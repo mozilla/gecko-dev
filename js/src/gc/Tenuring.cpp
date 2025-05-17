@@ -1103,9 +1103,12 @@ size_t js::gc::TenuringTracer::moveString(JSString* dst, JSString* src,
     // base was deduplicated, or its root base's chars were allocated in the
     // nursery. If src's chars pointer will no longer be valid once minor GC is
     // complete, give it its own copy of the chars.
-    size_t cloned =
-        JSLinearString::maybeCloneCharsOnPromotion(&dst->asDependent());
-    return size + cloned;
+    //
+    // Note that the size of any cloned data is *not* included in the "number
+    // of bytes tenured" return value here, since the donor owns them and may
+    // still be alive and we don't want to double-count.
+    JSLinearString::maybeCloneCharsOnPromotion(&dst->asDependent());
+    return size;
   }
 
   if (!src->hasOutOfLineChars()) {

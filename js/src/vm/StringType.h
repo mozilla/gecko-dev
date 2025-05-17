@@ -1238,16 +1238,16 @@ class JSLinearString : public JSString {
   // moving its chars (or more specifically, updating N1 to the new chars.) When
   // this is detected, convert N1 to a regular string with its own storage.
   //
-  // It is currently unknown whether it is possible to trigger this case outside
-  // of testing code.
+  // Returns whether the chars were cloned.
   template <typename CharT>
-  static size_t maybeCloneCharsOnPromotionTyped(JSLinearString* str);
+  static void maybeCloneCharsOnPromotionTyped(JSLinearString* str);
 
-  static size_t maybeCloneCharsOnPromotion(JSLinearString* str) {
+  static void maybeCloneCharsOnPromotion(JSLinearString* str) {
     if (str->hasLatin1Chars()) {
-      return maybeCloneCharsOnPromotionTyped<JS::Latin1Char>(str);
+      maybeCloneCharsOnPromotionTyped<JS::Latin1Char>(str);
+    } else {
+      maybeCloneCharsOnPromotionTyped<char16_t>(str);
     }
-    return maybeCloneCharsOnPromotionTyped<char16_t>(str);
   }
 
   inline void finalize(JS::GCContext* gcx);
