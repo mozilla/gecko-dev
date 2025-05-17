@@ -394,6 +394,14 @@ export const ContentAnalysis = {
         // in-browser notification
         let browser =
           caView.notification.dialogBrowsingContext.top.embedderElement;
+        // If we're showing a dialog in the sidebar, the dialog is managed
+        // by the embedderElement.
+        let isSidebar =
+          browser?.ownerGlobal?.browsingContext?.embedderElement?.id ==
+          "sidebar";
+        if (isSidebar) {
+          browser = browser.ownerGlobal.browsingContext.embedderElement;
+        }
         // browser will be null if the tab was closed
         let win = browser?.ownerGlobal;
         if (win) {

@@ -20,7 +20,9 @@
       <spacer id="sidebar-spacer"/>
       <toolbarbutton id="sidebar-close" class="close-icon tabbable" data-l10n-id="sidebar-close-button"/>
     </box>
-    <browser id="sidebar" autoscroll="false" disablehistory="true" disablefullscreen="true" tooltip="aHTMLTooltip"/>
+    <stack class="sidebar-browser-stack">
+      <browser id="sidebar" autoscroll="false" disablehistory="true" disablefullscreen="true" tooltip="aHTMLTooltip"/>
+    </stack>
   </vbox>
   <splitter id="sidebar-splitter" class="chromeclass-extrachrome sidebar-splitter" resizebefore="sibling" resizeafter="none" hidden="true"/>
   <tabbox id="tabbrowser-tabbox" flex="1" tabcontainer="tabbrowser-tabs">

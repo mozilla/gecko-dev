@@ -109,6 +109,10 @@
   min-height: 0;
 }
 
+.sidebar-browser-stack {
+  flex: 1;
+}
+
 .browserStack {
   flex: 10000 10000;
   /* Prevent shrinking the page content to 0 height and width */

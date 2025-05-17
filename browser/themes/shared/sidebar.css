@@ -53,6 +53,11 @@
   }
 }
 
+.sidebar-browser-stack > .dialogStack > .dialogTemplate > .dialogBox {
+  /* Not enough horizontal space, remove the margin */
+  margin-inline: 0;
+}
+
 #sidebar-header {
   font-size: 1.333em;
   padding: 8px;
