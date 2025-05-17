@@ -2548,20 +2548,20 @@ static bool PtrIsWithinRange(const CharT* ptr,
 
 /* static */
 template <typename CharT>
-size_t JSLinearString::maybeCloneCharsOnPromotionTyped(JSLinearString* str) {
+void JSLinearString::maybeCloneCharsOnPromotionTyped(JSLinearString* str) {
   MOZ_ASSERT(!InCollectedNurseryRegion(str), "str should have been promoted");
   MOZ_ASSERT(str->isDependent());
   JSLinearString* root = str->asDependent().rootBaseDuringMinorGC();
-  if (!root->isTenured()) {
+  if (InCollectedNurseryRegion(root)) {
     // Can still fixup the original chars pointer.
-    return 0;
+    return;
   }
 
   // If the base has not moved its chars, continue using them.
   JS::AutoCheckCannotGC nogc;
   const CharT* chars = str->chars<CharT>(nogc);
   if (PtrIsWithinRange(chars, root->range<CharT>(nogc))) {
-    return 0;
+    return;
   }
 
   // Clone the chars.
@@ -2577,14 +2577,20 @@ size_t JSLinearString::maybeCloneCharsOnPromotionTyped(JSLinearString* str) {
 
   // Overwrite the dest string with a new linear string.
   new (str) JSLinearString(data, len, false /* hasBuffer */);
-  str->zone()->addCellMemory(str, nbytes, js::MemoryUse::StringContents);
-
-  return nbytes;
+  if (str->isTenured()) {
+    str->zone()->addCellMemory(str, nbytes, js::MemoryUse::StringContents);
+  } else {
+    AutoEnterOOMUnsafeRegion oomUnsafe;
+    JSRuntime* rt = str->runtimeFromAnyThread();
+    if (!rt->gc.nursery().registerMallocedBuffer(data, nbytes)) {
+      oomUnsafe.crash("maybeCloneCharsOnPromotionTyped");
+    }
+  }
 }
 
-template size_t JSLinearString::maybeCloneCharsOnPromotionTyped<JS::Latin1Char>(
+template void JSLinearString::maybeCloneCharsOnPromotionTyped<JS::Latin1Char>(
     JSLinearString* str);
-template size_t JSLinearString::maybeCloneCharsOnPromotionTyped<char16_t>(
+template void JSLinearString::maybeCloneCharsOnPromotionTyped<char16_t>(
     JSLinearString* str);
 
 #if defined(DEBUG) || defined(JS_JITSPEW) || defined(JS_CACHEIR_SPEW)

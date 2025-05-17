@@ -5,10 +5,6 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 do_get_profile();
 
-const { FileUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/FileUtils.sys.mjs"
-);
-
 let tempFile = new FileUtils.File(PathUtils.tempDir);
 const TEST_LOCAL_FILE_NAME = "hello.txt";
 tempFile.append(TEST_LOCAL_FILE_NAME);

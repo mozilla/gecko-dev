@@ -9,6 +9,12 @@
 
 # TODO: Upgrade the TOML crate and switch to array of tables syntax.
 
+[context_id.async_wrappers]
+enable = true
+main_thread = [
+  "ContextIDComponent.new",
+]
+
 [search.async_wrappers]
 # All functions/methods are wrapped to be async by default and must be `await`ed.
 enable = true

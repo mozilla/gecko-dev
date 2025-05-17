@@ -77,6 +77,9 @@ describe("DiscoveryStreamAdmin", () => {
             Weather: {
               suggestions: [],
             },
+            InferredPersonalization: {
+              interestVector: {},
+            },
           }}
         />
       );
@@ -107,6 +110,9 @@ describe("DiscoveryStreamAdmin", () => {
             DiscoveryStream: state,
             Weather: {
               suggestions: [],
+            },
+            InferredPersonalization: {
+              interestVector: {},
             },
           }}
         />
@@ -164,7 +170,7 @@ describe("DiscoveryStreamAdmin", () => {
       );
     });
     it("should fire syncRemoteSettings with DISCOVERY_STREAM_DEV_SYNC_RS", () => {
-      wrapper.find("button").at(5).simulate("click");
+      wrapper.find("button").at(6).simulate("click");
       assert.calledWith(
         dispatch,
         ac.OnlyToMain({

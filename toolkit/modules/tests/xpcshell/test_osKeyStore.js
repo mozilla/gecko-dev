@@ -4,10 +4,6 @@
 
 "use strict";
 
-var { TestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/TestUtils.sys.mjs"
-);
-
 let OSKeyStoreTestUtils;
 add_task(async function os_key_store_setup() {
   ({ OSKeyStoreTestUtils } = ChromeUtils.importESModule(

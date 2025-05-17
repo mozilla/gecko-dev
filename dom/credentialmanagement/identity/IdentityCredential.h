@@ -120,22 +120,12 @@ class IdentityCredential final : public Credential {
 
   static RefPtr<GetIPCIdentityCredentialPromise> GetCredentialInMainProcess(
       nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
-      IdentityCredentialRequestOptions&& aOptions,
-      const CredentialMediationRequirement& aMediationRequirement,
-      bool aHasUserActivation);
+      const IdentityCredentialRequestOptions& aOptions,
+      const CredentialMediationRequirement& aMediationRequirement);
 
   static nsresult CanSilentlyCollect(nsIPrincipal* aPrincipal,
                                      nsIPrincipal* aIDPPrincipal,
                                      bool* aResult);
-
-  static Maybe<IdentityProviderAccount> FindAccountToReauthenticate(
-      const IdentityProviderRequestOptions& aProvider,
-      nsIPrincipal* aRPPrincipal,
-      const IdentityProviderAccountList& aAccountList);
-
-  static Maybe<IdentityProviderRequestOptionsWithManifest> SkipAccountChooser(
-      const Sequence<IdentityProviderRequestOptions>& aProviders,
-      const Sequence<GetManifestPromise::ResolveOrRejectValue>& aManifests);
 
   static RefPtr<GenericPromise> AllowedToCollectCredential(
       nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
@@ -175,8 +165,7 @@ class IdentityCredential final : public Credential {
   static RefPtr<GetIPCIdentityCredentialPromise>
   DiscoverFromExternalSourceInMainProcess(
       nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
-      const IdentityCredentialRequestOptions& aOptions,
-      const CredentialMediationRequirement& aMediationRequirement);
+      const IdentityCredentialRequestOptions& aOptions);
 
   static RefPtr<GetIPCIdentityCredentialPromise>
   DiscoverLightweightFromExternalSourceInMainProcess(
@@ -203,8 +192,7 @@ class IdentityCredential final : public Credential {
   CreateHeavyweightCredentialDuringDiscovery(
       nsIPrincipal* aPrincipal, BrowsingContext* aBrowsingContext,
       const IdentityProviderRequestOptions& aProvider,
-      const IdentityProviderAPIConfig& aManifest,
-      const CredentialMediationRequirement& aMediationRequirement);
+      const IdentityProviderAPIConfig& aManifest);
 
   // Performs a Fetch for the root manifest of the provided identity provider
   // if needed and validates its structure. The returned promise resolves

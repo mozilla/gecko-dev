@@ -23,6 +23,7 @@ import {
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ContextId: "moz-src:///browser/modules/ContextId.sys.mjs",
   FilterAdult: "resource:///modules/FilterAdult.sys.mjs",
   LinksCache: "resource:///modules/LinksCache.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
@@ -41,17 +42,6 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
     "resource://messaging-system/lib/Logger.sys.mjs"
   );
   return new Logger("TopSitesFeed");
-});
-
-// `contextId` is a unique identifier used by Contextual Services
-const CONTEXT_ID_PREF = "browser.contextual-services.contextId";
-ChromeUtils.defineLazyGetter(lazy, "contextId", () => {
-  let _contextId = Services.prefs.getStringPref(CONTEXT_ID_PREF, null);
-  if (!_contextId) {
-    _contextId = String(Services.uuid.generateUUID());
-    Services.prefs.setStringPref(CONTEXT_ID_PREF, _contextId);
-  }
-  return _contextId;
 });
 
 const DEFAULT_SITES_PREF = "default.sites";
@@ -568,7 +558,7 @@ export class ContileIntegration {
             method: "POST",
             headers,
             body: JSON.stringify({
-              context_id: lazy.contextId,
+              context_id: await lazy.ContextId.request(),
               placements: placementsArray.map((placement, index) => ({
                 placement,
                 count: countsArray[index],
@@ -1671,7 +1661,8 @@ export class TopSitesFeed {
     }
     // This sample input should ensure we return the same result for this allocation,
     // even if called from other parts of the code.
-    const sampleInput = `${lazy.contextId}-${this._contile.sov.name}`;
+    let contextId = await lazy.ContextId.request();
+    const sampleInput = `${contextId}-${this._contile.sov.name}`;
     const allocatedPositions = [];
     for (const allocation of this._contile.sov.allocations) {
       const allocatedPosition = {

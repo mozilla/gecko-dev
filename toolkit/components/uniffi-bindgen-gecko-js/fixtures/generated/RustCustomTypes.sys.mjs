@@ -857,7 +857,7 @@ export function echoExplicitValue(value) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                109, // custom_types:uniffi_uniffi_custom_types_fn_func_echo_explicit_value
+                113, // custom_types:uniffi_uniffi_custom_types_fn_func_echo_explicit_value
                 FfiConverterTypeExplicitValuedEnum.lower(value),
             )
         }
@@ -886,7 +886,7 @@ export function echoGappedValue(value) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                110, // custom_types:uniffi_uniffi_custom_types_fn_func_echo_gapped_value
+                114, // custom_types:uniffi_uniffi_custom_types_fn_func_echo_gapped_value
                 FfiConverterTypeGappedEnum.lower(value),
             )
         }
@@ -915,7 +915,7 @@ export function echoSequentialValue(value) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                111, // custom_types:uniffi_uniffi_custom_types_fn_func_echo_sequential_value
+                115, // custom_types:uniffi_uniffi_custom_types_fn_func_echo_sequential_value
                 FfiConverterTypeSequentialEnum.lower(value),
             )
         }
@@ -944,7 +944,7 @@ export function getCustomTypesDemo(demo) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                112, // custom_types:uniffi_uniffi_custom_types_fn_func_get_custom_types_demo
+                116, // custom_types:uniffi_uniffi_custom_types_fn_func_get_custom_types_demo
                 FfiConverterOptionalTypeCustomTypesDemo.lower(demo),
             )
         }
@@ -973,7 +973,7 @@ export function getExplicitDiscriminant(value) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                113, // custom_types:uniffi_uniffi_custom_types_fn_func_get_explicit_discriminant
+                117, // custom_types:uniffi_uniffi_custom_types_fn_func_get_explicit_discriminant
                 FfiConverterTypeExplicitValuedEnum.lower(value),
             )
         }
@@ -994,7 +994,7 @@ export function getExplicitEnumValues() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                114, // custom_types:uniffi_uniffi_custom_types_fn_func_get_explicit_enum_values
+                118, // custom_types:uniffi_uniffi_custom_types_fn_func_get_explicit_enum_values
             )
         }
         try {
@@ -1022,7 +1022,7 @@ export function getGappedDiscriminant(value) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                115, // custom_types:uniffi_uniffi_custom_types_fn_func_get_gapped_discriminant
+                119, // custom_types:uniffi_uniffi_custom_types_fn_func_get_gapped_discriminant
                 FfiConverterTypeGappedEnum.lower(value),
             )
         }
@@ -1043,7 +1043,7 @@ export function getGappedEnumValues() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                116, // custom_types:uniffi_uniffi_custom_types_fn_func_get_gapped_enum_values
+                120, // custom_types:uniffi_uniffi_custom_types_fn_func_get_gapped_enum_values
             )
         }
         try {
@@ -1071,7 +1071,7 @@ export function getSequentialDiscriminant(value) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                117, // custom_types:uniffi_uniffi_custom_types_fn_func_get_sequential_discriminant
+                121, // custom_types:uniffi_uniffi_custom_types_fn_func_get_sequential_discriminant
                 FfiConverterTypeSequentialEnum.lower(value),
             )
         }

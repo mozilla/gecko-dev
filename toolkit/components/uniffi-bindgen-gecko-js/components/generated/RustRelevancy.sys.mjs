@@ -172,7 +172,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerRelevancyStore() {
-        const pointerId = 0; // relevancy:RelevancyStore
+        const pointerId = 1; // relevancy:RelevancyStore
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -182,7 +182,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerRelevancyStore(value) {
-        const pointerId = 0; // relevancy:RelevancyStore
+        const pointerId = 1; // relevancy:RelevancyStore
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -459,7 +459,7 @@ export class RelevancyStore {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                12, // relevancy:uniffi_relevancy_fn_constructor_relevancystore_new
+                16, // relevancy:uniffi_relevancy_fn_constructor_relevancystore_new
                 FfiConverterString.lower(dbPath),
                 FfiConverterTypeRemoteSettingsService.lower(remoteSettings),
             )
@@ -495,7 +495,7 @@ export class RelevancyStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                3, // relevancy:uniffi_relevancy_fn_method_relevancystore_bandit_init
+                7, // relevancy:uniffi_relevancy_fn_method_relevancystore_bandit_init
                 FfiConverterTypeRelevancyStore.lower(this),
                 FfiConverterString.lower(bandit),
                 FfiConverterSequencestring.lower(arms),
@@ -539,7 +539,7 @@ export class RelevancyStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                4, // relevancy:uniffi_relevancy_fn_method_relevancystore_bandit_select
+                8, // relevancy:uniffi_relevancy_fn_method_relevancystore_bandit_select
                 FfiConverterTypeRelevancyStore.lower(this),
                 FfiConverterString.lower(bandit),
                 FfiConverterSequencestring.lower(arms),
@@ -590,7 +590,7 @@ export class RelevancyStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                5, // relevancy:uniffi_relevancy_fn_method_relevancystore_bandit_update
+                9, // relevancy:uniffi_relevancy_fn_method_relevancystore_bandit_update
                 FfiConverterTypeRelevancyStore.lower(this),
                 FfiConverterString.lower(bandit),
                 FfiConverterString.lower(arm),
@@ -614,7 +614,7 @@ export class RelevancyStore {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                6, // relevancy:uniffi_relevancy_fn_method_relevancystore_close
+                10, // relevancy:uniffi_relevancy_fn_method_relevancystore_close
                 FfiConverterTypeRelevancyStore.lower(this),
             )
         }
@@ -629,7 +629,7 @@ export class RelevancyStore {
         const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                7, // relevancy:uniffi_relevancy_fn_method_relevancystore_ensure_interest_data_populated
+                11, // relevancy:uniffi_relevancy_fn_method_relevancystore_ensure_interest_data_populated
                 FfiConverterTypeRelevancyStore.lower(this),
             )
         }
@@ -665,7 +665,7 @@ export class RelevancyStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                8, // relevancy:uniffi_relevancy_fn_method_relevancystore_get_bandit_data
+                12, // relevancy:uniffi_relevancy_fn_method_relevancystore_get_bandit_data
                 FfiConverterTypeRelevancyStore.lower(this),
                 FfiConverterString.lower(bandit),
                 FfiConverterString.lower(arm),
@@ -705,7 +705,7 @@ export class RelevancyStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                9, // relevancy:uniffi_relevancy_fn_method_relevancystore_ingest
+                13, // relevancy:uniffi_relevancy_fn_method_relevancystore_ingest
                 FfiConverterTypeRelevancyStore.lower(this),
                 FfiConverterSequencestring.lower(topUrlsByFrecency),
             )
@@ -725,7 +725,7 @@ export class RelevancyStore {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                10, // relevancy:uniffi_relevancy_fn_method_relevancystore_interrupt
+                14, // relevancy:uniffi_relevancy_fn_method_relevancystore_interrupt
                 FfiConverterTypeRelevancyStore.lower(this),
             )
         }
@@ -744,7 +744,7 @@ export class RelevancyStore {
         const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                11, // relevancy:uniffi_relevancy_fn_method_relevancystore_user_interest_vector
+                15, // relevancy:uniffi_relevancy_fn_method_relevancystore_user_interest_vector
                 FfiConverterTypeRelevancyStore.lower(this),
             )
         }
@@ -2008,7 +2008,7 @@ export function score(interestVector,contentCategories) {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                2, // relevancy:uniffi_relevancy_fn_func_score
+                6, // relevancy:uniffi_relevancy_fn_func_score
                 FfiConverterTypeInterestVector.lower(interestVector),
                 FfiConverterSequenceTypeInterest.lower(contentCategories),
             )

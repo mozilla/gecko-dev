@@ -3,6 +3,12 @@ head =  ''
 firefox-appdir = "browser"
 tags = "os_integration"
 
+["test_ContextId_LegacyBackend.js"]
+prefs = ["browser.contextual-services.contextId.rust-component.enabled=false"]
+
+["test_ContextId_RustBackend.js"]
+prefs = ["browser.contextual-services.contextId.rust-component.enabled=true"]
+
 ["test_Dedupe.js"]
 
 ["test_E10SUtils_nested_URIs.js"]

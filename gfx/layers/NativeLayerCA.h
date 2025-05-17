@@ -17,6 +17,8 @@
 
 #include "mozilla/gfx/MacIOSurface.h"
 #include "mozilla/layers/NativeLayer.h"
+#include "mozilla/layers/NativeLayerMacSurfaceHandler.h"
+#include "mozilla/webrender/RenderMacIOSurfaceTextureHost.h"
 #include "CFTypeRefPtr.h"
 #include "nsRegion.h"
 #include "nsISupportsImpl.h"
@@ -42,7 +44,6 @@ namespace layers {
 #ifdef XP_MACOSX
 class NativeLayerRootSnapshotterCA;
 #endif
-class SurfacePoolHandleCA;
 
 enum class VideoLowPowerType {
   // These must be kept synchronized with the telemetry histogram enums.
@@ -323,19 +324,6 @@ class NativeLayerCA : public NativeLayer {
                            const gfx::IntRect& aDisplayRect,
                            const gfx::IntRegion& aUpdateRegion, F&& aCopyFn);
 
-  struct SurfaceWithInvalidRegion {
-    CFTypeRefPtr<IOSurfaceRef> mSurface;
-    gfx::IntRegion mInvalidRegion;
-  };
-
-  struct SurfaceWithInvalidRegionAndCheckCount {
-    SurfaceWithInvalidRegion mEntry;
-    uint32_t mCheckCount;  // The number of calls to IOSurfaceIsInUse
-  };
-
-  Maybe<SurfaceWithInvalidRegion> GetUnusedSurfaceAndCleanUp(
-      const MutexAutoLock& aProofOfLock);
-
   bool IsVideo(const MutexAutoLock& aProofOfLock);
   bool ShouldSpecializeVideo(const MutexAutoLock& aProofOfLock);
   bool HasExtent() const { return mHasExtent; }
@@ -416,56 +404,10 @@ class NativeLayerCA : public NativeLayer {
   // Controls access to all fields of this class.
   Mutex mMutex MOZ_UNANNOTATED;
 
-  // Each IOSurface is initially created inside NextSurface.
-  // The surface stays alive until the recycling mechanism in NextSurface
-  // determines it is no longer needed (because the swap chain has grown too
-  // long) or until DiscardBackbuffers() is called or the layer is destroyed.
-  // During the surface's lifetime, it will continuously move through the fields
-  // mInProgressSurface, mFrontSurface, and back to front through the mSurfaces
-  // queue:
-  //
-  //  mSurfaces.front()
-  //  ------[NextSurface()]-----> mInProgressSurface
-  //  --[NotifySurfaceReady()]--> mFrontSurface
-  //  --[NotifySurfaceReady()]--> mSurfaces.back()  --> .... -->
-  //  mSurfaces.front()
-  //
-  // We mark an IOSurface as "in use" as long as it is either in
-  // mInProgressSurface. When it is in mFrontSurface or in the mSurfaces queue,
-  // it is not marked as "in use" by us - but it can be "in use" by the window
-  // server. Consequently, IOSurfaceIsInUse on a surface from mSurfaces reflects
-  // whether the window server is still reading from the surface, and we can use
-  // this indicator to decide when to recycle the surface.
-  //
-  // Users of NativeLayerCA normally proceed in this order:
-  //  1. Begin a frame by calling NextSurface to get the surface.
-  //  2. Draw to the surface.
-  //  3. Mark the surface as done by calling NotifySurfaceReady.
-  //  4. Call NativeLayerRoot::CommitToScreen(), which calls ApplyChanges()
-  //     during a CATransaction.
+  Maybe<NativeLayerMacSurfaceHandler> mSurfaceHandler;
 
-  // The surface we returned from the most recent call to NextSurface, before
-  // the matching call to NotifySurfaceReady.
-  // Will only be Some() between calls to NextSurface and NotifySurfaceReady.
-  Maybe<SurfaceWithInvalidRegion> mInProgressSurface;
-  Maybe<gfx::IntRegion> mInProgressUpdateRegion;
-  Maybe<gfx::IntRect> mInProgressDisplayRect;
-
-  // The surface that the most recent call to NotifySurfaceReady was for.
-  // Will be Some() after the first call to NotifySurfaceReady, for the rest of
-  // the layer's life time.
-  Maybe<SurfaceWithInvalidRegion> mFrontSurface;
-
-  // The queue of surfaces which make up the rest of our "swap chain".
-  // mSurfaces.front() is the next surface we'll attempt to use.
-  // mSurfaces.back() is the one that was used most recently.
-  std::vector<SurfaceWithInvalidRegionAndCheckCount> mSurfaces;
-
-  // Non-null between calls to NextSurfaceAsDrawTarget and NotifySurfaceReady.
-  RefPtr<MacIOSurface> mInProgressLockedIOSurface;
-
-  RefPtr<SurfacePoolHandleCA> mSurfacePoolHandle;
   RefPtr<wr::RenderMacIOSurfaceTextureHost> mTextureHost;
+  bool mTextureHostIsVideo = false;
 
   Representation mOnscreenRepresentation;
   Representation mOffscreenRepresentation;
@@ -484,7 +426,6 @@ class NativeLayerCA : public NativeLayer {
   bool mSpecializeVideo = false;
   bool mHasExtent = false;
   bool mIsDRM = false;
-  bool mIsTextureHostVideo = false;
 
 #ifdef NIGHTLY_BUILD
   // Track the consistency of our caller's API usage. Layers that are drawn

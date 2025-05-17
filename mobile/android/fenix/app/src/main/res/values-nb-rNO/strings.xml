@@ -2188,8 +2188,6 @@
   <string name="preference_doh_summary">Domain Name System (DNS) over HTTPS sender forespørselen din om et domenenavn gjennom en kryptert tilkobling, og gir en sikker DNS og gjør det vanskeligere for andre å se hvilket nettsted du er i ferd med å besøke. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Les mer</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Naviger opp</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Unntak</string>
   <!-- Content description for the "Info" button -->

@@ -2317,8 +2317,6 @@
   <string name="preference_doh_summary">Низоми номҳои домен (DNS) тавассути HTTPS дархостҳои шуморо барои номи домен тавассути пайвасти рамзгузоришуда ирсол карда, DNS-и бехатарро таъмин мекунад ва ба дигарон барои дидани сомонаҳое, ки шумо мехоҳед ба он дастрасӣ пайдо намоед, душворӣ мекунад. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Маълумоти бештар</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Ба боло гузаред</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Истисноҳо</string>
   <!-- Content description for the "Info" button -->

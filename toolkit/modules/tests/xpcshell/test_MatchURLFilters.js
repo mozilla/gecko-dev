@@ -7,10 +7,6 @@ const { MatchURLFilters } = ChromeUtils.importESModule(
   "resource://gre/modules/MatchURLFilters.sys.mjs"
 );
 
-const { Preferences } = ChromeUtils.importESModule(
-  "resource://gre/modules/Preferences.sys.mjs"
-);
-
 function createTestFilter({ url, filters }) {
   let m = new MatchURLFilters(filters);
   return m.matches(url);

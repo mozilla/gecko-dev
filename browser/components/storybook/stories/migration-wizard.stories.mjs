@@ -550,7 +550,7 @@ FileImportProgress.args = {
   dialogMode: true,
   state: {
     page: MigrationWizardConstants.PAGES.FILE_IMPORT_PROGRESS,
-    title: "Importing Passwords",
+    title: "Importing passwords",
     progress: {
       [MigrationWizardConstants.DISPLAYED_FILE_RESOURCE_TYPES
         .PASSWORDS_FROM_FILE]: {
@@ -565,7 +565,7 @@ FileImportSuccess.args = {
   dialogMode: true,
   state: {
     page: MigrationWizardConstants.PAGES.FILE_IMPORT_PROGRESS,
-    title: "Passwords Imported Successfully",
+    title: "Passwords imported successfully",
     progress: {
       [MigrationWizardConstants.DISPLAYED_FILE_RESOURCE_TYPES.PASSWORDS_NEW]: {
         value: MigrationWizardConstants.PROGRESS_VALUE.SUCCESS,

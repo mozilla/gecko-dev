@@ -2316,8 +2316,6 @@
   <string name="preference_doh_summary">Systém DNS (Domain Name System) přes HTTPS odesílá váš požadavek na název domény prostřednictvím šifrovaného připojení, čímž zajišťuje bezpečný systém DNS a znemožňuje ostatním zjistit, na kterou webovou stránku se chystáte vstoupit. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Zjistit více</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Přejít nahoru</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Výjimky</string>
   <!-- Content description for the "Info" button -->

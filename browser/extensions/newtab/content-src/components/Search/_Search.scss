@@ -66,6 +66,13 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
       }
     }
 
+    // Bug 1966715: Offset padding of the submit button so the reset button is visible
+    &.no-handoff {
+      input {
+        padding-inline-end: calc($search-button-width + var(--space-medium));
+      }
+    }
+
   }
 
   .search-handoff-button,

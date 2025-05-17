@@ -2312,8 +2312,6 @@
   <string name="preference_doh_summary">מערכת שמות מתחם (DNS) על גבי HTTPS שולחת את הבקשה שלך לשם מתחם דרך חיבור מוצפן, מספקת DNS מאובטח ומקשה על אחרים לראות לאיזה אתר הדפדפן עומד לגשת. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">מידע נוסף</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">ניווט למעלה</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">חריגות</string>
   <!-- Content description for the "Info" button -->

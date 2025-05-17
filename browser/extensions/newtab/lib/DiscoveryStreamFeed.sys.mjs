@@ -4,6 +4,7 @@
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
+  ContextId: "moz-src:///browser/modules/ContextId.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   ObliviousHTTP: "resource://gre/modules/ObliviousHTTP.sys.mjs",
@@ -28,17 +29,6 @@ import {
   actionTypes as at,
   actionCreators as ac,
 } from "resource://newtab/common/Actions.mjs";
-
-// `contextId` is a unique identifier used by Contextual Services
-const CONTEXT_ID_PREF = "browser.contextual-services.contextId";
-ChromeUtils.defineLazyGetter(lazy, "contextId", () => {
-  let _contextId = Services.prefs.getStringPref(CONTEXT_ID_PREF, null);
-  if (!_contextId) {
-    _contextId = String(Services.uuid.generateUUID());
-    Services.prefs.setStringPref(CONTEXT_ID_PREF, _contextId);
-  }
-  return _contextId;
-});
 
 const CACHE_KEY = "discovery_stream";
 const STARTUP_CACHE_EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000; // 1 week
@@ -1256,7 +1246,7 @@ export class DiscoveryStreamFeed {
             this.store.getState().Prefs.values[PREF_UNIFIED_ADS_BLOCKED_LIST];
 
           body = {
-            context_id: lazy.contextId,
+            context_id: await lazy.ContextId.request(),
             placements: unifiedAdsPlacements,
             blocks: blockedSponsors.split(","),
           };
@@ -1438,10 +1428,17 @@ export class DiscoveryStreamFeed {
         return;
       }
 
-      endpoint = `${endpointBaseUrl}v1/delete_user`;
-      body = {
-        context_id: lazy.contextId,
-      };
+      // If rotation is enabled, then the module is going to take care of
+      // sending the request to MARS to delete the context_id. Otherwise,
+      // we do it manually here.
+      if (lazy.ContextId.rotationEnabled) {
+        await lazy.ContextId.forceRotation();
+      } else {
+        endpoint = `${endpointBaseUrl}v1/delete_user`;
+        body = {
+          context_id: await lazy.ContextId.request(),
+        };
+      }
     }
 
     if (!endpoint) {
@@ -1734,6 +1731,7 @@ export class DiscoveryStreamFeed {
             url: item.url,
             title: item.title,
             topic: item.topic,
+            features: item.features,
             excerpt: item.excerpt,
             publisher: item.publisher,
             raw_image_src: item.imageUrl,
@@ -1798,6 +1796,7 @@ export class DiscoveryStreamFeed {
                     url: item.url,
                     title: item.title,
                     topic: item.topic,
+                    features: item.features,
                     excerpt: item.excerpt,
                     publisher: item.publisher,
                     raw_image_src: item.imageUrl,
@@ -1867,7 +1866,14 @@ export class DiscoveryStreamFeed {
               return { sectionId, title };
             });
         }
-
+        if (feedResponse.inferredLocalModel) {
+          this.store.dispatch(
+            ac.AlsoToMain({
+              type: at.INFERRED_PERSONALIZATION_MODEL_UPDATE,
+              data: feedResponse.inferredLocalModel || {},
+            })
+          );
+        }
         // We can cleanup any impressions we have that are old before we rotate.
         // In theory we can do this anywhere, but doing it just before rotate is optimal.
         // Rotate is also the only place that uses these impressions.
@@ -2878,13 +2884,15 @@ export class DiscoveryStreamFeed {
         break;
       case at.SECTION_PERSONALIZATION_SET:
         await this.cache.set("sectionPersonalization", action.data);
-
         this.store.dispatch(
           ac.BroadcastToContent({
             type: at.SECTION_PERSONALIZATION_UPDATE,
             data: action.data,
           })
         );
+        break;
+      case at.INFERRED_PERSONALIZATION_MODEL_UPDATE:
+        await this.cache.set("inferred_model", action.data);
     }
   }
 }

@@ -57,7 +57,7 @@ function with_dependent(mallocChars) {
     var TD6 = newDependentString(NB5, 32, { tenured: true });
 
     // Create a base NB4 that will be deduplicated to TB5 aka tenured(NB5).
-    var NB4 = newString(base, { tenured: false, newStringBuffer: mallocChars });
+    var NB4 = newString(base, { tenured: false });
 
     // Create a tenured dependent string that will be processed next, and lose its
     // pointer to the original nursery base NB4. Which is fine for itself since it
@@ -75,7 +75,8 @@ function with_dependent(mallocChars) {
     // Clear some roots.
     TD3 = NB4 = NB5 = "";
 
-    minorgc();
+    var preGC_ND2_rep = this.stringRepresentation ? JSON.parse(stringRepresentation(ND2)) : null;
+    gc();
     assertEq(ND2, "A TOE, A GIANT BLUE TOE, IT MADE FUN OF ME INCESSANTLY BUT THAT DID NOT BOTHER ME");
 }
 
@@ -117,7 +118,7 @@ function with_rope() {
     // Clear some roots.
     rope = suffix = TD3 = NB4 = NB5 = "";
 
-    minorgc();
+    gc();
     print(ND2);
     assertEq(ND2, "A TOE, A GIANT BLUE TOE, IT MADE FUN OF ME INCESSANTLY BUT THAT DID NOT BOTHER ME");
     // This only works because NB4 has the NON_DEDUP_BIT, and is an extensible
@@ -152,8 +153,6 @@ function atomref() {
     minorgc();
 }
 
-no_dedupe();
-with_dependent(false);
-with_dependent(true);
+with_dependent();
 with_rope();
 atomref();

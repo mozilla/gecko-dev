@@ -721,7 +721,7 @@
     Text to show users they have multiple pages in the history group section of the History fragment.
     %d is a placeholder for the number of pages in the group.
   -->
-  <string name="history_search_group_sites_1">%d بلگه یل</string>
+  <string name="history_search_group_sites_1">%d بلگه</string>
   <!-- Option in library for Recently Closed Tabs -->
   <string name="library_recently_closed_tabs">بلگه یلی ک سکو بسته وابین</string>
   <!-- Option in library to open Recently Closed Tabs page -->
@@ -730,7 +730,7 @@
     Text to show users they have multiple tabs saved in the Recently Closed Tabs section of history.
     %d is a placeholder for the number of tabs selected.
   -->
-  <string name="recently_closed_tabs">بلگه یل %d</string>
+  <string name="recently_closed_tabs">بلگه %d</string>
   <!--
     Text to show users they have one tab saved in the Recently Closed Tabs section of history.
     %d is a placeholder for the number of tabs selected.
@@ -1299,7 +1299,7 @@
   <!-- Title for the tabs item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_tabs_title_2">بلگه یل واز</string>
   <!-- Subtitle for the tabs item in Delete browsing data, %d is the number of open tabs -->
-  <string name="preferences_delete_browsing_data_tabs_subtitle">بلگه یل %d</string>
+  <string name="preferences_delete_browsing_data_tabs_subtitle">بلگه %d</string>
   <!--
     Title for the data and history items in Delete browsing data
 

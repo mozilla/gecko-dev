@@ -290,6 +290,7 @@ function CardSection({
               time_to_read={rec.time_to_read}
               title={rec.title}
               topic={rec.topic}
+              features={rec.features}
               excerpt={rec.excerpt}
               url={rec.url}
               id={rec.id}

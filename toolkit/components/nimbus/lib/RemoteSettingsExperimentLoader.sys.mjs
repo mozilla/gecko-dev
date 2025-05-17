@@ -350,34 +350,10 @@ export class _RemoteSettingsExperimentLoader {
 
     lazy.log.debug(`Updating recipes with trigger "${trigger ?? ""}"`);
 
-    const allRecipes = [];
-    let loadingError = false;
+    const { recipes: allRecipes, loadingError } =
+      await this.getRecipesFromAllCollections({ forceSync });
 
-    const experiments = await this.getRecipesFromCollection({
-      forceSync,
-      client: this.remoteSettingsClients[EXPERIMENTS_COLLECTION],
-      ...RS_COLLECTION_OPTIONS[EXPERIMENTS_COLLECTION],
-    });
-
-    if (experiments !== null) {
-      allRecipes.push(...experiments);
-    } else {
-      loadingError = true;
-    }
-
-    const secureExperiments = await this.getRecipesFromCollection({
-      forceSync,
-      client: this.remoteSettingsClients[SECURE_EXPERIMENTS_COLLECTION],
-      ...RS_COLLECTION_OPTIONS[SECURE_EXPERIMENTS_COLLECTION],
-    });
-
-    if (secureExperiments !== null) {
-      allRecipes.push(...secureExperiments);
-    } else {
-      loadingError = true;
-    }
-
-    if (allRecipes && !loadingError) {
+    if (!loadingError) {
       const enrollmentsCtx = new EnrollmentsContext(
         this.manager,
         recipeValidator,
@@ -414,6 +390,52 @@ export class _RemoteSettingsExperimentLoader {
     }
 
     Services.obs.notifyObservers(null, "nimbus:enrollments-updated");
+  }
+
+  /**
+   * Return the recipes from all collections.
+   *
+   * The recipes will be filtered based on the allowed and disallowed feature
+   * IDs.
+   *
+   * @see {@link getRecipesFromCollection}
+   *
+   * @param {object} options
+   * @param {boolean} options.forceSync Whether or not to force a sync when
+   * fetching recipes.
+   *
+   * @returns {Promise<{ recipes: object[]; loadingError: boolean; }>} The
+   * recipes from Remote Settings.
+   */
+  async getRecipesFromAllCollections({ forceSync = false } = {}) {
+    const recipes = [];
+    let loadingError = false;
+
+    const experiments = await this.getRecipesFromCollection({
+      forceSync,
+      client: this.remoteSettingsClients[EXPERIMENTS_COLLECTION],
+      ...RS_COLLECTION_OPTIONS[EXPERIMENTS_COLLECTION],
+    });
+
+    if (experiments !== null) {
+      recipes.push(...experiments);
+    } else {
+      loadingError = true;
+    }
+
+    const secureExperiments = await this.getRecipesFromCollection({
+      forceSync,
+      client: this.remoteSettingsClients[SECURE_EXPERIMENTS_COLLECTION],
+      ...RS_COLLECTION_OPTIONS[SECURE_EXPERIMENTS_COLLECTION],
+    });
+
+    if (secureExperiments !== null) {
+      recipes.push(...secureExperiments);
+    } else {
+      loadingError = true;
+    }
+
+    return { recipes, loadingError };
   }
 
   /**

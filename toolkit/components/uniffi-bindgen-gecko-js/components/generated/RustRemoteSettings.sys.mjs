@@ -172,7 +172,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerRemoteSettings() {
-        const pointerId = 1; // remote_settings:RemoteSettings
+        const pointerId = 2; // remote_settings:RemoteSettings
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -182,7 +182,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerRemoteSettings(value) {
-        const pointerId = 1; // remote_settings:RemoteSettings
+        const pointerId = 2; // remote_settings:RemoteSettings
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -192,7 +192,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerRemoteSettingsClient() {
-        const pointerId = 2; // remote_settings:RemoteSettingsClient
+        const pointerId = 3; // remote_settings:RemoteSettingsClient
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -202,7 +202,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerRemoteSettingsClient(value) {
-        const pointerId = 2; // remote_settings:RemoteSettingsClient
+        const pointerId = 3; // remote_settings:RemoteSettingsClient
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -212,7 +212,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerRemoteSettingsService() {
-        const pointerId = 3; // remote_settings:RemoteSettingsService
+        const pointerId = 4; // remote_settings:RemoteSettingsService
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -222,7 +222,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerRemoteSettingsService(value) {
-        const pointerId = 3; // remote_settings:RemoteSettingsService
+        const pointerId = 4; // remote_settings:RemoteSettingsService
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -464,7 +464,7 @@ export class RemoteSettings {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                16, // remote_settings:uniffi_remote_settings_fn_constructor_remotesettings_new
+                20, // remote_settings:uniffi_remote_settings_fn_constructor_remotesettings_new
                 FfiConverterTypeRemoteSettingsConfig.lower(remoteSettingsConfig),
             )
         }
@@ -494,7 +494,7 @@ export class RemoteSettings {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                13, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path
+                17, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path
                 FfiConverterTypeRemoteSettings.lower(this),
                 FfiConverterString.lower(attachmentId),
                 FfiConverterString.lower(path),
@@ -516,7 +516,7 @@ export class RemoteSettings {
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                14, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records
+                18, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records
                 FfiConverterTypeRemoteSettings.lower(this),
             )
         }
@@ -545,7 +545,7 @@ export class RemoteSettings {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                15, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records_since
+                19, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records_since
                 FfiConverterTypeRemoteSettings.lower(this),
                 FfiConverterU64.lower(timestamp),
             )
@@ -616,7 +616,7 @@ export class RemoteSettingsClient {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                17, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_collection_name
+                21, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_collection_name
                 FfiConverterTypeRemoteSettingsClient.lower(this),
             )
         }
@@ -652,7 +652,7 @@ export class RemoteSettingsClient {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                18, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_attachment
+                22, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_attachment
                 FfiConverterTypeRemoteSettingsClient.lower(this),
                 FfiConverterTypeRemoteSettingsRecord.lower(record),
             )
@@ -696,7 +696,7 @@ export class RemoteSettingsClient {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                19, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records
+                23, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records
                 FfiConverterTypeRemoteSettingsClient.lower(this),
                 FfiConverterBool.lower(syncIfEmpty),
             )
@@ -728,7 +728,7 @@ export class RemoteSettingsClient {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                20, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records_map
+                24, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records_map
                 FfiConverterTypeRemoteSettingsClient.lower(this),
                 FfiConverterBool.lower(syncIfEmpty),
             )
@@ -748,7 +748,7 @@ export class RemoteSettingsClient {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                21, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_shutdown
+                25, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_shutdown
                 FfiConverterTypeRemoteSettingsClient.lower(this),
             )
         }
@@ -767,7 +767,7 @@ export class RemoteSettingsClient {
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                22, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_sync
+                26, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_sync
                 FfiConverterTypeRemoteSettingsClient.lower(this),
             )
         }
@@ -862,7 +862,7 @@ export class RemoteSettingsService {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                26, // remote_settings:uniffi_remote_settings_fn_constructor_remotesettingsservice_new
+                30, // remote_settings:uniffi_remote_settings_fn_constructor_remotesettingsservice_new
                 FfiConverterString.lower(storageDir),
                 FfiConverterTypeRemoteSettingsConfig2.lower(config),
             )
@@ -888,7 +888,7 @@ export class RemoteSettingsService {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                23, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_make_client
+                27, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_make_client
                 FfiConverterTypeRemoteSettingsService.lower(this),
                 FfiConverterString.lower(collectionName),
             )
@@ -909,7 +909,7 @@ export class RemoteSettingsService {
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                24, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_sync
+                28, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_sync
                 FfiConverterTypeRemoteSettingsService.lower(this),
             )
         }
@@ -942,7 +942,7 @@ export class RemoteSettingsService {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                25, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_update_config
+                29, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_update_config
                 FfiConverterTypeRemoteSettingsService.lower(this),
                 FfiConverterTypeRemoteSettingsConfig2.lower(config),
             )

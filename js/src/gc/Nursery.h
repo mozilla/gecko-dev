@@ -553,6 +553,9 @@ class Nursery {
   // vector. Shrinks the vector but does not update maxChunkCount().
   void freeChunksFrom(Space& space, unsigned firstFreeChunk);
 
+  // During a semispace nursery collection, return whether a cell in fromspace
+  // was in the tospace of the previous collection, meaning that it should be
+  // tenured in this collection.
   inline bool shouldTenure(gc::Cell* cell);
 
   void sendTelemetry(JS::GCReason reason, mozilla::TimeDuration totalTime,

@@ -5558,6 +5558,15 @@ QuotaManager::OpenClientDirectory(
         MakeBackInserter(promises));
   }
 
+  RefPtr<UniversalDirectoryLock> clientInitDirectoryLock =
+      CreateDirectoryLockInternal(
+          PersistenceScope::CreateFromValue(aClientMetadata.mPersistenceType),
+          OriginScope::FromOrigin(aClientMetadata),
+          ClientStorageScope::CreateFromClient(aClientMetadata.mClientType),
+          /* aExclusive */ false);
+
+  promises.AppendElement(clientInitDirectoryLock->Acquire());
+
   RefPtr<ClientDirectoryLock> clientDirectoryLock =
       CreateDirectoryLock(aClientMetadata, /* aExclusive */ false);
 
@@ -5608,6 +5617,23 @@ QuotaManager::OpenClientDirectory(
                            aClientMetadata, aCreateIfNonExistent,
                            std::move(originDirectoryLock));
                      }))
+          ->Then(
+              GetCurrentSerialEventTarget(), __func__,
+              MaybeInitialize(
+                  std::move(clientInitDirectoryLock),
+                  [self = RefPtr(this), aClientMetadata,
+                   aCreateIfNonExistent](RefPtr<UniversalDirectoryLock>
+                                             clientInitDirectoryLock) mutable {
+                    if (aClientMetadata.mPersistenceType ==
+                        PERSISTENCE_TYPE_PERSISTENT) {
+                      return self->InitializePersistentClient(
+                          aClientMetadata, std::move(clientInitDirectoryLock));
+                    }
+
+                    return self->InitializeTemporaryClient(
+                        aClientMetadata, aCreateIfNonExistent,
+                        std::move(clientInitDirectoryLock));
+                  }))
           ->Then(
               GetCurrentSerialEventTarget(), __func__,
               [clientDirectoryLock = std::move(clientDirectoryLock)](

@@ -2316,8 +2316,6 @@
   <string name="preference_doh_summary">Domain Name System (DNS) over HTTPS は暗号化された接続を通してドメイン名の要求を送信します。この安全な DNS によって、あなたがアクセスしようとしているウェブサイトを他者に知られないようにします。%1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">詳細情報</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">上へ移動</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">例外サイト</string>
   <!-- Content description for the "Info" button -->

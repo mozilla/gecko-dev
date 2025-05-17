@@ -995,20 +995,19 @@ JSString* js::gc::TenuringTracer::promoteString(JSString* src) {
     //     StringRelocationOverlay during promotion)
 
     JSLinearString* base = src->asDependent().rootBaseDuringMinorGC();
-    if (!InCollectedNurseryRegion(base)) {
-      StringRelocationOverlay::forwardDependentString(src, dst);
-    } else {
-      // Limited recursion: the root base cannot be dependent, so this will not
-      // recurse again.
-      JSString* promotedBase = promoteOrForward(base);
-      MOZ_ASSERT(!promotedBase->isDependent());
-      if (dst->isTenured() && !promotedBase->isTenured()) {
-        MOZ_ASSERT(!InCollectedNurseryRegion(promotedBase));
-        runtime()->gc.storeBuffer().putWholeCell(dst);
-      }
-      StringRelocationOverlay::forwardDependentString(src, dst);
+
+    // Limited recursion: the root base cannot be dependent, so this will not
+    // recurse again.
+    JSString* promotedBase =
+        InCollectedNurseryRegion(base) ? promoteOrForward(base) : base;
+    MOZ_ASSERT(!promotedBase->isDependent());
+
+    dst->asDependent().setBase(&promotedBase->asLinear());
+    if (InCollectedNurseryRegion(base)) {
       dst->asDependent().updateToPromotedBase(base);
     }
+
+    StringRelocationOverlay::forwardDependentString(src, dst);
   } else {
     // Non-dependent string: store the original chars pointer in the nursery
     // cell (for future promotions of any dependent strings that use this string
@@ -1103,9 +1102,12 @@ size_t js::gc::TenuringTracer::moveString(JSString* dst, JSString* src,
     // base was deduplicated, or its root base's chars were allocated in the
     // nursery. If src's chars pointer will no longer be valid once minor GC is
     // complete, give it its own copy of the chars.
-    size_t cloned =
-        JSLinearString::maybeCloneCharsOnPromotion(&dst->asDependent());
-    return size + cloned;
+    //
+    // Note that the size of any cloned data is *not* included in the "number
+    // of bytes tenured" return value here, since the donor owns them and may
+    // still be alive and we don't want to double-count.
+    JSLinearString::maybeCloneCharsOnPromotion(&dst->asDependent());
+    return size;
   }
 
   if (!src->hasOutOfLineChars()) {

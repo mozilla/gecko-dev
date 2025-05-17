@@ -549,7 +549,7 @@ export class FfiConverterTypeApplicationErrorReporter extends FfiConverter {
 
 const callbackHandlerApplicationErrorReporter = new UniFFICallbackHandler(
     "errorsupport:ApplicationErrorReporter",
-    0,
+    1,
     [
         new UniFFICallbackMethodHandler(
             "reportError",
@@ -594,7 +594,7 @@ export function setApplicationErrorReporter(errorReporter) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                0, // errorsupport:uniffi_error_support_fn_func_set_application_error_reporter
+                4, // errorsupport:uniffi_error_support_fn_func_set_application_error_reporter
                 FfiConverterTypeApplicationErrorReporter.lower(errorReporter),
             )
         }
@@ -615,7 +615,7 @@ export function unsetApplicationErrorReporter() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                1, // errorsupport:uniffi_error_support_fn_func_unset_application_error_reporter
+                5, // errorsupport:uniffi_error_support_fn_func_unset_application_error_reporter
             )
         }
         try {

@@ -2309,8 +2309,6 @@
   <string name="preference_etp_exceptions_icon_description">የተሻሻለ የመከታተያ ጥበቃ ልዩ ምርጫ አዶ</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">የበለጠ ለማወቅ</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">ወደ ላይ አስስ</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">ልዩ ሁኔታዎች</string>
   <!-- Content description for the "Info" button -->

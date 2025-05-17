@@ -1397,7 +1397,7 @@ CodeOffset MacroAssembler::farJumpWithPatch() {
 
   mozilla::DebugOnly<uint32_t> after = currentOffset();
 
-  MOZ_ASSERT(after - before == 24 || after - before == 28);
+  MOZ_ASSERT_IF(!oom(), after - before == 24 || after - before == 28);
 
   return offs;
 }

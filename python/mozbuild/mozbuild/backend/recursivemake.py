@@ -6,13 +6,13 @@ import logging
 import os
 import re
 from collections import defaultdict, namedtuple
+from functools import reduce
+from io import StringIO
 from itertools import chain
 from operator import itemgetter
 
 import mozpack.path as mozpath
-import six
 from mozpack.manifests import InstallManifest
-from six import StringIO
 
 from mozbuild import frontend
 from mozbuild.frontend.context import (
@@ -166,8 +166,7 @@ class BackendMakeFile:
         self.fh.write(buf)
 
     def write_once(self, buf):
-        buf = six.ensure_text(buf)
-        if "\n" + buf not in six.ensure_text(self.fh.getvalue()):
+        if "\n" + buf not in self.fh.getvalue().decode():
             self.write(buf)
 
     # For compatibility with makeutil.Makefile
@@ -762,7 +761,7 @@ class RecursiveMakeBackend(MakeBackend):
             rule.add_dependencies(["%s/pre-compile" % relobjdir])
 
         all_compile_deps = (
-            six.moves.reduce(lambda x, y: x | y, self._compile_graph.values())
+            reduce(lambda x, y: x | y, self._compile_graph.values())
             if self._compile_graph
             else set()
         )

@@ -498,7 +498,7 @@ export class GPUTestBase extends Fixture<GPUTestSubcaseBatchState> {
       const feature = getRequiredFeatureForTextureFormat(format);
       this.skipIf(
         !!feature && !this.device.features.has(feature),
-        `texture format '${format}' requires feature: '${feature}`
+        `texture format '${format}' requires feature: '${feature}'`
       );
     }
   }

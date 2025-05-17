@@ -10,9 +10,6 @@ const { LogManager } = ChromeUtils.importESModule(
 const { Log } = ChromeUtils.importESModule(
   "resource://gre/modules/Log.sys.mjs"
 );
-const { FileUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/FileUtils.sys.mjs"
-);
 const logManagerDefaultOptions = {
   logFileSubDirectoryEntries: ["weave", "logs"],
   testTopicPrefix: "services-tests:common:log-manager:",

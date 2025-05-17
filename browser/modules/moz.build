@@ -146,6 +146,10 @@ EXTRA_JS_MODULES += [
     "ZoomUI.sys.mjs",
 ]
 
+MOZ_SRC_FILES += [
+    "ContextId.sys.mjs",
+]
+
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
     EXTRA_JS_MODULES += [
         "FilePickerCrashed.sys.mjs",

@@ -2,12 +2,6 @@
 
 const PROFILE_DIR = do_get_profile().path;
 
-const { FileUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/FileUtils.sys.mjs"
-);
-const { Sqlite } = ChromeUtils.importESModule(
-  "resource://gre/modules/Sqlite.sys.mjs"
-);
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );

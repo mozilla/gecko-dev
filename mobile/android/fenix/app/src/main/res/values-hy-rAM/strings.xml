@@ -2315,8 +2315,6 @@
   <string name="preference_doh_summary">Տիրույթի անվան համակարգը (DNS) HTTPS-ի միջով ուղարկում է Ձեր հարցումները տիրույթի անվան համար գաղտնագրված կապով՝ ստեղծելով անվտանգ DNS և ուրիշների համար դժարացնելով տեսնել այն կայքը, որին հասանելիություն ունենալու շեմին եք: %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Իմանալ ավելին</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Նավարկել վերև</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Բացառություններ</string>
   <!-- Content description for the "Info" button -->

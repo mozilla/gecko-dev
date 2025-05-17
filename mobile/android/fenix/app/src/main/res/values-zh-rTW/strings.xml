@@ -2316,8 +2316,6 @@
   <string name="preference_doh_summary">DNS over HTTPS 會將您的網域名稱查詢請求加密後傳送，使其他人更難得知您要開啟的網站，讓 DNS 查詢變得安全。%1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">更多資訊</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">向上導航</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">例外網站</string>
   <!-- Content description for the "Info" button -->

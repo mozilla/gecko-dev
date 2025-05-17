@@ -6,12 +6,26 @@
 const { PrincipalUtils } = ChromeUtils.importESModule(
   "resource://testing-common/dom/quota/test/modules/PrincipalUtils.sys.mjs"
 );
+const { QuotaUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/dom/quota/test/modules/QuotaUtils.sys.mjs"
+);
 const { TestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TestUtils.sys.mjs"
 );
 
 add_task(async function testSteps() {
   const principal = PrincipalUtils.createPrincipal("https://example.com");
+
+  info("Clearing");
+
+  {
+    const request = Services.qms.clear();
+    await QuotaUtils.requestFinished(request);
+  }
+
+  info("Installing package");
+
+  installPackage("somedata_profile");
 
   info("Starting database opening");
 

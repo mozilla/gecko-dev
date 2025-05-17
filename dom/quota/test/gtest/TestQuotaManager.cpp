@@ -1178,7 +1178,7 @@ TEST_F(TestQuotaManager, OpenClientDirectory_InitializeOrigin) {
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
 
-  auto backgroundTest = [](bool aInitializeOrigin) {
+  PerformOnBackgroundThread([]() {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
@@ -1186,7 +1186,8 @@ TEST_F(TestQuotaManager, OpenClientDirectory_InitializeOrigin) {
 
     RefPtr<BoolPromise> promise =
         quotaManager
-            ->OpenClientDirectory(GetTestClientMetadata(), aInitializeOrigin)
+            ->OpenClientDirectory(GetTestClientMetadata(),
+                                  /* aInitializeOrigin */ true)
             ->Then(GetCurrentSerialEventTarget(), __func__,
                    [&directoryLockHandle](
                        QuotaManager::ClientDirectoryLockHandlePromise::
@@ -1203,21 +1204,19 @@ TEST_F(TestQuotaManager, OpenClientDirectory_InitializeOrigin) {
                      return BoolPromise::CreateAndResolve(true, __func__);
                    })
             ->Then(quotaManager->IOThread(), __func__,
-                   [aInitializeOrigin](
-                       const BoolPromise::ResolveOrRejectValue& aValue) {
+                   [](const BoolPromise::ResolveOrRejectValue& aValue) {
                      if (aValue.IsReject()) {
                        return BoolPromise::CreateAndReject(aValue.RejectValue(),
                                                            __func__);
                      }
 
-                     [aInitializeOrigin]() {
+                     []() {
                        QuotaManager* quotaManager = QuotaManager::Get();
                        ASSERT_TRUE(quotaManager);
 
-                       ASSERT_EQ(
+                       ASSERT_TRUE(
                            quotaManager->IsTemporaryOriginInitializedInternal(
-                               GetTestOriginMetadata()),
-                           aInitializeOrigin);
+                               GetTestOriginMetadata()));
                      }();
 
                      return BoolPromise::CreateAndResolve(true, __func__);
@@ -1243,17 +1242,29 @@ TEST_F(TestQuotaManager, OpenClientDirectory_InitializeOrigin) {
       ASSERT_TRUE(value.IsResolve());
       ASSERT_TRUE(value.ResolveValue());
     }
-  };
-
-  ASSERT_NO_FATAL_FAILURE(
-      PerformOnBackgroundThread(backgroundTest, /* aInitializeOrigin */ true));
+  });
   ASSERT_NO_FATAL_FAILURE(
       AssertTemporaryOriginInitialized(GetTestOriginMetadata()));
 
   ASSERT_NO_FATAL_FAILURE(ClearStoragesForOrigin(GetTestOriginMetadata()));
 
-  ASSERT_NO_FATAL_FAILURE(
-      PerformOnBackgroundThread(backgroundTest, /* aInitializeOrigin */ false));
+  PerformOnBackgroundThread([]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    ClientDirectoryLockHandle directoryLockHandle;
+
+    RefPtr<QuotaManager::ClientDirectoryLockHandlePromise> promise =
+        quotaManager->OpenClientDirectory(GetTestClientMetadata(),
+                                          /* aInitializeOrigin */ false);
+
+    {
+      auto value = Await(promise);
+      ASSERT_TRUE(value.IsReject());
+      ASSERT_EQ(value.RejectValue(),
+                NS_ERROR_DOM_QM_CLIENT_INIT_ORIGIN_UNINITIALIZED);
+    }
+  });
   ASSERT_NO_FATAL_FAILURE(
       AssertTemporaryOriginNotInitialized(GetTestOriginMetadata()));
 

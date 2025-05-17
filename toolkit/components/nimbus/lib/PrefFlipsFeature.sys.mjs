@@ -275,12 +275,51 @@ export class PrefFlipsFeature {
     }
   }
 
+  _annotateEnrollment(enrollment) {
+    const { featureIds } = enrollment;
+    if (!featureIds.includes(FEATURE_ID)) {
+      return;
+    }
+
+    const prefs =
+      lazy.ExperimentManager.getFeatureConfigFromBranch(
+        enrollment.branch,
+        FEATURE_ID
+      ).value.prefs ?? {};
+
+    const originalValues = this.manager._handlePrefFlipsConflict(
+      enrollment.slug,
+      Object.entries(prefs).map(([pref, { branch }]) => [pref, branch])
+    );
+
+    for (const [pref, { branch }] of Object.entries(prefs)) {
+      if (this.#prefs.has(pref)) {
+        originalValues[pref] = this.#prefs.get(pref).originalValue;
+      } else {
+        originalValues[pref] = Object.hasOwn(originalValues, pref)
+          ? originalValues[pref]
+          : lazy.PrefUtils.getPref(pref, { branch });
+      }
+    }
+
+    // Cache the original values one the enrollment so they can be restored upon
+    // unenrollment.
+    if (!Object.hasOwn(enrollment, "prefFlips")) {
+      enrollment.prefFlips = {};
+    }
+
+    enrollment.prefFlips.originalValues = originalValues;
+  }
+
   /**
    * Start tracking an enrollment.
    *
    * This will register prefs for the enrollment. If we have already registered
    * any of the prefs for this enrollment, the values and branches must match or
    * this enrollment will be unenrolled.
+   *
+   * NB: The enrollment must have already been annotated by a call to
+   * {@link _annotateEnrollment}, which occurrs in `ExperimentManager.enroll()`.
    *
    * @param {object} enrollment
    *        The enrollment we are tracking.
@@ -293,10 +332,7 @@ export class PrefFlipsFeature {
         FEATURE_ID
       ).value.prefs ?? {};
 
-    const originalValues = this.manager._handlePrefFlipsConflict(
-      enrollment.slug,
-      Object.entries(prefs).map(([pref, { branch }]) => [pref, branch])
-    );
+    const originalValues = enrollment.prefFlips.originalValues;
 
     const prefsBySlug = new Set();
     this.#prefsBySlug.set(slug, prefsBySlug);
@@ -305,15 +341,14 @@ export class PrefFlipsFeature {
       try {
         if (this.#prefs.has(pref)) {
           this.#registerExistingPref(slug, pref, branch, value);
-
-          originalValues[pref] = this.#prefs.get(pref).originalValue;
         } else {
-          const originalValue = Object.hasOwn(originalValues, pref)
-            ? originalValues[pref]
-            : lazy.PrefUtils.getPref(pref, { branch });
-          this.#registerNewPref(slug, pref, branch, value, originalValue);
-
-          originalValues[pref] = originalValue;
+          this.#registerNewPref(
+            slug,
+            pref,
+            branch,
+            value,
+            originalValues[pref]
+          );
         }
 
         prefsBySlug.add(pref);
@@ -322,14 +357,6 @@ export class PrefFlipsFeature {
         return;
       }
     }
-
-    // Cache the original values one the enrollment so they can be restored upon
-    // unenrollment.
-    if (!Object.hasOwn(enrollment, "prefFlips")) {
-      enrollment.prefFlips = {};
-    }
-
-    enrollment.prefFlips.originalValues = originalValues;
   }
 
   /**

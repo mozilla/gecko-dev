@@ -56,7 +56,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.doReturn
+import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 
 @RunWith(AndroidJUnit4::class)
 class EngineObserverTest {
@@ -324,6 +326,218 @@ class EngineObserverTest {
         store.waitUntilIdle()
 
         assertEquals(listOf(tracker1, tracker2), store.state.tabs[0].trackingProtection.blockedTrackers)
+    }
+
+    @Test
+    fun `WHEN the first page load is complete, set the translations initialized`() {
+        val engineSession = object : EngineSession() {
+            override val settings: Settings = mock()
+            override fun goBack(userInteraction: Boolean) {}
+            override fun goForward(userInteraction: Boolean) {}
+            override fun goToHistoryIndex(index: Int) {}
+            override fun stopLoading() {}
+            override fun reload(flags: LoadUrlFlags) {}
+            override fun restoreState(state: EngineSessionState): Boolean { return false }
+            override fun updateTrackingProtection(policy: TrackingProtectionPolicy) {}
+            override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
+            override fun hasCookieBannerRuleForSession(
+                onResult: (Boolean) -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
+            override fun checkForPdfViewer(
+                onResult: (Boolean) -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
+            override fun getWebCompatInfo(
+                onResult: (JSONObject) -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
+            override fun sendMoreWebCompatInfo(
+                info: JSONObject,
+                onResult: () -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
+            override fun requestTranslate(
+                fromLanguage: String,
+                toLanguage: String,
+                options: TranslationOptions?,
+            ) {}
+            override fun requestTranslationRestore() {}
+            override fun getNeverTranslateSiteSetting(
+                onResult: (Boolean) -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
+            override fun setNeverTranslateSiteSetting(
+                setting: Boolean,
+                onResult: () -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
+            override fun findAll(text: String) {}
+            override fun findNext(forward: Boolean) {}
+            override fun clearFindMatches() {}
+            override fun exitFullScreenMode() {}
+            override fun purgeHistory() {}
+            override fun loadData(data: String, mimeType: String, encoding: String) {}
+            override fun requestPdfToDownload() = Unit
+            override fun requestPrintContent() = Unit
+            override fun loadUrl(
+                url: String,
+                parent: EngineSession?,
+                flags: LoadUrlFlags,
+                additionalHeaders: Map<String, String>?,
+                originalInput: String?,
+                textDirectiveUserActivation: Boolean,
+            ) {
+                notifyObservers { onProgress(100) }
+            }
+        }
+
+        val store = BrowserStore(
+            initialState = BrowserState(
+                tabs = listOf(
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+            ),
+        )
+
+        assertEquals(false, store.state.translationsInitialized)
+
+        engineSession.register(EngineObserver("mozilla", store))
+
+        engineSession.loadUrl("https://mozilla.org")
+        store.waitUntilIdle()
+
+        assertEquals(true, store.state.translationsInitialized)
+    }
+
+    @Test
+    fun `WHEN the first page load is not complete, do not set the translations initialized`() {
+        val engineSession = object : EngineSession() {
+            override val settings: Settings = mock()
+            override fun goBack(userInteraction: Boolean) {}
+            override fun goForward(userInteraction: Boolean) {}
+            override fun goToHistoryIndex(index: Int) {}
+            override fun stopLoading() {}
+            override fun reload(flags: LoadUrlFlags) {}
+            override fun restoreState(state: EngineSessionState): Boolean { return false }
+            override fun updateTrackingProtection(policy: TrackingProtectionPolicy) {}
+            override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
+            override fun hasCookieBannerRuleForSession(
+                onResult: (Boolean) -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
+            override fun checkForPdfViewer(
+                onResult: (Boolean) -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
+            override fun getWebCompatInfo(
+                onResult: (JSONObject) -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
+            override fun sendMoreWebCompatInfo(
+                info: JSONObject,
+                onResult: () -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
+            override fun requestTranslate(
+                fromLanguage: String,
+                toLanguage: String,
+                options: TranslationOptions?,
+            ) {}
+            override fun requestTranslationRestore() {}
+            override fun getNeverTranslateSiteSetting(
+                onResult: (Boolean) -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
+            override fun setNeverTranslateSiteSetting(
+                setting: Boolean,
+                onResult: () -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
+            override fun findAll(text: String) {}
+            override fun findNext(forward: Boolean) {}
+            override fun clearFindMatches() {}
+            override fun exitFullScreenMode() {}
+            override fun purgeHistory() {}
+            override fun loadData(data: String, mimeType: String, encoding: String) {}
+            override fun requestPdfToDownload() = Unit
+            override fun requestPrintContent() = Unit
+            override fun loadUrl(
+                url: String,
+                parent: EngineSession?,
+                flags: LoadUrlFlags,
+                additionalHeaders: Map<String, String>?,
+                originalInput: String?,
+                textDirectiveUserActivation: Boolean,
+            ) {
+                notifyObservers { onProgress(80) }
+            }
+        }
+
+        val store = BrowserStore(
+            initialState = BrowserState(
+                tabs = listOf(
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+            ),
+        )
+
+        assertEquals(false, store.state.translationsInitialized)
+
+        engineSession.register(EngineObserver("mozilla", store))
+
+        engineSession.loadUrl("https://mozilla.org")
+        store.waitUntilIdle()
+
+        assertEquals(false, store.state.translationsInitialized)
+    }
+
+    @Test
+    fun `Do not initialize the translations flow if the page load is not complete`() {
+        val store: BrowserStore = mock()
+        val state: BrowserState = mock()
+        `when`(store.state).thenReturn(state)
+        `when`(store.state.translationsInitialized).thenReturn(false)
+
+        val observer = EngineObserver("mozilla", store)
+
+        observer.onProgress(80)
+
+        verify(store, never()).dispatch(
+            TranslationsAction.InitTranslationsBrowserState,
+        )
+    }
+
+    @Test
+    fun `Initialize the translations flow if page load is complete and it is not yet initialized`() {
+        val store: BrowserStore = mock()
+        val state: BrowserState = mock()
+        `when`(store.state).thenReturn(state)
+        `when`(store.state.translationsInitialized).thenReturn(false)
+
+        val observer = EngineObserver("mozilla", store)
+
+        observer.onProgress(100)
+
+        verify(store).dispatch(
+            TranslationsAction.InitTranslationsBrowserState,
+        )
+    }
+
+    @Test
+    fun `Do not initialize the translations flow if it is already initialized`() {
+        val store: BrowserStore = mock()
+        val state: BrowserState = mock()
+        `when`(store.state).thenReturn(state)
+        `when`(store.state.translationsInitialized).thenReturn(true)
+
+        val observer = EngineObserver("mozilla", store)
+
+        observer.onProgress(100)
+
+        verify(store, never()).dispatch(
+            TranslationsAction.InitTranslationsBrowserState,
+        )
     }
 
     @Test

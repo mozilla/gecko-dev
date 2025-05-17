@@ -2289,8 +2289,6 @@
   <string name="preference_doh_summary">Nomregna sistemo (DNS) tra HTTPS sendas vian peton por nomregna nomo tra ĉifrita konekto, kio provizas pli sekuran DNS kaj malhelpas al aliaj vidi, kiun retejon vi pretas aliri. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Pli da informo</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Iri supren</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Esceptoj</string>
   <!-- Content description for the "Info" button -->

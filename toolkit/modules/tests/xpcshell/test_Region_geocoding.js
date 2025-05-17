@@ -6,9 +6,6 @@ const { Region } = ChromeUtils.importESModule(
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
-const { TestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/TestUtils.sys.mjs"
-);
 
 ChromeUtils.defineESModuleGetters(this, {
   RegionTestUtils: "resource://testing-common/RegionTestUtils.sys.mjs",

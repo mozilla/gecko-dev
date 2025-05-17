@@ -202,21 +202,19 @@ class JujutsuRepository(Repository):
                 outgoing.append(mozpath.normsep(file))
         return outgoing
 
-    def add_remove_files(self, *paths: Union[str, Path]):
+    def add_remove_files(self, *paths: Union[str, Path], force: bool = False):
         if not paths:
             return
 
-        paths = [str(path) for path in paths]
-
-        self._run("file", "track", *paths)
+        relative_paths = [self._repo_root_relative_path(p) for p in paths]
+        self._run("file", "track", *relative_paths)
 
     def forget_add_remove_files(self, *paths: Union[str, Path]):
         if not paths:
             return
 
-        paths = [str(path) for path in paths]
-
-        self._run_read_only("file", "untrack", *paths)
+        relative_paths = [self._repo_root_relative_path(p) for p in paths]
+        self._run("file", "untrack", *relative_paths)
 
     def get_tracked_files_finder(self, path=None):
         files = [mozpath.normsep(p) for p in self._run("file", "list").splitlines()]

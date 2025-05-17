@@ -11,14 +11,8 @@ const { GMPExtractor, GMPInstallManager } = ChromeUtils.importESModule(
 const { setTimeout } = ChromeUtils.importESModule(
   "resource://gre/modules/Timer.sys.mjs"
 );
-const { FileUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/FileUtils.sys.mjs"
-);
 const { HttpServer } = ChromeUtils.importESModule(
   "resource://testing-common/httpd.sys.mjs"
-);
-const { Preferences } = ChromeUtils.importESModule(
-  "resource://gre/modules/Preferences.sys.mjs"
 );
 const { UpdateUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/UpdateUtils.sys.mjs"
@@ -28,9 +22,6 @@ const { GMPPrefs, OPEN_H264_ID } = ChromeUtils.importESModule(
 );
 const { ProductAddonCheckerTestUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/addons/ProductAddonChecker.sys.mjs"
-);
-const { AppConstants } = ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
 );
 
 Services.prefs.setBoolPref("security.allow_eval_with_system_principal", true);

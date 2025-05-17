@@ -13,7 +13,6 @@ import sys
 import traceback
 
 import buildconfig
-import six
 
 from mozbuild.makeutil import Makefile
 from mozbuild.pythonutil import iter_modules_in_path
@@ -115,7 +114,7 @@ def main(argv):
             # file. Python module imports are automatically included as
             # dependencies.
             if isinstance(ret, set):
-                deps = set(six.ensure_text(s) for s in ret)
+                deps = ret
                 # The script succeeded, so reset |ret| to indicate that.
                 ret = None
             else:
@@ -126,14 +125,14 @@ def main(argv):
                 # Add dependencies on any python modules that were imported by
                 # the script.
                 deps |= set(
-                    six.ensure_text(s)
+                    s
                     for s in iter_modules_in_path(
                         buildconfig.topsrcdir, buildconfig.topobjdir
                     )
                 )
                 # Add dependencies on any buildconfig items that were accessed
                 # by the script.
-                deps |= set(six.ensure_text(s) for s in buildconfig.get_dependencies())
+                deps |= set(buildconfig.get_dependencies())
 
                 mk = Makefile()
                 mk.create_rule([args.dep_target]).add_dependencies(deps)
