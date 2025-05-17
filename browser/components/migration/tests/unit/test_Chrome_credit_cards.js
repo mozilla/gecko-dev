@@ -116,11 +116,13 @@ add_task(async function test_credit_cards() {
       "Default",
     ];
   } else if (AppConstants.platform == "win") {
+    // We no longer support importing payment methods from Chrome on Windows,
+    // but we can still do it for other Chrome-based browsers like Edge.
     let { ChromeWindowsLoginCrypto } = ChromeUtils.importESModule(
       "resource:///modules/ChromeWindowsLoginCrypto.sys.mjs"
     );
-    loginCrypto = new ChromeWindowsLoginCrypto("Chrome");
-    profilePathSegments = ["Google", "Chrome", "User Data", "Default"];
+    loginCrypto = new ChromeWindowsLoginCrypto("Edge");
+    profilePathSegments = ["Microsoft", "Edge", "User Data", "Default"];
   } else {
     throw new Error("Not implemented");
   }
@@ -170,7 +172,11 @@ add_task(async function test_credit_cards() {
 
   await dbConn.close();
 
-  let migrator = await MigrationUtils.getMigrator("chrome");
+  // We no longer support importing payment methods from Chrome on Windows,
+  // but we can still do it for other Chrome-based browsers like Edge.
+  let migratorKey = AppConstants.platform == "win" ? "chromium-edge" : "chrome";
+  let migrator = await MigrationUtils.getMigrator(migratorKey);
+
   if (AppConstants.platform == "macosx") {
     Object.assign(migrator, {
       _keychainServiceName: mockMacOSKeychain.serviceName,
