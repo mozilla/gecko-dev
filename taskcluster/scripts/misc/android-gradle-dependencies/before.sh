@@ -29,7 +29,8 @@ export NEXUS_WORK=${WORKSPACE}/sonatype-nexus-work
 mkdir -p ${NEXUS_WORK}/conf
 cp ${WORKSPACE}/build/src/taskcluster/scripts/misc/android-gradle-dependencies/nexus.xml ${NEXUS_WORK}/conf/nexus.xml
 
-RUN_AS_USER=worker $MOZ_FETCHES_DIR/sonatype-nexus/bin/nexus restart
+# Nexus needs Java 8
+PATH=$MOZ_FETCHES_DIR/jdk-8/bin:$PATH RUN_AS_USER=worker $MOZ_FETCHES_DIR/sonatype-nexus/bin/nexus restart
 
 # Wait "a while" for Nexus to actually start.  Don't fail if this fails.
 wget --quiet --retry-connrefused --waitretry=2 --tries=100 \
