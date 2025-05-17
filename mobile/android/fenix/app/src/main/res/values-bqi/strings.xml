@@ -76,6 +76,18 @@
   <string name="open_in_app_cfr_positive_button_text">راو و سامووا</string>
   <!-- Text for the negative action button -->
   <string name="open_in_app_cfr_negative_button_text">رڌ کردن</string>
+  <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+  <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">سی جا گورویی منجا بلگه یل من ویرگار ای بلگه، فلشا ن واڌارنین.</string>
+  <!--
+    Address bar swipe "contextual feature recommendation" (CFR)
+
+    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+  -->
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">نوار ٱوزار ن و چپ یا راست بکشین تا بلگه یل آلشت داڌه بۊن</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">و چپ یا راست بکشین تا بلگه آلشت داڌه بۊ. ری بلگه دیندایی خوتووݩ و چپ بکشین تا ی بلگه نۊ واز کۊنین.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">وا کشیڌن نوار ٱوزار و چپ ۉ راست، منجا بلگه یل جا گورو بۊین.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
   <string name="camera_permissions_needed_positive_button_text">راو و سامووا</string>
   <!-- Text for the negative action button to dismiss the dialog. -->

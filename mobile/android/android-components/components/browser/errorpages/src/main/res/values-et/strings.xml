@@ -126,7 +126,7 @@ ja sa võid hiljem uuesti proovida.&lt;/li&gt;
       &lt;/ul&gt;</string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_invalid_content_encoding_title">Sisu kodeeringu viga</string>
-  <string name="mozac_browser_errorpages_invalid_content_encoding_message">&lt;p&gt;Lehte, mida soovid vaadata, pole võimalik kuvada, kuna see kasutab vigast või mittetoetatud pakkimise vormingut.&lt;/p&gt;
+  <string name="mozac_browser_errorpages_invalid_content_encoding_message">&lt;p&gt;Lehte, mida soovid vaadata, pole võimalik kuvada, kuna see kasutab vigast või toetamata pakkimise vormingut.&lt;/p&gt;
       &lt;ul&gt;
         &lt;li&gt;Palun võta ühendust veebilehe omanikuga, et informeerida teda antud probleemist.&lt;/li&gt;
       &lt;/ul&gt;</string>

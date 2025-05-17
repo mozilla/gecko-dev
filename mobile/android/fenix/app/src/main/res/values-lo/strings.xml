@@ -1505,6 +1505,10 @@
   <string name="download_navigate_back_description">ນຳທາງຍ້ອນກັບ</string>
   <!-- Content description for the toolbar "Navigate up" button -->
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">ນຳທາງຂຶ້ນໄປທາງເທິງ</string>
+  <!-- Content description for the toolbar back button while searching the downloads -->
+  <string name="download_close_search_description">ກັບຄືນ ແລະ ປິດການຊອກຫາ</string>
+  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <string name="download_clear_search_description">ລົບລ້າງ</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">ແບ່ງປັນ URL</string>
   <!-- Text for the button to share the download file -->
@@ -1677,6 +1681,8 @@
   <string name="bookmark_menu_delete_button">ລຶບ</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">ບັນທຶກ</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">ຈັດຮຽງຕາມລຳດັບທີ່ກຳນົດເອງ</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">ຈັດຮຽງຕາມອັນໃໝ່ສຸດ</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
