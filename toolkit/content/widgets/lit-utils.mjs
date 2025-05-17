@@ -245,7 +245,7 @@ export class MozBaseInputElement extends MozLitElement {
     name: { type: String },
     value: { type: String },
     iconSrc: { type: String },
-    disabled: { type: Boolean, reflect: true },
+    disabled: { type: Boolean },
     description: { type: String, fluent: true },
     supportPage: { type: String, attribute: "support-page" },
     accessKey: { type: String, mapped: true, fluent: true },
@@ -296,6 +296,11 @@ export class MozBaseInputElement extends MozLitElement {
   }
 
   updateNestedElements() {
+    if (this.isDisabled) {
+      this.#internals.states.add("disabled");
+    } else {
+      this.#internals.states.delete("disabled");
+    }
     for (let el of this.nestedEls) {
       if ("parentDisabled" in el) {
         el.parentDisabled =
@@ -340,6 +345,10 @@ export class MozBaseInputElement extends MozLitElement {
 
   get isInlineLayout() {
     return this.constructor.inputLayout == "inline";
+  }
+
+  get isDisabled() {
+    return !!(this.disabled || this.parentDisabled);
   }
 
   click() {

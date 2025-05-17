@@ -33,7 +33,7 @@
   }
 
   @media (forced-colors) {
-    :host([disabled]) {
+    :host(:state(disabled)) {
       color: GrayText;
     }
   }
@@ -54,7 +54,7 @@
       margin-inline-end: var(--space-xsmall);
     }
 
-    :host([disabled]) & {
+    :host(:state(disabled)) & {
       color: var(--text-color-disabled);
     }
   }
