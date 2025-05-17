@@ -7407,15 +7407,6 @@ nsresult PresShell::EnsurePrecedingPointerRawUpdate(
     }
   }
 
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-  static bool sDispatchingRawUpdateEventFromHere = false;
-  MOZ_DIAGNOSTIC_ASSERT(
-      !sDispatchingRawUpdateEventFromHere,
-      "Dispatching ePointerRawUpdate should not be done recursively");
-  AutoRestore<bool> restoreDispathingFlag(sDispatchingRawUpdateEventFromHere);
-  sDispatchingRawUpdateEventFromHere = true;
-#endif  // #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-
   if (const WidgetMouseEvent* const mouseEvent = aSourceEvent.AsMouseEvent()) {
     // If `convertToPointer` is `false`, it means that we've already handled the
     // event to dispatch a preceding pointer event.  Therefore, its preceding
