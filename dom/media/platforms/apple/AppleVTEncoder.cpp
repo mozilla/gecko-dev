@@ -1242,6 +1242,9 @@ void AppleVTEncoder::ForceOutputIfNeeded() {
   if (__builtin_available(macos 11.0, *)) {
     return;
   }
+
+  AssertOnTaskQueue();
+
   // Ideally, OutputFrame (called via FrameCallback) should resolve the encode
   // promise. However, sometimes output is produced only after multiple
   // inputs. To ensure continuous encoding, we force the encoder to produce a
