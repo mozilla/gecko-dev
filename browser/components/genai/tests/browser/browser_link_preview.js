@@ -448,12 +448,15 @@ add_task(async function test_no_key_points_in_disallowed_region() {
     0,
     "generateTextAI should not be called when region is disallowed"
   );
+  ok(!LinkPreview.canShowKeyPoints, "should not show key points");
 
   panel.remove();
   LinkPreview.keyboardComboActive = false;
   generateStub.restore();
 
   Services.prefs.clearUserPref("browser.ml.linkPreview.noKeyPointsRegions");
+
+  ok(LinkPreview.canShowKeyPoints, "could show key points");
 });
 
 /**

@@ -53,6 +53,18 @@ export const LinkPreview = {
   _windowStates: new Map(),
   linkPreviewPanelId: "link-preview-panel",
 
+  get canShowKeyPoints() {
+    return this._isRegionSupported();
+  },
+
+  get canShowLegacy() {
+    return true;
+  },
+
+  get canShowPreferences() {
+    return lazy.enabled;
+  },
+
   shouldShowContextMenu(nsContextMenu) {
     // In a future patch, we can further analyze the link, etc.
     //link url value: nsContextMenu.linkURL
@@ -68,6 +80,7 @@ export const LinkPreview = {
       !nsContextMenu.onMozExtLink
     );
   },
+
   /**
    * Handles the preference change for enabling/disabling Link Preview.
    * It adds or removes event listeners for all tracked windows based on the new preference value.

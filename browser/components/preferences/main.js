@@ -11,6 +11,7 @@
 ChromeUtils.defineESModuleGetters(this, {
   BackgroundUpdate: "resource://gre/modules/BackgroundUpdate.sys.mjs",
   UpdateListener: "resource://gre/modules/UpdateListener.sys.mjs",
+  LinkPreview: "moz-src:///browser/components/genai/LinkPreview.sys.mjs",
   MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",
   SelectableProfileService:
     "resource:///modules/profiles/SelectableProfileService.sys.mjs",
@@ -144,6 +145,11 @@ Preferences.addAll([
   { id: "layout.css.always_underline_links", type: "bool" },
   { id: "layout.spellcheckDefault", type: "int" },
   { id: "accessibility.tabfocus", type: "int" },
+  { id: "browser.ml.linkPreview.enabled", type: "bool" },
+  { id: "browser.ml.linkPreview.optin", type: "bool" },
+  { id: "browser.ml.linkPreview.shift", type: "bool" },
+  { id: "browser.ml.linkPreview.shiftAlt", type: "bool" },
+  { id: "browser.ml.linkPreview.longPress", type: "bool" },
 
   {
     id: "browser.preferences.defaultPerformanceSettings.enabled",
@@ -263,6 +269,29 @@ Preferences.addSetting({
   },
 });
 Preferences.addSetting({
+  id: "linkPreviewEnabled",
+  pref: "browser.ml.linkPreview.enabled",
+  visible: () => LinkPreview.canShowPreferences,
+});
+Preferences.addSetting({
+  id: "linkPreviewKeyPoints",
+  pref: "browser.ml.linkPreview.optin",
+  visible: () => LinkPreview.canShowKeyPoints,
+});
+Preferences.addSetting({
+  id: "linkPreviewShift",
+  pref: "browser.ml.linkPreview.shift",
+});
+Preferences.addSetting({
+  id: "linkPreviewShiftAlt",
+  pref: "browser.ml.linkPreview.shiftAlt",
+  visible: () => LinkPreview.canShowLegacy,
+});
+Preferences.addSetting({
+  id: "linkPreviewLongPress",
+  pref: "browser.ml.linkPreview.longPress",
+});
+Preferences.addSetting({
   id: "alwaysUnderlineLinks",
   pref: "layout.css.always_underline_links",
 });
@@ -358,6 +387,29 @@ let SETTINGS_CONFIG = {
         l10nId: "browsing-cfr-features",
         supportPage: "extensionrecommendations",
         subcategory: "cfrfeatures",
+      },
+      {
+        id: "linkPreviewEnabled",
+        l10nId: "link-preview-settings-enable",
+        subcategory: "link-preview",
+        items: [
+          {
+            id: "linkPreviewKeyPoints",
+            l10nId: "link-preview-settings-key-points",
+          },
+          {
+            id: "linkPreviewShift",
+            l10nId: "link-preview-settings-shift",
+          },
+          {
+            id: "linkPreviewShiftAlt",
+            l10nId: "link-preview-settings-shift-alt",
+          },
+          {
+            id: "linkPreviewLongPress",
+            l10nId: "link-preview-settings-long-press",
+          },
+        ],
       },
     ],
   },
