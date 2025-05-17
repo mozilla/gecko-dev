@@ -2,6 +2,8 @@
 prefs = [
   "browser.ml.chat.enabled=true",
   "browser.ml.chat.openSidebarOnProviderChange=false",
+  "browser.ml.linkPreview.collapsed=false",
+  "browser.ml.linkPreview.optin=true",
   "browser.ml.linkPreview.prefetchOnEnable=false",
   "browser.ml.linkPreview.shiftAlt=true",
 ]
@@ -27,3 +29,11 @@ support-files = [
   "data/readableFr.html",
   "data/readableEn.html"
 ]
+
+["browser_link_preview_optin.js"]
+support-files = [
+  "data/readableFr.html",
+  "data/readableEn.html"
+]
+
+["browser_link_preview_telemetry.js"]

@@ -18,15 +18,29 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
+  "collapsed",
+  "browser.ml.linkPreview.collapsed",
+  null,
+  (_pref, _old, val) => LinkPreview.onCollapsedPref(val)
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
   "enabled",
   "browser.ml.linkPreview.enabled",
-  false,
+  null,
   (_pref, _old, val) => LinkPreview.onEnabledPref(val)
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "noKeyPointsRegions",
   "browser.ml.linkPreview.noKeyPointsRegions"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "optin",
+  "browser.ml.linkPreview.optin",
+  null,
+  (_pref, _old, val) => LinkPreview.onOptinPref(val)
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -103,11 +117,59 @@ export const LinkPreview = {
   },
 
   /**
+   * Updates a property on the link-preview-card element for all window states.
+   *
+   * @param {string} prop - The property to update.
+   * @param {*} value - The value to set for the property.
+   */
+  updateCardProperty(prop, value) {
+    for (const [win] of this._windowStates) {
+      const panel = win.document.getElementById(this.linkPreviewPanelId);
+      if (!panel) {
+        continue;
+      }
+
+      const card = panel.querySelector("link-preview-card");
+      if (card) {
+        card[prop] = value;
+      }
+    }
+  },
+
+  /**
+   * Handles the preference change for opt-in state.
+   * Updates all link preview cards with the new opt-in state.
+   *
+   * @param {boolean} optin - The new state of the opt-in preference.
+   */
+  onOptinPref(optin) {
+    this.updateCardProperty("optin", optin);
+    Glean.genaiLinkpreview.cardAiConsent.record({
+      option: optin ? "continue" : "cancel",
+    });
+  },
+
+  /**
+   * Handles the preference change for collapsed state.
+   * Updates all link preview cards with the new collapsed state.
+   *
+   * @param {boolean} collapsed - The new state of the collapsed preference.
+   */
+  onCollapsedPref(collapsed) {
+    this.updateCardProperty("collapsed", collapsed);
+  },
+
+  /**
    * Handles startup tasks such as telemetry and adding listeners.
    *
    * @param {Window} win - The window context used to add event listeners.
    */
   init(win) {
+    // Access getters for side effects of observing pref changes
+    lazy.collapsed;
+    lazy.enabled;
+    lazy.optin;
+
     this._windowStates.set(win, {});
     if (!win.customElements.get("link-preview-card")) {
       win.ChromeUtils.importESModule(
@@ -260,6 +322,9 @@ export const LinkPreview = {
     ogCard.style.width = "100%";
     ogCard.pageData = pageData;
 
+    ogCard.optin = lazy.optin;
+    ogCard.collapsed = lazy.collapsed;
+
     // Reflect the shared download progress to this preview.
     const updateProgress = () => {
       ogCard.progress = this.progress;
@@ -303,6 +368,12 @@ export const LinkPreview = {
    * @param {boolean} _retry Indicates whether to retry the operation.
    */
   async generateKeyPoints(ogCard, _retry = false) {
+    // Prevent keypoints if user not opt-in to link preview or user is set
+    // keypoints to be collapsed.
+    if (!lazy.optin || lazy.collapsed) {
+      return;
+    }
+
     // Support prefetching without a card by mocking expected properties.
     let outcome = ogCard ? "success" : "prefetch";
     if (!ogCard) {
@@ -368,6 +439,22 @@ export const LinkPreview = {
         time: Date.now() - startTime,
       });
     }
+  },
+
+  /**
+   * Handles key points generation requests from different user actions.
+   * This is a shared handler for both retry and initial generation events.
+   * Resets error states and triggers key points generation.
+   *
+   * @param {LinkPreviewCard} ogCard - The card element to generate key points for
+   * @private
+   */
+  _handleKeyPointsGenerationEvent(ogCard) {
+    // Reset error states
+    ogCard.isMissingDataErrorState = false;
+    ogCard.isGenerationErrorState = false;
+
+    this.generateKeyPoints(ogCard, true);
   },
 
   /**
@@ -453,16 +540,15 @@ export const LinkPreview = {
       Glean.genaiLinkpreview.cardLink.record({ source: event.detail });
     });
 
-    // Add event listener for the retry event
     ogCard.addEventListener("LinkPreviewCard:retry", _event => {
-      // Reset error states
-      ogCard.isMissingDataErrorState = false;
-      ogCard.isGenerationErrorState = false;
-
-      this.generateKeyPoints(ogCard, true);
-      //TODO: review if glean record is correct
-      // Glean.genaiLinkpreview.cardLink.record({ source: url, op: "retry" });
+      this._handleKeyPointsGenerationEvent(ogCard, "retry");
+      Glean.genaiLinkpreview.cardLink.record({ source: "retry" });
     });
+
+    ogCard.addEventListener("LinkPreviewCard:generate", _event => {
+      this._handleKeyPointsGenerationEvent(ogCard, "generate");
+    });
+
     openPopup();
   },
 

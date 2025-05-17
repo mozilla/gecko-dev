@@ -49,6 +49,7 @@
 }
 
 .ai-content {
+    position: relative;
     padding: var(--og-padding);
     .og-error-message-container {
         margin:0;
@@ -162,6 +163,11 @@
         border-color: var(--skeleton-loader-motion-element-color);
       }
 
+      &.static div {
+        animation: none;
+        background: var(--skeleton-loader-background-color);
+      }
+
       div:nth-of-type(1) {
         max-width: 95%;
       }
@@ -181,4 +187,14 @@
   align-items: center;
   display: flex;
   justify-content: space-between;
+}
+
+model-optin {
+  --font-size-xxlarge: var(--og-main-font-size);
+  inset-inline: 0;
+  margin-inline: auto;
+  position: absolute;
+  top: 60px;
+  width: 75%;
+  z-index: 10;
 }

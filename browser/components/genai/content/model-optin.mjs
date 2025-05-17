@@ -15,6 +15,7 @@ class ModelOptin extends MozLitElement {
   static properties = {
     headingL10nId: { type: String, fluent: true },
     headingIcon: { type: String },
+    iconAtEnd: { type: Boolean },
     messageL10nId: { type: String, fluent: true },
     optinButtonL10nId: { type: String, fluent: true },
     optoutButtonL10nId: { type: String, fluent: true },
@@ -42,9 +43,11 @@ class ModelOptin extends MozLitElement {
     super();
     this.isLoading = false;
     this.isHidden = false;
+    this.iconAtEnd = false;
     this.optinButtonL10nId = "genai-model-optin-continue";
     this.optoutButtonL10nId = "genai-model-optin-optout";
     this.cancelDownloadButtonL10nId = "genai-model-optin-cancel";
+    this.footerMessageL10nId = "";
   }
 
   dispatch(event) {
@@ -109,7 +112,9 @@ class ModelOptin extends MozLitElement {
               ? html`<img
                   src=${this.headingIcon}
                   alt=${this.headingL10nId}
-                  class="optin-heading-icon"
+                  class="optin-heading-icon ${this.iconAtEnd
+                    ? "icon-at-end"
+                    : ""}"
                 />`
               : ""}
             <h3 class="optin-heading" data-l10n-id=${this.headingL10nId}></h3>

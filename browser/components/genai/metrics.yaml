@@ -682,6 +682,26 @@ genai.linkpreview:
 
   # events
 
+  card_ai_consent:
+    type: event
+    description: >
+      Recorded when the user interacts with the AI consent dialog
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1951146
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D249104
+    data_sensitivity:
+      - interaction
+    expires: 150
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      option:
+        type: string
+        description: User's response - cancel, continue, or learn
+
   card_close:
     type: event
     description: >
@@ -720,7 +740,7 @@ genai.linkpreview:
     extra_keys:
       source:
         type: string
-        description: Which link, e.g., title, feedback, visit
+        description: Which link, e.g., error, feedback, retry, title, visit
 
   fetch:
     type: event

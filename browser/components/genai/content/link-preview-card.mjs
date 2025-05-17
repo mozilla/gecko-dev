@@ -4,7 +4,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { html } from "chrome://global/content/vendor/lit.all.mjs";
+import {
+  createRef,
+  html,
+  ref,
+} from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
 const lazy = {};
@@ -24,6 +28,13 @@ ChromeUtils.defineLazyGetter(
   () => new Services.intl.PluralRules()
 );
 
+ChromeUtils.importESModule(
+  "chrome://browser/content/genai/content/model-optin.mjs",
+  {
+    global: "current",
+  }
+);
+
 const FEEDBACK_LINK =
   "https://connect.mozilla.org/t5/discussions/try-out-link-previews-on-firefox-labs/td-p/92012";
 
@@ -35,24 +46,30 @@ window.MozXULElement.insertFTLIfNeeded("preview/linkPreview.ftl");
  * @augments MozLitElement
  */
 class LinkPreviewCard extends MozLitElement {
+  static AI_ICON = "chrome://global/skin/icons/highlights.svg";
   // Number of placeholder rows to show when loading
   static PLACEHOLDER_COUNT = 3;
 
   static properties = {
+    collapsed: { type: Boolean },
     generating: { type: Number }, // 0 = off, 1-4 = generating & dots state
+    isGenerationErrorState: { type: Boolean },
+    isMissingDataErrorState: { type: Boolean },
     keyPoints: { type: Array },
+    optin: { type: Boolean },
     pageData: { type: Object },
     progress: { type: Number }, // -1 = off, 0-100 = download progress
-    isMissingDataErrorState: { type: Boolean },
-    isGenerationErrorState: { type: Boolean },
   };
 
   constructor() {
     super();
-    this.keyPoints = [];
-    this.progress = -1;
-    this.isMissingDataErrorState = false;
+    this.collapsed = false;
     this.isGenerationErrorState = false;
+    this.isMissingDataErrorState = false;
+    this.keyPoints = [];
+    this.optin = false;
+    this.optinRef = createRef();
+    this.progress = -1;
   }
 
   /**
@@ -120,6 +137,10 @@ class LinkPreviewCard extends MozLitElement {
   }
 
   updated(properties) {
+    if (this.optinRef.value) {
+      this.optinRef.value.headingIcon = LinkPreviewCard.AI_ICON;
+    }
+
     if (properties.has("generating")) {
       if (this.generating > 0) {
         // Count up to 4 so that we can show 0 to 3 dots.
@@ -173,6 +194,44 @@ class LinkPreviewCard extends MozLitElement {
               `
             : ""}
         </p>
+      </div>
+    `;
+  }
+
+  /**
+   * Renders a placeholder generation card for the opt-in mode,
+   * showing only loading animations without real content.
+   *
+   * @returns {import('lit').TemplateResult} The opt-in placeholder card HTML
+   */
+  renderOptInPlaceholderCard() {
+    return html`
+      <div class="ai-content">
+        <h3>
+          Key points
+          <img
+            class="icon"
+            xmlns="http://www.w3.org/1999/xhtml"
+            role="presentation"
+            src="chrome://global/skin/icons/highlights.svg"
+          />
+        </h3>
+        <ul class="keypoints-list">
+          ${
+            /* Always show 3 placeholder loading items */
+            Array(LinkPreviewCard.PLACEHOLDER_COUNT)
+              .fill()
+              .map(
+                () =>
+                  html` <li class="content-item loading static">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                  </li>`
+              )
+          }
+        </ul>
+        ${this.renderModelOptIn()}
       </div>
     `;
   }
@@ -285,6 +344,48 @@ class LinkPreviewCard extends MozLitElement {
   }
 
   /**
+   * Renders the model opt-in component that prompts users to optin to AI features.
+   * This component allows users to opt in or out of the link preview AI functionality
+   * and includes a support link for more information.
+   *
+   * @returns {import('lit').TemplateResult} The model opt-in component HTML
+   */
+  renderModelOptIn() {
+    return html`
+      <model-optin
+        ${ref(this.optinRef)}
+        headingIcon=${LinkPreviewCard.AI_ICON}
+        headingL10nId="link-preview-optin-title"
+        iconAtEnd
+        messageL10nId="link-preview-optin-message"
+        @MlModelOptinConfirm=${this._handleOptinConfirm}
+        @MlModelOptinDeny=${this._handleOptinDeny}
+      >
+      </model-optin>
+    `;
+  }
+
+  /**
+   * Handles the user confirming the opt-in prompt for link preview.
+   * Sets preference values to enable the feature, hides the prompt for future sessions,
+   * and triggers a retry to generate the preview.
+   */
+  _handleOptinConfirm() {
+    Services.prefs.setBoolPref("browser.ml.linkPreview.optin", true);
+    this.dispatchEvent(new CustomEvent("LinkPreviewCard:generate"));
+  }
+
+  /**
+   * Handles the user denying the opt-in prompt for link preview.
+   * Sets preference values to disable the feature and hides
+   * the prompt for future sessions.
+   */
+  _handleOptinDeny() {
+    Services.prefs.setBoolPref("browser.ml.linkPreview.optin", false);
+    Services.prefs.setBoolPref("browser.ml.linkPreview.collapsed", true);
+  }
+
+  /**
    * Renders the appropriate content card based on state.
    *
    * @param {string} pageUrl - URL of the page being previewed
@@ -294,6 +395,16 @@ class LinkPreviewCard extends MozLitElement {
     // Determine if there's any generation error state
     const isGenerationError =
       this.isMissingDataErrorState || this.isGenerationErrorState;
+
+    // If we should show the opt-in prompt, show our special placeholder card
+    if (!this.optin && !this.collapsed) {
+      return this.renderOptInPlaceholderCard();
+    }
+
+    // If user has opted out, don't show any AI content
+    if (!this.optin) {
+      return "";
+    }
 
     if (isGenerationError) {
       return this.renderErrorGenerationCard(pageUrl);
