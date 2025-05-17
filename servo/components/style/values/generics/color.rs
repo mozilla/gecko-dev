@@ -5,7 +5,8 @@
 //! Generic types for color properties.
 
 use crate::color::{mix::ColorInterpolationMethod, AbsoluteColor, ColorFunction};
-use crate::values::specified::percentage::ToPercentage;
+use crate::parser::ParserContext;
+use crate::values::{specified::percentage::ToPercentage, computed::ToComputedValue, Parser, ParseError};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -208,3 +209,45 @@ impl<C> GenericCaretColor<C> {
 }
 
 pub use self::GenericCaretColor as CaretColor;
+
+/// A light-dark(<light>, <dark>) function.
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem, ToCss)]
+#[css(function, comma)]
+#[repr(C)]
+pub struct GenericLightDark<T> {
+    /// The value returned when using a light theme.
+    pub light: T,
+    /// The value returned when using a dark theme.
+    pub dark: T,
+}
+
+impl<T> GenericLightDark<T> {
+    /// Parse the light-dark() function.
+    pub fn parse_with<'i>(
+        context: &ParserContext,
+        input: &mut Parser<'i, '_>,
+        mut parse_one: impl FnMut(&ParserContext, &mut Parser<'i, '_>) -> Result<T, ParseError<'i>>,
+    ) -> Result<Self, ParseError<'i>> {
+        input.expect_function_matching("light-dark")?;
+        input.parse_nested_block(|input| {
+            let light = parse_one(context, input)?;
+            input.expect_comma()?;
+            let dark = parse_one(context, input)?;
+            Ok(Self { light, dark })
+        })
+    }
+}
+
+impl<T: ToComputedValue> GenericLightDark<T> {
+    /// Choose the light or dark version of this value for computation purposes, and compute it.
+    pub fn compute(&self, cx: &crate::values::computed::Context) -> T::ComputedValue {
+        let dark = cx.device().is_dark_color_scheme(cx.builder.color_scheme);
+        if cx.for_non_inherited_property {
+            cx.rule_cache_conditions
+                .borrow_mut()
+                .set_color_scheme_dependency(cx.builder.color_scheme);
+        }
+        let chosen = if dark { &self.dark } else { &self.light };
+        chosen.to_computed_value(cx)
+    }
+}

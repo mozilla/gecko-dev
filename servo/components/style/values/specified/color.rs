@@ -11,7 +11,7 @@ use crate::media_queries::Device;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
 use crate::values::generics::color::{
-    ColorMixFlags, GenericCaretColor, GenericColorMix, GenericColorOrAuto,
+    ColorMixFlags, GenericCaretColor, GenericColorMix, GenericColorOrAuto, GenericLightDark
 };
 use crate::values::specified::Percentage;
 use crate::values::{normalize, CustomIdent};
@@ -124,52 +124,10 @@ pub enum Color {
     /// A color mix.
     ColorMix(Box<ColorMix>),
     /// A light-dark() color.
-    LightDark(Box<LightDark>),
+    LightDark(Box<GenericLightDark<Self>>),
     /// Quirksmode-only rule for inheriting color from the body
     #[cfg(feature = "gecko")]
     InheritFromBodyQuirk,
-}
-
-/// A light-dark(<light-color>, <dark-color>) function.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem, ToCss)]
-#[css(function, comma)]
-pub struct LightDark {
-    /// The <color> that is returned when using a light theme.
-    pub light: Color,
-    /// The <color> that is returned when using a dark theme.
-    pub dark: Color,
-}
-
-impl LightDark {
-    fn compute(&self, cx: &Context) -> ComputedColor {
-        let dark = cx.device().is_dark_color_scheme(cx.builder.color_scheme);
-        if cx.for_non_inherited_property {
-            cx.rule_cache_conditions
-                .borrow_mut()
-                .set_color_scheme_dependency(cx.builder.color_scheme);
-        }
-        let used = if dark { &self.dark } else { &self.light };
-        used.to_computed_value(cx)
-    }
-
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-        preserve_authored: PreserveAuthored,
-    ) -> Result<Self, ParseError<'i>> {
-        let enabled =
-            context.chrome_rules_enabled() || static_prefs::pref!("layout.css.light-dark.enabled");
-        if !enabled {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-        input.expect_function_matching("light-dark")?;
-        input.parse_nested_block(|input| {
-            let light = Color::parse_internal(context, input, preserve_authored)?;
-            input.expect_comma()?;
-            let dark = Color::parse_internal(context, input, preserve_authored)?;
-            Ok(LightDark { light, dark })
-        })
-    }
 }
 
 impl From<AbsoluteColor> for Color {
@@ -483,7 +441,7 @@ impl Color {
                     return Ok(Color::ColorMix(Box::new(mix)));
                 }
 
-                if let Ok(ld) = input.try_parse(|i| LightDark::parse(context, i, preserve_authored))
+                if let Ok(ld) = input.try_parse(|i| GenericLightDark::parse_with(context, i, |context, i| Self::parse_internal(context, i, preserve_authored)))
                 {
                     return Ok(Color::LightDark(Box::new(ld)));
                 }
