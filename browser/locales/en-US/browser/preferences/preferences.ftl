@@ -597,6 +597,8 @@ performance-default-content-process-count =
 ## General Section - Browsing
 
 browsing-title = Browsing
+browsing-group-label =
+    .aria-label = Browsing
 
 browsing-use-autoscroll =
     .label = Use autoscrolling
