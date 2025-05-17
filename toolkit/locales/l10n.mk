@@ -37,6 +37,11 @@ LPROJ_ROOT := $(subst -,_,$(AB_CD))
 endif
 endif
 
+# These are defaulted to be compatible with the files the wget-en-US target
+# pulls. You may override them if you provide your own files.
+ZIP_IN ?= $(ABS_DIST)/$(PACKAGE)
+WIN32_INSTALLER_IN ?= $(ABS_DIST)/$(PKG_INST_PATH)$(PKG_INST_BASENAME).exe
+
 # Allows overriding the final destination of the repackaged file
 ZIP_OUT ?= $(ABS_DIST)/$(PACKAGE)
 
@@ -71,19 +76,41 @@ STAGEDIST = $(ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)/$(_APPNAME)/Contents/Resources
 else
 STAGEDIST = $(ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)
 endif
+UNPACKED_INSTALLER = $(ABS_DIST)/unpacked-installer
 
 include $(MOZILLA_DIR)/toolkit/mozapps/installer/packager.mk
 
-unpack:
-	$(RM) -r -f '$(ABS_DIST)/l10n-stage'
-	$(PYTHON3) $(topsrcdir)/mach --log-no-times artifact install --unfiltered-project-package --distdir '$(ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)' --verbose
+PACKAGE_BASE_DIR = $(ABS_DIST)/l10n-stage
+
+$(UNPACKED_INSTALLER): AB_CD:=en-US
+$(UNPACKED_INSTALLER): UNPACKAGE=$(call ESCAPE_WILDCARD,$(ZIP_IN))
+$(UNPACKED_INSTALLER): $(call ESCAPE_WILDCARD,$(ZIP_IN))
+# only mac needs to remove the parent of STAGEDIST...
+ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
+	$(RM) -r -v $(UNPACKED_INSTALLER)
+else
+# ... and windows doesn't like removing STAGEDIST itself, remove all children
+	find $(UNPACKED_INSTALLER) -maxdepth 1 -print0 | xargs -0 $(RM) -r
+endif
+	$(NSINSTALL) -D $(UNPACKED_INSTALLER)
+	$(call INNER_UNMAKE_PACKAGE,$(UNPACKED_INSTALLER))
+
+unpack: $(UNPACKED_INSTALLER)
+ifeq ($(OS_ARCH), WINNT)
+	$(RM) -r -f $(ABS_DIST)/l10n-stage
+	$(NSINSTALL) -D $(ABS_DIST)/l10n-stage
+	$(call copy_dir, $(UNPACKED_INSTALLER), $(ABS_DIST)/l10n-stage)
+else
+	rsync -rav --delete $(UNPACKED_INSTALLER)/ $(ABS_DIST)/l10n-stage
+endif
 
 # The path to the object dir for the mozilla-central build system,
 # may be overridden if necessary.
 MOZDEPTH ?= $(DEPTH)
 
+repackage-zip: UNPACKAGE='$(ZIP_IN)'
 repackage-zip:
-	$(PYTHON3) $(MOZILLA_DIR)/toolkit/mozapps/installer/l10n-repack.py '$(STAGEDIST)' $(ABS_DIST)/xpi-stage/locale-$(AB_CD) \
+	$(PYTHON3) $(MOZILLA_DIR)/toolkit/mozapps/installer/l10n-repack.py '$(STAGEDIST)' $(DIST)/xpi-stage/locale-$(AB_CD) \
 		$(MOZ_PKG_EXTRAL10N) \
 		$(if $(MOZ_PACKAGER_MINIFY),--minify) \
 		$(if $(filter omni,$(MOZ_PACKAGER_FORMAT)),$(if $(NON_OMNIJAR_FILES),--non-resource $(NON_OMNIJAR_FILES)))
@@ -111,7 +138,7 @@ endif
 	if test -f '$(DIST)/l10n-stage/$(PACKAGE).asc'; then mv -f '$(DIST)/l10n-stage/$(PACKAGE).asc' '$(ZIP_OUT).asc'; fi
 
 repackage-zip-%: unpack
-	@$(MAKE) repackage-zip AB_CD=$*
+	@$(MAKE) repackage-zip AB_CD=$* ZIP_IN='$(ZIP_IN)'
 
 # Dealing with app sub dirs: If DIST_SUBDIRS is defined it contains a
 # listing of app sub-dirs we should include in langpack xpis. If not,
@@ -153,3 +180,24 @@ package-langpack-%:
 	$(NSINSTALL) -D $(DIST)/$(PKG_LANGPACK_PATH)
 	$(call py_action,langpack_manifest $(AB_CD),--locales $(AB_CD) --app-version $(MOZ_APP_VERSION) --max-app-ver $(MOZ_APP_MAXVERSION) --app-name '$(MOZ_APP_DISPLAYNAME)' --l10n-basedir '$(L10NBASEDIR)' --metadata $(LANGPACK_METADATA) --langpack-eid '$(MOZ_LANGPACK_EID)' --input $(DIST)/xpi-stage/locale-$(AB_CD))
 	$(call py_action,zip $(PKG_LANGPACK_BASENAME).xpi,-C $(DIST)/xpi-stage/locale-$(AB_CD) -x **/*.manifest -x **/*.js -x **/*.ini $(LANGPACK_FILE) $(PKG_ZIP_DIRS) manifest.json)
+
+# This variable is to allow the wget-en-US target to know which ftp server to download from
+ifndef EN_US_BINARY_URL
+EN_US_BINARY_URL = $(error You must set EN_US_BINARY_URL)
+endif
+
+# Allow the overriding of PACKAGE format so we can get an EN_US build with a different
+# PACKAGE format than we are creating l10n packages with.
+EN_US_PACKAGE_NAME ?= $(PACKAGE)
+
+# This make target allows us to wget the latest en-US binary from a specified website
+# The make installers-% target needs the en-US binary in dist/
+# and for the windows repackages we need the .installer.exe in dist/sea
+wget-en-US:
+ifndef WGET
+	$(error Wget not installed)
+endif
+	$(NSINSTALL) -D $(ABS_DIST)/$(PKG_PATH)
+	(cd $(ABS_DIST)/$(PKG_PATH) && \
+        $(WGET) --no-cache -nv --no-iri -N -O $(PACKAGE) '$(EN_US_BINARY_URL)/$(EN_US_PACKAGE_NAME)')
+	@echo 'Downloaded $(EN_US_BINARY_URL)/$(EN_US_PACKAGE_NAME) to $(ABS_DIST)/$(PKG_PATH)/$(PACKAGE)'

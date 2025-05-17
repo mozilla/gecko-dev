@@ -57,7 +57,7 @@ import pylru
 import requests
 from mach.util import UserError
 from mozpack import executables
-from mozpack.files import FileFinder, JarFinder, TarFinder
+from mozpack.files import JarFinder, TarFinder
 from mozpack.mozjar import JarReader, JarWriter
 from mozpack.packager.unpack import UnpackFinder
 from taskgraph.util.taskcluster import find_task_id, get_artifact_url, list_artifacts
@@ -84,9 +84,6 @@ MAX_CACHED_TASKS = 400  # Number of pushheads to cache Task Cluster task data fo
 # copying from DMG files is very slow, we extract the desired binaries to a
 # separate archive for fast re-installation.
 PROCESSED_SUFFIX = ".processed.jar"
-UNFILTERED_PROJECT_PACKAGE_PROCESSED_SUFFIX = (
-    ".unfiltered_project_package.processed.jar"
-)
 
 
 class ArtifactJob:
@@ -695,6 +692,7 @@ class MacArtifactJob(ArtifactJob):
 
     def process_package_artifact(self, filename, processed_filename):
         tempdir = tempfile.mkdtemp()
+        oldcwd = os.getcwd()
         try:
             self.log(
                 logging.DEBUG,
@@ -702,7 +700,25 @@ class MacArtifactJob(ArtifactJob):
                 {"tempdir": tempdir},
                 "Unpacking DMG into {tempdir}",
             )
-            mozinstall.install(filename, tempdir)
+            if self._substs["HOST_OS_ARCH"] == "Linux":
+                # This is a cross build, use hfsplus and dmg tools to extract the dmg.
+                os.chdir(tempdir)
+                with open(os.devnull, "wb") as devnull:
+                    subprocess.check_call(
+                        [
+                            self._substs["DMG_TOOL"],
+                            "extract",
+                            filename,
+                            "extracted_img",
+                        ],
+                        stdout=devnull,
+                    )
+                    subprocess.check_call(
+                        [self._substs["HFS_TOOL"], "extracted_img", "extractall"],
+                        stdout=devnull,
+                    )
+            else:
+                mozinstall.install(filename, tempdir)
 
             bundle_dirs = glob.glob(mozpath.join(tempdir, "*.app"))
             if len(bundle_dirs) != 1:
@@ -752,6 +768,7 @@ class MacArtifactJob(ArtifactJob):
                             writer.add(destpath.encode("utf-8"), f.open(), mode=f.mode)
 
         finally:
+            os.chdir(oldcwd)
             try:
                 shutil.rmtree(tempdir)
             except OSError:
@@ -860,80 +877,6 @@ class MacThunderbirdArtifactJob(ThunderbirdMixin, MacArtifactJob):
 
 class WinThunderbirdArtifactJob(ThunderbirdMixin, WinArtifactJob):
     pass
-
-
-class UnfilteredProjectPackageArtifactJob(ArtifactJob):
-    """An `ArtifactJob` that processes only the main project package and is
-    unfiltered, i.e., does not change the internal structure of the main
-    package.  For use in repackaging, where the artifact build mode VCS and
-    Taskcluster integration is convenient but the whole package is needed (and
-    DMGs are slow to work with locally).
-
-    Desktop-only at this time.
-
-    """
-
-    # Can't yet handle `AndroidArtifactJob` uniformly, since the `product` is "mobile".
-    package_re = "|".join(
-        [
-            f"({cls.package_re})"
-            for cls in (LinuxArtifactJob, MacArtifactJob, WinArtifactJob)
-        ]
-    )
-    product = "firefox"
-
-    @property
-    def _extra_archives(self):
-        return {}
-
-    def process_package_artifact(self, filename, processed_filename):
-        tempdir = tempfile.mkdtemp()
-        try:
-            self.log(
-                logging.DEBUG,
-                "artifact",
-                {"tempdir": tempdir},
-                "Unpacking into {tempdir}",
-            )
-            mozinstall.install(filename, tempdir)
-
-            # Avoid mismatches between local packages (Nightly.app) and CI artifacts
-            # (Firefox Nightly.app).
-            if filename.endswith(".dmg"):
-                bundle_dirs = glob.glob(mozpath.join(tempdir, "*.app"))
-            else:
-                bundle_dirs = glob.glob(
-                    mozpath.join(tempdir, self._substs["MOZ_APP_NAME"])
-                )
-
-            if len(bundle_dirs) != 1:
-                raise ValueError(f"Expected one source bundle, found: {bundle_dirs}")
-            (source,) = bundle_dirs
-
-            with self.get_writer(file=processed_filename, compress_level=5) as writer:
-                finder = FileFinder(source)
-                for p, f in finder.find("*"):
-                    q = p
-                    if filename.endswith(".dmg"):
-                        q = mozpath.join(self._substs["MOZ_MACBUNDLE_NAME"], q)
-                    self.log(
-                        logging.DEBUG,
-                        "artifact",
-                        {"path": q},
-                        "Adding {path} to unfiltered project package archive",
-                    )
-                    writer.add(q.encode("utf-8"), f.open(), mode=f.mode)
-
-        finally:
-            try:
-                shutil.rmtree(tempdir)
-            except OSError:
-                self.log(
-                    logging.WARN,
-                    "artifact",
-                    {"tempdir": tempdir},
-                    "Unable to delete {tempdir}",
-                )
 
 
 def startswithwhich(s, prefixes):
@@ -1172,16 +1115,10 @@ class Artifacts:
         download_symbols=False,
         download_maven_zip=False,
         no_process=False,
-        unfiltered_project_package=False,
         mozbuild=None,
     ):
         if (hg and git) or (not hg and not git):
             raise ValueError("Must provide path to exactly one of hg and git")
-
-        if no_process and unfiltered_project_package:
-            raise ValueError(
-                "Must provide only one of no_process and unfiltered_project_package"
-            )
 
         self._substs = substs
         self._defines = defines
@@ -1194,36 +1131,23 @@ class Artifacts:
         self._skip_cache = skip_cache
         self._topsrcdir = topsrcdir
         self._no_process = no_process
-        self._unfiltered_project_package = unfiltered_project_package
 
         app = self._substs.get("MOZ_BUILD_APP")
         job_details = COMM_JOB_DETAILS if app == "comm/mail" else MOZ_JOB_DETAILS
 
-        if not self._unfiltered_project_package:
-            try:
-                cls = job_details[self._job]
-                self._artifact_job = cls(
-                    log=self._log,
-                    download_tests=download_tests,
-                    download_symbols=download_symbols,
-                    download_maven_zip=download_maven_zip,
-                    substs=self._substs,
-                    mozbuild=mozbuild,
-                )
-            except KeyError:
-                self.log(
-                    logging.INFO, "artifact", {"job": self._job}, "Unknown job {job}"
-                )
-                raise KeyError("Unknown job")
-        else:
-            self._artifact_job = UnfilteredProjectPackageArtifactJob(
+        try:
+            cls = job_details[self._job]
+            self._artifact_job = cls(
                 log=self._log,
-                download_tests=False,
-                download_symbols=False,
-                download_maven_zip=False,
+                download_tests=download_tests,
+                download_symbols=download_symbols,
+                download_maven_zip=download_maven_zip,
                 substs=self._substs,
                 mozbuild=mozbuild,
             )
+        except KeyError:
+            self.log(logging.INFO, "artifact", {"job": self._job}, "Unknown job {job}")
+            raise KeyError("Unknown job")
 
         self._task_cache = TaskCache(
             self._cache_dir, log=self._log, skip_cache=self._skip_cache
@@ -1576,8 +1500,6 @@ https://firefox-source-docs.mozilla.org/contributing/vcs/mercurial_bundles.html
 
         # Do we need to post-process?
         processed_filename = filename + PROCESSED_SUFFIX
-        if self._unfiltered_project_package:
-            processed_filename = filename + UNFILTERED_PROJECT_PACKAGE_PROCESSED_SUFFIX
 
         if self._skip_cache and os.path.exists(processed_filename):
             self.log(

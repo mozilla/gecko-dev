@@ -89,12 +89,18 @@ tasks:
                     win64: windows2012-64/opt
         env:
             by-build-platform:
-                linux.*:
-                    MOZ_ARTIFACT_TASK: {task-reference: '<build-signing>'}
+                linux.*:    # linux64 and 32 get same treatment here
+                    EN_US_PACKAGE_NAME: target.tar.xz
+                    EN_US_BINARY_URL:
+                        artifact-reference: <build-signing/{artifact_prefix}>
                 macosx64.*:
-                    MOZ_ARTIFACT_TASK: {task-reference: '<repackage>'}
+                    EN_US_PACKAGE_NAME: target.dmg
+                    EN_US_BINARY_URL:
+                        artifact-reference: <repackage/{artifact_prefix}>
                 win.*:
-                    MOZ_ARTIFACT_TASK: {task-reference: '<build-signing>'}
+                    EN_US_PACKAGE_NAME: target.zip
+                    EN_US_BINARY_URL:
+                        artifact-reference: <build-signing/{artifact_prefix}>
         mozharness:
             config:
                 by-build-platform:

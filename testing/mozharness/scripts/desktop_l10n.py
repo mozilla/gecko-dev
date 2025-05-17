@@ -58,6 +58,17 @@ class DesktopSingleLocale(LocalesMixin, AutomationMixin, VCSMixin, BaseScript):
                 " revision separated by colon, en-GB:default.",
             },
         ],
+        [
+            [
+                "--en-us-installer-url",
+            ],
+            {
+                "action": "store",
+                "dest": "en_us_installer_url",
+                "type": "string",
+                "help": "Specify the url of the en-us binary",
+            },
+        ],
     ]
 
     def __init__(self, require_config_file=True):
@@ -190,9 +201,11 @@ class DesktopSingleLocale(LocalesMixin, AutomationMixin, VCSMixin, BaseScript):
         self._copy_mozconfig()
         self._mach_configure()
         self._make_export()
+        self.make_wget_en_US()
+        self.make_unpack_en_US()
 
     def _make_export(self):
-        """this step creates nsinstall, needed on Windows hosts
+        """this step creates nsinstall, needed my make_wget_en_US() on Windows hosts
         and creates buildid.h, used by NSIS installer for Windows UBR telemetry
         """
         dirs = self.query_abs_dirs()
@@ -266,6 +279,21 @@ class DesktopSingleLocale(LocalesMixin, AutomationMixin, VCSMixin, BaseScript):
             halt_on_failure=halt_on_failure,
             ignore_errors=ignore_errors,
         )
+
+    def make_unpack_en_US(self):
+        """wrapper for make unpack"""
+        config = self.config
+        dirs = self.query_abs_dirs()
+        env = self.query_bootstrap_env()
+        cwd = os.path.join(dirs["abs_obj_dir"], config["locales_dir"])
+        return self._make(target=["unpack"], cwd=cwd, env=env)
+
+    def make_wget_en_US(self):
+        """wrapper for make wget-en-US"""
+        env = self.query_bootstrap_env()
+        dirs = self.query_abs_dirs()
+        cwd = dirs["abs_locales_dir"]
+        return self._make(target=["wget-en-US"], cwd=cwd, env=env)
 
     def make_upload(self, locale):
         """wrapper for make upload command"""
