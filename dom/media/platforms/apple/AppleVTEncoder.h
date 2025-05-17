@@ -44,6 +44,9 @@ class AppleVTEncoder final : public MediaDataEncoder {
   RefPtr<EncodePromise> Drain() override;
   RefPtr<ShutdownPromise> Shutdown() override;
   RefPtr<GenericPromise> SetBitrate(uint32_t aBitsPerSec) override;
+  bool IsHardwareAccelerated(nsACString& aFailureReason) const override {
+    return mIsHardwareAccelerated;
+  }
 
   nsCString GetDescriptionName() const override {
     MOZ_ASSERT(mSession);
