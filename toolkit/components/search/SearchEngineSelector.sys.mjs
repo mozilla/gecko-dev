@@ -18,7 +18,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   SearchUserEnvironment: "resource://gre/modules/RustSearch.sys.mjs",
   SearchApplicationName: "resource://gre/modules/RustSearch.sys.mjs",
   SearchUpdateChannel: "resource://gre/modules/RustSearch.sys.mjs",
-  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+  SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {

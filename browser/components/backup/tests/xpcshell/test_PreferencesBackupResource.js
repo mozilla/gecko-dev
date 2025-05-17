@@ -7,7 +7,7 @@ const { PreferencesBackupResource } = ChromeUtils.importESModule(
   "resource:///modules/backup/PreferencesBackupResource.sys.mjs"
 );
 const { SearchUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/SearchUtils.sys.mjs"
+  "moz-src:///toolkit/components/search/SearchUtils.sys.mjs"
 );
 
 /**

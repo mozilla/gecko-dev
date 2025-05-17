@@ -8,7 +8,7 @@
 "use strict";
 
 const { SearchStaticData } = ChromeUtils.importESModule(
-  "resource://gre/modules/SearchStaticData.sys.mjs"
+  "moz-src:///toolkit/components/search/SearchStaticData.sys.mjs"
 );
 
 function run_test() {

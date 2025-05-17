@@ -11,7 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FormHistory: "resource://gre/modules/FormHistory.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SearchSuggestionController:
-    "resource://gre/modules/SearchSuggestionController.sys.mjs",
+    "moz-src:///toolkit/components/search/SearchSuggestionController.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
 });
 

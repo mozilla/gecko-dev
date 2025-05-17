@@ -12,7 +12,7 @@ import {
   CUSTOM_SEARCH_SHORTCUTS,
   checkHasSearchEngine,
   getSearchProvider,
-} from "resource://gre/modules/SearchShortcuts.sys.mjs";
+} from "moz-src:///toolkit/components/search/SearchShortcuts.sys.mjs";
 
 const lazy = {};
 

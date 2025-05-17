@@ -21,7 +21,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   DefaultBrowserCheck:
     "moz-src:///browser/components/DefaultBrowserCheck.sys.mjs",
   LaterRun: "resource:///modules/LaterRun.sys.mjs",
-  SearchStaticData: "resource://gre/modules/SearchStaticData.sys.mjs",
+  SearchStaticData:
+    "moz-src:///toolkit/components/search/SearchStaticData.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarProviderTopSites: "resource:///modules/UrlbarProviderTopSites.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",

@@ -12,9 +12,10 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  SearchSettings: "resource://gre/modules/SearchSettings.sys.mjs",
-  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
-  OpenSearchEngine: "resource://gre/modules/OpenSearchEngine.sys.mjs",
+  SearchSettings: "moz-src:///toolkit/components/search/SearchSettings.sys.mjs",
+  SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
+  OpenSearchEngine:
+    "moz-src:///toolkit/components/search/OpenSearchEngine.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {

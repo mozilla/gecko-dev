@@ -8,11 +8,13 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  AddonSearchEngine: "resource://gre/modules/AddonSearchEngine.sys.mjs",
+  AddonSearchEngine:
+    "moz-src:///toolkit/components/search/AddonSearchEngine.sys.mjs",
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
   SearchUIUtils: "moz-src:///browser/components/search/SearchUIUtils.sys.mjs",
-  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
-  UserSearchEngine: "resource://gre/modules/UserSearchEngine.sys.mjs",
+  SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
+  UserSearchEngine:
+    "moz-src:///toolkit/components/search/UserSearchEngine.sys.mjs",
 });
 
 Preferences.addAll([

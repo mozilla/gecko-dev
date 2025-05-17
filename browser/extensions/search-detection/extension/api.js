@@ -18,9 +18,10 @@ var { ExtensionParent } = ChromeUtils.importESModule(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  AddonSearchEngine: "resource://gre/modules/AddonSearchEngine.sys.mjs",
+  AddonSearchEngine:
+    "moz-src:///toolkit/components/search/AddonSearchEngine.sys.mjs",
   AppProvidedSearchEngine:
-    "resource://gre/modules/AppProvidedSearchEngine.sys.mjs",
+    "moz-src:///toolkit/components/search/AppProvidedSearchEngine.sys.mjs",
 });
 
 // eslint-disable-next-line mozilla/reject-importGlobalProperties

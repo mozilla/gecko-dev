@@ -1,6 +1,6 @@
 ChromeUtils.defineESModuleGetters(this, {
   AppProvidedSearchEngine:
-    "resource://gre/modules/AppProvidedSearchEngine.sys.mjs",
+    "moz-src:///toolkit/components/search/AppProvidedSearchEngine.sys.mjs",
   HttpServer: "resource://testing-common/httpd.sys.mjs",
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",

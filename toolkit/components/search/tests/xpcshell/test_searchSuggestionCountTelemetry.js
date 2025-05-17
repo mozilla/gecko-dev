@@ -10,7 +10,7 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 "use strict";
 
 const { SearchSuggestionController } = ChromeUtils.importESModule(
-  "resource://gre/modules/SearchSuggestionController.sys.mjs"
+  "moz-src:///toolkit/components/search/SearchSuggestionController.sys.mjs"
 );
 
 let openSearchEngine, workingAppEngine, failingAppEngine;

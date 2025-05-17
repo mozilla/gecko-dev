@@ -98,6 +98,7 @@
 
 ; Modules
 @BINPATH@/modules/*
+@BINPATH@/moz-src/*
 @BINPATH@/actors/*
 
 ; [Browser Chrome Files]

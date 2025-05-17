@@ -6,7 +6,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   FormHistory: "resource://gre/modules/FormHistory.sys.mjs",
   SearchSuggestionController:
-    "resource://gre/modules/SearchSuggestionController.sys.mjs",
+    "moz-src:///toolkit/components/search/SearchSuggestionController.sys.mjs",
 });
 
 /**

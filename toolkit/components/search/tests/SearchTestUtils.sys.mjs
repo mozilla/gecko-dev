@@ -5,11 +5,11 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AddonTestUtils: "resource://testing-common/AddonTestUtils.sys.mjs",
   AppProvidedSearchEngine:
-    "resource://gre/modules/AppProvidedSearchEngine.sys.mjs",
+    "moz-src:///toolkit/components/search/AppProvidedSearchEngine.sys.mjs",
   ExtensionTestUtils:
     "resource://testing-common/ExtensionXPCShellUtils.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
-  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+  SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 

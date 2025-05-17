@@ -18,7 +18,7 @@ import {
   SEARCH_SHORTCUTS_HAVE_PINNED_PREF,
   checkHasSearchEngine,
   getSearchProvider,
-} from "resource://gre/modules/SearchShortcuts.sys.mjs";
+} from "moz-src:///toolkit/components/search/SearchShortcuts.sys.mjs";
 
 const lazy = {};
 

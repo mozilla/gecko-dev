@@ -12,10 +12,11 @@ ChromeUtils.defineESModuleGetters(this, {
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
-  SearchEngine: "resource://gre/modules/SearchEngine.sys.mjs",
-  SearchEngineSelector: "resource://gre/modules/SearchEngineSelector.sys.mjs",
+  SearchEngine: "moz-src:///toolkit/components/search/SearchEngine.sys.mjs",
+  SearchEngineSelector:
+    "moz-src:///toolkit/components/search/SearchEngineSelector.sys.mjs",
   SearchTestUtils: "resource://testing-common/SearchTestUtils.sys.mjs",
-  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+  SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
   updateAppInfo: "resource://testing-common/AppInfo.sys.mjs",
 });

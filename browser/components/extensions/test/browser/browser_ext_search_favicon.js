@@ -15,7 +15,7 @@ const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
 const { AppProvidedSearchEngine } = ChromeUtils.importESModule(
-  "resource://gre/modules/AppProvidedSearchEngine.sys.mjs"
+  "moz-src:///toolkit/components/search/AppProvidedSearchEngine.sys.mjs"
 );
 
 AddonTestUtils.initMochitest(this);

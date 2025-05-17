@@ -6,7 +6,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import {
   getSearchProvider,
   SEARCH_SHORTCUTS_EXPERIMENT,
-} from "resource://gre/modules/SearchShortcuts.sys.mjs";
+} from "moz-src:///toolkit/components/search/SearchShortcuts.sys.mjs";
 
 const lazy = {};
 

@@ -7,12 +7,12 @@
 import {
   SearchEngine,
   EngineURL,
-} from "resource://gre/modules/SearchEngine.sys.mjs";
+} from "moz-src:///toolkit/components/search/SearchEngine.sys.mjs";
 
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+  SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
 });
 
 /**

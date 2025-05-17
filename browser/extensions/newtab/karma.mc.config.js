@@ -354,7 +354,9 @@ module.exports = function (config) {
               path.join(__dirname, "../../components/topsites/"),
             ],
             [
-              new RegExp("^resource://gre/modules/SearchShortcuts.sys.mjs"),
+              new RegExp(
+                "^moz-src:///toolkit/components/search/SearchShortcuts.sys.mjs"
+              ),
               path.join(
                 __dirname,
                 "../../../toolkit/components/search/SearchShortcuts.sys.mjs"

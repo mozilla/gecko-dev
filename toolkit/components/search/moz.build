@@ -17,7 +17,7 @@ XPIDL_SOURCES += [
 
 XPIDL_MODULE = "toolkit_search"
 
-EXTRA_JS_MODULES += [
+MOZ_SRC_FILES += [
     "AddonSearchEngine.sys.mjs",
     "AppProvidedSearchEngine.sys.mjs",
     "OpenSearchEngine.sys.mjs",
@@ -25,14 +25,17 @@ EXTRA_JS_MODULES += [
     "PolicySearchEngine.sys.mjs",
     "SearchEngine.sys.mjs",
     "SearchEngineSelector.sys.mjs",
-    "SearchService.sys.mjs",
     "SearchSettings.sys.mjs",
     "SearchShortcuts.sys.mjs",
     "SearchStaticData.sys.mjs",
     "SearchSuggestionController.sys.mjs",
-    "SearchSuggestions.sys.mjs",
     "SearchUtils.sys.mjs",
     "UserSearchEngine.sys.mjs",
+]
+
+EXTRA_JS_MODULES += [
+    "SearchService.sys.mjs",
+    "SearchSuggestions.sys.mjs",
 ]
 
 XPCOM_MANIFESTS += [

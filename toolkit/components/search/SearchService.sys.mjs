@@ -11,24 +11,30 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AppProvidedSearchEngine:
-    "resource://gre/modules/AppProvidedSearchEngine.sys.mjs",
-  AddonSearchEngine: "resource://gre/modules/AddonSearchEngine.sys.mjs",
+    "moz-src:///toolkit/components/search/AppProvidedSearchEngine.sys.mjs",
+  AddonSearchEngine:
+    "moz-src:///toolkit/components/search/AddonSearchEngine.sys.mjs",
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   IgnoreLists: "resource://gre/modules/IgnoreLists.sys.mjs",
   loadAndParseOpenSearchEngine:
-    "resource://gre/modules/OpenSearchLoader.sys.mjs",
-  OpenSearchEngine: "resource://gre/modules/OpenSearchEngine.sys.mjs",
-  PolicySearchEngine: "resource://gre/modules/PolicySearchEngine.sys.mjs",
+    "moz-src:///toolkit/components/search/OpenSearchLoader.sys.mjs",
+  OpenSearchEngine:
+    "moz-src:///toolkit/components/search/OpenSearchEngine.sys.mjs",
+  PolicySearchEngine:
+    "moz-src:///toolkit/components/search/PolicySearchEngine.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
-  SearchEngine: "resource://gre/modules/SearchEngine.sys.mjs",
-  SearchEngineSelector: "resource://gre/modules/SearchEngineSelector.sys.mjs",
-  SearchSettings: "resource://gre/modules/SearchSettings.sys.mjs",
-  SearchStaticData: "resource://gre/modules/SearchStaticData.sys.mjs",
-  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+  SearchEngine: "moz-src:///toolkit/components/search/SearchEngine.sys.mjs",
+  SearchEngineSelector:
+    "moz-src:///toolkit/components/search/SearchEngineSelector.sys.mjs",
+  SearchSettings: "moz-src:///toolkit/components/search/SearchSettings.sys.mjs",
+  SearchStaticData:
+    "moz-src:///toolkit/components/search/SearchStaticData.sys.mjs",
+  SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
   UserInstalledAppEngine:
-    "resource://gre/modules/AppProvidedSearchEngine.sys.mjs",
-  UserSearchEngine: "resource://gre/modules/UserSearchEngine.sys.mjs",
+    "moz-src:///toolkit/components/search/AppProvidedSearchEngine.sys.mjs",
+  UserSearchEngine:
+    "moz-src:///toolkit/components/search/UserSearchEngine.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {

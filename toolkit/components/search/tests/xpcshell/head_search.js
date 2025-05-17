@@ -15,11 +15,12 @@ ChromeUtils.defineESModuleGetters(this, {
   RemoteSettingsClient:
     "resource://services-settings/RemoteSettingsClient.sys.mjs",
   SearchEngineClassification: "resource://gre/modules/RustSearch.sys.mjs",
-  SearchEngineSelector: "resource://gre/modules/SearchEngineSelector.sys.mjs",
+  SearchEngineSelector:
+    "moz-src:///toolkit/components/search/SearchEngineSelector.sys.mjs",
   SearchService: "resource://gre/modules/SearchService.sys.mjs",
-  SearchSettings: "resource://gre/modules/SearchSettings.sys.mjs",
+  SearchSettings: "moz-src:///toolkit/components/search/SearchSettings.sys.mjs",
   SearchTestUtils: "resource://testing-common/SearchTestUtils.sys.mjs",
-  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+  SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
   updateAppInfo: "resource://testing-common/AppInfo.sys.mjs",
   Utils: "resource://services-settings/Utils.sys.mjs",

@@ -12,7 +12,7 @@ const { FormHistory } = ChromeUtils.importESModule(
   "resource://gre/modules/FormHistory.sys.mjs"
 );
 const { SearchSuggestionController } = ChromeUtils.importESModule(
-  "resource://gre/modules/SearchSuggestionController.sys.mjs"
+  "moz-src:///toolkit/components/search/SearchSuggestionController.sys.mjs"
 );
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"

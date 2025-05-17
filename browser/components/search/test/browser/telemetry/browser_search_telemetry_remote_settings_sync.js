@@ -19,7 +19,7 @@ ChromeUtils.defineESModuleGetters(this, {
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
   SearchSERPDomainToCategoriesMap:
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
-  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+  SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
   TELEMETRY_SETTINGS_KEY:
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
 });

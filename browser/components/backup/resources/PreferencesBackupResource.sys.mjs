@@ -7,7 +7,7 @@ import { BackupResource } from "resource:///modules/backup/BackupResource.sys.mj
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+  SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
 });
 
 /**

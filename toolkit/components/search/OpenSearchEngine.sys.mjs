@@ -11,14 +11,14 @@
 import {
   EngineURL,
   SearchEngine,
-} from "resource://gre/modules/SearchEngine.sys.mjs";
+} from "moz-src:///toolkit/components/search/SearchEngine.sys.mjs";
 
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   loadAndParseOpenSearchEngine:
-    "resource://gre/modules/OpenSearchLoader.sys.mjs",
-  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+    "moz-src:///toolkit/components/search/OpenSearchLoader.sys.mjs",
+  SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {

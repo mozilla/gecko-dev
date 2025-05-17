@@ -11,7 +11,7 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   AppProvidedSearchEngine:
-    "resource://gre/modules/AppProvidedSearchEngine.sys.mjs",
+    "moz-src:///toolkit/components/search/AppProvidedSearchEngine.sys.mjs",
 });
 
 const BASE_CONFIG = [

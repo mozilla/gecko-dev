@@ -9,7 +9,8 @@
 ChromeUtils.defineESModuleGetters(this, {
   AboutNewTab: "resource:///modules/AboutNewTab.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
-  getSearchProvider: "resource://gre/modules/SearchShortcuts.sys.mjs",
+  getSearchProvider:
+    "moz-src:///toolkit/components/search/SearchShortcuts.sys.mjs",
 });
 
 const SHORTCUTS_PREF =

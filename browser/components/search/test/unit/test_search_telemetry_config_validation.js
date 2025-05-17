@@ -9,7 +9,8 @@ ChromeUtils.defineESModuleGetters(this, {
   TELEMETRY_SETTINGS_KEY:
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
-  SearchEngineSelector: "resource://gre/modules/SearchEngineSelector.sys.mjs",
+  SearchEngineSelector:
+    "moz-src:///toolkit/components/search/SearchEngineSelector.sys.mjs",
 });
 
 /**

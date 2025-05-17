@@ -21,7 +21,7 @@ ChromeUtils.defineESModuleGetters(this, {
   FormHistoryTestUtils:
     "resource://testing-common/FormHistoryTestUtils.sys.mjs",
   SearchSuggestionController:
-    "resource://gre/modules/SearchSuggestionController.sys.mjs",
+    "moz-src:///toolkit/components/search/SearchSuggestionController.sys.mjs",
 });
 
 requestLongerTimeout(2);

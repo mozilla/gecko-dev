@@ -5525,9 +5525,6 @@
       "resource://gre/modules/AddonManager.sys.mjs": [
         "toolkit/mozapps/extensions/AddonManager.sys.mjs"
       ],
-      "resource://gre/modules/AddonSearchEngine.sys.mjs": [
-        "toolkit/components/search/AddonSearchEngine.sys.mjs"
-      ],
       "resource://gre/modules/AndroidLog.sys.mjs": [
         "mobile/android/modules/geckoview/AndroidLog.sys.mjs"
       ],
@@ -5536,9 +5533,6 @@
       ],
       "resource://gre/modules/AppMenuNotifications.sys.mjs": [
         "toolkit/modules/AppMenuNotifications.sys.mjs"
-      ],
-      "resource://gre/modules/AppProvidedSearchEngine.sys.mjs": [
-        "toolkit/components/search/AppProvidedSearchEngine.sys.mjs"
       ],
       "resource://gre/modules/AppUpdater.sys.mjs": [
         "toolkit/mozapps/update/AppUpdater.sys.mjs"
@@ -6182,12 +6176,6 @@
       "resource://gre/modules/ObliviousHTTP.sys.mjs": [
         "netwerk/protocol/http/ObliviousHTTP.sys.mjs"
       ],
-      "resource://gre/modules/OpenSearchEngine.sys.mjs": [
-        "toolkit/components/search/OpenSearchEngine.sys.mjs"
-      ],
-      "resource://gre/modules/OpenSearchLoader.sys.mjs": [
-        "toolkit/components/search/OpenSearchLoader.sys.mjs"
-      ],
       "resource://gre/modules/OsEnvironment.sys.mjs": [
         "toolkit/modules/OsEnvironment.sys.mjs"
       ],
@@ -6238,9 +6226,6 @@
       ],
       "resource://gre/modules/PlacesUtils.sys.mjs": [
         "toolkit/components/places/PlacesUtils.sys.mjs"
-      ],
-      "resource://gre/modules/PolicySearchEngine.sys.mjs": [
-        "toolkit/components/search/PolicySearchEngine.sys.mjs"
       ],
       "resource://gre/modules/PopupNotifications.sys.mjs": [
         "toolkit/modules/PopupNotifications.sys.mjs"
@@ -6380,29 +6365,8 @@
       "resource://gre/modules/Schemas.sys.mjs": [
         "toolkit/components/extensions/Schemas.sys.mjs"
       ],
-      "resource://gre/modules/SearchEngine.sys.mjs": [
-        "toolkit/components/search/SearchEngine.sys.mjs"
-      ],
-      "resource://gre/modules/SearchEngineSelector.sys.mjs": [
-        "toolkit/components/search/SearchEngineSelector.sys.mjs"
-      ],
       "resource://gre/modules/SearchService.sys.mjs": [
         "toolkit/components/search/SearchService.sys.mjs"
-      ],
-      "resource://gre/modules/SearchSettings.sys.mjs": [
-        "toolkit/components/search/SearchSettings.sys.mjs"
-      ],
-      "resource://gre/modules/SearchShortcuts.sys.mjs": [
-        "toolkit/components/search/SearchShortcuts.sys.mjs"
-      ],
-      "resource://gre/modules/SearchStaticData.sys.mjs": [
-        "toolkit/components/search/SearchStaticData.sys.mjs"
-      ],
-      "resource://gre/modules/SearchSuggestionController.sys.mjs": [
-        "toolkit/components/search/SearchSuggestionController.sys.mjs"
-      ],
-      "resource://gre/modules/SearchUtils.sys.mjs": [
-        "toolkit/components/search/SearchUtils.sys.mjs"
       ],
       "resource://gre/modules/SecurityInfo.sys.mjs": [
         "toolkit/components/extensions/webrequest/SecurityInfo.sys.mjs"
@@ -6526,9 +6490,6 @@
       ],
       "resource://gre/modules/UsageReporting.sys.mjs": [
         "toolkit/components/telemetry/app/UsageReporting.sys.mjs"
-      ],
-      "resource://gre/modules/UserSearchEngine.sys.mjs": [
-        "toolkit/components/search/UserSearchEngine.sys.mjs"
       ],
       "resource://gre/modules/ValueExtractor.sys.mjs": [
         "dom/manifest/ValueExtractor.sys.mjs"
