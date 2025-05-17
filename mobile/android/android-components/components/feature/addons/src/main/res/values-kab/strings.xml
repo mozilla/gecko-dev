@@ -82,6 +82,8 @@
   <string name="mozac_feature_addons_permissions_trial_ml_description">Sader syen selkem timudamin AI ɣef yibenk-ik</string>
   <!-- Description for userScripts permission. -->
   <string name="mozac_feature_addons_permissions_user_scripts_description">Sireg iskripten n wis kraḍ ur nettwasneqden ara akken ad tkecmeḍ ɣer yisefka-k</string>
+  <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+  <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Iskripten ur nettwasenqed ara zemren ad qemmṛen s tɣellist d uqader n tmeddurt tusligt. Selkem ala iskripten i d-yettwawin seg isiɣzaf neɣ seg iɣbula i tettamneḍ.</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">Siγzef anekcum i yifecka n uneflay ɣer isefka-inek/inem deg waccaren yeldin</string>
   <!-- Description for text button that expands the list of domain permissions -->

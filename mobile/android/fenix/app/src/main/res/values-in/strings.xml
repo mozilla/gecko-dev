@@ -2281,8 +2281,6 @@
   <string name="preference_doh_summary">Domain Name System (DNS) melalui HTTPS mengirimkan permintaan Anda untuk mendapatkan nama domain melalui koneksi terenkripsi, sehingga menyediakan DNS yang aman dan mempersulit orang lain untuk melihat situs web mana yang akan diakses. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Pelajari lebih lanjut</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Arahkan ke atas</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Pengecualian</string>
   <!-- Content description for the "Info" button -->

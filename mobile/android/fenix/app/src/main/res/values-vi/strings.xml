@@ -2316,8 +2316,6 @@
   <string name="preference_doh_summary">Hệ thống phân giải tên miền (DNS) trên HTTPS gửi yêu cầu tên miền của bạn thông qua kết nối được mã hóa, cung cấp DNS an toàn và khiến người khác khó biết bạn sắp truy cập trang web nào. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Tìm hiểu thêm</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Điều hướng lên</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Ngoại lệ</string>
   <!-- Content description for the "Info" button -->

@@ -2289,8 +2289,6 @@
   <string name="preference_doh_summary">Il DNS (Domain Name System) via HTTPS trametta tia dumonda per in num da domena cun agid d’ina connexiun criptada che porscha in DNS segirà. Quai renda pli difficil per auters da vesair tge websites che ti visitas. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Ulteriuras infurmaziuns</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Navigar ensi</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Excepziuns</string>
   <!-- Content description for the "Info" button -->

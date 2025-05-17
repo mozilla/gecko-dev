@@ -2310,8 +2310,6 @@
   <string name="preference_doh_summary">ລະບົບ Domain Name (DNS) ຜ່ານ HTTPS ສົ່ງຄໍາຮ້ອງຂໍຂອງທ່ານສໍາລັບຊື່ໂດເມນໂດຍຜ່ານການເຊື່ອມຕໍ່ທີ່ຖືກເຂົ້າລະຫັດ, ສະຫນອງ DNS ທີ່ປອດໄພແລະເຮັດໃຫ້ມັນຍາກສໍາລັບຜູ້ອື່ນທີ່ຈະເບິ່ງວ່າເວັບໄຊທ໌ໃດທີ່ທ່ານກໍາລັງຈະເຂົ້າຫາ. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">ນຳທາງຂຶ້ນໄປທາງເທິງ</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">ຂໍ້ຍົກເວັ້ນ</string>
   <!-- Content description for the "Info" button -->

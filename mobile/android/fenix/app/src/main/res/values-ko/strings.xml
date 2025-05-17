@@ -2317,8 +2317,6 @@
   <string name="preference_doh_summary">DNS over HTTPS (HTTPS를 통한 DNS)는 암호화된 연결을 통해 도메인 이름에 대한 요청을 전송하여 보안 DNS를 제공하고 다른 사람들이 사용자가 액세스하려는 웹 사이트를 보기 어렵게 만듭니다. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">더 알아보기</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">위로</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">예외</string>
   <!-- Content description for the "Info" button -->

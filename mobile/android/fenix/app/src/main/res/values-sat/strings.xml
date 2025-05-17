@@ -2208,8 +2208,6 @@
   <string name="preference_doh_summary">HTTPS ᱛᱮ Domain Name System (DNS) ᱫᱚ ᱟᱢᱟᱜ ᱰᱚᱢᱮᱱ ᱧᱩᱛᱩᱢ ᱞᱟᱹᱜᱤᱫ ᱟᱢᱟᱜ ᱟᱨᱡᱟᱣ ᱫᱚ ᱮᱱᱠᱨᱤᱯᱴ ᱠᱚᱱᱮᱠᱥᱚᱱ ᱛᱮ ᱵᱷᱮᱡᱟᱭᱟ, ᱚᱱᱟ ᱛᱮ ᱨᱟᱠᱷᱟ DNS ᱮᱢ ᱫᱟᱲᱮᱭᱟᱜ-ᱟ ᱟᱨ ᱮᱴᱟᱜ ᱠᱚ ᱞᱟᱹᱜᱤᱫ ᱟᱢ ᱚᱠᱟ ᱣᱮᱵᱽᱥᱟᱭᱤᱴ ᱮᱢ ᱥᱮᱱᱚᱜ ᱠᱟᱱᱟ ᱚᱱᱟ ᱧᱮᱞ ᱫᱚ ᱟᱹᱰᱤ ᱜᱮ ᱢᱩᱥᱠᱤᱞ ᱠᱟᱱᱟ ᱾ %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">ᱪᱮᱛᱟᱱ ᱥᱮᱱ ᱱᱮᱣᱤᱜᱮᱴ ᱢᱮ</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">ᱪᱷᱟᱰᱟ ᱠᱚ</string>
   <!-- Content description for the "Info" button -->

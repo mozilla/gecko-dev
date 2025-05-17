@@ -2321,8 +2321,6 @@
   <string name="preference_doh_summary">Le systemas de nomine de dominio (DNS) sur HTTPS invia tu requesta pro un nomine de dominio per un connexion cryptate, forniente un DNS secur e obstruente al alteres de vider que sito web tu va acceder. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Pro saper plus</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Navigar</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Exceptiones</string>
   <!-- Content description for the "Info" button -->

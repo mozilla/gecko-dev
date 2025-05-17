@@ -2308,8 +2308,6 @@
   <string name="preference_doh_summary">DNS (Domain Name System eli nimipalvelujärjestelmä) HTTPS:n kautta lähettää verkkotunnuksen nimeä koskevan pyyntösi salatun yhteyden kautta, tarjoten suojatun DNS:n ja vaikeuttaen muiden nähdä, mihin verkkosivustoon olet siirtymässä. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Lue lisää</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Liiku ylöspäin</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Poikkeukset</string>
   <!-- Content description for the "Info" button -->

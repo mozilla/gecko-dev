@@ -2318,8 +2318,6 @@
   <string name="preference_doh_summary">Domain Name System (DNS) oer HTTPS ferstjoert jo oanfraach foar in domeinnamme fia in fersifere ferbining, wêrtroch in feilige DNS jûn wurdt en it foar oaren dreger wurdt om te sjen hokker website jo besykje gean. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Mear ynfo</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Omheech</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Utsûnderingen</string>
   <!-- Content description for the "Info" button -->

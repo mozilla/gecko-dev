@@ -2318,8 +2318,6 @@
   <string name="preference_doh_summary">Domain Name System (DNS) over HTTPS verzendt uw aanvraag voor een domeinnaam via een versleutelde verbinding, waardoor een veilige DNS wordt geboden en het voor anderen moeilijker wordt om te zien welke website u gaat bezoeken. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Meer info</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Omhoog</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Uitzonderingen</string>
   <!-- Content description for the "Info" button -->

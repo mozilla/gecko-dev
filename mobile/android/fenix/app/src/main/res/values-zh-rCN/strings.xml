@@ -2305,8 +2305,6 @@
   <string name="preference_doh_summary">基于 HTTPS 的 DNS 会通过加密的连接发送您对域名的请求，从而提供安全 DNS，使他人更难得知您要访问的网站。%1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">详细了解</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">向上导航</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">例外</string>
   <!-- Content description for the "Info" button -->

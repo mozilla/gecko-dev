@@ -2306,8 +2306,6 @@
   <string name="preference_doh_summary">Ipinapadala ng Domain Name System (DNS) over HTTPS ang iyong request para sa domain name sa isang encrypted na koneksyon, na nagbibigay ng secure DNS at ginagawang mas mahirap sa iba para makita kung ano ang website na ia-access mo. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Alamin</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Mag-navigate pataas</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Mga exception</string>
   <!-- Content description for the "Info" button -->

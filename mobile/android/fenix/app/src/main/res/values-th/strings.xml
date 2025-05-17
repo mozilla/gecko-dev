@@ -2273,8 +2273,6 @@
   <string name="preference_doh_summary">Domain Name System (DNS) over HTTPS จะส่งคำขอชื่อโดเมนของคุณผ่านการเชื่อมต่อที่มีการเข้ารหัส เพื่อเสริมความปลอดภัยให้กับ DNS และทำให้ผู้อื่นดูว่าคุณกำลังจะเข้าถึงเว็บไซต์ใดได้ยากขึ้น %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">เรียนรู้เพิ่มเติม</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">นำทางขึ้นไปด้านบน</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">ข้อยกเว้น</string>
   <!-- Content description for the "Info" button -->
