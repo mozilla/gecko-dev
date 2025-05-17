@@ -72,6 +72,35 @@ const experimentBranchAccessor = {
   },
 };
 
+const NIMBUS_PROFILE_ID_PREF = "nimbus.profileId";
+
+/**
+ * Ensure the Nimbus profile ID exists.
+ *
+ * @returns {string} The profile ID.
+ */
+function ensureNimbusProfileId() {
+  let profileId;
+
+  if (Services.prefs.prefIsLocked(NIMBUS_PROFILE_ID_PREF)) {
+    profileId = Services.prefs.getStringPref(NIMBUS_PROFILE_ID_PREF);
+  } else {
+    if (Services.prefs.prefHasUserValue(NIMBUS_PROFILE_ID_PREF)) {
+      profileId = Services.prefs.getStringPref(NIMBUS_PROFILE_ID_PREF);
+    } else {
+      profileId = Services.uuid.generateUUID().toString().slice(1, -1);
+      Services.prefs.setStringPref(NIMBUS_PROFILE_ID_PREF, profileId);
+    }
+
+    Services.prefs
+      .getDefaultBranch(null)
+      .setStringPref(NIMBUS_PROFILE_ID_PREF, profileId);
+    Services.prefs.lockPref(NIMBUS_PROFILE_ID_PREF);
+  }
+
+  return profileId;
+}
+
 /**
  * Metadata about an enrollment.
  *
@@ -146,6 +175,8 @@ export const ExperimentAPI = {
     if (initialized) {
       return false;
     }
+
+    ensureNimbusProfileId();
 
     initialized = true;
 
@@ -235,6 +266,22 @@ export const ExperimentAPI = {
       Services.prefs.getBoolPref(STUDIES_OPT_OUT_PREF, false) &&
       Services.policies.isAllowed("Shield")
     );
+  },
+
+  /**
+   * Return the profile ID.
+   *
+   * This is used to distinguish different profiles in a shared profile group
+   * apart. Each profile has a persistent and stable profile ID. It is stored as
+   * a user branch pref but is locked to prevent tampering.
+   *
+   * This is still susceptible to user.js editing, but there's nothing we can do
+   * about that.
+   *
+   * @returns {string} The profile ID.
+   */
+  get profileId() {
+    return ensureNimbusProfileId();
   },
 
   /**
