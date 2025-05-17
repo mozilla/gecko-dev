@@ -80,8 +80,6 @@ UNPACKED_INSTALLER = $(ABS_DIST)/unpacked-installer
 
 include $(MOZILLA_DIR)/toolkit/mozapps/installer/packager.mk
 
-PACKAGE_BASE_DIR = $(ABS_DIST)/l10n-stage
-
 $(UNPACKED_INSTALLER): AB_CD:=en-US
 $(UNPACKED_INSTALLER): UNPACKAGE=$(call ESCAPE_WILDCARD,$(ZIP_IN))
 $(UNPACKED_INSTALLER): $(call ESCAPE_WILDCARD,$(ZIP_IN))
@@ -110,7 +108,7 @@ MOZDEPTH ?= $(DEPTH)
 
 repackage-zip: UNPACKAGE='$(ZIP_IN)'
 repackage-zip:
-	$(PYTHON3) $(MOZILLA_DIR)/toolkit/mozapps/installer/l10n-repack.py '$(STAGEDIST)' $(DIST)/xpi-stage/locale-$(AB_CD) \
+	$(PYTHON3) $(MOZILLA_DIR)/toolkit/mozapps/installer/l10n-repack.py '$(STAGEDIST)' $(ABS_DIST)/xpi-stage/locale-$(AB_CD) \
 		$(MOZ_PKG_EXTRAL10N) \
 		$(if $(MOZ_PACKAGER_MINIFY),--minify) \
 		$(if $(filter omni,$(MOZ_PACKAGER_FORMAT)),$(if $(NON_OMNIJAR_FILES),--non-resource $(NON_OMNIJAR_FILES)))
