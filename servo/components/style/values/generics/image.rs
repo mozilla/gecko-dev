@@ -52,7 +52,9 @@ pub enum GenericImage<G, ImageUrl, Color, Percentage, Resolution> {
     ImageSet(Box<GenericImageSet<Self, Resolution>>),
 
     /// A `light-dark()` function.
-    LightDark(Box<GenericLightDark<Self>>),
+    /// NOTE(emilio): #[css(skip)] only affects SpecifiedValueInfo. Remove or make conditional
+    /// if/when shipping light-dark() for content.
+    LightDark(#[css(skip)] Box<GenericLightDark<Self>>),
 }
 
 pub use self::GenericImage as Image;

@@ -89,6 +89,10 @@ function do_test() {
     expected.push("cross-fade");
   }
 
+  if(SpecialPowers.getBoolPref("layout.css.light-dark.images.enabled")) {
+    expected.push("light-dark");
+  }
+
   ok(testValues(values, expected), "property background values.");
 
   var prop = "border";
