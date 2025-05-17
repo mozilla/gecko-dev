@@ -310,7 +310,7 @@ class HgRepository(Repository):
         finally:
             self._run("revert", "-a")
 
-    def get_commits(
+    def get_branch_nodes(
         self,
         head: Optional[str] = None,
         base_ref: Optional[str] = None,

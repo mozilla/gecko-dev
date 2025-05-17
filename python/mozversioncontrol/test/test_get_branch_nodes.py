@@ -38,14 +38,14 @@ STEPS = {
 }
 
 
-def test_get_commits(repo):
+def test_get_branch_nodes(repo):
     vcs = get_repository_object(repo.dir)
 
     # Create some commits
     repo.execute_next_step()
 
     # Get list of branch nodes.
-    nodes = vcs.get_commits()
+    nodes = vcs.get_branch_nodes()
 
     assert len(nodes) == 2
     assert all(len(node) == 40 for node in nodes), "Each node should be a 40-char SHA."
