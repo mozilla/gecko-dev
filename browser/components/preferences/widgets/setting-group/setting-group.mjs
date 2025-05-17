@@ -13,8 +13,29 @@ export class SettingGroup extends MozLitElement {
     getSetting: { type: Function },
   };
 
+  static queries = {
+    controlEls: { all: "setting-control" },
+  };
+
   createRenderRoot() {
     return this;
+  }
+
+  async getUpdateComplete() {
+    let result = await super.getUpdateComplete();
+    await Promise.all([...this.controlEls].map(el => el.updateComplete));
+    return result;
+  }
+
+  /**
+   * Notify child controls when their input has fired an event. When controls
+   * are nested the parent receives events for the nested controls, so this is
+   * actually easier to manage here; it also registers fewer listeners.
+   */
+  onChange(e) {
+    let inputEl = e.target;
+    let control = inputEl.control;
+    control?.onChange(inputEl);
   }
 
   itemTemplate(item) {
@@ -25,6 +46,7 @@ export class SettingGroup extends MozLitElement {
     return html`<setting-control
       .setting=${setting}
       .config=${item}
+      .getSetting=${this.getSetting}
     ></setting-control>`;
   }
 
@@ -32,7 +54,9 @@ export class SettingGroup extends MozLitElement {
     if (!this.config) {
       return "";
     }
-    return html`<moz-fieldset data-l10n-id=${ifDefined(this.config.l10nId)}
+    return html`<moz-fieldset
+      data-l10n-id=${ifDefined(this.config.l10nId)}
+      @change=${this.onChange}
       >${this.config.items.map(item => this.itemTemplate(item))}</moz-fieldset
     >`;
   }

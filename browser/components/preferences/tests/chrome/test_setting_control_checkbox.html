@@ -34,13 +34,18 @@
       const LABEL_L10N_ID = "browsing-use-autoscroll";
       const GROUP_L10N_ID = "pane-experimental-reset";
 
-      function renderTemplate(itemConfig, setting) {
-        return testHelpers.renderTemplate(html`
-        <setting-control
-          .config=${itemConfig}
-          .setting=${setting}
-        ></setting-group>
-      `);
+      async function renderTemplate(itemConfig) {
+        let config = {
+          items: [itemConfig],
+        };
+        let result = await testHelpers.renderTemplate(html`
+          <setting-group
+            .config=${config}
+            .getSetting=${(...args) => Preferences.getSetting(...args)}
+          ></setting-group>
+        `);
+        await result.firstElementChild.updateComplete;
+        return result.querySelector("setting-control");
       }
 
       function waitForSettingChange(setting) {
@@ -53,9 +58,6 @@
       }
 
       add_setup(async function setup() {
-        await SpecialPowers.pushPrefEnv({
-          set: [["settings.revamp.design", false]],
-        });
         testHelpers = new InputTestHelpers();
         ({ html } = await testHelpers.setupLit());
         testHelpers.setupTests({
@@ -78,13 +80,7 @@
         });
         let itemConfig = { l10nId: LABEL_L10N_ID, id: SETTING };
         let setting = Preferences.getSetting(SETTING);
-        let result = await renderTemplate(itemConfig, setting);
-        let control = result.firstElementChild;
-        is(
-          control.localName,
-          "setting-control",
-          "It rendered the setting-control"
-        );
+        let control = await renderTemplate(itemConfig, setting);
         is(
           control.inputEl.localName,
           "moz-checkbox",
@@ -96,7 +92,7 @@
         is(Services.prefs.getBoolPref(PREF), true, "pref is true");
 
         let settingChanged = waitForSettingChange(setting);
-        synthesizeMouseAtCenter(control, {});
+        synthesizeMouseAtCenter(control.inputEl, {});
         await settingChanged;
         is(
           control.inputEl.checked,
@@ -111,7 +107,7 @@
         is(
           control.inputEl.checked,
           true,
-          "checkbox becomes checked after pfef change"
+          "checkbox becomes checked after pref change"
         );
         is(Services.prefs.getBoolPref(PREF), true, "pref is true");
 
@@ -142,11 +138,10 @@
           id: SETTING,
           supportPage: "foo",
         };
-        let result = await renderTemplate(
+        let control = await renderTemplate(
           itemConfig,
           Preferences.getSetting(SETTING)
         );
-        let control = result.firstElementChild;
         ok(control, "Got a control");
         let checkbox = control.inputEl;
         is(checkbox.localName, "moz-checkbox", "moz-checkbox is rendered");
@@ -169,11 +164,10 @@
           id: SETTING,
           subcategory: "exsubcategory",
         };
-        let result = await renderTemplate(
+        let control = await renderTemplate(
           configOne,
           Preferences.getSetting(SETTING)
         );
-        let control = result.firstElementChild;
         ok(control, "Got the control");
         is(
           control.inputEl.dataset.subcategory,
@@ -187,11 +181,10 @@
           subcategory: "exsubcategory2",
           supportPage: "foo",
         };
-        result = await renderTemplate(
+        control = await renderTemplate(
           configTwo,
           Preferences.getSetting(SETTING)
         );
-        control = result.firstElementChild;
         ok(control, "Got the control");
         is(
           control.inputEl.dataset.subcategory,
@@ -200,6 +193,108 @@
         );
 
         is(control.inputEl.supportPage, "foo", "Input got the supportPage");
+      });
+
+      add_task(async function testNestedCheckboxes() {
+        const PREF_PARENT = "test.setting-control.parent";
+        const SETTING_PARENT = "setting-control-parent";
+        const PREF_NESTED = "test.setting-control.nested";
+        const SETTING_NESTED = "setting-control-nested";
+        await SpecialPowers.pushPrefEnv({
+          set: [
+            [PREF_PARENT, false],
+            [PREF_NESTED, true],
+          ],
+        });
+        Preferences.addAll([
+          { id: PREF_PARENT, type: "bool" },
+          { id: PREF_NESTED, type: "bool" },
+        ]);
+        Preferences.addSetting({
+          id: SETTING_PARENT,
+          pref: PREF_PARENT,
+        });
+        Preferences.addSetting({
+          id: SETTING_NESTED,
+          pref: PREF_NESTED,
+        });
+        let itemConfig = {
+          l10nId: LABEL_L10N_ID,
+          id: SETTING_PARENT,
+          items: [{ l10nId: LABEL_L10N_ID, id: SETTING_NESTED }],
+        };
+        let parentSetting = Preferences.getSetting(SETTING_PARENT);
+        let parentControl = await renderTemplate(itemConfig, parentSetting);
+        is(
+          parentControl.setting.id,
+          SETTING_PARENT,
+          "Parent control id is set"
+        );
+        let nestedControl = parentControl.inputEl.firstElementChild;
+        info("Nested: " + nestedControl.localName);
+        is(
+          nestedControl.setting.id,
+          SETTING_NESTED,
+          "Nested control id is set"
+        );
+        is(parentControl.inputEl.checked, false, "Parent is unchecked");
+        is(parentControl.inputEl.inputEl.disabled, false, "Parent is enabled");
+        is(nestedControl.inputEl.checked, true, "Nested is checked");
+        is(nestedControl.inputEl.inputEl.disabled, true, "Nested is disabled");
+
+        let settingChanged = waitForSettingChange(parentSetting);
+        // Click the label since the center of the entire <moz-checkbox> would
+        // be the space between the parent and nested checkboxes.
+        synthesizeMouseAtCenter(parentControl.inputEl.labelEl, {});
+        await settingChanged;
+        await parentControl.updateComplete;
+
+        is(
+          parentControl.inputEl.checked,
+          true,
+          "Parent is checked after click"
+        );
+        is(
+          parentControl.inputEl.inputEl.disabled,
+          false,
+          "Parent is enabled after click"
+        );
+        is(
+          nestedControl.inputEl.checked,
+          true,
+          "Nested is checked after click"
+        );
+        is(
+          nestedControl.inputEl.inputEl.disabled,
+          false,
+          "Nested is enabled after click"
+        );
+
+        settingChanged = waitForSettingChange(parentSetting);
+        Services.prefs.setBoolPref(PREF_PARENT, false);
+        await settingChanged;
+        await parentControl.updateComplete;
+
+        is(
+          parentControl.inputEl.checked,
+          false,
+          "Parent is unchecked after pref change"
+        );
+        is(
+          parentControl.inputEl.inputEl.disabled,
+          false,
+          "Parent is enabled after pref change"
+        );
+        is(
+          nestedControl.inputEl.checked,
+          true,
+          "Nested is checked after pref change"
+        );
+        is(
+          nestedControl.inputEl.inputEl.disabled,
+          true,
+          "Nested is disabled after pref change"
+        );
       });
     </script>
   </head>

@@ -50,7 +50,7 @@ add_task(async function testPiPSettingTelemetry() {
     Services.fog.testResetFOG();
     ok(Services.prefs.getBoolPref(PIP_ENABLED_PREF), "PiP enabled by default");
     ok(el.checked, "Checked by default");
-    EventUtils.synthesizeMouseAtCenter(el, {}, win);
+    EventUtils.synthesizeMouseAtCenter(el.labelEl, {}, win);
     ok(!el.checked, "Unchecked after click");
     ok(!Services.prefs.getBoolPref(PIP_ENABLED_PREF), "PiP is now disabled");
     let events = Glean.pictureinpictureSettings.disableSettings.testGetValue();
@@ -58,7 +58,7 @@ add_task(async function testPiPSettingTelemetry() {
     is(events[0].category, "pictureinpicture.settings", "Category is correct");
     is(events[0].name, "disable_settings", "Name is correct");
     Services.fog.testResetFOG();
-    EventUtils.synthesizeMouseAtCenter(el, {}, win);
+    EventUtils.synthesizeMouseAtCenter(el.labelEl, {}, win);
     events = Glean.pictureinpictureSettings.disableSettings.testGetValue();
     ok(!events, "There were no new Glean events when enabling");
   });

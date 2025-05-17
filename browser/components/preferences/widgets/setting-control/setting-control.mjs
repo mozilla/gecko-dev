@@ -2,7 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html, ifDefined } from "chrome://global/content/vendor/lit.all.mjs";
+import {
+  createRef,
+  html,
+  ifDefined,
+  ref,
+} from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
 export class SettingControl extends MozLitElement {
@@ -12,14 +17,26 @@ export class SettingControl extends MozLitElement {
     setting: { type: Object },
     config: { type: Object },
     value: {},
+    parentDisabled: { type: Boolean },
   };
 
-  static queries = {
-    inputEl: "#input",
-  };
+  constructor() {
+    super();
+    this.inputRef = createRef();
+  }
 
   createRenderRoot() {
     return this;
+  }
+
+  get inputEl() {
+    return this.inputRef.value;
+  }
+
+  async getUpdateComplete() {
+    let result = await super.getUpdateComplete();
+    await this.inputEl.updateComplete;
+    return result;
   }
 
   onSettingChange = () => {
@@ -41,26 +58,45 @@ export class SettingControl extends MozLitElement {
     return this.setting.value;
   }
 
-  onChange(e) {
-    this.setting.userChange(e.target.checked);
+  // Called by our parent when our input changed.
+  onChange(el) {
+    this.setting.userChange(el.checked);
     this.value = this.getValue();
   }
 
   render() {
     let { config } = this;
+    let itemArgs =
+      config.items
+        ?.map(i => ({
+          config: i,
+          setting: this.getSetting(i.id),
+        }))
+        .filter(i => i.setting.visible) || [];
     switch (config.control) {
       case "checkbox":
       default:
         return html`<moz-checkbox
-          id="input"
+          id=${config.id}
           data-l10n-id=${config.l10nId}
           .iconSrc=${config.iconSrc}
           .checked=${this.value}
           .supportPage=${this.config.supportPage}
+          .parentDisabled=${this.parentDisabled}
+          .control=${this}
           data-subcategory=${ifDefined(this.config.subcategory)}
           ?disabled=${this.setting.locked}
-          @change=${this.onChange}
-        ></moz-checkbox>`;
+          ${ref(this.inputRef)}
+          >${itemArgs.map(
+            opts =>
+              html`<setting-control
+                .config=${opts.config}
+                .setting=${opts.setting}
+                .getSetting=${this.getSetting}
+                slot="nested"
+              ></setting-control>`
+          )}</moz-checkbox
+        >`;
     }
   }
 }
