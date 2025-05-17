@@ -2552,7 +2552,7 @@ void JSLinearString::maybeCloneCharsOnPromotionTyped(JSLinearString* str) {
   MOZ_ASSERT(!InCollectedNurseryRegion(str), "str should have been promoted");
   MOZ_ASSERT(str->isDependent());
   JSLinearString* root = str->asDependent().rootBaseDuringMinorGC();
-  if (!root->isTenured()) {
+  if (InCollectedNurseryRegion(root)) {
     // Can still fixup the original chars pointer.
     return;
   }
@@ -2577,7 +2577,15 @@ void JSLinearString::maybeCloneCharsOnPromotionTyped(JSLinearString* str) {
 
   // Overwrite the dest string with a new linear string.
   new (str) JSLinearString(data, len, false /* hasBuffer */);
-  str->zone()->addCellMemory(str, nbytes, js::MemoryUse::StringContents);
+  if (str->isTenured()) {
+    str->zone()->addCellMemory(str, nbytes, js::MemoryUse::StringContents);
+  } else {
+    AutoEnterOOMUnsafeRegion oomUnsafe;
+    JSRuntime* rt = str->runtimeFromAnyThread();
+    if (!rt->gc.nursery().registerMallocedBuffer(data, nbytes)) {
+      oomUnsafe.crash("maybeCloneCharsOnPromotionTyped");
+    }
+  }
 }
 
 template void JSLinearString::maybeCloneCharsOnPromotionTyped<JS::Latin1Char>(
