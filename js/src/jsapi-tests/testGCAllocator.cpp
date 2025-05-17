@@ -649,9 +649,9 @@ BEGIN_TEST(testBufferAllocator_reallocInPlace) {
 
   // Shrink large -> large: supported on non-Windows platforms
 #ifdef XP_WIN
-  CHECK(TestRealloc(2* 1024 * 1024, 1 * 1024 * 1024, false));
+  CHECK(TestRealloc(2 * 1024 * 1024, 1 * 1024 * 1024, false));
 #else
-  CHECK(TestRealloc(2* 1024 * 1024, 1 * 1024 * 1024, true));
+  CHECK(TestRealloc(2 * 1024 * 1024, 1 * 1024 * 1024, true));
 #endif
 
   JS_GC(cx);
@@ -662,8 +662,8 @@ BEGIN_TEST(testBufferAllocator_reallocInPlace) {
 }
 
 bool TestRealloc(size_t fromSize, size_t toSize, bool expectedInPlace) {
-  fprintf(stderr, "TestRealloc %zu -> %zu %u\n",
-          fromSize, toSize, unsigned(expectedInPlace));
+  fprintf(stderr, "TestRealloc %zu -> %zu %u\n", fromSize, toSize,
+          unsigned(expectedInPlace));
 
   Zone* zone = cx->zone();
   void* alloc = AllocBuffer(zone, fromSize, false);

@@ -1088,7 +1088,7 @@ TEST(QuotaCommon_TryUnwrap, NonConstDecl)
 
 TEST(QuotaCommon_TryUnwrap, RvalueDecl)
 {
-  QM_TRY_UNWRAP(int32_t && x, (Result<int32_t, nsresult>{42}), QM_VOID);
+  QM_TRY_UNWRAP(int32_t&& x, (Result<int32_t, nsresult>{42}), QM_VOID);
 
   static_assert(std::is_same_v<decltype(x), int32_t&&>);
 
@@ -1836,10 +1836,14 @@ TEST(QuotaCommon_ErrToDefaultOkOrErr, NsCOMPtr_Err)
 }
 
 TEST(QuotaCommon_IsSpecificError, Match)
-{ EXPECT_TRUE(IsSpecificError<NS_ERROR_FAILURE>(NS_ERROR_FAILURE)); }
+{
+  EXPECT_TRUE(IsSpecificError<NS_ERROR_FAILURE>(NS_ERROR_FAILURE));
+}
 
 TEST(QuotaCommon_IsSpecificError, Mismatch)
-{ EXPECT_FALSE(IsSpecificError<NS_ERROR_FAILURE>(NS_ERROR_UNEXPECTED)); }
+{
+  EXPECT_FALSE(IsSpecificError<NS_ERROR_FAILURE>(NS_ERROR_UNEXPECTED));
+}
 
 TEST(QuotaCommon_ErrToOk, Bool_True)
 {

@@ -677,12 +677,8 @@ RefPtr<WebGLContext> WebGLContext::Create(HostWebGLContext* host,
       LOCAL_GL_FRAGMENT_SHADER,
   };
   constexpr GLenum PRECISIONS[] = {
-      LOCAL_GL_LOW_FLOAT,
-      LOCAL_GL_MEDIUM_FLOAT,
-      LOCAL_GL_HIGH_FLOAT,
-      LOCAL_GL_LOW_INT,
-      LOCAL_GL_MEDIUM_INT,
-      LOCAL_GL_HIGH_INT,
+      LOCAL_GL_LOW_FLOAT, LOCAL_GL_MEDIUM_FLOAT, LOCAL_GL_HIGH_FLOAT,
+      LOCAL_GL_LOW_INT,   LOCAL_GL_MEDIUM_INT,   LOCAL_GL_HIGH_INT,
   };
   for (const auto& shaderType : SHADER_TYPES) {
     for (const auto& precisionType : PRECISIONS) {
@@ -701,8 +697,10 @@ RefPtr<WebGLContext> WebGLContext::Create(HostWebGLContext* host,
   }
 
   if (webgl->mDisableFragHighP) {
-    out->shaderPrecisions->at({LOCAL_GL_FRAGMENT_SHADER, LOCAL_GL_HIGH_FLOAT}) = {};
-    out->shaderPrecisions->at({LOCAL_GL_FRAGMENT_SHADER, LOCAL_GL_HIGH_INT}) = {};
+    out->shaderPrecisions->at(
+        {LOCAL_GL_FRAGMENT_SHADER, LOCAL_GL_HIGH_FLOAT}) = {};
+    out->shaderPrecisions->at(
+        {LOCAL_GL_FRAGMENT_SHADER, LOCAL_GL_HIGH_INT}) = {};
   }
 
   // -

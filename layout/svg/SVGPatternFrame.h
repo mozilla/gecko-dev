@@ -45,9 +45,9 @@ class SVGPatternFrame final : public SVGPaintServerFrame {
   // SVGPaintServerFrame methods:
   already_AddRefed<gfxPattern> GetPaintServerPattern(
       nsIFrame* aSource, const DrawTarget* aDrawTarget,
-      const gfxMatrix& aContextMatrix, StyleSVGPaint nsStyleSVG::*aFillOrStroke,
-      float aGraphicOpacity, imgDrawingParams& aImgParams,
-      const gfxRect* aOverrideBounds) override;
+      const gfxMatrix& aContextMatrix,
+      StyleSVGPaint nsStyleSVG::* aFillOrStroke, float aGraphicOpacity,
+      imgDrawingParams& aImgParams, const gfxRect* aOverrideBounds) override;
 
  public:
   // SVGContainerFrame methods:
@@ -102,7 +102,7 @@ class SVGPatternFrame final : public SVGPaintServerFrame {
   already_AddRefed<SourceSurface> PaintPattern(
       const DrawTarget* aDrawTarget, Matrix* patternMatrix,
       const Matrix& aContextMatrix, nsIFrame* aSource,
-      StyleSVGPaint nsStyleSVG::*aFillOrStroke, float aGraphicOpacity,
+      StyleSVGPaint nsStyleSVG::* aFillOrStroke, float aGraphicOpacity,
       const gfxRect* aOverrideBounds, imgDrawingParams& aImgParams);
 
   /**

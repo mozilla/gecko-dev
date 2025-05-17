@@ -16,7 +16,9 @@ namespace dafsa_test_1 {
 }
 
 TEST(Dafsa, Constructor)
-{ Dafsa d(dafsa_test_1::kDafsa); }
+{
+  Dafsa d(dafsa_test_1::kDafsa);
+}
 
 TEST(Dafsa, StringsFound)
 {

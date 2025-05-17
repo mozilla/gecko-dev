@@ -97,7 +97,9 @@ bool WGLLibrary::EnsureInitialized() {
 #define SYMBOL(X)                 \
   {                               \
     (PRFuncPtr*)&mSymbols.f##X, { \
-      { "wgl" #X }                \
+      {                           \
+        "wgl" #X                  \
+      }                           \
     }                             \
   }
 #define END_OF_SYMBOLS \

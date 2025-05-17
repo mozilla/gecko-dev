@@ -110,9 +110,7 @@ void ScriptLoadRequest::Cancel() {
   }
 }
 
-void ScriptLoadRequest::DropBytecodeCacheReferences() {
-  mCacheInfo = nullptr;
-}
+void ScriptLoadRequest::DropBytecodeCacheReferences() { mCacheInfo = nullptr; }
 
 bool ScriptLoadRequest::HasScriptLoadContext() const {
   return HasLoadContext() && mLoadContext->IsWindowContext();

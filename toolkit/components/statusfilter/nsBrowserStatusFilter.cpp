@@ -300,7 +300,7 @@ void nsBrowserStatusFilter::MaybeSendProgress() {
   if (mCurProgress > mMaxProgress || mCurProgress <= 0) return;
 
   // check our percentage
-  int32_t percentage = (int32_t) double(mCurProgress) * 100 / mMaxProgress;
+  int32_t percentage = (int32_t)double(mCurProgress) * 100 / mMaxProgress;
 
   // The progress meter only updates for increases greater than 3 percent
   if (percentage > (mCurrentPercentage + 3)) {

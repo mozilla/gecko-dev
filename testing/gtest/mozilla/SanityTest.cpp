@@ -11,7 +11,9 @@ using ::testing::AtLeast;
 // Sanity test to make sure that GTest is hooked into
 // the mozilla build system correctly
 TEST(MozillaGTestSanity, Runs)
-{ EXPECT_EQ(1, 1); }
+{
+  EXPECT_EQ(1, 1);
+}
 namespace {
 class TestMock {
  public:

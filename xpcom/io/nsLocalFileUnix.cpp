@@ -1349,7 +1349,7 @@ nsresult nsLocalFile::GetTimeImpl(PRTime* aTime,
   using StatFn = int (*)(const char*, struct STAT*);
   StatFn statFn = aFollowLinks ? &STAT : &LSTAT;
 
-  struct STAT fileStats {};
+  struct STAT fileStats{};
   if (statFn(mPath.get(), &fileStats) < 0) {
     return NSRESULT_FOR_ERRNO();
   }
@@ -1504,7 +1504,7 @@ nsresult nsLocalFile::GetCreationTimeImpl(PRTime* aCreationTime,
   using StatFn = int (*)(const char*, struct STAT*);
   StatFn statFn = aFollowLinks ? &STAT : &LSTAT;
 
-  struct STAT fileStats {};
+  struct STAT fileStats{};
   if (statFn(mPath.get(), &fileStats) < 0) {
     return NSRESULT_FOR_ERRNO();
   }

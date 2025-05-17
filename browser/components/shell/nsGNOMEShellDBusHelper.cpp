@@ -274,7 +274,7 @@ void DBusHandleResultMetas(
 static void ActivateResultID(
     RefPtr<nsGNOMEShellHistorySearchResult> aSearchResult,
     const char* aResultID, uint32_t aTimeStamp) {
-  mozilla::UniquePtr<char[]>commandLine;
+  mozilla::UniquePtr<char[]> commandLine;
   int len;
 
   if (strncmp(aResultID, KEYWORD_SEARCH_STRING, KEYWORD_SEARCH_STRING_LEN) ==

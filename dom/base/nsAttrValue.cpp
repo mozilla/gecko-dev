@@ -1557,8 +1557,7 @@ int32_t nsAttrValue::EnumTableEntryToValue(EnumTableSpan aEnumTable,
   return value;
 }
 
-bool nsAttrValue::ParseEnumValue(const nsAString& aValue,
-                                 EnumTableSpan aTable,
+bool nsAttrValue::ParseEnumValue(const nsAString& aValue, EnumTableSpan aTable,
                                  bool aCaseSensitive,
                                  const EnumTableEntry* aDefaultValue) {
   ResetIfSet();

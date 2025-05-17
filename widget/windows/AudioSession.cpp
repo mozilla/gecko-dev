@@ -114,11 +114,11 @@ void StopAudioSession() {
   MOZ_ASSERT(NS_IsMainThread());
   if (sService) {
     NS_DispatchBackgroundTask(
-      NS_NewRunnableFunction("StopAudioSession", []() -> void {
-        MOZ_ASSERT(AudioSession::GetSingleton(),
-                   "AudioSession should outlive background threads");
-        AudioSession::GetSingleton()->Stop();
-      }));
+        NS_NewRunnableFunction("StopAudioSession", []() -> void {
+          MOZ_ASSERT(AudioSession::GetSingleton(),
+                     "AudioSession should outlive background threads");
+          AudioSession::GetSingleton()->Stop();
+        }));
   }
 }
 
@@ -271,7 +271,8 @@ void AudioSession::StopInternal(const MutexAutoLock& aProofOfLock,
         // Now release the AgileReference which holds our only reference to the
         // IAudioSessionControl, then maybe restart.
         agileAsc = nullptr;
-        if (shouldRestart && !AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
+        if (shouldRestart &&
+            !AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
           NS_DispatchBackgroundTask(
               NS_NewCancelableRunnableFunction("RestartAudioSession", [] {
                 AudioSession* as = AudioSession::GetSingleton();

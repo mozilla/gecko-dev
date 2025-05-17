@@ -49,11 +49,7 @@ class AddonManagerStartup final : public amIAddonManagerStartup,
   "@mozilla.org/addons/addon-manager-startup;1"
 
 // {17a59a6b-92b8-42e5-bce0-ab434c7a7135
-#define NS_ADDON_MANAGER_STARTUP_CID                 \
-  {                                                  \
-    0x17a59a6b, 0x92b8, 0x42e5, {                    \
-      0xbc, 0xe0, 0xab, 0x43, 0x4c, 0x7a, 0x71, 0x35 \
-    }                                                \
-  }
+#define NS_ADDON_MANAGER_STARTUP_CID \
+  {0x17a59a6b, 0x92b8, 0x42e5, {0xbc, 0xe0, 0xab, 0x43, 0x4c, 0x7a, 0x71, 0x35}}
 
 #endif  // AddonManagerStartup_h

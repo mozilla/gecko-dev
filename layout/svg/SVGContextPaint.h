@@ -212,7 +212,7 @@ struct SVGContextPaintImpl : public SVGContextPaint {
 
     already_AddRefed<gfxPattern> GetPattern(
         const DrawTarget* aDrawTarget, float aOpacity,
-        StyleSVGPaint nsStyleSVG::*aFillOrStroke, const gfxMatrix& aCTM,
+        StyleSVGPaint nsStyleSVG::* aFillOrStroke, const gfxMatrix& aCTM,
         imgDrawingParams& aImgParams);
   };
 

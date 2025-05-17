@@ -47,7 +47,8 @@ struct CSPViolationData {
                    const CSPDirective aEffectiveDirective,
                    const nsACString& aSourceFile, uint32_t aLineNumber,
                    uint32_t aColumnNumber, Element* aElement,
-                   const nsAString& aSample, const nsACString& aHashSHA256 = ""_ns);
+                   const nsAString& aSample,
+                   const nsACString& aHashSHA256 = ""_ns);
 
   ~CSPViolationData();
 

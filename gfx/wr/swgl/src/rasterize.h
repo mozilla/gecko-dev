@@ -912,7 +912,7 @@ static inline void draw_quad_spans(int nump, Point2D p[4], uint32_t z,
     if (y > checkY) {
       // If we're outside the clip rect, we're done.
       if (y > clipRect.y1) break;
-        // Helper to find the next non-duplicate vertex that doesn't loop back.
+      // Helper to find the next non-duplicate vertex that doesn't loop back.
 #define STEP_EDGE(y, e0i, e0, e1i, e1, STEP_POINT, end)     \
   do {                                                      \
     /* Set new start of edge to be end of old edge */       \

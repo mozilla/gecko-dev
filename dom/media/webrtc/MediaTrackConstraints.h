@@ -26,7 +26,7 @@ class NormalizedConstraintSet {
  protected:
   class BaseRange {
    protected:
-    typedef BaseRange NormalizedConstraintSet::*MemberPtrType;
+    typedef BaseRange NormalizedConstraintSet::* MemberPtrType;
 
     BaseRange(MemberPtrType aMemberPtr, const char* aName,
               nsTArray<MemberPtrType>* aList)
@@ -44,7 +44,7 @@ class NormalizedConstraintSet {
     const char* mName;
   };
 
-  typedef BaseRange NormalizedConstraintSet::*MemberPtrType;
+  typedef BaseRange NormalizedConstraintSet::* MemberPtrType;
 
  public:
   template <class ValueType>
@@ -133,7 +133,7 @@ class NormalizedConstraintSet {
   };
 
   struct LongRange : public Range<int32_t> {
-    typedef LongRange NormalizedConstraintSet::*LongPtrType;
+    typedef LongRange NormalizedConstraintSet::* LongPtrType;
 
     LongRange(LongPtrType aMemberPtr, const char* aName,
               const dom::Optional<dom::OwningLongOrConstrainLongRange>& aOther,
@@ -141,14 +141,14 @@ class NormalizedConstraintSet {
   };
 
   struct LongLongRange : public Range<int64_t> {
-    typedef LongLongRange NormalizedConstraintSet::*LongLongPtrType;
+    typedef LongLongRange NormalizedConstraintSet::* LongLongPtrType;
 
     LongLongRange(LongLongPtrType aMemberPtr, const char* aName,
                   const long long& aOther, nsTArray<MemberPtrType>* aList);
   };
 
   struct DoubleRange : public Range<double> {
-    typedef DoubleRange NormalizedConstraintSet::*DoublePtrType;
+    typedef DoubleRange NormalizedConstraintSet::* DoublePtrType;
 
     DoubleRange(
         DoublePtrType aMemberPtr, const char* aName,
@@ -157,7 +157,7 @@ class NormalizedConstraintSet {
   };
 
   struct BooleanRange : public Range<bool> {
-    typedef BooleanRange NormalizedConstraintSet::*BooleanPtrType;
+    typedef BooleanRange NormalizedConstraintSet::* BooleanPtrType;
 
     BooleanRange(
         BooleanPtrType aMemberPtr, const char* aName,
@@ -176,7 +176,7 @@ class NormalizedConstraintSet {
     typedef std::set<nsString> ValueType;
     ValueType mExact, mIdeal;
 
-    typedef StringRange NormalizedConstraintSet::*StringPtrType;
+    typedef StringRange NormalizedConstraintSet::* StringPtrType;
 
     StringRange(
         StringPtrType aMemberPtr, const char* aName,

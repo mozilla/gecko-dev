@@ -12,12 +12,12 @@ namespace mozilla {
 namespace image {
 
 #define IMAGEBLOCKER_CONTRACTID "@mozilla.org/image-blocker-content-policy;1"
-#define IMAGEBLOCKER_CID                             \
-  { /* f6fcd651-164b-4416-b001-9c8c393fd93b */       \
-    0xf6fcd651, 0x164b, 0x4416, {                    \
-      0xb0, 0x01, 0x9c, 0x8c, 0x39, 0x3f, 0xd9, 0x3b \
-    }                                                \
-  }
+#define IMAGEBLOCKER_CID                      \
+  {/* f6fcd651-164b-4416-b001-9c8c393fd93b */ \
+   0xf6fcd651,                                \
+   0x164b,                                    \
+   0x4416,                                    \
+   {0xb0, 0x01, 0x9c, 0x8c, 0x39, 0x3f, 0xd9, 0x3b}}
 
 class ImageBlocker final : public nsIContentPolicy {
   ~ImageBlocker() = default;

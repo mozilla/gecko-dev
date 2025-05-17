@@ -38,9 +38,12 @@ NS_IMPL_ISUPPORTS(nsXPCTestParams, nsIXPCTestParams)
   }
 
 #define TAKE_OWNERSHIP_NOOP(val) \
-  {}
-#define TAKE_OWNERSHIP_INTERFACE(val) \
-  { static_cast<nsISupports*>(val)->AddRef(); }
+  {                              \
+  }
+#define TAKE_OWNERSHIP_INTERFACE(val)         \
+  {                                           \
+    static_cast<nsISupports*>(val)->AddRef(); \
+  }
 #define TAKE_OWNERSHIP_STRING(val)  \
   {                                 \
     nsDependentCString vprime(val); \

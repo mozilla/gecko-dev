@@ -1001,9 +1001,9 @@ static bool is_heap(const Array& ary, size_t len) {
 // An array |arr| is using its auto buffer if |&arr < arr.Elements()| and
 // |arr.Elements() - &arr| is small.
 
-#define IS_USING_AUTO(arr)                              \
-  ((uintptr_t) & (arr) < (uintptr_t)(arr).Elements() && \
-   ((ptrdiff_t)(arr).Elements() - (ptrdiff_t) & (arr)) <= 16)
+#define IS_USING_AUTO(arr)                            \
+  ((uintptr_t)&(arr) < (uintptr_t)(arr).Elements() && \
+   ((ptrdiff_t)(arr).Elements() - (ptrdiff_t)&(arr)) <= 16)
 
 #define CHECK_IS_USING_AUTO(arr)     \
   do {                               \

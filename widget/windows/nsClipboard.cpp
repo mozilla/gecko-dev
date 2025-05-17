@@ -1419,11 +1419,13 @@ nsClipboard::GetNativeClipboardData(const nsACString& aFlavor,
       }
     }
 
-    return GetDataFromDataObject(dataObj, 0, nullptr, PromiseFlatCString(aFlavor));
+    return GetDataFromDataObject(dataObj, 0, nullptr,
+                                 PromiseFlatCString(aFlavor));
   }
 
   // do it the old manual way
-  return GetDataFromDataObject(nullptr, 0, mWindow, PromiseFlatCString(aFlavor));
+  return GetDataFromDataObject(nullptr, 0, mWindow,
+                               PromiseFlatCString(aFlavor));
 }
 
 nsresult nsClipboard::EmptyNativeClipboardData(ClipboardType aWhichClipboard) {

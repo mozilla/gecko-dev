@@ -726,8 +726,7 @@ bool txXSLTNumber::isAlphaNumeric(char16_t ch) {
         { 0xFF66, 0xFFBE },
         { 0xFFC2, 0xFFC7 },
         { 0xFFCA, 0xFFCF },
-        { 0xFFD2, 0xFFD7 }
-      // clang-format on
+        { 0xFFD2, 0xFFD7 }  // clang-format on
   };
 
   CharRange search = {ch, ch};

@@ -4252,11 +4252,15 @@ static void VerifyUniqueStringContents(
   writer.Start();
   {
     writer.StartArrayProperty("data");
-    { std::forward<F>(aF)(writer, uniqueStrings); }
+    {
+      std::forward<F>(aF)(writer, uniqueStrings);
+    }
     writer.EndArray();
 
     writer.StartArrayProperty("stringTable");
-    { uniqueStrings.SpliceStringTableElements(writer); }
+    {
+      uniqueStrings.SpliceStringTableElements(writer);
+    }
     writer.EndArray();
   }
   writer.End();
@@ -4460,7 +4464,9 @@ void PrintMarkers(const mozilla::ProfileChunkedBuffer& aBuffer) {
     StreamMarkers(aBuffer, writer);
 
     writer.StartArrayProperty("stringTable");
-    { uniqueStrings.SpliceStringTableElements(writer); }
+    {
+      uniqueStrings.SpliceStringTableElements(writer);
+    }
     writer.EndArray();
   }
   writer.End();

@@ -113,15 +113,21 @@ void Cpp_AssignFromCpp(nsACString* aCStr, nsAString* aStr) {
 }
 extern "C" void Rust_AssignFromCpp();
 TEST(RustNsString, AssignFromCpp)
-{ Rust_AssignFromCpp(); }
+{
+  Rust_AssignFromCpp();
+}
 
 extern "C" void Rust_StringWrite();
 TEST(RustNsString, StringWrite)
-{ Rust_StringWrite(); }
+{
+  Rust_StringWrite();
+}
 
 extern "C" void Rust_FromEmptyRustString();
 TEST(RustNsString, FromEmptyRustString)
-{ Rust_FromEmptyRustString(); }
+{
+  Rust_FromEmptyRustString();
+}
 
 extern "C" void Rust_WriteToBufferFromRust(nsACString* aCStr, nsAString* aStr,
                                            nsACString* aFallibleCStr,

@@ -517,8 +517,8 @@ already_AddRefed<nsIWidget> nsBaseWidget::CreateChild(
 // Attach a view to our widget which we'll send events to.
 void nsBaseWidget::AttachViewToTopLevel(bool aUseAttachedEvents) {
   NS_ASSERTION(mWindowType == WindowType::TopLevel ||
-                mWindowType == WindowType::Dialog ||
-                mWindowType == WindowType::Invisible,
+                   mWindowType == WindowType::Dialog ||
+                   mWindowType == WindowType::Invisible,
                "Can't attach to window of that type");
 
   mUseAttachedEvents = aUseAttachedEvents;

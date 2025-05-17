@@ -17,7 +17,8 @@ using namespace Microsoft::WRL;
 // A basic composition layer backed by a swap-chain for DirectComposition
 class Layer {
  public:
-  Layer(int width, int height, bool is_opaque, const ComPtr<IDXGIFactory2>& dxgiFactory,
+  Layer(int width, int height, bool is_opaque,
+        const ComPtr<IDXGIFactory2>& dxgiFactory,
         const ComPtr<ID3D11Device>& d3dDevice,
         const ComPtr<IDCompositionDesktopDevice>& dCompDevice) {
     HRESULT hr;
@@ -33,7 +34,8 @@ class Layer {
     // DXGI_SCALING_NONE caused swap chain creation failure.
     desc.Scaling = DXGI_SCALING_STRETCH;
     desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-    desc.AlphaMode = is_opaque ? DXGI_ALPHA_MODE_IGNORE : DXGI_ALPHA_MODE_PREMULTIPLIED;
+    desc.AlphaMode =
+        is_opaque ? DXGI_ALPHA_MODE_IGNORE : DXGI_ALPHA_MODE_PREMULTIPLIED;
     desc.Flags = 0;
 
     // Create a swap-chain, visual, attach them and get the backbuffer texture
@@ -105,17 +107,15 @@ class Compositor {
 
   // Construct a layer of given dimensions.
   Layer* create_layer(int width, int height, bool is_opaque) {
-    Layer* layer =
-        new Layer(width, height, is_opaque, pIDXGIFactory, pD3DDevice, pDCompDevice);
+    Layer* layer = new Layer(width, height, is_opaque, pIDXGIFactory,
+                             pD3DDevice, pDCompDevice);
 
     return layer;
   }
 
-  void begin_frame() {
-    pRootVisual->RemoveAllVisuals();
-  }
+  void begin_frame() { pRootVisual->RemoveAllVisuals(); }
 
-  void add_layer(Layer *layer) {
+  void add_layer(Layer* layer) {
     // TODO(gwc): Don't add the visual during creation. Once we support multiple
     // swap-chain layers, we'll need to support rebuilding the visual tree for
     // DC as needed.
@@ -148,7 +148,8 @@ Compositor* wrc_new(void* d3d11_device, void* hwnd) {
 
 void wrc_delete(Compositor* compositor) { delete compositor; }
 
-Layer* wrc_create_layer(Compositor* compositor, int width, int height, bool is_opaque) {
+Layer* wrc_create_layer(Compositor* compositor, int width, int height,
+                        bool is_opaque) {
   return compositor->create_layer(width, height, is_opaque);
 }
 
@@ -163,15 +164,14 @@ void wrc_begin_frame(Compositor* compositor) { compositor->begin_frame(); }
 
 void wrc_end_frame(Compositor* compositor) { compositor->end_frame(); }
 
-void wrc_add_layer(Compositor *compositor, Layer *layer) {
+void wrc_add_layer(Compositor* compositor, Layer* layer) {
   compositor->add_layer(layer);
 }
 
-void wrc_set_layer_position(Layer *layer, float x, float y) {
-    layer->mVisual->SetOffsetX(x);
-    layer->mVisual->SetOffsetY(y);
+void wrc_set_layer_position(Layer* layer, float x, float y) {
+  layer->mVisual->SetOffsetX(x);
+  layer->mVisual->SetOffsetY(y);
 }
-
 }
 
 #endif

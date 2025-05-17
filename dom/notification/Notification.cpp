@@ -614,7 +614,8 @@ nsresult Notification::ResolveIconURL(nsIGlobalObject* aGlobal,
   if (NS_SUCCEEDED(rv)) {
     nsAutoCString src;
     srcUri->GetSpec(src);
-    // XXX(krosylight): We should be able to pass UTF8 as-is, or ideally the URI object itself.
+    // XXX(krosylight): We should be able to pass UTF8 as-is, or ideally the URI
+    // object itself.
     CopyUTF8toUTF16(src, aDecodedUrl);
   }
 

@@ -405,8 +405,8 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
 }
 
 void CodeGeneratorRiscv64::emitBigIntPtrDiv(LBigIntPtrDiv* ins,
-                                           Register dividend, Register divisor,
-                                           Register output) {
+                                            Register dividend, Register divisor,
+                                            Register output) {
   masm.ma_div64(output, dividend, divisor);
 }
 

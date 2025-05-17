@@ -598,7 +598,8 @@ bool nsNativeThemeGTK::CreateWebRenderCommandsForWidget(
     return Theme::CreateWebRenderCommandsForWidget(
         aBuilder, aResources, aSc, aManager, aFrame, aAppearance, aRect);
   }
-  if (aAppearance == StyleAppearance::MozWindowDecorations && GdkIsWaylandDisplay()) {
+  if (aAppearance == StyleAppearance::MozWindowDecorations &&
+      GdkIsWaylandDisplay()) {
     // On wayland we don't need to draw window decorations.
     return true;
   }

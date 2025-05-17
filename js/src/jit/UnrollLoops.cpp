@@ -1759,7 +1759,7 @@ bool FindInitialCandidates(MIRGraph& graph,
   // that a non-innermost loop made it this far.
   for (size_t i = 1; i < initialCandidates.length(); i++) {
     MOZ_RELEASE_ASSERT(initialCandidates[i - 1].header->id() +
-                       initialCandidates[i - 1].numBlocks <=
+                           initialCandidates[i - 1].numBlocks <=
                        initialCandidates[i].header->id());
   }
 

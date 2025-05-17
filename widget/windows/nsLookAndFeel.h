@@ -106,7 +106,8 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
     // titlebars and window borders" is set, that causes DWM to unconditionally
     // draw a titlebar.
     // See https://aka.ms/AAv5eie and bug 1954963.
-    return mTitlebarColors.mUseAccent && mTitlebarColors.mAccentInactive.isSome();
+    return mTitlebarColors.mUseAccent &&
+           mTitlebarColors.mAccentInactive.isSome();
   }
 
  private:

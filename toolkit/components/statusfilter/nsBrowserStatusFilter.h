@@ -68,11 +68,11 @@ class nsBrowserStatusFilter : public nsIWebProgress,
 
 #define NS_BROWSERSTATUSFILTER_CONTRACTID \
   "@mozilla.org/appshell/component/browser-status-filter;1"
-#define NS_BROWSERSTATUSFILTER_CID                   \
-  { /* 6356aa16-7916-4215-a825-cbc2692ca87a */       \
-    0x6356aa16, 0x7916, 0x4215, {                    \
-      0xa8, 0x25, 0xcb, 0xc2, 0x69, 0x2c, 0xa8, 0x7a \
-    }                                                \
-  }
+#define NS_BROWSERSTATUSFILTER_CID            \
+  {/* 6356aa16-7916-4215-a825-cbc2692ca87a */ \
+   0x6356aa16,                                \
+   0x7916,                                    \
+   0x4215,                                    \
+   {0xa8, 0x25, 0xcb, 0xc2, 0x69, 0x2c, 0xa8, 0x7a}}
 
 #endif  // !nsBrowserStatusFilter_h__

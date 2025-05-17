@@ -3130,8 +3130,8 @@ bool BacktrackingAllocator::trySplitAcrossHotcode(LiveBundle* bundle,
           return false;
         }
       }
-      if (!postBundle->addRangeAndDistributeUses(
-              alloc(), range, coldPost.from, coldPost.to)) {
+      if (!postBundle->addRangeAndDistributeUses(alloc(), range, coldPost.from,
+                                                 coldPost.to)) {
         return false;
       }
     }

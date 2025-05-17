@@ -192,8 +192,8 @@ RefPtr<GenericNonExclusivePromise> RDDProcessManager::LaunchRDDProcess() {
 }
 
 auto RDDProcessManager::EnsureRDDProcessAndCreateBridge(
-    ipc::EndpointProcInfo aOtherProcess,
-    dom::ContentParentId aParentId) -> RefPtr<EnsureRDDPromise> {
+    ipc::EndpointProcInfo aOtherProcess, dom::ContentParentId aParentId)
+    -> RefPtr<EnsureRDDPromise> {
   return InvokeAsync(
       GetMainThreadSerialEventTarget(), __func__,
       [aOtherProcess, aParentId, this]() -> RefPtr<EnsureRDDPromise> {

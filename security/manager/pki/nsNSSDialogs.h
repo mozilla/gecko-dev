@@ -12,12 +12,8 @@
 #include "nsIStringBundle.h"
 #include "nsITokenPasswordDialogs.h"
 
-#define NS_NSSDIALOGS_CID                            \
-  {                                                  \
-    0x518e071f, 0x1dd2, 0x11b2, {                    \
-      0x93, 0x7e, 0xc4, 0x5f, 0x14, 0xde, 0xf7, 0x78 \
-    }                                                \
-  }
+#define NS_NSSDIALOGS_CID \
+  {0x518e071f, 0x1dd2, 0x11b2, {0x93, 0x7e, 0xc4, 0x5f, 0x14, 0xde, 0xf7, 0x78}}
 
 class nsNSSDialogs : public nsICertificateDialogs,
                      public nsITokenPasswordDialogs {

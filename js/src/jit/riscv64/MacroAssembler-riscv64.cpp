@@ -61,7 +61,7 @@ void MacroAssemblerRiscv64::ma_cmp_set(Register rd, Register rj, ImmGCPtr imm,
 }
 
 void MacroAssemblerRiscv64::ma_cmp_set(Register rd, Address address,
-                                      Register rhs, Condition c) {
+                                       Register rhs, Condition c) {
   UseScratchRegisterScope temps(this);
   Register scratch2 = temps.Acquire();
   ma_load(scratch2, address, SizeDouble);

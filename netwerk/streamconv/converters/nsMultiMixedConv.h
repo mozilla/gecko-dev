@@ -16,12 +16,12 @@
 #include "nsHttpResponseHead.h"
 #include "mozilla/UniquePtr.h"
 
-#define NS_MULTIMIXEDCONVERTER_CID                 \
-  { /* 7584CE90-5B25-11d3-A175-0050041CAF44 */     \
-    0x7584ce90, 0x5b25, 0x11d3, {                  \
-      0xa1, 0x75, 0x0, 0x50, 0x4, 0x1c, 0xaf, 0x44 \
-    }                                              \
-  }
+#define NS_MULTIMIXEDCONVERTER_CID            \
+  {/* 7584CE90-5B25-11d3-A175-0050041CAF44 */ \
+   0x7584ce90,                                \
+   0x5b25,                                    \
+   0x11d3,                                    \
+   {0xa1, 0x75, 0x0, 0x50, 0x4, 0x1c, 0xaf, 0x44}}
 
 //
 // nsPartChannel is a "dummy" channel which represents an individual part of

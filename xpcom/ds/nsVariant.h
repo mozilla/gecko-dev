@@ -213,11 +213,11 @@ class nsVariantCC final : public nsVariantBase {
  *  - see NS_VARIANT_CONTRACTID in nsIVariant.idl.
  */
 
-#define NS_VARIANT_CID                              \
-  { /* 0D6EA1D0-879C-11d5-90EF-0010A4E73D9A */      \
-    0xd6ea1d0, 0x879c, 0x11d5, {                    \
-      0x90, 0xef, 0x0, 0x10, 0xa4, 0xe7, 0x3d, 0x9a \
-    }                                               \
-  }
+#define NS_VARIANT_CID                        \
+  {/* 0D6EA1D0-879C-11d5-90EF-0010A4E73D9A */ \
+   0xd6ea1d0,                                 \
+   0x879c,                                    \
+   0x11d5,                                    \
+   {0x90, 0xef, 0x0, 0x10, 0xa4, 0xe7, 0x3d, 0x9a}}
 
 #endif  // nsVariant_h

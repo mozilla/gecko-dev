@@ -998,14 +998,10 @@ nsWebBrowser::SetVisibility(bool aVisibility) {
 }
 
 NS_IMETHODIMP
-nsWebBrowser::GetEnabled(bool* aEnabled) {
-  return NS_ERROR_FAILURE;
-}
+nsWebBrowser::GetEnabled(bool* aEnabled) { return NS_ERROR_FAILURE; }
 
 NS_IMETHODIMP
-nsWebBrowser::SetEnabled(bool aEnabled) {
-  return NS_ERROR_FAILURE;
-}
+nsWebBrowser::SetEnabled(bool aEnabled) { return NS_ERROR_FAILURE; }
 
 NS_IMETHODIMP
 nsWebBrowser::GetMainWidget(nsIWidget** aMainWidget) {

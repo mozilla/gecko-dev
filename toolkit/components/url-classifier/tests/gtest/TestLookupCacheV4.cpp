@@ -44,13 +44,19 @@ static void TestHasPrefix(const nsCString& aURL, bool aExpectedHas,
 }
 
 TEST(UrlClassifierLookupCacheV4, HasComplete)
-{ TestHasPrefix("bravo.com/"_ns, true, true); }
+{
+  TestHasPrefix("bravo.com/"_ns, true, true);
+}
 
 TEST(UrlClassifierLookupCacheV4, HasPrefix)
-{ TestHasPrefix("browsing.com/"_ns, true, false); }
+{
+  TestHasPrefix("browsing.com/"_ns, true, false);
+}
 
 TEST(UrlClassifierLookupCacheV4, Nomatch)
-{ TestHasPrefix("nomatch.com/"_ns, false, false); }
+{
+  TestHasPrefix("nomatch.com/"_ns, false, false);
+}
 
 // Test an existing .pset should be removed after .vlpset is written
 TEST(UrlClassifierLookupCacheV4, RemoveOldPset)

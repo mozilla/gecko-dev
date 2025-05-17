@@ -57,11 +57,7 @@ class nsPK11TokenDB : public nsIPK11TokenDB {
   virtual ~nsPK11TokenDB() = default;
 };
 
-#define NS_PK11TOKENDB_CID                           \
-  {                                                  \
-    0xb084a2ce, 0x1dd1, 0x11b2, {                    \
-      0xbf, 0x10, 0x83, 0x24, 0xf8, 0xe0, 0x65, 0xcc \
-    }                                                \
-  }
+#define NS_PK11TOKENDB_CID \
+  {0xb084a2ce, 0x1dd1, 0x11b2, {0xbf, 0x10, 0x83, 0x24, 0xf8, 0xe0, 0x65, 0xcc}}
 
 #endif  // nsPK11TokenDB_h

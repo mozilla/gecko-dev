@@ -11,12 +11,8 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsCOMPtr.h"
 
-#define UDPSOCKETCHILD_CID                           \
-  {                                                  \
-    0xb47e5a0f, 0xd384, 0x48ef, {                    \
-      0x88, 0x85, 0x42, 0x59, 0x79, 0x3d, 0x9c, 0xf0 \
-    }                                                \
-  }
+#define UDPSOCKETCHILD_CID \
+  {0xb47e5a0f, 0xd384, 0x48ef, {0x88, 0x85, 0x42, 0x59, 0x79, 0x3d, 0x9c, 0xf0}}
 
 class nsIInputStream;
 class nsIPrincipal;

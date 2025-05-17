@@ -276,8 +276,11 @@ void MFMediaEngineParent::NotifyError(MF_MEDIA_ENGINE_ERR aError,
   // A special error requires to reset the hareware context, not a real error.
   if (aResult == DRM_E_TEE_INVALID_HWDRM_STATE) {
     LOG("Notify error 'DRM_E_TEE_INVALID_HWDRM_STATE', hr=%lx", aResult);
-    ENGINE_MARKER("MFMediaEngineParent,Received 'DRM_E_TEE_INVALID_HWDRM_STATE'");
-    auto* proxy = mContentProtectionManager ? mContentProtectionManager->GetCDMProxy() : nullptr;
+    ENGINE_MARKER(
+        "MFMediaEngineParent,Received 'DRM_E_TEE_INVALID_HWDRM_STATE'");
+    auto* proxy = mContentProtectionManager
+                      ? mContentProtectionManager->GetCDMProxy()
+                      : nullptr;
     if (proxy) {
       proxy->OnHardwareContextReset();
     }

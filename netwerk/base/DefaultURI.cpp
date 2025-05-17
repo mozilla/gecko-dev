@@ -13,12 +13,12 @@
 namespace mozilla {
 namespace net {
 
-#define NS_DEFAULTURI_CID                            \
-  { /* 04445aa0-fd27-4c99-bd41-6be6318ae92c */       \
-    0x04445aa0, 0xfd27, 0x4c99, {                    \
-      0xbd, 0x41, 0x6b, 0xe6, 0x31, 0x8a, 0xe9, 0x2c \
-    }                                                \
-  }
+#define NS_DEFAULTURI_CID                     \
+  {/* 04445aa0-fd27-4c99-bd41-6be6318ae92c */ \
+   0x04445aa0,                                \
+   0xfd27,                                    \
+   0x4c99,                                    \
+   {0xbd, 0x41, 0x6b, 0xe6, 0x31, 0x8a, 0xe9, 0x2c}}
 
 #define ASSIGN_AND_ADDREF_THIS(ptrToMutator)    \
   do {                                          \

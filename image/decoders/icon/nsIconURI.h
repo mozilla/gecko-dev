@@ -14,12 +14,12 @@
 #include "nsIURIMutator.h"
 #include "nsISerializable.h"
 
-#define NS_THIS_ICONURI_IMPLEMENTATION_CID           \
-  { /* 0b9bb0c2-fee6-470b-b9b9-9fd9462b5e19 */       \
-    0x5c3e417f, 0xb686, 0x4105, {                    \
-      0x86, 0xe7, 0xf9, 0x1b, 0xac, 0x97, 0x4d, 0x5c \
-    }                                                \
-  }
+#define NS_THIS_ICONURI_IMPLEMENTATION_CID    \
+  {/* 0b9bb0c2-fee6-470b-b9b9-9fd9462b5e19 */ \
+   0x5c3e417f,                                \
+   0xb686,                                    \
+   0x4105,                                    \
+   {0x86, 0xe7, 0xf9, 0x1b, 0xac, 0x97, 0x4d, 0x5c}}
 
 namespace mozilla {
 class Encoding;

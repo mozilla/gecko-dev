@@ -316,8 +316,7 @@ Result<H265SPS, nsresult> H265::DecodeSPSFromSPSNALU(const H265NALU& aSPSNALU) {
       return Err(NS_ERROR_FAILURE);
     }
     IN_RANGE_OR_RETURN(width.value(), 0, sps.pic_width_in_luma_samples);
-    CheckedUint32 height =
-        sps.pic_height_in_luma_samples;
+    CheckedUint32 height = sps.pic_height_in_luma_samples;
     height -=
         sps.subHeightC * (sps.conf_win_bottom_offset - sps.conf_win_top_offset);
     if (!height.isValid()) {

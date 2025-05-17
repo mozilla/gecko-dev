@@ -150,7 +150,7 @@ static bool IncludeBBoxScale(const SVGAnimatedViewBox& aViewBox,
 // Given the matrix for the pattern element's own transform, this returns a
 // combined matrix including the transforms applicable to its target.
 static Matrix GetPatternMatrix(nsIFrame* aSource,
-                               const StyleSVGPaint nsStyleSVG::*aFillOrStroke,
+                               const StyleSVGPaint nsStyleSVG::* aFillOrStroke,
                                uint16_t aPatternUnits,
                                const gfxMatrix& patternTransform,
                                const gfxRect& bbox, const gfxRect& callerBBox,
@@ -253,7 +253,7 @@ void SVGPatternFrame::PaintChildren(DrawTarget* aDrawTarget,
 already_AddRefed<SourceSurface> SVGPatternFrame::PaintPattern(
     const DrawTarget* aDrawTarget, Matrix* patternMatrix,
     const Matrix& aContextMatrix, nsIFrame* aSource,
-    StyleSVGPaint nsStyleSVG::*aFillOrStroke, float aGraphicOpacity,
+    StyleSVGPaint nsStyleSVG::* aFillOrStroke, float aGraphicOpacity,
     const gfxRect* aOverrideBounds, imgDrawingParams& aImgParams) {
   /*
    * General approach:
@@ -665,7 +665,7 @@ gfxMatrix SVGPatternFrame::ConstructCTM(const SVGAnimatedViewBox& aViewBox,
 // SVGPaintServerFrame methods:
 already_AddRefed<gfxPattern> SVGPatternFrame::GetPaintServerPattern(
     nsIFrame* aSource, const DrawTarget* aDrawTarget,
-    const gfxMatrix& aContextMatrix, StyleSVGPaint nsStyleSVG::*aFillOrStroke,
+    const gfxMatrix& aContextMatrix, StyleSVGPaint nsStyleSVG::* aFillOrStroke,
     float aGraphicOpacity, imgDrawingParams& aImgParams,
     const gfxRect* aOverrideBounds) {
   if (aGraphicOpacity == 0.0f) {

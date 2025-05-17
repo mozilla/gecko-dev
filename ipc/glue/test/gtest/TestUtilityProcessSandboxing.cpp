@@ -12,13 +12,19 @@ using namespace mozilla;
 using namespace mozilla::ipc;
 
 TEST(UtilityProcessSandboxing, ParseNoEnvVar)
-{ EXPECT_TRUE(IsUtilitySandboxEnabled("", SandboxingKind::COUNT)); }
+{
+  EXPECT_TRUE(IsUtilitySandboxEnabled("", SandboxingKind::COUNT));
+}
 
 TEST(UtilityProcessSandboxing, ParseEnvVar_DisableAll)
-{ EXPECT_FALSE(IsUtilitySandboxEnabled("1", SandboxingKind::COUNT)); }
+{
+  EXPECT_FALSE(IsUtilitySandboxEnabled("1", SandboxingKind::COUNT));
+}
 
 TEST(UtilityProcessSandboxing, ParseEnvVar_DontDisableAll)
-{ EXPECT_TRUE(IsUtilitySandboxEnabled("0", SandboxingKind::COUNT)); }
+{
+  EXPECT_TRUE(IsUtilitySandboxEnabled("0", SandboxingKind::COUNT));
+}
 
 TEST(UtilityProcessSandboxing, ParseEnvVar_DisableGenericOnly)
 {

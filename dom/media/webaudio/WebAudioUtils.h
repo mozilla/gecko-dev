@@ -45,7 +45,8 @@ inline bool FuzzyEqual(double v1, double v2) { return fabs(v1 - v2) < 1e-7; }
  */
 inline float ConvertLinearToDecibels(float aLinearValue, float aMinDecibels) {
   MOZ_ASSERT(aLinearValue >= 0);
-  return aLinearValue > 0.0f ? 20.0f * fdlibm_log10f(aLinearValue) : aMinDecibels;
+  return aLinearValue > 0.0f ? 20.0f * fdlibm_log10f(aLinearValue)
+                             : aMinDecibels;
 }
 
 /**

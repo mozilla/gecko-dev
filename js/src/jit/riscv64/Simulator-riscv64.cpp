@@ -1833,7 +1833,7 @@ void Simulator::SoftwareInterrupt() {
             reinterpret_cast<Prototype_Int_Double>(external);
         int64_t result = target(dval0);
         if (FLAG_trace_sim) printf("ret %ld\n", result);
-        if (external == intptr_t((int32_t(*)(double))JS::ToInt32)) {
+        if (external == intptr_t((int32_t (*)(double))JS::ToInt32)) {
           result = int32_t(result);
         }
         setRegister(a0, result);

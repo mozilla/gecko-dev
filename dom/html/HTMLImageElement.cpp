@@ -629,7 +629,7 @@ CSSIntSize HTMLImageElement::NaturalSize() {
     return {};
   }
 
-  CSSIntSize size; // defaults to 0,0
+  CSSIntSize size;  // defaults to 0,0
   if (!StaticPrefs::image_natural_size_fallback_enabled()) {
     size.width = intrinsicSize.mWidth.valueOr(0);
     size.height = intrinsicSize.mHeight.valueOr(0);

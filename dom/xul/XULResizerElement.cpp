@@ -72,8 +72,7 @@ XULResizerElement::Direction XULResizerElement::GetDirection() {
      {-1, -1}, {0, -1}, {1, -1},
      {-1,  0},          {1,  0},
      {-1,  1}, {0,  1}, {1,  1},
-     {-1,  1},          {1,  1}
-      // clang-format on
+     {-1,  1},          {1,  1}  // clang-format on
   };
 
   const auto* frame = GetPrimaryFrame();

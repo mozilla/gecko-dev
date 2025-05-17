@@ -144,8 +144,8 @@ static gc::AllocKind AllocKindForObjectLiteral(
 
   // Don't reserve object slots for index properties that don't use them.
   if (kind == PropertySetKind::Normal) {
-    propCount = CountNonIndexPropertiesUpTo(literalInsns,
-                                            gc::MaxGCObjectFixedSlots);
+    propCount =
+        CountNonIndexPropertiesUpTo(literalInsns, gc::MaxGCObjectFixedSlots);
   }
 
   return gc::GetGCObjectKind(propCount);

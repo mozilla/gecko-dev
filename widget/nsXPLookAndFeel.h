@@ -15,6 +15,7 @@ class nsLookAndFeel;
 
 class nsXPLookAndFeel : public mozilla::LookAndFeel {
   friend class mozilla::LookAndFeel;
+
  public:
   using FullLookAndFeel = mozilla::widget::FullLookAndFeel;
   using LookAndFeelFont = mozilla::widget::LookAndFeelFont;

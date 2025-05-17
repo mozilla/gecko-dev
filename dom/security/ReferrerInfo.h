@@ -16,12 +16,8 @@
 
 #define REFERRERINFO_CONTRACTID "@mozilla.org/referrer-info;1"
 // 041a129f-10ce-4bda-a60d-e027a26d5ed0
-#define REFERRERINFO_CID                             \
-  {                                                  \
-    0x041a129f, 0x10ce, 0x4bda, {                    \
-      0xa6, 0x0d, 0xe0, 0x27, 0xa2, 0x6d, 0x5e, 0xd0 \
-    }                                                \
-  }
+#define REFERRERINFO_CID \
+  {0x041a129f, 0x10ce, 0x4bda, {0xa6, 0x0d, 0xe0, 0x27, 0xa2, 0x6d, 0x5e, 0xd0}}
 
 class nsIHttpChannel;
 class nsIURI;

@@ -195,8 +195,7 @@ struct NopOpDumper {
   void dumpHeapType(RefType type) {}
   void dumpValType(ValType type) {}
   void dumpTryTableCatches(const TryTableCatchVector& catches) {}
-  void dumpLinearMemoryAddress(
-      LinearMemoryAddress<mozilla::Nothing> addr) {}
+  void dumpLinearMemoryAddress(LinearMemoryAddress<mozilla::Nothing> addr) {}
   void dumpBlockDepth(uint32_t relativeDepth) {}
   void dumpBlockDepths(const Uint32Vector& relativeDepths) {}
   void dumpFieldIndex(uint32_t fieldIndex) {}
@@ -207,7 +206,7 @@ struct NopOpDumper {
   void endScope() {};
 };
 
-template<class T>
+template <class T>
 [[nodiscard]] bool ValidateOps(ValidatingOpIter& iter, T& dumper,
                                const CodeMetadata& codeMeta);
 

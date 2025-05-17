@@ -67,8 +67,8 @@ void wasm::LogOffThread(const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
   if (UniqueChars chars = JS_vsmprintf(fmt, args)) {
-    wasmApiModule.interface.logPrint(wasmApiModule.logger, LogLevel::Info,
-                                     "%s", chars.get());
+    wasmApiModule.interface.logPrint(wasmApiModule.logger, LogLevel::Info, "%s",
+                                     chars.get());
   }
   va_end(args);
 }

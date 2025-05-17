@@ -25,12 +25,8 @@
 #  include <shellapi.h>
 #endif
 
-#define NS_PROCESS_CID                               \
-  {                                                  \
-    0x7b4eeb20, 0xd781, 0x11d4, {                    \
-      0x8A, 0x83, 0x00, 0x10, 0xa4, 0xe0, 0xc9, 0xca \
-    }                                                \
-  }
+#define NS_PROCESS_CID \
+  {0x7b4eeb20, 0xd781, 0x11d4, {0x8A, 0x83, 0x00, 0x10, 0xa4, 0xe0, 0xc9, 0xca}}
 
 class nsIFile;
 

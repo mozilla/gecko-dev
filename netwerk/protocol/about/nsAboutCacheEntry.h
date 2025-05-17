@@ -76,11 +76,11 @@ class nsAboutCacheEntry final : public nsIAboutModule {
   };
 };
 
-#define NS_ABOUT_CACHE_ENTRY_MODULE_CID              \
-  { /* 7fa5237d-b0eb-438f-9e50-ca0166e63788 */       \
-    0x7fa5237d, 0xb0eb, 0x438f, {                    \
-      0x9e, 0x50, 0xca, 0x01, 0x66, 0xe6, 0x37, 0x88 \
-    }                                                \
-  }
+#define NS_ABOUT_CACHE_ENTRY_MODULE_CID       \
+  {/* 7fa5237d-b0eb-438f-9e50-ca0166e63788 */ \
+   0x7fa5237d,                                \
+   0xb0eb,                                    \
+   0x438f,                                    \
+   {0x9e, 0x50, 0xca, 0x01, 0x66, 0xe6, 0x37, 0x88}}
 
 #endif  // nsAboutCacheEntry_h__

@@ -344,4 +344,6 @@ TEST(TestScheduler, Idle)
 }
 
 TEST(TestScheduler, NonIdle)
-{ EXPECT_TRUE(BasicScenario(scheduler, &gc, &ccNonIdle)); }
+{
+  EXPECT_TRUE(BasicScenario(scheduler, &gc, &ccNonIdle));
+}

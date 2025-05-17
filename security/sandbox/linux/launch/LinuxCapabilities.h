@@ -110,7 +110,7 @@ class LinuxCapabilities final {
  private:
   __user_cap_data_struct mBits[_LINUX_CAPABILITY_U32S_3];
 
-  BitRef GenericBitRef(__u32 __user_cap_data_struct::*aField, unsigned aCap) {
+  BitRef GenericBitRef(__u32 __user_cap_data_struct::* aField, unsigned aCap) {
     // Please don't pass untrusted data as the capability number.
     MOZ_ASSERT(CAP_TO_INDEX(aCap) < _LINUX_CAPABILITY_U32S_3);
     return BitRef(mBits[CAP_TO_INDEX(aCap)].*aField, CAP_TO_MASK(aCap));

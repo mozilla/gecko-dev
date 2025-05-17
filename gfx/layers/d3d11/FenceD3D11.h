@@ -37,7 +37,6 @@ namespace layers {
 //
 class FenceD3D11 final : public Fence {
  public:
-
   static RefPtr<FenceD3D11> Create(ID3D11Device* aDevice);
   static RefPtr<FenceD3D11> CreateFromHandle(
       RefPtr<gfx::FileHandleWrapper> aHandle,

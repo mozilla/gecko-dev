@@ -371,7 +371,8 @@ bool RenderDXGITextureHost::LockInternal() {
 
   if (!mLocked) {
     if (mFencesHolderId.isSome()) {
-      auto* fencesHolderMap = layers::CompositeProcessD3D11FencesHolderMap::Get();
+      auto* fencesHolderMap =
+          layers::CompositeProcessD3D11FencesHolderMap::Get();
       if (!fencesHolderMap) {
         MOZ_ASSERT_UNREACHABLE("unexpected to be called");
         return false;

@@ -328,7 +328,8 @@ static bool IsMFCDMAllowedByOrigin(const Maybe<nsCString>& aOrigin) {
   for (const auto& entry : sOriginStatusEntries) {
     // Check if the given origin matches the entry, or if it's a suborigin.
     if (FindInReadable(entry.origin(), *aOrigin)) {
-      isAllowed = entry.status() ==
+      isAllowed =
+          entry.status() ==
           nsIWindowsMediaFoundationCDMOriginsListService::ORIGIN_ALLOWED;
       isFound = true;
       break;
@@ -337,7 +338,8 @@ static bool IsMFCDMAllowedByOrigin(const Maybe<nsCString>& aOrigin) {
   EME_LOG(
       "MediaKeySystemAccess::IsMFCDMAllowedByOrigin, origin (%s) "
       "is %s to use MFCDM %s(Remote)",
-      aOrigin->get(), isAllowed ? "ALLOWED" : "BLOCKED", isFound ? "" : "by default ");
+      aOrigin->get(), isAllowed ? "ALLOWED" : "BLOCKED",
+      isFound ? "" : "by default ");
   return isAllowed;
 }
 #endif

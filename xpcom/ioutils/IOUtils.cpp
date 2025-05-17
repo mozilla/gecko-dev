@@ -95,7 +95,6 @@
     }                                                         \
   } while (0)
 
-
 using namespace mozilla::dom;
 
 static constexpr auto SHUTDOWN_ERROR =
@@ -333,8 +332,8 @@ void IOUtils::DispatchAndResolve(IOUtils::EventQueue* aQueue, Promise* aPromise,
   if (!NS_IsMainThread()) {
     // We need to manually keep the worker alive until the promise returned by
     // Dispatch() resolves or rejects.
-    workerRef = StrongWorkerRef::CreateForcibly(
-        GetCurrentThreadWorkerPrivate(), __func__);
+    workerRef = StrongWorkerRef::CreateForcibly(GetCurrentThreadWorkerPrivate(),
+                                                __func__);
   }
 
   if (RefPtr<IOPromise<OkT>> p = aQueue->Dispatch<OkT, Fn>(std::move(aFunc))) {

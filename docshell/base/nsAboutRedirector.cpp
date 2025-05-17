@@ -119,7 +119,7 @@ static const RedirEntry kRedirMap[] = {
          nsIAboutModule::URI_CAN_LOAD_IN_PRIVILEGEDABOUT_PROCESS},
 #ifdef MOZ_WIDGET_ANDROID
     {"home", "about:blank",
-         nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
+     nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
          nsIAboutModule::URI_CAN_LOAD_IN_PRIVILEGEDABOUT_PROCESS |
          nsIAboutModule::URI_MUST_LOAD_IN_CHILD},
 #endif

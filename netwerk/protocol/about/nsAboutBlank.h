@@ -22,11 +22,11 @@ class nsAboutBlank : public nsIAboutModule {
   virtual ~nsAboutBlank() = default;
 };
 
-#define NS_ABOUT_BLANK_MODULE_CID                    \
-  { /* 3decd6c8-30ef-11d3-8cd0-0060b0fc14a3 */       \
-    0x3decd6c8, 0x30ef, 0x11d3, {                    \
-      0x8c, 0xd0, 0x00, 0x60, 0xb0, 0xfc, 0x14, 0xa3 \
-    }                                                \
-  }
+#define NS_ABOUT_BLANK_MODULE_CID             \
+  {/* 3decd6c8-30ef-11d3-8cd0-0060b0fc14a3 */ \
+   0x3decd6c8,                                \
+   0x30ef,                                    \
+   0x11d3,                                    \
+   {0x8c, 0xd0, 0x00, 0x60, 0xb0, 0xfc, 0x14, 0xa3}}
 
 #endif  // nsAboutBlank_h__

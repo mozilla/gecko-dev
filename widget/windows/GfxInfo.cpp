@@ -1962,7 +1962,8 @@ nsresult GfxInfo::GetFeatureStatusImpl(
             GfxDriverInfo::GetDeviceVendor(DeviceVendor::Microsoft),
             nsCaseInsensitiveStringComparator) &&
         !adapterVendorID.Equals(
-            GfxDriverInfo::GetDeviceVendor(DeviceVendor::MicrosoftRemoteDisplayAdapter),
+            GfxDriverInfo::GetDeviceVendor(
+                DeviceVendor::MicrosoftRemoteDisplayAdapter),
             nsCaseInsensitiveStringComparator) &&
         !adapterVendorID.Equals(
             GfxDriverInfo::GetDeviceVendor(DeviceVendor::Parallels),

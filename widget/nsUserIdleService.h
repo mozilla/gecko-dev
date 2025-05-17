@@ -109,10 +109,10 @@ class nsUserIdleServiceDaily : public nsIObserver,
 class nsUserIdleService : public nsIUserIdleServiceInternal {
  public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSIUSERIDLESERVICE NS_DECL_NSIUSERIDLESERVICEINTERNAL
+ NS_DECL_NSIUSERIDLESERVICE NS_DECL_NSIUSERIDLESERVICEINTERNAL
 
-      protected : static already_AddRefed<nsUserIdleService>
-                  GetInstance();
+     protected : static already_AddRefed<nsUserIdleService>
+                 GetInstance();
 
   nsUserIdleService();
   virtual ~nsUserIdleService();

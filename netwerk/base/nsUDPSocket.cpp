@@ -1267,8 +1267,8 @@ nsUDPSocket::RecvWithAddr(NetAddr* addr, nsTArray<uint8_t>& aData) {
   PRNetAddrToNetAddr(&prAddr, addr);
 
   if (!aData.AppendElements(buff, count, fallible)) {
-    UDPSOCKET_LOG((
-        "nsUDPSocket::RecvWithAddr: AppendElements FAILED [this=%p]\n", this));
+    UDPSOCKET_LOG(
+        ("nsUDPSocket::RecvWithAddr: AppendElements FAILED [this=%p]\n", this));
     mCondition = NS_ERROR_UNEXPECTED;
   }
   return NS_OK;

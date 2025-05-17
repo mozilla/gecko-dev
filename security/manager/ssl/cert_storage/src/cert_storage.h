@@ -10,12 +10,8 @@
 #include "nsISupportsUtils.h"  // for nsresult, etc.
 
 // {16e5c837-f877-4e23-9c64-eddf905e30e6}
-#define NS_CERT_STORAGE_CID                          \
-  {                                                  \
-    0x16e5c837, 0xf877, 0x4e23, {                    \
-      0x9c, 0x64, 0xed, 0xdf, 0x90, 0x5e, 0x30, 0xe6 \
-    }                                                \
-  }
+#define NS_CERT_STORAGE_CID \
+  {0x16e5c837, 0xf877, 0x4e23, {0x9c, 0x64, 0xed, 0xdf, 0x90, 0x5e, 0x30, 0xe6}}
 
 extern "C" {
 nsresult cert_storage_constructor(REFNSIID iid, void** result);

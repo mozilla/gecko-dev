@@ -10,12 +10,8 @@
 #include "nsIScriptableBase64Encoder.h"
 #include "mozilla/Attributes.h"
 
-#define NS_SCRIPTABLEBASE64ENCODER_CID               \
-  {                                                  \
-    0xaaf68860, 0xf849, 0x40ee, {                    \
-      0xbb, 0x7a, 0xb2, 0x29, 0xbc, 0xe0, 0x36, 0xa3 \
-    }                                                \
-  }
+#define NS_SCRIPTABLEBASE64ENCODER_CID \
+  {0xaaf68860, 0xf849, 0x40ee, {0xbb, 0x7a, 0xb2, 0x29, 0xbc, 0xe0, 0x36, 0xa3}}
 #define NS_SCRIPTABLEBASE64ENCODER_CONTRACTID \
   "@mozilla.org/scriptablebase64encoder;1"
 

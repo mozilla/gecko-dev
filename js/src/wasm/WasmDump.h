@@ -145,9 +145,7 @@ struct OpDumper {
       out.put(")");
     }
   }
-  void dumpFuncIndex(uint32_t funcIndex) {
-    out.printf(" %" PRIu32, funcIndex);
-  }
+  void dumpFuncIndex(uint32_t funcIndex) { out.printf(" %" PRIu32, funcIndex); }
   void dumpTableIndex(uint32_t tableIndex) {
     out.printf(" %" PRIu32, tableIndex);
   }
@@ -157,15 +155,9 @@ struct OpDumper {
   void dumpMemoryIndex(uint32_t memoryIndex) {
     out.printf(" %" PRIu32, memoryIndex);
   }
-  void dumpElemIndex(uint32_t elemIndex) {
-    out.printf(" %" PRIu32, elemIndex);
-  }
-  void dumpDataIndex(uint32_t dataIndex) {
-    out.printf(" %" PRIu32, dataIndex);
-  }
-  void dumpTagIndex(uint32_t tagIndex) {
-    out.printf(" %" PRIu32, tagIndex);
-  }
+  void dumpElemIndex(uint32_t elemIndex) { out.printf(" %" PRIu32, elemIndex); }
+  void dumpDataIndex(uint32_t dataIndex) { out.printf(" %" PRIu32, dataIndex); }
+  void dumpTagIndex(uint32_t tagIndex) { out.printf(" %" PRIu32, tagIndex); }
   void dumpLocalIndex(uint32_t localIndex) {
     out.printf(" %" PRIu32, localIndex);
   }
@@ -185,12 +177,8 @@ struct OpDumper {
       out.put(")");
     }
   }
-  void dumpI32Const(int32_t constant) {
-    out.printf(" %" PRId32, constant);
-  }
-  void dumpI64Const(int64_t constant) {
-    out.printf(" %" PRId64, constant);
-  }
+  void dumpI32Const(int32_t constant) { out.printf(" %" PRId32, constant); }
+  void dumpI64Const(int64_t constant) { out.printf(" %" PRId64, constant); }
   void dumpF32Const(float constant) { out.printf(" %f", constant); }
   void dumpF64Const(double constant) { out.printf(" %lf", constant); }
   void dumpV128Const(V128 constant) {
@@ -241,8 +229,7 @@ struct OpDumper {
       out.put(")");
     }
   }
-  void dumpLinearMemoryAddress(
-      LinearMemoryAddress<mozilla::Nothing> addr) {
+  void dumpLinearMemoryAddress(LinearMemoryAddress<mozilla::Nothing> addr) {
     if (addr.memoryIndex != 0) {
       out.printf(" %d", addr.memoryIndex);
     }
@@ -261,15 +248,9 @@ struct OpDumper {
       out.printf(" %d", relativeDepths[i]);
     }
   }
-  void dumpFieldIndex(uint32_t fieldIndex) {
-    out.printf(" %d", fieldIndex);
-  }
-  void dumpNumElements(uint32_t numElements) {
-    out.printf(" %d", numElements);
-  }
-  void dumpLaneIndex(uint32_t laneIndex) {
-    out.printf(" %d", laneIndex);
-  }
+  void dumpFieldIndex(uint32_t fieldIndex) { out.printf(" %d", fieldIndex); }
+  void dumpNumElements(uint32_t numElements) { out.printf(" %d", numElements); }
+  void dumpLaneIndex(uint32_t laneIndex) { out.printf(" %d", laneIndex); }
 
   void startScope() { out.pushScope(); }
   void endScope() { out.popScope(); }

@@ -120,15 +120,15 @@ static GdkRGBA GetForegroundColor(nsIMozIconURI* aIconURI) {
     }
     return dark ? mozilla::ColorScheme::Dark : mozilla::ColorScheme::Light;
   }();
-  auto color = mozilla::LookAndFeel::Color(mozilla::LookAndFeel::ColorID::Windowtext, scheme, mozilla::LookAndFeel::UseStandins::No);
-  auto ToGdk = [](uint8_t aGecko) {
-    return aGecko / 255.0;
-  };
-  return GdkRGBA {
-    .red = ToGdk(NS_GET_R(color)),
-    .green = ToGdk(NS_GET_G(color)),
-    .blue = ToGdk(NS_GET_B(color)),
-    .alpha = ToGdk(NS_GET_A(color)),
+  auto color = mozilla::LookAndFeel::Color(
+      mozilla::LookAndFeel::ColorID::Windowtext, scheme,
+      mozilla::LookAndFeel::UseStandins::No);
+  auto ToGdk = [](uint8_t aGecko) { return aGecko / 255.0; };
+  return GdkRGBA{
+      .red = ToGdk(NS_GET_R(color)),
+      .green = ToGdk(NS_GET_G(color)),
+      .blue = ToGdk(NS_GET_B(color)),
+      .alpha = ToGdk(NS_GET_A(color)),
   };
 }
 
@@ -353,5 +353,4 @@ nsresult nsIconChannel::Init(nsIURI* aURI) {
   return StreamToChannel(stream.forget(), aURI, getter_AddRefs(mRealChannel));
 }
 
-void nsIconChannel::Shutdown() {
-}
+void nsIconChannel::Shutdown() {}

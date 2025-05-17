@@ -775,8 +775,10 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
        child = next) {
     next = child->GetNextSibling();
 
-    // Step 1.1. Assert: child implements Text, Comment, Element, or DocumentType.
-    MOZ_ASSERT(child->IsText() || child->IsComment() || child->IsElement() || child->NodeType() == nsINode::DOCUMENT_TYPE_NODE);
+    // Step 1.1. Assert: child implements Text, Comment, Element, or
+    // DocumentType.
+    MOZ_ASSERT(child->IsText() || child->IsComment() || child->IsElement() ||
+               child->NodeType() == nsINode::DOCUMENT_TYPE_NODE);
 
     // Step 1.2. If child implements DocumentType, then continue.
     if (child->NodeType() == nsINode::DOCUMENT_TYPE_NODE) {

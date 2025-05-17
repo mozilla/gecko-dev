@@ -644,10 +644,14 @@ TEST(Gfx, gfxRect)
 }
 
 TEST(Gfx, nsRectAbsolute)
-{ TestUnionEmptyRects<nsRectAbsolute>(); }
+{
+  TestUnionEmptyRects<nsRectAbsolute>();
+}
 
 TEST(Gfx, IntRectAbsolute)
-{ TestUnionEmptyRects<IntRectAbsolute>(); }
+{
+  TestUnionEmptyRects<IntRectAbsolute>();
+}
 
 static void TestMoveInsideAndClamp(IntRect aSrc, IntRect aTarget,
                                    IntRect aExpected) {

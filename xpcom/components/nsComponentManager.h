@@ -42,12 +42,12 @@
 struct nsFactoryEntry;
 struct PRThread;
 
-#define NS_COMPONENTMANAGER_CID                      \
-  { /* 91775d60-d5dc-11d2-92fb-00e09805570f */       \
-    0x91775d60, 0xd5dc, 0x11d2, {                    \
-      0x92, 0xfb, 0x00, 0xe0, 0x98, 0x05, 0x57, 0x0f \
-    }                                                \
-  }
+#define NS_COMPONENTMANAGER_CID               \
+  {/* 91775d60-d5dc-11d2-92fb-00e09805570f */ \
+   0x91775d60,                                \
+   0xd5dc,                                    \
+   0x11d2,                                    \
+   {0x92, 0xfb, 0x00, 0xe0, 0x98, 0x05, 0x57, 0x0f}}
 
 ////////////////////////////////////////////////////////////////////////////////
 

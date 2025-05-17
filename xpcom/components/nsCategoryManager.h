@@ -21,12 +21,8 @@ class nsIMemoryReporter;
 typedef mozilla::ArenaAllocator<1024 * 8, 8> CategoryAllocator;
 
 /* 16d222a6-1dd2-11b2-b693-f38b02c021b2 */
-#define NS_CATEGORYMANAGER_CID                       \
-  {                                                  \
-    0x16d222a6, 0x1dd2, 0x11b2, {                    \
-      0xb6, 0x93, 0xf3, 0x8b, 0x02, 0xc0, 0x21, 0xb2 \
-    }                                                \
-  }
+#define NS_CATEGORYMANAGER_CID \
+  {0x16d222a6, 0x1dd2, 0x11b2, {0xb6, 0x93, 0xf3, 0x8b, 0x02, 0xc0, 0x21, 0xb2}}
 
 /**
  * a "leaf-node", managed by the nsCategoryNode hashtable.

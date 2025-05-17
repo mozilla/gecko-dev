@@ -1995,7 +1995,8 @@ void CycleCollectedJSRuntime::AnnotateAndSetOutOfMemory(OOMState* aStatePtr,
   enum class Size { Large, Small };
 
   Size size = aStatePtr == &mOutOfMemoryState ? Size::Small : Size::Large;
-  MOZ_ASSERT_IF(size == Size::Large, aStatePtr == &mLargeAllocationFailureState);
+  MOZ_ASSERT_IF(size == Size::Large,
+                aStatePtr == &mLargeAllocationFailureState);
 
   *aStatePtr = aNewState;
 

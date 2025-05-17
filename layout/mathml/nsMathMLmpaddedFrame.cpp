@@ -268,8 +268,7 @@ void nsMathMLmpaddedFrame::UpdateValue(const Attribute& aAttribute,
       amount =
           NSToCoordRound(float(scaler) * aAttribute.mValue.GetPercentValue());
     } else {
-      amount = CalcLength(aAttribute.mValue,
-                          aFontSizeInflation, this);
+      amount = CalcLength(aAttribute.mValue, aFontSizeInflation, this);
     }
 
     switch (aAttribute.mSign) {

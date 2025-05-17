@@ -818,7 +818,8 @@ static bool IsUncancelableIfOnlyPassiveListeners(const WidgetEvent* aEvent) {
 
   // There might be non-passive listeners in the remote document
   // So return false if we are in the parent process with remote target
-  nsCOMPtr<nsIContent> target = nsIContent::FromEventTargetOrNull(aEvent->mOriginalTarget);
+  nsCOMPtr<nsIContent> target =
+      nsIContent::FromEventTargetOrNull(aEvent->mOriginalTarget);
   return !(XRE_IsParentProcess() && BrowserParent::GetFrom(target));
 }
 

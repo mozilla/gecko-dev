@@ -754,7 +754,8 @@ struct AnchorResolvedInsetHelper {
     if (!aValue.HasAnchorPositioningFunction()) {
       return AnchorResolvedInset::NonOwning(&aValue);
     }
-    return ResolveAnchor(aValue, mozilla::ToStylePhysicalSide(aSide), aPosition);
+    return ResolveAnchor(aValue, mozilla::ToStylePhysicalSide(aSide),
+                         aPosition);
   }
 
  private:
@@ -814,7 +815,8 @@ struct AnchorResolvedSizeHelper {
 
   static AnchorResolvedSize LengthPercentage(
       const mozilla::StyleLengthPercentage& aLP) {
-    return mozilla::MakeUniqueOfUniqueOrNonOwning<const mozilla::StyleSize>(aLP);
+    return mozilla::MakeUniqueOfUniqueOrNonOwning<const mozilla::StyleSize>(
+        aLP);
   }
 
  private:
@@ -1013,8 +1015,8 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   // interleaving computation is implemented.
   AnchorResolvedInset GetAnchorResolvedInset(
       mozilla::Side aSide, mozilla::StylePositionProperty aPosition) const {
-    return AnchorResolvedInsetHelper::FromUnresolved(
-        mOffset.Get(aSide), aSide, aPosition);
+    return AnchorResolvedInsetHelper::FromUnresolved(mOffset.Get(aSide), aSide,
+                                                     aPosition);
   }
   inline AnchorResolvedInset GetAnchorResolvedInset(
       mozilla::LogicalSide aSide, WritingMode aWM,

@@ -64,8 +64,7 @@ CSPViolationData::CSPViolationData(uint32_t aViolatedPolicyIndex,
                    BlockedContentSource::TrustedTypesPolicy)
                   ? nsString(aSample)
                   : MaybeTruncateSampleWithEllipsis(aSample)},
-      mHashSHA256{aHashSHA256}
-      {}
+      mHashSHA256{aHashSHA256} {}
 
 // Required for `mElement`, since its destructor requires a definition of
 // `Element`.

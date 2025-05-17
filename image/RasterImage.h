@@ -47,12 +47,12 @@
 class nsIInputStream;
 class nsIRequest;
 
-#define NS_RASTERIMAGE_CID                           \
-  { /* 376ff2c1-9bf6-418a-b143-3340c00112f7 */       \
-    0x376ff2c1, 0x9bf6, 0x418a, {                    \
-      0xb1, 0x43, 0x33, 0x40, 0xc0, 0x01, 0x12, 0xf7 \
-    }                                                \
-  }
+#define NS_RASTERIMAGE_CID                    \
+  {/* 376ff2c1-9bf6-418a-b143-3340c00112f7 */ \
+   0x376ff2c1,                                \
+   0x9bf6,                                    \
+   0x418a,                                    \
+   {0xb1, 0x43, 0x33, 0x40, 0xc0, 0x01, 0x12, 0xf7}}
 
 /**
  * Handles static and animated image containers.

@@ -20,12 +20,12 @@
  *   nsISupportsCString
  */
 #define NS_STRINGINPUTSTREAM_CONTRACTID "@mozilla.org/io/string-input-stream;1"
-#define NS_STRINGINPUTSTREAM_CID                     \
-  { /* 0abb0835-5000-4790-af28-61b3ba17c295 */       \
-    0x0abb0835, 0x5000, 0x4790, {                    \
-      0xaf, 0x28, 0x61, 0xb3, 0xba, 0x17, 0xc2, 0x95 \
-    }                                                \
-  }
+#define NS_STRINGINPUTSTREAM_CID              \
+  {/* 0abb0835-5000-4790-af28-61b3ba17c295 */ \
+   0x0abb0835,                                \
+   0x5000,                                    \
+   0x4790,                                    \
+   {0xaf, 0x28, 0x61, 0xb3, 0xba, 0x17, 0xc2, 0x95}}
 
 /**
  * An enumeration type used to represent a method of assignment.

@@ -71,16 +71,17 @@ class CallArgs {
 };
 
 template <class Cls>
-constexpr jobject (JNIEnv::*TypeAdapter<LocalRef<Cls>>::Call)(
+constexpr jobject (JNIEnv::* TypeAdapter<LocalRef<Cls>>::Call)(
     jobject, jmethodID, CallArgs::JValueType) MOZ_JNICALL_ABI;
 template <class Cls>
-constexpr jobject (JNIEnv::*TypeAdapter<LocalRef<Cls>>::StaticCall)(
+constexpr jobject (JNIEnv::* TypeAdapter<LocalRef<Cls>>::StaticCall)(
     jclass, jmethodID, CallArgs::JValueType) MOZ_JNICALL_ABI;
 template <class Cls>
-constexpr jobject (JNIEnv::*TypeAdapter<LocalRef<Cls>>::Get)(jobject, jfieldID);
+constexpr jobject (JNIEnv::* TypeAdapter<LocalRef<Cls>>::Get)(jobject,
+                                                              jfieldID);
 template <class Cls>
-constexpr jobject (JNIEnv::*TypeAdapter<LocalRef<Cls>>::StaticGet)(jclass,
-                                                                   jfieldID);
+constexpr jobject (JNIEnv::* TypeAdapter<LocalRef<Cls>>::StaticGet)(jclass,
+                                                                    jfieldID);
 
 // TypeAdapter<Ref<Cls>> applies when jobject is a parameter value.
 template <class Cls, typename T>
@@ -100,11 +101,11 @@ struct TypeAdapter<Ref<Cls, T>> {
 };
 
 template <class Cls, typename T>
-constexpr void (JNIEnv::*TypeAdapter<Ref<Cls, T>>::Set)(jobject, jfieldID,
-                                                        jobject);
+constexpr void (JNIEnv::* TypeAdapter<Ref<Cls, T>>::Set)(jobject, jfieldID,
+                                                         jobject);
 template <class Cls, typename T>
-constexpr void (JNIEnv::*TypeAdapter<Ref<Cls, T>>::StaticSet)(jclass, jfieldID,
-                                                              jobject);
+constexpr void (JNIEnv::* TypeAdapter<Ref<Cls, T>>::StaticSet)(jclass, jfieldID,
+                                                               jobject);
 
 // jstring has its own Param type.
 template <>

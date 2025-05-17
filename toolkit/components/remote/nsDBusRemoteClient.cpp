@@ -56,7 +56,8 @@ nsresult nsDBusRemoteClient::SendCommandLine(const char* aProgram,
     return NS_ERROR_FAILURE;
   }
 
-  nsresult rv = DoSendDBusCommandLine(aProfile, commandLine.get(), commandLineLength);
+  nsresult rv =
+      DoSendDBusCommandLine(aProfile, commandLine.get(), commandLineLength);
 
   LOG("DoSendDBusCommandLine %s", NS_SUCCEEDED(rv) ? "OK" : "FAILED");
   return rv;

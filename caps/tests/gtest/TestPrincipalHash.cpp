@@ -12,8 +12,8 @@ TEST(PrincipalHash, DocumentDomain)
   nsCOMPtr<nsIScriptSecurityManager> ssm =
       nsScriptSecurityManager::GetScriptSecurityManager();
   nsCOMPtr<nsIPrincipal> principal;
-  nsresult rv =
-      ssm->CreateContentPrincipalFromOrigin("https://sub.mozilla.org"_ns, getter_AddRefs(principal));
+  nsresult rv = ssm->CreateContentPrincipalFromOrigin(
+      "https://sub.mozilla.org"_ns, getter_AddRefs(principal));
   EXPECT_NS_SUCCEEDED(rv);
 
   const auto hash = principal->GetHashValue();
@@ -23,5 +23,6 @@ TEST(PrincipalHash, DocumentDomain)
   EXPECT_NS_SUCCEEDED(rv);
   principal->SetDomain(domain);
 
-  ASSERT_EQ(principal->GetHashValue(), hash) << "Principal hash shouldn't change";
+  ASSERT_EQ(principal->GetHashValue(), hash)
+      << "Principal hash shouldn't change";
 }

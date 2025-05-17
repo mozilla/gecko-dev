@@ -40,11 +40,11 @@ class nsNSSCertificate final : public nsIX509Cert,
   mozilla::DataMutex<mozilla::Maybe<mozilla::UniqueCERTCertificate>> mCert;
 };
 
-#define NS_X509CERT_CID                              \
-  { /* 660a3226-915c-4ffb-bb20-8985a632df05 */       \
-    0x660a3226, 0x915c, 0x4ffb, {                    \
-      0xbb, 0x20, 0x89, 0x85, 0xa6, 0x32, 0xdf, 0x05 \
-    }                                                \
-  }
+#define NS_X509CERT_CID                       \
+  {/* 660a3226-915c-4ffb-bb20-8985a632df05 */ \
+   0x660a3226,                                \
+   0x915c,                                    \
+   0x4ffb,                                    \
+   {0xbb, 0x20, 0x89, 0x85, 0xa6, 0x32, 0xdf, 0x05}}
 
 #endif  // nsNSSCertificate_h

@@ -21,7 +21,8 @@
   DLL_BLOCKLIST_DEFINITIONS_BEGIN_NAMED(gWindowsDllBlocklist)
 
 #define DLL_BLOCKLIST_DEFINITIONS_END \
-  {}                                  \
+  {                                   \
+  }                                   \
   }                                   \
   ;
 

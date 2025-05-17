@@ -216,10 +216,14 @@ void TestInvalidateExpiredCacheEntry() {
 }
 
 TEST(UrlClassifierCaching, InvalidateExpiredCacheEntryV2)
-{ TestInvalidateExpiredCacheEntry<LookupCacheV2>(); }
+{
+  TestInvalidateExpiredCacheEntry<LookupCacheV2>();
+}
 
 TEST(UrlClassifierCaching, InvalidateExpiredCacheEntryV4)
-{ TestInvalidateExpiredCacheEntry<LookupCacheV4>(); }
+{
+  TestInvalidateExpiredCacheEntry<LookupCacheV4>();
+}
 
 // This testcase check if an cache entry whose negative cache time is expired
 // and it doesn't have any postive cache entries in it, it should be removed

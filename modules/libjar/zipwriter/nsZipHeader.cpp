@@ -74,7 +74,7 @@ NS_IMETHODIMP nsZipHeader::GetLastModifiedTime(PRTime* aLastModifiedTime) {
     uint8_t flags;
     flags = READ8(tsField, &pos);
     if (flags & ZIP_EXTENDED_TIMESTAMP_MODTIME) {
-      *aLastModifiedTime = (PRTime)(READ32(tsField, &pos)) * PR_USEC_PER_SEC;
+      *aLastModifiedTime = (PRTime)(READ32(tsField, &pos))*PR_USEC_PER_SEC;
       return NS_OK;
     }
   }

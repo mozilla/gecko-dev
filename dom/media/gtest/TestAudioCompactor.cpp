@@ -76,16 +76,24 @@ static void TestAudioCompactor(size_t aBytes) {
 }
 
 TEST(Media, AudioCompactor_4000)
-{ TestAudioCompactor(4000); }
+{
+  TestAudioCompactor(4000);
+}
 
 TEST(Media, AudioCompactor_4096)
-{ TestAudioCompactor(4096); }
+{
+  TestAudioCompactor(4096);
+}
 
 TEST(Media, AudioCompactor_5000)
-{ TestAudioCompactor(5000); }
+{
+  TestAudioCompactor(5000);
+}
 
 TEST(Media, AudioCompactor_5256)
-{ TestAudioCompactor(5256); }
+{
+  TestAudioCompactor(5256);
+}
 
 TEST(Media, AudioCompactor_NativeCopy)
 {

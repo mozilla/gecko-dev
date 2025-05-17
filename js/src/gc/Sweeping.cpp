@@ -224,9 +224,8 @@ static inline bool FinalizeTypedArenas(JS::GCContext* gcx, ArenaList& src,
   size_t emptyCount = 0;
 
   GCRuntime* gc = &gcx->runtimeFromAnyThread()->gc;
-  auto updateMarkCount = mozilla::MakeScopeExit([&] {
-    gc->stats().addCount(gcstats::COUNT_CELLS_MARKED, markCount);
-  });
+  auto updateMarkCount = mozilla::MakeScopeExit(
+      [&] { gc->stats().addCount(gcstats::COUNT_CELLS_MARKED, markCount); });
 
   while (!src.isEmpty()) {
     Arena* arena = src.popFront();

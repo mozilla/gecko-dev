@@ -29,10 +29,8 @@ struct IsExclusiveMozPromise<
 }  // namespace detail
 
 template <typename T, typename U, typename F>
-auto Map(RefPtr<U> aPromise, F&& aFunc)
-    -> std::enable_if_t<
-        detail::IsExclusiveMozPromise<RemoveSmartPointer<U>>::value,
-        RefPtr<T>> {
+auto Map(RefPtr<U> aPromise, F&& aFunc) -> std::enable_if_t<
+    detail::IsExclusiveMozPromise<RemoveSmartPointer<U>>::value, RefPtr<T>> {
   return aPromise->Then(
       GetCurrentSerialEventTarget(), __func__,
       [func =
@@ -48,10 +46,8 @@ auto Map(RefPtr<U> aPromise, F&& aFunc)
 }
 
 template <typename T, typename U, typename F>
-auto Map(RefPtr<U> aPromise, F&& aFunc)
-    -> std::enable_if_t<
-        !detail::IsExclusiveMozPromise<RemoveSmartPointer<U>>::value,
-        RefPtr<T>> {
+auto Map(RefPtr<U> aPromise, F&& aFunc) -> std::enable_if_t<
+    !detail::IsExclusiveMozPromise<RemoveSmartPointer<U>>::value, RefPtr<T>> {
   return aPromise->Then(GetCurrentSerialEventTarget(), __func__,
                         [func = std::forward<F>(aFunc)](
                             const typename U::ResolveOrRejectValue& aValue) {

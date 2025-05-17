@@ -14,12 +14,12 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ReentrantMonitor.h"
 
-#define NS_PNGENCODER_CID                            \
-  { /* 38d1592e-b81e-432b-86f8-471878bbfe07 */       \
-    0x38d1592e, 0xb81e, 0x432b, {                    \
-      0x86, 0xf8, 0x47, 0x18, 0x78, 0xbb, 0xfe, 0x07 \
-    }                                                \
-  }
+#define NS_PNGENCODER_CID                     \
+  {/* 38d1592e-b81e-432b-86f8-471878bbfe07 */ \
+   0x38d1592e,                                \
+   0xb81e,                                    \
+   0x432b,                                    \
+   {0x86, 0xf8, 0x47, 0x18, 0x78, 0xbb, 0xfe, 0x07}}
 
 // Provides PNG encoding functionality. Use InitFromData() to do the
 // encoding. See that function definition for encoding options.

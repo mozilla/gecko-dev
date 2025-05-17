@@ -50,7 +50,7 @@ static void v4l2_pixfmt_to_str(uint32_t pixfmt, char* str) {
 // Enumerate the buffer formats supported on a V4L2 buffer queue.  aTypeStr
 // is the queue type, i.e. CAPTURE or OUTPUT.
 static void v4l2_enumfmt(int aFd, int aType, const char* aTypeStr) {
-  struct v4l2_fmtdesc fmt {};
+  struct v4l2_fmtdesc fmt{};
   char pix_fmt_str[5];
   fmt.type = aType;
   record_value("V4L2_%s_FMTS\n", aTypeStr);
@@ -85,7 +85,7 @@ static void v4l2_check_device(const char* aVideoDevice) {
     return;
   }
 
-  struct v4l2_capability cap {};
+  struct v4l2_capability cap{};
   result = ioctl(fd, VIDIOC_QUERYCAP, &cap);
   if (result < 0) {
     record_value("ERROR\nV4L2 device %s failed to query capabilities\n",

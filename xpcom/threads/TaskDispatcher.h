@@ -32,7 +32,7 @@ class SimpleTaskQueue {
     }
     nsCOMPtr<nsIRunnable> runnable(aRunnable);
     PROFILER_MARKER("SimpleTaskQueue::AddTask", OTHER, {MarkerStack::Capture()},
-                   FlowMarker, Flow::FromPointer(runnable.get()));
+                    FlowMarker, Flow::FromPointer(runnable.get()));
     mTasks->push(std::move(runnable));
   }
 

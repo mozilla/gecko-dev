@@ -403,7 +403,9 @@ void DeserializeAfterKindAndStream(
                 options.Stack().GetChunkedBuffer();
             chunkedBuffer) {
           writer->StartObjectProperty("stack");
-          { std::forward<StackCallback>(aStackCallback)(*chunkedBuffer); }
+          {
+            std::forward<StackCallback>(aStackCallback)(*chunkedBuffer);
+          }
           writer->EndObject();
         }
 

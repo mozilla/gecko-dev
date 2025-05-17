@@ -15,8 +15,7 @@
 
 #include "nsString.h"
 
-gfxWindowsSurface::gfxWindowsSurface(HDC dc, uint32_t flags)
-    : mDC(dc) {
+gfxWindowsSurface::gfxWindowsSurface(HDC dc, uint32_t flags) : mDC(dc) {
   InitWithDC(flags);
 }
 

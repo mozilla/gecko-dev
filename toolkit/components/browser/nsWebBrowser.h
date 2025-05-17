@@ -45,12 +45,8 @@ class nsWebBrowserInitInfo {
 };
 
 //  {cda5863a-aa9c-411e-be49-ea0d525ab4b5} -
-#define NS_WEBBROWSER_CID                            \
-  {                                                  \
-    0xcda5863a, 0xaa9c, 0x411e, {                    \
-      0xbe, 0x49, 0xea, 0x0d, 0x52, 0x5a, 0xb4, 0xb5 \
-    }                                                \
-  }
+#define NS_WEBBROWSER_CID \
+  {0xcda5863a, 0xaa9c, 0x411e, {0xbe, 0x49, 0xea, 0x0d, 0x52, 0x5a, 0xb4, 0xb5}}
 
 class mozIDOMWindowProxy;
 class nsDocShell;

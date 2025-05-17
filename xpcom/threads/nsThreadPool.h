@@ -68,11 +68,11 @@ class nsThreadPool final : public mozilla::Runnable, public nsIThreadPool {
   nsThreadPoolNaming mThreadNaming;  // all data inside this is atomic
 };
 
-#define NS_THREADPOOL_CID                            \
-  { /* 547ec2a8-315e-4ec4-888e-6e4264fe90eb */       \
-    0x547ec2a8, 0x315e, 0x4ec4, {                    \
-      0x88, 0x8e, 0x6e, 0x42, 0x64, 0xfe, 0x90, 0xeb \
-    }                                                \
-  }
+#define NS_THREADPOOL_CID                     \
+  {/* 547ec2a8-315e-4ec4-888e-6e4264fe90eb */ \
+   0x547ec2a8,                                \
+   0x315e,                                    \
+   0x4ec4,                                    \
+   {0x88, 0x8e, 0x6e, 0x42, 0x64, 0xfe, 0x90, 0xeb}}
 
 #endif  // nsThreadPool_h__

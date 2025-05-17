@@ -722,8 +722,10 @@ TEST(SandboxBrokerMisc, DISABLED_StackLeak)
     ipc::FileDescriptor fd;
     RefPtr<SandboxBroker> broker =
         SandboxBroker::Create(std::move(policy), pid, fd);
-    ASSERT_TRUE(broker != nullptr) << "iter " << i;
-    ASSERT_TRUE(fd.IsValid()) << "iter " << i;
+    ASSERT_TRUE(broker != nullptr)
+    << "iter " << i;
+    ASSERT_TRUE(fd.IsValid())
+    << "iter " << i;
     broker = nullptr;
   }
 }

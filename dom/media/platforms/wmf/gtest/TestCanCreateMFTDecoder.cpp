@@ -12,4 +12,6 @@
 using namespace mozilla;
 
 TEST(CanCreateMFTDecoder, NoIPC)
-{ EXPECT_TRUE(WMFDecoderModule::CanCreateMFTDecoder(WMFStreamType::H264)); }
+{
+  EXPECT_TRUE(WMFDecoderModule::CanCreateMFTDecoder(WMFStreamType::H264));
+}

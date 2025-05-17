@@ -187,8 +187,7 @@ Result<Ok, ICUError> ApplyCalendarOverride(UDateFormat* aDateFormat) {
     auto* gregorian = static_cast<const icu::GregorianCalendar*>(calendar);
     MOZ_TRY(
         SetGregorianChangeDate(const_cast<icu::GregorianCalendar*>(gregorian)));
-  }
-  else if (IsCalendarReplacementSupported(type)) {
+  } else if (IsCalendarReplacementSupported(type)) {
     auto replacement = CreateCalendarReplacement(calendar);
     if (replacement.isErr()) {
       return replacement.propagateErr();

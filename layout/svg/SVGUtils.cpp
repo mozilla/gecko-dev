@@ -1156,7 +1156,7 @@ gfxRect SVGUtils::PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
 
 /* static */
 nscolor SVGUtils::GetFallbackOrPaintColor(
-    const ComputedStyle& aStyle, StyleSVGPaint nsStyleSVG::*aFillOrStroke,
+    const ComputedStyle& aStyle, StyleSVGPaint nsStyleSVG::* aFillOrStroke,
     nscolor aDefaultContextFallbackColor) {
   const auto& paint = aStyle.StyleSVG()->*aFillOrStroke;
   nscolor color;

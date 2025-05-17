@@ -22,12 +22,12 @@
 
 extern mozilla::LogModule* GetTimerLog();
 
-#define NS_TIMER_CID                                 \
-  { /* 5ff24248-1dd2-11b2-8427-fbab44f29bc8 */       \
-    0x5ff24248, 0x1dd2, 0x11b2, {                    \
-      0x84, 0x27, 0xfb, 0xab, 0x44, 0xf2, 0x9b, 0xc8 \
-    }                                                \
-  }
+#define NS_TIMER_CID                          \
+  {/* 5ff24248-1dd2-11b2-8427-fbab44f29bc8 */ \
+   0x5ff24248,                                \
+   0x1dd2,                                    \
+   0x11b2,                                    \
+   {0x84, 0x27, 0xfb, 0xab, 0x44, 0xf2, 0x9b, 0xc8}}
 
 class nsIObserver;
 

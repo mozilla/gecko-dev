@@ -356,8 +356,8 @@ MInstruction* WarpBuilder::buildNamedLambdaEnv(MDefinition* callee,
   size_t lambdaSlot = NamedLambdaObject::lambdaSlot();
   current->add(MStoreFixedSlot::NewUnbarriered(alloc(), namedLambda,
                                                enclosingSlot, env));
-  current->add(MStoreFixedSlot::NewUnbarriered(alloc(), namedLambda,
-                                               lambdaSlot, callee));
+  current->add(MStoreFixedSlot::NewUnbarriered(alloc(), namedLambda, lambdaSlot,
+                                               callee));
 
   return namedLambda;
 }
@@ -415,12 +415,10 @@ bool WarpBuilder::buildEnvironmentChain() {
         MInstruction* envDef = MFunctionEnvironment::New(alloc(), callee);
         current->add(envDef);
         if (NamedLambdaObject* obj = env.namedLambdaTemplate) {
-          envDef = buildNamedLambdaEnv(callee, envDef, obj,
-                                       env.initialHeap);
+          envDef = buildNamedLambdaEnv(callee, envDef, obj, env.initialHeap);
         }
         if (CallObject* obj = env.callObjectTemplate) {
-          envDef = buildCallObject(callee, envDef, obj,
-                                   env.initialHeap);
+          envDef = buildCallObject(callee, envDef, obj, env.initialHeap);
           if (!envDef) {
             return nullptr;
           }

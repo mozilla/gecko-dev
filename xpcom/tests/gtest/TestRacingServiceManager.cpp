@@ -24,21 +24,13 @@
 using namespace mozilla;
 
 /* f93f6bdc-88af-42d7-9d64-1b43c649a3e5 */
-#define FACTORY_CID1                                 \
-  {                                                  \
-    0xf93f6bdc, 0x88af, 0x42d7, {                    \
-      0x9d, 0x64, 0x1b, 0x43, 0xc6, 0x49, 0xa3, 0xe5 \
-    }                                                \
-  }
+#define FACTORY_CID1 \
+  {0xf93f6bdc, 0x88af, 0x42d7, {0x9d, 0x64, 0x1b, 0x43, 0xc6, 0x49, 0xa3, 0xe5}}
 NS_DEFINE_CID(kFactoryCID1, FACTORY_CID1);
 
 /* ef38ad65-6595-49f0-8048-e819f81d15e2 */
-#define FACTORY_CID2                                 \
-  {                                                  \
-    0xef38ad65, 0x6595, 0x49f0, {                    \
-      0x80, 0x48, 0xe8, 0x19, 0xf8, 0x1d, 0x15, 0xe2 \
-    }                                                \
-  }
+#define FACTORY_CID2 \
+  {0xef38ad65, 0x6595, 0x49f0, {0x80, 0x48, 0xe8, 0x19, 0xf8, 0x1d, 0x15, 0xe2}}
 NS_DEFINE_CID(kFactoryCID2, FACTORY_CID2);
 
 #define FACTORY_CONTRACTID "TestRacingThreadManager/factory;1"

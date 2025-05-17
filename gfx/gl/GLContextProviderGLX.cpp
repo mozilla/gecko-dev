@@ -106,7 +106,9 @@ bool GLXLibrary::EnsureInitialized(Display* aDisplay) {
 #define SYMBOL(X)                 \
   {                               \
     (PRFuncPtr*)&mSymbols.f##X, { \
-      { "glX" #X }                \
+      {                           \
+        "glX" #X                  \
+      }                           \
     }                             \
   }
 #define END_OF_SYMBOLS \

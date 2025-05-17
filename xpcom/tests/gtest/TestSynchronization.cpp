@@ -34,7 +34,9 @@ MOZ_NO_THREAD_SAFETY_ANALYSIS {
 
   lock.Lock();
   lock.AssertCurrentThreadOwns();
-  { MutexAutoUnlock autounlock(lock); }
+  {
+    MutexAutoUnlock autounlock(lock);
+  }
   lock.AssertCurrentThreadOwns();
   lock.Unlock();
 

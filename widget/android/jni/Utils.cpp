@@ -24,21 +24,21 @@ namespace jni {
 
 namespace detail {
 
-#define DEFINE_PRIMITIVE_TYPE_ADAPTER(NativeType, JNIType, JNIName, ABIName)   \
-                                                                               \
-  constexpr JNIType (JNIEnv::*TypeAdapter<NativeType>::Call)(                  \
-      jobject, jmethodID, CallArgs::JValueType) MOZ_JNICALL_ABI;               \
-  constexpr JNIType (JNIEnv::*TypeAdapter<NativeType>::StaticCall)(            \
-      jclass, jmethodID, CallArgs::JValueType) MOZ_JNICALL_ABI;                \
-  constexpr JNIType (JNIEnv::*TypeAdapter<NativeType>::Get)(jobject, jfieldID) \
-      ABIName;                                                                 \
-  constexpr JNIType (JNIEnv::*TypeAdapter<NativeType>::StaticGet)(             \
-      jclass, jfieldID) ABIName;                                               \
-  constexpr void (JNIEnv::*TypeAdapter<NativeType>::Set)(jobject, jfieldID,    \
-                                                         JNIType) ABIName;     \
-  constexpr void (JNIEnv::*TypeAdapter<NativeType>::StaticSet)(                \
-      jclass, jfieldID, JNIType) ABIName;                                      \
-  constexpr void (JNIEnv::*TypeAdapter<NativeType>::GetArray)(                 \
+#define DEFINE_PRIMITIVE_TYPE_ADAPTER(NativeType, JNIType, JNIName, ABIName) \
+                                                                             \
+  constexpr JNIType (JNIEnv::* TypeAdapter<NativeType>::Call)(               \
+      jobject, jmethodID, CallArgs::JValueType) MOZ_JNICALL_ABI;             \
+  constexpr JNIType (JNIEnv::* TypeAdapter<NativeType>::StaticCall)(         \
+      jclass, jmethodID, CallArgs::JValueType) MOZ_JNICALL_ABI;              \
+  constexpr JNIType (JNIEnv::* TypeAdapter<NativeType>::Get)(                \
+      jobject, jfieldID) ABIName;                                            \
+  constexpr JNIType (JNIEnv::* TypeAdapter<NativeType>::StaticGet)(          \
+      jclass, jfieldID) ABIName;                                             \
+  constexpr void (JNIEnv::* TypeAdapter<NativeType>::Set)(jobject, jfieldID, \
+                                                          JNIType) ABIName;  \
+  constexpr void (JNIEnv::* TypeAdapter<NativeType>::StaticSet)(             \
+      jclass, jfieldID, JNIType) ABIName;                                    \
+  constexpr void (JNIEnv::* TypeAdapter<NativeType>::GetArray)(              \
       JNIType##Array, jsize, jsize, JNIType*)
 
 DEFINE_PRIMITIVE_TYPE_ADAPTER(bool, jboolean, Boolean, /*nothing*/);

@@ -16,12 +16,12 @@ class nsIVariant;
 
 #define NS_STRUCTUREDCLONECONTAINER_CONTRACTID \
   "@mozilla.org/docshell/structured-clone-container;1"
-#define NS_STRUCTUREDCLONECONTAINER_CID              \
-  { /* 38bd0634-0fd4-46f0-b85f-13ced889eeec */       \
-    0x38bd0634, 0x0fd4, 0x46f0, {                    \
-      0xb8, 0x5f, 0x13, 0xce, 0xd8, 0x89, 0xee, 0xec \
-    }                                                \
-  }
+#define NS_STRUCTUREDCLONECONTAINER_CID       \
+  {/* 38bd0634-0fd4-46f0-b85f-13ced889eeec */ \
+   0x38bd0634,                                \
+   0x0fd4,                                    \
+   0x46f0,                                    \
+   {0xb8, 0x5f, 0x13, 0xce, 0xd8, 0x89, 0xee, 0xec}}
 
 class nsStructuredCloneContainer final
     : public nsIStructuredCloneContainer,

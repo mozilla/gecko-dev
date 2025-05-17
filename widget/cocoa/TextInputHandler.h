@@ -903,8 +903,8 @@ class TextInputHandlerBase : public TextEventDispatcherListener {
  * And also provides the methods which controls the current IME transaction of
  * the instance.
  *
- * Note that an nsCocoaWindow handles one or more NSView's events.  E.g., even if
- * a text editor on XUL panel element, the input events handled on the parent
+ * Note that an nsCocoaWindow handles one or more NSView's events.  E.g., even
+ * if a text editor on XUL panel element, the input events handled on the parent
  * (or its ancestor) widget handles it (the native focus is set to it).  The
  * actual focused view is notified by OnFocusChangeInGecko.
  */

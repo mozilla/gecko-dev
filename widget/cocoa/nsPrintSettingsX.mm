@@ -76,7 +76,9 @@ struct KnownMonochromeSetting {
 };
 
 #define DECLARE_KNOWN_MONOCHROME_SETTING(key_, value_) \
-  { @key_, @value_ }                                   \
+  {                                                    \
+    @key_, @value_                                     \
+  }                                                    \
   ,
 static const KnownMonochromeSetting kKnownMonochromeSettings[] = {
     CUPS_EACH_MONOCHROME_PRINTER_SETTING(DECLARE_KNOWN_MONOCHROME_SETTING)};

@@ -90,11 +90,7 @@ class ExpandedPrincipal : public nsIExpandedPrincipal,
       MOZ_GUARDED_BY(mozilla::sMainThreadCapability);
 };
 
-#define NS_EXPANDEDPRINCIPAL_CID                     \
-  {                                                  \
-    0xe8ee88b0, 0x5571, 0x4086, {                    \
-      0xa4, 0x5b, 0x39, 0xa7, 0x16, 0x90, 0x6b, 0xdb \
-    }                                                \
-  }
+#define NS_EXPANDEDPRINCIPAL_CID \
+  {0xe8ee88b0, 0x5571, 0x4086, {0xa4, 0x5b, 0x39, 0xa7, 0x16, 0x90, 0x6b, 0xdb}}
 
 #endif  // ExpandedPrincipal_h

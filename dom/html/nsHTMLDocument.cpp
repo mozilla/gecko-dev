@@ -613,8 +613,10 @@ void nsHTMLDocument::NamedGetter(JSContext* aCx, const nsAString& aName,
     }
   }
 
-  // To limit the possible performance/memory impact, only collect at most 10 properties.
-  if (mShadowedHTMLDocumentProperties.Length() <= 10 && HTMLDocument_Binding::InterfaceHasNonEventHandlerProperty(aName)) {
+  // To limit the possible performance/memory impact, only collect at most 10
+  // properties.
+  if (mShadowedHTMLDocumentProperties.Length() <= 10 &&
+      HTMLDocument_Binding::InterfaceHasNonEventHandlerProperty(aName)) {
     if (!mShadowedHTMLDocumentProperties.Contains(aName)) {
       mShadowedHTMLDocumentProperties.AppendElement(aName);
     }

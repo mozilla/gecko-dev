@@ -1460,9 +1460,11 @@ nsresult Database::InitSchema(bool* aDatabaseMigrated) {
     rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_NEWTAB_STORY_IMPRESSION);
     NS_ENSURE_SUCCESS(rv, rv);
     // Add newtab_story timestamp index.
-    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_NEWTAB_STORY_CLICK_TIMESTAMP);
+    rv = mMainConn->ExecuteSimpleSQL(
+        CREATE_IDX_MOZ_NEWTAB_STORY_CLICK_TIMESTAMP);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_NEWTAB_IMPRESSION_TIMESTAMP);
+    rv =
+        mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_NEWTAB_IMPRESSION_TIMESTAMP);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // The bookmarks roots get initialized in CheckRoots().
@@ -2180,7 +2182,8 @@ nsresult Database::MigrateV78Up() {
 }
 
 nsresult Database::MigrateV79Up() {
-  // Add newtab_story tables for moz_newtab_story_click and moz_newtab_story_impression
+  // Add newtab_story tables for moz_newtab_story_click and
+  // moz_newtab_story_impression
   nsCOMPtr<mozIStorageStatement> stmt;
   nsresult rv = mMainConn->CreateStatement(
       "SELECT feature FROM moz_newtab_story_click"_ns, getter_AddRefs(stmt));

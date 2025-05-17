@@ -372,7 +372,7 @@ static void JumpTo(uintptr_t aOpaddr) {
   } call = {
       aOpaddr,
   };
-  ((void (*)()) & call)();
+  ((void (*)())&call)();
 #  else
   ((void (*)())aOpaddr)();
 #  endif

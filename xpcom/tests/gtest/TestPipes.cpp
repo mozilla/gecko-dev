@@ -392,13 +392,19 @@ static void TestPipe2(uint32_t aNumBytes,
 }  // namespace
 
 TEST(Pipes, Blocking_32k)
-{ TestPipe2(32 * 1024); }
+{
+  TestPipe2(32 * 1024);
+}
 
 TEST(Pipes, Blocking_64k)
-{ TestPipe2(64 * 1024); }
+{
+  TestPipe2(64 * 1024);
+}
 
 TEST(Pipes, Blocking_128k)
-{ TestPipe2(128 * 1024); }
+{
+  TestPipe2(128 * 1024);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -999,10 +1005,14 @@ void TestCloseDuringRead(uint32_t aSegmentSize, uint32_t aDataSize) {
 }  // namespace
 
 TEST(Pipes, Close_During_Read_Partial_Segment)
-{ TestCloseDuringRead(1024, 512); }
+{
+  TestCloseDuringRead(1024, 512);
+}
 
 TEST(Pipes, Close_During_Read_Full_Segment)
-{ TestCloseDuringRead(1024, 1024); }
+{
+  TestCloseDuringRead(1024, 1024);
+}
 
 TEST(Pipes, Interfaces)
 {

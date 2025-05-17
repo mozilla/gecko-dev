@@ -20,12 +20,8 @@
 #endif  // defined(XP_WIN)
 
 // {7DD4D320-C84B-4624-8D45-7BB9B2356977}
-#define NS_TOOLKIT_APPSTARTUP_CID                    \
-  {                                                  \
-    0x7dd4d320, 0xc84b, 0x4624, {                    \
-      0x8d, 0x45, 0x7b, 0xb9, 0xb2, 0x35, 0x69, 0x77 \
-    }                                                \
-  }
+#define NS_TOOLKIT_APPSTARTUP_CID \
+  {0x7dd4d320, 0xc84b, 0x4624, {0x8d, 0x45, 0x7b, 0xb9, 0xb2, 0x35, 0x69, 0x77}}
 
 class nsAppStartup final : public nsIAppStartup,
                            public nsIWindowCreator,

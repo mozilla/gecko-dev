@@ -415,16 +415,16 @@ CSPDirective CSP_ContentTypeToDirective(nsContentPolicyType aType) {
   return nsIContentSecurityPolicy::DEFAULT_SRC_DIRECTIVE;
 }
 
-already_AddRefed<nsIContentSecurityPolicy> CSP_CreateFromHeader(const nsAString& aHeaderValue, nsIURI* aSelfURI,
-                              nsIPrincipal* aLoadingPrincipal,
-                              ErrorResult& aRv) {
+already_AddRefed<nsIContentSecurityPolicy> CSP_CreateFromHeader(
+    const nsAString& aHeaderValue, nsIURI* aSelfURI,
+    nsIPrincipal* aLoadingPrincipal, ErrorResult& aRv) {
   RefPtr<nsCSPContext> csp = new nsCSPContext();
   // Hard code some default values until we have a use case where we can provide
   // something else.
   // When inheriting from this CSP, these values will be overwritten anyway.
   aRv = csp->SetRequestContextWithPrincipal(aLoadingPrincipal, aSelfURI,
-                                                    /* aReferrer */ ""_ns,
-                                                    /* aInnerWindowId */ 0);
+                                            /* aReferrer */ ""_ns,
+                                            /* aInnerWindowId */ 0);
   if (aRv.Failed()) {
     return nullptr;
   }

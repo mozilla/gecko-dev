@@ -1624,8 +1624,8 @@ void MaybeLogBlockShutdownDiagnostics(ContentParent* aSelf, const char* aMsg,
   if (aSelf->IsBlockingShutdown()) {
     MOZ_LOG(
         ContentParent::GetLog(), LogLevel::Info,
-        ("ContentParent: id=%p childID=%" PRIu64 " pid=%d - %s at %s(%d)", aSelf,
-         (uint64_t)aSelf->ChildID(), aSelf->Pid(), aMsg, aFile, aLine));
+        ("ContentParent: id=%p childID=%" PRIu64 " pid=%d - %s at %s(%d)",
+         aSelf, (uint64_t)aSelf->ChildID(), aSelf->Pid(), aMsg, aFile, aLine));
   }
 #else
   Unused << aSelf;

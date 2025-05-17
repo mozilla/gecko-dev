@@ -1277,8 +1277,7 @@ CoderResult CodeModuleMetadata(Coder<mode>& coder,
   if constexpr (mode == MODE_DECODE) {
     if (item->codeMeta->nameSection) {
       item->codeTailMeta->nameSectionPayload =
-          item->customSections[item->codeMeta->nameSection
-                                  ->customSectionIndex]
+          item->customSections[item->codeMeta->nameSection->customSectionIndex]
               .payload;
     }
   }
@@ -1382,8 +1381,8 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
   MOZ_TRY((CodeUniquePtr<MODE_DECODE, LinkData, CodeLinkData>(
       coder, &sharedStubsLinkData)));
   MOZ_TRY(CodeCodeBlock(coder, &sharedStubs, *sharedStubsLinkData));
-  sharedStubs->sendToProfiler(*moduleMeta.codeMeta, *moduleMeta.codeTailMeta, nullptr,
-                              FuncIonPerfSpewerSpan(),
+  sharedStubs->sendToProfiler(*moduleMeta.codeMeta, *moduleMeta.codeTailMeta,
+                              nullptr, FuncIonPerfSpewerSpan(),
                               FuncBaselinePerfSpewerSpan());
 
   UniqueLinkData optimizedCodeLinkData;
@@ -1391,14 +1390,14 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
   MOZ_TRY((CodeUniquePtr<MODE_DECODE, LinkData, CodeLinkData>(
       coder, &optimizedCodeLinkData)));
   MOZ_TRY(CodeCodeBlock(coder, &optimizedCode, *optimizedCodeLinkData));
-  optimizedCode->sendToProfiler(*moduleMeta.codeMeta, *moduleMeta.codeTailMeta, nullptr,
-                                FuncIonPerfSpewerSpan(),
+  optimizedCode->sendToProfiler(*moduleMeta.codeMeta, *moduleMeta.codeTailMeta,
+                                nullptr, FuncIonPerfSpewerSpan(),
                                 FuncBaselinePerfSpewerSpan());
 
   // Create and initialize the code
-  MutableCode code =
-      js_new<Code>(CompileMode::Once, *moduleMeta.codeMeta, *moduleMeta.codeTailMeta,
-                   /*codeMetaForAsmJS=*/nullptr);
+  MutableCode code = js_new<Code>(CompileMode::Once, *moduleMeta.codeMeta,
+                                  *moduleMeta.codeTailMeta,
+                                  /*codeMetaForAsmJS=*/nullptr);
   if (!code || !code->initialize(
                    std::move(funcImports), std::move(sharedStubs),
                    std::move(sharedStubsLinkData), std::move(optimizedCode),

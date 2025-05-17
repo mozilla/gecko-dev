@@ -56,12 +56,8 @@ class xpcAccessibilityService : public nsIAccessibilityService {
 
 // for component registration
 // {3b265b69-f813-48ff-880d-d88d101af404}
-#define NS_ACCESSIBILITY_SERVICE_CID                 \
-  {                                                  \
-    0x3b265b69, 0xf813, 0x48ff, {                    \
-      0x88, 0x0d, 0xd8, 0x8d, 0x10, 0x1a, 0xf4, 0x04 \
-    }                                                \
-  }
+#define NS_ACCESSIBILITY_SERVICE_CID \
+  {0x3b265b69, 0xf813, 0x48ff, {0x88, 0x0d, 0xd8, 0x8d, 0x10, 0x1a, 0xf4, 0x04}}
 
 extern nsresult NS_GetAccessibilityService(nsIAccessibilityService** aResult);
 

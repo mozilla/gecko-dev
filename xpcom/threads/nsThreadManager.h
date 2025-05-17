@@ -146,11 +146,11 @@ class nsThreadManager : public nsIThreadManager {
   RefPtr<BackgroundEventTarget> mBackgroundEventTarget MOZ_GUARDED_BY(mMutex);
 };
 
-#define NS_THREADMANAGER_CID                         \
-  { /* 7a4204c6-e45a-4c37-8ebb-6709a22c917c */       \
-    0x7a4204c6, 0xe45a, 0x4c37, {                    \
-      0x8e, 0xbb, 0x67, 0x09, 0xa2, 0x2c, 0x91, 0x7c \
-    }                                                \
-  }
+#define NS_THREADMANAGER_CID                  \
+  {/* 7a4204c6-e45a-4c37-8ebb-6709a22c917c */ \
+   0x7a4204c6,                                \
+   0xe45a,                                    \
+   0x4c37,                                    \
+   {0x8e, 0xbb, 0x67, 0x09, 0xa2, 0x2c, 0x91, 0x7c}}
 
 #endif  // nsThreadManager_h__

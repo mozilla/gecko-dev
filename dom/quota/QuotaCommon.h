@@ -1050,7 +1050,8 @@ auto OrElseIf(Result<V, E>&& aResult, P&& aPred, F&& aFunc) -> Result<V, E> {
     return Err(NS_FAILED(_status) ? (_status) : (_rv))
 #else
 #  define RECORD_IN_NIGHTLY(_dummy, _status) \
-    {}
+    {                                        \
+    }
 
 #  define OK_IN_NIGHTLY_PROPAGATE_IN_OTHERS QM_PROPAGATE
 
@@ -1142,8 +1143,8 @@ auto ErrToDefaultOk(const nsresult aValue) -> Result<V, nsresult> {
 }
 
 template <typename MozPromiseType, typename RejectValueT = nsresult>
-auto CreateAndRejectMozPromise(StaticString aFunc,
-                               const RejectValueT& aRv) -> decltype(auto) {
+auto CreateAndRejectMozPromise(StaticString aFunc, const RejectValueT& aRv)
+    -> decltype(auto) {
   if constexpr (std::is_same_v<RejectValueT, nsresult>) {
     return MozPromiseType::CreateAndReject(aRv, aFunc);
   } else if constexpr (std::is_same_v<RejectValueT, QMResult>) {
@@ -1235,8 +1236,8 @@ auto Reduce(Range&& aRange, T aInit, const BinaryOp& aBinaryOp) {
 }
 
 template <typename Range, typename Body>
-auto CollectEachInRange(Range&& aRange,
-                        const Body& aBody) -> Result<mozilla::Ok, nsresult> {
+auto CollectEachInRange(Range&& aRange, const Body& aBody)
+    -> Result<mozilla::Ok, nsresult> {
   for (auto&& element : aRange) {
     MOZ_TRY(aBody(element));
   }

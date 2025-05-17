@@ -98,24 +98,16 @@ TransportSecurityInfo::GetErrorCodeString(nsAString& aErrorString) {
 }
 
 // 16786594-0296-4471-8096-8f84497ca428
-#define TRANSPORTSECURITYINFO_CID                    \
-  {                                                  \
-    0x16786594, 0x0296, 0x4471, {                    \
-      0x80, 0x96, 0x8f, 0x84, 0x49, 0x7c, 0xa4, 0x28 \
-    }                                                \
-  }
+#define TRANSPORTSECURITYINFO_CID \
+  {0x16786594, 0x0296, 0x4471, {0x80, 0x96, 0x8f, 0x84, 0x49, 0x7c, 0xa4, 0x28}}
 static NS_DEFINE_CID(kTransportSecurityInfoCID, TRANSPORTSECURITYINFO_CID);
 
 // This is a new magic value. However, it re-uses the first 4 bytes
 // of the previous value. This is so when older versions attempt to
 // read a newer serialized TransportSecurityInfo, they will actually
 // fail and return NS_ERROR_FAILURE instead of silently failing.
-#define TRANSPORTSECURITYINFOMAGIC                   \
-  {                                                  \
-    0xa9863a23, 0x1faa, 0x4169, {                    \
-      0xb0, 0xd2, 0x81, 0x29, 0xec, 0x7c, 0xb1, 0xde \
-    }                                                \
-  }
+#define TRANSPORTSECURITYINFOMAGIC \
+  {0xa9863a23, 0x1faa, 0x4169, {0xb0, 0xd2, 0x81, 0x29, 0xec, 0x7c, 0xb1, 0xde}}
 static NS_DEFINE_CID(kTransportSecurityInfoMagic, TRANSPORTSECURITYINFOMAGIC);
 
 NS_IMETHODIMP

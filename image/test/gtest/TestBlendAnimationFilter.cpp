@@ -167,10 +167,14 @@ static void TestWithBlendAnimationFilterClear(BlendMethod aBlendMethod) {
 }
 
 TEST(ImageBlendAnimationFilter, ClearWithOver)
-{ TestWithBlendAnimationFilterClear(BlendMethod::OVER); }
+{
+  TestWithBlendAnimationFilterClear(BlendMethod::OVER);
+}
 
 TEST(ImageBlendAnimationFilter, ClearWithSource)
-{ TestWithBlendAnimationFilterClear(BlendMethod::SOURCE); }
+{
+  TestWithBlendAnimationFilterClear(BlendMethod::SOURCE);
+}
 
 TEST(ImageBlendAnimationFilter, KeepWithSource)
 {

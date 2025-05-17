@@ -441,8 +441,8 @@ class JSAPIFrontendTest : public JSAPITest {
 
 #define BEGIN_REUSABLE_TEST(testname)   \
   BEGIN_TEST_WITH_ATTRIBUTES_AND_EXTRA( \
-      testname, , cls_##testname()      \
-      : JSAPIRuntimeTest() { reuseGlobal = true; })
+      testname, ,                       \
+      cls_##testname() : JSAPIRuntimeTest() { reuseGlobal = true; })
 
 #define END_TEST(testname) \
   }                        \

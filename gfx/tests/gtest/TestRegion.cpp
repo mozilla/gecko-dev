@@ -122,16 +122,24 @@ TEST(Gfx, RegionSingleRect)
 }
 
 TEST(Gfx, RegionNonRectangular)
-{ TestLargestRegion::TestNonRectangular(); }
+{
+  TestLargestRegion::TestNonRectangular();
+}
 
 TEST(Gfx, RegionTwoRectTest)
-{ TestLargestRegion::TwoRectTest(); }
+{
+  TestLargestRegion::TwoRectTest();
+}
 
 TEST(Gfx, RegionContainsSpecifiedRect)
-{ TestLargestRegion::TestContainsSpecifiedRect(); }
+{
+  TestLargestRegion::TestContainsSpecifiedRect();
+}
 
 TEST(Gfx, RegionTestContainsSpecifiedOverflowingRect)
-{ TestLargestRegion::TestContainsSpecifiedOverflowingRect(); }
+{
+  TestLargestRegion::TestContainsSpecifiedOverflowingRect();
+}
 
 TEST(Gfx, RegionScaleToInside)
 {

@@ -14,16 +14,26 @@ void Rust_SkvStoreTestRenamesCorruptDatabaseFile();
 }  // extern "C"
 
 TEST(SkvStoreTest, UnderMaintenance)
-{ Rust_SkvStoreTestUnderMaintenance(); }
+{
+  Rust_SkvStoreTestUnderMaintenance();
+}
 
 TEST(SkvStoreTest, ClosingDuringMaintenance)
-{ Rust_SkvStoreTestClosingDuringMaintenance(); }
+{
+  Rust_SkvStoreTestClosingDuringMaintenance();
+}
 
 TEST(SkvStoreTest, MaintenanceSucceeds)
-{ Rust_SkvStoreTestMaintenanceSucceeds(); }
+{
+  Rust_SkvStoreTestMaintenanceSucceeds();
+}
 
 TEST(SkvStoreTest, MaintenanceFails)
-{ Rust_SkvStoreTestMaintenanceFails(); }
+{
+  Rust_SkvStoreTestMaintenanceFails();
+}
 
 TEST(SkvStoreTest, RenamesCorruptDatabaseFile)
-{ Rust_SkvStoreTestRenamesCorruptDatabaseFile(); }
+{
+  Rust_SkvStoreTestRenamesCorruptDatabaseFile();
+}

@@ -665,7 +665,7 @@ class WindowsDllDetourPatcher final
   }
 
 #  if defined(_M_X64)
-  enum class JumpType{Je, Jne, Jae, Jmp, Call};
+  enum class JumpType { Je, Jne, Jae, Jmp, Call };
 
   static bool GenerateJump(Trampoline<MMPolicyT>& aTramp,
                            uintptr_t aAbsTargetAddress, const JumpType aType) {
@@ -710,9 +710,13 @@ class WindowsDllDetourPatcher final
   }
 #  endif
 
-  enum ePrefixGroupBits{eNoPrefixes = 0, ePrefixGroup1 = (1 << 0),
-                        ePrefixGroup2 = (1 << 1), ePrefixGroup3 = (1 << 2),
-                        ePrefixGroup4 = (1 << 3)};
+  enum ePrefixGroupBits {
+    eNoPrefixes = 0,
+    ePrefixGroup1 = (1 << 0),
+    ePrefixGroup2 = (1 << 1),
+    ePrefixGroup3 = (1 << 2),
+    ePrefixGroup4 = (1 << 3)
+  };
 
   int CountPrefixBytes(const ReadOnlyTargetFunction<MMPolicyT>& aBytes,
                        unsigned char* aOutGroupBits) {

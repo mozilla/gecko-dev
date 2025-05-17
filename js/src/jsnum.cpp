@@ -2230,11 +2230,8 @@ bool js::ToIntegerIndexSlow(JSContext* cx, Handle<Value> value,
 // Dummy type used when `size_t` is the same type as `uint64_t`. Implements
 // constructor and conversion methods called in ToIntegerIndexSlow.
 struct Dummy {
-  explicit Dummy(double) {
-  }
-  explicit operator double() {
-    return 0;
-  }
+  explicit Dummy(double) {}
+  explicit operator double() { return 0; }
 };
 
 // Instantiate ToIntegerIndexSlow for `size_t` and `uint64_t`, but avoid a

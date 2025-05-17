@@ -148,8 +148,8 @@ template <typename... Args>
 using TakeNPromise = MozPromise<std::vector<std::tuple<Args...>>, bool, true>;
 
 template <ListenerPolicy Lp, typename... Args>
-inline auto TakeN(MediaEventSourceImpl<Lp, Args...>& aEvent,
-                  size_t aN) -> RefPtr<TakeNPromise<Args...>> {
+inline auto TakeN(MediaEventSourceImpl<Lp, Args...>& aEvent, size_t aN)
+    -> RefPtr<TakeNPromise<Args...>> {
   using Storage = std::vector<std::tuple<Args...>>;
   using Promise = TakeNPromise<Args...>;
   using Holder = media::Refcountable<MozPromiseHolder<Promise>>;

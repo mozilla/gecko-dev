@@ -28,7 +28,9 @@ class TestSimpleTokenBucket : public SimpleTokenBucket {
 };
 
 TEST(SimpleTokenBucketTest, TestConstruct)
-{ TestSimpleTokenBucket b(10, 1); }
+{
+  TestSimpleTokenBucket b(10, 1);
+}
 
 TEST(SimpleTokenBucketTest, TestGet)
 {

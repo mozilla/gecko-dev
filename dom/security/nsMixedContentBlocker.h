@@ -9,12 +9,8 @@
 
 #define NS_MIXEDCONTENTBLOCKER_CONTRACTID "@mozilla.org/mixedcontentblocker;1"
 /* daf1461b-bf29-4f88-8d0e-4bcdf332c862 */
-#define NS_MIXEDCONTENTBLOCKER_CID                   \
-  {                                                  \
-    0xdaf1461b, 0xbf29, 0x4f88, {                    \
-      0x8d, 0x0e, 0x4b, 0xcd, 0xf3, 0x32, 0xc8, 0x62 \
-    }                                                \
-  }
+#define NS_MIXEDCONTENTBLOCKER_CID \
+  {0xdaf1461b, 0xbf29, 0x4f88, {0x8d, 0x0e, 0x4b, 0xcd, 0xf3, 0x32, 0xc8, 0x62}}
 
 // This enum defines type of content that is detected when an
 // nsMixedContentEvent fires

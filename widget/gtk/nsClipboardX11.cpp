@@ -48,7 +48,7 @@ static void DispatchSelectionNotifyEvent(GtkWidget* widget, XEvent* xevent) {
 
 static void DispatchPropertyNotifyEvent(GtkWidget* widget, XEvent* xevent) {
   GdkWindow* window = gtk_widget_get_window(widget);
-  if (window && ((gdk_window_get_events(window)) & GDK_PROPERTY_CHANGE_MASK)) {
+  if (window && ((gdk_window_get_events(window))&GDK_PROPERTY_CHANGE_MASK)) {
     GdkEvent event = {};
     event.property.type = GDK_PROPERTY_NOTIFY;
     event.property.window = window;

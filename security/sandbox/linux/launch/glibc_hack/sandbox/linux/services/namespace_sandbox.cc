@@ -90,13 +90,13 @@ void TerminationSignalHandler(int sig) {
 // https://sourceware.org/git/?p=glibc.git;a=blob;f=nptl/descr.h;hb=95a73392580761abc62fc9b1386d232cd55878e9#l121
 struct glibc_pthread {
   union {
-#if defined(ARCH_CPU_X86_64)
+#  if defined(ARCH_CPU_X86_64)
     // On x86_64, sizeof(tcbhead_t) > sizeof(void*)*24.
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/x86_64/nptl/tls.h;hb=95a73392580761abc62fc9b1386d232cd55878e9#l65
     // For all other architectures, sizeof(tcbhead_t) <= sizeof(void*)*24.
     // https://sourceware.org/git/?p=glibc.git&a=search&h=HEAD&st=grep&s=%7D+tcbhead_t
     char header[704];
-#endif
+#  endif
     void* padding[24];
   } header;
   void* list[2];
@@ -155,8 +155,7 @@ base::Process NamespaceSandbox::LaunchProcess(
 
 // static
 base::Process NamespaceSandbox::LaunchProcessWithOptions(
-    const base::CommandLine& cmdline,
-    const base::LaunchOptions& launch_options,
+    const base::CommandLine& cmdline, const base::LaunchOptions& launch_options,
     const Options& ns_sandbox_options) {
   return LaunchProcessWithOptions(cmdline.argv(), launch_options,
                                   ns_sandbox_options);
@@ -244,14 +243,11 @@ void NamespaceSandbox::InstallDefaultTerminationSignalHandlers() {
 }
 
 // static
-bool NamespaceSandbox::InstallTerminationSignalHandler(
-    int sig,
-    int exit_code) {
+bool NamespaceSandbox::InstallTerminationSignalHandler(int sig, int exit_code) {
   struct sigaction old_action;
   PCHECK(sys_sigaction(sig, nullptr, &old_action) == 0);
 
-  if (old_action.sa_flags & SA_SIGINFO &&
-      old_action.sa_sigaction != nullptr) {
+  if (old_action.sa_flags & SA_SIGINFO && old_action.sa_sigaction != nullptr) {
     return false;
   }
 

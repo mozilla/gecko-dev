@@ -37,9 +37,8 @@ class PriorityQueue {
 
   bool empty() const { return heap.empty(); }
 
-  // highest and popHighest are used to enforce necessary move semantics for working
-  // with UniquePtrs in a queue, and should be used together
-  // Example:
+  // highest and popHighest are used to enforce necessary move semantics for
+  // working with UniquePtrs in a queue, and should be used together Example:
   //   UniquePtr<...> x = std::move(queue.highest());
   //   queue.popHighest();
   T& highest() {
@@ -57,8 +56,8 @@ class PriorityQueue {
     siftDown(0);
   }
 
-  // removeHighest cannot be used with UniquePtrs, and should only be used for other
-  // datatypes.
+  // removeHighest cannot be used with UniquePtrs, and should only be used for
+  // other datatypes.
   T removeHighest() {
     T highest = heap[0];
     T last = heap.popCopy();

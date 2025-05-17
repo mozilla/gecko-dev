@@ -51,7 +51,7 @@ int ashmem_create(const char* name, size_t size) {
 
 size_t ashmem_getSize(int fd) {
   static auto fGetSize =
-      (size_t(*)(int))dlsym(libhandle(), "ASharedMemory_getSize");
+      (size_t (*)(int))dlsym(libhandle(), "ASharedMemory_getSize");
   if (fGetSize) {
     return fGetSize(fd);
   }

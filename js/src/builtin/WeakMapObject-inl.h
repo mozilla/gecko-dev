@@ -27,8 +27,8 @@ static bool TryPreserveReflector(JSContext* cx, HandleObject obj) {
   return true;
 }
 
-static MOZ_ALWAYS_INLINE bool EnsureObjectHasWeakMap(JSContext* cx,
-                                                    WeakCollectionObject* obj) {
+static MOZ_ALWAYS_INLINE bool EnsureObjectHasWeakMap(
+    JSContext* cx, WeakCollectionObject* obj) {
   if (obj->getMap()) {
     return true;
   }

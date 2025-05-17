@@ -446,7 +446,9 @@ SPAN_TEST(from_array_constructor) {
   int arr2d[2][3] = {{1, 2, 3}, {4, 5, 6}};
 
 #ifdef CONFIRM_COMPILATION_ERRORS
-  { Span<int, 6> s{arr}; }
+  {
+    Span<int, 6> s{arr};
+  }
 
   {
     Span<int, 0> s{arr};
@@ -468,7 +470,9 @@ SPAN_TEST(from_array_constructor) {
     ASSERT_EQ(s.data(), &arr2d[0][0]);
   }
 
-  { Span<int, 6> s{arr2d}; }
+  {
+    Span<int, 6> s{arr2d};
+  }
 #endif
   {
     Span<int[3]> s{&(arr2d[0]), 1};
@@ -493,7 +497,9 @@ SPAN_TEST(from_array_constructor) {
     ASSERT_EQ(s.data(), &arr3d[0][0][0]);
   }
 
-  { Span<int, 11> s{arr3d}; }
+  {
+    Span<int, 11> s{arr3d};
+  }
 
   {
     Span<int, 12> s{arr3d};
@@ -590,7 +596,9 @@ SPAN_TEST(from_std_array_constructor) {
     ASSERT_EQ(cs.data(), arr.data());
   }
 
-  { Span<int, 5> s{arr}; }
+  {
+    Span<int, 5> s{arr};
+  }
 
   {
     auto get_an_array = []() -> std::array<int, 4> { return {1, 2, 3, 4}; };
@@ -642,7 +650,9 @@ SPAN_TEST(from_const_std_array_constructor) {
     ASSERT_EQ(s.data(), arr.data());
   }
 
-  { Span<const int, 5> s{arr}; }
+  {
+    Span<const int, 5> s{arr};
+  }
 #endif
 
   {
@@ -689,9 +699,13 @@ SPAN_TEST(from_std_array_const_constructor) {
     ASSERT_EQ(s.data(), arr.data());
   }
 
-  { Span<const int, 5> s{arr}; }
+  {
+    Span<const int, 5> s{arr};
+  }
 
-  { Span<int, 4> s{arr}; }
+  {
+    Span<int, 4> s{arr};
+  }
 #endif
 
   {
@@ -745,7 +759,9 @@ SPAN_TEST(from_mozilla_array_constructor) {
     ASSERT_EQ(cs.data(), &arr[0]);
   }
 
-  { Span<int, 5> s{arr}; }
+  {
+    Span<int, 5> s{arr};
+  }
 
   {
     auto get_an_array = []() -> mozilla::Array<int, 4> { return {1, 2, 3, 4}; };
@@ -797,7 +813,9 @@ SPAN_TEST(from_const_mozilla_array_constructor) {
     ASSERT_EQ(s.data(), &arr[0]);
   }
 
-  { Span<const int, 5> s{arr}; }
+  {
+    Span<const int, 5> s{arr};
+  }
 #endif
 
 #if 0
@@ -846,9 +864,13 @@ SPAN_TEST(from_mozilla_array_const_constructor) {
     ASSERT_EQ(s.data(), &arr[0]);
   }
 
-  { Span<const int, 5> s{arr}; }
+  {
+    Span<const int, 5> s{arr};
+  }
 
-  { Span<int, 4> s{arr}; }
+  {
+    Span<int, 4> s{arr};
+  }
 #endif
 
   {
@@ -2009,7 +2031,9 @@ SPAN_TEST(fixed_size_conversions) {
 
 // initialization or assignment to static Span that REDUCES size is NOT ok
 #ifdef CONFIRM_COMPILATION_ERRORS
-  { Span<int, 2> s = arr; }
+  {
+    Span<int, 2> s = arr;
+  }
   {
     Span<int, 2> s2 = s4;
     static_cast<void>(s2);
@@ -2053,7 +2077,9 @@ SPAN_TEST(fixed_size_conversions) {
 #endif
 
 #ifdef CONFIRM_COMPILATION_ERRORS
-  { Span<int, 4> s3 = arr2; }
+  {
+    Span<int, 4> s3 = arr2;
+  }
   {
     Span<int, 2> s2 = arr2;
     Span<int, 4> s4a = s2;

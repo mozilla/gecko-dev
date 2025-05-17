@@ -14,12 +14,8 @@
 #include "nsIFindService.h"
 
 // {5060b803-340e-11d5-be5b-b3e063ec6a3c}
-#define NS_FIND_SERVICE_CID                          \
-  {                                                  \
-    0x5060b803, 0x340e, 0x11d5, {                    \
-      0xbe, 0x5b, 0xb3, 0xe0, 0x63, 0xec, 0x6a, 0x3c \
-    }                                                \
-  }
+#define NS_FIND_SERVICE_CID \
+  {0x5060b803, 0x340e, 0x11d5, {0xbe, 0x5b, 0xb3, 0xe0, 0x63, 0xec, 0x6a, 0x3c}}
 
 #define NS_FIND_SERVICE_CONTRACTID "@mozilla.org/find/find_service;1"
 

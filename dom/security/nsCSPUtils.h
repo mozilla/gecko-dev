@@ -194,9 +194,9 @@ nsresult CSP_AppendCSPFromHeader(nsIContentSecurityPolicy* aCsp,
 
 /* =============== Helpers ================== */
 
-already_AddRefed<nsIContentSecurityPolicy> CSP_CreateFromHeader(const nsAString& aHeaderValue, nsIURI* aSelfURI,
-                              nsIPrincipal* aLoadingPrincipal,
-                              mozilla::ErrorResult& aRv);
+already_AddRefed<nsIContentSecurityPolicy> CSP_CreateFromHeader(
+    const nsAString& aHeaderValue, nsIURI* aSelfURI,
+    nsIPrincipal* aLoadingPrincipal, mozilla::ErrorResult& aRv);
 
 class nsCSPHostSrc;
 

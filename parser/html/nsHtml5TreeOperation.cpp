@@ -504,7 +504,9 @@ nsIContent* nsHtml5TreeOperation::CreateHTMLElement(
     AutoSetThrowOnDynamicMarkupInsertionCounter
         throwOnDynamicMarkupInsertionCounter(document);
     nsHtml5AutoPauseUpdate autoPauseContentUpdate(aBuilder);
-    { nsAutoMicroTask mt; }
+    {
+      nsAutoMicroTask mt;
+    }
     AutoCEReaction autoCEReaction(
         document->GetDocGroup()->CustomElementReactionsStack(), nullptr);
     return DoCreateElement(nullptr);

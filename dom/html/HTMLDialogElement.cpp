@@ -282,7 +282,8 @@ void HTMLDialogElement::Show(ErrorResult& aError) {
 }
 
 bool HTMLDialogElement::Open() const {
-  MOZ_ASSERT(GetBoolAttr(nsGkAtoms::open) == State().HasState(ElementState::OPEN));
+  MOZ_ASSERT(GetBoolAttr(nsGkAtoms::open) ==
+             State().HasState(ElementState::OPEN));
   return State().HasState(ElementState::OPEN);
 }
 
@@ -369,7 +370,8 @@ void HTMLDialogElement::ShowModal(ErrorResult& aError) {
   // 3. If subject's node document is not fully active, then throw an
   // "InvalidStateError" DOMException.
   if (!OwnerDoc()->IsFullyActive()) {
-    return aError.ThrowInvalidStateError("The owner document is not fully active");
+    return aError.ThrowInvalidStateError(
+        "The owner document is not fully active");
   }
 
   // 4. If subject is not connected, then throw an "InvalidStateError"

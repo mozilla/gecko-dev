@@ -57,10 +57,14 @@ static void TestStringStreamClone(uint32_t aNumBytes) {
 }  // namespace
 
 TEST(StringStream, Simple_4k)
-{ TestStringStream(1024 * 4); }
+{
+  TestStringStream(1024 * 4);
+}
 
 TEST(StringStream, Clone_4k)
-{ TestStringStreamClone(1024 * 4); }
+{
+  TestStringStreamClone(1024 * 4);
+}
 
 static nsresult CloseStreamThenRead(nsIInputStream* aInStr, void* aClosure,
                                     const char* aBuffer, uint32_t aOffset,

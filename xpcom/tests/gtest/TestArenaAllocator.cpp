@@ -13,7 +13,9 @@
 using mozilla::ArenaAllocator;
 
 TEST(ArenaAllocator, Constructor)
-{ ArenaAllocator<4096, 4> a; }
+{
+  ArenaAllocator<4096, 4> a;
+}
 
 TEST(ArenaAllocator, DefaultAllocate)
 {

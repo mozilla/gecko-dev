@@ -198,7 +198,7 @@ bool wasm::CheckIsSubtypeOf(Decoder& d, const CodeMetadata& codeMeta,
 
 // Function body validation.
 
-template<class T>
+template <class T>
 bool wasm::ValidateOps(ValidatingOpIter& iter, T& dumper,
                        const CodeMetadata& codeMeta) {
   while (true) {
@@ -2406,12 +2406,12 @@ bool wasm::ValidateOps(ValidatingOpIter& iter, T& dumper,
   MOZ_CRASH("unreachable");
 }
 
-template
-bool wasm::ValidateOps<NopOpDumper>(ValidatingOpIter& iter, NopOpDumper& dumper,
-                                    const CodeMetadata& codeMeta);
-template
-bool wasm::ValidateOps<OpDumper>(ValidatingOpIter& iter, OpDumper& dumper,
-                                 const CodeMetadata& codeMeta);
+template bool wasm::ValidateOps<NopOpDumper>(ValidatingOpIter& iter,
+                                             NopOpDumper& dumper,
+                                             const CodeMetadata& codeMeta);
+template bool wasm::ValidateOps<OpDumper>(ValidatingOpIter& iter,
+                                          OpDumper& dumper,
+                                          const CodeMetadata& codeMeta);
 
 bool wasm::ValidateFunctionBody(const CodeMetadata& codeMeta,
                                 uint32_t funcIndex, uint32_t bodySize,

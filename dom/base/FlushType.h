@@ -63,8 +63,8 @@ struct ChangesToFlush {
       : mFlushType(aFlushType),
         mFlushAnimations(aFlushAnimations),
         mUpdateRelevancy(aUpdateRelevancy) {
-          MOZ_ASSERT_IF(mUpdateRelevancy, mFlushType >= FlushType::Layout);
-        }
+    MOZ_ASSERT_IF(mUpdateRelevancy, mFlushType >= FlushType::Layout);
+  }
 
   FlushType mFlushType;
   bool mFlushAnimations;

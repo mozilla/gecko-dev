@@ -11,12 +11,8 @@
 #include "nsString.h"
 
 // 45a5fe2f-c350-4b86-962d-02d5aaaa955a
-#define NS_CONTENTSIGNATUREVERIFIER_CID              \
-  {                                                  \
-    0x45a5fe2f, 0xc350, 0x4b86, {                    \
-      0x96, 0x2d, 0x02, 0xd5, 0xaa, 0xaa, 0x95, 0x5a \
-    }                                                \
-  }
+#define NS_CONTENTSIGNATUREVERIFIER_CID \
+  {0x45a5fe2f, 0xc350, 0x4b86, {0x96, 0x2d, 0x02, 0xd5, 0xaa, 0xaa, 0x95, 0x5a}}
 #define NS_CONTENTSIGNATUREVERIFIER_CONTRACTID \
   "@mozilla.org/security/contentsignatureverifier;1"
 

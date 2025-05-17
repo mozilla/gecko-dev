@@ -1076,8 +1076,8 @@ nsresult mozJSModuleLoader::ImportESModule(
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!IsTrustedScheme(uri)) {
-    JS_ReportErrorASCII(
-        aCx, "System modules must be loaded from a trusted scheme");
+    JS_ReportErrorASCII(aCx,
+                        "System modules must be loaded from a trusted scheme");
     return NS_ERROR_FAILURE;
   }
 

@@ -34,22 +34,34 @@ MOZ_RUNINIT static const auto kBaz = nsCString("baz");
   EXPECT_EQ(isDependentOn, combinedIsDependentOn);
 
 TEST(SubstringTuple, IsDependentOnAndLength_NonDependent_Literal_ZeroLength)
-{ DO_SUBSTRING_TUPLE_TEST(u""_ns + u""_ns, kFooLiteral, 0u, false); }
+{
+  DO_SUBSTRING_TUPLE_TEST(u""_ns + u""_ns, kFooLiteral, 0u, false);
+}
 
 TEST(SubstringTuple, IsDependentOnAndLength_NonDependent_Literal_NonZeroLength)
-{ DO_SUBSTRING_TUPLE_TEST(u"bar"_ns + u"baz"_ns, kFooLiteral, 6u, false); }
+{
+  DO_SUBSTRING_TUPLE_TEST(u"bar"_ns + u"baz"_ns, kFooLiteral, 6u, false);
+}
 
 TEST(SubstringTuple, IsDependentOnAndLength_NonDependent_NonZeroLength)
-{ DO_SUBSTRING_TUPLE_TEST(kBar + kBaz, kFoo, 6u, false); }
+{
+  DO_SUBSTRING_TUPLE_TEST(kBar + kBaz, kFoo, 6u, false);
+}
 
 TEST(SubstringTuple,
      IsDependentOnAndLength_NonDependent_NonZeroLength_ThreeParts)
-{ DO_SUBSTRING_TUPLE_TEST(kBar + kBaz + kBar, kFoo, 9u, false); }
+{
+  DO_SUBSTRING_TUPLE_TEST(kBar + kBaz + kBar, kFoo, 9u, false);
+}
 
 TEST(SubstringTuple, IsDependentOnAndLength_Dependent_NonZeroLength)
-{ DO_SUBSTRING_TUPLE_TEST(kBar + kBaz, kBar, 6u, true); }
+{
+  DO_SUBSTRING_TUPLE_TEST(kBar + kBaz, kBar, 6u, true);
+}
 
 TEST(SubstringTuple, IsDependentOnAndLength_Dependent_NonZeroLength_ThreeParts)
-{ DO_SUBSTRING_TUPLE_TEST(kBar + kBaz + kFoo, kBar, 9u, true); }
+{
+  DO_SUBSTRING_TUPLE_TEST(kBar + kBaz + kFoo, kBar, 9u, true);
+}
 
 }  // namespace TestSubstringTuple

@@ -57,4 +57,4 @@ webrtc::NtpTime CreateNtp(webrtc::Timestamp aTime) {
 
 namespace webrtc {
 int64_t SystemTimeNanos() { return mozilla::WebrtcSystemTime().us() * 1000; }
-}  // namespace rtc
+}  // namespace webrtc

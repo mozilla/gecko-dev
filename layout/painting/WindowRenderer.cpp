@@ -178,9 +178,7 @@ void WindowRenderer::UpdatePartialPrerenderedAnimations(
   }
 }
 
-void FallbackRenderer::SetTarget(gfxContext* aTarget) {
-  mTarget = aTarget;
-}
+void FallbackRenderer::SetTarget(gfxContext* aTarget) { mTarget = aTarget; }
 
 bool FallbackRenderer::BeginTransaction(const nsCString& aURL) {
   if (!mTarget) {

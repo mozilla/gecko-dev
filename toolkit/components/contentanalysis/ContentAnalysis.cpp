@@ -1755,7 +1755,7 @@ NS_IMETHODIMP ContentAnalysis::SendCancelToAgent(
       __func__,
       [userActionId = nsCString(aUserActionId)](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable
-      -> Result<std::nullptr_t, nsresult> {
+          -> Result<std::nullptr_t, nsresult> {
         MOZ_ASSERT(!NS_IsMainThread());
         auto owner = GetContentAnalysisFromService();
         if (!owner) {
@@ -4000,7 +4000,7 @@ nsresult ContentAnalysis::RunAcknowledgeTask(
       __func__,
       [pbAck = std::move(pbAck)](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable
-      -> Result<std::nullptr_t, nsresult> {
+          -> Result<std::nullptr_t, nsresult> {
         MOZ_ASSERT(!NS_IsMainThread());
         RefPtr<ContentAnalysis> owner = GetContentAnalysisFromService();
         if (!owner) {
@@ -4039,7 +4039,7 @@ ContentAnalysis::GetDiagnosticInfo(JSContext* aCx, dom::Promise** aPromise) {
       __func__,
       [promiseHolder](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable
-      -> Result<std::nullptr_t, nsresult> {
+          -> Result<std::nullptr_t, nsresult> {
         MOZ_ASSERT(!NS_IsMainThread());
         // I don't think this will be slow, but do it on the background thread
         // just to be safe

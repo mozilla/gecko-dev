@@ -15014,8 +15014,8 @@ void Document::HandleEscKey() {
     if (RefPtr dialogElement = HTMLDialogElement::FromNodeOrNull(element)) {
       if (StaticPrefs::dom_dialog_light_dismiss_enabled()) {
         if (dialogElement->GetClosedBy() != HTMLDialogElement::ClosedBy::None) {
-            const mozilla::dom::Optional<nsAString> returnValue;
-            dialogElement->RequestClose(returnValue);
+          const mozilla::dom::Optional<nsAString> returnValue;
+          dialogElement->RequestClose(returnValue);
         }
       } else {
         dialogElement->QueueCancelDialog();
@@ -20370,8 +20370,8 @@ already_AddRefed<Document> Document::ParseHTML(GlobalObject& aGlobal,
   // Step 4. Let sanitizer be the result of calling get a sanitizer instance
   // from options with options and true.
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
-  RefPtr<Sanitizer> sanitizer =
-      Sanitizer::GetInstance(global, aOptions.mSanitizer, /* aSafe */ true, aError);
+  RefPtr<Sanitizer> sanitizer = Sanitizer::GetInstance(
+      global, aOptions.mSanitizer, /* aSafe */ true, aError);
   if (aError.Failed()) {
     return nullptr;
   }

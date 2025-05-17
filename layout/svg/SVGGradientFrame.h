@@ -52,9 +52,9 @@ class SVGGradientFrame : public SVGPaintServerFrame {
   // SVGPaintServerFrame methods:
   already_AddRefed<gfxPattern> GetPaintServerPattern(
       nsIFrame* aSource, const DrawTarget* aDrawTarget,
-      const gfxMatrix& aContextMatrix, StyleSVGPaint nsStyleSVG::*aFillOrStroke,
-      float aGraphicOpacity, imgDrawingParams& aImgParams,
-      const gfxRect* aOverrideBounds) override;
+      const gfxMatrix& aContextMatrix,
+      StyleSVGPaint nsStyleSVG::* aFillOrStroke, float aGraphicOpacity,
+      imgDrawingParams& aImgParams, const gfxRect* aOverrideBounds) override;
 
   // nsIFrame interface:
   nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,

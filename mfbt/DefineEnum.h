@@ -159,8 +159,8 @@
 
 #define MOZ_DEFINE_ENUM_CLASS_WITH_BASE_AT_CLASS_SCOPE(aEnumName, aBaseName, \
                                                        aEnumerators)         \
-  MOZ_DEFINE_ENUM_AT_CLASS_SCOPE_IMPL(aEnumName, class,                      \
-                                      : aBaseName, aEnumerators)
+  MOZ_DEFINE_ENUM_AT_CLASS_SCOPE_IMPL(aEnumName, class, : aBaseName,         \
+                                      aEnumerators)
 
 #define MOZ_DEFINE_ENUM_TO_ENUM_TEXT(aEnumeratorDecl) #aEnumeratorDecl
 

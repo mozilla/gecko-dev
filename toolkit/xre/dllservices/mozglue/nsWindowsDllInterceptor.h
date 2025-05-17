@@ -644,8 +644,8 @@ class WindowsIATPatcher final {
 
 template <typename FuncPtrT>
 class MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS
-    FuncHook<WindowsIATPatcher, FuncPtrT>
-        final {
+FuncHook<WindowsIATPatcher, FuncPtrT>
+    final {
  public:
   using ThisType = FuncHook<WindowsIATPatcher, FuncPtrT>;
   using ReturnType = typename OriginalFunctionPtrTraits<FuncPtrT>::ReturnType;

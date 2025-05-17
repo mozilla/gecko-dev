@@ -434,9 +434,7 @@ class RestyleManager {
   // but it is also called when we have out-of-band changes to animations
   // such as changes made through the Web Animations API or cascading result
   // changes by modifying classes, etc.
-  void IncrementAnimationGeneration() {
-    ++mAnimationGeneration;
-  }
+  void IncrementAnimationGeneration() { ++mAnimationGeneration; }
 
   // Apply change hints for animations on the compositor.
   //

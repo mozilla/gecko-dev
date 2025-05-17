@@ -14,12 +14,12 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ReentrantMonitor.h"
 
-#define NS_WEBPENCODER_CID                           \
-  { /* a8e5a8e5-bebf-4512-9f50-e41e4748ce28 */       \
-    0xa8e5a8e5, 0xbebf, 0x4512, {                    \
-      0x9f, 0x50, 0xe4, 0x1e, 0x47, 0x48, 0xce, 0x28 \
-    }                                                \
-  }
+#define NS_WEBPENCODER_CID                    \
+  {/* a8e5a8e5-bebf-4512-9f50-e41e4748ce28 */ \
+   0xa8e5a8e5,                                \
+   0xbebf,                                    \
+   0x4512,                                    \
+   {0x9f, 0x50, 0xe4, 0x1e, 0x47, 0x48, 0xce, 0x28}}
 
 // Provides WEBP encoding functionality. Use InitFromData() to do the
 // encoding. See that function definition for encoding options.

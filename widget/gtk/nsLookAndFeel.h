@@ -45,9 +45,7 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   nsLookAndFeel();
   virtual ~nsLookAndFeel();
 
-  void RecordChange(NativeChangeKind aKind) {
-    mPendingChanges |= aKind;
-  }
+  void RecordChange(NativeChangeKind aKind) { mPendingChanges |= aKind; }
   void NativeInit() final;
   nsresult NativeGetInt(IntID aID, int32_t& aResult) override;
   nsresult NativeGetFloat(FloatID aID, float& aResult) override;

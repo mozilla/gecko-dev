@@ -15,12 +15,8 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/StaticPtr.h"
 
-#define NS_DIRECTORY_SERVICE_CID                     \
-  {                                                  \
-    0xf00152d0, 0xb40b, 0x11d3, {                    \
-      0x8c, 0x9c, 0x00, 0x00, 0x64, 0x65, 0x73, 0x74 \
-    }                                                \
-  }
+#define NS_DIRECTORY_SERVICE_CID \
+  {0xf00152d0, 0xb40b, 0x11d3, {0x8c, 0x9c, 0x00, 0x00, 0x64, 0x65, 0x73, 0x74}}
 
 class nsDirectoryService final : public nsIDirectoryService,
                                  public nsIProperties,

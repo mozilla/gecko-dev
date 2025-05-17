@@ -11,12 +11,8 @@
 
 #define JSINSPECTOR_CONTRACTID "@mozilla.org/jsinspector;1"
 
-#define JSINSPECTOR_CID                              \
-  {                                                  \
-    0xec5aa99c, 0x7abb, 0x4142, {                    \
-      0xac, 0x5f, 0xaa, 0xb2, 0x41, 0x9e, 0x38, 0xe2 \
-    }                                                \
-  }
+#define JSINSPECTOR_CID \
+  {0xec5aa99c, 0x7abb, 0x4142, {0xac, 0x5f, 0xaa, 0xb2, 0x41, 0x9e, 0x38, 0xe2}}
 
 namespace mozilla {
 namespace jsinspector {

@@ -137,8 +137,8 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   void ClearActiveTransition(bool aIsDocumentHidden);
   void Timeout();
   MOZ_CAN_RUN_SCRIPT void Setup();
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT
-  Maybe<SkipTransitionReason> CaptureOldState();
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Maybe<SkipTransitionReason>
+  CaptureOldState();
   [[nodiscard]] Maybe<SkipTransitionReason> CaptureNewState();
   void SetupTransitionPseudoElements();
   [[nodiscard]] bool UpdatePseudoElementStyles(bool aNeedsInvalidation);

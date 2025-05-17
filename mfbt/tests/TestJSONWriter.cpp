@@ -142,7 +142,9 @@ void TestBasicProperties() {
     w.EndArray();
 
     w.StartArrayProperty("len 1 array");
-    { w.IntElement(1); }
+    {
+      w.IntElement(1);
+    }
     w.EndArray();
 
     w.StartArrayProperty("len 5 array, multi-line", w.MultiLineStyle);
@@ -180,7 +182,9 @@ void TestBasicProperties() {
     w.EndObject();
 
     w.StartObjectProperty("len 1 object");
-    { w.IntProperty("one", 1); }
+    {
+      w.IntProperty("one", 1);
+    }
     w.EndObject();
 
     w.StartObjectProperty("len 5 object");
@@ -317,7 +321,9 @@ void TestBasicElements() {
     w.EndArray();
 
     w.StartArrayElement();
-    { w.IntElement(1); }
+    {
+      w.IntElement(1);
+    }
     w.EndArray();
 
     w.StartArrayElement();
@@ -355,7 +361,9 @@ void TestBasicElements() {
     w.EndObject();
 
     w.StartObjectElement();
-    { w.IntProperty("one", 1); }
+    {
+      w.IntProperty("one", 1);
+    }
     w.EndObject();
 
     w.StartObjectElement();

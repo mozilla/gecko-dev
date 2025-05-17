@@ -574,7 +574,8 @@ bool FontFaceImpl::GetAttributes(gfxUserFontAttributes& aAttr) {
                                Some(GetUnicodeRangeAsCharacterMap()));
 }
 
-static already_AddRefed<gfxCharacterMap> ComputeCharacterMap(StyleLockedFontFaceRule* aData) {
+static already_AddRefed<gfxCharacterMap> ComputeCharacterMap(
+    StyleLockedFontFaceRule* aData) {
   size_t len;
   const StyleUnicodeRange* rangesPtr =
       Servo_FontFaceRule_GetUnicodeRanges(aData, &len);
@@ -593,7 +594,6 @@ static already_AddRefed<gfxCharacterMap> ComputeCharacterMap(StyleLockedFontFace
   // or add this one to the sharing cache if not already present.
   return gfxPlatformFontList::PlatformFontList()->FindCharMap(charMap);
 }
-
 
 bool FontFaceImpl::GetAttributesFromRule(
     StyleLockedFontFaceRule* aData, gfxUserFontAttributes& aAttr,

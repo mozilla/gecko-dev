@@ -70,7 +70,9 @@ TEST(GeckoArgs, const_char_ptr)
     EXPECT_EQ(extraArgs.mArgs[0], "-charParam");
     EXPECT_EQ(extraArgs.mArgs[1], "ParamValue");
   }
-  { EXPECT_EQ(kCharParam.Name(), "-charParam"); }
+  {
+    EXPECT_EQ(kCharParam.Name(), "-charParam");
+  }
 }
 
 TEST(GeckoArgs, uint64)
@@ -132,7 +134,9 @@ TEST(GeckoArgs, uint64)
     EXPECT_EQ(extraArgs.mArgs[0], "-Uint64Param");
     EXPECT_EQ(extraArgs.mArgs[1], "1234");
   }
-  { EXPECT_EQ(kUint64Param.Name(), "-Uint64Param"); }
+  {
+    EXPECT_EQ(kUint64Param.Name(), "-Uint64Param");
+  }
 }
 
 TEST(GeckoArgs, bool)
@@ -175,5 +179,7 @@ TEST(GeckoArgs, bool)
     kFlag.Put(false, extraArgs);
     EXPECT_EQ(extraArgs.mArgs.size(), 0U);
   }
-  { EXPECT_EQ(kFlag.Name(), "-Flag"); }
+  {
+    EXPECT_EQ(kFlag.Name(), "-Flag");
+  }
 }

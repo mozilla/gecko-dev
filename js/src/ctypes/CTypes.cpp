@@ -2330,16 +2330,16 @@ static bool InitTypeClasses(JSContext* cx, HandleObject ctypesObj) {
       !DefineABIConstant(cx, ctypesObj, "winapi_abi", ABI_WINAPI, ABIProto))
     return false;
 
-    // Create objects representing the builtin types, and attach them to the
-    // ctypes object. Each type object 't' has:
-    //   * [[Class]] "CType"
-    //   * __proto__ === ctypes.CType.prototype
-    //   * A constructor which creates and returns a CData object, containing
-    //     binary data of the given type.
-    //   * 'prototype' property:
-    //     * [[Class]] "CDataProto"
-    //     * __proto__ === ctypes.CData.prototype
-    //     * 'constructor' property === 't'
+  // Create objects representing the builtin types, and attach them to the
+  // ctypes object. Each type object 't' has:
+  //   * [[Class]] "CType"
+  //   * __proto__ === ctypes.CType.prototype
+  //   * A constructor which creates and returns a CData object, containing
+  //     binary data of the given type.
+  //   * 'prototype' property:
+  //     * [[Class]] "CDataProto"
+  //     * __proto__ === ctypes.CData.prototype
+  //     * 'constructor' property === 't'
 #define DEFINE_TYPE(name, type, ffiType)                                       \
   RootedObject typeObj_##name(cx);                                             \
   {                                                                            \

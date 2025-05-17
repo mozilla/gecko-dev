@@ -35,7 +35,9 @@ static bool Test() {
     c++;
     auto guardC = MakeScopeExit([&] { c--; });
 
-    { auto guardC_ = std::move(guardC); }
+    {
+      auto guardC_ = std::move(guardC);
+    }
 
     CHECK(c == 1);
   }

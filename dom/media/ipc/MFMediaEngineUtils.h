@@ -99,10 +99,10 @@ using MFMediaEngineError = MF_MEDIA_ENGINE_ERR;
                   text)
 
 #ifdef MOZ_WMF_CDM
- // This eror can happen during OS sleep/resume, or moving video to different
- // graphics adapters.
-  inline constexpr HRESULT DRM_E_TEE_INVALID_HWDRM_STATE =
-      static_cast<HRESULT>(0x8004CD12);
+// This eror can happen during OS sleep/resume, or moving video to different
+// graphics adapters.
+inline constexpr HRESULT DRM_E_TEE_INVALID_HWDRM_STATE =
+    static_cast<HRESULT>(0x8004CD12);
 #endif
 
 const char* MediaEventTypeToStr(MediaEventType aType);

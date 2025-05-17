@@ -597,11 +597,12 @@ void nsCSPContext::ReportInlineViolation(
   nsAutoCString hashSHA256;
   // We optionally include the hash to create more helpful error messages.
   nsCOMPtr<nsICryptoHash> hasher;
-  if (NS_SUCCEEDED(NS_NewCryptoHash(nsICryptoHash::SHA256, getter_AddRefs(hasher)))) {
+  if (NS_SUCCEEDED(
+          NS_NewCryptoHash(nsICryptoHash::SHA256, getter_AddRefs(hasher)))) {
     NS_ConvertUTF16toUTF8 source(aSourceCode);
     if (NS_SUCCEEDED(hasher->Update(
             reinterpret_cast<const uint8_t*>(source.get()), source.Length()))) {
-      (void) hasher->Finish(true, hashSHA256);
+      (void)hasher->Finish(true, hashSHA256);
     }
   }
 
@@ -1693,8 +1694,9 @@ class CSPReportSenderRunnable final : public Runnable {
                                       : "CSPInlineScriptViolation2";
         }
 
-        AutoTArray<nsString, 3> params = {mViolatedDirectiveNameAndValue,
-                                          effectiveDirective, NS_ConvertUTF8toUTF16(mCSPViolationData.mHashSHA256)};
+        AutoTArray<nsString, 3> params = {
+            mViolatedDirectiveNameAndValue, effectiveDirective,
+            NS_ConvertUTF8toUTF16(mCSPViolationData.mHashSHA256)};
         mCSPContext->logToConsole(
             errorName, params, mCSPViolationData.mSourceFile,
             mCSPViolationData.mSample, mCSPViolationData.mLineNumber,

@@ -24,10 +24,6 @@ class nsSecurityConsoleMessage final : public nsISecurityConsoleMessage {
   nsString mCategory;
 };
 
-#define NS_SECURITY_CONSOLE_MESSAGE_CID              \
-  {                                                  \
-    0x43ebf210, 0x8a7b, 0x4ddb, {                    \
-      0xa8, 0x3d, 0xb8, 0x7c, 0x51, 0xa0, 0x58, 0xdb \
-    }                                                \
-  }
+#define NS_SECURITY_CONSOLE_MESSAGE_CID \
+  {0x43ebf210, 0x8a7b, 0x4ddb, {0xa8, 0x3d, 0xb8, 0x7c, 0x51, 0xa0, 0x58, 0xdb}}
 #endif  // nsSecurityConsoleMessage_h__

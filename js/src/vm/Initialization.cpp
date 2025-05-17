@@ -275,7 +275,7 @@ static void ShutdownImpl(JS::detail::FrontendOnly frontendOnly) {
 #if JS_HAS_INTL_API
   mozilla::intl::ICU4CLibrary::Cleanup();
   mozilla::intl::CleanupDataProvider();
-#endif    // JS_HAS_INTL_API
+#endif  // JS_HAS_INTL_API
 
   if (frontendOnly == FrontendOnly::No) {
 #ifdef MOZ_VTUNE

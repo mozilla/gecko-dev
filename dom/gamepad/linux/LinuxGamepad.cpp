@@ -429,7 +429,7 @@ gboolean LinuxGamepadService::OnGamepadData(GIOChannel* source,
   }
 
   while (true) {
-    struct input_event event {};
+    struct input_event event{};
     gsize count;
     GError* err = nullptr;
     if (g_io_channel_read_chars(source, (gchar*)&event, sizeof(event), &count,

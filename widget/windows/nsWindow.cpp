@@ -1436,9 +1436,7 @@ static int32_t RoundDown(double aDouble) {
                      : static_cast<int32_t>(ceil(aDouble));
 }
 
-float nsWindow::GetDPI() {
-  return GetDefaultScaleInternal() * 96.0f;
-}
+float nsWindow::GetDPI() { return GetDefaultScaleInternal() * 96.0f; }
 
 double nsWindow::GetDefaultScaleInternal() {
   if (mDefaultScale <= 0.0) {

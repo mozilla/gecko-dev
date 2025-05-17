@@ -69,8 +69,7 @@ struct RelR : public Elf<bits> {
   using Elf_Verneed = typename Elf<bits>::Verneed;
   using Elf_Vernaux = typename Elf<bits>::Vernaux;
 
-#define TAG_NAME(t) \
-  { t, #t }
+#define TAG_NAME(t) {t, #t}
   class DynInfo {
    public:
     using Tag = decltype(Elf_Dyn::d_tag);

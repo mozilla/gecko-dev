@@ -50,8 +50,7 @@ using mozilla::dom::ServiceWorkerRegistration;
 using mozilla::dom::ServiceWorkerRegistrationDescriptor;
 using mozilla::dom::VoidFunction;
 
-nsIGlobalObject::nsIGlobalObject()
-    : mIsDying(false), mIsInnerWindow(false) {}
+nsIGlobalObject::nsIGlobalObject() : mIsDying(false), mIsInnerWindow(false) {}
 
 bool nsIGlobalObject::IsScriptForbidden(JSObject* aCallback,
                                         bool aIsJSImplementedWebIDL) const {

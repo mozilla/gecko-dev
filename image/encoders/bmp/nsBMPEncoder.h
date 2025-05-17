@@ -14,12 +14,12 @@
 
 #include "nsCOMPtr.h"
 
-#define NS_BMPENCODER_CID                            \
-  { /* 13a5320c-4c91-4FA4-bd16-b081a3ba8c0b */       \
-    0x13a5320c, 0x4c91, 0x4fa4, {                    \
-      0xbd, 0x16, 0xb0, 0x81, 0xa3, 0Xba, 0x8c, 0x0b \
-    }                                                \
-  }
+#define NS_BMPENCODER_CID                     \
+  {/* 13a5320c-4c91-4FA4-bd16-b081a3ba8c0b */ \
+   0x13a5320c,                                \
+   0x4c91,                                    \
+   0x4fa4,                                    \
+   {0xbd, 0x16, 0xb0, 0x81, 0xa3, 0Xba, 0x8c, 0x0b}}
 
 namespace mozilla {
 namespace image {

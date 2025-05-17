@@ -57,7 +57,7 @@ static Maybe<ImageBitmapFormat> GetImageBitmapFormatFromPlanarYCbCrData(
       uintptr_t(aData->mYChannel),
       uintptr_t(aData->mYChannel) + ySize.height * aData->mYStride),
       CbInterval(
-          uintptr_t(aData->mCbChannel),
+          uintptr_t(aData -> mCbChannel),
           uintptr_t(aData->mCbChannel) + cbcrSize.height * aData->mCbCrStride),
       CrInterval(
           uintptr_t(aData->mCrChannel),

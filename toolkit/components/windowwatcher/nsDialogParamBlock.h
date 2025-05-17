@@ -13,12 +13,8 @@
 #include "nsStringFwd.h"
 
 // {4E4AAE11-8901-46cc-8217-DAD7C5415873}
-#define NS_DIALOGPARAMBLOCK_CID                      \
-  {                                                  \
-    0x4e4aae11, 0x8901, 0x46cc, {                    \
-      0x82, 0x17, 0xda, 0xd7, 0xc5, 0x41, 0x58, 0x73 \
-    }                                                \
-  }
+#define NS_DIALOGPARAMBLOCK_CID \
+  {0x4e4aae11, 0x8901, 0x46cc, {0x82, 0x17, 0xda, 0xd7, 0xc5, 0x41, 0x58, 0x73}}
 
 class nsDialogParamBlock : public nsIDialogParamBlock {
  public:

@@ -68,8 +68,9 @@ class SVGPaintServerFrame : public SVGContainerFrame {
    */
   virtual already_AddRefed<gfxPattern> GetPaintServerPattern(
       nsIFrame* aSource, const DrawTarget* aDrawTarget,
-      const gfxMatrix& aContextMatrix, StyleSVGPaint nsStyleSVG::*aFillOrStroke,
-      float aOpacity, imgDrawingParams& aImgParams,
+      const gfxMatrix& aContextMatrix,
+      StyleSVGPaint nsStyleSVG::* aFillOrStroke, float aOpacity,
+      imgDrawingParams& aImgParams,
       const gfxRect* aOverrideBounds = nullptr) = 0;
 
   // nsIFrame methods:

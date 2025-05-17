@@ -94,7 +94,6 @@ nsMozIconURI::GetSpec(nsACString& aSpec) {
     aSpec.Append(buf);
   }
 
-
   if (!mContentType.IsEmpty()) {
     aSpec += "&contentType=";
     aSpec += mContentType.get();

@@ -4812,7 +4812,8 @@ bool js::IsBufferSource(JSContext* cx, JSObject* object, bool allowShared,
     }
     // Ensure the pointer we pass out won't move as long as you properly root
     // it. This is only needed for non-shared memory.
-    if (!view->isSharedMemory() && !ArrayBufferViewObject::ensureNonInline(cx, view)) {
+    if (!view->isSharedMemory() &&
+        !ArrayBufferViewObject::ensureNonInline(cx, view)) {
       return false;
     }
     *dataPointer = view->dataPointerEither().cast<uint8_t*>();
@@ -4830,7 +4831,8 @@ bool js::IsBufferSource(JSContext* cx, JSObject* object, bool allowShared,
     }
     // Ensure the pointer we pass out won't move as long as you properly root
     // it. This is only needed for non-shared memory.
-    if (!view->isSharedMemory() && !ArrayBufferViewObject::ensureNonInline(cx, view)) {
+    if (!view->isSharedMemory() &&
+        !ArrayBufferViewObject::ensureNonInline(cx, view)) {
       return false;
     }
     *dataPointer = view->dataPointerEither().cast<uint8_t*>();
