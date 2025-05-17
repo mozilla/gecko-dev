@@ -63,6 +63,7 @@ UNIFIED_SOURCES += [
     "TestOpusParser.cpp",
     "TestRust.cpp",
     "TestTimeUnit.cpp",
+    "TestVideoFrameContainer.cpp",
     "TestVideoSegment.cpp",
     "TestVideoSink.cpp",
     "TestVideoTrackEncoder.cpp",
