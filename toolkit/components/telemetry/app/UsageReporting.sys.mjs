@@ -83,7 +83,10 @@ export var UsageReporting = {
         lazy.ClientEnvironmentBase.isDefaultBrowser
       );
       Glean.usage.distributionId.set(lazy.ClientEnvironmentBase.distribution);
-      Glean.usage.firstRunDate.set(lazy.ProfileAge.firstUse);
+      // Get profile firstUse (ms) and convert to µs for recording
+      let profileAccessor = await lazy.ProfileAge();
+      let usageFirstRunUs = (await profileAccessor.firstUse) * 1_000;
+      Glean.usage.firstRunDate.set(usageFirstRunUs);
     })();
     return this._initPromise;
   },

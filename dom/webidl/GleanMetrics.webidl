@@ -50,9 +50,11 @@ interface GleanDatetime : GleanMetric {
    * The internal value will store the local timezone.
    *
    * Note: The metric's time_unit affects the resolution of the value, not the
-   *       unit of this function's parameter (which is always PRTime/nanos).
+   *       unit of this function's parameter (which is always PRTime/
+   *       microseconds).
    *
-   * @param aValue The (optional) time value as PRTime (nanoseconds since epoch).
+   * @param aValue The (optional) time value as PRTime (microseconds since
+   *        epoch).
    *        Defaults to local now.
    */
   undefined set(optional long long aValue);
