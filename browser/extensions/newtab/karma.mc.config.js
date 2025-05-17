@@ -5,6 +5,7 @@
 const path = require("path");
 const webpack = require("webpack");
 const { ResourceUriPlugin } = require("../../tools/resourceUriPlugin");
+const { MozSrcUriPlugin } = require("../../tools/mozsrcUriPlugin");
 
 const PATHS = {
   // Where is the entry point for the unit tests?
@@ -365,6 +366,10 @@ module.exports = function (config) {
             ],
           ],
         }),
+        new MozSrcUriPlugin({
+          baseDir: path.join(__dirname, "..", "..", ".."),
+        }),
+
         new webpack.DefinePlugin({
           "process.env.NODE_ENV": JSON.stringify("development"),
         }),

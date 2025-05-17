@@ -5,6 +5,7 @@
 const path = require("path");
 const webpack = require("webpack");
 const { ResourceUriPlugin } = require("../../tools/resourceUriPlugin");
+const { MozSrcUriPlugin } = require("../../tools/mozsrcUriPlugin");
 
 const absolute = relPath => path.join(__dirname, relPath);
 
@@ -33,6 +34,7 @@ module.exports = (env = {}) => ({
         ],
       ],
     }),
+    new MozSrcUriPlugin({ baseDir: path.join(__dirname, "..", "..", "..") }),
     new webpack.BannerPlugin(
       `THIS FILE IS AUTO-GENERATED: ${path.basename(__filename)}`
     ),
