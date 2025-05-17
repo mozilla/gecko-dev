@@ -9751,10 +9751,10 @@
   mirror: always
   rust: true
 
-# Is support for light-dark() on images in content enabled?
-- name: layout.css.light-dark.images.enabled
+# Is support for light-dark() on content enabled?
+- name: layout.css.light-dark.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
   rust: true
 

@@ -14,9 +14,7 @@
     non_camel_case_types,
     non_snake_case,
     non_upper_case_globals,
-    missing_docs,
-    unknown_lints,
-    unnecessary_transmutes,
+    missing_docs
 )]
 // TODO: Remove this when updating bindgen, see
 // https://github.com/rust-lang/rust-bindgen/issues/1651
