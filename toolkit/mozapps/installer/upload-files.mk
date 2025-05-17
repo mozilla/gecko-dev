@@ -93,24 +93,20 @@ endif
 TAR_CREATE_FLAGS := --exclude=.mkdir.done $(TAR_CREATE_FLAGS)
 CREATE_FINAL_TAR = $(TAR) -c --owner=0 --group=0 --numeric-owner \
   --mode=go-w --exclude=.mkdir.done -f
-UNPACK_TAR       = tar -xf-
 
 ifeq ($(MOZ_PKG_FORMAT),TAR)
   PKG_SUFFIX	= .tar
   INNER_MAKE_PACKAGE 	= cd $(1) && $(CREATE_FINAL_TAR) - $(MOZ_PKG_DIR) > $(PACKAGE)
-  INNER_UNMAKE_PACKAGE	= cd $(1) && $(UNPACK_TAR) < $(UNPACKAGE)
 endif
 
 ifeq ($(MOZ_PKG_FORMAT),TGZ)
   PKG_SUFFIX	= .tar.gz
   INNER_MAKE_PACKAGE 	= cd $(1) && $(CREATE_FINAL_TAR) - $(MOZ_PKG_DIR) | gzip -vf9 > $(PACKAGE)
-  INNER_UNMAKE_PACKAGE	= cd $(1) && gunzip -c $(UNPACKAGE) | $(UNPACK_TAR)
 endif
 
 ifeq ($(MOZ_PKG_FORMAT),XZ)
   PKG_SUFFIX = .tar.xz
   INNER_MAKE_PACKAGE 	= cd $(1) && $(CREATE_FINAL_TAR) - $(MOZ_PKG_DIR) | xz --compress --stdout -9 --extreme > $(PACKAGE)
-  INNER_UNMAKE_PACKAGE	= cd $(1) && xz --decompress --stdout $(UNPACKAGE) | $(UNPACK_TAR)
 endif
 
 ifeq ($(MOZ_PKG_FORMAT),BZ2)
@@ -120,13 +116,11 @@ ifeq ($(MOZ_PKG_FORMAT),BZ2)
   else
     INNER_MAKE_PACKAGE 	= cd $(1) && $(CREATE_FINAL_TAR) - $(MOZ_PKG_DIR) | bzip2 -vf > $(PACKAGE)
   endif
-  INNER_UNMAKE_PACKAGE	= cd $(1) && bunzip2 -c $(UNPACKAGE) | $(UNPACK_TAR)
 endif
 
 ifeq ($(MOZ_PKG_FORMAT),ZIP)
   PKG_SUFFIX	= .zip
   INNER_MAKE_PACKAGE = $(call py_action,zip,'$(PACKAGE)' '$(MOZ_PKG_DIR)' -x '**/.mkdir.done',$(1))
-  INNER_UNMAKE_PACKAGE = $(call py_action,make_unzip,$(UNPACKAGE),$(1))
 endif
 
 #Create an RPM file
@@ -199,15 +193,11 @@ ifeq ($(MOZ_PKG_FORMAT),RPM)
   endif
 
   INNER_MAKE_PACKAGE = cd $(1) && $(RPM_CMD)
-  #Avoiding rpm repacks, going to try creating/uploading xpi in rpm files instead
-  INNER_UNMAKE_PACKAGE = $(error Try using rpm2cpio and cpio)
-
 endif #Create an RPM file
 
 
 ifeq ($(MOZ_PKG_FORMAT),APK)
 INNER_MAKE_PACKAGE = true
-INNER_UNMAKE_PACKAGE = true
 endif
 
 ifeq ($(MOZ_PKG_FORMAT),DMG)
@@ -215,6 +205,9 @@ ifeq ($(MOZ_PKG_FORMAT),DMG)
 
   _ABS_MOZSRCDIR = $(shell cd $(MOZILLA_DIR) && pwd)
   PKG_DMG_SOURCE = $(MOZ_PKG_DIR)
+  MOZ_PKG_MAC_DSSTORE=$(topsrcdir)/$(MOZ_BRANDING_DIRECTORY)/dsstore
+  MOZ_PKG_MAC_BACKGROUND=$(topsrcdir)/$(MOZ_BRANDING_DIRECTORY)/background.png
+  MOZ_PKG_MAC_ICON=$(topsrcdir)/$(MOZ_BRANDING_DIRECTORY)/disk.icns
   INNER_MAKE_PACKAGE = \
     $(call py_action,make_dmg, \
         $(if $(MOZ_PKG_MAC_DSSTORE),--dsstore '$(MOZ_PKG_MAC_DSSTORE)') \
@@ -222,13 +215,6 @@ ifeq ($(MOZ_PKG_FORMAT),DMG)
         $(if $(MOZ_PKG_MAC_ICON),--icon '$(MOZ_PKG_MAC_ICON)') \
         --volume-name '$(MOZ_APP_DISPLAYNAME)' \
         '$(PKG_DMG_SOURCE)' '$(PACKAGE)', \
-        $(1))
-  INNER_UNMAKE_PACKAGE = \
-    $(call py_action,unpack_dmg, \
-        $(if $(MOZ_PKG_MAC_DSSTORE),--dsstore '$(MOZ_PKG_MAC_DSSTORE)') \
-        $(if $(MOZ_PKG_MAC_BACKGROUND),--background '$(MOZ_PKG_MAC_BACKGROUND)') \
-        $(if $(MOZ_PKG_MAC_ICON),--icon '$(MOZ_PKG_MAC_ICON)') \
-        $(UNPACKAGE) $(MOZ_PKG_DIR), \
         $(1))
 endif
 
