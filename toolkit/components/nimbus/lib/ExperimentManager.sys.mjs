@@ -633,6 +633,7 @@ export class ExperimentManager {
       });
     }
 
+    this._prefFlips._annotateEnrollment(enrollment);
     this.store.addEnrollment(enrollment);
 
     lazy.NimbusTelemetry.recordEnrollment(enrollment);
