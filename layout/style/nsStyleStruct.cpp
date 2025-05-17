@@ -1623,6 +1623,9 @@ bool StyleImage::IsComplete() const {
     // Bug 546052 cross-fade not yet implemented.
     case Tag::CrossFade:
       return true;
+    case Tag::LightDark:
+      MOZ_ASSERT_UNREACHABLE("light-dark() should be computed already");
+      break;
   }
   MOZ_ASSERT_UNREACHABLE("unexpected image type");
   return false;
@@ -1651,6 +1654,9 @@ bool StyleImage::IsSizeAvailable() const {
     case Tag::CrossFade:
       // TODO: Bug 546052 cross-fade not yet implemented.
       return true;
+    case Tag::LightDark:
+      MOZ_ASSERT_UNREACHABLE("light-dark() should be computed already");
+      break;
   }
   MOZ_ASSERT_UNREACHABLE("unexpected image type");
   return false;
