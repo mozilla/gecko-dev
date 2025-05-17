@@ -9751,6 +9751,13 @@
   mirror: always
   rust: true
 
+# Is support for light-dark() on images in content enabled?
+- name: layout.css.light-dark.images.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  rust: true
+
 # Is support for fit-content() enabled?
 - name: layout.css.fit-content-function.enabled
   type: RelaxedAtomicBool

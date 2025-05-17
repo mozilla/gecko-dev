@@ -441,7 +441,7 @@ impl Color {
                     return Ok(Color::ColorMix(Box::new(mix)));
                 }
 
-                if let Ok(ld) = input.try_parse(|i| GenericLightDark::parse_with(context, i, |context, i| Self::parse_internal(context, i, preserve_authored)))
+                if let Ok(ld) = input.try_parse(|i| GenericLightDark::parse_with(i, |i| Self::parse_internal(context, i, preserve_authored)))
                 {
                     return Ok(Color::LightDark(Box::new(ld)));
                 }

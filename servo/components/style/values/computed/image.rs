@@ -206,3 +206,37 @@ impl ToComputedValue for specified::LineDirection {
         }
     }
 }
+
+impl ToComputedValue for specified::Image {
+    type ComputedValue = Image;
+
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match self {
+            Self::None => Image::None,
+            Self::Url(u) => Image::Url(u.to_computed_value(context)),
+            Self::Gradient(g) => Image::Gradient(g.to_computed_value(context)),
+            #[cfg(feature = "gecko")]
+            Self::Element(e) => Image::Element(e.to_computed_value(context)),
+            #[cfg(feature = "servo")]
+            Self::PaintWorklet(w) => Image::PaintWorklet(w.to_computed_value(context)),
+            Self::CrossFade(f) => Image::CrossFade(f.to_computed_value(context)),
+            Self::ImageSet(s) => Image::ImageSet(s.to_computed_value(context)),
+            Self::LightDark(ld) => ld.compute(context),
+        }
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match computed {
+            Image::None => Self::None,
+            Image::Url(u) => Self::Url(ToComputedValue::from_computed_value(u)),
+            Image::Gradient(g) => Self::Gradient(ToComputedValue::from_computed_value(g)),
+            #[cfg(feature = "gecko")]
+            Image::Element(e) => Self::Element(ToComputedValue::from_computed_value(e)),
+            #[cfg(feature = "servo")]
+            Image::PaintWorklet(w) => Self::PaintWorklet(ToComputedValue::from_computed_value(w)),
+            Image::CrossFade(f) => Self::CrossFade(ToComputedValue::from_computed_value(f)),
+            Image::ImageSet(s) => Self::ImageSet(ToComputedValue::from_computed_value(s)),
+            Image::LightDark(_) => unreachable!("Shouldn't have computed image-set values"),
+        }
+    }
+}

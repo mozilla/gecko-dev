@@ -10,7 +10,7 @@
 use crate::color::mix::ColorInterpolationMethod;
 use crate::parser::{Parse, ParserContext};
 use crate::stylesheets::CorsMode;
-use crate::values::generics::color::ColorMixFlags;
+use crate::values::generics::color::{ColorMixFlags, GenericLightDark};
 use crate::values::generics::image::{
     self as generic, Circle, Ellipse, GradientCompatMode, ShapeExtent,
 };
@@ -113,6 +113,10 @@ fn default_color_interpolation_method<T>(
     }
 }
 
+fn image_light_dark_enabled(context: &ParserContext) -> bool {
+    context.chrome_rules_enabled() || static_prefs::pref!("layout.css.light-dark.images.enabled")
+}
+
 #[cfg(feature = "gecko")]
 fn cross_fade_enabled() -> bool {
     static_prefs::pref!("layout.css.cross-fade.enabled")
@@ -122,7 +126,6 @@ fn cross_fade_enabled() -> bool {
 fn cross_fade_enabled() -> bool {
     false
 }
-
 
 impl SpecifiedValueInfo for Gradient {
     const SUPPORTED_TYPES: u8 = CssType::GRADIENT;
@@ -218,8 +221,8 @@ impl Image {
             return Ok(generic::Image::None);
         }
 
-        if let Ok(url) = input
-            .try_parse(|input| SpecifiedUrl::parse_with_cors_mode(context, input, cors_mode))
+        if let Ok(url) =
+            input.try_parse(|input| SpecifiedUrl::parse_with_cors_mode(context, input, cors_mode))
         {
             return Ok(generic::Image::Url(url));
         }
@@ -241,16 +244,17 @@ impl Image {
         }
 
         let function = input.expect_function()?.clone();
-        input.parse_nested_block(|input| {
-            Ok(match_ignore_ascii_case! { &function,
-                #[cfg(feature = "servo")]
-                "paint" => Self::PaintWorklet(PaintWorklet::parse_args(context, input)?),
-                "cross-fade" if cross_fade_enabled() => Self::CrossFade(Box::new(CrossFade::parse_args(context, input, cors_mode, flags)?)),
-                #[cfg(feature = "gecko")]
-                "-moz-element" => Self::Element(Self::parse_element(input)?),
-                _ => return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedFunction(function))),
-            })
-        })
+        input.parse_nested_block(|input| Ok(match_ignore_ascii_case! { &function,
+            #[cfg(feature = "servo")]
+            "paint" => Self::PaintWorklet(PaintWorklet::parse_args(context, input)?),
+            "cross-fade" if cross_fade_enabled() => Self::CrossFade(Box::new(CrossFade::parse_args(context, input, cors_mode, flags)?)),
+            "light-dark" if image_light_dark_enabled(context) => Self::LightDark(Box::new(GenericLightDark::parse_args_with(input, |input| {
+                Self::parse_with_cors_mode(context, input, cors_mode, flags)
+            })?)),
+            #[cfg(feature = "gecko")]
+            "-moz-element" => Self::Element(Self::parse_element(input)?),
+            _ => return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedFunction(function))),
+        }))
     }
 }
 
