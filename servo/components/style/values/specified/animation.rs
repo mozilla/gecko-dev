@@ -731,3 +731,58 @@ impl ToCss for ViewTransitionName {
         serialize_atom_identifier(&self.0, dest)
     }
 }
+
+/// The view-transition-class: `none | <custom-ident>+`.
+///
+/// https://drafts.csswg.org/css-view-transitions-2/#view-transition-class-prop
+///
+/// Empty slice represents `none`.
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    Hash,
+    PartialEq,
+    MallocSizeOf,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+#[value_info(other_values = "none")]
+pub struct ViewTransitionClass(
+    #[css(iterable, if_empty = "none")]
+    #[ignore_malloc_size_of = "Arc"]
+    crate::ArcSlice<CustomIdent>,
+);
+
+impl ViewTransitionClass {
+    /// Returns the default value, `none`. We use the default slice (i.e. empty) to represent it.
+    pub fn none() -> Self {
+        Self(Default::default())
+    }
+
+    /// Returns whether this is the `none` value.
+    pub fn is_none(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl Parse for ViewTransitionClass {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        use style_traits::{Separator, Space};
+
+        if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(Self::none());
+        }
+
+        Ok(Self(crate::ArcSlice::from_iter(
+            Space::parse(input, |i| CustomIdent::parse(i, &["none"]))?.into_iter(),
+        )))
+    }
+}

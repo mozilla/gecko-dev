@@ -190,6 +190,7 @@ exports.ANIMATION_TYPE_FOR_LONGHANDS = [
       "-moz-user-input",
       "user-select",
       "vector-effect",
+      "view-transition-class",
       "view-transition-name",
       "visibility",
       "white-space-collapse",

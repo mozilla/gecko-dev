@@ -325,6 +325,7 @@ include = [
   "XTextScale",
   "Zoom",
   "TransitionProperty",
+  "ViewTransitionClass",
   "ViewTransitionName",
   "Inset",
   "AnchorFunction",
