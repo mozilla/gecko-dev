@@ -2,4 +2,10 @@
 <resources>
   <!-- Content description (not visible, for screen readers etc.): Description for the overflow menu button in the browser toolbar. -->
   <string name="mozac_browser_menu_button">نومگه</string>
+  <!-- Label for extensions submenu section -->
+  <string name="mozac_browser_menu_extensions">وردنی یل</string>
+  <!-- Label for extensions sub menu item for extensions manager -->
+  <string name="mozac_browser_menu_extensions_manager">دؽوۉداری وردنی یل</string>
+  <!-- Content description for the action bar "up" button of the extensions sub menu item -->
+  <string name="mozac_browser_menu_extensions_content_description">وردنی یل، رئڌن و روء</string>
 </resources>

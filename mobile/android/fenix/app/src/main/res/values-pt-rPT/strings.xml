@@ -3540,9 +3540,9 @@
   <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
   <string name="setup_checklist_subtitle_5_steps_first_step">Ótimo começo! Concluiu 1 de 5 passos.</string>
   <!-- Subtitle for the setup checklist when the second task is completed. -->
-  <string name="setup_checklist_subtitle_5_steps_second_step">Concluiu 2 de 5 passos. Ótimo progresso!</string>
+  <string name="setup_checklist_subtitle_5_steps_second_step">Concluiu 2 de 5 passos. Excelente progresso!</string>
   <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
-  <string name="setup_checklist_subtitle_5_steps_third_step">Está a meio caminho! Tres passos terminados e faltam 2.</string>
+  <string name="setup_checklist_subtitle_5_steps_third_step">Está a meio caminho! Três passos concluídos e faltam apenas 2.</string>
   <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
   <string name="setup_checklist_subtitle_5_steps_fourth_step">Quase lá! Está apenas a 1 passo da meta.</string>
   <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
@@ -3604,7 +3604,7 @@
   <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
   <string name="pbm_authentication_lock_device_feature_disabled">Configurar bloqueio de ecrã para ocultar separadores</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
-  <string name="private_tab_cfr_title">Utilizar bloqueio de ecrã para ocultar separadores privados?</string>
+  <string name="private_tab_cfr_title">Utilizar bloqueio de ecrã para ocultar os separadores privados?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
   <string name="private_tab_cfr_negative">Não, obrigado</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->

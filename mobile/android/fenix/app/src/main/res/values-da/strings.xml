@@ -630,6 +630,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">Hurtig og sikker browsing</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Accepter og fortsæt</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">Fortsæt</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Ved at fortsætte accepterer du %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1479,12 +1481,33 @@
   <string name="download_multi_select_title">%1$d valgt</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Fjern</string>
+  <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
+  <string name="download_file_has_not_enough_storage_dialog_title">Ikke nok plads</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message">Denne enhed har ikke plads nok til at hente &lt;b&gt;%s&lt;/b&gt;.</string>
+  <!--
+    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will navigate the user to the device's storage management settings.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">Håndter filer</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">Annuller</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Slet</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Gå tilbage</string>
   <!-- Content description for the toolbar "Navigate up" button -->
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Naviger op</string>
+  <!-- Content description for the toolbar back button while searching the downloads -->
+  <string name="download_close_search_description">Tilbage og luk søgning</string>
+  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <string name="download_clear_search_description">Ryd</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Del URL</string>
   <!-- Text for the button to share the download file -->
@@ -1644,6 +1667,8 @@
   <string name="bookmark_menu_copy_button">Kopier</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">Del</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">Vælg alle</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">Åbn i nyt faneblad</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -1656,6 +1681,8 @@
   <string name="bookmark_menu_delete_button">Slet</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Gem</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">Sorter efter brugervalgt rækkefølge</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">Sorter efter nyeste</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3398,6 +3425,8 @@
   <string name="debug_drawer_override_current_region_label">Tilsidesæt nuværende region</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">Tilsidesæt hjem- og nuværende region</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Tilsidesæt hjemregion permanent</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3566,6 +3595,12 @@
   <string name="pbm_authentication_unlock">Lås op</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Lås private faneblade op</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">Aktiver skærmlås for private faneblade</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">Deaktiver skærmlås for private faneblade</string>
+  <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
+  <string name="pbm_authentication_lock_device_feature_disabled">Indstil skærmlås for at skjule faneblade</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">Brug skærmlås til at skjule private faneblade?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
