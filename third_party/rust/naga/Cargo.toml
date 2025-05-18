@@ -136,6 +136,10 @@ optional = true
 version = "2.7"
 default-features = false
 
+[dependencies.libm]
+version = "0.2.6"
+default-features = false
+
 [dependencies.log]
 version = "0.4.21"
 
