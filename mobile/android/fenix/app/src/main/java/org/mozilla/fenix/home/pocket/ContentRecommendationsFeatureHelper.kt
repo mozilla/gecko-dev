@@ -19,6 +19,26 @@ object ContentRecommendationsFeatureHelper {
     val POCKET_SUPPORTED_LOCALES = listOf("en-US", "en-CA")
 
     /**
+     * List of supported content recommendations locales.
+     */
+    val CONTENT_RECOMMENDATIONS_SUPPORTED_LOCALE = listOf(
+        "fr",
+        "fr-FR",
+        "es",
+        "es-ES",
+        "it",
+        "it-IT",
+        "en",
+        "en-CA",
+        "en-GB",
+        "en-US",
+        "de",
+        "de-DE",
+        "de-AT",
+        "de-CH",
+    )
+
+    /**
      * Show Pocket recommended stories on home.
      */
     fun isPocketRecommendationsFeatureEnabled(context: Context): Boolean {
@@ -32,5 +52,15 @@ object ContentRecommendationsFeatureHelper {
      */
     fun isPocketSponsoredStoriesFeatureEnabled(context: Context): Boolean {
         return isPocketRecommendationsFeatureEnabled(context)
+    }
+
+    /**
+     * Returns true if the current locale is part of the supported locales for content
+     * recommendations, and false otherwise.
+     */
+    fun isContentRecommendationsFeatureEnabled(context: Context): Boolean {
+        val langTag = LocaleManager.getCurrentLocale(context)
+            ?.toLanguageTag() ?: getSystemDefault().toLanguageTag()
+        return CONTENT_RECOMMENDATIONS_SUPPORTED_LOCALE.contains(langTag)
     }
 }

@@ -1766,7 +1766,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     var showContentRecommendations by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_pocket_content_recommendations),
         default = { FxNimbus.features.merinoRecommendations.value().enabled },
-        featureFlag = true,
+        featureFlag = ContentRecommendationsFeatureHelper.isContentRecommendationsFeatureEnabled(appContext),
     )
 
     /**
