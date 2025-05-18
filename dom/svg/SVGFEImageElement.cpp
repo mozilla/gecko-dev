@@ -19,7 +19,6 @@
 #include "nsLayoutUtils.h"
 #include "nsNetUtil.h"
 #include "imgIContainer.h"
-#include "gfx2DGlue.h"
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(FEImage)
 
@@ -57,10 +56,7 @@ SVGFEImageElement::~SVGFEImageElement() { nsImageLoadingContent::Destroy(); }
 
 //----------------------------------------------------------------------
 
-nsresult SVGFEImageElement::LoadSVGImage(bool aForce, bool aNotify) {
-  // resolve href attribute
-  nsIURI* baseURI = GetBaseURI();
-
+void SVGFEImageElement::UpdateSrcURI() {
   nsAutoString href;
   if (mStringAttributes[HREF].IsExplicitlySet()) {
     mStringAttributes[HREF].GetAnimValue(href, this);
@@ -69,23 +65,26 @@ nsresult SVGFEImageElement::LoadSVGImage(bool aForce, bool aNotify) {
   }
   href.Trim(" \t\n\r");
 
-  if (baseURI && !href.IsEmpty()) NS_MakeAbsoluteURI(href, href, baseURI);
+  mSrcURI = nullptr;
+  if (!href.IsEmpty()) {
+    StringToURI(href, OwnerDoc(), getter_AddRefs(mSrcURI));
+  }
+}
 
+nsresult SVGFEImageElement::LoadSVGImage(bool aForce, bool aNotify) {
   // Make sure we don't get in a recursive death-spiral
-  Document* doc = OwnerDoc();
-  nsCOMPtr<nsIURI> hrefAsURI;
-  if (NS_SUCCEEDED(StringToURI(href, doc, getter_AddRefs(hrefAsURI)))) {
-    bool isEqual;
-    if (NS_SUCCEEDED(hrefAsURI->Equals(baseURI, &isEqual)) && isEqual) {
-      // Image URI matches our URI exactly! Bail out.
-      return NS_OK;
-    }
+  bool isEqual;
+  if (mSrcURI && NS_SUCCEEDED(mSrcURI->Equals(GetBaseURI(), &isEqual)) &&
+      isEqual) {
+    // Image URI matches our URI exactly! Bail out.
+    return NS_OK;
   }
 
   // Mark channel as urgent-start before load image if the image load is
-  // initaiated by a user interaction.
+  // initiated by a user interaction.
   mUseUrgentStartForChannel = UserActivation::IsHandlingUserInput();
-  return LoadImage(href, aForce, aNotify, eImageLoadType_Normal);
+  return LoadImage(mSrcURI, aForce, aNotify, eImageLoadType_Normal, LoadFlags(),
+                   OwnerDoc());
 }
 
 bool SVGFEImageElement::ShouldLoadImage() const {
@@ -132,6 +131,7 @@ void SVGFEImageElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
       // href overrides xlink:href
       return;
     }
+    UpdateSrcURI();
     if (aValue || (aNamespaceID == kNameSpaceID_None &&
                    mStringAttributes[XLINK_HREF].IsExplicitlySet())) {
       if (ShouldLoadImage()) {
@@ -197,10 +197,13 @@ void SVGFEImageElement::DestroyContent() {
 
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEImageElement)
 
-already_AddRefed<DOMSVGAnimatedString> SVGFEImageElement::Href() {
-  return mStringAttributes[HREF].IsExplicitlySet()
-             ? mStringAttributes[HREF].ToDOMAnimatedString(this)
-             : mStringAttributes[XLINK_HREF].ToDOMAnimatedString(this);
+void SVGFEImageElement::NodeInfoChanged(Document* aOldDoc) {
+  SVGFEImageElementBase::NodeInfoChanged(aOldDoc);
+
+  // Reparse the URI if needed. Note that we can't check whether we already have
+  // a parsed URI, because it might be null even if we have a valid href
+  // attribute, if we tried to parse with a different base.
+  UpdateSrcURI();
 }
 
 //----------------------------------------------------------------------
@@ -318,6 +321,12 @@ bool SVGFEImageElement::OutputIsTainted(const nsTArray<bool>& aInputsAreTainted,
 //----------------------------------------------------------------------
 // SVGElement methods
 
+already_AddRefed<DOMSVGAnimatedString> SVGFEImageElement::Href() {
+  return mStringAttributes[HREF].IsExplicitlySet()
+             ? mStringAttributes[HREF].ToDOMAnimatedString(this)
+             : mStringAttributes[XLINK_HREF].ToDOMAnimatedString(this);
+}
+
 already_AddRefed<DOMSVGAnimatedPreserveAspectRatio>
 SVGFEImageElement::PreserveAspectRatio() {
   return mPreserveAspectRatio.ToDOMAnimatedPreserveAspectRatio(this);
@@ -393,9 +402,9 @@ void SVGFEImageElement::DidAnimateAttribute(int32_t aNameSpaceID,
   if ((aNameSpaceID == kNameSpaceID_None ||
        aNameSpaceID == kNameSpaceID_XLink) &&
       aAttribute == nsGkAtoms::href) {
-    bool hrefIsSet =
-        mStringAttributes[SVGFEImageElement::HREF].IsExplicitlySet() ||
-        mStringAttributes[SVGFEImageElement::XLINK_HREF].IsExplicitlySet();
+    UpdateSrcURI();
+    bool hrefIsSet = mStringAttributes[HREF].IsExplicitlySet() ||
+                     mStringAttributes[XLINK_HREF].IsExplicitlySet();
     if (hrefIsSet) {
       LoadSVGImage(true, true);
     } else {

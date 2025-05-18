@@ -78,6 +78,8 @@ class SVGFEImageElement final : public SVGFEImageElementBase,
   // Override for nsIImageLoadingContent.
   NS_IMETHOD_(void) FrameCreated(nsIFrame* aFrame) override;
 
+  void NodeInfoChanged(Document* aOldDoc) override;
+
   void MaybeLoadSVGImage();
 
   // WebIDL
@@ -100,6 +102,8 @@ class SVGFEImageElement final : public SVGFEImageElementBase,
 
  private:
   void DidAnimateAttribute(int32_t aNameSpaceID, nsAtom* aAttribute) override;
+
+  void UpdateSrcURI();
   nsresult LoadSVGImage(bool aForce, bool aNotify);
   bool ShouldLoadImage() const;
 
@@ -115,6 +119,8 @@ class SVGFEImageElement final : public SVGFEImageElementBase,
   FetchPriority GetFetchPriorityForImage() const override {
     return Element::GetFetchPriority();
   }
+
+  nsCOMPtr<nsIURI> mSrcURI;
 
   enum { RESULT, HREF, XLINK_HREF };
   SVGAnimatedString mStringAttributes[3];

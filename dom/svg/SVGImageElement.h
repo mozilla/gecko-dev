@@ -71,6 +71,8 @@ class SVGImageElement final : public SVGImageElementBase,
 
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
+  void NodeInfoChanged(Document* aOldDoc) override;
+
   void MaybeLoadSVGImage();
 
   // WebIDL
@@ -109,6 +111,7 @@ class SVGImageElement final : public SVGImageElementBase,
  protected:
   void DidAnimateAttribute(int32_t aNameSpaceID, nsAtom* aAttribute) override;
 
+  void UpdateSrcURI();
   nsresult LoadSVGImage(bool aForce, bool aNotify);
   bool ShouldLoadImage() const;
 
@@ -122,6 +125,8 @@ class SVGImageElement final : public SVGImageElementBase,
   FetchPriority GetFetchPriorityForImage() const override {
     return Element::GetFetchPriority();
   }
+
+  nsCOMPtr<nsIURI> mSrcURI;
 
   enum { ATTR_X, ATTR_Y, ATTR_WIDTH, ATTR_HEIGHT };
   SVGAnimatedLength mLengthAttributes[4];
