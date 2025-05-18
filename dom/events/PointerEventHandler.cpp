@@ -80,9 +80,30 @@ bool PointerEventHandler::IsPointerEventImplicitCaptureForTouchEnabled() {
 }
 
 /* static */
-bool PointerEventHandler::ShouldDispatchClickEventOnCapturingElement() {
-  return StaticPrefs::
-      dom_w3c_pointer_events_dispatch_click_on_pointer_capturing_element();
+bool PointerEventHandler::ShouldDispatchClickEventOnCapturingElement(
+    const WidgetGUIEvent* aSourceEvent /* = nullptr */) {
+  if (!StaticPrefs::
+          dom_w3c_pointer_events_dispatch_click_on_pointer_capturing_element()) {
+    return false;
+  }
+  if (!aSourceEvent ||
+      !StaticPrefs::
+          dom_w3c_pointer_events_dispatch_click_on_pointer_capturing_element_except_touch()) {
+    return true;
+  }
+  MOZ_ASSERT(aSourceEvent->mMessage == eMouseUp ||
+             aSourceEvent->mMessage == ePointerUp ||
+             aSourceEvent->mMessage == eTouchEnd);
+  // Pointer Events defines that `click` event's userEvent is the preceding
+  // `pointerup`.  However, Chrome does not follow treat it as so when the
+  // `click` is caused by a tap.  For the compatibility with Chrome, we should
+  // stop comforming to the spec until Chrome conforms to that.
+  if (aSourceEvent->mClass == eTouchEventClass) {
+    return false;
+  }
+  const WidgetMouseEvent* const sourceMouseEvent = aSourceEvent->AsMouseEvent();
+  return sourceMouseEvent &&
+         sourceMouseEvent->mInputSource != MouseEvent_Binding::MOZ_SOURCE_TOUCH;
 }
 
 /* static */

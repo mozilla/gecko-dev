@@ -5298,6 +5298,13 @@
   value: true
   mirror: always
 
+# If `click` event is caused by a tap, the target should not be the target of
+# the preceding `pointerup`.  This is compatible with Chrome 136.
+- name: dom.w3c_pointer_events.dispatch_click_on_pointer_capturing_element.except_touch
+  type: bool
+  value: true
+  mirror: always
+
 # In case Touch API is enabled, this pref controls whether to support
 # ontouch* event handlers, document.createTouch, document.createTouchList and
 # document.createEvent("TouchEvent").

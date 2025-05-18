@@ -6035,7 +6035,8 @@ nsresult EventStateManager::SetClickCount(WidgetMouseEvent* aEvent,
       // If an element was capturing the pointer at dispatching ePointerUp, we
       // should dispatch click/auxclick/contextmenu event on it to conform to
       // Pointer Events. https://w3c.github.io/pointerevents/#event-dispatch
-      if (PointerEventHandler::ShouldDispatchClickEventOnCapturingElement()) {
+      if (PointerEventHandler::ShouldDispatchClickEventOnCapturingElement(
+              aEvent)) {
         const RefPtr<Element> capturingElementAtLastPointerUp =
             PointerEventHandler::GetPointerCapturingElementAtLastPointerUp();
         if (capturingElementAtLastPointerUp &&

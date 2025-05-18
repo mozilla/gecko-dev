@@ -78,9 +78,18 @@ class PointerEventHandler final {
   // Return the preference value of implicit capture.
   static bool IsPointerEventImplicitCaptureForTouchEnabled();
 
-  // Return true if click/auxclick/contextmenu event should be fired on
-  // an element which was capturing the pointer at dispatching ePointerUp.
-  [[nodiscard]] static bool ShouldDispatchClickEventOnCapturingElement();
+  /**
+   * Return true if click/auxclick/contextmenu event should be fired on
+   * an element which was capturing the pointer at dispatching ePointerUp.
+   *
+   * @param aSourceEvent    [Optional] The source event which causes the
+   *                        `click`, `auxclick` or `contextmenu` event.  I.e.,
+   *                        must be one of `mouseup`, `pointerup` or `touchend`.
+   *                        If specifying nullptr, this method checks only
+   *                        whether the behavior is enabled.
+   */
+  [[nodiscard]] static bool ShouldDispatchClickEventOnCapturingElement(
+      const WidgetGUIEvent* aSourceEvent = nullptr);
 
   // Called in ESM::PreHandleEvent to update current active pointers in a hash
   // table.
