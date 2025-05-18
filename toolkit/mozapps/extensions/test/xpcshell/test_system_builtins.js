@@ -163,6 +163,119 @@ add_task(
   }
 );
 
+async function testBrokenXPIStates({
+  description,
+  setupTestCase,
+  expectSystemUpdateVersion,
+}) {
+  info(`Enter test case (${description})`);
+  const builtins = [0, 1, 2].map(i => ({
+    addon_id: `system${i}@tests.mozilla.org`,
+    addon_version: "1.1",
+    res_url: `resource://builtin-addon${i}/`,
+  }));
+  await Promise.all(
+    builtins.map(({ addon_id, addon_version }, i) =>
+      setupBuiltinExtension(
+        {
+          manifest: {
+            name: `Built-In System Add-on ${i}`,
+            version: addon_version,
+            browser_specific_settings: {
+              gecko: { id: addon_id },
+            },
+          },
+        },
+        `builtin-addon${i}`
+      )
+    )
+  );
+  AddonTestUtils.updateAppInfo(appInfoInitial);
+  await overrideBuiltIns({ builtins });
+  const createBuiltinAddonsStartedPromises = () =>
+    builtins.map(({ addon_id }) => {
+      const msg = `Await ${addon_id} startup`;
+      const promise = promiseWebExtensionStartup(addon_id);
+      return async () => {
+        info(msg);
+        await promise;
+      };
+    });
+  let builtinAddonsStartedPromises = createBuiltinAddonsStartedPromises();
+
+  info(`Initialize test case profile`);
+  await promiseStartupManager();
+  for (const waitForBuiltinStartup of builtinAddonsStartedPromises) {
+    await waitForBuiltinStartup();
+  }
+
+  const updatedBuiltinAddonId = builtins[2].addon_id;
+  async function verifyUpdatedBuiltinAddon() {
+    let updatedBuiltinAddon = await AddonManager.getAddonByID(
+      updatedBuiltinAddonId
+    );
+    Assert.equal(
+      updatedBuiltinAddon.version,
+      "2.0",
+      `Got the expected version for the updated builtin addon ${updatedBuiltinAddonId}`
+    );
+    Assert.equal(
+      updatedBuiltinAddon.locationName,
+      "app-system-addons",
+      `Got the expected locationName for the updated builtin addon ${updatedBuiltinAddonId}`
+    );
+  }
+
+  info(`Install system-signed update for ${updatedBuiltinAddonId}`);
+  const oldUsePrivilegedSignature = (AddonTestUtils.usePrivilegedSignatures =
+    () => "system");
+  let xpi = AddonTestUtils.createTempWebExtensionFile({
+    manifest: {
+      version: "2.0",
+      browser_specific_settings: {
+        gecko: { id: updatedBuiltinAddonId },
+      },
+    },
+  });
+  AddonTestUtils.usePrivilegedSignatures = oldUsePrivilegedSignature;
+  let xml = buildSystemAddonUpdates([
+    {
+      id: updatedBuiltinAddonId,
+      version: "2.0",
+      path: xpi.leafName,
+      xpi,
+    },
+  ]);
+  await installSystemAddons(xml, [updatedBuiltinAddonId]);
+  await verifyUpdatedBuiltinAddon();
+  await promiseShutdownManager();
+  ok(
+    AddonTestUtils.addonStartup.exists(),
+    "Expect addonStartup.json.lz4 file to exist"
+  );
+
+  info(`Setup test case (${description})`);
+  // Run callback to mimic the specific test scenario).
+  await setupTestCase();
+  info(`Startup addon manager again (${description})`);
+
+  builtinAddonsStartedPromises = createBuiltinAddonsStartedPromises();
+
+  await overrideBuiltIns({ builtins });
+  await promiseStartupManager();
+  for (const waitForBuiltinStartup of builtinAddonsStartedPromises) {
+    await waitForBuiltinStartup();
+  }
+  // Verify the updated system addon is the one enabled.
+  if (expectSystemUpdateVersion) {
+    await verifyUpdatedBuiltinAddon();
+  }
+  // Clean updated system addon.
+  await installSystemAddons(buildSystemAddonUpdates([]), []);
+  await promiseShutdownManager();
+  info(`Exit test case (${description})`);
+}
+
 // This tests case verifies that in case of a missing or completely corrupted
 // xpi states, the builin addons are still installed and started up as expected.
 add_task(
@@ -175,66 +288,22 @@ add_task(
     ],
   },
   async function test_missing_xpistate() {
-    const builtins = [1, 2, 3].map(i => ({
-      addon_id: `@builtin${i}`,
-      addon_version: "1.1",
-      res_url: `resource://builtin-addon${i}/`,
-    }));
-    await Promise.all(
-      [1, 2, 3].map(i =>
-        setupBuiltinExtension(
-          {
-            manifest: {
-              name: `Built-In System Add-on ${i}`,
-              version: "1.1",
-              browser_specific_settings: {
-                gecko: { id: `@builtin${i}` },
-              },
-            },
-          },
-          `builtin-addon${i}`
-        )
-      )
-    );
-    AddonTestUtils.updateAppInfo(appInfoInitial);
-    await overrideBuiltIns({ builtins });
-    let promiseBuiltin1Started = promiseWebExtensionStartup(`@builtin1`);
-    let promiseBuiltin2Started = promiseWebExtensionStartup(`@builtin2`);
-    let promiseBuiltin3Started = promiseWebExtensionStartup(`@builtin2`);
-    await promiseStartupManager();
-    info("Await @builtin1 startup");
-    await promiseBuiltin1Started;
-    info("Await @builtin2 startup");
-    await promiseBuiltin2Started;
-    info("Await @builtin3 startup");
-    await promiseBuiltin3Started;
-    await promiseShutdownManager();
-
-    ok(
-      AddonTestUtils.addonStartup.exists(),
-      "Expect addonStartup.json.lz4 file to exist"
-    );
-    await IOUtils.remove(AddonTestUtils.addonStartup.path);
-    ok(
-      !AddonTestUtils.addonStartup.exists(),
-      "Expect addonStartup.json.lz4 file to be removed"
-    );
-
-    info("======== Startup with missing addonStartup.json.lz4");
-
-    promiseBuiltin1Started = promiseWebExtensionStartup(`@builtin1`);
-    promiseBuiltin2Started = promiseWebExtensionStartup(`@builtin2`);
-    promiseBuiltin3Started = promiseWebExtensionStartup(`@builtin2`);
-
-    await overrideBuiltIns({ builtins });
-    await promiseStartupManager();
-    info("Await @builtin1 startup");
-    await promiseBuiltin1Started;
-    info("Await @builtin2 startup");
-    await promiseBuiltin2Started;
-    info("Await @builtin3 startup");
-    await promiseBuiltin3Started;
-    await promiseShutdownManager();
+    await testBrokenXPIStates({
+      description: "missing addonStartup.json.lz4",
+      async setupTestCase() {
+        await IOUtils.remove(AddonTestUtils.addonStartup.path);
+        ok(
+          !AddonTestUtils.addonStartup.exists(),
+          "Expect addonStartup.json.lz4 file to be removed"
+        );
+      },
+      // TODO(Bug 1966736): set to true along with the changes needed to make sure
+      // the system-signed updated versions to built-in add-ons are the ones
+      // activated on regular Firefox startups (startups without application
+      // version changes) when the system-addons location data from
+      // addonStartup.json.lz4 is lost or stale.
+      expectSystemUpdateVersion: false,
+    });
   }
 );
 
@@ -251,85 +320,36 @@ add_task(
     ],
   },
   async function test_stale_xpistate() {
-    const builtins = [1, 2, 3].map(i => ({
-      addon_id: `@builtin${i}`,
-      addon_version: "1.1",
-      res_url: `resource://builtin-addon${i}/`,
-    }));
-    await Promise.all(
-      [1, 2, 3].map(i =>
-        setupBuiltinExtension(
-          {
-            manifest: {
-              name: `Built-In System Add-on ${i}`,
-              version: "1.1",
-              browser_specific_settings: {
-                gecko: { id: `@builtin${i}` },
-              },
-            },
-          },
-          `builtin-addon${i}`
-        )
-      )
-    );
-    AddonTestUtils.updateAppInfo(appInfoInitial);
-    await overrideBuiltIns({ builtins });
-    let promiseBuiltin1Started = promiseWebExtensionStartup(`@builtin1`);
-    let promiseBuiltin2Started = promiseWebExtensionStartup(`@builtin2`);
-    let promiseBuiltin3Started = promiseWebExtensionStartup(`@builtin2`);
-    await promiseStartupManager();
-    info("Await @builtin1 startup");
-    await promiseBuiltin1Started;
-    info("Await @builtin2 startup");
-    await promiseBuiltin2Started;
-    info("Await @builtin3 startup");
-    await promiseBuiltin3Started;
-    await promiseShutdownManager();
-
-    ok(
-      AddonTestUtils.addonStartup.exists(),
-      "Expect addonStartup.json.lz4 file to exist"
-    );
-
-    info(
-      "======== Mock stale addonStartup.json.lz4 missing one of the builtin addons"
-    );
-    const { JSONFile } = ChromeUtils.importESModule(
-      "resource://gre/modules/JSONFile.sys.mjs"
-    );
-    const aomStartup = Cc[
-      "@mozilla.org/addons/addon-manager-startup;1"
-    ].getService(Ci.amIAddonManagerStartup);
-    const xpiStateData = aomStartup.readStartupData();
-    ok(
-      xpiStateData["app-builtin-addons"],
-      "Got app-builtin-addons location in the XPIStates data"
-    );
-    ok(
-      xpiStateData["app-builtin-addons"]?.addons?.["@builtin3"],
-      "Got @builtin3 entry in XPIStates data"
-    );
-    delete xpiStateData["app-builtin-addons"].addons["@builtin3"];
-    let jsonFile = new JSONFile({
-      path: PathUtils.join(AddonTestUtils.addonStartup.path),
-      compression: "lz4",
+    async function setupTestCase() {
+      const { JSONFile } = ChromeUtils.importESModule(
+        "resource://gre/modules/JSONFile.sys.mjs"
+      );
+      const aomStartup = Cc[
+        "@mozilla.org/addons/addon-manager-startup;1"
+      ].getService(Ci.amIAddonManagerStartup);
+      const xpiStateData = aomStartup.readStartupData();
+      ok(
+        xpiStateData["app-builtin-addons"],
+        "Got app-builtin-addons location in the XPIStates data"
+      );
+      const builtinId = "system2@tests.mozilla.org";
+      ok(
+        xpiStateData["app-builtin-addons"]?.addons?.[builtinId],
+        `Got ${builtinId} entry in XPIStates data`
+      );
+      delete xpiStateData["app-builtin-addons"].addons[builtinId];
+      let jsonFile = new JSONFile({
+        path: PathUtils.join(AddonTestUtils.addonStartup.path),
+        compression: "lz4",
+      });
+      jsonFile.data = xpiStateData;
+      await jsonFile._save();
+    }
+    await testBrokenXPIStates({
+      description:
+        "stale addonStartup.json.lz4 missing one of the builtin addons",
+      setupTestCase,
+      expectSystemUpdateVersion: true,
     });
-    jsonFile.data = xpiStateData;
-    await jsonFile._save();
-
-    info("======== Startup with stale addonStartup.json.lz4");
-    promiseBuiltin1Started = promiseWebExtensionStartup(`@builtin1`);
-    promiseBuiltin2Started = promiseWebExtensionStartup(`@builtin2`);
-    promiseBuiltin3Started = promiseWebExtensionStartup(`@builtin2`);
-
-    await overrideBuiltIns({ builtins });
-    await promiseStartupManager();
-    info("Await @builtin1 startup");
-    await promiseBuiltin1Started;
-    info("Await @builtin2 startup");
-    await promiseBuiltin2Started;
-    info("Await @builtin3 startup");
-    await promiseBuiltin3Started;
-    await promiseShutdownManager();
   }
 );
