@@ -11,6 +11,7 @@
     setupTest("empty_provider_list")
       .then(
       function () {
+        SpecialPowers.wrap(document).notifyUserGestureActivation();
         return navigator.credentials.get({
           identity: {
             providers: []

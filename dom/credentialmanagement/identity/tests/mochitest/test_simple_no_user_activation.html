@@ -2,16 +2,14 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Mediation Test</title>
+  <title>Happypath Test</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script src="head.js"></script>
   <link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
   <script>
     SimpleTest.waitForExplicitFinish();
-    var err;
-    setupTest("mediation").then(
+    setupTest("simple").then(
       function () {
-        SpecialPowers.wrap(document).notifyUserGestureActivation();
         return navigator.credentials.get({
           identity: {
             mode: "active",
@@ -20,21 +18,21 @@
               clientId: "mochitest",
               nonce: "nonce"
             }]
-          },
-          mediation: "conditional"
+          }
         });
       }
-    ).catch((e) => {
-      err = e;
+    ).then(() => {
+      ok(false, "must not get a credential without user activation in active mode");
+    }).catch(() => {
+      ok(true, "must error without user activation");
     }).finally(() => {
-      ok(err instanceof TypeError, err.message);
       SimpleTest.finish();
     })
   </script>
 </head>
 <body>
 <p id="display"></p>
-<div id="content" style="display: none">This verifies that conditional mediation is not supported.</div>
+<div id="content" style="display: none">This is the main happypath test. We get a credential in a way that should work. This includes simplifying some logic like exactly one account and provider.</div>
 <pre id="test"></pre>
 </body>
 </html>
