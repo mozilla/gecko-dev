@@ -2010,7 +2010,6 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleUIReset {
   }
 
   mozilla::StyleViewTransitionName mViewTransitionName;
-  mozilla::StyleViewTransitionClass mViewTransitionClass;
 };
 
 struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleUI {
