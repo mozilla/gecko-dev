@@ -647,8 +647,12 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
       AutoWeakFrame aCurrentTarget, bool aNoContentDispatch,
       nsIContent* aOverrideClickTarget);
 
-  nsresult SetClickCount(WidgetMouseEvent* aEvent, nsEventStatus* aStatus,
-                         nsIContent* aOverrideClickTarget = nullptr);
+  /**
+   * Prepare aEvent and corresponding LastMouseDownInfo for dispatching
+   * ePointerClick, ePointerAuxClick or eContextMenu later.
+   */
+  void PrepareForFollowingClickEvent(
+      WidgetMouseEvent& aEvent, nsIContent* aOverrideClickTarget = nullptr);
 
   /**
    * EventCausesClickEvents() returns true when aMouseEvent is an eMouseUp

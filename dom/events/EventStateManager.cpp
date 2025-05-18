@@ -1040,16 +1040,22 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         case MouseButton::ePrimary:
           BeginTrackingDragGesture(aPresContext, mouseEvent, aTargetFrame);
           mLastLeftMouseDownInfo.mClickCount = mouseEvent->mClickCount;
-          SetClickCount(mouseEvent, aStatus);
+          PrepareForFollowingClickEvent(*mouseEvent);
           sNormalLMouseEventInProcess = true;
           break;
         case MouseButton::eMiddle:
           mLastMiddleMouseDownInfo.mClickCount = mouseEvent->mClickCount;
-          SetClickCount(mouseEvent, aStatus);
+          PrepareForFollowingClickEvent(*mouseEvent);
           break;
         case MouseButton::eSecondary:
           mLastRightMouseDownInfo.mClickCount = mouseEvent->mClickCount;
-          SetClickCount(mouseEvent, aStatus);
+          PrepareForFollowingClickEvent(*mouseEvent);
+          break;
+        case MouseButton::eX1:
+        case MouseButton::eX2:
+          // XXX FIXME: We won't dispatch `auxclick` for 4th nor 5th button.
+          break;
+        default:
           break;
       }
       break;
@@ -1066,10 +1072,17 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
           // then fall through...
           [[fallthrough]];
         case MouseButton::eSecondary:
-        case MouseButton::eMiddle:
+        case MouseButton::eMiddle: {
           RefPtr<EventStateManager> esm =
               ESMFromContentOrThis(aOverrideClickTarget);
-          esm->SetClickCount(mouseEvent, aStatus, aOverrideClickTarget);
+          esm->PrepareForFollowingClickEvent(*mouseEvent, aOverrideClickTarget);
+          break;
+        }
+        case MouseButton::eX1:
+        case MouseButton::eX2:
+          // XXX FIXME: We won't dispatch `auxclick` for 4th nor 5th button.
+          break;
+        default:
           break;
       }
       break;
@@ -5991,12 +6004,11 @@ void EventStateManager::UpdateDragDataTransfer(WidgetDragEvent* dragEvent) {
   }
 }
 
-nsresult EventStateManager::SetClickCount(WidgetMouseEvent* aEvent,
-                                          nsEventStatus* aStatus,
-                                          nsIContent* aOverrideClickTarget) {
+void EventStateManager::PrepareForFollowingClickEvent(
+    WidgetMouseEvent& aEvent, nsIContent* aOverrideClickTarget) {
   nsCOMPtr<nsIContent> mouseContent = aOverrideClickTarget;
   if (!mouseContent && mCurrentTarget) {
-    mouseContent = mCurrentTarget->GetContentForEvent(aEvent);
+    mouseContent = mCurrentTarget->GetContentForEvent(&aEvent);
   }
   if (mouseContent && mouseContent->IsText()) {
     nsINode* parent = mouseContent->GetFlattenedTreeParentNode();
@@ -6005,10 +6017,10 @@ nsresult EventStateManager::SetClickCount(WidgetMouseEvent* aEvent,
     }
   }
 
-  LastMouseDownInfo& mouseDownInfo = GetLastMouseDownInfo(aEvent->mButton);
-  if (aEvent->mMessage == eMouseDown) {
+  LastMouseDownInfo& mouseDownInfo = GetLastMouseDownInfo(aEvent.mButton);
+  if (aEvent.mMessage == eMouseDown) {
     mouseDownInfo.mLastMouseDownContent =
-        !aEvent->mClickEventPrevented ? mouseContent : nullptr;
+        !aEvent.mClickEventPrevented ? mouseContent : nullptr;
 
     if (mouseDownInfo.mLastMouseDownContent) {
       if (HTMLInputElement* input = HTMLInputElement::FromNodeOrNull(
@@ -6026,17 +6038,16 @@ nsresult EventStateManager::SetClickCount(WidgetMouseEvent* aEvent,
       }
     }
   } else {
-    MOZ_ASSERT(aEvent->mMessage == eMouseUp);
-    aEvent->mClickTarget = [&]() -> EventTarget* {
-      if (aEvent->mClickEventPrevented ||
-          !mouseDownInfo.mLastMouseDownContent) {
+    MOZ_ASSERT(aEvent.mMessage == eMouseUp);
+    aEvent.mClickTarget = [&]() -> EventTarget* {
+      if (aEvent.mClickEventPrevented || !mouseDownInfo.mLastMouseDownContent) {
         return nullptr;
       }
       // If an element was capturing the pointer at dispatching ePointerUp, we
       // should dispatch click/auxclick/contextmenu event on it to conform to
       // Pointer Events. https://w3c.github.io/pointerevents/#event-dispatch
       if (PointerEventHandler::ShouldDispatchClickEventOnCapturingElement(
-              aEvent)) {
+              &aEvent)) {
         const RefPtr<Element> capturingElementAtLastPointerUp =
             PointerEventHandler::GetPointerCapturingElementAtLastPointerUp();
         if (capturingElementAtLastPointerUp &&
@@ -6049,17 +6060,15 @@ nsresult EventStateManager::SetClickCount(WidgetMouseEvent* aEvent,
           mouseContent, mouseDownInfo.mLastMouseDownContent,
           mouseDownInfo.mLastMouseDownInputControlType);
     }();
-    if (aEvent->mClickTarget) {
-      aEvent->mClickCount = mouseDownInfo.mClickCount;
+    if (aEvent.mClickTarget) {
+      aEvent.mClickCount = mouseDownInfo.mClickCount;
       mouseDownInfo.mClickCount = 0;
     } else {
-      aEvent->mClickCount = 0;
+      aEvent.mClickCount = 0;
     }
     mouseDownInfo.mLastMouseDownContent = nullptr;
     mouseDownInfo.mLastMouseDownInputControlType = Nothing();
   }
-
-  return NS_OK;
 }
 
 // static
