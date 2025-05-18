@@ -1,0 +1,36 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+package org.mozilla.fenix.home.pocket
+
+import android.content.Context
+import mozilla.components.support.locale.LocaleManager
+import mozilla.components.support.locale.LocaleManager.getSystemDefault
+
+/**
+ * Utility singleton for providing helper functions related to content recommendations feature
+ * flags.
+ */
+object ContentRecommendationsFeatureHelper {
+    /**
+     * List of supported Pocket locales.
+     */
+    val POCKET_SUPPORTED_LOCALES = listOf("en-US", "en-CA")
+
+    /**
+     * Show Pocket recommended stories on home.
+     */
+    fun isPocketRecommendationsFeatureEnabled(context: Context): Boolean {
+        val langTag = LocaleManager.getCurrentLocale(context)
+            ?.toLanguageTag() ?: getSystemDefault().toLanguageTag()
+        return POCKET_SUPPORTED_LOCALES.contains(langTag)
+    }
+
+    /**
+     * Show Pocket sponsored stories in between Pocket recommended stories on home.
+     */
+    fun isPocketSponsoredStoriesFeatureEnabled(context: Context): Boolean {
+        return isPocketRecommendationsFeatureEnabled(context)
+    }
+}
