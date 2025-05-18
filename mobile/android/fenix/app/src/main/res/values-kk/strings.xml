@@ -2314,8 +2314,6 @@
   <string name="preference_doh_summary">HTTPS арқылы домендік атаулар жүйесі (DNS) шифрленген байланыс арқылы домендік атқа сұрауыңызды жібереді, осылай ол қауіпсіз DNS ұсынады және басқаларға қай веб-сайтқа кіргіңіз келетінін көруді қиындатады. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Көбірек білу</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Жоғары жылжу</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Ережеден тыс</string>
   <!-- Content description for the "Info" button -->

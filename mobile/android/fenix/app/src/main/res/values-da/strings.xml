@@ -2289,8 +2289,6 @@
   <string name="preference_doh_summary">Domain Name System (DNS) via HTTPS sender din forespørgsel efter et domænenavn over en krypteret forbindelse for at sikre DNS og gøre det sværere for andre at se, hvilket websted du skal til at besøge. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Læs mere</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Naviger op</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Undtagelser</string>
   <!-- Content description for the "Info" button -->

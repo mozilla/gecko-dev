@@ -633,6 +633,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">გვერდების თვალიერება სწრაფად და დაცულად</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">თანხმობა და გაგრძელება</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">განაგრძეთ</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">თუ განაგრძობთ, თანახმა ხართ მიიღოთ %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1668,6 +1670,8 @@
   <string name="bookmark_menu_copy_button">ასლი</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">გაზიარება</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">ყველას მონიშვნა</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">ახალ ჩანართში გახსნა</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -1680,6 +1684,8 @@
   <string name="bookmark_menu_delete_button">წაშლა</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">შენახვა</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">დალაგება შერჩეული თანმიმდევრობით</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">დალაგება უახლესით</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -2314,8 +2320,6 @@
   <string name="preference_doh_summary">საიტთა სახელების გადამყვანი (DNS) მომსახურების HTTPS-ით გატარებისას საიტის მისამართის მოთხოვნები იგზავნება დაშიფრული არხით, შედეგად იქმნება დაცული DNS და გარეშე პირებს უძნელდებათ გაარკვიონ, რომელ ვებსაიტებთან ცდილობთ წვდომას. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">ვრცლად</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">ზემოთ გადასვლა</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">გამონაკლისები</string>
   <!-- Content description for the "Info" button -->
@@ -3424,6 +3428,8 @@
   <string name="debug_drawer_override_current_region_label">ამჟამინდელი მხარის ჩანაცვლება</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">მშობლიური და ამჟამინდელი მხარის ჩანაცვლება</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">მშობლიური მხარის ჩანაცვლება მუდმივად</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3592,6 +3598,12 @@
   <string name="pbm_authentication_unlock">გახსნა</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">პირადი ჩანართების გაღება</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">პირად ჩანართებზე ეკრანის ჩაკეტვის ჩართვა</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">პირად ჩანართებზე ეკრანის ჩაკეტვის გათიშვა</string>
+  <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
+  <string name="pbm_authentication_lock_device_feature_disabled">ეკრანის ჩაკეტვის გამართვა ჩანართების დასამალად</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">დაიფაროს ეკრანის ჩაკეტვით პირადი ჩანართები?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->

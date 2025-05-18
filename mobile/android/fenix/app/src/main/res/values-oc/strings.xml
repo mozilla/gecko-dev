@@ -2283,8 +2283,6 @@
   <string name="preference_doh_summary">Lo DNS (Domain Name Sistèma) sus HTTPS envia vòstras requèstas per un nom de domeni via una connexion chifrada, en fornissent un DNS segur e en fasent venir mai complicat per los autres de veire quines sites sètz a mand de visitar. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Ne saber mai</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Remontar</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Excepcions</string>
   <!-- Content description for the "Info" button -->

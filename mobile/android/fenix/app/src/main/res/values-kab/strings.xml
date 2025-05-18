@@ -2297,8 +2297,6 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="preference_doh_title">DNS nnig n HTTPS</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Issin ugar</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Inig d asawen</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Tisuraf</string>
   <!-- Content description for the "Info" button -->
@@ -2323,6 +2321,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="preference_doh_max_protection_info_1">Seqdec kan asaǧǧaw i tferneḍ</string>
   <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection_info_2">Ttɛeggin-d yal ma yili ulac DNS aɣellsan</string>
+  <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_3">Ma yella ur yelli ara DNS aɣelsan, ismal web ad uɣalen ur d-ttalin ara neɣ ur teddun ara akken iwata</string>
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">Yensa</string>
   <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
@@ -3416,10 +3416,14 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Ur wwiḍen ara 7 n wussan akken ad truḥeḍ ɣer uleqqem</string>
   <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Tagnit taneggarut i ukemmel n useqdec n Firefox</string>
+  <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Lqem-inek·inem n Firefox ad yeḥbes, ur iteddu ara, akken iwata ass n 14 di meɣres acku aselkin aẓar ad immet.</string>
   <!-- Push notification title about old Firefox version. "Update" is a noun. -->
   <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Yettwasra lqem</string>
   <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Aql-ak tesseqdaceḍ lqem aqbuṛ n Firefox.</string>
+  <!-- Push notification message about old Firefox version -->
+  <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Kra n tmahilin ad ḥebsent, ur teddunt ara, azekka.</string>
   <!--
     TextField Design System Component
 
@@ -3444,18 +3448,24 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="setup_checklist_subtitle_3_steps_initial_state">Smed kraḍ-a 3 takkayin i usbeddi n %1$s i tirmit n tunigin igerrzen.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">Tebdiḍ akken iwata! Tfukkeḍ amecwaṛ amezwaru 1 seg 3 n imecwaṛen.</string>
   <!--
     ===== Setup checklist feature: Subtitles for 6 steps =====
 
     Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="setup_checklist_subtitle_6_steps_initial_state">Smed akk 6 takkayin i usbeddi n %1$s i tirmit n tunigin igerrzen.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">Tebdiḍ akken iwata! Tfukkeḍ amecwaṛ amezwaru 1 seg 6 n imecwaṛen.</string>
   <!--
     ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
 
     Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="setup_checklist_subtitle_5_steps_initial_state">Smed akk 5 takkayin i usbeddi n %1$s i tirmit n tunigin igerrzen.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">Tebdiḍ akken iwata! Tfukkeḍ amecwaṛ amezwaru 1 seg 5 n imecwaṛen.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 

@@ -71,7 +71,7 @@
   <!-- April month of the year (short description), used on the month chooser dialog. -->
   <string name="mozac_feature_prompts_apr">Yeb</string>
   <!-- May month of the year (short description), used on the month chooser dialog. -->
-  <string name="mozac_feature_prompts_may">Maggu</string>
+  <string name="mozac_feature_prompts_may">May</string>
   <!-- June month of the year (short description), used on the month chooser dialog. -->
   <string name="mozac_feature_prompts_jun">Yun</string>
   <!-- July month of the year (short description), used on the month chooser dialog. -->

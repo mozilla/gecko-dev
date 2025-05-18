@@ -2317,8 +2317,6 @@
   <string name="preference_doh_summary">U sistema di nome di duminiu (DNS) sopra HTTPS manda a vostra richiesta di nome di duminiu attraversu una cunnessione cifrata, pruvidendu un DNS sicuru per rende più difficiule a scuperta di quellu situ web chì vo state per accede.%1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Sapene di più</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Navigà insù</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Eccezzioni</string>
   <!-- Content description for the "Info" button -->

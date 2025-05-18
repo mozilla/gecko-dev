@@ -2289,8 +2289,6 @@
   <string name="preference_doh_summary">El sistema de noms de domini (DNS) sobre HTTPS envia la vostra sol·licitud d’un nom de domini mitjançant una connexió xifrada, proporcionant un DNS segur i dificultant que els altres vegin a quin lloc web esteu a punt d’accedir. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Més informació</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Navega cap amunt</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Excepcions</string>
   <!-- Content description for the "Info" button -->

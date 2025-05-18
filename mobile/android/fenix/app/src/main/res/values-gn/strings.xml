@@ -632,6 +632,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">Ñeikundaha pya’e ha hekorosãva</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Emoneĩ ha eku’ejey</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">Ku’ejey</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Eku’ejeývo, emoneĩmbáma umi %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -2306,8 +2308,6 @@
   <string name="preference_doh_summary">Pe apopyvusu rendatee réra (DNS) HTTPS rupive omondo mba’ejerure tendatee réra jeike ipapapýva rupive, omoheñóiva peteĩ DNS hekorosãva ha ombohasyve ambuépe ohechávo mba’ete ñanduti rendápepa ojeikepota. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Eikuaave</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="preference_doh_up_description">Eikundaha yvate gotyo</string>
   <!-- Content description for the "Exceptions" button -->
   <string name="preference_doh_exceptions_description">Oĩ’ỹva</string>
   <!-- Content description for the "Info" button -->
@@ -3416,6 +3416,8 @@
   <string name="debug_drawer_override_current_region_label">Emyengovia tendaguasu ag̃agua</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">Emyengovia tendaguasu ñepyrũ ha ag̃agua</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Emoambuememe tendaguasu teñoiha</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3576,6 +3578,10 @@
   <string name="pbm_authentication_unlock">Mbojera</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Embojera tendayke ñemigua</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">Embojuruja tendayke ñemi mba’erechaha jokoha</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">Eipe’a tendayke ñemi mba’erechaha jokoha</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">¿Eiporu mba’erecha jokoha eñomi hag̃ua tendayke ñemigua?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
