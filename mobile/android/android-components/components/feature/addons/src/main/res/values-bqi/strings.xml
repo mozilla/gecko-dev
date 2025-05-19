@@ -62,6 +62,8 @@
   <string name="mozac_feature_addons_permissions_geolocation_description">دسرسی و جاگه ایسا</string>
   <!-- Description for history permission. -->
   <string name="mozac_feature_addons_permissions_history_description">دسرسی و ویرگار گشتنا</string>
+  <!-- Description for management permission. -->
+  <string name="mozac_feature_addons_permissions_management_description">کیل کردن و کار گرؽڌن وردنی یل وو دؽوۉداری تما</string>
   <!-- Description for notifications permission. -->
   <string name="mozac_feature_addons_permissions_notifications_description">نشووݩ داڌن وارسۊویا ری بلگه سی ایسا</string>
   <!-- Description for proxy permission. -->
@@ -76,6 +78,8 @@
   <string name="mozac_feature_addons_permissions_trial_ml_description">گرؽڌن وو ر وندن مودلا هۊش مسنۊعی و ری دسگا ایسا</string>
   <!-- Description for userScripts permission. -->
   <string name="mozac_feature_addons_permissions_user_scripts_description">هشتن اسکریپتا شسخ سالس تاییڌ نوابیڌه سی دسرسی و داده یل ایسا</string>
+  <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+  <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">اسکریپتا تاییڌ نوابیڌه ترن خترات ٱمنیتی وو زفت کردن هریم سیخومی وورکل کونن. تینا اسکریپتایی ن ز وردنی یل وو بونچکایی ک وسووݩ ائتماڌ دارین، ر بونین.</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">بولند کردن ٱوزارا برنومه نویسووݩ سی دسرسی و داده یل ایسا و ری بلگه یل واز</string>
   <!-- Description for text button that expands the list of domain permissions -->
@@ -91,9 +95,11 @@
   <!-- The developer website (Homepage) of the add-on. -->
   <string name="mozac_feature_addons_home_page">بلگه هووه ای</string>
   <!-- A link where users can find more information about add-ons permissions. -->
-  <string name="mozac_feature_addons_learn_more">زبار موجوزا بیشتر دووسته بۊین</string>
+  <string name="mozac_feature_addons_learn_more">زبار موجوزا قلوه دووسته بۊین</string>
   <!-- The rating of the add-on. -->
   <string name="mozac_feature_addons_rating">نومره داڌن</string>
+  <!-- A link that points to the detail page of the extension. -->
+  <string name="mozac_feature_addons_more_info_link_2">دووسمندیا بیشتر زبار وردنی</string>
   <!-- The settings of the add-on. -->
   <string name="mozac_feature_addons_settings">سامووا</string>
   <!-- Indicates the add-on is enabled. -->
@@ -102,6 +108,8 @@
   <string name="mozac_feature_addons_settings_allow_in_private_browsing">هشتن من هالت گشتن سیخومی</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">ر وندن من هالت گشتن سیخومی</string>
+  <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
+  <string name="mozac_feature_addons_not_allowed_in_private_browsing">من نیمدری یل سیخومی موجاز نؽ</string>
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_enabled">فعال وابی</string>
   <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the installed section. -->
@@ -148,6 +156,18 @@
   <string name="mozac_feature_addons_user_rating_count_2">واجۊریا: %1$s</string>
   <!-- Accessibility content description for the amount of stars that add-on has, where %1$.02f will be the amount of stars. -->
   <string name="mozac_feature_addons_rating_content_description_2">نومره داڌن: %1$.02f ز 5</string>
+  <!-- This is the title of page where all the add-ons are listed -->
+  <string name="mozac_feature_addons_addons">وردنی یل</string>
+  <!-- Label for add-ons sub menu item for add-ons manager -->
+  <string name="mozac_feature_addons_addons_manager">دؽوۉداری وردنی یل</string>
+  <!-- The title of the "crash" notification in the extensions manager -->
+  <string name="mozac_feature_extensions_manager_notification_title_text">وردنی یل مووقتن قیر فعال وابین</string>
+  <!-- The content of the "crash" notification in the extensions manager -->
+  <string name="mozac_feature_extensions_manager_notification_content_text">یک یا چن وردنی ز کار وستنه وو سیستوم ایسا ن نا پایدار کردنه.</string>
+  <!-- Button to re-enable the extensions in the "crash" notification -->
+  <string name="mozac_feature_extensions_manager_notification_restart_button">وردنی یل ن ز نۊ ر بونین</string>
+  <!-- Button in the extensions manager that opens AMO in a tab -->
+  <string name="mozac_feature_addons_find_more_extensions_button_text">وردنی یل قلوه ای ن بجۊرین</string>
   <!-- The label of the allow button, this will be shown to the user when an add-on needs new permissions, with the button the user will indicate that they want to accept the new permissions and update the add-on -->
   <string name="mozac_feature_addons_updater_notification_allow_button">هشتن</string>
   <!-- The label of the deny button on a notification, this will be shown to the user when an add-on needs new permissions. Indicates the user denies the new permissions and prevents the add-on from be updated -->
@@ -158,16 +178,42 @@
   <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">%1$d موجوزا نۊ ن اخو</string>
   <!-- The content of the notification displayed when an add-on needs a new permission -->
   <string name="mozac_feature_addons_updater_notification_content_singular">ی موجوز نۊ اخو</string>
+  <!-- Name of the "notification channel" used for displaying a notification for updating an extension. See https://developer.android.com/training/notify-user/channels -->
+  <string name="mozac_feature_addons_updater_notification_channel_2">ورۊ رسۊوی وردنی</string>
+  <!-- Name of the "notification channel" used for displaying a notification for new supported add-ons. See https://developer.android.com/training/notify-user/channels -->
+  <string name="mozac_feature_addons_supported_checker_notification_channel" tools:ignore="UnusedResources">واجۊری وردنی یل لادراری بیڌه</string>
+  <!-- The tile of the notification, this will be shown to the user when one newly supported add-on is available. -->
+  <string name="mozac_feature_addons_supported_checker_notification_title" tools:ignore="UnusedResources">وردنی نۊ من دسرس هڌ</string>
+  <!-- The tile of the notification, this will be shown to the user when more than one newly supported add-ons are available. -->
+  <string name="mozac_feature_addons_supported_checker_notification_title_plural" tools:ignore="UnusedResources">وردنی یل نۊ من دسرس هڌ</string>
   <!-- The content of the notification, this will be shown to the user when one newly supported add-on is available. %1$s is the add-on name and %2$s is the app name (in most cases Firefox). -->
   <string name="mozac_feature_addons_supported_checker_notification_content_one">ٱووردن %1$s و %2$s</string>
   <!-- The content of the notification, this will be shown to the user when two newly supported add-ons are available. %1$s is the first add-on name. %2$s is the second add-on name. %3$s is the app name (in most cases Firefox). -->
   <string name="mozac_feature_addons_supported_checker_notification_content_two">ٱووردن %1$s وو %2$s و %3$s</string>
   <!-- The content of the notification, this will be shown to the user when more than two newly supported add-ons are available. %1$s is the app name (in most cases Firefox). -->
   <string name="mozac_feature_addons_supported_checker_notification_content_more_than_two">ٱووردن هونوو و %1$s</string>
+  <!-- This is the caption for not yet supported screen caption -->
+  <string name="mozac_feature_addons_not_yet_supported_caption2">سکو هونی لادراری ن سی ی قرده ز وردنی یل پسند بیڌه وورکل اکۊنیم.</string>
+  <!-- This is the caption for the extension installation progress overlay -->
+  <string name="mozac_extension_install_progress_caption">وردنی ن هونی دانلود وو تاییڌ اکونه…</string>
+  <!-- Error shown when something unexpected happened while trying to get the extension list from the server -->
+  <string name="mozac_feature_addons_failed_to_query_extensions">شکست من پورس ۉ جۊ وردنی!</string>
+  <!-- Error shown when unable to find a translation for an add-on field. %1$s is the locale of the user and %2$s is the default language of the add-on -->
+  <string name="mozac_feature_addons_failed_to_translate">سی جاگه %1$s وو هومچیناکو زووݩ پؽش فرز %2$s، ولرنیڌنی نجوست</string>
   <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_successfully_installed">%1$s و خۊوی پۊرست</string>
   <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
   <string name="mozac_feature_addons_failed_to_install">شکست من پۊرستن %1$s</string>
+  <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
+  <string name="mozac_feature_addons_extension_failed_to_install">پۊرنیڌن ای وردنی نا مووفق بی.</string>
+  <!-- Text shown when installing an add-on has failed. -->
+  <string name="mozac_feature_addons_cant_install_extension">نتره ورنی ن بپۊرنه</string>
+  <!-- Text shown when attempting to install an extension and a network error happened. -->
+  <string name="mozac_feature_addons_extension_failed_to_install_network_error">چیناکه موشکلی من منپیز بی، دانلود وردنی و موشکل خرد.</string>
+  <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
+  <string name="mozac_feature_addons_extension_failed_to_install_corrupt_error">ای وردنی منی خراو وابیڌه وو نؽبۊ بپۊره.</string>
+  <!-- Text shown when attempting to install an add-on and an error occurred because the extension was not signed. -->
+  <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">ای وردنی نتره بپۊره چیناکه تاییڌ نوابیڌه.</string>
   <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
   <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s نتره بپۊره چیناکه وا %2$s %3$s ساز نیاره.</string>
   <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -186,6 +232,12 @@
   <string name="mozac_feature_addons_successfully_removed" tools:ignore="UnusedResources">%1$s و خۊوی پاک وابی</string>
   <!-- Text shown after failed to remove an add-on. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_failed_to_remove" tools:ignore="UnusedResources">شکست من پاک کردن %1$s</string>
+  <!-- Label shown to indicate that the add-on was migrated from a previous version of the app. %1$s is the app name most of the case it will be Firefox. -->
+  <string name="mozac_feature_addons_migrated_from_a_previous_version_label" tools:ignore="UnusedResources">ای وردنی ز نوسخه پؽشی %1$s جا گورو وابیڌه</string>
+  <!-- Text shown in not yet supported add-ons section. -->
+  <string name="mozac_feature_addons_unsupported_caption_2">1 وردنی</string>
+  <!-- Text shown in not yet supported add-ons section - plural. %1$s is the number of unsupported extensions. -->
+  <string name="mozac_feature_addons_unsupported_caption_plural_2">%1$s وردنی</string>
   <!-- Text link to a sumo page for learning more about unsupported add-ons. -->
   <string name="mozac_feature_addons_unsupported_learn_more">قلوه دووسته بۊین</string>
   <!-- Displayed in the "Status" field for the updater when an add-on has been correctly updated. -->
@@ -210,6 +262,12 @@
   <string name="mozac_feature_addons_status_learn_more">قلوه دووسته بۊین</string>
   <!-- "See details" link displayed below an add-on status message. -->
   <string name="mozac_feature_addons_status_see_details">نیشتن جۊزیات</string>
+  <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_status_blocklisted_1">ای وردنی سی دل زؽر پا ناهاڌن خت مشیا Mozilla مسدۊد ۉ قیر فعال وابیڌه.</string>
+  <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+  <string name="mozac_feature_addons_status_softblocked_1">ای وردنی سی دل زؽر پا ناهاڌن خت مشیا Mozilla مسدۊد ۉ قیر فعال وابیڌه. ترین فعالس کۊنین ٱما یو گاشڌ خترناک بۊ.</string>
+  <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+  <string name="mozac_feature_addons_status_softblocked_re_enabled">ای وردنی وا سیاستا Mozilla نؽسازه. و کار گرؽڌنس گاشڌ خترناک بۊ.</string>
   <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_status_unsigned">%1$s نتره و عونوان ٱمن قوۊل بۊ وو قیر فعال وابیڌه.</string>
   <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

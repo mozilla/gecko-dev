@@ -58,6 +58,8 @@
   <string name="mozac_browser_errorpages_unknown_host_title">نشۊوی ن نجوست</string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_no_internet_title_2">منی موشکلی وا منپیز و اینترنت ایسا هڌ</string>
+  <!-- The main body text of this error page. It will be shown beneath the title -->
+  <string name="mozac_browser_errorpages_no_internet_message_2">قپ ریت کۊنین وا دسگا دیری منپیز بۊین. مودم یا رۊتر خوتووݩ ن واجۊری کۊنین. منپیز ن قت کۊنین وو دووارته و Wi-Fi منپیز بۊین.</string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_no_internet_error_code">کود ختا: NS_ERROR_OFFLINE</string>
   <!-- Text that will show up on the button at the bottom of the error page -->

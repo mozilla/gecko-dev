@@ -118,6 +118,10 @@
   <string name="recent_tabs_show_all">نشووݩ داڌن پوی</string>
   <!-- Content description for the button which navigates the user to show all recent tabs in the tabs tray. -->
   <string name="recent_tabs_show_all_content_description_2">نشۉ« داڌن دویمه پوی بلگه یل دیندایی</string>
+  <!-- Text for button in synced tab card that opens synced tabs tray -->
+  <string name="recent_tabs_see_all_synced_tabs_button_text">نشووݩ داڌن پوی بلگه یل هوم گوم بیڌه</string>
+  <!-- Accessibility description for device icon used for recent synced tab -->
+  <string name="recent_tabs_synced_device_icon_content_description">دسگا هوم گوم بیڌه</string>
   <!-- Text for the dropdown menu to remove a recent synced tab from the homescreen -->
   <string name="recent_synced_tab_menu_item_remove">وورداشتن</string>
   <!--
@@ -142,13 +146,35 @@
   <string name="browser_menu_refresh">وانۊ کردن</string>
   <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
   <string name="browser_menu_stop">واڌاشتن</string>
+  <!-- Browser menu button that opens the extensions manager -->
+  <string name="browser_menu_extensions">وردنی یل</string>
+  <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
+  <string name="browser_menu_disabled_extensions_banner_onboarding_header">ایسا وردنی یلی پۊرنیڌن، ٱما فعال نؽڌن</string>
+  <!--
+    Browser menu banner body text for extensions onboarding.
+    %s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_extensions_banner_onboarding_body">وردنی یل گشتن ایسا ن بؽڌر اکونن، ز آلشت شؽوات وو عملکرد %s تا قلوه کردن هریم سیخومی وو ایمنی.</string>
+  <!--
+    Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
+    %s is the label of the button that opens the extension manager (for example "Manage extensions").
+  -->
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body">سی و کار گرؽڌن وردنی یل، هونووݩ ن من سامووا فعال کۊنین یا گۊزینه «%s» بلمی ن پسند کۊنین.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
   <string name="browser_menu_extensions_banner_learn_more">قلوه دووسته بۊین</string>
+  <!-- Browser menu button that opens the extensions manager -->
+  <string name="browser_menu_manage_extensions">دؽوۉداری وردنی یل</string>
+  <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
+  <string name="browser_menu_recommended_section_content_description">وردنی یل پؽشنهاڌ بیڌه</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
   -->
   <string name="browser_menu_extension_plus_icon_content_description_2">ٱووردن %1$s</string>
+  <!-- Browser menu button that opens AMO in a tab -->
+  <string name="browser_menu_discover_more_extensions">جوستن وردنی یل قلوه</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+  <string name="browser_menu_no_extensions_installed_description">هنی هیچ وردنی فعال نؽڌ</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">دووسمندیا هساو</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -163,6 +189,8 @@
   <string name="browser_menu_desktop_site">وبگه ری میزی</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
   <string name="browser_menu_open_in_regular_tab">گۊشیڌن من بلگه مئمۊلی</string>
+  <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
+  <string name="resync_button_content_description">هوم گوم کردن دووارته</string>
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">جوستن من بلگه</string>
   <!-- Browser menu button that opens the find in page menu -->
@@ -188,6 +216,12 @@
   <string name="browser_menu_customize_home_1">سفارشی کردن بلگه هووه</string>
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">و من ٱووڌن</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption">هوم گوم کردن رزما، بلگه یل وو مووردا بیشتر</string>
+  <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
+  <string name="browser_menu_sign_back_in_to_sync">سی هوم گوم کردن دووارته و من بیاین</string>
+  <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
+  <string name="browser_menu_syncing_paused_caption">هوم گوم کردن واستاڌه</string>
   <!-- Browser menu label that creates a private tab -->
   <string name="browser_menu_new_private_tab">بلگه سیخومی نۊ</string>
   <!-- Browser menu label that navigates to the Password screen -->
@@ -203,6 +237,8 @@
   <string name="browser_main_menu_content_description_help_button">هیاری</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
   <string name="browser_main_menu_content_description_settings_button">سامووا</string>
+  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
+  <string name="browser_extensions_menu_handlebar_content_description">بستن بلگه نومگه وردنی یل</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">بستن ورق نومگه بلگه سفارشی</string>
   <!--
@@ -238,6 +274,12 @@
     Text for the title in the contextual feature recommendation popup promoting the menu feature.
   -->
   <string name="menu_cfr_title">نۊ: نومگه ساڌه‌ وابیڌه</string>
+  <!--
+    Extensions management fragment
+
+    Text displayed when there are no extensions to be shown
+  -->
+  <string name="extensions_management_no_extensions">هیچ وردنی ای ایچو نؽ</string>
   <!--
     Browser Toolbar
 
@@ -300,6 +342,8 @@
   <string name="onboarding_home_sign_in_button">و من ٱووڌن</string>
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
   <string name="onboarding_home_skip_button">گوم زیڌن</string>
+  <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
+  <string name="sync_cfr_message">بلگه یل تووݩ هونی هوم گوم ابۊن! اوچو ک دسگا دیر تووݩ ن هیشتینه رین ز دینس.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
   <string name="onboarding_home_content_description_close_button">بستن</string>
   <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
@@ -310,6 +354,11 @@
   <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">سامووݩ و عونوان گشت گر پؽش فرز</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">سکو ن</string>
+  <!--
+    Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated
+  -->
+  <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox رزما، نشووکا وو بیشتر ن هر سا ک هوم گوم وابیڌین ن رزم انه ریسووݩ.</string>
   <!-- Text for the button to sign in to sync on the device -->
   <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">و من ٱووڌن</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -330,6 +379,15 @@
   <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">ٱووردن ویجت Firefox</string>
   <!-- Text for the button to dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">سکو ن</string>
+  <!--
+    Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated
+  -->
+  <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">سیخومی کردن Firefox وا وردنی یل</string>
+  <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">ٱووردن وردنی یل شخس سالس سی وا روء بوردن ٱمنیت، و کار گیری وو بیشتر.</string>
+  <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_explore_more_extensions_2">جوستن وردنی یل قلوه</string>
   <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
   <string name="onboarding_add_on_start_browsing_button_2">ناهاڌن پا گشتن</string>
   <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
@@ -344,6 +402,16 @@
   <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">هالت تاریک سفارشی سی وب موبایل.</string>
   <!-- Label for the number of reviews for an add-on. %1$s is the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
   <string name="onboarding_add_on_reviews_label">واجۊریا: %1$s</string>
+  <!-- Content description for the add-on icon. -->
+  <string name="onboarding_add_on_icon_content_description">آیکون وردنی</string>
+  <!-- Content description for the an installed add-on icon. -->
+  <string name="onboarding_installed_add_on_icon_content_description">آیکون وردنی پۊرسته</string>
+  <!-- Content description for the an installing add-on icon. -->
+  <string name="onboarding_installing_add_on_icon_content_description">آیکون هونی اپۊره وردنی</string>
+  <!-- Content description for the add add-on button. -->
+  <string name="onboarding_add_on_add_button_content_description">دویمه ٱووردن وردنی</string>
+  <!-- Content description for the star rating group. %1$s is the rating. -->
+  <string name="onboarding_add_on_star_rating_content_description">نومره داڌه وابیڌه: %1$s ز 5</string>
   <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">ایما ن هیاری بڌین Firefox ن بؽڌر کۊنیم</string>
   <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
@@ -433,6 +501,8 @@
   <string name="preferences_search_engines_suggestions">پؽشنهاڌا ز موتورا پیتینیڌن</string>
   <!-- Preference link to Learn more about Firefox Suggest -->
   <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">قلوه زبار پؽشنهاڌا Firefox دووسته بۊین</string>
+  <!-- Preference link to rating Fenix on the Play Store -->
+  <string name="preferences_rate">نومره داڌن من Google Play</string>
   <!--
     Preference linking to about page for Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -478,6 +548,10 @@
   <string name="preferences_https_only_on_private">رۊشن من پوی بلگه یل سیخومی</string>
   <!-- Text displayed that links to website containing documentation about "HTTPS-Only" mode -->
   <string name="preferences_http_only_learn_more">قلوه دووسته بۊین</string>
+  <!-- Preference for accessibility -->
+  <string name="preferences_accessibility">دسرسی پزیری</string>
+  <!-- Preference to override the Sync token server -->
+  <string name="preferences_override_sync_tokenserver">سرور هوم گوم کردن سفارشی</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">هساو منتوری</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -490,14 +564,20 @@
   <string name="preferences_gestures">اشاره یل</string>
   <!-- Preference for settings related to visual options -->
   <string name="preferences_customize">سفارشی کردن</string>
+  <!-- Preference description for banner about signing in -->
+  <string name="preferences_sign_in_description_2">سی هوم گوم کردن بلگه یل، نشووکا، رزما وو ... و من بیاین.</string>
   <!-- Preference shown instead of account display name while account profile information isn't available yet. -->
   <string name="preferences_account_default_name_2">هساو منتوری Mozilla</string>
+  <!-- Preference text for account title when there was an error syncing FxA -->
+  <string name="preferences_account_sync_error">سی ز سر گرؽڌن هوم گوم کردن دووارته منپیز بۊین</string>
   <!-- Preference for language -->
   <string name="preferences_language">زووݩ</string>
   <!-- Preference for translations -->
   <string name="preferences_translations">ولرنیڌنا</string>
   <!-- Preference for data choices -->
   <string name="preferences_data_choices">پسند داده یل</string>
+  <!-- Preference for developers -->
+  <string name="preferences_remote_debugging">رفع اشکال ز ر دیر و واسته USB</string>
   <!-- Preference title for switch preference to show search suggestions -->
   <string name="preferences_show_search_suggestions">نشووݩ داڌن پؽشنهاڌا پیتینیڌن</string>
   <!-- Preference title for switch preference to show voice search button -->
@@ -514,6 +594,8 @@
   <string name="preferences_search_bookmarks">پیتینیڌن نشووکا</string>
   <!-- Preference title for switch preference to show shortcuts when searching -->
   <string name="preferences_show_shortcuts">نشووݩ داڌن ر نهنگا</string>
+  <!-- Preference title for switch preference to suggest synced tabs when searching -->
+  <string name="preferences_search_synced_tabs">پیتینیڌن من بلگه یل هوم گوم وابیڌه</string>
   <!-- Preference for account settings -->
   <string name="preferences_account_settings">سامووا هساو</string>
   <!-- Preference for enabling url autocomplete -->
@@ -539,6 +621,12 @@
   <string name="preferences_open_links_in_apps_ask">پورس پؽش ز گۊشیڌن</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager">دؽوۉداری دانلود دری</string>
+  <!-- Message to indicate users that we are quitting the application to apply the changes -->
+  <string name="quit_application">و در زیڌن ز برنومه سی ائمال آلشت کاریا…</string>
+  <!-- Preference for extensions -->
+  <string name="preferences_extensions">وردنی یل</string>
+  <!-- Preference for installing a local extension -->
+  <string name="preferences_install_local_extension">پۊرنیڌن وردنی ز فایل</string>
   <!-- Preference for notifications -->
   <string name="preferences_notifications">وارسۊویا</string>
   <!-- Summary for notification preference indicating notifications are allowed -->
@@ -549,6 +637,10 @@
   <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">دل ب خایی</string>
   <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
   <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">هشتن سی پوی وبگه یل</string>
+  <!-- The subtitle for the allow for all sites preference toggle -->
+  <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">ٱر و ای وردنی ائتماڌ دارین، ترین ک بهلین من هر وبگهی دسرسی داشته بۊ.</string>
+  <!-- The text shown when an extension does not require permissions -->
+  <string name="addons_does_not_require_permissions">ای وردنی لنگ موجوز نؽ.</string>
   <!-- Button caption to confirm the add-on collection configuration -->
   <string name="customize_addon_collection_ok">خا</string>
   <!-- Button caption to abort the add-on collection configuration -->
@@ -590,11 +682,35 @@
   <!-- Text for artist series wallpapers title. "Artist series" represents a collection of artist collaborated wallpapers. -->
   <string name="wallpaper_artist_series_title">سریال هونرمند</string>
   <!--
+    Add-ons general availability nimbus message
+
+    Title of the Nimbus message for extension general availability
+  -->
+  <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">وردنی یل نۊ سکو من دسرس هڌن</string>
+  <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here -->
+  <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">بیشتر ز 100 وردنی نۊ ن واجۊری کۊنین چینا ک هؽلن Firefox ن ز خوتووݩ دووسته بۊین.</string>
+  <!-- Button text of the Nimbus message for extensions general availability. -->
+  <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">جوستن وردنی یل</string>
+  <!--
+    Extension process crash dialog to user
+
+    Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled
+  -->
+  <string name="extension_process_crash_dialog_title">وردنی یل مووقتن قیر فعال وابین</string>
+  <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
+  <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">قپ ریت سی ر وندن دووارته وردنی یل</string>
+  <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
+  <string name="extension_process_crash_dialog_disable_extensions_button_text">رئڌن وا پؽش وا وردنی یل قیر فعال</string>
+  <!--
     Account Preferences
 
     Preference for managing your account via accounts.firefox.com
   -->
   <string name="preferences_manage_account">دؽوۉداری هساو</string>
+  <!-- Preference for triggering sync -->
+  <string name="preferences_sync_now">سکو هوم گوم کوݩ</string>
+  <!-- Preference category for sync -->
+  <string name="preferences_sync_category">پسند چیایی ک اخۊین هوم گوم بۊن</string>
   <!-- Preference for syncing history -->
   <string name="preferences_sync_history">ویرگار</string>
   <!-- Preference for syncing bookmarks -->
@@ -609,6 +725,12 @@
   <string name="preferences_sync_device_name">نوم دسگا</string>
   <!-- Text shown when user enters empty device name -->
   <string name="empty_device_name_error">نوم دسگا نتره پتی بۊ.</string>
+  <!-- Label indicating that sync is in progress -->
+  <string name="sync_syncing_in_progress">هونی هوم گوم ابۊ…</string>
+  <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
+  <string name="sync_failed_summary">هوم گوم کردن ٱنجوم نگرؽڌ. مووفقیت دیندایی: %s</string>
+  <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
+  <string name="sync_last_synced_summary">هوم گوم کردن دیندایی: %s</string>
   <!--
     Text for displaying the default device name.
     %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
@@ -647,6 +769,12 @@
   <string name="preference_usage_data_learn_more">قلوه دووسته بۊین</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">داده یل هنداگیری کمپین</string>
+  <!--
+    Turn On Sync Preferences
+
+    Header of the Sync and save your data preference view
+  -->
+  <string name="preferences_sync_2">هوم گوم کردن وو زفت کردن داده یل ایسا</string>
   <!-- Preference for reconnecting to FxA sync -->
   <string name="preferences_sync_sign_in_to_reconnect">سی منپیز دووارته و من بیاین</string>
   <!-- Preference for removing FxA account -->
@@ -774,12 +902,19 @@
   <string name="studies_remove">پاک کردن</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">قلوه دووسته بۊین</string>
+  <!--
+    Title for the list of tabs in the synced tabs used by a11y services
+    The %1$s will be replaced by the number of opened synced tabs
+  -->
+  <string name="tabs_header_synced_tabs_counter_title">بلگه یل هوم گوم وابیڌه واز: %1$s. سی جا گورویی بلگه یل بزنین ریس.</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">ٱووردن بلگه</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_private_tab">ٱووردن بلگه سیخومی</string>
   <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
   <string name="tab_drawer_fab_content">سیخومی</string>
+  <!-- Text for the new tab button to indicate syncing command on the synced tabs page -->
+  <string name="tab_drawer_fab_sync">هوم گوم کردن</string>
   <!-- Text shown in the menu for sharing all tabs -->
   <string name="tab_tray_menu_item_share">یک رسۊوی پوی بلگه یل</string>
   <!-- Text shown in the menu to view recently closed tabs -->
@@ -995,6 +1130,8 @@
   <string name="bookmark_menu_copy_button">لف گیری</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">یک رسۊوی</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">پسند پوی</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">گۊشیڌن من بلگه نۊ</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -1024,6 +1161,8 @@
   <string name="edit_bookmark_fragment_title">آلشت نشووک</string>
   <!-- Bookmark folder editing screen title -->
   <string name="edit_bookmark_folder_fragment_title">آلشت دوبلگه</string>
+  <!-- Bookmark sign in button message -->
+  <string name="bookmark_sign_in_button">سی هوم گوم کردن نشووکا و من بیاین</string>
   <!-- Bookmark URL editing field label -->
   <string name="bookmark_url_label">نشۊوی اینترنتی</string>
   <!-- Bookmark FOLDER editing field label -->
@@ -1071,6 +1210,8 @@
   <string name="bookmark_search_button_content_description">پیتینیڌن نشووکا</string>
   <!-- Title for the bookmark list empty state -->
   <string name="bookmark_empty_list_title">هنی نشووکی نؽ</string>
+  <!-- Text for the button to navigate to sync authentication -->
+  <string name="bookmark_empty_list_guest_cta">سی هوم گوم کردن و من بیاین</string>
   <!--
     Site Permissions
 
@@ -1208,10 +1349,20 @@
   <string name="menu_print">چاپ</string>
   <!-- Sub-header in the dialog to share a link to another sync device -->
   <string name="share_device_subheader">فشناڌن و دسگا</string>
+  <!-- Sub-header in the dialog to share a link to an app from the full list -->
+  <string name="share_link_all_apps_subheader">پوی فعالیتا</string>
   <!-- Text for the copy link action in the share screen. -->
   <string name="share_copy_link_to_clipboard">لف گیری من کلیپ بورد</string>
   <!-- Toast shown after copying link to clipboard -->
   <string name="toast_copy_link_to_clipboard">من کلیپ بورد لف گیری وابی</string>
+  <!-- An option from the share dialog to sign into sync -->
+  <string name="sync_sign_in">سی هوم گوم کردن و من بیاین</string>
+  <!-- An option from the three dot menu to sync and save data -->
+  <string name="sync_menu_sync_and_save_data">هوم گوم کردن وو زفت کردن داده یل</string>
+  <!-- An option from the share dialog to send link to all other sync devices -->
+  <string name="sync_send_to_all">فشناڌن و پوی دسگا یل</string>
+  <!-- An option from the share dialog to reconnect to sync -->
+  <string name="sync_reconnect">منپیز دووارته سی هوم گوم کردن</string>
   <!-- Confirmation dialog button -->
   <string name="sync_confirmation_button">فئمیم</string>
   <!-- Share error message -->
@@ -1290,6 +1441,8 @@
   <string name="tab_collection_dialog_positive">پاک کردن</string>
   <!-- Message for copying the URL via long press on the toolbar -->
   <string name="url_copied">نشۊوی لف گیری وابی</string>
+  <!-- Summary for Accessibility Text Size Scaling Preference -->
+  <string name="preference_accessibility_text_size_summary">هؽل ن من وبگه یل گفتر یا کۊچیر تر کۊنین</string>
   <!-- Title for Accessibility Text Size Scaling Preference -->
   <string name="preference_accessibility_font_size_title">هندا فونت</string>
   <!-- Title for Accessibility Text Automatic Size Scaling Preference -->
@@ -1317,6 +1470,8 @@
   <string name="preferences_delete_browsing_data_button">داده یل گشتن ن پاک کۊنین</string>
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">داده یل گشتن ن مجال و در زیڌن پاک کۊنین</string>
+  <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
+  <string name="preference_summary_delete_browsing_data_on_quit_2">مجال پسند \"و در زیڌن\" ز نومگه ٱسلی، داده یل گشتن ن و جۊر خوتکار پاک اکونه</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">و در زیڌن</string>
   <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
@@ -1339,6 +1494,12 @@
   <string name="delete_history_group_prompt_allow">پاک کردن</string>
   <!-- Text for the snackbar confirmation that the history group was deleted -->
   <string name="delete_history_group_snackbar">بونکۊ پاک وابی</string>
+  <!--
+    Onboarding
+
+    text to display in the snackbar once account is signed-in
+  -->
+  <string name="onboarding_firefox_account_sync_is_on">هوم گوم کردن رۊشن هڌ</string>
   <!--
     Onboarding theme
 
@@ -1407,8 +1568,14 @@
   <string name="preferences_passwords_save_logins_2">زفت رزما</string>
   <!-- Preference option for adding a password -->
   <string name="preferences_logins_add_login_2">ٱووردن رزم</string>
+  <!-- Preference for syncing saved passwords in Fenix -->
+  <string name="preferences_passwords_sync_logins_2">هوم گوم کردن رزما</string>
+  <!-- Preference for syncing saved passwords in Fenix, when not signed in -->
+  <string name="preferences_passwords_sync_logins_across_devices_2">هوم گوم کردن رزما منجا دسگا یل</string>
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">رزما زفت وابیڌه</string>
+  <!-- Clickable text for opening an external link for more information about Sync. -->
+  <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">زبار هوم گوم کردن قلوه دووسته بۊین</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">وبگه</string>
   <!-- The header for the username for a login -->
@@ -1451,6 +1618,10 @@
   <string name="preferences_credit_cards_save_and_autofill_cards_2">زفت وو پور کردن روشا پرداخت</string>
   <!-- Preference summary for saving and autofilling payment method data. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s پوی روشا پرداختی ک زفت اکۊنی ن رزم انه ریسۉݩ</string>
+  <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
+  <string name="preferences_credit_cards_sync_cards_across_devices">هوم گوم کردن کارتا منجا دسگا یل</string>
+  <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
+  <string name="preferences_credit_cards_sync_cards">هوم گوم کردن کارتا</string>
   <!-- Preference option for adding a card -->
   <string name="preferences_credit_cards_add_credit_card_2">ٱووردن کارت</string>
   <!-- Preference option for managing saved cards -->
@@ -1588,6 +1759,8 @@
   <string name="synced_tabs_connect_another_device">منپیز و دسگا دیر.</string>
   <!-- Text displayed asking user to re-authenticate -->
   <string name="synced_tabs_reauth">ز نۊ تاییڌ کۊنین.</string>
+  <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
+  <string name="synced_tabs_sign_in_button">سی هوم گوم کردن و من بیاین</string>
   <!-- The text displayed when a synced device has no tabs to show in the list of Synced Tabs. -->
   <string name="synced_tabs_no_open_tabs">بؽ بلگه واز</string>
   <!-- Confirmation dialog button text when top sites limit is reached. -->
@@ -1848,10 +2021,16 @@
   <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">گشت گر Firefox خوتووݩ ن ورۊ رسۊوی کۊنین</string>
   <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
   <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">پؽش ز 14 مارس ورۊ رسۊوی کۊنین</string>
+  <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">من 14 مارس، وردنی یل وو پوی ویژیی یل Firefox اواستن چینا ک گوواهی بونچک مونقزی ابۊ.</string>
   <!-- Push notification title about old Firefox version. "Update" is a noun. -->
   <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">ورۊ رسۊوی پؽشنهاڌ ابۊ</string>
+  <!-- Push notification message about old Firefox version -->
+  <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">وردنی یل وو ی قرده ز ویژیی یل من 14 مارس اواستن.</string>
   <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">ایسا ی نوسخه قڌیمی ز Firefox ن و کار اگرین</string>
+  <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+  <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">پؽش ز 14 مارس ورۊ رسۊوی کۊنین تا تا ترسته بۊین وردنی یل وو پوی ویژیی یل ن هی و کار بگیرین.</string>
   <!--
     TextField Design System Component
 
@@ -1866,6 +2045,8 @@
     The title of the default browser task for the setup checklist
   -->
   <string name="setup_checklist_task_default_browser">سامووݩ و عونوان گشت گر پؽش فرز</string>
+  <!-- The title of the explore extensions task for the setup checklist -->
+  <string name="setup_checklist_task_explore_extensions">جوستن وردنی یل</string>
   <!--
     Private browsing mode authentication screen
 

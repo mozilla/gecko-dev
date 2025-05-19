@@ -1671,6 +1671,8 @@
   <string name="bookmark_menu_copy_button">Kopiëren</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">Delen</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">Alles selecteren</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">Openen in nieuw tabblad</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -3600,6 +3602,8 @@
   <string name="pbm_authentication_enable_lock">Schermvergrendeling voor privétabbladen inschakelen</string>
   <!-- Authentication prompt title to disable the private tabs mode -->
   <string name="pbm_authentication_disable_lock">Schermvergrendeling voor privétabbladen uitschakelen</string>
+  <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
+  <string name="pbm_authentication_lock_device_feature_disabled">Schermvergrendeling instellen om tabbladen te verbergen</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">Schermvergrendeling gebruiken om privétabbladen te verbergen?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->

@@ -2324,12 +2324,28 @@
   <string name="preference_doh_add_site_description">افزودن وبگاه</string>
   <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection">محافظت پیش‌فرض</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s تصمیم می‌گیرد که چه زمانی از ساناد امن برای محافظت از حریم خصوصی شما استفاده کند.</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">استفاده از ارائه‌دهندهٔ منتخب شما</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">استفاده از مبدل ساناد در صورتی که مشکلی برای کار با ارائه‌دهندهٔ ساناد وجود داشته باشد</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">استفاده از ارائه‌دهندهٔ محلی در صورت امکان. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">خاموش در زمانی که وی‌پی‌ان، کنترل والدین یا سیاست‌های سازمانی فعال باشند</string>
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">خاموش</string>
   <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
   <string name="preference_doh_provider_default">(پیش‌فرض)</string>
   <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
   <string name="preference_doh_provider_custom">سفارشی</string>
+  <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_title">ارائه‌دهندهٔ سفارشی</string>
+  <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_textfield">ارائه‌دهنده</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">نشانی بایستی با «‪https://‬» آغاز شود</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
   <string name="preference_doh_provider_custom_dialog_error_invalid">نشانی اینترنتی معتبر نیست</string>
   <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
@@ -2338,14 +2354,20 @@
   <string name="preference_doh_provider_custom_dialog_add">افزودن</string>
   <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
   <string name="preference_doh_exceptions">استثناها</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". %1$s is the name of the app (for example "Firefox"). -->
+  <string name="preference_doh_exceptions_summary"> %1$s در این وبگاه‌ها و زیردامنه‌هایشان از ساناد امن استفاده نمی‌کند.</string>
   <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
   <string name="preference_doh_exceptions_add">افزودن وبگاه</string>
   <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
   <string name="preference_doh_exceptions_add_site">وبگاه</string>
   <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
   <string name="preference_doh_exceptions_add_placeholder">example.com</string>
+  <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_error">باید یک دامنهٔ معتبر باشد</string>
   <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
   <string name="preference_doh_exceptions_add_save">ذخیره</string>
+  <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_remove_all_exceptions">حذف همهٔ استثنائات</string>
   <!-- About page link text to open support link -->
   <string name="about_support">پشتیبانی</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2650,6 +2672,8 @@
   <string name="quick_settings_sheet_secure_connection_2">اتصال امن است</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">اتصال امن نیست</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">این صفحه بر روی رایانه شما ذخیره شد.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">پاک‌سازی کلوچک‌ها و داده‌های پایگاه</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
@@ -2809,6 +2833,8 @@
   <string name="google_search_engine_suggestion_header">جست‌وجوی گوگل</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">جست‌وجوی %s</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">جستجوهای اخیر</string>
   <!--
     Default browser experiment
 
@@ -3127,6 +3153,8 @@
     Text for the protection panel header when the site is secure.
   -->
   <string name="protection_panel_header_secure">ایمن</string>
+  <!-- Text for the protection panel header when the site is not secure. -->
+  <string name="protection_panel_header_not_secure">ناامن</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">مواظب این وبگاه باشید</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3152,15 +3180,47 @@
   <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
   <string name="protection_panel_etp_toggle_disabled_description">محافظ‌ها خاموش هستند. پیشنهاد می‌کنیم آن‌ها را دوباره فعال کنید.</string>
   <!--
+    Text for displaying the total number of trackers blocked in the protection panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="protection_panel_num_trackers_blocked">ردیاب‌ها مسدود شدند: %d</string>
+  <!-- Text for when no trackers have been blocked. -->
+  <string name="protection_panel_no_trackers_blocked">ردیابی یافت نشد</string>
+  <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+  <string name="protection_panel_privacy_and_security_settings">تنظیمات حریم خصوصی و امنیت</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">مجوزها</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the trackers blocked panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_total_num_trackers_blocked">ردیاب‌ها مسدود شدند: %d</string>
+  <!--
     Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
     %s is a placeholder for the name of the tracker category.
     %d is a placeholder for the number of trackers blocked.
   -->
   <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+  <!--
+    Description text for a dialog confirming whether the user wants to delete all data for current site.
+    %s is a placeholder for the base domain of website.
+  -->
+  <string name="clear_site_data_dialog_description">حذف کوکی‌ها و داده‌های وبگاه برای &lt;b&gt;%s&lt;/b&gt; ممکن است شما را از وبگاه‌ها خارج کرده و سبدهای خریدتان را خالی کند.</string>
   <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
   <string name="clear_site_data_dialog_positive_button_text">پاک کردن</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
   <string name="clear_site_data_dialog_negative_button_text">انصراف</string>
+  <!-- Snackbar title shown when the site data has been cleared. -->
+  <string name="clear_site_data_snackbar">کوکی‌ها و داده‌های وبگاه پاک شدند</string>
+  <!-- Text for the connection security panel when the site is secure. -->
+  <string name="connection_security_panel_secure">اتصال امن</string>
+  <!-- Text for the connection security panel when the site is not secure. -->
+  <string name="connection_security_panel_not_secure">اتصال ناامن</string>
+  <!--
+    Text for the connection security panel to indicate who the certificate was verified by.
+    %s is a placeholder for the name of the certificate authority that verified the ticket
+  -->
+  <string name="connection_security_panel_verified_by">تأییدشده توسط %s</string>
   <!--
     Debug drawer
 
@@ -3316,6 +3376,28 @@
   -->
   <string name="glean_debug_tools_title">ابزارهای اشکال‌زدایی Glean</string>
   <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">ابزارهای منطقه</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">برای آزمایش، مقادیر منطقهٔ خانگی و فعلی را موقتاً بازنویسی می‌کند.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">منطقهٔ خانگی</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">منطقهٔ فعلی</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">بازنویسی منطقهٔ خانگی</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">بازنویسی منطقهٔ فعلی</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">بازنویسی منطقهٔ خانگی و فعلی</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">بازنویسی همیشگی منطقهٔ خانگی</string>
+  <!--
     Messages explaining how to exit fullscreen mode
 
     Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
@@ -3377,4 +3459,54 @@
   <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">نمایش متن مخفی</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">پاک کردن متن</string>
+  <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">پایان نصب %1$s</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">تبریک!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">برای تنظیم %1$s جهت بهترین تجربه مرور، این سه مرحله را کامل کنید.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">یک شروع عالی! شما یکی از سه مرحله را انجام داده‌اید.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">تقریباً رسیدیم! دو مرحله تمام شده و یک مرحله دیگر باقی مانده است.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">شما هر سه مرحله را انجام داده‌اید. از سرعت، حریم خصوصی و امنیت %1$s لذت ببرید.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">برای بهترین تجربه مرور، هر شش مرحله را برای تنظیم %1$s کامل کنید.</string>
+  <!--
+    ===== Setup checklist feature: Task titles =====
+
+    The title of the default browser task for the setup checklist
+  -->
+  <string name="setup_checklist_task_default_browser">تنظیم به عنوان مرورگر پیش‌فرض</string>
+  <!-- The title of the sign-in task for the setup checklist -->
+  <string name="setup_checklist_task_account_sync">وارد حساب کاربری خود شوید</string>
+  <!-- The title of the toolbar selection task for the setup checklist -->
+  <string name="setup_checklist_task_toolbar_selection">انتخاب محل قرارگیری نوار ابزار</string>
+  <!-- The title of the search widget task for the setup checklist -->
+  <string name="setup_checklist_task_search_widget">نصب ابزارک جستجو</string>
+  <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_group_customize">%1$s خود را سفارشی‌سازی کنید</string>
+  <!-- The title of the 'helpful tools' group in the setup checklist -->
+  <string name="setup_checklist_group_helpful_tools">ابزارهای مفید</string>
+  <!--
+    Private browsing mode authentication screen
+
+    Label for the secondary action to exit private browsing mode
+  -->
+  <string name="pbm_authentication_leave_private_tabs">خروج از زبانه‌های خصوصی</string>
 </resources>
