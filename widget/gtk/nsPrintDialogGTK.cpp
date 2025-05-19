@@ -95,11 +95,12 @@ static void ShowCustomDialog(GtkComboBox* changed_box, gpointer user_data) {
   }
   gtk_entry_set_activates_default(GTK_ENTRY(custom_entry), TRUE);
 
-  GtkWidget* custom_vbox = gtk_vbox_new(TRUE, 2);
+  GtkWidget* custom_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(custom_vbox), TRUE);
   gtk_box_pack_start(GTK_BOX(custom_vbox), custom_label, FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(custom_vbox), custom_entry, FALSE, FALSE,
                      5);  // Make entry 5px underneath label
-  GtkWidget* custom_hbox = gtk_hbox_new(FALSE, 2);
+  GtkWidget* custom_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
   gtk_box_pack_start(GTK_BOX(custom_hbox), question_icon, FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(custom_hbox), custom_vbox, FALSE, FALSE,
                      10);  // Make question icon 10px away from content
@@ -188,13 +189,14 @@ nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsPIDOMWindowOuter* aParent,
   // The vast majority of magic numbers in this widget construction are padding.
   // e.g. for the set_border_width below, 12px matches that of just about every
   // other window.
-  GtkWidget* custom_options_tab = gtk_vbox_new(FALSE, 0);
+  GtkWidget* custom_options_tab = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   gtk_container_set_border_width(GTK_CONTAINER(custom_options_tab), 12);
   GtkWidget* tab_label =
       gtk_label_new(GetUTF8FromBundle("optionsTabLabelGTK").get());
 
   // Check buttons for shrink-to-fit and print selection
-  GtkWidget* check_buttons_container = gtk_vbox_new(TRUE, 2);
+  GtkWidget* check_buttons_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(check_buttons_container), TRUE);
   shrink_to_fit_toggle = gtk_check_button_new_with_mnemonic(
       GetUTF8FromBundle("shrinkToFit").get());
   gtk_box_pack_start(GTK_BOX(check_buttons_container), shrink_to_fit_toggle,
@@ -218,7 +220,9 @@ nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsPIDOMWindowOuter* aParent,
   }
 
   // Check buttons for printing background
-  GtkWidget* appearance_buttons_container = gtk_vbox_new(TRUE, 2);
+  GtkWidget* appearance_buttons_container =
+      gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+  gtk_box_set_homogeneous(GTK_BOX(appearance_buttons_container), TRUE);
   print_bg_colors_toggle = gtk_check_button_new_with_mnemonic(
       GetUTF8FromBundle("printBGColors").get());
   print_bg_images_toggle = gtk_check_button_new_with_mnemonic(
@@ -227,6 +231,7 @@ nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsPIDOMWindowOuter* aParent,
                      print_bg_colors_toggle, FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(appearance_buttons_container),
                      print_bg_images_toggle, FALSE, FALSE, 0);
+  g_object_set(appearance_buttons_container, "padding", 8, 0, 12, 0, NULL);
 
   // "Appearance" options label, bold and center-aligned
   GtkWidget* appearance_label = gtk_label_new(nullptr);
@@ -234,18 +239,15 @@ nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsPIDOMWindowOuter* aParent,
       "<b>%s</b>", GetUTF8FromBundle("printBGOptions").get());
   gtk_label_set_markup(GTK_LABEL(appearance_label), pangoMarkup);
   g_free(pangoMarkup);
-  gtk_misc_set_alignment(GTK_MISC(appearance_label), 0, 0);
+  g_object_set(appearance_label, "xalign", 0, NULL);
+  g_object_set(appearance_label, "yalign", 0, NULL);
 
-  GtkWidget* appearance_container = gtk_alignment_new(0, 0, 0, 0);
-  gtk_alignment_set_padding(GTK_ALIGNMENT(appearance_container), 8, 0, 12, 0);
-  gtk_container_add(GTK_CONTAINER(appearance_container),
-                    appearance_buttons_container);
-
-  GtkWidget* appearance_vertical_squasher = gtk_vbox_new(FALSE, 0);
+  GtkWidget* appearance_vertical_squasher =
+      gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   gtk_box_pack_start(GTK_BOX(appearance_vertical_squasher), appearance_label,
                      FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(appearance_vertical_squasher),
-                     appearance_container, FALSE, FALSE, 0);
+                     appearance_buttons_container, FALSE, FALSE, 0);
 
   // "Header & Footer" options label, bold and center-aligned
   GtkWidget* header_footer_label = gtk_label_new(nullptr);
@@ -301,7 +303,8 @@ nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsPIDOMWindowOuter* aParent,
   gtk_container_add(GTK_CONTAINER(header_footer_container),
                     header_footer_table);
 
-  GtkWidget* header_footer_vertical_squasher = gtk_vbox_new(FALSE, 0);
+  GtkWidget* header_footer_vertical_squasher =
+      gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   gtk_box_pack_start(GTK_BOX(header_footer_vertical_squasher),
                      header_footer_label, FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(header_footer_vertical_squasher),
