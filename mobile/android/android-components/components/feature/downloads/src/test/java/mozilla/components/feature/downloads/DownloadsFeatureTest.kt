@@ -24,6 +24,7 @@ import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.downloads.DownloadsUseCases.CancelDownloadRequestUseCase
 import mozilla.components.feature.downloads.DownloadsUseCases.ConsumeDownloadUseCase
+import mozilla.components.feature.downloads.fake.FakeFileSystemHelper
 import mozilla.components.feature.downloads.manager.DownloadManager
 import mozilla.components.feature.downloads.ui.DownloadAppChooserDialog
 import mozilla.components.feature.downloads.ui.DownloaderApp
@@ -56,6 +57,7 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
@@ -179,7 +181,7 @@ class DownloadsFeatureTest {
 
         val download = DownloadState(url = "https://www.mozilla.org", sessionId = "test-tab")
         doReturn("id").`when`(downloadManager).download(download)
-        doReturn(true).`when`(feature).isStorageAvailableForDownload(download)
+        doReturn(false).`when`(feature).isDownloadBiggerThanAvailableSpace(download)
 
         store.dispatch(ContentAction.UpdateDownloadAction("test-tab", download))
             .joinBlocking()
@@ -221,7 +223,7 @@ class DownloadsFeatureTest {
         )
 
         doReturn("id").`when`(downloadManager).download(eq(download), anyString())
-        doReturn(true).`when`(feature).isStorageAvailableForDownload(download)
+        doReturn(false).`when`(feature).isDownloadBiggerThanAvailableSpace(download)
 
         store.dispatch(ContentAction.UpdateDownloadAction("test-tab", download))
             .joinBlocking()
@@ -469,7 +471,7 @@ class DownloadsFeatureTest {
 
         val download = DownloadState(url = "https://www.mozilla.org", sessionId = "test-tab")
 
-        doReturn(true).`when`(feature).isStorageAvailableForDownload(download)
+        doReturn(false).`when`(feature).isDownloadBiggerThanAvailableSpace(download)
 
         store.dispatch(ContentAction.UpdateDownloadAction("test-tab", download))
             .joinBlocking()
@@ -692,7 +694,7 @@ class DownloadsFeatureTest {
             ),
         )
 
-        doReturn(true).`when`(feature).isStorageAvailableForDownload(download)
+        doReturn(false).`when`(feature).isDownloadBiggerThanAvailableSpace(download)
 
         feature.processDownload(tab, download)
 
@@ -1381,7 +1383,7 @@ class DownloadsFeatureTest {
 
         doReturn(cancelDownloadRequestUseCase).`when`(downloadsUseCases).cancelDownloadRequest
 
-        doReturn(false).`when`(feature).isStorageAvailableForDownload(download)
+        doReturn(true).`when`(feature).isDownloadBiggerThanAvailableSpace(download)
 
         grantPermissions()
 
@@ -1390,6 +1392,109 @@ class DownloadsFeatureTest {
         verify(fileHasNotEnoughStorageDialog).invoke(Filename("file.txt"))
         verify(downloadsUseCases).cancelDownloadRequest
         assertFalse(feature.startDownload(download))
+    }
+
+    @Test
+    fun `GIVEN content length is 0L WHEN calling isDownloadBiggerThanAvailableSpace THEN it returns false`() {
+        val directoryPath = "/valid/path"
+
+        val feature = spy(
+            DownloadsFeature(
+                applicationContext = testContext,
+                store = mock(),
+                useCases = mock(),
+                fileSystemHelper = FakeFileSystemHelper(
+                    availableBitesInDirectory = 10L,
+                    existingDirectories = listOf(directoryPath),
+                ),
+            ),
+        )
+
+        val downloadState = DownloadState(
+            id = "test_id",
+            url = "test_url",
+            fileName = "test_file",
+            directoryPath = directoryPath,
+        )
+
+        assertFalse(feature.isDownloadBiggerThanAvailableSpace(downloadState))
+    }
+
+    @Test
+    fun `GIVEN download is bigger than available space WHEN calling isDownloadBiggerThanAvailableSpace THEN it returns true`() {
+        val directoryPath = "/valid/path"
+
+        val feature = spy(
+            DownloadsFeature(
+                applicationContext = testContext,
+                store = mock(),
+                useCases = mock(),
+                fileSystemHelper = FakeFileSystemHelper(
+                    availableBitesInDirectory = 10L,
+                    existingDirectories = listOf(directoryPath),
+                ),
+            ),
+        )
+
+        val downloadState = DownloadState(
+            id = "test_id",
+            url = "test_url",
+            fileName = "test_file",
+            directoryPath = directoryPath,
+            contentLength = 1000L,
+        )
+
+        assertTrue(feature.isDownloadBiggerThanAvailableSpace(downloadState))
+    }
+
+    @Test
+    fun `GIVEN download is smaller than available space WHEN calling isDownloadBiggerThanAvailableSpace THEN it returns false`() {
+        val directoryPath = "/valid/path"
+
+        val feature = spy(
+            DownloadsFeature(
+                applicationContext = testContext,
+                store = mock(),
+                useCases = mock(),
+                fileSystemHelper = FakeFileSystemHelper(
+                    availableBitesInDirectory = 1000L,
+                    existingDirectories = listOf(directoryPath),
+                ),
+            ),
+        )
+        val downloadState = DownloadState(
+            id = "test_id",
+            url = "test_url",
+            fileName = "test_file",
+            directoryPath = directoryPath,
+            contentLength = 100L,
+        )
+
+        assertFalse(feature.isDownloadBiggerThanAvailableSpace(downloadState))
+    }
+
+    @Test
+    fun `GIVEN download directory doesn't exist WHEN calling isDownloadBiggerThanAvailableSpace THEN it returns false`() {
+        val feature = spy(
+            DownloadsFeature(
+                applicationContext = testContext,
+                store = mock(),
+                useCases = mock(),
+                fileSystemHelper = FakeFileSystemHelper(
+                    availableBitesInDirectory = 10L,
+                    existingDirectories = emptyList(),
+                ),
+            ),
+        )
+        val downloadState = DownloadState(
+            id = "test_id",
+            url = "test_url",
+            fileName = "test_file",
+            directoryPath = "/invalid/path",
+            contentLength = 100L,
+        )
+
+        assertFalse(feature.isDownloadBiggerThanAvailableSpace(downloadState))
     }
 }
 

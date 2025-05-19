@@ -9,7 +9,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.ResolveInfo
-import android.os.StatFs
 import android.widget.Toast
 import androidx.annotation.ColorRes
 import androidx.annotation.VisibleForTesting
@@ -39,6 +38,7 @@ import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.base.feature.PermissionsFeature
+import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.appName
 import mozilla.components.support.ktx.android.content.isPermissionGranted
 import mozilla.components.support.ktx.kotlin.isSameOriginAs
@@ -95,6 +95,7 @@ value class NegativeActionCallback(val value: () -> Unit)
  * responsible for performing the downloads.
  * @property store a reference to the application's [BrowserStore].
  * @property useCases [DownloadsUseCases] instance for consuming processed downloads.
+ * @property fileSystemHelper A helper for file system operations.
  * @property fragmentManager a reference to a [FragmentManager]. If a fragment
  * manager is provided, a dialog will be shown before every download.
  * @property promptsStyling styling properties for the dialog.
@@ -112,6 +113,7 @@ class DownloadsFeature(
     private val store: BrowserStore,
     @get:VisibleForTesting(otherwise = PRIVATE)
     internal val useCases: DownloadsUseCases,
+    private val fileSystemHelper: FileSystemHelper = DefaultFileSystemHelper(),
     override var onNeedToRequestPermissions: OnNeedToRequestPermissions = { },
     onDownloadStopped: onDownloadStopped = noop,
     private val downloadManager: DownloadManager = AndroidDownloadManager(applicationContext, store),
@@ -127,6 +129,8 @@ class DownloadsFeature(
     )? = null,
     private val fileHasNotEnoughStorageDialog: ((Filename) -> Unit) = {},
 ) : LifecycleAwareFeature, PermissionsFeature {
+
+    private val logger = Logger("DownloadsFeature")
 
     var onDownloadStopped: onDownloadStopped
         get() = downloadManager.onDownloadStopped
@@ -263,7 +267,9 @@ class DownloadsFeature(
 
     @VisibleForTesting
     internal fun startDownload(download: DownloadState): Boolean {
-        if (!isStorageAvailableForDownload(download)) {
+        fileSystemHelper.createDirectoryIfNotExists(download.directoryPath)
+
+        if (isDownloadBiggerThanAvailableSpace(download)) {
             fileHasNotEnoughStorageDialog.invoke(
                 Filename(download.realFilenameOrGuessed),
             )
@@ -348,10 +354,18 @@ class DownloadsFeature(
     }
 
     @VisibleForTesting
-    internal fun isStorageAvailableForDownload(download: DownloadState): Boolean =
-        download.contentLength?.let {
-            it < StatFs(download.directoryPath).availableBytes
-        } ?: true
+    internal fun isDownloadBiggerThanAvailableSpace(download: DownloadState): Boolean {
+        download.contentLength?.let { downloadLength ->
+            if (fileSystemHelper.isDirectory(download.directoryPath)) {
+                try {
+                    return downloadLength > fileSystemHelper.availableBytesInDirectory(download.directoryPath)
+                } catch (e: IllegalArgumentException) {
+                    logger.error("Invalid path for StatFs: ${download.directoryPath}", e)
+                }
+            }
+        }
+        return false
+    }
 
     @VisibleForTesting
     internal fun showAppDownloaderDialog(
