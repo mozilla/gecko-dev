@@ -1521,6 +1521,13 @@ var XPIStates = {
       startupScanScopes = AddonManager.SCOPE_ALL;
     }
 
+    if (!oldLocations.has(KEY_APP_SYSTEM_BUILTINS)) {
+      logger.warn(
+        `Force scan SCOPE_APPLICATION (${KEY_APP_SYSTEM_BUILTINS} location missing from XPIStates)`
+      );
+      startupScanScopes |= AddonManager.SCOPE_APPLICATION;
+    }
+
     for (let loc of XPIStates.locations()) {
       oldLocations.delete(loc.name);
 
