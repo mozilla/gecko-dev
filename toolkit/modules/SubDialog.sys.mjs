@@ -555,11 +555,6 @@ SubDialog.prototype = {
       boxHorizontalBorder + frameHorizontalMargin
     }px + ${frameMinWidth})`;
 
-    // Temporary fix to allow parent chrome to collapse properly to min width.
-    // See Bug 1658722.
-    if (this._window.isChromeWindow) {
-      boxMinWidth = `min(80vw, ${boxMinWidth})`;
-    }
     this._box.style.minWidth = boxMinWidth;
   },
 
