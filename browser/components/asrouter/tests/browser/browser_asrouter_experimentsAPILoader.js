@@ -4,6 +4,9 @@ const { RemoteSettings } = ChromeUtils.importESModule(
 const { ASRouter } = ChromeUtils.importESModule(
   "resource:///modules/asrouter/ASRouter.sys.mjs"
 );
+const { RemoteSettingsExperimentLoader } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
+);
 const { EnrollmentType, ExperimentAPI } = ChromeUtils.importESModule(
   "resource://nimbus/ExperimentAPI.sys.mjs"
 );
@@ -186,7 +189,7 @@ add_task(async function test_loading_experimentsAPI() {
   const experiment = await getCFRExperiment();
   await setup(experiment);
   // Fetch the new recipe from RS
-  await ExperimentAPI._rsLoader.updateRecipes();
+  await RemoteSettingsExperimentLoader.updateRecipes();
   await BrowserTestUtils.waitForCondition(
     () => NimbusFeatures.cfr.getEnrollmentMetadata(EnrollmentType.EXPERIMENT),
     "ExperimentAPI should return an experiment"
@@ -204,7 +207,7 @@ add_task(async function test_loading_fxms_message_1_feature() {
   const experiment = await getExperiment("fxms-message-1");
   await setup(experiment);
   // Fetch the new recipe from RS
-  await ExperimentAPI._rsLoader.updateRecipes();
+  await RemoteSettingsExperimentLoader.updateRecipes();
   await BrowserTestUtils.waitForCondition(
     () =>
       NimbusFeatures["fxms-message-1"].getEnrollmentMetadata(
@@ -224,7 +227,7 @@ add_task(async function test_loading_experimentsAPI_rollout() {
   rollout.branches.pop();
 
   await setup(rollout);
-  await ExperimentAPI._rsLoader.updateRecipes();
+  await RemoteSettingsExperimentLoader.updateRecipes();
   await BrowserTestUtils.waitForCondition(() =>
     NimbusFeatures.cfr.getEnrollmentMetadata("rollout")
   );
@@ -241,7 +244,7 @@ add_task(async function test_exposure_ping() {
   await setup(experiment);
   Services.telemetry.clearScalars();
   // Fetch the new recipe from RS
-  await ExperimentAPI._rsLoader.updateRecipes();
+  await RemoteSettingsExperimentLoader.updateRecipes();
   await BrowserTestUtils.waitForCondition(
     () => NimbusFeatures.cfr.getEnrollmentMetadata(EnrollmentType.EXPERIMENT),
     "ExperimentAPI should return an experiment"
@@ -299,7 +302,7 @@ add_task(async function test_update_on_enrollments_changed() {
   const experiment = await getCFRExperiment();
   let enrollmentChanged = TestUtils.topicObserved("nimbus:enrollments-updated");
   await setup(experiment);
-  await ExperimentAPI._rsLoader.updateRecipes();
+  await RemoteSettingsExperimentLoader.updateRecipes();
 
   await BrowserTestUtils.waitForCondition(
     () => NimbusFeatures.cfr.getEnrollmentMetadata(EnrollmentType.EXPERIMENT),
@@ -325,7 +328,7 @@ add_task(async function test_emptyMessage() {
   );
 
   await setup(experiment);
-  await ExperimentAPI._rsLoader.updateRecipes();
+  await RemoteSettingsExperimentLoader.updateRecipes();
   await BrowserTestUtils.waitForCondition(
     () => NimbusFeatures.cfr.getEnrollmentMetadata(EnrollmentType.EXPERIMENT),
     "ExperimentAPI should return an experiment"
@@ -376,7 +379,7 @@ add_task(async function test_multiMessageTreatment() {
   await NimbusTestUtils.validateExperiment(recipe);
 
   await setup(recipe);
-  await ExperimentAPI._rsLoader.updateRecipes();
+  await RemoteSettingsExperimentLoader.updateRecipes();
   await BrowserTestUtils.waitForCondition(
     () =>
       NimbusFeatures[featureId].getEnrollmentMetadata(
