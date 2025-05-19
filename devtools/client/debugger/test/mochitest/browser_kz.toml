@@ -61,10 +61,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_dbg-outline-focus.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
-skip-if = [
-  "verify",
-  "cm5",
-]
+skip-if = ["verify"]
 
 ["browser_dbg-outline-pretty.js"]
 
@@ -122,7 +119,6 @@ skip-if = [
 ["browser_dbg-preview-bucketed-array.js"]
 
 ["browser_dbg-preview-frame.js"]
-skip-if = ["cm5"]
 
 ["browser_dbg-preview-getter.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled

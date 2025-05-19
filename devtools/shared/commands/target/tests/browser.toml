@@ -52,7 +52,7 @@ skip-if = [
 
 ["browser_target_command_service_workers_navigation_stopped.js"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && !a11y_checks && !cm5", # Bug 1767781
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && !a11y_checks", # Bug 1767781
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1767781
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929449
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1767781
