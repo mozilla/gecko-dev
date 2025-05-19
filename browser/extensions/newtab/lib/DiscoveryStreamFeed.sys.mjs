@@ -2909,7 +2909,7 @@ export class DiscoveryStreamFeed {
         );
         break;
       case at.INFERRED_PERSONALIZATION_MODEL_UPDATE:
-        await this.cache.set("inferred_model", action.data);
+        await this.cache.set("inferredModel", action.data);
     }
   }
 }
