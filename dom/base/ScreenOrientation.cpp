@@ -217,8 +217,22 @@ ScreenOrientation::LockOrientationTask::Run() {
               return;
             }
 
-            if (!self->mDocument) {
+            if (!self->mDocument || !self->mDocument->IsFullyActive()) {
+              // Pending promise in document will be clear during destroying
+              // document.
               self->mPromise->MaybeReject(NS_ERROR_DOM_ABORT_ERR);
+              // Since orientation.lock is failed, but system side might be
+              // successful, reset orientation lock.
+              if (self->mDocument) {
+                BrowsingContext* bc = self->mDocument->GetBrowsingContext();
+                bc = bc ? bc->Top() : nullptr;
+                if (bc) {
+                  bc->SetOrientationLock(hal::ScreenOrientation::None,
+                                         IgnoreErrors());
+                  self->mScreenOrientation->UnlockDeviceOrientation();
+                }
+              }
+
               return;
             }
 
