@@ -205,9 +205,11 @@ LoadInfo::LoadInfo(
         }
       }
 
-      // Let's inherit the cookie behavior and permission from the parent
-      // document.
-      mCookieJarSettings = aLoadingContext->OwnerDoc()->CookieJarSettings();
+      // Let's clone and inherit the cookie behavior and permission from the
+      // parent document.
+      mCookieJarSettings = CookieJarSettings::Cast(
+                               aLoadingContext->OwnerDoc()->CookieJarSettings())
+                               ->Clone();
     }
 
     mInnerWindowID = aLoadingContext->OwnerDoc()->InnerWindowID();
@@ -532,9 +534,10 @@ LoadInfo::LoadInfo(dom::WindowGlobalParent* aParentWGP,
   }
 
   if (!mCookieJarSettings) {
-    // Let's inherit the cookie behavior and permission from the embedder
-    // document.
-    mCookieJarSettings = aParentWGP->CookieJarSettings();
+    // Let's clone and inherit the cookie behavior and permission from the
+    // embedder document.
+    mCookieJarSettings =
+        CookieJarSettings::Cast(aParentWGP->CookieJarSettings())->Clone();
     if (topLevelWGP->BrowsingContext()->IsTop()) {
       if (mCookieJarSettings) {
         bool stopAtOurLevel = mCookieJarSettings->GetCookieBehavior() ==

@@ -551,6 +551,8 @@ void CookieJarSettings::SetPartitionKey(nsIURI* aURI,
   OriginAttributes attrs;
   attrs.SetPartitionKey(aURI, aForeignByAncestorContext);
   mPartitionKey = std::move(attrs.mPartitionKey);
+
+  mToBeMerged = true;
 }
 
 void CookieJarSettings::UpdatePartitionKeyForDocumentLoadedByChannel(
@@ -561,6 +563,8 @@ void CookieJarSettings::UpdatePartitionKeyForDocumentLoadedByChannel(
       thirdParty && !loadInfo->GetIsThirdPartyContextToTopWindow();
   StoragePrincipalHelper::UpdatePartitionKeyWithForeignAncestorBit(
       mPartitionKey, foreignByAncestorContext);
+
+  mToBeMerged = true;
 }
 
 void CookieJarSettings::UpdateIsOnContentBlockingAllowList(
@@ -601,6 +605,8 @@ void CookieJarSettings::UpdateIsOnContentBlockingAllowList(
   Unused << ContentBlockingAllowList::Check(contentBlockingAllowListPrincipal,
                                             NS_UsePrivateBrowsing(aChannel),
                                             mIsOnContentBlockingAllowList);
+
+  mToBeMerged = true;
 }
 
 // static
