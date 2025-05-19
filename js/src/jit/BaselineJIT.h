@@ -288,6 +288,11 @@ class alignas(uintptr_t) BaselineScript final
                              size_t retAddrEntries, size_t osrEntries,
                              size_t debugTrapEntries, size_t resumeEntries);
 
+  // Copies the given BaselineScript and all trailing arrays.
+  // Both BaselineScripts will refer to the same method and IonCompileTask (if
+  // any), but those objects won't be compiled.
+  static BaselineScript* Copy(JSContext* cx, BaselineScript* bs);
+
   static void Destroy(JS::GCContext* gcx, BaselineScript* script);
 
   void trace(JSTracer* trc);

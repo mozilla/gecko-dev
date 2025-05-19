@@ -766,6 +766,47 @@ BaselineScript* BaselineScript::New(JSContext* cx,
   return script;
 }
 
+BaselineScript* BaselineScript::Copy(JSContext* cx, BaselineScript* bs) {
+  BaselineScript* script = jit::BaselineScript::New(
+      cx, bs->warmUpCheckPrologueOffset_, bs->profilerEnterToggleOffset_,
+      bs->profilerExitToggleOffset_, bs->retAddrEntries().size(),
+      bs->osrEntries().size(), bs->debugTrapEntries().size(),
+      bs->resumeEntryList().size());
+  if (!script) {
+    return nullptr;
+  }
+
+  script->setMethod(bs->method());
+  script->copyRetAddrEntries(bs->retAddrEntries().data());
+  script->copyOSREntries(bs->osrEntries().data());
+  script->copyDebugTrapEntries(bs->debugTrapEntries().data());
+
+  script->flags_ = bs->flags_;
+
+  // copyResumeNativeOffsets()
+  std::copy_n(bs->resumeEntryList().begin(), script->resumeEntryList().size(),
+              script->resumeEntryList().data());
+
+  if (bs->hasDebugInstrumentation()) {
+    script->setHasDebugInstrumentation();
+  }
+  MOZ_ASSERT(script->method_ == bs->method_);
+  MOZ_ASSERT(script->pendingIonCompileTask_ == bs->pendingIonCompileTask_);
+  MOZ_ASSERT(script->warmUpCheckPrologueOffset_ ==
+             bs->warmUpCheckPrologueOffset_);
+  MOZ_ASSERT(script->profilerEnterToggleOffset_ ==
+             bs->profilerEnterToggleOffset_);
+  MOZ_ASSERT(script->profilerExitToggleOffset_ ==
+             bs->profilerExitToggleOffset_);
+  MOZ_ASSERT(script->resumeEntriesOffset_ == bs->resumeEntriesOffset_);
+  MOZ_ASSERT(script->retAddrEntriesOffset_ == bs->retAddrEntriesOffset_);
+  MOZ_ASSERT(script->osrEntriesOffset_ == bs->osrEntriesOffset_);
+  MOZ_ASSERT(script->debugTrapEntriesOffset_ == bs->debugTrapEntriesOffset_);
+  MOZ_ASSERT(script->allocBytes_ == bs->allocBytes_);
+  MOZ_ASSERT(script->flags_ == bs->flags_);
+  return script;
+}
+
 void BaselineScript::trace(JSTracer* trc) {
   TraceEdge(trc, &method_, "baseline-method");
 }
