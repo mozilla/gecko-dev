@@ -1,111 +1,708 @@
 From: Michael Froman <mfroman@mozilla.com>
 Date: Tue, 13 May 2025 22:39:00 +0000
-Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit a330dd425a
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit bf85c38fb3
  r?pehrsons!
 
-Upstream commit: https://webrtc.googlesource.com/src/+/a330dd425af97cc3ea45da455de7610e468e7f4f
-       Add a SequenceChecker for public API of ScreenCapturerSck
+Upstream commit: https://webrtc.googlesource.com/src/+/bf85c38fb360040c0a6f303a97a03b5929f57011
+       Integrate ScreenCapturerSck with SCContentSharingPicker
+
+       This patch at a high level does the following:
+       - Hooks CreateGenericCapturer to create a ScreenCapturerSck with
+         SCContentSharingPicker if allowed by options and runtime checks (macOS
+         14). It allows both single display and multiple windows picker modes.
+       - Creates a new SckPickerHandle singleton class that manages the number
+         of active pickers, and sets the `active` flag on the shared system
+         picker. It also generates a unique SourceId for each capturer, since
+         the source of a capturer that uses the picker isn't constant and
+         therefore cannot be shared across multiple clients.
+       - Hooks up SCContentSharingPickerObserver callbacks to expose a
+         permanent error in case of an error or picker cancellation.
+
+       The API for the generic capturer is as any other desktop capture
+       backend:
+       - GetSourceList() and SelectSource() works as normal but don't do
+         anything useful.
+       - Start() displays the picker and makes CaptureFrame() start returning
+         temporary errors.
+       - On selection, capture starts and CaptureFrame() starts returning
+         frames.
+       - On cancelling the picker, or if there's an error, CaptureFrame()
+         starts returning permanent errors.
 
        Bug: webrtc:367915807
-       Change-Id: Ie14d5487c273916fc5423cc48bc4cc4d5ff86564
-       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/385923
+       Change-Id: I75cd78897f2e7c9702a5f5683d21ee1a7ea914d5
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365094
+       Reviewed-by: Johannes Kron <kron@webrtc.org>
        Reviewed-by: Alexander Cooper <alcooper@chromium.org>
        Reviewed-by: Tomas Gunnarsson <tommi@webrtc.org>
        Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
-       Cr-Commit-Position: refs/heads/main@{#44423}
+       Cr-Commit-Position: refs/heads/main@{#44426}
 
-Differential Revision: https://phabricator.services.mozilla.com/D249162
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2ef17e40feb5eeec55bb2bf6847f42f5d85d35c9
+Differential Revision: https://phabricator.services.mozilla.com/D249163
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/862fb913f21b1017f6dfb0b7c44754abc73e4827
 ---
- .../mac/screen_capturer_sck.mm                | 19 +++++++++++++------
- 1 file changed, 13 insertions(+), 6 deletions(-)
+ modules/desktop_capture/BUILD.gn              |   4 +
+ modules/desktop_capture/DEPS                  |   1 +
+ .../desktop_capture/desktop_capture_options.h |   9 +
+ modules/desktop_capture/desktop_capturer.cc   |   8 +-
+ .../desktop_capture/mac/sck_picker_handle.h   |  50 ++++
+ .../desktop_capture/mac/sck_picker_handle.mm  | 113 ++++++++
+ .../desktop_capture/mac/screen_capturer_sck.h |   7 +
+ .../mac/screen_capturer_sck.mm                | 260 +++++++++++++++++-
+ 8 files changed, 446 insertions(+), 6 deletions(-)
+ create mode 100644 modules/desktop_capture/mac/sck_picker_handle.h
+ create mode 100644 modules/desktop_capture/mac/sck_picker_handle.mm
 
+diff --git a/modules/desktop_capture/BUILD.gn b/modules/desktop_capture/BUILD.gn
+index d6fd6e7e61..2703ab24d0 100644
+--- a/modules/desktop_capture/BUILD.gn
++++ b/modules/desktop_capture/BUILD.gn
+@@ -607,6 +607,8 @@ if (is_mac) {
+       "mac/desktop_frame_iosurface.mm",
+       "mac/desktop_frame_provider.h",
+       "mac/desktop_frame_provider.mm",
++      "mac/sck_picker_handle.h",
++      "mac/sck_picker_handle.mm",
+       "mac/screen_capturer_mac.h",
+       "mac/screen_capturer_mac.mm",
+       "mac/screen_capturer_sck.h",
+@@ -638,6 +640,8 @@ if (is_mac) {
+       "../../rtc_base/synchronization:mutex",
+       "../../rtc_base/system:rtc_export",
+       "../../sdk:helpers_objc",
++      "//third_party/abseil-cpp/absl/base:core_headers",
++      "//third_party/abseil-cpp/absl/strings:str_format",
+     ]
+     frameworks = [
+       "AppKit.framework",
+diff --git a/modules/desktop_capture/DEPS b/modules/desktop_capture/DEPS
+index 02bdbe111a..d1d41b5ef0 100644
+--- a/modules/desktop_capture/DEPS
++++ b/modules/desktop_capture/DEPS
+@@ -17,6 +17,7 @@ specific_include_rules = {
+     "+sdk/objc",
+   ],
+   "screen_capturer_sck\.mm": [
++    "+absl/strings/str_format.h",
+     "+sdk/objc",
+   ],
+ }
+diff --git a/modules/desktop_capture/desktop_capture_options.h b/modules/desktop_capture/desktop_capture_options.h
+index c44ec6a9e8..51785a4085 100644
+--- a/modules/desktop_capture/desktop_capture_options.h
++++ b/modules/desktop_capture/desktop_capture_options.h
+@@ -79,6 +79,14 @@ class RTC_EXPORT DesktopCaptureOptions {
+   // new versions of macOS that remove support for the CGDisplay-based APIs.
+   bool allow_sck_capturer() const { return allow_sck_capturer_; }
+   void set_allow_sck_capturer(bool allow) { allow_sck_capturer_ = allow; }
++
++  // If ScreenCaptureKit is used for desktop capture and this flag is
++  // set, the ScreenCaptureKit backend will use SCContentSharingPicker for
++  // picking source.
++  bool allow_sck_system_picker() const { return allow_sck_system_picker_; }
++  void set_allow_sck_system_picker(bool allow) {
++    allow_sck_system_picker_ = allow;
++  }
+ #endif
+ 
+   const rtc::scoped_refptr<FullScreenWindowDetector>&
+@@ -243,6 +251,7 @@ class RTC_EXPORT DesktopCaptureOptions {
+   rtc::scoped_refptr<DesktopConfigurationMonitor> configuration_monitor_;
+   bool allow_iosurface_ = false;
+   bool allow_sck_capturer_ = false;
++  bool allow_sck_system_picker_ = false;
+ #endif
+ 
+   rtc::scoped_refptr<FullScreenWindowDetector> full_screen_window_detector_;
+diff --git a/modules/desktop_capture/desktop_capturer.cc b/modules/desktop_capture/desktop_capturer.cc
+index 7fd0fc31d8..45c13751aa 100644
+--- a/modules/desktop_capture/desktop_capturer.cc
++++ b/modules/desktop_capture/desktop_capturer.cc
+@@ -30,6 +30,10 @@
+ #include "modules/desktop_capture/linux/wayland/base_capturer_pipewire.h"
+ #endif
+ 
++#if defined(WEBRTC_MAC)
++#include "modules/desktop_capture/mac/screen_capturer_sck.h"
++#endif
++
+ namespace webrtc {
+ 
+ void LogDesktopCapturerFullscreenDetectorUsage() {
+@@ -117,11 +121,13 @@ std::unique_ptr<DesktopCapturer> DesktopCapturer::CreateGenericCapturer(
+     capturer = std::make_unique<BaseCapturerPipeWire>(
+         options, CaptureType::kAnyScreenContent);
+   }
++#elif defined(WEBRTC_MAC)
++  capturer = CreateGenericCapturerSck(options);
++#endif
+ 
+   if (capturer && options.detect_updated_region()) {
+     capturer.reset(new DesktopCapturerDifferWrapper(std::move(capturer)));
+   }
+-#endif  // defined(WEBRTC_USE_PIPEWIRE)
+ 
+   return capturer;
+ }
+diff --git a/modules/desktop_capture/mac/sck_picker_handle.h b/modules/desktop_capture/mac/sck_picker_handle.h
+new file mode 100644
+index 0000000000..bc32dfd5f7
+--- /dev/null
++++ b/modules/desktop_capture/mac/sck_picker_handle.h
+@@ -0,0 +1,50 @@
++/*
++ *  Copyright (c) 2024 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#ifndef MODULES_DESKTOP_CAPTURE_MAC_SCK_PICKER_HANDLE_H_
++#define MODULES_DESKTOP_CAPTURE_MAC_SCK_PICKER_HANDLE_H_
++
++#include <os/availability.h>
++#include <cstddef>
++#include <memory>
++#include "modules/desktop_capture/desktop_capturer.h"
++
++@class SCContentSharingPicker;
++@class SCStream;
++
++namespace webrtc {
++
++// Helper class to manage multiple users of SCContentSharingPicker.
++//
++// The `active` and `maximumStreamCount` properties are automatically managed on
++// `SCContentSharingPicker.sharedPicker`, which is what is returned from
++// GetPicker().
++//
++// When using this class, for stream limits to work, only create one stream per
++// handle.
++//
++// Designed for single thread use.
++class API_AVAILABLE(macos(14.0)) SckPickerHandleInterface {
++ public:
++  virtual ~SckPickerHandleInterface() = default;
++  // Effectively identical to `SCContentSharingPicker.sharedPicker`.
++  virtual SCContentSharingPicker* GetPicker() const = 0;
++  // A SourceId unique to this handle.
++  virtual DesktopCapturer::SourceId Source() const = 0;
++};
++
++// Returns a newly created picker handle if the stream count limit has not been
++// reached, null otherwise.
++std::unique_ptr<SckPickerHandleInterface> API_AVAILABLE(macos(14.0))
++    CreateSckPickerHandle();
++
++}  // namespace webrtc
++
++#endif  // MODULES_DESKTOP_CAPTURE_MAC_SCK_PICKER_HANDLE_H_
+diff --git a/modules/desktop_capture/mac/sck_picker_handle.mm b/modules/desktop_capture/mac/sck_picker_handle.mm
+new file mode 100644
+index 0000000000..c1b4db19f6
+--- /dev/null
++++ b/modules/desktop_capture/mac/sck_picker_handle.mm
+@@ -0,0 +1,113 @@
++/*
++ *  Copyright (c) 2024 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#include "sck_picker_handle.h"
++
++#import <ScreenCaptureKit/ScreenCaptureKit.h>
++
++#include "absl/base/attributes.h"
++#include "api/sequence_checker.h"
++
++#include <memory>
++#include <optional>
++
++namespace webrtc {
++
++class SckPickerProxy;
++
++class API_AVAILABLE(macos(14.0)) SckPickerProxy {
++ public:
++  static SckPickerProxy* Get() {
++    static SckPickerProxy* g_picker = new SckPickerProxy();
++    return g_picker;
++  }
++
++  SckPickerProxy() : thread_checker_(SequenceChecker::kDetached) {}
++
++  bool AtCapacity() const {
++    RTC_DCHECK_RUN_ON(&thread_checker_);
++    return handle_count_ == kMaximumStreamCount;
++  }
++
++  SCContentSharingPicker* GetPicker() const {
++    return SCContentSharingPicker.sharedPicker;
++  }
++
++  ABSL_MUST_USE_RESULT std::optional<DesktopCapturer::SourceId>
++      AcquireSourceId() {
++    RTC_DCHECK_RUN_ON(&thread_checker_);
++    if (AtCapacity()) {
++      return std::nullopt;
++    }
++    if (handle_count_ == 0) {
++      auto* picker = GetPicker();
++      picker.maximumStreamCount =
++          [NSNumber numberWithUnsignedInt:kMaximumStreamCount];
++      picker.active = YES;
++    }
++    handle_count_ += 1;
++    unique_source_id_ += 1;
++    return unique_source_id_;
++  }
++
++  void RelinquishSourceId(DesktopCapturer::SourceId source) {
++    RTC_DCHECK_RUN_ON(&thread_checker_);
++    handle_count_ -= 1;
++    if (handle_count_ > 0) {
++      return;
++    }
++    // Detach now in case the next user (possibly after a long time) uses a
++    // different thread.
++    thread_checker_.Detach();
++    GetPicker().active = NO;
++  }
++
++ private:
++  webrtc::SequenceChecker thread_checker_;
++  // 100 is an arbitrary number that seems high enough to never get reached,
++  // while still providing a reasonably low upper bound.
++  static constexpr size_t kMaximumStreamCount = 100;
++  size_t handle_count_ RTC_GUARDED_BY(thread_checker_) = 0;
++  DesktopCapturer::SourceId unique_source_id_ RTC_GUARDED_BY(thread_checker_) =
++      0;
++};
++
++class API_AVAILABLE(macos(14.0)) SckPickerHandle
++    : public SckPickerHandleInterface {
++ public:
++  static std::unique_ptr<SckPickerHandle> Create(SckPickerProxy* proxy) {
++    std::optional<DesktopCapturer::SourceId> id = proxy->AcquireSourceId();
++    if (!id) {
++      return nullptr;
++    }
++    return std::unique_ptr<SckPickerHandle>(new SckPickerHandle(proxy, *id));
++  }
++
++  ~SckPickerHandle() { proxy_->RelinquishSourceId(source_); }
++
++  SCContentSharingPicker* GetPicker() const override {
++    return proxy_->GetPicker();
++  }
++
++  DesktopCapturer::SourceId Source() const override { return source_; }
++
++ private:
++  SckPickerHandle(SckPickerProxy* proxy, DesktopCapturer::SourceId source)
++      : proxy_(proxy), source_(source) {}
++
++  SckPickerProxy* const proxy_;
++  const DesktopCapturer::SourceId source_;
++};
++
++std::unique_ptr<SckPickerHandleInterface> CreateSckPickerHandle() {
++  return SckPickerHandle::Create(SckPickerProxy::Get());
++}
++
++}  // namespace webrtc
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.h b/modules/desktop_capture/mac/screen_capturer_sck.h
+index 105cbf0783..e0c467714a 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.h
++++ b/modules/desktop_capture/mac/screen_capturer_sck.h
+@@ -21,10 +21,17 @@ namespace webrtc {
+ // Returns true if the ScreenCaptureKit capturer is available.
+ bool ScreenCapturerSckAvailable();
+ 
++// Returns true if the ScreenCaptureKit capturer is available using
++// SCContentSharingPicker for picking a generic source.
++bool GenericCapturerSckWithPickerAvailable();
++
+ // A DesktopCapturer implementation that uses ScreenCaptureKit.
+ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
+     const DesktopCaptureOptions& options);
+ 
++std::unique_ptr<DesktopCapturer> CreateGenericCapturerSck(
++    const DesktopCaptureOptions& options);
++
+ }  // namespace webrtc
+ 
+ #endif  // MODULES_DESKTOP_CAPTURE_MAC_SCREEN_CAPTURER_SCK_H_
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index e77c6b1745..264a0a8f8b 100644
+index 264a0a8f8b..f180d3bc62 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
 @@ -14,6 +14,7 @@
  
  #include <atomic>
  
-+#include "api/sequence_checker.h"
++#include "absl/strings/str_format.h"
+ #include "api/sequence_checker.h"
  #include "modules/desktop_capture/mac/desktop_frame_iosurface.h"
  #include "modules/desktop_capture/shared_desktop_frame.h"
- #include "rtc_base/logging.h"
-@@ -89,15 +90,17 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
-   // caller's thread.
-   void StartOrReconfigureCapturer();
+@@ -21,6 +22,7 @@
+ #include "rtc_base/synchronization/mutex.h"
+ #include "rtc_base/thread_annotations.h"
+ #include "rtc_base/time_utils.h"
++#include "sck_picker_handle.h"
+ #include "sdk/objc/helpers/scoped_cftyperef.h"
  
-+  // Calls to the public API must happen on a single thread.
-+  webrtc::SequenceChecker api_checker_;
+ using webrtc::DesktopFrameIOSurface;
+@@ -34,7 +36,9 @@ class ScreenCapturerSck;
+ // Also, the `SCContentFilter` fields `contentRect` and `pointPixelScale` were
+ // introduced in macOS 14.
+ API_AVAILABLE(macos(14.0))
+-@interface SckHelper : NSObject <SCStreamDelegate, SCStreamOutput>
++@interface SckHelper : NSObject <SCStreamDelegate,
++                                 SCStreamOutput,
++                                 SCContentSharingPickerObserver>
+ 
+ - (instancetype)initWithCapturer:(webrtc::ScreenCapturerSck*)capturer;
+ 
+@@ -55,7 +59,8 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+     : public DesktopCapturer {
+  public:
+   explicit ScreenCapturerSck(const DesktopCaptureOptions& options);
+-
++  ScreenCapturerSck(const DesktopCaptureOptions& options,
++                    SCContentSharingPickerMode modes);
+   ScreenCapturerSck(const ScreenCapturerSck&) = delete;
+   ScreenCapturerSck& operator=(const ScreenCapturerSck&) = delete;
+ 
+@@ -65,7 +70,16 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+   void Start(DesktopCapturer::Callback* callback) override;
+   void SetMaxFrameRate(uint32_t max_frame_rate) override;
+   void CaptureFrame() override;
++  bool GetSourceList(SourceList* sources) override;
+   bool SelectSource(SourceId id) override;
++  // Prep for implementing DelegatedSourceListController interface, for now used
++  // by Start(). Triggers SCContentSharingPicker. Runs on the caller's thread.
++  void EnsureVisible();
++  // Helper functions to forward SCContentSharingPickerObserver notifications to
++  // source_list_observer_.
++  void NotifySourceSelection(SCContentFilter* filter, SCStream* stream);
++  void NotifySourceCancelled(SCStream* stream);
++  void NotifySourceError();
+ 
+   // Called after a SCStreamDelegate stop notification.
+   void NotifyCaptureStopped(SCStream* stream);
+@@ -102,10 +116,22 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+   // Callback for returning captured frames, or errors, to the caller.
+   Callback* callback_ RTC_GUARDED_BY(api_checker_) = nullptr;
+ 
++  // Helper class that tracks the number of capturers needing
++  // SCContentSharingPicker to stay active.
++  std::unique_ptr<SckPickerHandleInterface> picker_handle_
++      RTC_GUARDED_BY(api_checker_);
 +
-   // Helper object to receive Objective-C callbacks from ScreenCaptureKit and
-   // call into this C++ object. The helper may outlive this C++ instance, if a
-   // completion-handler is passed to ScreenCaptureKit APIs and the C++ object is
-   // deleted before the handler executes.
-   SckHelper* __strong helper_;
- 
--  // Callback for returning captured frames, or errors, to the caller. Only used
--  // on the caller's thread.
--  Callback* callback_ = nullptr;
-+  // Callback for returning captured frames, or errors, to the caller.
-+  Callback* callback_ RTC_GUARDED_BY(api_checker_) = nullptr;
- 
++  // Flag to track if we have added ourselves as observer to picker_handle_.
++  bool picker_handle_registered_ RTC_GUARDED_BY(api_checker_) = false;
++
    // Options passed to the constructor. May be accessed on any thread, but the
    // options are unchanged during the capturer's lifetime.
-@@ -125,8 +128,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
-   uint32_t max_frame_rate_ RTC_GUARDED_BY(lock_) = 0;
+   const DesktopCaptureOptions capture_options_;
  
-   // Used by CaptureFrame() to detect if the screen configuration has changed.
--  // Only used on the caller's thread.
--  MacDesktopConfiguration desktop_config_;
-+  MacDesktopConfiguration desktop_config_ RTC_GUARDED_BY(api_checker_);
- 
-   Mutex latest_frame_lock_ RTC_ACQUIRED_AFTER(lock_);
-   std::unique_ptr<SharedDesktopFrame> latest_frame_
-@@ -152,18 +154,20 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
++  // Modes to use iff using the system picker.
++  // See docs on SCContentSharingPickerMode.
++  const SCContentSharingPickerMode picker_modes_;
++
+   // Signals that a permanent error occurred. This may be set on any thread, and
+   // is read by CaptureFrame() which runs on the caller's thread.
+   std::atomic<bool> permanent_error_ = false;
+@@ -153,12 +179,60 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+       RTC_GUARDED_BY(latest_frame_lock_);
  };
  
- ScreenCapturerSck::ScreenCapturerSck(const DesktopCaptureOptions& options)
--    : capture_options_(options) {
-+    : api_checker_(SequenceChecker::kDetached), capture_options_(options) {
-   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " created";
+-ScreenCapturerSck::ScreenCapturerSck(const DesktopCaptureOptions& options)
+-    : api_checker_(SequenceChecker::kDetached), capture_options_(options) {
+-  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " created";
++/* Helper class for stringifying SCContentSharingPickerMode. Needed as
++ * SCContentSharingPickerMode is a typedef to NSUInteger which we cannot add a
++ * AbslStringify function for. */
++struct StringifiableSCContentSharingPickerMode {
++  const SCContentSharingPickerMode modes_;
++
++  template <typename Sink>
++  friend void AbslStringify(Sink& sink,
++                            const StringifiableSCContentSharingPickerMode& m) {
++    auto modes = m.modes_;
++    if (@available(macos 14, *)) {
++      bool empty = true;
++      const std::tuple<SCContentSharingPickerMode, const char*> all_modes[] = {
++          {SCContentSharingPickerModeSingleWindow, "SingleWindow"},
++          {SCContentSharingPickerModeMultipleWindows, "MultiWindow"},
++          {SCContentSharingPickerModeSingleApplication, "SingleApp"},
++          {SCContentSharingPickerModeMultipleApplications, "MultiApp"},
++          {SCContentSharingPickerModeSingleDisplay, "SingleDisplay"}};
++      for (const auto& [mode, text] : all_modes) {
++        if (modes & mode) {
++          modes = modes & (~mode);
++          absl::Format(&sink, "%s%s", empty ? "" : "|", text);
++          empty = false;
++        }
++      }
++      if (modes) {
++        absl::Format(&sink, "%sRemaining=%v", empty ? "" : "|", modes);
++      }
++      return;
++    }
++    absl::Format(&sink, "%v", modes);
++  }
++};
++
++ScreenCapturerSck::ScreenCapturerSck(const DesktopCaptureOptions& options,
++                                     SCContentSharingPickerMode modes)
++    : api_checker_(SequenceChecker::kDetached),
++      capture_options_(options),
++      picker_modes_(modes) {
++  if (capture_options_.allow_sck_system_picker()) {
++    picker_handle_ = CreateSckPickerHandle();
++  }
++  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this
++                   << " created. allow_sck_system_picker="
++                   << capture_options_.allow_sck_system_picker() << ", source="
++                   << (picker_handle_ ? picker_handle_->Source() : -1)
++                   << ", modes="
++                   << StringifiableSCContentSharingPickerMode{.modes_ = modes};
    helper_ = [[SckHelper alloc] initWithCapturer:this];
  }
  
++ScreenCapturerSck::ScreenCapturerSck(const DesktopCaptureOptions& options)
++    : ScreenCapturerSck(options, SCContentSharingPickerModeSingleDisplay) {}
++
  ScreenCapturerSck::~ScreenCapturerSck() {
-+  RTC_DCHECK_RUN_ON(&api_checker_);
+   RTC_DCHECK_RUN_ON(&api_checker_);
    RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " destroyed.";
-   [stream_ stopCaptureWithCompletionHandler:nil];
-   [helper_ releaseCapturer];
- }
- 
- void ScreenCapturerSck::Start(DesktopCapturer::Callback* callback) {
-+  RTC_DCHECK_RUN_ON(&api_checker_);
-   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " " << __func__ << ".";
+@@ -172,6 +246,10 @@ void ScreenCapturerSck::Start(DesktopCapturer::Callback* callback) {
    callback_ = callback;
    desktop_config_ =
-@@ -172,6 +176,7 @@ void ScreenCapturerSck::Start(DesktopCapturer::Callback* callback) {
+       capture_options_.configuration_monitor()->desktop_configuration();
++  if (capture_options_.allow_sck_system_picker()) {
++    EnsureVisible();
++    return;
++  }
+   StartOrReconfigureCapturer();
  }
  
- void ScreenCapturerSck::SetMaxFrameRate(uint32_t max_frame_rate) {
+@@ -244,6 +322,105 @@ void ScreenCapturerSck::CaptureFrame() {
+   }
+ }
+ 
++void ScreenCapturerSck::EnsureVisible() {
 +  RTC_DCHECK_RUN_ON(&api_checker_);
-   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " SetMaxFrameRate("
-                    << max_frame_rate << ").";
-   bool stream_started = false;
-@@ -190,6 +195,7 @@ void ScreenCapturerSck::SetMaxFrameRate(uint32_t max_frame_rate) {
++  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " " << __func__ << ".";
++  if (picker_handle_) {
++    if (!picker_handle_registered_) {
++      picker_handle_registered_ = true;
++      [picker_handle_->GetPicker() addObserver:helper_];
++    }
++  } else {
++    // We reached the maximum number of streams.
++    RTC_LOG(LS_ERROR)
++        << "ScreenCapturerSck " << this
++        << " EnsureVisible() reached the maximum number of streams.";
++    permanent_error_ = true;
++    return;
++  }
++  SCContentSharingPicker* picker = picker_handle_->GetPicker();
++  SCStream* stream;
++  {
++    MutexLock lock(&lock_);
++    stream = stream_;
++    stream_ = nil;
++    filter_ = nil;
++    MutexLock lock2(&latest_frame_lock_);
++    frame_needs_reconfigure_ = false;
++    frame_reconfigure_img_size_ = std::nullopt;
++  }
++  [stream removeStreamOutput:helper_ type:SCStreamOutputTypeScreen error:nil];
++  [stream stopCaptureWithCompletionHandler:nil];
++  SCContentSharingPickerConfiguration* config = picker.defaultConfiguration;
++  config.allowedPickerModes = picker_modes_;
++  picker.defaultConfiguration = config;
++  SCShareableContentStyle style = SCShareableContentStyleNone;
++  // Pick a sensible style to start out with, based on our current mode.
++  if (@available(macOS 15, *)) {
++    // Stick with None because if we use Display, the picker doesn't let us
++    // pick a window when first opened. Behaves like Window in 14 except doesn't
++    // change window focus.
++  } else {
++    // Default to Display because if using Window the picker automatically hides
++    // our current window to show others. Saves a click compared to None when
++    // picking a display.
++    style = SCShareableContentStyleDisplay;
++  }
++  if (picker_modes_ == SCContentSharingPickerModeSingleDisplay) {
++    style = SCShareableContentStyleDisplay;
++  } else if (picker_modes_ == SCContentSharingPickerModeSingleWindow ||
++             picker_modes_ == SCContentSharingPickerModeMultipleWindows) {
++    style = SCShareableContentStyleWindow;
++  } else if (picker_modes_ == SCContentSharingPickerModeSingleApplication ||
++             picker_modes_ == SCContentSharingPickerModeMultipleApplications) {
++    style = SCShareableContentStyleApplication;
++  }
++  // This dies silently if maximumStreamCount streams are already running. We
++  // need our own stream count bookkeeping because of this, and to be able to
++  // unset `active`.
++  [picker presentPickerForStream:stream usingContentStyle:style];
++}
++
++void ScreenCapturerSck::NotifySourceSelection(SCContentFilter* filter,
++                                              SCStream* stream) {
++  MutexLock lock(&lock_);
++  if (stream_ != stream) {
++    // The picker selected a source for another capturer.
++    RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " " << __func__
++                     << ". stream_ != stream.";
++    return;
++  }
++  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " " << __func__
++                   << ". Starting.";
++  StartWithFilter(filter);
++}
++
++void ScreenCapturerSck::NotifySourceCancelled(SCStream* stream) {
++  MutexLock lock(&lock_);
++  if (stream_ != stream) {
++    // The picker was cancelled for another capturer.
++    return;
++  }
++  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " " << __func__ << ".";
++  if (!stream_) {
++    // The initial picker was cancelled. There is no stream to fall back to.
++    permanent_error_ = true;
++  }
++}
++
++void ScreenCapturerSck::NotifySourceError() {
++  {
++    MutexLock lock(&lock_);
++    if (stream_) {
++      // The picker failed to start. But fear not, it was not our picker,
++      // we already have a stream!
++      return;
++    }
++  }
++  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " " << __func__ << ".";
++  permanent_error_ = true;
++}
++
+ void ScreenCapturerSck::NotifyCaptureStopped(SCStream* stream) {
+   MutexLock lock(&lock_);
+   if (stream_ != stream) {
+@@ -253,8 +430,22 @@ void ScreenCapturerSck::NotifyCaptureStopped(SCStream* stream) {
+   permanent_error_ = true;
  }
  
- void ScreenCapturerSck::CaptureFrame() {
++bool ScreenCapturerSck::GetSourceList(SourceList* sources) {
 +  RTC_DCHECK_RUN_ON(&api_checker_);
-   int64_t capture_start_time_millis = rtc::TimeMillis();
- 
-   if (permanent_error_) {
-@@ -248,6 +254,7 @@ void ScreenCapturerSck::NotifyCaptureStopped(SCStream* stream) {
- }
- 
++  sources->clear();
++  if (capture_options_.allow_sck_system_picker() && picker_handle_) {
++    sources->push_back({picker_handle_->Source(), std::string()});
++  }
++  return true;
++}
++
  bool ScreenCapturerSck::SelectSource(SourceId id) {
-+  RTC_DCHECK_RUN_ON(&api_checker_);
+   RTC_DCHECK_RUN_ON(&api_checker_);
++
++  if (capture_options_.allow_sck_system_picker()) {
++    return true;
++  }
++
    RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " SelectSource(id=" << id
                     << ").";
    bool stream_started = false;
+@@ -528,6 +719,14 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface,
+ }
+ 
+ void ScreenCapturerSck::StartOrReconfigureCapturer() {
++  if (capture_options_.allow_sck_system_picker()) {
++    MutexLock lock(&lock_);
++    if (filter_) {
++      StartWithFilter(filter_);
++    }
++    return;
++  }
++
+   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " " << __func__ << ".";
+   // The copy is needed to avoid capturing `this` in the Objective-C block.
+   // Accessing `helper_` inside the block is equivalent to `this->helper_` and
+@@ -558,6 +757,27 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
+   return nullptr;
+ }
+ 
++bool GenericCapturerSckWithPickerAvailable() {
++  bool available = false;
++  if (@available(macOS 14.0, *)) {
++    available = true;
++  }
++  return available;
++}
++
++std::unique_ptr<DesktopCapturer> CreateGenericCapturerSck(
++    const DesktopCaptureOptions& options) {
++  if (@available(macOS 14.0, *)) {
++    if (options.allow_sck_system_picker()) {
++      return std::make_unique<ScreenCapturerSck>(
++          options,
++          SCContentSharingPickerModeSingleDisplay |
++              SCContentSharingPickerModeMultipleWindows);
++    }
++  }
++  return nullptr;
++}
++
+ }  // namespace webrtc
+ 
+ @implementation SckHelper {
+@@ -602,6 +822,36 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
+   }
+ }
+ 
++- (void)contentSharingPicker:(SCContentSharingPicker*)picker
++         didUpdateWithFilter:(SCContentFilter*)filter
++                   forStream:(SCStream*)stream {
++  webrtc::MutexLock lock(&_capturer_lock);
++  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << _capturer << " " << __func__
++                   << ".";
++  if (_capturer) {
++    _capturer->NotifySourceSelection(filter, stream);
++  }
++}
++
++- (void)contentSharingPicker:(SCContentSharingPicker*)picker
++          didCancelForStream:(SCStream*)stream {
++  webrtc::MutexLock lock(&_capturer_lock);
++  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << _capturer << " " << __func__
++                   << ".";
++  if (_capturer) {
++    _capturer->NotifySourceCancelled(stream);
++  }
++}
++
++- (void)contentSharingPickerStartDidFailWithError:(NSError*)error {
++  webrtc::MutexLock lock(&_capturer_lock);
++  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << _capturer << " " << __func__
++                   << ". error.code=" << error.code;
++  if (_capturer) {
++    _capturer->NotifySourceError();
++  }
++}
++
+ - (void)stream:(SCStream*)stream
+     didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
+                    ofType:(SCStreamOutputType)type {
