@@ -337,7 +337,7 @@ class Repository:
             )
 
     @abc.abstractmethod
-    def get_branch_nodes(
+    def get_commits(
         self,
         head: Optional[str] = None,
         limit: Optional[int] = None,

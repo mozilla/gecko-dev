@@ -94,11 +94,11 @@ def get_stack_info(
     print("Using", base_commit, f"as the {base_commit_vcs} base commit.")
 
     # Reuse the base revision when on Mercurial to avoid multiple calls to `hg log`.
-    branch_nodes_kwargs = {}
+    get_commits_kwargs = {}
     if isinstance(vcs, HgRepository):
-        branch_nodes_kwargs["base_ref"] = vcs.base_ref
+        get_commits_kwargs["base_ref"] = base_commit
 
-    nodes = vcs.get_branch_nodes(head, **branch_nodes_kwargs)
+    nodes = vcs.get_commits(head, **get_commits_kwargs)
     if not nodes:
         raise ValueError("Could not find any commit hashes for submission.")
     elif len(nodes) == 1:

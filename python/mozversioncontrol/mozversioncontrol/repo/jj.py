@@ -67,7 +67,7 @@ class JujutsuRepository(Repository):
         See bug 1962245 and bug 1962389.
 
         An alternative option would be to add an extra argument to methods such as
-        `get_branch_nodes`.
+        `get_commits`.
         """
         self._run("log", "-n0")
 
@@ -299,7 +299,7 @@ class JujutsuRepository(Repository):
     def set_config(self, name, value):
         self._run_read_only("config", name, value)
 
-    def get_branch_nodes(
+    def get_commits(
         self,
         head: Optional[str] = "@",
         limit: Optional[int] = None,

@@ -7,7 +7,7 @@ subsuite = "mozversioncontrol"
 
 ["test_context_manager.py"]
 
-["test_get_branch_nodes.py"]
+["test_get_commits.py"]
 
 ["test_get_commit_patches.py"]
 
