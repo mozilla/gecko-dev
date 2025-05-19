@@ -28,7 +28,7 @@ import mozilla.components.feature.top.sites.DefaultTopSitesStorage
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
-import mozilla.components.support.utils.ManufacturerCodes
+import mozilla.components.support.utils.BuildManufacturerChecker
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
@@ -295,7 +295,7 @@ class DefaultBrowserToolbarMenuController(
                         if (isInstallable()) {
                             addToHomescreen()
                         } else {
-                            if (ManufacturerCodes.isXiaomi) {
+                            if (BuildManufacturerChecker().isXiaomi()) {
                                 val directions =
                                     BrowserFragmentDirections.actionBrowserFragmentToCreateXiaomiShortcutFragment()
                                 navController.navigateSafe(R.id.browserFragment, directions)

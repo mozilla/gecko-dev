@@ -12,6 +12,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceViewHolder
 import com.google.android.material.switchmaterial.SwitchMaterial
 import mozilla.components.support.utils.Browsers
+import mozilla.components.support.utils.BuildManufacturerChecker
 import mozilla.components.support.utils.ext.navigateToDefaultBrowserAppsSettings
 import org.mozilla.focus.GleanMetrics.SetDefaultBrowser
 import org.mozilla.focus.R
@@ -64,13 +65,13 @@ class DefaultBrowserPreference @JvmOverloads constructor(
                             ),
                         )
                     } else {
-                        context.navigateToDefaultBrowserAppsSettings()
+                        context.navigateToDefaultBrowserAppsSettings(BuildManufacturerChecker())
                         SetDefaultBrowser.fromOsSettings.record(SetDefaultBrowser.FromOsSettingsExtra(isDefault))
                     }
                 }
             }
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> {
-                context.navigateToDefaultBrowserAppsSettings()
+                context.navigateToDefaultBrowserAppsSettings(BuildManufacturerChecker())
                 SetDefaultBrowser.fromOsSettings.record(SetDefaultBrowser.FromOsSettingsExtra(isDefault))
             }
             else -> {

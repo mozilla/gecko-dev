@@ -12,7 +12,8 @@ import org.mozilla.fenix.perf.StrictModeManager
  * A test version of [StrictModeManager]. This class is difficult to mock because of [resetAfter]
  * so we provide a test implementation.
  */
-class TestStrictModeManager : StrictModeManager(mockk(relaxed = true), mockk(relaxed = true)) {
+class TestStrictModeManager :
+    StrictModeManager(mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true)) {
 
     // This method is hard to mock because this method needs to return the return value of the
     // function passed in.

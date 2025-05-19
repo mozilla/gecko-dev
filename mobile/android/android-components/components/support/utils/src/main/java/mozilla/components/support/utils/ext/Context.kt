@@ -17,7 +17,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.components.support.utils.ManufacturerCodes
+import mozilla.components.support.utils.BuildManufacturerChecker
 
 const val SETTINGS_SELECT_OPTION_KEY = ":settings:fragment_args_key"
 const val SETTINGS_SHOW_FRAGMENT_ARGS = ":settings:show_fragment_args"
@@ -29,9 +29,9 @@ private val logger = Logger("navigateToDefaultBrowserAppsSettings")
  * Open OS settings for default browser.
  */
 @RequiresApi(Build.VERSION_CODES.N)
-fun Context.navigateToDefaultBrowserAppsSettings() {
+fun Context.navigateToDefaultBrowserAppsSettings(buildManufacturerChecker: BuildManufacturerChecker) {
     val intent = when {
-        ManufacturerCodes.isHuawei -> Intent(ACTION_MANAGE_DEFAULT_APPS_SETTINGS_HUAWEI)
+        buildManufacturerChecker.isHuawei() -> Intent(ACTION_MANAGE_DEFAULT_APPS_SETTINGS_HUAWEI)
         else -> Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).apply {
             putExtra(
                 SETTINGS_SELECT_OPTION_KEY,

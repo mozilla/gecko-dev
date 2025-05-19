@@ -9,12 +9,9 @@ import io.mockk.MockKAnnotations
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.impl.annotations.RelaxedMockK
-import io.mockk.mockkObject
-import io.mockk.unmockkAll
 import io.mockk.verify
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.components.support.utils.ManufacturerCodes
-import org.junit.After
+import mozilla.components.support.utils.ManufacturerChecker
 import org.junit.Before
 import org.junit.Test
 import org.mozilla.fenix.helpers.StackTraces
@@ -23,6 +20,8 @@ class ThreadPenaltyDeathWithIgnoresListenerTest {
 
     @RelaxedMockK private lateinit var logger: Logger
     private lateinit var listener: ThreadPenaltyDeathWithIgnoresListener
+
+    @MockK private lateinit var mockManufacturerChecker: ManufacturerChecker
 
     @MockK private lateinit var violation: Violation
     private lateinit var stackTrace: Array<StackTraceElement>
@@ -37,11 +36,6 @@ class ThreadPenaltyDeathWithIgnoresListenerTest {
         every { violation.stackTrace } answers { stackTrace }
     }
 
-    @After
-    fun tearDown() {
-        unmockkAll()
-    }
-
     @Test(expected = RuntimeException::class)
     fun `WHEN provided an arbitrary violation that does not conflict with ignores THEN we throw an exception`() {
         stackTrace = Exception().stackTrace
@@ -50,8 +44,7 @@ class ThreadPenaltyDeathWithIgnoresListenerTest {
 
     @Test
     fun `GIVEN we're on a Samsung WHEN provided an IdsController violation THEN it will be ignored and logged`() {
-        mockkObject(ManufacturerCodes)
-        every { ManufacturerCodes.isSamsung } returns true
+        every { mockManufacturerChecker.isSamsung() } returns true
 
         every { violation.stackTrace } returns getIdsControllerStackTrace()
         listener.onThreadViolation(violation)
@@ -61,8 +54,7 @@ class ThreadPenaltyDeathWithIgnoresListenerTest {
 
     @Test(expected = RuntimeException::class)
     fun `GIVEN we're not on a Samsung WHEN provided an IdsController violation THEN we throw an exception`() {
-        mockkObject(ManufacturerCodes)
-        every { ManufacturerCodes.isSamsung } returns false
+        every { mockManufacturerChecker.isSamsung() } returns false
 
         every { violation.stackTrace } returns getIdsControllerStackTrace()
         listener.onThreadViolation(violation)
@@ -70,8 +62,7 @@ class ThreadPenaltyDeathWithIgnoresListenerTest {
 
     @Test
     fun `GIVEN we're on a Samsung WHEN provided the EdmStorageProvider violation THEN it will be ignored and logged`() {
-        mockkObject(ManufacturerCodes)
-        every { ManufacturerCodes.isSamsung } returns true
+        every { mockManufacturerChecker.isSamsung() } returns true
 
         every { violation.stackTrace } returns getEdmStorageProviderStackTrace()
         listener.onThreadViolation(violation)
@@ -81,9 +72,8 @@ class ThreadPenaltyDeathWithIgnoresListenerTest {
 
     @Test(expected = RuntimeException::class)
     fun `GIVEN we're not on a Samsung or LG WHEN provided the EdmStorageProvider violation THEN we throw an exception`() {
-        mockkObject(ManufacturerCodes)
-        every { ManufacturerCodes.isSamsung } returns false
-        every { ManufacturerCodes.isLG } returns false
+        every { mockManufacturerChecker.isSamsung() } returns false
+        every { mockManufacturerChecker.isLG() } returns false
 
         every { violation.stackTrace } returns getEdmStorageProviderStackTrace()
         listener.onThreadViolation(violation)

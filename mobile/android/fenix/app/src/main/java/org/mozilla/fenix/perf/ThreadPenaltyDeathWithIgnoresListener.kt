@@ -9,7 +9,8 @@ import android.os.StrictMode
 import android.os.strictmode.Violation
 import androidx.annotation.RequiresApi
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.components.support.utils.ManufacturerCodes
+import mozilla.components.support.utils.BuildManufacturerChecker
+import mozilla.components.support.utils.ManufacturerChecker
 
 private const val FCQN_EDM_STORAGE_PROVIDER_BASE = "com.android.server.enterprise.storage.EdmStorageProviderBase"
 private const val IDS_CONTROLLER_CLASS = "android.app.IdsController"
@@ -27,6 +28,7 @@ private const val INSTRUMENTED_HOOKS_CLASS = "com.android.tools.deploy.instrumen
 @RequiresApi(Build.VERSION_CODES.P)
 class ThreadPenaltyDeathWithIgnoresListener(
     private val logger: Logger = Performance.logger,
+    private val manufacturerChecker: ManufacturerChecker = BuildManufacturerChecker(),
 ) : StrictMode.OnThreadViolationListener {
 
     override fun onThreadViolation(violation: Violation?) {
@@ -56,7 +58,7 @@ class ThreadPenaltyDeathWithIgnoresListener(
         // When launching in debug on a Galaxy S22+ from Android Studio then we hit a DiskReadViolation
         // IdsController doesn't appear in Android code search so we match against it.
         // https://cs.android.com/search?q=IdsController
-        return ManufacturerCodes.isSamsung && violation.stackTrace.any { it.className == IDS_CONTROLLER_CLASS }
+        return manufacturerChecker.isSamsung() && violation.stackTrace.any { it.className == IDS_CONTROLLER_CLASS }
     }
 
     private fun isSamsungLgEdmStorageProviderStartupViolation(violation: Violation): Boolean {
@@ -70,7 +72,7 @@ class ThreadPenaltyDeathWithIgnoresListener(
         // This issue occurs on the Galaxy S10e, Galaxy A50, Note 10, and LG G7 FIT but not the S7:
         // I'm guessing it's just a problem on recent Samsungs and LGs so it's okay being in this P+
         // listener.
-        if (!ManufacturerCodes.isSamsung && !ManufacturerCodes.isLG) {
+        if (!manufacturerChecker.isSamsung() && !manufacturerChecker.isLG()) {
             return false
         }
 

@@ -25,6 +25,7 @@ import mozilla.components.support.remotesettings.DefaultRemoteSettingsSyncSchedu
 import mozilla.components.support.remotesettings.RemoteSettingsServer
 import mozilla.components.support.remotesettings.RemoteSettingsService
 import mozilla.components.support.remotesettings.into
+import mozilla.components.support.utils.BuildManufacturerChecker
 import mozilla.components.support.utils.ClipboardHandler
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.Config
@@ -193,7 +194,7 @@ class Components(private val context: Context) {
     val performance by lazyMonitored { PerformanceComponent() }
     val push by lazyMonitored { Push(context, analytics.crashReporter) }
     val wifiConnectionMonitor by lazyMonitored { WifiConnectionMonitor(context as Application) }
-    val strictMode by lazyMonitored { StrictModeManager(Config, this) }
+    val strictMode by lazyMonitored { StrictModeManager(Config, this, BuildManufacturerChecker()) }
     val privateBrowsingLockFeature by lazyMonitored {
         PrivateBrowsingLockFeature(
             appStore = appStore,

@@ -11,10 +11,13 @@ import org.junit.Test
 
 class ManufacturerCodesTest {
 
+    private val buildManufacturerChecker = BuildManufacturerChecker()
+
     @Test
     fun testIsHuawei() {
-        manufacturer = "Huawei" // expected value for Huawei devices
+        manufacturer = "HuaWei" // expected value for Huawei devices
         assertTrue(ManufacturerCodes.isHuawei)
+        assertTrue(buildManufacturerChecker.isHuawei())
 
         assertFalse(ManufacturerCodes.isSamsung)
 
@@ -29,11 +32,12 @@ class ManufacturerCodesTest {
 
     @Test
     fun testIsSamsung() {
-        manufacturer = "Samsung" // expected value for Samsung devices
+        manufacturer = "SAmsung" // expected value for Samsung devices
 
         assertFalse(ManufacturerCodes.isHuawei)
 
         assertTrue(ManufacturerCodes.isSamsung)
+        assertTrue(buildManufacturerChecker.isSamsung())
 
         assertFalse(ManufacturerCodes.isXiaomi)
 
@@ -46,7 +50,7 @@ class ManufacturerCodesTest {
 
     @Test
     fun testIsXiaomi() {
-        manufacturer = "Xiaomi" // expected value for Xiaomi devices
+        manufacturer = "xiaomI" // expected value for Xiaomi devices
 
         assertFalse(ManufacturerCodes.isHuawei)
 
@@ -55,6 +59,7 @@ class ManufacturerCodesTest {
         assertFalse(ManufacturerCodes.isOnePlus)
 
         assertTrue(ManufacturerCodes.isXiaomi)
+        assertTrue(buildManufacturerChecker.isXiaomi())
 
         assertFalse(ManufacturerCodes.isLG)
 
@@ -63,7 +68,7 @@ class ManufacturerCodesTest {
 
     @Test
     fun testIsOnePlus() {
-        manufacturer = "OnePlus" // expected value for OnePlus devices
+        manufacturer = "OnePlUs" // expected value for OnePlus devices
 
         assertFalse(ManufacturerCodes.isHuawei)
 
@@ -72,6 +77,7 @@ class ManufacturerCodesTest {
         assertFalse(ManufacturerCodes.isXiaomi)
 
         assertTrue(ManufacturerCodes.isOnePlus)
+        assertTrue(buildManufacturerChecker.isOnePlus())
 
         assertFalse(ManufacturerCodes.isLG)
 
@@ -91,6 +97,7 @@ class ManufacturerCodesTest {
         assertFalse(ManufacturerCodes.isOnePlus)
 
         assertTrue(ManufacturerCodes.isLG)
+        assertTrue(buildManufacturerChecker.isLG())
 
         assertFalse(ManufacturerCodes.isOppo)
     }
@@ -110,5 +117,6 @@ class ManufacturerCodesTest {
         assertFalse(ManufacturerCodes.isLG)
 
         assertTrue(ManufacturerCodes.isOppo)
+        assertTrue(buildManufacturerChecker.isOppo())
     }
 }

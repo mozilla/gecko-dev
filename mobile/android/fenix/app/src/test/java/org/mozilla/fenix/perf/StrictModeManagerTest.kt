@@ -45,10 +45,10 @@ class StrictModeManagerTest {
         // These tests log a warning that mockk couldn't set the backing field of Config.channel
         // but it doesn't seem to impact their correctness so I'm ignoring it.
         val debugConfig: Config = mockk { every { channel } returns ReleaseChannel.Debug }
-        debugManager = StrictModeManager(debugConfig, components)
+        debugManager = StrictModeManager(debugConfig, components, mockk())
 
         val releaseConfig: Config = mockk { every { channel } returns ReleaseChannel.Release }
-        releaseManager = StrictModeManager(releaseConfig, components)
+        releaseManager = StrictModeManager(releaseConfig, components, mockk())
     }
 
     @After

@@ -14,6 +14,7 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.Browsers
+import mozilla.components.support.utils.BuildManufacturerChecker
 import mozilla.components.support.utils.ext.navigateToDefaultBrowserAppsSettings
 import org.mozilla.focus.ext.settings
 import org.mozilla.focus.state.AppAction
@@ -84,12 +85,12 @@ class DefaultOnboardingController(
                             handleFinishOnBoarding()
                         }
                     } else {
-                        context.navigateToDefaultBrowserAppsSettings()
+                        context.navigateToDefaultBrowserAppsSettings(BuildManufacturerChecker())
                     }
                 }
             }
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> {
-                context.navigateToDefaultBrowserAppsSettings()
+                context.navigateToDefaultBrowserAppsSettings(BuildManufacturerChecker())
             }
         }
     }
