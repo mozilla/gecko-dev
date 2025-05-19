@@ -54,12 +54,15 @@ class BaselineFrame {
     // See comment above 'isDebuggee' in vm/Realm.h for explanation
     // of invariants of debuggee compartments, scripts, and frames.
     DEBUGGEE = 1 << 6,
-    SELF_HOSTED = 1 << 7,
+
+    // Frame is executing Realm-independent Jitcode, which requires
+    // a valid interpreterScript_ field.
+    REALM_INDEPENDENT = 1 << 7,
   };
 
  protected:  // Silence Clang warning about unused private fields.
   // The fields below are only valid if RUNNING_IN_INTERPRETER or
-  // isSelfHosted().
+  // isRealmIndependent().
   JSScript* interpreterScript_;
   // The fields below are only valid if RUNNING_IN_INTERPRETER.
   jsbytecode* interpreterPC_;
@@ -243,7 +246,7 @@ class BaselineFrame {
   }
 
   bool runningInInterpreter() const { return flags_ & RUNNING_IN_INTERPRETER; }
-  bool isSelfHosted() const { return flags_ & SELF_HOSTED; }
+  bool isRealmIndependent() const { return flags_ & REALM_INDEPENDENT; }
 
   JSScript* interpreterScript() const {
     MOZ_ASSERT(runningInInterpreter());
