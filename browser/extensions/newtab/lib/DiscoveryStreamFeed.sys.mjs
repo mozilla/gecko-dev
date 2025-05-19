@@ -107,6 +107,10 @@ const PREF_CONTEXTUAL_CONTENT_FAKESPOT_CTA_COPY =
   "discoverystream.contextualContent.fakespot.ctaCopy";
 const PREF_CONTEXTUAL_CONTENT_FAKESPOT_CTA_URL =
   "discoverystream.contextualContent.fakespot.ctaUrl";
+const PREF_USER_INFERRED_PERSONALIZATION =
+  "discoverystream.sections.personalization.inferred.user.enabled";
+const PREF_SYSTEM_INFERRED_PERSONALIZATION =
+  "discoverystream.sections.personalization.inferred.enabled";
 
 const PREF_SECTIONS_ENABLED = "discoverystream.sections.enabled";
 const PREF_SECTIONS_FOLLOWING = "discoverystream.sections.following";
@@ -1957,6 +1961,13 @@ export class DiscoveryStreamFeed {
 
   formatComponentFeedRequest(sectionPersonalization = {}) {
     const prefs = this.store.getState().Prefs.values;
+    const inferredPersonalization =
+      prefs[PREF_USER_INFERRED_PERSONALIZATION] &&
+      prefs[PREF_SYSTEM_INFERRED_PERSONALIZATION];
+    const merinoOhttpEnabled = Services.prefs.getBoolPref(
+      "browser.newtabpage.activity-stream.discoverystream.merino-provider.ohttp.enabled",
+      false
+    );
     const headers = new Headers();
     if (this.isMerino) {
       const topicSelectionEnabled = prefs[PREF_TOPIC_SELECTION_ENABLED];
@@ -1986,10 +1997,16 @@ export class DiscoveryStreamFeed {
       // To display the inline interest picker pass `enableInterestPicker` into the request
       const interestPickerEnabled = prefs[PREF_INTEREST_PICKER_ENABLED];
 
+      let inferredInterests = null;
+      if (inferredPersonalization && merinoOhttpEnabled) {
+        inferredInterests =
+          this.store.getState().InferredPersonalization.interestVector || {};
+      }
       const requestMetadata = {
         utc_offset: lazy.NewTabUtils.getUtcOffset(),
         coarse_os: lazy.NewTabUtils.normalizeOs(),
         surface_id: prefs[PREF_SURFACE_ID] || "",
+        inferredInterests,
       };
 
       headers.append("content-type", "application/json");
