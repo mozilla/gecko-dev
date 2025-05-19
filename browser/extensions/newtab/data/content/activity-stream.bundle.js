@@ -12200,7 +12200,7 @@ function SectionsMgmtPanel({
   }))));
 }
 
-;// CONCATENATED MODULE: ./content-src/components/WallpapersSection/WallpaperCategories.jsx
+;// CONCATENATED MODULE: ./content-src/components/WallpaperCategories/WallpaperCategories.jsx
 function WallpaperCategories_extends() { WallpaperCategories_extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return WallpaperCategories_extends.apply(this, arguments); }
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,

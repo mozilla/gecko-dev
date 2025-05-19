@@ -260,14 +260,15 @@ module.exports = function (config) {
               branches: 68.75,
             },
             /**
-             * WallpaperSection.jsx is tested via an xpcshell test
+             * WallpaperCategories.jsx is tested via an xpcshell test
              */
-            "content-src/components/WallpapersSection/*.jsx": {
-              statements: 0,
-              lines: 0,
-              functions: 0,
-              branches: 0,
-            },
+            "content-src/components/WallpaperCategories/WallpaperCategories.jsx":
+              {
+                statements: 0,
+                lines: 0,
+                functions: 0,
+                branches: 0,
+              },
             /**
              * Notifications.jsx is tested via an xpcshell test
              */

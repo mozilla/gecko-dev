@@ -30,10 +30,10 @@ module.exports = {
         "content-src/components/DiscoveryStreamComponents/DSEmptyState/DSEmptyState.jsx",
         "content-src/components/DiscoveryStreamComponents/DSPrivacyModal/DSPrivacyModal.jsx",
         "content-src/components/CustomizeMenu/**",
-        "content-src/components/WallpapersSection/**",
         "content-src/components/DiscoveryStreamComponents/TopicSelection/TopicSelection.jsx",
         "content-src/components/DiscoveryStreamComponents/InterestPicker/InterestPicker.jsx",
         "content-src/components/DiscoveryStreamComponents/ReportContent/ReportContent.jsx",
+        "content-src/components/WallpaperCategories/WallpaperCategories.jsx",
       ],
       rules: {
         "jsx-a11y/anchor-has-content": "off",

@@ -5,7 +5,7 @@
 import React from "react";
 import { actionCreators as ac } from "common/Actions.mjs";
 import { SectionsMgmtPanel } from "../SectionsMgmtPanel/SectionsMgmtPanel";
-import { WallpaperCategories } from "../../WallpapersSection/WallpaperCategories";
+import { WallpaperCategories } from "../../WallpaperCategories/WallpaperCategories";
 
 export class ContentSection extends React.PureComponent {
   constructor(props) {
