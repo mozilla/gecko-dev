@@ -775,7 +775,7 @@ add_task(async function test_tabInteractions() {
     "Test that duplicating a tab within a group calls tab_interactions.duplicate"
   );
   await assertMetricEmpty("duplicate");
-  win.gBrowser.duplicateTab(group.tabs[0], true, { index: 2 });
+  win.gBrowser.duplicateTab(group.tabs[0], true, { tabIndex: 2 });
   await assertOneMetricFoundFor("duplicate");
 
   info(

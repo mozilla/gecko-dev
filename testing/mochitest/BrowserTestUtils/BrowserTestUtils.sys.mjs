@@ -1957,7 +1957,7 @@ export var BrowserTestUtils = {
     let overflowDirection = gBrowser.tabContainer.verticalMode
       ? "height"
       : "width";
-    let index = params.overflowAtStart ? 0 : undefined;
+    let tabIndex = params.overflowAtStart ? 0 : undefined;
     let arrowScrollbox = gBrowser.tabContainer.arrowScrollbox;
     if (arrowScrollbox.hasAttribute("overflowing")) {
       return;
@@ -1990,7 +1990,7 @@ export var BrowserTestUtils = {
       promises.push(
         BrowserTestUtils.addTab(gBrowser, "about:blank", {
           skipAnimation: true,
-          index,
+          tabIndex,
         })
       );
     }
