@@ -1,35 +1,81 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Tue, 13 May 2025 22:38:00 +0000
-Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit 3039b61768
+Date: Tue, 13 May 2025 22:39:00 +0000
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit eab708b022
  r?pehrsons!
 
-Upstream commit: https://webrtc.googlesource.com/src/+/3039b617687c2bb2e7ff8adf2500f44140667dc3
-       In ScreenCapturerSck don't restart on SelectSource if display didn't change
+Upstream commit: https://webrtc.googlesource.com/src/+/eab708b022a250da68eaa0777cc2dd6e1f1ce910
+       For ScreenCapturerSck implement SetMaxFrameRate
 
        Bug: webrtc:367915807
-       Change-Id: I637b7f46a766fe9120f3f30c15f3903f5aec1d3d
-       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365087
-       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Change-Id: I2bb138fc8c5f9ce6dd8b7f6a10b0e03135ae9fc4
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365089
+       Reviewed-by: Johannes Kron <kron@webrtc.org>
        Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
-       Cr-Commit-Position: refs/heads/main@{#44210}
+       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Cr-Commit-Position: refs/heads/main@{#44219}
 
-Differential Revision: https://phabricator.services.mozilla.com/D249156
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d463d67dfde5b7db6c8df4804b48f9c57137378d
+Differential Revision: https://phabricator.services.mozilla.com/D249157
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/69b231ec4854509fa8c7958ee05a6541d4c359bb
 ---
- modules/desktop_capture/mac/screen_capturer_sck.mm | 3 +++
- 1 file changed, 3 insertions(+)
+ .../mac/screen_capturer_sck.mm                | 27 ++++++++++++++++---
+ 1 file changed, 24 insertions(+), 3 deletions(-)
 
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 9379940504..479b5ba666 100644
+index 479b5ba666..1bc70cfce3 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -203,6 +203,9 @@ bool ScreenCapturerSck::SelectSource(SourceId id) {
-   bool stream_started = false;
-   {
-     MutexLock lock(&lock_);
-+    if (current_display_ == id) {
-+      return true;
-+    }
-     current_display_ = id;
+@@ -111,6 +111,9 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+   // first display.
+   CGDirectDisplayID current_display_ RTC_GUARDED_BY(lock_) = 0;
  
-     if (stream_) {
++  // Configured maximum frame rate in frames per second.
++  uint32_t max_frame_rate_ RTC_GUARDED_BY(lock_) = 0;
++
+   // Used by CaptureFrame() to detect if the screen configuration has changed.
+   // Only used on the caller's thread.
+   MacDesktopConfiguration desktop_config_;
+@@ -151,8 +154,22 @@ void ScreenCapturerSck::Start(DesktopCapturer::Callback* callback) {
+   StartOrReconfigureCapturer();
+ }
+ 
+-void ScreenCapturerSck::SetMaxFrameRate(uint32_t /* max_frame_rate */) {
+-  // TODO: crbug.com/327458809 - Implement this.
++void ScreenCapturerSck::SetMaxFrameRate(uint32_t max_frame_rate) {
++  RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " SetMaxFrameRate("
++                   << max_frame_rate << ").";
++  bool stream_started = false;
++  {
++    MutexLock lock(&lock_);
++    if (max_frame_rate_ == max_frame_rate) {
++      return;
++    }
++
++    max_frame_rate_ = max_frame_rate;
++    stream_started = stream_;
++  }
++  if (stream_started) {
++    StartOrReconfigureCapturer();
++  }
+ }
+ 
+ void ScreenCapturerSck::CaptureFrame() {
+@@ -275,6 +292,9 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content,
+   config.width = filter.contentRect.size.width * filter.pointPixelScale;
+   config.height = filter.contentRect.size.height * filter.pointPixelScale;
+   config.captureResolution = SCCaptureResolutionNominal;
++  config.minimumFrameInterval = max_frame_rate_ > 0 ?
++      CMTimeMake(1, static_cast<int32_t>(max_frame_rate_)) :
++      kCMTimeZero;
+ 
+   {
+     MutexLock lock(&latest_frame_lock_);
+@@ -284,7 +304,8 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content,
+   if (stream_) {
+     RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this
+                      << " Updating stream configuration to size="
+-                     << config.width << "x" << config.height << ".";
++                     << config.width << "x" << config.height
++                     << " and max_frame_rate=" << max_frame_rate_ << ".";
+     [stream_ updateContentFilter:filter completionHandler:nil];
+     [stream_ updateConfiguration:config completionHandler:nil];
+   } else {
