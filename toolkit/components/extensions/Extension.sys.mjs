@@ -443,6 +443,14 @@ function clearCacheForExtensionPrincipal(principal, clearAll = false) {
     return Promise.reject(new Error("Unexpected non extension principal"));
   }
 
+  if (Services.startup.shuttingDown) {
+    return Promise.reject(
+      new Error(
+        `clearCacheForExtensionPrincipal called after shutdown was initiated`
+      )
+    );
+  }
+
   // TODO(Bug 1750053): replace the two specific flags with a "clear all caches one"
   // (along with covering the other kind of cached data with tests).
   const clearDataFlags = clearAll
