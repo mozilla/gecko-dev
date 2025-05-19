@@ -13,6 +13,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/TouchEvents.h"
+#include "gfxPlatform.h"
 #include "nsContentUtils.h"
 #include "nsIDocShell.h"
 #include "nsExceptionHandler.h"

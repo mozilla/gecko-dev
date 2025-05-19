@@ -22,6 +22,7 @@
 #include "nsGlobalWindowInner.h"
 #include "nsPIDOMWindow.h"
 #include "nsQueryObject.h"
+#include "gfxPlatform.h"
 
 using namespace mozilla;
 
