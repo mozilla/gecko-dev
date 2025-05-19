@@ -113,6 +113,14 @@ static void kde_colors_changed(GFileMonitor* self, void*, void*,
   OnSettingsChange(lnf, NativeChangeKind::GtkTheme);
 }
 
+static float GetGtkTextScaleFactor() {
+  GdkScreen* s = gdk_screen_get_default();
+  if (!s) {
+    return 1.0f;
+  }
+  return float(gdk_screen_get_resolution(s) / 96.0);
+}
+
 static bool sCSDAvailable;
 
 static nsCString GVariantToString(GVariant* aVariant) {
@@ -1266,7 +1274,7 @@ nsresult nsLookAndFeel::NativeGetFloat(FloatID aID, float& aResult) {
       aResult = mSystemTheme.mCaretRatio;
       break;
     case FloatID::TextScaleFactor:
-      aResult = gfxPlatformGtk::GetFontScaleFactor();
+      aResult = mTextScaleFactor;
       break;
     default:
       aResult = -1.0;
@@ -1303,7 +1311,7 @@ static void GetSystemFontInfo(GtkStyleContext* aStyle, nsString* aFontName,
   // pixels.
   if (pango_font_description_get_size_is_absolute(desc)) {
     // Undo the already-applied font scale.
-    size /= gfxPlatformGtk::GetFontScaleFactor();
+    size /= GetGtkTextScaleFactor();
   } else {
     // |size| is in pango-points, so convert to pixels.
     size *= 96 / POINTS_PER_INCH_FLOAT;
@@ -1317,11 +1325,12 @@ static void GetSystemFontInfo(GtkStyleContext* aStyle, nsString* aFontName,
 
 bool nsLookAndFeel::NativeGetFont(FontID aID, nsString& aFontName,
                                   gfxFontStyle& aFontStyle) {
-  return mSystemTheme.GetFont(aID, aFontName, aFontStyle);
+  return mSystemTheme.GetFont(aID, aFontName, aFontStyle, mTextScaleFactor);
 }
 
 bool nsLookAndFeel::PerThemeData::GetFont(FontID aID, nsString& aFontName,
-                                          gfxFontStyle& aFontStyle) const {
+                                          gfxFontStyle& aFontStyle,
+                                          float aTextScaleFactor) const {
   switch (aID) {
     case FontID::Menu:             // css2
     case FontID::MozPullDownMenu:  // css3
@@ -1351,12 +1360,10 @@ bool nsLookAndFeel::PerThemeData::GetFont(FontID aID, nsString& aFontName,
       break;
   }
 
-  // Convert GDK unscaled pixels to CSS pixels.
-  // When "layout.css.devPixelsPerPx" > 0, this is not a direct conversion.
-  // The difference produces a scaling of system fonts in proportion with
-  // other scaling from the change in CSS pixel sizes.
-  aFontStyle.size *=
-      gfxPlatformGtk::GetFontScaleFactor() / LookAndFeel::GetTextScaleFactor();
+  // Convert GDK pixels to CSS pixels.
+  // Note that this is generally a no-op, except when text scale factor is
+  // overridden by pref.
+  aFontStyle.size *= aTextScaleFactor / LookAndFeel::GetTextScaleFactor();
   return true;
 }
 
@@ -1755,6 +1762,8 @@ void nsLookAndFeel::Initialize() {
 
 void nsLookAndFeel::InitializeGlobalSettings() {
   GtkSettings* settings = gtk_settings_get_default();
+
+  mTextScaleFactor = GetGtkTextScaleFactor();
 
   mColorSchemePreference = ComputeColorSchemeSetting();
 

@@ -174,7 +174,8 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
 
     void Init();
     nsresult GetColor(ColorID, nscolor&) const;
-    bool GetFont(FontID, nsString& aFontName, gfxFontStyle&) const;
+    bool GetFont(FontID, nsString& aFontName, gfxFontStyle&,
+                 float aTextScaleFactor) const;
     void InitCellHighlightColors();
   };
 
@@ -228,6 +229,7 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   int32_t mCSDCloseButtonPosition = 0;
   TitlebarAction mDoubleClickAction = TitlebarAction::None;
   TitlebarAction mMiddleClickAction = TitlebarAction::None;
+  float mTextScaleFactor = 1.0f;
 
   RefPtr<GtkCssProvider> mRoundedCornerProvider;
   void UpdateRoundedBottomCornerStyles();

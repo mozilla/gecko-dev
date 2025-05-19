@@ -83,12 +83,6 @@ using namespace mozilla::unicode;
 using namespace mozilla::widget;
 
 static FT_Library gPlatformFTLibrary = nullptr;
-static int32_t sDPI;
-
-static void screen_resolution_changed(GdkScreen* aScreen, GParamSpec* aPspec,
-                                      gpointer aClosure) {
-  sDPI = 0;
-}
 
 #if defined(MOZ_X11)
 // TODO(aosmond): The envvar is deprecated. We should remove it once EGL is the
@@ -127,12 +121,6 @@ gfxPlatformGtk::gfxPlatformGtk() {
   gPlatformFTLibrary = Factory::NewFTLibrary();
   MOZ_RELEASE_ASSERT(gPlatformFTLibrary);
   Factory::SetFTLibrary(gPlatformFTLibrary);
-
-  GdkScreen* gdkScreen = gdk_screen_get_default();
-  if (gdkScreen) {
-    g_signal_connect(gdkScreen, "notify::resolution",
-                     G_CALLBACK(screen_resolution_changed), nullptr);
-  }
 
   // Bug 1714483: Force disable FXAA Antialiasing on NV drivers. This is a
   // temporary workaround for a driver bug.
@@ -458,33 +446,6 @@ void gfxPlatformGtk::ReadSystemFontList(
 
 bool gfxPlatformGtk::CreatePlatformFontList() {
   return gfxPlatformFontList::Initialize(new gfxFcPlatformFontList);
-}
-
-int32_t gfxPlatformGtk::GetFontScaleDPI() {
-  MOZ_ASSERT(XRE_IsParentProcess(),
-             "You can access this via LookAndFeel if you need it in child "
-             "processes");
-  if (MOZ_LIKELY(sDPI != 0)) {
-    return sDPI;
-  }
-  int32_t dpi = 0;
-  if (GdkScreen* screen = gdk_screen_get_default()) {
-    // Ensure settings in config files are processed.
-    gtk_settings_get_for_screen(screen);
-    dpi = int32_t(round(gdk_screen_get_resolution(screen)));
-  }
-  if (dpi <= 0) {
-    // Fall back to something reasonable
-    dpi = 96;
-  }
-  sDPI = dpi;
-  return dpi;
-}
-
-double gfxPlatformGtk::GetFontScaleFactor() {
-  // Modern GTK works fine with non-integer scaling, and scaling factors like
-  // 1.25 are common as "Large text" in gnome as well, so no need to round.
-  return GetFontScaleDPI() / 96.0;
 }
 
 gfxImageFormat gfxPlatformGtk::GetOffscreenFormat() {
