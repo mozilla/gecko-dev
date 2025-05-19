@@ -94,9 +94,11 @@ int ShowProgressUI() {
   gtk_window_set_icon(GTK_WINDOW(sWin), sPixbuf);
   g_object_unref(sPixbuf);
 
-  GtkWidget* vbox = gtk_vbox_new(TRUE, 6);
+  GtkWidget* vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+  gtk_box_set_homogeneous(GTK_BOX(vbox), TRUE);
   sLabel = gtk_label_new(sStrings.info.get());
-  gtk_misc_set_alignment(GTK_MISC(sLabel), 0.0f, 0.0f);
+  g_object_set(sLabel, "xalign", 0, nullptr);
+  g_object_set(sLabel, "yalign", 0, nullptr);
   sProgressBar = gtk_progress_bar_new();
 
   gtk_box_pack_start(GTK_BOX(vbox), sLabel, FALSE, FALSE, 0);
