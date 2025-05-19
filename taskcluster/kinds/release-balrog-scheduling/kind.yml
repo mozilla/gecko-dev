@@ -34,13 +34,13 @@ tasks:
                         by-release-type:
                             beta: [32]
                             release: [145]
-                            esr128: [17916]
+                            esr140: [18015]
                             default: []
                     staging:
                         by-release-type:
                             beta: [32]
                             release: [145]
-                            esr128: [3085]
+                            esr140: [3090]
                             default: []
             background-rate:
                 by-release-type:

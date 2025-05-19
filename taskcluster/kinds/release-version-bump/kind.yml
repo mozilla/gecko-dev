@@ -28,6 +28,7 @@ task-defaults:
                 mozilla-release: firefox-release
                 mozilla-esr115: firefox-esr115
                 mozilla-esr128: firefox-esr128
+                mozilla-esr140: firefox-esr140
                 try:
                     by-release-type:
                         beta: staging-firefox-beta
@@ -35,6 +36,7 @@ task-defaults:
                         release-rc: staging-firefox-release
                         esr115: staging-firefox-esr115
                         esr128: staging-firefox-esr128
+                        esr140: staging-firefox-esr140
                         default: ""
                 default: ""
         # used to map hg revisions to the git revisions that landoscript needs
@@ -44,6 +46,7 @@ task-defaults:
                 mozilla-release: https://hg.mozilla.org/releases/mozilla-release
                 mozilla-esr115: https://hg.mozilla.org/releases/mozilla-esr115
                 mozilla-esr128: https://hg.mozilla.org/releases/mozilla-esr128
+                mozilla-esr140: https://hg.mozilla.org/releases/mozilla-esr140
                 try: https://hg.mozilla.org/try
                 default: ""
         # We're bumping both desktop and mobile version regardless of which product is getting

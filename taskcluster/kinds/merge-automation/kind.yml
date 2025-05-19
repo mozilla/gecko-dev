@@ -34,17 +34,17 @@ tasks:
                             central-to-beta: staging-firefox-beta
                             early-to-late-beta: staging-firefox-beta
                             beta-to-release: staging-firefox-release
-                            release-to-esr: staging-firefox-esr128
+                            release-to-esr: staging-firefox-esr140
                             bump-central: staging-firefox-main
-                            bump-esr128: staging-firefox-esr128
+                            bump-esr140: staging-firefox-esr140
                     default:
                         by-behavior:
                             central-to-beta: firefox-beta
                             early-to-late-beta: firefox-beta
                             beta-to-release: firefox-release
-                            release-to-esr: firefox-esr128
+                            release-to-esr: firefox-esr140
                             bump-central: firefox-main
-                            bump-esr128: firefox-esr128
+                            bump-esr140: firefox-esr140
             dontbuild: false
             l10n-bump-info:
                 by-behavior:

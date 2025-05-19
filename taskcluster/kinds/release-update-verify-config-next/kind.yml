@@ -13,7 +13,7 @@ transforms:
 task-defaults:
     name: update-verify-config-next
     run-on-projects: []  # to make sure this never runs as part of CI
-    run-on-releases: [esr128]
+    run-on-releases: [esr140]
     shipping-phase: promote
     worker-type: b-linux-gcp
     worker:
@@ -53,7 +53,7 @@ task-defaults:
         updater-platform: linux-x86_64
         product: firefox
         channel: "esr-localtest-next"
-        include-version: esr128-next
+        include-version: esr140-next
         last-watershed: "68.0esr"
 
 tasks:

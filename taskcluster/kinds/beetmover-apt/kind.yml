@@ -29,4 +29,4 @@ tasks:
             - nightly
             - beta
             - release
-            - esr128
+            - esr140

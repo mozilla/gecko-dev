@@ -102,6 +102,7 @@ class ArtifactJob:
     esr_candidate_trees = [
         "releases/mozilla-esr115",
         "releases/mozilla-esr128",
+        "releases/mozilla-esr140",
     ]
     try_tree = "try"
 
@@ -864,6 +865,7 @@ class ThunderbirdMixin:
     esr_candidate_trees = [
         "releases/comm-esr115",
         "releases/comm-esr128",
+        "releases/comm-esr140",
     ]
 
 

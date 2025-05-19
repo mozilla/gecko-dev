@@ -62,6 +62,7 @@ task-defaults:
                         default: "72.0.2"
                 esr115: "68.0esr"
                 esr128: "128.0esr"
+                esr140: "140.0esr"
                 default: "default"
 
 tasks:

@@ -21,7 +21,7 @@ transforms:
 task-defaults:
     name: update-verify-next
     run-on-projects: []  # to make sure this never runs as part of CI
-    run-on-releases: [esr128]
+    run-on-releases: [esr140]
     shipping-phase: promote
     worker-type: b-linux-gcp
     worker:

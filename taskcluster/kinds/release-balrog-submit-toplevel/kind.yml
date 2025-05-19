@@ -46,7 +46,7 @@ tasks:
                 by-release-type:
                     beta: ["firefox-beta-cdntest", "firefox-beta-localtest"]
                     release(-rc)?: ["firefox-release-cdntest", "firefox-release-localtest"]
-                    esr128: ["firefox-esr128-cdntest", "firefox-esr128-localtest"]
+                    esr140: ["firefox-esr140-cdntest", "firefox-esr140-localtest"]
                     default: []
             pin-channels:
                 by-release-type:
