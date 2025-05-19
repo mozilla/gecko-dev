@@ -625,7 +625,12 @@ void HTMLDialogElement::SetDialogCloseWatcherIfNeeded() {
 
   RefPtr<Document> doc = OwnerDoc();
   RefPtr window = doc->GetInnerWindow();
-  MOZ_ASSERT(window);
+  // XXX: Spec does not assert that the dialog is connected to a window.
+  // There are cases (document.implementation) where `window` might be
+  // null. These cases should not establish a CloseWatcher.
+  if (!window) {
+    return;
+  }
 
   // 1. Set dialog's close watcher to the result of establishing a close watcher
   // given dialog's relevant global object, with:
