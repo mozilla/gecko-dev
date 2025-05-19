@@ -3,6 +3,9 @@
 const { RemoteSettings } = ChromeUtils.importESModule(
   "resource://services-settings/remote-settings.sys.mjs"
 );
+const { RemoteSettingsExperimentLoader } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
+);
 
 let rsClient;
 
@@ -19,7 +22,7 @@ add_setup(async function () {
   });
 
   await ExperimentAPI.ready();
-  await ExperimentAPI._rsLoader.finishedUpdating();
+  await RemoteSettingsExperimentLoader.finishedUpdating();
 
   registerCleanupFunction(async () => {
     await SpecialPowers.popPrefEnv();
@@ -35,7 +38,7 @@ add_task(async function test_experimentEnrollment() {
     clear: true,
   });
 
-  await ExperimentAPI._rsLoader.updateRecipes("mochitest");
+  await RemoteSettingsExperimentLoader.updateRecipes("mochitest");
 
   let meta = NimbusFeatures.testFeature.getEnrollmentMetadata();
   Assert.equal(meta.slug, recipe.slug, "Enrollment active");
@@ -55,11 +58,11 @@ add_task(async function test_experimentEnrollment_startup() {
     set: [["app.shield.optoutstudies.enabled", false]],
   });
 
-  Assert.ok(!ExperimentAPI._rsLoader._enabled, "Should be disabled");
+  Assert.ok(!RemoteSettingsExperimentLoader._enabled, "Should be disabled");
 
   await SpecialPowers.pushPrefEnv({
     set: [["app.shield.optoutstudies.enabled", true]],
   });
 
-  Assert.ok(ExperimentAPI._rsLoader._enabled, "Should be enabled");
+  Assert.ok(RemoteSettingsExperimentLoader._enabled, "Should be enabled");
 });

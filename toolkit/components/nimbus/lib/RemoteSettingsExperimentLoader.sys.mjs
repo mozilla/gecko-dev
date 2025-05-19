@@ -164,7 +164,7 @@ export const CheckRecipeResult = {
   },
 };
 
-export class RemoteSettingsExperimentLoader {
+export class _RemoteSettingsExperimentLoader {
   get LOCK_ID() {
     return "remote-settings-experiment-loader:update";
   }
@@ -174,8 +174,6 @@ export class RemoteSettingsExperimentLoader {
   }
 
   constructor(manager) {
-    this.manager = manager;
-
     // Has the timer been set?
     this._enabled = false;
     // Are we in the middle of updating recipes already?
@@ -184,6 +182,9 @@ export class RemoteSettingsExperimentLoader {
     this._hasUpdatedOnce = false;
     // deferred promise object that resolves after recipes are updated
     this._updatingDeferred = Promise.withResolvers();
+
+    // Make it possible to override for testing
+    this.manager = manager ?? lazy.ExperimentAPI.manager;
 
     this.remoteSettingsClients = {};
     ChromeUtils.defineLazyGetter(
@@ -1090,3 +1091,6 @@ export class EnrollmentsContext {
     return schema;
   }
 }
+
+export const RemoteSettingsExperimentLoader =
+  new _RemoteSettingsExperimentLoader();

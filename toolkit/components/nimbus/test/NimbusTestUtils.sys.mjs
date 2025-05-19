@@ -16,7 +16,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
-  RemoteSettingsExperimentLoader:
+  _RemoteSettingsExperimentLoader:
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
 });
@@ -282,7 +282,7 @@ export const NimbusTestUtils = {
     },
 
     rsLoader(manager) {
-      const loader = new lazy.RemoteSettingsExperimentLoader(
+      const loader = new lazy._RemoteSettingsExperimentLoader(
         manager ?? NimbusTestUtils.stubs.manager()
       );
 
@@ -573,7 +573,7 @@ export const NimbusTestUtils = {
    * @property {object} sandbox
    *           A sinon sandbox.
    *
-   * @property {RemoteSettingsExperimentLoader} loader
+   * @property {_RemoteSettingsExperimentLoader} loader
    *           A RemoteSettingsExperimentLoader instance that has stubbed
    *           RemoteSettings clients.
    *

@@ -3,9 +3,10 @@
 const { FirstStartup } = ChromeUtils.importESModule(
   "resource://gre/modules/FirstStartup.sys.mjs"
 );
-const { EnrollmentsContext, MatchStatus } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
-);
+const { RemoteSettingsExperimentLoader, EnrollmentsContext, MatchStatus } =
+  ChromeUtils.importESModule(
+    "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
+  );
 const { RemoteSettings } = ChromeUtils.importESModule(
   "resource://services-settings/remote-settings.sys.mjs"
 );
@@ -17,6 +18,14 @@ const RUN_INTERVAL_PREF = "app.normandy.run_interval_seconds";
 const STUDIES_OPT_OUT_PREF = "app.shield.optoutstudies.enabled";
 const UPLOAD_PREF = "datareporting.healthreport.uploadEnabled";
 const DEBUG_PREF = "nimbus.debug";
+
+add_task(async function test_real_exp_manager() {
+  equal(
+    RemoteSettingsExperimentLoader.manager,
+    ExperimentAPI.manager,
+    "should reference ExperimentManager singleton by default"
+  );
+});
 
 add_task(async function test_lazy_pref_getters() {
   const { sandbox, loader, cleanup } = await NimbusTestUtils.setupTest();

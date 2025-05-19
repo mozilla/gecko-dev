@@ -5,6 +5,9 @@
 const { RemoteSettings } = ChromeUtils.importESModule(
   "resource://services-settings/remote-settings.sys.mjs"
 );
+const { RemoteSettingsExperimentLoader } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
+);
 
 async function setup(recipes) {
   const sandbox = sinon.createSandbox();
@@ -32,7 +35,7 @@ add_setup(async function () {
     ],
   });
 
-  await ExperimentAPI._rsLoader.finishedUpdating();
+  await RemoteSettingsExperimentLoader.finishedUpdating();
 
   registerCleanupFunction(async () => {
     await SpecialPowers.popPrefEnv();
