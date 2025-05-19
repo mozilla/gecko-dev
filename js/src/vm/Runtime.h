@@ -534,6 +534,12 @@ struct JSRuntime {
       JS::GCHashMap<js::PreBarriered<JSAtom*>, js::frontend::ScriptIndexRange,
                     js::DefaultHasher<JSAtom*>, js::SystemAllocPolicy>>
       selfHostScriptMap;
+  // A cache for a self-hosted function's JitCode (managed through a
+  // BaselineScript) keyed by script index.
+  js::MainThreadData<
+      js::GCHashMap<js::PreBarriered<JSAtom*>, js::jit::BaselineScript*,
+                    js::DefaultHasher<JSAtom*>, js::SystemAllocPolicy>>
+      selfHostJitCache;
 
  private:
   /* Gecko profiling metadata */

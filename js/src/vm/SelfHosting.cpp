@@ -55,6 +55,7 @@
 #include "frontend/FrontendContext.h"     // AutoReportFrontendContext
 #include "frontend/StencilXdr.h"  // js::EncodeStencil, js::DecodeStencil
 #include "jit/AtomicOperations.h"
+#include "jit/BaselineJIT.h"
 #include "jit/InlinableNatives.h"
 #include "jit/TrampolineNatives.h"
 #include "js/CompilationAndEvaluation.h"
@@ -2725,6 +2726,7 @@ void JSRuntime::finishSelfHosting() {
   selfHostStencil_ = nullptr;
 
   selfHostScriptMap.ref().clear();
+  selfHostJitCache.ref().clear();
 }
 
 void JSRuntime::traceSelfHostingStencil(JSTracer* trc) {
@@ -2732,6 +2734,7 @@ void JSRuntime::traceSelfHostingStencil(JSTracer* trc) {
     selfHostStencilInput_->trace(trc);
   }
   selfHostScriptMap.ref().trace(trc);
+  selfHostJitCache.ref().trace(trc);
 }
 
 GeneratorKind JSRuntime::getSelfHostedFunctionGeneratorKind(
@@ -2801,7 +2804,7 @@ bool JSRuntime::delazifySelfHostedFunction(JSContext* cx,
   auto& stencil = cx->runtime()->selfHostStencil();
 
   if (!stencil.delazifySelfHostedFunction(
-          cx, cx->runtime()->selfHostStencilInput().atomCache, indexRange,
+          cx, cx->runtime()->selfHostStencilInput().atomCache, indexRange, name,
           targetFun)) {
     return false;
   }
