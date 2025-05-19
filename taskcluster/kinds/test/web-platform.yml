@@ -75,14 +75,14 @@ web-platform-tests:
             default: 7200
     variants:
         - no-fission
-        - geckoview-no-fission-ship
+        - geckoview-no-fission-no-ship
         - async-event-dispatching
         - privatebrowsing
         - inc-origin-init
         - privatebrowsing-inc-origin-init
     run-on-projects:
         by-variant:
-            geckoview-no-fission-ship:
+            geckoview-no-fission-no-ship:
                 by-test-platform:
                     android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android-em.*: built-projects
@@ -546,7 +546,7 @@ web-platform-tests-wdspec:
                     - --test-type=wdspec
     variants:
         - no-fission
-        - geckoview-no-fission-ship
+        - geckoview-no-fission-no-ship
         - headless
         - async-event-dispatching
     run-on-projects:
@@ -562,7 +562,7 @@ web-platform-tests-wdspec:
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
                     android.*: built-projects
                     default: []
-            geckoview-no-fission-ship:
+            geckoview-no-fission-no-ship:
                 by-test-platform:
                     android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android-em.*: built-projects

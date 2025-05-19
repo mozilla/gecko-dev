@@ -198,7 +198,7 @@ reftest:
             default: 8
     variants:
         - draw-snapshot
-        - geckoview-no-fission-ship
+        - geckoview-no-fission-no-ship
         - no-fission
         - no-gpu-process
         - webrender-dcomp-disabled
@@ -236,7 +236,7 @@ reftest:
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
                     android.*: built-projects
                     default: []
-            geckoview-no-fission-ship:
+            geckoview-no-fission-no-ship:
                 by-test-platform:
                     android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android-em.*: built-projects

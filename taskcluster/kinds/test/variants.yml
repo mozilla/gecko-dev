@@ -138,18 +138,18 @@ no-fission:
             extra-options:
                 - "--disable-fission"
 
-geckoview-no-fission-ship:
+geckoview-no-fission-no-ship:
     description: "{description} with fission disabled and ship enabled"
     component: "GeckoView::General"
     expiration: "2025-09-01"
-    suffix: "nofis-ship"
+    suffix: "nofis-noship"
     when:
         <<: *gv_e10s_filter
     merge:
         mozharness:
             extra-options:
                 - "--disable-fission"
-                - "--setpref=fission.disableSessionHistoryInParent=false"
+                - "--setpref=fission.disableSessionHistoryInParent=true"
 
 xorigin:
     description: "{description} with cross-origin"
