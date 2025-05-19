@@ -1897,7 +1897,7 @@ import org.mozilla.geckoview.SessionTextInput.EditableListener.IMEState;
       if (modeHint.equals("tel")) {
         outAttrs.inputType = InputType.TYPE_CLASS_PHONE;
       } else if (modeHint.equals("url")) {
-        outAttrs.inputType = InputType.TYPE_TEXT_VARIATION_URI;
+        outAttrs.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI;
       } else if (modeHint.equals("email")) {
         outAttrs.inputType |= InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS;
       } else if (modeHint.equals("numeric")) {
