@@ -408,6 +408,9 @@ class nsDocShellLoadState final {
 
   void MaybeStripTrackerQueryStrings(mozilla::dom::BrowsingContext* aContext);
 
+  void SetSourceElement(mozilla::dom::Element* aElement);
+  already_AddRefed<mozilla::dom::Element> GetSourceElement() const;
+
  protected:
   // Destructor can't be defaulted or inlined, as header doesn't have all type
   // includes it needs to do so.
@@ -658,6 +661,8 @@ class nsDocShellLoadState final {
   // Solely for the use of collecting Telemetry for HTTPS upgrades.
   nsILoadInfo::HTTPSUpgradeTelemetryType mHttpsUpgradeTelemetry =
       nsILoadInfo::NOT_INITIALIZED;
+
+  nsWeakPtr mSourceElement;
 };
 
 #endif /* nsDocShellLoadState_h__ */

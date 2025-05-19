@@ -1402,3 +1402,11 @@ nsIURI* nsDocShellLoadState::GetUnstrippedURI() const { return mUnstrippedURI; }
 void nsDocShellLoadState::SetUnstrippedURI(nsIURI* aUnstrippedURI) {
   mUnstrippedURI = aUnstrippedURI;
 }
+
+void nsDocShellLoadState::SetSourceElement(mozilla::dom::Element* aElement) {
+  mSourceElement = do_GetWeakReference(aElement);
+}
+already_AddRefed<Element> nsDocShellLoadState::GetSourceElement() const {
+  nsCOMPtr<Element> element = do_QueryReferent(mSourceElement);
+  return element.forget();
+}
