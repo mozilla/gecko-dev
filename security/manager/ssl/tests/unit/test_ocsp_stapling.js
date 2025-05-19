@@ -224,23 +224,23 @@ function add_tests() {
     SEC_ERROR_OCSP_UNKNOWN_CERT,
     true
   );
+  // If the server staples an OCSP response that doesn't contain a status for
+  // the server certificate, we defer returning the error and attempt to fetch
+  // a more suitable response. If that fails, the deferred error is returned.
   add_ocsp_test(
     "ocsp-stapling-good-other.example.com",
     MOZILLA_PKIX_ERROR_OCSP_RESPONSE_FOR_CERT_MISSING,
+    true,
     true
   );
   // If the server doesn't staple an OCSP response, we continue as normal
   // (this means that even though stapling is enabled, we expect an OCSP
   // request).
-  add_connection_test(
+  add_ocsp_test(
     "ocsp-stapling-none.example.com",
     PRErrorCodeSuccess,
-    function () {
-      gExpectOCSPRequest = true;
-      clearOCSPCache();
-      clearSessionCache();
-      Services.prefs.setBoolPref("security.ssl.enable_ocsp_stapling", true);
-    }
+    true,
+    true
   );
   add_ocsp_test(
     "ocsp-stapling-empty.example.com",

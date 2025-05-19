@@ -910,7 +910,9 @@ Result NSSCertDBTrustDomain::CheckRevocationByOCSP(
     } else if (stapledOCSPResponseResult ==
                    Result::ERROR_OCSP_TRY_SERVER_LATER ||
                stapledOCSPResponseResult ==
-                   Result::ERROR_OCSP_INVALID_SIGNING_CERT) {
+                   Result::ERROR_OCSP_INVALID_SIGNING_CERT ||
+               stapledOCSPResponseResult ==
+                   Result::ERROR_OCSP_RESPONSE_FOR_CERT_MISSING) {
       // Stapled OCSP response present but invalid for a small number of reasons
       // CAs/servers commonly get wrong. This will be treated similarly to an
       // expired stapled response.
