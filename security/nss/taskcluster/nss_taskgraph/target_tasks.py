@@ -24,6 +24,7 @@ PLATFORM_ALIASES = {
     "win-make": "windows2022-32",
     "win64": "windows2022-64",
     "win": "windows2022-32",
+    "mac": "macosx64",
 }
 
 

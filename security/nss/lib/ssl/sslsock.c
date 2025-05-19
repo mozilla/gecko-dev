@@ -97,7 +97,8 @@ static sslOptions ssl_defaults = {
     .enableTls13BackendEch = PR_FALSE,
     .callExtensionWriterOnEchInner = PR_FALSE,
     .enableGrease = PR_FALSE,
-    .enableChXtnPermutation = PR_FALSE
+    .enableChXtnPermutation = PR_FALSE,
+    .dbLoadCertChain = PR_TRUE,
 };
 
 /*
@@ -906,6 +907,10 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
             ss->opt.enableChXtnPermutation = val;
             break;
 
+        case SSL_DB_LOAD_CERTIFICATE_CHAIN:
+            ss->opt.dbLoadCertChain = val;
+            break;
+
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             rv = SECFailure;
@@ -1063,6 +1068,15 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRIntn *pVal)
         case SSL_SUPPRESS_END_OF_EARLY_DATA:
             val = ss->opt.suppressEndOfEarlyData;
             break;
+        case SSL_ENABLE_GREASE:
+            val = ss->opt.enableGrease;
+            break;
+        case SSL_ENABLE_CH_EXTENSION_PERMUTATION:
+            val = ss->opt.enableChXtnPermutation;
+            break;
+        case SSL_DB_LOAD_CERTIFICATE_CHAIN:
+            val = ss->opt.dbLoadCertChain;
+            break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             rv = SECFailure;
@@ -1180,6 +1194,9 @@ SSL_OptionGetDefault(PRInt32 which, PRIntn *pVal)
         case SSL_ENABLE_SIGNED_CERT_TIMESTAMPS:
             val = ssl_defaults.enableSignedCertTimestamps;
             break;
+        case SSL_REQUIRE_DH_NAMED_GROUPS:
+            val = ssl_defaults.requireDHENamedGroups;
+            break;
         case SSL_ENABLE_0RTT_DATA:
             val = ssl_defaults.enable0RttData;
             break;
@@ -1203,6 +1220,15 @@ SSL_OptionGetDefault(PRInt32 which, PRIntn *pVal)
             break;
         case SSL_SUPPRESS_END_OF_EARLY_DATA:
             val = ssl_defaults.suppressEndOfEarlyData;
+            break;
+        case SSL_ENABLE_GREASE:
+            val = ssl_defaults.enableGrease;
+            break;
+        case SSL_ENABLE_CH_EXTENSION_PERMUTATION:
+            val = ssl_defaults.enableChXtnPermutation;
+            break;
+        case SSL_DB_LOAD_CERTIFICATE_CHAIN:
+            val = ssl_defaults.dbLoadCertChain;
             break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -1378,7 +1404,9 @@ SSL_OptionSetDefault(PRInt32 which, PRIntn val)
         case SSL_ENABLE_SIGNED_CERT_TIMESTAMPS:
             ssl_defaults.enableSignedCertTimestamps = val;
             break;
-
+        case SSL_REQUIRE_DH_NAMED_GROUPS:
+            ssl_defaults.requireDHENamedGroups = val;
+            break;
         case SSL_ENABLE_0RTT_DATA:
             ssl_defaults.enable0RttData = val;
             break;
@@ -1414,7 +1442,15 @@ SSL_OptionSetDefault(PRInt32 which, PRIntn val)
         case SSL_SUPPRESS_END_OF_EARLY_DATA:
             ssl_defaults.suppressEndOfEarlyData = val;
             break;
-
+        case SSL_ENABLE_GREASE:
+            ssl_defaults.enableGrease = val;
+            break;
+        case SSL_ENABLE_CH_EXTENSION_PERMUTATION:
+            ssl_defaults.enableChXtnPermutation = val;
+            break;
+        case SSL_DB_LOAD_CERTIFICATE_CHAIN:
+            ssl_defaults.dbLoadCertChain = val;
+            break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             return SECFailure;

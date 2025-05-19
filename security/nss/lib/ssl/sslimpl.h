@@ -296,6 +296,7 @@ typedef struct sslOptionsStr {
     unsigned int callExtensionWriterOnEchInner : 1;
     unsigned int enableGrease : 1;
     unsigned int enableChXtnPermutation : 1;
+    unsigned int dbLoadCertChain : 1;
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,

@@ -380,6 +380,12 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  */
 #define SSL_ENABLE_CH_EXTENSION_PERMUTATION 43
 
+/* Import the peer certificate chain into the database before the
+ * authCertificate callback is invoked for certificate validation.
+ * This behavior is enabled by default.
+ */
+#define SSL_DB_LOAD_CERTIFICATE_CHAIN 44
+
 #ifdef SSL_DEPRECATED_FUNCTION
 /* Old deprecated function names */
 SSL_IMPORT SECStatus SSL_Enable(PRFileDesc *fd, int option, PRIntn on);
