@@ -41,7 +41,7 @@ class PopoverCloseWatcherListener : public nsIDOMEventListener {
 };
 NS_IMPL_ISUPPORTS(PopoverCloseWatcherListener, nsIDOMEventListener)
 
-CloseWatcher& PopoverData::EnsureCloseWatcher(nsGenericHTMLElement* aElement) {
+void PopoverData::EnsureCloseWatcher(nsGenericHTMLElement* aElement) {
   if (!mCloseWatcher) {
     RefPtr<Document> doc = aElement->OwnerDoc();
     if (doc->IsActive() && doc->IsCurrentActiveDocument()) {
@@ -53,11 +53,11 @@ CloseWatcher& PopoverData::EnsureCloseWatcher(nsGenericHTMLElement* aElement) {
                                               false /* aUseCapture */,
                                               false /* aWantsUntrusted */);
         RefPtr manager = window->EnsureCloseWatcherManager();
+        MOZ_ASSERT(mCloseWatcher);
         manager->Add(*mCloseWatcher);
       }
     }
   }
-  return *mCloseWatcher;
 }
 
 CloseWatcher* PopoverData::GetCloseWatcher() { return mCloseWatcher; }
