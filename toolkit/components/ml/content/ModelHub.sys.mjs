@@ -1002,13 +1002,18 @@ class IndexedDBCache {
    * Otherwise, the engine ID is removed from the file's engine list.
    *
    * @async
-   * @param {string} engineId - The ID of the engine whose files are to be deleted.
+   *
+   * @param {object} config
+   * @param {?string} config.engineId - The ID of the engine whose files are to be deleted.
+   * @param {?string} config.deletedBy - The feature who deleted the model
    * @returns {Promise<void>} A promise that resolves once the deletion process is complete.
    */
-  async deleteFilesByEngine(engineId) {
+  async deleteFilesByEngine({ engineId, deletedBy = "other" }) {
     // looking at all files for deletion candidates
     const files = [];
+    const uniqueModelRevisions = [];
     const items = await this.#getData({ storeName: this.enginesStoreName });
+
     for (const item of items) {
       if (item.engineIds.includes(engineId)) {
         // if it's the only one, we delete the file
@@ -1022,6 +1027,7 @@ class IndexedDBCache {
           // we remove the entry
           const engineIds = new Set(item.engineIds);
           engineIds.delete(engineId);
+
           await this.#updateData(this.enginesStoreName, {
             engineIds: Array.from(engineIds),
             model: item.model,
@@ -1029,11 +1035,30 @@ class IndexedDBCache {
             file: item.file,
           });
         }
+
+        // Track unique (model, revision) pairs
+        if (
+          !uniqueModelRevisions.some(
+            ([m, r]) => m === item.model && r === item.revision
+          )
+        ) {
+          uniqueModelRevisions.push([item.model, item.revision]);
+        }
       }
     }
+
     // deleting the files from task, engines, files, headers
     for (const file of files) {
       await this.#deleteFile(file);
+    }
+
+    // send metrics events
+    for (const [model, revision] of uniqueModelRevisions) {
+      Glean.firefoxAiRuntime.modelDeletion.record({
+        modelId: model,
+        modelRevision: revision,
+        deletedBy,
+      });
     }
   }
 
@@ -1074,13 +1099,21 @@ class IndexedDBCache {
    * @param {?function(IDBCursor):boolean} config.filterFn - A function to execute for each model file candidate for deletion.
    * It should return a truthy value to delete the model file, and a falsy value otherwise.
    *
+   * @param {?string} config.deletedBy - The feature who deleted the model
+   *
    * @throws {Error} If a revision is defined, the model must also be defined.
    *                 If the model is not defined, the revision should also not be defined.
    *                 Otherwise, an error will be thrown.
 
    * @returns {Promise<void>}
    */
-  async deleteModels({ taskName, model, revision, filterFn }) {
+  async deleteModels({ taskName, model, revision, filterFn, deletedBy }) {
+    Glean.firefoxAiRuntime.modelDeletion.record({
+      modelId: model,
+      modelRevision: revision,
+      deletedBy,
+    });
+
     const tasks = await this.#getData({
       storeName: this.taskStoreName,
       ...this.#getFileQuery({ taskName, model, revision }),
@@ -1758,7 +1791,11 @@ export class ModelHub {
       // ensure that cached model is still in the allow list
       const result = this.allowDenyList && this.allowDenyList.allowedURL(url);
       if (result && !result.allowed) {
-        await this.cache.deleteModels({ model, revision });
+        await this.cache.deleteModels({
+          model,
+          revision,
+          deletedBy: "denylist",
+        });
         throw new ForbiddenURLError(url, result.rejectionType);
       }
       lazy.console.debug(`Cache Hit for ${url}`);
@@ -1969,6 +2006,7 @@ export class ModelHub {
    *                                    If null, delete specified models for all tasks.
    *
    * @param {?function(IDBCursor):boolean} config.filterFn - A function to execute for each model file candidate for deletion.
+   * @param {?string} config.deletedBy - The feature who deleted the model
    * It should return a truthy value to delete the model file, and a falsy value otherwise.
    *
    * @throws {Error} If a revision is defined, the model must also be defined.
@@ -1977,20 +2015,36 @@ export class ModelHub {
 
    * @returns {Promise<void>}
    */
-  async deleteModels({ taskName, model, revision, filterFn }) {
+  async deleteModels({
+    taskName,
+    model,
+    revision,
+    filterFn,
+    deletedBy = "other",
+  }) {
     await this.#initCache();
-    return this.cache.deleteModels({ taskName, model, revision, filterFn });
+    return this.cache.deleteModels({
+      taskName,
+      model,
+      revision,
+      filterFn,
+      deletedBy,
+    });
   }
 
   /**
    * Deletes files associated with a specific engine ID in the cache.
    *
-   * @param {string} engineId - The ID of the engine whose files are to be deleted.
+   * @param {object} config
+   *
+   * @param {?string} config.engineId - The ID of the engine whose files are to be deleted.
+   * @param {?string} config.deletedBy - The feature who deleted the model
+   *
    * @returns {Promise<void>} A promise that resolves once the deletion process is complete.
    */
-  async deleteFilesByEngine(engineId) {
+  async deleteFilesByEngine({ engineId, deletedBy = "other" }) {
     await this.#initCache();
-    return this.cache.deleteFilesByEngine(engineId);
+    return this.cache.deleteFilesByEngine({ engineId, deletedBy });
   }
 
   /**

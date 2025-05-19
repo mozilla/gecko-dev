@@ -49,6 +49,7 @@ export class ModelHubAddonWrapper {
     await this.#provider.modelHub.deleteModels({
       model: this.model,
       revision: this.version,
+      deletedBy: "about:addons",
     });
 
     await this.#provider.onUninstalled(this);

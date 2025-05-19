@@ -425,7 +425,7 @@ async function updateModels() {
     let deleteButton = document.createElement("button");
     document.l10n.setAttributes(deleteButton, "about-inference-delete-button");
     deleteButton.onclick = async () => {
-      await hub.deleteModels({ model, revision });
+      await hub.deleteModels({ model, revision, deletedBy: "about:inference" });
       modelFilesDiv.removeChild(table); // Remove the table from the DOM
     };
 

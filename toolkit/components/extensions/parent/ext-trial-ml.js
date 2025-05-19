@@ -128,7 +128,10 @@ class TrialML extends ExtensionAPI {
    * Called on extension uninstall
    */
   static async onUninstall(extensionId) {
-    await modelHub.deleteFilesByEngine(TrialML.getPipelineId(extensionId));
+    await modelHub.deleteFilesByEngine({
+      engineId: TrialML.getPipelineId(extensionId),
+      deletedBy: "webextensions-uninstall",
+    });
     return true;
   }
 
@@ -193,7 +196,10 @@ class TrialML extends ExtensionAPI {
            * Deletes all the models downloaded for this extension.
            */
           deleteCachedModels: async () => {
-            await modelHub.deleteFilesByEngine(this.#pipelineId);
+            await modelHub.deleteFilesByEngine({
+              engineId: this.#pipelineId,
+              deletedBy: "webextensions-api",
+            });
             return true;
           },
 

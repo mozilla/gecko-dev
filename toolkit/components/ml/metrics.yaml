@@ -123,7 +123,7 @@ firefox.ai.runtime:
   model_download:
     type: event
     description: >
-      An inference engine has failed to create
+      A model is downloaded
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1891685
     data_reviews:
@@ -155,7 +155,33 @@ firefox.ai.runtime:
       when:
         description: when the event was recorded
         type: quantity
+      modelRevision:
+        description: model revision
+        type: string
+      error:
+        description: error class
+        type: string
 
+  model_deletion:
+    type: event
+    description: >
+      A model is deleted
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966301
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D249218
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - tziade@mozilla.com
+    expires: never
+    extra_keys:
+      deletedBy:
+        type: string
+        description: the name of the feature that deleted the model
+      modelId:
+        type: string
+        description: model id
       modelRevision:
         description: model revision
         type: string

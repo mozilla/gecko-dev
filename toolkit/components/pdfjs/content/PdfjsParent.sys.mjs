@@ -488,6 +488,7 @@ export class PdfjsParent extends JSWindowActorParent {
       const hub = new lazy.ModelHub();
       await hub.deleteModels({
         taskName: service,
+        deletedBy: "pdfjs",
       });
     } catch (e) {
       console.error("Failed to delete AI model", e);
