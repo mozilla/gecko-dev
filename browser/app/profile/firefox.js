@@ -1824,8 +1824,8 @@ pref("browser.newtabpage.activity-stream.discoverystream.locale-weather-config",
 
 // Preference to enable wallpaper selection in the Customize Menu of new tab page
 pref("browser.newtabpage.activity-stream.newtabWallpapers.enabled", true);
-pref("browser.newtabpage.activity-stream.newtabWallpapers.customColor.enabled", false);
-pref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.enabled", false);
+pref("browser.newtabpage.activity-stream.newtabWallpapers.customColor.enabled", true);
+pref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.enabled", true);
 
 // Utility preferences for custom wallpaper upload
 pref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.uuid", "");
