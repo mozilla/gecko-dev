@@ -1918,7 +1918,15 @@ HelperThreadTask* GlobalHelperThreadState::maybeGetWasmPartialTier2CompileTask(
     return nullptr;
   }
 
-  return wasmPartialTier2CompileWorklist(lock).popCopy();
+  // Take the task at the start of the vector and slide the rest down.  The
+  // vector is almost always small (fewer than 50 items) and most of the time
+  // has only one item, so this isn't a big expense.
+  wasm::PartialTier2CompileTaskPtrVector& worklist =
+      wasmPartialTier2CompileWorklist(lock);
+  MOZ_ASSERT(!worklist.empty());
+  HelperThreadTask* task = worklist[0];
+  worklist.erase(worklist.begin());
+  return task;
 }
 
 bool GlobalHelperThreadState::submitTask(
@@ -1929,6 +1937,10 @@ bool GlobalHelperThreadState::submitTask(
 
   wasm::PartialTier2CompileTaskPtrVector& workList =
       wasmPartialTier2CompileWorklist(lock);
+
+  // Put the new task at the end of the vector.
+  // ::maybeGetWasmPartialTier2CompileTask pulls tasks from the front of the
+  // vector, hence giving FIFO behaviour.
   if (!workList.append(task.get())) {
     return false;
   }
