@@ -808,9 +808,23 @@ export var Policies = {
 
   DisableBuiltinPDFViewer: {
     onBeforeAddons(manager, param) {
-      if (param) {
-        setAndLockPref("pdfjs.disabled", true);
+      let policies = Services.policies.getActivePolicies();
+      if (
+        policies.Handlers?.mimeTypes?.["application/pdf"] ||
+        policies.Handlers?.extensions?.pdf
+      ) {
+        // If there is an existing Handlers policy modifying PDF behavior,
+        // don't do anything.
+        return;
       }
+      let pdfMIMEInfo = lazy.gMIMEService.getFromTypeAndExtension(
+        "application/pdf",
+        "pdf"
+      );
+      let mimeInfo = {
+        action: param ? "useSystemDefault" : "handleInternally",
+      };
+      processMIMEInfo(mimeInfo, pdfMIMEInfo);
     },
   },
 
