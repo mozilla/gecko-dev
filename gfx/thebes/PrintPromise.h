@@ -6,13 +6,17 @@
 #ifndef MOZILLA_GFX_PRINTPROMISE_H
 #define MOZILLA_GFX_PRINTPROMISE_H
 
-#include "ErrorList.h"
-#include "mozilla/MozPromise.h"
+#include "nscore.h"
 
-namespace mozilla::gfx {
+namespace mozilla {
+
+template <typename ResolveValueT, typename RejectValueT, bool IsExclusive>
+class MozPromise;
+
+namespace gfx {
 
 using PrintEndDocumentPromise = MozPromise</* unused */ bool, nsresult, false>;
 
-}  // namespace mozilla::gfx
-
+}  // namespace gfx
+}  // namespace mozilla
 #endif

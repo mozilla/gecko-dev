@@ -142,6 +142,13 @@ macro_rules! lnf_int_variable {
     }};
 }
 
+fn eval_gtk_csd_titlebar_radius(device: &Device, url_data: &UrlExtraData) -> VariableValue {
+    let int_pixels = lnf_int!(TitlebarRadius);
+    let unzoomed_scale =
+        device.device_pixel_ratio_ignoring_full_zoom().get() / device.device_pixel_ratio().get();
+    VariableValue::pixels(int_pixels as f32 * unzoomed_scale, url_data)
+}
+
 static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 10] = [
     lnf_int_variable!(
         atom!("-moz-mac-titlebar-height"),
@@ -153,10 +160,9 @@ static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 10] = [
         TitlebarButtonSpacing,
         int_pixels
     ),
-    lnf_int_variable!(
+    make_variable!(
         atom!("-moz-gtk-csd-titlebar-radius"),
-        TitlebarRadius,
-        int_pixels
+        eval_gtk_csd_titlebar_radius
     ),
     lnf_int_variable!(
         atom!("-moz-gtk-csd-tooltip-radius"),

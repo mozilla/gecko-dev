@@ -134,20 +134,14 @@ enum WidgetNodeType : int {
   MOZ_GTK_WINDOW,
   /* Used only as a container for MOZ_GTK_HEADER_BAR. */
   MOZ_GTK_HEADERBAR_WINDOW,
-  /* Used only as a container for MOZ_GTK_HEADER_BAR_MAXIMIZED. */
-  MOZ_GTK_HEADERBAR_WINDOW_MAXIMIZED,
   /* Used only as a container for MOZ_GTK_HEADER_BAR. */
   MOZ_GTK_HEADERBAR_FIXED,
-  /* Used only as a container for MOZ_GTK_HEADER_BAR_MAXIMIZED. */
-  MOZ_GTK_HEADERBAR_FIXED_MAXIMIZED,
   /* Window container for all widgets */
   MOZ_GTK_WINDOW_CONTAINER,
   /* Used for scrolled window shell. */
   MOZ_GTK_SCROLLED_WINDOW,
   /* Paints a GtkHeaderBar */
   MOZ_GTK_HEADER_BAR,
-  /* Paints a GtkHeaderBar in maximized state */
-  MOZ_GTK_HEADER_BAR_MAXIMIZED,
 
   /* Client-side window decoration node. Available on GTK 3.20+. */
   MOZ_GTK_WINDOW_DECORATION,
