@@ -541,6 +541,8 @@ struct JSRuntime {
                     js::DefaultHasher<JSAtom*>, js::SystemAllocPolicy>>
       selfHostJitCache;
 
+  void clearSelfHostedJitCache();
+
  private:
   /* Gecko profiling metadata */
   js::UnprotectedData<js::GeckoProfilerRuntime> geckoProfiler_;

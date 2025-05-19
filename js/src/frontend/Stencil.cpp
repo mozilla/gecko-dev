@@ -33,6 +33,7 @@
 #include "gc/AllocKind.h"         // gc::AllocKind
 #include "gc/Tracer.h"            // TraceNullableRoot
 #include "jit/BaselineJIT.h"      // jit::BaselineScript
+#include "jit/JitRuntime.h"       // jit::JitRuntime
 #include "jit/JitScript.h"        // AutoKeepJitScripts
 #include "js/CallArgs.h"          // JSNative
 #include "js/CompileOptions.h"  // JS::DecodeOptions, JS::ReadOnlyDecodeOptions
@@ -2964,6 +2965,11 @@ bool CompilationStencil::delazifySelfHostedFunction(
       if (!baselineScript) {
         return false;
       }
+      mozilla::DebugOnly<bool> instrumentationEnabled =
+          cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(
+              cx->runtime());
+      MOZ_ASSERT(instrumentationEnabled ==
+                 baselineScript->isProfilerInstrumentationOn());
       script->jitScript()->setBaselineScript(script, baselineScript);
     } else if (jit::IsBaselineJitEnabled(cx) && script->canBaselineCompile() &&
                !script->hasBaselineScript() &&

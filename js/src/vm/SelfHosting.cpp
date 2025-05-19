@@ -2726,6 +2726,14 @@ void JSRuntime::finishSelfHosting() {
   selfHostStencil_ = nullptr;
 
   selfHostScriptMap.ref().clear();
+  clearSelfHostedJitCache();
+}
+
+void JSRuntime::clearSelfHostedJitCache() {
+  for (auto iter = selfHostJitCache.ref().iter(); !iter.done(); iter.next()) {
+    jit::BaselineScript* baselineScript = iter.get().value();
+    jit::BaselineScript::Destroy(gcContext(), baselineScript);
+  }
   selfHostJitCache.ref().clear();
 }
 
