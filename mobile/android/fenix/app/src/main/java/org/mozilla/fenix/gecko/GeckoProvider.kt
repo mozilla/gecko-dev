@@ -109,6 +109,12 @@ object GeckoProvider {
             .translationsOfferPopup(context.settings().offerTranslation)
             .disableShip(FxNimbus.features.ship.value().disabled)
             .fissionEnabled(FxNimbus.features.fission.value().enabled)
+            .setSameDocumentNavigationOverridesLoadType(
+                FxNimbus.features.sameDocumentNavigationOverridesLoadType.value().enabled,
+            )
+            .setSameDocumentNavigationOverridesLoadTypeForceDisable(
+                FxNimbus.features.sameDocumentNavigationOverridesLoadType.value().forceDisableUri,
+            )
             .build()
     }
 }

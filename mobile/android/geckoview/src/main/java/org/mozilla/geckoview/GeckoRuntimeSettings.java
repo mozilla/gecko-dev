@@ -613,6 +613,33 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       getSettings().mLowMemoryDetection = enable;
       return this;
     }
+
+    /**
+     * Sets whether the same document navigation should override the load type or not.
+     *
+     * @param value A flag determining whether same document navigation should override the load
+     *     type or not.
+     * @return The builder instance.
+     */
+    public @NonNull Builder setSameDocumentNavigationOverridesLoadType(final boolean value) {
+      getSettings().setSameDocumentNavigationOverridesLoadType(value);
+      return this;
+    }
+
+    /**
+     * Sets the uri to force-disable the same document navigation overriding the load type. If it is
+     * an empty string (default value), there's no specific domain that the same document navigation
+     * overriding the load type is disabled.
+     *
+     * @param uri URI that will be used to force-disable the same document navigation overriding the
+     *     load type on a specific domain.
+     * @return The builder instance.
+     */
+    public @NonNull Builder setSameDocumentNavigationOverridesLoadTypeForceDisable(
+        @NonNull final String uri) {
+      getSettings().setSameDocumentNavigationOverridesLoadTypeForceDisable(uri);
+      return this;
+    }
   }
 
   private GeckoRuntime mRuntime;
@@ -716,7 +743,11 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       new PrefWithoutDefault<Boolean>("security.tls.enable_kyber");
   /* package */ final PrefWithoutDefault<Boolean> mPostQuantumKeyExchangeHttp3Enabled =
       new PrefWithoutDefault<Boolean>("network.http.http3.enable_kyber");
-
+  /* package */ final Pref<Boolean> mSameDocumentNavigationOverridesLoadType =
+      new Pref<Boolean>("docshell.shistory.sameDocumentNavigationOverridesLoadType", true);
+  /* package */ final Pref<String> mSameDocumentNavigationOverridesLoadTypeForceDisable =
+      new Pref<String>(
+          "docshell.shistory.sameDocumentNavigationOverridesLoadType.forceDisable", "");
   /* package */ int mPreferredColorScheme = COLOR_SCHEME_SYSTEM;
 
   /* package */ boolean mForceEnableAccessibility;
@@ -2071,6 +2102,55 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
   GeckoRuntimeSettings setProcessCount(final int processCount) {
     mProcessCount.commit(processCount);
     return this;
+  }
+
+  /**
+   * Sets whether the same document navigation should override the load type or not.
+   *
+   * @param value A flag determining whether same document navigation should override the load type
+   *     or not.
+   * @return This GeckoRuntimeSettings instance.
+   */
+  public @NonNull GeckoRuntimeSettings setSameDocumentNavigationOverridesLoadType(
+      final boolean value) {
+    mSameDocumentNavigationOverridesLoadType.commit(value);
+    return this;
+  }
+
+  /**
+   * Gets whether the same document navigation should override the load type or not.
+   *
+   * @return Whether the same document navigation should override the load type or not.
+   */
+  public @NonNull boolean getSameDocumentNavigationOverridesLoadType() {
+    return mSameDocumentNavigationOverridesLoadType.get();
+  }
+
+  /**
+   * Sets the uri to force-disable the same document navigation overriding the load type. If it is
+   * an empty string (default value), there's no specific domain that the same document navigation
+   * overriding the load type is disabled.
+   *
+   * @param uri URI that will be used to force-disable the same document navigation overriding the
+   *     load type on a specific domain.
+   * @return This GeckoRuntimeSettings instance.
+   */
+  public @NonNull GeckoRuntimeSettings setSameDocumentNavigationOverridesLoadTypeForceDisable(
+      @NonNull final String uri) {
+    mSameDocumentNavigationOverridesLoadTypeForceDisable.commit(uri);
+    return this;
+  }
+
+  /**
+   * Gets the uri to force-disable the same document navigation overriding the load type. If it is
+   * an empty string (default value), there's no specific domain that the same document navigation
+   * overriding the load type is disabled.
+   *
+   * @return URI that will be used to force-disable the same document navigation overriding the load
+   *     type on a specific domain.
+   */
+  public @NonNull String getSameDocumentNavigationOverridesLoadTypeForceDisable() {
+    return mSameDocumentNavigationOverridesLoadTypeForceDisable.get();
   }
 
   @Override // Parcelable

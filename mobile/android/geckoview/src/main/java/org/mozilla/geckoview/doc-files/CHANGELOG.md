@@ -18,6 +18,8 @@ exclude: true
 - Introduced a new [`preference observer delegate`][140.2] and a way to [`register`][140.3] preferences on the delegate.
 - Added options on [`GeckoPreferenceController`][140.1] to [`Get`][140.4] and [`Set`][140.5] Gecko preferences.
 - Added option on [`GeckoPreferenceController`][140.1] to [`Clear`][140.6] a Gecko preference.
+- Added [`setSameDocumentNavigationOverridesLoadType`][140.7] and  [`setSameDocumentNavigationOverridesLoadTypeForceDisable`][140.8] to set values on the `GeckoRuntimeSettings` builder to determine whether the same document navigation should override the load type or not.
+- Added [`getSameDocumentNavigationOverridesLoadType`][140.9], [`setSameDocumentNavigationOverridesLoadType`][140.10], [`getSameDocumentNavigationOverridesLoadTypeForceDisable`][140.11], [`setSameDocumentNavigationOverridesLoadTypeForceDisable`][140.12] to get the runtime settings for same document navigation overriding the load type.
 
 [140.1]: {{javadoc_uri}}/GeckoPreferenceController.html
 [140.2]: {{javadoc_uri}}/GeckoPreferenceController.Observer.Delegate.html
@@ -25,6 +27,12 @@ exclude: true
 [140.4]: {{javadoc_URI}}/GeckoPreferenceController.html#getGeckoPref(java.lang.String,int)
 [140.5]: {{javadoc_URI}}/GeckoPreferenceController.html#setGeckoPref(java.lang.String,java.lang.String,int)
 [140.6]: {{javadoc_URI}}/GeckoPreferenceController.html#clearGeckoUserPref(java.lang.String)
+[140.7]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#setSameDocumentNavigationOverridesLoadType(boolean)
+[140.8]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#setSameDocumentNavigationOverridesLoadTypeForceDisable(java.lang.String)
+[140.9]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getSameDocumentNavigationOverridesLoadType()
+[140.10]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setSameDocumentNavigationOverridesLoadType(boolean)
+[140.11]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getSameDocumentNavigationOverridesLoadTypeForceDisable()
+[140.12]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setSameDocumentNavigationOverridesLoadTypeForceDisable(java.lang.String)
 
 ## v139
 - ⚠️ Removed deprecated [`GeckoSession.requestAnalysis`][118.4], [`GeckoSession.requestCreateAnalysis`][122.2], [`GeckoSession.requestAnalysisStatus`][137.1], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.pollForAnalysisCompleted`][137.2], [`GeckoSession.sendClickAttributionEvent`][121.4], [`GeckoSession.sendImpressionAttributionEvent`][121.5], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.requestRecommendations`][118.5], [`GeckoSession.reportBackInStock`][122.1], `AnalysisStatusResponse`, [`ReviewAnalysis`][120.2] and [`Recommendation`][120.3].
@@ -1730,4 +1738,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 5605416ff124620c839deda63fdee9532cb28e7d
+[api-version]: c1b9b6ab2ff2e92776a861c5f5b24e0ed16909bb

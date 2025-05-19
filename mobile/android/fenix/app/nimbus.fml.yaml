@@ -806,6 +806,28 @@ features:
           Uses search configuration from remote servers .
         type: Boolean
         default: false
+  same-document-navigation-overrides-load-type:
+    description: Control whether the same document navigation overrides the load type.
+    variables:
+      enabled:
+        description: >
+          Overrides the loadType when it is a same document navigation
+        type: Boolean
+        default: true
+      force-disable-uri:
+        description: >
+          Disable overriding the loadType during same document navigation on the domain specified by this URI.
+        type: String
+        default: ""
+    defaults:
+      - channel: nightly
+        value:
+          enabled: false
+          force-disable-uri: ""
+      - channel: developer
+        value:
+          enabled: false
+          force-disable-uri: ""
 
 types:
   objects: {}

@@ -811,4 +811,82 @@ class RuntimeSettingsTest : BaseSessionTest() {
             equalTo(true),
         )
     }
+
+    @Test
+    fun sameDocumentNavigationOverridesLoadTypeEnabled() {
+        val geckoRuntimeSettings = sessionRule.runtime.settings
+
+        geckoRuntimeSettings.setSameDocumentNavigationOverridesLoadType(false)
+
+        assertThat(
+            "sameDocumentNavigationOverridesLoadType pref set to false.",
+            geckoRuntimeSettings.sameDocumentNavigationOverridesLoadType,
+            equalTo(false),
+        )
+
+        var enabled =
+            (sessionRule.getPrefs("docshell.shistory.sameDocumentNavigationOverridesLoadType").get(0)) as Boolean
+
+        assertThat(
+            "sameDocumentNavigationOverridesLoadType pref should be set to the expected value",
+            enabled,
+            equalTo(false),
+        )
+
+        geckoRuntimeSettings.setSameDocumentNavigationOverridesLoadType(true)
+
+        assertThat(
+            "sameDocumentNavigationOverridesLoadType pref set to true.",
+            geckoRuntimeSettings.sameDocumentNavigationOverridesLoadType,
+            equalTo(true),
+        )
+
+        enabled =
+            (sessionRule.getPrefs("docshell.shistory.sameDocumentNavigationOverridesLoadType").get(0)) as Boolean
+
+        assertThat(
+            "sameDocumentNavigationOverridesLoadType pref should be set to the expected value",
+            enabled,
+            equalTo(true),
+        )
+    }
+
+    @Test
+    fun sameDocumentNavigationOverridesLoadTypeForceDisable() {
+        val geckoRuntimeSettings = sessionRule.runtime.settings
+
+        geckoRuntimeSettings.setSameDocumentNavigationOverridesLoadTypeForceDisable("https://www.mozilla.org")
+
+        assertThat(
+            "sameDocumentNavigationOverridesLoadTypeForceDisable pref set to the specified uri.",
+            geckoRuntimeSettings.sameDocumentNavigationOverridesLoadTypeForceDisable,
+            equalTo("https://www.mozilla.org"),
+        )
+
+        var sameDocumentNavigationOverridesLoadTypeForceDisable =
+            (sessionRule.getPrefs("docshell.shistory.sameDocumentNavigationOverridesLoadType.forceDisable").get(0)) as String
+
+        assertThat(
+            "sameDocumentNavigationOverridesLoadTypeForceDisable pref should be set to the expected value",
+            sameDocumentNavigationOverridesLoadTypeForceDisable,
+            equalTo("https://www.mozilla.org"),
+        )
+
+        geckoRuntimeSettings.setSameDocumentNavigationOverridesLoadTypeForceDisable("")
+
+        assertThat(
+            "sameDocumentNavigationOverridesLoadType pref set to the specified uri.",
+            geckoRuntimeSettings.sameDocumentNavigationOverridesLoadTypeForceDisable,
+            equalTo(""),
+        )
+
+        sameDocumentNavigationOverridesLoadTypeForceDisable =
+            (sessionRule.getPrefs("docshell.shistory.sameDocumentNavigationOverridesLoadType.forceDisable").get(0)) as String
+
+        assertThat(
+            "sameDocumentNavigationOverridesLoadTypeForceDisable pref should be set to the expected value",
+            sameDocumentNavigationOverridesLoadTypeForceDisable,
+            equalTo(""),
+        )
+    }
 }
