@@ -3061,7 +3061,7 @@ export class UrlbarView {
         if (lazy.UrlbarPrefs.get("addonsFeatureGate")) {
           idArgs.push({ id: "urlbar-group-addon" });
         }
-        if (lazy.UrlbarPrefs.get("mdn.featureGate")) {
+        if (lazy.UrlbarPrefs.get("mdnFeatureGate")) {
           idArgs.push({ id: "urlbar-group-mdn" });
         }
         if (lazy.UrlbarPrefs.get("pocketFeatureGate")) {

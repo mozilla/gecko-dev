@@ -225,14 +225,17 @@ class _QuickSuggestTestUtils {
     await this.#remoteSettingsServer.start();
     this.#log("ensureQuickSuggestInit", "Remote settings server started");
 
-    // Init Suggest and set prefs. Do this after setting up remote settings
+    // Init Suggest and force the region to US and the locale to en-US, which
+    // will cause Suggest to be enabled along with all suggestion types that are
+    // enabled in the US by default. Do this after setting up remote settings
     // because the Rust backend will immediately try to sync.
     this.#log(
       "ensureQuickSuggestInit",
       "Calling QuickSuggest.init() and setting prefs"
     );
-    await lazy.QuickSuggest.init();
-    prefs.push(["quicksuggest.enabled", true]);
+    await lazy.QuickSuggest.init({ region: "US", locale: "en-US" });
+
+    // Set prefs requested by the caller.
     for (let [name, value] of prefs) {
       lazy.UrlbarPrefs.set(name, value);
     }

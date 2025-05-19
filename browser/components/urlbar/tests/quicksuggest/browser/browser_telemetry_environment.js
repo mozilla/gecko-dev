@@ -62,7 +62,7 @@ add_task(async function telemetryEnvironmentOnStartup() {
   await TelemetryEnvironment.testCleanRestart().onInitialized();
 
   // Get the Suggest prefs that are set on Suggest init.
-  let prefs = Object.keys(QuickSuggest.DEFAULT_PREFS);
+  let prefs = Object.keys(QuickSuggest.intendedDefaultPrefs("US", "en-US"));
 
   // Not all of the prefs are recorded in telemetry environment. Filter in the
   // ones that are.
@@ -109,7 +109,6 @@ add_task(async function telemetryEnvironmentOnStartup() {
   // Reinit and force the startup prefs to take on values that are the inverse
   // of what they are now.
   await QuickSuggest._test_reinit({
-    shouldEnable: true,
     defaultPrefs: Object.fromEntries(
       Object.entries(defaultValues).map(([p, value]) => [p, !value])
     ),

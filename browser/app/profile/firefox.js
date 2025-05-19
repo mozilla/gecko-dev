@@ -466,7 +466,7 @@ pref("browser.urlbar.richSuggestions.featureGate", true);
 pref("browser.search.param.search_rich_suggestions", "fen");
 
 // Feature gate pref for weather suggestions in the urlbar.
-pref("browser.urlbar.weather.featureGate", true);
+pref("browser.urlbar.weather.featureGate", false);
 
 // Enable clipboard suggestions feature, the pref should be removed once stable.
 pref("browser.urlbar.clipboard.featureGate", false);
@@ -674,7 +674,7 @@ pref("browser.urlbar.merino.clientVariants", "");
 pref("browser.urlbar.contextualSearch.enabled", true);
 
 // Feature gate pref for addon suggestions in the urlbar.
-pref("browser.urlbar.addons.featureGate", true);
+pref("browser.urlbar.addons.featureGate", false);
 
 // Feature gate pref for semanticHistory
 pref("places.semanticHistory.featureGate", false);
@@ -686,12 +686,15 @@ pref("browser.urlbar.suggest.semanticHistory.minLength", 5);
 // addons suggestions are turned on.
 pref("browser.urlbar.suggest.addons", true);
 
+// Feature gate pref for MDN suggestions in the urlbar.
+pref("browser.urlbar.mdn.featureGate", false);
+
 // If `browser.urlbar.mdn.featureGate` is true, this controls whether
 // mdn suggestions are turned on.
 pref("browser.urlbar.suggest.mdn", true);
 
 // Feature gate pref for Yelp suggestions in the urlbar.
-pref("browser.urlbar.yelp.featureGate", true);
+pref("browser.urlbar.yelp.featureGate", false);
 
 // The minimum prefix length of a Yelp keyword the user must type to trigger the
 // suggestion. 0 means the min length should be taken from Nimbus.

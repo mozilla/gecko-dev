@@ -427,11 +427,10 @@ async function doMaxResultsTest({
     providerNames.push(historyProvider.name);
   }
 
-  // If AMP results should be included, enable sponsored suggestions.
-  if (includeAmp) {
-    UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
-    await QuickSuggestTestUtils.forceSync();
-  }
+  // Enable sponsored suggestions according to whether AMP results should be
+  // included.
+  UrlbarPrefs.set("suggest.quicksuggest.sponsored", includeAmp);
+  await QuickSuggestTestUtils.forceSync();
 
   // Generate the list of exposure suggestion types so we can trigger the
   // exposure suggestions.
@@ -453,10 +452,8 @@ async function doMaxResultsTest({
   if (historyProvider) {
     UrlbarProvidersManager.unregisterProvider(historyProvider);
   }
-  if (includeAmp) {
-    UrlbarPrefs.clear("suggest.quicksuggest.sponsored");
-    await QuickSuggestTestUtils.forceSync();
-  }
+  UrlbarPrefs.clear("suggest.quicksuggest.sponsored");
+  await QuickSuggestTestUtils.forceSync();
 }
 
 // Exposure suggestions are neither sponsored nor nonsponsored, so they should

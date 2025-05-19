@@ -328,6 +328,10 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // the interval used by the desktop remote settings client.
   ["quicksuggest.rustIngestIntervalSeconds", 60 * 60 * 24],
 
+  // Which Suggest settings to show in the settings UI. See
+  // `QuickSuggest.SETTINGS_UI` for values.
+  ["quicksuggest.settingsUi", 0],
+
   // We only show recent searches within the past 3 days by default.
   // Stored as a string as some code handle timestamp sized int's.
   ["recentsearches.expirationMs", (1000 * 60 * 60 * 24 * 3).toString()],

@@ -6,10 +6,97 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  Preferences: "resource://gre/modules/Preferences.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
+});
+
+// See the `QuickSuggest.SETTINGS_UI` jsdoc below.
+const SETTINGS_UI = Object.freeze({
+  FULL: 0,
+  NONE: 1,
+  // Only settings relevant to offline will be shown. Settings that pertain to
+  // online will be hidden.
+  OFFLINE_ONLY: 2,
+});
+
+// This defines the home regions and locales where Suggest will be enabled.
+// Suggest will remain disabled for regions and locales not defined here. More
+// generally it defines important Suggest prefs that require special handling.
+// Each entry in this object defines a pref name and information about that
+// pref. Pref names are relative to `browser.urlbar.` The value in each entry is
+// an object with the following properties:
+//
+// {object} defaultValues
+//   This controls the home regions and locales where Suggest and each of its
+//   subfeatures will be enabled. If the pref should be initialized on the
+//   default branch depending on the user's home region and locale, then this
+//   should be set to an object where each entry maps a region name to a tuple
+//   `[localPrefixes, prefValue]`. `localePrefixes` is an array of strings and
+//   `prefValue` is the value that should be set when the region and locale
+//   prefixes match the user's region and locale. If the user's region and
+//   locale do not match any of the entries in `defaultValues`, then the pref
+//   will retain its default value as defined in `firefox.js`.
+// {string} nimbusVariableIfExposedInUi
+//   If the pref is exposed in the settings UI and it's a fallback for a Nimbus
+//   variable, then this should be set to the variable's name. See point 3 in
+//   the comment in `#initDefaultPrefs()` for more.
+const SUGGEST_PREFS = Object.freeze({
+  // Prefs related to Suggest overall
+  "quicksuggest.dataCollection.enabled": {
+    nimbusVariableIfExposedInUi: "quickSuggestDataCollectionEnabled",
+  },
+  "quicksuggest.enabled": {
+    defaultValues: {
+      GB: [["en"], true],
+      US: [["en"], true],
+    },
+  },
+  "quicksuggest.settingsUi": {
+    defaultValues: {
+      GB: [["en"], SETTINGS_UI.OFFLINE_ONLY],
+      US: [["en"], SETTINGS_UI.FULL],
+    },
+  },
+  "suggest.quicksuggest.nonsponsored": {
+    nimbusVariableIfExposedInUi: "quickSuggestNonSponsoredEnabled",
+    defaultValues: {
+      GB: [["en"], true],
+      US: [["en"], true],
+    },
+  },
+  "suggest.quicksuggest.sponsored": {
+    nimbusVariableIfExposedInUi: "quickSuggestSponsoredEnabled",
+    defaultValues: {
+      GB: [["en"], true],
+      US: [["en"], true],
+    },
+  },
+
+  // Prefs related to individual features
+  "addons.featureGate": {
+    defaultValues: {
+      US: [["en"], true],
+    },
+  },
+  "mdn.featureGate": {
+    defaultValues: {
+      US: [["en"], true],
+    },
+  },
+  "weather.featureGate": {
+    defaultValues: {
+      GB: [["en"], true],
+      US: [["en"], true],
+    },
+  },
+  "yelp.featureGate": {
+    defaultValues: {
+      US: [["en"], true],
+    },
+  },
 });
 
 // Suggest features classes. On init, `QuickSuggest` creates an instance of each
@@ -44,39 +131,6 @@ const FEATURES = {
  */
 class _QuickSuggest {
   /**
-   * Prefs that will be set on the default branch when Suggest is enabled. Pref
-   * names are relative to `browser.urlbar.`.
-   *
-   * When Suggest is disabled, prefs will keep their defaults set in firefox.js.
-   *
-   * @returns {object}
-   */
-  get DEFAULT_PREFS() {
-    return {
-      "quicksuggest.enabled": true,
-      "quicksuggest.dataCollection.enabled": false,
-      "suggest.quicksuggest.nonsponsored": true,
-      "suggest.quicksuggest.sponsored": true,
-    };
-  }
-
-  /**
-   * Prefs that are exposed in the UI and whose default-branch values are
-   * configurable via Nimbus variables. This getter returns an object that maps
-   * from variable names to pref names relative to `browser.urlbar`. See point 3
-   * in the comment inside `#initDefaultPrefs()` for more.
-   *
-   * @returns {object}
-   */
-  get UI_PREFS_BY_VARIABLE() {
-    return {
-      quickSuggestNonSponsoredEnabled: "suggest.quicksuggest.nonsponsored",
-      quickSuggestSponsoredEnabled: "suggest.quicksuggest.sponsored",
-      quickSuggestDataCollectionEnabled: "quicksuggest.dataCollection.enabled",
-    };
-  }
-
-  /**
    * @returns {string}
    *   The help URL for Suggest.
    */
@@ -96,13 +150,7 @@ class _QuickSuggest {
    *   ignored and Suggest settings are hidden.
    */
   get SETTINGS_UI() {
-    return {
-      FULL: 0,
-      NONE: 1,
-      // Only settings relevant to offline will be shown. Settings that pertain
-      // to online will be hidden.
-      OFFLINE_ONLY: 2,
-    };
+    return SETTINGS_UI;
   }
 
   /**
@@ -373,7 +421,7 @@ class _QuickSuggest {
    *
    * @param {UrlbarResult} result
    *   The result to check.
-   * @returns {Promise<boolean>}
+   * @returns {boolean}
    *   Whether the result has been dismissed.
    */
   async isResultDismissed(result) {
@@ -444,7 +492,7 @@ class _QuickSuggest {
    * Whether there are any dismissed suggestions that can be cleared, including
    * individually dismissed suggestions and dismissed suggestion types.
    *
-   * @returns {Promise<boolean>}
+   * @returns {boolean}
    *   Whether dismissals can be cleared.
    */
   async canClearDismissedSuggestions() {
@@ -477,6 +525,37 @@ class _QuickSuggest {
     }
 
     return false;
+  }
+
+  /**
+   * Gets the intended default Suggest prefs for a home region and locale.
+   *
+   * @param {string} region
+   *   A home region, typically from `Region.home`.
+   * @param {string} locale
+   *   A locale.
+   * @returns {object}
+   *   An object that maps pref names to their intended default values. Pref
+   *   names are relative to `browser.urlbar.`.
+   */
+  intendedDefaultPrefs(region, locale) {
+    let regionLocalePrefs = Object.fromEntries(
+      Object.entries(SUGGEST_PREFS)
+        .map(([prefName, { defaultValues }]) => {
+          if (defaultValues?.hasOwnProperty(region)) {
+            let [localePrefixes, prefValue] = defaultValues[region];
+            if (localePrefixes.some(p => locale.startsWith(p))) {
+              return [prefName, prefValue];
+            }
+          }
+          return null;
+        })
+        .filter(entry => !!entry)
+    );
+    return {
+      ...this.#unmodifiedDefaultPrefs,
+      ...regionLocalePrefs,
+    };
   }
 
   /**
@@ -515,11 +594,7 @@ class _QuickSuggest {
   onNimbusChanged(variable) {
     // If a change occurred to a variable that corresponds to a pref exposed in
     // the UI, sync the variable to the pref on the default branch.
-    if (this.UI_PREFS_BY_VARIABLE.hasOwnProperty(variable)) {
-      this.#syncUiVariablesToPrefs({
-        [variable]: this.UI_PREFS_BY_VARIABLE[variable],
-      });
-    }
+    this.#syncNimbusVariablesToUiPrefs(variable);
 
     // Update features.
     this.#updateAll();
@@ -551,32 +626,51 @@ class _QuickSuggest {
   }
 
   /**
+   * @returns {object}
+   *   An object that maps from Nimbus variable names to their corresponding
+   *   prefs, for prefs in `SUGGEST_PREFS` with `nimbusVariableIfExposedInUi`
+   *   set.
+   */
+  get #uiPrefsByNimbusVariable() {
+    return Object.fromEntries(
+      Object.entries(SUGGEST_PREFS)
+        .map(([prefName, { nimbusVariableIfExposedInUi }]) =>
+          nimbusVariableIfExposedInUi
+            ? [nimbusVariableIfExposedInUi, prefName]
+            : null
+        )
+        .filter(entry => !!entry)
+    );
+  }
+
+  /**
    * Sets appropriate default-branch values of Suggest prefs depending on
    * whether Suggest should be enabled by default.
    *
    * @param {object} testOverrides
    *   This is intended for tests only. Pass to force the following:
-   *   `{ shouldEnable, migrationVersion, defaultPrefs }`
+   *   `{ region, locale, migrationVersion, defaultPrefs }`
    */
   #initDefaultPrefs(testOverrides = null) {
     // Updating prefs is tricky and it's important to preserve the user's
     // choices, so we describe the process in detail below. tl;dr:
     //
-    // * Prefs exposed in the UI should be sticky.
-    // * Prefs that are both exposed in the UI and configurable via Nimbus
-    //   should be added to `UI_PREFS_BY_VARIABLE`.
-    // * Prefs in `UI_PREFS_BY_VARIABLE` should not be specified as
+    // * Prefs exposed in the settings UI should be sticky.
+    // * Prefs that are both exposed in the settings UI and configurable via
+    //   Nimbus should be added to `SUGGEST_PREFS` with
+    //   `nimbusVariableIfExposedInUi` set appropriately.
+    // * Prefs with `nimbusVariableIfExposedInUi` set should not be specified as
     //   `fallbackPref` for their Nimbus variables. Access these prefs directly
     //   instead of through their variables.
     //
     // The pref-update process is described next.
     //
-    // 1. Determine whether Suggest should be enabled by default, which depends
-    //    on the user's region and locale.
+    // 1. Determine the appropriate values for Suggest prefs according to the
+    //    user's home region and locale.
     //
-    // 2. Set prefs on the default branch according to whether Suggest is
-    //    enabled. We use the default branch and not the user branch because we
-    //    want to distinguish default prefs from the user's choices.
+    // 2. Set the prefs on the default branch. We use the default branch and not
+    //    the user branch because we want to distinguish default prefs from the
+    //    user's choices.
     //
     //    In particular it's important to consider prefs that are exposed in the
     //    UI, like whether sponsored suggestions are enabled. Once the user
@@ -624,67 +718,78 @@ class _QuickSuggest {
     //    neccesary across app versions: introducing and initializing new prefs,
     //    removing prefs, or changing the meaning of existing prefs.
 
-    let defaults = Services.prefs.getDefaultBranch("browser.urlbar.");
+    // We use `Preferences` because it lets us access prefs without worrying
+    // about their types and can do so on the default branch. Most of our prefs
+    // are bools but not all.
+    let defaults = new lazy.Preferences({
+      branch: "browser.urlbar.",
+      defaultBranch: true,
+    });
 
     // Before setting defaults, save their original unmodifed values as defined
     // in `firefox.js` so we can restore them if Suggest becomes disabled.
     if (!this.#unmodifiedDefaultPrefs) {
       this.#unmodifiedDefaultPrefs = Object.fromEntries(
-        Object.keys(this.DEFAULT_PREFS).map(pref => [
-          pref,
-          defaults.getBoolPref(pref),
-        ])
+        Object.keys(SUGGEST_PREFS).map(name => [name, defaults.get(name)])
       );
     }
 
-    // 1. Determine whether Suggest should be enabled by default
-    let shouldEnableSuggest;
-    if (testOverrides?.hasOwnProperty("shouldEnable")) {
-      shouldEnableSuggest = testOverrides.shouldEnable;
-    } else {
-      shouldEnableSuggest =
-        lazy.Region.home == "US" &&
-        Services.locale.appLocaleAsBCP47.substring(0, 2) == "en";
-    }
-
-    // 2. Set default-branch prefs according to whether Suggest should be
-    // enabled
+    // 1. Determine the appropriate values for Suggest prefs according to the
+    //    user's home region and locale.
     if (testOverrides?.defaultPrefs) {
       this.#intendedDefaultPrefs = testOverrides.defaultPrefs;
     } else {
-      this.#intendedDefaultPrefs = shouldEnableSuggest
-        ? this.DEFAULT_PREFS
-        : this.#unmodifiedDefaultPrefs;
+      let region = testOverrides?.region ?? lazy.Region.home;
+      let locale = testOverrides?.locale ?? Services.locale.appLocaleAsBCP47;
+      this.#intendedDefaultPrefs = this.intendedDefaultPrefs(region, locale);
     }
 
+    // 2. Set the prefs on the default branch.
     for (let [name, value] of Object.entries(this.#intendedDefaultPrefs)) {
-      defaults.setBoolPref(name, value);
+      defaults.set(name, value);
     }
 
-    // 3. Set default-branch values for prefs that are both exposed in the UI
-    // and configurable via Nimbus
-    this.#syncUiVariablesToPrefs(this.UI_PREFS_BY_VARIABLE);
+    // 3. Set default-branch values for prefs that are both exposed in the
+    // settings UI and configurable via Nimbus.
+    this.#syncNimbusVariablesToUiPrefs();
 
-    // 4. Migrate prefs across app versions
+    // 4. Migrate prefs across app versions.
+    let shouldEnableSuggest =
+      !!this.#intendedDefaultPrefs["quicksuggest.enabled"];
     this._ensureFirefoxSuggestPrefsMigrated(shouldEnableSuggest, testOverrides);
   }
 
   /**
-   * Sets default-branch values for prefs that are both exposed in the UI and
-   * configurable via Nimbus.
+   * Sets default-branch values for prefs in `#uiPrefsByNimbusVariable`, i.e.,
+   * prefs that are both exposed in the settings UI and configurable via Nimbus.
    *
-   * @param {object} uiPrefsByVariable
-   *   A plain JS object that maps Nimbus variable names to their corresponding
-   *   prefs. This should always be `UI_PREFS_BY_VARIABLE` or a subset of it.
+   * @param {string} variable
+   *   If defined, only the pref corresponding to this variable will be set. If
+   *   there is no UI pref for this variable, this function is a no-op.
    */
-  #syncUiVariablesToPrefs(uiPrefsByVariable) {
-    let defaults = Services.prefs.getDefaultBranch("browser.urlbar.");
-    for (let [variable, pref] of Object.entries(uiPrefsByVariable)) {
-      let value = lazy.NimbusFeatures.urlbar.getVariable(variable);
+  #syncNimbusVariablesToUiPrefs(variable = null) {
+    let prefsByVariable = this.#uiPrefsByNimbusVariable;
+
+    if (variable) {
+      if (!prefsByVariable.hasOwnProperty(variable)) {
+        // `variable` does not correspond to a pref exposed in the UI.
+        return;
+      }
+      // Restrict `prefsByVariable` only to `variable`.
+      prefsByVariable = { [variable]: prefsByVariable[variable] };
+    }
+
+    let defaults = new lazy.Preferences({
+      branch: "browser.urlbar.",
+      defaultBranch: true,
+    });
+
+    for (let [v, pref] of Object.entries(prefsByVariable)) {
+      let value = lazy.NimbusFeatures.urlbar.getVariable(v);
       if (value === undefined) {
         value = this.#intendedDefaultPrefs[pref];
       }
-      defaults.setBoolPref(pref, value);
+      defaults.set(pref, value);
     }
   }
 
