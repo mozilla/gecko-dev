@@ -39,6 +39,20 @@
   <string name="mozac_feature_sitepermissions_do_not_ask_again_on_this_site2">تسمیم ن سی ای وبگه و ویر داشته بۊ</string>
   <!-- Text for a positive button in a permission request dialog. This will always allow and remember the decision of the user, this is the special case of the notification permission, that is only ask one time -->
   <string name="mozac_feature_sitepermissions_always_allow">هی</string>
+  <!-- Title of a dialog to require to save data in persistent storage. %1$s will be replaced with the URL of the current page -->
+  <string name="mozac_feature_sitepermissions_persistent_storage_title">هیلین %1$s داده یل ن من جاگه زفت دایومی زفت کونه؟</string>
+  <!-- Title of a dialog to use EME. %1$s will be replaced with the URL of the current page -->
+  <string name="mozac_feature_sitepermissions_media_key_system_access_title">هیلین %1$s موئتوا کیل وابیڌه وا DRM ن پشک کونه؟</string>
+  <!--
+    Title of a dialog to use cross origin storage permission. %1$s is the name of the site URL (www.site1.example) trying to track the user's activity.
+    %2$s is the name of the site URL (www.site2.example) that the user is visiting.  This is the same domain name displayed in the address bar
+  -->
+  <string name="mozac_feature_sitepermissions_storage_access_title">هیلین %1$s کۊکیا خوسه من %2$s و کار بگره؟</string>
+  <!--
+    Message of a dialog offering more context about the cross origin storage permission.
+    %s is the name of the site URL (www.site1.example) trying to track the user's activity.
+  -->
+  <string name="mozac_feature_sitepermissions_storage_access_message">ٱر دیاری نؽ سیچه %s ای داده یل ن اخو، گاشڌ بخۊین دسرسیسه مسدۊد کۊنین.</string>
   <!-- Text for a negative button in the storage access permission request dialog. This button will not give access to this permission. -->
   <string name="mozac_feature_sitepermissions_storage_access_not_allow">مسدۊد کردن</string>
   <!-- Clickable text that will open a new tab navigating the user to online documentation about specific features. -->

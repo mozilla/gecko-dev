@@ -129,6 +129,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Sfeḍ afeggag n yifecka akken ad tbeddleḍ accaren</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Zuɣer s azelmaḍ neɣ s ayeffus akken ad tbeddleḍ. Zuɣer iccer aneggaru ɣer uzelmaḍ i wakken ad teldiḍ iccer amaynut.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Uɣal ɣer ufeggag n yifecka ɣer tama n zelmeḍ neɣ n yeffus i uzgal seg yiccer ɣer wayeḍ.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Isɛa anekcum ɣer tkamiṛat. Ddu ɣer iɣewwaṛen Android, sit ɣef tisirag, sakin senned sireg.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -646,12 +648,18 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="onboarding_term_of_service_line_three_link_text">Sefrek</string>
   <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
   <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Mudd afus i usnerni n Firefox</string>
+  <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Mi ara tebḍuḍ amek i d-tessneḍ Firefox d wamek i t-tesseqdaceḍ, ad aɣ-tɛawneḍ ad nessiweḍ iminig-nneɣ i wugar n yimdanen.</string>
+  <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Bḍu cwiṭ n yisefka akked yisefkaicriken n tetiknulujit n Mozilla. Isefka-a werǧin ttnuzun neɣ ttusqdacen i uskan n udellel.</string>
   <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Amek i nesseqdac isefka</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Sentem syen bdu tunigin</string>
   <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
   <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Taɣawsa taneggarut</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Bḍu amek i d-tufiḍ Firefox, daɣen i t-tesseqdaceḍ, akked yicriken n ulzuz n Mozilla. Isefka-a werǧin ttnuzun.</string>
   <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Qbel, syen bdu tunigin</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
@@ -664,6 +672,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="onboarding_customize_toolbar_top_option">Afella</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">Adday</string>
+  <!-- Onboarding toolbar selection card content description for the main image. -->
+  <string name="onboarding_customize_toolbar_main_image_content_description">Tugna tameqqrant n uqerru n teskan n tefrant n ufeggag n yifecka i d-yeskanen amedya n ufeggag n yifecka .</string>
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">Tugna n ufeggag n yifecka adday</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">Tugna n ufeggag n yifecka afelay</string>
@@ -681,6 +691,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="onboarding_customize_theme_light_option">Aceɛlal</string>
   <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_system_option">Anagraw awurman</string>
+  <!-- Onboarding theme selection card content description for the main image. -->
+  <string name="onboarding_customize_theme_main_image_content_description">Tugna meqqren n tmuɣli n ufran n usentel i d-yeskanen anaẓur d yifecka n lebni.</string>
   <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
   <string name="onboarding_customize_theme_content_description">Tugna n usentel %1$s</string>
   <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
@@ -1652,6 +1664,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="bookmark_menu_copy_button">Nɣel</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">Bḍu</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">Fren akk</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">Ldi-t deg yiccer amaynut</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -3380,6 +3394,14 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="debug_drawer_home_region_label">Tamnaḍt tagejdant</string>
   <!-- The text label for displaying current region. -->
   <string name="debug_drawer_current_region_label">Tamnaḍt-a</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">Ɛeddi i tmurt tagejdant</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">Ɛeddi i tmurt tamirant</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">Ɛeddi i tmurt tagejdant tamirant</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Ɛeddi tamurt tagejdant i lebda</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3450,6 +3472,10 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="setup_checklist_subtitle_3_steps_initial_state">Smed kraḍ-a 3 takkayin i usbeddi n %1$s i tirmit n tunigin igerrzen.</string>
   <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
   <string name="setup_checklist_subtitle_3_steps_first_step">Tebdiḍ akken iwata! Tfukkeḍ amecwaṛ amezwaru 1 seg 3 n imecwaṛen.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">Qrib! Snat takkayin kfant, mazal 1 ad tfakkeḍ.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Tsemdeḍ akk 3 takkayin. Faṛes seg urured, tabaḍnit akked tɣellist n %1$s.</string>
   <!--
     ===== Setup checklist feature: Subtitles for 6 steps =====
 
@@ -3458,6 +3484,12 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="setup_checklist_subtitle_6_steps_initial_state">Smed akk 6 takkayin i usbeddi n %1$s i tirmit n tunigin igerrzen.</string>
   <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
   <string name="setup_checklist_subtitle_6_steps_first_step">Tebdiḍ akken iwata! Tfukkeḍ amecwaṛ amezwaru 1 seg 6 n imecwaṛen.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">Tfukkeḍ 2 seg 6 takkayin kfant. Iteddu!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">Aql-ak deg takkayt tis 4. 2 kan i mazal ad tfakkeḍ!</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">Tsemdeḍ akk 6 takkayin. Faṛes seg urured, tabaḍnit akked tɣellist n %1$s.</string>
   <!--
     ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
 
@@ -3466,6 +3498,10 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="setup_checklist_subtitle_5_steps_initial_state">Smed akk 5 takkayin i usbeddi n %1$s i tirmit n tunigin igerrzen.</string>
   <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
   <string name="setup_checklist_subtitle_5_steps_first_step">Tebdiḍ akken iwata! Tfukkeḍ amecwaṛ amezwaru 1 seg 5 n imecwaṛen.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Tfukkeḍ 2 seg 5 takkayin kfant. Iteddu!</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Tsemdeḍ akk 5 takkayin. Faṛes seg urured, tabaḍnit akked tɣellist n %1$s.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 
@@ -3520,6 +3556,10 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="pbm_authentication_enable_lock">Rmed asekker n ugdil n waccaren usligen</string>
   <!-- Authentication prompt title to disable the private tabs mode -->
   <string name="pbm_authentication_disable_lock">Sens asekker n ugdil n waccaren usligen</string>
+  <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
+  <string name="pbm_authentication_lock_device_feature_disabled">Sesteb asekkeṛ n ugdil i tuffra n waccaren</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title">Sseqdec asekkeṛ n ugdil akken ad teffreḍ accaren usligen?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
   <string name="private_tab_cfr_negative">Ala, tanemmirt</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->

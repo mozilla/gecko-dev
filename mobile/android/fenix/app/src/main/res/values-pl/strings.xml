@@ -632,6 +632,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">Szybkie i bezpieczne przeglądanie Internetu</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Zgadzam się, kontynuuj</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">Kontynuuj</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Kontynuując, zgadzasz się na %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1481,12 +1483,33 @@
   <string name="download_multi_select_title">Zaznaczone: %1$d</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Wyczyść z listy</string>
+  <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
+  <string name="download_file_has_not_enough_storage_dialog_title">Za mało miejsca</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message">To urządzenie ma za mało miejsca, aby pobrać &lt;b&gt;%s&lt;/b&gt;.</string>
+  <!--
+    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will navigate the user to the device's storage management settings.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">Zarządzaj plikami</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">Anuluj</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Usuń</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Przejdź wstecz</string>
   <!-- Content description for the toolbar "Navigate up" button -->
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Przejdź w górę</string>
+  <!-- Content description for the toolbar back button while searching the downloads -->
+  <string name="download_close_search_description">Wróć i zamknij wyszukiwanie</string>
+  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <string name="download_clear_search_description">Wyczyść</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Udostępnij adres</string>
   <!-- Text for the button to share the download file -->
@@ -1646,6 +1669,8 @@
   <string name="bookmark_menu_copy_button">Kopiuj</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">Udostępnij</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">Zaznacz wszystkie</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">Otwórz w nowej karcie</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -1658,6 +1683,8 @@
   <string name="bookmark_menu_delete_button">Usuń</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Zachowaj</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">Sortuj według innej kolejności</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">Sortuj od najnowszych</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3182,6 +3209,8 @@
   <string name="protection_panel_no_trackers_blocked">Nie odnaleziono żadnych elementów śledzących</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">Ustawienia prywatności i bezpieczeństwa</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">Uprawnienia</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.
@@ -3387,6 +3416,8 @@
   <string name="debug_drawer_override_current_region_label">Zastąp obecny region</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">Zastąp region lokalny i obecny</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Zastąp region lokalny na stałe</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3490,6 +3521,22 @@
   <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_subtitle_6_steps_completed_state">Ukończono wszystkie sześć kroków konfiguracji. Ciesz się szybkością, prywatnością i bezpieczeństwem przeglądarki %1$s.</string>
   <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Wykonaj wszystkie pięć kroków, aby skonfigurować przeglądarkę %1$s i przeglądać Internet jak najwygodniej.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">Dobry początek! Ukończono 1 z 5 kroków.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Ukończono 2 z 5 kroków. Świetny postęp!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">Jesteś w połowie drogi! Ukończono trzy kroki, zostały jeszcze dwa.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">Prawie gotowe! Od mety dzieli Cię tylko jeden krok.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Ukończono wszystkie pięć kroków konfiguracji. Ciesz się szybkością, prywatnością i bezpieczeństwem przeglądarki %1$s.</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
@@ -3539,4 +3586,16 @@
   <string name="pbm_authentication_unlock">Odblokuj</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Odblokuj prywatne karty</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">Włącz blokadę ekranu prywatnych kart</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">Wyłącz blokadę ekranu prywatnych kart</string>
+  <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
+  <string name="pbm_authentication_lock_device_feature_disabled">Skonfiguruj blokadę ekranu, aby ukrywać karty</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title">Czy ukrywać prywatne karty za pomocą blokady ekranu?</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative">Nie, dziękuję</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive">Blokuj karty</string>
 </resources>

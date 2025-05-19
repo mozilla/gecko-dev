@@ -636,6 +636,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">ਤੇਜ਼ ਅਤੇ ਸੁਰੱਖਿਅਤ ਵੈੱਬ ਬਰਾਊਜ਼ਿੰਗ</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">ਸਹਿਮਤ ਅਤੇ ਜਾਰੀ ਰੱਖੋ</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">ਜਾਰੀ ਰੱਖੋ</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">ਜਾਰੀ ਰੱਖ ਕੇ ਤੁਸੀਂ %1$s ਨਾਲ ਸਹਿਮਤ ਹੁੰਦੇ ਹੋ।</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -1671,6 +1673,8 @@
   <string name="bookmark_menu_copy_button">ਨਕਲ ਕਰੋ</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">ਸਾਂਝਾ ਕਰੋ</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">ਸਭ ਚੁਣੋ</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">ਨਵੀਂ ਟੈਬ ‘ਚ ਖੋਲ੍ਹੋ</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -1683,6 +1687,8 @@
   <string name="bookmark_menu_delete_button">ਹਟਾਓ</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">ਸੰਭਾਲੋ</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">ਪਸੰਦੀਦਾ ਲੜੀਬੱਧ ਢੰਗ</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">ਸਭ ਤੋਂ ਨਵੇਂ ਪਹਿਲਾਂ</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3426,6 +3432,8 @@
   <string name="debug_drawer_override_current_region_label">ਮੌਜੂਦਾ ਖੇਤਰ ਨੂੰ ਅਣਡਿੱਠਾ ਕਰੋ</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">ਮੁੱਖ ਅਤੇ ਮੌਜੂਦਾ ਖੇਤਰ ਨੂੰ ਅਣਡਿੱਠਾ ਕਰੋ</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">ਹੋਮ ਖੇਤਰ ਨੂੰ ਪੱਕੇ ਤੌਰ ਉੱਤੇ ਅਣਡਿੱਠਾ ਕਰ ਦਿਓ</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3594,6 +3602,12 @@
   <string name="pbm_authentication_unlock">ਅਣ-ਲਾਕ ਕਰੋ</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">ਪ੍ਰਾਈਵੇਟ ਟੈਬਾਂ ਨੂੰ ਅਣ-ਲਾਕ ਕਰੋ</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">ਪ੍ਰਾਈਵੇਟ ਟੈਬਾਂ ਲਈ ਸਕਰੀਨ ਲਾਕ ਨੂੰ ਸਮਰੱਥ ਕਰੋ</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">ਪ੍ਰਾਈਵੇਟ ਟੈਬਾਂ ਲਈ ਸਕਰੀਨ ਲਾਕ ਨੂੰ ਅਸਮਰੱਥ ਕਰੋ</string>
+  <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
+  <string name="pbm_authentication_lock_device_feature_disabled">ਟੈਬਾਂ ਨੂੰ ਲੁਕਾਉਣ ਲਈ ਸਕਰੀਨ ਲਾਕ ਸੈੱਟ ਅੱਪ ਕਰੋ</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">ਪ੍ਰਾਈਵੇਟ ਟੈਬਾਂ ਨੂੰ ਲੁਕਾਉਣ ਲਈ ਲਾਕ ਸਕਰੀਨ ਨੂੰ ਵਰਤਣਾ ਹੈ?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->

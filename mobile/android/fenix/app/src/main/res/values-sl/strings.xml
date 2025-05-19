@@ -677,6 +677,8 @@
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">Slika spodnje orodne vrstice</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">Slika vrhnje orodne vrstice</string>
+  <!-- Action label for toolbar options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_toolbar_a11y_action_label_select">izberite</string>
   <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Izberite temo</string>
   <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -693,6 +695,8 @@
   <string name="onboarding_customize_theme_main_image_content_description">Velika slika pogleda izbire tem, ki prikazuje ilustrirana orodja za ustvarjalce.</string>
   <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
   <string name="onboarding_customize_theme_content_description">Slika teme %1$s</string>
+  <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_theme_a11y_action_label_select">izberite</string>
   <!--
     Widget Picker
 
@@ -770,6 +774,10 @@
   <string name="preferences_add_private_browsing_shortcut">Dodaj bližnjico zasebnega brskanja</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">Način "samo HTTPS"</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">Uporabite zaklepanje zaslona za skrivanje zavihkov v zasebnem brskanju</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary">Oglejte si zavihke s prstnim odtisom, odklepanjem z obrazom ali PIN.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Zavračanje pasic s piškotki</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -1661,6 +1669,8 @@
   <string name="bookmark_menu_copy_button">Kopiraj</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">Deli</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">Izberi vse</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">Odpri v novem zavihku</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -1673,6 +1683,8 @@
   <string name="bookmark_menu_delete_button">Izbriši</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Shrani</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">Razvrsti po lastnem vrstnem redu</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">Razvrsti od najnovejšega</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3414,6 +3426,8 @@
   <string name="debug_drawer_override_current_region_label">Preglasi trenutno regijo</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">Preglasi domačo in trenutno regijo</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Trajno preglasi domačo regijo</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3487,6 +3501,52 @@
   <!-- Title for the setup checklist feature when the state is 'completed' -->
   <string name="setup_checklist_title_state_completed">Čestitamo!</string>
   <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">Dokončajte te 3 korake za nastavitev %1$sa za najboljšo izkušnjo brskanja.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">Odličen začetek! Dokončali ste prvega od treh korakov.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">Še malo! Dva koraka sta dokončana, do konca je le še eden.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Dokončali ste vse 3 korake. Uživajte v hitrosti, zasebnosti in varnosti %1$sa.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Dokončajte vseh 6 korakov za nastavitev %1$sa za najboljšo izkušnjo brskanja.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">Odličen začetek! Dokončali ste prvega od šestih korakov.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">Dokončali ste 2 od 6 korakov. Odličen napredek!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">Ste na pol poti! Trije koraki dokončani in še trije do konca.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">4 koraki dokončani. Le še 2 sta do konca!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">Še malo! Ste samo 1 korak od ciljne črte.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">Dokončali ste vseh 6 korakov za nastavitev. Uživajte v hitrosti, zasebnosti in varnosti %1$sa.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Dokončajte vseh 5 korakov za nastavitev %1$sa za najboljšo izkušnjo brskanja.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">Odličen začetek! Dokončali ste prvega od petih korakov.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Dokončali ste 2 od 5 korakov. Odličen napredek!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">Ste preko polovice! Trije koraki dokončani in še dva do konca.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">Še malo! Ste samo 1 korak od ciljne črte.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Dokončali ste vseh 5 korakov za nastavitev. Uživajte v hitrosti, zasebnosti in varnosti %1$sa.</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
@@ -3502,10 +3562,22 @@
   <string name="setup_checklist_task_explore_extensions">Razišči razširitve</string>
   <!-- The title of the search widget task for the setup checklist -->
   <string name="setup_checklist_task_search_widget">Namestite pripomoček za iskanje</string>
+  <!--
+    ===== Setup checklist feature: Group titles =====
+
+    The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_group_essentials">Osnove %1$sa</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_group_customize">Prilagodite svoj %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">Koristna orodja</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">Odstrani kontrolni seznam</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 
@@ -3524,6 +3596,12 @@
   <string name="pbm_authentication_unlock">Odkleni</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Odkleni zasebne zavihke</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">Omogoči zaklepanje zaslona zasebnih zavihkov</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">Onemogoči zaklepanje zaslona zasebnih zavihkov</string>
+  <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
+  <string name="pbm_authentication_lock_device_feature_disabled">Nastavite zaklepanje zaslona za skrivanje zavihkov</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">Želite skriti zasebne zavihke z zaklepanjem zaslona?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->

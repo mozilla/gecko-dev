@@ -132,6 +132,10 @@
   <string name="mozac_feature_prompts_manage_credit_cards_2">دؽوۉداری کارتا</string>
   <!-- Text for the title of a save credit card dialog. -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_title">ای کارت و جۊر ایمن زفت بۊ؟</string>
+  <!-- Text for the title of an update credit card dialog. -->
+  <string name="mozac_feature_prompts_update_credit_card_prompt_title">ویرگار انقزا کارت ورۊ بۊ؟</string>
+  <!-- Subtitle text displayed under the title of the saved card dialog. %s is the name of the app (for example "Firefox"). -->
+  <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s شوماره کارت ایسا ن رزم انه ریس. کود ٱمنیتی ایسا زفت نؽبۊوه.</string>
   <!--
     Address Autofill
 
