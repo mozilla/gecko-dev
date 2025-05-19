@@ -12,11 +12,16 @@ TARGET_REFRESH_RATE = {
 TARGET_RESOLUTION = {"default": "1920 x 1080"}
 
 
+def get_os_version():
+    (release, versioninfo, machine) = platform.mac_ver()
+    versionNums = release.split(".")[:2]
+    os_version = "%s.%s" % (versionNums[0], versionNums[1].ljust(2, "0"))
+    return os_version
+
+
 def get_target_rate():
     if platform.system() == "Darwin":
-        (release, versioninfo, machine) = platform.mac_ver()
-        versionNums = release.split(".")[:2]
-        os_version = "%s.%s" % (versionNums[0], versionNums[1].ljust(2, "0"))
+        os_version = get_os_version()
         if os_version in TARGET_REFRESH_RATE:
             return TARGET_REFRESH_RATE[os_version]
         return TARGET_REFRESH_RATE["default"]
@@ -25,9 +30,7 @@ def get_target_rate():
 
 def get_target_resolution():
     if platform.system() == "Darwin":
-        (release, versioninfo, machine) = platform.mac_ver()
-        versionNums = release.split(".")[:2]
-        os_version = "%s.%s" % (versionNums[0], versionNums[1].ljust(2, "0"))
+        os_version = get_os_version()
         if os_version in TARGET_RESOLUTION:
             return TARGET_RESOLUTION[os_version]
         return TARGET_RESOLUTION["default"]
@@ -96,8 +99,15 @@ def main():
     )
     (options, args) = parser.parse_args()
     if options.check == "resolution":
-        return get_resolution()
-    return get_refresh_rate()
+        retVal = get_resolution()
+    else:
+        retVal = get_refresh_rate()
+
+    os_version = get_os_version()
+    # Currently the 10.15 machines are not all consistent with proper kvm, resolution, refresh rate
+    if os_version == "10.15":
+        return 0
+    return retVal
 
 
 sys.exit(main())

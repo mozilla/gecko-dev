@@ -31,7 +31,7 @@ config = {
                 "--check=refresh-rate",
             ],
             "architectures": ["64bit"],
-            "halt_on_failure": False,
+            "halt_on_failure": True,
             "enabled": True,
         },
         {
@@ -47,7 +47,7 @@ config = {
                 "--check=resolution",
             ],
             "architectures": ["64bit"],
-            "halt_on_failure": False,
+            "halt_on_failure": True,
             "enabled": True,
         },
     ],
