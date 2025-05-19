@@ -5870,7 +5870,7 @@
 # over IPC from the child processes.
 - name: fission.disableSessionHistoryInParent
   type: bool
-  value: false
+  value: @IS_ANDROID@
   mirror: once
   do_not_use_directly: true
 

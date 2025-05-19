@@ -49,7 +49,7 @@ xpcshell:
         - socketprocess_networking
         - no-fission
         - msix
-        - geckoview-no-fission-no-ship
+        - geckoview-no-fission-ship
         - inc-origin-init
     instance-size:
         by-variant:
@@ -86,7 +86,7 @@ xpcshell:
                     windows11-64-24h2(-shippable)?/opt: built-projects
                     windows11-64-24h2/debug: built-projects
                     default: []
-            geckoview-no-fission-no-ship:
+            geckoview-no-fission-ship:
                 by-test-platform:
                     android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android-em.*: built-projects
