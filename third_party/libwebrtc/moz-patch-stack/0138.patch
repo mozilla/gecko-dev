@@ -1,70 +1,35 @@
 From: Michael Froman <mfroman@mozilla.com>
 Date: Tue, 13 May 2025 22:38:00 +0000
-Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit 47a09bfafb
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit 48ccc95b0f
  r?pehrsons!
 
-Upstream commit: https://webrtc.googlesource.com/src/+/47a09bfafbb88dbf5429fe2b2ee33117d789461c
-       Add a function to check for SCK availability at runtime
-
-       Firefox uses this to decide whether to skip creating a
-       DesktopAndCursorComposer, since the Mac MouseCursorMonitor is quite
-       expensive.
+Upstream commit: https://webrtc.googlesource.com/src/+/48ccc95b0f76af263e64dac5a97a61f8c8aeeba9
+       In screen_capturer_sck.mm make capture_options_ const.
 
        Bug: webrtc:367915807
-       Change-Id: Idfb4c113391620c48f1e548bd5d876b7b3565d7d
-       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365082
+       Change-Id: Ib473f5c57704c4cf6616cefc2a20ad932542c2e5
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365083
        Reviewed-by: Alexander Cooper <alcooper@chromium.org>
-       Reviewed-by: Johannes Kron <kron@webrtc.org>
        Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
-       Cr-Commit-Position: refs/heads/main@{#44195}
+       Reviewed-by: Johannes Kron <kron@webrtc.org>
+       Cr-Commit-Position: refs/heads/main@{#44203}
 
-Differential Revision: https://phabricator.services.mozilla.com/D249150
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0042d02ba26864425753f258b88a31b6c10ad4b4
+Differential Revision: https://phabricator.services.mozilla.com/D249151
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/95a92396258db8b00761bb79c3daa564743d8a68
 ---
- modules/desktop_capture/mac/screen_capturer_sck.h  |  3 +++
- modules/desktop_capture/mac/screen_capturer_sck.mm | 13 +++++++++++--
- 2 files changed, 14 insertions(+), 2 deletions(-)
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/desktop_capture/mac/screen_capturer_sck.h b/modules/desktop_capture/mac/screen_capturer_sck.h
-index 2c5241d33e..105cbf0783 100644
---- a/modules/desktop_capture/mac/screen_capturer_sck.h
-+++ b/modules/desktop_capture/mac/screen_capturer_sck.h
-@@ -18,6 +18,9 @@
- 
- namespace webrtc {
- 
-+// Returns true if the ScreenCaptureKit capturer is available.
-+bool ScreenCapturerSckAvailable();
-+
- // A DesktopCapturer implementation that uses ScreenCaptureKit.
- std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
-     const DesktopCaptureOptions& options);
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index fbec429ffe..098a169e08 100644
+index 098a169e08..c8f5411bcd 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -374,13 +374,22 @@ void ScreenCapturerSck::StartOrReconfigureCapturer() {
-   [SCShareableContent getShareableContentWithCompletionHandler:handler];
- }
+@@ -93,7 +93,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
  
-+bool ScreenCapturerSckAvailable() {
-+  static bool available = ([] {
-+    if (@available(macOS 14.0, *)) {
-+      return true;
-+    }
-+    return false;
-+  })();
-+  return available;
-+}
-+
- std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
-     const DesktopCaptureOptions& options) {
-   if (@available(macOS 14.0, *)) {
-     return std::make_unique<ScreenCapturerSck>(options);
--  } else {
--    return nullptr;
-   }
-+  return nullptr;
- }
+   // Options passed to the constructor. May be accessed on any thread, but the
+   // options are unchanged during the capturer's lifetime.
+-  DesktopCaptureOptions capture_options_;
++  const DesktopCaptureOptions capture_options_;
  
- }  // namespace webrtc
+   // Signals that a permanent error occurred. This may be set on any thread, and
+   // is read by CaptureFrame() which runs on the caller's thread.
