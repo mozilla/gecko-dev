@@ -31,34 +31,28 @@ class Addons:
     def __init__(self, marionette):
         self._mn = marionette
 
-    def install(self, path=None, temp=False, data=None):
-        """Install a Firefox addon, which can be used right away.
+    def install(self, path, temp=False):
+        """Install a Firefox addon.
+
+        If the addon is restartless, it can be used right away. Otherwise
+        a restart using :func:`~marionette_driver.marionette.Marionette.restart`
+        will be needed.
 
         :param path: A file path to the extension to be installed.
         :param temp: Install a temporary addon. Temporary addons will
                      automatically be uninstalled on shutdown and do not need
-                     to be signed.
-        :param data: A base64-encoded string of a zip-packed addon.
+                     to be signed, though they must be restartless.
 
         :returns: The addon ID string of the newly installed addon.
 
         :raises: :exc:`AddonInstallException`
 
         """
+        # On windows we can end up with a path with mixed \ and /
+        # which Firefox doesn't like
+        path = path.replace("/", os.path.sep)
 
-        if (path and data) or (not path and not data):
-            raise AddonInstallException("Must use either path or data argument.")
-
-        body = {"temporary": temp}
-        if path:
-            # On windows we can end up with a path with mixed \ and /
-            # which Firefox doesn't like
-            path = path.replace("/", os.path.sep)
-            body.update({"path": path})
-
-        if data:
-            body.update({"addon": data})
-
+        body = {"path": path, "temporary": temp}
         try:
             return self._mn._send_message("Addon:Install", body, key="value")
         except errors.UnknownException as e:
