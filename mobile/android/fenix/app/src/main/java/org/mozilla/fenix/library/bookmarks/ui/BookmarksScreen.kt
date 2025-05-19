@@ -32,6 +32,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -241,6 +242,12 @@ private fun BookmarksList(
         },
         backgroundColor = FirefoxTheme.colors.layer1,
     ) { paddingValues ->
+        if (state.isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            return@Scaffold
+        }
         val emptyListState = state.emptyListState()
         if (emptyListState != null) {
             EmptyList(state = emptyListState, dispatcher = store::dispatch)
@@ -1399,6 +1406,7 @@ private fun EditBookmarkScreenPreview() {
             bookmarksSelectFolderState = null,
             bookmarksEditFolderState = null,
             bookmarksMultiselectMoveState = null,
+            isLoading = false,
         ),
     )
 
@@ -1453,6 +1461,7 @@ private fun EditFolderScreenPreview() {
                 ),
             ),
             bookmarksMultiselectMoveState = null,
+            isLoading = false,
         ),
     )
 
@@ -1501,6 +1510,7 @@ private fun BookmarksScreenPreview() {
                 bookmarksSelectFolderState = null,
                 bookmarksEditFolderState = null,
                 bookmarksMultiselectMoveState = null,
+                isLoading = false,
             ),
         )
     }
@@ -1537,6 +1547,7 @@ private fun EmptyBookmarksScreenPreview() {
                 bookmarksSelectFolderState = null,
                 bookmarksEditFolderState = null,
                 bookmarksMultiselectMoveState = null,
+                isLoading = false,
             ),
         )
     }
@@ -1579,6 +1590,7 @@ private fun AddFolderPreview() {
             bookmarksSelectFolderState = null,
             bookmarksEditFolderState = null,
             bookmarksMultiselectMoveState = null,
+            isLoading = false,
         ),
     )
     FirefoxTheme {
@@ -1637,6 +1649,7 @@ private fun SelectFolderPreview() {
                 ),
             ),
             bookmarksMultiselectMoveState = null,
+            isLoading = false,
         ),
     )
     FirefoxTheme {

@@ -13,6 +13,33 @@ import org.junit.Test
 
 class BookmarksReducerTest {
     @Test
+    fun `WHEN bookmarks are loaded THEN isLoading state member reflects it has completed`() {
+        val state = BookmarksState.default
+        val items = List(0) {
+            BookmarkItem.Folder("$it", "guid$it", position = it.toUInt())
+        }
+        val newFolder = BookmarkItem.Folder(
+            guid = "guid",
+            title = "Bookmarks",
+            position = 1U,
+        )
+        assertTrue(state.isLoading)
+        val result = bookmarksReducer(
+            state,
+            BookmarksLoaded(
+                folder = newFolder,
+                bookmarkItems = items,
+            ),
+        )
+        val expected = state.copy(
+            currentFolder = newFolder,
+            bookmarkItems = items,
+            isLoading = false,
+        )
+        assertEquals(expected, result)
+    }
+
+    @Test
     fun `WHEN store initializes THEN no changes to state`() {
         val state = BookmarksState.default
 
@@ -54,6 +81,7 @@ class BookmarksReducerTest {
         val expected = state.copy(
             currentFolder = newFolder,
             bookmarkItems = items,
+            isLoading = false,
         )
         assertEquals(expected, result)
     }

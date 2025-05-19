@@ -21,6 +21,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     is BookmarksLoaded -> state.copy(
         currentFolder = action.folder,
         bookmarkItems = action.bookmarkItems.sortedWith(state.sortOrder.comparator),
+        isLoading = false,
     )
     is RecursiveSelectionCountLoaded -> state.copy(recursiveSelectedCount = action.count)
     is BookmarkLongClicked -> state.toggleSelectionOf(action.item)
