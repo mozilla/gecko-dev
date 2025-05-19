@@ -79,8 +79,9 @@ if [ "x$CHANGED_FILE_CNT" != "x0" ]; then
   exit 1
 fi
 
-if [ -f $STATE_DIR/rebase_resume_state ]; then
-  source $STATE_DIR/rebase_resume_state
+RESUME_FILE=$STATE_DIR/elm_rebase.resume
+if [ -f $RESUME_FILE ]; then
+  source $RESUME_FILE
 else
 
   # on first run, we want to verify sanity of the patch-stack so
@@ -197,8 +198,8 @@ export MOZ_TOP_FF=$MOZ_TOP_FF
 export MOZ_OLD_CENTRAL=$MOZ_OLD_CENTRAL
 export MOZ_NEW_CENTRAL=$MOZ_NEW_CENTRAL
 export MOZ_BOOKMARK=$MOZ_BOOKMARK
-" > $STATE_DIR/rebase_resume_state
-fi # if [ -f $STATE_DIR/rebase_resume_state ]; then ; else
+" > $RESUME_FILE
+fi # if [ -f $RESUME_FILE ]; then ; else
 
 if [ "x$STOP_FOR_REORDER" = "x1" ]; then
   echo ""
@@ -366,7 +367,7 @@ echo "Done checking for new mercurial changes in third_party/libwebrtc"
 
 # now that we've run all the things that should be fallible, remove the
 # resume state file
-rm $STATE_DIR/rebase_resume_state
+rm $RESUME_FILE
 
 REMAINING_STEPS=$"
 The rebase process is complete.  The following steps must be completed manually:
