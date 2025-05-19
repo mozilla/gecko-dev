@@ -469,11 +469,6 @@ add_task(async function test_notifyUsed() {
 
   Assert.equal(creditCard.timesUsed, timesUsed + 1);
   Assert.notEqual(creditCard.timeLastUsed, timeLastUsed);
-
-  Assert.throws(
-    () => profileStorage.creditCards.notifyUsed("INVALID_GUID"),
-    /No matching record\./
-  );
 });
 
 add_task(async function test_remove() {

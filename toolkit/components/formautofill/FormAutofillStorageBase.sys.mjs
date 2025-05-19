@@ -539,7 +539,9 @@ class AutofillRecords {
 
     let recordFound = this._findByGUID(guid);
     if (!recordFound) {
-      throw new Error("No matching record.");
+      // record must have been deleted, nothing to update
+      this.log.debug("Cannot notify. No record found with guid:", guid);
+      return;
     }
 
     recordFound.timesUsed++;

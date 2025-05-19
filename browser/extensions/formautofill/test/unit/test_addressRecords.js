@@ -366,11 +366,6 @@ add_task(async function test_notifyUsed() {
     getSyncChangeCounter(profileStorage.addresses, guid),
     changeCounter
   );
-
-  Assert.throws(
-    () => profileStorage.addresses.notifyUsed("INVALID_GUID"),
-    /No matching record\./
-  );
 });
 
 add_task(async function test_remove() {
