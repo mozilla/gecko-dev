@@ -83,7 +83,7 @@ static void ShowCustomDialog(GtkComboBox* changed_box, gpointer user_data) {
       gtk_label_new(NS_ConvertUTF16toUTF8(intlString).get());
   GtkWidget* custom_entry = gtk_entry_new();
   GtkWidget* question_icon =
-      gtk_image_new_from_stock(GTK_STOCK_DIALOG_QUESTION, GTK_ICON_SIZE_DIALOG);
+      gtk_image_new_from_icon_name("dialog-question", GTK_ICON_SIZE_DIALOG);
 
   // To be convenient, prefill the textbox with the existing value, if any, and
   // select it all so they can easily both edit it and type in a new one.
@@ -231,7 +231,7 @@ nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsPIDOMWindowOuter* aParent,
                      print_bg_colors_toggle, FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(appearance_buttons_container),
                      print_bg_images_toggle, FALSE, FALSE, 0);
-  g_object_set(appearance_buttons_container, "padding", 8, 0, 12, 0, NULL);
+  g_object_set(appearance_buttons_container, "margin", 8, 0, 12, 0, NULL);
 
   // "Appearance" options label, bold and center-aligned
   GtkWidget* appearance_label = gtk_label_new(nullptr);
@@ -255,14 +255,13 @@ nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsPIDOMWindowOuter* aParent,
       "<b>%s</b>", GetUTF8FromBundle("headerFooter").get());
   gtk_label_set_markup(GTK_LABEL(header_footer_label), pangoMarkup);
   g_free(pangoMarkup);
-  gtk_misc_set_alignment(GTK_MISC(header_footer_label), 0, 0);
-
-  GtkWidget* header_footer_container = gtk_alignment_new(0, 0, 0, 0);
-  gtk_alignment_set_padding(GTK_ALIGNMENT(header_footer_container), 8, 0, 12,
-                            0);
+  g_object_set(header_footer_label, "xalign", 0, NULL);
+  g_object_set(header_footer_label, "valign", 0, NULL);
 
   // --- Table for making the header and footer options ---
   GtkWidget* header_footer_table = gtk_table_new(3, 3, FALSE);  // 3x3 table
+  g_object_set(header_footer_table, "padding", 8, 0, 12, 0, NULL);
+
   nsString header_footer_str[3];
 
   aSettings->GetHeaderStrLeft(header_footer_str[0]);
@@ -300,15 +299,12 @@ nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsPIDOMWindowOuter* aParent,
   }
   // ---
 
-  gtk_container_add(GTK_CONTAINER(header_footer_container),
-                    header_footer_table);
-
   GtkWidget* header_footer_vertical_squasher =
       gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   gtk_box_pack_start(GTK_BOX(header_footer_vertical_squasher),
                      header_footer_label, FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(header_footer_vertical_squasher),
-                     header_footer_container, FALSE, FALSE, 0);
+                     header_footer_table, FALSE, FALSE, 0);
 
   // Construction of everything
   gtk_box_pack_start(GTK_BOX(custom_options_tab), check_buttons_container,
