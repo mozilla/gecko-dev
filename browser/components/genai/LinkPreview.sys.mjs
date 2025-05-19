@@ -60,6 +60,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
+  "recentTypingMs",
+  "browser.ml.linkPreview.recentTypingMs"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
   "shift",
   "browser.ml.linkPreview.shift"
 );
@@ -75,6 +80,7 @@ export const LinkPreview = {
 
   cancelLongPress: null,
   keyboardComboActive: false,
+  recentTyping: 0,
   _windowStates: new Map(),
   linkPreviewPanelId: "link-preview-panel",
 
@@ -275,6 +281,12 @@ export const LinkPreview = {
    */
   _onKeyEvent(event) {
     const win = event.currentTarget;
+
+    // Track regular typing to suppress keyboard previews.
+    if (event.key.length == 1) {
+      this.recentTyping = Date.now();
+    }
+
     // Keyboard combos requires shift and neither ctrl nor meta.
     this.keyboardComboActive = false;
     if (!event.shiftKey || event.ctrlKey || event.metaKey) {
@@ -619,7 +631,12 @@ export const LinkPreview = {
   _maybeLinkPreview(win) {
     const stateObject = this._windowStates.get(win);
     const url = stateObject.overLink;
-    if (url && this.keyboardComboActive) {
+    // Render preview if we have url, keyboard combo and not recently typing.
+    if (
+      url &&
+      this.keyboardComboActive &&
+      Date.now() - this.recentTyping >= lazy.recentTypingMs
+    ) {
       this.renderLinkPreviewPanel(win, url, this.keyboardComboActive);
     }
   },

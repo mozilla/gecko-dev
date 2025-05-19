@@ -196,6 +196,57 @@ add_task(async function test_link_preview_with_long_press() {
 });
 
 /**
+ * Tests that regular typing prevents link preview.
+ */
+add_task(async function test_link_preview_with_typing() {
+  const stub = sinon.stub(LinkPreview, "renderLinkPreviewPanel");
+
+  XULBrowserWindow.setOverLink(TEST_LINK_URL, {});
+
+  is(LinkPreview.recentTyping, 0, "recent typing unset");
+
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key: ":",
+    })
+  );
+
+  ok(LinkPreview.recentTyping, "recent typing set");
+  ok(!LinkPreview.keyboardComboActive, "typing isn't combo");
+  is(stub.callCount, 0, "no link preview shown");
+
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      shiftKey: true,
+    })
+  );
+
+  ok(LinkPreview.keyboardComboActive, "shift is combo");
+  is(stub.callCount, 0, "no link preview shown");
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.linkPreview.recentTypingMs", 0]],
+  });
+
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      shiftKey: true,
+    })
+  );
+
+  is(stub.callCount, 1, "preview shown without typing delay");
+
+  stub.restore();
+  LinkPreview.recentTyping = 0;
+});
+
+/**
  * Tests that no event is dispatched when the Link Preview feature is disabled, even if the Alt key is pressed.
  *
  * This test performs the following steps:
