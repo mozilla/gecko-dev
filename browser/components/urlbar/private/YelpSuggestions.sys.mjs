@@ -15,6 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
+  YelpSubjectType: "resource://gre/modules/RustSuggest.sys.mjs",
 });
 
 const RESULT_MENU_COMMAND = {
@@ -187,17 +188,40 @@ export class YelpSuggestions extends SuggestProvider {
       }
     }
 
+    let titleHighlights = lazy.UrlbarUtils.getTokenMatches(
+      queryContext.tokens,
+      title,
+      lazy.UrlbarUtils.HIGHLIGHT.TYPED
+    );
+    let payload = {
+      url: url.toString(),
+      originalUrl: suggestion.url,
+      bottomTextL10n: { id: "firefox-suggest-yelp-bottom-text" },
+      iconBlob: suggestion.icon_blob,
+    };
+    let highlights = {};
+
+    if (suggestion.subjectType === lazy.YelpSubjectType.SERVICE) {
+      payload.titleL10n = {
+        id: "firefox-suggest-yelp-service-title",
+        args: {
+          service: title,
+        },
+        argsHighlights: {
+          service: titleHighlights,
+        },
+      };
+    } else {
+      payload.title = title;
+      highlights.title = titleHighlights;
+    }
+
     return Object.assign(
       new lazy.UrlbarResult(
         lazy.UrlbarUtils.RESULT_TYPE.URL,
         lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
-        ...lazy.UrlbarResult.payloadAndSimpleHighlights(queryContext.tokens, {
-          url: url.toString(),
-          originalUrl: suggestion.url,
-          title: [title, lazy.UrlbarUtils.HIGHLIGHT.TYPED],
-          bottomTextL10n: { id: "firefox-suggest-yelp-bottom-text" },
-          iconBlob: suggestion.icon_blob,
-        })
+        payload,
+        highlights
       ),
       resultProperties
     );

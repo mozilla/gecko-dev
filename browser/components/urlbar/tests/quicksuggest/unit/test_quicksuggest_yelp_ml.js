@@ -14,9 +14,10 @@ const REMOTE_SETTINGS_RECORDS = [
   {
     type: "yelp-suggestions",
     attachment: {
+      subjects: [],
       // The "coffee" subject is important: It's how `YelpSuggestions` looks up
       // the Yelp icon and score right now.
-      subjects: ["coffee"],
+      businessSubjects: ["coffee"],
       preModifiers: [],
       postModifiers: [],
       locationSigns: ["in", "nearby"],

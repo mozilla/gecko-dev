@@ -12,8 +12,9 @@ const REMOTE_SETTINGS_RECORDS = [
   {
     type: "yelp-suggestions",
     attachment: {
-      subjects: ["ramen", "ab", "alongerkeyword", "1234"],
-      preModifiers: ["best"],
+      subjects: ["a service"],
+      businessSubjects: ["the shop", "ab", "alongerkeyword", "1234"],
+      preModifiers: ["best", "local"],
       postModifiers: ["delivery"],
       locationSigns: ["in", "nearby"],
       yelpModifiers: [],
@@ -25,8 +26,8 @@ const REMOTE_SETTINGS_RECORDS = [
 ];
 
 const TOKYO_RESULT = {
-  url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Tokyo%2C+Tokyo-to",
-  title: "ramen in Tokyo, Tokyo-to",
+  url: "https://www.yelp.com/search?find_desc=the+shop&find_loc=Tokyo%2C+Tokyo-to",
+  title: "the shop in Tokyo, Tokyo-to",
 };
 
 const AB_RESULT = {
@@ -59,53 +60,85 @@ add_setup(async function () {
 add_task(async function basic() {
   const TEST_DATA = [
     {
-      description: "Basic",
-      query: "best ramen delivery in tokyo",
+      description: "Basic service subject",
+      query: "best a service delivery in tokyo",
       expected: {
-        url: "https://www.yelp.com/search?find_desc=best+ramen+delivery&find_loc=Tokyo%2C+Tokyo-to",
-        title: "best ramen delivery in Tokyo, Tokyo-to",
+        url: "https://www.yelp.com/search?find_desc=best+a+service+delivery&find_loc=Tokyo%2C+Tokyo-to",
+        titleL10n: {
+          id: "firefox-suggest-yelp-service-title",
+          args: {
+            service: "best a service delivery in Tokyo, Tokyo-to",
+          },
+          argsHighlights: {
+            service: [
+              [0, 4],
+              [5, 1],
+              [7, 7],
+              [15, 8],
+              [24, 2],
+              [27, 5],
+              [34, 5],
+            ],
+          },
+        },
+      },
+    },
+    {
+      description: "Basic business subject",
+      query: "local the shop delivery in tokyo",
+      expected: {
+        url: "https://www.yelp.com/search?find_desc=local+the+shop+delivery&find_loc=Tokyo%2C+Tokyo-to",
+        title: "local the shop delivery in Tokyo, Tokyo-to",
       },
     },
     {
       description: "With upper case",
-      query: "BeSt RaMeN dElIvErY iN tOkYo",
+      query: "LoCaL tHe ShOp dElIvErY iN tOkYo",
       expected: {
-        url: "https://www.yelp.com/search?find_desc=BeSt+RaMeN+dElIvErY&find_loc=Tokyo%2C+Tokyo-to",
-        title: "BeSt RaMeN dElIvErY iN Tokyo, Tokyo-to",
+        url: "https://www.yelp.com/search?find_desc=LoCaL+tHe+ShOp+dElIvErY&find_loc=Tokyo%2C+Tokyo-to",
+        title: "LoCaL tHe ShOp dElIvErY iN Tokyo, Tokyo-to",
       },
     },
     {
       description: "No specific location with location-sign",
-      query: "ramen in",
+      query: "the shop in",
       expected: {
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Yokohama%2C+Kanagawa",
-        title: "ramen in Yokohama, Kanagawa",
+        url: "https://www.yelp.com/search?find_desc=the+shop&find_loc=Yokohama%2C+Kanagawa",
+        title: "the shop in Yokohama, Kanagawa",
       },
     },
     {
       description: "No specific location with location-modifier",
-      query: "ramen nearby",
+      query: "the shop nearby",
       expected: {
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Yokohama%2C+Kanagawa",
-        title: "ramen nearby Yokohama, Kanagawa",
+        url: "https://www.yelp.com/search?find_desc=the+shop&find_loc=Yokohama%2C+Kanagawa",
+        title: "the shop nearby Yokohama, Kanagawa",
       },
     },
     {
-      description: "Query too short, no subject exact match: ra",
-      query: "ra",
+      description: "Query too short, no subject exact match: th",
+      query: "th",
       expected: null,
     },
     {
-      description: "Query too short, no subject not exact match: ram",
-      query: "ram",
+      description: "Query too short, no subject not exact match: the",
+      query: "the",
       expected: null,
     },
     {
-      description: "Query length == minKeywordLength, no subject exact match",
-      query: "rame",
+      description: "Query too short, no subject not exact match: the ",
+      query: "the ",
       expected: {
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Yokohama%2C+Kanagawa",
-        title: "ramen in Yokohama, Kanagawa",
+        url: "https://www.yelp.com/search?find_desc=the+shop&find_loc=Yokohama%2C+Kanagawa",
+        title: "the shop in Yokohama, Kanagawa",
+      },
+    },
+    {
+      description: "Query length == minKeywordLength, no subject exact the s",
+      query: "the s",
+      expected: {
+        url: "https://www.yelp.com/search?find_desc=the+shop&find_loc=Yokohama%2C+Kanagawa",
+        title: "the shop in Yokohama, Kanagawa",
       },
     },
     {
@@ -119,11 +152,11 @@ add_task(async function basic() {
     },
     {
       description:
-        "Query length > minKeywordLength, subject exact match: ramen",
-      query: "ramen",
+        "Query length > minKeywordLength, subject exact match: the shop",
+      query: "the shop",
       expected: {
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Yokohama%2C+Kanagawa",
-        title: "ramen in Yokohama, Kanagawa",
+        url: "https://www.yelp.com/search?find_desc=the+shop&find_loc=Yokohama%2C+Kanagawa",
+        title: "the shop in Yokohama, Kanagawa",
       },
     },
     {
@@ -143,10 +176,10 @@ add_task(async function basic() {
     },
     {
       description: "Pre-modifier, query long enough, subject long enough",
-      query: "best ra",
+      query: "local th",
       expected: {
-        url: "https://www.yelp.com/search?find_desc=best+ramen&find_loc=Yokohama%2C+Kanagawa",
-        title: "best ramen in Yokohama, Kanagawa",
+        url: "https://www.yelp.com/search?find_desc=local+the+shop&find_loc=Yokohama%2C+Kanagawa",
+        title: "local the shop in Yokohama, Kanagawa",
       },
     },
     {
@@ -174,11 +207,11 @@ add_task(async function basic() {
     {
       description:
         "Subject exact match with length > minKeywordLength, showLessFrequentlyCount non-zero",
-      query: "ramen",
+      query: "the shop",
       showLessFrequentlyCount: 1,
       expected: {
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Yokohama%2C+Kanagawa",
-        title: "ramen in Yokohama, Kanagawa",
+        url: "https://www.yelp.com/search?find_desc=the+shop&find_loc=Yokohama%2C+Kanagawa",
+        title: "the shop in Yokohama, Kanagawa",
       },
     },
     {
@@ -274,7 +307,7 @@ add_task(async function sponsoredDisabled() {
   // First make sure the suggestion is added when non-sponsored
   // suggestions are enabled, if the rust is enabled.
   await check_results({
-    context: createContext("ramen in tokyo", {
+    context: createContext("the shop in tokyo", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
@@ -288,7 +321,7 @@ add_task(async function sponsoredDisabled() {
     "Yelp should be disabled"
   );
   await check_results({
-    context: createContext("ramen in tokyo", {
+    context: createContext("the shop in tokyo", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
@@ -305,7 +338,7 @@ add_task(async function sponsoredDisabled() {
     "Yelp should be re-enabled"
   );
   await check_results({
-    context: createContext("ramen in tokyo", {
+    context: createContext("the shop in tokyo", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
@@ -320,7 +353,7 @@ add_task(async function yelpSpecificPrefsDisabled() {
   for (const pref of prefs) {
     // First make sure the suggestion is added, if the rust is enabled.
     await check_results({
-      context: createContext("ramen in tokyo", {
+      context: createContext("the shop in tokyo", {
         providers: [UrlbarProviderQuickSuggest.name],
         isPrivate: false,
       }),
@@ -334,7 +367,7 @@ add_task(async function yelpSpecificPrefsDisabled() {
       "Yelp should be disabled"
     );
     await check_results({
-      context: createContext("ramen in tokyo", {
+      context: createContext("the shop in tokyo", {
         providers: [UrlbarProviderQuickSuggest.name],
         isPrivate: false,
       }),
@@ -351,7 +384,7 @@ add_task(async function yelpSpecificPrefsDisabled() {
       "Yelp should be re-enabled"
     );
     await check_results({
-      context: createContext("ramen in tokyo", {
+      context: createContext("the shop in tokyo", {
         providers: [UrlbarProviderQuickSuggest.name],
         isPrivate: false,
       }),
@@ -366,7 +399,7 @@ add_task(async function featureGate() {
   // Disable the fature gate.
   UrlbarPrefs.set("yelp.featureGate", false);
   await check_results({
-    context: createContext("ramem in tokyo", {
+    context: createContext("the shop in tokyo", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
@@ -379,7 +412,7 @@ add_task(async function featureGate() {
   });
   await QuickSuggestTestUtils.forceSync();
   await check_results({
-    context: createContext("ramen in tokyo", {
+    context: createContext("the shop in tokyo", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
@@ -396,7 +429,7 @@ add_task(async function featureGate() {
     yelpFeatureGate: false,
   });
   await check_results({
-    context: createContext("ramen in tokyo", {
+    context: createContext("the shop in tokyo", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
@@ -419,7 +452,7 @@ add_task(async function yelpSuggestPriority() {
   await QuickSuggestTestUtils.forceSync();
 
   await check_results({
-    context: createContext("ramen in tokyo", {
+    context: createContext("the shop in tokyo", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
@@ -435,7 +468,7 @@ add_task(async function yelpSuggestPriority() {
   await QuickSuggestTestUtils.forceSync();
 
   await check_results({
-    context: createContext("ramen in tokyo", {
+    context: createContext("the shop in tokyo", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
@@ -460,7 +493,7 @@ add_task(async function nimbusSuggestedIndex() {
   await QuickSuggestTestUtils.forceSync();
 
   await check_results({
-    context: createContext("ramen in tokyo", {
+    context: createContext("the shop in tokyo", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
@@ -479,7 +512,7 @@ add_task(async function nimbusSuggestedIndex() {
   // When the Nimbus variable isn't defined, the suggested index should be the
   // default index used for Yelp, which is the sponsored suggestions index, 0.
   await check_results({
-    context: createContext("ramen in tokyo", {
+    context: createContext("the shop in tokyo", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
@@ -499,7 +532,7 @@ add_task(async function showSearchSuggestionsFirstDisabledSuggestedIndex() {
   info("Disable browser.urlbar.showSearchSuggestionsFirst pref");
   UrlbarPrefs.set("showSearchSuggestionsFirst", false);
   await check_results({
-    context: createContext("ramen in tokyo", {
+    context: createContext("the shop in tokyo", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
@@ -515,7 +548,7 @@ add_task(async function showSearchSuggestionsFirstDisabledSuggestedIndex() {
   info("Enable browser.urlbar.showSearchSuggestionsFirst pref");
   UrlbarPrefs.set("showSearchSuggestionsFirst", true);
   await check_results({
-    context: createContext("ramen in tokyo", {
+    context: createContext("the shop in tokyo", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
@@ -541,14 +574,14 @@ add_task(async function notRelevant() {
       // Yelp suggestions are dismissed by URL excluding location, so all
       // "ramen in <valid location>" results should be dismissed.
       {
-        query: "ramen in tokyo",
+        query: "the shop in tokyo",
       },
       {
-        query: "ramen in waterloo",
+        query: "the shop in waterloo",
         expectedResults: [
           QuickSuggestTestUtils.yelpResult({
-            url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Waterloo%2C+IA",
-            title: "ramen in Waterloo, IA",
+            url: "https://www.yelp.com/search?find_desc=the+shop&find_loc=Waterloo%2C+IA",
+            title: "the shop in Waterloo, IA",
           }),
         ],
       },
@@ -577,7 +610,7 @@ add_task(async function notInterested() {
     pref: "suggest.yelp",
     queries: [
       {
-        query: "ramen in tokyo",
+        query: "the shop in tokyo",
       },
       {
         query: "alongerkeyword in tokyo",
@@ -603,17 +636,17 @@ add_task(async function showLessFrequently() {
 
   let location = `${GEOLOCATION.city}, ${GEOLOCATION.region}`;
   let url = new URL("https://www.yelp.com/search");
-  url.searchParams.set("find_desc", "best ramen");
+  url.searchParams.set("find_desc", "local the shop");
   url.searchParams.set("find_loc", location);
 
   let result = QuickSuggestTestUtils.yelpResult({
     url: url.toString(),
-    title: `best ramen in ${location}`,
+    title: `local the shop in ${location}`,
   });
 
   const testData = [
     {
-      input: "best ra",
+      input: "local the ",
       before: {
         canShowLessFrequently: true,
         showLessFrequentlyCount: 0,
@@ -622,46 +655,59 @@ add_task(async function showLessFrequently() {
       after: {
         canShowLessFrequently: true,
         showLessFrequentlyCount: 1,
-        minKeywordLength: 8,
+        minKeywordLength: 11,
       },
     },
     {
-      input: "best ram",
+      input: "local the s",
       before: {
         canShowLessFrequently: true,
         showLessFrequentlyCount: 1,
-        minKeywordLength: 8,
-      },
-      after: {
-        canShowLessFrequently: true,
-        showLessFrequentlyCount: 2,
-        minKeywordLength: 9,
-      },
-    },
-    {
-      input: "best rame",
-      before: {
-        canShowLessFrequently: true,
-        showLessFrequentlyCount: 2,
-        minKeywordLength: 9,
-      },
-      after: {
-        canShowLessFrequently: false,
-        showLessFrequentlyCount: 3,
-        minKeywordLength: 10,
-      },
-    },
-    {
-      input: "best ramen",
-      before: {
-        canShowLessFrequently: false,
-        showLessFrequentlyCount: 3,
-        minKeywordLength: 10,
-      },
-      after: {
-        canShowLessFrequently: false,
-        showLessFrequentlyCount: 3,
         minKeywordLength: 11,
+      },
+      after: {
+        canShowLessFrequently: true,
+        showLessFrequentlyCount: 2,
+        minKeywordLength: 12,
+      },
+    },
+    {
+      input: "local the sh",
+      before: {
+        canShowLessFrequently: true,
+        showLessFrequentlyCount: 2,
+        minKeywordLength: 12,
+      },
+      after: {
+        canShowLessFrequently: false,
+        showLessFrequentlyCount: 3,
+        minKeywordLength: 13,
+      },
+    },
+    {
+      input: "local the sho",
+      before: {
+        canShowLessFrequently: false,
+        showLessFrequentlyCount: 3,
+        minKeywordLength: 13,
+      },
+      after: {
+        canShowLessFrequently: false,
+        showLessFrequentlyCount: 3,
+        minKeywordLength: 14,
+      },
+    },
+    {
+      input: "local the shop",
+      before: {
+        canShowLessFrequently: false,
+        showLessFrequentlyCount: 3,
+        minKeywordLength: 14,
+      },
+      after: {
+        canShowLessFrequently: false,
+        showLessFrequentlyCount: 3,
+        minKeywordLength: 15,
       },
     },
   ];
@@ -726,14 +772,14 @@ add_task(async function showLessFrequently() {
 // querying depending on whether Yelp suggestions are enabled.
 add_task(async function rustProviders() {
   await doRustProvidersTests({
-    searchString: "ramen in tokyo",
+    searchString: "the shop in tokyo",
     tests: [
       {
         prefs: {
           "suggest.yelp": true,
         },
         expectedUrls: [
-          "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
+          "https://www.yelp.com/search?find_desc=the+shop&find_loc=tokyo",
         ],
       },
       {

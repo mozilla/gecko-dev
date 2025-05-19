@@ -951,7 +951,8 @@ class _QuickSuggestTestUtils {
    */
   yelpResult({
     url,
-    title,
+    title = undefined,
+    titleL10n = undefined,
     source = "rust",
     provider = "Yelp",
     isTopPick = false,
@@ -960,7 +961,6 @@ class _QuickSuggestTestUtils {
     suggestedIndex = 0,
     isSuggestedIndexRelativeToGroup = true,
     originalUrl = undefined,
-    displayUrl = undefined,
     suggestedType = lazy.YelpSubjectType.SERVICE,
   }) {
     const utmParameters = "&utm_medium=partner&utm_source=mozilla";
@@ -969,13 +969,6 @@ class _QuickSuggestTestUtils {
     originalUrl = new URL(originalUrl);
     originalUrl.searchParams.delete("find_loc");
     originalUrl = originalUrl.toString();
-
-    displayUrl =
-      (displayUrl ??
-        url
-          .replace(/^https:\/\/www[.]/, "")
-          .replace("%20", " ")
-          .replace("%2C", ",")) + utmParameters;
 
     url += utmParameters;
 
@@ -999,7 +992,7 @@ class _QuickSuggestTestUtils {
         url,
         originalUrl,
         title,
-        displayUrl,
+        titleL10n,
         icon: null,
         isSponsored: true,
       },
