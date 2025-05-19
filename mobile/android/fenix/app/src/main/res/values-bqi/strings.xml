@@ -34,10 +34,16 @@
   <string name="no_private_tabs_description">بلگه یل سیخومی ایسا من ایچو نشووݩ داڌه ابۊن.</string>
   <!-- Tab tray multi select title in app bar. %1$d is the number of tabs selected -->
   <string name="tab_tray_multi_select_title">%1$d بلگه پسند وابی</string>
+  <!-- Label of button in create collection dialog for creating a new collection -->
+  <string name="tab_tray_add_new_collection">ٱووردن کتن نۊ</string>
   <!-- Label of editable text in create collection dialog for naming a new collection -->
   <string name="tab_tray_add_new_collection_name">نوم</string>
+  <!-- Label of button in save to collection dialog for selecting a current collection -->
+  <string name="tab_tray_select_collection">پسند کتن</string>
   <!-- Content description for close button while in multiselect mode in tab tray -->
   <string name="tab_tray_close_multiselect_content_description">ز هالت چند پسندی بۊکۊنین و در</string>
+  <!-- Content description for save to collection button while in multiselect mode in tab tray -->
+  <string name="tab_tray_collection_button_multiselect_content_description">زفت کردن بلگه یل پسند بیڌه من کتن</string>
   <!--
     Home - Bookmarks
 
@@ -71,7 +77,7 @@
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
   <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ٱووردن و بلگه هووه ای</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ن، ممنووݩ</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ن ممنووݩ</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">راو و سامووا</string>
   <!-- Text for the negative action button -->
@@ -189,6 +195,10 @@
   <string name="browser_menu_desktop_site">وبگه ری میزی</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
   <string name="browser_menu_open_in_regular_tab">گۊشیڌن من بلگه مئمۊلی</string>
+  <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
+  <string name="browser_menu_add_to_homescreen_2">ٱووردن و بلگه ٱسلی…</string>
+  <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+  <string name="browser_menu_add_app_to_homescreen_2">ٱووردن برنومه و بلگه ٱسلی…</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
   <string name="resync_button_content_description">هوم گوم کردن دووارته</string>
   <!-- Browser menu button that opens the find in page menu -->
@@ -197,6 +207,10 @@
   <string name="browser_menu_find_in_page_2">جوستن من بلگه…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">ولرنیڌن بلگه</string>
+  <!-- Browser menu button that saves the current tab to a collection -->
+  <string name="browser_menu_save_to_collection">ٱووردن و کتن…</string>
+  <!-- Browser menu button that saves the current tab to a collection -->
+  <string name="browser_menu_save_to_collection_2">ٱووردن و کتن</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">یک رسۊوی</string>
   <!-- Browser menu button that open a share menu to share the current site -->
@@ -206,8 +220,26 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_open_in_fenix">گۊشیڌن من %1$s</string>
+  <!--
+    Browser menu text shown in custom tabs to indicate this is a Fenix tab
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_powered_by">جووݩ گرؽڌه ز %1$s</string>
+  <!--
+    Browser menu text shown in custom tabs to indicate this is a Fenix tab
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_powered_by2">جووݩ گرؽڌه ز %1$s</string>
+  <!-- Browser menu button to put the current page in reader mode -->
+  <string name="browser_menu_read">نما خۊندنی</string>
+  <!-- Browser menu button content description to close reader mode and return the user to the regular browser -->
+  <string name="browser_menu_read_close">بستن نما خۊندنی</string>
   <!-- Browser menu button to open the current page in an external app -->
   <string name="browser_menu_open_app_link">گۊشیڌن من برنومه</string>
+  <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+  <string name="browser_menu_customize_reader_view">سفارشی کردن نما خۊندنی</string>
+  <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+  <string name="browser_menu_customize_reader_view_2">سفارشی کردن نما خۊندنی</string>
   <!-- Browser menu label for adding a bookmark -->
   <string name="browser_menu_add">ٱووردن</string>
   <!-- Browser menu label for editing a bookmark -->
@@ -231,31 +263,53 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_new_in_firefox">نۊ من %1$s</string>
+  <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
+  <string name="browser_menu_switch_to_desktop_site">آلشت و هالت ری میزی</string>
+  <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+  <string name="browser_menu_switch_to_mobile_site">آلشت و هالت موبایل</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
   <string name="browser_menu_tools">ٱوزارا</string>
+  <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
+  <string name="browser_menu_back_button_content_description">وورگشتن و نومگه ٱسلی</string>
+  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
+  <string name="browser_main_menu_handlebar_content_description">بستن بلگه نومگه ٱسلی</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">هیاری</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
   <string name="browser_main_menu_content_description_settings_button">سامووا</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
   <string name="browser_extensions_menu_handlebar_content_description">بستن بلگه نومگه وردنی یل</string>
+  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
+  <string name="browser_save_menu_handlebar_content_description">بستن بلگه نومگه زفت</string>
+  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
+  <string name="browser_tools_menu_handlebar_content_description">بستن بلگه نومگه ٱوزارا</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">بستن ورق نومگه بلگه سفارشی</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+  <string name="browser_menu_tools_description_without_report_site">نما خۊندنی، چاپ، یک رسۊوی، گۊشیڌن برنومه</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
   <string name="browser_menu_save">زفت</string>
+  <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+  <string name="browser_menu_save_description">ٱووردن نشووک، ر نهنگ، بلگه ٱسلی، کتن، PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page">ای بلگه ن نشووک کوݩ</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">آلشت نشووک</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
   <string name="browser_menu_save_as_pdf">زفت و عونوان PDF…</string>
+  <!-- Browser menu label for turning ON reader view of the current visited page -->
+  <string name="browser_menu_turn_on_reader_view">فعال کردن نما خۊندنی</string>
+  <!-- Browser menu label for turning OFF reader view of the current visited page -->
+  <string name="browser_menu_turn_off_reader_view">قیر فعال کردن نما خۊندنی</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
   <string name="browser_menu_open_in_normal_tab">آلشت و بلگه قیر سیخومی</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page">ولرنیڌن بلگه…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter">گوزارش خراوی وبگه…</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -317,6 +371,8 @@
   <string name="search_scan_button_2">اسکن کود QR</string>
   <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
   <string name="search_shortcuts_engine_settings">سامووا موتور پیتینیڌن</string>
+  <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
+  <string name="awesomebar_clipboard_title">کامل کردن لینگ ز کلیپ بورد</string>
   <!-- Button in the search suggestions onboarding that allows search suggestions in private sessions -->
   <string name="search_suggestions_onboarding_allow_button">هشتن</string>
   <!-- Button in the search suggestions onboarding that does not allow search suggestions in private sessions -->
@@ -346,8 +402,19 @@
   <string name="sync_cfr_message">بلگه یل تووݩ هونی هوم گوم ابۊن! اوچو ک دسگا دیر تووݩ ن هیشتینه رین ز دینس.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
   <string name="onboarding_home_content_description_close_button">بستن</string>
+  <!--
+    Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments.
+
+    Description for learning more about our privacy notice.
+  -->
+  <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">نوکات زفت مهرموویی Firefox</string>
   <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
   <string name="juno_onboarding_default_browser_title_nimbus_2">ایما عاشوق زفت کردن ٱمنیت ایسانیم</string>
+  <!--
+    Title for set firefox as default browser screen used by Nimbus experiments.
+    Note: The word "Firefox" should NOT be translated
+  -->
+  <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">مولتفت بۊین ک سیچه ملیووا آڌوم Firefox ن اخون</string>
   <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
   <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">گشتن ٱمن وا پسندا قلوه</string>
   <!-- Text for the button to set firefox as default browser on the device -->
@@ -363,6 +430,11 @@
   <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">و من ٱووڌن</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">سکو ن</string>
+  <!--
+    Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated
+  -->
+  <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">وارسۊویا هیاری اکونن تا وا Firefox ٱمن تر بۊین</string>
   <!-- Text for the button to request notification permission on the device -->
   <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">رۊشن کردن وارسۊویا</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -576,6 +648,8 @@
   <string name="preferences_translations">ولرنیڌنا</string>
   <!-- Preference for data choices -->
   <string name="preferences_data_choices">پسند داده یل</string>
+  <!-- Preference for data collection -->
+  <string name="preferences_data_collection">کتن کردن داده یل</string>
   <!-- Preference for developers -->
   <string name="preferences_remote_debugging">رفع اشکال ز ر دیر و واسته USB</string>
   <!-- Preference title for switch preference to show search suggestions -->
@@ -641,10 +715,22 @@
   <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">ٱر و ای وردنی ائتماڌ دارین، ترین ک بهلین من هر وبگهی دسرسی داشته بۊ.</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">ای وردنی لنگ موجوز نؽ.</string>
+  <!--
+    Add-on Preferences
+
+    Preference to customize the configured AMO (addons.mozilla.org) collection
+  -->
+  <string name="preferences_customize_extension_collection">کتن وردنی سفارشی</string>
   <!-- Button caption to confirm the add-on collection configuration -->
   <string name="customize_addon_collection_ok">خا</string>
   <!-- Button caption to abort the add-on collection configuration -->
   <string name="customize_addon_collection_cancel">لقو</string>
+  <!-- Hint displayed on input field for custom collection name -->
+  <string name="customize_addon_collection_hint">نوم کتن</string>
+  <!-- Hint displayed on input field for custom collection user ID -->
+  <string name="customize_addon_collection_user_hint">ساهاو کتن (شناسه منتوری)</string>
+  <!-- Toast shown after confirming the custom extension collection configuration -->
+  <string name="toast_customize_extension_collection_done">کتن وردنی یل آلشت وابیڌه. سی ائمال آلشتکاریا برنومه ن بووندین…</string>
   <!--
     Customize Home
 
@@ -681,6 +767,10 @@
   <string name="wallpaper_classic_title">‏%s سونتی</string>
   <!-- Text for artist series wallpapers title. "Artist series" represents a collection of artist collaborated wallpapers. -->
   <string name="wallpaper_artist_series_title">سریال هونرمند</string>
+  <!-- Description text for the artist series wallpapers with learn more link. %s is a learn more link using wallpaper_learn_more as text. "Independent voices" is the name of the wallpaper collection -->
+  <string name="wallpaper_artist_series_description_with_learn_more">کتنی ز دونگا موستقل نۊ. %s</string>
+  <!-- Description text for the artist series wallpapers. "Independent voices" is the name of the wallpaper collection -->
+  <string name="wallpaper_artist_series_description">کتنی ز دونگا موستقل نۊ.</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -935,6 +1025,8 @@
   <string name="tab_tray_multiselect_menu_content_description">نومگه بلگه یل پسند بیڌه</string>
   <!-- Title text displayed for a homepage tab in the tabs tray. -->
   <string name="tab_tray_homepage_tab">بلگه هووه ای</string>
+  <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
+  <string name="remove_tab_from_collection">پاک کردن بلگه ز کتن</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
   <string name="tabs_tray_select_tabs">پسند بلگه یل</string>
   <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
@@ -943,8 +1035,16 @@
   <string name="close_tab_title">بستن بلگه %s</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
   <string name="open_tabs_menu">گۊشیڌن نومگه بلگه یل</string>
+  <!-- Open tabs menu item to save tabs to collection -->
+  <string name="tabs_menu_save_to_collection1">زفت کردن بلگه یل من کتن</string>
+  <!-- Text for the menu button to delete a collection -->
+  <string name="collection_delete">پاک کردن کتن</string>
+  <!-- Text for the menu button to rename a collection -->
+  <string name="collection_rename">آلشت نوم کتن</string>
   <!-- Text for the button to open tabs of the selected collection -->
   <string name="collection_open_tabs">بلگه یل واز</string>
+  <!-- Hint for adding name of a collection -->
+  <string name="collection_name_hint">نوم کتن</string>
   <!-- Text for the menu button to remove a top site -->
   <string name="remove_top_site">پاک کردن</string>
   <!-- Text for the menu button to delete a top site from history -->
@@ -1294,8 +1394,22 @@
   <string name="preferences_category_content">موئتوا</string>
   <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
   <string name="preference_feature_desktop_mode_default">هی وبگه و هالت ری میزی درخاست بۊوه</string>
+  <!--
+    Collections
+
+    Collections header on home fragment
+  -->
+  <string name="collections_header">کتنا</string>
+  <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
+  <string name="collection_menu_button_content_description">نومگه کتن</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">پسند بلگه یل</string>
+  <!-- Title for the "select collection" step of the collection creator -->
+  <string name="create_collection_select_collection">پسند کتن</string>
+  <!-- Title for the "name collection" step of the collection creator -->
+  <string name="create_collection_name_collection">نوم ناهاڌن ری کتن</string>
+  <!-- Button to add new collection for the "select collection" step of the collection creator -->
+  <string name="create_collection_add_new_collection">ٱووردن کتن نۊ</string>
   <!-- Button to select all tabs in the "select tabs" step of the collection creator -->
   <string name="create_collection_select_all">پسند پوی</string>
   <!-- Button to deselect all tabs in the "select tabs" step of the collection creator -->
@@ -1314,6 +1428,8 @@
   <string name="create_collection_save_to_collection_tab_selected">%d بلگه پسند وابی</string>
   <!-- Text shown in snackbar when multiple tabs have been saved in a collection -->
   <string name="create_collection_tabs_saved">بلگه یل زفت وابین!</string>
+  <!-- Text shown in snackbar when one or multiple tabs have been saved in a new collection -->
+  <string name="create_collection_tabs_saved_new_collection">کتن زفت وابی!</string>
   <!-- Text shown in snackbar when one tab has been saved in a collection -->
   <string name="create_collection_tab_saved">بلگه زفت وابی!</string>
   <!-- Content description (not visible, for screen readers etc.): button to close the collection creator -->
@@ -1326,6 +1442,8 @@
   <string name="create_collection_positive">خا</string>
   <!-- Text for the cancel button from collection dialogs -->
   <string name="create_collection_negative">لقو</string>
+  <!-- Default name for a new collection in "name new collection" step of the collection creator. %d is a placeholder for the number of collections -->
+  <string name="create_collection_default_name">کتن %d</string>
   <!--
     Share
 
@@ -1404,6 +1522,14 @@
   <string name="notification_re_engagement_B_title">بنه پا پیتینیڌن ٱولیت</string>
   <!-- Preference for not taking the short survey. -->
   <string name="preferences_not_take_survey">ن ممنووݩ</string>
+  <!--
+    Snackbar
+
+    Text shown in snackbar when user deletes a collection
+  -->
+  <string name="snackbar_collection_deleted">کتن پاک وابیڌه</string>
+  <!-- Text shown in snackbar when user renames a collection -->
+  <string name="snackbar_collection_renamed">کتن آلشت نوم داڌه بیڌه</string>
   <!-- Text shown in snackbar when user closes a tab -->
   <string name="snackbar_tab_closed">بلگه بسته وابیڌه</string>
   <!-- Text shown in snackbar when user closes all tabs -->
@@ -1789,6 +1915,8 @@
   <string name="a11y_action_label_expand">بولند کردن</string>
   <!-- Current state for elements that can be expanded if interacting with them. Talkback will dictate this after a state change. -->
   <string name="a11y_state_label_expanded">بولند وابیڌه</string>
+  <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
+  <string name="a11y_action_label_wallpaper_collection_learn_more">سی قلوه ویر گرؽڌن زبار ای کتن، لینگ ن بۊگۊشین</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
   <string name="a11y_links_title">لینگا</string>
   <!-- Additional content description for text bodies that contain urls. -->

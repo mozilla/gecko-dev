@@ -1663,6 +1663,8 @@
   <string name="bookmark_menu_copy_button">Monguatia</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">Moherakuã</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">Mbosa’ypa</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">Embojuruja tendayke pyahu</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -1675,6 +1677,8 @@
   <string name="bookmark_menu_delete_button">Mboguete</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Ñongatu</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">Emoĩporã tapicha mba’etee rupive</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">Emboysýi ipyahuvéva</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3582,6 +3586,8 @@
   <string name="pbm_authentication_enable_lock">Embojuruja tendayke ñemi mba’erechaha jokoha</string>
   <!-- Authentication prompt title to disable the private tabs mode -->
   <string name="pbm_authentication_disable_lock">Eipe’a tendayke ñemi mba’erechaha jokoha</string>
+  <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
+  <string name="pbm_authentication_lock_device_feature_disabled">Emboheko mba’erechaha jokoha eñomi hag̃ua tendayke</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
   <string name="private_tab_cfr_title">¿Eiporu mba’erecha jokoha eñomi hag̃ua tendayke ñemigua?</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->

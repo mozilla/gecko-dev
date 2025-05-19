@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <!-- Title of the crash reporter dialog. %1$s will be replaced with the name of the app (e.g. Firefox Focus). -->
+  <string name="mozac_lib_crash_dialog_title">وابخشی: %1$s موشکلی داشته ۉ خراو وابیڌه.</string>
   <!-- Label of the checkbox for sending crash reports in the crash reporter dialog. %1$s is the name of the organization (for example "Mozilla"). -->
   <string name="mozac_lib_crash_dialog_checkbox">فشناڌن گوزارش خراویا و %1$s</string>
   <!-- Label of the button closing the crash reporter dialog. -->
