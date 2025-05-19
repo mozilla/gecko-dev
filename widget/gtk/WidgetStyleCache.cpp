@@ -36,29 +36,6 @@ static GtkStyleContext* sStyleStorage[MOZ_GTK_WIDGET_NODE_COUNT];
 static GtkStyleContext* GetWidgetRootStyle(WidgetNodeType aNodeType);
 static GtkStyleContext* GetCssNodeStyleInternal(WidgetNodeType aNodeType);
 
-// In GTK versions prior to 3.18, automatic invalidation of style contexts
-// for widgets was delayed until the next resize event.  Gecko however,
-// typically uses the style context before the resize event runs and so an
-// explicit invalidation may be required.  This is necessary if a style
-// property was retrieved before all changes were made to the style
-// context.  One such situation is where gtk_button_construct_child()
-// retrieves the style property "image-spacing" during construction of the
-// GtkButton, before its parent is set to provide inheritance of ancestor
-// properties.  More recent GTK versions do not need this, but do not
-// re-resolve until required and so invalidation does not trigger
-// unnecessary resolution in general.
-// https://bugzilla.mozilla.org/show_bug.cgi?id=1272194#c7
-static void InvalidateStyleForOldGtk(GtkStyleContext* aContext) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  gtk_style_context_invalidate(aContext);
-#pragma GCC diagnostic pop
-}
-
-static void InvalidateStyleForOldGtk(GtkWidget* aWidget) {
-  InvalidateStyleForOldGtk(gtk_widget_get_style_context(aWidget));
-}
-
 static GtkWidget* CreateWindowWidget() {
   GtkWidget* widget = gtk_window_new(GTK_WINDOW_POPUP);
   MOZ_RELEASE_ASSERT(widget, "We're missing GtkWindow widget!");
@@ -247,8 +224,6 @@ static void CreateHeaderBarWidget(WidgetNodeType aAppearance) {
   gtk_container_add(GTK_CONTAINER(window), fixed);
   gtk_container_add(GTK_CONTAINER(fixed), headerBar);
 
-  InvalidateStyleForOldGtk(headerBarStyle);
-  InvalidateStyleForOldGtk(fixedStyle);
   gtk_widget_show_all(headerBar);
 
   // Some themes like Elementary's style the container of the headerbar rather
@@ -341,7 +316,6 @@ GtkWidget* GetWidget(WidgetNodeType aAppearance) {
     if (!widget) {
       return nullptr;
     }
-    InvalidateStyleForOldGtk(widget);
     sWidgetStorage[aAppearance] = widget;
   }
   return widget;
@@ -432,21 +406,6 @@ GtkStyleContext* CreateCSSNode(const char* aName, GtkStyleContext* aParentStyle,
   gtk_style_context_set_path(context, path);
   gtk_style_context_set_parent(context, aParentStyle);
   gtk_widget_path_unref(path);
-
-  // In GTK 3.4, gtk_render_* functions use |theming_engine| on the style
-  // context without ensuring any style resolution sets it appropriately
-  // in style_data_lookup(). e.g.
-  // https://git.gnome.org/browse/gtk+/tree/gtk/gtkstylecontext.c?h=3.4.4#n3847
-  //
-  // That can result in incorrect drawing on first draw.  To work around this,
-  // force a style look-up to set |theming_engine|.  It is sufficient to do
-  // this only on context creation, instead of after every modification to the
-  // context, because themes typically (Ambiance and oxygen-gtk, at least) set
-  // the "engine" property with the '*' selector.
-  if (GTK_MAJOR_VERSION == 3 && gtk_get_minor_version() < 6) {
-    GdkRGBA unused;
-    gtk_style_context_get_color(context, GTK_STATE_FLAG_NORMAL, &unused);
-  }
 
   return context;
 }
@@ -741,7 +700,6 @@ GtkStyleContext* GetStyleContext(WidgetNodeType aNodeType, int aScale,
     style = GetCssNodeStyleInternal(aNodeType);
     StyleContextSetScale(style, aScale);
   }
-  bool stateChanged = false;
   GtkStateFlags oldState = gtk_style_context_get_state(style);
   MOZ_ASSERT(!(aStateFlags & (STATE_FLAG_DIR_LTR | STATE_FLAG_DIR_RTL)));
   unsigned newState = aStateFlags;
@@ -763,19 +721,6 @@ GtkStyleContext* GetStyleContext(WidgetNodeType aNodeType, int aScale,
   }
   if (oldState != newState) {
     gtk_style_context_set_state(style, static_cast<GtkStateFlags>(newState));
-    stateChanged = true;
-  }
-  // This invalidate is necessary for unsaved style contexts from GtkWidgets
-  // in pre-3.18 GTK, because automatic invalidation of such contexts
-  // was delayed until a resize event runs.
-  //
-  // https://bugzilla.mozilla.org/show_bug.cgi?id=1272194#c7
-  //
-  // Avoid calling invalidate on contexts that are not owned and constructed
-  // by widgets to avoid performing build_properties() (in 3.16 stylecontext.c)
-  // unnecessarily early.
-  if (stateChanged && sWidgetStorage[aNodeType]) {
-    InvalidateStyleForOldGtk(style);
   }
   return style;
 }
