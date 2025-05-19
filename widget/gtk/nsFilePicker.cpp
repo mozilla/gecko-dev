@@ -138,7 +138,7 @@ static void UpdateFilePreviewWidget(GtkFileChooser* file_chooser,
   // nice
   gint x_padding =
       (MAX_PREVIEW_SIZE + 6 - gdk_pixbuf_get_width(preview_pixbuf)) / 2;
-  gtk_misc_set_padding(GTK_MISC(preview_widget), x_padding, 0);
+  g_object_set(preview_widget, "padding", x_padding, 0, nullptr);
 
   gtk_image_set_from_pixbuf(preview_widget, preview_pixbuf);
   g_object_unref(preview_pixbuf);
@@ -708,16 +708,12 @@ void* nsFilePicker::GtkFileChooserNew(const gchar* title, GtkWindow* parent,
     return (*sGtkFileChooserNativeNewPtr)(title, parent, action, accept_label,
                                           nullptr);
   }
-  if (accept_label == nullptr) {
-    accept_label = (action == GTK_FILE_CHOOSER_ACTION_SAVE) ? GTK_STOCK_SAVE
-                                                            : GTK_STOCK_OPEN;
+  if (!accept_label) {
+    accept_label = (action == GTK_FILE_CHOOSER_ACTION_SAVE) ? "_Save" : "_Open";
   }
-  GtkWidget* file_chooser = gtk_file_chooser_dialog_new(
-      title, parent, action, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-      accept_label, GTK_RESPONSE_ACCEPT, nullptr);
-  gtk_dialog_set_alternative_button_order(
-      GTK_DIALOG(file_chooser), GTK_RESPONSE_ACCEPT, GTK_RESPONSE_CANCEL, -1);
-  return file_chooser;
+  return gtk_file_chooser_dialog_new(title, parent, action, "_Cancel",
+                                     GTK_RESPONSE_CANCEL, accept_label,
+                                     GTK_RESPONSE_ACCEPT, nullptr);
 }
 
 void nsFilePicker::GtkFileChooserShow(void* file_chooser) {
