@@ -120,7 +120,7 @@ nsresult Http3Stream::TryActivating() {
 }
 
 void Http3Stream::CurrentBrowserIdChanged(uint64_t id) {
-  MOZ_ASSERT(gHttpHandler->ActiveTabPriority());
+  MOZ_ASSERT(StaticPrefs::network_http_active_tab_priority());
 
   bool previouslyFocused = (mCurrentBrowserId == mTransactionBrowserId);
   mCurrentBrowserId = id;
