@@ -1,35 +1,44 @@
 From: Michael Froman <mfroman@mozilla.com>
 Date: Tue, 13 May 2025 22:38:00 +0000
-Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit 48ccc95b0f
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit d2534b3914
  r?pehrsons!
 
-Upstream commit: https://webrtc.googlesource.com/src/+/48ccc95b0f76af263e64dac5a97a61f8c8aeeba9
-       In screen_capturer_sck.mm make capture_options_ const.
+Upstream commit: https://webrtc.googlesource.com/src/+/d2534b3914f1b3c6a1aa3683e111fd76b8ff4893
+       In SCK backend move dpi to and set may_contain_cursor in frame callback
 
        Bug: webrtc:367915807
-       Change-Id: Ib473f5c57704c4cf6616cefc2a20ad932542c2e5
-       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365083
+       Change-Id: Id29b979ab7909d21eb92bc926f9decdae3345381
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365084
+       Reviewed-by: Johannes Kron <kron@webrtc.org>
        Reviewed-by: Alexander Cooper <alcooper@chromium.org>
        Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
-       Reviewed-by: Johannes Kron <kron@webrtc.org>
-       Cr-Commit-Position: refs/heads/main@{#44203}
+       Cr-Commit-Position: refs/heads/main@{#44204}
 
-Differential Revision: https://phabricator.services.mozilla.com/D249151
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/95a92396258db8b00761bb79c3daa564743d8a68
+Differential Revision: https://phabricator.services.mozilla.com/D249152
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b96051c586abc47bd172b8433ca72ac516c3e18e
 ---
- modules/desktop_capture/mac/screen_capturer_sck.mm | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 098a169e08..c8f5411bcd 100644
+index c8f5411bcd..7825d85a6a 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -93,7 +93,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+@@ -171,7 +171,6 @@ void ScreenCapturerSck::CaptureFrame() {
+     MutexLock lock(&latest_frame_lock_);
+     if (latest_frame_) {
+       frame = latest_frame_->Share();
+-      frame->set_dpi(DesktopVector(latest_frame_dpi_, latest_frame_dpi_));
+       if (frame_is_dirty_) {
+         frame->mutable_updated_region()->AddRect(
+             DesktopRect::MakeSize(frame->size()));
+@@ -357,6 +356,9 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface,
  
-   // Options passed to the constructor. May be accessed on any thread, but the
-   // options are unchanged during the capturer's lifetime.
--  DesktopCaptureOptions capture_options_;
-+  const DesktopCaptureOptions capture_options_;
- 
-   // Signals that a permanent error occurred. This may be set on any thread, and
-   // is read by CaptureFrame() which runs on the caller's thread.
+   if (dirty) {
+     MutexLock lock(&latest_frame_lock_);
++    frame->set_dpi(DesktopVector(latest_frame_dpi_, latest_frame_dpi_));
++    frame->set_may_contain_cursor(capture_options_.prefer_cursor_embedded());
++
+     frame_is_dirty_ = true;
+     std::swap(latest_frame_, frame);
+   }
