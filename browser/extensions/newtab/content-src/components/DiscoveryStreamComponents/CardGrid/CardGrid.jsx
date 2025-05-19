@@ -627,7 +627,6 @@ export class _CardGrid extends React.PureComponent {
   }
 
   renderGridClassName() {
-    const prefs = this.props.Prefs.values;
     const {
       hybridLayout,
       hideCardBackground,
@@ -635,19 +634,6 @@ export class _CardGrid extends React.PureComponent {
       compactGrid,
       hideDescriptions,
     } = this.props;
-
-    const adSizingVariantAEnabled = prefs["newtabAdSize.variant-a"];
-    const adSizingVariantBEnabled = prefs["newtabAdSize.variant-b"];
-    const adSizingVariantEnabled =
-      adSizingVariantAEnabled || adSizingVariantBEnabled;
-
-    let adSizingVariantClassName = "";
-    if (adSizingVariantEnabled) {
-      // Ad sizing experiment variant, we want to ensure only 1 of these is ever enabled.
-      adSizingVariantClassName = adSizingVariantAEnabled
-        ? `ad-sizing-variant-a`
-        : `ad-sizing-variant-b`;
-    }
 
     const hideCardBackgroundClass = hideCardBackground
       ? `ds-card-grid-hide-background`
@@ -663,7 +649,7 @@ export class _CardGrid extends React.PureComponent {
       ? `ds-card-grid-hybrid-layout`
       : ``;
 
-    const gridClassName = `ds-card-grid ${hybridLayoutClassName} ${hideCardBackgroundClass} ${fourCardLayoutClass} ${hideDescriptionsClassName} ${compactGridClassName} ${adSizingVariantClassName}`;
+    const gridClassName = `ds-card-grid ${hybridLayoutClassName} ${hideCardBackgroundClass} ${fourCardLayoutClass} ${hideDescriptionsClassName} ${compactGridClassName}`;
     return gridClassName;
   }
 

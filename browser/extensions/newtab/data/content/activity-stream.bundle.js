@@ -5387,7 +5387,6 @@ class _CardGrid extends (external_React_default()).PureComponent {
     return listFeed;
   }
   renderGridClassName() {
-    const prefs = this.props.Prefs.values;
     const {
       hybridLayout,
       hideCardBackground,
@@ -5395,20 +5394,12 @@ class _CardGrid extends (external_React_default()).PureComponent {
       compactGrid,
       hideDescriptions
     } = this.props;
-    const adSizingVariantAEnabled = prefs["newtabAdSize.variant-a"];
-    const adSizingVariantBEnabled = prefs["newtabAdSize.variant-b"];
-    const adSizingVariantEnabled = adSizingVariantAEnabled || adSizingVariantBEnabled;
-    let adSizingVariantClassName = "";
-    if (adSizingVariantEnabled) {
-      // Ad sizing experiment variant, we want to ensure only 1 of these is ever enabled.
-      adSizingVariantClassName = adSizingVariantAEnabled ? `ad-sizing-variant-a` : `ad-sizing-variant-b`;
-    }
     const hideCardBackgroundClass = hideCardBackground ? `ds-card-grid-hide-background` : ``;
     const fourCardLayoutClass = fourCardLayout ? `ds-card-grid-four-card-variant` : ``;
     const hideDescriptionsClassName = !hideDescriptions ? `ds-card-grid-include-descriptions` : ``;
     const compactGridClassName = compactGrid ? `ds-card-grid-compact` : ``;
     const hybridLayoutClassName = hybridLayout ? `ds-card-grid-hybrid-layout` : ``;
-    const gridClassName = `ds-card-grid ${hybridLayoutClassName} ${hideCardBackgroundClass} ${fourCardLayoutClass} ${hideDescriptionsClassName} ${compactGridClassName} ${adSizingVariantClassName}`;
+    const gridClassName = `ds-card-grid ${hybridLayoutClassName} ${hideCardBackgroundClass} ${fourCardLayoutClass} ${hideDescriptionsClassName} ${compactGridClassName}`;
     return gridClassName;
   }
   render() {
@@ -11231,7 +11222,6 @@ const CardSections_PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topic
 const CardSections_PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const PREF_INTEREST_PICKER_ENABLED = "discoverystream.sections.interestPicker.enabled";
 const CardSections_PREF_VISIBLE_SECTIONS = "discoverystream.sections.interestPicker.visibleSections";
-const PREF_MEDIUM_RECTANGLE_ENABLED = "newtabAdSize.mediumRectangle";
 const CardSections_PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
 const CardSections_PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
 const CardSections_PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
@@ -11415,13 +11405,6 @@ function CardSection({
     type: type,
     sectionPosition: sectionPosition
   }));
-
-  // Determine to display first medium-sized in MREC IAB format
-  const mediumRectangleEnabled = prefs[PREF_MEDIUM_RECTANGLE_ENABLED];
-  let adSizingVariantClassName = "";
-  if (mediumRectangleEnabled) {
-    adSizingVariantClassName = "ad-sizing-variant-a";
-  }
   return /*#__PURE__*/external_React_default().createElement("section", {
     className: "ds-section",
     ref: el => {
@@ -11436,7 +11419,7 @@ function CardSection({
   }, title), subtitle && /*#__PURE__*/external_React_default().createElement("p", {
     className: "section-subtitle"
   }, subtitle)), mayHaveSectionsPersonalization ? sectionContextWrapper : null), /*#__PURE__*/external_React_default().createElement("div", {
-    className: `ds-section-grid ds-card-grid ${adSizingVariantClassName}`
+    className: `ds-section-grid ds-card-grid`
   }, section.data.slice(0, maxTile).map((rec, index) => {
     const {
       classNames,

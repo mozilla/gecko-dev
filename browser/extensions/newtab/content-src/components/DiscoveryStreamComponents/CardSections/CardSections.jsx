@@ -28,7 +28,6 @@ const PREF_INTEREST_PICKER_ENABLED =
   "discoverystream.sections.interestPicker.enabled";
 const PREF_VISIBLE_SECTIONS =
   "discoverystream.sections.interestPicker.visibleSections";
-const PREF_MEDIUM_RECTANGLE_ENABLED = "newtabAdSize.mediumRectangle";
 const PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
 const PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
 const PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
@@ -243,14 +242,6 @@ function CardSection({
     </div>
   );
 
-  // Determine to display first medium-sized in MREC IAB format
-  const mediumRectangleEnabled = prefs[PREF_MEDIUM_RECTANGLE_ENABLED];
-
-  let adSizingVariantClassName = "";
-  if (mediumRectangleEnabled) {
-    adSizingVariantClassName = "ad-sizing-variant-a";
-  }
-
   return (
     <section
       className="ds-section"
@@ -265,9 +256,7 @@ function CardSection({
         </div>
         {mayHaveSectionsPersonalization ? sectionContextWrapper : null}
       </div>
-      <div
-        className={`ds-section-grid ds-card-grid ${adSizingVariantClassName}`}
-      >
+      <div className={`ds-section-grid ds-card-grid`}>
         {section.data.slice(0, maxTile).map((rec, index) => {
           const { classNames, imageSizes } = getLayoutData(
             responsiveLayouts,
