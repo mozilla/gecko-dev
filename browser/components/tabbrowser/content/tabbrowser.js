@@ -1937,7 +1937,7 @@
           tabGroup,
         };
         if (newIndex > -1) {
-          params.tabIndex = newIndex;
+          params.index = newIndex;
         }
         firstTabAdded = this.addTab(aURIs[0], params);
         if (newIndex > -1) {
@@ -1960,7 +1960,7 @@
           tabGroup,
         };
         if (targetTabIndex > -1) {
-          params.tabIndex = ++tabNum;
+          params.index = ++tabNum;
         }
         this.addTab(aURIs[i], params);
       }
@@ -2597,7 +2597,7 @@
         {
           wrappedJSObject: new Promise(resolve => {
             this.selectedTab = this.addTrustedTab(BROWSER_NEW_TAB_URL, {
-              tabIndex: tab._tPos + 1,
+              index: tab._tPos + 1,
               userContextId: tab.userContextId,
               tabGroup: tab.group,
               focusUrlBar: true,
@@ -2652,6 +2652,7 @@
         inBackground = true,
         elementIndex,
         tabIndex,
+        index,
         lazyTabTitle,
         name,
         noInitialLabel,
@@ -2754,6 +2755,10 @@
         });
         if (insertTab) {
           // Insert the tab into the tab container in the correct position.
+          // For now, we support `index` as an alias for `tabIndex`.
+          if (typeof index == "number") {
+            tabIndex = index;
+          }
           this.#insertTabAtIndex(t, {
             elementIndex,
             tabIndex,
@@ -9254,7 +9259,7 @@ var TabContextMenu = {
       let newTab = gBrowser.addTab(tab.linkedBrowser.currentURI.spec, {
         userContextId,
         pinned: tab.pinned,
-        tabIndex: tab._tPos + 1,
+        index: tab._tPos + 1,
         triggeringPrincipal,
       });
 

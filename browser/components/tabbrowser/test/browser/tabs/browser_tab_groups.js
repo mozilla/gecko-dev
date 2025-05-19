@@ -2303,7 +2303,7 @@ add_task(async function test_bug1957723_addTabsByIndex() {
   });
 
   let tab1 = gBrowser.addTab("https://example.com", {
-    tabIndex: 2,
+    index: 2,
     triggeringPrincipal,
   });
   Assert.equal(
@@ -2319,7 +2319,7 @@ add_task(async function test_bug1957723_addTabsByIndex() {
   gBrowser.removeTab(tab1);
 
   let tab2 = gBrowser.addTab("https://example.com", {
-    tabIndex: 4,
+    index: 4,
     triggeringPrincipal,
   });
   Assert.equal(
@@ -2335,7 +2335,7 @@ add_task(async function test_bug1957723_addTabsByIndex() {
   gBrowser.removeTab(tab2);
 
   let tab3 = gBrowser.addTab("https://example.com", {
-    tabIndex: 5,
+    index: 5,
     triggeringPrincipal,
   });
   Assert.equal(
@@ -2371,7 +2371,7 @@ add_task(async function test_bug1959438_duplicateTabJustBeforeGroup() {
   // If this happens next to a tab group, the resulting element index will
   // point to the tab group label.
   gBrowser.addTab("https://example.com", {
-    tabIndex: undefined,
+    index: undefined,
     relatedToCurrent: true,
     ownerTab: gBrowser.selectedTab,
     triggeringPrincipal,
