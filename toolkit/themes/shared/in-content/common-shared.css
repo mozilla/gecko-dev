@@ -229,45 +229,49 @@ xul|tab {
   border-bottom: 2px solid transparent;
   transition: background-color 50ms ease 0s;
   color-scheme: unset;
-}
 
-xul|tab:where(:hover) {
-  border-bottom-color: var(--in-content-border-color);
-  background-color: var(--in-content-button-background-hover);
-  color: var(--in-content-button-text-color-hover);
-}
-
-xul|tab:where(:hover:active) {
-  background-color: var(--in-content-button-background-active);
-  color: var(--in-content-button-text-color-active);
-}
-
-xul|tab[selected] {
-  color: var(--color-accent-primary);
-  border-bottom-color: currentColor;
-}
-
-xul|tab[selected]:hover {
-  background-color: var(--in-content-button-background-hover);
-}
-
-xul|tab[selected]:hover:active {
-  background-color: var(--in-content-button-background-active);
-}
-
-@media (forced-colors) {
-  xul|tab:hover,
-  xul|tab:hover:active {
-    border-bottom-color: currentColor;
-  }
-
-  xul|tab[selected]:hover {
+  &:where(:hover) {
+    border-bottom-color: var(--in-content-border-color);
+    background-color: var(--in-content-button-background-hover);
     color: var(--in-content-button-text-color-hover);
   }
 
-  xul|tab[selected]:hover:active {
+  &:where(:hover:active) {
+    background-color: var(--in-content-button-background-active);
     color: var(--in-content-button-text-color-active);
   }
+
+  &[selected] {
+    color: var(--color-accent-primary);
+    border-bottom-color: currentColor;
+    &:hover {
+      background-color: var(--in-content-button-background-hover);
+    }
+    &:hover:active {
+      background-color: var(--in-content-button-background-active);
+    }
+  }
+
+  @media (forced-colors) {
+    &:hover,
+    &:hover:active {
+      border-bottom-color: currentColor;
+    }
+    &[selected]:hover {
+      color: var(--in-content-button-text-color-hover);
+    }
+    &[selected]:hover:active {
+      color: var(--in-content-button-text-color-active);
+    }
+  }
+}
+
+.tabs-left {
+  flex: 0;
+}
+
+.tabs-right {
+  flex: 1;
 }
 
 /* html buttons */

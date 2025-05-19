@@ -44,3 +44,7 @@ tab {
 .tab-text {
   margin: 0 !important;
 }
+
+.tabs-right {
+  flex: 1;
+}
