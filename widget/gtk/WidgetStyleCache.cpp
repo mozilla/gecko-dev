@@ -246,131 +246,6 @@ static void CreateHeaderBarWidget(WidgetNodeType aAppearance) {
   }();
 }
 
-#define ICON_SCALE_VARIANTS 2
-
-static void LoadWidgetIconPixbuf(GtkWidget* aWidgetIcon) {
-  GtkStyleContext* style = gtk_widget_get_style_context(aWidgetIcon);
-
-  const gchar* iconName;
-  GtkIconSize gtkIconSize;
-  gtk_image_get_icon_name(GTK_IMAGE(aWidgetIcon), &iconName, &gtkIconSize);
-
-  gint iconWidth, iconHeight;
-  gtk_icon_size_lookup(gtkIconSize, &iconWidth, &iconHeight);
-
-  /* Those are available since Gtk+ 3.10 as well as GtkHeaderBar */
-  for (int scale = 1; scale < ICON_SCALE_VARIANTS + 1; scale++) {
-    GtkIconInfo* gtkIconInfo = gtk_icon_theme_lookup_icon_for_scale(
-        gtk_icon_theme_get_default(), iconName, iconWidth, scale,
-        (GtkIconLookupFlags)0);
-
-    if (!gtkIconInfo) {
-      // We miss the icon, nothing to do here.
-      return;
-    }
-
-    gboolean unused;
-    GdkPixbuf* iconPixbuf = gtk_icon_info_load_symbolic_for_context(
-        gtkIconInfo, style, &unused, nullptr);
-    g_object_unref(G_OBJECT(gtkIconInfo));
-
-    cairo_surface_t* iconSurface =
-        gdk_cairo_surface_create_from_pixbuf(iconPixbuf, scale, nullptr);
-    g_object_unref(iconPixbuf);
-
-    nsPrintfCString surfaceName("MozillaIconSurface%d", scale);
-    g_object_set_data_full(G_OBJECT(aWidgetIcon), surfaceName.get(),
-                           iconSurface, (GDestroyNotify)cairo_surface_destroy);
-  }
-}
-
-cairo_surface_t* GetWidgetIconSurface(GtkWidget* aWidgetIcon, int aScale) {
-  if (aScale > ICON_SCALE_VARIANTS) {
-    aScale = ICON_SCALE_VARIANTS;
-  }
-
-  nsPrintfCString surfaceName("MozillaIconSurface%d", aScale);
-  return (cairo_surface_t*)g_object_get_data(G_OBJECT(aWidgetIcon),
-                                             surfaceName.get());
-}
-
-static void CreateHeaderBarButton(GtkWidget* aParentWidget,
-                                  WidgetNodeType aAppearance) {
-  GtkWidget* widget = gtk_button_new();
-
-  // We have to add button to widget hierarchy now to pick
-  // right icon style at LoadWidgetIconPixbuf().
-  if (GTK_IS_BOX(aParentWidget)) {
-    gtk_box_pack_start(GTK_BOX(aParentWidget), widget, FALSE, FALSE, 0);
-  } else {
-    gtk_container_add(GTK_CONTAINER(aParentWidget), widget);
-  }
-
-  // We bypass GetWidget() here because we create all titlebar
-  // buttons at once when a first one is requested.
-  NS_ASSERTION(!sWidgetStorage[aAppearance],
-               "Titlebar button is already created!");
-  sWidgetStorage[aAppearance] = widget;
-
-  // We need to show the button widget now as GtkBox does not
-  // place invisible widgets and we'll miss first-child/last-child
-  // css selectors at the buttons otherwise.
-  gtk_widget_show(widget);
-
-  GtkStyleContext* style = gtk_widget_get_style_context(widget);
-  gtk_style_context_add_class(style, "titlebutton");
-
-  GtkWidget* image = nullptr;
-  switch (aAppearance) {
-    case MOZ_GTK_HEADER_BAR_BUTTON_CLOSE:
-      gtk_style_context_add_class(style, "close");
-      image = gtk_image_new_from_icon_name("window-close-symbolic",
-                                           GTK_ICON_SIZE_MENU);
-      break;
-    case MOZ_GTK_HEADER_BAR_BUTTON_MINIMIZE:
-      gtk_style_context_add_class(style, "minimize");
-      image = gtk_image_new_from_icon_name("window-minimize-symbolic",
-                                           GTK_ICON_SIZE_MENU);
-      break;
-
-    case MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE:
-      gtk_style_context_add_class(style, "maximize");
-      image = gtk_image_new_from_icon_name("window-maximize-symbolic",
-                                           GTK_ICON_SIZE_MENU);
-      break;
-
-    case MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE_RESTORE:
-      gtk_style_context_add_class(style, "maximize");
-      image = gtk_image_new_from_icon_name("window-restore-symbolic",
-                                           GTK_ICON_SIZE_MENU);
-      break;
-    default:
-      break;
-  }
-
-  gtk_widget_set_valign(widget, GTK_ALIGN_CENTER);
-  g_object_set(image, "use-fallback", TRUE, NULL);
-  gtk_container_add(GTK_CONTAINER(widget), image);
-
-  // We bypass GetWidget() here by explicit sWidgetStorage[] update so
-  // invalidate the style as well as GetWidget() does.
-  style = gtk_widget_get_style_context(image);
-  gtk_style_context_invalidate(style);
-
-  LoadWidgetIconPixbuf(image);
-}
-
-static bool IsToolbarButtonEnabled(ButtonLayout* aButtonLayout,
-                                   size_t aButtonNums,
-                                   WidgetNodeType aAppearance) {
-  for (size_t i = 0; i < aButtonNums; i++) {
-    if (aButtonLayout[i].mType == aAppearance) {
-      return true;
-    }
-  }
-  return false;
-}
-
 bool IsSolidCSDStyleUsed() {
   if (gCSDStyle == CSDStyle::Unknown) {
     bool solid;
@@ -387,43 +262,9 @@ bool IsSolidCSDStyleUsed() {
   return gCSDStyle == CSDStyle::Solid;
 }
 
-static void CreateHeaderBarButtons() {
-  GtkWidget* headerBar = sWidgetStorage[MOZ_GTK_HEADER_BAR];
-  MOZ_ASSERT(headerBar, "We're missing header bar widget!");
-
-  GtkWidget* buttonBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_container_add(GTK_CONTAINER(headerBar), buttonBox);
-  // We support only LTR headerbar layout for now.
-  gtk_style_context_add_class(gtk_widget_get_style_context(buttonBox),
-                              GTK_STYLE_CLASS_LEFT);
-
-  ButtonLayout buttonLayout[TOOLBAR_BUTTONS];
-
-  size_t activeButtons =
-      GetGtkHeaderBarButtonLayout(mozilla::Span(buttonLayout), nullptr);
-
-  if (IsToolbarButtonEnabled(buttonLayout, activeButtons,
-                             MOZ_GTK_HEADER_BAR_BUTTON_MINIMIZE)) {
-    CreateHeaderBarButton(buttonBox, MOZ_GTK_HEADER_BAR_BUTTON_MINIMIZE);
-  }
-  if (IsToolbarButtonEnabled(buttonLayout, activeButtons,
-                             MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE)) {
-    CreateHeaderBarButton(buttonBox, MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE);
-    // We don't pack "restore" headerbar button to box as it's an icon
-    // placeholder. Pack it only to header bar to get correct style.
-    CreateHeaderBarButton(GetWidget(MOZ_GTK_HEADER_BAR_MAXIMIZED),
-                          MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE_RESTORE);
-  }
-  if (IsToolbarButtonEnabled(buttonLayout, activeButtons,
-                             MOZ_GTK_HEADER_BAR_BUTTON_CLOSE)) {
-    CreateHeaderBarButton(buttonBox, MOZ_GTK_HEADER_BAR_BUTTON_CLOSE);
-  }
-}
-
 static void CreateHeaderBar() {
   CreateHeaderBarWidget(MOZ_GTK_HEADER_BAR);
   CreateHeaderBarWidget(MOZ_GTK_HEADER_BAR_MAXIMIZED);
-  CreateHeaderBarButtons();
 }
 
 static GtkWidget* CreateWidget(WidgetNodeType aAppearance) {
@@ -458,10 +299,6 @@ static GtkWidget* CreateWidget(WidgetNodeType aAppearance) {
     case MOZ_GTK_HEADERBAR_FIXED_MAXIMIZED:
     case MOZ_GTK_HEADER_BAR:
     case MOZ_GTK_HEADER_BAR_MAXIMIZED:
-    case MOZ_GTK_HEADER_BAR_BUTTON_CLOSE:
-    case MOZ_GTK_HEADER_BAR_BUTTON_MINIMIZE:
-    case MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE:
-    case MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE_RESTORE:
       /* Create header bar widgets once and fill with child elements as we need
          the header bar fully configured to get a correct style */
       CreateHeaderBar();

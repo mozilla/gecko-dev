@@ -546,7 +546,7 @@ static Maybe<nscolor> GetBorderColor(GtkStyleContext* aContext) {
   gtk_style_context_get(aContext, state, GTK_STYLE_PROPERTY_BORDER_STYLE,
                         &borderStyle, nullptr);
   if (borderStyle == GTK_BORDER_STYLE_NONE ||
-                 borderStyle == GTK_BORDER_STYLE_HIDDEN) {
+      borderStyle == GTK_BORDER_STYLE_HIDDEN) {
     return {};
   }
   // GTK has an initial value of zero for border-widths, and so themes
@@ -1759,19 +1759,17 @@ void nsLookAndFeel::InitializeGlobalSettings() {
     const ButtonLayout& layout = buttonLayout[i];
     int32_t* pos = nullptr;
     switch (layout.mType) {
-      case MOZ_GTK_HEADER_BAR_BUTTON_MINIMIZE:
+      case ButtonLayout::Type::Minimize:
         mCSDMinimizeButton = true;
         pos = &mCSDMinimizeButtonPosition;
         break;
-      case MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE:
+      case ButtonLayout::Type::Maximize:
         mCSDMaximizeButton = true;
         pos = &mCSDMaximizeButtonPosition;
         break;
-      case MOZ_GTK_HEADER_BAR_BUTTON_CLOSE:
+      case ButtonLayout::Type::Close:
         mCSDCloseButton = true;
         pos = &mCSDCloseButtonPosition;
-        break;
-      default:
         break;
     }
 
