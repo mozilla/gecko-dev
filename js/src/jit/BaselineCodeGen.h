@@ -406,7 +406,10 @@ class BaselineCompilerHandler {
     return true;
   }
 
-  bool isSelfHosted() const { return script()->selfHosted(); }
+  bool isSelfHosted() const {
+    return JS::Prefs::experimental_self_hosted_cache() &&
+           script()->selfHosted();
+  }
 };
 
 using BaselineCompilerCodeGen = BaselineCodeGen<BaselineCompilerHandler>;

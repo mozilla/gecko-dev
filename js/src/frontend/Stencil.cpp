@@ -37,6 +37,7 @@
 #include "js/experimental/CompileScript.h"  // JS::PrepareForInstantiate
 #include "js/experimental/JSStencil.h"      // JS::Stencil
 #include "js/GCAPI.h"                       // JS::AutoCheckCannotGC
+#include "js/Prefs.h"                       // JS::Prefs
 #include "js/Printer.h"                     // js::Fprinter
 #include "js/RealmOptions.h"                // JS::RealmBehaviors
 #include "js/RootingAPI.h"                  // Rooted
@@ -2929,6 +2930,9 @@ bool CompilationStencil::delazifySelfHostedFunction(
   if (!JSScript::fromStencil(cx, atomCache, *this, gcOutput.get(),
                              range.start)) {
     return false;
+  }
+
+  if (JS::Prefs::experimental_self_hosted_cache()) {
   }
 
   // Phase 6: Update lazy scripts.

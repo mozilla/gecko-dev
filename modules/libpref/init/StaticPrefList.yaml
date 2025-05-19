@@ -8695,6 +8695,14 @@
 
 #endif  // NIGHTLY_BUILD
 
+# Whether to Baseline-compile self-hosted functions the first time they are
+# used and cache the result.
+- name: javascript.options.experimental.self_hosted_cache
+  type: bool
+  value: false
+  mirror: always
+  set_spidermonkey_pref: startup
+
   # Experimental support for Temporal in JavaScript.
 - name: javascript.options.experimental.temporal
   type: bool
