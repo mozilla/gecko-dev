@@ -80,16 +80,6 @@ struct CSDWindowDecorationSize {
   GtkBorder decorationSize;
 };
 
-/** flags for tab state **/
-enum GtkTabFlags {
-  /* first eight bits are used to pass a margin */
-  MOZ_GTK_TAB_MARGIN_MASK = 0xFF,
-  /* the first tab in the group */
-  MOZ_GTK_TAB_FIRST = 1 << 9,
-  /* the selected tab */
-  MOZ_GTK_TAB_SELECTED = 1 << 10
-};
-
 /*** result/error codes ***/
 #define MOZ_GTK_SUCCESS 0
 #define MOZ_GTK_UNKNOWN_WIDGET -1
@@ -110,8 +100,6 @@ enum WidgetNodeType : int {
   MOZ_GTK_SCROLLBAR_TROUGH_VERTICAL,
   MOZ_GTK_SCROLLBAR_THUMB_VERTICAL,
 
-  /* Paints a GtkExpander. */
-  MOZ_GTK_EXPANDER,
   /* Paints a GtkTextView or gets the style context corresponding to the
      root node of a GtkTextView. */
   MOZ_GTK_TEXT_VIEW,
@@ -130,19 +118,6 @@ enum WidgetNodeType : int {
   MOZ_GTK_FRAME,
   /* Paints the border of a GtkFrame */
   MOZ_GTK_FRAME_BORDER,
-  /* Paints a resize grip for a GtkTextView */
-  MOZ_GTK_RESIZER,
-  /* Used as root style of whole GtkNotebook widget */
-  MOZ_GTK_NOTEBOOK,
-  /* Used as root style of active GtkNotebook area which contains tabs and
-     arrows. */
-  MOZ_GTK_NOTEBOOK_HEADER,
-  /* Paints a tab of a GtkNotebook. flags is a GtkTabFlags, defined above. */
-  MOZ_GTK_TAB_TOP,
-  /* Paints a tab of a GtkNotebook. flags is a GtkTabFlags, defined above. */
-  MOZ_GTK_TAB_BOTTOM,
-  /* Paints the background and border of a GtkNotebook. */
-  MOZ_GTK_TABPANELS,
   /* Paints the expander and border of a GtkTreeView */
   MOZ_GTK_TREEVIEW,
   /* Paints treeheader cells */
@@ -151,8 +126,6 @@ enum WidgetNodeType : int {
   MOZ_GTK_MENUPOPUP,
   /* Menubar for -moz-headerbar colors */
   MOZ_GTK_MENUBAR,
-  /* Paints an arrow in a toolbar button. flags is a GtkArrowType. */
-  MOZ_GTK_TOOLBARBUTTON_ARROW,
   /* Paints items of popup menus. */
   MOZ_GTK_MENUITEM,
   /* Menubar menuitem for foreground colors. */
@@ -242,94 +215,6 @@ gint moz_gtk_widget_paint(WidgetNodeType widget, cairo_t* cr,
 gint moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
                                gint* right, gint* bottom,
                                GtkTextDirection direction);
-
-/**
- * Get the border size of a notebook tab
- * left/right:  [OUT] the tab's left/right border
- * top/bottom:  [OUT] the tab's top/bottom border
- * direction:   the text direction for the widget
- * flags:       tab-dependant flags; see the GtkTabFlags definition.
- * widget:      tab widget
- *
- * returns:    MOZ_GTK_SUCCESS if there was no error, an error code otherwise
- */
-gint moz_gtk_get_tab_border(gint* left, gint* top, gint* right, gint* bottom,
-                            GtkTextDirection direction, GtkTabFlags flags,
-                            WidgetNodeType widget);
-
-/**
- * Some GTK themes draw their indication for the default button outside
- * the button (e.g. the glow in New Wave). This gets the extra space necessary.
- *
- * border_top:  [OUT] extra space to add above
- * border_left:  [OUT] extra space to add to the left
- * border_bottom:  [OUT] extra space to add underneath
- * border_right:  [OUT] extra space to add to the right
- *
- * returns:   MOZ_GTK_SUCCESS if there was no error, an error code otherwise
- */
-gint moz_gtk_button_get_default_overflow(gint* border_top, gint* border_left,
-                                         gint* border_bottom,
-                                         gint* border_right);
-
-/**
- * Gets the minimum size of a GtkScale.
- * orient:           [IN] the scale orientation
- * scale_width:      [OUT] the width of the scale
- * scale_height:     [OUT] the height of the scale
- */
-void moz_gtk_get_scale_metrics(GtkOrientation orient, gint* scale_width,
-                               gint* scale_height);
-
-/**
- * Get the desired size of a GtkScale thumb
- * orient:           [IN] the scale orientation
- * thumb_length:     [OUT] the length of the thumb
- * thumb_height:     [OUT] the height of the thumb
- *
- * returns:    MOZ_GTK_SUCCESS if there was no error, an error code otherwise
- */
-gint moz_gtk_get_scalethumb_metrics(GtkOrientation orient, gint* thumb_length,
-                                    gint* thumb_height);
-
-/**
- * Get the desired size of a scroll arrow widget
- * width:   [OUT] the desired width
- * height:  [OUT] the desired height
- *
- * returns:    MOZ_GTK_SUCCESS if there was no error, an error code otherwise
- */
-gint moz_gtk_get_tab_scroll_arrow_size(gint* width, gint* height);
-
-/**
- * Get the minimum height of a entry widget
- * min_content_height:    [OUT] the minimum height of the content box.
- * border_padding_height: [OUT] the size of borders and paddings.
- */
-void moz_gtk_get_entry_min_height(gint* min_content_height,
-                                  gint* border_padding_height);
-
-/**
- * Get the desired size of a toolbar separator
- * size:    [OUT] the desired width
- *
- * returns: MOZ_GTK_SUCCESS if there was no error, an error code otherwise
- */
-gint moz_gtk_get_toolbar_separator_width(gint* size);
-
-/**
- * Get the desired size of a splitter
- * orientation:   [IN]  GTK_ORIENTATION_HORIZONTAL or GTK_ORIENTATION_VERTICAL
- * size:          [OUT] width or height of the splitter handle
- *
- * returns:    MOZ_GTK_SUCCESS if there was no error, an error code otherwise
- */
-gint moz_gtk_splitter_get_metrics(gint orientation, gint* size);
-
-/**
- * Get the YTHICKNESS of a tab (notebook extension).
- */
-gint moz_gtk_get_tab_thickness(WidgetNodeType aNodeType);
 
 gint moz_gtk_get_titlebar_button_spacing();
 

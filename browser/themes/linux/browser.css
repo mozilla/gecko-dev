@@ -114,8 +114,8 @@
 /* Tabstrip */
 
 #tabbrowser-tabs {
-  /* override the global style to allow the selected tab to be above the nav-bar */
-  z-index: auto;
+  /* override the native styling */
+  border-bottom: 0;
 }
 
 #TabsToolbar {

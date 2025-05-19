@@ -14,12 +14,6 @@
   }
 }
 
-xul|tab[visuallyselected] {
-  /* Override styles for tab[selected] from
-     toolkit/themes/linux/global/tabbox.css */
-  margin-bottom: 0;
-}
-
 /* Overriding appearance also avoids incorrect selection background color with
    light text. */
 xul|menulist::part(label-box),

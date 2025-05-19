@@ -145,16 +145,6 @@ GtkTextDirection nsNativeThemeGTK::GetTextDirection(nsIFrame* aFrame) {
   return IsFrameRTL(aFrame) ? GTK_TEXT_DIR_RTL : GTK_TEXT_DIR_LTR;
 }
 
-// Returns positive for negative margins (otherwise 0).
-gint nsNativeThemeGTK::GetTabMarginPixels(nsIFrame* aFrame) {
-  nscoord margin = IsBottomTab(aFrame) ? aFrame->GetUsedMargin().top
-                                       : aFrame->GetUsedMargin().bottom;
-
-  return std::min<gint>(
-      MOZ_GTK_TAB_MARGIN_MASK,
-      std::max(0, aFrame->PresContext()->AppUnitsToDevPixels(-margin)));
-}
-
 bool nsNativeThemeGTK::GetGtkWidgetAndState(StyleAppearance aAppearance,
                                             nsIFrame* aFrame,
                                             WidgetNodeType& aGtkWidgetType,
@@ -190,36 +180,9 @@ bool nsNativeThemeGTK::GetGtkWidgetAndState(StyleAppearance aAppearance,
       // to see whether to draw in the focused state.
       aState->focused = elementState.HasState(ElementState::FOCUSRING);
     }
-
-    if (aAppearance == StyleAppearance::MozWindowTitlebar ||
-        aAppearance == StyleAppearance::MozWindowTitlebarMaximized) {
-      aState->backdrop = aFrame->PresContext()->Document()->State().HasState(
-          dom::DocumentState::WINDOW_INACTIVE);
-    }
   }
 
   switch (aAppearance) {
-    case StyleAppearance::Tabpanels:
-      aGtkWidgetType = MOZ_GTK_TABPANELS;
-      break;
-    case StyleAppearance::Tab: {
-      if (IsBottomTab(aFrame)) {
-        aGtkWidgetType = MOZ_GTK_TAB_BOTTOM;
-      } else {
-        aGtkWidgetType = MOZ_GTK_TAB_TOP;
-      }
-
-      if (aWidgetFlags) {
-        /* First bits will be used to store max(0,-bmargin) where bmargin
-         * is the bottom margin of the tab in pixels  (resp. top margin,
-         * for bottom tabs). */
-        *aWidgetFlags = GetTabMarginPixels(aFrame);
-
-        if (IsSelectedTab(aFrame)) *aWidgetFlags |= MOZ_GTK_TAB_SELECTED;
-
-        if (IsFirstTab(aFrame)) *aWidgetFlags |= MOZ_GTK_TAB_FIRST;
-      }
-    } break;
     case StyleAppearance::MozWindowDecorations:
       aGtkWidgetType = MOZ_GTK_WINDOW_DECORATION;
       break;
@@ -667,26 +630,8 @@ LayoutDeviceIntMargin nsNativeThemeGTK::GetWidgetBorder(
     return Theme::GetWidgetBorder(aContext, aFrame, aAppearance);
   }
 
-  CSSIntMargin result;
   GtkTextDirection direction = GetTextDirection(aFrame);
-  switch (aAppearance) {
-    case StyleAppearance::Tab: {
-      WidgetNodeType gtkWidgetType;
-      gint flags;
-
-      if (!GetGtkWidgetAndState(aAppearance, aFrame, gtkWidgetType, nullptr,
-                                &flags)) {
-        return {};
-      }
-      moz_gtk_get_tab_border(&result.left.value, &result.top.value,
-                             &result.right.value, &result.bottom.value,
-                             direction, (GtkTabFlags)flags, gtkWidgetType);
-    } break;
-    default: {
-      result = GetCachedWidgetBorder(aFrame, aAppearance, direction);
-    }
-  }
-
+  CSSIntMargin result = GetCachedWidgetBorder(aFrame, aAppearance, direction);
   return (CSSMargin(result) * GetWidgetScaleFactor(aFrame)).Rounded();
 }
 
@@ -773,9 +718,7 @@ LayoutDeviceIntSize nsNativeThemeGTK::GetMinimumWidgetSize(
 bool nsNativeThemeGTK::WidgetAttributeChangeRequiresRepaint(
     StyleAppearance aAppearance, nsAtom* aAttribute) {
   // Some widget types just never change state.
-  if (aAppearance == StyleAppearance::Progresschunk ||
-      aAppearance == StyleAppearance::ProgressBar ||
-      aAppearance == StyleAppearance::MozWindowDecorations) {
+  if (aAppearance == StyleAppearance::MozWindowDecorations) {
     return false;
   }
   return Theme::WidgetAttributeChangeRequiresRepaint(aAppearance, aAttribute);
@@ -802,11 +745,6 @@ nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
   }
 
   switch (aAppearance) {
-    case StyleAppearance::Tab:
-    // case StyleAppearance::Tabpanel:
-    case StyleAppearance::Tabpanels:
-    case StyleAppearance::MozWindowTitlebar:
-    case StyleAppearance::MozWindowTitlebarMaximized:
     case StyleAppearance::MozWindowDecorations:
       return !IsWidgetStyled(aPresContext, aFrame, aAppearance);
     default:

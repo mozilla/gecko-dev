@@ -84,12 +84,6 @@ static GtkWidget* CreateTooltipWidget() {
   return widget;
 }
 
-static GtkWidget* CreateExpanderWidget() {
-  GtkWidget* widget = gtk_expander_new("M");
-  AddToWindowContainer(widget);
-  return widget;
-}
-
 static GtkWidget* CreateFrameWidget() {
   GtkWidget* widget = gtk_frame_new(nullptr);
   AddToWindowContainer(widget);
@@ -148,12 +142,6 @@ static GtkWidget* CreateTreeHeaderCellWidget() {
 
   /* Use the middle column's header for our button */
   return gtk_tree_view_column_get_button(middleTreeViewColumn);
-}
-
-static GtkWidget* CreateNotebookWidget() {
-  GtkWidget* widget = gtk_notebook_new();
-  AddToWindowContainer(widget);
-  return widget;
 }
 
 static bool HasBackground(GtkStyleContext* aStyle) {
@@ -277,8 +265,6 @@ static GtkWidget* CreateWidget(WidgetNodeType aAppearance) {
       return CreateMenuPopupWidget();
     case MOZ_GTK_MENUBAR:
       return CreateMenuBarWidget();
-    case MOZ_GTK_EXPANDER:
-      return CreateExpanderWidget();
     case MOZ_GTK_FRAME:
       return CreateFrameWidget();
     case MOZ_GTK_BUTTON:
@@ -289,8 +275,6 @@ static GtkWidget* CreateWidget(WidgetNodeType aAppearance) {
       return CreateTreeViewWidget();
     case MOZ_GTK_TREE_HEADER_CELL:
       return CreateTreeHeaderCellWidget();
-    case MOZ_GTK_NOTEBOOK:
-      return CreateNotebookWidget();
     case MOZ_GTK_HEADERBAR_WINDOW:
     case MOZ_GTK_HEADERBAR_WINDOW_MAXIMIZED:
     case MOZ_GTK_HEADERBAR_FIXED:
@@ -545,47 +529,11 @@ static GtkStyleContext* GetCssNodeStyleInternal(WidgetNodeType aNodeType) {
       style = CreateChildCSSNode("selection", MOZ_GTK_TEXT_VIEW_TEXT);
       break;
     case MOZ_GTK_TEXT_VIEW_TEXT:
-    case MOZ_GTK_RESIZER:
       style = CreateChildCSSNode("text", MOZ_GTK_TEXT_VIEW);
-      if (aNodeType == MOZ_GTK_RESIZER) {
-        // The "grip" class provides the correct builtin icon from
-        // gtk_render_handle().  The icon is drawn with shaded variants of
-        // the background color, and so a transparent background would lead to
-        // a transparent resizer.  gtk_render_handle() also uses the
-        // background color to draw a background, and so this style otherwise
-        // matches what is used in GtkTextView to match the background with
-        // textarea elements.
-        GdkRGBA color;
-        gtk_style_context_get_background_color(style, GTK_STATE_FLAG_NORMAL,
-                                               &color);
-        if (color.alpha == 0.0) {
-          g_object_unref(style);
-          style = CreateStyleForWidget(gtk_text_view_new(),
-                                       MOZ_GTK_SCROLLED_WINDOW);
-        }
-        gtk_style_context_add_class(style, GTK_STYLE_CLASS_GRIP);
-      }
       break;
     case MOZ_GTK_FRAME_BORDER:
       style = CreateChildCSSNode("border", MOZ_GTK_FRAME);
       break;
-    case MOZ_GTK_TAB_TOP: {
-      // TODO - create from CSS node
-      style = CreateSubStyleWithClass(MOZ_GTK_NOTEBOOK, GTK_STYLE_CLASS_TOP);
-      break;
-    }
-    case MOZ_GTK_TAB_BOTTOM: {
-      // TODO - create from CSS node
-      style = CreateSubStyleWithClass(MOZ_GTK_NOTEBOOK, GTK_STYLE_CLASS_BOTTOM);
-      break;
-    }
-    case MOZ_GTK_NOTEBOOK:
-    case MOZ_GTK_NOTEBOOK_HEADER:
-    case MOZ_GTK_TABPANELS: {
-      // TODO - create from CSS node
-      GtkWidget* widget = GetWidget(MOZ_GTK_NOTEBOOK);
-      return gtk_widget_get_style_context(widget);
-    }
     case MOZ_GTK_WINDOW_DECORATION: {
       GtkStyleContext* parentStyle =
           CreateSubStyleWithClass(MOZ_GTK_WINDOW, "csd");
@@ -628,36 +576,12 @@ static GtkStyleContext* GetWidgetStyleInternal(WidgetNodeType aNodeType) {
                                       GTK_STYLE_CLASS_FRAME);
       break;
     case MOZ_GTK_TEXT_VIEW_TEXT:
-    case MOZ_GTK_RESIZER:
       // GTK versions prior to 3.20 do not have the view class on the root
       // node, but add this to determine the background for the text window.
       style = CreateSubStyleWithClass(MOZ_GTK_TEXT_VIEW, GTK_STYLE_CLASS_VIEW);
-      if (aNodeType == MOZ_GTK_RESIZER) {
-        // The "grip" class provides the correct builtin icon from
-        // gtk_render_handle().  The icon is drawn with shaded variants of
-        // the background color, and so a transparent background would lead to
-        // a transparent resizer.  gtk_render_handle() also uses the
-        // background color to draw a background, and so this style otherwise
-        // matches MOZ_GTK_TEXT_VIEW_TEXT to match the background with
-        // textarea elements.  GtkTextView creates a separate text window and
-        // so the background should not be transparent.
-        gtk_style_context_add_class(style, GTK_STYLE_CLASS_GRIP);
-      }
       break;
     case MOZ_GTK_FRAME_BORDER:
       return GetWidgetRootStyle(MOZ_GTK_FRAME);
-    case MOZ_GTK_TAB_TOP:
-      style = CreateSubStyleWithClass(MOZ_GTK_NOTEBOOK, GTK_STYLE_CLASS_TOP);
-      break;
-    case MOZ_GTK_TAB_BOTTOM:
-      style = CreateSubStyleWithClass(MOZ_GTK_NOTEBOOK, GTK_STYLE_CLASS_BOTTOM);
-      break;
-    case MOZ_GTK_NOTEBOOK:
-    case MOZ_GTK_NOTEBOOK_HEADER:
-    case MOZ_GTK_TABPANELS: {
-      GtkWidget* widget = GetWidget(MOZ_GTK_NOTEBOOK);
-      return gtk_widget_get_style_context(widget);
-    }
     default:
       return GetWidgetRootStyle(aNodeType);
   }

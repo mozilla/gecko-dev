@@ -24,17 +24,9 @@
 #include <math.h>
 #include <dlfcn.h>
 
-static gboolean checkbox_check_state;
-static gboolean notebook_has_tab_gap;
-
 static ToolbarGTKMetrics sToolbarMetrics;
 
 using mozilla::Span;
-
-#define ARROW_UP 0
-#define ARROW_DOWN G_PI
-#define ARROW_RIGHT G_PI_2
-#define ARROW_LEFT (G_PI + G_PI_2)
 
 #if 0
 // It's used for debugging only to compare Gecko widget style with
@@ -51,34 +43,6 @@ style_path_print(GtkStyleContext *context)
     fprintf(stderr, "Style path:\n%s\n\n", sGtkWidgetPathToStringPtr(path));
 }
 #endif
-
-static gint moz_gtk_get_tab_thickness(GtkStyleContext* style);
-
-static void moz_gtk_add_style_border(GtkStyleContext* style, gint* left,
-                                     gint* top, gint* right, gint* bottom) {
-  GtkBorder border;
-
-  gtk_style_context_get_border(style, gtk_style_context_get_state(style),
-                               &border);
-
-  *left += border.left;
-  *right += border.right;
-  *top += border.top;
-  *bottom += border.bottom;
-}
-
-static void moz_gtk_add_style_padding(GtkStyleContext* style, gint* left,
-                                      gint* top, gint* right, gint* bottom) {
-  GtkBorder padding;
-
-  gtk_style_context_get_padding(style, gtk_style_context_get_state(style),
-                                &padding);
-
-  *left += padding.left;
-  *right += padding.right;
-  *top += padding.top;
-  *bottom += padding.bottom;
-}
 
 // GetStateFlagsFromGtkWidgetState() can be safely used for the specific
 // GtkWidgets that set both prelight and active flags.  For other widgets,
@@ -114,33 +78,13 @@ static GtkStateFlags GetStateFlagsFromGtkWidgetState(GtkWidgetState* state) {
   return stateFlags;
 }
 
-static GtkStateFlags GetStateFlagsFromGtkTabFlags(GtkTabFlags flags) {
-  return ((flags & MOZ_GTK_TAB_SELECTED) == 0) ? GTK_STATE_FLAG_NORMAL
-                                               : GTK_STATE_FLAG_ACTIVE;
-}
-
 gint moz_gtk_init() {
-  if (gtk_major_version > 3 ||
-      (gtk_major_version == 3 && gtk_minor_version >= 14))
-    checkbox_check_state = GTK_STATE_FLAG_CHECKED;
-  else
-    checkbox_check_state = GTK_STATE_FLAG_ACTIVE;
-
   moz_gtk_refresh();
 
   return MOZ_GTK_SUCCESS;
 }
 
 void moz_gtk_refresh() {
-  if (gtk_check_version(3, 20, 0) != nullptr) {
-    // Deprecated for Gtk >= 3.20+
-    GtkStyleContext* style = GetStyleContext(MOZ_GTK_TAB_TOP);
-    gtk_style_context_get_style(style, "has-tab-gap", &notebook_has_tab_gap,
-                                NULL);
-  } else {
-    notebook_has_tab_gap = true;
-  }
-
   sToolbarMetrics.initialized = false;
 
   /* This will destroy all of our widgets */
@@ -246,358 +190,12 @@ static gint moz_gtk_window_decoration_paint(cairo_t* cr,
   return MOZ_GTK_SUCCESS;
 }
 
-static gint moz_gtk_resizer_paint(cairo_t* cr, GdkRectangle* rect,
-                                  GtkWidgetState* state,
-                                  GtkTextDirection direction) {
-  GtkStyleContext* style =
-      GetStyleContext(MOZ_GTK_RESIZER, state->image_scale, GTK_TEXT_DIR_LTR,
-                      GetStateFlagsFromGtkWidgetState(state));
-
-  // Workaround unico not respecting the text direction for resizers.
-  // See bug 1174248.
-  cairo_save(cr);
-  if (direction == GTK_TEXT_DIR_RTL) {
-    cairo_matrix_t mat;
-    cairo_matrix_init_translate(&mat, 2 * rect->x + rect->width, 0);
-    cairo_matrix_scale(&mat, -1, 1);
-    cairo_transform(cr, &mat);
-  }
-
-  gtk_render_handle(style, cr, rect->x, rect->y, rect->width, rect->height);
-  cairo_restore(cr);
-
-  return MOZ_GTK_SUCCESS;
-}
-
-static gint moz_gtk_frame_paint(cairo_t* cr, GdkRectangle* rect,
-                                GtkWidgetState* state,
-                                GtkTextDirection direction) {
-  GtkStyleContext* style =
-      GetStyleContext(MOZ_GTK_FRAME, state->image_scale, direction);
-  gtk_render_frame(style, cr, rect->x, rect->y, rect->width, rect->height);
-  return MOZ_GTK_SUCCESS;
-}
-
-static gint moz_gtk_get_tab_thickness(GtkStyleContext* style) {
-  if (!notebook_has_tab_gap)
-    return 0; /* tabs do not overdraw the tabpanel border with "no gap" style */
-
-  GtkBorder border;
-  gtk_style_context_get_border(style, gtk_style_context_get_state(style),
-                               &border);
-  if (border.top < 2) return 2; /* some themes don't set ythickness correctly */
-
-  return border.top;
-}
-
-gint moz_gtk_get_tab_thickness(WidgetNodeType aNodeType) {
-  GtkStyleContext* style = GetStyleContext(aNodeType);
-  int thickness = moz_gtk_get_tab_thickness(style);
-  return thickness;
-}
-
-/* actual small tabs */
-static gint moz_gtk_tab_paint(cairo_t* cr, GdkRectangle* rect,
-                              GtkWidgetState* state, GtkTabFlags flags,
-                              GtkTextDirection direction,
-                              WidgetNodeType widget) {
-  /* When the tab isn't selected, we just draw a notebook extension.
-   * When it is selected, we overwrite the adjacent border of the tabpanel
-   * touching the tab with a pierced border (called "the gap") to make the
-   * tab appear physically attached to the tabpanel; see details below. */
-
-  GtkStyleContext* style;
-  GdkRectangle tabRect;
-  GdkRectangle focusRect;
-  GdkRectangle backRect;
-  int initial_gap = 0;
-  bool isBottomTab = (widget == MOZ_GTK_TAB_BOTTOM);
-
-  style = GetStyleContext(widget, state->image_scale, direction,
-                          GetStateFlagsFromGtkTabFlags(flags));
-  tabRect = *rect;
-
-  if (flags & MOZ_GTK_TAB_FIRST) {
-    gtk_style_context_get_style(style, "initial-gap", &initial_gap, NULL);
-    tabRect.width -= initial_gap;
-
-    if (direction != GTK_TEXT_DIR_RTL) {
-      tabRect.x += initial_gap;
-    }
-  }
-
-  focusRect = backRect = tabRect;
-
-  if (notebook_has_tab_gap) {
-    if ((flags & MOZ_GTK_TAB_SELECTED) == 0) {
-      /* Only draw the tab */
-      gtk_render_extension(style, cr, tabRect.x, tabRect.y, tabRect.width,
-                           tabRect.height,
-                           isBottomTab ? GTK_POS_TOP : GTK_POS_BOTTOM);
-    } else {
-      /* Draw the tab and the gap
-       * We want the gap to be positioned exactly on the tabpanel top
-       * border; since tabbox.css may set a negative margin so that the tab
-       * frame rect already overlaps the tabpanel frame rect, we need to take
-       * that into account when drawing. To that effect, nsNativeThemeGTK
-       * passes us this negative margin (bmargin in the graphic below) in the
-       * lowest bits of |flags|.  We use it to set gap_voffset, the distance
-       * between the top of the gap and the bottom of the tab (resp. the
-       * bottom of the gap and the top of the tab when we draw a bottom tab),
-       * while ensuring that the gap always touches the border of the tab,
-       * i.e. 0 <= gap_voffset <= gap_height, to avoid surprinsing results
-       * with big negative or positive margins.
-       * Here is a graphical explanation in the case of top tabs:
-       *             ___________________________
-       *            /                           \
-       *           |            T A B            |
-       * ----------|. . . . . . . . . . . . . . .|----- top of tabpanel
-       *           :    ^       bmargin          :  ^
-       *           :    | (-negative margin,     :  |
-       *  bottom   :    v  passed in flags)      :  |       gap_height
-       *    of  -> :.............................:  |    (the size of the
-       * the tab   .       part of the gap       .  |  tabpanel top border)
-       *           .      outside of the tab     .  v
-       * ----------------------------------------------
-       *
-       * To draw the gap, we use gtk_render_frame_gap(), see comment in
-       * moz_gtk_tabpanels_paint(). This gap is made 3 * gap_height tall,
-       * which should suffice to ensure that the only visible border is the
-       * pierced one.  If the tab is in the middle, we make the box_gap begin
-       * a bit to the left of the tab and end a bit to the right, adjusting
-       * the gap position so it still is under the tab, because we want the
-       * rendering of a gap in the middle of a tabpanel.  This is the role of
-       * the gints gap_{l,r}_offset. On the contrary, if the tab is the
-       * first, we align the start border of the box_gap with the start
-       * border of the tab (left if LTR, right if RTL), by setting the
-       * appropriate offset to 0.*/
-      gint gap_loffset, gap_roffset, gap_voffset, gap_height;
-
-      /* Get height needed by the gap */
-      gap_height = moz_gtk_get_tab_thickness(style);
-
-      /* Extract gap_voffset from the first bits of flags */
-      gap_voffset = flags & MOZ_GTK_TAB_MARGIN_MASK;
-      if (gap_voffset > gap_height) gap_voffset = gap_height;
-
-      /* Set gap_{l,r}_offset to appropriate values */
-      gap_loffset = gap_roffset = 20; /* should be enough */
-      if (flags & MOZ_GTK_TAB_FIRST) {
-        if (direction == GTK_TEXT_DIR_RTL)
-          gap_roffset = initial_gap;
-        else
-          gap_loffset = initial_gap;
-      }
-
-      GtkStyleContext* panelStyle =
-          GetStyleContext(MOZ_GTK_TABPANELS, state->image_scale, direction);
-
-      if (isBottomTab) {
-        /* Draw the tab on bottom */
-        focusRect.y += gap_voffset;
-        focusRect.height -= gap_voffset;
-
-        gtk_render_extension(style, cr, tabRect.x, tabRect.y + gap_voffset,
-                             tabRect.width, tabRect.height - gap_voffset,
-                             GTK_POS_TOP);
-
-        backRect.y += (gap_voffset - gap_height);
-        backRect.height = gap_height;
-
-        /* Draw the gap; erase with background color before painting in
-         * case theme does not */
-        gtk_render_background(panelStyle, cr, backRect.x, backRect.y,
-                              backRect.width, backRect.height);
-        cairo_save(cr);
-        cairo_rectangle(cr, backRect.x, backRect.y, backRect.width,
-                        backRect.height);
-        cairo_clip(cr);
-
-        gtk_render_frame_gap(panelStyle, cr, tabRect.x - gap_loffset,
-                             tabRect.y + gap_voffset - 3 * gap_height,
-                             tabRect.width + gap_loffset + gap_roffset,
-                             3 * gap_height, GTK_POS_BOTTOM, gap_loffset,
-                             gap_loffset + tabRect.width);
-        cairo_restore(cr);
-      } else {
-        /* Draw the tab on top */
-        focusRect.height -= gap_voffset;
-        gtk_render_extension(style, cr, tabRect.x, tabRect.y, tabRect.width,
-                             tabRect.height - gap_voffset, GTK_POS_BOTTOM);
-
-        backRect.y += (tabRect.height - gap_voffset);
-        backRect.height = gap_height;
-
-        /* Draw the gap; erase with background color before painting in
-         * case theme does not */
-        gtk_render_background(panelStyle, cr, backRect.x, backRect.y,
-                              backRect.width, backRect.height);
-
-        cairo_save(cr);
-        cairo_rectangle(cr, backRect.x, backRect.y, backRect.width,
-                        backRect.height);
-        cairo_clip(cr);
-
-        gtk_render_frame_gap(panelStyle, cr, tabRect.x - gap_loffset,
-                             tabRect.y + tabRect.height - gap_voffset,
-                             tabRect.width + gap_loffset + gap_roffset,
-                             3 * gap_height, GTK_POS_TOP, gap_loffset,
-                             gap_loffset + tabRect.width);
-        cairo_restore(cr);
-      }
-    }
-  } else {
-    gtk_render_background(style, cr, tabRect.x, tabRect.y, tabRect.width,
-                          tabRect.height);
-    gtk_render_frame(style, cr, tabRect.x, tabRect.y, tabRect.width,
-                     tabRect.height);
-  }
-
-  if (state->focused) {
-    /* Paint the focus ring */
-    GtkBorder padding;
-    gtk_style_context_get_padding(style, GetStateFlagsFromGtkWidgetState(state),
-                                  &padding);
-
-    focusRect.x += padding.left;
-    focusRect.width -= (padding.left + padding.right);
-    focusRect.y += padding.top;
-    focusRect.height -= (padding.top + padding.bottom);
-
-    gtk_render_focus(style, cr, focusRect.x, focusRect.y, focusRect.width,
-                     focusRect.height);
-  }
-
-  return MOZ_GTK_SUCCESS;
-}
-
-/* tab area*/
-static gint moz_gtk_tabpanels_paint(cairo_t* cr, GdkRectangle* rect,
-                                    GtkWidgetState* state,
-                                    GtkTextDirection direction) {
-  GtkStyleContext* style =
-      GetStyleContext(MOZ_GTK_TABPANELS, state->image_scale, direction);
-  gtk_render_background(style, cr, rect->x, rect->y, rect->width, rect->height);
-  /*
-   * The gap size is not needed in moz_gtk_tabpanels_paint because
-   * the gap will be painted with the foreground tab in moz_gtk_tab_paint.
-   *
-   * However, if moz_gtk_tabpanels_paint just uses gtk_render_frame(),
-   * the theme will think that there are no tabs and may draw something
-   * different.Hence the trick of using two clip regions, and drawing the
-   * gap outside each clip region, to get the correct frame for
-   * a tabpanel with tabs.
-   */
-  /* left side */
-  cairo_save(cr);
-  cairo_rectangle(cr, rect->x, rect->y, rect->x + rect->width / 2,
-                  rect->y + rect->height);
-  cairo_clip(cr);
-  gtk_render_frame_gap(style, cr, rect->x, rect->y, rect->width, rect->height,
-                       GTK_POS_TOP, rect->width - 1, rect->width);
-  cairo_restore(cr);
-
-  /* right side */
-  cairo_save(cr);
-  cairo_rectangle(cr, rect->x + rect->width / 2, rect->y, rect->x + rect->width,
-                  rect->y + rect->height);
-  cairo_clip(cr);
-  gtk_render_frame_gap(style, cr, rect->x, rect->y, rect->width, rect->height,
-                       GTK_POS_TOP, 0, 1);
-  cairo_restore(cr);
-
-  return MOZ_GTK_SUCCESS;
-}
-
 gint moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
                                gint* right, gint* bottom,
                                // NOTE: callers depend on direction being used
                                // only for MOZ_GTK_DROPDOWN widgets.
                                GtkTextDirection direction) {
-  GtkWidget* w = nullptr;
   *left = *top = *right = *bottom = 0;
-
-  switch (widget) {
-    case MOZ_GTK_TABPANELS:
-      w = GetWidget(MOZ_GTK_TABPANELS);
-      break;
-    case MOZ_GTK_FRAME:
-      w = GetWidget(MOZ_GTK_FRAME);
-      break;
-    /* These widgets have no borders, since they are not containers. */
-    case MOZ_GTK_HEADER_BAR:
-    case MOZ_GTK_HEADER_BAR_MAXIMIZED:
-    /* These widgets have no borders.*/
-    case MOZ_GTK_WINDOW_DECORATION:
-    case MOZ_GTK_WINDOW_DECORATION_SOLID:
-    case MOZ_GTK_RESIZER:
-    case MOZ_GTK_TOOLBARBUTTON_ARROW:
-      return MOZ_GTK_SUCCESS;
-    default:
-      g_warning("Unsupported widget type: %d", widget);
-      return MOZ_GTK_UNKNOWN_WIDGET;
-  }
-  /* TODO - we're still missing some widget implementations */
-  if (w) {
-    moz_gtk_add_style_border(gtk_widget_get_style_context(w), left, top, right,
-                             bottom);
-  }
-  return MOZ_GTK_SUCCESS;
-}
-
-gint moz_gtk_get_tab_border(gint* left, gint* top, gint* right, gint* bottom,
-                            GtkTextDirection direction, GtkTabFlags flags,
-                            WidgetNodeType widget) {
-  GtkStyleContext* style = GetStyleContext(widget, 1, direction,
-                                           GetStateFlagsFromGtkTabFlags(flags));
-
-  *left = *top = *right = *bottom = 0;
-  moz_gtk_add_style_padding(style, left, top, right, bottom);
-
-  // Gtk >= 3.20 does not use those styles
-  if (gtk_check_version(3, 20, 0) != nullptr) {
-    int tab_curvature;
-
-    gtk_style_context_get_style(style, "tab-curvature", &tab_curvature, NULL);
-    *left += tab_curvature;
-    *right += tab_curvature;
-
-    if (flags & MOZ_GTK_TAB_FIRST) {
-      int initial_gap = 0;
-      gtk_style_context_get_style(style, "initial-gap", &initial_gap, NULL);
-      if (direction == GTK_TEXT_DIR_RTL)
-        *right += initial_gap;
-      else
-        *left += initial_gap;
-    }
-  } else {
-    GtkBorder margin;
-
-    gtk_style_context_get_margin(style, gtk_style_context_get_state(style),
-                                 &margin);
-    *left += margin.left;
-    *right += margin.right;
-
-    if (flags & MOZ_GTK_TAB_FIRST) {
-      style = GetStyleContext(MOZ_GTK_NOTEBOOK_HEADER, direction);
-      gtk_style_context_get_margin(style, gtk_style_context_get_state(style),
-                                   &margin);
-      *left += margin.left;
-      *right += margin.right;
-    }
-  }
-
-  return MOZ_GTK_SUCCESS;
-}
-
-gint moz_gtk_get_tab_scroll_arrow_size(gint* width, gint* height) {
-  gint arrow_size;
-
-  GtkStyleContext* style = GetStyleContext(MOZ_GTK_TABPANELS);
-  gtk_style_context_get_style(style, "scroll-arrow-hlength", &arrow_size, NULL);
-
-  *height = *width = arrow_size;
-
   return MOZ_GTK_SUCCESS;
 }
 
@@ -610,16 +208,6 @@ gint moz_gtk_widget_paint(WidgetNodeType widget, cairo_t* cr,
   cairo_new_path(cr);
 
   switch (widget) {
-    case MOZ_GTK_FRAME:
-      return moz_gtk_frame_paint(cr, rect, state, direction);
-    case MOZ_GTK_RESIZER:
-      return moz_gtk_resizer_paint(cr, rect, state, direction);
-    case MOZ_GTK_TAB_TOP:
-    case MOZ_GTK_TAB_BOTTOM:
-      return moz_gtk_tab_paint(cr, rect, state, (GtkTabFlags)flags, direction,
-                               widget);
-    case MOZ_GTK_TABPANELS:
-      return moz_gtk_tabpanels_paint(cr, rect, state, direction);
     case MOZ_GTK_WINDOW_DECORATION:
       return moz_gtk_window_decoration_paint(cr, rect, state, direction);
     default:
