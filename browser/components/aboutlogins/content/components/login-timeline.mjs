@@ -54,7 +54,7 @@ export default class Timeline extends MozLitElement {
           style=${styles}
           class="action"
           data-l10n-id=${entry.actionId}
-        </div>
+        ></div>
       `;
     });
 

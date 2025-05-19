@@ -69,6 +69,7 @@ module.exports = {
   plugins: ["mozilla", "html", "import", "json", "promise", "lit"],
   rules: {
     "lit/quoted-expressions": ["error", "never"],
+    "lit/no-invalid-html": "error",
   },
   overrides: [
     {

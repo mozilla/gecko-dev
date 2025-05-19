@@ -52,11 +52,11 @@ class FxviewEmptyState extends MozLitElement {
     if (!descriptionLink) {
       return html``;
     }
-    return html` <a
+    return html`<a
       data-l10n-name=${descriptionLink.name}
       href=${descriptionLink.url}
       target=${descriptionLink?.sameTarget ? "_self" : "_blank"}
-    />`;
+    ></a>`;
   }
 
   render() {

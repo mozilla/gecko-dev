@@ -179,7 +179,7 @@ class SyncedTabsInSidebar extends SidebarPage {
         .searchQuery=${this.controller.searchQuery}
         @fxview-tab-list-primary-action=${navigateToLink}
         @fxview-tab-list-secondary-action=${this.onSecondaryAction}
-      />
+      ></sidebar-tab-list>
     </moz-card>`;
   }
 

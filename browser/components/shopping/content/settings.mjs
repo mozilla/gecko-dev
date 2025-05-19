@@ -77,15 +77,19 @@ class ShoppingSettings extends MozLitElement {
     let canShowRecommendationToggle = this.adsEnabled;
 
     let adsToggleMarkup = canShowRecommendationToggle
-      ? html`
-        <div class="shopping-settings-toggle-option-wrapper">
+      ? html` <div class="shopping-settings-toggle-option-wrapper">
           <moz-toggle
             id="shopping-settings-recommendations-toggle"
             ?pressed=${this.adsEnabledByUser}
             data-l10n-id="shopping-settings-recommendations-toggle2"
             data-l10n-attrs="label"
-            @toggle=${this.onToggleRecommendations}>
-            <span id="shopping-ads-learn-more" data-l10n-id="shopping-settings-recommendations-learn-more3" slot="description">
+            @toggle=${this.onToggleRecommendations}
+          >
+            <span
+              id="shopping-ads-learn-more"
+              data-l10n-id="shopping-settings-recommendations-learn-more3"
+              slot="description"
+            >
               <a
                 id="shopping-ads-learn-more-link"
                 target="_blank"
@@ -95,7 +99,7 @@ class ShoppingSettings extends MozLitElement {
                 data-l10n-name="review-quality-url"
               ></a>
             </span>
-          </moz-toggle/>
+          </moz-toggle>
         </div>`
       : null;
 

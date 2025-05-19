@@ -69,7 +69,7 @@ class ShoppingCard extends MozLitElement {
         <span id="heading">${this.label}</span>
         <moz-five-star
           rating=${this.rating === 0 ? 0.5 : this.rating}
-        </moz-five-star>
+        ></moz-five-star>
       </div>`;
     }
     return "";
