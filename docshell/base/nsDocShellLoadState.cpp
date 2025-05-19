@@ -755,6 +755,20 @@ bool nsDocShellLoadState::LoadIsFromSessionHistory() const {
              : !!mSHEntry;
 }
 
+nsIStructuredCloneContainer* nsDocShellLoadState::GetNavigationAPIState()
+    const {
+  return mNavigationAPIState;
+}
+
+void nsDocShellLoadState::SetNavigationAPIState(
+    nsIStructuredCloneContainer* aNavigationAPIState) {
+  mNavigationAPIState = aNavigationAPIState;
+}
+
+NavigationType nsDocShellLoadState::GetNavigationType() const {
+  return LoadReplace() ? NavigationType::Replace : NavigationType::Push;
+}
+
 void nsDocShellLoadState::MaybeStripTrackerQueryStrings(
     BrowsingContext* aContext) {
   MOZ_ASSERT(aContext);
