@@ -10,33 +10,6 @@
   display: none !important;
 }
 
-.about-logging-title-bar {
-  display: flex;
-  align-items: center;
-  gap: 1em;
-}
-
-#copy-as-url::part(button) {
-  background-image: url("chrome://global/skin/icons/edit-copy.svg");
-}
-
-#toast-copied {
-  visibility: hidden;
-  background-color: #333;
-  color: #fff;
-  text-align: center;
-  border-radius: 4px;
-  padding: 10px;
-  opacity: 0;
-  transition: opacity 0.5s, visibility 0.5s;
-  margin-left: auto;
-}
-
-#toast-copied.show {
-  visibility: visible;
-  opacity: 1;
-}
-
 /** Content area **/
 .main-content {
   width: min(90%, 1024px);
