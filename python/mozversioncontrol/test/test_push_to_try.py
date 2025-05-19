@@ -14,6 +14,9 @@ from mozversioncontrol import MissingVCSExtension, get_repository_object
 
 
 def test_push_to_try(repo, monkeypatch):
+    if repo.vcs == "src":
+        pytest.skip("src repo cannot push")
+
     commit_message = "commit message"
     vcs = get_repository_object(repo.dir)
 

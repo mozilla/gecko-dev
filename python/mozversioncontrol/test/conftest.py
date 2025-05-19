@@ -65,6 +65,15 @@ SETUP = {
         jj bookmark track master@upstream
         """,
     ],
+    "src": [
+        """
+        echo "foo" > foo
+        echo "bar" > bar
+        mkdir config
+        echo 1.0 > config/milestone.txt
+        """,
+        "",
+    ],
 }
 
 
@@ -86,7 +95,7 @@ def shell(cmd, working_dir):
         subprocess.check_call(step, shell=True, cwd=working_dir)
 
 
-@pytest.fixture(params=["git", "hg", "jj"])
+@pytest.fixture(params=["git", "hg", "jj", "src"])
 def repo(tmpdir, request):
     if request.param == "jj":
         if os.getenv("MOZ_AVOID_JJ_VCS") not in (None, "0", ""):
@@ -101,6 +110,11 @@ def repo(tmpdir, request):
     steps = SETUP[vcs]
 
     if hasattr(request.module, "STEPS"):
+        if vcs == "src" and vcs not in request.module.STEPS:
+            # Special-case SourceRepository: most tests do not handle this case,
+            # so allow it to be skipped if STEPS is defined but not for src.
+            # (Tests without STEPS will need to skip manually.)
+            pytest.skip("not applicable for src repo")
         steps.extend(request.module.STEPS[vcs])
 
     repo_dir = (tmpdir / "repo").resolve()

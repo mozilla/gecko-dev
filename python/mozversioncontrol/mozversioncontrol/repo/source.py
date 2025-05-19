@@ -2,6 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this,
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import contextlib
 import os
 from pathlib import Path
 from typing import Dict, Union
@@ -62,6 +63,9 @@ class SrcRepository(Repository):
     def get_changed_files(self, diff_filter="ADM", mode="unstaged", rev=None):
         return []
 
+    def diff_stream(self, rev=None, extensions=(), exclude_file=None, context=None):
+        pass
+
     def get_outgoing_files(self, diff_filter="ADM", upstream=None):
         return []
 
@@ -70,6 +74,9 @@ class SrcRepository(Repository):
 
     def forget_add_remove_files(self, *paths: Union[str, Path]):
         pass
+
+    def get_ignored_files_finder(self):
+        return FileListFinder([])
 
     def git_ignore(self, path):
         """This function reads the mozilla-central/.gitignore file and creates a
@@ -146,6 +153,12 @@ class SrcRepository(Repository):
 
     def get_commits(self, head=None, limit=None, follow=None):
         return []
+
+    def get_commit_patches(self, nodes: str):
+        return []
+
+    def try_commit(self, commit_message: str, changed_files=None):
+        return contextlib.nullcontext()
 
     def get_last_modified_time_for_file(self, path: Path):
         """Return last modified in VCS time for the specified file."""

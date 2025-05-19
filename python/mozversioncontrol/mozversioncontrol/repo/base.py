@@ -32,7 +32,7 @@ def get_tool_path(tool: Optional[Union[str, Path]] = None):
     return str(path)
 
 
-class Repository:
+class Repository(abc.ABC):
     """A class wrapping utility methods around version control repositories.
 
     This class is abstract and never instantiated. Obtain an instance by
@@ -41,8 +41,6 @@ class Repository:
     Clients are recommended to use the object as a context manager. But not
     all methods require this.
     """
-
-    __metaclass__ = abc.ABCMeta
 
     def __init__(self, path: Path, tool: Optional[str] = None):
         self.path = str(path.resolve())
@@ -127,11 +125,13 @@ class Repository:
         """True if git cinnabar is installed."""
         return False
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def name(self):
         """Name of the tool."""
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def head_ref(self):
         """Hash of HEAD revision."""
 
@@ -140,7 +140,8 @@ class Repository:
     def is_cinnabar_repo(self) -> bool:
         """True if the repo is a git cinnabar repo"""
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def base_ref(self):
         """Hash of revision the current topic branch is based on."""
 
@@ -155,7 +156,8 @@ class Repository:
     def base_ref_as_commit(self):
         """Git hash of revision the current topic branch is based on."""
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def branch(self):
         """Current branch or bookmark the checkout has active."""
 

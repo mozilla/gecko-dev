@@ -71,7 +71,7 @@ class JujutsuRepository(Repository):
         """
         self._run("log", "-n0")
 
-    def resolve_to_change(self, revset: str) -> Optional[str]:
+    def _resolve_to_change(self, revset: str) -> Optional[str]:
         change_id = self._run_read_only(
             "log", "--no-graph", "-n1", "-r", revset, "-T", "change_id.short()"
         ).rstrip()
@@ -88,17 +88,17 @@ class JujutsuRepository(Repository):
         # directly to a git command, it must be converted to a commit id first
         # (eg via resolve_to_commit). This isn't done here because
         # callers should be aware when they're dropping down to git semantics.
-        return self.resolve_to_change("@")
+        return self._resolve_to_change("@")
 
     def is_cinnabar_repo(self) -> bool:
         return self._git.is_cinnabar_repo()
 
     @property
     def base_ref(self):
-        ref = self.resolve_to_change("latest(roots(::@ & mutable())-)")
+        ref = self._resolve_to_change("latest(roots(::@ & mutable())-)")
         return ref if ref else self.head_ref
 
-    def resolve_to_commit(self, revset):
+    def _resolve_to_commit(self, revset):
         commit = self._run_read_only(
             "log", "--no-graph", "-r", f"latest({revset})", "-T", "commit_id"
         ).rstrip()
@@ -108,7 +108,7 @@ class JujutsuRepository(Repository):
         return self._git.base_ref_as_hg()
 
     def base_ref_as_commit(self):
-        return self.resolve_to_commit(self.base_ref)
+        return self._resolve_to_commit(self.base_ref)
 
     @property
     def branch(self):
@@ -175,7 +175,7 @@ class JujutsuRepository(Repository):
     def diff_stream(self, rev=None, extensions=(), exclude_file=None, context=8):
         if rev is None:
             rev = "latest((@ ~ empty()) | @-)"
-        rev = self.resolve_to_commit(rev)
+        rev = self._resolve_to_commit(rev)
         return self._git.diff_stream(
             rev=rev, extensions=extensions, exclude_file=exclude_file, context=context
         )
@@ -322,10 +322,10 @@ class JujutsuRepository(Repository):
 
         return list(reversed(self._run_read_only(*cmd).splitlines()))
 
-    def looks_like_change_id(self, id):
+    def _looks_like_change_id(self, id):
         return len(id) > 0 and all(letter >= "k" and letter <= "z" for letter in id)
 
-    def looks_like_commit_id(self, id):
+    def _looks_like_commit_id(self, id):
         return len(id) > 0 and all(letter in string.hexdigits for letter in id)
 
     def get_commit_patches(self, nodes: List[str]) -> List[bytes]:
@@ -333,7 +333,7 @@ class JujutsuRepository(Repository):
         # Warning: tests, at least, may call this with change ids rather than
         # commit ids.
         nodes = [
-            id if self.looks_like_commit_id(id) else self.resolve_to_commit(id)
+            id if self._looks_like_commit_id(id) else self._resolve_to_commit(id)
             for id in nodes
         ]
         return [
@@ -366,7 +366,7 @@ class JujutsuRepository(Repository):
                 p.write_text(content)
             # Update the jj commit with the changes we just made.
             self._snapshot()
-            yield self.resolve_to_change("@")
+            yield self._resolve_to_change("@")
         finally:
             self._run("operation", "restore", opid)
 

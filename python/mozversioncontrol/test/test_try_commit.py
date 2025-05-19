@@ -17,7 +17,8 @@ def test_try_commit(repo):
     # Create a non-empty commit.
     try:
         with vcs.try_commit(commit_message, {"try_task_config.json": "{}"}) as head:
-            assert vcs.get_changed_files(rev=head) == ["try_task_config.json"]
+            if vcs.name != "src":
+                assert vcs.get_changed_files(rev=head) == ["try_task_config.json"]
     except MissingVCSExtension:
         pytest.xfail("Requires the Mercurial evolve extension.")
 
