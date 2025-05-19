@@ -13,6 +13,7 @@
 [Exposed=(Window)]
 interface PerformancePaintTiming : PerformanceEntry
 {
+  [Default] object toJSON();
 };
 
 PerformancePaintTiming includes PaintTimingMixin;
