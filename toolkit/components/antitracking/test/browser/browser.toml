@@ -87,6 +87,8 @@ support-files = [
 
 ["browser_firstPartyCookieRejectionHonoursAllowList.js"]
 
+["browser_fixed_ABA_partitionKey.js"]
+
 ["browser_hasStorageAccess.js"]
 
 ["browser_iframe_document_open.js"]
