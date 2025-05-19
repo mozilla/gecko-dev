@@ -68,6 +68,7 @@ object FeatureFlags {
 
     /**
      * Enables locking of the private mode behind an authentication screen feature.
+     * Currently only enabled on debug and nightly.
      */
-    val privateBrowsingLock = Config.channel.isDebug
+    val privateBrowsingLock = Config.channel.isNightlyOrDebug
 }
