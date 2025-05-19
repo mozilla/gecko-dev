@@ -228,7 +228,7 @@ add_task(async function test_optIn_debug_disabled() {
   Services.prefs.setBoolPref(STUDIES_OPT_OUT_PREF, true);
 
   await Assert.rejects(
-    loader.optInToExperiment({
+    loader._optInToExperiment({
       slug: recipe.slug,
       branchSlug: recipe.branches[0].slug,
     }),
@@ -264,7 +264,7 @@ add_task(async function test_optIn_studies_disabled() {
     Services.prefs.setBoolPref(pref, false);
 
     await Assert.rejects(
-      loader.optInToExperiment({
+      loader._optInToExperiment({
         slug: recipe.slug,
         branchSlug: recipe.branches[0].slug,
       }),
@@ -312,7 +312,7 @@ add_task(async function test_experiment_optin_targeting() {
   sandbox.stub(RemoteSettings("nimbus-preview"), "get").resolves([recipe]);
 
   await Assert.rejects(
-    loader.optInToExperiment({
+    loader._optInToExperiment({
       slug: recipe.slug,
       branch: recipe.branches[0].slug,
       collection: "nimbus-preview",
@@ -327,7 +327,7 @@ add_task(async function test_experiment_optin_targeting() {
     "Should not enroll in experiment"
   );
 
-  await loader.optInToExperiment({
+  await loader._optInToExperiment({
     slug: recipe.slug,
     branch: recipe.branches[0].slug,
     collection: "nimbus-preview",
