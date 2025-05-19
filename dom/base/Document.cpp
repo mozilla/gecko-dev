@@ -15773,36 +15773,58 @@ void Document::HideAllPopoversUntil(nsINode& aEndpoint,
   } while (repeatingHide);
 }
 
+// https://html.spec.whatwg.org/#hide-popover-algorithm
 void Document::HidePopover(Element& aPopover, bool aFocusPreviousElement,
                            bool aFireEvents, ErrorResult& aRv) {
   RefPtr<nsGenericHTMLElement> popoverHTMLEl =
       nsGenericHTMLElement::FromNode(aPopover);
   NS_ASSERTION(popoverHTMLEl, "Not a HTML element");
 
+  // 1. If the result of running check popover validity given element, true,
+  // throwExceptions, and null is false, then return.
   if (!popoverHTMLEl->CheckPopoverValidity(PopoverVisibilityState::Showing,
                                            nullptr, aRv)) {
     return;
   }
 
+  // 2. Let document be element's node document.
+
+  // 3. Let nestedHide be element's popover showing or hiding.
   bool wasShowingOrHiding =
       popoverHTMLEl->GetPopoverData()->IsShowingOrHiding();
+
+  // 4. Set element's popover showing or hiding to true.
   popoverHTMLEl->GetPopoverData()->SetIsShowingOrHiding(true);
+
+  // 5. If nestedHide is true, then set fireEvents to false.
   const bool fireEvents = aFireEvents && !wasShowingOrHiding;
+
+  // 6. Let cleanupSteps be the following steps:
   auto cleanupHidingFlag = MakeScopeExit([&]() {
     if (auto* popoverData = popoverHTMLEl->GetPopoverData()) {
+      // 6.1. If nestedHide is false, then set element's popover showing or
+      // hiding to false.
       popoverData->SetIsShowingOrHiding(wasShowingOrHiding);
-      if (auto* closeWatcher = popoverData->GetCloseWatcher()) {
-        closeWatcher->Destroy();
-      }
+      // 6.2. If element's popover close watcher is not null, then:
+      // 6.2.1. Destroy element's popover close watcher.
+      // 6.2.2. Set element's popover close watcher to null.
+      popoverData->DestroyCloseWatcher();
     }
   });
 
+  // 7. If element's opened in popover mode is "auto" or "hint", then:
   if (popoverHTMLEl->IsAutoPopover()) {
+    // 7.1. Run hide all popovers until given element, focusPreviousElement, and
+    // fireEvents.
     HideAllPopoversUntil(*popoverHTMLEl, aFocusPreviousElement, fireEvents);
+
+    // 7.2. If the result of running check popover validity given element, true,
+    // and throwExceptions is false, then run cleanupSteps and return.
     if (!popoverHTMLEl->CheckPopoverValidity(PopoverVisibilityState::Showing,
                                              nullptr, aRv)) {
       return;
     }
+
     // TODO: we can't always guarantee:
     // The last item in document's auto popover list is popoverHTMLEl.
     // See, https://github.com/whatwg/html/issues/9197
@@ -15823,40 +15845,68 @@ void Document::HidePopover(Element& aPopover, bool aFocusPreviousElement,
   MOZ_ASSERT(data, "Should have popover data");
   data->SetInvoker(nullptr);
 
+  // 9. If fireEvents is true:
   // Fire beforetoggle event and re-check popover validity.
   if (fireEvents) {
-    // Intentionally ignore the return value here as only on open event for
-    // beforetoggle the cancelable attribute is initialized to true.
+    // 9.1. Fire an event named beforetoggle, using ToggleEvent, with the
+    // oldState attribute initialized to "open" and the newState attribute
+    // initialized to "closed" at element. Intentionally ignore the return value
+    // here as only on open event for beforetoggle the cancelable attribute is
+    // initialized to true.
     popoverHTMLEl->FireToggleEvent(u"open"_ns, u"closed"_ns,
                                    u"beforetoggle"_ns);
 
-    // https://html.spec.whatwg.org/multipage/popover.html#hide-popover-algorithm
-    // step 10.2.
-    // Hide all popovers when beforetoggle shows a popover.
+    // 9.2. If autoPopoverListContainsElement is true and document's showing
+    // auto popover list's last item is not element, then run hide all popovers
+    // until given element, focusPreviousElement, and false. Hide all popovers
+    // when beforetoggle shows a popover.
     if (popoverHTMLEl->IsAutoPopover() &&
         GetTopmostAutoPopover() != popoverHTMLEl &&
         popoverHTMLEl->PopoverOpen()) {
       HideAllPopoversUntil(*popoverHTMLEl, aFocusPreviousElement, false);
     }
 
+    // 9.3. If the result of running check popover validity given element, true,
+    // throwExceptions, and null is false, then run cleanupSteps and return.
     if (!popoverHTMLEl->CheckPopoverValidity(PopoverVisibilityState::Showing,
                                              nullptr, aRv)) {
       return;
     }
+
+    // 9.4. XXX: See below
+
+    // 9.5. Set element's implicit anchor element to null.
+    // (TODO)
   }
 
+  // 9.4. Request an element to be removed from the top layer given element.
+  // 10. Otherwise, remove an element from the top layer immediately given
+  // element.
   RemovePopoverFromTopLayer(aPopover);
 
+  // 11. Set element's popover invoker to null.
+  // (TODO)
+
+  // 12. Set element's opened in popover mode to null.
+  // 13. Set element's popover visibility state to hidden.
   popoverHTMLEl->PopoverPseudoStateUpdate(false, true);
   popoverHTMLEl->GetPopoverData()->SetPopoverVisibilityState(
       PopoverVisibilityState::Hidden);
 
-  // Queue popover toggle event task.
+  // 14. If fireEvents is true, then queue a popover toggle event task given
+  // element, "open", and "closed". Queue popover toggle event task.
   if (fireEvents) {
     popoverHTMLEl->QueuePopoverEventTask(PopoverVisibilityState::Showing);
   }
 
+  // 15. Let previouslyFocusedElement be element's previously focused element.
+  // 16. If previouslyFocusedElement is not null, then:
   if (aFocusPreviousElement) {
+    // 16.1. Set element's previously focused element to null.
+    // 16.2. If focusPreviousElement is true and document's focused area of the
+    // document's DOM anchor is a shadow-including inclusive descendant of
+    // element, then run the focusing steps for previouslyFocusedElement; the
+    // viewport should not be scrolled by doing this step.
     popoverHTMLEl->FocusPreviousElementAfterHidingPopover();
   } else {
     popoverHTMLEl->ForgetPreviouslyFocusedElementAfterHidingPopover();

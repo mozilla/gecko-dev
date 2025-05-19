@@ -62,6 +62,18 @@ void PopoverData::EnsureCloseWatcher(nsGenericHTMLElement* aElement) {
 
 CloseWatcher* PopoverData::GetCloseWatcher() { return mCloseWatcher; }
 
+// https://html.spec.whatwg.org/#hide-popover-algorithm
+// Step 6.2
+void PopoverData::DestroyCloseWatcher() {
+  // 6.2. If element's popover close watcher is not null, then:
+  if (mCloseWatcher) {
+    // 6.2.1. Destroy element's popover close watcher.
+    mCloseWatcher->Destroy();
+    // 6.2.2. Set element's popover close watcher to null.
+    mCloseWatcher = nullptr;
+  }
+};
+
 PopoverToggleEventTask::PopoverToggleEventTask(nsWeakPtr aElement,
                                                PopoverVisibilityState aOldState)
     : Runnable("PopoverToggleEventTask"),
