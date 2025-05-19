@@ -2,7 +2,7 @@ schema: 1
 
 bugzilla:
   product: Core
-  component: "Canvas: WebGL"
+  component: "Graphics: CanvasWebGL"
 
 origin:
   name: webgl-cts

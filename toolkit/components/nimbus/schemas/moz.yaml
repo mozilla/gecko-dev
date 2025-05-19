@@ -1,7 +1,7 @@
 schema: 1
 
 bugzilla:
-  product: "Toolkit"
+  product: "Firefox"
   component: "Nimbus Desktop Client"
 
 origin:
