@@ -2127,9 +2127,9 @@ void nsLookAndFeel::PerThemeData::Init() {
     g_object_unref(accelStyle);
   }
 
-  const auto effectiveTitlebarStyle =
-      HeaderBarShouldDrawContainer(MOZ_GTK_HEADER_BAR) ? MOZ_GTK_HEADERBAR_FIXED
-                                                       : MOZ_GTK_HEADER_BAR;
+  const auto effectiveTitlebarStyle = HeaderBarShouldDrawContainer()
+                                          ? MOZ_GTK_HEADERBAR_FIXED
+                                          : MOZ_GTK_HEADER_BAR;
   style = GetStyleContext(effectiveTitlebarStyle);
   {
     mTitlebar = GetColorPair(style, GTK_STATE_FLAG_NORMAL);

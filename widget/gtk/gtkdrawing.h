@@ -20,24 +20,6 @@
 #include <algorithm>
 #include "mozilla/Span.h"
 
-/*** type definitions ***/
-typedef struct {
-  guint8 active;
-  guint8 focused;
-  guint8 selected;
-  guint8 inHover;
-  guint8 disabled;
-  guint8 isDefault;
-  guint8 canDefault;
-  /* The depressed state is for buttons which remain active for a longer period:
-   * activated toggle buttons or buttons showing a popup menu. */
-  guint8 depressed;
-  guint8 backdrop;
-  gint32 curpos; /* curpos and maxpos are used for scrollbars */
-  gint32 maxpos;
-  gint32 image_scale; /* image scale */
-} GtkWidgetState;
-
 /**
  * A size in the same GTK pixel units as GtkBorder and GdkRectangle.
  */
@@ -83,11 +65,6 @@ struct CSDWindowDecorationSize {
 /*** result/error codes ***/
 #define MOZ_GTK_SUCCESS 0
 #define MOZ_GTK_UNKNOWN_WIDGET -1
-#define MOZ_GTK_UNSAFE_THEME -2
-
-/*** checkbox/radio flags ***/
-#define MOZ_GTK_WIDGET_CHECKED 1
-#define MOZ_GTK_WIDGET_INCONSISTENT (1 << 1)
 
 /*** widget type constants ***/
 enum WidgetNodeType : int {
@@ -161,11 +138,8 @@ struct ButtonLayout {
 /**
  * Initializes the drawing library.  You must call this function
  * prior to using any other functionality.
- * returns: MOZ_GTK_SUCCESS if there were no errors
- *          MOZ_GTK_UNSAFE_THEME if the current theme engine is known
- *                               to crash with gtkdrawing.
  */
-gint moz_gtk_init();
+void moz_gtk_init();
 
 /**
  * Updates the drawing library when the theme changes.
@@ -181,34 +155,20 @@ void moz_gtk_refresh();
 gint moz_gtk_shutdown();
 
 /*** Widget drawing ***/
-/**
- * Paint a widget in the current theme.
- * widget:    a constant giving the widget to paint
- * drawable:  the drawable to paint to;
- *            it's colormap must be moz_gtk_widget_get_colormap().
- * rect:      the bounding rectangle for the widget
- * state:     the state of the widget.  ignored for some widgets.
- * flags:     widget-dependant flags; see the WidgetNodeType definition.
- * direction: the text direction, to draw the widget correctly LTR and RTL.
- */
-gint moz_gtk_widget_paint(WidgetNodeType widget, cairo_t* cr,
-                          GdkRectangle* rect, GtkWidgetState* state, gint flags,
-                          GtkTextDirection direction);
+
+struct GtkDrawingParams {
+  // widget to paint
+  WidgetNodeType widget;
+  // bounding rectangle for the widget
+  GdkRectangle rect{};
+  GtkStateFlags state = GTK_STATE_FLAG_NORMAL;
+  gint image_scale = 1;
+};
+
+// Paint a widget in the current theme.
+void moz_gtk_widget_paint(cairo_t* cr, const GtkDrawingParams* aParams);
 
 /*** Widget metrics ***/
-/**
- * Get the border size of a widget
- * left/right:  [OUT] the widget's left/right border
- * top/bottom:  [OUT] the widget's top/bottom border
- * direction:   the text direction for the widget.  Callers depend on this
- *              being used only for MOZ_GTK_DROPDOWN widgets, and cache
- *              results for other widget types across direction values.
- *
- * returns:    MOZ_GTK_SUCCESS if there was no error, an error code otherwise
- */
-gint moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
-                               gint* right, gint* bottom,
-                               GtkTextDirection direction);
 
 gint moz_gtk_get_titlebar_button_spacing();
 

@@ -44,45 +44,7 @@ style_path_print(GtkStyleContext *context)
 }
 #endif
 
-// GetStateFlagsFromGtkWidgetState() can be safely used for the specific
-// GtkWidgets that set both prelight and active flags.  For other widgets,
-// either the GtkStateFlags or Gecko's GtkWidgetState need to be carefully
-// adjusted to match GTK behavior.  Although GTK sets insensitive and focus
-// flags in the generic GtkWidget base class, GTK adds prelight and active
-// flags only to widgets that are expected to demonstrate prelight or active
-// states.  This contrasts with HTML where any element may have :active and
-// :hover states, and so Gecko's GtkStateFlags do not necessarily map to GTK
-// flags.  Failure to restrict the flags in the same way as GTK can cause
-// generic CSS selectors from some themes to unintentionally match elements
-// that are not expected to change appearance on hover or mouse-down.
-static GtkStateFlags GetStateFlagsFromGtkWidgetState(GtkWidgetState* state) {
-  GtkStateFlags stateFlags = GTK_STATE_FLAG_NORMAL;
-
-  if (state->disabled)
-    stateFlags = GTK_STATE_FLAG_INSENSITIVE;
-  else {
-    if (state->depressed || state->active)
-      stateFlags =
-          static_cast<GtkStateFlags>(stateFlags | GTK_STATE_FLAG_ACTIVE);
-    if (state->inHover)
-      stateFlags =
-          static_cast<GtkStateFlags>(stateFlags | GTK_STATE_FLAG_PRELIGHT);
-    if (state->focused)
-      stateFlags =
-          static_cast<GtkStateFlags>(stateFlags | GTK_STATE_FLAG_FOCUSED);
-    if (state->backdrop)
-      stateFlags =
-          static_cast<GtkStateFlags>(stateFlags | GTK_STATE_FLAG_BACKDROP);
-  }
-
-  return stateFlags;
-}
-
-gint moz_gtk_init() {
-  moz_gtk_refresh();
-
-  return MOZ_GTK_SUCCESS;
-}
+void moz_gtk_init() { moz_gtk_refresh(); }
 
 void moz_gtk_refresh() {
   sToolbarMetrics.initialized = false;
@@ -165,56 +127,39 @@ gint moz_gtk_get_titlebar_button_spacing() {
   return sToolbarMetrics.inlineSpacing;
 }
 
-static gint moz_gtk_window_decoration_paint(cairo_t* cr,
-                                            const GdkRectangle* rect,
-                                            GtkWidgetState* state,
-                                            GtkTextDirection direction) {
+static void moz_gtk_window_decoration_paint(cairo_t* cr,
+                                            const GtkDrawingParams& aParams) {
   if (mozilla::widget::GdkIsWaylandDisplay()) {
     // Doesn't seem to be needed.
-    return MOZ_GTK_SUCCESS;
+    return;
   }
-  GtkStateFlags state_flags = GetStateFlagsFromGtkWidgetState(state);
   GtkStyleContext* windowStyle =
-      GetStyleContext(MOZ_GTK_HEADERBAR_WINDOW, state->image_scale);
+      GetStyleContext(MOZ_GTK_HEADERBAR_WINDOW, aParams.image_scale);
   const bool solidDecorations =
       gtk_style_context_has_class(windowStyle, "solid-csd");
   GtkStyleContext* decorationStyle =
       GetStyleContext(solidDecorations ? MOZ_GTK_WINDOW_DECORATION_SOLID
                                        : MOZ_GTK_WINDOW_DECORATION,
-                      state->image_scale, GTK_TEXT_DIR_LTR, state_flags);
+                      aParams.image_scale, aParams.state);
 
-  gtk_render_background(decorationStyle, cr, rect->x, rect->y, rect->width,
-                        rect->height);
-  gtk_render_frame(decorationStyle, cr, rect->x, rect->y, rect->width,
-                   rect->height);
-  return MOZ_GTK_SUCCESS;
-}
-
-gint moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
-                               gint* right, gint* bottom,
-                               // NOTE: callers depend on direction being used
-                               // only for MOZ_GTK_DROPDOWN widgets.
-                               GtkTextDirection direction) {
-  *left = *top = *right = *bottom = 0;
-  return MOZ_GTK_SUCCESS;
+  const auto& rect = aParams.rect;
+  gtk_render_background(decorationStyle, cr, rect.x, rect.y, rect.width,
+                        rect.height);
+  gtk_render_frame(decorationStyle, cr, rect.x, rect.y, rect.width,
+                   rect.height);
 }
 
 /* cairo_t *cr argument has to be a system-cairo. */
-gint moz_gtk_widget_paint(WidgetNodeType widget, cairo_t* cr,
-                          GdkRectangle* rect, GtkWidgetState* state, gint flags,
-                          GtkTextDirection direction) {
-  /* A workaround for https://bugzilla.gnome.org/show_bug.cgi?id=694086
-   */
+void moz_gtk_widget_paint(cairo_t* cr, const GtkDrawingParams* aParams) {
+  /* A workaround for https://bugzilla.gnome.org/show_bug.cgi?id=694086 */
   cairo_new_path(cr);
-
-  switch (widget) {
+  switch (aParams->widget) {
     case MOZ_GTK_WINDOW_DECORATION:
-      return moz_gtk_window_decoration_paint(cr, rect, state, direction);
+      return moz_gtk_window_decoration_paint(cr, *aParams);
     default:
-      g_warning("Unknown widget type: %d", widget);
+      g_warning("Unknown widget type: %d", aParams->widget);
+      return;
   }
-
-  return MOZ_GTK_UNKNOWN_WIDGET;
 }
 
 gint moz_gtk_shutdown() {

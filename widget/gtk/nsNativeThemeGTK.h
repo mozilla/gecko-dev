@@ -75,41 +75,12 @@ class nsNativeThemeGTK final : public mozilla::widget::Theme {
   NS_IMETHOD_(bool) WidgetIsContainer(StyleAppearance aAppearance) override;
 
   bool ThemeDrawsFocusForWidget(nsIFrame*, StyleAppearance) override;
-
   Transparency GetWidgetTransparency(nsIFrame*, StyleAppearance) override;
 
   nsNativeThemeGTK();
 
  protected:
   virtual ~nsNativeThemeGTK();
-
- private:
-  GtkTextDirection GetTextDirection(nsIFrame* aFrame);
-  gint GetTabMarginPixels(nsIFrame* aFrame);
-  bool GetGtkWidgetAndState(StyleAppearance aAppearance, nsIFrame* aFrame,
-                            WidgetNodeType& aGtkWidgetType,
-                            GtkWidgetState* aState, gint* aWidgetFlags);
-  mozilla::CSSIntMargin GetExtraSizeForWidget(nsIFrame*, StyleAppearance);
-
-  void RefreshWidgetWindow(nsIFrame* aFrame);
-  WidgetNodeType NativeThemeToGtkTheme(StyleAppearance aAppearance,
-                                       nsIFrame* aFrame);
-
-  uint8_t mDisabledWidgetTypes
-      [(static_cast<size_t>(mozilla::StyleAppearance::Count) + 7) / 8];
-  uint8_t
-      mSafeWidgetStates[static_cast<size_t>(mozilla::StyleAppearance::Count) *
-                        4];  // 32 bits per widget
-  static const char* sDisabledEngines[];
-
-  // Because moz_gtk_get_widget_border can be slow, we cache its results
-  // by widget type.  Each bit in mBorderCacheValid says whether the
-  // corresponding entry in mBorderCache is valid.
-  mozilla::CSSIntMargin GetCachedWidgetBorder(nsIFrame* aFrame,
-                                              StyleAppearance aAppearance,
-                                              GtkTextDirection aDirection);
-  uint8_t mBorderCacheValid[(MOZ_GTK_WIDGET_NODE_COUNT + 7) / 8];
-  mozilla::CSSIntMargin mBorderCache[MOZ_GTK_WIDGET_NODE_COUNT];
 };
 
 #endif

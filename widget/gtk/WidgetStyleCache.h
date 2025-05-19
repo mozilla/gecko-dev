@@ -12,8 +12,6 @@
 
 GtkWidget* GetWidget(WidgetNodeType aNodeType);
 
-cairo_surface_t* GetWidgetIconSurface(GtkWidget* aWidgetIcon, int aScale);
-
 /*
  * Return a new style context based on aWidget, as a child of aParentStyle.
  * If aWidget still has a floating reference, then it is sunk and released.
@@ -29,35 +27,16 @@ GtkStyleContext* CreateCSSNode(const char* aName, GtkStyleContext* aParentStyle,
  * aStateFlags is applied only to last widget in css style path,
  * for instance GetStyleContext(MOZ_GTK_BUTTON, .., GTK_STATE_FLAG_HOVER)
  * you get "window button:hover" css selector.
- * If you want aStateFlags applied to all path elements use
- * CreateStyleContextWithStates().
  *
  * The context is owned by WidgetStyleCache. Do not unref.
  */
 GtkStyleContext* GetStyleContext(
     WidgetNodeType aNodeType, int aScale = 1,
-    GtkTextDirection aDirection = GTK_TEXT_DIR_NONE,
-    GtkStateFlags aStateFlags = GTK_STATE_FLAG_NORMAL);
-
-/*
- * Returns a pointer to a style context for the specified node
- * and state applied to all elements at widget style path.
- *
- * The context is owned by caller and must be released by g_object_unref().
- */
-GtkStyleContext* CreateStyleContextWithStates(
-    WidgetNodeType aNodeType, int aScale = 1,
-    GtkTextDirection aDirection = GTK_TEXT_DIR_NONE,
     GtkStateFlags aStateFlags = GTK_STATE_FLAG_NORMAL);
 
 void ResetWidgetCache();
-
 bool IsSolidCSDStyleUsed();
-
-void StyleContextSetScale(GtkStyleContext* style, gint aScaleFactor);
-
 gint GetBorderRadius(GtkStyleContext* aStyle);
-
-bool HeaderBarShouldDrawContainer(WidgetNodeType);
+bool HeaderBarShouldDrawContainer();
 
 #endif  // WidgetStyleCache_h

@@ -232,9 +232,7 @@ bool IsSolidCSDStyleUsed() {
   return gCSDStyle == CSDStyle::Solid;
 }
 
-static void CreateHeaderBar() {
-  CreateHeaderBarWidget(MOZ_GTK_HEADER_BAR);
-}
+static void CreateHeaderBar() { CreateHeaderBarWidget(MOZ_GTK_HEADER_BAR); }
 
 static GtkWidget* CreateWidget(WidgetNodeType aAppearance) {
   switch (aAppearance) {
@@ -591,70 +589,7 @@ void ResetWidgetCache() {
   mozilla::PodArrayZero(sWidgetStorage);
 }
 
-GtkStyleContext* GetStyleContext(WidgetNodeType aNodeType, int aScale,
-                                 GtkTextDirection aDirection,
-                                 GtkStateFlags aStateFlags) {
-  GtkStyleContext* style;
-  if (gtk_check_version(3, 20, 0) != nullptr) {
-    style = GetWidgetStyleInternal(aNodeType);
-  } else {
-    style = GetCssNodeStyleInternal(aNodeType);
-    StyleContextSetScale(style, aScale);
-  }
-  GtkStateFlags oldState = gtk_style_context_get_state(style);
-  MOZ_ASSERT(!(aStateFlags & (STATE_FLAG_DIR_LTR | STATE_FLAG_DIR_RTL)));
-  unsigned newState = aStateFlags;
-  switch (aDirection) {
-    case GTK_TEXT_DIR_LTR:
-      newState |= STATE_FLAG_DIR_LTR;
-      break;
-    case GTK_TEXT_DIR_RTL:
-      newState |= STATE_FLAG_DIR_RTL;
-      break;
-    default:
-      MOZ_FALLTHROUGH_ASSERT("Bad GtkTextDirection");
-    case GTK_TEXT_DIR_NONE:
-      // GtkWidget uses a default direction if neither is explicitly
-      // specified, but here DIR_NONE is interpreted as meaning the
-      // direction is not important, so don't change the direction
-      // unnecessarily.
-      newState |= oldState & (STATE_FLAG_DIR_LTR | STATE_FLAG_DIR_RTL);
-  }
-  if (oldState != newState) {
-    gtk_style_context_set_state(style, static_cast<GtkStateFlags>(newState));
-  }
-  return style;
-}
-
-GtkStyleContext* CreateStyleContextWithStates(WidgetNodeType aNodeType,
-                                              int aScale,
-                                              GtkTextDirection aDirection,
-                                              GtkStateFlags aStateFlags) {
-  GtkStyleContext* style =
-      GetStyleContext(aNodeType, aScale, aDirection, aStateFlags);
-  GtkWidgetPath* path = gtk_widget_path_copy(gtk_style_context_get_path(style));
-
-  static auto sGtkWidgetPathIterGetState =
-      (GtkStateFlags (*)(const GtkWidgetPath*, gint))dlsym(
-          RTLD_DEFAULT, "gtk_widget_path_iter_get_state");
-  static auto sGtkWidgetPathIterSetState =
-      (void (*)(GtkWidgetPath*, gint, GtkStateFlags))dlsym(
-          RTLD_DEFAULT, "gtk_widget_path_iter_set_state");
-
-  int pathLength = gtk_widget_path_length(path);
-  for (int i = 0; i < pathLength; i++) {
-    unsigned state = aStateFlags | sGtkWidgetPathIterGetState(path, i);
-    sGtkWidgetPathIterSetState(path, i, GtkStateFlags(state));
-  }
-
-  style = gtk_style_context_new();
-  gtk_style_context_set_path(style, path);
-  gtk_widget_path_unref(path);
-
-  return style;
-}
-
-void StyleContextSetScale(GtkStyleContext* style, gint aScaleFactor) {
+static void StyleContextSetScale(GtkStyleContext* style, gint aScaleFactor) {
   // Support HiDPI styles on Gtk 3.20+
   static auto sGtkStyleContextSetScalePtr =
       (void (*)(GtkStyleContext*, gint))dlsym(RTLD_DEFAULT,
@@ -664,9 +599,23 @@ void StyleContextSetScale(GtkStyleContext* style, gint aScaleFactor) {
   }
 }
 
-bool HeaderBarShouldDrawContainer(WidgetNodeType aNodeType) {
-  MOZ_ASSERT(aNodeType == MOZ_GTK_HEADER_BAR);
-  mozilla::Unused << GetWidget(aNodeType);
+GtkStyleContext* GetStyleContext(WidgetNodeType aNodeType, int aScale,
+                                 GtkStateFlags aState) {
+  GtkStyleContext* style;
+  if (gtk_check_version(3, 20, 0) != nullptr) {
+    style = GetWidgetStyleInternal(aNodeType);
+  } else {
+    style = GetCssNodeStyleInternal(aNodeType);
+    StyleContextSetScale(style, aScale);
+  }
+  if (gtk_style_context_get_state(style) != aState) {
+    gtk_style_context_set_state(style, aState);
+  }
+  return style;
+}
+
+bool HeaderBarShouldDrawContainer() {
+  mozilla::Unused << GetWidget(MOZ_GTK_HEADER_BAR);
   return gHeaderBarShouldDrawContainer;
 }
 
