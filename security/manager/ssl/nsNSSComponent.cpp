@@ -879,6 +879,7 @@ nsresult CommonInit() {
   SSL_OptionSetDefault(
       SSL_ENABLE_DELEGATED_CREDENTIALS,
       StaticPrefs::security_tls_enable_delegated_credentials());
+  SSL_OptionSetDefault(SSL_DB_LOAD_CERTIFICATE_CHAIN, false);
 
   rv = InitializeCipherSuite();
   if (NS_FAILED(rv)) {
