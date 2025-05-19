@@ -101,16 +101,6 @@
   border-top: 1px solid ThreeDShadow;
 }
 
-/* Content area */
-
-.sidebar-splitter {
-  appearance: none;
-  width: 6px;
-  background-color: -moz-dialog;
-  border: 1px ThreeDShadow;
-  border-style: none solid;
-}
-
 /* Tabstrip */
 
 #tabbrowser-tabs {
