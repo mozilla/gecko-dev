@@ -890,7 +890,7 @@ bool nsWindow::ToplevelUsesCSD() const {
 #ifdef MOZ_WAYLAND
   if (GdkIsWaylandDisplay()) {
     static auto sGdkWaylandDisplayPrefersSsd =
-        (gboolean(*)(const GdkWaylandDisplay*))dlsym(
+        (gboolean (*)(const GdkWaylandDisplay*))dlsym(
             RTLD_DEFAULT, "gdk_wayland_display_prefers_ssd");
     // NOTE(emilio): Not using GDK_WAYLAND_DISPLAY to avoid bug 1946088.
     return !sGdkWaylandDisplayPrefersSsd ||
@@ -3628,7 +3628,7 @@ void nsWindow::SetIcon(const nsAString& aIconSpec) {
                                      u"48.png",  u"64.png", u"128.png",
                                      u"256.png", u".xpm",   u"16.xpm"};
 
-  GdkPixbuf* icon = nullptr;
+  RefPtr<GdkPixbuf> icon;
   for (uint32_t i = 0; i < std::size(extensions); i++) {
     // Don't bother looking for XPM versions if we found a PNG.
     if (i == std::size(extensions) - 2 && icon) {
@@ -3637,19 +3637,22 @@ void nsWindow::SetIcon(const nsAString& aIconSpec) {
 
     nsCOMPtr<nsIFile> iconFile;
     nsAutoCString path;
-
     ResolveIconName(aIconSpec, nsDependentString(extensions[i]),
                     getter_AddRefs(iconFile));
     if (!iconFile) {
       continue;
     }
     iconFile->GetNativePath(path);
-    icon = gdk_pixbuf_new_from_file(path.get(), nullptr);
+    RefPtr<GdkPixbuf> newIcon =
+        dont_AddRef(gdk_pixbuf_new_from_file(path.get(), nullptr));
+    if (!newIcon) {
+      continue;
+    }
+    icon = std::move(newIcon);
   }
 
   if (icon) {
-    gtk_window_set_icon(GTK_WINDOW(mShell), icon);
-    g_object_unref(icon);
+    gtk_window_set_icon(GTK_WINDOW(mShell), icon.get());
   } else {
     // leave the default icon intact if no matching icons were found
   }
@@ -5036,7 +5039,7 @@ void nsWindow::OnScrollEvent(GdkEventScroll* aEvent) {
         if (StaticPrefs::apz_gtk_pangesture_enabled() &&
             gtk_check_version(3, 20, 0) == nullptr) {
           static auto sGdkEventIsScrollStopEvent =
-              (gboolean(*)(const GdkEvent*))dlsym(
+              (gboolean (*)(const GdkEvent*))dlsym(
                   RTLD_DEFAULT, "gdk_event_is_scroll_stop_event");
 
           LOG("[%d] pan smooth event dx=%f dy=%f inprogress=%d\n", aEvent->time,
