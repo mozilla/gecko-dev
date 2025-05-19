@@ -7,6 +7,14 @@ test "$(whoami)" == 'root'
 # We do want to install recommended packages.
 sed -i /APT::Install-Recommends/d /etc/apt/apt.conf.d/99taskcluster
 
+apt-get update && apt-get install ubuntu-dbgsym-keyring
+
+cat > /etc/apt/sources.list.d/ddebs.list <<EOF
+deb http://ddebs.ubuntu.com noble main restricted universe multiverse
+deb http://ddebs.ubuntu.com noble-updates main restricted universe multiverse
+deb http://ddebs.ubuntu.com noble-proposed main restricted universe multiverse
+EOF
+
 # To speed up docker image build times as well as number of network/disk I/O
 # build a list of packages to be installed and call it in one go.
 apt_packages=()
@@ -97,6 +105,9 @@ apt_packages+=('x11-xserver-utils')
 
 # Build a list of packages to install from the multiverse repo.
 apt_packages+=('ubuntu-restricted-extras')
+
+# libgallium debug symbols
+apt_packages+=('mesa-libgallium-dbgsym')
 
 # APT update takes very long on Ubuntu. Run it at the last possible minute.
 apt-get update
