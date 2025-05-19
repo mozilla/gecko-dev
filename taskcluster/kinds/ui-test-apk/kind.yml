@@ -379,7 +379,7 @@ tasks:
         attributes:
             build-type: fenix-debug-firebase
             shipping-product: fenix
-        description: Run Fenix tests on newer Android API levels (ARM64-v8a)
+        description: Run Fenix tests using experimental POM design
         dependencies:
             signed-apk-debug-apk: signing-apk-fenix-debug
             signed-apk-android-test: signing-apk-fenix-android-test-debug
@@ -397,7 +397,7 @@ tasks:
                 - [wget, {artifact-reference: '<signed-apk-debug-apk/public/build/target.arm64-v8a.apk>'}, '-O', app.apk]
                 - [wget, {artifact-reference: '<signed-apk-android-test/public/build/target.noarch.apk>'}, '-O', android-test.apk]
                 - [python3, ../../../taskcluster/scripts/tests/test-lab.py, arm-experimental-api-tests, app.apk, --apk_test, android-test.apk]
-        run-on-projects: []
+        run-on-projects: [trunk]
         treeherder:
             platform: 'fenix-android-all/opt'
             symbol: fenix-debug(experimental-arm)

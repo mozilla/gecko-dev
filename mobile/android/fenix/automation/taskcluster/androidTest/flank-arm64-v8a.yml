@@ -23,6 +23,7 @@ gcloud:
   test-targets:
     - notPackage org.mozilla.fenix.syncintegration
     - notPackage org.mozilla.fenix.experimentintegration
+    - notPackage org.mozilla.fenix.ui.efficiency.tests
 
   device:
     - model: MediumPhone.arm

@@ -17,10 +17,13 @@ gcloud:
   directories-to-pull:
     - /sdcard/screenshots
   performance-metrics: true
+  other-files:
+    /data/local/tmp/org.mozilla.fenix.debug-geckoview-config.yaml: ./automation/taskcluster/androidTest/geckoview-configs/org.mozilla.fenix.debug-geckoview-config.yaml
 
   test-targets:
     - notPackage org.mozilla.fenix.syncintegration
     - notPackage org.mozilla.fenix.experimentintegration
+    - package org.mozilla.fenix.ui.efficiency.tests
 
   device:
     - model: MediumPhone.arm
