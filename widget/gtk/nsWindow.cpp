@@ -3596,7 +3596,6 @@ void nsWindow::SetIcon(const nsAString& aIconSpec) {
   }
 
   nsAutoCString iconName;
-
   if (aIconSpec.EqualsLiteral("default")) {
     nsAutoString brandName;
     WidgetUtils::GetBrandShortName(brandName);
@@ -3609,45 +3608,50 @@ void nsWindow::SetIcon(const nsAString& aIconSpec) {
     AppendUTF16toUTF8(aIconSpec, iconName);
   }
 
-  nsCOMPtr<nsIFile> iconFile;
-  nsAutoCString path;
+  {
+    gint* iconSizes = gtk_icon_theme_get_icon_sizes(
+        gtk_icon_theme_get_default(), iconName.get());
+    const bool foundIcon = (iconSizes[0] != 0);
+    g_free(iconSizes);
 
-  gint* iconSizes = gtk_icon_theme_get_icon_sizes(gtk_icon_theme_get_default(),
-                                                  iconName.get());
-  bool foundIcon = (iconSizes[0] != 0);
-  g_free(iconSizes);
-
-  if (!foundIcon) {
-    // Look for icons with the following suffixes appended to the base name
-    // The last two entries (for the old XPM format) will be ignored unless
-    // no icons are found using other suffixes. XPM icons are deprecated.
-
-    const char16_t extensions[9][8] = {u".png",    u"16.png", u"32.png",
-                                       u"48.png",  u"64.png", u"128.png",
-                                       u"256.png", u".xpm",   u"16.xpm"};
-
-    for (uint32_t i = 0; i < std::size(extensions); i++) {
-      // Don't bother looking for XPM versions if we found a PNG.
-      if (i == std::size(extensions) - 2 && foundIcon) break;
-
-      ResolveIconName(aIconSpec, nsDependentString(extensions[i]),
-                      getter_AddRefs(iconFile));
-      if (iconFile) {
-        iconFile->GetNativePath(path);
-        GdkPixbuf* icon = gdk_pixbuf_new_from_file(path.get(), nullptr);
-        if (icon) {
-          gtk_icon_theme_add_builtin_icon(iconName.get(),
-                                          gdk_pixbuf_get_height(icon), icon);
-          g_object_unref(icon);
-          foundIcon = true;
-        }
-      }
+    if (foundIcon) {
+      gtk_window_set_icon_name(GTK_WINDOW(mShell), iconName.get());
+      return;
     }
   }
 
-  // leave the default icon intact if no matching icons were found
-  if (foundIcon) {
-    gtk_window_set_icon_name(GTK_WINDOW(mShell), iconName.get());
+  // Look for icons with the following suffixes appended to the base name
+  // The last two entries (for the old XPM format) will be ignored unless
+  // no icons are found using other suffixes. XPM icons are deprecated.
+
+  const char16_t extensions[9][8] = {u".png",    u"16.png", u"32.png",
+                                     u"48.png",  u"64.png", u"128.png",
+                                     u"256.png", u".xpm",   u"16.xpm"};
+
+  GdkPixbuf* icon = nullptr;
+  for (uint32_t i = 0; i < std::size(extensions); i++) {
+    // Don't bother looking for XPM versions if we found a PNG.
+    if (i == std::size(extensions) - 2 && icon) {
+      break;
+    }
+
+    nsCOMPtr<nsIFile> iconFile;
+    nsAutoCString path;
+
+    ResolveIconName(aIconSpec, nsDependentString(extensions[i]),
+                    getter_AddRefs(iconFile));
+    if (!iconFile) {
+      continue;
+    }
+    iconFile->GetNativePath(path);
+    icon = gdk_pixbuf_new_from_file(path.get(), nullptr);
+  }
+
+  if (icon) {
+    gtk_window_set_icon(GTK_WINDOW(mShell), icon);
+    g_object_unref(icon);
+  } else {
+    // leave the default icon intact if no matching icons were found
   }
 }
 
@@ -3701,6 +3705,9 @@ void nsWindow::CaptureRollupEvents(bool aDoCapture) {
   }
 
   mNeedsToRetryCapturingMouse = false;
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   if (aDoCapture) {
     if (mIsDragPopup || DragInProgress()) {
       // Don't add a grab if a drag is in progress, or if the widget is a drag
@@ -3743,6 +3750,7 @@ void nsWindow::CaptureRollupEvents(bool aDoCapture) {
     gtk_grab_remove(GTK_WIDGET(mContainer));
     gdk_pointer_ungrab(GetLastUserInputTime());
   }
+#pragma GCC diagnostic pop
 }
 
 nsresult nsWindow::GetAttention(int32_t aCycleCount) {
@@ -6288,7 +6296,10 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
 
 #ifdef MOZ_X11
   if (GdkIsX11Display()) {
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     gtk_widget_set_double_buffered(GTK_WIDGET(mContainer), FALSE);
+#  pragma GCC diagnostic pop
   }
 #endif
 #ifdef MOZ_WAYLAND
@@ -8753,6 +8764,9 @@ void nsWindow::SetCustomTitlebar(bool aState) {
     GtkWidget* tmpWindow = gtk_window_new(GTK_WINDOW_POPUP);
     gtk_widget_realize(tmpWindow);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
     gtk_widget_reparent(GTK_WIDGET(mContainer), tmpWindow);
     gtk_widget_unrealize(GTK_WIDGET(mShell));
 
@@ -8777,6 +8791,8 @@ void nsWindow::SetCustomTitlebar(bool aState) {
 
     gtk_widget_realize(GTK_WIDGET(mShell));
     gtk_widget_reparent(GTK_WIDGET(mContainer), GTK_WIDGET(mShell));
+
+#pragma GCC diagnostic pop
 
     // Label mShell toplevel window so property_notify_event_cb callback
     // can find its way home.
