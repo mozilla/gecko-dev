@@ -69,6 +69,15 @@ maybe_start_pulse() {
         pw_pids=()
         pipewire &
         pw_pids+=($!)
+
+        SOCKET="$XDG_RUNTIME_DIR/pipewire-0"
+        attempts=10
+        while [ ! -S "$SOCKET" ] && [ $attempts -gt 0 ]; do
+            sleep 0.1
+            attempts=$((attempts - 1))
+        done
+        [ -S "$SOCKET" ] || exit 1
+
         wireplumber &
         pw_pids+=($!)
         pipewire-pulse &
