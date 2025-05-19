@@ -12,6 +12,7 @@ import {
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
 });
 
@@ -34,8 +35,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
  *   The encoding for the requests. Defaults to `SearchUtils.DEFAULT_QUERY_CHARSET`.
  * @property {string} [method]
  *   The HTTP method. Defaults to GET.
- * @property {string} [icon]
- *   A URL to the engine's icon.
  * @property {string} [alias]
  *   An engine keyword.
  * @property {string} [suggestUrl]
@@ -104,18 +103,12 @@ export class UserSearchEngine extends SearchEngine {
       this._urls.push(suggestUrl);
     }
 
-    if (formInfo.icon) {
-      this._setIcon(formInfo.icon).catch(e =>
-        console.warn(
-          `Error while setting icon for search engine ${formInfo.name}:`,
-          e.message
-        )
-      );
-    }
     if (formInfo.charset) {
       this._queryCharset = formInfo.charset;
     }
+
     this.alias = formInfo.alias;
+    this.updateFavicon();
   }
 
   /**
@@ -186,5 +179,33 @@ export class UserSearchEngine extends SearchEngine {
       this,
       lazy.SearchUtils.MODIFIED_TYPE.ICON_CHANGED
     );
+  }
+
+  /**
+   * Changes the icon to favicon of the search url origin and logs potential
+   * errors.
+   */
+  updateFavicon() {
+    let searchUrl = this._getURLOfType(lazy.SearchUtils.URL_TYPE.SEARCH);
+    let searchUrlOrigin = new URL(searchUrl.template).origin;
+
+    lazy.PlacesUtils.favicons
+      .getFaviconForPage(Services.io.newURI(searchUrlOrigin))
+      .then(iconURL => {
+        if (iconURL) {
+          this.changeIcon(iconURL.dataURI.spec);
+        } else if (Object.keys(this._iconMapObj).length) {
+          // There was an icon before but now there is none.
+          // Remove previous icon in case the origin changed.
+          this._iconMapObj = {};
+          lazy.SearchUtils.notifyAction(
+            this,
+            lazy.SearchUtils.MODIFIED_TYPE.ICON_CHANGED
+          );
+        }
+      })
+      .catch(e =>
+        console.warn(`Unable to change icon of engine ${this.name}:`, e.message)
+      );
   }
 }

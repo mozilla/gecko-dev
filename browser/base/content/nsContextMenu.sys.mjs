@@ -2386,7 +2386,6 @@ export class nsContextMenu {
         params: new URLSearchParams(formData),
         charset,
         method,
-        icon: this.browser.mIconURL,
       });
 
       this.window.gURLBar.search("", { searchEngine });
