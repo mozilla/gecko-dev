@@ -1304,11 +1304,14 @@ static void GetSystemFontInfo(GtkStyleContext* aStyle, nsString* aFontName,
 
   float size = float(pango_font_description_get_size(desc)) / PANGO_SCALE;
 
-  // |size| is now either pixels or pango-points (not Mozilla-points!)
-
-  if (!pango_font_description_get_size_is_absolute(desc)) {
+  // |size| is now either pixels or pango-points, convert to scale-independent
+  // pixels.
+  if (pango_font_description_get_size_is_absolute(desc)) {
+    // Undo the already-applied font scale.
+    size /= gfxPlatformGtk::GetFontScaleFactor();
+  } else {
     // |size| is in pango-points, so convert to pixels.
-    size *= float(gfxPlatformGtk::GetFontScaleDPI()) / POINTS_PER_INCH_FLOAT;
+    size *= 96 / POINTS_PER_INCH_FLOAT;
   }
 
   // |size| is now pixels but not scaled for the hidpi displays,
@@ -1353,11 +1356,12 @@ bool nsLookAndFeel::PerThemeData::GetFont(FontID aID, nsString& aFontName,
       break;
   }
 
-  // Convert GDK pixels to CSS pixels.
+  // Convert GDK unscaled pixels to CSS pixels.
   // When "layout.css.devPixelsPerPx" > 0, this is not a direct conversion.
   // The difference produces a scaling of system fonts in proportion with
   // other scaling from the change in CSS pixel sizes.
-  aFontStyle.size /= LookAndFeel::GetTextScaleFactor();
+  aFontStyle.size *=
+      gfxPlatformGtk::GetFontScaleFactor() / LookAndFeel::GetTextScaleFactor();
   return true;
 }
 
