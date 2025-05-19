@@ -295,14 +295,15 @@ bool BaselineCompiler::compileImpl() {
 
 bool BaselineCompiler::finishCompile(JSContext* cx) {
   Rooted<JSScript*> script(cx, handler.script());
-  bool inAtomsZone = script->selfHosted();
+  bool isSelfHostedJitCodeShared =
+      JS::Prefs::experimental_self_hosted_cache() && script->selfHosted();
 
   UniquePtr<BaselineScript> baselineScript(
       nullptr, JS::DeletePolicy<BaselineScript>(cx->runtime()));
   JitCode* code = nullptr;
   {
     mozilla::Maybe<AutoAllocInAtomsZone> ar;
-    if (JS::Prefs::experimental_self_hosted_cache() && inAtomsZone) {
+    if (isSelfHostedJitCodeShared) {
       ar.emplace(cx);
     }
 
@@ -363,8 +364,10 @@ bool BaselineCompiler::finishCompile(JSContext* cx) {
   // turned on with baseline jitcode on stack, and baseline jitcode cannot be
   // invalidated.
   {
+    UniqueJitcodeGlobalEntry entry;
     JitSpew(JitSpew_Profiling,
-            "Added JitcodeGlobalEntry for baseline script %s:%u:%u (%p)",
+            "Added JitcodeGlobalEntry for baseline %sscript %s:%u:%u (%p)",
+            isSelfHostedJitCodeShared ? "shared self-hosted " : "",
             script->filename(), script->lineno(),
             script->column().oneOriginValue(), baselineScript.get());
 
@@ -374,8 +377,13 @@ bool BaselineCompiler::finishCompile(JSContext* cx) {
       return false;
     }
 
-    auto entry = MakeJitcodeGlobalEntry<BaselineEntry>(
-        cx, code, code->raw(), code->rawEnd(), script, std::move(str));
+    if (isSelfHostedJitCodeShared) {
+      entry = MakeJitcodeGlobalEntry<SelfHostedSharedEntry>(
+          cx, code, code->raw(), code->rawEnd(), std::move(str));
+    } else {
+      entry = MakeJitcodeGlobalEntry<BaselineEntry>(
+          cx, code, code->raw(), code->rawEnd(), script, std::move(str));
+    }
     if (!entry) {
       return false;
     }

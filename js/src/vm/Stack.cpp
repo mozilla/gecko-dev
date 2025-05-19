@@ -709,7 +709,7 @@ JS::ProfilingFrameIterator::getPhysicalFrameAndEntry(
   Frame frame;
   if ((*entry)->isBaselineInterpreter()) {
     frame.kind = Frame_BaselineInterpreter;
-  } else if ((*entry)->isBaseline()) {
+  } else if ((*entry)->isBaseline() || (*entry)->isSelfHostedShared()) {
     frame.kind = Frame_Baseline;
   } else {
     MOZ_ASSERT((*entry)->isIon() || (*entry)->isIonIC());
