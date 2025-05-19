@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import org.mozilla.fenix.R
+import org.mozilla.fenix.ext.bookmarkStorage
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.hideAndDisable
 import org.mozilla.fenix.ext.loadIntoView
@@ -32,7 +33,10 @@ class BookmarkNodeViewHolder(
     private val interactor: BookmarkViewInteractor,
 ) : RecyclerView.ViewHolder(containerView) {
 
-    private val menu = BookmarkItemMenu(containerView.context)
+    private val menu = BookmarkItemMenu(
+        containerView.context,
+        containerView.context.bookmarkStorage,
+    )
 
     /**
      * Binds the view holder to the item
