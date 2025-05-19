@@ -238,7 +238,6 @@
             "value": {
               "default": "transparent",
               "brand": {
-                "prefersContrast": "{button.background.color.@base}",
                 "forcedColors": "{button.background.color.@base}"
               }
             }

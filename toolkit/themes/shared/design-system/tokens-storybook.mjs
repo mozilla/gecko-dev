@@ -171,10 +171,7 @@ export const storybookTables = {
     {
       value: {
         default: "transparent",
-        brand: {
-          prefersContrast: "var(--button-background-color)",
-          forcedColors: "var(--button-background-color)",
-        },
+        brand: { forcedColors: "var(--button-background-color)" },
       },
       name: "--button-background-color-ghost",
     },
@@ -1109,10 +1106,7 @@ export const variableLookupTable = {
   },
   "button-background-color-ghost": {
     default: "transparent",
-    brand: {
-      prefersContrast: "var(--button-background-color)",
-      forcedColors: "var(--button-background-color)",
-    },
+    brand: { forcedColors: "var(--button-background-color)" },
   },
   "button-background-color-ghost-active":
     "var(--button-background-color-active)",

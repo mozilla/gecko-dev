@@ -12,6 +12,8 @@
   --page-nav-button-background-color-active: var(--button-background-color-ghost-active);
   --page-nav-button-background-color-selected: color-mix(in srgb, currentColor 8%, transparent);
   --page-nav-button-padding: var(--space-small) var(--space-medium);
+  --page-nav-button-border-color-hover: var(--button-border-color-ghost-hover);
+  --page-nav-button-border-color-active: var(--button-border-color-ghost-active);
 
   border-radius: var(--border-radius-small);
 
@@ -34,7 +36,8 @@
 a[href],
 button {
   background-color: var(--page-nav-button-background-color);
-  border: 1px solid var(--page-nav-border-color);
+  transition: background-color 150ms;
+  border: unset;
   -moz-context-properties: fill, fill-opacity;
   fill: var(--icon-color);
   display: flex;
@@ -46,8 +49,16 @@ button {
   border-radius: var(--page-nav-button-border-radius);
   color: var(--page-nav-button-text-color);
   text-align: start;
-  transition: background-color 150ms;
   padding: var(--page-nav-button-padding);
+  position: relative;
+
+  @media (forced-colors) {
+    transition: none;
+  }
+
+  @media (prefers-contrast) {
+    border: 1px solid var(--page-nav-border-color);
+  }
 }
 
 a[href] {
@@ -55,17 +66,39 @@ a[href] {
   box-sizing: border-box;
 }
 
-button:hover {
-  cursor: pointer;
+a[href]:hover,
+button:hover:not([selected]) {
+  color: var(--page-nav-button-text-color-hover);
+  background-color: var(--page-nav-button-background-color-hover);
+  border-color: var(--page-nav-button-border-color-hover);
+
+  &:active {
+    color: var(--page-nav-button-text-color-active);
+    background-color: var(--page-nav-button-background-color-active);
+    border-color: var(--page-nav-button-border-color-active);
+  }
 }
 
-@media not (prefers-contrast) {
-  a[href],
-  button {
-    position: relative;
+button {
+  &:hover {
+    cursor: pointer;
   }
 
-  button::before {
+  &[selected] {
+    color: var(--color-accent-primary);
+    background-color: var(--page-nav-button-background-color-selected);
+    font-weight: var(--font-weight-bold);
+
+    @media (prefers-contrast) {
+      border-color: var(--color-accent-primary);
+    }
+
+    &::before {
+      background-color: var(--color-accent-primary);
+    }
+  }
+
+  &::before {
     content: "";
     display: block;
     position: absolute;
@@ -75,27 +108,10 @@ button:hover {
     background-color: transparent;
     border-start-start-radius: var(--page-nav-button-border-radius);
     border-end-start-radius: var(--page-nav-button-border-radius);
-  }
 
-  button[selected]::before {
-    background-color: var(--color-accent-primary);
-  }
-
-  a[href]:hover,
-  button:hover:not([selected]) {
-    color: var(--page-nav-button-text-color-hover);
-    background-color: var(--page-nav-button-background-color-hover);
-
-    &:active {
-      color: var(--page-nav-button-text-color-active);
-      background-color: var(--page-nav-button-background-color-active);
+    @media (prefers-contrast) {
+      border-radius: 0;
     }
-  }
-
-  button[selected] {
-    color: var(--color-accent-primary);
-    background-color: var(--page-nav-button-background-color-selected);
-    font-weight: var(--font-weight-bold);
   }
 }
 
@@ -114,34 +130,12 @@ button[selected]:focus-visible {
   fill: currentColor;
 }
 
-@media (prefers-contrast) {
-  a[href],
-  button {
-    transition: none;
-    border-color: ButtonText;
-    background-color: var(--button-background-color);
-  }
-
-  a[href]:hover,
-  button:hover {
-    color: SelectedItem;
-  }
-
-  button[selected] {
-    color: SelectedItemText;
-    background-color: SelectedItem;
-    border-color: SelectedItem;
-  }
-}
-
 slot {
   margin: 0;
   padding-inline-start: 0;
   user-select: none;
-}
 
-@media (max-width: 52rem) {
-  slot {
+  @media (max-width: 52rem) {
     display: inline-block;
     overflow: hidden;
     text-overflow: ellipsis;

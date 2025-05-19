@@ -6,7 +6,7 @@
   --page-nav-margin-top: 72px;
   --page-nav-gap: var(--space-large);
   --page-nav-button-gap: var(--space-xsmall);
-  --page-nav-border-color: var(--border-color);
+  --page-nav-border-color: var(--button-border-color-ghost);
   --page-nav-focus-outline-inset: var(--focus-outline-inset);
   --page-nav-heading-logo-size: calc(var(--icon-size-default) + var(--space-small));
   --page-nav-hr-color: #CFCFD8;
@@ -23,6 +23,7 @@
   @media (prefers-reduced-motion) {
     /* (See Bug 1610081) Setting border-inline-end to add clear differentiation between side navigation and main content area */
     border-inline-end: 1px solid var(--page-nav-border-color);
+    padding-inline-end: var(--space-small);
   }
 
   @media (max-width: 52rem) {
@@ -94,10 +95,4 @@ hr {
   border: 0;
   background-color: var(--page-nav-hr-color);
   flex-shrink: 0;
-}
-
-@media (prefers-contrast) {
-  .primary-nav-group {
-    gap: var(--space-small);
-  }
 }

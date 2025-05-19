@@ -63,7 +63,6 @@
     :root,
     :host(.anonymous-content-host) {
       /** Button **/
-      --button-background-color-ghost: var(--button-background-color);
       --button-text-color-ghost: var(--button-text-color);
       --button-text-color-ghost-disabled: var(--button-text-color-disabled);
     }
