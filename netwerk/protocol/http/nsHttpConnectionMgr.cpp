@@ -1078,7 +1078,7 @@ void nsHttpConnectionMgr::PreparePendingQForDispatching(
   }
 
   // Only have to get transactions from the queue whose window id is 0.
-  if (!StaticPrefs::network_http_active_tab_priority()) {
+  if (!gHttpHandler->ActiveTabPriority()) {
     ent->AppendPendingQForFocusedWindow(0, pendingQ, availableConnections);
     return;
   }
@@ -3329,7 +3329,7 @@ void nsHttpConnectionMgr::OnMsgUpdateCurrentBrowserId(int32_t aLoading,
   uint64_t previousId = mCurrentBrowserId;
   mCurrentBrowserId = id;
 
-  if (StaticPrefs::network_http_active_tab_priority()) {
+  if (gHttpHandler->ActiveTabPriority()) {
     NotifyConnectionOfBrowserIdChange(previousId);
   }
 

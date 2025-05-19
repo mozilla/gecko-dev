@@ -251,8 +251,8 @@ class nsHttpConnectionMgr final : public HttpConnectionMgrShell,
 
   // This function selects transactions from mPendingTransactionTable to
   // dispatch according to the following conditions:
-  // 1. When network.http.active_tab_priority is false, only get transactions
-  //    from the queue whose window id is 0.
+  // 1. When ActiveTabPriority() is false, only get transactions from the
+  //    queue whose window id is 0.
   // 2. If |considerAll| is false, either get transactions from the focused
   //    window queue or non-focused ones.
   // 3. If |considerAll| is true, fill the |pendingQ| with the transactions from

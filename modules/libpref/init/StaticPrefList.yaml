@@ -13380,16 +13380,6 @@
   value: 393216
   mirror: always
 
-# Whether or not we give more priority to active tab.
-- name: network.http.active_tab_priority
-  type: RelaxedAtomicBool
-#if defined(ANDROID)
-  value: false
-#else
-  value: true
-#endif
-  mirror: always
-
 # Treat all Unicode labels as confusable/unsafe so that they show up
 # as Punycode in the UI.
 - name: network.IDN_show_punycode
