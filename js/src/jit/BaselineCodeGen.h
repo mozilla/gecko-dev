@@ -100,12 +100,17 @@ class BaselineCodeGen {
 
   // Loads the current JSScript* in dest.
   void loadScript(Register dest);
+  // Loads the current JitScript* in dest
+  void loadJitScript(Register dest);
 
   void saveInterpreterPCReg();
   void restoreInterpreterPCReg();
 
   // Subtracts |script->nslots() * sizeof(Value)| from reg.
   void subtractScriptSlotsSize(Register reg, Register scratch);
+
+  // Loads the resume entries of the current BaselineScript* in dest
+  void loadBaselineScriptResumeEntries(Register dest, Register scratch);
 
   // Jump to the script's resume entry indicated by resumeIndex.
   void jumpToResumeEntry(Register resumeIndex, Register scratch1,
@@ -338,7 +343,11 @@ class BaselineCompilerHandler {
   }
 
   JSScript* script() const { return script_; }
-  JSScript* scriptInternal() const { return script_; }
+  // Use for any time the script or script data will be baked into the bytecode
+  JSScript* scriptInternal() const {
+    MOZ_ASSERT(!isSelfHosted());
+    return script_;
+  }
   JSScript* maybeScript() const { return script_; }
 
   JSFunction* function() const { return script_->function(); }
