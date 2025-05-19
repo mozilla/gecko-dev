@@ -7,6 +7,7 @@
 #include "nsDocShell.h"
 
 #include <algorithm>
+#include "mozilla/dom/HTMLFormElement.h"
 
 #ifdef XP_WIN
 #  include <process.h>
@@ -3930,7 +3931,7 @@ nsresult nsDocShell::ReloadNavigable(
     if (!navigation->FirePushReplaceReloadNavigateEvent(
             aCx, NavigationType::Reload, destinationURL,
             /* aIsSameDocument */ false, Some(aUserInvolvement),
-            /* aSourceElement*/ nullptr, /* aFormDataEntryList */ Nothing{},
+            /* aSourceElement*/ nullptr, /* aFormDataEntryList */ nullptr,
             destinationNavigationAPIState,
             /* aClassiCHistoryAPIState */ nullptr)) {
       return NS_OK;
@@ -8772,7 +8773,7 @@ nsresult nsDocShell::HandleSameDocumentNavigation(
             jsapi.cx(), aLoadState->GetNavigationType(), newURI,
             /* aIsSameDocument */ true,
             Some(aLoadState->UserNavigationInvolvement()), sourceElement,
-            /* aFormDataEntryList */ Nothing(),
+            /* aFormDataEntryList */ nullptr,
             /* aNavigationAPIState */ destinationNavigationAPIState,
             /* aClassicHistoryAPIState */ nullptr);
 
@@ -9276,6 +9277,8 @@ uint32_t nsDocShell::GetLoadTypeForFormSubmission(
              : LOAD_LINK;
 }
 
+// InternalLoad performs several of the steps from
+// https://html.spec.whatwg.org/#navigate.
 nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
                                   Maybe<uint32_t> aCacheKey) {
   MOZ_ASSERT(aLoadState, "need a load state!");
@@ -9485,6 +9488,52 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
   if (mTiming && !isDownload) {
     mTiming->NotifyBeforeUnload();
   }
+
+  // The following steps are from https://html.spec.whatwg.org/#navigate
+  // Step 20
+  if (RefPtr<Document> document = GetDocument();
+      document &&
+      aLoadState->UserNavigationInvolvement() !=
+          UserNavigationInvolvement::BrowserUI &&
+      !document->IsInitialDocument() &&
+      !NS_IsAboutBlankAllowQueryAndFragment(document->GetDocumentURI()) &&
+      NS_IsFetchScheme(aLoadState->URI()) &&
+      document->NodePrincipal()->Subsumes(aLoadState->TriggeringPrincipal())) {
+    if (nsCOMPtr<nsPIDOMWindowInner> window = document->GetInnerWindow()) {
+      // Step 20.1
+      if (RefPtr<Navigation> navigation = window->Navigation()) {
+        AutoJSAPI jsapi;
+        if (jsapi.Init(window)) {
+          RefPtr<Element> sourceElement = aLoadState->GetSourceElement();
+
+          // Step 20.2
+          RefPtr<FormData> formData = aLoadState->GetFormDataEntryList();
+
+          // Step 20.3
+          RefPtr<nsIStructuredCloneContainer> navigationAPIStateForFiring =
+              aLoadState->GetNavigationAPIState();
+          if (!navigationAPIStateForFiring) {
+            navigationAPIStateForFiring = nullptr;
+          }
+
+          nsCOMPtr<nsIURI> destinationURL = aLoadState->URI();
+          // Step 20.4
+          bool shouldContinue = navigation->FirePushReplaceReloadNavigateEvent(
+              jsapi.cx(), aLoadState->GetNavigationType(), destinationURL,
+              /* aIsSameDocument */ false,
+              Some(aLoadState->UserNavigationInvolvement()), sourceElement,
+              formData.forget(), navigationAPIStateForFiring,
+              /* aClassicHistoryAPIState */ nullptr);
+
+          // Step 20.5
+          if (!shouldContinue) {
+            return NS_OK;
+          }
+        }
+      }
+    }
+  }
+
   // Check if the page doesn't want to be unloaded. The javascript:
   // protocol handler deals with this for javascript: URLs.
   // NOTE(emilio): As of this writing, other browsers fire beforeunload for
@@ -11450,7 +11499,7 @@ nsDocShell::AddState(JS::Handle<JS::Value> aData, const nsAString& aTitle,
           aCx, aReplace ? NavigationType::Replace : NavigationType::Push,
           newURI,
           /* aIsSameDocument */ true, /* aUserInvolvement */ Nothing(),
-          /* aSourceElement */ nullptr, /* aFormDataEntryList */ Nothing(),
+          /* aSourceElement */ nullptr, /* aFormDataEntryList */ nullptr,
           /* aNavigationAPIState */ nullptr, scContainer);
 
       // Step 9
@@ -13265,6 +13314,7 @@ nsresult nsDocShell::OnLinkClickSync(nsIContent* aContent,
   aLoadState->SetTypeHint(NS_ConvertUTF16toUTF8(typeHint));
   aLoadState->SetLoadType(loadType);
   aLoadState->SetSourceBrowsingContext(mBrowsingContext);
+  aLoadState->SetSourceElement(aContent->AsElement());
 
   nsresult rv = InternalLoad(aLoadState);
 

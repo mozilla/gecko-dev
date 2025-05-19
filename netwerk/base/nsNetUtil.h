@@ -946,6 +946,12 @@ bool NS_IsAboutBlankAllowQueryAndFragment(nsIURI* uri);
  */
 bool NS_IsAboutSrcdoc(nsIURI* uri);
 
+/**
+ * Test whether a URI has an "about", "blob", "data", "file", or an HTTP(S)
+ * scheme.
+ */
+bool NS_IsFetchScheme(nsIURI* uri);
+
 nsresult NS_GenerateHostPort(const nsCString& host, int32_t port,
                              nsACString& hostLine);
 

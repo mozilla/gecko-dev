@@ -2840,6 +2840,24 @@ bool NS_IsAboutSrcdoc(nsIURI* uri) {
   return spec.EqualsLiteral("about:srcdoc");
 }
 
+// https://fetch.spec.whatwg.org/#fetch-scheme
+bool NS_IsFetchScheme(nsIURI* uri) {
+  for (const auto& scheme : {
+           "http",
+           "https",
+           "about",
+           "blob",
+           "data",
+           "file",
+       }) {
+    if (uri->SchemeIs(scheme)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 nsresult NS_GenerateHostPort(const nsCString& host, int32_t port,
                              nsACString& hostLine) {
   if (strchr(host.get(), ':')) {

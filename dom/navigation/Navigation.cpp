@@ -524,7 +524,7 @@ bool Navigation::FireTraverseNavigateEvent(
       aCx, NavigationType::Traverse, destination,
       aUserInvolvement.valueOr(UserNavigationInvolvement::None),
       /* aSourceElement */ nullptr,
-      /* aFormDataEntryList*/ Nothing(),
+      /* aFormDataEntryList*/ nullptr,
       /* aClassicHistoryAPIState */ nullptr,
       /* aDownloadRequestFilename */ VoidString());
 }
@@ -533,7 +533,7 @@ bool Navigation::FireTraverseNavigateEvent(
 bool Navigation::FirePushReplaceReloadNavigateEvent(
     JSContext* aCx, NavigationType aNavigationType, nsIURI* aDestinationURL,
     bool aIsSameDocument, Maybe<UserNavigationInvolvement> aUserInvolvement,
-    Element* aSourceElement, Maybe<const FormData&> aFormDataEntryList,
+    Element* aSourceElement, already_AddRefed<FormData> aFormDataEntryList,
     nsIStructuredCloneContainer* aNavigationAPIState,
     nsIStructuredCloneContainer* aClassicHistoryAPIState) {
   // To not unnecessarily create an event that's never used, step 1 and step 2
@@ -551,7 +551,7 @@ bool Navigation::FirePushReplaceReloadNavigateEvent(
   return InnerFireNavigateEvent(
       aCx, aNavigationType, destination,
       aUserInvolvement.valueOr(UserNavigationInvolvement::None), aSourceElement,
-      aFormDataEntryList, aClassicHistoryAPIState,
+      std::move(aFormDataEntryList), aClassicHistoryAPIState,
       /* aDownloadRequestFilename */ VoidString());
 }
 
@@ -574,7 +574,7 @@ bool Navigation::FireDownloadRequestNavigateEvent(
   // Step 8
   return InnerFireNavigateEvent(
       aCx, NavigationType::Push, destination, aUserInvolvement, aSourceElement,
-      /* aFormDataEntryList */ Nothing(),
+      /* aFormDataEntryList */ nullptr,
       /* aClassicHistoryAPIState */ nullptr, aFilename);
 }
 
@@ -663,7 +663,7 @@ bool Navigation::InnerFireNavigateEvent(
     JSContext* aCx, NavigationType aNavigationType,
     NavigationDestination* aDestination,
     UserNavigationInvolvement aUserInvolvement, Element* aSourceElement,
-    Maybe<const FormData&> aFormDataEntryList,
+    already_AddRefed<FormData> aFormDataEntryList,
     nsIStructuredCloneContainer* aClassicHistoryAPIState,
     const nsAString& aDownloadRequestFilename) {
   // Step 1
@@ -758,7 +758,7 @@ bool Navigation::InnerFireNavigateEvent(
   init.mUserInitiated = aUserInvolvement != UserNavigationInvolvement::None;
 
   // Step 24
-  init.mFormData = aFormDataEntryList ? aFormDataEntryList->Clone() : nullptr;
+  init.mFormData = aFormDataEntryList;
 
   // Step 25
   MOZ_DIAGNOSTIC_ASSERT(!mOngoingNavigateEvent);

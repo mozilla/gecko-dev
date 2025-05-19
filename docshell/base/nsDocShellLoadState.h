@@ -34,6 +34,7 @@ class OriginAttributes;
 template <typename, class>
 class UniquePtr;
 namespace dom {
+class FormData;
 class DocShellLoadStateInit;
 }  // namespace dom
 }  // namespace mozilla
@@ -195,14 +196,6 @@ class nsDocShellLoadState final {
       mozilla::UniquePtr<mozilla::dom::LoadingSessionHistoryInfo> aLoadingInfo);
 
   bool LoadIsFromSessionHistory() const;
-
-  nsIStructuredCloneContainer* GetNavigationAPIState() const;
-
-  // This is used as the parameter for https://html.spec.whatwg.org/#navigate,
-  // but it's currently missing. See bug 1966674
-  void SetNavigationAPIState(nsIStructuredCloneContainer* aNavigationAPIState);
-
-  mozilla::dom::NavigationType GetNavigationType() const;
 
   const nsString& Target() const;
 
@@ -417,8 +410,22 @@ class nsDocShellLoadState final {
 
   void MaybeStripTrackerQueryStrings(mozilla::dom::BrowsingContext* aContext);
 
+  // This is used as the parameter for https://html.spec.whatwg.org/#navigate
   void SetSourceElement(mozilla::dom::Element* aElement);
   already_AddRefed<mozilla::dom::Element> GetSourceElement() const;
+
+  // This is used as the parameter for https://html.spec.whatwg.org/#navigate,
+  // but it's currently missing. See bug 1966674
+  nsIStructuredCloneContainer* GetNavigationAPIState() const;
+  void SetNavigationAPIState(nsIStructuredCloneContainer* aNavigationAPIState);
+
+  // This is used as the parameter for https://html.spec.whatwg.org/#navigate
+  mozilla::dom::NavigationType GetNavigationType() const;
+
+  // This is used as the parameter for https://html.spec.whatwg.org/#navigate
+  // It should only ever be set if the method is POST.
+  mozilla::dom::FormData* GetFormDataEntryList();
+  void SetFormDataEntryList(mozilla::dom::FormData* aFormDataEntryList);
 
  protected:
   // Destructor can't be defaulted or inlined, as header doesn't have all type
@@ -561,8 +568,6 @@ class nsDocShellLoadState final {
   mozilla::UniquePtr<mozilla::dom::LoadingSessionHistoryInfo>
       mLoadingSessionHistoryInfo;
 
-  nsCOMPtr<nsIStructuredCloneContainer> mNavigationAPIState;
-
   // Target for load, like _content, _blank etc.
   nsString mTarget;
 
@@ -674,6 +679,10 @@ class nsDocShellLoadState final {
       nsILoadInfo::NOT_INITIALIZED;
 
   nsWeakPtr mSourceElement;
+
+  nsCOMPtr<nsIStructuredCloneContainer> mNavigationAPIState;
+
+  RefPtr<mozilla::dom::FormData> mFormDataEntryList;
 };
 
 #endif /* nsDocShellLoadState_h__ */

@@ -24,6 +24,7 @@
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/dom/FormData.h"
 #include "mozilla/dom/LoadURIOptionsBinding.h"
 #include "mozilla/dom/nsHTTPSOnlyUtils.h"
 #include "mozilla/StaticPrefs_browser.h"
@@ -755,20 +756,6 @@ bool nsDocShellLoadState::LoadIsFromSessionHistory() const {
              : !!mSHEntry;
 }
 
-nsIStructuredCloneContainer* nsDocShellLoadState::GetNavigationAPIState()
-    const {
-  return mNavigationAPIState;
-}
-
-void nsDocShellLoadState::SetNavigationAPIState(
-    nsIStructuredCloneContainer* aNavigationAPIState) {
-  mNavigationAPIState = aNavigationAPIState;
-}
-
-NavigationType nsDocShellLoadState::GetNavigationType() const {
-  return LoadReplace() ? NavigationType::Replace : NavigationType::Push;
-}
-
 void nsDocShellLoadState::MaybeStripTrackerQueryStrings(
     BrowsingContext* aContext) {
   MOZ_ASSERT(aContext);
@@ -1423,4 +1410,27 @@ void nsDocShellLoadState::SetSourceElement(mozilla::dom::Element* aElement) {
 already_AddRefed<Element> nsDocShellLoadState::GetSourceElement() const {
   nsCOMPtr<Element> element = do_QueryReferent(mSourceElement);
   return element.forget();
+}
+
+nsIStructuredCloneContainer* nsDocShellLoadState::GetNavigationAPIState()
+    const {
+  return mNavigationAPIState;
+}
+
+void nsDocShellLoadState::SetNavigationAPIState(
+    nsIStructuredCloneContainer* aNavigationAPIState) {
+  mNavigationAPIState = aNavigationAPIState;
+}
+
+NavigationType nsDocShellLoadState::GetNavigationType() const {
+  return LoadReplace() ? NavigationType::Replace : NavigationType::Push;
+}
+
+mozilla::dom::FormData* nsDocShellLoadState::GetFormDataEntryList() {
+  return nullptr;
+}
+
+void nsDocShellLoadState::SetFormDataEntryList(
+    mozilla::dom::FormData* aFormDataEntryList) {
+  mFormDataEntryList = aFormDataEntryList;
 }

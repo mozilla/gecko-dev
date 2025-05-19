@@ -73,6 +73,10 @@ class FormData final : public nsISupports,
       const Optional<NonNull<HTMLFormElement> >& aFormElement,
       nsGenericHTMLElement* aSubmitter, ErrorResult& aRv);
 
+  static already_AddRefed<FormData> Constructor(
+      nsISupports* aGlobal, HTMLFormElement* aFormElement,
+      nsGenericHTMLElement* aSubmitter, ErrorResult& aRv);
+
   void Append(const nsAString& aName, const nsAString& aValue,
               ErrorResult& aRv);
 
