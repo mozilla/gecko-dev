@@ -1,9 +1,8 @@
 "use strict";
 
-const { EnrollmentsContext, RemoteSettingsExperimentLoader } =
-  ChromeUtils.importESModule(
-    "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
-  );
+const { EnrollmentsContext } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
+);
 
 add_setup(async function setup() {
   await SpecialPowers.pushPrefEnv({
@@ -17,7 +16,7 @@ add_setup(async function setup() {
     await SpecialPowers.popPrefEnv();
   });
 
-  CONTEXT = new EnrollmentsContext(RemoteSettingsExperimentLoader.manager);
+  CONTEXT = new EnrollmentsContext(ExperimentAPI.manager);
 });
 
 let CONTEXT;

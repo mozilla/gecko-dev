@@ -6,9 +6,6 @@
 const { RemoteSettings } = ChromeUtils.importESModule(
   "resource://services-settings/remote-settings.sys.mjs"
 );
-const { RemoteSettingsExperimentLoader } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
-);
 
 const FOO_FAKE_FEATURE_MANIFEST = {
   isEarlyStartup: true,
@@ -103,10 +100,8 @@ add_task(async function test_remote_fetch_and_ready() {
 
   // Fake being initialized so we can update recipes
   // we don't need to start any timers
-  RemoteSettingsExperimentLoader._enabled = true;
-  await RemoteSettingsExperimentLoader.updateRecipes(
-    "browser_rsel_remote_defaults"
-  );
+  ExperimentAPI._rsLoader._enabled = true;
+  await ExperimentAPI._rsLoader.updateRecipes("browser_rsel_remote_defaults");
 
   Assert.equal(
     NimbusFeatures.foo.getVariable("remoteValue"),
@@ -177,9 +172,7 @@ add_task(async function test_remote_fetch_and_ready() {
 
   // Clear RS db and load again. No configurations so should clear the cache.
   cleanup();
-  await RemoteSettingsExperimentLoader.updateRecipes(
-    "browser_rsel_remote_defaults"
-  );
+  await ExperimentAPI._rsLoader.updateRecipes("browser_rsel_remote_defaults");
 
   Assert.ok(
     !NimbusFeatures.foo.getVariable("remoteValue"),
@@ -228,25 +221,21 @@ add_task(async function test_remote_fetch_and_ready() {
 add_task(async function test_remote_fetch_on_updateRecipes() {
   let sandbox = sinon.createSandbox();
   let updateRecipesStub = sandbox.stub(
-    RemoteSettingsExperimentLoader,
+    ExperimentAPI._rsLoader,
     "updateRecipes"
   );
   // Work around the pref change callback that would trigger `setTimer`
-  sandbox.replaceGetter(
-    RemoteSettingsExperimentLoader,
-    "intervalInSeconds",
-    () => 1
-  );
+  sandbox.replaceGetter(ExperimentAPI._rsLoader, "intervalInSeconds", () => 1);
 
   // This will un-register the timer
-  RemoteSettingsExperimentLoader._enabled = true;
-  RemoteSettingsExperimentLoader.disable();
+  ExperimentAPI._rsLoader._enabled = true;
+  ExperimentAPI._rsLoader.disable();
   Services.prefs.clearUserPref(
     "app.update.lastUpdateTime.rs-experiment-loader-timer"
   );
 
-  RemoteSettingsExperimentLoader._enabled = true;
-  RemoteSettingsExperimentLoader.setTimer();
+  ExperimentAPI._rsLoader._enabled = true;
+  ExperimentAPI._rsLoader.setTimer();
 
   await BrowserTestUtils.waitForCondition(
     () => updateRecipesStub.called,
@@ -257,7 +246,7 @@ add_task(async function test_remote_fetch_on_updateRecipes() {
   Assert.equal(updateRecipesStub.firstCall.args[0], "timer", "Called by timer");
   sandbox.restore();
   // This will un-register the timer
-  RemoteSettingsExperimentLoader.disable();
+  ExperimentAPI._rsLoader.disable();
   Services.prefs.clearUserPref(
     "app.update.lastUpdateTime.rs-experiment-loader-timer"
   );
@@ -349,9 +338,9 @@ add_task(async function test_finalizeRemoteConfigs_cleanup() {
     ],
   };
 
-  const { cleanup } = setup([remoteConfiguration]);
-  RemoteSettingsExperimentLoader._enabled = true;
-  await RemoteSettingsExperimentLoader.updateRecipes();
+  const { cleanup } = await setup([remoteConfiguration]);
+  ExperimentAPI._rsLoader._enabled = true;
+  await ExperimentAPI._rsLoader.updateRecipes();
 
   Assert.ok(
     stubFoo.notCalled,
@@ -443,8 +432,8 @@ add_task(async function remote_defaults_active_remote_defaults() {
   // Order is important, rollout2 won't match at first
   const { cleanup } = setup([rollout2, rollout1]);
   let updatePromise = new Promise(resolve => barFeature.onUpdate(resolve));
-  RemoteSettingsExperimentLoader._enabled = true;
-  await RemoteSettingsExperimentLoader.updateRecipes("mochitest");
+  ExperimentAPI._rsLoader._enabled = true;
+  await ExperimentAPI._rsLoader.updateRecipes("mochitest");
 
   await updatePromise;
 
@@ -452,7 +441,7 @@ add_task(async function remote_defaults_active_remote_defaults() {
   Assert.ok(!fooFeature.getVariable("enabled"), "Targeting doesn't match");
 
   let featureUpdate = new Promise(resolve => fooFeature.onUpdate(resolve));
-  await RemoteSettingsExperimentLoader.updateRecipes("mochitest");
+  await ExperimentAPI._rsLoader.updateRecipes("mochitest");
   await featureUpdate;
 
   Assert.ok(fooFeature.getVariable("enabled"), "Targeting should match");
