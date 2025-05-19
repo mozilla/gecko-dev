@@ -761,10 +761,6 @@ void PublicKeyCredential::ParseRequestOptionsFromJSON(
       aResult.mExtensions.mCredProps.Construct(
           aOptions.mExtensions.Value().mCredProps.Value());
     }
-    if (aOptions.mExtensions.Value().mHmacCreateSecret.WasPassed()) {
-      aResult.mExtensions.mHmacCreateSecret.Construct(
-          aOptions.mExtensions.Value().mHmacCreateSecret.Value());
-    }
     if (aOptions.mExtensions.Value().mLargeBlob.WasPassed()) {
       const AuthenticationExtensionsLargeBlobInputsJSON& largeBlobInputsJSON =
           aOptions.mExtensions.Value().mLargeBlob.Value();

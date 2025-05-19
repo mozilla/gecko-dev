@@ -207,7 +207,6 @@
         attestationFormats: ["packed"],
         extensions: {
               appid: "https://www.example.com/anotherAppID",
-              hmacCreateSecret: false,
               prf: {
                     eval: {
                           first: "Zmlyc3Q",
@@ -234,7 +233,6 @@
       is(requestOptions.allowCredentials[0].transports[0], "smart-card", "allowCredentials[0].transports[0] should be usb");
       is(requestOptions.userVerification, "discouraged", "userVerification should be discouraged");
       is(requestOptions.extensions.appid, "https://www.example.com/anotherAppID", "extensions.appid should be https://www.example.com/anotherAppID");
-      is(requestOptions.extensions.hmacCreateSecret, false, "extensions.hmacCreateSecret should be false");
       arrayBufferEqualsArray(requestOptions.extensions.prf.eval.first, [102, 105, 114, 115, 116], "extensions.prf.eval.first should be 'first'");
       arrayBufferEqualsArray(requestOptions.extensions.prf.eval.second, [115, 101, 99, 111, 110, 100], "extensions.prf.eval.second should be 'second'");
       arrayBufferEqualsArray(requestOptions.extensions.prf.evalByCredential["19TVpqBBOAM"].first, [102, 105, 114, 115, 116], "extensions.prf.evalByCredential[\"19TVpqBBOAM\"].first should be 'first'");
@@ -260,7 +258,7 @@
         hints: ["client-device"],
         attestation: "enterprise",
         attestationFormats: ["packed"],
-        extensions: { appid: "https://www.example.com/anotherAppID", hmacCreateSecret: false },
+        extensions: { appid: "https://www.example.com/anotherAppID" },
       };
       shouldThrow(
         () => { PublicKeyCredential.parseRequestOptionsFromJSON(allowCredentialsIdNotBase64); },
