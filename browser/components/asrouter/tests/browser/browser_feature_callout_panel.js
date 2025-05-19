@@ -354,6 +354,65 @@ add_task(async function feature_callout_split_dismiss_button() {
   );
 });
 
+// Test that the usual focus behavior works: focus remains where it is when the
+// callout opens, and F6 must be pressed to focus the callout.
+add_task(async function feature_callout_no_autofocus() {
+  requestLongerTimeout(2);
+  let message = getTestMessage();
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const doc = win.document;
+  const browser = win.gBrowser.selectedBrowser;
+
+  win.focus();
+  win.gURLBar.blur();
+  let onFocused = BrowserTestUtils.waitForEvent(
+    win.gURLBar.inputField,
+    "focus"
+  );
+  win.gURLBar.focus();
+  await onFocused;
+  is(doc.activeElement, win.gURLBar.inputField, "URL bar should be focused");
+
+  let focusedElement = doc.activeElement;
+
+  let popupShown = BrowserTestUtils.waitForEvent(doc, "popupshown", true);
+  let calloutShown = waitForCalloutScreen(doc, message.content.screens[0].id);
+  const { featureCallout, showing, closed } = await showFeatureCallout(
+    browser,
+    message
+  );
+
+  await Promise.all([popupShown, calloutShown]);
+  let calloutContainer = featureCallout._container;
+  ok(showing && calloutContainer, "Feature callout should be showing");
+
+  is(
+    doc.activeElement,
+    focusedElement,
+    "Focus should not change when the callout is shown"
+  );
+
+  let dismissButton = doc.querySelector(calloutDismissSelector);
+  ok(dismissButton, "Callout should have a dismiss button");
+  let onFocused2 = BrowserTestUtils.waitForEvent(dismissButton, "focus", true);
+  EventUtils.synthesizeKey("KEY_F6", {}, win);
+  await onFocused2;
+  is(
+    doc.activeElement,
+    dismissButton,
+    "Callout dismiss button should be focused after F6"
+  );
+
+  EventUtils.synthesizeKey("VK_SPACE", {}, win);
+  await closed;
+  await waitForCalloutRemoved(doc);
+  ok(!doc.querySelector(calloutSelector), "Feature callout should be hidden");
+
+  await BrowserTestUtils.closeWindow(win);
+});
+
+// Test that the autofocus property causes the callout to be focused when shown,
+// and that Tab and Shift+Tab cycle through elements as expected.
 add_task(async function feature_callout_tab_order() {
   let message = getTestMessage();
   message.content.screens[0].content.secondary_button = {
@@ -364,6 +423,8 @@ add_task(async function feature_callout_tab_order() {
     label: { raw: "Advance" },
     action: { navigate: true },
   };
+  // enable autofocus on the anchor
+  message.content.screens[0].anchors[0].autofocus = {};
 
   await testCalloutHiddenIf(
     async (win, calloutContainer) => {

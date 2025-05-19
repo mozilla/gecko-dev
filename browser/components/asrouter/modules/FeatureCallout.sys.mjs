@@ -455,28 +455,16 @@ export class FeatureCallout {
         if (!this._container) {
           return;
         }
-        let focusedElement =
-          this.context === "chrome"
-            ? Services.focus.focusedElement
-            : this.doc.activeElement;
-        // If the window has a focused element, let it handle the ESC key instead.
-        if (
-          !focusedElement ||
-          focusedElement === this.doc.body ||
-          (focusedElement === this.browser && this.theme.simulateContent) ||
-          this._container.contains(focusedElement)
-        ) {
-          this.win.AWSendEventTelemetry?.({
-            event: "DISMISS",
-            event_context: {
-              source: `KEY_${event.key}`,
-              page: this.location,
-            },
-            message_id: this.config?.id.toUpperCase(),
-          });
-          this._dismiss();
-          event.preventDefault();
-        }
+        this.win.AWSendEventTelemetry?.({
+          event: "DISMISS",
+          event_context: {
+            source: `KEY_${event.key}`,
+            page: this.location,
+          },
+          message_id: this.config?.id.toUpperCase(),
+        });
+        this._dismiss();
+        event.preventDefault();
         break;
       }
 
@@ -642,6 +630,19 @@ export class FeatureCallout {
    */
 
   /**
+   * @typedef {Object} AutoFocusOptions For the optional autofocus feature.
+   * @property {String} [selector] A preferred CSS selector, if you want a
+   *   specific element to be focused. If omitted, the default prioritization
+   *   listed below will be used, based on `use_defaults`.
+   * Default prioritization: primary_button, secondary_button, additional_button
+   *   (excluding pseudo-links), dismiss_button, <input>, any button.
+   * @property {Boolean} [use_defaults] Whether to use the default element
+   *   prioritization. If `selector` is provided and the element can't be found,
+   *   and this is set to false, nothing will be selected. If `selector` is not
+   *   provided, this must be true. Defaults to true.
+   */
+
+  /**
    * @typedef {Object} Anchor
    * @property {String} selector CSS selector for the anchor node.
    * @property {Element} [element] The anchor node resolved from the selector.
@@ -660,6 +661,9 @@ export class FeatureCallout {
    *   [open] style. Buttons do, for example. It's usually similar to :active.
    * @property {Number} [arrow_width] The desired width of the arrow in a number
    *   of pixels. 33.94113 by default (this corresponds to 24px edges).
+   * @property {AutoFocusOptions} [autofocus] Options for the optional autofocus
+   *   feature. Typically omitted, but if provided, an element inside the
+   *   callout will be automatically focused when the callout appears.
    */
 
   /**
@@ -1581,7 +1585,9 @@ export class FeatureCallout {
   }
 
   _dismiss() {
-    let action = this.currentScreen?.content.dismiss_button?.action;
+    let action =
+      this.currentScreen?.content.dismiss_action ??
+      this.currentScreen?.content.dismiss_button?.action;
     if (action?.type) {
       this.win.AWSendToParent("SPECIAL_ACTION", action);
       if (!action.dismiss) {
@@ -1899,33 +1905,43 @@ export class FeatureCallout {
   }
 
   /**
-   * Get the element that should be initially focused. Prioritize the primary
-   * button, then the secondary button, then any additional button, excluding
-   * pseudo-links and the dismiss button. If no button is found, focus the first
-   * input element. If no affirmative action is found, focus the first button,
-   * which is probably the dismiss button. If no button is found, focus the
-   * container itself.
+   * Get the element that should be autofocused when the callout first opens. By
+   * default, prioritize the primary button, then the secondary button, then any
+   * additional button, excluding pseudo-links and the dismiss button. If no
+   * button is found, focus the first input element. If no affirmative action is
+   * found, focus the first button, which is probably the dismiss button. A
+   * custom selector can also be provided to focus a specific element.
+   * @param {AutoFocusOptions} [options]
    * @returns {Element|null} The element to focus when the callout is shown.
    */
-  getInitialFocus() {
+  getAutoFocusElement({ selector, use_defaults = true } = {}) {
     if (!this._container) {
       return null;
     }
-    return (
-      this._container.querySelector(
-        ".primary:not(:disabled, [hidden], .text-link, .cta-link, .split-button)"
-      ) ||
-      this._container.querySelector(
-        ".secondary:not(:disabled, [hidden], .text-link, .cta-link, .split-button)"
-      ) ||
-      this._container.querySelector(
-        "button:not(:disabled, [hidden], .text-link, .cta-link, .dismiss-button, .split-button)"
-      ) ||
-      this._container.querySelector("input:not(:disabled, [hidden])") ||
-      this._container.querySelector(
-        "button:not(:disabled, [hidden], .text-link, .cta-link)"
-      )
-    );
+    if (selector) {
+      let element = this._container.querySelector(selector);
+      if (element) {
+        return element;
+      }
+    }
+    if (use_defaults) {
+      return (
+        this._container.querySelector(
+          ".primary:not(:disabled, [hidden], .text-link, .cta-link, .split-button)"
+        ) ||
+        this._container.querySelector(
+          ".secondary:not(:disabled, [hidden], .text-link, .cta-link, .split-button)"
+        ) ||
+        this._container.querySelector(
+          "button:not(:disabled, [hidden], .text-link, .cta-link, .dismiss-button, .split-button)"
+        ) ||
+        this._container.querySelector("input:not(:disabled, [hidden])") ||
+        this._container.querySelector(
+          "button:not(:disabled, [hidden], .text-link, .cta-link)"
+        )
+      );
+    }
+    return null;
   }
 
   /**
@@ -1945,13 +1961,16 @@ export class FeatureCallout {
       this.renderObserver = new this.win.MutationObserver(() => {
         // Check if the Feature Callout screen has loaded for the first time
         if (!this.ready && this._container.querySelector(".screen")) {
+          const anchor = this._getAnchor();
           const onRender = () => {
             this.ready = true;
             this._pageEventManager?.clear();
             this._attachPageEventListeners(
               this.currentScreen?.content?.page_event_listeners
             );
-            this.getInitialFocus()?.focus();
+            if (anchor?.autofocus) {
+              this.getAutoFocusElement(anchor.autofocus)?.focus();
+            }
             this.win.addEventListener("keypress", this, { capture: true });
             if (this._container.localName === "div") {
               this.win.addEventListener("focus", this, {
@@ -1982,7 +2001,6 @@ export class FeatureCallout {
               this.win.requestAnimationFrame(onRender);
             });
           } else if (this._container.localName === "panel") {
-            const anchor = this._getAnchor();
             if (!anchor?.panel_position) {
               this.endTour();
               return;

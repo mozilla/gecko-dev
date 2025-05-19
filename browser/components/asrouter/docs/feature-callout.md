@@ -217,6 +217,12 @@ interface FeatureCallout {
           // default (this corresponds to a triangle with 24px edges). This
           // also affects the height of the arrow.
           arrow_width?: number;
+          // By default, callouts are not focused when they are shown. The user
+          // must use a mouse or the F6 shortcut to interact with the callout.
+          // This property allows you to force an element inside the callout to
+          // be focused when the callout is shown. Use sparingly, as it can make
+          // callouts much more disruptive for users.
+          autofocus?: AutoFocusOptions;
         }
       ];
       content: {
@@ -410,6 +416,10 @@ interface FeatureCallout {
             dismiss?: boolean;
           };
         }>;
+        // An action to perform when the Escape key is pressed, or when a page
+        // event listener invokes an action containing `dismiss: true`.
+        // Unnecessary if your message has a dismiss_button.
+        dismiss_action?: Action;
       };
     }>;
     // Specify the index of the screen to start on. Generally unused.
@@ -426,6 +436,20 @@ type PopupAttachmentPoint =
   | "rightcenter"
   | "topcenter"
   | "bottomcenter";
+
+interface AutoFocusOptions {
+  // A preferred CSS selector, if you want a specific element to be focused. If
+  // omitted, the default prioritization listed below will be used, based on
+  // `use_defaults`.
+  // Default prioritization: primary_button, secondary_button, additional_button
+  //   (excluding pseudo-links), dismiss_button, <input>, any button.
+  selector?: string;
+  // Whether to use the default element prioritization. If `selector` is
+  // provided and the element can't be found, and this is set to false, nothing
+  // will be selected. If `selector` is not provided, this must be true.
+  // Defaults to true.
+  use_defaults?: boolean;
+}
 
 type Label = string | LocalizableThing;
 
