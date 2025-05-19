@@ -1022,7 +1022,13 @@ void BaselineInterpreterCodeGen::loadGlobalLexicalEnvironment(Register dest) {
 template <>
 void BaselineCompilerCodeGen::pushGlobalLexicalEnvironmentValue(
     ValueOperand scratch) {
-  frame.push(ObjectValue(*handler.globalLexicalEnvironment()));
+  if (handler.isSelfHosted()) {
+    loadGlobalLexicalEnvironment(scratch.scratchReg());
+    masm.tagValue(JSVAL_TYPE_OBJECT, scratch.scratchReg(), scratch);
+    frame.push(scratch);
+  } else {
+    frame.push(ObjectValue(*handler.globalLexicalEnvironment()));
+  }
 }
 
 template <>
@@ -1097,23 +1103,10 @@ static gc::Cell* GetScriptGCThing(JSScript* script, jsbytecode* pc,
   MOZ_CRASH("Unexpected GCThing type");
 }
 
-template <>
-void BaselineCompilerCodeGen::loadScriptGCThing(ScriptGCThingType type,
-                                                Register dest,
-                                                Register scratch) {
-  gc::Cell* thing = GetScriptGCThing(handler.script(), handler.pc(), type);
-  masm.movePtr(ImmGCPtr(thing), dest);
-}
-
-template <>
-void BaselineInterpreterCodeGen::loadScriptGCThing(ScriptGCThingType type,
-                                                   Register dest,
-                                                   Register scratch) {
-  MOZ_ASSERT(dest != scratch);
-
-  // Load the index in |scratch|.
-  LoadInt32Operand(masm, scratch);
-
+template <typename Handler>
+void BaselineCodeGen<Handler>::loadScriptGCThingInternal(ScriptGCThingType type,
+                                                         Register dest,
+                                                         Register scratch) {
   // Load the GCCellPtr.
   loadScript(dest);
   masm.loadPtr(Address(dest, JSScript::offsetOfPrivateData()), dest);
@@ -1153,6 +1146,32 @@ void BaselineInterpreterCodeGen::loadScriptGCThing(ScriptGCThingType type,
       masm.xorPtr(Imm32(JS::OutOfLineTraceKindMask), dest);
       break;
   }
+}
+
+template <>
+void BaselineCompilerCodeGen::loadScriptGCThing(ScriptGCThingType type,
+                                                Register dest,
+                                                Register scratch) {
+  if (handler.isSelfHosted()) {
+    masm.move32(Imm32(GET_GCTHING_INDEX(handler.pc())), scratch);
+    loadScriptGCThingInternal(type, dest, scratch);
+  } else {
+    gc::Cell* thing =
+        GetScriptGCThing(handler.scriptInternal(), handler.pc(), type);
+    masm.movePtr(ImmGCPtr(thing), dest);
+  }
+}
+
+template <>
+void BaselineInterpreterCodeGen::loadScriptGCThing(ScriptGCThingType type,
+                                                   Register dest,
+                                                   Register scratch) {
+  MOZ_ASSERT(dest != scratch);
+
+  // Load the index in |scratch|.
+  LoadInt32Operand(masm, scratch);
+
+  loadScriptGCThingInternal(type, dest, scratch);
 
 #ifdef DEBUG
   // Assert low bits are not set.
@@ -1167,8 +1186,14 @@ template <>
 void BaselineCompilerCodeGen::pushScriptGCThingArg(ScriptGCThingType type,
                                                    Register scratch1,
                                                    Register scratch2) {
-  gc::Cell* thing = GetScriptGCThing(handler.script(), handler.pc(), type);
-  pushArg(ImmGCPtr(thing));
+  if (handler.isSelfHosted()) {
+    loadScriptGCThing(type, scratch1, scratch2);
+    pushArg(scratch1);
+  } else {
+    gc::Cell* thing =
+        GetScriptGCThing(handler.scriptInternal(), handler.pc(), type);
+    pushArg(ImmGCPtr(thing));
+  }
 }
 
 template <>
@@ -2689,8 +2714,17 @@ bool BaselineInterpreterCodeGen::emit_Double() {
 
 template <>
 bool BaselineCompilerCodeGen::emit_BigInt() {
-  BigInt* bi = handler.script()->getBigInt(handler.pc());
-  frame.push(BigIntValue(bi));
+  if (handler.isSelfHosted()) {
+    frame.syncStack(0);
+    Register scratch1 = R0.scratchReg();
+    Register scratch2 = R1.scratchReg();
+    loadScriptGCThing(ScriptGCThingType::BigInt, scratch1, scratch2);
+    masm.tagValue(JSVAL_TYPE_BIGINT, scratch1, R0);
+    frame.push(R0);
+  } else {
+    BigInt* bi = handler.scriptInternal()->getBigInt(handler.pc());
+    frame.push(BigIntValue(bi));
+  }
   return true;
 }
 
@@ -2706,7 +2740,16 @@ bool BaselineInterpreterCodeGen::emit_BigInt() {
 
 template <>
 bool BaselineCompilerCodeGen::emit_String() {
-  frame.push(StringValue(handler.script()->getString(handler.pc())));
+  if (handler.isSelfHosted()) {
+    frame.syncStack(0);
+    Register scratch1 = R0.scratchReg();
+    Register scratch2 = R1.scratchReg();
+    loadScriptGCThing(ScriptGCThingType::String, scratch1, scratch2);
+    masm.tagValue(JSVAL_TYPE_STRING, scratch1, R0);
+    frame.push(R0);
+  } else {
+    frame.push(StringValue(handler.scriptInternal()->getString(handler.pc())));
+  }
   return true;
 }
 
@@ -2744,7 +2787,15 @@ bool BaselineInterpreterCodeGen::emit_Symbol() {
 
 template <>
 bool BaselineCompilerCodeGen::emit_Object() {
-  frame.push(ObjectValue(*handler.script()->getObject(handler.pc())));
+  if (handler.isSelfHosted()) {
+    Register scratch1 = R0.scratchReg();
+    Register scratch2 = R1.scratchReg();
+    loadScriptGCThing(ScriptGCThingType::Object, scratch1, scratch2);
+    masm.tagValue(JSVAL_TYPE_OBJECT, scratch1, R0);
+    frame.push(R0);
+  } else {
+    frame.push(ObjectValue(*handler.scriptInternal()->getObject(handler.pc())));
+  }
   return true;
 }
 

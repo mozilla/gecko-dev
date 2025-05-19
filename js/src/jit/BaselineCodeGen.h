@@ -87,6 +87,8 @@ class BaselineCodeGen {
   // stored in the script) as argument for a VM function.
   void loadScriptGCThing(ScriptGCThingType type, Register dest,
                          Register scratch);
+  void loadScriptGCThingInternal(ScriptGCThingType type, Register dest,
+                                 Register scratch);
   void pushScriptGCThingArg(ScriptGCThingType type, Register scratch1,
                             Register scratch2);
   void pushScriptNameArg(Register scratch1, Register scratch2);
