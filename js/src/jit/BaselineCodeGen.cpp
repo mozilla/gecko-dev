@@ -295,47 +295,55 @@ bool BaselineCompiler::compileImpl() {
 
 bool BaselineCompiler::finishCompile(JSContext* cx) {
   Rooted<JSScript*> script(cx, handler.script());
-
-  AutoCreatedBy acb2(masm, "exception_tail");
-  Linker linker(masm);
-  if (masm.oom()) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
-
-  JitCode* code = linker.newCode(cx, CodeKind::Baseline);
-  if (!code) {
-    return false;
-  }
+  bool inAtomsZone = script->selfHosted();
 
   UniquePtr<BaselineScript> baselineScript(
-      BaselineScript::New(
-          cx, warmUpCheckPrologueOffset_.offset(),
-          profilerEnterFrameToggleOffset_.offset(),
-          profilerExitFrameToggleOffset_.offset(),
-          handler.retAddrEntries().length(), handler.osrEntries().length(),
-          debugTrapEntries_.length(), script->resumeOffsets().size()),
-      JS::DeletePolicy<BaselineScript>(cx->runtime()));
-  if (!baselineScript) {
-    return false;
+      nullptr, JS::DeletePolicy<BaselineScript>(cx->runtime()));
+  JitCode* code = nullptr;
+  {
+    mozilla::Maybe<AutoAllocInAtomsZone> ar;
+    if (JS::Prefs::experimental_self_hosted_cache() && inAtomsZone) {
+      ar.emplace(cx);
+    }
+
+    AutoCreatedBy acb2(masm, "exception_tail");
+    Linker linker(masm);
+    if (masm.oom()) {
+      ReportOutOfMemory(cx);
+      return false;
+    }
+
+    code = linker.newCode(cx, CodeKind::Baseline);
+    if (!code) {
+      return false;
+    }
+
+    baselineScript.reset(BaselineScript::New(
+        cx, warmUpCheckPrologueOffset_.offset(),
+        profilerEnterFrameToggleOffset_.offset(),
+        profilerExitFrameToggleOffset_.offset(),
+        handler.retAddrEntries().length(), handler.osrEntries().length(),
+        debugTrapEntries_.length(), script->resumeOffsets().size()));
+    if (!baselineScript) {
+      return false;
+    }
+
+    baselineScript->setMethod(code);
+
+    JitSpew(JitSpew_BaselineScripts,
+            "Created BaselineScript %p (raw %p) for %s:%u:%u",
+            (void*)baselineScript.get(), (void*)code->raw(), script->filename(),
+            script->lineno(), script->column().oneOriginValue());
+
+    // If profiler instrumentation is enabled, toggle instrumentation on.
+    if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(
+            cx->runtime())) {
+      baselineScript->toggleProfilerInstrumentation(true);
+    }
   }
-
-  baselineScript->setMethod(code);
-
-  JitSpew(JitSpew_BaselineScripts,
-          "Created BaselineScript %p (raw %p) for %s:%u:%u",
-          (void*)baselineScript.get(), (void*)code->raw(), script->filename(),
-          script->lineno(), script->column().oneOriginValue());
-
   baselineScript->copyRetAddrEntries(handler.retAddrEntries().begin());
   baselineScript->copyOSREntries(handler.osrEntries().begin());
   baselineScript->copyDebugTrapEntries(debugTrapEntries_.begin());
-
-  // If profiler instrumentation is enabled, toggle instrumentation on.
-  if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(
-          cx->runtime())) {
-    baselineScript->toggleProfilerInstrumentation(true);
-  }
 
   // Compute native resume addresses for the script's resume offsets.
   baselineScript->computeResumeNativeOffsets(script, resumeOffsetEntries_);
