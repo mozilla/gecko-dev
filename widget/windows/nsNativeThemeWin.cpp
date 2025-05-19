@@ -491,7 +491,6 @@ mozilla::Maybe<UXThemeClass> nsNativeThemeWin::GetThemeClass(
     case StyleAppearance::Progresschunk:
       return Some(UXThemeClass::Progress);
     case StyleAppearance::Tab:
-    case StyleAppearance::Tabpanel:
     case StyleAppearance::Tabpanels:
       return Some(UXThemeClass::Tab);
     case StyleAppearance::Range:
@@ -718,11 +717,6 @@ nsresult nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame,
     }
     case StyleAppearance::Tabpanels: {
       aPart = TABP_PANELS;
-      aState = TS_NORMAL;
-      return NS_OK;
-    }
-    case StyleAppearance::Tabpanel: {
-      aPart = TABP_PANEL;
       aState = TS_NORMAL;
       return NS_OK;
     }
@@ -1194,7 +1188,6 @@ LayoutDeviceIntSize nsNativeThemeWin::GetMinimumWidgetSize(
     case StyleAppearance::Textfield:
     case StyleAppearance::Progresschunk:
     case StyleAppearance::Tabpanels:
-    case StyleAppearance::Tabpanel:
     case StyleAppearance::Listbox:
       return {};  // Don't worry about it.
     default:
@@ -1367,7 +1360,6 @@ bool nsNativeThemeWin::ClassicThemeSupportsWidget(nsIFrame* aFrame,
     case StyleAppearance::ProgressBar:
     case StyleAppearance::Progresschunk:
     case StyleAppearance::Tab:
-    case StyleAppearance::Tabpanel:
     case StyleAppearance::Tabpanels:
       return true;
     default:
@@ -1439,7 +1431,6 @@ LayoutDeviceIntSize nsNativeThemeWin::ClassicGetMinimumWidgetSize(
     case StyleAppearance::Progresschunk:
     case StyleAppearance::ProgressBar:
     case StyleAppearance::Tab:
-    case StyleAppearance::Tabpanel:
     case StyleAppearance::Tabpanels:
       // no minimum widget size
       break;
@@ -1500,7 +1491,6 @@ nsresult nsNativeThemeWin::ClassicGetThemePartAndState(
     case StyleAppearance::Progresschunk:
     case StyleAppearance::ProgressBar:
     case StyleAppearance::Tab:
-    case StyleAppearance::Tabpanel:
     case StyleAppearance::Tabpanels:
       // these don't use DrawFrameControl
       return NS_OK;
@@ -1707,11 +1697,8 @@ RENDER_AGAIN:
       // Draw 3D border
       ::DrawEdge(hdc, &widgetRect, BDR_SUNKENOUTER, BF_RECT | BF_MIDDLE);
       InflateRect(&widgetRect, -1, -1);
-      [[fallthrough]];
-    case StyleAppearance::Tabpanel: {
       ::FillRect(hdc, &widgetRect, (HBRUSH)(COLOR_BTNFACE + 1));
       break;
-    }
     case StyleAppearance::RangeThumb: {
       ElementState elementState = GetContentState(aFrame, aAppearance);
 
