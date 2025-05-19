@@ -10,12 +10,30 @@ add_task(async function testTabsOnReload() {
   const dbg = await initDebugger(
     "doc-scripts.html",
     "simple1.js",
-    "simple2.js"
+    "simple2.js",
+    "simple3.js",
+    "long.js"
   );
 
   await selectSource(dbg, "simple1.js");
   await selectSource(dbg, "simple2.js");
   is(countTabs(dbg), 2);
+
+  info("Inject a source late and select it");
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], function () {
+    const script = content.document.createElement("script");
+    script.src = "simple4.js";
+    content.document.body.appendChild(script);
+  });
+  await waitForSources(dbg, "simple4.js");
+  await selectSource(dbg, "simple4.js");
+  is(countTabs(dbg), 3, "The late script got a tab opened");
+
+  info(
+    "Select another source, so that the late one isn't the selected one on reload"
+  );
+  // Having it the default selected one can help restore its tab
+  await selectSource(dbg, "simple2.js");
 
   info("Test reloading the debugger");
   await reload(dbg, "simple1.js", "simple2.js");
@@ -25,6 +43,21 @@ add_task(async function testTabsOnReload() {
   info("Test reloading the debuggee a second time");
   await reload(dbg, "simple1.js", "simple2.js");
   await waitForSelectedSource(dbg, "simple2.js");
+  is(countTabs(dbg), 2, "There is only two tabs opened");
+
+  info("Re-inject the same late source late and it should have a tab opened");
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], function () {
+    const script = content.document.createElement("script");
+    script.src = "simple4.js";
+    content.document.body.appendChild(script);
+  });
+  await waitForSelectedSource(dbg, "simple4.js");
+  is(countTabs(dbg), 3, "The simple4.js tab is opened");
+
+  info(
+    "Test reloading the debuggee a third time, the simple4 source won't be re-opened"
+  );
+  await reload(dbg, "simple1.js", "simple2.js");
   is(countTabs(dbg), 2);
 });
 
