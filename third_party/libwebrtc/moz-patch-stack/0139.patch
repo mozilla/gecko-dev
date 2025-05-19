@@ -1,39 +1,85 @@
 From: Michael Froman <mfroman@mozilla.com>
 Date: Tue, 13 May 2025 22:38:00 +0000
-Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit 48bc3b0e7c
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit 8cb1b0d94f
  r?pehrsons!
 
-Upstream commit: https://webrtc.googlesource.com/src/+/48bc3b0e7c8552214ded0f6dcda48bfa04a9df38
-       Always request sRGB color space from ScreenCapturerSck
-
-       For accurate color handling, the color space has to be known to the
-       client. libyuv for instance assumes sRGB by default for RGB formats.
-       Clients that need HDR support in the backend would need add support
-       for communicating the color space through captured the frame.
+Upstream commit: https://webrtc.googlesource.com/src/+/8cb1b0d94f04c3ff8171eb40434fcef1f5730f93
+       Define acquisition order of locks in ScreenCapturerSck
 
        Bug: webrtc:367915807
-       Change-Id: Ic614160c2afd39e659ea873cb2c51701b6d57c5d
-       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365085
-       Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
+       Change-Id: I5228833de72c307320be1918ca3b699437fefc7e
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365088
        Reviewed-by: Alexander Cooper <alcooper@chromium.org>
-       Reviewed-by: Johannes Kron <kron@webrtc.org>
-       Cr-Commit-Position: refs/heads/main@{#44206}
+       Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
+       Cr-Commit-Position: refs/heads/main@{#44208}
 
-Differential Revision: https://phabricator.services.mozilla.com/D249153
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e7dfd784c03c214c6869b9d82196bba1b401454a
+Differential Revision: https://phabricator.services.mozilla.com/D249154
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2721c584687f8dd5bef79bc73bfebc552db10fb1
 ---
- modules/desktop_capture/mac/screen_capturer_sck.mm | 1 +
- 1 file changed, 1 insertion(+)
+ .../mac/screen_capturer_sck.mm                | 36 +++++++++----------
+ 1 file changed, 16 insertions(+), 20 deletions(-)
 
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 7825d85a6a..aa34cda59f 100644
+index aa34cda59f..7d8c51f945 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -247,6 +247,7 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
-                               excludingWindows:@[]];
-   SCStreamConfiguration* config = [[SCStreamConfiguration alloc] init];
-   config.pixelFormat = kCVPixelFormatType_32BGRA;
-+  config.colorSpaceName = kCGColorSpaceSRGB;
-   config.showsCursor = capture_options_.prefer_cursor_embedded();
-   config.width = filter.contentRect.size.width * filter.pointPixelScale;
-   config.height = filter.contentRect.size.height * filter.pointPixelScale;
+@@ -114,7 +114,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+   // Only used on the caller's thread.
+   MacDesktopConfiguration desktop_config_;
+ 
+-  Mutex latest_frame_lock_;
++  Mutex latest_frame_lock_ RTC_ACQUIRED_AFTER(lock_);
+   std::unique_ptr<SharedDesktopFrame> latest_frame_
+       RTC_GUARDED_BY(latest_frame_lock_);
+ 
+@@ -220,26 +220,24 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
+     return;
+   }
+ 
++  MutexLock lock(&lock_);
+   SCDisplay* captured_display;
+-  {
+-    MutexLock lock(&lock_);
+-    for (SCDisplay* display in content.displays) {
+-      if (current_display_ == display.displayID) {
+-        captured_display = display;
+-        break;
+-      }
++  for (SCDisplay* display in content.displays) {
++    if (current_display_ == display.displayID) {
++      captured_display = display;
++      break;
+     }
+-    if (!captured_display) {
+-      if (current_display_ ==
+-          static_cast<CGDirectDisplayID>(kFullDesktopScreenId)) {
+-        RTC_LOG(LS_WARNING) << "Full screen capture is not supported, falling "
+-                               "back to first display.";
+-      } else {
+-        RTC_LOG(LS_WARNING) << "Display " << current_display_
+-                            << " not found, falling back to first display.";
+-      }
+-      captured_display = content.displays.firstObject;
++  }
++  if (!captured_display) {
++    if (current_display_ ==
++        static_cast<CGDirectDisplayID>(kFullDesktopScreenId)) {
++      RTC_LOG(LS_WARNING) << "Full screen capture is not supported, falling "
++                             "back to first display.";
++    } else {
++      RTC_LOG(LS_WARNING) << "Display " << current_display_
++                          << " not found, falling back to first display.";
+     }
++    captured_display = content.displays.firstObject;
+   }
+ 
+   SCContentFilter* filter =
+@@ -258,8 +256,6 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
+     latest_frame_dpi_ = filter.pointPixelScale * kStandardDPI;
+   }
+ 
+-  MutexLock lock(&lock_);
+-
+   if (stream_) {
+     RTC_LOG(LS_INFO) << "Updating stream configuration.";
+     [stream_ updateContentFilter:filter completionHandler:nil];

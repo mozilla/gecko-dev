@@ -1,93 +1,111 @@
 From: Michael Froman <mfroman@mozilla.com>
 Date: Tue, 13 May 2025 22:39:00 +0000
-Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit f9badd37ba
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit a330dd425a
  r?pehrsons!
 
-Upstream commit: https://webrtc.googlesource.com/src/+/f9badd37bae6b2dfec7993ccd5d8443ce1b08fc2
-       In ScreenCapturerSck make it possible to reconfigure without creating a new filter
+Upstream commit: https://webrtc.googlesource.com/src/+/a330dd425af97cc3ea45da455de7610e468e7f4f
+       Add a SequenceChecker for public API of ScreenCapturerSck
 
        Bug: webrtc:367915807
-       Change-Id: Ib35a5cfe7187375ac70b3985d588490a6069a7b2
-       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365093
-       Reviewed-by: Johannes Kron <kron@webrtc.org>
+       Change-Id: Ie14d5487c273916fc5423cc48bc4cc4d5ff86564
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/385923
        Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Reviewed-by: Tomas Gunnarsson <tommi@webrtc.org>
        Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
-       Cr-Commit-Position: refs/heads/main@{#44355}
+       Cr-Commit-Position: refs/heads/main@{#44423}
 
-Differential Revision: https://phabricator.services.mozilla.com/D249161
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/5769231c954c4d2c6b5daa65de06b1950b2c4ae5
+Differential Revision: https://phabricator.services.mozilla.com/D249162
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2ef17e40feb5eeec55bb2bf6847f42f5d85d35c9
 ---
- .../mac/screen_capturer_sck.mm                | 26 ++++++++++++++++---
- 1 file changed, 23 insertions(+), 3 deletions(-)
+ .../mac/screen_capturer_sck.mm                | 19 +++++++++++++------
+ 1 file changed, 13 insertions(+), 6 deletions(-)
 
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 080ab23395..e77c6b1745 100644
+index e77c6b1745..264a0a8f8b 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -73,6 +73,10 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
-   // `content` will be nil if an error occurred. May run on an arbitrary thread.
-   void OnShareableContentCreated(SCShareableContent* content, NSError* error);
+@@ -14,6 +14,7 @@
  
-+  // Start capture with the given filter. Creates or updates stream_ as needed.
-+  void StartWithFilter(SCContentFilter* filter)
-+      RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
-+
-   // Called by SckHelper to notify of a newly captured frame. May run on an
-   // arbitrary thread.
-   void OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* attachment);
-@@ -109,6 +113,9 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
-   // Provides captured desktop frames.
-   SCStream* __strong stream_ RTC_GUARDED_BY(lock_);
+ #include <atomic>
  
-+  // Current filter on stream_.
-+  SCContentFilter* __strong filter_ RTC_GUARDED_BY(lock_);
-+
-   // Currently selected display, or 0 if the full desktop is selected. This
-   // capturer does not support full-desktop capture, and will fall back to the
-   // first display.
-@@ -311,12 +318,15 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content,
-   SCContentFilter* filter =
-       [[SCContentFilter alloc] initWithDisplay:captured_display
-                               excludingWindows:@[]];
-+  StartWithFilter(filter);
-+}
-+
-+void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
-+  lock_.AssertHeld();
-   SCStreamConfiguration* config = [[SCStreamConfiguration alloc] init];
-   config.pixelFormat = kCVPixelFormatType_32BGRA;
-   config.colorSpaceName = kCGColorSpaceSRGB;
-   config.showsCursor = capture_options_.prefer_cursor_embedded();
--  config.width = filter.contentRect.size.width * filter.pointPixelScale;
--  config.height = filter.contentRect.size.height * filter.pointPixelScale;
-   config.captureResolution = SCCaptureResolutionNominal;
-   config.minimumFrameInterval = max_frame_rate_ > 0 ?
-       CMTimeMake(1, static_cast<int32_t>(max_frame_rate_)) :
-@@ -325,9 +335,18 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content,
-   {
-     MutexLock lock(&latest_frame_lock_);
-     latest_frame_dpi_ = filter.pointPixelScale * kStandardDPI;
--    frame_reconfigure_img_size_ = std::nullopt;
-+    if (filter_ != filter) {
-+      frame_reconfigure_img_size_ = std::nullopt;
-+    }
-+    auto sourceImgRect = frame_reconfigure_img_size_.value_or(
-+        CGSizeMake(filter.contentRect.size.width * filter.pointPixelScale,
-+                   filter.contentRect.size.height * filter.pointPixelScale));
-+    config.width = sourceImgRect.width;
-+    config.height = sourceImgRect.height;
-   }
++#include "api/sequence_checker.h"
+ #include "modules/desktop_capture/mac/desktop_frame_iosurface.h"
+ #include "modules/desktop_capture/shared_desktop_frame.h"
+ #include "rtc_base/logging.h"
+@@ -89,15 +90,17 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+   // caller's thread.
+   void StartOrReconfigureCapturer();
  
-+  filter_ = filter;
++  // Calls to the public API must happen on a single thread.
++  webrtc::SequenceChecker api_checker_;
 +
-   if (stream_) {
-     RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this
-                      << " Updating stream configuration to size="
-@@ -351,6 +370,7 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content,
-                            error:&add_stream_output_error];
-     if (!add_stream_output_result) {
-       stream_ = nil;
-+      filter_ = nil;
-       RTC_LOG(LS_ERROR) << "ScreenCapturerSck " << this
-                         << " addStreamOutput failed.";
-       permanent_error_ = true;
+   // Helper object to receive Objective-C callbacks from ScreenCaptureKit and
+   // call into this C++ object. The helper may outlive this C++ instance, if a
+   // completion-handler is passed to ScreenCaptureKit APIs and the C++ object is
+   // deleted before the handler executes.
+   SckHelper* __strong helper_;
+ 
+-  // Callback for returning captured frames, or errors, to the caller. Only used
+-  // on the caller's thread.
+-  Callback* callback_ = nullptr;
++  // Callback for returning captured frames, or errors, to the caller.
++  Callback* callback_ RTC_GUARDED_BY(api_checker_) = nullptr;
+ 
+   // Options passed to the constructor. May be accessed on any thread, but the
+   // options are unchanged during the capturer's lifetime.
+@@ -125,8 +128,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+   uint32_t max_frame_rate_ RTC_GUARDED_BY(lock_) = 0;
+ 
+   // Used by CaptureFrame() to detect if the screen configuration has changed.
+-  // Only used on the caller's thread.
+-  MacDesktopConfiguration desktop_config_;
++  MacDesktopConfiguration desktop_config_ RTC_GUARDED_BY(api_checker_);
+ 
+   Mutex latest_frame_lock_ RTC_ACQUIRED_AFTER(lock_);
+   std::unique_ptr<SharedDesktopFrame> latest_frame_
+@@ -152,18 +154,20 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+ };
+ 
+ ScreenCapturerSck::ScreenCapturerSck(const DesktopCaptureOptions& options)
+-    : capture_options_(options) {
++    : api_checker_(SequenceChecker::kDetached), capture_options_(options) {
+   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " created";
+   helper_ = [[SckHelper alloc] initWithCapturer:this];
+ }
+ 
+ ScreenCapturerSck::~ScreenCapturerSck() {
++  RTC_DCHECK_RUN_ON(&api_checker_);
+   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " destroyed.";
+   [stream_ stopCaptureWithCompletionHandler:nil];
+   [helper_ releaseCapturer];
+ }
+ 
+ void ScreenCapturerSck::Start(DesktopCapturer::Callback* callback) {
++  RTC_DCHECK_RUN_ON(&api_checker_);
+   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " " << __func__ << ".";
+   callback_ = callback;
+   desktop_config_ =
+@@ -172,6 +176,7 @@ void ScreenCapturerSck::Start(DesktopCapturer::Callback* callback) {
+ }
+ 
+ void ScreenCapturerSck::SetMaxFrameRate(uint32_t max_frame_rate) {
++  RTC_DCHECK_RUN_ON(&api_checker_);
+   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " SetMaxFrameRate("
+                    << max_frame_rate << ").";
+   bool stream_started = false;
+@@ -190,6 +195,7 @@ void ScreenCapturerSck::SetMaxFrameRate(uint32_t max_frame_rate) {
+ }
+ 
+ void ScreenCapturerSck::CaptureFrame() {
++  RTC_DCHECK_RUN_ON(&api_checker_);
+   int64_t capture_start_time_millis = rtc::TimeMillis();
+ 
+   if (permanent_error_) {
+@@ -248,6 +254,7 @@ void ScreenCapturerSck::NotifyCaptureStopped(SCStream* stream) {
+ }
+ 
+ bool ScreenCapturerSck::SelectSource(SourceId id) {
++  RTC_DCHECK_RUN_ON(&api_checker_);
+   RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this << " SelectSource(id=" << id
+                    << ").";
+   bool stream_started = false;

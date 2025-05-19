@@ -1,44 +1,39 @@
 From: Michael Froman <mfroman@mozilla.com>
 Date: Tue, 13 May 2025 22:38:00 +0000
-Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit d2534b3914
+Subject: Bug 1966238 - Cherry-pick upstream libwebrtc commit 48bc3b0e7c
  r?pehrsons!
 
-Upstream commit: https://webrtc.googlesource.com/src/+/d2534b3914f1b3c6a1aa3683e111fd76b8ff4893
-       In SCK backend move dpi to and set may_contain_cursor in frame callback
+Upstream commit: https://webrtc.googlesource.com/src/+/48bc3b0e7c8552214ded0f6dcda48bfa04a9df38
+       Always request sRGB color space from ScreenCapturerSck
+
+       For accurate color handling, the color space has to be known to the
+       client. libyuv for instance assumes sRGB by default for RGB formats.
+       Clients that need HDR support in the backend would need add support
+       for communicating the color space through captured the frame.
 
        Bug: webrtc:367915807
-       Change-Id: Id29b979ab7909d21eb92bc926f9decdae3345381
-       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365084
-       Reviewed-by: Johannes Kron <kron@webrtc.org>
-       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Change-Id: Ic614160c2afd39e659ea873cb2c51701b6d57c5d
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365085
        Commit-Queue: Andreas Pehrson <apehrson@mozilla.com>
-       Cr-Commit-Position: refs/heads/main@{#44204}
+       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Reviewed-by: Johannes Kron <kron@webrtc.org>
+       Cr-Commit-Position: refs/heads/main@{#44206}
 
-Differential Revision: https://phabricator.services.mozilla.com/D249152
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b96051c586abc47bd172b8433ca72ac516c3e18e
+Differential Revision: https://phabricator.services.mozilla.com/D249153
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e7dfd784c03c214c6869b9d82196bba1b401454a
 ---
- modules/desktop_capture/mac/screen_capturer_sck.mm | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 1 +
+ 1 file changed, 1 insertion(+)
 
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index c8f5411bcd..7825d85a6a 100644
+index 7825d85a6a..aa34cda59f 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -171,7 +171,6 @@ void ScreenCapturerSck::CaptureFrame() {
-     MutexLock lock(&latest_frame_lock_);
-     if (latest_frame_) {
-       frame = latest_frame_->Share();
--      frame->set_dpi(DesktopVector(latest_frame_dpi_, latest_frame_dpi_));
-       if (frame_is_dirty_) {
-         frame->mutable_updated_region()->AddRect(
-             DesktopRect::MakeSize(frame->size()));
-@@ -357,6 +356,9 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface,
- 
-   if (dirty) {
-     MutexLock lock(&latest_frame_lock_);
-+    frame->set_dpi(DesktopVector(latest_frame_dpi_, latest_frame_dpi_));
-+    frame->set_may_contain_cursor(capture_options_.prefer_cursor_embedded());
-+
-     frame_is_dirty_ = true;
-     std::swap(latest_frame_, frame);
-   }
+@@ -247,6 +247,7 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
+                               excludingWindows:@[]];
+   SCStreamConfiguration* config = [[SCStreamConfiguration alloc] init];
+   config.pixelFormat = kCVPixelFormatType_32BGRA;
++  config.colorSpaceName = kCGColorSpaceSRGB;
+   config.showsCursor = capture_options_.prefer_cursor_embedded();
+   config.width = filter.contentRect.size.width * filter.pointPixelScale;
+   config.height = filter.contentRect.size.height * filter.pointPixelScale;
