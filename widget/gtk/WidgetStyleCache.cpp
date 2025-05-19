@@ -36,6 +36,29 @@ static GtkStyleContext* sStyleStorage[MOZ_GTK_WIDGET_NODE_COUNT];
 static GtkStyleContext* GetWidgetRootStyle(WidgetNodeType aNodeType);
 static GtkStyleContext* GetCssNodeStyleInternal(WidgetNodeType aNodeType);
 
+// In GTK versions prior to 3.18, automatic invalidation of style contexts
+// for widgets was delayed until the next resize event.  Gecko however,
+// typically uses the style context before the resize event runs and so an
+// explicit invalidation may be required.  This is necessary if a style
+// property was retrieved before all changes were made to the style
+// context.  One such situation is where gtk_button_construct_child()
+// retrieves the style property "image-spacing" during construction of the
+// GtkButton, before its parent is set to provide inheritance of ancestor
+// properties.  More recent GTK versions do not need this, but do not
+// re-resolve until required and so invalidation does not trigger
+// unnecessary resolution in general.
+// https://bugzilla.mozilla.org/show_bug.cgi?id=1272194#c7
+static void InvalidateStyleForOldGtk(GtkStyleContext* aContext) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  gtk_style_context_invalidate(aContext);
+#pragma GCC diagnostic pop
+}
+
+static void InvalidateStyleForOldGtk(GtkWidget* aWidget) {
+  InvalidateStyleForOldGtk(gtk_widget_get_style_context(aWidget));
+}
+
 static GtkWidget* CreateWindowWidget() {
   GtkWidget* widget = gtk_window_new(GTK_WINDOW_POPUP);
   MOZ_RELEASE_ASSERT(widget, "We're missing GtkWindow widget!");
@@ -224,8 +247,8 @@ static void CreateHeaderBarWidget(WidgetNodeType aAppearance) {
   gtk_container_add(GTK_CONTAINER(window), fixed);
   gtk_container_add(GTK_CONTAINER(fixed), headerBar);
 
-  gtk_style_context_invalidate(headerBarStyle);
-  gtk_style_context_invalidate(fixedStyle);
+  InvalidateStyleForOldGtk(headerBarStyle);
+  InvalidateStyleForOldGtk(fixedStyle);
   gtk_widget_show_all(headerBar);
 
   // Some themes like Elementary's style the container of the headerbar rather
@@ -318,20 +341,7 @@ GtkWidget* GetWidget(WidgetNodeType aAppearance) {
     if (!widget) {
       return nullptr;
     }
-    // In GTK versions prior to 3.18, automatic invalidation of style contexts
-    // for widgets was delayed until the next resize event.  Gecko however,
-    // typically uses the style context before the resize event runs and so an
-    // explicit invalidation may be required.  This is necessary if a style
-    // property was retrieved before all changes were made to the style
-    // context.  One such situation is where gtk_button_construct_child()
-    // retrieves the style property "image-spacing" during construction of the
-    // GtkButton, before its parent is set to provide inheritance of ancestor
-    // properties.  More recent GTK versions do not need this, but do not
-    // re-resolve until required and so invalidation does not trigger
-    // unnecessary resolution in general.
-    GtkStyleContext* style = gtk_widget_get_style_context(widget);
-    gtk_style_context_invalidate(style);
-
+    InvalidateStyleForOldGtk(widget);
     sWidgetStorage[aAppearance] = widget;
   }
   return widget;
@@ -603,15 +613,11 @@ static GtkStyleContext* GetCssNodeStyleInternal(WidgetNodeType aNodeType) {
     case MOZ_GTK_TAB_TOP: {
       // TODO - create from CSS node
       style = CreateSubStyleWithClass(MOZ_GTK_NOTEBOOK, GTK_STYLE_CLASS_TOP);
-      gtk_style_context_add_region(style, GTK_STYLE_REGION_TAB,
-                                   static_cast<GtkRegionFlags>(0));
       break;
     }
     case MOZ_GTK_TAB_BOTTOM: {
       // TODO - create from CSS node
       style = CreateSubStyleWithClass(MOZ_GTK_NOTEBOOK, GTK_STYLE_CLASS_BOTTOM);
-      gtk_style_context_add_region(style, GTK_STYLE_REGION_TAB,
-                                   static_cast<GtkRegionFlags>(0));
       break;
     }
     case MOZ_GTK_NOTEBOOK:
@@ -683,13 +689,9 @@ static GtkStyleContext* GetWidgetStyleInternal(WidgetNodeType aNodeType) {
       return GetWidgetRootStyle(MOZ_GTK_FRAME);
     case MOZ_GTK_TAB_TOP:
       style = CreateSubStyleWithClass(MOZ_GTK_NOTEBOOK, GTK_STYLE_CLASS_TOP);
-      gtk_style_context_add_region(style, GTK_STYLE_REGION_TAB,
-                                   static_cast<GtkRegionFlags>(0));
       break;
     case MOZ_GTK_TAB_BOTTOM:
       style = CreateSubStyleWithClass(MOZ_GTK_NOTEBOOK, GTK_STYLE_CLASS_BOTTOM);
-      gtk_style_context_add_region(style, GTK_STYLE_REGION_TAB,
-                                   static_cast<GtkRegionFlags>(0));
       break;
     case MOZ_GTK_NOTEBOOK:
     case MOZ_GTK_NOTEBOOK_HEADER:
@@ -740,33 +742,24 @@ GtkStyleContext* GetStyleContext(WidgetNodeType aNodeType, int aScale,
     StyleContextSetScale(style, aScale);
   }
   bool stateChanged = false;
-  bool stateHasDirection = gtk_get_minor_version() >= 8;
   GtkStateFlags oldState = gtk_style_context_get_state(style);
   MOZ_ASSERT(!(aStateFlags & (STATE_FLAG_DIR_LTR | STATE_FLAG_DIR_RTL)));
   unsigned newState = aStateFlags;
-  if (stateHasDirection) {
-    switch (aDirection) {
-      case GTK_TEXT_DIR_LTR:
-        newState |= STATE_FLAG_DIR_LTR;
-        break;
-      case GTK_TEXT_DIR_RTL:
-        newState |= STATE_FLAG_DIR_RTL;
-        break;
-      default:
-        MOZ_FALLTHROUGH_ASSERT("Bad GtkTextDirection");
-      case GTK_TEXT_DIR_NONE:
-        // GtkWidget uses a default direction if neither is explicitly
-        // specified, but here DIR_NONE is interpreted as meaning the
-        // direction is not important, so don't change the direction
-        // unnecessarily.
-        newState |= oldState & (STATE_FLAG_DIR_LTR | STATE_FLAG_DIR_RTL);
-    }
-  } else if (aDirection != GTK_TEXT_DIR_NONE) {
-    GtkTextDirection oldDirection = gtk_style_context_get_direction(style);
-    if (aDirection != oldDirection) {
-      gtk_style_context_set_direction(style, aDirection);
-      stateChanged = true;
-    }
+  switch (aDirection) {
+    case GTK_TEXT_DIR_LTR:
+      newState |= STATE_FLAG_DIR_LTR;
+      break;
+    case GTK_TEXT_DIR_RTL:
+      newState |= STATE_FLAG_DIR_RTL;
+      break;
+    default:
+      MOZ_FALLTHROUGH_ASSERT("Bad GtkTextDirection");
+    case GTK_TEXT_DIR_NONE:
+      // GtkWidget uses a default direction if neither is explicitly
+      // specified, but here DIR_NONE is interpreted as meaning the
+      // direction is not important, so don't change the direction
+      // unnecessarily.
+      newState |= oldState & (STATE_FLAG_DIR_LTR | STATE_FLAG_DIR_RTL);
   }
   if (oldState != newState) {
     gtk_style_context_set_state(style, static_cast<GtkStateFlags>(newState));
@@ -782,7 +775,7 @@ GtkStyleContext* GetStyleContext(WidgetNodeType aNodeType, int aScale,
   // by widgets to avoid performing build_properties() (in 3.16 stylecontext.c)
   // unnecessarily early.
   if (stateChanged && sWidgetStorage[aNodeType]) {
-    gtk_style_context_invalidate(style);
+    InvalidateStyleForOldGtk(style);
   }
   return style;
 }
@@ -796,7 +789,7 @@ GtkStyleContext* CreateStyleContextWithStates(WidgetNodeType aNodeType,
   GtkWidgetPath* path = gtk_widget_path_copy(gtk_style_context_get_path(style));
 
   static auto sGtkWidgetPathIterGetState =
-      (GtkStateFlags(*)(const GtkWidgetPath*, gint))dlsym(
+      (GtkStateFlags (*)(const GtkWidgetPath*, gint))dlsym(
           RTLD_DEFAULT, "gtk_widget_path_iter_get_state");
   static auto sGtkWidgetPathIterSetState =
       (void (*)(GtkWidgetPath*, gint, GtkStateFlags))dlsym(
