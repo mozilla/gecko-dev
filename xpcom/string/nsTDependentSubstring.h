@@ -24,7 +24,7 @@
  *   nsDependentCSubstring for narrow characters
  */
 template <typename T>
-class nsTDependentSubstring : public nsTSubstring<T> {
+class MOZ_GSL_POINTER nsTDependentSubstring : public nsTSubstring<T> {
  public:
   typedef nsTDependentSubstring<T> self_type;
   typedef nsTSubstring<T> substring_type;
@@ -67,26 +67,30 @@ class nsTDependentSubstring : public nsTSubstring<T> {
     Rebind(aStr, aStartPos, aLength);
   }
 
-  nsTDependentSubstring(const char_type* aData, size_type aLength)
+  nsTDependentSubstring(const char_type* aData MOZ_LIFETIME_BOUND,
+                        size_type aLength)
       : substring_type(const_cast<char_type*>(aData), aLength, DataFlags(0),
                        ClassFlags(0)) {}
 
-  explicit nsTDependentSubstring(mozilla::Span<const char_type> aData)
+  explicit nsTDependentSubstring(
+      mozilla::Span<const char_type> aData MOZ_LIFETIME_BOUND)
       : nsTDependentSubstring(aData.Elements(), aData.Length()) {}
 
-  nsTDependentSubstring(const char_type* aStart, const char_type* aEnd);
+  nsTDependentSubstring(const char_type* aStart MOZ_LIFETIME_BOUND,
+                        const char_type* aEnd MOZ_LIFETIME_BOUND);
 
 #if defined(MOZ_USE_CHAR16_WRAPPER)
   template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
-  nsTDependentSubstring(char16ptr_t aData, size_type aLength)
+  nsTDependentSubstring(char16ptr_t aData MOZ_LIFETIME_BOUND, size_type aLength)
       : nsTDependentSubstring(static_cast<const char16_t*>(aData), aLength) {}
 
   template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
-  nsTDependentSubstring(char16ptr_t aStart, char16ptr_t aEnd);
+  nsTDependentSubstring(char16ptr_t aStart MOZ_LIFETIME_BOUND,
+                        char16ptr_t aEnd MOZ_LIFETIME_BOUND);
 #endif
 
-  nsTDependentSubstring(const const_iterator& aStart,
-                        const const_iterator& aEnd);
+  nsTDependentSubstring(const const_iterator& aStart MOZ_LIFETIME_BOUND,
+                        const const_iterator& aEnd MOZ_LIFETIME_BOUND);
 
   // Create a nsTDependentSubstring to be bound later
   nsTDependentSubstring() : substring_type() {}
@@ -129,26 +133,28 @@ inline const nsTDependentSubstring<T> Substring(
 }
 
 template <typename T>
-inline const nsTDependentSubstring<T> Substring(const T* aData,
-                                                size_t aLength) {
+inline const nsTDependentSubstring<T> Substring(
+    const T* aData MOZ_LIFETIME_BOUND, size_t aLength) {
   return nsTDependentSubstring<T>(aData, aLength);
 }
 
 template <typename T>
-const nsTDependentSubstring<T> Substring(const T* aStart, const T* aEnd);
+const nsTDependentSubstring<T> Substring(const T* aStart MOZ_LIFETIME_BOUND,
+                                         const T* aEnd MOZ_LIFETIME_BOUND);
 
-extern template const nsTDependentSubstring<char> Substring(const char* aStart,
-                                                            const char* aEnd);
+extern template const nsTDependentSubstring<char> Substring(
+    const char* aStart MOZ_LIFETIME_BOUND, const char* aEnd MOZ_LIFETIME_BOUND);
 
 extern template const nsTDependentSubstring<char16_t> Substring(
-    const char16_t* aStart, const char16_t* aEnd);
+    const char16_t* aStart MOZ_LIFETIME_BOUND,
+    const char16_t* aEnd MOZ_LIFETIME_BOUND);
 
 #if defined(MOZ_USE_CHAR16_WRAPPER)
-inline const nsTDependentSubstring<char16_t> Substring(char16ptr_t aData,
-                                                       size_t aLength);
+inline const nsTDependentSubstring<char16_t> Substring(
+    char16ptr_t aData MOZ_LIFETIME_BOUND, size_t aLength);
 
-const nsTDependentSubstring<char16_t> Substring(char16ptr_t aStart,
-                                                char16ptr_t aEnd);
+const nsTDependentSubstring<char16_t> Substring(
+    char16ptr_t aStart MOZ_LIFETIME_BOUND, char16ptr_t aEnd MOZ_LIFETIME_BOUND);
 #endif
 
 template <typename T>
@@ -158,8 +164,8 @@ inline const nsTDependentSubstring<T> StringHead(const nsTSubstring<T>& aStr,
 }
 
 template <typename T>
-inline const nsTDependentSubstring<T> StringTail(const nsTSubstring<T>& aStr,
-                                                 size_t aCount) {
+inline const nsTDependentSubstring<T> StringTail(
+    const nsTSubstring<T>& aStr MOZ_LIFETIME_BOUND, size_t aCount) {
   return nsTDependentSubstring<T>(aStr, aStr.Length() - aCount, aCount);
 }
 

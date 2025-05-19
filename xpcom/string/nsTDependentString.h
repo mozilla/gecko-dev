@@ -21,7 +21,7 @@
  * duration of its use.
  */
 template <typename T>
-class nsTDependentString : public nsTString<T> {
+class MOZ_GSL_POINTER nsTDependentString : public nsTString<T> {
  public:
   typedef nsTDependentString<T> self_type;
   typedef nsTString<T> base_string_type;
@@ -57,9 +57,11 @@ class nsTDependentString : public nsTString<T> {
    * constructors
    */
 
-  nsTDependentString(const char_type* aStart, const char_type* aEnd);
+  nsTDependentString(const char_type* aStart MOZ_LIFETIME_BOUND,
+                     const char_type* aEnd MOZ_LIFETIME_BOUND);
 
-  nsTDependentString(const char_type* aData, size_type aLength)
+  nsTDependentString(const char_type* aData MOZ_LIFETIME_BOUND,
+                     size_type aLength)
       : string_type(const_cast<char_type*>(aData), aLength,
                     DataFlags::TERMINATED, ClassFlags(0)) {
     this->AssertValidDependentString();
@@ -67,11 +69,11 @@ class nsTDependentString : public nsTString<T> {
 
 #if defined(MOZ_USE_CHAR16_WRAPPER)
   template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
-  nsTDependentString(char16ptr_t aData, size_type aLength)
+  nsTDependentString(char16ptr_t aData MOZ_LIFETIME_BOUND, size_type aLength)
       : nsTDependentString(static_cast<const char16_t*>(aData), aLength) {}
 #endif
 
-  explicit nsTDependentString(const char_type* aData)
+  explicit nsTDependentString(const char_type* aData MOZ_LIFETIME_BOUND)
       : string_type(const_cast<char_type*>(aData), char_traits::length(aData),
                     DataFlags::TERMINATED, ClassFlags(0)) {
     string_type::AssertValidDependentString();
@@ -79,11 +81,12 @@ class nsTDependentString : public nsTString<T> {
 
 #if defined(MOZ_USE_CHAR16_WRAPPER)
   template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
-  explicit nsTDependentString(char16ptr_t aData)
+  explicit nsTDependentString(char16ptr_t aData MOZ_LIFETIME_BOUND)
       : nsTDependentString(static_cast<const char16_t*>(aData)) {}
 #endif
 
-  nsTDependentString(const string_type& aStr, index_type aStartPos)
+  nsTDependentString(const string_type& aStr MOZ_LIFETIME_BOUND,
+                     index_type aStartPos)
       : string_type() {
     Rebind(aStr, aStartPos);
   }
@@ -107,11 +110,12 @@ class nsTDependentString : public nsTString<T> {
    */
 
   using nsTString<T>::Rebind;
-  void Rebind(const char_type* aData) {
+  void Rebind(const char_type* aData MOZ_LIFETIME_BOUND) {
     Rebind(aData, char_traits::length(aData));
   }
 
-  void Rebind(const char_type* aStart, const char_type* aEnd);
+  void Rebind(const char_type* aStart MOZ_LIFETIME_BOUND,
+              const char_type* aEnd MOZ_LIFETIME_BOUND);
   void Rebind(const string_type&, index_type aStartPos);
 
  private:

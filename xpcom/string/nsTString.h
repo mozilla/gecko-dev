@@ -23,7 +23,7 @@
  * to denote a null-terminated string.
  */
 template <typename T>
-class nsTString : public nsTSubstring<T> {
+class MOZ_GSL_OWNER nsTString : public nsTSubstring<T> {
  public:
   typedef nsTString<T> self_type;
 
@@ -255,7 +255,7 @@ struct fmt::formatter<nsTString<Char>, Char>
  *   nsAutoCStringN / nsTAutoCString for narrow characters
  */
 template <typename T, size_t N>
-class MOZ_NON_MEMMOVABLE nsTAutoStringN : public nsTString<T> {
+class MOZ_NON_MEMMOVABLE MOZ_GSL_OWNER nsTAutoStringN : public nsTString<T> {
  public:
   typedef nsTAutoStringN<T, N> self_type;
 

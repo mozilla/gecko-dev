@@ -22,7 +22,7 @@
 namespace mozilla {
 
 template <typename T, size_t _Length>
-class Array {
+class MOZ_GSL_OWNER Array {
   T mArr[_Length];
 
  public:
@@ -39,14 +39,14 @@ class Array {
                   "parameter Length");
   }
 
-  constexpr T& operator[](size_t aIndex) {
+  constexpr T& operator[](size_t aIndex) MOZ_LIFETIME_BOUND {
     if (MOZ_UNLIKELY(aIndex >= Length)) {
       detail::InvalidArrayIndex_CRASH(aIndex, Length);
     }
     return mArr[aIndex];
   }
 
-  constexpr const T& operator[](size_t aIndex) const {
+  constexpr const T& operator[](size_t aIndex) const MOZ_LIFETIME_BOUND {
     if (MOZ_UNLIKELY(aIndex >= Length)) {
       detail::InvalidArrayIndex_CRASH(aIndex, Length);
     }

@@ -2742,7 +2742,8 @@ inline void ImplCycleCollectionIndexedContainer(nsTArray_Impl<E, Alloc>& aField,
 // file for more details.
 //
 template <class E>
-class nsTArray : public nsTArray_Impl<E, nsTArrayInfallibleAllocator> {
+class MOZ_GSL_OWNER nsTArray
+    : public nsTArray_Impl<E, nsTArrayInfallibleAllocator> {
  public:
   using InfallibleAlloc = nsTArrayInfallibleAllocator;
   using base_type = nsTArray_Impl<E, InfallibleAlloc>;
@@ -2963,7 +2964,7 @@ class nsTArray : public nsTArray_Impl<E, nsTArrayInfallibleAllocator> {
 };
 
 template <class E>
-class CopyableTArray : public nsTArray<E> {
+class MOZ_GSL_OWNER CopyableTArray : public nsTArray<E> {
  public:
   using nsTArray<E>::nsTArray;
 
@@ -3007,7 +3008,8 @@ class CopyableTArray : public nsTArray<E> {
 // FallibleTArray is a fallible vector class.
 //
 template <class E>
-class FallibleTArray : public nsTArray_Impl<E, nsTArrayFallibleAllocator> {
+class MOZ_GSL_OWNER FallibleTArray
+    : public nsTArray_Impl<E, nsTArrayFallibleAllocator> {
  public:
   typedef nsTArray_Impl<E, nsTArrayFallibleAllocator> base_type;
   typedef FallibleTArray<E> self_type;
@@ -3040,7 +3042,7 @@ class FallibleTArray : public nsTArray_Impl<E, nsTArrayFallibleAllocator> {
 // Storing more than N elements is fine, but it will cause a heap allocation.
 //
 template <class E, size_t N>
-class MOZ_NON_MEMMOVABLE AutoTArray : public nsTArray<E> {
+class MOZ_NON_MEMMOVABLE MOZ_GSL_OWNER AutoTArray : public nsTArray<E> {
   static_assert(N != 0, "AutoTArray<E, 0> should be specialized");
 
  public:

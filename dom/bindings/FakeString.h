@@ -23,7 +23,7 @@ namespace mozilla::dom::binding_detail {
 // or point at the buffer of an nsAString whose lifetime is longer than that of
 // the FakeString.
 template <typename CharT>
-struct FakeString {
+struct MOZ_GSL_OWNER FakeString {
   using char_type = CharT;
   using string_type = nsTString<CharT>;
   using size_type = typename string_type::size_type;
