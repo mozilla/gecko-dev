@@ -393,6 +393,34 @@ export const ExperimentAPI = {
       branch => new Proxy(branch, experimentBranchAccessor)
     );
   },
+
+  /**
+   * Opt-in to the given experiment on the given branch.
+   *
+   * @param {object} options
+   *
+   * @param {string} options.slug
+   * The slug of the experiment to enroll in.
+   *
+   * @param {string} options.branch
+   * The slug of the specific branch to enroll in.
+   *
+   * @param {string | undefined} options.collection
+   * The collection to fetch the recipe from. If not provided it will be fetched
+   * from the default experiment collection.
+   *
+   * @param {boolean | undefined} options.applyTargeting
+   * Whether or not to apply targeting. Defaults to false.
+   *
+   * @returns {Promise<void>}
+   * A promise that resolves when the enrollment is successful or rejects when
+   * it is unsuccessful.
+   *
+   * @throws {Error} If enrollment fails.
+   */
+  async optInToExperiment(options) {
+    return this._rsLoader._optInToExperiment(options);
+  },
 };
 
 /**

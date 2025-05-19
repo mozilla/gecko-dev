@@ -283,7 +283,7 @@ add_task(async function test_forceEnrollUpdatesMessages() {
 
   await assertMessageInState("xman_test_message", false, false);
 
-  await RemoteSettingsExperimentLoader.optInToExperiment({
+  await ExperimentAPI.optInToExperiment({
     slug: experiment.slug,
     branch: experiment.branches[0].slug,
   });

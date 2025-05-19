@@ -800,7 +800,7 @@ add_task(async function test_forceEnroll() {
   let sandbox = sinon.createSandbox();
 
   // This simulates a succesful enrollment
-  let stub = sandbox.stub(RemoteSettingsExperimentLoader, "optInToExperiment");
+  let stub = sandbox.stub(ExperimentAPI, "optInToExperiment");
 
   await BrowserTestUtils.withNewTab(
     {

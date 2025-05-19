@@ -503,7 +503,7 @@ export class _RemoteSettingsExperimentLoader {
     });
   }
 
-  async optInToExperiment({
+  async _optInToExperiment({
     slug,
     branch: branchSlug,
     collection,
