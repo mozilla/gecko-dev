@@ -6,7 +6,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
-  TabsStore: "resource://gre/modules/RustTabs.sys.mjs",
+  TabsStore:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustTabs.sys.mjs",
 });
 
 var storePromise = null;
@@ -41,4 +42,4 @@ export async function getRemoteCommandStore() {
 export {
   RemoteCommand,
   PendingCommand,
-} from "resource://gre/modules/RustTabs.sys.mjs";
+} from "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustTabs.sys.mjs";

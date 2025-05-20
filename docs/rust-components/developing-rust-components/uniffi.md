@@ -66,7 +66,7 @@ Here's how you can create a new set of bindings using UniFFI:
         ``` js
         ChromeUtils.defineESModuleGetters(lazy, {
           ...
-          TabsStore: "resource://gre/modules/RustTabs.sys.mjs",
+          TabsStore: "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustTabs.sys.mjs",
         });
         ...
         this._rustStore = await lazy.TabsStore.init(path);

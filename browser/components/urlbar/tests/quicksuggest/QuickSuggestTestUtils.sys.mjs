@@ -14,11 +14,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
   RemoteSettingsServer:
     "resource://testing-common/RemoteSettingsServer.sys.mjs",
   SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
-  Suggestion: "resource://gre/modules/RustSuggest.sys.mjs",
+  Suggestion:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
-  YelpSubjectType: "resource://gre/modules/RustSuggest.sys.mjs",
+  YelpSubjectType:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 

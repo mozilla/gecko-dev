@@ -30,7 +30,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ReaderMode: "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs",
   getTabsStore: "resource://services-sync/TabsStore.sys.mjs",
-  RemoteTabRecord: "resource://gre/modules/RustTabs.sys.mjs",
+  RemoteTabRecord:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustTabs.sys.mjs",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(

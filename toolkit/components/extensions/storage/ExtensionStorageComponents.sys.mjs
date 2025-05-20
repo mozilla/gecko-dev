@@ -6,7 +6,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
-  WebExtStorageStore: "resource://gre/modules/RustWebextstorage.sys.mjs",
+  WebExtStorageStore:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustWebextstorage.sys.mjs",
 });
 
 function StorageSyncService() {}

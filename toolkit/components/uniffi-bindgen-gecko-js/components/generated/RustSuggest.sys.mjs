@@ -4348,13 +4348,13 @@ export class FfiConverterTypeJsonValue extends FfiConverter {
 import {
   FfiConverterTypeRemoteSettingsService,
   RemoteSettingsService,
-} from "resource://gre/modules/RustRemoteSettings.sys.mjs";
+} from "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustRemoteSettings.sys.mjs";
 
 // Export the FFIConverter object to make external types work.
 export { FfiConverterTypeRemoteSettingsService, RemoteSettingsService };import {
   FfiConverterTypeRemoteSettingsServer,
   RemoteSettingsServer,
-} from "resource://gre/modules/RustRemoteSettings.sys.mjs";
+} from "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustRemoteSettings.sys.mjs";
 
 // Export the FFIConverter object to make external types work.
 export { FfiConverterTypeRemoteSettingsServer, RemoteSettingsServer };

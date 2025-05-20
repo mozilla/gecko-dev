@@ -5,6 +5,7 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 use super::shared::*;
 use crate::{CallbackIds, Config, FunctionIds, ObjectIds};
 use askama::Template;
+use camino::Utf8PathBuf;
 use extend::ext;
 use heck::{ToLowerCamelCase, ToShoutySnakeCase, ToUpperCamelCase};
 use uniffi_bindgen::interface::{
@@ -46,6 +47,7 @@ pub struct JSBindingsTemplate<'a> {
     pub function_ids: &'a FunctionIds<'a>,
     pub object_ids: &'a ObjectIds<'a>,
     pub callback_ids: &'a CallbackIds<'a>,
+    pub js_dir: &'a Utf8PathBuf,
 }
 
 impl JSBindingsTemplate<'_> {
@@ -55,7 +57,8 @@ impl JSBindingsTemplate<'_> {
 
     fn external_type_module(&self, crate_name: &str) -> String {
         format!(
-            "resource://gre/modules/{}",
+            "moz-src:///{}/{}",
+            self.js_dir,
             self.js_module_name_for_crate_name(crate_name),
         )
     }
@@ -332,7 +335,10 @@ pub impl Enum {
         match self.variant_discr(*idx) {
             Ok(Literal::UInt(v, _, _)) => Ok(v),
             Ok(Literal::Int(v, _, _)) if v >= 0 => Ok(v as u64),
-            Ok(other) => Err(format!("Unexpected literal type for enum discriminant: {:?}", other)),
+            Ok(other) => Err(format!(
+                "Unexpected literal type for enum discriminant: {:?}",
+                other
+            )),
             Err(e) => Err(format!("Failed to get discriminant: {}", e)),
         }
     }

@@ -7,12 +7,14 @@ import { SuggestProvider } from "resource:///modules/urlbar/private/SuggestFeatu
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  AmpMatchingStrategy: "resource://gre/modules/RustSuggest.sys.mjs",
+  AmpMatchingStrategy:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
   CONTEXTUAL_SERVICES_PING_TYPES:
     "resource:///modules/PartnerLinkAttribution.sys.mjs",
   ContextId: "moz-src:///browser/modules/ContextId.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
-  rawSuggestionUrlMatches: "resource://gre/modules/RustSuggest.sys.mjs",
+  rawSuggestionUrlMatches:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",

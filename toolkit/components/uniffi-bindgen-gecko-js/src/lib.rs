@@ -100,6 +100,7 @@ fn render_js(
     function_ids: &FunctionIds,
     object_ids: &ObjectIds,
     callback_ids: &CallbackIds,
+    js_dir: &Utf8PathBuf,
 ) -> Result<()> {
     for c in components {
         let template = JSBindingsTemplate {
@@ -108,6 +109,7 @@ fn render_js(
             function_ids,
             object_ids,
             callback_ids,
+            js_dir,
         };
         let path = out_dir.join(template.js_module_name());
         render(path, template)?;
@@ -136,6 +138,7 @@ pub fn run_main() -> Result<()> {
         &function_ids,
         &object_ids,
         &callback_ids,
+        &args.js_dir,
     )?;
     render_js(
         &args.fixture_js_dir,
@@ -143,6 +146,7 @@ pub fn run_main() -> Result<()> {
         &function_ids,
         &object_ids,
         &callback_ids,
+        &args.js_dir,
     )?;
     docs::render_docs(&args.docs_path, &components.components)?;
 

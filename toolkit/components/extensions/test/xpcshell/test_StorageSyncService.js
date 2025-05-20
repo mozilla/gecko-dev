@@ -6,7 +6,8 @@
 ChromeUtils.defineESModuleGetters(this, {
   extensionStorageSync: "resource://gre/modules/ExtensionStorageSync.sys.mjs",
   Service: "resource://services-sync/service.sys.mjs",
-  QuotaError: "resource://gre/modules/RustWebextstorage.sys.mjs",
+  QuotaError:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustWebextstorage.sys.mjs",
 });
 
 const { ExtensionStorageEngineBridge } = ChromeUtils.importESModule(

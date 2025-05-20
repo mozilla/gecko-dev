@@ -12,7 +12,8 @@ const lazy = XPCOMUtils.declareLazy({
   ExtensionUtils: "resource://gre/modules/ExtensionUtils.sys.mjs",
   storageSyncService:
     "resource://gre/modules/ExtensionStorageComponents.sys.mjs",
-  QuotaError: "resource://gre/modules/RustWebextstorage.sys.mjs",
+  QuotaError:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustWebextstorage.sys.mjs",
 });
 
 // The backing implementation of the browser.storage.sync web extension API.

@@ -11,12 +11,18 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://gre/modules/contentrelevancy/private/InputUtils.sys.mjs",
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-  Interest: "resource://gre/modules/RustRelevancy.sys.mjs",
-  InterestVector: "resource://gre/modules/RustRelevancy.sys.mjs",
-  RelevancyStore: "resource://gre/modules/RustRelevancy.sys.mjs",
-  RemoteSettingsConfig2: "resource://gre/modules/RustRemoteSettings.sys.mjs",
-  RemoteSettingsService: "resource://gre/modules/RustRemoteSettings.sys.mjs",
-  score: "resource://gre/modules/RustRelevancy.sys.mjs",
+  Interest:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustRelevancy.sys.mjs",
+  InterestVector:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustRelevancy.sys.mjs",
+  RelevancyStore:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustRelevancy.sys.mjs",
+  RemoteSettingsConfig2:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustRemoteSettings.sys.mjs",
+  RemoteSettingsService:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustRemoteSettings.sys.mjs",
+  score:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustRelevancy.sys.mjs",
 });
 
 XPCOMUtils.defineLazyServiceGetter(

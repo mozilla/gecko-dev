@@ -10,20 +10,31 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
-  InterruptKind: "resource://gre/modules/RustSuggest.sys.mjs",
+  InterruptKind:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
-  RemoteSettingsConfig2: "resource://gre/modules/RustRemoteSettings.sys.mjs",
-  RemoteSettingsContext: "resource://gre/modules/RustRemoteSettings.sys.mjs",
-  RemoteSettingsServer: "resource://gre/modules/RustRemoteSettings.sys.mjs",
-  RemoteSettingsService: "resource://gre/modules/RustRemoteSettings.sys.mjs",
-  SuggestIngestionConstraints: "resource://gre/modules/RustSuggest.sys.mjs",
-  SuggestStoreBuilder: "resource://gre/modules/RustSuggest.sys.mjs",
-  Suggestion: "resource://gre/modules/RustSuggest.sys.mjs",
-  SuggestionProvider: "resource://gre/modules/RustSuggest.sys.mjs",
-  SuggestionProviderConstraints: "resource://gre/modules/RustSuggest.sys.mjs",
-  SuggestionQuery: "resource://gre/modules/RustSuggest.sys.mjs",
+  RemoteSettingsConfig2:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustRemoteSettings.sys.mjs",
+  RemoteSettingsContext:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustRemoteSettings.sys.mjs",
+  RemoteSettingsServer:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustRemoteSettings.sys.mjs",
+  RemoteSettingsService:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustRemoteSettings.sys.mjs",
+  SuggestIngestionConstraints:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
+  SuggestStoreBuilder:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
+  Suggestion:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
+  SuggestionProvider:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
+  SuggestionProviderConstraints:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
+  SuggestionQuery:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
   TaskQueue: "resource:///modules/UrlbarUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   Utils: "resource://services-settings/Utils.sys.mjs",

@@ -266,8 +266,14 @@
       "chrome://global/content/elements/moz-toggle.mjs": [
         "toolkit/content/widgets/moz-toggle/moz-toggle.mjs"
       ],
+      "chrome://global/content/elements/moz-visual-picker.mjs": [
+        "toolkit/content/widgets/moz-visual-picker/moz-visual-picker.mjs"
+      ],
       "chrome://global/content/elements/panel-list.js": [
         "toolkit/content/widgets/panel-list/panel-list.js"
+      ],
+      "chrome://global/content/lit-select-control.mjs": [
+        "toolkit/content/widgets/lit-select-control.mjs"
       ],
       "chrome://global/content/lit-utils.mjs": [
         "toolkit/content/widgets/lit-utils.mjs"
@@ -6323,38 +6329,17 @@
       "resource://gre/modules/RustRefcounts.sys.mjs": [
         "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustRefcounts.sys.mjs"
       ],
-      "resource://gre/modules/RustRelevancy.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustRelevancy.sys.mjs"
-      ],
-      "resource://gre/modules/RustRemoteSettings.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustRemoteSettings.sys.mjs"
-      ],
       "resource://gre/modules/RustRondpoint.sys.mjs": [
         "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustRondpoint.sys.mjs"
       ],
-      "resource://gre/modules/RustSearch.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSearch.sys.mjs"
-      ],
       "resource://gre/modules/RustSprites.sys.mjs": [
         "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustSprites.sys.mjs"
-      ],
-      "resource://gre/modules/RustSuggest.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs"
-      ],
-      "resource://gre/modules/RustSync15.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSync15.sys.mjs"
-      ],
-      "resource://gre/modules/RustTabs.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustTabs.sys.mjs"
       ],
       "resource://gre/modules/RustTodolist.sys.mjs": [
         "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustTodolist.sys.mjs"
       ],
       "resource://gre/modules/RustUniffiTraitInterfaces.sys.mjs": [
         "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustUniffiTraitInterfaces.sys.mjs"
-      ],
-      "resource://gre/modules/RustWebextstorage.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustWebextstorage.sys.mjs"
       ],
       "resource://gre/modules/SafeBrowsing.sys.mjs": [
         "toolkit/components/url-classifier/SafeBrowsing.sys.mjs"
@@ -6838,6 +6823,15 @@
       ],
       "resource://newtab/lib/HighlightsFeed.sys.mjs": [
         "browser/extensions/newtab/lib/HighlightsFeed.sys.mjs"
+      ],
+      "resource://newtab/lib/InferredModel/FeatureModel.sys.mjs": [
+        "browser/extensions/newtab/lib/InferredModel/FeatureModel.sys.mjs"
+      ],
+      "resource://newtab/lib/InferredModel/InferredConstants.sys.mjs": [
+        "browser/extensions/newtab/lib/InferredModel/InferredConstants.sys.mjs"
+      ],
+      "resource://newtab/lib/InferredPersonalizationFeed.sys.mjs": [
+        "browser/extensions/newtab/lib/InferredPersonalizationFeed.sys.mjs"
       ],
       "resource://newtab/lib/NewTabGleanUtils.sys.mjs": [
         "browser/extensions/newtab/lib/NewTabGleanUtils.sys.mjs"

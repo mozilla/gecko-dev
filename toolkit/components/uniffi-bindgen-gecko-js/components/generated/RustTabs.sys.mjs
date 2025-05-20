@@ -2151,7 +2151,7 @@ export class FfiConverterTypeTimestamp extends FfiConverter {
 import {
   FfiConverterTypeDeviceType,
   DeviceType,
-} from "resource://gre/modules/RustSync15.sys.mjs";
+} from "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSync15.sys.mjs";
 
 // Export the FFIConverter object to make external types work.
 export { FfiConverterTypeDeviceType, DeviceType };

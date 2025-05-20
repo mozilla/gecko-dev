@@ -8,10 +8,13 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
-  InterruptKind: "resource://gre/modules/RustSuggest.sys.mjs",
+  InterruptKind:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
-  SuggestIngestionMetrics: "resource://gre/modules/RustSuggest.sys.mjs",
-  SuggestionProvider: "resource://gre/modules/RustSuggest.sys.mjs",
+  SuggestIngestionMetrics:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
+  SuggestionProvider:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
 });
 
 // These consts are copied from the update timer manager test. See

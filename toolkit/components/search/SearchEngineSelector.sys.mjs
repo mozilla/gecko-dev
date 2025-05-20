@@ -13,11 +13,16 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
-  SearchDeviceType: "resource://gre/modules/RustSearch.sys.mjs",
-  SearchEngineSelector: "resource://gre/modules/RustSearch.sys.mjs",
-  SearchUserEnvironment: "resource://gre/modules/RustSearch.sys.mjs",
-  SearchApplicationName: "resource://gre/modules/RustSearch.sys.mjs",
-  SearchUpdateChannel: "resource://gre/modules/RustSearch.sys.mjs",
+  SearchDeviceType:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSearch.sys.mjs",
+  SearchEngineSelector:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSearch.sys.mjs",
+  SearchUserEnvironment:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSearch.sys.mjs",
+  SearchApplicationName:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSearch.sys.mjs",
+  SearchUpdateChannel:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSearch.sys.mjs",
   SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
 });
 

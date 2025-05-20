@@ -9,13 +9,16 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   GeolocationUtils:
     "resource:///modules/urlbar/private/GeolocationUtils.sys.mjs",
-  GeonameMatchType: "resource://gre/modules/RustSuggest.sys.mjs",
-  GeonameType: "resource://gre/modules/RustSuggest.sys.mjs",
+  GeonameMatchType:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
+  GeonameType:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
-  YelpSubjectType: "resource://gre/modules/RustSuggest.sys.mjs",
+  YelpSubjectType:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
 });
 
 const RESULT_MENU_COMMAND = {

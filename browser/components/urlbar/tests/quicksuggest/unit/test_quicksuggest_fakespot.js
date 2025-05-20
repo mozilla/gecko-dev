@@ -7,7 +7,8 @@
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
-  Suggestion: "resource://gre/modules/RustSuggest.sys.mjs",
+  Suggestion:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
 });
 
 const REMOTE_SETTINGS_RECORDS = [

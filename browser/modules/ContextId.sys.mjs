@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-import { ContextIdComponent } from "resource://gre/modules/RustContextId.sys.mjs";
+import { ContextIdComponent } from "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustContextId.sys.mjs";
 
 const CONTEXT_ID_PREF = "browser.contextual-services.contextId";
 const CONTEXT_ID_TIMESTAMP_PREF =

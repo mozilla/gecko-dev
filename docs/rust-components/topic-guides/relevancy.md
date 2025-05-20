@@ -36,7 +36,7 @@ let store = RelevancyStore(dbPath: "path/to/database")
 
 ```js
 ChromeUtils.defineESModuleGetters(lazy, {
-  RelevancyStore: "resource://gre/modules/RustSuggest.sys.mjs",
+  RelevancyStore: "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
 });
 
 const store = RelevancyStore.init(dbPath);
