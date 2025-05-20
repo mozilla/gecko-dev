@@ -16,7 +16,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "MODELHUB_PROVIDER_ENABLED",
-  "extensions.ml.local_model_management",
+  "browser.ml.modelHubProvider",
   false,
   (_pref, _old, val) => ModelHubProvider[val ? "init" : "shutdown"]()
 );
