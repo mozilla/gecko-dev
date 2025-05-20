@@ -545,6 +545,8 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
   Maybe<uvec2> SnapshotInto(GLuint srcFb, const gfx::IntSize& size,
                             const Range<uint8_t>& dest,
                             const Maybe<size_t> destStride = Nothing());
+  already_AddRefed<gfx::SourceSurface> GetBackBufferSnapshot(
+      const bool requireAlphaPremult);
   gl::SwapChain* GetSwapChain(WebGLFramebuffer*, const bool webvr);
   Maybe<layers::SurfaceDescriptor> GetFrontBuffer(WebGLFramebuffer*,
                                                   const bool webvr);

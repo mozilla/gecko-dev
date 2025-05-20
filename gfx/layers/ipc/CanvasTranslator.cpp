@@ -1659,80 +1659,6 @@ void CanvasTranslator::SyncTranslation(uint64_t aSyncId) {
   }
 }
 
-class WebGLContextBackBufferAccess : public WebGLContext {
- public:
-  already_AddRefed<gfx::SourceSurface> GetBackBufferSnapshot(
-      const bool requireAlphaPremult);
-};
-
-already_AddRefed<gfx::SourceSurface>
-WebGLContextBackBufferAccess::GetBackBufferSnapshot(
-    const bool requireAlphaPremult) {
-  if (IsContextLost()) {
-    return nullptr;
-  }
-
-  const auto surfSize = DrawingBufferSize();
-  if (surfSize.x <= 0 || surfSize.y <= 0) {
-    return nullptr;
-  }
-
-  const auto& options = Options();
-  const auto surfFormat = options.alpha ? gfx::SurfaceFormat::B8G8R8A8
-                                        : gfx::SurfaceFormat::B8G8R8X8;
-
-  RefPtr<gfx::DataSourceSurface> dataSurf =
-      gfx::Factory::CreateDataSourceSurface(
-          gfx::IntSize(surfSize.x, surfSize.y), surfFormat);
-  if (!dataSurf) {
-    NS_WARNING("Failed to alloc DataSourceSurface for GetBackBufferSnapshot");
-    return nullptr;
-  }
-
-  {
-    gfx::DataSourceSurface::ScopedMap map(dataSurf,
-                                          gfx::DataSourceSurface::READ_WRITE);
-    if (!map.IsMapped()) {
-      NS_WARNING("Failed to map DataSourceSurface for GetBackBufferSnapshot");
-      return nullptr;
-    }
-
-    // GetDefaultFBForRead might overwrite FB state if it needs to resolve a
-    // multisampled FB, so save/restore the FB state here just in case.
-    const gl::ScopedBindFramebuffer bindFb(GL());
-    const auto fb = GetDefaultFBForRead();
-    if (!fb) {
-      gfxCriticalNote << "GetDefaultFBForRead failed for GetBackBufferSnapshot";
-      return nullptr;
-    }
-    const auto byteCount = CheckedInt<size_t>(map.GetStride()) * surfSize.y;
-    if (!byteCount.isValid()) {
-      gfxCriticalNote << "Invalid byte count for GetBackBufferSnapshot";
-      return nullptr;
-    }
-    const Range<uint8_t> range = {map.GetData(), byteCount.value()};
-    if (!SnapshotInto(fb->mFB, fb->mSize, range,
-                      Some(size_t(map.GetStride())))) {
-      gfxCriticalNote << "SnapshotInto failed for GetBackBufferSnapshot";
-      return nullptr;
-    }
-
-    if (requireAlphaPremult && options.alpha && !options.premultipliedAlpha) {
-      bool rv = gfx::PremultiplyYFlipData(
-          map.GetData(), map.GetStride(), gfx::SurfaceFormat::R8G8B8A8,
-          map.GetData(), map.GetStride(), surfFormat, dataSurf->GetSize());
-      MOZ_RELEASE_ASSERT(rv, "PremultiplyYFlipData failed!");
-    } else {
-      bool rv = gfx::SwizzleYFlipData(
-          map.GetData(), map.GetStride(), gfx::SurfaceFormat::R8G8B8A8,
-          map.GetData(), map.GetStride(), surfFormat, dataSurf->GetSize());
-      MOZ_RELEASE_ASSERT(rv, "SwizzleYFlipData failed!");
-    }
-  }
-
-  return dataSurf.forget();
-}
-
 mozilla::ipc::IPCResult CanvasTranslator::RecvSnapshotExternalCanvas(
     uint64_t aSyncId, uint32_t aManagerId, int32_t aCanvasId) {
   if (NS_WARN_IF(!IsInTaskQueue())) {
@@ -1754,9 +1680,7 @@ mozilla::ipc::IPCResult CanvasTranslator::RecvSnapshotExternalCanvas(
       case ProtocolId::PWebGLMsgStart:
         if (auto* hostContext =
                 static_cast<dom::WebGLParent*>(actor)->GetHostWebGLContext()) {
-          surf = static_cast<WebGLContextBackBufferAccess*>(
-                     hostContext->GetWebGLContext())
-                     ->GetBackBufferSnapshot(true);
+          surf = hostContext->GetWebGLContext()->GetBackBufferSnapshot(true);
         }
         break;
       default:

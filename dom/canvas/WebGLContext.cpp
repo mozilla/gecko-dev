@@ -1610,6 +1610,72 @@ Maybe<uvec2> WebGLContext::SnapshotInto(GLuint srcFb, const gfx::IntSize& size,
   return Some(*uvec2::FromSize(size));
 }
 
+already_AddRefed<gfx::SourceSurface> WebGLContext::GetBackBufferSnapshot(
+    const bool requireAlphaPremult) {
+  if (IsContextLost()) {
+    return nullptr;
+  }
+
+  const auto surfSize = DrawingBufferSize();
+  if (surfSize.x <= 0 || surfSize.y <= 0) {
+    return nullptr;
+  }
+
+  const auto surfFormat = mOptions.alpha ? gfx::SurfaceFormat::B8G8R8A8
+                                         : gfx::SurfaceFormat::B8G8R8X8;
+
+  RefPtr<gfx::DataSourceSurface> dataSurf =
+      gfx::Factory::CreateDataSourceSurface(
+          gfx::IntSize(surfSize.x, surfSize.y), surfFormat);
+  if (!dataSurf) {
+    NS_WARNING("Failed to alloc DataSourceSurface for GetBackBufferSnapshot");
+    return nullptr;
+  }
+
+  {
+    gfx::DataSourceSurface::ScopedMap map(dataSurf,
+                                          gfx::DataSourceSurface::READ_WRITE);
+    if (!map.IsMapped()) {
+      NS_WARNING("Failed to map DataSourceSurface for GetBackBufferSnapshot");
+      return nullptr;
+    }
+
+    // GetDefaultFBForRead might overwrite FB state if it needs to resolve a
+    // multisampled FB, so save/restore the FB state here just in case.
+    const gl::ScopedBindFramebuffer bindFb(gl);
+    const auto fb = GetDefaultFBForRead();
+    if (!fb) {
+      gfxCriticalNote << "GetDefaultFBForRead failed for GetBackBufferSnapshot";
+      return nullptr;
+    }
+    const auto byteCount = CheckedInt<size_t>(map.GetStride()) * surfSize.y;
+    if (!byteCount.isValid()) {
+      gfxCriticalNote << "Invalid byte count for GetBackBufferSnapshot";
+      return nullptr;
+    }
+    const Range<uint8_t> range = {map.GetData(), byteCount.value()};
+    if (!SnapshotInto(fb->mFB, fb->mSize, range,
+                      Some(size_t(map.GetStride())))) {
+      gfxCriticalNote << "SnapshotInto failed for GetBackBufferSnapshot";
+      return nullptr;
+    }
+
+    if (requireAlphaPremult && mOptions.alpha && !mOptions.premultipliedAlpha) {
+      bool rv = gfx::PremultiplyYFlipData(
+          map.GetData(), map.GetStride(), gfx::SurfaceFormat::R8G8B8A8,
+          map.GetData(), map.GetStride(), surfFormat, dataSurf->GetSize());
+      MOZ_RELEASE_ASSERT(rv, "PremultiplyYFlipData failed!");
+    } else {
+      bool rv = gfx::SwizzleYFlipData(
+          map.GetData(), map.GetStride(), gfx::SurfaceFormat::R8G8B8A8,
+          map.GetData(), map.GetStride(), surfFormat, dataSurf->GetSize());
+      MOZ_RELEASE_ASSERT(rv, "SwizzleYFlipData failed!");
+    }
+  }
+
+  return dataSurf.forget();
+}
+
 void WebGLContext::ClearVRSwapChain() { mWebVRSwapChain.ClearPool(); }
 
 // ------------------------
