@@ -184,6 +184,19 @@ export const ExperimentAPI = {
     const studiesEnabled = this.studiesEnabled;
 
     try {
+      await lazy.NimbusMigrations.applyMigrations(
+        lazy.NimbusMigrations.Phase.INIT_STARTED
+      );
+    } catch (e) {
+      lazy.log.error(
+        `Failed to apply migrations in phase ${
+          lazy.NimbusMigrations.Phase.INIT_STARTED
+        }`,
+        e
+      );
+    }
+
+    try {
       await this.manager.onStartup(extraContext);
     } catch (e) {
       lazy.log.error("Failed to initialize ExperimentManager:", e);
@@ -196,9 +209,16 @@ export const ExperimentAPI = {
     }
 
     try {
-      await lazy.NimbusMigrations.applyMigrations();
+      await lazy.NimbusMigrations.applyMigrations(
+        lazy.NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE
+      );
     } catch (e) {
-      lazy.log.error("Failed to apply migrations", e);
+      lazy.log.error(
+        `Failed to apply migrations in phase ${
+          lazy.NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE
+        }`,
+        e
+      );
     }
 
     if (CRASHREPORTER_ENABLED) {

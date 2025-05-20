@@ -3,10 +3,14 @@
 
 const {
   LABS_MIGRATION_FEATURE_MAP,
+  LEGACY_NIMBUS_MIGRATION_PREF,
   MigrationError,
-  NIMBUS_MIGRATION_PREF,
+  NIMBUS_MIGRATION_PREFS,
   NimbusMigrations,
 } = ChromeUtils.importESModule("resource://nimbus/lib/Migrations.sys.mjs");
+
+/** @typedef {import("../../lib/Migrations.sys.mjs").Migration} Migration */
+/** @typedef {import("../../lib/Migrations.sys.mjs").Phase} Phase */
 
 function mockLabsRecipes(targeting = "true") {
   return Object.entries(LABS_MIGRATION_FEATURE_MAP).map(([featureId, slug]) =>
@@ -38,10 +42,12 @@ add_setup(function setup() {
  * Setup a test environment.
  *
  * @param {object} options
- * @param {number?} options.latestMigration
- *        The value that should be set for the latest Nimbus migration pref. If
+ * @param {number?} options.legacyMigrationState
+ *        The value of the legacy migration pref.
+ * @param {Record<Phase, number>?} options.migrationState
+ *        The value that should be set for the Nimbus migration prefs. If
  *        not provided, the pref will be unset.
- * @param {object[]} options.migrations
+ * @param {Record<Phase, Migration[]>} options.migrations
  *        An array of migrations that will replace the regular set of migrations
  *        for the duration of the test.
  * @param {object[]} options.recipes
@@ -52,15 +58,23 @@ add_setup(function setup() {
  */
 
 async function setupTest({
-  latestMigration,
+  legacyMigrationState,
+  migrationState,
   migrations,
   init = true,
   ...args
 } = {}) {
   Assert.ok(
-    !Services.prefs.prefHasUserValue(NIMBUS_MIGRATION_PREF),
-    "migration pref should be unset"
+    !Services.prefs.prefHasUserValue(LEGACY_NIMBUS_MIGRATION_PREF),
+    `legacy migration pref should be unset`
   );
+
+  for (const [phase, pref] of Object.keys(NIMBUS_MIGRATION_PREFS)) {
+    Assert.ok(
+      !Services.prefs.prefHasUserValue(pref),
+      `${phase} migration pref should be unset`
+    );
+  }
 
   const {
     initExperimentAPI,
@@ -74,11 +88,20 @@ async function setupTest({
 
   const { sandbox } = ctx;
 
-  if (typeof latestMigration !== "undefined") {
-    Services.prefs.setIntPref(NIMBUS_MIGRATION_PREF, latestMigration);
+  if (migrationState) {
+    for (const [phase, value] of Object.entries(migrationState)) {
+      Services.prefs.setIntPref(NIMBUS_MIGRATION_PREFS[phase], value);
+    }
   }
 
-  if (Array.isArray(migrations)) {
+  if (typeof legacyMigrationState !== "undefined") {
+    Services.prefs.setIntPref(
+      LEGACY_NIMBUS_MIGRATION_PREF,
+      legacyMigrationState
+    );
+  }
+
+  if (migrations) {
     sandbox.stub(NimbusMigrations, "MIGRATIONS").get(() => migrations);
   }
 
@@ -92,16 +115,16 @@ async function setupTest({
     ...ctx,
     cleanup() {
       baseCleanup();
-      Services.prefs.deleteBranch(NIMBUS_MIGRATION_PREF);
+      Services.prefs.deleteBranch("nimbus.migrations");
     },
   };
 }
 
-function makeMigrations(count) {
+function makeMigrations(phase, count) {
   const migrations = [];
   for (let i = 0; i < count; i++) {
     migrations.push(
-      NimbusMigrations.migration(`test-migration-${i}`, sinon.stub())
+      NimbusMigrations.migration(`test-migration-${phase}-${i}`, sinon.stub())
     );
   }
   return migrations;
@@ -109,20 +132,51 @@ function makeMigrations(count) {
 
 add_task(async function test_migration_unset() {
   info("Testing NimbusMigrations with no migration pref set");
-  const migrations = makeMigrations(2);
-  const { cleanup } = await setupTest({ migrations });
+  const startupMigrations = makeMigrations(
+    NimbusMigrations.Phase.INIT_STARTED,
+    2
+  );
+  const updateMigrations = makeMigrations(
+    NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE,
+    1
+  );
+
+  const { cleanup } = await setupTest({
+    migrations: {
+      [NimbusMigrations.Phase.INIT_STARTED]: startupMigrations,
+      [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: updateMigrations,
+    },
+  });
 
   Assert.ok(
-    migrations[0].fn.calledOnce,
-    `${migrations[0].name} should be called once`
+    startupMigrations[0].fn.calledOnce,
+    `${startupMigrations[0].name} should be called once`
   );
   Assert.ok(
-    migrations[1].fn.calledOnce,
-    `${migrations[1].name} should be called once`
+    startupMigrations[1].fn.calledOnce,
+    `${startupMigrations[1].name} should be called once`
   );
+
   Assert.equal(
-    Services.prefs.getIntPref(NIMBUS_MIGRATION_PREF),
+    Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[NimbusMigrations.Phase.INIT_STARTED]
+    ),
     1,
+    "Migration pref should be updated"
+  );
+
+  Assert.ok(
+    updateMigrations[0].fn.calledOnce,
+    `${updateMigrations[0].name} should be called once`
+  );
+
+  Assert.equal(
+    Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[
+        NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE
+      ]
+    ),
+    0,
     "Migration pref should be updated"
   );
 
@@ -131,11 +185,15 @@ add_task(async function test_migration_unset() {
     [
       {
         success: "true",
-        migration_id: migrations[0].name,
+        migration_id: startupMigrations[0].name,
       },
       {
         success: "true",
-        migration_id: migrations[1].name,
+        migration_id: startupMigrations[1].name,
+      },
+      {
+        success: "true",
+        migration_id: updateMigrations[0].name,
       },
     ]
   );
@@ -145,16 +203,42 @@ add_task(async function test_migration_unset() {
 
 add_task(async function test_migration_partially_done() {
   info("Testing NimbusMigrations with some migrations completed");
-  const migrations = makeMigrations(2);
-  const { cleanup } = await setupTest({ latestMigration: 0, migrations });
+  const startupMigrations = makeMigrations(
+    NimbusMigrations.Phase.INIT_STARTED,
+    2
+  );
+  const updateMigrations = makeMigrations(
+    NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE,
+    2
+  );
+
+  const { cleanup } = await setupTest({
+    migrationState: {
+      [NimbusMigrations.Phase.INIT_STARTED]: 0,
+      [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: 0,
+    },
+    migrations: {
+      [NimbusMigrations.Phase.INIT_STARTED]: startupMigrations,
+      [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: updateMigrations,
+    },
+  });
 
   Assert.ok(
-    migrations[0].fn.notCalled,
-    `${migrations[0].name} should not be called`
+    startupMigrations[0].fn.notCalled,
+    `${startupMigrations[0].name} should not be called`
   );
   Assert.ok(
-    migrations[1].fn.calledOnce,
-    `${migrations[1].name} should be called once`
+    startupMigrations[1].fn.calledOnce,
+    `${startupMigrations[1].name} should be called once`
+  );
+
+  Assert.ok(
+    updateMigrations[0].fn.notCalled,
+    `${updateMigrations[0].name} should not be called`
+  );
+  Assert.ok(
+    updateMigrations[1].fn.calledOnce,
+    `${updateMigrations[1].name} should be called once`
   );
 
   Assert.deepEqual(
@@ -162,7 +246,11 @@ add_task(async function test_migration_partially_done() {
     [
       {
         success: "true",
-        migration_id: migrations[1].name,
+        migration_id: startupMigrations[1].name,
+      },
+      {
+        success: "true",
+        migration_id: updateMigrations[1].name,
       },
     ]
   );
@@ -174,25 +262,68 @@ add_task(async function test_migration_throws() {
   info(
     "Testing NimbusMigrations with a migration that throws an unknown error"
   );
-  const migrations = makeMigrations(3);
-  migrations[1].fn.throws(new Error(`${migrations[1].name} failed`));
-  const { cleanup } = await setupTest({ migrations });
+  const startupMigrations = makeMigrations(
+    NimbusMigrations.Phase.INIT_STARTED,
+    3
+  );
+  startupMigrations[1].fn.throws(
+    new Error(`${startupMigrations[1].name} failed`)
+  );
+
+  const updateMigrations = makeMigrations(
+    NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE,
+    3
+  );
+  updateMigrations[1].fn.throws(
+    new Error(`${updateMigrations[1].name} failed`)
+  );
+
+  const { cleanup } = await setupTest({
+    migrations: {
+      [NimbusMigrations.Phase.INIT_STARTED]: startupMigrations,
+      [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: updateMigrations,
+    },
+  });
 
   Assert.ok(
-    migrations[0].fn.calledOnce,
-    `${migrations[0].name} should be called once`
+    startupMigrations[0].fn.calledOnce,
+    `${startupMigrations[0].name} should be called once`
   );
   Assert.ok(
-    migrations[1].fn.calledOnce,
-    `${migrations[1].name} should be called once`
+    startupMigrations[1].fn.calledOnce,
+    `${startupMigrations[1].name} should be called once`
   );
   Assert.ok(
-    migrations[2].fn.notCalled,
-    `${migrations[2].name} should not be called`
+    startupMigrations[2].fn.notCalled,
+    `${startupMigrations[2].name} should not be called`
+  );
+
+  Assert.ok(
+    updateMigrations[0].fn.calledOnce,
+    `${updateMigrations[0].name} should be called once`
+  );
+  Assert.ok(
+    updateMigrations[1].fn.calledOnce,
+    `${updateMigrations[1].name} should be called once`
+  );
+  Assert.ok(
+    updateMigrations[2].fn.notCalled,
+    `${updateMigrations[2].name} should not be called`
   );
 
   Assert.equal(
-    Services.prefs.getIntPref(NIMBUS_MIGRATION_PREF),
+    Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[NimbusMigrations.Phase.INIT_STARTED]
+    ),
+    0,
+    "Migration pref should only be set to 0"
+  );
+  Assert.equal(
+    Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[
+        NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE
+      ]
+    ),
     0,
     "Migration pref should only be set to 0"
   );
@@ -202,11 +333,20 @@ add_task(async function test_migration_throws() {
     [
       {
         success: "true",
-        migration_id: migrations[0].name,
+        migration_id: startupMigrations[0].name,
       },
       {
         success: "false",
-        migration_id: migrations[1].name,
+        migration_id: startupMigrations[1].name,
+        error_reason: MigrationError.Reason.UNKNOWN,
+      },
+      {
+        success: "true",
+        migration_id: updateMigrations[0].name,
+      },
+      {
+        success: "false",
+        migration_id: updateMigrations[1].name,
         error_reason: MigrationError.Reason.UNKNOWN,
       },
     ]
@@ -219,25 +359,64 @@ add_task(async function test_migration_throws_MigrationError() {
   info(
     "Testing NimbusMigrations with a migration that throws a MigrationError"
   );
-  const migrations = makeMigrations(3);
-  migrations[1].fn.throws(new MigrationError("bogus"));
-  const { cleanup } = await setupTest({ migrations });
+  const startupMigrations = makeMigrations(
+    NimbusMigrations.Phase.INIT_STARTED,
+    3
+  );
+  startupMigrations[1].fn.throws(new MigrationError("bogus"));
+
+  const updateMigrations = makeMigrations(
+    NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE,
+    3
+  );
+  updateMigrations[1].fn.throws(new MigrationError("bogus"));
+
+  const { cleanup } = await setupTest({
+    migrations: {
+      [NimbusMigrations.Phase.INIT_STARTED]: startupMigrations,
+      [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: updateMigrations,
+    },
+  });
 
   Assert.ok(
-    migrations[0].fn.calledOnce,
-    `${migrations[0].name} should be called once`
+    startupMigrations[0].fn.calledOnce,
+    `${startupMigrations[0].name} should be called once`
   );
   Assert.ok(
-    migrations[1].fn.calledOnce,
-    `${migrations[1].name} should be called once`
+    startupMigrations[1].fn.calledOnce,
+    `${startupMigrations[1].name} should be called once`
   );
   Assert.ok(
-    migrations[2].fn.notCalled,
-    `${migrations[2].name} should not be called`
+    startupMigrations[2].fn.notCalled,
+    `${startupMigrations[2].name} should not be called`
+  );
+
+  Assert.ok(
+    updateMigrations[0].fn.calledOnce,
+    `${updateMigrations[0].name} should be called once`
+  );
+  Assert.ok(
+    updateMigrations[1].fn.calledOnce,
+    `${updateMigrations[1].name} should be called once`
+  );
+  Assert.ok(
+    updateMigrations[2].fn.notCalled,
+    `${updateMigrations[2].name} should not be called`
   );
 
   Assert.equal(
-    Services.prefs.getIntPref(NIMBUS_MIGRATION_PREF),
+    Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[NimbusMigrations.Phase.INIT_STARTED]
+    ),
+    0,
+    "Migration pref should only be set to 0"
+  );
+  Assert.equal(
+    Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[
+        NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE
+      ]
+    ),
     0,
     "Migration pref should only be set to 0"
   );
@@ -247,11 +426,20 @@ add_task(async function test_migration_throws_MigrationError() {
     [
       {
         success: "true",
-        migration_id: migrations[0].name,
+        migration_id: startupMigrations[0].name,
       },
       {
         success: "false",
-        migration_id: migrations[1].name,
+        migration_id: startupMigrations[1].name,
+        error_reason: "bogus",
+      },
+      {
+        success: "true",
+        migration_id: updateMigrations[0].name,
+      },
+      {
+        success: "false",
+        migration_id: updateMigrations[1].name,
         error_reason: "bogus",
       },
     ]
@@ -259,6 +447,152 @@ add_task(async function test_migration_throws_MigrationError() {
 
   cleanup();
 });
+
+const LEGACY_TO_MULTIPHASE_MIGRATION =
+  NimbusMigrations.MIGRATIONS[NimbusMigrations.Phase.INIT_STARTED][0];
+
+add_task(async function test_migration_legacyToMultiphase_unset() {
+  const migrations = makeMigrations(NimbusMigrations.Phase.INIT_STARTED, 2);
+
+  const { cleanup } = await setupTest({
+    migrations: {
+      [NimbusMigrations.Phase.INIT_STARTED]: [LEGACY_TO_MULTIPHASE_MIGRATION],
+      [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: migrations,
+    },
+  });
+
+  Assert.ok(
+    migrations[0].fn.calledOnce,
+    `${migrations[0].name} should be called`
+  );
+  Assert.ok(
+    migrations[1].fn.calledOnce,
+    `${migrations[1].name} should be called`
+  );
+
+  Assert.equal(
+    Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[NimbusMigrations.Phase.INIT_STARTED]
+    ),
+    0,
+    "before-manager-startup phase pref should be set"
+  );
+
+  Assert.equal(
+    Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[
+        NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE
+      ]
+    ),
+    1,
+    "after-remote-setttings-update phase pref should be set"
+  );
+
+  Assert.ok(
+    !Services.prefs.prefHasUserValue(LEGACY_NIMBUS_MIGRATION_PREF),
+    "legacy phase pref is unset"
+  );
+
+  cleanup();
+});
+
+add_task(async function test_migration_legacyToMultiphase_partial() {
+  const migrations = makeMigrations(
+    NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE,
+    3
+  );
+
+  const { cleanup } = await setupTest({
+    legacyMigrationState: 1,
+    migrations: {
+      [NimbusMigrations.Phase.INIT_STARTED]: [LEGACY_TO_MULTIPHASE_MIGRATION],
+      [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: migrations,
+    },
+  });
+
+  Assert.ok(
+    migrations[0].fn.notCalled,
+    `${migrations[0].name} should not be called`
+  );
+  Assert.ok(
+    migrations[1].fn.notCalled,
+    `${migrations[1].name} should not be called`
+  );
+  Assert.ok(
+    migrations[2].fn.calledOnce,
+    `${migrations[2].name} should be called`
+  );
+
+  Assert.equal(
+    Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[NimbusMigrations.Phase.INIT_STARTED]
+    ),
+    0,
+    "before-manager-startup phase pref should be set"
+  );
+
+  Assert.equal(
+    Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[
+        NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE
+      ]
+    ),
+    2,
+    "after-remote-setttings-update phase pref should be set"
+  );
+
+  Assert.ok(
+    !Services.prefs.prefHasUserValue(LEGACY_NIMBUS_MIGRATION_PREF),
+    "legacy phase pref is unset"
+  );
+
+  cleanup();
+});
+
+add_task(async function test_migration_legacyToMultiphase_complete() {
+  const migrations = makeMigrations(
+    NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE,
+    2
+  );
+  const { cleanup } = await setupTest({
+    legacyMigrationState: 1,
+    migrations: {
+      [NimbusMigrations.Phase.INIT_STARTED]: [LEGACY_TO_MULTIPHASE_MIGRATION],
+      [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: migrations,
+    },
+  });
+
+  Assert.ok(migrations[0].fn.notCalled, `${migrations[0].name} not called`);
+  Assert.ok(migrations[1].fn.notCalled, `${migrations[1].name} not called`);
+
+  Assert.equal(
+    Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[NimbusMigrations.Phase.INIT_STARTED]
+    ),
+    0,
+    "before-manager-startup phase pref should be set"
+  );
+  Assert.equal(
+    Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[
+        NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE
+      ]
+    ),
+    1,
+    "after-remote-setttings-update phase pref should be set"
+  );
+  Assert.ok(
+    !Services.prefs.prefHasUserValue(LEGACY_NIMBUS_MIGRATION_PREF),
+    "legacy phase pref is unset"
+  );
+
+  cleanup();
+});
+
+const FIREFOX_LABS_MIGRATION =
+  NimbusMigrations.MIGRATIONS[
+    NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE
+  ][0];
 
 add_task(async function test_migration_firefoxLabsEnrollments() {
   async function doTest(features) {
@@ -269,9 +603,13 @@ add_task(async function test_migration_firefoxLabsEnrollments() {
     for (const pref of prefs) {
       Services.prefs.setBoolPref(pref, true);
     }
-
     const { manager, cleanup } = await setupTest({
       experiments: mockLabsRecipes("true"),
+      migrations: {
+        [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: [
+          FIREFOX_LABS_MIGRATION,
+        ],
+      },
     });
 
     Assert.deepEqual(
@@ -354,6 +692,11 @@ add_task(async function test_migration_firefoxLabsEnrollments_falseTargeting() {
   }
   const { manager, cleanup } = await setupTest({
     experiments: mockLabsRecipes("false"),
+    migrations: {
+      [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: [
+        FIREFOX_LABS_MIGRATION,
+      ],
+    },
   });
 
   Assert.deepEqual(
@@ -420,10 +763,19 @@ add_task(async function test_migration_firefoxLabsEnrollments_idempotent() {
 
   const { manager, cleanup } = await setupTest({
     experiments: recipes,
+    migrations: {
+      [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: [
+        FIREFOX_LABS_MIGRATION,
+      ],
+    },
   });
 
   Assert.equal(
-    Services.prefs.getIntPref(NIMBUS_MIGRATION_PREF),
+    Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[
+        NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE
+      ]
+    ),
     0,
     "Migration pref updated"
   );

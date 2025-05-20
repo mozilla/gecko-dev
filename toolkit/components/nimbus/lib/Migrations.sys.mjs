@@ -18,11 +18,46 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
   return new Logger("NimbusMigrations");
 });
 
+/**
+ * A named migration.
+ *
+ * @typedef {object} Migration
+ *
+ * @property {string} name The name of the migration. This will be reported in
+ * telemetry.
+ *
+ * @property {function(): void} fn The migration implementation.
+ */
+
+/**
+ * Construct a {@link Migration} with a specific name.
+ *
+ * @param {string} name The name of the migration.
+ * @param {function(): void} fn The migration function.
+ *
+ * @returns {Migration} The migration.
+ */
 function migration(name, fn) {
   return { name, fn };
 }
 
-export const NIMBUS_MIGRATION_PREF = "nimbus.migrations.latest";
+const Phase = Object.freeze({
+  INIT_STARTED: "init-started",
+  AFTER_REMOTE_SETTINGS_UPDATE: "after-remote-settings-update",
+});
+
+/**
+ * An initialization phase.
+ *
+ * @typedef {typeof Phase[keyof typeof Phase]} Phase
+ */
+
+export const LEGACY_NIMBUS_MIGRATION_PREF = "nimbus.migrations.latest";
+
+/** @type {Record<Phase, string>} */
+export const NIMBUS_MIGRATION_PREFS = Object.fromEntries(
+  Object.entries(Phase).map(([, v]) => [v, `nimbus.migrations.${v}`])
+);
 
 export const LABS_MIGRATION_FEATURE_MAP = {
   "auto-pip": "firefox-labs-auto-pip",
@@ -30,6 +65,38 @@ export const LABS_MIGRATION_FEATURE_MAP = {
   "jpeg-xl": "firefox-labs-jpeg-xl",
 };
 
+/**
+ * Migrate from the legacy migration state to multi-phase migration state.
+ *
+ * Previously there was only a single set of migrations that ran at the end of
+ * `ExperimentAPI.init()`, which is now the "after-remote-settings-update" phase.
+ */
+function migrateMultiphase() {
+  const latestMigration = Services.prefs.getIntPref(
+    LEGACY_NIMBUS_MIGRATION_PREF,
+    -1
+  );
+  if (latestMigration >= 0) {
+    Services.prefs.setIntPref(
+      NIMBUS_MIGRATION_PREFS[Phase.AFTER_REMOTE_SETTINGS_UPDATE],
+      latestMigration
+    );
+    Services.prefs.clearUserPref(LEGACY_NIMBUS_MIGRATION_PREF);
+  }
+}
+
+/**
+ * Migrate the pre-Nimbus Firefox Labs experiences into Nimbus enrollments.
+ *
+ * Previously Firefox Labs had a one-to-one correlation between Labs Experiments
+ * and prefs being set. If any of those prefs are set, attempt to enroll in the
+ * corresponding live Nimbus rollout.
+ *
+ * Once these rollouts end (i.e., because the features are generally available
+ * and no longer in Labs) they can be removed from {@link
+ * LABS_MIGRATION_FEATURE_MAP} and once that map is empty this migration can be
+ * replaced with a no-op.
+ */
 async function migrateFirefoxLabsEnrollments() {
   const bts = Cc["@mozilla.org/backgroundtasks;1"]?.getService(
     Ci.nsIBackgroundTasks
@@ -116,25 +183,32 @@ export class MigrationError extends Error {
 }
 
 export const NimbusMigrations = {
+  Phase,
   migration,
 
   /**
-   * Apply any outstanding migrations.
+   * Apply any outstanding migrations for the given phase.
+   *
+   * The first migration in the phase to report an error will halt the
+   * application of further migrations in the phase.
+   *
+   * @param {Phase} phase The phase of migrations to apply.
+   *
    */
-  async applyMigrations() {
-    const latestMigration = Services.prefs.getIntPref(
-      NIMBUS_MIGRATION_PREF,
-      -1
-    );
+  async applyMigrations(phase) {
+    const phasePref = NIMBUS_MIGRATION_PREFS[phase];
+    const latestMigration = Services.prefs.getIntPref(phasePref, -1);
     let lastSuccess = latestMigration;
 
-    lazy.log.debug(`applyMigrations: latestMigration = ${latestMigration}`);
+    lazy.log.debug(
+      `applyMigrations ${phase}: latestMigration = ${latestMigration}`
+    );
 
-    for (let i = latestMigration + 1; i < this.MIGRATIONS.length; i++) {
-      const migration = this.MIGRATIONS[i];
+    for (let i = latestMigration + 1; i < this.MIGRATIONS[phase].length; i++) {
+      const migration = this.MIGRATIONS[phase][i];
 
       lazy.log.debug(
-        `applyMigrations: applying migration ${i}: ${migration.name}`
+        `applyMigrations ${phase}: applying migration ${i}: ${migration.name}`
       );
 
       try {
@@ -164,11 +238,20 @@ export const NimbusMigrations = {
     }
 
     if (latestMigration != lastSuccess) {
-      Services.prefs.setIntPref(NIMBUS_MIGRATION_PREF, lastSuccess);
+      Services.prefs.setIntPref(phasePref, lastSuccess);
     }
   },
 
-  MIGRATIONS: [
-    migration("firefox-labs-enrollments", migrateFirefoxLabsEnrollments),
-  ],
+  /**
+   * @type {Record<Phase, Migration[]>}
+   */
+  MIGRATIONS: {
+    [Phase.INIT_STARTED]: [
+      migration("multi-phase-migrations", migrateMultiphase),
+    ],
+
+    [Phase.AFTER_REMOTE_SETTINGS_UPDATE]: [
+      migration("firefox-labs-enrollments", migrateFirefoxLabsEnrollments),
+    ],
+  },
 };
