@@ -33,6 +33,7 @@ const MODEL_HUB_ROOT_URL = Services.prefs.getStringPref(
 const MODEL_HUB_URL_TEMPLATE = Services.prefs.getStringPref(
   "browser.ml.modelHubUrlTemplate"
 );
+const THIRTY_SECONDS = 30 * 1000;
 
 let modelHub = null;
 let modelCache = null;
@@ -83,171 +84,6 @@ const TINY_ARTICLE =
  * Presets for the pad
  */
 const INFERENCE_PAD_PRESETS = {
-  "summarization-large": {
-    modelId: "onnx-community/Qwen2.5-0.5B-Instruct",
-    task: "text-generation",
-    modelRevision: "main",
-    modelHub: "huggingface",
-    dtype: "q8",
-    device: "cpu",
-    backend: "onnx",
-    inputArgs: [
-      "Summarize: The exploration of space has always been a subject of fascination and curiosity for humanity. \nFrom the earliest  stargazers mapping the heavens to modern astronomers utilizing cutting-edge telescopes, the quest to \nunderstand the  cosmos has driven technological and scientific advancement. In the 20th century, the space race between \nthe United States and the Soviet Union culminated in humanity's first steps on the moon, marking a new era of space \nexploration.\n\nToday, space exploration is no longer confined to government agencies. Private companies, such as SpaceX and Blue \nOrigin, are pioneering new methods of space travel, with ambitions ranging from commercial space tourism to colonizing \nMars. These ventures have sparked debates about the ethical, environmental, and economic implications of privatizing \nspace.\n\nThe potential benefits of space exploration are vast. Satellites have revolutionized communication, weather forecasting, \nand navigation. Space-based observations have provided critical data for understanding climate change and protecting \nEarth’s ecosystems. Moreover, the possibility of mining asteroids for rare minerals could address resource shortages on \nour planet.\n\nHowever, the challenges are equally significant. Space travel remains extraordinarily expensive and risky. The harsh \nenvironment of space poses threats to human health, including exposure to radiation and the psychological effects of \nprolonged isolation. Additionally, the accumulation of space debris presents a growing hazard to both current and future \nmissions.\n\nInternational collaboration has proven to be a powerful tool in overcoming some of these challenges. The International \nSpace Station (ISS) serves as a testament to what can be achieved when nations work together, pooling resources and \nexpertise. Future projects, such as the planned Lunar Gateway and Mars missions, highlight the importance of cooperative \nefforts in pushing the boundaries of human capability.\n\nAs humanity looks to the stars, questions about our role in the universe arise. What responsibilities do we have as \nstewards of our own planet and potential explorers of others? How can we ensure that space exploration benefits all of \nhumanity and not just a privileged few?\n\nThe journey into space is a reflection of our innate desire to explore and understand. It challenges us to innovate, to \ndream, and to collaborate. While the road ahead is fraught with difficulties, the potential rewards—both tangible and \nintangible—make the endeavor worthwhile. With careful planning, international cooperation, and ethical considerations, \nspace exploration can continue to inspire and benefit humanity for generations to come.",
-    ],
-    runOptions: {
-      max_new_tokens: 195,
-      min_new_tokens: 200,
-      return_full_text: false,
-      return_tensors: false,
-      do_sample: false,
-    },
-    timeout: 120,
-  },
-  "feature-large": {
-    inputArgs: [
-      [
-        "The quick brown fox jumps over the lazy dog.",
-        "She sells seashells by the seashore.",
-        "He walked slowly across the deserted street at dawn.",
-        "A red rose blossomed in the middle of the garden.",
-        "The sound of rain on the roof lulled me to sleep.",
-        "We must never forget the lessons of history.",
-        "The sun sets, painting the sky in bright shades of orange and purple.",
-        "He found a hidden treasure chest in the old abandoned house.",
-        "They enjoyed a picnic by the river on a sunny afternoon.",
-        "Mathematics is the language of the universe.",
-        "Music has the power to heal and transform hearts.",
-        "A gentle breeze rustled the leaves of the towering oak tree.",
-        "Many species of birds migrate to warmer climates each winter.",
-        "The city lights sparkled like stars in the distance.",
-        "Her bright smile lit up the room when she entered.",
-        "A library is a portal to countless worlds and possibilities.",
-        "The smell of fresh coffee filled the cozy café.",
-        "He missed the sound of ocean waves crashing on the shore.",
-        "The distant mountains were capped with snow even in summer.",
-        "An empty page can represent infinite possibilities.",
-        "We watched the fireworks explode in vibrant colors above us.",
-        "The cat watched a butterfly dance in the garden.",
-        "My grandmother taught me how to bake delicious apple pies.",
-        "The conference was an opportunity to share groundbreaking research.",
-        "They adopted a small puppy from the local animal shelter.",
-        "Snow covered the streets, making them look like a winter wonderland.",
-        "He wrote a letter to express the depth of his feelings.",
-        "A curious child asked endless questions about the world.",
-        "They dreamed of visiting every continent before turning forty.",
-        "The aroma of freshly baked bread welcomed them home.",
-        "Her voice resonated with passion as she spoke of her dreams.",
-        "He overcame his fears and made a bold career change.",
-        "Learning a new language can open doors to unexpected opportunities.",
-        "A gentle melody drifted from the old piano in the corner.",
-        "The festival brought the entire community together for a weekend of fun.",
-        "He discovered an ancient map hidden beneath the floorboards.",
-        "She overcame adversity with resilience and determination.",
-        "The child's laughter echoed in the empty park.",
-        "A well-written book can transport you to distant worlds.",
-        "They found solace in the stillness of the forest.",
-        "A strong partnership can often accomplish more than an individual.",
-        "His grandmother had the best recipe for homemade cookies.",
-        "The large oak tree provided shade on a scorching summer day.",
-        "Innovation thrives when diverse minds come together.",
-        "The smell of wet paint filled the newly renovated room.",
-        "A random act of kindness can brighten a stranger's day.",
-        "He spent hours stargazing, marveling at the vastness of the universe.",
-        "She gently rocked the baby to sleep with a lullaby.",
-        "Confidence grows when you face your fears one step at a time.",
-        "They shared stories by the campfire under the star-filled sky.",
-        "Music can express emotions words fail to capture.",
-        "He meticulously planned every detail of the surprise party.",
-        "Her paintings were inspired by her travels around the world.",
-        "The thunderstorm raged outside while they stayed cozy indoors.",
-        "The excitement of a new adventure can be exhilarating.",
-        "His dedication to his craft was evident in every masterpiece.",
-        "She found beauty in the simplicity of everyday moments.",
-        "He whistled a cheerful tune while waiting for the bus.",
-        "They discovered rare flowers blooming deep within the rainforest.",
-        "His curiosity led him to explore the abandoned mansion alone.",
-        "A family vacation can create lifelong memories for everyone.",
-        "Her determination helped her overcome countless obstacles.",
-        "He admired the intricate design of the old cathedral's stained glass windows.",
-        "She found a book in the attic that changed her perspective on life.",
-        "They hiked through the mountains, mesmerized by the panoramic view.",
-        "A warm cup of tea soothed her nerves after a long day.",
-        "He recounted tales of his youth with a nostalgic smile.",
-        "The teacher praised the students for their collaborative spirit.",
-        "She embraced the quiet solitude of her countryside retreat.",
-        "They discovered a mysterious artifact beneath the ancient ruins.",
-        "He woke early to watch the sunrise illuminate the horizon.",
-        "A kind gesture can leave a lasting impression.",
-        "She wore her grandmother's necklace for good luck.",
-        "The baby giggled when the puppy licked her tiny toes.",
-        "Every painting in the gallery told a unique story.",
-        "He spent all morning crafting a heartfelt letter of apology.",
-        "Her eyes lit up when she recognized an old friend across the street.",
-        "They marveled at the bioluminescent plankton glowing in the midnight sea.",
-        "He cherished the sound of rain tapping on his window.",
-        "The library was his refuge, a place to dream and learn.",
-        "She danced gracefully, captivated by the gentle piano music.",
-        "A single spark can ignite a roaring flame.",
-        "He spent weeks planning the perfect proposal on the beach.",
-        "Her passion for art was evident in every brushstroke.",
-        "They lost track of time while playing board games all evening.",
-        "He gently patted the old dog that slept peacefully by his feet.",
-        "The newborn foal struggled to stand on wobbly legs.",
-        "She found inspiration in nature's boundless beauty.",
-        "They found hope in the darkest moments, clinging to each other for support.",
-        "He discovered a passion for cooking while helping at a local bistro.",
-        "She carried the memory of her best friend in a locket around her neck.",
-        "He spoke softly, trying not to disturb the sleeping baby.",
-        "They visited the art museum to admire the classic Renaissance paintings.",
-        "She overcame her stage fright by focusing on the joy of performing.",
-        "He daydreamed about exploring uncharted territories.",
-        "They danced in the rain, laughing at the storm's thunderous roar.",
-        "He spent a quiet Sunday afternoon reading in the backyard hammock.",
-        "She wrote poetry to capture her most profound emotions.",
-        "They snuggled under warm blankets to watch the first snowfall of winter.",
-        "He presented his research findings at the international conference.",
-        "She carefully traced the family lineage back several centuries.",
-        "They planted a garden together, hoping for a bountiful harvest.",
-        "He woke up early to practice yoga in the morning light.",
-        "She believed that kindness could change the world one step at a time.",
-        "They gazed at the shooting stars streaking across the night sky.",
-        "He built a small treehouse for his younger siblings to play in.",
-        "She reminisced about the childhood summers spent at her grandparents' farm.",
-        "They formed a band, blending various genres to create a unique sound.",
-        "He spent years saving money for the trip of a lifetime.",
-        "She had a knack for solving complex puzzles in record time.",
-        "They cultivated a thriving vegetable garden in their backyard.",
-        "He overcame his stage fright with daily practice and meditation.",
-        "She found solace in writing letters to her future self.",
-        "They huddled around the fireplace sharing ghost stories late into the night.",
-        "He repaired the old clock that had been silent for decades.",
-        "She painted vibrant sunsets inspired by her travels in the tropics.",
-        "They organized a neighborhood cleanup to celebrate Earth Day.",
-        "He discovered a hidden talent for sculpting while taking an art class.",
-        "She sang lullabies to soothe her restless toddler at bedtime.",
-        "They embarked on a cross-country road trip to visit national parks.",
-        "He studied ancient myths to glean lessons about human nature.",
-        "She volunteered at the local shelter, caring for abandoned animals.",
-        "They joined a choir, finding joy in the harmony of voices.",
-        "He journaled daily, reflecting on personal growth and gratitude.",
-        "She followed a cherished family recipe to bake a special birthday cake.",
-        "They marveled at the northern lights dancing across the icy tundra.",
-        "He explored a remote island, documenting rare wildlife species.",
-        "She wrote a heartfelt farewell message when leaving her childhood home.",
-      ],
-    ],
-    runOptions: {
-      pooling: "mean",
-      normalize: true,
-    },
-    task: "feature-extraction",
-    modelId: "Xenova/all-MiniLM-L6-v2",
-    modelRevision: "main",
-    modelHub: "huggingface",
-    dtype: "q8",
-    device: "cpu",
-    backend: "onnx",
-  },
   "image-to-text": {
     inputArgs: [
       "https://huggingface.co/datasets/mishig/sample_images/resolve/main/football-match.jpg",
@@ -258,8 +94,7 @@ const INFERENCE_PAD_PRESETS = {
     modelRevision: "main",
     modelHub: "huggingface",
     dtype: "q8",
-    device: "cpu",
-    backend: "onnx",
+    device: "wasm",
   },
   ner: {
     inputArgs: ["Sarah lives in the United States of America"],
@@ -269,8 +104,7 @@ const INFERENCE_PAD_PRESETS = {
     modelRevision: "main",
     modelHub: "huggingface",
     dtype: "q8",
-    device: "cpu",
-    backend: "onnx",
+    device: "wasm",
   },
   summary: {
     inputArgs: [TINY_ARTICLE],
@@ -282,8 +116,7 @@ const INFERENCE_PAD_PRESETS = {
     modelRevision: "main",
     modelHub: "huggingface",
     dtype: "q8",
-    device: "cpu",
-    backend: "onnx",
+    device: "wasm",
   },
   zero: {
     inputArgs: [
@@ -296,8 +129,7 @@ const INFERENCE_PAD_PRESETS = {
     modelRevision: "main",
     modelHub: "huggingface",
     dtype: "q8",
-    device: "cpu",
-    backend: "onnx",
+    device: "wasm",
   },
   feature: {
     inputArgs: [["This is an example sentence", "Each sentence is converted"]],
@@ -307,8 +139,7 @@ const INFERENCE_PAD_PRESETS = {
     modelRevision: "main",
     modelHub: "huggingface",
     dtype: "q8",
-    device: "cpu",
-    backend: "onnx",
+    device: "wasm",
   },
 
   "link-preview": {
@@ -324,8 +155,7 @@ const INFERENCE_PAD_PRESETS = {
     modelHubRootUrl: "https://model-hub.mozilla.org",
     numThreads: 0,
     dtype: "q8",
-    device: "cpu",
-    backend: "onnx",
+    device: "wasm",
   },
 };
 
@@ -777,8 +607,6 @@ function loadExample(name) {
   setSelectOption("modelHub", data.modelHub);
   setSelectOption("dtype", data.dtype);
   setSelectOption("device", data.device);
-  setSelectOption("backend", data.backend);
-  document.getElementById("timeout").value = data.timeout || 30;
 }
 
 function findMaxMemory(metrics) {
@@ -832,9 +660,6 @@ async function runInference() {
   const numThreads = parseInt(document.getElementById("numThreads").value);
   const numRuns = parseInt(document.getElementById("numRuns").value);
   const modelHub = document.getElementById("modelHub").value;
-  const backend = document.getElementById("backend").value;
-  const timeout = parseInt(document.getElementById("timeout").value);
-
   let additionalEngineOptions = {};
 
   let inputData;
@@ -881,16 +706,11 @@ async function runInference() {
     modelHub,
     device,
     dtype,
-    backend,
     numThreads,
-    timeoutMS: timeout * 1000,
+    timeoutMS: THIRTY_SECONDS,
     executionPriority: ExecutionPriority.LOW,
     ...additionalEngineOptions,
   };
-
-  if (initData.device === "cpu" && initData.backend === "onnx") {
-    initData.device = "wasm";
-  }
 
   resultsConsole.addLine("Creating engine if needed");
   let engine;
@@ -1240,7 +1060,7 @@ async function runBenchmark() {
         modelRevision: "main",
         modelHub: "huggingface",
         dtype: "q8",
-        device: "cpu",
+        device: "wasm",
       },
     },
     {
@@ -1254,7 +1074,7 @@ async function runBenchmark() {
         modelRevision: "main",
         modelHub: "huggingface",
         dtype: "q8",
-        device: "cpu",
+        device: "wasm",
       },
     },
     {
@@ -1270,7 +1090,7 @@ async function runBenchmark() {
         modelRevision: "main",
         modelHub: "huggingface",
         dtype: "q8",
-        device: "cpu",
+        device: "wasm",
       },
     },
     {
@@ -1322,13 +1142,6 @@ async function runBenchmark() {
         benchmarkConsole.addText("Initialization...");
 
         workload.pipelineOptions.backend = currentBackend;
-
-        if (
-          workload.pipelineOptions.device === "cpu" &&
-          workload.pipelineOptions.backend === "onnx"
-        ) {
-          workload.pipelineOptions.device = "wasm";
-        }
 
         bench.initDuration = await measure(async () => {
           const pipelineOptions = new PipelineOptions(workload.pipelineOptions);
@@ -1398,12 +1211,11 @@ window.onload = async function () {
   fillSelect("numThreads", getNumThreadsArray());
   fillSelect("predefined", PREDEFINED);
   fillSelect("benchmark.backend", ["all"].concat(lazy.BACKENDS));
-  fillSelect("backend", lazy.BACKENDS);
 
-  document.getElementById("predefined").value = "feature-large";
-  loadExample("feature-large");
-
+  document.getElementById("predefined").value = "summary";
+  loadExample("summary");
   document.getElementById("console").value = "";
+
   document
     .getElementById("inferenceButton")
     .addEventListener("click", runInference);

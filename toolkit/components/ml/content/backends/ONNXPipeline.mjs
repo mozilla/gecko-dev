@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// The following globals are defined in dom/webidl/ONNX.webidl
-/* global Tensor, InferenceSession */
-
 /**
  * @typedef {import("../../content/Utils.sys.mjs").ProgressAndStatusCallbackParams} ProgressAndStatusCallbackParams
  */
@@ -44,55 +41,23 @@ ChromeUtils.defineESModuleGetters(
 );
 
 /**
- * A global reference to the Transformers library.
- * Initially `null` until `importTransformers` sets it.
+ * Conditional import for Transformer.js
  *
- * @global
- * @type {object | null}
+ * The library will be lazily await on first usage in the Pipeline constructor.
+ * If we are in Nightly, we are using the non-minified version.
  */
+let transformersPromise;
 let transformers = null;
+let transformersDev;
 
-/**
- * Conditionally imports the Transformers library (transformers.js or transformers-dev.js)
- * on first usage, depending on the environment. If the "onnx-native" backend is used,
- * it exposes the `onnxruntime` object on the global scope under `Symbol.for("onnxruntime")`.
- *
- * @async
- * @function importTransformers
- * @param {string} backend - The backend to use (e.g. "onnx-native" or "onnxruntime").
- * @returns {Promise<void>} A promise that resolves once the Transformers library is imported.
- */
-async function importTransformers(backend) {
-  if (transformers) {
-    return;
-  }
-
-  lazy.console.debug(`Using backend ${backend}`);
-
-  if (backend === "onnx-native") {
-    // check if we have the native backend.
-    if (typeof InferenceSession === "undefined") {
-      throw new Error("onnx-native backend not supported");
-    }
-
-    // Exposing an onnxruntime object to the Transformers lib.
-    const onnxruntime = {
-      InferenceSession,
-      Tensor,
-      supportedDevices: ["cpu"],
-      defaultDevices: ["cpu"],
-    };
-    globalThis[Symbol.for("onnxruntime")] = onnxruntime;
-  }
-  if (AppConstants.NIGHTLY_BUILD) {
-    lazy.console.debug("Nightly detected. Using transformers-dev.js");
-    transformers = await import(
-      "chrome://global/content/ml/transformers-dev.js"
-    );
-  } else {
-    lazy.console.debug("Beta or Release detected, using transformers.js");
-    transformers = await import("chrome://global/content/ml/transformers.js");
-  }
+if (AppConstants.NIGHTLY_BUILD) {
+  transformersPromise = import(
+    "chrome://global/content/ml/transformers-dev.js"
+  );
+  transformersDev = true;
+} else {
+  transformersPromise = import("chrome://global/content/ml/transformers.js");
+  transformersDev = false;
 }
 
 /**
@@ -366,9 +331,6 @@ export class ONNXPipeline {
     this.#errorFactory = errorFactory;
     this.#mlEngineWorker = mlEngineWorker;
     this.#metrics = [];
-    let device;
-    let session_options = {};
-
     // Setting up the Transformers.js environment
     // See https://huggingface.co/docs/transformers.js/api/env
 
@@ -386,44 +348,32 @@ export class ONNXPipeline {
       lazy.generateUUID()
     );
     // using `NO_LOCAL` so when the custom cache is used, we don't try to fetch it (see MLEngineWorker.match)
-    if (config.backend === "onnx") {
-      transformers.env.localModelPath = "NO_LOCAL";
-      transformers.env.backends.onnx.wasm.numThreads = config.numThreads;
+    transformers.env.localModelPath = "NO_LOCAL";
+    transformers.env.backends.onnx.wasm.numThreads = config.numThreads;
 
-      // ONNX runtime - we set up the wasm runtime we got from RS for the ONNX backend to pick
-      transformers.env.backends.onnx.wasm.wasmPaths = {};
-      transformers.env.backends.onnx.wasm.wasmBinary = config.runtime;
+    // ONNX runtime - we set up the wasm runtime we got from RS for the ONNX backend to pick
+    transformers.env.backends.onnx.wasm.wasmPaths = {};
+    transformers.env.backends.onnx.wasm.wasmBinary = config.runtime;
 
-      // Set the onnxruntime-web log/verbosity.
-      // onnx log levels are "error" | "verbose" | "info" | "warning" | "fatal"
-      // the default level is "warning"
-      switch (config.logLevel) {
-        case "All":
-        case "Trace":
-          transformers.env.backends.onnx.logLevel = "verbose";
-          transformers.env.backends.onnx.trace = true;
-          transformers.env.backends.onnx.debug = true;
-          break;
-        case "Debug":
-          transformers.env.backends.onnx.logLevel = "verbose";
-          transformers.env.backends.onnx.debug = true;
-          break;
-        default:
-          transformers.env.backends.onnx.logLevel = "warning";
-          transformers.env.backends.onnx.trace = false;
-          transformers.env.backends.onnx.debug = false;
-          break;
-      }
-      lazy.console.debug("Transformers.js env", transformers.env);
-      if (config.device == "cpu") {
-        config.device = "wasm";
-      }
-      device = config.device = config.device || "wasm";
-    } else {
-      device = "cpu";
-      session_options.intraOpNumThreads = config.numThreads;
-      session_options.interOpNumThreads = config.numThreads;
-      session_options.execution_mode = "sequential";
+    // Set the onnxruntime-web log/verbosity.
+    // onnx log levels are "error" | "verbose" | "info" | "warning" | "fatal"
+    // the default level is "warning"
+    switch (config.logLevel) {
+      case "All":
+      case "Trace":
+        transformers.env.backends.onnx.logLevel = "verbose";
+        transformers.env.backends.onnx.trace = true;
+        transformers.env.backends.onnx.debug = true;
+        break;
+      case "Debug":
+        transformers.env.backends.onnx.logLevel = "verbose";
+        transformers.env.backends.onnx.debug = true;
+        break;
+      default:
+        transformers.env.backends.onnx.logLevel = "warning";
+        transformers.env.backends.onnx.trace = false;
+        transformers.env.backends.onnx.debug = false;
+        break;
     }
 
     transformers.NoBadWordsLogitsProcessor.prototype._call =
@@ -431,6 +381,8 @@ export class ONNXPipeline {
 
     lazy.console.debug("Transformers.js env", transformers.env);
 
+    // Defaults for transformers.js if they are null in PipelineOptions.
+    const device = (config.device = config.device || "wasm");
     const dtype = (config.dtype = config.dtype || "q8");
     const modelRevision = (config.modelRevision =
       config.modelRevision || "main");
@@ -495,7 +447,6 @@ export class ONNXPipeline {
             device,
             dtype,
             use_external_data_format: config.useExternalDataFormat,
-            session_options,
           }
         );
       } else {
@@ -552,9 +503,15 @@ export class ONNXPipeline {
 
     // Overriding the defaults with the options
     options.applyToConfig(config);
-    config.backend = config.backend || "onnxruntime";
 
-    await importTransformers(config.backend);
+    if (!transformers) {
+      if (transformersDev) {
+        lazy.console.debug("Nightly detected. Using transformers-dev.js");
+      } else {
+        lazy.console.debug("Beta or Release detected, using transformers.js");
+      }
+      transformers = await transformersPromise;
+    }
 
     // reapply logLevel if it has changed.
     if (lazy.console.logLevel != config.logLevel) {
