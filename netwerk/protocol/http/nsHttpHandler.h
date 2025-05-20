@@ -465,8 +465,6 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
     return mFocusedWindowTransactionRatio;
   }
 
-  bool ActiveTabPriority() const { return mActiveTabPriority; }
-
   // Called when an optimization feature affecting active vs background tab load
   // took place.  Called only on the parent process and only updates
   // mLastActiveTabLoadOptimizationHit timestamp to now.
@@ -740,9 +738,6 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
 
   // The ratio for dispatching transactions from the focused window.
   float mFocusedWindowTransactionRatio{0.9f};
-
-  // If true, the transactions from active tab will be dispatched first.
-  bool mActiveTabPriority{true};
 
   HttpTrafficAnalyzer mHttpTrafficAnalyzer;
 

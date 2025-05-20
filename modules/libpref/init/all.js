@@ -1283,15 +1283,6 @@ pref("network.http.focused_window_transaction_ratio", "0.9");
 // the flow control.
 pref("network.http.send_window_size", 1024);
 
-// Whether or not we give more priority to active tab.
-// Note that this requires restart for changes to take effect.
-#ifdef ANDROID
-  // disabled because of bug 1382274
-  pref("network.http.active_tab_priority", false);
-#else
-  pref("network.http.active_tab_priority", true);
-#endif
-
 // By default the Accept header sent for documents loaded over HTTP(S) is derived
 // by DocumentAcceptHeader() in nsHttpHandler.cpp. If set, this pref overrides it.
 // There is also image.http.accept which works in scope of image.

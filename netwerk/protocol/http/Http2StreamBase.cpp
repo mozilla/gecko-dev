@@ -953,7 +953,7 @@ void Http2StreamBase::UpdatePriorityDependency() {
 
   mPriorityDependency = GetPriorityDependencyFromTransaction(trans);
 
-  if (gHttpHandler->ActiveTabPriority() &&
+  if (StaticPrefs::network_http_active_tab_priority() &&
       mTransactionBrowserId != mCurrentBrowserId &&
       mPriorityDependency != Http2Session::kUrgentStartGroupID) {
     LOG3(
@@ -983,7 +983,7 @@ void Http2StreamBase::CurrentBrowserIdChanged(uint64_t id) {
 }
 
 void Http2StreamBase::CurrentBrowserIdChangedInternal(uint64_t id) {
-  MOZ_ASSERT(gHttpHandler->ActiveTabPriority());
+  MOZ_ASSERT(StaticPrefs::network_http_active_tab_priority());
   RefPtr<Http2Session> session = Session();
   LOG3(
       ("Http2StreamBase::CurrentBrowserIdChangedInternal "
