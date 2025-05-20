@@ -9,7 +9,6 @@ import subprocess
 from mozboot.util import get_tools_dir
 from mozfile import which
 from packaging.version import Version
-from six import PY3
 
 NODE_MIN_VERSION = Version("12.22.12")
 NPM_MIN_VERSION = Version("6.14.16")
@@ -54,7 +53,7 @@ def check_executable_version(exe, wrap_call_with_node=False):
         if binary:
             out = (
                 subprocess.check_output(
-                    [binary, exe, "--version"], universal_newlines=PY3
+                    [binary, exe, "--version"], universal_newlines=True
                 )
                 .lstrip("v")
                 .rstrip()
@@ -64,7 +63,7 @@ def check_executable_version(exe, wrap_call_with_node=False):
     # direct.
     if not out:
         out = (
-            subprocess.check_output([exe, "--version"], universal_newlines=PY3)
+            subprocess.check_output([exe, "--version"], universal_newlines=True)
             .lstrip("v")
             .rstrip()
         )

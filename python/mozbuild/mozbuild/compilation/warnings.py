@@ -9,7 +9,6 @@ import os
 import re
 
 import mozpack.path as mozpath
-import six
 
 from mozbuild.util import hash_file
 
@@ -253,7 +252,7 @@ class WarningsDatabase:
                     normalized = list(v2)
                 obj["files"][k][k2] = normalized
 
-        to_write = six.ensure_text(json.dumps(obj, indent=2))
+        to_write = json.dumps(obj, indent=2)
         fh.write(to_write)
 
     def deserialize(self, fh):

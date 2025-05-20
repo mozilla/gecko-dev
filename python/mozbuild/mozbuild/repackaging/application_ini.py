@@ -2,9 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import configparser
+
 from mozpack.files import FileFinder
-from six import string_types
-from six.moves import configparser
 
 
 def get_application_ini_value(
@@ -36,7 +36,7 @@ def get_application_ini_values(finder_or_application_directory, *args):
 
     Raises an `Exception` if any string is not found."""
 
-    if isinstance(finder_or_application_directory, string_types):
+    if isinstance(finder_or_application_directory, str):
         finder = FileFinder(finder_or_application_directory)
     else:
         finder = finder_or_application_directory

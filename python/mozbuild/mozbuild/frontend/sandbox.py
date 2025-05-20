@@ -21,7 +21,6 @@ import os
 import sys
 import weakref
 
-import six
 from mozpack.files import FileFinder
 
 from mozbuild.util import ReadOnlyDict
@@ -154,7 +153,7 @@ class Sandbox(dict):
         assert os.path.isabs(path)
 
         try:
-            source = six.ensure_text(self._finder.get(path).read())
+            source = self._finder.get(path).read().decode()
         except Exception:
             raise SandboxLoadError(
                 self._context.source_stack, sys.exc_info()[2], read_error=path

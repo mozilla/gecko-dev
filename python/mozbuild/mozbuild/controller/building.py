@@ -16,7 +16,6 @@ from collections import Counter, OrderedDict, namedtuple
 from itertools import dropwhile, islice, takewhile
 from textwrap import TextWrapper
 
-import six
 from mach.site import CommandSiteManager
 
 try:
@@ -362,8 +361,8 @@ class BuildMonitor(MozbuildObject):
             with open(
                 build_resources_profile_path, "w", encoding="utf-8", newline="\n"
             ) as fh:
-                to_write = six.ensure_text(
-                    json.dumps(self.resources.as_profile(), separators=(",", ":"))
+                to_write = json.dumps(
+                    self.resources.as_profile(), separators=(",", ":")
                 )
                 fh.write(to_write)
         except Exception as e:
@@ -914,7 +913,6 @@ class CCacheStats:
                 self._parse_line(line)
 
     def _parse_line(self, line):
-        line = six.ensure_text(line)
         for stat_key, stat_description in self.STATS_KEYS:
             if line.startswith(stat_description):
                 raw_value = self._strip_prefix(line, stat_description)
@@ -1714,17 +1712,16 @@ class BuildDriver(MozbuildObject):
     def _write_mozconfig_json(self):
         mozconfig_json = mozpath.join(self.topobjdir, ".mozconfig.json")
         with FileAvoidWrite(mozconfig_json) as fh:
-            to_write = six.ensure_text(
-                json.dumps(
-                    {
-                        "topsrcdir": self.topsrcdir,
-                        "topobjdir": self.topobjdir,
-                        "mozconfig": self.mozconfig,
-                    },
-                    sort_keys=True,
-                    indent=2,
-                )
+            to_write = json.dumps(
+                {
+                    "topsrcdir": self.topsrcdir,
+                    "topobjdir": self.topobjdir,
+                    "mozconfig": self.mozconfig,
+                },
+                sort_keys=True,
+                indent=2,
             )
+
             # json.dumps in python2 inserts some trailing whitespace while
             # json.dumps in python3 does not, which defeats the FileAvoidWrite
             # mechanism. Strip the trailing whitespace to avoid rewriting this
@@ -1852,7 +1849,7 @@ class BuildDriver(MozbuildObject):
             # We'll just use an empty substs if there is no config.
             pass
         clobberer = Clobberer(self.topsrcdir, self.topobjdir, substs)
-        clobber_output = six.StringIO()
+        clobber_output = io.StringIO()
         res = clobberer.maybe_do_clobber(os.getcwd(), auto_clobber, clobber_output)
         clobber_output.seek(0)
         for line in clobber_output.readlines():

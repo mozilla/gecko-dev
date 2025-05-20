@@ -5,7 +5,7 @@
 from setuptools import setup
 
 VERSION = "1.0.0"
-DEPS = ["six >= 1.13.0"]
+DEPS = []
 
 setup(
     name="mozterm",

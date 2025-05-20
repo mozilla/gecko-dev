@@ -10,7 +10,6 @@ from collections.abc import Iterable
 import gyp
 import gyp.msvs_emulation
 import mozpack.path as mozpath
-import six
 from mozpack.files import FileFinder
 
 from mozbuild import shellutil
@@ -227,7 +226,7 @@ def process_gyp_result(
         elif spec["type"] in ("static_library", "shared_library", "executable"):
             # Remove leading 'lib' from the target_name if any, and use as
             # library name.
-            name = six.ensure_text(spec["target_name"])
+            name = spec["target_name"]
             if spec["type"] in ("static_library", "shared_library"):
                 if name.startswith("lib"):
                     name = name[3:]

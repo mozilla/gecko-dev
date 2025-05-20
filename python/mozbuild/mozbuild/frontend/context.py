@@ -21,7 +21,6 @@ from collections import Counter, OrderedDict
 from types import FunctionType
 
 import mozpack.path as mozpath
-import six
 
 from mozbuild.util import (
     HierarchicalStringList,
@@ -827,7 +826,7 @@ class PathMeta(type):
         return super(PathMeta, cls).__call__(context, value)
 
 
-class Path(six.with_metaclass(PathMeta, ContextDerivedValue, str)):
+class Path(ContextDerivedValue, str, metaclass=PathMeta):
     """Stores and resolves a source path relative to a given context
 
     This class is used as a backing type for some of the sandbox variables.

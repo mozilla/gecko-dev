@@ -17,7 +17,6 @@ import xml.etree.ElementTree as ET
 from types import SimpleNamespace
 
 import mozpack.path as mozpath
-import six
 import yaml
 from mach.decorators import Command, CommandArgument, SubCommand
 from mach.main import Mach
@@ -1847,7 +1846,7 @@ def _parse_xml_output(path, clang_output):
     list of patches, and calculates line level informations from the
     character level provided changes.
     """
-    content = six.ensure_str(open(path).read())
+    content = open(path).read()
 
     def _nb_of_lines(start, end):
         return len(content[start:end].splitlines())

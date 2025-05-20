@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import codecs
 import io
 import itertools
 import locale
@@ -12,7 +11,6 @@ import sys
 from collections import deque
 from contextlib import contextmanager
 
-import six
 from looseversion import LooseVersion
 
 
@@ -76,24 +74,8 @@ class ConfigureOutputHandler(logging.Handler):
     def __init__(self, stdout=sys.stdout, stderr=sys.stderr, maxlen=20):
         super(ConfigureOutputHandler, self).__init__()
 
-        # Python has this feature where it sets the encoding of pipes to
-        # ascii, which blatantly fails when trying to print out non-ascii.
-        def fix_encoding(fh):
-            if six.PY3:
-                return fh
-            try:
-                isatty = fh.isatty()
-            except AttributeError:
-                isatty = True
-
-            if not isatty:
-                encoding = getpreferredencoding()
-                if encoding:
-                    return codecs.getwriter(encoding)(fh)
-            return fh
-
-        self._stdout = fix_encoding(stdout)
-        self._stderr = fix_encoding(stderr) if stdout != stderr else self._stdout
+        self._stdout = stdout
+        self._stderr = stderr if stdout != stderr else self._stdout
         try:
             fd1 = self._stdout.fileno()
             fd2 = self._stderr.fileno()
@@ -126,7 +108,7 @@ class ConfigureOutputHandler(logging.Handler):
         try:
             if record.levelno == logging.INFO:
                 stream = self._stdout
-                msg = six.ensure_text(record.getMessage())
+                msg = record.getMessage()
                 if self._stdout_waiting == self.INTERRUPTED and self._same_output:
                     msg = " ... %s" % msg
                 self._stdout_waiting = msg.endswith("... ")
@@ -210,7 +192,8 @@ class LineIO:
         self._errors = errors
 
     def write(self, buf):
-        buf = six.ensure_text(buf, encoding=self._encoding or "utf-8")
+        if isinstance(buf, bytes):
+            buf = buf.decode(encoding=self._encoding or "utf-8")
         lines = buf.splitlines()
         if not lines:
             return

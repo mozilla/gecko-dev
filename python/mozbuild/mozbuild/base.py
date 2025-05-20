@@ -12,7 +12,6 @@ import sys
 from pathlib import Path
 
 import mozpack.path as mozpath
-import six
 from mach.mixin.process import ProcessExecutionMixin
 from mozboot.mozconfig import MozconfigFindException
 from mozfile import which
@@ -279,7 +278,7 @@ class MozbuildObject(ProcessExecutionMixin):
         # the environment variable, which has an impact on autodetection (when
         # path is MozconfigLoader.AUTODETECT), and memoization wouldn't account
         # for it without the explicit (unused) argument.
-        out = six.StringIO()
+        out = io.StringIO()
         env = os.environ
         if path and path != MozconfigLoader.AUTODETECT:
             env = dict(env)

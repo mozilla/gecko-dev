@@ -22,6 +22,7 @@ import time
 import urllib
 from collections import defaultdict
 from pathlib import Path
+from shlex import quote as shlex_quote
 
 import mozpack.path as mozpath
 from mach.util import get_state_dir
@@ -31,7 +32,6 @@ from mozpack.files import FileFinder, JarFinder
 from mozpack.manifests import InstallManifest
 from mozpack.mozjar import JarReader
 from mozpack.packager.unpack import UnpackFinder
-from six.moves import shlex_quote
 
 from mozbuild.configure import confvars
 from mozbuild.dirutils import ensureParentDir

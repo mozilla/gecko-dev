@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import codecs
+import builtins
 import inspect
 import logging
 import os
@@ -14,8 +14,6 @@ from contextlib import contextmanager
 from functools import wraps
 
 import mozpack.path as mozpath
-import six
-from six.moves import builtins as __builtin__
 
 from mozbuild.configure.help import HelpFormatter
 from mozbuild.configure.options import (
@@ -32,7 +30,6 @@ from mozbuild.util import (
     ReadOnlyNamespace,
     memoize,
     memoized_property,
-    system_encoding,
 )
 
 # TRACE logging level, below (thus more verbose than) DEBUG
@@ -299,7 +296,7 @@ class ConfigureSandbox(dict):
     # files more python3-ready.
     BUILTINS = ReadOnlyDict(
         {
-            b: getattr(__builtin__, b, None)
+            b: getattr(builtins, b, None)
             for b in (
                 "AssertionError",
                 "False",
@@ -433,7 +430,7 @@ class ConfigureSandbox(dict):
             def wrapped(*args, **kwargs):
                 out_args = [
                     (
-                        six.ensure_text(arg, encoding=encoding or "utf-8")
+                        arg.decode(encoding=encoding or "utf-8")
                         if isinstance(arg, bytes)
                         else arg
                     )
@@ -1055,45 +1052,12 @@ class ConfigureSandbox(dict):
 
         return ReadOnlyNamespace(**wrapped_subprocess)
 
-    @memoized_property
-    def _wrapped_six(self):
-        if six.PY3:
-            return six
-        wrapped_six = {}
-        exec("from six import *", {}, wrapped_six)
-        wrapped_six_moves = {}
-        exec("from six.moves import *", {}, wrapped_six_moves)
-        wrapped_six_moves_builtins = {}
-        exec("from six.moves.builtins import *", {}, wrapped_six_moves_builtins)
-
-        # Special case for the open() builtin, because otherwise, using it
-        # fails with "IOError: file() constructor not accessible in
-        # restricted mode". We also make open() look more like python 3's,
-        # decoding to unicode strings unless the mode says otherwise.
-        def wrapped_open(name, mode=None, buffering=None):
-            args = (name,)
-            kwargs = {}
-            if buffering is not None:
-                kwargs["buffering"] = buffering
-            if mode is not None:
-                args += (mode,)
-                if "b" in mode:
-                    return open(*args, **kwargs)
-            kwargs["encoding"] = system_encoding
-            return codecs.open(*args, **kwargs)
-
-        wrapped_six_moves_builtins["open"] = wrapped_open
-        wrapped_six_moves["builtins"] = ReadOnlyNamespace(**wrapped_six_moves_builtins)
-        wrapped_six["moves"] = ReadOnlyNamespace(**wrapped_six_moves)
-
-        return ReadOnlyNamespace(**wrapped_six)
-
     def _get_one_import(self, _from, _import, _as, glob):
         """Perform the given import, placing the result into the dict glob."""
         if not _from and _import == "__builtin__":
             raise Exception("Importing __builtin__ is forbidden")
         if _from == "__builtin__":
-            _from = "six.moves.builtins"
+            _from = "builtins"
         # The special `__sandbox__` module gives access to the sandbox
         # instance.
         if not _from and _import == "__sandbox__":

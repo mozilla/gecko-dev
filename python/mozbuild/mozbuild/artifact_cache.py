@@ -25,11 +25,10 @@ import binascii
 import hashlib
 import logging
 import os
+import urllib.parse as urlparse
 
 import dlmanager
 import mozpack.path as mozpath
-import six
-import six.moves.urllib.parse as urlparse
 
 from mozbuild.dirutils import mkdir
 
@@ -179,7 +178,7 @@ class ArtifactCache:
             # extract the build ID from the downloaded artifact and use it to make a
             # human readable unique name, but extracting build IDs is time consuming
             # (especially on Mac OS X, where we must mount a large DMG file).
-            hash = hashlib.sha256(six.ensure_binary(url)).hexdigest()[:16]
+            hash = hashlib.sha256(url.encode()).hexdigest()[:16]
             # Strip query string and fragments.
             basename = os.path.basename(urlparse.urlparse(url).path)
             fname = hash + "-" + basename

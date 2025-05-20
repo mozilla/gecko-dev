@@ -19,8 +19,6 @@ import sys
 from io import BytesIO, StringIO
 from pathlib import Path
 
-import six
-
 from mozbuild.dirutils import ensureParentDir
 
 try:
@@ -201,7 +199,9 @@ class FileAvoidWrite(BytesIO):
         self._binary_mode = "b" in readmode
 
     def write(self, buf):
-        BytesIO.write(self, six.ensure_binary(buf))
+        if isinstance(buf, str):
+            buf = buf.encode()
+        BytesIO.write(self, buf)
 
     def avoid_writing_to_file(self):
         self._write_to_file = False
@@ -218,8 +218,12 @@ class FileAvoidWrite(BytesIO):
         of the result.
         """
         # Use binary data if the caller explicitly asked for it.
-        ensure = six.ensure_binary if self._binary_mode else six.ensure_text
-        buf = ensure(self.getvalue())
+        buf = self.getvalue()
+        if self._binary_mode:
+            if isinstance(buf, str):
+                buf = buf.encode()
+        elif isinstance(buf, bytes):
+            buf = buf.decode()
 
         BytesIO.close(self)
         existed = False
@@ -247,9 +251,6 @@ class FileAvoidWrite(BytesIO):
             writemode = "w"
             if self._binary_mode:
                 writemode += "b"
-                buf = six.ensure_binary(buf)
-            else:
-                buf = six.ensure_text(buf)
             path = Path(self.name)
             if path.is_symlink():
                 # Migration to code autogeneration can encounter with existing symlinks, e.g. bug 1953858.
@@ -402,11 +403,7 @@ class List(list):
                 )
             if key.step:
                 raise ValueError("List cannot be sliced with a nonzero step " "value")
-            # Python 2 and Python 3 do this differently for some reason.
-            if six.PY2:
-                return super(List, self).__setslice__(key.start, key.stop, val)
-            else:
-                return super(List, self).__setitem__(key, val)
+            return super(List, self).__setitem__(key, val)
         return super(List, self).__setitem__(key, val)
 
     def __setslice__(self, i, j, sequence):
@@ -1071,13 +1068,13 @@ def group_unified_files(files, unified_prefix, unified_suffix, files_per_unified
     dummy_fill_value = ("dummy",)
 
     def filter_out_dummy(iterable):
-        return six.moves.filter(lambda x: x != dummy_fill_value, iterable)
+        return filter(lambda x: x != dummy_fill_value, iterable)
 
     # From the itertools documentation, slightly modified:
     def grouper(n, iterable):
         "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
         args = [iter(iterable)] * n
-        return six.moves.zip_longest(fillvalue=dummy_fill_value, *args)
+        return itertools.zip_longest(fillvalue=dummy_fill_value, *args)
 
     for i, unified_group in enumerate(grouper(files_per_unified_file, files)):
         just_the_filenames = list(filter_out_dummy(unified_group))
@@ -1093,7 +1090,7 @@ def pair(iterable):
         [(1,2), (3,4), (5,6)]
     """
     i = iter(iterable)
-    return six.moves.zip_longest(i, i)
+    return itertools.zip_longest(i, i)
 
 
 def pairwise(iterable):
@@ -1239,7 +1236,6 @@ def hexdump(buf):
     """
     Returns a list of hexdump-like lines corresponding to the given input buffer.
     """
-    assert six.PY3
     off_format = f"%0{len(str(len(buf)))}x "
     lines = []
     for off in range(0, len(buf), 16):
