@@ -269,7 +269,7 @@ class RaptorRunner(MozbuildObject):
 
 
 def setup_node(command_context):
-    """Fetch the latest node-18 binary and install it into the .mozbuild directory."""
+    """Fetch the latest node-22 binary and install it into the .mozbuild directory."""
     import platform
 
     from mozbuild.artifact_commands import artifact_toolchain
@@ -278,11 +278,11 @@ def setup_node(command_context):
 
     print("Setting up node for browsertime...")
     state_dir = get_state_dir()
-    cache_path = os.path.join(state_dir, "browsertime", "node-18")
+    cache_path = os.path.join(state_dir, "browsertime", "node-22")
 
     def __check_for_node():
         # Check standard locations first
-        node_exe = find_node_executable(min_version=Version("18.0.0"))
+        node_exe = find_node_executable(min_version=Version("22.0.0"))
         if node_exe and (node_exe[0] is not None):
             return node_exe[0]
         if not os.path.exists(cache_path):
@@ -295,14 +295,14 @@ def setup_node(command_context):
             node_exe_path = os.path.join(
                 state_dir,
                 "browsertime",
-                "node-18",
+                "node-22",
                 "node",
             )
         else:
             node_exe_path = os.path.join(
                 state_dir,
                 "browsertime",
-                "node-18",
+                "node-22",
                 "node",
                 "bin",
             )
@@ -315,7 +315,7 @@ def setup_node(command_context):
 
     node_exe = __check_for_node()
     if node_exe is None:
-        toolchain_job = "{}-node-18"
+        toolchain_job = "{}-node-22"
         plat = platform.system()
         if plat == "Windows":
             toolchain_job = toolchain_job.format("win64")
@@ -327,7 +327,7 @@ def setup_node(command_context):
         else:
             toolchain_job = toolchain_job.format("linux64")
 
-        print(f"Downloading Node v18 from Taskcluster toolchain {toolchain_job}...")
+        print(f"Downloading Node 22 from Taskcluster toolchain {toolchain_job}...")
 
         if not os.path.exists(cache_path):
             os.makedirs(cache_path, exist_ok=True)
@@ -349,11 +349,11 @@ def setup_node(command_context):
 
         node_exe = __check_for_node()
         if node_exe is None:
-            raise Exception("Could not find Node v18 binary for Raptor-Browsertime")
+            raise Exception("Could not find Node v22 binary for Raptor-Browsertime")
 
-        print("Finished downloading Node v18 from Taskcluster")
+        print("Finished downloading Node v22 from Taskcluster")
 
-    print("Node v18+ found at: %s" % node_exe)
+    print("Node v22+ found at: %s" % node_exe)
     return node_exe
 
 
