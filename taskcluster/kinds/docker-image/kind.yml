@@ -341,7 +341,7 @@ tasks:
         parent: debian12-base
     decision:
         symbol: I(decision)
-        parent: ubuntu2004-base
+        parent: debian12-base
     snap-build-core22:
         symbol: I(snap22-build)
         parent: ubuntu2204-base

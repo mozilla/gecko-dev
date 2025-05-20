@@ -1,5 +1,5 @@
-FROM          $DOCKER_IMAGE_PARENT
-MAINTAINER    Andrew Halberstadt <ahal@mozilla.com>
+FROM  $DOCKER_IMAGE_PARENT
+LABEL maintainer="Andrew Halberstadt <ahal@mozilla.com>"
 
 RUN mkdir /builds/worker/artifacts && \
     chown worker:worker /builds/worker/artifacts
