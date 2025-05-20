@@ -46,7 +46,7 @@ const PREFERENCE_NAME = "test-pref";
  */
 function add_cookie(aDomain) {
   check_cookie_exists(aDomain, false);
-  Services.cookies.add(
+  const cv = Services.cookies.add(
     aDomain,
     COOKIE_PATH,
     COOKIE_NAME,
@@ -59,6 +59,7 @@ function add_cookie(aDomain) {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
+  Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
   check_cookie_exists(aDomain, true);
 }
 

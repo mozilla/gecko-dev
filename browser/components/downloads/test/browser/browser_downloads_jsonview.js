@@ -12,7 +12,7 @@ const { FileTestUtils } = ChromeUtils.importESModule(
 
 add_task(async function test_save_jsonview() {
   // Create a cookie that will be valid for the given JSON Document
-  Services.cookies.add(
+  const cv = Services.cookies.add(
     "example.org",
     "/",
     "cookieKey",
@@ -25,6 +25,7 @@ add_task(async function test_save_jsonview() {
     Ci.nsICookie.SAMESITE_LAX,
     Ci.nsICookie.SCHEME_HTTPS
   );
+  Assert.equal(cv.result, Ci.nsICookieValidation.eOK);
 
   // Set up the download
   let MockFilePicker = SpecialPowers.MockFilePicker;

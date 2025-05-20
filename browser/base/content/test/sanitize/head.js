@@ -59,7 +59,7 @@ function checkIndexedDB(host, originAttributes) {
 }
 
 function createHostCookie(host, originAttributes) {
-  Services.cookies.add(
+  const cv = Services.cookies.add(
     host,
     "/test",
     "foo",
@@ -72,10 +72,11 @@ function createHostCookie(host, originAttributes) {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
+  is(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
 }
 
 function createDomainCookie(host, originAttributes) {
-  Services.cookies.add(
+  const cv = Services.cookies.add(
     "." + host,
     "/test",
     "foo",
@@ -88,6 +89,7 @@ function createDomainCookie(host, originAttributes) {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
+  is(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
 }
 
 function checkCookie(host, originAttributes) {

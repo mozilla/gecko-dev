@@ -81,7 +81,7 @@ const TESTS = [
   {
     setUp() {
       Services.cookies.removeAll();
-      Services.cookies.add(
+      const cv = Services.cookies.add(
         "www.bing.com",
         "/",
         "SRCHS",
@@ -94,6 +94,7 @@ const TESTS = [
         Ci.nsICookie.SAMESITE_NONE,
         Ci.nsICookie.SCHEME_HTTPS
       );
+      Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
     },
     tearDown() {
       Services.cookies.removeAll();

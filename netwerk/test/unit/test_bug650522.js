@@ -11,7 +11,7 @@ add_task(async () => {
 
   // Test our handling of host names with a single character at the beginning
   // followed by a dot.
-  Services.cookies.add(
+  const cv = Services.cookies.add(
     "e.com",
     "/",
     "foo",
@@ -24,6 +24,7 @@ add_task(async () => {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTP
   );
+  Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
   Assert.equal(Services.cookies.countCookiesFromHost("e.com"), 1);
 
   CookieXPCShellUtils.createServer({ hosts: ["e.com"] });

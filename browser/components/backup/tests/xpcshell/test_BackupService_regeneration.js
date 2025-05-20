@@ -94,7 +94,7 @@ function addTestCookie(isSessionCookie) {
   gCookieCounter++;
   let name = `Cookie name: ${gCookieCounter}`;
 
-  Services.cookies.add(
+  const cv = Services.cookies.add(
     COOKIE_HOST,
     COOKIE_PATH,
     name,
@@ -107,6 +107,7 @@ function addTestCookie(isSessionCookie) {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTP
   );
+  Assert.equal(cv.result, Ci.nsICookieValidation.eOK);
 
   return name;
 }

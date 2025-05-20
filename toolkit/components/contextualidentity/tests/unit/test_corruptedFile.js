@@ -25,7 +25,7 @@ const COOKIE = {
 };
 
 function createCookie(userContextId) {
-  Services.cookies.add(
+  const cv = Services.cookies.add(
     COOKIE.host,
     COOKIE.path,
     COOKIE.name,
@@ -38,6 +38,7 @@ function createCookie(userContextId) {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTP
   );
+  Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
 }
 
 function hasCookie(userContextId) {

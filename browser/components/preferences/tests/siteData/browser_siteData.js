@@ -190,7 +190,7 @@ add_task(async function () {
   // Add some test cookies.
   let uri = Services.io.newURI("https://example.com");
   let uri2 = Services.io.newURI("https://example.org");
-  Services.cookies.add(
+  let cv = Services.cookies.add(
     uri.host,
     uri.pathQueryRef,
     "test1",
@@ -203,7 +203,9 @@ add_task(async function () {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
-  Services.cookies.add(
+  Assert.equal(cv.result, Ci.nsICookieValidation.eOK);
+
+  cv = Services.cookies.add(
     uri.host,
     uri.pathQueryRef,
     "test2",
@@ -216,7 +218,9 @@ add_task(async function () {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
-  Services.cookies.add(
+  Assert.equal(cv.result, Ci.nsICookieValidation.eOK);
+
+  cv = Services.cookies.add(
     uri2.host,
     uri2.pathQueryRef,
     "test1",
@@ -229,9 +233,10 @@ add_task(async function () {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
+  Assert.equal(cv.result, Ci.nsICookieValidation.eOK);
 
   // Ensure that private browsing cookies are ignored.
-  Services.cookies.add(
+  cv = Services.cookies.add(
     uri.host,
     uri.pathQueryRef,
     "test3",
@@ -244,6 +249,7 @@ add_task(async function () {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
+  Assert.equal(cv.result, Ci.nsICookieValidation.eOK);
 
   // Get the exact creation date from the cookies (to avoid intermittents
   // from minimal time differences, since we round up to minutes).
