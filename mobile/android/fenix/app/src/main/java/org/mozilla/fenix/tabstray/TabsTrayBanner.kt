@@ -190,11 +190,11 @@ fun TabsTrayBanner(
                     button2Text = stringResource(id = R.string.tab_tray_close_tabs_banner_positive_button_text),
                     onButton1Click = {
                         hasAcknowledgedAutoCloseBanner = true
-                        onTabAutoCloseBannerViewOptionsClick()
+                        onTabAutoCloseBannerDismiss()
                     },
                     onButton2Click = {
                         hasAcknowledgedAutoCloseBanner = true
-                        onTabAutoCloseBannerDismiss()
+                        onTabAutoCloseBannerViewOptionsClick()
                     },
                 )
             }
@@ -208,11 +208,11 @@ fun TabsTrayBanner(
                     button2Text = stringResource(id = R.string.private_tab_cfr_positive),
                     onButton1Click = {
                         hasAcknowledgedPbmLockBanner = true
-                        onTabsTrayPbmLockedClick()
                         onTabsTrayPbmLockedDismiss()
                     },
                     onButton2Click = {
                         hasAcknowledgedPbmLockBanner = true
+                        onTabsTrayPbmLockedClick()
                         onTabsTrayPbmLockedDismiss()
                     },
                 )

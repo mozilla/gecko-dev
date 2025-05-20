@@ -55,14 +55,14 @@ fun Banner(
         Row(modifier = Modifier.align(Alignment.End)) {
             TextButton(
                 text = button1Text,
-                onClick = onButton2Click,
+                onClick = onButton1Click,
             )
 
             Spacer(modifier = Modifier.width(12.dp))
 
             TextButton(
                 text = button2Text,
-                onClick = onButton1Click,
+                onClick = onButton2Click,
             )
         }
     }
