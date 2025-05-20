@@ -2676,13 +2676,6 @@
   value: false
   mirror: always
 
-# Whether CustomStateSet is enabled
-- name: dom.element.customstateset.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-  rust: true
-
 # Whether the invoketarget attribute implementation is enabled
 - name: dom.element.invokers.enabled
   type: bool
