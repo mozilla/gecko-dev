@@ -206,6 +206,7 @@ tasks:
                             GECKO_HEAD_REV: '${push.revision}'
                             HG_STORE_PATH: /builds/worker/checkouts/hg-store
                             TASKCLUSTER_CACHES: /builds/worker/checkouts
+                            TASKCLUSTER_VOLUMES: /builds/worker/artifacts
                             MOZ_AUTOMATION: '1'
                             # mach generates pyc files when reading `mach_commands.py`
                             # This causes cached_task digest generation to be random for
@@ -228,7 +229,7 @@ tasks:
 
                   # Note: This task is built server side without the context or tooling that
                   # exist in tree so we must hard code the hash
-                  image: 'mozillareleases/gecko_decision:4.1.0@sha256:ea73900129328095da4fb033697690d538a08d935298fef4d5fa4aae80273bce'
+                  image: 'mozillareleases/gecko_decision:5.0.0@sha256:9e000c9fd31ee1723927aeea2b82b95ff2ecf32ebdb7a5d893300281a1452670'
 
                   maxRunTime: 3600
 
