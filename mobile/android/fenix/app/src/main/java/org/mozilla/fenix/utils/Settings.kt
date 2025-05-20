@@ -2356,6 +2356,11 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = false,
     )
 
+    var loginsListSortOrder by stringPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_logins_list_sort_order),
+        default = "",
+    )
+
     /**
      * Indicates whether or not to show the entry point for the DNS over HTTPS settings
      */
