@@ -5,7 +5,7 @@
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
 </head>
-<body onload="doTest()">
+<body>
 <p id="display"></p>
 
 <iframe id="quirks"></iframe>
@@ -15,6 +15,12 @@
 <pre id="test">
 <script type="application/javascript">
 SimpleTest.waitForExplicitFinish();
+window.onload = async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [ ["layout.scroll.disable-pixel-alignment", true] ]
+  });
+  doTest();
+}
 
 var quirks = document.getElementById("quirks");
 var standards = document.getElementById("standards");
