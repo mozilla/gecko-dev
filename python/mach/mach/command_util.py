@@ -113,6 +113,9 @@ MACH_COMMANDS = {
     ),
     "gen-uuid": MachCommandReference("dom/base/mach_commands.py"),
     "gen-use-counter-metrics": MachCommandReference("dom/base/mach_commands.py"),
+    "generate-python-lockfiles": MachCommandReference(
+        "python/mozbuild/mozbuild/lockfiles/mach_commands.py",
+    ),
     "generate-test-certs": MachCommandReference(
         "security/manager/tools/mach_commands.py"
     ),
