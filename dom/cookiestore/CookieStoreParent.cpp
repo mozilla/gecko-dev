@@ -356,10 +356,9 @@ bool CookieStoreParent::SetRequestOnMainThread(
     const nsAString& aValue, bool aSession, int64_t aExpires,
     const nsAString& aPath, int32_t aSameSite, bool aPartitioned,
     const nsID& aOperationID) {
-  MOZ_ASSERT(NS_IsMainThread());
+  AssertIsOnMainThread();
   nsresult rv;
 
-  bool requireMatch = false;
   NS_ConvertUTF16toUTF8 domain(aDomain);
   nsAutoCString domainWithDot;
 
@@ -380,7 +379,6 @@ bool CookieStoreParent::SetRequestOnMainThread(
     if (NS_FAILED(rv)) {
       return false;
     }
-    requireMatch = true;
   }
   domainWithDot.Append(domain);
 
@@ -415,35 +413,28 @@ bool CookieStoreParent::SetRequestOnMainThread(
   notificationWatcher->CallbackWhenNotified(aOperationID, notificationCb);
 
   OriginAttributes attrs(aOriginAttributes);
+
+  nsCOMPtr<nsICookieValidation> validation;
   rv = service->AddNative(
       aCookieURI, domainWithDot, NS_ConvertUTF16toUTF8(aPath),
       NS_ConvertUTF16toUTF8(aName), NS_ConvertUTF16toUTF8(aValue),
       /* secure: */ true,
       /* http-only: */ false, aSession, aSession ? INT64_MAX : aExpires, &attrs,
       aSameSite, nsICookie::SCHEME_HTTPS, aPartitioned, /* from http: */ false,
-      &aOperationID, [&](mozilla::net::CookieStruct& aCookieStruct) -> bool {
-        AssertIsOnMainThread();
+      &aOperationID, getter_AddRefs(validation));
 
-        RefPtr<CookieValidation> validation = CookieValidation::ValidateForHost(
-            aCookieStruct, aCookieURI, domain, requireMatch, false);
-        MOZ_ASSERT(validation);
-
-        if (validation->Result() == nsICookieValidation::eOK) {
-          return true;
-        }
-
-        RefPtr<ContentParent> contentParent = aParent->GetContentParent();
-        if (!contentParent) {
-          return false;
-        }
-
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    if (rv == NS_ERROR_ILLEGAL_VALUE && validation &&
+        CookieValidation::Cast(validation)->Result() !=
+            nsICookieValidation::eOK) {
+      RefPtr<ContentParent> contentParent = aParent->GetContentParent();
+      if (contentParent) {
         contentParent->KillHard(
             "CookieStore does not accept invalid cookies in the parent "
             "process");
-        return false;
-      });
+      }
+    }
 
-  if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
   }
 

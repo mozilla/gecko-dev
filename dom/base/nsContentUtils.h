@@ -1312,6 +1312,7 @@ class nsContentUtils {
     eNECKO_PROPERTIES,
     eFORMS_PROPERTIES_en_US,
     eDOM_PROPERTIES_en_US,
+    eNECKO_PROPERTIES_en_US,
     PropertiesFile_COUNT
   };
   static nsresult ReportToConsole(
