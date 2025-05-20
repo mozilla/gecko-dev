@@ -69,6 +69,7 @@ add_task(async function test_fullscreen_display_none() {
       await warningShownPromise;
       ok(true, "Fullscreen warning shown");
       // Exit fullscreen
+      let warningHiddenPromise = waitForWarningState(warning, "hidden");
       let exitFullscreenPromise = BrowserTestUtils.waitForEvent(
         document,
         "fullscreenchange",
@@ -76,13 +77,7 @@ add_task(async function test_fullscreen_display_none() {
         () => !document.fullscreenElement
       );
       document.getElementById("fullscreen-exit-button").click();
-      await exitFullscreenPromise;
-
-      checkWarningState(
-        warning,
-        "hidden",
-        "Should hide fullscreen warning after exiting fullscreen"
-      );
+      await Promise.all([exitFullscreenPromise, warningHiddenPromise]);
     }
   );
 });

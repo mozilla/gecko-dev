@@ -63,7 +63,6 @@ skip-if = [
 ["browser_fullscreen_warning.js"]
 support-files = ["fullscreen.html"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && socketprocess_networking", # Bug 1848965
   "os == 'mac'", # Bug 1848423
 ]
 
