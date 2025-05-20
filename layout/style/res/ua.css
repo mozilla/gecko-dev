@@ -434,6 +434,10 @@ parsererror|parsererror {
   color: black;
 }
 
+parsererror|parsererror[dir=rtl] {
+  direction: rtl;
+}
+
 parsererror|sourcetext {
   display: block;
   white-space: pre;
@@ -443,6 +447,7 @@ parsererror|sourcetext {
   color: red;
   font-weight: bold;
   font-size: 12pt;
+  direction: ltr;
 }
 
 /* Custom content container in the CanvasFrame, positioned on top of everything
