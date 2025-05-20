@@ -31,11 +31,10 @@ This crate is procedurally generated from [WIT] files using [`wit-bindgen`].
 
 # Usage
 
-First you can depend on this crate via `Cargo.toml`:
+Depending on this crate can be done by adding it to your dependencies:
 
-```toml
-[dependencies]
-wasi = "0.12.0"
+```sh
+$ cargo add wasi
 ```
 
 Next you can use the APIs in the root of the module like so:
@@ -47,12 +46,33 @@ fn main() {
 }
 ```
 
-This crate is intended to target [components] but today you need to go through
-the intermediate build step of a core WebAssembly module using the `wasm32-wasi`
-target:
+This crate can currently be used in three main ways.
+
+- One is to use it and compile for the [`wasm32-wasip2` target] in Rust 1.82 and later.
+  This is the simplest approach, as all the tools needed are included in the
+  Rust tooling, however it doesn't yet support some of the features of the
+  other approaches.
+
+- Another is to use it and compile using [`cargo component`]. This is essentially
+  the same as the next option, except that `cargo component` handles most of the
+  steps for you. `cargo component` also has a number of additional features for
+  working with dependencies and custom WIT interfaces.
+
+- And the third is to compile for the `wasm32-wasip1` target, and then adapt
+  the resulting modules into component using `wasm-tools component new`; see
+  the next section here for details.
+
+[`wasm32-wasip2` target]: https://blog.rust-lang.org/2024/11/26/wasip2-tier-2.html
+[`cargo component`]: https://github.com/bytecodealliance/cargo-component
+
+## Building with wasm32-wasip1 and `cargo component new`.
+
+The `wasm32-wasip2` target works with a simple `cargo build --target=wasm32-wasip2`
+and doesn't need a lot of documentation here, and `cargo component` has its own
+documentation, so here we have some documentation for the `wasm32-wasip1` way.
 
 ```
-$ cargo build --target wasm32-wasi
+$ cargo build --target wasm32-wasip1
 ```
 
 Next you'll want an "adapter" to convert the Rust standard library's usage of
@@ -68,7 +88,7 @@ component:
 
 ```
 $ cargo install wasm-tools
-$ wasm-tools component new target/wasm32-wasi/debug/foo.wasm \
+$ wasm-tools component new target/wasm32-wasip1/debug/foo.wasm \
     --adapt ./wasi_snapshot_preview1.command.wasm \
     -o component.wasm
 ```
@@ -110,19 +130,17 @@ want to support. Rust WebAssembly targets include:
 
 * `wasm32-unknown-unknown` - do not use this crate because this target indicates
   that WASI is not desired.
-* `wasm32-wasi` or `wasm32-wasip1` - this target has been present in Rust for
-  quite some time and is recently being renamed from `wasm32-wasi` to
-  `wasm32-wasip1`. The two targets have the same definition, it's just the name
-  that's changing. For this target you probably want the 0.11.0 track of this
-  crate.
+* `wasm32-wasip1` - this target has been present in Rust for quite some time and
+  was previously known as `wasm32-wasi`. For this target you probably want the
+  0.11.0 track of this crate.
 * `wasm32-wasip2` - this target is a recent addition to rustc (as of the time of
   this writing it's not merged yet into rustc). This is what the 0.12.0 version
   of the crate is intended for.
 
-Note that if you use `wasm32-wasi` or `wasm32-wasip1` it's not necessarily
-guaranteed you want 0.11.0 of this crate. If your users are producing components
-then you probably want 0.12.0 instead. If you don't know what your users are
-producing then you should probably stick with 0.11.0.
+Note that if you use `wasm32-wasip1` it's not necessarily guaranteed you want
+0.11.0 of this crate. If your users are producing components then you probably
+want 0.12.0 instead. If you don't know what your users are producing then you
+should probably stick with 0.11.0.
 
 Long story short, it's a bit complicated. We're in a transition period from
 WASIp1 to WASIp2 and things aren't going to be perfect every step of the way, so
@@ -148,7 +166,7 @@ This project is triple licenced under the Apache 2/ Apache 2 with LLVM exception
 - Apache 2/ MIT is used in the rust standard library, and some of this code may be migrated there.
 - Some of this code may be used in compiler output, and the Apache 2 with LLVM exceptions licence is useful for this.
 
-For more details see 
+For more details see
 - [Apache 2 Licence](LICENSE-APACHE)
 - [Apache 2 Licence with LLVM exceptions](LICENSE-Apache-2.0_WITH_LLVM-exception)
 - [MIT Licence](LICENSE-MIT)

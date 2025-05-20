@@ -2563,6 +2563,19 @@ In addition, I've checked Linux, Windows, Mac, and Android more thoroughly again
 documentation.
 """
 
+[[audits.getrandom]]
+who = "Emilio Cobos Álvarez <emilio@crisal.io>"
+criteria = "safe-to-deploy"
+delta = "0.3.1 -> 0.3.3"
+notes = """
+Biggest non-trivial change is a new UEFI back-end, which looks reasonable to
+the best of my ability: There's some trickiness on initialization but doesn't
+look unsafe, at worse it leaks, and it might not if the relevant pointers are
+static/non-owning. Other changes also look reasonable too: some tweaks to
+inlining and a syscall-based linux back-end, whose relevant unsafe code looks
+reasonable.
+"""
+
 [[audits.gimli]]
 who = "Alex Franchuk <afranchuk@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -3129,6 +3142,12 @@ notes = "This crate doesn't contain any unsafe code or IO usage."
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.1.24 -> 0.1.25"
+
+[[audits.jobserver]]
+who = "Emilio Cobos Álvarez <emilio@crisal.io>"
+criteria = "safe-to-deploy"
+delta = "0.1.32 -> 0.1.33"
+notes = "No unsafe added, only non-trivial change is switching to the getrandom crate on Windows."
 
 [[audits.keccak]]
 who = "Simon Friedberger <simon@mozilla.com>"
@@ -6951,7 +6970,7 @@ end = "2024-05-08"
 criteria = "safe-to-deploy"
 user-id = 1 # Alex Crichton (alexcrichton)
 start = "2020-06-03"
-end = "2024-05-05"
+end = "2026-05-19"
 
 [[trusted.wasm-encoder]]
 criteria = "safe-to-deploy"

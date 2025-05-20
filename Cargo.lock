@@ -2482,21 +2482,21 @@ dependencies = [
 name = "getrandom"
 version = "0.2.999"
 dependencies = [
- "getrandom 0.3.1",
+ "getrandom 0.3.3",
 ]
 
 [[package]]
 name = "getrandom"
-version = "0.3.1"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43a49c392881ce6d5c3b8cb70f98717b7c07aabbdff06687b9030dbfbe2725f8"
+checksum = "26145e563e54f2cadc477553f1ec5ee650b00862f0a58bcd12cbdc5f0ea2d2f4"
 dependencies = [
  "cfg-if",
  "js-sys",
  "libc",
- "wasi 0.13.0+wasi-0.2.0",
+ "r-efi",
+ "wasi 0.14.2+wasi-0.2.4",
  "wasm-bindgen",
- "windows-targets",
 ]
 
 [[package]]
@@ -3503,10 +3503,11 @@ dependencies = [
 
 [[package]]
 name = "jobserver"
-version = "0.1.32"
+version = "0.1.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48d1dbcbbeb6a7fec7e059840aa538bd62aaccf972c7346c4d9d2059312853d0"
+checksum = "38f262f097c174adebe41eb73d66ae9c06b2844fb0da69969647bbddd9b0538a"
 dependencies = [
+ "getrandom 0.3.3",
  "libc",
 ]
 
@@ -5490,6 +5491,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "r-efi"
+version = "5.999.999"
+
+[[package]]
 name = "rand"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6567,7 +6572,7 @@ checksum = "38c246215d7d24f48ae091a2902398798e05d978b24315d6efbc00ede9a8bb91"
 dependencies = [
  "cfg-if",
  "fastrand",
- "getrandom 0.3.1",
+ "getrandom 0.3.3",
  "once_cell",
  "rustix",
  "windows-sys",
@@ -7356,23 +7361,22 @@ dependencies = [
 name = "wasi"
 version = "0.10.0+wasi-snapshot-preview999"
 dependencies = [
- "wasi 0.13.0+wasi-0.2.0",
+ "wasi 0.14.2+wasi-0.2.4",
 ]
 
 [[package]]
 name = "wasi"
 version = "0.11.999"
 dependencies = [
- "wasi 0.13.0+wasi-0.2.0",
+ "wasi 0.14.2+wasi-0.2.4",
 ]
 
 [[package]]
 name = "wasi"
-version = "0.13.0+wasi-0.2.0"
+version = "0.14.2+wasi-0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "652cd73449d0b957a2743b70c72d79d34a5fa505696488f4ca90b46f6da94118"
+checksum = "9683f9a5a998d873c0d21fcbe3c083009670149a8fab228644b8bd36b2c48cb3"
 dependencies = [
- "bitflags 2.9.0",
  "wit-bindgen-rt",
 ]
 
@@ -7865,9 +7869,12 @@ dependencies = [
 
 [[package]]
 name = "wit-bindgen-rt"
-version = "0.21.0"
+version = "0.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "026d24a27f6712541fa534f2954bd9e0eb66172f033c2157c0f31d106255c497"
+checksum = "6f42320e61fe2cfd34354ecb597f86f413484a798ba44a8ca1165c58d42da6c1"
+dependencies = [
+ "bitflags 2.9.0",
+]
 
 [[package]]
 name = "wpf-gpu-raster"

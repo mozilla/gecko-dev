@@ -394,14 +394,7 @@ pub(crate) fn spawn_helper(
     let mut err = None;
     USR1_INIT.call_once(|| unsafe {
         let mut new: libc::sigaction = mem::zeroed();
-        #[cfg(target_os = "aix")]
-        {
-            new.sa_union.__su_sigaction = sigusr1_handler;
-        }
-        #[cfg(not(target_os = "aix"))]
-        {
-            new.sa_sigaction = sigusr1_handler as usize;
-        }
+        new.sa_sigaction = sigusr1_handler as usize;
         new.sa_flags = libc::SA_SIGINFO as _;
         if libc::sigaction(libc::SIGUSR1, &new, ptr::null_mut()) != 0 {
             err = Some(io::Error::last_os_error());
@@ -516,7 +509,7 @@ unsafe fn fd_check(fd: c_int, check_pipe: bool) -> Result<(), FromEnvErrorInner>
 }
 
 fn clone_fd_and_set_cloexec(fd: c_int) -> Result<File, FromEnvErrorInner> {
-    // Safety: fd is a valid fd dand it remains open until returns
+    // Safety: fd is a valid fd and it remains open until returns
     unsafe { BorrowedFd::borrow_raw(fd) }
         .try_clone_to_owned()
         .map(File::from)

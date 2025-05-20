@@ -12,10 +12,39 @@
 [package]
 edition = "2021"
 name = "wit-bindgen-rt"
-version = "0.21.0"
+version = "0.39.0"
+build = "build.rs"
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
 Runtime support for the `wit-bindgen` crate
 """
 homepage = "https://github.com/bytecodealliance/wit-bindgen"
-license = "Apache-2.0 WITH LLVM-exception"
+readme = false
+license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
 repository = "https://github.com/bytecodealliance/wit-bindgen"
+
+[lib]
+name = "wit_bindgen_rt"
+path = "src/lib.rs"
+
+[dependencies.bitflags]
+version = "2.3.3"
+optional = true
+
+[dependencies.futures]
+version = "0.3.30"
+optional = true
+
+[dependencies.once_cell]
+version = "1.19.0"
+optional = true
+
+[features]
+async = [
+    "dep:futures",
+    "dep:once_cell",
+]

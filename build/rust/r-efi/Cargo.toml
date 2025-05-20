@@ -1,0 +1,8 @@
+[package]
+name = "r-efi"
+version = "5.999.999"
+edition = "2018"
+license = "MPL-2.0"
+
+[lib]
+path = "lib.rs"

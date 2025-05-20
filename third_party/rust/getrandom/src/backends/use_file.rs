@@ -40,6 +40,7 @@ const FD_ONGOING_INIT: libc::c_int = -2;
 // `Ordering::Acquire` to synchronize with it.
 static FD: AtomicI32 = AtomicI32::new(FD_UNINIT);
 
+#[inline]
 pub fn fill_inner(dest: &mut [MaybeUninit<u8>]) -> Result<(), Error> {
     let mut fd = FD.load(Ordering::Acquire);
     if fd == FD_UNINIT || fd == FD_ONGOING_INIT {
@@ -57,7 +58,7 @@ pub fn fill_inner(dest: &mut [MaybeUninit<u8>]) -> Result<(), Error> {
 // TODO: Move `path` to `CStr` and use `CStr::from_bytes_until_nul` (MSRV 1.69)
 // or C-string literals (MSRV 1.77) for statics
 fn open_readonly(path: &[u8]) -> Result<libc::c_int, Error> {
-    assert!(path.iter().any(|&b| b == 0));
+    assert!(path.contains(&0));
     loop {
         let fd = unsafe {
             libc::open(
@@ -77,6 +78,7 @@ fn open_readonly(path: &[u8]) -> Result<libc::c_int, Error> {
 }
 
 #[cold]
+#[inline(never)]
 fn open_or_wait() -> Result<libc::c_int, Error> {
     loop {
         match FD.load(Ordering::Acquire) {

@@ -2,7 +2,13 @@
 
 extern crate alloc;
 
+// Re-export `bitflags` so that we can reference it from macros.
+#[cfg(feature = "bitflags")]
+#[doc(hidden)]
+pub use bitflags;
+
 /// For more information about this see `./ci/rebuild-libcabi-realloc.sh`.
+#[cfg(not(target_env = "p2"))]
 mod cabi_realloc;
 
 /// This function is called from generated bindings and will be deleted by
@@ -13,7 +19,7 @@ mod cabi_realloc;
 ///
 /// For more information about this see `./ci/rebuild-libcabi-realloc.sh`.
 pub fn maybe_link_cabi_realloc() {
-    #[cfg(target_family = "wasm")]
+    #[cfg(all(target_family = "wasm", not(target_env = "p2")))]
     {
         extern "C" {
             fn cabi_realloc(
@@ -44,6 +50,7 @@ pub fn maybe_link_cabi_realloc() {
 /// `cabi_realloc` module above. It's otherwise never explicitly called.
 ///
 /// For more information about this see `./ci/rebuild-libcabi-realloc.sh`.
+#[cfg(not(target_env = "p2"))]
 pub unsafe fn cabi_realloc(
     old_ptr: *mut u8,
     old_len: usize,
@@ -79,3 +86,33 @@ pub unsafe fn cabi_realloc(
     }
     return ptr;
 }
+
+/// Provide a hook for generated export functions to run static constructors at
+/// most once.
+///
+/// wit-bindgen-rust generates a call to this function at the start of all
+/// component export functions. Importantly, it is not called as part of
+/// `cabi_realloc`, which is a *core* export func, but should not execute ctors.
+#[cfg(target_arch = "wasm32")]
+pub fn run_ctors_once() {
+    static mut RUN: bool = false;
+    unsafe {
+        if !RUN {
+            // This function is synthesized by `wasm-ld` to run all static
+            // constructors. wasm-ld will either provide an implementation
+            // of this symbol, or synthesize a wrapper around each
+            // exported function to (unconditionally) run ctors. By using
+            // this function, the linked module is opting into "manually"
+            // running ctors.
+            extern "C" {
+                fn __wasm_call_ctors();
+            }
+            __wasm_call_ctors();
+            RUN = true;
+        }
+    }
+}
+
+/// Support for using the Component Model Async ABI
+#[cfg(feature = "async")]
+pub mod async_support;

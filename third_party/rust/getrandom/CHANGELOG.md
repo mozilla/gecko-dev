@@ -4,6 +4,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2025-05-09
+
+### Changed
+- Doc improvements [#632] [#634] [#635]
+- Add crate version to docs.rs links used in `compile_error!`s [#639]
+
+## Fixed
+- Error handling in WASI p1 [#661]
+
+[#632]: https://github.com/rust-random/getrandom/pull/632
+[#634]: https://github.com/rust-random/getrandom/pull/634
+[#635]: https://github.com/rust-random/getrandom/pull/635
+[#639]: https://github.com/rust-random/getrandom/pull/639
+[#661]: https://github.com/rust-random/getrandom/pull/661
+
+## [0.3.2] - 2025-03-17
+
+### Added
+- `efi_rng` opt-in backend [#570]
+- `linux_raw` opt-in backend [#572]
+- `.cargo/config.toml` example in the crate-level docs [#591]
+- `getrandom_test_linux_without_fallback` configuration flag to test that file fallback
+  is not triggered in the `linux_android_with_fallback` backend [#605]
+- Built-in support for `*-linux-none` targets [#618]
+- Cygwin support [#626]
+
+### Changed
+- Update `wasi` dependency to v0.14 [#594]
+- Add `#[inline]` attribute to the inner functions [#596]
+- Update WASI and Emscripten links in the crate-level docs [#597]
+- Do not use `dlsym` on MUSL targets in the `linux_android_with_fallback` backend [#602]
+- Remove `linux_android.rs` and use `getrandom.rs` instead [#603]
+- Always use `RtlGenRandom` on Windows targets when compiling with pre-1.78 Rust [#610]
+- Internal representation of the `Error` type [#614]
+- Remove `windows-targets` dependency and use [`raw-dylib`] directly [#627]
+
+### Removed
+- `Error::INTERNAL_START` and `Error::CUSTOM_START` associated constants [#614]
+
+[#570]: https://github.com/rust-random/getrandom/pull/570
+[#572]: https://github.com/rust-random/getrandom/pull/572
+[#591]: https://github.com/rust-random/getrandom/pull/591
+[#594]: https://github.com/rust-random/getrandom/pull/594
+[#596]: https://github.com/rust-random/getrandom/pull/596
+[#597]: https://github.com/rust-random/getrandom/pull/597
+[#602]: https://github.com/rust-random/getrandom/pull/602
+[#603]: https://github.com/rust-random/getrandom/pull/603
+[#605]: https://github.com/rust-random/getrandom/pull/605
+[#610]: https://github.com/rust-random/getrandom/pull/610
+[#614]: https://github.com/rust-random/getrandom/pull/614
+[#618]: https://github.com/rust-random/getrandom/pull/618
+[#626]: https://github.com/rust-random/getrandom/pull/626
+[#627]: https://github.com/rust-random/getrandom/pull/627
+[`raw-dylib`]: https://doc.rust-lang.org/reference/items/external-blocks.html?highlight=link#dylib-versus-raw-dylib
+
 ## [0.3.1] - 2025-01-28
 
 ### Fixed
@@ -75,6 +130,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#562]: https://github.com/rust-random/getrandom/pull/562
 [#571]: https://github.com/rust-random/getrandom/pull/571
 [#574]: https://github.com/rust-random/getrandom/pull/574
+
+## [0.2.16] - 2025-04-22
+### Added
+- Cygwin support (backport of [#626]) [#654]
+
+[#654]: https://github.com/rust-random/getrandom/pull/654
 
 ## [0.2.15] - 2024-05-06
 ### Added
@@ -526,7 +587,11 @@ Publish initial implementation.
 ## [0.0.0] - 2019-01-19
 Publish an empty template library.
 
+[0.3.3]: https://github.com/rust-random/getrandom/compare/v0.3.2...v0.3.3
+[0.3.2]: https://github.com/rust-random/getrandom/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/rust-random/getrandom/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/rust-random/getrandom/compare/v0.2.15...v0.3.0
+[0.2.16]: https://github.com/rust-random/getrandom/compare/v0.2.15...v0.2.16
 [0.2.15]: https://github.com/rust-random/getrandom/compare/v0.2.14...v0.2.15
 [0.2.14]: https://github.com/rust-random/getrandom/compare/v0.2.13...v0.2.14
 [0.2.13]: https://github.com/rust-random/getrandom/compare/v0.2.12...v0.2.13
@@ -542,7 +607,7 @@ Publish an empty template library.
 [0.2.3]: https://github.com/rust-random/getrandom/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/rust-random/getrandom/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/rust-random/getrandom/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/rust-random/getrandom/compare/v0.1.15...v0.2.0
+[0.2.0]: https://github.com/rust-random/getrandom/compare/v0.1.16...v0.2.0
 [0.1.16]: https://github.com/rust-random/getrandom/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/rust-random/getrandom/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/rust-random/getrandom/compare/v0.1.13...v0.1.14

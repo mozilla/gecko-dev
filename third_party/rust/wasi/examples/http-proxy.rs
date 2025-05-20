@@ -1,3 +1,5 @@
+use std::io::Write as _;
+
 use wasi::http::types::{
     Fields, IncomingRequest, OutgoingBody, OutgoingResponse, ResponseOutparam,
 };
@@ -13,8 +15,9 @@ impl wasi::exports::http::incoming_handler::Guest for Example {
 
         ResponseOutparam::set(response_out, Ok(resp));
 
-        let out = body.write().unwrap();
-        out.blocking_write_and_flush(b"Hello, WASI!").unwrap();
+        let mut out = body.write().unwrap();
+        out.write_all(b"Hello, WASI!").unwrap();
+        out.flush().unwrap();
         drop(out);
 
         OutgoingBody::finish(body, None).unwrap();
