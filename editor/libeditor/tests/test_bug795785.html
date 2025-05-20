@@ -126,6 +126,9 @@ async function doCompositionTest(aSelector) {
 
 SimpleTest.waitForExplicitFinish();
 SimpleTest.waitForFocus(async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [ ["general.smoothScroll", false] ],
+  });
   await doKeyEventTest("textarea");
   await doKeyEventTest("div[contenteditable]");
   await doCompositionTest("textarea");
