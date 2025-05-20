@@ -729,17 +729,28 @@ static CVReturn VsyncCallback(CVDisplayLinkRef aDisplayLink,
 class OSXVsyncSource final : public VsyncSource {
  public:
   OSXVsyncSource()
-      : mDisplayLink(nullptr, "OSXVsyncSource::OSXDisplay::mDisplayLink") {
+      : mDisplayLink(nullptr, "OSXVsyncSource::mDisplayLink") {
     MOZ_ASSERT(NS_IsMainThread());
     mTimer = NS_NewTimer();
     CGDisplayRegisterReconfigurationCallback(DisplayReconfigurationCallback,
                                              this);
+    CreateDisplayLink();
   }
 
   virtual ~OSXVsyncSource() {
     MOZ_ASSERT(NS_IsMainThread());
     CGDisplayRemoveReconfigurationCallback(DisplayReconfigurationCallback,
                                            this);
+    DisableVsync();
+    DestroyDisplayLink();
+  }
+
+  static void RetryCreateDisplayLink(nsITimer* aTimer, void* aOsxVsyncSource) {
+    MOZ_ASSERT(NS_IsMainThread());
+    OSXVsyncSource* osxVsyncSource =
+        static_cast<OSXVsyncSource*>(aOsxVsyncSource);
+    MOZ_ASSERT(osxVsyncSource);
+    osxVsyncSource->CreateDisplayLink();
   }
 
   static void RetryEnableVsync(nsITimer* aTimer, void* aOsxVsyncSource) {
@@ -750,13 +761,10 @@ class OSXVsyncSource final : public VsyncSource {
     osxVsyncSource->EnableVsync();
   }
 
-  void EnableVsync() override {
+  void CreateDisplayLink() {
     MOZ_ASSERT(NS_IsMainThread());
-    if (IsVsyncEnabled()) {
-      return;
-    }
-
     auto displayLink = mDisplayLink.Lock();
+    MOZ_ASSERT(!*displayLink);
 
     // Create a display link capable of being used with all active displays
     // TODO: See if we need to create an active DisplayLink for each monitor
@@ -779,12 +787,14 @@ class OSXVsyncSource final : public VsyncSource {
       retval = kCVReturnInvalidDisplay;
     }
 
-    if (retval != kCVReturnSuccess) {
+    if (!*displayLink || (retval != kCVReturnSuccess)) {
       NS_WARNING(
           "Could not create a display link with all active displays. "
           "Retrying");
-      CVDisplayLinkRelease(*displayLink);
-      *displayLink = nullptr;
+      if (*displayLink) {
+        CVDisplayLinkRelease(*displayLink);
+        *displayLink = nullptr;
+      }
 
       // bug 1142708 - When coming back from sleep,
       // or when changing displays, active displays may not be ready yet,
@@ -799,9 +809,9 @@ class OSXVsyncSource final : public VsyncSource {
       // because on a late 2013 15" retina, it takes about that
       // long to come back up from sleep.
       uint32_t delay = 100;
-      mTimer->InitWithNamedFuncCallback(RetryEnableVsync, this, delay,
+      mTimer->InitWithNamedFuncCallback(RetryCreateDisplayLink, this, delay,
                                         nsITimer::TYPE_ONE_SHOT,
-                                        "RetryEnableVsync");
+                                        "RetryCreateDisplayLink");
       return;
     }
 
@@ -810,14 +820,34 @@ class OSXVsyncSource final : public VsyncSource {
       NS_WARNING("Could not set displaylink output callback");
       CVDisplayLinkRelease(*displayLink);
       *displayLink = nullptr;
+    }
+  }
+
+  void DestroyDisplayLink() {
+    MOZ_ASSERT(NS_IsMainThread());
+    auto displayLink = mDisplayLink.Lock();
+    if (*displayLink) {
+      CVDisplayLinkRelease(*displayLink);
+      *displayLink = nullptr;
+    }
+  }
+
+  void EnableVsync() override {
+    MOZ_ASSERT(NS_IsMainThread());
+    if (IsVsyncEnabled()) {
+      return;
+    }
+
+    auto displayLink = mDisplayLink.Lock();
+    if (!*displayLink) {
+      NS_WARNING("No display link available when starting vsync");
       return;
     }
 
     mPreviousTimestamp = TimeStamp::Now();
     if (CVDisplayLinkStart(*displayLink) != kCVReturnSuccess) {
       NS_WARNING("Could not activate the display link");
-      CVDisplayLinkRelease(*displayLink);
-      *displayLink = nullptr;
+      return;
     }
 
     CVTime vsyncRate =
@@ -840,18 +870,20 @@ class OSXVsyncSource final : public VsyncSource {
       return;
     }
 
-    // Release the display link
     auto displayLink = mDisplayLink.Lock();
+
     if (*displayLink) {
-      CVDisplayLinkRelease(*displayLink);
-      *displayLink = nullptr;
+      CVDisplayLinkStop(*displayLink);
     }
   }
 
   bool IsVsyncEnabled() override {
-    MOZ_ASSERT(NS_IsMainThread());
     auto displayLink = mDisplayLink.Lock();
-    return *displayLink != nullptr;
+    if (!*displayLink) {
+      return false;
+    }
+
+    return CVDisplayLinkIsRunning(*displayLink);
   }
 
   TimeDuration GetVsyncRate() override { return mVsyncRate; }
@@ -861,6 +893,7 @@ class OSXVsyncSource final : public VsyncSource {
     mTimer->Cancel();
     mTimer = nullptr;
     DisableVsync();
+    DestroyDisplayLink();
   }
 
   // The vsync timestamps given by the CVDisplayLinkCallback are
@@ -908,7 +941,18 @@ class OSXVsyncSource final : public VsyncSource {
       // Recreate the display link, because otherwise it may be stuck with a
       // "removed" display forever and never notify us again.
       DisableVsync();
+      DestroyDisplayLink();
+      CreateDisplayLink();
       EnableVsync();
+
+      // Check if we actually succeeded in enabling vsync, and if we didn't,
+      // retry one time.
+      if (!IsVsyncEnabled()) {
+        uint32_t delay = 100;
+        mTimer->InitWithNamedFuncCallback(RetryCreateDisplayLink, this, delay,
+                                          nsITimer::TYPE_ONE_SHOT,
+                                          "RetryEnableVsync");
+      }
     }
   }
 
