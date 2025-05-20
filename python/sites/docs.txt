@@ -16,7 +16,6 @@ pypi:sphinx-rtd-theme==2.0.0
 pypi:sphinxcontrib-mermaid==1.0.0
 
 # The following are only required by autodoc
-pth:python/mach
 pth:python/mozpack/test
 pypi:pytest==7.2.1
 pypi:pywatchman==1.4.1
@@ -24,13 +23,9 @@ vendored:third_party/python/PyYAML/lib/
 vendored:third_party/python/aiohappyeyeballs
 vendored:third_party/python/aiohttp
 vendored:third_party/python/aiosignal
-vendored:third_party/python/appdirs
 vendored:third_party/python/arrow
 vendored:third_party/python/async_timeout
 vendored:third_party/python/binaryornot
-vendored:third_party/python/certifi
-vendored:third_party/python/chardet
-vendored:third_party/python/charset_normalizer
 vendored:third_party/python/cookiecutter
 vendored:third_party/python/dlmanager
 vendored:third_party/python/fluent.migrate
@@ -38,7 +33,6 @@ vendored:third_party/python/fluent.syntax
 vendored:third_party/python/frozenlist
 vendored:third_party/python/giturlparse
 vendored:third_party/python/gyp/pylib
-vendored:third_party/python/jinja2
 vendored:third_party/python/json_e
 vendored:third_party/python/markdown_it_py
 vendored:third_party/python/mdurl
