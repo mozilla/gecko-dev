@@ -178,11 +178,6 @@ class SponsoredContentsDaoTest {
      * Needs to be used along with "runTest" to ensure waiting for transactions to finish but
      * not hang tests.
      */
-    /**
-     * Sets an executor to be used for database transactions.
-     * Needs to be used along with "runTest" to ensure waiting for transactions to finish but
-     * not hang tests.
-     */
     private fun setupDatabaseForTransactions() {
         database = Room
             .inMemoryDatabaseBuilder(testContext, ContentRecommendationsDatabase::class.java)

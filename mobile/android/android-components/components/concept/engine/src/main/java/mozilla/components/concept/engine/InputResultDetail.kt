@@ -13,6 +13,7 @@ import androidx.annotation.VisibleForTesting
 const val INPUT_HANDLING_UNKNOWN = -1
 
 // The below top-level values are following the same from [org.mozilla.geckoview.PanZoomController]
+
 /**
  * The content has no scrollable element.
  *

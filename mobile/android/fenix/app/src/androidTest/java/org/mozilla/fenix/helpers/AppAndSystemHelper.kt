@@ -74,8 +74,7 @@ object AppAndSystemHelper {
     suspend fun bookmarks() = bookmarksStorage.getTree(BookmarkRoot.Mobile.id)?.children
     fun getPermissionAllowID(): String {
         Log.i(TAG, "getPermissionAllowID: Trying to get the permission button resource ID based on API.")
-        return when
-            (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+        return when (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
             true -> {
                 Log.i(TAG, "getPermissionAllowID: Getting the permission button resource ID for API ${Build.VERSION.SDK_INT}.")
                 "com.android.permissioncontroller"

@@ -6,8 +6,6 @@ lint = "31.10.0"
 python-envs-plugin = "0.0.31"
 maven-ant-tasks = "2.1.3"
 androidsvg = "1.4"
-detekt = "1.23.8"
-ktlint = "1.5.0"
 zxing = "3.5.3"
 disklrucache = "2.0.2"
 leakcanary = "2.14"
@@ -78,6 +76,11 @@ kotlin = "2.1.21" # remember to change ksp-plugin
 ksp-plugin = "2.1.21-2.0.1"
 serialization = "1.8.1"
 
+# Linter versions
+detekt = "1.23.8"
+ktlint = "1.6.0"
+spotless = "7.0.2"
+
 # Mozilla versions
 apilint = "0.5.4"
 mozilla-glean = "64.2.0"
@@ -102,7 +105,6 @@ okio = "3.11.0"
 sentry = "8.12.0"
 
 commons-exec = "1.3"
-spotless = "7.0.2"
 tomlj = "1.1.0"
 
 [libraries]

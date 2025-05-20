@@ -87,8 +87,7 @@ fun CookieBannerReducerItem(
             shape = RectangleShape,
         )
 
-    if (cookieBannerReducerStatus !is CookieBannerReducerStatus.CookieBannerUnsupportedSiteRequestWasSubmitted
-    ) {
+    if (cookieBannerReducerStatus !is CookieBannerReducerStatus.CookieBannerUnsupportedSiteRequestWasSubmitted) {
         rowModifier = rowModifier.then(
             Modifier.clickable(
                 interactionSource = remember { MutableInteractionSource() },
