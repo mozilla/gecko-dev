@@ -20,6 +20,22 @@ const MATCH_IN_PHRASE_PREF = "quickactions.matchInPhrase";
 const MIN_SEARCH_PREF = "quickactions.minimumSearchString";
 
 /**
+ * @typedef QuickActionsDefinition
+ * @property {string[]} commands
+ *   The possible typed entries that this command will be displayed for.
+ * @property {string} icon
+ *   The URI of the icon associated with this command.
+ * @property {string} label
+ *   The id of the label for the result element.
+ * @property {() => boolean} [isVisible]
+ *   A function to call to check if this action should be visible or not.
+ * @property {() => null|{focusContent: boolean}} onPick
+ *   The function to call when the quick action is picked. It may return an object
+ *   with property focusContent to indicate if the content area should be focussed
+ *   after the pick.
+ */
+
+/**
  * A provider that matches the urlbar input to built in actions.
  */
 class ProviderQuickActions extends ActionsProvider {
@@ -97,7 +113,7 @@ class ProviderQuickActions extends ActionsProvider {
    * Adds a new QuickAction.
    *
    * @param {string} key A key to identify this action.
-   * @param {string} definition An object that describes the action.
+   * @param {QuickActionsDefinition} definition An object that describes the action.
    */
   addAction(key, definition) {
     this.#actions.set(key, definition);
@@ -133,13 +149,25 @@ class ProviderQuickActions extends ActionsProvider {
     });
   }
 
-  // A map from keywords to an action.
+  /**
+   * A map from keywords to an action.
+   *
+   * @type {Map<string, string>}
+   */
   #keywords = new Map();
 
-  // A map of all prefixes to an array of actions.
+  /**
+   * A map of all prefixes to an array of actions.
+   *
+   * @type {Map<string, string[]>}
+   */
   #prefixes = new Map();
 
-  // The actions that have been added.
+  /**
+   * The actions that have been added.
+   *
+   * @type {Map<string, QuickActionsDefinition>}
+   */
   #actions = new Map();
 
   #loopOverPrefixes(commands, fun) {

@@ -1,10 +1,7 @@
 {
   "include": ["*.sys.mjs", "types/*.ts"],
   "exclude": [
-    "ActionsProvider.sys.mjs",
-    "ActionsProviderContextualSearch.sys.mjs",
     "ActionsProviderQuickActions.sys.mjs",
-    "ActionsProviderTabGroups.sys.mjs",
     "MerinoClient.sys.mjs",
     "QuickSuggest.sys.mjs",
     "SearchModeSwitcher.sys.mjs",
