@@ -407,6 +407,7 @@
     <string name="pref_key_enable_compose_top_sites" translatable="false">pref_key_enable_compose_top_sites</string>
     <string name="pref_key_enable_compose_homepage" translatable="false">pref_key_enable_compose_homepage</string>
     <string name="pref_key_enable_homepage_searchbar" translatable="false">pref_key_enable_homepage_searchbar</string>
+    <string name="pref_key_enable_compose_logins" translatable="false">pref_key_enable_compose_logins</string>
     <string name="pref_key_enable_menu_redesign" translatable="false">pref_key_enable_menu_redesign</string>
     <string name="pref_key_enable_homepage_as_new_tab" translatable="false">pref_key_enable_homepage_as_new_tab</string>
     <string name="pref_key_enable_unified_trust_panel" translatable="false">pref_key_enable_unified_trust_panel</string>
@@ -414,10 +415,6 @@
     <string name="pref_key_enable_recent_searches" translatable="false">pref_key_enable_recent_searches</string>
     <string name="pref_key_enable_shortcuts_suggestions" translatable="false">pref_key_enable_shortcuts_suggestions</string>
     <string name="pref_key_enable_composable_toolbar" translatable="false">pref_key_enable_composable_toolbar</string>"
-
-    <!-- Logins -->
-    <string name="pref_key_enable_compose_logins" translatable="false">pref_key_enable_compose_logins</string>
-    <string name="pref_key_logins_list_sort_order" translatable="false">pref_key_logins_list_sort_order</string>
 
     <!-- Growth Data -->
     <string name="pref_key_growth_set_as_default" translatable="false">pref_key_growth_set_as_default</string>
