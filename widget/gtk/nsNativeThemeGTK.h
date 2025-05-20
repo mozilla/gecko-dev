@@ -13,9 +13,9 @@ class nsNativeThemeGTK final : public mozilla::widget::Theme {
 
  public:
   // The nsITheme interface.
-  NS_IMETHOD DrawWidgetBackground(gfxContext*, nsIFrame*, StyleAppearance,
-                                  const nsRect& aRect, const nsRect& aDirtyRect,
-                                  DrawOverflow) override;
+  void DrawWidgetBackground(gfxContext*, nsIFrame*, StyleAppearance,
+                            const nsRect& aRect, const nsRect& aDirtyRect,
+                            DrawOverflow) override;
 
   bool CreateWebRenderCommandsForWidget(
       mozilla::wr::DisplayListBuilder&, mozilla::wr::IpcResourceUpdateQueue&,
