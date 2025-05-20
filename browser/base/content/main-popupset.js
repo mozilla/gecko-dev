@@ -222,6 +222,13 @@ document.addEventListener(
         case "toolbar-context-autohide-downloads-button":
           ToolbarContextMenu.onDownloadsAutoHideChange(event);
           break;
+        case "toolbar-context-always-show-extensions-button":
+          if (event.target.getAttribute("checked") == "true") {
+            gUnifiedExtensions.showExtensionsButtonInToolbar();
+          } else {
+            gUnifiedExtensions.hideExtensionsButtonFromToolbar();
+          }
+          break;
         case "toolbar-context-remove-from-toolbar":
           if (
             event.target.parentNode.triggerNode === gUnifiedExtensions.button

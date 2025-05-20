@@ -13,32 +13,6 @@ const { ExtensionPermissions } = ChromeUtils.importESModule(
 
 loadTestSubscript("head_unified_extensions.js");
 
-const openCustomizationUI = async () => {
-  const customizationReady = BrowserTestUtils.waitForEvent(
-    gNavToolbox,
-    "customizationready"
-  );
-  gCustomizeMode.enter();
-  await customizationReady;
-  ok(
-    CustomizationHandler.isCustomizing(),
-    "expected customizing mode to be enabled"
-  );
-};
-
-const closeCustomizationUI = async () => {
-  const afterCustomization = BrowserTestUtils.waitForEvent(
-    gNavToolbox,
-    "aftercustomization"
-  );
-  gCustomizeMode.exit();
-  await afterCustomization;
-  ok(
-    !CustomizationHandler.isCustomizing(),
-    "expected customizing mode to be disabled"
-  );
-};
-
 add_setup(async function () {
   // Make sure extension buttons added to the navbar will not overflow in the
   // panel, which could happen when a previous test file resizes the current

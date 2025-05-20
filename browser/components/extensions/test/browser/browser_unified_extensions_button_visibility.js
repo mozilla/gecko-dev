@@ -98,3 +98,114 @@ add_task(async function test_hide_button_via_contextmenu() {
   resetButtonVisibilityToDefault();
   await SpecialPowers.popPrefEnv();
 });
+
+// Until the the "Hide Extensions Button" feature finished its implementation,
+// the UI to trigger hiding should be disabled by default.
+add_task(async function test_customization_disabled_by_default() {
+  await openCustomizationUI();
+  const contextMenu = await openChromeContextMenu(
+    "toolbar-context-menu",
+    "#wrapper-unified-extensions-button"
+  );
+  const item = document.getElementById(
+    "toolbar-context-always-show-extensions-button"
+  );
+  is(item.hidden, true, "Not expecting menu item to hide button");
+  await closeChromeContextMenu(contextMenu.id);
+  await closeCustomizationUI();
+});
+
+add_task(async function test_customization_option_hidden_if_not_customizing() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.unifiedExtensions.button.customizable", true]],
+  });
+  const contextMenu = await openChromeContextMenu(
+    "toolbar-context-menu",
+    "#unified-extensions-button"
+  );
+  const item = document.getElementById(
+    "toolbar-context-always-show-extensions-button"
+  );
+  is(item.hidden, true, "Not expecting menu item to hide button");
+  await closeChromeContextMenu(contextMenu.id);
+  await SpecialPowers.popPrefEnv();
+});
+
+// Tests that the "Always Show in Toolbar" checkbox is visible in the menu and
+// reflects the expected state when entering/exiting customization mode.
+// And that the Extensions Button is always shown while in customization mode.
+add_task(async function test_customization_button_and_menu_item_visibility() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.unifiedExtensions.button.customizable", true]],
+  });
+
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+
+  await openCustomizationUI(win);
+  {
+    info("Toggle checkbox via context menu, from on to off");
+    const contextMenu = await openChromeContextMenu(
+      "toolbar-context-menu",
+      "#wrapper-unified-extensions-button",
+      win
+    );
+    const item = win.document.getElementById(
+      "toolbar-context-always-show-extensions-button"
+    );
+    is(item.hidden, false, "Menu item should be visible");
+    is(item.getAttribute("checked"), "true", "Should be checked by default");
+    await closeChromeContextMenu(contextMenu.id, item, win);
+
+    info("The button should still be visible while customizing");
+    assertExtensionsButtonVisible(win);
+    info("The button should be hidden in windows that are not customizing");
+    assertExtensionsButtonHidden();
+  }
+
+  {
+    info("Open context menu to verify checked state, then cancel menu");
+    const contextMenu = await openChromeContextMenu(
+      "toolbar-context-menu",
+      "#wrapper-unified-extensions-button",
+      win
+    );
+    const item = win.document.getElementById(
+      "toolbar-context-always-show-extensions-button"
+    );
+    is(item.hidden, false, "Menu item should be visible");
+    ok(!item.getAttribute("checked"), "Should be unchecked by earlier action");
+    await closeChromeContextMenu(contextMenu.id, null, win);
+  }
+
+  await closeCustomizationUI(win);
+  info("The button should be hidden after exiting customization");
+  assertExtensionsButtonHidden(win);
+
+  await openCustomizationUI(win);
+  info("The button should be visible upon entering customization");
+  assertExtensionsButtonVisible(win);
+  {
+    info("Toggle checkbox via context menu, from off to on");
+    const contextMenu = await openChromeContextMenu(
+      "toolbar-context-menu",
+      "#wrapper-unified-extensions-button",
+      win
+    );
+    const item = win.document.getElementById(
+      "toolbar-context-always-show-extensions-button"
+    );
+    is(item.hidden, false, "Menu item should be visible");
+    ok(!item.hasAttribute("checked"), "Should be unchecked");
+    await closeChromeContextMenu(contextMenu.id, item, win);
+
+    info("After checking the option, buttons should be shown in all windows");
+    assertExtensionsButtonVisible(win);
+    assertExtensionsButtonVisible();
+  }
+
+  await closeCustomizationUI(win);
+  await BrowserTestUtils.closeWindow(win);
+
+  resetButtonVisibilityToDefault();
+  await SpecialPowers.popPrefEnv();
+});

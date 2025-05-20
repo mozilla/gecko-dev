@@ -422,6 +422,24 @@ export var ToolbarContextMenu = {
    */
   updateExtensionsButtonContextMenu(popup) {
     const isExtsButton = popup.triggerNode?.id === "unified-extensions-button";
+    const isCustomizingExtsButton =
+      popup.triggerNode?.id === "wrapper-unified-extensions-button";
+    const { gUnifiedExtensions } = popup.ownerGlobal;
+
+    const checkbox = popup.querySelector(
+      "#toolbar-context-always-show-extensions-button"
+    );
+    if (isCustomizingExtsButton && lazy.gEnableCustomizableExtensionsButton) {
+      checkbox.hidden = false;
+      if (gUnifiedExtensions.buttonAlwaysVisible) {
+        checkbox.setAttribute("checked", "true");
+      } else {
+        checkbox.removeAttribute("checked");
+      }
+    } else {
+      checkbox.hidden = true;
+    }
+
     // removeFromToolbar is shown but disabled by default, via an earlier call
     // to ToolbarContextMenu.onViewToolbarsPopupShowing. Enable if needed.
     if (isExtsButton && lazy.gEnableCustomizableExtensionsButton) {
