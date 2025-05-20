@@ -3445,7 +3445,7 @@ void MacroAssembler::patchNopToCall(uint8_t* call, uint8_t* target) {
   uint32_t* p = reinterpret_cast<uint32_t*>(call) - 7;
   Assembler::WriteLoad64Instructions((Instruction*)p, ScratchRegister,
                                      (uint64_t)target);
-  DEBUG_PRINTF("\tpatchNopToCall %lu %lu\n", (uint64_t)target,
+  DEBUG_PRINTF("\tpatchNopToCall %" PRIu64 " %" PRIu64 "\n", (uint64_t)target,
                ExtractLoad64Value((Instruction*)p));
   MOZ_ASSERT(ExtractLoad64Value((Instruction*)p) == (uint64_t)target);
   Instr jalr_ = JALR | (ra.code() << kRdShift) | (0x0 << kFunct3Shift) |
