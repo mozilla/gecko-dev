@@ -15,7 +15,8 @@
   --fxview-text-secondary-color: color-mix(in srgb, currentColor 70%, transparent);
   --fxview-text-color-hover: var(--newtab-text-primary-color);
   --fxview-primary-action-background: var(--newtab-primary-action-background, #0061e0);
-  --fxview-border: var(--fc-border-light, #CFCFD8);
+  --fxview-border: var(--border-color-transparent);
+  --fxview-border-interactive: var(--border-color-interactive);
   --fxview-indicator-stroke-color-hover: #DEDDDE;
 
   /* ensure utility button hover states match those of the rest of the page */
@@ -37,7 +38,6 @@
   :root {
     --fxview-element-background-hover: color-mix(in srgb, var(--fxview-background-color) 80%, white);
     --fxview-element-background-active: color-mix(in srgb, var(--fxview-background-color) 60%, white);
-    --fxview-border: #8F8F9D;
     --fxview-indicator-stroke-color-hover:#5D5C66;
 
     /* copy over newtab colors from activity-stream-[os].css files */
@@ -52,16 +52,9 @@
     --fxview-element-background-hover: ButtonText;
     --fxview-element-background-active: ButtonText;
     --fxview-text-color-hover: ButtonFace;
-    --fxview-border: var(--fc-border-hcm, -moz-dialogtext);
     --newtab-primary-action-background: LinkText;
     --newtab-background-color: Canvas;
     --newtab-background-color-secondary: Canvas;
-  }
-}
-
-@media (prefers-contrast) {
-  :root {
-    --fxview-border: var(--border-color);
   }
 }
 

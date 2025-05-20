@@ -39,7 +39,7 @@
 }
 
 input {
-  border: 1px solid var(--fxview-border);
+  border: 1px solid var(--fxview-border-interactive);
   border-radius: var(--border-radius-small);
   padding: 8px 32px;
   width: 100%;
