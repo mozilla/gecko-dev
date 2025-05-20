@@ -30,7 +30,7 @@ function changeit() {
 			// reproduces the original bug with the original patch backed out, even though
 			// one would think anything over 100ms would not reproduce, I'm not sure why.
 			// It's better to run the this with this timeout then have the test disabled.
-			numMs = 200;
+			numMs = 250;
 		}
 		window.setTimeout(changeit, numMs);
 		document.documentElement.classList.remove("reftest-wait");
