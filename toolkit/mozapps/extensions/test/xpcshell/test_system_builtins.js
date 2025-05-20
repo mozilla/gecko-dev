@@ -237,3 +237,99 @@ add_task(
     await promiseShutdownManager();
   }
 );
+
+// This tests case verifies that in case of a stale addonStartup.json.lz4 state,
+// missing builtin addons are still detected early during application startup and
+// installed and started as expected.
+add_task(
+  {
+    pref_set: [
+      ["extensions.skipInstallDefaultThemeForTests", true],
+      // Set the same startupScanScopes value set by default on a Firefox Desktop
+      // instance.
+      ["extensions.startupScanScopes", 0],
+    ],
+  },
+  async function test_stale_xpistate() {
+    const builtins = [1, 2, 3].map(i => ({
+      addon_id: `@builtin${i}`,
+      addon_version: "1.1",
+      res_url: `resource://builtin-addon${i}/`,
+    }));
+    await Promise.all(
+      [1, 2, 3].map(i =>
+        setupBuiltinExtension(
+          {
+            manifest: {
+              name: `Built-In System Add-on ${i}`,
+              version: "1.1",
+              browser_specific_settings: {
+                gecko: { id: `@builtin${i}` },
+              },
+            },
+          },
+          `builtin-addon${i}`
+        )
+      )
+    );
+    AddonTestUtils.updateAppInfo(appInfoInitial);
+    await overrideBuiltIns({ builtins });
+    let promiseBuiltin1Started = promiseWebExtensionStartup(`@builtin1`);
+    let promiseBuiltin2Started = promiseWebExtensionStartup(`@builtin2`);
+    let promiseBuiltin3Started = promiseWebExtensionStartup(`@builtin2`);
+    await promiseStartupManager();
+    info("Await @builtin1 startup");
+    await promiseBuiltin1Started;
+    info("Await @builtin2 startup");
+    await promiseBuiltin2Started;
+    info("Await @builtin3 startup");
+    await promiseBuiltin3Started;
+    await promiseShutdownManager();
+
+    ok(
+      AddonTestUtils.addonStartup.exists(),
+      "Expect addonStartup.json.lz4 file to exist"
+    );
+
+    info(
+      "======== Mock stale addonStartup.json.lz4 missing one of the builtin addons"
+    );
+    const { JSONFile } = ChromeUtils.importESModule(
+      "resource://gre/modules/JSONFile.sys.mjs"
+    );
+    const aomStartup = Cc[
+      "@mozilla.org/addons/addon-manager-startup;1"
+    ].getService(Ci.amIAddonManagerStartup);
+    const xpiStateData = aomStartup.readStartupData();
+    ok(
+      xpiStateData["app-builtin-addons"],
+      "Got app-builtin-addons location in the XPIStates data"
+    );
+    ok(
+      xpiStateData["app-builtin-addons"]?.addons?.["@builtin3"],
+      "Got @builtin3 entry in XPIStates data"
+    );
+    delete xpiStateData["app-builtin-addons"].addons["@builtin3"];
+    let jsonFile = new JSONFile({
+      path: PathUtils.join(AddonTestUtils.addonStartup.path),
+      compression: "lz4",
+    });
+    jsonFile.data = xpiStateData;
+    await jsonFile._save();
+
+    info("======== Startup with stale addonStartup.json.lz4");
+    promiseBuiltin1Started = promiseWebExtensionStartup(`@builtin1`);
+    promiseBuiltin2Started = promiseWebExtensionStartup(`@builtin2`);
+    promiseBuiltin3Started = promiseWebExtensionStartup(`@builtin2`);
+
+    await overrideBuiltIns({ builtins });
+    await promiseStartupManager();
+    info("Await @builtin1 startup");
+    await promiseBuiltin1Started;
+    info("Await @builtin2 startup");
+    await promiseBuiltin2Started;
+    info("Await @builtin3 startup");
+    await promiseBuiltin3Started;
+    await promiseShutdownManager();
+  }
+);

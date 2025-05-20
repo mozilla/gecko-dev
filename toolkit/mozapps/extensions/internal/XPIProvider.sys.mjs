@@ -1521,11 +1521,31 @@ var XPIStates = {
       startupScanScopes = AddonManager.SCOPE_ALL;
     }
 
-    if (!oldLocations.has(KEY_APP_SYSTEM_BUILTINS)) {
-      logger.warn(
-        `Force scan SCOPE_APPLICATION (${KEY_APP_SYSTEM_BUILTINS} location missing from XPIStates)`
-      );
-      startupScanScopes |= AddonManager.SCOPE_APPLICATION;
+    const hasScanScopeAll = startupScanScopes & AddonManager.SCOPE_ALL;
+
+    // Restrict logic to detect if the app-builtin-addons XPIStates location data is missing,
+    // corrupted or stale to the first XPIStates.scanForChanges call originated early on the
+    // XPIProvider startup (and skip it on further calls that may be originated later on, e.g.
+    // when we are checking for new sideloaded extensions after the application is fully started).
+    if (!hasScanScopeAll && shouldRestoreLocationData) {
+      if (!oldLocations.has(KEY_APP_SYSTEM_BUILTINS)) {
+        logger.warn(
+          `Force scan SCOPE_APPLICATION (${KEY_APP_SYSTEM_BUILTINS} location missing from XPIStates)`
+        );
+        startupScanScopes |= AddonManager.SCOPE_APPLICATION;
+      } else {
+        const knownIds = new Set(
+          Object.keys(oldState[KEY_APP_SYSTEM_BUILTINS].addons ?? {})
+        );
+        const expectedIds = new Set(SystemBuiltInLocation.readAddons().keys());
+        const missingIds = expectedIds.difference(knownIds);
+        if (missingIds.size) {
+          logger.warn(
+            `Force scan SCOPE_APPLICATION location (detected missing builtins: ${JSON.stringify(Array.from(missingIds))})`
+          );
+          startupScanScopes |= AddonManager.SCOPE_APPLICATION;
+        }
+      }
     }
 
     for (let loc of XPIStates.locations()) {
