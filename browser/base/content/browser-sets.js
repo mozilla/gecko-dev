@@ -214,6 +214,9 @@ document.addEventListener(
           case "Tools:Addons":
             BrowserAddonUI.openAddonsMgr();
             break;
+          case "cmd_openUnifiedExtensionsPanel":
+            gUnifiedExtensions.openPanel(event);
+            break;
           case "Tools:Sanitize":
             Sanitizer.showUI(window);
             break;

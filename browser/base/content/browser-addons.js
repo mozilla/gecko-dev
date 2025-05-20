@@ -1849,6 +1849,8 @@ var gUnifiedExtensions = {
     this.permListener = () => this.updateAttention();
     lazy.ExtensionPermissions.addListener(this.permListener);
 
+    this.onAppMenuShowing = this.onAppMenuShowing.bind(this);
+    PanelUI.mainView.addEventListener("ViewShowing", this.onAppMenuShowing);
     gNavToolbox.addEventListener("customizationstarting", this);
     gNavToolbox.addEventListener("aftercustomization", this);
     CustomizableUI.addListener(this);
@@ -1869,6 +1871,7 @@ var gUnifiedExtensions = {
     lazy.ExtensionPermissions.removeListener(this.permListener);
     this.permListener = null;
 
+    PanelUI.mainView.removeEventListener("ViewShowing", this.onAppMenuShowing);
     gNavToolbox.removeEventListener("customizationstarting", this);
     gNavToolbox.removeEventListener("aftercustomization", this);
     CustomizableUI.removeListener(this);
@@ -1877,6 +1880,13 @@ var gUnifiedExtensions = {
 
   onBlocklistAttentionUpdated() {
     this.updateAttention();
+  },
+
+  onAppMenuShowing() {
+    document.getElementById("appMenu-extensions-themes-button").hidden =
+      !this.buttonAlwaysVisible;
+    document.getElementById("appMenu-unified-extensions-button").hidden =
+      this.buttonAlwaysVisible;
   },
 
   onLocationChange(browser, webProgress, _request, _uri, flags) {
@@ -2359,6 +2369,17 @@ var gUnifiedExtensions = {
 
     // We always dispatch an event (useful for testing purposes).
     window.dispatchEvent(new CustomEvent("UnifiedExtensionsTogglePanel"));
+  },
+
+  async openPanel(aEvent) {
+    if (this._button.open) {
+      throw new Error("Tried to open panel whilst a panel was already open!");
+    }
+    if (CustomizationHandler.isCustomizing()) {
+      throw new Error("Cannot open panel while in Customize mode!");
+    }
+
+    await this.togglePanel(aEvent);
   },
 
   updateContextMenu(menu, event) {
