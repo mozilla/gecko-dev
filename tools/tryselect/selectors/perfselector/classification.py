@@ -10,6 +10,7 @@ import pathlib
 import re
 
 from mozbuild.base import MozbuildObject
+from mozperftest.script import MissingFieldError, ScriptInfo
 
 here = os.path.abspath(os.path.dirname(__file__))
 build = MozbuildObject.from_environment(cwd=here)
@@ -203,14 +204,32 @@ def perftest_test_finder(task_cmd, task_label, test):
     that mozperftest names don't include things like:
     aarch64, shippable, or opt among other identifiers
     """
-    modified_task_label = None
-    for cmd in task_cmd:
-        cmd_list = cmd
-        found = any(test in arg for arg in cmd_list)
-        if found:
-            modified_task_label = task_label
+    from mozperftest.argparser import PerftestArgumentParser
 
-    return modified_task_label
+    runner_calls = []
+    for part in task_cmd:
+        for cmd in part:
+            if isinstance(cmd, str) and "runner.py" in cmd:
+                runner_segments = cmd.split("&&")
+                for seg in runner_segments:
+                    if "runner.py" in seg:
+                        runner_calls.append(seg.split("runner.py")[-1])
+
+    perftest_parser = PerftestArgumentParser()
+    for runner_call in runner_calls:
+        runner_opts = runner_call.strip().split()
+        args, _ = perftest_parser.parse_known_args(runner_opts)
+        test_paths = [pathlib.Path(build.topsrcdir, p) for p in args.tests]
+        for path in test_paths:
+            if not path.is_file():
+                continue
+            try:
+                si = ScriptInfo(path)
+            except MissingFieldError:
+                continue
+
+            if test in str(si.script).replace(os.sep, "/") or si.get("name") == test:
+                return task_label
 
 
 def awsy_test_finder(task_cmd, task_label, test):

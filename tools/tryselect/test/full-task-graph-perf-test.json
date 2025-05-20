@@ -56,5 +56,16 @@
         ]
       }
     }
+  },
+  "perftest-android-hw-a55-background-resource-chrome": {
+    "task": {
+      "payload": {
+        "command": [
+          [
+            "mozperftest/runner.py testing/performance/android-resource/main-background.sh --android"
+          ]
+        ]
+      }
+    }
   }
 }
