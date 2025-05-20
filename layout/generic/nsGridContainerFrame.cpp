@@ -11,6 +11,7 @@
 #include <functional>
 #include <stdlib.h>  // for div()
 #include <type_traits>
+#include "fmt/format.h"
 #include "gfxContext.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/Baseline.h"
@@ -3063,21 +3064,37 @@ struct nsGridContainerFrame::Tracks {
 
 #ifdef DEBUG
 void nsGridContainerFrame::Tracks::Dump() const {
-  printf("%zu %s %s ", mSizes.Length(), mIsMasonry ? "masonry" : "grid",
-         mAxis == LogicalAxis::Block ? "rows" : "columns");
+  const size_t numTracks = mSizes.Length();
+  const char* trackName = mAxis == LogicalAxis::Inline ? "column" : "row";
+
+  auto BaselineToStr = [](nscoord aBaseline) {
+    return aBaseline == NS_INTRINSIC_ISIZE_UNKNOWN ? std::string("unknown")
+                                                   : std::to_string(aBaseline);
+  };
+  auto CoordToStr = [](nscoord aCoord) {
+    return aCoord == NS_UNCONSTRAINEDSIZE ? std::string("unconstrained")
+                                          : std::to_string(aCoord);
+  };
+
+  fmt::print(FMT_STRING("{} {} {}{}, track union bits: "), numTracks,
+             mIsMasonry ? "masonry" : "grid", trackName,
+             numTracks > 1 ? "s" : "");
   TrackSize::DumpStateBits(mStateUnion);
   printf("\n");
-  for (uint32_t i = 0, len = mSizes.Length(); i < len; ++i) {
-    printf("  %d: ", i);
+
+  for (uint32_t i = 0; i < numTracks; ++i) {
+    fmt::print(FMT_STRING("  {} {}: "), trackName, i);
     mSizes[i].Dump();
     printf("\n");
   }
-  double px = AppUnitsPerCSSPixel();
-  printf("Baselines: %.2fpx %2fpx\n",
-         mBaseline[BaselineSharingGroup::First] / px,
-         mBaseline[BaselineSharingGroup::Last] / px);
-  printf("Gap: %.2fpx\n", mGridGap / px);
-  printf("ContentBoxSize: %.2fpx\n", mContentBoxSize / px);
+
+  fmt::println(FMT_STRING("  first baseline: {}, last baseline: {}"),
+               BaselineToStr(mBaseline[BaselineSharingGroup::First]),
+               BaselineToStr(mBaseline[BaselineSharingGroup::Last]));
+  fmt::println(FMT_STRING("  {} gap: {}, content-box {}-size: {}"), trackName,
+               CoordToStr(mGridGap),
+               mAxis == LogicalAxis::Inline ? "inline" : "block",
+               CoordToStr(mContentBoxSize));
 }
 #endif
 
