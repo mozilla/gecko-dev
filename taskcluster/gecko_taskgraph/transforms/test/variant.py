@@ -114,7 +114,7 @@ def split_variants(config, tasks):
             variant=name,
         )
 
-        return merge(task, variant.get("merge", {}))
+        return merge(task, deepcopy(variant.get("merge", {})))
 
     expired_variants = find_expired_variants(TEST_VARIANTS)
     for task in tasks:
