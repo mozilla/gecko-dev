@@ -60,6 +60,20 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ToolbarBadgeHub: "resource:///modules/asrouter/ToolbarBadgeHub.sys.mjs",
 });
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "messagingProfileId",
+  "messaging-system.profile.messagingProfileId",
+  ""
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "disableSingleProfileMessaging",
+  "messaging-system.profile.singleProfileMessaging.disable",
+  false
+);
+
 XPCOMUtils.defineLazyServiceGetters(lazy, {
   BrowserHandler: ["@mozilla.org/browser/clh;1", "nsIBrowserHandler"],
 });
@@ -1658,6 +1672,29 @@ export class _ASRouter {
     return impressions;
   }
 
+  // Determine whether the current profile is using Selectable profiles;
+  // if yes, ensure we only message a single profile in the group.
+  shouldShowMessagesToProfile() {
+    // If the pref for this mitigation is disabled, skip these checks.
+    if (lazy.disableSingleProfileMessaging) {
+      return true;
+    }
+    // If multiple profiles aren't enabled or aren't being used,
+    // then always show messages.
+    if (
+      !lazy.ASRouterTargeting.Environment.canCreateSelectableProfiles ||
+      !lazy.ASRouterTargeting.Environment.hasSelectableProfiles
+    ) {
+      return true;
+    }
+    // if multiple profiles exist and messagingProfileID is set,
+    // then show messages when profileID matches.
+    return (
+      lazy.messagingProfileId ===
+      lazy.ASRouterTargeting.Environment.currentProfileId
+    );
+  }
+
   handleMessageRequest({
     messages: candidates,
     triggerId,
@@ -1668,6 +1705,13 @@ export class _ASRouter {
     ordered = false,
     returnAll = false,
   }) {
+    // If using a selectable profile, return no messages
+    if (!this.shouldShowMessagesToProfile()) {
+      lazy.ASRouterPreferences.console.debug(
+        "Selectable profile in use; skip loading messages"
+      );
+      return returnAll ? [] : null;
+    }
     let shouldCache;
     lazy.ASRouterPreferences.console.debug(
       "in handleMessageRequest, arguments = ",

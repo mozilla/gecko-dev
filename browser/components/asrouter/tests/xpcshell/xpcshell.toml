@@ -1,6 +1,11 @@
 [DEFAULT]
-head = "head.js"
+head = "../../../../../toolkit/profile/test/xpcshell/head.js ../../../../../browser/components/profiles/tests/unit/head.js head.js"
 firefox-appdir = "browser"
+
+prefs = [
+  "browser.profiles.enabled=true",
+  "browser.profiles.created=false",
+]
 
 ["test_ASRouterTargeting_attribution.js"]
 run-if = ["os == 'mac'"] # osx specific tests
@@ -11,6 +16,10 @@ run-if = ["os == 'mac'"] # osx specific tests
 support-files = ["../schemas/*.schema.json"]
 
 ["test_ASRouter_getTargetingParameters.js"]
+
+["test_ASRouter_shouldShowMessagesToProfile.js"]
+
+["test_ASRouterPreferences_maybeSetMessagingProfileID.js"]
 
 ["test_CFRMessageProvider.js"]
 

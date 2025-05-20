@@ -23,7 +23,8 @@ Please note that some targeting attributes require stricter controls on the tele
 * [canCreateSelectableProfiles](#cancreateselectableprofiles)
 * [creditCardsSaved](#creditcardssaved)
 * [currentDate](#currentdate)
-* [currentTabGroups](#currentTabGroups)
+* [currentTabGroups](#currenttabgroups)
+* [currentProfileId](#currentprofileid)
 * [defaultPDFHandler](#defaultpdfhandler)
 * [devToolsOpenedCount](#devtoolsopenedcount)
 * [distributionId](#distributionid)
@@ -1113,7 +1114,10 @@ declare const systemArch: string | null;
 
 Returns the number of times a user has completed a search in the URL Bar. The number is arbitrarily capped at 100.
 
-
 ### `profileGroupId`
 
 Returns the stable profile group ID used for data reporting.
+
+### `currentProfileId`
+
+The integer-valued identifier of the current selectable profile, as reported by `SelectableProfileService`, converted to a string.

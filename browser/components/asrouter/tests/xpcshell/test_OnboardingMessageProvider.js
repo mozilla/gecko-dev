@@ -4,9 +4,6 @@
 const { OnboardingMessageProvider } = ChromeUtils.importESModule(
   "resource:///modules/asrouter/OnboardingMessageProvider.sys.mjs"
 );
-const { sinon } = ChromeUtils.importESModule(
-  "resource://testing-common/Sinon.sys.mjs"
-);
 
 function getOnboardingScreenById(screens, screenId) {
   return screens.find(screen => {

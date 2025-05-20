@@ -1200,6 +1200,13 @@ const TargetingGetters = {
     return QueryCache.getters.profileGroupId.get();
   },
 
+  get currentProfileId() {
+    if (!lazy.SelectableProfileService.currentProfile) {
+      return "";
+    }
+    return lazy.SelectableProfileService.currentProfile.id.toString();
+  },
+
   get buildId() {
     return parseInt(AppConstants.MOZ_BUILDID, 10);
   },

@@ -2,6 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// eslint-disable-next-line mozilla/use-static-import
+const { XPCOMUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/XPCOMUtils.sys.mjs"
+);
+
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  SelectableProfileService:
+    "resource:///modules/profiles/SelectableProfileService.sys.mjs",
+});
+
 const PROVIDER_PREF_BRANCH =
   "browser.newtabpage.activity-stream.asrouter.providers.";
 const DEVTOOLS_PREF =
@@ -15,6 +27,9 @@ const DEVTOOLS_PREF =
 const DEBUG_PREF = "browser.newtabpage.activity-stream.asrouter.debugLogLevel";
 
 const FXA_USERNAME_PREF = "services.sync.username";
+// To observe changes to Selectable Profiles
+const SELECTABLE_PROFILES_UPDATED = "sps-profiles-updated";
+const MESSAGING_PROFILE_ID_PREF = "messaging-system.profile.messagingProfileId";
 
 const DEFAULT_STATE = {
   _initialized: false,
@@ -29,6 +44,30 @@ const USER_PREFERENCES = {
   cfrFeatures:
     "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features",
 };
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "messagingProfileId",
+  MESSAGING_PROFILE_ID_PREF,
+  ""
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "disableSingleProfileMessaging",
+  "messaging-system.profile.singleProfileMessaging.disable",
+  false,
+  async prefVal => {
+    if (!prefVal) {
+      return;
+    }
+    // unset the user value of the profile ID pref
+    Services.prefs.clearUserPref(MESSAGING_PROFILE_ID_PREF);
+    await lazy.SelectableProfileService.flushSharedPrefToDatabase(
+      MESSAGING_PROFILE_ID_PREF
+    );
+  }
+);
 
 // Preferences that influence targeting attributes. When these change we need
 // to re-evaluate if the message targeting still matches
@@ -158,6 +197,48 @@ export class _ASRouterPreferences {
     }
   }
 
+  async _maybeSetMessagingProfileID() {
+    // If the pref for this mitigation is disabled, skip these checks.
+    if (lazy.disableSingleProfileMessaging) {
+      return;
+    }
+    await lazy.SelectableProfileService.init();
+    let currentProfileID =
+      lazy.SelectableProfileService.currentProfile?.id?.toString();
+    // if multiple profiles exist and messagingProfileID isn't set,
+    // set it and copy it around to the rest of the profile group.
+    try {
+      if (!lazy.messagingProfileId && currentProfileID) {
+        Services.prefs.setStringPref(
+          MESSAGING_PROFILE_ID_PREF,
+          currentProfileID
+        );
+        await lazy.SelectableProfileService.trackPref(
+          MESSAGING_PROFILE_ID_PREF
+        );
+      }
+      // if multiple profiles exist and messagingProfileID is set, make
+      // sure that a profile with that ID exists.
+      if (
+        lazy.messagingProfileId &&
+        lazy.SelectableProfileService.initialized
+      ) {
+        let messagingProfile = await lazy.SelectableProfileService.getProfile(
+          parseInt(lazy.messagingProfileId, 10)
+        );
+        if (!messagingProfile) {
+          // the messaging profile got deleted; set the current profile instead
+          Services.prefs.setStringPref(
+            MESSAGING_PROFILE_ID_PREF,
+            currentProfileID
+          );
+        }
+      }
+    } catch (e) {
+      console.error(`Could not set profile ID: ${e}`);
+    }
+  }
+
   get devtoolsEnabled() {
     if (!this._initialized || this._devtoolsEnabled === null) {
       this._devtoolsEnabled = Services.prefs.getBoolPref(
@@ -213,12 +294,17 @@ export class _ASRouterPreferences {
     this._migrateProviderPrefs();
     Services.prefs.addObserver(this._providerPrefBranch, this);
     Services.prefs.addObserver(this._devtoolsPref, this);
+    Services.obs.addObserver(
+      this._maybeSetMessagingProfileID,
+      SELECTABLE_PROFILES_UPDATED
+    );
     for (const id of Object.keys(USER_PREFERENCES)) {
       Services.prefs.addObserver(USER_PREFERENCES[id], this);
     }
     for (const targetingPref of TARGETING_PREFERENCES) {
       Services.prefs.addObserver(targetingPref, this);
     }
+    this._maybeSetMessagingProfileID();
     this._initialized = true;
   }
 

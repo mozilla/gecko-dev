@@ -170,6 +170,9 @@ describe("ASRouter", () => {
         scoreThreshold: 5000,
         isChinaRepack: false,
         userId: "adsf",
+        currentProfileId: "1",
+        canCreateSelectableProfiles: false,
+        hasSelectableProfiles: false,
       },
     };
     gBrowser = {
@@ -1128,6 +1131,38 @@ describe("ASRouter", () => {
       await Router.setState(() => ({
         providers: [{ id: "cfr" }, { id: "badge" }],
       }));
+    });
+    it("should return no messages if shouldShowMessagesToProfile returns false", async () => {
+      sandbox.stub(Router, "shouldShowMessagesToProfile").returns(false);
+      await Router.setState(() => ({
+        messages: [
+          { id: "foo", provider: "cfr", groups: ["cfr"] },
+          { id: "bar", provider: "cfr", groups: ["cfr"] },
+        ],
+      }));
+      const result = await Router.handleMessageRequest({
+        provider: "cfr",
+      });
+      assert.isNull(result);
+    });
+    it("should return messages if shouldShowMessagesToProfile returns true", async () => {
+      sandbox.stub(Router, "shouldShowMessagesToProfile").returns(true);
+      await Router.setState(() => ({
+        messages: [
+          { id: "foo", provider: "cfr", groups: ["cfr"] },
+          { id: "bar", provider: "cfr", groups: ["cfr"] },
+        ],
+      }));
+      const result = await Router.handleMessageRequest({
+        provider: "cfr",
+      });
+      assert.isNotNull(result);
+      assert.calledWithMatch(ASRouterTargeting.findMatchingMessage, {
+        messages: [
+          { id: "foo", provider: "cfr", groups: ["cfr"] },
+          { id: "bar", provider: "cfr", groups: ["cfr"] },
+        ],
+      });
     });
     it("should not return a blocked message", async () => {
       // Block all messages except the first
