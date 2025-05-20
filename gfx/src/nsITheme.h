@@ -80,11 +80,10 @@ class nsITheme : public nsISupports {
    *        box-shadow, though it's not a hard requirement.
    */
   enum class DrawOverflow { No, Yes };
-  virtual void DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
-                                    StyleAppearance aWidgetType,
-                                    const nsRect& aRect,
-                                    const nsRect& aDirtyRect,
-                                    DrawOverflow = DrawOverflow::Yes) = 0;
+  NS_IMETHOD DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
+                                  StyleAppearance aWidgetType,
+                                  const nsRect& aRect, const nsRect& aDirtyRect,
+                                  DrawOverflow = DrawOverflow::Yes) = 0;
 
   /**
    * Create WebRender commands for the theme background.
@@ -183,7 +182,7 @@ class nsITheme : public nsISupports {
   virtual bool WidgetAttributeChangeRequiresRepaint(StyleAppearance,
                                                     nsAtom* aAttribute) = 0;
 
-  virtual void ThemeChanged() {}
+  NS_IMETHOD ThemeChanged() = 0;
 
   virtual bool WidgetAppearanceDependsOnWindowFocus(
       StyleAppearance aWidgetType) {

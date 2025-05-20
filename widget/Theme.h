@@ -48,9 +48,10 @@ class Theme : protected nsNativeTheme, public nsITheme {
   NS_DECL_ISUPPORTS_INHERITED
 
   // The nsITheme interface.
-  void DrawWidgetBackground(gfxContext* aContext, nsIFrame*, StyleAppearance,
-                            const nsRect& aRect, const nsRect& aDirtyRect,
-                            DrawOverflow) override;
+  NS_IMETHOD DrawWidgetBackground(gfxContext* aContext, nsIFrame*,
+                                  StyleAppearance, const nsRect& aRect,
+                                  const nsRect& aDirtyRect,
+                                  DrawOverflow) override;
 
   bool CreateWebRenderCommandsForWidget(
       wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources,
@@ -78,6 +79,7 @@ class Theme : protected nsNativeTheme, public nsITheme {
   Transparency GetWidgetTransparency(nsIFrame*, StyleAppearance) override;
   bool WidgetAttributeChangeRequiresRepaint(StyleAppearance,
                                             nsAtom* aAttribute) override;
+  NS_IMETHOD ThemeChanged() override;
   bool WidgetAppearanceDependsOnWindowFocus(StyleAppearance) override;
   /*bool NeedToClearBackgroundBehindWidget(
       nsIFrame*, StyleAppearance) override;*/

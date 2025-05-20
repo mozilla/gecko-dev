@@ -4,17 +4,47 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsNativeThemeGTK.h"
-#include "nsDeviceContext.h"
 #include "gtk/gtk.h"
 #include "nsPresContext.h"
+#include "nsStyleConsts.h"
 #include "gtkdrawing.h"
+#include "ScreenHelperGTK.h"
+#include "WidgetUtilsGtk.h"
+
+#include "gfx2DGlue.h"
+#include "nsIObserverService.h"
 #include "nsIFrame.h"
+#include "nsIContent.h"
+#include "nsViewManager.h"
+#include "nsNameSpaceManager.h"
+#include "nsGfxCIID.h"
+#include "nsTransform2D.h"
+#include "nsXULPopupManager.h"
+#include "tree/nsTreeBodyFrame.h"
+#include "prlink.h"
+#include "nsGkAtoms.h"
+#include "nsAttrValueInlines.h"
+
+#include "mozilla/dom/HTMLInputElement.h"
+#include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Services.h"
+
+#include <gdk/gdkprivate.h>
+#include <gtk/gtk.h>
 
 #include "gfxContext.h"
+#include "mozilla/dom/XULButtonElement.h"
 #include "mozilla/gfx/BorrowedContext.h"
 #include "mozilla/gfx/HelpersCairo.h"
 #include "mozilla/gfx/PathHelpers.h"
-#include "mozilla/WidgetUtilsGtk.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/PresShell.h"
+#include "mozilla/layers/StackingContextHelper.h"
+#include "mozilla/StaticPrefs_layout.h"
+#include "mozilla/StaticPrefs_widget.h"
+#include "nsWindow.h"
+#include "nsLayoutUtils.h"
+#include "Theme.h"
 
 #ifdef MOZ_X11
 #  ifdef CAIRO_HAS_XLIB_SURFACE
@@ -48,6 +78,7 @@ static inline CSSToLayoutDeviceScale GetWidgetScaleFactor(
 
 nsNativeThemeGTK::nsNativeThemeGTK() : Theme(ScrollbarStyle()) {
   moz_gtk_init();
+  ThemeChanged();
 }
 
 nsNativeThemeGTK::~nsNativeThemeGTK() { moz_gtk_shutdown(); }
@@ -296,9 +327,12 @@ static void DrawThemeWithCairo(gfxContext* aContext, DrawTarget* aDrawTarget,
   }
 }
 
-void nsNativeThemeGTK::DrawWidgetBackground(
-    gfxContext* aContext, nsIFrame* aFrame, StyleAppearance aAppearance,
-    const nsRect& aRect, const nsRect& aDirtyRect, DrawOverflow aDrawOverflow) {
+NS_IMETHODIMP
+nsNativeThemeGTK::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
+                                       StyleAppearance aAppearance,
+                                       const nsRect& aRect,
+                                       const nsRect& aDirtyRect,
+                                       DrawOverflow aDrawOverflow) {
   if (IsWidgetNonNative(aFrame, aAppearance) != NonNative::No) {
     return Theme::DrawWidgetBackground(aContext, aFrame, aAppearance, aRect,
                                        aDirtyRect, aDrawOverflow);
@@ -306,7 +340,7 @@ void nsNativeThemeGTK::DrawWidgetBackground(
 
   auto gtkType = GeckoToGtkWidgetType(aAppearance);
   if (!gtkType) {
-    return;
+    return NS_OK;
   }
 
   gfxContext* ctx = aContext;
@@ -345,7 +379,7 @@ void nsNativeThemeGTK::DrawWidgetBackground(
       int32_t(dirtyRect.Width()), int32_t(dirtyRect.Height()));
   if (widgetRect.IsEmpty() ||
       !drawingRect.IntersectRect(widgetRect, drawingRect)) {
-    return;
+    return NS_OK;
   }
 
   Transparency transparency = GetWidgetTransparency(aFrame, aAppearance);
@@ -376,6 +410,8 @@ void nsNativeThemeGTK::DrawWidgetBackground(
   DrawThemeWithCairo(ctx, aContext->GetDrawTarget(), params, scaleFactor.scale,
                      snapped, ToPoint(origin),
                      drawingRect.Size().ToUnknownSize(), transparency);
+
+  return NS_OK;
 }
 
 bool nsNativeThemeGTK::CreateWebRenderCommandsForWidget(

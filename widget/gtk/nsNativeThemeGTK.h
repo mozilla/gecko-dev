@@ -6,31 +6,42 @@
 #ifndef _GTK_NSNATIVETHEMEGTK_H_
 #define _GTK_NSNATIVETHEMEGTK_H_
 
+#include "nsITheme.h"
+#include "nsCOMPtr.h"
+#include "nsAtom.h"
 #include "Theme.h"
+
+#include <gtk/gtk.h>
+#include "gtkdrawing.h"
 
 class nsNativeThemeGTK final : public mozilla::widget::Theme {
   using Theme = mozilla::widget::Theme;
 
  public:
   // The nsITheme interface.
-  void DrawWidgetBackground(gfxContext*, nsIFrame*, StyleAppearance,
-                            const nsRect& aRect, const nsRect& aDirtyRect,
-                            DrawOverflow) override;
+  NS_IMETHOD DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
+                                  StyleAppearance aAppearance,
+                                  const nsRect& aRect, const nsRect& aDirtyRect,
+                                  DrawOverflow) override;
 
   bool CreateWebRenderCommandsForWidget(
-      mozilla::wr::DisplayListBuilder&, mozilla::wr::IpcResourceUpdateQueue&,
-      const mozilla::layers::StackingContextHelper&,
-      mozilla::layers::RenderRootStateManager*, nsIFrame*, StyleAppearance,
-      const nsRect&) override;
+      mozilla::wr::DisplayListBuilder& aBuilder,
+      mozilla::wr::IpcResourceUpdateQueue& aResources,
+      const mozilla::layers::StackingContextHelper& aSc,
+      mozilla::layers::RenderRootStateManager* aManager, nsIFrame*,
+      StyleAppearance, const nsRect& aRect) override;
 
-  [[nodiscard]] LayoutDeviceIntMargin GetWidgetBorder(nsDeviceContext*,
-                                                      nsIFrame*,
-                                                      StyleAppearance) override;
+  [[nodiscard]] LayoutDeviceIntMargin GetWidgetBorder(
+      nsDeviceContext* aContext, nsIFrame* aFrame,
+      StyleAppearance aAppearance) override;
 
-  bool GetWidgetPadding(nsDeviceContext*, nsIFrame*, StyleAppearance,
-                        LayoutDeviceIntMargin*) override;
-  bool GetWidgetOverflow(nsDeviceContext*, nsIFrame*, StyleAppearance,
-                         nsRect*) override;
+  bool GetWidgetPadding(nsDeviceContext* aContext, nsIFrame* aFrame,
+                        StyleAppearance aAppearance,
+                        LayoutDeviceIntMargin* aResult) override;
+
+  bool GetWidgetOverflow(nsDeviceContext* aContext, nsIFrame* aFrame,
+                         StyleAppearance aAppearance,
+                         nsRect* aOverflowRect) override;
 
   // Whether we draw a non-native widget.
   //
@@ -49,15 +60,20 @@ class nsNativeThemeGTK final : public mozilla::widget::Theme {
   static bool IsWidgetAlwaysNonNative(nsIFrame*, StyleAppearance);
   NonNative IsWidgetNonNative(nsIFrame*, StyleAppearance);
 
-  mozilla::LayoutDeviceIntSize GetMinimumWidgetSize(nsPresContext*, nsIFrame*,
-                                                    StyleAppearance) override;
+  mozilla::LayoutDeviceIntSize GetMinimumWidgetSize(
+      nsPresContext* aPresContext, nsIFrame* aFrame,
+      StyleAppearance aAppearance) override;
 
   bool WidgetAttributeChangeRequiresRepaint(StyleAppearance,
                                             nsAtom* aAttribute) override;
   NS_IMETHOD ThemeChanged() override;
 
-  bool ThemeSupportsWidget(nsPresContext*, nsIFrame*, StyleAppearance) override;
-  bool WidgetIsContainer(StyleAppearance) override;
+  NS_IMETHOD_(bool)
+  ThemeSupportsWidget(nsPresContext* aPresContext, nsIFrame* aFrame,
+                      StyleAppearance aAppearance) override;
+
+  NS_IMETHOD_(bool) WidgetIsContainer(StyleAppearance aAppearance) override;
+
   bool ThemeDrawsFocusForWidget(nsIFrame*, StyleAppearance) override;
   Transparency GetWidgetTransparency(nsIFrame*, StyleAppearance) override;
 

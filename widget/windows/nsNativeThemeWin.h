@@ -38,9 +38,10 @@ class nsNativeThemeWin final : public Theme {
   NonNative IsWidgetNonNative(nsIFrame*, StyleAppearance);
 
   // The nsITheme interface.
-  void DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
-                            StyleAppearance aAppearance, const nsRect& aRect,
-                            const nsRect& aDirtyRect, DrawOverflow) override;
+  NS_IMETHOD DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
+                                  StyleAppearance aAppearance,
+                                  const nsRect& aRect, const nsRect& aDirtyRect,
+                                  DrawOverflow) override;
 
   bool CreateWebRenderCommandsForWidget(wr::DisplayListBuilder&,
                                         wr::IpcResourceUpdateQueue&,
@@ -71,7 +72,7 @@ class nsNativeThemeWin final : public Theme {
   bool WidgetAttributeChangeRequiresRepaint(StyleAppearance aAppearance,
                                             nsAtom* aAttribute) override;
 
-  void ThemeChanged() override;
+  NS_IMETHOD ThemeChanged() override;
 
   bool ThemeSupportsWidget(nsPresContext* aPresContext, nsIFrame* aFrame,
                            StyleAppearance aAppearance) override;

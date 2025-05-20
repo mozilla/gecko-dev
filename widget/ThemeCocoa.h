@@ -16,9 +16,10 @@ class ThemeCocoa : public Theme {
   explicit ThemeCocoa(UniquePtr<ScrollbarDrawing>&& aScrollbarDrawing)
       : Theme(std::move(aScrollbarDrawing)) {}
 
-  void DrawWidgetBackground(gfxContext* aContext, nsIFrame*, StyleAppearance,
-                            const nsRect& aRect, const nsRect& aDirtyRect,
-                            DrawOverflow) override;
+  NS_IMETHOD DrawWidgetBackground(gfxContext* aContext, nsIFrame*,
+                                  StyleAppearance, const nsRect& aRect,
+                                  const nsRect& aDirtyRect,
+                                  DrawOverflow) override;
 
   bool CreateWebRenderCommandsForWidget(
       wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources,

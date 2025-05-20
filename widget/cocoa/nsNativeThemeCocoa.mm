@@ -2137,10 +2137,13 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
   NS_OBJC_END_TRY_BLOCK_RETURN(Nothing());
 }
 
-void nsNativeThemeCocoa::DrawWidgetBackground(
-    gfxContext* aContext, nsIFrame* aFrame, StyleAppearance aAppearance,
-    const nsRect& aRect, const nsRect& aDirtyRect, DrawOverflow aDrawOverflow) {
-  NS_OBJC_END_TRY_IGNORE_BLOCK;
+NS_IMETHODIMP
+nsNativeThemeCocoa::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
+                                         StyleAppearance aAppearance,
+                                         const nsRect& aRect,
+                                         const nsRect& aDirtyRect,
+                                         DrawOverflow aDrawOverflow) {
+  NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
   if (IsWidgetAlwaysNonNative(aFrame, aAppearance)) {
     return ThemeCocoa::DrawWidgetBackground(aContext, aFrame, aAppearance,
@@ -2150,7 +2153,7 @@ void nsNativeThemeCocoa::DrawWidgetBackground(
   Maybe<WidgetInfo> widgetInfo = ComputeWidgetInfo(aFrame, aAppearance, aRect);
 
   if (!widgetInfo) {
-    return;
+    return NS_OK;
   }
 
   int32_t p2a = aFrame->PresContext()->AppUnitsPerDevPixel();
@@ -2166,7 +2169,9 @@ void nsNativeThemeCocoa::DrawWidgetBackground(
                nativeWidgetRect, NSRectToRect(aDirtyRect, p2a),
                hidpi ? 2.0f : 1.0f);
 
-  NS_OBJC_END_TRY_IGNORE_BLOCK
+  return NS_OK;
+
+  NS_OBJC_END_TRY_BLOCK_RETURN(NS_ERROR_FAILURE);
 }
 
 void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo,
@@ -2701,6 +2706,14 @@ bool nsNativeThemeCocoa::WidgetAttributeChangeRequiresRepaint(
       break;
   }
   return Theme::WidgetAttributeChangeRequiresRepaint(aAppearance, aAttribute);
+}
+
+NS_IMETHODIMP
+nsNativeThemeCocoa::ThemeChanged() {
+  // This is unimplemented because we don't care if gecko changes its theme
+  // and macOS system appearance changes are handled by
+  // nsLookAndFeel::SystemWantsDarkTheme.
+  return NS_OK;
 }
 
 bool nsNativeThemeCocoa::ThemeSupportsWidget(nsPresContext* aPresContext,
