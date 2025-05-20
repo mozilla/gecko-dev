@@ -812,12 +812,12 @@ this.tabs = class extends ExtensionAPIPersistent {
               }
             }
 
-            // Simple properties
-            const properties = ["index", "pinned"];
-            for (let prop of properties) {
-              if (createProperties[prop] != null) {
-                options[prop] = createProperties[prop];
-              }
+            if (createProperties.index != null) {
+              options.tabIndex = createProperties.index;
+            }
+
+            if (createProperties.pinned != null) {
+              options.pinned = createProperties.pinned;
             }
 
             let active =
@@ -1209,7 +1209,7 @@ this.tabs = class extends ExtensionAPIPersistent {
         },
 
         duplicate(tabId, duplicateProperties) {
-          const { active, index } = duplicateProperties || {};
+          const { active, index: tabIndex } = duplicateProperties || {};
           const inBackground = active === undefined ? false : !active;
 
           // Schema requires tab id.
@@ -1218,7 +1218,7 @@ this.tabs = class extends ExtensionAPIPersistent {
           let gBrowser = nativeTab.ownerGlobal.gBrowser;
           let newTab = gBrowser.duplicateTab(nativeTab, true, {
             inBackground,
-            index,
+            tabIndex,
           });
 
           tabListener.blockTabUntilRestored(newTab);

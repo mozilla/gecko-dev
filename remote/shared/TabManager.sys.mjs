@@ -173,7 +173,7 @@ class TabManagerClass {
       window = Services.wm.getMostRecentWindow(null),
     } = options;
 
-    let index;
+    let tabIndex;
     if (referenceTab != null) {
       // If a reference tab was specified, the window should be the window
       // owning the reference tab.
@@ -181,13 +181,13 @@ class TabManagerClass {
     }
 
     if (referenceTab != null) {
-      index = this.getTabsForWindow(window).indexOf(referenceTab) + 1;
+      tabIndex = this.getTabsForWindow(window).indexOf(referenceTab) + 1;
     }
 
     const tabBrowser = this.getTabBrowser(window);
 
     const tab = await tabBrowser.addTab("about:blank", {
-      index,
+      tabIndex,
       triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
       userContextId: lazy.UserContextManager.getInternalIdById(userContextId),
     });
