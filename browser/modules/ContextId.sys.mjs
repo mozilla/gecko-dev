@@ -42,8 +42,6 @@ export class _ContextId extends EventTarget {
     );
 
     if (this.#rustComponentEnabled) {
-      GleanPings.contextIdDeletionRequest.setEnabled(true);
-
       // We intentionally read this once at construction, and cache the result.
       // This is because enabling or disabling rotation may affect external
       // uses of _ContextId which (for example) send the context_id UUID to
@@ -69,6 +67,8 @@ export class _ContextId extends EventTarget {
           },
 
           rotated: oldContextId => {
+            GleanPings.contextIdDeletionRequest.setEnabled(true);
+
             Glean.contextualServices.contextId.set(oldContextId);
             GleanPings.contextIdDeletionRequest.submit();
           },
