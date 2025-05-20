@@ -1002,6 +1002,20 @@ BounceTrackingProtection::PurgeBounceTrackers() {
                     }
                   }
 
+                  // Record exposure of the feature for Nimbus
+                  // experimentation.
+                  // The error result returned by this method isn't very
+                  // useful, so we ignore it. Thee method will also return
+                  // errors if the client is not enrolled in an experiment
+                  // involving BTP which we don't consider a failure state.
+                  //
+                  // We record exposure for MODE_ENABLED_DRY_RUN in addition to
+                  // MODE_ENABLED so we know in Nimbus when a client would have
+                  // been exposed to BTP had it been enabled. This enables us to
+                  // compare the control and treatment branches with exposure.
+                  Unused << NimbusFeatures::RecordExposureEvent(
+                      "bounceTrackingProtection"_ns, false);
+
                   if (StaticPrefs::privacy_bounceTrackingProtection_mode() ==
                       nsIBounceTrackingProtection::MODE_ENABLED) {
                     // Log successful purges.
@@ -1021,15 +1035,6 @@ BounceTrackingProtection::PurgeBounceTrackers() {
                       // Record successful purges via nsITrackingDBService for
                       // tracker stats.
                       ReportPurgedTrackersToAntiTrackingDB(purgedSites);
-
-                      // Record exposure of the feature for Nimbus
-                      // experimentation.
-                      // The error result returned by this method isn't very
-                      // useful, so we ignore it. Thee method will also return
-                      // errors if the client is not enrolled in an experiment
-                      // involving BTP which we don't consider a failure state.
-                      Unused << NimbusFeatures::RecordExposureEvent(
-                          "bounceTrackingProtection"_ns, false);
                     }
                   }
 
