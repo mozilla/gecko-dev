@@ -33,5 +33,9 @@ function handlePageShow(persisted) {
   }
 }
 
-childWin = window.open('file_scroll_position_restore_no_bfcache.html', '_blank');
+SpecialPowers.pushPrefEnv({
+  set: [ ["layout.scroll.disable-pixel-alignment", true] ]
+}).then(() => {
+  childWin = window.open('file_scroll_position_restore_no_bfcache.html', '_blank');
+});
 </script>
