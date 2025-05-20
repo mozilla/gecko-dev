@@ -283,8 +283,6 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         )
 
         components.analytics.metricsStorage.tryRegisterAsUsageRecorder(this)
-
-        downloadWallpapers()
     }
 
     @OptIn(DelicateCoroutinesApi::class) // GlobalScope usage
@@ -435,6 +433,12 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
             }
         }
 
+        fun queueDownloadWallpapers() {
+            queue.runIfReadyOrQueue {
+                downloadWallpapers()
+            }
+        }
+
         initQueue()
 
         // We init these items in the visual completeness queue to avoid them initing in the critical
@@ -445,6 +449,7 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         queueRestoreLocale()
         queueStorageMaintenance()
         queueNimbusFetchInForeground()
+        queueDownloadWallpapers()
         if (settings().enableFxSuggest) {
             queueSuggestIngest()
         }
