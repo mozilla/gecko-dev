@@ -15,5 +15,6 @@ contains general information about layout and the layout team at Mozilla.
    LayoutOverview
    DynamicChangeHandling
    Reftest
+   LayoutCodeReviewerChecklist
    LayoutDebugger
    AccessibleCaret
