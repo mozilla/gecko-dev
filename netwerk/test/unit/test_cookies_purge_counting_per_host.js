@@ -65,7 +65,7 @@ add_task(async function test_purge_counting_per_host() {
     true, // isSession
     futureExpiry,
     {}, // OA
-    Ci.nsICookie.SAMESITE_NONE, // SameSite
+    Ci.nsICookie.SAMESITE_UNSET, // SameSite
     Ci.nsICookie.SCHEME_HTTPS
   );
   Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");

@@ -131,7 +131,7 @@ async function testCookies(options) {
         false,
         options.expiry,
         {},
-        Ci.nsICookie.SAMESITE_NONE,
+        Ci.nsICookie.SAMESITE_UNSET,
         options.url.startsWith("https")
           ? Ci.nsICookie.SCHEME_HTTPS
           : Ci.nsICookie.SCHEME_HTTP
@@ -147,7 +147,7 @@ async function testCookies(options) {
         false,
         options.expiry,
         {},
-        Ci.nsICookie.SAMESITE_NONE,
+        Ci.nsICookie.SAMESITE_UNSET,
         options.url.startsWith("https")
           ? Ci.nsICookie.SCHEME_HTTPS
           : Ci.nsICookie.SCHEME_HTTP
@@ -163,7 +163,7 @@ async function testCookies(options) {
         false,
         options.expiry,
         {},
-        Ci.nsICookie.SAMESITE_NONE,
+        Ci.nsICookie.SAMESITE_UNSET,
         options.url.startsWith("https")
           ? Ci.nsICookie.SCHEME_HTTPS
           : Ci.nsICookie.SCHEME_HTTP
@@ -195,7 +195,7 @@ async function testCookies(options) {
         false,
         options.expiry,
         {},
-        Ci.nsICookie.SAMESITE_NONE,
+        Ci.nsICookie.SAMESITE_UNSET,
         options.url.startsWith("https")
           ? Ci.nsICookie.SCHEME_HTTPS
           : Ci.nsICookie.SCHEME_HTTP
@@ -211,7 +211,7 @@ async function testCookies(options) {
         false,
         options.expiry,
         {},
-        Ci.nsICookie.SAMESITE_NONE,
+        Ci.nsICookie.SAMESITE_UNSET,
         options.url.startsWith("https")
           ? Ci.nsICookie.SCHEME_HTTPS
           : Ci.nsICookie.SCHEME_HTTP

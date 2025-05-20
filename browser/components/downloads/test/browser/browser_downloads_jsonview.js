@@ -20,7 +20,7 @@ add_task(async function test_save_jsonview() {
     false,
     false,
     false,
-    Number.MAX_SAFE_INTEGER,
+    Date.now() + 24000 * 60 * 60,
     {},
     Ci.nsICookie.SAMESITE_LAX,
     Ci.nsICookie.SCHEME_HTTPS

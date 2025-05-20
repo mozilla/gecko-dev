@@ -22,7 +22,7 @@ add_task(async function test_fetch_defaults_to_credentialless() {
     false,
     expiry,
     {},
-    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_HTTPS
   );
   is(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");

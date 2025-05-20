@@ -38,7 +38,7 @@ add_task(async function test_cookies() {
     async function testIpCookie(ipAddress, setHostOnly) {
       const IP_TEST_HOST = ipAddress;
       const IP_TEST_URL = `http://${IP_TEST_HOST}/`;
-      const IP_THE_FUTURE = Date.now() + 5 * 60;
+      const IP_THE_FUTURE = Math.round(Date.now()/1000) + 5 * 60;
       const IP_STORE_ID = "firefox-default";
 
       let expectedCookie = {
@@ -122,7 +122,7 @@ add_task(async function test_cookies() {
 
     const TEST_URL = "http://example.org/";
     const TEST_SECURE_URL = "https://example.org/";
-    const THE_FUTURE = Date.now() + 5 * 60;
+    const THE_FUTURE = Math.round(Date.now()/1000) + 5 * 60;
     const TEST_PATH = "set_path";
     const TEST_URL_WITH_PATH = TEST_URL + TEST_PATH;
     const TEST_COOKIE_PATH = `/${TEST_PATH}`;

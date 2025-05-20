@@ -81,7 +81,7 @@ add_task(async () => {
       false,
       0,
       {},
-      Ci.nsICookie.SAMESITE_NONE,
+      Ci.nsICookie.SAMESITE_UNSET,
       Ci.nsICookie.SCHEME_HTTPS
     );
     Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");

@@ -797,9 +797,12 @@ class StorageModule extends RootBiDiModule {
       case "strict": {
         return Ci.nsICookie.SAMESITE_STRICT;
       }
+      case "none": {
+        return Ci.nsICookie.SAMESITE_NONE;
+      }
     }
 
-    return Ci.nsICookie.SAMESITE_NONE;
+    return Ci.nsICookie.SAMESITE_UNSET;
   }
 
   /**

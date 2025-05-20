@@ -41,7 +41,7 @@ add_task(async function test_schema_14_migration() {
       false,
       false,
       {},
-      Ci.nsICookie.SAMESITE_NONE,
+      Ci.nsICookie.SAMESITE_UNSET,
       Ci.nsICookie.SCHEME_UNSET,
       !!(i % 2) // isPartitioned
     );

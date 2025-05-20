@@ -62,7 +62,7 @@ add_task(async function test_cookies() {
     false,
     expiration,
     {},
-    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_HTTP
   );
   Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");

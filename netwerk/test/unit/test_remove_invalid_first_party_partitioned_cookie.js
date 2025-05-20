@@ -39,7 +39,7 @@ add_task(async function run_test() {
     false, // isHttpOnly
     false, // isBrowserElement
     { partitionKey: "(https,example.com)" },
-    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_UNSET,
     false // isPartitioned
   );
@@ -59,7 +59,7 @@ add_task(async function run_test() {
     false, // isHttpOnly
     false, // isBrowserElement
     { partitionKey: "(https,example.com)" },
-    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_UNSET,
     true // isPartitioned
   );
@@ -79,7 +79,7 @@ add_task(async function run_test() {
     false, // isHttpOnly
     false, // isBrowserElement
     {},
-    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_UNSET,
     false // isPartitioned
   );
@@ -99,7 +99,7 @@ add_task(async function run_test() {
     false, // isHttpOnly
     false, // isBrowserElement
     { partitionKey: "(https,example.org)" },
-    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_UNSET,
     false // isPartitioned
   );
@@ -119,7 +119,7 @@ add_task(async function run_test() {
     false, // isHttpOnly
     false, // isBrowserElement
     { partitionKey: "(https,example.org)" },
-    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_UNSET,
     true // isPartitioned
   );

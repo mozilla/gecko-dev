@@ -136,8 +136,8 @@ add_task(async function testInvalidSameSiteMessage() {
 
   await checkConsoleOutputForWarningGroup(hud, [
     `▼︎⚠ ${COOKIE_GROUP} 2`,
-    `| ${message1}`,
     `| ${message2}`,
+    `| ${message1}`,
   ]);
 
   // Source map are being resolved in background and we might have

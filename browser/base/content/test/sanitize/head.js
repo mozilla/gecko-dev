@@ -69,7 +69,7 @@ function createHostCookie(host, originAttributes) {
     false,
     Date.now() + 24000 * 60 * 60,
     originAttributes,
-    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_HTTPS
   );
   is(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
@@ -86,7 +86,7 @@ function createDomainCookie(host, originAttributes) {
     false,
     Date.now() + 24000 * 60 * 60,
     originAttributes,
-    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_HTTPS
   );
   is(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
