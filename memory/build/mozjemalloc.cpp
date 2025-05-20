@@ -212,6 +212,10 @@ using namespace mozilla;
 #  define MALLOC_RUNTIME_CONFIG
 #endif
 
+// Uncomment this to enable extra-vigilant assertions.  These assertions may run
+// more expensive checks that are sometimes too slow for regular debug mode.
+// #define MALLOC_DEBUG_VIGILANT
+
 // When MALLOC_STATIC_PAGESIZE is defined, the page size is fixed at
 // compile-time for better performance, as opposed to determined at
 // runtime. Some platforms can have different page sizes at runtime
@@ -2814,12 +2818,15 @@ static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase) {
 
 #ifdef MOZ_DEBUG
 static void chunk_assert_zero(void* aPtr, size_t aSize) {
+// Only run this expensive check in a vigilant mode.
+#  ifdef MALLOC_DEBUG_VIGILANT
   size_t i;
   size_t* p = (size_t*)(uintptr_t)aPtr;
 
   for (i = 0; i < aSize / sizeof(size_t); i++) {
     MOZ_ASSERT(p[i] == 0);
   }
+#  endif
 }
 #endif
 
