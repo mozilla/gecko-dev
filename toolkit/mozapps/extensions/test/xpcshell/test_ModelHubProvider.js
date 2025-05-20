@@ -11,7 +11,7 @@ ChromeUtils.defineESModuleGetters(this, {
 createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1");
 AddonTestUtils.init(this);
 
-const MODELHUBPROVIDER_PREF = "browser.ml.modelHubProvider";
+const MODELHUBPROVIDER_PREF = "extensions.ml.local_model_management";
 
 function ensureBrowserDelayedStartupFinished() {
   // ModelHubProvider does not register itself until the application startup
