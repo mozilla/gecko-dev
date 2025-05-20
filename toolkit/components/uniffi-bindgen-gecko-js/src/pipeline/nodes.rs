@@ -301,6 +301,7 @@ pub struct Enum {
     pub remote: bool,
     pub variants: Vec<Variant>,
     pub discr_type: Option<TypeNode>,
+    pub resolved_discr_type: TypeNode,
     pub non_exhaustive: bool,
     pub js_docstring: String,
     pub docstring: Option<String>,
@@ -312,6 +313,7 @@ pub struct Enum {
 pub struct Variant {
     pub name: String,
     pub discr: Option<LiteralNode>,
+    pub resolved_discr: LiteralNode,
     pub fields: Vec<Field>,
     pub docstring: Option<String>,
     pub js_docstring: String,

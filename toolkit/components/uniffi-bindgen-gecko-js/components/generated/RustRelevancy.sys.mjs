@@ -1268,47 +1268,47 @@ export const Interest = {
     /**
      * INCONCLUSIVE
      */
-    INCONCLUSIVE: 1,
+    INCONCLUSIVE: 0,
     /**
      * ANIMALS
      */
-    ANIMALS: 2,
+    ANIMALS: 1,
     /**
      * ARTS
      */
-    ARTS: 3,
+    ARTS: 2,
     /**
      * AUTOS
      */
-    AUTOS: 4,
+    AUTOS: 3,
     /**
      * BUSINESS
      */
-    BUSINESS: 5,
+    BUSINESS: 4,
     /**
      * CAREER
      */
-    CAREER: 6,
+    CAREER: 5,
     /**
      * EDUCATION
      */
-    EDUCATION: 7,
+    EDUCATION: 6,
     /**
      * FASHION
      */
-    FASHION: 8,
+    FASHION: 7,
     /**
      * FINANCE
      */
-    FINANCE: 9,
+    FINANCE: 8,
     /**
      * FOOD
      */
-    FOOD: 10,
+    FOOD: 9,
     /**
      * GOVERNMENT
      */
-    GOVERNMENT: 11,
+    GOVERNMENT: 10,
     /**
      * HOBBIES
      */
@@ -1347,6 +1347,7 @@ Object.freeze(Interest);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeInterest extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return Interest.INCONCLUSIVE
@@ -1392,6 +1393,7 @@ export class FfiConverterTypeInterest extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === Interest.INCONCLUSIVE) {
             dataStream.writeInt32(1);
             return;

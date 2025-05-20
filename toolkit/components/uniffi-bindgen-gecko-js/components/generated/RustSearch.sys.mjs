@@ -356,17 +356,18 @@ export const JsonEngineMethod = {
     /**
      * POST
      */
-    POST: 1,
+    POST: 2,
     /**
      * GET
      */
-    GET: 2,
+    GET: 1,
 };
 Object.freeze(JsonEngineMethod);
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeJSONEngineMethod extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return JsonEngineMethod.POST
@@ -378,6 +379,7 @@ export class FfiConverterTypeJSONEngineMethod extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === JsonEngineMethod.POST) {
             dataStream.writeInt32(1);
             return;
@@ -1039,17 +1041,18 @@ export const SearchEngineClassification = {
     /**
      * GENERAL
      */
-    GENERAL: 1,
+    GENERAL: 2,
     /**
      * UNKNOWN
      */
-    UNKNOWN: 2,
+    UNKNOWN: 1,
 };
 Object.freeze(SearchEngineClassification);
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSearchEngineClassification extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return SearchEngineClassification.GENERAL
@@ -1061,6 +1064,7 @@ export class FfiConverterTypeSearchEngineClassification extends FfiConverterArra
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === SearchEngineClassification.GENERAL) {
             dataStream.writeInt32(1);
             return;
@@ -2044,6 +2048,7 @@ Object.freeze(SearchUpdateChannel);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSearchUpdateChannel extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return SearchUpdateChannel.NIGHTLY
@@ -2063,6 +2068,7 @@ export class FfiConverterTypeSearchUpdateChannel extends FfiConverterArrayBuffer
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === SearchUpdateChannel.NIGHTLY) {
             dataStream.writeInt32(1);
             return;
@@ -2131,6 +2137,7 @@ Object.freeze(SearchApplicationName);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSearchApplicationName extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return SearchApplicationName.FIREFOX_ANDROID
@@ -2148,6 +2155,7 @@ export class FfiConverterTypeSearchApplicationName extends FfiConverterArrayBuff
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === SearchApplicationName.FIREFOX_ANDROID) {
             dataStream.writeInt32(1);
             return;
@@ -2204,6 +2212,7 @@ Object.freeze(SearchDeviceType);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSearchDeviceType extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return SearchDeviceType.SMARTPHONE
@@ -2217,6 +2226,7 @@ export class FfiConverterTypeSearchDeviceType extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === SearchDeviceType.SMARTPHONE) {
             dataStream.writeInt32(1);
             return;
