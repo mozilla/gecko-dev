@@ -81,6 +81,9 @@ XULStore.prototype = {
       try {
         this._storeFile = Services.dirsvc.get("ProfDS", Ci.nsIFile);
       } catch (ex) {
+        if (Services.startup.startingUp) {
+          return;
+        }
         throw new Error("Can't find profile directory.");
       }
     }
