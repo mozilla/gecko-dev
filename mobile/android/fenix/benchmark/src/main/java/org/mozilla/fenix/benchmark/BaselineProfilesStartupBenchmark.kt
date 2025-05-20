@@ -66,5 +66,6 @@ class BaselineProfilesStartupBenchmark {
             },
         ) {
             startActivityAndWait()
+            killProcess()
         }
 }

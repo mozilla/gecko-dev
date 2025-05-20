@@ -58,6 +58,7 @@ class Worker(Enum):
 
     RESULTS_DIR = "/builds/worker/artifacts/results"
     BASELINE_PROFILE_DEST = "/builds/worker/artifacts/build/baseline-prof.txt"
+    MACROBENCHMARK_DEST = "/builds/worker/artifacts/build/macrobenchmark.json"
     ARTIFACTS_DIR = "/builds/worker/artifacts"
 
 
@@ -70,6 +71,9 @@ class ArtifactType(Enum):
         "artifacts/sdcard/Android/media/org.mozilla.fenix.benchmark/*-baseline-prof.txt"
     )
     CRASH_LOG = "data_app_crash*.txt"
+    MACROBENCHMARK = (
+        "artifacts/sdcard/Android/media/org.mozilla.fenix.benchmark/*benchmarkData.json"
+    )
     MATRIX_IDS = "matrix_ids.json"
 
 
@@ -247,6 +251,8 @@ def process_artifacts(artifact_type):
 
     if artifact_type == ArtifactType.BASELINE_PROFILE:
         return process_baseline_profile_artifact(root_gcs_path, device_names)
+    elif artifact_type == ArtifactType.MACROBENCHMARK:
+        return process_macrobenchmark_artifact(root_gcs_path, device_names)
     else:
         return process_crash_artifacts(root_gcs_path, device_names)
 
@@ -260,6 +266,17 @@ def process_baseline_profile_artifact(root_gcs_path, device_names):
         exit_with_error(f"No artifacts found for device: {device}")
 
     gsutil_cp(artifact, Worker.BASELINE_PROFILE_DEST.value)
+
+
+def process_macrobenchmark_artifact(root_gcs_path, device_names):
+    device = device_names[0]
+    artifact = fetch_artifacts(
+        root_gcs_path, device, ArtifactType.MACROBENCHMARK.value
+    )[0]
+    if not artifact:
+        exit_with_error(f"No artifacts found for device: {device}")
+
+    gsutil_cp(artifact, Worker.MACROBENCHMARK_DEST.value)
 
 
 def process_crash_artifacts(root_gcs_path, failed_device_names):
@@ -295,6 +312,8 @@ def main():
     artifact_type_arg = sys.argv[1]
     if artifact_type_arg == "baseline_profile":
         process_artifacts(ArtifactType.BASELINE_PROFILE)
+    elif artifact_type_arg == "macrobenchmark":
+        process_artifacts(ArtifactType.MACROBENCHMARK)
     elif artifact_type_arg == "crash_log":
         process_artifacts(ArtifactType.CRASH_LOG)
     else:
