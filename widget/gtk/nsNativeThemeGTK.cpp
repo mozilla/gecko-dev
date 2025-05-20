@@ -14,6 +14,7 @@
 #include "mozilla/gfx/BorrowedContext.h"
 #include "mozilla/gfx/HelpersCairo.h"
 #include "mozilla/gfx/PathHelpers.h"
+#include "mozilla/WidgetUtilsGtk.h"
 
 #ifdef MOZ_X11
 #  ifdef CAIRO_HAS_XLIB_SURFACE
