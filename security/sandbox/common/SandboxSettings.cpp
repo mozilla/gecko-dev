@@ -177,9 +177,15 @@ int GetEffectiveContentSandboxLevel() {
   // Sandbox level 8, which uses a USER_RESTRICTED access token level, breaks if
   // prefs moving processing out of the content process are not the default.
   if (level >= 8 &&
-      (!IsWebglOutOfProcessEnabled() || !PDMFactory::AllDecodersAreRemote() ||
-       !StaticPrefs::network_process_enabled() ||
-       !Preferences::GetBool("media.peerconnection.mtransport_process"))) {
+      (!IsWebglOutOfProcessEnabled() ||
+       !PDMFactory::AllDecodersAreRemote()
+#  if defined(MOZ_WEBRTC) && !defined(MOZ_THUNDERBIRD)
+       // These are only relevant if webrtc is present. Thunderbird currently
+       // compiles with webrtc, but doesn't use it.
+       || !StaticPrefs::network_process_enabled() ||
+       !Preferences::GetBool("media.peerconnection.mtransport_process")
+#  endif
+           )) {
     level = 7;
   }
 #endif
