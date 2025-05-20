@@ -140,6 +140,7 @@ export const EnrollmentType = Object.freeze({
 
 let initialized = false;
 let experimentManager = null;
+let experimentLoader = null;
 
 export const ExperimentAPI = {
   /**
@@ -250,13 +251,27 @@ export const ExperimentAPI = {
     return this.manager;
   },
 
+  /**
+   * Return the global RemoteSettingsExperimentLoader.
+   */
+  get _rsLoader() {
+    if (experimentLoader === null) {
+      experimentLoader = new lazy.RemoteSettingsExperimentLoader(this.manager);
+    }
+
+    return experimentLoader;
+  },
+
   _resetForTests() {
-    this._rsLoader.disable();
+    experimentLoader?.disable();
+    experimentLoader = null;
+
     lazy.CleanupManager.removeCleanupHandler(
       ExperimentAPI._removeCrashReportAnnotator
     );
     experimentManager?.store.off("update", this._annotateCrashReport);
     experimentManager = null;
+
     initialized = false;
   },
 
@@ -894,10 +909,6 @@ ExperimentAPI._onStudiesEnabledChanged =
   ExperimentAPI._onStudiesEnabledChanged.bind(ExperimentAPI);
 ExperimentAPI._removeCrashReportAnnotator =
   ExperimentAPI._removeCrashReportAnnotator.bind(ExperimentAPI);
-
-ChromeUtils.defineLazyGetter(ExperimentAPI, "_rsLoader", function () {
-  return lazy.RemoteSettingsExperimentLoader;
-});
 
 ChromeUtils.defineLazyGetter(
   ExperimentAPI,
