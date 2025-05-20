@@ -174,6 +174,7 @@ export const LinkPreview = {
    */
   onCollapsedPref(collapsed) {
     this.updateCardProperty("collapsed", collapsed);
+    Glean.genaiLinkpreview.keyPointsToggle.record({ expand: !collapsed });
   },
 
   /**
@@ -615,6 +616,9 @@ export const LinkPreview = {
     });
 
     ogCard.addEventListener("LinkPreviewCard:generate", _event => {
+      if (ogCard.keyPoints?.length || ogCard.generating) {
+        return;
+      }
       this._handleKeyPointsGenerationEvent(ogCard, "generate");
     });
 

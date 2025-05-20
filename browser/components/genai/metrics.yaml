@@ -818,6 +818,26 @@ genai.linkpreview:
         type: quantity
         description: Milliseconds to generate full result
 
+  key_points_toggle:
+    type: event
+    description: >
+      Recorded when the user toggles the key points section
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1961215
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D249851
+    data_sensitivity:
+      - interaction
+    expires: 150
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      expand:
+        type: boolean
+        description: Link preview card is expanded
+
   labs_checkbox:
     type: event
     description: >
