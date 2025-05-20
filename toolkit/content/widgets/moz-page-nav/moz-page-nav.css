@@ -6,7 +6,7 @@
   --page-nav-margin-top: 72px;
   --page-nav-gap: var(--space-large);
   --page-nav-button-gap: var(--space-xsmall);
-  --page-nav-border-color: var(--button-border-color-ghost);
+  --page-nav-border-color: var(--border-color-transparent);
   --page-nav-focus-outline-inset: var(--focus-outline-inset);
   --page-nav-heading-logo-size: calc(var(--icon-size-default) + var(--space-small));
   --page-nav-hr-color: #CFCFD8;
