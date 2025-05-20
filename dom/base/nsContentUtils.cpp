@@ -3534,8 +3534,9 @@ Maybe<int32_t> nsContentUtils::ComparePointsWithIndices(
                aParent1);
     if (aParent1->GetShadowRoot() == closestCommonAncestorChild2) {
       // Comparing a shadow host with its shadow root.
-      // We consider: [host, 0] < anything in shadow root < [host, 1]
-      return aOffset1 > 0 ? Some(-1) : Some(1);
+      // We consider: [aParent1, 0] < closestCommonAncestorChild2 < [aParent1,
+      // 1]
+      return aOffset1 > 0 ? Some(1) : Some(-1);
     }
 
     // FIXME: bug 1946001, bug 1946003 and bug 1946008.
@@ -3567,7 +3568,7 @@ Maybe<int32_t> nsContentUtils::ComparePointsWithIndices(
 
   if (aParent2->GetShadowRoot() == closestCommonAncestorChild1) {
     // Comparing a shadow host with its shadow root.
-    // We consider: [host, 0] < anything in shadow root < [host, 1]
+    // We consider: [aParent2, 0] < closestCommonAncestorChild1 < [aParent2, 1]
     return aOffset2 > 0 ? Some(-1) : Some(1);
   }
 

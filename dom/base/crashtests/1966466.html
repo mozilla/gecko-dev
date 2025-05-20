@@ -1,0 +1,15 @@
+<script>
+addEventListener("DOMContentLoaded", () => {
+  window.getSelection().selectAllChildren(document.body)
+  window.getSelection().modify('move', 'backward', 'line')
+  const s = window.getSelection()
+  r = document.createRange()
+  r.selectNode(o = document.getElementById('a'))
+  s.addRange(r)
+  r = document.createRange()
+  s.addRange(r)
+})
+</script>
+<canvas></canvas>
+<details>
+<table id='a'>
