@@ -392,7 +392,7 @@ impl<'a> Context<'a> {
             FontMetricsOrientation::MatchContextPreferVertical => wm.is_text_vertical(),
             FontMetricsOrientation::Horizontal => false,
         };
-        if !self.in_media_or_container_query() {
+        if !self.in_media_query {
             flags |= QueryFontMetricsFlags::USE_USER_FONT_SET
         }
         self.device().query_font_metrics(
