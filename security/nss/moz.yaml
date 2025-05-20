@@ -19,6 +19,8 @@ vendoring:
   url: https://github.com/nss-dev/nss
   source-hosting: github
   vendor-directory: security/nss/
+  skip-vendoring-steps:
+    - update-moz-build
   exclude:
     - .hgignore
     - .hgtags
