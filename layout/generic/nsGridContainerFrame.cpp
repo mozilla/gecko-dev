@@ -2421,6 +2421,28 @@ struct nsGridContainerFrame::Tracks {
     MaxContentMaximums,
   };
 
+  static TrackSize::StateBits SelectorForPhase(TrackSizingPhase aPhase,
+                                               SizingConstraint aConstraint) {
+    switch (aPhase) {
+      case TrackSizingPhase::IntrinsicMinimums:
+        return TrackSize::eIntrinsicMinSizing;
+      case TrackSizingPhase::ContentBasedMinimums:
+        return aConstraint == SizingConstraint::MinContent
+                   ? TrackSize::eIntrinsicMinSizing
+                   : TrackSize::eMinOrMaxContentMinSizing;
+      case TrackSizingPhase::MaxContentMinimums:
+        return aConstraint == SizingConstraint::MaxContent
+                   ? (TrackSize::eMaxContentMinSizing |
+                      TrackSize::eAutoMinSizing)
+                   : TrackSize::eMaxContentMinSizing;
+      case TrackSizingPhase::IntrinsicMaximums:
+        return TrackSize::eIntrinsicMaxSizing;
+      case TrackSizingPhase::MaxContentMaximums:
+        return TrackSize::eAutoOrMaxContentMaxSizing;
+    }
+    MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE("Unexpected phase");
+  }
+
   // Some data we collect on each item that spans more than one track for step 3
   // and 4 of the Track Sizing Algorithm in ResolveIntrinsicSize below.
   // https://drafts.csswg.org/css-grid-2/#algo-spanning-items
@@ -6834,18 +6856,6 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
   // max span of items in `nonFlexSpanningItems` and `flexSpanningItems`.
   uint32_t maxSpan = 0;
 
-  // Setup track selector for step 3.2:
-  const auto contentBasedMinSelector =
-      aConstraint == SizingConstraint::MinContent
-          ? TrackSize::eIntrinsicMinSizing
-          : TrackSize::eMinOrMaxContentMinSizing;
-
-  // Setup track selector for step 3.3:
-  const auto maxContentMinSelector =
-      aConstraint == SizingConstraint::MaxContent
-          ? (TrackSize::eMaxContentMinSizing | TrackSize::eAutoMinSizing)
-          : TrackSize::eMaxContentMinSizing;
-
   const auto orthogonalAxis = GetOrthogonalAxis(mAxis);
   const bool isMasonryInOtherAxis = aGridRI.mFrame->IsMasonry(orthogonalAxis);
 
@@ -6959,19 +6969,34 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
         }
 
         // Collect the various grid item size contributions we need.
+
+        // For 3.1
+        TrackSize::StateBits selector =
+            SelectorForPhase(TrackSizingPhase::IntrinsicMinimums, aConstraint);
+
         nscoord minSize = 0;
-        if (state & TrackSize::eIntrinsicMinSizing) {  // for 3.1
+        if (state & selector) {
           minSize = MinContribution(gridItem, aGridRI, rc, wm, mAxis, &cache);
         }
+
+        // For 3.2 and 3.5
+        selector =
+            SelectorForPhase(TrackSizingPhase::IntrinsicMaximums, aConstraint) |
+            SelectorForPhase(TrackSizingPhase::ContentBasedMinimums,
+                             aConstraint);
         nscoord minContent = 0;
-        if (state & (contentBasedMinSelector |           // for 3.2
-                     TrackSize::eIntrinsicMaxSizing)) {  // for 3.5
+        if (state & selector) {
           minContent =
               MinContentContribution(gridItem, aGridRI, rc, wm, mAxis, &cache);
         }
+
+        // For 3.3 and 3.6
+        selector =
+            SelectorForPhase(TrackSizingPhase::MaxContentMinimums,
+                             aConstraint) |
+            SelectorForPhase(TrackSizingPhase::MaxContentMaximums, aConstraint);
         nscoord maxContent = 0;
-        if (state & (maxContentMinSelector |                    // for 3.3
-                     TrackSize::eAutoOrMaxContentMaxSizing)) {  // for 3.6
+        if (state & selector) {
           maxContent =
               MaxContentContribution(gridItem, aGridRI, rc, wm, mAxis, &cache);
         }
@@ -7040,33 +7065,36 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
       MOZ_ASSERT(!(stateBitsForSpan & TrackSize::eFlexMaxSizing),
                  "Non-flex spanning items should not include any flex tracks");
       bool updatedBase = false;  // Did we update any mBase in step 3.1..3.3?
-      TrackSize::StateBits selector(TrackSize::eIntrinsicMinSizing);
+      TrackSizingPhase phase = TrackSizingPhase::IntrinsicMinimums;
+      TrackSize::StateBits selector = SelectorForPhase(phase, aConstraint);
       if (stateBitsForSpan & selector) {
         // Step 3.1 MinSize to intrinsic min-sizing.
         updatedBase = GrowSizeForSpanningItems(
-            TrackSizingStep::NotFlex, TrackSizingPhase::IntrinsicMinimums,
-            spanGroupStart, spanGroupEnd, tracks, plan, itemPlan, selector,
-            aGridRI.mIsGridIntrinsicSizing, aFunctions);
+            TrackSizingStep::NotFlex, phase, spanGroupStart, spanGroupEnd,
+            tracks, plan, itemPlan, selector, aGridRI.mIsGridIntrinsicSizing,
+            aFunctions);
       }
 
-      selector = contentBasedMinSelector;
+      phase = TrackSizingPhase::ContentBasedMinimums;
+      selector = SelectorForPhase(phase, aConstraint);
       if (stateBitsForSpan & selector) {
         // Step 3.2 MinContentContribution to min-/max-content (and 'auto' when
         // sizing under a min-content constraint) min-sizing.
         updatedBase |= GrowSizeForSpanningItems(
-            TrackSizingStep::NotFlex, TrackSizingPhase::ContentBasedMinimums,
-            spanGroupStart, spanGroupEnd, tracks, plan, itemPlan, selector,
-            aGridRI.mIsGridIntrinsicSizing, aFunctions);
+            TrackSizingStep::NotFlex, phase, spanGroupStart, spanGroupEnd,
+            tracks, plan, itemPlan, selector, aGridRI.mIsGridIntrinsicSizing,
+            aFunctions);
       }
 
-      selector = maxContentMinSelector;
+      phase = TrackSizingPhase::MaxContentMinimums;
+      selector = SelectorForPhase(phase, aConstraint);
       if (stateBitsForSpan & selector) {
         // Step 3.3 MaxContentContribution to max-content (and 'auto' when
         // sizing under a max-content constraint) min-sizing.
         updatedBase |= GrowSizeForSpanningItems(
-            TrackSizingStep::NotFlex, TrackSizingPhase::MaxContentMinimums,
-            spanGroupStart, spanGroupEnd, tracks, plan, itemPlan, selector,
-            aGridRI.mIsGridIntrinsicSizing, aFunctions);
+            TrackSizingStep::NotFlex, phase, spanGroupStart, spanGroupEnd,
+            tracks, plan, itemPlan, selector, aGridRI.mIsGridIntrinsicSizing,
+            aFunctions);
       }
 
       if (updatedBase) {
@@ -7078,25 +7106,26 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
         }
       }
 
-      selector = TrackSize::eIntrinsicMaxSizing;
+      phase = TrackSizingPhase::IntrinsicMaximums;
+      selector = SelectorForPhase(phase, aConstraint);
+      bool willRunStep3_6 = false;
       if (stateBitsForSpan & selector) {
-        const bool willRunStep3_6 =
+        willRunStep3_6 =
             stateBitsForSpan & TrackSize::eAutoOrMaxContentMaxSizing;
         // Step 3.5 MinContentContribution to intrinsic max-sizing.
         GrowSizeForSpanningItems(
-            TrackSizingStep::NotFlex, TrackSizingPhase::IntrinsicMaximums,
-            spanGroupStart, spanGroupEnd, tracks, plan, itemPlan, selector,
-            aGridRI.mIsGridIntrinsicSizing, aFunctions, fitContentClamper,
-            willRunStep3_6);
-
-        if (willRunStep3_6) {
-          // Step 2.6 MaxContentContribution to max-content max-sizing.
-          selector = TrackSize::eAutoOrMaxContentMaxSizing;
-          GrowSizeForSpanningItems(
-              TrackSizingStep::NotFlex, TrackSizingPhase::MaxContentMaximums,
-              spanGroupStart, spanGroupEnd, tracks, plan, itemPlan, selector,
-              aGridRI.mIsGridIntrinsicSizing, aFunctions, fitContentClamper);
-        }
+            TrackSizingStep::NotFlex, phase, spanGroupStart, spanGroupEnd,
+            tracks, plan, itemPlan, selector, aGridRI.mIsGridIntrinsicSizing,
+            aFunctions, fitContentClamper, willRunStep3_6);
+      }
+      if (willRunStep3_6) {
+        // Step 2.6 MaxContentContribution to max-content max-sizing.
+        phase = TrackSizingPhase::MaxContentMaximums;
+        selector = SelectorForPhase(phase, aConstraint);
+        GrowSizeForSpanningItems(
+            TrackSizingStep::NotFlex, phase, spanGroupStart, spanGroupEnd,
+            tracks, plan, itemPlan, selector, aGridRI.mIsGridIntrinsicSizing,
+            aFunctions, fitContentClamper);
       }
     }
 
@@ -7110,33 +7139,36 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
       stateBitsForSpan |= bits;
     }
     bool updatedBase = false;  // Did we update any mBase in step 4.1..4.3?
-    TrackSize::StateBits selector(TrackSize::eIntrinsicMinSizing);
+    TrackSizingPhase phase = TrackSizingPhase::IntrinsicMinimums;
+    TrackSize::StateBits selector = SelectorForPhase(phase, aConstraint);
     if (stateBitsForSpan & selector) {
       // Step 4.1 MinSize to intrinsic min-sizing.
       updatedBase = GrowSizeForSpanningItems(
-          TrackSizingStep::Flex, TrackSizingPhase::IntrinsicMinimums,
-          flexSpanningItems.begin(), flexSpanningItems.end(), tracks, plan,
-          itemPlan, selector, aGridRI.mIsGridIntrinsicSizing, aFunctions);
+          TrackSizingStep::Flex, phase, flexSpanningItems.begin(),
+          flexSpanningItems.end(), tracks, plan, itemPlan, selector,
+          aGridRI.mIsGridIntrinsicSizing, aFunctions);
     }
 
-    selector = contentBasedMinSelector;
+    phase = TrackSizingPhase::ContentBasedMinimums;
+    selector = SelectorForPhase(phase, aConstraint);
     if (stateBitsForSpan & selector) {
       // Step 4.2 MinContentContribution to min-/max-content (and 'auto' when
       // sizing under a min-content constraint) min-sizing.
       updatedBase |= GrowSizeForSpanningItems(
-          TrackSizingStep::Flex, TrackSizingPhase::ContentBasedMinimums,
-          flexSpanningItems.begin(), flexSpanningItems.end(), tracks, plan,
-          itemPlan, selector, aGridRI.mIsGridIntrinsicSizing, aFunctions);
+          TrackSizingStep::Flex, phase, flexSpanningItems.begin(),
+          flexSpanningItems.end(), tracks, plan, itemPlan, selector,
+          aGridRI.mIsGridIntrinsicSizing, aFunctions);
     }
 
-    selector = maxContentMinSelector;
+    phase = TrackSizingPhase::MaxContentMinimums;
+    selector = SelectorForPhase(phase, aConstraint);
     if (stateBitsForSpan & selector) {
       // Step 4.3 MaxContentContribution to max-content (and 'auto' when
       // sizing under a max-content constraint) min-sizing.
       updatedBase |= GrowSizeForSpanningItems(
-          TrackSizingStep::Flex, TrackSizingPhase::MaxContentMinimums,
-          flexSpanningItems.begin(), flexSpanningItems.end(), tracks, plan,
-          itemPlan, selector, aGridRI.mIsGridIntrinsicSizing, aFunctions);
+          TrackSizingStep::Flex, phase, flexSpanningItems.begin(),
+          flexSpanningItems.end(), tracks, plan, itemPlan, selector,
+          aGridRI.mIsGridIntrinsicSizing, aFunctions);
     }
 
     if (updatedBase) {
