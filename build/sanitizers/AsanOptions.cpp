@@ -149,6 +149,10 @@ extern "C" MOZ_EXPORT const char* __lsan_default_suppressions() {
          // RegisteredThread::RegisteredThread, mozilla::detail::UniqueSelector
          "leak:RegisteredThread::RegisteredThread\n"
 
+         // Bug 1967251 - leak at ralloc_size, ralloc_context,
+         // mesa_cache_db_open, mesa_cache_db_multipart_init_part_locked
+         "leak:mesa_cache_db_open\n"
+
          //
          // Leaks with system libraries in their stacks. These show up across a
          // number of tests. Better symbols and disabling fast stackwalking may
