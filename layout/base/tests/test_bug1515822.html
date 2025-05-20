@@ -27,21 +27,28 @@
   </div>
 </div>
 <script>
-const outer = document.querySelector('#outer');
+SimpleTest.waitForExplicitFinish();
 
-outer.scrollTop = 100;
-outer.scrollLeft = 100;
-document.body.offsetTop; // flush layout
-is(outer.scrollTop, 100, 'scroll position should be moved');
-is(outer.scrollLeft, 100, 'scroll position should be moved');
+SpecialPowers.pushPrefEnv({
+  set: [ ["layout.scroll.disable-pixel-alignment", true] ]
+}).then(() => {
+  const outer = document.querySelector('#outer');
 
-outer.parentElement.style.display = 'none';
-document.body.offsetTop; // flush layout
-is(outer.scrollTop, 0, 'scroll position should be zero');
-is(outer.scrollLeft, 0, 'scroll position should be zero');
+  outer.scrollTop = 100;
+  outer.scrollLeft = 100;
+  document.body.offsetTop; // flush layout
+  is(outer.scrollTop, 100, 'scroll position should be moved');
+  is(outer.scrollLeft, 100, 'scroll position should be moved');
 
-outer.parentElement.style.display = "";
-document.body.offsetTop; // flush layout
-is(outer.scrollTop, 100, 'scroll position should be restored');
-is(outer.scrollLeft, 100, 'scroll position should be restored');
+  outer.parentElement.style.display = 'none';
+  document.body.offsetTop; // flush layout
+  is(outer.scrollTop, 0, 'scroll position should be zero');
+  is(outer.scrollLeft, 0, 'scroll position should be zero');
+
+  outer.parentElement.style.display = "";
+  document.body.offsetTop; // flush layout
+  is(outer.scrollTop, 100, 'scroll position should be restored');
+  is(outer.scrollLeft, 100, 'scroll position should be restored');
+  SimpleTest.finish();
+});
 </script>
