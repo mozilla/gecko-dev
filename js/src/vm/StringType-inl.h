@@ -508,31 +508,6 @@ void JSLinearString::disownCharsBecauseError() {
   d.s.u2.nonInlineCharsLatin1 = nullptr;
 }
 
-inline JSLinearString* JSDependentString::rootBaseDuringMinorGC() {
-  JSLinearString* root = this;
-  while (MaybeForwarded(root)->hasBase()) {
-    if (root->isForwarded()) {
-      root = js::gc::StringRelocationOverlay::fromCell(root)
-                 ->savedNurseryBaseOrRelocOverlay();
-    } else {
-      // Possibly nursery or tenured string (not an overlay).
-      root = root->nurseryBaseOrRelocOverlay();
-    }
-  }
-  return root;
-}
-
-/* static */
-js::gc::StringRelocationOverlay*
-js::gc::StringRelocationOverlay::forwardDependentString(JSString* src,
-                                                        Cell* dst) {
-  MOZ_ASSERT(src->isDependent());
-  MOZ_ASSERT(!src->isForwarded());
-  MOZ_ASSERT(!dst->isForwarded());
-  JSLinearString* origBase = src->asDependent().rootBaseDuringMinorGC();
-  return new (src) StringRelocationOverlay(dst, origBase);
-}
-
 template <js::AllowGC allowGC, typename CharT>
 MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::new_(
     JSContext* cx, JS::MutableHandle<JSString::OwnedChars<CharT>> chars,

@@ -478,6 +478,203 @@ void js::gc::StoreBuffer::WholeCellBuffer::trace(TenuringTracer& mover,
   }
 }
 
+namespace js::gc {
+// StringRelocationOverlay assists with updating the string chars
+// pointers of dependent strings when their base strings are
+// deduplicated. It stores:
+//  - nursery chars of potential root base strings
+//  - the original pointer to the original root base (still in the nursery if it
+//    was originally in the nursery, even if it has been forwarded to a promoted
+//    string now).
+//
+// StringRelocationOverlay exploits the fact that the 3rd word of a JSString's
+// RelocationOverlay is not utilized and can be used to store extra information.
+class StringRelocationOverlay : public RelocationOverlay {
+  union {
+    // nursery chars of a root base
+    const JS::Latin1Char* nurseryCharsLatin1;
+    const char16_t* nurseryCharsTwoByte;
+
+    // The nursery base can be forwarded, which becomes a string relocation
+    // overlay, or it is not yet forwarded and is simply the (nursery) base
+    // string.
+    JSLinearString* nurseryBaseOrRelocOverlay;
+
+    // For ropes. Present only to simplify the generated code.
+    JSString* unusedLeftChild;
+  };
+
+ public:
+  StringRelocationOverlay(Cell* dst, const JS::Latin1Char* chars)
+      : RelocationOverlay(dst), nurseryCharsLatin1(chars) {}
+
+  StringRelocationOverlay(Cell* dst, const char16_t* chars)
+      : RelocationOverlay(dst), nurseryCharsTwoByte(chars) {}
+
+  StringRelocationOverlay(Cell* dst, JSLinearString* origBase)
+      : RelocationOverlay(dst), nurseryBaseOrRelocOverlay(origBase) {}
+
+  StringRelocationOverlay(Cell* dst, JSString* origLeftChild)
+      : RelocationOverlay(dst), unusedLeftChild(origLeftChild) {}
+
+  static const StringRelocationOverlay* fromCell(const Cell* cell) {
+    return static_cast<const StringRelocationOverlay*>(cell);
+  }
+
+  static StringRelocationOverlay* fromCell(Cell* cell) {
+    return static_cast<StringRelocationOverlay*>(cell);
+  }
+
+  void setNext(StringRelocationOverlay* next) {
+    RelocationOverlay::setNext(next);
+  }
+
+  StringRelocationOverlay* next() const {
+    MOZ_ASSERT(isForwarded());
+    return (StringRelocationOverlay*)next_;
+  }
+
+  template <typename CharT>
+  MOZ_ALWAYS_INLINE const CharT* savedNurseryChars() const {
+    if constexpr (std::is_same_v<CharT, JS::Latin1Char>) {
+      return savedNurseryCharsLatin1();
+    } else {
+      return savedNurseryCharsTwoByte();
+    }
+  }
+
+  const MOZ_ALWAYS_INLINE JS::Latin1Char* savedNurseryCharsLatin1() const {
+    MOZ_ASSERT(!forwardingAddress()->as<JSString>()->hasBase());
+    return nurseryCharsLatin1;
+  }
+
+  const MOZ_ALWAYS_INLINE char16_t* savedNurseryCharsTwoByte() const {
+    MOZ_ASSERT(!forwardingAddress()->as<JSString>()->hasBase());
+    return nurseryCharsTwoByte;
+  }
+
+  JSLinearString* savedNurseryBaseOrRelocOverlay() const {
+    MOZ_ASSERT(forwardingAddress()->as<JSString>()->hasBase());
+    return nurseryBaseOrRelocOverlay;
+  }
+
+  // Transform a nursery string to a StringRelocationOverlay that is forwarded
+  // to a promoted string.
+  inline static StringRelocationOverlay* forwardDependentString(JSString* src,
+                                                                Cell* dst);
+
+  // Usually only called on non-dependent strings, except for the case where a
+  // dependent string is converted to a linear string.
+  static StringRelocationOverlay* forwardString(JSString* src, Cell* dst) {
+    MOZ_ASSERT(!src->isForwarded());
+    MOZ_ASSERT(!dst->isForwarded());
+
+    JS::AutoCheckCannotGC nogc;
+
+    // Initialize the overlay for a non-dependent string (that could be the root
+    // base of other strings), remember nursery non-inlined chars.
+    //
+    // Note that this will store the chars pointer even when it is known that it
+    // will never be used (!canOwnDependentChar()), or a left child pointer of
+    // a rope that will never get used, in order to simplify the generated code
+    // to do an unconditional store.
+    //
+    // All of these compile down to
+    //    header_.value_ = dst | 1; /* offset 0 */
+    //    StringRelocationOverlay.union = d.s.u2; /* offset 16 <- offset 8 */
+    if (src->isLinear()) {
+      if (src->hasTwoByteChars()) {
+        auto* nurseryCharsTwoByte = src->asLinear().twoByteChars(nogc);
+        return new (src) StringRelocationOverlay(dst, nurseryCharsTwoByte);
+      }
+      auto* nurseryCharsLatin1 = src->asLinear().latin1Chars(nogc);
+      return new (src) StringRelocationOverlay(dst, nurseryCharsLatin1);
+    } else {
+      return new (src) StringRelocationOverlay(
+          dst, dst->as<JSString>()->asRope().leftChild());
+    }
+  }
+};
+
+/* static */
+StringRelocationOverlay* StringRelocationOverlay::forwardDependentString(
+    JSString* src, Cell* dst) {
+  MOZ_ASSERT(src->isDependent());
+  MOZ_ASSERT(!src->isForwarded());
+  MOZ_ASSERT(!dst->isForwarded());
+  JSLinearString* origBase = src->asDependent().rootBaseDuringMinorGC();
+  return new (src) StringRelocationOverlay(dst, origBase);
+}
+
+}  // namespace js::gc
+
+JSLinearString* JSDependentString::rootBaseDuringMinorGC() {
+  JSLinearString* root = this;
+  while (MaybeForwarded(root)->hasBase()) {
+    if (root->isForwarded()) {
+      root = js::gc::StringRelocationOverlay::fromCell(root)
+                 ->savedNurseryBaseOrRelocOverlay();
+    } else {
+      // Possibly nursery or tenured string (not an overlay).
+      root = root->nurseryBaseOrRelocOverlay();
+    }
+  }
+  return root;
+}
+
+template <typename CharT>
+static bool PtrIsWithinRange(const CharT* ptr,
+                             const mozilla::Range<const CharT>& valid) {
+  return size_t(ptr - valid.begin().get()) <= valid.length();
+}
+
+/* static */
+template <typename CharT>
+void JSLinearString::maybeCloneCharsOnPromotionTyped(JSLinearString* str) {
+  MOZ_ASSERT(!InCollectedNurseryRegion(str), "str should have been promoted");
+  MOZ_ASSERT(str->isDependent());
+  JSLinearString* root = str->asDependent().rootBaseDuringMinorGC();
+  if (InCollectedNurseryRegion(root)) {
+    // Can still fixup the original chars pointer.
+    return;
+  }
+
+  // If the base has not moved its chars, continue using them.
+  JS::AutoCheckCannotGC nogc;
+  const CharT* chars = str->chars<CharT>(nogc);
+  if (PtrIsWithinRange(chars, root->range<CharT>(nogc))) {
+    return;
+  }
+
+  // Clone the chars.
+  js::AutoEnterOOMUnsafeRegion oomUnsafe;
+  size_t len = str->length();
+  size_t nbytes = len * sizeof(CharT);
+  CharT* data =
+      str->zone()->pod_arena_malloc<CharT>(js::StringBufferArena, len);
+  if (!data) {
+    oomUnsafe.crash("cloning at-risk dependent string");
+  }
+  js_memcpy(data, chars, nbytes);
+
+  // Overwrite the dest string with a new linear string.
+  new (str) JSLinearString(data, len, false /* hasBuffer */);
+  if (str->isTenured()) {
+    str->zone()->addCellMemory(str, nbytes, js::MemoryUse::StringContents);
+  } else {
+    AutoEnterOOMUnsafeRegion oomUnsafe;
+    JSRuntime* rt = str->runtimeFromAnyThread();
+    if (!rt->gc.nursery().registerMallocedBuffer(data, nbytes)) {
+      oomUnsafe.crash("maybeCloneCharsOnPromotionTyped");
+    }
+  }
+}
+
+template void JSLinearString::maybeCloneCharsOnPromotionTyped<JS::Latin1Char>(
+    JSLinearString* str);
+template void JSLinearString::maybeCloneCharsOnPromotionTyped<char16_t>(
+    JSLinearString* str);
+
 // Update a promoted dependent string with a nursery base. The base chain will
 // have been collapsed to a single link, so only the simple case of a promoted
 // dependent string with a nursery base needs to be considered.

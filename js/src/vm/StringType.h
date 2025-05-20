@@ -1318,7 +1318,7 @@ class JSDependentString : public JSLinearString {
     setBase(base);
   }
 
-  inline JSLinearString* rootBaseDuringMinorGC();
+  JSLinearString* rootBaseDuringMinorGC();
 
   template <typename CharT>
   inline void updateToPromotedBaseImpl(JSLinearString* base);
@@ -2551,123 +2551,6 @@ inline JSString* TenuredCell::as<JSString>() {
   MOZ_ASSERT(is<JSString>());
   return reinterpret_cast<JSString*>(this);
 }
-
-// StringRelocationOverlay assists with updating the string chars
-// pointers of dependent strings when their base strings are
-// deduplicated. It stores:
-//  - nursery chars of potential root base strings
-//  - the original pointer to the original root base (still in the nursery if it
-//    was originally in the nursery, even if it has been forwarded to a promoted
-//    string now).
-//
-// StringRelocationOverlay exploits the fact that the 3rd word of a JSString's
-// RelocationOverlay is not utilized and can be used to store extra information.
-class StringRelocationOverlay : public RelocationOverlay {
-  union {
-    // nursery chars of a root base
-    const JS::Latin1Char* nurseryCharsLatin1;
-    const char16_t* nurseryCharsTwoByte;
-
-    // The nursery base can be forwarded, which becomes a string relocation
-    // overlay, or it is not yet forwarded and is simply the (nursery) base
-    // string.
-    JSLinearString* nurseryBaseOrRelocOverlay;
-
-    // For ropes. Present only to simplify the generated code.
-    JSString* unusedLeftChild;
-  };
-
- public:
-  StringRelocationOverlay(Cell* dst, const JS::Latin1Char* chars)
-      : RelocationOverlay(dst), nurseryCharsLatin1(chars) {}
-
-  StringRelocationOverlay(Cell* dst, const char16_t* chars)
-      : RelocationOverlay(dst), nurseryCharsTwoByte(chars) {}
-
-  StringRelocationOverlay(Cell* dst, JSLinearString* origBase)
-      : RelocationOverlay(dst), nurseryBaseOrRelocOverlay(origBase) {}
-
-  StringRelocationOverlay(Cell* dst, JSString* origLeftChild)
-      : RelocationOverlay(dst), unusedLeftChild(origLeftChild) {}
-
-  static const StringRelocationOverlay* fromCell(const Cell* cell) {
-    return static_cast<const StringRelocationOverlay*>(cell);
-  }
-
-  static StringRelocationOverlay* fromCell(Cell* cell) {
-    return static_cast<StringRelocationOverlay*>(cell);
-  }
-
-  void setNext(StringRelocationOverlay* next) {
-    RelocationOverlay::setNext(next);
-  }
-
-  StringRelocationOverlay* next() const {
-    MOZ_ASSERT(isForwarded());
-    return (StringRelocationOverlay*)next_;
-  }
-
-  template <typename CharT>
-  MOZ_ALWAYS_INLINE const CharT* savedNurseryChars() const {
-    if constexpr (std::is_same_v<CharT, JS::Latin1Char>) {
-      return savedNurseryCharsLatin1();
-    } else {
-      return savedNurseryCharsTwoByte();
-    }
-  }
-
-  const MOZ_ALWAYS_INLINE JS::Latin1Char* savedNurseryCharsLatin1() const {
-    MOZ_ASSERT(!forwardingAddress()->as<JSString>()->hasBase());
-    return nurseryCharsLatin1;
-  }
-
-  const MOZ_ALWAYS_INLINE char16_t* savedNurseryCharsTwoByte() const {
-    MOZ_ASSERT(!forwardingAddress()->as<JSString>()->hasBase());
-    return nurseryCharsTwoByte;
-  }
-
-  JSLinearString* savedNurseryBaseOrRelocOverlay() const {
-    MOZ_ASSERT(forwardingAddress()->as<JSString>()->hasBase());
-    return nurseryBaseOrRelocOverlay;
-  }
-
-  // Transform a nursery string to a StringRelocationOverlay that is forwarded
-  // to a promoted string.
-  inline static StringRelocationOverlay* forwardDependentString(JSString* src,
-                                                                Cell* dst);
-
-  // Usually only called on non-dependent strings, except for the case where a
-  // dependent string is converted to a linear string.
-  static StringRelocationOverlay* forwardString(JSString* src, Cell* dst) {
-    MOZ_ASSERT(!src->isForwarded());
-    MOZ_ASSERT(!dst->isForwarded());
-
-    JS::AutoCheckCannotGC nogc;
-
-    // Initialize the overlay for a non-dependent string (that could be the root
-    // base of other strings), remember nursery non-inlined chars.
-    //
-    // Note that this will store the chars pointer even when it is known that it
-    // will never be used (!canOwnDependentChar()), or a left child pointer of
-    // a rope that will never get used, in order to simplify the generated code
-    // to do an unconditional store.
-    //
-    // All of these compile down to
-    //    header_.value_ = dst | 1; /* offset 0 */
-    //    StringRelocationOverlay.union = d.s.u2; /* offset 16 <- offset 8 */
-    if (src->isLinear()) {
-      if (src->hasTwoByteChars()) {
-        auto* nurseryCharsTwoByte = src->asLinear().twoByteChars(nogc);
-        return new (src) StringRelocationOverlay(dst, nurseryCharsTwoByte);
-      }
-      auto* nurseryCharsLatin1 = src->asLinear().latin1Chars(nogc);
-      return new (src) StringRelocationOverlay(dst, nurseryCharsLatin1);
-    } else {
-      return new (src) StringRelocationOverlay(
-          dst, dst->as<JSString>()->asRope().leftChild());
-    }
-  }
-};
 
 }  // namespace gc
 }  // namespace js
