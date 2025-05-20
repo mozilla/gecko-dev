@@ -712,7 +712,7 @@ bool DMABufSurfaceRGBA::Create(mozilla::gl::GLContext* aGLContext, int aWidth,
   if (!aFormat) {
     mFOURCCFormat = aDMABufSurfaceFlags & DMABUF_ALPHA ? GBM_FORMAT_ARGB8888
                                                        : GBM_FORMAT_XRGB8888;
-    aFormat = GetDMABufDevice()->GetDRMFormat(mFOURCCFormat);
+    aFormat = GetGlobalDMABufFormats()->GetDRMFormat(mFOURCCFormat);
     if (!aFormat) {
       LOGDMABUF("DMABufSurfaceRGBA::Create(): Missing drm format 0x%x!",
                 mFOURCCFormat);
@@ -906,10 +906,6 @@ bool DMABufSurfaceRGBA::Create(
 
   // TODO: Read Vulkan modifiers from DMABufFormats?
   mFOURCCFormat = GBM_FORMAT_ARGB8888;
-  RefPtr<DRMFormat> format = GetDMABufDevice()->GetDRMFormat(mFOURCCFormat);
-  if (!format) {
-    return false;
-  }
   mBufferPlaneCount = aDMABufInfo.plane_count;
 
   RefPtr<gfx::FileHandleWrapper> fd = std::move(aFd);
@@ -1782,8 +1778,7 @@ bool DMABufSurfaceYUV::UpdateYUVData(
       return false;
   }
 
-  RefPtr<DRMFormat> format = GetDMABufDevice()->GetDRMFormat(mFOURCCFormat);
-
+  auto format = GetGlobalDMABufFormats()->GetDRMFormat(mFOURCCFormat);
   for (int i = 0; i < mBufferPlaneCount; i++) {
     if (!CreateYUVPlane(context, i, format)) {
       return false;

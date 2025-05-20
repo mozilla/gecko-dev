@@ -227,6 +227,8 @@ void gfxPlatformGtk::InitDmabufConfig() {
       feature.ForceDisable(FeatureStatus::Failed, "Failed to configure",
                            failureId);
     }
+    // Make sure we have DMABuf formats available.
+    Unused << GetGlobalDMABufFormats();
   }
 }
 

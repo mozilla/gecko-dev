@@ -31,11 +31,6 @@
 
 using namespace mozilla::gfx;
 
-#ifndef GBM_FORMAT_P010
-#  define GBM_FORMAT_P010 \
-    __gbm_fourcc_code('P', '0', '1', '0') /* 2x2 subsampled Cr:Cb plane */
-#endif
-
 namespace mozilla {
 namespace widget {
 
@@ -182,8 +177,6 @@ DMABufDevice::~DMABufDevice() {
 void DMABufDevice::Configure() {
   LOGDMABUF(("DMABufDevice::Configure()"));
 
-  LoadFormatModifiers();
-
   if (!GbmLib::IsAvailable()) {
     LOGDMABUF(("GbmLib is not available!"));
     mFailureId = "FEATURE_FAILURE_NO_LIBGBM";
@@ -237,79 +230,7 @@ bool DMABufDevice::IsDMABufWebGLEnabled() {
          gfx::gfxVars::UseDMABufWebGL();
 }
 
-void DMABufDevice::SetModifiersToGfxVars() {
-  RefPtr<DMABufFormats> formats;
-#ifdef MOZ_WAYLAND
-  if (GdkIsWaylandDisplay()) {
-    formats = WaylandDisplayGet()->GetDMABufFormats();
-  }
-#endif
-  if (!formats) {
-    formats = new DMABufFormats();
-  }
-  formats->EnsureBasicFormats();
-
-  DRMFormat* format = formats->GetFormat(GBM_FORMAT_XRGB8888);
-  MOZ_DIAGNOSTIC_ASSERT(format, "Missing GBM_FORMAT_XRGB8888 dmabuf format!");
-  mFormatRGBX = new DRMFormat(*format);
-  gfxVars::SetDMABufModifiersXRGB(*format->GetModifiers());
-
-  format = formats->GetFormat(GBM_FORMAT_ARGB8888);
-  MOZ_DIAGNOSTIC_ASSERT(format, "Missing GBM_FORMAT_ARGB8888 dmabuf format!");
-  mFormatRGBA = new DRMFormat(*format);
-  gfxVars::SetDMABufModifiersARGB(*format->GetModifiers());
-
-  format = formats->GetFormat(GBM_FORMAT_P010);
-  if (format) {
-    mFormatP010 = new DRMFormat(*format);
-    gfxVars::SetDMABufModifiersP010(*format->GetModifiers());
-  }
-
-  format = formats->GetFormat(GBM_FORMAT_NV12);
-  if (format) {
-    mFormatNV12 = new DRMFormat(*format);
-    gfxVars::SetDMABufModifiersNV12(*format->GetModifiers());
-  }
-}
-
-void DMABufDevice::GetModifiersFromGfxVars() {
-  mFormatRGBX =
-      new DRMFormat(GBM_FORMAT_XRGB8888, gfxVars::DMABufModifiersXRGB());
-  mFormatRGBA =
-      new DRMFormat(GBM_FORMAT_ARGB8888, gfxVars::DMABufModifiersARGB());
-  mFormatP010 = new DRMFormat(GBM_FORMAT_P010, gfxVars::DMABufModifiersP010());
-  mFormatNV12 = new DRMFormat(GBM_FORMAT_NV12, gfxVars::DMABufModifiersNV12());
-}
-
 void DMABufDevice::DisableDMABufWebGL() { sUseWebGLDmabufBackend = false; }
-
-RefPtr<DRMFormat> DMABufDevice::GetDRMFormat(int32_t aFOURCCFormat) {
-  switch (aFOURCCFormat) {
-    case GBM_FORMAT_XRGB8888:
-      MOZ_DIAGNOSTIC_ASSERT(mFormatRGBX, "Missing RGBX dmabuf format!");
-      return mFormatRGBX;
-    case GBM_FORMAT_ARGB8888:
-      MOZ_DIAGNOSTIC_ASSERT(mFormatRGBA, "Missing RGBA dmabuf format!");
-      return mFormatRGBA;
-    case GBM_FORMAT_P010:
-      return mFormatP010;
-    case GBM_FORMAT_NV12:
-      return mFormatNV12;
-    default:
-      gfxCriticalNoteOnce << "DMABufDevice::GetDRMFormat() unknow format: "
-                          << aFOURCCFormat;
-      return nullptr;
-  }
-}
-
-void DMABufDevice::LoadFormatModifiers() {
-  if (XRE_IsParentProcess()) {
-    MOZ_ASSERT(NS_IsMainThread());
-    SetModifiersToGfxVars();
-  } else {
-    GetModifiersFromGfxVars();
-  }
-}
 
 DMABufDevice* GetDMABufDevice() {
   static StaticAutoPtr<DMABufDevice> sDmaBufDevice;
