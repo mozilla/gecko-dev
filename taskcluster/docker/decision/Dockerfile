@@ -1,8 +1,9 @@
 FROM  $DOCKER_IMAGE_PARENT
 LABEL maintainer="Andrew Halberstadt <ahal@mozilla.com>"
 
-RUN mkdir /builds/worker/artifacts && \
-    chown worker:worker /builds/worker/artifacts
+VOLUME /builds/worker/artifacts
+
+RUN chown -R worker: /builds/worker
 
 ADD system-setup.sh /tmp/system-setup.sh
 RUN bash /tmp/system-setup.sh
