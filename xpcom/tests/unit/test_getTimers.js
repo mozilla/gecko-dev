@@ -30,6 +30,11 @@ function getTimers() {
       return false;
     }
 
+    if (t.name == "CCGCScheduler::EnsureGCRunner") {
+      // GC runner can be scheduled anytime, randomly.
+      return false;
+    }
+
     if (AppConstants.platform == "win" && t.name == "nsAnonTempFileRemover") {
       // On Windows there's a 3min timer added at startup to then add an
       // idle observer that finally triggers removing leftover temp files.
