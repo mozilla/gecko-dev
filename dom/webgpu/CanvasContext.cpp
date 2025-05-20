@@ -60,8 +60,8 @@ namespace mozilla::webgpu {
 NS_IMPL_CYCLE_COLLECTING_ADDREF(CanvasContext)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(CanvasContext)
 
-GPU_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_WEAK_PTR(CanvasContext, mConfig,
-                                                mTexture, mBridge,
+GPU_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_WEAK_PTR(CanvasContext, mConfiguration,
+                                                mCurrentTexture, mBridge,
                                                 mCanvasElement,
                                                 mOffscreenCanvas)
 
@@ -122,7 +122,7 @@ void CanvasContext::Configure(const dom::GPUCanvasConfiguration& aConfig) {
       return;
   }
 
-  mConfig.reset(new dom::GPUCanvasConfiguration(aConfig));
+  mConfiguration.reset(new dom::GPUCanvasConfiguration(aConfig));
   mRemoteTextureOwnerId = Some(layers::RemoteTextureOwnerId::GetNext());
   mUseExternalTextureInSwapChain =
       aConfig.mDevice->mSupportExternalTextureInSwapChain &&
@@ -145,15 +145,15 @@ void CanvasContext::Configure(const dom::GPUCanvasConfiguration& aConfig) {
     mUseExternalTextureInSwapChain = false;
   }
 #endif
-  mTexture = aConfig.mDevice->InitSwapChain(
-      mConfig.get(), mRemoteTextureOwnerId.ref(),
+  mCurrentTexture = aConfig.mDevice->InitSwapChain(
+      mConfiguration.get(), mRemoteTextureOwnerId.ref(),
       mUseExternalTextureInSwapChain, mGfxFormat, mCanvasSize);
-  if (!mTexture) {
+  if (!mCurrentTexture) {
     Unconfigure();
     return;
   }
 
-  mTexture->mTargetContext = this;
+  mCurrentTexture->mTargetContext = this;
   mBridge = aConfig.mDevice->GetBridge();
   if (mCanvasElement) {
     mWaitingCanvasRendererInitialized = true;
@@ -172,8 +172,8 @@ void CanvasContext::Unconfigure() {
   mRemoteTextureOwnerId = Nothing();
   mFwdTransactionTracker = nullptr;
   mBridge = nullptr;
-  mConfig = nullptr;
-  mTexture = nullptr;
+  mConfiguration = nullptr;
+  mCurrentTexture = nullptr;
   mGfxFormat = gfx::SurfaceFormat::UNKNOWN;
 }
 
@@ -182,42 +182,42 @@ NS_IMETHODIMP CanvasContext::SetDimensions(int32_t aWidth, int32_t aHeight) {
   if (newSize == mCanvasSize) return NS_OK;  // No-op no-change resizes.
 
   mCanvasSize = newSize;
-  if (mConfig) {
+  if (mConfiguration) {
     const auto copy = dom::GPUCanvasConfiguration{
-        *mConfig};  // So we can't null it out on ourselves.
+        *mConfiguration};  // So we can't null it out on ourselves.
     Configure(copy);
   }
   return NS_OK;
 }
 
 RefPtr<Texture> CanvasContext::GetCurrentTexture(ErrorResult& aRv) {
-  if (!mTexture) {
+  if (!mCurrentTexture) {
     aRv.ThrowOperationError("Canvas not configured");
     return nullptr;
   }
 
-  MOZ_ASSERT(mConfig);
+  MOZ_ASSERT(mConfiguration);
   MOZ_ASSERT(mRemoteTextureOwnerId.isSome());
 
   if (mNewTextureRequested) {
     mNewTextureRequested = false;
 
-    mTexture = mConfig->mDevice->CreateTextureForSwapChain(
-        mConfig.get(), mCanvasSize, mRemoteTextureOwnerId.ref());
-    mTexture->mTargetContext = this;
+    mCurrentTexture = mConfiguration->mDevice->CreateTextureForSwapChain(
+        mConfiguration.get(), mCanvasSize, mRemoteTextureOwnerId.ref());
+    mCurrentTexture->mTargetContext = this;
   }
-  return mTexture;
+  return mCurrentTexture;
 }
 
 void CanvasContext::MaybeQueueSwapChainPresent() {
-  if (!mConfig) {
+  if (!mConfiguration) {
     return;
   }
 
-  MOZ_ASSERT(mTexture);
+  MOZ_ASSERT(mCurrentTexture);
 
-  if (mTexture) {
-    mBridge->NotifyWaitForSubmit(mTexture->mId);
+  if (mCurrentTexture) {
+    mBridge->NotifyWaitForSubmit(mCurrentTexture->mId);
   }
 
   if (mPendingSwapChainPresent) {
@@ -236,14 +236,14 @@ void CanvasContext::MaybeQueueSwapChainPresent() {
 Maybe<layers::SurfaceDescriptor> CanvasContext::SwapChainPresent() {
   mPendingSwapChainPresent = false;
   if (!mBridge || !mBridge->CanSend() || mRemoteTextureOwnerId.isNothing() ||
-      !mTexture) {
+      !mCurrentTexture) {
     return Nothing();
   }
   mLastRemoteTextureId = Some(layers::RemoteTextureId::GetNext());
-  mBridge->SwapChainPresent(mTexture->mId, *mLastRemoteTextureId,
+  mBridge->SwapChainPresent(mCurrentTexture->mId, *mLastRemoteTextureId,
                             *mRemoteTextureOwnerId);
   if (mUseExternalTextureInSwapChain) {
-    mTexture->Destroy();
+    mCurrentTexture->Destroy();
     mNewTextureRequested = true;
   }
   return Some(layers::SurfaceDescriptorRemoteTexture(*mLastRemoteTextureId,
@@ -337,10 +337,10 @@ NS_IMETHODIMP CanvasContext::GetInputStream(const char* aMimeType,
 }
 
 bool CanvasContext::GetIsOpaque() {
-  if (!mConfig) {
+  if (!mConfiguration) {
     return false;
   }
-  return mConfig->mAlphaMode == dom::GPUCanvasAlphaMode::Opaque;
+  return mConfiguration->mAlphaMode == dom::GPUCanvasAlphaMode::Opaque;
 }
 
 already_AddRefed<gfx::SourceSurface> CanvasContext::GetSurfaceSnapshot(
