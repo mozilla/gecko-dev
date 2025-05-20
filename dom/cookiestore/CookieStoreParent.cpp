@@ -14,6 +14,7 @@
 #include "mozilla/net/CookieParser.h"
 #include "mozilla/Components.h"
 #include "mozilla/net/CookieCommons.h"
+#include "mozilla/net/CookieValidation.h"
 #include "mozilla/net/CookieServiceParent.h"
 #include "mozilla/net/NeckoParent.h"
 #include "mozilla/Unused.h"
@@ -421,10 +422,27 @@ bool CookieStoreParent::SetRequestOnMainThread(
       /* http-only: */ false, aSession, aSession ? INT64_MAX : aExpires, &attrs,
       aSameSite, nsICookie::SCHEME_HTTPS, aPartitioned, /* from http: */ false,
       &aOperationID, [&](mozilla::net::CookieStruct& aCookieStruct) -> bool {
-        return CookieParser::CheckCookieStruct(aCookieStruct, aCookieURI, ""_ns,
-                                               domain, requireMatch, false) ==
-               CookieParser::NoRejection;
+        AssertIsOnMainThread();
+
+        RefPtr<CookieValidation> validation = CookieValidation::ValidateForHost(
+            aCookieStruct, aCookieURI, domain, requireMatch, false);
+        MOZ_ASSERT(validation);
+
+        if (validation->Result() == nsICookieValidation::eOK) {
+          return true;
+        }
+
+        RefPtr<ContentParent> contentParent = aParent->GetContentParent();
+        if (!contentParent) {
+          return false;
+        }
+
+        contentParent->KillHard(
+            "CookieStore does not accept invalid cookies in the parent "
+            "process");
+        return false;
       });
+
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
   }

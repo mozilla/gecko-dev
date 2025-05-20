@@ -8,9 +8,10 @@
 
 #include "CookieCommons.h"
 
+#include "CookieValidation.h"
 #include "mozilla/net/NeckoChannelParams.h"
-#include "nsTArray.h"
 #include "nsCOMPtr.h"
+#include "nsTArray.h"
 
 class nsIConsoleReportCollector;
 class nsIURI;
@@ -25,18 +26,7 @@ class CookieParser final {
     NoRejection,
 
     RejectedInvalidCharAttributes,
-    RejectedNoneRequiresSecure,
-    RejectedPartitionedRequiresSecure,
-    RejectedEmptyNameAndValue,
-    RejectedNameValueOversize,
-    RejectedInvalidCharName,
-    RejectedInvalidDomain,
-    RejectedInvalidPrefix,
-    RejectedInvalidPath,
-    RejectedInvalidCharValue,
     RejectedHttpOnlyButFromScript,
-    RejectedSecureButNonHttps,
-    RejectedForNonSameSiteness,
     RejectedForeignNoPartitionedError,
     RejectedByPermissionManager,
     RejectedNonsecureOverSecure,
@@ -54,8 +44,7 @@ class CookieParser final {
              bool aIsInPrivateBrowsing, bool aOn3pcbException);
 
   bool ContainsCookie() const {
-    MOZ_ASSERT_IF(mContainsCookie, mRejection == NoRejection);
-    return mContainsCookie;
+    return mValidation && mValidation->Result() == nsICookieValidation::eOK;
   }
 
   void RejectCookie(Rejection aRejection);
@@ -69,13 +58,6 @@ class CookieParser final {
 
   // Public for testing
   bool ParseMaxAgeAttribute(const nsACString& aMaxage, int64_t* aValue);
-
-  static Rejection CheckCookieStruct(CookieStruct& aCookieStruct,
-                                     nsIURI* aHostURI,
-                                     const nsCString& aCookieString,
-                                     const nsACString& aBaseDomain,
-                                     bool aRequireHostMatch, bool aFromHttp,
-                                     CookieParser* aParser = nullptr);
 
  private:
   static void GetTokenValue(nsACString::const_char_iterator& aIter,
@@ -91,26 +73,19 @@ class CookieParser final {
                  const nsACString& aMaxage, int64_t aCurrentTime,
                  const nsACString& aDateHeader, bool aFromHttp);
 
-  static bool CheckPath(CookieStruct& aCookieData, nsIURI* aHostURI,
-                        CookieParser* aParser = nullptr);
   static bool CheckAttributeSize(const nsACString& currentValue,
                                  const char* aAttribute,
                                  const nsACString& aValue,
                                  CookieParser* aParser = nullptr);
-  static bool CheckDomain(CookieStruct& aCookieData, nsIURI* aHostURI,
-                          const nsACString& aBaseDomain,
-                          bool aRequireHostMatch);
-  static bool HasSecurePrefix(const nsACString& aString);
-  static bool HasHostPrefix(const nsACString& aString);
-  static bool CheckPrefixes(CookieStruct& aCookieData, bool aSecureRequest);
+  static void FixPath(CookieStruct& aCookieData, nsIURI* aHostURI);
+  static void FixDomain(CookieStruct& aCookieData, nsIURI* aHostURI,
+                        const nsACString& aBaseDomain, bool aRequireHostMatch);
 
   nsCOMPtr<nsIConsoleReportCollector> mCRC;
   nsCOMPtr<nsIURI> mHostURI;
 
-  // True if the parsing succeeded.
-  bool mContainsCookie = false;
-
   Rejection mRejection = NoRejection;
+  RefPtr<CookieValidation> mValidation;
 
   struct Warnings {
     nsTArray<const char*> mAttributeOversize;
@@ -118,9 +93,6 @@ class CookieParser final {
 
     bool mInvalidSameSiteAttribute = false;
     bool mInvalidMaxAgeAttribute = false;
-    bool mSameSiteNoneRequiresSecureForBeta = false;
-    bool mSameSiteLaxForced = false;
-    bool mSameSiteLaxForcedForBeta = false;
     bool mForeignNoPartitionedWarning = false;
   } mWarnings;
 
