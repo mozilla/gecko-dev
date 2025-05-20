@@ -30,6 +30,27 @@ const IMPROVED_CONTROLS_ENABLED_PREF =
 const SEETHROUGH_MODE_ENABLED_PREF =
   "media.videocontrols.picture-in-picture.seethrough-mode.enabled";
 
+/**
+ * The "showing" attribute means that we intentionally want to show controls
+ * on the PiP window. Examples include:
+ * - temporarily revealing PiP controls after initializing a PiP window.
+ * - revealing PiP controls after pausing the video.
+ *
+ * We remove the attribute once we're ready to hide controls on the window.
+ */
+const SHOWING_ATTRIBUTE = "showing";
+/**
+ * The "keying" attribute means that the controls have keyboard focus. Set this
+ * pref to keep controls visible on the PiP window until focus is gone.
+ */
+const KEYING_ATTRIBUTE = "keying";
+/**
+ * The "donthide" attribute is used to keep controls visible while users
+ * interact with the PiP CC settings menu. This ensures that we don't hide
+ * controls while the menu is still in use.
+ */
+const DONTHIDE_ATTRIBUTE = "donthide";
+
 // Time to fade the Picture-in-Picture video controls after first opening.
 const CONTROLS_FADE_TIMEOUT_MS = 3000;
 const RESIZE_DEBOUNCE_RATE_MS = 500;
@@ -375,7 +396,7 @@ let Player = {
         // Don't run onClick if middle or right click is pressed respectively
         if (event.button !== 1 && event.button !== 2) {
           this.onClick(event);
-          this.controls.removeAttribute("keying");
+          this.controls.removeAttribute(KEYING_ATTRIBUTE);
         }
         break;
       }
@@ -403,7 +424,7 @@ let Player = {
 
       case "keydown": {
         if (event.keyCode == KeyEvent.DOM_VK_TAB) {
-          this.controls.setAttribute("keying", true);
+          this.controls.setAttribute(KEYING_ATTRIBUTE, true);
           this.showVideoControls();
         } else if (event.keyCode == KeyEvent.DOM_VK_ESCAPE) {
           let isSettingsPanelInFocus = this.settingsPanel.contains(
@@ -493,8 +514,8 @@ let Player = {
           this.actor.sendAsyncMessage("PictureInPicture:ExitFullscreen", {
             isFullscreen: this.isFullscreen,
             isVideoControlsShowing:
-              !!this.controls.getAttribute("showing") ||
-              !!this.controls.getAttribute("keying"),
+              this.controls.hasAttribute(SHOWING_ATTRIBUTE) ||
+              this.controls.hasAttribute(KEYING_ATTRIBUTE),
             playerBottomControlsDOMRect:
               this.controlsBottom.getBoundingClientRect(),
           });
@@ -754,12 +775,12 @@ let Player = {
     if (options?.forceHide || settingsPanelVisible) {
       this.settingsPanel.classList.add("hide");
       this.closedCaptionButton.setAttribute("aria-expanded", false);
-      this.controls.removeAttribute("donthide");
+      this.controls.removeAttribute(DONTHIDE_ATTRIBUTE);
 
       if (
-        this.controls.getAttribute("keying") ||
+        this.controls.hasAttribute(KEYING_ATTRIBUTE) ||
         this.isCurrentHover ||
-        this.controls.getAttribute("showing")
+        this.controls.hasAttribute(SHOWING_ATTRIBUTE)
       ) {
         return;
       }
@@ -768,7 +789,7 @@ let Player = {
     } else {
       this.settingsPanel.classList.remove("hide");
       this.closedCaptionButton.setAttribute("aria-expanded", true);
-      this.controls.setAttribute("donthide", true);
+      this.controls.setAttribute(DONTHIDE_ATTRIBUTE, true);
       this.showVideoControls();
 
       if (options?.isKeyboard) {
@@ -1119,9 +1140,9 @@ let Player = {
     if (!this.isFullscreen) {
       this.isCurrentHover = false;
       if (
-        !this.controls.getAttribute("showing") &&
-        !this.controls.getAttribute("keying") &&
-        !this.controls.getAttribute("donthide")
+        !this.controls.hasAttribute(SHOWING_ATTRIBUTE) &&
+        !this.controls.hasAttribute(KEYING_ATTRIBUTE) &&
+        !this.controls.hasAttribute(DONTHIDE_ATTRIBUTE)
       ) {
         this.hideVideoControls();
       }
@@ -1252,8 +1273,11 @@ let Player = {
 
     if (
       !this._isInitialized ||
-      this.isCurrentHover ||
-      this.controls.getAttribute("keying")
+      // Currently, controls will always be visible on hover for non-fullscreen.
+      // Only ensure we hide controls after playing state update for fullscreen,
+      // by not bothering to call revealControls.
+      (!this.isFullscreen && this.isCurrentHover) ||
+      this.controls.hasAttribute(KEYING_ATTRIBUTE)
     ) {
       return;
     }
@@ -1355,7 +1379,7 @@ let Player = {
     clearTimeout(this.showingTimeout);
     this.showingTimeout = null;
 
-    this.controls.setAttribute("showing", true);
+    this.controls.setAttribute(SHOWING_ATTRIBUTE, true);
 
     if (!this.isFullscreen) {
       // revealControls() is called everytime we hover over fullscreen pip window.
@@ -1371,13 +1395,13 @@ let Player = {
         if (this.isFullscreen && isHoverOverControlItem) {
           return;
         }
-        this.controls.removeAttribute("showing");
+        this.controls.removeAttribute(SHOWING_ATTRIBUTE);
 
         if (
           !this.isFullscreen &&
           !this.isCurrentHover &&
-          !this.controls.getAttribute("keying") &&
-          !this.controls.getAttribute("donthide")
+          !this.controls.hasAttribute(KEYING_ATTRIBUTE) &&
+          !this.controls.hasAttribute(DONTHIDE_ATTRIBUTE)
         ) {
           this.hideVideoControls();
         }

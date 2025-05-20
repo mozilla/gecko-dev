@@ -23,6 +23,22 @@ body {
 
 body:fullscreen {
   -moz-window-dragging: no-drag;
+
+  #fullscreen {
+    background-image: url("chrome://global/skin/media/picture-in-picture-exit-fullscreen-button.svg");
+    background-size: auto;
+  }
+
+  #controls {
+    &[showing]:hover .control-item:not(:hover) {
+      opacity: 0.8;
+    }
+
+    /* Hide cursor when we expect controls to be hidden. */
+    &:not([showing], [keying], [donthide]) {
+      cursor: none;
+    }
+  }
 }
 
 .player-holder {
@@ -246,10 +262,9 @@ body:not(:fullscreen) #controls:hover .control-button:disabled {
   scale: -1 1;
 }
 
-/* Set opacity for buttons and scrubber when controls are visible on the pip window and are not hovered over.
- * For fullscreen mode, only apply opacity if there is a showing attribute. */
+/* Set opacity for buttons and scrubber when controls are visible on the pip
+ * window and are not hovered over. */
 body:not(:fullscreen) #controls:hover .control-item:not(:hover),
-body:fullscreen #controls[showing]:hover .control-item:not(:hover),
 #controls[donthide] .control-item {
   opacity: 0.8;
 }
@@ -268,8 +283,7 @@ body:fullscreen #controls[showing]:hover .control-item:not(:hover),
 }
 
 /* For readability, timestamp should maintain full opacity when visible */
-body:not(:fullscreen) #controls:hover #timestamp,
-body:fullscreen #controls[showing]:hover {
+body:not(:fullscreen) #controls:hover #timestamp {
   opacity: 1;
 }
 
@@ -365,11 +379,6 @@ body:fullscreen #controls[showing]:hover {
 
 #controls:not(.muted) #audio {
   background-image: url("chrome://global/skin/media/audio.svg");
-}
-
-body:fullscreen #fullscreen {
-  background-image: url("chrome://global/skin/media/picture-in-picture-exit-fullscreen-button.svg");
-  background-size: auto;
 }
 
 body:not(:fullscreen) #fullscreen {
