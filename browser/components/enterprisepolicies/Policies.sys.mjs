@@ -1341,7 +1341,7 @@ export var Policies = {
           setAndLockPref("extensions.getAddons.showPane", false);
           // Turn off recommendations
           setAndLockPref(
-            "extensions.htmlaboutaddons.recommendations.enable",
+            "extensions.htmlaboutaddons.recommendations.enabled",
             false
           );
           manager.disallowFeature("installTemporaryAddon");
