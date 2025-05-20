@@ -760,6 +760,7 @@ TEST(TestCookie, TestCookieMain)
   EXPECT_NS_SUCCEEDED(cookieMgr->RemoveAll());
 
   nsCOMPtr<nsICookieValidation> cv;
+
   // add some cookies
   EXPECT_TRUE(NS_SUCCEEDED(cookieMgr2->AddNative(uri,
                                                  "cookiemgr.test"_ns,  // domain
@@ -1013,6 +1014,45 @@ TEST(TestCookie, TestCookieMain)
   // *** "noncompliant cookie" tests
   // *** IP address tests
   // *** speed tests
+}
+
+TEST(TestCookie, InvalidCharsInNameAndValue)
+{
+  nsresult rv;
+
+  nsCOMPtr<nsICookieManager> cookieMgr =
+      do_GetService(NS_COOKIEMANAGER_CONTRACTID, &rv);
+  ASSERT_NS_SUCCEEDED(rv);
+
+  nsCOMPtr<nsIURI> uri;
+  NS_NewURI(getter_AddRefs(uri), "https://cookie.test"_ns);
+
+  mozilla::OriginAttributes attrs;
+
+  // Test some invalid chars
+#define TEST_INVALID_CHARS(name, value, error)                                 \
+  {                                                                            \
+    nsCOMPtr<nsICookieValidation> cv;                                          \
+    EXPECT_EQ(                                                                 \
+        cookieMgr->AddNative(uri, "cookiemgr.test"_ns, "/foo"_ns, name, value, \
+                             false, false, true, INT64_MAX, &attrs,            \
+                             nsICookie::SAMESITE_LAX, nsICookie::SCHEME_HTTP,  \
+                             false, true, nullptr, getter_AddRefs(cv)),        \
+        NS_ERROR_ILLEGAL_VALUE);                                               \
+    EXPECT_TRUE(!!cv);                                                         \
+    EXPECT_EQ(CookieValidation::Cast(cv)->Result(), error);                    \
+  }
+
+  TEST_INVALID_CHARS(" test invalid name"_ns, "test valid value"_ns,
+                     nsICookieValidation::eRejectedInvalidCharName)
+  TEST_INVALID_CHARS("test invalid name "_ns, "test valid value"_ns,
+                     nsICookieValidation::eRejectedInvalidCharName)
+  TEST_INVALID_CHARS("test valid name"_ns, " test invalid value"_ns,
+                     nsICookieValidation::eRejectedInvalidCharValue)
+  TEST_INVALID_CHARS("test valid name"_ns, "test invalid value "_ns,
+                     nsICookieValidation::eRejectedInvalidCharValue)
+
+#undef TEST_INVALID_CHARS
 }
 
 TEST(TestCookie, OnionSite)
