@@ -75,6 +75,13 @@ fun CoroutineScope.allowUndo(
                             }
                         },
                     ),
+                    onDismiss = {
+                        launch {
+                            if (!requestedUndo.get()) {
+                                operation.invoke(view.context)
+                            }
+                        }
+                    },
                 ),
             )
             .setAnchorView(anchorView)
