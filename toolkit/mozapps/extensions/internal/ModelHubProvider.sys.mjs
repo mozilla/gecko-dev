@@ -11,6 +11,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   computeSha256HashAsString:
     "resource://gre/modules/addons/crypto-utils.sys.mjs",
   ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
+  isAddonEngineId: "chrome://global/content/ml/Utils.sys.mjs",
+  engineIdToAddonId: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -33,6 +35,7 @@ export class ModelHubAddonWrapper {
   lastUsed;
   updateDate;
   modelIconURL;
+  engineIds;
 
   constructor(params) {
     this.#provider = params.provider;
@@ -43,6 +46,7 @@ export class ModelHubAddonWrapper {
     this.lastUsed = params.lastUsed;
     this.updateDate = params.updateDate;
     this.modelIconURL = params.modelIconURL;
+    this.engineIds = params.engineIds ?? [];
   }
 
   async uninstall() {
@@ -53,6 +57,16 @@ export class ModelHubAddonWrapper {
     });
 
     await this.#provider.onUninstalled(this);
+  }
+
+  get usedByFirefoxFeatures() {
+    return this.engineIds.filter(engineId => !lazy.isAddonEngineId(engineId));
+  }
+
+  get usedByAddonIds() {
+    return this.engineIds
+      .filter(engineId => lazy.isAddonEngineId(engineId))
+      .map(engineId => lazy.engineIdToAddonId(engineId));
   }
 
   get name() {
@@ -186,6 +200,7 @@ export const ModelHubProvider = {
         lastUsed: new Date(metadata.lastUsed),
         updateDate: new Date(metadata.updateDate),
         modelIconURL,
+        engineIds: metadata.engineIds,
       });
       this.cache.set(wrapper.id, wrapper);
     }

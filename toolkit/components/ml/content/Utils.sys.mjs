@@ -12,6 +12,7 @@ ChromeUtils.defineESModuleGetters(
     RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
     TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
     OPFS: "chrome://global/content/ml/OPFS.sys.mjs",
+    FEATURES: "chrome://global/content/ml/EngineProcess.sys.mjs",
   },
   ES_MODULES_OPTIONS
 );
@@ -1055,6 +1056,21 @@ export function engineIdToAddonId(engineId) {
     return null;
   }
   return engineId.substring(ADDON_PREFIX.length);
+}
+
+/**
+ * Converts a feature engine id to a fluent id
+ *
+ * @param {string} engineId
+ * @returns {string|null}
+ */
+export function featureEngineIdToFluentId(engineId) {
+  for (const config of Object.values(lazy.FEATURES)) {
+    if (config.engineId === engineId) {
+      return config.fluentId;
+    }
+  }
+  return null;
 }
 
 /**

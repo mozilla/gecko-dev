@@ -6,6 +6,9 @@ const { ModelHubProvider } = ChromeUtils.importESModule(
   "resource://gre/modules/addons/ModelHubProvider.sys.mjs"
 );
 ChromeUtils.defineESModuleGetters(this, {
+  addonIdToEngineId: "chrome://global/content/ml/Utils.sys.mjs",
+  engineIdToAddonId: "chrome://global/content/ml/Utils.sys.mjs",
+  isAddonEngineId: "chrome://global/content/ml/Utils.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1");
@@ -71,6 +74,11 @@ add_task(
       "Expect modelHub instance to be found"
     );
 
+    const fakeAddonIds = [
+      "addon1-using-model@test-extension",
+      "addon2-using-model@test-extension",
+    ];
+
     const mockModels = [
       {
         name: "model-hub.mozilla.org/org1/model-mock-1",
@@ -88,6 +96,15 @@ add_task(
         totalSize: 2048,
         lastUsed: new Date("2023-10-01T12:00:00Z"),
         updateDate: 0,
+        // This is retuned by the first call to the listFiles
+        // stub and then used to determine what are the expected
+        // usedByFirefoxFeatures and usedByAddonIds properties
+        // on the wrapper.
+        engineIds: [
+          "about-inference",
+          "non-existing-feature",
+          ...fakeAddonIds.map(addonId => addonIdToEngineId(addonId)),
+        ],
       },
     };
 
@@ -103,7 +120,17 @@ add_task(
 
     const listFilesStub = sinon
       .stub(ModelHubProvider.modelHub, "listFiles")
-      .resolves(mockListFilesResult);
+      .onFirstCall()
+      .resolves(mockListFilesResult)
+      .onSecondCall()
+      .resolves({
+        metadata: {
+          ...mockListFilesResult.metadata,
+          // Setting engineIds to undefined to confirm that it is
+          // going to be set it to an empty array.
+          engineIds: undefined,
+        },
+      });
 
     const getOwnerIcon = sinon
       .stub(ModelHubProvider.modelHub, "getOwnerIcon")
@@ -156,6 +183,20 @@ add_task(
 
     for (const [idx, modelWrapper] of modelWrappers.entries()) {
       const { name, revision } = mockModels[idx];
+      const { engineIds } = mockListFilesResult.metadata;
+      // The first call to the listFiles stub is expected to include
+      // engineIds, whereare the second one is expected to not be
+      // including it.
+      const usedByFirefoxFeatures =
+        idx === 0
+          ? engineIds.filter(engineId => !isAddonEngineId(engineId))
+          : [];
+      const usedByAddonIds =
+        idx === 0
+          ? engineIds
+              .filter(engineId => isAddonEngineId(engineId))
+              .map(engineId => engineIdToAddonId(engineId))
+          : [];
       verifyModelAddonWrapper(modelWrapper, {
         model: name,
         name: mockModelShortNames[idx],
@@ -163,6 +204,8 @@ add_task(
         lastUsed: mockListFilesResult.metadata.lastUsed,
         totalSize: mockListFilesResult.metadata.totalSize,
         modelHomepageURL: mockModelsHomepageURLs[idx],
+        usedByFirefoxFeatures,
+        usedByAddonIds,
       });
     }
 
@@ -229,7 +272,15 @@ add_task(
     sandbox.restore();
 
     function verifyModelAddonWrapper(modelWrapper, expected) {
-      const { name, model, version, lastUsed, modelHomepageURL } = expected;
+      const {
+        name,
+        model,
+        version,
+        lastUsed,
+        modelHomepageURL,
+        usedByFirefoxFeatures,
+        usedByAddonIds,
+      } = expected;
       info(`Verify model addon wrapper for ${name}:${version}`);
       const expectedId = ModelHubProvider.getWrapperIdForModel({
         name: model,
@@ -269,6 +320,16 @@ add_task(
         modelWrapper.modelHomepageURL,
         modelHomepageURL,
         "Got the expect model homepage URL"
+      );
+      Assert.deepEqual(
+        modelWrapper.usedByFirefoxFeatures,
+        usedByFirefoxFeatures,
+        "Got the expected engineIds listed in usedByFirefoxFeatures"
+      );
+      Assert.deepEqual(
+        modelWrapper.usedByAddonIds,
+        usedByAddonIds,
+        "Got the expected addon ids listed in usedByAddonIds"
       );
     }
   }

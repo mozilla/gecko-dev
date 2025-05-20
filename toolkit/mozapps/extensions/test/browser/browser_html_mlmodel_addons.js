@@ -3,6 +3,36 @@
 
 "use strict";
 
+ChromeUtils.defineESModuleGetters(this, {
+  featureEngineIdToFluentId: "chrome://global/content/ml/Utils.sys.mjs",
+});
+
+const RED_ICON_DATA =
+  "iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAIAAADZrBkAAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4QYGEgw1XkM0ygAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAYSURBVCjPY/zPQA5gYhjVNqptVNsg1wYAItkBI/GNR3YAAAAASUVORK5CYII=";
+const IMAGE_ARRAYBUFFER_RED = imageBufferFromDataURI(RED_ICON_DATA);
+const FEATURE_ICON = "chrome://branding/content/icon64.png";
+
+function imageBufferFromDataURI(encodedImageData) {
+  let decodedImageData = atob(encodedImageData);
+  return Uint8Array.from(decodedImageData, byte => byte.charCodeAt(0)).buffer;
+}
+
+async function getTestExtension({ id, withIcon }) {
+  const testExt = ExtensionTestUtils.loadExtension({
+    useAddonManager: "permanent",
+    manifest: {
+      name: `name-${id}`,
+      icons: withIcon ? { 16: "test-icon.png" } : undefined,
+      browser_specific_settings: {
+        gecko: { id },
+      },
+    },
+    files: withIcon ? { "test-icon.png": IMAGE_ARRAYBUFFER_RED } : undefined,
+  });
+  await testExt.startup();
+  return testExt;
+}
+
 let mockProvider;
 add_setup(async function () {
   mockProvider = new MockProvider(["mlmodel"]);
@@ -26,12 +56,16 @@ add_task(async function testModelHubProvider() {
       name: "Model Mock 1",
       permissions: AddonManager.PERM_CAN_UNINSTALL,
       type: "mlmodel",
+      usedByFirefoxFeatures: [],
+      usedByAddonIds: [],
     },
     {
       id: "mockmodel2@tests.mozilla.org",
       name: "Model Mock 2",
       permissions: AddonManager.PERM_CAN_UNINSTALL,
       type: "mlmodel",
+      usedByFirefoxFeatures: [],
+      usedByAddonIds: [],
     },
   ]);
   win = await loadInitialView("extension");
@@ -116,6 +150,14 @@ add_task(async function testModelHubProvider() {
  * Test model hub card in the list view.
  */
 add_task(async function testModelHubCard() {
+  const extWithIcon = await getTestExtension({
+    id: "addon-with-icon@test-extension",
+    withIcon: true,
+  });
+  const extWithoutIcon = await getTestExtension({
+    id: "addon-without-icon@test-extension",
+    withIcon: false,
+  });
   const id1 = "mockmodel1-without-size@tests.mozilla.org";
   const id2 = "mockmodel2-with-size@tests.mozilla.org";
 
@@ -126,6 +168,11 @@ add_task(async function testModelHubCard() {
       permissions: AddonManager.PERM_CAN_UNINSTALL,
       type: "mlmodel",
       totalSize: undefined,
+      // Testing a model using one of the expected Firefox features.
+      usedByFirefoxFeatures: ["about-inference"],
+      // Testing extension using the models (one with its own icon and
+      // one without any icon).
+      usedByAddonIds: [extWithIcon.id, extWithoutIcon.id],
     },
     {
       id: id2,
@@ -133,6 +180,14 @@ add_task(async function testModelHubCard() {
       permissions: AddonManager.PERM_CAN_UNINSTALL,
       type: "mlmodel",
       totalSize: 5 * 1024 * 1024,
+      // Testing that a Firefox feature that is mistakenly missing a
+      // corresponding fluent id is omitted.
+      usedByFirefoxFeatures: [
+        "non-existing-feature",
+        "smart-tab-embedding-engine",
+      ],
+      // Testing that a non existing extension is omitted.
+      usedByAddonIds: ["non-existing@test-extension", extWithIcon.id],
     },
   ]);
 
@@ -141,16 +196,49 @@ add_task(async function testModelHubCard() {
   // Card No Size
   let card1 = getAddonCard(win, id1);
   ok(card1, `Found addon card for model ${id1}`);
-  verifyAddonCard(card1, "0 bytes");
+  verifyAddonCard(card1, {
+    expectedTotalSize: "0 bytes",
+    expectedUsedBy: [
+      {
+        iconURL: FEATURE_ICON,
+        fluentId: featureEngineIdToFluentId("about-inference"),
+      },
+      {
+        iconURL: /\/test-icon\.png$/,
+        fluentId: "mlmodel-extension-label",
+        fluentArgs: { extensionName: `name-${extWithIcon.id}` },
+      },
+      {
+        iconURL: /\/extensionGeneric.svg$/,
+        fluentId: "mlmodel-extension-label",
+        fluentArgs: { extensionName: `name-${extWithoutIcon.id}` },
+      },
+    ],
+  });
 
   // Card With Size
   let card2 = getAddonCard(win, id2);
   ok(card2, `Found addon card for model ${id2}`);
-  verifyAddonCard(card2, "5.0 MB");
+  verifyAddonCard(card2, {
+    expectedTotalSize: "5.0 MB",
+    expectedUsedBy: [
+      {
+        iconURL: FEATURE_ICON,
+        fluentId: featureEngineIdToFluentId("smart-tab-embedding-engine"),
+      },
+      {
+        iconURL: /\/test-icon\.png$/,
+        fluentId: "mlmodel-extension-label",
+        fluentArgs: { extensionName: `name-${extWithIcon.id}` },
+      },
+    ],
+  });
 
   await closeView(win);
+  await extWithIcon.unload();
+  await extWithoutIcon.unload();
 
-  function verifyAddonCard(card, expectedTotalSize) {
+  function verifyAddonCard(card, { expectedTotalSize, expectedUsedBy }) {
     ok(!card.hasAttribute("expanded"), "The list card is not expanded");
 
     let mlmodelTotalSizeBubble = card.querySelector(
@@ -177,6 +265,43 @@ add_task(async function testModelHubCard() {
       BrowserTestUtils.isVisible(card.optionsButton),
       "Expect the card options button to be visible in the list view"
     );
+
+    const listAdditionEl = card.querySelector("mlmodel-card-list-additions");
+    ok(listAdditionEl, "Found mlmodel-card-list-additions element");
+    const usedByEls =
+      listAdditionEl.shadowRoot.querySelectorAll(".mlmodel-used-by");
+    for (const [idx, usedBy] of expectedUsedBy.entries()) {
+      info(`Verifying usedBy entry: ${JSON.stringify(usedBy)}\n`);
+      const img = usedByEls[idx].querySelector("img");
+      ok(img, "Found img tag for the icon url");
+      if (usedBy.iconURL instanceof RegExp) {
+        ok(
+          usedBy.iconURL.test(img.src),
+          `Expected icon url ${img.src} to match ${usedBy.iconURL}`
+        );
+      } else {
+        Assert.equal(img.src, usedBy.iconURL, "Got the expected icon url");
+      }
+      const label = usedByEls[idx].querySelector("label");
+      const fluentAttrs = label.ownerDocument.l10n.getAttributes(label);
+      Assert.equal(
+        fluentAttrs.id,
+        usedBy.fluentId,
+        "Got the expected fluent id"
+      );
+      if (usedBy.fluentArgs) {
+        Assert.deepEqual(
+          fluentAttrs.args,
+          usedBy.fluentArgs,
+          "Got the expected fluent args"
+        );
+      }
+    }
+    Assert.equal(
+      usedByEls.length,
+      expectedUsedBy.length,
+      "Got the expected number of model usedBy elements"
+    );
   }
 });
 
@@ -184,6 +309,14 @@ add_task(async function testModelHubCard() {
  * Test model hub expanded details.
  */
 add_task(async function testModelHubDetails() {
+  const extWithIcon = await getTestExtension({
+    id: "addon-with-icon@test-extension",
+    withIcon: true,
+  });
+  const extWithoutIcon = await getTestExtension({
+    id: "addon-without-icon@test-extension",
+    withIcon: false,
+  });
   const id1 = "mockmodel1-without-size@tests.mozilla.org";
   const id2 = "mockmodel2-with-size@tests.mozilla.org";
 
@@ -196,6 +329,11 @@ add_task(async function testModelHubDetails() {
     lastUsed: new Date("2023-10-01T12:00:00Z"),
     modelHomepageURL: "https://huggingface.co/org/model-mock-1",
     modelIconURL: "chrome://mozapps/skin/extensions/extensionGeneric.svg",
+    // Testing a model using one of the expected Firefox features.
+    usedByFirefoxFeatures: ["about-inference"],
+    // Testing extension using the models (one with its own icon and
+    // one without any icon).
+    usedByAddonIds: [extWithIcon.id, extWithoutIcon.id],
   };
   const mockModel2 = {
     id: id2,
@@ -206,6 +344,14 @@ add_task(async function testModelHubDetails() {
     lastUsed: new Date("2023-10-01T12:00:00Z"),
     modelHomepageURL: "https://huggingface.co/org/model-mock-2",
     modelIconURL: "", // testing that empty icon sets to defult svg
+    // Testing that a Firefox feature that is mistakenly missing a
+    // corresponding fluent id is omitted.
+    usedByFirefoxFeatures: [
+      "non-existing-feature",
+      "smart-tab-embedding-engine",
+    ],
+    // Testing that a non existing extension is omitted.
+    usedByAddonIds: ["non-existing@test-extension", extWithIcon.id],
   };
 
   mockProvider.createAddons([mockModel1, mockModel2]);
@@ -217,6 +363,22 @@ add_task(async function testModelHubDetails() {
     expectedModelHomepageURL: mockModel1.modelHomepageURL,
     expectedModelIconURL:
       "chrome://mozapps/skin/extensions/extensionGeneric.svg",
+    expectedUsedBy: [
+      {
+        iconURL: FEATURE_ICON,
+        fluentId: featureEngineIdToFluentId("about-inference"),
+      },
+      {
+        iconURL: /\/test-icon\.png$/,
+        fluentId: "mlmodel-extension-label",
+        fluentArgs: { extensionName: `name-${extWithIcon.id}` },
+      },
+      {
+        iconURL: /\/extensionGeneric.svg$/,
+        fluentId: "mlmodel-extension-label",
+        fluentArgs: { extensionName: `name-${extWithoutIcon.id}` },
+      },
+    ],
   });
   await verifyAddonCardDetails({
     id: id2,
@@ -225,6 +387,17 @@ add_task(async function testModelHubDetails() {
     expectedModelHomepageURL: mockModel2.modelHomepageURL,
     expectedModelIconURL:
       "chrome://mozapps/skin/extensions/extensionGeneric.svg",
+    expectedUsedBy: [
+      {
+        iconURL: FEATURE_ICON,
+        fluentId: featureEngineIdToFluentId("smart-tab-embedding-engine"),
+      },
+      {
+        iconURL: /\/test-icon\.png$/,
+        fluentId: "mlmodel-extension-label",
+        fluentArgs: { extensionName: `name-${extWithIcon.id}` },
+      },
+    ],
   });
 
   async function verifyAddonCardDetails({
@@ -233,6 +406,7 @@ add_task(async function testModelHubDetails() {
     expectedLastUsed,
     expectedModelHomepageURL,
     expectedModelIconURL,
+    expectedUsedBy,
   }) {
     let win = await loadInitialView("mlmodel");
     // Get the list view card DOM element for the given addon id.
@@ -317,6 +491,46 @@ add_task(async function testModelHubDetails() {
     ok(iconSrc, "Expected to see model card image src");
     is(iconSrc, expectedModelIconURL, "Got expected model card icon value");
 
+    const detailsEl = card.querySelector("addon-mlmodel-details");
+    ok(detailsEl, "Found mlmodel-card-list-additions element");
+    const usedByEls = detailsEl.querySelectorAll(".mlmodel-used-by");
+    info(`found usedByEls: ${usedByEls.length}`);
+    for (const [idx, usedBy] of expectedUsedBy.entries()) {
+      info(`Verifying usedBy entry: ${JSON.stringify(usedBy)}\n`);
+      const img = usedByEls[idx].querySelector("img");
+      ok(img, "Found img tag for the icon url");
+      if (usedBy.iconURL instanceof RegExp) {
+        ok(
+          usedBy.iconURL.test(img.src),
+          `Expected icon url ${img.src} to match ${usedBy.iconURL}`
+        );
+      } else {
+        Assert.equal(img.src, usedBy.iconURL, "Got the expected icon url");
+      }
+      const label = usedByEls[idx].querySelector("label");
+      const fluentAttrs = label.ownerDocument.l10n.getAttributes(label);
+      Assert.equal(
+        fluentAttrs.id,
+        usedBy.fluentId,
+        "Got the expected fluent id"
+      );
+      if (usedBy.fluentArgs) {
+        Assert.deepEqual(
+          fluentAttrs.args,
+          usedBy.fluentArgs,
+          "Got the expected fluent args"
+        );
+      }
+    }
+    Assert.equal(
+      usedByEls.length,
+      expectedUsedBy.length,
+      "Got the expected number of model usedBy elements"
+    );
+
     await closeView(win);
   }
+
+  await extWithIcon.unload();
+  await extWithoutIcon.unload();
 });

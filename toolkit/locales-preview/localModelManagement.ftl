@@ -25,5 +25,3 @@ mlmodel-addon-detail-used-by-label = Used by
 mlmodel-addon-detail-model-card = Model Card
 # This is a label for the Model Card link to Hugging face
 mlmodel-addon-detail-model-card-link-label = View on Hugging Face
-# This is a label for the task the AI model is responsible for
-mlmodel-addon-detial-model-task-label = Task

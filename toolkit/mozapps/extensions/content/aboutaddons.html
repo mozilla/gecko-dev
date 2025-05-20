@@ -27,6 +27,10 @@
       rel="shortcut icon"
       href="chrome://mozapps/skin/extensions/extension.svg"
     />
+    <link
+      href="chrome://mozapps/content/extensions/components/addon-mlmodel-details.css"
+      rel="stylesheet"
+    />
 
     <link rel="localization" href="branding/brand.ftl" />
     <link rel="localization" href="toolkit/about/aboutAddons.ftl" />
@@ -69,6 +73,10 @@
     <script
       type="module"
       src="chrome://mozapps/content/extensions/components/mlmodel-card-header-additions.mjs"
+    ></script>
+    <script
+      type="module"
+      src="chrome://mozapps/content/extensions/components/mlmodel-card-list-additions.mjs"
     ></script>
     <script
       type="module"
@@ -450,6 +458,7 @@
                 aria-expanded="false"
               ></button>
             </div>
+            <mlmodel-card-list-additions></mlmodel-card-list-additions>
             <!-- This ends up in the tab order when the ellipsis happens, but it isn't necessary. -->
             <span class="addon-description" tabindex="-1"></span>
           </div>

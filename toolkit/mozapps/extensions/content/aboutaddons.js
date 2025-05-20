@@ -2885,6 +2885,12 @@ class AddonCard extends HTMLElement {
       );
       mlmodelHeaderAdditions.setAddon(addon);
       mlmodelHeaderAdditions.expanded = this.expanded;
+
+      const mlmodelListAdditions = this.card.querySelector(
+        "mlmodel-card-list-additions"
+      );
+      mlmodelListAdditions.setAddon(addon);
+      mlmodelListAdditions.expanded = this.expanded;
     }
 
     this.sendEvent("update");

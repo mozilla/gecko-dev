@@ -11,7 +11,7 @@ mlmodel-card-header-additions {
   .mlmodel-total-size-bubble {
     border: var(--border-width) solid var(--border-color-deemphasized);
     border-radius: var(--border-radius-circle);
-    padding: var(--space-xsmall);
+    padding: var(--space-small) var(--space-medium);
     font-size: var(--font-size-small);
   }
 
@@ -29,6 +29,7 @@ mlmodel-card-header-additions {
     display: flex;
     justify-content: flex-end;
     background-color: var(--button-background-color-destructive);
+    margin:0;
   }
 
   button.mlmodel-remove-addon-button:active,

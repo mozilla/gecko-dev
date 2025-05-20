@@ -128,7 +128,7 @@ export const DEFAULT_MODELS = Object.freeze({
  *
  * The only exception is web extension, as the engine id is dynamically created with the extension id.
  */
-const FEATURES = {
+export const FEATURES = {
   // see toolkit/components/formautofill/MLAutofill.sys.mjs
   "autofill-classification": {
     engineId: "autofill-ml",
@@ -136,6 +136,7 @@ const FEATURES = {
   // see toolkit/components/pdfjs/content/PdfjsParent.sys.mjs
   "pdfjs-alt-text": {
     engineId: "pdfjs",
+    fluentId: "mlmodel-pdfjs",
   },
   // see browser/components/urlbar/private/MLSuggest.sys.mjs
   "suggest-intent-classification": {
@@ -148,18 +149,26 @@ const FEATURES = {
   // see toolkit/components/aboutinference/content/aboutInference.js
   "about-inference": {
     engineId: "about-inference",
+    fluentId: "mlmodel-about-inference",
   },
   // see browser/components/tabbrowser/SmartTabGrouping.sys.mjs,
   "smart-tab-embedding": {
     engineId: "smart-tab-embedding-engine",
+    fluentId: "mlmodel-smart-tab-embedding-engine",
   },
   // see browser/components/tabbrowser/SmartTabGrouping.sys.mjs
   "smart-tab-topic": {
     engineId: "smart-tab-topic-engine",
+    fluentId: "mlmodel-smart-tab-topic-engine",
   },
   // see toolkit/components/ml/content/nlp/EmbeddingsGenerator.sys.mjs
   "simple-text-embedder": {
     engineId: "simple-text-embedder-engine",
+  },
+  // see browser/components/genai/LinkPreviewModel.sys.mjs
+  "link-preview": {
+    engineId: "wllamapreview",
+    fluentId: "mlmodel-link-preview",
   },
 };
 

@@ -1236,6 +1236,14 @@ class IndexedDBCache {
     // Process each file entry.
     const files = [];
     for (const { file: path, headers } of fileData) {
+      const stored = await this.#getData({
+        storeName: this.enginesStoreName,
+        key: [model, revision, path],
+      });
+
+      if (stored.length) {
+        aggregatedEngineIds = stored[0].engineIds || [];
+      }
       // Aggregate metadata.
       totalFileSize += headers.fileSize;
       aggregatedLastUsed = Math.max(aggregatedLastUsed, headers.lastUsed);
@@ -1243,9 +1251,6 @@ class IndexedDBCache {
         aggregatedUpdateDate,
         headers.lastUpdated
       );
-      if (headers.engineIds && headers.engineIds.length) {
-        aggregatedEngineIds = headers.engineIds;
-      }
       files.push({ path, headers, engineIds: headers.engineIds || [] });
     }
 
