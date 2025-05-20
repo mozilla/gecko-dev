@@ -10,16 +10,16 @@
 
 namespace mozilla::widget {
 
-NS_IMETHODIMP
-ThemeCocoa::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
-                                 StyleAppearance aAppearance,
-                                 const nsRect& aRect, const nsRect& aDirtyRect,
-                                 DrawOverflow aDrawOverflow) {
+void ThemeCocoa::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
+                                      StyleAppearance aAppearance,
+                                      const nsRect& aRect,
+                                      const nsRect& aDirtyRect,
+                                      DrawOverflow aDrawOverflow) {
   switch (aAppearance) {
     case StyleAppearance::Tooltip:
       // Cocoa tooltip background and border are already drawn by the
       // OS window server.
-      return NS_OK;
+      return;
     default:
       break;
   }

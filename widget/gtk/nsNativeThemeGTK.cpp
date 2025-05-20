@@ -296,12 +296,9 @@ static void DrawThemeWithCairo(gfxContext* aContext, DrawTarget* aDrawTarget,
   }
 }
 
-NS_IMETHODIMP
-nsNativeThemeGTK::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
-                                       StyleAppearance aAppearance,
-                                       const nsRect& aRect,
-                                       const nsRect& aDirtyRect,
-                                       DrawOverflow aDrawOverflow) {
+void nsNativeThemeGTK::DrawWidgetBackground(
+    gfxContext* aContext, nsIFrame* aFrame, StyleAppearance aAppearance,
+    const nsRect& aRect, const nsRect& aDirtyRect, DrawOverflow aDrawOverflow) {
   if (IsWidgetNonNative(aFrame, aAppearance) != NonNative::No) {
     return Theme::DrawWidgetBackground(aContext, aFrame, aAppearance, aRect,
                                        aDirtyRect, aDrawOverflow);
@@ -309,7 +306,7 @@ nsNativeThemeGTK::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
 
   auto gtkType = GeckoToGtkWidgetType(aAppearance);
   if (!gtkType) {
-    return NS_OK;
+    return;
   }
 
   gfxContext* ctx = aContext;
@@ -348,7 +345,7 @@ nsNativeThemeGTK::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
       int32_t(dirtyRect.Width()), int32_t(dirtyRect.Height()));
   if (widgetRect.IsEmpty() ||
       !drawingRect.IntersectRect(widgetRect, drawingRect)) {
-    return NS_OK;
+    return;
   }
 
   Transparency transparency = GetWidgetTransparency(aFrame, aAppearance);
@@ -379,8 +376,6 @@ nsNativeThemeGTK::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
   DrawThemeWithCairo(ctx, aContext->GetDrawTarget(), params, scaleFactor.scale,
                      snapped, ToPoint(origin),
                      drawingRect.Size().ToUnknownSize(), transparency);
-
-  return NS_OK;
 }
 
 bool nsNativeThemeGTK::CreateWebRenderCommandsForWidget(
