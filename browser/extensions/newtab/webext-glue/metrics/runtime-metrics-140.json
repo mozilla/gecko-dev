@@ -29,7 +29,8 @@
       "enabled": true,
       "schedulesPings": [],
       "reasonCodes": [],
-      "followsCollectionEnabled": true
+      "followsCollectionEnabled": true,
+      "uploaderCapabilities": []
     },
     "spoc-1": {
       "includeClientId": false,
@@ -39,7 +40,8 @@
       "enabled": true,
       "schedulesPings": [],
       "reasonCodes": ["click", "impression", "save"],
-      "followsCollectionEnabled": true
+      "followsCollectionEnabled": true,
+      "uploaderCapabilities": []
     }
   }
 }
