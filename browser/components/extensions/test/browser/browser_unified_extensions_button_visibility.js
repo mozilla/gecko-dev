@@ -99,6 +99,59 @@ add_task(async function test_hide_button_via_contextmenu() {
   await SpecialPowers.popPrefEnv();
 });
 
+// Despite the button being hidden by pref, there are ways for the button to
+// still show up. This checks whether the menu items appear as expected, and
+// that the user can reveal the button again.
+add_task(async function test_menu_items_on_hidden_button() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.unifiedExtensions.button.customizable", true]],
+  });
+
+  hideButtonWithPref();
+
+  // Simulate the extensions button being unhidden for whatever reason.
+  gUnifiedExtensions.button.hidden = false;
+  const contextMenu = await openChromeContextMenu(
+    "toolbar-context-menu",
+    "#unified-extensions-button"
+  );
+  gUnifiedExtensions.button.hidden = true;
+  assertExtensionsButtonHidden();
+
+  const removeFromToolbar = contextMenu.querySelector(
+    ".customize-context-removeFromToolbar"
+  );
+  is(removeFromToolbar.hidden, true, "removeFromToolbar is hidden");
+  ok(removeFromToolbar.hasAttribute("disabled"), "removeFromToolbar disabled");
+
+  const item = contextMenu.querySelector(
+    "#toolbar-context-always-show-extensions-button"
+  );
+  is(item.hidden, false, "'Always Show in Toolbar' menu item shown");
+  ok(!item.hasAttribute("checked"), "Should be unchecked to reflect pref");
+
+  await closeChromeContextMenu(contextMenu.id, item);
+  assertExtensionsButtonVisible();
+
+  // After unhiding the button, the menu items should be the defaults:
+  // - removeFromToolbar: from disabled to enabled.
+  // - 'Always Show in Toolbar': from visible to hidden.
+  info("Checking context menu after unhiding the button");
+  const contextMenu2 = await openChromeContextMenu(
+    "toolbar-context-menu",
+    "#unified-extensions-button"
+  );
+  is(contextMenu, contextMenu2, "Context menu is the same");
+  is(removeFromToolbar.hidden, false, "removeFromToolbar is visible");
+  ok(!removeFromToolbar.hasAttribute("disabled"), "removeFromToolbar enabled");
+  is(item.hidden, true, "'Always Show in Toolbar' menu item is hidden");
+
+  await closeChromeContextMenu(contextMenu2.id);
+
+  resetButtonVisibilityToDefault();
+  await SpecialPowers.popPrefEnv();
+});
+
 // Until the the "Hide Extensions Button" feature finished its implementation,
 // the UI to trigger hiding should be disabled by default.
 add_task(async function test_customization_disabled_by_default() {
