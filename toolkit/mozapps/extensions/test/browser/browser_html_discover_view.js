@@ -567,7 +567,7 @@ add_task(async function discopane_no_cookies() {
   let requestPromise = new Promise(resolve => {
     amoServer.registerPathHandler("/discoapi", resolve);
   });
-  const cv = Services.cookies.add(
+  Services.cookies.add(
     AMO_TEST_HOST,
     "/",
     "name",
@@ -577,10 +577,9 @@ add_task(async function discopane_no_cookies() {
     false,
     Date.now() / 1000 + 600,
     {},
-    Ci.nsICookie.SAMESITE_UNSET,
+    Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTP
   );
-  is(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
   let win = await loadInitialView("discover");
   let request = await requestPromise;
   ok(!request.hasHeader("Cookie"), "discovery API should not receive cookies");

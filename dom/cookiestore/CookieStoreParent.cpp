@@ -14,7 +14,6 @@
 #include "mozilla/net/CookieParser.h"
 #include "mozilla/Components.h"
 #include "mozilla/net/CookieCommons.h"
-#include "mozilla/net/CookieValidation.h"
 #include "mozilla/net/CookieServiceParent.h"
 #include "mozilla/net/NeckoParent.h"
 #include "mozilla/Unused.h"
@@ -356,9 +355,10 @@ bool CookieStoreParent::SetRequestOnMainThread(
     const nsAString& aValue, bool aSession, int64_t aExpires,
     const nsAString& aPath, int32_t aSameSite, bool aPartitioned,
     const nsID& aOperationID) {
-  AssertIsOnMainThread();
+  MOZ_ASSERT(NS_IsMainThread());
   nsresult rv;
 
+  bool requireMatch = false;
   NS_ConvertUTF16toUTF8 domain(aDomain);
   nsAutoCString domainWithDot;
 
@@ -379,6 +379,7 @@ bool CookieStoreParent::SetRequestOnMainThread(
     if (NS_FAILED(rv)) {
       return false;
     }
+    requireMatch = true;
   }
   domainWithDot.Append(domain);
 
@@ -413,28 +414,18 @@ bool CookieStoreParent::SetRequestOnMainThread(
   notificationWatcher->CallbackWhenNotified(aOperationID, notificationCb);
 
   OriginAttributes attrs(aOriginAttributes);
-
-  nsCOMPtr<nsICookieValidation> validation;
   rv = service->AddNative(
       aCookieURI, domainWithDot, NS_ConvertUTF16toUTF8(aPath),
       NS_ConvertUTF16toUTF8(aName), NS_ConvertUTF16toUTF8(aValue),
       /* secure: */ true,
       /* http-only: */ false, aSession, aSession ? INT64_MAX : aExpires, &attrs,
       aSameSite, nsICookie::SCHEME_HTTPS, aPartitioned, /* from http: */ false,
-      &aOperationID, getter_AddRefs(validation));
-
+      &aOperationID, [&](mozilla::net::CookieStruct& aCookieStruct) -> bool {
+        return CookieParser::CheckCookieStruct(aCookieStruct, aCookieURI, ""_ns,
+                                               domain, requireMatch, false) ==
+               CookieParser::NoRejection;
+      });
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    if (rv == NS_ERROR_ILLEGAL_VALUE && validation &&
-        CookieValidation::Cast(validation)->Result() !=
-            nsICookieValidation::eOK) {
-      RefPtr<ContentParent> contentParent = aParent->GetContentParent();
-      if (contentParent) {
-        contentParent->KillHard(
-            "CookieStore does not accept invalid cookies in the parent "
-            "process");
-      }
-    }
-
     return false;
   }
 

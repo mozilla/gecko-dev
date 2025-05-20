@@ -16,7 +16,6 @@
 #include "mozilla/Components.h"
 #include "Cookie.h"
 #include "nsIHttpProtocolHandler.h"
-#include "mozilla/net/CookieValidation.h"
 #include "mozilla/StaticPrefs_cookiebanners.h"
 #include "nsNetUtil.h"
 
@@ -324,29 +323,12 @@ nsresult nsCookieInjector::InjectCookiesFromRules(
     MOZ_LOG(gCookieInjectorLog, LogLevel::Info,
             ("Setting cookie: %s, %s, %s, %s\n", c.Host().get(), c.Name().get(),
              c.Path().get(), c.Value().get()));
-
-    nsCOMPtr<nsICookieValidation> validation;
     rv = cookieManager->AddNative(
         nullptr, c.Host(), c.Path(), c.Name(), c.Value(), c.IsSecure(),
         c.IsHttpOnly(), c.IsSession(), c.Expiry(), &aOriginAttributes,
         c.SameSite(), static_cast<nsICookie::schemeType>(c.SchemeMap()),
         /* is partitioned: */ false, /* is from http: */ true, nullptr,
-        getter_AddRefs(validation));
-    if (rv == NS_ERROR_ILLEGAL_VALUE) {
-      net::CookieValidation* cv = net::CookieValidation::Cast(validation);
-      MOZ_ASSERT(cv);
-      MOZ_ASSERT(cv->Result() != nsICookieValidation::eOK);
-
-      nsAutoString errorString;
-      rv = cv->GetErrorString(errorString);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      MOZ_LOG(gCookieInjectorLog, LogLevel::Error,
-              ("Invalid cookie: %s",
-               NS_ConvertUTF16toUTF8(errorString).BeginReading()));
-      continue;
-    }
-
+        [](mozilla::net::CookieStruct&) { return true; });
     NS_ENSURE_SUCCESS(rv, rv);
 
     aHasInjectedCookie = true;

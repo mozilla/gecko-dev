@@ -27,12 +27,12 @@ add_task(async function runTest() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
 
   // Add a partitioned cookie.
-  const cv = Services.cookies.add(
+  Services.cookies.add(
     TEST_HOST,
     "/",
     "foo",
     "bar",
-    true,
+    false,
     false,
     true,
     MAX_EXPIRY,
@@ -41,8 +41,6 @@ add_task(async function runTest() {
     Ci.nsICookie.SCHEME_HTTPS,
     true
   );
-  is(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
-
   await TabStateFlusher.flush(tab.linkedBrowser);
 
   // Get the sessionstore state for the window.

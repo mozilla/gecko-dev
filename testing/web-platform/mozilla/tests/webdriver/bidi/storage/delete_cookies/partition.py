@@ -40,7 +40,6 @@ async def test_partition_context(
                 domain=domain_value(),
                 name=cookie_name,
                 value=NetworkStringValue(cookie_value),
-                secure=True,
             ),
             partition=partition,
         )
@@ -74,7 +73,6 @@ async def test_partition_context_iframe_with_set_cookie(
             domain=domain_value(domain),
             name=cookie_name,
             value=NetworkStringValue(cookie_value),
-            secure=True,
         ),
         partition=frame_partition,
     )

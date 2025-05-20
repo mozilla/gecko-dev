@@ -47,7 +47,7 @@ async function openTabInUserContext(uri, userContextId) {
 function simulateGoogleAccountSignIn(originAttributes = {}) {
   // Manually set the cookie that is present when the client is signed in to a
   // Google account.
-  const cv = Services.cookies.add(
+  Services.cookies.add(
     "accounts.google.com",
     "",
     "SID",
@@ -57,10 +57,9 @@ function simulateGoogleAccountSignIn(originAttributes = {}) {
     false,
     Date.now() + 1000 * 60 * 60,
     originAttributes,
-    Ci.nsICookie.SAMESITE_UNSET,
+    Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
-  is(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
 }
 
 add_setup(async function () {

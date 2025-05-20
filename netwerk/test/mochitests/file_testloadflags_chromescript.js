@@ -114,7 +114,7 @@ addMessageListener("init", ({ domain }) => {
     true,
     Math.pow(2, 62),
     {},
-    Ci.nsICookie.SAMESITE_UNSET,
+    Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
   is(

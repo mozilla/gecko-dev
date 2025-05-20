@@ -330,7 +330,7 @@ function insertTestCookieRules() {
     false,
     false,
     false,
-    Ci.nsICookie.SAMESITE_UNSET,
+    0,
     0
   );
   ruleA.addCookie(
@@ -344,7 +344,7 @@ function insertTestCookieRules() {
     false,
     false,
     false,
-    Ci.nsICookie.SAMESITE_UNSET,
+    0,
     0
   );
 
@@ -366,7 +366,7 @@ function insertTestCookieRules() {
     false,
     false,
     true,
-    Ci.nsICookie.SAMESITE_UNSET,
+    0,
     0
   );
 }

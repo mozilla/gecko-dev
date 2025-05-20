@@ -101,8 +101,8 @@ add_task(async () => {
   });
   await validateTelemetryValues(
     {
-      setCookies: 5,
-      setForeigns: 1,
+      setCookies: 6,
+      setForeigns: 2,
       setPartitioneds: 3,
       setForeignPartitioneds: 1,
     },
@@ -121,8 +121,8 @@ add_task(async () => {
 
   await validateTelemetryValues(
     {
-      setCookies: 6,
-      setForeigns: 2,
+      setCookies: 8,
+      setForeigns: 4,
       setPartitioneds: 4,
       setForeignPartitioneds: 2,
     },

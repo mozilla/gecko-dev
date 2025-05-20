@@ -9,7 +9,7 @@
 
 add_task(async function test_all_cookies() {
   const expiry = Date.now() + 24 * 60 * 60;
-  const cv = Services.cookies.add(
+  Services.cookies.add(
     "example.net",
     "path",
     "name",
@@ -22,7 +22,6 @@ add_task(async function test_all_cookies() {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
-  Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
   Assert.equal(Services.cookies.countCookiesFromHost("example.net"), 1);
 
   await new Promise(aResolve => {
@@ -40,7 +39,7 @@ add_task(async function test_all_cookies() {
 
 add_task(async function test_range_cookies() {
   const expiry = Date.now() + 24 * 60 * 60;
-  const cv = Services.cookies.add(
+  Services.cookies.add(
     "example.net",
     "path",
     "name",
@@ -53,7 +52,6 @@ add_task(async function test_range_cookies() {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
-  Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
   Assert.equal(Services.cookies.countCookiesFromHost("example.net"), 1);
 
   // The cookie is out of time range here.
@@ -93,7 +91,7 @@ add_task(async function test_range_cookies() {
 
 add_task(async function test_principal_cookies() {
   const expiry = Date.now() + 24 * 60 * 60;
-  const cv = Services.cookies.add(
+  Services.cookies.add(
     "example.net",
     "path",
     "name",
@@ -106,7 +104,6 @@ add_task(async function test_principal_cookies() {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
-  Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
   Assert.equal(Services.cookies.countCookiesFromHost("example.net"), 1);
 
   let uri = Services.io.newURI("http://example.com");
@@ -148,7 +145,7 @@ add_task(async function test_principal_cookies() {
 
 add_task(async function test_localfile_cookies() {
   const expiry = Date.now() + 24 * 60 * 60;
-  const cv = Services.cookies.add(
+  Services.cookies.add(
     "", // local file
     "path",
     "name",
@@ -158,10 +155,10 @@ add_task(async function test_localfile_cookies() {
     false /* session */,
     expiry,
     {},
-    Ci.nsICookie.SAMESITE_UNSET,
+    Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTP
   );
-  Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
+
   Assert.notEqual(Services.cookies.countCookiesFromHost(""), 0);
 
   await new Promise(aResolve => {
@@ -399,7 +396,7 @@ add_task(async function test_baseDomain_cookies_subdomain() {
 
 function addCookiesForHost(host) {
   const expiry = Date.now() + 24 * 60 * 60;
-  const cv = Services.cookies.add(
+  Services.cookies.add(
     host,
     "path",
     "name",
@@ -412,7 +409,6 @@ function addCookiesForHost(host) {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
-  Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
 }
 
 function addIpv6Cookies() {

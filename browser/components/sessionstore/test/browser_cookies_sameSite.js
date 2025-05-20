@@ -24,7 +24,7 @@ async function verifyRestore(url, sameSiteSetting) {
 
   // Add a cookie with specific same-site setting.
   let r = Math.floor(Math.random() * MAX_EXPIRY);
-  const cv = Services.cookies.add(
+  Services.cookies.add(
     url,
     "/",
     "name" + r,
@@ -39,8 +39,6 @@ async function verifyRestore(url, sameSiteSetting) {
       ? Ci.nsICookie.SCHEME_HTTPS
       : Ci.nsICookie.SCHEME_HTTP
   );
-  is(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
-
   await TabStateFlusher.flush(tab.linkedBrowser);
 
   // Get the sessionstore state for the window.
@@ -81,11 +79,11 @@ async function verifyRestore(url, sameSiteSetting) {
  */
 add_task(async function () {
   // Test for various possible values of cookie.sameSite and schemeMap.
-  await verifyRestore(TEST_HTTP_URL, Ci.nsICookie.SAMESITE_UNSET);
+  await verifyRestore(TEST_HTTP_URL, Ci.nsICookie.SAMESITE_NONE);
   await verifyRestore(TEST_HTTP_URL, Ci.nsICookie.SAMESITE_LAX);
   await verifyRestore(TEST_HTTP_URL, Ci.nsICookie.SAMESITE_STRICT);
 
-  await verifyRestore(TEST_HTTPS_URL, Ci.nsICookie.SAMESITE_UNSET);
+  await verifyRestore(TEST_HTTPS_URL, Ci.nsICookie.SAMESITE_NONE);
   await verifyRestore(TEST_HTTPS_URL, Ci.nsICookie.SAMESITE_LAX);
   await verifyRestore(TEST_HTTPS_URL, Ci.nsICookie.SAMESITE_STRICT);
 });

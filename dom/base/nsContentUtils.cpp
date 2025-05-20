@@ -4785,9 +4785,7 @@ static const char* gPropertiesFiles[nsContentUtils::PropertiesFile_COUNT] = {
     "chrome://global/locale/security/security.properties",
     "chrome://necko/locale/necko.properties",
     "resource://gre/res/locale/layout/HtmlForm.properties",
-    "resource://gre/res/locale/dom/dom.properties",
-    "resource://gre/res/locale/necko/necko.properties",
-};
+    "resource://gre/res/locale/dom/dom.properties"};
 
 /* static */
 nsresult nsContentUtils::EnsureStringBundle(PropertiesFile aFile) {

@@ -48,7 +48,7 @@ add_task(async function test_purge_counting() {
   Assert.equal(validCookies, totalCookies);
 
   // add a valid cookie - this triggers the purge
-  const cv = Services.cookies.add(
+  Services.cookies.add(
     "cookie-host0.com", // any host
     "/", // path
     "cookie-name-x",
@@ -58,10 +58,9 @@ add_task(async function test_purge_counting() {
     true, // isSession
     futureExpiry,
     {}, // OA
-    Ci.nsICookie.SAMESITE_UNSET, // SameSite
+    Ci.nsICookie.SAMESITE_NONE, // SameSite
     Ci.nsICookie.SCHEME_HTTPS
   );
-  Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
 
   // check that we purge all the expired cookies and not the unexpired
   validCookies = Services.cookies.cookies.length;

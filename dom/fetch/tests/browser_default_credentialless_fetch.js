@@ -12,7 +12,7 @@ const RESOURCE_URL =
 add_task(async function test_fetch_defaults_to_credentialless() {
   // Ensure cookie is set up:
   let expiry = Date.now() / 1000 + 24 * 60 * 60;
-  const cv = Services.cookies.add(
+  Services.cookies.add(
     "example.com",
     "/",
     "foo",
@@ -22,10 +22,9 @@ add_task(async function test_fetch_defaults_to_credentialless() {
     false,
     expiry,
     {},
-    Ci.nsICookie.SAMESITE_UNSET,
+    Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
-  is(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
 
   // Explicitly send cookie header by using `same-origin` in the init dict, to
   // ensure cookies are stored correctly and can be sent.

@@ -8,7 +8,6 @@ function createTestState() {
     path: "/",
     name: `name${r}`,
     value: `value${r}`,
-    sameSite: Ci.nsICookie.SAMESITE_UNSET,
   };
 
   let state = {

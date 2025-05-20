@@ -301,9 +301,8 @@ class StorageModule extends RootBiDiModule {
 
     const isPartitioned = originAttributes.partitionKey?.length > 0;
 
-    let cv;
     try {
-      cv = Services.cookies.add(
+      Services.cookies.add(
         domain,
         path === null ? "/" : path,
         name,
@@ -320,12 +319,6 @@ class StorageModule extends RootBiDiModule {
       );
     } catch (e) {
       throw new lazy.error.UnableToSetCookieError(e);
-    }
-
-    if (cv.result !== Ci.nsICookieValidation.eOK) {
-      throw new lazy.error.UnableToSetCookieError(
-        `Invalid cookie: ${cv.errorString}`
-      );
     }
 
     return {
@@ -797,12 +790,9 @@ class StorageModule extends RootBiDiModule {
       case "strict": {
         return Ci.nsICookie.SAMESITE_STRICT;
       }
-      case "none": {
-        return Ci.nsICookie.SAMESITE_NONE;
-      }
     }
 
-    return Ci.nsICookie.SAMESITE_UNSET;
+    return Ci.nsICookie.SAMESITE_NONE;
   }
 
   /**

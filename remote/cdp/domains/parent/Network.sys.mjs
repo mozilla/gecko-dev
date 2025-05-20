@@ -312,9 +312,8 @@ export class Network extends Domain {
     ]);
 
     let success = true;
-    let cv;
     try {
-      cv = Services.cookies.add(
+      Services.cookies.add(
         hostname,
         cookie.path,
         cookie.name,
@@ -329,10 +328,6 @@ export class Network extends Domain {
       );
     } catch (e) {
       success = false;
-    }
-
-    if (cv && cv.result != Ci.nsICookieValidation.eOK) {
-      throw new TypeError(cv.errorString);
     }
 
     return { success };
