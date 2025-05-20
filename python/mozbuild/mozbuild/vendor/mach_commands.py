@@ -289,6 +289,17 @@ def vendor_python(
         return 1
 
     vendor_command = command_context._spawn(VendorPython)
-    vendor_command.vendor(
+    changes_made = vendor_command.vendor(
         keep_extra_files, add, remove, upgrade, upgrade_package, force
+    )
+
+    if not changes_made:
+        return 0
+
+    print(
+        "\nVendoring python dependencies finished successfully."
+        "\nPlease review and update any affected <site>.txt files, then run "
+        '"./mach generate-python-lockfiles" to verify no incompatibilities were introduced.'
+        "\n\nNote: If there are incompatibilities, it may be useful to re-run with the "
+        '"--keep-lockfiles" flag and inspect the lockfiles manually to determine the culprit(s).'
     )

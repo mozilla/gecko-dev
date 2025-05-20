@@ -96,7 +96,7 @@ class VendorPython(MozbuildObject):
                 print(
                     "No changes detected in `uv.lock` since last vendor. Nothing to do. (You can re-run this command with '--force' to force vendoring)"
                 )
-                return
+                return False
 
             print("Changes detected in `uv.lock`.")
 
@@ -158,6 +158,8 @@ class VendorPython(MozbuildObject):
         egg_info_files = list(vendor_dir.glob("**/*.egg-info/*"))
         if egg_info_files:
             self.repository.add_remove_files(*egg_info_files, force=True)
+
+        return True
 
     def _extract(self, src, dest, keep_extra_files=False):
         """extract source distribution into vendor directory"""
