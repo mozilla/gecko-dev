@@ -73,6 +73,260 @@ static GdkMonitor* GdkDisplayGetMonitor(GdkDisplay* aDisplay, int aMonitorNum) {
   return s_gdk_display_get_monitor(aDisplay, aMonitorNum);
 }
 
+#ifdef MOZ_WAYLAND
+struct HDRMonitorInfo {
+  int mMonitorNum = 0;
+  bool mIsHDR = false;
+  bool mIsDone = false;
+};
+
+void image_description_info_done(
+    void* data,
+    struct wp_image_description_info_v1* wp_image_description_info_v1) {
+  auto* info = static_cast<HDRMonitorInfo*>(data);
+  info->mIsDone = true;
+  LOG_SCREEN("Monitor num [%d] Done", info->mMonitorNum);
+}
+
+/**
+ * ICC profile matching the image description
+ *
+ * The icc argument provides a file descriptor to the client
+ * which may be memory-mapped to provide the ICC profile matching
+ * the image description. The fd is read-only, and if mapped then
+ * it must be mapped with MAP_PRIVATE by the client.
+ *
+ * The ICC profile version and other details are determined by the
+ * compositor. There is no provision for a client to ask for a
+ * specific kind of a profile.
+ * @param icc ICC profile file descriptor
+ * @param icc_size ICC profile size, in bytes
+ */
+void image_description_info_icc_file(
+    void* data,
+    struct wp_image_description_info_v1* wp_image_description_info_v1,
+    int32_t icc, uint32_t icc_size) {}
+/**
+ * primaries as chromaticity coordinates
+ *
+ * Delivers the primary color volume primaries and white point
+ * using CIE 1931 xy chromaticity coordinates.
+ *
+ * Each coordinate value is multiplied by 1 million to get the
+ * argument value to carry precision of 6 decimals.
+ * @param r_x Red x * 1M
+ * @param r_y Red y * 1M
+ * @param g_x Green x * 1M
+ * @param g_y Green y * 1M
+ * @param b_x Blue x * 1M
+ * @param b_y Blue y * 1M
+ * @param w_x White x * 1M
+ * @param w_y White y * 1M
+ */
+void image_description_info_primaries(
+    void* data,
+    struct wp_image_description_info_v1* wp_image_description_info_v1,
+    int32_t r_x, int32_t r_y, int32_t g_x, int32_t g_y, int32_t b_x,
+    int32_t b_y, int32_t w_x, int32_t w_y) {}
+/**
+ * named primaries
+ *
+ * Delivers the primary color volume primaries and white point
+ * using an explicitly enumerated named set.
+ * @param primaries named primaries
+ */
+void image_description_info_primaries_named(
+    void* data,
+    struct wp_image_description_info_v1* wp_image_description_info_v1,
+    uint32_t primaries) {}
+
+/**
+ * transfer characteristic as a power curve
+ *
+ * The color component transfer characteristic of this image
+ * description is a pure power curve. This event provides the
+ * exponent of the power function. This curve represents the
+ * conversion from electrical to optical pixel or color values.
+ *
+ * The curve exponent has been multiplied by 10000 to get the
+ * argument eexp value to carry the precision of 4 decimals.
+ * @param eexp the exponent * 10000
+ */
+void image_description_info_tf_power(
+    void* data,
+    struct wp_image_description_info_v1* wp_image_description_info_v1,
+    uint32_t eexp) {}
+/**
+ * named transfer characteristic
+ *
+ * Delivers the transfer characteristic using an explicitly
+ * enumerated named function.
+ * @param tf named transfer function
+ */
+void image_description_info_tf_named(
+    void* data,
+    struct wp_image_description_info_v1* wp_image_description_info_v1,
+    uint32_t tf) {}
+/**
+ * primary color volume luminance range and reference white
+ *
+ * Delivers the primary color volume luminance range and the
+ * reference white luminance level. These values include the
+ * minimum display emission and ambient flare luminances, assumed
+ * to be optically additive and have the chromaticity of the
+ * primary color volume white point.
+ *
+ * The minimum luminance is multiplied by 10000 to get the argument
+ * 'min_lum' value and carries precision of 4 decimals. The maximum
+ * luminance and reference white luminance values are unscaled.
+ * @param min_lum minimum luminance (cd/m²) * 10000
+ * @param max_lum maximum luminance (cd/m²)
+ * @param reference_lum reference white luminance (cd/m²)
+ */
+void image_description_info_luminances(
+    void* data,
+    struct wp_image_description_info_v1* wp_image_description_info_v1,
+    uint32_t min_lum, uint32_t max_lum, uint32_t reference_lum) {
+  auto* info = static_cast<HDRMonitorInfo*>(data);
+  LOG_SCREEN("Monitor num [%d] Luminance min %d max %d reference %d",
+             info->mMonitorNum, min_lum, max_lum, reference_lum);
+  info->mIsHDR = max_lum > reference_lum;
+}
+/**
+ * target primaries as chromaticity coordinates
+ *
+ * Provides the color primaries and white point of the target
+ * color volume using CIE 1931 xy chromaticity coordinates. This is
+ * compatible with the SMPTE ST 2086 definition of HDR static
+ * metadata for mastering displays.
+ *
+ * While primary color volume is about how color is encoded, the
+ * target color volume is the actually displayable color volume. If
+ * target color volume is equal to the primary color volume, then
+ * this event is not sent.
+ *
+ * Each coordinate value is multiplied by 1 million to get the
+ * argument value to carry precision of 6 decimals.
+ * @param r_x Red x * 1M
+ * @param r_y Red y * 1M
+ * @param g_x Green x * 1M
+ * @param g_y Green y * 1M
+ * @param b_x Blue x * 1M
+ * @param b_y Blue y * 1M
+ * @param w_x White x * 1M
+ * @param w_y White y * 1M
+ */
+void image_description_info_target_primaries(
+    void* data,
+    struct wp_image_description_info_v1* wp_image_description_info_v1,
+    int32_t r_x, int32_t r_y, int32_t g_x, int32_t g_y, int32_t b_x,
+    int32_t b_y, int32_t w_x, int32_t w_y) {}
+/**
+ * target luminance range
+ *
+ * Provides the luminance range that the image description is
+ * targeting as the minimum and maximum absolute luminance L. These
+ * values include the minimum display emission and ambient flare
+ * luminances, assumed to be optically additive and have the
+ * chromaticity of the primary color volume white point. This
+ * should be compatible with the SMPTE ST 2086 definition of HDR
+ * static metadata.
+ *
+ * This luminance range is only theoretical and may not correspond
+ * to the luminance of light emitted on an actual display.
+ *
+ * Min L value is multiplied by 10000 to get the argument min_lum
+ * value and carry precision of 4 decimals. Max L value is unscaled
+ * for max_lum.
+ * @param min_lum min L (cd/m²) * 10000
+ * @param max_lum max L (cd/m²)
+ */
+void image_description_info_target_luminance(
+    void* data,
+    struct wp_image_description_info_v1* wp_image_description_info_v1,
+    uint32_t min_lum, uint32_t max_lum) {}
+/**
+ * target maximum content light level
+ *
+ * Provides the targeted max_cll of the image description.
+ * max_cll is defined by CTA-861-H.
+ *
+ * This luminance is only theoretical and may not correspond to the
+ * luminance of light emitted on an actual display.
+ * @param max_cll Maximum content light-level (cd/m²)
+ */
+void image_description_info_target_max_cll(
+    void* data,
+    struct wp_image_description_info_v1* wp_image_description_info_v1,
+    uint32_t max_cll) {}
+/**
+ * target maximum frame-average light level
+ *
+ * Provides the targeted max_fall of the image description.
+ * max_fall is defined by CTA-861-H.
+ *
+ * This luminance is only theoretical and may not correspond to the
+ * luminance of light emitted on an actual display.
+ * @param max_fall Maximum frame-average light level (cd/m²)
+ */
+void image_description_info_target_max_fall(
+    void* data,
+    struct wp_image_description_info_v1* wp_image_description_info_v1,
+    uint32_t max_fall) {}
+
+static const struct wp_image_description_info_v1_listener
+    image_description_info_listener{image_description_info_done,
+                                    image_description_info_icc_file,
+                                    image_description_info_primaries,
+                                    image_description_info_primaries_named,
+                                    image_description_info_tf_power,
+                                    image_description_info_tf_named,
+                                    image_description_info_luminances,
+                                    image_description_info_target_primaries,
+                                    image_description_info_target_luminance,
+                                    image_description_info_target_max_cll,
+                                    image_description_info_target_max_fall};
+
+static bool IsMonitorHDR(gint aMonitorNum) {
+  if (!WaylandDisplayGet() || !WaylandDisplayGet()->GetColorManager()) {
+    return false;
+  }
+  GdkMonitor* monitor =
+      GdkDisplayGetMonitor(gdk_display_get_default(), aMonitorNum);
+  if (!monitor) {
+    return monitor;
+  }
+  static auto s_gdk_wayland_monitor_get_wl_output =
+      (struct wl_output * (*)(GdkMonitor*))
+          dlsym(RTLD_DEFAULT, "gdk_wayland_monitor_get_wl_output");
+  if (!s_gdk_wayland_monitor_get_wl_output) {
+    return false;
+  }
+  auto wlOutput = s_gdk_wayland_monitor_get_wl_output(monitor);
+  if (!wlOutput) {
+    return false;
+  }
+  auto output = wp_color_manager_v1_get_output(
+      WaylandDisplayGet()->GetColorManager(), wlOutput);
+  auto description =
+      wp_color_management_output_v1_get_image_description(output);
+  auto descriptionInfo = wp_image_description_v1_get_information(description);
+
+  HDRMonitorInfo monitorInfo;
+  monitorInfo.mMonitorNum = aMonitorNum;
+  wp_image_description_info_v1_add_listener(
+      descriptionInfo, &image_description_info_listener, &monitorInfo);
+
+  wl_display_roundtrip(WaylandDisplayGet()->GetDisplay());
+
+  wp_image_description_v1_destroy(description);
+  wp_color_management_output_v1_destroy(output);
+
+  MOZ_DIAGNOSTIC_ASSERT(monitorInfo.mIsDone);
+  return monitorInfo.mIsHDR;
+}
+#endif
+
 RefPtr<Screen> ScreenHelperGTK::GetScreenForWindow(nsWindow* aWindow) {
   LOG_SCREEN("GetScreenForWindow() [%p]", aWindow);
 
@@ -209,7 +463,6 @@ static already_AddRefed<Screen> MakeScreenGtk(GdkScreen* aScreen,
     // Since gtk 3.22
     static auto s_gdk_monitor_get_refresh_rate = (int (*)(GdkMonitor*))dlsym(
         RTLD_DEFAULT, "gdk_monitor_get_refresh_rate");
-
     if (!s_gdk_monitor_get_refresh_rate) {
       return 0;
     }
@@ -265,7 +518,7 @@ static already_AddRefed<Screen> MakeScreenGtk(GdkScreen* aScreen,
   bool isHDR = false;
 #ifdef MOZ_WAYLAND
   if (GdkIsWaylandDisplay()) {
-    isHDR = WaylandDisplayGet()->IsHDREnabled();
+    isHDR = IsMonitorHDR(aMonitorNum);
   }
 #endif
 

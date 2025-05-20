@@ -34,6 +34,8 @@ constexpr const int sColorPrimariesNum =
 
 class DMABufFormats;
 
+using GdkMonitor = struct _GdkMonitor;
+
 // Our general connection to Wayland display server,
 // holds our display connection and runs event loop.
 // We have a global nsWaylandDisplay object for each thread.
