@@ -8,7 +8,6 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Document.h"
-#include "nsIStringBundle.h"
 #include "nsIURI.h"
 #include "XPathResult.h"
 #include "txExecutionState.h"
@@ -31,6 +30,7 @@
 #include "mozilla/dom/DocumentFragment.h"
 #include "mozilla/dom/XSLTProcessorBinding.h"
 #include "mozilla/intl/Localization.h"
+#include "nsRFPService.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1073,8 +1073,14 @@ void txMozillaXSLTProcessor::reportError(nsresult aResult,
     AutoTArray<nsCString, 1> resIds = {
         "dom/xslt.ftl"_ns,
     };
-    RefPtr<mozilla::intl::Localization> l10n =
-        mozilla::intl::Localization::Create(resIds, true);
+    RefPtr<mozilla::intl::Localization> l10n;
+    if (mSource &&
+        mSource->OwnerDoc()->ShouldResistFingerprinting(RFPTarget::JSLocale)) {
+      AutoTArray<nsCString, 1> langs = {nsRFPService::GetSpoofedJSLocale()};
+      l10n = mozilla::intl::Localization::Create(resIds, true, langs);
+    } else {
+      l10n = mozilla::intl::Localization::Create(resIds, true);
+    }
     if (l10n) {
       nsAutoCString errorText;
       auto statusId = StatusCodeToL10nId(aResult);

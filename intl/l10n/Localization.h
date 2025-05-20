@@ -95,6 +95,9 @@ class Localization : public nsIObserver,
   static already_AddRefed<Localization> Create(
       const nsTArray<nsCString>& aResourceIds, bool aIsSync);
   static already_AddRefed<Localization> Create(
+      const nsTArray<nsCString>& aResourceIds, bool aIsSync,
+      const nsTArray<nsCString>& aLocales);
+  static already_AddRefed<Localization> Create(
       const nsTArray<ffi::GeckoResourceId>& aResourceIds, bool aIsSync);
 
   JSObject* WrapObject(JSContext* aCx,
@@ -142,6 +145,8 @@ class Localization : public nsIObserver,
 
  protected:
   Localization(const nsTArray<nsCString>& aResIds, bool aIsSync);
+  Localization(const nsTArray<nsCString>& aResIds, bool aIsSync,
+               const nsTArray<nsCString>& aLocales);
   Localization(const nsTArray<ffi::GeckoResourceId>& aResIds, bool aIsSync);
   Localization(nsIGlobalObject* aGlobal, bool aIsSync);
 
