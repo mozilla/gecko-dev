@@ -205,6 +205,7 @@ export class _RemoteL10n {
         "browser/defaultBrowserNotification.ftl",
         "browser/newtab/asrouter.ftl",
         "toolkit/branding/brandings.ftl",
+        "preview/termsOfUse.ftl",
       ],
       false
     );
