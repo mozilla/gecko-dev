@@ -155,7 +155,7 @@ class ZoneAllCellIter<TenuredCell> {
     // it's currently active.
     if (IsBackgroundFinalized(kind)) {
       ArenaLists& arenas = zone->arenas;
-      if (zone->isGCFinished() && arenas.needBackgroundFinalizeWait(kind)) {
+      if (zone->isGCFinished() && !arenas.doneBackgroundFinalize(kind)) {
         rt->gc.waitBackgroundSweepEnd();
       }
     }

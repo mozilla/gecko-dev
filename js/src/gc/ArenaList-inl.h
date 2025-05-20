@@ -273,10 +273,6 @@ bool js::gc::ArenaLists::doneBackgroundFinalize(AllocKind kind) const {
   return concurrentUse(kind) == ConcurrentUse::None;
 }
 
-bool js::gc::ArenaLists::needBackgroundFinalizeWait(AllocKind kind) const {
-  return concurrentUse(kind) == ConcurrentUse::BackgroundFinalize;
-}
-
 void js::gc::ArenaLists::clearFreeLists() { freeLists().clear(); }
 
 MOZ_ALWAYS_INLINE js::gc::TenuredCell* js::gc::ArenaLists::allocateFromFreeList(

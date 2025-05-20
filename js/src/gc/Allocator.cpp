@@ -386,9 +386,11 @@ retry_loop:
       AutoLockGC lock(gc);
       sweptArenas = std::move(collectingArenaList(thingKind));
     }
-    mergeSweptArenas(thingKind, sweptArenas);
     concurrentUse(thingKind) = ConcurrentUse::None;
-    goto retry_loop;
+    if (!sweptArenas.isEmpty()) {
+      mergeSweptArenas(thingKind, sweptArenas);
+      goto retry_loop;
+    }
   }
 
   // Use the current chunk if set.

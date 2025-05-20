@@ -291,7 +291,6 @@ class ArenaLists {
   inline bool arenaListsAreEmpty() const;
 
   inline bool doneBackgroundFinalize(AllocKind kind) const;
-  inline bool needBackgroundFinalizeWait(AllocKind kind) const;
 
   /* Clear the free lists so we won't try to allocate from swept arenas. */
   inline void clearFreeLists();
