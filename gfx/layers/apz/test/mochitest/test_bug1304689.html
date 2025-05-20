@@ -72,7 +72,10 @@ async function test() {
 
 if (isApzEnabled()) {
   SimpleTest.waitForExplicitFinish();
-  pushPrefs([["apz.displayport_expiry_ms", 0]])
+  pushPrefs([
+    ["apz.displayport_expiry_ms", 0],
+    ["layout.scroll.disable-pixel-alignment", true],
+  ])
   .then(waitUntilApzStable)
   .then(test)
   .then(SimpleTest.finish, SimpleTest.finishWithFailure);
