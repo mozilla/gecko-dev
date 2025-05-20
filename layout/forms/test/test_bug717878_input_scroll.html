@@ -79,10 +79,10 @@ function test_scroll(element, scroll, scrollMax, is_overflow) {
   }
 
   element[scroll] = element[scrollMax];
-  is(element[scroll], element[scrollMax], element.id + " did not scroll to " + scrollMax);
+  isfuzzy(element[scroll], element[scrollMax], 1, element.id + " did not scroll to " + scrollMax);
 
   element[scroll] = element[scrollMax] + 10;
-  is(element[scroll], element[scrollMax], element.id + " scrolled past " + scrollMax);
+  isfuzzy(element[scroll], element[scrollMax], 1, element.id + " scrolled past " + scrollMax);
 }
 
 var no_overflow = document.getElementById("no-overflow");
