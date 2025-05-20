@@ -135,6 +135,7 @@ extern "C" MOZ_EXPORT const char* __tsan_default_suppressions() {
          // Bug 1824768
          "mutex:libdbus-1\n"
          "mutex:swrast_dri.so\n"
+         "mutex:libgallium-*.so\n"
          // Bug 1651446 - permanent (ffmpeg)
          "race:libavcodec.so*\n"
          "race:libavutil.so*\n"
@@ -163,6 +164,7 @@ extern "C" MOZ_EXPORT const char* __tsan_default_suppressions() {
          "race:radeonsi_dri\n"
          // Bug 1722721 - WebRender using uninstrumented Mesa drivers
          "race:swrast_dri.so\n"
+         "race:libgallium-*.so\n"
          // Bug 1825171
          "race:libffi.so\n"
          "race:mozilla::widget::WaylandBuffer::BufferReleaseCallbackHandler\n"
