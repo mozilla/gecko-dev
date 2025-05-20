@@ -8,10 +8,7 @@ const { ASRouter } = ChromeUtils.importESModule(
 const { RemoteSettings } = ChromeUtils.importESModule(
   "resource://services-settings/remote-settings.sys.mjs"
 );
-const { RemoteSettingsExperimentLoader } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
-);
-const { EnrollmentType } = ChromeUtils.importESModule(
+const { EnrollmentType, ExperimentAPI } = ChromeUtils.importESModule(
   "resource://nimbus/ExperimentAPI.sys.mjs"
 );
 const { NimbusTestUtils } = ChromeUtils.importESModule(
@@ -102,7 +99,7 @@ add_task(async function test_messagesLoaded_reach_experiment() {
       ],
     ],
   });
-  await RemoteSettingsExperimentLoader.updateRecipes();
+  await ExperimentAPI._rsLoader.updateRecipes();
   await BrowserTestUtils.waitForCondition(
     () =>
       NimbusFeatures[featureId].getEnrollmentMetadata(
