@@ -743,3 +743,82 @@ b</p>
   },
   { chrome: true, topLevel: true }
 );
+
+function getCharacterExtents(acc, offset) {
+  const x = {};
+  const y = {};
+  const w = {};
+  const h = {};
+  acc.getCharacterExtents(offset, x, y, w, h, COORDTYPE_SCREEN_RELATIVE);
+  return [x.value, y.value, w.value, h.value];
+}
+
+/**
+ * Test character bounds of line feed characters in a textarea.
+ */
+addAccessibleTask(
+  `
+<textarea id="textarea">a
+
+b</textarea>
+  `,
+  async function testLineFeedTextarea(browser, docAcc) {
+    // We can't use testChar because it doesn't know how to handle line feeds.
+    // We check relative to other characters instead.
+    const textarea = findAccessibleChildByID(docAcc, "textarea", [
+      nsIAccessibleText,
+    ]);
+    const [x0, y0, ,] = getCharacterExtents(textarea, 0);
+    const [x1, y1, w1, h1] = getCharacterExtents(textarea, 1);
+    const [x2, y2, w2, h2] = getCharacterExtents(textarea, 2);
+    const [x3, y3, ,] = getCharacterExtents(textarea, 3);
+    // Character 0 is a letter on the first line.
+    // Character 1 is a line feed at the end of the first line.
+    Assert.greater(x1, x0, "x1 > x0");
+    is(y1, y0, "y1 == y0");
+    Assert.greater(w1, 0, "w1 > 0");
+    Assert.greater(h1, 0, "h1 > 0");
+    // Character 2 is a line feed on a blank line.
+    is(x2, x0, "x2 == x0");
+    Assert.greaterOrEqual(y2, y1 + h1, "y2 >= y1 + h1");
+    Assert.greater(w2, 0, "w2 > 0");
+    Assert.greater(h2, 0, "h2 > 0");
+    // Character 3 is a letter on the final line.
+    is(x3, x0, "x3 == x0");
+    Assert.greaterOrEqual(y3, y2 + h2, "y3 >= y2 + h2");
+  },
+  { chrome: true, topLevel: true }
+);
+
+/**
+ * Test line feed characters in a contentEditable.
+ */
+addAccessibleTask(
+  `
+<div contenteditable role="textbox">
+  <div id="ce0">a</div>
+  <div id="ce1"><br></div>
+  <div id="ce2">b</div>
+</div>
+  `,
+  async function testLineFeedEditable(browser, docAcc) {
+    // We can't use testChar because it doesn't know how to handle line feeds.
+    // We check relative to other characters instead.
+    const ce0 = findAccessibleChildByID(docAcc, "ce0", [nsIAccessibleText]);
+    const [x0, y0, ,] = getCharacterExtents(ce0, 0);
+    const ce1 = findAccessibleChildByID(docAcc, "ce1", [nsIAccessibleText]);
+    const [x1, y1, w1, h1] = getCharacterExtents(ce1, 0);
+    const ce2 = findAccessibleChildByID(docAcc, "ce2", [nsIAccessibleText]);
+    const [x2, y2, ,] = getCharacterExtents(ce2, 0);
+    // Character 0 is a letter on the first line.
+    // Character 1 is a line feed on a blank line.
+    is(x1, x0, "x1 == x0");
+    Assert.greater(y1, y0, "y1 > y0");
+    Assert.greater(w1, 0, "w1 > 0");
+    Assert.greater(h1, 0, "h1 > 0");
+    // Character 2 is a letter on the final line.
+    is(x2, x0, "x2 == x0");
+    Assert.greaterOrEqual(y2, y1 + h1, "y2 >= y1 + h1");
+  },
+  { chrome: true, topLevel: true }
+);

@@ -2020,22 +2020,49 @@ TextLeafPoint TextLeafPoint::FindTextAttrsStart(nsDirection aDirection,
 }
 
 LayoutDeviceIntRect TextLeafPoint::CharBounds() {
-  if (mAcc && !mAcc->IsText()) {
-    // If we're dealing with an empty container, return the
-    // accessible's non-text bounds.
-    return mAcc->Bounds();
-  }
-
-  if (!mAcc || (mAcc->IsRemote() && !mAcc->AsRemote()->mCachedFields)) {
+  if (!mAcc) {
     return LayoutDeviceIntRect();
   }
 
-  if (LocalAccessible* local = mAcc->AsLocal()) {
-    if (!local->IsTextLeaf() || nsAccUtils::TextLength(local) == 0) {
-      // Empty content, use our own bounds to at least get x,y coordinates
-      return local->Bounds();
+  if (mAcc->IsHTMLBr()) {
+    // HTML <br> elements don't provide character bounds, but do provide text (a
+    // line feed). They also have 0 width and/or height, depending on the
+    // doctype and writing mode. Expose minimum 1 x 1 so clients treat it as an
+    // actual rectangle; e.g. when the caret is positioned on a <br>.
+    LayoutDeviceIntRect bounds = mAcc->Bounds();
+    if (bounds.width == 0) {
+      bounds.width = 1;
     }
+    if (bounds.height == 0) {
+      bounds.height = 1;
+    }
+    return bounds;
+  }
 
+  if (!mAcc->IsTextLeaf()) {
+    // This could be an empty container. Alternatively, it could be a list
+    // bullet,which does provide text but doesn't support character bounds. In
+    // either case, return the Accessible's bounds.
+    return mAcc->Bounds();
+  }
+
+  auto maybeAdjustLineFeedBounds = [this](LayoutDeviceIntRect& aBounds) {
+    if (!IsLineFeedChar()) {
+      return;
+    }
+    // Line feeds have a 0 width or height, depending on the writing mode.
+    // Use 1 instead so that clients treat it as an actual rectangle; e.g. when
+    // displaying the caret when it is positioned on a line feed.
+    MOZ_ASSERT(aBounds.IsZeroArea());
+    if (aBounds.width == 0) {
+      aBounds.width = 1;
+    }
+    if (aBounds.height == 0) {
+      aBounds.height = 1;
+    }
+  };
+
+  if (LocalAccessible* local = mAcc->AsLocal()) {
     if (mOffset >= 0 &&
         static_cast<uint32_t>(mOffset) >= nsAccUtils::TextLength(local)) {
       // It's valid for a caller to query the length because the caret might be
@@ -2062,6 +2089,7 @@ LayoutDeviceIntRect TextLeafPoint::CharBounds() {
     bounds.MoveBy(-orgRectPixels.X(), -orgRectPixels.Y());
     bounds.ScaleRoundOut(presContext->PresShell()->GetResolution());
     bounds.MoveBy(orgRectPixels.X(), orgRectPixels.Y());
+    maybeAdjustLineFeedBounds(bounds);
     return bounds;
   }
 
@@ -2069,9 +2097,18 @@ LayoutDeviceIntRect TextLeafPoint::CharBounds() {
     return LayoutDeviceIntRect();
   }
   RemoteAccessible* remote = mAcc->AsRemote();
+  if (!remote->mCachedFields) {
+    return LayoutDeviceIntRect();
+  }
+
   nsRect charBounds = remote->GetCachedCharRect(mOffset);
-  if (!charBounds.IsEmpty()) {
-    return remote->BoundsWithOffset(Some(charBounds));
+  // A character can have 0 width, but we still want its other coordinates.
+  // Thus, we explicitly test for an all-0 rect here to determine whether this
+  // is a valid char rect, rather than using IsZeroArea or IsEmpty.
+  if (!charBounds.IsEqualRect(0, 0, 0, 0)) {
+    LayoutDeviceIntRect bounds = remote->BoundsWithOffset(Some(charBounds));
+    maybeAdjustLineFeedBounds(bounds);
+    return bounds;
   }
 
   return LayoutDeviceIntRect();
@@ -2413,15 +2450,6 @@ bool TextLeafRange::WalkLineRects(LineRectCallback aCallback) const {
     TextLeafPoint lastPointInLine = nextLineStartPoint.FindBoundary(
         nsIAccessibleText::BOUNDARY_CHAR, eDirPrevious);
     MOZ_ASSERT(currPoint <= lastPointInLine);
-
-    if (lastPointInLine != currPoint && lastPointInLine.IsLineFeedChar()) {
-      // The line feed character at the end of a line in pre-formatted text
-      // doesn't have a useful rect. Use the previous character. Otherwise,
-      // the rect we provide won't span the line of text and we'll miss
-      // characters.
-      lastPointInLine = lastPointInLine.FindBoundary(
-          nsIAccessibleText::BOUNDARY_CHAR, eDirPrevious);
-    }
 
     LayoutDeviceIntRect currLineRect = currPoint.CharBounds();
     currLineRect.UnionRect(currLineRect, lastPointInLine.CharBounds());
