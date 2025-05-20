@@ -1,16 +1,16 @@
 //! Implement a Fallible Arc
-#[cfg(not(feature = "unstable"))]
+#[cfg(any(not(feature = "unstable"), feature = "rust_1_57"))]
 use super::FallibleBox;
 use super::TryClone;
 use crate::TryReserveError;
 
-#[cfg(not(feature = "unstable"))]
+#[cfg(any(not(feature = "unstable"), feature = "rust_1_57"))]
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 
 /// trait to implement Fallible Arc
 #[cfg_attr(
-    not(feature = "unstable"),
+    any(not(feature = "unstable"), feature = "rust_1_57"),
     deprecated(
         since = "0.3.1",
         note = "⚠️️️this function is not completely fallible, it can panic !, see [issue](https://github.com/vcombey/fallible_collections/issues/13). help wanted"
@@ -27,13 +27,13 @@ pub trait FallibleArc<T> {
 #[allow(deprecated)]
 impl<T> FallibleArc<T> for Arc<T> {
     fn try_new(t: T) -> Result<Self, TryReserveError> {
-        #[cfg(not(feature = "unstable"))]
+        #[cfg(any(not(feature = "unstable"), feature = "rust_1_57"))]
         {
             // doesn't work as the inner variable of arc are also stocked in the box
             let b = <Box<T> as FallibleBox<T>>::try_new(t)?;
             Ok(Arc::from(b))
         }
-        #[cfg(feature = "unstable")]
+        #[cfg(all(feature = "unstable", not(feature = "rust_1_57")))]
         {
             use alloc::alloc::Layout;
             use alloc::collections::TryReserveErrorKind;

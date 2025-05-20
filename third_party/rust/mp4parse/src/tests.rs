@@ -211,7 +211,7 @@ fn read_truncated_ftyp() {
             .B32(0) // minor version
             .append_bytes(b"isom")
     });
-    match read_mp4(&mut stream, ParseStrictness::Normal) {
+    match read_mp4(&mut stream) {
         Err(Error::UnexpectedEOF) => (),
         Ok(_) => panic!("expected an error result"),
         _ => panic!("expected a different error result"),
@@ -649,7 +649,7 @@ fn read_flac() {
     });
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
-    let r = super::read_audio_sample_entry(&mut stream, ParseStrictness::Normal);
+    let r = super::read_audio_sample_entry(&mut stream);
     assert!(r.is_ok());
 }
 
@@ -740,7 +740,7 @@ fn read_opus() {
     });
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
-    let r = super::read_audio_sample_entry(&mut stream, ParseStrictness::Normal);
+    let r = super::read_audio_sample_entry(&mut stream);
     assert!(r.is_ok());
 }
 
@@ -830,7 +830,7 @@ fn read_alac() {
     });
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
-    let r = super::read_audio_sample_entry(&mut stream, ParseStrictness::Normal);
+    let r = super::read_audio_sample_entry(&mut stream);
     assert!(r.is_ok());
 }
 
@@ -852,7 +852,7 @@ fn esds_limit() {
     });
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
-    match super::read_audio_sample_entry(&mut stream, ParseStrictness::Normal) {
+    match super::read_audio_sample_entry(&mut stream) {
         Err(Error::UnexpectedEOF) => (),
         Ok(_) => panic!("expected an error result"),
         _ => panic!("expected a different error result"),
@@ -963,8 +963,7 @@ fn skip_padding_in_stsd() {
 
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
-    super::read_stsd(&mut stream, &super::Track::new(0), ParseStrictness::Normal)
-        .expect("fail to skip padding: stsd");
+    super::read_stsd(&mut stream, &super::Track::new(0)).expect("fail to skip padding: stsd");
 }
 
 #[test]
@@ -1001,8 +1000,8 @@ fn read_qt_wave_atom() {
 
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
-    let sample_entry = super::read_audio_sample_entry(&mut stream, ParseStrictness::Normal)
-        .expect("fail to read qt wave atom");
+    let sample_entry =
+        super::read_audio_sample_entry(&mut stream).expect("fail to read qt wave atom");
     match sample_entry {
         super::SampleEntry::Audio(sample_entry) => {
             assert_eq!(sample_entry.codec_type, super::CodecType::MP3)
@@ -1026,7 +1025,7 @@ fn read_descriptor_80() {
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
 
-    let es = super::read_esds(&mut stream, ParseStrictness::Normal).unwrap();
+    let es = super::read_esds(&mut stream).unwrap();
 
     assert_eq!(es.audio_codec, super::CodecType::AAC);
     assert_eq!(es.audio_object_type, Some(2));
@@ -1053,7 +1052,7 @@ fn read_esds() {
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
 
-    let es = super::read_esds(&mut stream, ParseStrictness::Normal).unwrap();
+    let es = super::read_esds(&mut stream).unwrap();
 
     assert_eq!(es.audio_codec, super::CodecType::AAC);
     assert_eq!(es.audio_object_type, Some(2));
@@ -1082,7 +1081,7 @@ fn read_esds_aac_type5() {
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
 
-    let es = super::read_esds(&mut stream, ParseStrictness::Normal).unwrap();
+    let es = super::read_esds(&mut stream).unwrap();
 
     assert_eq!(es.audio_codec, super::CodecType::AAC);
     assert_eq!(es.audio_object_type, Some(2));
@@ -1111,7 +1110,7 @@ fn read_esds_mpeg2_aac_lc() {
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
 
-    let es = super::read_esds(&mut stream, ParseStrictness::Normal).unwrap();
+    let es = super::read_esds(&mut stream).unwrap();
 
     assert_eq!(es.audio_codec, super::CodecType::AAC);
     assert_eq!(es.audio_object_type, Some(2));
@@ -1180,7 +1179,7 @@ fn read_esds_one_byte_extension_descriptor() {
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
 
-    let es = super::read_esds(&mut stream, ParseStrictness::Normal).unwrap();
+    let es = super::read_esds(&mut stream).unwrap();
 
     assert_eq!(es.audio_codec, super::CodecType::AAC);
     assert_eq!(es.audio_object_type, Some(2));
@@ -1200,7 +1199,7 @@ fn read_esds_byte_extension_descriptor() {
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
 
-    match super::read_esds(&mut stream, ParseStrictness::Normal) {
+    match super::read_esds(&mut stream) {
         Ok(_) => (),
         _ => panic!("fail to parse descriptor extension byte length"),
     }
@@ -1221,8 +1220,8 @@ fn read_f4v_stsd() {
 
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
-    let sample_entry = super::read_audio_sample_entry(&mut stream, ParseStrictness::Normal)
-        .expect("failed to read f4v stsd atom");
+    let sample_entry =
+        super::read_audio_sample_entry(&mut stream).expect("failed to read f4v stsd atom");
     match sample_entry {
         super::SampleEntry::Audio(sample_entry) => {
             assert_eq!(sample_entry.codec_type, super::CodecType::MP3)
@@ -1270,7 +1269,7 @@ fn unknown_audio_sample_entry() {
     });
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
-    match super::read_audio_sample_entry(&mut stream, ParseStrictness::Normal) {
+    match super::read_audio_sample_entry(&mut stream) {
         Ok(super::SampleEntry::Unknown) => (),
         _ => panic!("expected a different error result"),
     }
@@ -1292,7 +1291,7 @@ fn read_esds_invalid_descriptor() {
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
 
-    match super::read_esds(&mut stream, ParseStrictness::Normal) {
+    match super::read_esds(&mut stream) {
         Err(Error::InvalidData(s)) => assert_eq!(s, Status::EsdsBadDescriptor),
         _ => panic!("unexpected result with invalid descriptor"),
     }
@@ -1312,33 +1311,9 @@ fn read_esds_redundant_descriptor() {
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
 
-    match super::read_esds(&mut stream, ParseStrictness::Normal) {
+    match super::read_esds(&mut stream) {
         Ok(esds) => assert_eq!(esds.audio_codec, super::CodecType::AAC),
         _ => panic!("unexpected result with invalid descriptor"),
-    }
-}
-
-#[test]
-fn read_esds_multiple_descriptors() {
-    // Permit multiple descriptors in non-strict mode.
-    // Extracted from BMO #1936124 using Bento4.
-    // "mp4extract --payload-only moov/trak[0]/mdia/minf/stbl/stsd/mp4a/esds bug1936124.mp4 /dev/stdout | xxd -i -c 15"
-    let esds = vec![
-        0x03, 0x1d, 0x00, 0x00, 0x00, 0x04, 0x15, 0x40, 0x15, 0x00, 0x06, 0x00, 0x00, 0x01, 0x77,
-        0x00, 0x00, 0x01, 0x77, 0x00, 0x05, 0x02, 0x11, 0x90, 0x05, 0x02, 0x11, 0x90, 0x06, 0x01,
-        0x02,
-    ];
-
-    let mut stream = make_box(BoxSize::Auto, b"esds", |s| {
-        s.B32(0) // reserved
-            .append_bytes(esds.as_slice())
-    });
-    let mut iter = super::BoxIter::new(&mut stream);
-    let mut stream = iter.next_box().unwrap().unwrap();
-
-    match super::read_esds(&mut stream, ParseStrictness::Normal) {
-        Ok(esds) => assert_eq!(esds.audio_codec, super::CodecType::AAC),
-        _ => panic!("unexpected result with multiple descriptors"),
     }
 }
 
@@ -1359,8 +1334,7 @@ fn read_stsd_lpcm() {
     let mut iter = super::BoxIter::new(&mut stream);
     let mut stream = iter.next_box().unwrap().unwrap();
 
-    let sample_entry =
-        super::read_audio_sample_entry(&mut stream, ParseStrictness::Normal).unwrap();
+    let sample_entry = super::read_audio_sample_entry(&mut stream).unwrap();
 
     match sample_entry {
         #[allow(clippy::float_cmp)] // The float comparison below is valid and intended.
