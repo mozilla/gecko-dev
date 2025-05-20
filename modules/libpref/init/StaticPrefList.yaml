@@ -2541,7 +2541,11 @@
 # https://whatpr.org/html/10168/interaction.html#closewatcher
 - name: dom.closewatcher.enabled
   type: bool
+#if defined(ANDROID)
   value: false
+#else
+  value: @IS_NIGHTLY_BUILD@
+#endif
   mirror: always
 
 # https://github.com/whatwg/html/pull/10737
