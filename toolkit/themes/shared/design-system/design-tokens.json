@@ -70,7 +70,16 @@
     "color": {
       "@base": {
         "value": {
-          "prefersContrast": "{text.color.@base}"
+          "comment": "TODO Bug 1821203 - Gray tones need to be consolidated",
+          "light": "#CFCFD8",
+          "dark": "#3A3944",
+          "prefersContrast": "CanvasText"
+        }
+      },
+      "transparent": {
+        "value": {
+          "default": "transparent",
+          "prefersContrast": "CanvasText"
         }
       },
       "card": {

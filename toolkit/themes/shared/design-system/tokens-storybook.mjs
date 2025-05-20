@@ -212,7 +212,20 @@ export const storybookTables = {
     },
   ],
   "border-color": [
-    { value: { prefersContrast: "var(--text-color)" }, name: "--border-color" },
+    {
+      value: {
+        comment: "TODO Bug 1946826 - Border colors need to be consolidated",
+        light: "#CFCFD8",
+        dark: "#3A3944",
+        prefersContrast: "CanvasText",
+        default: "light-dark(#CFCFD8, #3A3944)",
+      },
+      name: "--border-color",
+    },
+    {
+      value: { default: "transparent", prefersContrast: "CanvasText" },
+      name: "--border-color-transparent",
+    },
     {
       value: {
         default: "color-mix(in srgb, currentColor 10%, transparent)",
@@ -1011,7 +1024,17 @@ export const variableLookupTable = {
     prefersContrast: "var(--background-color-canvas)",
     default: "light-dark(var(--color-yellow-0), var(--color-yellow-90))",
   },
-  "border-color": { prefersContrast: "var(--text-color)" },
+  "border-color": {
+    comment: "TODO Bug 1946826 - Border colors need to be consolidated",
+    light: "#CFCFD8",
+    dark: "#3A3944",
+    prefersContrast: "CanvasText",
+    default: "light-dark(#CFCFD8, #3A3944)",
+  },
+  "border-color-transparent": {
+    default: "transparent",
+    prefersContrast: "CanvasText",
+  },
   "border-color-card": {
     default: "color-mix(in srgb, currentColor 10%, transparent)",
     prefersContrast: "color-mix(in srgb, currentColor 41%, transparent)",

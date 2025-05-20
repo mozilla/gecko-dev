@@ -18,10 +18,12 @@
     --background-color-warning: light-dark(var(--color-yellow-0), var(--color-yellow-90));
 
     /** Border **/
+    --border-color: light-dark(#CFCFD8, #3A3944);
     --border-color-card: color-mix(in srgb, currentColor 10%, transparent);
     --border-color-interactive-hover: var(--border-color-interactive);
     --border-color-interactive-active: var(--border-color-interactive);
     --border-color-interactive-disabled: var(--border-color-interactive);
+    --border-color-transparent: transparent;
     --border-radius-circle: 9999px;
     --border-radius-small: 4px;
     --border-radius-medium: 8px;
@@ -305,10 +307,11 @@
       --background-color-warning: var(--background-color-canvas);
 
       /** Border **/
-      --border-color: var(--text-color);
+      --border-color: CanvasText;
       --border-color-card: color-mix(in srgb, currentColor 41%, transparent);
       --border-color-deemphasized: currentColor;
       --border-color-interactive: var(--text-color);
+      --border-color-transparent: CanvasText;
 
       /** Button **/
       --button-border-color: var(--button-text-color);

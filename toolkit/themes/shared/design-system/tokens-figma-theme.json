@@ -35,9 +35,14 @@
     "forcedColors": "{Theme$background/color/canvas}"
   },
   "border/color": {
+    "light": "#CFCFD8",
+    "dark": "#3A3944",
+    "forcedColors": "{HCM Theme$CanvasText}"
+  },
+  "border/color/transparent": {
     "light": "transparent",
     "dark": "transparent",
-    "forcedColors": "{Theme$text/color}"
+    "forcedColors": "{HCM Theme$CanvasText}"
   },
   "border/color/card": {
     "light": "color-mix(in srgb, currentColor 10%, transparent)",
