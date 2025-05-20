@@ -335,19 +335,6 @@ PACKAGE_FORMATS = {
         },
         "output": "target.rpm",
     },
-    "desktop-file": {
-        "args": [
-            "desktop-file",
-            "--flavor",
-            "flatpak",
-            "--release-product",
-            "firefox",
-            "--release-type",
-            "{release_type}",
-        ],
-        "inputs": {},
-        "output": "target.flatpak.desktop",
-    },
     "flatpak": {
         "args": [
             "flatpak",
