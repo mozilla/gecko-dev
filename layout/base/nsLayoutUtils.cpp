@@ -1111,20 +1111,19 @@ bool nsLayoutUtils::IsProperAncestorFrame(const nsIFrame* aAncestorFrame,
 }
 
 // static
-const nsIFrame* nsLayoutUtils::FillAncestors(
-    const nsIFrame* aFrame, const nsIFrame* aStopAtAncestor,
-    nsTArray<const nsIFrame*>* aAncestors) {
-  const nsIFrame* it = aFrame;
+nsIFrame* nsLayoutUtils::FillAncestors(nsIFrame* aFrame,
+                                       nsIFrame* aStopAtAncestor,
+                                       nsTArray<nsIFrame*>* aAncestors) {
   while (aFrame && aFrame != aStopAtAncestor) {
-    aAncestors->AppendElement(it);
-    it = nsLayoutUtils::GetParentOrPlaceholderFor(it);
+    aAncestors->AppendElement(aFrame);
+    aFrame = nsLayoutUtils::GetParentOrPlaceholderFor(aFrame);
   }
-  return it;
+  return aFrame;
 }
 
 // Return true if aFrame1 is after aFrame2
-static bool IsFrameAfter(const nsIFrame* aFrame1, const nsIFrame* aFrame2) {
-  const nsIFrame* f = aFrame2;
+static bool IsFrameAfter(nsIFrame* aFrame1, nsIFrame* aFrame2) {
+  nsIFrame* f = aFrame2;
   do {
     f = f->GetNextSibling();
     if (f == aFrame1) {
@@ -1135,14 +1134,14 @@ static bool IsFrameAfter(const nsIFrame* aFrame1, const nsIFrame* aFrame2) {
 }
 
 // static
-int32_t nsLayoutUtils::DoCompareTreePosition(const nsIFrame* aFrame1,
-                                             const nsIFrame* aFrame2,
-                                             const nsIFrame* aCommonAncestor) {
+int32_t nsLayoutUtils::DoCompareTreePosition(nsIFrame* aFrame1,
+                                             nsIFrame* aFrame2,
+                                             nsIFrame* aCommonAncestor) {
   MOZ_ASSERT(aFrame1, "aFrame1 must not be null");
   MOZ_ASSERT(aFrame2, "aFrame2 must not be null");
 
-  AutoTArray<const nsIFrame*, 20> frame2Ancestors;
-  const nsIFrame* nonCommonAncestor =
+  AutoTArray<nsIFrame*, 20> frame2Ancestors;
+  nsIFrame* nonCommonAncestor =
       FillAncestors(aFrame2, aCommonAncestor, &frame2Ancestors);
   return DoCompareTreePosition(aFrame1, aFrame2, frame2Ancestors,
                                nonCommonAncestor ? aCommonAncestor : nullptr);
@@ -1150,9 +1149,8 @@ int32_t nsLayoutUtils::DoCompareTreePosition(const nsIFrame* aFrame1,
 
 // static
 int32_t nsLayoutUtils::DoCompareTreePosition(
-    const nsIFrame* aFrame1, const nsIFrame* aFrame2,
-    nsTArray<const nsIFrame*>& aFrame2Ancestors,
-    const nsIFrame* aCommonAncestor) {
+    nsIFrame* aFrame1, nsIFrame* aFrame2, nsTArray<nsIFrame*>& aFrame2Ancestors,
+    nsIFrame* aCommonAncestor) {
   MOZ_ASSERT(aFrame1, "aFrame1 must not be null");
   MOZ_ASSERT(aFrame2, "aFrame2 must not be null");
 
@@ -1162,7 +1160,7 @@ int32_t nsLayoutUtils::DoCompareTreePosition(
     return 0;
   }
 
-  AutoTArray<const nsIFrame*, 20> frame1Ancestors;
+  AutoTArray<nsIFrame*, 20> frame1Ancestors;
   if (aCommonAncestor &&
       !FillAncestors(aFrame1, aCommonAncestor, &frame1Ancestors)) {
     // We reached the root of the frame tree ... if aCommonAncestor was set,
@@ -1192,8 +1190,8 @@ int32_t nsLayoutUtils::DoCompareTreePosition(
     return 1;
   }
 
-  const nsIFrame* ancestor1 = frame1Ancestors[last1];
-  const nsIFrame* ancestor2 = aFrame2Ancestors[last2];
+  nsIFrame* ancestor1 = frame1Ancestors[last1];
+  nsIFrame* ancestor2 = aFrame2Ancestors[last2];
   // Now we should be able to walk sibling chains to find which one is first
   if (IsFrameAfter(ancestor2, ancestor1)) {
     return -1;
