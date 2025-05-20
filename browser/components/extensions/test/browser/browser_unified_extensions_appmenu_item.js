@@ -22,7 +22,7 @@ add_task(async function test_appmenu_when_button_is_always_shown() {
 
   ok(
     BrowserTestUtils.isVisible(menuItemThatOpensAboutAddons()),
-    "'Add-ons and themes' menu item is visible by default"
+    "'Extensions and themes' menu item is visible by default"
   );
 
   ok(
@@ -41,7 +41,7 @@ add_task(async function test_appmenu_when_button_is_hidden() {
 
   ok(
     BrowserTestUtils.isHidden(menuItemThatOpensAboutAddons()),
-    "'Add-ons and themes' menu item is hidden"
+    "'Extensions and themes' menu item is hidden"
   );
 
   ok(
