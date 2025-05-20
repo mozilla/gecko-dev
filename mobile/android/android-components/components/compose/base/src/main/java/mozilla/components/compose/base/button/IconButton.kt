@@ -58,7 +58,7 @@ private val RippleRadius = 24.dp
 @Composable
 fun IconButton(
     onClick: () -> Unit,
-    contentDescription: String?,
+    contentDescription: String,
     modifier: Modifier = Modifier,
     onClickLabel: String? = null,
     enabled: Boolean = true,
@@ -68,11 +68,7 @@ fun IconButton(
     val view = LocalView.current
     Box(
         modifier = modifier
-            .semantics {
-                if (contentDescription != null) {
-                    this.contentDescription = contentDescription
-                }
-            }
+            .semantics { this.contentDescription = contentDescription }
             .minimumInteractiveComponentSize()
             .clickable(
                 interactionSource = interactionSource,
