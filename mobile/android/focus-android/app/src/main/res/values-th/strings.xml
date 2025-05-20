@@ -710,17 +710,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">ปิดกั้นเสียงและวิดีโอ</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">การศึกษา</string>
+  <string name="preference_studies" moz:removedIn="140">การศึกษา</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox อาจติดตั้งและเรียกใช้การศึกษาเป็นครั้งคราว</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox อาจติดตั้งและเรียกใช้การศึกษาเป็นครั้งคราว</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">เรียนรู้เพิ่ม</string>
+  <string name="studies_learn_more" moz:removedIn="140">เรียนรู้เพิ่ม</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">เอาออก</string>
+  <string name="studies_remove" moz:removedIn="140">เอาออก</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">ทำงานอยู่</string>
+  <string name="studies_active" moz:removedIn="140">ทำงานอยู่</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">เสร็จสมบูรณ์</string>
+  <string name="studies_completed" moz:removedIn="140">เสร็จสมบูรณ์</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">การดีบั๊กระยะไกลผ่าน USB/Wi-Fi</string>
   <!-- Text Button for show biometric prompt -->

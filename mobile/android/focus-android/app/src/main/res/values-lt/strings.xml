@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -526,17 +526,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">Blokuoti garsus ir vaizdo įrašus</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">Tyrimai</string>
+  <string name="preference_studies" moz:removedIn="140">Tyrimai</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">„Firefox“ retkarčiais gali įdiegti ir vykdyti tyrimus.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">„Firefox“ retkarčiais gali įdiegti ir vykdyti tyrimus.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">Sužinoti daugiau</string>
+  <string name="studies_learn_more" moz:removedIn="140">Sužinoti daugiau</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">Pašalinti</string>
+  <string name="studies_remove" moz:removedIn="140">Pašalinti</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">Aktyvūs</string>
+  <string name="studies_active" moz:removedIn="140">Aktyvūs</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">Užbaigti</string>
+  <string name="studies_completed" moz:removedIn="140">Užbaigti</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Nuotolinis derinimas per USB arba belaidį tinklą</string>
   <!--

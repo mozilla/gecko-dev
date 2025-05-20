@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -487,11 +487,11 @@
   <!-- Preference for altering the location access for all websites -->
   <string name="preference_phone_feature_location">स्थान</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">बेसी जानकारी</string>
+  <string name="studies_learn_more" moz:removedIn="140">बेसी जानकारी</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">हटैइयै</string>
+  <string name="studies_remove" moz:removedIn="140">हटैइयै</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">पूरा भेल</string>
+  <string name="studies_completed" moz:removedIn="140">पूरा भेल</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">USB/Wi-Fi के द्वारा रिमोट डीबगिंग</string>
   <!--

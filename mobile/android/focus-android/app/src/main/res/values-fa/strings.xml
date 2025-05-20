@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -555,17 +555,17 @@
   <!-- Title of Advanced Setting category -->
   <string name="preference_category_advanced">پیشرفته</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">مطالعات</string>
+  <string name="preference_studies" moz:removedIn="140">مطالعات</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">فایرفاکس ممکن است هر از گاهی افزونه‌ای تحقیقی نصب و اجرا کند.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">فایرفاکس ممکن است هر از گاهی افزونه‌ای تحقیقی نصب و اجرا کند.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">بیشتر بدانید</string>
+  <string name="studies_learn_more" moz:removedIn="140">بیشتر بدانید</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">حذف</string>
+  <string name="studies_remove" moz:removedIn="140">حذف</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">فعال</string>
+  <string name="studies_active" moz:removedIn="140">فعال</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">تکمیل شد</string>
+  <string name="studies_completed" moz:removedIn="140">تکمیل شد</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">اشکال زدایی از طریق USB/Wi-Fi</string>
   <!--

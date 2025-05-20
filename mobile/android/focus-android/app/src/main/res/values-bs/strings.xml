@@ -710,17 +710,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">Blokiraj audio i video</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">Studije</string>
+  <string name="preference_studies" moz:removedIn="140">Studije</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox može s vremena na vrijeme instalirati i pokrenuti studije.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox može s vremena na vrijeme instalirati i pokrenuti studije.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">Saznajte više</string>
+  <string name="studies_learn_more" moz:removedIn="140">Saznajte više</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">Ukloni</string>
+  <string name="studies_remove" moz:removedIn="140">Ukloni</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">Aktivno</string>
+  <string name="studies_active" moz:removedIn="140">Aktivno</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">Završeno</string>
+  <string name="studies_completed" moz:removedIn="140">Završeno</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Daljinsko otklanjanje grešaka putem USB/Wi-Fi veze</string>
   <!-- Text Button for show biometric prompt -->

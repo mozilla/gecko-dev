@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -683,17 +683,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">Blokker lyd og video</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">Undersøkelser</string>
+  <string name="preference_studies" moz:removedIn="140">Undersøkelser</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox kan installere og kjøre studier fra tid til annen.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox kan installere og kjøre studier fra tid til annen.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">Les mer</string>
+  <string name="studies_learn_more" moz:removedIn="140">Les mer</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">Fjern</string>
+  <string name="studies_remove" moz:removedIn="140">Fjern</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">Aktiv</string>
+  <string name="studies_active" moz:removedIn="140">Aktiv</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">Fullført</string>
+  <string name="studies_completed" moz:removedIn="140">Fullført</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Ekstern debugging via USB/Wi-Fi</string>
   <!-- Text Button for show biometric prompt -->

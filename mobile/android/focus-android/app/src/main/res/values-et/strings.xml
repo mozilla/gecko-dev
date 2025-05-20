@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -561,17 +561,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">Blokitakse heli ja video</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">Uuringud</string>
+  <string name="preference_studies" moz:removedIn="140">Uuringud</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox võib aegajalt paigaldada ja käivitada uuringuid.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox võib aegajalt paigaldada ja käivitada uuringuid.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">Rohkem teavet</string>
+  <string name="studies_learn_more" moz:removedIn="140">Rohkem teavet</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">Eemalda</string>
+  <string name="studies_remove" moz:removedIn="140">Eemalda</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">Aktiivne</string>
+  <string name="studies_active" moz:removedIn="140">Aktiivne</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">Lõpetatud</string>
+  <string name="studies_completed" moz:removedIn="140">Lõpetatud</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Kaugsilumine USB/Wi-Fi kaudu</string>
   <!-- Text Button for show biometric prompt -->

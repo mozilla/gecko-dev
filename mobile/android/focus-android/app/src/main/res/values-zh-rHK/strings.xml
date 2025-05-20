@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -590,17 +590,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">封鎖影音</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">使用者研究</string>
+  <string name="preference_studies" moz:removedIn="140">使用者研究</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox 可能周不時會安裝同展開研究。</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox 可能周不時會安裝同展開研究。</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">想知多啲</string>
+  <string name="studies_learn_more" moz:removedIn="140">想知多啲</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">移除</string>
+  <string name="studies_remove" moz:removedIn="140">移除</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">生效</string>
+  <string name="studies_active" moz:removedIn="140">生效</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">已完成</string>
+  <string name="studies_completed" moz:removedIn="140">已完成</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">透過 USB/Wi-Fi 遙距除錯</string>
   <!-- Text Button for show biometric prompt -->

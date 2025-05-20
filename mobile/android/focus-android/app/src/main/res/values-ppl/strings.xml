@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -649,17 +649,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">Te ma mukaki wan te ma muita</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">Tapepetalis</string>
+  <string name="preference_studies" moz:removedIn="140">Tapepetalis</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox weliskia kitalia wan kipewaltia tapepetalis kemanian.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox weliskia kitalia wan kipewaltia tapepetalis kemanian.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">Shikmatiuk</string>
+  <string name="studies_learn_more" moz:removedIn="140">Shikmatiuk</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">Shikishti</string>
+  <string name="studies_remove" moz:removedIn="140">Shikishti</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">Activoj</string>
+  <string name="studies_active" moz:removedIn="140">Activoj</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">Muajshitijtuk</string>
+  <string name="studies_completed" moz:removedIn="140">Muajshitijtuk</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Shitayekchiwa wejka iwan ne USB/Wi-Fi</string>
   <!-- Text Button for show biometric prompt -->

@@ -710,17 +710,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">Бастани аудио ва видео</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">Омӯзишҳо</string>
+  <string name="preference_studies" moz:removedIn="140">Омӯзишҳо</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Баъзе вақт «Firefox» метавонад омӯзишҳоро насб ва иҷро намояд.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Баъзе вақт «Firefox» метавонад омӯзишҳоро насб ва иҷро намояд.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">Маълумоти бештар</string>
+  <string name="studies_learn_more" moz:removedIn="140">Маълумоти бештар</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">Тоза кардан</string>
+  <string name="studies_remove" moz:removedIn="140">Тоза кардан</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">Фаъол</string>
+  <string name="studies_active" moz:removedIn="140">Фаъол</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">Ба анҷом расид</string>
+  <string name="studies_completed" moz:removedIn="140">Ба анҷом расид</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Ислоҳкунии дурдасти хатоҳо тавассути SB/Wi-Fi</string>
   <!-- Text Button for show biometric prompt -->

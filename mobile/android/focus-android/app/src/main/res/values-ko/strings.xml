@@ -710,17 +710,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">오디오 및 비디오 차단</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">연구</string>
+  <string name="preference_studies" moz:removedIn="140">연구</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox가 때때로 연구를 설치하고 실행할 수 있습니다.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox가 때때로 연구를 설치하고 실행할 수 있습니다.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">자세히 알아보기</string>
+  <string name="studies_learn_more" moz:removedIn="140">자세히 알아보기</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">삭제</string>
+  <string name="studies_remove" moz:removedIn="140">삭제</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">활성화</string>
+  <string name="studies_active" moz:removedIn="140">활성화</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">완료</string>
+  <string name="studies_completed" moz:removedIn="140">완료</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">USB/Wi-Fi 원격 디버깅</string>
   <!-- Text Button for show biometric prompt -->

@@ -710,17 +710,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">阻止音频和视频</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">研究</string>
+  <string name="preference_studies" moz:removedIn="140">研究</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox 可能会不时地安装并运行一些研究项目。</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox 可能会不时地安装并运行一些研究项目。</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">详细了解</string>
+  <string name="studies_learn_more" moz:removedIn="140">详细了解</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">移除</string>
+  <string name="studies_remove" moz:removedIn="140">移除</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">进行中</string>
+  <string name="studies_active" moz:removedIn="140">进行中</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">已完成</string>
+  <string name="studies_completed" moz:removedIn="140">已完成</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">通过 USB/Wi-Fi 远程调试</string>
   <!-- Text Button for show biometric prompt -->

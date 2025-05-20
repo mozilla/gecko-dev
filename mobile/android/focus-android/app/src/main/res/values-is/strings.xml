@@ -710,17 +710,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">Loka á hljóð og myndskeið</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">Rannsóknir</string>
+  <string name="preference_studies" moz:removedIn="140">Rannsóknir</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox kann að setja upp og keyra rannsóknir af og til.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox kann að setja upp og keyra rannsóknir af og til.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">Fræðast meira</string>
+  <string name="studies_learn_more" moz:removedIn="140">Fræðast meira</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">Fjarlægja</string>
+  <string name="studies_remove" moz:removedIn="140">Fjarlægja</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">Virkt</string>
+  <string name="studies_active" moz:removedIn="140">Virkt</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">Lokið</string>
+  <string name="studies_completed" moz:removedIn="140">Lokið</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Kembt með fjartengingu í gegnum USB/Wi-Fi</string>
   <!-- Text Button for show biometric prompt -->

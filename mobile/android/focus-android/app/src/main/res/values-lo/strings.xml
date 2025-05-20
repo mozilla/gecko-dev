@@ -710,17 +710,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">ບັອກສຽງ ແລະ ວິດີໂອ</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">ການສຶກສາ</string>
+  <string name="preference_studies" moz:removedIn="140">ການສຶກສາ</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox ອາດຈະຕິດຕັ້ງແລະດໍາເນີນການສຶກສາເປັນບາງເວລາ.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox ອາດຈະຕິດຕັ້ງແລະດໍາເນີນການສຶກສາເປັນບາງເວລາ.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
+  <string name="studies_learn_more" moz:removedIn="140">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">ລຶບ</string>
+  <string name="studies_remove" moz:removedIn="140">ລຶບ</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">ໃຊ້ງານຢູ່</string>
+  <string name="studies_active" moz:removedIn="140">ໃຊ້ງານຢູ່</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">ສຳເລັດແລ້ວ</string>
+  <string name="studies_completed" moz:removedIn="140">ສຳເລັດແລ້ວ</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">ການດີບັກໄລຍະໄກຜ່ານ USB/Wi-Fi</string>
   <!-- Text Button for show biometric prompt -->
