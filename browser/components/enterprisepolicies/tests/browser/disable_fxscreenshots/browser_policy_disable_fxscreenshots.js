@@ -7,7 +7,7 @@ ChromeUtils.defineESModuleGetters(this, {
   ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.sys.mjs",
 });
 
-const PREF_DISABLE_FX_SCREENSHOTS = "extensions.screenshots.disabled";
+const PREF_DISABLE_FX_SCREENSHOTS = "screenshots.browser.component.enabled";
 
 async function checkScreenshots(shouldBeEnabled) {
   let menu = document.getElementById("contentAreaContextMenu");
@@ -34,14 +34,11 @@ add_task(async function test_disable_firefox_screenshots() {
   // that pref is being watched, and it makes the Firefox Screenshots component
   // to start or stop, causing intermittency.
   //
-  // Firefox Screenshots is disabled by default on tests (in
-  // testing/profiles/common/user.js). What we do here to test this policy is to enable
-  // it on this specific test folder (through browser.ini) and then we let the policy
+  // The screenshots component is enabled by default so we let the policy
   // engine be responsible for disabling Firefox Screenshots in this case.
 
-  is(
-    Services.prefs.getBoolPref(PREF_DISABLE_FX_SCREENSHOTS),
-    true,
+  ok(
+    !Services.prefs.getBoolPref(PREF_DISABLE_FX_SCREENSHOTS),
     "Screenshots pref is disabled"
   );
 

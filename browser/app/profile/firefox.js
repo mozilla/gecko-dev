@@ -2726,9 +2726,6 @@ pref("browser.sessionstore.restore_tabs_lazily", true);
 
 pref("browser.suppress_first_window_animation", true);
 
-// Preference that allows individual users to disable Screenshots.
-pref("extensions.screenshots.disabled", false);
-
 // Preference that determines whether Screenshots uses the dedicated browser component
 pref("screenshots.browser.component.enabled", true);
 

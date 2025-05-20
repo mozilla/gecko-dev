@@ -12,7 +12,6 @@ ChromeUtils.defineESModuleGetters(this, {
 });
 
 const COMPONENT_PREF = "screenshots.browser.component.enabled";
-const SCREENSHOTS_PREF = "extensions.screenshots.disabled";
 
 add_task(async function test_toggling_screenshots_pref() {
   let observerSpy = sinon.spy();
@@ -30,8 +29,7 @@ add_task(async function test_toggling_screenshots_pref() {
 
   // wait for startup idle tasks to complete
   await new Promise(resolve => ChromeUtils.idleDispatch(resolve));
-  ok(Services.prefs.getBoolPref(COMPONENT_PREF), "Component enabled");
-  ok(!Services.prefs.getBoolPref(SCREENSHOTS_PREF), "Screenshots enabled");
+  ok(Services.prefs.getBoolPref(COMPONENT_PREF), "Screenshots enabled");
 
   await BrowserTestUtils.withNewTab(
     {
@@ -90,12 +88,9 @@ add_task(async function test_toggling_screenshots_pref() {
         "Screenshot component should be uninitialized"
       );
 
-      info("Triggering the screenshot again should be a no-op");
-      helper.triggerUIFromToolbar();
-      Assert.equal(
-        observerSpy.callCount,
-        3,
-        "Observer function still called thrice"
+      ok(
+        !document.getElementById("screenshot-button"),
+        "Screenshots button shouldn't exist"
       );
 
       info("Triggering the screenshot from the contextmenu should be a no-op");
@@ -106,8 +101,13 @@ add_task(async function test_toggling_screenshots_pref() {
       await popupshown;
       Assert.equal(menu.state, "open", "Context menu is open");
 
+      ok(
+        menu.querySelector("#context-take-screenshot").hidden,
+        "Screenshots context menu item is hidden"
+      );
+
       popuphidden = BrowserTestUtils.waitForPopupEvent(menu, "hidden");
-      menu.activateItem(menu.querySelector("#context-take-screenshot"));
+      menu.hidePopup();
       await popuphidden;
 
       Assert.equal(
@@ -146,17 +146,14 @@ add_task(async function test_toggling_screenshots_pref() {
         "screenshots-component-uninitialized"
       );
 
-      Services.prefs.setBoolPref(SCREENSHOTS_PREF, true);
-      Services.prefs.setBoolPref(COMPONENT_PREF, true);
-
-      ok(Services.prefs.getBoolPref(SCREENSHOTS_PREF), "Screenshots disabled");
+      Services.prefs.setBoolPref(COMPONENT_PREF, false);
 
       info("Wait for the screenshot component to be uninitialized");
       await componentUnitialized;
 
       ok(
-        document.getElementById("screenshot-button").disabled,
-        "Toolbar button disabled"
+        !document.getElementById("screenshot-button"),
+        "Toolbar button shouldn't exist"
       );
 
       let menu = document.getElementById("contentAreaContextMenu");
@@ -180,9 +177,7 @@ add_task(async function test_toggling_screenshots_pref() {
         "screenshots-component-initialized"
       );
 
-      Services.prefs.setBoolPref(SCREENSHOTS_PREF, false);
-
-      ok(!Services.prefs.getBoolPref(SCREENSHOTS_PREF), "Screenshots enabled");
+      Services.prefs.setBoolPref(COMPONENT_PREF, true);
 
       await componentReady;
 

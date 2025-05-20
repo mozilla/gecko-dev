@@ -10,6 +10,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   DevToolsShim: "chrome://devtools-startup/content/DevToolsShim.sys.mjs",
   ResetProfile: "resource://gre/modules/ResetProfile.sys.mjs",
+  ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.sys.mjs",
   ActionsProviderQuickActions:
     "resource:///modules/ActionsProviderQuickActions.sys.mjs",
 });
@@ -213,7 +214,7 @@ const DEFAULT_ACTIONS = {
     label: "quickactions-screenshot3",
     icon: "chrome://browser/skin/screenshot.svg",
     isVisible: () => {
-      return !lazy.BrowserWindowTracker.getTopWindow().gScreenshots.shouldScreenshotsButtonBeDisabled();
+      return lazy.ScreenshotsUtils.screenshotsEnabled;
     },
     onPick: () => {
       if (lazy.SCREENSHOT_BROWSER_COMPONENT) {

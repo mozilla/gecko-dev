@@ -307,9 +307,6 @@ function defaultProfilePreferences(
     // Disable installing any distribution extensions or add-ons.
     'extensions.installDistroAddons': false,
 
-    // Disabled screenshots extension
-    'extensions.screenshots.disabled': true,
-
     // Turn off extension updates so they do not bother tests
     'extensions.update.enabled': false,
 
@@ -368,6 +365,9 @@ function defaultProfilePreferences(
     // Can be removed once Firefox 89 is no longer supported
     // https://bugzilla.mozilla.org/show_bug.cgi?id=1710839
     'remote.enabled': true,
+
+    // Disabled screenshots component
+    'screenshots.browser.component.enabled': false,
 
     // Don't do network connections for mitm priming
     'security.certerrors.mitm.priming.enabled': false,

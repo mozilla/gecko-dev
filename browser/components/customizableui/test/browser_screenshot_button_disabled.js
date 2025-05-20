@@ -7,8 +7,10 @@
 add_task(async function testScreenshotButtonPrefDisabled() {
   info("Test the Screenshots widget not available");
 
+  Services.prefs.setBoolPref("screenshots.browser.component.enabled", false);
+
   Assert.ok(
-    Services.prefs.getBoolPref("extensions.screenshots.disabled"),
+    !Services.prefs.getBoolPref("screenshots.browser.component.enabled", true),
     "Sceenshots feature is disabled"
   );
 

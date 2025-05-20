@@ -22,6 +22,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PlacesUIUtils: "resource:///modules/PlacesUIUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ReaderMode: "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs",
+  ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.sys.mjs",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
   TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
   WebsiteFilter: "resource:///modules/policies/WebsiteFilter.sys.mjs",
@@ -1426,7 +1427,7 @@ export class nsContextMenu {
 
   shouldShowTakeScreenshot() {
     let shouldShow =
-      !this.window.gScreenshots.shouldScreenshotsButtonBeDisabled() &&
+      lazy.ScreenshotsUtils.screenshotsEnabled &&
       this.inTabBrowser &&
       !this.onTextInput &&
       !this.onLink &&

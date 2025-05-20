@@ -20,7 +20,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 const kPrefCustomizationDebug = "browser.uiCustomization.debug";
-const kPrefScreenshots = "extensions.screenshots.disabled";
 
 ChromeUtils.defineLazyGetter(lazy, "log", () => {
   let { ConsoleAPI } = ChromeUtils.importESModule(
@@ -33,20 +32,6 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
   };
   return new ConsoleAPI(consoleOptions);
 });
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "screenshotsDisabled",
-  kPrefScreenshots,
-  false
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "SCREENSHOT_BROWSER_COMPONENT",
-  "screenshots.browser.component.enabled",
-  false
-);
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -568,49 +553,6 @@ if (Services.prefs.getBoolPref("identity.fxaccounts.enabled")) {
               break;
           }
         }
-      }
-    },
-  });
-}
-
-if (!lazy.screenshotsDisabled) {
-  CustomizableWidgets.push({
-    id: "screenshot-button",
-    shortcutId: "key_screenshot",
-    l10nId: "screenshot-toolbarbutton",
-    onCommand(aEvent) {
-      if (lazy.SCREENSHOT_BROWSER_COMPONENT) {
-        Services.obs.notifyObservers(
-          aEvent.currentTarget.ownerGlobal,
-          "menuitem-screenshot",
-          "ToolbarButton"
-        );
-      } else {
-        Services.obs.notifyObservers(
-          null,
-          "menuitem-screenshot-extension",
-          "toolbar"
-        );
-      }
-    },
-    onCreated(aNode) {
-      aNode.ownerGlobal.MozXULElement.insertFTLIfNeeded(
-        "browser/screenshots.ftl"
-      );
-      Services.obs.addObserver(this, "toggle-screenshot-disable");
-    },
-    observe(subj, topic, data) {
-      let document = subj.document;
-      let button = document.getElementById("screenshot-button");
-
-      if (!button) {
-        return;
-      }
-
-      if (data == "true") {
-        button.setAttribute("disabled", "true");
-      } else {
-        button.removeAttribute("disabled");
       }
     },
   });

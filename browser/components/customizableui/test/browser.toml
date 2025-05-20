@@ -347,7 +347,6 @@ skip-if = ["(verify && debug && (os == 'linux' || os == 'mac'))"]
 ["browser_reset_dom_events.js"]
 
 ["browser_screenshot_button_disabled.js"]
-skip-if = ["true"] # TODO: Fix this test (bug 1925823 comment 4)
 
 ["browser_searchbar_removal.js"]
 

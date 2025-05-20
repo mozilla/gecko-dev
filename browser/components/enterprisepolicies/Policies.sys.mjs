@@ -922,9 +922,9 @@ export var Policies = {
   },
 
   DisableFirefoxScreenshots: {
-    onBeforeAddons(manager, param) {
+    onBeforeUIStartup(manager, param) {
       if (param) {
-        setAndLockPref("extensions.screenshots.disabled", true);
+        setAndLockPref("screenshots.browser.component.enabled", false);
       }
     },
   },

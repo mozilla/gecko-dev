@@ -9,10 +9,12 @@ const SCREENSHOTS_LAST_SCREENSHOT_METHOD_PREF =
   "screenshots.browser.component.last-screenshot-method";
 const SCREENSHOTS_LAST_SAVED_METHOD_PREF =
   "screenshots.browser.component.last-saved-method";
+const SCREENSHOTS_ENABLED_PREF = "screenshots.browser.component.enabled";
 
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
   Downloads: "resource://gre/modules/Downloads.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
@@ -34,6 +36,14 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "SCREENSHOTS_LAST_SCREENSHOT_METHOD",
   SCREENSHOTS_LAST_SCREENSHOT_METHOD_PREF,
   "visible"
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "SCREENSHOTS_ENABLED",
+  SCREENSHOTS_ENABLED_PREF,
+  true,
+  () => ScreenshotsUtils.monitorScreenshotsPref()
 );
 
 ChromeUtils.defineLazyGetter(lazy, "screenshotsLocalization", () => {
@@ -165,16 +175,22 @@ export var ScreenshotsUtils = {
     this.methodsUsed = { fullpage: 0, visible: 0 };
   },
 
+  monitorScreenshotsPref() {
+    if (lazy.SCREENSHOTS_ENABLED) {
+      this.initialize();
+    } else {
+      this.uninitialize();
+    }
+
+    this.screenshotsEnabled = lazy.SCREENSHOTS_ENABLED;
+  },
+
   initialize() {
     if (!this.initialized) {
-      if (
-        !Services.prefs.getBoolPref(
-          "screenshots.browser.component.enabled",
-          false
-        )
-      ) {
+      if (!lazy.SCREENSHOTS_ENABLED) {
         return;
       }
+      ScreenshotsCustomizableWidget.init();
       this.resetMethodsUsed();
       Services.obs.addObserver(this, "menuitem-screenshot");
       this.initialized = true;
@@ -186,7 +202,13 @@ export var ScreenshotsUtils = {
 
   uninitialize() {
     if (this.initialized) {
+      ScreenshotsCustomizableWidget.uninit();
       Services.obs.removeObserver(this, "menuitem-screenshot");
+      for (let browser of ChromeUtils.nondeterministicGetWeakMapKeys(
+        this.browserToScreenshotsState
+      )) {
+        this.exit(browser);
+      }
       this.initialized = false;
       if (Cu.isInAutomation) {
         Services.obs.notifyObservers(
@@ -428,7 +450,7 @@ export var ScreenshotsUtils = {
    * @param type The type of screenshot taken. Used for telemetry.
    */
   notify(window, type) {
-    if (Services.prefs.getBoolPref("screenshots.browser.component.enabled")) {
+    if (lazy.SCREENSHOTS_ENABLED) {
       Services.obs.notifyObservers(
         window.event.currentTarget.ownerGlobal,
         "menuitem-screenshot",
@@ -1316,5 +1338,26 @@ export var ScreenshotsUtils = {
 
   recordTelemetryEvent(name, args) {
     Glean.screenshots[name].record(args);
+  },
+};
+
+const ScreenshotsCustomizableWidget = {
+  init() {
+    lazy.CustomizableUI.createWidget({
+      id: "screenshot-button",
+      shortcutId: "key_screenshot",
+      l10nId: "screenshot-toolbarbutton",
+      onCommand(aEvent) {
+        Services.obs.notifyObservers(
+          aEvent.currentTarget.ownerGlobal,
+          "menuitem-screenshot",
+          "ToolbarButton"
+        );
+      },
+    });
+  },
+
+  uninit() {
+    lazy.CustomizableUI.destroyWidget("screenshot-button");
   },
 };

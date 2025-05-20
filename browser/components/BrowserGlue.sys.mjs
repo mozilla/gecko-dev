@@ -1046,36 +1046,6 @@ BrowserGlue.prototype = {
     }
   },
 
-  // Set up a listener to enable/disable the screenshots extension
-  // based on its preference.
-  _monitorScreenshotsPref() {
-    const SCREENSHOTS_PREF = "extensions.screenshots.disabled";
-    const COMPONENT_PREF = "screenshots.browser.component.enabled";
-    const _checkScreenshotsPref = async () => {
-      let screenshotsDisabled = Services.prefs.getBoolPref(
-        SCREENSHOTS_PREF,
-        false
-      );
-      let componentEnabled = Services.prefs.getBoolPref(COMPONENT_PREF, true);
-
-      // TODO(Bug 1948366): simplify this logic further once we have migrated
-      // all users of the legacy `extensions.screenshots.disabled` to the new
-      // `screenshots.browser.component.enabled` pref (e.g. enterprise policies
-      // `DisableFirefoxScreenshots` setting and users that may have been directly
-      // using the legacy pref to disable the screenshot feature).
-      if (screenshotsDisabled && componentEnabled) {
-        lazy.ScreenshotsUtils.uninitialize();
-      } else if (componentEnabled) {
-        lazy.ScreenshotsUtils.initialize();
-      } else {
-        lazy.ScreenshotsUtils.uninitialize();
-      }
-    };
-    Services.prefs.addObserver(SCREENSHOTS_PREF, _checkScreenshotsPref);
-    Services.prefs.addObserver(COMPONENT_PREF, _checkScreenshotsPref);
-    _checkScreenshotsPref();
-  },
-
   _monitorWebcompatReporterPref() {
     const PREF = "extensions.webcompat-reporter.enabled";
     const ID = "webcompat-reporter@mozilla.org";
@@ -1302,7 +1272,7 @@ BrowserGlue.prototype = {
       {
         name: "BrowserGlue._monitorScreenshotsPref",
         task: () => {
-          this._monitorScreenshotsPref();
+          lazy.ScreenshotsUtils.monitorScreenshotsPref();
         },
       },
 
