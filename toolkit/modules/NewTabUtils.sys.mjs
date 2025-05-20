@@ -2416,15 +2416,30 @@ export var NewTabUtils = {
   /**
    * retrieves positive UTC offset, rounded to the nearest integer number greater than 0.
    * (If less than 0, then add 24.)
-   * @returns {Number} utc_offset
+   * @param {str} [surfaceID] Optional surface ID to constrain time zone to reduce identifying telemetry.
+   * @returns {Number} utc_offset. Output is clamped if surfaceID is specified, and 0 if surfaceID present and not supported.
    */
-  getUtcOffset() {
+  getUtcOffset(surfaceID) {
+    const surfaceRestrictions = { NEW_TAB_EN_US: { min: 7, max: 10 } }; // Inclusive hour ranges
+    const restriction = surfaceID && surfaceRestrictions[surfaceID];
+    if (surfaceID && !restriction) {
+      // Missing restriction for the surface
+      return 0;
+    }
     const offsetInMinutes = new Date().getTimezoneOffset(); // in minutes, positive behind UTC
     const offsetInHours = -offsetInMinutes / 60; // convert to hours, now positive *ahead* of UTC
     let utc_offset = Math.round(offsetInHours);
 
     if (utc_offset <= 0) {
       utc_offset += 24;
+    }
+    if (restriction) {
+      if (utc_offset < restriction.min) {
+        utc_offset = restriction.min;
+      }
+      if (utc_offset > restriction.max) {
+        utc_offset = restriction.max;
+      }
     }
 
     return utc_offset;
@@ -2448,7 +2463,7 @@ export var NewTabUtils = {
       osString.includes("SunOS") ||
       osString.includes("Solaris")
     ) {
-      return "Linux";
+      return "linux";
     } else if (osString.startsWith("iOS") || osString.includes("iPhone")) {
       return "ios";
     } else if (osString.startsWith("Android")) {
