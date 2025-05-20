@@ -29,6 +29,7 @@
 #include "mozilla/dom/DocumentBinding.h"
 #include "mozilla/dom/DOMTypes.h"
 #include "mozilla/dom/nsCSPContext.h"
+#include "mozilla/dom/nsCSPUtils.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
 #include "mozilla/dom/ReferrerInfoUtils.h"
 #include "mozilla/ipc/IPDLParamTraits.h"
@@ -891,7 +892,10 @@ SessionHistoryEntry::GetCsp(nsIContentSecurityPolicy** aCsp) {
 
 NS_IMETHODIMP
 SessionHistoryEntry::SetCsp(nsIContentSecurityPolicy* aCsp) {
-  SharedInfo()->mCsp = aCsp;
+  nsCOMPtr<nsIURI> uri = mInfo->mURI;
+  if (CSP_ShouldURIInheritCSP(uri)) {
+    SharedInfo()->mCsp = aCsp;
+  }
   return NS_OK;
 }
 

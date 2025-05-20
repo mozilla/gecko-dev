@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsAboutProtocolUtils.h"
 #include "nsAttrValue.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsContentUtils.h"
@@ -113,20 +114,19 @@ bool CSP_ShouldResponseInheritCSP(nsIChannel* aChannel) {
   nsresult rv = aChannel->GetURI(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, false);
 
-  bool isAbout = uri->SchemeIs("about");
-  if (isAbout) {
-    nsAutoCString aboutSpec;
-    rv = uri->GetSpec(aboutSpec);
-    NS_ENSURE_SUCCESS(rv, false);
-    // also allow about:blank#foo
-    if (StringBeginsWith(aboutSpec, "about:blank"_ns) ||
-        StringBeginsWith(aboutSpec, "about:srcdoc"_ns)) {
-      return true;
-    }
-  }
+  return CSP_ShouldURIInheritCSP(uri);
+}
 
-  return uri->SchemeIs("blob") || uri->SchemeIs("data") ||
-         uri->SchemeIs("filesystem") || uri->SchemeIs("javascript");
+bool CSP_ShouldURIInheritCSP(nsIURI* aURI) {
+  if (!aURI) {
+    return false;
+  }
+  // about:blank and about:srcdoc
+  if ((aURI->SchemeIs("about")) && (NS_IsContentAccessibleAboutURI(aURI))) {
+    return true;
+  }
+  return aURI->SchemeIs("blob") || aURI->SchemeIs("data") ||
+         aURI->SchemeIs("filesystem") || aURI->SchemeIs("javascript");
 }
 
 void CSP_ApplyMetaCSPToDoc(mozilla::dom::Document& aDoc,

@@ -211,6 +211,7 @@ class nsCSPSrcVisitor;
 
 void CSP_PercentDecodeStr(const nsAString& aEncStr, nsAString& outDecStr);
 bool CSP_ShouldResponseInheritCSP(nsIChannel* aChannel);
+bool CSP_ShouldURIInheritCSP(nsIURI* aURI);
 
 void CSP_ApplyMetaCSPToDoc(mozilla::dom::Document& aDoc,
                            const nsAString& aPolicyStr);
