@@ -16,7 +16,7 @@
 <!-- We set a transform on the body element so that it creates a reference frame.
      This makes sure that snapping of scrolled areas for the contained elements
      is not influenced by offsets outside of this document. -->
-<body id="body" onload="setTimeout(testElements, 0, 'testelements', SimpleTest.finish);"
+<body id="body"
       style="margin: 1px; border: 2px solid black; padding: 4px; transform: translateY(1px);">
 
 <div id="testelements" style="margin: 0; border: 0; padding: 0;">
@@ -89,6 +89,13 @@
 
 <script type="application/javascript">
 SimpleTest.waitForExplicitFinish();
+
+window.onload = async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [ ["layout.scroll.disable-pixel-alignment", true] ]
+  });
+  setTimeout(testElements, 0, 'testelements', SimpleTest.finish);
+};
 </script>
 
 <p id="display"></p>
