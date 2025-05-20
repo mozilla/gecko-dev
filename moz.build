@@ -52,7 +52,7 @@ with Files("**/l10n.toml"):
     BUG_COMPONENT = ("Core", "Localization")
     FINAL = True
 
-with Files("README.txt"):
+with Files("README.md"):
     BUG_COMPONENT = ("Core", "General")
 
 with Files("SECURITY.md"):
