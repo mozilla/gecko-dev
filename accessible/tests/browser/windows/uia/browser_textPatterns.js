@@ -1,4 +1,5 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -2160,6 +2161,69 @@ addUiaTask(
     );
   },
   { uiaEnabled: true, uiaDisabled: true, chrome: true }
+);
+
+/**
+ * Test the Text pattern's GetBoundingRectangles method with the caret.
+ */
+addUiaTask(
+  `
+<div id="editable" contenteditable role="textbox">
+  <div id="ce0">a</div>
+  <div id="ce1"><br></div>
+  <div id="ce2">b</div>
+</div>
+  `,
+  async function testTextRangeGetBoundingRectanglesCaret(browser, docAcc) {
+    info("Focusing editable");
+    const editable = findAccessibleChildByID(docAcc, "editable");
+    const ce0 = findAccessibleChildByID(docAcc, "ce0");
+    let moved = waitForEvent(EVENT_TEXT_CARET_MOVED, ce0);
+    editable.takeFocus();
+    await moved;
+    await runPython(`
+      global text
+      doc = getDocUia()
+      editable = findUiaByDomId(doc, "editable")
+      text = getUiaPattern(editable, "Text")
+    `);
+    let uiaRects = await runPython(
+      `text.GetSelection().GetElement(0).GetBoundingRectangles()`
+    );
+    testTextPos(ce0, 0, [uiaRects[0], uiaRects[1]], COORDTYPE_SCREEN_RELATIVE);
+
+    info("ArrowRight to end of line");
+    moved = waitForEvent(EVENT_TEXT_CARET_MOVED, ce0);
+    EventUtils.synthesizeKey("KEY_ArrowRight");
+    await moved;
+    uiaRects = await runPython(
+      `text.GetSelection().GetElement(0).GetBoundingRectangles()`
+    );
+    // Bug 1966812: We would ideally return a rect here.
+    is(uiaRects.length, 0, "GetBoundingRectangles returned nothing");
+
+    info("ArrowRight to line feed on blank line");
+    const ce1 = findAccessibleChildByID(docAcc, "ce1");
+    moved = waitForEvent(EVENT_TEXT_CARET_MOVED, ce1);
+    EventUtils.synthesizeKey("KEY_ArrowRight");
+    await moved;
+    uiaRects = await runPython(
+      `text.GetSelection().GetElement(0).GetBoundingRectangles()`
+    );
+    testTextPos(ce1, 0, [uiaRects[0], uiaRects[1]], COORDTYPE_SCREEN_RELATIVE);
+
+    info("ArrowRight to b");
+    const ce2 = findAccessibleChildByID(docAcc, "ce2");
+    moved = waitForEvent(EVENT_TEXT_CARET_MOVED, ce2);
+    EventUtils.synthesizeKey("KEY_ArrowRight");
+    await moved;
+    uiaRects = await runPython(
+      `text.GetSelection().GetElement(0).GetBoundingRectangles()`
+    );
+    testTextPos(ce2, 0, [uiaRects[0], uiaRects[1]], COORDTYPE_SCREEN_RELATIVE);
+  },
+  // The IA2 -> UIA proxy doesn't support this.
+  { uiaEnabled: true, uiaDisabled: false }
 );
 
 /**
