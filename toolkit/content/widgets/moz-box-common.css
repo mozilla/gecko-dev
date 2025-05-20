@@ -5,7 +5,7 @@
 @layer box-common {
   :host {
     --box-border-width: var(--border-width);
-    --box-border-color: var(--border-color-interactive);
+    --box-border-color: var(--border-color);
     --box-border: var(--box-border-width) solid var(--box-border-color);
     --box-border-width-end: var(--box-border-width);
     --box-border-radius: var(--border-radius-medium);
