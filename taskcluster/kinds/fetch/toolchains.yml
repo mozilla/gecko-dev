@@ -631,6 +631,17 @@ nodejs-18-source:
         strip-components: 1
         add-prefix: node/
 
+nodejs-22-source:
+    description: nodejs 22 source
+    fetch:
+        type: static-url
+        url: https://nodejs.org/dist/v22.11.0/node-v22.11.0.tar.gz
+        sha256: 24e5130fa7bc1eaab218a0c9cb05e03168fa381bb9e3babddc6a11f655799222
+        size: 96927828
+        artifact-name: nodejs.tar.zst
+        strip-components: 1
+        add-prefix: node/
+
 gnumake:
     description: GNU make source
     fetch:
