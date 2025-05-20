@@ -50,4 +50,3 @@ toolkit.jar:
 
 # used in about:logging on Android
   skin/classic/global/icons/open-in-new.svg                (../../shared/icons/open-in-new.svg)
-  skin/classic/global/icons/edit-copy.svg                  (../../shared/icons/edit-copy.svg)
