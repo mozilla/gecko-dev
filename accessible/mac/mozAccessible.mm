@@ -593,6 +593,15 @@ struct RoleDescrComparator {
   return @YES;
 }
 
+- (NSString*)moxInvalid {
+  // For controls that support text input, we will expose
+  // the string value of `aria-invalid` when it exists.
+  // See mozTextAccessible::moxInvalid for that work.
+  // Unfortunately, NSBools do not autoconvert to usable
+  // NSStrings, so we expose "true" and "false" manually.
+  return ([self stateWithMask:states::INVALID] != 0) ? @"true" : @"false";
+}
+
 - (NSNumber*)moxFocused {
   return @([self stateWithMask:states::FOCUSED] != 0);
 }

@@ -19,7 +19,7 @@
 - (id)moxRequired;
 
 // override
-- (NSNumber*)moxInvalid;
+- (NSString*)moxInvalid;
 
 // override
 - (NSNumber*)moxInsertionPointLineNumber;

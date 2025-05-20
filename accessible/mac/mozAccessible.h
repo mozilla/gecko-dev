@@ -186,6 +186,9 @@ enum CheckedState {
 - (NSNumber*)moxEnabled;
 
 // override
+- (NSString*)moxInvalid;
+
+// override
 - (NSNumber*)moxFocused;
 
 // override

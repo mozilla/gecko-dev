@@ -51,6 +51,8 @@ skip-if = ["os == 'mac' && os_version == '15.30' && arch == 'aarch64' && opt"] #
 
 ["browser_input.js"]
 
+["browser_invalid.js"]
+
 ["browser_label_title.js"]
 
 ["browser_link.js"]
