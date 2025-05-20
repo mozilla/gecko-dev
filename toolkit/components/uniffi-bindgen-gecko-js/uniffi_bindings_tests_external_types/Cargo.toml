@@ -1,0 +1,13 @@
+[package]
+name = "uniffi_bindings_tests_external_types"
+version = "0.29.0"
+edition = "2021"
+
+[lib]
+crate-type = ["lib", "staticlib"]
+
+[dependencies]
+thiserror = "1"
+uniffi = { workspace = true }
+
+uniffi_bindings_tests = { path = "../uniffi_bindings_tests" }

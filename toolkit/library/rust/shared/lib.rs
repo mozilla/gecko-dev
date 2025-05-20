@@ -100,7 +100,7 @@ extern crate osclientcerts;
 extern crate gkrust_uniffi_components;
 
 #[cfg(feature = "uniffi_fixtures")]
-extern crate gkrust_uniffi_fixtures;
+extern crate uniffi_bindgen_gecko_js_test_fixtures;
 
 #[cfg(not(target_os = "android"))]
 extern crate viaduct;

@@ -1,8 +1,8 @@
 // Export the FFIConverter object to make external types work.
-export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
+export class {{ optional|ffi_converter }} extends FfiConverterArrayBuffer {
     static checkType(value) {
         if (value !== undefined && value !== null) {
-            {{ inner_type.ffi_converter() }}.checkType(value)
+            {{ optional.inner|check_type_fn }}(value)
         }
     }
 
@@ -12,7 +12,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
             case 0:
                 return null
             case 1:
-                return {{ inner_type.ffi_converter() }}.read(dataStream)
+                return {{ optional.inner|read_fn }}(dataStream)
             default:
                 throw new UniFFIError(`Unexpected code: ${code}`);
         }
@@ -24,13 +24,13 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
             return;
         }
         dataStream.writeUint8(1);
-        {{ inner_type.ffi_converter() }}.write(dataStream, value)
+        {{ optional.inner|write_fn}}(dataStream, value)
     }
 
     static computeSize(value) {
         if (value === null || value === undefined) {
             return 1;
         }
-        return 1 + {{ inner_type.ffi_converter() }}.computeSize(value)
+        return 1 + {{ optional.inner|compute_size_fn}}(value)
     }
 }

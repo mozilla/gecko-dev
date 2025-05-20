@@ -1,86 +1,83 @@
-{%- let string_type = Type::String %}
-{%- let string_ffi_converter = string_type.ffi_converter() %}
+{{ error.js_docstring }}
+export class {{ error.name }} extends Error {}
+{% for variant in error.variants %}
 
-{{ error.js_docstring(0) -}}
-export class {{ error.js_name() }} extends Error {}
-{% for variant in error.variants() %}
-
-{{ variant.js_docstring(error.is_flat(), 0) -}}
-export class {{ variant.name().to_upper_camel_case() }} extends {{ error.js_name() }} {
-{% if error.is_flat() %}
+{{ variant.js_docstring }}
+export class {{ variant.name }} extends {{ error.name }} {
+{% if error.is_flat %}
     constructor(message, ...params) {
         super(...params);
         this.message = message;
     }
 {%- else %}
     constructor(
-        {% for field in variant.fields() -%}
-        {{field.js_name()}},
+        {% for field in variant.fields -%}
+        {{ field.name }},
         {% endfor -%}
         ...params
     ) {
-        {%- if !variant.fields().is_empty() %}
-        const message = `{% for field in variant.fields() %}{{ field.js_name() }}: ${ {{ field.js_name() }} }{% if !loop.last %}, {% endif %}{% endfor %}`;
+        {%- if !variant.fields.is_empty() %}
+        const message = `{% for field in variant.fields %}{{ field.name }}: ${ {{ field.name }} }{% if !loop.last %}, {% endif %}{% endfor %}`;
         super(message, ...params);
         {%- else %}
         super(...params);
         {%- endif %}
-        {%- for field in variant.fields() %}
-        this.{{field.js_name()}} = {{ field.js_name() }};
+        {%- for field in variant.fields %}
+        this.{{field.name}} = {{ field.name }};
         {%- endfor %}
     }
 {%- endif %}
     toString() {
-        return `{{ variant.name().to_upper_camel_case() }}: ${super.toString()}`
+        return `{{ variant.name }}: ${super.toString()}`
     }
 }
 {%- endfor %}
 
 // Export the FFIConverter object to make external types work.
-export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
+export class {{ error|ffi_converter }} extends FfiConverterArrayBuffer {
     static read(dataStream) {
         switch (dataStream.readInt32()) {
-            {%- for variant in error.variants() %}
+            {%- for variant in error.variants %}
             case {{ loop.index }}:
-                {%- if error.is_flat() %}
-                return new {{ variant.name().to_upper_camel_case()  }}({{ string_ffi_converter }}.read(dataStream));
+                {%- if error.is_flat %}
+                return new {{ variant.name  }}({{ string_type_node|read_fn }}(dataStream));
                 {%- else %}
-                return new {{ variant.name().to_upper_camel_case()  }}(
-                    {%- for field in variant.fields() %}
-                    {{ field.ffi_converter() }}.read(dataStream){%- if loop.last %}{% else %}, {%- endif %}
+                return new {{ variant.name  }}(
+                    {%- for field in variant.fields %}
+                    {{ field|read_fn }}(dataStream){%- if loop.last %}{% else %}, {%- endif %}
                     {%- endfor %}
                     );
                 {%- endif %}
             {%- endfor %}
             default:
-                throw new UniFFITypeError("Unknown {{ error.js_name() }} variant");
+                throw new UniFFITypeError("Unknown {{ error.name }} variant");
         }
     }
     static computeSize(value) {
         // Size of the Int indicating the variant
         let totalSize = 4;
-        {%- for variant in error.variants() %}
-        if (value instanceof {{ variant.name().to_upper_camel_case() }}) {
-            {%- for field in variant.fields() %}
-            totalSize += {{ field.ffi_converter() }}.computeSize(value.{{ field.js_name() }});
+        {%- for variant in error.variants %}
+        if (value instanceof {{ variant.name }}) {
+            {%- for field in variant.fields %}
+            totalSize += {{ field|compute_size_fn }}(value.{{ field.name }});
             {%- endfor %}
             return totalSize;
         }
         {%- endfor %}
-        throw new UniFFITypeError("Unknown {{ error.js_name() }} variant");
+        throw new UniFFITypeError("Unknown {{ error.name }} variant");
     }
     static write(dataStream, value) {
-        {%- for variant in error.variants() %}
-        if (value instanceof {{ variant.name().to_upper_camel_case() }}) {
+        {%- for variant in error.variants %}
+        if (value instanceof {{ variant.name }}) {
             dataStream.writeInt32({{ loop.index }});
-            {%- for field in variant.fields() %}
-            {{ field.ffi_converter() }}.write(dataStream, value.{{ field.js_name() }});
+            {%- for field in variant.fields %}
+            {{ field|write_fn }}(dataStream, value.{{ field.name }});
             {%- endfor %}
             return;
         }
         {%- endfor %}
-        throw new UniFFITypeError("Unknown {{ error.js_name() }} variant");
+        throw new UniFFITypeError("Unknown {{ error.name }} variant");
     }
 
-    static errorClass = {{ error.js_name() }};
+    static errorClass = {{ error.name }};
 }
