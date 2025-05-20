@@ -25,6 +25,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PipelineOptions: "chrome://global/content/ml/EngineProcess.sys.mjs",
   DEFAULT_ENGINE_ID: "chrome://global/content/ml/EngineProcess.sys.mjs",
   DEFAULT_MODELS: "chrome://global/content/ml/EngineProcess.sys.mjs",
+  WASM_BACKENDS: "chrome://global/content/ml/EngineProcess.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
@@ -332,11 +333,6 @@ class EngineDispatcher {
    * @returns {Promise<Engine>}
    */
   async initializeInferenceEngine(pipelineOptions, notificationsCallback) {
-    // Create the inference engine given the wasm runtime and the options.
-    const wasm = await this.mlEngineChild.getWasmArrayBuffer(
-      pipelineOptions.backend
-    );
-
     let remoteSettingsOptions = await this.mlEngineChild.getInferenceOptions(
       this.#featureId,
       this.#taskName,
@@ -361,8 +357,15 @@ class EngineDispatcher {
     }
 
     lazy.console.debug("Inference engine options:", mergedOptions);
-
     this.pipelineOptions = mergedOptions;
+
+    // load the wasm if required.
+    let wasm = null;
+    if (lazy.WASM_BACKENDS.includes(pipelineOptions.backend || "onnx")) {
+      wasm = await this.mlEngineChild.getWasmArrayBuffer(
+        pipelineOptions.backend
+      );
+    }
 
     return InferenceEngine.create({
       wasm,

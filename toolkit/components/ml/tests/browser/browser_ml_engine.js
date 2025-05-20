@@ -142,6 +142,7 @@ add_task(async function test_ml_engine_wasm_rejection() {
   } catch (e) {
     error = e;
   }
+
   is(
     error?.message,
     "Intentionally rejecting downloads.",

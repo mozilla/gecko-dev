@@ -20,7 +20,14 @@ export const DEFAULT_ENGINE_ID = "default-engine";
  * @type {Array<string>}
  * @description Supported backends.
  */
-export const BACKENDS = ["onnx", "wllama"];
+export const BACKENDS = ["onnx", "wllama", "onnx-native"];
+
+/**
+ * @constant
+ * @type {Array<string>}
+ * @description Backends using WASM.
+ */
+export const WASM_BACKENDS = ["onnx", "wllama"];
 
 /**
  * @constant
@@ -290,6 +297,7 @@ export const KVCacheQuantizationLevel = {
 export const InferenceDevice = {
   GPU: "gpu",
   WASM: "wasm",
+  CPU: "cpu",
 };
 
 /**
