@@ -1,0 +1,93 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Regression test for bug 1965831: That RTCPeerConnection media flows with two transceivers (one inactive, one active) of the same type, same payload types, BUNDLE, no MID RTP header extension and no a=ssrc lines.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Munge away the MID RTP header extension to force packet filtering on PTs.
+  // Note this is in violation of RFC8843 9.1, but some sites rely on this.
+  const midExtmap = /\r\na=extmap:\d+ urn:ietf:params:rtp-hdrext:sdes:mid/g;
+  // Munge away a=ssrc (and a=ssrc-group) lines so conduits are willing to
+  // switch SSRC binding based on packets (bug 1756222).
+  const ssrc = /\r\na=ssrc:\d+ cname:\{[a-f0-9\-]+\}/g;
+  const fecBinding = /\r\na=ssrc-group:FID \d+ \d+/g;
+  function mungeSdp({sdp}) {
+    return sdp.replace(midExtmap, "")
+              .replace(ssrc, "")
+              .replace(fecBinding, "");
+  }
+
+  async function doTest(t, kind) {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    exchangeIceCandidates(pc1, pc2);
+
+    // Add a transceiver that will have unique payload types bound to it.
+    pc1.addTransceiver(kind, {direction: "recvonly"});
+
+    // Negotiate to bind unique payload types to the first transceiver.
+    const offer1 = {sdp: mungeSdp(await pc1.createOffer()), type: "offer"};
+    await pc1.setLocalDescription(offer1);
+    await pc2.setRemoteDescription(offer1);
+    // Munge the answer too, or a=ssrc lines will be inserted.
+    const answer1 = {sdp: mungeSdp(await pc2.createAnswer()), type: "answer"};
+    await pc2.setLocalDescription(answer1);
+    await pc1.setRemoteDescription(answer1);
+
+    // Inactivate the transceiver, which will cache its unique payload types,
+    // to "steal" packets from the other transceiver.
+    const [transceiver1] = pc2.getTransceivers();
+    transceiver1.direction = "inactive";
+
+    // Add another transceiver that will send some packets.
+    const stream = await getNoiseStream({[kind]: true});
+    const [track] = stream.getTracks();
+    t.add_cleanup(() => track.stop());
+    const transceiver2 = pc2.addTransceiver(track, {direction: "sendonly"});
+
+    // Renegotiate.
+    const offer2 = {sdp: mungeSdp(await pc2.createOffer()), type: "offer"};
+    await pc2.setLocalDescription(offer2);
+    await pc1.setRemoteDescription(offer2);
+    const answer2 = {sdp: mungeSdp(await pc1.createAnswer()), type: "answer"};
+    await pc1.setLocalDescription(answer2);
+    await pc2.setRemoteDescription(answer2);
+
+    const {receiver} = pc1.getTransceivers().find(t => t.currentDirection == "recvonly");
+    const inactiveTranceiver = pc1.getTransceivers().find(t => t.currentDirection == "inactive");
+    assert_not_equals(inactiveTranceiver, undefined);
+
+    let timedout = false;
+    t.step_timeout(() => timedout = true, 2000);
+    const threshold = 10;
+    let inboundStats;
+    while (!timedout) {
+      const stats = await receiver.getStats();
+      inboundStats = [...stats.values()].find(({type}) => type == "inbound-rtp");
+      if (inboundStats?.packetsReceived > threshold) {
+        break;
+      }
+      await new Promise(r => t.step_timeout(r, 50));
+    }
+    assert_greater_than(
+      inboundStats?.packetsReceived,
+      threshold,
+      "packets received indicates media flow"
+    );
+  }
+
+  promise_test(async t => {
+    await doTest(t, "video");
+  }, "Video flows to RTCPeerConnection's active transceiver, with BUNDLE but without MID extension");
+
+  promise_test(async t => {
+    await doTest(t, "audio");
+  }, "Audio flows to RTCPeerConnection's active transceiver, with BUNDLE but without MID extension");
+
+</script>
