@@ -1490,7 +1490,7 @@ nsRegion FilterInstance::GetPreFilterNeededArea(
                           /* InputIsTainted */ true, nullptr, tm,
                           &aPostFilterDirtyRegion);
   if (!instance.IsInitialized()) {
-    return nsRect();
+    return aPostFilterDirtyRegion;
   }
 
   // Now we can ask the instance to compute the area of the source
