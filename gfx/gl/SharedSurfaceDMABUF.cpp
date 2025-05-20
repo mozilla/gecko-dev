@@ -10,7 +10,7 @@
 #include "MozFramebuffer.h"
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor, etc
 #include "mozilla/gfx/gfxVars.h"
-#include "mozilla/widget/DMABufLibWrapper.h"
+#include "mozilla/widget/DMABufDevice.h"
 
 namespace mozilla::gl {
 

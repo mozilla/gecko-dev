@@ -8,7 +8,7 @@
 #include "PlatformDecoderModule.h"
 #include "prlink.h"
 #include "mozilla/gfx/gfxVars.h"
-#include "mozilla/widget/DMABufLibWrapper.h"
+#include "mozilla/widget/DMABufDevice.h"
 
 namespace mozilla {
 

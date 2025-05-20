@@ -16,7 +16,7 @@
 
 #ifdef MOZ_WIDGET_GTK
 #  include "mozilla/widget/DMABufSurface.h"
-#  include "mozilla/widget/DMABufLibWrapper.h"
+#  include "mozilla/widget/DMABufDevice.h"
 #endif
 
 namespace mozilla {

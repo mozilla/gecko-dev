@@ -7,7 +7,7 @@
 #include "FFmpegVideoFramePool.h"
 #include "PlatformDecoderModule.h"
 #include "FFmpegLog.h"
-#include "mozilla/widget/DMABufLibWrapper.h"
+#include "mozilla/widget/DMABufDevice.h"
 #include "libavutil/pixfmt.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/gfx/gfxVars.h"

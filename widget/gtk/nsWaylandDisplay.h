@@ -8,7 +8,7 @@
 #ifndef __MOZ_WAYLAND_DISPLAY_H__
 #define __MOZ_WAYLAND_DISPLAY_H__
 
-#include "DMABufLibWrapper.h"
+#include "DMABufDevice.h"
 
 #include "mozilla/widget/mozwayland.h"
 #include "mozilla/widget/fractional-scale-v1-client-protocol.h"

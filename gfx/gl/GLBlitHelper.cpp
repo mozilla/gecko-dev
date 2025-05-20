@@ -46,7 +46,7 @@
 #ifdef MOZ_WIDGET_GTK
 #  include "mozilla/layers/DMABUFSurfaceImage.h"
 #  include "mozilla/widget/DMABufSurface.h"
-#  include "mozilla/widget/DMABufLibWrapper.h"
+#  include "mozilla/widget/DMABufDevice.h"
 #endif
 
 using mozilla::layers::PlanarYCbCrData;

@@ -9,7 +9,7 @@
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/webgpu/WebGPUParent.h"
 #include "mozilla/widget/DMABufSurface.h"
-#include "mozilla/widget/DMABufLibWrapper.h"
+#include "mozilla/widget/DMABufDevice.h"
 #include <gbm.h>
 
 namespace mozilla::webgpu {

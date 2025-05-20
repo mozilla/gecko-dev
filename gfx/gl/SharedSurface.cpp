@@ -35,7 +35,7 @@
 #ifdef MOZ_WIDGET_GTK
 #  include "gfxPlatformGtk.h"
 #  include "SharedSurfaceDMABUF.h"
-#  include "mozilla/widget/DMABufLibWrapper.h"
+#  include "mozilla/widget/DMABufDevice.h"
 #endif
 
 #ifdef MOZ_WIDGET_ANDROID

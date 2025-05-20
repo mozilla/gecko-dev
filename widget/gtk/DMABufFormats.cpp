@@ -9,7 +9,7 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 
-#include "DMABufLibWrapper.h"
+#include "DMABufDevice.h"
 #include "DMABufFormats.h"
 #ifdef MOZ_WAYLAND
 #  include "nsWaylandDisplay.h"

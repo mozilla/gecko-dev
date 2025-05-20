@@ -12,7 +12,7 @@
 #include "FFmpegLog.h"
 
 #include "mozilla/layers/DMABUFSurfaceImage.h"
-#include "mozilla/widget/DMABufLibWrapper.h"
+#include "mozilla/widget/DMABufDevice.h"
 #include "mozilla/widget/DMABufSurface.h"
 
 namespace mozilla::layers {

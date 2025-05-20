@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DMABufSurface.h"
-#include "DMABufLibWrapper.h"
+#include "DMABufDevice.h"
 #include "DMABufFormats.h"
 
 #ifdef MOZ_WAYLAND

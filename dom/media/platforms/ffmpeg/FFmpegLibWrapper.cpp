@@ -13,7 +13,7 @@
 #include "prlink.h"
 #ifdef MOZ_WIDGET_GTK
 #  include "mozilla/gfx/gfxVars.h"
-#  include "mozilla/widget/DMABufLibWrapper.h"
+#  include "mozilla/widget/DMABufDevice.h"
 #  include "VALibWrapper.h"
 #endif
 
