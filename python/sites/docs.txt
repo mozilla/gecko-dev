@@ -20,7 +20,6 @@ pth:python/mach
 pth:python/mozpack/test
 pypi:pytest==7.2.1
 pypi:pywatchman==1.4.1
-vendored:third_party/python/MarkupSafe/src
 vendored:third_party/python/PyYAML/lib/
 vendored:third_party/python/aiohappyeyeballs
 vendored:third_party/python/aiohttp

@@ -9,8 +9,6 @@ pypi:dataclasses==0.6
 pypi:docutils==0.18.1
 pypi:fluent.pygments==1.0
 pypi:imagesize==1.4.1
-# (indirect) avoids dependency on markupsafe >= 2.1.0, which is currently incompatible with glean-parser
-pypi:markupsafe==2.0.1
 pypi:pytest==7.0.1
 pypi:pytest-mock==3.12.0
 pypi:pytz==2022.7.1
@@ -31,7 +29,6 @@ vendored:testing/web-platform/tests/tools/third_party/pywebsocket3
 vendored:testing/web-platform/tests/tools/third_party/webencodings
 vendored:testing/web-platform/tests/tools/wptrunner
 vendored:testing/web-platform/tests/tools/wptserve
-vendored:third_party/python/MarkupSafe/src
 vendored:third_party/python/PyYAML/lib/
 vendored:third_party/python/aiohappyeyeballs
 vendored:third_party/python/aiohttp

@@ -7,7 +7,6 @@ vendored:testing/web-platform/tests/tools/third_party/pywebsocket3
 vendored:testing/web-platform/tests/tools/third_party/webencodings
 vendored:testing/web-platform/tests/tools/wptrunner
 vendored:testing/web-platform/tests/tools/wptserve
-vendored:third_party/python/MarkupSafe/src
 vendored:third_party/python/PyYAML/lib/
 vendored:third_party/python/aiohappyeyeballs
 vendored:third_party/python/aiohttp

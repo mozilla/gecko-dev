@@ -9,7 +9,6 @@ pypi:distlib==0.3.7
 pypi:docutils==0.18.1
 pypi:fluent.pygments==1.0
 pypi:imagesize==1.4.1
-pypi:markupsafe==2.0.1
 pypi:more-itertools==7.2.0
 pypi:pluggy==0.13.1
 pypi:py==1.11.0
