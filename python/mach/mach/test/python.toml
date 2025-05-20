@@ -27,10 +27,3 @@ subsuite = "mach"
 skip-if = ["automation == false"]
 
 ["test_site_compatibility.py"]
-# The Windows and Mac workers only use the internal PyPI mirror,
-# which will be missing packages required for this test.
-skip-if = [
-  "os == 'win'",
-  "os == 'mac'",
-  "automation == false",
-]
