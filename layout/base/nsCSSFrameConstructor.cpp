@@ -1229,8 +1229,8 @@ MOZ_NEVER_INLINE void nsFrameConstructorState::ProcessFrameInsertions(
     nsIFrame* firstNewFrame = aFrameList.FirstChild();
 
     // Cache the ancestor chain so that we can reuse it if needed.
-    AutoTArray<nsIFrame*, 20> firstNewFrameAncestors;
-    nsIFrame* notCommonAncestor = nullptr;
+    AutoTArray<const nsIFrame*, 20> firstNewFrameAncestors;
+    const nsIFrame* notCommonAncestor = nullptr;
     if (lastChild) {
       notCommonAncestor = nsLayoutUtils::FillAncestors(
           firstNewFrame, containingBlock, &firstNewFrameAncestors);
