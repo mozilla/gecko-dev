@@ -44,13 +44,22 @@
       // controller's srflx through trickle.
       const pc1 = new RTCPeerConnection({iceServers: [turnServer]});
       const pc2 = new RTCPeerConnection({iceServers: [stunServer]});
+
+      // Ensure that no host or relay candidates are trickled. Also, record all
+      // interfaces which are able to gather a srflx (ie; are able to reach the
+      // TURN server). Anything that cannot reach the TURN server and gather a
+      // srflx must be filtered out in both directions, otherwise pc2 will
+      // learn about those as prflx, and we want pc2 to only have prflx for
+      // pc1's relay candidates.
+      const ipAddrsWithSrflx = new Set();
       pc1.onicecandidate = e => {
         if (e.candidate && e.candidate.type == "srflx") {
+          ipAddrsWithSrflx.add(e.candidate.address);
+        }
+        // Add only srflx or the end-of-candidates signal
+        if (!e.candidate || e.candidate.type == "srflx") {
           pc2.addIceCandidate(e.candidate);
         }
-      };
-      pc2.onicecandidate = e => {
-        pc1.addIceCandidate(e.candidate);
       };
       const transceiver = pc1.addTransceiver('audio');
       await pc1.setLocalDescription();
@@ -67,8 +76,20 @@
         }
       });
 
+      ok(ipAddrsWithSrflx.size != 0, "PC1 was able to reach the TURN server with at least one address");
+
+      pc2.onicecandidate = e => {
+        if (!e.candidate || ipAddrsWithSrflx.has(e.candidate.address)) {
+          pc1.addIceCandidate(e.candidate);
+        }
+      };
+
       await pc2.setLocalDescription();
-      await pc1.setRemoteDescription(pc2.localDescription);
+      let mungedAnswer = {
+        type: "answer",
+        sdp: pc2.localDescription.sdp.replaceAll("a=candidate:", "a=candid8:")
+      };
+      await pc1.setRemoteDescription(mungedAnswer);
 
       await Promise.all([iceConnected(pc1), iceConnected(pc2)]);
       info("ICE connected");

@@ -349,6 +349,11 @@ function pedanticChecks(report) {
   report.forEach((statObj, mapKey) => {
     info(`"${mapKey} = ${JSON.stringify(statObj, null, 2)}`);
   });
+
+  // These matter when checking candidate-pair stats for bytes sent/received
+  let sending = false;
+  let receiving = false;
+
   // eslint-disable-next-line complexity
   report.forEach((statObj, mapKey) => {
     let tested = {};
@@ -382,6 +387,7 @@ function pedanticChecks(report) {
       date.getFullYear() > 1970,
       `${stat.type}.timestamp is relative to current time, date=${date}`
     );
+
     //
     // RTCStreamStats attributes with common behavior
     //
@@ -511,6 +517,8 @@ function pedanticChecks(report) {
     }
 
     if (stat.type == "inbound-rtp") {
+      receiving = true;
+
       //
       // Required fields
       //
@@ -869,6 +877,8 @@ function pedanticChecks(report) {
           `${stat.kind} test. value=${stat.roundTripTimeMeasurements}`
       );
     } else if (stat.type == "outbound-rtp") {
+      sending = true;
+
       //
       // Required fields
       //
@@ -1421,17 +1431,21 @@ function pedanticChecks(report) {
             `(${stat.kind})`
         );
 
+        const sentExpectation = sending ? 100 : 0;
+
         // bytesSent
         ok(
-          stat.bytesSent > 100,
-          `${stat.type}.bytesSent is a sane number (>100) if media is flowing. ` +
+          stat.bytesSent >= sentExpectation,
+          `${stat.type}.bytesSent is a sane number (>${sentExpectation}) if media is flowing. ` +
             `value=${stat.bytesSent}`
         );
 
+        const recvExpectation = receiving ? 100 : 0;
+
         // bytesReceived
         ok(
-          stat.bytesReceived > 100,
-          `${stat.type}.bytesReceived is a sane number (>100) if media is flowing. ` +
+          stat.bytesReceived >= recvExpectation,
+          `${stat.type}.bytesReceived is a sane number (>${recvExpectation}) if media is flowing. ` +
             `value=${stat.bytesReceived}`
         );
 
