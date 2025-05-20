@@ -22,6 +22,29 @@ function resetButtonVisibilityToDefault() {
   Services.prefs.clearUserPref(PREF_ALWAYS_VISIBLE);
 }
 
+async function checkAndDismissPostHideNotification(win) {
+  // After hiding the extensions button, a notification is displayed for 3
+  // seconds, notifying the user of "Move to menu". Check that it is shown and
+  // dismiss the notification.
+  info("Verifying that the 'Moved to menu' hint is shown");
+  let hintElem = win.ConfirmationHint._panel;
+  if (hintElem.state !== "open") {
+    info("Waiting for hint to be shown");
+    await BrowserTestUtils.waitForEvent(hintElem, "popupshown");
+  }
+  is(hintElem.state, "open", "Hint popup is open");
+  is(hintElem.anchorNode.id, "PanelUI-menu-button", "Anchored to appmenu");
+  is(
+    win.ConfirmationHint._message.getAttribute("data-l10n-id"),
+    "confirmation-hint-extensions-button-hidden",
+    "Shown 'Moved to menu' notification"
+  );
+  let hiddenpromise = BrowserTestUtils.waitForEvent(hintElem, "popuphidden");
+  hintElem.hidePopup();
+  info("Waiting for hint to be dismissed");
+  await hiddenpromise;
+}
+
 // Tests in this file repeatedly flips prefs. To avoid having to balance
 // pushPrefEnv / popPrefEnv often, reset it once in the end.
 registerCleanupFunction(resetButtonVisibilityToDefault);
@@ -86,6 +109,7 @@ add_task(async function test_hide_button_via_contextmenu() {
   );
   is(removeFromToolbar.hidden, false, "removeFromToolbar is visible");
   ok(!removeFromToolbar.hasAttribute("disabled"), "removeFromToolbar enabled");
+
   await closeChromeContextMenu(contextMenu.id, removeFromToolbar, win);
 
   info("Extensions button should hide after choosing 'Remove from Toolbar'");
@@ -93,6 +117,8 @@ add_task(async function test_hide_button_via_contextmenu() {
 
   info("Extensions button should also be hidden in another window");
   assertExtensionsButtonHidden(window);
+
+  await checkAndDismissPostHideNotification(win);
 
   await BrowserTestUtils.closeWindow(win);
   resetButtonVisibilityToDefault();
@@ -213,6 +239,8 @@ add_task(async function test_customization_button_and_menu_item_visibility() {
     assertExtensionsButtonVisible(win);
     info("The button should be hidden in windows that are not customizing");
     assertExtensionsButtonHidden();
+
+    await checkAndDismissPostHideNotification(win);
   }
 
   {

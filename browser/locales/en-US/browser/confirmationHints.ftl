@@ -4,6 +4,8 @@
 
 ## Confirmation hints
 
+# Subtle notification shown when Extensions button moves into the application menu.
+confirmation-hint-extensions-button-hidden = Moved to menu
 confirmation-hint-password-removed = Password removed!
 confirmation-hint-page-bookmarked = Saved to bookmarks
 confirmation-hint-password-created = Password saved

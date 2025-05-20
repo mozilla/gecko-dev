@@ -2787,6 +2787,10 @@ var gUnifiedExtensions = {
       "extensions.unifiedExtensions.button.always_visible",
       false
     );
+    ConfirmationHint.show(
+      document.getElementById("PanelUI-menu-button"),
+      "confirmation-hint-extensions-button-hidden"
+    );
   },
 
   showExtensionsButtonInToolbar() {
