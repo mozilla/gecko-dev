@@ -2178,6 +2178,12 @@ criteria = "safe-to-deploy"
 delta = "0.4.6 -> 0.4.9"
 notes = "Mostly soundness fixes."
 
+[[audits.fallible_collections]]
+who = "Matthew Gregan <kinetik@flim.org>"
+criteria = "safe-to-deploy"
+delta = "0.4.9 -> 0.5.1"
+notes = "Changes are largely removal of Rust < 1.57 support and dependency updates."
+
 [[audits.fastrand]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"

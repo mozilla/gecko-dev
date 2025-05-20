@@ -6,17 +6,17 @@ use core::default::Default;
 use core::fmt::Debug;
 use core::hash::Hash;
 
-#[cfg(not(all(feature = "std", feature = "rust_1_57")))]
+#[cfg(not(feature = "std"))]
 type HashMap<K, V> = hashbrown::hash_map::HashMap<K, V>;
 
-#[cfg(all(feature = "std", feature = "rust_1_57"))]
+#[cfg(feature = "std")]
 type HashMap<K, V> = std::collections::HashMap<K, V>;
 
-#[cfg(not(all(feature = "std", feature = "rust_1_57")))]
-use hashbrown::hash_map::{Iter, IntoIter};
+#[cfg(not(feature = "std"))]
+use hashbrown::hash_map::{IntoIter, Iter};
 
-#[cfg(all(feature = "std", feature = "rust_1_57"))]
-use std::collections::hash_map::{Iter, IntoIter};
+#[cfg(feature = "std")]
+use std::collections::hash_map::{IntoIter, Iter};
 
 pub struct TryHashMap<K, V> {
     inner: HashMap<K, V>,
@@ -87,20 +87,9 @@ where
 
     #[inline(always)]
     fn reserve(&mut self, additional: usize) -> Result<(), TryReserveError> {
-        #[cfg(not(all(feature = "std", feature = "rust_1_57")))]
-        {
-            self.inner.try_reserve(additional)
-        }
-
-        #[cfg(all(feature = "std", feature = "rust_1_57"))]
-        {
-            self.inner.try_reserve(additional).map_err(|_| {
-                crate::make_try_reserve_error(self.len(), additional,
-                    core::mem::size_of::<K>() + core::mem::size_of::<V>(),
-                    core::mem::align_of::<K>().max(core::mem::align_of::<V>()),
-                )
-            })
-        }
+        self.inner
+            .try_reserve(additional)
+            .map_err(|_| make_try_reserve_error())
     }
 }
 
@@ -136,4 +125,11 @@ fn tryhashmap_oom() {
         Ok(_) => panic!("it should be OOM"),
         _ => (),
     }
+}
+
+#[cold]
+fn make_try_reserve_error() -> TryReserveError {
+    let mut v: alloc::vec::Vec<[u8; 1024]> = alloc::vec::Vec::new();
+    // this will always overflow capacity
+    v.try_reserve(!0).unwrap_err()
 }
