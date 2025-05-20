@@ -4,6 +4,19 @@
 
 "use strict";
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "gCookiesRejectWhenInvalid",
+  "extensions.cookie.rejectWhenInvalid",
+  false
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "gCookiesMaxageCap",
+  "network.cookie.maxageCap",
+  0
+);
+
 var { ExtensionError } = ExtensionUtils;
 
 const SAME_SITE_STATUSES = new Map([
@@ -680,6 +693,14 @@ this.cookies = class extends ExtensionAPIPersistent {
             ? Number.MAX_SAFE_INTEGER
             : details.expirationDate;
 
+          // maxage cap for expiry
+          if (gCookiesMaxageCap > 0) {
+            expiry = Math.min(
+              expiry,
+              Math.round(Date.now() / 1000) + gCookiesMaxageCap
+            );
+          }
+
           let { originAttributes } = oaFromDetails(details, context);
 
           let cookieAttrs = {
@@ -718,7 +739,10 @@ this.cookies = class extends ExtensionAPIPersistent {
 
           // The permission check may have modified the domain, so use
           // the new value instead.
-          Services.cookies.add(
+          let fn = gCookiesRejectWhenInvalid
+            ? Services.cookies.add
+            : Services.cookies.addForAddOn;
+          const cv = fn(
             cookieAttrs.host,
             path,
             name,
@@ -733,7 +757,15 @@ this.cookies = class extends ExtensionAPIPersistent {
             isPartitioned
           );
 
-          // TODO: This requires a separate patch
+          if (cv.result !== Ci.nsICookieValidation.eOK) {
+            if (gCookiesRejectWhenInvalid) {
+              return Promise.reject({ message: cv.errorString });
+            }
+
+            Services.console.logStringMessage(
+              `Extension ${extension.id} tried to create an invalid cookie: ${cv.errorString}`
+            );
+          }
 
           return self.cookies.get(details);
         },

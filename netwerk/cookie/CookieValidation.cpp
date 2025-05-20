@@ -112,14 +112,6 @@ void CookieValidation::ValidateInternal() {
     mWarnings.mSameSiteNoneRequiresSecureForBeta = true;
   }
 
-  // Ensure the partitioned cookie is set with the secure attribute if CHIPS
-  // is enabled.
-  if (StaticPrefs::network_cookie_CHIPS_enabled() &&
-      mCookieData.isPartitioned() && !mCookieData.isSecure()) {
-    mResult = eRejectedPartitionedRequiresSecure;
-    return;
-  }
-
   // This part checks if the caleers have set the expiry value to max 400 days.
   if (!mCookieData.isSession()) {
     int64_t maxageCap = StaticPrefs::network_cookie_maxageCap();
@@ -210,6 +202,15 @@ void CookieValidation::ValidateInContextInternal(
 
   if (sameSite != nsICookie::SAMESITE_NONE && aIsForeignAndNotAddon) {
     mResult = eRejectedForNonSameSiteness;
+    return;
+  }
+
+  // Ensure the partitioned cookie is set with the secure attribute if CHIPS
+  // is enabled. This check should be part of ValidateInternal but it's not
+  // because of bug 1965880.
+  if (StaticPrefs::network_cookie_CHIPS_enabled() &&
+      mCookieData.isPartitioned() && !mCookieData.isSecure()) {
+    mResult = eRejectedPartitionedRequiresSecure;
     return;
   }
 }
