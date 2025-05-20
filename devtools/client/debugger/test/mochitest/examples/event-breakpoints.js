@@ -101,3 +101,8 @@ document.getElementById("focus-text").addEventListener("textInput", onTextInput)
 function onTextInput() {
   console.log("textInput");
 }
+
+document.getElementById("pointer-target").addEventListener("pointerrawupdate", onPointerRawUpdate);
+function onPointerRawUpdate() {
+  console.log("pointerrawupdate");
+}

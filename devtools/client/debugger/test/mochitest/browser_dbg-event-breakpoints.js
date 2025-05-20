@@ -171,6 +171,24 @@ add_task(async function () {
   await assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 72);
   await resume(dbg);
 
+  info(`Check that breakpoint can be set on "pointerrawupdate"`);
+  await toggleEventBreakpoint(dbg, "Pointer", "event.pointer.pointerrawupdate");
+
+  SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
+    // EventUtils.synthesize throws when dispatching a pointerrawupdate for some reason,
+    // let's build and dispatch the event directly
+    content.document
+      .getElementById("pointer-target")
+      .dispatchEvent(
+        new content.wrappedJSObject.PointerEvent("pointerrawupdate", {})
+      );
+  });
+
+  await waitForPaused(dbg);
+  await assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 107);
+  await resume(dbg);
+  await toggleEventBreakpoint(dbg, "Pointer", "event.pointer.pointerrawupdate");
+
   info("Check that the click event breakpoint is still enabled");
   invokeInTab("clickHandler");
   await waitForPaused(dbg);

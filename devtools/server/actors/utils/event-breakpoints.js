@@ -282,6 +282,7 @@ const AVAILABLE_BREAKPOINTS = [
       generalEvent("pointer", "pointerup"),
       generalEvent("pointer", "pointermove"),
       generalEvent("pointer", "pointercancel"),
+      generalEvent("pointer", "pointerrawupdate"),
       generalEvent("pointer", "gotpointercapture"),
       generalEvent("pointer", "lostpointercapture"),
     ],
