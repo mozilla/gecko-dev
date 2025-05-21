@@ -35,9 +35,6 @@ ChromeUtils.importESModule(
   }
 );
 
-const FEEDBACK_LINK =
-  "https://connect.mozilla.org/t5/discussions/try-out-link-previews-on-firefox-labs/td-p/92012";
-
 window.MozXULElement.insertFTLIfNeeded("preview/linkPreview.ftl");
 
 /**
@@ -136,6 +133,24 @@ class LinkPreviewCard extends MozLitElement {
     this.dispatchEvent(new CustomEvent("LinkPreviewCard:retry"));
   }
 
+  /**
+   * Toggles the expanded state of the key points section
+   *
+   * @param {MouseEvent} _event - The click event
+   */
+  toggleKeyPoints(_event) {
+    Services.prefs.setBoolPref(
+      "browser.ml.linkPreview.collapsed",
+      !this.collapsed
+    );
+
+    // When expanded, if there are existing key points, we won't trigger
+    // another generation
+    if (!this.collapsed) {
+      this.dispatchEvent(new CustomEvent("LinkPreviewCard:generate"));
+    }
+  }
+
   updated(properties) {
     if (this.optinRef.value) {
       this.optinRef.value.headingIcon = LinkPreviewCard.AI_ICON;
@@ -207,7 +222,14 @@ class LinkPreviewCard extends MozLitElement {
   renderOptInPlaceholderCard() {
     return html`
       <div class="ai-content">
-        <h3>
+        <h3
+          class="keypoints-header"
+          @click=${this._handleOptinDeny}
+          tabindex="0"
+          role="button"
+          aria-expanded=${!this.collapsed}
+        >
+          <div class="chevron-icon"></div>
           Key points
           <img
             class="icon"
@@ -216,22 +238,24 @@ class LinkPreviewCard extends MozLitElement {
             src="chrome://global/skin/icons/highlights.svg"
           />
         </h3>
-        <ul class="keypoints-list">
-          ${
-            /* Always show 3 placeholder loading items */
-            Array(LinkPreviewCard.PLACEHOLDER_COUNT)
-              .fill()
-              .map(
-                () =>
-                  html` <li class="content-item loading static">
-                    <div></div>
-                    <div></div>
-                    <div></div>
-                  </li>`
-              )
-          }
-        </ul>
-        ${this.renderModelOptIn()}
+        <div class="keypoints-content ${this.collapsed ? "hidden" : ""}">
+          <ul class="keypoints-list">
+            ${
+              /* Always show 3 placeholder loading items */
+              Array(LinkPreviewCard.PLACEHOLDER_COUNT)
+                .fill()
+                .map(
+                  () =>
+                    html` <li class="content-item loading static">
+                      <div></div>
+                      <div></div>
+                      <div></div>
+                    </li>`
+                )
+            }
+          </ul>
+          ${this.renderModelOptIn()}
+        </div>
       </div>
     `;
   }
@@ -242,35 +266,22 @@ class LinkPreviewCard extends MozLitElement {
    * @param {string} pageUrl - URL of the page being previewed
    * @returns {import('lit').TemplateResult} The normal generation card HTML
    */
-  /**
-   * Renders the normal generation card for displaying key points.
-   *
-   * @param {string} pageUrl - URL of the page being previewed
-   * @returns {import('lit').TemplateResult} The normal generation card HTML
-   */
   renderNormalGenerationCard(pageUrl) {
     // Extract the links section into its own variable
     const linksSection = html`
-      <p>
-        Key points are AI-generated and may have mistakes.
-        <a
-          @click=${this.handleLink}
-          data-source="feedback"
-          href=${FEEDBACK_LINK}
-        >
-          Share feedback
-        </a>
-      </p>
-      <p>
-        <a @click=${this.handleLink} data-source="visit" href=${pageUrl}>
-          Visit original page
-        </a>
-      </p>
+      <p>Key points are AI-generated and may have mistakes.</p>
     `;
 
     return html`
       <div class="ai-content">
-        <h3>
+        <h3
+          class="keypoints-header"
+          @click=${this.toggleKeyPoints}
+          tabindex="0"
+          role="button"
+          aria-expanded=${!this.collapsed}
+        >
+          <div class="chevron-icon"></div>
           Key points
           <img
             class="icon"
@@ -279,66 +290,68 @@ class LinkPreviewCard extends MozLitElement {
             src="chrome://global/skin/icons/highlights.svg"
           />
         </h3>
-        <ul class="keypoints-list">
-          ${
-            /* All populated content items */
-            this.keyPoints.map(
-              item => html`<li class="content-item">${item}</li>`
-            )
-          }
-          ${
-            /* Loading placeholders with three divs each */
-            this.generating
-              ? Array(
-                  Math.max(
-                    0,
-                    LinkPreviewCard.PLACEHOLDER_COUNT - this.keyPoints.length
+        <div class="keypoints-content ${this.collapsed ? "hidden" : ""}">
+          <ul class="keypoints-list">
+            ${
+              /* All populated content items */
+              this.keyPoints.map(
+                item => html`<li class="content-item">${item}</li>`
+              )
+            }
+            ${
+              /* Loading placeholders with three divs each */
+              this.generating
+                ? Array(
+                    Math.max(
+                      0,
+                      LinkPreviewCard.PLACEHOLDER_COUNT - this.keyPoints.length
+                    )
                   )
-                )
-                  .fill()
-                  .map(
-                    () =>
-                      html` <li class="content-item loading">
-                        <div></div>
-                        <div></div>
-                        <div></div>
-                      </li>`
-                  )
-              : []
-          }
-        </ul>
-        ${!this.generating
-          ? html`
-              <div class="visit-link-container">
-                <a
-                  @click=${this.handleLink}
-                  data-source="visit"
-                  href=${pageUrl}
-                  class="visit-link"
-                >
-                  Visit page
-                  <img
-                    class="icon"
-                    xmlns="http://www.w3.org/1999/xhtml"
-                    role="presentation"
-                    src="chrome://global/skin/icons/open-in-new.svg"
-                  />
-                </a>
-              </div>
-            `
-          : ""}
-        ${this.progress >= 0
-          ? html`
-              <p>First-time setup • <strong>${this.progress}%</strong></p>
-              <p>You'll see key points more quickly next time.</p>
-            `
-          : ""}
-        ${!this.generating
-          ? html`
-              <hr />
-              ${linksSection}
-            `
-          : ""}
+                    .fill()
+                    .map(
+                      () =>
+                        html` <li class="content-item loading">
+                          <div></div>
+                          <div></div>
+                          <div></div>
+                        </li>`
+                    )
+                : []
+            }
+          </ul>
+          ${!this.generating
+            ? html`
+                <div class="visit-link-container">
+                  <a
+                    @click=${this.handleLink}
+                    data-source="visit"
+                    href=${pageUrl}
+                    class="visit-link"
+                  >
+                    Visit page
+                    <img
+                      class="icon"
+                      xmlns="http://www.w3.org/1999/xhtml"
+                      role="presentation"
+                      src="chrome://global/skin/icons/open-in-new.svg"
+                    />
+                  </a>
+                </div>
+              `
+            : ""}
+          ${this.progress >= 0
+            ? html`
+                <p>First-time setup • <strong>${this.progress}%</strong></p>
+                <p>You'll see key points more quickly next time.</p>
+              `
+            : ""}
+          ${!this.generating
+            ? html`
+                <hr />
+                ${linksSection}
+              `
+            : ""}
+        </div>
       </div>
     `;
   }
@@ -372,6 +385,7 @@ class LinkPreviewCard extends MozLitElement {
    */
   _handleOptinConfirm() {
     Services.prefs.setBoolPref("browser.ml.linkPreview.optin", true);
+
     this.dispatchEvent(new CustomEvent("LinkPreviewCard:generate"));
   }
 
@@ -383,6 +397,8 @@ class LinkPreviewCard extends MozLitElement {
   _handleOptinDeny() {
     Services.prefs.setBoolPref("browser.ml.linkPreview.optin", false);
     Services.prefs.setBoolPref("browser.ml.linkPreview.collapsed", true);
+
+    Glean.genaiLinkpreview.cardAiConsent.record({ option: "cancel" });
   }
 
   /**
@@ -401,22 +417,12 @@ class LinkPreviewCard extends MozLitElement {
       return this.renderOptInPlaceholderCard();
     }
 
-    // If user has opted out, don't show any AI content
-    if (!this.optin) {
-      return "";
-    }
-
     if (isGenerationError) {
       return this.renderErrorGenerationCard(pageUrl);
     }
 
-    // Show key points section only if generating or we have key points
-    if (this.generating || this.keyPoints.length) {
-      return this.renderNormalGenerationCard(pageUrl);
-    }
-
-    // Otherwise, don't show the keypoints section
-    return "";
+    // Always render the ai-content, otherwise we won't have header to expand/collapse
+    return this.renderNormalGenerationCard(pageUrl);
   }
 
   /**
