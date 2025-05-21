@@ -5,7 +5,7 @@
 
 loadTestSubscript("head_unified_extensions.js");
 
-const verifyPermissionsPrompt = async expectedAnchorID => {
+const verifyPermissionsPrompt = async expectAlwaysShown => {
   const ext = ExtensionTestUtils.loadExtension({
     useAddonManager: "temporary",
 
@@ -78,6 +78,11 @@ const verifyPermissionsPrompt = async expectedAnchorID => {
       "addons-notification-icon",
       "expected the right anchor ID for the defaultsearch popup"
     );
+    if (expectAlwaysShown) {
+      assertExtensionsButtonVisible();
+    } else {
+      assertExtensionsButtonHidden();
+    }
     // Accept to override the search.
     panel.button.click();
     await TestUtils.topicObserved("webextension-defaultsearch-prompt-response");
@@ -100,9 +105,10 @@ const verifyPermissionsPrompt = async expectedAnchorID => {
       // the button), not on the unified extensions button itself.
       notification.anchorElement.id ||
         notification.anchorElement.parentElement.id,
-      expectedAnchorID,
+      "unified-extensions-button",
       "expected the right anchor ID"
     );
+    assertExtensionsButtonVisible();
 
     panel.button.click();
     await ext.awaitMessage("ok");
@@ -112,5 +118,22 @@ const verifyPermissionsPrompt = async expectedAnchorID => {
 };
 
 add_task(async function test_permissions_prompt() {
-  await verifyPermissionsPrompt("unified-extensions-button");
+  await verifyPermissionsPrompt(/* expectAlwaysShown */ true);
+});
+
+// This test confirms that the Extensions Button becomes temporarily visible
+// when a permission prompt needs to be anchored to it.
+add_task(async function test_permissions_prompt_when_button_is_hidden() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.unifiedExtensions.button.always_visible", false]],
+  });
+
+  assertExtensionsButtonHidden();
+
+  await verifyPermissionsPrompt(/* expectAlwaysShown */ false);
+
+  info("After install is done, Extensions button should be hidden again");
+  assertExtensionsButtonHidden();
+
+  await SpecialPowers.popPrefEnv();
 });

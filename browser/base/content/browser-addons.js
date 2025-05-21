@@ -1847,6 +1847,7 @@ var gUnifiedExtensions = {
     this.updateButtonVisibility();
     this._buttonAttrObs = new MutationObserver(() => this.onButtonOpenChange());
     this._buttonAttrObs.observe(this._button, { attributeFilter: ["open"] });
+    this._button.addEventListener("PopupNotificationsBeforeAnchor", this);
 
     gBrowser.addTabsProgressListener(this);
     window.addEventListener("TabSelect", () => this.updateAttention());
@@ -1871,6 +1872,7 @@ var gUnifiedExtensions = {
     }
 
     this._buttonAttrObs.disconnect();
+    this._button.removeEventListener("PopupNotificationsBeforeAnchor", this);
 
     window.removeEventListener("toolbarvisibilitychange", this);
 
@@ -2082,6 +2084,10 @@ var gUnifiedExtensions = {
 
       case "ViewHiding":
         this.onPanelViewHiding(event.target);
+        break;
+
+      case "PopupNotificationsBeforeAnchor":
+        this.ensureButtonShownBeforeAttachingPanel(PopupNotifications.panel);
         break;
 
       case "customizationstarting":
