@@ -263,10 +263,26 @@ class WalkerSearch {
   }
 
   _searchSelectors(query, options, results) {
+    if (!options.types.includes("selector")) {
+      return;
+    }
+
     // If the query is just one "word", no need to search because _searchIndex
     // will lead the same results since it has access to tagnames anyway
-    const isSelector = query && query.match(/[ >~.#\[\]]/);
-    if (!options.types.includes("selector") || !isSelector) {
+    if (
+      // regular tagname
+      query.match(/^[a-z]+$/i) ||
+      // custom element names
+      InspectorUtils.isCustomElementName(
+        query,
+        this.walker.targetActor.window.document.documentElement.namespaceURI
+      )
+    ) {
+      return;
+    }
+
+    // If the query is not a valid selector, bail
+    if (!CSS.supports(`selector(${query})`)) {
       return;
     }
 

@@ -140,6 +140,20 @@ add_task(async function () {
           ],
         },
         {
+          desc: "Search for selector with :has()",
+          search: "article:has(p)",
+          expected: [
+            {
+              node: inspectee.querySelectorAll("aside article")[0],
+              type: "selector",
+            },
+            {
+              node: inspectee.querySelectorAll("aside article")[2],
+              type: "selector",
+            },
+          ],
+        },
+        {
           desc: "Search with multiple matches in a single tag expecting a single result",
           search: "💩",
           expected: [
