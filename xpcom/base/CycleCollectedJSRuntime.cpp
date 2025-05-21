@@ -1992,14 +1992,7 @@ bool CycleCollectedJSRuntime::OOMReported() {
 
 void CycleCollectedJSRuntime::AnnotateAndSetOutOfMemory(OOMState* aStatePtr,
                                                         OOMState aNewState) {
-  enum class Size { Large, Small };
-
-  Size size = aStatePtr == &mOutOfMemoryState ? Size::Small : Size::Large;
-  MOZ_ASSERT_IF(size == Size::Large,
-                aStatePtr == &mLargeAllocationFailureState);
-
   *aStatePtr = aNewState;
-
   CrashReporter::Annotation annotation =
       (aStatePtr == &mOutOfMemoryState)
           ? CrashReporter::Annotation::JSOutOfMemory
@@ -2007,29 +2000,6 @@ void CycleCollectedJSRuntime::AnnotateAndSetOutOfMemory(OOMState* aStatePtr,
 
   CrashReporter::RecordAnnotationCString(annotation,
                                          OOMStateToString(aNewState));
-
-  // Attempt to report telemetry.
-  if (JSObject* global = JS::CurrentGlobalOrNull(GetContext()->Context())) {
-    if (aNewState == OOMState::Recovered) {
-      switch (size) {
-        case Size::Large:
-          SetUseCounter(global, eUseCounter_custom_JS_large_oom_recovered);
-          break;
-        case Size::Small:
-          SetUseCounter(global, eUseCounter_custom_JS_small_oom_recovered);
-          break;
-      }
-    } else {
-      switch (size) {
-        case Size::Large:
-          SetUseCounter(global, eUseCounter_custom_JS_large_oom_reported);
-          break;
-        case Size::Small:
-          SetUseCounter(global, eUseCounter_custom_JS_small_oom_reported);
-          break;
-      }
-    }
-  }
 }
 
 void CycleCollectedJSRuntime::OnGC(JSContext* aContext, JSGCStatus aStatus,
