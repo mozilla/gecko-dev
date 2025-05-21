@@ -64,7 +64,7 @@
   }
 
   moz-button:not([type~="ghost"]):not(:hover) {
-    &::part(button){
+    &::part(button) {
       background-color: var(--toolbarbutton-active-background);
     }
   }
