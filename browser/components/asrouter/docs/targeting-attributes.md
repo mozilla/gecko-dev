@@ -61,6 +61,7 @@ Please note that some targeting attributes require stricter controls on the tele
 * [messageImpressions](#messageimpressions)
 * [needsUpdate](#needsupdate)
 * [newtabSettings](#newtabsettings)
+* [packageFamilyName](#packagefamilyname)
 * [pinnedSites](#pinnedsites)
 * [platformName](#platformname)
 * [previousSessionEnd](#previoussessionend)
@@ -369,6 +370,21 @@ Does the client have the latest available version installed
 
 ```ts
 declare const needsUpdate: boolean;
+```
+
+### `packageFamilyName`
+Provides the package family name as given by the MSIX that Firefox was
+installed from, or the empty string if not installed from MSIX.
+
+#### Examples
+* Is the user running MSIX Nightly?
+```ts
+"MozillaNightly" in packageFamilyName
+```
+
+#### Definition
+```ts
+declare const packageFamilyName: string;
 ```
 
 ### `pinnedSites`

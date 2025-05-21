@@ -975,6 +975,22 @@ const TargetingGetters = {
     return Services.sysinfo.getProperty("hasWinPackageId", false);
   },
 
+  get packageFamilyName() {
+    if (AppConstants.platform !== "win") {
+      // PackageFamilyNames are an MSIX feature, so they won't be available on non-Windows platforms.
+      return null;
+    }
+
+    let packageFamilyName = Services.sysinfo.getProperty(
+      "winPackageFamilyName"
+    );
+    if (packageFamilyName === "") {
+      return null;
+    }
+
+    return packageFamilyName;
+  },
+
   /**
    * Is this invocation running in background task mode?
    *

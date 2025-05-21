@@ -1570,6 +1570,64 @@ add_task(async function check_isMSIX() {
   );
 });
 
+add_task(async function check_packageFamilyName() {
+  if (AppConstants.platform !== "win") {
+    is(
+      ASRouterTargeting.Environment.packageFamilyName,
+      null,
+      "Should always be null on non-Windows"
+    );
+    return;
+  }
+
+  let winPackageFamilyName = Services.sysinfo.getProperty(
+    "winPackageFamilyName"
+  );
+  if (winPackageFamilyName === "") {
+    is(
+      ASRouterTargeting.Environment.packageFamilyName,
+      null,
+      "Should be null if sysinfo is empty"
+    );
+  } else {
+    is(
+      ASRouterTargeting.Environment.packageFamilyName,
+      winPackageFamilyName,
+      "Should match non-empty sysinfo"
+    );
+  }
+});
+
+add_task(async function check_msixConsistency() {
+  if (ASRouterTargeting.Environment.isMSIX) {
+    Assert.greater(
+      ASRouterTargeting.Environment.packageFamilyName.length,
+      0,
+      "packageFamilyName should be non-empty if installed by MSIX"
+    );
+  } else {
+    is(
+      ASRouterTargeting.Environment.packageFamilyName,
+      null,
+      "packageFamilyName should be empty if not installed by MSIX"
+    );
+  }
+
+  if (ASRouterTargeting.Environment.packageFamilyName === null) {
+    is(
+      ASRouterTargeting.Environment.isMSIX,
+      false,
+      "isMSIX should be false if packageFamilyName is not present"
+    );
+  } else {
+    is(
+      ASRouterTargeting.Environment.isMSIX,
+      true,
+      "isMSIX should be true if packageFamilyName is present"
+    );
+  }
+});
+
 add_task(async function check_isRTAMO() {
   is(
     typeof ASRouterTargeting.Environment.isRTAMO,
