@@ -232,6 +232,7 @@ describe("ASRouter", () => {
       "spotlight",
       "moments-page",
       "pbNewtab",
+      "fxms-message-15",
     ].reduce((features, featureId) => {
       features[featureId] = {
         getEnrollmentMetadata: sandbox.stub().returns({
@@ -1779,6 +1780,9 @@ describe("ASRouter", () => {
       });
       assert.notCalled(Glean.messagingExperiments.reachCfr.record);
     });
+    // XXX this next test set (ie the single `it` that tries to generate
+    // four tests with `forEach`) doesn't work, because it will always
+    // pass, so don't use it as a pattern to write other tests. Bug 1967593
     it("should record the Exposure event for each valid feature", async () => {
       ["cfr_doorhanger", "update_action", "infobar", "spotlight"].forEach(
         async template => {
@@ -1812,6 +1816,52 @@ describe("ASRouter", () => {
           );
         }
       );
+    });
+
+    it("should send Exposure and route messages if recording reach fails", async () => {
+      const template = "feature_callout";
+      const featureId = "fxms-message-15";
+      const featureIdReachGroup = "FxmsMessage15";
+      let messages = [
+        {
+          _nimbusFeature: [featureId], // from _experimentsAPILoader
+          forReachEvent: {
+            sent: false,
+            group: featureIdReachGroup,
+          },
+          id: "foo1",
+          template,
+          trigger: { id: "fakeTrigger" },
+          content: { title: "Foo1", body: "Foo123-1" },
+        },
+        {
+          _nimbusFeature: [featureId], // from _experimentsAPILoader
+          id: "foo2",
+          template,
+          trigger: { id: "fakeTrigger" },
+          content: { title: "Foo2", body: "Foo123-2" },
+        },
+      ];
+      sandbox.stub(Router, "handleMessageRequest").resolves(messages);
+      sandbox.spy(Router, "routeCFRMessage");
+      sandbox
+        .stub(
+          Glean.messagingExperiments[`reach${featureIdReachGroup}`],
+          "record"
+        )
+        .throws(new Error("stuff"));
+      assert.notCalled(global.NimbusFeatures[featureId].recordExposureEvent);
+
+      await Router.sendTriggerMessage(
+        {
+          browser: {},
+          id: "foo",
+        },
+        true // skipMessagesLoaded to avoid irrelevant calls spy/stub calls
+      );
+
+      assert.calledOnce(global.NimbusFeatures[featureId].recordExposureEvent);
+      assert.calledOnce(Router.routeCFRMessage);
     });
   });
 

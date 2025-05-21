@@ -275,6 +275,7 @@ export function FakeNimbusFeature() {
     getAllVariables() {},
     onUpdate() {},
     offUpdate() {},
+    recordExposureEvent() {},
   };
 }
 

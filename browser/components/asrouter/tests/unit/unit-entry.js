@@ -521,6 +521,9 @@ const TEST_GLOBAL = {
   },
   FX_MONITOR_OAUTH_CLIENT_ID: "fake_client_id",
   ExperimentAPI: {},
+  FeatureCalloutBroker: {
+    showFeatureCallout() {},
+  },
   NimbusFeatures: FakeNimbusFeatures([
     ...MESSAGING_EXPERIMENTS_DEFAULT_FEATURES,
     "glean",
@@ -565,6 +568,9 @@ const TEST_GLOBAL = {
   Glean: {
     messagingExperiments: {
       reachCfr: {
+        record() {},
+      },
+      reachFxmsMessage15: {
         record() {},
       },
     },
@@ -694,5 +700,8 @@ overrider.set(TEST_GLOBAL);
 
 describe("asrouter", () => {
   after(() => overrider.restore());
+  console.log(
+    "Loading files from unit-entry.js (msg should show once - bug 1967579)"
+  );
   files.forEach(file => req(file));
 });

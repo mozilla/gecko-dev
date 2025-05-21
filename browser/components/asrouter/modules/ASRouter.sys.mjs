@@ -2051,20 +2051,33 @@ export class _ASRouter {
   }
 
   _recordReachEvent(message) {
-    const messageGroup = message.forReachEvent.group;
-    // Keeping parity with legacy event telemetry values that only accepted
-    // underscores in featureID passed to event telemetry.
-    // Glean expects the metric name in camelCase.
-    const name = messageGroup
-      .replace(/-/g, "_")
-      .split("_")
-      .map(word => word[0].toUpperCase() + word.slice(1))
-      .join("");
-    const extra = {
-      value: message.experimentSlug,
-      branches: message.branchSlug,
-    };
-    Glean.messagingExperiments[`reach${name}`].record(extra);
+    lazy.ASRouterPreferences.console.log(
+      "In ASRouter._recordReachEvent for message: ",
+      message
+    );
+
+    try {
+      const messageGroup = message.forReachEvent.group;
+      // Keeping parity with legacy event telemetry values that only accepted
+      // underscores in featureID passed to event telemetry.
+      // Glean expects the metric name in camelCase.
+      const name = messageGroup
+        .replace(/-/g, "_")
+        .split("_")
+        .map(word => word[0].toUpperCase() + word.slice(1))
+        .join("");
+      const extra = {
+        value: message.experimentSlug,
+        branches: message.branchSlug,
+      };
+      Glean.messagingExperiments[`reach${name}`].record(extra);
+    } catch (ex) {
+      // XXX ideally send this to telemetry, maybe along with a stack trace
+      lazy.ASRouterPreferences.console.error(
+        "Error recording reach event: ",
+        ex
+      );
+    }
   }
 
   /**
@@ -2088,6 +2101,8 @@ export class _ASRouter {
     { browser, ...trigger },
     skipLoadingMessages = false
   ) {
+    lazy.ASRouterPreferences.console.debug("entering sendTriggerMessage");
+    lazy.ASRouterPreferences.console.debug("trigger.id = ", trigger.id);
     if (!skipLoadingMessages) {
       await this.loadMessagesFromAllProviders();
     }
@@ -2123,6 +2138,10 @@ export class _ASRouter {
           message.forReachEvent.sent = true;
         }
       } else {
+        lazy.ASRouterPreferences.console.debug(
+          "about to push a nonReachMessage: ",
+          message
+        );
         nonReachMessages.push(message);
       }
     }
