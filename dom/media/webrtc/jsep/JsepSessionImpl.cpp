@@ -907,9 +907,7 @@ nsresult JsepSessionImpl::SetLocalDescriptionOffer(UniquePtr<Sdp> offer) {
   std::vector<JsepTrack*> recvTracks;
   recvTracks.reserve(mTransceivers.size());
   for (auto& transceiver : mTransceivers) {
-    if (transceiver.mJsDirection & sdp::kRecv) {
-      recvTracks.push_back(&transceiver.mRecvTrack);
-    }
+    recvTracks.push_back(&transceiver.mRecvTrack);
   }
 
   JsepTrack::SetUniqueReceivePayloadTypes(recvTracks, true);
@@ -1143,14 +1141,9 @@ nsresult JsepSessionImpl::HandleNegotiatedSession(
   CopyBundleTransports();
 
   std::vector<JsepTrack*> receiveTracks;
+  receiveTracks.reserve(mTransceivers.size());
   for (auto& transceiver : mTransceivers) {
-    // Do not count payload types for non-active recv tracks as duplicates. If
-    // we receive an RTP packet with a payload type that is used by both a
-    // sendrecv and a sendonly m-section, there is no ambiguity; it is for the
-    // sendrecv m-section.
-    if (transceiver.mRecvTrack.GetActive()) {
-      receiveTracks.push_back(&transceiver.mRecvTrack);
-    }
+    receiveTracks.push_back(&transceiver.mRecvTrack);
   }
   JsepTrack::SetUniqueReceivePayloadTypes(receiveTracks);
 
