@@ -125,7 +125,6 @@
 @BINPATH@/*/greprefs.js
 @BINPATH@/@PREF_DIR@/*/geckoview-prefs.js
 #endif # !MOZ_ANDROID_FAT_AAR_ARCHITECTURES
-@BINPATH@/defaults/autoconfig/prefcalls.js
 
 ; [Layout Engine Resources]
 ; Style Sheets, Graphics and other Resources used by the layout engine.
