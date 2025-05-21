@@ -3326,23 +3326,6 @@
       }
     ]
   },
-  "1950301": {
-    "label": "shamir.com",
-    "bugs": {
-      "1950301": {
-        "issue": "broken-layout",
-        "matches": ["*://shamir.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "content_scripts": {
-          "js": ["bug1950301-shamir.com-ua-overrides.js"]
-        }
-      }
-    ]
-  },
   "1950807": {
     "label": "sus.softadmin.se",
     "bugs": {
