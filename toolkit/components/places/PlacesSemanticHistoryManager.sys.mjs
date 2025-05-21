@@ -231,7 +231,7 @@ export class PlacesSemanticHistoryManager {
 
     const completionThreshold = Services.prefs.getFloatPref(
       "places.semanticHistory.completionThreshold",
-      "0.5"
+      0.5
     );
     // Ready once ≥ completionThreshold % completed.
     this.enoughEntries = ratio >= completionThreshold;
