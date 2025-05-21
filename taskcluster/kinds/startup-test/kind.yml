@@ -51,7 +51,7 @@ tasks:
             binary: firefox
         worker-type: t-linux-docker
         worker:
-            docker-image: {in-tree: ubuntu1804-test}
+            docker-image: {in-tree: ubuntu2404-test}
         shipping-product: firefox
         attributes:
             build_platform: linux-shippable
@@ -70,7 +70,7 @@ tasks:
             binary: firefox
         worker-type: t-linux-docker
         worker:
-            docker-image: {in-tree: ubuntu1804-test}
+            docker-image: {in-tree: ubuntu2404-test}
         shipping-product: firefox
         attributes:
             build_platform: linux64-shippable
