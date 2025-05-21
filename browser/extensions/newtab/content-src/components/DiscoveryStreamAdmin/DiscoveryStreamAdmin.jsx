@@ -398,12 +398,20 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
   }
 
   renderPersonalizationData() {
-    const { interestVector } = this.props.state.InferredPersonalization;
+    const {
+      inferredInterests,
+      coarseInferredInterests,
+      coarsePrivateInferredInterests,
+    } = this.props.state.InferredPersonalization;
     return (
       <div>
         {" "}
-        Interest Vector:
-        <pre>{JSON.stringify(interestVector, null, 2)}</pre>
+        Inferred Intrests:
+        <pre>{JSON.stringify(inferredInterests, null, 2)}</pre> Coarse Inferred
+        Interests:
+        <pre>{JSON.stringify(coarseInferredInterests, null, 2)}</pre> Coarse
+        Inferred Interests With Differential Privacy:
+        <pre>{JSON.stringify(coarsePrivateInferredInterests, null, 2)}</pre>
       </div>
     );
   }

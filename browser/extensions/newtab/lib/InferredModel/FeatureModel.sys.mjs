@@ -258,6 +258,22 @@ export class FeatureModel {
     });
   }
 
+  supportsCoarseInterests() {
+    return Object.values(this.interestVectorModel).every(
+      fm => fm.thresholds && fm.thresholds.length
+    );
+  }
+
+  supportsCoarsePrivateInterests() {
+    return Object.values(this.interestVectorModel).every(
+      fm =>
+        fm.thresholds &&
+        fm.thresholds.length &&
+        "diff_p" in fm &&
+        "diff_q" in fm
+    );
+  }
+
   /**
    * Return date intervals for the query
    */
@@ -347,6 +363,14 @@ export class FeatureModel {
     }
 
     if (applyThresholding) {
+      if (applyDifferentialPrivacy) {
+        // Zero values need to be shown so they can be randomized
+        Object.values(this.interestVectorModel).forEach(interestFeature => {
+          if (!(interestFeature.name in totalResults)) {
+            totalResults[interestFeature.name] = 0;
+          }
+        });
+      }
       for (const key of Object.keys(totalResults)) {
         if (key in this.interestVectorModel) {
           totalResults[key] = this.interestVectorModel[key].applyThresholds(
@@ -365,5 +389,52 @@ export class FeatureModel {
       }
     }
     return totalResults;
+  }
+
+  computeInterestVectors({
+    dataForIntervals,
+    indexSchema,
+    model_id = "unknown",
+  }) {
+    const result = {};
+    let inferredInterests;
+    let coarseInferredInterests;
+    let coarsePrivateInferredInterests;
+
+    inferredInterests = this.computeInterestVector({
+      dataForIntervals,
+      indexSchema,
+    });
+    result.inferredInterests = { ...inferredInterests, model_id };
+
+    if (this.supportsCoarseInterests()) {
+      coarseInferredInterests = this.computeInterestVector({
+        dataForIntervals,
+        indexSchema,
+        applyThresholding: true,
+      });
+      if (coarseInferredInterests) {
+        result.coarseInferredInterests = {
+          ...coarseInferredInterests,
+          model_id,
+        };
+      }
+    }
+
+    if (this.supportsCoarsePrivateInterests()) {
+      coarsePrivateInferredInterests = this.computeInterestVector({
+        dataForIntervals,
+        indexSchema,
+        applyThresholding: true,
+        applyDifferentialPrivacy: true,
+      });
+      if (coarsePrivateInferredInterests) {
+        result.coarsePrivateInferredInterests = {
+          ...coarsePrivateInferredInterests,
+          model_id,
+        };
+      }
+    }
+    return result;
   }
 }

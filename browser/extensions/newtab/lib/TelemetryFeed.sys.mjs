@@ -64,11 +64,13 @@ const PREF_PRIVATE_PING_ENABLED = "telemetry.privatePing.enabled";
 const PREF_REDACT_NEWTAB_PING_NEABLED =
   "telemetry.privatePing.redactNewtabPing.enabled";
 const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
-const PREF_COARSE_INFERRED_INTERESTS =
-  "discoverystream.sections.personalization.coarseInferredInterests";
 const PREF_PRIVATE_PING_INFERRED_ENABLED =
   "telemetry.privatePing.inferredInterests.enabled";
 const PREF_NEWTAB_PING_ENABLED = "browser.newtabpage.ping.enabled";
+const PREF_USER_INFERRED_PERSONALIZATION =
+  "discoverystream.sections.personalization.inferred.user.enabled";
+const PREF_SYSTEM_INFERRED_PERSONALIZATION =
+  "discoverystream.sections.personalization.inferred.enabled";
 
 // This is a mapping table between the user preferences and its encoding code
 export const USER_PREFS_ENCODING = {
@@ -156,11 +158,16 @@ export class TelemetryFeed {
   }
 
   get privatePingInferredInterestsEnabled() {
-    return this._prefs.get(PREF_PRIVATE_PING_INFERRED_ENABLED);
+    return (
+      this._prefs.get(PREF_PRIVATE_PING_INFERRED_ENABLED) &&
+      this._prefs.get(PREF_USER_INFERRED_PERSONALIZATION) &&
+      this._prefs.get(PREF_SYSTEM_INFERRED_PERSONALIZATION)
+    );
   }
 
   get inferredInterests() {
-    return this._prefs.get(PREF_COARSE_INFERRED_INTERESTS);
+    return this.store.getState()?.InferredPersonalization
+      ?.coarsePrivateInferredInterests;
   }
 
   get clientInfo() {
@@ -740,6 +747,7 @@ export class TelemetryFeed {
                   recommendation_id,
                 }),
           };
+
           Glean.pocket.click.record({
             ...this.redactNewTabPing(gleanData, is_sponsored),
             newtab_visit_id: session.session_id,
@@ -1029,7 +1037,9 @@ export class TelemetryFeed {
     const inferredInterests =
       this.privatePingInferredInterestsEnabled && this.inferredInterests;
     if (inferredInterests) {
-      Glean.newtabContent.inferredInterests.set(inferredInterests);
+      Glean.newtabContent.inferredInterests.set(
+        JSON.stringify(inferredInterests)
+      );
     }
 
     // When we have a coarse interest vector we want to make sure there isn't

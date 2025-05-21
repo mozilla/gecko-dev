@@ -188,6 +188,37 @@ const jsonModelData = {
     },
     [SPECIAL_FEATURE_CLICK]: {
       features: { click: 1 },
+      thresholds: [10, 30],
+      diff_p: 1,
+      diff_q: 0,
+    },
+  },
+};
+
+const jsonModelDataNoCoarseSupport = {
+  model_type: "clicks",
+  day_time_weighting: {
+    days: [3, 14, 45],
+    relative_weight: [1, 0.5, 0.3],
+  },
+  interest_vector: {
+    news_reader: {
+      features: { pub_nytimes_com: 0.5, pub_cnn_com: 0.5 },
+      thresholds: [],
+      // MISSING thresholds
+      diff_p: 1,
+      diff_q: 0,
+    },
+    parenting: {
+      features: { parenting: 1 },
+      thresholds: [0.3, 0.4],
+      // MISSING p,q values
+    },
+    [SPECIAL_FEATURE_CLICK]: {
+      features: { click: 1 },
+      thresholds: [10, 30],
+      diff_p: 1,
+      diff_q: 0,
     },
   },
 };
@@ -222,6 +253,32 @@ const SQL_RESULT_DATA = [
   [],
 ];
 
+add_task(function test_modelChecks() {
+  const model = FeatureModel.fromJSON(jsonModelData);
+  Assert.equal(
+    model.supportsCoarseInterests(),
+    true,
+    "Supports coarse interests check yes "
+  );
+  Assert.equal(
+    model.supportsCoarsePrivateInterests(),
+    true,
+    "Supports coarse private interests check yes "
+  );
+
+  const modelNoCoarse = FeatureModel.fromJSON(jsonModelDataNoCoarseSupport);
+  Assert.equal(
+    modelNoCoarse.supportsCoarseInterests(),
+    false,
+    "Supports coarse interests check no "
+  );
+  Assert.equal(
+    modelNoCoarse.supportsCoarsePrivateInterests(),
+    false,
+    "Supports coarse private interests check no "
+  );
+});
+
 add_task(function test_computeInterestVector() {
   const modelData = { ...jsonModelData, rescale: true };
   const model = FeatureModel.fromJSON(modelData);
@@ -234,11 +291,7 @@ add_task(function test_computeInterestVector() {
   Assert.ok("news_reader" in result, "Result should contain news_reader");
   Assert.equal(result.parenting, 1.0, "Vector is rescaled");
 
-  Assert.equal(
-    result[SPECIAL_FEATURE_CLICK],
-    2,
-    "Should include rescaled raw click"
-  );
+  Assert.equal(result[SPECIAL_FEATURE_CLICK], 2, "Should include raw click");
 });
 
 add_task(function test_computeThresholds() {
@@ -252,8 +305,8 @@ add_task(function test_computeThresholds() {
   Assert.equal(result.parenting, 2, "Threshold is applied");
   Assert.equal(
     result[SPECIAL_FEATURE_CLICK],
-    2,
-    "Should include rescaled raw click"
+    0,
+    "Should include thresholded raw click"
   );
 });
 
@@ -306,9 +359,46 @@ add_task(function test_differentialPrivacy() {
     "001",
     "Threshold is applied with differential privacy"
   );
+  Assert.equal(result[SPECIAL_FEATURE_CLICK].length, 3, "Apply DP to clicks");
+});
+
+add_task(function test_computeMultipleVectors() {
+  const modelData = { ...jsonModelData, rescale: true };
+  const model = FeatureModel.fromJSON(modelData);
+  const result = model.computeInterestVectors({
+    dataForIntervals: SQL_RESULT_DATA,
+    indexSchema: SCHEMA,
+    model_id: "test",
+  });
   Assert.equal(
-    result[SPECIAL_FEATURE_CLICK],
-    2,
-    "Should include rescaled raw click with no dp"
+    result.coarsePrivateInferredInterests.parenting,
+    "001",
+    "Threshold is applied with differential privacy"
+  );
+  Assert.ok(
+    Number.isInteger(result.coarseInferredInterests.parenting),
+    "Threshold is applied for coarse interest"
+  );
+  Assert.ok(
+    result.inferredInterests.parenting > 0,
+    "Original inferred interest is returned"
+  );
+});
+
+add_task(function test_computeMultipleVectorsNoPrivate() {
+  const model = FeatureModel.fromJSON(jsonModelDataNoCoarseSupport);
+  const result = model.computeInterestVectors({
+    dataForIntervals: SQL_RESULT_DATA,
+    indexSchema: SCHEMA,
+    model_id: "test",
+  });
+  Assert.ok(
+    !result.coarsePrivateInferredInterests,
+    "No coarse private interests available"
+  );
+  Assert.ok(!result.coarseInferredInterests, "No coarse interests available");
+  Assert.ok(
+    result.inferredInterests.parenting > 0,
+    "Original inferred interest is returned"
   );
 });

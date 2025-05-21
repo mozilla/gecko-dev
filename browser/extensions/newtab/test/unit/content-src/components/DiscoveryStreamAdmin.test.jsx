@@ -78,7 +78,9 @@ describe("DiscoveryStreamAdmin", () => {
               suggestions: [],
             },
             InferredPersonalization: {
-              interestVector: {},
+              inferredInterests: {},
+              coarseInferredInterests: {},
+              coarsePrivateInferredInterests: {},
             },
           }}
         />
@@ -112,7 +114,9 @@ describe("DiscoveryStreamAdmin", () => {
               suggestions: [],
             },
             InferredPersonalization: {
-              interestVector: {},
+              inferredInterests: {},
+              coarseInferredInterests: {},
+              coarsePrivateInferredInterests: {},
             },
           }}
         />

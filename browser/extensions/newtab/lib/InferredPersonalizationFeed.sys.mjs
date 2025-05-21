@@ -130,16 +130,18 @@ export class InferredPersonalizationFeed {
       CLICK_TABLE
     );
 
-    const ivClicks = model.computeInterestVector({
+    const interests = model.computeInterestVectors({
       dataForIntervals: aggClickPerInterval,
       indexSchema: schema,
+      model_id: inferredModel.model_id,
     });
 
     if (model.modelType === MODEL_TYPE.CLICKS) {
-      return { ...ivClicks, model_id: inferredModel.model_id };
+      return interests;
     }
 
     if (model.modelType === MODEL_TYPE.CLICK_IMP_PAIR) {
+      // This model type does not support differential privacy or thresholding
       const aggImpressionsPerInterval =
         await this.queryDatabaseForTimeIntervals(intervals, IMPRESSION_TABLE);
       const ivImpressions = model.computeInterestVector({
@@ -147,11 +149,11 @@ export class InferredPersonalizationFeed {
         indexSchema: schema,
       });
       const res = {
-        c: ivClicks,
+        c: interests.inferredInterests,
         i: ivImpressions,
         model_id: inferredModel.model_id,
       };
-      return res;
+      return { inferredInterests: res };
     }
 
     // unsupported modelType
@@ -170,7 +172,6 @@ export class InferredPersonalizationFeed {
         INTEREST_VECTOR_UPDATE_TIME
       )
     ) {
-      // TODO Get model from Merino/DiscoveryStreamFeed
       interest_vector = {
         data: await this.generateInterestVector(),
         lastUpdated: this.Date().now(),
@@ -184,7 +185,10 @@ export class InferredPersonalizationFeed {
         type: at.INFERRED_PERSONALIZATION_UPDATE,
         data: {
           lastUpdated: interest_vector.lastUpdated,
-          interestVector: interest_vector.data,
+          inferredInterests: interest_vector.data.inferredInterests,
+          coarseInferredInterests: interest_vector.data.coarseInferredInterests,
+          coarsePrivateInferredInterests:
+            interest_vector.data.coarsePrivateInferredInterests,
         },
         meta: {
           isStartup,

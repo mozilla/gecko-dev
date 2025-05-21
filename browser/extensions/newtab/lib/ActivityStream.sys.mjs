@@ -684,14 +684,6 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
-    "discoverystream.sections.personalization.coarseInferredInterests",
-    {
-      title:
-        "Latest coarse interest vector for New Tab content with differential privacy. To be used with OHTTP private ping only.",
-      value: "",
-    },
-  ],
-  [
     "discoverystream.sections.personalization.inferred.model.override",
     {
       title:

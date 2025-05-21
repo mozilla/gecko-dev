@@ -935,9 +935,11 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
   }
   renderPersonalizationData() {
     const {
-      interestVector
+      inferredInterests,
+      coarseInferredInterests,
+      coarsePrivateInferredInterests
     } = this.props.state.InferredPersonalization;
-    return /*#__PURE__*/external_React_default().createElement("div", null, " ", "Interest Vector:", /*#__PURE__*/external_React_default().createElement("pre", null, JSON.stringify(interestVector, null, 2)));
+    return /*#__PURE__*/external_React_default().createElement("div", null, " ", "Inferred Intrests:", /*#__PURE__*/external_React_default().createElement("pre", null, JSON.stringify(inferredInterests, null, 2)), " Coarse Inferred Interests:", /*#__PURE__*/external_React_default().createElement("pre", null, JSON.stringify(coarseInferredInterests, null, 2)), " Coarse Inferred Interests With Differential Privacy:", /*#__PURE__*/external_React_default().createElement("pre", null, JSON.stringify(coarsePrivateInferredInterests, null, 2)));
   }
   renderFeedData(url) {
     const {
@@ -7485,7 +7487,9 @@ const INITIAL_STATE = {
   InferredPersonalization: {
     initialized: false,
     lastUpdated: null,
-    interestVector: {},
+    inferredIntrests: {},
+    coarseInferredInterests: {},
+    coarsePrivateInferredInterests: {},
   },
   Search: {
     // When search hand-off is enabled, we render a big button that is styled to
@@ -7982,7 +7986,10 @@ function InferredPersonalization(
       return {
         ...prevState,
         initialized: true,
-        interestVector: action.data.interestVector,
+        inferredInterests: action.data.inferredInterests,
+        coarseInferredInterests: action.data.coarseInferredInterests,
+        coarsePrivateInferredInterests:
+          action.data.coarsePrivateInferredInterests,
         lastUpdated: action.data.lastUpdated,
       };
     case actionTypes.INFERRED_PERSONALIZATION_RESET:

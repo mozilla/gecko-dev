@@ -135,7 +135,9 @@ export const INITIAL_STATE = {
   InferredPersonalization: {
     initialized: false,
     lastUpdated: null,
-    interestVector: {},
+    inferredIntrests: {},
+    coarseInferredInterests: {},
+    coarsePrivateInferredInterests: {},
   },
   Search: {
     // When search hand-off is enabled, we render a big button that is styled to
@@ -632,7 +634,10 @@ function InferredPersonalization(
       return {
         ...prevState,
         initialized: true,
-        interestVector: action.data.interestVector,
+        inferredInterests: action.data.inferredInterests,
+        coarseInferredInterests: action.data.coarseInferredInterests,
+        coarsePrivateInferredInterests:
+          action.data.coarsePrivateInferredInterests,
         lastUpdated: action.data.lastUpdated,
       };
     case at.INFERRED_PERSONALIZATION_RESET:
