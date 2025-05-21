@@ -31,6 +31,12 @@
  */
 
 /**
+ * Request 2x longer timeout for this test.
+ * There are lot of test cases in this file, but it doesn't make sense to split them up.
+ */
+requestLongerTimeout(2);
+
+/**
  * Definitions for the test cases.
  *
  * @typedef {object} Case
@@ -208,7 +214,7 @@ add_task(async function test_language_identification_behavior() {
       throw new Error("Expected only 1 main outcome.");
     }
 
-    if (buttonShown || offerTranslation) {
+    if (buttonShown || offerTranslation || translatePage) {
       await FullPageTranslationsTestUtils.assertTranslationsButton(
         {
           button: true,

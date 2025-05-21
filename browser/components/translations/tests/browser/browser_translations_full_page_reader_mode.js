@@ -88,6 +88,15 @@ add_task(async function test_translations_persist_in_reader_mode() {
     runInPage,
   });
 
+  await runInPage(async TranslationsTest => {
+    const { getLastParagraph } = TranslationsTest.getSelectors();
+    await TranslationsTest.assertTranslationResult(
+      "The page's last paragraph is translated from Spanish to English.",
+      getLastParagraph,
+      "— PUES, AUNQUE MOVÁIS MÁS BRAZOS QUE LOS DEL GIGANTE BRIAREO, ME LO HABÉIS DE PAGAR. [es to en]"
+    );
+  });
+
   await toggleReaderMode();
 
   await runInPage(async TranslationsTest => {
