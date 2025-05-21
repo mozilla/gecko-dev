@@ -2417,7 +2417,10 @@ export var Policies = {
                 let engine = Services.search.getEngineByName(engineName);
                 if (engine) {
                   try {
-                    await Services.search.removeEngine(engine);
+                    await Services.search.removeEngine(
+                      engine,
+                      Ci.nsISearchService.CHANGE_REASON_ENTERPRISE
+                    );
                   } catch (ex) {
                     lazy.log.error("Unable to remove the search engine", ex);
                   }

@@ -136,6 +136,14 @@ const REASON_CHANGE_MAP = new Map([
     Ci.nsISearchService.CHANGE_REASON_USER_PRIVATE_PREF_ENABLED,
     "user_private_pref_enabled",
   ],
+  // An update to the search engine ignore list caused a change of default.
+  [Ci.nsISearchService.CHANGE_REASON_ENGINE_IGNORE_LIST_UPDATED, "ignore-list"],
+  // There was no default engine in the settings or it was hidden, so we found
+  // a new default engine.
+  [
+    Ci.nsISearchService.CHANGE_REASON_NO_EXISTING_DEFAULT_ENGINE,
+    "no-existing-default",
+  ],
 ]);
 
 /**
@@ -546,9 +554,18 @@ export class SearchService {
     }
   }
 
-  // Test-only function to set SearchService initialization status
+  /**
+   * Test-only function to set SearchService initialization status
+   */
   forceInitializationStatusForTests(status) {
     this.#initializationStatus = status;
+  }
+
+  /**
+   * Test-only function
+   */
+  forceCurrentEngineToBeNull() {
+    this.#currentEngine = null;
   }
 
   /**
@@ -570,11 +587,19 @@ export class SearchService {
   resetToAppDefaultEngine() {
     let appDefaultEngine = this.appDefaultEngine;
     appDefaultEngine.hidden = false;
-    this.defaultEngine = appDefaultEngine;
+    this.#setEngineDefault(
+      false,
+      appDefaultEngine,
+      Ci.nsISearchService.CHANGE_REASON_USER
+    );
 
     let appPrivateDefaultEngine = this.appPrivateDefaultEngine;
     appPrivateDefaultEngine.hidden = false;
-    this.defaultPrivateEngine = appPrivateDefaultEngine;
+    this.#setEngineDefault(
+      true,
+      appPrivateDefaultEngine,
+      Ci.nsISearchService.CHANGE_REASON_USER
+    );
   }
 
   async maybeSetAndOverrideDefault(extension) {
@@ -766,11 +791,14 @@ export class SearchService {
 
     lazy.logConsole.debug("removeWebExtensionEngine:", id);
     for (let engine of this.#getEnginesByExtensionID(id)) {
-      await this.removeEngine(engine);
+      await this.removeEngine(
+        engine,
+        Ci.nsISearchService.CHANGE_REASON_ADDON_UNINSTALL
+      );
     }
   }
 
-  async removeEngine(engine) {
+  async removeEngine(engine, changeReason) {
     await this.init();
     if (!engine) {
       throw Components.Exception(
@@ -796,9 +824,12 @@ export class SearchService {
     engineToRemove.pendingRemoval = true;
 
     if (engineToRemove == this.defaultEngine) {
-      this.#findAndSetNewDefaultEngine({
-        privateMode: false,
-      });
+      this.#findAndSetNewDefaultEngine(
+        {
+          privateMode: false,
+        },
+        changeReason
+      );
     }
 
     // Bug 1575649 - We can't just check the default private engine here when
@@ -810,9 +841,12 @@ export class SearchService {
       this.#separatePrivateDefault &&
       engineToRemove == this.defaultPrivateEngine
     ) {
-      this.#findAndSetNewDefaultEngine({
-        privateMode: true,
-      });
+      this.#findAndSetNewDefaultEngine(
+        {
+          privateMode: true,
+        },
+        changeReason
+      );
     }
 
     if (engineToRemove.inMemory) {
@@ -1308,7 +1342,10 @@ export class SearchService {
       return currentEngine;
     }
     // No default in settings or it is hidden, so find the new default.
-    return this.#findAndSetNewDefaultEngine({ privateMode });
+    return this.#findAndSetNewDefaultEngine(
+      { privateMode },
+      Ci.nsISearchService.CHANGE_REASON_NO_EXISTING_DEFAULT_ENGINE
+    );
   }
 
   /**
@@ -1515,7 +1552,10 @@ export class SearchService {
             // Only do this for non-application provided engines. We shouldn't
             // ever get application provided engines removed here, but just in case.
             if (!engine.isAppProvided) {
-              await this.removeEngine(engine);
+              await this.removeEngine(
+                engine,
+                Ci.nsISearchService.CHANGE_REASON_ADDON_UNINSTALL
+              );
             }
           }
         }
@@ -1580,7 +1620,10 @@ export class SearchService {
     let engineRemoved = false;
     for (let engine of this._engines.values()) {
       if (this.#engineMatchesIgnoreLists(engine)) {
-        await this.removeEngine(engine);
+        await this.removeEngine(
+          engine,
+          Ci.nsISearchService.CHANGE_REASON_ENGINE_IGNORE_LIST_UPDATED
+        );
         engineRemoved = true;
       }
     }
@@ -2167,7 +2210,11 @@ export class SearchService {
             engine: duplicateEngine,
           });
 
-          this.defaultEngine = newAppEngine;
+          this.#setEngineDefault(
+            false,
+            newAppEngine,
+            Ci.nsISearchService.CHANGE_REASON_CONFIG
+          );
           // We're removing the old engine and we've changed the default, but this
           // is intentional and effectively everything is the same for the user, so
           // don't notify.
@@ -2327,7 +2374,11 @@ export class SearchService {
     this.#addEngineToStore(engine, true);
 
     // Now set it back to default.
-    this.defaultEngine = engine;
+    this.#setEngineDefault(
+      false,
+      engine,
+      Ci.nsISearchService.CHANGE_REASON_CONFIG
+    );
     return true;
   }
 
@@ -2723,9 +2774,16 @@ export class SearchService {
             );
 
             if (this.defaultEngine == engine) {
-              this.defaultEngine = engines[0];
+              this.#setEngineDefault(
+                false,
+                engines[0],
+                Ci.nsISearchService.CHANGE_REASON_CONFIG
+              );
             }
-            await this.removeEngine(engine);
+            await this.removeEngine(
+              engine,
+              Ci.nsISearchService.CHANGE_REASON_ADDON_INSTALL
+            );
           }
         }
       }
@@ -2864,7 +2922,10 @@ export class SearchService {
         // This is a legacy extension engine that needs to be migrated to WebExtensions.
         lazy.logConsole.debug("Migrating existing engine");
         shouldSetAsDefault = shouldSetAsDefault || this.defaultEngine == engine;
-        await this.removeEngine(engine);
+        await this.removeEngine(
+          engine,
+          Ci.nsISearchService.CHANGE_REASON_ADDON_INSTALL
+        );
       }
     }
 
@@ -2998,10 +3059,12 @@ export class SearchService {
    *   If true, returns the default engine for private browsing mode, otherwise
    *   the default engine for the normal mode. Note, this function does not
    *   check the "separatePrivateDefault" preference - that is up to the caller.
+   * @param {nsISearchService.DefaultEngineChangeReason} changeReason
+   *   The reason for the change of default engine.
    * @returns {nsISearchEngine|null}
    *   The appropriate search engine, or null if one could not be determined.
    */
-  #findAndSetNewDefaultEngine({ privateMode }) {
+  #findAndSetNewDefaultEngine({ privateMode }, changeReason) {
     // First to the app default engine...
     let newDefault = privateMode
       ? this.appPrivateDefaultEngine
@@ -3052,7 +3115,7 @@ export class SearchService {
     // to pick a new current engine. As soon as we return it, this new
     // current engine will become user-visible, so we should persist it.
     // by calling the setter.
-    this.#setEngineDefault(privateMode, newDefault);
+    this.#setEngineDefault(privateMode, newDefault, changeReason);
 
     return privateMode ? this.#currentPrivateEngine : this.#currentEngine;
   }
@@ -3065,7 +3128,7 @@ export class SearchService {
    *   sets the default engine for the normal mode. Note, this function does not
    *   check the "separatePrivateDefault" preference - that is up to the caller.
    * @param {SearchEngine} newEngine
-   *   The search engine to select
+   *   The search engine to select.
    * @param {nsISearchService.DefaultEngineChangeReason} changeReason
    *   The reason for the default search engine change, one of
    *   Ci.nsISearchService.CHANGE_REASON*.

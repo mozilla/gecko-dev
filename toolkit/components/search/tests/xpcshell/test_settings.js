@@ -567,6 +567,34 @@ add_task(async function test_settings_write_prevented_during_reload() {
   );
 });
 
+add_task(async function test_correct_change_reason_when_no_default_engine() {
+  Services.fog.initializeFOG();
+
+  let ss = Services.search.wrappedJSObject;
+
+  await loadSettingsFile("settings/settings-loading.json", false, false);
+  const settingsFileWritten = promiseAfterSettings();
+
+  await ss.reset();
+  await Services.search.init();
+
+  await settingsFileWritten;
+
+  sinon.stub(ss, "appDefaultEngine").get(() => null);
+  ss.forceCurrentEngineToBeNull();
+  ss._getEngineDefault(false);
+
+  let snapshot = Glean.searchEngineDefault.changed.testGetValue();
+  Assert.equal(
+    snapshot[0].extra.change_reason,
+    "no-existing-default",
+    "Should have triggered default changed event with reason 'no-existing-default'"
+  );
+
+  removeSettingsFile();
+  sinon.restore();
+});
+
 var EXPECTED_ENGINE = {
   engine: {
     name: "Test search engine",

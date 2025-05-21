@@ -762,7 +762,10 @@ class EngineStore {
       let engine = Services.search.getEngineByName(engineName);
       if (engine) {
         try {
-          await Services.search.removeEngine(engine);
+          await Services.search.removeEngine(
+            engine,
+            Ci.nsISearchService.CHANGE_REASON_ENTERPRISE
+          );
         } catch (ex) {
           // Engine might not exist
         }
@@ -959,7 +962,10 @@ class EngineView {
    */
   async promptAndRemoveEngine(engine) {
     if (engine.isAppProvided) {
-      Services.search.removeEngine(this.selectedEngine.originalEngine);
+      Services.search.removeEngine(
+        this.selectedEngine.originalEngine,
+        Ci.nsISearchService.CHANGE_REASON_USER
+      );
       return;
     }
 
@@ -992,7 +998,10 @@ class EngineView {
 
     // Button 0 is the remove button.
     if (button == 0) {
-      Services.search.removeEngine(this.selectedEngine.originalEngine);
+      Services.search.removeEngine(
+        this.selectedEngine.originalEngine,
+        Ci.nsISearchService.CHANGE_REASON_USER
+      );
     }
   }
 
