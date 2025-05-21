@@ -33,7 +33,7 @@ nav {
   margin-bottom: 20px;
 }
 
-nav>div,
+nav > div,
 #searchform,
 .moz-carousel,
 .factrow {
@@ -41,12 +41,12 @@ nav>div,
   align-items: center;
 }
 
-nav>div,
+nav > div,
 #searchform {
   gap: 40px;
 }
 
-nav>div,
+nav > div,
 #searchform,
 #searchresults,
 #top {
@@ -68,7 +68,7 @@ nav>div,
   overflow-y: hidden;
 }
 
-.card-container>.card {
+.card-container > .card {
   height: 160px;
   border-radius: 3px;
   border: 1px solid var(--subtle);
@@ -77,11 +77,11 @@ nav>div,
   padding: 10px;
 }
 
-.card-container>.card:not(:last-child) {
+.card-container > .card:not(:last-child) {
   margin-right: 10px;
 }
 
-.card-container>.card>a {
+.card-container > .card > a {
   display: block;
   margin-bottom: 2px;
 }
@@ -111,13 +111,13 @@ nav>div,
   width: calc(var(--carousel-card-width) * 4 + (3 * 10px));
 }
 
-.moz-carousel>.moz-inner {
+.moz-carousel > .moz-inner {
   border: 1px solid var(--subtle);
   border-radius: 10px;
   padding: 10px;
 }
 
-.moz-carousel>.moz-carousel-card {
+.moz-carousel > .moz-carousel-card {
   flex: 1 0 var(--carousel-card-width);
   border: 1px solid var(--subtle);
   font-size: 14px;

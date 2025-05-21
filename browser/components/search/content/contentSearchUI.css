@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 .contentSearchSuggestionTable {
-  background-color: hsla(0,0%,100%,.99);
+  background-color: hsla(0, 0%, 100%, 0.99);
   color: black;
-  border: 1px solid hsla(0, 0%, 0%, .2);
+  border: 1px solid hsla(0, 0%, 0%, 0.2);
   border-top: none;
-  box-shadow: 0 5px 10px hsla(0, 0%, 0%, .1);
+  box-shadow: 0 5px 10px hsla(0, 0%, 0%, 0.1);
   position: absolute;
   inset-inline-start: 0;
   z-index: 1001;
@@ -108,7 +108,7 @@
   padding: 0;
   border: none;
   background: none;
-  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAWCAYAAAABxvaqAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gofECQNNVW2/AAAABBJREFUGFdjOHPmzH8GehEA/KpKg9YTf4AAAAAASUVORK5CYII=');
+  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAWCAYAAAABxvaqAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gofECQNNVW2/AAAABBJREFUGFdjOHPmzH8GehEA/KpKg9YTf4AAAAAASUVORK5CYII=");
   background-repeat: no-repeat;
   background-position: right center;
 }
@@ -146,7 +146,7 @@
   padding: 0;
   height: 32px;
   border: none;
-  border-top: 1px solid hsla(0, 0%, 0%, .08);
+  border-top: 1px solid hsla(0, 0%, 0%, 0.08);
   text-align: center;
   width: 100%;
 }
