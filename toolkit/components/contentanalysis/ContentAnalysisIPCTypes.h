@@ -13,6 +13,7 @@
 #include "mozilla/Variant.h"
 #include "nsIContentAnalysis.h"
 #include "mozilla/RefPtr.h"
+#include "nsHashtablesFwd.h"
 
 namespace mozilla {
 namespace contentanalysis {
@@ -57,6 +58,8 @@ class ContentAnalysisNoResult : public nsIContentAnalysisResult {
   virtual ~ContentAnalysisNoResult() = default;
   NoContentAnalysisResult mValue;
 };
+
+using StringHashSet = nsTHashSet<nsString>;
 
 }  // namespace contentanalysis
 }  // namespace mozilla

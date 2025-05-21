@@ -733,7 +733,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   mozilla::ipc::IPCResult RecvDispatchToDropTargetAndResumeEndDragSession(
-      bool aShouldDrop);
+      bool aShouldDrop, nsTHashSet<nsString>&& aAllowedFilesPaths);
 
   void OnPointerRawUpdateEventListenerAdded(const nsPIDOMWindowInner* aWindow);
   void OnPointerRawUpdateEventListenerRemoved(

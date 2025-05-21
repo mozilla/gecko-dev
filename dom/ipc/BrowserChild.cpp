@@ -2250,12 +2250,14 @@ mozilla::ipc::IPCResult BrowserChild::RecvStoreDropTargetAndDelayEndDragSession(
 
 mozilla::ipc::IPCResult
 BrowserChild::RecvDispatchToDropTargetAndResumeEndDragSession(
-    bool aShouldDrop) {
+    bool aShouldDrop, nsTHashSet<nsString>&& aAllowedFilesPaths) {
   nsCOMPtr<nsIDragSession> dragSession = GetDragSession();
   MOZ_ASSERT(dragSession);
   RefPtr<nsIWidget> widget = mPuppetWidget;
+  nsTHashSet<nsString> allowedPaths =
+      aShouldDrop ? std::move(aAllowedFilesPaths) : nsTHashSet<nsString>();
   dragSession->DispatchToDropTargetAndResumeEndDragSession(
-      widget, mDelayedDropPoint, aShouldDrop);
+      widget, mDelayedDropPoint, aShouldDrop, allowedPaths);
   mDelayedDropPoint = {};
   return IPC_OK();
 }

@@ -125,12 +125,15 @@ struct ParamTraits<nsTAutoStringN<T, N>> : ParamTraits<nsTSubstring<T>> {};
 template <class T>
 struct ParamTraits<nsTDependentString<T>> : ParamTraits<nsTSubstring<T>> {};
 
-// XXX While this has no special dependencies, it's currently only used in
-// GfxMessageUtils and could be moved there, or generalized to potentially work
-// with any nsTHashSet.
-template <>
-struct ParamTraits<nsTHashSet<uint64_t>> {
-  typedef nsTHashSet<uint64_t> paramType;
+// Key type must be a type with ParamTraits, a default constructor and a move
+// constructor.
+template <
+    typename KeyClass,
+    typename ConstructableKeyType = typename std::remove_const<
+        typename std::remove_reference<typename KeyClass::KeyType>::type>::type>
+struct ParamTraitsforHashSet {
+  typedef nsTBaseHashSet<KeyClass> paramType;
+  using KeyType = typename KeyClass::KeyType;
 
   static void Write(MessageWriter* aWriter, const paramType& aParam) {
     uint32_t count = aParam.Count();
@@ -147,16 +150,23 @@ struct ParamTraits<nsTHashSet<uint64_t>> {
     }
     paramType table(count);
     for (uint32_t i = 0; i < count; ++i) {
-      uint64_t key;
+      ConstructableKeyType key;
       if (!ReadParam(aReader, &key)) {
         return false;
       }
-      table.Insert(key);
+      table.Insert(std::move(key));
     }
     *aResult = std::move(table);
     return true;
   }
 };
+
+template <typename KeyClass>
+struct ParamTraits<nsTBaseHashSet<KeyClass>> : ParamTraitsforHashSet<KeyClass> {
+};
+template <>
+struct ParamTraits<nsTBaseHashSet<nsStringHashKey>>
+    : ParamTraitsforHashSet<nsStringHashKey, nsString> {};
 
 template <typename E>
 struct ParamTraits<nsTArray<E>> {

@@ -44,6 +44,7 @@ include "mozilla/ipc/TransportSecurityInfoUtils.h";
 include "mozilla/ipc/URIUtils.h";
 
 using struct nsID from "nsID.h";
+using mozilla::contentanalysis::StringHashSet from "mozilla/contentanalysis/ContentAnalysisIPCTypes.h";
 using mozilla::gfx::Matrix4x4 from "mozilla/gfx/Matrix.h";
 using mozilla::gfx::SurfaceFormat from "mozilla/gfx/Types.h";
 using mozilla::LayoutDeviceIntPoint from "Units.h";
@@ -1057,7 +1058,7 @@ child:
      * recorded drop target and issue any EndDragSession call that was stopped
      * by StoreDropTargetAndDelayEndDragSession (if any).
      */
-    async DispatchToDropTargetAndResumeEndDragSession(bool aShouldDrop);
+    async DispatchToDropTargetAndResumeEndDragSession(bool aShouldDrop, StringHashSet aAllowedFilePaths);
 
 parent:
     /**
