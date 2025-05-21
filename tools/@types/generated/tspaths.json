@@ -1580,9 +1580,6 @@
       "resource:///modules/policies/schema.sys.mjs": [
         "tools/@types/subs/schema.sys.d.mts"
       ],
-      "resource:///modules/profiles/ProfilesDatastoreService.sys.mjs": [
-        "browser/components/profiles/ProfilesDatastoreService.sys.mjs"
-      ],
       "resource:///modules/profiles/SelectableProfile.sys.mjs": [
         "browser/components/profiles/SelectableProfile.sys.mjs"
       ],
@@ -5686,6 +5683,9 @@
       ],
       "resource://gre/modules/CustomElementsListener.sys.mjs": [
         "toolkit/components/processsingleton/CustomElementsListener.sys.mjs"
+      ],
+      "resource://gre/modules/DAPReportController.sys.mjs": [
+        "toolkit/components/telemetry/dap/DAPReportController.sys.mjs"
       ],
       "resource://gre/modules/DAPTelemetrySender.sys.mjs": [
         "toolkit/components/telemetry/dap/DAPTelemetrySender.sys.mjs"

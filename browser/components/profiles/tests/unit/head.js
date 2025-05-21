@@ -23,7 +23,7 @@ ChromeUtils.defineLazyGetter(lazy, "SelectableProfileService", () => {
 
 ChromeUtils.defineLazyGetter(lazy, "ProfilesDatastoreService", () => {
   const { ProfilesDatastoreService } = ChromeUtils.importESModule(
-    "resource:///modules/profiles/ProfilesDatastoreService.sys.mjs"
+    "moz-src:///toolkit/profile/ProfilesDatastoreService.sys.mjs"
   );
 
   ProfilesDatastoreService.overrideDirectoryService({

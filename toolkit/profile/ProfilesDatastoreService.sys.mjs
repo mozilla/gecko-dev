@@ -14,6 +14,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
 });
 
+/**
+ * An API that allows access to the cross-profile SQLite database shared
+ * between a group of profiles. This database always exists, even if the
+ * user does not have the multiple profiles feature enabled.
+ */
 class ProfilesDatastoreServiceClass {
   #connection = null;
   #asyncShutdownBlocker = null;

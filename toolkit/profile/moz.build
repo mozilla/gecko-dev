@@ -18,6 +18,10 @@ XPIDL_SOURCES += [
     "nsIToolkitProfileService.idl",
 ]
 
+MOZ_SRC_FILES += [
+    "ProfilesDatastoreService.sys.mjs",
+]
+
 XPIDL_MODULE = "toolkitprofile"
 
 EXPORTS += ["nsProfileLock.h"]
