@@ -7,7 +7,6 @@ import os
 import pathlib
 import shutil
 import tempfile
-from datetime import datetime
 from unittest import mock
 
 import mozunit
@@ -928,10 +927,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             2,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-hash-results?"
-                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
-                f"&baseRepo=try&newRepo=try&framework=13\n\n"
+                "here once the tests are complete (the autodetected framework "
+                "selection may not show all of your tests):\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=13\n"
             ),
         ),
         (
@@ -940,22 +939,23 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             2,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-hash-results?"
-                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
-                f"&baseRepo=try&newRepo=try&framework=13\n\n"
+                "here once the tests are complete (the autodetected framework "
+                "selection may not show all of your tests):\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=13\n"
             ),
         ),
         (
-            {"cached_revision": ["cached_base_revision", "2024-04-04"]},
+            {"cached_revision": "cached_base_revision"},
             [10, 1, 1, 10, 2, 0],
             2,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-hash-results?"
-                f"baseHash=cached_base_revision&newHash={hash('mocked100')}&baseHashDate=2024-04-04&newHashDate=2025-01-01"
-                f"&baseRepo=try&newRepo=try&framework=13\n\n"
+                "here once the tests are complete (the autodetected framework "
+                "selection may not show all of your tests):\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=cached_base_revision&newRev=revision&"
+                "baseRepo=try&newRepo=try&framework=13\n"
             ),
         ),
         (
@@ -973,10 +973,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             0,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-hash-results?"
-                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
-                f"&baseRepo=try&newRepo=try&framework=1\n\n"
+                "here once the tests are complete (the autodetected framework "
+                "selection may not show all of your tests):\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=1\n"
             ),
         ),
         (
@@ -985,10 +985,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             0,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-hash-results?"
-                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
-                f"&baseRepo=try&newRepo=try&framework=1\n\n"
+                "here once the tests are complete (the autodetected framework "
+                "selection may not show all of your tests):\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=1\n"
             ),
         ),
         (
@@ -1006,10 +1006,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             2,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-hash-results?"
-                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
-                f"&baseRepo=try&newRepo=try&framework=13\n\n"
+                "here once the tests are complete (the autodetected framework "
+                "selection may not show all of your tests):\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=13\n"
             ),
         ),
         (
@@ -1018,10 +1018,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             2,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-hash-results?"
-                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
-                f"&baseRepo=try&newRepo=try&framework=13\n\n"
+                "here once the tests are complete (the autodetected framework "
+                "selection may not show all of your tests):\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=13\n"
             ),
         ),
         (
@@ -1030,10 +1030,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             1,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-hash-results?"
-                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
-                f"&baseRepo=try&newRepo=try&framework=1\n\n"
+                "here once the tests are complete (the autodetected framework "
+                "selection may not show all of your tests):\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=1\n"
             ),
         ),
         (
@@ -1042,10 +1042,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             0,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-hash-results?"
-                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
-                f"&baseRepo=try&newRepo=try&framework=1\n\n"
+                "here once the tests are complete (the autodetected framework "
+                "selection may not show all of your tests):\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=1\n"
             ),
         ),
     ],
@@ -1070,17 +1070,7 @@ def test_full_run(options, call_counts, log_ind, expected_log_message):
         "tryselect.selectors.perf.PerfParser.set_categories_for_test"
     ) as tests_mock, mock.patch(
         "tryselect.selectors.perf.requests"
-    ) as requests_mock, mock.patch(
-        "tryselect.selectors.perf.datetime"
-    ) as mock_datetime, mock.patch(
-        "tryselect.selectors.perf.HG_TO_GIT_MIGRATION_COMPLETE", return_value=True
-    ), mock.patch(
-        "tryselect.selectors.perf.ON_GIT", return_value=True
-    ), mock.patch(
-        "tryselect.selectors.perf.time.time", return_value=100
-    ), mock.patch(
-        "tryselect.selectors.perf.subprocess.getoutput", return_value="mocked"
-    ):
+    ) as requests_mock:
 
         def test_mock_func(*args, **kwargs):
             """Used for testing any --test functionality."""
@@ -1145,9 +1135,9 @@ def test_full_run(options, call_counts, log_ind, expected_log_message):
         assert len(fzf_side_effects) >= call_counts[0]
 
         fzf.side_effect = fzf_side_effects
-        ccr.return_value = options.get("cached_revision", (None, None))
-        mock_datetime.today.return_value = datetime(2025, 1, 1)
+        ccr.return_value = options.get("cached_revision", None)
 
+        options["push_to_vcs"] = True
         with category_reset():
             run(**options)
 
@@ -1165,20 +1155,21 @@ def test_full_run(options, call_counts, log_ind, expected_log_message):
     [
         (
             {"tests": ["amazon"], "show_all": True},
-            [1, 2, 2, 8, 2, 1],
+            [1, 2, 0, 6, 2, 1],
             0,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-hash-results?"
-                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
-                f"&baseRepo=try&newRepo=try&framework=1\n\n"
+                "here once the tests are complete (the autodetected framework "
+                "selection may not show all of your tests):\n"
+                " https://perf.compare/compare-lando-results?"
+                "baseLando=13&newLando=14&"
+                "baseRepo=try&newRepo=try&framework=1\n"
             ),
         ),
     ],
 )
 @pytest.mark.skipif(os.name == "nt", reason="fzf not installed on host")
-def test_full_run_git_migration(options, call_counts, log_ind, expected_log_message):
+def test_full_run_lando(options, call_counts, log_ind, expected_log_message):
     with mock.patch("tryselect.selectors.perf.push_to_try") as ptt, mock.patch(
         "tryselect.selectors.perf.run_fzf"
     ) as fzf, mock.patch(
@@ -1197,17 +1188,7 @@ def test_full_run_git_migration(options, call_counts, log_ind, expected_log_mess
         "tryselect.selectors.perf.PerfParser.set_categories_for_test"
     ) as tests_mock, mock.patch(
         "tryselect.selectors.perf.requests"
-    ) as requests_mock, mock.patch(
-        "tryselect.selectors.perf.datetime"
-    ) as mock_datetime, mock.patch(
-        "tryselect.selectors.perf.HG_TO_GIT_MIGRATION_COMPLETE", return_value=True
-    ), mock.patch(
-        "tryselect.selectors.perf.ON_GIT", return_value=True
-    ), mock.patch(
-        "tryselect.selectors.perf.time.time", return_value=100
-    ), mock.patch(
-        "tryselect.selectors.perf.subprocess.getoutput", return_value="mocked"
-    ):
+    ) as requests_mock:
 
         def test_mock_func(*args, **kwargs):
             """Used for testing any --test functionality."""
@@ -1254,6 +1235,8 @@ def test_full_run_git_migration(options, call_counts, log_ind, expected_log_mess
         get_mock.json.return_value = {"tasks": ["task 1", "task 2"]}
         requests_mock.get.return_value = get_mock
 
+        ptt.side_effect = ["13", "14"]
+
         fzf_side_effects = [
             ["", ["Benchmarks linux"]],
             ["", TASKS],
@@ -1272,9 +1255,9 @@ def test_full_run_git_migration(options, call_counts, log_ind, expected_log_mess
         assert len(fzf_side_effects) >= call_counts[0]
 
         fzf.side_effect = fzf_side_effects
-        ccr.return_value = options.get("cached_revision", (None, None))
-        mock_datetime.today.return_value = datetime(2025, 1, 1)
+        ccr.return_value = options.get("cached_revision", None)
 
+        options["push_to_vcs"] = False
         with category_reset():
             run(**options)
 
@@ -1447,7 +1430,7 @@ def test_apk_upload(apk_name, apk_content, should_fail, failure_message):
                     },
                 ],
             },
-            ("2b04563b5", "2023-03-31"),
+            "2b04563b5",
             [1, 0],
             True,
         ),
@@ -1465,7 +1448,7 @@ def test_apk_upload(apk_name, apk_content, should_fail, failure_message):
                     },
                 ],
             },
-            ("2b04563b5", "2023-03-31"),
+            "2b04563b5",
             [1, 0],
             True,
         ),
@@ -1480,7 +1463,7 @@ def test_apk_upload(apk_name, apk_content, should_fail, failure_message):
                     },
                 ],
             },
-            (None, None),
+            None,
             [1, 0],
             True,
         ),
@@ -1498,21 +1481,21 @@ def test_apk_upload(apk_name, apk_content, should_fail, failure_message):
                     },
                 ],
             },
-            (None, None),
+            None,
             [1, 0],
             True,
         ),
         (
             ([], None),
             {},
-            (None, None),
+            None,
             [1, 1],
             True,
         ),
         (
             ([], None),
             {},
-            (None, None),
+            None,
             [0, 0],
             False,
         ),
@@ -1563,7 +1546,7 @@ def test_save_revision_treeherder(args, call_counts, exists_cache_file):
         is_file.return_value = exists_cache_file
 
         PerfParser.push_info.base_revision = "base_revision_treeherder"
-        PerfParser.save_revision_treeherder(TASKS, args[0])
+        PerfParser.save_revision_treeherder(TASKS, args[0], True)
 
         assert load.call_count == call_counts[0]
         assert dump.call_count == call_counts[1]
@@ -1647,6 +1630,8 @@ def test_max_perf_tasks(
         get_perf_tasks_mock.return_value = tasks, [], []
 
         PerfParser.push_info.finished_run = not expected_failure
+
+        options["push_to_vcs"] = True
         run(**options)
 
         assert perf_push_to_try_mock.call_count == 0 if expected_failure else 1

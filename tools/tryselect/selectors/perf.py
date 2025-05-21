@@ -9,7 +9,6 @@ import os
 import pathlib
 import shutil
 import subprocess
-import time
 from contextlib import redirect_stdout
 from datetime import datetime, timedelta
 
@@ -45,32 +44,18 @@ PREVIEW_SCRIPT = pathlib.Path(
     build.topsrcdir, "tools/tryselect/selectors/perf_preview.py"
 )
 
-PERFHERDER_BASE_URL = (
-    "https://treeherder.mozilla.org/perfherder/"
-    "compare?originalProject=try&originalRevision=%s&newProject=try&newRevision=%s"
-    "&framework=%s"
-)
-PERFHERDER_BASE_URL_GIT = (
-    "https://treeherder.mozilla.org/perfherder/"
-    "compare?originalProject=try&originalHash=%s&newProject=try&newHash=%s"
-    "&framework=%s"
-)
 PERFCOMPARE_BASE_URL = (
     "https://perf.compare/compare-results?"
     "baseRev=%s&newRev=%s&baseRepo=try&newRepo=try&framework=%s"
 )
-PERFCOMPARE_BASE_URL_GIT = (
-    "https://perf.compare/compare-hash-results?"
-    "baseHash=%s&newHash=%s&baseHashDate=%s&newHashDate=%s&baseRepo=try&newRepo=try&framework=%s"
+PERFCOMPARE_BASE_URL_LANDO = (
+    "https://perf.compare/compare-lando-results?"
+    "baseLando=%s&newLando=%s&baseRepo=try&newRepo=try&framework=%s"
 )
 TREEHERDER_TRY_BASE_URL = "https://treeherder.mozilla.org/jobs?repo=try&revision=%s"
 TREEHERDER_ALERT_TASKS_URL = (
     "https://treeherder.mozilla.org/api/performance/alertsummary-tasks/?id=%s"
 )
-
-# Our ./mach try perf changes should only take effect after we have migrated to github
-HG_TO_GIT_MIGRATION_COMPLETE = True
-ON_GIT = get_repository_object(build.topsrcdir).name == "git"
 
 # Prevent users from running more than 300 tests at once. It's possible, but
 # it's more likely that a query is broken and is selecting far too much.
@@ -1050,7 +1035,7 @@ class PerfParser(CompareParser):
 
         selected_tasks |= set(mwu_task)
 
-    def check_cached_revision(selected_tasks, base_commit=None):
+    def check_cached_revision(selected_tasks, base_commit=None, push_to_vcs=True):
         """
         If the base_commit parameter does not exist, remove expired cache data.
         Cache data format:
@@ -1082,7 +1067,7 @@ class PerfParser(CompareParser):
         today = today.strftime("%Y-%m-%d")
 
         if not cache_file.is_file():
-            return None, None
+            return None
 
         with cache_file.open("r") as f:
             cache_data = json.load(f)
@@ -1111,11 +1096,14 @@ class PerfParser(CompareParser):
         cached_base_commit = cache_data.get(base_commit, None)
         if cached_base_commit:
             for push in cached_base_commit:
-                if set(selected_tasks) <= set(push["tasks"]):
-                    return push["base_revision_treeherder"], push["date"]
-        return None, None
+                # Check to make sure that the cache entry uses the same push
+                # mechanism to avoid mixing them up
+                if push.get("lando", False) == (not push_to_vcs) and set(
+                    selected_tasks
+                ) <= set(push["tasks"]):
+                    return push["base_revision_treeherder"]
 
-    def save_revision_treeherder(selected_tasks, base_commit):
+    def save_revision_treeherder(selected_tasks, base_commit, push_to_vcs):
         """
         Save the base revision of treeherder to the cache.
         See "check_cached_revision" for more information about the data structure.
@@ -1130,10 +1118,11 @@ class PerfParser(CompareParser):
             "date": today,
             "tasks": list(selected_tasks),
             "base_revision_treeherder": (
-                PerfParser.push_info.base_hash
-                if ON_GIT and HG_TO_GIT_MIGRATION_COMPLETE
+                PerfParser.push_info.base_lando_commit_id
+                if not push_to_vcs
                 else PerfParser.push_info.base_revision
             ),
+            "lando": not push_to_vcs,
         }
 
         cache_data = {}
@@ -1176,10 +1165,16 @@ class PerfParser(CompareParser):
         if extra_args:
             args = " ".join(extra_args)
             env["PERF_FLAGS"] = args
-        if PerfParser.push_info.base_revision:
+        if (
+            PerfParser.push_info.base_revision
+            or PerfParser.push_info.base_lando_commit_id
+        ):
             # Reset updated since we no longer need to worry
             # about failing while we're on a base commit
-            env["PERF_BASE_REVISION"] = PerfParser.push_info.base_revision
+            env["PERF_BASE_REVISION"] = str(
+                PerfParser.push_info.base_lando_commit_id
+                or PerfParser.push_info.base_revision
+            )
         if PerfParser.found_android_tasks(selected_tasks) and try_config.get(
             "use-artifact-builds", False
         ):
@@ -1220,6 +1215,7 @@ class PerfParser(CompareParser):
         comparator,
         comparator_args,
         alert_summary_id,
+        push_to_vcs,
     ):
         """Perf-specific push to try method.
 
@@ -1244,26 +1240,6 @@ class PerfParser(CompareParser):
 
         new_commit_message = msg
         base_commit_message = msg
-        new_commit_hash = ""
-        base_commit_hash = ""
-        if ON_GIT and HG_TO_GIT_MIGRATION_COMPLETE:
-            # commit_author_and_time is used for the new_revision_hash
-            new_commit_hash = str(
-                hash(
-                    subprocess.getoutput("git show -s --format='%ae'")
-                    + str(time.time())
-                )
-            )
-            new_commit_message += "\ncommit_id:" + new_commit_hash
-
-            # current_user_and_current_commit is used for the base_revision_hash so it can be reused
-            base_commit_hash = str(
-                hash(
-                    subprocess.getoutput("git show -s --format='%H'")
-                    + subprocess.getoutput("git config user.email")
-                )
-            )
-            base_commit_message += "\ncommit_id:" + base_commit_hash
 
         # Get the comparator to run
         comparator_klass = get_comparator(comparator)
@@ -1286,17 +1262,18 @@ class PerfParser(CompareParser):
             if base_comparator:
                 # Don't cache the base revision when a custom comparison is being performed
                 # since the base revision is now unique and not general to all pushes
-                if ON_GIT and HG_TO_GIT_MIGRATION_COMPLETE:
-                    (
-                        PerfParser.push_info.base_hash,
-                        PerfParser.push_info.base_hash_date,
-                    ) = PerfParser.check_cached_revision(
-                        selected_tasks, base_commit_hash
+                if not push_to_vcs:
+                    PerfParser.push_info.base_lando_commit_id = (
+                        PerfParser.check_cached_revision(
+                            selected_tasks, compare_commit, push_to_vcs
+                        )
                     )
-                    base_run_flag = PerfParser.push_info.base_hash
+                    base_run_flag = PerfParser.push_info.base_lando_commit_id
                 else:
-                    PerfParser.push_info.base_revision, _ = (
-                        PerfParser.check_cached_revision(selected_tasks, compare_commit)
+                    PerfParser.push_info.base_revision = (
+                        PerfParser.check_cached_revision(
+                            selected_tasks, compare_commit, push_to_vcs
+                        )
                     )
                     base_run_flag = PerfParser.push_info.base_revision
 
@@ -1310,11 +1287,13 @@ class PerfParser(CompareParser):
                     base_try_config_params, base_extra_args, selected_tasks
                 )
 
-                with redirect_stdout(log_processor):
+                # When pushing to lando, capturing the log can trigger failures
+                # if the user has not logged in yet
+                if not push_to_vcs:
                     # XXX Figure out if we can use the `again` selector in some way
                     # Right now we would need to modify it to be able to do this.
                     # XXX Fix up the again selector for the perf selector (if it makes sense to)
-                    push_to_try(
+                    PerfParser.push_info.base_lando_commit_id = push_to_try(
                         "perf-again",
                         f"{base_commit_message}",
                         try_task_config=generate_try_task_config(
@@ -1324,23 +1303,29 @@ class PerfParser(CompareParser):
                         dry_run=dry_run,
                         closed_tree=False,
                         allow_log_capture=True,
-                        push_to_vcs=not ON_GIT,
+                        push_to_vcs=False,
                     )
+                else:
+                    with redirect_stdout(log_processor):
+                        push_to_try(
+                            "perf-again",
+                            f"{base_commit_message}",
+                            try_task_config=generate_try_task_config(
+                                "fuzzy", selected_tasks, params=base_try_config_params
+                            ),
+                            stage_changes=False,
+                            dry_run=dry_run,
+                            closed_tree=False,
+                            allow_log_capture=True,
+                            push_to_vcs=True,
+                        )
 
-                PerfParser.push_info.base_revision = log_processor.revision
-                PerfParser.push_info.base_hash = base_commit_hash
-                PerfParser.push_info.base_hash_date = datetime.today().strftime(
-                    "%Y-%m-%d"
-                )
+                    PerfParser.push_info.base_revision = log_processor.revision
+
                 if base_comparator:
-                    if ON_GIT and HG_TO_GIT_MIGRATION_COMPLETE:
-                        PerfParser.save_revision_treeherder(
-                            selected_tasks, base_commit_hash
-                        )
-                    else:
-                        PerfParser.save_revision_treeherder(
-                            selected_tasks, compare_commit
-                        )
+                    PerfParser.save_revision_treeherder(
+                        selected_tasks, compare_commit, push_to_vcs
+                    )
 
                 comparator_obj.teardown_base_revision()
 
@@ -1352,8 +1337,8 @@ class PerfParser(CompareParser):
                 selected_tasks,
             )
 
-            with redirect_stdout(log_processor):
-                push_to_try(
+            if not push_to_vcs:
+                PerfParser.push_info.new_lando_commit_id = push_to_try(
                     "perf",
                     f"{new_commit_message}",
                     # XXX Figure out if changing `fuzzy` to `perf` will break something
@@ -1364,13 +1349,25 @@ class PerfParser(CompareParser):
                     dry_run=dry_run,
                     closed_tree=False,
                     allow_log_capture=True,
-                    push_to_vcs=not ON_GIT,
+                    push_to_vcs=False,
                 )
+            else:
+                with redirect_stdout(log_processor):
+                    push_to_try(
+                        "perf",
+                        f"{new_commit_message}",
+                        # XXX Figure out if changing `fuzzy` to `perf` will break something
+                        try_task_config=generate_try_task_config(
+                            "fuzzy", selected_tasks, params=try_config_params
+                        ),
+                        stage_changes=False,
+                        dry_run=dry_run,
+                        closed_tree=False,
+                        allow_log_capture=True,
+                        push_to_vcs=True,
+                    )
 
-            PerfParser.push_info.new_revision = log_processor.revision
-            PerfParser.push_info.new_hash = new_commit_hash
-            PerfParser.push_info.new_hash_date = datetime.today().strftime("%Y-%m-%d")
-            comparator_obj.teardown_new_revision()
+                PerfParser.push_info.new_revision = log_processor.revision
 
         finally:
             comparator_obj.teardown()
@@ -1386,6 +1383,7 @@ class PerfParser(CompareParser):
         detect_changes=False,
         rebuild=1,
         clear_cache=False,
+        push_to_vcs=False,
         **kwargs,
     ):
         # Setup fzf
@@ -1489,6 +1487,7 @@ class PerfParser(CompareParser):
             kwargs.get("comparator", "BasePerfComparator"),
             kwargs.get("comparator_args", []),
             alert_summary_id,
+            push_to_vcs,
         )
 
     def run_category_checks():
@@ -1651,32 +1650,32 @@ def run(**kwargs):
         perfcompare_url = (
             PERFCOMPARE_BASE_URL % PerfParser.push_info.get_perfcompare_settings()
         )
-        compareview_url = (
-            PERFHERDER_BASE_URL % PerfParser.push_info.get_perfcompare_settings()
-        )
-        compareview_url_print = f" The old comparison tool is still available at this URL:\n {compareview_url}\n"
-        if HG_TO_GIT_MIGRATION_COMPLETE and ON_GIT:
+        if not kwargs.get("push_to_vcs"):
             perfcompare_url = (
-                PERFCOMPARE_BASE_URL_GIT
-                % PerfParser.push_info.get_perfcompare_settings_git()
+                PERFCOMPARE_BASE_URL_LANDO
+                % PerfParser.push_info.get_perfcompare_settings_lando()
             )
-            compareview_url_print = ""
-        original_try_url = TREEHERDER_TRY_BASE_URL % PerfParser.push_info.base_revision
-        # Bug 1958944 - Make gathering of base/new revisions optional
-        local_change_try_url = (
-            TREEHERDER_TRY_BASE_URL % PerfParser.push_info.new_revision
-        )
 
         print(
             "\n!!!NOTE!!!\n You'll be able to find a performance comparison here "
-            "once the tests are complete (ensure you select the right "
-            f"framework):\n {perfcompare_url}\n\n{compareview_url_print}"
+            "once the tests are complete (the autodetected framework selection may not "
+            f"show all of your tests):\n {perfcompare_url}\n"
         )
+
         print("\n*******************************************************")
-        print("*          2 commits/try-runs are created...          *")
+        print("*          2 commits/try-runs were created...         *")
         print("*******************************************************")
-        print(f"Base revision's try run: {original_try_url}")
-        print(f"Local revision's try run: {local_change_try_url}\n")
+
+        if kwargs.get("push_to_vcs"):
+            original_try_url = (
+                TREEHERDER_TRY_BASE_URL % PerfParser.push_info.base_revision
+            )
+            local_change_try_url = (
+                TREEHERDER_TRY_BASE_URL % PerfParser.push_info.new_revision
+            )
+            print(f"Base revision's try run: {original_try_url}")
+            print(f"Local revision's try run: {local_change_try_url}\n")
+
     print(
         "If you need any help, you can find us in the #perf-help Matrix channel:\n"
         "https://matrix.to/#/#perf-help:mozilla.org\n"

@@ -10,16 +10,14 @@ class PerfPushInfo:
         self,
         base_revision=None,
         new_revision=None,
+        base_lando_commit_id=None,
+        new_lando_commit_id=None,
         framework=None,
-        base_hash=None,
-        new_hash=None,
     ):
         self.base_revision = base_revision
-        self.base_hash = base_hash
-        self.base_hash_date = base_hash
         self.new_revision = new_revision
-        self.new_hash = new_hash
-        self.new_hash_date = new_hash
+        self.base_lando_commit_id = base_lando_commit_id
+        self.new_lando_commit_id = new_lando_commit_id
         self.framework = framework
         self.finished_run = False
 
@@ -41,38 +39,21 @@ class PerfPushInfo:
         self.finished_run = True
 
     @property
-    def base_hash(self):
-        return self._base_hash
+    def base_lando_commit_id(self):
+        return self._base_lando_commit_id
 
-    @base_hash.setter
-    def base_hash(self, base_hash):
-        self._base_hash = base_hash
+    @base_lando_commit_id.setter
+    def base_lando_commit_id(self, base_lando_commit_id):
+        self._base_lando_commit_id = base_lando_commit_id
 
     @property
-    def new_hash(self):
-        return self._new_hash
+    def new_lando_commit_id(self):
+        return self._new_lando_commit_id
 
-    @new_hash.setter
-    def new_hash(self, new_hash):
-        self._new_hash = new_hash
+    @new_lando_commit_id.setter
+    def new_lando_commit_id(self, new_lando_commit_id):
+        self._new_lando_commit_id = new_lando_commit_id
         self.finished_run = True
-
-    @property
-    def new_hash_date(self):
-        return self._new_hash_date
-
-    @new_hash_date.setter
-    def new_hash_date(self, new_hash_date):
-        self._new_hash_date = new_hash_date
-        self.finished_run = True
-
-    @property
-    def base_hash_date(self):
-        return self._base_hash_date
-
-    @base_hash_date.setter
-    def base_hash_date(self, base_hash_date):
-        self._base_hash_date = base_hash_date
 
     def get_perfcompare_settings(self):
         """Returns all the settings required to setup a perfcompare URL."""
@@ -82,12 +63,10 @@ class PerfPushInfo:
             self.framework,
         )
 
-    def get_perfcompare_settings_git(self):
-        """Returns all the settings required to setup a perfcompare URL after migration to git."""
+    def get_perfcompare_settings_lando(self):
+        """Returns all the settings required to setup a perfcompare URL using lando pushes."""
         return (
-            self.base_hash,
-            self.new_hash,
-            self.base_hash_date,
-            self.new_hash_date,
+            self.base_lando_commit_id,
+            self.new_lando_commit_id,
             self.framework,
         )
