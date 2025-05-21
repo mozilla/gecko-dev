@@ -297,9 +297,7 @@ export class LinkPreviewChild extends JSWindowActorChild {
           .getService(Ci.nsIParserUtils)
           .convertToPlainText(
             content,
-            Ci.nsIDocumentEncoder.OutputSelectionOnly | // Use only selected reader-view fragment
-              Ci.nsIDocumentEncoder.OutputAbsoluteLinks |
-              Ci.nsIDocumentEncoder.OutputFormatted, // Pretty-print formatting
+            null,
             0 // No line-wrapping
           );
 
