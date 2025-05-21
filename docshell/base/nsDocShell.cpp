@@ -10555,17 +10555,15 @@ nsresult nsDocShell::DoURILoad(nsDocShellLoadState* aLoadState,
   mBrowsingContext->SetTriggeringAndInheritPrincipals(
       aLoadState->TriggeringPrincipal(), aLoadState->PrincipalToInherit(),
       aLoadState->GetLoadIdentifier());
-  RefPtr<LoadInfo> loadInfo;
-  if (contentPolicyType == nsIContentPolicy::TYPE_DOCUMENT) {
-    loadInfo =
-        new LoadInfo(loadingWindow, uri, aLoadState->TriggeringPrincipal(),
-                     topLevelLoadingContext, securityFlags, sandboxFlags);
-  } else {
-    loadInfo = MOZ_TRY(LoadInfo::Create(
-        loadingPrincipal, aLoadState->TriggeringPrincipal(), loadingNode,
-        securityFlags, contentPolicyType, Maybe<mozilla::dom::ClientInfo>(),
-        Maybe<mozilla::dom::ServiceWorkerDescriptor>(), sandboxFlags));
-  }
+  RefPtr<LoadInfo> loadInfo =
+      (contentPolicyType == nsIContentPolicy::TYPE_DOCUMENT)
+          ? new LoadInfo(loadingWindow, uri, aLoadState->TriggeringPrincipal(),
+                         topLevelLoadingContext, securityFlags, sandboxFlags)
+          : new LoadInfo(loadingPrincipal, aLoadState->TriggeringPrincipal(),
+                         loadingNode, securityFlags, contentPolicyType,
+                         Maybe<mozilla::dom::ClientInfo>(),
+                         Maybe<mozilla::dom::ServiceWorkerDescriptor>(),
+                         sandboxFlags);
   RefPtr<WindowContext> context = mBrowsingContext->GetCurrentWindowContext();
 
   if (isAboutBlankLoadOntoInitialAboutBlank) {

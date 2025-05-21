@@ -2220,14 +2220,10 @@ long nsContentSecurityUtils::ClassifyDownload(
     loadingPrincipal = loadInfo->TriggeringPrincipal();
   }
   // Creating a fake Loadinfo that is just used for the MCB check.
-  Result<RefPtr<net::LoadInfo>, nsresult> maybeLoadInfo = net::LoadInfo::Create(
+  nsCOMPtr<nsILoadInfo> secCheckLoadInfo = new mozilla::net::LoadInfo(
       loadingPrincipal, loadInfo->TriggeringPrincipal(), nullptr,
       nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK,
       nsIContentPolicy::TYPE_FETCH);
-  if (maybeLoadInfo.isErr()) {
-    return nsITransfer::DOWNLOAD_FORBIDDEN;
-  }
-  RefPtr<net::LoadInfo> secCheckLoadInfo = maybeLoadInfo.unwrap();
   // Disable HTTPS-Only checks for that loadinfo. This is required because
   // otherwise nsMixedContentBlocker::ShouldLoad would assume that the request
   // is safe, because HTTPS-Only is handling it.
