@@ -1302,65 +1302,6 @@ bool nsRFPService::GetSpoofedKeyCode(const dom::Document* aDoc,
 // ============================================================================
 // ============================================================================
 // ============================================================================
-// Screen Resolution Stuff
-
-#ifdef XP_WIN
-#  define SPOOFED_AVAIL_OFFSET 48.0f
-#elif defined(XP_MACOSX)
-#  define SPOOFED_AVAIL_OFFSET 76.0f
-#else
-// Linux, Android and other platforms
-#  define SPOOFED_AVAIL_OFFSET 0.0f
-#endif
-
-nsSize nsRFPService::GetSpoofedScreenSize(const nsSize& aInner,
-                                          float aFullZoom) {
-#if defined(MOZ_WIDGET_ANDROID) || defined(XP_IOS)
-  return aInner;
-#endif
-
-  const float scale = AppUnitsPerCSSPixel() / aFullZoom;
-  const CSSIntSize outerOffset = GetOuterOffset();
-  const nsSize outer(aInner.width + outerOffset.width * scale,
-                     aInner.height + outerOffset.height * scale);
-
-  const std::array<CSSSize, 3> sizes = {
-      {{1920.0f, 1080.0f}, {3840.0f, 2160.0f}, {7680.0f, 4320.0f}}};
-  const CSSSize availOffset(0, SPOOFED_AVAIL_OFFSET);
-  for (const CSSSize& devSize : sizes) {
-    CSSSize avail = (devSize - availOffset) * scale;
-    if (outer.width <= avail.width && outer.height <= avail.height) {
-      return {int32_t(roundf(devSize.width * scale)),
-              int32_t(roundf(devSize.height * scale))};
-    }
-  }
-  return {int32_t(roundf(sizes.back().width * scale)),
-          int32_t(roundf(sizes.back().height * scale))};
-}
-
-CSSIntSize nsRFPService::GetOuterOffset() {
-  // These values were measured from systems with scaling 1.
-#if defined(XP_WIN)
-  return {16, 93};
-#elif defined(XP_MACOSX) || defined(MOZ_WIDGET_GTK)
-  return {0, 85};
-#else
-  return {0, 0};
-#endif
-}
-
-/* static */
-CSSIntRect nsRFPService::GetSpoofedScreenAvailSize(const nsSize& aScreenSize,
-                                                   float aScale) {
-  int spoofedHeightOffset =
-      NS_lround(SPOOFED_AVAIL_OFFSET / aScale * AppUnitsPerCSSPixel());
-  return CSSIntRect::FromAppUnitsRounded(nsRect{
-      0, 0, aScreenSize.width, aScreenSize.height - spoofedHeightOffset});
-}
-
-// ============================================================================
-// ============================================================================
-// ============================================================================
 // Randomization Stuff
 nsresult nsRFPService::GetBrowsingSessionKey(
     const OriginAttributes& aOriginAttributes, nsID& aBrowsingSessionKey) {
@@ -2708,4 +2649,23 @@ void nsRFPService::GetExemptedDomainsLowercase(nsCString& aExemptedDomains) {
   aExemptedDomains = *sExemptedDomainsLowercase;
 
 #undef EXEMPTED_DOMAINS_PREF_NAME
+}
+
+/* static */
+CSSIntRect nsRFPService::GetSpoofedScreenAvailSize(const nsRect& aRect,
+                                                   float aScale) {
+  int spoofedHeightOffset =
+#ifdef XP_WIN
+      48;
+#elif defined(XP_MACOSX)
+      76;
+#else
+      // Linux, Android and other platforms
+      0;
+#endif
+  spoofedHeightOffset =
+      NS_lround(float(spoofedHeightOffset) / aScale * AppUnitsPerCSSPixel());
+
+  return CSSIntRect::FromAppUnitsRounded(
+      nsRect{0, 0, aRect.width, aRect.height - spoofedHeightOffset});
 }

@@ -15,6 +15,26 @@ var test = function (isContent) {
     window.chromeWindow = ww.activeWindow;
   }
 
+  // The pairs of values expected to be the same when
+  // fingerprinting resistance is enabled.
+  let pairs = [
+    ["screenX", 0],
+    ["screenY", 0],
+    ["mozInnerScreenX", 0],
+    ["mozInnerScreenY", 0],
+    ["screen.pixelDepth", 24],
+    ["screen.colorDepth", 24],
+    ["screen.availWidth", "outerWidth"],
+    ["screen.availHeight", "outerHeight"],
+    ["screen.left", 0],
+    ["screen.top", 0],
+    ["screen.availLeft", 0],
+    ["screen.availTop", 0],
+    ["screen.width", "outerWidth"],
+    ["screen.height", "outerHeight"],
+    ["devicePixelRatio", 2],
+  ];
+
   // checkPair: tests if members of pair [a, b] are equal when evaluated.
   let checkPair = function (a, b) {
     // eslint-disable-next-line no-eval
@@ -37,48 +57,6 @@ var test = function (isContent) {
     SpecialPowers.pushPrefEnv(
       { set: [["privacy.resistFingerprinting", prefValue]] },
       function () {
-        let sizes = [
-          [1920, 1080],
-          [3840, 2160],
-          [7680, 4320],
-        ];
-        let screenSize;
-        for (let s of sizes) {
-          // Make sure we always have a value, even though we do not fit.
-          screenSize = s;
-          if (window.outerWidth <= s[0] && window.outerHeight <= s[1]) {
-            break;
-          }
-        }
-
-        // These values are hardcoded in nsRFPService.cpp.
-        let availOffset = 0;
-        if (SpecialPowers.Services.appinfo.OS == "WINNT") {
-          availOffset = 48;
-        } else if (SpecialPowers.Services.appinfo.OS == "Darwin") {
-          availOffset = 76;
-        }
-
-        // The pairs of values expected to be the same when
-        // fingerprinting resistance is enabled.
-        let pairs = [
-          ["screenX", 0],
-          ["screenY", 0],
-          ["mozInnerScreenX", 0],
-          ["mozInnerScreenY", 0],
-          ["screen.pixelDepth", 24],
-          ["screen.colorDepth", 24],
-          ["screen.availWidth", screenSize[0]],
-          ["screen.availHeight", screenSize[1] - availOffset],
-          ["screen.left", 0],
-          ["screen.top", 0],
-          ["screen.availLeft", 0],
-          ["screen.availTop", 0],
-          ["screen.width", screenSize[0]],
-          ["screen.height", screenSize[1]],
-          ["devicePixelRatio", 2],
-        ];
-
         // We will be resisting fingerprinting if the pref is enabled,
         // and we are in a content script (not chrome).
         let resisting = prefValue && isContent;

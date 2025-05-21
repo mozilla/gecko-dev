@@ -11,7 +11,6 @@
 #include <bitset>
 #include "ErrorList.h"
 #include "PLDHashTable.h"
-#include "Units.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/ContentBlockingLog.h"
 #include "mozilla/gfx/Types.h"
@@ -333,40 +332,6 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
 
   // --------------------------------------------------------------------------
 
-  /**
-   * This method finds a spoofed screen size that is bigger than the passed
-   * inner window size.
-   *
-   * @param aInner    [in] the inner size the returned resolution should cover.
-   *                  It should be in app units.
-   * @param aFullZoom [in] the applied zoom, which will be used to scale the
-   *                  returned resolution.
-   * @return          a spoofed screen size, already scaled and in app units.
-   */
-  static nsSize GetSpoofedScreenSize(const nsSize& aInner, float aFullZoom);
-
-  /**
-   * Get a standardized difference between outer and inner window sizes.
-   * This mimics the chrome size and the return value is platform-dependent.
-   *
-   * @return a spoofed difference in CSS pixels.
-   */
-  static CSSIntSize GetOuterOffset();
-
-  /**
-   * Get a spoofed screen available size.
-   * This function removes a standardized value from the screen height to mimic
-   * the size of the taskbar/dock.
-   *
-   * @param aScreenSize [in] the size of the screen, either the real one, or
-   *                         the result of GetSpoofedScreenSize.
-   * @return                 a spoofed screen available rect in CSS pixels.
-   */
-  static CSSIntRect GetSpoofedScreenAvailSize(const nsSize& aScreenSize,
-                                              float aScale);
-
-  // --------------------------------------------------------------------------
-
   // The method to generate the key for randomization. It can return nothing if
   // the session key is not available due to the randomization is disabled.
   static Maybe<nsTArray<uint8_t>> GenerateKey(nsIChannel* aChannel);
@@ -444,6 +409,9 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
 
   // Returns the value of privacy.resistFingerprinting.exemptedDomains pref
   static void GetExemptedDomainsLowercase(nsCString& aExemptedDomains);
+
+  static CSSIntRect GetSpoofedScreenAvailSize(const nsRect& aRect,
+                                              float aScale);
 
  private:
   nsresult Init();

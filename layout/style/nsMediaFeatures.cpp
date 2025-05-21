@@ -63,16 +63,8 @@ static nsSize GetSize(const Document& aDocument) {
 
 // A helper for three features below.
 static nsSize GetDeviceSize(const Document& aDocument) {
-  nsPresContext* pc = aDocument.GetPresContext();
-
   if (aDocument.ShouldResistFingerprinting(RFPTarget::CSSDeviceSize)) {
-    nsSize size = GetSize(aDocument);
-    if (Gecko_MediaFeatures_GetDisplayMode(&aDocument) ==
-        StyleDisplayMode::Fullscreen) {
-      return size;
-    }
-    return nsRFPService::GetSpoofedScreenSize(
-        size, pc ? pc->GetDeviceFullZoom() : 1.0f);
+    return GetSize(aDocument);
   }
 
   // Media queries in documents in an RDM pane should use the simulated
@@ -83,6 +75,7 @@ static nsSize GetDeviceSize(const Document& aDocument) {
     return CSSPixel::ToAppUnits(deviceSize.value());
   }
 
+  nsPresContext* pc = aDocument.GetPresContext();
   // NOTE(emilio): We should probably figure out how to return an appropriate
   // device size here, though in a multi-screen world that makes no sense
   // really.

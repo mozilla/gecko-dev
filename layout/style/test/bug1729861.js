@@ -1,5 +1,16 @@
 // # Bug 1729861
 
+// Expected values. Format: [name, pref_off_value, pref_on_value]
+var expected_values = [
+  [
+    "device-aspect-ratio",
+    screen.width + "/" + screen.height,
+    window.innerWidth + "/" + window.innerHeight,
+  ],
+  ["device-height", screen.height + "px", window.innerHeight + "px"],
+  ["device-width", screen.width + "px", window.innerWidth + "px"],
+];
+
 // Create a line containing a CSS media query and a rule to set the bg color.
 var mediaQueryCSSLine = function (key, val, color) {
   return (
@@ -34,32 +45,7 @@ var checkColorForPref = async function (setting, testDivs, expectedColor) {
   }
 };
 
-var test = async function (spoofedWidth, spoofedHeight) {
-  let spoofedScreen;
-  let sizes = [
-    [1920, 1080],
-    [3840, 2160],
-    [7680, 4320],
-  ];
-  for (let s of sizes) {
-    // Make sure we always have a value, even though we do not fit.
-    spoofedScreen = s;
-    if (window.outerWidth <= s[0] && window.outerHeight <= s[1]) {
-      break;
-    }
-  }
-
-  // Expected values. Format: [name, pref_off_value, pref_on_value]
-  var expected_values = [
-    [
-      "device-aspect-ratio",
-      `${screen.width}/${screen.height}`,
-      `${spoofedScreen[0]}/${spoofedScreen[1]}`,
-    ],
-    ["device-height", `${screen.height}px`, `${spoofedScreen[1]}px`],
-    ["device-width", `${screen.width}px`, `${spoofedScreen[0]}px`],
-  ];
-
+var test = async function () {
   // If the "off" and "on" expected values are the same, we can't actually
   // test anything here. (Might this be the case on mobile?)
   let skipTest = false;

@@ -35,6 +35,16 @@ add_task(async function test_new_window() {
     [{ gMaxAvailWidth, gMaxAvailHeight }],
     async function (input) {
       is(
+        content.screen.width,
+        input.gMaxAvailWidth,
+        "The screen.width has a correct rounded value"
+      );
+      is(
+        content.screen.height,
+        input.gMaxAvailHeight,
+        "The screen.height has a correct rounded value"
+      );
+      is(
         content.innerWidth,
         input.gMaxAvailWidth,
         "The window.innerWidth has a correct rounded value"

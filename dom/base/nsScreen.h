@@ -89,7 +89,6 @@ class nsScreen : public mozilla::DOMEventTargetHelper {
   mozilla::CSSIntRect GetRect();
   mozilla::CSSIntRect GetAvailRect();
   mozilla::CSSIntRect GetTopWindowInnerRectForRFP();
-  bool IsFullscreen() const;
 
  private:
   virtual ~nsScreen();
