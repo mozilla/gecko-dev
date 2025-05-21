@@ -10,7 +10,8 @@ body {
 
 /* This is needed to make the sidebar not hide the last button but breaks printing by hiding overflowing content */
 @media not print {
-  html, body {
+  html,
+  body {
     height: 100%;
   }
 }
@@ -241,7 +242,7 @@ section:not(.active) {
   width: 100%;
   white-space: nowrap;
   overflow: hidden;
-  font-size: 17px
+  font-size: 17px;
 }
 
 .histogram-stats {
@@ -278,7 +279,7 @@ section:not(.active) {
 
 .bar-inner {
   background-color: var(--color-accent-primary);
-  border: 1px solid rgba(0,0,0,0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 2px;
 }
 
@@ -286,7 +287,9 @@ section:not(.active) {
   margin-bottom: 1em;
 }
 
-th, td, table {
+th,
+td,
+table {
   text-align: start;
   word-break: break-all;
   border-collapse: collapse;

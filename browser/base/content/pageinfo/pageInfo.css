@@ -44,14 +44,15 @@ table {
   height: 6px;
 }
 
-th, td {
+th,
+td {
   padding: 0;
 }
 
 th {
   font: inherit;
   text-align: start;
-  padding-inline-end: .5em;
+  padding-inline-end: 0.5em;
 }
 
 /*

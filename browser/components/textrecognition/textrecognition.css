@@ -84,8 +84,8 @@
 
 .textRecognitionSuccessIcon {
   display: inline-block;
-  background-color: #2AC3A2;
-  border: 3px solid #2AC3A2;
+  background-color: #2ac3a2;
+  border: 3px solid #2ac3a2;
   fill: var(--in-content-page-background);
   -moz-context-properties: fill;
   border-radius: 10px;
@@ -96,13 +96,13 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .textRecognitionSuccessIcon {
-    animation: success-animation 0.3s cubic-bezier(.3,2,.48,.94);
+    animation: success-animation 0.3s cubic-bezier(0.3, 2, 0.48, 0.94);
   }
 }
 
 .textRecognitionNoResultIcon {
   display: inline-block;
-  fill: #FFBF00;
+  fill: #ffbf00;
   -moz-context-properties: fill;
   width: 18px;
   height: 18px;
@@ -122,13 +122,21 @@
 }
 
 @keyframes throbber-animation-ltr {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
 }
 
 @keyframes throbber-animation-rtl {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes success-animation {

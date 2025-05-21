@@ -69,10 +69,21 @@ tooltip:-moz-native-anonymous:-moz-locale-dir(rtl) {
 
 /****** elements that have no visual representation ******/
 
-script, data, commandset, command,
-broadcasterset, broadcaster, observes,
-keyset, key, toolbarpalette, template,
-treeitem, treeseparator, treerow, treecell {
+script,
+data,
+commandset,
+command,
+broadcasterset,
+broadcaster,
+observes,
+keyset,
+key,
+toolbarpalette,
+template,
+treeitem,
+treeseparator,
+treerow,
+treecell {
   display: none;
 }
 
@@ -369,8 +380,8 @@ tooltip {
    */
   @media (-moz-platform: linux) {
     padding: 6px 10px; /* Matches Adwaita. */
-    line-height: 1.4;  /* For Noto Sans; note that 1.2 may clip descenders. */
-    border: .5px solid color-mix(in srgb, currentColor 60%, transparent);
+    line-height: 1.4; /* For Noto Sans; note that 1.2 may clip descenders. */
+    border: 0.5px solid color-mix(in srgb, currentColor 60%, transparent);
     @media (-moz-gtk-csd-transparency-available) {
       border-radius: env(-moz-gtk-csd-tooltip-radius);
     }
@@ -565,7 +576,7 @@ scrollbox {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  scrollbox[smoothscroll=true] {
+  scrollbox[smoothscroll="true"] {
     scroll-behavior: smooth;
   }
 }
@@ -628,22 +639,47 @@ findbar {
 }
 
 /* Some elements that in HTML blocks should be inline-level by default */
-button, image {
+button,
+image {
   display: inline-flex;
 }
 
-[orient="vertical"] { flex-direction: column !important; }
-[orient="horizontal"] { flex-direction: row !important; }
+[orient="vertical"] {
+  flex-direction: column !important;
+}
+[orient="horizontal"] {
+  flex-direction: row !important;
+}
 
-[align="start"] { align-items: flex-start !important; }
-[align="center"] { align-items: center !important; }
-[align="end"] { align-items: flex-end !important; }
-[align="baseline"] { align-items: baseline !important; }
-[align="stretch"] { align-items: stretch !important; }
+[align="start"] {
+  align-items: flex-start !important;
+}
+[align="center"] {
+  align-items: center !important;
+}
+[align="end"] {
+  align-items: flex-end !important;
+}
+[align="baseline"] {
+  align-items: baseline !important;
+}
+[align="stretch"] {
+  align-items: stretch !important;
+}
 
-[pack="start"] { justify-content: start !important; }
-[pack="center"] { justify-content: center !important; }
-[pack="end"] { justify-content: flex-end !important; }
+[pack="start"] {
+  justify-content: start !important;
+}
+[pack="center"] {
+  justify-content: center !important;
+}
+[pack="end"] {
+  justify-content: flex-end !important;
+}
 
-[flex="0"] { flex: none !important; }
-[flex="1"] { flex: 1 !important; }
+[flex="0"] {
+  flex: none !important;
+}
+[flex="1"] {
+  flex: 1 !important;
+}

@@ -361,8 +361,8 @@ summary {
    * Stroke and fill colours were sampled from built-in dark and light theme
    * from Chrome on Windows
    */
-  fill: light-dark(#474747, #C7C7C7);
-  stroke: light-dark(#474747, #C7C7C7);
+  fill: light-dark(#474747, #c7c7c7);
+  stroke: light-dark(#474747, #c7c7c7);
 }
 
 .no-browsers-found-message {

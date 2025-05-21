@@ -11,5 +11,5 @@ body {
 .inner-content {
   height: 200%;
   width: 200%;
-  background: repeating-linear-gradient(#EEE, #EEE 100px, #DDD 100px, #DDD 200px);
+  background: repeating-linear-gradient(#eee, #eee 100px, #ddd 100px, #ddd 200px);
 }

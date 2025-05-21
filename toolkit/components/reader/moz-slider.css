@@ -4,8 +4,9 @@
 
 .container {
   display: grid;
-  grid-template-areas: "title title title "
-                       ".     icon  slider";
+  grid-template-areas:
+    "title title title "
+    ".     icon  slider";
   grid-template-columns: 0 min-content 1fr;
   align-items: center;
   gap: var(--space-large);

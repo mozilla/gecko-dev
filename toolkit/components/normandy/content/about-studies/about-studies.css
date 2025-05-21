@@ -3,15 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :root {
-  --icon-background-color-1: #0A84FF;
-  --icon-background-color-2: #008EA4;
-  --icon-background-color-3: #ED00B5;
-  --icon-background-color-4: #058B00;
-  --icon-background-color-5: #A47F00;
-  --icon-background-color-6: #FF0039;
+  --icon-background-color-1: #0a84ff;
+  --icon-background-color-2: #008ea4;
+  --icon-background-color-3: #ed00b5;
+  --icon-background-color-4: #058b00;
+  --icon-background-color-5: #a47f00;
+  --icon-background-color-6: #ff0039;
   --icon-background-disabled-color: #737373;
   --body-text-disabled-color: #737373;
-  --study-status-active-color: #058B00;
+  --study-status-active-color: #058b00;
   --study-status-disabled-color: #737373;
 }
 
@@ -92,7 +92,7 @@ button > .button-box {
 }
 
 .study-icon {
-  color: #FFF;
+  color: #fff;
   flex: 0 0 40px;
   font-size: 26px;
   height: 40px;
@@ -101,27 +101,27 @@ button > .button-box {
   text-transform: capitalize;
 }
 
-.study:nth-child(6n+0) .study-icon {
+.study:nth-child(6n + 0) .study-icon {
   background: var(--icon-background-color-1);
 }
 
-.study:nth-child(6n+1) .study-icon {
+.study:nth-child(6n + 1) .study-icon {
   background: var(--icon-background-color-2);
 }
 
-.study:nth-child(6n+2) .study-icon {
+.study:nth-child(6n + 2) .study-icon {
   background: var(--icon-background-color-3);
 }
 
-.study:nth-child(6n+3) .study-icon {
+.study:nth-child(6n + 3) .study-icon {
   background: var(--icon-background-color-4);
 }
 
-.study:nth-child(6n+4) .study-icon {
+.study:nth-child(6n + 4) .study-icon {
   background: var(--icon-background-color-5);
 }
 
-.study:nth-child(6n+5) .study-icon {
+.study:nth-child(6n + 5) .study-icon {
   background: var(--icon-background-color-6);
 }
 
@@ -139,7 +139,7 @@ button > .button-box {
 }
 
 .study-header {
-  margin-bottom: .3em;
+  margin-bottom: 0.3em;
 }
 
 .study-header > * {
@@ -156,8 +156,8 @@ button > .button-box {
   box-sizing: border-box;
   color: var(--in-content-text-color);
   font-size: 85%;
-  font-family: 'Fira Mono', 'mono', monospace;
-  padding: .05em .4em;
+  font-family: "Fira Mono", "mono", monospace;
+  padding: 0.05em 0.4em;
 }
 
 .study-actions {

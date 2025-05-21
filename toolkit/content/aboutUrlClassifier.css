@@ -11,12 +11,13 @@
   font-weight: bold;
 }
 
-#provider-table > tbody > tr >  td:last-child,
-#cache-table > tbody > tr >  td:last-child {
+#provider-table > tbody > tr > td:last-child,
+#cache-table > tbody > tr > td:last-child {
   text-align: center;
 }
 
-#debug-table, #cache-table {
+#debug-table,
+#cache-table {
   margin-top: 20px;
 }
 

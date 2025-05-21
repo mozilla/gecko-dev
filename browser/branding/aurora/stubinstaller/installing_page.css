@@ -35,7 +35,7 @@ body.high-contrast #progress_background {
   width: 0%;
   max-width: 100%;
   height: 100%;
-  background-color: #00AAFF;
+  background-color: #00aaff;
 }
 
 /* In high contrast mode, fill the entire progress bar with its border. */
@@ -46,7 +46,8 @@ body.high-contrast #progress_bar {
 }
 
 /* This layout doesn't want the header or content text. */
-#header, #content {
+#header,
+#content {
   display: none;
 }
 

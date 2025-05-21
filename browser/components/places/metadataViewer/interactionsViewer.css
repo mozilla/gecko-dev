@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 body {
-  padding: .5em 2em;
+  padding: 0.5em 2em;
   display: flex;
   flex-wrap: wrap;
 }
@@ -19,7 +19,7 @@ body {
 .message-bar-icon {
   vertical-align: middle;
   -moz-context-properties: fill;
-  fill: #FFBF00;
+  fill: #ffbf00;
 }
 
 #categories {
@@ -60,8 +60,8 @@ body {
 }
 
 #tableViewer > div {
-  padding: .3em 1em;
+  padding: 0.3em 1em;
   overflow-x: hidden;
-	text-overflow: ellipsis;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }

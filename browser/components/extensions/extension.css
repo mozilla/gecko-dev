@@ -15,7 +15,6 @@
  * browser_style: false or by switching to MV3.
 */
 @layer {
-
   /* Global */
   html,
   body {
@@ -114,7 +113,7 @@
   button.browser-style:disabled,
   select.browser-style:disabled {
     color: #999;
-    opacity: .5;
+    opacity: 0.5;
   }
 
   button.browser-style.focused,
@@ -149,7 +148,7 @@
 
   .browser-style.disabled > label {
     color: #999;
-    opacity: .5;
+    opacity: 0.5;
   }
 
   /* Radio Buttons */
@@ -276,8 +275,8 @@
     border: 1px solid #b1b1b1;
   }
 
-  button.browser-style:enabled:hover:active:not(.hover,  .focused),
-  select.browser-style:enabled:hover:active:not(.hover,  .focused) {
+  button.browser-style:enabled:hover:active:not(.hover, .focused),
+  select.browser-style:enabled:hover:active:not(.hover, .focused) {
     background-color: #d4d4d4;
     border: 1px solid #858585;
   }
@@ -321,7 +320,7 @@
   .browser-style > input[type="text"]:disabled,
   textarea.browser-style:disabled {
     color: #999;
-    opacity: .5;
+    opacity: 0.5;
   }
 
   .browser-style > input[type="text"].focused,
@@ -347,7 +346,8 @@
   .browser-style > input[type="text"]:invalid:not(:focus),
   textarea.browser-style:invalid:not(:focus) {
     border-color: var(--red-60);
-    box-shadow: 0 0 0 1px var(--red-60),
+    box-shadow:
+      0 0 0 1px var(--red-60),
       0 0 0 4px rgba(251, 0, 34, 0.3);
   }
 
@@ -421,7 +421,7 @@
   .panel-list-item > .text-shortcut {
     color: #808080;
     font-family: "Lucida Grande", caption;
-    font-size: .847em;
+    font-size: 0.847em;
     justify-content: flex-end;
   }
 
@@ -481,7 +481,7 @@
   .panel-section-footer-button > .text-shortcut {
     color: #808080;
     font-family: "Lucida Grande", caption;
-    font-size: .847em;
+    font-size: 0.847em;
   }
 
   .panel-section-footer-button:hover {
@@ -541,7 +541,9 @@
   }
 
   .panel-section-tabs-button.selected {
-    box-shadow: 0 -1px 0 #0670cc inset, 0 -4px 0 #0996f8 inset;
+    box-shadow:
+      0 -1px 0 #0670cc inset,
+      0 -4px 0 #0996f8 inset;
     color: #0996f8;
   }
 
@@ -568,5 +570,4 @@
       overflow: hidden;
     }
   }
-
 } /* end of @layer */

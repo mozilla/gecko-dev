@@ -13,7 +13,7 @@ body {
   background-color: transparent;
 }
 
-.settings_header{
+.settings_header {
   display: flex;
   flex-direction: row;
 }
@@ -77,7 +77,7 @@ body {
 }
 
 .button_report_issue_icon {
-  float:left;
+  float: left;
   height: 30px;
   margin: 5px;
 }
@@ -102,7 +102,7 @@ body {
 .divider {
   border-style: solid;
   border-width: 1px;
-  border-color:  var(--num04);
+  border-color: var(--num04);
   margin: 10px;
 }
 

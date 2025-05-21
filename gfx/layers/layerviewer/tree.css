@@ -2,26 +2,36 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-html, body {
+html,
+body {
   height: 100%;
   overflow: hidden;
 }
 .layerObjectDescription:hover {
-  background-color: #E8E8E8;
+  background-color: #e8e8e8;
 }
 
 .layerHover > .layerPreview::after {
   position: absolute;
-  top: 0; right: 0; bottom: 0; left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   content: "";
-  background-color: rgba(0,0,0,0.2);
-  box-shadow: -2px 2px 0 #FFF;
+  background-color: rgba(0, 0, 0, 0.2);
+  box-shadow: -2px 2px 0 #fff;
 }
 
 @keyframes layerHoverAnimation {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .displayHover {

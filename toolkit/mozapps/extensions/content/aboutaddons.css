@@ -217,8 +217,10 @@ message-bar-stack > * {
 
 .addon.card {
   margin-bottom: 16px;
+  transition:
+    opacity 150ms,
+    box-shadow 150ms;
   overflow: hidden;
-  transition: opacity 150ms, box-shadow 150ms;
 
   & .addon-name-link {
     transition: color 150ms;
@@ -354,12 +356,12 @@ addon-card[expanded] .update-postponed-bar + .addon-card-message {
 
 .addon-badge-recommended,
 .addon-badge-line {
-  border: 1px solid #CFCFD8;
+  border: 1px solid #cfcfd8;
   width: 20px;
   height: 20px;
 
   @media (prefers-color-scheme: dark) {
-    border-color: #3A3944;
+    border-color: #3a3944;
   }
 }
 
@@ -622,7 +624,7 @@ button.addon-detail-description-toggle {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background-color: var(--color-accent-primary);;
+  background-color: var(--color-accent-primary);
 }
 
 panel-item[action="remove"]::part(button) {

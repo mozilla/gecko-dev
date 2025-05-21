@@ -103,11 +103,17 @@ select {
 
   &:not([size], [multiple])[iconic] {
     padding-inline-start: calc(8px + 16px + 4px); /* spacing before image + image width + spacing after image */
-    background-size: auto 12px, 16px;
-    background-position: right 19px center, left 8px center;
+    background-size:
+      auto 12px,
+      16px;
+    background-position:
+      right 19px center,
+      left 8px center;
 
     &:dir(rtl) {
-      background-position-x: left 19px, right 8px;
+      background-position-x:
+        left 19px,
+        right 8px;
     }
   }
 }

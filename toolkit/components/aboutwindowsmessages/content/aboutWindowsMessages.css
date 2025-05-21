@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 .card {
-    margin-bottom: 16px;
+  margin-bottom: 16px;
 }
 
 .window-card-title {
-    display: inline;
+  display: inline;
 }
 
 .window-card-title:not(.current-window) {
-    font-weight: normal;
+  font-weight: normal;
 }
