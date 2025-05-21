@@ -80,7 +80,13 @@ class SearchEngineSelectorRepository(
                 iconsList = iconsList,
             )
 
-            return SearchMiddleware.BundleStorage.Bundle(searchEngineList, searchConfig.appDefaultEngineId ?: "")
+            val defaultEngineId = searchConfig.appDefaultEngineId
+                ?: searchConfig.engines.first().identifier
+
+            return SearchMiddleware.BundleStorage.Bundle(
+                searchEngineList,
+                defaultEngineId,
+            )
         } catch (exception: Exception) {
             logger.error("exception in SearchEngineSelectorRepository.load")
         }
