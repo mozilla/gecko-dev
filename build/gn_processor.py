@@ -514,7 +514,109 @@ def find_common_attrs(config_attributes):
     return common_attrs
 
 
-def write_mozbuild(
+def write_mozbuild(topsrcdir, write_mozbuild_variables, relsrcdir, configs):
+    target_srcdir = mozpath.join(topsrcdir, relsrcdir)
+    mkdir(target_srcdir)
+
+    target_mozbuild = mozpath.join(target_srcdir, "moz.build")
+    with open(target_mozbuild, "w") as fh:
+        mb = MozbuildWriter(fh)
+        mb.write(license_header)
+        mb.write("\n")
+        mb.write(generated_header)
+
+        try:
+            if relsrcdir in write_mozbuild_variables["INCLUDE_TK_CFLAGS_DIRS"]:
+                mb.write('if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":\n')
+                mb.write('    CXXFLAGS += CONFIG["MOZ_GTK3_CFLAGS"]\n')
+        except KeyError:
+            pass
+        try:
+            if relsrcdir in write_mozbuild_variables["INCLUDE_SYSTEM_GBM_HANDLING"]:
+                mb.write('CXXFLAGS += CONFIG["MOZ_GBM_CFLAGS"]\n')
+                mb.write('if not CONFIG["MOZ_SYSTEM_GBM"]:\n')
+                mb.write('    LOCAL_INCLUDES += [ "/third_party/gbm/gbm/" ]\n')
+        except KeyError:
+            pass
+        try:
+            if relsrcdir in write_mozbuild_variables["INCLUDE_SYSTEM_LIBDRM_HANDLING"]:
+                mb.write('CXXFLAGS += CONFIG["MOZ_LIBDRM_CFLAGS"]\n')
+                mb.write('if not CONFIG["MOZ_SYSTEM_LIBDRM"]:\n')
+                mb.write('    LOCAL_INCLUDES += [ "/third_party/drm/drm/",\n')
+                mb.write('                        "/third_party/drm/drm/include/",\n')
+                mb.write(
+                    '                        "/third_party/drm/drm/include/libdrm" ]\n'
+                )
+        except KeyError:
+            pass
+        try:
+            if (
+                relsrcdir
+                in write_mozbuild_variables["INCLUDE_SYSTEM_PIPEWIRE_HANDLING"]
+            ):
+                mb.write('CXXFLAGS += CONFIG["MOZ_PIPEWIRE_CFLAGS"]\n')
+                mb.write('if not CONFIG["MOZ_SYSTEM_PIPEWIRE"]:\n')
+                mb.write('    LOCAL_INCLUDES += [ "/third_party/pipewire/" ]\n')
+        except KeyError:
+            pass
+        try:
+            if relsrcdir in write_mozbuild_variables["INCLUDE_SYSTEM_LIBVPX_HANDLING"]:
+                mb.write('if not CONFIG["MOZ_SYSTEM_LIBVPX"]:\n')
+                mb.write('    LOCAL_INCLUDES += [ "/media/libvpx/libvpx/" ]\n')
+                mb.write('    CXXFLAGS += CONFIG["MOZ_LIBVPX_CFLAGS"]\n')
+        except KeyError:
+            pass
+        try:
+            if relsrcdir in write_mozbuild_variables["INCLUDE_SYSTEM_DAV1D_HANDLING"]:
+                mb.write('if CONFIG["MOZ_SYSTEM_AV1"]:\n')
+                mb.write('    CXXFLAGS += CONFIG["MOZ_SYSTEM_DAV1D_CFLAGS"]\n')
+                mb.write('    CXXFLAGS += CONFIG["MOZ_SYSTEM_LIBAOM_CFLAGS"]\n')
+        except KeyError:
+            pass
+
+        all_args = [args for args, _ in configs]
+
+        # Start with attributes that will be a part of the mozconfig
+        # for every configuration, then factor by other potentially useful
+        # combinations.
+        # FIXME: this is a time-bomb. See bug 1775202.
+        for attrs in (
+            (),
+            ("MOZ_DEBUG",),
+            ("OS_TARGET",),
+            ("TARGET_CPU",),
+            ("MOZ_DEBUG", "OS_TARGET"),
+            ("OS_TARGET", "MOZ_X11"),
+            ("OS_TARGET", "TARGET_CPU"),
+            ("OS_TARGET", "TARGET_CPU", "MOZ_X11"),
+            ("OS_TARGET", "TARGET_CPU", "MOZ_DEBUG"),
+            ("OS_TARGET", "TARGET_CPU", "MOZ_DEBUG", "MOZ_X11"),
+        ):
+            conditions = set()
+            for args in all_args:
+                cond = tuple((k, args.get(k) or "") for k in attrs)
+                conditions.add(cond)
+
+            for cond in sorted(conditions):
+                common_attrs = find_common_attrs(
+                    [
+                        attrs
+                        for args, attrs in configs
+                        if all((args.get(k) or "") == v for k, v in cond)
+                    ]
+                )
+                if any(common_attrs.values()):
+                    if cond:
+                        mb.write_condition(dict(cond))
+                    mb.write_attrs(common_attrs)
+                    if cond:
+                        mb.terminate_condition()
+
+        mb.finalize()
+    return target_mozbuild
+
+
+def write_mozbuild_files(
     topsrcdir,
     srcdir,
     non_unified_sources,
@@ -545,117 +647,11 @@ def write_mozbuild(
             configs_by_dir[d].append((mozbuild_args, build_data))
 
     mozbuilds = set()
+    # threading this section did not produce noticeable speed gains
     for relsrcdir, configs in sorted(configs_by_dir.items()):
-        target_srcdir = mozpath.join(topsrcdir, relsrcdir)
-        mkdir(target_srcdir)
-
-        target_mozbuild = mozpath.join(target_srcdir, "moz.build")
-        mozbuilds.add(target_mozbuild)
-        with open(target_mozbuild, "w") as fh:
-            mb = MozbuildWriter(fh)
-            mb.write(license_header)
-            mb.write("\n")
-            mb.write(generated_header)
-
-            try:
-                if relsrcdir in write_mozbuild_variables["INCLUDE_TK_CFLAGS_DIRS"]:
-                    mb.write('if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":\n')
-                    mb.write('    CXXFLAGS += CONFIG["MOZ_GTK3_CFLAGS"]\n')
-            except KeyError:
-                pass
-            try:
-                if relsrcdir in write_mozbuild_variables["INCLUDE_SYSTEM_GBM_HANDLING"]:
-                    mb.write('CXXFLAGS += CONFIG["MOZ_GBM_CFLAGS"]\n')
-                    mb.write('if not CONFIG["MOZ_SYSTEM_GBM"]:\n')
-                    mb.write('    LOCAL_INCLUDES += [ "/third_party/gbm/gbm/" ]\n')
-            except KeyError:
-                pass
-            try:
-                if (
-                    relsrcdir
-                    in write_mozbuild_variables["INCLUDE_SYSTEM_LIBDRM_HANDLING"]
-                ):
-                    mb.write('CXXFLAGS += CONFIG["MOZ_LIBDRM_CFLAGS"]\n')
-                    mb.write('if not CONFIG["MOZ_SYSTEM_LIBDRM"]:\n')
-                    mb.write('    LOCAL_INCLUDES += [ "/third_party/drm/drm/",\n')
-                    mb.write(
-                        '                        "/third_party/drm/drm/include/",\n'
-                    )
-                    mb.write(
-                        '                        "/third_party/drm/drm/include/libdrm" ]\n'
-                    )
-            except KeyError:
-                pass
-            try:
-                if (
-                    relsrcdir
-                    in write_mozbuild_variables["INCLUDE_SYSTEM_PIPEWIRE_HANDLING"]
-                ):
-                    mb.write('CXXFLAGS += CONFIG["MOZ_PIPEWIRE_CFLAGS"]\n')
-                    mb.write('if not CONFIG["MOZ_SYSTEM_PIPEWIRE"]:\n')
-                    mb.write('    LOCAL_INCLUDES += [ "/third_party/pipewire/" ]\n')
-            except KeyError:
-                pass
-            try:
-                if (
-                    relsrcdir
-                    in write_mozbuild_variables["INCLUDE_SYSTEM_LIBVPX_HANDLING"]
-                ):
-                    mb.write('if not CONFIG["MOZ_SYSTEM_LIBVPX"]:\n')
-                    mb.write('    LOCAL_INCLUDES += [ "/media/libvpx/libvpx/" ]\n')
-                    mb.write('    CXXFLAGS += CONFIG["MOZ_LIBVPX_CFLAGS"]\n')
-            except KeyError:
-                pass
-            try:
-                if (
-                    relsrcdir
-                    in write_mozbuild_variables["INCLUDE_SYSTEM_DAV1D_HANDLING"]
-                ):
-                    mb.write('if CONFIG["MOZ_SYSTEM_AV1"]:\n')
-                    mb.write('    CXXFLAGS += CONFIG["MOZ_SYSTEM_DAV1D_CFLAGS"]\n')
-                    mb.write('    CXXFLAGS += CONFIG["MOZ_SYSTEM_LIBAOM_CFLAGS"]\n')
-            except KeyError:
-                pass
-
-            all_args = [args for args, _ in configs]
-
-            # Start with attributes that will be a part of the mozconfig
-            # for every configuration, then factor by other potentially useful
-            # combinations.
-            # FIXME: this is a time-bomb. See bug 1775202.
-            for attrs in (
-                (),
-                ("MOZ_DEBUG",),
-                ("OS_TARGET",),
-                ("TARGET_CPU",),
-                ("MOZ_DEBUG", "OS_TARGET"),
-                ("OS_TARGET", "MOZ_X11"),
-                ("OS_TARGET", "TARGET_CPU"),
-                ("OS_TARGET", "TARGET_CPU", "MOZ_X11"),
-                ("OS_TARGET", "TARGET_CPU", "MOZ_DEBUG"),
-                ("OS_TARGET", "TARGET_CPU", "MOZ_DEBUG", "MOZ_X11"),
-            ):
-                conditions = set()
-                for args in all_args:
-                    cond = tuple((k, args.get(k) or "") for k in attrs)
-                    conditions.add(cond)
-
-                for cond in sorted(conditions):
-                    common_attrs = find_common_attrs(
-                        [
-                            attrs
-                            for args, attrs in configs
-                            if all((args.get(k) or "") == v for k, v in cond)
-                        ]
-                    )
-                    if any(common_attrs.values()):
-                        if cond:
-                            mb.write_condition(dict(cond))
-                        mb.write_attrs(common_attrs)
-                        if cond:
-                            mb.terminate_condition()
-
-            mb.finalize()
+        mozbuilds.add(
+            write_mozbuild(topsrcdir, write_mozbuild_variables, relsrcdir, configs)
+        )
 
     # write the project moz.build file
     dirs_mozbuild = mozpath.join(srcdir, "moz.build")
@@ -847,7 +843,7 @@ def main():
         )
 
     print("Writing moz.build files")
-    write_mozbuild(
+    write_mozbuild_files(
         topsrcdir,
         topsrcdir / config["build_root_dir"] / config["target_dir"],
         config["non_unified_sources"],
