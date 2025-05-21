@@ -5,17 +5,17 @@
 @import url("chrome://global/content/elements/moz-input-text.css");
 
 :host {
-   --input-folder-space-inline: var(--space-medium);
-   width: 100%;
+  --input-folder-space-inline: var(--space-medium);
+  width: 100%;
 }
 
 #input {
-   min-width: var(--input-folder-min-width);
-   max-width: var(--input-folder-max-width);
+  min-width: var(--input-folder-min-width);
+  max-width: var(--input-folder-max-width);
 }
 
 .container {
-   display: flex;
-   align-items: flex-end;
-   gap: var(--input-folder-space-inline);
+  display: flex;
+  align-items: flex-end;
+  gap: var(--input-folder-space-inline);
 }

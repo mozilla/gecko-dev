@@ -18,7 +18,7 @@
     --background-color-warning: light-dark(var(--color-yellow-0), var(--color-yellow-90));
 
     /** Border **/
-    --border-color: light-dark(#CFCFD8, #3A3944);
+    --border-color: light-dark(#cfcfd8, #3a3944);
     --border-color-card: color-mix(in srgb, currentColor 10%, transparent);
     --border-color-interactive-hover: var(--border-color-interactive);
     --border-color-interactive-active: var(--border-color-interactive);
@@ -152,16 +152,16 @@
     --color-green-100: oklch(27% 0.1 145);
     --color-green-110: oklch(20% 0.05 145);
     --color-orange-0: oklch(97% 0.05 50);
-    --color-orange-10: oklch(90% 0.10 50);
+    --color-orange-10: oklch(90% 0.1 50);
     --color-orange-20: oklch(86% 0.14 50);
     --color-orange-30: oklch(79% 0.17 50);
     --color-orange-40: oklch(72% 0.19 50);
     --color-orange-50: oklch(65% 0.21 50);
     --color-orange-60: oklch(58% 0.21 50);
-    --color-orange-70: oklch(48% 0.20 50);
+    --color-orange-70: oklch(48% 0.2 50);
     --color-orange-80: oklch(41% 0.17 50);
     --color-orange-90: oklch(34% 0.14 50);
-    --color-orange-100: oklch(27% 0.10 50);
+    --color-orange-100: oklch(27% 0.1 50);
     --color-orange-110: oklch(20% 0.05 50);
     --color-pink-0: oklch(97% 0.05 360);
     --color-pink-10: oklch(90% 0.1 360);

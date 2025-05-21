@@ -214,7 +214,7 @@ export const storybookTables = {
   "border-color": [
     {
       value: {
-        comment: "TODO Bug 1946826 - Border colors need to be consolidated",
+        comment: "TODO Bug 1821203 - Gray tones need to be consolidated",
         light: "#CFCFD8",
         dark: "#3A3944",
         prefersContrast: "CanvasText",
@@ -1025,7 +1025,7 @@ export const variableLookupTable = {
     default: "light-dark(var(--color-yellow-0), var(--color-yellow-90))",
   },
   "border-color": {
-    comment: "TODO Bug 1946826 - Border colors need to be consolidated",
+    comment: "TODO Bug 1821203 - Gray tones need to be consolidated",
     light: "#CFCFD8",
     dark: "#3A3944",
     prefersContrast: "CanvasText",

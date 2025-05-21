@@ -7,11 +7,11 @@
 }
 
 .addon-panel-message {
-  background: #FFF5CF;
+  background: #fff5cf;
   color: #333333;
   padding: 10px 15px;
   line-height: 20px;
-  box-shadow: rgba(0,0,0,.1) 0 -1px 0 0 inset;
+  box-shadow: rgba(0, 0, 0, 0.1) 0 -1px 0 0 inset;
   font-size: 13px;
 }
 
@@ -29,7 +29,7 @@ table.addon-panel-table thead.addon-panel-table-head th {
 
 @media (prefers-color-scheme: dark) {
   table.addon-panel-table thead.addon-panel-table-head th {
-    color: rgba(201, 205, 207, 0.55)
+    color: rgba(201, 205, 207, 0.55);
   }
 }
 

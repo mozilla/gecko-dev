@@ -27,12 +27,10 @@
     place-items: center start;
     gap: var(--space-xxsmall) var(--space-small);
     grid-template-columns: var(--box-icon-size) 1fr;
-    grid-template-areas:
-      "label label";
+    grid-template-areas: "label label";
 
     &.has-icon {
-      grid-template-areas:
-        "icon label";
+      grid-template-areas: "icon label";
     }
 
     &.has-description {
@@ -80,7 +78,6 @@
   border-start-end-radius: var(--box-border-radius-start, var(--box-border-radius-inner));
   border-end-start-radius: var(--box-border-radius-end, var(--box-border-radius-inner));
   border-end-end-radius: var(--box-border-radius-end, var(--box-border-radius-inner));
-
 
   &:focus-visible {
     outline: var(--focus-outline);

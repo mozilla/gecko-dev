@@ -1,9 +1,11 @@
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
 }
 
-audio, video {
+audio,
+video {
   width: 140px;
   height: 100px;
   background-color: black;

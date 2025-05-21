@@ -11,7 +11,7 @@
   /* Container */
   --message-bar-container-min-height: var(--size-item-large);
 
- /* Border */
+  /* Border */
   --message-bar-border-color: oklch(from var(--message-bar-icon-color) l c h / 20%);
   --message-bar-border-radius: var(--border-radius-small);
   --message-bar-border-width: var(--border-width);
@@ -142,18 +142,18 @@ moz-button::part(button) {
 
 @media not (prefers-contrast) {
   /* MozMessageBar colors by message type */
-  :host([type=warning]) {
+  :host([type="warning"]) {
     --message-bar-background-color: var(--background-color-warning);
     --message-bar-icon-color: var(--icon-color-warning);
   }
 
-  :host([type=success]) {
+  :host([type="success"]) {
     --message-bar-background-color: var(--background-color-success);
     --message-bar-icon-color: var(--icon-color-success);
   }
 
-  :host([type=error]),
-  :host([type=critical]) {
+  :host([type="error"]),
+  :host([type="critical"]) {
     --message-bar-background-color: var(--background-color-critical);
     --message-bar-icon-color: var(--icon-color-critical);
   }

@@ -58,11 +58,11 @@
   }
 }
 
-:host([message-bar-type=infobar]:first-of-type) {
+:host([message-bar-type="infobar"]:first-of-type) {
   margin-top: 4px;
 }
 
-:host([message-bar-type=infobar]) {
+:host([message-bar-type="infobar"]) {
   margin: 0 4px 4px;
 }
 
@@ -89,10 +89,10 @@ strong {
 
 /* type="system" infobar styles */
 
-:host([type=system]) .icon {
+:host([type="system"]) .icon {
   display: none;
 }
 
-:host([type=system]) .content {
+:host([type="system"]) .content {
   margin-inline-start: 0;
 }

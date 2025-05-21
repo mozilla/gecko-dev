@@ -52,7 +52,7 @@ button {
   align-items: center;
   position: relative;
 
-  &[size=small] {
+  &[size="small"] {
     min-height: var(--button-min-height-small);
     font-size: var(--button-font-size-small);
   }
@@ -140,7 +140,7 @@ button {
     }
   }
 
-  &[type~=ghost] {
+  &[type~="ghost"] {
     background-color: var(--button-background-color-ghost);
     border-color: var(--button-border-color-ghost);
     color: var(--button-text-color-ghost);
@@ -165,29 +165,29 @@ button {
   }
 
   &.labelled {
-    gap: var(--space-small)
+    gap: var(--space-small);
   }
 
-  &[type~=icon]:not(.labelled) {
+  &[type~="icon"]:not(.labelled) {
     background-size: var(--icon-size-default);
     background-position: center;
     background-repeat: no-repeat;
   }
 
-  &[type~=icon]:not(.labelled),
+  &[type~="icon"]:not(.labelled),
   &:not(.labelled):has(img) {
     width: var(--button-size-icon);
     height: var(--button-size-icon);
     padding: var(--button-padding-icon);
 
-    &[size=small] {
+    &[size="small"] {
       width: var(--button-size-icon-small);
       height: var(--button-size-icon-small);
     }
   }
 
   img,
-  &[type~=icon]:not(.labelled) {
+  &[type~="icon"]:not(.labelled) {
     -moz-context-properties: fill, fill-opacity, stroke;
     fill: var(--button-icon-fill);
     stroke: var(--button-icon-stroke);
