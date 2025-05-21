@@ -1,3 +1,7 @@
-  button, vbox, menu, menuitem, menupopup  {
-    box-sizing: content-box;
-  }
+button,
+vbox,
+menu,
+menuitem,
+menupopup {
+  box-sizing: content-box;
+}

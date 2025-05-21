@@ -15,7 +15,7 @@ SearchTitle {
   border-bottom: thin solid black;
   padding-bottom: 6px;
   margin-bottom: 12px;
-} 
+}
 
 SearchTitle:first-line {
   font-family: Verdana, Sans-Serif;
