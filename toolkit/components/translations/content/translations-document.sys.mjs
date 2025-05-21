@@ -405,7 +405,7 @@ export class TranslationsDocument {
    *
    * @type {string}
    */
-  documentLanguage;
+  #documentLanguage;
 
   /**
    * The timeout between the first translation received and the call to update the DOM
@@ -505,16 +505,14 @@ export class TranslationsDocument {
    *
    * @type {Promise<unknown> | null}
    */
-  viewportTranslated = null;
-
-  isDestroyed = false;
+  #viewportTranslated = null;
 
   /**
    * This boolean indicates whether the first visible DOM translation change is about to occur.
    *
    * @type {boolean}
    */
-  hasFirstVisibleChange = false;
+  #hasFirstVisibleChange = false;
 
   /**
    * A unique ID that guards against races between translations and mutations.
@@ -546,6 +544,57 @@ export class TranslationsDocument {
   #lastTranslationId = 1;
 
   /**
+   * A cache of recent translations, used to avoid wasting CPU time translating text
+   * for which we already have a translated response.
+   *
+   * @type {LRUCache}
+   */
+  #translationsCache;
+
+  /**
+   * The DOMParser is used when updating elements with translated text.
+   *
+   * @type {DOMParser}
+   */
+  #domParser;
+
+  /**
+   * The mutation observer that watches for both new and mutated nodes.
+   *
+   * @type {MutationObserver}
+   */
+  #mutationObserver;
+
+  /**
+   * The inner-window ID is used for better profiler marker reporting.
+   *
+   * @type {number}
+   */
+  #innerWindowId;
+
+  /**
+   * The original document of the page that we will be updating with translated text.
+   *
+   * @type {Document}
+   */
+  #sourceDocument;
+
+  /**
+   * A callback that will report that the first visible change has been made to the page.
+   * This is a key performance metric when considering the time to initialize translations.
+   *
+   * @type {() => void}
+   */
+  #actorReportFirstVisibleChange;
+
+  /**
+   * The translator that is responsible for sending translation requests to the TranslationsEngine.
+   *
+   * @type {QueuedTranslator}
+   */
+  translator;
+
+  /**
    * Construct a new TranslationsDocument. It is tied to a specific Document and cannot
    * be re-used. The translation functions are injected since this class shouldn't
    * manage the life cycle of the translations engines.
@@ -575,13 +624,15 @@ export class TranslationsDocument {
     now,
     translationsCache
   ) {
-    /**
-     * The language of the document. If elements are found that do not match this language,
-     * then they are skipped.
-     *
-     * @type {string}
-     */
-    this.documentLanguage = documentLanguage;
+    /** @type {WindowProxy} */
+    const ownerGlobal = ensureExists(document.ownerGlobal);
+
+    this.#domParser = new ownerGlobal.DOMParser();
+    this.#innerWindowId = innerWindowId;
+    this.#sourceDocument = document;
+    this.#documentLanguage = documentLanguage;
+    this.#translationsCache = translationsCache;
+    this.#actorReportFirstVisibleChange = reportVisibleChange;
 
     /** @type {QueuedTranslator} */
     this.translator = new QueuedTranslator(
@@ -589,23 +640,6 @@ export class TranslationsDocument {
       requestNewPort,
       reportVisibleChange
     );
-
-    /** @type {number} */
-    this.innerWindowId = innerWindowId;
-
-    /** @type {typeof DOMParser} */
-    const OwnerDocDOMParser = ensureExists(document.ownerGlobal).DOMParser;
-
-    this.domParser = new OwnerDocDOMParser();
-
-    /** @type {Document} */
-    this.document = document;
-
-    /** @type {LRUCache} */
-    this.translationsCache = translationsCache;
-
-    /** @type {() => void} */
-    this.actorReportFirstVisibleChange = reportVisibleChange;
 
     /**
      * This selector runs to find child nodes that should be excluded. It should be
@@ -621,7 +655,7 @@ export class TranslationsDocument {
       // The elements with an attribute name of attr whose value can be exactly
       // value or can begin with value immediately followed by a hyphen, - (U+002D).
       // It is often used for language subcode matches.
-      `[lang]:not([lang|="${this.documentLanguage}"])`,
+      `[lang]:not([lang|="${this.#documentLanguage}"])`,
       `[translate=no]`,
       `.notranslate`,
       `[contenteditable="true"]`,
@@ -652,25 +686,25 @@ export class TranslationsDocument {
       document.ownerGlobal
     ).MutationObserver;
 
-    this.observer = new DocumentsMutationObserver(mutationsList => {
+    this.#mutationObserver = new DocumentsMutationObserver(mutationsList => {
       for (const mutation of mutationsList) {
         if (!mutation.target) {
           continue;
         }
-        const pendingNode = this.getPendingNodeFromTarget(mutation.target);
+        const pendingNode = this.#getPendingNodeFromTarget(mutation.target);
         if (pendingNode) {
           const translationId = this.#pendingTranslations.get(pendingNode);
           if (translationId) {
             // The node was still pending to be translated, cancel it and re-submit.
-            this.cancelTranslation(pendingNode, translationId);
-            this.markNodeMutated(pendingNode);
+            this.#cancelTranslation(pendingNode, translationId);
+            this.#markNodeMutated(pendingNode);
             if (mutation.type === "childList") {
               // New nodes could have been added, make sure we can follow their shadow roots.
-              ensureExists(this.document.ownerGlobal).requestAnimationFrame(
-                () => {
-                  this.addShadowRootsToObserver(pendingNode);
-                }
-              );
+              ensureExists(
+                this.#sourceDocument.ownerGlobal
+              ).requestAnimationFrame(() => {
+                this.#addShadowRootsToObserver(pendingNode);
+              });
             }
             continue;
           }
@@ -681,8 +715,8 @@ export class TranslationsDocument {
               if (!addedNode) {
                 continue;
               }
-              this.addShadowRootsToObserver(addedNode);
-              this.markNodeMutated(addedNode);
+              this.#addShadowRootsToObserver(addedNode);
+              this.#markNodeMutated(addedNode);
             }
             for (const removedNode of mutation.removedNodes) {
               if (!removedNode) {
@@ -690,9 +724,9 @@ export class TranslationsDocument {
               }
               const translationId = this.#pendingTranslations.get(removedNode);
               if (translationId) {
-                this.cancelTranslation(removedNode, translationId);
+                this.#cancelTranslation(removedNode, translationId);
               }
-              this.cancelPendingAttributes(removedNode);
+              this.#cancelPendingAttributes(removedNode);
             }
             break;
           case "characterData": {
@@ -704,14 +738,14 @@ export class TranslationsDocument {
               // https://developer.mozilla.org/en-US/docs/Web/API/CharacterData
               if (node.nodeType === Node.TEXT_NODE) {
                 this.#processedNodes.delete(node);
-                this.markNodeMutated(node);
+                this.#markNodeMutated(node);
               }
             }
             break;
           }
           case "attributes":
             if (mutation.target && mutation.attributeName) {
-              this.markAttributeMutated(
+              this.#markAttributeMutated(
                 mutation.target,
                 mutation.attributeName
               );
@@ -723,15 +757,15 @@ export class TranslationsDocument {
       }
     });
 
-    this.document.addEventListener(
+    this.#sourceDocument.addEventListener(
       "visibilitychange",
-      this.handleVisibilityChange
+      this.#handleVisibilityChange
     );
 
     const addRootElements = () => {
-      this.addRootElement(document.querySelector("title"));
-      this.addRootElement(document.body);
-      this.addRootElement(document.head);
+      this.#addRootElement(document.querySelector("title"));
+      this.#addRootElement(document.body);
+      this.#addRootElement(document.head);
     };
 
     if (document.body) {
@@ -742,7 +776,7 @@ export class TranslationsDocument {
       document.addEventListener("DOMContentLoaded", addRootElements);
     }
 
-    this.viewportTranslated?.then(() => {
+    this.#viewportTranslated?.then(() => {
       ChromeUtils.addProfilerMarker(
         "TranslationsChild",
         { innerWindowId, startTime: now() },
@@ -767,17 +801,17 @@ export class TranslationsDocument {
   /**
    * @param {Node} node
    */
-  markNodeMutated(node) {
+  #markNodeMutated(node) {
     this.#processedNodes.delete(node);
     this.#mutatedNodes.add(node);
-    this.ensureMutatedNodesUpdateIsScheduled();
+    this.#ensureMutatedNodesUpdateIsScheduled();
   }
 
   /**
    * @param {Node} node
    * @param {string} attributeName
    */
-  markAttributeMutated(node, attributeName) {
+  #markAttributeMutated(node, attributeName) {
     if (isAttributeTranslatable(node, attributeName)) {
       let attributes = this.#mutatedAttributes.get(node);
       if (!attributes) {
@@ -785,7 +819,7 @@ export class TranslationsDocument {
         this.#mutatedAttributes.set(node, attributes);
       }
       attributes.add(attributeName);
-      this.ensureMutatedNodesUpdateIsScheduled();
+      this.#ensureMutatedNodesUpdateIsScheduled();
     }
   }
 
@@ -794,13 +828,13 @@ export class TranslationsDocument {
    * re-translating nodes too frequently, batch the translation on a
    * requestAnimationFrame.
    */
-  ensureMutatedNodesUpdateIsScheduled() {
+  #ensureMutatedNodesUpdateIsScheduled() {
     if (
       !this.#isMutatedNodesRAFScheduled &&
       (this.#mutatedNodes.size || this.#queuedAttributeNodes)
     ) {
       this.#isMutatedNodesRAFScheduled = true;
-      const ownerGlobal = ensureExists(this.document.ownerGlobal);
+      const ownerGlobal = ensureExists(this.#sourceDocument.ownerGlobal);
       // Perform a double requestAnimationFrame to:
       //   1. Reduce the number of invalidation cycles of canceling intermediate translations.
       //   2. Do less work on the main thread when there are many mutations.
@@ -841,16 +875,16 @@ export class TranslationsDocument {
           }
 
           for (const node of this.#mutatedNodes) {
-            this.addShadowRootsToObserver(node);
-            this.subdivideNodeForTranslations(node);
-            this.translateAttributes(node);
+            this.#addShadowRootsToObserver(node);
+            this.#subdivideNodeForTranslations(node);
+            this.#translateAttributes(node);
           }
           this.#mutatedNodes.clear();
 
           for (const [node, attributes] of this.#mutatedAttributes.entries()) {
             this.#queueNodeForAttributeTranslation(node, attributes);
           }
-          this.dispatchQueuedAttributeTranslations();
+          this.#dispatchQueuedAttributeTranslations();
         });
       });
     }
@@ -862,7 +896,7 @@ export class TranslationsDocument {
    * @param {Node} target
    * @returns {Node | undefined}
    */
-  getPendingNodeFromTarget(target) {
+  #getPendingNodeFromTarget(target) {
     return this.#nodeToPendingParent.get(target);
   }
 
@@ -870,7 +904,7 @@ export class TranslationsDocument {
    * @param {Node} node
    * @param {number} translationId
    */
-  cancelTranslation(node, translationId) {
+  #cancelTranslation(node, translationId) {
     this.translator.cancelSingleTranslation(translationId);
     if (!isNodeDetached(node)) {
       const element = /** @type {HTMLElement} */ (asHTMLElement(node));
@@ -893,7 +927,7 @@ export class TranslationsDocument {
   /**
    * @param {Node} node
    */
-  cancelPendingAttributes(node) {
+  #cancelPendingAttributes(node) {
     const element = asElement(node);
     if (!element) {
       return;
@@ -915,8 +949,8 @@ export class TranslationsDocument {
    *
    * @param {Node} node - The node for which to maybe translate attributes.
    */
-  maybeQueueNodeForAttributeTranslation(node) {
-    const translatableAttributes = this.getTranslatableAttributes(node);
+  #maybeQueueNodeForAttributeTranslation(node) {
+    const translatableAttributes = this.#getTranslatableAttributes(node);
 
     if (translatableAttributes) {
       this.#queueNodeForAttributeTranslation(node, translatableAttributes);
@@ -933,7 +967,7 @@ export class TranslationsDocument {
    * If you do not already have a valid list of translatable attributes, then you
    * should use the maybeQueueNodeForAttributeTranslation method instead.
    *
-   * @see maybeQueueNodeForAttributeTranslation
+   * @see #maybeQueueNodeForAttributeTranslation
    *
    * @param {Node} node - The node for which to translate attributes.
    * @param {Set<string>} attributeSet - A set of pre-validated, translatable attributes.
@@ -962,7 +996,7 @@ export class TranslationsDocument {
    *
    * @returns {null | Set<string>} - The translatable attribute names from the given node.
    */
-  getTranslatableAttributes(node) {
+  #getTranslatableAttributes(node) {
     const element = asHTMLElement(node);
     if (!element) {
       // We only translate attributes on element node types.
@@ -992,13 +1026,13 @@ export class TranslationsDocument {
    * Start and stop the translator as the page is shown. For instance, this will
    * transition into "hidden" when the user tabs away from a document.
    */
-  handleVisibilityChange = () => {
-    if (this.document.visibilityState === "visible") {
+  #handleVisibilityChange = () => {
+    if (this.#sourceDocument.visibilityState === "visible") {
       this.translator.showPage();
     } else {
       ChromeUtils.addProfilerMarker(
         "Translations",
-        { innerWindowId: this.innerWindowId },
+        { innerWindowId: this.#innerWindowId },
         "Pausing translations and discarding the port"
       );
       this.translator.hidePage();
@@ -1009,12 +1043,11 @@ export class TranslationsDocument {
    * Remove any dangling event handlers.
    */
   destroy() {
-    this.isDestroyed = true;
     this.translator.destroy();
-    this.stopMutationObserver();
-    this.document.removeEventListener(
+    this.#stopMutationObserver();
+    this.#sourceDocument.removeEventListener(
       "visibilitychange",
-      this.handleVisibilityChange
+      this.#handleVisibilityChange
     );
   }
 
@@ -1024,9 +1057,9 @@ export class TranslationsDocument {
    *
    * @param {Node} root
    */
-  observeNewRoot(root) {
+  #observeNewRoot(root) {
     this.#rootNodes.add(root);
-    this.observer.observe(root, MUTATION_OBSERVER_OPTIONS);
+    this.#mutationObserver.observe(root, MUTATION_OBSERVER_OPTIONS);
   }
 
   /**
@@ -1036,7 +1069,7 @@ export class TranslationsDocument {
    *
    * @param {Node} node
    */
-  addShadowRootsToObserver(node) {
+  #addShadowRootsToObserver(node) {
     const { ownerDocument } = node;
     if (!ownerDocument) {
       return;
@@ -1056,10 +1089,10 @@ export class TranslationsDocument {
       // Only shadow hosts are accepted nodes
       const shadowRoot = ensureExists(getShadowRoot(currentNode));
       if (!this.#rootNodes.has(shadowRoot)) {
-        this.observeNewRoot(shadowRoot);
+        this.#observeNewRoot(shadowRoot);
       }
       // A shadow root may contain other shadow roots, recurse into them.
-      this.addShadowRootsToObserver(shadowRoot);
+      this.#addShadowRootsToObserver(shadowRoot);
     }
   }
 
@@ -1070,7 +1103,7 @@ export class TranslationsDocument {
    *
    * @param {Node | null | undefined} node
    */
-  addRootElement(node) {
+  #addRootElement(node) {
     if (!node) {
       return;
     }
@@ -1086,18 +1119,18 @@ export class TranslationsDocument {
 
     this.#rootNodes.add(element);
 
-    let viewportNodeTranslations = this.subdivideNodeForTranslations(element);
-    let viewportAttributeTranslations = this.translateAttributes(element);
+    let viewportNodeTranslations = this.#subdivideNodeForTranslations(element);
+    let viewportAttributeTranslations = this.#translateAttributes(element);
 
-    if (!this.viewportTranslated) {
-      this.viewportTranslated = Promise.allSettled([
+    if (!this.#viewportTranslated) {
+      this.#viewportTranslated = Promise.allSettled([
         ...(viewportNodeTranslations ?? []),
         ...(viewportAttributeTranslations ?? []),
       ]);
     }
 
-    this.observer.observe(element, MUTATION_OBSERVER_OPTIONS);
-    this.addShadowRootsToObserver(element);
+    this.#mutationObserver.observe(element, MUTATION_OBSERVER_OPTIONS);
+    this.#addShadowRootsToObserver(element);
   }
 
   /**
@@ -1106,7 +1139,7 @@ export class TranslationsDocument {
    *
    * @param {Node} node
    */
-  processSubdivide(node) {
+  #processSubdivide(node) {
     const { ownerDocument } = node;
     if (!ownerDocument) {
       return;
@@ -1114,7 +1147,7 @@ export class TranslationsDocument {
     const nodeIterator = ownerDocument.createTreeWalker(
       node,
       NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
-      this.determineTranslationStatusForUnprocessedNodes
+      this.#determineTranslationStatusForUnprocessedNodes
     );
 
     // This iterator will contain each node that has been subdivided enough to
@@ -1123,9 +1156,9 @@ export class TranslationsDocument {
     while ((currentNode = nodeIterator.nextNode())) {
       const shadowRoot = getShadowRoot(currentNode);
       if (shadowRoot) {
-        this.processSubdivide(shadowRoot);
+        this.#processSubdivide(shadowRoot);
       } else {
-        this.queueNodeForTranslation(currentNode);
+        this.#queueNodeForTranslation(currentNode);
       }
     }
   }
@@ -1141,13 +1174,13 @@ export class TranslationsDocument {
    * @param {Node} node
    * @returns {null | Array<Promise<unknown>>}
    */
-  subdivideNodeForTranslations(node) {
+  #subdivideNodeForTranslations(node) {
     if (!this.#rootNodes.has(node)) {
       // This is a non-root node, which means it came from a mutation observer.
       // This new node could be a host element for shadow tree
       const shadowRoot = getShadowRoot(node);
       if (shadowRoot && !this.#rootNodes.has(shadowRoot)) {
-        this.observeNewRoot(shadowRoot);
+        this.#observeNewRoot(shadowRoot);
       } else {
         // Ensure that it is a valid node to translate by checking all of its ancestors.
         for (let parent of getAncestorsIterator(node)) {
@@ -1157,7 +1190,7 @@ export class TranslationsDocument {
             break;
           }
           if (
-            this.determineTranslationStatus(parent) ===
+            this.#determineTranslationStatus(parent) ===
             NodeStatus.NOT_TRANSLATABLE
           ) {
             return null;
@@ -1166,7 +1199,7 @@ export class TranslationsDocument {
       }
     }
 
-    switch (this.determineTranslationStatusForUnprocessedNodes(node)) {
+    switch (this.#determineTranslationStatusForUnprocessedNodes(node)) {
       case NodeStatus.NOT_TRANSLATABLE:
         // This node is rejected as it shouldn't be translated.
         return null;
@@ -1176,12 +1209,12 @@ export class TranslationsDocument {
       case NodeStatus.READY_TO_TRANSLATE: {
         const shadowRoot = getShadowRoot(node);
         if (shadowRoot) {
-          this.processSubdivide(shadowRoot);
+          this.#processSubdivide(shadowRoot);
         } else {
           // This node is ready for translating, and doesn't need to be subdivided. There
           // is no reason to run the TreeWalker, it can be directly submitted for
           // translation.
-          this.queueNodeForTranslation(node);
+          this.#queueNodeForTranslation(node);
         }
         break;
       }
@@ -1190,15 +1223,15 @@ export class TranslationsDocument {
         // This node may be translatable, but it needs to be subdivided into smaller
         // pieces. Create a TreeWalker to walk the subtree, and find the subtrees/nodes
         // that contain enough inline elements to send to be translated.
-        this.processSubdivide(node);
+        this.#processSubdivide(node);
         break;
     }
 
     if (node.nodeName === "BODY") {
-      this.reportWordsInViewport();
+      this.#reportWordsInViewport();
     }
 
-    return this.dispatchQueuedTranslations();
+    return this.#dispatchQueuedTranslations();
   }
 
   /**
@@ -1209,22 +1242,22 @@ export class TranslationsDocument {
    * @param {Node} node
    * @returns {Array<Promise<void>> | null}
    */
-  translateAttributes(node) {
+  #translateAttributes(node) {
     const element = asElement(node);
     if (!element) {
       return null;
     }
-    this.maybeQueueNodeForAttributeTranslation(element);
+    this.#maybeQueueNodeForAttributeTranslation(element);
 
     const childNodesWithTranslatableAttributes = element.querySelectorAll(
       TRANSLATABLE_ATTRIBUTES_SELECTOR
     );
 
     for (const childNode of childNodesWithTranslatableAttributes) {
-      this.maybeQueueNodeForAttributeTranslation(childNode);
+      this.#maybeQueueNodeForAttributeTranslation(childNode);
     }
 
-    return this.dispatchQueuedAttributeTranslations();
+    return this.#dispatchQueuedAttributeTranslations();
   }
 
   /**
@@ -1234,7 +1267,7 @@ export class TranslationsDocument {
    *
    * @param {Node} node
    */
-  isExcludedNode(node) {
+  #isExcludedNode(node) {
     // Property access be expensive, so destructure required properties so they are
     // not accessed multiple times.
     const { nodeType } = node;
@@ -1257,7 +1290,7 @@ export class TranslationsDocument {
       return true;
     }
 
-    if (!this.matchesDocumentLanguage(element)) {
+    if (!this.#matchesDocumentLanguage(element)) {
       // Exclude nodes that don't match the sourceLanguage.
       return true;
     }
@@ -1289,13 +1322,13 @@ export class TranslationsDocument {
    * @param {Node} node
    * @returns {number} - One of the NodeStatus values.
    */
-  determineTranslationStatusForUnprocessedNodes = node => {
+  #determineTranslationStatusForUnprocessedNodes = node => {
     if (this.#processedNodes.has(node)) {
       // Skip nodes that have already been processed.
       return NodeStatus.NOT_TRANSLATABLE;
     }
 
-    return this.determineTranslationStatus(node);
+    return this.#determineTranslationStatus(node);
   };
 
   /**
@@ -1310,7 +1343,7 @@ export class TranslationsDocument {
    *   for documentation. These values match the filters for the TreeWalker.
    *   These values also work as a `NodeFilter` value.
    */
-  determineTranslationStatus(node) {
+  #determineTranslationStatus(node) {
     if (getShadowRoot(node)) {
       return NodeStatus.SHADOW_HOST;
     }
@@ -1320,7 +1353,7 @@ export class TranslationsDocument {
       return NodeStatus.NOT_TRANSLATABLE;
     }
 
-    if (this.isExcludedNode(node)) {
+    if (this.#isExcludedNode(node)) {
       // This is an explicitly excluded node.
       return NodeStatus.NOT_TRANSLATABLE;
     }
@@ -1357,7 +1390,7 @@ export class TranslationsDocument {
    *
    * @param {Node} node
    */
-  queueNodeForTranslation(node) {
+  #queueNodeForTranslation(node) {
     /** @type {NodeVisibility} */
     let visibility = "out-of-viewport";
     if (isNodeHidden(node)) {
@@ -1374,21 +1407,21 @@ export class TranslationsDocument {
    *
    * @returns {Array<Promise<unknown>> | null}
    */
-  dispatchQueuedTranslations() {
+  #dispatchQueuedTranslations() {
     let inViewportCounts = 0;
     let outOfViewportCounts = 0;
     let hiddenCounts = 0;
 
     /** @type {null | Array<Promise<unknown>>} */
     let inViewportTranslations = null;
-    if (!this.viewportTranslated) {
+    if (!this.#viewportTranslated) {
       inViewportTranslations = [];
     }
 
     for (const [node, visibility] of this.#queuedNodes) {
       if (visibility === "in-viewport") {
         inViewportCounts++;
-        const promise = this.submitTranslation(node);
+        const promise = this.#submitTranslation(node);
         if (inViewportTranslations) {
           inViewportTranslations.push(promise);
         }
@@ -1397,19 +1430,19 @@ export class TranslationsDocument {
     for (const [node, visibility] of this.#queuedNodes) {
       if (visibility === "out-of-viewport") {
         outOfViewportCounts++;
-        this.submitTranslation(node);
+        this.#submitTranslation(node);
       }
     }
     for (const [node, visibility] of this.#queuedNodes) {
       if (visibility === "hidden") {
         hiddenCounts++;
-        this.submitTranslation(node);
+        this.#submitTranslation(node);
       }
     }
 
     ChromeUtils.addProfilerMarker(
       "Translations",
-      { innerWindowId: this.innerWindowId },
+      { innerWindowId: this.#innerWindowId },
       `Translate ${this.#queuedNodes.size} nodes.\n\n` +
         `In viewport: ${inViewportCounts}\n` +
         `Out of viewport: ${outOfViewportCounts}\n` +
@@ -1425,13 +1458,13 @@ export class TranslationsDocument {
    *
    * @returns {Array<Promise<void>> | null}
    */
-  dispatchQueuedAttributeTranslations() {
+  #dispatchQueuedAttributeTranslations() {
     let inViewportCounts = 0;
     let outOfViewportCounts = 0;
     let hiddenCounts = 0;
 
     let inViewportTranslations = null;
-    if (!this.viewportTranslated) {
+    if (!this.#viewportTranslated) {
       inViewportTranslations = [];
     }
     // Submit the nodes with attrbutes to be translated.
@@ -1439,7 +1472,7 @@ export class TranslationsDocument {
       .#queuedAttributeNodes) {
       if (visibility === "in-viewport") {
         inViewportCounts++;
-        const promise = this.submitAttributeTranslation(node, attributeSet);
+        const promise = this.#submitAttributeTranslation(node, attributeSet);
         if (inViewportTranslations) {
           inViewportTranslations.push(promise);
         }
@@ -1449,20 +1482,20 @@ export class TranslationsDocument {
       .#queuedAttributeNodes) {
       if (visibility === "out-of-viewport") {
         outOfViewportCounts++;
-        this.submitAttributeTranslation(node, attributeSet);
+        this.#submitAttributeTranslation(node, attributeSet);
       }
     }
     for (const [node, { attributeSet, visibility }] of this
       .#queuedAttributeNodes) {
       if (visibility === "hidden") {
         hiddenCounts++;
-        this.submitAttributeTranslation(node, attributeSet);
+        this.#submitAttributeTranslation(node, attributeSet);
       }
     }
 
     ChromeUtils.addProfilerMarker(
       "Attribute Translations",
-      { innerWindowId: this.innerWindowId },
+      { innerWindowId: this.#innerWindowId },
       `Attribute Translate ${this.#queuedAttributeNodes.size} nodes.\n\n` +
         `In viewport: ${inViewportCounts}\n` +
         `Out of viewport: ${outOfViewportCounts}\n` +
@@ -1481,7 +1514,7 @@ export class TranslationsDocument {
    * @param {Set<string>} attributeSet
    * @returns {Promise<unknown>}
    */
-  submitAttributeTranslation(node, attributeSet) {
+  #submitAttributeTranslation(node, attributeSet) {
     const element = asHTMLElement(node);
     if (!element) {
       return Promise.resolve();
@@ -1505,7 +1538,7 @@ export class TranslationsDocument {
       pendingAttributes.set(attribute, translationId);
 
       promises.push(
-        this.maybeTranslate(
+        this.#maybeTranslate(
           element,
           text,
           false /*isHTML*/,
@@ -1514,7 +1547,7 @@ export class TranslationsDocument {
           translation => {
             if (
               translation &&
-              this.validateAttributeResponse(
+              this.#validateAttributeResponse(
                 element,
                 attribute,
                 translationId,
@@ -1522,7 +1555,7 @@ export class TranslationsDocument {
                 false /* removeAttribute */
               )
             ) {
-              this.scheduleElementUpdateWithTranslationAttribute(
+              this.#scheduleElementUpdateWithTranslationAttribute(
                 element,
                 translation,
                 attribute,
@@ -1548,7 +1581,7 @@ export class TranslationsDocument {
    * @param {string} attribute
    * @param {number} translationId
    */
-  scheduleElementUpdateWithTranslationAttribute(
+  #scheduleElementUpdateWithTranslationAttribute(
     element,
     translation,
     attribute,
@@ -1564,11 +1597,11 @@ export class TranslationsDocument {
 
     if (this.#pendingTranslationsCount === 0) {
       // No translations are pending, update the node.
-      this.updateNodesWithTranslationsAttributes();
+      this.#updateNodesWithTranslationsAttributes();
     } else if (!this.#attributeUpdateTimeoutId) {
       // Schedule an update.
       this.#attributeUpdateTimeoutId = lazy.setTimeout(
-        this.updateNodesWithTranslationsAttributes.bind(this),
+        this.#updateNodesWithTranslationsAttributes.bind(this),
         DOM_UPDATE_INTERVAL_MS
       );
     } else {
@@ -1583,15 +1616,15 @@ export class TranslationsDocument {
    * This function is called asynchronously, so nodes may already be dead. Before
    * accessing a node make sure and run `Cu.isDeadWrapper` to check that it is alive.
    */
-  updateNodesWithTranslationsAttributes() {
+  #updateNodesWithTranslationsAttributes() {
     // Stop the mutations so that the updates won't trigger observations.
 
-    this.pauseMutationObserverAndRun(() => {
+    this.#pauseMutationObserverAndRun(() => {
       for (const entry of this.#elementsWithTranslatedAttributes) {
         const { element, translation, attribute, translationId } = entry;
 
         if (
-          this.validateAttributeResponse(
+          this.#validateAttributeResponse(
             element,
             attribute,
             translationId,
@@ -1612,10 +1645,10 @@ export class TranslationsDocument {
    * Record how many words were in the viewport, as this is the most important
    * user-visible translation content.
    */
-  reportWordsInViewport() {
+  #reportWordsInViewport() {
     if (
       // This promise gets created for the first dispatchQueuedTranslations
-      this.viewportTranslated ||
+      this.#viewportTranslated ||
       this.#queuedNodes.size === 0
     ) {
       return;
@@ -1637,7 +1670,7 @@ export class TranslationsDocument {
     lazy.console.log(message);
     ChromeUtils.addProfilerMarker(
       "Translations",
-      { innerWindowId: this.innerWindowId },
+      { innerWindowId: this.#innerWindowId },
       message
     );
   }
@@ -1648,7 +1681,7 @@ export class TranslationsDocument {
    * @param {Node} node
    * @returns {Promise<void>}
    */
-  async submitTranslation(node) {
+  async #submitTranslation(node) {
     // Give each element an id that gets passed through the translation so it can be
     // reunited later on.
     const element = asElement(node);
@@ -1683,13 +1716,13 @@ export class TranslationsDocument {
 
     const translationId = this.#lastTranslationId++;
     this.#pendingTranslations.set(node, translationId);
-    this.walkNodeToPendingParent(node);
+    this.#walkNodeToPendingParent(node);
 
     // Mark this node as not to be translated again unless the contents are changed
     // (which the observer will pick up on)
     this.#processedNodes.add(node);
 
-    const translatedHTML = await this.maybeTranslate(
+    const translatedHTML = await this.#maybeTranslate(
       node,
       text,
       isHTML,
@@ -1698,9 +1731,9 @@ export class TranslationsDocument {
 
     if (
       translatedHTML &&
-      this.validateTranslationResponse(node, translationId, translatedHTML)
+      this.#validateTranslationResponse(node, translationId, translatedHTML)
     ) {
-      this.scheduleNodeUpdateWithTranslation(
+      this.#scheduleNodeUpdateWithTranslation(
         node,
         translatedHTML,
         translationId
@@ -1720,7 +1753,7 @@ export class TranslationsDocument {
    *
    * @param {Node} pendingParent
    */
-  walkNodeToPendingParent(pendingParent) {
+  #walkNodeToPendingParent(pendingParent) {
     this.#nodeToPendingParent.set(pendingParent, pendingParent);
     const { ownerDocument } = pendingParent;
     if (!ownerDocument) {
@@ -1746,7 +1779,7 @@ export class TranslationsDocument {
    * @param {string | null} translation
    * @returns {boolean}
    */
-  validateTranslationResponse(node, translationId, translation) {
+  #validateTranslationResponse(node, translationId, translation) {
     if (isNodeDetached(node)) {
       return false;
     }
@@ -1776,7 +1809,7 @@ export class TranslationsDocument {
    * @param {boolean} removeAttribute
    * @returns {boolean}
    */
-  validateAttributeResponse(
+  #validateAttributeResponse(
     element,
     attribute,
     translationId,
@@ -1827,11 +1860,11 @@ export class TranslationsDocument {
    * @param {number} translationId
    * @returns {Promise<string | null>}
    */
-  async maybeTranslate(node, text, isHTML, translationId) {
+  async #maybeTranslate(node, text, isHTML, translationId) {
     this.#pendingTranslationsCount++;
     try {
       /** @type {string | null | undefined} */
-      let translation = this.translationsCache.get(text, isHTML);
+      let translation = this.#translationsCache.get(text, isHTML);
       if (translation === undefined) {
         translation = await this.translator.translate(
           node,
@@ -1840,11 +1873,11 @@ export class TranslationsDocument {
           translationId
         );
         if (translation !== null) {
-          this.translationsCache.set(text, translation, isHTML);
+          this.#translationsCache.set(text, translation, isHTML);
         }
-      } else if (!this.hasFirstVisibleChange) {
-        this.hasFirstVisibleChange = true;
-        this.actorReportFirstVisibleChange();
+      } else if (!this.#hasFirstVisibleChange) {
+        this.#hasFirstVisibleChange = true;
+        this.#actorReportFirstVisibleChange();
       }
       return translation;
     } catch (error) {
@@ -1858,8 +1891,8 @@ export class TranslationsDocument {
   /**
    * Start the mutation observer, for instance after applying the translations to the DOM.
    */
-  startMutationObserver() {
-    if (Cu.isDeadWrapper(this.observer)) {
+  #startMutationObserver() {
+    if (Cu.isDeadWrapper(this.#mutationObserver)) {
       // This observer is no longer alive.
       return;
     }
@@ -1868,17 +1901,17 @@ export class TranslationsDocument {
         // This node is no longer alive.
         continue;
       }
-      this.observer.observe(node, MUTATION_OBSERVER_OPTIONS);
+      this.#mutationObserver.observe(node, MUTATION_OBSERVER_OPTIONS);
     }
   }
 
   /**
    * Stop the mutation observer, for instance to apply the translations to the DOM.
    */
-  stopMutationObserver() {
+  #stopMutationObserver() {
     // Was the window already destroyed?
-    if (!Cu.isDeadWrapper(this.observer)) {
-      this.observer.disconnect();
+    if (!Cu.isDeadWrapper(this.#mutationObserver)) {
+      this.#mutationObserver.disconnect();
     }
   }
 
@@ -1888,9 +1921,9 @@ export class TranslationsDocument {
    * This function is called asynchronously, so nodes may already be dead. Before
    * accessing a node make sure and run `Cu.isDeadWrapper` to check that it is alive.
    */
-  updateNodesWithTranslations() {
+  #updateNodesWithTranslations() {
     // Stop the mutations so that the updates won't trigger observations.
-    this.pauseMutationObserverAndRun(() => {
+    this.#pauseMutationObserverAndRun(() => {
       const entry = this.#nodesWithTranslatedHTML;
       for (const { node, translatedHTML, translationId } of entry) {
         // Check if a mutation has submitted another translation for this node. If so,
@@ -1903,7 +1936,7 @@ export class TranslationsDocument {
           // The node is no longer alive.
           ChromeUtils.addProfilerMarker(
             "Translations",
-            { innerWindowId: this.innerWindowId },
+            { innerWindowId: this.#innerWindowId },
             "Node is no long alive."
           );
           continue;
@@ -1921,7 +1954,7 @@ export class TranslationsDocument {
             // TODO (Bug 1820625) - This is slow compared to the original implementation
             // in the addon which set the innerHTML directly. We can't set the innerHTML
             // here, but perhaps there is another way to get back some of the performance.
-            const translationsDocument = this.domParser.parseFromString(
+            const translationsDocument = this.#domParser.parseFromString(
               `<!DOCTYPE html><div>${translatedHTML}</div>`,
               "text/html"
             );
@@ -1943,10 +1976,10 @@ export class TranslationsDocument {
    *
    * @param {Function} run The function to update translations
    */
-  pauseMutationObserverAndRun(run) {
-    this.stopMutationObserver();
+  #pauseMutationObserverAndRun(run) {
+    this.#stopMutationObserver();
     run();
-    this.startMutationObserver();
+    this.#startMutationObserver();
   }
 
   /**
@@ -1956,17 +1989,17 @@ export class TranslationsDocument {
    * @param {string} translatedHTML
    * @param {number} translationId - A unique id to identify this translation request.
    */
-  scheduleNodeUpdateWithTranslation(node, translatedHTML, translationId) {
+  #scheduleNodeUpdateWithTranslation(node, translatedHTML, translationId) {
     // Add the nodes to be populated with the next translation update.
     this.#nodesWithTranslatedHTML.add({ node, translatedHTML, translationId });
 
     if (this.#pendingTranslationsCount === 0) {
       // No translations are pending, update the node.
-      this.updateNodesWithTranslations();
+      this.#updateNodesWithTranslations();
     } else if (!this.#updateTimeoutId) {
       // Schedule an update.
       this.#updateTimeoutId = lazy.setTimeout(
-        this.updateNodesWithTranslations.bind(this),
+        this.#updateNodesWithTranslations.bind(this),
         DOM_UPDATE_INTERVAL_MS
       );
     } else {
@@ -1975,11 +2008,11 @@ export class TranslationsDocument {
   }
 
   /**
-   * Check to see if a language matches the document language.
+   * Check to see if a language matches the document's source language.
    *
    * @param {Node} node
    */
-  matchesDocumentLanguage(node) {
+  #matchesDocumentLanguage(node) {
     const lang = asHTMLElement(node)?.lang;
     if (!lang) {
       // No `lang` was present, so assume it matches the language.
@@ -1987,7 +2020,7 @@ export class TranslationsDocument {
     }
 
     // First, cheaply check if language tags match, without canonicalizing.
-    if (lazy.TranslationsUtils.langTagsMatch(this.documentLanguage, lang)) {
+    if (lazy.TranslationsUtils.langTagsMatch(this.#documentLanguage, lang)) {
       return true;
     }
 
@@ -1997,7 +2030,7 @@ export class TranslationsDocument {
       const [language] = Intl.getCanonicalLocales(lang);
 
       return lazy.TranslationsUtils.langTagsMatch(
-        this.documentLanguage,
+        this.#documentLanguage,
         language
       );
     } catch (_error) {
@@ -2473,7 +2506,7 @@ function hasTextNodes(node) {
 }
 
 /**
- * Like `isExcludedNode` but looks at the full subtree. Used to see whether
+ * Like `#isExcludedNode` but looks at the full subtree. Used to see whether
  * we can submit a subtree, or whether we should split it into smaller
  * branches first to try to exclude more of the non-translatable content.
  *
