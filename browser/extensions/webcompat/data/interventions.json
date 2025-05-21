@@ -3646,5 +3646,22 @@
         "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
       }
     ]
+  },
+  "1966585": {
+    "label": "hiskin.care",
+    "bugs": {
+      "1966585": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://hiskin.care/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1966585-hiskin.care-reveal-missing-content.css"]
+        }
+      }
+    ]
   }
 }
