@@ -195,6 +195,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_dbg-scroll-run-to-completion.js"]
 
+["browser_dbg-scrolling-with-search.js"]
+
 ["browser_dbg-search-file-paused.js"]
 
 ["browser_dbg-search-file-retains-query.js"]

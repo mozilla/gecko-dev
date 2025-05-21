@@ -133,7 +133,7 @@ function doSearch(
   query,
   keepSelection,
   modifiers,
-  focusFirstResult = true
+  { focusFirstResult = true, shouldScroll = true }
 ) {
   const { cm, editor } = ctx;
 
@@ -160,7 +160,10 @@ function doSearch(
       positionClassName: "cm-matchhighlight",
       positions: [{ from: cursor.from, to: cursor.to }],
     });
-    editor.scrollToPosition(cursor.from);
+
+    if (shouldScroll) {
+      editor.scrollToPosition(cursor.from);
+    }
     return editor.getPositionFromSearchCursor(cursor);
   }
 
@@ -346,16 +349,9 @@ export function clearSearch(ctx) {
  * @memberof utils/source-search
  * @static
  */
-export function find(ctx, query, keepSelection, modifiers, focusFirstResult) {
+export function find(ctx, query, keepSelection, modifiers, options) {
   clearSearch(ctx);
-  return doSearch(
-    ctx,
-    false,
-    query,
-    keepSelection,
-    modifiers,
-    focusFirstResult
-  );
+  return doSearch(ctx, false, query, keepSelection, modifiers, options);
 }
 
 /**
@@ -365,7 +361,7 @@ export function find(ctx, query, keepSelection, modifiers, focusFirstResult) {
  * @static
  */
 export function findNext(ctx, query, keepSelection, modifiers) {
-  return doSearch(ctx, false, query, keepSelection, modifiers);
+  return doSearch(ctx, false, query, keepSelection, modifiers, {});
 }
 
 /**
@@ -375,7 +371,7 @@ export function findNext(ctx, query, keepSelection, modifiers) {
  * @static
  */
 export function findPrev(ctx, query, keepSelection, modifiers) {
-  return doSearch(ctx, true, query, keepSelection, modifiers);
+  return doSearch(ctx, true, query, keepSelection, modifiers, {});
 }
 
 export { buildQuery };

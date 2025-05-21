@@ -10,8 +10,10 @@ import actions from "../../actions/index";
 import {
   getActiveSearch,
   getSelectedSource,
+  getIsCurrentThreadPaused,
   getSelectedSourceTextContent,
   getSearchOptions,
+  getSelectedFrame,
 } from "../../selectors/index";
 
 import { searchKeys } from "../../constants";
@@ -61,9 +63,11 @@ class SearchInFileBar extends Component {
       searchInFileEnabled: PropTypes.bool.isRequired,
       selectedSourceTextContent: PropTypes.object,
       selectedSource: PropTypes.object.isRequired,
+      selectedFrame: PropTypes.object.isRequired,
       setActiveSearch: PropTypes.func.isRequired,
       querySearchWorker: PropTypes.func.isRequired,
       selectLocation: PropTypes.func.isRequired,
+      isPaused: PropTypes.bool.isRequired,
     };
   }
 
@@ -79,14 +83,18 @@ class SearchInFileBar extends Component {
   // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
   UNSAFE_componentWillReceiveProps(nextProps) {
     const { query } = this.state;
-    // If a new source is selected update the file search results
+
     if (
+      query &&
       this.props.selectedSource &&
-      nextProps.selectedSource !== this.props.selectedSource &&
       this.props.searchInFileEnabled &&
-      query
+      nextProps.selectedFrame &&
+      // If a new source is selected update the file search results
+      nextProps.selectedFrame.location.source.id !== nextProps.selectedSource.id
     ) {
-      this.doSearch(query, false);
+      // Do not scroll to the search location, if we just switched a new source
+      // and debugger is already paused on a selelcted line.
+      this.doSearch(query, false, !nextProps.isPaused);
     }
   }
 
@@ -160,7 +168,7 @@ class SearchInFileBar extends Component {
     }
   };
 
-  doSearch = async (query, focusFirstResult = true) => {
+  doSearch = async (query, focusFirstResult = true, shouldScroll = true) => {
     const { editor, modifiers, selectedSourceTextContent } = this.props;
     if (
       !editor ||
@@ -189,7 +197,10 @@ class SearchInFileBar extends Component {
     }
 
     const matches = await this.props.querySearchWorker(query, text, modifiers);
-    const results = find(ctx, query, true, modifiers, focusFirstResult);
+    const results = find(ctx, query, true, modifiers, {
+      focusFirstResult,
+      shouldScroll,
+    });
     this.setSearchResults(results, matches);
   };
 
@@ -284,12 +295,15 @@ class SearchInFileBar extends Component {
 
         // Avoid highlighting the selected line
         highlight: false,
+
+        // This is mostly for displaying the correct location
+        // in the footer, so this should not scroll.
+        scroll: false,
       }
     );
   };
 
   // Handlers
-
   onChange = e => {
     this.setState({ query: e.target.value });
 
@@ -396,12 +410,12 @@ SearchInFileBar.contextTypes = {
 };
 
 const mapStateToProps = state => {
-  const selectedSource = getSelectedSource(state);
-
   return {
     searchInFileEnabled: getActiveSearch(state) === "file",
-    selectedSource,
+    selectedSource: getSelectedSource(state),
+    isPaused: getIsCurrentThreadPaused(state),
     selectedSourceTextContent: getSelectedSourceTextContent(state),
+    selectedFrame: getSelectedFrame(state),
     modifiers: getSearchOptions(state, "file-search"),
   };
 };
