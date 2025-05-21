@@ -1094,18 +1094,17 @@ struct WorkerPrivate::TimeoutInfo {
   }
 
   void AccumulateNestingLevel(const uint32_t& aBaseLevel) {
-    if (aBaseLevel < StaticPrefs::dom_clamp_timeout_nesting_level_AtStartup()) {
+    if (aBaseLevel < StaticPrefs::dom_clamp_timeout_nesting_level()) {
       mNestingLevel = aBaseLevel + 1;
       return;
     }
-    mNestingLevel = StaticPrefs::dom_clamp_timeout_nesting_level_AtStartup();
+    mNestingLevel = StaticPrefs::dom_clamp_timeout_nesting_level();
   }
 
   void CalculateTargetTime() {
     auto target = mInterval;
     // Don't clamp timeout for chrome workers
-    if (mNestingLevel >=
-            StaticPrefs::dom_clamp_timeout_nesting_level_AtStartup() &&
+    if (mNestingLevel >= StaticPrefs::dom_clamp_timeout_nesting_level() &&
         !mOnChromeWorker) {
       target = TimeDuration::Max(
           mInterval,

@@ -2528,9 +2528,9 @@
 # HTML specification says the level should be 5
 # https://html.spec.whatwg.org/#timer-initialisation-steps
 - name: dom.clamp.timeout.nesting.level
-  type: uint32_t
+  type: RelaxedAtomicUint32
   value: 5
-  mirror: once
+  mirror: always
 
 # Skip the security checks for document.cookie.
 - name: dom.cookie.testing.enabled
@@ -3537,13 +3537,13 @@
 
 # Timeout clamp in ms for background windows.
 - name: dom.min_background_timeout_value
-  type: int32_t
+  type: RelaxedAtomicInt32
   value: 1000
   mirror: always
 
 # Timeout clamp in ms for background windows when throttling isn't enabled.
 - name: dom.min_background_timeout_value_without_budget_throttling
-  type: int32_t
+  type: RelaxedAtomicInt32
   value: 1000
   mirror: always
 
