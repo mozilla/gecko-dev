@@ -843,6 +843,7 @@ export class TranslationsParent extends JSWindowActorParent {
         detectedLanguages
       );
 
+      /* eslint-disable-next-line no-shadow */
       const { CustomEvent } = browser.ownerGlobal;
       browser.dispatchEvent(
         new CustomEvent("TranslationsParent:OfferTranslation", {
@@ -4024,6 +4025,8 @@ class TranslationsLanguageState {
     if (!browser) {
       return;
     }
+
+    /* eslint-disable-next-line no-shadow */
     const { CustomEvent } = browser.ownerGlobal;
     browser.dispatchEvent(
       new CustomEvent("TranslationsParent:LanguageState", {

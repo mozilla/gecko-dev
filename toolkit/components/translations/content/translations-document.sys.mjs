@@ -2003,12 +2003,14 @@ export class TranslationsDocument {
         this.#hasFirstVisibleChange = true;
         this.#actorReportFirstVisibleChange();
       }
+
       return translation;
     } catch (error) {
       lazy.console.log("Translation failed", error);
     } finally {
       this.#pendingContentTranslationsCount--;
     }
+
     return null;
   }
 
@@ -2020,6 +2022,7 @@ export class TranslationsDocument {
       // This observer is no longer alive.
       return;
     }
+
     for (const node of this.#rootNodes) {
       if (Cu.isDeadWrapper(node)) {
         // This node is no longer alive.
@@ -2075,17 +2078,16 @@ export class TranslationsDocument {
             break;
           }
           case Node.ELEMENT_NODE: {
-            // TODO (Bug 1820625) - This is slow compared to the original implementation
-            // in the addon which set the innerHTML directly. We can't set the innerHTML
-            // here, but perhaps there is another way to get back some of the performance.
             const translationsDocument = this.#domParser.parseFromString(
               `<!DOCTYPE html><div>${translatedContent}</div>`,
               "text/html"
             );
             updateElement(translationsDocument, ensureExists(asElement(node)));
+
             break;
           }
         }
+
         this.#pendingContentTranslations.delete(node);
       }
 
@@ -2715,22 +2717,22 @@ function getIsBlockLike(node) {
   if (!element) {
     return false;
   }
+
   const { ownerGlobal } = element;
   if (!ownerGlobal) {
     return false;
   }
+
   if (element.namespaceURI === "http://www.w3.org/2000/svg") {
     // SVG elements will report as inline, but there is no block layout in SVG.
     // Treat every SVG element as being block so that every node will be subdivided.
     return true;
   }
-  /** @type {Record<string, string> | null} */
+
+  /** @type {Record<string, string>} */
   // @ts-expect-error - This is a workaround for the CSSStyleDeclaration not being indexable.
   const style = ownerGlobal.getComputedStyle(element) ?? { display: null };
 
-  if (!style) {
-    return false;
-  }
   return style.display !== "inline" && style.display !== "none";
 }
 
