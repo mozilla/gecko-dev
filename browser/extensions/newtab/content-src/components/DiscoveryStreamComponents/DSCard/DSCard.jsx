@@ -208,8 +208,6 @@ export class _DSCard extends React.PureComponent {
     this.onMenuShow = this.onMenuShow.bind(this);
     this.onThumbsUpClick = this.onThumbsUpClick.bind(this);
     this.onThumbsDownClick = this.onThumbsDownClick.bind(this);
-    const refinedCardsLayout =
-      this.props.Prefs.values["discoverystream.refinedCardsLayout.enabled"];
 
     this.setContextMenuButtonHostRef = element => {
       this.contextMenuButtonHostElement = element;
@@ -286,7 +284,7 @@ export class _DSCard extends React.PureComponent {
       },
       medium: {
         width: 300,
-        height: refinedCardsLayout ? 172 : 150,
+        height: 150,
       },
       large: {
         width: 265,

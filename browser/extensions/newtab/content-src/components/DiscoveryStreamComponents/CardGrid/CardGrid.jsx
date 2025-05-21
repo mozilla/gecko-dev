@@ -31,7 +31,6 @@ const PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
 const PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
 const PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
 const PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
-const PREF_REFINED_CARDS_ENABLED = "discoverystream.refinedCardsLayout.enabled";
 const INTERSECTION_RATIO = 0.5;
 const VISIBLE = "visible";
 const VISIBILITY_CHANGE_EVENT = "visibilitychange";
@@ -362,8 +361,6 @@ export class _CardGrid extends React.PureComponent {
     const listFeedSelectedFeed = prefs[PREF_LIST_FEED_SELECTED_FEED];
     const billboardEnabled = prefs[PREF_BILLBOARD_ENABLED];
     const leaderboardEnabled = prefs[PREF_LEADERBOARD_ENABLED];
-    const refinedCardsLayout = prefs[PREF_REFINED_CARDS_ENABLED];
-
     // filter out recs that should be in ListFeed
     const recs = this.props.data.recommendations
       .filter(item => !item.feedName)
@@ -398,8 +395,8 @@ export class _CardGrid extends React.PureComponent {
             features={rec.features}
             showTopics={showTopics}
             selectedTopics={selectedTopics}
-            excerpt={refinedCardsLayout && rec.excerpt}
             availableTopics={availableTopics}
+            excerpt={rec.excerpt}
             url={rec.url}
             id={rec.id}
             shim={rec.shim}
