@@ -433,7 +433,14 @@ nsCertOverrideService::HasMatchingOverride(
   bool disableAllSecurityCheck = false;
   {
     MutexAutoLock lock(mMutex);
-    disableAllSecurityCheck = mDisableAllSecurityCheck;
+    if (mUserContextIdsWithSecurityChecksOverride.has(
+            aOriginAttributes.mUserContextId)) {
+      auto p = mUserContextIdsWithSecurityChecksOverride.lookup(
+          aOriginAttributes.mUserContextId);
+      disableAllSecurityCheck = p->value();
+    } else {
+      disableAllSecurityCheck = mDisableAllSecurityCheck;
+    }
   }
   if (disableAllSecurityCheck) {
     *aIsTemporary = false;
@@ -660,6 +667,39 @@ nsCertOverrideService::
     nss->ClearSSLExternalAndInternalSessionCache();
   } else {
     return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCertOverrideService::
+    SetDisableAllSecurityChecksAndLetAttackersInterceptMyDataForUserContext(
+        uint32_t aUserContextId, bool aDisable) {
+  if (!(PR_GetEnv("XPCSHELL_TEST_PROFILE_DIR") || IsDebugger())) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  {
+    MutexAutoLock lock(mMutex);
+    mozilla::Unused << mUserContextIdsWithSecurityChecksOverride.put(
+        aUserContextId, aDisable);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCertOverrideService::
+    ResetDisableAllSecurityChecksAndLetAttackersInterceptMyDataForUserContext(
+        uint32_t aUserContextId) {
+  if (!(PR_GetEnv("XPCSHELL_TEST_PROFILE_DIR") || IsDebugger())) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  {
+    MutexAutoLock lock(mMutex);
+    mUserContextIdsWithSecurityChecksOverride.remove(aUserContextId);
   }
 
   return NS_OK;

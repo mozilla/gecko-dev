@@ -134,10 +134,43 @@ interface nsICertOverrideService : nsISupports {
   /**
    *  NOTE: This function is used only for testing!
    *
-   *  @param aDisable If true, disable all security check and make
+   *  @param aDisable If true, disable all security checks and make
    *                  hasMatchingOverride always return true.
    */
-  void setDisableAllSecurityChecksAndLetAttackersInterceptMyData(in boolean aDisable);
+  void setDisableAllSecurityChecksAndLetAttackersInterceptMyData(
+    in boolean aDisable);
+
+  /**
+   *  NOTE: This function is used only for webdriver!
+   *  Spec: https://www.w3.org/TR/webdriver-bidi/#command-browser-createUserContext.
+   *
+   *  The method is designed to enable or disable all security checks
+   *  for the specified user context. This settings should override the global state,
+   *  e.g., the security checks can be disabled globally but with this method they can
+   *  be enabled for the specified user context.
+   *
+   *  @param aUserContextId Enable or disable all security checks for this user context.
+   *  @param aDisable If true, disable all security checks and make
+   *                  hasMatchingOverride always return true.
+   */
+  void setDisableAllSecurityChecksAndLetAttackersInterceptMyDataForUserContext(
+    in uint32_t aUserContextId,
+    in boolean aDisable);
+
+  /**
+   *  NOTE: This function is used only for webdriver!
+   *  Spec: https://www.w3.org/TR/webdriver-bidi/#cleanup-the-session.
+   *
+   *  This method is required to reset the status of security checks
+   *  for the specified user context and fallback to the global state.
+   *  E.g., the user context can have security checks enabled
+   *  but globally they are disabled. After calling this method the security checks
+   *  for the user context should be disabled as it is globally.
+   *
+   *  @param aUserContextId Reset the status of security checks for this user context.
+   */
+  void resetDisableAllSecurityChecksAndLetAttackersInterceptMyDataForUserContext(
+    in uint32_t aUserContextId);
 
   readonly attribute boolean securityCheckDisabled;
 };
