@@ -4,6 +4,8 @@ support-files = [
   "raptor.jpg",
 ]
 
+["browser_antifraud_annotation.js"]
+
 ["browser_consentmanager_annotation.js"]
 
 ["browser_emailtracking_telemetry.js"]
