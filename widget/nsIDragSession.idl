@@ -26,6 +26,7 @@ class BrowserParent;
 %}
 
 interface nsIContentSecurityPolicy;
+interface nsIFile;
 
 [ptr] native BrowserParentPtr(mozilla::dom::BrowserParent);
 native EventMessage(mozilla::EventMessage);
@@ -235,7 +236,7 @@ interface nsIDragSession : nsISupports
    * @param aShouldDrop  True to send drop event, false to send dragexit event
    */
   void sendDispatchToDropTargetAndResumeEndDragSession(
-      in boolean aShouldDrop);
+      in boolean aShouldDrop, in Array<nsIFile> aAllowedFiles);
 
   /**
    * Store aElement and aDocFrame as the future drop/dragexit context, and
