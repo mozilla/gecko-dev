@@ -409,16 +409,6 @@ async function testWindowOpen(
 
       win.onload = () => {
         is(
-          win.screen.width,
-          input.targetWidth,
-          "The screen.width has a correct rounded value"
-        );
-        is(
-          win.screen.height,
-          input.targetHeight,
-          "The screen.height has a correct rounded value"
-        );
-        is(
           win.innerWidth,
           input.targetWidth,
           "The window.innerWidth has a correct rounded value"
@@ -428,6 +418,32 @@ async function testWindowOpen(
           input.targetHeight,
           "The window.innerHeight has a correct rounded value"
         );
+        // We currently cap screen size at 8k.
+        // In the actual logic we check also outer and screen.avail for a
+        // consistent spoofing, but this is good enough for these tests.
+        if (win.innerWidth <= 7680 && win.innerHeight <= 4320) {
+          Assert.greaterOrEqual(
+            win.screen.width,
+            win.innerWidth,
+            "screen.width is bigger than the inner window"
+          );
+          Assert.greaterOrEqual(
+            win.screen.height,
+            win.innerHeight,
+            "screen.width is bigger than the inner window"
+          );
+        } else {
+          is(
+            win.screen.width,
+            7680,
+            "screen.width was capped at 8k for a bigger inner window."
+          );
+          is(
+            win.screen.height,
+            4320,
+            "screen.height was capped at 8k for a bigger inner window."
+          );
+        }
 
         win.close();
         resolve();

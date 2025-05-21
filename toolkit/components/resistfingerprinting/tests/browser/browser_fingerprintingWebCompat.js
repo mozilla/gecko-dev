@@ -27,6 +27,16 @@ const TEST_THIRD_PARTY_PAGE =
     THIRD_PARTY_DOMAIN
   ) + "empty.html";
 
+const SCREEN_AVAIL_OFFSET = (() => {
+  switch (AppConstants.platform) {
+    case "win":
+      return 48;
+    case "macosx":
+      return 76;
+  }
+  return 0;
+})();
+
 const TEST_CASES = [
   // Test the wildcard entry.
   {
@@ -335,11 +345,11 @@ async function openAndSetupTestPageForPopup() {
 }
 
 async function verifyResultInTab(tab, firstPartyBC, thirdPartyBC, expected) {
-  let testScreenAvailRect = enabled => {
+  let testScreenAvailRect = (enabled, offset) => {
     if (enabled) {
       ok(
         content.wrappedJSObject.screen.availHeight ==
-          content.wrappedJSObject.screen.height &&
+          content.wrappedJSObject.screen.height - offset &&
           content.wrappedJSObject.screen.availWidth ==
             content.wrappedJSObject.screen.width,
         "Fingerprinting target ScreenAvailRect is enabled for ScreenAvailRect."
@@ -370,7 +380,7 @@ async function verifyResultInTab(tab, firstPartyBC, thirdPartyBC, expected) {
   );
   await SpecialPowers.spawn(
     tab.linkedBrowser,
-    [expected.screenAvailRect.top],
+    [expected.screenAvailRect.top, SCREEN_AVAIL_OFFSET],
     testScreenAvailRect
   );
   let expectHWConcurrencyTop = expected.hwConcurrency.top
@@ -401,7 +411,7 @@ async function verifyResultInTab(tab, firstPartyBC, thirdPartyBC, expected) {
   );
   await SpecialPowers.spawn(
     firstPartyBC,
-    [expected.screenAvailRect.firstParty],
+    [expected.screenAvailRect.firstParty, SCREEN_AVAIL_OFFSET],
     testScreenAvailRect
   );
   let expectHWConcurrencyFirstParty = expected.hwConcurrency.firstParty
@@ -432,7 +442,7 @@ async function verifyResultInTab(tab, firstPartyBC, thirdPartyBC, expected) {
   );
   await SpecialPowers.spawn(
     thirdPartyBC,
-    [expected.screenAvailRect.thirdParty],
+    [expected.screenAvailRect.thirdParty, SCREEN_AVAIL_OFFSET],
     testScreenAvailRect
   );
   let expectHWConcurrencyThirdParty = expected.hwConcurrency.thirdParty
@@ -522,21 +532,25 @@ add_task(async function test_popup_inheritance() {
     await openAndSetupTestPageForPopup();
 
   // Ensure the third-party iframe has the correct overrides.
-  await SpecialPowers.spawn(thirdPartyFrameBC, [], _ => {
-    ok(
-      content.wrappedJSObject.screen.availHeight ==
-        content.wrappedJSObject.screen.height &&
-        content.wrappedJSObject.screen.availWidth ==
-          content.wrappedJSObject.screen.width,
-      "Fingerprinting target ScreenAvailRect is enabled for third-party iframe."
-    );
-  });
+  await SpecialPowers.spawn(
+    thirdPartyFrameBC,
+    [SCREEN_AVAIL_OFFSET],
+    offset => {
+      ok(
+        content.wrappedJSObject.screen.availHeight ==
+          content.wrappedJSObject.screen.height - offset &&
+          content.wrappedJSObject.screen.availWidth ==
+            content.wrappedJSObject.screen.width,
+        "Fingerprinting target ScreenAvailRect is enabled for third-party iframe."
+      );
+    }
+  );
 
   // Verify the popup inherits overrides from the opener.
-  await SpecialPowers.spawn(popupBC, [], _ => {
+  await SpecialPowers.spawn(popupBC, [SCREEN_AVAIL_OFFSET], offset => {
     ok(
       content.wrappedJSObject.screen.availHeight ==
-        content.wrappedJSObject.screen.height &&
+        content.wrappedJSObject.screen.height - offset &&
         content.wrappedJSObject.screen.availWidth ==
           content.wrappedJSObject.screen.width,
       "Fingerprinting target ScreenAvailRect is enabled for the pop-up."

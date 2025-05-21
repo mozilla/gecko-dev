@@ -159,6 +159,8 @@ https_first_disabled = true
 
 ["browser_roundedWindow_open_min_inner.js"]
 
+["browser_spoofed_screen_size.js"]
+
 ["browser_spoofing_keyboard_event.js"]
 
 ["browser_timezone.js"]

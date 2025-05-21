@@ -10,6 +10,7 @@
 #include "mozilla/dom/DocumentInlines.h"
 #include "nsGlobalWindowInner.h"
 #include "nsGlobalWindowOuter.h"
+#include "nsIBaseWindow.h"
 #include "nsIDocShell.h"
 #include "nsPresContext.h"
 #include "nsCOMPtr.h"
@@ -61,9 +62,17 @@ nsDeviceContext* nsScreen::GetDeviceContext() const {
 }
 
 CSSIntRect nsScreen::GetRect() {
-  // Return window inner rect to prevent fingerprinting.
+  // Return a spoofed rect to prevent fingerprinting.
   if (ShouldResistFingerprinting(RFPTarget::ScreenRect)) {
-    return GetTopWindowInnerRectForRFP();
+    const CSSIntRect innerRect = GetTopWindowInnerRectForRFP();
+    if (IsFullscreen()) {
+      return innerRect;
+    }
+    nsDeviceContext* context = GetDeviceContext();
+    const nsSize size = nsRFPService::GetSpoofedScreenSize(
+        CSSPixel::ToAppUnits(innerRect.Size()),
+        context ? context->GetFullZoom() : 1.0f);
+    return CSSIntRect::FromAppUnitsRounded(nsRect({0, 0}, size));
   }
 
   // Here we manipulate the value of aRect to represent the screen size,
@@ -87,17 +96,23 @@ CSSIntRect nsScreen::GetRect() {
 }
 
 CSSIntRect nsScreen::GetAvailRect() {
-  // Return window inner rect to prevent fingerprinting.
-  if (ShouldResistFingerprinting(RFPTarget::ScreenAvailRect)) {
-    return GetTopWindowInnerRectForRFP();
-  }
-
-  if (ShouldResistFingerprinting(RFPTarget::ScreenAvailToResolution)) {
+  // Return a spoofed rect to prevent fingerprinting.
+  if (ShouldResistFingerprinting(RFPTarget::ScreenAvailRect) ||
+      ShouldResistFingerprinting(RFPTarget::ScreenAvailToResolution)) {
+    if (IsFullscreen()) {
+      return GetTopWindowInnerRectForRFP();
+    }
     nsDeviceContext* context = GetDeviceContext();
     if (NS_WARN_IF(!context)) {
       return {};
     }
-    return nsRFPService::GetSpoofedScreenAvailSize(context->GetRect(),
+    nsSize screenSize =
+        ShouldResistFingerprinting(RFPTarget::ScreenRect)
+            ? nsRFPService::GetSpoofedScreenSize(
+                  CSSPixel::ToAppUnits(GetTopWindowInnerRectForRFP().Size()),
+                  context->GetFullZoom())
+            : context->GetRect().Size();
+    return nsRFPService::GetSpoofedScreenAvailSize(screenSize,
                                                    context->GetFullZoom());
   }
 
@@ -119,6 +134,25 @@ CSSIntRect nsScreen::GetAvailRect() {
     return {};
   }
   return CSSIntRect::FromAppUnitsRounded(context->GetClientRect());
+}
+
+bool nsScreen::IsFullscreen() const {
+  if (nsPIDOMWindowInner* inner = GetOwnerWindow()) {
+    if (BrowsingContext* bc = inner->GetBrowsingContext()) {
+      if (bc->DisplayMode() == DisplayMode::Fullscreen) {
+        return true;
+      }
+      nsCOMPtr<nsISupports> container = bc->Top()->GetDocShell();
+      if (nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(container)) {
+        nsCOMPtr<nsIWidget> mainWidget;
+        baseWindow->GetMainWidget(getter_AddRefs(mainWidget));
+        if (mainWidget && mainWidget->SizeMode() == nsSizeMode_Fullscreen) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 uint16_t nsScreen::GetOrientationAngle() const {

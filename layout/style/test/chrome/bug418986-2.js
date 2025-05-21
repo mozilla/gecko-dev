@@ -10,43 +10,59 @@ const HTML_NS = "http://www.w3.org/1999/xhtml";
 // If pref_*_value is an array with two values, then we will match
 // any value in between those two values. If a value is null, then
 // we skip the media query.
-var expected_values = [
-  ["color", null, 8],
-  ["color-index", null, 0],
-  ["aspect-ratio", null, window.innerWidth + "/" + window.innerHeight],
-  [
-    "device-aspect-ratio",
-    screen.width + "/" + screen.height,
-    window.innerWidth + "/" + window.innerHeight,
-  ],
-  ["device-height", screen.height + "px", window.innerHeight + "px"],
-  ["device-width", screen.width + "px", window.innerWidth + "px"],
-  ["grid", null, 0],
-  ["height", window.innerHeight + "px", window.innerHeight + "px"],
-  ["monochrome", null, 0],
-  // Square is defined as portrait:
-  [
-    "orientation",
-    null,
-    window.innerWidth > window.innerHeight ? "landscape" : "portrait",
-  ],
-  ["resolution", null, "192dpi"],
-  [
-    "resolution",
+var expected_values = () => {
+  let spoofedScreen;
+  let screenSizes = [
+    [1920, 1080],
+    [3840, 2160],
+    [7680, 4320],
+  ];
+  for (let s of screenSizes) {
+    // Make sure we always have a value, even though we do not fit.
+    spoofedScreen = s;
+    if (window.outerWidth <= s[0] && window.outerHeight <= s[1]) {
+      break;
+    }
+  }
+
+  return [
+    ["color", null, 8],
+    ["color-index", null, 0],
+    ["aspect-ratio", null, window.innerWidth + "/" + window.innerHeight],
     [
-      0.999 * window.devicePixelRatio + "dppx",
-      1.001 * window.devicePixelRatio + "dppx",
+      "device-aspect-ratio",
+      screen.width + "/" + screen.height,
+      `${spoofedScreen[0]} / ${spoofedScreen[1]}`,
     ],
-    "2dppx",
-  ],
-  ["width", window.innerWidth + "px", window.innerWidth + "px"],
-  ["-moz-device-pixel-ratio", window.devicePixelRatio, 2],
-  [
-    "-moz-device-orientation",
-    screen.width > screen.height ? "landscape" : "portrait",
-    window.innerWidth > window.innerHeight ? "landscape" : "portrait",
-  ],
-];
+    ["device-height", screen.height + "px", `${spoofedScreen[1]}px`],
+    ["device-width", screen.width + "px", `${spoofedScreen[0]}px`],
+    ["grid", null, 0],
+    ["height", window.innerHeight + "px", window.innerHeight + "px"],
+    ["monochrome", null, 0],
+    // Square is defined as portrait:
+    [
+      "orientation",
+      null,
+      window.innerWidth > window.innerHeight ? "landscape" : "portrait",
+    ],
+    ["resolution", null, "192dpi"],
+    [
+      "resolution",
+      [
+        0.999 * window.devicePixelRatio + "dppx",
+        1.001 * window.devicePixelRatio + "dppx",
+      ],
+      "2dppx",
+    ],
+    ["width", window.innerWidth + "px", window.innerWidth + "px"],
+    ["-moz-device-pixel-ratio", window.devicePixelRatio, 2],
+    [
+      "-moz-device-orientation",
+      screen.width > screen.height ? "landscape" : "portrait",
+      window.innerWidth > window.innerHeight ? "landscape" : "portrait",
+    ],
+  ];
+};
 
 // These media queries return value 0 or 1 when the pref is off.
 // When the pref is on, they should not match.
@@ -116,7 +132,7 @@ var testToggles = function (resisting) {
 // where each line corresponds to a different media query.
 var generateHtmlLines = function (resisting) {
   let fragment = document.createDocumentFragment();
-  expected_values.forEach(function ([key, offVal, onVal]) {
+  expected_values().forEach(function ([key, offVal, onVal]) {
     let val = resisting ? onVal : offVal;
     if (val) {
       let div = document.createElementNS(HTML_NS, "div");
@@ -185,7 +201,7 @@ var suppressedMediaQueryCSSLine = function (key, color, suppressed) {
 // expected value, then the element will be colored green.
 var generateCSSLines = function (resisting) {
   let lines = ".spoof { background-color: red;}\n";
-  expected_values.forEach(function ([key, offVal, onVal]) {
+  expected_values().forEach(function ([key, offVal, onVal]) {
     lines += mediaQueryCSSLine(key, resisting ? onVal : offVal, "green");
   });
   lines +=
@@ -257,7 +273,7 @@ var testMediaQueriesInPictureElements = async function (resisting) {
   const MATCH = "/tests/layout/style/test/chrome/match.png";
   let container = document.getElementById("pictures");
   let testImages = [];
-  for (let [key, offVal, onVal] of expected_values) {
+  for (let [key, offVal, onVal] of expected_values()) {
     let expected = resisting ? onVal : offVal;
     if (expected) {
       let picture = document.createElementNS(HTML_NS, "picture");
@@ -307,7 +323,7 @@ var test = async function (isContent) {
   for (prefValue of [false, true]) {
     await pushPref("privacy.resistFingerprinting", prefValue);
     let resisting = prefValue && isContent;
-    expected_values.forEach(function ([key, offVal, onVal]) {
+    expected_values().forEach(function ([key, offVal, onVal]) {
       testMatch(key, resisting ? onVal : offVal);
     });
     testToggles(resisting);

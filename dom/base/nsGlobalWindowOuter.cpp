@@ -3482,7 +3482,32 @@ CSSIntSize nsGlobalWindowOuter::GetOuterSize(CallerType aCallerType,
   if (nsIGlobalObject::ShouldResistFingerprinting(aCallerType,
                                                   RFPTarget::WindowOuterSize)) {
     if (BrowsingContext* bc = GetBrowsingContext()) {
-      return bc->Top()->GetTopInnerSizeForRFP();
+      nsIDocShell* docShell = bc->GetDocShell();
+      BrowsingContext* top = bc->Top();
+      CSSIntSize innerSize = top->GetTopInnerSizeForRFP();
+
+      bool fullscreen = bc->DisplayMode() == DisplayMode::Fullscreen;
+      if (!fullscreen && top->GetDocShell()) {
+        if (nsCOMPtr<nsIBaseWindow> baseWindow =
+                do_QueryInterface(top->GetDocShell())) {
+          nsCOMPtr<nsIWidget> mainWidget;
+          baseWindow->GetMainWidget(getter_AddRefs(mainWidget));
+          fullscreen =
+              mainWidget && mainWidget->SizeMode() == nsSizeMode_Fullscreen;
+        }
+      }
+      if (fullscreen) {
+        return innerSize;
+      }
+
+      nsPresContext* presContext =
+          docShell ? docShell->GetPresContext() : nullptr;
+      const float scale =
+          presContext ? 1.0f / presContext->GetFullZoom() : 1.0f;
+      CSSIntSize offset = nsRFPService::GetOuterOffset();
+      offset.width = int32_t(roundf(offset.width * scale));
+      offset.height = int32_t(roundf(offset.height * scale));
+      return innerSize + offset;
     }
     return {};
   }
