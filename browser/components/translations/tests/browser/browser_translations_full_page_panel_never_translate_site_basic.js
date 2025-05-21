@@ -5,7 +5,7 @@
 
 /**
  * Tests the effect of toggling the never-translate-site menuitem.
- * Checking the box on an untranslated page should immediately hide the button.
+ * Checking the box on an not translated page should immediately hide the button.
  * The button should not appear again for sites that share the same content principal
  * of the disabled site.
  */
@@ -20,7 +20,7 @@ add_task(async function test_toggle_never_translate_site_menuitem() {
     "The translations button is visible."
   );
 
-  await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+  await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "es",
@@ -39,13 +39,13 @@ add_task(async function test_toggle_never_translate_site_menuitem() {
     { checked: true }
   );
 
-  await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+  await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
   await navigate("Navigate to a Spanish page with the same content principal", {
     url: SPANISH_PAGE_URL_2,
   });
 
-  await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+  await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
   await navigate(
     "Navigate to a Spanish page with a different content principal",
@@ -58,7 +58,7 @@ add_task(async function test_toggle_never_translate_site_menuitem() {
       "has not been denied translations permissions"
   );
 
-  await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+  await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
   await cleanup();
 });

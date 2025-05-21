@@ -20,7 +20,7 @@ add_task(
       "The button is available."
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
@@ -81,7 +81,7 @@ add_task(
       "Only the button appears"
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await cleanup();
   }

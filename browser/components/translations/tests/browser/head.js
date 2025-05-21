@@ -1648,7 +1648,7 @@ class FullPageTranslationsTestUtils {
    * @param {Function} runInPage - Allows running a closure in the content page.
    * @param {string} message - An optional message to log to info.
    */
-  static async assertPageIsUntranslated(runInPage, message = null) {
+  static async assertPageIsNotTranslated(runInPage, message = null) {
     if (message) {
       info(message);
     }
@@ -1662,7 +1662,7 @@ class FullPageTranslationsTestUtils {
     await runInPage(async TranslationsTest => {
       const { getH1 } = TranslationsTest.getSelectors();
       await TranslationsTest.assertTranslationResult(
-        "The page's H1 is untranslated and in the original Spanish.",
+        "The page's H1 is not translated and in the original Spanish.",
         getH1,
         "Don Quijote de La Mancha"
       );

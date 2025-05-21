@@ -240,7 +240,7 @@ add_task(async function test_language_identification_behavior() {
         message,
       });
     } else {
-      await FullPageTranslationsTestUtils.assertPageIsUntranslated(
+      await FullPageTranslationsTestUtils.assertPageIsNotTranslated(
         runInPage,
         message
       );

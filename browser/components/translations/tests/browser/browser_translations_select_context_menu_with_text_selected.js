@@ -22,7 +22,7 @@ add_task(
       "The button is available."
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await SelectTranslationsTestUtils.assertContextMenuTranslateSelectionItem(
       runInPage,

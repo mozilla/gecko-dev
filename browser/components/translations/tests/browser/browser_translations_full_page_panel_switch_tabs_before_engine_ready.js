@@ -37,7 +37,7 @@ add_task(async function test_button_does_not_update_when_button_is_not_shown() {
     "The button is present in the Spanish page."
   );
 
-  await FullPageTranslationsTestUtils.assertPageIsUntranslated(
+  await FullPageTranslationsTestUtils.assertPageIsNotTranslated(
     runInSpanishPage
   );
 
@@ -109,7 +109,7 @@ add_task(
       "The button is present Spanish .com tab."
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(
       runInSpanishDotComPage
     );
 
@@ -127,7 +127,7 @@ add_task(
       "The button is present Spanish .org tab."
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(
       runInSpanishDotOrgPage
     );
 
@@ -160,7 +160,7 @@ add_task(
       { button: true, circleArrows: false, locale: false, icon: true },
       "The button should be present but inactive on the Spanish .com tab, even after resolving downloads."
     );
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(
       runInSpanishDotComPage
     );
 
@@ -201,7 +201,7 @@ add_task(
       "The button is present Spanish .com tab."
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(
       runInSpanishDotComPage
     );
 
@@ -241,7 +241,7 @@ add_task(
       "The button is present but not active in the Spanish .org tab."
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(
       runInSpanishDotOrgPage
     );
 

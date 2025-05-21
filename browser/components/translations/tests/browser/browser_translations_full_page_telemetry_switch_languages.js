@@ -17,7 +17,7 @@ add_task(async function test_translations_telemetry_switch_from_language() {
     "The button is available."
   );
 
-  await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+  await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "es",
@@ -112,7 +112,7 @@ add_task(async function test_translations_telemetry_switch_to_language() {
     "The button is available."
   );
 
-  await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+  await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "es",

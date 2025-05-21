@@ -22,7 +22,7 @@ add_task(
       "The translations button is visible."
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
@@ -58,18 +58,18 @@ add_task(
       { checked: true }
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await navigate("Reload the page", { url: SPANISH_PAGE_URL });
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await navigate(
       "Navigate to a Spanish page with the same content principal",
       { url: SPANISH_PAGE_URL_2 }
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await navigate(
       "Navigate to a Spanish page with a different content principal",
@@ -82,7 +82,7 @@ add_task(
         "has not been denied translations permissions"
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await cleanup();
   }

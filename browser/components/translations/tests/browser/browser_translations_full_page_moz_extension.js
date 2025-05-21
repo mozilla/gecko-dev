@@ -40,7 +40,7 @@ add_task(async function test_translations_moz_extension() {
 
   is(button.getAttribute("data-l10n-id"), "urlbar-translations-button-intro");
 
-  await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+  await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "es",

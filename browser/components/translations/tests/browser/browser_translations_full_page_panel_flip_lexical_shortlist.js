@@ -17,7 +17,7 @@ add_task(
       prefs: [["browser.translations.useLexicalShortlist", false]],
     });
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
@@ -118,7 +118,7 @@ add_task(
       prefs: [["browser.translations.useLexicalShortlist", true]],
     });
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",

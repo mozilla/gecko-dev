@@ -27,11 +27,11 @@ add_task(async function test_always_translate_with_bad_data() {
   });
   await closeAllOpenPanelsAndMenus();
 
-  info("Checking that the page is untranslated");
+  info("Checking that the page is not translated");
   await runInPage(async TranslationsTest => {
     const { getH1 } = TranslationsTest.getSelectors();
     await TranslationsTest.assertTranslationResult(
-      "The page's H1 is untranslated and in the original English.",
+      "The page's H1 is not translated and in the original English.",
       getH1,
       '"The Wonderful Wizard of Oz" by L. Frank Baum'
     );

@@ -203,7 +203,7 @@ add_task(async function test_translations_panel_fuzzing() {
 
         await FullPageTranslationsTestUtils.clickRestoreButton();
 
-        await FullPageTranslationsTestUtils.assertPageIsUntranslated(
+        await FullPageTranslationsTestUtils.assertPageIsNotTranslated(
           runInSpanishPage
         );
 

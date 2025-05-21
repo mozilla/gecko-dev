@@ -41,7 +41,9 @@ add_task(
       "The button is present and shows only the icon.",
       window1
     );
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInEsEnPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(
+      runInEsEnPage
+    );
     await FullPageTranslationsTestUtils.openPanel({
       win: window1,
       expectedFromLanguage: "es",
@@ -72,7 +74,9 @@ add_task(
       "The button is present and shows only the icon.",
       window2
     );
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInEsFaPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(
+      runInEsFaPage
+    );
     await FullPageTranslationsTestUtils.openPanel({
       win: window2,
       expectedFromLanguage: "es",
@@ -106,7 +110,9 @@ add_task(
       "The button is present and shows only the icon.",
       window1
     );
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInEsSlPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(
+      runInEsSlPage
+    );
     await FullPageTranslationsTestUtils.openPanel({
       win: window1,
       expectedFromLanguage: "es",
@@ -140,7 +146,9 @@ add_task(
       "The button is present and shows only the icon.",
       window2
     );
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInEsUkPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(
+      runInEsUkPage
+    );
     await FullPageTranslationsTestUtils.openPanel({
       win: window2,
       expectedFromLanguage: "es",

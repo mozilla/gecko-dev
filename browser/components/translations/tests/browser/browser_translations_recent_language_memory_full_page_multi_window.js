@@ -30,7 +30,7 @@ add_task(
       "The button is available."
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await FullPageTranslationsTestUtils.openPanel({
       win: window1,
@@ -65,7 +65,7 @@ add_task(
 
     await focusWindow(window2);
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(
       testPage2.runInPage
     );
 

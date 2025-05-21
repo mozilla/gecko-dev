@@ -936,7 +936,7 @@ add_task(async function test_svgs() {
         <rect x="10" y="10" width="80" height="60" class="myRect" />
         <circle cx="150" cy="50" r="30" class="myCircle" />
         <text x="50%" y="50%" text-anchor="middle" alignment-baseline="middle" class="myText">
-          Text inside of the SVG is untranslated.
+          Text inside of the SVG is translated.
         </text>
       </svg>
       <div>Text after is translated</div>
@@ -961,7 +961,7 @@ add_task(async function test_svgs() {
         <circle cx="150" cy="50" r="30" class="myCircle">
         </circle>
         <text x="50%" y="50%" text-anchor="middle" alignment-baseline="middle" class="myText">
-          TEXT INSIDE OF THE SVG IS UNTRANSLATED.
+          TEXT INSIDE OF THE SVG IS TRANSLATED.
         </text>
       </svg>
       <div>

@@ -64,7 +64,7 @@ add_task(
     });
     await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
     await FullPageTranslationsTestUtils.assertIsAlwaysTranslateLanguage("es", {
       checked: false,
     });

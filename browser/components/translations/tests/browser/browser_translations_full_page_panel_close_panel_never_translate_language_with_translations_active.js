@@ -61,7 +61,7 @@ add_task(
       }
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
     await cleanup();
   }
 );
@@ -127,7 +127,7 @@ add_task(
       SPANISH_PAGE_URL,
       { checked: true }
     );
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await FullPageTranslationsTestUtils.openPanel({
       openFromAppMenu: true,
@@ -143,7 +143,7 @@ add_task(
       SPANISH_PAGE_URL,
       { checked: true }
     );
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await FullPageTranslationsTestUtils.assertIsNeverTranslateLanguage("es", {
       checked: false,

@@ -20,7 +20,7 @@ add_task(
       "The translations button is visible."
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
@@ -73,7 +73,7 @@ add_task(
       "The button is reverted to have an icon."
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
@@ -102,7 +102,7 @@ add_task(
       "The button shows only the icon."
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await cleanup();
   }

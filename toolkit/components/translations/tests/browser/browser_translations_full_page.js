@@ -86,7 +86,7 @@ add_task(async function test_about_translations_enabled() {
         is(
           document.querySelector("h1").innerText,
           `"The Wonderful Wizard of Oz" by L. Frank Baum`,
-          `The page remains untranslated after ${(i + 1) * timeout}ms.`
+          `The page remains not translated after ${(i + 1) * timeout}ms.`
         );
       }
     },

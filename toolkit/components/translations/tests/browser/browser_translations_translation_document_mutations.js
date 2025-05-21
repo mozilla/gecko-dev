@@ -1112,7 +1112,7 @@ add_task(async function test_mutating_comments() {
   commentNode.nodeValue = "Change the comment";
 
   await htmlMatches(
-    "The comment is untranslated in a mutation",
+    "The comment is not translated in a mutation",
     /* html */ `
       <section>
         <!--Change the comment-->

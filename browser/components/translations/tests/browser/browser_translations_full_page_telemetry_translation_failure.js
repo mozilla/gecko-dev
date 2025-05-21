@@ -22,7 +22,7 @@ add_task(
       "The button is available."
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await TestTranslationsTelemetry.assertEvent(
       Glean.translations.translationRequest,
@@ -53,7 +53,7 @@ add_task(
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewError,
     });
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+    await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
     await TestTranslationsTelemetry.assertEvent(Glean.translationsPanel.open, {
       expectedEventCount: 2,
@@ -130,7 +130,7 @@ add_task(async function test_translations_telemetry_auto_translation_failure() {
     onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewError,
   });
 
-  await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
+  await FullPageTranslationsTestUtils.assertPageIsNotTranslated(runInPage);
 
   await TestTranslationsTelemetry.assertEvent(Glean.translationsPanel.open, {
     expectedEventCount: 1,
