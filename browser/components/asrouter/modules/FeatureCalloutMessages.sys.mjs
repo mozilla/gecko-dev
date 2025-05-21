@@ -105,6 +105,22 @@ const MESSAGES = () => {
                 },
               },
               {
+                selector:
+                  "#tabbrowser-tabs:not([overflow]) tab:not([pinned]):last-of-type",
+                panel_position: {
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topright",
+                },
+              },
+              {
+                selector:
+                  "#tabbrowser-tabs:not([overflow]) #tabs-newtab-button",
+                panel_position: {
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topright",
+                },
+              },
+              {
                 selector: "#tabbrowser-tabs",
                 panel_position: {
                   anchor_attachment: "bottomcenter",
@@ -174,6 +190,22 @@ const MESSAGES = () => {
               {
                 selector:
                   "#tabbrowser-tabs:not([overflow]) .tab-content[selected]:not([pinned])",
+                panel_position: {
+                  anchor_attachment: "rightcenter",
+                  callout_attachment: "topleft",
+                },
+              },
+              {
+                selector:
+                  "#tabbrowser-tabs:not([overflow]) tab:not([pinned]):last-of-type",
+                panel_position: {
+                  anchor_attachment: "rightcenter",
+                  callout_attachment: "topleft",
+                },
+              },
+              {
+                selector:
+                  "#tabbrowser-tabs:not([overflow]) #tabs-newtab-button",
                 panel_position: {
                   anchor_attachment: "rightcenter",
                   callout_attachment: "topleft",
