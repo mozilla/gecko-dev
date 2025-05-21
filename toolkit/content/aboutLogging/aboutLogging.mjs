@@ -295,6 +295,44 @@ class ParseError extends Error {
   value;
 }
 
+// Returns a URL from the current state of the page
+function serializeState() {
+  const params = new URLSearchParams();
+
+  const logModules = $("#log-modules")?.value;
+  const dropdown = $("#logging-preset-dropdown")?.value;
+  const outputType = $("[name=logging-output]:checked")?.value;
+  const threads = $("#threads")?.value;
+  const profilerPreset = $("#profiler-preset-dropdown")?.value;
+  const profilerStacks = $("#with-profiler-stacks-checkbox")?.checked;
+
+  if (logModules && logModules.trim()) {
+    params.set("modules", logModules.trim());
+  }
+
+  if (dropdown && dropdown !== "custom") {
+    params.set("preset", dropdown);
+  }
+
+  if (outputType === "profiler" || outputType === "file") {
+    params.set("output", outputType);
+  }
+
+  if (threads && threads.trim()) {
+    params.set("threads", threads.trim());
+  }
+
+  if (profilerPreset && profilerPreset !== "none") {
+    params.set("profiler-preset", profilerPreset);
+  }
+
+  if (profilerStacks) {
+    params.set("profilerstacks", "");
+  }
+
+  return `about:logging?${params.toString()}`;
+}
+
 function parseURL() {
   let options = new URL(document.location.href).searchParams;
 
@@ -413,6 +451,16 @@ function parseURL() {
   $("#some-elements-unavailable").hidden = !someElementsDisabled;
 }
 
+async function copyAsURL() {
+  let url = serializeState();
+  await navigator.clipboard.writeText(url);
+  const toast = $("#toast-copied");
+  toast.classList.add("show");
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2000);
+}
+
 let gInited = false;
 function init() {
   if (gInited) {
@@ -436,6 +484,22 @@ function init() {
 
   let toggleLoggingButton = $("#toggle-logging-button");
   toggleLoggingButton.addEventListener("click", startStopLogging);
+
+  $("#copy-as-url").onclick = copyAsURL;
+
+  function openMenu(event) {
+    if (
+      event.type == "mousedown" ||
+      event.inputSource == MouseEvent.MOZ_SOURCE_KEYBOARD ||
+      !event.detail
+    ) {
+      document.querySelector("panel-list").toggle(event);
+    }
+  }
+
+  let menuButton = $("#open-menu-button");
+  menuButton.addEventListener("mousedown", openMenu);
+  menuButton.addEventListener("click", openMenu);
 
   $$("input[type=radio]").forEach(radio => {
     radio.onchange = e => {

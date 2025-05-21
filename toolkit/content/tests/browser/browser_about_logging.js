@@ -610,3 +610,51 @@ add_task(async function testAndroidUI() {
     );
   });
 });
+
+add_task(async function testCopyToClipboard() {
+  await BrowserTestUtils.withNewTab(
+    PAGE,
+    async browser => {
+      const document = browser.contentDocument;
+      const window = browser.contentWindow;
+      // Open the menu, click on the item to copy to the clipboard
+      var menuButton = document.querySelector("#open-menu-button");
+      EventUtils.synthesizeMouseAtCenter(menuButton, {}, window);
+      var copyAction = await getElementFromDocumentByText(
+        document,
+        "Copy current settings as URL"
+      );
+      EventUtils.synthesizeMouseAtCenter(copyAction, {}, window);
+      // In theory, we could wait for the toast, and check that the clipboard
+      // has been filled with reasonnable data. In practice the CI machines
+      // are too slow and miss the toast, so we're repeatedly checking the
+      // content of the clipboard instead.
+      var copiedString = await TestUtils.waitForCondition(() => {
+        const xferable = Cc[
+          "@mozilla.org/widget/transferable;1"
+        ].createInstance(Ci.nsITransferable);
+        xferable.init(null);
+        xferable.addDataFlavor("text/plain");
+        Services.clipboard.getData(xferable, Ci.nsIClipboard.kGlobalClipboard);
+        let data = {};
+        let type = {};
+        try {
+          xferable.getAnyTransferData(type, data);
+          data = data.value.QueryInterface(Ci.nsISupportsString).data;
+        } catch {
+          data = "";
+        }
+        if (data.startsWith("about:logging")) {
+          return data;
+        }
+        return false;
+      });
+      Assert.stringMatches(
+        copiedString,
+        /^about:logging\?/,
+        `about:logging URL copied successfully ${copiedString}`
+      );
+    },
+    "Waiting to have clipboard data"
+  );
+});
