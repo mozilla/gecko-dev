@@ -31,6 +31,7 @@ add_setup(async function () {
       ["suggest.quicksuggest.sponsored", true],
       ["suggest.yelp", true],
       ["yelp.featureGate", true],
+      ["yelp.serviceResultDistinction", true],
     ],
   });
 });

@@ -14,10 +14,9 @@ const REMOTE_SETTINGS_RECORDS = [
   {
     type: "yelp-suggestions",
     attachment: {
-      subjects: [],
       // The "coffee" subject is important: It's how `YelpSuggestions` looks up
       // the Yelp icon and score right now.
-      businessSubjects: ["coffee"],
+      subjects: ["coffee"],
       preModifiers: [],
       postModifiers: [],
       locationSigns: ["in", "nearby"],
@@ -57,6 +56,7 @@ add_setup(async function init() {
       ["suggest.quicksuggest.nonsponsored", true],
       ["suggest.quicksuggest.sponsored", true],
       ["yelp.mlEnabled", true],
+      ["yelp.serviceResultDistinction", false],
     ],
     remoteSettingsRecords: REMOTE_SETTINGS_RECORDS,
   });

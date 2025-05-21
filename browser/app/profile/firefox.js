@@ -707,6 +707,10 @@ pref("browser.urlbar.yelp.priority", false);
 // of Rust.
 pref("browser.urlbar.yelp.mlEnabled", false);
 
+// Whether to distinguish service type subjects. If true, we show special titile
+// for the suggestion.
+pref("browser.urlbar.yelp.serviceResultDistinction", false);
+
 // If `browser.urlbar.yelp.featureGate` is true, this controls whether
 // Yelp suggestions are turned on.
 pref("browser.urlbar.suggest.yelp", true);

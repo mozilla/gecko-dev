@@ -43,7 +43,10 @@ const ALONGERKEYWORD_RESULT = {
 add_setup(async function () {
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsRecords: REMOTE_SETTINGS_RECORDS,
-    prefs: [["suggest.quicksuggest.sponsored", true]],
+    prefs: [
+      ["suggest.quicksuggest.sponsored", true],
+      ["yelp.serviceResultDistinction", true],
+    ],
   });
 
   await MerinoTestUtils.initGeolocation();
@@ -1022,6 +1025,87 @@ add_task(async function minKeywordLength_noNimbusOrPrefUserValue() {
       },
     ],
   });
+});
+
+// Check wheather the special title for service will be shown by the setup of
+// Nimbus variable.
+add_task(async function yelpServiceResultDistinction() {
+  // Disable the pref.
+  UrlbarPrefs.set("yelp.serviceResultDistinction", false);
+  await check_results({
+    context: createContext("a service", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [
+      QuickSuggestTestUtils.yelpResult({
+        url: "https://www.yelp.com/search?find_desc=a+service&find_loc=Yokohama%2C+Kanagawa",
+        title: "a service in Yokohama, Kanagawa",
+      }),
+    ],
+  });
+
+  // Enable by Nimbus.
+  const cleanUpNimbusEnable = await UrlbarTestUtils.initNimbusFeature({
+    yelpServiceResultDistinction: true,
+  });
+  await QuickSuggestTestUtils.forceSync();
+  await check_results({
+    context: createContext("a service", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [
+      QuickSuggestTestUtils.yelpResult({
+        url: "https://www.yelp.com/search?find_desc=a+service&find_loc=Yokohama%2C+Kanagawa",
+        titleL10n: {
+          id: "firefox-suggest-yelp-service-title",
+          args: {
+            service: "a service in Yokohama, Kanagawa",
+          },
+          argsHighlights: {
+            service: [
+              [0, 1],
+              [2, 7],
+              [18, 1],
+              [20, 1],
+              [24, 1],
+              [26, 1],
+              [28, 1],
+              [30, 1],
+            ],
+          },
+        },
+      }),
+    ],
+  });
+  await cleanUpNimbusEnable();
+
+  // Enable locally.
+  UrlbarPrefs.set("yelp.serviceResultDistinction", true);
+  await QuickSuggestTestUtils.forceSync();
+
+  // Disable by Nimbus.
+  const cleanUpNimbusDisable = await UrlbarTestUtils.initNimbusFeature({
+    yelpServiceResultDistinction: false,
+  });
+  await check_results({
+    context: createContext("a service", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [
+      QuickSuggestTestUtils.yelpResult({
+        url: "https://www.yelp.com/search?find_desc=a+service&find_loc=Yokohama%2C+Kanagawa",
+        title: "a service in Yokohama, Kanagawa",
+      }),
+    ],
+  });
+  await cleanUpNimbusDisable();
+
+  // Revert.
+  UrlbarPrefs.set("yelp.serviceResultDistinction", true);
+  await QuickSuggestTestUtils.forceSync();
 });
 
 async function doMinKeywordLengthTest({ prefUserValue, nimbusValue, tests }) {

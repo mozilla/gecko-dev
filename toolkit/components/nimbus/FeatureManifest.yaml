@@ -582,6 +582,12 @@ urlbar:
       description: >-
         Feature gate that controls whether all aspects of the Yelp suggestion
         feature are exposed to the user.
+    yelpServiceResultDistinction:
+      type: boolean
+      fallbackPref: browser.urlbar.yelp.serviceResultDistinction
+      description: >-
+        Whether to distinguish service type subjects. If true, we show special
+        titile for the suggestion.
     yelpShowLessFrequentlyCap:
       type: int
       fallbackPref: browser.urlbar.yelp.showLessFrequentlyCap

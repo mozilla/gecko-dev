@@ -579,6 +579,11 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // pref for the `yelpSuggestPriority` Nimbus variable.
   ["yelp.priority", false],
 
+  // Whether to distinguish service type subjects. If true, we show special
+  // titile for the suggestion. This is a fallback pref for the
+  // `yelpServiceResultDistinction` Nimbus variable.
+  ["yelp.serviceResultDistinction", false],
+
   // The number of times the user has clicked the "Show less frequently" command
   // for Yelp suggestions.
   ["yelp.showLessFrequentlyCount", 0],

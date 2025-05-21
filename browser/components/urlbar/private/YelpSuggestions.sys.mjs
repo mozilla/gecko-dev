@@ -204,7 +204,10 @@ export class YelpSuggestions extends SuggestProvider {
     };
     let highlights = {};
 
-    if (suggestion.subjectType === lazy.YelpSubjectType.SERVICE) {
+    if (
+      lazy.UrlbarPrefs.get("yelpServiceResultDistinction") &&
+      suggestion.subjectType === lazy.YelpSubjectType.SERVICE
+    ) {
       payload.titleL10n = {
         id: "firefox-suggest-yelp-service-title",
         args: {
