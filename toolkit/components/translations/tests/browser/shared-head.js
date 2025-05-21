@@ -1325,6 +1325,27 @@ class MockedA11yUtils {
   }
 }
 
+/**
+ * Ensures that the window size is within 50px of the given dimensions.
+ *
+ * @param {WindowProxy} win
+ * @param {number} width
+ * @param {number} height
+ *
+ * @returns {Promise<void>}
+ */
+async function ensureWindowSize(win, width, height) {
+  if (win.outerWidth < width + 50 && win.outerHeight < height + 50) {
+    return;
+  }
+
+  const resizePromise = BrowserTestUtils.waitForEvent(win, "resize");
+
+  win.resizeTo(width, height);
+
+  await resizePromise;
+}
+
 async function loadTestPage({
   languagePairs,
   endToEndTest = false,
@@ -1350,6 +1371,8 @@ async function loadTestPage({
   const restoreA11yUtils = MockedA11yUtils.mockForWindow(win);
 
   if (isFirstTimeSetup) {
+    await ensureWindowSize(win, 1000, 600);
+
     // Ensure no engine is being carried over from a previous test.
     await EngineProcess.destroyTranslationsEngine();
 

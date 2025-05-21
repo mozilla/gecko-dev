@@ -38,6 +38,9 @@ export function getSelectors() {
     getH1Title() {
       return content.document.querySelector("h1")?.getAttribute("title");
     },
+    getH1AriaLabel() {
+      return content.document.querySelector("h1")?.getAttribute("aria-label");
+    },
     getPdfSpan() {
       return waitForCondition(
         () =>
@@ -61,6 +64,11 @@ export function getSelectors() {
       return content.document
         .querySelector("p:last-of-type")
         ?.getAttribute("title");
+    },
+    getFinalParagraphAriaLabel() {
+      return content.document
+        .querySelector("p:last-of-type")
+        ?.getAttribute("aria-label");
     },
     getFrenchSection() {
       return content.document.getElementById("french-section");

@@ -373,6 +373,58 @@ async function toggleReaderMode() {
 }
 
 /**
+ * Scrolls to the top of the content page.
+ *
+ * @param {Function} runInPage - Runs a closure within the content context of the content page.
+ *
+ * @returns {Promise<void>} Resolves once the scroll position has been updated and a paint has occurred.
+ */
+async function scrollToTopOfPage(runInPage) {
+  logAction();
+  await runInPage(async ({ waitForCondition }) => {
+    content.scrollTo({ top: 0, behavior: "smooth" });
+
+    await waitForCondition(
+      () => content.scrollY <= 10,
+      "Waiting for scroll animation to complete."
+    );
+
+    // Wait for the new position to be painted.
+    await new Promise(resolve => {
+      content.requestAnimationFrame(() =>
+        content.requestAnimationFrame(resolve)
+      );
+    });
+  });
+}
+
+/**
+ * Scrolls the content page to the very bottom.
+ *
+ * @param {Function} runInPage - Runs a closure within the content context of the content page.
+ *
+ * @returns {Promise<void>} Resolves once the scroll position has been updated and a paint has occurred.
+ */
+async function scrollToBottomOfPage(runInPage) {
+  logAction();
+  await runInPage(async ({ waitForCondition }) => {
+    const scrollHeight = content.document.documentElement.scrollHeight;
+    content.scrollTo({ top: scrollHeight, behavior: "smooth" });
+
+    await waitForCondition(() => {
+      return content.scrollY >= scrollHeight - content.innerHeight - 10;
+    }, "Waiting for scroll animation to complete.");
+
+    // Wait for the new position to be painted.
+    await new Promise(resolve => {
+      content.requestAnimationFrame(() =>
+        content.requestAnimationFrame(resolve)
+      );
+    });
+  });
+}
+
+/**
  * A class for benchmarking translation performance and reporting
  * metrics to our perftest infrastructure.
  */
