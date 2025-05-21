@@ -122,7 +122,10 @@ def generate_specifications_of_artifacts_to_sign(
                 "formats": ["gcp_prod_autograph_gpg", "gcp_prod_autograph_widevine"],
             }
         ]
-        if build_platform in LANGPACK_SIGN_PLATFORMS:
+        dep_job = config.kind_dependencies_tasks[job["dependencies"][dep_kind]]
+        if build_platform in LANGPACK_SIGN_PLATFORMS and not dep_job.attributes.get(
+            "artifact-build"
+        ):
             artifacts_specifications += [
                 {
                     "artifacts": [
