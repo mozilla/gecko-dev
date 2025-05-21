@@ -14,3 +14,17 @@ fun List<PermissionRequest>.containsPermission(permissionRequest: PermissionRequ
             it.permissions == permissionRequest.permissions
     }
 }
+
+/**
+ * Merge the given [permissionRequest] if it is contained in this list.
+ */
+fun List<PermissionRequest>.mergePermissions(permissionRequest: PermissionRequest) {
+    run loop@{
+        this.forEach {
+            if (it.uri == permissionRequest.uri && it.permissions == permissionRequest.permissions) {
+                it.merge(permissionRequest)
+                return@loop
+            }
+        }
+    }
+}

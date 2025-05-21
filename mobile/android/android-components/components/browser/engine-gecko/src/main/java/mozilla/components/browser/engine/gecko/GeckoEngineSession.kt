@@ -1469,7 +1469,7 @@ class GeckoEngineSession(
             val geckoResult = GeckoResult<Int>()
             val uri = geckoContentPermission.uri
             val type = geckoContentPermission.permission
-            val request = GeckoPermissionRequest.Content(uri, type, geckoContentPermission, geckoResult)
+            val request = GeckoPermissionRequest.Content(uri, type, geckoContentPermission, mutableListOf(geckoResult))
             notifyObservers { onContentPermissionRequest(request) }
             return geckoResult
         }

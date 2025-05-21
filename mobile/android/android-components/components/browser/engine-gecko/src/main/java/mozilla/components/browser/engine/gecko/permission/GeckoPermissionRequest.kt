@@ -56,7 +56,7 @@ sealed class GeckoPermissionRequest constructor(
         override val uri: String,
         private val type: Int,
         internal val geckoPermission: PermissionDelegate.ContentPermission,
-        internal val geckoResult: GeckoResult<Int>,
+        internal var geckoResults: MutableList<GeckoResult<Int>>,
     ) : GeckoPermissionRequest(
         listOf(permissionsMap.getOrElse(type) { Permission.Generic("$type", "Gecko permission type = $type") }),
     ) {
@@ -77,16 +77,51 @@ sealed class GeckoPermissionRequest constructor(
 
         override fun grant(permissions: List<Permission>) {
             if (!isCompleted) {
-                geckoResult.complete(VALUE_ALLOW)
+                geckoResults.forEach {
+                    it.complete(VALUE_ALLOW)
+                }
             }
             isCompleted = true
         }
 
         override fun reject() {
             if (!isCompleted) {
-                geckoResult.complete(VALUE_DENY)
+                geckoResults.forEach {
+                    it.complete(VALUE_DENY)
+                }
             }
             isCompleted = true
+        }
+
+        override fun merge(permissionRequest: PermissionRequest) {
+            if (!isCompleted && uri == permissionRequest.uri && permissions == permissionRequest.permissions) {
+                val geckoPermissionRequest: GeckoPermissionRequest.Content? =
+                    permissionRequest as? GeckoPermissionRequest.Content
+                geckoPermissionRequest?.let {
+                    geckoResults.addAll(it.geckoResults)
+                    it.geckoResults.clear()
+                }
+            }
+        }
+
+        override fun equals(other: Any?): Boolean {
+            // Don't compare geckoResults for redcuer and flow
+            if (this === other) return true
+            if (other !is Content) return false
+
+            if (uri != other.uri) return false
+            if (type != other.type) return false
+            if (isCompleted != other.isCompleted) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            // Don't hash geckoResults for redcuer and flow
+            var hash = uri.hashCode()
+            hash = 31 * hash + type
+            hash = 31 * hash + isCompleted.hashCode()
+            return hash
         }
     }
 
@@ -182,4 +217,6 @@ sealed class GeckoPermissionRequest constructor(
     override fun reject() {
         callback?.reject()
     }
+
+    override fun merge(permissionRequest: PermissionRequest) = Unit
 }

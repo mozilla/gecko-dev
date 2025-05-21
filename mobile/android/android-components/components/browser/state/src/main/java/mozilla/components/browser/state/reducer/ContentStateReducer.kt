@@ -8,6 +8,7 @@ import androidx.core.net.toUri
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction
 import mozilla.components.browser.state.ext.containsPermission
+import mozilla.components.browser.state.ext.mergePermissions
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.SessionState
@@ -181,6 +182,7 @@ internal object ContentStateReducer {
                         permissionRequestsList = it.permissionRequestsList + action.permissionRequest,
                     )
                 } else {
+                    it.permissionRequestsList.mergePermissions(action.permissionRequest)
                     it
                 }
             }

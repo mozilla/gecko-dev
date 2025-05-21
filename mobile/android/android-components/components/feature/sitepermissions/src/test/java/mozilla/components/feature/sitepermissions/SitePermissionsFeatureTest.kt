@@ -1249,6 +1249,8 @@ class SitePermissionsFeatureTest {
             override fun containsVideoAndAudioSources() = true
 
             override fun reject() = Unit
+
+            override fun merge(permissionRequest: PermissionRequest) = Unit
         }
         val sitePermissionsDialogFragment = SitePermissionsDialogFragment()
         doReturn(sitePermissionsDialogFragment).`when`(sitePermissionFeature)
@@ -1314,6 +1316,8 @@ class SitePermissionsFeatureTest {
                 override fun containsVideoAndAudioSources() = true
 
                 override fun reject() = Unit
+
+                override fun merge(permissionRequest: PermissionRequest) = Unit
             }
             val sitePermissionsDialogFragment = SitePermissionsDialogFragment()
             doReturn(sitePermissionsDialogFragment).`when`(sitePermissionFeature)
@@ -1522,6 +1526,8 @@ class SitePermissionsFeatureTest {
                 }
 
                 override fun reject() = Unit
+
+                override fun merge(permissionRequest: PermissionRequest) = Unit
             }
 
             mockStorage = mock()

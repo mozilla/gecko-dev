@@ -31,6 +31,8 @@ class SystemPermissionRequest(private val nativeRequest: android.webkit.Permissi
         nativeRequest.deny()
     }
 
+    override fun merge(permissionRequest: PermissionRequest) = Unit
+
     companion object {
         val permissionsMap = mapOf(
             RESOURCE_AUDIO_CAPTURE to Permission.ContentAudioCapture(RESOURCE_AUDIO_CAPTURE),

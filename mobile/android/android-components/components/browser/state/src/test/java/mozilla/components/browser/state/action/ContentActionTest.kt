@@ -33,10 +33,14 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
+import mozilla.components.concept.engine.permission.Permission.ContentGeoLocation
+import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.test.ext.joinBlocking
+import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -47,6 +51,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.spy
+import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 class ContentActionTest {
@@ -890,5 +895,25 @@ class ContentActionTest {
         ).joinBlocking()
 
         assertFalse(tab.content.hasFormData)
+    }
+
+    @Test
+    fun `merge permission request if same request`() {
+        val url = "https://www.mozilla.org"
+
+        val request1: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(ContentGeoLocation(id = "permission")))
+            whenever(uri).thenReturn(url)
+        }
+        val request2: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(ContentGeoLocation(id = "permission")))
+            whenever(uri).thenReturn(url)
+        }
+
+        store.dispatch(ContentAction.UpdatePermissionsRequest(tab.id, request1))
+        store.dispatch(ContentAction.UpdatePermissionsRequest(tab.id, request2))
+        store.waitUntilIdle()
+
+        verify(request1).merge(request2)
     }
 }

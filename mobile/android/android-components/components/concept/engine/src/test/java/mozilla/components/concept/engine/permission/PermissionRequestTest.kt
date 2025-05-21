@@ -85,5 +85,7 @@ class PermissionRequestTest {
         override fun reject() {
             rejected = true
         }
+
+        override fun merge(permissionRequest: PermissionRequest) = Unit
     }
 }

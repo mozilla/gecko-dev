@@ -54,6 +54,13 @@ interface PermissionRequest {
     fun reject()
 
     fun containsVideoAndAudioSources() = false
+
+    /**
+     * Merge two permission requests when same permission is requested.
+     *
+     * @param permissionsRequest the permission request to merge this.
+     */
+    fun merge(permissionRequest: PermissionRequest)
 }
 
 /**

@@ -53,7 +53,7 @@ class GeckoPermissionRequestTest {
         val uri = "https://mozilla.org"
         val geckoResult = mock<GeckoResult<Int>>()
 
-        val request = GeckoPermissionRequest.Content(uri, PERMISSION_GEOLOCATION, mock(), geckoResult)
+        val request = GeckoPermissionRequest.Content(uri, PERMISSION_GEOLOCATION, mock(), mutableListOf(geckoResult))
 
         assertFalse(request.isCompleted)
 
@@ -68,7 +68,7 @@ class GeckoPermissionRequestTest {
         val uri = "https://mozilla.org"
         val geckoResult = mock<GeckoResult<Int>>()
 
-        val request = GeckoPermissionRequest.Content(uri, PERMISSION_GEOLOCATION, mock(), geckoResult)
+        val request = GeckoPermissionRequest.Content(uri, PERMISSION_GEOLOCATION, mock(), mutableListOf(geckoResult))
 
         assertFalse(request.isCompleted)
 
@@ -238,5 +238,20 @@ class GeckoPermissionRequestTest {
             ReflectionUtils.setField(this, "source", source)
             ReflectionUtils.setField(this, "type", type)
         }
+    }
+
+    @Test
+    fun `grant all content permission requests`() {
+        val uri = "https://mozilla.org"
+        val geckoResult1 = mock<GeckoResult<Int>>()
+        val geckoResult2 = mock<GeckoResult<Int>>()
+        val request1 = GeckoPermissionRequest.Content(uri, PERMISSION_GEOLOCATION, mock(), mutableListOf(geckoResult1))
+        val request2 = GeckoPermissionRequest.Content(uri, PERMISSION_GEOLOCATION, mock(), mutableListOf(geckoResult2))
+        request1.merge(request2)
+        request1.grant()
+
+        verify(geckoResult1).complete(VALUE_ALLOW)
+        verify(geckoResult2).complete(VALUE_ALLOW)
+        assertTrue(request1.isCompleted)
     }
 }
