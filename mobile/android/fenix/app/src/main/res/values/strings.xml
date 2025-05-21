@@ -884,7 +884,7 @@
     <!-- Title for the customize home screen section with Pocket. -->
     <string name="customize_toggle_pocket_3">Stories</string>
     <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-    <string name="customize_toggle_pocket_summary">Articles powered by %s</string>
+    <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">Articles powered by %s</string>
     <!-- Title for the customize home screen section with sponsored Pocket stories. -->
     <string name="customize_toggle_pocket_sponsored">Sponsored stories</string>
     <!-- Title for the opening wallpaper settings screen -->
