@@ -833,6 +833,149 @@ add_task(async function test_mixed_block_inline() {
   cleanup();
 });
 
+add_task(async function test_block_within_inline() {
+  const {
+    translate,
+    htmlMatches,
+    cleanup,
+    document,
+    resolveRequests,
+    collectPortData,
+  } = await setupMutationsTest(/* html */ `
+    <span>
+      outer span text before div
+      <div>
+        inner div text 1
+        <span>
+          inner span text 1
+          <span>
+            innermost span text
+          </span>
+          inner span text 2
+        </span>
+        inner div text 2
+      </div>
+      outer span text after div
+    </span>
+  `);
+
+  translate();
+
+  await htmlMatches(
+    "Nested block/inline structure is translated correctly.",
+    /* html */ `
+      <span>
+        o̅u̅t̅e̅r̅ s̅p̅a̅n̅ t̅e̅x̅t̅ b̅e̅f̅o̅r̅e̅ d̅i̅v̅ (id:1)
+        <div>
+          i̅n̅n̅e̅r̅ d̅i̅v̅ t̅e̅x̅t̅ 1
+          <span>
+            i̅n̅n̅e̅r̅ s̅p̅a̅n̅ t̅e̅x̅t̅ 1
+            <span>
+              i̅n̅n̅e̅r̅m̅o̅s̅t̅ s̅p̅a̅n̅ t̅e̅x̅t̅
+            </span>
+            i̅n̅n̅e̅r̅ s̅p̅a̅n̅ t̅e̅x̅t̅ 2
+          </span>
+          i̅n̅n̅e̅r̅ d̅i̅v̅ t̅e̅x̅t̅ 2 (id:3)
+        </div>
+        o̅u̅t̅e̅r̅ s̅p̅a̅n̅ t̅e̅x̅t̅ a̅f̅t̅e̅r̅ d̅i̅v̅ (id:2)
+      </span>
+    `,
+    document,
+    resolveRequests
+  );
+
+  assertPortData(collectPortData, {
+    expectedEngineStatusCount: 1,
+    expectedRequestCount: 3,
+  });
+
+  info("Mutating the two outer span text nodes");
+  const outerSpan = document.querySelector("span");
+  for (const node of outerSpan.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) {
+      node.nodeValue = "Mutated outer span text";
+    }
+  }
+
+  info("Mutating the two inner span text nodes");
+  const innerSpan = outerSpan.querySelector("div span");
+  for (const node of innerSpan.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) {
+      node.nodeValue = "Mutated inner span text";
+    }
+  }
+
+  await htmlMatches(
+    "Inline mutations are re-translated while unchanged blocks stay cached.",
+    /* html */ `
+      <span>
+        M̅u̅t̅a̅t̅e̅d̅ o̅u̅t̅e̅r̅ s̅p̅a̅n̅ t̅e̅x̅t̅ (id:4)
+        <div>
+          i̅n̅n̅e̅r̅ d̅i̅v̅ t̅e̅x̅t̅ 1
+          <span>
+            M̅u̅t̅a̅t̅e̅d̅ i̅n̅n̅e̅r̅ s̅p̅a̅n̅ t̅e̅x̅t̅ (id:7)
+            <span>
+              i̅n̅n̅e̅r̅m̅o̅s̅t̅ s̅p̅a̅n̅ t̅e̅x̅t̅
+            </span>
+            M̅u̅t̅a̅t̅e̅d̅ i̅n̅n̅e̅r̅ s̅p̅a̅n̅ t̅e̅x̅t̅ (id:7)
+          </span>
+          i̅n̅n̅e̅r̅ d̅i̅v̅ t̅e̅x̅t̅ 2 (id:3)
+        </div>
+        M̅u̅t̅a̅t̅e̅d̅ o̅u̅t̅e̅r̅ s̅p̅a̅n̅ t̅e̅x̅t̅ (id:4)
+      </span>
+    `,
+    document,
+    resolveRequests
+  );
+
+  assertPortData(collectPortData, {
+    expectedCachedCount: 2,
+    expectedRequestCount: 2,
+  });
+
+  info("Mutating the two div text nodes");
+  const innerDiv = outerSpan.querySelector("div");
+  for (const node of innerDiv.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) {
+      node.nodeValue = "Mutated inner div text";
+    }
+  }
+
+  info("Mutating the innermost span text node");
+  const innermostSpan = innerSpan.querySelector("span span");
+  innermostSpan.textContent = "Mutated innermost inline text";
+
+  await htmlMatches(
+    "Block mutations are re-translated while cached inline nodes remain.",
+    /* html */ `
+      <span>
+        M̅u̅t̅a̅t̅e̅d̅ o̅u̅t̅e̅r̅ s̅p̅a̅n̅ t̅e̅x̅t̅ (id:4)
+        <div>
+          M̅u̅t̅a̅t̅e̅d̅ i̅n̅n̅e̅r̅ d̅i̅v̅ t̅e̅x̅t̅ (id:8)
+          <span>
+            M̅u̅t̅a̅t̅e̅d̅ i̅n̅n̅e̅r̅ s̅p̅a̅n̅ t̅e̅x̅t̅ (id:7)
+            <span>
+              M̅u̅t̅a̅t̅e̅d̅ i̅n̅n̅e̅r̅m̅o̅s̅t̅ i̅n̅l̅i̅n̅e̅ t̅e̅x̅t̅ (id:10)
+            </span>
+            M̅u̅t̅a̅t̅e̅d̅ i̅n̅n̅e̅r̅ s̅p̅a̅n̅ t̅e̅x̅t̅ (id:7)
+          </span>
+          M̅u̅t̅a̅t̅e̅d̅ i̅n̅n̅e̅r̅ d̅i̅v̅ t̅e̅x̅t̅ (id:8)
+        </div>
+        M̅u̅t̅a̅t̅e̅d̅ o̅u̅t̅e̅r̅ s̅p̅a̅n̅ t̅e̅x̅t̅ (id:4)
+      </span>
+    `,
+    document,
+    resolveRequests
+  );
+
+  assertPortData(collectPortData, {
+    expectedRequestCount: 2,
+    expectedCachedCount: 1,
+  });
+
+  cleanup();
+});
+
 add_task(async function test_appending_element() {
   const {
     translate,
