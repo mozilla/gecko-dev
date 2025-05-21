@@ -9009,9 +9009,14 @@ var TabContextMenu = {
     let contextMoveTabOptions = document.getElementById(
       "context_moveTabOptions"
     );
+    // gBrowser.visibleTabs excludes tabs in collapsed groups,
+    // which we want to include in calculations for Move Tab items
+    let visibleOrCollapsedTabs = gBrowser.tabs.filter(
+      t => t.isOpen && !t.hidden
+    );
+    let allTabsSelected = visibleOrCollapsedTabs.every(t => t.multiselected);
     contextMoveTabOptions.setAttribute("data-l10n-args", tabCountInfo);
-    contextMoveTabOptions.disabled =
-      this.contextTab.hidden || gBrowser.allTabsSelected();
+    contextMoveTabOptions.disabled = this.contextTab.hidden || allTabsSelected;
     let selectedTabs = gBrowser.selectedTabs;
     let contextMoveTabToEnd = document.getElementById("context_moveToEnd");
     let allSelectedTabsAdjacent = selectedTabs.every(
@@ -9021,8 +9026,8 @@ var TabContextMenu = {
           : true;
       }
     );
-    let visibleTabs = gBrowser.visibleTabs;
-    let lastVisibleTab = visibleTabs.at(-1);
+
+    let lastVisibleTab = visibleOrCollapsedTabs.at(-1);
     let lastTabToMove = this.contextTabs.at(-1);
 
     let isLastPinnedTab = false;
@@ -9037,8 +9042,8 @@ var TabContextMenu = {
     let contextMoveTabToStart = document.getElementById("context_moveToStart");
     let isFirstTab =
       !this.contextTabs[0].group &&
-      (this.contextTabs[0] == visibleTabs[0] ||
-        this.contextTabs[0] == visibleTabs[gBrowser.pinnedTabCount]);
+      (this.contextTabs[0] == visibleOrCollapsedTabs[0] ||
+        this.contextTabs[0] == visibleOrCollapsedTabs[gBrowser.pinnedTabCount]);
     contextMoveTabToStart.disabled = isFirstTab && allSelectedTabsAdjacent;
 
     document.getElementById("context_openTabInWindow").disabled =
