@@ -59,7 +59,7 @@ static UniqueChars Tier2ResultsContext(const ScriptedCaller& scriptedCaller) {
              : UniqueChars();
 }
 
-void js::wasm::ReportTier2ResultsOffThread(bool success,
+void js::wasm::ReportTier2ResultsOffThread(bool cancelled, bool success,
                                            Maybe<uint32_t> maybeFuncIndex,
                                            const ScriptedCaller& scriptedCaller,
                                            const UniqueChars& error,
@@ -69,8 +69,10 @@ void js::wasm::ReportTier2ResultsOffThread(bool success,
   const char* contextString = context ? context.get() : "unknown";
 
   // Display the main error, if any.
-  if (!success) {
-    const char* errorString = error ? error.get() : "out of memory";
+  if (!success || cancelled) {
+    const char* errorString = error       ? error.get()
+                              : cancelled ? "compilation cancelled"
+                                          : "out of memory";
     if (maybeFuncIndex.isSome()) {
       LogOffThread(
           "'%s': wasm partial tier-2 (func index %u) failed with '%s'.\n",
@@ -129,7 +131,7 @@ class Module::CompleteTier2GeneratorTaskImpl
         // We could try to dispatch a runnable to the thread that started this
         // compilation, so as to report the warning/error using a JSContext*.
         // For now we just report to stderr.
-        ReportTier2ResultsOffThread(success, mozilla::Nothing(),
+        ReportTier2ResultsOffThread(cancelled_, success, mozilla::Nothing(),
                                     module_->codeMeta().scriptedCaller(), error,
                                     warnings);
       }

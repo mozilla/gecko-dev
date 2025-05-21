@@ -48,7 +48,8 @@ using CompleteTier2Listener = RefPtr<JS::OptimizedEncodingListener>;
 // `Some`, this report is for a partial tier-2 compilation of the specified
 // function.  Otherwise it's for a complete tier-2 compilation.
 
-void ReportTier2ResultsOffThread(bool success, Maybe<uint32_t> maybeFuncIndex,
+void ReportTier2ResultsOffThread(bool cancelled, bool success,
+                                 Maybe<uint32_t> maybeFuncIndex,
                                  const ScriptedCaller& scriptedCaller,
                                  const UniqueChars& error,
                                  const UniqueCharsVector& warnings);

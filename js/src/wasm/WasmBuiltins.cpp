@@ -758,7 +758,7 @@ static void WasmHandleRequestTierUp(Instance* instance) {
     mozilla::Atomic<bool> cancelled(false);
     bool ok = CompilePartialTier2(*codeBlock->code, funcIndex, &error,
                                   &warnings, &cancelled);
-    ReportTier2ResultsOffThread(ok, mozilla::Some(funcIndex),
+    ReportTier2ResultsOffThread(cancelled, ok, mozilla::Some(funcIndex),
                                 codeBlock->code->codeMeta().scriptedCaller(),
                                 error, warnings);
     return;
