@@ -1533,7 +1533,7 @@ TEST_F(ContentAnalysisTest,
   time_t now = time(nullptr);
 
   auto promise = ContentAnalysis::CheckFilesInBatchMode(
-      std::move(files), nullptr,
+      std::move(files), true /* autoAcknowledge*/, nullptr,
       nsIContentAnalysisRequest::Reason::eFilePickerDialog, uri);
   promise->Then(
       mozilla::GetMainThreadSerialEventTarget(), __func__,
@@ -1675,7 +1675,7 @@ TEST_F(
   RefPtr<CancelableRunnable> timer = QueueTimeoutToMainThread(timedOut);
 
   auto promise = ContentAnalysis::CheckFilesInBatchMode(
-      std::move(files), nullptr,
+      std::move(files), true /* autoAcknowledge*/, nullptr,
       nsIContentAnalysisRequest::Reason::eFilePickerDialog, uri);
   promise->Then(
       mozilla::GetMainThreadSerialEventTarget(), __func__,

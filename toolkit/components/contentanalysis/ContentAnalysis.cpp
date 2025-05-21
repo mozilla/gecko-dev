@@ -3779,7 +3779,8 @@ bool ContentAnalysis::CheckClipboardContentAnalysisSync(
 
 RefPtr<ContentAnalysis::FilesAllowedPromise>
 ContentAnalysis::CheckFilesInBatchMode(
-    nsCOMArray<nsIFile>&& aFiles, mozilla::dom::WindowGlobalParent* aWindow,
+    nsCOMArray<nsIFile>&& aFiles, bool aAutoAcknowledge,
+    mozilla::dom::WindowGlobalParent* aWindow,
     nsIContentAnalysisRequest::Reason aReason, nsIURI* aURI /* = nullptr */) {
   nsresult rv;
   auto contentAnalysis = GetContentAnalysisFromService();
@@ -3934,8 +3935,8 @@ ContentAnalysis::CheckFilesInBatchMode(
               // been resolved.
               promise->Resolve(std::move(emptyFiles), __func__);
             });
-    contentAnalysis->AnalyzeContentRequestsCallback(singleRequest, true,
-                                                    callback);
+    contentAnalysis->AnalyzeContentRequestsCallback(singleRequest,
+                                                    aAutoAcknowledge, callback);
   }
 
   cancelOnError.release();

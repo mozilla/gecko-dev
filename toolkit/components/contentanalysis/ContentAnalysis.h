@@ -254,7 +254,8 @@ class ContentAnalysis final : public nsIContentAnalysis,
   // Note that aURI is only necessary to pass in in gtests; otherwise we'll
   // get the URI from aWindow.
   static RefPtr<FilesAllowedPromise> CheckFilesInBatchMode(
-      nsCOMArray<nsIFile>&& aFiles, mozilla::dom::WindowGlobalParent* aWindow,
+      nsCOMArray<nsIFile>&& aFiles, bool aAutoAcknowledge,
+      mozilla::dom::WindowGlobalParent* aWindow,
       nsIContentAnalysisRequest::Reason aReason, nsIURI* aURI = nullptr);
 
   static RefPtr<ContentAnalysis> GetContentAnalysisFromService();
