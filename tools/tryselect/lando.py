@@ -471,3 +471,5 @@ def push_to_lando_try(
     # Send a notification only if the push took an unexpectedly long time
     if duration > 30:
         build.notify(success_msg)
+
+    return job_id

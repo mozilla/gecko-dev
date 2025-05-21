@@ -259,7 +259,7 @@ def push_to_try(
                 allow_log_capture=allow_log_capture,
             )
         else:
-            push_to_lando_try(vcs, commit_message, changed_files)
+            return push_to_lando_try(vcs, commit_message, changed_files)
     except MissingVCSExtension as e:
         if e.ext == "push-to-try":
             print(HG_PUSH_TO_TRY_NOT_FOUND)
