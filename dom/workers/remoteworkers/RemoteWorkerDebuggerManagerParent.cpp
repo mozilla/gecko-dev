@@ -40,6 +40,12 @@ mozilla::ipc::IPCResult RemoteWorkerDebuggerManagerParent::RecvRegister(
     const RemoteWorkerDebuggerInfo& aDebuggerInfo,
     mozilla::ipc::Endpoint<PRemoteWorkerDebuggerParent>&& aParentEp) {
   MOZ_ASSERT_DEBUG_OR_FUZZING(XRE_IsParentProcess() && NS_IsMainThread());
+
+  if (!aParentEp.IsValid()) {
+    return IPC_FAIL(this,
+        "Invalid Parent Endpoint for RemoteWorkerDebuggerParent...");
+  }
+
   RefPtr<WorkerDebuggerManager> manager = WorkerDebuggerManager::GetOrCreate();
   MOZ_ASSERT_DEBUG_OR_FUZZING(manager);
 
