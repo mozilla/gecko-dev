@@ -8,6 +8,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
+  Certificates: "chrome://remote/content/shared/webdriver/Certificates.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   getWebDriverSessionById:
     "chrome://remote/content/shared/webdriver/Session.sys.mjs",
@@ -68,11 +69,26 @@ ChromeUtils.defineESModuleGetters(lazy, {
  */
 
 class BrowserModule extends RootBiDiModule {
+  #userContextsWithInsecureCertificatesOverrides;
+
   constructor(messageHandler) {
     super(messageHandler);
+
+    // A set of internal user context ids to keep track of user contexts
+    // which had insecure certificates overrides set for them.
+    this.#userContextsWithInsecureCertificatesOverrides = new Set();
   }
 
-  destroy() {}
+  destroy() {
+    // Reset "allowInsecureCerts" for the userContexts,
+    // which were created in the scope of this session.
+    for (const userContext of this
+      .#userContextsWithInsecureCertificatesOverrides) {
+      lazy.Certificates.resetSecurityChecksForUserContext(userContext);
+    }
+
+    this.#userContextsWithInsecureCertificatesOverrides = null;
+  }
 
   /**
    * Commands
@@ -130,11 +146,36 @@ class BrowserModule extends RootBiDiModule {
   /**
    * Creates a user context.
    *
+   * @param {object=} options
+   * @param {boolean=} options.acceptInsecureCerts
+   *     Indicates whether untrusted and self-signed TLS certificates
+   *     should be implicitly trusted on navigation for this user context.
+   *
    * @returns {UserContextInfo}
    *     UserContextInfo object for the created user context.
    */
-  async createUserContext() {
+  async createUserContext(options = {}) {
+    const { acceptInsecureCerts = null } = options;
+
+    if (acceptInsecureCerts !== null) {
+      lazy.assert.boolean(
+        acceptInsecureCerts,
+        lazy.pprint`Expected "acceptInsecureCerts" to be a boolean, got ${acceptInsecureCerts}`
+      );
+    }
+
     const userContextId = lazy.UserContextManager.createContext("webdriver");
+    const internalId = lazy.UserContextManager.getInternalIdById(userContextId);
+
+    if (acceptInsecureCerts !== null) {
+      this.#userContextsWithInsecureCertificatesOverrides.add(internalId);
+      if (acceptInsecureCerts) {
+        lazy.Certificates.disableSecurityChecks(internalId);
+      } else {
+        lazy.Certificates.enableSecurityChecks(internalId);
+      }
+    }
+
     return { userContext: userContextId };
   }
 
@@ -186,9 +227,16 @@ class BrowserModule extends RootBiDiModule {
         `User Context with id ${userContextId} was not found`
       );
     }
+
+    const internalId = lazy.UserContextManager.getInternalIdById(userContextId);
+
     lazy.UserContextManager.removeUserContext(userContextId, {
       closeContextTabs: true,
     });
+
+    // Reset the state to clean up the platform state.
+    lazy.Certificates.resetSecurityChecksForUserContext(internalId);
+    this.#userContextsWithInsecureCertificatesOverrides.delete(internalId);
   }
 
   #getClientWindowInfo(window) {
