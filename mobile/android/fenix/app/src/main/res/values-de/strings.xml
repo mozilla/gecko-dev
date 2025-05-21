@@ -1041,15 +1041,15 @@
   <!-- Title for the "Blue" alternative app icon variant in the icon picker screen. -->
   <string name="alternative_app_icon_option_blue">Blau</string>
   <!-- Title for the "Purple" alternative app icon variant in the icon picker screen. -->
-  <string name="alternative_app_icon_option_purple">Purpur</string>
+  <string name="alternative_app_icon_option_purple">Violett</string>
   <!-- Title for the "Purple Dark" alternative app icon variant in the icon picker screen. -->
-  <string name="alternative_app_icon_option_purple_dark">Dunkellila</string>
+  <string name="alternative_app_icon_option_purple_dark">Dunkelviolett</string>
   <!-- Title for the "Sunrise" gradient alternative app icon variant in the icon picker screen. The app icon features a soft yellow-to-blue gradient background, resembling the colors of early morning light. -->
   <string name="alternative_app_icon_option_gradient_sunrise">Sonnenaufgang</string>
   <!-- Title for the "Golden Hour" gradient alternative app icon variant in the icon picker screen. The app icon features a warm golden-to-pink gradient background, resembling the colors of the sunlight shortly before sunset. -->
   <string name="alternative_app_icon_option_gradient_golden_hour">Goldene Stunde</string>
   <!-- Title for the "Sunset" gradient alternative app icon variant in the icon picker screen. The app icon has a rich red-to-purple gradient background, resembling the tones of a sunset sky. -->
-  <string name="alternative_app_icon_option_gradient_sunset">Sonnenaufgang</string>
+  <string name="alternative_app_icon_option_gradient_sunset">Sonnenuntergang</string>
   <!-- Title for the "Blue Hour" gradient alternative app icon variant in the icon picker screen. The app icon has a cool blue gradient background, resembling the sky color around the time just after sunset or before sunrise. -->
   <string name="alternative_app_icon_option_gradient_blue_hour">Blaue Stunde</string>
   <!-- Title for the "Twilight" gradient alternative app icon variant in the icon picker screen. The app icon has a purple-toned gradient background, resembling the sky color during twilight. -->

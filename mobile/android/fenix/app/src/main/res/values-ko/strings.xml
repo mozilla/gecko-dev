@@ -3006,7 +3006,7 @@
   <!-- Title for the translation dialog that allows a user to translate the webpage when a user uses the translation feature the first time. %1$s is the name of the app (for example "Firefox"). -->
   <string name="translations_bottom_sheet_title_first_time">%1$s에서 개인 정보가 보호되는 번역을 사용해 보세요</string>
   <!-- Additional information on the translation dialog that appears when a user uses the translation feature the first time. %1$s is a link using translations_bottom_sheet_info_message_learn_more as text. -->
-  <string name="translations_bottom_sheet_info_message">개인 정보 보호를 위해 번역은 사용자의 기기를 떠나지 않습니다. 새로운 언어와 개선 사항이 곧 제공됩니다! %1$s</string>
+  <string name="translations_bottom_sheet_info_message">개인 정보 보호를 위해 번역은 사용자의 기기에서 이루어 집니다. 새로운 언어와 개선 사항이 곧 제공됩니다! %1$s</string>
   <!-- Text that links to additional information about the Firefox translations feature. -->
   <string name="translations_bottom_sheet_info_message_learn_more">더 알아보기</string>
   <!-- Label for the dropdown to select which language to translate from on the translations dialog. Usually the translate from language selected will be the same as the page language. -->
