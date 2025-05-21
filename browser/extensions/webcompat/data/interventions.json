@@ -2720,6 +2720,7 @@
     "interventions": [
       {
         "platforms": ["android"],
+        "pref_check": { "layout.css.prefixes.transforms": true },
         "content_scripts": {
           "css": ["bug1925508-developer-apple.com-transform-scale.css"]
         }

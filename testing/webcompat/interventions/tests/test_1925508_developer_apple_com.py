@@ -20,6 +20,7 @@ async def check_toc_fits_on_screen(client):
 
 @pytest.mark.only_platforms("android")
 @pytest.mark.asyncio
+@pytest.mark.disable_moztransform
 @pytest.mark.with_interventions
 async def test_enabled(client):
     assert await check_toc_fits_on_screen(client)
@@ -27,6 +28,15 @@ async def test_enabled(client):
 
 @pytest.mark.only_platforms("android")
 @pytest.mark.asyncio
+@pytest.mark.enable_moztransform
+@pytest.mark.with_interventions
+async def test_enabled2(client):
+    assert await check_toc_fits_on_screen(client)
+
+
+@pytest.mark.only_platforms("android")
+@pytest.mark.asyncio
+@pytest.mark.enable_moztransform
 @pytest.mark.without_interventions
 async def test_disabled(client):
     assert not await check_toc_fits_on_screen(client)

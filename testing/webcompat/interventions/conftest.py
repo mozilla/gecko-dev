@@ -77,6 +77,7 @@ async def test_config(request, driver):
         )
 
     return {
+        "enable_moztransform": params.get("enable_moztransform", False),
         "disable_moztransform": params.get("disable_moztransform", False),
         "need_visible_scrollbars": params.get("need_visible_scrollbars", False),
         "no_overlay_scrollbars": params.get("no_overlay_scrollbars", False),
