@@ -693,7 +693,6 @@ class MacArtifactJob(ArtifactJob):
 
     def process_package_artifact(self, filename, processed_filename):
         tempdir = tempfile.mkdtemp()
-        oldcwd = os.getcwd()
         try:
             self.log(
                 logging.DEBUG,
@@ -701,25 +700,7 @@ class MacArtifactJob(ArtifactJob):
                 {"tempdir": tempdir},
                 "Unpacking DMG into {tempdir}",
             )
-            if self._substs["HOST_OS_ARCH"] == "Linux":
-                # This is a cross build, use hfsplus and dmg tools to extract the dmg.
-                os.chdir(tempdir)
-                with open(os.devnull, "wb") as devnull:
-                    subprocess.check_call(
-                        [
-                            self._substs["DMG_TOOL"],
-                            "extract",
-                            filename,
-                            "extracted_img",
-                        ],
-                        stdout=devnull,
-                    )
-                    subprocess.check_call(
-                        [self._substs["HFS_TOOL"], "extracted_img", "extractall"],
-                        stdout=devnull,
-                    )
-            else:
-                mozinstall.install(filename, tempdir)
+            mozinstall.install(filename, tempdir)
 
             bundle_dirs = glob.glob(mozpath.join(tempdir, "*.app"))
             if len(bundle_dirs) != 1:
@@ -769,7 +750,6 @@ class MacArtifactJob(ArtifactJob):
                             writer.add(destpath.encode("utf-8"), f.open(), mode=f.mode)
 
         finally:
-            os.chdir(oldcwd)
             try:
                 shutil.rmtree(tempdir)
             except OSError:

@@ -10,12 +10,12 @@ import pytest
 )
 def test_is_installer(request, get_installer):
     """Test that we can identify a correct installer."""
-    if mozinfo.isLinux:
-        assert mozinstall.is_installer(get_installer("tar.xz"))
+
+    assert mozinstall.is_installer(get_installer("tar.xz"))
+    assert mozinstall.is_installer(get_installer("zip"))
 
     if mozinfo.isWin:
-        # test zip installer
-        assert mozinstall.is_installer(get_installer("zip"))
+        assert mozinstall.is_installer(get_installer("msix"))
 
         # test exe installer
         assert mozinstall.is_installer(get_installer("exe"))
@@ -32,7 +32,7 @@ def test_is_installer(request, get_installer):
         except ImportError:
             pass
 
-    if mozinfo.isMac:
+    if mozinfo.isMac or mozinfo.isLinux:
         assert mozinstall.is_installer(get_installer("dmg"))
 
 
