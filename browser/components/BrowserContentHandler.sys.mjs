@@ -455,6 +455,7 @@ nsBrowserContentHandler.prototype = {
       cmdLine.handleFlagWithParam("kiosk-monitor", false)
     ) {
       gKiosk = true;
+      Glean.browserStartup.kioskMode.set(true);
     }
     if (cmdLine.handleFlag("disable-pinch", false)) {
       let defaults = Services.prefs.getDefaultBranch(null);
