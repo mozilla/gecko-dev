@@ -51,6 +51,7 @@ async function reformatExpectedWebCompatInfo(tab, overrides) {
     atOverrides?.isPrivateBrowsing ?? antitracking.isPrivateBrowsing;
   const btpHasPurgedSite =
     atOverrides?.btpHasPurgedSite ?? antitracking.btpHasPurgedSite;
+  const etpCategory = atOverrides?.etpCategory ?? antitracking.etpCategory;
 
   const extra_labels = [];
   const frameworks = overrides.frameworks ?? {
@@ -118,6 +119,7 @@ async function reformatExpectedWebCompatInfo(tab, overrides) {
         hasTrackingContentBlocked,
         btpHasPurgedSite,
         isPB: isPrivateBrowsing,
+        etpCategory,
         languages,
         locales: snapshot.intl.localeService.available,
         memoryMB: browserInfo.system.memory,

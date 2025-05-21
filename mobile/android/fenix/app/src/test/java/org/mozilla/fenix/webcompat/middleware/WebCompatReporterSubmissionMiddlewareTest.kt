@@ -69,6 +69,10 @@ class WebCompatReporterSubmissionMiddlewareTest {
                 BrokenSiteReportTabInfoAntitracking.btpHasPurgedSite.testGetValue(),
             )
             assertEquals(
+                "standard",
+                BrokenSiteReportTabInfoAntitracking.etpCategory.testGetValue(),
+            )
+            assertEquals(
                 false,
                 BrokenSiteReportTabInfoAntitracking.hasMixedActiveContentBlocked.testGetValue(),
             )
@@ -219,6 +223,7 @@ class WebCompatReporterSubmissionMiddlewareTest {
         Pings.brokenSiteReport.testBeforeNextSubmit {
             assertNull(BrokenSiteReportTabInfoAntitracking.blockList.testGetValue())
             assertNull(BrokenSiteReportTabInfoAntitracking.btpHasPurgedSite.testGetValue())
+            assertNull(BrokenSiteReportTabInfoAntitracking.etpCategory.testGetValue())
             assertNull(BrokenSiteReportTabInfoAntitracking.hasMixedActiveContentBlocked.testGetValue())
             assertNull(BrokenSiteReportTabInfoAntitracking.hasMixedDisplayContentBlocked.testGetValue())
             assertNull(BrokenSiteReportTabInfoAntitracking.hasTrackingContentBlocked.testGetValue())
@@ -351,6 +356,7 @@ class WebCompatReporterSubmissionMiddlewareTest {
         Pings.brokenSiteReport.testBeforeNextSubmit {
             assertNull(BrokenSiteReportTabInfoAntitracking.blockList.testGetValue())
             assertNull(BrokenSiteReportTabInfoAntitracking.btpHasPurgedSite.testGetValue())
+            assertNull(BrokenSiteReportTabInfoAntitracking.etpCategory.testGetValue())
             assertNull(BrokenSiteReportTabInfoAntitracking.hasMixedActiveContentBlocked.testGetValue())
             assertNull(BrokenSiteReportTabInfoAntitracking.hasMixedDisplayContentBlocked.testGetValue())
             assertNull(BrokenSiteReportTabInfoAntitracking.hasTrackingContentBlocked.testGetValue())
@@ -441,6 +447,7 @@ class WebCompatReporterSubmissionMiddlewareTest {
                 antitracking = WebCompatInfoDto.WebCompatAntiTrackingDto(
                     blockList = "basic",
                     btpHasPurgedSite = false,
+                    etpCategory = "standard",
                     hasMixedActiveContentBlocked = false,
                     hasMixedDisplayContentBlocked = false,
                     hasTrackingContentBlocked = false,

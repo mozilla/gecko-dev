@@ -84,6 +84,7 @@ class DefaultWebCompatReporterRetrievalServiceTest {
             antitracking = WebCompatInfoDto.WebCompatAntiTrackingDto(
                 blockList = "basic",
                 btpHasPurgedSite = false,
+                etpCategory = "standard",
                 hasMixedActiveContentBlocked = false,
                 hasMixedDisplayContentBlocked = false,
                 hasTrackingContentBlocked = false,
@@ -180,6 +181,7 @@ class DefaultWebCompatReporterRetrievalServiceTest {
             antitracking = WebCompatInfoDto.WebCompatAntiTrackingDto(
                 blockList = "basic",
                 btpHasPurgedSite = false,
+                etpCategory = "standard",
                 hasMixedActiveContentBlocked = false,
                 hasMixedDisplayContentBlocked = false,
                 hasTrackingContentBlocked = false,

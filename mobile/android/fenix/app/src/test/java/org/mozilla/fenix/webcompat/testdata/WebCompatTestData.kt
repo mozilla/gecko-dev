@@ -11,6 +11,7 @@ object WebCompatTestData {
           "antitracking": {
             "blockList": "basic",
             "btpHasPurgedSite": false,
+            "etpCategory": "standard",
             "hasMixedActiveContentBlocked": false,
             "hasMixedDisplayContentBlocked": false,
             "hasTrackingContentBlocked": false,
@@ -96,6 +97,7 @@ object WebCompatTestData {
           "antitracking": {
             "blockList": "basic",
             "btpHasPurgedSite": false,
+            "etpCategory": "standard",
             "hasMixedActiveContentBlocked": false,
             "hasMixedDisplayContentBlocked": false,
             "hasTrackingContentBlocked": false,
