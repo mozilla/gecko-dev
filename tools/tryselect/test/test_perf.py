@@ -1155,7 +1155,7 @@ def test_full_run(options, call_counts, log_ind, expected_log_message):
     [
         (
             {"tests": ["amazon"], "show_all": True},
-            [1, 2, 0, 6, 2, 1],
+            [1, 2, 0, 8, 2, 1],
             0,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "

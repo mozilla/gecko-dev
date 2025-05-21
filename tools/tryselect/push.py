@@ -49,6 +49,10 @@ MAX_HISTORY = 10
 
 MACH_TRY_PUSH_TO_VCS = os.getenv("MACH_TRY_PUSH_TO_VCS") == "1"
 
+TREEHERDER_LANDO_TRY_RUN_URL = (
+    "https://treeherder.mozilla.org/jobs?repo=try&landoCommitID={job_id}"
+)
+
 here = os.path.abspath(os.path.dirname(__file__))
 build = MozbuildObject.from_environment(cwd=here)
 vcs = get_repository_object(build.topsrcdir)
@@ -259,7 +263,13 @@ def push_to_try(
                 allow_log_capture=allow_log_capture,
             )
         else:
-            return push_to_lando_try(vcs, commit_message, changed_files)
+            job_id = push_to_lando_try(vcs, commit_message, changed_files)
+            print(
+                f"Follow the progress of your build on Treeherder: "
+                f"{TREEHERDER_LANDO_TRY_RUN_URL.format(job_id=job_id)}"
+            )
+
+            return job_id
     except MissingVCSExtension as e:
         if e.ext == "push-to-try":
             print(HG_PUSH_TO_TRY_NOT_FOUND)

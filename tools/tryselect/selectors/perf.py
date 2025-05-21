@@ -53,6 +53,9 @@ PERFCOMPARE_BASE_URL_LANDO = (
     "baseLando=%s&newLando=%s&baseRepo=try&newRepo=try&framework=%s"
 )
 TREEHERDER_TRY_BASE_URL = "https://treeherder.mozilla.org/jobs?repo=try&revision=%s"
+TREEHERDER_TRY_LANDO_BASE_URL = (
+    "https://treeherder.mozilla.org/jobs?repo=try&landoCommitID=%s"
+)
 TREEHERDER_ALERT_TASKS_URL = (
     "https://treeherder.mozilla.org/api/performance/alertsummary-tasks/?id=%s"
 )
@@ -1666,15 +1669,20 @@ def run(**kwargs):
         print("*          2 commits/try-runs were created...         *")
         print("*******************************************************")
 
-        if kwargs.get("push_to_vcs"):
+        original_try_url = TREEHERDER_TRY_BASE_URL % PerfParser.push_info.base_revision
+        local_change_try_url = (
+            TREEHERDER_TRY_BASE_URL % PerfParser.push_info.new_revision
+        )
+        if not kwargs.get("push_to_vcs"):
             original_try_url = (
-                TREEHERDER_TRY_BASE_URL % PerfParser.push_info.base_revision
+                TREEHERDER_TRY_LANDO_BASE_URL
+                % PerfParser.push_info.base_lando_commit_id
             )
             local_change_try_url = (
-                TREEHERDER_TRY_BASE_URL % PerfParser.push_info.new_revision
+                TREEHERDER_TRY_LANDO_BASE_URL % PerfParser.push_info.new_lando_commit_id
             )
-            print(f"Base revision's try run: {original_try_url}")
-            print(f"Local revision's try run: {local_change_try_url}\n")
+        print(f"Base revision's try run: {original_try_url}")
+        print(f"Local revision's try run: {local_change_try_url}\n")
 
     print(
         "If you need any help, you can find us in the #perf-help Matrix channel:\n"
