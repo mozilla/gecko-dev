@@ -277,13 +277,13 @@ nsFaviconService::SetFaviconForPage(nsIURI* aPageURI, nsIURI* aFaviconURI,
     return NS_ERROR_NULL_POINTER;
   }
 
-  nsCOMPtr<nsILoadInfo> loadInfo = new mozilla::net::LoadInfo(
+  nsCOMPtr<nsILoadInfo> loadInfo = MOZ_TRY(net::LoadInfo::Create(
       loadingPrincipal,
       nullptr,  // aTriggeringPrincipal
       nullptr,  // aLoadingNode
       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT |
           nsILoadInfo::SEC_ALLOW_CHROME | nsILoadInfo::SEC_DISALLOW_SCRIPT,
-      nsIContentPolicy::TYPE_INTERNAL_IMAGE_FAVICON);
+      nsIContentPolicy::TYPE_INTERNAL_IMAGE_FAVICON));
 
   nsCOMPtr<nsIChannel> channel;
   rv = protocolHandler->NewChannel(aDataURL, loadInfo, getter_AddRefs(channel));

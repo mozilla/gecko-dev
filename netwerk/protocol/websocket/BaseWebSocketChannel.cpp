@@ -219,10 +219,10 @@ BaseWebSocketChannel::InitLoadInfoNative(
     nsIPrincipal* aTriggeringPrincipal,
     nsICookieJarSettings* aCookieJarSettings, uint32_t aSecurityFlags,
     nsContentPolicyType aContentPolicyType, uint32_t aSandboxFlags) {
-  mLoadInfo = new LoadInfo(
+  mLoadInfo = MOZ_TRY(LoadInfo::Create(
       aLoadingPrincipal, aTriggeringPrincipal, aLoadingNode, aSecurityFlags,
       aContentPolicyType, Maybe<mozilla::dom::ClientInfo>(),
-      Maybe<mozilla::dom::ServiceWorkerDescriptor>(), aSandboxFlags);
+      Maybe<mozilla::dom::ServiceWorkerDescriptor>(), aSandboxFlags));
   if (aCookieJarSettings) {
     mLoadInfo->SetCookieJarSettings(aCookieJarSettings);
   }

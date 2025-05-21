@@ -727,10 +727,13 @@ static bool ShouldLoadCachedImage(imgRequest* aImgRequest,
     loadingPrincipal = NullPrincipal::CreateWithoutOriginAttributes();
   }
 
-  nsCOMPtr<nsILoadInfo> secCheckLoadInfo = new LoadInfo(
+  Result<RefPtr<LoadInfo>, nsresult> maybeLoadInfo = LoadInfo::Create(
       loadingPrincipal, aTriggeringPrincipal, aLoadingDocument,
       nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK, aPolicyType);
-
+  if (NS_WARN_IF(maybeLoadInfo.isErr())) {
+    return false;
+  }
+  RefPtr<LoadInfo> secCheckLoadInfo = maybeLoadInfo.unwrap();
   secCheckLoadInfo->SetSendCSPViolationEvents(aSendCSPViolationReports);
 
   int16_t decision = nsIContentPolicy::REJECT_REQUEST;
