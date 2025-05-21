@@ -1756,6 +1756,84 @@ export class TranslationsDocument {
   }
 
   /**
+   * This is a test-only function that simulates intersection observation
+   * by running through all of the observed nodes and enqueuing them for
+   * prioritization if they are not already associated with a pending
+   * translation request.
+   *
+   * This function may only be used in testing contexts where the viewport
+   * is effectively non-existent, such that the intersection observers will
+   * not observe nodes as intended.
+   *
+   * @throws If this function is called outside of automated testing.
+   * @throws If the viewport is not zero-width or zero-height.
+   */
+  simulateIntersectionObservationForNonPendingNodes() {
+    lazy.console.debug("Simulating intersection observations for test.");
+
+    if (!Cu.isInAutomation) {
+      // There is no scenario in which we should call this function outside of an
+      // automated test that requires it.
+      throw new Error(
+        "Attempt to manually simulate intersection observation outside of test."
+      );
+    }
+
+    const window = ensureExists(this.#sourceDocument.ownerGlobal);
+    const { visualViewport } = window;
+    if (visualViewport.width > 0 && visualViewport.height > 0) {
+      // The only time we should call this function is in test cases where the
+      // intersection observers will not function because a viewport dimension is zero.
+      // If a viewport dimension is not actually zero, then this was called in error.
+      throw new Error(
+        "Attempt to manually simulate intersection observation with a valid viewport."
+      );
+    }
+
+    // This should never be called as the first intersection observation.
+    // See #waitForFirstIntersectionObservation for an explanation why.
+    //
+    // The code is written so that the first intersection observation is
+    // guaranteed to be fulfilled when adding the initial root elements.
+    //
+    // If you are modifying this code, and this promise hangs, then the
+    // code has been modified incorrectly such that the first observation
+    // guarantee is no longer upheld.
+    /** @type {PromiseWithResolvers<void>} */
+    const firstIntersectionObservationsTimeout = Promise.withResolvers();
+    lazy.setTimeout(
+      () =>
+        firstIntersectionObservationsTimeout.reject(
+          new Error(
+            "The TranslationDocument's first intersection observations failed to resolve."
+          )
+        ),
+      2000
+    );
+
+    Promise.race([
+      firstIntersectionObservationsTimeout.promise,
+      this.#waitForFirstIntersectionObservations(),
+    ]).then(() => {
+      firstIntersectionObservationsTimeout.resolve();
+
+      for (const element of this.#intersectionObservedContentElements.keys()) {
+        if (!this.#pendingContentTranslations.has(element)) {
+          this.#enqueueForIntersectionPrunableContentPrioritization(element);
+        }
+      }
+
+      for (const element of this.#intersectionObservedAttributeElements.keys()) {
+        if (!this.#pendingAttributeTranslations.has(element)) {
+          this.#enqueueForIntersectionPrunableAttributePrioritization(element);
+        }
+      }
+
+      this.#maybePrioritizeRequestsAndSubmitToScheduler();
+    });
+  }
+
+  /**
    * The first intersection observation is critical to the flow of the TranslationsDocument.
    *
    * When we add the root elements within the constructor, the entire DOM is parsed, and each
@@ -3399,6 +3477,55 @@ export class TranslationsDocument {
    */
   get engineStatus() {
     return this.#scheduler.engineStatus;
+  }
+
+  /**
+   * Returns true if the TranslationsDocument has any pending translation requests
+   * that are actively being handled by the TranslationScheduler, otherwise false.
+   *
+   * @returns {boolean}
+   */
+  hasPendingTranslationRequests() {
+    return (
+      this.#pendingContentTranslations.size > 0 ||
+      this.#pendingAttributeTranslations.size > 0
+    );
+  }
+
+  /**
+   * Returns true if the TranslationsDocument has any pending callback on the event loop
+   * that has not yet completed, otherwise false.
+   *
+   * @returns {boolean}
+   */
+  hasPendingCallbackOnEventLoop() {
+    return (
+      this.#hasPendingMutatedNodesCallback ||
+      this.#hasPendingPrioritizationCallback ||
+      this.#hasPendingUpdateAttributesCallback ||
+      this.#hasPendingUpdateContentCallback ||
+      this.#scheduler.hasPendingScheduleRequestsCallback()
+    );
+  }
+
+  /**
+   * Returns true if the TranslationsDocument is observing at least one
+   * element for intersection to translate its content, otherwise false.
+   *
+   * @returns {boolean}
+   */
+  isObservingAnyElementForContentIntersection() {
+    return this.#intersectionObservedContentElements.size > 0;
+  }
+
+  /**
+   * Returns true if the TranslationsDocument is observing at least one
+   * element for intersection to translate its attributes, otherwise false.
+   *
+   * @returns {boolean}
+   */
+  isObservingAnyElementForAttributeIntersection() {
+    return this.#intersectionObservedAttributeElements.size > 0;
   }
 
   /**
