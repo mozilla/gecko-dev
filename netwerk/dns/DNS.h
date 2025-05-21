@@ -7,6 +7,7 @@
 #ifndef DNS_h_
 #define DNS_h_
 
+#include "nsILoadInfo.h"
 #include "nscore.h"
 #include "nsString.h"
 #include "prio.h"
@@ -148,6 +149,7 @@ union NetAddr {
   bool IsLoopbackAddr() const;
   bool IsLoopBackAddressWithoutIPv6Mapping() const;
   bool IsIPAddrV4() const;
+  bool IsBenchMarkingAddress() const;
   bool IsIPAddrV4Mapped() const;
   bool IsIPAddrLocal() const;
   bool IsIPAddrShared() const;
@@ -155,6 +157,7 @@ union NetAddr {
   bool ToStringBuffer(char* buf, uint32_t bufSize) const;
   nsCString ToString() const;
   void ToAddrPortString(nsACString& aOutput) const;
+  nsILoadInfo::IPAddressSpace GetIpAddressSpace() const;
 };
 
 enum class DNSResolverType : uint32_t { Native = 0, TRR };
@@ -176,7 +179,8 @@ class AddrInfo {
                     DNSResolverType aResolverType, unsigned int aTRRType,
                     nsTArray<NetAddr>&& addresses);
 
-  // Creates a basic AddrInfo object (initialize only the host and TRR status).
+  // Creates a basic AddrInfo object (initialize only the host and TRR
+  // status).
   explicit AddrInfo(const nsACString& host, DNSResolverType aResolverType,
                     unsigned int aTRRType, nsTArray<NetAddr>&& addresses,
                     uint32_t aTTL = NO_TTL_DATA);

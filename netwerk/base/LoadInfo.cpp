@@ -225,8 +225,8 @@ LoadInfo::LoadInfo(
                                aLoadingContext->OwnerDoc()->CookieJarSettings())
                                ->Clone();
     }
-    // TODO browsing context id is not set. Check how we need to handle setting
-    // of parent IP address space if not availble.
+    // XXX(sunil) browsing context id is not set. Check how we need to handle
+    // setting of parent IP address space if not availble.
 
     mInnerWindowID = aLoadingContext->OwnerDoc()->InnerWindowID();
     RefPtr<WindowContext> ctx = WindowContext::GetById(mInnerWindowID);
@@ -2635,8 +2635,6 @@ void LoadInfo::UpdateParentAddressSpaceInfo() {
   RefPtr<mozilla::dom::BrowsingContext> bc;
   GetBrowsingContext(getter_AddRefs(bc));
   if (!bc) {
-    // TODO: confirm this assumption holds for all cases
-    // See Bug 1967165
     mParentIPAddressSpace = nsILoadInfo::Local;
     return;
   }
@@ -2649,8 +2647,8 @@ void LoadInfo::UpdateParentAddressSpaceInfo() {
     } else if (RefPtr<dom::BrowsingContext> opener = bc->GetOpener()) {
       mParentIPAddressSpace = opener->GetCurrentIPAddressSpace();
     } else {
-      // TODO: add if this was loaded from about:blank. In that case we need to
-      // give assign local IPAddress
+      // XXX (sunil): add if this was loaded from about:blank. In that case we
+      // need to give assign local IPAddress
     }
   } else {
     // For non-document loads, we need to set the parent IPAddressSpace to
