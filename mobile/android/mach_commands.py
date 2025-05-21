@@ -659,8 +659,7 @@ def emulator(
             logging.WARN,
             "emulator",
             {},
-            "Emulator binary not found.\n"
-            "Install the Android SDK and make sure 'emulator' is in your PATH.",
+            "Emulator binary not found. Try |mach bootstrap|\n",
         )
         return 2
 
