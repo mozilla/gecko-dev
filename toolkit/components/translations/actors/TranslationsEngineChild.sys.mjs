@@ -67,12 +67,13 @@ export class TranslationsEngineChild extends JSProcessActorChild {
   /**
    * @param {object} options
    * @param {number?} options.startTime
+   * @param {string?} options.type
    * @param {string} options.message
    * @param {number} options.innerWindowId
    */
-  TE_addProfilerMarker({ startTime, message, innerWindowId }) {
+  TE_addProfilerMarker({ startTime, type, message, innerWindowId }) {
     ChromeUtils.addProfilerMarker(
-      "TranslationsEngine",
+      type ? `TranslationsEngine ${type}` : "TranslationsEngine",
       { startTime, innerWindowId },
       message
     );
