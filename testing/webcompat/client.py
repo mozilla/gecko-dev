@@ -74,6 +74,52 @@ class Client:
             element,
         )
 
+    async def send_apz_scroll_gesture(
+        self, units, element=None, offset=None, coords=None
+    ):
+        if coords is None:
+            if element is None:
+                raise ValueError("require coords and/or element")
+            coords = self.get_element_screen_position(element)
+        if offset is not None:
+            coords[0] += offset[0]
+            coords[1] += offset[1]
+        with self.using_context("chrome"):
+            return self.execute_async_script(
+                """
+                const [units, coords, done] = arguments;
+                const { devicePixelRatio, windowUtils } = window;
+                const resolution = windowUtils.getResolution();
+                const toScreenCoords = x => x * devicePixelRatio * resolution;
+
+                // based on nativeVerticalWheelEventMsg()
+                let msg = 4; // linux default
+                switch (Services.appinfo.OS) {
+                  case "WINNT":
+                    msg = 0x0115; // WM_VSCROLL
+                    break;
+                  case "Darwin":
+                    msg = 1; // use a gesture; don't synthesize a wheel scroll
+                    break;
+                }
+
+                windowUtils.sendNativeMouseScrollEvent(
+                    toScreenCoords(coords[0]),
+                    toScreenCoords(coords[1]),
+                    msg,
+                    0,
+                    units,
+                    0,
+                    0,
+                    0,
+                    document.documentElement,
+                    () => { done(); },
+                );
+            """,
+                units,
+                coords,
+            )
+
     async def send_apz_mouse_event(
         self, event_type, coords=None, element=None, button=0
     ):

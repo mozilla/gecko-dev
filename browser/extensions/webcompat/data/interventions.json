@@ -3099,12 +3099,23 @@
       "1944518": {
         "issue": "broken-scrolling",
         "matches": ["*://app.powerbi.com/view*"]
+      },
+      "1919263": {
+        "issue": "broken-zooming",
+        "matches": ["*://app.powerbi.com/view*"]
       }
     },
     "interventions": [
       {
         "platforms": ["mac"],
         "ua_string": ["add_Chrome"]
+      },
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "all_frames": true,
+          "js": ["bug1911423-app.powerbi.com-emulate-mousewheel-events.js"]
+        }
       }
     ]
   },
