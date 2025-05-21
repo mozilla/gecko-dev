@@ -18,8 +18,8 @@ body {
   /* background-size: 64px 32px; */
   background-repeat: repeat-x;
 
-  background-color: #363B40;
-  color: #FFFFFF;
+  background-color: #363b40;
+  color: #ffffff;
   padding: 0 20px;
 
   font-weight: 300;
@@ -67,15 +67,15 @@ button {
   border: none;
   padding: 1rem;
   font-family: sans-serif;
-  background-color: #00A4DC;
-  color: #FFFFFF;
+  background-color: #00a4dc;
+  color: #ffffff;
   font-weight: 300;
   border-radius: 2px;
   background-image: none;
   margin: var(--moz-vertical-spacing) 0 0;
 }
 
-.buttonSecondary{
+.buttonSecondary {
   /* Force buttons to display: block here to try and enforce collapsing margins */
   display: block;
   width: 100%;
@@ -83,7 +83,7 @@ button {
   padding: 1rem;
   font-family: sans-serif;
   background-color: rgba(249, 249, 250, 0.1);
-  color: #FFFFFF;
+  color: #ffffff;
   font-weight: 300;
   border-radius: 2px;
   background-image: none;

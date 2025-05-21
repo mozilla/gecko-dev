@@ -5,6 +5,6 @@
 /* There is some code in just-the-docs that completely breaks styling for code
  * blocks, this is an attempt to fix that. */
 code {
-    font-weight: inherit;
-    font-size: 80%;
+  font-weight: inherit;
+  font-size: 80%;
 }

@@ -80,7 +80,7 @@ button {
 
 button::after {
   background-color: var(--primary-button-color);
-  content: '';
+  content: "";
   border-radius: 5px;
   display: block;
   position: absolute;
@@ -156,7 +156,7 @@ hr {
 }
 
 #errorLongContent {
-    margin: 16px 0;
+  margin: 16px 0;
 }
 
 #errorTryAgain {
