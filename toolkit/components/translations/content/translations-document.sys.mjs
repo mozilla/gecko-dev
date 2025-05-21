@@ -695,8 +695,6 @@ export class TranslationsDocument {
    *                                      translation request comes in.
    * @param {() => void} reportVisibleChange - Used to report to the actor that the first visible change
    *                                           for a translation is about to occur.
-   * @param {number} translationsStart
-   * @param {() => number} now
    * @param {LRUCache} translationsCache - A cache in which to store translated text.
    */
   constructor(
@@ -707,8 +705,6 @@ export class TranslationsDocument {
     port,
     requestNewPort,
     reportVisibleChange,
-    translationsStart,
-    now,
     translationsCache
   ) {
     /** @type {WindowProxy} */
@@ -856,19 +852,6 @@ export class TranslationsDocument {
       // it to be loaded.
       document.addEventListener("DOMContentLoaded", addRootElements);
     }
-
-    this.#viewportTranslated?.then(() => {
-      ChromeUtils.addProfilerMarker(
-        "TranslationsChild",
-        { innerWindowId, startTime: now() },
-        "Viewport translations"
-      );
-      ChromeUtils.addProfilerMarker(
-        "TranslationsChild",
-        { innerWindowId, startTime: translationsStart },
-        "Time to first translation"
-      );
-    });
 
     /** @type {HTMLElement} */ (document.documentElement).lang = targetLanguage;
 
@@ -1379,10 +1362,6 @@ export class TranslationsDocument {
         break;
     }
 
-    if (node.nodeName === "BODY") {
-      this.#reportWordsInViewport();
-    }
-
     return this.#dispatchQueuedTranslations();
   }
 
@@ -1793,40 +1772,6 @@ export class TranslationsDocument {
       this.#elementsWithTranslatedAttributes.clear();
       this.#hasPendingUpdateAttributesCallback = null;
     });
-  }
-
-  /**
-   * Record how many words were in the viewport, as this is the most important
-   * user-visible translation content.
-   */
-  #reportWordsInViewport() {
-    if (
-      // This promise gets created for the first dispatchQueuedTranslations
-      this.#viewportTranslated ||
-      this.#queuedContentNodes.size === 0
-    ) {
-      return;
-    }
-
-    // TODO(Bug 1814195) - Add telemetry.
-    // TODO(Bug 1904418) - This whitespace regex will not work in CJK-like languages.
-    // This requires a segmenter for a proper implementation.
-
-    const whitespace = /\s+/;
-    let wordCount = 0;
-    for (const [node, visibility] of this.#queuedContentNodes) {
-      if (visibility === "in-viewport") {
-        wordCount += node.textContent?.trim().split(whitespace).length ?? 0;
-      }
-    }
-
-    const message = wordCount + " words are in the viewport.";
-    lazy.console.log(message);
-    ChromeUtils.addProfilerMarker(
-      "Translations",
-      { innerWindowId: this.#innerWindowId },
-      message
-    );
   }
 
   /**

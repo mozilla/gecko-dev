@@ -524,8 +524,6 @@ async function createTranslationsDoc(html, options) {
         throw new Error("Cannot request a new port");
       },
       options?.mockedReportVisibleChange ?? (() => {}),
-      performance.now(),
-      () => performance.now(),
       new LRUCache()
     );
   };

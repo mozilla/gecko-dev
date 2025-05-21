@@ -63,7 +63,7 @@ export class TranslationsChild extends JSWindowActorChild {
           return undefined;
         }
 
-        const { languagePair, port, translationsStart } = data;
+        const { languagePair, port } = data;
         if (
           !TranslationsChild.#translationsCache ||
           !TranslationsChild.#translationsCache.matches(languagePair)
@@ -81,8 +81,6 @@ export class TranslationsChild extends JSWindowActorChild {
           port,
           () => this.sendAsyncMessage("Translations:RequestPort"),
           () => this.sendAsyncMessage("Translations:ReportFirstVisibleChange"),
-          translationsStart,
-          () => this.docShell.now(),
           TranslationsChild.#translationsCache
         );
 
