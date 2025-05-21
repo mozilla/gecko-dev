@@ -380,26 +380,31 @@ class nsLayoutUtils {
    *         0 otherwise (meaning they're the same, or they're in
    *           different frame trees)
    */
-  static int32_t CompareTreePosition(nsIFrame* aFrame1, nsIFrame* aFrame2,
-                                     nsIFrame* aCommonAncestor = nullptr) {
+  static int32_t CompareTreePosition(
+      const nsIFrame* aFrame1, const nsIFrame* aFrame2,
+      const nsIFrame* aCommonAncestor = nullptr) {
     return DoCompareTreePosition(aFrame1, aFrame2, aCommonAncestor);
   }
 
-  static int32_t CompareTreePosition(nsIFrame* aFrame1, nsIFrame* aFrame2,
-                                     nsTArray<nsIFrame*>& aFrame2Ancestors,
-                                     nsIFrame* aCommonAncestor = nullptr) {
+  static int32_t CompareTreePosition(
+      const nsIFrame* aFrame1, const nsIFrame* aFrame2,
+      nsTArray<const nsIFrame*>& aFrame2Ancestors,
+      const nsIFrame* aCommonAncestor = nullptr) {
     return DoCompareTreePosition(aFrame1, aFrame2, aFrame2Ancestors,
                                  aCommonAncestor);
   }
 
-  static nsIFrame* FillAncestors(nsIFrame* aFrame, nsIFrame* aStopAtAncestor,
-                                 nsTArray<nsIFrame*>* aAncestors);
+  static const nsIFrame* FillAncestors(const nsIFrame* aFrame,
+                                       const nsIFrame* aStopAtAncestor,
+                                       nsTArray<const nsIFrame*>* aAncestors);
 
-  static int32_t DoCompareTreePosition(nsIFrame* aFrame1, nsIFrame* aFrame2,
-                                       nsIFrame* aCommonAncestor);
-  static int32_t DoCompareTreePosition(nsIFrame* aFrame1, nsIFrame* aFrame2,
-                                       nsTArray<nsIFrame*>& aFrame2Ancestors,
-                                       nsIFrame* aCommonAncestor);
+  static int32_t DoCompareTreePosition(const nsIFrame* aFrame1,
+                                       const nsIFrame* aFrame2,
+                                       const nsIFrame* aCommonAncestor);
+  static int32_t DoCompareTreePosition(
+      const nsIFrame* aFrame1, const nsIFrame* aFrame2,
+      nsTArray<const nsIFrame*>& aFrame2Ancestors,
+      const nsIFrame* aCommonAncestor);
 
   /**
    * LastContinuationWithChild gets the last continuation in aFrame's chain
