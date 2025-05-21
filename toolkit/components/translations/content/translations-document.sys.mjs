@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+
 /**
  * @typedef {object} Lazy
  * @property {typeof setTimeout} setTimeout
@@ -62,8 +64,69 @@ const NodeStatus = {
  * @property {string} sourceText
  * @property {number} translationId
  * @property {boolean} isHTML
+ * @property {number} priority
  * @property {(translation: Promise<string> | string | null) => unknown} resolve
  * @property {(reason: any) => unknown} reject
+ *
+ * A hint at the user's most recent scroll direction on the page.
+ * @typedef {("up"|"down")} ScrollDirection
+ *
+ * The location of a node with respect to the viewport.
+ * @typedef {("within"|"above"|"right"|"below"|"left")} NodeViewportContext
+ *
+ * The spatial context of a node, which may include the top, left, and right coordinates
+ * of the node's bounding client rect, as well as the node's location with respect to the viewport.
+ * @typedef {{ top?: number, right?: number, left?: number, viewportContext?: NodeViewportContext }} NodeSpatialContext
+ *
+ * The eligibility of a node to be updated with translated content when its request completes.
+ * @typedef {("stale"|"detached"|"valid")} UpdateEligibility
+ *
+ * Helpful definitions for sorting nodes based on their spatial context.
+ * @typedef {{
+ *  element: Element,
+ *  nodeSet: Set<Node>,
+ *  top?: number,
+ *  left?: number,
+ *  right?: number
+ * }} SortableContentElement
+ *
+ * @typedef {{
+ *  titleElement?: Element,
+ *  inViewportContent: Array<SortableContentElement>,
+ *  aboveViewportContent: Array<SortableContentElement>,
+ *  belowViewportContent: Array<SortableContentElement>,
+ *  otherContent: Array<SortableContentElement>,
+ * }} PrioritizedContentElements
+ *
+ * @typedef {{
+ *  element: Element,
+ *  attributeSet: Set<string>,
+ *  top?: number,
+ *  left?: number,
+ *  right?: number
+ * }} SortableAttributeElement
+ *
+ * @typedef {{
+ *  inViewportAttributes: Array<SortableAttributeElement>,
+ *  aboveViewportAttributes: Array<SortableAttributeElement>,
+ *  belowViewportAttributes: Array<SortableAttributeElement>,
+ *  otherAttributes: Array<SortableAttributeElement>,
+ * }} PrioritizedAttributeElements
+ *
+ * These are the kinds of priorities that a translation request may be assigned.
+ * Each time requests are prioritized and sent to the scheduler, each kind of
+ * priority defined below will receive a unique number. Depending on the current
+ * context within the page, some of these priorities may be more or less important.
+ * @typedef {{
+ *   inViewportContentPriority: number,
+ *   inViewportAttributePriority: number,
+ *   aboveViewportContentPriority: number,
+ *   aboveViewportAttributePriority: number,
+ *   belowViewportContentPriority: number,
+ *   belowViewportAttributePriority: number,
+ *   otherContentPriority: number,
+ *   otherAttributePriority: number,
+ * }} TranslationPriorityKinds
  */
 
 /**
@@ -94,6 +157,23 @@ export class LRUCache {
    * @type {Map<string, string>}
    */
   #textCacheMap = new Map();
+
+  /**
+   * A Set containing strings of translated HTML output.
+   *
+   * This cache is used to check if the HTML has already been translated,
+   * to help avoid sending already-translated HTML to be translated a second time.
+   *
+   * Ideally, a translation model that receives source text that is already in the
+   * target translation language should just pass it through, but this is not always
+   * the case in practice. Depending on the model, sending already-translated text to
+   * be translated again may change the translation or even produce garbage as a response.
+   *
+   * Best to avoid this situation altogether if we can.
+   *
+   * @type {Set<string>}
+   */
+  #htmlCacheSet = new Set();
 
   /**
    * A Set containing strings of translated plain text output.
@@ -159,6 +239,20 @@ export class LRUCache {
   }
 
   /**
+   * Retrieves the corresponding Set of translated text responses
+   *
+   * This is used to determine if the text being sent to translate
+   * has already been translated. In such a situation we want to
+   * avoid sending it to the translator a second time.
+   *
+   * @param {boolean} isHTML
+   * @returns {Set<string>}
+   */
+  #getCacheSet(isHTML) {
+    return isHTML ? this.#htmlCacheSet : this.#textCacheSet;
+  }
+
+  /**
    * Get a translation if it exists from the cache, and move it to the end of the cache
    * to keep it alive longer.
    *
@@ -206,19 +300,18 @@ export class LRUCache {
     }
     cacheMap.set(sourceString, targetString);
 
-    if (!isHTML) {
-      if (this.#textCacheSet.has(targetString)) {
-        // The Set already has this value, so we must delete it to
-        // re-insert it at the most-recently-used position of the Set.
-        this.#textCacheSet.delete(targetString);
-      } else if (this.#textCacheSet.size === this.#cacheLimit) {
-        // The Set is at capacity, so we must evict the least-recently-used value.
-        const oldestKey = this.#textCacheSet.keys().next().value;
-        // @ts-ignore: We can ensure that oldestKey is not undefined.
-        this.#textCacheSet.delete(oldestKey);
-      }
-      this.#textCacheSet.add(targetString);
+    const cacheSet = this.#getCacheSet(isHTML);
+    if (cacheSet.has(targetString)) {
+      // The Set already has this value, so we must delete it to
+      // re-insert it at the most-recently-used position of the Set.
+      cacheSet.delete(targetString);
+    } else if (cacheSet.size === this.#cacheLimit) {
+      // The Set is at capacity, so we must evict the least-recently-used value.
+      const oldestKey = cacheSet.keys().next().value;
+      // @ts-ignore: We can ensure that oldestKey is not undefined.
+      cacheSet.delete(oldestKey);
     }
+    cacheSet.add(targetString);
 
     this.keepAlive();
   }
@@ -230,10 +323,12 @@ export class LRUCache {
    * text that is already in the target language may produce garbage output.
    *
    * @param {string} sourceText
+   * @param {boolean} isHTML
+   *
    * @returns {boolean}
    */
-  isAlreadyTranslated(sourceText) {
-    return this.#textCacheSet.has(sourceText);
+  isAlreadyTranslated(sourceText, isHTML) {
+    return this.#getCacheSet(isHTML).has(sourceText);
   }
 
   /**
@@ -290,6 +385,7 @@ export class LRUCache {
       this.#keepAliveTimeoutId = lazy.setTimeout(() => {
         this.#htmlCacheMap = new Map();
         this.#textCacheMap = new Map();
+        this.#htmlCacheSet = new Set();
         this.#textCacheSet = new Set();
       }, this.#cacheExpirationMS);
     }, 0);
@@ -311,7 +407,7 @@ export class LRUCache {
  *
  * @type {number}
  */
-const DOM_UPDATE_INTERVAL_MS = 50;
+const DOM_UPDATE_INTERVAL_MS = 25;
 
 /**
  * Tags excluded from content translation.
@@ -492,38 +588,128 @@ const MUTATION_OBSERVER_OPTIONS = {
 
 /**
  * This class manages the process of translating the DOM from one language to another.
- * A translateHTML and a translateText function are injected into the constructor. This
- * class is responsible for subdividing a Node into small enough pieces to where it
- * contains a reasonable amount of text and inline elements for the translations engine
- * to translate. Once a node has been identified as a small enough chunk, its innerHTML
- * is read, and sent for translation. The async translation result comes back as an HTML
- * string. The DOM node is updated with the new text and potentially changed DOM ordering.
  *
- * This class also handles mutations of the DOM and will translate nodes as they are added
- * to the page, or the when the node's text is changed by content scripts.
+ * The logic within this class is generally separated into two types of translations:
+ * Content Translations and Attribute Translations.
  *
- * Flow for discarding translations due to mutations:
- * ==================================================
+ *  - For Content Translations, the DOM is traversed, filtered, and subdivided into smaller
+ *    groups of Nodes that have translatable text content.
  *
- * This diagram shows the flow of translations and how to discard translations when there
- * are mutations, which can happen at any point after a translation is requested, up to
- * the point a node is updated.
- *                                                        [discard]        [discard]
- *                                                            ^                ^
- *                                                            │ mutated?       │ mutated?
- *  Document: ┌─────────────┐                             ┌────────┐       ┌────────┐
- *            │   request   │      wait for response      │ queue  │       │ update │
- *            │ translation │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ > │ update │ ────> │  node  │
- *            └─────────────┘                             └────────┘       └────────┘
- *                 │                                          ^
- *                 v                                          │
- *   Worker:  ┌─────────────┐       ┌───────────┐        ┌──────────┐
- *            │   add to    │       │  runTask  │        │   post   │
- *            │  WorkQueue  │ ────> │ translate │  ────> │ response │
- *            └─────────────┘       └───────────┘        └──────────┘
- *            ^                     ^
- *            └─────────────────────┘
- *            Handle discard requests
+ *  - For Attribute Translations, a series of query selectors are used to filter all of
+ *    the Nodes that have translatable attributes within the DOM.
+ *
+ * Once nodes have been identified for both Content Translations and Attribute Translations,
+ * they are then registered for intersection observation and mutation observation.
+ *
+ * The mutation observer notifies us when a Node's content has changed, when a Node's translatable
+ * attributes have changed, as well as when new nodes are added into the DOM tree, and need to be
+ * further filtered, subdivided, and registered for intersection observation.
+ *
+ * In total, four intersection observers are used to prioritize which nodes should be translated: two to
+ * handle content-translation observations, and the other two to handle attribute-translation observations.
+ *
+ * Once intersections have been observed, the relevant nodes are sent into a queue where they will
+ * wait to be assigned a priority, based on both the type of translation, as well as the Node's location
+ * relative to the viewport of the screen.
+ *
+ * Prioritized nodes are then sent to the translation scheduler @see {TranslationScheduler}, which
+ * will attempt to optimally send requests to the TranslationsEngine worker to be translated, based
+ * both on the engine's throughput as well as on how many new translation requests are coming in.
+ *
+ * Once a request has come back from the TranslationsEngine worker, its response is validated, then
+ * the relevant node's content or attribute is scheduled to be updated in the DOM with the corresponding
+ * result of the translation.
+ *
+ * Note that a pending translation request may be cancelled at any stage in this process, up until the point
+ * where the request has come back from the TranslationsEngine worker, and the Node's content or attribute
+ * has been replaced in the DOM. Cancellations may happen for one of several reasons:
+ *
+ *  1) The page has been hidden (such as switching tabs), and we are pausing all execution until it is shown again.
+ *  2) The user has scrolled to a new location on the page entirely, and prior requests are no longer relevant.
+ *  3) A Node's location with respect to the viewport has changed and it needs a new translation priority.
+ *  4) A Node's content has mutated within the DOM, and the pending translation request is no longer relevant.
+ *
+ * The following diagram shows the flow of translations throughout the entire lifecycle of the TranslationsDocument.
+ *
+ *                             ┌────────────────────────┐    ┌──────────┐
+ *                             │ Register DOM roots for │    │ Mutation │
+ *                             │ mutation observation   │    │ Observer │
+ *                             └────────────────────────┘    └──────────┘
+ *                                         │                      │
+ *                                         │                      │ New nodes
+ *                                         │                      │ observed
+ *                                         v                      │
+ *                                ┌─────────────────┐             │
+ *                                │ Subdivide nodes │ <───────────┘
+ *                                │ within the DOM  │
+ *                                └─────────────────┘
+ *                                         │
+ *                                         │
+ *                                         │
+ *                                         v
+ *                                ┌──────────────────┐
+ *                                │ Register nodes   │
+ * ┌────────────────────────────> │ for intersection │
+ * │                              │ observation      │
+ * │                              └──────────────────┘
+ * │                                       │
+ * │                                       │
+ * │                                       │
+ * │                                       v
+ * │                              ┌───────────────────┐
+ * │                              │ Wait for observed │
+ * │  ┌─────────────────────────> │ intersection      │
+ * │  │                           └───────────────────┘
+ * │  │                                    │
+ * │  │                                    │ Node intersection with
+ * │  │                                    │ viewport is observed
+ * │  │                                    │
+ * │  │                                    v
+ * │  │  ┌────────┐ Node mutated  ┌──────────────────┐
+ * │  ├─ │ Cancel │ <──────────── │ Enqueue node for │ Node's intersection context with
+ * │  │  └────────┘               │ prioritization   │ respect to the viewport has changed   ┌────────┐
+ * │  │                           │                  │ ────────────────────────────────────> │ Cancel │
+ * │  │                           └──────────────────┘                                       └────────┘
+ * │  │                                    │   ^   ^                                              │ Node's new intersection context is
+ * │  │           Send prioritized node    │   │   │                                              │ still relevant to be translated
+ * │  │           to translation scheduler │   │   └──────────────────────────────────────────────┘
+ * │  │                                    │   │
+ * │  │                                    v   └───────────────────────────────────────────────────┐
+ * │  │                           ┌───────────────────┐                                            │ Node's new intersection context is
+ * │  │                           │ Scheduler creates │ Node's intersection context with           │ still relevant to be translated
+ * │  │  ┌────────┐ Node mutated  │ a request promise │ respect to the viewport has changed    ┌────────┐
+ * │  ├─ │ Cancel │ <──────────── │ for the node      │ ─────────────────────────────────────> │ Cancel │
+ * │  │  └────────┘               └───────────────────┘                                        └────────┘
+ * │  │                                    │
+ * │  │                                    │ Send translation request
+ * │  │                                    │ to TranslationsEngine
+ * │  │                                    │
+ * │  │                                    v
+ * │  │                           ┌───────────────────┐
+ * │  │                           │ Wait for response │
+ * │  │  ┌────────┐ Node mutated  │ from translations │
+ * │  ├─ │ Cancel │ <──────────── │ engine            │
+ * │  │  └────────┘               └───────────────────┘
+ * │  │                                    │
+ * │  │                                    │ Receive response with
+ * │  │                                    │ translated text for node
+ * │  │                                    │
+ * │  │                                    v
+ * │  │                           ┌───────────────┐
+ * │  │                           │ Schedule node │
+ * │  │  ┌────────┐  Node mutated │ to be updated │
+ * │  └─ │ Cancel │ <──────────── │               │
+ * │     └────────┘               └───────────────┘
+ * │                                       │
+ * │                                       │ Update node content
+ * │                                       │ or attribute with
+ * │                                       │ translated text
+ * │                                       v
+ * │                              ┌───────────────────┐
+ * │                              │ Unregister node   │
+ * │                 Node mutated │ from intersection │
+ * └───────────────────────────── │ observation       │
+ *                                └───────────────────┘
  */
 export class TranslationsDocument {
   /**
@@ -537,59 +723,84 @@ export class TranslationsDocument {
   #documentLanguage;
 
   /**
-   * The timeout between the first translation received and the call to update the DOM
-   * with translations.
+   * Marks when we have a pending callback for updating all nodes whose content translation
+   * requests have completed. This ensures that we won't redundantly request to update nodes.
    *
-   * @type {null | number}
+   * @type {boolean}
    */
-  #hasPendingUpdateContentCallback = null;
+  #hasPendingUpdateContentCallback = false;
 
   /**
-   * @type {null | number}
-   */
-  #hasPendingUpdateAttributesCallback = null;
-
-  /**
-   * The nodes that need translations. They are queued when the document tree is walked,
-   * and then they are dispatched for translation based on their visibility. The viewport
-   * nodes are given the highest priority.
+   * Marks when we have a pending callback for updating all elements whose attribute
+   * translation requests have completed. This ensures that we won't redundantly request
+   * to update nodes.
    *
-   * @type {Map<Node, NodeVisibility>}
+   * @type {boolean}
    */
-  #queuedContentNodes = new Map();
+  #hasPendingUpdateAttributesCallback = false;
 
   /**
-   * The nodes that need Attribute translations. They are queued when the document tree is walked,
-   * and then they are dispatched for translation based on their visibility. The viewport
-   * nodes are given the highest priority.
+   * A map of elements with translatable text content that may be prevented and removed
+   * by the intersection observers before they are prioritized and sent to the scheduler.
    *
-   * @type  {Map<Element, { attributeSet: Set<string>, visibility: NodeVisibility }>}
+   * @type {Map<Element, Set<Node>>}
    */
-  #queuedAttributeElements = new Map();
+  #queuedIntersectionPrunableContentElements = new Map();
 
   /**
-   * The list of nodes that need updating with the translated HTML. These are batched
-   * into an update. The translationId is a monotonically increasing number that
-   * represents a unique id for a translation. It guards against races where a node is
-   * mutated before the translation is returned. The translation is asynchronously
-   * cancelled during a mutation, but it can still return a translation before it is
+   * A map of elements with translatable text content that are unaffected by intersection
+   * observation. An example of this would be the <title> element, which will never intersect
+   * with the viewport.
+   *
+   * @type {Map<Element, Set<Node>>}
+   */
+  #queuedIntersectionExemptContentElements = new Map();
+
+  /**
+   * A map of elements with translatable attributes that may be prevented and removed
+   * by the intersection observers before they are prioritized and sent to the scheduler.
+   *
+   * @type {Map<Element, Set<string>>}
+   */
+  #queuedIntersectionPrunableAttributeElements = new Map();
+
+  /**
+   * A map of elements with translatable attributes that are unaffected by intersection
+   * observation. An example of this would be the <head> element, which may have translatable
+   * attributes, but will never intersect with the viewport.
+   *
+   * @type {Map<Element, Set<string>>}
+   */
+  #queuedIntersectionExemptAttributeElements = new Map();
+
+  /**
+   * The list of nodes that need updating with the translated content. These are batched into an update.
+   * The translationId is a monotonically increasing number that represents a unique id for a translation.
+   * It guards against races where a node is mutated before the translation is returned. The translation is
+   * asynchronously cancelled during a mutation, but it can still return a translation before it is
    * cancelled.
    *
-   * @type {Set<{ node: Node, translatedContent: string, translationId: number }>}
+   * @type {Set<{ element: Element, targetNode: Node, translatedContent: string, translationId: number }>}
    */
-  #nodesWithTranslatedContent = new Set();
+  #elementsThatNeedContentUpdates = new Set();
 
   /**
-   * The list of nodes that need updating with the translated Attribute HTML. These are batched
-   * into an update.
+   * The list of nodes that need updating with the translated attributes. These are batched into an update.
+   * The translationId is a monotonically increasing number that represents a unique id for a translation.
+   * It guards against races where a node is mutated before the translation is returned. The translation is
+   * asynchronously cancelled during a mutation, but it can still return a translation before it is
+   * cancelled.
    *
    * @type {Set<{ element: Element, translation: string, attribute: string, translationId: number }>}
    */
-  #elementsWithTranslatedAttributes = new Set();
+  #elementsThatNeedAttributeUpdates = new Set();
 
   /**
-   * The set of nodes that have been subdivided and processed for translation. They
-   * should not be submitted again unless their contents have been changed.
+   * This is the set of nodes (both elements and text nodes) whose translation requests
+   * have fully completed, and the node's content has been updated with the translated
+   * value.
+   *
+   * Nodes will be removed from this set when they are observed for mutations.
    *
    * @type {WeakSet<Node>}
    */
@@ -597,7 +808,7 @@ export class TranslationsDocument {
 
   /**
    * All root elements we're trying to translate. This should be the `document.body`
-   * the <head> (for attributes only), and the <title> element.
+   * the `head` (for attributes only), and the `title` element.
    *
    * @type {Set<Node>}
    */
@@ -628,6 +839,15 @@ export class TranslationsDocument {
   #hasPendingMutatedNodesCallback = false;
 
   /**
+   * Marks when we have a pending callback for sending prioritizing translation
+   * requests and submitting them to the TranslationScheduler. This ensures that
+   * we won't redundantly request prioritization.
+   *
+   * @type {boolean}
+   */
+  #hasPendingPrioritizationCallback = false;
+
+  /**
    * This boolean indicates whether the first visible DOM translation change is about to occur.
    *
    * @type {boolean}
@@ -637,7 +857,7 @@ export class TranslationsDocument {
   /**
    * A unique ID that guards against races between translations and mutations.
    *
-   * @type {Map<Node, number>}
+   * @type {Map<Element, Map<Node, number>>}
    */
   #pendingContentTranslations = new Map();
 
@@ -657,6 +877,28 @@ export class TranslationsDocument {
    * @type {WeakMap<Node, Node>}
    */
   #nodeToPendingParent = new WeakMap();
+
+  /**
+   * The y-axis location of the viewport the previous time a scroll event was fired.
+   *
+   * @type {number}
+   */
+  #previousScrollY = 0;
+
+  /**
+   * A hint at the most recent direction in which the user scrolled since requesting translations.
+   * This helps with the prioritization of translation requests for outside-of-viewport nodes.
+   *
+   * @type {ScrollDirection?}
+   */
+  #mostRecentScrollDirection = null;
+
+  /**
+   * The most recent timestamp from a "scroll" event.
+   *
+   * @type {number}
+   */
+  #mostRecentScrollTimestamp = 0;
 
   /**
    * Start with 1 so that it will never be falsey.
@@ -710,6 +952,159 @@ export class TranslationsDocument {
   #actorReportFirstVisibleChange;
 
   /**
+   * The scheduler that is responsible for sending translation requests to the TranslationsEngine.
+   *
+   * @type {TranslationScheduler}
+   */
+  #scheduler;
+
+  /**
+   * The script direction of the target language.
+   *
+   * @type {("ltr"|"rtl")}
+   */
+  #targetScriptDirection;
+
+  /**
+   * A map containing all elements that are being observed for content translations,
+   * and the set of translatable nodes for that element.
+   *
+   * Only Element type nodes are observable for intersection, so in order to observe
+   * a Text Node for intersection, it must be linked to its parent element.
+   *
+   * Note that the set of translatable nodes may contain the element itself.
+   *
+   * @type {Map<Element, Set<Node>>}
+   */
+  #intersectionObservedContentElements = new Map();
+
+  /**
+   * A map containing all elements that are being observed for attribute translations,
+   * and the set of translatable attribute names for each element.
+   *
+   * @type {Map<Element, Set<string>>}
+   */
+  #intersectionObservedAttributeElements = new Map();
+
+  // The following four intersection observers are responsible for detecting when nodes are within close enough range of the viewport
+  // to have their content and/or attributes scheduled to be translated. Two observers are dedicated to observing nodes with translatable
+  // text content, and two observers are dedicated to observing nodes with translatable attributes.
+  //
+  // Each pair has one In-Viewport Observer and one Beyond-Viewport Observer. The priority at which a node's translations are scheduled is
+  // determined by its location within these observer pairs. Translations for nodes that are observed by the In-Viewport observers are scheduled
+  // at the highest priority. Translations for nodes that are observed by the Beyond-Viewport observers are scheduled at lower priorities.
+  //
+  // As the location of the viewport changes with respect to the page, translations for nodes may be reprioritized or cancelled altogether.
+  // The following diagram shows a few examples of how translation priorities for nodes may change as the viewport moves:
+  //
+  //
+  //                                    Page                                                             Page
+  //                   ┌─────────────────────────────────────┐                          ┌─────────────────────────────────────┐
+  //                   │ ~~~                    ~ ~ ~ ~ ~    │                          │ ~~~                    ~ ~ ~ ~ ~    │
+  //                   │                                     │                          │                                     │
+  //                   │         ~~~~~~~~~~~~~~~~~~          │                          │         ~~~~~~~~~~~~~~~~~~          │
+  // Beyond-Viewport ══╪═> ┌─────────────────────────────┐   │   v                      │ ╔═══════════════════════════════════╪════╦═══ Translations for these nodes
+  // Observer          │   │ ~~  ~~~~~~~~~~~~~~~~~~      │   │   v                      │ ╠═> ~~  ~~~~~~~~~~~~~~~~~~  <═══════╪════╣    will be cancelled if their
+  //                   │   │ ~~  ~~~~~~~~~~~~~~~~~~~     │   │   v                      │ ╚═> ~~  ~~~~~~~~~~~~~~~~~~~ <═══════╪════╣    requests did not yet complete.
+  //                   │   │                             │   │   v                      │                                     │    ║
+  //     In-Viewport ══╪═══╪══> ┌───────────────────┐    │   │   v                      │                                     │    ║
+  //     Observer      │   │    │~~~~~~~~~~~~~~~~~  │    │   │   v                      │         ~~~~~~~~~~~~~~~~~   <═══════╪════╝
+  //                   │   │    │                   │    │   │   v    Beyond-Viewport ══╪═> ┌─────────────────────────────┐   │
+  //                   │   │    │~~~~~~~~~~~~~~~~~~ │    │   │   v    Observer          │   │     ~~~~~~~~~~~~~~~~~~~ <═══╪═══╪════╦═══ Translations for these nodes
+  //                   │   │    │                   │    │   │                          │   │                             │   │    ║    will be moved to a lower priority
+  //                   │   │    └───────────────────┘    │   │ Scroll                   │   │     ~~~~~~~~~~~~~~~~~~ <════╪═══╪════╝    if their requests did not yet complete.
+  //                   │   │                             │   │  down      In-Viewport ══╪═══╪══> ┌───────────────────┐    │   │
+  //                   │   │ ~~                          │   │            Observer      │   │ ~~ │                   │    │   │
+  //                   │   │ ~~  ~~~~~~~~~~~~~~~         │   │   v                      │   │ ~~ │~~~~~~~~~~~~~~~ <══╪════╪═══╪════════ Translations for this node will
+  //                   │   └─────────────────────────────┘   │   v                      │   │    │                   │    │   │         be moved to a higher priority if
+  //                   │                                     │   v                      │   │    │                   │    │   │         its requests did not yet complete.
+  //                   │                                     │   v                      │   │    └───────────────────┘    │   │
+  //                   │                                     │   v                      │   │                             │   │
+  //                   │         ~~~~~~~~~~~~~~~~~~          │   v                      │   │     ~~~~~~~~~~~~~~~~~~ <════╪═══╪════╦═══ Translations for these nodes will
+  //                   │         ~~~~~~~~~~~~~~~~~           │   v                      │   │     ~~~~~~~~~~~~~~~~~ <═════╪═══╪════╝    be newly requested at a lower priority.
+  //                   │                                     │                          │   └─────────────────────────────┘   │
+  //                   │     ~~  ~~~~~~~~~~~~~~~~~~~         │                          │     ~~  ~~~~~~~~~~~~~~~~~~~         │
+  //                   │         ~~~~~~~~~~~~~~~~            │                          │         ~~~~~~~~~~~~~~~~            │
+  //                   │ ~~~                            ~~~~ │                          │ ~~~                            ~~~~ │
+  //                   └─────────────────────────────────────┘                          └─────────────────────────────────────┘
+
+  /**
+   * An intersection observer bound to the exact dimensions of the viewport
+   * that watches for nodes whose text content is translatable.
+   *
+   * Nodes observed by this observer lead to the highest-priority translation requests
+   * since they are the nodes that are immediately within the viewport.
+   *
+   * @type {IntersectionObserver}
+   */
+  #intersectionObserverForContentTranslationsWithinViewport;
+
+  /**
+   * A promise that is resolved once the in-viewport content intersection observer's
+   * first observation has completed.
+   *
+   * @type {PromiseWithResolvers<void>}
+   */
+  #contentWithinViewportInitialObservation = Promise.withResolvers();
+
+  /**
+   * An intersection observer whose borders extend beyond the viewport
+   * that watches for nodes whose text content is translatable.
+   *
+   * Nodes observed by this observer lead to lower-priority translation requests
+   * since they lie just beyond the viewport of what the user can see.
+   *
+   * @type {IntersectionObserver}
+   */
+  #intersectionObserverForContentTranslationsBeyondViewport;
+
+  /**
+   * A promise that is resolved once the beyond-viewport content intersection observer's
+   * first observation has completed.
+   *
+   * @type {PromiseWithResolvers<void>}
+   */
+  #contentBeyondViewportInitialObservation = Promise.withResolvers();
+
+  /**
+   * An intersection observer bound to the exact dimensions of the viewport
+   * that watches for nodes with attributes that are translatable.
+   *
+   * Nodes observed by this observer lead to the highest-priority translation requests
+   * since they are the nodes that are immediately within the viewport.
+   *
+   * @type {IntersectionObserver}
+   */
+  #intersectionObserverForAttributeTranslationsWithinViewport;
+
+  /**
+   * A promise that is resolved once the in-viewport attribute intersection observer's
+   * first observation has completed.
+   *
+   * @type {PromiseWithResolvers<void>}
+   */
+  #attributesWithinViewportInitialObservation = Promise.withResolvers();
+
+  /**
+   * An intersection observer whose borders extend beyond the viewport
+   * that watches for nodes with attributes that are translatable.
+   *
+   * Nodes observed by this observer lead to lower-priority translation requests
+   * since they lie just beyond the viewport of what the user can see.
+   *
+   * @type {IntersectionObserver}
+   */
+  #intersectionObserverForAttributeTranslationsBeyondViewport;
+
+  /**
+   * A promise that is resolved once the beyond-viewport attribute intersection observer's
+   * first observation has completed.
+   *
+   * @type {PromiseWithResolvers<void>}
+   */
+  #attributesBeyondViewportInitialObservation = Promise.withResolvers();
+
+  /**
    * Construct a new TranslationsDocument. It is tied to a specific Document and cannot
    * be re-used. The translation functions are injected since this class shouldn't
    * manage the life cycle of the translations engines.
@@ -737,6 +1132,7 @@ export class TranslationsDocument {
   ) {
     /** @type {WindowProxy} */
     const ownerGlobal = ensureExists(document.ownerGlobal);
+    ownerGlobal.addEventListener("scroll", this.#handleScrollEvent);
 
     this.#domParser = new ownerGlobal.DOMParser();
     this.#innerWindowId = innerWindowId;
@@ -744,6 +1140,15 @@ export class TranslationsDocument {
     this.#documentLanguage = documentLanguage;
     this.#translationsCache = translationsCache;
     this.#actorReportFirstVisibleChange = reportVisibleChange;
+    this.#targetScriptDirection =
+      Services.intl.getScriptDirection(targetLanguage);
+
+    this.#scheduler = new TranslationScheduler(
+      port,
+      this.#innerWindowId,
+      translationsCache,
+      requestNewPort
+    );
 
     /**
      * This selector runs to find child nodes that should be excluded. It should be
@@ -782,91 +1187,429 @@ export class TranslationsDocument {
     ].join(",");
 
     /**
+     * Define the type of IntersectionObserver for lazily prioritizing translations.
+     *
+     * @type {typeof IntersectionObserver}
+     */
+    const DocumentIntersectionObserver = ownerGlobal.IntersectionObserver;
+
+    this.#intersectionObserverForContentTranslationsWithinViewport =
+      new DocumentIntersectionObserver(
+        entries => {
+          // The count of requests that we prevent from being sent to the TranslationsEngine.
+          let preventedCount = 0;
+
+          // The count of requests that we had to cancel from the TranslationScheduler.
+          // This is a subset of preventedCount.
+          let cancelledCount = 0;
+
+          // The count of nodes that entered this observer's proximity.
+          let enteredCount = 0;
+
+          // The count of nodes that exited this observer's proximity.
+          let exitedCount = 0;
+
+          const startTime = Cu.now();
+          for (const { target, isIntersecting } of entries) {
+            isIntersecting ? enteredCount++ : exitedCount++;
+
+            // The logic here does not care about `isIntersecting`, because it doesn't matter
+            // whether the target entered the boundary or exited the boundary. If the target
+            // entered, then it may need to be reprioritized to a higher priority. If it exited
+            // then the target may need to be reprioritized to a lower priority. In either case, we
+            // need to try to cancel any unscheduled requests, and resubmit them with a new priority.
+            const { preventedNodeSet, cancelledFromSchedulerCount } =
+              this.#preventUnscheduledContentTranslations(target);
+
+            if (preventedNodeSet) {
+              preventedCount += preventedNodeSet.size;
+              cancelledCount += cancelledFromSchedulerCount;
+
+              this.#queuedIntersectionPrunableContentElements.set(
+                target,
+                preventedNodeSet
+              );
+            }
+          }
+
+          ChromeUtils.addProfilerMarker(
+            "TranslationsDocument IntersectionObserver (Content)",
+            { startTime, innerWindowId },
+            `Within Viewport: ${enteredCount} elements entered, ${exitedCount} exited, ` +
+              `prevented ${preventedCount} requests: ` +
+              `${preventedCount - cancelledCount} requests were never sent to the scheduler, ` +
+              `${cancelledCount} requests were cancelled from the scheduler.`
+          );
+
+          this.#contentWithinViewportInitialObservation.resolve();
+          this.#maybePrioritizeRequestsAndSubmitToScheduler();
+        },
+        {
+          root: null,
+          rootMargin: "0% 0% 0% 0%",
+        }
+      );
+
+    this.#intersectionObserverForContentTranslationsBeyondViewport =
+      new DocumentIntersectionObserver(
+        entries => {
+          // The count of requests that we prevent from being sent to the TranslationsEngine.
+          let preventedCount = 0;
+
+          // The count of requests that we had to cancel from the TranslationScheduler.
+          // This is a subset of preventedCount.
+          let cancelledCount = 0;
+
+          // The count of nodes that entered this observer's proximity.
+          let enteredCount = 0;
+
+          // The count of nodes that exited this observer's proximity.
+          let exitedCount = 0;
+
+          const startTime = Cu.now();
+          for (const { target, isIntersecting } of entries) {
+            if (isIntersecting) {
+              // The target has entered the boundary, so we will enqueue it for translation.
+              // Even if the target is also within the boundary of the in-viewport observer
+              // this call is idempotent and the target will be enqueued only one time.
+              enteredCount++;
+              this.#enqueueForIntersectionPrunableContentPrioritization(target);
+            } else {
+              // The target has exited the boundary of the beyond-viewport observer,
+              // which means that is certainly not within range of the in-viewport observer.
+              // We should simply cancel the translation at this point until a time when the
+              // user moves the viewport near to this target again.
+              exitedCount++;
+
+              const { preventedNodeSet, cancelledFromSchedulerCount } =
+                this.#preventUnscheduledContentTranslations(target);
+
+              if (preventedNodeSet) {
+                preventedCount += preventedNodeSet.size;
+                cancelledCount += cancelledFromSchedulerCount;
+              }
+            }
+          }
+
+          ChromeUtils.addProfilerMarker(
+            "TranslationsDocument IntersectionObserver (Content)",
+            { startTime, innerWindowId },
+            `Extended Viewport: ${enteredCount} elements entered, ${exitedCount} exited, ` +
+              `prevented ${preventedCount} requests: ` +
+              `${preventedCount - cancelledCount} requests were never sent to the scheduler, ` +
+              `${cancelledCount} requests were cancelled from the scheduler.`
+          );
+
+          this.#contentBeyondViewportInitialObservation.resolve();
+          this.#maybePrioritizeRequestsAndSubmitToScheduler();
+        },
+        {
+          root: null,
+          rootMargin: "150% 50% 150% 50%",
+        }
+      );
+
+    this.#intersectionObserverForAttributeTranslationsWithinViewport =
+      new DocumentIntersectionObserver(
+        entries => {
+          // The count of requests that we prevent from being sent to the TranslationsEngine.
+          let preventedCount = 0;
+
+          // The count of requests that we had to cancel from the TranslationScheduler.
+          // This is a subset of preventedCount.
+          let cancelledCount = 0;
+
+          // The count of nodes that entered this observer's proximity.
+          let enteredCount = 0;
+
+          // The count of nodes that exited this observer's proximity.
+          let exitedCount = 0;
+
+          const startTime = Cu.now();
+          for (const { target, isIntersecting } of entries) {
+            isIntersecting ? enteredCount++ : exitedCount++;
+
+            // The logic here does not care about `isIntersecting`, because it doesn't matter
+            // whether the target entered the boundary or exited the boundary. If the target
+            // entered, then it may need to be reprioritized to a higher priority. If it exited
+            // then the target may need to be reprioritized to a lower priority. In either case, we
+            // need to try to cancel any unscheduled requests, and resubmit them with a new priority.
+            const { preventedAttributeSet, cancelledFromSchedulerCount } =
+              this.#preventUnscheduledAttributeTranslations(target);
+            if (preventedAttributeSet) {
+              preventedCount += preventedAttributeSet.size;
+              cancelledCount += cancelledFromSchedulerCount;
+              this.#queuedIntersectionPrunableAttributeElements.set(
+                target,
+                preventedAttributeSet
+              );
+            }
+          }
+
+          ChromeUtils.addProfilerMarker(
+            "TranslationsDocument IntersectionObserver (Attributes)",
+            { startTime, innerWindowId },
+            `Within Viewport: ${enteredCount} elements entered, ${exitedCount} exited, ` +
+              `prevented ${preventedCount} requests: ` +
+              `${preventedCount - cancelledCount} requests were never sent to the scheduler, ` +
+              `${cancelledCount} requests were cancelled from the scheduler.`
+          );
+
+          this.#attributesWithinViewportInitialObservation.resolve();
+          this.#maybePrioritizeRequestsAndSubmitToScheduler();
+        },
+        {
+          root: null,
+          rootMargin: "0% 0% 0% 0%",
+        }
+      );
+
+    this.#intersectionObserverForAttributeTranslationsBeyondViewport =
+      new DocumentIntersectionObserver(
+        entries => {
+          // The count of requests that we prevent from being sent to the TranslationsEngine.
+          let preventedCount = 0;
+
+          // The count of requests that we had to cancel from the TranslationScheduler.
+          // This is a subset of preventedCount.
+          let cancelledCount = 0;
+
+          // The count of nodes that entered this observer's proximity.
+          let enteredCount = 0;
+
+          // The count of nodes that exited this observer's proximity.
+          let exitedCount = 0;
+
+          const startTime = Cu.now();
+          for (const { target, isIntersecting } of entries) {
+            if (isIntersecting) {
+              // The target has entered the boundary, so we will enqueue it for translation.
+              // Even if the target is also within the boundary of the in-viewport observer
+              // this call is idempotent and the target will be enqueued only one time.
+              enteredCount++;
+              this.#enqueueForIntersectionPrunableAttributePrioritization(
+                target
+              );
+            } else {
+              // The target has exited the boundary of the beyond-viewport observer,
+              // which means that is certainly not within range of the in-viewport observer.
+              // We should simply cancel the translation at this point until a time when the
+              // user moves the viewport near to this target again.
+              exitedCount++;
+
+              const { preventedAttributeSet, cancelledFromSchedulerCount } =
+                this.#preventUnscheduledAttributeTranslations(target);
+
+              if (preventedAttributeSet) {
+                preventedCount += preventedAttributeSet.size;
+                cancelledCount += cancelledFromSchedulerCount;
+              }
+            }
+          }
+
+          ChromeUtils.addProfilerMarker(
+            "TranslationsDocument IntersectionObserver (Attributes)",
+            { startTime, innerWindowId },
+            `Extended Viewport: ${enteredCount} elements entered, ${exitedCount} exited, ` +
+              `prevented ${preventedCount} requests: ` +
+              `${preventedCount - cancelledCount} were never sent to the scheduler, ` +
+              `${cancelledCount} requests were cancelled from the scheduler.`
+          );
+
+          this.#attributesBeyondViewportInitialObservation.resolve();
+          this.#maybePrioritizeRequestsAndSubmitToScheduler();
+        },
+        {
+          root: null,
+          rootMargin: "100% 50% 100% 50%",
+        }
+      );
+
+    /**
      * Define the type of the MutationObserver for editor type hinting.
      *
      * @type {typeof MutationObserver}
      */
     const DocumentMutationObserver = ownerGlobal.MutationObserver;
 
-    this.#mutationObserver = new DocumentMutationObserver(mutationsList => {
-      for (const mutation of mutationsList) {
-        if (!mutation.target) {
-          continue;
-        }
+    this.#mutationObserver = new DocumentMutationObserver(
+      async mutationsList => {
+        await this.#waitForFirstIntersectionObservations();
 
-        const pendingNode = this.#getPendingNodeFromTarget(mutation.target);
-        if (pendingNode) {
-          if (this.#preventContentTranslation(pendingNode)) {
-            // The node was still pending to be translated, cancel it and re-submit.
-            this.#markNodeContentMutated(pendingNode);
-            if (mutation.type === "childList") {
+        const startTime = Cu.now();
+
+        // The count of attribute mutations in this observation.
+        let attributeCount = 0;
+
+        // The count of child-list mutations in this observation.
+        let childListCount = 0;
+
+        // The count of character-data mutations in this observation.
+        let characterDataCount = 0;
+
+        // The count of requests that we prevent from being sent to the TranslationsEngine.
+        let preventedCount = 0;
+
+        // The count of translation requests that had to be cancelled from the TranslationScheduler.
+        // This is a subset of preventedCount.
+        let cancelledFromSchedulerCount = 0;
+
+        // The count of translation requests that had to be cancelled from the TranslationsEngine.
+        // This is a subset of cancelledFromSchedulerCount.
+        let cancelledFromEngineCount = 0;
+
+        for (const mutation of mutationsList) {
+          if (!mutation.target) {
+            continue;
+          }
+
+          const pendingParentElement = this.#getPendingParentElementFromTarget(
+            mutation.target
+          );
+
+          if (pendingParentElement && mutation.type === "childList") {
+            const preventionResult =
+              this.#preventContentTranslation(pendingParentElement);
+
+            if (preventionResult.preventedCount) {
+              preventedCount += preventionResult.preventedCount;
+              cancelledFromSchedulerCount +=
+                preventionResult.cancelledFromSchedulerCount;
+              cancelledFromEngineCount +=
+                preventionResult.cancelledFromEngineCount;
+
+              // The node was still pending to be translated, and we cancelled it.
+              // Make sure it gets marked as mutated so it will be resubmitted.
+              this.#markNodeContentMutated(pendingParentElement);
+
               // New nodes could have been added, make sure we can follow their shadow roots.
               ensureExists(
                 this.#sourceDocument.ownerGlobal
               ).requestAnimationFrame(() => {
-                this.#addShadowRootsToObserver(pendingNode);
+                this.#addShadowRootsToObserver(pendingParentElement);
               });
             }
-            continue;
+          }
+
+          switch (mutation.type) {
+            case "childList": {
+              childListCount++;
+
+              for (const addedNode of mutation.addedNodes) {
+                if (!addedNode) {
+                  continue;
+                }
+                this.#subdivideNodeForAttributeTranslations(addedNode);
+                this.#addShadowRootsToObserver(addedNode);
+                this.#markNodeContentMutated(addedNode);
+              }
+              for (const removedNode of mutation.removedNodes) {
+                if (!removedNode) {
+                  continue;
+                }
+
+                const contentPreventionResult =
+                  this.#preventContentTranslation(removedNode);
+
+                preventedCount += contentPreventionResult.preventedCount;
+                cancelledFromSchedulerCount +=
+                  contentPreventionResult.cancelledFromSchedulerCount;
+                cancelledFromEngineCount +=
+                  contentPreventionResult.cancelledFromEngineCount;
+
+                const selfOrParentElement =
+                  asElement(removedNode) ?? asElement(removedNode.parentNode);
+
+                if (selfOrParentElement) {
+                  deleteFromNestedMap(
+                    this.#pendingContentTranslations,
+                    selfOrParentElement,
+                    removedNode
+                  );
+                  this.#removeFromContentIntersectionObservation(
+                    selfOrParentElement,
+                    removedNode
+                  );
+                }
+
+                const element = asElement(removedNode);
+
+                if (element) {
+                  const attributePreventionResult =
+                    this.#preventAttributeTranslations(element);
+
+                  preventedCount += attributePreventionResult.preventedCount;
+
+                  cancelledFromSchedulerCount +=
+                    attributePreventionResult.cancelledFromSchedulerCount;
+
+                  cancelledFromEngineCount +=
+                    attributePreventionResult.cancelledFromEngineCount;
+
+                  this.#pendingAttributeTranslations.delete(element);
+                  this.#removeFromAttributeIntersectionObservation(element);
+                }
+              }
+              break;
+            }
+            case "characterData": {
+              characterDataCount++;
+
+              const node = mutation.target;
+              if (node) {
+                // The mutated node will implement the CharacterData interface. The only
+                // node of this type that contains user-visible text is the `Text` node.
+                // Ignore others such as the comment node.
+                // https://developer.mozilla.org/en-US/docs/Web/API/CharacterData
+                if (node.nodeType === Node.TEXT_NODE) {
+                  const preventionResult =
+                    this.#preventContentTranslation(node);
+
+                  preventedCount += preventionResult.preventedCount;
+                  cancelledFromSchedulerCount +=
+                    preventionResult.cancelledFromSchedulerCount;
+                  cancelledFromEngineCount +=
+                    preventionResult.cancelledFromEngineCount;
+
+                  this.#markNodeContentMutated(node);
+                }
+              }
+              break;
+            }
+            case "attributes": {
+              attributeCount++;
+
+              const element = asElement(mutation.target);
+              if (element && mutation.attributeName) {
+                const { oldValue, attributeName } = mutation;
+                this.#maybeMarkElementAttributeMutated(
+                  element,
+                  attributeName,
+                  oldValue
+                );
+              }
+              break;
+            }
+            default: {
+              break;
+            }
           }
         }
 
-        switch (mutation.type) {
-          case "childList": {
-            for (const addedNode of mutation.addedNodes) {
-              if (!addedNode) {
-                continue;
-              }
-              this.#addShadowRootsToObserver(addedNode);
-              this.#markNodeContentMutated(addedNode);
-            }
-            for (const removedNode of mutation.removedNodes) {
-              if (!removedNode) {
-                continue;
-              }
-              this.#preventContentTranslation(removedNode);
-              this.#preventAttributeTranslations(removedNode);
-            }
-            break;
-          }
-          case "characterData": {
-            const node = mutation.target;
-            if (node) {
-              // The mutated node will implement the CharacterData interface. The only
-              // node of this type that contains user-visible text is the `Text` node.
-              // Ignore others such as the comment node.
-              // https://developer.mozilla.org/en-US/docs/Web/API/CharacterData
-              if (node.nodeType === Node.TEXT_NODE) {
-                this.#markNodeContentMutated(node);
-              }
-            }
-            break;
-          }
-          case "attributes": {
-            const element = asElement(mutation.target);
-            if (element && mutation.attributeName) {
-              const { oldValue, attributeName } = mutation;
-              const newValue = element.getAttribute(attributeName);
+        ChromeUtils.addProfilerMarker(
+          "TranslationsDocument MutationObserver",
+          { startTime, innerWindowId },
+          `Observed ${childListCount + characterDataCount + attributeCount} mutations: ` +
+            `childList(${childListCount}), characterData(${characterDataCount}), attribute(${attributeCount}), ` +
+            `prevented ${preventedCount} requests: ` +
+            `${preventedCount - cancelledFromSchedulerCount - cancelledFromEngineCount} requests were never sent to the scheduler, ` +
+            `${cancelledFromSchedulerCount - cancelledFromEngineCount} requests were cancelled from the scheduler before being sent to the engine, ` +
+            `${cancelledFromEngineCount} requests were cancelled from the engine.`
+        );
 
-              if (
-                // The new attribute value must have content to translate.
-                newValue?.length &&
-                // The new attribute value must not be exactly the same as the old value.
-                oldValue !== newValue &&
-                // The new attribute value must not be already-translated text.
-                !this.#translationsCache.isAlreadyTranslated(newValue)
-              ) {
-                this.#maybeMarkElementAttributeMutated(element, attributeName);
-              }
-            }
-            break;
-          }
-          default: {
-            break;
-          }
-        }
+        this.#maybePrioritizeRequestsAndSubmitToScheduler();
       }
-    });
+    );
 
     this.#sourceDocument.addEventListener(
       "visibilitychange",
@@ -874,9 +1617,42 @@ export class TranslationsDocument {
     );
 
     const addRootElements = () => {
-      this.#addRootElement(document.querySelector("title"));
-      this.#addRootElement(document.head);
+      const startTime = Cu.now();
+
       this.#addRootElement(document.body);
+      this.#addRootElement(document.head);
+      this.#addRootElement(document.querySelector("title"));
+
+      ChromeUtils.addProfilerMarker(
+        "TranslationsDocument Initialize",
+        { startTime, innerWindowId: this.#innerWindowId },
+        "Added initial root elements for translation"
+      );
+
+      if (this.#intersectionObservedContentElements.size === 0) {
+        // After the initial parse of the page, there are no intersection-observable
+        // content elements, so we must vacuously consider the first observation complete.
+        this.#contentWithinViewportInitialObservation.resolve();
+        this.#contentBeyondViewportInitialObservation.resolve();
+      }
+
+      if (this.#intersectionObservedAttributeElements.size === 0) {
+        // After the initial parse of the page, there are no intersection-observable
+        // attribute elements, so we must vacuously consider the first observation complete.
+        this.#attributesWithinViewportInitialObservation.resolve();
+        this.#attributesBeyondViewportInitialObservation.resolve();
+      }
+
+      if (
+        // The page may have content nodes that cannot be observed for intersection.
+        this.#queuedIntersectionExemptContentElements.size > 0 ||
+        // The page may have attribute elements that cannot be observed for intersection.
+        this.#queuedIntersectionExemptAttributeElements.size > 0
+      ) {
+        // These are elements such as <title> that will never intesect with the observers.
+        // If we have any such elements, we must ensure that they are submitted here.
+        this.#maybePrioritizeRequestsAndSubmitToScheduler();
+      }
     };
 
     if (document.body) {
@@ -884,7 +1660,9 @@ export class TranslationsDocument {
     } else {
       // The TranslationsDocument was invoked before the DOM was ready, wait for
       // it to be loaded.
-      document.addEventListener("DOMContentLoaded", addRootElements);
+      document.addEventListener("DOMContentLoaded", addRootElements, {
+        once: true,
+      });
     }
 
     /** @type {HTMLElement} */ (document.documentElement).lang = targetLanguage;
@@ -897,6 +1675,27 @@ export class TranslationsDocument {
   }
 
   /**
+   * The first intersection observation is critical to the flow of the TranslationsDocument.
+   *
+   * When we add the root elements within the constructor, the entire DOM is parsed, and each
+   * translatable element on the page is registered with the intersection observers. As such,
+   * each observer's first observation will mostly contain nodes that are "exiting" proximity,
+   * since most of the element on the page will likely lie well beyond the viewport.
+   *
+   * To prevent unnecessary cancellations, race conditions, etc. many of the asynchronous
+   * callbacks within this file such as submitting nodes to the scheduler or handling mutated
+   * nodes must wait until the first intersection observation has occurred.
+   */
+  async #waitForFirstIntersectionObservations() {
+    await Promise.all([
+      this.#contentWithinViewportInitialObservation.promise,
+      this.#contentBeyondViewportInitialObservation.promise,
+      this.#attributesWithinViewportInitialObservation.promise,
+      this.#attributesBeyondViewportInitialObservation.promise,
+    ]);
+  }
+
+  /**
    * Marks that the text content of the given node has mutated, both allowing and
    * ensuring that the node will be rescheduled for translation, even if it had
    * previously been translated.
@@ -906,6 +1705,30 @@ export class TranslationsDocument {
   #markNodeContentMutated(node) {
     this.#processedContentNodes.delete(node);
     this.#nodesWithMutatedContent.add(node);
+
+    const selfOrParentElement = asElement(node) ?? asElement(node.parentNode);
+
+    if (selfOrParentElement) {
+      deleteFromNestedMap(
+        this.#pendingContentTranslations,
+        selfOrParentElement,
+        node
+      );
+
+      if (this.#intersectionObservedContentElements.has(selfOrParentElement)) {
+        // If the mutated content belongs to an element that we are already observing
+        // for intersection, we must re-register it with the Beyond-Viewport intersection
+        // observer, which will ensure that any mutated elements within extended-viewport
+        // proximity will be re-enqueued for prioritization when the next observer cycle runs.
+        this.#intersectionObserverForContentTranslationsBeyondViewport.unobserve(
+          selfOrParentElement
+        );
+        this.#intersectionObserverForContentTranslationsBeyondViewport.observe(
+          selfOrParentElement
+        );
+      }
+    }
+
     this.#ensureMutationUpdateCallbackIsRegistered();
   }
 
@@ -916,19 +1739,59 @@ export class TranslationsDocument {
    *
    * @param {Element} element
    * @param {string} attributeName
+   * @param {string?} oldValue
    */
-  #maybeMarkElementAttributeMutated(element, attributeName) {
+  #maybeMarkElementAttributeMutated(element, attributeName, oldValue) {
+    const newValue = element.getAttribute(attributeName);
+
+    if (!newValue) {
+      // The element no longer has a value for this attribute.
+      return;
+    }
+
+    if (oldValue === newValue) {
+      // The new attribute value is exactly the same as the old value.
+      return;
+    }
+
+    if (
+      this.#translationsCache.isAlreadyTranslated(newValue, /* isHTML */ false)
+    ) {
+      // We know that the new attribute value is already text in the target language.
+      return;
+    }
+
     if (!isAttributeTranslatable(element, attributeName)) {
       // The given attribute is not translatable for this element.
       return;
     }
 
-    let attributes = this.#elementsWithMutatedAttributes.get(element);
-    if (!attributes) {
-      attributes = new Set();
-      this.#elementsWithMutatedAttributes.set(element, attributes);
+    let mutatedAttributes = this.#elementsWithMutatedAttributes.get(element);
+    if (!mutatedAttributes) {
+      mutatedAttributes = new Set();
+      this.#elementsWithMutatedAttributes.set(element, mutatedAttributes);
     }
-    attributes.add(attributeName);
+    mutatedAttributes.add(attributeName);
+
+    deleteFromNestedMap(
+      this.#pendingAttributeTranslations,
+      element,
+      attributeName
+    );
+
+    if (this.#intersectionObservedAttributeElements.has(element)) {
+      // If the mutated attribute belongs to an element that we are already observing
+      // for intersection, we must re-register it with the Beyond-Viewport intersection
+      // observer, which will ensure that any mutated elements within extended-viewport
+      // proximity will be re-enqueued for prioritization when the next observer cycle runs.
+      this.#intersectionObserverForAttributeTranslationsBeyondViewport.unobserve(
+        element
+      );
+      this.#intersectionObserverForAttributeTranslationsBeyondViewport.observe(
+        element
+      );
+    }
+
     this.#ensureMutationUpdateCallbackIsRegistered();
   }
 
@@ -956,8 +1819,20 @@ export class TranslationsDocument {
     // Nodes can be mutated in a tight loop. To guard against the performance of re-translating nodes too frequently,
     // we will batch the processing of mutated nodes into a double requestAnimationFrame.
     ownerGlobal.requestAnimationFrame(() => {
-      ownerGlobal.requestAnimationFrame(() => {
+      ownerGlobal.requestAnimationFrame(async () => {
+        // We should not handle any mutations until the intersection observers have completed their first observations.
+        await this.#waitForFirstIntersectionObservations();
+
         this.#hasPendingMutatedNodesCallback = false;
+
+        // The count of content translation requests will be 1:1 with the count of content-translation nodes.
+        const contentNodeCount = this.#nodesWithMutatedContent.size;
+
+        // Attribute translation requests have a 1:many relationship with their element, so we must increment manually.
+        const attributeElementCount = this.#elementsWithMutatedAttributes.size;
+        let attributeRequestCount = 0;
+
+        const startTime = Cu.now();
 
         // Ensure the nodes are still alive.
         const liveNodes = [];
@@ -994,18 +1869,29 @@ export class TranslationsDocument {
         for (const node of this.#nodesWithMutatedContent) {
           this.#addShadowRootsToObserver(node);
           this.#subdivideNodeForContentTranslations(node);
-          this.#subdivideNodeForAttributeTranslations(node);
         }
         this.#nodesWithMutatedContent.clear();
 
         for (const [
-          node,
+          element,
           attributes,
         ] of this.#elementsWithMutatedAttributes.entries()) {
-          this.#enqueueElementForAttributeTranslation(node, attributes);
+          attributeRequestCount += attributes.size;
+          this.#maybeObserveElementForAttributePrioritization(
+            element,
+            attributes
+          );
         }
-        this.#dispatchQueuedAttributeTranslations();
         this.#elementsWithMutatedAttributes.clear();
+
+        ChromeUtils.addProfilerMarker(
+          "TranslationsDocument MutationObserver",
+          { startTime, innerWindowId: this.#innerWindowId },
+          `Handled content mutations for ${contentNodeCount} nodes, and ` +
+            `${attributeRequestCount} attribute mutations among ${attributeElementCount} elements.`
+        );
+
+        this.#maybePrioritizeRequestsAndSubmitToScheduler();
       });
     });
   }
@@ -1015,10 +1901,20 @@ export class TranslationsDocument {
    *
    * @param {Node} target
    *
-   * @returns {Node | undefined}
+   * @returns {Element | undefined}
    */
-  #getPendingNodeFromTarget(target) {
-    return this.#nodeToPendingParent.get(target);
+  #getPendingParentElementFromTarget(target) {
+    const pendingParent = this.#nodeToPendingParent.get(target);
+    const pendingParentElement = asElement(pendingParent);
+
+    if (
+      pendingParentElement &&
+      this.#pendingContentTranslations.has(pendingParentElement)
+    ) {
+      return pendingParentElement;
+    }
+
+    return undefined;
   }
 
   /**
@@ -1028,38 +1924,99 @@ export class TranslationsDocument {
    * This function is primarily used by the mutation observer, when we are certain
    * that content has changed, and the previous translation is no longer valid.
    *
+   * For a more conservative cancellation that will only cancel a translation
+   * request before it has been sent to the TranslationsEngine, use the
+   * `#maybePreventUnscheduledContentTranslation` function.
+   *
    * @param {Node} node
-   * @returns {boolean}
+   *
+   * @returns {{
+   *  preventedCount: number,
+   *  cancelledFromSchedulerCount: number,
+   *  cancelledFromEngineCount: number,
+   * }}
    */
   #preventContentTranslation(node) {
-    const translationId = this.#pendingContentTranslations.get(node);
+    const textNode = asTextNode(node);
+    const parentElement = asElement(node.parentNode);
 
-    if (!translationId) {
-      // No pending content translation was found for this node.
-      return false;
-    }
+    if (textNode && parentElement) {
+      const pendingNodes = this.#pendingContentTranslations.get(parentElement);
+      const translationId = pendingNodes?.get(textNode);
 
-    this.translator.cancelSingleTranslation(translationId);
+      if (translationId) {
+        const { didPrevent, didCancelFromScheduler, didCancelFromEngine } =
+          this.#scheduler.preventSingleTranslation(translationId);
 
-    if (!isNodeDetached(node)) {
-      const element = /** @type {HTMLElement} */ (asHTMLElement(node));
-      if (element) {
-        const dataset = getDataset(element);
-        if (dataset) {
-          delete dataset.mozTranslationsId;
-        }
-        for (const childNode of element.querySelectorAll(
-          "[data-moz-translations-id]"
-        )) {
-          delete childNode.dataset.mozTranslationsId;
+        if (didPrevent) {
+          return {
+            preventedCount: Number(didPrevent),
+            cancelledFromSchedulerCount: Number(didCancelFromScheduler),
+            cancelledFromEngineCount: Number(didCancelFromEngine),
+          };
         }
       }
     }
 
-    this.#pendingContentTranslations.delete(node);
-    this.#processedContentNodes.delete(node);
+    const element = asElement(node);
+    if (!element) {
+      return {
+        preventedCount: 0,
+        cancelledFromSchedulerCount: 0,
+        cancelledFromEngineCount: 0,
+      };
+    }
 
-    return true;
+    let preventedCount = 0;
+    let cancelledFromSchedulerCount = 0;
+    let cancelledFromEngineCount = 0;
+
+    const preventionResult =
+      this.#preventUnscheduledContentTranslations(element);
+
+    if (preventionResult.preventedNodeSet) {
+      // We were able to prevent these content translations before
+      // they were sent to the TranslationsEngine.
+      preventedCount += preventionResult.preventedNodeSet.size;
+      cancelledFromSchedulerCount +=
+        preventionResult.cancelledFromSchedulerCount;
+    }
+
+    const pendingNodes = this.#pendingContentTranslations.get(element);
+    if (!pendingNodes) {
+      // No pending content translations were found for this element.
+      // They either already completed, or never existed.
+      return {
+        preventedCount,
+        cancelledFromSchedulerCount,
+        cancelledFromEngineCount: 0,
+      };
+    }
+
+    for (const [pendingNode, translationId] of pendingNodes) {
+      // eslint-disable-next-line no-shadow
+      const { didPrevent, didCancelFromScheduler, didCancelFromEngine } =
+        this.#scheduler.preventSingleTranslation(translationId);
+
+      if (didPrevent) {
+        pendingNodes.delete(pendingNode);
+      }
+
+      preventedCount += Number(didPrevent);
+      cancelledFromSchedulerCount += Number(didCancelFromScheduler);
+      cancelledFromEngineCount += Number(didCancelFromEngine);
+    }
+
+    if (pendingNodes.size === 0) {
+      removeMozTranslationsIds(element);
+      this.#pendingContentTranslations.delete(element);
+    }
+
+    return {
+      preventedCount,
+      cancelledFromSchedulerCount,
+      cancelledFromEngineCount,
+    };
   }
 
   /**
@@ -1069,44 +2026,106 @@ export class TranslationsDocument {
    * This function is primarily used by the mutation observer, when we are certain
    * that content has changed, and the previous translation is no longer valid.
    *
-   * @param {Node} node
-   * @returns {boolean}
-   *   - True if any pending attribute translations were found for this node.
+   * For a more conservative cancellation that will only cancel translation requests
+   * before they have been sent to the TranslationsEngine, use the
+   * `#maybePreventUnscheduledAttributeTranslations` function.
+   *
+   * @param {Element} element
+   *
+   * @returns {{
+   *  preventedCount: number,
+   *  cancelledFromSchedulerCount: number,
+   *  cancelledFromEngineCount: number,
+   * }}
    */
-  #preventAttributeTranslations(node) {
-    const element = asElement(node);
-    if (!element) {
-      // We only translate attributes on Element type nodes.
-      return false;
+  #preventAttributeTranslations(element) {
+    const preventionResult =
+      this.#preventUnscheduledAttributeTranslations(element);
+
+    let preventedCount = 0;
+    let cancelledFromSchedulerCount = 0;
+    let cancelledFromEngineCount = 0;
+
+    if (preventionResult.preventedAttributeSet) {
+      // We were able to prevent these attributes translations before
+      // they were send to the TranslationsEngine.
+      preventedCount += preventionResult.preventedAttributeSet.size;
+      cancelledFromSchedulerCount +=
+        preventionResult.cancelledFromSchedulerCount;
     }
 
-    const attributes = this.#pendingAttributeTranslations.get(element);
-    if (!attributes) {
+    const pendingAttributes = this.#pendingAttributeTranslations.get(element);
+    if (!pendingAttributes) {
       // No pending attribute translations were found for this element.
-      return false;
+      // They either already completed, or never existed.
+      return {
+        preventedCount,
+        cancelledFromSchedulerCount,
+        cancelledFromEngineCount: 0,
+      };
     }
 
-    for (const translationId of attributes.values()) {
-      this.translator.cancelSingleTranslation(translationId);
-    }
-    this.#pendingAttributeTranslations.delete(element);
+    for (const [attributeName, translationId] of pendingAttributes) {
+      // eslint-disable-next-line no-shadow
+      const { didPrevent, didCancelFromScheduler, didCancelFromEngine } =
+        this.#scheduler.preventSingleTranslation(translationId);
 
-    return true;
+      if (didPrevent) {
+        pendingAttributes.delete(attributeName);
+      }
+
+      preventedCount += Number(didPrevent);
+      cancelledFromSchedulerCount += Number(didCancelFromScheduler);
+      cancelledFromEngineCount += Number(didCancelFromEngine);
+    }
+
+    if (pendingAttributes.size === 0) {
+      this.#pendingAttributeTranslations.delete(element);
+    }
+
+    return {
+      preventedCount,
+      cancelledFromSchedulerCount,
+      cancelledFromEngineCount,
+    };
   }
 
   /**
-   * Queues a node's relevant attributes to be translated if it has any attributes that are
-   * determined to be translatable, and if the node itself has not been excluded from translations.
+   * Adds an element to a queue from which it will eventually be prioritized
+   * and submitted to the scheduler for attribute translation.
    *
-   * Otherwise does nothing with the node.
+   * The queue is intersection-exempt, meaning that the intersection observers
+   * will not be able to remove this element from the queue before it is prioritized
+   * and submitted to the scheduler.
    *
-   * @param {Element} element - The node for which to maybe translate attributes.
+   * @param {Element} element
    */
-  #maybeEnqueueElementForAttributeTranslation(element) {
-    const translatableAttributes = this.#getTranslatableAttributes(element);
+  #enqueueForIntersectionPrunableAttributePrioritization(element) {
+    if (this.#queuedIntersectionPrunableAttributeElements.has(element)) {
+      return;
+    }
 
-    if (translatableAttributes) {
-      this.#enqueueElementForAttributeTranslation(
+    const translatableAttributes =
+      this.#intersectionObservedAttributeElements.get(element);
+
+    if (!translatableAttributes) {
+      lazy.console.warn(`
+        Attempted to enqueue an element for attribute translation,
+        but no translatable attributes were registered with the element.
+      `);
+      return;
+    }
+
+    let queuedAttributes =
+      this.#queuedIntersectionPrunableAttributeElements.get(element);
+
+    if (queuedAttributes) {
+      for (const attributeName of translatableAttributes) {
+        queuedAttributes.add(attributeName);
+      }
+    } else {
+      queuedAttributes = translatableAttributes;
+      this.#queuedIntersectionPrunableAttributeElements.set(
         element,
         translatableAttributes
       );
@@ -1114,29 +2133,42 @@ export class TranslationsDocument {
   }
 
   /**
-   * Queues a node to translate any attributes in the given attributeSet.
+   * Adds an element to a queue from which it will eventually be prioritized
+   * and submitted to the scheduler for attribute translation.
    *
-   * This function translates the attributes in the given attributeSet without
-   * restriction and should only be used if the list has already been validated
-   * that the node has these attributes and that they are deemed translatable.
+   * The queue is intersection-exempt, meaning that the intersection observers
+   * will not be able to remove this element from the queue before it is prioritized
+   * and submitted to the scheduler.
    *
-   * If you do not already have a valid list of translatable attributes, then you
-   * should use the maybeQueueNodeForAttributeTranslation method instead.
-   *
-   * @see #maybeEnqueueElementForAttributeTranslation
-   *
-   * @param {Element} element - The node for which to translate attributes.
-   * @param {Set<string>} attributeSet - A set of pre-validated, translatable attributes.
+   * @param {Element} element
    */
-  #enqueueElementForAttributeTranslation(element, attributeSet) {
-    /** @type {NodeVisibility} */
-    let visibility = "out-of-viewport";
-    if (isNodeHidden(element)) {
-      visibility = "hidden";
-    } else if (isNodeInViewport(element)) {
-      visibility = "in-viewport";
+  #maybeEnqueueForIntersectionExemptAttributePrioritization(element) {
+    if (this.#queuedIntersectionExemptAttributeElements.has(element)) {
+      return;
     }
-    this.#queuedAttributeElements.set(element, { attributeSet, visibility });
+
+    const translatableAttributes =
+      this.#intersectionObservedAttributeElements.get(element) ??
+      this.#getTranslatableAttributes(element);
+
+    if (!translatableAttributes) {
+      return;
+    }
+
+    let queuedAttributes =
+      this.#queuedIntersectionExemptAttributeElements.get(element);
+
+    if (queuedAttributes) {
+      for (const attributeName of translatableAttributes) {
+        queuedAttributes.add(attributeName);
+      }
+    } else {
+      queuedAttributes = translatableAttributes;
+      this.#queuedIntersectionExemptAttributeElements.set(
+        element,
+        translatableAttributes
+      );
+    }
   }
 
   /**
@@ -1184,14 +2216,14 @@ export class TranslationsDocument {
    */
   #handleVisibilityChange = () => {
     if (this.#sourceDocument.visibilityState === "visible") {
-      this.translator.showPage();
+      this.#scheduler.onShowPage();
     } else {
       ChromeUtils.addProfilerMarker(
-        "Translations",
+        "TranslationsDocument Pause",
         { innerWindowId: this.#innerWindowId },
         "Pausing translations and discarding the port"
       );
-      this.translator.hidePage();
+      this.#scheduler.onHidePage();
     }
   };
 
@@ -1199,12 +2231,20 @@ export class TranslationsDocument {
    * Remove any dangling event handlers.
    */
   destroy() {
-    this.translator.destroy();
-    this.#stopMutationObserver();
-    this.#sourceDocument.removeEventListener(
-      "visibilitychange",
-      this.#handleVisibilityChange
-    );
+    this.#scheduler.destroy();
+    this.#stopAllObservers();
+
+    if (!Cu.isDeadWrapper(this.#sourceDocument)) {
+      this.#sourceDocument.removeEventListener(
+        "visibilitychange",
+        this.#handleVisibilityChange
+      );
+
+      const window = this.#sourceDocument.ownerGlobal;
+      if (window) {
+        window.removeEventListener("scroll", this.#handleScrollEvent);
+      }
+    }
   }
 
   /**
@@ -1279,31 +2319,50 @@ export class TranslationsDocument {
     if (element.nodeName === "TITLE") {
       // The <title> node is special, in that it will never intersect with the viewport,
       // so we must explicitly enqueue it for translation here.
-      this.#enqueueNodeForContentTranslation(element);
-      this.#maybeEnqueueElementForAttributeTranslation(element);
+      this.#enqueueForIntersectionExemptContentPrioritization(element);
+      this.#maybeEnqueueForIntersectionExemptAttributePrioritization(element);
+      this.#mutationObserver.observe(element, MUTATION_OBSERVER_OPTIONS);
       return;
     }
 
-    if (element.nodeName !== "HEAD") {
-      // We do not consider the <head> element for content translations, only attributes.
-      const contentStartTime = Cu.now();
-      this.#subdivideNodeForContentTranslations(element);
-      ChromeUtils.addProfilerMarker(
-        "TranslationsDocument Add Root",
-        { startTime: contentStartTime, innerWindowId: this.#innerWindowId },
-        `Subdivided new root "${node.nodeName}" for content translations`
-      );
+    if (element.nodeName === "HEAD") {
+      // The <head> element is not considered for content translations, but it may contain <meta>
+      // elements that may have translatable attributes. This is a special case where we should
+      // explicitly check for <meta> elements within the <head> and eagerly enqueue them, since
+      // they will not intersect with the intersection observers.
+      for (const metaElement of element.querySelectorAll("meta")) {
+        this.#maybeEnqueueForIntersectionExemptAttributePrioritization(
+          metaElement
+        );
+      }
+      this.#mutationObserver.observe(element, MUTATION_OBSERVER_OPTIONS);
+      return;
     }
 
+    const contentStartTime = Cu.now();
+    this.#subdivideNodeForContentTranslations(element);
+    ChromeUtils.addProfilerMarker(
+      "TranslationsDocument Add Root",
+      { startTime: contentStartTime, innerWindowId: this.#innerWindowId },
+      `Subdivided new root "${node.nodeName}" for content translations`
+    );
+
+    const attributeStartTime = Cu.now();
     this.#subdivideNodeForAttributeTranslations(element);
+    ChromeUtils.addProfilerMarker(
+      "TranslationsDocument Add Root",
+      { startTime: attributeStartTime, innerWindowId: this.#innerWindowId },
+      `Subdivided new root "${node.nodeName}" for attribute translations`
+    );
 
     this.#mutationObserver.observe(element, MUTATION_OBSERVER_OPTIONS);
     this.#addShadowRootsToObserver(element);
   }
 
   /**
-   * Add qualified nodes to queueNodeForTranslation by recursively walk
-   * through the DOM tree of node, including elements in Shadow DOM.
+   * Add qualified nodes to be observed for intersection or enqueued for
+   * translation by recursively walking through the DOM tree of nodes,
+   * including elements in the Shadow DOM.
    *
    * @param {Node} node
    */
@@ -1326,7 +2385,7 @@ export class TranslationsDocument {
       if (shadowRoot) {
         this.#processSubdivide(shadowRoot);
       } else {
-        this.#enqueueNodeForContentTranslation(currentNode);
+        this.#observeOrEnqueueNodeForContentPrioritization(currentNode);
       }
     }
   }
@@ -1340,8 +2399,6 @@ export class TranslationsDocument {
    * of inline text can be found.
    *
    * @param {Node} node
-   *
-   * @returns {null | Array<Promise<unknown>>}
    */
   #subdivideNodeForContentTranslations(node) {
     if (!this.#rootNodes.has(node)) {
@@ -1362,7 +2419,7 @@ export class TranslationsDocument {
             this.#determineTranslationStatus(parent) ===
             NodeStatus.NOT_TRANSLATABLE
           ) {
-            return null;
+            return;
           }
         }
       }
@@ -1371,7 +2428,7 @@ export class TranslationsDocument {
     switch (this.#determineTranslationStatusForUnprocessedNodes(node)) {
       case NodeStatus.NOT_TRANSLATABLE: {
         // This node is rejected as it shouldn't be translated.
-        return null;
+        return;
       }
 
       // SHADOW_HOST and READY_TO_TRANSLATE both map to FILTER_ACCEPT
@@ -1384,7 +2441,7 @@ export class TranslationsDocument {
           // This node is ready for translating, and doesn't need to be subdivided. There
           // is no reason to run the TreeWalker, it can be directly submitted for
           // translation.
-          this.#enqueueNodeForContentTranslation(node);
+          this.#observeOrEnqueueNodeForContentPrioritization(node);
         }
         break;
       }
@@ -1397,8 +2454,6 @@ export class TranslationsDocument {
         break;
       }
     }
-
-    return this.#dispatchQueuedTranslations();
   }
 
   /**
@@ -1407,26 +2462,23 @@ export class TranslationsDocument {
    * to be translated when observed.
    *
    * @param {Node} node
-   *
-   * @returns {Array<Promise<void>> | null}
    */
   #subdivideNodeForAttributeTranslations(node) {
     const element = asElement(node);
     if (!element) {
       // We only translate attributes on Element type nodes.
-      return null;
+      return;
     }
-    this.#maybeEnqueueElementForAttributeTranslation(element);
+
+    this.#maybeObserveElementForAttributePrioritization(element);
 
     const childElementsWithTranslatableAttributes = element.querySelectorAll(
       TRANSLATABLE_ATTRIBUTES_SELECTOR
     );
 
     for (const childElement of childElementsWithTranslatableAttributes) {
-      this.#maybeEnqueueElementForAttributeTranslation(childElement);
+      this.#maybeObserveElementForAttributePrioritization(childElement);
     }
-
-    return this.#dispatchQueuedAttributeTranslations();
   }
 
   /**
@@ -1519,22 +2571,27 @@ export class TranslationsDocument {
       return NodeStatus.SHADOW_HOST;
     }
 
-    if (isNodeOrParentIncluded(node, this.#queuedContentNodes)) {
-      // This node or its parent was already queued for translation: reject it.
-      return NodeStatus.NOT_TRANSLATABLE;
-    }
-
     if (this.#isExcludedNode(node)) {
       // This is an explicitly excluded node.
       return NodeStatus.NOT_TRANSLATABLE;
     }
 
-    if (!node.textContent?.trim().length) {
-      // Do not use subtrees that are empty of text. This textContent call is fairly
-      // expensive.
-      return !node.hasChildNodes()
-        ? NodeStatus.NOT_TRANSLATABLE
-        : NodeStatus.SUBDIVIDE_FURTHER;
+    if (
+      nodeOrParentIncludesItself(
+        node,
+        this.#intersectionObservedContentElements
+      )
+    ) {
+      // This node or its parent is already being observed for translation: reject it.
+      return NodeStatus.NOT_TRANSLATABLE;
+    }
+
+    if (
+      containsExcludedNode(node, this.contentExcludedNodeSelector) &&
+      !hasNonWhitespaceTextNodes(node)
+    ) {
+      // Skip this node, and dig deeper into its tree to cut off smaller pieces to translate.
+      return NodeStatus.SUBDIVIDE_FURTHER;
     }
 
     if (nodeNeedsSubdividing(node)) {
@@ -1543,13 +2600,11 @@ export class TranslationsDocument {
       return NodeStatus.SUBDIVIDE_FURTHER;
     }
 
-    if (
-      containsExcludedNode(node, this.contentExcludedNodeSelector) &&
-      !hasNonWhitespaceTextNodes(node)
-    ) {
-      // Skip this node, and dig deeper into its tree to cut off smaller pieces
-      // to translate.
-      return NodeStatus.SUBDIVIDE_FURTHER;
+    if (!node.textContent?.trim().length) {
+      // Do not use subtrees that are empty of text. This textContent call is fairly expensive.
+      return !node.hasChildNodes()
+        ? NodeStatus.NOT_TRANSLATABLE
+        : NodeStatus.SUBDIVIDE_FURTHER;
     }
 
     // This node can be treated as entire block to submit for translation.
@@ -1557,36 +2612,78 @@ export class TranslationsDocument {
   }
 
   /**
-   * Attempts to enqueue the given node for content translations.
+   * Adds an element to a queue from which it will eventually be prioritized
+   * and submitted to the scheduler for content translation.
    *
-   * @param {Node} node
+   * The queue is intersection-exempt, meaning that the intersection observers
+   * will not be able to remove this element from the queue before it is prioritized
+   * and submitted to the scheduler.
+   *
+   * @param {Element} element
    */
-  #enqueueNodeForContentTranslation(node) {
-    /** @type {NodeVisibility} */
-    let visibility = "out-of-viewport";
-    if (isNodeHidden(node)) {
-      visibility = "hidden";
-    } else if (isNodeInViewport(node)) {
-      visibility = "in-viewport";
+  #enqueueForIntersectionPrunableContentPrioritization(element) {
+    if (this.#queuedIntersectionPrunableContentElements.has(element)) {
+      return;
     }
 
-    if (!this.#processedContentNodes.has(node)) {
-      this.#queuedContentNodes.set(node, visibility);
+    const nodeSet =
+      this.#intersectionObservedContentElements.get(element) ??
+      new Set([element]);
+
+    let queuedNodes =
+      this.#queuedIntersectionPrunableContentElements.get(element);
+
+    if (queuedNodes) {
+      for (const node of nodeSet) {
+        queuedNodes.add(node);
+      }
+    } else {
+      queuedNodes = nodeSet;
+      this.#queuedIntersectionPrunableContentElements.set(element, queuedNodes);
     }
   }
 
   /**
-   * Submit each translatable attribute for the given element to translations engine
-   * to have the attribute text translated.
+   * Adds an element to a queue from which it will eventually be prioritized
+   * and submitted to the scheduler for attribute translation.
+   *
+   * The queue is intersection-exempt, meaning that the intersection observers
+   * will not be able to remove this element from the queue before it is prioritized
+   * and submitted to the scheduler.
    *
    * @param {Element} element
-   * @param {Set<string>} attributeSet
-   *
-   * @returns {Promise<unknown>}
    */
-  #submitForAttributeTranslation(element, attributeSet) {
-    const promises = [];
+  #enqueueForIntersectionExemptContentPrioritization(element) {
+    if (this.#queuedIntersectionExemptContentElements.has(element)) {
+      return;
+    }
 
+    const nodeSet =
+      this.#intersectionObservedContentElements.get(element) ??
+      new Set([element]);
+
+    let queuedNodes =
+      this.#queuedIntersectionExemptContentElements.get(element);
+
+    if (queuedNodes) {
+      for (const node of nodeSet) {
+        queuedNodes.add(node);
+      }
+    } else {
+      queuedNodes = nodeSet;
+      this.#queuedIntersectionExemptContentElements.set(element, queuedNodes);
+    }
+  }
+
+  /**
+   * Submit each translatable attribute for the given element to the TranslationScheduler
+   * to have the attribute text translated.
+   *
+   * @param {number} priority
+   * @param {Element} element
+   * @param {Set<string>} attributeSet
+   */
+  #submitForAttributeTranslation(priority, element, attributeSet) {
     for (const attribute of attributeSet) {
       const sourceText = element.getAttribute(attribute);
 
@@ -1602,44 +2699,69 @@ export class TranslationsDocument {
       }
       pendingAttributes.set(attribute, translationId);
 
-      promises.push(
-        this.#tryTranslate(
-          element,
-          sourceText,
-          false /*isHTML*/,
-          translationId
-        ).then(
-          translation => {
-            if (
-              translation &&
-              this.#validateAttributeResponse(
+      this.#tryTranslate(
+        element,
+        sourceText,
+        false /*isHTML*/,
+        translationId,
+        priority
+      )
+        .then(translation => {
+          if (translation) {
+            this.#registerElementForAttributeTranslationUpdate(
+              element,
+              translation,
+              attribute,
+              translationId
+            );
+          } else if (
+            pendingAttributes.get(attribute) === translationId &&
+            this.#pendingAttributeTranslations.get(element) ===
+              pendingAttributes
+          ) {
+            // There is nothing to update for this translation request.
+            pendingAttributes.delete(attribute);
+            if (pendingAttributes.size === 0) {
+              this.#pendingAttributeTranslations.delete(element);
+              this.#removeFromAttributeIntersectionObservation(
                 element,
-                attribute,
-                translationId,
-                translation,
-                false /* removeAttribute */
-              )
-            ) {
-              this.#registerElementForAttributeTranslationUpdate(
-                element,
-                translation,
-                attribute,
-                translationId
+                attribute
               );
             }
-          },
-          error => {
-            lazy.console.error(error);
           }
-        )
-      );
+        })
+        .catch(error => {
+          lazy.console.error(error);
+          if (
+            pendingAttributes.get(attribute) === translationId &&
+            this.#pendingAttributeTranslations.get(element) ===
+              pendingAttributes
+          ) {
+            // There is nothing to update for this translation request.
+            pendingAttributes.delete(attribute);
+            if (pendingAttributes.size === 0) {
+              this.#pendingAttributeTranslations.delete(element);
+              this.#removeFromAttributeIntersectionObservation(
+                element,
+                attribute
+              );
+            }
+          }
+        });
     }
-
-    return Promise.allSettled(promises);
   }
 
   /**
-   * Schedule a node to be updated with a translation.
+   * Ensures that elements with completed attribute translation requests will be updated.
+   *
+   * This may happen immediately if there are very few active translation requests.
+   *
+   * If there are many active translation requests, we will register a callback to the
+   * event loop to update a batch of elements all at once.
+   *
+   * This distinction is made because updating any content within the DOM requires
+   * pausing the mutation observer, and that cost adds up if you do it individually
+   * for every translation request that completes.
    *
    * @param {Element} element
    * @param {string} translation
@@ -1653,20 +2775,25 @@ export class TranslationsDocument {
     translationId
   ) {
     // Add the nodes to be populated with the next translation update.
-    this.#elementsWithTranslatedAttributes.add({
+    this.#elementsThatNeedAttributeUpdates.add({
       element,
       translation,
       attribute,
       translationId,
     });
 
-    if (this.#pendingContentTranslationsCount === 0) {
-      // No translations are pending, update the node.
+    if (this.#scheduler.isWithinFinalBatches()) {
+      // The scheduler is within the final batches of requests that it will send, so we will eagerly update
+      // instead of registering a callback to update several nodes in a batch. This is particularly important
+      // for cases such as translating a YouTube video with closed captions. When the rest of the viewport
+      // is already translated, and a new request for a caption comes in, that will be the only request that
+      // the scheduler is reacting to, and we want to update the caption text as soon as we possibly can.
       this.#updateElementsWithAttributeTranslations();
     } else if (!this.#hasPendingUpdateAttributesCallback) {
-      // Schedule an update.
-      this.#hasPendingUpdateAttributesCallback = lazy.setTimeout(
-        this.#updateElementsWithAttributeTranslations.bind(this),
+      // Schedule a callback on the event loop to update a batch elements with completed attribute translations.
+      this.#hasPendingUpdateAttributesCallback = true;
+      lazy.setTimeout(
+        this.#updateElementsWithAttributeTranslations,
         DOM_UPDATE_INTERVAL_MS
       );
     } else {
@@ -1677,114 +2804,187 @@ export class TranslationsDocument {
   /**
    * Updates all elements that have completed attribute translation requests.
    *
-   * This function is called asynchronously, so nodes may already be dead. Before
-   * accessing a node make sure and run `Cu.isDeadWrapper` to check that it is alive.
+   * This function is intentionally written as a lambda so that it can be passed as a callback without the
+   * need to explicitly bind `this` to the function object.
    */
-  #updateElementsWithAttributeTranslations() {
-    // Stop the mutations so that the updates won't trigger observations.
+  #updateElementsWithAttributeTranslations = () => {
+    this.#hasPendingUpdateAttributesCallback = false;
 
+    let staleRequestCount = 0;
+    let detachedElementCount = 0;
+    let updatedAttributeCount = 0;
+
+    const startTime = Cu.now();
+
+    // Stop the mutations so that the updates won't trigger observations.
     this.#pauseMutationObserverAndThen(() => {
-      for (const entry of this.#elementsWithTranslatedAttributes) {
+      for (const entry of this.#elementsThatNeedAttributeUpdates) {
         const { element, translation, attribute, translationId } = entry;
 
-        if (
-          this.#validateAttributeResponse(
-            element,
-            attribute,
-            translationId,
-            translation,
-            true /* removeAttribute */
-          )
-        ) {
-          // Update the attribute of the node with translated attribute
+        const eligibility = this.#determineElementAttributeUpdateEligibility(
+          element,
+          attribute,
+          translationId
+        );
+
+        if (eligibility === "stale") {
+          // A new request has been submitted for this node. This one is no longer relevant.
+          staleRequestCount++;
+          continue;
+        } else if (eligibility === "detached") {
+          // This element is detached from the DOM: there is no point in updating it.
+          detachedElementCount++;
+        } else {
+          updatedAttributeCount++;
           element.setAttribute(attribute, translation);
         }
+
+        deleteFromNestedMap(
+          this.#queuedIntersectionPrunableAttributeElements,
+          element,
+          attribute
+        );
+
+        deleteFromNestedMap(
+          this.#queuedIntersectionExemptAttributeElements,
+          element,
+          attribute
+        );
+
+        deleteFromNestedMap(
+          this.#pendingAttributeTranslations,
+          element,
+          attribute
+        );
+
+        this.#removeFromAttributeIntersectionObservation(element, attribute);
       }
-      this.#elementsWithTranslatedAttributes.clear();
-      this.#hasPendingUpdateAttributesCallback = null;
+
+      this.#elementsThatNeedAttributeUpdates.clear();
     });
-  }
+
+    ChromeUtils.addProfilerMarker(
+      "TranslationsDocument Update (Attributes)",
+      { startTime, innerWindowId: this.#innerWindowId },
+      "Attribute Update Request: " +
+        `${staleRequestCount} stale requests, ${detachedElementCount} detached elements, ` +
+        `${updatedAttributeCount} attributes updated.`
+    );
+  };
 
   /**
-   * Submit a node for translation to the translations engine.
+   * Submit a node to the TranslationScheduler to have its text content translated.
    *
-   * @param {Node} node
-   *
-   * @returns {Promise<void>}
+   * @param {number} priority
+   * @param {Element} observableElement
+   * @param {Set<Node>} nodeSet
    */
-  async #submitForContentTranslation(node) {
-    // Give each element an id that gets passed through the translation so it can be
-    // reunited later on.
-    const element = asElement(node);
-    if (element) {
-      /** @type {Array<Element>} */
-      const elements = element.querySelectorAll("*");
+  #submitForContentTranslation(priority, observableElement, nodeSet) {
+    for (const targetNode of nodeSet) {
+      // Give each element an id that gets passed through the translation so it can be reunited later on.
+      if (observableElement === targetNode) {
+        /** @type {Array<Element>} */
+        const elements = observableElement.querySelectorAll("*");
 
-      elements.forEach((el, i) => {
-        const dataset = getDataset(el);
-        if (dataset) {
-          dataset.mozTranslationsId = String(i);
-        }
-      });
-    }
+        elements.forEach((el, i) => {
+          const dataset = getDataset(el);
+          if (dataset) {
+            dataset.mozTranslationsId = String(i);
+          }
+        });
+      }
 
-    /** @type {string} */
-    let sourceText;
-    /** @type {boolean} */
-    let isHTML;
+      /** @type {string} */
+      let sourceText;
+      /** @type {boolean} */
+      let isHTML;
 
-    if (
-      // This must be a text node
-      !element ||
-      // When an element has no child elements and its textContent is exactly
-      // equal to its innerHTML, then it is safe to treat as a text translation.
-      (element.childElementCount === 0 &&
-        element.textContent === element.innerHTML)
-    ) {
-      sourceText = node.textContent ?? "";
-      isHTML = false;
-    } else {
-      sourceText = /** @type {string} */ (element.innerHTML);
-      isHTML = true;
-    }
+      if (
+        // This node is a text node, therefore it cannot be an HTML translation.
+        asTextNode(targetNode) ||
+        // When an element has no child elements and its textContent is exactly
+        // equal to its innerHTML, then it is safe to treat as a text translation.
+        (observableElement.childElementCount === 0 &&
+          observableElement.textContent === observableElement.innerHTML)
+      ) {
+        sourceText = targetNode.textContent ?? "";
+        isHTML = false;
+      } else {
+        sourceText = /** @type {string} */ (observableElement.innerHTML);
+        isHTML = true;
+      }
 
-    if (sourceText.trim().length === 0) {
-      return;
-    }
+      if (sourceText.trim().length === 0) {
+        return;
+      }
+      const translationId = this.#lastTranslationId++;
 
-    const translationId = this.#lastTranslationId++;
-    this.#pendingContentTranslations.set(node, translationId);
-    this.#walkNodeToPendingParent(node);
+      let pendingNodes =
+        this.#pendingContentTranslations.get(observableElement);
+      if (!pendingNodes) {
+        pendingNodes = new Map();
+        this.#pendingContentTranslations.set(observableElement, pendingNodes);
+      }
+      pendingNodes.set(targetNode, translationId);
 
-    // Mark this node as not to be translated again unless the contents are changed
-    // (which the observer will pick up on)
-    this.#processedContentNodes.add(node);
-
-    const translatedContent = await this.#tryTranslate(
-      node,
-      sourceText,
-      isHTML,
-      translationId
-    );
-
-    if (
-      translatedContent &&
-      this.#validateTranslationResponse(node, translationId, translatedContent)
-    ) {
-      this.#registerNodeForContentTranslationUpdate(
-        node,
-        translatedContent,
-        translationId
-      );
+      this.#walkNodeToPendingParent(targetNode);
+      this.#tryTranslate(
+        targetNode,
+        sourceText,
+        isHTML,
+        translationId,
+        priority
+      )
+        .then(translation => {
+          if (translation) {
+            this.#registerElementForContentTranslationUpdate(
+              observableElement,
+              targetNode,
+              translation,
+              translationId
+            );
+          } else if (
+            pendingNodes.get(targetNode) === translationId &&
+            this.#pendingContentTranslations.get(observableElement) ===
+              pendingNodes
+          ) {
+            // There is nothing to update for this translation request.
+            pendingNodes.delete(targetNode);
+            if (pendingNodes.size === 0) {
+              this.#pendingContentTranslations.delete(observableElement);
+              this.#removeFromContentIntersectionObservation(
+                observableElement,
+                targetNode
+              );
+            }
+          }
+        })
+        .catch(error => {
+          lazy.console.error(error);
+          if (
+            pendingNodes.get(targetNode) === translationId &&
+            this.#pendingContentTranslations.get(observableElement) ===
+              pendingNodes
+          ) {
+            pendingNodes.delete(targetNode);
+            if (pendingNodes.size === 0) {
+              this.#pendingContentTranslations.delete(observableElement);
+              this.#removeFromContentIntersectionObservation(
+                observableElement,
+                targetNode
+              );
+            }
+          }
+        });
     }
   }
 
   /**
    * Walks the nodes to set the relationship between the node to the pending parent node.
    * This solves a performance problem with pages with large subtrees and lots of mutation.
-   * For instance on YouTube it took 838ms to `getPendingNodeFromTarget` by going through
-   * all pending translations. Caching this relationship reduced it to 26ms to walk it
-   * while adding the pending translation.
+   * For instance on YouTube it took 838ms to `getPendingParentElementFromTarget` by going
+   * through all pending translations. Caching this relationship reduced it to 26ms to walk
+   * it while adding the pending translation.
    *
    * On a page like the Wikipedia "Cat" entry, there are not many mutations, and this
    * adds 4ms of additional wasted work.
@@ -1821,34 +3021,48 @@ export class TranslationsDocument {
    * @param {string} sourceText
    * @param {boolean} isHTML
    * @param {number} translationId
+   * @param {number} priority
    *
    * @returns {Promise<string | null>}
    */
-  async #tryTranslate(node, sourceText, isHTML, translationId) {
-    try {
-      /** @type {string | null | undefined} */
-      let translation = this.#translationsCache.get(sourceText, isHTML);
-      if (translation === undefined) {
-        translation = await this.translator.translate(
-          node,
-          sourceText,
-          isHTML,
-          translationId
-        );
-        if (translation !== null) {
-          this.#translationsCache.set(sourceText, translation, isHTML);
-        }
-      } else if (!this.#hasFirstVisibleChange) {
+  async #tryTranslate(node, sourceText, isHTML, translationId, priority) {
+    if (this.#translationsCache.isAlreadyTranslated(sourceText, isHTML)) {
+      // The cache indicates that the text being sent to translate is already
+      // translated into the target language. Don't try to re-translate it.
+      return null;
+    }
+
+    /** @type {string | null | undefined} */
+    let translation = this.#translationsCache.get(sourceText, isHTML);
+
+    if (translation !== undefined) {
+      // We already have a cached translation for this source text.
+      return translation;
+    }
+
+    translation = await this.#scheduler
+      .createTranslationRequestPromise(
+        node,
+        sourceText,
+        isHTML,
+        translationId,
+        priority
+      )
+      .finally(() => {
+        // Any time a request resolves or rejects, we need to inform the scheduler
+        // so that it can determine if it needs to schedule a new batch of requests.
+        this.#scheduler.maybeScheduleMoreTranslationRequests();
+      });
+
+    if (translation !== null) {
+      this.#translationsCache.set(sourceText, translation, isHTML);
+      if (!this.#hasFirstVisibleChange) {
         this.#hasFirstVisibleChange = true;
         this.#actorReportFirstVisibleChange();
       }
-
-      return translation;
-    } catch (error) {
-      lazy.console.log("Translation failed", error);
     }
 
-    return null;
+    return translation;
   }
 
   /**
@@ -1880,62 +3094,118 @@ export class TranslationsDocument {
   }
 
   /**
+   * Stops the mutation observer and all intersection observers.
+   */
+  #stopAllObservers() {
+    const observers = [
+      this.#mutationObserver,
+      this.#intersectionObserverForContentTranslationsWithinViewport,
+      this.#intersectionObserverForContentTranslationsBeyondViewport,
+      this.#intersectionObserverForAttributeTranslationsWithinViewport,
+      this.#intersectionObserverForAttributeTranslationsBeyondViewport,
+    ];
+
+    for (const observer of observers) {
+      if (!Cu.isDeadWrapper(observer)) {
+        observer.disconnect();
+      }
+    }
+  }
+
+  /**
    * Updates all nodes that have completed attribute translation requests.
    *
    * This function is called asynchronously, so nodes may already be dead. Before
    * accessing a node make sure and run `Cu.isDeadWrapper` to check that it is alive.
    */
-  #updateNodesWithContentTranslations() {
+  #updateNodesWithContentTranslations = () => {
+    this.#hasPendingUpdateContentCallback = false;
+
+    let staleRequestCount = 0;
+    let detachedNodeCount = 0;
+    let textNodeCount = 0;
+    let elementCount = 0;
+
+    const startTime = Cu.now();
+
     // Stop the mutations so that the updates won't trigger observations.
     this.#pauseMutationObserverAndThen(() => {
-      const entries = this.#nodesWithTranslatedContent;
-      for (const { node, translatedContent, translationId } of entries) {
-        // Check if a mutation has submitted another translation for this node. If so,
-        // discard the stale translation.
-        if (this.#pendingContentTranslations.get(node) !== translationId) {
-          continue;
-        }
+      const entries = this.#elementsThatNeedContentUpdates;
+      for (const {
+        element,
+        targetNode,
+        translatedContent,
+        translationId,
+      } of entries) {
+        const eligibility = this.#determineNodeContentUpdateEligibility(
+          element,
+          targetNode,
+          translationId
+        );
 
-        if (Cu.isDeadWrapper(node)) {
-          // The node is no longer alive.
-          ChromeUtils.addProfilerMarker(
-            "Translations",
-            { innerWindowId: this.#innerWindowId },
-            "Node is no long alive."
+        if (eligibility === "stale") {
+          // A new request has been submitted for this node. This one is no longer relevant.
+          staleRequestCount++;
+          continue;
+        } else if (eligibility === "detached") {
+          // This node is detached from the DOM: there is no point in updating it.
+          detachedNodeCount++;
+        } else if (element === targetNode) {
+          elementCount++;
+
+          const translationsDocument = this.#domParser.parseFromString(
+            `<!DOCTYPE html><div>${translatedContent}</div>`,
+            "text/html"
           );
-          continue;
+
+          updateElement(translationsDocument, element);
+          this.#processedContentNodes.add(targetNode);
+        } else {
+          textNodeCount++;
+          targetNode.textContent = translatedContent;
+          this.#processedContentNodes.add(targetNode);
         }
 
-        switch (node.nodeType) {
-          case Node.TEXT_NODE: {
-            if (translatedContent.trim().length !== 0) {
-              // Only update the node if there is new text.
-              node.textContent = translatedContent;
-            }
-            break;
-          }
-          case Node.ELEMENT_NODE: {
-            const translationsDocument = this.#domParser.parseFromString(
-              `<!DOCTYPE html><div>${translatedContent}</div>`,
-              "text/html"
-            );
-            updateElement(translationsDocument, ensureExists(asElement(node)));
+        deleteFromNestedMap(
+          this.#queuedIntersectionPrunableContentElements,
+          element,
+          targetNode
+        );
 
-            break;
-          }
-        }
+        deleteFromNestedMap(
+          this.#queuedIntersectionExemptContentElements,
+          element,
+          targetNode
+        );
 
-        this.#pendingContentTranslations.delete(node);
+        deleteFromNestedMap(
+          this.#pendingContentTranslations,
+          element,
+          targetNode
+        );
+
+        this.#removeFromContentIntersectionObservation(element, targetNode);
       }
 
-      this.#nodesWithTranslatedContent.clear();
-      this.#hasPendingUpdateContentCallback = null;
+      this.#elementsThatNeedContentUpdates.clear();
     });
-  }
+
+    ChromeUtils.addProfilerMarker(
+      "TranslationsDocument Update (Content)",
+      { startTime, innerWindowId: this.#innerWindowId },
+      "Content Update Request: " +
+        `${staleRequestCount} stale requests, ${detachedNodeCount} detached nodes, ` +
+        `${textNodeCount} text nodes, and ${elementCount} elements.`
+    );
+  };
 
   /**
    * Stops the mutation observer while running the given callback,
    * then restarts the mutation observer once the callback has finished.
+   *
+   * This is used to update nodes with translated content when their
+   * translation requests have completed, ensuring that we will always
+   * stop and restart the observer.
    *
    * @param {Function} callback - A callback to run while the mutation observer is paused.
    */
@@ -1951,29 +3221,46 @@ export class TranslationsDocument {
   /**
    * Ensures that nodes with completed content translation requests will be updated.
    *
-   * @param {Node} node
+   * This may happen immediately if there are very few active translation requests.
+   *
+   * If there are many active translation requests, we will register a callback to the
+   * event loop to update a batch of nodes all at once.
+   *
+   * This distinction is made because updating any content within the DOM requires
+   * pausing the mutation observer, and that cost adds up if you do it individually
+   * for every translation request that completes.
+   *
+   * @param {Element} element
+   * @param {Node} targetNode
    * @param {string} translatedContent
    * @param {number} translationId - A unique id to identify this translation request.
    */
-  #registerNodeForContentTranslationUpdate(
-    node,
+  #registerElementForContentTranslationUpdate(
+    element,
+    targetNode,
     translatedContent,
     translationId
   ) {
     // Add the nodes to be populated with the next translation update.
-    this.#nodesWithTranslatedContent.add({
-      node,
+    this.#elementsThatNeedContentUpdates.add({
+      element,
+      targetNode,
       translatedContent,
       translationId,
     });
 
-    if (this.#pendingContentTranslationsCount === 0) {
-      // No translations are pending, update the node.
+    if (this.#scheduler.isWithinFinalBatches()) {
+      // The scheduler is within the final batches of requests that it will send, so we will eagerly update
+      // instead of registering a callback to update several nodes in a batch. This is particularly important
+      // for cases such as translating a YouTube video with closed captions. When the rest of the viewport
+      // is already translated, and a new request for a caption comes in, that will be the only request that
+      // the scheduler is reacting to, and we want to update the caption text as soon as we possibly can.
       this.#updateNodesWithContentTranslations();
     } else if (!this.#hasPendingUpdateContentCallback) {
-      // Schedule an update.
-      this.#hasPendingUpdateContentCallback = lazy.setTimeout(
-        this.#updateNodesWithContentTranslations.bind(this),
+      // Schedule a callback on the event loop to update all nodes with completed translations.
+      this.#hasPendingUpdateContentCallback = true;
+      lazy.setTimeout(
+        this.#updateNodesWithContentTranslations,
         DOM_UPDATE_INTERVAL_MS
       );
     } else {
@@ -2010,6 +3297,1043 @@ export class TranslationsDocument {
     } catch (_error) {
       return false;
     }
+  }
+
+  /**
+   * Called by external code (the actor) once a new MessagePort has been established.
+   * We pass this along to the scheduler, since this is the port that will be used
+   * to send translation requests to the TranslationsEngine.
+   *
+   * @param {MessagePort} port
+   */
+  acquirePort(port) {
+    this.#scheduler.acquirePort(port);
+  }
+
+  /**
+   * Retrieves the current status of the TranslationsEngine that is handling translations
+   * for this TranslationsDocument instance.
+   *
+   * @returns {EngineStatus}
+   */
+  get engineStatus() {
+    return this.#scheduler.engineStatus;
+  }
+
+  /**
+   * An event handler for when the user scrolls around the page.
+   * Uses the scrollY position to determine if the user is scrolling up or down.
+   * This scroll hint is used to help optimally prioritize translation requests.
+   *
+   * This function is intentionally written as a lambda so that it can be passed as a
+   * callback without the need to explicitly bind `this` to the function object.
+   */
+  #handleScrollEvent = () => {
+    if (Cu.now() - this.#mostRecentScrollTimestamp < 100) {
+      // Scrolling can fire a lot of events in rapid succession, and computing the scrollY value can
+      // trigger reflow, so we will limit how often we take the time to compute the scrollY value.
+      // Scroll hints are critical to providing a smooth translation experience, but it's not the
+      // end of the world if we happen to miss one.
+      return;
+    }
+
+    const scrollY = ensureExists(this.#sourceDocument.ownerGlobal).scrollY;
+
+    this.#mostRecentScrollDirection =
+      scrollY >= this.#previousScrollY ? "down" : "up";
+
+    this.#previousScrollY = scrollY;
+    this.#mostRecentScrollTimestamp = Cu.now();
+  };
+
+  /**
+   * Returns true if the user has scrolled recently, otherwise false.
+   *
+   * @returns {boolean}
+   */
+  #hasUserScrolledRecently() {
+    return Cu.now() - this.#mostRecentScrollTimestamp < 200;
+  }
+
+  /**
+   * Attempts to determine an optimal set of translation priorities considering the location
+   * of nodes with respect to the viewport, the type of translation request (content or attribute),
+   * as well as the user's recent scroll activity.
+   *
+   * For example, if the user is actively scrolling up, we will do our best to prioritize visible
+   * content translations that are just above the user's viewport, in hopes that their translation
+   * requests will complete before the user even sees them.
+   *
+   * @returns {TranslationPriorityKinds}
+   */
+  #determinePrioritiesForTranslations() {
+    // The following priorities are always the same, regardless of recent scroll activity.
+    // Translating in-viewport content will always be of the highest priority.
+    const inViewportContentPriority = TranslationScheduler.P0;
+
+    // The priority of translating content nodes whose viewport context was indeterminate.
+    const otherContentPriority = TranslationScheduler.P6;
+
+    // The priority of translating attributes whose viewport context was indeterminate.
+    const otherAttributePriority = TranslationScheduler.P7;
+
+    // The following priorities are all dependent on the user's recent scroll activity.
+    // The priority of translating attributes within the viewport.
+    let inViewportAttributePriority;
+
+    // The priority of translating content above the viewport.
+    let aboveViewportContentPriority;
+
+    // The priority of translating attributes above the viewport.
+    let aboveViewportAttributePriority;
+
+    // The priority of translating content below the viewport.
+    let belowViewportContentPriority;
+
+    // The priority of translating attributes below the viewport.
+    let belowViewportAttributePriority;
+
+    switch (this.#mostRecentScrollDirection) {
+      case "up": {
+        // The user has recently scrolled up, so we will prioritize content above the viewport.
+        aboveViewportContentPriority = TranslationScheduler.P1;
+
+        // Since the user is scrolling up, it is likely that the content below the viewport
+        // has already been translated, which means that we can skip over this priority in most
+        // cases, but in the event that there are leftover, untranslated nodes, we still want to
+        // get all of the visible content around the viewport translated at the highest priorities.
+        belowViewportContentPriority = TranslationScheduler.P2;
+
+        // Attributes within and above the viewport are the next most important.
+        inViewportAttributePriority = TranslationScheduler.P3;
+        aboveViewportAttributePriority = TranslationScheduler.P4;
+
+        // Attributes below the viewport are the next most important.
+        belowViewportAttributePriority = TranslationScheduler.P5;
+        break;
+      }
+      case "down": {
+        // The user has recently scrolled down, so we will prioritize content below the viewport.
+        belowViewportContentPriority = TranslationScheduler.P1;
+
+        // Since the user is scrolling down, it is likely that the content above the viewport
+        // has already been translated, which means that we can skip over this priority in most
+        // cases, but in the event that there are leftover, untranslated nodes, we still want to
+        // get all of the visible content around the viewport translated at the highest priorities.
+        aboveViewportContentPriority = TranslationScheduler.P2;
+
+        // Attributes within and above the viewport are the next most important.
+        inViewportAttributePriority = TranslationScheduler.P3;
+        belowViewportAttributePriority = TranslationScheduler.P4;
+
+        // Attributes above the viewport are the next most important.
+        aboveViewportAttributePriority = TranslationScheduler.P5;
+        break;
+      }
+      default: {
+        // The user has not scrolled at all since activating Full-Page Translations.
+        if (AppConstants.platform === "android") {
+          // Attributes, e.g. "title" are less accessible on Android, so even if the user has not
+          // scrolled yet, we are going to do our best to prioritize visible content beyond the viewport.
+          // Mobile viewports are also pretty small, so we should quickly get through to the attributes.
+          belowViewportContentPriority = TranslationScheduler.P1;
+          aboveViewportContentPriority = TranslationScheduler.P2;
+          inViewportAttributePriority = TranslationScheduler.P3;
+        } else {
+          // On Desktop, however, if the user has not scrolled yet, we have no indication that they
+          // are going to scroll, so we should prioritize the entire viewport, including attributes.
+          inViewportAttributePriority = TranslationScheduler.P1;
+          belowViewportContentPriority = TranslationScheduler.P2;
+          aboveViewportContentPriority = TranslationScheduler.P3;
+        }
+
+        belowViewportAttributePriority = TranslationScheduler.P4;
+        aboveViewportAttributePriority = TranslationScheduler.P5;
+      }
+    }
+
+    return {
+      inViewportContentPriority,
+      inViewportAttributePriority,
+      aboveViewportContentPriority,
+      aboveViewportAttributePriority,
+      belowViewportContentPriority,
+      belowViewportAttributePriority,
+      otherContentPriority,
+      otherAttributePriority,
+    };
+  }
+
+  /**
+   * Registers a callback on the event loop to drain the queued content-translation nodes and the
+   * queued attribute-translation elements, prioritizing them and sending their translation requests
+   * to the TranslationScheduler.
+   *
+   * Does nothing if a callback is already pending.
+   *
+   * The callback registered by this function uses a dynamic rate limit, where the time between sending
+   * a batch of requests to the scheduler is much longer if the user is actively scrolling around the page.
+   *
+   * The intersection observers are constantly monitoring the locations of nodes within the page,
+   * enqueuing them to be scheduled when they get near to the viewport, cancelling their requests
+   * when they exit the viewport, etc.
+   *
+   * When an intersection observer needs to cancel a translation request, it is much cheaper to
+   * remove the node from the queue before it gets assigned a priority submitted to the scheduler.
+   * If we submit a translation request for every node that gets close to the viewport immediately
+   * then we will waste a lot of resources cancelling all of those requests if the viewport moves.
+   *
+   * So we want to have some mechanism to throttle how frequently nodes are submitted to the scheduler,
+   * allowing the intersection observers to rapidly resolve the ideal state by adding and removing nodes
+   * from the queues before we pause to schedule translations for all of the nodes currently in the queues.
+   *
+   * However, if we wait too long between each time we send requests to the scheduler, the user experience
+   * will no longer feel fluid and reactive.
+   *
+   * When the user is scrolling, the observers are going to be adding and cancelling many nodes in rapid
+   * succession as their spatial contexts relative to the viewport change. We need to allow extra time
+   * to cheaply resolve the state of the queues before sending requests to the scheduler.
+   *
+   * When the user is not scrolling, new nodes may still be entering or exiting proximity with te viewport,
+   * but in this case it is often due to closed caption text updates on a video, or a chat section for a live
+   * stream being flooded with new comments. Here we want to prioritize and submit much more quickly so that
+   * we can react fluidly to dynamic changes on the page.
+   */
+  async #maybePrioritizeRequestsAndSubmitToScheduler() {
+    // Ensure that we've completed the first intersection observation before we submit any requests
+    // to the scheduler. Otherwise, the observers may end up cancelling the requests, because every observed
+    // element that is not within the observer's proximity will be seen the first time as leaving proximity.
+    await this.#waitForFirstIntersectionObservations();
+
+    if (this.#hasPendingPrioritizationCallback) {
+      // A callback has already been registered to submit to the scheduler.
+      return;
+    }
+
+    if (
+      this.#queuedIntersectionExemptContentElements.size === 0 &&
+      this.#queuedIntersectionPrunableContentElements.size === 0 &&
+      this.#queuedIntersectionExemptAttributeElements.size === 0 &&
+      this.#queuedIntersectionPrunableAttributeElements.size === 0
+    ) {
+      // There are no nodes to submit to the scheduler.
+      return;
+    }
+
+    this.#hasPendingPrioritizationCallback = true;
+
+    lazy.setTimeout(
+      async () => {
+        const contentElementCount =
+          this.#queuedIntersectionPrunableContentElements.size;
+        const attributeElementCount =
+          this.#queuedIntersectionPrunableAttributeElements.size;
+
+        let contentRequestCount = 0;
+        let attributeRequestCount = 0;
+
+        const startTime = Cu.now();
+
+        const {
+          inViewportContentPriority,
+          inViewportAttributePriority,
+          aboveViewportContentPriority,
+          aboveViewportAttributePriority,
+          belowViewportContentPriority,
+          belowViewportAttributePriority,
+          otherContentPriority,
+          otherAttributePriority,
+        } = this.#determinePrioritiesForTranslations();
+
+        const {
+          titleElement,
+          inViewportContent,
+          aboveViewportContent,
+          belowViewportContent,
+          otherContent,
+        } = this.#prioritizeQueuedContentElements();
+
+        const {
+          inViewportAttributes,
+          aboveViewportAttributes,
+          belowViewportAttributes,
+          otherAttributes,
+        } = this.#prioritizeQueuedAttributeElements();
+
+        for (const { element, nodeSet } of inViewportContent) {
+          contentRequestCount += nodeSet.size;
+          this.#submitForContentTranslation(
+            inViewportContentPriority,
+            element,
+            nodeSet
+          );
+        }
+
+        if (titleElement) {
+          // The translator pops nodes off in LIFO order, so if the <title> element is present
+          // in this group, we want to push it on as the final top-priority node, to ensure
+          // that it is the very first element to be translated.
+          contentRequestCount++;
+          this.#submitForContentTranslation(
+            inViewportContentPriority,
+            titleElement,
+            new Set([titleElement])
+          );
+        }
+
+        for (const { element, attributeSet } of inViewportAttributes) {
+          attributeRequestCount += attributeSet.size;
+          this.#submitForAttributeTranslation(
+            inViewportAttributePriority,
+            element,
+            attributeSet
+          );
+        }
+
+        for (const { element, nodeSet } of aboveViewportContent) {
+          contentRequestCount += nodeSet.size;
+          this.#submitForContentTranslation(
+            aboveViewportContentPriority,
+            element,
+            nodeSet
+          );
+        }
+
+        for (const { element, attributeSet } of aboveViewportAttributes) {
+          attributeRequestCount += attributeSet.size;
+          this.#submitForAttributeTranslation(
+            aboveViewportAttributePriority,
+            element,
+            attributeSet
+          );
+        }
+
+        for (const { element, nodeSet } of belowViewportContent) {
+          contentRequestCount += nodeSet.size;
+          this.#submitForContentTranslation(
+            belowViewportContentPriority,
+            element,
+            nodeSet
+          );
+        }
+
+        for (const { element, attributeSet } of belowViewportAttributes) {
+          attributeRequestCount += attributeSet.size;
+          this.#submitForAttributeTranslation(
+            belowViewportAttributePriority,
+            element,
+            attributeSet
+          );
+        }
+
+        for (const { element, nodeSet } of otherContent) {
+          contentRequestCount += nodeSet.size;
+          this.#submitForContentTranslation(
+            otherContentPriority,
+            element,
+            nodeSet
+          );
+        }
+
+        for (const { element, attributeSet } of otherAttributes) {
+          attributeRequestCount += attributeSet.size;
+          this.#submitForAttributeTranslation(
+            otherAttributePriority,
+            element,
+            attributeSet
+          );
+        }
+
+        this.#hasPendingPrioritizationCallback = false;
+
+        ChromeUtils.addProfilerMarker(
+          "TranslationsDocument Prioritize",
+          { startTime, innerWindowId: this.#innerWindowId },
+          `Prioritized ${contentRequestCount} content translation requests among ${contentElementCount} elements, ` +
+            `${attributeRequestCount} attribute translation requests among ${attributeElementCount} elements.`
+        );
+      },
+      this.#hasUserScrolledRecently() ? 250 : 25
+    );
+  }
+
+  /**
+   * Iterates through all of the nodes that the observers have queued to be sent
+   * to the TranslationScheduler for attribute translations, groups them based on their
+   * spatial context with respect to the viewport, then sorts them such that the nodes
+   * most likely to be encountered next will be scheduled for translation first.
+   *
+   * If the <title> is contained within this batch, it specially returns the title node
+   * as a distinct field so that we can specially ensure that it is the very first translation.
+   *
+   * @returns {PrioritizedContentElements}
+   */
+  #prioritizeQueuedContentElements() {
+    /**
+     * Nodes that lie at least partially within the viewport.
+     *
+     * @type {Array<SortableContentElement>}
+     */
+    const inViewportContent = [];
+
+    /**
+     * Nodes that lie entirely above the viewport.
+     *
+     * @type {Array<SortableContentElement>}
+     */
+    const aboveViewportContent = [];
+
+    /**
+     * Nodes that lie entirely below the viewport.
+     *
+     * @type {Array<SortableContentElement>}
+     */
+    const belowViewportContent = [];
+
+    /**
+     * Nodes that lie entirely to either side of the viewport,
+     * or whose position could not be determined.
+     *
+     * @type {Array<SortableContentElement>}
+     */
+    const otherContent = [];
+
+    // The <title> will be specially returned in this variable if it is present
+    // in this batch of nodes.
+    let titleElement;
+
+    const queuedContentElements =
+      this.#queuedIntersectionPrunableContentElements;
+
+    for (const [element, nodeSet] of this
+      .#queuedIntersectionExemptContentElements) {
+      const existingSet = queuedContentElements.get(element);
+
+      if (existingSet) {
+        for (const node of nodeSet) {
+          existingSet.add(node);
+        }
+      } else {
+        queuedContentElements.set(element, nodeSet);
+      }
+    }
+
+    for (const [element, nodeSet] of queuedContentElements) {
+      // We will cache the location values so that they don't have to be recomputed
+      // for every comparison when we sort. Based on my profiles, this all but removes
+      // samples captured with `Array.prototype.sort`, and cuts the number of samples
+      // from submitting nodes to the scheduler roughly in half.
+      const { top, left, right, viewportContext } =
+        getNodeSpatialContext(element);
+
+      switch (viewportContext) {
+        case "within": {
+          inViewportContent.push({ element, nodeSet, top, left, right });
+          break;
+        }
+        case "above": {
+          aboveViewportContent.push({ element, nodeSet, top, left, right });
+          break;
+        }
+        case "below": {
+          belowViewportContent.push({ element, nodeSet, top, left, right });
+          break;
+        }
+        default: {
+          if (element.nodeName === "TITLE") {
+            titleElement = element;
+          } else {
+            otherContent.push({ element, nodeSet, top, left, right });
+          }
+        }
+      }
+    }
+
+    // These node groups will be iterated over and sent to the TranslationScheduler in a regular loop,
+    // but the scheduler processes new requests in a stack-based LIFO ordering, so the following
+    // sorting semantics will sort nodes in the REVERSE order of how we want them to be scheduled.
+
+    // Sort nodes below the viewport such that the top-most nodes will be scheduled first.
+    this.#orderFromBottomToTop(belowViewportContent);
+
+    // Sort nodes above the viewport such that the bottom-most nodes will be scheduled first.
+    this.#orderFromTopToBottom(aboveViewportContent);
+
+    if (
+      this.#mostRecentScrollDirection === "up" &&
+      this.#hasUserScrolledRecently()
+    ) {
+      // If the user is scrolling up, we should sort nodes that come into intersection proximity
+      // such that the bottom-most nodes will be scheduled first.
+      this.#orderFromTopToBottom(inViewportContent);
+    } else {
+      // If the user is scrolling down, or by default if they have not scrolled recently, we should
+      // sort such that the top-most nodes will be scheduled first.
+      this.#orderFromBottomToTop(inViewportContent);
+    }
+
+    this.#queuedIntersectionPrunableContentElements.clear();
+    this.#queuedIntersectionExemptContentElements.clear();
+
+    return {
+      titleElement,
+      inViewportContent,
+      aboveViewportContent,
+      belowViewportContent,
+      otherContent,
+    };
+  }
+
+  /**
+   * Iterates through all of the elements that the observers have queued to be sent
+   * to the TranslationScheduler for attribute translations, groups them based on their
+   * spatial context with respect to the viewport, then sorts them such that the elements
+   * most likely to be encountered next will be scheduled for translation first.
+   *
+   * @returns {PrioritizedAttributeElements}
+   */
+  #prioritizeQueuedAttributeElements() {
+    /**
+     * Elements that lie at least partially within the viewport.
+     *
+     * @type {Array<SortableAttributeElement>}
+     */
+    const inViewportAttributes = [];
+
+    /**
+     * Elements that lie entirely above the viewport.
+     *
+     * @type {Array<SortableAttributeElement>}
+     */
+    const aboveViewportAttributes = [];
+
+    /**
+     * Elements that lie entirely below the viewport.
+     *
+     * @type {Array<SortableAttributeElement>}
+     */
+    const belowViewportAttributes = [];
+
+    /**
+     * Elements that lie to either side of the viewport,
+     * or whose position could not be determined.
+     *
+     * @type {Array<SortableAttributeElement>}
+     */
+    const otherAttributes = [];
+
+    const queuedAttributeElements =
+      this.#queuedIntersectionPrunableAttributeElements;
+
+    for (const [element, attributeSet] of this
+      .#queuedIntersectionExemptAttributeElements) {
+      const existingSet = queuedAttributeElements.get(element);
+
+      if (!existingSet) {
+        queuedAttributeElements.set(element, attributeSet);
+        continue;
+      }
+
+      for (const attributeName of attributeSet) {
+        existingSet.add(attributeName);
+      }
+    }
+
+    for (const [element, attributeSet] of queuedAttributeElements) {
+      // We will cache the location values so that they don't have to be recomputed
+      // for every comparison when we sort. Based on my profiles, this all but removes
+      // samples captured with `Array.prototype.sort`, and cuts the time to submit requests
+      // to the scheduler roughly in half.
+      const { top, left, right, viewportContext } =
+        getNodeSpatialContext(element);
+
+      switch (viewportContext) {
+        case "within": {
+          inViewportAttributes.push({
+            element,
+            attributeSet,
+            top,
+            left,
+            right,
+          });
+          break;
+        }
+        case "above": {
+          aboveViewportAttributes.push({
+            element,
+            attributeSet,
+            top,
+            left,
+            right,
+          });
+          break;
+        }
+        case "below": {
+          belowViewportAttributes.push({
+            element,
+            attributeSet,
+            top,
+            left,
+            right,
+          });
+          break;
+        }
+        default: {
+          otherAttributes.push({ element, attributeSet, top, left, right });
+        }
+      }
+    }
+
+    // These element groups will be iterated over and sent to the TranslationScheduler in a regular loop,
+    // but the scheduler processes new requests in a stack-based LIFO ordering, so the following
+    // sorting semantics will sort elements in the REVERSE order of how we want them to be scheduled.
+
+    // Sort elements below the viewport such that the top-most elements will be scheduled first.
+    this.#orderFromBottomToTop(belowViewportAttributes);
+
+    // Sort elements above the viewport such that the bottom-most elements will be scheduled first.
+    this.#orderFromTopToBottom(aboveViewportAttributes);
+
+    if (this.#mostRecentScrollDirection === "up") {
+      // If we are scrolling up, we should sort new elements that come into the viewport
+      // such that the bottom-most elements will be scheduled first.
+      this.#orderFromTopToBottom(inViewportAttributes);
+    } else {
+      // If we are scrolling down, we should sort new elements that come into the viewport
+      // such that the top-most elements will be scheduled first.
+      this.#orderFromBottomToTop(inViewportAttributes);
+    }
+
+    this.#queuedIntersectionPrunableAttributeElements.clear();
+    this.#queuedIntersectionExemptAttributeElements.clear();
+
+    return {
+      inViewportAttributes,
+      aboveViewportAttributes,
+      belowViewportAttributes,
+      otherAttributes,
+    };
+  }
+
+  /**
+   * Sorts such that nodes closer to the top of the page are first,
+   * and nodes closer to the bottom of the page are last.
+   *
+   * @param {Array<SortableContentElement> | Array<SortableAttributeElement>} nodes
+   */
+  #orderFromTopToBottom(nodes) {
+    nodes.sort((lhs, rhs) => {
+      const verticalDifference =
+        (lhs.top ?? -Infinity) - (rhs.top ?? -Infinity);
+
+      if (Math.abs(verticalDifference) > 1) {
+        // The vertical difference is greater than one pixel: this takes full precedence.
+        return verticalDifference;
+      }
+
+      if (this.#targetScriptDirection === "ltr") {
+        // Secondarily sort such that the LIFO scheduler will process from left to right.
+        return (rhs.right ?? Infinity) - (lhs.right ?? Infinity);
+      }
+
+      // Secondarily sort such that the LIFO scheduler will process from right to left.
+      return (lhs.left ?? -Infinity) - (rhs.left ?? -Infinity);
+    });
+  }
+
+  /**
+   * Sorts such that nodes closer to the bottom of the page are first,
+   * and nodes closer to the bottom of the page are last.
+   *
+   * @param {Array<SortableContentElement> | Array<SortableAttributeElement>} nodes
+   */
+  #orderFromBottomToTop(nodes) {
+    nodes.sort((lhs, rhs) => {
+      const verticalDifference = (rhs.top ?? Infinity) - (lhs.top ?? Infinity);
+
+      if (verticalDifference) {
+        // The vertical difference is greater than one pixel: this takes full precedence.
+        return verticalDifference;
+      }
+
+      if (this.#targetScriptDirection === "ltr") {
+        // Secondarily sort such that the LIFO scheduler will process from left to right.
+        return (rhs.right ?? Infinity) - (lhs.right ?? Infinity);
+      }
+
+      // Secondarily sort such that the LIFO scheduler will process from right to left.
+      return (lhs.left ?? -Infinity) - (rhs.left ?? -Infinity);
+    });
+  }
+
+  /**
+   * Attempts to register a node with the content-translation intersection observers.
+   *
+   * If the node is a text node that was determined to be translatable, then it will
+   * be immediately enqueued for translation because only element type nodes can be
+   * observed for intersection.
+   *
+   * @param {Node} node
+   */
+  #observeOrEnqueueNodeForContentPrioritization(node) {
+    let observableElement;
+    let translatableNode;
+
+    const element = asElement(node);
+    if (element) {
+      observableElement = element;
+      translatableNode = element;
+    } else if ((translatableNode = asTextNode(node))) {
+      observableElement = asElement(node.parentNode);
+    }
+
+    if (!translatableNode) {
+      // This node is not translatable, and it should have been filtered earlier.
+      lazy.console.warn(
+        `A non-translatable ${node.nodeName} node was not filtered correctly.`
+      );
+      return;
+    }
+
+    if (!observableElement) {
+      // This node is translatable, but its immediate parent is not observable for intersection.
+      lazy.console.warn(
+        `Found a translatable ${node.nodeName} node is not a direct child of an element.`
+      );
+      return;
+    }
+
+    let nodeSet =
+      this.#intersectionObservedContentElements.get(observableElement);
+
+    if (!nodeSet) {
+      nodeSet = new Set([translatableNode]);
+      this.#intersectionObservedContentElements.set(observableElement, nodeSet);
+    }
+
+    nodeSet.add(translatableNode);
+
+    // It is very important that we register the element with the In-Viewport
+    // observer before the Beyond-Viewport observer, to ensure that the In-Viewport
+    // observer callback is triggered first, otherwise we will be sending unnecessary
+    // cancellations for any nodes that lie within the bounds of both observers.
+    this.#intersectionObserverForContentTranslationsWithinViewport.observe(
+      observableElement
+    );
+    this.#intersectionObserverForContentTranslationsBeyondViewport.observe(
+      observableElement
+    );
+  }
+
+  /**
+   * Ensures that an element is removed from content intersection observation.
+   * If the element was not already being observed, has no effect.
+   *
+   * @param {Element} observableElement
+   * @param {Node} targetNode
+   */
+  #removeFromContentIntersectionObservation(observableElement, targetNode) {
+    const { didDeleteOuterEntry } = deleteFromNestedMap(
+      this.#intersectionObservedContentElements,
+      observableElement,
+      targetNode
+    );
+
+    if (didDeleteOuterEntry) {
+      this.#intersectionObserverForContentTranslationsWithinViewport.unobserve(
+        observableElement
+      );
+      this.#intersectionObserverForContentTranslationsBeyondViewport.unobserve(
+        observableElement
+      );
+    }
+  }
+
+  /**
+   * Ensures that an element is removed from attribute intersection observation.
+   * If the element was not already being observed, has no effect.
+   *
+   * @param {Element} observableElement
+   * @param {string} [attributeName]
+   */
+  #removeFromAttributeIntersectionObservation(
+    observableElement,
+    attributeName
+  ) {
+    let didDeleteOuterEntry = false;
+
+    if (!attributeName) {
+      didDeleteOuterEntry = true;
+      this.#intersectionObservedAttributeElements.delete(observableElement);
+    } else {
+      const deletionResult = deleteFromNestedMap(
+        this.#intersectionObservedAttributeElements,
+        observableElement,
+        attributeName
+      );
+      didDeleteOuterEntry = deletionResult.didDeleteOuterEntry;
+    }
+
+    if (didDeleteOuterEntry) {
+      this.#intersectionObserverForAttributeTranslationsWithinViewport.unobserve(
+        observableElement
+      );
+      this.#intersectionObserverForAttributeTranslationsBeyondViewport.unobserve(
+        observableElement
+      );
+    }
+  }
+
+  /**
+   * Attempts to register an element with the attribute-translation intersection observers.
+   * If the element has no translatable attributes, it will not be registered for observation.
+   *
+   * @param {Element} element
+   * @param {Set<string> | null} [attributes]
+   */
+  #maybeObserveElementForAttributePrioritization(element, attributes) {
+    attributes = attributes ?? this.#getTranslatableAttributes(element);
+    if (!attributes) {
+      return;
+    }
+
+    // It is very important that we register the element with the In-Viewport
+    // observer before the Beyond-Viewport observer, to ensure that the In-Viewport
+    // observer callback is triggered first, otherwise we will be sending unnecessary
+    // cancellations for any nodes that lie within the bounds of both observers.
+    this.#intersectionObservedAttributeElements.set(element, attributes);
+    this.#intersectionObserverForAttributeTranslationsWithinViewport.observe(
+      element
+    );
+    this.#intersectionObserverForAttributeTranslationsBeyondViewport.observe(
+      element
+    );
+  }
+
+  /**
+   * Attempts to cancel a content translation request for the given node,
+   * only if the request has not already been sent to the TranslationsEngine.
+   *
+   * This function is intended to be used by the intersection observers to
+   * re-prioritize a translation. If a translation request has already been
+   * sent to the TranslationsEngine, in this case, it will soon be complete
+   * so it would be wasteful to fully cancel it solely to re-prioritize.
+   *
+   * In order to fully cancel a translation request, even if it has already been
+   * sent to the TranslationsEngine, as such is the use case for the mutation
+   * observer, then the `#maybePreventContentTranslation` function should be used instead.
+   *
+   * @param {Element} element
+   * @returns {{
+   *  preventedNodeSet?: Set<Node>,
+   *  cancelledFromSchedulerCount: number
+   * }}
+   */
+  #preventUnscheduledContentTranslations(element) {
+    /** @type {Set<Node> | undefined} */
+    let preventedNodeSet =
+      this.#queuedIntersectionPrunableContentElements.get(element);
+
+    if (preventedNodeSet) {
+      this.#queuedIntersectionPrunableContentElements.delete(element);
+    }
+
+    const pendingNodes = this.#pendingContentTranslations.get(element);
+    let cancelledFromSchedulerCount = 0;
+
+    if (!pendingNodes) {
+      return {
+        preventedNodeSet,
+        cancelledFromSchedulerCount,
+      };
+    }
+
+    /** @param {Node} node */
+    const addNodeToSet = node => {
+      if (!preventedNodeSet) {
+        preventedNodeSet = new Set();
+      }
+      preventedNodeSet.add(node);
+    };
+
+    for (const [node, translationId] of pendingNodes) {
+      if (this.#scheduler.preventUnscheduledTranslation(translationId)) {
+        addNodeToSet(node);
+      }
+    }
+
+    if (preventedNodeSet) {
+      for (const node of preventedNodeSet.keys()) {
+        pendingNodes.delete(node);
+        cancelledFromSchedulerCount++;
+      }
+    }
+
+    if (pendingNodes.size === 0) {
+      this.#pendingContentTranslations.delete(element);
+    }
+
+    return {
+      preventedNodeSet,
+      cancelledFromSchedulerCount,
+    };
+  }
+
+  /**
+   * Attempts to cancel all attribute translation requests for the given element,
+   * only if the requests have not already been sent to the TranslationsEngine.
+   *
+   * This function is intended to be used by the intersection observers to
+   * re-prioritize translations. If the translation requests have already been
+   * sent to the TranslationsEngine, in this case, they will soon be complete
+   * so it would be wasteful to fully cancel them solely to re-prioritize.
+   *
+   * In order to fully cancel an element's attribute translation requests, even
+   * if they have already been sent to the TranslationsEngine, as such is the use
+   * case for the mutation observer, then the `#maybePreventAttributeTranslations`
+   * function should be used instead.
+   *
+   * @param {Element} element
+   * @returns {{
+   *   preventedAttributeSet?: Set<string>,
+   *   cancelledFromSchedulerCount: number,
+   * }}
+   */
+  #preventUnscheduledAttributeTranslations(element) {
+    /** @type {Set<string> | undefined} */
+    let preventedAttributeSet =
+      this.#queuedIntersectionPrunableAttributeElements.get(element);
+
+    if (preventedAttributeSet) {
+      this.#queuedIntersectionPrunableAttributeElements.delete(element);
+    }
+
+    const pendingAttributes = this.#pendingAttributeTranslations.get(element);
+    let cancelledFromSchedulerCount = 0;
+
+    if (!pendingAttributes) {
+      return {
+        preventedAttributeSet,
+        cancelledFromSchedulerCount,
+      };
+    }
+
+    /** @param {string} attribute */
+    const addAttributeToSet = attribute => {
+      if (!preventedAttributeSet) {
+        preventedAttributeSet = new Set();
+      }
+      preventedAttributeSet.add(attribute);
+    };
+
+    for (const [attribute, translationId] of pendingAttributes) {
+      if (this.#scheduler.preventUnscheduledTranslation(translationId)) {
+        addAttributeToSet(attribute);
+      }
+    }
+
+    if (preventedAttributeSet) {
+      for (const attribute of preventedAttributeSet.keys()) {
+        pendingAttributes.delete(attribute);
+        cancelledFromSchedulerCount++;
+      }
+    }
+
+    if (pendingAttributes.size === 0) {
+      this.#pendingAttributeTranslations.delete(element);
+    }
+
+    return {
+      preventedAttributeSet,
+      cancelledFromSchedulerCount,
+    };
+  }
+
+  /**
+   * Determines whether the given node is eligible to have its text content updated.
+   *
+   * Updates to nodes within the DOM may happen asynchronously, so by the time that we are
+   * ready to update the content we need to check two conditions:
+   *
+   * 1) Has the fulfilled request that we have gone stale due to a newer, more-relevant request
+   *    that was scheduled for this same node?
+   *
+   * 2) Has this node already detached from the DOM before we updated its content, in which case
+   *    there is no point in moving forward with the update?
+   *
+   * @param {Element} element
+   * @param {Node} targetNode
+   * @param {number} translationId
+   *
+   * @returns {UpdateEligibility}
+   */
+  #determineNodeContentUpdateEligibility(element, targetNode, translationId) {
+    const pendingNodes = this.#pendingContentTranslations.get(element);
+
+    if (!pendingNodes || pendingNodes.get(targetNode) !== translationId) {
+      // This translation lost a race, and was deleted or re-submitted under a different id.
+      return "stale";
+    }
+
+    if (this.#nodesWithMutatedContent.has(targetNode)) {
+      // The target node has been mutated since the time we requested translation.
+      // The translated value that we have is no longer relevant.
+      return "stale";
+    }
+
+    if (isNodeDetached(targetNode)) {
+      // The node is detached from the DOM, there is no use in updating its content.
+      return "detached";
+    }
+
+    return "valid";
+  }
+
+  /**
+   * Determines whether the given element is eligible to have its attributes updated.
+   *
+   * Updates to elements within the DOM may happen asynchronously, so by the time that we are
+   * ready to update the attributes we need to check two conditions:
+   *
+   * 1) Has the fulfilled request that we have gone stale due to a newer, more-relevant request
+   *    that was scheduled for this same attribute on this element?
+   *
+   * 2) Has this element already detached from the DOM before we updated its attribute, in which
+   *    case there is no point moving forward with the update?
+   *
+   * @param {Element} element
+   * @param {string} attribute
+   * @param {number} translationId
+   *
+   * @returns {UpdateEligibility}
+   */
+  #determineElementAttributeUpdateEligibility(
+    element,
+    attribute,
+    translationId
+  ) {
+    const pendingAttributes = this.#pendingAttributeTranslations.get(element);
+
+    if (
+      !pendingAttributes ||
+      pendingAttributes.get(attribute) !== translationId
+    ) {
+      // A new request has been submitted for this attribute. This one is no longer relevant.
+      return "stale";
+    }
+
+    if (this.#elementsWithMutatedAttributes.get(element)?.has(attribute)) {
+      // This attribute has been mutated since the time we requested translation.
+      // The translated value that we have is no longer relevant.
+      return "stale";
+    }
+
+    if (isNodeDetached(element)) {
+      // This element is detached from the DOM: there is no point in updating it.
+      return "detached";
+    }
+
+    return "valid";
   }
 }
 
@@ -3392,45 +5716,77 @@ function getHTMLElementForStyle(node) {
 }
 
 /**
- * This function runs when walking the DOM, which means it is a hot function. It runs
- * fairly fast even though it is computing the bounding box. This is all done in a tight
- * loop, and it is done on mutations. Care should be taken with reflows caused by
- * getBoundingClientRect, as this is a common performance issue.
+ * Gets the spatial context of the node with respect to the viewport.
  *
- * The following are the counts of how often this is run on a news site:
+ * If the node lies entirely to the left or entirely to the right of the viewport,
+ * this takes precedence over whether the node is entirely above or below the viewport.
  *
- * Given:
- *  1573 DOM nodes
- *  504 Text nodes
- *  1069 Elements
+ * For example, if a node is both entirely above, and entirely to the right of the
+ * viewport, then the returned context will be "right".
  *
- * There were:
- *  209 calls to get this funcion.
+ * If any part of a node's bounding box lies within the viewport then the context
+ * is considered "within".
  *
  * @param {Node} node
  *
- * @returns {boolean}
+ * @returns {NodeSpatialContext}
  */
-function isNodeInViewport(node) {
+function getNodeSpatialContext(node) {
   const window = node.ownerGlobal;
   const document = node.ownerDocument;
   if (!window || !document || !document.documentElement) {
-    return false;
+    // We won't be able to calculate the spatial context for this node.
+    return {};
   }
 
-  const element = getElementForStyle(node);
+  const element = getHTMLElementForStyle(node);
   if (!element) {
-    throw new Error("Unable to find the Element to compute the style for node");
+    // We only calculate the spatial context for HTML elements.
+    return {};
   }
 
-  const rect = element.getBoundingClientRect();
-  return (
-    rect.top >= 0 &&
-    rect.left >= 0 &&
-    rect.bottom <=
-      (window.innerHeight || document.documentElement.clientHeight) &&
-    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-  );
+  if (isHTMLElementHidden(element)) {
+    // If the element is hidden, then the spatial context is not important.
+    return {};
+  }
+
+  const { top, right, bottom, left } = element.getBoundingClientRect();
+
+  const viewportHeight =
+    window.innerHeight || document.documentElement.clientHeight;
+  const viewportWidth =
+    window.innerWidth || document.documentElement.clientWidth;
+
+  /** @type {NodeSpatialContext} */
+  let spatialContext = { top, left, right, viewportContext: undefined };
+
+  if (right < 0) {
+    // The node is entirely to the left of the viewport.
+    spatialContext.viewportContext = "left";
+    return spatialContext;
+  }
+
+  if (left > viewportWidth) {
+    // The node is entirely to the right of the viewport.
+    spatialContext.viewportContext = "right";
+    return spatialContext;
+  }
+
+  if (bottom < 0) {
+    // The node is entirely above the viewport.
+    spatialContext.viewportContext = "above";
+    return spatialContext;
+  }
+
+  if (top > viewportHeight) {
+    // The node is entirely below the viewport.
+    spatialContext.viewportContext = "below";
+    return spatialContext;
+  }
+
+  // The node must be within the viewport.
+  spatialContext.viewportContext = "within";
+  return spatialContext;
 }
 
 /**
@@ -3831,17 +6187,17 @@ function containsExcludedNode(node, excludedNodeSelector) {
  *
  * Check if this node or its parent's node is already included in the given Map or Set.
  *
- * @param {any} node
- * @param { Set<any> | Map<any, any> } nodes
+ * @param {Node} node
+ * @param { Map<Node, Set<Node>> } map
  *
  * @returns {boolean}
  */
-function isNodeOrParentIncluded(node, nodes) {
-  if (nodes.size === 0) {
+function nodeOrParentIncludesItself(node, map) {
+  if (map.size === 0) {
     return false;
   }
 
-  if (nodes.has(node)) {
+  if (map.get(node)?.has(node)) {
     return true;
   }
 
@@ -3858,7 +6214,7 @@ function isNodeOrParentIncluded(node, nodes) {
   let parentNode;
   let lastNode = node;
   while ((parentNode = lastNode.parentNode)) {
-    if (nodes.has(parentNode)) {
+    if (map.get(parentNode)?.has(parentNode)) {
       return true;
     }
     lastNode = parentNode;
@@ -4043,7 +6399,7 @@ function isNodeDetached(node) {
 /**
  * Use TypeScript to determine if the Node is an Element.
  *
- * @param {Node | null} node
+ * @param {Node | null | undefined} node
  *
  * @returns {Element | null}
  */
@@ -4128,4 +6484,65 @@ function getShadowRoot(node) {
 function getDataset(element) {
   // @ts-expect-error Type 'DOMStringMap' is not assignable to type 'Record<string, string>'.
   return element?.dataset ?? null;
+}
+
+/**
+ * Removes any data-moz-translations-id values from a node and its children.
+ *
+ * @param {Node} node
+ */
+function removeMozTranslationsIds(node) {
+  const element = asHTMLElement(node);
+
+  if (!element) {
+    return;
+  }
+
+  if (isNodeDetached(element)) {
+    return;
+  }
+
+  const dataset = getDataset(element);
+
+  if (dataset) {
+    delete dataset.mozTranslationsId;
+  }
+
+  for (const childNode of element.querySelectorAll(
+    "[data-moz-translations-id]"
+  )) {
+    delete childNode.dataset.mozTranslationsId;
+  }
+}
+
+/**
+ * Removes the entry pertaining to the inner key of a nested map structure,
+ * ensuring that if the inner structure becomes empty, then the outer key
+ * will also be removed from the outer structure.
+ *
+ * @typedef {Element} OuterKey
+ * @typedef {Node | string} InnerKey
+ * @typedef {number} Value
+ *
+ * @param {Map<OuterKey, (Set<InnerKey> | Map<InnerKey, Value>)>} outerMap
+ * @param {OuterKey} outerKey
+ * @param {InnerKey} innerKey
+ *
+ * @returns {{ didDeleteOuterEntry: boolean, didDeleteInnerEntry: boolean }}
+ */
+function deleteFromNestedMap(outerMap, outerKey, innerKey) {
+  const innerStructure = outerMap.get(outerKey);
+
+  const didDeleteInnerEntry =
+    !!innerStructure && innerStructure.delete(innerKey);
+
+  const didDeleteOuterEntry = !innerStructure || innerStructure.size === 0;
+
+  if (didDeleteOuterEntry) {
+    // The inner structure is now empty after removing the inner-key entry.
+    // Ensure that the inner structure itself is removed from the outer map.
+    outerMap.delete(outerKey);
+  }
+
+  return { didDeleteOuterEntry, didDeleteInnerEntry };
 }

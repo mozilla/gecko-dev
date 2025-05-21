@@ -80,7 +80,7 @@ export class TranslationsChild extends JSWindowActorChild {
 
     switch (name) {
       case "Translations:TranslatePage": {
-        if (this.#translatedDoc?.translator.engineStatus === "error") {
+        if (this.#translatedDoc?.engineStatus === "error") {
           this.#translatedDoc.destroy();
           this.#translatedDoc = null;
         }
@@ -145,7 +145,7 @@ export class TranslationsChild extends JSWindowActorChild {
       }
       case "Translations:AcquirePort": {
         this.addProfilerMarker("Acquired a port, resuming translations");
-        this.#translatedDoc.translator.acquirePort(data.port);
+        this.#translatedDoc.acquirePort(data.port);
         return undefined;
       }
       default:

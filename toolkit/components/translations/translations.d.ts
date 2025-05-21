@@ -256,7 +256,7 @@ interface TranslationsEnginePayload {
 /**
  * Nodes that are being translated are given priority according to their visibility.
  */
-export type NodeVisibility = "in-viewport" | "out-of-viewport" | "hidden";
+export type NodeVisibility = "in-viewport" | "beyond-viewport" | "hidden";
 
 /**
  * Used to decide how to translate a page for full page translations.
@@ -383,19 +383,30 @@ export type RequestTranslationsPort = (
   languagePair: LanguagePair
 ) => Promise<MessagePort>;
 
-export type TranslationsPortMessages = {
-  type: "TranslationsPort:TranslationRequest";
-  translationId: string;
-  sourceText: string;
-  isHTML: boolean;
-};
+export type TranslationsPortMessages =
+  // We have determined that the source text is already translated into the target language, so do nothing.
+  | { type: "TranslationsPort:Passthrough"; translationId: string }
+  // We found translated text for this request in our cache, so send the targetText directly without translating.
+  | {
+      type: "TranslationsPort:CachedTranslation";
+      translationId: string;
+      targetText: string;
+    }
+  // This is a new, uncached request, and it needs to be translated by the TranslationsEngine.
+  | {
+      type: "TranslationsPort:TranslationRequest";
+      translationId: string;
+      sourceText: string;
+      isHTML: boolean;
+    };
 
 export type EngineStatus = "uninitialized" | "ready" | "error" | "closed";
 
 export type PortToPage =
+  // The targetText may be null if the TranslationsEngine had an error, or if this is a response to a Passthrough.
   | {
       type: "TranslationsPort:TranslationResponse";
-      targetText: string;
+      targetText: string | null;
       translationId: number;
     }
   | { type: "TranslationsPort:GetEngineStatusResponse"; status: EngineStatus }

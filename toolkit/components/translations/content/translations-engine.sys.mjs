@@ -614,23 +614,66 @@ function listenForPortMessages(languagePair, innerWindowId, port) {
         );
         break;
       }
+      case "TranslationsPort:Passthrough": {
+        const { translationId } = data;
+
+        port.postMessage({
+          type: "TranslationsPort:TranslationResponse",
+          translationId,
+          targetText: null,
+        });
+
+        TE_addProfilerMarker({
+          innerWindowId,
+          type: "Passthrough",
+          message: `Handled passthrough translation`,
+        });
+
+        break;
+      }
+      case "TranslationsPort:CachedTranslation": {
+        const { cachedTranslation, translationId } = data;
+        port.postMessage({
+          type: "TranslationsPort:TranslationResponse",
+          translationId,
+          targetText: cachedTranslation,
+        });
+
+        TE_addProfilerMarker({
+          innerWindowId,
+          type: "Cached",
+          message: `Handled cached translation of ${cachedTranslation.length} code units`,
+        });
+
+        break;
+      }
       case "TranslationsPort:TranslationRequest": {
         const { sourceText, isHTML, translationId } = data;
+
         const engine = await TranslationsEngine.getOrCreate(
           languagePair,
           innerWindowId
         );
+
+        TE_addProfilerMarker({
+          innerWindowId,
+          type: "Request",
+          message: `Handled translation request of ${sourceText.length} code units`,
+        });
+
         const targetText = await engine.translate(
           sourceText,
           isHTML,
           innerWindowId,
           translationId
         );
+
         port.postMessage({
           type: "TranslationsPort:TranslationResponse",
           translationId,
           targetText,
         });
+
         break;
       }
       case "TranslationsPort:CancelSingleTranslation": {
@@ -638,10 +681,21 @@ function listenForPortMessages(languagePair, innerWindowId, port) {
         TranslationsEngine.withCachedEngine(languagePair, engine => {
           engine.cancelSingleTranslation(innerWindowId, translationId);
         });
+
+        TE_addProfilerMarker({
+          innerWindowId,
+          type: "Cancel",
+          message: `Cancelled request for translationId ${translationId}`,
+        });
         break;
       }
       case "TranslationsPort:DiscardTranslations": {
         discardTranslations(innerWindowId);
+        TE_addProfilerMarker({
+          innerWindowId,
+          type: "Discard",
+          message: `Discarded all active translation requests`,
+        });
         break;
       }
       default:
