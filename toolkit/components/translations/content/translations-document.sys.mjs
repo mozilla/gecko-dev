@@ -177,13 +177,15 @@ export class LRUCache {
    */
   set(sourceString, targetString, isHTML) {
     const cacheMap = this.#getCacheMap(isHTML);
-    if (cacheMap.size === this.#cacheLimit) {
-      // If the cache is at the limit, get the least recently used translation and
-      // remove it. This works since Maps have keys ordered by insertion order.
-      const key = cacheMap.keys().next().value;
-      if (key) {
-        cacheMap.delete(key);
-      }
+    if (cacheMap.has(sourceString)) {
+      // The Map already has this value, so we must delete it to
+      // re-insert it at the most-recently-used position of the Map.
+      cacheMap.delete(sourceString);
+    } else if (cacheMap.size === this.#cacheLimit) {
+      // The Map is at capacity, so we must evict the least-recently-used value.
+      const oldestKey = cacheMap.keys().next().value;
+      // @ts-ignore: We can ensure that oldestKey is not undefined.
+      cacheMap.delete(oldestKey);
     }
     cacheMap.set(sourceString, targetString);
 
@@ -228,22 +230,24 @@ export class LRUCache {
    * Resets the timer for the cache's keep-alive timeout, extending the time the cache will live.
    */
   keepAlive() {
+    if (this.#hasPendingKeepAliveCallback) {
+      // There is already a pending callback to extend the timeout.
+      return;
+    }
+
     if (this.#keepAliveTimeoutId) {
       lazy.clearTimeout(this.#keepAliveTimeoutId);
+      this.#keepAliveTimeoutId = 0;
     }
-    if (!this.#hasPendingKeepAliveCallback) {
-      // Rather than continuously creating new functions in a tight loop, only schedule
-      // one keepAlive timeout on the next tick.
-      this.#hasPendingKeepAliveCallback = true;
 
-      lazy.setTimeout(() => {
-        this.#hasPendingKeepAliveCallback = false;
-        this.#keepAliveTimeoutId = lazy.setTimeout(() => {
-          this.#htmlCacheMap = new Map();
-          this.#textCacheMap = new Map();
-        }, this.#cacheExpirationMS);
-      }, 0);
-    }
+    this.#hasPendingKeepAliveCallback = true;
+    lazy.setTimeout(() => {
+      this.#hasPendingKeepAliveCallback = false;
+      this.#keepAliveTimeoutId = lazy.setTimeout(() => {
+        this.#htmlCacheMap = new Map();
+        this.#textCacheMap = new Map();
+      }, this.#cacheExpirationMS);
+    }, 0);
   }
 }
 
