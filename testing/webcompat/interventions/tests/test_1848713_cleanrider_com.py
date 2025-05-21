@@ -13,10 +13,10 @@ MIN_THUMB_CSS = "#block-prix .range-min-bullet"
 
 
 async def can_interact_with_slider(client):
-    await client.navigate(URL)
+    await client.navigate(URL, wait="none")
 
     try:
-        client.await_css(COOKIES_CSS, is_displayed=True, timeout=3).click()
+        client.await_css(COOKIES_CSS, is_displayed=True, timeout=5).click()
     except NoSuchElementException:
         pass
 

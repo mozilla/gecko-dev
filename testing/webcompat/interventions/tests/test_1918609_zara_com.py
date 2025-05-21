@@ -1,23 +1,29 @@
 import pytest
+from webdriver.error import NoSuchElementException
 
 URL = "https://www.zara.com/us/"
 
 MENU_BUTTON_CSS = "[data-qa-id=layout-header-toggle-menu]"
-LOGO_CONTAINER_CSS = "header > *:has(svg.layout-catalog-logo-icon)"
+CLOSE_COUNTRY_DIALOG_CSS = ".zds-dialog-close-button"
+BACKDROP_CSS = ".zds-backdrop"
+MENU_CONTAINER_CSS = ".layout-menu-std__content"
 
 
-async def are_items_aligned(client):
+async def does_menu_appear(client):
     await client.navigate(URL)
-    menu = client.await_css(MENU_BUTTON_CSS, is_displayed=True)
-    logo = client.await_css(LOGO_CONTAINER_CSS, is_displayed=True)
-    return client.execute_script(
-        """
-      const [menu, logo] = arguments;
-      return menu.getBoundingClientRect().top === logo.getBoundingClientRect().top;
-    """,
-        menu,
-        logo,
-    )
+
+    try:
+        client.await_css(CLOSE_COUNTRY_DIALOG_CSS, is_displayed=True, timeout=4).click()
+    except NoSuchElementException:
+        pass
+
+    client.await_css(MENU_BUTTON_CSS, is_displayed=True).click()
+
+    try:
+        client.await_css(MENU_CONTAINER_CSS, is_displayed=True, timeout=4)
+        return True
+    except NoSuchElementException:
+        return False
 
 
 @pytest.mark.skip_platforms("android")
@@ -25,7 +31,7 @@ async def are_items_aligned(client):
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
 async def test_enabled(client):
-    assert await are_items_aligned(client)
+    assert await does_menu_appear(client)
 
 
 @pytest.mark.skip_platforms("android")
@@ -33,4 +39,14 @@ async def test_enabled(client):
 @pytest.mark.asyncio
 @pytest.mark.without_interventions
 async def test_disabled(client):
-    assert not await are_items_aligned(client)
+    # our version number needs to be high enough for the site to fail, which is not
+    # always the case by the site's logic, so we artifically bump it here.
+    with client.using_context("chrome"):
+        client.execute_script(
+            """
+          const version = parseInt(navigator.userAgent.match("Firefox/([0-9]*)")[1]);
+          const versionBumpedUA = navigator.userAgent.replaceAll(version, version + 2);
+          Services.prefs.setStringPref("general.useragent.override", versionBumpedUA);
+      """
+        )
+    assert not await does_menu_appear(client)
