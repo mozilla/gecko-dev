@@ -869,7 +869,11 @@
 
 #taskbar-tabs-button > .urlbar-icon {
   list-style-image: url(chrome://browser/skin/taskbar-tabs-add-tab.svg);
+  :root[taskbartab] & {
+    list-style-image: url(chrome://browser/skin/taskbar-tabs-move-tab.svg);
+  }
 }
+
 
 /* Translations button */
 
