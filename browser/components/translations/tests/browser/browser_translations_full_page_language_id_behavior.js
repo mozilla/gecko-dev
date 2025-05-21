@@ -239,6 +239,36 @@ add_task(async function test_language_identification_behavior() {
         runInPage,
         message,
       });
+      await FullPageTranslationsTestUtils.assertPageH1TitleIsTranslated({
+        fromLanguage: "es",
+        toLanguage: "en",
+        runInPage,
+        message:
+          "The page's H1's title should be translated because it intersects with the viewport.",
+      });
+
+      if (
+        page === SPANISH_PAGE_SHORT_URL ||
+        page === SPANISH_PAGE_MISMATCH_SHORT_URL
+      ) {
+        await FullPageTranslationsTestUtils.assertPageFinalParagraphTitleIsTranslated(
+          {
+            fromLanguage: "es",
+            toLanguage: "en",
+            runInPage,
+            message:
+              "The page's final paragraph's title should be translated because it intersects with the viewport.",
+          }
+        );
+      } else {
+        await FullPageTranslationsTestUtils.assertPageFinalParagraphTitleIsNotTranslated(
+          {
+            runInPage,
+            message:
+              "Attribute translations are always lazy based on intersection, so the final paragraph's title should remain untranslated.",
+          }
+        );
+      }
     } else {
       await FullPageTranslationsTestUtils.assertPageIsNotTranslated(
         runInPage,

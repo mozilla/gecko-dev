@@ -43,13 +43,11 @@ add_task(async function test_recent_language_memory_with_auto_translate() {
 
   await SelectTranslationsTestUtils.clickTranslateFullPageButton();
 
-  await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
-    {
-      fromLanguage: "en",
-      toLanguage: "fr",
-      runInPage,
-    }
-  );
+  await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated({
+    fromLanguage: "en",
+    toLanguage: "fr",
+    runInPage,
+  });
 
   await FullPageTranslationsTestUtils.openPanel({
     expectedToLanguage: "es",
@@ -74,13 +72,11 @@ add_task(async function test_recent_language_memory_with_auto_translate() {
 
   await navigate("Navigate to a Spanish page.", { url: SPANISH_PAGE_URL });
   await resolveDownloads(2);
-  await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
-    {
-      fromLanguage: "es",
-      toLanguage: "fr",
-      runInPage,
-    }
-  );
+  await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated({
+    fromLanguage: "es",
+    toLanguage: "fr",
+    runInPage,
+  });
 
   await cleanup();
 });

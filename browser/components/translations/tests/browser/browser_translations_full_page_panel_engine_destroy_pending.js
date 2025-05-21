@@ -32,13 +32,11 @@ add_task(async function test_translations_engine_destroy_pending() {
     downloadHandler: resolveDownloads,
   });
 
-  await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
-    {
-      fromLanguage: "es",
-      toLanguage: "en",
-      runInPage,
-    }
-  );
+  await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated({
+    fromLanguage: "es",
+    toLanguage: "en",
+    runInPage,
+  });
 
   const { removeTab: removeEnglishTab } = await addTab(
     ENGLISH_PAGE_URL,

@@ -135,7 +135,7 @@ add_task(
     });
     await FullPageTranslationsTestUtils.clickTranslateButton();
 
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "ja",

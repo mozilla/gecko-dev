@@ -38,7 +38,7 @@ add_task(
       downloadHandler: resolveDownloads,
     });
 
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "fr",
@@ -76,7 +76,7 @@ add_task(
 
     await SelectTranslationsTestUtils.clickTranslateFullPageButton();
 
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "fr",

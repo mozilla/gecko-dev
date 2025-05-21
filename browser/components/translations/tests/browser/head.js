@@ -1445,7 +1445,7 @@ class FullPageTranslationsTestUtils {
   }
 
   /**
-   * Asserts that the Spanish test page H1 element has been translated into the target language.
+   * Asserts that the Spanish test page H1 element's content has been translated into the target language.
    *
    * @param {object} options - The options for the assertion.
    *
@@ -1455,7 +1455,7 @@ class FullPageTranslationsTestUtils {
    * @param {boolean} [options.endToEndTest=false] - Whether this assertion is for an end-to-end test.
    * @param {string} [options.message] - An optional message to log to info.
    */
-  static async assertPageH1IsTranslated({
+  static async assertPageH1ContentIsTranslated({
     fromLanguage,
     toLanguage,
     runInPage,
@@ -1465,7 +1465,7 @@ class FullPageTranslationsTestUtils {
     if (message) {
       info(message);
     }
-    info("Checking that the page header translated");
+    info("Checking that the page header is translated");
     let callback;
     if (endToEndTest) {
       callback = async TranslationsTest => {
@@ -1491,6 +1491,103 @@ class FullPageTranslationsTestUtils {
   }
 
   /**
+   * Asserts that the Spanish test page H1 element's content is not translated into the target language.
+   *
+   * @param {object} options - The options for the assertion.
+   *
+   * @param {Function} options.runInPage - Allows running a closure in the content page.
+   * @param {string} [options.message] - An optional message to log to info.
+   */
+  static async assertPageH1ContentIsNotTranslated({
+    runInPage,
+    message = null,
+  }) {
+    if (message) {
+      info(message);
+    }
+
+    info("Checking that the page header is not translated");
+    await runInPage(async TranslationsTest => {
+      const { getH1 } = TranslationsTest.getSelectors();
+      await TranslationsTest.assertTranslationResult(
+        "The page's H1 is not translated and is in the original Spanish.",
+        getH1,
+        "Don Quijote de La Mancha"
+      );
+    });
+  }
+
+  /**
+   * Asserts that the Spanish test page H1 element's title has been translated into the target language.
+   *
+   * @param {object} options - The options for the assertion.
+   *
+   * @param {string} options.fromLanguage - The BCP-47 language tag being translated from.
+   * @param {string} options.toLanguage - The BCP-47 language tag being translated into.
+   * @param {Function} options.runInPage - Allows running a closure in the content page.
+   * @param {boolean} [options.endToEndTest=false] - Whether this assertion is for an end-to-end test.
+   * @param {string} [options.message] - An optional message to log to info.
+   */
+  static async assertPageH1TitleIsTranslated({
+    fromLanguage,
+    toLanguage,
+    runInPage,
+    endToEndTest = false,
+    message = null,
+  }) {
+    if (message) {
+      info(message);
+    }
+    info("Checking that the page header's title attribute is translated");
+    let callback;
+    if (endToEndTest) {
+      callback = async TranslationsTest => {
+        const { getH1Title } = TranslationsTest.getSelectors();
+        await TranslationsTest.assertTranslationResult(
+          "The page's H1's title attribute is translated.",
+          getH1Title,
+          "This is the title of the page header"
+        );
+      };
+    } else {
+      callback = async (TranslationsTest, { fromLang, toLang }) => {
+        const { getH1Title } = TranslationsTest.getSelectors();
+        await TranslationsTest.assertTranslationResult(
+          "The page's H1's title attribute is translated.",
+          getH1Title,
+          `ESTE ES EL TÍTULO DEL ENCABEZADO DE PÁGINA [${fromLang} to ${toLang}]`
+        );
+      };
+    }
+
+    await runInPage(callback, { fromLang: fromLanguage, toLang: toLanguage });
+  }
+
+  /**
+   * Asserts that the Spanish test page H1 element's title attribute is not translated into the target language.
+   *
+   * @param {object} options - The options for the assertion.
+   *
+   * @param {Function} options.runInPage - Allows running a closure in the content page.
+   * @param {string} [options.message] - An optional message to log to info.
+   */
+  static async assertPageH1TitleIsNotTranslated({ runInPage, message = null }) {
+    if (message) {
+      info(message);
+    }
+
+    info("Checking that the page header's title is not translated");
+    await runInPage(async TranslationsTest => {
+      const { getH1Title } = TranslationsTest.getSelectors();
+      await TranslationsTest.assertTranslationResult(
+        "The page's H1's title is not translated and is in the original Spanish.",
+        getH1Title,
+        "Este es el título del encabezado de página"
+      );
+    });
+  }
+
+  /**
    * Asserts that the Spanish test page final <p> element has been translated into the target language.
    *
    * @param {object} options - The options for the assertion.
@@ -1501,7 +1598,7 @@ class FullPageTranslationsTestUtils {
    * @param {boolean} [options.endToEndTest=false] - Whether this assertion is for an end-to-end test.
    * @param {string} [options.message] - An optional message to log to info.
    */
-  static async assertPageFinalParagraphIsTranslated({
+  static async assertPageFinalParagraphContentIsTranslated({
     fromLanguage,
     toLanguage,
     runInPage,
@@ -1549,7 +1646,7 @@ class FullPageTranslationsTestUtils {
    * @param {Function} options.runInPage - Allows running a closure in the content page.
    * @param {string} [options.message] - An optional message to log to info.
    */
-  static async assertPageFinalParagraphIsNotTranslated({
+  static async assertPageFinalParagraphContentIsNotTranslated({
     runInPage,
     message = null,
   }) {
@@ -1569,6 +1666,81 @@ class FullPageTranslationsTestUtils {
   }
 
   /**
+   * Asserts that the Spanish test page final <p> element's title attribute has been translated into the target language.
+   *
+   * @param {object} options - The options for the assertion.
+   *
+   * @param {string} options.fromLanguage - The BCP-47 language tag being translated from.
+   * @param {string} options.toLanguage - The BCP-47 language tag being translated into.
+   * @param {Function} options.runInPage - Allows running a closure in the content page.
+   * @param {boolean} [options.endToEndTest=false] - Whether this assertion is for an end-to-end test.
+   * @param {string} [options.message] - An optional message to log to info.
+   */
+  static async assertPageFinalParagraphTitleIsTranslated({
+    fromLanguage,
+    toLanguage,
+    runInPage,
+    endToEndTest = false,
+    message = null,
+  }) {
+    if (message) {
+      info(message);
+    }
+    info("Checking that the final paragraph's title attribute is translated");
+    let callback;
+    if (endToEndTest) {
+      callback = async TranslationsTest => {
+        const { getFinalParagraphTitle } = TranslationsTest.getSelectors();
+        await TranslationsTest.assertTranslationResult(
+          "The final paragraph's title attribute is translated.",
+          getFinalParagraphTitle,
+          "This is the title of the final paragraph"
+        );
+      };
+    } else {
+      callback = async (TranslationsTest, { fromLang, toLang }) => {
+        const { getFinalParagraphTitle } = TranslationsTest.getSelectors();
+        await TranslationsTest.assertTranslationResult(
+          "The final paragraph's title attribute is translated.",
+          getFinalParagraphTitle,
+          `ESTE ES EL TÍTULO DEL ÚLTIMO PÁRRAFO [${fromLang} to ${toLang}]`
+        );
+      };
+    }
+
+    await runInPage(callback, { fromLang: fromLanguage, toLang: toLanguage });
+  }
+
+  /**
+   * Asserts that the Spanish test page final <p> element's title attribute is not translated into the target language.
+   *
+   * @param {object} options - The options for the assertion.
+   *
+   * @param {Function} options.runInPage - Allows running a closure in the content page.
+   * @param {string} [options.message] - An optional message to log to info.
+   */
+  static async assertPageFinalParagraphTitleIsNotTranslated({
+    runInPage,
+    message = null,
+  }) {
+    if (message) {
+      info(message);
+    }
+
+    info(
+      "Checking that the final paragraph's title attribute is not translated"
+    );
+    await runInPage(async TranslationsTest => {
+      const { getFinalParagraphTitle } = TranslationsTest.getSelectors();
+      await TranslationsTest.assertTranslationResult(
+        "The final paragraph's title attribute is not translated and is in the original Spanish.",
+        getFinalParagraphTitle,
+        "Este es el título del último párrafo"
+      );
+    });
+  }
+
+  /**
    *
    * @param {object} options - The options for the assertion.
    *
@@ -1580,8 +1752,10 @@ class FullPageTranslationsTestUtils {
    * @param {ChromeWindow} [options.win=window] - The window in which to perform the check (defaults to the current window).
    */
   static async assertAllPageContentIsTranslated(options) {
-    await FullPageTranslationsTestUtils.assertPageH1IsTranslated(options);
-    await FullPageTranslationsTestUtils.assertPageFinalParagraphIsTranslated(
+    await FullPageTranslationsTestUtils.assertPageH1ContentIsTranslated(
+      options
+    );
+    await FullPageTranslationsTestUtils.assertPageFinalParagraphContentIsTranslated(
       options
     );
 
@@ -1613,8 +1787,11 @@ class FullPageTranslationsTestUtils {
    * @param {string} [options.message] - An optional message to log to info.
    * @param {ChromeWindow} [options.win=window] - The window in which to perform the check (defaults to the current window).
    */
-  static async assertOnlyIntersectingContentIsTranslated(options) {
-    await FullPageTranslationsTestUtils.assertPageH1IsTranslated(options);
+  static async assertOnlyIntersectingNodesAreTranslated(options) {
+    await FullPageTranslationsTestUtils.assertPageH1ContentIsTranslated(
+      options
+    );
+    await FullPageTranslationsTestUtils.assertPageH1TitleIsTranslated(options);
 
     const { win, fromLanguage, toLanguage, runInPage } = options;
 
@@ -1628,7 +1805,11 @@ class FullPageTranslationsTestUtils {
       runInPage
     );
 
-    await FullPageTranslationsTestUtils.assertPageFinalParagraphIsNotTranslated(
+    await FullPageTranslationsTestUtils.assertPageFinalParagraphContentIsNotTranslated(
+      options
+    );
+
+    await FullPageTranslationsTestUtils.assertPageFinalParagraphTitleIsNotTranslated(
       options
     );
 
@@ -1659,14 +1840,30 @@ class FullPageTranslationsTestUtils {
     );
 
     info("Checking that the page is not translated");
-    await runInPage(async TranslationsTest => {
-      const { getH1 } = TranslationsTest.getSelectors();
-      await TranslationsTest.assertTranslationResult(
-        "The page's H1 is not translated and in the original Spanish.",
-        getH1,
-        "Don Quijote de La Mancha"
-      );
+
+    await FullPageTranslationsTestUtils.assertPageH1ContentIsNotTranslated({
+      runInPage,
+      message,
     });
+
+    await FullPageTranslationsTestUtils.assertPageH1TitleIsNotTranslated({
+      runInPage,
+      message,
+    });
+
+    await FullPageTranslationsTestUtils.assertPageFinalParagraphContentIsNotTranslated(
+      {
+        runInPage,
+        message,
+      }
+    );
+
+    await FullPageTranslationsTestUtils.assertPageFinalParagraphTitleIsNotTranslated(
+      {
+        runInPage,
+        message,
+      }
+    );
   }
 
   /**

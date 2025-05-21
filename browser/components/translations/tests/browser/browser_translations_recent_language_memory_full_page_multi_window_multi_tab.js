@@ -241,7 +241,7 @@ add_task(
     info("Ensuring that the es-uk tab is translated correctly");
 
     await focusWindow(window2);
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "uk",
@@ -259,7 +259,7 @@ add_task(
     info("Ensuring that the es-sl tab is translated correctly");
 
     await focusWindow(window1);
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "sl",
@@ -277,7 +277,7 @@ add_task(
     info("Ensuring that the es-fa tab is translated correctly");
 
     await focusWindow(window2);
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "fa",
@@ -294,7 +294,7 @@ add_task(
     info("Ensuring that the es-en tab is translated correctly");
 
     await focusWindow(window1);
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "en",

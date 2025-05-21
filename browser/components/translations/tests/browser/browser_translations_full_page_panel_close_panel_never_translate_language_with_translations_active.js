@@ -34,7 +34,7 @@ add_task(
     await FullPageTranslationsTestUtils.assertIsAlwaysTranslateLanguage("es", {
       checked: true,
     });
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "en",
@@ -101,7 +101,7 @@ add_task(
     await FullPageTranslationsTestUtils.assertIsAlwaysTranslateLanguage("es", {
       checked: true,
     });
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "en",

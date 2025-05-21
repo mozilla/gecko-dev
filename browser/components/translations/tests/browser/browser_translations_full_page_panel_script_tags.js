@@ -43,13 +43,11 @@ add_task(async function test_translations_panel_source_lang_has_script_tag() {
     pivotTranslation: true,
   });
 
-  await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
-    {
-      fromLanguage: "zh-Hans",
-      toLanguage: "es",
-      runInPage,
-    }
-  );
+  await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated({
+    fromLanguage: "zh-Hans",
+    toLanguage: "es",
+    runInPage,
+  });
 
   await cleanup();
 });
@@ -90,13 +88,11 @@ add_task(async function test_translations_panel_target_lang_has_script_tag() {
     pivotTranslation: true,
   });
 
-  await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
-    {
-      fromLanguage: "es",
-      toLanguage: "zh-Hant",
-      runInPage,
-    }
-  );
+  await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated({
+    fromLanguage: "es",
+    toLanguage: "zh-Hant",
+    runInPage,
+  });
 
   await cleanup();
 });
@@ -144,7 +140,7 @@ add_task(
       pivotTranslation: true,
     });
 
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "zh-Hant",
         toLanguage: "zh-Hans",

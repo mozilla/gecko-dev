@@ -25,7 +25,7 @@ add_task(
 
     await SelectTranslationsTestUtils.clickTranslateFullPageButton();
 
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "en",
@@ -74,7 +74,7 @@ add_task(
 
     await SelectTranslationsTestUtils.clickTranslateFullPageButton();
 
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "fr",
         toLanguage: "uk",

@@ -29,13 +29,11 @@ add_task(async function test_translations_panel_retry() {
     downloadHandler: resolveDownloads,
   });
 
-  await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
-    {
-      fromLanguage: "es",
-      toLanguage: "en",
-      runInPage,
-    }
-  );
+  await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated({
+    fromLanguage: "es",
+    toLanguage: "en",
+    runInPage,
+  });
 
   await FullPageTranslationsTestUtils.openPanel({
     expectedToLanguage: "en",
@@ -51,13 +49,11 @@ add_task(async function test_translations_panel_retry() {
     pivotTranslation: true,
   });
 
-  await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
-    {
-      fromLanguage: "es",
-      toLanguage: "fr",
-      runInPage,
-    }
-  );
+  await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated({
+    fromLanguage: "es",
+    toLanguage: "fr",
+    runInPage,
+  });
 
   await cleanup();
 });

@@ -31,7 +31,7 @@ add_task(
     });
 
     await FullPageTranslationsTestUtils.clickTranslateButton();
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         endToEndTest: true,
         fromLanguage: "es",
@@ -79,6 +79,21 @@ add_task(
       toLanguage: "en",
       runInPage,
     });
+    await FullPageTranslationsTestUtils.assertPageH1TitleIsTranslated({
+      endToEndTest: true,
+      fromLanguage: "es",
+      toLanguage: "en",
+      runInPage,
+      message:
+        "The page's H1's title should be translated because it intersects with the viewport.",
+    });
+    await FullPageTranslationsTestUtils.assertPageFinalParagraphTitleIsNotTranslated(
+      {
+        runInPage,
+        message:
+          "Attribute translations are always lazy based on intersection, so the final paragraph's title should remain untranslated.",
+      }
+    );
 
     await cleanup();
   }

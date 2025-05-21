@@ -107,7 +107,7 @@ add_task(async function test_translations_panel_fuzzing() {
           "Translations button is fully loaded."
         );
 
-        await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+        await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
           {
             fromLanguage: "es",
             toLanguage: "en",

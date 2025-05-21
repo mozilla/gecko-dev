@@ -35,6 +35,9 @@ export function getSelectors() {
     getH1() {
       return content.document.querySelector("h1");
     },
+    getH1Title() {
+      return content.document.querySelector("h1")?.getAttribute("title");
+    },
     getPdfSpan() {
       return waitForCondition(
         () =>
@@ -53,6 +56,11 @@ export function getSelectors() {
     },
     getFinalParagraph() {
       return content.document.querySelector("p:last-of-type");
+    },
+    getFinalParagraphTitle() {
+      return content.document
+        .querySelector("p:last-of-type")
+        ?.getAttribute("title");
     },
     getFrenchSection() {
       return content.document.getElementById("french-section");
@@ -116,32 +124,38 @@ export function waitForCondition(callback, message) {
  * Asserts that a page was translated with a specific result.
  *
  * @param {string} message The assertion message.
- * @param {Function} getNode A function to get the node.
+ * @param {Function} getNodeOrText A function to get the node or plain text.
  * @param {string | Array<string>} oneOrMoreTranslations The translated message.
  */
 export async function assertTranslationResult(
   message,
-  getNode,
+  getNodeOrText,
   oneOrMoreTranslations
 ) {
+  const getText = () => {
+    const nodeOrText = getNodeOrText();
+    if (typeof nodeOrText === "string") {
+      return nodeOrText;
+    }
+    return nodeOrText?.innerText;
+  };
+
   let translation;
   try {
     if (typeof oneOrMoreTranslations === "string") {
       await waitForCondition(
-        () => oneOrMoreTranslations === getNode().innerText,
+        () => oneOrMoreTranslations === getText(),
         `Waiting for: "${oneOrMoreTranslations}"`
       );
       translation = oneOrMoreTranslations;
     } else {
       await waitForCondition(
         () =>
-          oneOrMoreTranslations.find(
-            translation => translation === getNode().innerText
-          ),
+          oneOrMoreTranslations.find(translation => translation === getText()),
         `Waiting for: "${oneOrMoreTranslations}"`
       );
       translation = oneOrMoreTranslations.find(
-        translation => translation === getNode().innerText
+        translation => translation === getText()
       );
     }
   } catch (error) {
@@ -149,7 +163,7 @@ export async function assertTranslationResult(
     console.error(error);
   }
 
-  is(translation, getNode()?.innerText, message);
+  is(translation, getText(), message);
 }
 
 /**

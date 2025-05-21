@@ -75,13 +75,11 @@ add_task(async function test_button_does_not_update_when_button_is_not_shown() {
     "en"
   );
 
-  await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
-    {
-      fromLanguage: "es",
-      toLanguage: "en",
-      runInPage: runInSpanishPage,
-    }
-  );
+  await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated({
+    fromLanguage: "es",
+    toLanguage: "en",
+    runInPage: runInSpanishPage,
+  });
 
   await removeTab();
   await cleanup();
@@ -166,7 +164,7 @@ add_task(
 
     await switchTab(spanishTabDotOrg, "Switch back to the Spanish .org tab");
 
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "fr",
@@ -219,7 +217,7 @@ add_task(
       downloadHandler: resolveDownloads,
     });
 
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "fr",
@@ -264,7 +262,7 @@ add_task(
     await switchTab(spanishTabDotCom, "Switch to the Spanish .com tab.");
 
     info("The Spanish .com page should still be translated to French.");
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "fr",
@@ -277,7 +275,7 @@ add_task(
     info(
       "The Spanish .com page should still be translated to French, even after resolving downloads."
     );
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "fr",
@@ -288,7 +286,7 @@ add_task(
     await switchTab(spanishTabDotOrg, "Switch back to the Spanish .org tab");
 
     info("The Spanish .org page should be translated to Ukrainian.");
-    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated(
       {
         fromLanguage: "es",
         toLanguage: "uk",

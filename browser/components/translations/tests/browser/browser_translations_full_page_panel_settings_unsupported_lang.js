@@ -43,13 +43,11 @@ add_task(async function test_unsupported_language_settings_menu_checkboxes() {
     checked: true,
   });
 
-  await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
-    {
-      fromLanguage: "es",
-      toLanguage: "en",
-      runInPage,
-    }
-  );
+  await FullPageTranslationsTestUtils.assertOnlyIntersectingNodesAreTranslated({
+    fromLanguage: "es",
+    toLanguage: "en",
+    runInPage,
+  });
 
   await navigate("Navigate to a page in an unsupported language.", {
     url: FRENCH_PAGE_URL,
