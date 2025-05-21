@@ -104,16 +104,16 @@ add_task(async function test_translations_persist_in_reader_mode() {
     await TranslationsTest.assertTranslationResult(
       "The page's H1 is now the translated reader-mode header",
       getH1,
-      "TRANSLATIONS TEST [es to en, html]"
+      "TRANSLATIONS TEST [es to en]"
     );
   });
 
   await runInPage(async TranslationsTest => {
     const { getLastParagraph } = TranslationsTest.getSelectors();
     await TranslationsTest.assertTranslationResult(
-      "The page's last paragraph is in Spanish.",
+      "The page's last paragraph is translated from Spanish to English.",
       getLastParagraph,
-      "— PUES, AUNQUE MOVÁIS MÁS BRAZOS QUE LOS DEL GIGANTE BRIAREO, ME LO HABÉIS DE PAGAR. [es to en, html]"
+      "— PUES, AUNQUE MOVÁIS MÁS BRAZOS QUE LOS DEL GIGANTE BRIAREO, ME LO HABÉIS DE PAGAR. [es to en]"
     );
   });
 

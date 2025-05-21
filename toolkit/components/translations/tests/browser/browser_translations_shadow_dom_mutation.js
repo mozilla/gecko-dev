@@ -25,7 +25,7 @@ add_task(async function test_shadow_dom_mutation() {
         function () {
           return content.document.querySelector("h1");
         },
-        "THIS IS CONTENT IN LIGHT DOM [es to en, html]"
+        "THIS IS CONTENT IN LIGHT DOM [es to en]"
       );
 
       info("Test 1: Mutation on existing shadow tree");
@@ -37,7 +37,7 @@ add_task(async function test_shadow_dom_mutation() {
           const root1 = content.document.getElementById("host1").shadowRoot;
           return root1.querySelector("p");
         },
-        "THIS IS MUTATED CONTENT IN THE SHADOW DOM [es to en, html]"
+        "THIS IS MUTATED CONTENT IN THE SHADOW DOM [es to en]"
       );
 
       info("Test 2: Shadow host added later");
@@ -52,7 +52,7 @@ add_task(async function test_shadow_dom_mutation() {
           const root2 = content.document.getElementById("host2").shadowRoot;
           return root2.querySelector("p");
         },
-        "THIS IS CONTENT IN A SHADOW DOM [es to en, html]"
+        "THIS IS CONTENT IN A SHADOW DOM [es to en]"
       );
 
       info("Test 3: Mutation Works on newly added shadow tree");
@@ -67,7 +67,7 @@ add_task(async function test_shadow_dom_mutation() {
           const root2 = content.document.getElementById("host2").shadowRoot;
           return root2.getElementById("newNode");
         },
-        "THIS IS MUTATED CONTENT IN NEWLY ADDED SHADOW DOM [es to en, html]"
+        "THIS IS MUTATED CONTENT IN NEWLY ADDED SHADOW DOM [es to en]"
       );
     },
   });
@@ -86,7 +86,7 @@ add_task(async function test_shadow_dom_mutation_nested_1() {
         function () {
           return content.document.querySelector("h1");
         },
-        "THIS IS CONTENT IN LIGHT DOM [es to en, html]"
+        "THIS IS CONTENT IN LIGHT DOM [es to en]"
       );
 
       info("Test 1: Nested shadow host added later");
@@ -105,7 +105,7 @@ add_task(async function test_shadow_dom_mutation_nested_1() {
           const innerRoot = root1.getElementById("innerHost").shadowRoot;
           return innerRoot.querySelector("p");
         },
-        "THIS IS CONTENT IN NESTED SHADOW DOM [es to en, html]"
+        "THIS IS CONTENT IN NESTED SHADOW DOM [es to en]"
       );
 
       info("Test 2: Mutation on inner shadow tree works");
@@ -121,7 +121,7 @@ add_task(async function test_shadow_dom_mutation_nested_1() {
           const innerRoot = root.getElementById("innerHost").shadowRoot;
           return innerRoot.getElementById("newInnerNode");
         },
-        "THIS IS MUTATED CONTENT IN NESTED SHADOW DOM [es to en, html]"
+        "THIS IS MUTATED CONTENT IN NESTED SHADOW DOM [es to en]"
       );
     },
   });
@@ -142,7 +142,7 @@ add_task(async function test_shadow_dom_mutation_nested_2() {
         function () {
           return content.document.querySelector("h1");
         },
-        "THIS IS CONTENT IN LIGHT DOM [es to en, html]"
+        "THIS IS CONTENT IN LIGHT DOM [es to en]"
       );
 
       const root1 = content.document.getElementById("host1").shadowRoot;
@@ -157,7 +157,7 @@ add_task(async function test_shadow_dom_mutation_nested_2() {
           const innerRoot = root1.getElementById("innerHost").shadowRoot;
           return innerRoot.querySelector("p");
         },
-        "THIS IS MUTATED CONTENT IN INNER SHADOW DOM [es to en, html]"
+        "THIS IS MUTATED CONTENT IN INNER SHADOW DOM [es to en]"
       );
     },
   });

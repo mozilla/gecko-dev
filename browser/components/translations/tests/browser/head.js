@@ -1339,7 +1339,7 @@ class FullPageTranslationsTestUtils {
         await TranslationsTest.assertTranslationResult(
           "The page's H1 is translated.",
           getH1,
-          `DON QUIJOTE DE LA MANCHA [${fromLang} to ${toLang}, html]`
+          `DON QUIJOTE DE LA MANCHA [${fromLang} to ${toLang}]`
         );
       };
     }

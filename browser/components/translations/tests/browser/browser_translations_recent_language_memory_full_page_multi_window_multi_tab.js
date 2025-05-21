@@ -221,7 +221,7 @@ add_task(
       await TranslationsTest.assertTranslationResult(
         "The French page's H1 is translated from fr to es",
         getH1,
-        "CET ÉLÉMENT D'EN-TÊTE HTML EST ÉCRIT EN FRANÇAIS. [fr to es, html]"
+        "CET ÉLÉMENT D'EN-TÊTE HTML EST ÉCRIT EN FRANÇAIS. [fr to es]"
       );
     });
     await FullPageTranslationsTestUtils.openPanel({

@@ -1808,12 +1808,19 @@ export class TranslationsDocument {
     /** @type {boolean} */
     let isHTML;
 
-    if (element) {
-      sourceText = /** @type {string} */ (element.innerHTML);
-      isHTML = true;
-    } else {
+    if (
+      // This must be a text node
+      !element ||
+      // When an element has no child elements and its textContent is exactly
+      // equal to its innerHTML, then it is safe to treat as a text translation.
+      (element.childElementCount === 0 &&
+        element.textContent === element.innerHTML)
+    ) {
       sourceText = node.textContent ?? "";
       isHTML = false;
+    } else {
+      sourceText = /** @type {string} */ (element.innerHTML);
+      isHTML = true;
     }
 
     if (sourceText.trim().length === 0) {

@@ -19,13 +19,13 @@ add_task(async function test_full_page_translation() {
       await TranslationsTest.assertTranslationResult(
         "The main title gets translated.",
         selectors.getH1,
-        "DON QUIJOTE DE LA MANCHA [es to en, html]"
+        "DON QUIJOTE DE LA MANCHA [es to en]"
       );
 
       await TranslationsTest.assertTranslationResult(
-        "The last paragraph gets translated. It is out of the viewport.",
+        "The last paragraph gets translated even though it is out of the viewport.",
         selectors.getLastParagraph,
-        "— PUES, AUNQUE MOVÁIS MÁS BRAZOS QUE LOS DEL GIGANTE BRIAREO, ME LO HABÉIS DE PAGAR. [es to en, html]"
+        "— PUES, AUNQUE MOVÁIS MÁS BRAZOS QUE LOS DEL GIGANTE BRIAREO, ME LO HABÉIS DE PAGAR. [es to en]"
       );
 
       selectors.getH1().innerText = "Este es un titulo";
@@ -110,13 +110,13 @@ add_task(async function test_language_identification_for_page_translation() {
       await TranslationsTest.assertTranslationResult(
         "The main title gets translated.",
         selectors.getH1,
-        "DON QUIJOTE DE LA MANCHA [es to en, html]"
+        "DON QUIJOTE DE LA MANCHA [es to en]"
       );
 
       await TranslationsTest.assertTranslationResult(
-        "The last paragraph gets translated. It is out of the viewport.",
+        "The last paragraph gets translated even though it is out of the viewport.",
         selectors.getLastParagraph,
-        "— PUES, AUNQUE MOVÁIS MÁS BRAZOS QUE LOS DEL GIGANTE BRIAREO, ME LO HABÉIS DE PAGAR. [es to en, html]"
+        "— PUES, AUNQUE MOVÁIS MÁS BRAZOS QUE LOS DEL GIGANTE BRIAREO, ME LO HABÉIS DE PAGAR. [es to en]"
       );
 
       selectors.getH1().innerText = "Este es un titulo";

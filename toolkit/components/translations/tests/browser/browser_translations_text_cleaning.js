@@ -21,19 +21,19 @@ add_task(async function test_text_cleaning() {
         "Whitespace before and after is preserved in the translation.",
         selectors.getTextCleaningWhitespace,
         [
-          " EL [es to en, html] ",
+          " EL [es to en] ",
           "",
           "       PERRO",
-          "       GRANDE Y [es to en, html]",
+          "       GRANDE Y [es to en]",
           "    ",
-          " ROJO [es to en, html] ",
+          " ROJO [es to en] ",
         ].join("\n")
       );
 
       await TranslationsTest.assertTranslationResult(
         "Soft hyphens are stripped from the translation.",
         selectors.getTextCleaningSoftHyphens,
-        "LONG WORDS SOMETIMES HAVE SOFT-HYPHENS [es to en, html]"
+        "LONG WORDS SOMETIMES HAVE SOFT-HYPHENS [es to en]"
       );
     },
   });
