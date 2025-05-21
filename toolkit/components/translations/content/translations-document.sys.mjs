@@ -53,86 +53,18 @@ const NodeStatus = {
  * @typedef {import("../translations").LanguagePair} LanguagePair
  * @typedef {import("../translations").PortToPage} PortToPage
  * @typedef {import("../translations").EngineStatus} EngineStatus
- * @typedef {(message: string) => Promise<string>} TranslationFunction
- */
-
-/**
- * This contains all of the information needed to perform a translation request.
- *
- * @typedef {object} TranslationRequest
- * @property {Node} node
- * @property {string} sourceText
- * @property {number} translationId
- * @property {boolean} isHTML
- * @property {number} priority
- * @property {(translation: Promise<string> | string | null) => unknown} resolve
- * @property {(reason: any) => unknown} reject
- *
- * The translation mode of the page.
- * - In "lazy" mode only nodes within proximity to the viewport are translated.
- * - In "content-eager" mode, all nodes with translatable text content will be translated,
- *   but nodes with attribute translations will still be translated lazily.
- * @typedef {("lazy"|"content-eager")} TranslationMode
- *
- * A hint at the user's most recent scroll direction on the page.
- * @typedef {("up"|"down")} ScrollDirection
- *
- * The location of a node with respect to the viewport.
- * @typedef {("within"|"above"|"right"|"below"|"left")} NodeViewportContext
- *
- * The spatial context of a node, which may include the top, left, and right coordinates
- * of the node's bounding client rect, as well as the node's location with respect to the viewport.
- * @typedef {{ top?: number, right?: number, left?: number, viewportContext?: NodeViewportContext }} NodeSpatialContext
- *
- * The eligibility of a node to be updated with translated content when its request completes.
- * @typedef {("stale"|"detached"|"valid")} UpdateEligibility
- *
- * Helpful definitions for sorting nodes based on their spatial context.
- * @typedef {{
- *  element: Element,
- *  nodeSet: Set<Node>,
- *  top?: number,
- *  left?: number,
- *  right?: number
- * }} SortableContentElement
- *
- * @typedef {{
- *  titleElement?: Element,
- *  inViewportContent: Array<SortableContentElement>,
- *  aboveViewportContent: Array<SortableContentElement>,
- *  belowViewportContent: Array<SortableContentElement>,
- *  otherContent: Array<SortableContentElement>,
- * }} PrioritizedContentElements
- *
- * @typedef {{
- *  element: Element,
- *  attributeSet: Set<string>,
- *  top?: number,
- *  left?: number,
- *  right?: number
- * }} SortableAttributeElement
- *
- * @typedef {{
- *  inViewportAttributes: Array<SortableAttributeElement>,
- *  aboveViewportAttributes: Array<SortableAttributeElement>,
- *  belowViewportAttributes: Array<SortableAttributeElement>,
- *  otherAttributes: Array<SortableAttributeElement>,
- * }} PrioritizedAttributeElements
- *
- * These are the kinds of priorities that a translation request may be assigned.
- * Each time requests are prioritized and sent to the scheduler, each kind of
- * priority defined below will receive a unique number. Depending on the current
- * context within the page, some of these priorities may be more or less important.
- * @typedef {{
- *   inViewportContentPriority: number,
- *   inViewportAttributePriority: number,
- *   aboveViewportContentPriority: number,
- *   aboveViewportAttributePriority: number,
- *   belowViewportContentPriority: number,
- *   belowViewportAttributePriority: number,
- *   otherContentPriority: number,
- *   otherAttributePriority: number,
- * }} TranslationPriorityKinds
+ * @typedef {import("../translations").TranslationsMode} TranslationsMode
+ * @typedef {import("../translations").ScrollDirection} ScrollDirection
+ * @typedef {import("../translations").NodeViewportContext} NodeViewportContext
+ * @typedef {import("../translations").NodeSpatialContext} NodeSpatialContext
+ * @typedef {import("../translations").UpdateEligibility} UpdateEligibility
+ * @typedef {import("../translations").SortableContentElement} SortableContentElement
+ * @typedef {import("../translations").PrioritizedContentElements} PrioritizedContentElements
+ * @typedef {import("../translations").SortableAttributeElement} SortableAttributeElement
+ * @typedef {import("../translations").PrioritizedAttributeElements} PrioritizedAttributeElements
+ * @typedef {import("../translations").TranslationPriorityKinds} TranslationPriorityKinds
+ * @typedef {import("../translations").TranslationRequest} TranslationRequest
+ * @typedef {import("../translations").TranslationFunction} TranslationFunction
  */
 
 /**
@@ -980,7 +912,7 @@ export class TranslationsDocument {
    * When the find bar is open, the mode will change to "content-eager", eventually translating the entire page,
    * regardless of proximity to the viewport. This way the find-in-page functionality will work as intended.
    *
-   * @type {TranslationMode}
+   * @type {TranslationsMode}
    */
   #translationsMode;
 
