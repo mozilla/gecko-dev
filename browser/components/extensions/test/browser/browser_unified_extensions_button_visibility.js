@@ -77,6 +77,34 @@ add_task(async function test_show_button_before_new_window() {
   resetButtonVisibilityToDefault();
 });
 
+add_task(async function test_delay_hide_button_while_mouse_is_on_toolbar() {
+  // Another window, to help with verifying that the delay in hiding buttons
+  // only applies to the window that the user is interacting with.
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+
+  const navbar = win.document.getElementById("nav-bar");
+  navbar.dispatchEvent(new win.CustomEvent("mouseenter"));
+
+  // The (user) intent of the following is to hide the button, but we shall
+  // override that intent temporarily while we detect the mouse as being on
+  // the toolbar, to prevent the interface from shifting.
+  hideButtonWithPref();
+
+  info("Extensions button should immediately be hidden in another window");
+  assertExtensionsButtonHidden(window);
+
+  info("Extensions button should still be shown while mouse is on toolbar");
+  assertExtensionsButtonVisible(win);
+
+  navbar.dispatchEvent(new win.CustomEvent("mouseleave"));
+
+  info("Extensions button should hide after the mouse goes off the toolbar");
+  assertExtensionsButtonHidden(win);
+
+  await BrowserTestUtils.closeWindow(win);
+  resetButtonVisibilityToDefault();
+});
+
 // Until the "Hide Extensions Button" feature finished its implementation, the
 // UI to trigger hiding should be disabled by default.
 add_task(async function test_remove_from_toolbar_disabled_by_default() {

@@ -1826,6 +1826,7 @@ var gUnifiedExtensions = {
   _initialized: false,
   // buttonAlwaysVisible: true, -- based on pref, declared later.
   _buttonShownBeforeButtonOpen: null,
+  _buttonBarHasMouse: false,
 
   // We use a `<deck>` in the extension items to show/hide messages below each
   // extension name. We have a default message for origin controls, and
@@ -1844,10 +1845,13 @@ var gUnifiedExtensions = {
 
     // Button is hidden by default, declared in navigator-toolbox.inc.xhtml.
     this._button = document.getElementById("unified-extensions-button");
+    this._navbar = document.getElementById("nav-bar");
     this.updateButtonVisibility();
     this._buttonAttrObs = new MutationObserver(() => this.onButtonOpenChange());
     this._buttonAttrObs.observe(this._button, { attributeFilter: ["open"] });
     this._button.addEventListener("PopupNotificationsBeforeAnchor", this);
+    this._navbar.addEventListener("mouseenter", this);
+    this._navbar.addEventListener("mouseleave", this);
 
     gBrowser.addTabsProgressListener(this);
     window.addEventListener("TabSelect", () => this.updateAttention());
@@ -1909,8 +1913,6 @@ var gUnifiedExtensions = {
   },
 
   updateButtonVisibility() {
-    const navbar = document.getElementById("nav-bar");
-
     // TODO: Bug 1778684 - Auto-hide button when there is no active extension.
     let shouldShowButton =
       this.buttonAlwaysVisible ||
@@ -1918,6 +1920,10 @@ var gUnifiedExtensions = {
       this._button.open ||
       // Button will be open soon - see ensureButtonShownBeforeAttachingPanel.
       this._buttonShownBeforeButtonOpen ||
+      // Items in the toolbar shift when the button hides. To prevent the user
+      // from clicking on something different than they intended, never hide an
+      // already-visible button while the mouse is still in the toolbar.
+      (!this.button.hidden && this._buttonBarHasMouse) ||
       // Always show when customizing, because even if the button should mostly
       // be hidden, the user should be able to specify the desired location for
       // cases where the button is forcibly shown.
@@ -1925,10 +1931,10 @@ var gUnifiedExtensions = {
 
     if (shouldShowButton) {
       this._button.hidden = false;
-      navbar.setAttribute("unifiedextensionsbuttonshown", true);
+      this._navbar.setAttribute("unifiedextensionsbuttonshown", true);
     } else {
       this._button.hidden = true;
-      navbar.removeAttribute("unifiedextensionsbuttonshown");
+      this._navbar.removeAttribute("unifiedextensionsbuttonshown");
     }
   },
 
@@ -2088,6 +2094,15 @@ var gUnifiedExtensions = {
 
       case "PopupNotificationsBeforeAnchor":
         this.ensureButtonShownBeforeAttachingPanel(PopupNotifications.panel);
+        break;
+
+      case "mouseenter":
+        this._buttonBarHasMouse = true;
+        break;
+
+      case "mouseleave":
+        this._buttonBarHasMouse = false;
+        this.updateButtonVisibility();
         break;
 
       case "customizationstarting":
