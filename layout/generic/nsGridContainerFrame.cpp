@@ -6323,35 +6323,30 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
 
     const bool isOrthogonal = containerWM.IsOrthogonalTo(childWM);
     const bool isInlineAxis = mAxis == LogicalAxis::Inline;  // i.e. columns
-
-    // XXX update the line below to include orthogonal grid/table boxes
-    // XXX since they have baselines in both dimensions. And flexbox with
-    // XXX reversed main/cross axis?
     const bool itemHasBaselineParallelToTrack = isInlineAxis == isOrthogonal;
-    if (itemHasBaselineParallelToTrack) {
-      // [align|justify]-self:[last ]baseline.
-      auto selfAlignment =
-          isOrthogonal
-              ? child->StylePosition()->UsedJustifySelf(containerStyle)._0
-              : child->StylePosition()->UsedAlignSelf(containerStyle)._0;
-      selfAlignment &= ~StyleAlignFlags::FLAG_BITS;
-      if (selfAlignment == StyleAlignFlags::BASELINE) {
-        state |= ItemState::eFirstBaseline | ItemState::eSelfBaseline;
-        const GridArea& area = gridItem.mArea;
-        baselineTrack = isInlineAxis ? area.mCols.mStart : area.mRows.mStart;
-      } else if (selfAlignment == StyleAlignFlags::LAST_BASELINE) {
-        state |= ItemState::eLastBaseline | ItemState::eSelfBaseline;
-        const GridArea& area = gridItem.mArea;
-        baselineTrack = (isInlineAxis ? area.mCols.mEnd : area.mRows.mEnd) - 1;
-      }
 
-      // [align|justify]-content:[last ]baseline.
-      // https://drafts.csswg.org/css-align-3/#baseline-align-content
-      // "[...] and its computed 'align-self' or 'justify-self' (whichever
-      // affects its block axis) is 'stretch' or 'self-start' ('self-end').
-      // For this purpose, the 'start', 'end', 'flex-start', and 'flex-end'
-      // values of 'align-self' are treated as either 'self-start' or
-      // 'self-end', whichever they end up equivalent to.
+    // [align|justify]-self:[last ]baseline.
+    auto selfAlignment =
+        isInlineAxis
+            ? child->StylePosition()->UsedJustifySelf(containerStyle)._0
+            : child->StylePosition()->UsedAlignSelf(containerStyle)._0;
+    selfAlignment &= ~StyleAlignFlags::FLAG_BITS;
+    if (selfAlignment == StyleAlignFlags::BASELINE) {
+      state |= ItemState::eFirstBaseline | ItemState::eSelfBaseline;
+      const GridArea& area = gridItem.mArea;
+      baselineTrack = isInlineAxis ? area.mCols.mStart : area.mRows.mStart;
+    } else if (selfAlignment == StyleAlignFlags::LAST_BASELINE) {
+      state |= ItemState::eLastBaseline | ItemState::eSelfBaseline;
+      const GridArea& area = gridItem.mArea;
+      baselineTrack = (isInlineAxis ? area.mCols.mEnd : area.mRows.mEnd) - 1;
+    }
+
+    // https://drafts.csswg.org/css-align-3/#baseline-align-content
+    // Baseline content-alignment can only apply if the align-content axis is
+    // parallel with the box’s block axis; otherwise the fallback alignment is
+    // used.
+    if (!isInlineAxis) {
+      // Handle align-content:[last ]baseline (if present)
       auto alignContent = child->StylePosition()->mAlignContent.primary;
       alignContent &= ~StyleAlignFlags::FLAG_BITS;
       if (alignContent == StyleAlignFlags::BASELINE ||
@@ -6370,13 +6365,10 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
           bool sameSide =
               containerWM.ParallelAxisStartsOnSameSide(alignAxis, childWM);
           if (selfAlignment == StyleAlignFlags::LEFT) {
-            selfAlignment = !isInlineAxis || containerWM.IsBidiLTR()
-                                ? StyleAlignFlags::START
-                                : StyleAlignFlags::END;
+            selfAlignment = containerWM.IsBidiLTR() ? StyleAlignFlags::START
+                                                    : StyleAlignFlags::END;
           } else if (selfAlignment == StyleAlignFlags::RIGHT) {
-            selfAlignment = isInlineAxis && containerWM.IsBidiLTR()
-                                ? StyleAlignFlags::END
-                                : StyleAlignFlags::START;
+            selfAlignment = StyleAlignFlags::START;
           }
 
           if (selfAlignment == StyleAlignFlags::START ||
@@ -6393,12 +6385,10 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
           const GridArea& area = gridItem.mArea;
           if (alignContent == StyleAlignFlags::BASELINE) {
             state |= ItemState::eFirstBaseline | ItemState::eContentBaseline;
-            baselineTrack =
-                isInlineAxis ? area.mCols.mStart : area.mRows.mStart;
+            baselineTrack = area.mRows.mStart;
           } else if (alignContent == StyleAlignFlags::LAST_BASELINE) {
             state |= ItemState::eLastBaseline | ItemState::eContentBaseline;
-            baselineTrack =
-                (isInlineAxis ? area.mCols.mEnd : area.mRows.mEnd) - 1;
+            baselineTrack = area.mRows.mEnd - 1;
           }
         }
       }
@@ -6458,8 +6448,10 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
                              ? grid->GetBBaseline(baselineAlignment)
                              : grid->GetIBaseline(baselineAlignment));
       } else {
-        baseline = child->GetNaturalBaselineBOffset(
-            childWM, baselineAlignment, BaselineExportContext::Other);
+        if (itemHasBaselineParallelToTrack) {
+          baseline = child->GetNaturalBaselineBOffset(
+              childWM, baselineAlignment, BaselineExportContext::Other);
+        }
 
         if (!baseline) {
           // If baseline alignment is specified on a grid item whose size in
