@@ -178,7 +178,13 @@ bool CopyExtradataToDescription(JSContext* aCx, Span<const uint8_t>& aSrc,
   MOZ_ASSERT(aCx);
 
   size_t lengthBytes = aSrc.Length();
-  UniquePtr<uint8_t[], JS::FreePolicy> extradata(new uint8_t[lengthBytes]);
+
+  UniquePtr<uint8_t[], JS::FreePolicy> extradata(
+      js_pod_arena_malloc<uint8_t>(js::ArrayBufferContentsArena, lengthBytes));
+
+  if (!extradata)  {
+    return false;
+  }
 
   PodCopy(extradata.get(), aSrc.Elements(), lengthBytes);
 
