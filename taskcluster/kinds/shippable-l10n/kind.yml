@@ -112,18 +112,12 @@ tasks:
                     win64-aarch64-devedition: windows2012-aarch64-devedition/opt
         env:
             by-build-platform:
-                linux.*:    # linux64 and 32 get same treatment here
-                    EN_US_PACKAGE_NAME: target.tar.xz
-                    EN_US_BINARY_URL:
-                        artifact-reference: <build-signing/{artifact_prefix}>
+                linux.*:
+                    MOZ_ARTIFACT_TASK: {task-reference: '<build-signing>'}
                 macosx64.*:
-                    EN_US_PACKAGE_NAME: target.dmg
-                    EN_US_BINARY_URL:
-                        artifact-reference: <repackage/{artifact_prefix}>
+                    MOZ_ARTIFACT_TASK: {task-reference: '<repackage>'}
                 win.*:
-                    EN_US_PACKAGE_NAME: target.zip
-                    EN_US_BINARY_URL:
-                        artifact-reference: <build-signing/{artifact_prefix}>
+                    MOZ_ARTIFACT_TASK: {task-reference: '<build-signing>'}
         mozharness:
             config:
                 by-build-platform:
