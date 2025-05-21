@@ -48,14 +48,14 @@ jobs:
       when:
           - {weekday: "Friday", hour: 7, minute: 0}
 
-    - name: merge-central-to-beta-dry-run
+    - name: merge-main-to-beta-dry-run
       job:
           type: trigger-action
           action-name: merge-automation
           include-cron-input: false
           extra-input:
               force-dry-run: true
-              behavior: central-to-beta
+              behavior: main-to-beta
               push: true
       run-on-projects:
           - mozilla-central

@@ -23,7 +23,7 @@ head_tag: ''
 hg_branch: default
 level: '3'
 merge_config:
-  behavior: central-to-beta
+  behavior: main-to-beta
   force-dry-run: false
   push: true
 message: ''

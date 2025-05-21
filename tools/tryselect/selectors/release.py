@@ -44,7 +44,7 @@ class ReleaseParser(BaseTryParser):
                 "action": "append",
                 "dest": "migrations",
                 "choices": [
-                    "central-to-beta",
+                    "main-to-beta",
                     "beta-to-release",
                     "early-to-late-beta",
                     "release-to-esr",

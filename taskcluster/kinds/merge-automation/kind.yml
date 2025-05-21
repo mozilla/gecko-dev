@@ -31,24 +31,24 @@ tasks:
                 by-project:
                     try:
                         by-behavior:
-                            central-to-beta: staging-firefox-beta
+                            main-to-beta: staging-firefox-beta
                             early-to-late-beta: staging-firefox-beta
                             beta-to-release: staging-firefox-release
                             release-to-esr: staging-firefox-esr140
-                            bump-central: staging-firefox-main
+                            bump-main: staging-firefox-main
                             bump-esr140: staging-firefox-esr140
                     default:
                         by-behavior:
-                            central-to-beta: firefox-beta
+                            main-to-beta: firefox-beta
                             early-to-late-beta: firefox-beta
                             beta-to-release: firefox-release
                             release-to-esr: firefox-esr140
-                            bump-central: firefox-main
+                            bump-main: firefox-main
                             bump-esr140: firefox-esr140
             dontbuild: false
             l10n-bump-info:
                 by-behavior:
-                    central-to-beta:
+                    main-to-beta:
                         - name: Firefox l10n changesets
                           path: browser/locales/l10n-changesets.json
                           l10n-repo-url: https://github.com/mozilla-l10n/firefox-l10n
