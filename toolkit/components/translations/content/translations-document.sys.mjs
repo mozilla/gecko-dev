@@ -2014,6 +2014,1293 @@ export class TranslationsDocument {
 }
 
 /**
+ * The AntiStarvationStack is a stack-like data structure with a predefined batch size.
+ * Requests are pushed to the stack one at a time, but they may only be popped in a batch.
+ *
+ * The stack keeps track of whether the net count of requests has increased or decreased
+ * between each time it pops a batch of request. If the size of the stack has not decreased
+ * since the previous time a batch was popped, then it means that more requests are being
+ * pushed to the stack than are being popped from the stack, and the stack is considered
+ * to have starving requests.
+ *
+ * This terminology is derived from the idea that if the stack is growing faster than it is
+ * processing, then requests at the bottom of the stack will never be popped, and they will starve,
+ * i.e. they will never have a chance to be processed.
+ *
+ *  - https://en.wikipedia.org/wiki/Starvation_(computer_science)
+ *
+ * In order to ensure fairness in processing, when the stack has starving requests it will pull
+ * a predefined portion of the batch from the bottom of the stack, instead of only from the top.
+ * This ensures that if the stack is growing faster than it can be processed, we are guaranteed
+ * to eventually process the oldest requests in the stack, given enough time, and no request will
+ * ever starve entirely.
+ *
+ * It is recommended that the starvation batch portion is less than or equal half of the batch size.
+ * This ensures that priority is still given to newer requests, as is the intent of the stack, while
+ * still ensuring fairness in scheduling.
+ *
+ * The following is a diagram of several calls to popBatch(), demonstrating both normal calls to
+ * popBatch() as well as calls to popBatch() under starvation conditions:
+ *
+ * AntiStarvationStack: size == 9, #batchSize == 5, #starvationBatchPortion == 2
+ *
+ *             ┌─┬─┬─┬─┬─┬─┬─┬─┬─┐
+ *             └─┴─┴─┴─┴─┴─┴─┴─┴─┘
+ * popBatch():         └────┬────┘
+ *                          5
+ *
+ *             ┌─┬─┬─┬─┐
+ *             └─┴─┴─┴─┘
+ * push() x 7:         └──────┬──────┘
+ *                            7
+ *
+ *             ┌─┬─┬─┬─┬─┬─┬─┬─┬─┬─┬─┐
+ *             └─┴─┴─┴─┴─┴─┴─┴─┴─┴─┴─┘
+ * popBatch(): └─┬─┘           └──┬──┘
+ *               2                3
+ *
+ *                 ┌─┬─┬─┬─┬─┬─┐
+ *                 └─┴─┴─┴─┴─┴─┘
+ * push() x 4:                 └───┬───┘
+ *                                 4
+ *
+ *                 ┌─┬─┬─┬─┬─┬─┬─┬─┬─┬─┐
+ *                 └─┴─┴─┴─┴─┴─┴─┴─┴─┴─┘
+ * popBatch():               └────┬────┘
+ *                                5
+ *
+ *                 ┌─┬─┬─┬─┬─┐
+ *                 └─┴─┴─┴─┴─┘
+ */
+class AntiStarvationStack {
+  /**
+   * The array that represents the internal stack.
+   *
+   * @type {Array<TranslationRequest>}
+   */
+  #stack = [];
+
+  /**
+   * Keeps track of the size of the stack the previous time a batch was popped.
+   * This is used to determine if the stack contains any starving requests,
+   * i.e. more requests are being pushed to the stack than are being popped.
+   *
+   * @type {number}
+   */
+  #sizeBeforePreviousPop = 0;
+
+  /**
+   * The size of the batch that will be popped from the top of stack when no
+   * starvation is occurring, i.e. more requests are being popped than pushed.
+   *
+   * @type {number}
+   */
+  #batchSize = 2;
+
+  /**
+   * Returns the count of requests that are popped from this stack when calling popBatch().
+   *
+   * @see {AntiStarvationStack.popBatch}
+   *
+   * @returns {number}
+   */
+  get batchSize() {
+    return this.#batchSize;
+  }
+
+  /**
+   * The size of the batch that will be popped from the bottom of stack when the
+   * stack has starving requests, i.e. more requests are being pushed than popped.
+   *
+   * When the stack is starving, then (#batchSize - #starvationBatchPortion)
+   * nodes will still be removed from the top of the stack, but #starvationBatchPortion
+   * nodes will also be removed from the bottom of the stack to ensure fairness for
+   * continuing to process old requests in addition to new requests.
+   *
+   * @type {number}
+   */
+  #starvationBatchPortion = 1;
+
+  /**
+   * Constructs a new AntiStarvationStack.
+   *
+   * The given batchSize must be larger than the starvationBatchPortion.
+   *
+   * @param {number} batchSize
+   * @param {number} starvationBatchPortion
+   */
+  constructor(batchSize, starvationBatchPortion) {
+    this.#batchSize = batchSize;
+    this.#starvationBatchPortion = starvationBatchPortion;
+
+    if (this.#batchSize < 2) {
+      throw new Error("Batch size must be at least 2.");
+    }
+
+    if (this.#starvationBatchPortion <= 0) {
+      throw new Error("Starvation batch portion must be greater than zero.");
+    }
+
+    if (this.#batchSize < this.#starvationBatchPortion) {
+      throw new Error(
+        "Batch size must not be smaller than starvation batch portion."
+      );
+    }
+  }
+
+  /**
+   * Returns the current count of requests in the stack.
+   *
+   * @returns {number}
+   */
+  get size() {
+    return this.#stack.length;
+  }
+
+  /**
+   * Pushes a translation request to the top of the stack.
+   *
+   * @param {TranslationRequest} request
+   */
+  push(request) {
+    this.#stack.push(request);
+  }
+
+  /**
+   * Pops at most #batchSize requests from the stack.
+   *
+   * If the stack is starving (i.e. the net count of requests in the stack has
+   * increased since the previous call to popBatch(), rather than decreased),
+   * then a portion of requests will be removed from the bottom of the stack
+   * to ensure fairness in scheduling.
+   *
+   * @returns {{ starvationDetected: boolean, requests: Array<TranslationRequest>}}
+   */
+  popBatch() {
+    const currentSize = this.size;
+    const starvationDetected =
+      // The stack was not empty the last time we popped.
+      this.#sizeBeforePreviousPop > 0 &&
+      // The net requests have not decreased since the last time we popped.
+      currentSize >= this.#sizeBeforePreviousPop &&
+      // The stack currently has more than one batch worth of requests.
+      currentSize > this.#batchSize;
+
+    this.#sizeBeforePreviousPop = currentSize;
+
+    if (currentSize === 0) {
+      return { starvationDetected, requests: [] };
+    }
+
+    let topBatchSize = this.#batchSize;
+    let bottomBatchSize = 0;
+
+    if (starvationDetected && currentSize > this.#batchSize) {
+      // The stack is growing faster than it is being processed,
+      // the stack contains more than one batch worth of requests.
+      // We will pull some from the bottom and the top to prevent starvation.
+      topBatchSize -= this.#starvationBatchPortion;
+      bottomBatchSize = this.#starvationBatchPortion;
+    }
+
+    /** @type {Array<TranslationRequest>} */
+    const requests = [];
+
+    for (let i = 0; i < topBatchSize && this.size > 0; i++) {
+      // @ts-ignore: this.#stack.pop() cannot return undefined here.
+      requests.push(this.#stack.pop());
+    }
+
+    // Removing requests from the front of an array like this has O(n) performance characteristics.
+    // An ideal solution here would utilize a deque with amortized O(1) popBack() and popFront()
+    // guarantees. Unfortunately, JavaScript lacks a standard deque implementation at this time.
+    //
+    // We are operating on small arrays, usually single or double digits in size, low hundreds at most.
+    // I have not found the performance characteristics here to be any sort of bottleneck; I rarely
+    // see this function show up in performance profiles, even when translating high-activity live
+    // stream comment sections, which is a prime scenario for starvation conditions.
+    //
+    // Until such a time that a deque is readily available in JavaScript, I do not feel the complexity
+    // of writing a custom deque implementation is justified for our use case here.
+    if (bottomBatchSize > 0) {
+      const bottomPortion = this.#stack.slice(0, bottomBatchSize);
+      requests.push(...bottomPortion);
+
+      // Retain the rest of the stack without the bottom portion.
+      this.#stack = this.#stack.slice(bottomBatchSize, this.size);
+    }
+
+    return { starvationDetected, requests };
+  }
+
+  /**
+   * Removes a request from the stack if it matches the given translationId.
+   *
+   * @param {number} translationId
+   * @returns {TranslationRequest | undefined}
+   */
+  remove(translationId) {
+    const index = this.#stack.findIndex(
+      request => translationId === request.translationId
+    );
+
+    if (index < 0) {
+      // No request was found matching this translationId.
+      // It may have already been sent to the TranslationsEngine.
+      return undefined;
+    }
+
+    const request = this.#stack[index];
+
+    // Removing requests from the middle of an array like this has O(n) performance characteristics.
+    // An ideal solution here would utilize a table-based strategy with amortized O(1) removal guarantees.
+    //
+    // Unfortunately, using a table structure such as Map would make every call to popBatch() have O(n),
+    // characteristics, even under non-starvation conditions, due to Map not having any double-ended
+    // iteration capabilities at this time.
+    //
+    // We are operating on small arrays, usually single or double digits in size, low hundreds at most.
+    // I have not found the performance characteristics here to be any sort of bottleneck; I rarely
+    // see this function show up in performance profiles, even when scrolling rapidly through pages,
+    // which is a prime scenario for cancelling requests and therefore removing them by their translationIds.
+    this.#stack.splice(index, 1);
+
+    return request;
+  }
+
+  /**
+   * Clears all entries from the stack.
+   */
+  clear() {
+    this.#stack = [];
+  }
+}
+
+/**
+ * The TranslationScheduler orchestrates when translation requests are sent to the TranslationsEngine.
+ *
+ * The scheduler implements a stack-based, newest-first priority-scheduling algorithm, which ensures
+ * that the most recent content that enters proximity to the viewport, whether due to user scrolling,
+ * or due to dynamic content entering the page, is translated at the highest priority.
+ *
+ * Although the scheduler ensures that the highest-priority requests are translated first, it also
+ * ensures scheduling fairness with guarantees that every request will eventually be scheduled,
+ * regardless of age or priority, even if more requests are coming in than can be processed.
+ *
+ * Fairness is guaranteed by the use of an anti-starvation stack @see {AntiStarvationStack}.
+ *
+ * Requests may be cancelled from the scheduler at any time, even after they are sent to the
+ * TranslationsEngine, though the earlier a request is cancelled, the cheaper it is to do so.
+ */
+class TranslationScheduler {
+  /**
+   * The priorities of the translation requests, where P0 is the highest and P7 is the lowest.
+   *
+   * The priorities are determined by the TranslationsDocument, and are dynamically assigned
+   * based on several factors including whether the request is for a content or an attribute
+   * translation, the location of the element with respect to the viewport, and the user's
+   * recent scrolling activity on the page.
+   */
+  static get P0() {
+    return 0;
+  }
+  static get P1() {
+    return 1;
+  }
+  static get P2() {
+    return 2;
+  }
+  static get P3() {
+    return 3;
+  }
+  static get P4() {
+    return 4;
+  }
+  static get P5() {
+    return 5;
+  }
+  static get P6() {
+    return 6;
+  }
+  static get P7() {
+    return 7;
+  }
+
+  /**
+   * The count of active requests must be lower than this threshold before we will allow
+   * sending any more requests to the TranslationsEngine.
+   *
+   * We want to strike a balance between being optimally reactive to changes that may
+   * change request priorities, such as the user scrolling, while also sending a constant
+   * flow of requests to the TranslationsEngine, minimizing CPU downtime in the worker between
+   * finishing the current batch of requests and beginning to process the next batch of requests.
+   *
+   * This number may need to be increased if the performance of the TranslationsEngine worker
+   * improves considerably, or if we ever have more than one worker translating in parallel.
+   *
+   * @type {number}
+   */
+  static get ACTIVE_REQUEST_THRESHOLD() {
+    return 1;
+  }
+
+  /**
+   * The port that sends translation requests to the TranslationsEngine.
+   *
+   * @type {MessagePort | null}
+   */
+  #port = null;
+
+  /**
+   * If a new port is needed, this callback will be invoked to request one
+   * from the actor. After the actor obtains it, it calls `acquirePort`.
+   *
+   * @type {() => void}
+   */
+  #actorRequestNewPort;
+
+  /**
+   * A map from the translationId to its corresponding TranslationRequest.
+   *
+   * This map contains only the requests that have been sent to the TranslationsEngine.
+   * Once the engine sends a translation response, we will match the translationId here
+   * to resolve or reject the request's promise, then remove it from the map.
+   *
+   * This map is mutually exclusive to the #unscheduledRequestsPriorityMap.
+   *
+   * @type {Map<number, TranslationRequest>}
+   */
+  #activeRequests = new Map();
+
+  /**
+   * A map from the translationId to the corresponding request's priority.
+   *
+   * This map contains only the requests that have not yet been sent to the TranslationsEngine.
+   * We use this map to look up which priority stack a request should be removed from if the
+   * request needs to be cancelled.
+   *
+   * Once the scheduler send the request to the TranslationsEngine, the entry for the translationId
+   * will be removed from this map, and an entry for the same id will be added to #activeRequests.
+   *
+   * @type {Map<number, number>}
+   */
+  #unscheduledRequestPriorities = new Map();
+
+  /**
+   * The stacks that correspond to the eight priorities a translation request can be assigned.
+   * The lower the number, the higher the priority. Each priority corresponds to an index in this array.
+   *
+   * @see {TranslationScheduler.P0}
+   * @see {TranslationScheduler.P1}
+   * @see {TranslationScheduler.P2}
+   * @see {TranslationScheduler.P3}
+   * @see {TranslationScheduler.P4}
+   * @see {TranslationScheduler.P5}
+   * @see {TranslationScheduler.P6}
+   * @see {TranslationScheduler.P7}
+   */
+  #priorityStacks = [
+    new AntiStarvationStack(2, 1), // p0 stack
+    new AntiStarvationStack(2, 1), // p1 stack
+    new AntiStarvationStack(2, 1), // p2 stack
+    new AntiStarvationStack(2, 1), // p3 stack
+    new AntiStarvationStack(2, 1), // p4 stack
+    new AntiStarvationStack(2, 1), // p5 stack
+    new AntiStarvationStack(2, 1), // p6 stack
+    new AntiStarvationStack(2, 1), // p7 stack
+  ];
+
+  #maxRequestsPerScheduleEvent = (() => {
+    let requestCount = 0;
+
+    for (const stack of this.#priorityStacks) {
+      requestCount += stack.batchSize;
+    }
+
+    return requestCount;
+  })();
+
+  /**
+   * Tracks the status of the translation engine.
+   *
+   * @type {EngineStatus}
+   */
+  #engineStatus = "uninitialized";
+
+  /**
+   * Read-only getter to retrieve the engine status.
+   *
+   * @returns {EngineStatus}
+   */
+  get engineStatus() {
+    return this.#engineStatus;
+  }
+
+  /**
+   * Whether the page is currently shown or not. If hidden, we pause processing
+   * and do not attempt to send new translation requests to the engine.
+   */
+  #isPageShown = true;
+
+  /**
+   * If a port is being requested, we store a reference to that promise
+   * (plus its resolve/reject) so that repeated requests are not re-sent.
+   *
+   * @type {{ promise: Promise<void>, resolve: Function, reject: Function } | null}
+   */
+  #portRequest = null;
+
+  /**
+   * Marks when we have a pending callback for scheduling more requests
+   * This ensures that we won't over-schedule requests from multiple calls.
+   *
+   * @type {boolean}
+   */
+  #hasPendingScheduleRequestsCallback = false;
+
+  /**
+   * The InnerWindowID value to report to profiler markers.
+   *
+   * @type {number}
+   */
+  #innerWindowId;
+
+  /**
+   * A cache of translations that have already been computed.
+   * This is cache is shared with the TranslationsDocument.
+   *
+   * @type {LRUCache}
+   */
+  #translationsCache;
+
+  /**
+   * Constructs a new TranslationScheduler.
+   *
+   * @param {MessagePort?} port - A port to send translation requests to the TranslationsEngine.
+   * @param {number} innerWindowId - The innerWindowId for profiler markers.
+   * @param {LRUCache} translationsCache - A cache of completed translations, shared with the TranslationsDocument.
+   * @param {() => void} actorRequestNewPort - The function to call to ask the actor for a new port.
+   */
+  constructor(port, innerWindowId, translationsCache, actorRequestNewPort) {
+    this.#innerWindowId = innerWindowId;
+    this.#translationsCache = translationsCache;
+    this.#actorRequestNewPort = actorRequestNewPort;
+
+    if (port) {
+      this.acquirePort(port);
+    }
+  }
+
+  /**
+   * @returns {boolean}
+   */
+  hasPendingScheduleRequestsCallback() {
+    return this.#hasPendingScheduleRequestsCallback;
+  }
+
+  /**
+   * Attaches an onmessage handler to manage any communication with the TranslationsEngine.
+   * If we were waiting for a port (#portRequest), we resolve that once the engine indicates
+   * "ready" or reject if it indicates failure.
+   *
+   * @see {TranslationsDocument.acquirePort}
+   *
+   * @param {MessagePort} port
+   */
+  acquirePort(port) {
+    if (this.#port) {
+      // If we already have a port open but we somehow got a new one,
+      // discard the old and use the new. Typically not expected unless the engine
+      // had an error or the page re-requested a new port forcibly.
+      if (this.#engineStatus === "ready") {
+        lazy.console.error(
+          "Received a new translation port while one already existed."
+        );
+      }
+      this.#discardPort();
+    }
+
+    this.#port = port;
+
+    const portRequest = this.#portRequest;
+
+    // Wire up message handling
+    port.onmessage = event => {
+      /** @type {{data: PortToPage}} */
+      const { data } = /** @type {any} */ (event);
+
+      switch (data.type) {
+        case "TranslationsPort:TranslationResponse": {
+          const { translationId, targetText } = data;
+          const request = this.#activeRequests.get(translationId);
+
+          if (request) {
+            this.#activeRequests.delete(translationId);
+            request.resolve(targetText);
+          }
+
+          break;
+        }
+        case "TranslationsPort:GetEngineStatusResponse": {
+          if (portRequest) {
+            const { resolve, reject } = portRequest;
+            if (data.status === "ready") {
+              resolve();
+            } else {
+              reject(new Error("The engine failed to load."));
+            }
+          }
+
+          this.#engineStatus = data.status;
+
+          if (data.status === "ready") {
+            this.maybeScheduleMoreTranslationRequests();
+          } else {
+            for (const translationId of this.#activeRequests.keys()) {
+              this.preventSingleTranslation(translationId);
+            }
+
+            for (const translationId of this.#unscheduledRequestPriorities.keys()) {
+              this.preventUnscheduledTranslation(translationId);
+            }
+          }
+
+          break;
+        }
+        case "TranslationsPort:EngineTerminated": {
+          this.#discardPort();
+          this.maybeScheduleMoreTranslationRequests();
+          break;
+        }
+        default: {
+          lazy.console.error("Unknown translations port message:", data);
+          break;
+        }
+      }
+    };
+
+    // Ask for the engine status
+    port.postMessage({ type: "TranslationsPort:GetEngineStatusRequest" });
+  }
+
+  /**
+   * Returns a promise that will resolve when we have acquired a valid port.
+   *
+   * @returns {Promise<void>}
+   */
+  #getPortRequestPromise() {
+    if (this.#portRequest) {
+      // We already have a pending request to acquire a port.
+      return this.#portRequest.promise;
+    }
+
+    if (this.#engineStatus === "ready") {
+      // The engine is already ready for translating.
+      return Promise.resolve();
+    }
+
+    if (this.#port) {
+      // We already have a port: we don't need another one.
+      return Promise.resolve();
+    }
+
+    const portRequest = Promise.withResolvers();
+    this.#portRequest = portRequest;
+
+    // Ask the actor for a new port (which eventually calls `acquirePort`).
+    this.#actorRequestNewPort();
+
+    this.#portRequest.promise
+      .catch(error => {
+        lazy.console.error(error);
+      })
+      .finally(() => {
+        // If we haven't replaced #portRequest with another request,
+        // clear it out now that it succeeded.
+        if (portRequest === this.#portRequest) {
+          this.#portRequest = null;
+        }
+      });
+
+    return this.#portRequest.promise;
+  }
+
+  /**
+   * Close the port and remove any chance of further messages to the TranslationsEngine.
+   * Any active requests are moved back to the priority stacks from which they were scheduled.
+   */
+  #discardPort() {
+    this.#preserveActiveRequests();
+
+    if (this.#port) {
+      this.#port.close();
+      this.#port = null;
+      this.#portRequest = null;
+    }
+
+    this.#engineStatus = "uninitialized";
+  }
+
+  /**
+   * Called when the page becomes visible again, e.g. the user was on another tab
+   * and switched back to this page as the active tab. Any requests that were left
+   * in the stacks will resume to be scheduled.
+   */
+  async onShowPage() {
+    this.#isPageShown = true;
+    this.maybeScheduleMoreTranslationRequests();
+  }
+
+  /**
+   * Called when the page is hidden, e.g. the user moved to a different tab.
+   * Any active requests that had been sent to the TranslationsEngine will
+   * be Cancelled and moved back to the corresponding priority stacks that
+   * they came from.
+   */
+  async onHidePage() {
+    this.#isPageShown = false;
+
+    if (this.#portRequest) {
+      //this.#portRequest.reject();
+      // If the page is hidden while a port request is pending,
+      // wait for that request to finish so we can move any in-flight
+      // requests to the temp queue properly.
+      try {
+        await this.#portRequest.promise;
+      } catch {
+        // If the port request fails while hidden, not much to do.
+      }
+
+      if (this.#isPageShown) {
+        // The page was re-shown while we were awaiting the pending port request.
+        return;
+      }
+    }
+
+    // Discard the port to avoid engine usage while hidden.
+    this.#discardPort();
+  }
+
+  /**
+   * Creates a new TranslationRequest, adds it to the stack that corresponds to its priority,
+   * and returns a promise for the resolution or rejection of the request.
+   *
+   * @see {TranslationRequest}
+   *
+   * @param {Node} node - The node that corresponds to this translation request.
+   * @param {string} sourceText - The source text to translate for this request.
+   * @param {boolean} isHTML - True if the source text is HTML markup, false if it is plain text.
+   * @param {number} translationId - The translationId that corresponds to this request.
+   * @param {number} priority - The priority at which this request should be scheduled.
+   * @returns {Promise<string | null>}
+   *   The translated text, or null if the text is already translated, the request becomes stale, the translation fails.
+   */
+  createTranslationRequestPromise(
+    node,
+    sourceText,
+    isHTML,
+    translationId,
+    priority
+  ) {
+    const { promise, resolve, reject } = Promise.withResolvers();
+    this.#unscheduledRequestPriorities.set(translationId, priority);
+
+    this.#priorityStacks[priority].push({
+      node,
+      sourceText,
+      isHTML,
+      translationId,
+      priority,
+      resolve,
+      reject,
+    });
+
+    this.maybeScheduleMoreTranslationRequests();
+
+    return promise;
+  }
+
+  /**
+   * Attempts to cancel a translation request if it has not been sent to the TranslationsEngine.
+   *
+   * To fully cancel a request regardless of whether it has been scheduled or not,
+   * use the `cancelSingleTranslation` method.
+   *
+   * @see {TranslationScheduler.preventSingleTranslation}
+   *
+   * @param {number} translationId - The translationId of the request to cancel.
+   * @returns {boolean} - True if the request was Cancelled, otherwise false.
+   */
+  preventUnscheduledTranslation(translationId) {
+    const priority = this.#unscheduledRequestPriorities.get(translationId);
+
+    if (priority === undefined) {
+      // We were unable to retrieve an unscheduled priority for the given translationId.
+      // This request has likely already been sent to the TranslationsEngine.
+      return false;
+    }
+
+    const request = this.#priorityStacks[priority].remove(translationId);
+
+    if (request) {
+      request.resolve(null);
+    }
+
+    this.#unscheduledRequestPriorities.delete(translationId);
+
+    ChromeUtils.addProfilerMarker(
+      `TranslationScheduler Cancel P${priority}`,
+      { innerWindowId: this.#innerWindowId },
+      `Cancelled one unscheduled P${priority} translation.`
+    );
+
+    return true;
+  }
+
+  /**
+   * Cancel a translation request regardless of whether it has been sent to the TranslationsEngine.
+   *
+   * For a more conservative method to only cancel a request that has not yet been scheduled,
+   * use the `maybePreventUnscheduledTranslation` method.
+   *
+   * @see {TranslationScheduler.preventUnscheduledTranslation}
+   *
+   * @param {number} translationId - The translationId of the request to cancel.
+   * @returns {{
+   *  didPrevent: boolean,
+   *  didCancelFromScheduler: boolean,
+   *  didCancelFromEngine: boolean,
+   * }}
+   */
+  preventSingleTranslation(translationId) {
+    if (this.preventUnscheduledTranslation(translationId)) {
+      // We successfully canceled this request before it was scheduled: nothing more to do.
+      return {
+        didPrevent: true,
+        didCancelFromScheduler: true,
+        didCancelFromEngine: false,
+      };
+    }
+
+    const request = this.#activeRequests.get(translationId);
+
+    if (!request) {
+      // This translation completed before we got a chance to cancel it.
+      return {
+        didPrevent: false,
+        didCancelFromScheduler: false,
+        didCancelFromEngine: false,
+      };
+    }
+
+    // If the request is active, then it has been sent to the TranslationsEngine,
+    // so we must attempt to send a cancel request to the engine as well.
+    this.#port?.postMessage({
+      type: "TranslationsPort:CancelSingleTranslation",
+      translationId,
+    });
+
+    request.resolve(null);
+    this.#activeRequests.delete(translationId);
+
+    ChromeUtils.addProfilerMarker(
+      `TranslationScheduler Cancel P${request.priority}`,
+      { innerWindowId: this.#innerWindowId },
+      `Cancelled one active P${request.priority} translation.`
+    );
+
+    // We may have cancelled the only active request, which may not receive a response now.
+    // If so, we need to ensure that we continue to schedule more requests.
+    this.maybeScheduleMoreTranslationRequests();
+
+    return {
+      didPrevent: true,
+      didCancelFromScheduler: true,
+      didCancelFromEngine: true,
+    };
+  }
+
+  /**
+   * Returns any active translation request back to the priority stack from which they came.
+   * Whenever the scheduler resumes scheduling, these requests may be already fulfilled,
+   * resulting in a no-op, or they will be picked back up where they were left off.
+   */
+  #preserveActiveRequests() {
+    lazy.console.log(
+      `Pausing translations with ${this.#activeRequests.size} active translation requests.`
+    );
+
+    if (!this.#hasActiveTranslationRequests()) {
+      // There are no active requests to unschedule: nothing more to do.
+      return;
+    }
+
+    for (const request of this.#activeRequests.values()) {
+      const { translationId, priority } = request;
+
+      this.#priorityStacks[priority].push(request);
+      this.#unscheduledRequestPriorities.set(translationId, priority);
+    }
+
+    this.#activeRequests.clear();
+  }
+
+  /**
+   * Returns true if the scheduler has few enough quests that it is within the
+   * final batches that it will schedule until more requests come in.
+   *
+   * @returns {boolean}
+   */
+  isWithinFinalBatches() {
+    return (
+      this.#maxRequestsPerScheduleEvent >=
+      this.#pendingTranslationRequestCount()
+    );
+  }
+
+  /**
+   * Returns the count of pending translation requests, both active and unscheduled.
+   *
+   * @returns {number}
+   */
+  #pendingTranslationRequestCount() {
+    return this.#activeRequests.size + this.#unscheduledRequestPriorities.size;
+  }
+
+  /**
+   * Returns true if the scheduler has any requests have been sent to the TranslationsEngine,
+   * and have not yet received a response, otherwise false.
+   *
+   * @returns {boolean}
+   */
+  #hasActiveTranslationRequests() {
+    return this.#activeRequests.size > 0;
+  }
+
+  /**
+   * Returns true if the scheduler has any requests that have not yet been sent to the TranslationsEngine,
+   * and are waiting in a corresponding priority stack to be scheduled, otherwise false.
+   *
+   * @returns {boolean}
+   */
+  #hasUnscheduledTranslationRequests() {
+    return this.#unscheduledRequestPriorities.size > 0;
+  }
+
+  /**
+   * Returns true if the conditions are met to schedule more requests by sending them to the TranslationsEngine,
+   * otherwise false if the scheduler should wait longer before sending more requests over the port.
+   *
+   * @returns {boolean}
+   */
+  #shouldScheduleMoreTranslationRequests() {
+    if (!this.#isPageShown) {
+      // We should not spend CPU time if the page is hidden.
+      return false;
+    }
+
+    if (this.#portRequest) {
+      // We are still waiting for a port: we will try again if a port is acquired.
+      return false;
+    }
+
+    if (this.#port && this.#engineStatus === "uninitialized") {
+      // We have acquired a port, but we are still waiting for an engine status message.
+      // We will try again if the engine becomes ready.
+      return false;
+    }
+
+    if (this.#hasPendingScheduleRequestsCallback) {
+      // There is already a pending callback to schedule more requests.
+      return false;
+    }
+
+    if (
+      this.#activeRequests.size > TranslationScheduler.ACTIVE_REQUEST_THRESHOLD
+    ) {
+      // There are too many active requests to schedule any more right now.
+      return false;
+    }
+
+    if (!this.#hasUnscheduledTranslationRequests()) {
+      // There are no unscheduled requests to be sent to the TranslationsEngine.
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Schedules another batch of requests by sending them to the TranslationsEngine,
+   * only if it makes sense to do so.
+   */
+  maybeScheduleMoreTranslationRequests() {
+    if (!this.#shouldScheduleMoreTranslationRequests()) {
+      // The conditions are not currently right to schedule more requests.
+      return;
+    }
+
+    this.#hasPendingScheduleRequestsCallback = true;
+
+    lazy.setTimeout(() => {
+      this.#getPortRequestPromise()
+        .then(this.#scheduleMoreTranslationRequests)
+        .catch(error => {
+          lazy.console.error(error);
+          this.#hasPendingScheduleRequestsCallback = false;
+        });
+    }, 0);
+  }
+
+  /**
+   * Schedules a batch of requests from the given stack by sending them to the TranslationsEngine.
+   *
+   * @param {AntiStarvationStack} stack - The stack from which to schedule the batch of requests.
+   * @returns {boolean} - Returns true if starvation was detected in this stack, otherwise false.
+   */
+  #scheduleBatchFromStack(stack) {
+    const { starvationDetected, requests } = stack.popBatch();
+
+    for (const request of requests) {
+      this.#maybeScheduleTranslationRequest(request);
+    }
+
+    return starvationDetected;
+  }
+
+  /**
+   * Schedules another batch of requests from the priority stacks by sending them to the TranslationsEngine.
+   * How many requests are scheduled, and from which stacks, will depend on the current state of the stacks.
+   *
+   * This function is intentionally written as a lambda so that it can be passed as a
+   * callback without the need to explicitly bind `this` to the function object.
+   */
+  #scheduleMoreTranslationRequests = () => {
+    if (!this.#port) {
+      // We lost our port between when this function was registered on the event loop, and when it was invoked.
+      // The best we can do is possibly try again, if the conditions are still right.
+      this.#hasPendingScheduleRequestsCallback = false;
+      this.maybeScheduleMoreTranslationRequests();
+      return;
+    }
+
+    let stackSizesAtStart = null;
+    const activeRequestsAtStart = this.#activeRequests.size;
+    const unscheduledRequestsAtStart = this.#unscheduledRequestPriorities.size;
+    if (Services.profiler.IsActive() || lazy.console.shouldLog("Debug")) {
+      // We need to preserve the sizes prior to scheduling only if we are adding profiler markers,
+      // or if we are logging to console debug. Otherwise we shouldn't bother with these computations.
+      stackSizesAtStart = this.#priorityStacks.map(stack => stack.size);
+    }
+
+    // Schedule only as many requests as we are required to in order to achieve starvation fairness,
+    // starting with the highest-priority stack and moving toward the lower-priority stacks.
+    for (const stack of this.#priorityStacks) {
+      const starvationDetected = this.#scheduleBatchFromStack(stack);
+
+      if (stack.size === 0) {
+        // This stack is now empty, so we are clear to schedule more lower-priority requests.
+        continue;
+      }
+
+      if (starvationDetected) {
+        // This stack is starving (i.e. more requests are being added than are being scheduled),
+        // so we must process a batch of lower-priority requests on this cycle in order to keep
+        // the priority-scheduling algorithm fair, otherwise we could, in theory, only ever process
+        // the current-level stack if new requests of the same priority continue to come in at a high rate.
+        continue;
+      }
+
+      // We just scheduled a batch of requests from the highest-relevant-priority stack, and the count of requests
+      // in that stack is decreasing. We should break here so as not to schedule any lower-priority requests before
+      // we absolutely need to. The lower-priority requests may be justifiably cancelled before we get to them,
+      // such as being re-prioritized or removed if the user scrolls around the page. In the event that they are
+      // not cancelled, then they are guaranteed to be scheduled eventually, either due to starvation fairness,
+      // or simply when it is their turn after processing all of the higher-priority requests first.
+      break;
+    }
+
+    this.#maybeAddProfilerMarkersForStacks(stackSizesAtStart);
+    this.#maybeLogStackDataToConsoleDebug(
+      stackSizesAtStart,
+      activeRequestsAtStart,
+      unscheduledRequestsAtStart
+    );
+
+    this.#hasPendingScheduleRequestsCallback = false;
+  };
+
+  /**
+   * If actively profiling, adds a marker for how many requests wre scheduled from each stack, if any.
+   *
+   * Normally, we would rely on `ChromeUtils.addProfilerMarker()` itself to no-op if not profiling,
+   * however there are calculations and conditions for whether or not to post a marker, and scheduling
+   * happens quite frequently, so it is best to not waste time with these calculations if not profiling.
+   *
+   * @param {Array<number>?} stackSizesAtStart – The size of each stack prior to the slice of scheduling that just occurred.
+   */
+  #maybeAddProfilerMarkersForStacks(stackSizesAtStart) {
+    if (!stackSizesAtStart || !Services.profiler.IsActive()) {
+      return;
+    }
+
+    for (let priority = 0; priority < stackSizesAtStart.length; ++priority) {
+      const scheduledCount =
+        stackSizesAtStart[priority] - this.#priorityStacks[priority].size;
+
+      if (scheduledCount > 0) {
+        ChromeUtils.addProfilerMarker(
+          `TranslationScheduler Send P${priority}`,
+          { innerWindowId: this.#innerWindowId },
+          `Posted ${scheduledCount} P${priority} translation requests.`
+        );
+      }
+    }
+  }
+
+  /**
+   * If "Debug" is available, logs how many requests were scheduled from each stack on this scheduling pass, starting
+   * with the highest-priority stack and logging through to the lowest-priority stack that scheduled any request.
+   *
+   * Normally, we would rely on `lazy.console.debug()` itself to no-op if "Debug" does not lie within the max log level,
+   * however there are calculations and conditions related to formatting this log nicely in the console, and scheduling
+   * happens quite frequently, so it is best to not waste time with these calculations if we will not log them at all.
+   *
+   * Example:
+   *
+   * "Scheduler(_1 | 422) [ __1, 165, 132, __1, 106, __1, __8, __8 ] => P0(__1), P1(__2)"
+   *             ╻    ╻      ╻    ╻    ╻    ╻    ╻    ╻    ╻    ╻       ╻        ╻
+   *             │    │      │    │    │    │    │    │    │    │       │        │
+   *             │    │      │    │    │    │    │    │    │    │       │        2 P1 requests were scheduled in this batch.
+   *             │    │      │    │    │    │    │    │    │    │       │
+   *             │    │      │    │    │    │    │    │    │    │       1 P0 request was scheduled in this batch.
+   *             │    │      │    │    │    │    │    │    │    │
+   *             │    │      │    │    │    │    │    │    │    There are 8 P7 requests
+   *             │    │      │    │    │    │    │    │    │
+   *             │    │      │    │    │    │    │    │    There are 8 P6 requests.
+   *             │    │      │    │    │    │    │    │
+   *             │    │      │    │    │    │    │    There is 1 P5 request.
+   *             │    │      │    │    │    │    │
+   *             │    │      │    │    │    │    There are 106 P4 requests.
+   *             │    │      │    │    │    │
+   *             │    │      │    │    │    There is 1 P3 request.
+   *             │    │      │    │    │
+   *             │    │      │    │    There are 132 P2 requests.
+   *             │    │      │    │
+   *             │    │      │    There are 165 P1 requests.
+   *             │    │      │
+   *             │    │      There is 1 P0 request.
+   *             │    │
+   *             │    There are 422 pending requests.
+   *             │
+   *             There is 1 active request.
+   *
+   * @param {Array<number>?} stackSizesAtStart – The size of each stack prior to the slice of scheduling that just occurred.
+   * @param {number} activeRequestsAtStart - The number of active requests that the TranslationsEngine was processing at the
+   *                                         moment we scheduled more requests from the stacks.
+   * @param {number} unscheduledRequestsAtStart - The number of unscheduled requests that the TranslationsEngine was processing
+   *                                         at the moment we scheduled more requests from the stacks.
+   */
+  #maybeLogStackDataToConsoleDebug(
+    stackSizesAtStart,
+    activeRequestsAtStart,
+    unscheduledRequestsAtStart
+  ) {
+    if (!stackSizesAtStart || !lazy.console.shouldLog("Debug")) {
+      return;
+    }
+
+    // Find the deepest priority stack that scheduled any requests.
+    let maxStackDepth;
+    for (let depth = stackSizesAtStart.length - 1; depth >= 0; --depth) {
+      if (this.#priorityStacks[depth].size < stackSizesAtStart[depth]) {
+        maxStackDepth = depth;
+        break;
+      }
+    }
+
+    if (maxStackDepth === undefined) {
+      // No requests were scheduled on this pass.
+      return;
+    }
+
+    const padLength = Math.max(
+      3,
+      ...stackSizesAtStart.map(n => String(n).length)
+    );
+
+    const segments = [];
+    for (let priority = 0; priority <= maxStackDepth; ++priority) {
+      const sizeAtStart = stackSizesAtStart[priority];
+      const currentSize = this.#priorityStacks[priority].size;
+      const scheduledCount = sizeAtStart - currentSize;
+
+      const formatted =
+        scheduledCount === 0
+          ? "_".repeat(padLength)
+          : String(scheduledCount).padStart(padLength, "_");
+
+      segments.push(`P${priority}(${formatted})`);
+    }
+
+    const activeRequestsPadLength = String(
+      this.#maxRequestsPerScheduleEvent
+    ).length;
+    const activeRequestsString =
+      activeRequestsAtStart === 0
+        ? "_".repeat(activeRequestsPadLength)
+        : String(activeRequestsAtStart).padStart(activeRequestsPadLength, "_");
+
+    const unscheduledRequestsString = String(
+      unscheduledRequestsAtStart
+    ).padStart(3, "_");
+
+    lazy.console.debug(
+      `Scheduler(${activeRequestsString} | ${unscheduledRequestsString}) ` +
+        TranslationScheduler.#formatSizesAtStart(stackSizesAtStart) +
+        ` => ${segments.join(", ")}`
+    );
+  }
+
+  /**
+   * Formats the sizes of each priority stack into a string that is nice to look
+   * at in the JS console.
+   *
+   * Example:
+   *
+   * "[ __1, 165, 132, __1, 106, __1, __8, __8 ]"
+   * //  P0   P1   P2   P3   P4   P5   P6   P7
+   *
+   * @param {Array<number>} stackSizesAtStart
+   */
+  static #formatSizesAtStart(stackSizesAtStart) {
+    const padLength = Math.max(
+      3,
+      ...stackSizesAtStart.map(n => String(Math.abs(n)).length)
+    );
+
+    const segments = stackSizesAtStart.map(n =>
+      n === 0 ? "_".repeat(padLength) : String(n).padStart(padLength, "_")
+    );
+
+    return `[ ${segments.join(", ")} ]`;
+  }
+
+  /**
+   * Schedules the translation request by sending it to the TranslationsEngine only
+   * if the node that is relevant to the request is not detached.
+   *
+   * @param {TranslationRequest} request
+   */
+  #maybeScheduleTranslationRequest(request) {
+    const { node } = request;
+
+    if (isNodeDetached(node)) {
+      // If the node is dead, there is no need to schedule it.
+      const { translationId, resolve } = request;
+
+      this.#unscheduledRequestPriorities.delete(translationId);
+      resolve(null);
+
+      return;
+    }
+
+    this.#scheduleTranslationRequest(request);
+  }
+
+  /**
+   * Schedules a translation request by sending it to the TranslationsEngine,
+   * marking the request as active.
+   *
+   * @param {TranslationRequest} request
+   */
+  #scheduleTranslationRequest(request) {
+    if (!this.#port) {
+      // This should never happen, since we should only be scheduling requests under
+      // circumstances in which we are certain that we have a valid port.
+      lazy.console.error(
+        "Attempt to schedule a translation request without a port."
+      );
+
+      // If this should ever happen, the best thing we can do to recover is to put
+      // the request back onto its corresponding priority stack to be scheduled again.
+      const { priority } = request;
+      this.#priorityStacks[priority].push(request);
+
+      return;
+    }
+
+    const { translationId, sourceText, isHTML } = request;
+
+    this.#activeRequests.set(translationId, request);
+    this.#unscheduledRequestPriorities.delete(translationId);
+
+    if (this.#translationsCache.isAlreadyTranslated(sourceText, isHTML)) {
+      // Our cache indicates that the text that is being sent to translate is an exact
+      // match to the translated output text of a previous request. When this happens
+      // we should simply signal to the engine that this is a no-op, rather than
+      // attempting to re-translate text that is already in the target language.
+      //
+      // This can happen in cases where a website removes already-translated content,
+      // and then puts it back in the same spot, triggering our mutation observers.
+      //
+      // Wikipedia does this, for example, with the "title" attributes on hyperlinks
+      // nearly every time they are moused over.
+      this.#port.postMessage({
+        type: "TranslationsPort:Passthrough",
+        translationId,
+      });
+      return;
+    }
+
+    const cachedTranslation = this.#translationsCache.get(sourceText, isHTML);
+    if (cachedTranslation) {
+      // We already have a matching translated output for this source text, but
+      // it was not hot in the cache when this request was sent to the translator,
+      // otherwise the TranslationsDocument would have handled it directly.
+      //
+      // This may happen when several nodes with identical text get queued for translation
+      // all at the same time, while the cache was still cold, such as translating a nested
+      // comment section with multiple collapsed expandable threads that say "2 replies".
+      //
+      // We will signal to the engine to simply pass the cached translation along as
+      // the response instead of wasting CPU time trying to recompute the translation.
+      this.#port.postMessage({
+        type: "TranslationsPort:CachedTranslation",
+        translationId,
+        cachedTranslation,
+      });
+      return;
+    }
+
+    this.#port.postMessage({
+      type: "TranslationsPort:TranslationRequest",
+      translationId,
+      sourceText,
+      isHTML,
+    });
+  }
+
+  /**
+   * Cleans up everything, closing the port and removing all translation request data.
+   */
+  destroy() {
+    this.#port?.close();
+    this.#port = null;
+    this.#portRequest?.reject();
+    this.#portRequest = null;
+    this.#engineStatus = "uninitialized";
+
+    this.#activeRequests.clear();
+    this.#unscheduledRequestPriorities.clear();
+
+    for (const stack of this.#priorityStacks) {
+      stack.clear();
+    }
+  }
+}
+
+/**
  * This function needs to be fairly fast since it's used on many nodes when iterating
  * over the DOM to find nodes to translate.
  *
