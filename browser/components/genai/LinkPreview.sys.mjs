@@ -487,7 +487,7 @@ export const LinkPreview = {
           onError: error => {
             console.error(error);
             outcome = error;
-            ogCard.isGenerationErrorState = true;
+            ogCard.generationError = error;
           },
           onText: text => {
             // Clear waiting in case a different generate handled download.

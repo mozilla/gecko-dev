@@ -50,8 +50,8 @@ class LinkPreviewCard extends MozLitElement {
   static properties = {
     collapsed: { type: Boolean },
     generating: { type: Number }, // 0 = off, 1-4 = generating & dots state
-    isGenerationErrorState: { type: Boolean },
     isMissingDataErrorState: { type: Boolean },
+    generationError: { type: Object }, // null = no error, otherwise contains error info
     keyPoints: { type: Array },
     optin: { type: Boolean },
     pageData: { type: Object },
@@ -61,7 +61,7 @@ class LinkPreviewCard extends MozLitElement {
   constructor() {
     super();
     this.collapsed = false;
-    this.isGenerationErrorState = false;
+    this.generationError = null;
     this.isMissingDataErrorState = false;
     this.keyPoints = [];
     this.optin = false;
@@ -178,7 +178,7 @@ class LinkPreviewCard extends MozLitElement {
   get errorMessageL10nId() {
     if (this.isMissingDataErrorState) {
       return "link-preview-generation-error-missing-data";
-    } else if (this.isGenerationErrorState) {
+    } else if (this.generationError) {
       return "link-preview-generation-error-unexpected";
     }
     return "";
@@ -190,6 +190,11 @@ class LinkPreviewCard extends MozLitElement {
    * @returns {import('lit').TemplateResult} The error generation card HTML
    */
   renderErrorGenerationCard() {
+    // Only show the retry link if we have a generation error that's not a memory error
+    const showRetryLink =
+      this.generationError &&
+      this.generationError.name !== "NotEnoughMemoryError";
+
     return html`
       <div class="ai-content">
         <p class="og-error-message-container">
@@ -197,7 +202,7 @@ class LinkPreviewCard extends MozLitElement {
             class="og-error-message"
             data-l10n-id=${this.errorMessageL10nId}
           ></span>
-          ${this.isGenerationErrorState
+          ${showRetryLink
             ? html`
                 <span class="retry-link">
                   <a
@@ -410,7 +415,7 @@ class LinkPreviewCard extends MozLitElement {
   renderKeyPointsSection(pageUrl) {
     // Determine if there's any generation error state
     const isGenerationError =
-      this.isMissingDataErrorState || this.isGenerationErrorState;
+      this.isMissingDataErrorState || this.generationError;
 
     // If we should show the opt-in prompt, show our special placeholder card
     if (!this.optin && !this.collapsed) {

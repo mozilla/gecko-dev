@@ -582,7 +582,8 @@ add_task(async function test_link_preview_error_rendered() {
     !card.isMissingDataErrorState,
     "Should not be missing data error initially"
   );
-  ok(!card.isGenerationErrorState, "Should not be generation error initially");
+
+  ok(!card.generationError, "Should not have generation error initially");
 
   // Force a "missing data" error and confirm the card updates.
   card.isMissingDataErrorState = true;
@@ -604,12 +605,12 @@ add_task(async function test_link_preview_error_rendered() {
 
   // Switch to a "generation error"
   card.isMissingDataErrorState = false;
-  card.isGenerationErrorState = true;
+  card.generationError = { name: "UnexpectedError" };
   await TestUtils.waitForCondition(() =>
     card.shadowRoot.querySelector(".og-error-message")
   );
   let ogErrorEl2 = card.shadowRoot.querySelector(".og-error-message");
-  ok(ogErrorEl2, "og-error-message shown with isGenerationErrorState = true");
+  ok(ogErrorEl2, "og-error-message shown with generationError set");
 
   is(
     ogErrorEl2.getAttribute("data-l10n-id"),
@@ -622,6 +623,14 @@ add_task(async function test_link_preview_error_rendered() {
     "Correct localized message for generation error"
   );
 
+  card.generationError = { name: "NotEnoughMemoryError" };
+  await TestUtils.waitForCondition(() =>
+    card.shadowRoot.querySelector(".og-error-message")
+  );
+  ok(
+    !card.shadowRoot.querySelector(".retry-link"),
+    "Retry link should not show with NotEnoughMemoryError"
+  );
   // Cleanup
   panel.remove();
   generateStub.restore();
