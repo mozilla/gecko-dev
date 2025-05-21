@@ -190,15 +190,21 @@ class MozBrowser extends MozElements.MozElementMixin(XULFrameElement) {
             // until the content analysis results are given.
             dragSession.sendStoreDropTargetAndDelayEndDragSession(event);
 
-            contentAnalysis.analyzeContentRequests([request], true).then(
+            contentAnalysis.analyzeBatchContentRequest(request, true).then(
               caResult => {
+                let shouldAllowContent = true;
+                if (caResult.length > 1) {
+                  shouldAllowContent = caResult[1].shouldAllowContent;
+                }
                 dragSession.sendDispatchToDropTargetAndResumeEndDragSession(
-                  caResult.shouldAllowContent
+                  shouldAllowContent,
+                  caResult[0]
                 );
               },
               () => {
                 dragSession.sendDispatchToDropTargetAndResumeEndDragSession(
-                  false
+                  false,
+                  []
                 );
               }
             );
