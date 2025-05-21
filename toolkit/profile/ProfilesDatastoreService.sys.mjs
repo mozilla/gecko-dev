@@ -61,7 +61,7 @@ class ProfilesDatastoreServiceClass {
   async createTables() {
     // TODO: (Bug 1902320) Handle exceptions on connection opening
     let currentVersion = await this.#connection.getSchemaVersion();
-    if (currentVersion == 1) {
+    if (currentVersion == 2) {
       return;
     }
 
@@ -70,13 +70,13 @@ class ProfilesDatastoreServiceClass {
       await this.#connection.executeTransaction(async () => {
         const createProfilesTable = `
             CREATE TABLE IF NOT EXISTS "Profiles" (
-              id  INTEGER NOT NULL,
-              path	TEXT NOT NULL UNIQUE,
-              name	TEXT NOT NULL,
-              avatar	TEXT NOT NULL,
-              themeId	TEXT NOT NULL,
-              themeFg	TEXT NOT NULL,
-              themeBg	TEXT NOT NULL,
+              id      INTEGER NOT NULL,
+              path    TEXT NOT NULL UNIQUE,
+              name    TEXT NOT NULL,
+              avatar  TEXT NOT NULL,
+              themeId TEXT NOT NULL,
+              themeFg TEXT NOT NULL,
+              themeBg TEXT NOT NULL,
               PRIMARY KEY(id)
             );`;
 
@@ -84,18 +84,44 @@ class ProfilesDatastoreServiceClass {
 
         const createSharedPrefsTable = `
             CREATE TABLE IF NOT EXISTS "SharedPrefs" (
-              id	INTEGER NOT NULL,
-              name	TEXT NOT NULL UNIQUE,
-              value	BLOB,
-              isBoolean	INTEGER,
+              id        INTEGER NOT NULL,
+              name      TEXT NOT NULL UNIQUE,
+              value     BLOB,
+              isBoolean INTEGER,
               PRIMARY KEY(id)
             );`;
 
         await this.#connection.execute(createSharedPrefsTable);
       });
+
+      await this.#connection.setSchemaVersion(1);
     }
 
-    await this.#connection.setSchemaVersion(1);
+    if (currentVersion < 2) {
+      await this.#connection.executeTransaction(async () => {
+        const createEnrollmentsTable = `
+          CREATE TABLE IF NOT EXISTS "NimbusEnrollments" (
+            id             INTEGER NOT NULL,
+            profileId      INTEGER NOT NULL,
+            slug           TEXT NOT NULL,
+            branchSlug     TEXT NOT NULL,
+            recipe         JSONB,
+            active         BOOLEAN NOT NULL,
+            unenrollReason TEXT,
+            lastSeen       TEXT NOT NULL,
+            setPrefs       JSONB,
+            prefFlips      JSONB,
+            source         TEXT NOT NULL,
+            PRIMARY KEY(id),
+            UNIQUE (profileId, slug) ON CONFLICT FAIL
+          );
+        `;
+
+        await this.#connection.execute(createEnrollmentsTable);
+      });
+
+      await this.#connection.setSchemaVersion(2);
+    }
   }
 
   /**
