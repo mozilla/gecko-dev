@@ -51,7 +51,7 @@ export function getSelectors() {
     getHeader() {
       return content.document.querySelector("header");
     },
-    getLastParagraph() {
+    getFinalParagraph() {
       return content.document.querySelector("p:last-of-type");
     },
     getFrenchSection() {

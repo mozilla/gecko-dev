@@ -870,11 +870,11 @@ class TranslationsBencher {
    */
   static async #injectFinalParagraphTranslatedObserver(runInPage) {
     await runInPage(TranslationsTest => {
-      const { getLastParagraph } = TranslationsTest.getSelectors();
-      const lastParagraph = getLastParagraph();
+      const { getFinalParagraph } = TranslationsTest.getSelectors();
+      const lastParagraph = getFinalParagraph();
 
       if (!lastParagraph) {
-        throw new Error("Unable to find the last paragraph for observation.");
+        throw new Error("Unable to find the final paragraph for observation.");
       }
 
       const observer = new content.MutationObserver(
@@ -1515,10 +1515,10 @@ class FullPageTranslationsTestUtils {
     let callback;
     if (endToEndTest) {
       callback = async TranslationsTest => {
-        const { getLastParagraph } = TranslationsTest.getSelectors();
+        const { getFinalParagraph } = TranslationsTest.getSelectors();
         await TranslationsTest.assertTranslationResult(
           "The page's final paragraph is translated.",
-          getLastParagraph,
+          getFinalParagraph,
           [
             // TODO (Bug 1967764) We need to investigate why some machines may produce
             // a different translated output, given the same models and the same WASM binary.
@@ -1529,10 +1529,10 @@ class FullPageTranslationsTestUtils {
       };
     } else {
       callback = async (TranslationsTest, { fromLang, toLang }) => {
-        const { getLastParagraph } = TranslationsTest.getSelectors();
+        const { getFinalParagraph } = TranslationsTest.getSelectors();
         await TranslationsTest.assertTranslationResult(
           "The page's final paragraph is translated.",
-          getLastParagraph,
+          getFinalParagraph,
           `— PUES, AUNQUE MOVÁIS MÁS BRAZOS QUE LOS DEL GIGANTE BRIAREO, ME LO HABÉIS DE PAGAR. [${fromLang} to ${toLang}]`
         );
       };
@@ -1559,10 +1559,10 @@ class FullPageTranslationsTestUtils {
 
     info("Checking that the page's final paragraph is not translated");
     await runInPage(async TranslationsTest => {
-      const { getLastParagraph } = TranslationsTest.getSelectors();
+      const { getFinalParagraph } = TranslationsTest.getSelectors();
       await TranslationsTest.assertTranslationResult(
         "The page's final paragraph is not translated and is in the original Spanish.",
-        getLastParagraph,
+        getFinalParagraph,
         "— Pues, aunque mováis más brazos que los del gigante Briareo, me lo habéis de pagar."
       );
     });

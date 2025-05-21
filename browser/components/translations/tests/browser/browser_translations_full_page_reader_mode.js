@@ -36,10 +36,10 @@ add_task(async function test_translations_button_hidden_in_reader_mode() {
   });
 
   await runInPage(async TranslationsTest => {
-    const { getLastParagraph } = TranslationsTest.getSelectors();
+    const { getFinalParagraph } = TranslationsTest.getSelectors();
     await TranslationsTest.assertTranslationResult(
-      "The page's last paragraph is in Spanish.",
-      getLastParagraph,
+      "The page's final paragraph is in Spanish.",
+      getFinalParagraph,
       "— Pues, aunque mováis más brazos que los del gigante Briareo, me lo habéis de pagar."
     );
   });
@@ -90,10 +90,10 @@ add_task(async function test_translations_persist_in_reader_mode() {
   });
 
   await runInPage(async TranslationsTest => {
-    const { getLastParagraph } = TranslationsTest.getSelectors();
+    const { getFinalParagraph } = TranslationsTest.getSelectors();
     await TranslationsTest.assertTranslationResult(
-      "The page's last paragraph is translated from Spanish to English.",
-      getLastParagraph,
+      "The page's final paragraph is translated from Spanish to English.",
+      getFinalParagraph,
       "— PUES, AUNQUE MOVÁIS MÁS BRAZOS QUE LOS DEL GIGANTE BRIAREO, ME LO HABÉIS DE PAGAR. [es to en]"
     );
   });
@@ -110,10 +110,10 @@ add_task(async function test_translations_persist_in_reader_mode() {
   });
 
   await runInPage(async TranslationsTest => {
-    const { getLastParagraph } = TranslationsTest.getSelectors();
+    const { getFinalParagraph } = TranslationsTest.getSelectors();
     await TranslationsTest.assertTranslationResult(
-      "The page's last paragraph is translated from Spanish to English.",
-      getLastParagraph,
+      "The page's final paragraph is translated from Spanish to English.",
+      getFinalParagraph,
       "— PUES, AUNQUE MOVÁIS MÁS BRAZOS QUE LOS DEL GIGANTE BRIAREO, ME LO HABÉIS DE PAGAR. [es to en]"
     );
   });

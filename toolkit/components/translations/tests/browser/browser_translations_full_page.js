@@ -24,8 +24,8 @@ add_task(async function test_full_page_translation() {
       );
 
       await TranslationsTest.assertTranslationResult(
-        "The last paragraph gets translated even though it is out of the viewport.",
-        selectors.getLastParagraph,
+        "The final paragraph gets translated even though it is out of the viewport.",
+        selectors.getFinalParagraph,
         "— PUES, AUNQUE MOVÁIS MÁS BRAZOS QUE LOS DEL GIGANTE BRIAREO, ME LO HABÉIS DE PAGAR. [es to en]"
       );
 
@@ -116,8 +116,8 @@ add_task(async function test_language_identification_for_page_translation() {
       );
 
       await TranslationsTest.assertTranslationResult(
-        "The last paragraph gets translated even though it is out of the viewport.",
-        selectors.getLastParagraph,
+        "The final paragraph gets translated even though it is out of the viewport.",
+        selectors.getFinalParagraph,
         "— PUES, AUNQUE MOVÁIS MÁS BRAZOS QUE LOS DEL GIGANTE BRIAREO, ME LO HABÉIS DE PAGAR. [es to en]"
       );
 
