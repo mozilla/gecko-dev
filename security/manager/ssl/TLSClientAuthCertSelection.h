@@ -91,6 +91,7 @@ class SelectClientAuthCertificate : public mozilla::Runnable {
       ClientAuthInfo&& info, mozilla::UniqueCERTCertificate&& serverCert,
       mozilla::UniqueCERTCertList&& potentialClientCertificates,
       nsTArray<nsTArray<nsTArray<uint8_t>>>&& potentialClientCertificateChains,
+      nsTArray<nsTArray<uint8_t>>&& caNames,
       ClientAuthCertificateSelectedBase* continuation, uint64_t browserId)
       : Runnable("SelectClientAuthCertificate"),
         mInfo(std::move(info)),
@@ -98,6 +99,7 @@ class SelectClientAuthCertificate : public mozilla::Runnable {
         mPotentialClientCertificates(std::move(potentialClientCertificates)),
         mPotentialClientCertificateChains(
             std::move(potentialClientCertificateChains)),
+        mCANames(std::move(caNames)),
         mContinuation(continuation),
         mBrowserId(browserId) {}
 
@@ -111,6 +113,7 @@ class SelectClientAuthCertificate : public mozilla::Runnable {
   mozilla::UniqueCERTCertificate mServerCert;
   mozilla::UniqueCERTCertList mPotentialClientCertificates;
   nsTArray<nsTArray<nsTArray<uint8_t>>> mPotentialClientCertificateChains;
+  nsTArray<nsTArray<uint8_t>> mCANames;
   RefPtr<ClientAuthCertificateSelectedBase> mContinuation;
 
   uint64_t mBrowserId;

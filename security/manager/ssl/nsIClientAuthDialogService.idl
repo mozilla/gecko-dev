@@ -25,10 +25,16 @@ interface nsIClientAuthDialogService : nsISupports
    *
    * @param hostname Hostname of the server.
    * @param certArray Array of certificates the user can choose from.
+   *                  Expected to be empty on Android.
    * @param loadContext The nsILoadContext of the connection requesting a
    *                    certificate. May be null, in which case the
    *                    implementation will use the most recent window to show
    *                    UI.
+   * @param caNames Array of arrays of bytes representing X.500 Distinguished
+   *                Names that the server specified as acceptable issuers for
+   *                the client certificate. On non-Android platforms, certArray
+   *                will have already been filtered by this list, and it can be
+   *                ignored.
    * @param callback The nsIClientAuthDialogCallback to call when a certificate
    *                 has been chosen (or no certificate).
    */
@@ -36,6 +42,7 @@ interface nsIClientAuthDialogService : nsISupports
   void chooseCertificate(in AUTF8String hostname,
                          in Array<nsIX509Cert> certArray,
                          in nsILoadContext loadContext,
+                         in Array<Array<octet> > caNames,
                          in nsIClientAuthDialogCallback callback);
 };
 

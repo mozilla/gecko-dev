@@ -25,7 +25,7 @@ const TEST_PATH = getRootDirectory(gTestPath).replace(
 let chooseCertificateCalled = false;
 
 const clientAuthDialogService = {
-  chooseCertificate(hostname, certArray, loadContext, callback) {
+  chooseCertificate(hostname, certArray, loadContext, caNames, callback) {
     is(
       certArray.length,
       1,

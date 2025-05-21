@@ -185,7 +185,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
 
         geckoEngineSession.notifyObservers {
             onPromptRequest(
-                PromptRequest.CertificateRequest(request.host, onComplete),
+                PromptRequest.CertificateRequest(request.host, request.issuers, onComplete),
             )
         }
 

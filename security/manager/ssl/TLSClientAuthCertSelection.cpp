@@ -734,7 +734,7 @@ SelectClientAuthCertificate::Run() {
   RefPtr<nsIClientAuthDialogCallback> callback(
       new ClientAuthDialogCallback(this));
   nsresult rv = clientAuthDialogService->ChooseCertificate(
-      mInfo.HostName(), certArray, loadContext, callback);
+      mInfo.HostName(), certArray, loadContext, mCANames, callback);
   if (NS_FAILED(rv)) {
     DispatchContinuation(std::move(selectedCertBytes));
     return rv;
@@ -907,8 +907,8 @@ SECStatus SSLGetClientAuthDataHook(void* arg, PRFileDesc* socket,
       new SelectClientAuthCertificate(
           std::move(authInfo), std::move(serverCert),
           std::move(potentialClientCertificates),
-          std::move(potentialClientCertificateChains), continuation,
-          browserId));
+          std::move(potentialClientCertificateChains), std::move(caNames),
+          continuation, browserId));
   info->SetPendingSelectClientAuthCertificate(
       std::move(selectClientAuthCertificate));
 
@@ -1017,8 +1017,8 @@ bool SelectTLSClientAuthCertParent::Dispatch(
             new SelectClientAuthCertificate(
                 std::move(authInfo), std::move(serverCert),
                 std::move(potentialClientCertificates),
-                std::move(potentialClientCertificateChains), continuation,
-                browserId));
+                std::move(potentialClientCertificateChains),
+                std::move(caNamesArray), continuation, browserId));
         Unused << NS_DispatchToMainThread(selectClientAuthCertificate);
       }));
   return NS_SUCCEEDED(rv);

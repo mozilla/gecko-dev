@@ -25,7 +25,7 @@ internal class CertificatePicker(
             container.context as Activity,
             { alias -> promptRequest.onComplete(alias) },
             arrayOf("RSA", "EC"), // keyTypes
-            null, // issuers - currently not supported
+            promptRequest.issuers, // array of acceptable X.500 issuer Distinguished Names
             promptRequest.host, // the host that requested the certificate
             -1, // specify the default port to simplify the UI
             null, // alias - leave null for now to not preselect a certificate

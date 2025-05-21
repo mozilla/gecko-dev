@@ -59,7 +59,7 @@ const gClientAuthDialogService = {
     this._chooseCertificateCalled = value;
   },
 
-  chooseCertificate(hostname, certArray, loadContext, callback) {
+  chooseCertificate(hostname, certArray, loadContext, caNames, callback) {
     this.chooseCertificateCalled = true;
     Assert.notEqual(
       this.state,

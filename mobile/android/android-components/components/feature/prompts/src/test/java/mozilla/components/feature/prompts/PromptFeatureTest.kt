@@ -3347,7 +3347,7 @@ class PromptFeatureTest {
         )
         feature.certificatePicker = certificatePicker
         feature.start()
-        val certificateRequest = PromptRequest.CertificateRequest("exmaple.com", { })
+        val certificateRequest = PromptRequest.CertificateRequest("exmaple.com", null, { })
 
         store.dispatch(ContentAction.UpdatePromptRequestAction("custom-tab", certificateRequest))
             .joinBlocking()

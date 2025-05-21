@@ -22,7 +22,7 @@ let expectingChooseCertificate = false;
 let chooseCertificateCalled = false;
 
 const clientAuthDialogService = {
-  chooseCertificate(hostname, certArray, loadContext, callback) {
+  chooseCertificate(hostname, certArray, loadContext, caNames, callback) {
     ok(
       expectingChooseCertificate,
       `${

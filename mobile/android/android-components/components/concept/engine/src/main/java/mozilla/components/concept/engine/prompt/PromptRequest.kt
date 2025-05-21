@@ -16,6 +16,7 @@ import mozilla.components.concept.storage.Address
 import mozilla.components.concept.storage.CreditCardEntry
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
+import java.security.Principal
 import java.util.UUID
 
 /**
@@ -101,11 +102,13 @@ sealed class PromptRequest(
     /**
      * Value type that represents a request for a client authentication certificate prompt.
      * @property host the domain (or IP address) that requested the certificate.
+     * @property issuers array of X.500 Distinguished Names identified as acceptable issuers.
      * @property onComplete callback that is called with the chosen certificate alias (or null if
      * none was chosen) when the user deals with the prompt.
      */
     data class CertificateRequest(
         val host: String,
+        val issuers: Array<Principal>?,
         val onComplete: (String?) -> Unit,
     ) : PromptRequest()
 

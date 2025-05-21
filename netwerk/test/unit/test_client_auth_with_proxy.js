@@ -115,7 +115,7 @@ function startServer(cert) {
 
 // Replace the UI dialog that prompts the user to pick a client certificate.
 const clientAuthDialogService = {
-  chooseCertificate(hostname, certArray, loadContext, callback) {
+  chooseCertificate(hostname, certArray, loadContext, caNames, callback) {
     callback.certificateChosen(certArray[0], false);
   },
   QueryInterface: ChromeUtils.generateQI(["nsIClientAuthDialogService"]),

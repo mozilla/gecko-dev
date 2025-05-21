@@ -214,7 +214,7 @@ const gClientAuthDialogService = {
     this._selectCertificate = value;
   },
 
-  chooseCertificate(hostname, certArray, loadContext, callback) {
+  chooseCertificate(hostname, certArray, loadContext, caNames, callback) {
     if (this._selectCertificate) {
       callback.certificateChosen(certArray[0], false);
     } else {
