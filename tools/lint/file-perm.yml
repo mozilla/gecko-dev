@@ -8,6 +8,7 @@ file-perm:
         - .c
         - .cc
         - .cpp
+        - .css
         - .flac
         - .h
         - .html
