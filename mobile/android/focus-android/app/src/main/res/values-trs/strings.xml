@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -669,17 +669,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">Nārán riña sa unïnt ngà sa ni\'iājt</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">Nej ēstûdio</string>
+  <string name="preference_studies" moz:removedIn="140">Nej ēstûdio</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Ngà gā’hue gā’nïnj man nî ngà gā’hue gāyi’ì nej man gī’hiaj man ēstûdio.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Ngà gā’hue gā’nïnj man nî ngà gā’hue gāyi’ì nej man gī’hiaj man ēstûdio.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">Gāhuin chrūn doj</string>
+  <string name="studies_learn_more" moz:removedIn="140">Gāhuin chrūn doj</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">Nādure\'</string>
+  <string name="studies_remove" moz:removedIn="140">Nādure\'</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">Ngà \'hiaj sunj</string>
+  <string name="studies_active" moz:removedIn="140">Ngà \'hiaj sunj</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">Ngà gisîj</string>
+  <string name="studies_completed" moz:removedIn="140">Ngà gisîj</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Guyun sa kïj hua nga USB/Wi-Fi</string>
   <!-- Text Button for show biometric prompt -->

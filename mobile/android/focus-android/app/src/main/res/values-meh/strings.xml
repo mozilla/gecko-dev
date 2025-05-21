@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -682,17 +682,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">Kasɨ nasun ji tutu kana</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">Estudios</string>
+  <string name="preference_studies" moz:removedIn="140">Estudios</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox kuvi chu´un je sá´á estudios ntaka ichi.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox kuvi chu´un je sá´á estudios ntaka ichi.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">Kuni kue´eka</string>
+  <string name="studies_learn_more" moz:removedIn="140">Kuni kue´eka</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">Xita</string>
+  <string name="studies_remove" moz:removedIn="140">Xita</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">Activo</string>
+  <string name="studies_active" moz:removedIn="140">Activo</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">Completados</string>
+  <string name="studies_completed" moz:removedIn="140">Completados</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Depuración remota jii USB/Wi-Fi</string>
   <!-- Text Button for show biometric prompt -->

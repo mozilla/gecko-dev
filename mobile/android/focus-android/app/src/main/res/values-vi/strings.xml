@@ -710,17 +710,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">Chặn âm thanh và video</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">Nghiên cứu</string>
+  <string name="preference_studies" moz:removedIn="140">Nghiên cứu</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox có thể cài đặt và chạy các nghiên cứu theo thời gian.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox có thể cài đặt và chạy các nghiên cứu theo thời gian.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">Tìm hiểu thêm</string>
+  <string name="studies_learn_more" moz:removedIn="140">Tìm hiểu thêm</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">Xóa</string>
+  <string name="studies_remove" moz:removedIn="140">Xóa</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">Hoạt động</string>
+  <string name="studies_active" moz:removedIn="140">Hoạt động</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">Hoàn tất</string>
+  <string name="studies_completed" moz:removedIn="140">Hoàn tất</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Gỡ lỗi từ xa qua USB/Wi-Fi</string>
   <!-- Text Button for show biometric prompt -->

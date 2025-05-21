@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -677,17 +677,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">آڈیو تے وڈیو بلاک کرو</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">مطالعہ</string>
+  <string name="preference_studies" moz:removedIn="140">مطالعہ</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">فائرفوکس وقتاً فوقتاً مطالعہ انسٹال کرسڳدے تے چلا سڳدے۔</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">فائرفوکس وقتاً فوقتاً مطالعہ انسٹال کرسڳدے تے چلا سڳدے۔</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">ٻیا سِکھو</string>
+  <string name="studies_learn_more" moz:removedIn="140">ٻیا سِکھو</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">ہٹاؤ</string>
+  <string name="studies_remove" moz:removedIn="140">ہٹاؤ</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">فعال</string>
+  <string name="studies_active" moz:removedIn="140">فعال</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">مکمل تھی ڳیا</string>
+  <string name="studies_completed" moz:removedIn="140">مکمل تھی ڳیا</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">یوایس بی/وائی فائی دے ذریعے بعید ٹھیک کاری</string>
   <!-- Text Button for show biometric prompt -->

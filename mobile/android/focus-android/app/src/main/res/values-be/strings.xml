@@ -710,17 +710,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">Блакіраваць гук і відэа</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">Даследаванні</string>
+  <string name="preference_studies" moz:removedIn="140">Даследаванні</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox можа ўсталёўваць і выконваць даследаванні час ад часу.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox можа ўсталёўваць і выконваць даследаванні час ад часу.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">Падрабязней</string>
+  <string name="studies_learn_more" moz:removedIn="140">Падрабязней</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">Выдаліць</string>
+  <string name="studies_remove" moz:removedIn="140">Выдаліць</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">Актыўна</string>
+  <string name="studies_active" moz:removedIn="140">Актыўна</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">Скончана</string>
+  <string name="studies_completed" moz:removedIn="140">Скончана</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Аддаленая адладка праз USB/Wi-Fi</string>
   <!-- Text Button for show biometric prompt -->

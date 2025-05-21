@@ -710,17 +710,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">Estä ääni ja video</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">Tutkimukset</string>
+  <string name="preference_studies" moz:removedIn="140">Tutkimukset</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox saattaa asentaa ja suorittaa tutkimuksia silloin tällöin.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox saattaa asentaa ja suorittaa tutkimuksia silloin tällöin.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">Lue lisää</string>
+  <string name="studies_learn_more" moz:removedIn="140">Lue lisää</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">Poista</string>
+  <string name="studies_remove" moz:removedIn="140">Poista</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">Käynnissä</string>
+  <string name="studies_active" moz:removedIn="140">Käynnissä</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">Valmistuneet</string>
+  <string name="studies_completed" moz:removedIn="140">Valmistuneet</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Etävianjäljitys USB:n/Wi-Fi:n välityksellä</string>
   <!-- Text Button for show biometric prompt -->

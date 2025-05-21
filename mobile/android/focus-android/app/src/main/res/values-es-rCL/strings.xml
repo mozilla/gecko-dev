@@ -710,17 +710,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">Bloquear audio y video</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">Estudios</string>
+  <string name="preference_studies" moz:removedIn="140">Estudios</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox podría instalar y realizar experimentos de vez en cuando.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox podría instalar y realizar experimentos de vez en cuando.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">Aprender más</string>
+  <string name="studies_learn_more" moz:removedIn="140">Aprender más</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">Eliminar</string>
+  <string name="studies_remove" moz:removedIn="140">Eliminar</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">Activos</string>
+  <string name="studies_active" moz:removedIn="140">Activos</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">Completado</string>
+  <string name="studies_completed" moz:removedIn="140">Completado</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Depuración remota vía USB/Wi-Fi</string>
   <!-- Text Button for show biometric prompt -->

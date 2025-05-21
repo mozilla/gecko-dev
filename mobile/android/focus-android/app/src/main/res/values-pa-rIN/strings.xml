@@ -710,17 +710,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">ਆਡੀਓ ਅਤੇ ਵੀਡਿਓ ਤੇ ਪਾਬੰਦੀ ਲਾਓ</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">ਅਧਿਐਨ</string>
+  <string name="preference_studies" moz:removedIn="140">ਅਧਿਐਨ</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox ਸਮੇਂ ਸਮੇਂ ਉੱਤੇ ਅਧਿਐਨ ਇੰਸਟਾਲ ਕਰ ਤੇ ਚਲਾ ਸਕਦਾ ਹੈ।</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox ਸਮੇਂ ਸਮੇਂ ਉੱਤੇ ਅਧਿਐਨ ਇੰਸਟਾਲ ਕਰ ਤੇ ਚਲਾ ਸਕਦਾ ਹੈ।</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">ਹੋਰ ਜਾਣੋ</string>
+  <string name="studies_learn_more" moz:removedIn="140">ਹੋਰ ਜਾਣੋ</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">ਹਟਾਓ</string>
+  <string name="studies_remove" moz:removedIn="140">ਹਟਾਓ</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">ਸਰਗਰਮ</string>
+  <string name="studies_active" moz:removedIn="140">ਸਰਗਰਮ</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">ਪੂਰਾ ਹੋਇਆ</string>
+  <string name="studies_completed" moz:removedIn="140">ਪੂਰਾ ਹੋਇਆ</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">USB//Wi-Fi ਰਾਹੀਂ ਰਿਮੋਟ ਡੀਬੱਗ ਕਰਨਾ</string>
   <!-- Text Button for show biometric prompt -->

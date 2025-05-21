@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -441,11 +441,11 @@
   <!-- Label that indicates that a permission must be asked always -->
   <string name="preference_option_phone_feature_ask_to_allow">అనుమతిని అడుగు</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">అధ్యయనాలు</string>
+  <string name="preference_studies" moz:removedIn="140">అధ్యయనాలు</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">ఇంకా తెలుసుకోండి</string>
+  <string name="studies_learn_more" moz:removedIn="140">ఇంకా తెలుసుకోండి</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">తీసివేయి</string>
+  <string name="studies_remove" moz:removedIn="140">తీసివేయి</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">USB/Wi-Fi ద్వారా రిమోట్ డీబగ్గింగ్</string>
   <!-- Description for the fingerprint authentication image. Used for accessibility purposes. -->

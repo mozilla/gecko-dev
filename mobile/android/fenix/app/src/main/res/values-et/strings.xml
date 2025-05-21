@@ -541,6 +541,14 @@
   <string name="wallpaper_updated_snackbar_message">Taustpilt uuendatud!</string>
   <!-- Snackbar label for action to view selected wallpaper -->
   <string name="wallpaper_updated_snackbar_action">Vaata</string>
+  <!--
+    Account Preferences
+
+    Preference for managing your account via accounts.firefox.com
+  -->
+  <string name="preferences_manage_account">Konto haldamine</string>
+  <!-- Summary of the preference for managing your account via accounts.firefox.com. -->
+  <string name="preferences_manage_account_summary">Parooli muutmine, andmete kogumise haldamine või konto kustutamine</string>
   <!-- Preference for triggering sync -->
   <string name="preferences_sync_now">Sünkroniseeri kohe</string>
   <!-- Preference category for sync -->

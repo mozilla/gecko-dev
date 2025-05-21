@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -675,17 +675,17 @@
   <!-- Preference for block autoplay audio and video -->
   <string name="preference_block_autoplay_audio_video">Lettya sonadow ha gwydhyow</string>
   <!-- Preference for studies -->
-  <string name="preference_studies">Studhyansow</string>
+  <string name="preference_studies" moz:removedIn="140">Studhyansow</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage">Possybyl yw y hwra lea ha gweythresa Firefox studhyansow a dermyn dhe dermyn.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Possybyl yw y hwra lea ha gweythresa Firefox studhyansow a dermyn dhe dermyn.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
-  <string name="studies_learn_more">Dyski moy</string>
+  <string name="studies_learn_more" moz:removedIn="140">Dyski moy</string>
   <!-- Title of the remove studies button -->
-  <string name="studies_remove">Dilea</string>
+  <string name="studies_remove" moz:removedIn="140">Dilea</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active">Gweythresek</string>
+  <string name="studies_active" moz:removedIn="140">Gweythresek</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed">Kowlwrys</string>
+  <string name="studies_completed" moz:removedIn="140">Kowlwrys</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Dispryvya a-bell dre USB/Wi-Fi</string>
   <!-- Text Button for show biometric prompt -->
