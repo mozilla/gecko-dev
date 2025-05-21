@@ -620,24 +620,9 @@ def write_mozbuild(topsrcdir, write_mozbuild_variables, relsrcdir, configs):
 def write_mozbuild_files(
     topsrcdir,
     srcdir,
-    non_unified_sources,
-    gn_configs,
-    mozilla_flags,
+    all_mozbuild_results,
     write_mozbuild_variables,
 ):
-    all_mozbuild_results = []
-
-    for gn_config in gn_configs:
-        mozbuild_attrs = process_gn_config(
-            gn_config,
-            topsrcdir,
-            srcdir,
-            non_unified_sources,
-            gn_config["sandbox_vars"],
-            mozilla_flags,
-        )
-        all_mozbuild_results.append(mozbuild_attrs)
-
     # Translate {config -> {dirs -> build info}} into
     #           {dirs -> [(config, build_info)]}
     configs_by_dir = defaultdict(list)
@@ -710,6 +695,7 @@ def write_mozbuild_files(
 
 
 def generate_gn_config(
+    topsrcdir,
     build_root_dir,
     target_dir,
     gn_binary,
@@ -717,11 +703,16 @@ def generate_gn_config(
     sandbox_variables,
     gn_target,
     moz_build_flag,
+    non_unified_sources,
+    mozilla_flags,
 ):
     def str_for_arg(v):
         if v in (True, False):
             return str(v).lower()
         return '"%s"' % v
+
+    build_root_dir = topsrcdir / build_root_dir
+    srcdir = build_root_dir / target_dir
 
     input_variables = input_variables.copy()
     input_variables.update(
@@ -782,6 +773,14 @@ def generate_gn_config(
                 input_variables,
                 gn_target,
             )
+            gn_config = process_gn_config(
+                gn_config,
+                topsrcdir,
+                srcdir,
+                non_unified_sources,
+                gn_config["sandbox_vars"],
+                mozilla_flags,
+            )
             return gn_config
 
 
@@ -836,13 +835,16 @@ def main():
         futures = {
             executor.submit(
                 generate_gn_config,
-                topsrcdir / config["build_root_dir"],
+                topsrcdir,
+                config["build_root_dir"],
                 config["target_dir"],
                 gn_binary,
                 vars,
                 config["gn_sandbox_variables"],
                 config["gn_target"],
                 config["moz_build_flag"],
+                config["non_unified_sources"],
+                config["mozilla_flags"],
             ): vars
             for vars in vars_set
         }
@@ -860,9 +862,7 @@ def main():
     write_mozbuild_files(
         topsrcdir,
         topsrcdir / config["build_root_dir"] / config["target_dir"],
-        config["non_unified_sources"],
         gn_configs,
-        config["mozilla_flags"],
         config["write_mozbuild_variables"],
     )
 
