@@ -60,12 +60,16 @@ class ProviderSemanticHistorySearch extends UrlbarProvider {
    */
   ensureSemanticManagerInitialized() {
     if (!this.#semanticManager) {
+      const distanceThreshold = Services.prefs.getFloatPref(
+        "places.semanticHistory.distanceThreshold",
+        0.75
+      );
       this.#semanticManager = new PlacesSemanticHistoryManager({
         embeddingSize: 384,
         rowLimit: 10000,
         samplingAttrib: "frecency",
         changeThresholdCount: 3,
-        distanceThreshold: 0.75,
+        distanceThreshold,
       });
     }
     return this.#semanticManager;

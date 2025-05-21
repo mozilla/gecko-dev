@@ -519,6 +519,14 @@ urlbar:
       description: >-
         Fraction (0.0 – 1.0) of top Places rows that must have embeddings
         before semantic-history search is enabled. 0.5 = 50 %.
+    semanticHistoryDistanceThreshold:
+      type: string
+      setPref:
+        branch: user
+        pref: places.semanticHistory.distanceThreshold
+      description: >-
+        semantic similarity distance threshold (0.0 - 1.0)
+        defaulted at 0.75.
     suggestSemanticHistoryMinLength:
       type: int
       setPref:
