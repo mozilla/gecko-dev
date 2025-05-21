@@ -1562,9 +1562,10 @@ class AbstractFetchDownloadServiceTest {
         val notificationStyle = AbstractFetchDownloadService.Style()
         val notification = DownloadNotification.createOngoingDownloadNotification(
             context = testContext,
-            downloadJobState = downloadState,
+            downloadState = downloadState.state,
             fileSizeFormatter = fakeFileSizeFormatter,
             notificationAccentColor = notificationStyle.notificationAccentColor,
+            downloadEstimator = downloadState.downloadEstimator,
         )
 
         NotificationManagerCompat.from(testContext).notify(downloadState.foregroundServiceId, notification)

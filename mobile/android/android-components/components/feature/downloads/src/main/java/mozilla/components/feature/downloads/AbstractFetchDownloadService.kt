@@ -406,25 +406,29 @@ abstract class AbstractFetchDownloadService : Service() {
         val notification = when (latestUIStatus) {
             DOWNLOADING -> DownloadNotification.createOngoingDownloadNotification(
                 context = context,
-                downloadJobState = download,
+                downloadState = download.state,
                 fileSizeFormatter = fileSizeFormatter,
                 notificationAccentColor = style.notificationAccentColor,
+                downloadEstimator = download.downloadEstimator,
             )
             PAUSED -> DownloadNotification.createPausedDownloadNotification(
                 context,
-                download,
+                download.state,
+                download.createdTime,
                 style.notificationAccentColor,
             )
             FAILED -> DownloadNotification.createDownloadFailedNotification(
                 context,
-                download,
+                download.state,
+                download.createdTime,
                 style.notificationAccentColor,
             )
             COMPLETED -> {
                 addToDownloadSystemDatabaseCompat(download.state, scope)
                 DownloadNotification.createDownloadCompletedNotification(
                     context,
-                    download,
+                    download.state,
+                    download.createdTime,
                     style.notificationAccentColor,
                 )
             }
@@ -633,9 +637,10 @@ abstract class AbstractFetchDownloadService : Service() {
         val notification =
             DownloadNotification.createOngoingDownloadNotification(
                 context = context,
-                downloadJobState = downloadJobState,
+                downloadState = downloadJobState.state,
                 fileSizeFormatter = fileSizeFormatter,
                 notificationAccentColor = style.notificationAccentColor,
+                downloadEstimator = downloadJobState.downloadEstimator,
             )
         compatForegroundNotificationId = downloadJobState.foregroundServiceId
 
