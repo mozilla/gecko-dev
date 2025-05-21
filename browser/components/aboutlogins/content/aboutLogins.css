@@ -9,7 +9,7 @@
 }
 
 html {
-   position: fixed;
+  position: fixed;
 }
 html,
 body {
@@ -82,7 +82,7 @@ login-item[data-editing="true"] + login-intro,
 .primary-password-auth-required > body > header,
 .primary-password-auth-required > body > login-list,
 .primary-password-auth-required > body > section {
-  filter: blur(2px)
+  filter: blur(2px);
 }
 
 #primary-password-required-overlay {
@@ -90,7 +90,7 @@ login-item[data-editing="true"] + login-intro,
   position: fixed;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0,0,0,0.2);
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
 body > section {

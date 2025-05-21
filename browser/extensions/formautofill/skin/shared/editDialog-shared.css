@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :root {
-  --in-field-label-size: .8em;
+  --in-field-label-size: 0.8em;
   --grid-column-row-gap: 8px;
   /* Use the animation-easing-function that is defined in global-shared.css. */
-  --animation-easing-function: cubic-bezier(.07,.95,0,1);
+  --animation-easing-function: cubic-bezier(0.07, 0.95, 0, 1);
 }
 
 /* The overly specific input attributes are required to override
@@ -17,7 +17,7 @@ form input[type="text"],
 form textarea,
 form select {
   flex-grow: 1;
-  padding-top: calc(var(--in-field-label-size) + .4em);
+  padding-top: calc(var(--in-field-label-size) + 0.4em);
 }
 
 form input[type="tel"] {
@@ -50,12 +50,13 @@ form div {
 
 form :is(label, div) .label-text {
   position: absolute;
-  opacity: .5;
+  opacity: 0.5;
   pointer-events: none;
   inset-inline-start: 10px;
-  top: .2em;
-  transition: top .2s var(--animation-easing-function),
-              font-size .2s var(--animation-easing-function);
+  top: 0.2em;
+  transition:
+    top 0.2s var(--animation-easing-function),
+    font-size 0.2s var(--animation-easing-function);
 }
 
 form :is(label, div):focus-within .label-text,

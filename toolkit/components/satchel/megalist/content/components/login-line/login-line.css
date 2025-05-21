@@ -8,7 +8,7 @@
   --inner-border-radius: calc(var(--outer-border-radius) - 2px);
   --alert-color: var(--icon-color-warning);
   --input-field-color: var(--link-color);
-  --input-field-color-hover:  var(--button-text-color-hover);
+  --input-field-color-hover: var(--button-text-color-hover);
   --copy-tansition: opacity 250ms linear;
   background-color: var(--background-color-box);
   color: inherit;
@@ -209,7 +209,7 @@
   margin: 0;
   height: var(--icon-size-default);
   width: var(--icon-size-default);
- -moz-context-properties: fill;
+  -moz-context-properties: fill;
   fill: var(--icon-color);
 }
 

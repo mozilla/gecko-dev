@@ -78,7 +78,7 @@ login-form {
   gap: var(--space-small);
 
   > moz-button {
-    width: 100%
+    width: 100%;
   }
 }
 
