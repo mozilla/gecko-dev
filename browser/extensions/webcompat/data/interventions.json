@@ -616,7 +616,7 @@
     ]
   },
   "1769762": {
-    "label": "tiktok.com",
+    "label": "tiktok.com (broken comments)",
     "bugs": {
       "1769762": {
         "issue": "broken-comments",
@@ -2693,7 +2693,7 @@
     ]
   },
   "1924500": {
-    "label": "www.tiktok.com",
+    "label": "tiktok.com (broken captcha slider)",
     "bugs": {
       "1924500": {
         "issue": "broken-captcha",
@@ -3140,6 +3140,23 @@
           "js": [
             "bug1945019-order.mealkeyway.com-prevent-unsupported-message.js"
           ]
+        }
+      }
+    ]
+  },
+  "1945438": {
+    "label": "tiktok.com (extra scrollbars)",
+    "bugs": {
+      "1945438": {
+        "issue": "extra-scrollbars",
+        "matches": ["*://www.tiktok.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "css": ["bug1945438-www.tiktok.com-hide-extra-scrollbars.css"]
         }
       }
     ]
