@@ -699,46 +699,26 @@ bool UrlClassifierCommon::ShouldProcessWithProtectionFeature(
   MOZ_ASSERT(aChannel);
 
   bool shouldProcess = true;
-  bool isPrivateMode = NS_UsePrivateBrowsing(aChannel);
+
+  if (!(StaticPrefs::privacy_trackingprotection_consentmanager_skip_enabled() ||
+        (StaticPrefs::
+             privacy_trackingprotection_consentmanager_skip_pbmode_enabled() &&
+         NS_UsePrivateBrowsing(aChannel)))) {
+    return shouldProcess;
+  }
 
   nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
       do_QueryInterface(aChannel);
 
   if (classifiedChannel) {
-    if (classifiedChannel->GetClassificationFlags() &
-        nsIClassifiedChannel::ClassificationFlags::CLASSIFIED_CONSENTMANAGER) {
-      // Channel is classified as consent manager
-      if (StaticPrefs::
-              privacy_trackingprotection_consentmanager_skip_enabled() ||
-          (StaticPrefs::
-               privacy_trackingprotection_consentmanager_skip_pbmode_enabled() &&
-           isPrivateMode)) {
-        // Don't process channel
-        shouldProcess = false;
+    shouldProcess =
+        !(classifiedChannel->GetClassificationFlags() &
+          nsIClassifiedChannel::ClassificationFlags::CLASSIFIED_CONSENTMANAGER);
 
-        UC_LOG(
-            ("UrlClassifierCommon::ShouldProcessWithProtectionFeature - "
-             "Skipping channel %p because annotated as a consent manager",
-             aChannel));
-      }
-    }
-
-    if (classifiedChannel->GetClassificationFlags() &
-        nsIClassifiedChannel::ClassificationFlags::CLASSIFIED_ANTIFRAUD) {
-      // Channel is classified as anti-fraud
-      if (StaticPrefs::privacy_trackingprotection_antifraud_skip_enabled() ||
-          (StaticPrefs::
-               privacy_trackingprotection_antifraud_skip_pbmode_enabled() &&
-           isPrivateMode)) {
-        // Don't process channel
-        shouldProcess = false;
-
-        UC_LOG(
-            ("UrlClassifierCommon::ShouldProcessWithProtectionFeature - "
-             "Skipping channel %p because it is annotated as anti-fraud",
-             aChannel));
-      }
-    }
+    UC_LOG(
+        ("UrlClassifierCommon::ShouldProcessWithProtectionFeature - "
+         "shouldProcess=%d for channel %p",
+         shouldProcess, aChannel));
   }
 
   return shouldProcess;
