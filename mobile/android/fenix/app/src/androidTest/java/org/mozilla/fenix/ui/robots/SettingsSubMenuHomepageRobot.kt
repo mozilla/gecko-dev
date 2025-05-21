@@ -207,11 +207,11 @@ class SettingsSubMenuHomepageRobot {
                 )
             Log.i(TAG, "verifyHomePageView: Verified that the \"Recently visited\" toggle is not checked")
         }
-        Log.i(TAG, "verifyHomePageView: Trying to verify that the \"Thought-provoking stories\" option is visible")
+        Log.i(TAG, "verifyHomePageView: Trying to verify that the \"Stories\" option is visible")
         pocketButton().check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
-        Log.i(TAG, "verifyHomePageView: Verified that the \"Thought-provoking stories\" option is visible")
+        Log.i(TAG, "verifyHomePageView: Verified that the \"Stories\" option is visible")
         if (pocketSwitchEnabled) {
-            Log.i(TAG, "verifyHomePageView: Trying to verify that the \"Thought-provoking stories\" toggle is checked")
+            Log.i(TAG, "verifyHomePageView: Trying to verify that the \"Stories\" toggle is checked")
             pocketButton()
                 .check(
                     matches(
@@ -223,9 +223,9 @@ class SettingsSubMenuHomepageRobot {
                         ),
                     ),
                 )
-            Log.i(TAG, "verifyHomePageView: Verified that the \"Thought-provoking stories\" toggle is checked")
+            Log.i(TAG, "verifyHomePageView: Verified that the \"Stories\" toggle is checked")
         } else {
-            Log.i(TAG, "verifyHomePageView: Trying to verify that the \"Thought-provoking stories\" toggle is not checked")
+            Log.i(TAG, "verifyHomePageView: Trying to verify that the \"Stories\" toggle is not checked")
             pocketButton()
                 .check(
                     matches(
@@ -237,7 +237,7 @@ class SettingsSubMenuHomepageRobot {
                         ),
                     ),
                 )
-            Log.i(TAG, "verifyHomePageView: Verified that the \"Thought-provoking stories\" toggle is not checked")
+            Log.i(TAG, "verifyHomePageView: Verified that the \"Stories\" toggle is not checked")
         }
         Log.i(TAG, "verifyHomePageView: Trying to verify that the \"Sponsored stories\" option is visible")
         sponsoredStoriesButton().check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
@@ -337,9 +337,9 @@ class SettingsSubMenuHomepageRobot {
     }
 
     fun clickPocketButton() {
-        Log.i(TAG, "clickPocketButton: Trying to click the \"Thought-provoking stories\" option")
+        Log.i(TAG, "clickPocketButton: Trying to click the \"Stories\" option")
         pocketButton().click()
-        Log.i(TAG, "clickPocketButton: Clicked the \"Thought-provoking stories\" option")
+        Log.i(TAG, "clickPocketButton: Clicked the \"Stories\" option")
     }
 
     fun clickOpeningScreenOption(openingScreenOption: String) {
@@ -450,7 +450,7 @@ private fun recentlyVisitedButton() =
     onView(allOf(withText(R.string.customize_toggle_recently_visited)))
 
 private fun pocketButton() =
-    onView(allOf(withText(R.string.customize_toggle_pocket_2)))
+    onView(allOf(withText(R.string.customize_toggle_pocket_3)))
 
 private fun sponsoredStoriesButton() =
     onView(allOf(withText(R.string.customize_toggle_pocket_sponsored)))

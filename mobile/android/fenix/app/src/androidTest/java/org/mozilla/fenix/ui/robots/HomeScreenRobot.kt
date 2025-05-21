@@ -459,9 +459,9 @@ class HomeScreenRobot {
 
     fun verifyThoughtProvokingStories(enabled: Boolean) {
         if (enabled) {
-            assertUIObjectExists(itemContainingText(getStringResource(R.string.pocket_stories_header_1)))
+            assertUIObjectExists(itemContainingText(getStringResource(R.string.pocket_stories_header_2)))
         } else {
-            assertUIObjectExists(itemContainingText(getStringResource(R.string.pocket_stories_header_1)), exists = false)
+            assertUIObjectExists(itemContainingText(getStringResource(R.string.pocket_stories_header_2)), exists = false)
         }
     }
 
@@ -474,9 +474,9 @@ class HomeScreenRobot {
     }
 
     fun verifyPocketRecommendedStoriesItems(composeTestRule: ComposeTestRule) {
-        Log.i(TAG, "verifyPocketRecommendedStoriesItems: Trying to scroll into view the \"Thought-provoking stories\" pocket section")
+        Log.i(TAG, "verifyPocketRecommendedStoriesItems: Trying to scroll into view the \"Stories\" pocket section")
         composeTestRule.onNodeWithTag("homepage.view").performScrollToNode(hasTestTag("pocket.stories"))
-        Log.i(TAG, "verifyPocketRecommendedStoriesItems: Scrolled into view the \"Thought-provoking stories\" pocket section")
+        Log.i(TAG, "verifyPocketRecommendedStoriesItems: Scrolled into view the \"Stories\" pocket section")
         for (position in 0..8) {
             Log.i(TAG, "verifyPocketRecommendedStoriesItems: Trying to scroll into view the featured pocket story from position: $position")
             pocketStoriesList().scrollIntoView(UiSelector().index(position))
@@ -501,9 +501,9 @@ class HomeScreenRobot {
 //    }
 
     fun verifyDiscoverMoreStoriesButton(composeTestRule: ComposeTestRule) {
-        Log.i(TAG, "verifyDiscoverMoreStoriesButton: Trying to scroll into view the \"Thought-provoking stories\" pocket section")
+        Log.i(TAG, "verifyDiscoverMoreStoriesButton: Trying to scroll into view the \"Stories\" pocket section")
         composeTestRule.onNodeWithTag("homepage.view").performScrollToNode(hasTestTag("pocket.stories"))
-        Log.i(TAG, "verifyDiscoverMoreStoriesButton: Scrolled into view the \"Thought-provoking stories\" pocket section")
+        Log.i(TAG, "verifyDiscoverMoreStoriesButton: Scrolled into view the \"Stories\" pocket section")
         Log.i(TAG, "verifyDiscoverMoreStoriesButton: Trying to scroll into view the Pocket \"Discover more\" button")
         composeTestRule.onNodeWithTag("pocket.stories").performScrollToNode(hasText("Discover more"))
         Log.i(TAG, "verifyDiscoverMoreStoriesButton: Scrolled into view the Pocket \"Discover more\" button")

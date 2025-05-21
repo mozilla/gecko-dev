@@ -29,7 +29,7 @@
 
     <androidx.preference.SwitchPreference
         android:key="@string/pref_key_pocket_homescreen_recommendations"
-        android:title="@string/customize_toggle_pocket_2"
+        android:title="@string/customize_toggle_pocket_3"
         android:summary="@string/customize_toggle_pocket_summary" />
 
     <androidx.preference.CheckBoxPreference
