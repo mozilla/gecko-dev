@@ -36,6 +36,7 @@ UNIFIED_SOURCES += [
     "UrlClassifierCommon.cpp",
     "UrlClassifierExceptionList.cpp",
     "UrlClassifierExceptionListEntry.cpp",
+    "UrlClassifierFeatureAntiFraudAnnotation.cpp",
     "UrlClassifierFeatureBase.cpp",
     "UrlClassifierFeatureConsentManagerAnnotation.cpp",
     "UrlClassifierFeatureCryptominingAnnotation.cpp",
