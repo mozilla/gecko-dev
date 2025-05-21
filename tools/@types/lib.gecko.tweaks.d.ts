@@ -131,3 +131,13 @@ interface XULBrowserElement extends XULFrameElement, FrameLoader {
 interface Localization {
   formatValuesSync(aKeys: L10nKey[]): (string | null)[];
 }
+
+/**
+ * Redefine the DOMStringMap interface to match its implementation.
+ * xref Bug 1965336.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMStringMap)
+ */
+interface DOMStringMap {
+  [name: string]: string | undefined;
+}
