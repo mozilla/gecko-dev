@@ -29,30 +29,22 @@ add_task(
       onOpenPanel: SelectTranslationsTestUtils.assertPanelViewTranslated,
     });
 
+    await SelectTranslationsTestUtils.clickDoneButton();
+
     await waitForTranslationModelRecordsChanged(() => {
       Services.prefs.setBoolPref(
         "browser.translations.useLexicalShortlist",
         true
       );
     });
-    await SelectTranslationsTestUtils.changeSelectedToLanguage(["es"], {
-      openDropdownMenu: false,
-      pivotTranslation: true,
-      downloadHandler: resolveDownloads,
-      onChangeLanguage: SelectTranslationsTestUtils.assertPanelViewTranslated,
-    });
 
-    await waitForTranslationModelRecordsChanged(() => {
-      Services.prefs.setBoolPref(
-        "browser.translations.useLexicalShortlist",
-        false
-      );
-    });
-    await SelectTranslationsTestUtils.changeSelectedToLanguage(["uk"], {
-      openDropdownMenu: false,
-      pivotTranslation: true,
+    await SelectTranslationsTestUtils.openPanel(runInPage, {
+      selectFrenchSentence: true,
+      openAtFrenchSentence: true,
+      expectedFromLanguage: "fr",
+      expectedToLanguage: "en",
       downloadHandler: resolveDownloads,
-      onChangeLanguage: SelectTranslationsTestUtils.assertPanelViewTranslated,
+      onOpenPanel: SelectTranslationsTestUtils.assertPanelViewTranslated,
     });
 
     await SelectTranslationsTestUtils.clickDoneButton();
@@ -87,30 +79,22 @@ add_task(
       onOpenPanel: SelectTranslationsTestUtils.assertPanelViewTranslated,
     });
 
+    await SelectTranslationsTestUtils.clickDoneButton();
+
     await waitForTranslationModelRecordsChanged(() => {
       Services.prefs.setBoolPref(
         "browser.translations.useLexicalShortlist",
         false
       );
     });
-    await SelectTranslationsTestUtils.changeSelectedToLanguage(["es"], {
-      openDropdownMenu: false,
-      pivotTranslation: true,
-      downloadHandler: resolveDownloads,
-      onChangeLanguage: SelectTranslationsTestUtils.assertPanelViewTranslated,
-    });
 
-    await waitForTranslationModelRecordsChanged(() => {
-      Services.prefs.setBoolPref(
-        "browser.translations.useLexicalShortlist",
-        true
-      );
-    });
-    await SelectTranslationsTestUtils.changeSelectedToLanguage(["uk"], {
-      openDropdownMenu: false,
-      pivotTranslation: true,
+    await SelectTranslationsTestUtils.openPanel(runInPage, {
+      selectFrenchSentence: true,
+      openAtFrenchSentence: true,
+      expectedFromLanguage: "fr",
+      expectedToLanguage: "en",
       downloadHandler: resolveDownloads,
-      onChangeLanguage: SelectTranslationsTestUtils.assertPanelViewTranslated,
+      onOpenPanel: SelectTranslationsTestUtils.assertPanelViewTranslated,
     });
 
     await SelectTranslationsTestUtils.clickDoneButton();
