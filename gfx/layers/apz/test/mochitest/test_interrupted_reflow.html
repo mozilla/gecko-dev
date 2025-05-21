@@ -23,7 +23,8 @@ if (isApzEnabled()) {
   var w = null;
   window.onload = async () => {
     await pushPrefs([["apz.test.logging_enabled", true],
-                     ["apz.displayport_expiry_ms", 0]]);
+                     ["apz.displayport_expiry_ms", 0],
+                     ["layout.scroll.disable-pixel-alignment", true]]);
 
     w = window.open("helper_interrupted_reflow.html", "_blank");
   };
