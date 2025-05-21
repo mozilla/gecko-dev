@@ -7,12 +7,17 @@
     border-radius: var(--border-radius-medium);
     box-shadow: $shadow-card;
 
-    .img-wrapper .img {
-      img,
-      .placeholder-image {
-        border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
-      }
+    img,
+    .placeholder-image {
+      border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
     }
+  }
+}
+
+.ds-card.refined-cards:not(.placeholder) {
+  .img-wrapper .img {
+    height: 172px;
+    width: 100%;
   }
 }
 
@@ -121,12 +126,15 @@
   display: grid;
   grid-gap: 24px;
   position: relative;
-  // Bug 1926056: Row/column Gap spacing to allow for IAB fixed ad sizes
-  row-gap: 24px;
-  column-gap: 18px;
 
   &.ds-card-grid-compact {
     grid-gap: 20px;
+  }
+
+  &.ad-sizing-variant-a,
+  &.ad-sizing-variant-b {
+    row-gap: 24px;
+    column-gap: 18px;
   }
 
   &.ds-card-grid-recent-saves {
