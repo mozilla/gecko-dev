@@ -106,10 +106,9 @@ xul|separator.groove[orient="vertical"] {
     > .menu-text {
       /* Padding should follow the 4/12 ratio, where 12px is the default font-size
          with 4px being the preferred padding size. */
-      padding-block: .3333em;
+      padding-block: 0.3333em;
     }
   }
-
 
   > menucaption > .menu-text {
     font-weight: bold;
@@ -129,5 +128,5 @@ xul|separator.groove[orient="vertical"] {
 #ContentSelectDropdown > .isOpenedViaTouch > menuitem > .menu-text {
   /* Touch padding should follow the 11/12 ratio, where 12px is the default
      font-size with 11px being the preferred padding size. */
-  padding-block: .9167em;
+  padding-block: 0.9167em;
 }

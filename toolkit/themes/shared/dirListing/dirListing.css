@@ -23,7 +23,7 @@ body {
 
 h1 {
   font-size: 160%;
-  margin: 0 0 .6em;
+  margin: 0 0 0.6em;
   border-bottom: 1px solid ThreeDLightShadow;
   font-weight: normal;
 }
@@ -84,7 +84,7 @@ td:not(:first-child) {
 }
 
 .up {
-  padding: 0 .5em;
+  padding: 0 0.5em;
   margin-inline-start: 20px;
 }
 

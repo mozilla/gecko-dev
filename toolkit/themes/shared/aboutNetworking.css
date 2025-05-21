@@ -42,7 +42,7 @@ body {
   pointer-events: none;
 }
 
-@media (max-width: 830px){
+@media (max-width: 830px) {
   #categories > .category {
     padding-inline-start: 5px;
     margin-inline-start: 0;
@@ -63,7 +63,9 @@ body {
   width: 100%;
 }
 
-th, td, table {
+th,
+td,
+table {
   border-collapse: collapse;
   border: none;
   text-align: start;

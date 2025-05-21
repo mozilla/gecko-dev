@@ -5,7 +5,7 @@
 richlistitem[type] {
   min-height: 36px; /* Don't forget to update the richlistbox height! */
   padding-inline-start: 2px;
- }
+}
 
 richlistitem {
   align-items: center;

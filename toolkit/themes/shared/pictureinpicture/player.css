@@ -53,7 +53,9 @@ body:fullscreen {
 
   .player-holder {
     will-change: opacity, filter;
-    transition: opacity 160ms linear, filter 160ms linear;
+    transition:
+      opacity 160ms linear,
+      filter 160ms linear;
 
     body:hover:not(:fullscreen) & {
       opacity: 0.35;
@@ -85,7 +87,7 @@ browser {
 #controls button:focus-visible,
 #controls input:focus-visible,
 .switch > input:focus-visible + .slider {
-  outline: 3px solid #0060DF;
+  outline: 3px solid #0060df;
   box-shadow: 1px 2px 5px #000;
 }
 
@@ -95,7 +97,10 @@ browser {
 #controls-bottom-gradient {
   background: linear-gradient(0deg, #000000 -13.24%, rgba(0, 0, 0, 0) 90.44%);
   position: absolute;
-  height: calc(var(--controls-bottom-distance) + 2 * var(--resize-margin) + var(--player-control-item-height) + var(--controls-bottom-upper-height) + var(--scrubber-vertical-margin));
+  height: calc(
+    var(--controls-bottom-distance) + 2 * var(--resize-margin) + var(--player-control-item-height) + var(--controls-bottom-upper-height) +
+      var(--scrubber-vertical-margin)
+  );
   bottom: 0;
   width: 100vw;
   margin: 0 calc(-1 * var(--resize-margin)) calc(-1 * var(--resize-margin)) calc(-1 * var(--resize-margin));
@@ -138,7 +143,9 @@ browser {
 
 .control-item {
   -moz-window-dragging: no-drag;
-  transition: opacity 160ms linear, fill-opacity 160ms linear;
+  transition:
+    opacity 160ms linear,
+    fill-opacity 160ms linear;
   opacity: 0;
   cursor: pointer;
 }
@@ -163,7 +170,7 @@ browser {
 }
 
 .control-button:hover:enabled {
-  background-color: rgba(255, 255, 255, .25);
+  background-color: rgba(255, 255, 255, 0.25);
 }
 
 #controls:is([keying], [showing]) .control-button:disabled,
@@ -182,7 +189,7 @@ body:not(:fullscreen) #controls:hover .control-button:disabled {
   display: inline-block;
   width: max-content;
   position: relative;
-  padding: .4em .5em;
+  padding: 0.4em 0.5em;
   background: #000000;
   color: #ffffff;
   border-radius: 4px;
@@ -289,14 +296,14 @@ body:not(:fullscreen) #controls:hover #timestamp {
 
 #close,
 #unpip {
-  background-color: rgba(255, 255, 255, .8);
+  background-color: rgba(255, 255, 255, 0.8);
   position: absolute;
   fill: var(--close-btn-fill-color);
 }
 
 #close:is(:hover, :focus-visible),
 #unpip:is(:hover, :focus-visible) {
-  background-color: rgba(255, 255, 255, .9);
+  background-color: rgba(255, 255, 255, 0.9);
 }
 
 #close {
@@ -339,7 +346,7 @@ body:not(:fullscreen) #controls:hover #timestamp {
 
   &::-moz-range-thumb {
     border-radius: 8px;
-    background-color: #FFFFFF;
+    background-color: #ffffff;
     width: 8px;
     height: 8px;
     padding: 0;
@@ -350,7 +357,7 @@ body:not(:fullscreen) #controls:hover #timestamp {
   }
 
   &::-moz-range-progress {
-    background-color: #FFFFFF;
+    background-color: #ffffff;
   }
 
   &,
@@ -410,7 +417,7 @@ body:not(:fullscreen) #fullscreen {
 
 .box {
   -moz-window-dragging: no-drag;
-  background-color: #2B2A33;
+  background-color: #2b2a33;
   text-align: start;
   font-size: 1em;
   width: 186px;
@@ -473,7 +480,7 @@ body:not(:fullscreen) #fullscreen {
 
 .arrow {
   border: 10px solid transparent;
-  border-top-color: #2B2A33;
+  border-top-color: #2b2a33;
   width: 0;
   height: 0;
   inset-inline-start: 136px;
@@ -483,7 +490,7 @@ body:not(:fullscreen) #fullscreen {
 .grey-line {
   width: 100%;
   height: 1px;
-  background: #8F8F9D;
+  background: #8f8f9d;
 }
 
 .font-size-selection {
@@ -549,12 +556,12 @@ body:not(:fullscreen) #fullscreen {
 
 .slider::before {
   position: absolute;
-  content: '';
+  content: "";
   height: 12px;
   width: 12px;
   inset-inline-start: 2px;
   bottom: 2px;
-  background-color: #2B2A33;
+  background-color: #2b2a33;
   transition: transform 250ms;
   border-radius: 50%;
 }
@@ -600,10 +607,10 @@ input:checked + .slider::before {
 
   &::-moz-range-thumb {
     border-radius: 14px;
-    background-color: #BFBFC9;
+    background-color: #bfbfc9;
     width: 8px;
     height: 8px;
-    border: 3px solid #FFFFFF;
+    border: 3px solid #ffffff;
     padding: 0;
   }
 
@@ -612,7 +619,7 @@ input:checked + .slider::before {
   }
 
   &::-moz-range-progress {
-    background-color: #FFFFFF;
+    background-color: #ffffff;
   }
 
   &,
@@ -625,7 +632,7 @@ input:checked + .slider::before {
 
 #timestamp {
   align-self: center;
-  color: #FFFFFF;
+  color: #ffffff;
   cursor: default;
   font-family: system-ui;
   font-size: 0.9em;

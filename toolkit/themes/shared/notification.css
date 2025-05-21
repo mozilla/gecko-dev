@@ -16,5 +16,7 @@
 }
 
 notification-message.animated {
-  transition: margin-top 300ms var(--animation-easing-function), opacity 300ms var(--animation-easing-function);
+  transition:
+    margin-top 300ms var(--animation-easing-function),
+    opacity 300ms var(--animation-easing-function);
 }

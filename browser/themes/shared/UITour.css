@@ -23,7 +23,7 @@
     transform: scale(0.8);
   }
   50% {
-    transform: scale(1.0);
+    transform: scale(1);
   }
   to {
     transform: scale(0.8);
@@ -32,13 +32,13 @@
 
 @keyframes uitour-color {
   from {
-    border-color: #5B9CD9;
+    border-color: #5b9cd9;
   }
   50% {
-    border-color: #FF0000;
+    border-color: #ff0000;
   }
   to {
-    border-color: #5B9CD9;
+    border-color: #5b9cd9;
   }
 }
 
@@ -177,20 +177,20 @@
 
 #UITourTooltipButtons > button:not(.button-link) {
   appearance: none;
-  background-color: rgb(251,251,251);
+  background-color: rgb(251, 251, 251);
   border-radius: 3px;
   border: 1px solid;
-  border-color: rgb(192,192,192);
-  color: rgb(71,71,71);
+  border-color: rgb(192, 192, 192);
+  color: rgb(71, 71, 71);
   padding: 4px 30px;
   transition-property: background-color, border-color;
   transition-duration: 150ms;
 }
 
 #UITourTooltipButtons > button:not(.button-link, :active):hover {
-  background-color: hsla(210,4%,10%,.15);
-  border-color: hsla(210,4%,10%,.15);
-  box-shadow: 0 1px 0 0 hsla(210,4%,10%,.05) inset;
+  background-color: hsla(210, 4%, 10%, 0.15);
+  border-color: hsla(210, 4%, 10%, 0.15);
+  box-shadow: 0 1px 0 0 hsla(210, 4%, 10%, 0.05) inset;
 }
 
 #UITourTooltipButtons > label,
@@ -205,11 +205,11 @@
 
 /* The primary button gets the same color as the customize button. */
 #UITourTooltipButtons > button.button-primary {
-  background-color: rgb(116,191,67);
+  background-color: rgb(116, 191, 67);
   color: white;
   padding-inline: 30px;
 }
 
 #UITourTooltipButtons > button.button-primary:not(:active):hover {
-  background-color: rgb(105,173,61);
+  background-color: rgb(105, 173, 61);
 }

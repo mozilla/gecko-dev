@@ -45,12 +45,12 @@
     &:not(:hover):-moz-window-inactive > .toolbarbutton-icon,
     &[type="menu"][disabled] > .toolbarbutton-menu-dropmarker,
     &:not(:hover):-moz-window-inactive[type="menu"] > .toolbarbutton-menu-dropmarker {
-      opacity: .5;
+      opacity: 0.5;
     }
 
     &:-moz-window-inactive[disabled] > .toolbarbutton-icon,
     &:-moz-window-inactive[type="menu"][disabled] > .toolbarbutton-menu-dropmarker {
-      opacity: .25;
+      opacity: 0.25;
     }
 
     > menupopup {

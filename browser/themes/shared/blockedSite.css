@@ -6,7 +6,7 @@
 
 @media not (prefers-contrast) {
   :root {
-    --in-content-page-background: #A4000F;
+    --in-content-page-background: #a4000f;
     --in-content-page-color: white;
     --in-content-text-color: white;
     --in-content-primary-button-text-color: black;

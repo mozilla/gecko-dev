@@ -23,7 +23,7 @@ panel {
   --panel-width: initial;
 
   --panel-shadow-margin: 4px;
-  --panel-shadow: 0 0 var(--panel-shadow-margin) hsla(0,0%,0%,.2);
+  --panel-shadow: 0 0 var(--panel-shadow-margin) hsla(0, 0%, 0%, 0.2);
   -moz-window-input-region-margin: var(--panel-shadow-margin);
   margin: calc(-1 * var(--panel-shadow-margin));
 
@@ -81,7 +81,7 @@ panel {
     overflow: clip; /* Don't let panel content overflow the border */
   }
 
-  &[orient=vertical]::part(content) {
+  &[orient="vertical"]::part(content) {
     flex-direction: column;
   }
 }
@@ -134,7 +134,9 @@ panel[type="arrow"] {
    * other platforms.
    */
   @media (-moz-platform: macos) {
-    transition-property: -moz-window-transform, -moz-window-opacity;
+    transition-property:
+      -moz-window-transform,
+      -moz-window-opacity;
     @media not (prefers-reduced-motion) {
       -moz-window-transform: translateY(-70px);
 

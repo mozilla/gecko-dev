@@ -42,7 +42,8 @@ table {
   border-spacing: 0;
 }
 
-th, td {
+th,
+td {
   border: 1px dotted ThreeDShadow;
   padding: 3px;
 }

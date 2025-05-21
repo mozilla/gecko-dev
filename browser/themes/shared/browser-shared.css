@@ -101,7 +101,7 @@ body {
      the gap around them more uniform when they are close to the field edges */
   --urlbar-icon-border-radius: calc(var(--toolbarbutton-border-radius) - 1px);
   --urlbar-searchmodeswitcher-inline-padding: 6px;
-  --urlbar-searchmodeswitcher-margin-inline-end: .45em;
+  --urlbar-searchmodeswitcher-margin-inline-end: 0.45em;
 
   --pocket-icon-fill: #ef4056;
 
@@ -109,10 +109,10 @@ body {
   --lwt-background-alignment: right top;
   --lwt-background-tiling: no-repeat;
 
-  --ext-theme-background-transition: background-color 0.1s cubic-bezier(.17,.67,.83,.67);
+  --ext-theme-background-transition: background-color 0.1s cubic-bezier(0.17, 0.67, 0.83, 0.67);
 
   --inactive-window-transition: 0.2s ease;
-  --inactive-titlebar-opacity: .6;
+  --inactive-titlebar-opacity: 0.6;
   /**
    * On macOS and Linux, fading the whole titlebar is the native behavior.
    *
@@ -122,7 +122,7 @@ body {
    * to account for this platform difference.
    */
   @media (-moz-platform: windows) {
-    --inactive-titlebar-opacity: .75;
+    --inactive-titlebar-opacity: 0.75;
   }
   @media (prefers-reduced-motion) {
     --inactive-window-transition: 0s;
@@ -132,11 +132,11 @@ body {
     color: var(--lwt-text-color);
   }
 
-  &[uidensity=compact] {
+  &[uidensity="compact"] {
     --urlbar-min-height: max(26px, 1.4em);
   }
 
-  &[uidensity=touch] {
+  &[uidensity="touch"] {
     --urlbar-min-height: max(34px, 1.4em);
   }
 }
@@ -186,7 +186,9 @@ body {
   :root[lwtheme-image] & {
     background-image: var(--lwt-header-image), var(--lwt-additional-images);
     background-repeat: no-repeat, var(--lwt-background-tiling);
-    background-position: right top, var(--lwt-background-alignment);
+    background-position:
+      right top,
+      var(--lwt-background-alignment);
   }
 }
 
@@ -302,21 +304,21 @@ body {
   }
 
   @media (-moz-platform: windows) {
-    :root:not([sizemode=normal]) &[type="pre-tabs"] {
+    :root:not([sizemode="normal"]) &[type="pre-tabs"] {
       display: none;
     }
   }
 
   @media (-moz-platform: linux) and (-moz-gtk-csd-reversed-placement: 0) {
-    :root:not([sizemode=normal]) &[type="pre-tabs"],
-    :root[gtktiledwindow=true] &[type="pre-tabs"] {
+    :root:not([sizemode="normal"]) &[type="pre-tabs"],
+    :root[gtktiledwindow="true"] &[type="pre-tabs"] {
       display: none;
     }
   }
 
   @media (-moz-gtk-csd-reversed-placement) {
-    :root:not([sizemode=normal]) &[type="post-tabs"],
-    :root[gtktiledwindow=true] &[type="post-tabs"] {
+    :root:not([sizemode="normal"]) &[type="post-tabs"],
+    :root[gtktiledwindow="true"] &[type="post-tabs"] {
       display: none;
     }
   }
@@ -329,7 +331,8 @@ body {
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media -moz-pref("sidebar.verticalTabs") {
-    &[type="pre-tabs"], &[type="post-tabs"] {
+    &[type="pre-tabs"],
+    &[type="post-tabs"] {
       display: none;
     }
   }
@@ -338,7 +341,10 @@ body {
 /* Hide the TabsToolbar/nav-bar titlebar controls if the menubar is permanently shown.
  * (That is, if the menu bar doesn't autohide, and we're not in a fullscreen or
  * popup window.) */
-:root:not([chromehidden~="menubar"], [inFullscreen]) #toolbar-menubar[autohide="false"] ~ :is(#TabsToolbar, #nav-bar) > :is(.titlebar-buttonbox-container, .titlebar-spacer) {
+:root:not([chromehidden~="menubar"], [inFullscreen])
+  #toolbar-menubar[autohide="false"]
+  ~ :is(#TabsToolbar, #nav-bar)
+  > :is(.titlebar-buttonbox-container, .titlebar-spacer) {
   display: none;
 }
 
@@ -347,8 +353,8 @@ body {
   display: none;
 }
 
-:root:not([sizemode=maximized], [sizemode=fullscreen]) .titlebar-restore,
-:root:is([sizemode=maximized], [sizemode=fullscreen]) .titlebar-max {
+:root:not([sizemode="maximized"], [sizemode="fullscreen"]) .titlebar-restore,
+:root:is([sizemode="maximized"], [sizemode="fullscreen"]) .titlebar-max {
   display: none;
 }
 
@@ -357,7 +363,7 @@ body {
   -moz-default-appearance: -moz-window-button-box;
   position: relative;
 
-  :root:not([customtitlebar], [sizemode=fullscreen]) & {
+  :root:not([customtitlebar], [sizemode="fullscreen"]) & {
     display: none;
   }
 }
@@ -395,7 +401,7 @@ body {
 }
 
 /* Hide menu elements intended for keyboard access support */
-#main-menubar[openedwithkey=false] .show-only-for-keyboard {
+#main-menubar[openedwithkey="false"] .show-only-for-keyboard {
   display: none;
 }
 
@@ -455,7 +461,7 @@ body {
   min-height: 0;
   padding-inline: 6px;
 
-  :root[uidensity=compact] & {
+  :root[uidensity="compact"] & {
     padding-inline: 2px;
   }
 
@@ -465,14 +471,20 @@ body {
   max-height: 4em;
 
   :root[sessionrestored] &:not(.instant) {
-    transition: min-height 170ms ease-out, max-height 170ms ease-out, var(--ext-theme-background-transition);
+    transition:
+      min-height 170ms ease-out,
+      max-height 170ms ease-out,
+      var(--ext-theme-background-transition);
 
-    &[collapsed=true] {
-      transition: min-height 170ms ease-out, max-height 170ms ease-out, visibility 170ms linear;
+    &[collapsed="true"] {
+      transition:
+        min-height 170ms ease-out,
+        max-height 170ms ease-out,
+        visibility 170ms linear;
     }
   }
 
-  &[collapsed=true] {
+  &[collapsed="true"] {
     max-height: 0;
 
     &.instant {
@@ -483,7 +495,7 @@ body {
   /* Bookmarks toolbar empty message */
 
   /* If the toolbar is not initialized set a zero width, but retain height. */
-  &[collapsed=false]:not([initialized]) > #personal-toolbar-empty {
+  &[collapsed="false"]:not([initialized]) > #personal-toolbar-empty {
     visibility: hidden;
     width: 0;
     overflow-x: hidden;
@@ -510,7 +522,7 @@ body {
 
 #fxms-bmb-button-wrapper,
 toolbarpaletteitem > #personal-bookmarks > #PlacesToolbar,
-#personal-bookmarks:is([overflowedItem=true], [cui-areatype="panel"]) > #PlacesToolbar {
+#personal-bookmarks:is([overflowedItem="true"], [cui-areatype="panel"]) > #PlacesToolbar {
   display: none;
 }
 
@@ -604,7 +616,9 @@ menupopup::part(drop-indicator) {
     background-color: var(--lwt-accent-color);
     background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor)), var(--lwt-additional-images);
     background-repeat: no-repeat, var(--lwt-background-tiling);
-    background-position: right bottom, var(--lwt-background-alignment);
+    background-position:
+      right bottom,
+      var(--lwt-background-alignment);
     background-position-y: bottom !important;
   }
 
@@ -615,7 +629,10 @@ menupopup::part(drop-indicator) {
   :root[lwtheme-image] & {
     background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor)), var(--lwt-header-image), var(--lwt-additional-images);
     background-repeat: no-repeat, no-repeat, var(--lwt-background-tiling);
-    background-position: center, right bottom, var(--lwt-background-alignment);
+    background-position:
+      center,
+      right bottom,
+      var(--lwt-background-alignment);
   }
 }
 
@@ -625,7 +642,7 @@ menupopup::part(drop-indicator) {
   align-items: center;
   margin-inline: 7px;
 
-  :root:not([privatebrowsingmode=temporary]) &,
+  :root:not([privatebrowsingmode="temporary"]) &,
   #navigator-toolbox:not([tabs-hidden]) #nav-bar > & {
     display: none;
   }
@@ -633,7 +650,7 @@ menupopup::part(drop-indicator) {
   #navigator-toolbox[tabs-hidden] #nav-bar > & {
     margin-inline-end: 12px;
 
-  /* Hide the private browsing indicator
+    /* Hide the private browsing indicator
     label when vertical tabs are enabled */
     > .private-browsing-indicator-label {
       display: none;
@@ -697,7 +714,7 @@ menupopup::part(drop-indicator) {
   box-shadow: 0 0 1.5px 1px red;
 
   &[focused] {
-    box-shadow: 0 0 2px 2px rgba(255,0,0,0.4);
+    box-shadow: 0 0 2px 2px rgba(255, 0, 0, 0.4);
   }
 }
 
@@ -740,7 +757,7 @@ menupopup::part(drop-indicator) {
   list-style-image: url(chrome://global/skin/icons/help.svg);
 
   &:hover {
-    background-color: hsla(0,0%,70%,.2);
+    background-color: hsla(0, 0%, 70%, 0.2);
     border-radius: 2px;
   }
 }
@@ -1009,15 +1026,15 @@ menupopup::part(drop-indicator) {
   appearance: none;
   border-style: none;
   margin: 0;
-  background-color: rgb(0,96,223);
-  color: rgb(255,255,255);
+  background-color: rgb(0, 96, 223);
+  color: rgb(255, 255, 255);
   border-radius: 5px;
   padding: 10px;
   margin-top: 15px;
   margin-bottom: 10px;
 
   &:hover {
-    background-color: rgb(0,62,170);
+    background-color: rgb(0, 62, 170);
   }
 }
 
@@ -1240,8 +1257,8 @@ popupnotificationcontent {
 
   @media not (prefers-contrast) {
     /* TODO: Should this be in browser-colors to respect system theming on Linux? */
-    --swipe-nav-icon-primary-color: light-dark(#0060DF, #00DDFF);
-    --swipe-nav-icon-accent-color: light-dark(#FFFFFF, #000000);
+    --swipe-nav-icon-primary-color: light-dark(#0060df, #00ddff);
+    --swipe-nav-icon-accent-color: light-dark(#ffffff, #000000);
   }
 
   > svg {

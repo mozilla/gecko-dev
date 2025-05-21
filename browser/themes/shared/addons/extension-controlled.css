@@ -30,6 +30,7 @@
   }
 }
 
+/* prettier-ignore */
 .extension-controlled-notification > .popup-notification-body-container > .popup-notification-body > .popup-notification-bottom-content > .popup-notification-warning,
 .extension-controlled-notification > .popup-notification-body-container > .popup-notification-icon {
   display: none;

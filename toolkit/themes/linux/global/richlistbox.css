@@ -35,7 +35,7 @@ richlistbox.theme-listbox:focus > richlistitem[current="true"] {
 
 richlistbox[seltype="multiple"]:focus > richlistitem[current="true"][selected="true"],
 richlistbox.theme-listbox:focus > richlistitem[current="true"][selected="true"] {
-  outline-color: #F3D982; /* TODO: find a suitable system color */
+  outline-color: #f3d982; /* TODO: find a suitable system color */
 }
 
 richlistbox.theme-listbox:not(:focus) > richlistitem[selected="true"] {

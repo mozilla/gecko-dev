@@ -96,12 +96,12 @@ xul|findbar {
   }
 
   &[status="notfound"] {
-    background-color: rgba(226,40,80,.3);
+    background-color: rgba(226, 40, 80, 0.3);
     color: inherit;
   }
 
   &[flash="true"] {
-    background-color: rgba(255,233,0,.3);
+    background-color: rgba(255, 233, 0, 0.3);
     color: inherit;
   }
 }
@@ -123,11 +123,11 @@ xul|findbar {
   }
 
   &:not([disabled]):hover {
-    background-color: var(--toolbarbutton-hover-background, rgba(190,190,190,.2));
+    background-color: var(--toolbarbutton-hover-background, rgba(190, 190, 190, 0.2));
   }
 
   &:not([disabled]):hover:active {
-    background-color: var(--toolbarbutton-active-background, rgba(190,190,190,.4));
+    background-color: var(--toolbarbutton-active-background, rgba(190, 190, 190, 0.4));
   }
 
   &[disabled="true"] > .toolbarbutton-icon {
@@ -176,11 +176,11 @@ xul|findbar {
   transition: opacity 150ms ease-in-out;
 
   &:hover {
-    background-color: var(--toolbarbutton-hover-background, rgba(190,190,190,.2));
+    background-color: var(--toolbarbutton-hover-background, rgba(190, 190, 190, 0.2));
     outline: none;
   }
 
   &:hover:active {
-    background-color: var(--toolbarbutton-active-background, rgba(190,190,190,.4));
+    background-color: var(--toolbarbutton-active-background, rgba(190, 190, 190, 0.4));
   }
 }

@@ -51,7 +51,7 @@ tab:where(:last-of-type) {
 }
 
 tab:where([visuallyselected]:not(:-moz-window-inactive)) {
-  color: #FFF;
+  color: #fff;
 }
 
 .tab-middle {
@@ -59,6 +59,6 @@ tab:where([visuallyselected]:not(:-moz-window-inactive)) {
 }
 
 .tabs-left,
-.tabs-right  {
+.tabs-right {
   flex: 1;
 }

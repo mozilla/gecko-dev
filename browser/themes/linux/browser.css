@@ -133,8 +133,8 @@
   /* Opacity rounds to 0 or 1 on Linux without an X compositor, making the
      background color not visible. Anti-aliasing is not available either. Make a
      thicker outline and cancel border-radius for that case. */
-     outline: 4px solid rgb(0,200,215);
-     border-radius: 0 !important;
+  outline: 4px solid rgb(0, 200, 215);
+  border-radius: 0 !important;
 }
 
 #UITourTooltipDescription {
@@ -185,7 +185,7 @@
     width: 24px;
     height: 24px;
     /* Matches the libadwaita transition */
-    transition: background-color .2s ease;
+    transition: background-color 0.2s ease;
   }
 
   &:hover > .toolbarbutton-icon {

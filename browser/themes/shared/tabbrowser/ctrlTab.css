@@ -8,7 +8,7 @@
 
 #ctrlTab-panel {
   appearance: none;
-  --panel-background: hsla(0,0%,40%,.85);
+  --panel-background: hsla(0, 0%, 40%, 0.85);
   --panel-color: white;
   --panel-border-color: transparent;
   --panel-padding: 20px 10px 10px;
@@ -33,7 +33,9 @@
   /* remove the :-moz-focusring outline from button.css on Windows */
   outline: none !important;
   margin: 0;
-  text-shadow: 0 0 1px hsl(0,0%,12%), 0 0 2px hsl(0,0%,12%);
+  text-shadow:
+    0 0 1px hsl(0, 0%, 12%),
+    0 0 2px hsl(0, 0%, 12%);
   border: none;
   background-color: transparent;
 }
@@ -62,16 +64,16 @@
   margin-bottom: 2px;
   margin-inline-end: -6px;
   padding: 5px;
-  background-color: #F9F9FA;
+  background-color: #f9f9fa;
   border-radius: 6px;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,.1);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
 .ctrlTab-canvas {
   color-scheme: light;
   background-color: Canvas;
   color: CanvasText;
-  box-shadow: 1px 1px 2px hsl(0,0%,12%);
+  box-shadow: 1px 1px 2px hsl(0, 0%, 12%);
   margin-bottom: 8px;
 }
 
@@ -90,14 +92,14 @@
   background: url("chrome://global/skin/icons/defaultFavicon.svg") center/20% no-repeat;
   -moz-context-properties: fill;
   fill: currentColor;
-  filter: drop-shadow(0 0 2px hsla(0,0%,0%,0.5));
+  filter: drop-shadow(0 0 2px hsla(0, 0%, 0%, 0.5));
 }
 
 .ctrlTab-preview-inner,
 #ctrlTab-showAll {
   padding: 8px;
   border: 2px solid transparent;
-  border-radius: .5em;
+  border-radius: 0.5em;
 }
 
 .ctrlTab-preview-inner {
@@ -105,13 +107,13 @@
 }
 
 #ctrlTab-showAll {
-  background-color: rgba(255,255,255,.2);
-  margin-top: .5em;
+  background-color: rgba(255, 255, 255, 0.2);
+  margin-top: 0.5em;
 }
 
 .ctrlTab-preview:focus > .ctrlTab-preview-inner,
 #ctrlTab-showAll:focus {
-  background-color: rgba(0,0,0,.75);
+  background-color: rgba(0, 0, 0, 0.75);
   text-shadow: none;
   border-color: #45a1ff;
 }

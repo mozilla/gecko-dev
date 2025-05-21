@@ -65,7 +65,9 @@
   width: 100%;
 }
 
-th, td, table {
+th,
+td,
+table {
   border-collapse: collapse;
   border: none;
   text-align: start;

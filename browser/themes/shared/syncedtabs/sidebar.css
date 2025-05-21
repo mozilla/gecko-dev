@@ -111,23 +111,23 @@ body {
   fill: currentColor;
 }
 
-.item.client[clientType=phone] > .item-title-container > .item-icon-container {
+.item.client[clientType="phone"] > .item-title-container > .item-icon-container {
   background-image: url("chrome://browser/skin/device-phone.svg");
 }
 
-.item.client[clientType=tablet] > .item-title-container > .item-icon-container {
+.item.client[clientType="tablet"] > .item-title-container > .item-icon-container {
   background-image: url("chrome://browser/skin/device-tablet.svg");
 }
 
-.item.client[clientType=desktop] > .item-title-container > .item-icon-container {
+.item.client[clientType="desktop"] > .item-title-container > .item-icon-container {
   background-image: url("chrome://browser/skin/device-desktop.svg");
 }
 
-.item.client[clientType=tv] > .item-title-container > .item-icon-container {
+.item.client[clientType="tv"] > .item-title-container > .item-icon-container {
   background-image: url("chrome://browser/skin/device-tv.svg");
 }
 
-.item.client[clientType=vr] > .item-title-container > .item-icon-container {
+.item.client[clientType="vr"] > .item-title-container > .item-icon-container {
   background-image: url("chrome://browser/skin/device-vr.svg");
 }
 
@@ -171,7 +171,9 @@ body {
 .item[hidden] {
   opacity: 0;
   max-height: 0;
-  transition: opacity 150ms ease-in-out, max-height 150ms ease-in-out 150ms;
+  transition:
+    opacity 150ms ease-in-out,
+    max-height 150ms ease-in-out 150ms;
 }
 
 .item.empty .item-title-container {
@@ -285,15 +287,7 @@ body {
 :root[lwt-sidebar] {
   background-color: var(--lwt-sidebar-background-color);
   color: var(--lwt-sidebar-text-color);
-  scrollbar-color:
-    light-dark(
-      rgba(204,204,204,.5),
-      rgba(249,249,250,.4)
-    )
-    light-dark(
-      rgba(230,230,235,.5),
-      rgba(20,20,25,.3)
-    );
+  scrollbar-color: light-dark(rgba(204, 204, 204, 0.5), rgba(249, 249, 250, 0.4)) light-dark(rgba(230, 230, 235, 0.5), rgba(20, 20, 25, 0.3));
   color-scheme: light;
 }
 
@@ -302,7 +296,7 @@ body {
 }
 
 :root[lwt-sidebar] .item.selected > .item-title-container {
-  background-color: light-dark(hsla(0,0%,80%,.3), rgba(249,249,250,.1));
+  background-color: light-dark(hsla(0, 0%, 80%, 0.3), rgba(249, 249, 250, 0.1));
   color: inherit;
 }
 
@@ -314,7 +308,7 @@ body {
 /* Platform specific styling */
 @media (-moz-platform: macos) {
   :root {
-     /* let the -moz-appearance of the sidebar shine through */
+    /* let the -moz-appearance of the sidebar shine through */
     background-color: transparent;
   }
 
