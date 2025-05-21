@@ -59,6 +59,10 @@ add_setup(async function () {
       return currentTime;
     });
 
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", true]],
+  });
+
   registerCleanupFunction(async function () {
     await Services.search.setDefault(
       oldDefaultEngine,
