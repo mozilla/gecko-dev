@@ -34,9 +34,25 @@ cert-error-trust-symantec = Certificates issued by GeoTrust, RapidSSL, Symantec,
 #   $hostname (string) - Hostname of the website with cert error.
 cert-error-trust-certificate-transparency = { -brand-short-name } doesn’t trust { $hostname } because it couldn’t prove it meets public certificate transparency requirements.
 
-# Variables:
-#   $hostname (string) - Hostname of the website with cert error.
-cert-error-revoked = Websites prove their identity via certificates. { -brand-short-name } doesn’t trust { $hostname } because it uses a certificate that has been revoked.
+## Variables:
+##   $hostname (string) - Hostname of the website with cert error.
+
+cert-error-revoked-certificate = { -brand-short-name } blocked your visit to this site because the certificate provided for { $hostname } has been revoked and isn’t trusted anymore.
+cert-error-bad-signature = { -brand-short-name } blocked your visit to this site because the signature on the certificate provided for { $hostname } isn’t valid.
+cert-error-key-pinning-failure = { -brand-short-name } blocked your visit to this site because the certificate provided for { $hostname } uses a different public key than expected.
+cert-error-bad-der = { -brand-short-name } blocked your visit to this site because the certificate provided for { $hostname } isn’t properly encoded.
+cert-error-cert-not-in-name-space = { -brand-short-name } blocked your visit to this site because the certificate provided for { $hostname } doesn’t follow the name constraints of a certificate that issued it.
+cert-error-inadequate-cert-type = { -brand-short-name } blocked your visit to this site because the certificate provided for { $hostname } isn’t allowed to be used by a web server.
+cert-error-path-len-constraint-invalid = { -brand-short-name } blocked your visit to this site because the certificate provided for { $hostname } has too many intermediate certificates in the path to the root certificate.
+cert-error-invalid-key = { -brand-short-name } blocked your visit to this site because the certificate provided for { $hostname } has a key that is invalid. Most likely, it is too small to be secure.
+cert-error-unknown-critical-extension = { -brand-short-name } blocked your visit to this site because the certificate provided for { $hostname } contains an unsupported critical extension.
+cert-error-extension-value-invalid = { -brand-short-name } blocked your visit to this site because the certificate provided for { $hostname } contains an invalid extension.
+cert-error-untrusted-issuer = { -brand-short-name } blocked your visit to this site because the certificate provided for { $hostname } was issued by a certificate authority that isn’t trusted anymore.
+cert-error-untrusted-cert = { -brand-short-name } blocked your visit to this site because the certificate provided for { $hostname } is marked as not trusted.
+cert-error-invalid-integer-encoding = { -brand-short-name } blocked your visit to this site because the certificate provided for { $hostname } contains an invalid encoding of an integer. Common causes include negative serial numbers, negative RSA moduli, and encodings that are longer than necessary.
+cert-error-unsupported-keyalg = { -brand-short-name } blocked your visit to this site because the certificate provided for { $hostname } has an unsupported key type.
+cert-error-issuer-no-longer-trusted = { -brand-short-name } blocked your visit to this site because the certificate authority that issued the certificate provided for { $hostname } isn’t trusted anymore.
+cert-error-signature-algorithm-mismatch = { -brand-short-name } blocked your visit to this site because the signature algorithm of the certificate provided for { $hostname } doesn’t match its signature algorithm field.
 
 cert-error-untrusted-default = The certificate does not come from a trusted source.
 

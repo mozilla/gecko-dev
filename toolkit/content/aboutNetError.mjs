@@ -1018,9 +1018,6 @@ function setCertErrorDetails() {
       ];
       break;
 
-    case "SEC_ERROR_OCSP_INVALID_SIGNING_CERT": // FIXME - this would have thrown?
-      break;
-
     case "SEC_ERROR_UNKNOWN_ISSUER":
       whatToDoParts = [
         ["p", "certerror-unknown-issuer-what-can-you-do-about-it-website"],
@@ -1194,24 +1191,18 @@ function setCertErrorDetails() {
       ];
       break;
     }
-    case "MOZILLA_PKIX_ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY":
-      whatToDoParts = [
-        [
-          "p",
-          "cert-error-trust-certificate-transparency-what-can-you-do-about-it",
-        ],
-      ];
-      break;
-    case "SEC_ERROR_REVOKED_CERTIFICATE":
-      whatToDoParts = [
-        [
-          "p",
-          // This string was added for the certificate transparency error case,
-          // but it applies in other cases as well, such as this one.
-          "cert-error-trust-certificate-transparency-what-can-you-do-about-it",
-        ],
-      ];
-      break;
+  }
+
+  if (errorHasNoUserFix(failedCertInfo.errorCodeString)) {
+    // "cert-error-trust-certificate-transparency-what-can-you-do-about-it" was
+    // originally added for certificate transparency errors, but it's general
+    // enough to apply in many cases.
+    whatToDoParts = [
+      [
+        "p",
+        "cert-error-trust-certificate-transparency-what-can-you-do-about-it",
+      ],
+    ];
   }
 
   if (whatToDoParts) {
@@ -1220,6 +1211,36 @@ function setCertErrorDetails() {
       whatToDoParts
     );
     document.getElementById("errorWhatToDo").hidden = false;
+  }
+}
+
+// Returns true if the error identified by the given error code string has no
+// particular action the user can take to fix it.
+function errorHasNoUserFix(errorCodeString) {
+  switch (errorCodeString) {
+    case "MOZILLA_PKIX_ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY":
+    case "MOZILLA_PKIX_ERROR_INVALID_INTEGER_ENCODING":
+    case "MOZILLA_PKIX_ERROR_ISSUER_NO_LONGER_TRUSTED":
+    case "MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE":
+    case "MOZILLA_PKIX_ERROR_SIGNATURE_ALGORITHM_MISMATCH":
+    case "SEC_ERROR_BAD_DER":
+    case "SEC_ERROR_BAD_SIGNATURE":
+    case "SEC_ERROR_CERT_NOT_IN_NAME_SPACE":
+    case "SEC_ERROR_EXTENSION_VALUE_INVALID":
+    case "SEC_ERROR_INADEQUATE_CERT_TYPE":
+    case "SEC_ERROR_INADEQUATE_KEY_USAGE":
+    case "SEC_ERROR_INVALID_KEY":
+    case "SEC_ERROR_PATH_LEN_CONSTRAINT_INVALID":
+    case "SEC_ERROR_REVOKED_CERTIFICATE":
+    case "SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION":
+    case "SEC_ERROR_UNSUPPORTED_EC_POINT_FORM":
+    case "SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE":
+    case "SEC_ERROR_UNSUPPORTED_KEYALG":
+    case "SEC_ERROR_UNTRUSTED_CERT":
+    case "SEC_ERROR_UNTRUSTED_ISSUER":
+      return true;
+    default:
+      return false;
   }
 }
 
@@ -1408,8 +1429,43 @@ function setTechnicalDetailsOnCertError(
       break;
   }
 
-  if (failedCertInfo.errorCodeString == "SEC_ERROR_REVOKED_CERTIFICATE") {
-    addLabel("cert-error-revoked", { hostname });
+  const nonoverridableErrorCodeToLabelMap = {
+    SEC_ERROR_BAD_DER: "cert-error-bad-der",
+    SEC_ERROR_BAD_SIGNATURE: "cert-error-bad-signature",
+    SEC_ERROR_CERT_NOT_IN_NAME_SPACE: "cert-error-cert-not-in-name-space",
+    SEC_ERROR_EXTENSION_VALUE_INVALID: "cert-error-extension-value-invalid",
+    SEC_ERROR_INADEQUATE_CERT_TYPE: "cert-error-inadequate-cert-type",
+    // NB: SEC_ERROR_INADEQUATE_KEY_USAGE intentionally uses the same error
+    // message as SEC_ERROR_INADEQUATE_CERT_TYPE
+    SEC_ERROR_INADEQUATE_KEY_USAGE: "cert-error-inadequate-cert-type",
+    SEC_ERROR_INVALID_KEY: "cert-error-invalid-key",
+    SEC_ERROR_PATH_LEN_CONSTRAINT_INVALID:
+      "cert-error-path-len-constraint-invalid",
+    SEC_ERROR_REVOKED_CERTIFICATE: "cert-error-revoked-certificate",
+    SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION:
+      "cert-error-unknown-critical-extension",
+    // NB: SEC_ERROR_UNSUPPORTED_EC_POINT_FORM intentionally uses the same
+    // error message as SEC_ERROR_UNSUPPORTED_KEYALG
+    SEC_ERROR_UNSUPPORTED_EC_POINT_FORM: "cert-error-unsupported-keyalg",
+    // NB: SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE intentionally uses the same
+    // error message as SEC_ERROR_UNSUPPORTED_KEYALG
+    SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE: "cert-error-unsupported-keyalg",
+    SEC_ERROR_UNSUPPORTED_KEYALG: "cert-error-unsupported-keyalg",
+    SEC_ERROR_UNTRUSTED_CERT: "cert-error-untrusted-cert",
+    SEC_ERROR_UNTRUSTED_ISSUER: "cert-error-untrusted-issuer",
+    MOZILLA_PKIX_ERROR_INVALID_INTEGER_ENCODING:
+      "cert-error-invalid-integer-encoding",
+    MOZILLA_PKIX_ERROR_ISSUER_NO_LONGER_TRUSTED:
+      "cert-error-issuer-no-longer-trusted",
+    MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE: "cert-error-key-pinning-failure",
+    MOZILLA_PKIX_ERROR_SIGNATURE_ALGORITHM_MISMATCH:
+      "cert-error-signature-algorithm-mismatch",
+  };
+  if (failedCertInfo.errorCodeString in nonoverridableErrorCodeToLabelMap) {
+    addLabel(
+      nonoverridableErrorCodeToLabelMap[failedCertInfo.errorCodeString],
+      { hostname }
+    );
     addErrorCodeLink();
   }
 
