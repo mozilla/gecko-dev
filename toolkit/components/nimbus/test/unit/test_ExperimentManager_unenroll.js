@@ -339,14 +339,6 @@ add_task(async function test_unenroll_individualOptOut_statusTelemetry() {
     })
   );
 
-  Services.fog.applyServerKnobsConfig(
-    JSON.stringify({
-      metrics_enabled: {
-        "nimbus_events.enrollment_status": true,
-      },
-    })
-  );
-
   manager.unenroll("foo", { reason: "individual-opt-out" });
 
   Assert.deepEqual(
@@ -355,10 +347,16 @@ add_task(async function test_unenroll_individualOptOut_statusTelemetry() {
       ?.map(ev => ev.extra),
     [
       {
+        status: "Enrolled",
+        reason: "Qualified",
         slug: "foo",
         branch: "control",
-        status: "Disqualified",
+      },
+      {
+        branch: "control",
         reason: "OptOut",
+        status: "Disqualified",
+        slug: "foo",
       },
     ]
   );
@@ -377,14 +375,6 @@ add_task(async function testUnenrollBogusReason() {
 
   Assert.ok(manager.store.get("bogus").active, "Enrollment active");
 
-  Services.fog.applyServerKnobsConfig(
-    JSON.stringify({
-      metrics_enabled: {
-        "nimbus_events.enrollment_status": true,
-      },
-    })
-  );
-
   manager.unenroll("bogus", "bogus");
 
   Assert.deepEqual(
@@ -393,11 +383,17 @@ add_task(async function testUnenrollBogusReason() {
       ?.map(ev => ev.extra),
     [
       {
-        slug: "bogus",
         branch: "control",
+        status: "Enrolled",
+        reason: "Qualified",
+        slug: "bogus",
+      },
+      {
         status: "Disqualified",
+        slug: "bogus",
         reason: "Error",
         error_string: "unknown",
+        branch: "control",
       },
     ]
   );
