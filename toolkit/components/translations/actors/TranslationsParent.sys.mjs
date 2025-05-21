@@ -1348,6 +1348,10 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   async receiveMessage({ name, data }) {
+    if (this.#isDestroyed) {
+      return undefined;
+    }
+
     switch (name) {
       case "Translations:ReportLangTags": {
         const { htmlLangAttribute, href } = data;
@@ -1362,6 +1366,10 @@ export class TranslationsParent extends JSWindowActorParent {
           lazy.console.log("Failed to get the detected languages.", error);
         });
 
+        if (this.#isDestroyed) {
+          return undefined;
+        }
+
         if (!detectedLanguages) {
           // The actor was already destroyed, and the detectedLanguages weren't reported
           // in time.
@@ -1371,6 +1379,10 @@ export class TranslationsParent extends JSWindowActorParent {
         this.languageState.detectedLanguages = detectedLanguages;
 
         if (await this.shouldAutoTranslate(detectedLanguages)) {
+          if (this.#isDestroyed) {
+            return undefined;
+          }
+
           this.translate(
             {
               sourceLanguage: detectedLanguages.docLangTag,
@@ -1379,6 +1391,10 @@ export class TranslationsParent extends JSWindowActorParent {
             true // reportAsAutoTranslate
           );
         } else {
+          if (this.#isDestroyed) {
+            return undefined;
+          }
+
           this.maybeOfferTranslations(detectedLanguages).catch(error =>
             lazy.console.error(error)
           );
@@ -1409,6 +1425,10 @@ export class TranslationsParent extends JSWindowActorParent {
           requestedLanguagePair,
           this
         );
+
+        if (this.#isDestroyed) {
+          return undefined;
+        }
 
         if (!port) {
           lazy.console.error(
@@ -3511,11 +3531,13 @@ export class TranslationsParent extends JSWindowActorParent {
       }
       langTags.identifiedLangTag = identifyResult.language;
       langTags.identifiedLangConfident = identifyResult.confident;
+
+      maybeNormalizeDocLangTag();
+      langTags.identifiedLangTag = langTags.docLangTag;
+
       if (this.#isDestroyed) {
         return null;
       }
-      maybeNormalizeDocLangTag();
-      langTags.identifiedLangTag = langTags.docLangTag;
     }
 
     if (!langTags.docLangTag) {

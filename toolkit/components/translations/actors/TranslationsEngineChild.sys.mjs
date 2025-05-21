@@ -29,8 +29,14 @@ export class TranslationsEngineChild extends JSProcessActorChild {
    */
   #resolveForceShutdown = null;
 
+  #isDestroyed = false;
+
   // eslint-disable-next-line consistent-return
   async receiveMessage({ name, data }) {
+    if (this.#isDestroyed) {
+      return undefined;
+    }
+
     switch (name) {
       case "TranslationsEngine:StartTranslation": {
         const { languagePair, innerWindowId, port } = data;
@@ -164,5 +170,9 @@ export class TranslationsEngineChild extends JSProcessActorChild {
    */
   TE_destroyEngineProcess() {
     this.sendAsyncMessage("TranslationsEngine:DestroyEngineProcess");
+  }
+
+  didDestroy() {
+    this.#isDestroyed = true;
   }
 }

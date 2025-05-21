@@ -29,7 +29,24 @@ export class TranslationsChild extends JSWindowActorChild {
    */
   static #translationsCache = null;
 
+  /**
+   * Set to true when this actor is destroyed.
+   *
+   * It is important to check this variable before sending any asynchronous
+   * messages to the parent actor. If this actor has been destroyed, then
+   * sending a message will result in an error.
+   *
+   * @see {TranslationsChild.didDestroy}
+   *
+   * @type {boolean}
+   */
+  #isDestroyed = false;
+
   handleEvent(event) {
+    if (this.#isDestroyed) {
+      return;
+    }
+
     switch (event.type) {
       case "DOMContentLoaded":
         this.sendAsyncMessage("Translations:ReportLangTags", {
@@ -37,6 +54,12 @@ export class TranslationsChild extends JSWindowActorChild {
         });
         break;
     }
+  }
+
+  didDestroy() {
+    this.#isDestroyed = true;
+    this.#translatedDoc?.destroy();
+    this.#translatedDoc = null;
   }
 
   addProfilerMarker(message, startTime) {
@@ -51,6 +74,10 @@ export class TranslationsChild extends JSWindowActorChild {
   }
 
   async receiveMessage({ name, data }) {
+    if (this.#isDestroyed) {
+      return undefined;
+    }
+
     switch (name) {
       case "Translations:TranslatePage": {
         if (this.#translatedDoc?.translator.engineStatus === "error") {
@@ -98,9 +125,18 @@ export class TranslationsChild extends JSWindowActorChild {
           });
         }
 
+        if (this.#isDestroyed) {
+          return undefined;
+        }
+
         const startTime = Cu.now();
         const detectionResult =
           await lazy.LanguageDetector.detectLanguageFromDocument(this.document);
+
+        if (this.#isDestroyed) {
+          return undefined;
+        }
+
         this.addProfilerMarker(
           `Detect language from document: ${detectionResult.language}`,
           startTime
