@@ -55,6 +55,10 @@ const PREF_ENDPOINTS = "discoverystream.endpoints";
 const PREF_IMPRESSION_ID = "browser.newtabpage.activity-stream.impressionId";
 const PREF_LAYOUT_EXPERIMENT_A = "newtabLayouts.variant-a";
 const PREF_LAYOUT_EXPERIMENT_B = "newtabLayouts.variant-b";
+const PREF_CONTEXTUAL_SPOC_PLACEMENTS =
+  "discoverystream.placements.contextualSpocs";
+const PREF_CONTEXTUAL_SPOC_COUNTS =
+  "discoverystream.placements.contextualSpocs.counts";
 const PREF_SPOC_PLACEMENTS = "discoverystream.placements.spocs";
 const PREF_SPOC_COUNTS = "discoverystream.placements.spocs.counts";
 const PREF_SPOC_POSITIONS = "discoverystream.spoc-positions";
@@ -95,6 +99,7 @@ const PREF_CONTEXTUAL_CONTENT_ENABLED =
   "discoverystream.contextualContent.enabled";
 const PREF_FAKESPOT_ENABLED =
   "discoverystream.contextualContent.fakespot.enabled";
+const PREF_CONTEXTUAL_ADS = "discoverystream.sections.contextualAds.enabled";
 const PREF_CONTEXTUAL_CONTENT_SELECTED_FEED =
   "discoverystream.contextualContent.selectedFeed";
 const PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE =
@@ -197,6 +202,31 @@ export class DiscoveryStreamFeed {
     }
 
     return this._isBff;
+  }
+
+  get isContextualAds() {
+    if (this._isContextualAds === undefined) {
+      // We care about if the contextual ads pref is on, if contextual is supported,
+      // and if inferred is on, but OHTTP is off.
+      const state = this.store.getState();
+      const marsOhttpEnabled = Services.prefs.getBoolPref(
+        "browser.newtabpage.activity-stream.unifiedAds.ohttp.enabled",
+        false
+      );
+      const contextualAds = state.Prefs.values[PREF_CONTEXTUAL_ADS];
+      const inferredPersonalization =
+        state.Prefs.values[PREF_USER_INFERRED_PERSONALIZATION] &&
+        state.Prefs.values[PREF_SYSTEM_INFERRED_PERSONALIZATION];
+      const sectionsEnabled = state.Prefs.values[PREF_SECTIONS_ENABLED];
+      // We want this if contextual ads are on, and also if inferred personalization is on, we also use OHTTP.
+      const useContextualAds =
+        contextualAds &&
+        ((inferredPersonalization && marsOhttpEnabled) ||
+          !inferredPersonalization);
+      this._isContextualAds = sectionsEnabled && useContextualAds;
+    }
+
+    return this._isContextualAds;
   }
 
   get isMerino() {
@@ -1169,6 +1199,82 @@ export class DiscoveryStreamFeed {
     }
   }
 
+  // This returns ad placements that contain IAB content.
+  // The results are ads that are contextual, and match an IAB category.
+  getContextualAdsPlacements() {
+    const state = this.store.getState();
+    const placementsArray = state.Prefs.values[
+      PREF_CONTEXTUAL_SPOC_PLACEMENTS
+    ]?.split(`,`)
+      .map(s => s.trim())
+      .filter(item => item);
+    const countsArray = state.Prefs.values[PREF_CONTEXTUAL_SPOC_COUNTS]?.split(
+      `,`
+    )
+      .map(s => s.trim())
+      .filter(item => item)
+      .map(item => parseInt(item, 10));
+
+    const feeds = state.DiscoveryStream.feeds.data;
+    const recsFeed = Object.values(feeds).find(
+      feed => feed?.data?.sections?.length
+    );
+
+    let iabPlacements = [];
+
+    // If we don't have recsFeed, it means we are loading for the first time,
+    // and don't have any cached data.
+    // In this situation, we don't fill iabPlacements,
+    // and go with the non IAB default contextual placement prefs.
+    if (recsFeed) {
+      // An array of all iab placements, flattened, sorted, and filtered.
+      iabPlacements = recsFeed.data.sections
+        .filter(section => section.iab)
+        .sort((a, b) => a.receivedRank - b.receivedRank)
+        .reduce((acc, section) => {
+          const iabArray = section.layout.responsiveLayouts[0].tiles
+            .filter(tile => tile.hasAd)
+            .map(() => {
+              return section.iab;
+            });
+          return [...acc, ...iabArray];
+        }, []);
+    }
+
+    return placementsArray.map((placement, index) => ({
+      placement,
+      count: countsArray[index],
+      ...(iabPlacements[index] ? { content: iabPlacements[index] } : {}),
+    }));
+  }
+
+  // This returns ad placements that don't contain IAB content.
+  // The results are ads that are not contextual, and can be of any IAB category.
+  getSimpleAdsPlacements() {
+    const state = this.store.getState();
+    const placementsArray = state.Prefs.values[PREF_SPOC_PLACEMENTS]?.split(`,`)
+      .map(s => s.trim())
+      .filter(item => item);
+    const countsArray = state.Prefs.values[PREF_SPOC_COUNTS]?.split(`,`)
+      .map(s => s.trim())
+      .filter(item => item)
+      .map(item => parseInt(item, 10));
+
+    return placementsArray.map((placement, index) => ({
+      placement,
+      count: countsArray[index],
+    }));
+  }
+
+  getAdsPlacements() {
+    // We can replace unifiedAdsPlacements if we have and can use contextual ads.
+    // No longer relying on pref based placements and counts.
+    if (this.isContextualAds) {
+      return this.getContextualAdsPlacements();
+    }
+    return this.getSimpleAdsPlacements();
+  }
+
   async loadSpocs(sendUpdate, isStartup) {
     const cachedData = (await this.cache.get()) || {};
     const unifiedAdsEnabled =
@@ -1231,21 +1337,7 @@ export class DiscoveryStreamFeed {
         if (unifiedAdsEnabled) {
           const endpointBaseUrl = state.Prefs.values[PREF_UNIFIED_ADS_ENDPOINT];
           endpoint = `${endpointBaseUrl}v1/ads`;
-          const placementsArray = state.Prefs.values[
-            PREF_SPOC_PLACEMENTS
-          ]?.split(`,`)
-            .map(s => s.trim())
-            .filter(item => item);
-          const countsArray = state.Prefs.values[PREF_SPOC_COUNTS]?.split(`,`)
-            .map(s => s.trim())
-            .filter(item => item)
-            .map(item => parseInt(item, 10));
-
-          unifiedAdsPlacements = placementsArray.map((placement, index) => ({
-            placement,
-            count: countsArray[index],
-          }));
-
+          unifiedAdsPlacements = this.getAdsPlacements();
           const blockedSponsors =
             this.store.getState().Prefs.values[PREF_UNIFIED_ADS_BLOCKED_LIST];
 
@@ -1361,8 +1453,18 @@ export class DiscoveryStreamFeed {
                 fetchTimestamp
               );
 
-              const { data: scoredResults, personalized } =
-                await this.scoreItems(spocsWithFetchTimestamp, "spocs");
+              let items = spocsWithFetchTimestamp;
+              let personalized = false;
+
+              // We only need to rank if we don't have contextual ads.
+              if (!this.isContextualAds) {
+                const scoreResults = await this.scoreItems(
+                  spocsWithFetchTimestamp,
+                  "spocs"
+                );
+                items = scoreResults.data;
+                personalized = scoreResults.personalized;
+              }
 
               spocsState.spocs = {
                 ...spocsState.spocs,
@@ -1372,7 +1474,7 @@ export class DiscoveryStreamFeed {
                   sponsor,
                   sponsored_by_override,
                   personalized,
-                  items: scoredResults,
+                  items,
                 },
               };
             }
@@ -2282,6 +2384,7 @@ export class DiscoveryStreamFeed {
     // Reset in-memory caches.
     this._isBff = undefined;
     this._isMerino = undefined;
+    this._isContextualAds = undefined;
     this._spocsCacheUpdateTime = undefined;
   }
 
@@ -2530,6 +2633,11 @@ export class DiscoveryStreamFeed {
       case PREF_INTEREST_PICKER_ENABLED:
         // This is a config reset directly related to Discovery Stream pref.
         this.configReset();
+        break;
+      case PREF_CONTEXTUAL_ADS:
+      case PREF_USER_INFERRED_PERSONALIZATION:
+      case PREF_SYSTEM_INFERRED_PERSONALIZATION:
+        this._isContextualAds = undefined;
         break;
       case PREF_COLLECTIONS_ENABLED:
         this.onCollectionsChanged();

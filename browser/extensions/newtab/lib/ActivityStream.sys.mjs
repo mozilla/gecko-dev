@@ -662,7 +662,7 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
-    "browser.newtabpage.activity-stream.discoverystream.sections.contextualAds.enabled",
+    "discoverystream.sections.contextualAds.enabled",
     {
       title: "Boolean flag to enable contextual ads",
       getValue: useContextualAds,
@@ -738,6 +738,20 @@ export const PREFS_CONFIG = new Map([
     {
       title: "CSV string of spoc position indexes on newtab Pocket grid",
       value: "1,5,7,11,18,20",
+    },
+  ],
+  [
+    "discoverystream.placements.contextualSpocs",
+    {
+      title:
+        "CSV string of spoc placement ids on newtab Pocket grid. A placement id tells our ad server where the ads are intended to be displayed.",
+    },
+  ],
+  [
+    "discoverystream.placements.contextualSpocs.counts",
+    {
+      title:
+        "CSV string of spoc placement counts on newtab Pocket grid. The count tells the ad server how many ads to return for this position and placement.",
     },
   ],
   [

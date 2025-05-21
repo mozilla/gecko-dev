@@ -1348,6 +1348,18 @@ newTabSectionsExperiment:
         pref: browser.newtabpage.activity-stream.discoverystream.sections.contextualAds.locale-config
       description: >-
         A comma-separated list of locales that get contextual ads by default.
+    contextualSpocPlacements:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.placements.contextualSpocs
+      description: CSV string of spoc placement ids on newtab Pocket grid. A placement id tells our ad server where the ads are intended to be displayed.
+    contextualSpocCounts:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.placements.contextualSpocs.counts
+      description: CSV string of spoc placement counts on newtab Pocket grid. The count tells the ad server how many ads to return for this position and placement.
 
 newtabPrivatePing:
   description: The newtab-content ping, sent through OHTTP
