@@ -96,6 +96,23 @@ export class LRUCache {
   #textCacheMap = new Map();
 
   /**
+   * A Set containing strings of translated plain text output.
+   *
+   * This cache is used to check if the text has already been translated,
+   * to help avoid sending already-translated text to be translated a second time.
+   *
+   * Ideally, a translation model that receives source text that is already in the
+   * target translation language should just pass it through, but this is not always
+   * the case in practice. Depending on the model, sending already-translated text to
+   * be translated again may change the translation or even produce garbage as a response.
+   *
+   * Best to avoid this situation altogether if we can.
+   *
+   * @type {Set<string>}
+   */
+  #textCacheSet = new Set();
+
+  /**
    * The language pair for this cache. All cached translations will be for the given pair.
    *
    * @type {LanguagePair}
@@ -189,7 +206,34 @@ export class LRUCache {
     }
     cacheMap.set(sourceString, targetString);
 
+    if (!isHTML) {
+      if (this.#textCacheSet.has(targetString)) {
+        // The Set already has this value, so we must delete it to
+        // re-insert it at the most-recently-used position of the Set.
+        this.#textCacheSet.delete(targetString);
+      } else if (this.#textCacheSet.size === this.#cacheLimit) {
+        // The Set is at capacity, so we must evict the least-recently-used value.
+        const oldestKey = this.#textCacheSet.keys().next().value;
+        // @ts-ignore: We can ensure that oldestKey is not undefined.
+        this.#textCacheSet.delete(oldestKey);
+      }
+      this.#textCacheSet.add(targetString);
+    }
+
     this.keepAlive();
+  }
+
+  /**
+   * Returns true if the source text is text that has already been translated
+   * into the target language, otherwise false. If so, we want to avoid sending
+   * this text to be translated a second time. Depending on the model, retranslating
+   * text that is already in the target language may produce garbage output.
+   *
+   * @param {string} sourceText
+   * @returns {boolean}
+   */
+  isAlreadyTranslated(sourceText) {
+    return this.#textCacheSet.has(sourceText);
   }
 
   /**
@@ -246,6 +290,7 @@ export class LRUCache {
       this.#keepAliveTimeoutId = lazy.setTimeout(() => {
         this.#htmlCacheMap = new Map();
         this.#textCacheMap = new Map();
+        this.#textCacheSet = new Set();
       }, this.#cacheExpirationMS);
     }, 0);
   }
@@ -441,6 +486,7 @@ const MUTATION_OBSERVER_OPTIONS = {
   childList: true,
   subtree: true,
   attributes: true,
+  attributeOldValue: true,
   attributeFilter: [...TRANSLATABLE_ATTRIBUTES.keys()],
 };
 
@@ -820,18 +866,27 @@ export class TranslationsDocument {
               // Ignore others such as the comment node.
               // https://developer.mozilla.org/en-US/docs/Web/API/CharacterData
               if (node.nodeType === Node.TEXT_NODE) {
-                this.#processedContentNodes.delete(node);
                 this.#markNodeContentMutated(node);
               }
             }
             break;
           }
           case "attributes": {
-            if (mutation.target && mutation.attributeName) {
-              this.#maybeMarkElementAttributeMutated(
-                mutation.target,
-                mutation.attributeName
-              );
+            const element = asElement(mutation.target);
+            if (element && mutation.attributeName) {
+              const { oldValue, attributeName } = mutation;
+              const newValue = element.getAttribute(attributeName);
+
+              if (
+                // The new attribute value must have content to translate.
+                newValue?.length &&
+                // The new attribute value must not be exactly the same as the old value.
+                oldValue !== newValue &&
+                // The new attribute value must not be already-translated text.
+                !this.#translationsCache.isAlreadyTranslated(newValue)
+              ) {
+                this.#maybeMarkElementAttributeMutated(element, attributeName);
+              }
             }
             break;
           }
