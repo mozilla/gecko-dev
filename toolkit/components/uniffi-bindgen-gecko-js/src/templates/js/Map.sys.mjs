@@ -2,36 +2,36 @@
 export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
     static read(dataStream) {
         const len = dataStream.readInt32();
-        const map = {};
+        const map = new Map();
         for (let i = 0; i < len; i++) {
             const key = {{ key_type.ffi_converter() }}.read(dataStream);
             const value = {{ value_type.ffi_converter() }}.read(dataStream);
-            map[key] = value;
+            map.set(key, value);
         }
 
         return map;
     }
 
-    static write(dataStream, value) {
-        dataStream.writeInt32(Object.keys(value).length);
-        for (const key in value) {
+    static write(dataStream, map) {
+        dataStream.writeInt32(map.size);
+        for (const [key, value] of map) {
             {{ key_type.ffi_converter() }}.write(dataStream, key);
-            {{ value_type.ffi_converter() }}.write(dataStream, value[key]);
+            {{ value_type.ffi_converter() }}.write(dataStream, value);
         }
     }
 
-    static computeSize(value) {
+    static computeSize(map) {
         // The size of the length
         let size = 4;
-        for (const key in value) {
+        for (const [key, value] of map) {
             size += {{ key_type.ffi_converter() }}.computeSize(key);
-            size += {{ value_type.ffi_converter() }}.computeSize(value[key]);
+            size += {{ value_type.ffi_converter() }}.computeSize(value);
         }
         return size;
     }
 
-    static checkType(value) {
-        for (const key in value) {
+    static checkType(map) {
+        for (const [key, value] of map) {
             try {
                 {{ key_type.ffi_converter() }}.checkType(key);
             } catch (e) {
@@ -42,7 +42,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
             }
 
             try {
-                {{ value_type.ffi_converter() }}.checkType(value[key]);
+                {{ value_type.ffi_converter() }}.checkType(value);
             } catch (e) {
                 if (e instanceof UniFFITypeError) {
                     e.addItemDescriptionPart(`[${key}]`);
