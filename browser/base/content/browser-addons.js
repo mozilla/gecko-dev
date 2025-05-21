@@ -1924,6 +1924,8 @@ var gUnifiedExtensions = {
       // from clicking on something different than they intended, never hide an
       // already-visible button while the mouse is still in the toolbar.
       (!this.button.hidden && this._buttonBarHasMouse) ||
+      // Attention dot - see comment at buttonIgnoresAttention.
+      (!this.buttonIgnoresAttention && this.button.hasAttribute("attention")) ||
       // Always show when customizing, because even if the button should mostly
       // be hidden, the user should be able to specify the desired location for
       // cases where the button is forcibly shown.
@@ -2004,6 +2006,9 @@ var gUnifiedExtensions = {
       msgId = "unified-extensions-button-blocklisted";
     }
     this.button.ownerDocument.l10n.setAttributes(this.button, msgId);
+    if (!this.buttonAlwaysVisible && !this.buttonIgnoresAttention) {
+      this.updateButtonVisibility();
+    }
   },
 
   getPopupAnchorID(aBrowser, aWindow) {
@@ -2856,6 +2861,26 @@ XPCOMUtils.defineLazyPreferenceGetter(
   true,
   () => {
     if (gUnifiedExtensions._initialized) {
+      gUnifiedExtensions.updateButtonVisibility();
+    }
+  }
+);
+// With button.always_visible is false, we still show the button in specific
+// cases when needed. The user is always empowered to dismiss the specific
+// trigger that causes the button to be shown. The attention dot is the
+// exception, where the button cannot easily be hidden. Users who willingly
+// want to ignore the attention dot can set this preference to keep the button
+// hidden even if attention is requested.
+XPCOMUtils.defineLazyPreferenceGetter(
+  gUnifiedExtensions,
+  "buttonIgnoresAttention",
+  "extensions.unifiedExtensions.button.ignore_attention",
+  false,
+  () => {
+    if (
+      gUnifiedExtensions._initialized &&
+      gUnifiedExtensions.buttonAlwaysVisible
+    ) {
       gUnifiedExtensions.updateButtonVisibility();
     }
   }

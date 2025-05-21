@@ -164,6 +164,13 @@ add_task(async function test_menu_items_on_hidden_button() {
   hideButtonWithPref();
 
   // Simulate the extensions button being unhidden for whatever reason.
+  // An example of a real-world scenario is when the user right-clicks on the
+  // button while an extension popup was being displayed. Upon right-clicking,
+  // the panel closes and the button is hidden.
+  // NOTE: For a test case where the button continues to be shown upon opening
+  // the context menu, see test_contextmenu_on_button_with_attention in
+  // browser_unified_extensions_button_visibility_attention.js, and
+  // test_customization_button_and_menu_item_visibility in this file.
   gUnifiedExtensions.button.hidden = false;
   const contextMenu = await openChromeContextMenu(
     "toolbar-context-menu",
