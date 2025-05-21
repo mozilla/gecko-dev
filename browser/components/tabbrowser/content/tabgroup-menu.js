@@ -1222,6 +1222,9 @@
      * @param {boolean} shouldShow - Whether the element should be shown (true) or hidden (false).
      */
     #setElementVisibility(element, shouldShow) {
+      if (!element) {
+        return;
+      }
       element.hidden = !shouldShow;
     }
 
@@ -1275,9 +1278,13 @@
       this.#setSuggestModeSuggestionState(false);
       this.#suggestedTabs = [];
       this.#selectedSuggestedTabs = [];
-      this.#suggestions.innerHTML = "";
+      if (this.#suggestions) {
+        this.#suggestions.innerHTML = "";
+      }
       this.#showSmartSuggestionsContainer(false);
-      this.#suggestionsOptinContainer.innerHTML = "";
+      if (this.#suggestionsOptinContainer) {
+        this.#suggestionsOptinContainer.innerHTML = "";
+      }
     }
 
     #renderSuggestionState() {
