@@ -8437,6 +8437,12 @@ static bool ShouldRecreateContainerForNativeAnonymousContentRoot(
     return false;
   }
   if (auto* el = Element::FromNode(aContent)) {
+    if (el->GetPseudoElementType() ==
+        PseudoStyleType::mozSnapshotContainingBlock) {
+      // Much like above, all abspos and on its own top layer so insertion order
+      // wouldn't really matter anyways.
+      return false;
+    }
     if (auto* classes = el->GetClasses()) {
       if (classes->Contains(nsGkAtoms::mozCustomContentContainer,
                             eCaseMatters)) {
