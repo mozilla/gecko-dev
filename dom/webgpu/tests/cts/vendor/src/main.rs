@@ -315,7 +315,9 @@ fn run(args: CliArgs) -> miette::Result<()> {
                 entry.process_listing_line(params)?;
             }
         }
-        test_split::assert_seen(tests_to_split.iter(), |seen| &seen.listing);
+        test_split::assert_seen("test listing output", tests_to_split.iter(), |seen| {
+            &seen.listing
+        });
 
         tests_to_split
     };
@@ -408,7 +410,9 @@ fn run(args: CliArgs) -> miette::Result<()> {
             };
         }
 
-        test_split::assert_seen(tests_to_split.iter(), |seen| &seen.wpt_files);
+        test_split::assert_seen("WPT test output", tests_to_split.iter(), |seen| {
+            &seen.wpt_files
+        });
 
         struct WptEntry<'a> {
             cases: BTreeSet<Cow<'a, str>>,
