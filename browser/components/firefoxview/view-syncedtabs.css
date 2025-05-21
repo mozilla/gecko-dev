@@ -16,15 +16,15 @@
 
 .phone,
 .mobile {
-  background-image: url('chrome://browser/skin/device-phone.svg');
+  background-image: url("chrome://browser/skin/device-phone.svg");
 }
 
 .desktop {
-  background-image: url('chrome://browser/skin/device-desktop.svg');
+  background-image: url("chrome://browser/skin/device-desktop.svg");
 }
 
 .tablet {
-  background-image: url('chrome://browser/skin/device-tablet.svg');
+  background-image: url("chrome://browser/skin/device-tablet.svg");
 }
 
 h2 {
