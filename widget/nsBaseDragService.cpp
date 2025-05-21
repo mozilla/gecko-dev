@@ -1305,7 +1305,8 @@ nsBaseDragSession::SendDispatchToDropTargetAndResumeEndDragSession(
     bool aShouldDrop) {
   MOZ_ASSERT(mDelayedDropBrowserParent);
   Unused << mDelayedDropBrowserParent
-                ->SendDispatchToDropTargetAndResumeEndDragSession(aShouldDrop);
+                ->SendDispatchToDropTargetAndResumeEndDragSession(
+                    aShouldDrop, allowedFilePaths);
   mDelayedDropBrowserParent = nullptr;
   return NS_OK;
 }
@@ -1324,7 +1325,8 @@ nsBaseDragSession::StoreDropTargetAndDelayEndDragSession(
 
 NS_IMETHODIMP
 nsBaseDragSession::DispatchToDropTargetAndResumeEndDragSession(
-    nsIWidget* aWidget, const LayoutDeviceIntPoint& aPt, bool aShouldDrop) {
+    nsIWidget* aWidget, const LayoutDeviceIntPoint& aPt, bool aShouldDrop,
+    const nsTHashSet<nsString>& aAllowedFilePaths) {
   MOZ_ASSERT(XRE_IsContentProcess());
   MOZ_DRAGSERVICE_LOG(
       "[%p] DispatchToDropTargetAndResumeEndDragSession | pt=(%d, %d) | "
@@ -1345,6 +1347,43 @@ nsBaseDragSession::DispatchToDropTargetAndResumeEndDragSession(
   if (!delayedDropFrame) {
     // Weak frame was deleted
     return NS_OK;
+  }
+  // Remove all files that are not in the aAllowedFiles list
+  if (mDataTransfer->HasFile()) {
+    auto* items = mDataTransfer->Items();
+    auto idx = items->Length();
+    do {
+      --idx;
+      bool found;
+      auto* item = items->IndexedGetter(idx, found);
+      MOZ_ASSERT(found);
+      if (item->Kind() == dom::DataTransferItem::KIND_FILE) {
+        // Note that item->GetAsFile() doesn't work from here because
+        // mDataTransfer->GetGlobal() is null.
+        // But just getting a BlobImpl is fine for our purposes.
+        nsCOMPtr<nsIVariant> data = item->DataNoSecurityCheck();
+        nsCOMPtr<nsISupports> supports;
+        nsresult rv = data->GetAsISupports(getter_AddRefs(supports));
+        MOZ_ASSERT(NS_SUCCEEDED(rv) && supports,
+                   "File objects should be stored as nsISupports variants");
+        if (NS_FAILED(rv) || !supports) {
+          continue;
+        }
+        if (nsCOMPtr<BlobImpl> blobImpl = do_QueryInterface(supports)) {
+          MOZ_ASSERT(blobImpl->IsFile());
+          nsString path;
+          ErrorResult result;
+          blobImpl->GetMozFullPathInternal(path, result);
+          if (NS_WARN_IF(NS_FAILED(result.StealNSResult()))) {
+            continue;
+          }
+          if (!aAllowedFilePaths.Contains(path)) {
+            mDataTransfer->MozClearDataAt(u""_ns, idx, result);
+            Unused << NS_WARN_IF(NS_FAILED(result.StealNSResult()));
+          }
+        }
+      }
+    } while (idx);
   }
 
   nsEventStatus status = nsEventStatus_eIgnore;

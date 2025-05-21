@@ -32,6 +32,7 @@ native EventMessage(mozilla::EventMessage);
 [ref] native LayoutDeviceIntPoint(mozilla::LayoutDeviceIntPoint);
 [ptr] native nsIFramePtr(nsIFrame);
 [ptr] native nsIWidgetPtr(nsIWidget);
+[ref] native StringSet(const nsTHashSet<nsString>);
 native nsSize(nsSize);
 
 webidl DataTransfer;
@@ -252,15 +253,17 @@ interface nsIDragSession : nsISupports
    * Issue drop or dragexit to the stored drop target (if any) and issue
    * any delayed call to EndDragSession.  This is used in content processes.
    *
-   * @param aWidget      The widget on which the drop will happen
-   * @param aPt          Screen coords of drop
-   * @param aShouldDrop  If true, send a drop event.  Otherwise send dragexit.
+   * @param aWidget           The widget on which the drop will happen
+   * @param aPt               Screen coords of drop
+   * @param aShouldDrop       If true, send a drop event.  Otherwise send dragexit.
+   * @param aAllowedFilePaths Paths to the files that were allowed to be dropped.
    */
   [noscript, can_run_script]
   void dispatchToDropTargetAndResumeEndDragSession(
       in nsIWidgetPtr aWidget,
       [const] in LayoutDeviceIntPoint aPt,
-      in boolean aShouldDrop);
+      in boolean aShouldDrop,
+      in StringSet aAllowedFilePaths);
 
   /**
    * Retrun true if nsIDragSession's data is updated.
