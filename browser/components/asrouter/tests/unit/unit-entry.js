@@ -346,6 +346,9 @@ const TEST_GLOBAL = {
     getLocalProfileDir() {
       return Promise.resolve("/");
     },
+    toFileURI(path) {
+      return `file://${path}`;
+    },
   },
   PlacesUtils: {
     get bookmarks() {

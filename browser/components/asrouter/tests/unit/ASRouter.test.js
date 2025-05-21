@@ -269,12 +269,12 @@ describe("ASRouter", () => {
           return this;
         }
         getRecord() {
-          return Promise.resolve({ data: {} });
+          return Promise.resolve({ data: { attachment: { size: 42 } } });
         }
       },
-      Downloader: class {
+      UnstoredDownloader: class {
         download() {
-          return Promise.resolve("/path/to/download");
+          return Promise.resolve({ buffer: "fake buffer" });
         }
       },
       NimbusFeatures: fakeNimbusFeatures,
@@ -298,6 +298,9 @@ describe("ASRouter", () => {
         // This is just a subset of supported locales that happen to be used in
         // the test.
         isLocaleSupported: locale => ["en-US", "ja-JP-mac"].includes(locale),
+        // PathUtils.join() is mocked in `unit-entry.js`, only filenames count.
+        cfrFluentFileDir: "ms-language-packs",
+        cfrFluentFilePath: "asrouter.ftl",
       },
     });
     await createRouterAndInit();
@@ -1030,8 +1033,9 @@ describe("ASRouter", () => {
       sandbox
         .stub(MessageLoaderUtils, "_getRemoteSettingsMessages")
         .resolves([{ id: "message_1" }]);
+      sandbox.stub(global.IOUtils, "exists").resolves(false);
       const spy = sandbox.spy();
-      global.Downloader.prototype.downloadToDisk = spy;
+      global.UnstoredDownloader.prototype.download = spy;
       const provider = {
         id: "cfr",
         enabled: true,
@@ -2680,11 +2684,12 @@ describe("ASRouter", () => {
       sandbox
         .stub(MessageLoaderUtils, "_getRemoteSettingsMessages")
         .resolves([{ id: "message_1" }]);
-      spy = sandbox.spy();
-      global.Downloader.prototype.downloadToDisk = spy;
+      sandbox.stub(global.IOUtils, "exists").resolves(false);
+      spy = sandbox.spy(global.UnstoredDownloader.prototype.download);
+      global.UnstoredDownloader.prototype.download = spy;
     });
     it("should be called with the expected dir path", async () => {
-      const dlSpy = sandbox.spy(global, "Downloader");
+      const writeSpy = sandbox.spy(global.IOUtils, "write");
 
       sandbox
         .stub(global.Services.locale, "appLocaleAsBCP47")
@@ -2692,13 +2697,38 @@ describe("ASRouter", () => {
 
       await MessageLoaderUtils._remoteSettingsLoader(provider, {});
 
-      assert.calledWith(
-        dlSpy,
-        "main",
-        "ms-language-packs",
-        "browser",
-        "newtab"
+      assert.calledOnce(spy);
+      assert.calledWithMatch(
+        writeSpy,
+        "asrouter.ftl", // PathUtils.join() is mocked in `unit-entry.js` and only returns the filename.
+        sinon.match.any,
+        { tmpPath: "asrouter.ftl.tmp" }
       );
+    });
+    it("should download if local file has different size", async () => {
+      global.IOUtils.exists.resolves(true);
+      sandbox.stub(global.IOUtils, "stat").resolves({ size: 1337 });
+      sandbox
+        .stub(global.Services.locale, "appLocaleAsBCP47")
+        .get(() => "en-US");
+
+      await MessageLoaderUtils._remoteSettingsLoader(provider, {});
+
+      assert.calledOnce(spy);
+    });
+    it("should not download if local file has same size", async () => {
+      global.IOUtils.exists.resolves(true);
+      sandbox.stub(global.IOUtils, "stat").resolves({ size: 42 });
+      sandbox
+        .stub(global.KintoHttpClient.prototype, "getRecord")
+        .resolves({ data: { attachment: { size: 42 } } });
+      sandbox
+        .stub(global.Services.locale, "appLocaleAsBCP47")
+        .get(() => "en-US");
+
+      await MessageLoaderUtils._remoteSettingsLoader(provider, {});
+
+      assert.notCalled(spy);
     });
     it("should allow fetch for known locales", async () => {
       sandbox

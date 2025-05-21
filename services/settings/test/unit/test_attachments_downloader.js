@@ -28,14 +28,6 @@ const RECORD_OF_DUMP = {
 let downloader;
 let server;
 
-function pathFromURL(url) {
-  const uri = Services.io.newURI(url);
-  const file = uri.QueryInterface(Ci.nsIFileURL).file;
-  return file.path;
-}
-
-const PROFILE_URL = PathUtils.toFileURI(PathUtils.localProfileDir);
-
 add_setup(() => {
   server = new HttpServer();
   server.start(-1);
@@ -131,58 +123,6 @@ add_task(
 );
 add_task(clear_state);
 
-add_task(async function test_download_writes_file_in_profile() {
-  const fileURL = await downloader.downloadToDisk(RECORD);
-  const localFilePath = pathFromURL(fileURL);
-
-  Assert.equal(
-    fileURL,
-    PROFILE_URL + "/settings/main/some-collection/test_file.pem"
-  );
-  Assert.ok(await IOUtils.exists(localFilePath));
-  const stat = await IOUtils.stat(localFilePath);
-  Assert.equal(stat.size, 1597);
-});
-add_task(clear_state);
-
-add_task(async function test_download_as_bytes() {
-  const bytes = await downloader.downloadAsBytes(RECORD);
-
-  // See *.pem file in tests data.
-  Assert.ok(bytes.byteLength > 1500, `Wrong bytes size: ${bytes.byteLength}`);
-});
-add_task(clear_state);
-
-add_task(async function test_file_is_redownloaded_if_size_does_not_match() {
-  const fileURL = await downloader.downloadToDisk(RECORD);
-  const localFilePath = pathFromURL(fileURL);
-  await IOUtils.writeUTF8(localFilePath, "bad-content");
-  let stat = await IOUtils.stat(localFilePath);
-  Assert.notEqual(stat.size, 1597);
-
-  await downloader.downloadToDisk(RECORD);
-
-  stat = await IOUtils.stat(localFilePath);
-  Assert.equal(stat.size, 1597);
-});
-add_task(clear_state);
-
-add_task(async function test_file_is_redownloaded_if_corrupted() {
-  const fileURL = await downloader.downloadToDisk(RECORD);
-  const localFilePath = pathFromURL(fileURL);
-  const byteArray = await IOUtils.read(localFilePath);
-  byteArray[0] = 42;
-  await IOUtils.write(localFilePath, byteArray);
-  let content = await IOUtils.readUTF8(localFilePath);
-  Assert.notEqual(content.slice(0, 5), "-----");
-
-  await downloader.downloadToDisk(RECORD);
-
-  content = await IOUtils.readUTF8(localFilePath);
-  Assert.equal(content.slice(0, 5), "-----");
-});
-add_task(clear_state);
-
 add_task(async function test_download_is_retried_3_times_if_download_fails() {
   const record = {
     id: "abc",
@@ -208,6 +148,14 @@ add_task(async function test_download_is_retried_3_times_if_download_fails() {
 
   Assert.equal(called, 4); // 1 + 3 retries
   Assert.ok(error instanceof Downloader.DownloadError);
+});
+add_task(clear_state);
+
+add_task(async function test_download_as_bytes() {
+  const bytes = await downloader.downloadAsBytes(RECORD);
+
+  // See *.pem file in tests data.
+  Assert.ok(bytes.byteLength > 1500, `Wrong bytes size: ${bytes.byteLength}`);
 });
 add_task(clear_state);
 
@@ -237,53 +185,14 @@ add_task(async function test_download_is_retried_3_times_if_content_fails() {
 });
 add_task(clear_state);
 
-add_task(async function test_delete_removes_local_file() {
-  const fileURL = await downloader.downloadToDisk(RECORD);
-  const localFilePath = pathFromURL(fileURL);
-  Assert.ok(await IOUtils.exists(localFilePath));
-
-  await downloader.deleteFromDisk(RECORD);
-
-  Assert.ok(!(await IOUtils.exists(localFilePath)));
-  // And removes parent folders.
-  const parentFolder = PathUtils.join(
-    PathUtils.localProfileDir,
-    ...downloader.folders
-  );
-  Assert.ok(!(await IOUtils.exists(parentFolder)));
-});
-add_task(clear_state);
-
 add_task(async function test_delete_all() {
   const client = RemoteSettings("some-collection");
   await client.db.create(RECORD);
   await downloader.download(RECORD);
-  const fileURL = await downloader.downloadToDisk(RECORD);
-  const localFilePath = pathFromURL(fileURL);
-  Assert.ok(await IOUtils.exists(localFilePath));
 
   await client.attachments.deleteAll();
 
-  Assert.ok(!(await IOUtils.exists(localFilePath)));
   Assert.ok(!(await client.attachments.cacheImpl.get(RECORD.id)));
-});
-add_task(clear_state);
-
-add_task(async function test_downloader_is_accessible_via_client() {
-  const client = RemoteSettings("some-collection");
-
-  const fileURL = await client.attachments.downloadToDisk(RECORD);
-
-  Assert.equal(
-    fileURL,
-    [
-      PROFILE_URL,
-      "settings",
-      client.bucketName,
-      client.collectionName,
-      RECORD.attachment.filename,
-    ].join("/")
-  );
 });
 add_task(clear_state);
 

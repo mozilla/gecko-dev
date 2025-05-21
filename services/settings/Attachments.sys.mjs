@@ -499,67 +499,6 @@ export class Downloader {
   async prune(excludeIds) {
     return this.cacheImpl.prune(excludeIds);
   }
-
-  /**
-   * @deprecated See https://bugzilla.mozilla.org/show_bug.cgi?id=1634127
-   *
-   * Download the record attachment into the local profile directory
-   * and return a file:// URL that points to the local path.
-   *
-   * No-op if the file was already downloaded and not corrupted.
-   *
-   * @param {Object} record A Remote Settings entry with attachment.
-   * @param {Object} options Some download options.
-   * @param {Number} options.retries Number of times download should be retried (default: `3`)
-   * @throws {Downloader.DownloadError} if the file could not be fetched.
-   * @throws {Downloader.BadContentError} if the downloaded file integrity is not valid.
-   * @throws {Downloader.ServerInfoError} if the server response is not valid.
-   * @throws {NetworkError} if fetching the attachment fails.
-   * @returns {String} the absolute file path to the downloaded attachment.
-   */
-  async downloadToDisk(record, options = {}) {
-    const { retries = 3 } = options;
-    const {
-      attachment: { filename, size, hash },
-    } = record;
-    const localFilePath = PathUtils.join(
-      PathUtils.localProfileDir,
-      ...this.folders,
-      filename
-    );
-    const localFileUrl = PathUtils.toFileURI(localFilePath);
-
-    await this._makeDirs();
-
-    let retried = 0;
-    while (true) {
-      if (
-        await lazy.RemoteSettingsWorker.checkFileHash(localFileUrl, size, hash)
-      ) {
-        return localFileUrl;
-      }
-      // File does not exist or is corrupted.
-      if (retried > retries) {
-        throw new Downloader.BadContentError(localFilePath);
-      }
-      try {
-        // Download and write on disk.
-        const buffer = await this.downloadAsBytes(record, {
-          checkHash: false, // Hash will be checked on file.
-          retries: 0, // Already in a retry loop.
-        });
-        await IOUtils.write(localFilePath, new Uint8Array(buffer), {
-          tmpPath: `${localFilePath}.tmp`,
-        });
-      } catch (e) {
-        if (retried >= retries) {
-          throw e;
-        }
-      }
-      retried++;
-    }
-  }
-
   /**
    * Download the record attachment and return its content as bytes.
    *
@@ -607,31 +546,6 @@ export class Downloader {
       }
       retried++;
     }
-  }
-
-  /**
-   * @deprecated See https://bugzilla.mozilla.org/show_bug.cgi?id=1634127
-   *
-   * Delete the record attachment downloaded locally.
-   * This is the counterpart of `downloadToDisk()`.
-   * Use `deleteDownloaded()` if `download()` was used to retrieve
-   * the attachment.
-   *
-   * No-op if the related file does not exist.
-   *
-   * @param record A Remote Settings entry with attachment.
-   */
-  async deleteFromDisk(record) {
-    const {
-      attachment: { filename },
-    } = record;
-    const path = PathUtils.join(
-      PathUtils.localProfileDir,
-      ...this.folders,
-      filename
-    );
-    await IOUtils.remove(path);
-    await this._rmDirs();
   }
 
   async _fetchAttachment(url) {
@@ -688,25 +602,22 @@ export class Downloader {
 
   // Separate variable to allow tests to override this.
   static _RESOURCE_BASE_URL = "resource://app/defaults";
+}
 
-  async _makeDirs() {
-    const dirPath = PathUtils.join(PathUtils.localProfileDir, ...this.folders);
-    await IOUtils.makeDirectory(dirPath, { createAncestors: true });
-  }
-
-  async _rmDirs() {
-    for (let i = this.folders.length; i > 0; i--) {
-      const dirPath = PathUtils.join(
-        PathUtils.localProfileDir,
-        ...this.folders.slice(0, i)
-      );
-      try {
-        await IOUtils.remove(dirPath);
-      } catch (e) {
-        // This could fail if there's something in
-        // the folder we're not permitted to remove.
-        break;
-      }
-    }
+/**
+ * A bare downloader that does not store anything in cache.
+ */
+export class UnstoredDownloader extends Downloader {
+  get cacheImpl() {
+    const cacheImpl = {
+      get: async () => {},
+      set: async () => {},
+      setMultiple: async () => {},
+      delete: async () => {},
+      prune: async () => {},
+      hasData: async () => false,
+    };
+    Object.defineProperty(this, "cacheImpl", { value: cacheImpl });
+    return cacheImpl;
   }
 }

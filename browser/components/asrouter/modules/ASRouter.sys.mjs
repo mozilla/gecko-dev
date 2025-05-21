@@ -36,7 +36,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource:///modules/asrouter/ASRouterTriggerListeners.sys.mjs",
   AttributionCode: "resource:///modules/AttributionCode.sys.mjs",
   BookmarksBarButton: "resource:///modules/asrouter/BookmarksBarButton.sys.mjs",
-  Downloader: "resource://services-settings/Attachments.sys.mjs",
+  UnstoredDownloader: "resource://services-settings/Attachments.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   FeatureCalloutBroker:
     "resource:///modules/asrouter/FeatureCalloutBroker.sys.mjs",
@@ -271,8 +271,8 @@ export const MessageLoaderUtils = {
    * "ms-language-packs" collection. E.g. for "en-US" with version "v1",
    * the Fluent file is attched to the record with ID "cfr-v1-en-US".
    *
-   * 2). The Remote Settings downloader is able to detect the duplicate download
-   * requests for the same attachment and ignore the redundent requests automatically.
+   * 2). To prevent duplicate downloads, we verify that the local file matches
+   * the attachment on the Remote Settings record.
    *
    * @param {object} provider An AS router provider
    * @param {string} provider.id The id of the provider
@@ -306,16 +306,29 @@ export const MessageLoaderUtils = {
             .collection(RS_COLLECTION_L10N)
             .getRecord(recordId);
           if (record && record.data) {
-            const downloader = new lazy.Downloader(
-              RS_MAIN_BUCKET,
-              RS_COLLECTION_L10N,
-              "browser",
-              "newtab"
-            );
-            // Await here in order to capture the exceptions for reporting.
-            await downloader.downloadToDisk(record.data, {
-              retries: RS_DOWNLOAD_MAX_RETRIES,
-            });
+            // Check that the file on disk is the same as the one on the server.
+            // If the file is the same, we don't need to download it again.
+            const localFile = lazy.RemoteL10n.cfrFluentFilePath;
+            const { size: remoteSize } = record.data.attachment;
+            if (
+              !(await IOUtils.exists(localFile)) ||
+              (await IOUtils.stat(localFile)).size !== remoteSize
+            ) {
+              // Here we are using the UnstoredDownloader to download the attachment
+              // because we don't want to store it in the (default) IndexedDB cache.
+              const downloader = new lazy.UnstoredDownloader(
+                RS_MAIN_BUCKET,
+                RS_COLLECTION_L10N
+              );
+              // Await here in order to capture the exceptions for reporting.
+              const { buffer } = await downloader.download(record.data, {
+                retries: RS_DOWNLOAD_MAX_RETRIES,
+              });
+              // Write on disk.
+              await IOUtils.write(localFile, new Uint8Array(buffer), {
+                tmpPath: `${localFile}.tmp`,
+              });
+            }
             lazy.RemoteL10n.reloadL10n();
           } else {
             MessageLoaderUtils._handleRemoteSettingsUndesiredEvent(
