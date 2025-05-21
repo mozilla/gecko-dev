@@ -5,6 +5,11 @@
 
 loadTestSubscript("head_unified_extensions.js");
 
+ChromeUtils.defineESModuleGetters(this, {
+  ExtensionControlledPopup:
+    "resource:///modules/ExtensionControlledPopup.sys.mjs",
+});
+
 const verifyPermissionsPrompt = async expectAlwaysShown => {
   const ext = ExtensionTestUtils.loadExtension({
     useAddonManager: "temporary",
@@ -134,6 +139,44 @@ add_task(async function test_permissions_prompt_when_button_is_hidden() {
 
   info("After install is done, Extensions button should be hidden again");
   assertExtensionsButtonHidden();
+
+  await SpecialPowers.popPrefEnv();
+});
+
+// This test confirms that the Extensions Button becomes temporarily visible
+// when an ExtensionControlledPopup notification wants to anchor to it.
+add_task(async function test_homepage_doorhanger() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.unifiedExtensions.button.always_visible", false]],
+  });
+
+  const extension = ExtensionTestUtils.loadExtension({
+    manifest: { chrome_settings_overrides: { homepage: "exthome.html" } },
+    files: { "exthome.html": "<h1>Extension-defined homepage</h1>" },
+    useAddonManager: "temporary",
+  });
+  await extension.startup();
+
+  let panel = ExtensionControlledPopup._getAndMaybeCreatePanel(document);
+  let popupShown = promisePopupShown(panel);
+  BrowserCommands.home();
+
+  info("Waiting for 'Your homepage has changed' doorhanger to appear");
+  await popupShown;
+  assertExtensionsButtonVisible();
+
+  let popupnotification = document.getElementById(
+    "extension-homepage-notification"
+  );
+
+  // Now close doorhanger and verify that the button is hidden again.
+  let popupHidden = promisePopupHidden(panel);
+  popupnotification.button.click();
+  await popupHidden;
+
+  assertExtensionsButtonHidden();
+
+  await extension.unload();
 
   await SpecialPowers.popPrefEnv();
 });
