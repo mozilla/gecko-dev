@@ -501,6 +501,21 @@
 #  define MOZ_LIFETIME_BOUND /* nothing */
 #endif
 
+/**
+ * MOZ_LIFETIME_CAPTURE_BY(x) indicates that objects that are referred to
+ * by that parameter may also be referred to by x.
+ * See: https://clang.llvm.org/docs/AttributeReference.html#lifetime-capture-by
+ */
+#if defined(__clang__) && defined(__has_cpp_attribute)
+#  if __has_cpp_attribute(clang::lifetime_capture_by)
+#    define MOZ_LIFETIME_CAPTURE_BY(x) [[clang::lifetime_capture_by(x)]]
+#  else
+#    define MOZ_LIFETIME_CAPTURE_BY(x) /* nothing */
+#  endif
+#else
+#  define MOZ_LIFETIME_CAPTURE_BY(x) /* nothing */
+#endif
+
 #ifdef __cplusplus
 
 /**
