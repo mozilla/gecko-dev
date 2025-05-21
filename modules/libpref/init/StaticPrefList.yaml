@@ -2782,6 +2782,13 @@
   value: @IS_NOT_EARLY_BETA_OR_EARLIER@
   mirror: always
 
+# Make EventStateManager restore the last "mouseover" target when it's
+# reconnected immediately.  The behavior is similar to Safari and old Chrome.
+- name: dom.event.mouse.boundary.restore_last_over_target_from_temporary_removal
+  type: bool
+  value: false
+  mirror: always
+
 # Whether the result of screenX, screenY, clientX, clientY, offsetX, offsetY,
 # x and y of trusted MouseEvent and subclasses may be fractional values.
 # Enabling this may cause backward compatibility issues.

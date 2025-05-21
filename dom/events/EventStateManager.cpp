@@ -561,12 +561,21 @@ void OverOutElementsWrapper::UpdateDeepestEnterEventTarget(
       // `mouseout` event target below for considering whether we'll dispatch
       // `pointerout` on the last `pointerover` target.
       mPendingRemovingOverEventTarget = nullptr;
+    } else if (
+        !StaticPrefs::
+            dom_event_mouse_boundary_restore_last_over_target_from_temporary_removal()) {
+      // The spec of UI Events do not define that browsers should keep storing
+      // the last `mouseover` target when it's removed temporarily and
+      // reconnected immediately.  We've decided to follow Chrome's behavior for
+      // now.  However, there is a pref to bring back the old behavior if
+      // needed.
+      mPendingRemovingOverEventTarget = nullptr;
     } else {
-      // Now, the `mouseout` event target is removed from the DOM at least
-      // temporarily.  Let's keep storing it for restoring it if it's
-      // reconnected into mDeepestEnterEventTarget in a tick because the other
-      // browsers do not treat temporary removal of the last `mouseover` target
-      // keeps storing it as the next `mouseout` event target.
+      // However, Safari and old Chrome restore the last `mouseover` target when
+      // it's temporarily removed and reconnected immediately.  Therefore, we
+      // should follow them by default.  However, we should keep the old
+      // behavior for making it easier to backout the new behavior with
+      // disabling the pref.
       MOZ_ASSERT(!mPendingRemovingOverEventTarget);
       MOZ_ASSERT(mDeepestEnterEventTarget);
       mPendingRemovingOverEventTarget =
