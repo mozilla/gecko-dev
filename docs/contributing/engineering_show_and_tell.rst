@@ -19,7 +19,6 @@ Links
 - mak: Gmail filtering with Google Apps Script
 
   - https://script.google.com/home
-  - https://paste.mozilla.org/9zEDnAiA#L9
   - https://developers.google.com/apps-script/reference/
 
 - mhowell: Windows Tools You Might Not Know About

@@ -103,8 +103,8 @@ Build errors
 
 If you encounter a build error when trying to setup your development environment, please follow these steps:
    1. Copy the entire build error to your clipboard
-   2. Paste this error to `paste.mozilla.org <https://paste.mozilla.org>`_ in the text area and change the "Expire in one hour" option to "Expire in one week". Note: it won't take a week to get help but it's better to have the snippet be around for a bit longer than expected.
-   3. Go to the `introduction channel <https://chat.mozilla.org/#/room/#introduction:mozilla.org>`__ and ask for help with your build error. Make sure to post the link to the paste.mozilla.org snippet you created!
+   2. Paste this error to `gist.github.com <https://gist.github.com/>`_ in the text area
+   3. Go to the `introduction channel <https://chat.mozilla.org/#/room/#introduction:mozilla.org>`__ and ask for help with your build error. Make sure to post the link to the gist.github.com snippet you created!
 
 The CLOBBER file has been updated
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
