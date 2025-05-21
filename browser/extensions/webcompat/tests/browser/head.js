@@ -97,6 +97,28 @@ const WebCompatExtension = new (class WebCompatExtension {
     });
   }
 
+  async getRegisteredContentScriptsFor(_id) {
+    return this.#run(async function (id) {
+      const scripts =
+        await content.wrappedJSObject.browser.scripting.getRegisteredContentScripts();
+      return scripts.filter(script =>
+        script.id.startsWith(`webcompat intervention for ${id}`)
+      );
+    }, _id);
+  }
+
+  async disableInterventions(_ids) {
+    return this.#run(async function (ids) {
+      const which =
+        content.wrappedJSObject.interventions._availableInterventions.filter(
+          i => ids.includes(i.id)
+        );
+      return await content.wrappedJSObject.interventions.disableInterventions(
+        Cu.cloneInto(which, content)
+      );
+    }, _ids);
+  }
+
   async updateInterventions(_config) {
     return this.#run(async function (config) {
       return await content.wrappedJSObject.interventions.updateInterventions(

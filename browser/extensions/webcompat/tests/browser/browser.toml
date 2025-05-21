@@ -18,6 +18,9 @@ skip-if = ["debug"] # disabled until bug 1961939 is fixed.
 ["browser_custom_functions.js"]
 support-files = ["download_server.sjs"]
 
+["browser_intervention_gating.js"]
+skip-if = ["debug"] # disabled until bug 1961939 is fixed.
+
 ["browser_interventions.js"]
 
 ["browser_pref_check.js"]
