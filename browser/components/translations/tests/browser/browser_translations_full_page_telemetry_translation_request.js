@@ -36,11 +36,13 @@ add_task(async function test_translations_telemetry_manual_translation() {
     downloadHandler: resolveDownloads,
   });
 
-  await FullPageTranslationsTestUtils.assertPageIsTranslated({
-    fromLanguage: "es",
-    toLanguage: "en",
-    runInPage,
-  });
+  await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    {
+      fromLanguage: "es",
+      toLanguage: "en",
+      runInPage,
+    }
+  );
 
   await TestTranslationsTelemetry.assertEvent(Glean.translationsPanel.open, {
     expectedEventCount: 1,
@@ -108,11 +110,13 @@ add_task(async function test_translations_telemetry_auto_translation() {
     downloadHandler: resolveDownloads,
   });
 
-  await FullPageTranslationsTestUtils.assertPageIsTranslated({
-    fromLanguage: "es",
-    toLanguage: "en",
-    runInPage,
-  });
+  await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    {
+      fromLanguage: "es",
+      toLanguage: "en",
+      runInPage,
+    }
+  );
 
   await TestTranslationsTelemetry.assertEvent(Glean.translationsPanel.open, {
     expectedEventCount: 0,

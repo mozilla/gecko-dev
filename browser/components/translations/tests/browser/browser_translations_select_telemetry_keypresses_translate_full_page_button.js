@@ -35,11 +35,13 @@ add_task(
     );
 
     await fullPageTranslationCompletePromise;
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      fromLanguage: "es",
-      toLanguage: "en",
-      runInPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        fromLanguage: "es",
+        toLanguage: "en",
+        runInPage,
+      }
+    );
 
     await closeAllOpenPanelsAndMenus();
 
@@ -90,11 +92,13 @@ add_task(
     );
 
     await fullPageTranslationCompletePromise;
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      fromLanguage: "fr",
-      toLanguage: "en",
-      runInPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        fromLanguage: "fr",
+        toLanguage: "en",
+        runInPage,
+      }
+    );
 
     await closeAllOpenPanelsAndMenus();
 

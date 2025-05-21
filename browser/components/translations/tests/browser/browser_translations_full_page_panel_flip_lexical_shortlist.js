@@ -28,11 +28,13 @@ add_task(
     await FullPageTranslationsTestUtils.clickTranslateButton({
       downloadHandler: resolveDownloads,
     });
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      fromLanguage: "es",
-      toLanguage: "en",
-      runInPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        fromLanguage: "es",
+        toLanguage: "en",
+        runInPage,
+      }
+    );
 
     await waitForTranslationModelRecordsChanged(() => {
       Services.prefs.setBoolPref(
@@ -58,11 +60,13 @@ add_task(
       pivotTranslation: true,
       downloadHandler: resolveDownloads,
     });
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      fromLanguage: "es",
-      toLanguage: "fr",
-      runInPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        fromLanguage: "es",
+        toLanguage: "fr",
+        runInPage,
+      }
+    );
 
     await waitForTranslationModelRecordsChanged(() => {
       Services.prefs.setBoolPref(
@@ -88,11 +92,13 @@ add_task(
       pivotTranslation: true,
       downloadHandler: resolveDownloads,
     });
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      fromLanguage: "es",
-      toLanguage: "uk",
-      runInPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        fromLanguage: "es",
+        toLanguage: "uk",
+        runInPage,
+      }
+    );
 
     await cleanup();
   }
@@ -123,11 +129,13 @@ add_task(
     await FullPageTranslationsTestUtils.clickTranslateButton({
       downloadHandler: resolveDownloads,
     });
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      fromLanguage: "es",
-      toLanguage: "en",
-      runInPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        fromLanguage: "es",
+        toLanguage: "en",
+        runInPage,
+      }
+    );
 
     await waitForTranslationModelRecordsChanged(() => {
       Services.prefs.setBoolPref(
@@ -153,11 +161,13 @@ add_task(
       pivotTranslation: true,
       downloadHandler: resolveDownloads,
     });
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      fromLanguage: "es",
-      toLanguage: "fr",
-      runInPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        fromLanguage: "es",
+        toLanguage: "fr",
+        runInPage,
+      }
+    );
 
     await waitForTranslationModelRecordsChanged(() => {
       Services.prefs.setBoolPref(
@@ -183,11 +193,13 @@ add_task(
       pivotTranslation: true,
       downloadHandler: resolveDownloads,
     });
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      fromLanguage: "es",
-      toLanguage: "uk",
-      runInPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        fromLanguage: "es",
+        toLanguage: "uk",
+        runInPage,
+      }
+    );
 
     await cleanup();
   }

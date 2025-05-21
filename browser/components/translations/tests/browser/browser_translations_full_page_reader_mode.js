@@ -63,6 +63,7 @@ add_task(async function test_translations_persist_in_reader_mode() {
   const { cleanup, resolveDownloads, runInPage } = await loadTestPage({
     page: SPANISH_PAGE_URL,
     languagePairs: LANGUAGE_PAIRS,
+    contentEagerMode: true,
   });
 
   await FullPageTranslationsTestUtils.assertTranslationsButton(
@@ -82,7 +83,7 @@ add_task(async function test_translations_persist_in_reader_mode() {
     downloadHandler: resolveDownloads,
   });
 
-  await FullPageTranslationsTestUtils.assertPageIsTranslated({
+  await FullPageTranslationsTestUtils.assertAllPageContentIsTranslated({
     fromLanguage: "es",
     toLanguage: "en",
     runInPage,

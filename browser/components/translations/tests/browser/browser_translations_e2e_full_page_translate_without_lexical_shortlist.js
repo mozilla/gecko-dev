@@ -31,12 +31,14 @@ add_task(
     });
 
     await FullPageTranslationsTestUtils.clickTranslateButton();
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      endToEndTest: true,
-      fromLanguage: "es",
-      toLanguage: "en",
-      runInPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        endToEndTest: true,
+        fromLanguage: "es",
+        toLanguage: "en",
+        runInPage,
+      }
+    );
 
     await cleanup();
   }

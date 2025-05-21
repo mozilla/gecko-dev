@@ -121,11 +121,13 @@ add_task(
       }
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      fromLanguage: "es",
-      toLanguage: "fr",
-      runInPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        fromLanguage: "es",
+        toLanguage: "fr",
+        runInPage,
+      }
+    );
 
     await SelectTranslationsTestUtils.openPanel(runInPage, {
       selectFrenchSection: true,
@@ -169,9 +171,9 @@ add_task(
           auto_translate: false,
           source_text_code_units:
             AppConstants.platform === "win"
-              ? 1718 // With carriage returns
-              : 1709, // No carriage returns
-          source_text_word_count: 281,
+              ? 1616 // With carriage returns
+              : 1607, // No carriage returns
+          source_text_word_count: 257,
         },
       }
     );
@@ -208,9 +210,9 @@ add_task(
           auto_translate: false,
           source_text_code_units:
             AppConstants.platform === "win"
-              ? 1718 // With carriage returns
-              : 1709, // No carriage returns
-          source_text_word_count: 281,
+              ? 1616 // With carriage returns
+              : 1607, // No carriage returns
+          source_text_word_count: 257,
         },
       }
     );

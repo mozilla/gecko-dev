@@ -75,11 +75,13 @@ add_task(async function test_button_does_not_update_when_button_is_not_shown() {
     "en"
   );
 
-  await FullPageTranslationsTestUtils.assertPageIsTranslated({
-    fromLanguage: "es",
-    toLanguage: "en",
-    runInPage: runInSpanishPage,
-  });
+  await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    {
+      fromLanguage: "es",
+      toLanguage: "en",
+      runInPage: runInSpanishPage,
+    }
+  );
 
   await removeTab();
   await cleanup();
@@ -164,11 +166,13 @@ add_task(
 
     await switchTab(spanishTabDotOrg, "Switch back to the Spanish .org tab");
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      fromLanguage: "es",
-      toLanguage: "fr",
-      runInPage: runInSpanishDotOrgPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        fromLanguage: "es",
+        toLanguage: "fr",
+        runInPage: runInSpanishDotOrgPage,
+      }
+    );
 
     await removeTab();
     await cleanup();
@@ -215,11 +219,13 @@ add_task(
       downloadHandler: resolveDownloads,
     });
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      fromLanguage: "es",
-      toLanguage: "fr",
-      runInPage: runInSpanishDotComPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        fromLanguage: "es",
+        toLanguage: "fr",
+        runInPage: runInSpanishDotComPage,
+      }
+    );
 
     const {
       tab: spanishTabDotOrg,
@@ -258,31 +264,37 @@ add_task(
     await switchTab(spanishTabDotCom, "Switch to the Spanish .com tab.");
 
     info("The Spanish .com page should still be translated to French.");
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      fromLanguage: "es",
-      toLanguage: "fr",
-      runInPage: runInSpanishDotComPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        fromLanguage: "es",
+        toLanguage: "fr",
+        runInPage: runInSpanishDotComPage,
+      }
+    );
 
     await resolveDownloads(2);
 
     info(
       "The Spanish .com page should still be translated to French, even after resolving downloads."
     );
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      fromLanguage: "es",
-      toLanguage: "fr",
-      runInPage: runInSpanishDotComPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        fromLanguage: "es",
+        toLanguage: "fr",
+        runInPage: runInSpanishDotComPage,
+      }
+    );
 
     await switchTab(spanishTabDotOrg, "Switch back to the Spanish .org tab");
 
     info("The Spanish .org page should be translated to Ukrainian.");
-    await FullPageTranslationsTestUtils.assertPageIsTranslated({
-      fromLanguage: "es",
-      toLanguage: "uk",
-      runInPage: runInSpanishDotOrgPage,
-    });
+    await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+      {
+        fromLanguage: "es",
+        toLanguage: "uk",
+        runInPage: runInSpanishDotOrgPage,
+      }
+    );
 
     await removeTab();
     await cleanup();

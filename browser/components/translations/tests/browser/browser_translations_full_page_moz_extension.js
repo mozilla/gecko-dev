@@ -14,10 +14,12 @@ add_task(async function test_translations_moz_extension() {
     files: {
       "test_page.html": `<!DOCTYPE html>
         <html lang="es">
+          <head>
+            <meta charset="UTF-8">
+          </head>
           <body>
-            <div>
-              <h1>Don Quijote de La Mancha</h1>
-            </div>
+            <h1>Don Quijote de La Mancha</h1>
+            <p>— Pues, aunque mováis más brazos que los del gigante Briareo, me lo habéis de pagar.</p>
           </body>
         </html>`,
     },
@@ -50,7 +52,7 @@ add_task(async function test_translations_moz_extension() {
     downloadHandler: resolveDownloads,
   });
 
-  await FullPageTranslationsTestUtils.assertPageIsTranslated({
+  await FullPageTranslationsTestUtils.assertAllPageContentIsTranslated({
     fromLanguage: "es",
     toLanguage: "en",
     runInPage,

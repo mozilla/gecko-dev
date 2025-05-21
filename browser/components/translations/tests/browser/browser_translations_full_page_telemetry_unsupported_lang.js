@@ -155,11 +155,13 @@ add_task(async function test_translations_telemetry_unsupported_lang() {
   await FullPageTranslationsTestUtils.clickTranslateButton({
     downloadHandler: resolveDownloads,
   });
-  await FullPageTranslationsTestUtils.assertPageIsTranslated({
-    fromLanguage: "fr",
-    toLanguage: "en",
-    runInPage,
-  });
+  await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    {
+      fromLanguage: "fr",
+      toLanguage: "en",
+      runInPage,
+    }
+  );
   await TestTranslationsTelemetry.assertEvent(
     Glean.translationsPanel.changeFromLanguage,
     {

@@ -117,14 +117,33 @@ function waitForCondition(callback, message) {
  *
  * @param {string} message The assertion message.
  * @param {Function} getNode A function to get the node.
- * @param {string} translation The translated message.
+ * @param {string | Array<string>} oneOrMoreTranslations The translated message.
  */
-export async function assertTranslationResult(message, getNode, translation) {
+export async function assertTranslationResult(
+  message,
+  getNode,
+  oneOrMoreTranslations
+) {
+  let translation;
   try {
-    await waitForCondition(
-      () => translation === getNode()?.innerText,
-      `Waiting for: "${translation}"`
-    );
+    if (typeof oneOrMoreTranslations === "string") {
+      await waitForCondition(
+        () => oneOrMoreTranslations === getNode().innerText,
+        `Waiting for: "${oneOrMoreTranslations}"`
+      );
+      translation = oneOrMoreTranslations;
+    } else {
+      await waitForCondition(
+        () =>
+          oneOrMoreTranslations.find(
+            translation => translation === getNode().innerText
+          ),
+        `Waiting for: "${oneOrMoreTranslations}"`
+      );
+      translation = oneOrMoreTranslations.find(
+        translation => translation === getNode().innerText
+      );
+    }
   } catch (error) {
     // The result wasn't found, but the assertion below will report the error.
     console.error(error);

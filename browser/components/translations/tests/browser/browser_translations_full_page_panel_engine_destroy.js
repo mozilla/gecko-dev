@@ -26,11 +26,13 @@ add_task(async function test_translations_engine_destroy() {
     downloadHandler: resolveDownloads,
   });
 
-  await FullPageTranslationsTestUtils.assertPageIsTranslated({
-    fromLanguage: "es",
-    toLanguage: "en",
-    runInPage,
-  });
+  await FullPageTranslationsTestUtils.assertOnlyIntersectingContentIsTranslated(
+    {
+      fromLanguage: "es",
+      toLanguage: "en",
+      runInPage,
+    }
+  );
 
   info("Destroy the engine process");
   await EngineProcess.destroyTranslationsEngine();

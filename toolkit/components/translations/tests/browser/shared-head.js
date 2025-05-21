@@ -46,6 +46,7 @@ function _url(path) {
   return URL_COM_PREFIX + DIR_PATH + path;
 }
 
+const BLANK_PAGE_URL = _url("translations-tester-blank.html");
 const SPANISH_PAGE_URL = _url("translations-tester-es.html");
 const SPANISH_PAGE_URL_2 = _url("translations-tester-es-2.html");
 const SPANISH_PAGE_SHORT_URL = _url("translations-tester-es-short.html");
@@ -654,8 +655,8 @@ function createdReorderingMockedTranslatorPort() {
 /**
  * @returns {import("../../actors/TranslationsParent.sys.mjs").TranslationsParent}
  */
-function getTranslationsParent() {
-  return TranslationsParent.getTranslationsActor(gBrowser.selectedBrowser);
+function getTranslationsParent(win = window) {
+  return TranslationsParent.getTranslationsActor(win.gBrowser.selectedBrowser);
 }
 
 /**
@@ -1031,6 +1032,7 @@ async function loadTestPage({
   systemLocales = ["en"],
   appLocales,
   webLanguages,
+  contentEagerMode = false,
   win = window,
 }) {
   info(`Loading test page starting at url: ${page}`);
@@ -1110,6 +1112,23 @@ async function loadTestPage({
     BLANK_PAGE,
     true // waitForLoad
   );
+
+  if (contentEagerMode) {
+    info("Triggering content-eager translations mode by opening the find bar.");
+    await openFindBar(tab);
+
+    // We cannot access the TranslationsParent actor on BLANK_PAGE because the
+    // data scheme is disallowed for the TranslationsParent actor, so we will load
+    // our blank https:// page to ensure that the actor has registered its findBar.
+    BrowserTestUtils.startLoadingURIString(tab.linkedBrowser, BLANK_PAGE_URL);
+    await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+
+    const actor = getTranslationsParent(win);
+    await waitForCondition(
+      () => actor.findBar,
+      "Waiting for the TranslationsParent actor to register its findBar"
+    );
+  }
 
   BrowserTestUtils.startLoadingURIString(tab.linkedBrowser, page);
   await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
@@ -1275,6 +1294,23 @@ async function captureTranslationsError(callback) {
   return errors;
 }
 
+async function openFindBar(tab) {
+  info("Opening the find bar in the current tab.");
+  const findBar = await gBrowser.getFindBar(tab);
+  const { promise, resolve } = Promise.withResolvers();
+
+  findBar.addEventListener(
+    "findbaropen",
+    () => {
+      resolve();
+    },
+    { once: true }
+  );
+
+  findBar.open();
+  await promise;
+}
+
 /**
  * Load a test page and run
  *
@@ -1291,6 +1327,7 @@ async function autoTranslatePage(options) {
     ],
     ...otherOptions,
   });
+
   await runInPage(options.runInPage);
   await cleanup();
 }

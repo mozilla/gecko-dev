@@ -13,6 +13,7 @@ add_task(async function test_full_page_translation() {
       { fromLang: "es", toLang: "en" },
       { fromLang: "en", toLang: "es" },
     ],
+    contentEagerMode: true,
     runInPage: async TranslationsTest => {
       const selectors = TranslationsTest.getSelectors();
 
@@ -104,6 +105,7 @@ add_task(async function test_language_identification_for_page_translation() {
       { fromLang: "es", toLang: "en" },
       { fromLang: "en", toLang: "es" },
     ],
+    contentEagerMode: true,
     runInPage: async TranslationsTest => {
       const selectors = TranslationsTest.getSelectors();
 

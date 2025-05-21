@@ -188,6 +188,7 @@ add_task(async function test_language_identification_behavior() {
       page,
       languagePairs: LANGUAGE_PAIRS,
       autoDownloadFromRemoteSettings: true,
+      contentEagerMode: true,
       prefs: [
         [
           "browser.translations.alwaysTranslateLanguages",
@@ -232,7 +233,7 @@ add_task(async function test_language_identification_behavior() {
     }
 
     if (translatePage) {
-      await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      await FullPageTranslationsTestUtils.assertAllPageContentIsTranslated({
         fromLanguage: translatePage,
         toLanguage: "en",
         runInPage,

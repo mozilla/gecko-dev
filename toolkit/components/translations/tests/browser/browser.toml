@@ -4,6 +4,7 @@ support-files = [
   "shared-head.js",
   "translations-bencher-es.html",
   "translations-test.mjs",
+  "translations-tester-blank.html",
   "translations-tester-pdf-file.pdf",
   "translations-tester-en.html",
   "translations-tester-es-mismatch-short.html",
