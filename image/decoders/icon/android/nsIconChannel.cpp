@@ -56,7 +56,8 @@ static nsresult CallRemoteGetIconForExtension(const nsACString& aFileExt,
   return NS_OK;
 }
 
-static nsresult moz_icon_to_channel(nsIURI* aURI, const nsACString& aFileExt,
+static nsresult moz_icon_to_channel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
+                                    const nsACString& aFileExt,
                                     uint32_t aIconSize, nsIChannel** aChannel) {
   NS_ENSURE_TRUE(aIconSize < 256 && aIconSize > 0, NS_ERROR_UNEXPECTED);
 
@@ -96,18 +97,12 @@ static nsresult moz_icon_to_channel(nsIURI* aURI, const nsACString& aFileExt,
   rv = stream->AdoptData((char*)buf, buf_size.value());
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // nsIconProtocolHandler::NewChannel will provide the correct loadInfo for
-  // this iconChannel. Use the most restrictive security settings for the
-  // temporary loadInfo to make sure the channel can not be opened.
-  nsCOMPtr<nsIPrincipal> nullPrincipal =
-      NullPrincipal::CreateWithoutOriginAttributes();
-  return NS_NewInputStreamChannel(
-      aChannel, aURI, stream.forget(), nullPrincipal,
-      nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED,
-      nsIContentPolicy::TYPE_INTERNAL_IMAGE, nsLiteralCString(IMAGE_ICON_MS));
+  return NS_NewInputStreamChannelInternal(
+      aChannel, aURI, stream.forget(), nsLiteralCString(IMAGE_ICON_MS),
+      /* aContentCharset */ ""_ns, aLoadInfo);
 }
 
-nsresult nsIconChannel::Init(nsIURI* aURI) {
+nsresult nsIconChannel::Init(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
   nsCOMPtr<nsIMozIconURI> iconURI = do_QueryInterface(aURI);
   NS_ASSERTION(iconURI, "URI is not an nsIMozIconURI");
 
@@ -120,6 +115,6 @@ nsresult nsIconChannel::Init(nsIURI* aURI) {
   nsAutoCString iconFileExt;
   iconURI->GetFileExtension(iconFileExt);
 
-  return moz_icon_to_channel(iconURI, iconFileExt, desiredImageSize,
+  return moz_icon_to_channel(iconURI, aLoadInfo, iconFileExt, desiredImageSize,
                              getter_AddRefs(mRealChannel));
 }

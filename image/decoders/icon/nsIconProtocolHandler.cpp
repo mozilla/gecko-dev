@@ -48,14 +48,7 @@ nsIconProtocolHandler::NewChannel(nsIURI* url, nsILoadInfo* aLoadInfo,
   }
   NS_ADDREF(channel);
 
-  nsresult rv = channel->Init(url);
-  if (NS_FAILED(rv)) {
-    NS_RELEASE(channel);
-    return rv;
-  }
-
-  // set the loadInfo on the new channel
-  rv = channel->SetLoadInfo(aLoadInfo);
+  nsresult rv = channel->Init(url, aLoadInfo);
   if (NS_FAILED(rv)) {
     NS_RELEASE(channel);
     return rv;

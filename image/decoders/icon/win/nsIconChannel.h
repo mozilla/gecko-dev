@@ -38,7 +38,7 @@ class nsIconChannel final : public nsIChannel, public nsIStreamListener {
 
   nsIconChannel();
 
-  nsresult Init(nsIURI* uri);
+  nsresult Init(nsIURI* uri, nsILoadInfo* aLoadInfo);
 
   /// Obtains an icon in Windows ICO format as a ByteBuf instead
   /// of a channel. For use with IPC.

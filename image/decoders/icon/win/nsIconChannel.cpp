@@ -568,10 +568,11 @@ nsIconChannel::~nsIconChannel() {
   }
 }
 
-nsresult nsIconChannel::Init(nsIURI* uri) {
+nsresult nsIconChannel::Init(nsIURI* uri, nsILoadInfo* aLoadInfo) {
   NS_ASSERTION(uri, "no uri");
   mUrl = uri;
   mOriginalURI = uri;
+  mLoadInfo = aLoadInfo;
   nsresult rv;
   mPump = do_CreateInstance(NS_INPUTSTREAMPUMP_CONTRACTID, &rv);
   return rv;
