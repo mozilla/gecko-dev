@@ -2494,9 +2494,7 @@ Document::~Document() {
 
   nsAutoScriptBlocker scriptBlocker;
 
-  // Destroy link map now so we don't waste time removing
-  // links one by one
-  DestroyElementMaps();
+  WillRemoveRoot();
 
   // Invalidate cached array of child nodes
   InvalidateChildNodes();
@@ -3035,9 +3033,7 @@ void Document::DisconnectNodeTree() {
   {  // Scope for update
     MOZ_AUTO_DOC_UPDATE(this, true);
 
-    // Destroy link map now so we don't waste time removing
-    // links one by one
-    DestroyElementMaps();
+    WillRemoveRoot();
 
     // Invalidate cached array of child nodes
     InvalidateChildNodes();
@@ -7720,16 +7716,8 @@ void Document::RemoveChildNode(nsIContent* aKid, bool aNotify,
   const bool removingRoot = aKid->IsElement();
   if (removingRoot) {
     updateBatch.emplace(this, aNotify);
-    // Destroy the link map up front before we mess with the child list.
-    DestroyElementMaps();
 
-    // Skip any active view transition, since the view transition pseudo-element
-    // tree is attached to our root element. This is not in the spec (yet), but
-    // prevents the view transition pseudo tree from being in an inconsistent
-    // state. See https://github.com/w3c/csswg-drafts/issues/12149
-    if (RefPtr transition = mActiveViewTransition) {
-      transition->SkipTransition(SkipTransitionReason::RootRemoved);
-    }
+    WillRemoveRoot();
 
     // Notify early so that we can clear the cached element after notifying,
     // without having to slow down nsINode::RemoveChildNode.
@@ -12555,7 +12543,7 @@ void Document::MutationEventDispatched(nsINode* aTarget) {
   }
 }
 
-void Document::DestroyElementMaps() {
+void Document::WillRemoveRoot() {
 #ifdef DEBUG
   mStyledLinksCleared = true;
 #endif
@@ -12567,6 +12555,15 @@ void Document::DestroyElementMaps() {
   mIdentifierMap.Clear();
   mComposedShadowRoots.Clear();
   mResponsiveContent.Clear();
+
+  // Skip any active view transition, since the view transition pseudo-element
+  // tree is attached to our root element. This is not in the spec (yet), but
+  // prevents the view transition pseudo tree from being in an inconsistent
+  // state. See https://github.com/w3c/csswg-drafts/issues/12149
+  if (RefPtr transition = mActiveViewTransition) {
+    transition->SkipTransition(SkipTransitionReason::RootRemoved);
+  }
+
   IncrementExpandoGeneration(*this);
 }
 

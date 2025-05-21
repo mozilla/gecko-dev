@@ -1562,7 +1562,7 @@ class Document : public nsINode,
 
   // Call this before the document does something that will unbind all content.
   // That will stop us from doing a lot of work as each element is removed.
-  void DestroyElementMaps();
+  void WillRemoveRoot();
 
   Element* GetRootElementInternal() const;
 

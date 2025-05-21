@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<!-- TODO: Making this a WPT would be ideal, but it times out -->
+<script>
+  window.addEventListener("load", async () => {
+    setTimeout(async function() {
+      let docEl = document.documentElement;
+      const viewTransition = document.startViewTransition()
+      await viewTransition.updateCallbackDone
+      document.write([
+        "<main light-dark(navajowhite, ButtonShadow) !important; 7084726.958900766 !important\">",
+        "<svg 69.61108049869422rem 3900ex)\" 848780341%, 425393442.8275892\">", "</svg>",
+        "<section>", "</section>",
+        "</main>"
+      ]);
+      docEl.className = "";
+    }, 0);
+  })
+</script>
