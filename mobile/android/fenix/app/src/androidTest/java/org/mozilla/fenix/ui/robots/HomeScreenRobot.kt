@@ -529,9 +529,9 @@ class HomeScreenRobot {
     }
 
     fun verifyStoriesByTopicItemState(composeTestRule: ComposeTestRule, isSelected: Boolean, position: Int) {
-        Log.i(TAG, "verifyStoriesByTopicItemState: Trying to scroll into view \"Powered By Pocket\" home screen section")
+        Log.i(TAG, "verifyStoriesByTopicItemState: Trying to scroll into view \"Stories by topic\" home screen section")
         homeScreenList().scrollIntoView(mDevice.findObject(UiSelector().resourceId("pocket.header")))
-        Log.i(TAG, "verifyStoriesByTopicItemState: Scrolled into view \"Powered By Pocket\" home screen section")
+        Log.i(TAG, "verifyStoriesByTopicItemState: Scrolled into view \"Stories by topic\" home screen section")
 
         if (isSelected) {
             Log.i(TAG, "verifyStoriesByTopicItemState: Trying verify that the stories by topic home screen section is displayed")
@@ -554,13 +554,6 @@ class HomeScreenRobot {
         Log.i(TAG, "clickStoriesByTopicItem: Trying to click stories by topic item from position: $position")
         storyByTopicItem(composeTestRule, position).performClick()
         Log.i(TAG, "clickStoriesByTopicItem: Clicked stories by topic item from position: $position")
-    }
-
-    fun verifyPoweredByPocket() {
-        Log.i(TAG, "verifyPoweredByPocket: Trying to scroll into view \"Powered By Pocket\" home screen section")
-        homeScreenList().scrollIntoView(mDevice.findObject(UiSelector().resourceId("pocket.header")))
-        Log.i(TAG, "verifyPoweredByPocket: Scrolled into view \"Powered By Pocket\" home screen section")
-        assertUIObjectExists(itemWithResId("pocket.header.title"))
     }
 
     fun verifyCustomizeHomepageButton(composeTestRule: ComposeTestRule, enabled: Boolean) {
@@ -1017,15 +1010,6 @@ class HomeScreenRobot {
             Log.i(TAG, "clickPocketDiscoverMoreButton: Trying to click the \"Discover more\" button")
             composeTestRule.onNodeWithTag("pocket.discover.more.story").performClick()
             Log.i(TAG, "clickPocketDiscoverMoreButton: Clicked the \"Discover more\" button")
-
-            BrowserRobot().interact()
-            return BrowserRobot.Transition()
-        }
-
-        fun clickPocketLearnMoreLink(composeTestRule: ComposeTestRule, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
-            Log.i(TAG, "clickPocketLearnMoreLink: Trying to click pocket \"Learn more\" link")
-            composeTestRule.onNodeWithTag("pocket.header.subtitle", true).performClick()
-            Log.i(TAG, "clickPocketLearnMoreLink: Clicked pocket \"Learn more\" link")
 
             BrowserRobot().interact()
             return BrowserRobot.Transition()

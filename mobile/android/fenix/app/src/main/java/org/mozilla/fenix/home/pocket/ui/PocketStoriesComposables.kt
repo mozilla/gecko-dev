@@ -15,21 +15,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,15 +33,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.semantics.testTagsAsResourceId
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -63,7 +53,6 @@ import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.PocketStory.SponsoredContent
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.ClickableSubstringLink
 import org.mozilla.fenix.compose.EagerFlingBehavior
 import org.mozilla.fenix.compose.ITEM_WIDTH
 import org.mozilla.fenix.compose.ListItemTabLarge
@@ -597,101 +586,6 @@ fun PocketStoriesCategories(
     }
 }
 
-/**
- * Pocket feature section title.
- * Shows a default text about Pocket and offers a external link to learn more.
- *
- * @param onLearnMoreClicked Callback invoked when the user clicks the "Learn more" link.
- * Contains the full URL for where the user should be navigated to.
- * @param modifier [Modifier] to be applied to the layout.
- * @param textColor [Color] to be applied to the text.
- * @param linkTextColor [Color] of the link text.
- */
-@OptIn(ExperimentalComposeUiApi::class)
-@Suppress("Deprecation")
-@Composable
-fun PoweredByPocketHeader(
-    onLearnMoreClicked: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    textColor: Color = FirefoxTheme.colors.textPrimary,
-    linkTextColor: Color = FirefoxTheme.colors.textAccent,
-) {
-    val link = stringResource(R.string.pocket_stories_feature_learn_more)
-    val text = stringResource(R.string.pocket_stories_feature_caption, link)
-    val linkStartIndex = text.indexOf(link)
-    val linkEndIndex = linkStartIndex + link.length
-
-    Column(
-        modifier = modifier.semantics {
-            testTagsAsResourceId = true
-            testTag = "pocket.header"
-        },
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .semantics(mergeDescendants = true) {},
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.pocket_vector),
-                contentDescription = null,
-                // Apply the red tint in code. Otherwise the image is black and white.
-                tint = Color(0xFFEF4056),
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            val onClickLabel = stringResource(id = R.string.a11y_action_label_pocket_learn_more)
-            Column(
-                Modifier.semantics(mergeDescendants = true) {
-                    role = Role.Button
-                    onClick(label = onClickLabel) {
-                        onLearnMoreClicked(
-                            "https://www.mozilla.org/en-US/firefox/pocket/?$POCKET_FEATURE_UTM_KEY_VALUE",
-                        )
-                        false
-                    }
-                },
-            ) {
-                Text(
-                    text = stringResource(
-                        R.string.pocket_stories_feature_title_2,
-                        LocalContext.current.getString(R.string.pocket_product_name),
-                    ),
-                    modifier = Modifier.semantics {
-                        testTagsAsResourceId = true
-                        testTag = "pocket.header.title"
-                    },
-                    color = textColor,
-                    style = FirefoxTheme.typography.caption,
-                )
-
-                Box(
-                    modifier = modifier.semantics {
-                        testTagsAsResourceId = true
-                        testTag = "pocket.header.subtitle"
-                    },
-                ) {
-                    ClickableSubstringLink(
-                        text = text,
-                        textColor = textColor,
-                        linkTextColor = linkTextColor,
-                        linkTextDecoration = TextDecoration.Underline,
-                        clickableStartIndex = linkStartIndex,
-                        clickableEndIndex = linkEndIndex,
-                    ) {
-                        onLearnMoreClicked(
-                            "https://www.mozilla.org/en-US/firefox/pocket/?$POCKET_FEATURE_UTM_KEY_VALUE",
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
 @Composable
 @Preview
 private fun PocketStoriesComposablesPreview() {
@@ -713,11 +607,6 @@ private fun PocketStoriesComposablesPreview() {
                         .map { PocketRecommendedStoriesCategory(it) },
                     selections = emptyList(),
                     onCategoryClick = {},
-                )
-                Spacer(Modifier.height(10.dp))
-
-                PoweredByPocketHeader(
-                    onLearnMoreClicked = {},
                 )
             }
         }

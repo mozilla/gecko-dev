@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -439,11 +440,12 @@ private fun CollectionsSection(
 
 @Composable
 private fun CustomizeHomeButton(buttonBackgroundColor: Color, interactor: CustomizeHomeIteractor) {
-    Spacer(modifier = Modifier.height(68.dp))
+    Spacer(modifier = Modifier.height(24.dp))
 
     TertiaryButton(
         text = stringResource(R.string.browser_menu_customize_home_1),
         modifier = Modifier
+            .heightIn(min = 48.dp)
             .padding(horizontal = dimensionResource(R.dimen.home_item_horizontal_margin))
             .fillMaxWidth(),
         backgroundColor = buttonBackgroundColor,

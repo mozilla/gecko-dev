@@ -23,7 +23,6 @@ import org.mozilla.fenix.home.bookmarks.view.BookmarksViewHolder
 import org.mozilla.fenix.home.collections.CollectionViewHolder
 import org.mozilla.fenix.home.collections.TabInCollectionViewHolder
 import org.mozilla.fenix.home.pocket.view.PocketCategoriesViewHolder
-import org.mozilla.fenix.home.pocket.view.PocketRecommendationsHeaderViewHolder
 import org.mozilla.fenix.home.pocket.view.PocketStoriesViewHolder
 import org.mozilla.fenix.home.recentsyncedtabs.view.RecentSyncedTabViewHolder
 import org.mozilla.fenix.home.recenttabs.view.RecentTabViewHolder
@@ -168,7 +167,6 @@ sealed class AdapterItem(@LayoutRes val viewType: Int) {
 
     object PocketStoriesItem : AdapterItem(PocketStoriesViewHolder.LAYOUT_ID)
     object PocketCategoriesItem : AdapterItem(PocketCategoriesViewHolder.LAYOUT_ID)
-    object PocketRecommendationsFooterItem : AdapterItem(PocketRecommendationsHeaderViewHolder.LAYOUT_ID)
 
     /**
      * Adapter item to hold the setup checklist feature view.
@@ -234,11 +232,6 @@ class SessionControlAdapter(
                 interactor = interactor,
             )
             PocketCategoriesViewHolder.LAYOUT_ID -> return PocketCategoriesViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
-            PocketRecommendationsHeaderViewHolder.LAYOUT_ID -> return PocketRecommendationsHeaderViewHolder(
                 composeView = ComposeView(parent.context),
                 viewLifecycleOwner = viewLifecycleOwner,
                 interactor = interactor,
@@ -339,7 +332,6 @@ class SessionControlAdapter(
             is RecentTabsHeaderViewHolder,
             is PrivateBrowsingDescriptionViewHolder,
             is PocketCategoriesViewHolder,
-            is PocketRecommendationsHeaderViewHolder,
             is PocketStoriesViewHolder,
             is TopSitesViewHolder,
             is SetupChecklistViewHolder,

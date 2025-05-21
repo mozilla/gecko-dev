@@ -2708,11 +2708,11 @@
     <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
     <string name="pocket_stories_placeholder_text">Discover more</string>
     <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
-    <string name="pocket_stories_feature_title_2">Powered by %s.</string>
+    <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">Powered by %s.</string>
     <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Part of the Firefox family. %s</string>
+    <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">Part of the Firefox family. %s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
-    <string name="pocket_stories_feature_learn_more">Learn more</string>
+    <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">Learn more</string>
     <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
     <string name="pocket_stories_sponsor_indication">Sponsored</string>
 
@@ -2743,7 +2743,7 @@
     <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
     <string name="a11y_action_label_read_article">read the article</string>
     <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
-    <string name="a11y_action_label_pocket_learn_more">open link to learn more</string>
+    <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">open link to learn more</string>
     <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
     <string name="a11y_heading">%s, Heading</string>
     <!-- Title for dialog displayed when trying to access links present in a text. -->

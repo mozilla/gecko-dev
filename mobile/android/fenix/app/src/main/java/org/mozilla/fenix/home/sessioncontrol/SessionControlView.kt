@@ -111,7 +111,6 @@ internal fun normalModeAdapterItems(
 
         if (!settings.showContentRecommendations) {
             items.add(AdapterItem.PocketCategoriesItem)
-            items.add(AdapterItem.PocketRecommendationsFooterItem)
         }
     }
 

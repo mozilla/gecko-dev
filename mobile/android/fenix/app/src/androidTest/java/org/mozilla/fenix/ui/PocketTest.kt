@@ -74,7 +74,6 @@ class PocketTest : TestSetup() {
                 // verifyPocketSponsoredStoriesItems(2, 8)
                 verifyDiscoverMoreStoriesButton(activityTestRule)
                 verifyStoriesByTopic(true)
-                verifyPoweredByPocket()
             }.openThreeDotMenu {
             }.openCustomizeHome {
                 clickPocketButton()
@@ -118,18 +117,6 @@ class PocketTest : TestSetup() {
                 verifyStoriesByTopicItemState(activityTestRule, false, 1)
                 clickStoriesByTopicItem(activityTestRule, 1)
                 verifyStoriesByTopicItemState(activityTestRule, true, 1)
-            }
-        }
-    }
-
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2252516
-    @Test
-    fun pocketLearnMoreButtonTest() {
-        runWithCondition(isNetworkConnected()) {
-            homeScreen {
-                verifyPoweredByPocket()
-            }.clickPocketLearnMoreLink(activityTestRule) {
-                verifyUrl("mozilla.org/en-US/firefox/pocket")
             }
         }
     }
