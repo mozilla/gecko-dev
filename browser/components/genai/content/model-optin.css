@@ -3,8 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 .optin-wrapper {
+  --optin-wrapper-box-shadow: initial;
   background-color: var(--background-color-canvas);
   border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  box-shadow: var(--optin-wrapper-box-shadow);
   border-radius: 8px;
   padding: var(--space-large);
 }

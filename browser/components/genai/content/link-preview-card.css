@@ -20,7 +20,6 @@
 .og-card-content {
     background-color: var(--panel-background);
     border-bottom: 1px solid var(--panel-border-color);
-    border-radius: var(--panel-border-radius);
     color: var(--text-color-deemphasized);
     display: flex;
     flex-direction: column;
@@ -223,6 +222,7 @@
 
 model-optin {
   --font-size-xxlarge: var(--og-main-font-size);
+  --optin-wrapper-box-shadow: 0 0 4px rgba(0, 0, 0, 0.25);
   inset-inline: 0;
   margin-inline: auto;
   position: absolute;
