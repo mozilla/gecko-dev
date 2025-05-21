@@ -868,7 +868,7 @@
 /* Taskbar Tabs icon */
 
 #taskbar-tabs-button > .urlbar-icon {
-  list-style-image: url(chrome://browser/skin/taskbar-tabs-create-new.svg);
+  list-style-image: url(chrome://browser/skin/taskbar-tabs-add-tab.svg);
 }
 
 /* Translations button */
