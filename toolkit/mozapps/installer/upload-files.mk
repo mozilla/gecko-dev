@@ -35,7 +35,6 @@ _RESPATH = $(_APPNAME)/Contents/Resources
 endif
 endif
 
-PACKAGE_BASE_DIR = $(ABS_DIST)
 PACKAGE       = $(PKG_PATH)$(PKG_BASENAME)$(PKG_SUFFIX)
 
 # JavaScript Shell packaging
