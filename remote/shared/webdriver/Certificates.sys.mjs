@@ -24,12 +24,12 @@ const CERT_PINNING_ENFORCEMENT_PREF = "security.cert_pinning.enforcement_level";
 const HSTS_PRELOAD_LIST_PREF = "network.stricttransportsecurity.preloadlist";
 
 /** @namespace */
-export const allowAllCerts = {};
+export const Certificates = {};
 
 /**
  * Disable all security check and allow all certs.
  */
-allowAllCerts.enable = function () {
+Certificates.disableSecurityChecks = function () {
   // make it possible to register certificate overrides for domains
   // that use HSTS or HPKP
   Services.prefs.setBoolPref(HSTS_PRELOAD_LIST_PREF, false);
@@ -43,7 +43,7 @@ allowAllCerts.enable = function () {
 /**
  * Enable all security check.
  */
-allowAllCerts.disable = function () {
+Certificates.enableSecurityChecks = function () {
   lazy.certOverrideService.setDisableAllSecurityChecksAndLetAttackersInterceptMyData(
     false
   );

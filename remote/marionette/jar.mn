@@ -12,7 +12,6 @@ remote.jar:
   content/marionette/actors/MarionetteReftestParent.sys.mjs (actors/MarionetteReftestParent.sys.mjs)
   content/marionette/atom.sys.mjs (atom.sys.mjs)
   content/marionette/browser.sys.mjs (browser.sys.mjs)
-  content/marionette/cert.sys.mjs (cert.sys.mjs)
   content/marionette/cookie.sys.mjs (cookie.sys.mjs)
   content/marionette/driver.sys.mjs (driver.sys.mjs)
   content/marionette/evaluate.sys.mjs (evaluate.sys.mjs)

@@ -7,8 +7,8 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   accessibility:
     "chrome://remote/content/shared/webdriver/Accessibility.sys.mjs",
-  allowAllCerts: "chrome://remote/content/marionette/cert.sys.mjs",
   Capabilities: "chrome://remote/content/shared/webdriver/Capabilities.sys.mjs",
+  Certificates: "chrome://remote/content/shared/webdriver/Certificates.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
@@ -244,7 +244,7 @@ export class WebDriverSession {
       lazy.logger.warn(
         "TLS certificate errors will be ignored for this session"
       );
-      lazy.allowAllCerts.enable();
+      lazy.Certificates.disableSecurityChecks();
     }
 
     // If we are testing accessibility with marionette, start a11y service in
@@ -277,7 +277,7 @@ export class WebDriverSession {
 
     this.navigableSeenNodes = null;
 
-    lazy.allowAllCerts.disable();
+    lazy.Certificates.enableSecurityChecks();
 
     // Close all open connections which unregister themselves.
     this.#connections.forEach(connection => connection.close());
