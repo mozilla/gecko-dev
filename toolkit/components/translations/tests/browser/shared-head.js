@@ -369,6 +369,32 @@ function createMockedTranslatorPort(transformNode = upperCaseNode, delay = 0) {
           });
           break;
         }
+        case "TranslationsPort:Passthrough": {
+          const { translationId } = message;
+
+          mockedPort.onmessage({
+            data: {
+              type: "TranslationsPort:TranslationResponse",
+              translationId,
+              targetText: null,
+            },
+          });
+
+          break;
+        }
+        case "TranslationsPort:CachedTranslation": {
+          const { cachedTranslation, translationId } = message;
+
+          mockedPort.onmessage({
+            data: {
+              type: "TranslationsPort:TranslationResponse",
+              translationId,
+              targetText: cachedTranslation,
+            },
+          });
+
+          break;
+        }
         case "TranslationsPort:TranslationRequest": {
           const { translationId, sourceText } = message;
 

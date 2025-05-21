@@ -3,6 +3,13 @@
 
 "use strict";
 
+/**
+ * Request 2x longer timeout for this test.
+ * There are lot of test cases in this file, but they are all of the same nature,
+ * and it makes the most sense to have them all in this single test file.
+ */
+requestLongerTimeout(2);
+
 add_task(async function test_translated_div_element_and_visible_change() {
   let hasVisibleChangeOccurred = false;
   const { translate, htmlMatches, cleanup } = await createTranslationsDoc(
@@ -367,15 +374,15 @@ add_task(async function test_translation_batching() {
     "Batching",
     /* html */ `
     <div>
-      aaaa aa a aaaaaa aaaaaaa.
+      bbbb bb b bbbbbb bbbbbbb.
     </div>
     <div>
       <span>
-        bbbb bbbbbb
+        aaaa aaaaaa
       </span>
-      bbbbbbb bbbbbbbbb bb b
+      aaaaaaa aaaaaaaaa aa a
       <b>
-        bbbbb
+        aaaaa
       </b>
       .
     </div>
@@ -413,7 +420,7 @@ add_task(async function test_translation_inline_styling() {
   await htmlMatches(
     "Span as a display: block",
     /* html */ `
-      aaaa aaaa aa aaaa aa a aaaaa.
+      cccc cccc cc cccc cc c ccccc.
       <span>
         bbbbbb bbbb bb bbbb bb b
         <b>
@@ -422,7 +429,7 @@ add_task(async function test_translation_inline_styling() {
         .
       </span>
       <span id="spanAsBlock" style="display: block;">
-        ccccccc "ccccc" ccccccccc ccc cccccc ccccccccccc.
+        aaaaaaa "aaaaa" aaaaaaaaa aaa aaaaaa aaaaaaaaaaa.
       </span>
     `
   );
@@ -528,22 +535,22 @@ add_task(async function test_many_inlines() {
     /* html */ `
     <div>
       <div>
-        aaaa aa a
+        ffff ff f
       </div>
       <div>
-        bbbb bbbbbb
+        eeee eeeeee
       </div>
       <div>
-        ccccccc cccc cccccccc
+        ddddddd dddd dddddddd
       </div>
       <div>
-        dddd ddd dddddddd
+        cccc ccc cccccccc
       </div>
       <div>
-        ee eeee eeee eeeeeee
+        bb bbbb bbbb bbbbbbb
       </div>
       <div>
-        ff fffff ffff ffff.
+        aa aaaaa aaaa aaaa.
       </div>
     </div>
     `
@@ -572,9 +579,9 @@ add_task(async function test_presumed_inlines1() {
     "Mixing a text node with block elements will send in two batches.",
     /* html */ `
     <div>
-      aaaa aaaa
+      bbbb bbbb
       <div>
-        bbbbb bbbbbbb
+        aaaaa aaaaaaa
       </div>
     </div>
     `
@@ -604,12 +611,12 @@ add_task(async function test_presumed_inlines2() {
     "A mix of inline and blocks will be sent in separately.",
     /* html */ `
     <div>
-      aaaa aaaa
+      cccc cccc
       <span>
         bbbbbb
       </span>
       <div>
-        ccccc ccccccc
+        aaaaa aaaaaaa
       </div>
     </div>
     `
@@ -624,9 +631,9 @@ add_task(async function test_presumed_inlines3() {
       <div>
         Text node
         <span>Inline</span>
-        <div>Block Element</div>
-        <div>Block Element</div>
-        <div>Block Element</div>
+        <div>Block Element 1</div>
+        <div>Block Element 2</div>
+        <div>Block Element 3</div>
       </span>
     `,
     { mockedTranslatorPort: createBatchedMockedTranslatorPort() }
@@ -638,18 +645,18 @@ add_task(async function test_presumed_inlines3() {
     "Conflicting inlines will be sent in as separate blocks if there are more block elements",
     /* html */ `
     <div>
-      aaaa aaaa
+      eeee eeee
       <span>
-        bbbbbb
+        dddddd
       </span>
       <div>
-        ccccc ccccccc
+        ccccc ccccccc c
       </div>
       <div>
-        ddddd ddddddd
+        bbbbb bbbbbbb b
       </div>
       <div>
-        eeeee eeeeeee
+        aaaaa aaaaaaa a
       </div>
     </div>
     `
@@ -741,13 +748,13 @@ add_task(async function test_display_none_div() {
   const currentResults = /* html */ `
     <div>
       <span>
-        aaaaa aa aaaaaa aaaa
+        ccccc cc cccccc cccc
       </span>
       <div style="display: none;">
         bbbbbb bbbbbbb bb
       </div>
       <span>
-        cccc cc cccccc cccc.
+        aaaa aa aaaaaa aaaa.
       </span>
     </div>
   `;
