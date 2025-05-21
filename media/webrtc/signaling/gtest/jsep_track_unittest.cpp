@@ -8,6 +8,7 @@
 #include "ssl.h"
 
 #define GTEST_HAS_RTTI 0
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include "MockJsepCodecPreferences.h"
@@ -16,6 +17,8 @@
 #include "sdp/SipccSdp.h"
 #include "sdp/SipccSdpParser.h"
 #include "sdp/SdpHelper.h"
+
+using testing::UnorderedElementsAre;
 
 namespace mozilla {
 
@@ -1776,4 +1779,380 @@ TEST_F(JsepTrackTest, NonDefaultVideoSdpFmtpLine) {
   EXPECT_EQ("nothing", codec->mSdpFmtpLine.valueOr("nothing"));
 }
 
+TEST(JsepTrackRecvPayloadTypesTest, SingleTrackPTsAreUnique)
+{
+  constexpr auto audio = SdpMediaSection::MediaType::kAudio;
+
+  std::vector<UniquePtr<JsepCodecDescription>> codecs;
+  codecs.emplace_back(
+      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1, true));
+
+  SipccSdp offer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
+  SdpMediaSection& offer1Msection1 = offer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kRecvonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+
+  SipccSdp answer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
+  SdpMediaSection& answer1Msection1 = answer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kSendonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+
+  for (const auto& codec : codecs) {
+    codec->mDirection = sdp::kSend;
+    offer1Msection1.AddCodec(codec->mDefaultPt, codec->mName, codec->mClock,
+                             codec->mChannels);
+    auto clone = WrapUnique(codec->Clone());
+    clone->mDirection = sdp::kRecv;
+    clone->AddToMediaSection(answer1Msection1);
+  }
+
+  JsepTrack t1{audio, sdp::Direction::kRecv};
+  t1.PopulateCodecs(codecs, false);
+  t1.RecvTrackSetLocal(offer1Msection1);
+  t1.RecvTrackSetRemote(answer1, answer1Msection1);
+  ASSERT_EQ(t1.Negotiate(answer1Msection1, answer1Msection1, offer1Msection1),
+            NS_OK);
+
+  std::vector tracks{&t1};
+  JsepTrack::SetUniqueReceivePayloadTypes(tracks);
+  EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(1));
+  EXPECT_THAT(t1.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre());
+}
+
+TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsAreUnique)
+{
+  constexpr auto audio = SdpMediaSection::MediaType::kAudio;
+
+  std::vector<UniquePtr<JsepCodecDescription>> codecs1;
+  codecs1.emplace_back(
+      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1, true));
+
+  std::vector<UniquePtr<JsepCodecDescription>> codecs2;
+  codecs2.emplace_back(
+      MakeUnique<JsepAudioCodecDescription>("2", "codec1", 48000, 1, true));
+
+  SipccSdp offer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
+  SdpMediaSection& offer1Msection1 = offer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kRecvonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+  SdpMediaSection& offer1Msection2 = offer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kRecvonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+
+  SipccSdp answer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
+  SdpMediaSection& answer1Msection1 = answer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kSendonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+  SdpMediaSection& answer1Msection2 = answer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kSendonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+
+  for (const auto& codec : codecs1) {
+    codec->mDirection = sdp::kSend;
+    offer1Msection1.AddCodec(codec->mDefaultPt, codec->mName, codec->mClock,
+                             codec->mChannels);
+    auto clone = WrapUnique(codec->Clone());
+    clone->mDirection = sdp::kRecv;
+    clone->AddToMediaSection(answer1Msection1);
+  }
+
+  for (const auto& codec : codecs2) {
+    codec->mDirection = sdp::kSend;
+    offer1Msection2.AddCodec(codec->mDefaultPt, codec->mName, codec->mClock,
+                             codec->mChannels);
+    auto clone = WrapUnique(codec->Clone());
+    clone->mDirection = sdp::kRecv;
+    clone->AddToMediaSection(answer1Msection2);
+  }
+
+  JsepTrack t1{audio, sdp::Direction::kRecv};
+  t1.PopulateCodecs(codecs1, false);
+  t1.RecvTrackSetLocal(offer1Msection1);
+  t1.RecvTrackSetRemote(answer1, answer1Msection1);
+  ASSERT_EQ(t1.Negotiate(answer1Msection1, answer1Msection1, offer1Msection1),
+            NS_OK);
+
+  JsepTrack t2{audio, sdp::Direction::kRecv};
+  t2.PopulateCodecs(codecs2, false);
+  t2.RecvTrackSetLocal(offer1Msection2);
+  t2.RecvTrackSetRemote(answer1, answer1Msection2);
+  ASSERT_EQ(t2.Negotiate(answer1Msection2, answer1Msection2, offer1Msection2),
+            NS_OK);
+
+  std::vector tracks{&t1, &t2};
+  JsepTrack::SetUniqueReceivePayloadTypes(tracks);
+  EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(1));
+  EXPECT_THAT(t1.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre());
+  EXPECT_THAT(t2.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(2));
+  EXPECT_THAT(t2.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre());
+}
+
+TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsAreDuplicates)
+{
+  constexpr auto audio = SdpMediaSection::MediaType::kAudio;
+
+  std::vector<UniquePtr<JsepCodecDescription>> codecs1;
+  codecs1.emplace_back(
+      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1, true));
+
+  std::vector<UniquePtr<JsepCodecDescription>> codecs2;
+  codecs2.emplace_back(
+      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1, true));
+
+  SipccSdp offer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
+  SdpMediaSection& offer1Msection1 = offer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kRecvonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+  SdpMediaSection& offer1Msection2 = offer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kRecvonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+
+  SipccSdp answer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
+  SdpMediaSection& answer1Msection1 = answer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kSendonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+  SdpMediaSection& answer1Msection2 = answer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kSendonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+
+  for (const auto& codec : codecs1) {
+    codec->mDirection = sdp::kSend;
+    offer1Msection1.AddCodec(codec->mDefaultPt, codec->mName, codec->mClock,
+                             codec->mChannels);
+    auto clone = WrapUnique(codec->Clone());
+    clone->mDirection = sdp::kRecv;
+    clone->AddToMediaSection(answer1Msection1);
+  }
+  for (const auto& codec : codecs2) {
+    codec->mDirection = sdp::kSend;
+    offer1Msection2.AddCodec(codec->mDefaultPt, codec->mName, codec->mClock,
+                             codec->mChannels);
+    auto clone = WrapUnique(codec->Clone());
+    clone->mDirection = sdp::kRecv;
+    clone->AddToMediaSection(answer1Msection2);
+  }
+
+  JsepTrack t1{audio, sdp::Direction::kRecv};
+  t1.PopulateCodecs(codecs1, false);
+  t1.RecvTrackSetLocal(offer1Msection1);
+  t1.RecvTrackSetRemote(answer1, answer1Msection1);
+  ASSERT_EQ(t1.Negotiate(answer1Msection1, answer1Msection1, offer1Msection1),
+            NS_OK);
+
+  JsepTrack t2{audio, sdp::Direction::kRecv};
+  t2.PopulateCodecs(codecs2, false);
+  t2.RecvTrackSetLocal(offer1Msection2);
+  t2.RecvTrackSetRemote(answer1, answer1Msection2);
+  ASSERT_EQ(t2.Negotiate(answer1Msection2, answer1Msection2, offer1Msection2),
+            NS_OK);
+
+  std::vector tracks{&t1, &t2};
+  JsepTrack::SetUniqueReceivePayloadTypes(tracks);
+  EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre());
+  EXPECT_THAT(t1.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre(1));
+  EXPECT_THAT(t2.GetUniqueReceivePayloadTypes(), UnorderedElementsAre());
+  EXPECT_THAT(t2.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre(1));
+}
+
+TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsOverlap)
+{
+  constexpr auto audio = SdpMediaSection::MediaType::kAudio;
+
+  std::vector<UniquePtr<JsepCodecDescription>> codecs1;
+  codecs1.emplace_back(
+      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1, true));
+  codecs1.emplace_back(
+      MakeUnique<JsepAudioCodecDescription>("2", "codec2", 48000, 1, true));
+
+  std::vector<UniquePtr<JsepCodecDescription>> codecs2;
+  codecs2.emplace_back(
+      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1, true));
+  codecs2.emplace_back(
+      MakeUnique<JsepAudioCodecDescription>("3", "codec2", 48000, 1, true));
+
+  SipccSdp offer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
+  SdpMediaSection& offer1Msection1 = offer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kRecvonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+  SdpMediaSection& offer1Msection2 = offer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kRecvonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+
+  SipccSdp answer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
+  SdpMediaSection& answer1Msection1 = answer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kSendonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+  SdpMediaSection& answer1Msection2 = answer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kSendonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+
+  for (const auto& codec : codecs1) {
+    codec->mDirection = sdp::kSend;
+    offer1Msection1.AddCodec(codec->mDefaultPt, codec->mName, codec->mClock,
+                             codec->mChannels);
+    auto clone = WrapUnique(codec->Clone());
+    clone->mDirection = sdp::kRecv;
+    clone->AddToMediaSection(answer1Msection1);
+  }
+
+  for (const auto& codec : codecs2) {
+    codec->mDirection = sdp::kSend;
+    offer1Msection2.AddCodec(codec->mDefaultPt, codec->mName, codec->mClock,
+                             codec->mChannels);
+    auto clone = WrapUnique(codec->Clone());
+    clone->mDirection = sdp::kRecv;
+    clone->AddToMediaSection(answer1Msection2);
+  }
+
+  JsepTrack t1{audio, sdp::Direction::kRecv};
+  t1.PopulateCodecs(codecs1, false);
+  t1.RecvTrackSetLocal(offer1Msection1);
+  t1.RecvTrackSetRemote(answer1, answer1Msection1);
+  ASSERT_EQ(t1.Negotiate(answer1Msection1, answer1Msection1, offer1Msection1),
+            NS_OK);
+
+  JsepTrack t2{audio, sdp::Direction::kRecv};
+  t2.PopulateCodecs(codecs2, false);
+  t2.RecvTrackSetLocal(offer1Msection2);
+  t2.RecvTrackSetRemote(answer1, answer1Msection2);
+  ASSERT_EQ(t2.Negotiate(answer1Msection2, answer1Msection2, offer1Msection2),
+            NS_OK);
+
+  std::vector tracks{&t1, &t2};
+  JsepTrack::SetUniqueReceivePayloadTypes(tracks);
+  EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(2));
+  EXPECT_THAT(t1.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre(1));
+  EXPECT_THAT(t2.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(3));
+  EXPECT_THAT(t2.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre(1));
+}
+
+TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsDuplicateAfterRenegotiation)
+{
+  constexpr auto audio = SdpMediaSection::MediaType::kAudio;
+
+  std::vector<UniquePtr<JsepCodecDescription>> codecs1;
+  codecs1.emplace_back(
+      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1, true));
+  codecs1.emplace_back(
+      MakeUnique<JsepAudioCodecDescription>("2", "codec2", 48000, 1, true));
+
+  std::vector<UniquePtr<JsepCodecDescription>> codecs2;
+  codecs2.emplace_back(
+      MakeUnique<JsepAudioCodecDescription>("3", "codec1", 48000, 1, true));
+  codecs2.emplace_back(
+      MakeUnique<JsepAudioCodecDescription>("4", "codec2", 48000, 1, true));
+
+  // First negotiation.
+  SipccSdp offer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
+  SdpMediaSection& offer1Msection1 = offer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kRecvonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+  SdpMediaSection& offer1Msection2 = offer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kRecvonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+
+  SipccSdp answer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
+  SdpMediaSection& answer1Msection1 = answer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kSendonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+  SdpMediaSection& answer1Msection2 = answer1.AddMediaSection(
+      audio, SdpDirectionAttribute::kSendonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+
+  for (const auto& codec : codecs1) {
+    codec->mDirection = sdp::kSend;
+    offer1Msection1.AddCodec(codec->mDefaultPt, codec->mName, codec->mClock,
+                             codec->mChannels);
+    auto clone = WrapUnique(codec->Clone());
+    clone->mDirection = sdp::kRecv;
+    clone->AddToMediaSection(answer1Msection1);
+  }
+
+  for (const auto& codec : codecs2) {
+    codec->mDirection = sdp::kSend;
+    offer1Msection2.AddCodec(codec->mDefaultPt, codec->mName, codec->mClock,
+                             codec->mChannels);
+    auto clone = WrapUnique(codec->Clone());
+    clone->mDirection = sdp::kRecv;
+    clone->AddToMediaSection(answer1Msection2);
+  }
+
+  // t1 and t2 use distinct payload types in the first negotiation.
+  JsepTrack t1{audio, sdp::Direction::kRecv};
+  t1.PopulateCodecs(codecs1, false);
+  t1.RecvTrackSetLocal(offer1Msection1);
+  t1.RecvTrackSetRemote(answer1, answer1Msection1);
+  ASSERT_EQ(t1.Negotiate(answer1Msection1, answer1Msection1, offer1Msection1),
+            NS_OK);
+
+  JsepTrack t2{audio, sdp::Direction::kRecv};
+  t2.PopulateCodecs(codecs2, false);
+  t2.RecvTrackSetLocal(offer1Msection2);
+  t2.RecvTrackSetRemote(answer1, answer1Msection2);
+  ASSERT_EQ(t2.Negotiate(answer1Msection2, answer1Msection2, offer1Msection2),
+            NS_OK);
+
+  std::vector tracks{&t1, &t2};
+  JsepTrack::SetUniqueReceivePayloadTypes(tracks);
+  EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(1, 2));
+  EXPECT_THAT(t1.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre());
+  EXPECT_THAT(t2.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(3, 4));
+  EXPECT_THAT(t2.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre());
+
+  // Second negotiation.
+  SipccSdp offer2(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
+  SdpMediaSection& offer2Msection1 = offer2.AddMediaSection(
+      audio, SdpDirectionAttribute::kRecvonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+  SdpMediaSection& offer2Msection2 = offer2.AddMediaSection(
+      audio, SdpDirectionAttribute::kRecvonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+
+  SipccSdp answer2(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
+  SdpMediaSection& answer2Msection1 = answer2.AddMediaSection(
+      audio, SdpDirectionAttribute::kSendonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+  SdpMediaSection& answer2Msection2 = answer2.AddMediaSection(
+      audio, SdpDirectionAttribute::kSendonly, 0,
+      SdpHelper::GetProtocolForMediaType(audio), sdp::kIPv4, "0.0.0.0");
+
+  for (const auto& codec : codecs1) {
+    codec->mDirection = sdp::kSend;
+    offer2Msection1.AddCodec(codec->mDefaultPt, codec->mName, codec->mClock,
+                             codec->mChannels);
+    auto clone = WrapUnique(codec->Clone());
+    clone->mDirection = sdp::kRecv;
+    clone->AddToMediaSection(answer2Msection1);
+  }
+
+  for (const auto& codec : codecs2) {
+    codec->mDirection = sdp::kSend;
+    offer2Msection2.AddCodec(codec->mDefaultPt, codec->mName, codec->mClock,
+                             codec->mChannels);
+    auto clone = WrapUnique(codec->Clone());
+    clone->mDirection = sdp::kRecv;
+    clone->AddToMediaSection(answer2Msection2);
+  }
+
+  t1.PopulateCodecs(codecs1, false);
+  t1.RecvTrackSetLocal(offer2Msection1);
+  t1.RecvTrackSetRemote(answer2, answer2Msection1);
+  ASSERT_EQ(t1.Negotiate(answer2Msection1, answer2Msection1, offer2Msection1),
+            NS_OK);
+
+  // Change t2 to use the same payload types as t1. Both tracks should now mark
+  // all their payload types as duplicates.
+  t2.PopulateCodecs(codecs1, false);
+  t2.RecvTrackSetLocal(offer2Msection2);
+  t2.RecvTrackSetRemote(answer2, answer2Msection2);
+  ASSERT_EQ(t2.Negotiate(answer2Msection2, answer2Msection2, offer2Msection2),
+            NS_OK);
+
+  std::vector newTracks{&t1, &t2};
+  JsepTrack::SetUniqueReceivePayloadTypes(newTracks);
+  EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre());
+  EXPECT_THAT(t1.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre(1, 2));
+  EXPECT_THAT(t2.GetUniqueReceivePayloadTypes(), UnorderedElementsAre());
+  EXPECT_THAT(t2.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre(1, 2));
+}
 }  // namespace mozilla
