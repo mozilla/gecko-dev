@@ -4,20 +4,3 @@
 
 @import url("chrome://global/skin/menulist-shared.css");
 
-:host([native]) {
-  margin: 5px 2px 3px;
-  min-height: 20px;
-  color: -moz-DialogText;
-}
-
-:host([native]) #label-box {
-  margin-bottom: 1px;
-}
-
-:host([native]) label {
-  margin: 1px 3px;
-}
-
-:host([native]) dropmarker {
-  display: none;
-}
