@@ -32,7 +32,6 @@
   vertical-align: top; /* See bug 1606130 */
   display: flex;
   flex-direction: column;
-
 }
 
 /*
@@ -122,7 +121,7 @@ label {
 }
 
 .tip-caption {
-  font-size: .9em;
+  font-size: 0.9em;
   color: var(--text-color-deemphasized);
 }
 
@@ -614,7 +613,7 @@ html|dialog {
 
 html|dialog::backdrop,
 .dialogOverlay[topmost="true"] {
-  background-color: rgba(0,0,0,0.5);
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 html|dialog,
@@ -653,7 +652,7 @@ html|dialog,
 }
 
 .dialogTitleBar {
-  padding: .4em .2em;
+  padding: 0.4em 0.2em;
   border-bottom: 1px solid var(--in-content-border-color);
 }
 
@@ -739,7 +738,7 @@ html|dialog,
 }
 
 .fxaProfileImage.actionable:hover {
-  border-color: #0095DD;
+  border-color: #0095dd;
 }
 
 .fxaProfileImage.actionable:hover:active {
@@ -807,7 +806,7 @@ html|dialog,
 .fxaLoginRejectedWarning {
   list-style-image: url(chrome://global/skin/icons/warning.svg);
   -moz-context-properties: fill;
-  fill: #FFBF00;
+  fill: #ffbf00;
   margin-inline: 4px 8px;
 }
 
@@ -1031,16 +1030,16 @@ dialog > .sync-engines-list + hbox {
   max-width: 10em;
   font-size: 1rem;
   position: absolute;
-  padding: 0 .7em;
+  padding: 0 0.7em;
   background-color: #ffe900;
   color: #000;
   border: 1px solid #d7b600;
   margin-top: -18px;
-  opacity: .85;
+  opacity: 0.85;
 }
 
 .search-tooltip:hover {
-  opacity: .1;
+  opacity: 0.1;
 }
 
 .search-tooltip::before {
@@ -1089,7 +1088,7 @@ dialog > .sync-engines-list + hbox {
   display: none !important;
 }
 
-menulist[indicator=true] > menupopup menuitem:not([image]) > .menu-icon {
+menulist[indicator="true"] > menupopup menuitem:not([image]) > .menu-icon {
   display: flex;
   min-width: auto; /* Override the min-width defined in menu.css */
   margin-inline-end: 6px;
@@ -1097,7 +1096,7 @@ menulist[indicator=true] > menupopup menuitem:not([image]) > .menu-icon {
   height: 10px;
 }
 
-menulist[indicator=true] > menupopup menuitem[indicator=true]:not([image]) > .menu-icon {
+menulist[indicator="true"] > menupopup menuitem[indicator="true"]:not([image]) > .menu-icon {
   list-style-image: url(chrome://browser/skin/preferences/search-arrow-indicator.svg);
 
   &:-moz-locale-dir(rtl) {
@@ -1223,8 +1222,8 @@ richlistitem .text-link:hover {
   align-items: baseline;
 }
 
-.checkbox-row input[type=checkbox] {
-  translate: 0 2px
+.checkbox-row input[type="checkbox"] {
+  translate: 0 2px;
 }
 
 .checkbox-row a {
@@ -1288,7 +1287,7 @@ richlistitem .text-link:hover {
 }
 
 #solo-ai {
-  background-image: url("chrome://browser/skin/preferences/solo-ai-logo.svg")
+  background-image: url("chrome://browser/skin/preferences/solo-ai-logo.svg");
 }
 
 /*
@@ -1340,7 +1339,7 @@ richlistitem .text-link:hover {
 }
 
 .qr-code-box-title {
-  font-size: .87em;
+  font-size: 0.87em;
   font-weight: normal;
 
   text-align: center;
@@ -1356,7 +1355,7 @@ richlistitem .text-link:hover {
 
 .simple .qr-code-box {
   padding-inline: var(--space-xlarge);
-  padding-block: 20px
+  padding-block: 20px;
 }
 
 .simple .qr-code-box-image {
@@ -1364,12 +1363,12 @@ richlistitem .text-link:hover {
 }
 
 #moreFromMozillaCategory .qr-code-link {
-  font-size: .87em;
+  font-size: 0.87em;
 }
 
 @media (prefers-color-scheme: dark) {
   .qr-code-box:not([hidden="true"]) {
-    background-color: rgba(91,91,102,0.45);
+    background-color: rgba(91, 91, 102, 0.45);
   }
 
   .qr-code-box-title {
@@ -1425,14 +1424,14 @@ richlistitem .text-link:hover {
 
   border: 1px solid var(--in-content-box-border-color);
   border-radius: 4px;
-  box-shadow: 0 0 2px 0 rgba(0,0,0,0.2);
+  box-shadow: 0 0 2px 0 rgba(0, 0, 0, 0.2);
 
   transform: scaleX(1);
-  content: url("chrome://browser/content/preferences/web-appearance-light.svg")
+  content: url("chrome://browser/content/preferences/web-appearance-light.svg");
 }
 
 .web-appearance-choice.dark img {
-  content: url("chrome://browser/content/preferences/web-appearance-dark.svg")
+  content: url("chrome://browser/content/preferences/web-appearance-dark.svg");
 }
 
 .web-appearance-choice img:-moz-locale-dir(rtl) {

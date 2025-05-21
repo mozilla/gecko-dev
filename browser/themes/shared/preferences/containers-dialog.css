@@ -37,11 +37,11 @@ radio > .userContext-icon {
   block-size: 22px;
 }
 
-.radio-buttons > radio[selected=true] {
+.radio-buttons > radio[selected="true"] {
   outline-color: var(--in-content-text-color);
 }
 
-.radio-buttons > radio[focused=true] {
+.radio-buttons > radio[focused="true"] {
   outline-color: var(--color-accent-primary);
 }
 

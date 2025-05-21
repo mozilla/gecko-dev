@@ -43,7 +43,7 @@
   width: 200px;
   background-size: contain;
   image-rendering: -moz-crisp-edges;
-  transition: filter 250ms cubic-bezier(.07,.95,0,1);
+  transition: filter 250ms cubic-bezier(0.07, 0.95, 0, 1);
 }
 
 #qrWrapper:not([pairing-status="ready"]) #qrContainer {
@@ -73,7 +73,7 @@
   height: 200px;
   width: 200px;
   content: "";
-  transition: opacity 250ms cubic-bezier(.07,.95,0,1);
+  transition: opacity 250ms cubic-bezier(0.07, 0.95, 0, 1);
   will-change: transform;
   margin-inline: auto;
 }
@@ -91,7 +91,7 @@
   position: absolute;
   inset: 0;
   margin-inline: auto;
-  transition: opacity 250ms cubic-bezier(.07,.95,0,1);
+  transition: opacity 250ms cubic-bezier(0.07, 0.95, 0, 1);
   cursor: pointer;
 }
 
@@ -99,7 +99,7 @@
   text-align: center;
   user-select: none;
   display: block;
-  color: #2484C6;
+  color: #2484c6;
   cursor: pointer;
 }
 
@@ -109,7 +109,7 @@
   background-image: url("chrome://global/skin/icons/reload.svg");
   background-size: contain;
   -moz-context-properties: fill;
-  fill: #2484C6;
+  fill: #2484c6;
 }
 
 @keyframes spin {
