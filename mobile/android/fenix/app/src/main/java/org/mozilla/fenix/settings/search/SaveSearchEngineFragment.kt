@@ -12,10 +12,8 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.feature.search.ext.createSearchEngine
 import org.mozilla.fenix.BrowserDirection
@@ -126,70 +124,40 @@ class SaveSearchEngineFragment : Fragment(R.layout.fragment_save_search_engine) 
         }
 
         viewLifecycleOwner.lifecycleScope.launch(Main) {
-            val searchStringResult = withContext(IO) {
-                SearchStringValidator.isSearchStringValid(
-                    requireComponents.core.client,
-                    searchString,
-                )
-            }
-            if (searchStringResult == SearchStringValidator.Result.CannotReach) {
-                binding.customSearchEngineSearchStringField.error = resources
-                    .getString(R.string.search_add_custom_engine_error_cannot_reach, name)
-            }
-
-            val suggestStringResult = if (suggestString.isBlank()) {
-                SearchStringValidator.Result.Success
-            } else {
-                withContext(IO) {
-                    SearchStringValidator.isSearchStringValid(
-                        requireComponents.core.client,
-                        suggestString,
-                    )
-                }
-            }
-            if (suggestStringResult == SearchStringValidator.Result.CannotReach) {
-                binding.customSearchEngineSuggestStringField.error = resources
-                    .getString(R.string.search_add_custom_engine_error_cannot_reach, name)
-            }
-
-            if ((searchStringResult == SearchStringValidator.Result.Success) &&
-                (suggestStringResult == SearchStringValidator.Result.Success)
-            ) {
-                val update = searchEngine?.copy(
-                    name = name,
-                    resultUrls = listOf(searchString.toSearchUrl()),
-                    icon = requireComponents.core.icons.loadIcon(IconRequest(searchString))
+            val update = searchEngine?.copy(
+                name = name,
+                resultUrls = listOf(searchString.toSearchUrl()),
+                icon = requireComponents.core.icons.loadIcon(IconRequest(searchString))
+                    .await().bitmap,
+                suggestUrl = suggestString.toSearchUrl(),
+            ) ?: run {
+                createSearchEngine(
+                    name,
+                    searchString.toSearchUrl(),
+                    requireComponents.core.icons.loadIcon(IconRequest(searchString))
                         .await().bitmap,
                     suggestUrl = suggestString.toSearchUrl(),
-                ) ?: run {
-                    createSearchEngine(
-                        name,
-                        searchString.toSearchUrl(),
-                        requireComponents.core.icons.loadIcon(IconRequest(searchString))
-                            .await().bitmap,
-                        suggestUrl = suggestString.toSearchUrl(),
-                        isGeneral = true,
-                    )
-                }
-
-                requireComponents.useCases.searchUseCases.addSearchEngine(update)
-
-                val successMessage = if (searchEngine != null) {
-                    resources.getString(R.string.search_edit_custom_engine_success_message, name)
-                } else {
-                    resources.getString(R.string.search_add_custom_engine_success_message, name)
-                }
-
-                view?.also {
-                    Snackbar.make(
-                        snackBarParentView = it,
-                        snackbarState = SnackbarState(
-                            message = successMessage,
-                        ),
-                    ).show()
-                }
-                findNavController().popBackStack()
+                    isGeneral = true,
+                )
             }
+
+            requireComponents.useCases.searchUseCases.addSearchEngine(update)
+
+            val successMessage = if (searchEngine != null) {
+                resources.getString(R.string.search_edit_custom_engine_success_message, name)
+            } else {
+                resources.getString(R.string.search_add_custom_engine_success_message, name)
+            }
+
+            view?.also {
+                Snackbar.make(
+                    snackBarParentView = it,
+                    snackbarState = SnackbarState(
+                        message = successMessage,
+                    ),
+                ).show()
+            }
+            findNavController().popBackStack()
         }
     }
 

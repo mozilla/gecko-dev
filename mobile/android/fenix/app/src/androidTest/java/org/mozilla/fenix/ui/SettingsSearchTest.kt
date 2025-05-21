@@ -398,16 +398,13 @@ class SettingsSearchTest : TestSetup() {
             typeCustomEngineDetails(customSearchEngine.title, customSearchEngine.badTemplateUrl)
             saveNewSearchEngine()
             verifyInvalidTemplateSearchStringFormatError()
-            typeCustomEngineDetails(customSearchEngine.title, customSearchEngine.typoUrl)
-            saveNewSearchEngine()
-            verifyErrorConnectingToSearchString(customSearchEngine.title)
             typeCustomEngineDetails(customSearchEngine.title, customSearchEngine.goodUrl)
             typeSearchEngineSuggestionString(customSearchEngine.badTemplateUrl)
             saveNewSearchEngine()
             verifyInvalidTemplateSearchStringFormatError()
-            typeSearchEngineSuggestionString(customSearchEngine.typoUrl)
+            typeCustomEngineDetails(customSearchEngine.title, customSearchEngine.typoUrl)
             saveNewSearchEngine()
-            verifyErrorConnectingToSearchString(customSearchEngine.title)
+            verifyEngineListContains(customSearchEngine.title, shouldExist = true)
         }
     }
 
