@@ -696,10 +696,10 @@ class WellKnownChecker {
 
   nsresult Start() {
     LOG(("WellKnownChecker::Start %p\n", this));
-    nsCOMPtr<nsILoadInfo> loadInfo =
-        new LoadInfo(nsContentUtils::GetSystemPrincipal(), nullptr, nullptr,
-                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
-                     nsIContentPolicy::TYPE_OTHER);
+    nsCOMPtr<nsILoadInfo> loadInfo = MOZ_TRY(LoadInfo::Create(
+        nsContentUtils::GetSystemPrincipal(), nullptr, nullptr,
+        nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
+        nsIContentPolicy::TYPE_OTHER));
     loadInfo->SetOriginAttributes(mCI->GetOriginAttributes());
     // allow deprecated HTTP request from SystemPrincipal
     loadInfo->SetAllowDeprecatedSystemRequests(true);

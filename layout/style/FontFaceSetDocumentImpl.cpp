@@ -356,11 +356,15 @@ bool FontFaceSetDocumentImpl::IsFontLoadAllowed(const gfxFontFaceSrc& aSrc) {
   nsIPrincipal* principal =
       gfxPrincipal ? gfxPrincipal->NodePrincipal() : nullptr;
 
-  nsCOMPtr<nsILoadInfo> secCheckLoadInfo = new net::LoadInfo(
+  Result<RefPtr<net::LoadInfo>, nsresult> maybeLoadInfo = net::LoadInfo::Create(
       mDocument->NodePrincipal(),  // loading principal
       principal,                   // triggering principal
       mDocument, nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK,
       nsIContentPolicy::TYPE_FONT);
+  if (NS_WARN_IF(maybeLoadInfo.isErr())) {
+    return false;
+  }
+  RefPtr<net::LoadInfo> secCheckLoadInfo = maybeLoadInfo.unwrap();
 
   int16_t shouldLoad = nsIContentPolicy::ACCEPT;
   nsresult rv =

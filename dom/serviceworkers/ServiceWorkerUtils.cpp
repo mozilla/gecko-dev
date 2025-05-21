@@ -354,12 +354,18 @@ void ServiceWorkerScopeAndScriptAreValid(const ClientInfo& aClientInfo,
     // logic here (and the CheckMayLoad calls above) corresponds to the steps of
     // the register (https://w3c.github.io/ServiceWorker/#register-algorithm)
     // which explicitly throws a SecurityError.
-    nsCOMPtr<nsILoadInfo> secCheckLoadInfo = new mozilla::net::LoadInfo(
-        principal,  // loading principal
-        principal,  // triggering principal
-        maybeDoc,   // loading node
-        nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK,
-        nsIContentPolicy::TYPE_INTERNAL_SERVICE_WORKER, Some(aClientInfo));
+    Result<RefPtr<net::LoadInfo>, nsresult> maybeLoadInfo =
+        net::LoadInfo::Create(
+            principal,  // loading principal
+            principal,  // triggering principal
+            maybeDoc,   // loading node
+            nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK,
+            nsIContentPolicy::TYPE_INTERNAL_SERVICE_WORKER, Some(aClientInfo));
+    if (NS_WARN_IF(maybeLoadInfo.isErr())) {
+      aResult.ThrowSecurityError("Script URL is not allowed by policy.");
+      return;
+    }
+    RefPtr<net::LoadInfo> secCheckLoadInfo = maybeLoadInfo.unwrap();
 
     if (cspListener) {
       rv = secCheckLoadInfo->SetCspEventListener(cspListener);

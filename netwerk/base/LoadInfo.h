@@ -19,6 +19,7 @@
 #include "nsTArray.h"
 
 #include "mozilla/BasePrincipal.h"
+#include "mozilla/Result.h"
 #include "mozilla/dom/ClientInfo.h"
 #include "mozilla/dom/ServiceWorkerDescriptor.h"
 
@@ -66,6 +67,18 @@ class LoadInfo final : public nsILoadInfo {
   NS_DECL_ISUPPORTS
   NS_DECL_NSILOADINFO
 
+  // Currently used for most load types, but prefer the specialized factories
+  // below when possible. aLoadingPrincipal MUST NOT BE NULL.
+  static mozilla::Result<already_AddRefed<LoadInfo>, nsresult> Create(
+      nsIPrincipal* aLoadingPrincipal, nsIPrincipal* aTriggeringPrincipal,
+      nsINode* aLoadingContext, nsSecurityFlags aSecurityFlags,
+      nsContentPolicyType aContentPolicyType,
+      const Maybe<mozilla::dom::ClientInfo>& aLoadingClientInfo =
+          Maybe<mozilla::dom::ClientInfo>(),
+      const Maybe<mozilla::dom::ServiceWorkerDescriptor>& aController =
+          Maybe<mozilla::dom::ServiceWorkerDescriptor>(),
+      uint32_t aSandboxFlags = 0);
+
   // Used for TYPE_DOCUMENT load.
   static already_AddRefed<LoadInfo> CreateForDocument(
       dom::CanonicalBrowsingContext* aBrowsingContext, nsIURI* aURI,
@@ -87,6 +100,16 @@ class LoadInfo final : public nsILoadInfo {
       nsContentPolicyType aContentPolicyType, nsSecurityFlags aSecurityFlags,
       uint32_t aSandboxFlags);
 
+  // Constructor used for TYPE_DOCUMENT loads which have a different
+  // loadingContext than other loads. This ContextForTopLevelLoad is
+  // only used for content policy checks.
+  LoadInfo(nsPIDOMWindowOuter* aOuterWindow, nsIURI* aURI,
+           nsIPrincipal* aTriggeringPrincipal,
+           nsISupports* aContextForTopLevelLoad, nsSecurityFlags aSecurityFlags,
+           uint32_t aSandboxFlags);
+
+ private:
+  // Use factory function Create.
   // aLoadingPrincipal MUST NOT BE NULL.
   LoadInfo(nsIPrincipal* aLoadingPrincipal, nsIPrincipal* aTriggeringPrincipal,
            nsINode* aLoadingContext, nsSecurityFlags aSecurityFlags,
@@ -97,15 +120,6 @@ class LoadInfo final : public nsILoadInfo {
                Maybe<mozilla::dom::ServiceWorkerDescriptor>(),
            uint32_t aSandboxFlags = 0);
 
-  // Constructor used for TYPE_DOCUMENT loads which have a different
-  // loadingContext than other loads. This ContextForTopLevelLoad is
-  // only used for content policy checks.
-  LoadInfo(nsPIDOMWindowOuter* aOuterWindow, nsIURI* aURI,
-           nsIPrincipal* aTriggeringPrincipal,
-           nsISupports* aContextForTopLevelLoad, nsSecurityFlags aSecurityFlags,
-           uint32_t aSandboxFlags);
-
- private:
   // Use factory function CreateForDocument
   // Used for TYPE_DOCUMENT load.
   LoadInfo(dom::CanonicalBrowsingContext* aBrowsingContext, nsIURI* aURI,

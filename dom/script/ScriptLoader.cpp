@@ -477,11 +477,11 @@ nsresult ScriptLoader::CheckContentPolicy(nsIScriptElement* aElement,
   if (aElement) {
     requestingNode = do_QueryInterface(aElement);
   }
-  nsCOMPtr<nsILoadInfo> secCheckLoadInfo = new net::LoadInfo(
+  nsCOMPtr<nsILoadInfo> secCheckLoadInfo = MOZ_TRY(net::LoadInfo::Create(
       mDocument->NodePrincipal(),  // loading principal
       mDocument->NodePrincipal(),  // triggering principal
       requestingNode, nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK,
-      contentPolicyType);
+      contentPolicyType));
   secCheckLoadInfo->SetParserCreatedScript(aElement &&
                                            aElement->GetParserCreated() !=
                                                mozilla::dom::NOT_FROM_PARSER);

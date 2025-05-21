@@ -1711,11 +1711,11 @@ nsresult WebSocketImpl::Init(nsIGlobalObject* aWindowGlobal, JSContext* aCx,
     // AsyncOpen().
     // Please note that websockets can't follow redirects, hence there is no
     // need to perform a CSP check after redirects.
-    nsCOMPtr<nsILoadInfo> secCheckLoadInfo = new net::LoadInfo(
+    nsCOMPtr<nsILoadInfo> secCheckLoadInfo = MOZ_TRY(net::LoadInfo::Create(
         aPrincipal,  // loading principal
         aPrincipal,  // triggering principal
         originDoc, nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK,
-        nsIContentPolicy::TYPE_WEBSOCKET, aClientInfo);
+        nsIContentPolicy::TYPE_WEBSOCKET, aClientInfo));
 
     if (aCSPEventListener) {
       secCheckLoadInfo->SetCspEventListener(aCSPEventListener);

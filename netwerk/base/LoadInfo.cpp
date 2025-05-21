@@ -75,6 +75,18 @@ static nsContentPolicyType InternalContentPolicyTypeForFrame(
              : nsIContentPolicy::TYPE_INTERNAL_FRAME;
 }
 
+/* static */ Result<already_AddRefed<LoadInfo>, nsresult> LoadInfo::Create(
+    nsIPrincipal* aLoadingPrincipal, nsIPrincipal* aTriggeringPrincipal,
+    nsINode* aLoadingContext, nsSecurityFlags aSecurityFlags,
+    nsContentPolicyType aContentPolicyType,
+    const Maybe<mozilla::dom::ClientInfo>& aLoadingClientInfo,
+    const Maybe<mozilla::dom::ServiceWorkerDescriptor>& aController,
+    uint32_t aSandboxFlags) {
+  return MakeAndAddRef<LoadInfo>(
+      aLoadingPrincipal, aTriggeringPrincipal, aLoadingContext, aSecurityFlags,
+      aContentPolicyType, aLoadingClientInfo, aController, aSandboxFlags);
+}
+
 /* static */ already_AddRefed<LoadInfo> LoadInfo::CreateForDocument(
     dom::CanonicalBrowsingContext* aBrowsingContext, nsIURI* aURI,
     nsIPrincipal* aTriggeringPrincipal, const nsACString& aTriggeringRemoteType,

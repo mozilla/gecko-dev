@@ -828,9 +828,9 @@ nsresult Loader::CheckContentPolicy(nsIPrincipal* aLoadingPrincipal,
   nsContentPolicyType contentPolicyType =
       ComputeContentPolicyType(aPreloadKind);
 
-  nsCOMPtr<nsILoadInfo> secCheckLoadInfo = new net::LoadInfo(
+  nsCOMPtr<nsILoadInfo> secCheckLoadInfo = MOZ_TRY(net::LoadInfo::Create(
       aLoadingPrincipal, aTriggeringPrincipal, aRequestingNode,
-      nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK, contentPolicyType);
+      nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK, contentPolicyType));
   secCheckLoadInfo->SetCspNonce(aNonce);
 
   int16_t shouldLoad = nsIContentPolicy::ACCEPT;

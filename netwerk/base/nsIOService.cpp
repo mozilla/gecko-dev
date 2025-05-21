@@ -1183,9 +1183,9 @@ nsresult nsIOService::NewChannelFromURIWithProxyFlagsInternal(
     const Maybe<ServiceWorkerDescriptor>& aController, uint32_t aSecurityFlags,
     nsContentPolicyType aContentPolicyType, uint32_t aSandboxFlags,
     nsIChannel** result) {
-  nsCOMPtr<nsILoadInfo> loadInfo = new LoadInfo(
+  nsCOMPtr<nsILoadInfo> loadInfo = MOZ_TRY(LoadInfo::Create(
       aLoadingPrincipal, aTriggeringPrincipal, aLoadingNode, aSecurityFlags,
-      aContentPolicyType, aLoadingClientInfo, aController, aSandboxFlags);
+      aContentPolicyType, aLoadingClientInfo, aController, aSandboxFlags));
   return NewChannelFromURIWithProxyFlagsInternal(aURI, aProxyURI, aProxyFlags,
                                                  loadInfo, result);
 }
@@ -2158,10 +2158,10 @@ nsresult nsIOService::SpeculativeConnectInternal(
   // connection from http to https.
   nsCOMPtr<nsIURI> httpsURI;
   if (aURI->SchemeIs("http")) {
-    nsCOMPtr<nsILoadInfo> httpsOnlyCheckLoadInfo =
-        new LoadInfo(loadingPrincipal, loadingPrincipal, nullptr,
-                     nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK,
-                     nsIContentPolicy::TYPE_SPECULATIVE);
+    nsCOMPtr<nsILoadInfo> httpsOnlyCheckLoadInfo = MOZ_TRY(
+        LoadInfo::Create(loadingPrincipal, loadingPrincipal, nullptr,
+                         nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK,
+                         nsIContentPolicy::TYPE_SPECULATIVE));
 
     // Check if https-only, or https-first would upgrade the request
     if (nsHTTPSOnlyUtils::ShouldUpgradeRequest(aURI, httpsOnlyCheckLoadInfo) ||

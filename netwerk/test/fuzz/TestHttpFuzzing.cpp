@@ -167,13 +167,15 @@ static int FuzzingRunNetworkHttp(const uint8_t* data, size_t size) {
         MOZ_CRASH("do_QueryInterface failed.");
       }
 
-      loadInfo = new LoadInfo(
-          nsContentUtils::GetSystemPrincipal(),  // loading principal
-          nsContentUtils::GetSystemPrincipal(),  // triggering principal
-          nullptr,                               // Context
-          secFlags, nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST_ASYNC,
-          Maybe<mozilla::dom::ClientInfo>(),
-          Maybe<mozilla::dom::ServiceWorkerDescriptor>(), sandboxFlags);
+      loadInfo =
+          LoadInfo::Create(
+              nsContentUtils::GetSystemPrincipal(),  // loading principal
+              nsContentUtils::GetSystemPrincipal(),  // triggering principal
+              nullptr,                               // Context
+              secFlags, nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST_ASYNC,
+              Maybe<mozilla::dom::ClientInfo>(),
+              Maybe<mozilla::dom::ServiceWorkerDescriptor>(), sandboxFlags)
+              .unwrap();
 
       rv = pph->NewProxiedChannel(url, proxyInfo,
                                   0,        // aProxyResolveFlags

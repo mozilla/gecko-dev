@@ -4874,10 +4874,14 @@ std::unique_ptr<NrSocketProxyConfig> PeerConnectionImpl::GetProxyConfig()
   }
 
   TabId id = browserChild->GetTabId();
-  nsCOMPtr<nsILoadInfo> loadInfo =
-      new net::LoadInfo(doc->NodePrincipal(), doc->NodePrincipal(), doc,
-                        nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
-                        nsIContentPolicy::TYPE_PROXIED_WEBRTC_MEDIA);
+  Result<RefPtr<net::LoadInfo>, nsresult> maybeLoadInfo = net::LoadInfo::Create(
+      doc->NodePrincipal(), doc->NodePrincipal(), doc,
+      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
+      nsIContentPolicy::TYPE_PROXIED_WEBRTC_MEDIA);
+  if (NS_WARN_IF(maybeLoadInfo.isErr())) {
+    return nullptr;
+  }
+  RefPtr<net::LoadInfo> loadInfo = maybeLoadInfo.unwrap();
 
   net::LoadInfoArgs loadInfoArgs;
   MOZ_ALWAYS_SUCCEEDS(
