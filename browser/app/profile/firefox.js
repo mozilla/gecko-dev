@@ -741,6 +741,9 @@ pref("browser.urlbar.pocket.featureGate", false);
 // suggestions are turned on.
 pref("browser.urlbar.suggest.pocket", true);
 
+// Enable creating and editing user defined search engines.
+pref("browser.urlbar.update2.engineAliasRefresh", true);
+
 pref("browser.altClickSave", false);
 
 // Enable logging downloads operations to the Console.

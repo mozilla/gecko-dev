@@ -18,6 +18,10 @@ add_task(async function test_setup() {
   const contextmenu_common = chrome_base + "contextmenu_common.js";
   /* import-globals-from contextmenu_common.js */
   Services.scriptloader.loadSubScript(contextmenu_common, this);
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.update2.engineAliasRefresh", false]],
+  });
 });
 
 add_task(async function test_text_input_spellcheck_noform() {
