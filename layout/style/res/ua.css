@@ -66,7 +66,7 @@
   column-span: inherit; /* needed if <table> has "column-span:all" */
   contain: inherit; /* needed if table has 'contain:layout' or 'paint' */
   container: inherit; /* Bug 1805588 */
-  scroll-margin: inherit;  /* Bug 1633192 */
+  scroll-margin: inherit; /* Bug 1633192 */
 }
 
 *|*::-moz-table-row {
@@ -271,7 +271,10 @@
   overflow-clip-box: inherit;
 }
 
-*|*::-moz-viewport, *|*::-moz-viewport-scroll, *|*::-moz-canvas, *|*::-moz-scrolled-canvas {
+*|*::-moz-viewport,
+*|*::-moz-viewport-scroll,
+*|*::-moz-canvas,
+*|*::-moz-scrolled-canvas {
   display: block;
   background-color: inherit;
 }
@@ -541,15 +544,23 @@ parsererror|sourcetext {
 @media -moz-pref("dom.viewTransitions.enabled") {
   /* Default cross-fade transition */
   @keyframes -ua-view-transition-fade-out {
-    to { opacity: 0; }
+    to {
+      opacity: 0;
+    }
   }
   @keyframes -ua-view-transition-fade-in {
-    from { opacity: 0; }
+    from {
+      opacity: 0;
+    }
   }
 
   /* Keyframes for blending when there are 2 images */
   @keyframes -ua-mix-blend-mode-plus-lighter {
-    from { mix-blend-mode: plus-lighter }
-    to { mix-blend-mode: plus-lighter }
+    from {
+      mix-blend-mode: plus-lighter;
+    }
+    to {
+      mix-blend-mode: plus-lighter;
+    }
   }
 }

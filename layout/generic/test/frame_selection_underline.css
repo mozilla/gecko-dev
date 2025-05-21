@@ -34,7 +34,8 @@ body.reference div span#decoration {
 /* both ends of selection underlines for IME are clipped for making the
    boundaries of clauses in composition string clear.  These spacers will
    cover the ends in the reference. */
-span#leftspacer, span#rightspacer {
+span#leftspacer,
+span#rightspacer {
   background-color: white;
   position: absolute;
   width: 1px;

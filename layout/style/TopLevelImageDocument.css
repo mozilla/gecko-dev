@@ -22,7 +22,7 @@
 
   img.transparent {
     color: #222;
-    background: hsl(0,0%,90%) url("chrome://global/skin/media/imagedoc-lightnoise.png");
+    background: hsl(0, 0%, 90%) url("chrome://global/skin/media/imagedoc-lightnoise.png");
   }
 
   img {

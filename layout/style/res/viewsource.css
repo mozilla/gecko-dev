@@ -61,7 +61,7 @@ span[id]::before {
     font-style: italic;
   }
   .cdata {
-    color: light-dark(#CC0066, #f068ac);
+    color: light-dark(#cc0066, #f068ac);
   }
   .doctype,
   .markupdeclaration {
@@ -73,7 +73,7 @@ span[id]::before {
     font-style: italic;
   }
   .entity {
-    color: light-dark(#FF4500, #f18a65);
+    color: light-dark(#ff4500, #f18a65);
   }
   .text {
     font-weight: normal;

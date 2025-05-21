@@ -22,11 +22,15 @@
   direction: ltr;
 }
 
-:-moz-dir-attr-like-auto:dir(ltr) { direction: ltr; }
-:-moz-dir-attr-like-auto:dir(rtl) { direction: rtl; }
+:-moz-dir-attr-like-auto:dir(ltr) {
+  direction: ltr;
+}
+:-moz-dir-attr-like-auto:dir(rtl) {
+  direction: rtl;
+}
 
 /* https://html.spec.whatwg.org/#bidi-rendering */
-input[type=tel]:dir(ltr) {
+input[type="tel"]:dir(ltr) {
   direction: ltr;
 }
 
@@ -97,17 +101,19 @@ xmp {
   unicode-bidi: isolate;
 }
 
-bdi, output {
+bdi,
+output {
   unicode-bidi: isolate;
 }
 /* We need the "bdo:-moz-has-dir-attr" bit because "bdo" has lower
    specificity than the ":-moz-has-dir-attr" selector above. */
-bdo, bdo:-moz-has-dir-attr {
+bdo,
+bdo:-moz-has-dir-attr {
   unicode-bidi: isolate-override;
 }
 textarea:-moz-dir-attr-like-auto,
 pre:-moz-dir-attr-like-auto {
-    unicode-bidi: plaintext;
+  unicode-bidi: plaintext;
 }
 
 /* blocks */
@@ -136,7 +142,8 @@ body {
   margin: 8px;
 }
 
-p, dl {
+p,
+dl {
   display: block;
   margin-block-start: 1em;
   margin-block-end: 1em;
@@ -147,7 +154,8 @@ dd {
   margin-inline-start: 40px;
 }
 
-blockquote, figure {
+blockquote,
+figure {
   display: block;
   margin-block: 1em;
   margin-inline: 40px;
@@ -167,14 +175,14 @@ h1 {
   display: block;
   font-size: 2em;
   font-weight: bold;
-  margin-block: .67em;
+  margin-block: 0.67em;
 }
 
 h2 {
   display: block;
   font-size: 1.5em;
   font-weight: bold;
-  margin-block: .83em;
+  margin-block: 0.83em;
 }
 
 h3 {
@@ -186,7 +194,7 @@ h3 {
 
 h4 {
   display: block;
-  font-size: 1.00em;
+  font-size: 1em;
   font-weight: bold;
   margin-block: 1.33em;
 }
@@ -228,12 +236,14 @@ h6 {
 
 /* stylelint-disable-next-line media-query-no-invalid */
 @media -moz-pref("layout.css.h1-in-section-ua-styles.enabled") {
+  /* prettier-ignore */
   :is(article, aside, nav, section)
   h1 {
     margin-block: 0.83em;
-    font-size: 1.50em;
+    font-size: 1.5em;
   }
 
+  /* prettier-ignore */
   :is(article, aside, nav, section)
   :is(article, aside, nav, section)
   h1 {
@@ -241,14 +251,16 @@ h6 {
     font-size: 1.17em;
   }
 
+  /* prettier-ignore */
   :is(article, aside, nav, section)
   :is(article, aside, nav, section)
   :is(article, aside, nav, section)
   h1 {
     margin-block: 1.33em;
-    font-size: 1.00em;
+    font-size: 1em;
   }
 
+  /* prettier-ignore */
   :is(article, aside, nav, section)
   :is(article, aside, nav, section)
   :is(article, aside, nav, section)
@@ -258,6 +270,7 @@ h6 {
     font-size: 0.83em;
   }
 
+  /* prettier-ignore */
   :is(article, aside, nav, section)
   :is(article, aside, nav, section)
   :is(article, aside, nav, section)
@@ -277,7 +290,9 @@ listing {
   margin-block: 1em;
 }
 
-xmp, pre, plaintext {
+xmp,
+pre,
+plaintext {
   display: block;
   font-family: -moz-fixed;
   white-space: pre;
@@ -297,23 +312,23 @@ table {
 
 /* border collapse rules */
 
-  /* Set hidden if we have 'frame' or 'rules' attribute.
-     Set it on all sides when we do so there's more consistency
-     in what authors should expect */
+/* Set hidden if we have 'frame' or 'rules' attribute.
+   Set it on all sides when we do so there's more consistency
+   in what authors should expect */
 
-  /* Put this first so 'border' and 'frame' rules can override it. */
+/* Put this first so 'border' and 'frame' rules can override it. */
 table[rules] {
   border-width: thin;
   border-style: hidden;
 }
 
-  /* 'border' before 'frame' so 'frame' overrides
-      A border with a given value should, of course, pass that value
-      as the border-width in pixels -> attr mapping */
+/* 'border' before 'frame' so 'frame' overrides
+    A border with a given value should, of course, pass that value
+    as the border-width in pixels -> attr mapping */
 
-  /* :-moz-table-border-nonzero is like [border]:not([border="0"]) except it
-     also checks for other zero-like values according to HTML attribute
-     parsing rules */
+/* :-moz-table-border-nonzero is like [border]:not([border="0"]) except it
+   also checks for other zero-like values according to HTML attribute
+   parsing rules */
 table:-moz-table-border-nonzero {
   border-width: thin;
   border-style: outset;
@@ -324,28 +339,42 @@ table[frame] {
 }
 
 /* specificity must beat table:-moz-table-border-nonzero rule above */
-table[frame="void"]   { border-style: hidden; }
-table[frame="above"]  { border-style: outset hidden hidden hidden; }
-table[frame="below"]  { border-style: hidden hidden outset hidden; }
-table[frame="lhs"]    { border-style: hidden hidden hidden outset; }
-table[frame="rhs"]    { border-style: hidden outset hidden hidden; }
-table[frame="hsides"] { border-style: outset hidden; }
-table[frame="vsides"] { border-style: hidden outset; }
+table[frame="void"] {
+  border-style: hidden;
+}
+table[frame="above"] {
+  border-style: outset hidden hidden hidden;
+}
+table[frame="below"] {
+  border-style: hidden hidden outset hidden;
+}
+table[frame="lhs"] {
+  border-style: hidden hidden hidden outset;
+}
+table[frame="rhs"] {
+  border-style: hidden outset hidden hidden;
+}
+table[frame="hsides"] {
+  border-style: outset hidden;
+}
+table[frame="vsides"] {
+  border-style: hidden outset;
+}
 table[frame="box"],
-table[frame="border"] { border-style: outset; }
-
+table[frame="border"] {
+  border-style: outset;
+}
 
 /* Internal Table Borders */
 
-  /* 'border' cell borders first */
+/* 'border' cell borders first */
 
 table:-moz-table-border-nonzero > * > tr > td,
 table:-moz-table-border-nonzero > * > tr > th,
 table:-moz-table-border-nonzero > * > td,
 table:-moz-table-border-nonzero > * > th,
 table:-moz-table-border-nonzero > td,
-table:-moz-table-border-nonzero > th
-{
+table:-moz-table-border-nonzero > th {
   border-width: thin;
   border-style: inset;
 }
@@ -357,25 +386,22 @@ table[rules]:not([rules="none"], [rules=""]) {
 
 /* only specified rules override 'border' settings
   (increased specificity to achieve this) */
-table[rules]:not([rules=""])> tr > td,
-table[rules]:not([rules=""])> * > tr > td,
-table[rules]:not([rules=""])> tr > th,
-table[rules]:not([rules=""])> * > tr > th,
-table[rules]:not([rules=""])> td,
-table[rules]:not([rules=""])> th
-{
+table[rules]:not([rules=""]) > tr > td,
+table[rules]:not([rules=""]) > * > tr > td,
+table[rules]:not([rules=""]) > tr > th,
+table[rules]:not([rules=""]) > * > tr > th,
+table[rules]:not([rules=""]) > td,
+table[rules]:not([rules=""]) > th {
   border-width: thin;
   border-style: none;
 }
 
-
-table[rules][rules="none"]  > tr > td,
+table[rules][rules="none"] > tr > td,
 table[rules][rules="none"] > * > tr > td,
 table[rules][rules="none"] > tr > th,
 table[rules][rules="none"] > * > tr > th,
 table[rules][rules="none"] > td,
-table[rules][rules="none"] > th
-{
+table[rules][rules="none"] > th {
   border-width: thin;
   border-style: none;
 }
@@ -385,8 +411,7 @@ table[rules][rules="all"] > * > tr > td,
 table[rules][rules="all"] > tr > th,
 table[rules][rules="all"] > * > tr > th,
 table[rules][rules="all"] > td,
-table[rules][rules="all"] > th
-{
+table[rules][rules="all"] > th {
   border-width: thin;
   border-style: solid;
 }
@@ -398,7 +423,6 @@ table[rules][rules="rows"] > * > tr {
   border-block-start-style: solid;
   border-block-end-style: solid;
 }
-
 
 table[rules][rules="cols"] > tr > td,
 table[rules][rules="cols"] > * > tr > td,
@@ -418,7 +442,6 @@ table[rules][rules="groups"] > tbody {
   border-block-width: thin;
   border-block-style: solid;
 }
-
 
 /* caption inherits from table not table-outer */
 caption {
@@ -504,9 +527,9 @@ table[bordercolor] > col,
 table[bordercolor] > colgroup,
 table[bordercolor] > tr,
 table[bordercolor] > * > tr,
-table[bordercolor]  > tr > td,
+table[bordercolor] > tr > td,
 table[bordercolor] > * > tr > td,
-table[bordercolor]  > tr > th,
+table[bordercolor] > tr > th,
 table[bordercolor] > * > tr > th {
   border-color: inherit;
 }
@@ -521,23 +544,34 @@ q:after {
   content: close-quote;
 }
 
-b, strong {
+b,
+strong {
   font-weight: bolder;
 }
 
-i, cite, em, var, dfn {
+i,
+cite,
+em,
+var,
+dfn {
   font-style: italic;
 }
 
-tt, code, kbd, samp {
+tt,
+code,
+kbd,
+samp {
   font-family: -moz-fixed;
 }
 
-u, ins {
+u,
+ins {
   text-decoration: underline;
 }
 
-s, strike, del {
+s,
+strike,
+del {
   text-decoration: line-through;
 }
 
@@ -569,13 +603,16 @@ mark {
 }
 
 /* titles */
-abbr[title], acronym[title] {
+abbr[title],
+acronym[title] {
   text-decoration: dotted underline;
 }
 
 /* lists */
 
-ul, menu, dir {
+ul,
+menu,
+dir {
   display: block;
   list-style-type: disc;
   margin-block-start: 1em;
@@ -583,7 +620,9 @@ ul, menu, dir {
   padding-inline-start: 40px;
 }
 
-ul, ol, menu {
+ul,
+ol,
+menu {
   counter-reset: list-item;
 }
 
@@ -623,7 +662,6 @@ li {
   list-style-type: square;
 }
 
-
 /* leafs */
 
 /* <hr> noshade and color attributes are handled completely by
@@ -650,26 +688,27 @@ hr[size="1"] {
  * broken. But non-broken images/inputs will have a replaced box, and thus we
  * won't we don't generate the pseudo-element anyways. This prevents
  * unnecessary reframing when images become broken / non-broken. */
-input[type=image]::before,
+input[type="image"]::before,
 img::before {
   content: -moz-alt-content !important;
   unicode-bidi: isolate;
 }
 
-img[usemap], object[usemap] {
+img[usemap],
+object[usemap] {
   color: blue;
 }
 
 frameset {
-  display: block ! important;
+  display: block !important;
   overflow: clip;
-  position: static ! important;
-  float: none ! important;
-  border: none ! important;
+  position: static !important;
+  float: none !important;
+  border: none !important;
 }
 
 frame {
-  border-radius: 0 ! important;
+  border-radius: 0 !important;
 }
 
 iframe {
@@ -677,8 +716,8 @@ iframe {
 }
 
 spacer {
-  position: static ! important;
-  float: none ! important;
+  position: static !important;
+  float: none !important;
 }
 
 canvas {
@@ -703,14 +742,26 @@ html:focus-visible {
  *  * [hidden] is implemented as a presentation attribute to avoid a global
  *    selector in a UA sheet.
  */
-base, basefont, datalist, head, link, meta, noembed,
-noframes, param, rp, script, style, template, title {
-   display: none;
+base,
+basefont,
+datalist,
+head,
+link,
+meta,
+noembed,
+noframes,
+param,
+rp,
+script,
+style,
+template,
+title {
+  display: none;
 }
 
 area {
   /* Don't give it frames other than its imageframe */
-  display: none ! important;
+  display: none !important;
 }
 
 iframe:fullscreen {
@@ -865,34 +916,42 @@ rt {
 rtc {
   display: ruby-text-container;
 }
-rtc, rt {
+rtc,
+rt {
   white-space: nowrap;
   font-size: 50%;
   -moz-min-font-size-ratio: 50%;
   line-height: 1;
 }
 @media not (-moz-platform: windows) {
-  rtc, rt {
+  rtc,
+  rt {
     /* The widely-used Windows font Meiryo doesn't work fine with this
     * setting, so disable this on Windows. We should re-enable it once
     * Microsoft fixes this issue. See bug 1164279. */
     font-variant-east-asian: ruby;
   }
 }
-rtc, rt {
+rtc,
+rt {
   text-emphasis: none;
 }
-rtc:lang(zh), rt:lang(zh) {
+rtc:lang(zh),
+rt:lang(zh) {
   ruby-align: center;
 }
-rtc:lang(zh-TW), rt:lang(zh-TW) {
+rtc:lang(zh-TW),
+rt:lang(zh-TW) {
   font-size: 30%; /* bopomofo */
   -moz-min-font-size-ratio: 30%;
 }
 rtc > rt {
   font-size: unset;
 }
-ruby, rb, rt, rtc {
+ruby,
+rb,
+rt,
+rtc {
   unicode-bidi: isolate;
 }
 
@@ -910,7 +969,11 @@ slot {
 }
 
 @media print {
-  input, textarea, select, button, details {
+  input,
+  textarea,
+  select,
+  button,
+  details {
     -moz-inert: inert;
   }
 }
@@ -918,11 +981,11 @@ slot {
 /* Popover UA style, https://html.spec.whatwg.org/#flow-content-3 */
 
 [popover]:not(:popover-open):not(dialog[open]) {
-  display:none;
+  display: none;
 }
 
 dialog:popover-open {
-  display:block;
+  display: block;
 }
 
 [popover] {
