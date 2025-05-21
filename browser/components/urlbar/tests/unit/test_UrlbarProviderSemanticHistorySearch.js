@@ -7,7 +7,6 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  sinon: "resource://testing-common/Sinon.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   EnrollmentType: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
@@ -21,18 +20,18 @@ add_task(async function setup() {
     "resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs"
   );
 
-  lazy.sinon
+  sinon
     .stub(
       PlacesSemanticHistoryManager.prototype,
       "hasSufficientEntriesForSearching"
     )
     .returns(true);
   registerCleanupFunction(() => {
-    lazy.sinon.restore();
+    sinon.restore();
   });
 
   // stub getEnrollmentMetadata once, then configure for both cases:
-  const getEnrollmentStub = lazy.sinon.stub(
+  const getEnrollmentStub = sinon.stub(
     lazy.NimbusFeatures.urlbar,
     "getEnrollmentMetadata"
   );
@@ -40,7 +39,7 @@ add_task(async function setup() {
     .withArgs(lazy.EnrollmentType.EXPERIMENT)
     .returns({ slug: "test-slug", branch: "control" });
   getEnrollmentStub.withArgs(lazy.EnrollmentType.ROLLOUT).returns(null);
-  lazy.sinon.stub(lazy.NimbusFeatures.urlbar, "recordExposureEvent");
+  sinon.stub(lazy.NimbusFeatures.urlbar, "recordExposureEvent");
 });
 
 add_task(async function test_startQuery_adds_results() {
@@ -62,17 +61,18 @@ add_task(async function test_startQuery_adds_results() {
   const semanticManager = provider.ensureSemanticManagerInitialized();
 
   // Stub and simulate inference
-  lazy.sinon.stub(semanticManager.embedder, "ensureEngine").callsFake(() => {});
-  lazy.sinon.stub(semanticManager, "infer").resolves({
+  sinon.stub(semanticManager.embedder, "ensureEngine").callsFake(() => {});
+  let url = "https://example.com";
+  sinon.stub(semanticManager, "infer").resolves({
     results: [
       {
         id: 1,
         title: "Test Page",
-        url: "https://example.com",
-        helpLink: "https://example.com/icon",
+        url,
       },
     ],
   });
+  await PlacesTestUtils.addVisits(url);
 
   let added = [];
   await provider.startQuery(queryContext, (_provider, result) => {
@@ -80,11 +80,25 @@ add_task(async function test_startQuery_adds_results() {
   });
 
   Assert.equal(added.length, 1, "One result should be added");
+  Assert.equal(added[0].payload.url, url, "Correct URL should be used");
   Assert.equal(
-    added[0].payload.url,
-    "https://example.com",
-    "Correct URL should be used"
+    added[0].payload.icon,
+    UrlbarUtils.getIconForUrl(url),
+    "Correct icon should be used"
   );
+  Assert.ok(added[0].payload.isBlockable, "Result should be blockable");
+
+  let controller = UrlbarTestUtils.newMockController();
+  let stub = sinon.stub(controller, "removeResult");
+  let promiseRemoved = PlacesTestUtils.waitForNotification("page-removed");
+  await provider.onEngagement(queryContext, controller, {
+    selType: "dismiss",
+    result: { payload: { url } },
+  });
+  Assert.ok(stub.calledOnce, "Result should be removed on dismissal");
+  await promiseRemoved;
+  let visited = await PlacesUtils.history.hasVisits(url);
+  Assert.ok(!visited, "URL should have been removed from history");
 });
 
 add_task(async function test_isActive_conditions() {
@@ -92,7 +106,7 @@ add_task(async function test_isActive_conditions() {
   const semanticManager = provider.ensureSemanticManagerInitialized();
 
   // Stub canUseSemanticSearch to control the return value
-  const canUseStub = lazy.sinon.stub(semanticManager, "canUseSemanticSearch");
+  const canUseStub = sinon.stub(semanticManager, "canUseSemanticSearch");
 
   // Default settings
   Services.prefs.setBoolPref("browser.urlbar.suggest.history", true);
