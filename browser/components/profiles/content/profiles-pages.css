@@ -17,10 +17,7 @@ body {
   display: flex;
   justify-content: center;
 
-  background-color: var(
-    --newtab-background-color,
-    var(--background-color-canvas)
-  );
+  background-color: var(--newtab-background-color, var(--background-color-canvas));
 }
 
 edit-profile-card,

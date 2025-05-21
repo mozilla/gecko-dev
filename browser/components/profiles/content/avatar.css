@@ -33,8 +33,6 @@
     background-color: var(--button-background-color-hover);
   }
 
-
-
   @media (forced-colors) {
     &:hover {
       border-color: SelectedItem;
