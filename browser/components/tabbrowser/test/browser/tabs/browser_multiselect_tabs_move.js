@@ -201,8 +201,8 @@ add_task(async function testMoveStartEnabledWithCollapsedGroupAtStart() {
   group.collapsed = true;
 
   gBrowser.moveTabToEnd(tab);
-  is(group.tabs[0]._tPos, 0, "Collapsed group is first element on strip")
-  is(tab._tPos, 1, "Selected tab is second element on strip")
+  is(group.tabs[0]._tPos, 0, "Collapsed group is first element on strip");
+  is(tab._tPos, 1, "Selected tab is second element on strip");
 
   updateTabContextMenu(tab);
   is(menuItemMoveStartTab.disabled, false, "Move Tab to Start is enabled");
@@ -219,8 +219,8 @@ add_task(async function testMoveStartEnabledWithCollapsedGroupAtEnd() {
   let group = gBrowser.addTabGroup([tab2]);
   group.collapsed = true;
 
-  is(tab._tPos, 0, "Selected tab is first element on strip")
-  is(group.tabs[0]._tPos, 1, "Collapsed group is second element on strip")
+  is(tab._tPos, 0, "Selected tab is first element on strip");
+  is(group.tabs[0]._tPos, 1, "Collapsed group is second element on strip");
 
   updateTabContextMenu(tab);
   is(menuItemMoveEndTab.disabled, false, "Move Tab to End is enabled");
