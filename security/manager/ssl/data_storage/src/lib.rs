@@ -674,7 +674,11 @@ impl DataStorageInner {
         for entry in self.private_slots.iter().filter(|entry| !entry.is_empty()) {
             f(entry, DataType::Private);
         }
-        for entry in self.temporary_slots.iter().filter(|entry| !entry.is_empty()) {
+        for entry in self
+            .temporary_slots
+            .iter()
+            .filter(|entry| !entry.is_empty())
+        {
             f(entry, DataType::Temporary);
         }
     }

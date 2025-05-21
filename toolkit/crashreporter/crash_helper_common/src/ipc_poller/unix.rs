@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use nix::{
-  errno::Errno,
-  poll::{poll, PollFd, PollFlags, PollTimeout},
+    errno::Errno,
+    poll::{poll, PollFd, PollFlags, PollTimeout},
 };
 
 use crate::{errors::IPCError, ignore_eintr, IPCConnector, IPCEvent, IPCListener};

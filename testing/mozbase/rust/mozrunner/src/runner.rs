@@ -306,7 +306,9 @@ pub mod platform {
     /// Searches the system path for `firefox`.
     pub fn firefox_default_path() -> Option<PathBuf> {
         if running_as_snap() {
-            return Some(PathBuf::from("/snap/firefox/current/usr/lib/firefox/firefox"));
+            return Some(PathBuf::from(
+                "/snap/firefox/current/usr/lib/firefox/firefox",
+            ));
         }
         find_binary("firefox")
     }
@@ -359,7 +361,9 @@ pub mod platform {
 
         #[test]
         fn test_default_path() {
-            let snap_path = Some(PathBuf::from("/snap/firefox/current/usr/lib/firefox/firefox"));
+            let snap_path = Some(PathBuf::from(
+                "/snap/firefox/current/usr/lib/firefox/firefox",
+            ));
 
             let snap_env = SnapEnvironment::new();
 

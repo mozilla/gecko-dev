@@ -283,7 +283,12 @@ impl RemoteBrowser {
     ) -> WebDriverResult<RemoteBrowser> {
         let android_options = options.android.unwrap();
 
-        let handler = AndroidHandler::new(&android_options, marionette_port, system_access, websocket_port)?;
+        let handler = AndroidHandler::new(
+            &android_options,
+            marionette_port,
+            system_access,
+            websocket_port,
+        )?;
 
         // Profile management.
         let (mut profile, is_custom_profile) = match options.profile {

@@ -38,11 +38,12 @@ use tracy_rs::register_thread_with_profiler;
 use webrender::sw_compositor::SwCompositor;
 use webrender::{
     api::units::*, api::*, create_webrender_instance, render_api::*, set_profiler_hooks, AsyncPropertySampler,
-    AsyncScreenshotHandle, Compositor, LayerCompositor, CompositorCapabilities, CompositorConfig, CompositorSurfaceTransform, Device,
-    MappableCompositor, MappedTileInfo, NativeSurfaceId, NativeSurfaceInfo, NativeTileId, PartialPresentCompositor,
-    PendingShadersToPrecache, PipelineInfo, ProfilerHooks, RecordedFrameHandle, RenderBackendHooks, Renderer, RendererStats,
-    ClipRadius, SWGLCompositeSurfaceInfo, SceneBuilderHooks, ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig,
-    UploadMethod, WebRenderOptions, WindowVisibility, WindowProperties, ONE_TIME_USAGE_HINT, CompositorInputConfig, CompositorSurfaceUsage,
+    AsyncScreenshotHandle, ClipRadius, Compositor, CompositorCapabilities, CompositorConfig, CompositorInputConfig,
+    CompositorSurfaceTransform, CompositorSurfaceUsage, Device, LayerCompositor, MappableCompositor, MappedTileInfo,
+    NativeSurfaceId, NativeSurfaceInfo, NativeTileId, PartialPresentCompositor, PendingShadersToPrecache, PipelineInfo,
+    ProfilerHooks, RecordedFrameHandle, RenderBackendHooks, Renderer, RendererStats, SWGLCompositeSurfaceInfo,
+    SceneBuilderHooks, ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig, UploadMethod, WebRenderOptions,
+    WindowProperties, WindowVisibility, ONE_TIME_USAGE_HINT,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
@@ -1543,11 +1544,7 @@ impl WrLayerCompositor {
 
 impl LayerCompositor for WrLayerCompositor {
     // Begin compositing a frame with the supplied input config
-    fn begin_frame(
-        &mut self,
-        input: &CompositorInputConfig,
-    ) {
-
+    fn begin_frame(&mut self, input: &CompositorInputConfig) {
         if self.enable_screenshot != input.enable_screenshot {
             let mut layers_to_destroy = Vec::new();
             mem::swap(&mut self.surface_pool, &mut layers_to_destroy);
@@ -1568,10 +1565,10 @@ impl LayerCompositor for WrLayerCompositor {
         for request in input.layers {
             let size = request.clip_rect.size();
 
-            let existing_index = self.surface_pool.iter().position(|layer| {
-                layer.is_opaque == request.is_opaque &&
-                layer.usage.matches(&request.usage)
-            });
+            let existing_index = self
+                .surface_pool
+                .iter()
+                .position(|layer| layer.is_opaque == request.is_opaque && layer.usage.matches(&request.usage));
 
             let mut layer = match existing_index {
                 Some(existing_index) => {
@@ -1583,7 +1580,7 @@ impl LayerCompositor for WrLayerCompositor {
                     layer.usage = request.usage;
 
                     layer
-                }
+                },
                 None => {
                     let id = NativeSurfaceId(self.next_layer_id);
                     self.next_layer_id += 1;
@@ -1591,20 +1588,11 @@ impl LayerCompositor for WrLayerCompositor {
                     unsafe {
                         match request.usage {
                             CompositorSurfaceUsage::Content | CompositorSurfaceUsage::DebugOverlay => {
-                                wr_compositor_create_swapchain_surface(
-                                    self.compositor,
-                                    id,
-                                    size,
-                                    request.is_opaque,
-                                );
-                            }
+                                wr_compositor_create_swapchain_surface(self.compositor, id, size, request.is_opaque);
+                            },
                             CompositorSurfaceUsage::External { .. } => {
-                                wr_compositor_create_external_surface(
-                                    self.compositor,
-                                    id,
-                                    request.is_opaque,
-                                );
-                            }
+                                wr_compositor_create_external_surface(self.compositor, id, request.is_opaque);
+                            },
                         }
                     }
 
@@ -1615,31 +1603,21 @@ impl LayerCompositor for WrLayerCompositor {
                         frames_since_used: 0,
                         usage: request.usage,
                     }
-                }
+                },
             };
 
             match layer.usage {
                 CompositorSurfaceUsage::Content | CompositorSurfaceUsage::DebugOverlay => {
                     if layer.size.width != size.width || layer.size.height != size.height {
                         unsafe {
-                            wr_compositor_resize_swapchain(
-                                self.compositor,
-                                layer.id,
-                                size
-                            );
+                            wr_compositor_resize_swapchain(self.compositor, layer.id, size);
                         }
                         layer.size = size;
                     }
-                }
-                CompositorSurfaceUsage::External { external_image_id, .. } => {
-                    unsafe {
-                        wr_compositor_attach_external_image(
-                            self.compositor,
-                            layer.id,
-                            external_image_id,
-                        );
-                    }
-                }
+                },
+                CompositorSurfaceUsage::External { external_image_id, .. } => unsafe {
+                    wr_compositor_attach_external_image(self.compositor, layer.id, external_image_id);
+                },
             }
 
             self.visual_tree.push(layer);
@@ -1655,10 +1633,7 @@ impl LayerCompositor for WrLayerCompositor {
         let layer = &self.visual_tree[index];
 
         unsafe {
-            wr_compositor_bind_swapchain(
-                self.compositor,
-                layer.id,
-            );
+            wr_compositor_bind_swapchain(self.compositor, layer.id);
         }
     }
 
@@ -1667,10 +1642,7 @@ impl LayerCompositor for WrLayerCompositor {
         let layer = &self.visual_tree[index];
 
         unsafe {
-            wr_compositor_present_swapchain(
-                self.compositor,
-                layer.id,
-            );
+            wr_compositor_present_swapchain(self.compositor, layer.id);
         }
     }
 
@@ -1961,10 +1933,10 @@ pub extern "C" fn wr_window_new(
         CompositorConfig::Native {
             compositor: Box::new(SwCompositor::new(
                 sw_gl.unwrap(),
-                    Box::new(WrCompositor(compositor)),
-                    use_native_compositor,
-                )),
-            }
+                Box::new(WrCompositor(compositor)),
+                use_native_compositor,
+            )),
+        }
     } else if use_native_compositor {
         if use_layer_compositor {
             CompositorConfig::Layer {
@@ -4498,7 +4470,9 @@ pub extern "C" fn wr_shaders_new(
 #[no_mangle]
 pub unsafe extern "C" fn wr_shaders_delete(shaders: *mut WrShaders) {
     // Deallocate the box by moving the values out of it.
-    let WrShaders { shaders, mut device, .. } = *Box::from_raw(shaders);
+    let WrShaders {
+        shaders, mut device, ..
+    } = *Box::from_raw(shaders);
     if let Ok(shaders) = Rc::try_unwrap(shaders) {
         shaders.into_inner().deinit(&mut device);
     }
@@ -4511,7 +4485,11 @@ pub unsafe extern "C" fn wr_shaders_delete(shaders: *mut WrShaders) {
 pub extern "C" fn wr_shaders_resume_warmup(shaders: &mut WrShaders) -> bool {
     shaders.device.begin_frame();
 
-    let need_another_call = match shaders.shaders.borrow_mut().resume_precache(&mut shaders.device, &mut shaders.shaders_to_precache) {
+    let need_another_call = match shaders
+        .shaders
+        .borrow_mut()
+        .resume_precache(&mut shaders.device, &mut shaders.shaders_to_precache)
+    {
         Ok(need_another_call) => need_another_call,
         Err(e) => {
             warn!(" Failed to create a shader during warmup: {:?}", e);
@@ -4524,7 +4502,7 @@ pub extern "C" fn wr_shaders_resume_warmup(shaders: &mut WrShaders) -> bool {
             // to compile it's likely that we will run into similar errors with
             // the rest of the shaders.
             false
-        }
+        },
     };
 
     shaders.device.end_frame();

@@ -501,7 +501,8 @@ mod test {
 
     fn run_handler_storage_test(package: &str, storage: AndroidStorageInput) {
         let options = AndroidOptions::new(package.to_owned(), storage);
-        let handler = AndroidHandler::new(&options, 4242, true, None).expect("has valid Android handler");
+        let handler =
+            AndroidHandler::new(&options, 4242, true, None).expect("has valid Android handler");
 
         assert_eq!(handler.options, options);
         assert_eq!(handler.marionette_host_port, 4242);
