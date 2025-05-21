@@ -36,7 +36,7 @@ export function getSelectors() {
       return content.document.querySelector("h1");
     },
     getPdfSpan() {
-      return ContentTaskUtils.waitForCondition(
+      return waitForCondition(
         () =>
           !!content.document.querySelector(
             `.page[data-page-number='1'] .textLayer .endOfContent`
@@ -99,7 +99,7 @@ export function getSelectors() {
  * @param {Function} callback
  * @param {string} message
  */
-function waitForCondition(callback, message) {
+export function waitForCondition(callback, message) {
   const interval = 100;
   // Use 4 times the defaults to guard against intermittents. Many of the tests rely on
   // communication between the parent and child process, which is inherently async.

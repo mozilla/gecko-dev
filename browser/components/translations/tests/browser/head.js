@@ -928,7 +928,7 @@ class TranslationsBencher {
    * @returns {Promise<number>} The timestamp when the translation is complete.
    */
   static async #getTranslationCompleteTimestampPromise(runInPage) {
-    await runInPage(async () => {
+    await runInPage(async ({ waitForCondition }) => {
       // First, wait for the final paragraph to be translated.
       await new Promise(resolve => {
         content.document.addEventListener("FinalParagraphTranslated", resolve, {
@@ -946,7 +946,7 @@ class TranslationsBencher {
       ) {
         // The final paragraph was translated, but it wasn't the final request,
         // so we must still wait for every translation request to complete.
-        await ContentTaskUtils.waitForCondition(
+        await waitForCondition(
           () =>
             !translationsChild.hasPendingCallbackOnEventLoop() &&
             !translationsChild.hasPendingTranslationRequests() &&
@@ -1330,8 +1330,8 @@ class FullPageTranslationsTestUtils {
    *
    * @param {Function} runInPage - A function run a closure in the content page.
    */
-  static async waitForAllTranslationsToComplete(runInPage) {
-    await runInPage(async () => {
+  static async waitForAllPendingTranslationsToComplete(runInPage) {
+    await runInPage(async ({ waitForCondition }) => {
       const translationsChild =
         content.windowGlobalChild.getActor("Translations");
 
@@ -1339,12 +1339,12 @@ class FullPageTranslationsTestUtils {
         translationsChild.hasPendingTranslationRequests() ||
         translationsChild.hasPendingCallbackOnEventLoop()
       ) {
-        await ContentTaskUtils.waitForCondition(
+        await waitForCondition(
           () => !translationsChild.hasPendingTranslationRequests(),
           "Waiting for all pending translation requests to complete."
         );
 
-        await ContentTaskUtils.waitForCondition(
+        await waitForCondition(
           () => !translationsChild.hasPendingCallbackOnEventLoop(),
           "Waiting for pending event-loop callbacks to resolve in the TranslationsDocument."
         );
@@ -1360,11 +1360,11 @@ class FullPageTranslationsTestUtils {
    * @param {Function} runInPage – Executes an async closure in the content page.
    */
   static async assertNoElementsAreObservedForContentIntersection(runInPage) {
-    await runInPage(async () => {
+    await runInPage(async ({ waitForCondition }) => {
       const translationsChild =
         content.windowGlobalChild.getActor("Translations");
 
-      await ContentTaskUtils.waitForCondition(
+      await waitForCondition(
         () => !translationsChild.isObservingAnyElementForContentIntersection(),
         "Waiting until no elements are observed for content intersection."
       );
@@ -1379,11 +1379,11 @@ class FullPageTranslationsTestUtils {
    * @param {Function} runInPage – Executes an async closure in the content page.
    */
   static async assertNoElementsAreObservedForAttributeIntersection(runInPage) {
-    await runInPage(async () => {
+    await runInPage(async ({ waitForCondition }) => {
       const translationsChild =
         content.windowGlobalChild.getActor("Translations");
 
-      await ContentTaskUtils.waitForCondition(
+      await waitForCondition(
         () =>
           !translationsChild.isObservingAnyElementForAttributeIntersection(),
         "Waiting until no elements are observed for attribute intersection."
@@ -1398,11 +1398,11 @@ class FullPageTranslationsTestUtils {
    * @param {Function} runInPage – Executes an async closure in the content page.
    */
   static async assertAnyElementIsObservedForContentIntersection(runInPage) {
-    await runInPage(async () => {
+    await runInPage(async ({ waitForCondition }) => {
       const translationsChild =
         content.windowGlobalChild.getActor("Translations");
 
-      await ContentTaskUtils.waitForCondition(
+      await waitForCondition(
         () => translationsChild.isObservingAnyElementForContentIntersection(),
         "Waiting until an element is observed for content intersection."
       );
@@ -1416,11 +1416,11 @@ class FullPageTranslationsTestUtils {
    * @param {Function} runInPage – Executes an async closure in the content page.
    */
   static async assertAnyElementIsObservedForAttributeIntersection(runInPage) {
-    await runInPage(async () => {
+    await runInPage(async ({ waitForCondition }) => {
       const translationsChild =
         content.windowGlobalChild.getActor("Translations");
 
-      await ContentTaskUtils.waitForCondition(
+      await waitForCondition(
         () => translationsChild.isObservingAnyElementForAttributeIntersection(),
         "Waiting until an element is observed for attribute intersection."
       );
@@ -1433,11 +1433,11 @@ class FullPageTranslationsTestUtils {
    * @param {Function} runInPage - A function run a closure in the content page.
    */
   static async waitForAnyRequestToInitialize(runInPage) {
-    await runInPage(async () => {
+    await runInPage(async ({ waitForCondition }) => {
       const translationsChild =
         content.windowGlobalChild.getActor("Translations");
 
-      await ContentTaskUtils.waitForCondition(
+      await waitForCondition(
         () => translationsChild.hasPendingTranslationRequests(),
         "Waiting for any translation request to initialize."
       );
@@ -1593,7 +1593,7 @@ class FullPageTranslationsTestUtils {
       win
     );
 
-    await FullPageTranslationsTestUtils.waitForAllTranslationsToComplete(
+    await FullPageTranslationsTestUtils.waitForAllPendingTranslationsToComplete(
       runInPage
     );
 
@@ -1624,7 +1624,7 @@ class FullPageTranslationsTestUtils {
       win
     );
 
-    await FullPageTranslationsTestUtils.waitForAllTranslationsToComplete(
+    await FullPageTranslationsTestUtils.waitForAllPendingTranslationsToComplete(
       runInPage
     );
 
@@ -1654,7 +1654,7 @@ class FullPageTranslationsTestUtils {
     }
 
     info("Ensuring that no translation requests are pending.");
-    await FullPageTranslationsTestUtils.waitForAllTranslationsToComplete(
+    await FullPageTranslationsTestUtils.waitForAllPendingTranslationsToComplete(
       runInPage
     );
 
