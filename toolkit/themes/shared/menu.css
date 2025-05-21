@@ -73,12 +73,6 @@ menulist > menupopup {
   > menu {
     max-width: none;
 
-    @media (-moz-platform: windows) or (-moz-platform: linux) {
-      > .menu-icon {
-        display: none;
-      }
-    }
-
     @media (-moz-platform: windows) {
       > label {
         padding-block: 0;
