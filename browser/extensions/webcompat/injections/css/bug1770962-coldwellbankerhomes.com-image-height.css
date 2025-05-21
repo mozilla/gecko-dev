@@ -8,11 +8,6 @@
  * WebCompat issue #102872 - https://webcompat.com/issues/102872
  */
 
-.property-snapshot-psr-panel
-  .prop-pix
-  .photo-carousel.owl
-  .owl-stage-outer
-  .owl-item
-  img {
+.property-snapshot-psr-panel .prop-pix .photo-carousel.owl .owl-stage-outer .owl-item img {
   height: -moz-available;
 }

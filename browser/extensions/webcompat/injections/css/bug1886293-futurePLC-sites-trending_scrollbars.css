@@ -29,6 +29,5 @@
 
 .trending__list {
   scrollbar-width: thin;
-  scrollbar-color: var(--trending-scrollbar-color)
-    var(--trending-scrollbar-background-color);
+  scrollbar-color: var(--trending-scrollbar-color) var(--trending-scrollbar-background-color);
 }
