@@ -5,11 +5,11 @@
 @import url("chrome://global/skin/in-content/common.css");
 
 :host {
-  --background-term-a: #B3FFE3;
-  --background-term-b: #80EBFF;
-  --background-term-c: #FFEA80;
-  --background-term-d: #FFB587;
-  --background-term-f: #FF848B;
+  --background-term-a: #b3ffe3;
+  --background-term-b: #80ebff;
+  --background-term-c: #ffea80;
+  --background-term-d: #ffb587;
+  --background-term-f: #ff848b;
   --in-content-box-border-color: rgba(0, 0, 0, 0.15);
   --inner-border: 1px solid var(--in-content-box-border-color);
   --letter-grade-width: 1.5rem;
@@ -40,7 +40,7 @@
   width: var(--letter-grade-width);
 }
 
-:host([showdescription]) #letter-grade-term  {
+:host([showdescription]) #letter-grade-term {
   /* For border "shadow" inside the container */
   border-block: var(--inner-border);
   border-inline-start: var(--inner-border);

@@ -58,8 +58,8 @@ button {
   }
 }
 
-:host([type=analysis-in-progress]) .icon,
-:host([type=reanalysis-in-progress]) .icon {
+:host([type="analysis-in-progress"]) .icon,
+:host([type="reanalysis-in-progress"]) .icon {
   --message-bar-icon-url: conic-gradient(var(--icon-color-information) var(--analysis-progress-pcent, 0%), transparent var(--analysis-progress-pcent, 0%));
   border: 1px solid var(--icon-color);
   border-radius: 50%;
