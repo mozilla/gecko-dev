@@ -38,7 +38,6 @@
 
 /* Menus */
 #placesMenu > menu {
-  padding-inline-start: 4px;
   appearance: auto;
   -moz-default-appearance: toolbarbutton;
 
@@ -70,8 +69,6 @@
 
 .expander-up,
 .expander-down {
-  padding: 2px;
-
   > .button-box {
     appearance: auto;
     -moz-default-appearance: -moz-menulist-arrow-button;
