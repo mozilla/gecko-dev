@@ -227,21 +227,6 @@
       }
     ]
   },
-  "1577267": {
-    "label": "metfone.com.kh",
-    "bugs": {
-      "1577267": {
-        "issue": "desktop-layout-not-mobile",
-        "matches": ["*://*.metfone.com.kh/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["android"],
-        "ua_string": ["Chrome"]
-      }
-    ]
-  },
   "1577519": {
     "label": "directv.com",
     "bugs": {
