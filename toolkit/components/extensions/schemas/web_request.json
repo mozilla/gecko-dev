@@ -402,7 +402,6 @@
           "cryptomining_content",
           "emailtracking",
           "emailtracking_content",
-          "consentmanager",
           "tracking",
           "tracking_ad",
           "tracking_analytics",
@@ -410,7 +409,9 @@
           "tracking_content",
           "any_basic_tracking",
           "any_strict_tracking",
-          "any_social_tracking"
+          "any_social_tracking",
+          "consentmanager",
+          "antifraud"
         ],
         "description": "Tracking flags that match our internal tracking classification"
       },
