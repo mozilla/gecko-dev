@@ -9,7 +9,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   AboutHomeStartupCache: "resource:///modules/AboutHomeStartupCache.sys.mjs",
-  AboutNewTab: "resource:///modules/AboutNewTab.sys.mjs",
   AWToolbarButton: "resource:///modules/aboutwelcome/AWToolbarUtils.sys.mjs",
   ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
   ASRouterDefaultConfig:
@@ -22,8 +21,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
-  CaptchaDetectionPingUtils:
-    "resource://gre/modules/CaptchaDetectionPingUtils.sys.mjs",
   ContentBlockingPrefs:
     "moz-src:///browser/components/protections/ContentBlockingPrefs.sys.mjs",
   ContextualIdentityService:
@@ -36,7 +33,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///browser/components/DesktopActorRegistry.sys.mjs",
   Discovery: "resource:///modules/Discovery.sys.mjs",
   DistributionManagement: "resource:///modules/distribution.sys.mjs",
-  DoHController: "resource://gre/modules/DoHController.sys.mjs",
   DownloadsViewableInternally:
     "resource:///modules/DownloadsViewableInternally.sys.mjs",
   ExtensionsUI: "resource:///modules/ExtensionsUI.sys.mjs",
@@ -48,13 +44,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   LoginBreaches: "resource:///modules/LoginBreaches.sys.mjs",
   LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
   MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",
-  NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   OnboardingMessageProvider:
     "resource:///modules/asrouter/OnboardingMessageProvider.sys.mjs",
-  PageActions: "resource:///modules/PageActions.sys.mjs",
   PageDataService: "resource:///modules/pagedata/PageDataService.sys.mjs",
-  PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
   PdfJs: "resource://pdf.js/PdfJs.sys.mjs",
   PlacesBrowserStartup:
     "moz-src:///browser/components/places/PlacesBrowserStartup.sys.mjs",
@@ -62,22 +55,16 @@ ChromeUtils.defineESModuleGetters(lazy, {
   // eslint-disable-next-line mozilla/valid-lazy
   PluginManager: "resource:///actors/PluginParent.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-  ProcessHangMonitor: "resource:///modules/ProcessHangMonitor.sys.mjs",
   ProfileDataUpgrader:
     "moz-src:///browser/components/ProfileDataUpgrader.sys.mjs",
-  ProfilesDatastoreService:
-    "moz-src:///toolkit/profile/ProfilesDatastoreService.sys.mjs",
   RemoteSecuritySettings:
     "resource://gre/modules/psm/RemoteSecuritySettings.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   SafeBrowsing: "resource://gre/modules/SafeBrowsing.sys.mjs",
   Sanitizer: "resource:///modules/Sanitizer.sys.mjs",
-  SandboxUtils: "resource://gre/modules/SandboxUtils.sys.mjs",
   ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.sys.mjs",
   SearchSERPTelemetry:
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
-  SelectableProfileService:
-    "resource:///modules/profiles/SelectableProfileService.sys.mjs",
   SessionStartup: "resource:///modules/sessionstore/SessionStartup.sys.mjs",
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
@@ -88,7 +75,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TelemetryReportingPolicy:
     "resource://gre/modules/TelemetryReportingPolicy.sys.mjs",
   TRRRacer: "resource:///modules/TRRPerformance.sys.mjs",
-  TabCrashHandler: "resource:///modules/ContentCrashHandlers.sys.mjs",
   WebChannel: "resource://gre/modules/WebChannel.sys.mjs",
   WebProtocolHandlerRegistrar:
     "resource:///modules/WebProtocolHandlerRegistrar.sys.mjs",
@@ -661,16 +647,6 @@ BrowserGlue.prototype = {
     );
   },
 
-  _verifySandboxUserNamespaces: function BG_verifySandboxUserNamespaces(aWin) {
-    if (!AppConstants.MOZ_SANDBOX) {
-      return;
-    }
-
-    lazy.SandboxUtils.maybeWarnAboutMissingUserNamespaces(
-      aWin.gNotificationBox
-    );
-  },
-
   _earlyBlankFirstPaint(cmdLine) {
     let startTime = Cu.now();
 
@@ -818,12 +794,6 @@ BrowserGlue.prototype = {
 
   // the first browser window has finished initializing
   _onFirstWindowLoaded: function BG__onFirstWindowLoaded(aWindow) {
-    lazy.AboutNewTab.init();
-
-    lazy.TabCrashHandler.init();
-
-    lazy.ProcessHangMonitor.init();
-
     // A channel for "remote troubleshooting" code...
     let channel = new lazy.WebChannel(
       "remote-troubleshooting",
@@ -854,24 +824,6 @@ BrowserGlue.prototype = {
       lazy.WeaveService.init();
     }
 
-    lazy.PageThumbs.init();
-
-    lazy.NewTabUtils.init();
-
-    lazy.PageActions.init();
-
-    lazy.DoHController.init();
-
-    lazy.ProfilesDatastoreService.init().catch(console.error);
-    lazy.SelectableProfileService.init().catch(console.error);
-
-    this._firstWindowTelemetry(aWindow);
-
-    lazy.ContentBlockingPrefs.init();
-    lazy.CaptchaDetectionPingUtils.init();
-
-    this._verifySandboxUserNamespaces(aWindow);
-
     lazy.BrowserUtils.callModulesFromCategory(
       {
         categoryName: "browser-first-window-ready",
@@ -879,6 +831,8 @@ BrowserGlue.prototype = {
       },
       aWindow
     );
+
+    this._firstWindowTelemetry(aWindow);
   },
 
   _maybeOfferProfileReset() {
