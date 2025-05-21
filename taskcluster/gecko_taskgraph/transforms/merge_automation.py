@@ -67,7 +67,9 @@ def add_payload_config(config, tasks):
 
         # Override defaults, useful for testing.
         for field in [
+            "from-repo",
             "from-branch",
+            "to-repo",
             "to-branch",
             "fetch-version-from",
             "lando-repo",

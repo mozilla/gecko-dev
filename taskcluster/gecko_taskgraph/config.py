@@ -50,6 +50,8 @@ graph_config_schema = Schema(
                 str: {
                     Optional("from-branch"): str,
                     Required("to-branch"): str,
+                    Optional("from-repo"): str,
+                    Optional("to-repo"): str,
                     Required("version-files"): [
                         {
                             Required("filename"): str,
