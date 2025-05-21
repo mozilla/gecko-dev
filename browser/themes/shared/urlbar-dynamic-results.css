@@ -6,7 +6,7 @@
  * Firefox Suggest contextual opt-in
  */
 
-.urlbarView-row[dynamicType=quickSuggestContextualOptIn] {
+.urlbarView-row[dynamicType="quickSuggestContextualOptIn"] {
   background-color: color-mix(in srgb, currentColor 3%, transparent);
 
   > .urlbarView-row-inner {
@@ -20,7 +20,7 @@
         min-width: 32px;
         height: 32px;
         padding: 16px;
-        margin-inline: 0 .7em;
+        margin-inline: 0 0.7em;
       }
     }
   }
@@ -79,7 +79,7 @@
  * Tab To Search onboarding
  */
 
-.urlbarView-row[dynamicType=onboardTabToSearch] > .urlbarView-row-inner {
+.urlbarView-row[dynamicType="onboardTabToSearch"] > .urlbarView-row-inner {
   min-height: 64px !important; /* Overriding :root:not([uidensity=compact]) .urlbarView-row-inner { min-height } in urlbarView.inc.css */
   align-items: center;
 
@@ -104,7 +104,7 @@
   }
 }
 
-.urlbarView-row[dynamicType=onboardTabToSearch][selected] {
+.urlbarView-row[dynamicType="onboardTabToSearch"][selected] {
   fill-opacity: 1;
 }
 
@@ -123,6 +123,7 @@
   margin-block-start: 2px;
 }
 
+/* prettier-ignore */
 .urlbarView-results[wrap] > .urlbarView-row[dynamicType=onboardTabToSearch] > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-dynamic-onboardTabToSearch-text-container {
   > .urlbarView-dynamic-onboardTabToSearch-first-row-container {
     flex-wrap: wrap;
@@ -158,7 +159,7 @@
 
   &::before {
     content: "\2014";
-    margin: 0 .4em;
+    margin: 0 0.4em;
     opacity: 0.6;
   }
 }
@@ -167,7 +168,7 @@
  * Actions
  */
 
-.urlbarView-row[dynamicType=actions] > .urlbarView-row-inner {
+.urlbarView-row[dynamicType="actions"] > .urlbarView-row-inner {
   /* Reduce the padding to 2px so the outline does not get
      cropped and the actions + outline are aligned with the
      rest of the results */
@@ -205,7 +206,7 @@
  * Weather
  */
 
-.urlbarView-row[dynamicType=weather] > .urlbarView-row-inner {
+.urlbarView-row[dynamicType="weather"] > .urlbarView-row-inner {
   align-items: center;
 }
 
@@ -217,7 +218,7 @@
   border-radius: 2px;
   text-align: center;
 
-  .urlbarView-row[dynamicType=weather]:is([selected], :hover) > .urlbarView-row-inner > & {
+  .urlbarView-row[dynamicType="weather"]:is([selected], :hover) > .urlbarView-row-inner > & {
     color: var(--urlbarView-result-button-selected-color);
     background-color: var(--urlbarView-result-button-selected-background-color);
   }
@@ -263,7 +264,7 @@
   align-items: center;
 }
 
-.urlbarView-results[wrap] > .urlbarView-row[dynamicType=weather] > .urlbarView-row-inner {
+.urlbarView-results[wrap] > .urlbarView-row[dynamicType="weather"] > .urlbarView-row-inner {
   flex-wrap: nowrap;
 
   > .urlbarView-dynamic-weather-summary > .urlbarView-dynamic-weather-top {
@@ -306,15 +307,15 @@
 }
 
 .urlbarView-dynamic-weather-summaryTextSeparator::before {
-  content: '\00B7';
+  content: "\00B7";
   margin: 0.25em;
 }
 
 .urlbarView-dynamic-weather-bottom {
   font-size: var(--urlbarView-small-font-size);
-  margin-top: 0.40em;
+  margin-top: 0.4em;
 
-  .urlbarView-row[dynamicType=weather]:not([selected]) > .urlbarView-row-inner > .urlbarView-dynamic-weather-summary > & {
+  .urlbarView-row[dynamicType="weather"]:not([selected]) > .urlbarView-row-inner > .urlbarView-dynamic-weather-summary > & {
     opacity: 0.6;
   }
 }
@@ -323,7 +324,7 @@
  * Fakespot suggestions
  */
 
-.urlbarView-results[wrap] > .urlbarView-row[dynamicType=fakespot] > .urlbarView-row-inner {
+.urlbarView-results[wrap] > .urlbarView-row[dynamicType="fakespot"] > .urlbarView-row-inner {
   flex-wrap: nowrap;
 }
 
@@ -353,7 +354,7 @@
 .urlbarView-dynamic-fakespot-badge {
   display: flex;
   align-items: center;
-  color: #15141A;
+  color: #15141a;
   font-size: 0.75em;
   padding-inline: 0 1em;
   padding-block: 0.27em;
@@ -379,14 +380,14 @@
     border-width: 1px;
   }
 
-  &[grade=A] {
+  &[grade="A"] {
     background-color: rgba(231, 255, 246, 0.7);
     &::before {
       content: "A";
       background-color: rgb(179, 255, 227);
     }
   }
-  &[grade=B] {
+  &[grade="B"] {
     background-color: rgba(222, 250, 255, 0.7);
     &::before {
       content: "B";
