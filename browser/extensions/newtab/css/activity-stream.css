@@ -74,6 +74,7 @@ input {
   --newtab-textbox-focus-color: var(--newtab-primary-action-background);
   --newtab-textbox-focus-boxshadow: 0 0 0 1px var(--newtab-primary-action-background), 0 0 0 4px rgba(var(--newtab-primary-action-background), 0.3);
   --newtab-button-secondary-color: inherit;
+  --font-size-xsmall: 0.734rem;
 }
 :root[lwt-newtab-brighttext] {
   color-scheme: dark;
@@ -1070,7 +1071,7 @@ main section {
 }
 .top-site-outer .title .sponsored-label {
   color: var(--newtab-contextual-text-secondary-color);
-  font-size: var(--font-size-small);
+  font-size: var(--font-size-xsmall);
 }
 .top-site-outer .title:not(.sponsored) .sponsored-label {
   display: none;

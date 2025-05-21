@@ -96,6 +96,9 @@ $shadow-image-inset: inset 0 0 0 0.5px $black-15;
   // Buttons
   --newtab-button-secondary-color: inherit;
 
+  // Bug 1967750: Custom font size for sponsored text
+  --font-size-xsmall: 0.734rem; // 11px
+
   &[lwt-newtab-brighttext] {
     // We export color-scheme because some addon themes might not work with light-dark and prefers-color-scheme.
     // If we add color-scheme here, we can still use light-dark
