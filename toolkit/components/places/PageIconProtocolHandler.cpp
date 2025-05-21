@@ -220,19 +220,9 @@ nsresult PageIconProtocolHandler::NewChannelInternal(nsIURI* aURI,
 
   // Create our channel.
   nsCOMPtr<nsIChannel> channel;
-  {
-    // We override the channel's loadinfo below anyway, so using a null
-    // principal here is alright.
-    nsCOMPtr<nsIPrincipal> loadingPrincipal =
-        NullPrincipal::CreateWithoutOriginAttributes();
-    nsresult rv = NS_NewInputStreamChannel(
-        getter_AddRefs(channel), aURI, pipeIn.forget(), loadingPrincipal,
-        nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED,
-        nsIContentPolicy::TYPE_INTERNAL_IMAGE);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  nsresult rv = channel->SetLoadInfo(aLoadInfo);
+  nsresult rv = NS_NewInputStreamChannelInternal(
+      getter_AddRefs(channel), aURI, pipeIn.forget(), /* aContentType */ ""_ns,
+      /* aContentCharset */ ""_ns, aLoadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
   GetFaviconData(aURI)->Then(
