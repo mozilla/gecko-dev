@@ -49,7 +49,7 @@ tasks:
             upstream_kind: build-signing
             upstream_artifact: target.tar.xz
             binary: firefox
-        worker-type: b-linux-gcp
+        worker-type: t-linux-docker
         worker:
             docker-image: {in-tree: ubuntu1804-test}
         shipping-product: firefox
@@ -68,7 +68,7 @@ tasks:
             upstream_kind: build-signing
             upstream_artifact: target.tar.xz
             binary: firefox
-        worker-type: b-linux-gcp
+        worker-type: t-linux-docker
         worker:
             docker-image: {in-tree: ubuntu1804-test}
         shipping-product: firefox
