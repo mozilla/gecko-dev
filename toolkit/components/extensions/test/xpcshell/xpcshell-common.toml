@@ -229,7 +229,7 @@ skip-if = ["os == 'android'"] # Android: downloads.download goes through the emb
 ["test_ext_dnr_modifyHeaders.js"]
 
 ["test_ext_dnr_private_browsing.js"]
-https_first_disabled = true # Bug 1897075
+prefs = ["dom.security.https_first=false"] # Bug 1897075
 
 ["test_ext_dnr_redirect_main_frame.js"]
 
