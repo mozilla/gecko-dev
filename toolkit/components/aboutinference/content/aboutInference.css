@@ -87,7 +87,7 @@ textarea {
   width: 100%;
   height: calc(1.2em * 20);
   box-sizing: border-box;
- }
+}
 
 legend {
   font-size: 1.5em;
@@ -127,7 +127,7 @@ legend {
   display: block;
   width: 100%;
   padding: 10px;
-  background-color: #4CAF50;
+  background-color: #4caf50;
   color: white;
   border: none;
   border-radius: 4px;
@@ -170,7 +170,7 @@ legend {
 }
 
 .tooltip .tooltiptext::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 100%;
   left: 50%;
@@ -200,7 +200,6 @@ legend {
   line-height: 20px;
   border-radius: 5px;
 }
-
 
 #modelFiles {
   display: flex;

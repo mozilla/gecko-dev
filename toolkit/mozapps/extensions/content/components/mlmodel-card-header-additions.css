@@ -29,7 +29,7 @@ mlmodel-card-header-additions {
     display: flex;
     justify-content: flex-end;
     background-color: var(--button-background-color-destructive);
-    margin:0;
+    margin: 0;
   }
 
   button.mlmodel-remove-addon-button:active,
