@@ -136,6 +136,10 @@ add_task(async function test_migration_unset() {
     NimbusMigrations.Phase.INIT_STARTED,
     2
   );
+  const storeMigrations = makeMigrations(
+    NimbusMigrations.Phase.AFTER_STORE_INITIALIZED,
+    2
+  );
   const updateMigrations = makeMigrations(
     NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE,
     1
@@ -144,6 +148,7 @@ add_task(async function test_migration_unset() {
   const { cleanup } = await setupTest({
     migrations: {
       [NimbusMigrations.Phase.INIT_STARTED]: startupMigrations,
+      [NimbusMigrations.Phase.AFTER_STORE_INITIALIZED]: storeMigrations,
       [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: updateMigrations,
     },
   });
@@ -160,6 +165,23 @@ add_task(async function test_migration_unset() {
   Assert.equal(
     Services.prefs.getIntPref(
       NIMBUS_MIGRATION_PREFS[NimbusMigrations.Phase.INIT_STARTED]
+    ),
+    1,
+    "Migration pref should be updated"
+  );
+
+  Assert.ok(
+    storeMigrations[0].fn.calledOnce,
+    `${storeMigrations[0].name} should be called once`
+  );
+  Assert.ok(
+    storeMigrations[1].fn.calledOnce,
+    `${storeMigrations[1].name} should be called once`
+  );
+
+  Assert.equal(
+    Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[NimbusMigrations.Phase.AFTER_STORE_INITIALIZED]
     ),
     1,
     "Migration pref should be updated"
@@ -193,6 +215,14 @@ add_task(async function test_migration_unset() {
       },
       {
         success: "true",
+        migration_id: storeMigrations[0].name,
+      },
+      {
+        success: "true",
+        migration_id: storeMigrations[1].name,
+      },
+      {
+        success: "true",
         migration_id: updateMigrations[0].name,
       },
     ]
@@ -207,6 +237,10 @@ add_task(async function test_migration_partially_done() {
     NimbusMigrations.Phase.INIT_STARTED,
     2
   );
+  const storeMigrations = makeMigrations(
+    NimbusMigrations.Phase.AFTER_STORE_INITIALIZED,
+    2
+  );
   const updateMigrations = makeMigrations(
     NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE,
     2
@@ -215,10 +249,12 @@ add_task(async function test_migration_partially_done() {
   const { cleanup } = await setupTest({
     migrationState: {
       [NimbusMigrations.Phase.INIT_STARTED]: 0,
+      [NimbusMigrations.Phase.AFTER_STORE_INITIALIZED]: 0,
       [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: 0,
     },
     migrations: {
       [NimbusMigrations.Phase.INIT_STARTED]: startupMigrations,
+      [NimbusMigrations.Phase.AFTER_STORE_INITIALIZED]: storeMigrations,
       [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: updateMigrations,
     },
   });
@@ -230,6 +266,15 @@ add_task(async function test_migration_partially_done() {
   Assert.ok(
     startupMigrations[1].fn.calledOnce,
     `${startupMigrations[1].name} should be called once`
+  );
+
+  Assert.ok(
+    storeMigrations[0].fn.notCalled,
+    `${updateMigrations[0].name} should not be called`
+  );
+  Assert.ok(
+    storeMigrations[1].fn.calledOnce,
+    `${updateMigrations[1].name} should be called once`
   );
 
   Assert.ok(
@@ -247,6 +292,10 @@ add_task(async function test_migration_partially_done() {
       {
         success: "true",
         migration_id: startupMigrations[1].name,
+      },
+      {
+        success: "true",
+        migration_id: storeMigrations[1].name,
       },
       {
         success: "true",
@@ -270,6 +319,12 @@ add_task(async function test_migration_throws() {
     new Error(`${startupMigrations[1].name} failed`)
   );
 
+  const storeMigrations = makeMigrations(
+    NimbusMigrations.Phase.INIT_STARTED,
+    3
+  );
+  storeMigrations[1].fn.throws(new Error(`${storeMigrations[1].name} failed`));
+
   const updateMigrations = makeMigrations(
     NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE,
     3
@@ -281,6 +336,7 @@ add_task(async function test_migration_throws() {
   const { cleanup } = await setupTest({
     migrations: {
       [NimbusMigrations.Phase.INIT_STARTED]: startupMigrations,
+      [NimbusMigrations.Phase.AFTER_STORE_INITIALIZED]: storeMigrations,
       [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: updateMigrations,
     },
   });
@@ -296,6 +352,19 @@ add_task(async function test_migration_throws() {
   Assert.ok(
     startupMigrations[2].fn.notCalled,
     `${startupMigrations[2].name} should not be called`
+  );
+
+  Assert.ok(
+    storeMigrations[0].fn.calledOnce,
+    `${storeMigrations[0].name} should be called once`
+  );
+  Assert.ok(
+    storeMigrations[1].fn.calledOnce,
+    `${storeMigrations[1].name} should be called once`
+  );
+  Assert.ok(
+    storeMigrations[2].fn.notCalled,
+    `${storeMigrations[2].name} should not be called`
   );
 
   Assert.ok(
@@ -320,6 +389,13 @@ add_task(async function test_migration_throws() {
   );
   Assert.equal(
     Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[NimbusMigrations.Phase.AFTER_STORE_INITIALIZED]
+    ),
+    0,
+    "Migration pref should only be set to 0"
+  );
+  Assert.equal(
+    Services.prefs.getIntPref(
       NIMBUS_MIGRATION_PREFS[
         NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE
       ]
@@ -338,6 +414,15 @@ add_task(async function test_migration_throws() {
       {
         success: "false",
         migration_id: startupMigrations[1].name,
+        error_reason: MigrationError.Reason.UNKNOWN,
+      },
+      {
+        success: "true",
+        migration_id: storeMigrations[0].name,
+      },
+      {
+        success: "false",
+        migration_id: storeMigrations[1].name,
         error_reason: MigrationError.Reason.UNKNOWN,
       },
       {
@@ -365,6 +450,12 @@ add_task(async function test_migration_throws_MigrationError() {
   );
   startupMigrations[1].fn.throws(new MigrationError("bogus"));
 
+  const storeMigrations = makeMigrations(
+    NimbusMigrations.Phase.AFTER_STORE_INITIALIZED,
+    3
+  );
+  storeMigrations[1].fn.throws(new MigrationError("bogus"));
+
   const updateMigrations = makeMigrations(
     NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE,
     3
@@ -374,6 +465,7 @@ add_task(async function test_migration_throws_MigrationError() {
   const { cleanup } = await setupTest({
     migrations: {
       [NimbusMigrations.Phase.INIT_STARTED]: startupMigrations,
+      [NimbusMigrations.Phase.AFTER_STORE_INITIALIZED]: storeMigrations,
       [NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE]: updateMigrations,
     },
   });
@@ -389,6 +481,19 @@ add_task(async function test_migration_throws_MigrationError() {
   Assert.ok(
     startupMigrations[2].fn.notCalled,
     `${startupMigrations[2].name} should not be called`
+  );
+
+  Assert.ok(
+    storeMigrations[0].fn.calledOnce,
+    `${storeMigrations[0].name} should be called once`
+  );
+  Assert.ok(
+    storeMigrations[1].fn.calledOnce,
+    `${storeMigrations[1].name} should be called once`
+  );
+  Assert.ok(
+    storeMigrations[2].fn.notCalled,
+    `${storeMigrations[2].name} should not be called`
   );
 
   Assert.ok(
@@ -413,6 +518,13 @@ add_task(async function test_migration_throws_MigrationError() {
   );
   Assert.equal(
     Services.prefs.getIntPref(
+      NIMBUS_MIGRATION_PREFS[NimbusMigrations.Phase.AFTER_STORE_INITIALIZED]
+    ),
+    0,
+    "Migration pref should only be set to 0"
+  );
+  Assert.equal(
+    Services.prefs.getIntPref(
       NIMBUS_MIGRATION_PREFS[
         NimbusMigrations.Phase.AFTER_REMOTE_SETTINGS_UPDATE
       ]
@@ -431,6 +543,15 @@ add_task(async function test_migration_throws_MigrationError() {
       {
         success: "false",
         migration_id: startupMigrations[1].name,
+        error_reason: "bogus",
+      },
+      {
+        success: "true",
+        migration_id: storeMigrations[0].name,
+      },
+      {
+        success: "false",
+        migration_id: storeMigrations[1].name,
         error_reason: "bogus",
       },
       {

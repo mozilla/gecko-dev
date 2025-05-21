@@ -203,6 +203,17 @@ export const ExperimentAPI = {
     }
 
     try {
+      await lazy.NimbusMigrations.applyMigrations(
+        lazy.NimbusMigrations.Phase.AFTER_STORE_INITIALIZED
+      );
+    } catch (e) {
+      lazy.log.error(
+        `Failed to apply migrations in phase ${lazy.NimbusMigrations.Phase.AFTER_STORE_INITIALIZED}`,
+        e
+      );
+    }
+
+    try {
       await this.manager.onStartup(extraContext);
     } catch (e) {
       lazy.log.error("Failed to initialize ExperimentManager:", e);

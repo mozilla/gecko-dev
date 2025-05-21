@@ -43,6 +43,7 @@ function migration(name, fn) {
 
 const Phase = Object.freeze({
   INIT_STARTED: "init-started",
+  AFTER_STORE_INITIALIZED: "after-store-initialized",
   AFTER_REMOTE_SETTINGS_UPDATE: "after-remote-settings-update",
 });
 
@@ -249,6 +250,8 @@ export const NimbusMigrations = {
     [Phase.INIT_STARTED]: [
       migration("multi-phase-migrations", migrateMultiphase),
     ],
+
+    [Phase.AFTER_STORE_INITIALIZED]: [],
 
     [Phase.AFTER_REMOTE_SETTINGS_UPDATE]: [
       migration("firefox-labs-enrollments", migrateFirefoxLabsEnrollments),
