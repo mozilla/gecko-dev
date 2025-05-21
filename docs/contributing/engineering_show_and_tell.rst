@@ -11,11 +11,6 @@ August 2021
 
 Links
 
-- Mossop: Mercurial Tips n Tricks
-
-  - https://github.com/Mossop/dotfiles/blob/main/shared/hg/hgrc
-  - https://mikeconley.github.io/documents/How_mconley_uses_Mercurial_for_Mozilla_code
-
 - mak: Gmail filtering with Google Apps Script
 
   - https://script.google.com/home
