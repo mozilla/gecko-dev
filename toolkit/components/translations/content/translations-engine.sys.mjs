@@ -17,7 +17,7 @@
  * creating new engines and MessagePorts on the fly.
  *
  * The engine communicates directly with the content page via a MessagePort. Each end
- * of the port is transfered from the parent process to the content process, and this
+ * of the port is transferred from the parent process to the content process, and this
  * engine process. This port is transitory, and may be closed at any time. Only when a
  * translation has been requested once (which is initiated by the parent process) can
  * the content process re-request translation ports. This ensures a rogue content process

@@ -93,7 +93,9 @@ add_task(async function test_about_translations_enabled() {
 });
 
 /**
- * Check that the full page translation feature works.
+ * This test case ensures that the language is correctly identified as Spanish
+ * when loading the NO_LANGUAGE_URL, and the page is translated just the same
+ * as though it had a language tag specified in the markup.
  */
 add_task(async function test_language_identification_for_page_translation() {
   await autoTranslatePage({
