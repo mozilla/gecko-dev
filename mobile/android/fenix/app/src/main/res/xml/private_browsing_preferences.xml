@@ -18,7 +18,7 @@
     <SwitchPreference
         android:defaultValue="false"
         android:key="pref_key_private_browsing_locked_enabled"
-        android:summary="@string/preferences_pbm_lock_screen_summary"
+        android:summary="@string/preferences_pbm_lock_screen_summary_2"
         android:title="@string/preferences_pbm_lock_screen_title"/>
     <Preference
         android:key="@string/pref_key_private_browsing_lock_device_feature_enabled"
