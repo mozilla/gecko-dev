@@ -2812,11 +2812,6 @@ function nodeNeedsSubdividing(node) {
     return false;
   }
 
-  if (!getIsBlockLike(element)) {
-    // This element is inline, or not displayed.
-    return false;
-  }
-
   for (let childNode of element.childNodes) {
     if (!childNode) {
       continue;
@@ -2830,7 +2825,11 @@ function nodeNeedsSubdividing(node) {
         if (getIsBlockLike(childNode)) {
           // This node is a block node, so it needs further subdividing.
           return true;
+        } else if (nodeNeedsSubdividing(childNode)) {
+          // This non-block-like node may contain other block-like nodes.
+          return true;
         }
+
         // Keep checking for more inline or text nodes.
         continue;
       }
