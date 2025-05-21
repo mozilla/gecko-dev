@@ -89,7 +89,7 @@ class CanvasContext final : public nsICanvasRenderingContextInternal,
  public:
   void GetCanvas(dom::OwningHTMLCanvasElementOrOffscreenCanvas&) const;
 
-  void Configure(const dom::GPUCanvasConfiguration& aConfig);
+  void Configure(const dom::GPUCanvasConfiguration& aConfig, ErrorResult& aRv);
   void Unconfigure();
 
   RefPtr<Texture> GetCurrentTexture(ErrorResult& aRv);

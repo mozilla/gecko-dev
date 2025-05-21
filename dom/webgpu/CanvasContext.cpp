@@ -102,23 +102,32 @@ void CanvasContext::GetCanvas(
   }
 }
 
-void CanvasContext::Configure(const dom::GPUCanvasConfiguration& aConfig) {
+// Note: `SetDimensions` assumes it can ignore this `ErrorResult` because the
+// format is already validated. Revisit if adding other error cases.
+void CanvasContext::Configure(const dom::GPUCanvasConfiguration& aConfig,
+                              ErrorResult& aRv) {
   Unconfigure();
 
-  // Bug 1864904: Failures in validation should throw a TypeError, per spec.
-
-  // these formats are guaranteed by the spec
+  // Only the three formats explicitly listed are permitted here (one of which
+  // is not yet supported).
+  // https://www.w3.org/TR/webgpu/#supported-context-formats
   switch (aConfig.mFormat) {
     case dom::GPUTextureFormat::Rgba8unorm:
-    case dom::GPUTextureFormat::Rgba8unorm_srgb:
       mGfxFormat = gfx::SurfaceFormat::R8G8B8A8;
       break;
     case dom::GPUTextureFormat::Bgra8unorm:
-    case dom::GPUTextureFormat::Bgra8unorm_srgb:
       mGfxFormat = gfx::SurfaceFormat::B8G8R8A8;
       break;
+    case dom::GPUTextureFormat::Rgba16float:
+      aRv.ThrowTypeError(
+          "Canvas texture format `rgba16float` is not yet supported. "
+          "Subscribe to <https://bugzilla.mozilla.org/show_bug.cgi?id=1967329>"
+          " for updates on its development in Firefox.");
+      return;
     default:
-      NS_WARNING("Specified swap chain format is not supported");
+      aRv.ThrowTypeError(
+          nsPrintfCString("`%s` is not a supported context format.",
+                          dom::GetEnumString(aConfig.mFormat).get()));
       return;
   }
 
@@ -185,7 +194,9 @@ NS_IMETHODIMP CanvasContext::SetDimensions(int32_t aWidth, int32_t aHeight) {
   if (mConfiguration) {
     const auto copy = dom::GPUCanvasConfiguration{
         *mConfiguration};  // So we can't null it out on ourselves.
-    Configure(copy);
+    // The format in `mConfiguration` was already validated, we won't get an
+    // error here.
+    Configure(copy, IgnoredErrorResult());
   }
   return NS_OK;
 }
