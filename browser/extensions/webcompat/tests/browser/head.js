@@ -60,6 +60,12 @@ const WebCompatExtension = new (class WebCompatExtension {
     });
   }
 
+  async overrideFirefoxVersion(_ver) {
+    this.#run(async function (ver) {
+      content.wrappedJSObject.interventions.versionForTesting = ver;
+    }, _ver);
+  }
+
   async noOngoingInterventionChanges() {
     return this.#run(async function () {
       await new Promise(lock1 => {

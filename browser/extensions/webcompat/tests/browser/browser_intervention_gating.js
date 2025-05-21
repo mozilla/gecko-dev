@@ -83,3 +83,77 @@ add_task(async function test_that_only_intended_interventions_are_activated() {
     "Content scripts were properly unregistered"
   );
 });
+
+add_task(async function test_min_max_versions() {
+  await WebCompatExtension.overrideFirefoxVersion("130.2");
+  const config2 = getConfig("test2", [
+    {
+      min_version: 130,
+      js: ["lib/run.js"],
+    },
+    {
+      min_version: 130.1,
+      js: ["lib/about_compat_broker.js"],
+    },
+    {
+      min_version: 130.2,
+      js: ["lib/custom_functions.js"],
+    },
+    {
+      min_version: 130.3,
+      js: ["lib/intervention_helpers.js"],
+    },
+    {
+      min_version: 131,
+      js: ["lib/interventions.js"],
+    },
+    {
+      max_version: 129,
+      js: ["lib/messaging_helper.js"],
+    },
+    {
+      max_version: 130,
+      js: ["lib/requestStorageAccess_helper.js"],
+    },
+    {
+      max_version: 130.1,
+      js: ["lib/shim_messaging_helper.js"],
+    },
+    {
+      max_version: 130.2,
+      js: ["lib/shims.js"],
+    },
+    {
+      max_version: 130.3,
+      js: ["lib/smartblock_embeds_helper.js"],
+    },
+    {
+      max_version: 131,
+      js: ["lib/ua_helpers.js"],
+    },
+  ]);
+  const [{ interventions }] = await WebCompatExtension.updateInterventions([
+    config2,
+  ]);
+  Assert.deepEqual(
+    interventions.map(i => i.enabled),
+    [true, true, true, false, false, false, true, false, true, true, true],
+    "The correct parts of the intervention were chosen to be enabled"
+  );
+  const reg = await WebCompatExtension.getRegisteredContentScriptsFor(["test"]);
+  Assert.deepEqual(
+    reg.map(r => r.js).flat(),
+    [
+      "lib/run.js",
+      "lib/about_compat_broker.js",
+      "lib/custom_functions.js",
+      "lib/requestStorageAccess_helper.js",
+      "lib/shims.js",
+      "lib/smartblock_embeds_helper.js",
+      "lib/ua_helpers.js",
+    ],
+    "Correct content scripts were registered"
+  );
+  await WebCompatExtension.disableInterventions(["test2"]);
+  await WebCompatExtension.overrideFirefoxVersion();
+});

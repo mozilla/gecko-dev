@@ -160,7 +160,9 @@ class Interventions {
     const skipped = [];
 
     const channel = await browser.appConstants.getEffectiveUpdateChannel();
-    const { version } = await browser.runtime.getBrowserInfo();
+    const version =
+      this.versionForTesting ??
+      (await browser.runtime.getBrowserInfo()).version;
     const cleanVersion = parseFloat(version.match(/\d+(\.\d+)?/)[0]);
 
     const { os } = await browser.runtime.getPlatformInfo();
