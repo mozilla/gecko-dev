@@ -776,13 +776,11 @@ export class TranslationsDocument {
         if (!mutation.target) {
           continue;
         }
+
         const pendingNode = this.#getPendingNodeFromTarget(mutation.target);
         if (pendingNode) {
-          const translationId =
-            this.#pendingContentTranslations.get(pendingNode);
-          if (translationId) {
+          if (this.#preventContentTranslation(pendingNode)) {
             // The node was still pending to be translated, cancel it and re-submit.
-            this.#preventContentTranslation(pendingNode, translationId);
             this.#markNodeContentMutated(pendingNode);
             if (mutation.type === "childList") {
               // New nodes could have been added, make sure we can follow their shadow roots.
@@ -808,11 +806,7 @@ export class TranslationsDocument {
               if (!removedNode) {
                 continue;
               }
-              const translationId =
-                this.#pendingContentTranslations.get(removedNode);
-              if (translationId) {
-                this.#preventContentTranslation(removedNode, translationId);
-              }
+              this.#preventContentTranslation(removedNode);
               this.#preventAttributeTranslations(removedNode);
             }
             break;
@@ -851,8 +845,8 @@ export class TranslationsDocument {
 
     const addRootElements = () => {
       this.#addRootElement(document.querySelector("title"));
-      this.#addRootElement(document.body);
       this.#addRootElement(document.head);
+      this.#addRootElement(document.body);
     };
 
     if (document.body) {
@@ -907,15 +901,18 @@ export class TranslationsDocument {
    * @param {string} attributeName
    */
   #maybeMarkElementAttributeMutated(element, attributeName) {
-    if (isAttributeTranslatable(element, attributeName)) {
-      let attributes = this.#elementsWithMutatedAttributes.get(element);
-      if (!attributes) {
-        attributes = new Set();
-        this.#elementsWithMutatedAttributes.set(element, attributes);
-      }
-      attributes.add(attributeName);
-      this.#ensureMutationUpdateCallbackIsRegistered();
+    if (!isAttributeTranslatable(element, attributeName)) {
+      // The given attribute is not translatable for this element.
+      return;
     }
+
+    let attributes = this.#elementsWithMutatedAttributes.get(element);
+    if (!attributes) {
+      attributes = new Set();
+      this.#elementsWithMutatedAttributes.set(element, attributes);
+    }
+    attributes.add(attributeName);
+    this.#ensureMutationUpdateCallbackIsRegistered();
   }
 
   /**
@@ -923,68 +920,77 @@ export class TranslationsDocument {
    * are processed, prioritized and sent to the scheduler to re translated.
    */
   #ensureMutationUpdateCallbackIsRegistered() {
+    if (this.#hasPendingMutatedNodesCallback) {
+      // A callback has already been registered to update mutated nodes.
+      return;
+    }
+
     if (
-      !this.#hasPendingMutatedNodesCallback &&
-      (this.#nodesWithMutatedContent.size || this.#queuedAttributeElements)
+      this.#nodesWithMutatedContent.size === 0 &&
+      this.#elementsWithMutatedAttributes.size === 0
     ) {
-      this.#hasPendingMutatedNodesCallback = true;
-      const ownerGlobal = ensureExists(this.#sourceDocument.ownerGlobal);
-      // Perform a double requestAnimationFrame to:
-      //   1. Reduce the number of invalidation cycles of canceling intermediate translations.
-      //   2. Do less work on the main thread when there are many mutations.
+      // There are no mutated nodes to update.
+      return;
+    }
+
+    this.#hasPendingMutatedNodesCallback = true;
+    const ownerGlobal = ensureExists(this.#sourceDocument.ownerGlobal);
+
+    // Nodes can be mutated in a tight loop. To guard against the performance of re-translating nodes too frequently,
+    // we will batch the processing of mutated nodes into a double requestAnimationFrame.
+    ownerGlobal.requestAnimationFrame(() => {
       ownerGlobal.requestAnimationFrame(() => {
-        ownerGlobal.requestAnimationFrame(() => {
-          this.#hasPendingMutatedNodesCallback = false;
+        this.#hasPendingMutatedNodesCallback = false;
 
-          // Ensure the nodes are still alive.
-          const liveNodes = [];
-          for (const node of this.#nodesWithMutatedContent) {
-            if (isNodeDetached(node)) {
-              this.#nodesWithMutatedContent.delete(node);
-            } else {
-              liveNodes.push(node);
-            }
+        // Ensure the nodes are still alive.
+        const liveNodes = [];
+        for (const node of this.#nodesWithMutatedContent) {
+          if (isNodeDetached(node)) {
+            this.#nodesWithMutatedContent.delete(node);
+          } else {
+            liveNodes.push(node);
           }
+        }
 
-          // Remove any nodes that are contained in another node.
-          for (let i = 0; i < liveNodes.length; i++) {
-            const node = liveNodes[i];
-            if (!this.#nodesWithMutatedContent.has(node)) {
+        // Remove any nodes that are contained in another node.
+        for (let i = 0; i < liveNodes.length; i++) {
+          const node = liveNodes[i];
+          if (!this.#nodesWithMutatedContent.has(node)) {
+            continue;
+          }
+          for (let j = i + 1; j < liveNodes.length; j++) {
+            const otherNode = liveNodes[j];
+
+            if (!this.#nodesWithMutatedContent.has(otherNode)) {
               continue;
             }
-            for (let j = i + 1; j < liveNodes.length; j++) {
-              const otherNode = liveNodes[j];
 
-              if (!this.#nodesWithMutatedContent.has(otherNode)) {
-                continue;
-              }
-
-              if (node.contains(otherNode)) {
-                this.#nodesWithMutatedContent.delete(otherNode);
-              } else if (otherNode.contains(node)) {
-                this.#nodesWithMutatedContent.delete(node);
-                break;
-              }
+            if (node.contains(otherNode)) {
+              this.#nodesWithMutatedContent.delete(otherNode);
+            } else if (otherNode.contains(node)) {
+              this.#nodesWithMutatedContent.delete(node);
+              break;
             }
           }
+        }
 
-          for (const node of this.#nodesWithMutatedContent) {
-            this.#addShadowRootsToObserver(node);
-            this.#subdivideNodeForContentTranslations(node);
-            this.#subdivideNodeForAttributeTranslations(node);
-          }
-          this.#nodesWithMutatedContent.clear();
+        for (const node of this.#nodesWithMutatedContent) {
+          this.#addShadowRootsToObserver(node);
+          this.#subdivideNodeForContentTranslations(node);
+          this.#subdivideNodeForAttributeTranslations(node);
+        }
+        this.#nodesWithMutatedContent.clear();
 
-          for (const [
-            node,
-            attributes,
-          ] of this.#elementsWithMutatedAttributes.entries()) {
-            this.#enqueueElementForAttributeTranslation(node, attributes);
-          }
-          this.#dispatchQueuedAttributeTranslations();
-        });
+        for (const [
+          node,
+          attributes,
+        ] of this.#elementsWithMutatedAttributes.entries()) {
+          this.#enqueueElementForAttributeTranslation(node, attributes);
+        }
+        this.#dispatchQueuedAttributeTranslations();
+        this.#elementsWithMutatedAttributes.clear();
       });
-    }
+    });
   }
 
   /**
@@ -1006,10 +1012,18 @@ export class TranslationsDocument {
    * that content has changed, and the previous translation is no longer valid.
    *
    * @param {Node} node
-   * @param {number} translationId
+   * @returns {boolean}
    */
-  #preventContentTranslation(node, translationId) {
+  #preventContentTranslation(node) {
+    const translationId = this.#pendingContentTranslations.get(node);
+
+    if (!translationId) {
+      // No pending content translation was found for this node.
+      return false;
+    }
+
     this.translator.cancelSingleTranslation(translationId);
+
     if (!isNodeDetached(node)) {
       const element = /** @type {HTMLElement} */ (asHTMLElement(node));
       if (element) {
@@ -1024,8 +1038,11 @@ export class TranslationsDocument {
         }
       }
     }
+
     this.#pendingContentTranslations.delete(node);
     this.#processedContentNodes.delete(node);
+
+    return true;
   }
 
   /**
@@ -1036,19 +1053,28 @@ export class TranslationsDocument {
    * that content has changed, and the previous translation is no longer valid.
    *
    * @param {Node} node
+   * @returns {boolean}
+   *   - True if any pending attribute translations were found for this node.
    */
   #preventAttributeTranslations(node) {
     const element = asElement(node);
     if (!element) {
-      return;
+      // We only translate attributes on Element type nodes.
+      return false;
     }
+
     const attributes = this.#pendingAttributeTranslations.get(element);
-    if (attributes) {
-      for (const translationId of attributes.values()) {
-        this.translator.cancelSingleTranslation(translationId);
-      }
-      this.#pendingAttributeTranslations.delete(element);
+    if (!attributes) {
+      // No pending attribute translations were found for this element.
+      return false;
     }
+
+    for (const translationId of attributes.values()) {
+      this.translator.cancelSingleTranslation(translationId);
+    }
+    this.#pendingAttributeTranslations.delete(element);
+
+    return true;
   }
 
   /**
@@ -1233,17 +1259,26 @@ export class TranslationsDocument {
 
     this.#rootNodes.add(element);
 
-    let viewportNodeTranslations =
-      this.#subdivideNodeForContentTranslations(element);
-    let viewportAttributeTranslations =
-      this.#subdivideNodeForAttributeTranslations(element);
-
-    if (!this.#viewportTranslated) {
-      this.#viewportTranslated = Promise.allSettled([
-        ...(viewportNodeTranslations ?? []),
-        ...(viewportAttributeTranslations ?? []),
-      ]);
+    if (element.nodeName === "TITLE") {
+      // The <title> node is special, in that it will never intersect with the viewport,
+      // so we must explicitly enqueue it for translation here.
+      this.#enqueueNodeForContentTranslation(element);
+      this.#maybeEnqueueElementForAttributeTranslation(element);
+      return;
     }
+
+    if (element.nodeName !== "HEAD") {
+      // We do not consider the <head> element for content translations, only attributes.
+      const contentStartTime = Cu.now();
+      this.#subdivideNodeForContentTranslations(element);
+      ChromeUtils.addProfilerMarker(
+        "TranslationsDocument Add Root",
+        { startTime: contentStartTime, innerWindowId: this.#innerWindowId },
+        `Subdivided new root "${node.nodeName}" for content translations`
+      );
+    }
+
+    this.#subdivideNodeForAttributeTranslations(element);
 
     this.#mutationObserver.observe(element, MUTATION_OBSERVER_OPTIONS);
     this.#addShadowRootsToObserver(element);
@@ -1520,7 +1555,9 @@ export class TranslationsDocument {
       visibility = "in-viewport";
     }
 
-    this.#queuedContentNodes.set(node, visibility);
+    if (!this.#processedContentNodes.has(node)) {
+      this.#queuedContentNodes.set(node, visibility);
+    }
   }
 
   /**
@@ -2104,8 +2141,11 @@ export class TranslationsDocument {
    */
   #pauseMutationObserverAndThen(callback) {
     this.#stopMutationObserver();
-    callback();
-    this.#startMutationObserver();
+    try {
+      callback();
+    } finally {
+      this.#startMutationObserver();
+    }
   }
 
   /**
@@ -2560,7 +2600,7 @@ function createNodePath(node, root) {
     root = node.ownerDocument.body;
   }
   if (node.parentNode && node.parentNode !== root) {
-    path = createNodePath(node.parentNode);
+    path = createNodePath(node.parentNode, root);
   }
   path += `/${node.nodeName}`;
 
@@ -3289,6 +3329,9 @@ function isNodeDetached(node) {
   return (
     // This node is out of the DOM and already garbage collected.
     Cu.isDeadWrapper(node) ||
+    // The node is detached, but not yet garbage collected,
+    // or it has been re-parented to a parent that itself is not connected.
+    !node.isConnected ||
     // Normally you could just check `node.parentElement` to see if an element is
     // part of the DOM, but the Chrome-only flattenedTreeParentNode is used to include
     // Shadow DOM elements, which have a null parentElement.
