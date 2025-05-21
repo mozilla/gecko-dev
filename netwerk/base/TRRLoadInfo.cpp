@@ -208,6 +208,28 @@ TRRLoadInfo::SetStoragePermission(
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
+NS_IMETHODIMP
+TRRLoadInfo::GetParentIpAddressSpace(
+    nsILoadInfo::IPAddressSpace* aIPAddressSpace) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TRRLoadInfo::SetParentIpAddressSpace(
+    nsILoadInfo::IPAddressSpace aIPAddressSpace) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TRRLoadInfo::GetIpAddressSpace(nsILoadInfo::IPAddressSpace* aIPAddressSpace) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TRRLoadInfo::SetIpAddressSpace(nsILoadInfo::IPAddressSpace aIPAddressSpace) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 const Maybe<RFPTargetSet>& TRRLoadInfo::GetOverriddenFingerprintingSettings() {
   return mOverriddenFingerprintingSettings;
 }

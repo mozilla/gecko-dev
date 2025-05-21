@@ -267,6 +267,8 @@ class LoadInfo final : public nsILoadInfo {
       bool aIsSameDocumentNavigation, bool aAllowDeprecatedSystemRequests,
       bool aIsInDevToolsContext, bool aParserCreatedScript,
       nsILoadInfo::StoragePermissionState aStoragePermission,
+      nsILoadInfo::IPAddressSpace aParentIPAddressSpace,
+      nsILoadInfo::IPAddressSpace aIPAddressSpace,
       const Maybe<RFPTargetSet>& aOverriddenFingerprintingSettings,
       bool aIsMetaRefresh, uint32_t aRequestBlockingReason,
       nsINode* aLoadingContext,
@@ -311,6 +313,8 @@ class LoadInfo final : public nsILoadInfo {
   void UpdateFrameBrowsingContextID(uint64_t aFrameBrowsingContextID) {
     mFrameBrowsingContextID = aFrameBrowsingContextID;
   }
+
+  void UpdateParentAddressSpaceInfo();
   MOZ_NEVER_INLINE void ReleaseMembers();
 
   // if you add a member, please also update the copy constructor and consider
@@ -395,6 +399,10 @@ class LoadInfo final : public nsILoadInfo {
   bool mParserCreatedScript = false;
   nsILoadInfo::StoragePermissionState mStoragePermission =
       nsILoadInfo::NoStoragePermission;
+  // IP Address space of the parent browsing context.
+  nsILoadInfo::IPAddressSpace mParentIPAddressSpace = nsILoadInfo::Public;
+  nsILoadInfo::IPAddressSpace mIPAddressSpace = nsILoadInfo::Public;
+
   Maybe<RFPTargetSet> mOverriddenFingerprintingSettings;
 #ifdef DEBUG
   // A boolean used to ensure the mOverriddenFingerprintingSettings is set
@@ -441,12 +449,12 @@ class LoadInfo final : public nsILoadInfo {
   bool mIsNewWindowTarget = false;
   bool mSkipHTTPSUpgrade = false;
 };
-
 // This is exposed solely for testing purposes and should not be used outside of
 // LoadInfo
 already_AddRefed<nsIPrincipal> CreateTruncatedPrincipal(nsIPrincipal*);
 
 }  // namespace net
+
 }  // namespace mozilla
 
 #endif  // mozilla_LoadInfo_h

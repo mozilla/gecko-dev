@@ -650,13 +650,13 @@ interface nsILoadInfo : nsISupports
 * IP AddressSpace of the resource being loaded. This will be set after connection to the server has been established.
 * This is used to check if the request crosses address boundaries between public to a more private address space.
 */
-  attribute nsILoadInfo_IPAddressSpace ipAddressSpace;
+  [infallible] attribute nsILoadInfo_IPAddressSpace ipAddressSpace;
 
 /**
 * IP AddressSpace of the document/sub-document that trigeered this request.
 * This will be set from the browsing context of the document that triggered this request.
 */
-  attribute nsILoadInfo_IPAddressSpace parentIpAddressSpace;
+  [infallible] attribute nsILoadInfo_IPAddressSpace parentIpAddressSpace;
 
   /**
    * The result of the storage permission check of the loading document. This
