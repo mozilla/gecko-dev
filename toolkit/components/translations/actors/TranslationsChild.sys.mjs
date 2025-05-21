@@ -86,8 +86,9 @@ export class TranslationsChild extends JSWindowActorChild {
 
         return undefined;
       }
-      case "Translations:GetDocumentElementLang":
+      case "Translations:GetDocumentElementLang": {
         return this.document.documentElement.lang;
+      }
       case "Translations:IdentifyLanguage": {
         // Wait for idle callback as the page will be more settled if it has
         // dynamic content, like on a React app.

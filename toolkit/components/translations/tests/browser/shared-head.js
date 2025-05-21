@@ -359,7 +359,7 @@ function createMockedTranslatorPort(transformNode = upperCaseNode, delay = 0) {
       await TestUtils.waitForTick();
 
       switch (message.type) {
-        case "TranslationsPort:GetEngineStatusRequest":
+        case "TranslationsPort:GetEngineStatusRequest": {
           mockedPort.onmessage({
             data: {
               type: "TranslationsPort:GetEngineStatusResponse",
@@ -367,6 +367,7 @@ function createMockedTranslatorPort(transformNode = upperCaseNode, delay = 0) {
             },
           });
           break;
+        }
         case "TranslationsPort:TranslationRequest": {
           const { translationId, sourceText } = message;
 
@@ -382,6 +383,10 @@ function createMockedTranslatorPort(transformNode = upperCaseNode, delay = 0) {
               translationId,
             },
           });
+          break;
+        }
+        default: {
+          throw new Error("Unexpected mock translator message:", message.type);
         }
       }
     },

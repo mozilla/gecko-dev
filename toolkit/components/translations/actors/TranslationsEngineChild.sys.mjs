@@ -59,8 +59,9 @@ export class TranslationsEngineChild extends JSProcessActorChild {
           this.#resolveForceShutdown = resolve;
         });
       }
-      default:
+      default: {
         console.error("Unknown message received", name);
+      }
     }
   }
 

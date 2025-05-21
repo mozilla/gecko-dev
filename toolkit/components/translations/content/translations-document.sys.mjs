@@ -789,8 +789,9 @@ export class TranslationsDocument {
             continue;
           }
         }
+
         switch (mutation.type) {
-          case "childList":
+          case "childList": {
             for (const addedNode of mutation.addedNodes) {
               if (!addedNode) {
                 continue;
@@ -806,6 +807,7 @@ export class TranslationsDocument {
               this.#preventAttributeTranslations(removedNode);
             }
             break;
+          }
           case "characterData": {
             const node = mutation.target;
             if (node) {
@@ -820,7 +822,7 @@ export class TranslationsDocument {
             }
             break;
           }
-          case "attributes":
+          case "attributes": {
             if (mutation.target && mutation.attributeName) {
               this.#maybeMarkElementAttributeMutated(
                 mutation.target,
@@ -828,8 +830,10 @@ export class TranslationsDocument {
               );
             }
             break;
-          default:
+          }
+          default: {
             break;
+          }
         }
       }
     });
@@ -1335,9 +1339,10 @@ export class TranslationsDocument {
     }
 
     switch (this.#determineTranslationStatusForUnprocessedNodes(node)) {
-      case NodeStatus.NOT_TRANSLATABLE:
+      case NodeStatus.NOT_TRANSLATABLE: {
         // This node is rejected as it shouldn't be translated.
         return null;
+      }
 
       // SHADOW_HOST and READY_TO_TRANSLATE both map to FILTER_ACCEPT
       case NodeStatus.SHADOW_HOST:
@@ -1354,12 +1359,13 @@ export class TranslationsDocument {
         break;
       }
 
-      case NodeStatus.SUBDIVIDE_FURTHER:
+      case NodeStatus.SUBDIVIDE_FURTHER: {
         // This node may be translatable, but it needs to be subdivided into smaller
         // pieces. Create a TreeWalker to walk the subtree, and find the subtrees/nodes
         // that contain enough inline elements to send to be translated.
         this.#processSubdivide(node);
         break;
+      }
     }
 
     return this.#dispatchQueuedTranslations();
@@ -2588,14 +2594,17 @@ function isNodeTextEmpty(node) {
 function removeTextNodes(node) {
   for (const child of node.childNodes) {
     switch (child?.nodeType) {
-      case Node.TEXT_NODE:
+      case Node.TEXT_NODE: {
         node.removeChild(child);
         break;
-      case Node.ELEMENT_NODE:
+      }
+      case Node.ELEMENT_NODE: {
         removeTextNodes(child);
         break;
-      default:
+      }
+      default: {
         break;
+      }
     }
   }
 }
@@ -2747,9 +2756,10 @@ function nodeNeedsSubdividing(node) {
       continue;
     }
     switch (childNode.nodeType) {
-      case Node.TEXT_NODE:
+      case Node.TEXT_NODE: {
         // Keep checking for more inline or text nodes.
         continue;
+      }
       case Node.ELEMENT_NODE: {
         if (getIsBlockLike(childNode)) {
           // This node is a block node, so it needs further subdividing.
@@ -2758,8 +2768,9 @@ function nodeNeedsSubdividing(node) {
         // Keep checking for more inline or text nodes.
         continue;
       }
-      default:
+      default: {
         return true;
+      }
     }
   }
   return false;
