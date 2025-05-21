@@ -324,6 +324,7 @@ void CanonicalBrowsingContext::ReplacedBy(
   txn.SetShouldDelayMediaFromStart(GetShouldDelayMediaFromStart());
   txn.SetForceOffline(GetForceOffline());
   txn.SetTopInnerSizeForRFP(GetTopInnerSizeForRFP());
+  txn.SetIPAddressSpace(GetIPAddressSpace());
 
   // Propagate some settings on BrowsingContext replacement so they're not lost
   // on bfcached navigations. These are important for GeckoView (see bug
