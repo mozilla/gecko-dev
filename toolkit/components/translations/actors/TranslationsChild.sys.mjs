@@ -79,6 +79,14 @@ export class TranslationsChild extends JSWindowActorChild {
     }
 
     switch (name) {
+      case "Translations:FindBarOpen": {
+        this.#translatedDoc?.enterContentEagerTranslationsMode();
+        return undefined;
+      }
+      case "Translations:FindBarClose": {
+        this.#translatedDoc?.enterLazyTranslationsMode();
+        return undefined;
+      }
       case "Translations:TranslatePage": {
         if (this.#translatedDoc?.engineStatus === "error") {
           this.#translatedDoc.destroy();
@@ -90,7 +98,8 @@ export class TranslationsChild extends JSWindowActorChild {
           return undefined;
         }
 
-        const { languagePair, port } = data;
+        const { isFindBarOpen, languagePair, port } = data;
+
         if (
           !TranslationsChild.#translationsCache ||
           !TranslationsChild.#translationsCache.matches(languagePair)
@@ -108,7 +117,8 @@ export class TranslationsChild extends JSWindowActorChild {
           port,
           () => this.sendAsyncMessage("Translations:RequestPort"),
           () => this.sendAsyncMessage("Translations:ReportFirstVisibleChange"),
-          TranslationsChild.#translationsCache
+          TranslationsChild.#translationsCache,
+          isFindBarOpen
         );
 
         return undefined;

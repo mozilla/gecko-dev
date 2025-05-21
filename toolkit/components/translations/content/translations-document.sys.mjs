@@ -68,6 +68,12 @@ const NodeStatus = {
  * @property {(translation: Promise<string> | string | null) => unknown} resolve
  * @property {(reason: any) => unknown} reject
  *
+ * The translation mode of the page.
+ * - In "lazy" mode only nodes within proximity to the viewport are translated.
+ * - In "content-eager" mode, all nodes with translatable text content will be translated,
+ *   but nodes with attribute translations will still be translated lazily.
+ * @typedef {("lazy"|"content-eager")} TranslationMode
+ *
  * A hint at the user's most recent scroll direction on the page.
  * @typedef {("up"|"down")} ScrollDirection
  *
@@ -966,6 +972,19 @@ export class TranslationsDocument {
   #targetScriptDirection;
 
   /**
+   * The mode of translation, either "content-eager" or "lazy".
+   *
+   * When the find bar is closed, the mode will be "lazy", translating only content near the viewport.
+   * This is better for power consumption, conserves battery on mobile, etc., and is the default behavior.
+   *
+   * When the find bar is open, the mode will change to "content-eager", eventually translating the entire page,
+   * regardless of proximity to the viewport. This way the find-in-page functionality will work as intended.
+   *
+   * @type {TranslationMode}
+   */
+  #translationsMode;
+
+  /**
    * A map containing all elements that are being observed for content translations,
    * and the set of translatable nodes for that element.
    *
@@ -1119,6 +1138,7 @@ export class TranslationsDocument {
    * @param {() => void} reportVisibleChange - Used to report to the actor that the first visible change
    *                                           for a translation is about to occur.
    * @param {LRUCache} translationsCache - A cache in which to store translated text.
+   * @param {boolean} isFindBarOpen - Whether the find bar was open in the current tab upon construction.
    */
   constructor(
     document,
@@ -1128,7 +1148,8 @@ export class TranslationsDocument {
     port,
     requestNewPort,
     reportVisibleChange,
-    translationsCache
+    translationsCache,
+    isFindBarOpen
   ) {
     /** @type {WindowProxy} */
     const ownerGlobal = ensureExists(document.ownerGlobal);
@@ -1142,6 +1163,7 @@ export class TranslationsDocument {
     this.#actorReportFirstVisibleChange = reportVisibleChange;
     this.#targetScriptDirection =
       Services.intl.getScriptDirection(targetLanguage);
+    this.#translationsMode = isFindBarOpen ? "content-eager" : "lazy";
 
     this.#scheduler = new TranslationScheduler(
       port,
@@ -1281,12 +1303,17 @@ export class TranslationsDocument {
               // user moves the viewport near to this target again.
               exitedCount++;
 
-              const { preventedNodeSet, cancelledFromSchedulerCount } =
-                this.#preventUnscheduledContentTranslations(target);
+              if (this.#translationsMode === "lazy") {
+                // We only want to prevent content translations after they exit beyond-viewport
+                // proximity in "lazy" translations mode. In "content-eager" translation mode,
+                // we must ensure that all content is still translated regardless of spatial context.
+                const { preventedNodeSet, cancelledFromSchedulerCount } =
+                  this.#preventUnscheduledContentTranslations(target);
 
-              if (preventedNodeSet) {
-                preventedCount += preventedNodeSet.size;
-                cancelledCount += cancelledFromSchedulerCount;
+                if (preventedNodeSet) {
+                  preventedCount += preventedNodeSet.size;
+                  cancelledCount += cancelledFromSchedulerCount;
+                }
               }
             }
           }
@@ -1649,8 +1676,9 @@ export class TranslationsDocument {
         // The page may have attribute elements that cannot be observed for intersection.
         this.#queuedIntersectionExemptAttributeElements.size > 0
       ) {
-        // These are elements such as <title> that will never intesect with the observers.
-        // If we have any such elements, we must ensure that they are submitted here.
+        // These are either elements such as <title> that will never intersect with the
+        // observers, or the find bar was open when Full-Page Translations was invoked,
+        // causing us to start in "content-eager" translations mode.
         this.#maybePrioritizeRequestsAndSubmitToScheduler();
       }
     };
@@ -1672,6 +1700,59 @@ export class TranslationsDocument {
       // The defaultView may not be there on tests.
       document.defaultView?.location.href
     );
+  }
+
+  /**
+   * Enters content-eager translations mode, where all elements with translatable
+   * text content will be sent to the scheduler, but attribute translations will
+   * continue to be handled lazily based on viewport intersection proximity.
+   */
+  async enterContentEagerTranslationsMode() {
+    lazy.console.info("Entering Content-Eager translations mode.");
+    this.#translationsMode = "content-eager";
+
+    await this.#waitForFirstIntersectionObservations();
+
+    if (this.#translationsMode !== "content-eager") {
+      // The translations mode changed while we were waiting for the
+      // first intersection observations: do not continue.
+      return;
+    }
+
+    for (const element of this.#intersectionObservedContentElements.keys()) {
+      this.#enqueueForIntersectionPrunableContentPrioritization(element);
+    }
+
+    // Most attributes are not searchable within the find bar, so we will not eagerly
+    // enqueue them to be sent to the scheduler. They will still be translated based
+    // on their proximity to the viewport.
+    this.#maybePrioritizeRequestsAndSubmitToScheduler();
+  }
+
+  /**
+   * Enters lazy translations mode, where all translations will be scheduled lazily
+   * based on viewport intersection proximity. Any pending requests that are not
+   * within viewport proximity will be cancelled.
+   */
+  async enterLazyTranslationsMode() {
+    lazy.console.info("Entering Lazy translations mode.");
+    this.#translationsMode = "lazy";
+
+    await this.#waitForFirstIntersectionObservations();
+
+    if (this.#translationsMode !== "lazy") {
+      // The translations mode changed while we were waiting for the
+      // first intersection observations: do not continue.
+      return;
+    }
+
+    for (const element of this.#pendingContentTranslations.keys()) {
+      if (getNodeSpatialContext(element).viewportContext !== "within") {
+        this.#preventUnscheduledContentTranslations(element);
+      }
+    }
+
+    this.#maybePrioritizeRequestsAndSubmitToScheduler();
   }
 
   /**
@@ -4012,6 +4093,12 @@ export class TranslationsDocument {
     }
 
     nodeSet.add(translatableNode);
+
+    if (this.#translationsMode === "content-eager") {
+      this.#enqueueForIntersectionPrunableContentPrioritization(
+        observableElement
+      );
+    }
 
     // It is very important that we register the element with the In-Viewport
     // observer before the Beyond-Viewport observer, to ensure that the In-Viewport
