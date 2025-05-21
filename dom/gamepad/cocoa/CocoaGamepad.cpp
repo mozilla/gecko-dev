@@ -304,20 +304,28 @@ void DarwinGamepadService::DeviceAdded(IOHIDDeviceRef device) {
   }
 
   // Gather some identifying information
-  CFNumberRef vendorIdRef =
-      (CFNumberRef)IOHIDDeviceGetProperty(device, CFSTR(kIOHIDVendorIDKey));
-  CFNumberRef productIdRef =
-      (CFNumberRef)IOHIDDeviceGetProperty(device, CFSTR(kIOHIDProductIDKey));
+  auto uintProperty = [&](CFStringRef key) {
+    int value;
+    auto numberRef = reinterpret_cast<CFNumberRef>(IOHIDDeviceGetProperty(device, key));
+    if (!numberRef || !CFNumberGetValue(numberRef, kCFNumberIntType, &value)) {
+      return 0u;
+    }
+    return static_cast<unsigned int>(value);
+  };
+
+  unsigned int vendorId = uintProperty(CFSTR(kIOHIDVendorIDKey));
+  unsigned int productId = uintProperty(CFSTR(kIOHIDProductIDKey));
+
+  char productName[128];
   CFStringRef productRef =
       (CFStringRef)IOHIDDeviceGetProperty(device, CFSTR(kIOHIDProductKey));
-  int vendorId, productId;
-  CFNumberGetValue(vendorIdRef, kCFNumberIntType, &vendorId);
-  CFNumberGetValue(productIdRef, kCFNumberIntType, &productId);
-  char product_name[128];
-  CFStringGetCString(productRef, product_name, sizeof(product_name),
-                     kCFStringEncodingASCII);
+  if (!productRef || !CFStringGetCString(productRef, productName, sizeof(productName),
+                       kCFStringEncodingASCII)) {
+    SprintfLiteral(productName, "Unknown Device");
+  }
+
   char buffer[256];
-  SprintfLiteral(buffer, "%x-%x-%s", vendorId, productId, product_name);
+  SprintfLiteral(buffer, "%04x-%04x-%s", vendorId, productId, productName);
 
   bool defaultRemapper = false;
   RefPtr<GamepadRemapper> remapper =
