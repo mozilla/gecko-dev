@@ -46,7 +46,7 @@
 }
 
 .header-wrapper-shadow {
-  box-shadow: 0 1px 2px 0 rgba(58, 57, 68, 0.2);
+  box-shadow: 0 1px 2px 0 rgba(58, 57, 68, 0.20);
 }
 
 #beta-marker {
@@ -147,11 +147,11 @@
   }
 
   @keyframes fade-in {
-    from {
-      opacity: 0.25;
-    }
-    to {
-      opacity: 1;
-    }
-  }
+   from {
+     opacity: .25;
+   }
+   to {
+     opacity: 1;
+   }
+ }
 }

@@ -4,6 +4,7 @@
 
 /* Base styles (common to most error boundaries) */
 
+
 /* Container */
 .app-error-panel {
   color: var(--theme-text-color-strong);

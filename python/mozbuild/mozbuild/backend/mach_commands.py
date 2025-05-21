@@ -158,7 +158,6 @@ def setup_vscode(command_context, interactive):
         "json",
         "jsonc",
         "html",
-        "css",
     ]
     for lang in prettier_languages:
         new_settings[f"[{lang}]"] = {

@@ -46,7 +46,7 @@ moz-card {
   inset-inline: 0;
 }
 
-.show-more[expanded="false"] {
+.show-more[expanded="false"]  {
   overflow: clip;
   height: 200px;
 }

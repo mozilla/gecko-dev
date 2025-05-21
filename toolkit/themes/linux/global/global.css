@@ -19,7 +19,6 @@
 
 /* ::::: Alert icons :::::*/
 
-/* prettier-ignore */
 .message-icon {
   list-style-image: image-set(
     "moz-icon://stock/dialog-information?size=48" 1x,
@@ -27,7 +26,6 @@
   );
 }
 
-/* prettier-ignore */
 .alert-dialog #infoIcon,
 .alert-icon {
   list-style-image: image-set(
@@ -36,7 +34,6 @@
   );
 }
 
-/* prettier-ignore */
 .error-icon {
   list-style-image: image-set(
     "moz-icon://stock/dialog-error?size=48" 1x,
@@ -44,7 +41,6 @@
   );
 }
 
-/* prettier-ignore */
 .question-icon {
   list-style-image: image-set(
     "moz-icon://stock/dialog-question?size=48" 1x,

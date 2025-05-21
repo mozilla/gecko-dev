@@ -19,6 +19,7 @@
   color: var(--theme-toolbar-color);
 }
 
+
 .toolbox-always-on-top {
   display: flex;
   padding: 6px;
@@ -275,7 +276,7 @@
   text-overflow: ellipsis;
   color: var(--theme-toolbar-color);
   background-color: transparent;
-  /* adjust outline offset so it's not clipped */
+    /* adjust outline offset so it's not clipped */
   --theme-outline-offset: -2px;
 }
 
@@ -628,7 +629,10 @@
   min-height: 75px;
 }
 
-:is(#toolbox-panel-webconsole, #toolbox-deck)[hidden] {
+:is(
+  #toolbox-panel-webconsole,
+  #toolbox-deck
+)[hidden] {
   visibility: hidden;
 }
 
@@ -667,7 +671,9 @@
   pointer-events: none;
 }
 
-#toolbox-container.tabs-reordering .devtools-tab:not(.selected):hover .devtools-tab-line {
+#toolbox-container.tabs-reordering
+  .devtools-tab:not(.selected):hover
+  .devtools-tab-line {
   background: transparent;
   opacity: 0;
   transition: none;

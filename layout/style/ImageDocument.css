@@ -28,8 +28,7 @@ body {
     cursor: zoom-in;
   }
 
-  .overflowingVertical,
-  .overflowingHorizontalOnly {
+  .overflowingVertical, .overflowingHorizontalOnly {
     cursor: zoom-out;
   }
 }

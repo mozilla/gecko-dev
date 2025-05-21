@@ -2,12 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-html,
-body,
-#testid {
-  color: #f00;
-  background-color: #00f;
+html, body, #testid {
+  color: #F00;
+  background-color: #00F;
   font-size: 12px;
-  border-color: #00f !important;
+  border-color: #00F !important;
   --var: "*/";
 }

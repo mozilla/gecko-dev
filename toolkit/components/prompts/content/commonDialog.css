@@ -58,8 +58,7 @@ dialog[insecureauth] {
   flex: 1;
 }
 
-#loginLabel,
-#password1Label {
+#loginLabel, #password1Label {
   text-align: start;
 }
 

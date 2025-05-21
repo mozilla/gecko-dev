@@ -11,7 +11,6 @@
   margin-inline-start: 3px;
 }
 
-/* prettier-ignore */
 #sanitizeEverythingWarningIcon {
   list-style-image: image-set(
     "moz-icon://stock/dialog-warning?size=48" 1x,

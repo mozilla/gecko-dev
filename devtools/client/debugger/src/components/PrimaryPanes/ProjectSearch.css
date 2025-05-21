@@ -87,6 +87,7 @@
   gap: 4px;
 }
 
+
 .project-text-search .refresh-btn {
   background-color: transparent;
   padding: 2px;
@@ -97,7 +98,7 @@
   width: var(--size);
   aspect-ratio: 1;
   box-sizing: content-box;
-  grid-template-rows: var(--highlight-size) var(--remain-size);
+  grid-template-rows:  var(--highlight-size) var(--remain-size);
   grid-template-columns: var(--remain-size) var(--highlight-size);
 
   &.devtools-button:focus-visible {
@@ -113,7 +114,7 @@
     width: 5px;
     background-color: var(--blue-40);
     border-radius: 100%;
-    outline: 1px solid var(--theme-sidebar-background);
+    outline: 1px solid 	var(--theme-sidebar-background);
     z-index: 1;
   }
 
@@ -121,8 +122,7 @@
     grid-row: 1 / -1;
     grid-column: 1 / -1;
     transition: rotate 0.2s;
-    width: 14px;
-    height: 14px;
+    width: 14px; height: 14px;
 
     .highlight & {
       rotate: 0.75turn;

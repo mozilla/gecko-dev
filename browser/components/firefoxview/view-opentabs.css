@@ -24,8 +24,7 @@
   }
 }
 
-.open-tabs-options,
-.open-tabs-sort-wrapper {
+.open-tabs-options, .open-tabs-sort-wrapper {
   display: flex;
   gap: 24px;
 }

@@ -8,8 +8,6 @@ noframes {
   display: block;
 }
 
-frame,
-frameset,
-iframe {
+frame, frameset, iframe {
   display: none !important;
 }

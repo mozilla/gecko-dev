@@ -1,9 +1,0 @@
-# When running Prettier via Stylelint ignore these filetypes.
-*.js
-*.json
-*.jsx
-*.mjs
-*.sjs
-*.xhtml
-*.html
-*.ts
