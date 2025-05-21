@@ -99,16 +99,11 @@ class ProviderSemanticHistorySearch extends UrlbarProvider {
         queryContext.searchMode.source == UrlbarUtils.RESULT_SOURCE.HISTORY)
     ) {
       const semanticManager = this.ensureSemanticManagerInitialized();
-
-      // Proceed only if a sufficient number of history entries have embeddings calculated.
-      const enoughEntries =
-        await semanticManager.hasSufficientEntriesForSearching();
-      if (!enoughEntries) {
-        return false;
+      if (semanticManager.canUseSemanticSearch) {
+        // Proceed only if a sufficient number of history entries have
+        // embeddings calculated.
+        return semanticManager.hasSufficientEntriesForSearching();
       }
-
-      // check the detailed prefs
-      return semanticManager?.canUseSemanticSearch ?? false;
     }
     return false;
   }

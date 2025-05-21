@@ -14,18 +14,18 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const { UrlbarProviderSemanticHistorySearch } = ChromeUtils.importESModule(
   "resource:///modules/UrlbarProviderSemanticHistorySearch.sys.mjs"
 );
+const { PlacesSemanticHistoryManager } = ChromeUtils.importESModule(
+  "resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs"
+);
+
+let hasSufficientEntriesStub = sinon
+  .stub(
+    PlacesSemanticHistoryManager.prototype,
+    "hasSufficientEntriesForSearching"
+  )
+  .returns(true);
 
 add_task(async function setup() {
-  const { PlacesSemanticHistoryManager } = ChromeUtils.importESModule(
-    "resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs"
-  );
-
-  sinon
-    .stub(
-      PlacesSemanticHistoryManager.prototype,
-      "hasSufficientEntriesForSearching"
-    )
-    .returns(true);
   registerCleanupFunction(() => {
     sinon.restore();
   });
@@ -133,14 +133,15 @@ add_task(async function test_isActive_conditions() {
   );
 
   // All conditions met but semanticManager rejects
-  Services.prefs.setIntPref(
-    "browser.urlbar.suggest.semanticHistory.minLength",
-    5
-  );
   canUseStub.get(() => false);
+  hasSufficientEntriesStub.resetHistory();
   Assert.ok(
     !(await provider.isActive(validQuery)),
     "Should be inactive if canUseSemanticSearch returns false"
+  );
+  Assert.ok(
+    hasSufficientEntriesStub.notCalled,
+    "hasSufficientEntriesForSearching should not have been called"
   );
 
   // All conditions met
