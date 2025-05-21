@@ -89,6 +89,7 @@ def _make_artifacts(
     download_symbols=False,
     download_maven_zip=False,
     no_process=False,
+    unfiltered_project_package=False,
 ):
     state_dir = command_context._mach_context.state_dir
     cache_dir = os.path.join(state_dir, "package-frontend")
@@ -129,6 +130,7 @@ def _make_artifacts(
         download_symbols=download_symbols,
         download_maven_zip=download_maven_zip,
         no_process=no_process,
+        unfiltered_project_package=unfiltered_project_package,
         mozbuild=command_context,
     )
     return artifacts
@@ -164,6 +166,11 @@ def _make_artifacts(
     help="Don't process (unpack) artifact packages, just download them.",
 )
 @CommandArgument(
+    "--unfiltered-project-package",
+    action="store_true",
+    help="Minimally process (only) main project package artifact, unpacking it to the given `--distdir`.",
+)
+@CommandArgument(
     "--maven-zip", action="store_true", help="Download Maven zip (Android-only)."
 )
 def artifact_install(
@@ -177,6 +184,7 @@ def artifact_install(
     symbols=False,
     distdir=None,
     no_process=False,
+    unfiltered_project_package=False,
     maven_zip=False,
 ):
     command_context._set_log_level(verbose)
@@ -189,6 +197,7 @@ def artifact_install(
         download_symbols=symbols,
         download_maven_zip=maven_zip,
         no_process=no_process,
+        unfiltered_project_package=unfiltered_project_package,
     )
 
     return artifacts.install_from(source, distdir or command_context.distdir)
