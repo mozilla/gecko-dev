@@ -330,6 +330,55 @@ function checkCertErrorGeneric(
   );
 }
 
+// Helper for checkRootOfBuiltChain
+class CertVerificationExpectedRootResult {
+  constructor(certName, rootSha256SpkiDigest, resolve) {
+    this.certName = certName;
+    this.rootSha256SpkiDigest = rootSha256SpkiDigest;
+    this.resolve = resolve;
+  }
+
+  verifyCertFinished(aPRErrorCode, aVerifiedChain, _aHasEVPolicy) {
+    equal(
+      aPRErrorCode,
+      PRErrorCodeSuccess,
+      `verifying ${this.certName}: should succeed`
+    );
+    equal(
+      aVerifiedChain[aVerifiedChain.length - 1]
+        .sha256SubjectPublicKeyInfoDigest,
+      this.rootSha256SpkiDigest,
+      `verifying ${this.certName}: should build chain to ${this.rootSha256SpkiDigest}`
+    );
+    this.resolve();
+  }
+}
+
+function checkRootOfBuiltChain(
+  certdb,
+  cert,
+  rootSha256SpkiDigest,
+  time,
+  /* optional */ hostname,
+  /* optional */ flags = NO_FLAGS
+) {
+  return new Promise(resolve => {
+    let result = new CertVerificationExpectedRootResult(
+      cert.commonName,
+      rootSha256SpkiDigest,
+      resolve
+    );
+    certdb.asyncVerifyCertAtTime(
+      cert,
+      Ci.nsIX509CertDB.verifyUsageTLSServer,
+      flags,
+      hostname,
+      time,
+      result
+    );
+  });
+}
+
 function checkEVStatus(certDB, cert, usage, isEVExpected) {
   return checkCertErrorGeneric(
     certDB,
