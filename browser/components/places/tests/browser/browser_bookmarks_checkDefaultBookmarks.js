@@ -25,25 +25,14 @@ async function fetchMenuTree() {
   );
 }
 
-function promiseTopicObserved(aTopic) {
-  return new Promise(resolve => {
-    Services.obs.addObserver(function observe(
-      aObsSubject,
-      aObsTopic,
-      aObsData
-    ) {
-      Services.obs.removeObserver(observe, aObsTopic);
-      resolve([aObsSubject, aObsData]);
-    }, aTopic);
-  });
-}
-
 async function simulatePlacesInit() {
-  let bg = Cc["@mozilla.org/browser/browserglue;1"].getService(Ci.nsIObserver);
   info("Simulate Places init");
-  // Force nsBrowserGlue::_initPlaces().
-  bg.observe(null, TOPIC_BROWSERGLUE_TEST, TOPICDATA_FORCE_PLACES_INIT);
-  return promiseTopicObserved("places-browser-init-complete");
+  let { PlacesBrowserStartup } = ChromeUtils.importESModule(
+    "moz-src:///browser/components/places/PlacesBrowserStartup.sys.mjs"
+  );
+  PlacesBrowserStartup._placesInitialized = false;
+  PlacesBrowserStartup.initPlaces();
+  return TestUtils.topicObserved("places-browser-init-complete");
 }
 
 add_task(async function checkDefaultBookmarks() {

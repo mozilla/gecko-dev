@@ -27,10 +27,12 @@ add_task(async function test_migrate_bookmarks() {
     PlacesUtils.history.DATABASE_STATUS_CREATE
   );
 
-  // A migrator would run before nsBrowserGlue Places initialization, so mimic
+  // A migrator would run before Places initialization, so mimic
   // that behavior adding a bookmark and notifying the migration.
-  let bg = Cc["@mozilla.org/browser/browserglue;1"].getService(Ci.nsIObserver);
-  bg.observe(null, "initial-migration-will-import-default-bookmarks", null);
+  let { PlacesBrowserStartup } = ChromeUtils.importESModule(
+    "moz-src:///browser/components/places/PlacesBrowserStartup.sys.mjs"
+  );
+  PlacesBrowserStartup.willImportDefaultBookmarks();
 
   await PlacesUtils.bookmarks.insert({
     parentGuid: PlacesUtils.bookmarks.menuGuid,
@@ -41,7 +43,7 @@ add_task(async function test_migrate_bookmarks() {
   });
 
   let promise = promiseTopicObserved("places-browser-init-complete");
-  bg.observe(null, "initial-migration-did-import-default-bookmarks", null);
+  PlacesBrowserStartup.didImportDefaultBookmarks();
   await promise;
 
   // Check the created bookmark still exists.

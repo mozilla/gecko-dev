@@ -8,6 +8,11 @@ const DISTRIBUTION_CUSTOMIZATION_COMPLETE_TOPIC =
 const PREF_CACHED_FILE_EXISTENCE = "distribution.iniFile.exists.value";
 const PREF_CACHED_FILE_APPVERSION = "distribution.iniFile.exists.appversion";
 
+// These prefixes must only contain characters
+// allowed by PlacesUtils.isValidGuid
+const BOOKMARK_GUID_PREFIX = "DstB-";
+const FOLDER_GUID_PREFIX = "DstF-";
+
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 const lazy = {};
@@ -19,11 +24,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 export function DistributionCustomizer() {}
 
 DistributionCustomizer.prototype = {
-  // These prefixes must only contain characters
-  // allowed by PlacesUtils.isValidGuid
-  BOOKMARK_GUID_PREFIX: "DstB-",
-  FOLDER_GUID_PREFIX: "DstF-",
-
   get _iniFile() {
     // For parallel xpcshell testing purposes allow loading the distribution.ini
     // file from the profile folder through an hidden pref.
@@ -114,12 +114,12 @@ DistributionCustomizer.prototype = {
 
   async _removeDistributionBookmarks() {
     await lazy.PlacesUtils.bookmarks.fetch(
-      { guidPrefix: this.BOOKMARK_GUID_PREFIX },
+      { guidPrefix: BOOKMARK_GUID_PREFIX },
       bookmark =>
         lazy.PlacesUtils.bookmarks.remove(bookmark).catch(console.error)
     );
     await lazy.PlacesUtils.bookmarks.fetch(
-      { guidPrefix: this.FOLDER_GUID_PREFIX },
+      { guidPrefix: FOLDER_GUID_PREFIX },
       folder => {
         lazy.PlacesUtils.bookmarks.remove(folder).catch(console.error);
       }
@@ -179,16 +179,14 @@ DistributionCustomizer.prototype = {
         case "default":
           break;
 
-        case "folder":
+        case "folder": {
           if (itemIndex < defaultIndex) {
             index = prependIndex++;
           }
 
           let folder = await lazy.PlacesUtils.bookmarks.insert({
             type: lazy.PlacesUtils.bookmarks.TYPE_FOLDER,
-            guid: lazy.PlacesUtils.generateGuidWithPrefix(
-              this.FOLDER_GUID_PREFIX
-            ),
+            guid: lazy.PlacesUtils.generateGuidWithPrefix(FOLDER_GUID_PREFIX),
             parentGuid,
             index,
             title: item.title,
@@ -199,6 +197,7 @@ DistributionCustomizer.prototype = {
             "BookmarksFolder-" + item.folderId
           );
           break;
+        }
 
         case "separator":
           if (itemIndex < defaultIndex) {
@@ -237,9 +236,7 @@ DistributionCustomizer.prototype = {
           }
 
           await lazy.PlacesUtils.bookmarks.insert({
-            guid: lazy.PlacesUtils.generateGuidWithPrefix(
-              this.BOOKMARK_GUID_PREFIX
-            ),
+            guid: lazy.PlacesUtils.generateGuidWithPrefix(BOOKMARK_GUID_PREFIX),
             parentGuid,
             index,
             title: item.title,
@@ -654,3 +651,43 @@ function enumToObject(UTF8Enumerator) {
   }
   return ret;
 }
+
+export let DistributionManagement = {
+  _distributionCustomizer: null,
+  get BOOKMARK_GUID_PREFIX() {
+    return BOOKMARK_GUID_PREFIX;
+  },
+  get FOLDER_GUID_PREFIX() {
+    return FOLDER_GUID_PREFIX;
+  },
+
+  _ensureCustomizer() {
+    if (this._distributionCustomizer) {
+      return;
+    }
+    this._distributionCustomizer = new DistributionCustomizer();
+    Services.obs.addObserver(this, DISTRIBUTION_CUSTOMIZATION_COMPLETE_TOPIC);
+  },
+
+  observe(_subject, topic) {
+    if (topic == DISTRIBUTION_CUSTOMIZATION_COMPLETE_TOPIC) {
+      Services.obs.removeObserver(
+        this,
+        DISTRIBUTION_CUSTOMIZATION_COMPLETE_TOPIC
+      );
+      this._distributionCustomizer = null;
+    }
+  },
+
+  applyCustomizations() {
+    this._ensureCustomizer();
+    this._distributionCustomizer.applyCustomizations();
+  },
+
+  applyBookmarks() {
+    this._ensureCustomizer();
+    this._distributionCustomizer.applyBookmarks();
+  },
+
+  QueryInterface: ChromeUtils.generateQI([Ci.nsIObserver]),
+};

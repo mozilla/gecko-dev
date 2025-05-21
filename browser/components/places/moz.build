@@ -25,6 +25,14 @@ EXTRA_JS_MODULES += [
     "PlacesUIUtils.sys.mjs",
 ]
 
+EXTRA_COMPONENTS += [
+    "PlacesComponents.manifest",
+]
+
+MOZ_SRC_FILES = [
+    "PlacesBrowserStartup.sys.mjs",
+]
+
 FINAL_TARGET_FILES.actors += [
     "InteractionsChild.sys.mjs",
     "InteractionsParent.sys.mjs",

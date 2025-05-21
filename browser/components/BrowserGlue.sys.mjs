@@ -16,10 +16,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource:///modules/asrouter/ASRouterDefaultConfig.sys.mjs",
   ASRouterNewTabHook: "resource:///modules/asrouter/ASRouterNewTabHook.sys.mjs",
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
-  AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   BackupService: "resource:///modules/backup/BackupService.sys.mjs",
-  BookmarkHTMLUtils: "resource://gre/modules/BookmarkHTMLUtils.sys.mjs",
-  BookmarkJSONUtils: "resource://gre/modules/BookmarkJSONUtils.sys.mjs",
   BrowserSearchTelemetry:
     "moz-src:///browser/components/search/BrowserSearchTelemetry.sys.mjs",
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
@@ -38,6 +35,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   DesktopActorRegistry:
     "moz-src:///browser/components/DesktopActorRegistry.sys.mjs",
   Discovery: "resource:///modules/Discovery.sys.mjs",
+  DistributionManagement: "resource:///modules/distribution.sys.mjs",
   DoHController: "resource://gre/modules/DoHController.sys.mjs",
   DownloadsViewableInternally:
     "resource:///modules/DownloadsViewableInternally.sys.mjs",
@@ -58,9 +56,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PageDataService: "resource:///modules/pagedata/PageDataService.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
   PdfJs: "resource://pdf.js/PdfJs.sys.mjs",
-  PlacesBackups: "resource://gre/modules/PlacesBackups.sys.mjs",
-  PlacesUIUtils: "resource:///modules/PlacesUIUtils.sys.mjs",
-  PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
+  PlacesBrowserStartup:
+    "moz-src:///browser/components/places/PlacesBrowserStartup.sys.mjs",
   // PluginManager is used by the `listeners` object below.
   // eslint-disable-next-line mozilla/valid-lazy
   PluginManager: "resource:///actors/PluginParent.sys.mjs",
@@ -187,11 +184,6 @@ if (AppConstants.MOZ_UPDATER) {
   listeners.observers["update-swap"] = ["UpdateListener"];
 }
 
-// Seconds of idle before trying to create a bookmarks backup.
-const BOOKMARKS_BACKUP_IDLE_TIME_SEC = 8 * 60;
-// Minimum interval between backups.  We try to not create more than one backup
-// per interval.
-const BOOKMARKS_BACKUP_MIN_INTERVAL_DAYS = 1;
 // Seconds of idle time before the late idle tasks will be scheduled.
 const LATE_TASKS_IDLE_TIME_SEC = 20;
 // Time after we stop tracking startup crashes.
@@ -222,20 +214,11 @@ export function BrowserGlue() {
     "nsIUserIdleService"
   );
 
-  ChromeUtils.defineLazyGetter(this, "_distributionCustomizer", function () {
-    const { DistributionCustomizer } = ChromeUtils.importESModule(
-      "resource:///modules/distribution.sys.mjs"
-    );
-    return new DistributionCustomizer();
-  });
-
   this._init();
 }
 
 BrowserGlue.prototype = {
   _saveSession: false,
-  _migrationImportsDefaultBookmarks: false,
-  _placesBrowserInitComplete: false,
   _isNewProfile: undefined,
   _defaultCookieBehaviorAtStartup: null,
 
@@ -306,43 +289,16 @@ BrowserGlue.prototype = {
         break;
       case "places-init-complete":
         Services.obs.removeObserver(this, "places-init-complete");
-        if (!this._migrationImportsDefaultBookmarks) {
-          this._initPlaces(false);
-        }
-        break;
-      case "idle":
-        this._backupBookmarks();
-        break;
-      case "distribution-customization-complete":
-        Services.obs.removeObserver(
-          this,
-          "distribution-customization-complete"
-        );
-        // Customization has finished, we don't need the customizer anymore.
-        delete this._distributionCustomizer;
+        lazy.PlacesBrowserStartup.backendInitComplete();
         break;
       case "browser-glue-test": // used by tests
         if (data == "force-ui-migration") {
           this._migrateUI();
-        } else if (data == "force-distribution-customization") {
-          this._distributionCustomizer.applyCustomizations();
-          // To apply distribution bookmarks use "places-init-complete".
-        } else if (data == "test-force-places-init") {
-          this._placesInitialized = false;
-          this._initPlaces(false);
         } else if (data == "places-browser-init-complete") {
-          if (this._placesBrowserInitComplete) {
-            Services.obs.notifyObservers(null, "places-browser-init-complete");
-          }
+          lazy.PlacesBrowserStartup.notifyIfInitializationComplete();
         } else if (data == "add-breaches-sync-handler") {
           this._addBreachesSyncHandler();
         }
-        break;
-      case "initial-migration-will-import-default-bookmarks":
-        this._migrationImportsDefaultBookmarks = true;
-        break;
-      case "initial-migration-did-import-default-bookmarks":
-        this._initPlaces(true);
         break;
       case "handle-xul-text-link": {
         let linkHandled = subject.QueryInterface(Ci.nsISupportsPRBool);
@@ -363,8 +319,7 @@ BrowserGlue.prototype = {
         break;
       }
       case "profile-before-change":
-        // Any component depending on Places should be finalized in
-        // _onPlacesShutdown.  Any component that doesn't need to act after
+        // Any component that doesn't need to act after
         // the UI has gone should be finalized in _onQuitApplicationGranted.
         this._dispose();
         break;
@@ -440,7 +395,6 @@ BrowserGlue.prototype = {
       "quit-application-granted",
       "session-save",
       "places-init-complete",
-      "distribution-customization-complete",
       "handle-xul-text-link",
       "profile-before-change",
       "keyword-search",
@@ -454,10 +408,6 @@ BrowserGlue.prototype = {
     }
 
     lazy.DesktopActorRegistry.init();
-
-    this._firstWindowReady = new Promise(
-      resolve => (this._firstWindowLoaded = resolve)
-    );
   },
 
   // cleanup (called on application shutdown)
@@ -467,13 +417,6 @@ BrowserGlue.prototype = {
     // until here.
     lazy.AboutHomeStartupCache.uninit();
 
-    if (this._bookmarksBackupIdleTime) {
-      this._userIdleService.removeIdleObserver(
-        this,
-        this._bookmarksBackupIdleTime
-      );
-      this._bookmarksBackupIdleTime = null;
-    }
     if (this._lateTasksIdleObserver) {
       this._userIdleService.removeIdleObserver(
         this._lateTasksIdleObserver,
@@ -506,7 +449,7 @@ BrowserGlue.prototype = {
     }
 
     // apply distribution customizations
-    this._distributionCustomizer.applyCustomizations();
+    lazy.DistributionManagement.applyCustomizations();
 
     // handle any UI migration
     this._migrateUI();
@@ -923,17 +866,19 @@ BrowserGlue.prototype = {
     lazy.SelectableProfileService.init().catch(console.error);
 
     this._firstWindowTelemetry(aWindow);
-    this._firstWindowLoaded();
-
-    // Set the default favicon size for UI views that use the page-icon protocol.
-    lazy.PlacesUtils.favicons.setDefaultIconURIPreferredSize(
-      16 * aWindow.devicePixelRatio
-    );
 
     lazy.ContentBlockingPrefs.init();
     lazy.CaptchaDetectionPingUtils.init();
 
     this._verifySandboxUserNamespaces(aWindow);
+
+    lazy.BrowserUtils.callModulesFromCategory(
+      {
+        categoryName: "browser-first-window-ready",
+        profilerMarker: "browserFirstWindowReady",
+      },
+      aWindow
+    );
   },
 
   _maybeOfferProfileReset() {
@@ -1018,16 +963,6 @@ BrowserGlue.prototype = {
       // Call trackStartupCrashEnd here in case the delayed call on startup hasn't
       // yet occurred (see trackStartupCrashEnd caller in browser.js).
       () => Services.startup.trackStartupCrashEnd(),
-
-      () => {
-        if (this._bookmarksBackupIdleTime) {
-          this._userIdleService.removeIdleObserver(
-            this,
-            this._bookmarksBackupIdleTime
-          );
-          this._bookmarksBackupIdleTime = null;
-        }
-      },
 
       () => {
         // bug 1839426 - The FOG service needs to be instantiated reliably so it
@@ -1329,37 +1264,6 @@ BrowserGlue.prototype = {
                 }
               }
             });
-          }
-        },
-      },
-
-      // Add the import button if this is the first startup.
-      {
-        name: "PlacesUIUtils.ImportButton",
-        task: async () => {
-          // First check if we've already added the import button, in which
-          // case we should check for events indicating we can remove it.
-          if (
-            Services.prefs.getBoolPref(
-              "browser.bookmarks.addedImportButton",
-              false
-            )
-          ) {
-            lazy.PlacesUIUtils.removeImportButtonWhenImportSucceeds();
-            return;
-          }
-
-          // Otherwise, check if this is a new profile where we need to add it.
-          // `maybeAddImportButton` will call
-          // `removeImportButtonWhenImportSucceeds`itself if/when it adds the
-          // button. Doing things in this order avoids listening for removal
-          // more than once.
-          if (
-            this._isNewProfile &&
-            // Not in automation: the button changes CUI state, breaking tests
-            !Cu.isInAutomation
-          ) {
-            await lazy.PlacesUIUtils.maybeAddImportButton();
           }
         },
       },
@@ -1784,269 +1688,6 @@ BrowserGlue.prototype = {
 
     aCancelQuit.data = buttonPressed != 0;
   },
-
-  /**
-   * Initialize Places
-   * - imports the bookmarks html file if bookmarks database is empty, try to
-   *   restore bookmarks from a JSON backup if the backend indicates that the
-   *   database was corrupt.
-   *
-   * These prefs can be set up by the frontend:
-   *
-   * WARNING: setting these preferences to true will overwite existing bookmarks
-   *
-   * - browser.places.importBookmarksHTML
-   *   Set to true will import the bookmarks.html file from the profile folder.
-   * - browser.bookmarks.restore_default_bookmarks
-   *   Set to true by safe-mode dialog to indicate we must restore default
-   *   bookmarks.
-   */
-  _initPlaces: function BG__initPlaces(aInitialMigrationPerformed) {
-    if (this._placesInitialized) {
-      throw new Error("Cannot initialize Places more than once");
-    }
-    this._placesInitialized = true;
-
-    // We must instantiate the history service since it will tell us if we
-    // need to import or restore bookmarks due to first-run, corruption or
-    // forced migration (due to a major schema change).
-    // If the database is corrupt or has been newly created we should
-    // import bookmarks.
-    let dbStatus = lazy.PlacesUtils.history.databaseStatus;
-
-    // Show a notification with a "more info" link for a locked places.sqlite.
-    if (dbStatus == lazy.PlacesUtils.history.DATABASE_STATUS_LOCKED) {
-      // Note: initPlaces should always happen when the first window is ready,
-      // in any case, better safe than sorry.
-      this._firstWindowReady.then(() => {
-        this._showPlacesLockedNotificationBox();
-        this._placesBrowserInitComplete = true;
-        Services.obs.notifyObservers(null, "places-browser-init-complete");
-      });
-      return;
-    }
-
-    let importBookmarks =
-      !aInitialMigrationPerformed &&
-      (dbStatus == lazy.PlacesUtils.history.DATABASE_STATUS_CREATE ||
-        dbStatus == lazy.PlacesUtils.history.DATABASE_STATUS_CORRUPT);
-
-    // Check if user or an extension has required to import bookmarks.html
-    let importBookmarksHTML = false;
-    try {
-      importBookmarksHTML = Services.prefs.getBoolPref(
-        "browser.places.importBookmarksHTML"
-      );
-      if (importBookmarksHTML) {
-        importBookmarks = true;
-      }
-    } catch (ex) {}
-
-    // Support legacy bookmarks.html format for apps that depend on that format.
-    let autoExportHTML = Services.prefs.getBoolPref(
-      "browser.bookmarks.autoExportHTML",
-      false
-    ); // Do not export.
-    if (autoExportHTML) {
-      // Sqlite.sys.mjs and Places shutdown happen at profile-before-change, thus,
-      // to be on the safe side, this should run earlier.
-      lazy.AsyncShutdown.profileChangeTeardown.addBlocker(
-        "Places: export bookmarks.html",
-        () =>
-          lazy.BookmarkHTMLUtils.exportToFile(
-            lazy.BookmarkHTMLUtils.defaultPath
-          )
-      );
-    }
-
-    (async () => {
-      // Check if Safe Mode or the user has required to restore bookmarks from
-      // default profile's bookmarks.html
-      let restoreDefaultBookmarks = false;
-      try {
-        restoreDefaultBookmarks = Services.prefs.getBoolPref(
-          "browser.bookmarks.restore_default_bookmarks"
-        );
-        if (restoreDefaultBookmarks) {
-          // Ensure that we already have a bookmarks backup for today.
-          await this._backupBookmarks();
-          importBookmarks = true;
-        }
-      } catch (ex) {}
-
-      // If the user did not require to restore default bookmarks, or import
-      // from bookmarks.html, we will try to restore from JSON
-      if (importBookmarks && !restoreDefaultBookmarks && !importBookmarksHTML) {
-        // get latest JSON backup
-        let lastBackupFile = await lazy.PlacesBackups.getMostRecentBackup();
-        if (lastBackupFile) {
-          // restore from JSON backup
-          await lazy.BookmarkJSONUtils.importFromFile(lastBackupFile, {
-            replace: true,
-            source: lazy.PlacesUtils.bookmarks.SOURCES.RESTORE_ON_STARTUP,
-          });
-          importBookmarks = false;
-        } else {
-          // We have created a new database but we don't have any backup available
-          importBookmarks = true;
-          if (await IOUtils.exists(lazy.BookmarkHTMLUtils.defaultPath)) {
-            // If bookmarks.html is available in current profile import it...
-            importBookmarksHTML = true;
-          } else {
-            // ...otherwise we will restore defaults
-            restoreDefaultBookmarks = true;
-          }
-        }
-      }
-
-      // Import default bookmarks when necessary.
-      // Otherwise, if any kind of import runs, default bookmarks creation should be
-      // delayed till the import operations has finished.  Not doing so would
-      // cause them to be overwritten by the newly imported bookmarks.
-      if (!importBookmarks) {
-        // Now apply distribution customized bookmarks.
-        // This should always run after Places initialization.
-        try {
-          await this._distributionCustomizer.applyBookmarks();
-        } catch (e) {
-          console.error(e);
-        }
-      } else {
-        // An import operation is about to run.
-        let bookmarksUrl = null;
-        if (restoreDefaultBookmarks) {
-          // User wants to restore the default set of bookmarks shipped with the
-          // browser, those that new profiles start with.
-          bookmarksUrl = "chrome://browser/content/default-bookmarks.html";
-        } else if (await IOUtils.exists(lazy.BookmarkHTMLUtils.defaultPath)) {
-          bookmarksUrl = PathUtils.toFileURI(
-            lazy.BookmarkHTMLUtils.defaultPath
-          );
-        }
-
-        if (bookmarksUrl) {
-          // Import from bookmarks.html file.
-          try {
-            if (
-              Services.policies.isAllowed("defaultBookmarks") &&
-              // Default bookmarks are imported after startup, and they may
-              // influence the outcome of tests, thus it's possible to use
-              // this test-only pref to skip the import.
-              !(
-                Cu.isInAutomation &&
-                Services.prefs.getBoolPref(
-                  "browser.bookmarks.testing.skipDefaultBookmarksImport",
-                  false
-                )
-              )
-            ) {
-              await lazy.BookmarkHTMLUtils.importFromURL(bookmarksUrl, {
-                replace: true,
-                source: lazy.PlacesUtils.bookmarks.SOURCES.RESTORE_ON_STARTUP,
-              });
-            }
-          } catch (e) {
-            console.error("Bookmarks.html file could be corrupt. ", e);
-          }
-          try {
-            // Now apply distribution customized bookmarks.
-            // This should always run after Places initialization.
-            await this._distributionCustomizer.applyBookmarks();
-          } catch (e) {
-            console.error(e);
-          }
-        } else {
-          console.error(new Error("Unable to find bookmarks.html file."));
-        }
-
-        // Reset preferences, so we won't try to import again at next run
-        if (importBookmarksHTML) {
-          Services.prefs.setBoolPref(
-            "browser.places.importBookmarksHTML",
-            false
-          );
-        }
-        if (restoreDefaultBookmarks) {
-          Services.prefs.setBoolPref(
-            "browser.bookmarks.restore_default_bookmarks",
-            false
-          );
-        }
-      }
-
-      // Initialize bookmark archiving on idle.
-      // If the last backup has been created before the last browser session,
-      // and is days old, be more aggressive with the idle timer.
-      let idleTime = BOOKMARKS_BACKUP_IDLE_TIME_SEC;
-      if (!(await lazy.PlacesBackups.hasRecentBackup())) {
-        idleTime /= 2;
-      }
-
-      if (!this._isObservingIdle) {
-        this._userIdleService.addIdleObserver(this, idleTime);
-        this._isObservingIdle = true;
-      }
-
-      this._bookmarksBackupIdleTime = idleTime;
-
-      if (this._isNewProfile) {
-        // New profiles may have existing bookmarks (imported from another browser or
-        // copied into the profile) and we want to show the bookmark toolbar for them
-        // in some cases.
-        await lazy.PlacesUIUtils.maybeToggleBookmarkToolbarVisibility();
-      }
-    })()
-      .catch(ex => {
-        console.error(ex);
-      })
-      .then(() => {
-        // NB: deliberately after the catch so that we always do this, even if
-        // we threw halfway through initializing in the Task above.
-        this._placesBrowserInitComplete = true;
-        Services.obs.notifyObservers(null, "places-browser-init-complete");
-      });
-  },
-
-  /**
-   * If a backup for today doesn't exist, this creates one.
-   */
-  _backupBookmarks: function BG__backupBookmarks() {
-    return (async function () {
-      let lastBackupFile = await lazy.PlacesBackups.getMostRecentBackup();
-      // Should backup bookmarks if there are no backups or the maximum
-      // interval between backups elapsed.
-      if (
-        !lastBackupFile ||
-        new Date() - lazy.PlacesBackups.getDateForFile(lastBackupFile) >
-          BOOKMARKS_BACKUP_MIN_INTERVAL_DAYS * 86400000
-      ) {
-        let maxBackups = Services.prefs.getIntPref(
-          "browser.bookmarks.max_backups"
-        );
-        await lazy.PlacesBackups.create(maxBackups);
-      }
-    })();
-  },
-
-  /**
-   * Show the notificationBox for a locked places database.
-   */
-  _showPlacesLockedNotificationBox:
-    async function BG__showPlacesLockedNotificationBox() {
-      var win = lazy.BrowserWindowTracker.getTopWindow();
-      var buttons = [{ supportPage: "places-locked" }];
-
-      var notifyBox = win.gBrowser.getNotificationBox();
-      var notification = await notifyBox.appendNotification(
-        "places-locked",
-        {
-          label: { "l10n-id": "places-locked-prompt" },
-          priority: win.gNotificationBox.PRIORITY_CRITICAL_MEDIUM,
-        },
-        buttons
-      );
-      notification.persistence = -1; // Until user closes it
-    },
 
   _migrateUI() {
     // Use an increasing number to keep track of the current state of the user's

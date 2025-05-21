@@ -12,6 +12,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BookmarkHTMLUtils: "resource://gre/modules/BookmarkHTMLUtils.sys.mjs",
+  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   FirefoxProfileMigrator: "resource:///modules/FirefoxProfileMigrator.sys.mjs",
   MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
@@ -433,11 +434,10 @@ export class MigratorBase {
       // (=startupOnlyMigrator), as it just copies over the places database
       // from another profile.
       await (async function () {
-        // Tell nsBrowserGlue we're importing default bookmarks.
-        let browserGlue = Cc["@mozilla.org/browser/browserglue;1"].getService(
-          Ci.nsIObserver
-        );
-        browserGlue.observe(null, TOPIC_WILL_IMPORT_BOOKMARKS, "");
+        // Tell whoever cares we're importing default bookmarks.
+        lazy.BrowserUtils.callModulesFromCategory({
+          categoryName: TOPIC_WILL_IMPORT_BOOKMARKS,
+        });
 
         // Import the default bookmarks. We ignore whether or not we succeed.
         await lazy.BookmarkHTMLUtils.importFromURL(
@@ -448,23 +448,16 @@ export class MigratorBase {
           }
         ).catch(console.error);
 
-        // We'll tell nsBrowserGlue we've imported bookmarks, but before that
+        // We'll tell places we've imported bookmarks, but before that
         // we need to make sure we're going to know when it's finished
-        // initializing places:
-        let placesInitedPromise = new Promise(resolve => {
-          let onPlacesInited = function () {
-            Services.obs.removeObserver(
-              onPlacesInited,
-              TOPIC_PLACES_DEFAULTS_FINISHED
-            );
-            resolve();
-          };
-          Services.obs.addObserver(
-            onPlacesInited,
-            TOPIC_PLACES_DEFAULTS_FINISHED
-          );
+        // initializing:
+        let placesInitedPromise = lazy.BrowserUtils.promiseObserved(
+          TOPIC_PLACES_DEFAULTS_FINISHED
+        );
+
+        lazy.BrowserUtils.callModulesFromCategory({
+          categoryName: TOPIC_DID_IMPORT_BOOKMARKS,
         });
-        browserGlue.observe(null, TOPIC_DID_IMPORT_BOOKMARKS, "");
         await placesInitedPromise;
         await doMigrate();
       })();

@@ -1,0 +1,8 @@
+category initial-migration-will-import-default-bookmarks moz-src:///browser/components/places/PlacesBrowserStartup.sys.mjs PlacesBrowserStartup.willImportDefaultBookmarks
+category initial-migration-did-import-default-bookmarks moz-src:///browser/components/places/PlacesBrowserStartup.sys.mjs PlacesBrowserStartup.didImportDefaultBookmarks
+
+# Add import button on first startup
+category browser-idle-startup moz-src:///browser/components/places/PlacesBrowserStartup.sys.mjs PlacesBrowserStartup.maybeAddImportButton
+
+category browser-first-window-ready moz-src:///browser/components/places/PlacesBrowserStartup.sys.mjs PlacesBrowserStartup.onFirstWindowReady
+category browser-quit-application-granted moz-src:///browser/components/places/PlacesBrowserStartup.sys.mjs PlacesBrowserStartup.handleShutdown
