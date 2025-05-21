@@ -8055,24 +8055,6 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
     mTransaction->GetNetworkAddresses(mSelfAddr, mPeerAddr, isTrr,
                                       mEffectiveTRRMode, mTRRSkipReason,
                                       echConfigUsed);
-    // update IP AddressSpace for non-proxy connections
-    if (!mProxyInfo) {
-      // If this is main document load or iframe store the IP Address space in
-      // the browsing context
-      nsILoadInfo::IPAddressSpace docAddressSpace =
-          mPeerAddr.GetIpAddressSpace();
-      ExtContentPolicyType type = mLoadInfo->GetExternalContentPolicyType();
-      mLoadInfo->SetIpAddressSpace(docAddressSpace);
-      if (type == ExtContentPolicy::TYPE_DOCUMENT ||
-          type == ExtContentPolicy::TYPE_SUBDOCUMENT) {
-        RefPtr<mozilla::dom::BrowsingContext> bc;
-        mLoadInfo->GetBrowsingContext(getter_AddRefs(bc));
-        if (bc) {
-          bc->SetCurrentIPAddressSpace(docAddressSpace);
-        }
-      }
-    }
-
     StoreResolvedByTRR(isTrr);
     StoreEchConfigUsed(echConfigUsed);
   }
@@ -8533,64 +8515,6 @@ static void RecordIPAddressSpaceTelemetry(bool aLoadSuccess, nsIURI* aURI,
   }
 }
 
-static void RecordLNATelemetry(bool aLoadSuccess, nsIURI* aURI,
-                               nsILoadInfo* aLoadInfo, NetAddr& aPeerAddr) {
-  if (!aLoadInfo || !aURI) {
-    return;
-  }
-
-  RefPtr<mozilla::dom::BrowsingContext> bc;
-  aLoadInfo->GetBrowsingContext(getter_AddRefs(bc));
-
-  nsILoadInfo::IPAddressSpace parentAddressSpace =
-      nsILoadInfo::IPAddressSpace::Unknown;
-  if (!bc) {
-    parentAddressSpace = aLoadInfo->GetParentIpAddressSpace();
-  } else {
-    parentAddressSpace = bc->GetCurrentIPAddressSpace();
-  }
-
-  if (!mozilla::net::IsLocalNetworkAccess(parentAddressSpace,
-                                          aLoadInfo->GetIpAddressSpace())) {
-    return;
-  }
-
-  if (aLoadSuccess) {
-    mozilla::glean::networking::local_network_access.Get("success"_ns).Add(1);
-  } else {
-    mozilla::glean::networking::local_network_access.Get("failure"_ns).Add(1);
-  }
-
-  uint16_t port = 0;
-  if (NS_SUCCEEDED(aPeerAddr.GetPort(&port))) {
-    mozilla::glean::networking::local_network_access_port
-        .AccumulateSingleSample(port);
-  }
-
-  // label format is <parentAddressSpace>_to_<targetAddressSpace>_<scheme>
-  // At this point we are sure that the request is a LNA,
-  // Hence we can safely assume few conditions to construct the label
-  nsAutoCString glean_lna_label;
-  if (aLoadInfo->GetParentIpAddressSpace() ==
-      nsILoadInfo::IPAddressSpace::Public) {
-    glean_lna_label.Append("public_to_"_ns);
-  } else {
-    glean_lna_label.Append("private_to_"_ns);
-  }
-  if (aLoadInfo->GetIpAddressSpace() == nsILoadInfo::IPAddressSpace::Private) {
-    glean_lna_label.Append("private_"_ns);
-  } else {
-    glean_lna_label.Append("local_"_ns);
-  }
-  if (aURI->SchemeIs("https")) {
-    glean_lna_label.Append("https"_ns);
-  } else {
-    glean_lna_label.Append("http"_ns);
-  }
-
-  mozilla::glean::networking::local_network_access.Get(glean_lna_label).Add(1);
-}
-
 NS_IMETHODIMP
 nsHttpChannel::OnStopRequest(nsIRequest* request, nsresult status) {
   MOZ_ASSERT(!mAsyncOpenTime.IsNull());
@@ -8742,7 +8666,6 @@ nsHttpChannel::OnStopRequest(nsIRequest* request, nsresult status) {
 
     RecordIPAddressSpaceTelemetry(NS_SUCCEEDED(mStatus), mURI, mLoadInfo,
                                   mPeerAddr);
-    RecordLNATelemetry(NS_SUCCEEDED(mStatus), mURI, mLoadInfo, mPeerAddr);
 
     // If we are using the transaction to serve content, we also save the
     // time since async open in the cache entry so we can compare telemetry
