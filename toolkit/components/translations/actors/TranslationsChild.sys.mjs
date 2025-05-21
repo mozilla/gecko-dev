@@ -21,6 +21,10 @@ export class TranslationsChild extends JSWindowActorChild {
    */
   #translatedDoc = null;
 
+  get translatedDoc() {
+    return this.#translatedDoc;
+  }
+
   /**
    * This cache is shared across TranslationsChild instances. This means
    * that it will be shared across multiple page loads in the same origin.
@@ -29,17 +33,6 @@ export class TranslationsChild extends JSWindowActorChild {
    */
   static #translationsCache = null;
 
-  /**
-   * Set to true when this actor is destroyed.
-   *
-   * It is important to check this variable before sending any asynchronous
-   * messages to the parent actor. If this actor has been destroyed, then
-   * sending a message will result in an error.
-   *
-   * @see {TranslationsChild.didDestroy}
-   *
-   * @type {boolean}
-   */
   #isDestroyed = false;
 
   handleEvent(event) {
@@ -47,12 +40,10 @@ export class TranslationsChild extends JSWindowActorChild {
       return;
     }
 
-    switch (event.type) {
-      case "DOMContentLoaded":
-        this.sendAsyncMessage("Translations:ReportLangTags", {
-          documentElementLang: this.document.documentElement.lang,
-        });
-        break;
+    if (event.type === "DOMContentLoaded") {
+      this.sendAsyncMessage("Translations:ReportLangTags", {
+        documentElementLang: this.document.documentElement.lang,
+      });
     }
   }
 
@@ -60,73 +51,6 @@ export class TranslationsChild extends JSWindowActorChild {
     this.#isDestroyed = true;
     this.#translatedDoc?.destroy();
     this.#translatedDoc = null;
-  }
-
-  /**
-   * Returns true if the TranslationsDocument has any callbacks pending to run on
-   * the event loop, otherwise false.
-   *
-   * @returns {boolean}
-   */
-  hasPendingCallbackOnEventLoop() {
-    if (!this.#translatedDoc) {
-      // Full-Page Translations has not been requested yet, so there is no callback.
-      return false;
-    }
-
-    return this.#translatedDoc.hasPendingCallbackOnEventLoop();
-  }
-
-  /**
-   * Returns true if the TranslationsDocument has any pending translation requests, otherwise false.
-   *
-   * Having no pending request does NOT mean that the entire page is translated, nor does it mean
-   * that more requests won't come in via mutations or intersection observations. It simply means
-   * that there are no pending requests at this exact moment.
-   *
-   * @returns {boolean}
-   */
-  hasPendingTranslationRequests() {
-    if (!this.#translatedDoc) {
-      // Full-Page Translations has not been requested yet, so there are no requests.
-      return false;
-    }
-
-    return this.#translatedDoc.hasPendingTranslationRequests();
-  }
-
-  /**
-   * Returns true if the TranslationsDocument is observing any element for content translation, otherwise false.
-   *
-   * Having no observed elements means that at the current point in time, until any further mutations occur,
-   * every content translation request has been fulfilled.
-   *
-   * @returns {boolean}
-   */
-  isObservingAnyElementForContentIntersection() {
-    if (!this.#translatedDoc) {
-      // Full-Page Translations has not been requested yet, so we are not observing.
-      return false;
-    }
-
-    return this.#translatedDoc.isObservingAnyElementForContentIntersection();
-  }
-
-  /**
-   * Returns true if the TranslationsDocument is observing any element for attribute translation, otherwise false.
-   *
-   * Having no observed elements means that at the current point in time, until any further mutations occur,
-   * every attribute translation request has been fulfilled.
-   *
-   * @returns {boolean}
-   */
-  isObservingAnyElementForAttributeIntersection() {
-    if (!this.#translatedDoc) {
-      // Full-Page Translations has not been requested yet, so we are not observing.
-      return false;
-    }
-
-    return this.#translatedDoc.isObservingAnyElementForAttributeIntersection();
   }
 
   addProfilerMarker(message, startTime) {

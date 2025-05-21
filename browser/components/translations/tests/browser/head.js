@@ -992,17 +992,17 @@ class TranslationsBencher {
         content.windowGlobalChild.getActor("Translations");
 
       if (
-        translationsChild.hasPendingCallbackOnEventLoop() ||
-        translationsChild.hasPendingTranslationRequests() ||
-        translationsChild.isObservingAnyElementForContentIntersection()
+        translationsChild.translatedDoc?.hasPendingCallbackOnEventLoop() ||
+        translationsChild.translatedDoc?.hasPendingTranslationRequests() ||
+        translationsChild.translatedDoc?.isObservingAnyElementForContentIntersection()
       ) {
         // The final paragraph was translated, but it wasn't the final request,
         // so we must still wait for every translation request to complete.
         await waitForCondition(
           () =>
-            !translationsChild.hasPendingCallbackOnEventLoop() &&
-            !translationsChild.hasPendingTranslationRequests() &&
-            !translationsChild.isObservingAnyElementForContentIntersection(),
+            !translationsChild.translatedDoc?.hasPendingCallbackOnEventLoop() &&
+            !translationsChild.translatedDoc?.hasPendingTranslationRequests() &&
+            !translationsChild.translatedDoc?.isObservingAnyElementForContentIntersection(),
           "Waiting for all pending translation requests to complete."
         );
       }
@@ -1388,16 +1388,18 @@ class FullPageTranslationsTestUtils {
         content.windowGlobalChild.getActor("Translations");
 
       while (
-        translationsChild.hasPendingTranslationRequests() ||
-        translationsChild.hasPendingCallbackOnEventLoop()
+        translationsChild.translatedDoc?.hasPendingTranslationRequests() ||
+        translationsChild.translatedDoc?.hasPendingCallbackOnEventLoop()
       ) {
         await waitForCondition(
-          () => !translationsChild.hasPendingTranslationRequests(),
+          () =>
+            !translationsChild.translatedDoc?.hasPendingTranslationRequests(),
           "Waiting for all pending translation requests to complete."
         );
 
         await waitForCondition(
-          () => !translationsChild.hasPendingCallbackOnEventLoop(),
+          () =>
+            !translationsChild.translatedDoc?.hasPendingCallbackOnEventLoop(),
           "Waiting for pending event-loop callbacks to resolve in the TranslationsDocument."
         );
       }
@@ -1417,7 +1419,8 @@ class FullPageTranslationsTestUtils {
         content.windowGlobalChild.getActor("Translations");
 
       await waitForCondition(
-        () => !translationsChild.isObservingAnyElementForContentIntersection(),
+        () =>
+          !translationsChild.translatedDoc?.isObservingAnyElementForContentIntersection(),
         "Waiting until no elements are observed for content intersection."
       );
     });
@@ -1437,7 +1440,7 @@ class FullPageTranslationsTestUtils {
 
       await waitForCondition(
         () =>
-          !translationsChild.isObservingAnyElementForAttributeIntersection(),
+          !translationsChild.translatedDoc?.isObservingAnyElementForAttributeIntersection(),
         "Waiting until no elements are observed for attribute intersection."
       );
     });
@@ -1455,7 +1458,8 @@ class FullPageTranslationsTestUtils {
         content.windowGlobalChild.getActor("Translations");
 
       await waitForCondition(
-        () => translationsChild.isObservingAnyElementForContentIntersection(),
+        () =>
+          translationsChild.translatedDoc?.isObservingAnyElementForContentIntersection(),
         "Waiting until an element is observed for content intersection."
       );
     });
@@ -1473,7 +1477,8 @@ class FullPageTranslationsTestUtils {
         content.windowGlobalChild.getActor("Translations");
 
       await waitForCondition(
-        () => translationsChild.isObservingAnyElementForAttributeIntersection(),
+        () =>
+          translationsChild.translatedDoc?.isObservingAnyElementForAttributeIntersection(),
         "Waiting until an element is observed for attribute intersection."
       );
     });
@@ -1490,7 +1495,7 @@ class FullPageTranslationsTestUtils {
         content.windowGlobalChild.getActor("Translations");
 
       await waitForCondition(
-        () => translationsChild.hasPendingTranslationRequests(),
+        () => translationsChild.translatedDoc?.hasPendingTranslationRequests(),
         "Waiting for any translation request to initialize."
       );
     });
