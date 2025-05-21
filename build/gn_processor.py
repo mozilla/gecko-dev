@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 from collections import defaultdict, deque
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from copy import deepcopy
 from pathlib import Path
 from shutil import which
@@ -829,9 +830,12 @@ def main():
                     vars_set.append(vars)
 
     gn_configs = []
-    for vars in vars_set:
-        gn_configs.append(
-            generate_gn_config(
+    NUM_WORKERS = 5
+    with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
+        # Submit tasks to the executor
+        futures = {
+            executor.submit(
+                generate_gn_config,
                 topsrcdir / config["build_root_dir"],
                 config["target_dir"],
                 gn_binary,
@@ -839,8 +843,18 @@ def main():
                 config["gn_sandbox_variables"],
                 config["gn_target"],
                 config["moz_build_flag"],
-            )
-        )
+            ): vars
+            for vars in vars_set
+        }
+
+        # Process completed tasks as they finish
+        for future in as_completed(futures):
+            try:
+                gn_configs.append(future.result())
+            except Exception as e:
+                print(f"[Task] Task failed with exception: {e}")
+
+        print("All generation tasks have been processed.")
 
     print("Writing moz.build files")
     write_mozbuild_files(
