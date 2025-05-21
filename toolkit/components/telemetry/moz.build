@@ -121,7 +121,6 @@ EXTRA_JS_MODULES += [
     "app/TelemetryTimestamps.sys.mjs",
     "app/TelemetryUtils.sys.mjs",
     "app/UsageReporting.sys.mjs",
-    "dap/DAPReportController.sys.mjs",
     "dap/DAPTelemetrySender.sys.mjs",
     "dap/DAPVisitCounter.sys.mjs",
     "pings/CoveragePing.sys.mjs",

@@ -7,11 +7,20 @@
 const { HttpServer } = ChromeUtils.importESModule(
   "resource://testing-common/httpd.sys.mjs"
 );
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
+const { NimbusTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
+);
+
+NimbusTestUtils.init(this);
 
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   DAPTelemetrySender: "resource://gre/modules/DAPTelemetrySender.sys.mjs",
+  DAPVisitCounter: "resource://gre/modules/DAPVisitCounter.sys.mjs",
 });
 
 const BinaryInputStream = Components.Constructor(
@@ -87,6 +96,7 @@ function uploadHandler(request, response) {
 
 add_setup(async function () {
   do_get_profile();
+  Services.fog.initializeFOG();
 
   // Set up a mock server to represent the DAP endpoints.
   server = new HttpServer();
@@ -108,6 +118,8 @@ add_setup(async function () {
 });
 
 add_task(async function testVerificationTask() {
+  Services.fog.testResetFOG();
+
   server_requests = [];
   await lazy.DAPTelemetrySender.sendTestReports(tasks, { timeout: 5000 });
   Assert.deepEqual(
@@ -118,6 +130,8 @@ add_task(async function testVerificationTask() {
 });
 
 add_task(async function testNetworkError() {
+  Services.fog.testResetFOG();
+
   const test_leader = Services.prefs.getStringPref(PREF_LEADER);
   Services.prefs.setStringPref(PREF_LEADER, server_addr + "/invalid-endpoint");
 
@@ -137,6 +151,8 @@ add_task(async function testNetworkError() {
 });
 
 add_task(async function testTelemetryToggle() {
+  Services.fog.testResetFOG();
+
   // Normal
   server_requests = [];
   await lazy.DAPTelemetrySender.sendTestReports(tasks, { timeout: 5000 });
@@ -154,3 +170,69 @@ add_task(async function testTelemetryToggle() {
   await lazy.DAPTelemetrySender.sendTestReports(tasks, { timeout: 5000 });
   Assert.deepEqual(server_requests, task_report_sizes);
 });
+
+add_task(
+  {
+    // Requires Normandy.
+    skip_if: () => !AppConstants.MOZ_NORMANDY,
+  },
+  async function testVisitCounterNimbus() {
+    const { cleanup } = await NimbusTestUtils.setupTest();
+    await lazy.DAPVisitCounter.startup();
+
+    Assert.ok(
+      lazy.DAPVisitCounter.timerId === null,
+      "Submission timer should not exist before enrollment"
+    );
+
+    // Enroll experiment
+    let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
+      featureId: "dapTelemetry",
+      value: {
+        enabled: true,
+        visitCountingEnabled: true,
+        visitCountingExperimentList: {
+          [tasks[2].id]: ["mozilla.org", "example.com"],
+        },
+      },
+    });
+
+    Assert.ok(
+      lazy.DAPVisitCounter.timerId !== null,
+      "Submission timer should be armed"
+    );
+
+    // Need to submit 2 non-zero reports, only 1 registered
+    server_requests = [];
+    lazy.DAPVisitCounter.counters[0].count = 1;
+    await lazy.DAPVisitCounter.send(30 * 1000, "test");
+
+    lazy.DAPVisitCounter.counters[0].count = 1;
+    await lazy.DAPVisitCounter.send(30 * 1000, "test");
+
+    lazy.DAPVisitCounter.counters[0].count = 0;
+    await lazy.DAPVisitCounter.send(30 * 1000, "test");
+
+    // Unenroll experiment
+    doExperimentCleanup();
+    Services.tm.spinEventLoopUntil(
+      "Wait for DAPVisitCounter to flush",
+      () => lazy.DAPVisitCounter.counters === null
+    );
+    // The 3 server requests are:
+    // 1.  The first DAPVisitCounter.send call (the second DAPVisitCounter.send has reached the submission cap)
+    // 2.  The third DAPVisitCounter.send call (an empty report which is not capped)
+    // 3.  The flush of reports on unenrollment.
+    Assert.deepEqual(
+      server_requests,
+      [3654, 3654, 3654],
+      "Unenrollment should flush reports"
+    );
+    Assert.ok(
+      lazy.DAPVisitCounter.timerId === null,
+      "Submission timer should not exist after unenrollment"
+    );
+
+    cleanup();
+  }
+);
