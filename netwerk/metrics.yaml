@@ -1881,6 +1881,48 @@ networking:
       - load_is_http
       - load_is_http_for_local_domain
 
+  local_network_access:
+    type: labeled_counter
+    description: >
+      Whether the request is crossing to a more private addresspace
+    bugs:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1960582
+    data_reviews:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1960582
+    notification_emails:
+     - smayya@mozilla.com
+     - vgosu@mozilla.com
+     - necko@gmail.com
+    expires: 150
+    labels:
+      - private_to_local_http
+      - private_to_local_https
+      - public_to_local_http
+      - public_to_local_https
+      - public_to_private_http
+      - public_to_private_https
+      - success
+      - failure
+
+  local_network_access_port:
+    type: custom_distribution
+    description: >
+       port used for local network access
+    range_min: 1
+    range_max: 65535
+    bucket_count: 65535
+    unit: port number
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1960582
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1960582
+    notification_emails:
+     - smayya@mozilla.com
+     - vgosu@mozilla.com
+     - necko@gmail.com
+    expires: 150
+
   http_channel_sub_open_to_first_sent_https_rr:
     type: timing_distribution
     time_unit: millisecond
