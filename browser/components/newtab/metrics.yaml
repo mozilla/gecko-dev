@@ -1041,6 +1041,21 @@ newtab:
       - mconley@mozilla.com
     expires: never
 
+  addon_ready_success:
+    type: boolean
+    description: >
+      Records technical data about whether waiting for the newtab built-in
+      addon readyPromise succeeded.
+    bugs:
+      - https://bugzil.la/1965923
+    data_reviews:
+      - https://bugzil.la/1965923
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - pdahiya@mozilla.com
+      - mconley@mozilla.com
+    expires: never
 
 newtab.search:
   enabled:

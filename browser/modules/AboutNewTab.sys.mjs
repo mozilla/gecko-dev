@@ -166,9 +166,21 @@ export const AboutNewTab = {
         // might not yet have refreshed the addon database cache yet, in which
         // case the addonPolicy will be null. In that case, we'll wait for the
         // database to be ready before proceeding.
+        //
+        // We don't always just wait for the databaseReady Promise to resolve
+        // in order to avoid regressing newtab render times by needlessly
+        // going back to the event loop.
         await lazy.AddonManagerPrivate.databaseReady;
+        addonPolicy = WebExtensionPolicy.getByID(BUILTIN_ADDON_ID);
+      }
+
+      if (!addonPolicy) {
+        // Something's gone very wrong here, and we should collect telemetry
+        // about it.
+        Glean.newtab.addonReadySuccess.set(false);
       } else {
         await addonPolicy.readyPromise;
+        Glean.newtab.addonReadySuccess.set(true);
       }
     } else {
       // We may have had the built-in addon installed in the past. Since the
