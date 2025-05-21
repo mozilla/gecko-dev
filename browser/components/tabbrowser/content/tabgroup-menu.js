@@ -944,7 +944,7 @@
         Glean.tabgroup.groupInteractions.rename.add(1);
       }
       this.activeGroup = null;
-      this.#smartTabGroupingManager.terminateProcess();
+      this.#smartTabGroupingManager?.terminateProcess();
     }
 
     on_keypress(event) {
