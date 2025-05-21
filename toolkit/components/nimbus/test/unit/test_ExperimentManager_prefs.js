@@ -1285,6 +1285,7 @@ add_task(async function test_restorePrefs_experimentAndRollout() {
     {
       const manager = NimbusTestUtils.stubs.manager();
 
+      await manager.store.init();
       await manager.onStartup();
 
       NimbusTestUtils.assert.storeIsEmpty(manager.store);
@@ -1718,6 +1719,7 @@ add_task(async function test_prefChange() {
     const cleanupFunctions = {};
     const slugs = {};
 
+    await manager.store.init();
     await manager.onStartup();
 
     setPrefs(pref, { defaultBranchValue, userBranchValue });
@@ -2824,6 +2826,7 @@ add_task(async function test_restorePrefs_manifestChanged() {
     {
       const manager = NimbusTestUtils.stubs.manager();
 
+      await manager.store.init();
       await manager.onStartup();
 
       NimbusTestUtils.assert.storeIsEmpty(manager.store);
@@ -3412,6 +3415,7 @@ add_task(async function test_setPref_types_restore() {
   {
     const manager = NimbusTestUtils.stubs.manager();
 
+    await manager.store.init();
     await manager.onStartup();
     NimbusTestUtils.assert.storeIsEmpty(manager.store);
 

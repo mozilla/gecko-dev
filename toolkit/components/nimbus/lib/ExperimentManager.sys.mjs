@@ -217,7 +217,7 @@ export class ExperimentManager {
     this._prefsBySlug = new Map();
     this._prefFlips = new PrefFlipsFeature({ manager: this });
 
-    await this.store.init();
+    await this.store.ready();
     this.extraContext = extraContext;
 
     const restoredExperiments = this.store.getAllActiveExperiments();

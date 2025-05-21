@@ -286,8 +286,8 @@ add_task(async function test_getLocalizedValue_unenroll_missingEntry() {
 add_task(async function test_getLocalizedValue_unenroll_missingEntry() {
   const { manager, cleanup } = await setupTest();
 
+  await manager.store.init();
   await manager.onStartup();
-  await manager.store.ready();
 
   const experiment = NimbusTestUtils.factories.recipe.withFeatureConfig(
     "experiment",

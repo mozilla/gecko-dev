@@ -30,6 +30,7 @@ add_task(async function testPolicyDisablesNimbus() {
 
   const loader = NimbusTestUtils.stubs.rsLoader();
   const manager = loader.manager;
+  await manager.store.init();
   await manager.onStartup();
 
   Assert.ok(!manager.studiesEnabled, "ExperimentManager is disabled");

@@ -751,6 +751,7 @@ add_task(async function test_migration_firefoxLabsEnrollments_idempotent() {
   // experiment but the migration pref has not updated).
   {
     const manager = NimbusTestUtils.stubs.manager();
+    await manager.store.init();
     await manager.onStartup();
 
     manager.enroll(recipes[0], "rs-loader", { branchSlug: "control" });

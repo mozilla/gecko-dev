@@ -17,6 +17,7 @@ add_task(async function test_enrollmentHelper() {
     "Helper sets correct featureIds"
   );
 
+  await manager.store.init();
   await manager.onStartup();
 
   const doEnrollmentCleanup = await NimbusTestUtils.enroll(recipe, {

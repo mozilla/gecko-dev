@@ -159,6 +159,7 @@ add_task(async function test_unenroll_uploadPref() {
   const { manager, cleanup } = await setupTest();
   const recipe = NimbusTestUtils.factories.recipe("foo");
 
+  await manager.store.init();
   await manager.onStartup();
   await NimbusTestUtils.enroll(recipe, { manager });
 

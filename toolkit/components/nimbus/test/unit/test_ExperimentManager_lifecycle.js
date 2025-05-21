@@ -150,6 +150,7 @@ add_task(async function test_onRecipe_update() {
 
   const recipe = NimbusTestUtils.factories.recipe("foo");
 
+  await manager.store.init();
   await manager.onStartup();
   await manager.enroll(recipe, "test");
   await manager.onRecipe(recipe, "test", {

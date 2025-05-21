@@ -197,6 +197,12 @@ export const ExperimentAPI = {
     }
 
     try {
+      await this.manager.store.init();
+    } catch (e) {
+      lazy.log.error("Failed to initialize ExperimentStore:", e);
+    }
+
+    try {
       await this.manager.onStartup(extraContext);
     } catch (e) {
       lazy.log.error("Failed to initialize ExperimentManager:", e);
