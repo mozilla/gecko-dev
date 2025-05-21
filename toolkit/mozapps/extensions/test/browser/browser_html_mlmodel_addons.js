@@ -47,6 +47,10 @@ add_task(async function testModelHubProvider() {
     .getElementById("categories")
     .getButtonByName("mlmodel");
 
+  await BrowserTestUtils.waitForCondition(async () => {
+    return modelHubCategory.hidden;
+  }, "Wait for the mlmodel category button to be hidden");
+
   ok(modelHubCategory.hidden, "Model hub category is hidden");
 
   await closeView(win);
@@ -73,6 +77,10 @@ add_task(async function testModelHubProvider() {
   modelHubCategory = doc
     .getElementById("categories")
     .getButtonByName("mlmodel");
+
+  await BrowserTestUtils.waitForCondition(async () => {
+    return !modelHubCategory.hidden;
+  }, "Wait for the mlmodel category button to not be hidden");
 
   ok(!modelHubCategory.hidden, "Model hub category is shown");
 
