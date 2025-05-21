@@ -16,6 +16,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://gre/modules/PictureInPictureControls.sys.mjs",
 });
 
+import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { WebVTT } from "resource://gre/modules/vtt.sys.mjs";
 import { setTimeout, clearTimeout } from "resource://gre/modules/Timer.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
@@ -1017,7 +1018,11 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
    */
   onPointerDown(event) {
     // The toggle ignores non-primary mouse clicks.
-    if (event.button != 0) {
+    // Ignore ctrl+click for macOS too, since it acts like right click.
+    if (
+      event.button != 0 ||
+      (AppConstants.platform == "macosx" && event.button == 0 && event.ctrlKey)
+    ) {
       return;
     }
 
@@ -1106,7 +1111,11 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
    */
   onMouseButtonEvent(event) {
     // The toggle ignores non-primary mouse clicks.
-    if (event.button != 0) {
+    // Ignore ctrl+click for macOS too, since it acts like right click.
+    if (
+      event.button != 0 ||
+      (AppConstants.platform == "macosx" && event.button == 0 && event.ctrlKey)
+    ) {
       return;
     }
 

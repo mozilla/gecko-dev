@@ -12,10 +12,16 @@
  * @param {String} videoID The ID of the video to open the context
  * menu with.
  *
+ * @param {Object} modifiers The properties to pass to synthesizeMouseAtCenter.
+ *
  * @returns Promise
  * @resolves With the context menu DOM node once opened.
  */
-async function openContextMenu(browser, videoID) {
+async function openContextMenu(
+  browser,
+  videoID,
+  modifiers = { type: "contextmenu", button: 2 }
+) {
   let contextMenu = document.getElementById("contentAreaContextMenu");
   let popupShownPromise = BrowserTestUtils.waitForEvent(
     contextMenu,
@@ -23,7 +29,7 @@ async function openContextMenu(browser, videoID) {
   );
   await BrowserTestUtils.synthesizeMouseAtCenter(
     "#" + videoID,
-    { type: "contextmenu", button: 2 },
+    modifiers,
     browser
   );
   await popupShownPromise;
@@ -48,11 +54,7 @@ async function closeContextMenu(contextMenu) {
   await popupHiddenPromise;
 }
 
-/**
- * Tests that Picture-in-Picture can be opened and closed through the
- * context menu
- */
-add_task(async () => {
+async function runTaskOpenClosePiPWithContextMenu(isCtrlClick = false) {
   for (const videoId of ["with-controls", "no-controls"]) {
     info(`Testing ${videoId} case.`);
 
@@ -62,7 +64,16 @@ add_task(async () => {
         gBrowser,
       },
       async browser => {
-        let contextMenu = await openContextMenu(browser, videoId);
+        let contextMenu;
+
+        if (!isCtrlClick) {
+          contextMenu = await openContextMenu(browser, videoId);
+        } else {
+          contextMenu = await openContextMenu(browser, videoId, {
+            type: "contextmenu",
+            shiftKey: true,
+          });
+        }
 
         info("Context menu is open.");
 
@@ -104,6 +115,22 @@ add_task(async () => {
         });
       }
     );
+  }
+}
+
+/**
+ * Tests that Picture-in-Picture can be opened and closed through the
+ * context menu
+ */
+add_task(async () => {
+  // Test with regular right click
+  await runTaskOpenClosePiPWithContextMenu();
+
+  // Test with ctrl+click (macOS only)
+  let isMac = AppConstants.platform == "macosx";
+  if (isMac) {
+    info("Mac detected. Testing with ctrl + click");
+    await runTaskOpenClosePiPWithContextMenu(isMac);
   }
 });
 
