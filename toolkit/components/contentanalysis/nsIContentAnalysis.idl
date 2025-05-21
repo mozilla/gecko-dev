@@ -5,6 +5,7 @@
 
 #include "nsISupports.idl"
 
+interface nsIFile;
 interface nsITransferable;
 interface nsIURI;
 webidl BrowsingContext;
@@ -188,7 +189,7 @@ interface nsIContentAnalysisRequest : nsISupports
   // contain multiple items that require analysis, or none.
   // Only one of dataTransfer, transferable, textContent or filePath may be
   // defined.
-  readonly attribute DataTransfer dataTransfer;
+  attribute DataTransfer dataTransfer;
 
   // ContentAnalysis will analyze the contents of this nsITransferable.  May
   // contain multiple items that require analysis, or none.
@@ -323,11 +324,12 @@ interface nsIContentAnalysis : nsISupports
    * an error.
    *
    * @param aCars
-   *        The requests to analyze.
+   *         The requests to analyze.
    * @param aAutoAcknowledge
-   *        Whether to send an acknowledge message to the agent after the agent sends a response.
-   *        Passing false means that the caller is responsible for
-   *        calling nsIContentAnalysisResponse::acknowledge() if the Promise is resolved.
+   *         Whether to send an acknowledge message to the agent after the agent sends a response.
+   *         Passing false means that the caller is responsible for
+   *         calling nsIContentAnalysisResponse::acknowledge() if the Promise is resolved.
+   * @return A promise that will resolve to a nsIContentAnalysisResult
    */
   [implicit_jscontext]
   Promise analyzeContentRequests(in Array<nsIContentAnalysisRequest> aCars,
@@ -351,6 +353,24 @@ interface nsIContentAnalysis : nsISupports
                                       in boolean aAutoAcknowledge,
                                       in nsIContentAnalysisCallback callback);
 
+  /**
+   * Same functionality as analyzeContentRequests(), but only accepts one request
+   * that must have a DataTransfer specified, and any files in the DataTransfer
+   * will be analyzed in a batch mode where individual files can be blocked
+   * without the whole request being rejected.
+   *
+   * @param aCar
+   *         The request to analyze, which must have a DataTransfer specified.
+   * @param aAutoAcknowledge
+   *         Whether to send an acknowledge message to the agent after the agent sends a response.
+   *         Passing false means that the caller is responsible for
+   *         calling nsIContentAnalysisResponse::acknowledge() if the Promise is resolved.
+   * @return A promise that will resolve to an array
+   *         [array of files allowed, {shouldAllowRequest}]
+   */
+  [implicit_jscontext]
+  Promise analyzeBatchContentRequest(in nsIContentAnalysisRequest aCar,
+                                     in boolean aAutoAcknowledge);
   /**
    * Internal helper for 'analyzeContentRequest*' methods.  This is abstracted
    * so that it can be mocked in tests.  Do not call this.

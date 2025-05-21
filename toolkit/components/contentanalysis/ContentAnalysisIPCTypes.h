@@ -38,9 +38,9 @@ class ContentAnalysisActionResult : public nsIContentAnalysisResult {
   friend RefPtr<T> mozilla::MakeRefPtr(Args&&...);
   explicit ContentAnalysisActionResult(
       nsIContentAnalysisResponse::Action aAction)
-      : mValue(aAction) {}
+      : mAction(aAction) {}
   virtual ~ContentAnalysisActionResult() = default;
-  nsIContentAnalysisResponse::Action mValue;
+  nsIContentAnalysisResponse::Action mAction;
 };
 
 class ContentAnalysisNoResult : public nsIContentAnalysisResult {
