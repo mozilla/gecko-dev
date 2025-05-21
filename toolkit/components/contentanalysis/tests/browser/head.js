@@ -200,6 +200,12 @@ function makeMockContentAnalysis() {
         autoAcknowledge
       );
     },
+    analyzeBatchContentRequest(request, autoAcknowledge) {
+      return this.realCAService.analyzeBatchContentRequest(
+        request,
+        autoAcknowledge
+      );
+    },
     analyzeContentRequestsCallback(requests, autoAcknowledge, callback) {
       if (this.errorValue) {
         if (requests.length != 1) {

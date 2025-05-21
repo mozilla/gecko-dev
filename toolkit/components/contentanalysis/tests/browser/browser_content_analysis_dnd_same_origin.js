@@ -74,6 +74,23 @@ let mockCA = {
     );
   },
 
+  analyzeBatchContentRequest(aRequest, aAutoAcknowledge) {
+    // This will call into our mock analyzeContentRequestPrivate
+    return this.realCAService.analyzeBatchContentRequest(
+      aRequest,
+      aAutoAcknowledge
+    );
+  },
+
+  analyzeContentRequestsCallback(aRequests, aAutoAcknowledge, aCallback) {
+    // This will call into our mock analyzeContentRequestPrivate
+    this.realCAService.analyzeContentRequestsCallback(
+      aRequests,
+      aAutoAcknowledge,
+      aCallback
+    );
+  },
+
   showBlockedRequestDialog(aRequest) {
     info(`got showBlockedRequestDialog for request ${aRequest.requestToken}`);
   },
