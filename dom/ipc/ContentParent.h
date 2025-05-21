@@ -1304,7 +1304,7 @@ class ContentParent final : public PContentParent,
       const MaybeDiscarded<BrowsingContext>& aContext, const uint64_t& aLoadID,
       const nsID& aChangeID, const uint32_t& aLoadType, const bool& aPersist,
       const bool& aCloneEntryChildren, const bool& aChannelExpired,
-      const uint32_t& aCacheKey);
+      const uint32_t& aCacheKey, nsIPrincipal* aPartitionedPrincipal);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   mozilla::ipc::IPCResult RecvHistoryGo(

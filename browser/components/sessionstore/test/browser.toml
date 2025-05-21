@@ -289,6 +289,8 @@ run-if = ["fission"]
 
 ["browser_searchModeSwitcher_restore.js"]
 
+["browser_sessionHistory_partitionedPrincipalToInherit.js"]
+
 ["browser_sessionHistory.js"]
 https_first_disabled = true
 support-files = ["file_sessionHistory_hashchange.html"]
