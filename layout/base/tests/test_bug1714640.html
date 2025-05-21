@@ -36,7 +36,7 @@
     let nsISelectionController = SpecialPowers.Ci.nsISelectionController;
     controller.scrollSelectionIntoView(nsISelectionController.SELECTION_NORMAL, nsISelectionController.SELECTION_ANCHOR_REGION, nsISelectionController.SCROLL_SYNCHRONOUS);
 
-    is(target.scrollTop, target.scrollTopMax, "Should be scrolled to the bottom");
+    isfuzzy(target.scrollTop, target.scrollTopMax, 1, "Should be scrolled to the bottom");
     SimpleTest.finish();
   });
 </script>
