@@ -1,13 +1,15 @@
 @import url(./doc_imported_nested_named_layer.css) layer(importedNestedLayer);
 @media screen {
-    h1, [test-hint=imported-named-layer--no-rule-layer] {
-        color:tomato;
-        border: 10px dotted currentColor;
-    }
+  h1,
+  [test-hint="imported-named-layer--no-rule-layer"] {
+    color: tomato;
+    border: 10px dotted currentColor;
+  }
 
-    @layer in-imported-stylesheet {
-        h1, [test-hint=imported-named-layer--named-layer] {
-            color: purple;
-        }
+  @layer in-imported-stylesheet {
+    h1,
+    [test-hint="imported-named-layer--named-layer"] {
+      color: purple;
     }
+  }
 }

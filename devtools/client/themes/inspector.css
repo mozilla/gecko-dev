@@ -105,8 +105,7 @@ window {
   display: none;
 }
 
-#inspector-searchnavigation-container
-  .inspector-searchnavigation-buttons::before {
+#inspector-searchnavigation-container .inspector-searchnavigation-buttons::before {
   background-size: 16px;
   margin-inline: 0;
 }

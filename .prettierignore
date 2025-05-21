@@ -1252,6 +1252,10 @@ browser/extensions/translations/extension/
 toolkit/components/uniffi-bindgen-gecko-js/src/templates/js/
 toolkit/components/uniffi-bindgen-gecko-js/components/generated/*
 
+# This is intended to simulate a css file generated from a scss file in order to
+# test sourcemaps.
+devtools/client/inspector/rules/test/doc_sourcemaps2.css
+
 ##############################################################################
 # The list below is copied from ThirdPartyPaths.txt. Prettier doesn't currently
 # support multiple ignore files or dynamic ignore configurations.
@@ -1469,7 +1473,6 @@ xpcom/build/mach_override.c
 xpcom/build/mach_override.h
 xpcom/io/crc32c.c
 rlbox/rlbox_sandbox.hpp
-
 
 ##############################################################################
 # The list below is copied from Generated.txt. Prettier doesn't currently

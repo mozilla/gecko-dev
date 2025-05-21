@@ -140,7 +140,6 @@
   margin-right: -33px;
   margin-left: 5px;
   padding: 0;
-
 }
 .network-monitor .headers-panel-container .accordion .properties-view tr.treeRow .treeValueCell {
   display: inline;
@@ -187,7 +186,7 @@
   unicode-bidi: plaintext;
 }
 
-.network-monitor .tabpanel-summary-value  strong {
+.network-monitor .tabpanel-summary-value strong {
   margin-right: 3px;
 }
 

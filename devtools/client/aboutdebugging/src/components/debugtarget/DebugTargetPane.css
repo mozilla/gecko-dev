@@ -14,7 +14,7 @@
 }
 
 .debug-target-pane__icon {
-  transition: transform 150ms cubic-bezier(.07, .95, 0, 1);
+  transition: transform 150ms cubic-bezier(0.07, 0.95, 0, 1);
   transform: rotate(90deg);
 }
 

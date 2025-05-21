@@ -80,7 +80,8 @@
   margin-bottom: 5px;
 }
 
-.preview-tracer-header, .preview-tracer-warning {
+.preview-tracer-header,
+.preview-tracer-warning {
   display: flex;
   gap: 5px;
   padding: 5px;
@@ -187,8 +188,6 @@
   position: fixed;
   z-index: 100;
 }
-
-
 
 .theme-dark .tooltip .preview-popup {
   border-color: var(--theme-body-color);

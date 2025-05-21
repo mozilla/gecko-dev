@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
- :root {
+:root {
   --badge-active-background-color: var(--blue-60);
-  --badge-active-border-color: light-dark(rgba(255, 255, 255, 0.7), #FFF6);
+  --badge-active-border-color: light-dark(rgba(255, 255, 255, 0.7), #fff6);
   --badge-background-color: light-dark(white, var(--grey-80));
-  --badge-border-color: light-dark(#CACAD1, var(--grey-50));
+  --badge-border-color: light-dark(#cacad1, var(--grey-50));
   --badge-color: light-dark(var(--grey-60), var(--grey-40));
   --badge-interactive-background-color: light-dark(var(--grey-20), var(--grey-70));
   --badge-interactive-color: light-dark(var(--grey-90), var(--grey-30));
-  --badge-hover-interactive-background-color: light-dark(#DFDFE8, var(--grey-80));
+  --badge-hover-interactive-background-color: light-dark(#dfdfe8, var(--grey-80));
   --badge-hover-interactive-color: var(--badge-color);
-  --badge-interactive-border-color: light-dark(#CACAD1, var(--grey-50));
-  --badge-scrollable-color: light-dark(#8000D7, #B98EFF);
-  --badge-scrollable-background-color: light-dark(#FFFFFF, var(--badge-interactive-background-color));
-  --badge-scrollable-active-background-color: #8000D7;
+  --badge-interactive-border-color: light-dark(#cacad1, var(--grey-50));
+  --badge-scrollable-color: light-dark(#8000d7, #b98eff);
+  --badge-scrollable-background-color: light-dark(#ffffff, var(--badge-interactive-background-color));
+  --badge-scrollable-active-background-color: #8000d7;
   --badge-scrollable-active-color: var(--theme-selection-color);
 
   &[forced-colors-active] {
@@ -99,7 +99,7 @@
   color: var(--badge-hover-interactive-color);
 }
 
-.inspector-badge:is(.active,.interactive.active) {
+.inspector-badge:is(.active, .interactive.active) {
   background-color: var(--badge-active-background-color);
   outline-color: var(--badge-active-border-color);
   color: var(--theme-selection-color);

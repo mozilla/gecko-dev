@@ -73,9 +73,10 @@
   display: grid;
   column-gap: var(--compatibility-base-unit);
   padding: calc(var(--compatibility-base-unit) * 2);
-  grid-template-areas: "icon description"
-                       ".    aliases"
-                       ".    node-pane";
+  grid-template-areas:
+    "icon description"
+    ".    aliases"
+    ".    node-pane";
   grid-template-columns: auto 1fr;
 }
 

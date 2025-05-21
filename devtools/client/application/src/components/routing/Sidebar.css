@@ -2,32 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 /*
  * Sidebar list container
  */
 .sidebar {
-	background-color: var(--bg-color);
+  background-color: var(--bg-color);
 }
 
 /* vertical layout -> the sidebar is the first row */
-@media(max-width: 700px) {
-	.sidebar {
-		border-block-end: 1px solid var(--separator-color);
-	}
+@media (max-width: 700px) {
+  .sidebar {
+    border-block-end: 1px solid var(--separator-color);
+  }
 }
 
 /* wide layout -> the sidebar occupies a whole column on the side */
-@media(min-width: 701px) {
-	.sidebar {
-		min-height: 100vh;
-		border-inline-end: 1px solid var(--separator-color);
-	}
+@media (min-width: 701px) {
+  .sidebar {
+    min-height: 100vh;
+    border-inline-end: 1px solid var(--separator-color);
+  }
 }
 
 .sidebar__list {
-	list-style: none;
-	padding: 0;
-	font-size: var(--body-10-font-size);
-	font-weight: var(--body-10-font-weight);
+  list-style: none;
+  padding: 0;
+  font-size: var(--body-10-font-size);
+  font-weight: var(--body-10-font-weight);
 }

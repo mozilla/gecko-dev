@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-:host { display: contents; }
+:host {
+  display: contents;
+}
 
 .highlighter-container {
   --highlighter-accessibility-bounds-color: #6a5acd;
@@ -112,12 +114,7 @@
 }
 
 @media (prefers-reduced-motion) {
-  .use-simple-highlighters :is(
-     .box-model-content,
-     .box-model-padding,
-     .box-model-border,
-     .box-model-margin
-  ) {
+  .use-simple-highlighters :is(.box-model-content, .box-model-padding, .box-model-border, .box-model-margin) {
     fill: none;
     stroke-width: 3;
   }
@@ -168,8 +165,7 @@
 
 [class$="infobar-container"] > [class$="infobar"]:before {
   left: calc(50% - var(--highlighter-bubble-arrow-size));
-  border: var(--highlighter-bubble-arrow-size) solid
-    var(--highlighter-bubble-border-color);
+  border: var(--highlighter-bubble-arrow-size) solid var(--highlighter-bubble-border-color);
 }
 
 [class$="infobar-container"] > [class$="infobar"]:after {
@@ -188,19 +184,15 @@
   border-right-color: transparent;
 }
 
-[class$="infobar-container"][position="top"]:not([hide-arrow])
-  > [class$="infobar"]:before,
-[class$="infobar-container"][position="top"]:not([hide-arrow])
-  > [class$="infobar"]:after {
+[class$="infobar-container"][position="top"]:not([hide-arrow]) > [class$="infobar"]:before,
+[class$="infobar-container"][position="top"]:not([hide-arrow]) > [class$="infobar"]:after {
   border-bottom: 0;
   top: 100%;
   display: block;
 }
 
-[class$="infobar-container"][position="bottom"]:not([hide-arrow])
-  > [class$="infobar"]:before,
-[class$="infobar-container"][position="bottom"]:not([hide-arrow])
-  > [class$="infobar"]:after {
+[class$="infobar-container"][position="bottom"]:not([hide-arrow]) > [class$="infobar"]:before,
+[class$="infobar-container"][position="bottom"]:not([hide-arrow]) > [class$="infobar"]:after {
   border-top: 0;
   bottom: 100%;
   display: block;
@@ -438,10 +430,7 @@
   text-anchor: end;
 }
 
-:is(
-  .viewport-size-highlighter-viewport-infobar-container,
-  .viewport-size-on-resize-highlighter-viewport-infobar-container
-) {
+:is(.viewport-size-highlighter-viewport-infobar-container, .viewport-size-on-resize-highlighter-viewport-infobar-container) {
   shape-rendering: crispEdges;
   background-color: var(--highlighter-viewport-size-background-color);
   color: var(--grey-80);
@@ -528,7 +517,7 @@
   cursor: nwse-resize;
 }
 
-[class^=measuring-tool-handler].dragging {
+[class^="measuring-tool-handler"].dragging {
   fill: var(--highlighter-guide-color);
 }
 
@@ -565,7 +554,7 @@
   line-height: 1.5em;
 }
 
-[class^=measuring-tool-guide] {
+[class^="measuring-tool-guide"] {
   stroke: var(--highlighter-guide-color);
   stroke-dasharray: 5 3;
   shape-rendering: crispEdges;
@@ -591,10 +580,7 @@
   pointer-events: auto;
 
   /* Offset the UI so it is centered around the pointer */
-  transform: translate(
-    calc(var(--magnifier-width) / -2),
-    calc(var(--magnifier-height) / -2)
-  );
+  transform: translate(calc(var(--magnifier-width) / -2), calc(var(--magnifier-height) / -2));
 
   filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.4));
 
@@ -620,16 +606,10 @@
   height: var(--label-height);
   position: relative;
 
-  --label-horizontal-center: translateX(
-    calc((var(--magnifier-width) - var(--label-width)) / 2)
-  );
-  --label-horizontal-left: translateX(
-    calc((-1 * var(--label-width) + var(--magnifier-width) / 2))
-  );
+  --label-horizontal-center: translateX(calc((var(--magnifier-width) - var(--label-width)) / 2));
+  --label-horizontal-left: translateX(calc((-1 * var(--label-width) + var(--magnifier-width) / 2)));
   --label-horizontal-right: translateX(calc(var(--magnifier-width) / 2));
-  --label-vertical-top: translateY(
-    calc((-1 * var(--magnifier-height)) - var(--label-height))
-  );
+  --label-vertical-top: translateY(calc((-1 * var(--magnifier-height)) - var(--label-height)));
 
   /* By default the color label container sits below the canvas.
      Here we just center it horizontally */
@@ -786,7 +766,6 @@ button.paused-dbg-resume-button {
   font-size: var(--highlighter-font-size);
 }
 
-
 /* Remote Node Picker Notice Highlighter */
 
 #node-picker-notice-root {
@@ -856,7 +835,6 @@ button.paused-dbg-resume-button {
 #node-picker-notice-icon.touch {
   background-image: url(resource://devtools-shared-images/command-pick-remote-touch.svg);
 }
-
 
 #node-picker-notice-hide-button {
   border: 0;
@@ -967,7 +945,8 @@ button.paused-dbg-resume-button {
   width: 8px;
   display: inline-flex;
   background-color: var(--accessibility-highlighter-contrast-ratio-color);
-  box-shadow: 0 0 0 1px var(--grey-40),
+  box-shadow:
+    0 0 0 1px var(--grey-40),
     4px 3px var(--accessibility-highlighter-contrast-ratio-bg),
     4px 3px 0 1px var(--grey-40);
   margin-inline-start: 3px;
@@ -980,7 +959,7 @@ button.paused-dbg-resume-button {
 
 .accessible-infobar-audit .accessible-contrast-ratio.AA::after,
 .accessible-infobar-audit .accessible-contrast-ratio.AAA::after {
-  color: #90E274;
+  color: #90e274;
 }
 
 .accessible-infobar-audit .accessible-audit::before,
@@ -996,7 +975,7 @@ button.paused-dbg-resume-button {
 }
 
 .accessible-infobar-audit .accessible-contrast-ratio.FAIL:after {
-  color: #E57180;
+  color: #e57180;
   margin-inline-start: 3px;
   background-image: url(resource://devtools-shared-images/error-small.svg);
   fill: var(--red-40);
@@ -1062,7 +1041,7 @@ button.paused-dbg-resume-button {
 }
 
 .tabbing-order .tabbing-order-infobar-container {
-  font-size:calc(var(--highlighter-font-size) + 2px);
+  font-size: calc(var(--highlighter-font-size) + 2px);
 }
 
 .tabbing-order .tabbing-order-bounds {

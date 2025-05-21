@@ -34,10 +34,7 @@
   --bar-label-legend-color: var(--timing-marker-load-color);
 }
 
-:is(
-  .status-bar-label.dom-content-loaded,
-  .status-bar-label.load
-)::before {
+.status-bar-label:is(.dom-content-loaded, .load)::before {
   content: "";
   display: inline-block;
   width: 12px;

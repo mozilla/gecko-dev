@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
- :root {
+:root {
   --flex-basis-outline-border-color: var(--blue-40);
   --flex-basis-outline-background-color: rgba(69, 161, 255, 0.25);
   --flex-growing-delta-outline-background-color: rgba(221, 0, 169, 0.13);
-  --flex-shrinking-delta-outline-background-color: #E9E3FF;
+  --flex-shrinking-delta-outline-background-color: #e9e3ff;
   --flex-min-max-properties-color: var(--purple-60);
 }
 
@@ -283,11 +283,11 @@ html[dir="rtl"] .flex-item-list .devtools-button::after {
 }
 
 .flex-outline.vertical-tb {
-  transform: translate(50%, -2em) rotate(.25turn);
+  transform: translate(50%, -2em) rotate(0.25turn);
 }
 
 .flex-outline.vertical-bt {
-  transform:translate(50%, 12em) rotate(0.75turn);
+  transform: translate(50%, 12em) rotate(0.75turn);
 }
 
 .flex-outline.vertical-tb,
@@ -324,19 +324,16 @@ html[dir="rtl"] .flex-item-list .devtools-button::after {
   top: 6px;
   /* Making sure the icon is visible against any background by creating a plain background
      around its shape, using a drop-shadow filter. */
-  filter:
-    drop-shadow(1px 0 0 var(--theme-body-background))
-    drop-shadow(0 1px 0 var(--theme-body-background))
-    drop-shadow(-1px 0 0 var(--theme-body-background))
+  filter: drop-shadow(1px 0 0 var(--theme-body-background)) drop-shadow(0 1px 0 var(--theme-body-background)) drop-shadow(-1px 0 0 var(--theme-body-background))
     drop-shadow(0 -1px 0 var(--theme-body-background));
 }
 
 .flex-outline.vertical-tb .flex-outline-final.clamped::after {
-  transform: rotate(-.25turn);
+  transform: rotate(-0.25turn);
 }
 
 .flex-outline.vertical-bt .flex-outline-final.clamped::after {
-  transform: rotate(-.75turn);
+  transform: rotate(-0.75turn);
 }
 
 .flex-outline-basis {
@@ -383,7 +380,7 @@ html[dir="rtl"] .flex-item-list .devtools-button::after {
   position: absolute;
   left: 2px;
   right: 2px;
-  top: calc(50% - .5px);
+  top: calc(50% - 0.5px);
   height: 1px;
   background: var(--theme-highlight-red);
 }
@@ -401,14 +398,14 @@ html[dir="rtl"] .flex-item-list .devtools-button::after {
   right: 2px;
   border-width: 1px 1px 0 0;
   transform-origin: top right;
-  transform: rotate(.125turn);
+  transform: rotate(0.125turn);
 }
 
 .flex-outline.shrinking .flex-outline-delta:after {
   left: 2px;
   border-width: 1px 0 0 1px;
   transform-origin: top left;
-  transform: rotate(-.125turn);
+  transform: rotate(-0.125turn);
 }
 
 .flex-outline-point {
@@ -553,7 +550,7 @@ html[dir="rtl"] .flex-item-list .devtools-button::after {
 .flex-outline.horizontal-rl,
 .flex-outline.horizontal-rl .flex-outline-point,
 .flex-outline.horizontal-rl .flex-outline-final.clamped::after {
-  transform: rotate(.5turn);
+  transform: rotate(0.5turn);
 }
 
 /**
@@ -584,7 +581,7 @@ html[dir="rtl"] .flex-item-list .devtools-button::after {
   grid-column: 1;
   display: grid;
   grid-template-columns: max-content max-content;
-  gap: .5em;
+  gap: 0.5em;
 }
 
 .flex-item-sizing .flexibility .name {
@@ -613,7 +610,7 @@ html[dir="rtl"] .flex-item-list .devtools-button::after {
 
 .flex-item-sizing .css-property-link {
   font-weight: normal;
-  margin-inline-start: .5em;
+  margin-inline-start: 0.5em;
 }
 
 .flex-item-sizing .reasons,

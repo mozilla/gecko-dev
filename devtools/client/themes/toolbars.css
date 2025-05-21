@@ -183,7 +183,7 @@ splitter.devtools-horizontal-splitter,
 
   &:hover {
     fill: var(--theme-icon-hover-color);
- }
+  }
 }
 
 .devtools-dropdown-button:dir(rtl) {

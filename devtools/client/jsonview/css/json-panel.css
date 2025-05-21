@@ -8,7 +8,10 @@
 .jsonPrimitiveValue,
 .jsonParseError {
   font-size: 12px;
-  font-family: Lucida Grande, Tahoma, sans-serif;
+  font-family:
+    Lucida Grande,
+    Tahoma,
+    sans-serif;
   line-height: 15px;
   padding: 10px;
 }

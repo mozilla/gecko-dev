@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 /**
  * Layout for the runtime info container is:
  *
@@ -20,8 +19,8 @@
 
   grid-column-gap: var(--main-heading-icon-gap);
   grid-template-areas:
-  "icon title    action"
-  "icon subtitle .";
+    "icon title    action"
+    "icon subtitle .";
   grid-template-columns: var(--main-heading-icon-size) 1fr max-content;
   grid-template-rows: 1fr max-content;
 

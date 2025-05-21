@@ -43,13 +43,7 @@
 .linear-easing-function-container .timing-function-preview {
   width: var(--chart-size);
   /* Draw a background line */
-  background: linear-gradient(
-    0deg,
-    transparent 45%,
-    var(--timing-function-preview-scale) 45%,
-    var(--timing-function-preview-scale) 55%,
-    transparent 55%
-  );
+  background: linear-gradient(0deg, transparent 45%, var(--timing-function-preview-scale) 45%, var(--timing-function-preview-scale) 55%, transparent 55%);
   /* opt-out of forced colors so we can see the "line" gradient */
   forced-color-adjust: none;
 }
@@ -67,5 +61,5 @@
      a registered color and gets computed to an rgb color which means the color
      will be forced, even if the declaration value is a system color.
      All the colors used here have High Contrast re-declaration so it should be fine */
-     forced-color-adjust: none;
+  forced-color-adjust: none;
 }

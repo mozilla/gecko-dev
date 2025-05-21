@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
- /*
+/*
  * The current layout of a service worker item is
  *
  *  +------------+------------------------------+
@@ -15,8 +15,9 @@
 .worker {
   display: grid;
   grid-template-columns: auto 1fr;
-  grid-template-areas: "icon  source"
-                       "icon  misc";
+  grid-template-areas:
+    "icon  source"
+    "icon  misc";
   column-gap: calc(var(--base-unit) * 2);
   row-gap: var(--base-unit);
 
@@ -69,7 +70,8 @@
   --status-border-color: var(--theme-text-color-alt);
 }
 
-.worker__status--installing, .worker__status--default {
+.worker__status--installing,
+.worker__status--default {
   --status-bg-color: transparent;
   --status-border-color: var(--theme-text-color-alt);
 }

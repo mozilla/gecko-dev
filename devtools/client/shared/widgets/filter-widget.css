@@ -37,7 +37,7 @@
   /* Make sure that when the presets list is shown, it has a fixed width */
   width: 200px;
   padding-left: 6px;
-  transition: width .1s;
+  transition: width 0.1s;
   flex-shrink: 0;
   border-left: 1px solid var(--theme-splitter-color);
 }
@@ -113,11 +113,7 @@
   height: 10px;
   margin-right: 10px;
   cursor: grab;
-  background: linear-gradient(to bottom,
-                              currentColor 0,
-                              currentcolor 1px,
-                              transparent 1px,
-                              transparent 2px);
+  background: linear-gradient(to bottom, currentColor 0, currentcolor 1px, transparent 1px, transparent 2px);
   background-repeat: repeat-y;
   background-size: auto 4px;
   background-position: 0 1px;

@@ -1,18 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-:root{
+:root {
   user-select: none;
 }
 
 .theme-light {
-  --experimental-background: #E0EEFF;
+  --experimental-background: #e0eeff;
   --experimental-color: #436286;
 }
 
 .theme-dark {
   --experimental-background: #436286;
-  --experimental-color: #E0EEFF;
+  --experimental-color: #e0eeff;
 }
 
 #options-panel {
@@ -26,7 +26,7 @@
 
 .options-vertical-pane {
   margin: 5px;
-  width: calc(100%/3 - 10px);
+  width: calc(100% / 3 - 10px);
   min-width: 320px;
   padding-inline-start: 5px;
   box-sizing: border-box;
@@ -37,7 +37,7 @@
    only ~66% of the available space. */
 @media (max-width: 1000px) {
   .options-vertical-pane {
-    width: calc(100%/2 - 10px);
+    width: calc(100% / 2 - 10px);
   }
 }
 
@@ -97,7 +97,7 @@
   display: inline-block;
   font-size: 1rem;
   font-style: italic;
-   /* To align it with the checkbox */
+  /* To align it with the checkbox */
   padding: 4px 0 0;
   padding-inline-end: 4px;
 }
@@ -125,7 +125,7 @@
 
 .deprecation-notice::before {
   background-image: url("chrome://devtools/skin/images/alert.svg");
-  content: '';
+  content: "";
   display: inline-block;
   flex-shrink: 0;
   height: 15px;
@@ -145,7 +145,7 @@
 .deprecation-notice a {
   color: currentColor;
 }
-.deprecation-notice a:hover{
+.deprecation-notice a:hover {
   text-decoration: underline;
 }
 
@@ -174,17 +174,17 @@
 .experimental-notice a {
   color: currentColor;
 }
-.experimental-notice a:hover{
+.experimental-notice a:hover {
   text-decoration: underline;
 }
 
 @keyframes highlight {
-    0% {
-        background-color: var(--theme-highlight-yellow);
-    }
-    100% {
-        background-color: transparent;
-    }
+  0% {
+    background-color: var(--theme-highlight-yellow);
+  }
+  100% {
+    background-color: transparent;
+  }
 }
 
 .options-panel-highlight {

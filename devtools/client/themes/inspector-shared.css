@@ -7,10 +7,7 @@
 @import url("./inspector-swatches.css");
 
 :root {
-  --inspector-highlight-background-color: light-dark(
-    var(--theme-highlight-yellow),
-    #521C76
-  );
+  --inspector-highlight-background-color: light-dark(var(--theme-highlight-yellow), #521c76);
   --inspector-highlight-color: inherit;
 
   &[forced-colors-active] {

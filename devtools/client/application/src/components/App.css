@@ -19,7 +19,7 @@ a.disabled-link:visited {
 }
 
 /* wide layout -> two columns, 1 row */
-@media(min-width: 701px) {
+@media (min-width: 701px) {
   .app {
     grid-template-columns: calc(var(--base-unit) * 50) auto;
     height: 100vh;
@@ -27,7 +27,7 @@ a.disabled-link:visited {
 }
 
 /* vertical layout -> 1 column, 2 rows */
-@media(max-width: 700px) {
+@media (max-width: 700px) {
   .app {
     grid-template-rows: auto 1fr;
   }

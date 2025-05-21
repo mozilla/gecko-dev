@@ -54,7 +54,8 @@
 }
 
 .ui-button:focus {
-  box-shadow: 0 0 0 1px var(--blue-50) inset,
+  box-shadow:
+    0 0 0 1px var(--blue-50) inset,
     0 0 0 1px var(--blue-50),
     0 0 0 4px var(--blue-50-a30);
 }

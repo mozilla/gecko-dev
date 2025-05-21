@@ -38,10 +38,10 @@
   right: 0;
   inset-block: 0;
   cursor: pointer;
-    /* The slow icon is absolutely positioned and can can overlap the column text.
-       This background gradient is added on its left side so the icon
-       has a solid background and the text slowly fades before the icon. */
-  background-image: linear-gradient(to right,transparent, var(--theme-body-background) 43%);
+  /* The slow icon is absolutely positioned and can can overlap the column text.
+     This background gradient is added on its left side so the icon
+     has a solid background and the text slowly fades before the icon. */
+  background-image: linear-gradient(to right, transparent, var(--theme-body-background) 43%);
   padding-inline: 5px 30px;
 
   &::before {
@@ -73,16 +73,16 @@
 }
 
 .request-list-item:not(.selected).odd .requests-list-slow-button {
-  background-image: linear-gradient(to right,transparent, var(--table-zebra-inline-icons-background) 43%);
+  background-image: linear-gradient(to right, transparent, var(--table-zebra-inline-icons-background) 43%);
 }
 
 .request-list-item:not(.selected):hover .requests-list-slow-button,
 .request-list-item:not(.selected).odd:hover .requests-list-slow-button {
-  background-image: linear-gradient(to right,transparent, var(--table-selection-inline-icons-background-hover) 43%);
+  background-image: linear-gradient(to right, transparent, var(--table-selection-inline-icons-background-hover) 43%);
 }
 
 .request-list-item.selected .requests-list-slow-button {
-  background-image: linear-gradient(to right,transparent, var(--theme-selection-background) 43%);
+  background-image: linear-gradient(to right, transparent, var(--theme-selection-background) 43%);
 
   :root[forced-colors-active] & {
     background-color: var(--theme-selection-background);
@@ -252,11 +252,11 @@
   width: calc(100% - 11px);
 }
 
-.requests-list-header-button[data-sorted=ascending] > .button-icon {
+.requests-list-header-button[data-sorted="ascending"] > .button-icon {
   background-image: url("chrome://devtools/skin/images/sort-ascending-arrow.svg");
 }
 
-.requests-list-header-button[data-sorted=descending] > .button-icon {
+.requests-list-header-button[data-sorted="descending"] > .button-icon {
   background-image: url("chrome://devtools/skin/images/sort-descending-arrow.svg");
 }
 
@@ -500,8 +500,8 @@
   border-inline-start-color: #585959 !important;
 }
 
-.requests-list-timings-division[data-division-scale=second],
-.requests-list-timings-division[data-division-scale=minute] {
+.requests-list-timings-division[data-division-scale="second"],
+.requests-list-timings-division[data-division-scale="minute"] {
   font-weight: 600;
 }
 

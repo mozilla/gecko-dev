@@ -20,7 +20,7 @@
 
 .network-monitor .custom-method-and-url .custom-url-value-label {
   grid-column: 2 / 2;
-  grid-row: 1 / 1 ;
+  grid-row: 1 / 1;
   margin-inline-start: 12px;
 }
 
@@ -86,8 +86,10 @@
 }
 
 .network-monitor .custom-request button:focus {
-  box-shadow: 0 0 0 1px #0a84ff inset, 0 0 0 1px #0a84ff,
-  0 0 0 4px rgba(10,132,255,0.3)
+  box-shadow:
+    0 0 0 1px #0a84ff inset,
+    0 0 0 1px #0a84ff,
+    0 0 0 4px rgba(10, 132, 255, 0.3);
 }
 
 .network-monitor .custom-request #custom-request-send-button {

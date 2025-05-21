@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
- :root {
+:root {
   --breadcrumb-id-class-color: light-dark(#909090, var(--theme-text-color-strong));
   --breadcrumb-tag-color: light-dark(var(--theme-body-color), var(--theme-contrast-color));
 
@@ -100,11 +100,7 @@
       color: var(--theme-highlight-purple);
     }
 
-    :is(
-      .breadcrumbs-widget-item-tag,
-      .breadcrumbs-widget-item-pseudo-classes,
-      .breadcrumbs-widget-item-classes
-    ) {
+    :is(.breadcrumbs-widget-item-tag, .breadcrumbs-widget-item-pseudo-classes, .breadcrumbs-widget-item-classes) {
       color: currentColor;
     }
 

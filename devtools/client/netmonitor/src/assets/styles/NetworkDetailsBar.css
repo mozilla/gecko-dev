@@ -87,7 +87,6 @@
   overflow: inherit;
 }
 
-
 /* Text inputs in tab panels */
 
 .network-monitor .textbox-input {
@@ -100,7 +99,8 @@
 
 /* Tree table in tab panels */
 
-.network-monitor .tree-container, .tree-container .treeTable {
+.network-monitor .tree-container,
+.tree-container .treeTable {
   position: relative;
   height: 100%;
   width: 100%;
@@ -392,7 +392,6 @@
   align-items: center;
   padding-inline-end: 20px;
   --total-timings-width-percentage: 90%;
-
 }
 
 .network-monitor .requests-list-timings-total {
@@ -439,7 +438,6 @@
   background: var(--timing-server-color-total);
 }
 
-
 .network-monitor .serviceworker-timings-color-launch {
   background: var(--timing-server-color-1);
 }
@@ -451,7 +449,6 @@
 .network-monitor .serviceworker-timings-color-handledBy {
   background: var(--timing-server-color-3);
 }
-
 
 /* Stack trace panel */
 
@@ -507,12 +504,14 @@
 
 /* Custom request panel */
 
-.network-monitor .custom-request-panel, .http-custom-request-panel {
+.network-monitor .custom-request-panel,
+.http-custom-request-panel {
   height: 100%;
   background-color: var(--theme-sidebar-background);
 }
 
-.theme-dark .network-monitor .custom-request-panel, .http-custom-request-panel {
+.theme-dark .network-monitor .custom-request-panel,
+.http-custom-request-panel {
   color: var(--theme-selection-color);
 }
 
@@ -520,7 +519,8 @@
   font-weight: 600;
 }
 
-.network-monitor .custom-request-panel, .http-custom-request-panel textarea {
+.network-monitor .custom-request-panel,
+.http-custom-request-panel textarea {
   resize: none;
   font: message-box;
   font-size: var(--theme-body-font-size);
@@ -557,8 +557,8 @@
   width: 4.5em;
 }
 
-.network-monitor .http-custom-method-value{
-  width: 6.0em;
+.network-monitor .http-custom-method-value {
+  width: 6em;
 }
 
 .network-monitor .custom-url-value,

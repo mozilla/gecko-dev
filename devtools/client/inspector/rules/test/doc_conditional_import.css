@@ -1,3 +1,4 @@
-h1, [test-hint=imported-conditional] {
+h1,
+[test-hint="imported-conditional"] {
   color: rebeccapurple;
 }

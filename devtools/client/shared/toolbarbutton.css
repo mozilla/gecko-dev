@@ -23,7 +23,7 @@
     opacity: 0.5 !important;
   }
 
-  &:is([open],:hover,:hover:active) {
+  &:is([open], :hover, :hover:active) {
     background: var(--toolbarbutton-hover-background);
   }
 
@@ -41,7 +41,7 @@
     margin: 0 3px;
   }
 
-  &[open=true] > .toolbarbutton-icon {
+  &[open="true"] > .toolbarbutton-icon {
     color: var(--theme-icon-checked-color);
   }
 }

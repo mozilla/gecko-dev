@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
- .theme-dark {
+.theme-dark {
   --row-striped-background: rgba(255, 255, 255, 0.05);
- }
+}
 
 .theme-light {
   --row-striped-background: rgba(247, 247, 247, 0.8);
@@ -215,7 +215,7 @@
   border-width: 1px 1px 0 1px;
 
   /* Make the border more visible in High Contrast Mode */
-  :root[forced-colors-active]  &{
+  :root[forced-colors-active] & {
     border-style: solid;
   }
 }
@@ -227,7 +227,6 @@
 .rule-text.matched {
   text-decoration: line-through;
 }
-
 
 #computed-no-results {
   height: 100%;
