@@ -198,7 +198,7 @@ CO01:
         # toolkit/neterror/certError.ftl
         - cert-error-mitm-mozilla
         - cert-error-mitm-connection
-        # browser/components/urlbar/content/enUS-searchFeatures.ftl
+        # browser/search.ftl
         - add-engine-name-placeholder
     files:
         - browser/locales/en-US/browser/profile/default-bookmarks.ftl

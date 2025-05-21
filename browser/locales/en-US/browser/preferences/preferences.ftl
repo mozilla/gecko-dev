@@ -814,6 +814,9 @@ search-remove-engine =
 search-add-engine =
     .label = Add
     .accesskey = A
+search-edit-engine =
+    .label = Edit
+    .accesskey = E
 
 search-find-more-link = Find more search engines
 
@@ -824,6 +827,11 @@ search-keyword-warning-title = Duplicate Keyword
 #   $name (string) - Name of a search engine.
 search-keyword-warning-engine = You have chosen a keyword that is currently in use by “{ $name }”. Please select another.
 search-keyword-warning-bookmark = You have chosen a keyword that is currently in use by a bookmark. Please select another.
+
+# This warning is displayed when the chosen name is already in use.
+# Variables:
+#   $name (string) - Name of a search engine.
+edit-engine-name-warning-duplicate = There already is a search engine with the name “{ $name }”. Please choose another name.
 
 remove-engine-confirmation = Are you sure you want to remove this search engine?
 remove-engine-remove = Remove
