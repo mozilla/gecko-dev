@@ -33,7 +33,7 @@ add_task(async function test_getRecipe() {
     "Loaded the expected collection"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_getRecipe_Failure() {
@@ -43,7 +43,7 @@ add_task(async function test_getRecipe_Failure() {
   const recipe = await ExperimentAPI.getRecipe("foo");
   Assert.equal(recipe, undefined, "should return undefined if RS throws");
 
-  cleanup();
+  await cleanup();
 });
 
 /**
@@ -61,7 +61,7 @@ add_task(async function test_getAllBranches() {
     "should return all branches if found a recipe"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 // API used by Messaging System
@@ -85,7 +85,7 @@ add_task(async function test_getAllBranches_featureIdAccessor() {
     );
   });
 
-  cleanup();
+  await cleanup();
 });
 
 // For schema version before 1.6.2 branch.feature was accessed
@@ -120,7 +120,7 @@ add_task(async function test_getAllBranches_backwardsCompat() {
     );
   });
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_getAllBranches_Failure() {
@@ -131,7 +131,7 @@ add_task(async function test_getAllBranches_Failure() {
   const branches = await ExperimentAPI.getAllBranches("foo");
   Assert.equal(branches, undefined, "should return undefined if RS throws");
 
-  cleanup();
+  await cleanup();
 });
 
 /**
@@ -166,8 +166,8 @@ add_task(async function test_addEnrollment_eventEmit_add() {
 
   store.off("featureUpdate:purple", featureStub);
 
-  manager.unenroll(experiment.slug);
-  cleanup();
+  await manager.unenroll(experiment.slug);
+  await cleanup();
 });
 
 add_task(async function test_updateExperiment_eventEmit_add_and_update() {
@@ -201,8 +201,8 @@ add_task(async function test_updateExperiment_eventEmit_add_and_update() {
 
   store._offFeatureUpdate("featureUpdate:purple", featureStub);
 
-  manager.unenroll(experiment.slug);
-  cleanup();
+  await manager.unenroll(experiment.slug);
+  await cleanup();
 });
 
 add_task(async function test_updateExperiment_eventEmit_off() {
@@ -228,8 +228,8 @@ add_task(async function test_updateExperiment_eventEmit_off() {
 
   Assert.equal(featureStub.callCount, 1, "Called only once before `off`");
 
-  manager.unenroll(experiment.slug);
-  cleanup();
+  await manager.unenroll(experiment.slug);
+  await cleanup();
 });
 
 add_task(async function testGetEnrollments() {
@@ -256,14 +256,16 @@ add_task(async function testGetEnrollments() {
       branchSlug: "treatment",
       featureId: "foo",
       value: { foo: 1, baz: "qux" },
-    })
+    }),
+    "test"
   );
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig(
       "rollout",
       { featureId: "foo", value: { foo: 2, bar: false } },
       { isRollout: true }
-    )
+    ),
+    "test"
   );
 
   const enrollments = NimbusFeatures.foo
@@ -300,10 +302,10 @@ add_task(async function testGetEnrollments() {
     "Should have two enrollments"
   );
 
-  NimbusTestUtils.cleanupManager(["experiment", "rollout"], { manager });
+  await NimbusTestUtils.cleanupManager(["experiment", "rollout"], { manager });
   Services.prefs.clearUserPref(fallbackPref);
   cleanupFeature();
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testGetEnrollmentsCoenrolling() {
@@ -331,28 +333,32 @@ add_task(async function testGetEnrollmentsCoenrolling() {
       branchSlug: "treatment-a",
       featureId: "foo",
       value: { foo: 1, baz: "qux" },
-    })
+    }),
+    "test"
   );
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-2", {
       branchSlug: "treatment-b",
       featureId: "foo",
       value: { foo: 2 },
-    })
+    }),
+    "test"
   );
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig(
       "rollout-1",
       { featureId: "foo", value: { foo: 3, bar: true } },
       { isRollout: true }
-    )
+    ),
+    "test"
   );
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig(
       "rollout-2",
       { featureId: "foo", value: { bar: false, baz: "quux" } },
       { isRollout: true }
-    )
+    ),
+    "test"
   );
 
   const enrollments = NimbusFeatures.foo
@@ -411,13 +417,13 @@ add_task(async function testGetEnrollmentsCoenrolling() {
     "Should have four enrollments"
   );
 
-  NimbusTestUtils.cleanupManager(
+  await NimbusTestUtils.cleanupManager(
     ["experiment-1", "experiment-2", "rollout-1", "rollout-2"],
     { manager }
   );
   Services.prefs.clearUserPref(fallbackPref);
   cleanupFeature();
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testGetEnrollmentMetadata() {
@@ -433,14 +439,16 @@ add_task(async function testGetEnrollmentMetadata() {
     NimbusTestUtils.factories.recipe.withFeatureConfig("experiment", {
       branchSlug: "treatment",
       featureId: "foo",
-    })
+    }),
+    "test"
   );
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig(
       "rollout",
       { featureId: "foo" },
       { isRollout: true }
-    )
+    ),
+    "test"
   );
 
   const enrollments = NimbusFeatures.foo
@@ -464,10 +472,10 @@ add_task(async function testGetEnrollmentMetadata() {
     "Should have two enrollments"
   );
 
-  NimbusTestUtils.cleanupManager(["experiment", "rollout"], { manager });
+  await NimbusTestUtils.cleanupManager(["experiment", "rollout"], { manager });
 
   cleanupFeature();
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testGetEnrollmentMetadataCoenrolling() {
@@ -484,27 +492,31 @@ add_task(async function testGetEnrollmentMetadataCoenrolling() {
     NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-1", {
       branchSlug: "treatment-a",
       featureId: "foo",
-    })
+    }),
+    "test"
   );
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-2", {
       branchSlug: "treatment-b",
       featureId: "foo",
-    })
+    }),
+    "test"
   );
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig(
       "rollout-1",
       { featureId: "foo" },
       { isRollout: true }
-    )
+    ),
+    "test"
   );
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig(
       "rollout-2",
       { featureId: "foo" },
       { isRollout: true }
-    )
+    ),
+    "test"
   );
 
   const enrollments = NimbusFeatures.foo
@@ -538,13 +550,13 @@ add_task(async function testGetEnrollmentMetadataCoenrolling() {
     "Should have four enrollments"
   );
 
-  NimbusTestUtils.cleanupManager(
+  await NimbusTestUtils.cleanupManager(
     ["experiment-1", "experiment-2", "rollout-1", "rollout-2"],
     { manager }
   );
 
   cleanupFeature();
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testCoenrollingTraditionalApis() {
@@ -561,27 +573,31 @@ add_task(async function testCoenrollingTraditionalApis() {
     NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-1", {
       branchSlug: "treatment-a",
       featureId: "foo",
-    })
+    }),
+    "test"
   );
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-2", {
       branchSlug: "treatment-b",
       featureId: "foo",
-    })
+    }),
+    "test"
   );
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig(
       "rollout-1",
       { featureId: "foo" },
       { isRollout: true }
-    )
+    ),
+    "test"
   );
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig(
       "rollout-2",
       { featureId: "foo" },
       { isRollout: true }
-    )
+    ),
+    "test"
   );
 
   Assert.throws(
@@ -622,13 +638,13 @@ add_task(async function testCoenrollingTraditionalApis() {
     ]
   );
 
-  NimbusTestUtils.cleanupManager(
+  await NimbusTestUtils.cleanupManager(
     ["experiment-1", "experiment-2", "rollout-1", "rollout-2"],
     { manager }
   );
 
   cleanupFeature();
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testGetEnrollmentMetadata() {
@@ -668,7 +684,8 @@ add_task(async function testGetEnrollmentMetadata() {
       "rollout-slug",
       { featureId },
       { isRollout: true }
-    )
+    ),
+    "test"
   );
 
   // Thre are no active experiments, but there is an active rollout.
@@ -689,7 +706,8 @@ add_task(async function testGetEnrollmentMetadata() {
     NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-slug", {
       featureId,
       branchSlug: "treatment",
-    })
+    }),
+    "test"
   );
 
   // There is an active experiment and rollout, so we should get the experiment metadata by default.
@@ -706,7 +724,7 @@ add_task(async function testGetEnrollmentMetadata() {
     experimentMeta
   );
 
-  manager.unenroll("rollout-slug");
+  await manager.unenroll("rollout-slug");
 
   // There is only an active experiment.
   Assert.deepEqual(
@@ -722,7 +740,7 @@ add_task(async function testGetEnrollmentMetadata() {
     experimentMeta
   );
 
-  manager.unenroll("experiment-slug");
+  await manager.unenroll("experiment-slug");
 
   // There are no active enrollments.
   Assert.equal(
@@ -735,7 +753,7 @@ add_task(async function testGetEnrollmentMetadata() {
   );
   Assert.equal(NimbusFeatures[featureId].getEnrollmentMetadata(), null);
 
-  cleanup();
+  await cleanup();
   cleanupFeature();
 });
 
@@ -784,7 +802,7 @@ add_task(async function testGetEnrollmentMetadataSafe() {
     "getExperimentForFeature called"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testGetProfileId() {
@@ -813,5 +831,5 @@ add_task(async function testGetProfileId() {
     "ExperimentAPI.profileId matches pref value"
   );
 
-  cleanup();
+  await cleanup();
 });

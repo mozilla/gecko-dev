@@ -35,7 +35,7 @@ add_task(async function test_enrollmentHelper() {
     "Sync pref cache set"
   );
 
-  doEnrollmentCleanup();
+  await doEnrollmentCleanup();
 
   Assert.ok(manager.store.getAll().length === 0, "Cleanup done");
   Assert.ok(
@@ -62,12 +62,12 @@ add_task(async function test_enrollWithFeatureConfig() {
     "Enrolled successfully"
   );
 
-  doEnrollmentCleanup();
+  await doEnrollmentCleanup();
 
   Assert.ok(
     !manager.store.hasExperimentForFeature("enrollWithFeatureConfig"),
     "Unenrolled successfully"
   );
 
-  cleanup();
+  await cleanup();
 });

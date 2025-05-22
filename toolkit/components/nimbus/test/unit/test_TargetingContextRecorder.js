@@ -51,8 +51,8 @@ async function setupTest({ ...args } = {}) {
 
   return {
     ...ctx,
-    cleanup() {
-      baseCleanup();
+    async cleanup() {
+      await baseCleanup();
       Services.locale = localeService;
     },
   };
@@ -192,7 +192,7 @@ add_task(async function testNimbusTargetingContextAllKeysPresent() {
   manager.store._deleteForTests("experiment");
   manager.store._deleteForTests("rollout");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testNimbusTargetingEnvironmentUserSetPrefs() {
@@ -238,7 +238,7 @@ add_task(async function testNimbusTargetingEnvironmentUserSetPrefs() {
   Services.prefs.deleteBranch("nimbus.testing.testInt");
   Services.prefs.deleteBranch("nimbus.testing.testSetString");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testNimbusTargetingEnvironmentPrefValues() {
@@ -286,7 +286,7 @@ add_task(async function testNimbusTargetingEnvironmentPrefValues() {
 
   Services.prefs.deleteBranch(PREF);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testExperimentMetrics() {
@@ -373,7 +373,7 @@ add_task(async function testExperimentMetrics() {
   manager.store._deleteForTests("experiment-2");
   manager.store._deleteForTests("rollout-1");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testErrorMetrics() {
@@ -446,7 +446,7 @@ add_task(async function testErrorMetrics() {
     });
   }, recordTargetingContext);
 
-  cleanup();
+  await cleanup();
 
   Services.prefs.deleteBranch(PREF);
 });
@@ -556,7 +556,7 @@ add_task(async function testRecordingErrors() {
     );
   }, recordTargetingContext);
 
-  cleanup();
+  await cleanup();
 
   // We applied server knobs config and triggered Glean recording errors.
   Services.fog.testResetFOG();
@@ -660,5 +660,5 @@ add_task(async function testAddonsInfo() {
     );
   }, recordTargetingContext);
 
-  cleanup();
+  await cleanup();
 });

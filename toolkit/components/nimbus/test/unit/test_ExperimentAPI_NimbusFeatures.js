@@ -88,9 +88,9 @@ add_task(async function readyCallAfterStore_with_remote_value() {
 
   Assert.ok(!feature.getVariable("enabled"), "Loads value from store");
 
-  manager.unenroll(MATCHING_ROLLOUT.slug);
+  await manager.unenroll(MATCHING_ROLLOUT.slug);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function has_sync_value_before_ready() {
@@ -124,7 +124,7 @@ add_task(async function has_sync_value_before_ready() {
     "nimbus.syncdefaultsstore.aboutwelcome.remoteValue"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function update_remote_defaults_onUpdate() {
@@ -140,9 +140,9 @@ add_task(async function update_remote_defaults_onUpdate() {
   Assert.equal(stub.callCount, 1, "Called once for remote configs");
   Assert.equal(stub.firstCall.args[1], "rollout-updated", "Correct reason");
 
-  manager.unenroll(MATCHING_ROLLOUT.slug);
+  await manager.unenroll(MATCHING_ROLLOUT.slug);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function update_remote_defaults_readyPromise() {
@@ -160,9 +160,9 @@ add_task(async function update_remote_defaults_readyPromise() {
     "Update called after enrollment processed."
   );
 
-  manager.unenroll(MATCHING_ROLLOUT.slug);
+  await manager.unenroll(MATCHING_ROLLOUT.slug);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function update_remote_defaults_enabled() {
@@ -182,8 +182,8 @@ add_task(async function update_remote_defaults_enabled() {
     "Feature is disabled by remote configuration"
   );
 
-  manager.unenroll(MATCHING_ROLLOUT.slug);
-  cleanup();
+  await manager.unenroll(MATCHING_ROLLOUT.slug);
+  await cleanup();
 });
 
 // If the branch data returned from the store is not modified
@@ -205,5 +205,5 @@ add_task(async function test_getVariable_no_mutation() {
 
   Assert.ok(feature.getVariable("mochitest"), "Got back the expected feature");
 
-  cleanup();
+  await cleanup();
 });

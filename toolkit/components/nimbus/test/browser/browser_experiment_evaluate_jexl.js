@@ -90,5 +90,5 @@ add_task(async function test_evaluate_active_experiments_activeExperiments() {
     "should not find an experiment that doesn't exist"
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 });

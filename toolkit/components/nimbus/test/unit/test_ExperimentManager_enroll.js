@@ -55,9 +55,9 @@ add_task(async function test_add_to_store() {
   );
   Assert.equal(experiment.active, true, "should set .active = true");
 
-  manager.unenroll("foo");
+  await manager.unenroll("foo");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_add_rollout_to_store() {
@@ -87,9 +87,9 @@ add_task(async function test_add_rollout_to_store() {
   );
   Assert.equal(experiment.isRollout, true, "should have .isRollout");
 
-  manager.unenroll("rollout-slug");
+  await manager.unenroll("rollout-slug");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_enroll_optin_recipe_branch_selection() {
@@ -131,6 +131,7 @@ add_task(async function test_enroll_optin_recipe_branch_selection() {
   await manager.enroll(optInRecipe, "test", {
     branchSlug: optInRecipe.branches[0].slug,
   });
+
   Assert.ok(
     manager._enroll.calledOnceWith(
       optInRecipe,
@@ -140,7 +141,7 @@ add_task(async function test_enroll_optin_recipe_branch_selection() {
     "should call ._enroll() with the correct arguments"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_setExperimentActive_recordEnrollment_called() {
@@ -208,9 +209,9 @@ add_task(async function test_setExperimentActive_recordEnrollment_called() {
     "Glean.nimbusEvents.enrollment recorded with correct branch slug"
   );
 
-  manager.unenroll("foo");
+  await manager.unenroll("foo");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_setRolloutActive_recordEnrollment_called() {
@@ -300,9 +301,9 @@ add_task(async function test_setRolloutActive_recordEnrollment_called() {
     ]
   );
 
-  manager.unenroll("rollout");
+  await manager.unenroll("rollout");
 
-  cleanup();
+  await cleanup();
 });
 
 // /**
@@ -368,9 +369,9 @@ add_task(async function test_failure_name_conflict() {
     "enrollmentStatus telemetry recorded correctly"
   );
 
-  manager.unenroll("foo");
+  await manager.unenroll("foo");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_failure_group_conflict() {
@@ -441,9 +442,9 @@ add_task(async function test_failure_group_conflict() {
     "Glean.nimbusEvents.enroll_failed recorded with correct reason"
   );
 
-  manager.unenroll("foo");
+  await manager.unenroll("foo");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_rollout_failure_group_conflict() {
@@ -467,7 +468,7 @@ add_task(async function test_rollout_failure_group_conflict() {
     "no Glean enroll_failed events before failure"
   );
 
-  await manager.enroll(recipe);
+  await manager.enroll(recipe, "test_rollout_failure_group_conflict");
 
   Assert.equal(
     await manager.enroll(
@@ -502,9 +503,9 @@ add_task(async function test_rollout_failure_group_conflict() {
     "Glean.nimbusEvents.enroll_failed recorded with correct reason"
   );
 
-  manager.unenroll("rollout-recipe");
+  await manager.unenroll("rollout-recipe");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_rollout_experiment_no_conflict() {
@@ -555,11 +556,11 @@ add_task(async function test_rollout_experiment_no_conflict() {
     "no Glean enroll_failed events before failure"
   );
 
-  NimbusTestUtils.cleanupManager([experiment.slug, rollout.slug], {
+  await NimbusTestUtils.cleanupManager([experiment.slug, rollout.slug], {
     manager,
   });
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_sampling_check() {
@@ -617,7 +618,7 @@ add_task(async function test_sampling_check() {
     "called with expected total"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function enroll_in_reference_aw_experiment() {
@@ -655,9 +656,9 @@ add_task(async function enroll_in_reference_aw_experiment() {
   // in prefs.
   Assert.ok(prefValue.length < 3498, "Make sure we don't bloat the prefs");
 
-  manager.unenroll(recipe.slug);
+  await manager.unenroll(recipe.slug);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_forceEnroll_cleanup() {
@@ -687,7 +688,7 @@ add_task(async function test_forceEnroll_cleanup() {
   await manager.enroll(existingRecipe, "test_forceEnroll_cleanup");
 
   sandbox.spy(NimbusTelemetry, "setExperimentActive");
-  manager.forceEnroll(forcedRecipe, forcedRecipe.branches[0]);
+  await manager.forceEnroll(forcedRecipe, forcedRecipe.branches[0]);
 
   Assert.deepEqual(
     Glean.nimbusEvents.enrollmentStatus
@@ -733,9 +734,9 @@ add_task(async function test_forceEnroll_cleanup() {
     "Enrolled in forced experiment"
   );
 
-  manager.unenroll(`optin-bar`);
+  await manager.unenroll(`optin-bar`);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_rollout_unenroll_conflict() {
@@ -755,7 +756,7 @@ add_task(async function test_rollout_unenroll_conflict() {
   // We want to force a conflict
   await manager.enroll(conflictingRollout, "rs-loader");
 
-  manager.forceEnroll(rollout, rollout.branches[0]);
+  await manager.forceEnroll(rollout, rollout.branches[0]);
 
   Assert.ok(
     manager._unenroll.calledOnceWith(
@@ -774,9 +775,9 @@ add_task(async function test_rollout_unenroll_conflict() {
     "Rollout should be active"
   );
 
-  manager.unenroll(`optin-${rollout.slug}`);
+  await manager.unenroll(`optin-${rollout.slug}`);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_forceEnroll() {
@@ -842,11 +843,11 @@ add_task(async function test_forceEnroll() {
     }
 
     for (const { slug } of expected) {
-      manager.unenroll(`optin-${slug}`);
+      await manager.unenroll(`optin-${slug}`);
     }
   }
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_featureIds_is_stored() {
@@ -872,7 +873,7 @@ add_task(async function test_featureIds_is_stored() {
 
   doExperimentCleanup();
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function experiment_and_rollout_enroll_and_cleanup() {
@@ -935,7 +936,7 @@ add_task(async function experiment_and_rollout_enroll_and_cleanup() {
     )
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_reEnroll() {
@@ -960,34 +961,34 @@ add_task(async function test_reEnroll() {
     "Should enroll in rollout"
   );
 
-  manager.unenroll(experiment.slug);
+  await manager.unenroll(experiment.slug);
   Assert.ok(
     !manager.store.getExperimentForFeature("testFeature"),
     "Should unenroll from experiment"
   );
 
-  manager.unenroll(rollout.slug);
+  await manager.unenroll(rollout.slug);
   Assert.ok(
     !manager.store.getRolloutForFeature("testFeature"),
     "Should unenroll from rollout"
   );
 
   await Assert.rejects(
-    manager.enroll(experiment, "test", { reenroll: true }),
+    manager.enroll(experiment, "test", { reenroll: true }, "test"),
     /An experiment with the slug "experiment" already exists/,
     "Should not re-enroll in experiment"
   );
 
-  await manager.enroll(rollout, "test", { reenroll: true });
+  await manager.enroll(rollout, "test", { reenroll: true }, "test");
   Assert.equal(
     manager.store.getRolloutForFeature("testFeature")?.slug,
     rollout.slug,
     "Should re-enroll in rollout"
   );
 
-  manager.unenroll(rollout.slug);
+  await manager.unenroll(rollout.slug);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_randomizationUnit() {
@@ -1043,7 +1044,7 @@ add_task(async function test_group_enrollment() {
     Services.prefs.setStringPref("app.normandy.user_id", clientID);
     const { manager, cleanup } = await setupTest();
 
-    const enrollment = await manager.enroll(recipe);
+    const enrollment = await manager.enroll(recipe, "test");
 
     Assert.ok(enrollment.active, "Enrolled in recipe");
     Assert.equal(
@@ -1052,9 +1053,9 @@ add_task(async function test_group_enrollment() {
       "Should have enrolled in the expected branch"
     );
 
-    manager.unenroll(recipe.slug);
+    await manager.unenroll(recipe.slug);
 
-    cleanup();
+    await cleanup();
   }
 
   Services.prefs.clearUserPref("app.normandy.user_id");
@@ -1111,7 +1112,7 @@ add_task(async function test_getSingleOptInRecipe() {
     "Should throw when .getSingleOptInRecipe is called without a slug argument"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_getAllOptInRecipes() {
@@ -1196,7 +1197,7 @@ add_task(async function test_getAllOptInRecipes() {
     "Should only return the matching recipes"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testCoenrolling() {
@@ -1207,24 +1208,28 @@ add_task(async function testCoenrolling() {
       "rollout-1",
       { featureId: "no-feature-firefox-desktop" },
       { isRollout: true }
-    )
+    ),
+    "test"
   );
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig(
       "rollout-2",
       { featureId: "no-feature-firefox-desktop" },
       { isRollout: true }
-    )
+    ),
+    "test"
   );
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-1", {
       featureId: "no-feature-firefox-desktop",
-    })
+    }),
+    "test"
   );
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-2", {
       featureId: "no-feature-firefox-desktop",
-    })
+    }),
+    "test"
   );
 
   Assert.ok(manager.store.get("rollout-1").active, "rollout-1 is active");
@@ -1232,10 +1237,10 @@ add_task(async function testCoenrolling() {
   Assert.ok(manager.store.get("experiment-1").active, "experiment-1 is active");
   Assert.ok(manager.store.get("experiment-2").active, "experiment-2 is active");
 
-  manager.unenroll("rollout-1");
-  manager.unenroll("rollout-2");
-  manager.unenroll("experiment-1");
-  manager.unenroll("experiment-2");
+  await manager.unenroll("rollout-1");
+  await manager.unenroll("rollout-2");
+  await manager.unenroll("experiment-1");
+  await manager.unenroll("experiment-2");
 
-  cleanup();
+  await cleanup();
 });

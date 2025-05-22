@@ -107,7 +107,7 @@ add_task(async function testGetFromChildNewEnrollment() {
 
   childUpdated = await childSharedDataChanged(browser);
   // Unenroll from the experiment in the parent process.
-  ExperimentAPI.manager.unenroll("foo");
+  await ExperimentAPI.manager.unenroll("foo");
   // Propagate the change to child processes.
   Services.ppmm.sharedData.flush();
   await childUpdated.promise;
@@ -187,7 +187,7 @@ add_task(async function testGetFromChildExistingEnrollment() {
     );
   });
 
-  ExperimentAPI.manager.unenroll("qux");
+  await ExperimentAPI.manager.unenroll("qux");
   ExperimentAPI.manager.store._deleteForTests("qux");
   BrowserTestUtils.removeTab(tab);
 

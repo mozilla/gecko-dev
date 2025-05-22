@@ -102,7 +102,7 @@ add_task(async function test_updateRecipes_invalidFeatureId() {
     "Did not submit telemetry"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_invalidFeatureValue() {
@@ -153,7 +153,7 @@ add_task(async function test_updateRecipes_invalidFeatureValue() {
   );
   Assert.ok(manager.enroll.notCalled, "Would not enroll");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_invalidRecipe() {
@@ -177,7 +177,7 @@ add_task(async function test_updateRecipes_invalidRecipe() {
   );
   Assert.ok(manager.enroll.notCalled, "Would not enroll");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
@@ -232,7 +232,7 @@ add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
     "Should unenroll"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
@@ -329,7 +329,7 @@ add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
     "should unenroll"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
@@ -437,7 +437,7 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
     "Should unenroll"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_invalidFeatureAfterUpdate() {
@@ -497,7 +497,7 @@ add_task(async function test_updateRecipes_invalidFeatureAfterUpdate() {
     ]
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_validationTelemetry() {
@@ -601,7 +601,7 @@ add_task(async function test_updateRecipes_validationTelemetry() {
 
     TelemetryTestUtils.assertEvents(expectedLegacyEvents, LEGACY_FILTER);
 
-    cleanup();
+    await cleanup();
   }
 });
 
@@ -663,7 +663,7 @@ add_task(async function test_updateRecipes_validationDisabled() {
       "Would enroll"
     );
 
-    cleanup();
+    await cleanup();
   }
 
   Services.prefs.clearUserPref("nimbus.validation.enabled");
@@ -715,7 +715,7 @@ add_task(async function test_updateRecipes_appId() {
 
   Services.prefs.clearUserPref("nimbus.appId");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_withPropNotInManifest() {
@@ -758,7 +758,7 @@ add_task(async function test_updateRecipes_withPropNotInManifest() {
     "should call onRecipe with this recipe"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_recipeAppId() {
@@ -776,7 +776,7 @@ add_task(async function test_updateRecipes_recipeAppId() {
 
   Assert.ok(manager.onRecipe.notCalled, ".onRecipe was never called");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_featureValidationOptOut() {
@@ -830,7 +830,7 @@ add_task(async function test_updateRecipes_featureValidationOptOut() {
       "should call onRecipe for optOutRecipe with targeting and bucketing match"
     );
 
-    cleanup();
+    await cleanup();
   }
 });
 
@@ -879,7 +879,7 @@ add_task(async function test_updateRecipes_invalidFeature_mismatch() {
     "Should not have submitted validation failed telemetry"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_rollout_bucketing() {
@@ -959,7 +959,7 @@ add_task(async function test_updateRecipes_rollout_bucketing() {
 
   manager.unenroll(experiment.slug);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_reenroll_rollout_resized() {
@@ -1010,7 +1010,7 @@ add_task(async function test_reenroll_rollout_resized() {
 
   manager.unenroll(rollout.slug);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_experiment_reenroll() {
@@ -1039,7 +1039,7 @@ add_task(async function test_experiment_reenroll() {
     "Should not re-enroll in experiment"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_rollout_reenroll_optout() {
@@ -1070,7 +1070,7 @@ add_task(async function test_rollout_reenroll_optout() {
     "Should not re-enroll in rollout"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_active_and_past_experiment_targeting() {
@@ -1166,7 +1166,7 @@ add_task(async function test_active_and_past_experiment_targeting() {
   manager.unenroll("rollout-c");
 
   cleanupFeatures();
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_enrollment_targeting() {
@@ -1339,7 +1339,7 @@ add_task(async function test_enrollment_targeting() {
   }
 
   cleanupFeatures();
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_update_experiments_ordered_by_published_date() {
@@ -1383,7 +1383,7 @@ add_task(async function test_update_experiments_ordered_by_published_date() {
       .calledWith(sinon.match({ slug: "published-date-2" }), "rs-loader")
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(
@@ -1399,7 +1399,7 @@ add_task(
     const isReadyEvents = Glean.nimbusEvents.isReady.testGetValue("events");
     Assert.equal(isReadyEvents.length, 1);
 
-    cleanup();
+    await cleanup();
   }
 );
 
@@ -1427,7 +1427,7 @@ add_task(
     Assert.equal(isReadyEvents.length, 3);
     manager.unenroll(recipe.slug);
 
-    cleanup();
+    await cleanup();
   }
 );
 
@@ -1514,7 +1514,7 @@ add_task(async function test_updateRecipes_secure() {
       );
     }
 
-    cleanup();
+    await cleanup();
   }
 });
 
@@ -1556,7 +1556,7 @@ add_task(async function test_updateRecipesClearsOptIns() {
 
   Assert.deepEqual(manager.optInRecipes, recipes);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_optInsStayEnrolled() {
@@ -1596,7 +1596,7 @@ add_task(async function test_updateRecipes_optInsStayEnrolled() {
 
   manager.unenroll("opt-in");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_optInsUnerollOnFalseTargeting() {
@@ -1635,7 +1635,7 @@ add_task(async function test_updateRecipes_optInsUnerollOnFalseTargeting() {
   await loader.updateRecipes();
   Assert.ok(!manager.store.get("opt-in")?.active, "Opt-in unenrolled");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_bucketingCausesOptInUnenrollments() {
@@ -1669,7 +1669,7 @@ add_task(async function test_updateRecipes_bucketingCausesOptInUnenrollments() {
   await loader.updateRecipes();
   Assert.ok(!manager.store.get("opt-in")?.active, "Opt-in unenrolled");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_reEnrollRolloutOptin() {
@@ -1709,7 +1709,7 @@ add_task(async function test_updateRecipes_reEnrollRolloutOptin() {
   await loader.updateRecipes();
   Assert.ok(!manager.store.get("opt-in").active, "Opt-in not re-enrolled");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_enrollmentStatus_telemetry() {
@@ -1918,7 +1918,7 @@ add_task(async function test_updateRecipes_enrollmentStatus_telemetry() {
   manager.unenroll("enrolls");
 
   cleanupFeatures();
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes_enrollmentStatus_notEnrolled() {
@@ -2031,7 +2031,7 @@ add_task(async function test_updateRecipes_enrollmentStatus_notEnrolled() {
   manager.unenroll("enrolled-rollout");
 
   cleanupFeatures();
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipesWithPausedEnrollment() {
@@ -2059,7 +2059,7 @@ add_task(async function test_updateRecipesWithPausedEnrollment() {
     "Should not call enroll for paused recipe"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipesUnenrollsNotSeenRecipes() {
@@ -2150,7 +2150,7 @@ add_task(async function test_updateRecipesUnenrollsNotSeenRecipes() {
     }
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipesUnenrollsTargetingMismatch() {
@@ -2174,7 +2174,7 @@ add_task(async function test_updateRecipesUnenrollsTargetingMismatch() {
     "Unenroll reason matches"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testUnenrollsFirst() {
@@ -2221,5 +2221,5 @@ add_task(async function testUnenrollsFirst() {
   manager.unenroll("e3");
   manager.unenroll("r3");
 
-  cleanup();
+  await cleanup();
 });

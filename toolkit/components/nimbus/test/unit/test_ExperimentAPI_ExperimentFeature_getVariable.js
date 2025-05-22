@@ -71,7 +71,7 @@ add_task(async function test_ExperimentFeature_getVariable_noFallbackPref() {
     "should return undefined if no values are set and no fallback pref is defined"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_ExperimentFeature_getVariable_precedence() {
@@ -132,8 +132,8 @@ add_task(async function test_ExperimentFeature_getVariable_precedence() {
 
   Services.prefs.deleteBranch(TEST_PREF_BRANCH);
   doExperimentCleanup();
-  manager.unenroll(rollout.slug);
-  cleanup();
+  await manager.unenroll(rollout.slug);
+  await cleanup();
 });
 
 add_task(async function test_ExperimentFeature_getVariable_partial_values() {
@@ -179,8 +179,8 @@ add_task(async function test_ExperimentFeature_getVariable_partial_values() {
   Services.prefs.getDefaultBranch(null).deleteBranch(TEST_PREF_BRANCH);
   Services.prefs.deleteBranch(TEST_PREF_BRANCH);
   doExperimentCleanup();
-  manager.unenroll(rollout.slug);
-  cleanup();
+  await manager.unenroll(rollout.slug);
+  await cleanup();
 });
 
 add_task(async function testGetVariableCoenrolling() {

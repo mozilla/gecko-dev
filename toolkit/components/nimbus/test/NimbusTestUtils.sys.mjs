@@ -370,12 +370,16 @@ export const NimbusTestUtils = {
    * @params {object?} options.manager
    *         The ExperimentManager to clean up. Defaults to the global
    *         ExperimentManager.
+   *
+   * @returns {Promise<void>}
+   *          A promise that resolves when all experiments have been unenrolled
+   *          and the store is empty.
    */
-  cleanupManager(slugs, { manager } = {}) {
+  async cleanupManager(slugs, { manager } = {}) {
     const experimentManager = manager ?? ExperimentAPI.manager;
 
     for (const slug of slugs) {
-      experimentManager.unenroll(slug);
+      await experimentManager.unenroll(slug);
     }
 
     NimbusTestUtils.assert.storeIsEmpty(experimentManager.store);
@@ -410,7 +414,7 @@ export const NimbusTestUtils = {
    * @param {string?} options.source
    *        The source to attribute to the enrollment.
    *
-   * @returns {Promise<function(): void>}
+   * @returns {Promise<function(): Promise<void>>}
    *          A cleanup function that will unenroll from the enrolled recipe and
    *          remove it from the store.
    *
@@ -443,8 +447,14 @@ export const NimbusTestUtils = {
     experimentManager.store._syncToChildren({ flush: true });
 
     return function doEnrollmentCleanup() {
-      experimentManager.unenroll(enrollment.slug);
+      // TODO(bug 1956082): This is an async method that we are not awaiting.
+      //
+      // Only browser tests and tests that otherwise have manually enabled the
+      // ProfilesDatastoreService need to await the result.
+      const promise = experimentManager.unenroll(enrollment.slug);
       experimentManager.store._deleteForTests(enrollment.slug);
+
+      return promise;
     };
   },
 
@@ -479,7 +489,7 @@ export const NimbusTestUtils = {
    * @param {boolean?} options.isRollout
    *        If true, the enrolled recipe will be a rollout.
    *
-   * @returns {Promise<function(): void>}
+   * @returns {Promise<function(): Promise<void>>}
    *          A cleanup function that will unenroll from the enrolled recipe and
    *          remove it from the store.
    *
@@ -527,7 +537,7 @@ export const NimbusTestUtils = {
    *         The store to delete.
    */
   async removeStore(store) {
-    NimbusTestUtils.assert.storeIsEmpty(store);
+    await NimbusTestUtils.assert.storeIsEmpty(store);
 
     // Prevent the next save from happening.
     store._store._saver.disarm();
@@ -584,7 +594,7 @@ export const NimbusTestUtils = {
    * @property {(function(): void)?} initExperimentAPI
    *           A function that will complete ExperimentAPI initialization.
    *
-   * @property {function(): void} cleanup
+   * @property {function(): Promise<void>} cleanup
    *           A cleanup function that should be called at the end of the test.
    */
 
@@ -646,8 +656,9 @@ export const NimbusTestUtils = {
       sandbox,
       loader,
       manager,
-      cleanup() {
-        NimbusTestUtils.assert.storeIsEmpty(manager.store);
+      async cleanup() {
+        await NimbusTestUtils.assert.storeIsEmpty(manager.store);
+
         ExperimentAPI._resetForTests();
         sandbox.restore();
 

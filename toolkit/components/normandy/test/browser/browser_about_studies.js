@@ -646,7 +646,7 @@ add_task(async function test_nimbus_about_studies_experiment() {
   const recipe = NimbusTestUtils.factories.recipe("about-studies-foo");
   const {
     branch: { slug: activeBranchSlug },
-  } = await ExperimentAPI.manager.enroll(recipe);
+  } = await ExperimentAPI.manager.enroll(recipe, "test");
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:studies", activeBranchSlug },
     async browser => {
@@ -677,7 +677,7 @@ add_task(async function test_nimbus_about_studies_experiment() {
       );
     }
   );
-  ExperimentAPI.manager.unenroll(recipe.slug);
+  await ExperimentAPI.manager.unenroll(recipe.slug);
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:studies", activeBranchSlug },
     async browser => {
@@ -722,7 +722,7 @@ add_task(async function test_nimbus_about_studies_rollout() {
     branches: [recipe.branches[0]],
     isRollout: true,
   };
-  await ExperimentAPI.manager.enroll(rollout);
+  await ExperimentAPI.manager.enroll(rollout, "test");
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:studies" },
     async browser => {
@@ -869,8 +869,8 @@ add_task(async function test_forceEnroll() {
     });
 
     // Enrolls in the experiment and rollout
-    await ExperimentAPI.manager.enroll(experiment);
-    await ExperimentAPI.manager.enroll(rollout);
+    await ExperimentAPI.manager.enroll(experiment, "test");
+    await ExperimentAPI.manager.enroll(rollout, "test");
 
     // Checks about:studies to ensure they are both in the active section
     await BrowserTestUtils.withNewTab(
@@ -907,8 +907,8 @@ add_task(async function test_forceEnroll() {
     );
 
     // Unenrolls from the experiment and rollout
-    ExperimentAPI.manager.unenroll(experiment.slug);
-    ExperimentAPI.manager.unenroll(rollout.slug);
+    await ExperimentAPI.manager.unenroll(experiment.slug);
+    await ExperimentAPI.manager.unenroll(rollout.slug);
 
     // Checks about:studies to ensure they are both in the inactive section
     await BrowserTestUtils.withNewTab(

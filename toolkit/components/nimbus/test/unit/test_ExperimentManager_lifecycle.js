@@ -62,10 +62,10 @@ add_task(async function test_onStartup_setExperimentActive_called() {
     )
   );
 
-  manager.unenroll("foo");
-  manager.unenroll("bar");
+  await manager.unenroll("foo");
+  await manager.unenroll("bar");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_startup_unenroll() {
@@ -102,7 +102,7 @@ add_task(async function test_startup_unenroll() {
 
   Services.prefs.clearUserPref("app.shield.optoutstudies.enabled");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_onRecipe_enroll() {
@@ -137,9 +137,9 @@ add_task(async function test_onRecipe_enroll() {
     "should add recipe to the store"
   );
 
-  manager.unenroll(recipe.slug);
+  await manager.unenroll(recipe.slug);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_onRecipe_update() {
@@ -172,9 +172,9 @@ add_task(async function test_onRecipe_update() {
     "should call .updateEnrollment() if the recipe has already been enrolled"
   );
 
-  manager.unenroll(recipe.slug);
+  await manager.unenroll(recipe.slug);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_onRecipe_rollout_update() {
@@ -242,7 +242,7 @@ add_task(async function test_onRecipe_rollout_update() {
     "updateEnrollment will unenroll because the branch slug changed"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_onRecipe_isFirefoxLabsOptin_recipe() {
@@ -285,7 +285,7 @@ add_task(async function test_onRecipe_isFirefoxLabsOptin_recipe() {
     "should try to enroll the fxLabsOptOutRecipe since it is a targetting match"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_context_paramters() {
@@ -317,8 +317,8 @@ add_task(async function test_context_paramters() {
     "rollout",
   ]);
 
-  manager.unenroll(experiment.slug);
-  manager.unenroll(rollout.slug);
+  await manager.unenroll(experiment.slug);
+  await manager.unenroll(rollout.slug);
 
   targetingCtx = manager.createTargetingContext();
   Assert.deepEqual(await targetingCtx.activeExperiments, []);
@@ -330,7 +330,7 @@ add_task(async function test_context_paramters() {
     "rollout",
   ]);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_experimentStore_updateEvent() {
@@ -348,7 +348,7 @@ add_task(async function test_experimentStore_updateEvent() {
   );
   stub.resetHistory();
 
-  manager.unenroll(
+  await manager.unenroll(
     "experiment",
     UnenrollmentCause.fromReason(
       NimbusTelemetry.UnenrollReason.INDIVIDUAL_OPT_OUT
@@ -362,5 +362,5 @@ add_task(async function test_experimentStore_updateEvent() {
     })
   );
 
-  cleanup();
+  await cleanup();
 });

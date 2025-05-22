@@ -211,11 +211,11 @@ async function setupTest({ ...args } = {}) {
 
   return {
     ...ctx,
-    cleanup() {
+    async cleanup() {
       removePrefObservers(ctx.manager);
       assertNoObservers(ctx.manager);
 
-      baseCleanup();
+      await baseCleanup();
     },
   };
 }
@@ -331,7 +331,7 @@ add_task(async function test_enroll_setPref_rolloutsAndExperiments() {
       i++;
     }
 
-    cleanup();
+    await cleanup();
     Services.prefs.deleteBranch(pref);
   }
 
@@ -1288,7 +1288,7 @@ add_task(async function test_restorePrefs_experimentAndRollout() {
       await manager.store.init();
       await manager.onStartup();
 
-      NimbusTestUtils.assert.storeIsEmpty(manager.store);
+      await NimbusTestUtils.assert.storeIsEmpty(manager.store);
 
       for (const [enrollmentKind, config] of Object.entries(configs)) {
         await NimbusTestUtils.enrollWithFeatureConfig(config, {
@@ -1356,7 +1356,7 @@ add_task(async function test_restorePrefs_experimentAndRollout() {
 
     let i = 1;
     for (const enrollmentKind of unenrollOrder) {
-      manager.unenroll(slugs[enrollmentKind]);
+      await manager.unenroll(slugs[enrollmentKind]);
 
       assertExpectedPrefValues(
         pref,
@@ -1369,7 +1369,7 @@ add_task(async function test_restorePrefs_experimentAndRollout() {
       i++;
     }
 
-    cleanup();
+    await cleanup();
 
     Services.prefs.deleteBranch(pref);
   }
@@ -1877,7 +1877,7 @@ add_task(async function test_prefChange() {
     }
 
     Services.prefs.deleteBranch(pref);
-    cleanup();
+    await cleanup();
   }
 
   {
@@ -2328,7 +2328,7 @@ add_task(async function test_deleteBranch() {
   Services.prefs.deleteBranch(PREFS[USER]);
   Services.prefs.deleteBranch(PREFS[DEFAULT]);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_clearUserPref() {
@@ -2443,7 +2443,7 @@ add_task(async function test_clearUserPref() {
     }
 
     Services.prefs.deleteBranch(pref);
-    cleanup();
+    await cleanup();
   }
 
   {
@@ -2677,7 +2677,7 @@ add_task(async function test_prefChanged_noPrefSet() {
             }
 
             doEnrollmentCleanup();
-            cleanup();
+            await cleanup();
 
             Services.prefs.deleteBranch(pref);
           }
@@ -2822,7 +2822,7 @@ add_task(async function test_restorePrefs_manifestChanged() {
       await manager.store.init();
       await manager.onStartup();
 
-      NimbusTestUtils.assert.storeIsEmpty(manager.store);
+      await NimbusTestUtils.assert.storeIsEmpty(manager.store);
 
       for (const [enrollmentKind, config] of Object.entries(configs)) {
         const isRollout = enrollmentKind === ROLLOUT;
@@ -2997,10 +2997,10 @@ add_task(async function test_restorePrefs_manifestChanged() {
 
     for (const enrollmentKind of expectedEnrollments) {
       const slug = slugs[enrollmentKind];
-      manager.unenroll(slug);
+      await manager.unenroll(slug);
     }
 
-    cleanup();
+    await cleanup();
     Services.prefs.deleteBranch(pref);
 
     if (operation !== REMOVE_FEATURE) {
@@ -3234,7 +3234,7 @@ add_task(async function test_nested_prefs_enroll_both() {
       "after enrollment"
     );
 
-    manager.unenroll(experiment.slug);
+    await manager.unenroll(experiment.slug);
 
     {
       const enrollments = manager.store
@@ -3264,9 +3264,9 @@ add_task(async function test_nested_prefs_enroll_both() {
       "After experiment unenrollment"
     );
 
-    manager.unenroll(rollout.slug);
+    await manager.unenroll(rollout.slug);
 
-    cleanup();
+    await cleanup();
   }
 
   info(
@@ -3390,7 +3390,7 @@ add_task(async function test_setPref_types() {
 
   experimentCleanup();
   featureCleanup();
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_setPref_types_restore() {
@@ -3410,7 +3410,7 @@ add_task(async function test_setPref_types_restore() {
 
     await manager.store.init();
     await manager.onStartup();
-    NimbusTestUtils.assert.storeIsEmpty(manager.store);
+    await NimbusTestUtils.assert.storeIsEmpty(manager.store);
 
     await NimbusTestUtils.enrollWithFeatureConfig(
       {
@@ -3476,8 +3476,8 @@ add_task(async function test_setPref_types_restore() {
   const enrollment = manager.store.getExperimentForFeature(
     TYPED_FEATURE.featureId
   );
-  manager.unenroll(enrollment.slug);
+  await manager.unenroll(enrollment.slug);
 
-  cleanup();
+  await cleanup();
   featureCleanup();
 });

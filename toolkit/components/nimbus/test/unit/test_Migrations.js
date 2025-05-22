@@ -113,8 +113,8 @@ async function setupTest({
 
   return {
     ...ctx,
-    cleanup() {
-      baseCleanup();
+    async cleanup() {
+      await baseCleanup();
       Services.prefs.deleteBranch("nimbus.migrations");
     },
   };
@@ -228,7 +228,7 @@ add_task(async function test_migration_unset() {
     ]
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_migration_partially_done() {
@@ -304,7 +304,7 @@ add_task(async function test_migration_partially_done() {
     ]
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_migration_throws() {
@@ -437,7 +437,7 @@ add_task(async function test_migration_throws() {
     ]
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_migration_throws_MigrationError() {
@@ -566,7 +566,7 @@ add_task(async function test_migration_throws_MigrationError() {
     ]
   );
 
-  cleanup();
+  await cleanup();
 });
 
 const LEGACY_TO_MULTIPHASE_MIGRATION =
@@ -614,7 +614,7 @@ add_task(async function test_migration_legacyToMultiphase_unset() {
     "legacy phase pref is unset"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_migration_legacyToMultiphase_partial() {
@@ -667,7 +667,7 @@ add_task(async function test_migration_legacyToMultiphase_partial() {
     "legacy phase pref is unset"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_migration_legacyToMultiphase_complete() {
@@ -707,7 +707,7 @@ add_task(async function test_migration_legacyToMultiphase_complete() {
     "legacy phase pref is unset"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 const FIREFOX_LABS_MIGRATION =
@@ -758,7 +758,7 @@ add_task(async function test_migration_firefoxLabsEnrollments() {
           `Pref ${pref} should be set after enrollment`
         );
 
-        manager.unenroll(slug);
+        await manager.unenroll(slug);
         Assert.equal(
           Services.prefs.getBoolPref(pref),
           false,
@@ -786,7 +786,7 @@ add_task(async function test_migration_firefoxLabsEnrollments() {
       ]
     );
 
-    cleanup();
+    await cleanup();
   }
 
   await doTest([]);
@@ -852,7 +852,7 @@ add_task(async function test_migration_firefoxLabsEnrollments_falseTargeting() {
     ]
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_migration_firefoxLabsEnrollments_idempotent() {
@@ -912,10 +912,10 @@ add_task(async function test_migration_firefoxLabsEnrollments_idempotent() {
   );
 
   for (const { slug } of recipes) {
-    manager.unenroll(slug);
+    await manager.unenroll(slug);
   }
 
-  cleanup();
+  await cleanup();
 
   for (const pref of prefs) {
     Services.prefs.clearUserPref(pref);

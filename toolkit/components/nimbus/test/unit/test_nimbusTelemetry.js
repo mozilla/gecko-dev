@@ -125,7 +125,7 @@ add_task(
 
     Services.fog.testResetFOG();
 
-    cleanup();
+    await cleanup();
   }
 );
 
@@ -252,7 +252,7 @@ add_task(
       );
     }, recordTargetingContext);
 
-    cleanupExperiment();
-    cleanup();
+    await cleanupExperiment();
+    await cleanup();
   }
 );

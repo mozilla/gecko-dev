@@ -65,7 +65,7 @@ add_task(async function test_ExperimentFeature_test_helper_ready() {
   );
 
   cleanupExperiment();
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_record_exposure_event() {
@@ -76,7 +76,7 @@ add_task(async function test_record_exposure_event() {
   sandbox.spy(NimbusTelemetry, "recordExposure");
   sandbox.spy(NimbusFeatures.foo, "getEnrollmentMetadata");
 
-  NimbusTestUtils.assert.storeIsEmpty(manager.store);
+  await NimbusTestUtils.assert.storeIsEmpty(manager.store);
   NimbusFeatures.foo.recordExposureEvent();
 
   Assert.ok(
@@ -145,8 +145,8 @@ add_task(async function test_record_exposure_event() {
 
   sandbox.restore();
 
-  manager.unenroll("blah");
-  cleanup();
+  await manager.unenroll("blah");
+  await cleanup();
 });
 
 add_task(async function test_record_exposure_event_once() {
@@ -177,8 +177,8 @@ add_task(async function test_record_exposure_event_once() {
   // We expect only one event
   Assert.equal(1, exposureEvents.length);
 
-  manager.unenroll("blah");
-  cleanup();
+  await manager.unenroll("blah");
+  await cleanup();
 });
 
 add_task(async function test_allow_multiple_exposure_events() {
@@ -213,7 +213,7 @@ add_task(async function test_allow_multiple_exposure_events() {
   Assert.equal(3, exposureEvents.length);
 
   doExperimentCleanup();
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_onUpdate_after_store_ready() {
@@ -258,5 +258,5 @@ add_task(async function test_onUpdate_after_store_ready() {
     "Returns the NimbusTestUtils rollout default value"
   );
 
-  cleanup();
+  await cleanup();
 });

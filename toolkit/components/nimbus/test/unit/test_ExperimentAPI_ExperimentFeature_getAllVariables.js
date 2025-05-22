@@ -41,7 +41,7 @@ add_task(
 
     Services.prefs.clearUserPref(TEST_FALLBACK_PREF);
 
-    cleanup();
+    await cleanup();
   }
 );
 
@@ -84,7 +84,7 @@ add_task(
       "should return the AW experiment value"
     );
 
-    NimbusTestUtils.cleanupManager([recipe.slug], { manager });
+    await NimbusTestUtils.cleanupManager([recipe.slug], { manager });
     Assert.deepEqual(
       featureInstance.getAllVariables().screens.length,
       0,
@@ -93,7 +93,7 @@ add_task(
 
     Services.prefs.clearUserPref(TEST_FALLBACK_PREF);
 
-    cleanup();
+    await cleanup();
   }
 );
 
@@ -134,9 +134,11 @@ add_task(
     Assert.equal(allVariables.screens.length, 1, "Returns experiment value");
     Assert.ok(!allVariables.source, "Does not include rollout value");
 
-    NimbusTestUtils.cleanupManager([recipe.slug, rollout.slug], { manager });
+    await NimbusTestUtils.cleanupManager([recipe.slug, rollout.slug], {
+      manager,
+    });
 
-    cleanup();
+    await cleanup();
   }
 );
 
@@ -183,8 +185,8 @@ add_task(
 
     Services.prefs.clearUserPref(TEST_FALLBACK_PREF);
 
-    manager.unenroll(rollout.slug);
-    cleanup();
+    await manager.unenroll(rollout.slug);
+    await cleanup();
   }
 );
 
@@ -205,7 +207,7 @@ add_task(
       "should return defaultValues param over default pref settings"
     );
 
-    cleanup();
+    await cleanup();
   }
 );
 

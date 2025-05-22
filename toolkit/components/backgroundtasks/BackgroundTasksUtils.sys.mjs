@@ -337,7 +337,7 @@ export var BackgroundTasksUtils = {
         }
         let branch = recipe.branches.find(b => b.slug == branchSlug);
 
-        lazy.ExperimentAPI.manager.forceEnroll(recipe, branch);
+        await lazy.ExperimentAPI.manager.forceEnroll(recipe, branch);
         lazy.log.info(`Forced enrollment into: ${path}, branch: ${branchSlug}`);
       }
     }

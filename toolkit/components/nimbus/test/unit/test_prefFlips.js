@@ -143,9 +143,9 @@ async function setupTest({ ...args } = {}) {
 
   return {
     ...ctx,
-    cleanup() {
+    async cleanup() {
       assertNoObservers(ctx.manager);
-      baseCleanup();
+      await baseCleanup();
     },
   };
 }
@@ -501,7 +501,7 @@ add_task(async function test_prefFlips() {
       Services.prefs.deleteBranch(prefName);
     }
 
-    cleanup();
+    await cleanup();
   }
 });
 
@@ -1617,7 +1617,7 @@ add_task(async function test_prefFlips_unenrollment() {
     if (unenrollmentOrder) {
       info("Unenrolling from specific experiments before checking prefs...");
       for (const slug of unenrollmentOrder ?? []) {
-        manager.unenroll(slug);
+        await manager.unenroll(slug);
       }
     }
 
@@ -1630,7 +1630,7 @@ add_task(async function test_prefFlips_unenrollment() {
     for (const slug of expectedEnrollments) {
       if (!(unenrollmentOrder ?? []).includes(slug)) {
         info(`Unenrolling from ${slug}\n`);
-        manager.unenroll(slug);
+        await manager.unenroll(slug);
       }
     }
 
@@ -1638,7 +1638,7 @@ add_task(async function test_prefFlips_unenrollment() {
     Services.prefs.deleteBranch(PREF_FOO);
     Services.prefs.deleteBranch(PREF_BAR);
 
-    cleanup();
+    await cleanup();
   }
 });
 
@@ -2100,12 +2100,12 @@ add_task(async function test_prefFlip_setPref_restore() {
     );
 
     info("Unenrolling...");
-    manager.unenroll(enrollmentOrder[1]);
+    await manager.unenroll(enrollmentOrder[1]);
 
     info("Checking expected prefs...");
     checkExpectedPrefBranches(expectedPrefs);
 
-    cleanup();
+    await cleanup();
 
     info("Cleaning up prefs...");
     Services.prefs.deleteBranch(PREF);
@@ -2175,13 +2175,13 @@ add_task(async function test_prefFlips_cacheOriginalValues() {
     "originalValues cached on serialized enrollment"
   );
 
-  manager.unenroll(recipe.slug);
+  await manager.unenroll(recipe.slug);
   Assert.ok(
     !Services.prefs.prefHasUserValue("test.pref.please.ignore"),
     "pref unset after unenrollment"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_prefFlips_restore_unenroll() {
@@ -2244,13 +2244,13 @@ add_task(async function test_prefFlips_restore_unenroll() {
     null
   );
 
-  manager.unenroll(recipe.slug);
+  await manager.unenroll(recipe.slug);
   Assert.ok(
     !Services.prefs.prefHasUserValue("test.pref.please.ignore"),
     "pref unset after unenrollment"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_prefFlips_failed() {
@@ -2271,7 +2271,7 @@ add_task(async function test_prefFlips_failed() {
   );
 
   const { manager, cleanup } = await setupTest();
-  await manager.enroll(recipe);
+  await manager.enroll(recipe, "test");
 
   const enrollment = manager.store.get(recipe.slug);
   Assert.ok(!enrollment.active, "Experiment should not be active");
@@ -2314,7 +2314,7 @@ add_task(async function test_prefFlips_failed() {
 
   Services.prefs.deleteBranch(PREF);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_prefFlips_failed_multiple_prefs() {
@@ -2340,7 +2340,7 @@ add_task(async function test_prefFlips_failed_multiple_prefs() {
 
   const setPrefSpy = sandbox.spy(PrefUtils, "setPref");
 
-  await manager.enroll(recipe);
+  await manager.enroll(recipe, "test");
 
   const enrollment = manager.store.get(recipe.slug);
   Assert.ok(!enrollment.active, "Experiment should not be active");
@@ -2379,7 +2379,7 @@ add_task(async function test_prefFlips_failed_multiple_prefs() {
   Services.prefs.deleteBranch(GOOD_PREF);
   Services.prefs.deleteBranch(BAD_PREF);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_prefFlips_failed_experiment_and_rollout_1() {
@@ -2481,17 +2481,17 @@ add_task(async function test_prefFlips_failed_experiment_and_rollout_1() {
 
     info("Unenrolling...");
     if (expectedEnrollments.includes(ROLLOUT)) {
-      manager.unenroll(ROLLOUT);
+      await manager.unenroll(ROLLOUT);
     }
     if (expectedEnrollments.includes(EXPERIMENT)) {
-      manager.unenroll(EXPERIMENT);
+      await manager.unenroll(EXPERIMENT);
     }
 
     info("Cleaning up...");
     Services.prefs.deleteBranch(PREFS[ROLLOUT]);
     Services.prefs.deleteBranch(PREFS[EXPERIMENT]);
 
-    cleanup();
+    await cleanup();
   }
 });
 
@@ -2594,17 +2594,17 @@ add_task(async function test_prefFlips_failed_experiment_and_rollout_2() {
 
     info("Unenrolling...");
     if (expectedEnrollments.includes(ROLLOUT)) {
-      manager.unenroll(ROLLOUT);
+      await manager.unenroll(ROLLOUT);
     }
     if (expectedEnrollments.includes(EXPERIMENT)) {
-      manager.unenroll(EXPERIMENT);
+      await manager.unenroll(EXPERIMENT);
     }
 
     info("Cleaning up...");
     Services.prefs.deleteBranch(PREFS[ROLLOUT]);
     Services.prefs.deleteBranch(PREFS[EXPERIMENT]);
 
-    cleanup();
+    await cleanup();
   }
 });
 
@@ -2658,7 +2658,7 @@ add_task(async function test_prefFlips_update_failure() {
   Services.prefs.deleteBranch("pref.one");
   Services.prefs.deleteBranch("pref.two");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_prefFlips_restore() {
@@ -2788,7 +2788,7 @@ add_task(async function test_prefFlips_restore() {
     `${PREF_4} has the correct value`
   );
 
-  NimbusTestUtils.cleanupManager(
+  await NimbusTestUtils.cleanupManager(
     ["rollout-1", "rollout-2", "rollout-3", "rollout-4"],
     { manager }
   );
@@ -2814,7 +2814,7 @@ add_task(async function test_prefFlips_restore() {
     `${PREF_4} has the correct value`
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_prefFlips_restore_failure_conflict() {
@@ -2911,7 +2911,7 @@ add_task(async function test_prefFlips_restore_failure_conflict() {
     `${PREF} has the correct value`
   );
 
-  NimbusTestUtils.cleanupManager(["rollout-1"], { manager });
+  await NimbusTestUtils.cleanupManager(["rollout-1"], { manager });
 
   Assert.equal(
     PrefUtils.getPref(PREF),
@@ -2919,7 +2919,7 @@ add_task(async function test_prefFlips_restore_failure_conflict() {
     `${PREF} has the correct value after unenrollment`
   );
 
-  cleanup();
+  await cleanup();
 });
 
 // Test the case where an experiment sets a default branch pref, but the user
@@ -3001,7 +3001,7 @@ add_task(async function test_prefFlips_restore_failure_wrong_type() {
 
   Services.prefs.deleteBranch(PREF_1);
   Services.prefs.deleteBranch(PREF_2);
-  cleanup();
+  await cleanup();
 });
 
 add_task(
@@ -3040,6 +3040,6 @@ add_task(
 
     Services.prefs.deleteBranch(PREF);
 
-    cleanup();
+    await cleanup();
   }
 );

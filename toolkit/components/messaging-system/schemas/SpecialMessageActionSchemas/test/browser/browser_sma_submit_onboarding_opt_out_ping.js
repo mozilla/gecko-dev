@@ -93,5 +93,5 @@ add_task(async function test_SUBMIT_ONBOARDING_OPT_OUT_PING() {
 
   ok(await promise, "`onboarding-opt-out` ping was submitted");
 
-  NimbusTestUtils.cleanupManager(["baz", "rol2"]);
+  await NimbusTestUtils.cleanupManager(["baz", "rol2"]);
 });

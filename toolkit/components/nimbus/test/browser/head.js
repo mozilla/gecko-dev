@@ -38,8 +38,8 @@ add_setup(async function () {
   // functions. This lets tests use registerCleanupFunction to clean up any
   // stray enrollments.
   registerCleanupFunction(() => {
-    registerCleanupFunction(() => {
-      NimbusTestUtils.assert.storeIsEmpty(ExperimentAPI.manager.store);
+    registerCleanupFunction(async () => {
+      await NimbusTestUtils.assert.storeIsEmpty(ExperimentAPI.manager.store);
       sandbox.restore();
     });
   });

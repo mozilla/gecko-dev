@@ -42,6 +42,6 @@ add_task(async function test_double_feature_enrollment() {
     )
   );
 
-  NimbusTestUtils.cleanupManager([recipe1.slug]);
+  await NimbusTestUtils.cleanupManager([recipe1.slug]);
   sandbox.restore();
 });

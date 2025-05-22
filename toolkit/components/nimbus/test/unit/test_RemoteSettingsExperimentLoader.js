@@ -32,7 +32,7 @@ add_task(async function test_lazy_pref_getters() {
 
   Services.prefs.clearUserPref(RUN_INTERVAL_PREF);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_init() {
@@ -46,7 +46,7 @@ add_task(async function test_init() {
   Assert.ok(loader.setTimer.calledOnce, "should call .setTimer");
   Assert.ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_init_with_opt_in() {
@@ -69,7 +69,7 @@ add_task(async function test_init_with_opt_in() {
   Assert.ok(loader.setTimer.calledOnce, "should call .setTimer");
   Assert.ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_updateRecipes() {
@@ -117,7 +117,7 @@ add_task(async function test_updateRecipes() {
     "should call .onRecipe for fail recipe with NO_MATCH"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_enrollmentsContextFirstStartup() {
@@ -147,7 +147,7 @@ add_task(async function test_enrollmentsContextFirstStartup() {
     "isFirstStartup targeting works when false"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_checkTargeting() {
@@ -230,7 +230,7 @@ add_task(async function test_optIn_debug_disabled() {
   Services.prefs.clearUserPref(UPLOAD_PREF);
   Services.prefs.clearUserPref(STUDIES_OPT_OUT_PREF);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_optIn_studies_disabled() {
@@ -267,7 +267,7 @@ add_task(async function test_optIn_studies_disabled() {
   Services.prefs.clearUserPref(UPLOAD_PREF);
   Services.prefs.clearUserPref(STUDIES_OPT_OUT_PREF);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_enrollment_changed_notification() {
@@ -287,7 +287,7 @@ add_task(async function test_enrollment_changed_notification() {
 
   Assert.ok(loader.updateRecipes.called, "should call .updateRecipes");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_experiment_optin_targeting() {
@@ -330,9 +330,9 @@ add_task(async function test_experiment_optin_targeting() {
     "Should enroll in experiment"
   );
 
-  manager.unenroll(`optin-${recipe.slug}`);
+  await manager.unenroll(`optin-${recipe.slug}`);
 
   Services.prefs.clearUserPref(DEBUG_PREF);
 
-  cleanup();
+  await cleanup();
 });

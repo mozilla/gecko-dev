@@ -151,7 +151,7 @@ const gExperimentalPane = {
     if (enrolling) {
       await this._firefoxLabs.enroll(slug, branchSlug);
     } else {
-      this._firefoxLabs.unenroll(slug);
+      await this._firefoxLabs.unenroll(slug);
     }
 
     target.disabled = false;
@@ -195,7 +195,7 @@ const gExperimentalPane = {
       const enrolled =
         (await ExperimentAPI.manager.store.get(optIn.slug)?.active) ?? false;
       if (enrolled) {
-        this._firefoxLabs.unenroll(optIn.slug);
+        await this._firefoxLabs.unenroll(optIn.slug);
       }
     }
   },
