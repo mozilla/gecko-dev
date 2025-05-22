@@ -144,6 +144,9 @@ class RootActor extends Actor {
       // Contact Holger Benl (hbenl) to make sure the VS Code extension is
       // updated.
       supportsEnableWindowGlobalThreadActors: true,
+      // @backward-compat { version 140 } Use the bulk API to transfer the
+      // performance profile data.
+      useBulkTransferForPerformanceProfile: true,
     };
   }
 

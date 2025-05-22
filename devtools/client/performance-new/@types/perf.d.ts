@@ -46,7 +46,11 @@ export interface Commands {
   client: any;
   targetCommand: {
     targetFront: {
-      getTrait: (traitName: string) => unknown;
+      // @backward-compat { version 140 } This trait is used to support Firefox < 140
+      getTrait(
+        traitName: "useBulkTransferForPerformanceProfile"
+      ): boolean | undefined;
+      getTrait(traitName: string): unknown;
     };
   };
 }
@@ -84,7 +88,14 @@ export interface PreferenceFront {
 }
 
 export interface RootTraits {
-  // There are no traits used by the performance front end at the moment.
+  // @backward-compat { version 140 }
+  // In Firefox >= 140, this will be true, and will be missing in older
+  // versions. The functionality controlled by this property can be cleaned up
+  // once Firefox 140 hits release.
+  useBulkTransferForPerformanceProfile?: boolean;
+
+  // There are other properties too, but we don't list them here as they're not
+  // related to the performance panel.
 }
 
 export type RecordingState =
