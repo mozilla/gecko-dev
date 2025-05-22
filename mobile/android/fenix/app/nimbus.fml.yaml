@@ -829,6 +829,15 @@ features:
           enabled: false
           force-disable-uri: ""
 
+  doh:
+    description: Feature controlling DNS over HTTPS (DoH).
+    variables:
+      show-ui:
+        description: >
+          When `true`, include DoH settings in the settings UI.
+        type: Boolean
+        default: false
+
 types:
   objects: {}
 

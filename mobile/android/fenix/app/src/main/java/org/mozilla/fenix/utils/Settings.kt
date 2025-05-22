@@ -2364,9 +2364,10 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates whether or not to show the entry point for the DNS over HTTPS settings
      */
-    val showDohEntryPoint by booleanPreference(
+    val showDohEntryPoint by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_doh_settings_enabled),
-        default = false,
+        default = { FxNimbus.features.doh.value().showUi },
+        featureFlag = true,
     )
 
     /**
