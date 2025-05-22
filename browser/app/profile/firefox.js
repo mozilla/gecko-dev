@@ -829,56 +829,6 @@ pref("browser.search.widget.removeAfterDaysUnused", 120);
 // capped at 100.
 pref("browser.search.totalSearches", 0);
 
-// Enables the Review Checker feature in the Shopping sidebar.
-// There are separate controls for user opt-in/opt-out.
-pref("browser.shopping.experience2023.enabled", false);
-
-// Ternary int-valued pref indicating if the user has opted into the new
-// experimental shopping feature.
-// 0 means the user has not opted in or out.
-// 1 means the user has opted in.
-// 2 means the user has opted out.
-pref("browser.shopping.experience2023.optedIn", 0);
-
-// Activates the new experimental shopping sidebar.
-// True by default. This is handled by ShoppingUtils.handleAutoActivateOnProduct
-// to auto-activate the sidebar for non-opted-in users up to 2 times.
-pref("browser.shopping.experience2023.active", true);
-
-// Enables the ad / recommended product feature for the shopping sidebar.
-// If enabled, users can disable the ad card using the separate pref
-// `browser.shopping.experience2023.ads.userEnabled` and visible toggle
-// (this is just the feature flag).
-pref("browser.shopping.experience2023.ads.enabled", false);
-
-// Activates the ad card in the shopping sidebar.
-// Unlike `browser.shopping.experience2023.ads.enabled`, this pref is controlled by users
-// using the visible toggle.
-pref("browser.shopping.experience2023.ads.userEnabled", true);
-
-// Saves if shopping survey is enabled.
-pref("browser.shopping.experience2023.survey.enabled", true);
-
-// Saves if shopping survey is seen.
-pref("browser.shopping.experience2023.survey.hasSeen", false);
-
-// Number of PDP visits used to display shopping survey
-pref("browser.shopping.experience2023.survey.pdpVisits", 0);
-
-// Enables the auto-open feature for the shopping sidebar,
-// including new callouts and settings UI changes
-// (this is just the feature flag).
-pref("browser.shopping.experience2023.autoOpen.enabled", false);
-
-// Opens the shopping sidebar automatically when viewing a PDP.
-pref("browser.shopping.experience2023.autoOpen.userEnabled", true);
-
-// Number of times the sidebar has been closed in a session
-pref("browser.shopping.experience2023.sidebarClosedCount", 0);
-
-// When conditions are met, shows a prompt on the shopping sidebar asking users if they want to disable auto-open behavior
-pref("browser.shopping.experience2023.showKeepSidebarClosedMessage", true);
-
 // Spin the cursor while the page is loading
 pref("browser.spin_cursor_while_busy", false);
 
