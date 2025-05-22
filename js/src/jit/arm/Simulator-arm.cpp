@@ -2871,8 +2871,11 @@ void Simulator::decodeType01(SimInstruction* instr) {
   } else {
     int rd = instr->rdValue();
     int rn = instr->rnValue();
-    int32_t rn_val = get_register(rn);
-    int32_t shifter_operand = 0;
+    // Use uint32_t here for integer overflow in operations below not to be
+    // undefined behavior, leading to our own calculations of overflow being
+    // messed up by the compiler.
+    uint32_t rn_val = get_register(rn);
+    uint32_t shifter_operand = 0;
     bool shifter_carry_out = 0;
     if (type == 0) {
       shifter_operand = getShiftRm(instr, &shifter_carry_out);
