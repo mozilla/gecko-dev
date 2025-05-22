@@ -75,7 +75,7 @@ add_setup(async () => {
     }),
     "test"
   );
-  manager.unenroll("foo");
+  await manager.unenroll("foo");
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig("bar", {
       branchSlug: "treatment",
@@ -83,7 +83,7 @@ add_setup(async () => {
     }),
     "test"
   );
-  manager.unenroll("bar");
+  await manager.unenroll("bar");
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig("baz", {
       branchSlug: "treatment",
@@ -96,7 +96,7 @@ add_setup(async () => {
     NimbusTestUtils.factories.recipe("rol1", { isRollout: true }),
     "test"
   );
-  manager.unenroll("rol1");
+  await manager.unenroll("rol1");
   await manager.enroll(
     NimbusTestUtils.factories.recipe("rol2", { isRollout: true }),
     "test"
@@ -104,9 +104,9 @@ add_setup(async () => {
 });
 
 registerCleanupFunction(async () => {
-  manager.unenroll("baz");
-  manager.unenroll("rol2");
-  cleanup();
+  await manager.unenroll("baz");
+  await manager.unenroll("rol2");
+  await cleanup();
 });
 
 function resetProfile(profile) {
