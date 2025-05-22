@@ -93,6 +93,8 @@ enum CheckedState {
                             inContainer:(mozilla::a11y::Accessible*)container
                                      at:(int32_t)start;
 
+- (void)maybePostValidationErrorChanged;
+
 // internal method to retrieve a child at a given index.
 - (id)childAt:(uint32_t)i;
 
@@ -187,6 +189,9 @@ enum CheckedState {
 
 // override
 - (NSString*)moxInvalid;
+
+// override
+- (NSString*)moxErrorMessageElements;
 
 // override
 - (NSNumber*)moxFocused;
