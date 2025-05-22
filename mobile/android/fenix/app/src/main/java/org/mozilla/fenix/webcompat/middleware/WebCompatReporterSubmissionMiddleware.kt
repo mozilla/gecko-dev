@@ -225,7 +225,7 @@ class WebCompatReporterSubmissionMiddleware(
 
     private fun setReasonMetrics(reason: WebCompatReporterState.BrokenSiteReason?) {
         reason?.let {
-            BrokenSiteReport.breakageCategory.set(reason.name)
+            BrokenSiteReport.breakageCategory.set(reason.name.lowercase())
         }
     }
 
