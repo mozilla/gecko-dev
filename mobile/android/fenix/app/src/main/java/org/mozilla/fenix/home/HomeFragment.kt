@@ -524,9 +524,10 @@ class HomeFragment : Fragment() {
                 viewLifecycleScope = viewLifecycleOwner.lifecycleScope,
             ),
             privateBrowsingController = DefaultPrivateBrowsingController(
-                activity = activity,
                 navController = findNavController(),
                 browsingModeManager = browsingModeManager,
+                fenixBrowserUseCases = requireComponents.useCases.fenixBrowserUseCases,
+                settings = components.settings,
             ),
             searchSelectorController = DefaultSearchSelectorController(
                 activity = activity,

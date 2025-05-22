@@ -18,27 +18,24 @@ import mozilla.components.support.test.ext.joinBlocking
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.BrowserDirection
-import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppState
-import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.home.privatebrowsing.controller.DefaultPrivateBrowsingController
 import org.mozilla.fenix.utils.Settings
 
 @RunWith(AndroidJUnit4::class)
 class DefaultPrivateBrowsingControllerTest {
 
-    private val activity: HomeActivity = mockk(relaxed = true)
     private val appStore: AppStore = mockk(relaxed = true)
     private val navController: NavController = mockk(relaxed = true)
     private val settings: Settings = mockk(relaxed = true)
     private val browsingModeManager: BrowsingModeManager = mockk(relaxed = true)
+    private val fenixBrowserUseCases: FenixBrowserUseCases = mockk(relaxed = true)
 
     private lateinit var store: BrowserStore
     private lateinit var controller: DefaultPrivateBrowsingController
@@ -47,9 +44,10 @@ class DefaultPrivateBrowsingControllerTest {
     fun setup() {
         store = BrowserStore()
         controller = DefaultPrivateBrowsingController(
-            activity = activity,
             navController = navController,
             browsingModeManager = browsingModeManager,
+            fenixBrowserUseCases = fenixBrowserUseCases,
+            settings = settings,
         )
 
         every { appStore.state } returns AppState()
@@ -57,8 +55,6 @@ class DefaultPrivateBrowsingControllerTest {
         every { navController.currentDestination } returns mockk {
             every { id } returns R.id.homeFragment
         }
-        every { activity.components.settings } returns settings
-        every { activity.settings() } returns settings
     }
 
     @Test
@@ -68,10 +64,29 @@ class DefaultPrivateBrowsingControllerTest {
         controller.handleLearnMoreClicked()
 
         verify {
-            activity.openToBrowserAndLoad(
+            navController.navigate(R.id.browserFragment)
+            fenixBrowserUseCases.loadUrlOrSearch(
                 searchTermOrURL = learnMoreURL,
                 newTab = true,
-                from = BrowserDirection.FromHome,
+                private = true,
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN homepage as a new tab is enabled  WHEN private browsing learn more link is clicked THEN open support page in browser`() {
+        every { settings.enableHomepageAsNewTab } returns true
+
+        val learnMoreURL = "https://support.mozilla.org/en-US/kb/common-myths-about-private-browsing?as=u&utm_source=inproduct"
+
+        controller.handleLearnMoreClicked()
+
+        verify {
+            navController.navigate(R.id.browserFragment)
+            fenixBrowserUseCases.loadUrlOrSearch(
+                searchTermOrURL = learnMoreURL,
+                newTab = false,
+                private = true,
             )
         }
     }

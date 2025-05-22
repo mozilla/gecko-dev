@@ -5,15 +5,14 @@
 package org.mozilla.fenix.home.privatebrowsing.controller
 
 import androidx.navigation.NavController
-import org.mozilla.fenix.BrowserDirection
-import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
-import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.home.privatebrowsing.interactor.PrivateBrowsingInteractor
 import org.mozilla.fenix.settings.SupportUtils
+import org.mozilla.fenix.utils.Settings
 
 /**
  * An interface that handles the view manipulation of the private browsing mode.
@@ -34,19 +33,22 @@ interface PrivateBrowsingController {
  * The default implementation of [PrivateBrowsingController].
  */
 class DefaultPrivateBrowsingController(
-    private val activity: HomeActivity,
     private val navController: NavController,
     private val browsingModeManager: BrowsingModeManager,
+    private val fenixBrowserUseCases: FenixBrowserUseCases,
+    private val settings: Settings,
 ) : PrivateBrowsingController {
 
     override fun handleLearnMoreClicked() {
         val learnMoreURL = SupportUtils.getGenericSumoURLForTopic(SupportUtils.SumoTopic.PRIVATE_BROWSING_MYTHS) +
             "?as=u&utm_source=inproduct"
+        val newTab = settings.enableHomepageAsNewTab.not()
 
-        activity.openToBrowserAndLoad(
+        navController.navigate(R.id.browserFragment)
+        fenixBrowserUseCases.loadUrlOrSearch(
             searchTermOrURL = learnMoreURL,
-            newTab = true,
-            from = BrowserDirection.FromHome,
+            newTab = newTab,
+            private = true,
         )
     }
 
@@ -54,7 +56,7 @@ class DefaultPrivateBrowsingController(
         browsingModeManager.mode = newMode
 
         if (newMode == BrowsingMode.Private) {
-            activity.settings().incrementNumTimesPrivateModeOpened()
+            settings.incrementNumTimesPrivateModeOpened()
         }
 
         if (navController.currentDestination?.id == R.id.searchDialogFragment) {
