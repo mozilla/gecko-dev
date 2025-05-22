@@ -10,6 +10,7 @@ import sys
 import tempfile
 from collections import defaultdict, deque
 from copy import deepcopy
+from importlib import util
 from pathlib import Path
 from shutil import which
 
@@ -719,6 +720,7 @@ def generate_gn_config(
     input_variables,
     sandbox_variables,
     gn_target,
+    preprocessor,
     moz_build_flag,
 ):
     def str_for_arg(v):
@@ -773,19 +775,25 @@ def generate_gn_config(
         subprocess.check_call(gen_args, cwd=build_root_dir, stderr=subprocess.STDOUT)
 
         gn_config_file = resolved_tempdir / "project.json"
+        if preprocessor:
+            preprocessor.main(gn_config_file)
+
         with open(gn_config_file) as fh:
-            raw_json = fh.read()
-            raw_json = raw_json.replace(f"{target_dir}/", "")
-            raw_json = raw_json.replace(f"{target_dir}:", ":")
-            gn_config = json.loads(raw_json)
-            gn_config = filter_gn_config(
-                resolved_tempdir,
-                gn_config,
-                sandbox_variables,
-                input_variables,
-                gn_target,
+            gn_out = json.load(fh)
+            gn_out = filter_gn_config(
+                resolved_tempdir, gn_out, sandbox_variables, input_variables, gn_target
             )
-            return gn_config
+            return gn_out
+
+
+def load_preprocessor(script_name):
+    if script_name and os.path.isfile(script_name):
+        print(f"Loading preprocessor {script_name}")
+        spec = util.spec_from_file_location("preprocess", script_name)
+        module = util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    return None
 
 
 def main():
@@ -832,6 +840,8 @@ def main():
                         vars["use_x11"] = True
                     vars_set.append(vars)
 
+    preprocessor = load_preprocessor(config.get("preprocessing_script", None))
+
     gn_configs = []
     for vars in vars_set:
         gn_configs.append(
@@ -842,6 +852,7 @@ def main():
                 vars,
                 config["gn_sandbox_variables"],
                 config["gn_target"],
+                preprocessor,
                 config["moz_build_flag"],
             )
         )
