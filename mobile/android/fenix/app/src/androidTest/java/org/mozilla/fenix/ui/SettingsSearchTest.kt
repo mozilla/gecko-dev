@@ -639,6 +639,7 @@ class SettingsSearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2203334
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1967956")
     @Test
     fun verifyManageSearchShortcutsSettingsItemsTest() {
         homeScreen {
