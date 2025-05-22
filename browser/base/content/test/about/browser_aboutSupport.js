@@ -107,7 +107,7 @@ add_task(async function test_nimbus_experiments() {
     }
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 });
 
 add_task(async function test_remote_configuration() {
