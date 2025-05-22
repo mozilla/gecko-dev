@@ -70,20 +70,6 @@ class nsCanvasFrame final : public nsContainerFrame,
   void AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements,
                                 uint32_t aFilter) override;
 
-  Element* GetCustomContentContainer() const { return mCustomContentContainer; }
-
-  /**
-   * Unhide the CustomContentContainer. This call only has an effect if
-   * mCustomContentContainer is non-null.
-   */
-  void ShowCustomContentContainer();
-
-  /**
-   * Hide the CustomContentContainer. This call only has an effect if
-   * mCustomContentContainer is non-null.
-   */
-  void HideCustomContentContainer();
-
   /** SetHasFocus tells the CanvasFrame to draw with focus ring
    *  @param aHasFocus true to show focus ring, false to hide it
    */
@@ -109,7 +95,6 @@ class nsCanvasFrame final : public nsContainerFrame,
   bool mDoPaintFocus;
   bool mAddedScrollPositionListener;
 
-  nsCOMPtr<Element> mCustomContentContainer;
   nsCOMPtr<Element> mTooltipContent;
 };
 

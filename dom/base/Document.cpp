@@ -60,6 +60,7 @@
 #include "mozilla/DocumentStyleRootIterator.h"
 #include "mozilla/EditorBase.h"
 #include "mozilla/EditorCommands.h"
+#include "mozilla/dom/BindContext.h"
 #include "mozilla/Encoding.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/EventDispatcher.h"
@@ -2646,13 +2647,12 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(Document)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFragmentDirective)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mHighlightRegistry)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPendingFullscreenEvents)
-
-  // Traverse all Document nsCOMPtrs.
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mParser)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mScriptGlobalObject)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mListenerManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mStyleSheetSetList)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mScriptLoader)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCustomContentContainer)
 
   DocumentOrShadowRoot::Traverse(tmp, cb);
 
@@ -2765,6 +2765,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Document)
   tmp->mExternalResourceMap.Shutdown();
 
   nsAutoScriptBlocker scriptBlocker;
+
+  tmp->RemoveCustomContentContainer();
 
   nsINode::Unlink(tmp);
 
@@ -7701,13 +7703,17 @@ Element* Document::GetRootElementInternal() const {
 
 void Document::InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
                                  bool aNotify, ErrorResult& aRv) {
-  if (aKid->IsElement() && GetRootElement()) {
+  const bool isElementInsertion = aKid->IsElement();
+  if (isElementInsertion && GetRootElement()) {
     NS_WARNING("Inserting root element when we already have one");
     aRv.ThrowHierarchyRequestError("There is already a root element.");
     return;
   }
 
   nsINode::InsertChildBefore(aKid, aBeforeThis, aNotify, aRv);
+  if (isElementInsertion && !aRv.Failed()) {
+    CreateCustomContentContainerIfNeeded();
+  }
 }
 
 void Document::RemoveChildNode(nsIContent* aKid, bool aNotify,
@@ -8687,53 +8693,100 @@ void Document::RuleRemoved(StyleSheet& aSheet, css::Rule& aRule) {
   }
 }
 
-static Element* GetCustomContentContainer(PresShell* aPresShell) {
-  if (!aPresShell || !aPresShell->GetCanvasFrame()) {
-    return nullptr;
+static void UnbindAnonymousContent(AnonymousContent& aAnonContent) {
+  nsCOMPtr<nsINode> parent = aAnonContent.Host()->GetParentNode();
+  if (!parent) {
+    return;
   }
+  MOZ_ASSERT(parent->IsElement());
+  MOZ_ASSERT(parent->AsElement()->IsRootOfNativeAnonymousSubtree());
+  parent->RemoveChildNode(aAnonContent.Host(), true);
+}
 
-  return aPresShell->GetCanvasFrame()->GetCustomContentContainer();
+static void BindAnonymousContent(AnonymousContent& aAnonContent,
+                                 Element& aContainer) {
+  UnbindAnonymousContent(aAnonContent);
+  aContainer.AppendChildTo(aAnonContent.Host(), true, IgnoreErrors());
+}
+
+void Document::RemoveCustomContentContainer() {
+  RefPtr container = std::move(mCustomContentContainer);
+  if (!container) {
+    return;
+  }
+  nsAutoScriptBlocker scriptBlocker;
+  if (DevToolsAnonymousAndShadowEventsEnabled()) {
+    container->QueueDevtoolsAnonymousEvent(/* aIsRemove = */ true);
+  }
+  if (PresShell* ps = GetPresShell()) {
+    ps->ContentWillBeRemoved(container, nullptr);
+  }
+  container->UnbindFromTree();
+}
+
+void Document::CreateCustomContentContainerIfNeeded() {
+  if (mAnonymousContents.IsEmpty()) {
+    MOZ_ASSERT(!mCustomContentContainer);
+    return;
+  }
+  if (mCustomContentContainer) {
+    return;
+  }
+  RefPtr root = GetRootElement();
+  if (NS_WARN_IF(!root)) {
+    // We'll deal with it when we get a root element, if needed.
+    return;
+  }
+  // Create the custom content container.
+  RefPtr container = CreateHTMLElement(nsGkAtoms::div);
+#ifdef DEBUG
+  // We restyle our mCustomContentContainer, even though it's root anonymous
+  // content.  Normally that's not OK because the frame constructor doesn't know
+  // how to order the frame tree in such cases, but we make this work for this
+  // particular case, so it's OK.
+  container->SetProperty(nsGkAtoms::restylableAnonymousNode,
+                         reinterpret_cast<void*>(true));
+#endif  // DEBUG
+  container->SetProperty(nsGkAtoms::docLevelNativeAnonymousContent,
+                         reinterpret_cast<void*>(true));
+  container->SetIsNativeAnonymousRoot();
+  // Do not create an accessible object for the container.
+  container->SetAttr(kNameSpaceID_None, nsGkAtoms::role, u"presentation"_ns,
+                     false);
+  container->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
+                     u"moz-custom-content-container"_ns, false);
+  nsAutoScriptBlocker scriptBlocker;
+  BindContext context(*root, BindContext::ForNativeAnonymous);
+  if (NS_WARN_IF(NS_FAILED(container->BindToTree(context, *root)))) {
+    container->UnbindFromTree();
+    return;
+  }
+  mCustomContentContainer = container;
+  if (DevToolsAnonymousAndShadowEventsEnabled()) {
+    container->QueueDevtoolsAnonymousEvent(/* aIsRemove = */ false);
+  }
+  if (PresShell* ps = GetPresShell()) {
+    ps->ContentAppended(container);
+  }
+  for (auto& anonContent : mAnonymousContents) {
+    BindAnonymousContent(*anonContent, *container);
+  }
 }
 
 already_AddRefed<AnonymousContent> Document::InsertAnonymousContent(
-    bool aForce, ErrorResult& aRv) {
-  RefPtr<PresShell> shell = GetPresShell();
-  if (aForce && !GetCustomContentContainer(shell)) {
-    FlushPendingNotifications(FlushType::Layout);
-    shell = GetPresShell();
-  }
-
-  nsAutoScriptBlocker scriptBlocker;
-
+    ErrorResult& aRv) {
   RefPtr<AnonymousContent> anonContent = AnonymousContent::Create(*this);
   if (!anonContent) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;
   }
-
   mAnonymousContents.AppendElement(anonContent);
-
-  if (RefPtr<Element> container = GetCustomContentContainer(shell)) {
-    // If the container is empty and we have other anon content we should be
-    // about to show all the other anonymous content nodes.
-    if (container->HasChildren() || mAnonymousContents.Length() == 1) {
-      container->AppendChildTo(anonContent->Host(), true, IgnoreErrors());
-      if (auto* canvasFrame = shell->GetCanvasFrame()) {
-        canvasFrame->ShowCustomContentContainer();
-      }
-    }
+  if (RefPtr container = mCustomContentContainer) {
+    BindAnonymousContent(*anonContent, *container);
+  } else {
+    CreateCustomContentContainerIfNeeded();
   }
-
   return anonContent.forget();
-}
-
-static void RemoveAnonContentFromCanvas(AnonymousContent& aAnonContent,
-                                        PresShell* aPresShell) {
-  RefPtr<Element> container = GetCustomContentContainer(aPresShell);
-  if (!container) {
-    return;
-  }
-  container->RemoveChild(*aAnonContent.Host(), IgnoreErrors());
 }
 
 void Document::RemoveAnonymousContent(AnonymousContent& aContent) {
@@ -8745,11 +8798,10 @@ void Document::RemoveAnonymousContent(AnonymousContent& aContent) {
   }
 
   mAnonymousContents.RemoveElementAt(index);
-  RemoveAnonContentFromCanvas(aContent, GetPresShell());
+  UnbindAnonymousContent(aContent);
 
-  if (mAnonymousContents.IsEmpty() &&
-      GetCustomContentContainer(GetPresShell())) {
-    GetPresShell()->GetCanvasFrame()->HideCustomContentContainer();
+  if (mAnonymousContents.IsEmpty()) {
+    RemoveCustomContentContainer();
   }
 }
 
@@ -12001,6 +12053,8 @@ void Document::Destroy() {
     transition->SkipTransition(SkipTransitionReason::DocumentHidden);
   }
 
+  RemoveCustomContentContainer();
+
   ReportDocumentUseCounters();
   ReportShadowedHTMLDocumentProperties();
   ReportLCP();
@@ -12531,6 +12585,7 @@ void Document::WillRemoveRoot() {
     transition->SkipTransition(SkipTransitionReason::RootRemoved);
   }
 
+  RemoveCustomContentContainer();
   IncrementExpandoGeneration(*this);
 }
 

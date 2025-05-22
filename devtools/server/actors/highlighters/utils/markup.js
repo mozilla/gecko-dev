@@ -173,23 +173,15 @@ exports.isNodeValid = isNodeValid;
  * @param {Boolean} options.waitForDocumentToLoad
  *        Set to false to try to insert the anonymous content even if the document
  *        isn't loaded yet. Defaults to true.
- * @param {Boolean} options.avoidForcedSynchronousLayoutUpdate
- *        If options.waitForDocumentToLoad is false, by default, we'll force a synchronous
- *        layout update to show the highlighter. Set to false to avoid such behaviour.
  */
 function CanvasFrameAnonymousContentHelper(
   highlighterEnv,
   nodeBuilder,
-  {
-    waitForDocumentToLoad = true,
-    avoidForcedSynchronousLayoutUpdate = false,
-  } = {}
+  { waitForDocumentToLoad = true } = {}
 ) {
   this.highlighterEnv = highlighterEnv;
   this.nodeBuilder = nodeBuilder;
   this.waitForDocumentToLoad = !!waitForDocumentToLoad;
-  this.avoidForcedSynchronousLayoutUpdate =
-    !!avoidForcedSynchronousLayoutUpdate;
 
   this._onWindowReady = this._onWindowReady.bind(this);
   this.highlighterEnv.on("window-ready", this._onWindowReady);
@@ -252,14 +244,7 @@ CanvasFrameAnonymousContentHelper.prototype = {
     // that scenario, fixes when we're adding anonymous content in a tab that
     // is not the active one (see bug 1260043 and bug 1260044)
     try {
-      // If we didn't wait for the document to load and avoidForcedSynchronousLayoutUpdate
-      // isn't true, we want to force a layout update to ensure the anonymous content will
-      // be rendered (see Bug 1580394).
-      const forceSynchronousLayoutUpdate =
-        !this.waitForDocumentToLoad && !this.avoidForcedSynchronousLayoutUpdate;
-      this._content = this.anonymousContentDocument.insertAnonymousContent(
-        forceSynchronousLayoutUpdate
-      );
+      this._content = this.anonymousContentDocument.insertAnonymousContent();
     } catch (e) {
       // If the `insertAnonymousContent` fails throwing a `NS_ERROR_UNEXPECTED`, it means
       // we don't have access to a `CustomContentContainer` yet (see bug 1365075).

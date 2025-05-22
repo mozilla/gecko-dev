@@ -192,8 +192,7 @@ bool AccessibleCaret::IsInPositionFixedSubtree() const {
 }
 
 void AccessibleCaret::InjectCaretElement(Document* aDocument) {
-  mCaretElementHolder =
-      aDocument->InsertAnonymousContent(/* aForce = */ false, IgnoreErrors());
+  mCaretElementHolder = aDocument->InsertAnonymousContent(IgnoreErrors());
   MOZ_RELEASE_ASSERT(mCaretElementHolder, "We must have anonymous content!");
 
   CreateCaretElement();
@@ -307,10 +306,8 @@ nsIFrame* AccessibleCaret::RootFrame() const {
 }
 
 nsIFrame* AccessibleCaret::CustomContentContainerFrame() const {
-  nsCanvasFrame* canvasFrame = mPresShell->GetCanvasFrame();
-  Element* container = canvasFrame->GetCustomContentContainer();
-  nsIFrame* containerFrame = container->GetPrimaryFrame();
-  return containerFrame;
+  Element* container = mPresShell->GetDocument()->GetCustomContentContainer();
+  return container->GetPrimaryFrame();
 }
 
 void AccessibleCaret::SetCaretElementStyle(const nsRect& aRect,

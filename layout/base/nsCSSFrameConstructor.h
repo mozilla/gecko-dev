@@ -2128,10 +2128,9 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   void QuotesDirty();
   void CountersDirty();
 
-  void ConstructAnonymousContentForCanvas(nsFrameConstructorState& aState,
-                                          nsContainerFrame* aFrame,
-                                          nsIContent* aDocElement,
-                                          nsFrameList&);
+  void ConstructAnonymousContentForRoot(nsFrameConstructorState& aState,
+                                        nsContainerFrame* aCanvasFrame,
+                                        nsIContent* aDocElement, nsFrameList&);
 
  public:
   friend class nsFrameConstructorState;

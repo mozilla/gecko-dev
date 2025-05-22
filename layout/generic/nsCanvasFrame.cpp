@@ -52,103 +52,13 @@ NS_QUERYFRAME_HEAD(nsCanvasFrame)
   NS_QUERYFRAME_ENTRY(nsIPopupContainer)
 NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
-void nsCanvasFrame::ShowCustomContentContainer() {
-  if (mCustomContentContainer) {
-    mCustomContentContainer->UnsetAttr(kNameSpaceID_None, nsGkAtoms::hidden,
-                                       true);
-  }
-}
-
-void nsCanvasFrame::HideCustomContentContainer() {
-  if (mCustomContentContainer) {
-    mCustomContentContainer->SetAttr(kNameSpaceID_None, nsGkAtoms::hidden,
-                                     u"true"_ns, true);
-  }
-}
-
-// Do this off a script-runner because some anon content might load CSS which we
-// don't want to deal with while doing frame construction.
-void InsertAnonymousContentInContainer(Document& aDoc, Element& aContainer) {
-  if (!aContainer.IsInComposedDoc() || aDoc.GetAnonymousContents().IsEmpty()) {
-    return;
-  }
-  for (RefPtr<AnonymousContent>& anonContent : aDoc.GetAnonymousContents()) {
-    if (nsCOMPtr<nsINode> parent = anonContent->Host()->GetParentNode()) {
-      // Parent had better be an old custom content container already
-      // removed from a reframe. Forget about it since we're about to get
-      // inserted in a new one.
-      //
-      // TODO(emilio): Maybe we should extend PostDestroyData and do this
-      // stuff there instead, or something...
-      MOZ_ASSERT(parent != &aContainer);
-      MOZ_ASSERT(parent->IsElement());
-      MOZ_ASSERT(parent->AsElement()->IsRootOfNativeAnonymousSubtree());
-      MOZ_ASSERT(!parent->IsInComposedDoc());
-      MOZ_ASSERT(!parent->GetParentNode());
-
-      parent->RemoveChildNode(anonContent->Host(), true);
-    }
-    aContainer.AppendChildTo(anonContent->Host(), true, IgnoreErrors());
-  }
-  // Flush frames now. This is really sadly needed, but otherwise stylesheets
-  // inserted by the above DOM changes might not be processed in time for layout
-  // to run.
-  // FIXME(emilio): This is because we have a script-running checkpoint just
-  // after ProcessPendingRestyles but before DoReflow. That seems wrong! Ideally
-  // the whole layout / styling pass should be atomic.
-  aDoc.FlushPendingNotifications(FlushType::Frames);
-}
-
 nsresult nsCanvasFrame::CreateAnonymousContent(
     nsTArray<ContentInfo>& aElements) {
-  MOZ_ASSERT(!mCustomContentContainer);
-
   if (!mContent) {
     return NS_OK;
   }
 
   Document* doc = mContent->OwnerDoc();
-
-  // Create the custom content container.
-  mCustomContentContainer = doc->CreateHTMLElement(nsGkAtoms::div);
-#ifdef DEBUG
-  // We restyle our mCustomContentContainer, even though it's root anonymous
-  // content.  Normally that's not OK because the frame constructor doesn't know
-  // how to order the frame tree in such cases, but we make this work for this
-  // particular case, so it's OK.
-  mCustomContentContainer->SetProperty(nsGkAtoms::restylableAnonymousNode,
-                                       reinterpret_cast<void*>(true));
-#endif  // DEBUG
-
-  mCustomContentContainer->SetProperty(
-      nsGkAtoms::docLevelNativeAnonymousContent, reinterpret_cast<void*>(true));
-
-  // This will usually be done by the caller, but in this case we do it here,
-  // since we reuse the document's AnoymousContent list, and those survive
-  // across reframes and thus may already be flagged as being in an anonymous
-  // subtree. We don't really want to have this semi-broken state where
-  // anonymous nodes have a non-anonymous.
-  mCustomContentContainer->SetIsNativeAnonymousRoot();
-
-  aElements.AppendElement(mCustomContentContainer);
-
-  // Do not create an accessible object for the container.
-  mCustomContentContainer->SetAttr(kNameSpaceID_None, nsGkAtoms::role,
-                                   u"presentation"_ns, false);
-
-  mCustomContentContainer->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
-                                   u"moz-custom-content-container"_ns, false);
-
-  // Only create a frame for mCustomContentContainer if it has some children.
-  if (doc->GetAnonymousContents().IsEmpty()) {
-    HideCustomContentContainer();
-  } else {
-    nsContentUtils::AddScriptRunner(NS_NewRunnableFunction(
-        "InsertAnonymousContentInContainer",
-        [doc = RefPtr{doc}, container = RefPtr{mCustomContentContainer.get()}] {
-          InsertAnonymousContentInContainer(*doc, *container);
-        }));
-  }
 
   // Create a default tooltip element for system privileged documents.
   if (XRE_IsParentProcess() && doc->NodePrincipal()->IsSystemPrincipal()) {
@@ -187,9 +97,6 @@ nsresult nsCanvasFrame::CreateAnonymousContent(
 
 void nsCanvasFrame::AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements,
                                              uint32_t aFilter) {
-  if (mCustomContentContainer) {
-    aElements.AppendElement(mCustomContentContainer);
-  }
   if (mTooltipContent) {
     aElements.AppendElement(mTooltipContent);
   }
@@ -200,7 +107,6 @@ void nsCanvasFrame::Destroy(DestroyContext& aContext) {
     sf->RemoveScrollPositionListener(this);
   }
 
-  aContext.AddAnonymousContent(mCustomContentContainer.forget());
   if (mTooltipContent) {
     aContext.AddAnonymousContent(mTooltipContent.forget());
   }

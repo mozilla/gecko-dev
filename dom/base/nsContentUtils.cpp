@@ -11102,6 +11102,10 @@ void nsContentUtils::AppendDocumentLevelNativeAnonymousContentTo(
     }
   }
 
+  if (auto* el = aDocument->GetCustomContentContainer()) {
+    aElements.AppendElement(el);
+  }
+
 #ifdef DEBUG
   for (size_t i = oldLength; i < aElements.Length(); i++) {
     MOZ_ASSERT(

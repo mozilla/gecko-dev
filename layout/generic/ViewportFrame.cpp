@@ -228,14 +228,12 @@ nsDisplayWrapList* ViewportFrame::BuildDisplayListForTopLayer(
     }
   }
 
-  if (nsCanvasFrame* canvasFrame = PresShell()->GetCanvasFrame()) {
-    if (dom::Element* container = canvasFrame->GetCustomContentContainer()) {
-      if (nsIFrame* frame = container->GetPrimaryFrame()) {
-        MOZ_ASSERT(frame->StyleDisplay()->mTopLayer != StyleTopLayer::None,
-                   "ua.css should ensure this");
-        MOZ_ASSERT(frame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW));
-        BuildDisplayListForTopLayerFrame(aBuilder, frame, &topLayerList);
-      }
+  if (dom::Element* container = doc->GetCustomContentContainer()) {
+    if (nsIFrame* frame = container->GetPrimaryFrame()) {
+      MOZ_ASSERT(frame->StyleDisplay()->mTopLayer != StyleTopLayer::None,
+                 "ua.css should ensure this");
+      MOZ_ASSERT(frame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW));
+      BuildDisplayListForTopLayerFrame(aBuilder, frame, &topLayerList);
     }
   }
   if (topLayerList.IsEmpty()) {

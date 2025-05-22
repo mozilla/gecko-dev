@@ -521,12 +521,8 @@ partial interface Document {
  * content on top of the current page displayed in the document.
  */
 partial interface Document {
-  /**
-   * If aForce is true, tries to update layout to be able to insert the element
-   * synchronously.
-   */
   [ChromeOnly, NewObject, Throws]
-  AnonymousContent insertAnonymousContent(optional boolean aForce = false);
+  AnonymousContent insertAnonymousContent();
 
   /**
    * Removes the element inserted into the CanvasFrame given an AnonymousContent

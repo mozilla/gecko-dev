@@ -540,9 +540,9 @@ static bool IsFontSizeInflationContainer(nsIFrame* aFrame,
   nsIContent* content = aFrame->GetContent();
   if (content && content->IsInNativeAnonymousSubtree()) {
     // Native anonymous content shouldn't be a font inflation root,
-    // except for the canvas custom content container.
-    nsCanvasFrame* canvas = aFrame->PresShell()->GetCanvasFrame();
-    return canvas && canvas->GetCustomContentContainer() == content;
+    // except for the custom content container.
+    return content ==
+           aFrame->PresContext()->Document()->GetCustomContentContainer();
   }
 
   LayoutFrameType frameType = aFrame->Type();
