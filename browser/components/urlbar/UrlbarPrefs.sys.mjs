@@ -366,7 +366,7 @@ const PREF_URLBAR_DEFAULTS = new Map([
 
   // A short-circuit pref to enable all the features that are part of a
   // grouped release.
-  ["scotchBonnet.enableOverride", false],
+  ["scotchBonnet.enableOverride", true],
 
   // Allow searchmode to be persisted as the user navigates the
   // search host.

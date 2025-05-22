@@ -442,11 +442,7 @@ pref("browser.urlbar.suggest.quickactions",         true);
 pref("browser.urlbar.deduplication.enabled", false);
 pref("browser.urlbar.deduplication.thresholdDays", 0);
 
-#ifdef EARLY_BETA_OR_EARLIER
 pref("browser.urlbar.scotchBonnet.enableOverride", true);
-#else
-pref("browser.urlbar.scotchBonnet.enableOverride", false);
-#endif
 
 // Once Perplexity has entered search mode at least once,
 // we no longer show the Perplexity onboarding callout.
