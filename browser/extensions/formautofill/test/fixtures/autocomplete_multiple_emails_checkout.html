@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Form Autofill Address - Two Emails at checkout</title>
+</head>
+<body>
+  <h1>Form Autofill Address Demo Page</h1>
+
+  <form id="form">
+    <p><label>firstName: <input type="text" id="given-name" name="given-name" autocomplete="given-name" /></label></p>
+    <p><label>lastName:  <input type="text" id="family-name" name="family-name" autocomplete="family-name" /></label></p>
+
+    <p><label>country: <input type="text" id="country" name="country" autocomplete="country" /></label></p>
+    <p><label>postalCode: <input type="text" id="postal-code" name="postal-code" autocomplete="postal-code" /></label></p>
+    <p><label>city (addressLevel2): <input type="text" id="address-level2" name="address-level2" autocomplete="address-level2" /></label></p>
+    <p><label>streetAddress: <input type="text" id="street-address" name="street-address" autocomplete="street-address" /></label></p>
+    <p><label>addressLine2: <input type="text" id="address-line2" name="address-line2" autocomplete="address-line2" /></label></p>
+    <p><label>stair: <input type="text" id="stair" name="stair" autocomplete="address-line3" /></label></p>
+    <p><label>floor: <input type="text" id="floor" name="floor" autocomplete="additional-name" /></label></p>
+    <p><label>door: <input type="text" id="door" name="door" /></label></p>
+
+    <p><label>tel: <input type="tel" id="tel" name="tel" autocomplete="tel" /></label></p>
+    <p><label>email: <input type="email" id="email" name="email" autocomplete="email" /></label></p>
+    <p><label>emailRepeat: <input type="email" id="email-repeat" name="email-repeat" autocomplete="email" /></label></p>
+
+    <p><label>newPassword: <input type="password" id="new-password" name="new-password" autocomplete="new-password" /></label></p>
+    <p><label>newPasswordRepeat: <input type="password" id="new-password-repeat" name="new-password-repeat" autocomplete="new-password" /></label></p>
+
+    <p>
+      <input type="submit" value="Submit" />
+      <button type="reset">Reset</button>
+    </p>
+  </form>
+</body>
+</html>

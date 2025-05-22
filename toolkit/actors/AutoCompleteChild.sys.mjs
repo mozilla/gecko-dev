@@ -280,11 +280,26 @@ export class AutoCompleteChild extends JSWindowActorChild {
       }
     }
 
+    // If one provider has a non-null result, use the non-results. However, if
+    // no providers have a non-null result, use the empty results instead.
+    // This is because an autocomplete provider might want to show an
+    // autocomplete popup when there is no search result. For example,
+    // <datalist> for FormHistory, insecure warning for LoginManager.
+    let foundResults = [];
+    let emptyResults = [];
+
     for (const provider of providers) {
-      // Search result could be empty. However, an autocomplete provider might
-      // want to show an autocomplete popup when there is no search result. For example,
-      // <datalist> for FormHistory, insecure warning for LoginManager.
       const searchResult = result.find(r => r.actorName == provider.actorName);
+      if (searchResult) {
+        foundResults.push([provider, searchResult]);
+      } else {
+        emptyResults.push([provider, undefined]);
+      }
+    }
+
+    for (const [provider, searchResult] of foundResults.length
+      ? foundResults
+      : emptyResults) {
       const acResult = provider.searchResultToAutoCompleteResult(
         searchString,
         input,
