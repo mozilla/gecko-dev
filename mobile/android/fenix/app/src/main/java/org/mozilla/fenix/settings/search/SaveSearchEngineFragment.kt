@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.feature.search.ext.createSearchEngine
 import org.mozilla.fenix.BrowserDirection
+import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.snackbar.Snackbar
@@ -62,12 +63,16 @@ class SaveSearchEngineFragment : Fragment(R.layout.fragment_save_search_engine) 
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        Events.customEngineSettingsViewed.record()
 
         _binding = FragmentSaveSearchEngineBinding.bind(view)
 
         binding.saveButton.apply {
             isEnabled = false
-            setOnClickListener { createCustomEngine() }
+            setOnClickListener {
+                createCustomEngine()
+                Events.customEngineCreated.record()
+            }
         }
 
         binding.editEngineName.addTextChangedListener(inputListener)

@@ -886,6 +886,36 @@ events:
     metadata:
       tags:
         - Search
+  custom_engine_settings_viewed:
+    type: event
+    description: |
+      A user viewed the custom search engine setting
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1967798
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D250487
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Search
+        - Settings
+  custom_engine_created:
+    type: event
+    description: |
+      A user created a new custom search engine to use
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1967798
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D250487
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Search
+        - Settings
   first_session_ping_cancelled:
     type: event
     description: |
