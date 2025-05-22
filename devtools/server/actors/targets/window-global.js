@@ -1418,7 +1418,7 @@ class WindowGlobalTargetActor extends BaseTargetActor {
 
   get touchSimulator() {
     if (!this._touchSimulator) {
-      this._touchSimulator = new TouchSimulator(this.chromeEventHandler);
+      this._touchSimulator = new TouchSimulator(this);
     }
 
     return this._touchSimulator;

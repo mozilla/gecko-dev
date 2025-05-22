@@ -47,11 +47,12 @@ const kStateHover = 0x00000004; // ElementState::HOVER
  */
 class TouchSimulator {
   /**
-   * @param {ChromeEventHandler} simulatorTarget: The object we'll use to listen for click
-   *                             and touch events to handle.
+   * @param {WindowGlobalTargetActor} windowTarget: The window object we'll use
+   *                                  to listen for click and touch events to handle.
    */
-  constructor(simulatorTarget) {
-    this.simulatorTarget = simulatorTarget;
+  constructor(windowTarget) {
+    this.windowTarget = windowTarget;
+    this.simulatorTarget = windowTarget.chromeEventHandler;
     this._currentPickerMap = new Map();
   }
 
