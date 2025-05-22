@@ -1918,7 +1918,7 @@ newtab_content:
       - newtab-content
 
   inferred_interests:
-    type: string
+    type: object
     description: >
       Differentially private high-level inferred interests (e.g. Entertainment or News), encoded in a JSON string.
       Key is the feature, and the value is a unary encoded string that must be decoded based on known differential
@@ -1935,6 +1935,16 @@ newtab_content:
     lifetime: application
     send_in_pings:
       - newtab-content
+    structure:
+      type: object
+      properties:
+        values:
+          type: array
+          items:
+            type: string
+        model_id:
+          type: string
+
 
   coarse_os:
     type: string

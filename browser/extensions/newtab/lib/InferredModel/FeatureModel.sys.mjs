@@ -395,6 +395,7 @@ export class FeatureModel {
     dataForIntervals,
     indexSchema,
     model_id = "unknown",
+    condensePrivateValues = true,
   }) {
     const result = {};
     let inferredInterests;
@@ -429,10 +430,17 @@ export class FeatureModel {
         applyDifferentialPrivacy: true,
       });
       if (coarsePrivateInferredInterests) {
-        result.coarsePrivateInferredInterests = {
-          ...coarsePrivateInferredInterests,
-          model_id,
-        };
+        if (condensePrivateValues) {
+          result.coarsePrivateInferredInterests = {
+            values: Object.values(coarsePrivateInferredInterests), // Key order presrved in Gecko
+            model_id,
+          };
+        } else {
+          result.coarsePrivateInferredInterests = {
+            ...coarsePrivateInferredInterests,
+            model_id,
+          };
+        }
       }
     }
     return result;

@@ -369,6 +369,7 @@ add_task(function test_computeMultipleVectors() {
     dataForIntervals: SQL_RESULT_DATA,
     indexSchema: SCHEMA,
     model_id: "test",
+    condensePrivateValues: false,
   });
   Assert.equal(
     result.coarsePrivateInferredInterests.parenting,
@@ -385,12 +386,48 @@ add_task(function test_computeMultipleVectors() {
   );
 });
 
+add_task(function test_computeMultipleVectorsCondensed() {
+  const modelData = { ...jsonModelData, rescale: true };
+  const model = FeatureModel.fromJSON(modelData);
+  const result = model.computeInterestVectors({
+    dataForIntervals: SQL_RESULT_DATA,
+    indexSchema: SCHEMA,
+    model_id: "test",
+  });
+  Assert.equal(
+    result.coarsePrivateInferredInterests.values.length,
+    3,
+    "Items in an array"
+  );
+  Assert.equal(
+    result.coarsePrivateInferredInterests.values[0].length,
+    3,
+    "One value in string per possible result"
+  );
+  Assert.ok(
+    result.coarsePrivateInferredInterests.values[0]
+      .split("")
+      .every(a => a === "1" || a === "0"),
+    "Combined coarse values are 1 and 0"
+  );
+  Assert.equal(
+    result.coarsePrivateInferredInterests.model_id,
+    "test",
+    "Model id returned"
+  );
+  Assert.ok(
+    result.inferredInterests.parenting > 0,
+    "Original inferred interest is returned"
+  );
+});
+
 add_task(function test_computeMultipleVectorsNoPrivate() {
   const model = FeatureModel.fromJSON(jsonModelDataNoCoarseSupport);
   const result = model.computeInterestVectors({
     dataForIntervals: SQL_RESULT_DATA,
     indexSchema: SCHEMA,
     model_id: "test",
+    condensePrivateValues: false,
   });
   Assert.ok(
     !result.coarsePrivateInferredInterests,

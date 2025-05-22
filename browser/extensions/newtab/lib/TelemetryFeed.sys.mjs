@@ -1037,9 +1037,7 @@ export class TelemetryFeed {
     const inferredInterests =
       this.privatePingInferredInterestsEnabled && this.inferredInterests;
     if (inferredInterests) {
-      Glean.newtabContent.inferredInterests.set(
-        JSON.stringify(inferredInterests)
-      );
+      Glean.newtabContent.inferredInterests.set(inferredInterests);
     }
 
     // When we have a coarse interest vector we want to make sure there isn't
