@@ -220,8 +220,6 @@ export const PREFS = Object.freeze({
   "browser.newtabpage.activity-stream.showSearch": PREF_BOOL,
   "browser.newtabpage.activity-stream.showSponsoredTopSites": PREF_BOOL,
   "browser.newtabpage.enabled": PREF_BOOL,
-  "browser.shopping.experience2023.autoActivateCount": PREF_INT,
-  "browser.shopping.experience2023.optedIn": PREF_INT,
   "browser.toolbars.bookmarks.visibility": PREF_STRING,
   "browser.urlbar.quicksuggest.dataCollection.enabled": PREF_BOOL,
   "browser.urlbar.showSearchSuggestionsFirst": PREF_BOOL,

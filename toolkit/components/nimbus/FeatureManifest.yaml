@@ -3793,66 +3793,6 @@ raceCacheWithNetwork:
         branch: default
         pref: "network.http.rcwn.enabled"
 
-shopping2023:
-  description: Prefs to control the 2023 shopping experiment.
-  owner: jhirsch@mozilla.com
-  hasExposure: true
-  exposureDescription: >-
-    The timing of the exposure event depends on the experiment, but generally
-    the event is recorded when the user first encounters onboarding UI for
-    the shopping feature.
-  variables:
-    enabled:
-      description: True if the shopping sidebar is enabled (experimental treatment group)
-      type: boolean
-      setPref:
-        branch: default
-        pref: browser.shopping.experience2023.enabled
-    control:
-      description: True if the experiment is enabled but experience is disabled (experimental control group)
-      type: boolean
-      fallbackPref: browser.shopping.experience2023.control
-    adsEnabled:
-      description: True if showing recommended products is enabled
-      type: boolean
-      setPref:
-        branch: default
-        pref: browser.shopping.experience2023.ads.enabled
-    adsExposure:
-      description: True if we want to record ad inventory for opted-in users, even if ads are disabled
-      type: boolean
-      setPref:
-        branch: default
-        pref: browser.shopping.experience2023.ads.exposure
-    surveyEnabled:
-      description: True if showing survey is enabled
-      type: boolean
-      fallbackPref: browser.shopping.experience2023.survey.enabled
-    autoOpenEnabled:
-      description: True if auto-open behavior for the sidebar is enabled
-      type: boolean
-      setPref:
-        branch: default
-        pref: browser.shopping.experience2023.autoOpen.enabled
-
-shoppingOHTTP:
-  description: Prefs to control the OHTTP URLs used for shopping.
-  owner: gijs@mozilla.com
-  hasExposure: false
-  variables:
-    ohttpRelayURL:
-      description: What OHTTP relay URL to use
-      type: string
-      setPref:
-        branch: default
-        pref: toolkit.shopping.ohttpRelayURL
-    ohttpConfigURL:
-      description: URL for the OHTTP config to use
-      type: string
-      setPref:
-        branch: default
-        pref: toolkit.shopping.ohttpConfigURL
-
 opaqueResponseBlocking:
   description: Prefs to enable Opaque Response Blocking
   owner: farre@mozilla.com

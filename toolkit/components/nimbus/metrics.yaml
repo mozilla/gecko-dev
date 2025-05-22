@@ -74,8 +74,6 @@ nimbus_targeting_environment:
       - "browser.newtabpage.activity-stream.showSearch"
       - "browser.newtabpage.activity-stream.showSponsoredTopSites"
       - "browser.newtabpage.enabled"
-      - "browser.shopping.experience2023.autoActivateCount"
-      - "browser.shopping.experience2023.optedIn"
       - "browser.toolbars.bookmarks.visibility"
       - "browser.urlbar.quicksuggest.dataCollection.enabled"
       - "browser.urlbar.showSearchSuggestionsFirst"
@@ -181,10 +179,6 @@ nimbus_targeting_environment:
           type: boolean
         browser__newtabpage__enabled:
           type: boolean
-        browser__shopping__experience2023__autoActivateCount:
-          type: number
-        browser__shopping__experience2023__optedIn:
-          type: number
         browser__toolbars__bookmarks__visibility:
           type: string
         browser__urlbar__quicksuggest__dataCollection__enabled:
