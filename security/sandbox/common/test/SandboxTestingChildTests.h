@@ -6,7 +6,6 @@
 
 #include "SandboxTestingChild.h"
 
-#include "mozilla/StaticPrefs_security.h"
 #include "mozilla/ipc/UtilityProcessSandboxing.h"
 #include "nsXULAppAPI.h"
 
@@ -414,14 +413,14 @@ void RunTestsContent(SandboxTestingChild* child) {
   });
 
   // An abstract socket that does starts with /, so we do want it to work.
-  // Checking ECONNREFUSED because this is what the broker should get
-  // when trying to establish the connect call for us if it's allowed;
-  // otherwise we get EACCES, meaning that it was passed to the broker
-  // (unlike the previous test) but rejected.
-  const int errorForX =
-      StaticPrefs::security_sandbox_content_headless_AtStartup() ? EACCES
-                                                                 : ECONNREFUSED;
-  child->ErrnoValueTest("connect_abstract_permit"_ns, errorForX, [&] {
+  //
+  // Normally, this will be passed to the broker (unlike the previous
+  // test) and rejected, failing with EACCES.
+  //
+  // With content sandbox level <5, the expected error is ECONNREFUSED
+  // (the broker tries to connect but it fails at the OS level);
+  // however, these tests don't handle non-default pref settings.
+  child->ErrnoValueTest("connect_abstract_permit"_ns, EACCES, [&] {
     int sockfd;
     struct sockaddr_un addr;
     // we re-use actual X path, because this is what is allowed within
