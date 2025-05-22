@@ -778,6 +778,7 @@ addAccessibleTask(
 </fieldset>
 <div id="ariaDisabled" aria-disabled="true" role="button">ariaDisabled</div>
 <input id="enabled">
+<div id="ariaDisabledGroup" aria-disabled="true"><input id="inAriaDisabledGroup"></div>
   `,
   async function testUnavailable(browser, docAcc) {
     const input = findAccessibleChildByID(docAcc, "input");
@@ -840,6 +841,28 @@ addAccessibleTask(
     // Test a control that is initially enabled.
     const enabled = findAccessibleChildByID(docAcc, "enabled");
     testStates(enabled, 0, 0, STATE_UNAVAILABLE);
+
+    const ariaDisabledGroup = findAccessibleChildByID(
+      docAcc,
+      "ariaDisabledGroup"
+    );
+    const inAriaDisabledGroup = findAccessibleChildByID(
+      docAcc,
+      "inAriaDisabledGroup"
+    );
+    testStates(ariaDisabledGroup, STATE_UNAVAILABLE);
+    testStates(inAriaDisabledGroup, STATE_UNAVAILABLE);
+    info("Enabling ariaDisabledGroup");
+    changed = waitForStateChange(ariaDisabledGroup, STATE_UNAVAILABLE, false);
+    await invokeSetAttribute(
+      browser,
+      "ariaDisabledGroup",
+      "aria-disabled",
+      null
+    );
+    await changed;
+    testStates(ariaDisabledGroup, 0, 0, STATE_UNAVAILABLE);
+    testStates(inAriaDisabledGroup, 0, 0, STATE_UNAVAILABLE);
   },
   { chrome: true, topLevel: true }
 );

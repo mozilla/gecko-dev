@@ -716,6 +716,17 @@ void Accessible::ApplyImplicitState(uint64_t& aState) const {
   if (aState & kExpandCollapseStates) {
     aState |= states::EXPANDABLE;
   }
+
+  if (aState & states::FOCUSABLE && !(aState & states::UNAVAILABLE)) {
+    // Propagate UNAVAILABLE state from ancestors down to any focusable descendant.
+    for (auto ancestor = Parent(); ancestor && !ancestor->IsDoc();
+         ancestor = ancestor->Parent()) {
+      if (ancestor->State() & states::UNAVAILABLE) {
+        aState |= states::UNAVAILABLE;
+        break;
+      }
+    }
+  }
 }
 
 bool Accessible::NameIsEmpty() const {
