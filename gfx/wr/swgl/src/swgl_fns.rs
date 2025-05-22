@@ -314,6 +314,10 @@ extern "C" {
         clip_width: GLsizei,
         clip_height: GLsizei,
     );
+    fn ApplyMask(
+        locked_dst: *mut LockedTexture,
+        locked_mask: *mut LockedTexture,
+    );
     fn CreateContext() -> *mut c_void;
     fn ReferenceContext(ctx: *mut c_void);
     fn DestroyContext(ctx: *mut c_void);
@@ -2455,6 +2459,19 @@ impl LockedResource {
                 clip_y,
                 clip_width,
                 clip_height,
+            );
+        }
+    }
+
+    /// Apply an R8 alpha mask to this surface
+    pub fn apply_mask(
+        &self,
+        mask: &LockedResource,
+    ) {
+        unsafe {
+            ApplyMask(
+                self.0,
+                mask.0,
             );
         }
     }

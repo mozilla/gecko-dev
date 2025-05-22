@@ -71,6 +71,40 @@ ALWAYS_INLINE uint8_t convert_pixel<uint8_t>(uint16_t src) {
 #endif
 }
 
+// Apply a u8 alpha mask to a u32 texture row
+static inline void mask_row(uint32_t* dst, const uint8_t* mask, int span) {
+  auto* end = dst + span;
+  while (dst + 4 <= end) {
+    WideRGBA8 maskpx = expand_mask(dst, unpack(unaligned_load<PackedR8>(mask)));
+    WideRGBA8 dstpx = unpack(unaligned_load<PackedRGBA8>(dst));
+    PackedRGBA8 r = pack(muldiv255(dstpx, maskpx));
+    unaligned_store(dst, r);
+    mask += 4;
+    dst += 4;
+  }
+  if (dst < end) {
+    WideRGBA8 maskpx = expand_mask(dst, unpack(partial_load_span<PackedR8>(mask, end - dst)));
+    WideRGBA8 dstpx = unpack(partial_load_span<PackedRGBA8>(dst, end - dst));
+    auto r = pack(maskpx + dstpx - muldiv255(dstpx, maskpx));
+    partial_store_span(dst, r, end - dst);
+  }
+}
+
+// Apply a R8 alpha mask to a RGBA8 texture
+static NO_INLINE void mask_blit(Texture& masktex, Texture& dsttex) {
+  int maskStride = masktex.stride();
+  int destStride = dsttex.stride();
+  char* dest = dsttex.sample_ptr(0, 0);
+  char* mask = masktex.sample_ptr(0, 0);
+  int span = dsttex.width;
+
+  for (int rows = dsttex.height; rows > 0; rows--) {
+      mask_row((uint32_t*)dest, (uint8_t*)mask, span);
+      dest += destStride;
+      mask += maskStride;
+  }
+}
+
 template <bool COMPOSITE, typename P>
 static inline void copy_row(P* dst, const P* src, int span) {
   // No scaling, so just do a fast copy.
@@ -586,6 +620,25 @@ void Composite(LockedTexture* lockedDst, LockedTexture* lockedSrc, GLint srcX,
       scale_blit<true>(srctex, srcReq, dsttex, dstReq, flipY, clipRect);
     }
   }
+}
+
+// Extension used by the SWGL compositor to apply an alpha mask
+// to a texture. The textures must be the same size. The mask
+// must be R8, the texture must be RGBA8.
+void ApplyMask(LockedTexture* lockedDst, LockedTexture* lockedMask) {
+  assert(lockedDst);
+  assert(lockedMask);
+
+  Texture& masktex = *lockedMask;
+  Texture& dsttex = *lockedDst;
+
+  assert(masktex.bpp() == 1);
+  assert(dsttex.bpp() == 4);
+
+  assert(masktex.width == dsttex.width);
+  assert(masktex.height == dsttex.height);
+
+  mask_blit(masktex, dsttex);
 }
 
 }  // extern "C"
