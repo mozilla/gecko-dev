@@ -4656,19 +4656,21 @@ static void WorkerMain(UniquePtr<WorkerInput> input) {
         .setIsRunOnce(true)
         .setEagerDelazificationStrategy(defaultDelazificationMode);
 
-    AutoReportException are(cx);
-    JS::SourceText<char16_t> srcBuf;
-    if (!srcBuf.init(cx, input->chars.get(), input->length,
-                     JS::SourceOwnership::Borrowed)) {
-      break;
-    }
+    {
+      AutoReportException are(cx);
+      JS::SourceText<char16_t> srcBuf;
+      if (!srcBuf.init(cx, input->chars.get(), input->length,
+                       JS::SourceOwnership::Borrowed)) {
+        break;
+      }
 
-    RootedScript script(cx, JS::Compile(cx, options, srcBuf));
-    if (!script) {
-      break;
+      RootedScript script(cx, JS::Compile(cx, options, srcBuf));
+      if (!script) {
+        break;
+      }
+      RootedValue result(cx);
+      JS_ExecuteScript(cx, script, &result);
     }
-    RootedValue result(cx);
-    JS_ExecuteScript(cx, script, &result);
 
     RunShellJobs(cx);
   } while (0);
