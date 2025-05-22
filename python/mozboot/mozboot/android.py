@@ -97,6 +97,16 @@ ac_add_options --enable-artifact-builds
 mk_add_options MOZ_OBJDIR=./objdir-frontend
 """
 
+SUGGEST_ADD_PLATFORM_TOOLS_PATH = """
+If you plan to use adb or other platform tools directly on the command line, it may
+be useful to add them to your PATH. Edit your shell initialization script to prepend
+{platform_tools} to your PATH. For example:
+
+    export PATH="{platform_tools}:$PATH"
+
+Then restart your shell.
+"""
+
 
 class GetNdkVersionError(Exception):
     pass
@@ -611,7 +621,8 @@ def ensure_android_packages(
     if not packages:
         packages = get_android_packages(AndroidPackageList.ALL)
 
-    sdkmanager_tool = get_sdkmanager_tool_path(sdk_path=get_sdk_path(os_name))
+    sdk_path = get_sdk_path(os_name)
+    sdkmanager_tool = get_sdkmanager_tool_path(sdk_path=sdk_path)
 
     if avd_manifest is not None:
         packages.add(avd_manifest["emulator_package"])
@@ -634,6 +645,7 @@ def ensure_android_packages(
 
     if not no_interactive:
         subprocess.check_call(args, env=env)
+        suggest_platform_tools_path(packages, sdk_path)
         return
 
     # Flush outputs before running sdkmanager.
@@ -652,6 +664,30 @@ def ensure_android_packages(
         raise e
     if list_packages:
         subprocess.check_call([str(sdkmanager_tool), "--list"])
+
+    suggest_platform_tools_path(packages, sdk_path)
+
+
+def suggest_platform_tools_path(packages: set, sdk_path: Path):
+    if "platform-tools" in packages:
+        platform_tools_dir = (sdk_path / "platform-tools").resolve()
+        path_entries = os.environ.get("PATH", "").split(os.pathsep)
+        normalized_entries = {
+            os.path.normpath(
+                os.path.normcase(os.path.expanduser(os.path.expandvars(p)))
+            )
+            for p in path_entries
+        }
+        normalized_platform_tools_dir = os.path.normpath(
+            os.path.normcase(platform_tools_dir)
+        )
+
+        if normalized_platform_tools_dir not in normalized_entries:
+            print(
+                SUGGEST_ADD_PLATFORM_TOOLS_PATH.format(
+                    platform_tools=normalized_platform_tools_dir
+                )
+            )
 
 
 def generate_mozconfig(os_name: str, artifact_mode=False):
