@@ -1,5 +1,6 @@
 package mozilla.components.feature.search.icons
 
+import mozilla.appservices.remotesettings.RemoteSettingsClient
 import mozilla.components.support.remotesettings.RemoteSettingsService
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -8,6 +9,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.Mockito
+import org.mockito.Mockito.mock
 import org.mockito.junit.MockitoJUnitRunner
 
 @RunWith(MockitoJUnitRunner::class)
@@ -15,13 +17,15 @@ class SearchConfigIconsUpdateServiceTest {
 
     @Mock
     private lateinit var mockRemoteSettingsService: RemoteSettingsService
+    private lateinit var mockClient: RemoteSettingsClient
 
     private lateinit var service: SearchConfigIconsUpdateService
     private lateinit var spyService: SearchConfigIconsUpdateService
 
     @Before
     fun setup() {
-        service = SearchConfigIconsUpdateService()
+        mockClient = mock()
+        service = SearchConfigIconsUpdateService(mockClient)
         spyService = Mockito.spy(service)
     }
 
@@ -43,9 +47,9 @@ class SearchConfigIconsUpdateServiceTest {
             ),
         )
 
-        Mockito.doReturn(expectedModels).`when`(spyService).fetchIcons(mockRemoteSettingsService)
+        Mockito.doReturn(expectedModels).`when`(spyService).fetchIconsRecords(mockRemoteSettingsService)
 
-        val result = spyService.fetchIcons(mockRemoteSettingsService)
+        val result = spyService.fetchIconsRecords(mockRemoteSettingsService)
 
         assertEquals(expectedModels.size, result.size)
         assertEquals(expectedModels[0], result[0])
@@ -53,9 +57,9 @@ class SearchConfigIconsUpdateServiceTest {
 
     @Test
     fun `Given no valid records When fetchIcons is called Then empty list is returned`() {
-        Mockito.doReturn(emptyList<SearchConfigIconsModel>()).`when`(spyService).fetchIcons(mockRemoteSettingsService)
+        Mockito.doReturn(emptyList<SearchConfigIconsModel>()).`when`(spyService).fetchIconsRecords(mockRemoteSettingsService)
 
-        val result = spyService.fetchIcons(mockRemoteSettingsService)
+        val result = spyService.fetchIconsRecords(mockRemoteSettingsService)
 
         assertTrue(result.isEmpty())
     }
