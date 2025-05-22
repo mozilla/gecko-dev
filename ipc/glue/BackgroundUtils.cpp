@@ -18,6 +18,7 @@
 #include "mozilla/net/InterceptionInfo.h"
 #include "mozilla/net/NeckoChannelParams.h"
 #include "ExpandedPrincipal.h"
+#include "nsIContentPolicy.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
@@ -599,7 +600,8 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
       aLoadInfo->GetIsMediaRequest(), aLoadInfo->GetIsMediaInitialRequest(),
       aLoadInfo->GetIsFromObjectOrEmbed(), cookieJarSettingsArgs,
       aLoadInfo->GetRequestBlockingReason(), maybeCspToInheritInfo,
-      aLoadInfo->GetStoragePermission(), overriddenFingerprintingSettingsArg,
+      aLoadInfo->GetStoragePermission(), aLoadInfo->GetParentIpAddressSpace(),
+      aLoadInfo->GetIpAddressSpace(), overriddenFingerprintingSettingsArg,
       aLoadInfo->GetIsMetaRefresh(), aLoadInfo->GetLoadingEmbedderPolicy(),
       aLoadInfo->GetIsOriginTrialCoepCredentiallessEnabledForTopLevel(),
       unstrippedURI, interceptionInfoArg, aLoadInfo->GetIsNewWindowTarget(),
@@ -891,7 +893,8 @@ nsresult LoadInfoArgsToLoadInfo(const LoadInfoArgs& loadInfoArgs,
       /* aIsSameDocumentNavigation */ false,
       loadInfoArgs.allowDeprecatedSystemRequests(),
       loadInfoArgs.isInDevToolsContext(), loadInfoArgs.parserCreatedScript(),
-      loadInfoArgs.storagePermission(), overriddenFingerprintingSettings,
+      loadInfoArgs.storagePermission(), loadInfoArgs.parentIPAddressSpace(),
+      loadInfoArgs.ipAddressSpace(), overriddenFingerprintingSettings,
       loadInfoArgs.isMetaRefresh(), loadInfoArgs.requestBlockingReason(),
       loadingContext, loadInfoArgs.loadingEmbedderPolicy(),
       loadInfoArgs.originTrialCoepCredentiallessEnabledForTopLevel(),
