@@ -11,6 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 /**
  * @typedef {import("../translations").LanguagePair} LanguagePair
+ * @typedef {import("../translations").TranslationsEnginePayload} TranslationsEnginePayload
  */
 
 /**
@@ -45,11 +46,15 @@ export class TranslationsEngineParent extends JSProcessActorParent {
     switch (name) {
       case "TranslationsEngine:RequestEnginePayload": {
         const { languagePair } = data;
+
+        /** @type {Promise<TranslationsEnginePayload>} */
         const payloadPromise =
           lazy.TranslationsParent.getTranslationsEnginePayload(languagePair);
+
         payloadPromise.catch(error => {
           lazy.TranslationsParent.telemetry().onError(String(error));
         });
+
         return payloadPromise;
       }
       case "TranslationsEngine:ReportEnginePerformance": {

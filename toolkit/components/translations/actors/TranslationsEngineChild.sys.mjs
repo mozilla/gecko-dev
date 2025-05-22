@@ -17,6 +17,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 /**
+ * @typedef {import("../translations").LanguagePair} LanguagePair
+ * @typedef {import("../translations").TranslationsEnginePayload} TranslationsEnginePayload
+ */
+
+/**
  * The engine child is responsible for exposing privileged code to the un-privileged
  * space the engine runs in.
  */
@@ -136,6 +141,10 @@ export class TranslationsEngineChild extends JSProcessActorChild {
     totalTranslatedWords,
     totalCompletedRequests,
   }) {
+    if (this.#isDestroyed) {
+      return;
+    }
+
     this.sendAsyncMessage("TranslationsEngine:ReportEnginePerformance", {
       sourceLanguage,
       targetLanguage,
@@ -147,8 +156,14 @@ export class TranslationsEngineChild extends JSProcessActorChild {
 
   /**
    * @param {LanguagePair} languagePair
+   *
+   * @returns {Promise<TranslationsEnginePayload> | undefined}
    */
   TE_requestEnginePayload(languagePair) {
+    if (this.#isDestroyed) {
+      return undefined;
+    }
+
     return this.sendQuery("TranslationsEngine:RequestEnginePayload", {
       languagePair,
     });
@@ -159,6 +174,10 @@ export class TranslationsEngineChild extends JSProcessActorChild {
    * @param {"ready" | "error"} status
    */
   TE_reportEngineStatus(innerWindowId, status) {
+    if (this.#isDestroyed) {
+      return;
+    }
+
     this.sendAsyncMessage("TranslationsEngine:ReportEngineStatus", {
       innerWindowId,
       status,
@@ -169,6 +188,10 @@ export class TranslationsEngineChild extends JSProcessActorChild {
    * No engines are still alive, signal that the process can be destroyed.
    */
   TE_destroyEngineProcess() {
+    if (this.#isDestroyed) {
+      return;
+    }
+
     this.sendAsyncMessage("TranslationsEngine:DestroyEngineProcess");
   }
 

@@ -210,6 +210,7 @@ const VERIFY_SIGNATURES_FROM_FS = false;
  * @typedef {import("../translations").TranslationModelRecord} TranslationModelRecord
  * @typedef {import("../translations").RemoteSettingsClient} RemoteSettingsClient
  * @typedef {import("../translations").TranslationModelPayload} TranslationModelPayload
+ * @typedef {import("../translations").TranslationsEnginePayload} TranslationsEnginePayload
  * @typedef {import("../translations").LanguageTranslationModelFiles} LanguageTranslationModelFiles
  * @typedef {import("../translations").WasmRecord} WasmRecord
  * @typedef {import("../translations").LangTags} LangTags
@@ -1587,7 +1588,11 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
+   * Retrieves the payload required to construct the TranslationsEngine for the given language pair.
+   *
    * @param {LanguagePair} languagePair
+   *
+   * @returns {Promise<TranslationsEnginePayload>}
    */
   static async getTranslationsEnginePayload(languagePair) {
     const wasmStartTime = Cu.now();
