@@ -748,6 +748,8 @@ bitflags! {
         const MISSING_SNAPSHOT_PANIC    = (1 as u64) << 31; // need "as u32" until we have cbindgen#556
         /// Panic when a attempting to display a missing stacking context snapshot.
         const MISSING_SNAPSHOT_PINK     = (1 as u64) << 32;
+        /// Highlight backdrop filters
+        const HIGHLIGHT_BACKDROP_FILTERS = (1 as u64) << 33;
     }
 }
 

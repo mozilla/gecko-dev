@@ -6,7 +6,7 @@
 //!
 //! TODO: document this!
 
-use api::{ColorF, PropertyBinding};
+use api::{ColorF, DebugFlags, PropertyBinding};
 use api::{BoxShadowClipMode, BorderStyle, ClipMode};
 use api::units::*;
 use euclid::Scale;
@@ -1158,6 +1158,17 @@ fn prepare_interned_prim_for_render(
             // Register the owner picture of this backdrop primitive as the
             // target for resolve of the sub-graph
             frame_state.surface_builder.register_resolve_source();
+
+            if frame_context.debug_flags.contains(DebugFlags::HIGHLIGHT_BACKDROP_FILTERS) {
+                if let Some(world_rect) = pic_state.map_pic_to_vis.map(&prim_instance.vis.clip_chain.pic_coverage_rect) {
+                    scratch.push_debug_rect(
+                        world_rect.cast_unit(),
+                        2,
+                        crate::debug_colors::MAGENTA,
+                        ColorF::TRANSPARENT,
+                    );
+                }
+            }
         }
         PrimitiveInstanceKind::BackdropRender { pic_index, .. } => {
             match frame_state.surface_builder.sub_graph_output_map.get(pic_index).cloned() {
