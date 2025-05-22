@@ -140,8 +140,6 @@
   "SessionStartup",
   "SessionStore",
   "SharingUtils",
-  "ShoppingSidebarParent",
-  "ShoppingSidebarManager",
   "ShortcutUtils",
   "SiteDataManager",
   "SitePermissions",

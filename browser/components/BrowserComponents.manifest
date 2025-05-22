@@ -62,7 +62,6 @@ category browser-idle-startup moz-src:///browser/components/tabbrowser/TabUnload
 category browser-idle-startup resource:///modules/GenAI.sys.mjs GenAI.init
 category browser-idle-startup resource:///modules/QuickSuggest.sys.mjs QuickSuggest.init
 category browser-idle-startup resource:///modules/UrlbarSearchTermsPersistence.sys.mjs UrlbarSearchTermsPersistence.init
-category browser-idle-startup resource:///modules/ShoppingUtils.sys.mjs ShoppingUtils.init
 category browser-idle-startup moz-src:///browser/components/search/SERPCategorization.sys.mjs SERPCategorization.init
 category browser-idle-startup resource://gre/modules/ContentRelevancyManager.sys.mjs ContentRelevancyManager.init
 category browser-idle-startup resource://gre/modules/ColorwayThemeMigration.sys.mjs ColorwayThemeMigration.maybeWarn
@@ -89,7 +88,6 @@ category browser-quit-application-granted resource://gre/modules/PageThumbs.sys.
 category browser-quit-application-granted resource://gre/modules/NewTabUtils.sys.mjs NewTabUtils.uninit
 category browser-quit-application-granted resource://normandy/Normandy.sys.mjs Normandy.uninit
 category browser-quit-application-granted resource://gre/modules/RFPHelper.sys.mjs RFPHelper.uninit
-category browser-quit-application-granted resource:///modules/ShoppingUtils.sys.mjs ShoppingUtils.uninit
 category browser-quit-application-granted resource:///modules/asrouter/ASRouterNewTabHook.sys.mjs ASRouterNewTabHook.destroy
 category browser-quit-application-granted moz-src:///browser/components/search/SERPCategorization.sys.mjs SERPCategorization.uninit
 category browser-quit-application-granted moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs SearchSERPTelemetry.uninit

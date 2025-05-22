@@ -681,30 +681,6 @@ let JSWINDOWACTORS = {
     matches: ["about:studies*"],
   },
 
-  ShoppingSidebar: {
-    parent: {
-      esModuleURI: "resource:///actors/ShoppingSidebarParent.sys.mjs",
-    },
-    child: {
-      esModuleURI: "resource:///actors/ShoppingSidebarChild.sys.mjs",
-      events: {
-        ContentReady: { wantUntrusted: true },
-        PolledRequestMade: { wantUntrusted: true },
-        // This is added so the actor instantiates immediately and makes
-        // methods available to the page js on load.
-        DOMDocElementInserted: {},
-        ReportProductAvailable: { wantUntrusted: true },
-        AdClicked: { wantUntrusted: true },
-        AdImpression: { wantUntrusted: true },
-        DisableShopping: { wantUntrusted: true },
-      },
-    },
-    matches: ["about:shoppingsidebar"],
-    remoteTypes: ["privilegedabout"],
-    messageManagerGroups: ["shopping-sidebar", "browsers"],
-    enablePreference: "browser.shopping.experience2023.enabled",
-  },
-
   SpeechDispatcher: {
     parent: {
       esModuleURI: "resource:///actors/SpeechDispatcherParent.sys.mjs",
