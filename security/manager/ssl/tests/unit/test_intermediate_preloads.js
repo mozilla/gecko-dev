@@ -425,6 +425,20 @@ add_task(async function test_delete() {
   );
 });
 
+add_task(async function test_bug1966632() {
+  let certDB = Cc["@mozilla.org/security/x509certdb;1"].getService(
+    Ci.nsIX509CertDB
+  );
+
+  constructCertFromFile("test_intermediate_preloads/bug1966632-int1.pem", ",,");
+  await checkRootOfBuiltChain(
+    certDB,
+    constructCertFromFile("test_intermediate_preloads/bug1966632-ee.pem", ",,"),
+    "G/ANXI8TwJTdF+AFBM8IiIUPEv0Gf6H5LA/b9guG4yE=",
+    new Date("2025-05-21T00:00:00Z").getTime() / 1000
+  );
+});
+
 function run_test() {
   server = new HttpServer();
   server.start(-1);
