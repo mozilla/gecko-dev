@@ -12,6 +12,12 @@ add_task(async function testVoiceselectDropdownAutoclose() {
   await spawnInNewReaderTab(TEST_ARTICLE, async function () {
     let $ = content.document.querySelector.bind(content.document);
 
+    is(
+      $(".container").getAttribute("lang"),
+      "en",
+      "Should have detected English and set a lang tag accordingly."
+    );
+
     await NarrateTestUtils.waitForNarrateToggle(content);
 
     ok(

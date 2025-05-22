@@ -1482,7 +1482,10 @@ AboutReader.prototype = {
       this._doc.title = article.title;
     }
 
-    this._containerElement.setAttribute("lang", article.lang);
+    let lang = article.lang ?? article.detectedLanguage;
+    if (lang) {
+      this._containerElement.setAttribute("lang", lang);
+    }
 
     this._headerElement.classList.add("reader-show-element");
 

@@ -36,6 +36,10 @@ add_task(async function () {
           /\b9\b.*\b12\b/.test(args.range),
           "Reading time should be '9-12 minutes'"
         );
+
+        let container = content.document.querySelector(".container");
+        let lang = container.getAttribute("lang");
+        is(lang, "en", "Should have reused lang attr from the original page.");
       });
     }
   );
@@ -65,6 +69,12 @@ add_task(async function () {
         const args = JSON.parse(readingTimeElement.dataset.l10nArgs);
         is(args.rangePlural, "one", "Reading time should be '~1 minute'");
         ok(/\b1\b/.test(args.range), "Reading time should be '~1 minute'");
+
+        let container = content.document.querySelector(".container");
+        ok(
+          !container.hasAttribute("lang"),
+          "Can't detect language, shouldn't set a lang attribute."
+        );
       });
     }
   );
