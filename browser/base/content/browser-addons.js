@@ -2992,14 +2992,30 @@ var gUnifiedExtensions = {
       document.getElementById("PanelUI-menu-button"),
       "confirmation-hint-extensions-button-hidden"
     );
+    Glean.extensionsButton.toggleVisibility.record({
+      is_customizing: CustomizationHandler.isCustomizing(),
+      is_extensions_panel_empty: !this.hasExtensionsInPanel(),
+      // After setting the above pref to false, the button should hide
+      // immediately. If this was not the case, then something caused the
+      // button to be shown temporarily.
+      is_temporarily_shown: !this._button.hidden,
+      should_hide: true,
+    });
   },
 
   showExtensionsButtonInToolbar() {
+    let wasShownBefore = !this.buttonAlwaysVisible && !this._button.hidden;
     // All browser windows will observe this and call updateButtonVisibility().
     Services.prefs.setBoolPref(
       "extensions.unifiedExtensions.button.always_visible",
       true
     );
+    Glean.extensionsButton.toggleVisibility.record({
+      is_customizing: CustomizationHandler.isCustomizing(),
+      is_extensions_panel_empty: !this.hasExtensionsInPanel(),
+      is_temporarily_shown: wasShownBefore,
+      should_hide: false,
+    });
   },
 };
 XPCOMUtils.defineLazyPreferenceGetter(

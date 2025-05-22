@@ -142,6 +142,7 @@ add_task(async function test_hide_button_via_contextmenu() {
   await SpecialPowers.pushPrefEnv({
     set: [["extensions.unifiedExtensions.button.customizable", true]],
   });
+  Services.fog.testResetFOG();
   // Open another window, just to see that removal from the toolbar in one
   // window also applies to another.
   const win = await BrowserTestUtils.openNewBrowserWindow();
@@ -165,6 +166,19 @@ add_task(async function test_hide_button_via_contextmenu() {
   info("Extensions button should also be hidden in another window");
   assertExtensionsButtonHidden(window);
 
+  Assert.deepEqual(
+    Glean.extensionsButton.toggleVisibility.testGetValue().map(e => e.extra),
+    [
+      {
+        is_customizing: "false",
+        is_extensions_panel_empty: "false",
+        is_temporarily_shown: "false",
+        should_hide: "true",
+      },
+    ],
+    "Expected extensions_button.toggle_visibility telemetry after hiding"
+  );
+
   await checkAndDismissPostHideNotification(win);
 
   await BrowserTestUtils.closeWindow(win);
@@ -179,6 +193,7 @@ add_task(async function test_menu_items_on_hidden_button() {
   await SpecialPowers.pushPrefEnv({
     set: [["extensions.unifiedExtensions.button.customizable", true]],
   });
+  Services.fog.testResetFOG();
 
   hideButtonWithPref();
 
@@ -212,6 +227,19 @@ add_task(async function test_menu_items_on_hidden_button() {
 
   await closeChromeContextMenu(contextMenu.id, item);
   assertExtensionsButtonVisible();
+
+  Assert.deepEqual(
+    Glean.extensionsButton.toggleVisibility.testGetValue().map(e => e.extra),
+    [
+      {
+        is_extensions_panel_empty: "false",
+        is_customizing: "false",
+        is_temporarily_shown: "false",
+        should_hide: "false",
+      },
+    ],
+    "Expected extensions_button.toggle_visibility telemetry after showing"
+  );
 
   // After unhiding the button, the menu items should be the defaults:
   // - removeFromToolbar: from disabled to enabled.
@@ -271,6 +299,7 @@ add_task(async function test_customization_button_and_menu_item_visibility() {
   await SpecialPowers.pushPrefEnv({
     set: [["extensions.unifiedExtensions.button.customizable", true]],
   });
+  Services.fog.testResetFOG();
 
   const win = await BrowserTestUtils.openNewBrowserWindow();
 
@@ -296,6 +325,20 @@ add_task(async function test_customization_button_and_menu_item_visibility() {
 
     await checkAndDismissPostHideNotification(win);
   }
+
+  Assert.deepEqual(
+    Glean.extensionsButton.toggleVisibility.testGetValue().map(e => e.extra),
+    [
+      {
+        is_customizing: "true",
+        is_extensions_panel_empty: "false",
+        is_temporarily_shown: "true",
+        should_hide: "true",
+      },
+    ],
+    "Expected extensions_button.toggle_visibility telemetry after hiding"
+  );
+  Services.fog.testResetFOG();
 
   {
     info("Open context menu to verify checked state, then cancel menu");
@@ -337,6 +380,19 @@ add_task(async function test_customization_button_and_menu_item_visibility() {
     assertExtensionsButtonVisible(win);
     assertExtensionsButtonVisible();
   }
+
+  Assert.deepEqual(
+    Glean.extensionsButton.toggleVisibility.testGetValue().map(e => e.extra),
+    [
+      {
+        is_extensions_panel_empty: "false",
+        is_customizing: "true",
+        is_temporarily_shown: "true",
+        should_hide: "false",
+      },
+    ],
+    "Expected extensions_button.toggle_visibility telemetry after showing"
+  );
 
   await closeCustomizationUI(win);
   await BrowserTestUtils.closeWindow(win);

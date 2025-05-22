@@ -87,6 +87,7 @@ add_task(async function test_contextmenu_on_button_with_attention() {
   await SpecialPowers.pushPrefEnv({
     set: [["extensions.unifiedExtensions.button.customizable", true]],
   });
+  Services.fog.testResetFOG();
   gBrowser.selectedTab = TAB_WITHOUT_ATTENTION;
   gBrowser.selectedTab = TAB_WITH_ATTENTION;
   assertExtensionsButtonVisible();
@@ -110,6 +111,21 @@ add_task(async function test_contextmenu_on_button_with_attention() {
     await closeChromeContextMenu(contextMenu.id, item);
     assertExtensionsButtonVisible();
   }
+
+  Assert.deepEqual(
+    Glean.extensionsButton.toggleVisibility.testGetValue().map(e => e.extra),
+    [
+      {
+        is_customizing: "false",
+        is_extensions_panel_empty: "false",
+        is_temporarily_shown: "true",
+        should_hide: "false",
+      },
+    ],
+    "Expected extensions_button.toggle_visibility telemetry after showing"
+  );
+  Services.fog.testResetFOG();
+
   {
     info("Open context menu on 'always shown' button, to toggle pref");
     const contextMenu = await openChromeContextMenu(
@@ -133,6 +149,19 @@ add_task(async function test_contextmenu_on_button_with_attention() {
     info("Button should still be temporarily visible due to attention dot");
     assertExtensionsButtonVisible();
   }
+
+  Assert.deepEqual(
+    Glean.extensionsButton.toggleVisibility.testGetValue().map(e => e.extra),
+    [
+      {
+        is_customizing: "false",
+        is_extensions_panel_empty: "false",
+        is_temporarily_shown: "true",
+        should_hide: "true",
+      },
+    ],
+    "Expected extensions_button.toggle_visibility telemetry after hiding"
+  );
 
   gBrowser.selectedTab = TAB_WITHOUT_ATTENTION;
   assertExtensionsButtonHidden();

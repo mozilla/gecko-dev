@@ -27,3 +27,42 @@ extensions_button:
       - addons-dev-internal@mozilla.com
       - rwu@mozilla.com
     expires: 150
+
+  toggle_visibility:
+    type: event
+    description: |
+      When a user changes the preferred visibility of the Extensions Button,
+      through the "Remove from Toolbar" or "Always Show in Toolbar" menu items.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966935
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966935
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+      - rwu@mozilla.com
+    expires: 150
+    extra_keys:
+      is_customizing:
+        description: Whether the change was made in Customize Mode.
+        type: boolean
+      is_extensions_panel_empty:
+        description: |
+          Whether the Extensions Panel is unable to show any extensions.
+        type: boolean
+      is_temporarily_shown:
+        description: |
+          Whether the Extensions Button is or was temporarily shown when the
+          user toggled the visibility.
+
+          If is_temporarily_shown is true and should_hide is false, this means
+          that the button stayed visible after the user tried to hide it.
+
+          If is_temporarily_shown is true and should_hide is true, this means
+          that the button was temporarily visible when the user made it
+          permanently visible again.
+        type: boolean
+      should_hide:
+        description: Whether the user wants the button to be hidden.
+        type: boolean
