@@ -3618,7 +3618,6 @@ class _DSCard extends (external_React_default()).PureComponent {
     this.onMenuShow = this.onMenuShow.bind(this);
     this.onThumbsUpClick = this.onThumbsUpClick.bind(this);
     this.onThumbsDownClick = this.onThumbsDownClick.bind(this);
-    const refinedCardsLayout = this.props.Prefs.values["discoverystream.refinedCardsLayout.enabled"];
     this.setContextMenuButtonHostRef = element => {
       this.contextMenuButtonHostElement = element;
     };
@@ -3679,7 +3678,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       },
       medium: {
         width: 300,
-        height: refinedCardsLayout ? 172 : 150
+        height: 150
       },
       large: {
         width: 265,
@@ -4905,7 +4904,6 @@ const PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
 const PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
 const PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
 const PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
-const PREF_REFINED_CARDS_ENABLED = "discoverystream.refinedCardsLayout.enabled";
 const CardGrid_INTERSECTION_RATIO = 0.5;
 const CardGrid_VISIBLE = "visible";
 const CardGrid_VISIBILITY_CHANGE_EVENT = "visibilitychange";
@@ -5189,8 +5187,6 @@ class _CardGrid extends (external_React_default()).PureComponent {
     const listFeedSelectedFeed = prefs[PREF_LIST_FEED_SELECTED_FEED];
     const billboardEnabled = prefs[PREF_BILLBOARD_ENABLED];
     const leaderboardEnabled = prefs[PREF_LEADERBOARD_ENABLED];
-    const refinedCardsLayout = prefs[PREF_REFINED_CARDS_ENABLED];
-
     // filter out recs that should be in ListFeed
     const recs = this.props.data.recommendations.filter(item => !item.feedName).slice(0, items);
     const cards = [];
@@ -5214,8 +5210,8 @@ class _CardGrid extends (external_React_default()).PureComponent {
         features: rec.features,
         showTopics: showTopics,
         selectedTopics: selectedTopics,
-        excerpt: refinedCardsLayout && rec.excerpt,
         availableTopics: availableTopics,
+        excerpt: rec.excerpt,
         url: rec.url,
         id: rec.id,
         shim: rec.shim,
@@ -11237,8 +11233,7 @@ const CardSections_PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
 const CardSections_PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
 const CardSections_PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
 const CardSections_PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
-const CardSections_PREF_REFINED_CARDS_ENABLED = "discoverystream.refinedCardsLayout.enabled";
-function getLayoutData(responsiveLayouts, index, refinedCardsLayout) {
+function getLayoutData(responsiveLayouts, index) {
   let layoutData = {
     classNames: [],
     imageSizes: {}
@@ -11253,11 +11248,7 @@ function getLayoutData(responsiveLayouts, index, refinedCardsLayout) {
         // The API tells us whether the tile should show the excerpt or not.
         // Apply extra styles accordingly.
         if (tile.hasExcerpt) {
-          if (tile.size === "medium" && refinedCardsLayout) {
-            layoutData.classNames.push(`col-${layout.columnCount}-hide-excerpt`);
-          } else {
-            layoutData.classNames.push(`col-${layout.columnCount}-show-excerpt`);
-          }
+          layoutData.classNames.push(`col-${layout.columnCount}-show-excerpt`);
         } else {
           layoutData.classNames.push(`col-${layout.columnCount}-hide-excerpt`);
         }
@@ -11312,7 +11303,6 @@ function CardSection({
   const mayHaveThumbsUpDown = prefs[CardSections_PREF_THUMBS_UP_DOWN_ENABLED];
   const selectedTopics = prefs[CardSections_PREF_TOPICS_SELECTED];
   const availableTopics = prefs[CardSections_PREF_TOPICS_AVAILABLE];
-  const refinedCardsLayout = prefs[CardSections_PREF_REFINED_CARDS_ENABLED];
   const {
     saveToPocketCard
   } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream);
@@ -11441,7 +11431,7 @@ function CardSection({
     const {
       classNames,
       imageSizes
-    } = getLayoutData(responsiveLayouts, index, refinedCardsLayout);
+    } = getLayoutData(responsiveLayouts, index);
     if (!rec || rec.placeholder) {
       return /*#__PURE__*/external_React_default().createElement(PlaceholderDSCard, {
         key: `dscard-${index}`

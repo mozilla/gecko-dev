@@ -87,17 +87,12 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     position: relative;
   }
 
-  &.refined-cards {
-    .card-stp-button-hover-background {
-      height: 172px;
-    }
-  }
-
   .card-stp-button-hover-background {
     opacity: 0;
     width: 100%;
     position: absolute;
     top: 0;
+    height: 0;
     transition: opacity;
     transition-duration: 0s;
     padding-block-start: 50%;
