@@ -213,14 +213,16 @@ def android_lldb_server(target, host, ndk, lldb):
             )
         sorted_versions = sorted(clang_subdirs, key=Version)
         highest_version = sorted_versions[-1]
-        log.warning("Using highest version available: %s" % quote(highest_version))
-        log.warning(
-            " Available versions: "
-            + ", ".join(str(version) for version in sorted_versions)
-        )
-        log.warning(
-            "(To use an older version, please specify --with-android-lldb-server=/path/to/desired/android/lldb-server)"
-        )
+
+        if len(sorted_versions) > 1:
+            log.warning("Using highest version available: %s" % quote(highest_version))
+            log.warning(
+                " Available versions: "
+                + ", ".join(str(version) for version in sorted_versions)
+            )
+            log.warning(
+                "(To use an older version, please specify --with-android-lldb-server=/path/to/desired/android/lldb-server)"
+            )
 
         if target.cpu == "x86":
             target_cpu = "i386"
