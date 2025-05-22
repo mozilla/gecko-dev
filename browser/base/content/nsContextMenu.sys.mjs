@@ -2549,10 +2549,13 @@ export class nsContextMenu {
   }
 
   shouldShowAddEngine() {
+    let uri = this.browser.currentURI;
+
     return (
       this.onTextInput &&
       this.onSearchField &&
       !this.isLoginForm() &&
+      (uri.schemeIs("http") || uri.schemeIs("https")) &&
       Services.prefs.getBoolPref(
         "browser.urlbar.update2.engineAliasRefresh",
         false
