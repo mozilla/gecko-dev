@@ -59,8 +59,6 @@ A token is only prefixed with a domain when there is a need to specify its conte
 
 For example, if a token is specific to a certain feature, you can use the domain level to specify the name of the feature that it belongs to. Don't forget to keep domain-specific tokens within the feature's CSS so that they can only be reused within its domain.
 
-Example from [browser/components/shopping/content/shopping-container.css](https://searchfox.org/mozilla-central/rev/02841791400cf7cf5760c0cfaf31f5d772624253/browser/components/shopping/content/shopping-container.css#7):
-
 ![Example showing "shopping" as the 'Domain' part of the "shopping-header-font-size" token](./img/ecosystem-domain.png)
 
 ### Objects

@@ -289,7 +289,7 @@ Type setting relies on design tokens for font size and font weight.
 The text and typography stylesheet found in `toolkit/themes/shared/design-system/text-and-typography.css` contains type setting declarations, and text and typography helper classes:
 
 -  It applies the design system's type scale by default, therefore it styles the `root` and headings automatically.
--  It comes with helper classes for contexts where designers may visually prefer an `h1` to start at the "medium" heading size instead of "large" (e.g. Shopping sidebar). It also contains text related helpers for truncating and deemphasizing text.
+-  It comes with helper classes for contexts where designers may visually prefer an `h1` to start at the "medium" heading size instead of "large". It also contains text related helpers for truncating and deemphasizing text.
 
 You should rely on typography helper classes and the defaults set by the design system.
 
