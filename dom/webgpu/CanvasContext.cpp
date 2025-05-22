@@ -201,9 +201,18 @@ NS_IMETHODIMP CanvasContext::SetDimensions(int32_t aWidth, int32_t aHeight) {
   return NS_OK;
 }
 
+void CanvasContext::GetConfiguration(
+    dom::Nullable<dom::GPUCanvasConfiguration>& aRv) {
+  if (mConfiguration) {
+    aRv.SetValue(*mConfiguration);
+  } else {
+    aRv.SetNull();
+  }
+}
+
 RefPtr<Texture> CanvasContext::GetCurrentTexture(ErrorResult& aRv) {
   if (!mCurrentTexture) {
-    aRv.ThrowOperationError("Canvas not configured");
+    aRv.ThrowInvalidStateError("Canvas not configured");
     return nullptr;
   }
 

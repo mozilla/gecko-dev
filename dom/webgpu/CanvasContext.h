@@ -92,6 +92,7 @@ class CanvasContext final : public nsICanvasRenderingContextInternal,
   void Configure(const dom::GPUCanvasConfiguration& aConfig, ErrorResult& aRv);
   void Unconfigure();
 
+  void GetConfiguration(dom::Nullable<dom::GPUCanvasConfiguration>& aRv);
   RefPtr<Texture> GetCurrentTexture(ErrorResult& aRv);
   void MaybeQueueSwapChainPresent();
   Maybe<layers::SurfaceDescriptor> SwapChainPresent();

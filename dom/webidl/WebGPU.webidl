@@ -1261,6 +1261,7 @@ interface GPUCanvasContext {
     undefined configure(GPUCanvasConfiguration configuration);
     undefined unconfigure();
 
+    GPUCanvasConfiguration? getConfiguration();
     [Throws]
     GPUTexture getCurrentTexture();
 };
@@ -1275,7 +1276,8 @@ dictionary GPUCanvasConfiguration {
     required GPUTextureFormat format;
     GPUTextureUsageFlags usage = 0x10;  // GPUTextureUsage.RENDER_ATTACHMENT
     sequence<GPUTextureFormat> viewFormats = [];
-    //GPUPredefinedColorSpace colorSpace = "srgb"; //TODO
+    //GPUPredefinedColorSpace colorSpace = "srgb"; //TODO bug 1834395
+    //GPUCanvasToneMapping toneMapping = {}; //TODO bug 1834395
     GPUCanvasAlphaMode alphaMode = "opaque";
 };
 
