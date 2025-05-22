@@ -8,6 +8,7 @@ const {
   Option,
   RetVal,
   generateActorSpec,
+  BULK_RESPONSE,
 } = require("resource://devtools/shared/protocol.js");
 
 const perfDescription = {
@@ -45,12 +46,32 @@ const perfDescription = {
       response: { value: RetVal("boolean") },
     },
 
-    /**
-     * Returns null when unable to return the profile.
-     */
+    /* @backward-compat { version 140 }
+     * Version 140 introduced getProfileAndStopProfilerBulk below, a more
+     * efficient version of getProfileAndStopProfiler. getProfileAndStopProfiler
+     * needs to stay to support older versions of Firefox. */
     getProfileAndStopProfiler: {
       request: {},
       response: RetVal("nullable:json"),
+    },
+
+    startCaptureAndStopProfiler: {
+      request: {},
+      response: { value: RetVal("number") },
+    },
+
+    getPreviouslyCapturedProfileDataBulk: {
+      request: {
+        handle: Arg(0, "number"),
+      },
+      response: BULK_RESPONSE,
+    },
+
+    getPreviouslyRetrievedAdditionalInformation: {
+      request: {
+        handle: Arg(0, "number"),
+      },
+      response: { value: RetVal("nullable:json") },
     },
 
     stopProfilerAndDiscardProfile: {

@@ -15,7 +15,6 @@
  * @typedef {import("../@types/perf").PerformancePref} PerformancePref
  * @typedef {import("../@types/perf").RecordingSettings} RecordingSettings
  * @typedef {import("../@types/perf").GetActiveBrowserID} GetActiveBrowserID
- * @typedef {import("../@types/perf").MinimallyTypedGeckoProfile} MinimallyTypedGeckoProfile
  * @typedef {import("../@types/perf").ProfilerViewMode} ProfilerViewMode
  * @typedef {import("../@types/perf").ProfilerPanel} ProfilerPanel
  */
@@ -122,26 +121,6 @@ async function openProfilerTab({ profilerViewMode, defaultPanel }) {
 }
 
 /**
- * Flatten all the sharedLibraries of the different processes in the profile
- * into one list of libraries.
- * @param {MinimallyTypedGeckoProfile} profile - The profile JSON object
- * @returns {Library[]}
- */
-function sharedLibrariesFromProfile(profile) {
-  /**
-   * @param {MinimallyTypedGeckoProfile} processProfile
-   * @returns {Library[]}
-   */
-  function getLibsRecursive(processProfile) {
-    return processProfile.libs.concat(
-      ...processProfile.processes.map(getLibsRecursive)
-    );
-  }
-
-  return getLibsRecursive(profile);
-}
-
-/**
  * Restarts the browser with a given environment variable set to a value.
  *
  * @param {Record<string, string>} env
@@ -227,7 +206,6 @@ async function openScriptInDebugger(tabId, scriptUrl, line, columnOneBased) {
 
 module.exports = {
   openProfilerTab,
-  sharedLibrariesFromProfile,
   restartBrowserWithEnvironmentVariable,
   openFilePickerForObjdir,
   openScriptInDebugger,

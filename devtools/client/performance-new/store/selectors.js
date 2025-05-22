@@ -9,7 +9,6 @@
  * @typedef {import("../@types/perf").RecordingSettings} RecordingSettings
  * @typedef {import("../@types/perf").InitializedValues} InitializedValues
  * @typedef {import("../@types/perf").PerfFront} PerfFront
- * @typedef {import("../@types/perf").ReceiveProfile} ReceiveProfile
  * @typedef {import("../@types/perf").PageContext} PageContext
  * @typedef {import("../@types/perf").Presets} Presets
  */

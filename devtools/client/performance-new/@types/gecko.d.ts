@@ -502,3 +502,12 @@ declare type nsIPrefBranch = MockedExports.nsIPrefBranch;
 interface Function {
   isInstance(obj: any): boolean;
 }
+
+// We're declaring these interfaces only to be able to use them in perf.d.ts,
+// for documentation reason. Indeed we use them in places that are not
+// type-checked.
+declare interface nsIInputStream {}
+declare interface nsIAsyncInputStream extends nsIInputStream {}
+declare interface nsIBinaryInputStream extends nsIInputStream {}
+declare interface nsIOutputStream {}
+declare interface nsIAsyncOutputStream extends nsIOutputStream {}

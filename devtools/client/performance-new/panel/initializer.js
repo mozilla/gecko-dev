@@ -11,7 +11,6 @@
  * @typedef {import("../@types/perf").PageContext} PageContext
  * @typedef {import("../@types/perf").PanelWindow} PanelWindow
  * @typedef {import("../@types/perf").Store} Store
- * @typedef {import("../@types/perf").MinimallyTypedGeckoProfile} MinimallyTypedGeckoProfile
  * @typedef {import("../@types/perf").ProfileCaptureResult} ProfileCaptureResult
  * @typedef {import("../@types/perf").ProfilerViewMode} ProfilerViewMode
  * @typedef {import("../@types/perf").RootTraits} RootTraits
@@ -67,7 +66,6 @@ const reducers = require("resource://devtools/client/performance-new/store/reduc
 const actions = require("resource://devtools/client/performance-new/store/actions.js");
 const {
   openProfilerTab,
-  sharedLibrariesFromProfile,
 } = require("resource://devtools/client/performance-new/shared/browser.js");
 const { createLocalSymbolicationService } = ChromeUtils.importESModule(
   "resource://devtools/client/performance-new/shared/symbolication.sys.mjs"
@@ -133,12 +131,17 @@ async function gInit(perfFront, traits, pageContext, openAboutProfiling) {
   );
 
   /**
-   * @param {MinimallyTypedGeckoProfile} profile
+   * @param {MockedExports.ProfileAndAdditionalInformation} profileAndAdditionalInformation
    */
-  const onProfileReceived = async profile => {
+  const onProfileReceived = async ({ profile, additionalInformation }) => {
     const objdirs = selectors.getObjdirs(store.getState());
     const profilerViewMode = getProfilerViewModeForCurrentPreset(pageContext);
-    const sharedLibraries = sharedLibrariesFromProfile(profile);
+    const sharedLibraries = additionalInformation?.sharedLibraries ?? [];
+    if (!sharedLibraries.length) {
+      console.error(
+        `[devtools perf] No shared libraries information have been retrieved from the profiled target, this is unexpected.`
+      );
+    }
     const symbolicationService = createLocalSymbolicationService(
       sharedLibraries,
       objdirs,

@@ -55,12 +55,29 @@ export interface Commands {
   };
 }
 
+/* @backward-compat { version 140 } This interface is only useful for Firefox <
+ * 140. Starting Firefox 140 a gzipped ArrayBuffer is used in all cases, then
+ * this interface can be replaced by MockedExports.ProfileAndAdditionalInformation
+ * directly after we stop supporting older versions.
+ */
+export interface ProfileAndAdditionalInformation {
+  profile: ArrayBuffer | MinimallyTypedGeckoProfile;
+  additionalInformation?: MockedExports.ProfileGenerationAdditionalInformation;
+}
+
 /**
  * TS-TODO - Stub.
  */
 export interface PerfFront {
   startProfiler: (options: RecordingSettings) => Promise<boolean>;
-  getProfileAndStopProfiler: () => Promise<any>;
+  getProfileAndStopProfiler: () => Promise<ProfileAndAdditionalInformation>;
+
+  /* Note that this front also has getProfileAndStopProfilerBulk and
+   * getPreviouslyRetrievedAdditionalInformation, but we don't
+   * want to be able to call these functions directly, so they're commented out
+   * in this interface, only specified for documentation purposes. */
+  // getProfileAndStopProfilerBulk: () => Promise<ArrayBuffer>
+  // getPreviouslyRetrievedAdditionalInformation: () => Promise<MockedExports.ProfileGenerationAdditionalInformation>;
   stopProfilerAndDiscardProfile: () => Promise<void>;
   getSymbolTable: (
     path: string,
@@ -175,6 +192,8 @@ export interface Library {
 /**
  * Only provide types for the GeckoProfile as much as we need it. There is no
  * reason to maintain a full type definition here.
+ * @backward-compat { version 140 } This interface is only useful for Firefox <
+ * 140. Starting Firefox 140 a gzipped ArrayBuffer is used in all cases.
  */
 export interface MinimallyTypedGeckoProfile {
   libs: Library[];
@@ -191,31 +210,19 @@ export interface SymbolicationService {
   querySymbolicationApi: (path: string, requestJson: string) => Promise<string>;
 }
 
-export type ReceiveProfile = (
-  geckoProfile: MinimallyTypedGeckoProfile,
-  profilerViewMode: ProfilerViewMode | undefined,
-  getSymbolTableCallback: GetSymbolTableCallback
-) => void;
-
 /**
  * This is the type signature for the event listener that's called once the
  * profile has been obtained.
  */
-export type OnProfileReceived = (profile: MinimallyTypedGeckoProfile) => void;
+export type OnProfileReceived = (
+  profileAndAdditionalInformation: ProfileAndAdditionalInformation
+) => void;
 
 /**
  * This is the type signature for a function to query the browser for the
  * ID of the active tab.
  */
 export type GetActiveBrowserID = () => number;
-
-/**
- * This interface is injected into profiler.firefox.com
- */
-interface GeckoProfilerFrameScriptInterface {
-  getProfile: () => Promise<MinimallyTypedGeckoProfile>;
-  getSymbolTable: GetSymbolTableCallback;
-}
 
 export interface RecordingSettings {
   presetName: string;
@@ -595,6 +602,9 @@ type StatusQueryResponse = {
   version: number;
 };
 type EnableMenuButtonResponse = void;
+
+/* @backward-compat { version 140 } When the target is < v140, this is a JS
+ * object. Starting v140 this is an ArrayBuffer containing a gzipped profile. */
 type GetProfileResponse = ArrayBuffer | MinimallyTypedGeckoProfile;
 type GetExternalMarkersResponse = Array<object>;
 type GetExternalPowerTracksResponse = Array<object>;
@@ -639,6 +649,8 @@ export type ProfilerBrowserInfo = {
 export type ProfileCaptureResult =
   | {
       type: "SUCCESS";
+      /* @backward-compat { version 140 } When the target is < v140, this is a JS
+       * object. Starting v140 this is an ArrayBuffer containing a gzipped profile. */
       profile: MinimallyTypedGeckoProfile | ArrayBuffer;
     }
   | {
@@ -735,4 +747,23 @@ export interface FileHandle {
   readBytesInto: (dest: Uint8Array, offset: number) => void;
   // Called when the file is no longer needed, to allow closing the file.
   drop: () => void;
+}
+
+// This interface is the object returned by startBulkSend.
+// See https://searchfox.org/mozilla-central/rev/cc231cc166e845deb02d08b175e22236bfad8b84/devtools/shared/transport/transport.js#141-154
+export interface BulkSending {
+  stream: nsIAsyncOutputStream;
+  done: (err: void | Error) => void;
+  copyFrom: (inputStream: nsIInputStream) => Promise<void>;
+}
+
+// This interface is the object received by the receiving end.
+// See https://searchfox.org/mozilla-central/rev/cc231cc166e845deb02d08b175e22236bfad8b84/devtools/client/devtools-client.js#524-547
+export interface BulkReceiving {
+  actor: string;
+  type: string;
+  length: number;
+  stream: nsIAsyncInputStream;
+  done: (err: void | Error) => void;
+  copyTo: (inputStream: nsIAsyncOutputStream) => Promise<void>;
 }

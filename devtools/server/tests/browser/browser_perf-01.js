@@ -10,6 +10,27 @@
 // See also bug 1635442.
 requestLongerTimeout(2);
 
+async function decompressGzip(buffer) {
+  if (buffer.resizable) {
+    // Not sure why, but we can't use a resizable buffer for streams.
+    buffer = buffer.transferToFixedLength();
+  }
+  const decompressionStream = new DecompressionStream("gzip");
+  const decoderStream = new TextDecoderStream();
+  const decodedStream = decompressionStream.readable.pipeThrough(decoderStream);
+  const writer = decompressionStream.writable.getWriter();
+  writer.write(buffer);
+  const writePromise = writer.close();
+
+  let result = "";
+  for await (const chunk of decodedStream) {
+    result += chunk;
+  }
+
+  await writePromise;
+  return JSON.parse(result);
+}
+
 /**
  * Run through a series of basic recording actions for the perf actor.
  */
@@ -32,10 +53,16 @@ add_task(async function () {
 
   // Stop the profiler and assert the results.
   const profilerStopped1 = once(front, "profiler-stopped");
-  const profile = await front.getProfileAndStopProfiler();
+  const { profile: gzippedProfile, additionalInformation } =
+    await front.getProfileAndStopProfiler();
   await profilerStopped1;
   is(await front.isActive(), false, "The profiler was stopped.");
+  const profile = await decompressGzip(gzippedProfile);
   ok("threads" in profile, "The actor was used to record a profile.");
+  ok(
+    additionalInformation.sharedLibraries,
+    "We retrieved some shared libraries as well."
+  );
 
   // Restart the profiler.
   await front.startProfiler();
