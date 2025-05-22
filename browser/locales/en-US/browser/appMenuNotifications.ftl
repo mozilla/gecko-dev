@@ -46,9 +46,6 @@ appmenu-addon-post-install-message3 = Manage your add-ons and themes through the
 # This string is used in the confirmation popup displayed after an extension
 # has been installed, when the data collection feature is enabled.
 appmenu-addon-post-install-message-with-data-collection = Update permissions and data preferences any time in the <a data-l10n-name="settings-link">extension settings</a>.
-appmenu-addon-post-install-pin-toolbarbutton-checkbox =
-    .label = Pin extension to toolbar
-    .accesskey = P
 
 appmenu-new-tab-controlled-changes =
     .label = Your new tab has changed.
