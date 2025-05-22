@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 import copy
 import os
+import sys
 from argparse import ArgumentParser, Namespace
 
 import mozlog
@@ -184,13 +185,18 @@ class PerftestArgumentParser(ArgumentParser):
             res[key] = value
         return res
 
-    def _parse_known_args(self, arg_strings, namespace):
+    def _parse_known_args(self, arg_strings, namespace, intermixed=False):
         # at this point, the namespace is filled with default values
         # defined in the args
 
         # let's parse what the user really gave us in the CLI
         # in a new namespace
-        user_namespace, extras = super()._parse_known_args(arg_strings, Namespace())
+        if sys.version_info.minor > 11:
+            user_namespace, extras = super()._parse_known_args(
+                arg_strings, Namespace(), intermixed=intermixed
+            )
+        else:
+            user_namespace, extras = super()._parse_known_args(arg_strings, Namespace())
 
         self.set_by_user = list([name for name, value in user_namespace._get_kwargs()])
 
@@ -200,8 +206,10 @@ class PerftestArgumentParser(ArgumentParser):
 
         return namespace, extras
 
-    def parse_args(self, args=None, namespace=None):
+    def parse_args(self, args=None, namespace=None, intermixed=False):
         self.parse_helper(args)
+        if sys.version_info.minor > 11:
+            return super().parse_args(args, namespace, intermixed=intermixed)
         return super().parse_args(args, namespace)
 
     def parse_known_args(self, args=None, namespace=None):
