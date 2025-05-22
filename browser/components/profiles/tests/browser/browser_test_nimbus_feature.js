@@ -38,7 +38,7 @@ add_task(async function test_nimbus_feature_enable() {
   );
 
   info("Remove experiment");
-  experimentCleanup();
+  await experimentCleanup();
 
   info("Verify profiles.enabled pref is still true after experiment cleanup");
   Assert.equal(
@@ -77,7 +77,7 @@ add_task(async function test_nimbus_feature_disable() {
   );
 
   info("Remove experiment");
-  experimentCleanup();
+  await experimentCleanup();
 
   info("Verify profiles.enabled pref is still true after experiment cleanup");
   Assert.equal(
