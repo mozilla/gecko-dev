@@ -141,7 +141,7 @@ add_task(async function ensure_fallback() {
   );
   Assert.ok(setDefaultStub.called, "Fallbacked to plain set default");
 
-  doCleanup();
+  await doCleanup();
 });
 
 async function setUpNotificationTests(guidanceEnabled, oneClick) {
