@@ -159,7 +159,7 @@ add_task(async function test_multistage_aboutwelcome_transitions() {
     ["div.proton.transition-out .screen", "div.proton.transition- .screen-1"]
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 });
 
 /**
@@ -215,5 +215,5 @@ add_task(async function test_multistage_aboutwelcome_transitions_off() {
     ["div.proton.transition-out .screen-0"]
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 });

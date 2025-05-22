@@ -74,6 +74,6 @@ add_task(async function test_exposure() {
   });
   Assert.equal(result.length, 1, "Only a single exposure still.");
 
-  manager.unenroll("foo");
-  cleanup();
+  await manager.unenroll("foo");
+  await cleanup();
 });

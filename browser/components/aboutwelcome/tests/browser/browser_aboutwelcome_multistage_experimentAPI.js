@@ -43,7 +43,7 @@ add_task(async function test_multistage_zeroOnboarding_experimentAPI() {
     ["div.onboardingContainer", "main.AW_STEP1"]
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 });
 
 /**
@@ -241,7 +241,7 @@ add_task(async function test_multistage_aboutwelcome_experimentAPI() {
     ["div.onboardingContainer"]
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 });
 
 /* Test multistage custom backdrop
@@ -292,7 +292,7 @@ add_task(async function test_multistage_aboutwelcome_backdrop() {
     [`div.outer-wrapper.onboardingContainer[style*='${TEST_BACKDROP}']`]
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 });
 
 add_task(async function test_multistage_aboutwelcome_utm_term() {
@@ -365,5 +365,5 @@ add_task(async function test_multistage_aboutwelcome_utm_term() {
     BrowserTestUtils.removeTab(tab);
   });
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 });

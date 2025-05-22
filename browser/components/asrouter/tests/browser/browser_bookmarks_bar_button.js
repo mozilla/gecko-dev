@@ -228,7 +228,7 @@ add_task(async function test_bookmarks_bar_button_experiment_update() {
   ok(doc.querySelector(buttonSelector), "Bookmarks Bar Button exists");
 
   // unenroll from the experiment
-  cleanup();
+  await cleanup();
 
   // wait for the button to be removed, and verify that it's gone
   await TestUtils.waitForCondition(

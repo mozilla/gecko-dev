@@ -383,7 +383,7 @@ add_task(async function test_aboutwelcome_with_url_backdrop() {
     // Expected selectors:
     [`div.outer-wrapper.onboardingContainer[style*='${TEST_BACKDROP_URL}']`]
   );
-  doExperimentCleanup();
+  await doExperimentCleanup();
   browser.closeBrowser();
 });
 
@@ -412,7 +412,7 @@ add_task(async function test_aboutwelcome_with_color_backdrop() {
     // Expected selectors:
     [`div.outer-wrapper.onboardingContainer[style*='${TEST_BACKDROP_COLOR}']`]
   );
-  doExperimentCleanup();
+  await doExperimentCleanup();
   browser.closeBrowser();
 });
 
@@ -476,7 +476,7 @@ add_task(async function test_aboutwelcome_with_text_color_override() {
     }
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
   await SpecialPowers.popPrefEnv();
   browser.closeBrowser();
 });
@@ -553,7 +553,7 @@ add_task(async function test_aboutwelcome_with_progress_bar() {
     );
   });
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
   browser.closeBrowser();
 });
 
@@ -595,7 +595,7 @@ add_task(async function test_aboutwelcome_history_updates_disabled() {
     "No entries added to the session's history stack with history updates disabled"
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
   browser.closeBrowser();
 });
 
@@ -702,7 +702,7 @@ add_task(async function test_aboutwelcome_start_screen_configured() {
     ok(false, "No telemetry sent");
   }
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
   browser.closeBrowser();
   sandbox.restore();
 });
@@ -727,7 +727,7 @@ add_task(async function test_aboutwelcome_rdm_property() {
     ["main.TEST_NO_RDM[no-rdm]"]
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
   browser.closeBrowser();
 });
 
@@ -771,7 +771,7 @@ add_task(async function test_aboutwelcome_reverse_dismiss() {
   await BrowserTestUtils.browserLoaded(browser, false, "about:home");
   is(browser.currentURI.spec, "about:home", "about:home loaded");
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
   browser.closeBrowser();
 });
 
@@ -795,7 +795,7 @@ add_task(async function test_aboutwelcome_fullscreen_property() {
     ["main.TEST_FULLSCREEN[fullscreen]"]
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
   browser.closeBrowser();
 });
 
@@ -862,7 +862,7 @@ add_task(async function test_aboutwelcome_narrow_property() {
     }
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
   browser.closeBrowser();
 });
 
@@ -952,6 +952,6 @@ add_task(async function test_aboutwelcome_single_select_icon_styles() {
     }
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
   browser.closeBrowser();
 });
