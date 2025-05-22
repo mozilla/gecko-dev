@@ -1,0 +1,23 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@import url("chrome://global/skin/menulist-shared.css");
+
+:host([native]) {
+  margin: 5px 2px 3px;
+  min-height: 20px;
+  color: -moz-DialogText;
+}
+
+:host([native]) #label-box {
+  margin-bottom: 1px;
+}
+
+:host([native]) label {
+  margin: 1px 3px;
+}
+
+:host([native]) dropmarker {
+  display: none;
+}

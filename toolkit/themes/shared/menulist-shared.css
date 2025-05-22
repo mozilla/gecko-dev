@@ -6,45 +6,6 @@
   appearance: auto;
   -moz-default-appearance: menulist;
   text-shadow: none;
-  @media (-moz-platform: linux) {
-    font: menu;
-  }
-  @media (-moz-platform: linux) or (-moz-platform: windows) {
-    margin: 2px 4px;
-    color: ButtonText;
-    padding: 2px 3px;
-    border: 1px solid ThreeDLightShadow;
-
-    dropmarker {
-      align-self: stretch;
-    }
-  }
-  @media (-moz-platform: macos) {
-    margin: 5px 2px 3px;
-    min-height: 20px;
-    color: -moz-DialogText;
-
-    #label-box {
-      margin-bottom: 1px;
-    }
-
-    label {
-      margin: 1px 3px;
-    }
-
-    dropmarker {
-      display: none;
-    }
-  }
-}
-
-@media (-moz-platform: linux) or (-moz-platform: windows) {
-  :host([native]:where(:hover)) {
-    color: -moz-buttonhovertext;
-  }
-  :host([native]:where(:hover:active, [open="true"])) {
-    color: -moz-buttonactivetext;
-  }
 }
 
 :host([native][disabled="true"]) {

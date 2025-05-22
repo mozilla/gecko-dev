@@ -221,7 +221,7 @@ html|textarea {
   }
 }
 
-/* adapted from toolkit/themes/shared/menulist.css */
+/* adapted from toolkit/themes/shared/menulist-shared.css */
 html|select:where(:not([size], [multiple])) {
   appearance: none;
   padding: 6px 16px;
