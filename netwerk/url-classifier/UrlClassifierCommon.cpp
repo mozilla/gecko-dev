@@ -688,9 +688,7 @@ bool UrlClassifierCommon::IsPassiveContent(nsIChannel* aChannel) {
   // defined by the mixed content blocker.
   // https://searchfox.org/mozilla-central/rev/c80fa7258c935223fe319c5345b58eae85d4c6ae/dom/security/nsMixedContentBlocker.cpp#532
   return contentType == ExtContentPolicy::TYPE_IMAGE ||
-         contentType == ExtContentPolicy::TYPE_MEDIA ||
-         (contentType == ExtContentPolicy::TYPE_OBJECT_SUBREQUEST &&
-          !StaticPrefs::security_mixed_content_block_object_subrequest());
+         contentType == ExtContentPolicy::TYPE_MEDIA;
 }
 
 /* static */

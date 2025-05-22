@@ -493,13 +493,6 @@ nsresult nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
   // Mixed content web fonts are relatively uncommon, and we can can fall back
   // to built-in fonts with minimal disruption in almost all cases.
   //
-  // TYPE_OBJECT_SUBREQUEST could actually be either active content (e.g. a
-  // script that a plugin will execute) or display content (e.g. Flash video
-  // content).  Until we have a way to determine active vs passive content
-  // from plugin requests (bug 836352), we will treat this as passive content.
-  // This is to prevent false positives from causing users to become
-  // desensitized to the mixed content blocker.
-  //
   // TYPE_CSP_REPORT: High-risk because they directly leak information about
   // the content of the page, and because blocking them does not have any
   // negative effect on the page loading.
@@ -580,13 +573,6 @@ nsresult nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
     case ExtContentPolicy::TYPE_IMAGE:
     case ExtContentPolicy::TYPE_MEDIA:
       classification = eMixedDisplay;
-      break;
-    case ExtContentPolicy::TYPE_OBJECT_SUBREQUEST:
-      if (StaticPrefs::security_mixed_content_block_object_subrequest()) {
-        classification = eMixedScript;
-      } else {
-        classification = eMixedDisplay;
-      }
       break;
 
     // Active content (or content with a low value/risk-of-blocking ratio)
@@ -876,19 +862,6 @@ nsresult nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
         cc->SendAccumulateMixedContentHSTS(innerContentLocation, active,
                                            originAttributes);
       }
-    }
-  }
-
-  // set hasMixedContentObjectSubrequest on this object if necessary
-  if (contentType == ExtContentPolicyType::TYPE_OBJECT_SUBREQUEST &&
-      aReportError) {
-    if (!StaticPrefs::security_mixed_content_block_object_subrequest()) {
-      nsAutoCString messageLookUpKey(
-          "LoadingMixedDisplayObjectSubrequestDeprecation");
-
-      LogMixedContentMessage(classification, aContentLocation, topWC->Id(),
-                             eUserOverride, requestingLocation,
-                             messageLookUpKey);
     }
   }
 

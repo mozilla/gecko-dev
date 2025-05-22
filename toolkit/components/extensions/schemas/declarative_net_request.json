@@ -77,7 +77,7 @@
       {
         "id": "ResourceType",
         "type": "string",
-        "description": "How the requested resource will be used. Comparable to the webRequest.ResourceType type.",
+        "description": "How the requested resource will be used. Comparable to the webRequest.ResourceType type. object_subrequest is unsupported.",
         "enum": [
           "main_frame",
           "sub_frame",

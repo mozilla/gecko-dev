@@ -19,7 +19,6 @@ enum MozContentPolicyType {
   "script",
   "image",
   "object",
-  "object_subrequest",
   "xmlhttprequest",
   "xslt",
   "ping",

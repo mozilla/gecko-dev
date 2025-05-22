@@ -167,7 +167,6 @@ void nsHTTPSOnlyStreamListener::RecordUpgradeTelemetry(nsIRequest* request,
         break;
 
       case ExtContentPolicy::TYPE_OBJECT:
-      case ExtContentPolicy::TYPE_OBJECT_SUBREQUEST:
         typeKey = "object"_ns;
         break;
 

@@ -395,18 +395,6 @@ static nsresult DoContentSecurityChecks(nsIChannel* aChannel,
       break;
     }
 
-    case ExtContentPolicy::TYPE_OBJECT_SUBREQUEST: {
-#ifdef DEBUG
-      {
-        nsCOMPtr<nsINode> node = aLoadInfo->LoadingNode();
-        MOZ_ASSERT(
-            !node || node->NodeType() == nsINode::ELEMENT_NODE,
-            "type_subrequest requires requestingContext of type Element");
-      }
-#endif
-      break;
-    }
-
     case ExtContentPolicy::TYPE_DTD: {
 #ifdef DEBUG
       {

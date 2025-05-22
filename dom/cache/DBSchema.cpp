@@ -344,7 +344,6 @@ static_assert(
         nsIContentPolicy::TYPE_SUBDOCUMENT == 7 &&
         nsIContentPolicy::TYPE_PING == 10 &&
         nsIContentPolicy::TYPE_XMLHTTPREQUEST == 11 &&
-        nsIContentPolicy::TYPE_OBJECT_SUBREQUEST == 12 &&
         nsIContentPolicy::TYPE_DTD == 13 && nsIContentPolicy::TYPE_FONT == 14 &&
         nsIContentPolicy::TYPE_MEDIA == 15 &&
         nsIContentPolicy::TYPE_WEBSOCKET == 16 &&

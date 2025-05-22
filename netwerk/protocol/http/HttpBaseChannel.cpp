@@ -3274,7 +3274,6 @@ bool HttpBaseChannel::ShouldBlockOpaqueResponse() const {
 
   auto extContentPolicyType = mLoadInfo->GetExternalContentPolicyType();
   if (extContentPolicyType == ExtContentPolicy::TYPE_OBJECT ||
-      extContentPolicyType == ExtContentPolicy::TYPE_OBJECT_SUBREQUEST ||
       extContentPolicyType == ExtContentPolicy::TYPE_WEBSOCKET ||
       extContentPolicyType == ExtContentPolicy::TYPE_SAVEAS_DOWNLOAD) {
     LOGORB("No block: object || websocket request || save as download");
@@ -6728,11 +6727,10 @@ static void CollectORBBlockTelemetry(
     case ExtContentPolicy::TYPE_DOCUMENT:
     case ExtContentPolicy::TYPE_SUBDOCUMENT:
     case ExtContentPolicy::TYPE_OBJECT:
-    case ExtContentPolicy::TYPE_OBJECT_SUBREQUEST:
     case ExtContentPolicy::TYPE_WEBSOCKET:
     case ExtContentPolicy::TYPE_SAVEAS_DOWNLOAD:
       MOZ_ASSERT_UNREACHABLE("Shouldn't block this type");
-      // DOCUMENT, SUBDOCUMENT, OBJECT, OBJECT_SUBREQUEST,
+      // DOCUMENT, SUBDOCUMENT, OBJECT,
       // WEBSOCKET and SAVEAS_DOWNLOAD are excluded from ORB
       glean::orb::block_initiator
           .EnumGet(glean::orb::BlockInitiatorLabel::eExcluded)

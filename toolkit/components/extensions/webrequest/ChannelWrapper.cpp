@@ -864,8 +864,6 @@ MozContentPolicyType GetContentPolicyType(ExtContentPolicyType aType) {
       return MozContentPolicyType::Image;
     case ExtContentPolicy::TYPE_OBJECT:
       return MozContentPolicyType::Object;
-    case ExtContentPolicy::TYPE_OBJECT_SUBREQUEST:
-      return MozContentPolicyType::Object_subrequest;
     case ExtContentPolicy::TYPE_XMLHTTPREQUEST:
       return MozContentPolicyType::Xmlhttprequest;
     // TYPE_FETCH returns xmlhttprequest for cross-browser compatibility.
