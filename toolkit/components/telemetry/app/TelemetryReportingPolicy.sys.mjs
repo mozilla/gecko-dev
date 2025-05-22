@@ -725,6 +725,10 @@ var TelemetryReportingPolicyImpl = {
    * set Gecko preferences based on values.
    */
   async _configureFromNimbus() {
+    if (AppConstants.MOZ_BUILD_APP != "browser") {
+      // OnboardingMessageProvider is browser/ only
+      return;
+    }
     this._nimbusVariables = lazy.NimbusFeatures.preonboarding.getAllVariables();
 
     if (this._nimbusVariables.enabled === null) {
