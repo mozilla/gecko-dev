@@ -188,7 +188,7 @@ add_task(
     Assert.ok(numRecords == 1, "Should be 1 cap entry");
 
     // Unenroll experiment
-    doExperimentCleanup();
+    await doExperimentCleanup();
 
     Services.tm.spinEventLoopUntil(
       "Wait for DAPVisitCounter to flush",
@@ -217,6 +217,6 @@ add_task(
       "dapReportContoller should not exist after unenrollment"
     );
 
-    cleanup();
+    await cleanup();
   }
 );

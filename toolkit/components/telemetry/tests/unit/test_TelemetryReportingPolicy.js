@@ -550,7 +550,7 @@ add_task(skipIfNotBrowser(), async function test_feature_prefs() {
   assertPrefs(900, 899, "http://mochi.test/v900");
 
   // Unenroll.  Values remain, for consistency while Firefox is running.
-  doCleanup();
+  await doCleanup();
   Assert.ok(!NimbusFeatures.preonboarding.getVariable("enabled"));
   assertPrefs(900, 899, "http://mochi.test/v900");
 
@@ -569,7 +569,7 @@ add_task(skipIfNotBrowser(), async function test_feature_prefs() {
   );
   Assert.ok(NimbusFeatures.preonboarding.getVariable("enabled"));
   assertPrefs(900, 899, "http://mochi.test/v900");
-  doCleanup();
+  await doCleanup();
 });
 
 async function doOneModalFlow(version) {
