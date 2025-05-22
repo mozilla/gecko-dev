@@ -289,11 +289,17 @@ async function getResponseForMessage(request, browser) {
     case "GET_SYMBOL_TABLE": {
       const { debugName, breakpadId } = request;
       const symbolicationService = getSymbolicationServiceForBrowser(browser);
+      if (!symbolicationService) {
+        throw new Error("No symbolication service has been found for this tab");
+      }
       return symbolicationService.getSymbolTable(debugName, breakpadId);
     }
     case "QUERY_SYMBOLICATION_API": {
       const { path, requestJson } = request;
       const symbolicationService = getSymbolicationServiceForBrowser(browser);
+      if (!symbolicationService) {
+        throw new Error("No symbolication service has been found for this tab");
+      }
       return symbolicationService.querySymbolicationApi(path, requestJson);
     }
     case "GET_EXTERNAL_POWER_TRACKS": {
@@ -351,7 +357,7 @@ async function getResponseForMessage(request, browser) {
  * tab, or a fallback service for browsers from tabs opened by the user.
  *
  * @param {MockedExports.Browser} browser
- * @return {SymbolicationService}
+ * @return {SymbolicationService | null}
  */
 function getSymbolicationServiceForBrowser(browser) {
   // We try to serve symbolication requests that come from tabs that we
@@ -429,7 +435,7 @@ export async function handleWebChannelMessage(channel, id, message, target) {
 /**
  * @param {MockedExports.Browser} browser - The tab's browser.
  * @param {ProfileCaptureResult} profileCaptureResult - The Gecko profile.
- * @param {SymbolicationService} symbolicationService - An object which implements the
+ * @param {SymbolicationService | null} symbolicationService - An object which implements the
  *   SymbolicationService interface, whose getSymbolTable method will be invoked
  *   when profiler.firefox.com sends GET_SYMBOL_TABLE WebChannel messages to us. This
  *   method should obtain a symbol table for the requested binary and resolve the
