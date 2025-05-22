@@ -27,14 +27,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 // Whether the Extensions button can be hidden via UI. The button can be hidden
-// even with this pref set to false. The purpose of the pref is to allow the
-// feature to be developed incrementally.
-// Disabled by default until dependencies of bug 1964857 are resolved.
+// even with this pref set to false. TODO bug 1967773: Remove this pref.
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "gEnableCustomizableExtensionsButton",
   "extensions.unifiedExtensions.button.customizable",
-  false
+  true
 );
 
 /**

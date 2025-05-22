@@ -130,9 +130,10 @@ add_task(async function test_delay_hide_button_while_mouse_is_on_toolbar() {
   resetButtonVisibilityToDefault();
 });
 
-// Until the "Hide Extensions Button" feature finished its implementation, the
-// UI to trigger hiding should be disabled by default.
-add_task(async function test_remove_from_toolbar_disabled_by_default() {
+add_task(async function test_remove_from_toolbar_disabled_by_pref() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.unifiedExtensions.button.customizable", false]],
+  });
   const contextMenu = await openChromeContextMenu(
     "toolbar-context-menu",
     "#unified-extensions-button"
@@ -142,12 +143,10 @@ add_task(async function test_remove_from_toolbar_disabled_by_default() {
   );
   ok(removeFromToolbar.hasAttribute("disabled"), "removeFromToolbar disabled");
   await closeChromeContextMenu(contextMenu.id, null);
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_hide_button_via_contextmenu() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.unifiedExtensions.button.customizable", true]],
-  });
   Services.fog.testResetFOG();
   // Open another window, just to see that removal from the toolbar in one
   // window also applies to another.
@@ -189,16 +188,12 @@ add_task(async function test_hide_button_via_contextmenu() {
 
   await BrowserTestUtils.closeWindow(win);
   resetButtonVisibilityToDefault();
-  await SpecialPowers.popPrefEnv();
 });
 
 // Despite the button being hidden by pref, there are ways for the button to
 // still show up. This checks whether the menu items appear as expected, and
 // that the user can reveal the button again.
 add_task(async function test_menu_items_on_hidden_button() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.unifiedExtensions.button.customizable", true]],
-  });
   Services.fog.testResetFOG();
 
   hideButtonWithPref();
@@ -263,12 +258,12 @@ add_task(async function test_menu_items_on_hidden_button() {
   await closeChromeContextMenu(contextMenu2.id);
 
   resetButtonVisibilityToDefault();
-  await SpecialPowers.popPrefEnv();
 });
 
-// Until the the "Hide Extensions Button" feature finished its implementation,
-// the UI to trigger hiding should be disabled by default.
-add_task(async function test_customization_disabled_by_default() {
+add_task(async function test_customization_disabled_by_pref() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.unifiedExtensions.button.customizable", false]],
+  });
   await openCustomizationUI();
   const contextMenu = await openChromeContextMenu(
     "toolbar-context-menu",
@@ -280,12 +275,10 @@ add_task(async function test_customization_disabled_by_default() {
   is(item.hidden, true, "Not expecting menu item to hide button");
   await closeChromeContextMenu(contextMenu.id);
   await closeCustomizationUI();
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_customization_option_hidden_if_not_customizing() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.unifiedExtensions.button.customizable", true]],
-  });
   const contextMenu = await openChromeContextMenu(
     "toolbar-context-menu",
     "#unified-extensions-button"
@@ -295,16 +288,12 @@ add_task(async function test_customization_option_hidden_if_not_customizing() {
   );
   is(item.hidden, true, "Not expecting menu item to hide button");
   await closeChromeContextMenu(contextMenu.id);
-  await SpecialPowers.popPrefEnv();
 });
 
 // Tests that the "Always Show in Toolbar" checkbox is visible in the menu and
 // reflects the expected state when entering/exiting customization mode.
 // And that the Extensions Button is always shown while in customization mode.
 add_task(async function test_customization_button_and_menu_item_visibility() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.unifiedExtensions.button.customizable", true]],
-  });
   Services.fog.testResetFOG();
   resetExtensionsButtonTelemetry();
 
@@ -419,5 +408,4 @@ add_task(async function test_customization_button_and_menu_item_visibility() {
   assertExtensionsButtonTelemetry({ customize: 1 });
 
   resetButtonVisibilityToDefault();
-  await SpecialPowers.popPrefEnv();
 });
