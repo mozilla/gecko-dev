@@ -32,9 +32,7 @@
   <string name="tab_tray_close_multiselect_content_description">મલ્ટિસિલેક્ટ મોડમાંથી બહાર નીકળો</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">પસંદ કરેલા ટૅબ્સને સંગ્રહમાં સાચવો</string>
-  <string name="private_browsing_common_myths">
-       ખાનગી બ્રાઉઝિંગ વિશે સામાન્ય માન્યતાઓ
-    </string>
+  <string name="private_browsing_common_myths">\u0032ખાનગી બ્રાઉઝિંગ વિશે સામાન્ય માન્યતાઓ\u0032</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
   <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ના આભાર</string>
   <!--
@@ -212,7 +210,7 @@
 
     Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app
   -->
-  <string name="fxa_received_tab_channel_name">પ્રાપ્ત ટેબ્સ </string>
+  <string name="fxa_received_tab_channel_name">પ્રાપ્ત ટેબ્સ\u0032</string>
   <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
   <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">અન્ય Firefox ઉપકરણોથી પ્રાપ્ત ટેબ્સ માટેની સૂચનાઓ.</string>
   <!-- The body for these is the URL of the tab received -->
@@ -779,7 +777,7 @@
   <!-- Text for the menu button to delete a search engine -->
   <string name="search_engine_delete">કાઢી નાખો</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">ક્વેરીને “%s”થી બદલો. ઉદાહરણ:\n https://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">ક્વેરીને “%s”થી બદલો. ઉદાહરણ:\nhttps://www.google.com/search?q=%s</string>
   <!-- Text shown when a user leaves the name field empty -->
   <string name="search_add_custom_engine_error_empty_name">શોધ એંજીન નામ દાખલ કરો</string>
   <!-- Text shown when a user leaves the search string field empty -->

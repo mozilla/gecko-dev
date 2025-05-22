@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s جست‌وجوها و تاریخچهٔ مرور شما را هنگام خروج از برنامه یا بستن زبانه‌های خصوصی پاک می‌کند. در حالی که این کار شما را برای وبگاه‌ها یا فراهم‌کنندگان اینترنت ناشناس نمی‌کند، این کار مخفی کردن فعالیت‌های برخط شما را برای هرکس دیگری که از این افزاره استفاده می‌کند را ساده‌تر می‌کند.</string>
-  <string name="private_browsing_common_myths">
-       باورهای غلط و رایج در مورد مرور خصوصی
-    </string>
+  <string name="private_browsing_common_myths">\u0032باورهای غلط و رایج در مورد مرور خصوصی\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -532,7 +530,7 @@
   <!-- Text for the button dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">اکنون نه</string>
   <!-- Title for sign in to sync screen. -->
-  <string name="juno_onboarding_sign_in_title_2">وقتی از دستگاه های مختلف استفاده می‌کنید رمزگذاری بمانید. </string>
+  <string name="juno_onboarding_sign_in_title_2">وقتی از دستگاه های مختلف استفاده می‌کنید رمزگذاری بمانید.\u0032</string>
   <!--
     Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
@@ -1126,7 +1124,7 @@
   <!-- Button in Exceptions Preference to turn on tracking protection for all sites (remove all exceptions) -->
   <string name="preferences_tracking_protection_exceptions_turn_on_for_all">روشن کردن برای تمام پایگاه‌ها</string>
   <!-- Text displayed when there are no exceptions -->
-  <string name="exceptions_empty_message_description">استثنائات به شما این امکان  را می‌دهد،‌محافظت از ردیابی وبگاه‌های منتخب را غیرفعال کنید.</string>
+  <string name="exceptions_empty_message_description">استثنائات به شما این امکان را می‌دهد،‌محافظت از ردیابی وبگاه‌های منتخب را غیرفعال کنید.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">بیشتر بدانید</string>
   <!-- Preference switch for usage and technical data collection -->
@@ -1832,7 +1830,7 @@
   <!-- Label that indicates that video and audio autoplay is only allowed over Wi-Fi -->
   <string name="preference_option_autoplay_allowed_wifi_only2">مسدود کردن صدا و تصویر فقط بر روی حالت داده</string>
   <!-- Subtext that explains 'autoplay on Wi-Fi only' option -->
-  <string name="preference_option_autoplay_allowed_wifi_subtext">صدا و تصویر بر روی حالت  Wi-Fi پخش خواهد شد</string>
+  <string name="preference_option_autoplay_allowed_wifi_subtext">صدا و تصویر بر روی حالت Wi-Fi پخش خواهد شد</string>
   <!-- Label for global setting that indicates that video autoplay is allowed, but audio autoplay is blocked -->
   <string name="preference_option_autoplay_block_audio2">مسدود کردن فقط صدا</string>
   <!-- Label for site specific setting that indicates that video autoplay is allowed, but audio autoplay is blocked -->
@@ -1965,9 +1963,9 @@
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">اتصال به دستگاه دیگر…</string>
   <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
-  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\n از %2$s فرستاده شده است 🦊 مرورگر همراه را امتحان کنید: %3$s</string>
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nاز %2$s فرستاده شده است 🦊 مرورگر همراه را امتحان کنید: %3$s</string>
   <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
-  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\n از %2$s فرستاده شده است 🦊 %3$s</string>
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nاز %2$s فرستاده شده است 🦊 %3$s</string>
   <!--
     Notifications
 
@@ -2109,7 +2107,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">داده‌های مرور را در هنگام خروج حذف کنید</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">هنگام انتخاب  \"ترک\" از فهرست اصلی ، داده های مرور را بطور خودکار حذف می کند</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">هنگام انتخاب \"ترک\" از فهرست اصلی ، داده های مرور را بطور خودکار حذف می کند</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">خروج</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -2355,7 +2353,7 @@
   <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
   <string name="preference_doh_exceptions">استثناها</string>
   <!-- Description of "exceptions" for "DNS over HTTPS". %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preference_doh_exceptions_summary"> %1$s در این وبگاه‌ها و زیردامنه‌هایشان از ساناد امن استفاده نمی‌کند.</string>
+  <string name="preference_doh_exceptions_summary">\u0032%1$s در این وبگاه‌ها و زیردامنه‌هایشان از ساناد امن استفاده نمی‌کند.</string>
   <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
   <string name="preference_doh_exceptions_add">افزودن وبگاه</string>
   <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->

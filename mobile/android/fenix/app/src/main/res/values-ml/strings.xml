@@ -231,7 +231,7 @@
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">വിപുലീകരണങ്ങൾ ഉപയോഗിക്കുന്നതിനു് ക്രമീകരണങ്ങളിൽ അല്ലെങ്കിൽ ചുവടെയുള്ള "%s" തിരഞ്ഞെടുത്തു് അതിനു് പ്രവർത്തനക്ഷമമാക്കുക.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body">വിപുലീകരണങ്ങൾ ഉപയോഗിക്കുന്നതിനു് ക്രമീകരണങ്ങളിൽ അല്ലെങ്കിൽ ചുവടെയുള്ള \"%s\" തിരഞ്ഞെടുത്തു് അതിനു് പ്രവർത്തനക്ഷമമാക്കുക.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
   <string name="browser_menu_extensions_banner_learn_more">കൂടുതലറിയുക</string>
   <!-- Browser menu button that opens the extensions manager -->
@@ -319,7 +319,7 @@
   <!-- Browser menu label for editing a bookmark -->
   <string name="browser_menu_edit">തിരുത്തുക</string>
   <!-- Button shown on the home page that opens the Customize home settings -->
-  <string name="browser_menu_customize_home_1">ആമുഖത്താൾ  ഇഷ്ടാനുസൃതമാക്കുക</string>
+  <string name="browser_menu_customize_home_1">ആമുഖത്താൾ ഇഷ്ടാനുസൃതമാക്കുക</string>
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">പ്രവേശിക്കൽ ചെയ്യുക</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
@@ -360,13 +360,13 @@
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">ഇഷ്ടാനുസൃത ടാബുകുറിപ്പടി താളു് അടയ്ക്കുക</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site_2">വായന കാഴ്ച, വിവർത്തനം, തകർന്ന വെബ്സ്ഥാനത്തിനെ കുറിച്ചു് വിവരം അറിയിക്കുക,അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2">വായന കാഴ്ച, വിവർത്തനം, തകർന്ന വെബ്സ്ഥാനത്തിനെ കുറിച്ചു് വിവരം അറിയിക്കുക,അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക\u0032</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_with_translate_without_report_site">വായന കാഴ്ച, വിവർത്തനം, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
+  <string name="browser_menu_tools_description_with_translate_without_report_site">വായന കാഴ്ച, വിവർത്തനം, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക\u0032</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_report_site_2">വായന കാഴ്ച, തകർന്ന വെബ്സ്ഥാനത്തിനെ കുറിച്ചു് വിവരം അറിയിക്കുക,അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
+  <string name="browser_menu_tools_description_with_report_site_2">വായന കാഴ്ച, തകർന്ന വെബ്സ്ഥാനത്തിനെ കുറിച്ചു് വിവരം അറിയിക്കുക,അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക\u0032</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_without_report_site">വായന കാഴ്ച, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
+  <string name="browser_menu_tools_description_without_report_site">വായന കാഴ്ച, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക\u0032</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
@@ -434,7 +434,7 @@
     %1$s is the name of the language that is displayed in the original page. (For example: English)
     %2$s is the name of the language which the page was translated to. (For example: French)
   -->
-  <string name="browser_toolbar_translated_successfully">ഈ താൾ %1$s-ൽ നിന്നു് %2$s-ലേക്കു് വിവർത്തനം ചെയ്തിരിക്കുന്നു </string>
+  <string name="browser_toolbar_translated_successfully">ഈ താൾ %1$s-ൽ നിന്നു് %2$s-ലേക്കു് വിവർത്തനം ചെയ്തിരിക്കുന്നു\u0032</string>
   <!--
     Locale Settings Fragment
 
@@ -501,7 +501,7 @@
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
   <string name="onboarding_home_skip_button">ഒഴിവാക്കുക</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
-  <string name="sync_cfr_message">താങ്ങളുടെ ടാബുകൾ സമന്വയിപ്പിക്കുന്നു! താങ്ങളുടെ മറ്റു് ഉപകരണത്തിൽ നിർത്തിയിടത്തു് നിന്നു് വീണ്ടും തുടങ്ങുക. </string>
+  <string name="sync_cfr_message">താങ്ങളുടെ ടാബുകൾ സമന്വയിപ്പിക്കുന്നു! താങ്ങളുടെ മറ്റു് ഉപകരണത്തിൽ നിർത്തിയിടത്തു് നിന്നു് വീണ്ടും തുടങ്ങുക.\u0032</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
   <string name="onboarding_home_content_description_close_button">അടയ്ക്കുക</string>
   <!--
@@ -509,7 +509,7 @@
 
     Description for learning more about our privacy notice.
   -->
-  <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Firefox സ്വകാര്യത അറിയിപ്പു് </string>
+  <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Firefox സ്വകാര്യത അറിയിപ്പു്\u0032</string>
   <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
   <string name="juno_onboarding_default_browser_title_nimbus_2">താങ്ങളെ സുരക്ഷിതമായി വയ്ക്കാൻ ഞങ്ങളുടെ കടമയാണു്</string>
   <!--
@@ -530,12 +530,12 @@
   <!-- Text for the button dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">ഇപ്പോഴല്ല</string>
   <!-- Title for sign in to sync screen. -->
-  <string name="juno_onboarding_sign_in_title_2">താങ്ങൾ ഉപകരണങ്ങൾക്കിടയിൽ ചാടുമ്പോഴു്  രൂപമാറ്റം വരുത്തിയിരിക്കുക</string>
+  <string name="juno_onboarding_sign_in_title_2">താങ്ങൾ ഉപകരണങ്ങൾക്കിടയിൽ ചാടുമ്പോഴു് രൂപമാറ്റം വരുത്തിയിരിക്കുക</string>
   <!--
     Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
   -->
-  <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">താങ്ങൾ സമന്വയിപ്പിച്ചിരിക്കുമ്പോഴു് ഫയർഫോക്സു് താങ്ങളുടെ രഹസ്യവാക്കുകളും അടയാളക്കുറിപ്പുകളും മറ്റും രൂപമാറ്റി വയ്ക്കാരുണ്ടു്. </string>
+  <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">താങ്ങൾ സമന്വയിപ്പിച്ചിരിക്കുമ്പോഴു് ഫയർഫോക്സു് താങ്ങളുടെ രഹസ്യവാക്കുകളും അടയാളക്കുറിപ്പുകളും മറ്റും രൂപമാറ്റി വയ്ക്കാരുണ്ടു്.\u0032</string>
   <!-- Text for the button to sign in to sync on the device -->
   <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">പ്രവേശിക്കുക</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -684,7 +684,7 @@
 
     Widget description for widget picker screen
   -->
-  <string name="widget_picket_description">ഒരു ഉടന്തിരച്ചിൽ തുടങ്ങുക </string>
+  <string name="widget_picket_description">ഒരു ഉടന്തിരച്ചിൽ തുടങ്ങുക\u0032</string>
   <!--
     Search Widget
 
@@ -757,7 +757,7 @@
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">HTTPS-മാത്രം രീതി</string>
   <!-- Preference title for using the screen lock to hide tabs in private browsing -->
-  <string name="preferences_pbm_lock_screen_title">സ്വകാര്യ തിരച്ചിലിൽ ടാബുകളെ മറയ്ക്കാൻ വേണ്ടി പ്രതലത്താഴു് ഉപയോഗിക്കുക </string>
+  <string name="preferences_pbm_lock_screen_title">സ്വകാര്യ തിരച്ചിലിൽ ടാബുകളെ മറയ്ക്കാൻ വേണ്ടി പ്രതലത്താഴു് ഉപയോഗിക്കുക\u0032</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">കുക്കീസു് പൊന്തുവരൽ തടയൽയന്ത്രം</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -785,13 +785,13 @@
   <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
   <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s-ൾക്കു് കുക്കീ അഭ്യാർത്ഥങ്ങളെ തന്നെതാനെ നിരസിക്കാൻ ഒക്കത്തില്ല. ഭാവിയിൽ ഈ സൈറ്റിനെ പിന്തുണയ്ക്കാൻ താങ്ങൾക്കൊരു അഭ്യാർത്ഥനം അയയ്ക്കാം.</string>
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">%1$s-നു് അണച്ചാൽ കുക്കീകളും മായച്ചിട്ടു് വെബ്സ്ഥാനം വീണ്ടും ലഭ്യമാക്കും. ഇതിന്റെ കാരണം താങ്ങളെ ചിലപ്പോൾ സൈറ്റുകൾ നിന്നു് പുറത്തു് കടപ്പിക്കും അല്ലെങ്കിൽ  ഷോപ്പിംഗു് കാർട്ടുകൾ ഒഴിക്കപ്പെടാം.</string>
+  <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">%1$s-നു് അണച്ചാൽ കുക്കീകളും മായച്ചിട്ടു് വെബ്സ്ഥാനം വീണ്ടും ലഭ്യമാക്കും. ഇതിന്റെ കാരണം താങ്ങളെ ചിലപ്പോൾ സൈറ്റുകൾ നിന്നു് പുറത്തു് കടപ്പിക്കും അല്ലെങ്കിൽ ഷോപ്പിംഗു് കാർട്ടുകൾ ഒഴിക്കപ്പെടാം.</string>
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
   <string name="reduce_cookie_banner_details_panel_description_on_for_site_3">താങ്ങൾ %1$s-നെ തുടങ്ങിയാൽ ഈ സൈറ്റിലെ എല്ലാ കുക്കി പൊന്തുവരലുകൾ തന്നെതാനെ നിരസിക്കാൻ ശ്രമിക്കും.</string>
   <!-- Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name. %1$s is the name of the app (for example "Firefox"). -->
   <string name="cookie_banner_cfr_title">%1$s താങ്ങൾക്കായി കുക്കികൾ നിരസിച്ചു</string>
   <!-- Message for the cookie banner re-engagement CFR -->
-  <string name="cookie_banner_cfr_message">കുറഞ്ഞ പതൎച്ചയും കുറഞ്ഞ കുക്കിപ്പിന്തുടൎച്ചയും </string>
+  <string name="cookie_banner_cfr_message">കുറഞ്ഞ പതൎച്ചയും കുറഞ്ഞ കുക്കിപ്പിന്തുടൎച്ചയും\u0032</string>
   <!-- Summary of https only preference if https only is set to off -->
   <string name="preferences_https_only_off">അണച്ചതു്</string>
   <!-- Summary of https only preference if https only is set to on in all tabs -->
@@ -1222,7 +1222,7 @@
     Message to warn users that a large number of tabs will be opened
     %s will be replaced by app name.
   -->
-  <string name="open_all_warning_message"> താളുകള്‍ ലഭ്യമാക്കുമ്പോഴു് ഇത്രോളം ടാബുകൾ തുറന്നാൽ %s-ന്റെ വേഗത കുറയ്ക്കുവാന്‍ ഇതു് ചിലപ്പോള്‍ കാരണമാകുന്നു. തുടരണമെന്നു് ഉറപ്പാണോ?</string>
+  <string name="open_all_warning_message">\u0032താളുകള്‍ ലഭ്യമാക്കുമ്പോഴു് ഇത്രോളം ടാബുകൾ തുറന്നാൽ %s-ന്റെ വേഗത കുറയ്ക്കുവാന്‍ ഇതു് ചിലപ്പോള്‍ കാരണമാകുന്നു. തുടരണമെന്നു് ഉറപ്പാണോ?</string>
   <!-- Dialog button text for confirming open all tabs -->
   <string name="open_all_warning_confirm">തുറന്ന ടാബുകള്‍</string>
   <!-- Dialog button text for canceling open all tabs -->
@@ -1282,7 +1282,7 @@
 
     Title of a preference that allows a user to choose what screen to show after opening the app
   -->
-  <string name="preferences_opening_screen">ആമുഖം </string>
+  <string name="preferences_opening_screen">ആമുഖം\u0032</string>
   <!-- Option for always opening the homepage when re-opening the app -->
   <string name="opening_screen_homepage">ആമുഖത്താൾ</string>
   <!-- Option for always opening the user's last-open tab when re-opening the app -->
@@ -1484,7 +1484,7 @@
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">പുറകോട്ട് ചെല്ലുക</string>
   <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">മുകളിലേക്ക്  ചെല്ലുക</string>
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">മുകളിലേക്ക് ചെല്ലുക</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">തിരിച്ചുപ്പോയിയിട്ടു് തിരയൽ അടയ്ക്കുക</string>
   <!-- Content description for the search bar clear text button on the downloads screen -->
@@ -1521,7 +1521,7 @@
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s  ഒഴിഞ്ഞിരിപ്പുണ്ടു്</string>
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s ഒഴിഞ്ഞിരിപ്പുണ്ടു്</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" tools:ignore="UnusedResources">താല്ക്കാലം നിറുത്തി</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -1637,7 +1637,7 @@
   <!-- Screen title for adding a bookmarks folder -->
   <string name="bookmark_add_folder">അറ ചേർക്കുക</string>
   <!-- Snackbar title that confirms a bookmark was saved into a folder. %s is the name of the folder the bookmark was saved into. -->
-  <string name="bookmark_saved_in_folder_snackbar">"%s"-ൽ കരുതവച്ചു</string>
+  <string name="bookmark_saved_in_folder_snackbar">\"%s\"-ൽ കരുതവച്ചു</string>
   <!-- Snackbar edit button shown after a bookmark has been created. -->
   <string name="edit_bookmark_snackbar_action">തിരുത്തുക</string>
   <!-- Bookmark menu move button -->
@@ -1845,7 +1845,7 @@
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">ശേഖരണ മെനു</string>
   <!-- Label to describe what collections are to a new user without any collections -->
-  <string name="no_collections_description2">നിങ്ങൾക്ക് പ്രാധാന്യമുള്ള കാര്യങ്ങൾ ശേഖരിക്കുക. \n ദ്രുത ആക്‌സസ്സിനായി സമാന തിരയലുകൾ, സൈറ്റുകൾ, ടാബുകൾ എന്നിവ ഒരുമിച്ച് ഇടുക.</string>
+  <string name="no_collections_description2">നിങ്ങൾക്ക് പ്രാധാന്യമുള്ള കാര്യങ്ങൾ ശേഖരിക്കുക. \nദ്രുത ആക്‌സസ്സിനായി സമാന തിരയലുകൾ, സൈറ്റുകൾ, ടാബുകൾ എന്നിവ ഒരുമിച്ച് ഇടുക.</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">ടാബുകൾ തിരഞ്ഞെടുക്കുക</string>
   <!-- Title for the "select collection" step of the collection creator -->
@@ -2014,7 +2014,7 @@
   <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
   <string name="snackbar_num_tabs_closed">അടച്ച ടാബുകൾ: %1$s</string>
   <!-- Text shown in snackbar when user bookmarks a list of tabs. %s is the name of the folder the bookmark was saved into. -->
-  <string name="snackbar_message_bookmarks_saved_in">അടയാളക്കുറിപ്പു് "%s"-ൽ കരുതിവച്ചു</string>
+  <string name="snackbar_message_bookmarks_saved_in">അടയാളക്കുറിപ്പു് \"%s\"-ൽ കരുതിവച്ചു</string>
   <!-- Text shown in snackbar when user adds a site to shortcuts -->
   <string name="snackbar_added_to_shortcuts">കുറുക്കുവഴികളിലേക്കു് ചേർത്തു!</string>
   <!-- Text shown in snackbar when user closes a private tab -->
@@ -2090,7 +2090,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">പുറത്ത് കടക്കുമ്പോൾ തിരയൽദത്ത മായ്ക്കുക</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">പ്രധാനക്കുറിപ്പടികട്ടയിൽ നിന്ന്  “പുറത്തുകടക്കുക” തിരഞ്ഞെടുക്കുമ്പോൾ തിരച്ചിൽദത്ത തനിയേ മായ്ക്കുന്നു</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">പ്രധാനക്കുറിപ്പടികട്ടയിൽ നിന്ന് “പുറത്തുകടക്കുക” തിരഞ്ഞെടുക്കുമ്പോൾ തിരച്ചിൽദത്ത തനിയേ മായ്ക്കുന്നു</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">പുറത്ത് കടക്കുക</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -2114,7 +2114,7 @@
   <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
   <string name="deleting_browsing_data_in_progress">തിരച്ചിൽ ദത്ത മായ്ക്കുന്നു…</string>
   <!-- Dialog message to the user asking to delete all history items inside the opened group. %s is a history group name. -->
-  <string name="delete_all_history_group_prompt_message">"%s"-ൽ എല്ലാ സൈറ്റുകൾ മായ്ക്കുക</string>
+  <string name="delete_all_history_group_prompt_message">\"%s\"-ൽ എല്ലാ സൈറ്റുകൾ മായ്ക്കുക</string>
   <!-- Text for the cancel button for the history group deletion dialog -->
   <string name="delete_history_group_prompt_cancel">റദ്ദാക്കുക</string>
   <!-- Text for the allow button for the history group dialog -->
@@ -2698,7 +2698,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">വെബ് വിലാസത്തിൽ "https://" അല്ലെങ്കിൽ "http://" ഉണ്ടാവണം</string>
+  <string name="add_login_hostname_invalid_text_3">വെബ് വിലാസത്തിൽ \"https://\" അല്ലെങ്കിൽ \"http://\" ഉണ്ടാവണം</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">സാധുതയുള്ള ഹോസ്റ്റ് നാമം ആവശ്യമാണ്</string>
   <!--
@@ -2808,7 +2808,7 @@
   <!-- Content description radio buttons with a link to more information -->
   <string name="radio_preference_info_content_description">കൂടുതൽ വിവരങ്ങൾക്ക് അമർത്തുക</string>
   <!-- Content description for the action bar "up" button -->
-  <string name="action_bar_up_description">മുകളിലേക്ക്  ചെല്ലുക</string>
+  <string name="action_bar_up_description">മുകളിലേക്ക് ചെല്ലുക</string>
   <!-- Content description for privacy content close button -->
   <string name="privacy_content_close_button_content_description">അടയ്ക്കുക</string>
   <!--
@@ -2973,7 +2973,7 @@
   -->
   <string name="automatic_translation_option_offer_to_translate_title_preference">വിവർത്തനം ചെയ്യാൻ വാഗ്ദാനം നല്കുക (എപ്പോഴും)</string>
   <!-- Preference option for offering to translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="automatic_translation_option_offer_to_translate_summary_preference">ഈ ഭാഷായിൽ എഴുതിയ വെബ്സ്ഥാനങ്ങളിൽ വിവർത്തനം ചെയ്യാൻ %1$s  ചോദിക്കും.</string>
+  <string name="automatic_translation_option_offer_to_translate_summary_preference">ഈ ഭാഷായിൽ എഴുതിയ വെബ്സ്ഥാനങ്ങളിൽ വിവർത്തനം ചെയ്യാൻ %1$s ചോദിക്കും.</string>
   <!-- Preference option for always translate. Radio button title text. -->
   <string name="automatic_translation_option_always_translate_title_preference">എപ്പോഴും വിവർത്തനം ചെയ്യുക</string>
   <!-- Preference option for always translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
@@ -3043,17 +3043,17 @@
   <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
   <string name="download_languages_item_content_description_not_downloaded_state">ഇറക്കിവയ്ക്കുക</string>
   <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
-  <string name="download_languages_fetch_error_warning_text">ഭാഷാകൾ ലഭ്യമാക്കാൻ കഴിഞ്ഞില്ല. കുറച്ചു് നേരം കഴിഞ്ഞു് വീണ്ടും ശ്രമിക്കുക. </string>
+  <string name="download_languages_fetch_error_warning_text">ഭാഷാകൾ ലഭ്യമാക്കാൻ കഴിഞ്ഞില്ല. കുറച്ചു് നേരം കഴിഞ്ഞു് വീണ്ടും ശ്രമിക്കുക.\u0032</string>
   <!--
     The title of the warning card informs the user that an error has occurred at downloading a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_error_warning_text">&lt;b&gt;%1$s&lt;/b&gt; ഇറക്കിവയ്ക്കാൻ പറ്റിയില്ല.  വീണ്ടും ശ്രമിക്കുക.</string>
+  <string name="download_languages_error_warning_text">&lt;b&gt;%1$s&lt;/b&gt; ഇറക്കിവയ്ക്കാൻ പറ്റിയില്ല. വീണ്ടും ശ്രമിക്കുക.</string>
   <!--
     The title of the warning card informs the user that an error has occurred at deleting a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_delete_error_warning_text">&lt;b&gt;%1$s&lt;/b&gt; മായ്ക്കാൻ പറ്റിയില്ല.  വീണ്ടും ശ്രമിക്കുക.</string>
+  <string name="download_languages_delete_error_warning_text">&lt;b&gt;%1$s&lt;/b&gt; മായ്ക്കാൻ പറ്റിയില്ല. വീണ്ടും ശ്രമിക്കുക.</string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
@@ -3082,7 +3082,7 @@
   -->
   <string name="download_language_file_dialog_title">ദത്ത കരുതിവയ്ക്കൽ രീതിയിൽ ഭാഷ ഇറക്കിവയ്ക്കണോ (%1$s)?</string>
   <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
-  <string name="download_language_file_dialog_message_all_languages">വിവൎത്തനങ്ങളെ സ്വകാര്യമായി വയ്ക്കുന്നതിനു് ഞങ്ങൾ ഭാഗികമായി ഭാഷകളെ താങ്ങളുടെ ഗണനികയതിവേഗോൎമ്മയിലോട്ടു് ഇറക്കിവയ്ക്കാരുണ്ടു്. </string>
+  <string name="download_language_file_dialog_message_all_languages">വിവൎത്തനങ്ങളെ സ്വകാര്യമായി വയ്ക്കുന്നതിനു് ഞങ്ങൾ ഭാഗികമായി ഭാഷകളെ താങ്ങളുടെ ഗണനികയതിവേഗോൎമ്മയിലോട്ടു് ഇറക്കിവയ്ക്കാരുണ്ടു്.\u0032</string>
   <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
   <string name="download_language_file_dialog_checkbox_text">എപ്പോഴും ദത്തകരുതിവയ്ക്കൽ രീതിയിൽ ഇറക്കിവയ്ക്കുക</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -3127,7 +3127,7 @@
     Text for displaying the total number of trackers blocked in the protection panel.
     %d is a placeholder for the number of trackers blocked.
   -->
-  <string name="protection_panel_num_trackers_blocked">തടഞ്ഞിരിക്കുന്ന പിന്തുടർച്ചായന്ത്രങ്ങൾ: %d </string>
+  <string name="protection_panel_num_trackers_blocked">തടഞ്ഞിരിക്കുന്ന പിന്തുടർച്ചായന്ത്രങ്ങൾ: %d\u0032</string>
   <!-- Text for when no trackers have been blocked. -->
   <string name="protection_panel_no_trackers_blocked">പിന്തുടർച്ചയന്ത്രങ്ങൾ കണ്ടെത്താൻ കഴിഞ്ഞില്ല</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
@@ -3138,7 +3138,7 @@
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.
   -->
-  <string name="trackers_blocked_panel_total_num_trackers_blocked">തടഞ്ഞിരിക്കുന്ന പിന്തുടർച്ചായന്ത്രങ്ങൾ: %d </string>
+  <string name="trackers_blocked_panel_total_num_trackers_blocked">തടഞ്ഞിരിക്കുന്ന പിന്തുടർച്ചായന്ത്രങ്ങൾ: %d\u0032</string>
   <!--
     Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
     %s is a placeholder for the name of the tracker category.
@@ -3201,7 +3201,7 @@
     quantity greater than the max tabs. %1$s is the maximum number of tabs
     that can be generated in one operation.
   -->
-  <string name="debug_drawer_tab_tools_tab_quantity_exceed_max_error">ഒരു ക്രയത്തിൽ ഉച്ചനില സൃഷ്ടിക്കാനാവുന്ന ടാബുകളുടെ (%1$s) അതിരുകവിഞ്ഞു </string>
+  <string name="debug_drawer_tab_tools_tab_quantity_exceed_max_error">ഒരു ക്രയത്തിൽ ഉച്ചനില സൃഷ്ടിക്കാനാവുന്ന ടാബുകളുടെ (%1$s) അതിരുകവിഞ്ഞു\u0032</string>
   <!-- The button text to add tabs to the active tab group in the tab creation tool. -->
   <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_active">സജീവ ടാബുകളിലേക്ക് ചേർക്കുക</string>
   <!-- The button text to add tabs to the inactive tab group in the tab creation tool. -->
@@ -3215,7 +3215,7 @@
 
     The microsurvey prompt title. Note: The word "Firefox" should NOT be translated
   -->
-  <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിനു് മെച്ചപെടുത്താൻ സഹായിക്കുക. ഇതു് ചെയ്യാൻ വെറും ഒരു നിമിഷം എടുക്കും </string>
+  <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിനു് മെച്ചപെടുത്താൻ സഹായിക്കുക. ഇതു് ചെയ്യാൻ വെറും ഒരു നിമിഷം എടുക്കും\u0032</string>
   <!-- The continue button label -->
   <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">തുടരുക</string>
   <!--
@@ -3249,11 +3249,11 @@
   <!-- Option for likert scale -->
   <string name="likert_scale_option_8" tools:ignore="UnusedResources">ഞാൻ സമന്വയം ഉപയോഗിക്കാരില്ല</string>
   <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-  <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിൽ അച്ചടിപ്പു് മെച്ചപെടുത്താൻ സഹായിക്കുക. ഇതു് ചെയ്യാൻ വെറും ഒരു നിമിഷം എടുക്കും </string>
+  <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിൽ അച്ചടിപ്പു് മെച്ചപെടുത്താൻ സഹായിക്കുക. ഇതു് ചെയ്യാൻ വെറും ഒരു നിമിഷം എടുക്കും\u0032</string>
   <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
-  <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിൽ തിരച്ചിൽ മെച്ചപെടുത്താൻ സഹായിക്കുക. ഇതു് ചെയ്യാൻ വെറും ഒരു നിമിഷം എടുക്കും </string>
+  <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിൽ തിരച്ചിൽ മെച്ചപെടുത്താൻ സഹായിക്കുക. ഇതു് ചെയ്യാൻ വെറും ഒരു നിമിഷം എടുക്കും\u0032</string>
   <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
-  <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിൽ സമന്വയം മെച്ചപെടുത്താൻ സഹായിക്കുക. ഇതു് ചെയ്യാൻ വെറും ഒരു നിമിഷം എടുക്കും </string>
+  <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിൽ സമന്വയം മെച്ചപെടുത്താൻ സഹായിക്കുക. ഇതു് ചെയ്യാൻ വെറും ഒരു നിമിഷം എടുക്കും\u0032</string>
   <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
   <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിൽ അച്ചടിപ്പുക്കൂടെ താങ്ങൾക്കു് എത്രത്തോളം സംതൃപ്തിയുണ്ട്?</string>
   <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
@@ -3339,7 +3339,7 @@
 
     Localisation note: this text should be as short as possible, max 68 chars
   -->
-  <string name="exit_fullscreen_with_back_button_short">പുറത്തുകടക്കാൻ മുകളിൽ നിന്ന് വലിച്ചിട്ട് "തിരികെ" എന്നു് എഴുതിയ ബട്ടണിൽ അമർത്തുക</string>
+  <string name="exit_fullscreen_with_back_button_short">പുറത്തുകടക്കാൻ മുകളിൽ നിന്ന് വലിച്ചിട്ട് \"തിരികെ\" എന്നു് എഴുതിയ ബട്ടണിൽ അമർത്തുക</string>
   <!--
     Beta Label Component !
 
@@ -3361,7 +3361,7 @@
   <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
   <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">മാർച്ച് 14-ന് മുമ്പ് പുതുക്കുക</string>
   <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-  <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">ഒരു മൂലപ്രമാണുപത്രം കാലഹരണപ്പെടും, അതുക്കൊണ്ടു് താങ്ങളുടെ ഫയർഫോക്സു് പതിപ്പു്  പ്രവർത്തിക്കുന്നത് നിർത്തും.</string>
+  <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">ഒരു മൂലപ്രമാണുപത്രം കാലഹരണപ്പെടും, അതുക്കൊണ്ടു് താങ്ങളുടെ ഫയർഫോക്സു് പതിപ്പു് പ്രവർത്തിക്കുന്നത് നിർത്തും.</string>
   <!-- Homepage card title about old Firefox version -->
   <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">പുതുക്കാൻ ഇനി 7 ദിവസങ്ങൾ പോലും ഇല്ല</string>
   <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->

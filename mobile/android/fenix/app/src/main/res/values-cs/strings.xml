@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s vymaže vaši historii vyhledávání a stránek navštívených v anonymním panelu po jeho zavření nebo ukončení aplikace. S touto funkcí nejste na internetu zcela neviditelní a např. poskytovatel připojení k internetu může stále zjistit, které stránky navštěvujete. Vaše aktivita na internetu ale zůstane utajena před dalšími uživateli tohoto zařízení.</string>
-  <string name="private_browsing_common_myths">
-       Časté omyly o fungování anonymního prohlížení
-    </string>
+  <string name="private_browsing_common_myths">\u0032Časté omyly o fungování anonymního prohlížení\u0032</string>
   <!--
     True Private Browsing Mode
 

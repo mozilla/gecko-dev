@@ -43,7 +43,7 @@
   <!-- Content description for close button while in multiselect mode in tab tray -->
   <string name="tab_tray_close_multiselect_content_description">Dil nga mënyra përzgjedhje e shumëfishtë</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
-  <string name="tab_tray_collection_button_multiselect_content_description">Ruaji te koleksioni skedat e përzgjedhura </string>
+  <string name="tab_tray_collection_button_multiselect_content_description">Ruaji te koleksioni skedat e përzgjedhura\u0032</string>
   <!--
     Home - Bookmarks
 
@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s-u e spastron historikun tuaj të kërkimeve dhe shfletimit prej skedash private, kur i mbyllni ato, ose dilni nga aplikacioni. Edhe pse kjo s’ju bën anonim përballë sajteve apo furnizuesit të shërbimit tuaj internet, e bën më të lehtë mbajtjen private të asaj çka bëni në internet, nga cilido tjetër që përdor këtë pajisje.</string>
-  <string name="private_browsing_common_myths">
-       Mite të rëndomtë mbi shfletimin privat
-    </string>
+  <string name="private_browsing_common_myths">\u0032Mite të rëndomtë mbi shfletimin privat\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -250,7 +248,7 @@
   <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
   <string name="browser_menu_extensions_disabled_description">Çaktivizuar përkohësisht</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
-  <string name="browser_menu_no_extensions_installed_description">S’ka zgjerime të aktivizuara </string>
+  <string name="browser_menu_no_extensions_installed_description">S’ka zgjerime të aktivizuara\u0032</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Hollësi llogarie</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -647,7 +645,7 @@
   <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
   <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Ndihmonani të fuqizojmë Firefox-in</string>
   <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
-  <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Kur na tregoni se si e zbuluat Firefox-in dhe se e përdorni, na ndihmoni ta paraqesim shfletuesin tonë te më tepër njerëz. </string>
+  <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Kur na tregoni se si e zbuluat Firefox-in dhe se e përdorni, na ndihmoni ta paraqesim shfletuesin tonë te më tepër njerëz.\u0032</string>
   <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
   <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Ndani me partnerë teknologjish marketingu të Mozilla-s të dhëna minimale. Këto të dhëna nuk shiten kurrë, apo të përdoren për t’ju shfaqur reklama.</string>
   <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
@@ -1395,7 +1393,7 @@
   <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. %s is the tab title -->
   <string name="close_tab_title">Mbylle skedën %s</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
-  <string name="open_tabs_menu">Menu skedash të  hapura</string>
+  <string name="open_tabs_menu">Menu skedash të hapura</string>
   <!-- Open tabs menu item to save tabs to collection -->
   <string name="tabs_menu_save_to_collection1">Ruaj skeda në koleksion</string>
   <!-- Text for the menu button to delete a collection -->

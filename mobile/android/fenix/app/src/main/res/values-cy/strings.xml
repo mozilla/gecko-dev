@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">Mae %1$s yn clirio’ch hanes chwilio a phori o dabiau preifat pan fyddwch yn eu cau neu’n gadael yr ap. Er nad yw hyn yn eich gwneud chi’n anhysbys i wefannau neu’ch darparwr gwasanaeth rhyngrwyd, mae’n ei gwneud hi’n haws cadw’r hyn rydych chi’n ei wneud ar-lein yn breifat rhag unrhyw un arall sy’n defnyddio’r ddyfais hon.</string>
-  <string name="private_browsing_common_myths">
-       Mythau cyffredin am bori preifat
-    </string>
+  <string name="private_browsing_common_myths">\u0032Mythau cyffredin am bori preifat\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -202,7 +200,7 @@
   -->
   <string name="recently_visited_menu_item_remove">Tynnu</string>
   <!-- Content description for the button which navigates the user to show all of their history. -->
-  <string name="past_explorations_show_all_content_description_2">Dangos archwiliad  y gorffennol</string>
+  <string name="past_explorations_show_all_content_description_2">Dangos archwiliad y gorffennol</string>
   <!--
     Browser Fragment
 
@@ -411,7 +409,7 @@
   -->
   <string name="menu_cfr_title">Newydd: dewislen symlach</string>
   <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
-  <string name="menu_cfr_body">Dewch o hyd i\'r hyn sydd ei angen arnoch yn gyflymach, o bori preifat i gadw  gweithredoedd.</string>
+  <string name="menu_cfr_body">Dewch o hyd i\'r hyn sydd ei angen arnoch yn gyflymach, o bori preifat i gadw gweithredoedd.</string>
   <!--
     Extensions management fragment
 
@@ -807,7 +805,7 @@
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
   <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Diffoddwch a bydd %1$s yn clirio cwcis ac yn ail-lwytho’r wefan hon. Gall hyn eich allgofnodi neu wagio cartiau siopa.</string>
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="reduce_cookie_banner_details_panel_description_on_for_site_3">Trowchhwn  ymlaen a bydd %1$s yn ceisio gwrthod pob baner cwci ar y wefan hon yn awtomatig.</string>
+  <string name="reduce_cookie_banner_details_panel_description_on_for_site_3">Trowchhwn ymlaen a bydd %1$s yn ceisio gwrthod pob baner cwci ar y wefan hon yn awtomatig.</string>
   <!-- Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name. %1$s is the name of the app (for example "Firefox"). -->
   <string name="cookie_banner_cfr_title">Mae %1$s newydd wrthod cwcis i chi</string>
   <!-- Message for the cookie banner re-engagement CFR -->
@@ -1323,7 +1321,7 @@
   -->
   <string name="recently_closed_tab">%d tab</string>
   <!-- Recently closed tabs screen message when there are no recently closed tabs -->
-  <string name="recently_closed_empty_message">Dim tabiau wedi’u cau yn ddiweddar yma </string>
+  <string name="recently_closed_empty_message">Dim tabiau wedi’u cau yn ddiweddar yma\u0032</string>
   <!--
     Tab Management
 
@@ -1810,7 +1808,7 @@
   <!-- Text for the button to navigate to sync authentication -->
   <string name="bookmark_empty_list_guest_cta">Mewngofnodwch i gydweddu</string>
   <!-- Description for the bookmark list empty state when you're signed into sync. -->
-  <string name="bookmark_empty_list_authenticated_description">Cadwch wefannau wrth i chi bori. Byddwn hefyd yn cipio nodau tudalen o ddyfeisiau  eraill sydd wedi\'u cydweddu.</string>
+  <string name="bookmark_empty_list_authenticated_description">Cadwch wefannau wrth i chi bori. Byddwn hefyd yn cipio nodau tudalen o ddyfeisiau eraill sydd wedi\'u cydweddu.</string>
   <!-- Description for the bookmark list empty state when you're in an empty folder. -->
   <string name="bookmark_empty_list_folder_description">Ychwanegwch nodau tudalen wrth i chi bori fel y gallwch ddod o hyd i\'ch hoff wefannau yn nes ymlaen.</string>
   <!-- Description for the add new folder button when selecting a folder. -->
@@ -2161,7 +2159,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Dileu data pori wrth adael</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Yn dileu data pori’n awtomatig  pan fyddwch yn dewis \"Gadael\" o’r brif ddewislen</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Yn dileu data pori’n awtomatig pan fyddwch yn dewis \"Gadael\" o’r brif ddewislen</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Gadael</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -2341,7 +2339,7 @@
   <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_redirect_trackers_description">Yn clirio cwcis wedi’u gosod i ailgyfeirio i wefannau tracio hysbys.</string>
   <!-- Preference for fingerprinting protection for the custom protection settings -->
-  <string name="etp_suspected_fingerprinters_title">Amheuaeth o Fysbrintwyr </string>
+  <string name="etp_suspected_fingerprinters_title">Amheuaeth o Fysbrintwyr\u0032</string>
   <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
   <string name="etp_suspected_fingerprinters_description">Yn galluogi diogelu rhag bysbrintio er mwyn atal bysbrintwyr posib.</string>
   <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
@@ -2513,8 +2511,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Cyfrineiriau wedi\'u cadw</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">Bydd y cyfrineiriau rydych yn eu cadw neu eu cydweddu i %s yn cael eu rhestru yma. Mae\'r holl gyfrineiriau rydych chi\'n eu cadw wedi\'u hamgryptio.
-</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">Bydd y cyfrineiriau rydych yn eu cadw neu eu cydweddu i %s yn cael eu rhestru yma. Mae\'r holl gyfrineiriau rydych chi\'n eu cadw wedi\'u hamgryptio.\u0032</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Dysgwch fwy am gydweddu</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -2527,6 +2524,8 @@
   <string name="preferences_passwords_exceptions_remove_all">Dileu pob eithriad</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">Chwilio cyfrineiriau</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">Nôl</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">Gwefan</string>
   <!-- The header for the username for a login -->
@@ -2815,7 +2814,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Rhaid i’r cyfeiriad gwe gynnwys "https://" neu "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Rhaid i’r cyfeiriad gwe gynnwys \"https://\" neu \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Mae angen enw gwesteiwr dilys</string>
   <!--

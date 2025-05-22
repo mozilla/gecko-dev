@@ -1247,7 +1247,7 @@
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">Menú de la colección</string>
   <!-- Label to describe what collections are to a new user without any collections -->
-  <string name="no_collections_description2">Nake\'e daa natiñu jitu ininu. \n Stutu daa nnanuku, daa nuu jíi daa pestañas inu saa kuvi kuvɨnu ñama.</string>
+  <string name="no_collections_description2">Nake\'e daa natiñu jitu ininu. \nStutu daa nnanuku, daa nuu jíi daa pestañas inu saa kuvi kuvɨnu ñama.</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">Kaji daa pestañas</string>
   <!-- Title for the "select collection" step of the collection creator -->
@@ -1483,7 +1483,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Xina daa datos nnánuku de nkenenu</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Xita automáticamente daa datos nkakanu sa kajinu  \"Kene\" nu menú principal</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Xita automáticamente daa datos nkakanu sa kajinu \"Kene\" nu menú principal</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Kene</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -1996,7 +1996,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Nuu web nejika kumi "https://" o "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Nuu web nejika kumi \"https://\" o \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Jiniñu\'u sivɨ servidor vatu</string>
   <!--

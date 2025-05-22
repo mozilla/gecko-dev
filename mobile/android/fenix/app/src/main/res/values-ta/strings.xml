@@ -571,7 +571,7 @@
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">திரட்டு பட்டி</string>
   <!-- Label to describe what collections are to a new user without any collections -->
-  <string name="no_collections_description2">உங்களுக்கு முக்கியமான விடயங்களைத் திரட்டவும்.\n எதிர்வரும் விரைவு அணுகலுக்கு ஒத்த தேடல்கள், தளங்கள் மற்றும் தாவல்களை குழுவாகச் சேர்க்கவும்.</string>
+  <string name="no_collections_description2">உங்களுக்கு முக்கியமான விடயங்களைத் திரட்டவும்.\nஎதிர்வரும் விரைவு அணுகலுக்கு ஒத்த தேடல்கள், தளங்கள் மற்றும் தாவல்களை குழுவாகச் சேர்க்கவும்.</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">கீற்றுகளைத் தேர்</string>
   <!-- Title for the "select collection" step of the collection creator -->
@@ -694,7 +694,7 @@
   <!-- Title for Accessibility Text Automatic Size Scaling Preference -->
   <string name="preference_accessibility_auto_size_2">தானியிக்க எழுத்துரு அளவு</string>
   <!-- Summary for Accessibility Text Automatic Size Scaling Preference -->
-  <string name="preference_accessibility_auto_size_summary">எழுத்துரு அளவு உங்கள் ஆண்டராய்டு  அமைவுகளுடன் பொருந்தும். எழுத்துரு அளவை நிர்வகிக்க இங்கே முடக்கு.</string>
+  <string name="preference_accessibility_auto_size_summary">எழுத்துரு அளவு உங்கள் ஆண்டராய்டு அமைவுகளுடன் பொருந்தும். எழுத்துரு அளவை நிர்வகிக்க இங்கே முடக்கு.</string>
   <!-- Title for the Delete browsing data preference -->
   <string name="preferences_delete_browsing_data">உலாவி வரலாற்றை அழி</string>
   <!-- Title for the tabs item in Delete browsing data -->
@@ -833,7 +833,7 @@
   <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_tracking_content_title">உள்ளடக்கப் பின்தொடரல்</string>
   <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_tracking_content_description">பின்தொடரி குறியீட்டைக் கொண்ட விளம்பரங்கள், காணொளிகள் மற்றும் பிற உள்ளடக்கங்களை ஏற்றுவதிலிருந்து  நிறுத்துகிறது. வலைத்தள செயல்பாட்டைப் பாதிக்கலாம்.</string>
+  <string name="etp_tracking_content_description">பின்தொடரி குறியீட்டைக் கொண்ட விளம்பரங்கள், காணொளிகள் மற்றும் பிற உள்ளடக்கங்களை ஏற்றுவதிலிருந்து நிறுத்துகிறது. வலைத்தள செயல்பாட்டைப் பாதிக்கலாம்.</string>
   <!-- Enhanced Tracking Protection message that protection is currently on for this site -->
   <string name="etp_panel_on">இத்தளத்திற்கான பாதுகாப்புகள் இயக்கத்தில் உள்ளன</string>
   <!-- Enhanced Tracking Protection message that protection is currently off for this site -->

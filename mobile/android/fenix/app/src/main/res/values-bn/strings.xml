@@ -32,13 +32,11 @@
   <string name="tab_tray_close_multiselect_content_description">মাল্টিলেক্ট মোড থেকে প্রস্থান করুন</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s হচ্ছে Mozilla দ্বারা তৈরি।</string>
-  <string name="private_browsing_common_myths">
-       ব্যাক্তিগত ব্রাউজিং সম্পর্কে কিছু ভুল ধারণা
-    </string>
+  <string name="private_browsing_common_myths">\u0032ব্যাক্তিগত ব্রাউজিং সম্পর্কে কিছু ভুল ধারণা\u0032</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
   <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">না ধন্যবাদ</string>
   <!-- Text for the positive action button -->
-  <string name="open_in_app_cfr_positive_button_text"> সেটিং এ যাও</string>
+  <string name="open_in_app_cfr_positive_button_text">\u0032সেটিং এ যাও</string>
   <!-- Text for the negative action button -->
   <string name="open_in_app_cfr_negative_button_text">বাতিল</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -667,7 +665,7 @@
   <!-- QR code scanner prompt dialog positive option to deny navigation to scanned link -->
   <string name="qr_scanner_dialog_negative">DENY</string>
   <!-- Tab collection deletion prompt dialog message. %1$s is the collection name. -->
-  <string name="tab_collection_dialog_message">আপনি কি নিশ্চিত আপনি %1$s  মুছতে চান?</string>
+  <string name="tab_collection_dialog_message">আপনি কি নিশ্চিত আপনি %1$s মুছতে চান?</string>
   <!-- Tab collection deletion prompt dialog option to delete the collection -->
   <string name="tab_collection_dialog_positive">মুছে ফেলুন</string>
   <!-- Message for copying the URL via long press on the toolbar -->
@@ -702,7 +700,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">প্রস্থান করার সময় ব্রাউজিং ডেটা মুছুন</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">আপনি মূল মেনু থেকে  \"Quit\"  নির্বাচন করলে স্বয়ংক্রিয়ভাবে ব্রাউজিং ডেটা মুছে যাবে</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">আপনি মূল মেনু থেকে \"Quit\" নির্বাচন করলে স্বয়ংক্রিয়ভাবে ব্রাউজিং ডেটা মুছে যাবে</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">প্রস্থান</string>
   <!-- Dialog message to the user asking to delete browsing data. %s is the name of the app (for example "Firefox"). -->
@@ -867,7 +865,7 @@
   <!-- Text for the menu button to delete a search engine -->
   <string name="search_engine_delete">মুছে ফেলুন</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">"%s" দিয়ে কোয়েরি প্রতিস্থাপন করুন। উদাহরণ: \nhttps://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">\"%s\" দিয়ে কোয়েরি প্রতিস্থাপন করুন। উদাহরণ: \nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">কাস্টম সার্চ ইঞ্জিনের খুঁটিনাটি</string>
   <!-- Text shown when a user leaves the name field empty -->

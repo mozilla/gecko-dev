@@ -743,7 +743,7 @@
   <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cookies_title">Cookie che tracian inter-scito</string>
   <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_cookies_description">Blòcca i cookie che e ræ de publicitæ e soçietæ de analixi dæti deuvian pe arecheugge i dæti de navegaçion quande ti passi da un scito a l\’atro.</string>
+  <string name="etp_cookies_description">Blòcca i cookie che e ræ de publicitæ e soçietæ de analixi dæti deuvian pe arecheugge i dæti de navegaçion quande ti passi da un scito a l\\’atro.</string>
   <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cryptominers_title">Cryptominer</string>
   <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->

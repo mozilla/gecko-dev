@@ -15,7 +15,7 @@
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_disable_private_browsing_button">Má ṣe ìgbàláyè fún bíráwúsìnnì ìkọ̀kọ̀</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
-  <string name="search_hint">Ṣàwárí tàbí fi àdìrẹ́sì si </string>
+  <string name="search_hint">Ṣàwárí tàbí fi àdìrẹ́sì si\u0032</string>
   <!-- Placeholder text shown in the search bar when using application search engines -->
   <string name="application_search_hint">Tẹ àwọn òfin wíwá si</string>
   <!-- No Open Tabs Message Description -->
@@ -43,7 +43,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s pa ìwádìí àti ìtàn ìlọkiri rẹ̀ lórí àwọn táàbù ìkọ̀kọ̀ nígbà tí o bá tì wọ́n tàbí nígbà tí o kò lo áàpù náà mọ́. Ní àkó́kò tí èyí kò sọ ẹ́ di aláìnídáánimọ̀ sí àwọn wẹ́íbusaìtì yí tàbí olùpèsè ìlò íntánẹ́ẹ̀tì rẹ, ó jẹ́ kó rọrùn láti tọ́jú gbogbo ohun tí ò ń ṣe lórí ayélujára sí ìkọ̀kọ̀ fún ẹnikẹ́ni tó bá lo èrọ yìí.</string>
-  <string name="private_browsing_common_myths">Àwọn àròsọ tó wọ́pọ̀ nípa ìlọkiri-oníwẹ́ẹ̀bù ìkọ̀kọ̀ </string>
+  <string name="private_browsing_common_myths">Àwọn àròsọ tó wọ́pọ̀ nípa ìlọkiri-oníwẹ́ẹ̀bù ìkọ̀kọ̀\u0032</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
   <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Rárá o ṣeun</string>
   <!--
@@ -131,7 +131,7 @@
 
     Content description (not visible, for screen readers etc.): Navigate backward (browsing history)
   -->
-  <string name="browser_menu_back">Padà                </string>
+  <string name="browser_menu_back">Padà\u0032</string>
   <!-- Content description (not visible, for screen readers etc.): Navigate forward (browsing history) -->
   <string name="browser_menu_forward">Síwájú</string>
   <!-- Content description (not visible, for screen readers etc.): Refresh current website -->
@@ -232,7 +232,7 @@
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
   <string name="onboarding_home_skip_button">Fò</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
-  <string name="sync_cfr_message">Àwọn táàbù rẹ ti ń ṣiṣẹ́ pọ̀! Mú u sókè níbi tí o ti kúrò lóri ẹ̀rọ rẹ mìíràn. </string>
+  <string name="sync_cfr_message">Àwọn táàbù rẹ ti ń ṣiṣẹ́ pọ̀! Mú u sókè níbi tí o ti kúrò lóri ẹ̀rọ rẹ mìíràn.\u0032</string>
   <!--
     Search Widget
 
@@ -315,7 +315,7 @@
   <!-- Preference for settings related to visual options -->
   <string name="preferences_customize">Ìsọditaraẹni</string>
   <!-- Preference description for banner about signing in -->
-  <string name="preferences_sign_in_description_2">Wọlé láti so táàbù pọ̀, àwọn búkúmaakì, àwọn ọ̀rọ̀ ìpamọ́, àti díẹ̀ si. </string>
+  <string name="preferences_sign_in_description_2">Wọlé láti so táàbù pọ̀, àwọn búkúmaakì, àwọn ọ̀rọ̀ ìpamọ́, àti díẹ̀ si.\u0032</string>
   <!-- Preference text for account title when there was an error syncing FxA -->
   <string name="preferences_account_sync_error">Tún darapọ̀ láti tún bẹ̀rẹ̀ ìṣiṣẹ́pọ̀ padà</string>
   <!-- Preference for language -->
@@ -582,7 +582,7 @@
 
     Category header of a preference that allows a user to enable or disable the inactive tabs feature
   -->
-  <string name="preferences_inactive_tabs">Gbé àwọn táàbù  àtijọ́ lọ sí àìṣiṣẹ́</string>
+  <string name="preferences_inactive_tabs">Gbé àwọn táàbù àtijọ́ lọ sí àìṣiṣẹ́</string>
   <!-- Title of inactive tabs preference -->
   <string name="preferences_inactive_tabs_title">Àwọn táàbù tí o kò tíì wò fún ọ̀sẹ̀ méjì má a lọ sí abala àìṣiṣẹ́.</string>
   <!--
@@ -604,7 +604,7 @@
   <!-- Text for the new tab button to indicate syncing command on the synced tabs page -->
   <string name="tab_drawer_fab_sync">Ìṣepọ̀</string>
   <!-- Text shown in the menu for sharing all tabs -->
-  <string name="tab_tray_menu_item_share">Pín gbogbo àwọn táàbù </string>
+  <string name="tab_tray_menu_item_share">Pín gbogbo àwọn táàbù\u0032</string>
   <!-- Text shown in the menu to view recently closed tabs -->
   <string name="tab_tray_menu_recently_closed">Àwọn táàbù tí a ṣẹ̀ṣẹ̀ padé</string>
   <!-- Text shown in the tabs tray inactive tabs section -->
@@ -648,7 +648,7 @@
   <!-- Text for the menu button to delete a top site from history -->
   <string name="delete_from_history">Parẹ́ kúrò nínú ìtan</string>
   <!-- Postfix for private WebApp titles. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="pwa_site_controls_title_private">%1$s  (Móòdù ìkọ̀kọ̀)</string>
+  <string name="pwa_site_controls_title_private">%1$s (Móòdù ìkọ̀kọ̀)</string>
   <!--
     History
 
@@ -812,11 +812,11 @@
   <!-- Preference for altering the microphone access for all websites -->
   <string name="preference_phone_feature_microphone">Ẹ̀rọ ìgbóhùnsáfẹ́fẹ́</string>
   <!-- Preference for altering the location access for all websites -->
-  <string name="preference_phone_feature_location">Ibi </string>
+  <string name="preference_phone_feature_location">Ibi\u0032</string>
   <!-- Preference for altering the notification access for all websites -->
   <string name="preference_phone_feature_notification">Ìfitónilétí</string>
   <!-- Preference for altering the persistent storage access for all websites -->
-  <string name="preference_phone_feature_persistent_storage">Ibi-ìpamọ́ Ìgbàgbogbo </string>
+  <string name="preference_phone_feature_persistent_storage">Ibi-ìpamọ́ Ìgbàgbogbo\u0032</string>
   <!-- Preference for altering the storage access setting for all websites -->
   <string name="preference_phone_feature_cross_origin_storage_access">Kúkììsì irúfẹ́ ààbò nínú àwọn áàpù wẹ́ẹ̀bù</string>
   <!-- Preference for altering the EME access for all websites -->
@@ -834,7 +834,7 @@
   <!-- Summary of tracking protection preference if tracking protection is set to off -->
   <string name="tracking_protection_off">Pa á</string>
   <!-- Label for global setting that indicates that all video and audio autoplay is allowed -->
-  <string name="preference_option_autoplay_allowed2">Fàyègba ọ́díò àti fídíò </string>
+  <string name="preference_option_autoplay_allowed2">Fàyègba ọ́díò àti fídíò\u0032</string>
   <!-- Label for site specific setting that indicates that all video and audio autoplay is allowed -->
   <string name="quick_setting_option_autoplay_allowed">Gba ọ́díò àti fídíò lááyè</string>
   <!-- Label that indicates that video and audio autoplay is only allowed over Wi-Fi -->
@@ -866,7 +866,7 @@
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">Àtẹ àkójọpọ̀</string>
   <!-- Label to describe what collections are to a new user without any collections -->
-  <string name="no_collections_description2">Gba àwọn nǹkan tó ṣe pàtàkì sí ọ.\n Fi àwọn ìwádìí, sáìtì àti àwọn táàbù tó jọra sí ọ̀wọ́ kan náà fún ìgbàláàyè tó yára nígbà míràn.</string>
+  <string name="no_collections_description2">Gba àwọn nǹkan tó ṣe pàtàkì sí ọ.\nFi àwọn ìwádìí, sáìtì àti àwọn táàbù tó jọra sí ọ̀wọ́ kan náà fún ìgbàláàyè tó yára nígbà míràn.</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">Yan Àwọn táàbù</string>
   <!-- Title for the "select collection" step of the collection creator -->
@@ -1037,7 +1037,7 @@
   <!-- Text for the button to delete browsing data -->
   <string name="preferences_delete_browsing_data_button">Pa dátà bíráwúsìnnì rẹ́</string>
   <!-- Title for the Delete browsing data on quit preference -->
-  <string name="preferences_delete_browsing_data_on_quit">Pa dátà bíráwúsínnì rẹ́ lóri kíkúrò </string>
+  <string name="preferences_delete_browsing_data_on_quit">Pa dátà bíráwúsínnì rẹ́ lóri kíkúrò\u0032</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
   <string name="preference_summary_delete_browsing_data_on_quit_2">Pa dátà bíráwúsínnì rẹ́ ní aláìfọwọkàn nígbà tí o bá yàn-án \"Jáde\" láti inú àkójọpọ̀ àṣàyàn</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
@@ -1073,7 +1073,7 @@
 
     text to display in the snackbar once account is signed-in
   -->
-  <string name="onboarding_firefox_account_sync_is_on">Ìṣepọ̀ wà ní títàn </string>
+  <string name="onboarding_firefox_account_sync_is_on">Ìṣepọ̀ wà ní títàn\u0032</string>
   <!--
     Onboarding theme
 
@@ -1115,7 +1115,7 @@
   <!-- Preference title for enhanced tracking protection settings -->
   <string name="preference_enhanced_tracking_protection">Ètò ìdáàbòbò tó múnádóko</string>
   <!-- Text displayed that links to website about enhanced tracking protection -->
-  <string name="preference_enhanced_tracking_protection_explanation_learn_more">Kọ́ si </string>
+  <string name="preference_enhanced_tracking_protection_explanation_learn_more">Kọ́ si\u0032</string>
   <!-- Preference for enhanced tracking protection for the standard protection settings -->
   <string name="preference_enhanced_tracking_protection_standard_default_1">Ìdúródéédé (àìyípadà)</string>
   <!-- Accessibility text for the Standard protection information icon -->
@@ -1137,7 +1137,7 @@
   -->
   <string name="preference_enhanced_tracking_protection_custom_cookies">Àwọn kúkì</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for cookies -->
-  <string name="preference_enhanced_tracking_protection_custom_cookies_1">Kírọ́sì-sáìtì àti olùtọpasẹ̀ ayélujára </string>
+  <string name="preference_enhanced_tracking_protection_custom_cookies_1">Kírọ́sì-sáìtì àti olùtọpasẹ̀ ayélujára\u0032</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for cookies -->
   <string name="preference_enhanced_tracking_protection_custom_cookies_2">Kúkíìsì láti sáìtì tí a kò ṣàbẹ̀wò sí</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for cookies -->
@@ -1155,7 +1155,7 @@
   <!-- Preference for enhanced tracking protection for the custom protection settings -->
   <string name="preference_enhanced_tracking_protection_custom_cryptominers">Àwọn kíríputomínà</string>
   <!-- Button label for navigating to the Enhanced Tracking Protection details -->
-  <string name="enhanced_tracking_protection_details">Ẹ̀kúnrẹ́rẹ́ </string>
+  <string name="enhanced_tracking_protection_details">Ẹ̀kúnrẹ́rẹ́\u0032</string>
   <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
   <string name="enhanced_tracking_protection_blocked">Ti dènà</string>
   <!-- Header for categories that are being not being blocked by current Enhanced Tracking Protection settings -->
@@ -1167,11 +1167,11 @@
   <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cookies_title">Ìtọpasẹ̀ Kúkíìsì Kírọ́sí-Sáìtì</string>
   <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_cookies_title_2"> Kúkíìsì Kírọ́sí-Sáìtì</string>
+  <string name="etp_cookies_title_2">\u0032Kúkíìsì Kírọ́sí-Sáìtì</string>
   <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_cookies_description">Ṣe ìdínnàmọ́ kúkíìsì tí àwọn nẹ́tíwọọ̀kì ìpolówó àti àwọn ilé-iṣẹ́ àwọn ìṣètúpalẹ̀ ń lò láti ṣe àkójọ àwọn dátà bíráwúsínnì rẹ kárí ọ̀pọ̀ àwọn sáìtì. </string>
+  <string name="etp_cookies_description">Ṣe ìdínnàmọ́ kúkíìsì tí àwọn nẹ́tíwọọ̀kì ìpolówó àti àwọn ilé-iṣẹ́ àwọn ìṣètúpalẹ̀ ń lò láti ṣe àkójọ àwọn dátà bíráwúsínnì rẹ kárí ọ̀pọ̀ àwọn sáìtì.\u0032</string>
   <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_cookies_description_2">Àpapọ̀ ìdáábòbò Kúkì ṣe ìyàsọ́tọ̀ kúkíìsì sí sáìtì tí o wà lóri rẹ̀ kí àwọn olùtọpasẹ̀ bí i àwọn nẹ́tíwọọ̀kì ìpolówó lé è máá rìi lò láti tẹ̀lé ọ kiri gbogbo àwọn sáìtì. </string>
+  <string name="etp_cookies_description_2">Àpapọ̀ ìdáábòbò Kúkì ṣe ìyàsọ́tọ̀ kúkíìsì sí sáìtì tí o wà lóri rẹ̀ kí àwọn olùtọpasẹ̀ bí i àwọn nẹ́tíwọọ̀kì ìpolówó lé è máá rìi lò láti tẹ̀lé ọ kiri gbogbo àwọn sáìtì.\u0032</string>
   <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cryptominers_title">Àwọn kíríputomínà</string>
   <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
@@ -1183,7 +1183,7 @@
   <!-- Enhanced Tracking Protection message that protection is currently on for this site -->
   <string name="etp_panel_on">Àwọn ìdáàbòbò wà ní TÍTÀN fún sáìtì yìí</string>
   <!-- Enhanced Tracking Protection message that protection is currently off for this site -->
-  <string name="etp_panel_off">Àwọn ìdáábòbò wà ní PÍPA fún sáìtì yìí </string>
+  <string name="etp_panel_off">Àwọn ìdáábòbò wà ní PÍPA fún sáìtì yìí\u0032</string>
   <!-- Header for exceptions list for which sites enhanced tracking protection is always off -->
   <string name="enhanced_tracking_protection_exceptions">Ètò ìdáàbòbò tó múná ti wà ní pípa fún àwọn ojú òpó wẹ́ẹ̀bù yìí</string>
   <!--
@@ -1201,16 +1201,16 @@
   <!-- Category of trackers (redirect trackers) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_redirect_trackers_title">Àtúnjúwe Àwọn ohun ìtọpasè</string>
   <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_redirect_trackers_description">Pa kúkíìsì rẹ́ ètò tí àwọn aṣàtúnjúwe ṣe sí ìtọpasẹ̀ àwọn ojú ọ̀pọ́ wẹ́ẹ̀bù tí a mọ̀. </string>
+  <string name="etp_redirect_trackers_description">Pa kúkíìsì rẹ́ ètò tí àwọn aṣàtúnjúwe ṣe sí ìtọpasẹ̀ àwọn ojú ọ̀pọ́ wẹ́ẹ̀bù tí a mọ̀.\u0032</string>
   <!--
     Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
     as we use it on the UI to indicate which trackers have been partially unblocked.
   -->
   <string name="preference_etp_smartblock_description">Nínú àwọn olùtọpasẹ̀ tí o ṣàmìsí ní ìsàlẹ̀ ti jẹ́ ṣíṣí sílẹ̀ lóri ojú-ìwé yìí nítorí pé o ní àjọṣepọ̀ pẹ̀lú wọn *.</string>
   <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
-  <string name="preference_etp_smartblock_learn_more">Kọ́ si </string>
+  <string name="preference_etp_smartblock_learn_more">Kọ́ si\u0032</string>
   <!-- About page link text to open support link -->
-  <string name="about_support">Àtìlẹ́yìn                </string>
+  <string name="about_support">Àtìlẹ́yìn\u0032</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
   <string name="about_crashes">Àwọn ìjàmbá</string>
   <!-- About page link text to open privacy notice link -->
@@ -1286,7 +1286,7 @@
   <!-- Content Description (for screenreaders etc) read for the button to clear a username while editing a login -->
   <string name="saved_login_clear_username">Pa orúkọ aṣàmúlò rẹ́</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
-  <string name="saved_login_clear_hostname">Pa orúkọ nẹ́tíwọọ̀kì kọ̀m̀pútà rẹ́ </string>
+  <string name="saved_login_clear_hostname">Pa orúkọ nẹ́tíwọọ̀kì kọ̀m̀pútà rẹ́\u0032</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Ṣí sáìtì nínu bíráwúsà</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->
@@ -1300,7 +1300,7 @@
   <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their logins -->
   <string name="logins_biometric_prompt_message_pin">Ṣí ẹ̀rọ rẹ</string>
   <!-- Title for Accessibility Force Enable Zoom Preference -->
-  <string name="preference_accessibility_force_enable_zoom">Sún-un mọ́ra lóri gbogbo àwọn ojú òpó wẹ́ẹ̀bù </string>
+  <string name="preference_accessibility_force_enable_zoom">Sún-un mọ́ra lóri gbogbo àwọn ojú òpó wẹ́ẹ̀bù\u0032</string>
   <!-- Summary for Accessibility Force Enable Zoom Preference -->
   <string name="preference_accessibility_force_enable_zoom_summary">Láti jẹ́ kí ó fàyè gba ìfúnpọ̀ àti fífẹ̀, àti lórí wẹ́íbusaìtì tí kò gba ìrúfẹ́ ìfihàn yìí.</string>
   <!-- Saved logins sorting strategy menu item -by name- (if selected, it will sort saved logins alphabetically) -->
@@ -1450,7 +1450,7 @@
   <!-- Browser menu button that adds a shortcut to the home fragment -->
   <string name="browser_menu_add_to_shortcuts">Ṣàfikún àwọn ọ̀nà-àbùjá</string>
   <!-- Browser menu button that removes a shortcut from the home fragment -->
-  <string name="browser_menu_remove_from_shortcuts">Yọọ́ kúrò nínú àwọn ọ̀nà-àbùjá </string>
+  <string name="browser_menu_remove_from_shortcuts">Yọọ́ kúrò nínú àwọn ọ̀nà-àbùjá\u0032</string>
   <!--
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
@@ -1475,9 +1475,9 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.àpẹẹrẹ.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Àdírẹ́sì wẹ́ẹ̀bù gbọ́dọ̀ ní "https://" tàbí "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Àdírẹ́sì wẹ́ẹ̀bù gbọ́dọ̀ ní \"https://\" tàbí \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
-  <string name="add_login_hostname_invalid_text_2">A nílò orúkọ nẹ́tíwọọ̀kì kọ̀m̀pútà tó tẹ̀wọ̀n </string>
+  <string name="add_login_hostname_invalid_text_2">A nílò orúkọ nẹ́tíwọọ̀kì kọ̀m̀pútà tó tẹ̀wọ̀n\u0032</string>
   <!--
     Synced Tabs
 

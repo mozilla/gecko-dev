@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s のプライベートタブを閉じるかアプリを終了すると、その検索履歴と閲覧履歴が消去されます。これは、ウェブサイトやインターネットサービスプロバイダーに対して匿名でアクセスしているわけではありません。この機能は、この端末を使用する他者に対してオンライン上のプライベートな行動を隠すものです。</string>
-  <string name="private_browsing_common_myths">
-       プライベートブラウジングについての誤解
-    </string>
+  <string name="private_browsing_common_myths">\u0032プライベートブラウジングについての誤解\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -1728,7 +1726,7 @@
     Bookmark snackbar message on deletion
     %1$s is the host part of the URL of the bookmark deleted, if any
   -->
-  <string name="bookmark_deletion_snackbar_message"> %1$s を削除しました</string>
+  <string name="bookmark_deletion_snackbar_message">\u0032%1$s を削除しました</string>
   <!-- Bookmark snackbar message on deleting multiple bookmarks not including folders -->
   <string name="bookmark_deletion_multiple_snackbar_message_2">ブックマークを削除しました</string>
   <!-- Bookmark snackbar message on deleting multiple bookmarks including folders -->

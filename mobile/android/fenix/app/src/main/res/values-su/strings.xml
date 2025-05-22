@@ -321,7 +321,7 @@
   -->
   <string name="browser_menu_save">Teundeun</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">Tambahan tetengger, Panarabas, Imah, Koléksi, PDF </string>
+  <string name="browser_menu_save_description">Tambahan tetengger, Panarabas, Imah, Koléksi, PDF\u0032</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page">Markahkeun ieu kaca</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
@@ -345,8 +345,7 @@
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_delete_browsing_data_on_quit">Eureun %1$s
-</string>
+  <string name="browser_menu_delete_browsing_data_on_quit">Eureun %1$s\u0032</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -354,8 +353,7 @@
   -->
   <string name="menu_cfr_title">Anyar: ménu nu diutamakeun</string>
   <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
-  <string name="menu_cfr_body">Manggihkeun kabutuhan anjeun leuwih ganjang, ti panyungsian privat nepi ka nyimpen.
-</string>
+  <string name="menu_cfr_body">Manggihkeun kabutuhan anjeun leuwih ganjang, ti panyungsian privat nepi ka nyimpen.\u0032</string>
   <!--
     Extensions management fragment
 
@@ -380,8 +378,7 @@
     %1$s is the name of the language that is displayed in the original page. (For example: English)
     %2$s is the name of the language which the page was translated to. (For example: French)
   -->
-  <string name="browser_toolbar_translated_successfully">Kaca ditarjamahkeun ti %1$s ka %2$s.
-</string>
+  <string name="browser_toolbar_translated_successfully">Kaca ditarjamahkeun ti %1$s ka %2$s.\u0032</string>
   <!--
     Locale Settings Fragment
 
@@ -448,11 +445,9 @@
   -->
   <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">Téang iber naha mangyuta jalma resep Firefox</string>
   <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
-  <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Panyungsian aman jeung réa pilihan
-</string>
+  <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Panyungsian aman jeung réa pilihan\u0032</string>
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-  <string name="juno_onboarding_default_browser_description_nimbus_3">Browser anu dirojong kalawan nirlaba urang nulungan pikeun mahing pausahaan ngukuntit anjuen dina wéb. 
-</string>
+  <string name="juno_onboarding_default_browser_description_nimbus_3">Browser anu dirojong kalawan nirlaba urang nulungan pikeun mahing pausahaan ngukuntit anjuen dina wéb.\u0032</string>
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
   <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Leuwih ti 100 juta jalma ngajaga privasina ku milih browser anu dirojong ku nirlaba.</string>
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -591,7 +586,7 @@
   <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
   <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Rekés dukungan dikirim</string>
   <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-  <string name="reduce_cookie_banner_unsupported_site">Kiwari loka teu didukung </string>
+  <string name="reduce_cookie_banner_unsupported_site">Kiwari loka teu didukung\u0032</string>
   <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">Hurungkeun Pameungpeuk Spanduk Réréméh pikeun %1$s?</string>
   <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
@@ -822,7 +817,7 @@
     The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="extension_process_crash_dialog_message">Aya émbohan anu mugen, matak teu stabil kana sistem. %1$s gagal nyobaan malikan deui émbohanana.\n\n Émbohan moal dimimitian deui dina rintakan anu ayeuna.\n\n Miceun atawa numpurkeun émbohan bisa jadi menerkeun ieu masalah.</string>
+  <string name="extension_process_crash_dialog_message">Aya émbohan anu mugen, matak teu stabil kana sistem. %1$s gagal nyobaan malikan deui émbohanana.\n\nÉmbohan moal dimimitian deui dina rintakan anu ayeuna.\n\nMiceun atawa numpurkeun émbohan bisa jadi menerkeun ieu masalah.</string>
   <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
   <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">Jalankeun deui éksténsi</string>
   <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
@@ -834,7 +829,7 @@
   -->
   <string name="preferences_manage_account">Kokolakeun akun</string>
   <!-- Summary of the preference for managing your account via accounts.firefox.com. -->
-  <string name="preferences_manage_account_summary">Robah kecap aksés anjeun, atur pangumpulan data, atawa  pupus akun anjeun</string>
+  <string name="preferences_manage_account_summary">Robah kecap aksés anjeun, atur pangumpulan data, atawa pupus akun anjeun</string>
   <!-- Preference for triggering sync -->
   <string name="preferences_sync_now">Singkronkeun ayeuna</string>
   <!-- Preference category for sync -->
@@ -1185,7 +1180,7 @@
   -->
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Undeuran Disingkahkeun</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Disingkahkeun  %1$s</string>
+  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Disingkahkeun %1$s</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Taya berkas undeuran</string>
   <!--
@@ -1228,7 +1223,7 @@
   <!-- Screen title for adding a bookmarks folder -->
   <string name="bookmark_add_folder">Tambah map</string>
   <!-- Snackbar title that confirms a bookmark was saved into a folder. %s is the name of the folder the bookmark was saved into. -->
-  <string name="bookmark_saved_in_folder_snackbar">Disimpen dina "%s"</string>
+  <string name="bookmark_saved_in_folder_snackbar">Disimpen dina \"%s\"</string>
   <!-- Snackbar edit button shown after a bookmark has been created. -->
   <string name="edit_bookmark_snackbar_action">ÉDIT</string>
   <!-- Bookmark overflow menu edit button -->
@@ -1406,7 +1401,7 @@
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">Menu koléksi</string>
   <!-- Label to describe what collections are to a new user without any collections -->
-  <string name="no_collections_description2">Kumpulkeun anu parenting.\n Kumpulkeun pamaluruhan, loka, jeung tab anu sarupa sangkan jaga babari muka deui.</string>
+  <string name="no_collections_description2">Kumpulkeun anu parenting.\nKumpulkeun pamaluruhan, loka, jeung tab anu sarupa sangkan jaga babari muka deui.</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">Pilih Tab</string>
   <!-- Title for the "select collection" step of the collection creator -->
@@ -1645,7 +1640,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Pupus data nyungsi nalika kaluar</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Otomatis mupus data nyungsi nalika anjeun milih  \"Kaluar\" ti menu utama</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Otomatis mupus data nyungsi nalika anjeun milih \"Kaluar\" ti menu utama</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Kaluar</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -1731,7 +1726,7 @@
   <!-- Preference for enhanced tracking protection for the standard protection settings -->
   <string name="preference_enhanced_tracking_protection_standard_default_1">Baku (bawaan)</string>
   <!-- Preference description for enhanced tracking protection for the standard protection settings -->
-  <string name="preference_enhanced_tracking_protection_standard_description_5">Kaca loka bakal muka sakumaha biasa, ngan meungpeuk leuwih saeutik palacak. </string>
+  <string name="preference_enhanced_tracking_protection_standard_description_5">Kaca loka bakal muka sakumaha biasa, ngan meungpeuk leuwih saeutik palacak.\u0032</string>
   <!-- Accessibility text for the Standard protection information icon -->
   <string name="preference_enhanced_tracking_protection_standard_info_button">Naon anu dipeungpeuk ku perlindungan pelacakan baku</string>
   <!-- Preference for enhanced tracking protection for the strict protection settings -->
@@ -1827,7 +1822,7 @@
   <!-- Preference for fingerprinting protection for the custom protection settings -->
   <string name="etp_suspected_fingerprinters_title">Sidik ramo anu dicurigaan</string>
   <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
-  <string name="etp_suspected_fingerprinters_description">Hurungkeun panyalindung sidik ramo pikeun nulak sidik ramo anu dicurigaan </string>
+  <string name="etp_suspected_fingerprinters_description">Hurungkeun panyalindung sidik ramo pikeun nulak sidik ramo anu dicurigaan\u0032</string>
   <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_known_fingerprinters_title">Sidik ramo nu dipiwanoh</string>
   <!--
@@ -1981,7 +1976,7 @@
   <!-- Preference and title for managing the settings for payment methods -->
   <string name="preferences_credit_cards_2">Cara mayar</string>
   <!-- Preference for saving and autofilling credit cards -->
-  <string name="preferences_credit_cards_save_and_autofill_cards_2">Simpen jeung eusian cara  mayar</string>
+  <string name="preferences_credit_cards_save_and_autofill_cards_2">Simpen jeung eusian cara mayar</string>
   <!-- Preference summary for saving and autofilling payment method data. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s énkripsi kabéh cara mayar anu disimpen ku anjeun</string>
   <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
@@ -2208,7 +2203,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.conto.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Alamat raramat kudu ngandung "https://" atawa "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Alamat raramat kudu ngandung \"https://\" atawa \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Ngaran host sah diperlukeun</string>
   <!--
@@ -2260,8 +2255,7 @@
   <!-- Label text displayed for a sponsored top site. -->
   <string name="top_sites_sponsored_label">Disponsoran</string>
   <!-- Text for the menu item to edit a top site. -->
-  <string name="top_sites_edit_top_site">Ropéa
-</string>
+  <string name="top_sites_edit_top_site">Ropéa\u0032</string>
   <!-- Text for the dialog title to edit a top site. -->
   <string name="top_sites_edit_dialog_title">Ropéa panarabas</string>
   <!-- Button caption to confirm the edit of the top site. -->
@@ -2452,7 +2446,7 @@
   <!-- Toggle switch description that will appear under the "Never translate these sites" settings toggle switch to provide more information on how this setting interacts with other settings. -->
   <string name="translation_option_bottom_sheet_switch_never_translate_site_description">Timpah sakabéh setelan séjén</string>
   <!-- Toggle switch description that will appear under the "Never translate" and "Always translate" toggle switch settings to provide more information on how these  settings interacts with other settings. -->
-  <string name="translation_option_bottom_sheet_switch_description">Timpah tawaran pikeun narjamahkeun </string>
+  <string name="translation_option_bottom_sheet_switch_description">Timpah tawaran pikeun narjamahkeun\u0032</string>
   <!-- Button text for the button that will take the user to the translation settings dialog. -->
   <string name="translation_option_bottom_sheet_translation_settings">Setélan tarjamahan</string>
   <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. %1$s is the name of the app (for example "Firefox"). -->
@@ -2486,7 +2480,7 @@
   -->
   <string name="automatic_translation_toolbar_title_preference">Tarjamahan otomatis</string>
   <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
-  <string name="automatic_translation_header_preference">Pilih basa pikeun ngatur préférénsi "salawasna tarjamahkeun" jeung "ulah pernah narjamahkeun".</string>
+  <string name="automatic_translation_header_preference">Pilih basa pikeun ngatur préférénsi \"salawasna tarjamahkeun\" jeung \"ulah pernah narjamahkeun\".</string>
   <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
   <string name="automatic_translation_error_warning_text">Teu bisa ngamuat basa. Mangga pariksa engké deui.</string>
   <!--
@@ -2707,7 +2701,7 @@
   <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
   <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Bantuan sangkan Firefox bisa nyitak leuwih hadé. Ngan perlu sakolépat</string>
   <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
-  <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Bantuan sangkan panyungsi Firefox leuwih hadé. Ngan perlu samenit baé. </string>
+  <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Bantuan sangkan panyungsi Firefox leuwih hadé. Ngan perlu samenit baé.\u0032</string>
   <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
   <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Bantuan sangkan singkronisasi Firefox leuwih hadé. Ngan perlu samenit baé</string>
   <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
@@ -2747,7 +2741,7 @@
 
     The title of the CFR Tools feature in the Debug Drawer
   -->
-  <string name="debug_drawer_cfr_tools_title">Pakakas CFR </string>
+  <string name="debug_drawer_cfr_tools_title">Pakakas CFR\u0032</string>
   <!-- The title of the reset CFR section in CFR Tools -->
   <string name="debug_drawer_cfr_tools_reset_cfr_title">Atur deui CFRs</string>
   <!--

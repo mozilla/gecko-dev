@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s rensar din sök- och surfhistorik när du stänger appen eller stänger alla privata flikar. Även om detta inte gör dig anonym för webbplatser eller din internetleverantör, gör det det lättare att hålla vad du gör online privat från alla andra som använder den här enheten.</string>
-  <string name="private_browsing_common_myths">
-       Vanliga myter om privat surfning
-    </string>
+  <string name="private_browsing_common_myths">\u0032Vanliga myter om privat surfning\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -2185,7 +2183,7 @@
   <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
   <string name="deleting_browsing_data_in_progress">Tar bort surfsdata…</string>
   <!-- Dialog message to the user asking to delete all history items inside the opened group. %s is a history group name. -->
-  <string name="delete_all_history_group_prompt_message">Ta bort alla webbplatser i "%s"</string>
+  <string name="delete_all_history_group_prompt_message">Ta bort alla webbplatser i \"%s\"</string>
   <!-- Text for the cancel button for the history group deletion dialog -->
   <string name="delete_history_group_prompt_cancel">Avbryt</string>
   <!-- Text for the allow button for the history group dialog -->
@@ -2421,7 +2419,7 @@
   <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_textfield">Leverantör</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
-  <string name="preference_doh_provider_custom_dialog_error_https">Webbadressen måste börja med "https://"</string>
+  <string name="preference_doh_provider_custom_dialog_error_https">Webbadressen måste börja med \"https://\"</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
   <string name="preference_doh_provider_custom_dialog_error_invalid">Ogiltig URL</string>
   <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
@@ -2513,8 +2511,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Sparade lösenord</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">Lösenorden du sparar eller synkroniserar till %s kommer att listas här. Alla lösenord du sparar är krypterade.
-</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">Lösenorden du sparar eller synkroniserar till %s kommer att listas här. Alla lösenord du sparar är krypterade.\u0032</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Läs mer om synkronisering</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -2527,6 +2524,8 @@
   <string name="preferences_passwords_exceptions_remove_all">Ta bort alla undantag</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">Sök efter lösenord</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">Tillbaka</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">Webbplats</string>
   <!-- The header for the username for a login -->
@@ -2720,7 +2719,7 @@
   <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
   <string name="search_add_custom_engine_suggest_string_hint">Sökförslag API URL</string>
   <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Ersätt frågan med "%s". Exempel:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
+  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Ersätt frågan med \"%s\". Exempel:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
   <!-- The text for the "Save" button for saving a custom search engine -->
   <string name="search_custom_engine_save_button">Spara</string>
   <!-- Text shown when a user leaves the name field empty -->
@@ -2773,7 +2772,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Verifierad av: %1$s </string>
+  <string name="certificate_info_verified_by">Verifierad av: %1$s\u0032</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Ta bort</string>
   <!-- Login overflow menu edit button -->
@@ -2815,7 +2814,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Webbadressen måste innehålla "https://" eller "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Webbadressen måste innehålla \"https://\" eller \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Giltigt värdnamn krävs</string>
   <!--
@@ -3099,7 +3098,7 @@
   -->
   <string name="automatic_translation_toolbar_title_preference">Automatisk översättning</string>
   <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
-  <string name="automatic_translation_header_preference">Välj ett språk för att hantera inställningarna för "översätt alltid" och "översätt aldrig".</string>
+  <string name="automatic_translation_header_preference">Välj ett språk för att hantera inställningarna för \"översätt alltid\" och \"översätt aldrig\".</string>
   <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
   <string name="automatic_translation_error_warning_text">Det gick inte att ladda språk. Kom tillbaka senare.</string>
   <!--
@@ -3125,7 +3124,7 @@
   -->
   <string name="never_translate_site_toolbar_title_preference">Översätt aldrig dessa webbplatser</string>
   <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
-  <string name="never_translate_site_header_preference">För att lägga till en ny webbplats: Besök den och välj "Översätt aldrig den här webbplatsen" från översättningsmenyn.</string>
+  <string name="never_translate_site_header_preference">För att lägga till en ny webbplats: Besök den och välj \"Översätt aldrig den här webbplatsen\" från översättningsmenyn.</string>
   <!--
     Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
     %1$s is web site url (for example:"wikipedia.com")

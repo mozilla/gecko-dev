@@ -34,9 +34,7 @@
   <string name="tab_tray_collection_button_multiselect_content_description">بازدەرە دیاریکراوەکان هەڵبگرە لە کۆمەڵەکە</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s بەرهەم هێنراوە لە لایەن مۆزیلاوە.</string>
-  <string name="private_browsing_common_myths">
-       چەند ئەفسانەییەک دەربارەی گەڕانی تایبەتیی
-    </string>
+  <string name="private_browsing_common_myths">\u0032چەند ئەفسانەییەک دەربارەی گەڕانی تایبەتیی\u0032</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
   <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">نا سوپاس</string>
   <!-- Text for the positive action button -->
@@ -139,7 +137,7 @@
   <!-- Button in the search suggestions onboarding that does not allow search suggestions in private sessions -->
   <string name="search_suggestions_onboarding_do_not_allow_button">ڕێگە مەدە</string>
   <!-- Search suggestion onboarding hint title text -->
-  <string name="search_suggestions_onboarding_title">ڕێگە دەدەی  بە پێشنیاری گەڕان لە دانییشتنی شاراوەی تایبەت؟</string>
+  <string name="search_suggestions_onboarding_title">ڕێگە دەدەی بە پێشنیاری گەڕان لە دانییشتنی شاراوەی تایبەت؟</string>
   <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">بگەڕێ بۆ %s</string>
   <!-- Search engine suggestion description text -->
@@ -216,7 +214,7 @@
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
   <string name="preferences_show_search_suggestions_in_private">لە دانیشتنی تایبەت پیشانی بدە</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
-  <string name="preferences_search_browsing_history">بگەڕێ لە مێژووی کار </string>
+  <string name="preferences_search_browsing_history">بگەڕێ لە مێژووی کار\u0032</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">گەڕان لە نیشانەکراوەکان</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->

@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s(e)k fitxa pribatuetako zure bilaketa- eta nabigatze-historia garbitzen du hauek ixtean edo aplikaziotik irtetean. Honek ez zaitu anonimo egiten webguneen edo zure interneteko zerbitzu-hornitzailearen aurrean baina erraztu egiten du ordenagailu hau erabiltzen duten beste erabiltzaileengandik online duzun jarduera pribatu mantentzen.</string>
-  <string name="private_browsing_common_myths">
-       Nabigatze pribatuari buruzko ohiko mitoak
-    </string>
+  <string name="private_browsing_common_myths">\u0032Nabigatze pribatuari buruzko ohiko mitoak\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -110,7 +108,7 @@
 
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
-  <string name="erase_action_cfr_message">Sakatu hemen nabigatze pribatuko saioa hasteko. Ezabatu zure historia, cookieak — dena.</string>
+  <string name="erase_action_cfr_message">Sakatu hemen nabigatze pribatuko saioa hasteko. Ezabatu zure historia, cookieak — dena.</string>
   <!--
     Toolbar "contextual feature recommendation" (CFR)
 
@@ -233,7 +231,7 @@
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Hedapenak erabiltzeko, gai itzazu ezarpenetan edo azpian "%s" hautatuz.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Hedapenak erabiltzeko, gai itzazu ezarpenetan edo azpian \"%s\" hautatuz.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
   <string name="browser_menu_extensions_banner_learn_more">Argibide gehiago</string>
   <!-- Browser menu button that opens the extensions manager -->
@@ -617,7 +615,7 @@
   <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_title">Bidali automatikoki hutsegite-txostenak</string>
   <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-  <string name="onboarding_preferences_dialog_crash_reporting_description">Hutsegite-txostenek nabigatzailearen arazoak diagnostikatu eta konpontzen laguntzen digute. Txostenek datu pertsonal edo kontuzkoak izan litzakete. </string>
+  <string name="onboarding_preferences_dialog_crash_reporting_description">Hutsegite-txostenek nabigatzailearen arazoak diagnostikatu eta konpontzen laguntzen digute. Txostenek datu pertsonal edo kontuzkoak izan litzakete.\u0032</string>
   <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Argibide gehiago</string>
   <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
@@ -1151,7 +1149,7 @@
   <!-- Preference switch title for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_title">Bidali automatikoki hutsegite-txostenak</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Hauek nabigatzailearen arazoak diagnostikatu eta konpontzen laguntzen digu honek. Txostenek datu pertsonal edo kontuzkoak izan litzakete. </string>
+  <string name="preferences_automatically_send_crashes_description">Hauek nabigatzailearen arazoak diagnostikatu eta konpontzen laguntzen digu honek. Txostenek datu pertsonal edo kontuzkoak izan litzakete.\u0032</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Hutsegite-txostenei buruzko argibide gehiago</string>
   <!-- Title for studies preferences -->
@@ -1457,7 +1455,7 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s kenduta</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar_2">"%1$s" ezabatuta</string>
+  <string name="download_delete_single_item_snackbar_2">\"%1$s\" ezabatuta</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
   <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Deskargatzen ari da…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
@@ -1635,7 +1633,7 @@
   <!-- Screen title for adding a bookmarks folder -->
   <string name="bookmark_add_folder">Gehitu karpeta</string>
   <!-- Snackbar title that confirms a bookmark was saved into a folder. %s is the name of the folder the bookmark was saved into. -->
-  <string name="bookmark_saved_in_folder_snackbar">"%s" karpetan gordeta</string>
+  <string name="bookmark_saved_in_folder_snackbar">\"%s\" karpetan gordeta</string>
   <!-- Snackbar edit button shown after a bookmark has been created. -->
   <string name="edit_bookmark_snackbar_action">EDITATU</string>
   <!-- Bookmark menu move button -->
@@ -2008,7 +2006,7 @@
   <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
   <string name="snackbar_num_tabs_closed">Fitxak itxita: %1$s</string>
   <!-- Text shown in snackbar when user bookmarks a list of tabs. %s is the name of the folder the bookmark was saved into. -->
-  <string name="snackbar_message_bookmarks_saved_in">Laster-markak "%s" karpetan gordeta!</string>
+  <string name="snackbar_message_bookmarks_saved_in">Laster-markak \"%s\" karpetan gordeta!</string>
   <!-- Text shown in snackbar when user adds a site to shortcuts -->
   <string name="snackbar_added_to_shortcuts">Lasterbideetara gehituta!</string>
   <!-- Text shown in snackbar when user closes a private tab -->
@@ -2108,7 +2106,7 @@
   <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
   <string name="deleting_browsing_data_in_progress">Nabigatze-datuak ezabatzen…</string>
   <!-- Dialog message to the user asking to delete all history items inside the opened group. %s is a history group name. -->
-  <string name="delete_all_history_group_prompt_message">Ezabatu "%s" taldeko gune guztiak?</string>
+  <string name="delete_all_history_group_prompt_message">Ezabatu \"%s\" taldeko gune guztiak?</string>
   <!-- Text for the cancel button for the history group deletion dialog -->
   <string name="delete_history_group_prompt_cancel">Utzi</string>
   <!-- Text for the allow button for the history group dialog -->
@@ -2344,7 +2342,7 @@
   <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_textfield">Hornitzailea</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
-  <string name="preference_doh_provider_custom_dialog_error_https">URLak "https://" karaktereekin hasi behar du</string>
+  <string name="preference_doh_provider_custom_dialog_error_https">URLak \"https://\" karaktereekin hasi behar du</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
   <string name="preference_doh_provider_custom_dialog_error_invalid">URL baliogabea</string>
   <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
@@ -2436,8 +2434,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Gordetako pasahitzak</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">%s(e)n gordetzen edo sinkronizatzen dituzun pasahitzak hemen agertuko dira. Gordetzen dituzun pasahitz guztiak zifratuta daude.
-</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">%s(e)n gordetzen edo sinkronizatzen dituzun pasahitzak hemen agertuko dira. Gordetzen dituzun pasahitz guztiak zifratuta daude.\u0032</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Sinkronizazioari buruzko argibide gehiago</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -2635,7 +2632,7 @@
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">Bilatzeko erabili beharreko URLa</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">Ordezkatu galdera-katea "%s" testuarekin. Adibidez:\nhttps://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">Ordezkatu galdera-katea \"%s\" testuarekin. Adibidez:\nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">Bilaketa-motor pertsonalizatuaren xehetasunak</string>
   <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
@@ -2643,7 +2640,7 @@
   <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
   <string name="search_add_custom_engine_suggest_string_hint">Bilaketa-iradokizunen APIaren URLa</string>
   <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Ordezkatu galdera "%s"-rekin. Adibidea:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
+  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Ordezkatu galdera \"%s\"-rekin. Adibidea:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
   <!-- The text for the "Save" button for saving a custom search engine -->
   <string name="search_custom_engine_save_button">Gorde</string>
   <!-- Text shown when a user leaves the name field empty -->
@@ -2653,7 +2650,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Egiaztatu bilaketa-katea adibidearen formatuarekin bat datorrela</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">Errorea "%s" helbidera konektatzean</string>
+  <string name="search_add_custom_engine_error_cannot_reach">Errorea \"%s\" helbidera konektatzean</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s sortuta</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2696,7 +2693,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Egiaztatzailea: %1$s </string>
+  <string name="certificate_info_verified_by">Egiaztatzailea: %1$s\u0032</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Ezabatu</string>
   <!-- Login overflow menu edit button -->
@@ -2738,7 +2735,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.adibidea.eus</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Web helbideak "https://" edo "http://" izan behar du</string>
+  <string name="add_login_hostname_invalid_text_3">Web helbideak \"https://\" edo \"http://\" izan behar du</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Baliozko ostalari-izena behar da</string>
   <!--
@@ -3022,7 +3019,7 @@
   -->
   <string name="automatic_translation_toolbar_title_preference">Itzulpen automatikoa</string>
   <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
-  <string name="automatic_translation_header_preference">Hautatu hizkuntza bat bere "itzuli beti" eta "inoiz ez itzuli" hobespenak kudeatzeko.</string>
+  <string name="automatic_translation_header_preference">Hautatu hizkuntza bat bere \"itzuli beti\" eta \"inoiz ez itzuli\" hobespenak kudeatzeko.</string>
   <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
   <string name="automatic_translation_error_warning_text">Ezin dira hizkuntzak kargatu. Saiatu berriro geroago mesedez.</string>
   <!--
@@ -3048,7 +3045,7 @@
   -->
   <string name="never_translate_site_toolbar_title_preference">Inoiz ez itzuli gune hauek</string>
   <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
-  <string name="never_translate_site_header_preference">Gune berri bat gehitzeko: bisita ezazu eta itzulpen-menutik hautatu "Inoiz ez itzuli gune hau".</string>
+  <string name="never_translate_site_header_preference">Gune berri bat gehitzeko: bisita ezazu eta itzulpen-menutik hautatu \"Inoiz ez itzuli gune hau\".</string>
   <!--
     Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
     %1$s is web site url (for example:"wikipedia.com")

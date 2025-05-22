@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s rade tu chronologia de recerca e de navigation del schedas private quando tu los claude o quita le application. Ben que isto non te rende anonyme pro sitos web o pro tu fornitor de servicio internet, isto rende plus facile mantener tu activitates in linea private pro altere personas que usa iste apparato.</string>
-  <string name="private_browsing_common_myths">
-       Mythos commun sur le navigation private
-    </string>
+  <string name="private_browsing_common_myths">\u0032Mythos commun sur le navigation private\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -524,7 +522,7 @@
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
   <string name="juno_onboarding_default_browser_description_nimbus_3">Nostre navigator supportate per un organisation sin fin d lucro adjuta stoppar le companias de sequer secretemente tu movimentos circum le web.</string>
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-  <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Plus que 100 milliones de personas protege lor confidentialitate seligente un navigar supportate per un organisation a fin non lucrative.</string>
+  <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Plus que 100 milliones de personas protege lor confidentialitate seligente un navigar supportate per un organisation a fin non lucrative.</string>
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
   <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Traciatores note? Blocate automaticamente. Extensiones? Prova tote le 700. PDFs? Nostre lector integrate los rende facile a gerer.</string>
   <!-- Text for the button to set firefox as default browser on the device -->
@@ -1128,8 +1126,7 @@
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">Synchronisation…</string>
   <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
-  <string name="sync_failed_summary">Synchronisar fallite, ultime successo: %s
-</string>
+  <string name="sync_failed_summary">Synchronisar fallite, ultime successo: %s\u0032</string>
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">Synchronisation fallite. Ultime synchronisation: jammais</string>
   <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
@@ -1723,8 +1720,7 @@
   <!-- Bookmark overflow menu select all bookmarks -->
   <string name="bookmark_menu_select_all_bookmarks">Seliger toto</string>
   <!-- Bookmark overflow menu open in new tab button -->
-  <string name="bookmark_menu_open_in_new_tab_button">Aperir in un nove scheda
-</string>
+  <string name="bookmark_menu_open_in_new_tab_button">Aperir in un nove scheda\u0032</string>
   <!-- Bookmark overflow menu open in private tab button -->
   <string name="bookmark_menu_open_in_private_tab_button">Aperir in scheda private</string>
   <!-- Bookmark overflow menu open all in tabs button -->
@@ -1744,7 +1740,7 @@
   <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_a_to_z">Ordinar de A a Z</string>
   <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
-  <string name="bookmark_sort_menu_z_to_a">Ordinar de Z ad  A</string>
+  <string name="bookmark_sort_menu_z_to_a">Ordinar de Z ad A</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected
@@ -2126,8 +2122,7 @@
   <!-- Title for Accessibility Text Size Scaling Preference -->
   <string name="preference_accessibility_font_size_title">Dimension del characteres</string>
   <!-- Title for Accessibility Text Automatic Size Scaling Preference -->
-  <string name="preference_accessibility_auto_size_2">Dimensionamento automatic del characteres
-</string>
+  <string name="preference_accessibility_auto_size_2">Dimensionamento automatic del characteres\u0032</string>
   <!-- Summary for Accessibility Text Automatic Size Scaling Preference -->
   <string name="preference_accessibility_auto_size_summary">Le dimension del characteres cercara le concordantias in tu parametros de Android. Disactiva hic le gestion del dimension del characteres.</string>
   <!-- Title for the Delete browsing data preference -->
@@ -2164,7 +2159,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Deler datos de navigation al congedo</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Dele automaticamente le datos de navigation quando tu lo selige \"Quitar"\ del menu principal</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Dele automaticamente le datos de navigation quando tu lo selige \"Quitar\"\\ del menu principal</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Quitar</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -2178,8 +2173,7 @@
   <!-- Radio button in the delete browsing data dialog to delete all history. -->
   <string name="delete_history_prompt_button_everything">Toto</string>
   <!-- Dialog message to the user asking to delete browsing data. %s is the name of the app (for example "Firefox"). -->
-  <string name="delete_browsing_data_prompt_message_3">%s delera le datos de navigation eligite.
-</string>
+  <string name="delete_browsing_data_prompt_message_3">%s delera le datos de navigation eligite.\u0032</string>
   <!-- Text for the cancel button for the data deletion dialog -->
   <string name="delete_browsing_data_prompt_cancel">Cancellar</string>
   <!-- Text for the allow button for the data deletion dialog -->
@@ -2217,7 +2211,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">Scannar le codice</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">Aperi Firefox sur tu computator e va a  &lt;b&gt;https://firefox.com/pair&lt;/b&gt;</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage">Aperi Firefox sur tu computator e va a &lt;b&gt;https://firefox.com/pair&lt;/b&gt;</string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">Preste a scannar</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -2245,8 +2239,7 @@
   <!-- Preference summary for enhanced tracking protection settings on/off switch -->
   <string name="preference_enhanced_tracking_protection_summary">Ora con le Protection total del cookies, nostre ancora plus potente barriera contra traciatores inter-sitos.</string>
   <!-- Description of enhanced tracking protection. %s is the name of the app (for example "Firefox"). -->
-  <string name="preference_enhanced_tracking_protection_explanation_2">%s te protege contra multe del traciatores commun que seque lo que tu face in linea.
-</string>
+  <string name="preference_enhanced_tracking_protection_explanation_2">%s te protege contra multe del traciatores commun que seque lo que tu face in linea.\u0032</string>
   <!-- Text displayed that links to website about enhanced tracking protection -->
   <string name="preference_enhanced_tracking_protection_explanation_learn_more">Saper plus</string>
   <!-- Preference for enhanced tracking protection for the standard protection settings -->
@@ -2572,7 +2565,7 @@
   <!-- Title for Accessibility Force Enable Zoom Preference -->
   <string name="preference_accessibility_force_enable_zoom">Aggrandir tote le sitos web</string>
   <!-- Summary for Accessibility Force Enable Zoom Preference -->
-  <string name="preference_accessibility_force_enable_zoom_summary">Activar pro permitter le "prisa e zoom", mesmo sur sitos web que impedi iste gesto.</string>
+  <string name="preference_accessibility_force_enable_zoom_summary">Activar pro permitter le \"prisa e zoom\", mesmo sur sitos web que impedi iste gesto.</string>
   <!-- Saved logins sorting strategy menu item -by name- (if selected, it will sort saved logins alphabetically) -->
   <string name="saved_logins_sort_strategy_alphabetically">Nomine (A-Z)</string>
   <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
@@ -2819,7 +2812,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Un adresse web debe continer "https://" o "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Un adresse web debe continer \"https://\" o \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Un nomine valide de servitor es requirite</string>
   <!--
@@ -3042,7 +3035,7 @@
   <!-- The title of the warning card informs the user that the list of languages cannot be loaded. -->
   <string name="translation_error_could_not_load_languages_warning_text">Impossibile cargar le linguas. Controla tu connexion a internet e retenta.</string>
   <!-- The title of the warning card informs the user that a language is not supported. %1$s is the name of the language that is not supported. -->
-  <string name="translation_error_language_not_supported_warning_text">Desolate, nos ancora non supporta  %1$s.</string>
+  <string name="translation_error_language_not_supported_warning_text">Desolate, nos ancora non supporta %1$s.</string>
   <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
   <string name="translation_in_progress_snackbar">Traducente…</string>
   <!--
@@ -3181,7 +3174,7 @@
     %1$s is the language name, for example, "Spanish".
     %2$s is the language file size, for example, "(3.91 KB)".
   -->
-  <string name="download_languages_item_content_description_download_in_progress_state">Stop discargar  %1$s (%2$s)</string>
+  <string name="download_languages_item_content_description_download_in_progress_state">Stop discargar %1$s (%2$s)</string>
   <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
   <string name="download_languages_item_content_description_not_downloaded_state">Discargar</string>
   <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
@@ -3400,8 +3393,7 @@
   <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
   <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Adjuta a render melior le recerca in Firefox. Illo prende solo un minuta</string>
   <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
-  <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Adjutar a render melior sync in Firefox. Illo prende solo un minuta
-</string>
+  <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Adjutar a render melior sync in Firefox. Illo prende solo un minuta\u0032</string>
   <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
   <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Quanto es tu satisfacite del impression in Firefox?</string>
   <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
@@ -3483,7 +3475,7 @@
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">Substituer region initial e actual</string>
   <!-- The title of the button for overriding home region permanently. -->
-  <string name="debug_drawer_override_home_region_permanently">Permanentemente supplantar le region principal </string>
+  <string name="debug_drawer_override_home_region_permanently">Permanentemente supplantar le region principal\u0032</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3655,7 +3647,7 @@
   <!-- Authentication prompt title to enable the private tabs mode -->
   <string name="pbm_authentication_enable_lock">Activar blocada de schermo pro schedas private</string>
   <!-- Authentication prompt title to disable the private tabs mode -->
-  <string name="pbm_authentication_disable_lock">Disactivar blocada de schermo pro schedas private </string>
+  <string name="pbm_authentication_disable_lock">Disactivar blocada de schermo pro schedas private\u0032</string>
   <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
   <string name="pbm_authentication_lock_device_feature_disabled">Configurar blocada de schermo pro celar schedas</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->

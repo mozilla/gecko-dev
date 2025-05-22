@@ -48,7 +48,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">Ilovadan chiqsangiz yoki ularni yopsangiz, qidiruv va brauzer tarixini  %1$s shaxsiy yorliqlardan tozalaydi. Garchi bu sizni veb-saytlar yoki Internet-provayderingiz uchun nomaʼlum qilmasa ham, Internetda qilgan ishingizni ushbu qurilmadan foydalanadigan har kimdan maxfiy saqlashni osonlashtiradi.</string>
+  <string name="private_browsing_placeholder_description_2">Ilovadan chiqsangiz yoki ularni yopsangiz, qidiruv va brauzer tarixini %1$s shaxsiy yorliqlardan tozalaydi. Garchi bu sizni veb-saytlar yoki Internet-provayderingiz uchun nomaʼlum qilmasa ham, Internetda qilgan ishingizni ushbu qurilmadan foydalanadigan har kimdan maxfiy saqlashni osonlashtiradi.</string>
   <string name="private_browsing_common_myths">Maxfiy koʻrish haqidagi umumiy afsonalar</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
   <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Bosh ekranga qoʻshish</string>
@@ -280,7 +280,7 @@
   <!-- Preference for settings related to Search -->
   <string name="preferences_search">Izlash</string>
   <!-- Preference link to rating Fenix on the Play Store -->
-  <string name="preferences_rate">"Google Play"da baholash</string>
+  <string name="preferences_rate">\"Google Play\"da baholash</string>
   <!--
     Preference linking to about page for Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -323,7 +323,7 @@
   <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the first. -->
   <string name="errorpage_httpsonly_message_title">Katta ehtimollik bilan sayt HTTPS protokoli bilan ishlamaydi.</string>
   <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the second. -->
-  <string name="errorpage_httpsonly_message_summary">Biroq, hujumchi ishtirok etishi ham mumkin. Agar saytga kirishda davom etsangiz, hech qanday shaxsiy maʼlumotlarni kiritmasligingiz kerak. Davom etsangiz, sayt uchun "faqat HTTPS rejimi" vaqtinchalik oʻchirib qoʻyiladi.</string>
+  <string name="errorpage_httpsonly_message_summary">Biroq, hujumchi ishtirok etishi ham mumkin. Agar saytga kirishda davom etsangiz, hech qanday shaxsiy maʼlumotlarni kiritmasligingiz kerak. Davom etsangiz, sayt uchun \"faqat HTTPS rejimi\" vaqtinchalik oʻchirib qoʻyiladi.</string>
   <!-- Preference for accessibility -->
   <string name="preferences_accessibility">Qulaylik</string>
   <!-- Preference to override the Sync token server -->
@@ -1187,7 +1187,7 @@
   <!-- Preference for enhanced tracking protection for the standard protection settings -->
   <string name="preference_enhanced_tracking_protection_standard_default_1">Standart</string>
   <!-- Accessibility text for the Standard protection information icon -->
-  <string name="preference_enhanced_tracking_protection_standard_info_button">Standart kuzatuv muhofazasi orqali nimalar  bloklangan?</string>
+  <string name="preference_enhanced_tracking_protection_standard_info_button">Standart kuzatuv muhofazasi orqali nimalar bloklangan?</string>
   <!-- Preference for enhanced tracking protection for the strict protection settings -->
   <string name="preference_enhanced_tracking_protection_strict">Qatʼiy</string>
   <!-- Accessibility text for the Strict protection information icon -->
@@ -1543,7 +1543,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Veb manzilda "https://" yoki "http://" boʻlishi kerak</string>
+  <string name="add_login_hostname_invalid_text_3">Veb manzilda \"https://\" yoki \"http://\" boʻlishi kerak</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Host nomi xatosiz kiritilishi kerak</string>
   <!--
@@ -1615,7 +1615,7 @@
   <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
   <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">AVTOMATIK YOPISHNI YOQISH</string>
   <!-- Text for the snackbar to confirm auto-close is enabled for inactive tabs -->
-  <string name="inactive_tabs_auto_close_message_snackbar">Avtomatik  yoqish yoniq</string>
+  <string name="inactive_tabs_auto_close_message_snackbar">Avtomatik yoqish yoniq</string>
   <!--
     Awesome bar suggestion's headers
 

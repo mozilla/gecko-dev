@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s удаляет историю поиска и просмотра страниц в приватных вкладках, когда вы закрываете их или выходите из приложения. Хотя это не делает вас анонимными для веб-сайтов или вашего Интернет-провайдера, вам будет легче сохранить конфиденциальность ваших действий в Интернете от других людей, которые используют это устройство.</string>
-  <string name="private_browsing_common_myths">
-       Распространённые мифы о приватном просмотре
-    </string>
+  <string name="private_browsing_common_myths">\u0032Распространённые мифы о приватном просмотре\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -2111,7 +2109,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Удалять данные просмотра сети при выходе</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Автоматически удаляет данные просмотра сети, когда вы выбираете  \"Выйти\" в главном меню</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Автоматически удаляет данные просмотра сети, когда вы выбираете \"Выйти\" в главном меню</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Выйти</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -2463,8 +2461,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Сохранённые пароли</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">Пароли, которые вы сохраните или синхронизируете в %s, будут показаны здесь. Все сохраняемые вами пароли зашифрованы.
-</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">Пароли, которые вы сохраните или синхронизируете в %s, будут показаны здесь. Все сохраняемые вами пароли зашифрованы.\u0032</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Узнайте больше о синхронизации</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -2723,7 +2720,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Подтверждено: %1$s </string>
+  <string name="certificate_info_verified_by">Подтверждено: %1$s\u0032</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Удалить</string>
   <!-- Login overflow menu edit button -->
@@ -2765,7 +2762,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Сетевой адрес должен содержать "https://" or "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Сетевой адрес должен содержать \"https://\" or \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Введите правильное имя сервера</string>
   <!--
@@ -2914,7 +2911,7 @@
   <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
   <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources">&lt;b&gt;Скорректированная оценка&lt;/b&gt; основана только на отзывах, которые мы считаем достоверными.</string>
   <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
-  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">&lt;b&gt;Основные сведения&lt;/b&gt; взяты из отзывов на %s за последние 80 дней, которые мы считаем надежными.</string>
+  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">&lt;b&gt;Основные сведения&lt;/b&gt; взяты из отзывов на %s за последние 80 дней, которые мы считаем надежными.</string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 

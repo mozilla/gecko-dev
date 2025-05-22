@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s vymaže históriu vyhľadávania a navštívených stránok po zavretí aplikácie alebo všetkých súkromných kariet a okien. S touto funkciou nie ste na internete neviditeľní a napríklad váš poskytovateľ pripojenia na internet môže stále zistiť, aké stránky navštevujete. Vaša aktivita na internete ale zostane utajená pred ďalšími používateľmi na tomto zariadení.</string>
-  <string name="private_browsing_common_myths">
-       Časté mýty o súkromnom prehliadaní
-    </string>
+  <string name="private_browsing_common_myths">\u0032Časté mýty o súkromnom prehliadaní\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -773,7 +771,7 @@
   <!-- Preference for adding private browsing shortcut -->
   <string name="preferences_add_private_browsing_shortcut">Pridať odkaz na súkromné prehliadanie</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
-  <string name="preferences_https_only_title">Režim "Len HTTPS"</string>
+  <string name="preferences_https_only_title">Režim \"Len HTTPS\"</string>
   <!-- Preference title for using the screen lock to hide tabs in private browsing -->
   <string name="preferences_pbm_lock_screen_title">Používať zámok obrazovky na skrytie kariet v súkromnom prehliadaní</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
@@ -781,7 +779,7 @@
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Blokovanie bannerov k súborom cookie</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
-  <string name="preferences_cookie_banner_reduction_private_mode">Blokovať bannery k súborom cookie v súkromnom prehliadaní</string>
+  <string name="preferences_cookie_banner_reduction_private_mode">Blokovať bannery k súborom cookie v súkromnom prehliadaní</string>
   <!-- Text for indicating cookie banner handling is off this site, this is shown as part of the protections panel with the tracking protection toggle -->
   <string name="reduce_cookie_banner_off_for_site">Vypnuté pre túto stránku</string>
   <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
@@ -871,7 +869,7 @@
   <!-- Preference title for switch preference to show voice search button -->
   <string name="preferences_show_voice_search">Zobrazovať hlasové vyhľadávanie</string>
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
-  <string name="preferences_show_search_suggestions_in_private">Zobrazovať v súkromnom prehliadaní</string>
+  <string name="preferences_show_search_suggestions_in_private">Zobrazovať v súkromnom prehliadaní</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">Navrhovať populárne vyhľadávania</string>
   <!-- Preference title for switch preference to show recent search suggestions -->
@@ -2004,7 +2002,7 @@
     Text A shown in the notification that pops up to re-engage the user.
     %1$s is a placeholder that will be replaced by the app name.
   -->
-  <string name="notification_re_engagement_A_text">Súkromné prehliadanie v prehliadači %1$s neukladá vaše informácie.</string>
+  <string name="notification_re_engagement_A_text">Súkromné prehliadanie v prehliadači %1$s neukladá vaše informácie.</string>
   <!-- Title B shown in the notification that pops up to re-engage the user -->
   <string name="notification_re_engagement_B_title">Začnite prvé vyhľadávanie</string>
   <!-- Text B shown in the notification that pops up to re-engage the user -->
@@ -2764,7 +2762,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Webová adresa musí obsahovať "https://" alebo "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Webová adresa musí obsahovať \"https://\" alebo \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Vyžaduje sa platný názov hostiteľa</string>
   <!--

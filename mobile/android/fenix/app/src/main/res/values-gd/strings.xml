@@ -62,8 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        Falamhaichidh %1$s eachdraidh nan lorg is a’ bhrabhsaidh aig tabaichean prìobhaideachd  nuair a dhùineas tu iad no nuair a dh’fhàgas tu an aplacaid. Fhad ’s nach cuir seo am falach cò thusa mu choinneamh làraichean-lìn no solaraiche nan seirbheisean-lìn agad, cumaidh e na nì thu air loidhne am falach o dhaoine eile a chleachdas an t-uidheam seo.</string>
+  <string name="private_browsing_placeholder_description_2">\u0032Falamhaichidh %1$s eachdraidh nan lorg is a’ bhrabhsaidh aig tabaichean prìobhaideachd nuair a dhùineas tu iad no nuair a dh’fhàgas tu an aplacaid. Fhad ’s nach cuir seo am falach cò thusa mu choinneamh làraichean-lìn no solaraiche nan seirbheisean-lìn agad, cumaidh e na nì thu air loidhne am falach o dhaoine eile a chleachdas an t-uidheam seo.</string>
   <string name="private_browsing_common_myths">Faoin-sgeulan cumanta mun bhrabhsadh phrìobhaideach</string>
   <!--
     True Private Browsing Mode
@@ -133,7 +132,7 @@
   <!-- Text for the negative action button to dismiss the Close Tabs Banner. -->
   <string name="tab_tray_close_tabs_banner_negative_button_text">Leig seachad</string>
   <!-- Text for the banner message to tell users about our inactive tabs feature. -->
-  <string name="tab_tray_inactive_onboarding_message">Thèid tabaichean nach dug thu sùil orra fad cola-deug a ghluasad an-seo. </string>
+  <string name="tab_tray_inactive_onboarding_message">Thèid tabaichean nach dug thu sùil orra fad cola-deug a ghluasad an-seo.\u0032</string>
   <!-- Text for the action link to go to Settings for inactive tabs. -->
   <string name="tab_tray_inactive_onboarding_button_text">Cuir dheth sna roghainnean</string>
   <!-- Text for title for the auto-close dialog of the inactive tabs. -->
@@ -1064,7 +1063,7 @@
     Message to warn users that a large number of tabs will be opened
     %s will be replaced by app name.
   -->
-  <string name="open_all_warning_message">Ma dh’fhosglas tu uiread a thabaichean, dh’fhaoidte gun cuir seo maille air %s fhad ’s a bhios na duilleagan gan luchdadh.  A bheil thu cinnteach gu bheil thu airson leantainn ort?</string>
+  <string name="open_all_warning_message">Ma dh’fhosglas tu uiread a thabaichean, dh’fhaoidte gun cuir seo maille air %s fhad ’s a bhios na duilleagan gan luchdadh. A bheil thu cinnteach gu bheil thu airson leantainn ort?</string>
   <!-- Dialog button text for confirming open all tabs -->
   <string name="open_all_warning_confirm">Tabaichean fosgailte</string>
   <!-- Dialog button text for canceling open all tabs -->
@@ -1634,7 +1633,7 @@
   <!-- Title B shown in the notification that pops up to re-engage the user -->
   <string name="notification_re_engagement_B_title">Tòisich air rudan a lorg</string>
   <!-- Text B shown in the notification that pops up to re-engage the user -->
-  <string name="notification_re_engagement_B_text">Lorg rud-eigin am fagas. No faigh lorg air rud-eigin spòrsail. </string>
+  <string name="notification_re_engagement_B_text">Lorg rud-eigin am fagas. No faigh lorg air rud-eigin spòrsail.\u0032</string>
   <!--
     Survey
 
@@ -1741,7 +1740,7 @@
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Fàg an-seo</string>
   <!-- Title text of a delete browsing data dialog. -->
-  <string name="delete_history_prompt_title">An rainse-ama a tha ri sguabadh às </string>
+  <string name="delete_history_prompt_title">An rainse-ama a tha ri sguabadh às\u0032</string>
   <!-- Body text of a delete browsing data dialog. -->
   <string name="delete_history_prompt_body_2">Bheir seo air falbh an eachdraidh (a’ gabhail a-staigh eachdraidh a chaidh a shioncronachadh o uidheaman eile)</string>
   <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
@@ -2778,7 +2777,7 @@
   <!-- The survey completion header -->
   <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Tha an t-suirbhidh air a choileanadh</string>
   <!-- The survey completion confirmation text -->
-  <string name="micro_survey_feedback_confirmation">Mòran taing airson do bheachdan a chur thugainn! </string>
+  <string name="micro_survey_feedback_confirmation">Mòran taing airson do bheachdan a chur thugainn!\u0032</string>
   <!-- Option for likert scale -->
   <string name="likert_scale_option_1" tools:ignore="UnusedResources">Glè riaraichte</string>
   <!-- Option for likert scale -->

@@ -31,7 +31,7 @@
   <!-- No Private Tabs Message Description -->
   <string name="no_private_tabs_description">Jeke betlerińiz usı jerde kórsetiledi.</string>
   <!-- Tab tray multi select title in app bar. %1$d is the number of tabs selected -->
-  <string name="tab_tray_multi_select_title">%1$d  tańlandı</string>
+  <string name="tab_tray_multi_select_title">%1$d tańlandı</string>
   <!-- Label of button in create collection dialog for creating a new collection -->
   <string name="tab_tray_add_new_collection">Jańa toplam qosıw</string>
   <!-- Label of editable text in create collection dialog for naming a new collection -->
@@ -43,7 +43,7 @@
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">Saylanǵan betlerdi toplamda saqlaw</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="about_content">%1$s Mozilla tárepinen islep  shıǵılǵan.</string>
+  <string name="about_content">%1$s Mozilla tárepinen islep shıǵılǵan.</string>
   <!--
     Private Browsing
 
@@ -51,9 +51,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s izlew hám kóriw tariyxın jeke betlerdi japqanıńızda yamasa baǵdarlamadan shıqqanıńızda óshiredi. Bul sizdi veb-saytlar yamasa internet-provayderlar ushın anonim qılmaydı, tek ǵana usı qurılmanı qollanatuǵın basqa adamlardan óz háreketlerińizdiń internet tarmaǵında qupıyalıǵıńızdı saqlawdı jeńillestiredi.</string>
-  <string name="private_browsing_common_myths">
-       Jeke kóriw haqqında tarqalǵan jalǵanlar
-    </string>
+  <string name="private_browsing_common_myths">\u0032Jeke kóriw haqqında tarqalǵan jalǵanlar\u0032</string>
   <!--
     Private mode shortcut "contextual feature recommendation" (CFR)
 
@@ -311,7 +309,7 @@
     Preference linking to about page for Fenix
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="preferences_about">%1$s haqqında </string>
+  <string name="preferences_about">%1$s haqqında\u0032</string>
   <!-- Preference for settings related to changing the default browser -->
   <string name="preferences_set_as_default_browser">Tiykarǵi brauzer retinde ornatıw</string>
   <!-- Preference category for advanced settings -->
@@ -791,7 +789,7 @@
     History multi select title in app bar
     %1$d is the number of bookmarks selected
   -->
-  <string name="history_multi_select_title">%1$d  saylandı</string>
+  <string name="history_multi_select_title">%1$d saylandı</string>
   <!-- Text for the header that groups the history for today -->
   <string name="history_today">Búgin</string>
   <!-- Text for the header that groups the history for yesterday -->
@@ -818,7 +816,7 @@
     History multi select title in app bar
     %1$d is the number of downloads selected
   -->
-  <string name="download_multi_select_title">%1$d  saylandı</string>
+  <string name="download_multi_select_title">%1$d saylandı</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Alıp taslaw</string>
   <!--
@@ -948,7 +946,7 @@
   <!-- Preference for altering the storage access setting for all websites -->
   <string name="preference_phone_feature_cross_origin_storage_access">Saytlar aralıq cookielar</string>
   <!-- Preference for altering the EME access for all websites -->
-  <string name="preference_phone_feature_media_key_system_access"> Avtor huqıqları menen qorǵalǵan kontent</string>
+  <string name="preference_phone_feature_media_key_system_access">\u0032Avtor huqıqları menen qorǵalǵan kontent</string>
   <!-- Label that indicates that a permission must be asked always -->
   <string name="preference_option_phone_feature_ask_to_allow">Ruqsat beriwdi sorań</string>
   <!-- Label that indicates that a permission must be blocked -->
@@ -1370,7 +1368,7 @@
   <!-- About page link text to open privacy notice link -->
   <string name="about_privacy_notice">Qupıyalıq esletpeleri</string>
   <!-- About page link text to open know your rights link -->
-  <string name="about_know_your_rights">Huqıqlarıńızdı biliń </string>
+  <string name="about_know_your_rights">Huqıqlarıńızdı biliń\u0032</string>
   <!-- About page link text to open licensing information link -->
   <string name="about_licensing_information">Licenziya maǵlıwmatları</string>
   <!-- About page link text to open a screen with libraries that are used -->
@@ -1637,7 +1635,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Veb mánzil "https://" yamasa "http://" lerdı óz ishine alıw kerek</string>
+  <string name="add_login_hostname_invalid_text_3">Veb mánzil \"https://\" yamasa \"http://\" lerdı óz ishine alıw kerek</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Durıs server atı talap etiledi</string>
   <!--

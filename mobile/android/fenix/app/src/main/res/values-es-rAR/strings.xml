@@ -62,9 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        %1$s elimina tu historial de búsqueda y navegación cuando salís de la aplicación o cerrás todas las pestañas privadas. Si bien esto no te hace anónimo en los sitios web o con tu proveedor de servicios de Internet, resulta más fácil mantener privado lo que hacés en línea respecto de cualquier otra persona que use este dispositivo.</string>
-  <string name="private_browsing_common_myths">       Mitos comunes sobre la navegación privada    </string>
+  <string name="private_browsing_placeholder_description_2">\u0032%1$s elimina tu historial de búsqueda y navegación cuando salís de la aplicación o cerrás todas las pestañas privadas. Si bien esto no te hace anónimo en los sitios web o con tu proveedor de servicios de Internet, resulta más fácil mantener privado lo que hacés en línea respecto de cualquier otra persona que use este dispositivo.</string>
+  <string name="private_browsing_common_myths">\u0032Mitos comunes sobre la navegación privada\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -1224,7 +1223,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">Escanear el código QR que se muestra en  &lt;b&gt;firefox.com/pair&lt;/b&gt;</string>
+  <string name="pair_instructions_2">Escanear el código QR que se muestra en &lt;b&gt;firefox.com/pair&lt;/b&gt;</string>
   <!--
     Toolbar Preferences
 
@@ -1506,7 +1505,7 @@
   -->
   <string name="download_delete_multiple_items_snackbar_2">Elementos eliminados: %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s eliminado </string>
+  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s eliminado\u0032</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Se eliminó “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
@@ -2160,7 +2159,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Eliminar datos de navegación al salir</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Elimina automáticamente los datos de navegación cuando seleccionás "Salir" en el menú principal</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Elimina automáticamente los datos de navegación cuando seleccionás \"Salir\" en el menú principal</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Salir</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -2525,6 +2524,8 @@
   <string name="preferences_passwords_exceptions_remove_all">Eliminar todas las excepciones</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">Buscar contraseñas</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">Atrás</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">Sitio</string>
   <!-- The header for the username for a login -->
@@ -2710,7 +2711,7 @@
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">URL a usar para la búsqueda</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">Reemplazar la consulta con "%s". Ejemplo:\n https://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">Reemplazar la consulta con \"%s\". Ejemplo:\nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">Detalles del buscador personalizado</string>
   <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
@@ -2728,9 +2729,9 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Verificar que la cadena de búsqueda coincida con el formato del ejemplo</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">Error al conectarse con "%s"</string>
+  <string name="search_add_custom_engine_error_cannot_reach">Error al conectarse con \"%s\"</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_success_message">%s creado </string>
+  <string name="search_add_custom_engine_success_message">%s creado\u0032</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_edit_custom_engine_success_message">%s guardado</string>
   <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->
@@ -2813,7 +2814,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">La dirección web debe contener "https://" o "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">La dirección web debe contener \"https://\" o \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Se requiere nombre de host válido</string>
   <!--
@@ -3646,7 +3647,7 @@
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Desbloquear pestañas privadas</string>
   <!-- Authentication prompt title to enable the private tabs mode -->
-  <string name="pbm_authentication_enable_lock">Habilitar el  bloqueo de la pantalla de pestañas privadas</string>
+  <string name="pbm_authentication_enable_lock">Habilitar el bloqueo de la pantalla de pestañas privadas</string>
   <!-- Authentication prompt title to disable the private tabs mode -->
   <string name="pbm_authentication_disable_lock">Deshabilitar el bloqueo de la pantalla de pestañas privadas</string>
   <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->

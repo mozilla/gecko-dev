@@ -56,9 +56,7 @@
   <string name="home_bookmarks_menu_item_remove">Бетерү</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s Mozilla тарафыннан җитештерелә.</string>
-  <string name="private_browsing_common_myths">
-       Хосусый гизү турында киң таралган мифлар
-    </string>
+  <string name="private_browsing_common_myths">\u0032Хосусый гизү турында киң таралган мифлар\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -86,13 +84,13 @@
   -->
   <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Яңа навигация белән тизрәк гизегез</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
-  <string name="camera_permissions_needed_message">Камера куллануга рөхсәт кирәк. Android көйләүләренә кереп, "рөхсәтләр" дигән битне ачып, "рөхсәт итү" дигәнгә басыгыз.</string>
+  <string name="camera_permissions_needed_message">Камера куллануга рөхсәт кирәк. Android көйләүләренә кереп, \"рөхсәтләр\" дигән битне ачып, \"рөхсәт итү\" дигәнгә басыгыз.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
   <string name="camera_permissions_needed_positive_button_text">Көйләүләргә күчү</string>
   <!-- Text for the negative action button to dismiss the dialog. -->
   <string name="camera_permissions_needed_negative_button_text">Яшерү</string>
   <!-- Text for the positive action button to go to Settings for auto close tabs. -->
-  <string name="tab_tray_close_tabs_banner_positive_button_text">Опцияләрне карау </string>
+  <string name="tab_tray_close_tabs_banner_positive_button_text">Опцияләрне карау\u0032</string>
   <!-- Text for the negative action button to dismiss the Close Tabs Banner. -->
   <string name="tab_tray_close_tabs_banner_negative_button_text">Яшерү</string>
   <!-- Text for the banner message to tell users about our inactive tabs feature. -->
@@ -340,7 +338,7 @@
 
     Content description for tick mark on selected language
   -->
-  <string name="a11y_selected_locale_content_description">Сайланган тел </string>
+  <string name="a11y_selected_locale_content_description">Сайланган тел\u0032</string>
   <!-- Text for default locale item -->
   <string name="default_locale_text">Җиһаз теленә иярү</string>
   <!-- Placeholder text shown in the search bar before a user enters text -->
@@ -936,7 +934,7 @@
   <!-- Option in library for Recently Closed Tabs -->
   <string name="library_recently_closed_tabs">Күптән түгел ябылган таблар</string>
   <!-- Option in library to open Recently Closed Tabs page -->
-  <string name="recently_closed_show_full_history">Тулы тарихны күрсәтү </string>
+  <string name="recently_closed_show_full_history">Тулы тарихны күрсәтү\u0032</string>
   <!--
     Text to show users they have multiple tabs saved in the Recently Closed Tabs section of history.
     %d is a placeholder for the number of tabs selected.
@@ -1018,7 +1016,7 @@
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">Таб өстәү</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
-  <string name="add_private_tab">Хосусый таб өстәү </string>
+  <string name="add_private_tab">Хосусый таб өстәү\u0032</string>
   <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
   <string name="tab_drawer_fab_content">Хосусый</string>
   <!-- Text for the new tab button to indicate syncing command on the synced tabs page -->
@@ -1499,7 +1497,7 @@
   <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
   <string name="snackbar_num_tabs_closed">Ябылган таблар: %1$s</string>
   <!-- Text shown in snackbar when user bookmarks a list of tabs. %s is the name of the folder the bookmark was saved into. -->
-  <string name="snackbar_message_bookmarks_saved_in">Кыстыргычлар "%s" эчендә cакланды!</string>
+  <string name="snackbar_message_bookmarks_saved_in">Кыстыргычлар \"%s\" эчендә cакланды!</string>
   <!-- Text shown in snackbar when user adds a site to shortcuts -->
   <string name="snackbar_added_to_shortcuts">Ярлыкларга өстәлде!</string>
   <!-- Text shown in snackbar when user closes a private tab -->
@@ -1811,7 +1809,7 @@
   <!-- Content Description (for screenreaders etc) read for the button to copy a password in logins -->
   <string name="saved_logins_copy_password">Серсүзне күчереп алу</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear a password while editing a login -->
-  <string name="saved_logins_clear_password">Серсүзне чистарту </string>
+  <string name="saved_logins_clear_password">Серсүзне чистарту\u0032</string>
   <!-- Content Description (for screenreaders etc) read for the button to copy a username in logins -->
   <string name="saved_login_copy_username">Кулланучы исемен күчереп алу</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear a username while editing a login -->
@@ -1819,7 +1817,7 @@
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">Сервер исемен чистарту</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
-  <string name="saved_login_open_site">Сайтны браузерда ачу </string>
+  <string name="saved_login_open_site">Сайтны браузерда ачу\u0032</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->
   <string name="saved_login_reveal_password">Серсүзне күрсәтү</string>
   <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
@@ -2062,7 +2060,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Веб-адреста "https://" яки "http://" булырга тиеш</string>
+  <string name="add_login_hostname_invalid_text_3">Веб-адреста \"https://\" яки \"http://\" булырга тиеш</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Дөрес бер хост исеме кирәк</string>
   <!--
@@ -2508,13 +2506,13 @@
 
     Localisation note: this text should be as short as possible, max 68 chars
   -->
-  <string name="exit_fullscreen_with_gesture_short">Чыгу өчен экранны өстән тартып, "кире кайту" ишарәсен кулланыгыз</string>
+  <string name="exit_fullscreen_with_gesture_short">Чыгу өчен экранны өстән тартып, \"кире кайту\" ишарәсен кулланыгыз</string>
   <!--
     Message shown to explain how to exit fullscreen mode when using back button navigation.
 
     Localisation note: this text should be as short as possible, max 68 chars
   -->
-  <string name="exit_fullscreen_with_back_button_short">Чыгу өчен экранны өстән тартып, "кире кайту" төймәсенә басыгыз</string>
+  <string name="exit_fullscreen_with_back_button_short">Чыгу өчен экранны өстән тартып, \"кире кайту\" төймәсенә басыгыз</string>
   <!--
     Beta Label Component !
 

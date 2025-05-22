@@ -63,11 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s wist uw zoek- en browsergeschiedenis zodra u de toepassing afsluit of alle privétabbladen sluit. Hoewel dit u niet anoniem maakt voor websites of uw internetprovider, maakt dit het makkelijker om wat u online doet privé te houden voor anderen die dit apparaat gebruiken.</string>
-  <string name="private_browsing_common_myths">
-
-       Veelgehoorde mythes over privénavigatie
-
-    </string>
+  <string name="private_browsing_common_myths">\u0032Veelgehoorde mythes over privénavigatie\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -1142,7 +1138,7 @@
     %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
     and %3$s is the device model.
   -->
-  <string name="default_device_name_2">%1$s op %2$s  %3$s</string>
+  <string name="default_device_name_2">%1$s op %2$s %3$s</string>
   <!-- Preference for syncing payment methods -->
   <string name="preferences_sync_credit_cards_2">Betalingsmethoden</string>
   <!-- Preference for syncing addresses -->
@@ -2774,7 +2770,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Geverifieerd door: %1$s </string>
+  <string name="certificate_info_verified_by">Geverifieerd door: %1$s\u0032</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Verwijderen</string>
   <!-- Login overflow menu edit button -->

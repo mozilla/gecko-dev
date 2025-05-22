@@ -892,7 +892,7 @@
     Summary for preference to show sponsored Firefox Suggest search suggestions.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="preferences_show_sponsored_suggestions_summary">Sustegna %1$s cun propostas occasiunalas sponsurisadas </string>
+  <string name="preferences_show_sponsored_suggestions_summary">Sustegna %1$s cun propostas occasiunalas sponsurisadas\u0032</string>
   <!--
     Preference title for switch preference to show Firefox Suggest search suggestions for web content.
     %1$s is the name of the app (for example "Firefox").

@@ -13,7 +13,7 @@
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_private_browsing_button">Nāchrūn riña gāchē nu huìt</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">Dūnâ\’āJ riña gāchē nu huìt</string>
+  <string name="content_description_disable_private_browsing_button">Dūnâ\\’āJ riña gāchē nu huìt</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">Gachrūn nuguan\' ruhuât nanà\'uìt</string>
   <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -27,9 +27,9 @@
   <!-- Placeholder text shown in the search bar when using application search engines -->
   <string name="application_search_hint">Duguatûj nuguan\'an</string>
   <!-- No Open Tabs Message Description -->
-  <string name="no_open_tabs_description">Hiūj nan nāruguì\’ nej rakïj ñanj huā ni\’nïnj ïn</string>
+  <string name="no_open_tabs_description">Hiūj nan nāruguì\\’ nej rakïj ñanj huā ni\\’nïnj ïn</string>
   <!-- No Private Tabs Message Description -->
-  <string name="no_private_tabs_description">Hiūj nan nāruguì\’ nej rakïj ñanj huì nīkājt.</string>
+  <string name="no_private_tabs_description">Hiūj nan nāruguì\\’ nej rakïj ñanj huì nīkājt.</string>
   <!-- Tab tray multi select title in app bar. %1$d is the number of tabs selected -->
   <string name="tab_tray_multi_select_title">%1$d sa naguij</string>
   <!-- Label of button in create collection dialog for creating a new collection -->
@@ -45,7 +45,7 @@
   <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
   <string name="home_bookmarks_menu_item_remove">Guxūn</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="about_content">%1$s huin \’ngō sa giri Mozilla.</string>
+  <string name="about_content">%1$s huin \\’ngō sa giri Mozilla.</string>
   <!--
     Private Browsing
 
@@ -351,7 +351,7 @@
   <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
   <string name="reduce_cookie_banner_on_for_site">Huā nî’nïn guendâ sitiô nan</string>
   <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
-  <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Ngà gan\’ānj si nūguàn\’t  sa nutâ\'t</string>
+  <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Ngà gan\\’ānj si nūguàn\\’t sa nutâ\'t</string>
   <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
   <string name="reduce_cookie_banner_unsupported_site">Huā sa gāchin da’ gā’hue nāyi’nïn sitiô nan</string>
   <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
@@ -359,7 +359,7 @@
   <!-- Description of the preference to enable "HTTPS-Only" mode. -->
   <string name="preferences_https_only_summary">Huin ruhuaj gātu riña nej sitio ngà ‘ngō da’nga’ gū’nàj HTTPS dadin’ dugumîn da’nga’ nan doj daran’ nej sa huā ‘hiát.</string>
   <!-- Summary of https only preference if https only is set to off -->
-  <string name="preferences_https_only_off">Dūnâ\’àj</string>
+  <string name="preferences_https_only_off">Dūnâ\\’àj</string>
   <!-- Summary of https only preference if https only is set to on in all tabs -->
   <string name="preferences_https_only_on_all">Ngà \'hiaj sunj riña daran\' nej rakïj ñanj</string>
   <!-- Summary of https only preference if https only is set to on in private tabs only -->
@@ -574,7 +574,7 @@
 
     Header of the Sync and save your data preference view
   -->
-  <string name="preferences_sync_2">Nāgi\’hiaj nūguà\'àn nī na’nïnj sà\’t nej si datôt</string>
+  <string name="preferences_sync_2">Nāgi\\’hiaj nūguà\'àn nī na’nïnj sà\\’t nej si datôt</string>
   <!-- Preference for reconnecting to FxA sync -->
   <string name="preferences_sync_sign_in_to_reconnect">Gāyi\'ì sēsiûn da\' ga\'ue gānātū nûnt</string>
   <!-- Preference for removing FxA account -->
@@ -650,7 +650,7 @@
   -->
   <string name="open_all_warning_message">Si nā’nï̄nt gā’ì nej rakïj ñanj nī gā’hue nāhuin nāj %s. Gān’ānjt ne’ ñāan aj.</string>
   <!-- Dialog button text for confirming open all tabs -->
-  <string name="open_all_warning_confirm">Na\'nïn nej rakïj ñanj </string>
+  <string name="open_all_warning_confirm">Na\'nïn nej rakïj ñanj\u0032</string>
   <!-- Dialog button text for canceling open all tabs -->
   <string name="open_all_warning_cancel">Dūyichin\'</string>
   <!--
@@ -988,7 +988,7 @@
   <!-- Preference for showing a list of websites that the default configurations won't apply to them -->
   <string name="preference_exceptions">Sa huā gi\'iát</string>
   <!-- Summary of tracking protection preference if tracking protection is set to off -->
-  <string name="tracking_protection_off">Dūnâ\’àj</string>
+  <string name="tracking_protection_off">Dūnâ\\’àj</string>
   <!-- Summary of tracking protection preference if tracking protection is set to standard -->
   <string name="tracking_protection_standard">&amp;Standard</string>
   <!-- Summary of tracking protection preference if tracking protection is set to strict -->
@@ -1014,11 +1014,11 @@
   <!-- Summary of delete browsing data on quit preference if it is set to on -->
   <string name="delete_browsing_data_quit_on">Nāchrūn</string>
   <!-- Summary of delete browsing data on quit preference if it is set to off -->
-  <string name="delete_browsing_data_quit_off">Dūnâ\’àj</string>
+  <string name="delete_browsing_data_quit_off">Dūnâ\\’àj</string>
   <!-- Summary of studies preference if it is set to on -->
   <string name="studies_on">Nāchrūn</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
-  <string name="studies_off">Dūnâ\’àj</string>
+  <string name="studies_off">Dūnâ\\’àj</string>
   <!--
     Collections
 
@@ -1028,7 +1028,7 @@
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">Si menû koleksiûn</string>
   <!-- Label to describe what collections are to a new user without any collections -->
-  <string name="no_collections_description2">Nāgi’hiaj chrē’ nej sa ñā’an doj ruhuât.\n Nāgi’hiaj chrē’ nej sa nana’huî’t, nej sitio nī nej rakïj ñanj nīkò’ dugui’ hua da’ hìo doj gātūt ne’ ñān doj.</string>
+  <string name="no_collections_description2">Nāgi’hiaj chrē’ nej sa ñā’an doj ruhuât.\nNāgi’hiaj chrē’ nej sa nana’huî’t, nej sitio nī nej rakïj ñanj nīkò’ dugui’ hua da’ hìo doj gātūt ne’ ñān doj.</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">Nāguī nej rakïj ñanj</string>
   <!-- Title for the "select collection" step of the collection creator -->
@@ -1105,7 +1105,7 @@
   <!-- An option from the share dialog to sign into sync -->
   <string name="sync_sign_in">Gāyi\'ì sēsiû riña Sync</string>
   <!-- An option from the three dot menu to sync and save data -->
-  <string name="sync_menu_sync_and_save_data">Nāgi\’hiaj nūguà\'àn nī na’nïnj sà\’t nej dâto</string>
+  <string name="sync_menu_sync_and_save_data">Nāgi\\’hiaj nūguà\'àn nī na’nïnj sà\\’t nej dâto</string>
   <!-- An option from the share dialog to send link to all other sync devices -->
   <string name="sync_send_to_all">Gā \'nïnj gan\'an riña daran\' nej aga\'a</string>
   <!-- An option from the share dialog to reconnect to sync -->
@@ -1161,7 +1161,7 @@
   -->
   <string name="notification_re_engagement_A_text">Riña aché nun huìt riña %1$s nitāj si na’nḯn sà’aj nej nuguan’ huā rayi’ît.</string>
   <!-- Title B shown in the notification that pops up to re-engage the user -->
-  <string name="notification_re_engagement_B_title">Gāyi’ì nānà’huì’t </string>
+  <string name="notification_re_engagement_B_title">Gāyi’ì nānà’huì’t\u0032</string>
   <!-- Text B shown in the notification that pops up to re-engage the user -->
   <string name="notification_re_engagement_B_text">Narì’ ‘ngō sa huin nīchrù’un. Asi nārì’ ‘ngō sa gī’hiaj nāhuin nīhià’ ruhuât.</string>
   <!--
@@ -1260,7 +1260,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Nādure\' nej si datô riña sā nana\'uî\'t ngà gāhuīt</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Nārè\' man\'an nej si datô riña sā nana\'uî\'t ngà gūru\'man ra\'ât riña tāj \“Gāhuīt\” riña menú ñāan</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Nārè\' man\'an nej si datô riña sā nana\'uî\'t ngà gūru\'man ra\'ât riña tāj \\“Gāhuīt\\” riña menú ñāan</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Gāhuī</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -1376,7 +1376,7 @@
   <!-- Option for enhanced tracking protection for the custom protection settings for cookies -->
   <string name="preference_enhanced_tracking_protection_custom_cookies_4">Daran\' nej kokî (ga\'ue dūre\'ej dā\'āj sîtio)</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for cookies -->
-  <string name="preference_enhanced_tracking_protection_custom_cookies_5">Gi’hiaj anêj nej kôki riña nej sitio </string>
+  <string name="preference_enhanced_tracking_protection_custom_cookies_5">Gi’hiaj anêj nej kôki riña nej sitio\u0032</string>
   <!-- Preference for enhanced tracking protection for the custom protection settings for tracking content -->
   <string name="preference_enhanced_tracking_protection_custom_tracking_content">Sa nīkāj sa naga\'nāj a</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for tracking content -->
@@ -1570,7 +1570,7 @@
   <!-- The label for the expiration date month of a credit card to be used by a11y services -->
   <string name="credit_cards_expiration_date_month">Diû gīrè’ man Ahuii</string>
   <!-- The label for the expiration date year of a credit card to be used by a11y services -->
-  <string name="credit_cards_expiration_date_year">Diû gīrè\’ man Hio\'o</string>
+  <string name="credit_cards_expiration_date_year">Diû gīrè\\’ man Hio\'o</string>
   <!-- The header for the name on the credit card -->
   <string name="credit_cards_name_on_card">Si yūgui tarjeta</string>
   <!-- The text for the "Delete card" menu item for deleting a credit card -->
@@ -1729,7 +1729,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Da\’hui dīreksiûn nan gānika "https:/" asi "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Da\\’hui dīreksiûn nan gānika \"https:/\" asi \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Nāchrūn ‘ngō si yūgui host huā hue’ê</string>
   <!--
@@ -1749,7 +1749,7 @@
   <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
   <string name="synced_tabs_sign_in_button">Gāyi\'ì sēsiûn riña sync</string>
   <!-- The text displayed when a synced device has no tabs to show in the list of Synced Tabs. -->
-  <string name="synced_tabs_no_open_tabs">Nitāj si huā ni\’nïnj riña nej rakïj ñanj</string>
+  <string name="synced_tabs_no_open_tabs">Nitāj si huā ni\\’nïnj riña nej rakïj ñanj</string>
   <!-- Content description for expanding a group of synced tabs. -->
   <string name="synced_tabs_expand_group">Nāgi’hiaj yāchìj nej yi’nïn’ rakïj ñanj huā nūguan’àan</string>
   <!-- Content description for collapsing a group of synced tabs. -->

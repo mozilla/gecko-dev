@@ -643,6 +643,8 @@
   <string name="preferences_gestures">اشاره یل</string>
   <!-- Preference for settings related to visual options -->
   <string name="preferences_customize">سفارشی کردن</string>
+  <!-- Preference description for banner about signing in -->
+  <string name="preferences_sign_in_description_2">سی هوم گوم کردن بلگه یل، نشووکا، رزما وو بیشتر و من بیاین.</string>
   <!-- Preference shown instead of account display name while account profile information isn't available yet. -->
   <string name="preferences_account_default_name_2">هساو منتوری Mozilla</string>
   <!-- Preference text for account title when there was an error syncing FxA -->
@@ -1016,12 +1018,12 @@
     Text to show users they have multiple tabs saved in the Recently Closed Tabs section of history.
     %d is a placeholder for the number of tabs selected.
   -->
-  <string name="recently_closed_tabs">بلگه %d</string>
+  <string name="recently_closed_tabs">%d بلگه</string>
   <!--
     Text to show users they have one tab saved in the Recently Closed Tabs section of history.
     %d is a placeholder for the number of tabs selected.
   -->
-  <string name="recently_closed_tab">بلگه %d</string>
+  <string name="recently_closed_tab">%d بلگه</string>
   <!-- Recently closed tabs screen message when there are no recently closed tabs -->
   <string name="recently_closed_empty_message">هیچ بلگه ای ک هیم دمۊوی بسته وابیڌه ایچو نؽ</string>
   <!--
@@ -1164,6 +1166,8 @@
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s پاک وابی</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
   <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">جۊزیات</string>
+  <!-- Text for the snackbar to confirm that a download has completed. -->
+  <string name="download_completed_snackbar" tools:ignore="UnusedResources">دانلود کامل وابی</string>
   <!-- Text for the snackbar action button to open a completed download. -->
   <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">گۊشیڌن</string>
   <!-- Text for the snackbar action button to undo deleting a download. -->
@@ -1186,6 +1190,8 @@
   <string name="download_file_has_not_enough_storage_dialog_message">ای دسگا جاگه کافی سی دانلود &lt;b&gt;%s&lt;/b&gt; ن نڌاره.</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">پاک کردن</string>
+  <!-- Content description for the toolbar back button while searching the downloads -->
+  <string name="download_close_search_description">وورگشتن وو بستن پیتینیڌن</string>
   <!-- Content description for the search bar clear text button on the downloads screen -->
   <string name="download_clear_search_description">پاک کردن</string>
   <!-- Text for the button to share the download URL -->
@@ -1206,8 +1212,17 @@
   <string name="download_time_period_yesterday">دۊش</string>
   <!-- Text for the header that groups the downloads the past 7 days -->
   <string name="download_time_period_last_7_days">7 رۊز گوڌشته</string>
+  <!-- Text for the header that groups the downloads the past 30 days -->
+  <string name="download_time_period_last_30_days">30 رۊز گوڌشته</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">قڌیمی تر</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s ز %2$s • %3$s باقی منده</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" tools:ignore="UnusedResources">واڌاشتن</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -1316,6 +1331,8 @@
   <string name="bookmark_menu_delete_button">پاک کردن</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">زفت</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">و ری کتن سفارشی</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">کتن و ری نۊ ترین</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -1372,6 +1389,8 @@
   <string name="bookmark_delete_multiple_items">مووردا پاک وابیڌه: %s</string>
   <!-- Text for the button to search all bookmarks -->
   <string name="bookmark_search">هؽل پیتینیڌن ن بزنین</string>
+  <!-- Content description for the bookmark navigation bar back button -->
+  <string name="bookmark_navigate_back_button_content_description">وورگشتن و عقب</string>
   <!-- Content description for the bookmark list new folder navigation bar button -->
   <string name="bookmark_add_new_folder_button_content_description">ٱووردن دوبلگه نۊ</string>
   <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
@@ -1380,10 +1399,14 @@
   <string name="bookmark_delete_folder_content_description">پاک کردن دوبلگه</string>
   <!-- Content description for bookmark search floating action button -->
   <string name="bookmark_search_button_content_description">پیتینیڌن نشووکا</string>
+  <!-- Content description for the overflow menu for a bookmark item. %s is a folder name or bookmark title. -->
+  <string name="bookmark_item_menu_button_content_description">نومگه موورد سی %s</string>
   <!-- Title for the bookmark list empty state -->
   <string name="bookmark_empty_list_title">هنی نشووکی نؽ</string>
   <!-- Text for the button to navigate to sync authentication -->
   <string name="bookmark_empty_list_guest_cta">سی هوم گوم کردن و من بیاین</string>
+  <!-- Description for the add new folder button when selecting a folder. -->
+  <string name="bookmark_select_folder_new_folder_button_title">دوبلگه نۊ</string>
   <!--
     Site Permissions
 
@@ -1424,6 +1447,10 @@
   <string name="preference_phone_feature_notification">وارسۊوی</string>
   <!-- Preference for altering the persistent storage access for all websites -->
   <string name="preference_phone_feature_persistent_storage">ویرگه دایومی</string>
+  <!-- Preference for altering the storage access setting for all websites -->
+  <string name="preference_phone_feature_cross_origin_storage_access">کۊکیا منجا وبگهی</string>
+  <!-- Preference for altering the EME access for all websites -->
+  <string name="preference_phone_feature_media_key_system_access">موئتوا کونتورول وابیڌه وا DRM</string>
   <!-- Label that indicates that a permission must be asked always -->
   <string name="preference_option_phone_feature_ask_to_allow">درخاست سی هشتن</string>
   <!-- Label that indicates that a permission must be blocked -->
@@ -1652,7 +1679,7 @@
   <!-- Title for the tabs item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_tabs_title_2">بلگه یل واز</string>
   <!-- Subtitle for the tabs item in Delete browsing data, %d is the number of open tabs -->
-  <string name="preferences_delete_browsing_data_tabs_subtitle">بلگه %d</string>
+  <string name="preferences_delete_browsing_data_tabs_subtitle">%d بلگه</string>
   <!--
     Title for the data and history items in Delete browsing data
 
@@ -1663,7 +1690,7 @@
     Subtitle for the data and history items in delete browsing data, %d is the
     number of history items the user has
   -->
-  <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d نشۊویا</string>
+  <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d نشۊوی</string>
   <!-- Title for the downloads item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_downloads">دانلودا</string>
   <!-- Text for the button to delete browsing data -->
@@ -1671,7 +1698,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">داده یل گشتن ن مجال و در زیڌن پاک کۊنین</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">مجال پسند \\\"و در زیڌن\\\" ز نومگه ٱسلی، داده یل گشتن ن و جۊر خوتکار پاک اکونه</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">مجال پسند \"و در زیڌن\" ز نومگه ٱسلی، داده یل گشتن ن و جۊر خوتکار پاک اکونه</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">و در زیڌن</string>
   <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
@@ -1778,6 +1805,8 @@
   <string name="preferences_passwords_saved_logins_2">رزما زفت وابیڌه</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">زبار هوم گوم کردن قلوه دووسته بۊین</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">وورگشتن</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">وبگه</string>
   <!-- The header for the username for a login -->

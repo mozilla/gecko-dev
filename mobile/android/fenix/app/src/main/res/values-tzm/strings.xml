@@ -211,7 +211,7 @@
 
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
-  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">ttwakksen wagamen </string>
+  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">ttwakksen wagamen\u0032</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Kkes</string>
   <!-- Close tab button text on the tab crash page -->
@@ -330,7 +330,7 @@
   <!-- The header for the expiration date of a credit card -->
   <string name="credit_cards_expiration_date">Azemz n taggara</string>
   <!-- The label for the expiration date month of a credit card to be used by a11y services -->
-  <string name="credit_cards_expiration_date_month">Ayyur n uzemz n taggar </string>
+  <string name="credit_cards_expiration_date_month">Ayyur n uzemz n taggar\u0032</string>
   <!-- The label for the expiration date year of a credit card to be used by a11y services -->
   <string name="credit_cards_expiration_date_year">Azemz n taggar n useggas</string>
   <!-- The header for the name on the credit card -->

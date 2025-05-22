@@ -62,10 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-ئەپنى تاقىغان تياكى چېكىنگەندە %1$s شەخسىي بەتكۈچلەردىن ئىزدەش ۋە زىيارەت تارىخىڭىزنى تازىلايدۇ. گەرچە بۇ سىزنى تور بېكەت ياكى ئىنتېرنېت مۇلازىمەت تەمىنلىگۈچىڭىزگە نىسبەتەن ئاتسىز قىلمىسىمۇ ئەمما توردا نېمە ئىش قىلغانلىقىڭىزنى مەزكۇر ئۈسكۈنىنى ئىشلىتىدىغان باشقا كىشىلەردىن سىر تۇرۇشنى ئاسانلاشتۇرىدۇ.</string>
-  <string name="private_browsing_common_myths">
-شەخسىيەت زىيارىتى ھەققىدە كۆپ ئۇچرايدىغان قاراشلار</string>
+  <string name="private_browsing_placeholder_description_2">\u0032ئەپنى تاقىغان تياكى چېكىنگەندە %1$s شەخسىي بەتكۈچلەردىن ئىزدەش ۋە زىيارەت تارىخىڭىزنى تازىلايدۇ. گەرچە بۇ سىزنى تور بېكەت ياكى ئىنتېرنېت مۇلازىمەت تەمىنلىگۈچىڭىزگە نىسبەتەن ئاتسىز قىلمىسىمۇ ئەمما توردا نېمە ئىش قىلغانلىقىڭىزنى مەزكۇر ئۈسكۈنىنى ئىشلىتىدىغان باشقا كىشىلەردىن سىر تۇرۇشنى ئاسانلاشتۇرىدۇ.</string>
+  <string name="private_browsing_common_myths">\u0032شەخسىيەت زىيارىتى ھەققىدە كۆپ ئۇچرايدىغان قاراشلار</string>
   <!--
     True Private Browsing Mode
 
@@ -118,7 +116,7 @@
   -->
   <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">يېڭى يولباشچى ئىشلىتىلسە، تور كۆرگۈ تېزلىشىدۇ</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">تور بېكەتتە بەتنى دومىلاتقىنىڭىزدا بۇ بالداق ئۆزلۈكىدىن يوشۇرۇلۇپ كۆز يۈگۈرتۈشكە تېخىمۇ كۆپ بوشلۇق ئاجرىتىدۇ. </string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">تور بېكەتتە بەتنى دومىلاتقىنىڭىزدا بۇ بالداق ئۆزلۈكىدىن يوشۇرۇلۇپ كۆز يۈگۈرتۈشكە تېخىمۇ كۆپ بوشلۇق ئاجرىتىدۇ.\u0032</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
   <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">يا ئوقنى چېكىپ بېسىپ تۇرۇلسا بۇ بەتكۈچنىڭ تارىخىدىكى بەتلىرى ئارىسىدا ئاتلايدۇ.</string>
   <!--
@@ -1475,7 +1473,7 @@
   <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
   <string name="history_delete_multiple_items_snackbar">تارىخ ئۆچۈرۈلدى</string>
   <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. %1$s is the shortened URL of the deleted history item. -->
-  <string name="history_delete_single_item_snackbar"> %1$s ئۆچۈرۈلدى</string>
+  <string name="history_delete_single_item_snackbar">\u0032%1$s ئۆچۈرۈلدى</string>
   <!-- Context description text for the button to delete a single history item -->
   <string name="history_delete_item">ئۆچۈر</string>
   <!--
@@ -1778,7 +1776,7 @@
     Bookmark snackbar message on deletion
     %1$s is the host part of the URL of the bookmark deleted, if any
   -->
-  <string name="bookmark_deletion_snackbar_message"> %1$s ئۆچۈرۈلدى</string>
+  <string name="bookmark_deletion_snackbar_message">\u0032%1$s ئۆچۈرۈلدى</string>
   <!-- Bookmark snackbar message on deleting multiple bookmarks not including folders -->
   <string name="bookmark_deletion_multiple_snackbar_message_2">خەتكۈچ ئۆچۈرۈلدى</string>
   <!-- Bookmark snackbar message on deleting multiple bookmarks including folders -->
@@ -1993,7 +1991,7 @@
   <!-- An option from the share dialog to sign into sync -->
   <string name="sync_sign_in">قەدەمداشلاشتا تىزىمغا كىرىڭ</string>
   <!-- An option from the three dot menu to sync and save data -->
-  <string name="sync_menu_sync_and_save_data"> سانلىق مەلۇمات قەدەمداش ۋە ساقلاش</string>
+  <string name="sync_menu_sync_and_save_data">\u0032سانلىق مەلۇمات قەدەمداش ۋە ساقلاش</string>
   <!-- An option from the share dialog to send link to all other sync devices -->
   <string name="sync_send_to_all">ھەممە ئۈسكۈنىگە يوللا</string>
   <!-- An option from the share dialog to reconnect to sync -->
@@ -2365,7 +2363,7 @@
   -->
   <string name="preference_doh_title">HTTPS ئاساسىدىكى DNS</string>
   <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
-  <string name="preference_doh_summary">تور دائىرە نامى سىستېمىسى (DNS)  دائىرە نامى ئىلتىماسىڭىزنى HTTPS ئارقىلىق شىفىرلانغان ئولانما بىلەن يوللاپ، بىخەتەر DNS بىلەن تەمىنلەپ، سىزنىڭ قايسى تور بېكەتنى زىيارەت قىلىۋاتقانلىقىڭىزنى بىلىشىنى قىيىنلاشتۇرىدۇ. %1$s</string>
+  <string name="preference_doh_summary">تور دائىرە نامى سىستېمىسى (DNS) دائىرە نامى ئىلتىماسىڭىزنى HTTPS ئارقىلىق شىفىرلانغان ئولانما بىلەن يوللاپ، بىخەتەر DNS بىلەن تەمىنلەپ، سىزنىڭ قايسى تور بېكەتنى زىيارەت قىلىۋاتقانلىقىڭىزنى بىلىشىنى قىيىنلاشتۇرىدۇ. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">تەپسىلاتى</string>
   <!-- Content description for the "Exceptions" button -->
@@ -2431,7 +2429,7 @@
   <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
   <string name="preference_doh_exceptions">مۇستەسنا</string>
   <!-- Description of "exceptions" for "DNS over HTTPS". %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preference_doh_exceptions_summary">%1$s بۇ تور بېكەت ۋە ئۇنىڭ تارماق تور بېكەتلىرىگە بىخەتەر DNS  ئىشلەتمەيدۇ.</string>
+  <string name="preference_doh_exceptions_summary">%1$s بۇ تور بېكەت ۋە ئۇنىڭ تارماق تور بېكەتلىرىگە بىخەتەر DNS ئىشلەتمەيدۇ.</string>
   <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
   <string name="preference_doh_exceptions_add">بېكەت قوش</string>
   <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
@@ -2526,6 +2524,8 @@
   <string name="preferences_passwords_exceptions_remove_all">ھەممە مۇستەسنالارنى ئۆچۈرىدۇ</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">پارول ئىزدەش</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">قايت</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">بېكەت</string>
   <!-- The header for the username for a login -->
@@ -2772,7 +2772,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">دەلىللىگۈچى: %1$s </string>
+  <string name="certificate_info_verified_by">دەلىللىگۈچى: %1$s\u0032</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">ئۆچۈر</string>
   <!-- Login overflow menu edit button -->
@@ -3019,7 +3019,7 @@
   <!-- Button text on the translations dialog to restore the translated website back to the original untranslated version. -->
   <string name="translations_bottom_sheet_negative_button_restore">ئەسلىنى كۆرسەت</string>
   <!-- Accessibility announcement (not visible, for screen readers etc.) for the translations dialog after restore button was pressed that indicates the original untranslated page was loaded. -->
-  <string name="translations_bottom_sheet_restore_accessibility_announcement"> تەرجىمە قىلىنمىغان ئەسلى بەت يۈكلەندى</string>
+  <string name="translations_bottom_sheet_restore_accessibility_announcement">\u0032تەرجىمە قىلىنمىغان ئەسلى بەت يۈكلەندى</string>
   <!-- Button text on the translations dialog when a translation error appears, used to dismiss the dialog and return to the browser. -->
   <string name="translations_bottom_sheet_negative_button_error">تامام</string>
   <!-- Button text on the translations dialog to begin a translation of the website. -->
@@ -3136,7 +3136,7 @@
     The Delete site dialogue title will appear when the user clicks on a list item.
     %1$s is web site url (for example:"wikipedia.com")
   -->
-  <string name="never_translate_site_dialog_title_preference"> %1$s نى ئۆچۈرەمدۇ؟</string>
+  <string name="never_translate_site_dialog_title_preference">\u0032%1$s نى ئۆچۈرەمدۇ؟</string>
   <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
   <string name="never_translate_site_dialog_confirm_delete_preference">ئۆچۈر</string>
   <!-- The Delete site dialogue negative button will appear when the user clicks on a list item. The dialog will be dismissed. -->
@@ -3196,7 +3196,7 @@
     The dialog will be presented when the user requests deletion of a language.
     %1$s is the name of the language, for example, "Spanish" and %2$s is the size in kilobytes or megabytes of the language file.
   -->
-  <string name="delete_language_file_dialog_title"> %1$s (%2$s) نى ئۆچۈرەمدۇ؟</string>
+  <string name="delete_language_file_dialog_title">\u0032%1$s (%2$s) نى ئۆچۈرەمدۇ؟</string>
   <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. %1$s is the name of the app (for example "Firefox"). -->
   <string name="delete_language_file_dialog_message">ئەگەر بۇ تىلنى ئۆچۈرسىڭىز، %1$s تەرجىمە قىلغاندا تىلنى قىسمەن ھالدا غەملەككە چۈشۈرىدۇ.</string>
   <!--
@@ -3515,7 +3515,7 @@
   <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">غول گۇۋاھنامىدىن بىرىنىڭ ۋاقتى ئۆتىدۇ، سىزنىڭ Firefox نەشرىڭىز ئادەتتىكىدەك ئىشلەشتىن توختايدۇ.</string>
   <!-- Homepage card title about old Firefox version -->
-  <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">يېڭىلاشقا  پەقەت 7 كۈن قالدى</string>
+  <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">يېڭىلاشقا پەقەت 7 كۈن قالدى</string>
   <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">3-ئاينىڭ 14-كۈنى، قوشۇلما ۋە باشقا Firefox ئىقتىدارلىرى بىر يىلتىز گۇۋاھنامىسىنىڭ ۋاقتى توشقانلىقتىن ئىشلەشتىن توختايدۇ.</string>
   <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->

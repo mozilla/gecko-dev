@@ -63,10 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s는 사생활 보호 탭을 닫거나 앱을 종료할 때 사생활 보호 탭으로부터 검색과 방문 기록을 지웁니다. 이것이 사용자를 웹 사이트나 인터넷 서비스 제공자로부터 익명으로 만들지는 않지만, 사용자가 온라인에서 한 일을 이 기기를 사용하는 다른 사용자로부터 보호 할 수 있게 합니다.</string>
-  <string name="private_browsing_common_myths">
-
-       사생활 보호 모드에 관한 흔한 오해
-    </string>
+  <string name="private_browsing_common_myths">\u0032사생활 보호 모드에 관한 흔한 오해\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -247,7 +244,7 @@
   -->
   <string name="browser_menu_extension_plus_icon_content_description_2">%1$s 추가</string>
   <!-- Browser menu button that opens AMO in a tab -->
-  <string name="browser_menu_discover_more_extensions">더 많은 확장  기능 살펴보기</string>
+  <string name="browser_menu_discover_more_extensions">더 많은 확장 기능 살펴보기</string>
   <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
   <string name="browser_menu_extensions_disabled_description">일시적으로 비활성화됨</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
@@ -836,7 +833,7 @@
   <!-- Preference for accessibility -->
   <string name="preferences_accessibility">접근성</string>
   <!-- Preference to override the Mozilla account server -->
-  <string name="preferences_override_account_server">사용자 지정  Mozilla 계정 서버</string>
+  <string name="preferences_override_account_server">사용자 지정 Mozilla 계정 서버</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">사용자 지정 동기화 서버</string>
   <!-- Preference category for account information -->
@@ -1073,7 +1070,7 @@
   <!-- Title for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo">모모</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
-  <string name="alternative_app_icon_option_momo_subtitle">@heyheymomodraws 제작</string>
+  <string name="alternative_app_icon_option_momo_subtitle">\u0064heyheymomodraws 제작</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1294,7 +1291,7 @@
     Message to warn users that a large number of tabs will be opened
     %s will be replaced by app name.
   -->
-  <string name="open_all_warning_message">이렇게 많은 탭을 열면 페이지가 로드되는 동안 %s가 느려질 수도 있습니다.  계속하시겠습니까?</string>
+  <string name="open_all_warning_message">이렇게 많은 탭을 열면 페이지가 로드되는 동안 %s가 느려질 수도 있습니다. 계속하시겠습니까?</string>
   <!-- Dialog button text for confirming open all tabs -->
   <string name="open_all_warning_confirm">탭 열기</string>
   <!-- Dialog button text for canceling open all tabs -->
@@ -2527,6 +2524,8 @@
   <string name="preferences_passwords_exceptions_remove_all">모든 예외 삭제</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">비밀번호 검색</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">뒤로</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">사이트</string>
   <!-- The header for the username for a login -->
@@ -2815,7 +2814,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">웹 주소에는 "https://" 또는 "http://"가 포함되어야 합니다.</string>
+  <string name="add_login_hostname_invalid_text_3">웹 주소에는 \"https://\" 또는 \"http://\"가 포함되어야 합니다.</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">유효한 호스트 이름은 필수입니다</string>
   <!--

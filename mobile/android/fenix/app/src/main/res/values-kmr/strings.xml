@@ -62,11 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        %1$s, dema ku te hilpekînên veşartî girtin an jî tu ji sepanê derket ew ê raboriya te ya gerîn û lêgerînê ji hilpekînên veşartî bên paqijkirin. Ev, rê li ber şopandina te ya ji aliyê malper û peydakerên servîsê ve nagirê lê heke hin kesên din ên vê cîhazê bi kar tînin hebin ew ê bihêle ku tu raboriya xwe ji wan veşêrî.</string>
-  <string name="private_browsing_common_myths">
-       Efsaneyên berbelav ên têkildarî gerîna veşartî
-    </string>
+  <string name="private_browsing_placeholder_description_2">\u0032%1$s, dema ku te hilpekînên veşartî girtin an jî tu ji sepanê derket ew ê raboriya te ya gerîn û lêgerînê ji hilpekînên veşartî bên paqijkirin. Ev, rê li ber şopandina te ya ji aliyê malper û peydakerên servîsê ve nagirê lê heke hin kesên din ên vê cîhazê bi kar tînin hebin ew ê bihêle ku tu raboriya xwe ji wan veşêrî.</string>
+  <string name="private_browsing_common_myths">\u0032Efsaneyên berbelav ên têkildarî gerîna veşartî\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -101,7 +98,7 @@
 
     Text for the info message. %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="open_in_app_cfr_info_message_2">Tu dikarî  %1$s`ê wisa eyar bikî ku girêdank xweber di appan de vebin.</string>
+  <string name="open_in_app_cfr_info_message_2">Tu dikarî %1$s`ê wisa eyar bikî ku girêdank xweber di appan de vebin.</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">Here sazkariyan</string>
   <!-- Text for the negative action button -->
@@ -152,7 +149,7 @@
     Text for the body for the auto-close dialog of the inactive tabs.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="tab_tray_inactive_auto_close_body_2"> %1$s dikare hilpekînên te di meha borî de venekirine bigire.</string>
+  <string name="tab_tray_inactive_auto_close_body_2">\u0032%1$s dikare hilpekînên te di meha borî de venekirine bigire.</string>
   <!-- Content description for close button in the auto-close dialog of the inactive tabs. -->
   <string name="tab_tray_inactive_auto_close_button_content_description">Bigire</string>
   <!-- Text for turn on auto close tabs button in the auto-close dialog of the inactive tabs. -->
@@ -227,7 +224,7 @@
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">Pêvek ji xuyakirin heta performansa  %s`ê heta nepenî û ewlekariyê asta gera te bilind dikin.</string>
+  <string name="browser_menu_extensions_banner_onboarding_body">Pêvek ji xuyakirin heta performansa %s`ê heta nepenî û ewlekariyê asta gera te bilind dikin.</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
@@ -380,7 +377,7 @@
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Favoriyan serast bike</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf"> Wekî PDF qeyd bike…</string>
+  <string name="browser_menu_save_as_pdf">\u0032Wekî PDF qeyd bike…</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
   <string name="browser_menu_turn_on_reader_view">Xuyakirina Readerê veke</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
@@ -653,7 +650,7 @@
 
     Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="search_widget_content_description_2">Hilpekînek nû ya  %1$s `ê veke</string>
+  <string name="search_widget_content_description_2">Hilpekînek nû ya %1$s `ê veke</string>
   <!-- Text preview for smaller sized widgets -->
   <string name="search_widget_text_short">Lêgerîn</string>
   <!-- Text preview for larger sized widgets -->
@@ -889,7 +886,7 @@
     The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="extension_process_crash_dialog_message">Pêvekek yan jî zêdetir pêvek naxebitin û ev pergala te dike bêbiryar.  %1$s kir ku dîsa dest pê bikin lê bi ser neketin.\n\nDi vê danişîna te de pêvek dê dîsa neyên destpêkirin.\n\nDibe ku rakirin yan jî neçalakkirina pêvekan problemê çareser bike.</string>
+  <string name="extension_process_crash_dialog_message">Pêvekek yan jî zêdetir pêvek naxebitin û ev pergala te dike bêbiryar. %1$s kir ku dîsa dest pê bikin lê bi ser neketin.\n\nDi vê danişîna te de pêvek dê dîsa neyên destpêkirin.\n\nDibe ku rakirin yan jî neçalakkirina pêvekan problemê çareser bike.</string>
   <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
   <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">Dîsdestpêkirina pêvekan biceribîne</string>
   <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
@@ -1443,7 +1440,7 @@
   <!-- Label that indicates that video and audio autoplay is only allowed over Wi-Fi -->
   <string name="preference_option_autoplay_allowed_wifi_only2">Deng û vîdyoyê tenê di daneya hucreyî de asteng bike</string>
   <!-- Subtext that explains 'autoplay on Wi-Fi only' option -->
-  <string name="preference_option_autoplay_allowed_wifi_subtext">Deng û vîdyo ew ê tenê di  Wi-Fi de bên vekirin</string>
+  <string name="preference_option_autoplay_allowed_wifi_subtext">Deng û vîdyo ew ê tenê di Wi-Fi de bên vekirin</string>
   <!-- Label for global setting that indicates that video autoplay is allowed, but audio autoplay is blocked -->
   <string name="preference_option_autoplay_block_audio2">Tenê dengan asteng bike</string>
   <!-- Label for site specific setting that indicates that video autoplay is allowed, but audio autoplay is blocked -->
@@ -2172,7 +2169,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Di navnîşana webê de divê "https://" an jî "http://" hebe.</string>
+  <string name="add_login_hostname_invalid_text_3">Di navnîşana webê de divê \"https://\" an jî \"http://\" hebe.</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Hewangeha derbasdar pêwîst e</string>
   <!--
@@ -2435,7 +2432,7 @@
   <!-- Preference option for always translate. Radio button title text. -->
   <string name="automatic_translation_option_always_translate_title_preference">Timî wergerîne</string>
   <!-- Preference option for always translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="automatic_translation_option_always_translate_summary_preference">Gava rûpel  bê barkirin %1$s dê vî zimanî xweber wergerîne.</string>
+  <string name="automatic_translation_option_always_translate_summary_preference">Gava rûpel bê barkirin %1$s dê vî zimanî xweber wergerîne.</string>
   <!-- Preference option for never translate. Radio button title text. -->
   <string name="automatic_translation_option_never_translate_title_preference">Qet wernegerîne</string>
   <!-- Preference option for never translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->

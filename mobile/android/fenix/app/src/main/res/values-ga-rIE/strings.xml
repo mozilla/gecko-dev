@@ -14,9 +14,7 @@
   <string name="search_hint">Cuardaigh nó cuir seoladh isteach</string>
   <!-- No Open Tabs Message Description -->
   <string name="no_open_tabs_description">Taispeánfar do chluaisíní oscailte anseo.</string>
-  <string name="private_browsing_common_myths">
-       Gnáthmhiotais maidir le brabhsáil phríobháideach
-    </string>
+  <string name="private_browsing_common_myths">\u0032Gnáthmhiotais maidir le brabhsáil phríobháideach\u0032</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
   <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Ná cuir</string>
   <!--
@@ -636,7 +634,7 @@
   <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cryptominers_title">Criptimhianadóirí</string>
   <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_cryptominers_description">Cuireann sé seo cosc ar scripteanna mailíseacha a úsáideann do ghléas chun  airgeadra digiteach a thochailt.</string>
+  <string name="etp_cryptominers_description">Cuireann sé seo cosc ar scripteanna mailíseacha a úsáideann do ghléas chun airgeadra digiteach a thochailt.</string>
   <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_tracking_content_title">Ábhar Lorgaireachta</string>
   <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->

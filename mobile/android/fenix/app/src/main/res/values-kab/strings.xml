@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s iseffeḍ amazray-ik n unadi d tunigin seg waccaren n tunigin tusligin mi ara tent-tmeḍleḍ neɣ mi ara teffɣeḍ seg usnas. Ɣas wama aya ur yettarra ara d udrig deg yismal web neɣ deg usaǧǧaw-ik n unekcum Internet, aya ad k-yeǧǧ ad tḥarzeḍ tabaḍnit n urmud-ik srid i wid yesseqdacen ibenk-ik.</string>
-  <string name="private_browsing_common_myths">
-Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
-     </string>
+  <string name="private_browsing_common_myths">\u0032Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -759,7 +757,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <!-- Preference category for advanced settings -->
   <string name="preferences_category_advanced">Talqayt</string>
   <!-- Preference category for privacy and security settings -->
-  <string name="preferences_category_privacy_security">Tabaḍnit  &amp; taɣellist</string>
+  <string name="preferences_category_privacy_security">Tabaḍnit &amp; taɣellist</string>
   <!-- Preference for advanced site settings -->
   <string name="preferences_site_settings">Iɣewwaṛen n usmel</string>
   <!-- Preference for private browsing options -->
@@ -947,7 +945,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <!-- The title of the optional permissions section from addon's permissions screen -->
   <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">Afrayan</string>
   <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
-  <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">Sireg  meṛṛa ismal</string>
+  <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">Sireg meṛṛa ismal</string>
   <!-- The subtitle for the allow for all sites preference toggle -->
   <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">Ma yella tumneḍ asiɣzef-a, tzemreḍ ad as-tmuddeḍ tisirag i yal asmel web.</string>
   <!-- The text shown when an extension does not require permissions -->
@@ -967,7 +965,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <!-- Hint displayed on input field for custom collection user ID -->
   <string name="customize_addon_collection_user_hint">Bab n tegrumma (ID n useqdac)</string>
   <!-- Toast shown after confirming the custom extension collection configuration -->
-  <string name="toast_customize_extension_collection_done">Tagrumma n yisiɣzaf tettwabeddel. Ffeɣ seg usnas akken ad ddun  yibeddilen…</string>
+  <string name="toast_customize_extension_collection_done">Tagrumma n yisiɣzaf tettwabeddel. Ffeɣ seg usnas akken ad ddun yibeddilen…</string>
   <!--
     Customize Home
 
@@ -1090,7 +1088,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="extension_process_crash_dialog_message">Yiwen neɣ ugar n yisiɣzaf ḥebsen, rran anagraw-ik d arurkid. %1$s ur yessaweḍ ara ad yales asenker n usiɣzef(yisiɣzaf).\n\nIsiɣzaf ugin ad alsen tanekra ɣef teɣzi n tiɣimit-a.\n\Kkes neɣ sens iziɣzaf-a, ahat ad yefru wugur-a.</string>
+  <string name="extension_process_crash_dialog_message">Yiwen neɣ ugar n yisiɣzaf ḥebsen, rran anagraw-ik d arurkid. %1$s ur yessaweḍ ara ad yales asenker n usiɣzef(yisiɣzaf).\n\nIsiɣzaf ugin ad alsen tanekra ɣef teɣzi n tiɣimit-a.\n\\Kkes neɣ sens iziɣzaf-a, ahat ad yefru wugur-a.</string>
   <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
   <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">Ԑreḍ allus n usenker n yisiɣzaf</string>
   <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
@@ -1162,7 +1160,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   -->
   <string name="fxa_tabs_closed_notification_title">%1$s waccaren i yettwamedlen: %2$d</string>
   <!-- The body for a "closed synced tabs" notification. -->
-  <string name="fxa_tabs_closed_text">Wali accareni  yettwamedlen melmi kan</string>
+  <string name="fxa_tabs_closed_text">Wali accareni yettwamedlen melmi kan</string>
   <!--
     Advanced Preferences
 
@@ -1907,7 +1905,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">Umuɣ n tegrumma</string>
   <!-- Label to describe what collections are to a new user without any collections -->
-  <string name="no_collections_description2">Lqeḍ tiɣawsiwin i yesεan aẓal ɣur-k·m.\n Semlilil akk inadiyen ittcabin, ismal, d iccaren i unekcum arurad ticki.</string>
+  <string name="no_collections_description2">Lqeḍ tiɣawsiwin i yesεan aẓal ɣur-k·m.\nSemlilil akk inadiyen ittcabin, ismal, d iccaren i unekcum arurad ticki.</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">Fren iccaren</string>
   <!-- Title for the "select collection" step of the collection creator -->
@@ -2152,7 +2150,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Kkes isefka n tunigin mi ara tefɣeḍ</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Ad yekkes s wudem awurman isefka n tunigin ticki tferneḍ "Ffeɣ" seg umuɣ agejdan</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Ad yekkes s wudem awurman isefka n tunigin ticki tferneḍ \"Ffeɣ\" seg umuɣ agejdan</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Ffeɣ</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -2304,7 +2302,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cryptominers_description">Ad isewḥel yir iskripten ad kecmen ɣer yibenk-ik akken ad kksen tadrimt tumḍint.</string>
   <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_known_fingerprinters_description">Ad isewḥel alqaḍ n yisefka  yettwammalen s wudem asuf ɣef yibenk-ik daɣen wid i izemren ad ttwasqedcen i uḍfar.</string>
+  <string name="etp_known_fingerprinters_description">Ad isewḥel alqaḍ n yisefka yettwammalen s wudem asuf ɣef yibenk-ik daɣen wid i izemren ad ttwasqedcen i uḍfar.</string>
   <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_tracking_content_title">Agbur n uḍfaṛ</string>
   <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -2326,7 +2324,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     Open source licenses page title
     %s is the name of the app (for example "Firefox")
   -->
-  <string name="open_source_licenses_title">%s | timkerḍiyin OSS </string>
+  <string name="open_source_licenses_title">%s | timkerḍiyin OSS\u0032</string>
   <!-- Category of trackers (redirect trackers) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_redirect_trackers_title">Welleh i yineḍfaren</string>
   <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
@@ -2720,7 +2718,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <!-- Second step for the allowing a permission -->
   <string name="phone_feature_blocked_step_permissions">2. Senned &lt;b&gt;Tisirag&lt;/b&gt;</string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. Nṭew&lt;b&gt;%1$s&lt;/b&gt; ɣer  IRMED</string>
+  <string name="phone_feature_blocked_step_feature">3. Nṭew&lt;b&gt;%1$s&lt;/b&gt; ɣer IRMED</string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">Tuqqna d taɣellsant</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -2763,7 +2761,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <!-- The saved password options menu description. -->
   <string name="login_options_menu_2">Tixtiṛiyin n wawal uffir</string>
   <!-- The editable text field for a website address. -->
-  <string name="saved_login_hostname_description_3">Urti n uḍris yettusenfal i tansa n usmel  web.</string>
+  <string name="saved_login_hostname_description_3">Urti n uḍris yettusenfal i tansa n usmel web.</string>
   <!-- The editable text field for a username. -->
   <string name="saved_login_username_description_3">Urti n uḍris yettusenfal i yisem n useqdac.</string>
   <!-- The editable text field for a login's password. -->
@@ -2791,7 +2789,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Tansa n Web ilaq ad yili deg-s "https://" neɣ "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Tansa n Web ilaq ad yili deg-s \"https://\" neɣ \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Asenneftaɣ ameɣtu yettwasra</string>
   <!--
@@ -2985,7 +2983,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <!-- Label for the dropdown to select which language to translate to on the translations dialog. Usually the translate to language selected will be the user's preferred language. -->
   <string name="translations_bottom_sheet_translate_to">Suqqel ɣer</string>
   <!-- Label for the dropdown to select which language to translate from on the translations dialog when the page language is not supported. This selection is to allow the user to select another language, in case we automatically detected the page language incorrectly. -->
-  <string name="translations_bottom_sheet_translate_from_unsupported_language">Ɛreḍ tutlayt taɣbalut niḍen </string>
+  <string name="translations_bottom_sheet_translate_from_unsupported_language">Ɛreḍ tutlayt taɣbalut niḍen\u0032</string>
   <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
   <string name="translations_bottom_sheet_negative_button">Mačči tura</string>
   <!-- Button text on the translations dialog to restore the translated website back to the original untranslated version. -->

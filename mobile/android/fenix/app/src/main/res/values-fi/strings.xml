@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s tyhjentää haku- ja selaushistoriasi, kun suljet sovelluksen tai kaikki yksityiset välilehdet. Vaikka tämä ei tee sinusta anonyymia verkkosivustojen tai internetpalveluntarjoajan suuntaan, se helpottaa piilottamaan verkossa tekemiäsi asioita muilta tätä laitetta käyttäviltä.</string>
-  <string name="private_browsing_common_myths">
-       Yleiset myytit yksityisestä selaamisesta
-    </string>
+  <string name="private_browsing_common_myths">\u0032Yleiset myytit yksityisestä selaamisesta\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -827,7 +825,7 @@
   <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the first. -->
   <string name="errorpage_httpsonly_message_title">Todennäköisesti sivusto ei tue HTTPS:ää.</string>
   <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the second. -->
-  <string name="errorpage_httpsonly_message_summary">On kuitenkin myös mahdollista, että hyökkäävä taho on läsnä. Jos jatkat verkkosivustolle, älä anna arkaluonteisia tietoja. Jos jatkat, "Vain HTTPS"-tila poistetaan väliaikaisesti käytöstä sivustolta.</string>
+  <string name="errorpage_httpsonly_message_summary">On kuitenkin myös mahdollista, että hyökkäävä taho on läsnä. Jos jatkat verkkosivustolle, älä anna arkaluonteisia tietoja. Jos jatkat, \"Vain HTTPS\"-tila poistetaan väliaikaisesti käytöstä sivustolta.</string>
   <!-- Preference for accessibility -->
   <string name="preferences_accessibility">Saavutettavuus</string>
   <!-- Preference to override the Mozilla account server -->
@@ -2758,7 +2756,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Verkkosivun osoitteen tulee sisältää "https://" tai "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Verkkosivun osoitteen tulee sisältää \"https://\" tai \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Kelvollinen isäntänimi vaaditaan</string>
   <!--
@@ -3042,7 +3040,7 @@
   -->
   <string name="automatic_translation_toolbar_title_preference">Automaattinen käännös</string>
   <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
-  <string name="automatic_translation_header_preference">Valitse kieli hallitaksesi "käännä aina"- ja "älä käännä koskaan"-asetuksia.</string>
+  <string name="automatic_translation_header_preference">Valitse kieli hallitaksesi \"käännä aina\"- ja \"älä käännä koskaan\"-asetuksia.</string>
   <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
   <string name="automatic_translation_error_warning_text">Kieliä ei voitu ladata. Tarkista myöhemmin uudelleen.</string>
   <!--

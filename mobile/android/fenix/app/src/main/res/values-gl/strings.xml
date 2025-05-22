@@ -62,11 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        %1$s limpa o historial de buscas e de navegación das lapelas privadas ao saír delas ou pechar a aplicación. Aínda que isto non conserva o seu anonimato en sitios web para o seu fornecedor de servizos de internet, si facilita manter en privado o que fai na rede para calquera outra persoa que utilice este ordenador.</string>
-  <string name="private_browsing_common_myths">
-       Mitos frecuentes sobre a navegación privada
-    </string>
+  <string name="private_browsing_placeholder_description_2">\u0032%1$s limpa o historial de buscas e de navegación das lapelas privadas ao saír delas ou pechar a aplicación. Aínda que isto non conserva o seu anonimato en sitios web para o seu fornecedor de servizos de internet, si facilita manter en privado o que fai na rede para calquera outra persoa que utilice este ordenador.</string>
+  <string name="private_browsing_common_myths">\u0032Mitos frecuentes sobre a navegación privada\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -2422,7 +2419,7 @@
   <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_textfield">Fornecedor</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
-  <string name="preference_doh_provider_custom_dialog_error_https">O URL debe comezar por "https://"</string>
+  <string name="preference_doh_provider_custom_dialog_error_https">O URL debe comezar por \"https://\"</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
   <string name="preference_doh_provider_custom_dialog_error_invalid">URL non válido</string>
   <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
@@ -2527,6 +2524,8 @@
   <string name="preferences_passwords_exceptions_remove_all">Eliminar todas as excepcións</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">Buscar contrasinais</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">Atrás</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">Sitio</string>
   <!-- The header for the username for a login -->

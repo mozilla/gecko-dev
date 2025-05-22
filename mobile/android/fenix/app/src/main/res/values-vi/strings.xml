@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s xóa lịch sử tìm kiếm và duyệt web của bạn khỏi các thẻ riêng tư khi bạn đóng chúng hoặc thoát khỏi ứng dụng. Mặc dù điều này không làm cho bạn ẩn danh với các trang web hoặc nhà cung cấp dịch vụ internet của bạn, nhưng nó giúp bạn dễ dàng giữ những gì bạn làm trực tuyến riêng tư với bất kỳ ai khác sử dụng thiết bị này.</string>
-  <string name="private_browsing_common_myths">
-       Những lầm tưởng phổ biến về duyệt web riêng tư
-    </string>
+  <string name="private_browsing_common_myths">\u0032Những lầm tưởng phổ biến về duyệt web riêng tư\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -2463,8 +2461,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Mật khẩu đã lưu</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">Mật khẩu bạn lưu hoặc đồng bộ hóa với %s sẽ được liệt kê ở đây. Tất cả mật khẩu bạn lưu đều được mã hóa.
-</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">Mật khẩu bạn lưu hoặc đồng bộ hóa với %s sẽ được liệt kê ở đây. Tất cả mật khẩu bạn lưu đều được mã hóa.\u0032</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Tìm hiểu thêm về đồng bộ hoá</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -2723,7 +2720,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Được xác minh bởi: %1$s </string>
+  <string name="certificate_info_verified_by">Được xác minh bởi: %1$s\u0032</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Xóa</string>
   <!-- Login overflow menu edit button -->
@@ -2765,7 +2762,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Địa chỉ trang web phải chứa "https://" hoặc "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Địa chỉ trang web phải chứa \"https://\" hoặc \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Cần có tên máy chủ hợp lệ</string>
   <!--
