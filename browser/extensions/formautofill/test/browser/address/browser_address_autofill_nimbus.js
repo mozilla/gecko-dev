@@ -41,7 +41,7 @@ add_task(async function test_address_autofill_feature_enabled() {
     "Address autofill should be available when feature is enabled in nimbus."
   );
 
-  cleanupExperiment();
+  await cleanupExperiment();
 });
 
 add_task(async function test_address_autofill_feature_disabled() {
@@ -66,5 +66,5 @@ add_task(async function test_address_autofill_feature_disabled() {
     "Address autofill shouldn't be available when feature is off in nimbus."
   );
 
-  cleanupExperiment();
+  await cleanupExperiment();
 });
