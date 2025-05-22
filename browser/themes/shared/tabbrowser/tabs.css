@@ -1537,6 +1537,8 @@ tab-group {
 #vertical-pinned-tabs-splitter {
   display: block;
   border-top: var(--tabstrip-inner-border);
+  border-bottom: none;
+  background-color: transparent;
   margin-inline: var(--tab-inner-inline-margin);
   min-height: 2px;
 
@@ -1556,7 +1558,7 @@ tab-group {
     has not been added to root. There are certain scenarios when that attribute is temporarily
     removed from root such as when toggling the sidebar to expand with the toolbar button. */
     #tabbrowser-tabs[expanded] > & {
-      border: none;
+      border-top-color: transparent;
     }
   }
 }
