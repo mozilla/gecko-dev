@@ -32,8 +32,9 @@ const PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
 const PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
 const PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
 const PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
+const PREF_REFINED_CARDS_ENABLED = "discoverystream.refinedCardsLayout.enabled";
 
-function getLayoutData(responsiveLayouts, index) {
+function getLayoutData(responsiveLayouts, index, refinedCardsLayout) {
   let layoutData = {
     classNames: [],
     imageSizes: {},
@@ -51,7 +52,15 @@ function getLayoutData(responsiveLayouts, index) {
         // The API tells us whether the tile should show the excerpt or not.
         // Apply extra styles accordingly.
         if (tile.hasExcerpt) {
-          layoutData.classNames.push(`col-${layout.columnCount}-show-excerpt`);
+          if (tile.size === "medium" && refinedCardsLayout) {
+            layoutData.classNames.push(
+              `col-${layout.columnCount}-hide-excerpt`
+            );
+          } else {
+            layoutData.classNames.push(
+              `col-${layout.columnCount}-show-excerpt`
+            );
+          }
         } else {
           layoutData.classNames.push(`col-${layout.columnCount}-hide-excerpt`);
         }
@@ -114,6 +123,7 @@ function CardSection({
   const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
   const selectedTopics = prefs[PREF_TOPICS_SELECTED];
   const availableTopics = prefs[PREF_TOPICS_AVAILABLE];
+  const refinedCardsLayout = prefs[PREF_REFINED_CARDS_ENABLED];
 
   const { saveToPocketCard } = useSelector(state => state.DiscoveryStream);
   const mayHaveSectionsPersonalization =
@@ -260,7 +270,8 @@ function CardSection({
         {section.data.slice(0, maxTile).map((rec, index) => {
           const { classNames, imageSizes } = getLayoutData(
             responsiveLayouts,
-            index
+            index,
+            refinedCardsLayout
           );
 
           if (!rec || rec.placeholder) {
