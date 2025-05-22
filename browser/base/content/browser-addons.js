@@ -2013,6 +2013,8 @@ var gUnifiedExtensions = {
     CustomizableUI.addListener(this);
     AddonManager.addManagerListener(this);
 
+    Glean.extensionsButton.prefersHiddenButton.set(!this.buttonAlwaysVisible);
+
     this._initialized = true;
   },
 
@@ -3005,9 +3007,10 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "buttonAlwaysVisible",
   "extensions.unifiedExtensions.button.always_visible",
   true,
-  () => {
+  (prefName, oldValue, newValue) => {
     if (gUnifiedExtensions._initialized) {
       gUnifiedExtensions.updateButtonVisibility();
+      Glean.extensionsButton.prefersHiddenButton.set(!newValue);
     }
   }
 );
