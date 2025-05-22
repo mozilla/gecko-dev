@@ -1346,7 +1346,7 @@ const ScreenshotsCustomizableWidget = {
     lazy.CustomizableUI.createWidget({
       id: "screenshot-button",
       shortcutId: "key_screenshot",
-      l10nId: "screenshot-toolbarbutton",
+      l10nId: "screenshot-toolbar-button",
       onCommand(aEvent) {
         Services.obs.notifyObservers(
           aEvent.currentTarget.ownerGlobal,
