@@ -96,8 +96,13 @@ fn restrict_limits(limits: wgt::Limits) -> wgt::Limits {
 // hide wgc's global in private
 pub struct Global {
     global: wgc::global::Global,
+
+    /// A pointer to the `mozilla::webgpu::WebGPUParent` that created us.
+    ///
+    /// This is used only on platforms that support presentation
+    /// without CPU readback.
     #[allow(dead_code)]
-    owner: *mut c_void,
+    webgpu_parent: *mut c_void,
 }
 
 impl std::ops::Deref for Global {
@@ -163,7 +168,7 @@ pub extern "C" fn wgpu_server_new(owner: *mut c_void, use_dxc: bool) -> *mut Glo
             },
         },
     );
-    let global = Global { global, owner };
+    let global = Global { global, webgpu_parent: owner };
     Box::into_raw(Box::new(global))
 }
 
@@ -1569,7 +1574,7 @@ impl Global {
         let dx12_device = dx12_device.unwrap();
         let ret = unsafe {
             wgpu_server_ensure_external_texture_for_swap_chain(
-                self.owner,
+                self.webgpu_parent,
                 swap_chain_id.unwrap(),
                 device_id,
                 texture_id,
@@ -1587,7 +1592,7 @@ impl Global {
             return false;
         }
 
-        let handle = unsafe { wgpu_server_get_external_texture_handle(self.owner, texture_id) };
+        let handle = unsafe { wgpu_server_get_external_texture_handle(self.webgpu_parent, texture_id) };
         if handle.is_null() {
             let msg = c"Failed to get external texture handle";
             unsafe {
@@ -1641,7 +1646,7 @@ impl Global {
     ) -> bool {
         let ret = unsafe {
             wgpu_server_ensure_external_texture_for_swap_chain(
-                self.owner,
+                self.webgpu_parent,
                 swap_chain_id.unwrap(),
                 device_id,
                 texture_id,
@@ -1659,7 +1664,7 @@ impl Global {
             return false;
         }
 
-        let handle = unsafe { wgpu_server_get_vk_image_handle(self.owner, texture_id) };
+        let handle = unsafe { wgpu_server_get_vk_image_handle(self.webgpu_parent, texture_id) };
         if handle.is_null() {
             let msg = c"Failed to get VkImageHandle";
             unsafe {
@@ -1670,7 +1675,7 @@ impl Global {
 
         let vk_image_wrapper = unsafe { &*handle };
 
-        let fd = unsafe { wgpu_server_get_dma_buf_fd(self.owner, texture_id) };
+        let fd = unsafe { wgpu_server_get_dma_buf_fd(self.webgpu_parent, texture_id) };
         if fd < 0 {
             let msg = c"Failed to get DMABuf fd";
             unsafe {
@@ -1841,7 +1846,7 @@ impl Global {
     ) -> bool {
         let ret = unsafe {
             wgpu_server_ensure_external_texture_for_swap_chain(
-                self.owner,
+                self.webgpu_parent,
                 swap_chain_id.unwrap(),
                 device_id,
                 texture_id,
@@ -1860,7 +1865,7 @@ impl Global {
         }
 
         let io_surface_id =
-            unsafe { wgpu_server_get_external_io_surface_id(self.owner, texture_id) };
+            unsafe { wgpu_server_get_external_io_surface_id(self.webgpu_parent, texture_id) };
         if io_surface_id == 0 {
             let msg = c"Failed to get io surface id";
             unsafe {
@@ -1991,7 +1996,7 @@ impl Global {
                 }
 
                 let use_external_texture = if let Some(id) = swap_chain_id {
-                    unsafe { wgpu_server_use_external_texture_for_swap_chain(self.owner, id) }
+                    unsafe { wgpu_server_use_external_texture_for_swap_chain(self.webgpu_parent, id) }
                 } else {
                     false
                 };
@@ -2063,7 +2068,7 @@ impl Global {
 
                     unsafe {
                         wgpu_server_disable_external_texture_for_swap_chain(
-                            self.owner,
+                            self.webgpu_parent,
                             swap_chain_id.unwrap(),
                         )
                     };
@@ -2072,7 +2077,7 @@ impl Global {
                 if let Some(swap_chain_id) = swap_chain_id {
                     unsafe {
                         wgpu_server_ensure_external_texture_for_readback(
-                            self.owner,
+                            self.webgpu_parent,
                             swap_chain_id,
                             self_id,
                             id,
