@@ -2766,10 +2766,9 @@ void HTMLMediaElement::SelectResource() {
       LOG(LogLevel::Debug, ("%p Trying load from src=%s", this,
                             NS_ConvertUTF16toUTF8(src).get()));
       if (profiler_is_collecting_markers()) {
-        nsPrintfCString markerName{"%p:mozloadresource", this};
-        profiler_add_marker(markerName, geckoprofiler::category::MEDIA_PLAYBACK,
+        profiler_add_marker("loadresource", geckoprofiler::category::MEDIA_PLAYBACK,
                             {}, LoadSourceMarker{}, nsString{src}, nsString{},
-                            nsString{});
+                            nsString{}, Flow::FromPointer(this));
       }
 
       NS_ASSERTION(
@@ -2827,9 +2826,10 @@ void HTMLMediaElement::NotifyLoadError(const nsACString& aErrorDetails) {
     NS_WARNING("Should know the source we were loading from!");
   }
   if (profiler_is_collecting_markers()) {
-    profiler_add_marker(nsPrintfCString("%p:mozloaderror", this),
+    profiler_add_marker("loaderror",
                         geckoprofiler::category::MEDIA_PLAYBACK, {},
-                        LoadErrorMarker{}, aErrorDetails);
+                        LoadErrorMarker{}, aErrorDetails,
+                        Flow::FromPointer(this));
   }
 }
 
@@ -3048,10 +3048,9 @@ void HTMLMediaElement::LoadFromSourceChildren() {
          NS_ConvertUTF16toUTF8(media).get()));
 
     if (profiler_is_collecting_markers()) {
-      nsPrintfCString markerName{"%p:mozloadresource", this};
-      profiler_add_marker(markerName, geckoprofiler::category::MEDIA_PLAYBACK,
+      profiler_add_marker("loadresource", geckoprofiler::category::MEDIA_PLAYBACK,
                           {}, LoadSourceMarker{}, nsString{src}, nsString{type},
-                          nsString{media});
+                          nsString{media}, Flow::FromPointer(this));
     }
 
     nsCOMPtr<nsIURI> uri;
@@ -4491,6 +4490,9 @@ HTMLMediaElement::~HTMLMediaElement() {
   NS_ASSERTION(
       !mHasSelfReference,
       "How can we be destroyed if we're still holding a self reference?");
+
+  PROFILER_MARKER("~HTMLMediaElement", MEDIA_PLAYBACK, {}, TerminatingFlowMarker,
+                  Flow::FromPointer(this));
 
   mWatchManager.Shutdown();
 
@@ -7210,13 +7212,13 @@ void HTMLMediaElement::MakeAssociationWithCDMResolved() {
     if (mMediaKeys) {
       nsString keySystem;
       mMediaKeys->GetKeySystem(keySystem);
-      profiler_add_marker(nsPrintfCString("%p:mozcdmresolved", this),
+      profiler_add_marker("cdmresolved",
                           geckoprofiler::category::MEDIA_PLAYBACK, {},
                           CDMResolvedMarker{}, keySystem,
-                          mMediaKeys->GetMediaKeySystemConfigurationString());
+                          mMediaKeys->GetMediaKeySystemConfigurationString(),
+                          Flow::FromPointer(this));
     } else {
-      nsPrintfCString markerName{"%p:mozremovemediakey", this};
-      PROFILER_MARKER_UNTYPED(markerName, MEDIA_PLAYBACK);
+      PROFILER_MARKER("removemediakey", MEDIA_PLAYBACK, {}, FlowMarker, Flow::FromPointer(this));
     }
   }
 }
