@@ -48,6 +48,7 @@ enum EventCallbackDebuggerNotificationType {
   "xhr",
   "worker",
   "websocket",
+  "closewatcher",
 };
 
 // A notification that about the engine calling a DOM event handler.

@@ -9,6 +9,7 @@
 
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/CloseWatcherBinding.h"
+#include "mozilla/dom/DebuggerNotificationBinding.h"
 
 namespace mozilla::dom {
 
@@ -17,6 +18,11 @@ class CloseWatcher : public DOMEventTargetHelper, public AbortFollower {
   NS_DECL_ISUPPORTS_INHERITED
 
   nsIGlobalObject* GetParentObject() const { return GetOwnerGlobal(); }
+
+  mozilla::Maybe<EventCallbackDebuggerNotificationType>
+  GetDebuggerNotificationType() const override {
+    return mozilla::Some(EventCallbackDebuggerNotificationType::Closewatcher);
+  }
 
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;

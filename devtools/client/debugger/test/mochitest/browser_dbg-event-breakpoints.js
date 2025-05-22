@@ -7,6 +7,7 @@
 add_task(async function () {
   await pushPref("dom.element.invokers.enabled", true);
   await pushPref("dom.events.textevent.enabled", true);
+  await pushPref("dom.closewatcher.enabled", true);
 
   const dbg = await initDebugger(
     "doc-event-breakpoints.html",
@@ -79,6 +80,19 @@ add_task(async function () {
   invokeOnElement("#invoker", "click");
   await waitForPaused(dbg);
   await assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 77);
+  await resume(dbg);
+
+  info("Enable closewatcher cancel and close events");
+  await toggleEventBreakpoint(dbg, "CloseWatcher", "event.closewatcher.cancel");
+  await toggleEventBreakpoint(dbg, "CloseWatcher", "event.closewatcher.close");
+  invokeInTab("closeWatcherRequestClose");
+  info("Wait for pause in cancel event listener");
+  await waitForPaused(dbg);
+  await assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 116);
+  await resume(dbg);
+  info("And wait for pause in close event listener after resuming");
+  await waitForPaused(dbg);
+  await assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 120);
   await resume(dbg);
 
   info("Enable beforetoggle and toggle events");

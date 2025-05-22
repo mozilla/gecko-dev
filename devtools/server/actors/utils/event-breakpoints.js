@@ -57,6 +57,14 @@ function xhrEvent(groupID, eventType) {
   };
 }
 
+function closeWatcherEvent(groupID, eventType) {
+  return {
+    ...generalEvent(groupID, eventType),
+    message: `CloseWatcher '${eventType}' event`,
+    targetTypes: ["closewatcher"],
+  };
+}
+
 function webSocketEvent(groupID, eventType) {
   return {
     ...generalEvent(groupID, eventType),
@@ -130,6 +138,17 @@ const AVAILABLE_BREAKPOINTS = [
       generalEvent("clipboard", "beforecopy"),
       generalEvent("clipboard", "beforecut"),
       generalEvent("clipboard", "beforepaste"),
+    ],
+  },
+  {
+    name: "CloseWatcher",
+    items: [
+      closeWatcherEvent("closewatcher", "cancel", () =>
+        Services.prefs.getBoolPref("dom.closewatcher.enabled")
+      ),
+      closeWatcherEvent("closewatcher", "close", () =>
+        Services.prefs.getBoolPref("dom.closewatcher.enabled")
+      ),
     ],
   },
   {
