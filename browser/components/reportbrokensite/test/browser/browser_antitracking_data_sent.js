@@ -29,7 +29,7 @@ add_task(async function testSendButton() {
   await blockedPromise;
 
   await testSend(tab, AppMenu(win), {
-    breakageCategory: "adblocker",
+    breakageCategory: "adblockers",
     description: "another test description",
     antitracking: {
       blockList: "strict",

@@ -90,14 +90,11 @@ add_task(async function testReasonDropdownRandomized() {
     const rbs = await AppMenu().openReportBrokenSite();
     const defaultOrder = [
       "choose",
-      "checkout",
-      "load",
       "slow",
       "media",
       "content",
       "account",
-      "adblocker",
-      "notsupported",
+      "adblockers",
       "other",
     ];
     Assert.deepEqual(

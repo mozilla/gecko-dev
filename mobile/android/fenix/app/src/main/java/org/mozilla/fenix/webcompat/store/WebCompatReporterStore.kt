@@ -36,29 +36,20 @@ data class WebCompatReporterState(
      * @property displayStringId The string ID corresponding to the reason.
      */
     enum class BrokenSiteReason(@StringRes val displayStringId: Int) {
-        Load(
-            displayStringId = R.string.webcompat_reporter_reason_load,
-        ),
-        Checkout(
-            displayStringId = R.string.webcompat_reporter_reason_checkout,
-        ),
         Slow(
-            displayStringId = R.string.webcompat_reporter_reason_slow2,
+            displayStringId = R.string.webcompat_reporter_reason_slow,
         ),
         Media(
-            displayStringId = R.string.webcompat_reporter_reason_media2,
+            displayStringId = R.string.webcompat_reporter_reason_media,
         ),
         Content(
-            displayStringId = R.string.webcompat_reporter_reason_content2,
+            displayStringId = R.string.webcompat_reporter_reason_content,
         ),
         Account(
-            displayStringId = R.string.webcompat_reporter_reason_account2,
+            displayStringId = R.string.webcompat_reporter_reason_account,
         ),
         AdBlocker(
-            displayStringId = R.string.webcompat_reporter_reason_turn_off_adblocker,
-        ),
-        NotSupported(
-            displayStringId = R.string.webcompat_reporter_reason_notsupported,
+            displayStringId = R.string.webcompat_reporter_reason_ad_blocker,
         ),
         Other(
             displayStringId = R.string.webcompat_reporter_reason_other,
