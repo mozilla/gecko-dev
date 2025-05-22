@@ -320,9 +320,12 @@ fn main() -> std::io::Result<()> {
         TOPSRCDIR.join("security/manager/ssl/tests/unit/test_trust_anchors/certdata.txt");
     let mozilla_certdata = TOPSRCDIR.join("security/nss/lib/ckfw/builtins/certdata.txt");
     let nssckbi_header = TOPSRCDIR.join("security/nss/lib/ckfw/builtins/nssckbi.h");
+    let bundled_intermediates =
+        TOPSRCDIR.join("security/manager/ssl/trust_anchors/bundled_intermediates.txt");
     println!("cargo:rerun-if-changed={}", testlib_certdata.display());
     println!("cargo:rerun-if-changed={}", mozilla_certdata.display());
     println!("cargo:rerun-if-changed={}", nssckbi_header.display());
+    println!("cargo:rerun-if-changed={}", bundled_intermediates.display());
 
     let bindings = Builder::default()
         .header(nssckbi_header.display().to_string())
@@ -356,6 +359,12 @@ fn main() -> std::io::Result<()> {
     #[cfg(not(feature = "testlib"))]
     let mut input =
         std::fs::read_to_string(mozilla_certdata).expect("Unable to read certdata.txt.");
+
+    #[cfg(not(feature = "testlib"))]
+    input.push_str(
+        &std::fs::read_to_string(bundled_intermediates)
+            .expect("Unable to read bundled_intermediates.txt."),
+    );
 
     // Add a trailing newline to simplify parsing.
     input.push('\n');
@@ -520,19 +529,7 @@ fn main() -> std::io::Result<()> {
 
     writeln!(out, "pub static BUILTINS: [Root; {}] = [", certs.len())?;
     for (i, cert) in certs.iter().enumerate() {
-        let subject = attr(cert, "CKA_SUBJECT");
-        let issuer = attr(cert, "CKA_ISSUER");
         let label = attr(cert, "CKA_LABEL");
-        if !subject.eq(issuer) {
-            writeln!(out, "];")?; // end the definition of BUILTINS
-            let label = format!("{}", label);
-            writeln!(
-                out,
-                "std::compile_error!(\"Certificate with label {} is not self-signed\");",
-                label.escape_debug()
-            )?;
-            return Ok(());
-        }
         let mozpol = attr(cert, "CKA_NSS_MOZILLA_CA_POLICY");
         let server_distrust = attr(cert, "CKA_NSS_SERVER_DISTRUST_AFTER");
         let email_distrust = attr(cert, "CKA_NSS_EMAIL_DISTRUST_AFTER");
