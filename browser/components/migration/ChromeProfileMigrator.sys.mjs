@@ -547,9 +547,12 @@ export class ChromeProfileMigrator extends MigratorBase {
       return null;
     }
 
-    // We no longer support importing payment methods from Chrome on
+    // We no longer support importing payment methods from Chrome or Edge on
     // Windows.
-    if (AppConstants.platform == "win" && aBrowserKey == "chrome") {
+    if (
+      AppConstants.platform == "win" &&
+      (aBrowserKey == "chrome" || aBrowserKey == "chromium-edge")
+    ) {
       return null;
     }
 
