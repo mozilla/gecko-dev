@@ -18,9 +18,7 @@
 
 #include "nsGTKToolkit.h"
 
-#ifdef MOZ_WAYLAND
-#  include "mozilla/WidgetUtilsGtk.h"
-#endif
+#include "mozilla/X11Util.h"
 
 nsresult nsGTKRemoteServer::Startup(const char* aAppName,
                                     const char* aProfileName) {
@@ -30,11 +28,9 @@ nsresult nsGTKRemoteServer::Startup(const char* aAppName,
     return NS_ERROR_ALREADY_INITIALIZED;
   }
 
-#ifdef MOZ_WAYLAND
-  if (mozilla::widget::GdkIsWaylandDisplay()) {
+  if (!mozilla::DefaultXDisplay()) {
     return NS_ERROR_FAILURE;
   }
-#endif
 
   XRemoteBaseStartup(aAppName, aProfileName);
 
