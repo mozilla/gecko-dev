@@ -16,8 +16,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
-  ProfilesDatastoreService:
-    "moz-src:///toolkit/profile/ProfilesDatastoreService.sys.mjs",
   RemoteSettingsExperimentLoader:
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
@@ -158,12 +156,6 @@ export const NimbusTestUtils = {
       );
 
       NimbusTestUtils.cleanupStorePrefCache();
-
-      // TODO(bug 1956082): This is an async method that we are not awaiting.
-      //
-      // Only browser tests and tests that otherwise have manually enabled the
-      // ProfilesDatastoreService need to await the result.
-      return NimbusTestUtils.cleanupEnrollmentDatabase();
     },
   },
 
@@ -379,37 +371,14 @@ export const NimbusTestUtils = {
    *         The ExperimentManager to clean up. Defaults to the global
    *         ExperimentManager.
    */
-  async cleanupManager(slugs, { manager } = {}) {
+  cleanupManager(slugs, { manager } = {}) {
     const experimentManager = manager ?? ExperimentAPI.manager;
 
     for (const slug of slugs) {
-      await experimentManager.unenroll(slug);
+      experimentManager.unenroll(slug);
     }
 
-    await NimbusTestUtils.assert.storeIsEmpty(experimentManager.store);
-  },
-
-  async cleanupEnrollmentDatabase() {
-    const conn = await lazy.ProfilesDatastoreService.getConnection();
-    if (!conn) {
-      // We are in an xpcshell test that has not initialized the
-      // ProfilesDatastoreService.
-      //
-      // TODO(bug 1967779): require the ProfilesDatastoreService to be initialized
-      // and remove this check.
-      return;
-    }
-
-    // TODO(bug 1956082): This should filter only active = false enrollments,
-    // but that requires the unenrollment flow to be fully async.
-    await conn.execute(
-      `
-        DELETE FROM NimbusEnrollments
-        WHERE
-          profileId = :profileId;
-      `,
-      { profileId: ExperimentAPI.profileId }
-    );
+    NimbusTestUtils.assert.storeIsEmpty(experimentManager.store);
   },
 
   /**
@@ -474,14 +443,8 @@ export const NimbusTestUtils = {
     experimentManager.store._syncToChildren({ flush: true });
 
     return function doEnrollmentCleanup() {
-      // TODO(bug 1956082): This is an async method that we are not awaiting.
-      //
-      // Only browser tests and tests that otherwise have manually enabled the
-      // ProfilesDatastoreService need to await the result.
-      const promise = experimentManager.unenroll(enrollment.slug);
+      experimentManager.unenroll(enrollment.slug);
       experimentManager.store._deleteForTests(enrollment.slug);
-
-      return promise;
     };
   },
 
@@ -564,7 +527,7 @@ export const NimbusTestUtils = {
    *         The store to delete.
    */
   async removeStore(store) {
-    await NimbusTestUtils.assert.storeIsEmpty(store);
+    NimbusTestUtils.assert.storeIsEmpty(store);
 
     // Prevent the next save from happening.
     store._store._saver.disarm();
@@ -683,9 +646,8 @@ export const NimbusTestUtils = {
       sandbox,
       loader,
       manager,
-      async cleanup() {
-        await NimbusTestUtils.assert.storeIsEmpty(manager.store);
-
+      cleanup() {
+        NimbusTestUtils.assert.storeIsEmpty(manager.store);
         ExperimentAPI._resetForTests();
         sandbox.restore();
 
