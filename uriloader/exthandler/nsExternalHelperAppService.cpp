@@ -3768,13 +3768,18 @@ nsExternalHelperAppService::ShouldModifyExtension(nsIMIMEInfo* aMimeInfo,
     return ModifyExtension_Append;
   }
 
-  // MIME type video/3gpp is a special case as 3gpp is (mostly) MP4 compatible
-  // and often saved as .mp4. If so, we want to avoid changing the extension
-  // since .3gpp is uncommon and confuses users (see: bug 1749294)
-  if (MIMEType.Equals("video/3gpp")) {
-    nsAutoCString fileExtLowerCase(aFileExt);
-    ToLowerCase(fileExtLowerCase);
-    if (fileExtLowerCase.Equals("mp4")) {
+  // Special cases where we want to keep file extensions if they're common
+  // for a given MIME type to avoid surprising users with a changed extension.
+  static constexpr std::pair<nsLiteralCString, nsLiteralCString>
+      ignoreMimeExtPairs[] = {
+          {"video/3gpp"_ns, "mp4"_ns},   // bug 1749294
+          {"audio/x-wav"_ns, "mp2"_ns},  // bug 1805365
+      };
+
+  nsAutoCString fileExtLowerCase(aFileExt);
+  ToLowerCase(fileExtLowerCase);
+  for (const auto& [mime, ext] : ignoreMimeExtPairs) {
+    if (MIMEType.Equals(mime) && fileExtLowerCase.Equals(ext)) {
       return ModifyExtension_Ignore;
     }
   }
