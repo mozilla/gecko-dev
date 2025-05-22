@@ -114,9 +114,11 @@ class LoadInfo final : public nsILoadInfo {
   LoadInfo(nsIPrincipal* aLoadingPrincipal, nsIPrincipal* aTriggeringPrincipal,
            nsINode* aLoadingContext, nsSecurityFlags aSecurityFlags,
            nsContentPolicyType aContentPolicyType,
-           const Maybe<mozilla::dom::ClientInfo>& aLoadingClientInfo,
-           const Maybe<mozilla::dom::ServiceWorkerDescriptor>& aController,
-           uint32_t aSandboxFlags);
+           const Maybe<mozilla::dom::ClientInfo>& aLoadingClientInfo =
+               Maybe<mozilla::dom::ClientInfo>(),
+           const Maybe<mozilla::dom::ServiceWorkerDescriptor>& aController =
+               Maybe<mozilla::dom::ServiceWorkerDescriptor>(),
+           uint32_t aSandboxFlags = 0);
 
   // Use factory function CreateForDocument
   // Used for TYPE_DOCUMENT load.
