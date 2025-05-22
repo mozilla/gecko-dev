@@ -30,6 +30,11 @@ def is_release_promotion_available(parameters):
                 "description": "Override other options and do not push changes",
                 "default": True,
             },
+            "push": {
+                "type": "boolean",
+                "description": "Push changes using to_repo and to_branch",
+                "default": False,
+            },
             "behavior": {
                 "type": "string",
                 "description": "The type of release promotion to perform.",
@@ -75,6 +80,7 @@ def merge_automation_action(parameters, graph_config, input, task_group_id, task
         "from-branch",
         "to-repo",
         "to-branch",
+        "push",
         "fetch-version-from",
     ]:
         if input.get(field):

@@ -19,6 +19,7 @@ def handle_keyed_by(config, tasks):
     merge_config = config.params["merge_config"]
     fields = [
         "routes",
+        "worker.push",
         "scopes",
         "worker-type",
         "worker.l10n-bump-info",
@@ -78,4 +79,6 @@ def add_payload_config(config, tasks):
                 worker["merge-info"][field] = merge_config[field]
 
         worker["force-dry-run"] = merge_config["force-dry-run"]
+        if merge_config.get("push"):
+            worker["push"] = merge_config["push"]
         yield task
