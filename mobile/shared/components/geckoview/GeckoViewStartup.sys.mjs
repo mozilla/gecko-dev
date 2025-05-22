@@ -249,6 +249,24 @@ export class GeckoViewStartup {
           }
         );
 
+        GeckoViewUtils.addLazyPrefObserver(
+          {
+            name: "network.android_doh.autoselect_enabled",
+            default: false,
+          },
+          {
+            handler: _ => {
+              if (
+                Services.prefs.getBoolPref(
+                  "network.android_doh.autoselect_enabled"
+                )
+              ) {
+                lazy.DoHController.init();
+              }
+            },
+          }
+        );
+
         GeckoViewUtils.addLazyGetter(this, "DownloadTracker", {
           module: "resource://gre/modules/GeckoViewWebExtension.sys.mjs",
           ged: ["GeckoView:WebExtension:DownloadChanged"],
@@ -284,8 +302,6 @@ export class GeckoViewStartup {
         // Notify the start up crash tracker that the browser has successfully
         // started up so the startup cache isn't rebuilt on next startup.
         Services.startup.trackStartupCrashEnd();
-
-        lazy.DoHController.init();
         break;
       }
       case "handlersvc-store-initialized": {

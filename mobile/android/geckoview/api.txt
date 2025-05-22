@@ -937,6 +937,7 @@ package org.mozilla.geckoview {
     method @Nullable public Boolean getDisableShip();
     method @Nullable public Float getDisplayDensityOverride();
     method @Nullable public Integer getDisplayDpiOverride();
+    method public boolean getDohAutoselectEnabled();
     method public boolean getDoubleTapZoomingEnabled();
     method public boolean getEnterpriseRootsEnabled();
     method @AnyThread @Nullable public ExperimentDelegate getExperimentDelegate();
@@ -990,6 +991,7 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoRuntimeSettings setCookieBehaviorOptInPartitioning(boolean);
     method @NonNull public GeckoRuntimeSettings setCookieBehaviorOptInPartitioningPBM(boolean);
     method @NonNull public GeckoRuntimeSettings setDefaultRecursiveResolverUri(@NonNull String);
+    method @NonNull public GeckoRuntimeSettings setDohAutoselectEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setDoubleTapZoomingEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setEnterpriseRootsEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setExtensionsProcessCrashThreshold(@NonNull Integer);

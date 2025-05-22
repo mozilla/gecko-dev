@@ -340,6 +340,11 @@ abstract class Settings {
      * in TLS and HTTP/3.
      */
     open var postQuantumKeyExchangeEnabled: Boolean? by UnsupportedSetting()
+
+    /**
+     * Setting to control whether a DoH provider will be automatically selected when in Default Protection mode.
+     */
+    open var dohAutoselectEnabled: Boolean by UnsupportedSetting()
 }
 
 /**
@@ -408,6 +413,7 @@ data class DefaultSettings(
     override var cookieBehaviorOptInPartitioningPBM: Boolean = false,
     override var certificateTransparencyMode: Int = 0,
     override var postQuantumKeyExchangeEnabled: Boolean? = null,
+    override var dohAutoselectEnabled: Boolean = false,
 ) : Settings() {
     override val desktopModeEnabled: Boolean
         get() = getDesktopMode()

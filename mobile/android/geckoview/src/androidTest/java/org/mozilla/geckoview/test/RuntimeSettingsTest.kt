@@ -889,4 +889,31 @@ class RuntimeSettingsTest : BaseSessionTest() {
             equalTo(""),
         )
     }
+
+    @Test
+    fun dohAutoselectEnabled() {
+        val geckoRuntimeSettings = sessionRule.runtime.settings
+
+        assertThat(
+            "doh rollout should be disabled",
+            geckoRuntimeSettings.dohAutoselectEnabled,
+            equalTo(false),
+        )
+
+        geckoRuntimeSettings.setDohAutoselectEnabled(true)
+
+        assertThat(
+            "doh rollout should be enabled",
+            geckoRuntimeSettings.dohAutoselectEnabled,
+            equalTo(true),
+        )
+
+        val prefEnabled =
+            (sessionRule.getPrefs("network.android_doh.autoselect_enabled").get(0)) as Boolean
+        assertThat(
+            "The network.android_doh.autoselect_enabled preference should be set to true",
+            prefEnabled,
+            equalTo(true),
+        )
+    }
 }

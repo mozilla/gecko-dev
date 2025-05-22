@@ -1475,6 +1475,10 @@ class GeckoEngine(
         override var postQuantumKeyExchangeEnabled: Boolean?
             get() = runtime.settings.postQuantumKeyExchangeEnabled.or(false)
             set(value) { value?.let { runtime.settings.setPostQuantumKeyExchangeEnabled(value) } }
+
+        override var dohAutoselectEnabled: Boolean
+            get() = runtime.settings.dohAutoselectEnabled
+            set(value) { runtime.settings.setDohAutoselectEnabled(value) }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
@@ -1517,6 +1521,7 @@ class GeckoEngine(
             this.cookieBehaviorOptInPartitioningPBM = it.cookieBehaviorOptInPartitioningPBM
             this.certificateTransparencyMode = it.certificateTransparencyMode
             this.postQuantumKeyExchangeEnabled = it.postQuantumKeyExchangeEnabled
+            this.dohAutoselectEnabled = it.dohAutoselectEnabled
         }
     }
 

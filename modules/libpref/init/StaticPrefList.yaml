@@ -14575,6 +14575,17 @@
 #endif
   mirror: always
 
+# When this pref is true, GeckoViewStartup.sys.mjs will initialize the DoHController
+# and Fenix will automatically select the TRR provider when the browser is in
+# "Default protection" mode (ie network.trr.mode is 0).
+# The selected provider depends on remote settings and the user's region.
+# If a rollout hasn't started in the user's region, then Fenix will continue using
+# the system DNS settings.
+- name: network.android_doh.autoselect_enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # Allow the network changed event to get sent when a network topology or setup
 # change is noticed while running.
 - name: network.notify.changed

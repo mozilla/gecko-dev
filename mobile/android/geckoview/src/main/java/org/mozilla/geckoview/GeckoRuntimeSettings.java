@@ -743,6 +743,8 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       new PrefWithoutDefault<Boolean>("security.tls.enable_kyber");
   /* package */ final PrefWithoutDefault<Boolean> mPostQuantumKeyExchangeHttp3Enabled =
       new PrefWithoutDefault<Boolean>("network.http.http3.enable_kyber");
+  /* package */ final Pref<Boolean> mDohAutoselectEnabled =
+      new Pref<Boolean>("network.android_doh.autoselect_enabled", false);
   /* package */ final Pref<Boolean> mSameDocumentNavigationOverridesLoadType =
       new Pref<Boolean>("docshell.shistory.sameDocumentNavigationOverridesLoadType", true);
   /* package */ final Pref<String> mSameDocumentNavigationOverridesLoadTypeForceDisable =
@@ -1615,6 +1617,35 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
   public @NonNull GeckoRuntimeSettings setInputAutoZoomEnabled(final boolean flag) {
     mInputAutoZoom.commit(flag);
     return this;
+  }
+
+  /**
+   * Set the pref to control whether network.android_doh.autoselect_enabled is enabled. When the
+   * pref is enabled the browser will automatically select a DoH provider from a region specific
+   * list provided by remote-settings if the browser is using the 'Default protection' mode for DNS
+   * over HTTPS. This means `network.trr.mode` was previously set to 0 by calling
+   * `setTrustedRecursiveResolverMode(TRR_MODE_OFF)`
+   *
+   * <p>When automatic selection is enabled the browser will run heuristic checks to determine
+   * whether DoH can be enabled for the current network (checks for parental controls, split horizon
+   * DNS, canary domain, etc) and if these pass it will set the `doh-rollout.mode` pref to 2
+   * (TRR_MODE_FIRST) and `doh-rollout.uri` to the URL of the automatically selected provider.
+   *
+   * @param enabled Whether to enable the DoHController component
+   * @return This GeckoRuntimeSettings instance
+   */
+  public @NonNull GeckoRuntimeSettings setDohAutoselectEnabled(final boolean enabled) {
+    mDohAutoselectEnabled.commit(enabled);
+    return this;
+  }
+
+  /**
+   * Get whether network.trr.android_rollout_enabled is enabled.
+   *
+   * @return Whether the DoHController component will be initialized
+   */
+  public boolean getDohAutoselectEnabled() {
+    return mDohAutoselectEnabled.get();
   }
 
   /**
