@@ -634,6 +634,30 @@ interface nsILoadInfo : nsISupports
     StoragePermissionAllowListed = 2,
   };
 
+/**
+* IP AddressSpace - For classifying IP Addresses into different categories based on their vicinity to the user.
+* Ref https://wicg.github.io/private-network-access/#ip-address-space
+*/
+  cenum IPAddressSpace : 8 {
+    Unknown = 0,
+    Local = 1,
+    Private = 2,
+    Public = 3,
+    Invalid,
+  };
+
+/**
+* IP AddressSpace of the resource being loaded. This will be set after connection to the server has been established.
+* This is used to check if the request crosses address boundaries between public to a more private address space.
+*/
+  attribute nsILoadInfo_IPAddressSpace ipAddressSpace;
+
+/**
+* IP AddressSpace of the document/sub-document that trigeered this request.
+* This will be set from the browsing context of the document that triggered this request.
+*/
+  attribute nsILoadInfo_IPAddressSpace parentIpAddressSpace;
+
   /**
    * The result of the storage permission check of the loading document. This
    * value would be set during opening the channel.
