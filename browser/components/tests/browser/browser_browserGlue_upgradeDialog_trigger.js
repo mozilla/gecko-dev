@@ -68,7 +68,7 @@ add_task(async function remote_disabled() {
     "disabled",
   ]);
 
-  doCleanup();
+  await doCleanup();
   await cleanupUpgrade();
 });
 

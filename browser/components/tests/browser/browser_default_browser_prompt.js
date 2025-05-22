@@ -203,7 +203,7 @@ add_task(async function showDefaultPrompt() {
 
   await sb.restore();
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
   await BrowserTestUtils.closeWindow(win2);
 });
 
@@ -276,7 +276,7 @@ add_task(async function showPromptStyleSpotlight() {
     "handleAction called with right args"
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
   await sandbox.restore();
   await BrowserTestUtils.closeWindow(win);
 });
