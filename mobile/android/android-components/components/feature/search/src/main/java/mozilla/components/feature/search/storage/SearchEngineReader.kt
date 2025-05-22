@@ -16,14 +16,17 @@ import mozilla.appservices.search.SearchUrlParam
 import mozilla.components.browser.icons.decoder.ICOIconDecoder
 import mozilla.components.browser.icons.decoder.SvgIconDecoder
 import mozilla.components.browser.state.search.SearchEngine
+import mozilla.components.feature.search.icons.AttachmentModel
 import mozilla.components.feature.search.middleware.SearchExtraParams
 import mozilla.components.support.images.DesiredSize
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserException
 import org.xmlpull.v1.XmlPullParserFactory
+import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.net.URL
 import java.nio.charset.StandardCharsets
 
 internal const val URL_TYPE_SUGGEST_JSON = "application/x-suggestions+json"
@@ -34,6 +37,7 @@ internal const val IMAGE_URI_PREFIX = "data:image/png;base64,"
 internal const val GOOGLE_ID = "google"
 private const val TARGET_SIZE = 32
 private const val MAX_SIZE = 32
+private const val URL_PREFIX = "https://firefox-settings-attachments.cdn.mozilla.net/"
 
 // List of general search engine ids, taken from
 // https://searchfox.org/mozilla-central/rev/ef0aa879e94534ffd067a3748d034540a9fc10b0/toolkit/components/search/SearchUtils.sys.mjs#200
@@ -263,18 +267,19 @@ internal class SearchEngineReader(
     @Throws(IllegalArgumentException::class)
     fun loadStreamAPI(
         engineDefinition: SearchEngineDefinition,
-        attachmentModel: ByteArray?,
-        mimetype: String,
+        attachmentModel: AttachmentModel,
+        iconsURLPrefix: String = URL_PREFIX,
     ): SearchEngine {
         require(engineDefinition.name.isNotBlank()) { "Search engine name cannot be empty" }
         require(engineDefinition.charset.isNotBlank()) { "Search engine charset cannot be empty" }
+        require(attachmentModel.location.isNotBlank()) { "Search engine icon location cannot be empty" }
         require(engineDefinition.identifier.isNotBlank()) { "Search engine identifier cannot be empty" }
         val builder = SearchEngineBuilder(type, engineDefinition.identifier)
         builder.name = engineDefinition.name
         builder.inputEncoding = engineDefinition.charset
         builder.isGeneral = engineDefinition.classification == SearchEngineClassification.GENERAL
         readUrlAPI(engineDefinition, builder)
-        readImageAPI(attachmentModel, mimetype, builder)
+        readImageAPI(iconsURLPrefix + attachmentModel.location, attachmentModel.mimetype, builder)
 
         return builder.toSearchEngine()
     }
@@ -357,29 +362,26 @@ internal class SearchEngineReader(
     }
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    private fun readImageAPI(attachmentModel: ByteArray?, mimetype: String, builder: SearchEngineBuilder) {
-        if (attachmentModel == null) {
-            throw IllegalStateException("Failed to decode image for mimetype: $mimetype")
-        }
+    private fun readImageAPI(iconUri: String, mimetype: String, builder: SearchEngineBuilder) {
         val allowedTypes = setOf("image/jpeg", "image/png", "image/x-icon", "image/svg+xml")
         require(mimetype in allowedTypes) { "Unsupported image type: $mimetype" }
+        val raw: ByteArray
+        try {
+            raw = URL(iconUri).openStream().use { it.readBytes() }
+        } catch (e: FileNotFoundException) {
+            throw IllegalArgumentException("Failed to read image from location: $iconUri")
+        }
         val bitmap = when (mimetype) {
             "image/svg+xml" -> {
                 val decoder = SvgIconDecoder()
-                decoder.decode(
-                    attachmentModel,
-                    DesiredSize(TARGET_SIZE, TARGET_SIZE, MAX_SIZE, 2.0f),
-                )
+                decoder.decode(raw, DesiredSize(TARGET_SIZE, TARGET_SIZE, MAX_SIZE, 2.0f))
             }
             "image/x-icon" -> {
                 val decoder = ICOIconDecoder()
-                decoder.decode(
-                    attachmentModel,
-                    DesiredSize(TARGET_SIZE, TARGET_SIZE, MAX_SIZE, 2.0f),
-                )
+                decoder.decode(raw, DesiredSize(TARGET_SIZE, TARGET_SIZE, MAX_SIZE, 2.0f))
             }
             else -> {
-                BitmapFactory.decodeByteArray(attachmentModel, 0, attachmentModel.size) ?: null
+                BitmapFactory.decodeByteArray(raw, 0, raw.size) ?: null
             }
         }
         if (bitmap == null) {

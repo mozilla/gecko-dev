@@ -6,7 +6,6 @@ package mozilla.components.feature.search.storage
 
 import android.util.AtomicFile
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.appservices.remotesettings.RemoteSettingsClient
 import mozilla.appservices.search.SearchEngineClassification
 import mozilla.appservices.search.SearchEngineDefinition
 import mozilla.appservices.search.SearchEngineUrl
@@ -20,7 +19,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -28,18 +26,6 @@ import java.io.IOException
 
 @RunWith(AndroidJUnit4::class)
 class SearchEngineReaderTest {
-
-    private lateinit var mockClient: RemoteSettingsClient
-    private lateinit var emptyByteArray: ByteArray
-    private val validMimeType = "image/png"
-    private val invalidMimeType = "image/gif"
-
-    @Before
-    fun setUp() {
-        mockClient = mock<RemoteSettingsClient>()
-        emptyByteArray = ByteArray(0)
-    }
-
     @Test
     fun `SearchEngineReader can read from a file`() {
         val searchEngine = SearchEngine(
@@ -126,6 +112,7 @@ class SearchEngineReaderTest {
     fun `GIVEN {partnerCode} in value of a SearchURLParam THEN it is replaced by actual partnerCode`() {
         val reader = SearchEngineReader(type = SearchEngine.Type.BUNDLED)
         val searchEngineDefinition = sampleSearchEngineDefinitionData()
+        val attachmentModel = sampleAttachmentModelData()
 
         searchEngineDefinition.urls.search.params +=
             SearchUrlParam(
@@ -135,7 +122,7 @@ class SearchEngineReaderTest {
                 experimentConfig = null,
             )
         searchEngineDefinition.partnerCode = "test-firefox-code"
-        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, emptyByteArray, validMimeType)
+        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, attachmentModel)
         assertEquals("https://www.google.com/search?client=test-firefox-code", searchEngine.resultUrls[0])
     }
 
@@ -143,6 +130,7 @@ class SearchEngineReaderTest {
     fun `Given null value of a SearchURLParam THEN it is not appended to the URL`() {
         val reader = SearchEngineReader(type = SearchEngine.Type.BUNDLED)
         val searchEngineDefinition = sampleSearchEngineDefinitionData()
+        val attachmentModel = sampleAttachmentModelData()
         searchEngineDefinition.urls.search.params +=
             SearchUrlParam(
                 name = "channel",
@@ -150,8 +138,7 @@ class SearchEngineReaderTest {
                 enterpriseValue = null,
                 experimentConfig = null,
             )
-
-        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, emptyByteArray, validMimeType)
+        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, attachmentModel)
         assertEquals("https://www.google.com/search", searchEngine.resultUrls[0])
     }
 
@@ -159,9 +146,9 @@ class SearchEngineReaderTest {
     fun `GIVEN searchTermParamName in SearchEngineUrl THEN add a new param with name searchTermParamName and value {searchTerms}`() {
         val reader = SearchEngineReader(type = SearchEngine.Type.BUNDLED)
         val searchEngineDefinition = sampleSearchEngineDefinitionData()
+        val attachmentModel = sampleAttachmentModelData()
         searchEngineDefinition.urls.search.searchTermParamName = "test"
-
-        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, emptyByteArray, validMimeType)
+        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, attachmentModel)
         assertEquals("https://www.google.com/search?test=%7BsearchTerms%7D", searchEngine.resultUrls[0])
     }
 
@@ -169,10 +156,10 @@ class SearchEngineReaderTest {
     fun `GIVEN searchTermParamName in SearchEngineUrl and {searchTerms} in base url THEN don't add a new param with value {searchTerms}`() {
         val reader = SearchEngineReader(type = SearchEngine.Type.BUNDLED)
         val searchEngineDefinition = sampleSearchEngineDefinitionData()
+        val attachmentModel = sampleAttachmentModelData()
         searchEngineDefinition.urls.search.searchTermParamName = "test"
         searchEngineDefinition.urls.search.base = "https://www.google.com/q={searchTerms}"
-
-        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, emptyByteArray, validMimeType)
+        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, attachmentModel)
         assertEquals("https://www.google.com/q={searchTerms}", searchEngine.resultUrls[0])
     }
 
@@ -180,6 +167,7 @@ class SearchEngineReaderTest {
     fun `GIVEN search, suggest and trending URLs THEN they are correctly parsed`() {
         val reader = SearchEngineReader(type = SearchEngine.Type.BUNDLED)
         val searchEngineDefinition = sampleSearchEngineDefinitionData()
+        val attachmentModel = sampleAttachmentModelData()
         searchEngineDefinition.urls.search.base = "https://www.google.com/search"
         searchEngineDefinition.urls.search.params += SearchUrlParam(name = "search-test-name", value = "search-test-value", enterpriseValue = null, experimentConfig = null)
         searchEngineDefinition.urls.search.searchTermParamName = "test"
@@ -212,7 +200,7 @@ class SearchEngineReaderTest {
             searchTermParamName = "test3",
         )
 
-        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, emptyByteArray, validMimeType)
+        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, attachmentModel)
 
         assertEquals(searchEngineDefinition.identifier, searchEngine.id)
         assertEquals(searchEngineDefinition.name, searchEngine.name)
@@ -227,10 +215,10 @@ class SearchEngineReaderTest {
     fun `GIVEN null name THEN throw exception`() {
         val reader = SearchEngineReader(type = SearchEngine.Type.BUNDLED)
         val searchEngineDefinition = sampleSearchEngineDefinitionData()
+        val attachmentModel = sampleAttachmentModelData()
         searchEngineDefinition.name = ""
-
         val exception = assertThrows(IllegalArgumentException::class.java) {
-            reader.loadStreamAPI(searchEngineDefinition, emptyByteArray, "")
+            reader.loadStreamAPI(searchEngineDefinition, attachmentModel)
         }
         assertEquals("Search engine name cannot be empty", exception.message)
     }
@@ -239,10 +227,11 @@ class SearchEngineReaderTest {
     fun `GIVEN null identifier THEN throw exception`() {
         val reader = SearchEngineReader(type = SearchEngine.Type.BUNDLED)
         val searchEngineDefinition = sampleSearchEngineDefinitionData()
+        val attachmentModel = sampleAttachmentModelData()
         searchEngineDefinition.identifier = ""
 
         val exception = assertThrows(IllegalArgumentException::class.java) {
-            reader.loadStreamAPI(searchEngineDefinition, emptyByteArray, "")
+            reader.loadStreamAPI(searchEngineDefinition, attachmentModel)
         }
         assertEquals("Search engine identifier cannot be empty", exception.message)
     }
@@ -251,8 +240,14 @@ class SearchEngineReaderTest {
     fun `GIVEN valid jpeg image THEN readImageAPI decodes it`() {
         val reader = SearchEngineReader(type = SearchEngine.Type.BUNDLED)
         val searchEngineDefinition = sampleSearchEngineDefinitionData()
-
-        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, emptyByteArray, validMimeType)
+        val attachmentModel = AttachmentModel(
+            filename = "test",
+            mimetype = "image/jpeg",
+            location = "main-workspace/search-config-icons/d0e5c407-7b88-4030-8870-f44498141ec7.jpg",
+            hash = "test",
+            size = 100u,
+        )
+        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, attachmentModel)
         assertNotNull(searchEngine.icon)
     }
 
@@ -260,8 +255,14 @@ class SearchEngineReaderTest {
     fun `GIVEN valid png image THEN readImageAPI decodes it`() {
         val reader = SearchEngineReader(type = SearchEngine.Type.BUNDLED)
         val searchEngineDefinition = sampleSearchEngineDefinitionData()
-
-        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, emptyByteArray, validMimeType)
+        val attachmentModel = AttachmentModel(
+            filename = "test",
+            mimetype = "image/png",
+            location = "main-workspace/search-config-icons/bcf53867-215e-40f1-9a6e-bc4c5768c5c4.png",
+            hash = "test",
+            size = 100u,
+        )
+        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, attachmentModel)
         assertNotNull(searchEngine.icon)
     }
 
@@ -269,8 +270,14 @@ class SearchEngineReaderTest {
     fun `GIVEN valid ico image THEN readImageAPI decodes it`() {
         val reader = SearchEngineReader(type = SearchEngine.Type.BUNDLED)
         val searchEngineDefinition = sampleSearchEngineDefinitionData()
-
-        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, emptyByteArray, validMimeType)
+        val attachmentModel = AttachmentModel(
+            filename = "test",
+            mimetype = "image/x-icon",
+            location = "main-workspace/search-config-icons/5ed361f5-5b94-4899-896a-747d107f7392.ico",
+            hash = "test",
+            size = 100u,
+        )
+        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, attachmentModel)
         assertNotNull(searchEngine.icon)
     }
 
@@ -278,9 +285,16 @@ class SearchEngineReaderTest {
     fun `GIVEN invalid image mimetype THEN readImageAPI throws exception`() {
         val reader = SearchEngineReader(type = SearchEngine.Type.BUNDLED)
         val searchEngineDefinition = sampleSearchEngineDefinitionData()
+        val attachmentModel = AttachmentModel(
+            filename = "test",
+            mimetype = "image/gif",
+            location = "main-workspace/search-config-icons/5ed361f5-5b94-4899-896a-747d107f7392.ico",
+            hash = "test",
+            size = 100u,
+        )
 
         val exception = assertThrows(IllegalArgumentException::class.java) {
-            reader.loadStreamAPI(searchEngineDefinition, emptyByteArray, invalidMimeType)
+            reader.loadStreamAPI(searchEngineDefinition, attachmentModel)
         }
         assertEquals("Unsupported image type: image/gif", exception.message)
     }
@@ -297,10 +311,10 @@ class SearchEngineReaderTest {
             hash = "test",
             size = 100u,
         )
-        val exception = assertThrows(IllegalStateException::class.java) {
-            reader.loadStreamAPI(searchEngineDefinition, null, attachmentModel.mimetype)
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            reader.loadStreamAPI(searchEngineDefinition, attachmentModel)
         }
-        assertEquals("Failed to decode image for mimetype: image/png", exception.message)
+        assertEquals("Failed to read image from location: https://firefox-settings-attachments.cdn.mozilla.net/test", exception.message)
     }
 
     @Test
@@ -314,13 +328,8 @@ class SearchEngineReaderTest {
             hash = "test",
             size = 100u,
         )
-        val dummyIcoBytes = ByteArray(8)
-
-        val exception = assertThrows(IllegalStateException::class.java) {
-            reader.loadStreamAPI(searchEngineDefinition, dummyIcoBytes, attachmentModel.mimetype)
-        }
-
-        assertTrue(exception.message?.contains("Failed to decode image") == true)
+        val searchEngine = reader.loadStreamAPI(searchEngineDefinition, attachmentModel, "https://firefox-settings-attachments.cdn.allizom.org/")
+        assertNotNull(searchEngine.icon)
     }
 
     private fun sampleSearchEngineDefinitionData(): SearchEngineDefinition {

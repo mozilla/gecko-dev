@@ -4,7 +4,6 @@
 
 package mozilla.components.feature.search
 
-import mozilla.appservices.remotesettings.RemoteSettingsClient
 import mozilla.appservices.remotesettings.RemoteSettingsException
 import mozilla.appservices.remotesettings.RemoteSettingsRecord
 import mozilla.components.support.base.log.logger.Logger
@@ -31,10 +30,10 @@ class RemoteSettingsRepository private constructor() {
         fun fetchRemoteResponse(
             service: RemoteSettingsService,
             collectionName: String,
-            client: RemoteSettingsClient? = service.remoteSettingsService.makeClient(collectionName),
         ): List<RemoteSettingsRecord>? {
             return try {
-                return client?.getRecords()
+                val client = service.remoteSettingsService.makeClient(collectionName)
+                return client.getRecords()
             } catch (e: RemoteSettingsException) {
                 logger.error("Remote Settings Exception", e)
                 emptyList()

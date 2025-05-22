@@ -4,8 +4,6 @@
 
 package mozilla.components.feature.search.storage
 
-import mozilla.appservices.remotesettings.RemoteSettingsClient
-import mozilla.appservices.remotesettings.RemoteSettingsRecord
 import mozilla.appservices.search.RefinedSearchConfig
 import mozilla.appservices.search.SearchApiException
 import mozilla.appservices.search.SearchUserEnvironment
@@ -15,7 +13,8 @@ import mozilla.components.feature.search.SearchApplicationName
 import mozilla.components.feature.search.SearchDeviceType
 import mozilla.components.feature.search.SearchEngineSelector
 import mozilla.components.feature.search.SearchUpdateChannel
-import mozilla.components.feature.search.icons.SearchConfigIconsParser
+import mozilla.components.feature.search.icons.AttachmentModel
+import mozilla.components.feature.search.icons.SearchConfigIconsModel
 import mozilla.components.feature.search.icons.SearchConfigIconsUpdateService
 import mozilla.components.feature.search.into
 import mozilla.components.feature.search.middleware.SearchExtraParams
@@ -33,13 +32,11 @@ import kotlin.coroutines.CoroutineContext
  */
 class SearchEngineSelectorRepository(
     private val searchEngineSelectorConfig: SearchEngineSelectorConfig,
-    client: RemoteSettingsClient?,
 ) : SearchMiddleware.SearchEngineRepository {
 
-    private val searchConfigIconsUpdateService: SearchConfigIconsUpdateService = SearchConfigIconsUpdateService(client)
+    private val searchConfigIconsUpdateService: SearchConfigIconsUpdateService = SearchConfigIconsUpdateService()
     private val reader: SearchEngineReader = SearchEngineReader(type = SearchEngine.Type.BUNDLED)
     private val logger = Logger("SearchEngineSelectorRepository")
-    private val parser = SearchConfigIconsParser()
 
     init {
         try {
@@ -76,7 +73,7 @@ class SearchEngineSelectorRepository(
             )
             val searchConfig = searchEngineSelectorConfig.selector.filterEngineConfiguration(config)
 
-            val iconsList = searchConfigIconsUpdateService.fetchIconsRecords(searchEngineSelectorConfig.service)
+            val iconsList = searchConfigIconsUpdateService.fetchIcons(searchEngineSelectorConfig.service)
 
             val searchEngineList = buildSearchEngineList(
                 searchConfig = searchConfig,
@@ -98,7 +95,7 @@ class SearchEngineSelectorRepository(
 
     private fun buildSearchEngineList(
         searchConfig: RefinedSearchConfig,
-        iconsList: List<RemoteSettingsRecord>,
+        iconsList: List<SearchConfigIconsModel>,
     ): List<SearchEngine> {
         val searchEngineList = mutableListOf<SearchEngine>()
         searchConfig.engines.forEach { engine ->
@@ -107,8 +104,7 @@ class SearchEngineSelectorRepository(
                 val searchEngine = try {
                     reader.loadStreamAPI(
                         engineDefinition = engine,
-                        attachmentModel = searchConfigIconsUpdateService.fetchIconAttachment(it),
-                        mimetype = it.attachment?.mimetype ?: "",
+                        attachmentModel = it,
                     )
                 } catch (exception: IllegalArgumentException) {
                     return@forEach
@@ -123,18 +119,17 @@ class SearchEngineSelectorRepository(
 
     private fun findMatchingIcon(
         engineIdentifier: String,
-        iconsList: List<RemoteSettingsRecord>,
-    ): RemoteSettingsRecord? {
+        iconsList: List<SearchConfigIconsModel>,
+    ): AttachmentModel? {
         iconsList.forEach { icon ->
-            val parsedIcon = parser.parseRecord(icon)
-            parsedIcon?.engineIdentifier?.forEach {
-                val prefix = if (it.endsWith("*", true)) {
-                    it.removeSuffix("*")
+            icon.engineIdentifier.forEach { patternIdPrefix ->
+                val prefix = if (patternIdPrefix.endsWith("*", true)) {
+                    patternIdPrefix.removeSuffix("*")
                 } else {
-                    it
+                    patternIdPrefix
                 }
                 if (engineIdentifier.startsWith(prefix)) {
-                    return icon
+                    return icon.attachment
                 }
             }
         }

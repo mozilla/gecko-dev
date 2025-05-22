@@ -4,8 +4,6 @@
 
 package mozilla.components.feature.search.icons
 
-import mozilla.appservices.remotesettings.RemoteSettingsClient
-import mozilla.appservices.remotesettings.RemoteSettingsRecord
 import mozilla.components.feature.search.RemoteSettingsRepository
 import mozilla.components.support.remotesettings.RemoteSettingsService
 
@@ -14,9 +12,8 @@ internal const val SEARCH_CONFIG_ICONS_COLLECTION_NAME = "search-config-icons"
 /**
  * Service for updating search configuration icons from Remote Settings.
  */
-class SearchConfigIconsUpdateService(
-    private val client: RemoteSettingsClient?,
-) {
+class SearchConfigIconsUpdateService {
+    private val parser = SearchConfigIconsParser()
 
     /**
      * Fetches the latest search config icons.
@@ -24,20 +21,10 @@ class SearchConfigIconsUpdateService(
      * @param service The [RemoteSettingsService] to fetch data from.
      * @return List of [SearchConfigIconsModel] objects.
      */
-    fun fetchIconsRecords(service: RemoteSettingsService): List<RemoteSettingsRecord> {
+    fun fetchIcons(service: RemoteSettingsService): List<SearchConfigIconsModel> {
         return RemoteSettingsRepository.fetchRemoteResponse(
             service = service,
             collectionName = SEARCH_CONFIG_ICONS_COLLECTION_NAME,
-            client = client,
-        ) ?: emptyList()
-    }
-
-    /**
-     * Fetches the latest search config icons.
-     *
-     * @param record The [RemoteSettingsRecord] who's attachment is to be fetched.
-=     */
-    fun fetchIconAttachment(record: RemoteSettingsRecord): ByteArray? {
-        return client?.getAttachment(record)
+        )?.mapNotNull(parser::parseRecord) ?: emptyList()
     }
 }
