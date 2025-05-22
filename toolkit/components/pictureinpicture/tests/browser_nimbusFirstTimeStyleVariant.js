@@ -112,5 +112,5 @@ add_task(async function test_experiment_toggle_style() {
     }
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 });

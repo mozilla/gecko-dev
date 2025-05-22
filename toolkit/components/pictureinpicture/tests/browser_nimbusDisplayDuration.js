@@ -83,7 +83,7 @@ add_task(async function test_experiment_displayDuration_end_date_was_reached() {
     }
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 });
 
 /**
@@ -131,7 +131,7 @@ add_task(async function test_experiment_displayDuration_end_date_not_reached() {
     }
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 });
 
 /**
@@ -172,7 +172,7 @@ add_task(async function test_experiment_displayDuration_negative_duration() {
     }
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 });
 
 /**
@@ -210,5 +210,5 @@ add_task(async function test_experiment_displayDuration_already_icon() {
     }
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 });

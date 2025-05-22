@@ -115,5 +115,5 @@ add_task(async function test_experiment_message() {
     }
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 });
