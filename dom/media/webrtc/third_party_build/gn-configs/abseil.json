@@ -1,7 +1,6 @@
 {
   "build_root_dir": "third_party",
   "target_dir": "abseil-cpp",
-  "preprocessing_script": "dom/media/webrtc/third_party_build/gn-configs/abseil_preprocessor.py",
   "moz_build_flag": "build_mozilla_absl",
   "gn_target": "//:absl",
   "gn_sandbox_variables": {
