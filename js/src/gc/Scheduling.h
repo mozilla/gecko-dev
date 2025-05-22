@@ -500,7 +500,14 @@
    * JSGC_GENERATE_MISSING_ALLOC_SITES                                         \
    */                                                                          \
   _(JSGC_GENERATE_MISSING_ALLOC_SITES, bool, generateMissingAllocSites,        \
-    ConvertBool, NoCheck, false)
+    ConvertBool, NoCheck, false)                                               \
+                                                                               \
+  /*                                                                           \
+   * JSGC_NURSERY_MAX_TIME_GOAL_MS                                             \
+   */                                                                          \
+  _(JSGC_NURSERY_MAX_TIME_GOAL_MS, mozilla::TimeDuration,                      \
+    nurseryMaxTimeGoalMS, ConvertMillis, NoCheck,                              \
+    mozilla::TimeDuration::FromMilliseconds(4))
 
 namespace js {
 

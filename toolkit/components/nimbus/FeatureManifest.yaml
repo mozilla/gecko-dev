@@ -3708,6 +3708,12 @@ gc:
       setPref:
         branch: user
         pref: "javascript.options.mem.nursery_eager_collection_timeout_ms"
+    nursery_max_time_goal_ms:
+      description: Set the nursery's maximum time goal, in ms.
+      type: int
+      setPref:
+        branch: user
+        pref: "javascript.options.mem.nursery_max_time_goal_ms"
 
 jsParallelParsing:
   description: Pref to toggle JS parallel parsing.

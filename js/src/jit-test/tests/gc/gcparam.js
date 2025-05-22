@@ -60,3 +60,4 @@ testChangeParam("urgentThreshold");
 testChangeParam("helperThreadRatio");
 testChangeParam("maxHelperThreads");
 testChangeParam("semispaceNurseryEnabled");
+testChangeParam("nurseryMaxTimeGoalMS");

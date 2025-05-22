@@ -1978,6 +1978,11 @@ void nsJSContext::EnsureStatics() {
       "javascript.options.mem.nursery_eager_collection_timeout_ms",
       (void*)JSGC_NURSERY_EAGER_COLLECTION_TIMEOUT_MS);
 
+  Preferences::RegisterCallbackAndCall(
+      SetMemoryPrefChangedCallbackInt,
+      "javascript.options.mem.nursery_max_time_goal_ms",
+      (void*)JSGC_NURSERY_MAX_TIME_GOAL_MS);
+
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   if (!obs) {
     MOZ_CRASH();

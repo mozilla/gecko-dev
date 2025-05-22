@@ -76,6 +76,7 @@ class ArenaChunk;
     JSGC_NURSERY_EAGER_COLLECTION_THRESHOLD_PERCENT, true)                  \
   _("nurseryEagerCollectionTimeoutMS",                                      \
     JSGC_NURSERY_EAGER_COLLECTION_TIMEOUT_MS, true)                         \
+  _("nurseryMaxTimeGoalMS", JSGC_NURSERY_MAX_TIME_GOAL_MS, true)            \
   _("zoneAllocDelayKB", JSGC_ZONE_ALLOC_DELAY_KB, true)                     \
   _("mallocThresholdBase", JSGC_MALLOC_THRESHOLD_BASE, true)                \
   _("urgentThreshold", JSGC_URGENT_THRESHOLD_MB, true)                      \

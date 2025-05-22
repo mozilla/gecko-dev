@@ -375,6 +375,7 @@ void LoadJSGCMemoryOptions(const char* aPrefName, void* /* aClosure */) {
 #ifdef NIGHTLY_BUILD
       PREF("gc_experimental_semispace_nursery", JSGC_SEMISPACE_NURSERY_ENABLED),
 #endif
+      PREF("nursery_max_time_goal_ms", JSGC_NURSERY_MAX_TIME_GOAL_MS),
       // Note: Workers do not currently trigger eager minor GC, but if that is
       // desired the following parameters should be added:
       // javascript.options.mem.nursery_eager_collection_threshold_kb
@@ -454,6 +455,7 @@ void LoadJSGCMemoryOptions(const char* aPrefName, void* /* aClosure */) {
       case JSGC_HEAP_GROWTH_FACTOR:
       case JSGC_PARALLEL_MARKING_THRESHOLD_MB:
       case JSGC_MAX_MARKING_THREADS:
+      case JSGC_NURSERY_MAX_TIME_GOAL_MS:
         UpdateCommonJSGCMemoryOption(rts, pref->fullName, pref->key);
         break;
       default:
