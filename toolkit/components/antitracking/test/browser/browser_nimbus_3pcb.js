@@ -60,7 +60,7 @@ add_task(async function test_3pcb_nimbus_feature() {
     "The third party cookie blocking PBM pref has been set correctly to the default branch"
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 
   info("Check the third party cookie blocking pref has been reset correctly.");
   is(
@@ -119,7 +119,7 @@ add_task(async function test_3pcb_nimbus_feature() {
     "The third party cookie blocking PBM pref has been set correctly to the default branch"
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 
   info("Check the third party cookie blocking pref has been reset correctly.");
   is(

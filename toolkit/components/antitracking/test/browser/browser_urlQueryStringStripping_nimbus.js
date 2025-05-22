@@ -133,7 +133,7 @@ add_task(async function test() {
         );
       }
 
-      doExperimentCleanup();
+      await doExperimentCleanup();
     }
   }
 

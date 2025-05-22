@@ -41,7 +41,7 @@ add_task(async function test_nimbus_tracker_cookie_blocking_feature() {
     "The third party tracker cookie blocking pref has been set correctly to the default branch"
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 
   is(
     Services.prefs.getBoolPref(
@@ -77,7 +77,7 @@ add_task(async function test_nimbus_tracker_cookie_blocking_feature() {
     "The third party tracker cookie blocking pref has been set correctly to the default branch"
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 
   is(
     Services.prefs.getBoolPref(

@@ -78,7 +78,7 @@ add_task(async function test_etp_features() {
     "The ETP category should remain strict"
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 
   // Reset the ETP category to standard.
   Services.prefs.setStringPref("browser.contentblocking.category", "standard");
