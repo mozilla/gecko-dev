@@ -48,15 +48,19 @@ add_setup(async () => {
 add_task(async function test_button_shown_by_attention() {
   gBrowser.selectedTab = TAB_WITHOUT_ATTENTION;
   assertExtensionsButtonHidden();
+  resetExtensionsButtonTelemetry();
 
   info("Switch to tab demanding attention; button should show");
   gBrowser.selectedTab = TAB_WITH_ATTENTION;
   ok(gUnifiedExtensions.button.hasAttribute("attention"), "Button attention");
   assertExtensionsButtonVisible();
+  assertExtensionsButtonTelemetry({ attention_permission_denied: 1 });
 
   info("Switch to tab without attention; button should hide");
   gBrowser.selectedTab = TAB_WITHOUT_ATTENTION;
   assertExtensionsButtonHidden();
+  // Counter still the same as before.
+  assertExtensionsButtonTelemetry({ attention_permission_denied: 1 });
 });
 
 add_task(async function test_button_ignore_attention_pref() {
@@ -65,6 +69,7 @@ add_task(async function test_button_ignore_attention_pref() {
   });
   gBrowser.selectedTab = TAB_WITHOUT_ATTENTION;
   assertExtensionsButtonHidden();
+  resetExtensionsButtonTelemetry();
 
   info("Switch to tab demanding attention; button should be hidden by pref");
   gBrowser.selectedTab = TAB_WITH_ATTENTION;
@@ -74,6 +79,7 @@ add_task(async function test_button_ignore_attention_pref() {
   info("Switch to tab without attention; button should stay hidden");
   gBrowser.selectedTab = TAB_WITHOUT_ATTENTION;
   assertExtensionsButtonHidden();
+  assertExtensionsButtonTelemetry({ attention_permission_denied: 0 });
   await SpecialPowers.popPrefEnv();
 });
 
@@ -171,6 +177,7 @@ add_task(async function test_contextmenu_on_button_with_attention() {
 add_task(async function test_button_shown_by_attention_from_blocklist() {
   // Sanity check: Starting without attention.
   assertExtensionsButtonHidden();
+  resetExtensionsButtonTelemetry();
 
   let extension = ExtensionTestUtils.loadExtension({
     useAddonManager: "permanent",
@@ -183,9 +190,19 @@ add_task(async function test_button_shown_by_attention_from_blocklist() {
 
   const cleanupBlocklist = await loadBlocklistRawData({ blocked: [addon] });
   assertExtensionsButtonVisible();
+  assertExtensionsButtonTelemetry({ attention_blocklist: 1 });
+
+  gBrowser.selectedTab = TAB_WITH_ATTENTION;
+  gBrowser.selectedTab = TAB_WITHOUT_ATTENTION;
+  assertExtensionsButtonVisible();
+  // When the button is already visible, adding another (attention) reason for
+  // showing it does not trigger additional telemetry.
+  assertExtensionsButtonTelemetry({ attention_blocklist: 1 });
 
   await cleanupBlocklist();
   assertExtensionsButtonHidden();
+  // No change after transitioning from blocked to unblocked.
+  assertExtensionsButtonTelemetry({ attention_blocklist: 1 });
 
   await extension.unload();
 });

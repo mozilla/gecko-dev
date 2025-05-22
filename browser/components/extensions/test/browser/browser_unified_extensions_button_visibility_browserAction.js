@@ -17,6 +17,7 @@ add_task(async function test_show_via_browserAction_openPopup() {
   await SpecialPowers.pushPrefEnv({
     set: [["extensions.openPopupWithoutUserGesture.enabled", true]],
   });
+  resetExtensionsButtonTelemetry();
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const extension = ExtensionTestUtils.loadExtension({
     useAddonManager: "temporary",
@@ -41,6 +42,7 @@ add_task(async function test_show_via_browserAction_openPopup() {
   extension.sendMessage("open_action_popup_panel");
   const popupBrowser = await popupShownPromise;
   assertExtensionsButtonVisible(win);
+  assertExtensionsButtonTelemetry({ extension_browser_action_popup: 1 });
 
   info("Testing that the button hides when the popup panel is closed");
   let hiddenPromise = promisePopupHidden(getPanelForNode(popupBrowser));
@@ -51,6 +53,9 @@ add_task(async function test_show_via_browserAction_openPopup() {
   await extension.unload();
   await BrowserTestUtils.closeWindow(win);
 
+  // Same counter as before, nothing else whilst closing the action popup.
+  assertExtensionsButtonTelemetry({ extension_browser_action_popup: 1 });
+
   await SpecialPowers.popPrefEnv();
 });
 
@@ -59,6 +64,7 @@ add_task(async function test_show_via_browserAction_openPopup() {
 // API calls. Notably, the anount of processing (and time) between triggering a
 // user input (keyboard shortcut) and the opening of the popup is minimal.
 add_task(async function test_show_via_commands_execute_browser_action() {
+  resetExtensionsButtonTelemetry();
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const extension = ExtensionTestUtils.loadExtension({
     useAddonManager: "temporary",
@@ -85,6 +91,7 @@ add_task(async function test_show_via_commands_execute_browser_action() {
   EventUtils.synthesizeKey("VK_COMMA", { ctrlKey: true, shiftKey: true }, win);
   const popupBrowser = await popupShownPromise;
   assertExtensionsButtonVisible(win);
+  assertExtensionsButtonTelemetry({ extension_browser_action_popup: 1 });
 
   info("Testing that the button hides when the popup panel is closed");
   let hiddenPromise = promisePopupHidden(getPanelForNode(popupBrowser));
@@ -94,4 +101,7 @@ add_task(async function test_show_via_commands_execute_browser_action() {
 
   await extension.unload();
   await BrowserTestUtils.closeWindow(win);
+
+  // Same counter as before, nothing else whilst closing the action popup.
+  assertExtensionsButtonTelemetry({ extension_browser_action_popup: 1 });
 });

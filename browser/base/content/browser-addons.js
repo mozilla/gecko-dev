@@ -1197,7 +1197,11 @@ var gXPInstallObserver = {
     );
   },
 
-  // IDs of addon install related notifications
+  // IDs of addon install related notifications, passed by this file
+  // (browser-addons.js) to PopupNotifications.show(). The only exception is
+  // "addon-webext-permissions" (from browser/modules/ExtensionsUI.sys.mjs),
+  // which can not only be triggered during add-on installation, but also
+  // later, when the extension uses the browser.permissions.request() API.
   NOTIFICATION_IDS: [
     "addon-install-blocked",
     "addon-install-confirmation",
@@ -2155,10 +2159,19 @@ var gUnifiedExtensions = {
     }
     this.button.ownerDocument.l10n.setAttributes(this.button, msgId);
     if (!this.buttonAlwaysVisible && !this.buttonIgnoresAttention) {
+      if (blocklistAttention) {
+        this.recordButtonTelemetry("attention_blocklist");
+      } else if (permissionsAttention || quarantinedAttention) {
+        this.recordButtonTelemetry("attention_permission_denied");
+      }
       this.updateButtonVisibility();
     }
   },
 
+  // Get the anchor to use with PopupNotifications.show(). If you add a new use
+  // of this method, make sure to update gXPInstallObserver.NOTIFICATION_IDS!
+  // If the new ID is not added in NOTIFICATION_IDS, consider handling the case
+  // in the "PopupNotificationsBeforeAnchor" handler elsewhere in this file.
   getPopupAnchorID(aBrowser, aWindow) {
     const anchorID = "unified-extensions-button";
     const attr = anchorID + "popupnotificationanchor";
@@ -2246,7 +2259,20 @@ var gUnifiedExtensions = {
         break;
 
       case "PopupNotificationsBeforeAnchor":
-        this.ensureButtonShownBeforeAttachingPanel(PopupNotifications.panel);
+        {
+          const popupnotification = PopupNotifications.panel.firstElementChild;
+          const popupid = popupnotification?.getAttribute("popupid");
+          if (popupid === "addon-webext-permissions") {
+            // "addon-webext-permissions" is also in NOTIFICATION_IDS, but to
+            // distinguish it from other cases, give it a separate reason.
+            this.recordButtonTelemetry("extension_permission_prompt");
+          } else if (gXPInstallObserver.NOTIFICATION_IDS.includes(popupid)) {
+            this.recordButtonTelemetry("addon_install_doorhanger");
+          } else {
+            console.error(`Unrecognized notification ID: ${popupid}`);
+          }
+          this.ensureButtonShownBeforeAttachingPanel(PopupNotifications.panel);
+        }
         break;
 
       case "mouseenter":
@@ -2260,6 +2286,7 @@ var gUnifiedExtensions = {
 
       case "customizationstarting":
         this.panel.hidePopup();
+        this.recordButtonTelemetry("customize");
         this.updateButtonVisibility();
         break;
 
@@ -2478,7 +2505,9 @@ var gUnifiedExtensions = {
     return this._panel;
   },
 
-  async togglePanel(aEvent) {
+  // `aEvent` and `reason` are optional. If `reason` is specified, it should be
+  // a valid argument to gUnifiedExtensions.recordButtonTelemetry().
+  async togglePanel(aEvent, reason) {
     if (!CustomizationHandler.isCustomizing()) {
       if (aEvent) {
         if (
@@ -2539,6 +2568,7 @@ var gUnifiedExtensions = {
         }
 
         panel.hidden = false;
+        this.recordButtonTelemetry(reason || "extensions_panel_showing");
         this.ensureButtonShownBeforeAttachingPanel(panel);
         PanelMultiView.openPopup(panel, this._button, {
           position: "bottomright topright",
@@ -2551,7 +2581,7 @@ var gUnifiedExtensions = {
     window.dispatchEvent(new CustomEvent("UnifiedExtensionsTogglePanel"));
   },
 
-  async openPanel(aEvent) {
+  async openPanel(event, reason) {
     if (this._button.open) {
       throw new Error("Tried to open panel whilst a panel was already open!");
     }
@@ -2559,14 +2589,14 @@ var gUnifiedExtensions = {
       throw new Error("Cannot open panel while in Customize mode!");
     }
 
-    if (aEvent.sourceEvent?.target.id === "appMenu-unified-extensions-button") {
+    if (event?.sourceEvent?.target.id === "appMenu-unified-extensions-button") {
       Glean.extensionsButton.openViaAppMenu.record({
         is_extensions_panel_empty: !this.hasExtensionsInPanel(),
         is_extensions_button_visible: !this._button.hidden,
       });
     }
 
-    await this.togglePanel(aEvent);
+    await this.togglePanel(event, reason);
   },
 
   updateContextMenu(menu, event) {
@@ -2987,6 +3017,20 @@ var gUnifiedExtensions = {
         policy => lazy.OriginControls.getState(policy, selectedTab).quarantined
       )
     );
+  },
+
+  // Records telemetry when the button is about to temporarily be shown,
+  // provided that the button is hidden at the time of invocation.
+  //
+  // `reason` is one of the labels in extensions_button.temporarily_unhidden
+  // in browser/components/extensions/metrics.yaml.
+  //
+  // This is usually immediately before a updateButtonVisibility() call,
+  // sometimes a bit earlier (if the updateButtonVisibility() call is indirect).
+  recordButtonTelemetry(reason) {
+    if (!this.buttonAlwaysVisible && this._button.hidden) {
+      Glean.extensionsButton.temporarilyUnhidden[reason].add();
+    }
   },
 
   hideExtensionsButtonFromToolbar() {

@@ -66,6 +66,7 @@ const verifyPermissionsPrompt = async expectAlwaysShown => {
   });
 
   await BrowserTestUtils.withNewTab({ gBrowser }, async () => {
+    resetExtensionsButtonTelemetry();
     const defaultSearchPopupPromise = promisePopupNotificationShown(
       "addon-webext-defaultsearch"
     );
@@ -114,11 +115,19 @@ const verifyPermissionsPrompt = async expectAlwaysShown => {
       "expected the right anchor ID"
     );
     assertExtensionsButtonVisible();
+    if (expectAlwaysShown) {
+      assertExtensionsButtonTelemetry({ extension_permission_prompt: 0 });
+    } else {
+      assertExtensionsButtonTelemetry({ extension_permission_prompt: 1 });
+      resetExtensionsButtonTelemetry();
+    }
 
     panel.button.click();
     await ext.awaitMessage("ok");
 
     await ext.unload();
+    // No more counters beyond the ones explicitly checked.
+    assertExtensionsButtonTelemetry({});
   });
 };
 
@@ -149,6 +158,7 @@ add_task(async function test_homepage_doorhanger() {
   await SpecialPowers.pushPrefEnv({
     set: [["extensions.unifiedExtensions.button.always_visible", false]],
   });
+  resetExtensionsButtonTelemetry();
 
   const extension = ExtensionTestUtils.loadExtension({
     manifest: { chrome_settings_overrides: { homepage: "exthome.html" } },
@@ -164,6 +174,7 @@ add_task(async function test_homepage_doorhanger() {
   info("Waiting for 'Your homepage has changed' doorhanger to appear");
   await popupShown;
   assertExtensionsButtonVisible();
+  assertExtensionsButtonTelemetry({ extension_controlled_setting: 1 });
 
   let popupnotification = document.getElementById(
     "extension-homepage-notification"
@@ -175,6 +186,8 @@ add_task(async function test_homepage_doorhanger() {
   await popupHidden;
 
   assertExtensionsButtonHidden();
+  // Still the same count as before.
+  assertExtensionsButtonTelemetry({ extension_controlled_setting: 1 });
 
   await extension.unload();
 

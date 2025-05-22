@@ -5,6 +5,8 @@
 
 /* exported assertExtensionsButtonHidden,
             assertExtensionsButtonVisible,
+            assertExtensionsButtonTelemetry,
+            resetExtensionsButtonTelemetry,
             clickUnifiedExtensionsItem,
             closeCustomizationUI,
             closeExtensionsPanel,
@@ -295,3 +297,72 @@ const loadBlocklistRawData = async stash => {
   registerCleanupFunction(cleanupBlocklist);
   return cleanupBlocklist;
 };
+
+// All labels of the extensions_button.temporarily_unhidden labeled counter.
+// There is no API to get all labels (bug 1930572), so list them manually:
+const extensionsButtonTemporarilyUnhiddenLabels = [
+  "customize",
+  "addon_install_doorhanger",
+  "extension_controlled_setting",
+  "extension_permission_prompt",
+  "extensions_panel_showing",
+  "extension_browser_action_popup",
+  "attention_blocklist",
+  "attention_permission_denied",
+];
+const extensionsButtonTemporarilyUnhiddenLastValues = {};
+
+// Reset the extensions_button.temporarily_unhidden counters. Must be called by
+// the test before assertExtensionsButtonTelemetry, to ensure that there is no
+// unrelated state.
+function resetExtensionsButtonTelemetry() {
+  // It is not possible to reset the labels of an individual Glean metric, only
+  // all of it can be reset with Services.fog.testResetFOG(). But we don't want
+  // to rely on that, because the telemetry tests are inserted in other tests
+  // that happen to already trigger the scenario where this telemetry is
+  // relevant, and we want to minimize the impact on the observable behavior in
+  // these tests. So, instead of resetting, we just store the last known state
+  // of the counters.
+  for (const k of extensionsButtonTemporarilyUnhiddenLabels) {
+    extensionsButtonTemporarilyUnhiddenLastValues[k] =
+      Glean.extensionsButton.temporarilyUnhidden[k].testGetValue() ?? 0;
+  }
+}
+
+// Checks the values of all extensions_button.temporarily_unhidden counters.
+function assertExtensionsButtonTelemetry(expectations) {
+  // We also need to check __other__ to ensure that we did not inadvertently
+  // misspell a label somewhere (bug 1905345).
+
+  const expectedKeys = new Set(Object.keys(expectations));
+  const actual = {};
+  for (const k of extensionsButtonTemporarilyUnhiddenLabels) {
+    let value = Glean.extensionsButton.temporarilyUnhidden[k].testGetValue();
+    value ??= 0; // testGetValue() returns null if never recorded before.
+    // Compute delta compared to last call of resetExtensionsButtonTelemetry():
+    value -= extensionsButtonTemporarilyUnhiddenLastValues[k];
+    // Record if in expectations (even if 0). Record if value is non-zero, to
+    // make sure that the caller in the test is notified of unexpected values.
+    if (expectedKeys.has(k) || value) {
+      actual[k] = value;
+    }
+    expectedKeys.delete(k);
+  }
+  if (expectedKeys.size !== 0) {
+    // Sanity check: check that expectations are not misspelled / missing.
+    Assert.ok(false, `Unrecognized expectations: ${Array.from(expectedKeys)}`);
+  }
+  Assert.deepEqual(
+    actual,
+    expectations,
+    "extensions_button.temporarily_unhidden has expected counters on its labels"
+  );
+
+  // Glean happily increments counters for labels that are not explicitly
+  // listed in metrics.yaml. Make sure that we don't have unexpected labels.
+  // Currently, the only way to check that is via __other__ (bug 1905345).
+  let o = Glean.extensionsButton.temporarilyUnhidden.__other__.testGetValue();
+  if (o !== null) {
+    Assert.equal(o, null, "All static labels should be accounted for");
+  }
+}

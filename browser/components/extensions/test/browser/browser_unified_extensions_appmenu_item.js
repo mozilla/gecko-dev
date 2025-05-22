@@ -55,6 +55,7 @@ add_task(async function test_appmenu_when_button_is_hidden() {
 
 add_task(async function test_appmenu_extensions_opens_panel() {
   Services.fog.testResetFOG();
+  resetExtensionsButtonTelemetry();
   await SpecialPowers.pushPrefEnv({
     set: [["extensions.unifiedExtensions.button.always_visible", false]],
   });
@@ -95,8 +96,12 @@ add_task(async function test_appmenu_extensions_opens_panel() {
   ok(gUnifiedExtensions.hasExtensionsInPanel(), "Sanity check: has extensions");
 
   assertExtensionsButtonVisible();
+  assertExtensionsButtonTelemetry({ extensions_panel_showing: 1 });
   await closeExtensionsPanel();
   assertExtensionsButtonHidden();
+
+  // No more counters besides the one that we saw before in this test.
+  assertExtensionsButtonTelemetry({ extensions_panel_showing: 1 });
 
   await SpecialPowers.popPrefEnv();
 });

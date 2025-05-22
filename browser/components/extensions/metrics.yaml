@@ -109,3 +109,66 @@ extensions_button:
           exactly the same functionality, except in a more visible location
           (on the toolbar).
         type: boolean
+
+  temporarily_unhidden:
+    type: labeled_counter
+    description: >
+      Counts how often the hidden Extensions Button is temporarily shown.
+      There are multiple possible triggers for showing the extensions button,
+      only the first that would trigger the transition from hidden to shown is
+      going to be counted. For example, if the button is shown because the
+      "attention" dot is shown, and a permission prompt is shown, then we only
+      count the trigger for the attention dot, not the permission prompt.
+
+      customize is when the user entered Customize Mode, which causes the
+      Extensions Button to show unconditionally until the user exits the mode.
+
+      addon_install_doorhanger covers notifications related to add-on
+      installations, including blocked installations, add-on download progress,
+      and failed installations. Permission prompts are NOT part of this, but
+      covered by extension_permission_prompt. A typical installation flow
+      triggers both addon_install_doorhanger and extension_permission_prompt.
+
+      extension_controlled_setting is when a notification is anchored to the
+      Extensions Button that notifies the user of an extension-triggered change
+      (new tab page, home page, first use of tabs.hide()). This is shown on
+      first use of the relevant feature after the installation of an extension.
+
+      browser_action_open_popup is when the browserAction popup is opened. This
+      is usually user-triggered (shortcut, context menu) or via the
+      `action.openPopup()` API.
+
+      extension_permission_prompt is when an extension permission prompt is
+      shown. This does not distinguish between install-time permission prompts,
+      permission prompts on update or optional permission prompts at runtime.
+
+      extensions_panel_showing is when the Extensions Panel is being shown,
+      for example via the Extensions appmenu item.
+
+      attention_blocklist is when the browser wants to draw attention to the
+      fact that one of the add-ons has been blocklisted.
+
+      attention_permission_denied is when the browser wants to draw attention
+      to the fact that one of the extensions was denied access to the page in
+      the currently displayed tab. The access request is not a strong signal:
+      a MV3 extension with content scripts whose permissions have been revoked
+      by the user could trigger such an attention request on all websites.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966935
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966935
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+      - rwu@mozilla.com
+    expires: 150
+    labels:
+      - customize
+      - addon_install_doorhanger
+      - extension_controlled_setting
+      - extension_permission_prompt
+      - extensions_panel_showing
+      - extension_browser_action_popup
+      - attention_blocklist
+      - attention_permission_denied

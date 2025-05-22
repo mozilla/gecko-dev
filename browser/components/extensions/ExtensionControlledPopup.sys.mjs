@@ -340,9 +340,9 @@ export class ExtensionControlledPopup {
     }
     popupnotification.show();
     if (anchor?.id == "unified-extensions-button") {
-      anchor.ownerGlobal.gUnifiedExtensions.ensureButtonShownBeforeAttachingPanel(
-        panel
-      );
+      const { gUnifiedExtensions } = anchor.ownerGlobal;
+      gUnifiedExtensions.recordButtonTelemetry("extension_controlled_setting");
+      gUnifiedExtensions.ensureButtonShownBeforeAttachingPanel(panel);
     }
     panel.openPopup(anchor);
   }
