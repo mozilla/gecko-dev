@@ -324,6 +324,9 @@ support-files = ["file_new_tab_page.html"]
 
 ["browser_newwindow_tabstrip_overflow.js"]
 tags = "vertical-tabs"
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1648512
+]
 
 ["browser_openURI_background.js"]
 
