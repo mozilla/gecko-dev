@@ -55,6 +55,9 @@ crashtest:
                     linux1804-64(-qr)?/.*: ['mozilla-central']
                     linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux2404-64/.*: ['mozilla-central']
+                    linux2404-64-shippable/opt: ['mozilla-central']
+                    linux2404-64-asan/opt: ['mozilla-central']
                     default: []
             webrender-sw:
                 by-test-platform:
@@ -71,6 +74,9 @@ crashtest:
                     linux1804-64(-qr)?/.*: ['mozilla-central']
                     linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux2404-64/.*: ['mozilla-central']
+                    linux2404-64-shippable/opt: ['mozilla-central']
+                    linux2404-64-asan/opt: ['mozilla-central']
                     android.*: built-projects
                     default: []
             inc-origin-init:
@@ -143,6 +149,7 @@ jsreftest:
             windows.*/opt: 2
             linux.*64-ccov.*/.*: 5
             linux1804-64(-qr)?/opt: 4
+            linux2404-64/opt: 4
             linux.*/debug: 5
             .*-tsan(-qr)?/opt: 8
             macosx.*-64(-shippable)?/opt: 2
@@ -161,6 +168,9 @@ jsreftest:
                     linux1804-64(-qr)?/.*: ['mozilla-central']
                     linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux2404-64/.*: ['mozilla-central']
+                    linux2404-64-shippable/opt: ['mozilla-central']
+                    linux2404-64-asan/opt: ['mozilla-central']
                     android-hw-.*-aarch64(?:-shippable)?(-qr)?/.*: ['mozilla-central', 'release']
                     android-hw-.*-arm7(?:-shippable)?(-qr)?/.*: ['mozilla-central', 'release']
                     android.*: built-projects
@@ -187,6 +197,8 @@ reftest:
             android-em-7.*: 6
             linux1804-64(-shippable)?(-qr)?/opt: 5
             linux1804-64-devedition(-qr)?/opt: 5
+            linux2404-64(-shippable)?/opt: 5
+            linux2404-64-devedition/opt: 5
             linux.*64-tsan(-qr)?/opt: 16
             macosx.*-64-shippable/opt: 3
             macosx.*-64/debug: 6
@@ -212,6 +224,7 @@ reftest:
             draw-snapshot:
                 by-test-platform:
                     linux1804.*/debug: built-projects
+                    linux2404.*/debug: built-projects
                     default: []
             webrender-sw+no-fission:
                 by-test-platform:
@@ -219,12 +232,18 @@ reftest:
                     linux1804-64(-qr)?/debug: ['mozilla-central']
                     linux1804-64(-shippable)?(-qr)?/opt: ['mozilla-central']
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux2404-64/debug: ['mozilla-central']
+                    linux2404-64(-shippable)?/opt: ['mozilla-central']
+                    linux2404-64-asan/opt: ['mozilla-central']
                     default: []
             webrender-sw:
                 by-test-platform:
                     linux1804-64(-qr)?/.*: built-projects
                     linux1804-64-asan(-qr)?/opt: built-projects
                     linux1804-64-tsan(-qr)?/opt: built-projects
+                    linux2404-64/.*: built-projects
+                    linux2404-64-asan/opt: built-projects
+                    linux2404-64-tsan/opt: built-projects
                     macosx.*64(-qr)?/debug: built-projects
                     windows.*-asan.*/opt: built-projects
                     default: []
@@ -234,6 +253,9 @@ reftest:
                     linux1804-64(-qr)?/debug: ['mozilla-central']
                     linux1804-64(-shippable)?(-qr)?/opt: ['mozilla-central']
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux2404-64/debug: ['mozilla-central']
+                    linux2404-64(-shippable)?/opt: ['mozilla-central']
+                    linux2404-64-asan/opt: ['mozilla-central']
                     android.*: built-projects
                     default: []
             geckoview-no-fission-no-ship:

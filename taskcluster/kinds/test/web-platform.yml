@@ -94,6 +94,9 @@ web-platform-tests:
                     linux1804-64(-qr)?/debug: ['mozilla-central']
                     linux1804-64(-shippable)?(-qr)?/opt: ['mozilla-central']
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux2404-64/debug: ['mozilla-central']
+                    linux2404-64(-shippable)?/opt: ['mozilla-central']
+                    linux2404-64-asan/opt: ['mozilla-central']
                     default: []
             async-event-dispatching:
                 by-test-platform:
@@ -233,6 +236,8 @@ web-platform-tests-reftest:
             linux.*64-tsan(-qr)?/opt: 16
             linux1804-64(-qr)?/.*: 6
             linux1804-64-asan(-qr)?/.*: 6
+            linux2404-64/.*: 6
+            linux2404-64-asan/.*: 6
             macosx.*-64/debug: 6
             macosx.*-64/opt: 3
             windows.*-32.*/debug: 5
@@ -257,6 +262,9 @@ web-platform-tests-reftest:
                     linux1804-64(-qr)?/.*: ['mozilla-central']
                     linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux2404-64/.*: ['mozilla-central']
+                    linux2404-64-shippable/opt: ['mozilla-central']
+                    linux2404-64-asan/opt: ['mozilla-central']
                     default: []
             no-fission:
                 by-test-platform:
@@ -264,6 +272,9 @@ web-platform-tests-reftest:
                     linux1804-64(-qr)?/.*: ['mozilla-central']
                     linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux2404-64/.*: ['mozilla-central']
+                    linux2404-64-shippable/opt: ['mozilla-central']
+                    linux2404-64-asan/opt: ['mozilla-central']
                     android.*: built-projects
                     default: []
             default:
@@ -473,6 +484,9 @@ web-platform-tests-canvas:
                     linux1804-64(-qr)?/.*: ['mozilla-central']
                     linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux2404-64/.*: ['mozilla-central']
+                    linux2404-64-shippable/opt: ['mozilla-central']
+                    linux2404-64-asan/opt: ['mozilla-central']
                     default: []
             default:
                 by-test-platform:
@@ -560,6 +574,9 @@ web-platform-tests-wdspec:
                     linux1804-64(-qr)?/.*: ['mozilla-central']
                     linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux2404-64/.*: ['mozilla-central']
+                    linux2404-64-shippable/opt: ['mozilla-central']
+                    linux2404-64-asan/opt: ['mozilla-central']
                     android.*: built-projects
                     default: []
             geckoview-no-fission-no-ship:
@@ -648,6 +665,9 @@ web-platform-tests-crashtest:
                     linux1804-64(-qr)?/.*: ['mozilla-central']
                     linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux2404-64/.*: ['mozilla-central']
+                    linux2404-64-shippable/opt: ['mozilla-central']
+                    linux2404-64-asan/opt: ['mozilla-central']
                     default: []
             no-fission:
                 by-test-platform:
@@ -655,6 +675,9 @@ web-platform-tests-crashtest:
                     linux1804-64(-qr)?/.*: ['mozilla-central']
                     linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux2404-64/.*: ['mozilla-central']
+                    linux2404-64-shippable/opt: ['mozilla-central']
+                    linux2404-64-asan/opt: ['mozilla-central']
                     android.*: built-projects
                     default: []
             default:
@@ -710,12 +733,18 @@ web-platform-tests-print-reftest:
                     linux1804-64(-qr)?/.*: ['mozilla-central']
                     linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux2404-64/.*: ['mozilla-central']
+                    linux2404-64-shippable/opt: ['mozilla-central']
+                    linux2404-64-asan/opt: ['mozilla-central']
                     default: []
             no-fission:
                 by-test-platform:
                     linux1804-64(-qr)?/.*: ['mozilla-central']
                     linux1804-64-shippable(-qr)?/opt: ['mozilla-central']
                     linux1804-64-asan(-qr)?/opt: ['mozilla-central']
+                    linux2404-64/.*: ['mozilla-central']
+                    linux2404-64-shippable/opt: ['mozilla-central']
+                    linux2404-64-asan/opt: ['mozilla-central']
                     android.*: built-projects
                     default: []
             default:
