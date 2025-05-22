@@ -14,16 +14,23 @@ report-broken-site-panel-reason-optional-label = What’s broken? (optional)
 
 report-broken-site-panel-reason-choose =
   .label = Choose reason
-report-broken-site-panel-reason-slow =
-  .label = Site slow or not working
-report-broken-site-panel-reason-media =
-  .label = Images or videos
-report-broken-site-panel-reason-content =
-  .label = Buttons, links, and other content
-report-broken-site-panel-reason-account =
-  .label = Sign-in or sign-out
-report-broken-site-panel-reason-adblockers =
-  .label = Ad blockers
+report-broken-site-panel-reason-load =
+  .label = Site doesn’t load
+# These terms are referring to ecommerce websites
+report-broken-site-panel-reason-checkout =
+  .label = Can’t pay, check out or shop
+report-broken-site-panel-reason-slow2 =
+  .label = Site is slow
+report-broken-site-panel-reason-media2 =
+  .label = Video isn’t playing or loading
+report-broken-site-panel-reason-content2 =
+  .label = Missing content
+report-broken-site-panel-reason-account2 =
+  .label = Can’t sign in or register
+report-broken-site-panel-reason-adblocker2 =
+  .label = Site asked to turn off ad blocker
+report-broken-site-panel-reason-notsupported =
+  .label = Browser isn’t supported or blocked
 report-broken-site-panel-reason-other =
   .label = Something else
 
