@@ -118,7 +118,7 @@ class JSActor : public nsISupports, public nsWrapperCache {
   // message.
   class QueryHandler final : public PromiseNativeHandler {
    public:
-    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+    NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL
     NS_DECL_CYCLE_COLLECTION_CLASS(QueryHandler)
 
     QueryHandler(JSActor* aActor, const JSActorMessageMeta& aMetadata,

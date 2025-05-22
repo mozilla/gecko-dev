@@ -87,7 +87,7 @@ class FluentBundle final : public nsWrapperCache {
                           nsTArray<ffi::L10nArg>& aRetVal);
 
  protected:
-  virtual ~FluentBundle();
+  ~FluentBundle();
 
   nsCOMPtr<nsISupports> mParent;
   UniquePtr<ffi::FluentBundleRc> mRaw;

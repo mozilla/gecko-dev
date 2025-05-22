@@ -104,7 +104,7 @@ class nsNSSComponent final : public nsINSSComponent, public nsIObserver {
   static void DoClearSSLExternalAndInternalSessionCache();
 
  protected:
-  virtual ~nsNSSComponent();
+  ~nsNSSComponent();
 
  private:
   nsresult InitializeNSS();

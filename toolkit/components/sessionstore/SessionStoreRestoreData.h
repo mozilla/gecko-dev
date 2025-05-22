@@ -34,7 +34,7 @@ class SessionStoreRestoreData final : public nsISessionStoreRestoreData {
   };
 
  private:
-  virtual ~SessionStoreRestoreData() = default;
+  ~SessionStoreRestoreData() = default;
   void AddFormEntry(bool aIsXPath, const nsAString& aIdOrXPath,
                     sessionstore::FormEntryValue aValue);
 

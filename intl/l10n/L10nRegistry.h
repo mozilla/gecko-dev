@@ -140,7 +140,7 @@ class L10nRegistry final : public nsWrapperCache {
   const ffi::GeckoL10nRegistry* Raw() const { return mRaw; }
 
  protected:
-  virtual ~L10nRegistry() = default;
+  ~L10nRegistry() = default;
   nsCOMPtr<nsIGlobalObject> mGlobal;
   const RefPtr<const ffi::GeckoL10nRegistry> mRaw;
   static bool PopulateError(ErrorResult& aError,

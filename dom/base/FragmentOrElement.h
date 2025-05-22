@@ -55,7 +55,7 @@ class nsNodeSupportsWeakRefTearoff final : public nsISupportsWeakReference {
   explicit nsNodeSupportsWeakRefTearoff(nsINode* aNode) : mNode(aNode) {}
 
   // nsISupports
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL
 
   // nsISupportsWeakReference
   NS_DECL_NSISUPPORTSWEAKREFERENCE

@@ -60,7 +60,7 @@ class nsArrayCC final : public nsArrayBase {
   friend class nsArrayBase;
 
  public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsArrayCC, nsIMutableArray)
 
  private:

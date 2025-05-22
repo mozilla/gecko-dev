@@ -49,7 +49,7 @@ class MemoryPressureObserver final : public nsIObserver {
 
  private:
   explicit MemoryPressureObserver(MemoryPressureListener* aListener);
-  virtual ~MemoryPressureObserver();
+  ~MemoryPressureObserver();
   MemoryPressureListener* mListener;
 };
 

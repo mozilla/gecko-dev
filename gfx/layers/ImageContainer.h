@@ -225,7 +225,7 @@ class BufferRecycleBin final {
   void RecycleBuffer(mozilla::UniquePtr<uint8_t[]> aBuffer, uint32_t aSize);
   // Returns a recycled buffer of the right size, or allocates a new buffer.
   mozilla::UniquePtr<uint8_t[]> GetBuffer(uint32_t aSize);
-  virtual void ClearRecycledBuffers();
+  void ClearRecycledBuffers();
 
  private:
   typedef mozilla::Mutex Mutex;

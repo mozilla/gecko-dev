@@ -36,7 +36,7 @@ class Location final : public nsISupports,
 
   explicit Location(nsPIDOMWindowInner* aWindow);
 
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(Location)
 
   // WebIDL API:
@@ -113,7 +113,7 @@ class Location final : public nsISupports,
   void ClearCachedValues();
 
  protected:
-  virtual ~Location();
+  ~Location();
 
   BrowsingContext* GetBrowsingContext() override;
   nsIDocShell* GetDocShell() override;

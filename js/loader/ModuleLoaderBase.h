@@ -236,10 +236,10 @@ class ModuleLoaderBase : public nsISupports {
    * These are tracked in the mFetchingModules map.
    */
   class LoadingRequest final : public nsISupports {
-    virtual ~LoadingRequest() = default;
+    ~LoadingRequest() = default;
 
    public:
-    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+    NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL
     NS_DECL_CYCLE_COLLECTION_CLASS(LoadingRequest)
 
     // The request that initiated the load and which is currently fetching or

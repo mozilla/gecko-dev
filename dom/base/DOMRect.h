@@ -147,7 +147,7 @@ class DOMRectList final : public nsISupports, public nsWrapperCache {
  public:
   explicit DOMRectList(nsISupports* aParent) : mParent(aParent) {}
 
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(DOMRectList)
 
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;

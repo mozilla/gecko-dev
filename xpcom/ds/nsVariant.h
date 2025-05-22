@@ -199,7 +199,7 @@ class nsVariant final : public nsVariantBase {
 
 class nsVariantCC final : public nsVariantBase {
  public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL
   NS_DECL_CYCLE_COLLECTION_CLASS(nsVariantCC)
 
   nsVariantCC() = default;

@@ -120,7 +120,7 @@ class ScriptLoadData final
       public nsISupports,
       public SharedSubResourceCacheLoadingValueBase<ScriptLoadData> {
  protected:
-  virtual ~ScriptLoadData() {}
+  ~ScriptLoadData() {}
 
  public:
   ScriptLoadData(ScriptLoader* aLoader,

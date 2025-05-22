@@ -338,7 +338,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   virtual bool HasActiveIndexedDBDatabases() const override;
   virtual bool HasActivePeerConnections() override;
   virtual bool HasOpenWebSockets() const override;
-  virtual void AudioPlaybackChanged(bool aIsPlayingAudio);
+  void AudioPlaybackChanged(bool aIsPlayingAudio);
   virtual bool HasScheduledNormalOrHighPriorityWebTasks() const override;
   void SyncStateFromParentWindow();
   virtual void UpdateWebSocketCount(int32_t aDelta) override;

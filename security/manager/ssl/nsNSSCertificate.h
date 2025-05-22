@@ -30,7 +30,7 @@ class nsNSSCertificate final : public nsIX509Cert,
   explicit nsNSSCertificate(nsTArray<uint8_t>&& der);
 
  private:
-  virtual ~nsNSSCertificate() = default;
+  ~nsNSSCertificate() = default;
   nsresult GetCertificateHash(nsAString& aFingerprint, SECOidTag aHashAlg);
   mozilla::UniqueCERTCertificate GetOrInstantiateCert();
 

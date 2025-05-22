@@ -136,7 +136,7 @@ class nsSocketTransportService final : public nsPISocketTransportService,
   bool UpdatePortRemapPreference(nsACString const& aPortMappingPref);
 
  protected:
-  virtual ~nsSocketTransportService();
+  ~nsSocketTransportService();
 
  private:
   //-------------------------------------------------------------------------

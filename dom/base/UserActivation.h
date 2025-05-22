@@ -34,7 +34,7 @@ class UserActivation final : public nsISupports, public nsWrapperCache {
  public:
   // WebIDL UserActivation
 
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(UserActivation)
 
   explicit UserActivation(nsPIDOMWindowInner* aWindow);

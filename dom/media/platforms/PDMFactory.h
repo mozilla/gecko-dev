@@ -76,7 +76,7 @@ class PDMFactory final {
   };
 
  private:
-  virtual ~PDMFactory();
+  ~PDMFactory();
 
   void CreatePDMs();
   void CreateNullPDM();

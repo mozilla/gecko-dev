@@ -492,10 +492,10 @@ class InterfaceNeedsThreadSafeRefCnt : public std::false_type {};
                                                     \
  public:
 
-#define NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL  \
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS_META(final)  \
-  NS_IMETHOD_(void) DeleteCycleCollectable(void); \
-                                                  \
+#define NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL \
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS_META(final) \
+  NS_METHOD_(void) DeleteCycleCollectable(void); \
+                                                 \
  public:
 
 #define NS_DECL_CYCLE_COLLECTING_ISUPPORTS_META(...)                         \

@@ -44,7 +44,7 @@ class WindowContext;
 
 class PermissionDelegateHandler final : public nsIPermissionDelegateHandler {
  public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL
   NS_DECL_CYCLE_COLLECTION_CLASS(PermissionDelegateHandler)
 
   NS_DECL_NSIPERMISSIONDELEGATEHANDLER

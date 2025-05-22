@@ -440,7 +440,7 @@ class Preferences final : public nsIPrefService,
   bool AllowOffMainThreadSave();
 
  private:
-  virtual ~Preferences();
+  ~Preferences();
 
   nsresult NotifyServiceObservers(const char* aSubject);
 
