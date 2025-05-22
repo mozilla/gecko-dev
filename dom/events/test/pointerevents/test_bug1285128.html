@@ -24,16 +24,22 @@ function runTests() {
   let target0 = window.document.getElementById("target0");
   let pointerEventsList = ["pointerover", "pointerenter", "pointerdown",
                            "pointerup", "pointerleave", "pointerout"];
-  let receivedPointerEvents = false;
+  const pointerEvents = [];
   pointerEventsList.forEach((elem, index, arr) => {
-    target0.addEventListener(elem, (event) => {
-      ok(false, "receiving event " + event.type);
-      receivedPointerEvents = true;
-    });
+    target0.addEventListener(elem, event => pointerEvents.push(event.type));
   });
 
   target1.addEventListener("mouseup", () => {
-    ok(!receivedPointerEvents, "synthesized mousemove should not trigger any pointer events");
+    is(
+      pointerEvents.join(", "),
+      [
+        "pointerover", // Should be caused by the synthesized mousemove
+        "pointerenter",
+        "pointerout", // Should be caused by clicking target1
+        "pointerleave",
+      ].join(", "),
+      "Synthesizing mousemove should cause only pointer boundary events"
+    );
     SimpleTest.finish();
   });
 

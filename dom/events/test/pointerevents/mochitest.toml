@@ -144,13 +144,6 @@ skip-if = [
   "http2",
 ]
 
-["test_wpt_pointerevent_boundary_events_in_capturing-manual.html"]
-support-files = ["wpt/pointerevent_boundary_events_in_capturing-manual.html"]
-skip-if = [
-  "http3",
-  "http2",
-]
-
 ["test_wpt_pointerevent_drag_interaction-manual.html"]
 support-files = ["wpt/html/pointerevent_drag_interaction-manual.html"]
 skip-if = [
@@ -202,13 +195,6 @@ skip-if = [
 
 ["test_wpt_pointerevent_pointerout_pen-manual.html"]
 support-files = ["wpt/pointerevent_pointerout_pen-manual.html"]
-skip-if = [
-  "http3",
-  "http2",
-]
-
-["test_wpt_pointerevent_releasepointercapture_events_to_original_target-manual.html"]
-support-files = ["wpt/pointerevent_releasepointercapture_events_to_original_target-manual.html"]
 skip-if = [
   "http3",
   "http2",

@@ -3297,6 +3297,12 @@ class PresShell final : public nsStubDocumentObserver,
   // needed, one hopes, but it is for now.
   uint16_t mChangeNestCount;
 
+  // This is the input source which set mMouseLocation.
+  uint16_t mMouseLocationInputSource = 0;  // MOZ_SOURCE_UNKNOWN by default
+
+  // This is the pointerId which set mMouseLocation.
+  uint32_t mMouseLocationPointerId = 0;
+
   // Flags controlling how our document is rendered.  These persist
   // between paints and so are tied with retained layer pixels.
   // PresShell flushes retained layers when the rendering state

@@ -2811,6 +2811,13 @@
   value: false
   mirror: always
 
+# Whether pointer boundary events should be dispatched after the element is
+# changed by a layout change or something without pointer move.
+- name: dom.event.pointer.boundary.dispatch_when_layout_change
+  type: bool
+  value: true
+  mirror: always
+
 # Whether the result of screenX, screenY, clientX, clientY, offsetX, offsetY,
 # x and y of PointerEvent may be fractional values (except `click`, `auxclick`
 # and `contextmenu`)

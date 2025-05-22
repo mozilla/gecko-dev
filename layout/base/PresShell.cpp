@@ -6093,6 +6093,8 @@ void PresShell::ProcessSynthMouseMoveEvent(bool aFromScroll) {
   event.mRefPoint =
       LayoutDeviceIntPoint::FromAppUnitsToNearest(refpoint, viewAPD);
   event.mButtons = PresShell::sMouseButtons;
+  event.mInputSource = mMouseLocationInputSource;
+  event.pointerId = mMouseLocationPointerId;
   // XXX set event.mModifiers ?
   // XXX mnakano I think that we should get the latest information from widget.
 
@@ -6997,10 +6999,6 @@ void PresShell::RecordPointerLocation(WidgetGUIEvent* aEvent) {
 
   switch (aEvent->mMessage) {
     case eMouseMove:
-      if (!aEvent->AsMouseEvent()->IsReal()) {
-        break;
-      }
-      [[fallthrough]];
     case eMouseEnterIntoWidget:
     case eMouseDown:
     case eMouseUp:
@@ -7008,12 +7006,18 @@ void PresShell::RecordPointerLocation(WidgetGUIEvent* aEvent) {
     case eDragStart:
     case eDragOver:
     case eDrop: {
-      mMouseLocation = GetEventLocation(*aEvent->AsMouseEvent());
+      WidgetMouseEvent* const mouseEvent = aEvent->AsMouseEvent();
+      if (mouseEvent->mMessage == eMouseMove && mouseEvent->IsSynthesized()) {
+        break;
+      }
+      mMouseLocation = GetEventLocation(*mouseEvent);
       mMouseEventTargetGuid = InputAPZContext::GetTargetLayerGuid();
       // FIXME: Don't trust the synthesized for tests flag of drag events.
       if (aEvent->mClass != eDragEventClass) {
+        mMouseLocationInputSource = mouseEvent->mInputSource;
+        mMouseLocationPointerId = mouseEvent->pointerId;
         mMouseLocationWasSetBySynthesizedMouseEventForTests =
-            aEvent->mFlags.mIsSynthesizedForTests;
+            mouseEvent->mFlags.mIsSynthesizedForTests;
       }
 #ifdef DEBUG
       if (MOZ_LOG_TEST(gLogMouseLocation, LogLevel::Info)) {
@@ -7059,6 +7063,8 @@ void PresShell::RecordPointerLocation(WidgetGUIEvent* aEvent) {
       // into another.
       mMouseLocation = nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
       mMouseEventTargetGuid = InputAPZContext::GetTargetLayerGuid();
+      mMouseLocationInputSource = MouseEvent_Binding::MOZ_SOURCE_UNKNOWN;
+      mMouseLocationPointerId = 0;
       mMouseLocationWasSetBySynthesizedMouseEventForTests =
           aEvent->mFlags.mIsSynthesizedForTests;
 #ifdef DEBUG

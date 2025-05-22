@@ -894,10 +894,29 @@ void PointerEventHandler::DispatchPointerFromMouseOrTouch(
       return;
     }
 
-    // 1. If it is not mouse then it is likely will come as touch event
-    // 2. We don't synthesize pointer events for synthesized mouse move
-    if (!mouseEvent->convertToPointer || mouseEvent->IsSynthesized()) {
+    // If it is not mouse then it is likely will come as touch event
+    if (!mouseEvent->convertToPointer) {
       return;
+    }
+
+    // If it's a synthesized eMouseMove and the input source supports hover, we
+    // need to dispatch pointer boundary events if the element underneath the
+    // pointer has already been changed from the last `pointerover` event
+    // target.
+    if (mouseEvent->IsSynthesized()) {
+      if (!StaticPrefs::
+              dom_event_pointer_boundary_dispatch_when_layout_change() ||
+          !mouseEvent->InputSourceSupportsHover()) {
+        return;
+      }
+      // So, if the pointer is captured, we don't need to dispatch pointer
+      // boundary events since pointer boundary events should be fired before
+      // gotpointercapture.
+      PointerCaptureInfo* const captureInfo =
+          GetPointerCaptureInfo(mouseEvent->pointerId);
+      if (captureInfo && captureInfo->mOverrideElement) {
+        return;
+      }
     }
 
     pointerMessage = PointerEventHandler::ToPointerEventMessage(mouseEvent);

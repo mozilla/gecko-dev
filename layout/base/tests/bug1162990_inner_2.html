@@ -97,6 +97,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1162990
 
     function executeTest()
     {
+      synthesizeMouse(document.querySelector("a"), 0, 0, {type : "mousemove"});
       logger("executeTest");
       setEventHandlers();
       var rectTg = target.getBoundingClientRect();
