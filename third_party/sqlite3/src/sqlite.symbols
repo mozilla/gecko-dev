@@ -55,6 +55,7 @@ sqlite3_config
 sqlite3_context_db_handle
 sqlite3_create_collation
 sqlite3_create_collation16
+sqlite3_create_collation_v2
 sqlite3_create_function
 sqlite3_create_function16
 sqlite3_create_function_v2
