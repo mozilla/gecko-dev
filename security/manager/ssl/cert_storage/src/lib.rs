@@ -248,7 +248,6 @@ impl SecurityState {
             )),
             None => Ok(()),
         }?;
-        self.load_bundled_intermediates()?;
         self.load_crlite_filter()?;
         Ok(())
     }
@@ -593,30 +592,21 @@ impl SecurityState {
     // If an adversary can find two different certificates with the same sha-256 hash, they can
     // probably forge a sha-256-based signature, so assuming the keys we create here are unique is
     // not a security issue.
-    //
-    // When the to-be-added certs come from remote settings, the caller should set the
-    // `set_has_prior_data_flag` argument to `true`. The prior data flag is used by the remote
-    // settings client as a data loss canary: if the remote settings client finds that the flag
-    // is not set it will re-ingest the entire intermediate certs collection.
-    fn add_certs_internal(
+    pub fn add_certs(
         &mut self,
         certs: &[(nsCString, nsCString, i16)],
-        set_has_prior_data_flag: bool,
     ) -> Result<(), SecurityStateError> {
         let env_and_store = match self.env_and_store.as_mut() {
             Some(env_and_store) => env_and_store,
             None => return Err(SecurityStateError::from("env and store not initialized?")),
         };
         let mut writer = env_and_store.env.write()?;
-
-        if set_has_prior_data_flag {
-            // Make a note that we have prior cert data now.
-            env_and_store.store.put(
-                &mut writer,
-                &make_key!(PREFIX_DATA_TYPE, &[nsICertStorage::DATA_TYPE_CERTIFICATE]),
-                &Value::Bool(true),
-            )?;
-        }
+        // Make a note that we have prior cert data now.
+        env_and_store.store.put(
+            &mut writer,
+            &make_key!(PREFIX_DATA_TYPE, &[nsICertStorage::DATA_TYPE_CERTIFICATE]),
+            &Value::Bool(true),
+        )?;
 
         for (cert_der_base64, subject_base64, trust) in certs {
             let cert_der = match BASE64_STANDARD.decode(&cert_der_base64) {
@@ -660,46 +650,6 @@ impl SecurityState {
 
         writer.commit()?;
         Ok(())
-    }
-
-    pub fn add_certs(
-        &mut self,
-        certs: &[(nsCString, nsCString, i16)],
-    ) -> Result<(), SecurityStateError> {
-        self.add_certs_internal(certs, /* set_has_prior_data_flag */ true)
-    }
-
-    fn load_bundled_intermediates(&mut self) -> Result<(), SecurityStateError> {
-        let bundled_intermediates = [(
-            // Bug 1966632: the "SSL.com TLS Transit ECC CA R2" intermediate issued by "SSL.com TLS ECC Root CA 2022"
-            "MIIDNDCCArmgAwIBAgIQYE2K+NALqHSLlVhTFyxfLjAKBggqhkjOPQQDAzBOMQsw\
-             CQYDVQQGEwJVUzEYMBYGA1UECgwPU1NMIENvcnBvcmF0aW9uMSUwIwYDVQQDDBxT\
-             U0wuY29tIFRMUyBFQ0MgUm9vdCBDQSAyMDIyMB4XDTIyMTAyMTE3MDIyM1oXDTM3\
-             MTAxNzE3MDIyMlowTzELMAkGA1UEBhMCVVMxGDAWBgNVBAoMD1NTTCBDb3Jwb3Jh\
-             dGlvbjEmMCQGA1UEAwwdU1NMLmNvbSBUTFMgVHJhbnNpdCBFQ0MgQ0EgUjIwdjAQ\
-             BgcqhkjOPQIBBgUrgQQAIgNiAARk532ZA1NckR7q+NgjraG/LOJjie8oaPbt1/Ds\
-             q2iudyvkdpcbUOvbWSgtb7g2uauNl8pMIp7uidkCP/16czqQjSvMLzo3g9oNtC1F\
-             G3NyCWVfeCE954tmP0f9CSnWFA+jggFZMIIBVTASBgNVHRMBAf8ECDAGAQH/AgEB\
-             MB8GA1UdIwQYMBaAFImPL6PoK6AUVHvzVrgmX2c4C5zQMEwGCCsGAQUFBwEBBEAw\
-             PjA8BggrBgEFBQcwAoYwaHR0cDovL2NlcnQuc3NsLmNvbS9TU0xjb20tVExTLVJv\
-             b3QtMjAyMi1FQ0MuY2VyMD8GA1UdIAQ4MDYwNAYEVR0gADAsMCoGCCsGAQUFBwIB\
-             Fh5odHRwczovL3d3dy5zc2wuY29tL3JlcG9zaXRvcnkwHQYDVR0lBBYwFAYIKwYB\
-             BQUHAwIGCCsGAQUFBwMBMEEGA1UdHwQ6MDgwNqA0oDKGMGh0dHA6Ly9jcmxzLnNz\
-             bC5jb20vU1NMY29tLVRMUy1Sb290LTIwMjItRUNDLmNybDAdBgNVHQ4EFgQUMqLH\
-             2FiL/3/APPJVaTPszswfvJcwDgYDVR0PAQH/BAQDAgGGMAoGCCqGSM49BAMDA2kA\
-             MGYCMQC4SkI+e2cts1nTN9MCRil97z624WxLAp94hT7tNZGPZLe9YiLIyzgKqW/b\
-             E0b2h9ACMQCvV5XMRcunAylQaCQc4J/GwR1p7yrPC0DRWWeyLAkQWi5Ylta9DxlX\
-             74QFFksFCP0="
-                .into(),
-            "ME8xCzAJBgNVBAYTAlVTMRgwFgYDVQQKDA9TU0wgQ29ycG9yYXRpb24xJjAkBgNV\
-             BAMMHVNTTC5jb20gVExTIFRyYW5zaXQgRUNDIENBIFIy"
-                .into(),
-            nsICertStorage::TRUST_INHERIT,
-        )];
-        self.add_certs_internal(
-            &bundled_intermediates,
-            /* set_has_prior_data_flag */ false,
-        )
     }
 
     // Given a list of certificate sha-256 hashes, we can look up each Cert entry in the database.
