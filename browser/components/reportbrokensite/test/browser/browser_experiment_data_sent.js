@@ -50,7 +50,7 @@ add_setup(async function () {
     { featureId: "no-feature-firefox-desktop", value: {} },
     { slug: "test-experiment-disabled" }
   );
-  ExperimentAPI.manager.unenroll("test-experiment-disabled");
+  await ExperimentAPI.manager.unenroll("test-experiment-disabled");
 });
 
 add_task(async function testSendButton() {
@@ -81,6 +81,6 @@ add_task(async function testSendingMoreInfo() {
 
 add_task(async function teardown() {
   for (const cleanup of EXPERIMENT_CLEANUPS) {
-    cleanup();
+    await cleanup();
   }
 });
