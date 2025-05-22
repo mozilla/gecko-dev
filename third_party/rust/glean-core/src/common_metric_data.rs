@@ -78,7 +78,6 @@ pub struct CommonMetricData {
 #[derive(Default, Debug, MallocSizeOf)]
 pub struct CommonMetricDataInternal {
     pub inner: CommonMetricData,
-    #[ignore_malloc_size_of = "atomic integers never allocate (bug 1960589)"]
     pub disabled: AtomicU8,
 }
 

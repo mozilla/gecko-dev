@@ -123,7 +123,7 @@ fn denominator_smoke() {
     assert!(test_get_num_recorded_errors(&glean, num1.meta(), ErrorType::InvalidValue).is_err());
     assert!(test_get_num_recorded_errors(&glean, num2.meta(), ErrorType::InvalidValue).is_err());
 
-    // Getting the value returns 0s if that's all we have.
+    // Getting the value returns what is stored
     let data = num1.get_value(&glean, None).unwrap();
     assert_eq!(3, data.numerator);
     assert_eq!(7, data.denominator);

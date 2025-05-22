@@ -208,19 +208,12 @@ impl DatetimeMetric {
                 time.second(),
                 time.nanosecond(),
             ),
-            TimeUnit::Microsecond => {
-                eprintln!(
-                    "microseconds. nanoseconds={}, nanoseconds/1000={}",
-                    time.nanosecond(),
-                    time.nanosecond() / 1000
-                );
-                d.date().and_hms_nano_opt(
-                    time.hour(),
-                    time.minute(),
-                    time.second(),
-                    time.nanosecond() / 1000,
-                )
-            }
+            TimeUnit::Microsecond => d.date().and_hms_nano_opt(
+                time.hour(),
+                time.minute(),
+                time.second(),
+                time.nanosecond() / 1000,
+            ),
             TimeUnit::Millisecond => d.date().and_hms_nano_opt(
                 time.hour(),
                 time.minute(),

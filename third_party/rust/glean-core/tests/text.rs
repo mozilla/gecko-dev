@@ -98,12 +98,12 @@ fn long_text_values_are_truncated() {
         ..Default::default()
     });
 
-    let test_sting = "01234567890".repeat(200 * 1024);
-    metric.set_sync(&glean, test_sting.clone());
+    let test_string = "01234567890".repeat(200 * 1024);
+    metric.set_sync(&glean, test_string.clone());
 
     // Check that data was truncated
     assert_eq!(
-        test_sting[..(200 * 1024)],
+        test_string[..(200 * 1024)],
         metric.get_value(&glean, "store1").unwrap()
     );
 

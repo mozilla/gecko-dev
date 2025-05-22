@@ -144,7 +144,6 @@ fn snapshot_correctly_clears_the_stores() {
         assert_eq!(1, s.as_array().unwrap().len());
         assert_eq!("telemetry", s[0]["category"]);
         assert_eq!("test_event_clear", s[0]["name"]);
-        println!("{:?}", s[0].get("extra"));
         assert!(s[0].get("extra").is_none());
     }
 }

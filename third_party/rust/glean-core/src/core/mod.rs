@@ -168,7 +168,6 @@ pub struct Glean {
     debug: DebugOptions,
     pub(crate) app_build: String,
     pub(crate) schedule_metrics_pings: bool,
-    #[ignore_malloc_size_of = "atomic integers never allocate (bug 1960589)"]
     pub(crate) remote_settings_epoch: AtomicU8,
     #[ignore_malloc_size_of = "TODO: Expose Glean's inner memory allocations (bug 1960592)"]
     pub(crate) remote_settings_config: Arc<Mutex<RemoteSettingsConfig>>,
@@ -543,6 +542,7 @@ impl Glean {
         }
 
         let Some(ping) = self.ping_registry.get(ping) else {
+            log::trace!("Unknown ping {ping}. Assuming disabled.");
             return false;
         };
 

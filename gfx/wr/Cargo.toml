@@ -9,7 +9,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-glean = "=64.2.0"
+glean = "=64.3.0"
 
 [profile.release]
 debug = true
