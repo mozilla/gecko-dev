@@ -15,6 +15,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AMBrowserExtensionsImport: "resource://gre/modules/AddonManager.sys.mjs",
   AbuseReporter: "resource://gre/modules/AbuseReporter.sys.mjs",
+  ExtensionCommon: "resource://gre/modules/ExtensionCommon.sys.mjs",
   ExtensionParent: "resource://gre/modules/ExtensionParent.sys.mjs",
   ExtensionPermissions: "resource://gre/modules/ExtensionPermissions.sys.mjs",
   OriginControls: "resource://gre/modules/ExtensionPermissions.sys.mjs",
@@ -737,19 +738,104 @@ customElements.define(
   }
 );
 
+class BrowserActionWidgetObserver {
+  #connected = false;
+  /**
+   * @param {string} addonId The ID of the extension
+   * @param {function()} onButtonAreaChanged Callback that is called whenever
+   *   the observer detects the presence, absence or relocation of the browser
+   *   action button for the given extension.
+   */
+  constructor(addonId, onButtonAreaChanged) {
+    this.addonId = addonId;
+    // The expected ID of the browserAction widget. Keep in sync with
+    // actionWidgetId logic in ext-browserAction.js.
+    this.widgetId = `${lazy.ExtensionCommon.makeWidgetId(addonId)}-browser-action`;
+    this.onButtonAreaChanged = onButtonAreaChanged;
+  }
+
+  startObserving() {
+    if (this.#connected) {
+      return;
+    }
+    this.#connected = true;
+    CustomizableUI.addListener(this);
+    window.addEventListener("unload", this);
+  }
+
+  stopObserving() {
+    if (!this.#connected) {
+      return;
+    }
+    this.#connected = false;
+    CustomizableUI.removeListener(this);
+    window.removeEventListener("unload", this);
+  }
+
+  hasBrowserActionUI() {
+    const policy = WebExtensionPolicy.getByID(this.addonId);
+    if (!policy?.canAccessWindow(window)) {
+      // Add-on is not an extension, or extension has not started yet. Or it
+      // was uninstalled/disabled. Or disabled in current (private) window.
+      return false;
+    }
+    if (!gUnifiedExtensions.browserActionFor(policy)) {
+      // Does not have a browser action button.
+      return false;
+    }
+    return true;
+  }
+
+  onWidgetCreated(aWidgetId) {
+    // This is triggered as soon as ext-browserAction registers the button,
+    // shortly after hasBrowserActionUI() above can return true for the first
+    // time since add-on installation.
+    if (aWidgetId === this.widgetId) {
+      this.onButtonAreaChanged();
+    }
+  }
+
+  onWidgetAdded(aWidgetId) {
+    if (aWidgetId === this.widgetId) {
+      this.onButtonAreaChanged();
+    }
+  }
+
+  onWidgetMoved(aWidgetId) {
+    if (aWidgetId === this.widgetId) {
+      this.onButtonAreaChanged();
+    }
+  }
+
+  handleEvent(event) {
+    if (event.type === "unload") {
+      this.stopObserving();
+    }
+  }
+}
+
 customElements.define(
   "addon-installed-notification",
   class MozAddonInstalledNotification extends customElements.get(
     "popupnotification"
   ) {
+    #shouldIgnoreCheckboxStateChangeEvent = false;
+    #browserActionWidgetObserver;
     connectedCallback() {
       this.descriptionEl = this.querySelector("#addon-install-description");
+      this.pinExtensionEl = this.querySelector(
+        "#addon-pin-toolbarbutton-checkbox"
+      );
 
       this.addEventListener("click", this);
+      this.pinExtensionEl.addEventListener("CheckboxStateChange", this);
+      this.#browserActionWidgetObserver?.startObserving();
     }
 
     disconnectedCallback() {
       this.removeEventListener("click", this);
+      this.pinExtensionEl.removeEventListener("CheckboxStateChange", this);
+      this.#browserActionWidgetObserver?.stopObserving();
     }
 
     get #settingsLinkId() {
@@ -763,13 +849,19 @@ customElements.define(
         case "click": {
           if (target.id === this.#settingsLinkId) {
             const { addonId } = this.notification.options.customElementOptions;
-
             BrowserAddonUI.openAddonsMgr(
               "addons://detail/" + encodeURIComponent(addonId)
             );
           }
           break;
         }
+        case "CheckboxStateChange":
+          // CheckboxStateChange fires whenever the checked value changes.
+          // Ignore the event if triggered by us instead of the user.
+          if (!this.#shouldIgnoreCheckboxStateChangeEvent) {
+            this.#handlePinnedCheckboxStateChange();
+          }
+          break;
       }
     }
 
@@ -786,7 +878,16 @@ customElements.define(
         );
       }
 
+      this.#browserActionWidgetObserver?.stopObserving();
+      this.#browserActionWidgetObserver = new BrowserActionWidgetObserver(
+        this.notification.options.customElementOptions.addonId,
+        () => this.#renderPinToolbarButtonCheckbox()
+      );
+
       this.render();
+      if (this.isConnected) {
+        this.#browserActionWidgetObserver.startObserving();
+      }
     }
 
     render() {
@@ -808,6 +909,7 @@ customElements.define(
       }
 
       this.ownerDocument.l10n.setAttributes(this.descriptionEl, fluentId);
+      this.#renderPinToolbarButtonCheckbox();
     }
 
     get #dataCollectionPermissionsEnabled() {
@@ -815,6 +917,50 @@ customElements.define(
         "extensions.dataCollectionPermissions.enabled",
         false
       );
+    }
+
+    #renderPinToolbarButtonCheckbox() {
+      // If the extension has a browser action, show the checkbox to allow the
+      // user to customize its location. Hide by default until we know for
+      // certain that the conditions have been met.
+      this.pinExtensionEl.hidden = true;
+
+      if (!this.#browserActionWidgetObserver.hasBrowserActionUI()) {
+        return;
+      }
+      const widgetId = this.#browserActionWidgetObserver.widgetId;
+
+      // Extension buttons appear in AREA_ADDONS by default. There are several
+      // ways for the default to differ for a specific add-on, including the
+      // extension specifying default_area in its manifest.json file, an
+      // enterprise policy having been configured, or the user having moved the
+      // button someplace else. We only show the checkbox if it is either in
+      // AREA_ADDONS or in the toolbar. This covers almost all common cases.
+      const area = CustomizableUI.getPlacementOfWidget(widgetId)?.area;
+      let shouldPinToToolbar = area !== CustomizableUI.AREA_ADDONS;
+      if (shouldPinToToolbar && area !== CustomizableUI.AREA_NAVBAR) {
+        // We only support AREA_ADDONS and AREA_NAVBAR for now.
+        return;
+      }
+      this.#shouldIgnoreCheckboxStateChangeEvent = true;
+      this.pinExtensionEl.checked = shouldPinToToolbar;
+      this.#shouldIgnoreCheckboxStateChangeEvent = false;
+      this.pinExtensionEl.hidden = false;
+    }
+
+    #handlePinnedCheckboxStateChange() {
+      if (!this.#browserActionWidgetObserver.hasBrowserActionUI()) {
+        // Unexpected. #renderPinToolbarButtonCheckbox() should have hidden
+        // the checkbox if there is no widget.
+        const { addonId } = this.notification.options.customElementOptions;
+        throw new Error(`No browser action widget found for ${addonId}!`);
+      }
+      const widgetId = this.#browserActionWidgetObserver.widgetId;
+      const shouldPinToToolbar = this.pinExtensionEl.checked;
+      if (shouldPinToToolbar) {
+        gUnifiedExtensions._maybeMoveWidgetNodeBack(widgetId);
+      }
+      gUnifiedExtensions.pinToToolbar(widgetId, shouldPinToToolbar);
     }
   },
   { extends: "popupnotification" }
