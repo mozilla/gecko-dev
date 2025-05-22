@@ -1523,12 +1523,17 @@ var XPIStates = {
 
     const hasScanScopeAll = startupScanScopes & AddonManager.SCOPE_ALL;
 
-    // Restrict logic to detect if the app-builtin-addons XPIStates location data is missing,
-    // corrupted or stale to the first XPIStates.scanForChanges call originated early on the
-    // XPIProvider startup (and skip it on further calls that may be originated later on, e.g.
-    // when we are checking for new sideloaded extensions after the application is fully started).
+    // Restrict logic to recreate "app-builtin-addons" and "app-system-addons" locations
+    // data (in case of missing/corrupted/stale addonStartup.json.lz4 file) to the first
+    // XPIStates.scanForChanges call originated early on the XPIProvider startup.
     if (!hasScanScopeAll && shouldRestoreLocationData) {
-      if (!oldLocations.has(KEY_APP_SYSTEM_BUILTINS)) {
+      if (!oldLocations.size) {
+        // Scan all locations if there are no locations found in addonStartup.json.lz4.
+        logger.warn(
+          "Force scan SCOPE_ALL locations on empty XPIStates locations data"
+        );
+        startupScanScopes = AddonManager.SCOPE_ALL;
+      } else if (!oldLocations.has(KEY_APP_SYSTEM_BUILTINS)) {
         logger.warn(
           `Force scan SCOPE_APPLICATION (${KEY_APP_SYSTEM_BUILTINS} location missing from XPIStates)`
         );

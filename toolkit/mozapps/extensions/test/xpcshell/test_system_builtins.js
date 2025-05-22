@@ -297,12 +297,7 @@ add_task(
           "Expect addonStartup.json.lz4 file to be removed"
         );
       },
-      // TODO(Bug 1966736): set to true along with the changes needed to make sure
-      // the system-signed updated versions to built-in add-ons are the ones
-      // activated on regular Firefox startups (startups without application
-      // version changes) when the system-addons location data from
-      // addonStartup.json.lz4 is lost or stale.
-      expectSystemUpdateVersion: false,
+      expectSystemUpdateVersion: true,
     });
   }
 );
