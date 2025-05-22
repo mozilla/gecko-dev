@@ -15,6 +15,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -79,6 +80,7 @@ import org.mozilla.fenix.components.appstate.OrientationMode.Landscape
 import org.mozilla.fenix.components.appstate.OrientationMode.Portrait
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
+import org.mozilla.fenix.components.toolbar.DisplayActions.HomeClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
 import org.mozilla.fenix.components.toolbar.PageOriginInteractions.OriginClicked
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivateTab
@@ -104,11 +106,23 @@ class BrowserToolbarMiddlewareTest {
     private val lifecycleOwner = FakeLifecycleOwner(Lifecycle.State.RESUMED)
     private val navController: NavController = mockk()
     private val browsingModeManager = SimpleBrowsingModeManager(Normal)
-    private val browsingAnimator: BrowserAnimator = mockk()
+    private val browserAnimator: BrowserAnimator = mockk()
     private val thumbnailsFeature: BrowserThumbnails = mockk()
     private val useCases: UseCases = mockk()
     private val settings: Settings = mockk {
         every { shouldUseBottomToolbar } returns true
+    }
+
+    @Test
+    fun `WHEN initializing the toolbar THEN add browser start actions`() = runTestOnMain {
+        val middleware = buildMiddleware().updateDependencies()
+
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        val toolbarBrowserActions = toolbarStore.state.displayState.browserActionsStart
+        assertEquals(listOf(expectedHomeButton), toolbarBrowserActions)
     }
 
     @Test
@@ -315,6 +329,32 @@ class BrowserToolbarMiddlewareTest {
         assertEquals(2, toolbarBrowserActions.size)
         tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
         assertEqualsToolbarButton(expectedToolbarButton(0, true), tabCounterButton)
+    }
+
+    @Test
+    fun `WHEN clicking the home button THEN navigate to application's home screen`() {
+        val navController: NavController = mockk(relaxed = true)
+        val browserAnimatorActionCaptor = slot<(Boolean) -> Unit>()
+        every {
+            browserAnimator.captureEngineViewAndDrawStatically(
+                any<Long>(),
+                capture(browserAnimatorActionCaptor),
+            )
+        } answers { browserAnimatorActionCaptor.captured.invoke(true) }
+        val middleware = buildMiddleware().updateDependencies(
+            navController = navController,
+        )
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+        val homeButton = toolbarStore.state.displayState.browserActionsStart[0] as ActionButton
+
+        mockkStatic(NavController::nav) {
+            toolbarStore.dispatch(homeButton.onClick as BrowserToolbarEvent)
+
+            verify { browserAnimator.captureEngineViewAndDrawStatically(any(), any()) }
+            verify { navController.navigate(BrowserFragmentDirections.actionGlobalHome()) }
+        }
     }
 
     @Test
@@ -1021,6 +1061,13 @@ class BrowserToolbarMiddlewareTest {
             }
         },
     )
+
+    private val expectedHomeButton = ActionButton(
+        icon = R.drawable.mozac_ic_home_24,
+        contentDescription = R.string.browser_toolbar_home,
+        onClick = HomeClicked,
+    )
+
     private val expectedMenuButton = ActionButton(
         icon = R.drawable.mozac_ic_ellipsis_vertical_24,
         contentDescription = R.string.content_description_menu,
@@ -1048,7 +1095,7 @@ class BrowserToolbarMiddlewareTest {
         lifecycleOwner: LifecycleOwner = this@BrowserToolbarMiddlewareTest.lifecycleOwner,
         navController: NavController = this@BrowserToolbarMiddlewareTest.navController,
         browsingModeManager: BrowsingModeManager = this@BrowserToolbarMiddlewareTest.browsingModeManager,
-        browserAnimator: BrowserAnimator = this@BrowserToolbarMiddlewareTest.browsingAnimator,
+        browserAnimator: BrowserAnimator = this@BrowserToolbarMiddlewareTest.browserAnimator,
         thumbnailsFeature: BrowserThumbnails? = this@BrowserToolbarMiddlewareTest.thumbnailsFeature,
     ) = this.apply {
         updateLifecycleDependencies(
@@ -1057,6 +1104,7 @@ class BrowserToolbarMiddlewareTest {
                 lifecycleOwner = lifecycleOwner,
                 navController = navController,
                 browsingModeManager = browsingModeManager,
+                browserAnimator = browserAnimator,
                 thumbnailsFeature = thumbnailsFeature,
             ),
         )

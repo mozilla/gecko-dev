@@ -35,6 +35,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.feature.toolbar.ToolbarBehaviorController
 import mozilla.components.lib.state.ext.observeAsComposableState
+import org.mozilla.fenix.browser.BrowserAnimator
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.browser.store.BrowserScreenStore
 import org.mozilla.fenix.components.AppStore
@@ -57,6 +58,7 @@ import org.mozilla.fenix.utils.Settings
  * @param browserScreenStore [BrowserScreenStore] used for integration with other browser screen functionalities.
  * @param browserStore [BrowserStore] used for observing the browsing details.
  * @param browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
+ * @param browserAnimator Helper for animating the browser content when navigating to other screens.
  * @param thumbnailsFeature [BrowserThumbnails] for requesting screenshots of the current tab.
  * @param settings [Settings] object to get the toolbar position and other settings.
  * @param customTabSession [CustomTabSessionState] if the toolbar is shown in a custom tab.
@@ -72,6 +74,7 @@ class BrowserToolbarComposable(
     private val browserScreenStore: BrowserScreenStore,
     private val browserStore: BrowserStore,
     private val browsingModeManager: BrowsingModeManager,
+    private val browserAnimator: BrowserAnimator,
     private val thumbnailsFeature: BrowserThumbnails?,
     private val settings: Settings,
     customTabSession: CustomTabSessionState? = null,
@@ -190,6 +193,7 @@ class BrowserToolbarComposable(
                         lifecycleOwner = lifecycleOwner,
                         navController = navController,
                         browsingModeManager = browsingModeManager,
+                        browserAnimator = browserAnimator,
                         thumbnailsFeature = thumbnailsFeature,
                     ),
                 )

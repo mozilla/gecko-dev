@@ -32,6 +32,7 @@ import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.P
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.PageOriginContextualMenuInteractions.PasteFromClipboardClicked
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsEndUpdated
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsStartUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.UpdateProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.ToggleEditMode
@@ -50,6 +51,7 @@ import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.util.URLStringUtils
 import mozilla.components.support.utils.ClipboardHandler
 import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.BrowserAnimator
 import org.mozilla.fenix.browser.BrowserAnimator.Companion.getToolbarNavOptions
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
@@ -63,6 +65,7 @@ import org.mozilla.fenix.components.UseCases
 import org.mozilla.fenix.components.appstate.AppAction.CurrentTabClosed
 import org.mozilla.fenix.components.appstate.AppAction.URLCopiedToClipboard
 import org.mozilla.fenix.components.menu.MenuAccessPoint
+import org.mozilla.fenix.components.toolbar.DisplayActions.HomeClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
 import org.mozilla.fenix.components.toolbar.PageOriginInteractions.OriginClicked
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivateTab
@@ -77,6 +80,7 @@ import mozilla.components.ui.icons.R as iconsR
 
 @VisibleForTesting
 internal sealed class DisplayActions : BrowserToolbarEvent {
+    data object HomeClicked : DisplayActions()
     data object MenuClicked : DisplayActions()
 }
 
@@ -140,9 +144,19 @@ class BrowserToolbarMiddleware(
             is BrowserToolbarAction.Init -> {
                 store = context.store as BrowserToolbarStore
 
-                updateEndBrowserActions()
+                updateStartBrowserActions()
                 updateCurrentPageOrigin()
+                updateEndBrowserActions()
             }
+
+            is HomeClicked -> {
+                dependencies.browserAnimator.captureEngineViewAndDrawStatically {
+                    dependencies.navController.navigate(
+                        BrowserFragmentDirections.actionGlobalHome(),
+                    )
+                }
+            }
+
             is MenuClicked -> {
                 dependencies.navController.nav(
                     R.id.browserFragment,
@@ -257,9 +271,23 @@ class BrowserToolbarMiddleware(
         Private -> browserStore.state.privateTabs.size
     }
 
+    private fun updateStartBrowserActions() = store?.dispatch(
+        BrowserActionsStartUpdated(
+            buildStartBrowserActions(),
+        ),
+    )
+
     private fun updateEndBrowserActions() = store?.dispatch(
         BrowserActionsEndUpdated(
             buildEndBrowserActions(getCurrentNumberOfOpenedTabs()),
+        ),
+    )
+
+    private fun buildStartBrowserActions(): List<Action> = listOf(
+        ActionButton(
+            icon = R.drawable.mozac_ic_home_24,
+            contentDescription = R.string.browser_toolbar_home,
+            onClick = HomeClicked,
         ),
     )
 
@@ -424,6 +452,7 @@ class BrowserToolbarMiddleware(
      * @property lifecycleOwner [LifecycleOwner] depending on which lifecycle related operations will be scheduled.
      * @property navController [NavController] to use for navigating to other in-app destinations.
      * @property browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
+     * @property browserAnimator Helper for animating the browser content when navigating to other screens.
      * @property thumbnailsFeature [BrowserThumbnails] for requesting screenshots of the current tab.
      */
     data class LifecycleDependencies(
@@ -431,6 +460,7 @@ class BrowserToolbarMiddleware(
         val lifecycleOwner: LifecycleOwner,
         val navController: NavController,
         val browsingModeManager: BrowsingModeManager,
+        val browserAnimator: BrowserAnimator,
         val thumbnailsFeature: BrowserThumbnails?,
     )
 

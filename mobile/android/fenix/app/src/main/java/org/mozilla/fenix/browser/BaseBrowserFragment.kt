@@ -1300,6 +1300,7 @@ abstract class BaseBrowserFragment :
             browserScreenStore = browserScreenStore,
             browserStore = store,
             browsingModeManager = activity.browsingModeManager,
+            browserAnimator = browserAnimator,
             thumbnailsFeature = thumbnailsFeature.get(),
             settings = activity.settings(),
             customTabSession = customTabSessionId?.let { store.state.findCustomTab(it) },
