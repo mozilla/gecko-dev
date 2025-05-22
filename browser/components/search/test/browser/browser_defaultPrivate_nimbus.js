@@ -97,7 +97,7 @@ add_task(async function test_nimbus_experiment() {
   );
   reloadObserved =
     SearchTestUtils.promiseSearchNotification("engines-reloaded");
-  doExperimentCleanup();
+  await doExperimentCleanup();
   await reloadObserved;
   Assert.equal(
     Services.search.defaultPrivateEngine.name,
@@ -133,7 +133,7 @@ add_task(async function test_nimbus_experiment_urlbar_result_enabled() {
   );
   reloadObserved =
     SearchTestUtils.promiseSearchNotification("engines-reloaded");
-  doExperimentCleanup();
+  await doExperimentCleanup();
   await reloadObserved;
   Assert.equal(
     Services.search.defaultPrivateEngine.name,
@@ -159,6 +159,6 @@ add_task(async function test_non_experiment_prefs() {
     },
   });
   Assert.equal(uiPref(), false, "Pref did not change without experiment");
-  doExperimentCleanup();
+  await doExperimentCleanup();
   await SpecialPowers.popPrefEnv();
 }).skip(); // The privatesearch feature does not exist.
