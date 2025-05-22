@@ -43,7 +43,6 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity
-import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.ext.flow
@@ -97,12 +96,19 @@ internal sealed class PageOriginInteractions : BrowserToolbarEvent {
  * [Middleware] responsible for configuring and handling interactions with the composable toolbar.
  *
  * This is also a [ViewModel] allowing to be easily persisted between activity restarts.
+ *
+ * @param appStore [AppStore] allowing to integrate with other features of the applications.
+ * @param browserScreenStore [BrowserScreenStore] used for integration with other browser screen functionalities.
+ * @param browserStore [BrowserStore] to sync from.
+ * @param useCases [UseCases] helping this integrate with other features of the applications.
+ * @param clipboard [ClipboardHandler] to use for reading from device's clipboard.
+ * @param settings [Settings] for accessing user preferences.
  */
 class BrowserToolbarMiddleware(
     private val appStore: AppStore,
     private val browserScreenStore: BrowserScreenStore,
     private val browserStore: BrowserStore,
-    private val tabsUseCases: TabsUseCases,
+    private val useCases: UseCases,
     private val clipboard: ClipboardHandler,
     private val settings: Settings,
 ) : Middleware<BrowserToolbarState, BrowserToolbarAction>, ViewModel() {
@@ -170,7 +176,7 @@ class BrowserToolbarMiddleware(
                     val isLastTab = browserStore.state.getNormalOrPrivateTabs(selectedTab.content.private).size == 1
 
                     if (!isLastTab) {
-                        tabsUseCases.removeTab(selectedTab.id, selectParentIfExists = true)
+                        useCases.tabsUseCases.removeTab(selectedTab.id, selectParentIfExists = true)
                         appStore.dispatch(CurrentTabClosed(selectedTab.content.private))
                         return@let
                     }
@@ -232,7 +238,7 @@ class BrowserToolbarMiddleware(
             }
             is LoadFromClipboardClicked -> {
                 clipboard.extractURL()?.let {
-                    dependencies.useCases.fenixBrowserUseCases.loadUrlOrSearch(
+                    useCases.fenixBrowserUseCases.loadUrlOrSearch(
                         searchTermOrURL = it,
                         newTab = false,
                         private = dependencies.browsingModeManager.mode == Private,
@@ -419,7 +425,6 @@ class BrowserToolbarMiddleware(
      * @property navController [NavController] to use for navigating to other in-app destinations.
      * @property browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
      * @property thumbnailsFeature [BrowserThumbnails] for requesting screenshots of the current tab.
-     * @property useCases [UseCases] helping this integrate with other features of the applications.
      */
     data class LifecycleDependencies(
         val context: Context,
@@ -427,7 +432,6 @@ class BrowserToolbarMiddleware(
         val navController: NavController,
         val browsingModeManager: BrowsingModeManager,
         val thumbnailsFeature: BrowserThumbnails?,
-        val useCases: UseCases,
     )
 
     /**
@@ -437,11 +441,11 @@ class BrowserToolbarMiddleware(
         /**
          * [ViewModelProvider.Factory] for creating a [BrowserToolbarMiddleware].
          *
-         * @param appStore [AppStore] to sync from.
+         * @param appStore [AppStore] allowing to integrate with other features of the applications.
          * @param browserScreenStore [BrowserScreenStore] used for integration with other
          * browser screen functionalities.
          * @param browserStore [BrowserStore] to sync from.
-         * @param tabsUseCases [TabsUseCases] for managing tabs.
+         * @param useCases [UseCases] helping this integrate with other features of the applications.
          * @param clipboard [ClipboardHandler] to use for reading from device's clipboard.
          * @param settings [Settings] for accessing user preferences.
          */
@@ -449,7 +453,7 @@ class BrowserToolbarMiddleware(
             appStore: AppStore,
             browserScreenStore: BrowserScreenStore,
             browserStore: BrowserStore,
-            tabsUseCases: TabsUseCases,
+            useCases: UseCases,
             clipboard: ClipboardHandler,
             settings: Settings,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
@@ -460,7 +464,7 @@ class BrowserToolbarMiddleware(
                         appStore = appStore,
                         browserScreenStore = browserScreenStore,
                         browserStore = browserStore,
-                        tabsUseCases = tabsUseCases,
+                        useCases = useCases,
                         clipboard = clipboard,
                         settings = settings,
                     ) as T

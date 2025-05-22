@@ -33,7 +33,6 @@ import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
-import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.toolbar.ToolbarBehaviorController
 import mozilla.components.lib.state.ext.observeAsComposableState
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
@@ -58,7 +57,6 @@ import org.mozilla.fenix.utils.Settings
  * @param browserScreenStore [BrowserScreenStore] used for integration with other browser screen functionalities.
  * @param browserStore [BrowserStore] used for observing the browsing details.
  * @param browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
- * @param tabsUseCases [TabsUseCases] for managing tabs.
  * @param thumbnailsFeature [BrowserThumbnails] for requesting screenshots of the current tab.
  * @param settings [Settings] object to get the toolbar position and other settings.
  * @param customTabSession [CustomTabSessionState] if the toolbar is shown in a custom tab.
@@ -74,7 +72,6 @@ class BrowserToolbarComposable(
     private val browserScreenStore: BrowserScreenStore,
     private val browserStore: BrowserStore,
     private val browsingModeManager: BrowsingModeManager,
-    private val tabsUseCases: TabsUseCases,
     private val thumbnailsFeature: BrowserThumbnails?,
     private val settings: Settings,
     customTabSession: CustomTabSessionState? = null,
@@ -182,7 +179,7 @@ class BrowserToolbarComposable(
                     appStore = appStore,
                     browserScreenStore = browserScreenStore,
                     browserStore = browserStore,
-                    tabsUseCases = tabsUseCases,
+                    useCases = context.components.useCases,
                     clipboard = context.components.clipboardHandler,
                     settings = settings,
                 ),
@@ -194,7 +191,6 @@ class BrowserToolbarComposable(
                         navController = navController,
                         browsingModeManager = browsingModeManager,
                         thumbnailsFeature = thumbnailsFeature,
-                        useCases = context.components.useCases,
                     ),
                 )
             } as T
