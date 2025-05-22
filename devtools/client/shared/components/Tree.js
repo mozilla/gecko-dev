@@ -124,7 +124,8 @@ class TreeNode extends Component {
       (this.props.shouldItemUpdate &&
         this.props.shouldItemUpdate(this.props.item, nextProps.item)) ||
       this.props.focused !== nextProps.focused ||
-      this.props.expanded !== nextProps.expanded
+      this.props.expanded !== nextProps.expanded ||
+      this.props.depth !== nextProps.depth
     );
   }
 

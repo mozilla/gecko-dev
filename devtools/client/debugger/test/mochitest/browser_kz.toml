@@ -257,6 +257,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_dbg-sources-project-search.js"]
 
+["browser_dbg-sources-tree.js"]
+
 ["browser_dbg-state-based-panels.js"]
 
 ["browser_dbg-step-in-navigate.js"]

@@ -3070,6 +3070,10 @@ async function waitForSourceTreeThreadsCount(dbg, i) {
   });
 }
 
+function getDisplayedSourceTree(dbg) {
+  return [...findAllElements(dbg, "sourceNodes")];
+}
+
 function getDisplayedSourceElements(dbg) {
   return [...findAllElements(dbg, "sourceTreeFiles")];
 }
