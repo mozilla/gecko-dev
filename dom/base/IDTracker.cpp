@@ -80,20 +80,6 @@ void IDTracker::ResetToURIWithFragmentID(Element& aFrom, nsIURI* aURI,
     return;
   }
 
-  if (aFrom.IsInNativeAnonymousSubtree()) {
-    // This happens, for example, if aFromContent is part of the content
-    // inserted by a call to Document::InsertAnonymousContent, which we
-    // also want to handle.  (It also happens for other native anonymous content
-    // etc.)
-    Element* anonRoot = doc->GetAnonRootIfInAnonymousContentContainer(&aFrom);
-    if (anonRoot) {
-      mElement = nsContentUtils::MatchElementId(anonRoot, ref);
-      // We don't have watching working yet for anonymous content, so bail out
-      // here.
-      return;
-    }
-  }
-
   bool isEqualExceptRef;
   rv = aURI->EqualsExceptRef(doc->GetDocumentURI(), &isEqualExceptRef);
   RefPtr<nsAtom> refAtom = NS_Atomize(ref);
