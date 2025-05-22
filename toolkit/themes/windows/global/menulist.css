@@ -4,26 +4,3 @@
 
 @import url("chrome://global/skin/menulist-shared.css");
 
-:host([native]) {
-  margin: 2px 4px;
-  color: FieldText;
-}
-
-@media (prefers-contrast) {
-  :host([native]:not([open="true"]):focus) > #label-box {
-    background-color: SelectedItem;
-    color: SelectedItemText;
-  }
-}
-
-:host([native]:not([open="true"]):focus-visible) > #label-box {
-  outline: var(--default-focusring);
-}
-
-:host([native]) :is(image, label) {
-  margin-block: -1px;
-}
-
-:host([native]) dropmarker {
-  margin-inline: 3px -3px;
-}
