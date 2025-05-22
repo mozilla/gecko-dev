@@ -36,16 +36,10 @@ import org.mozilla.fenix.home.sessioncontrol.viewholders.PrivateBrowsingDescript
 import org.mozilla.fenix.home.sessioncontrol.viewholders.onboarding.MessageCardViewHolder
 import org.mozilla.fenix.home.setup.ui.SetupChecklistViewHolder
 import org.mozilla.fenix.home.topsites.TopSitePagerViewHolder
-import org.mozilla.fenix.home.topsites.TopSitesViewHolder
 import mozilla.components.feature.tab.collections.Tab as ComponentTab
 
 sealed class AdapterItem(@LayoutRes val viewType: Int) {
     object TopPlaceholderItem : AdapterItem(TopPlaceholderViewHolder.LAYOUT_ID)
-
-    /**
-     * Top sites.
-     */
-    object TopSites : AdapterItem(TopSitesViewHolder.LAYOUT_ID)
 
     /**
      * Contains a set of [Pair]s where [Pair.first] is the index of the changed [TopSite] and
@@ -285,11 +279,6 @@ class SessionControlAdapter(
                 viewLifecycleOwner = viewLifecycleOwner,
                 interactor = interactor,
             )
-            TopSitesViewHolder.LAYOUT_ID -> return TopSitesViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
             SetupChecklistViewHolder.LAYOUT_ID -> return SetupChecklistViewHolder(
                 composeView = ComposeView(parent.context),
                 viewLifecycleOwner = viewLifecycleOwner,
@@ -333,7 +322,6 @@ class SessionControlAdapter(
             is PrivateBrowsingDescriptionViewHolder,
             is PocketCategoriesViewHolder,
             is PocketStoriesViewHolder,
-            is TopSitesViewHolder,
             is SetupChecklistViewHolder,
             -> {
                 // no op
@@ -403,7 +391,6 @@ class SessionControlAdapter(
                 val (collection, tab, isLastTab) = item as AdapterItem.TabInCollectionItem
                 holder.bindSession(collection, tab, isLastTab)
             }
-            is TopSitesViewHolder,
             is RecentlyVisitedViewHolder,
             is BookmarksViewHolder,
             is RecentTabViewHolder,

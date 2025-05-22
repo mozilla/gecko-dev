@@ -28,11 +28,6 @@ object FeatureFlags {
     const val SYNC_ADDRESSES_FEATURE = false
 
     /**
-     * Enables compose on the top sites.
-     */
-    const val COMPOSE_TOP_SITES = false
-
-    /**
      * Enables new search settings UI with two extra fragments, for managing the default engine
      * and managing search shortcuts in the quick search menu.
      */

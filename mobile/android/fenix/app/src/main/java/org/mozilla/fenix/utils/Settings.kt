@@ -1981,14 +1981,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Indicates if the Compose Top Sites are enabled.
-     */
-    var enableComposeTopSites by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_enable_compose_top_sites),
-        default = FeatureFlags.COMPOSE_TOP_SITES,
-    )
-
-    /**
      * Indicates if the Compose Homepage is enabled.
      */
     var enableComposeHomepage by lazyFeatureFlagPreference(

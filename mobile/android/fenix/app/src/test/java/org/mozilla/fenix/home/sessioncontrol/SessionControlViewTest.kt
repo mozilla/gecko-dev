@@ -315,7 +315,6 @@ class SessionControlViewTest {
         every { settings.showBookmarksHomeFeature } returns false
         every { settings.historyMetadataUIFeature } returns false
         every { settings.showPocketRecommendationsFeature } returns false
-        every { settings.enableComposeTopSites } returns false
         every { settings.showSetupChecklist } returns true
 
         val results = normalModeAdapterItems(
@@ -359,7 +358,6 @@ class SessionControlViewTest {
         every { settings.showBookmarksHomeFeature } returns true
         every { settings.historyMetadataUIFeature } returns true
         every { settings.showPocketRecommendationsFeature } returns true
-        every { settings.enableComposeTopSites } returns false
         every { settings.showSetupChecklist } returns true
 
         val results = normalModeAdapterItems(
