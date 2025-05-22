@@ -790,5 +790,83 @@ describe("ContentTiles component", () => {
       "test3",
       "single-select-1"
     );
+    wrapper.unmount();
+  });
+
+  it("should apply styles to label element", () => {
+    const TEST_STYLE = { marginBlock: "5px" };
+    const tileData = {
+      type: "single-select",
+      selected: "vertical",
+      data: [
+        {
+          id: "vertical",
+          label: { raw: "Vertical", marginBlock: "5px" },
+        },
+      ],
+    };
+
+    wrapper = mount(
+      <ContentTiles
+        content={{ tiles: [tileData] }}
+        setActiveSingleSelectSelection={() => {}}
+        handleAction={() => {}}
+      />
+    );
+
+    const styledDiv = wrapper.find(".text").at(0);
+
+    assert.deepEqual(
+      styledDiv.prop("style"),
+      TEST_STYLE,
+      "Style prop should match TEST_STYLE"
+    );
+    wrapper.unmount();
+  });
+
+  it("should apply valid styles from tile.data.style and include minWidth from icon.width", () => {
+    const icon = {
+      width: "101px",
+    };
+
+    const style = {
+      paddingBlock: "8px",
+    };
+
+    const tileData = {
+      type: "single-select",
+      selected: "test",
+      data: [
+        {
+          id: "test",
+          icon,
+          label: { raw: "Test" },
+          style,
+        },
+      ],
+    };
+
+    wrapper = mount(
+      <ContentTiles
+        content={{ tiles: [tileData] }}
+        setActiveSingleSelectSelection={() => {}}
+        handleAction={() => {}}
+      />
+    );
+
+    const label = wrapper.find("label.select-item").at(0);
+    const labelStyle = label.prop("style");
+
+    assert.equal(
+      labelStyle.paddingBlock,
+      "8px",
+      "paddingBlock should be applied"
+    );
+    assert.equal(
+      labelStyle.minWidth,
+      "101px",
+      "minWidth should be set from icon.width"
+    );
+    wrapper.unmount();
   });
 });

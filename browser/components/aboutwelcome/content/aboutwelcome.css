@@ -2671,39 +2671,39 @@ html {
   border-radius: 8px;
   outline: 2px solid var(--in-content-primary-button-background);
 }
-.onboardingContainer .tiles-single-select-section.single-select:not(.theme) {
+.onboardingContainer .tiles-single-select-section.single-select, .onboardingContainer .tiles-single-select-section.theme {
   flex-direction: row;
   padding-top: 5px;
   gap: 10px;
   justify-content: center;
 }
-.onboardingContainer .tiles-single-select-section.single-select:not(.theme) .select-item {
+.onboardingContainer .tiles-single-select-section.single-select .select-item, .onboardingContainer .tiles-single-select-section.theme .select-item {
   position: relative;
   padding-top: 5px;
   border: 2px solid var(--single-select-border-color);
   border-radius: 12px;
 }
-.onboardingContainer .tiles-single-select-section.single-select:not(.theme) .select-item:has(.input:focus), .onboardingContainer .tiles-single-select-section.single-select:not(.theme) .select-item:has(.selected) {
+.onboardingContainer .tiles-single-select-section.single-select .select-item:has(.input:focus), .onboardingContainer .tiles-single-select-section.single-select .select-item:has(.selected), .onboardingContainer .tiles-single-select-section.theme .select-item:has(.input:focus), .onboardingContainer .tiles-single-select-section.theme .select-item:has(.selected) {
   outline: none;
 }
-.onboardingContainer .tiles-single-select-section.single-select:not(.theme) .select-item:has(.input:focus) {
+.onboardingContainer .tiles-single-select-section.single-select .select-item:has(.input:focus), .onboardingContainer .tiles-single-select-section.theme .select-item:has(.input:focus) {
   outline: 2px solid var(--in-content-primary-button-background);
   outline-offset: 5px;
 }
-.onboardingContainer .tiles-single-select-section.single-select:not(.theme) .select-item:has(.selected) {
+.onboardingContainer .tiles-single-select-section.single-select .select-item:has(.selected), .onboardingContainer .tiles-single-select-section.theme .select-item:has(.selected) {
   border: 3px solid var(--in-content-primary-button-background);
   border-radius: 12px;
 }
-.onboardingContainer .tiles-single-select-section.single-select:not(.theme) .select-item:hover {
+.onboardingContainer .tiles-single-select-section.single-select .select-item:hover, .onboardingContainer .tiles-single-select-section.theme .select-item:hover {
   background-color: var(--single-select-hover-color);
 }
-.onboardingContainer .tiles-single-select-section.single-select:not(.theme) .select-item:focus-visible {
+.onboardingContainer .tiles-single-select-section.single-select .select-item:focus-visible, .onboardingContainer .tiles-single-select-section.theme .select-item:focus-visible {
   outline: none;
 }
-.onboardingContainer .tiles-single-select-section.single-select:not(.theme) .select-item:focus-visible .icon {
+.onboardingContainer .tiles-single-select-section.single-select .select-item:focus-visible .icon, .onboardingContainer .tiles-single-select-section.theme .select-item:focus-visible .icon {
   outline: initial;
 }
-.onboardingContainer .tiles-single-select-section.single-select:not(.theme) .select-item .flair {
+.onboardingContainer .tiles-single-select-section.single-select .select-item .flair, .onboardingContainer .tiles-single-select-section.theme .select-item .flair {
   height: 18px;
   border-radius: 4px;
   background-color: #9059FF;
@@ -2714,22 +2714,19 @@ html {
   top: -10px;
   line-height: 1;
 }
-.onboardingContainer .tiles-single-select-section.single-select:not(.theme) .select-item .icon {
+.onboardingContainer .tiles-single-select-section.single-select .select-item .icon, .onboardingContainer .tiles-single-select-section.theme .select-item .icon {
   outline: none;
 }
-.onboardingContainer .tiles-single-select-section.single-select:not(.theme) .select-item .text {
+.onboardingContainer .tiles-single-select-section.single-select .select-item .text, .onboardingContainer .tiles-single-select-section.theme .select-item .text {
   margin-block: 8px;
 }
-.onboardingContainer .tiles-single-select-section.theme .select-item {
-  width: 180px;
-}
-.onboardingContainer .tiles-single-select-section.single-select:hover, .onboardingContainer .tiles-single-select-section.single-select:focus-within {
+.onboardingContainer .tiles-single-select-section.single-select:hover, .onboardingContainer .tiles-single-select-section.single-select:focus-within, .onboardingContainer .tiles-single-select-section.theme:hover, .onboardingContainer .tiles-single-select-section.theme:focus-within {
   outline: none;
 }
-.onboardingContainer .tiles-single-select-section.single-select .select-item {
+.onboardingContainer .tiles-single-select-section.single-select .select-item, .onboardingContainer .tiles-single-select-section.theme .select-item {
   transition: var(--transition);
 }
-.onboardingContainer .tiles-single-select-section.single-select .select-item:has(.input:focus) {
+.onboardingContainer .tiles-single-select-section.single-select .select-item:has(.input:focus), .onboardingContainer .tiles-single-select-section.theme .select-item:has(.input:focus) {
   outline: 2px solid var(--in-content-primary-button-background);
   outline-offset: 2px;
 }
@@ -2754,20 +2751,11 @@ html {
   background-size: cover;
   width: 40px;
   height: 40px;
-  border-radius: 40px;
-  outline: 1px solid var(--in-content-border-color);
-  outline-offset: -0.5px;
+  border-radius: 5px;
   z-index: -1;
 }
 .onboardingContainer .tiles-single-select-section .select-item .icon:dir(rtl) {
   transform: scaleX(-1);
-}
-.onboardingContainer .tiles-single-select-section .select-item .icon:focus-visible, .onboardingContainer .tiles-single-select-section .select-item .icon:active, .onboardingContainer .tiles-single-select-section .select-item .icon.selected {
-  outline: 2px solid var(--in-content-primary-button-background);
-  outline-offset: 2px;
-}
-.onboardingContainer .tiles-single-select-section .select-item .icon.selected {
-  outline-color: var(--color-accent-primary-active);
 }
 .onboardingContainer .tiles-single-select-section .select-item .icon.light {
   background-image: url("resource://builtin-themes/light/icon.svg");

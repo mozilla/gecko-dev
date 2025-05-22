@@ -75,9 +75,15 @@ export const SingleSelect = ({
     "borderRadius",
     "height",
     "marginBlock",
+    "marginBlockStart",
+    "marginBlockEnd",
     "marginInline",
     "paddingBlock",
+    "paddingBlockStart",
+    "paddingBlockEnd",
     "paddingInline",
+    "paddingInlineStart",
+    "paddingInlineEnd",
     "width",
   ];
 
@@ -98,6 +104,7 @@ export const SingleSelect = ({
               tooltip,
               type = "",
               flair,
+              style,
             }) => {
               const value = id || theme;
               let inputName = "select-item";
@@ -136,7 +143,13 @@ export const SingleSelect = ({
                     className={`select-item ${type}`}
                     title={value}
                     onKeyDown={e => handleKeyDown(e)}
-                    style={icon?.width ? { minWidth: icon.width } : {}}
+                    style={{
+                      ...AboutWelcomeUtils.getValidStyle(
+                        style,
+                        CONFIGURABLE_STYLES
+                      ),
+                      ...(icon?.width ? { minWidth: icon.width } : {}),
+                    }}
                   >
                     {flair ? (
                       <Localized text={valOrObj(flair.text)}>

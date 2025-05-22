@@ -5,16 +5,26 @@
 import React, { useEffect } from "react";
 export const CONFIGURABLE_STYLES = [
   "color",
+  "display",
   "fontSize",
   "fontWeight",
   "letterSpacing",
   "lineHeight",
   "marginBlock",
+  "marginBlockStart",
+  "marginBlockEnd",
   "marginInline",
   "paddingBlock",
+  "paddingBlockStart",
+  "paddingBlockEnd",
   "paddingInline",
+  "paddingInlineStart",
+  "paddingInlineEnd",
   "textAlign",
   "whiteSpace",
+  "width",
+  "borderBlockStart",
+  "borderBlockEnd",
 ];
 const ZAP_SIZE_THRESHOLD = 160;
 

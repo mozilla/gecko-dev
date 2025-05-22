@@ -831,7 +831,7 @@ __webpack_require__.r(__webpack_exports__);
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-const CONFIGURABLE_STYLES = ["color", "fontSize", "fontWeight", "letterSpacing", "lineHeight", "marginBlock", "marginInline", "paddingBlock", "paddingInline", "textAlign", "whiteSpace"];
+const CONFIGURABLE_STYLES = ["color", "display", "fontSize", "fontWeight", "letterSpacing", "lineHeight", "marginBlock", "marginBlockStart", "marginBlockEnd", "marginInline", "paddingBlock", "paddingBlockStart", "paddingBlockEnd", "paddingInline", "paddingInlineStart", "paddingInlineEnd", "textAlign", "whiteSpace", "width", "borderBlockStart", "borderBlockEnd"];
 const ZAP_SIZE_THRESHOLD = 160;
 
 /**
@@ -2628,7 +2628,7 @@ const SingleSelect = ({
     }
   }, [activeSingleSelectSelections]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const CONFIGURABLE_STYLES = ["background", "borderRadius", "height", "marginBlock", "marginInline", "paddingBlock", "paddingInline", "width"];
+  const CONFIGURABLE_STYLES = ["background", "borderRadius", "height", "marginBlock", "marginBlockStart", "marginBlockEnd", "marginInline", "paddingBlock", "paddingBlockStart", "paddingBlockEnd", "paddingInline", "paddingInlineStart", "paddingInlineEnd", "width"];
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: `tiles-single-select-container`
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("fieldset", {
@@ -2645,7 +2645,8 @@ const SingleSelect = ({
     theme,
     tooltip,
     type = "",
-    flair
+    flair,
+    style
   }) => {
     const value = id || theme;
     let inputName = "select-item";
@@ -2674,9 +2675,12 @@ const SingleSelect = ({
       className: `select-item ${type}`,
       title: value,
       onKeyDown: e => handleKeyDown(e),
-      style: icon?.width ? {
-        minWidth: icon.width
-      } : {}
+      style: {
+        ..._lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.getValidStyle(style, CONFIGURABLE_STYLES),
+        ...(icon?.width ? {
+          minWidth: icon.width
+        } : {})
+      }
     }, flair ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
       text: valOrObj(flair.text)
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
