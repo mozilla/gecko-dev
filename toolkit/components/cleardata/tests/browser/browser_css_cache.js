@@ -67,7 +67,10 @@ async function testCached(origin, isCached) {
     return SpecialPowers.getDOMWindowUtils(content).parsedStyleSheets;
   });
 
-  ok(numParsed == 0 || numParsed == 1, `Where did that stylesheet come from expected 0 or 1, got ${numParsed}`);
+  ok(
+    numParsed == 0 || numParsed == 1,
+    `Where did that stylesheet come from expected 0 or 1, got ${numParsed}`
+  );
   // Stylesheets is cached if numParsed is 0.
   is(!numParsed, isCached, `${origin} is${isCached ? " " : " not "}cached`);
 }
