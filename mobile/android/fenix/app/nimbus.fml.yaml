@@ -837,6 +837,11 @@ features:
           When `true`, include DoH settings in the settings UI.
         type: Boolean
         default: false
+      autoselect-enabled:
+        description: >
+          Controls the network.android_doh.autoselect_enabled pref and automatically chooses a DoH provider when Default Protection mode is selected.
+        type: Boolean
+        default: false
 
 types:
   objects: {}
