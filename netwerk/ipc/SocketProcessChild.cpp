@@ -346,12 +346,9 @@ mozilla::ipc::IPCResult SocketProcessChild::RecvSetConnectivity(
 mozilla::ipc::IPCResult SocketProcessChild::RecvInitLinuxSandbox(
     const Maybe<ipc::FileDescriptor>& aBrokerFd) {
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
-  int fd = -1;
-  if (aBrokerFd.isSome()) {
-    fd = aBrokerFd.value().ClonePlatformHandle().release();
-  }
   RegisterProfilerObserversForSandboxProfiler();
-  SetSocketProcessSandbox(fd);
+  SetSocketProcessSandbox(
+      SocketProcessSandboxParams::ForThisProcess(aBrokerFd));
 #endif  // XP_LINUX && MOZ_SANDBOX
   return IPC_OK();
 }

@@ -47,4 +47,18 @@ ContentProcessSandboxParams::ForThisProcess(
   return params;
 }
 
+/* static */ SocketProcessSandboxParams
+SocketProcessSandboxParams::ForThisProcess(
+    const Maybe<ipc::FileDescriptor>& aBroker) {
+  SocketProcessSandboxParams self;
+
+  if (aBroker.isSome()) {
+    self.mBroker = aBroker->ClonePlatformHandle();
+    MOZ_RELEASE_ASSERT(self.mBroker);
+  }
+
+  self.mLevel = GetEffectiveSocketProcessSandboxLevel();
+  return self;
+}
+
 }  // namespace mozilla

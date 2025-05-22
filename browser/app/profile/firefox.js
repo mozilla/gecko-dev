@@ -1590,15 +1590,16 @@ pref("browser.bookmarks.editDialog.maxRecentFolders", 7);
   // exotic configurations we can't reasonably support out of the box.
   //
   pref("security.sandbox.content.level", 6);
-  // Introduced as part of bug 1608558.  Linux is currently the only platform
-  // that uses a sandbox level for the socket process.  There are currently
-  // only 2 levels:
-  // 0 -> "no sandbox"
-  // 1 -> "sandboxed, allows socket operations and reading necessary certs"
-  pref("security.sandbox.socket.process.level", 1);
   pref("security.sandbox.content.write_path_whitelist", "");
   pref("security.sandbox.content.read_path_whitelist", "");
   pref("security.sandbox.content.syscall_whitelist", "");
+  // Introduced as part of bug 1608558.  Linux is currently the only platform
+  // that uses a sandbox level for the socket process.  The following levels
+  // are currently defined:
+  // 0 -> "no sandbox"
+  // 1 -> "sandboxed, allows socket operations and reading necessary certs"
+  // 2 -> default-deny for ioctl
+  pref("security.sandbox.socket.process.level", 2);
 #endif
 
 #if defined(XP_OPENBSD) && defined(MOZ_SANDBOX)

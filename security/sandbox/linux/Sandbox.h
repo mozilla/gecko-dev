@@ -54,6 +54,23 @@ struct ContentProcessSandboxParams {
       const Maybe<ipc::FileDescriptor>& aBroker);
 };
 
+// Similarly to ContentProcessSandboxParams, a collection of
+// parameters for the socket process.  Currently this is just the
+// level (and the broker), but in the future there could be more.
+struct SocketProcessSandboxParams {
+  // Socket process sandbox level; see also GetEffectiveSandboxLevel
+  // and the comments for "security.sandbox.socket.process.level" in
+  // browser/app/profile/firefox.js
+  int mLevel = 0;
+
+  // The filesystem broker client fd; this *is* a RAII class so it
+  // needs to be `release()`d or moved to consume it.
+  mozilla::UniqueFileHandle mBroker;
+
+  static SocketProcessSandboxParams ForThisProcess(
+      const Maybe<ipc::FileDescriptor>& aBroker);
+};
+
 // Call only if SandboxInfo::CanSandboxContent() returns true.
 // (No-op if the sandbox is disabled.)
 // isFileProcess determines whether we allow system wide file reads.
@@ -66,7 +83,7 @@ MOZ_EXPORT void SetMediaPluginSandbox(const char* aFilePath);
 
 MOZ_EXPORT void SetRemoteDataDecoderSandbox(int aBroker);
 
-MOZ_EXPORT void SetSocketProcessSandbox(int aBroker);
+MOZ_EXPORT void SetSocketProcessSandbox(SocketProcessSandboxParams&& aParams);
 
 MOZ_EXPORT void SetUtilitySandbox(int aBroker, ipc::SandboxingKind aKind);
 

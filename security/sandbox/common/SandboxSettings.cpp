@@ -207,6 +207,13 @@ int GetEffectiveSocketProcessSandboxLevel() {
   int level =
       StaticPrefs::security_sandbox_socket_process_level_DoNotUseDirectly();
 
+#ifdef XP_LINUX
+  // Turn off ioctl lockdown in safe mode, until it's gotten more testing.
+  if (level > 1 && gSafeMode) {
+    level = 1;
+  }
+#endif
+
   return level;
 }
 
