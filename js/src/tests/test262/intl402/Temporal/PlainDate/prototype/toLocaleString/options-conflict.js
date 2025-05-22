@@ -31,10 +31,18 @@ const date = new Temporal.PlainDate(2000, 5, 2);
 
 assert.sameValue(typeof date.toLocaleString("en", { dateStyle: "short" }), "string");
 
+assert.throws(TypeError, function () {
+  date.toLocaleString("en", { timeStyle: "short" });
+}, "timeStyle conflicts with PlainDate");
+
 for (const [ option, value ] of conflictingOptions) {
   assert.throws(TypeError, function() {
     date.toLocaleString("en", { [option]: value, dateStyle: "short" });
   }, `date.toLocaleString("en", { ${option}: "${value}",  dateStyle: "short" }) throws TypeError`);
+
+  // dateStyle or timeStyle present but undefined does not conflict
+  date.toLocaleString("en", { [option]: value, dateStyle: undefined });
+  date.toLocaleString("en", { [option]: value, timeStyle: undefined });
 }
 
 reportCompare(0, 0);

@@ -2,5 +2,5 @@
 // Copyright (C) 2024 Igalia, S.L. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 
-import defer * as ns from "./import-defer-throws_FIXTURE.js";
+import defer * as ns from "./throws_FIXTURE.js";
 export { ns };

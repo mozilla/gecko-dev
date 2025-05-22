@@ -12,30 +12,25 @@ features: [BigInt, Symbol, Temporal]
 
 const instance = new Temporal.PlainDateTime(1976, 11, 18, 15, 23, 30, 123, 456, 789, "iso8601");
 
-const primitiveTests = [
+const wrongTypeTests = [
   [null, "null"],
   [true, "boolean"],
-  ["", "empty string"],
   [1, "number that doesn't convert to a valid ISO string"],
   [1n, "bigint"],
-];
-
-for (const [arg, description] of primitiveTests) {
-  assert.throws(
-    typeof arg === 'string' ? RangeError : TypeError,
-    () => instance.withCalendar(arg),
-    `${description} does not convert to a valid ISO string`
-  );
-}
-
-const typeErrorTests = [
+  [19970327, "large number"],
+  [-19970327, "negative number"],
+  [1234567890, "very large integer"],
   [Symbol(), "symbol"],
   [{}, "object"],
   [new Temporal.Duration(), "duration instance"],
 ];
 
-for (const [arg, description] of typeErrorTests) {
-  assert.throws(TypeError, () => instance.withCalendar(arg), `${description} is not a valid object and does not convert to a string`);
+for (const [arg, description] of wrongTypeTests) {
+  assert.throws(
+    TypeError,
+    () => instance.withCalendar(arg),
+    `${description} does not convert to a valid ISO string`
+  );
 }
 
 reportCompare(0, 0);

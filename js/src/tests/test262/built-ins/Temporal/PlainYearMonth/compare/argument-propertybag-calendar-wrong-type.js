@@ -10,38 +10,31 @@ description: >
 features: [BigInt, Symbol, Temporal]
 ---*/
 
-const primitiveTests = [
+const wrongTypeTests = [
   [null, "null"],
   [true, "boolean"],
-  ["", "empty string"],
-  [1, "number that doesn't convert to a valid ISO string"],
+  [1, "number"],
   [1n, "bigint"],
-];
-
-for (const [calendar, description] of primitiveTests) {
-  const arg = { year: 2019, monthCode: "M11", day: 1, calendar };
-  assert.throws(
-    typeof calendar === "string" ? RangeError : TypeError,
-    () => Temporal.PlainYearMonth.compare(arg, new Temporal.PlainYearMonth(2019, 6)),
-    `${description} does not convert to a valid ISO string (first argument)`
-  );
-  assert.throws(
-    typeof calendar === "string" ? RangeError : TypeError,
-    () => Temporal.PlainYearMonth.compare(new Temporal.PlainYearMonth(2019, 6), arg),
-    `${description} does not convert to a valid ISO string (second argument)`
-  );
-}
-
-const typeErrorTests = [
+  [19970327, "large number"],
+  [-19970327, "negative number"],
+  [1234567890, "very large integer"],
   [Symbol(), "symbol"],
   [{}, "object"],
   [new Temporal.Duration(), "duration instance"],
 ];
 
-for (const [calendar, description] of typeErrorTests) {
-  const arg = { year: 2019, monthCode: "M11", day: 1, calendar };
-  assert.throws(TypeError, () => Temporal.PlainYearMonth.compare(arg, new Temporal.PlainYearMonth(2019, 6)), `${description} is not a valid property bag and does not convert to a string (first argument)`);
-  assert.throws(TypeError, () => Temporal.PlainYearMonth.compare(new Temporal.PlainYearMonth(2019, 6), arg), `${description} is not a valid property bag and does not convert to a string (second argument)`);
+for (const [calendar, description] of wrongTypeTests) {
+  const arg = { year: 2019, monthCode: "M06", calendar };
+  assert.throws(
+    TypeError,
+    () => Temporal.PlainYearMonth.compare(arg, new Temporal.PlainYearMonth(2019, 6)),
+    `${description} is not a valid calendar (first argument)`
+  );
+  assert.throws(
+    TypeError,
+    () => Temporal.PlainYearMonth.compare(new Temporal.PlainYearMonth(2019, 6), arg),
+    `${description} is not a valid calendar (second argument)`
+  );
 }
 
 reportCompare(0, 0);

@@ -16,29 +16,23 @@ const instance = new Temporal.ZonedDateTime(0n, timeZone);
 const primitiveTests = [
   [null, "null"],
   [true, "boolean"],
-  ["", "empty string"],
   [1, "number that doesn't convert to a valid ISO string"],
   [1n, "bigint"],
-];
-
-for (const [calendar, description] of primitiveTests) {
-  const arg = { year: 2019, monthCode: "M11", day: 1, calendar };
-  assert.throws(
-    typeof calendar === 'string' ? RangeError : TypeError,
-    () => instance.equals(arg),
-    `${description} does not convert to a valid ISO string`
-  );
-}
-
-const typeErrorTests = [
+  [19970327, "large number"],
+  [-19970327, "negative number"],
+  [1234567890, "very large integer"],
   [Symbol(), "symbol"],
   [{}, "object"],
   [new Temporal.Duration(), "duration instance"],
 ];
 
-for (const [calendar, description] of typeErrorTests) {
+for (const [calendar, description] of primitiveTests) {
   const arg = { year: 2019, monthCode: "M11", day: 1, calendar };
-  assert.throws(TypeError, () => instance.equals(arg), `${description} is not a valid property bag and does not convert to a string`);
+  assert.throws(
+    TypeError,
+    () => instance.equals(arg),
+    `${description} does not convert to a valid ISO string`
+  );
 }
 
 reportCompare(0, 0);

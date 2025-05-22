@@ -537,7 +537,7 @@ var TemporalHelpers = {
       assert.sameValue(eraName, undefined);
       return undefined;
     }
-    assert(Object.hasOwn(TemporalHelpers.CalendarEras, calendarId));
+    assert(Object.prototype.hasOwnProperty.call(TemporalHelpers.CalendarEras, calendarId));
 
     if (eraName === undefined) {
       return undefined;

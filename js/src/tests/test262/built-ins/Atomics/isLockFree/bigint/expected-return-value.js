@@ -3,7 +3,7 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-atomics.isLockFree
+esid: sec-atomics.islockfree
 description: >
   Atomics.isLockFree returns a boolean that indicates whether
   operations on datum of size will be performed without the agent

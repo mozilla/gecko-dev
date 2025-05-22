@@ -3,9 +3,9 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-atomics.add
+esid: sec-atomics.exchange
 description: >
-  Atomics.add throws when operating on non-sharable integer TypedArrays
+  Atomics.exchange throws when operating on non-sharable integer TypedArrays
 includes: [testTypedArray.js]
 features: [ArrayBuffer, Atomics, TypedArray]
 ---*/
@@ -13,8 +13,8 @@ testWithNonAtomicsFriendlyTypedArrayConstructors(TA => {
   const buffer = new ArrayBuffer(TA.BYTES_PER_ELEMENT * 4);
   const view = new TA(buffer);
   assert.throws(TypeError, function() {
-    Atomics.add(view, 0, 1);
-  }, `Atomics.add(new ${TA.name}(buffer), 0, 1) throws TypeError`);
+    Atomics.exchange(view, 0, 1);
+  }, `Atomics.exchange(new ${TA.name}(buffer), 0, 1) throws TypeError`);
 });
 
 reportCompare(0, 0);

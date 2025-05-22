@@ -17,7 +17,7 @@ defines: [asyncTest, assert.throwsAsync]
  * @returns {void}
  */
 function asyncTest(testFunc) {
-  if (!Object.hasOwn(globalThis, "$DONE")) {
+  if (!Object.prototype.hasOwnProperty.call(globalThis, "$DONE")) {
     throw new Test262Error("asyncTest called without async flag");
   }
   if (typeof testFunc !== "function") {
@@ -242,7 +242,7 @@ var TemporalHelpers = {
       assert.sameValue(eraName, undefined);
       return undefined;
     }
-    assert(Object.hasOwn(TemporalHelpers.CalendarEras, calendarId));
+    assert(Object.prototype.hasOwnProperty.call(TemporalHelpers.CalendarEras, calendarId));
 
     if (eraName === undefined) {
       return undefined;

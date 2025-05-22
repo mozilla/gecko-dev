@@ -20,6 +20,7 @@ assert.notSameValue(actual2, actual, "resolvedOptions returned the same object t
 assert(isCanonicalizedStructurallyValidLanguageTag(actual.locale),
        "Invalid locale: " + actual.locale);
 assert.sameValue(actual.type, "cardinal");
+assert.sameValue(actual.notation, "standard");
 assert.sameValue(actual.minimumIntegerDigits, 1);
 assert.sameValue(actual.minimumFractionDigits, 0);
 assert.sameValue(actual.maximumFractionDigits, 3);
@@ -27,6 +28,7 @@ assert.sameValue(actual.maximumFractionDigits, 3);
 var dataPropertyDesc = { writable: true, enumerable: true, configurable: true };
 verifyProperty(actual, "locale", dataPropertyDesc);
 verifyProperty(actual, "type", dataPropertyDesc);
+verifyProperty(actual, "notation", dataPropertyDesc);
 verifyProperty(actual, "currency", undefined);
 verifyProperty(actual, "currencyDisplay", undefined);
 verifyProperty(actual, "minimumIntegerDigits", dataPropertyDesc);

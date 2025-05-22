@@ -1,9 +1,5 @@
-commit c23091151fe97a45f61a6b3b461fd16ca143c6bc
+commit 3316c0aaf676d657f5a6b33364fa7e579c78ac7f
 Author: André Bargull <andre.bargull@gmail.com>
-Date:   Fri Mar 21 17:52:03 2025 +0100
+Date:   Thu May 22 11:59:01 2025 +0200
 
-    Prefer "islamic-tbla" over "islamic" for Hijri calendars
-    
-    "islamic" is underspecified because it doesn't include any information
-    which location and algorithms should be used to approximate new moon
-    observations. Instead switch to "islamic-tbla".
+    Test all combinations in temporal-plaindatetime-formatting-datetime-style

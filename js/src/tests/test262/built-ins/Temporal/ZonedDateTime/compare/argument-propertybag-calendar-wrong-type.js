@@ -12,38 +12,31 @@ features: [BigInt, Symbol, Temporal]
 
 const datetime = new Temporal.ZonedDateTime(0n, "UTC");
 
-const primitiveTests = [
+const wrongTypeTests = [
   [null, "null"],
   [true, "boolean"],
-  ["", "empty string"],
-  [1, "number that doesn't convert to a valid ISO string"],
+  [1, "number"],
   [1n, "bigint"],
-];
-
-for (const [calendar, description] of primitiveTests) {
-  const arg = { year: 2019, monthCode: "M11", day: 1, calendar };
-  assert.throws(
-    typeof calendar === "string" ? RangeError : TypeError,
-    () => Temporal.ZonedDateTime.compare(arg, datetime),
-    `${description} does not convert to a valid ISO string (first argument)`
-  );
-  assert.throws(
-    typeof calendar === "string" ? RangeError : TypeError,
-    () => Temporal.ZonedDateTime.compare(datetime, arg),
-    `${description} does not convert to a valid ISO string (second argument)`
-  );
-}
-
-const typeErrorTests = [
+  [19970327, "large number"],
+  [-19970327, "negative number"],
+  [1234567890, "very large integer"],
   [Symbol(), "symbol"],
   [{}, "object"],
   [new Temporal.Duration(), "duration instance"],
 ];
 
-for (const [calendar, description] of typeErrorTests) {
-  const arg = { year: 2019, monthCode: "M11", day: 1, calendar };
-  assert.throws(TypeError, () => Temporal.ZonedDateTime.compare(arg, datetime), `${description} is not a valid property bag and does not convert to a string (first argument)`);
-  assert.throws(TypeError, () => Temporal.ZonedDateTime.compare(datetime, arg), `${description} is not a valid property bag and does not convert to a string (second argument)`);
+for (const [calendar, description] of wrongTypeTests) {
+  const arg = { year: 1970, monthCode: "M01", day: 1, calendar, timeZone: "UTC" };
+  assert.throws(
+    TypeError,
+    () => Temporal.ZonedDateTime.compare(arg, datetime),
+    `${description} is not a valid calendar (first argument)`
+  );
+  assert.throws(
+    TypeError,
+    () => Temporal.ZonedDateTime.compare(datetime, arg),
+    `${description} is not a valid calendar (second argument)`
+  );
 }
 
 reportCompare(0, 0);

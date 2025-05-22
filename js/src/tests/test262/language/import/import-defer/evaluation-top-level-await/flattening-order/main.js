@@ -64,8 +64,7 @@ assert.compareArray(globalThis.evaluations, [
   "2.1.1 end",
   "2.2 end",
   "4.1 start",
-  "4.1 end",
-  "5"
+  "4.1 end"
 ]);
 
 globalThis.evaluations = [];

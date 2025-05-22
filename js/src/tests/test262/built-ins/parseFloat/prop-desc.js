@@ -12,7 +12,7 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(this, "parseFloat", {
+verifyPrimordialCallableProperty(this, "parseFloat", "parseFloat", 1, {
   writable: true,
   enumerable: false,
   configurable: true

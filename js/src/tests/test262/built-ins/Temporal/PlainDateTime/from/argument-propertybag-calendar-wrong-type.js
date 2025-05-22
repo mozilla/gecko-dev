@@ -10,32 +10,26 @@ description: >
 features: [BigInt, Symbol, Temporal]
 ---*/
 
-const primitiveTests = [
+const wrongTypeTests = [
   [null, "null"],
   [true, "boolean"],
-  ["", "empty string"],
-  [1, "number that doesn't convert to a valid ISO string"],
+  [1, "number"],
   [1n, "bigint"],
-];
-
-for (const [calendar, description] of primitiveTests) {
-  const arg = { year: 2019, monthCode: "M11", day: 1, calendar };
-  assert.throws(
-    typeof calendar === 'string' ? RangeError : TypeError,
-    () => Temporal.PlainDateTime.from(arg),
-    `${description} does not convert to a valid ISO string`
-  );
-}
-
-const typeErrorTests = [
+  [19970327, "large number"],
+  [-19970327, "negative number"],
+  [1234567890, "very large integer"],
   [Symbol(), "symbol"],
   [{}, "object"],
   [new Temporal.Duration(), "duration instance"],
 ];
 
-for (const [calendar, description] of typeErrorTests) {
+for (const [calendar, description] of wrongTypeTests) {
   const arg = { year: 2019, monthCode: "M11", day: 1, calendar };
-  assert.throws(TypeError, () => Temporal.PlainDateTime.from(arg), `${description} is not a valid property bag and does not convert to a string`);
+  assert.throws(
+    TypeError,
+    () => Temporal.PlainDateTime.from(arg),
+    `${description} is not a valid calendar`
+  );
 }
 
 reportCompare(0, 0);

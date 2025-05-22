@@ -31,4 +31,10 @@ assert(
   "dateStyle: short does not write month of Ramadan out in full"
 );
 
+const dateWithReferenceDay = new Temporal.PlainYearMonth(2024, 5, "gregory", 31);
+assert(
+  !dateWithReferenceDay.toLocaleString("en", { dateStyle: "full" }).includes("31"),
+  "dateStyle: full should not format reference day at all"
+);
+
 reportCompare(0, 0);

@@ -5,7 +5,7 @@
 info: |
     If neither x, nor y is a prefix of each other, returned result of strings
     comparison applies a simple lexicographic ordering to the sequences of
-    code point value values
+    code unit value values
 es5id: 11.8.1_A4.12_T1
 description: x and y are string primitives
 ---*/
@@ -43,6 +43,28 @@ if (("a\u0000a" < "a\u0000b") !== true) {
 //CHECK#7
 if (("aB" < "aa") !== true) {
   throw new Test262Error('#7: ("aB" < aa") === true');
+}
+
+//CHECK#8
+if (("\uD7FF" < "\u{10000}") !== true) {
+  throw new Test262Error('#8: ("\\uD7FF" < "\\u{10000}") === true');
+}
+
+//CHECK#9
+if (("\uD800" < "\uDC00") !== true) {
+  throw new Test262Error('#9: ("\\uD800" < "\\uDC00") === true');
+}
+
+//CHECK#10
+// String comparison is done by code units, rather than by code points.
+// "\u{10000}" is equivalent to "\uD800\uDC00"
+if (("\u{10000}" < "\uFFFF") !== true) {
+  throw new Test262Error('#10: ("\\u{10000}" < "\\uFFFF") === true');
+}
+
+//CHECK#11
+if (("\u{10000}" < "\u{12345}") !== true) {
+  throw new Test262Error('#11: ("\\u{10000}" < "\\u{12345}") === true');
 }
 
 reportCompare(0, 0);

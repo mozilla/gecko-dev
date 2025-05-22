@@ -44,12 +44,13 @@ assert.compareArray(
   "Deferred namespaces' keys are the exports sorted alphabetically, followed by @@toStringTag"
 );
 
-verifyProperty(ns, "foo", {
-  value: 1,
-  writable: true,
-  enumerable: true,
-  configurable: false,
-});
+// We cannot use `verifyProperty` because the property _looks_ writable, but it's actually not
+const desc = Reflect.getOwnPropertyDescriptor(ns, "foo");
+assert.sameValue(desc.value, 1, "The value of the 'foo' property is 1");
+assert.sameValue(desc.writable, true, "The 'foo' property is writable");
+assert.sameValue(desc.enumerable, true, "The 'foo' property is enumerable");
+assert.sameValue(desc.configurable, false, "The 'foo' property is not configurable");
+
 assert.sameValue(Reflect.getOwnPropertyDescriptor(ns, "non-existent"), undefined, "No descriptors for non-exports");
 
 reportCompare(0, 0);

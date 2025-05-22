@@ -4,7 +4,7 @@
  */
 
 /*---
-includes: [sm/non262.js, sm/non262-shell.js]
+includes: [sm/non262.js, sm/non262-shell.js, nativeFunctionMatcher.js]
 flags:
   - noStrict
 description: |
@@ -261,9 +261,7 @@ function testBound(fun)
 testBound(strict);
 testBound(nonstrict);
 
-var nativeFunctionRegex = /^function\s*\(\)\s*{\s*\[native code\]\s*}$/
-assert.sameValue(nativeFunctionRegex.test((function unbound(){"body"}).bind().toString()), true);
-
+assertNativeFunction((function unbound(){"body"}).bind());
 
 /* 22. Return F. */
 var passim = function p(){}.bind(1);

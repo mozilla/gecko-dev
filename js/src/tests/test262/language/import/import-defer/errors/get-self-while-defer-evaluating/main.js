@@ -38,8 +38,8 @@ features: [import-defer]
 
 import defer * as ns from "./dep_FIXTURE.js";
 
-assert(globalThis["error on ns.foo"] instanceof TypeError, "ns.foo while evaluating throws a TypeError");
+ns.x;
 
-ns.foo;
+assert(globalThis["error on ns.foo"] instanceof TypeError, "ns.foo while evaluating throws a TypeError");
 
 reportCompare(0, 0);

@@ -40,8 +40,8 @@ assert.sameValue(instance.epochNanoseconds, 217178610123456789n, "epochNanosecon
 
 assert.sameValue(instance.dayOfWeek, 4, "dayOfWeek");
 assert.sameValue(instance.dayOfYear, 323, "dayOfYear");
-assert.sameValue(instance.weekOfYear, 47, "weekOfYear");
-assert.sameValue(instance.yearOfWeek, 1976, "yearOfWeek");
+assert.sameValue(instance.weekOfYear, undefined, "weekOfYear");
+assert.sameValue(instance.yearOfWeek, undefined, "yearOfWeek");
 assert.sameValue(instance.daysInWeek, 7, "daysInWeek");
 assert.sameValue(instance.daysInMonth, 30, "daysInMonth");
 assert.sameValue(instance.daysInYear, 366, "daysInYear");

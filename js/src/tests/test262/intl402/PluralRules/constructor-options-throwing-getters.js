@@ -11,6 +11,7 @@ function CustomError() {}
 const options = [
   "localeMatcher",
   "type",
+  "notation",
   "minimumIntegerDigits",
   "minimumFractionDigits",
   "maximumFractionDigits",

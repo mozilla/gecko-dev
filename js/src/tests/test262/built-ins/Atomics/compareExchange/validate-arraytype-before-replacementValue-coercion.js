@@ -3,7 +3,7 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-atomics.compareExchange
+esid: sec-atomics.compareexchange
 description: >
   TypedArray type is validated before `replacementValue` argument is coerced.
 info: |

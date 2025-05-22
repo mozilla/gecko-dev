@@ -5,7 +5,7 @@
 info: |
     If neither x, nor y is a prefix of each other, returned result of strings
     comparison applies a simple lexicographic ordering to the sequences of
-    code point value values
+    code unit value values
 es5id: 11.8.3_A4.12_T2
 description: x and y are string primitives
 ---*/

@@ -14,7 +14,9 @@ info: |
 ---*/
 
 Object.prototype.type = "ordinal";
+Object.prototype.notation = "compact";
 let pluralRules = new Intl.PluralRules("en");
 assert.sameValue(pluralRules.resolvedOptions().type, "cardinal");
+assert.sameValue(pluralRules.resolvedOptions().notation, "standard");
 
 reportCompare(0, 0);

@@ -5,67 +5,76 @@
 esid: sec-createdatetimeformat
 description: Checks basic handling of dayPeriod, long format.
 features: [Intl.DateTimeFormat-dayPeriod]
+includes: [compareArray.js]
 ---*/
 
-const d0000 = new Date(2017, 11, 12,  0, 0, 0, 0);
-const d0100 = new Date(2017, 11, 12,  1, 0, 0, 0);
-const d0200 = new Date(2017, 11, 12,  2, 0, 0, 0);
-const d0300 = new Date(2017, 11, 12,  3, 0, 0, 0);
-const d0400 = new Date(2017, 11, 12,  4, 0, 0, 0);
-const d0500 = new Date(2017, 11, 12,  5, 0, 0, 0);
-const d0600 = new Date(2017, 11, 12,  6, 0, 0, 0);
-const d0700 = new Date(2017, 11, 12,  7, 0, 0, 0);
-const d0800 = new Date(2017, 11, 12,  8, 0, 0, 0);
-const d0900 = new Date(2017, 11, 12,  9, 0, 0, 0);
-const d1000 = new Date(2017, 11, 12, 10, 0, 0, 0);
-const d1100 = new Date(2017, 11, 12, 11, 0, 0, 0);
-const d1200 = new Date(2017, 11, 12, 12, 0, 0, 0);
-const d1300 = new Date(2017, 11, 12, 13, 0, 0, 0);
-const d1400 = new Date(2017, 11, 12, 14, 0, 0, 0);
-const d1500 = new Date(2017, 11, 12, 15, 0, 0, 0);
-const d1600 = new Date(2017, 11, 12, 16, 0, 0, 0);
-const d1700 = new Date(2017, 11, 12, 17, 0, 0, 0);
-const d1800 = new Date(2017, 11, 12, 18, 0, 0, 0);
-const d1900 = new Date(2017, 11, 12, 19, 0, 0, 0);
-const d2000 = new Date(2017, 11, 12, 20, 0, 0, 0);
-const d2100 = new Date(2017, 11, 12, 21, 0, 0, 0);
-const d2200 = new Date(2017, 11, 12, 22, 0, 0, 0);
-const d2300 = new Date(2017, 11, 12, 23, 0, 0, 0);
+// Each expected dayPeriod value must be a) contiguous, and
+// b) represented in sequence.
+var expectedDayPeriods = [
+  'in the morning',
+  'noon',
+  'in the afternoon',
+  'in the evening',
+  'at night'
+];
 
-const long = new Intl.DateTimeFormat('en', { dayPeriod: 'long' });
+// Cover all 24 hours of a single day.
+var inputs = [];
+for (var h = 0; h < 24; h++) {
+  inputs.push(new Date(2017, 11, 12,  h, 0, 0, 0));
+}
 
-function assertParts(parts, expected, message) {
+var formatter = new Intl.DateTimeFormat('en', {
+  dayPeriod: 'long'
+});
+
+function assertParts(parts, message) {
   assert.sameValue(parts.length, 1, `length should be 1, ${message}`);
-  assert.sameValue(parts[0].value, expected, `expected part value. ${message}`);
   assert.sameValue(parts[0].type, 'dayPeriod', `part type is dayPeriod. ${message}`);
 }
 
-assertParts(long.formatToParts(d0000), 'at night', '00:00, long format');
-assertParts(long.formatToParts(d0100), 'at night', '01:00, long format');
-assertParts(long.formatToParts(d0200), 'at night', '02:00, long format');
-assertParts(long.formatToParts(d0300), 'at night', '03:00, long format');
-assertParts(long.formatToParts(d0400), 'at night', '04:00, long format');
-assertParts(long.formatToParts(d0500), 'at night', '05:00, long format');
-assertParts(long.formatToParts(d0600), 'in the morning', '06:00, long format');
-assertParts(long.formatToParts(d0700), 'in the morning', '07:00, long format');
-assertParts(long.formatToParts(d0800), 'in the morning', '08:00, long format');
-assertParts(long.formatToParts(d0900), 'in the morning', '09:00, long format');
-assertParts(long.formatToParts(d1000), 'in the morning', '10:00, long format');
-assertParts(long.formatToParts(d1100), 'in the morning', '11:00, long format');
-assertParts(long.formatToParts(d1200), 'noon', '12:00, long format');
-assertParts(long.formatToParts(d1300), 'in the afternoon', '13:00, long format');
-assertParts(long.formatToParts(d1400), 'in the afternoon', '14:00, long format');
-assertParts(long.formatToParts(d1500), 'in the afternoon', '15:00, long format');
-assertParts(long.formatToParts(d1600), 'in the afternoon', '16:00, long format');
-assertParts(long.formatToParts(d1700), 'in the afternoon', '17:00, long format');
-assertParts(long.formatToParts(d1800), 'in the evening', '18:00, long format');
-assertParts(long.formatToParts(d1900), 'in the evening', '19:00, long format');
-assertParts(long.formatToParts(d2000), 'in the evening', '20:00, long format');
-assertParts(long.formatToParts(d2100), 'at night', '21:00, long format');
-assertParts(long.formatToParts(d2200), 'at night', '22:00, long format');
-assertParts(long.formatToParts(d2300), 'at night', '23:00, long format');
+// Verify complete and exclusive representation.
+var observedDayPeriods = [];
+var unexpectedDayPeriods = [];
+for (var h = 0; h < 24; h++) {
+  var parts = formatter.formatToParts(inputs[h]);
+  assertParts(parts, 'dayPeriod-only formatting for ' + inputs[h]);
+  var dayPeriod = parts[0].value;
+  observedDayPeriods.push(dayPeriod);
+  if (expectedDayPeriods.indexOf(dayPeriod) === -1) {
+    unexpectedDayPeriods.push(dayPeriod);
+  }
+}
+var unusedDayPeriods = expectedDayPeriods.filter(function (dayPeriod) {
+  return observedDayPeriods.indexOf(dayPeriod) === -1;
+});
+assert.compareArray(unexpectedDayPeriods, [],
+  'unexpected dayPeriods: ' + unexpectedDayPeriods.join());
+assert.compareArray(unusedDayPeriods, [],
+  'unused dayPeriods: ' + unusedDayPeriods.join());
 
-const longNumeric = new Intl.DateTimeFormat('en', {
+function arrayAt(arr, relIndex) {
+  var realIndex = relIndex < 0 ? arr.length + relIndex : relIndex;
+  if (realIndex < 0 || realIndex >= arr.length) return undefined;
+  return arr[realIndex];
+}
+
+// Verify ordering, accounting for the possibility of one value spanning day
+// transitions.
+var transitionCount = 0;
+for (var h = 0; h < 24; h++) {
+  var dayPeriod = observedDayPeriods[h];
+  var prevDayPeriod = arrayAt(observedDayPeriods, h - 1);
+  if (dayPeriod === prevDayPeriod) continue;
+  transitionCount++;
+  var i = expectedDayPeriods.indexOf(dayPeriod);
+  assert.sameValue(prevDayPeriod, arrayAt(expectedDayPeriods, i - 1),
+    dayPeriod + ' must be preceded by ' + prevDayPeriod);
+}
+assert.sameValue(transitionCount, expectedDayPeriods.length,
+  'dayPeriods must be contiguous');
+
+var numericFormatter = new Intl.DateTimeFormat('en', {
   dayPeriod: 'long',
   hour: 'numeric'
 });
@@ -80,29 +89,14 @@ function assertPartsNumeric(parts, hour, expected, message) {
   assert.sameValue(parts[2].type, 'dayPeriod', `expected part type. ${message}`);
 }
 
-assertPartsNumeric(longNumeric.formatToParts(d0000), '12', 'at night', '00:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d0100),  '1', 'at night', '01:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d0200),  '2', 'at night', '02:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d0300),  '3', 'at night', '03:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d0400),  '4', 'at night', '04:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d0500),  '5', 'at night', '05:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d0600),  '6', 'in the morning', '06:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d0700),  '7', 'in the morning', '07:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d0800),  '8', 'in the morning', '08:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d0900),  '9', 'in the morning', '09:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d1000), '10', 'in the morning', '10:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d1100), '11', 'in the morning', '11:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d1200), '12', 'noon', '12:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d1300),  '1', 'in the afternoon', '13:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d1400),  '2', 'in the afternoon', '14:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d1500),  '3', 'in the afternoon', '15:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d1600),  '4', 'in the afternoon', '16:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d1700),  '5', 'in the afternoon', '17:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d1800),  '6', 'in the evening', '18:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d1900),  '7', 'in the evening', '19:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d2000),  '8', 'in the evening', '20:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d2100),  '9', 'at night', '21:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d2200), '10', 'at night', '22:00, long-numeric');
-assertPartsNumeric(longNumeric.formatToParts(d2300), '11', 'at night', '23:00, long-numeric');
+for (var h = 0; h < 24; h++) {
+  assertPartsNumeric(
+    numericFormatter.formatToParts(inputs[h]),
+    // Hour "00" is represented as "12".
+    String((h % 12) || 12),
+    observedDayPeriods[h],
+    'numeric hour must precede dayPeriod'
+  );
+}
 
 reportCompare(0, 0);

@@ -10,30 +10,25 @@ description: >
 features: [BigInt, Symbol, Temporal]
 ---*/
 
-const primitiveTests = [
+const wrongTypeTests = [
   [null, "null"],
   [true, "boolean"],
-  ["", "empty string"],
-  [1, "number that doesn't convert to a valid ISO string"],
+  [1, "number"],
   [1n, "bigint"],
-];
-
-for (const [arg, description] of primitiveTests) {
-  assert.throws(
-    typeof arg === 'string' ? RangeError : TypeError,
-    () => new Temporal.PlainYearMonth(2000, 5, arg, 1),
-    `${description} does not convert to a valid ISO string`
-  );
-}
-
-const typeErrorTests = [
+  [-19761118, "negative number"],
+  [19761118, "large positive number"],
+  [1234567890, "large integer"],
   [Symbol(), "symbol"],
   [{}, "object"],
   [new Temporal.Duration(), "duration instance"],
 ];
 
-for (const [arg, description] of typeErrorTests) {
-  assert.throws(TypeError, () => new Temporal.PlainYearMonth(2000, 5, arg, 1), `${description} is not a valid object and does not convert to a string`);
+for (const [arg, description] of wrongTypeTests) {
+  assert.throws(
+    TypeError,
+    () => new Temporal.PlainYearMonth(2000, 5, arg, 1),
+    `${description} is not a valid calendar`
+  );
 }
 
 reportCompare(0, 0);

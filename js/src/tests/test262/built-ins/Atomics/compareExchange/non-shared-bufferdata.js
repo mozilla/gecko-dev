@@ -3,7 +3,7 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-atomics.compareExchange
+esid: sec-atomics.compareexchange
 description: >
   Atomics.compareExchange will operate on TA when TA.buffer is not a SharedArrayBuffer
 includes: [testTypedArray.js]

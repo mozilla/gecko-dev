@@ -12,6 +12,7 @@ let optionKeys = [
     // Inside InitializePluralRules
     "localeMatcher",
     "type",
+    "notation",
     // Inside SetNumberFormatDigitOptions
         "minimumIntegerDigits",
         "minimumFractionDigits",

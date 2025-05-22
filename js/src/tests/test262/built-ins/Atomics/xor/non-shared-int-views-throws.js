@@ -3,9 +3,9 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-atomics.and
+esid: sec-atomics.xor
 description: >
-  Atomics.and throws when operating on non-sharable integer TypedArrays
+  Atomics.xor throws when operating on non-sharable integer TypedArrays
 includes: [testTypedArray.js]
 features: [ArrayBuffer, Atomics, TypedArray]
 ---*/
@@ -14,8 +14,8 @@ testWithNonAtomicsFriendlyTypedArrayConstructors(TA => {
   const view = new TA(buffer);
 
   assert.throws(TypeError, function() {
-    Atomics.and(view, 0, 1);
-  }, `Atomics.and(new ${TA.name}(buffer), 0, 1) throws TypeError`);
+    Atomics.xor(view, 0, 1);
+  }, `Atomics.xor(new ${TA.name}(buffer), 0, 1) throws TypeError`);
 });
 
 reportCompare(0, 0);
