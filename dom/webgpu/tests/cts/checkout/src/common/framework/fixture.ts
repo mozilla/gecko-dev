@@ -346,8 +346,22 @@ export class Fixture<S extends SubcaseBatchState = SubcaseBatchState> {
     }
   }
 
-  /** Expect that a condition is true. */
-  expect(cond: boolean, msg?: string): boolean {
+  /**
+   * Expect that a condition is true.
+   *
+   * Note: You can pass a boolean condition, or a function that returns a boolean.
+   * The advantage to passing a function is that if it's short it is self documenting.
+   *
+   * t.expect(size >= maxSize);      // prints Expect OK:
+   * t.expect(() => size >= maxSize) // prints Expect OK: () => size >= maxSize
+   */
+  expect(cond: boolean | (() => boolean), msg?: string): boolean {
+    if (typeof cond === 'function') {
+      if (msg === undefined) {
+        msg = cond.toString();
+      }
+      cond = cond();
+    }
     if (cond) {
       const m = msg ? ': ' + msg : '';
       this.rec.debug(new Error('expect OK' + m));

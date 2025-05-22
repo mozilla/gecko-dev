@@ -346,8 +346,22 @@ export class Fixture {
     }
   }
 
-  /** Expect that a condition is true. */
+  /**
+   * Expect that a condition is true.
+   *
+   * Note: You can pass a boolean condition, or a function that returns a boolean.
+   * The advantage to passing a function is that if it's short it is self documenting.
+   *
+   * t.expect(size >= maxSize);      // prints Expect OK:
+   * t.expect(() => size >= maxSize) // prints Expect OK: () => size >= maxSize
+   */
   expect(cond, msg) {
+    if (typeof cond === 'function') {
+      if (msg === undefined) {
+        msg = cond.toString();
+      }
+      cond = cond();
+    }
     if (cond) {
       const m = msg ? ': ' + msg : '';
       this.rec.debug(new Error('expect OK' + m));

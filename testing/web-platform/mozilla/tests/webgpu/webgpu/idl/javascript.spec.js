@@ -19,7 +19,12 @@ Examples:
 `;import { makeTestGroup } from '../../common/framework/test_group.js';
 import { keysOf } from '../../common/util/data_tables.js';
 import { getGPU } from '../../common/util/navigator_gpu.js';
-import { assert, objectEquals, unreachable } from '../../common/util/util.js';
+import {
+  assert,
+  objectEquals,
+  raceWithRejectOnTimeout,
+  unreachable } from
+'../../common/util/util.js';
 import { getDefaultLimitsForDevice, kLimits } from '../capability_info.js';
 import { AllFeaturesMaxLimitsGPUTest } from '../gpu_test.js';
 
@@ -561,4 +566,113 @@ params((u) => u.combine('type', keysOf(kClassInheritanceTests))).
 fn((t) => {
   const fn = kClassInheritanceTests[t.params.type];
   t.expect(fn(), fn.toString());
+});
+
+const kDispatchTests = {
+  async canPassEventThroughDevice(t) {
+    const result = await raceWithRejectOnTimeout(
+      new Promise((resolve) => {
+        t.device.addEventListener('foo', resolve, { once: true });
+        t.device.dispatchEvent(new Event('foo'));
+      }),
+      500,
+      'timeout'
+    );
+    const event = result;
+    t.expect(() => event instanceof Event, 'event');
+    t.expect(() => event.type === 'foo');
+  },
+  async canPassCustomEventThroughDevice(t) {
+    const result = await raceWithRejectOnTimeout(
+      new Promise((resolve) => {
+        t.device.addEventListener('bar', resolve, { once: true });
+        t.device.dispatchEvent(new CustomEvent('bar'));
+      }),
+      500,
+      'timeout'
+    );
+    const event = result;
+    t.expect(() => event instanceof CustomEvent);
+    t.expect(() => event instanceof Event);
+    t.expect(() => event.type === 'bar');
+  },
+  async patchingEventTargetAffectsDevice(t) {
+    let addEventListenerWasCalled = false;
+    let dispatchEventWasCalled = false;
+    let removeEventListenerWasCalled = false;
+
+
+    const origFnAddEventListener = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function (
+    ...args)
+    {
+      addEventListenerWasCalled = true;
+      return origFnAddEventListener.call(this, ...args);
+    };
+
+
+    const origFnDispatchEvent = EventTarget.prototype.dispatchEvent;
+    EventTarget.prototype.dispatchEvent = function (event) {
+      dispatchEventWasCalled = true;
+      return origFnDispatchEvent.call(this, event);
+    };
+
+
+    const origFnRemoveEventListener = EventTarget.prototype.removeEventListener;
+    EventTarget.prototype.removeEventListener = function (
+    ...args)
+    {
+      removeEventListenerWasCalled = true;
+      return origFnRemoveEventListener.call(this, ...args);
+    };
+
+    try {
+      await raceWithRejectOnTimeout(
+        new Promise((resolve) => {
+          t.device.addEventListener('foo', resolve);
+          t.device.dispatchEvent(new Event('foo'));
+          t.device.removeEventListener('foo', resolve);
+        }),
+        500,
+        'timeout'
+      );
+    } finally {
+      EventTarget.prototype.addEventListener = origFnAddEventListener;
+      EventTarget.prototype.dispatchEvent = origFnDispatchEvent;
+      EventTarget.prototype.removeEventListener = origFnRemoveEventListener;
+    }
+    t.expect(addEventListenerWasCalled, 'overriding EventTarget addEventListener worked');
+    t.expect(dispatchEventWasCalled, 'overriding EventTarget dispatchEvent worked');
+    t.expect(removeEventListenerWasCalled, 'overriding EventTarget removeEventListener worked');
+  },
+  async passingGPUUncapturedErrorEventWorksThoughEventTarget(t) {
+    const target = new EventTarget();
+    const result = await raceWithRejectOnTimeout(
+      new Promise((resolve) => {
+        target.addEventListener('uncapturederror', resolve, { once: true });
+        target.dispatchEvent(
+          new GPUUncapturedErrorEvent('uncapturederror', {
+            error: new GPUValidationError('test error')
+          })
+        );
+      }),
+      500,
+      'timeout'
+    );
+    const event = result;
+    t.expect(() => event instanceof GPUUncapturedErrorEvent);
+    t.expect(() => event.error instanceof GPUValidationError);
+    t.expect(() => event.error.message === 'test error');
+  }
+};
+
+g.test('device,EventTarget').
+desc(
+  `
+Test some repercussions of the fact that GPUDevice extends EventTarget
+`
+).
+params((u) => u.combine('test', keysOf(kDispatchTests))).
+fn(async (t) => {
+  await kDispatchTests[t.params.test](t);
 });

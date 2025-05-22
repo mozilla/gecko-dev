@@ -916,6 +916,7 @@
   "webgpu:idl,constructable:gpu_errors:*": { "subcaseMS": 0.101 },
   "webgpu:idl,constructable:pipeline_errors:*": { "subcaseMS": 0.101 },
   "webgpu:idl,constructable:uncaptured_error_event:*": { "subcaseMS": 0.101 },
+  "webgpu:idl,javascript:device,EventTarget:*": { "subcaseMS": 79.123 },
   "webgpu:shader,execution,expression,access,array,index:abstract_scalar:*": { "subcaseMS": 235.962 },
   "webgpu:shader,execution,expression,access,array,index:bool:*": { "subcaseMS": 663.038 },
   "webgpu:shader,execution,expression,access,array,index:concrete_scalar:*": { "subcaseMS": 1439.796 },
