@@ -6504,6 +6504,8 @@ NS_IMETHODIMP
 nsHttpChannel::Suspend() {
   NS_ENSURE_TRUE(LoadIsPending(), NS_ERROR_NOT_AVAILABLE);
 
+  PROFILER_MARKER("nsHttpChannel::Suspend", NETWORK, {}, FlowMarker,
+                  Flow::FromPointer(this));
   LOG(("nsHttpChannel::SuspendInternal [this=%p]\n", this));
   LogCallingScriptLocation(this);
 
