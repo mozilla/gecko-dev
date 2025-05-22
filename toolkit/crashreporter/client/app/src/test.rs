@@ -507,6 +507,14 @@ fn no_dump_file() {
 }
 
 #[test]
+fn dump_file_does_not_exist() {
+    let mut test = GuiTest::new();
+    test.config.dump_file = Some("does_not_exist.dmp".into());
+    test.try_run(|_interact| {})
+        .expect_err("the gui should fail with an error");
+}
+
+#[test]
 fn no_extra_file() {
     mock::builder()
         .set(
