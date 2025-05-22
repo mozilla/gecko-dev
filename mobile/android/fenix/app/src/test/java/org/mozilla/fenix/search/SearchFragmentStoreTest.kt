@@ -96,6 +96,7 @@ class SearchFragmentStoreTest {
                 showTrendingSearches = false,
                 showRecentSearches = false,
                 showShortcutsSuggestions = false,
+                showQrButton = true,
                 tabId = null,
                 pastedText = "pastedText",
                 searchAccessPoint = MetricsUtils.Source.ACTION,
@@ -109,6 +110,7 @@ class SearchFragmentStoreTest {
                     tabId = null,
                     pastedText = "pastedText",
                     searchAccessPoint = MetricsUtils.Source.ACTION,
+                    isAndroidAutomotiveAvailable = false,
                 ),
             )
             assertEquals(
@@ -119,10 +121,22 @@ class SearchFragmentStoreTest {
                     tabId = "tabId",
                     pastedText = "pastedText",
                     searchAccessPoint = MetricsUtils.Source.ACTION,
+                    isAndroidAutomotiveAvailable = false,
+                ),
+            )
+            assertEquals(
+                expected.copy(showQrButton = false),
+                createInitialSearchFragmentState(
+                    activity,
+                    components,
+                    tabId = null,
+                    pastedText = "pastedText",
+                    searchAccessPoint = MetricsUtils.Source.ACTION,
+                    isAndroidAutomotiveAvailable = true,
                 ),
             )
 
-            verify(exactly = 2) { shouldShowSearchSuggestions(BrowsingMode.Normal, settings) }
+            verify(exactly = 3) { shouldShowSearchSuggestions(BrowsingMode.Normal, settings) }
         }
     }
 
@@ -165,6 +179,7 @@ class SearchFragmentStoreTest {
             showTrendingSearches = false,
             showRecentSearches = false,
             showShortcutsSuggestions = false,
+            showQrButton = true,
             tabId = null,
             pastedText = "pastedText",
             searchAccessPoint = MetricsUtils.Source.ACTION,
@@ -178,6 +193,7 @@ class SearchFragmentStoreTest {
                 tabId = null,
                 pastedText = "pastedText",
                 searchAccessPoint = MetricsUtils.Source.ACTION,
+                isAndroidAutomotiveAvailable = false,
             ),
         )
     }
@@ -224,6 +240,7 @@ class SearchFragmentStoreTest {
                 showTrendingSearches = false,
                 showRecentSearches = false,
                 showShortcutsSuggestions = false,
+                showQrButton = true,
                 tabId = "tabId",
                 pastedText = "",
                 searchAccessPoint = MetricsUtils.Source.SHORTCUT,
@@ -234,6 +251,7 @@ class SearchFragmentStoreTest {
                 tabId = "tabId",
                 pastedText = "",
                 searchAccessPoint = MetricsUtils.Source.SHORTCUT,
+                isAndroidAutomotiveAvailable = false,
             ),
         )
     }
@@ -252,6 +270,7 @@ class SearchFragmentStoreTest {
             tabId = null,
             pastedText = "pastedText",
             searchAccessPoint = MetricsUtils.Source.ACTION,
+            isAndroidAutomotiveAvailable = false,
         )
         assertFalse(initialState.showSponsoredSuggestions)
         assertFalse(initialState.showNonSponsoredSuggestions)
@@ -1389,6 +1408,7 @@ class SearchFragmentStoreTest {
         showTrendingSearches = false,
         showRecentSearches = false,
         showShortcutsSuggestions = false,
+        showQrButton = true,
         searchAccessPoint = MetricsUtils.Source.NONE,
     )
 }

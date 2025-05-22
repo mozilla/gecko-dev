@@ -93,6 +93,7 @@ class HomeToolbarViewTest {
         showTrendingSearches = false,
         showRecentSearches = false,
         showShortcutsSuggestions = false,
+        showQrButton = true,
         searchAccessPoint = MetricsUtils.Source.NONE,
     )
 

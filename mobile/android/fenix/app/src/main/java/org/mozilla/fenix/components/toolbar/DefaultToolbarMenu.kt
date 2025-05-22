@@ -39,6 +39,7 @@ import mozilla.components.support.ktx.kotlin.isContentUrl
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.R
+import org.mozilla.fenix.automotive.isAndroidAutomotiveAvailable
 import org.mozilla.fenix.components.accounts.FenixAccountManager
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
@@ -453,7 +454,13 @@ open class DefaultToolbarMenu(
                 addAppToHomeScreenItem.apply { visible = ::canAddAppToHomescreen },
                 if (shouldShowTopSites) addRemoveTopSitesItem else null,
                 saveToCollectionItem,
-                if (FxNimbus.features.print.value().browserPrintEnabled) printPageItem else null,
+                if (FxNimbus.features.print.value().browserPrintEnabled &&
+                    !context.isAndroidAutomotiveAvailable()
+                ) {
+                    printPageItem
+                } else {
+                    null
+                },
                 BrowserMenuDivider(),
                 settingsItem,
                 if (shouldDeleteDataOnQuit) deleteDataOnQuit else null,

@@ -84,6 +84,7 @@ import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.VoiceSearch
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
+import org.mozilla.fenix.automotive.isAndroidAutomotiveAvailable
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.search.BOOKMARKS_SEARCH_ENGINE_ID
@@ -249,6 +250,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
                 searchEngine = requireComponents.core.store.state.search.searchEngines.firstOrNull {
                     it.id == args.searchEngine
                 },
+                isAndroidAutomotiveAvailable = requireContext().isAndroidAutomotiveAvailable(),
             ),
         )
 
@@ -514,7 +516,9 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
             awesomeBarView.update(it)
 
             addSearchSelector()
-            updateQrButton(it)
+            if (it.showQrButton) {
+                updateQrButton(it)
+            }
             updateVoiceSearchButton()
         }
     }

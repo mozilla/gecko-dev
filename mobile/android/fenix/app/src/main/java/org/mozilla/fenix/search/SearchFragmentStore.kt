@@ -107,6 +107,7 @@ sealed class SearchEngineSource {
  * @property showTrendingSearches Whether the setting for showing trending searches is enabled or disabled.
  * @property showRecentSearches Whether the setting for showing recent searches is enabled or disabled.
  * @property showShortcutsSuggestions Whether the setting for showing shortcuts suggestions is enabled or disabled.
+ * @property showQrButton Whether or not to show the QR button.
  * @property tabId The ID of the current tab.
  * @property pastedText The text pasted from the long press toolbar menu.
  * @property searchAccessPoint The source of the performed search.
@@ -138,6 +139,7 @@ data class SearchFragmentState(
     val showTrendingSearches: Boolean,
     val showRecentSearches: Boolean,
     val showShortcutsSuggestions: Boolean,
+    val showQrButton: Boolean,
     val tabId: String?,
     val pastedText: String? = null,
     val searchAccessPoint: MetricsUtils.Source,
@@ -154,6 +156,7 @@ fun createInitialSearchFragmentState(
     pastedText: String?,
     searchAccessPoint: MetricsUtils.Source,
     searchEngine: SearchEngine? = null,
+    isAndroidAutomotiveAvailable: Boolean,
 ): SearchFragmentState {
     val settings = components.settings
     val tab = tabId?.let { components.core.store.state.findTab(it) }
@@ -201,6 +204,7 @@ fun createInitialSearchFragmentState(
         ),
         showRecentSearches = settings.shouldShowRecentSearchSuggestions,
         showShortcutsSuggestions = settings.shouldShowShortcutSuggestions,
+        showQrButton = !isAndroidAutomotiveAvailable,
         tabId = tabId,
         pastedText = pastedText,
         searchAccessPoint = searchAccessPoint,

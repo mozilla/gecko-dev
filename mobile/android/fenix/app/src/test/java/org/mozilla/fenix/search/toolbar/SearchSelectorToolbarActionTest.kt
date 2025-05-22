@@ -298,6 +298,7 @@ private val testSearchFragmentState = SearchFragmentState(
     showTrendingSearches = false,
     showRecentSearches = false,
     showShortcutsSuggestions = false,
+    showQrButton = true,
     tabId = "tabId",
     pastedText = "",
     searchAccessPoint = MetricsUtils.Source.SHORTCUT,
