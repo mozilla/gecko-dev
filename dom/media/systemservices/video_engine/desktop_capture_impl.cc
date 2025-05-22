@@ -10,6 +10,7 @@
 
 #include "desktop_capture_impl.h"
 
+#include <charconv>
 #include <cstdlib>
 #include <memory>
 #include <string>
@@ -330,8 +331,24 @@ int32_t DesktopCaptureImpl::StartCapture(
                                })));
     return 0;
   }
-
-  DesktopCapturer::SourceId sourceId = std::stoi(mDeviceUniqueId);
+  DesktopCapturer::SourceId sourceId{};
+  auto [firstNoMatch, error] = std::from_chars(
+      mDeviceUniqueId.data(), mDeviceUniqueId.data() + mDeviceUniqueId.size(),
+      sourceId);
+  if (error != std::errc() ||
+      firstNoMatch != (mDeviceUniqueId.data() + mDeviceUniqueId.size())) {
+    std::string errorMsg =
+        error == std::errc::invalid_argument
+            ? "Invalid value of mDeviceUniqueId."
+        : error == std::errc::result_out_of_range
+            ? "mDeviceUniqueIds value is out of range to cast."
+            : "An unknown error has occurred.";
+    MOZ_ASSERT_UNREACHABLE("Error casting mDeviceUniqueId to SourceId.");
+    RTC_LOG(LS_ERROR)
+        << "Attempting to cast mDeviceUniqueId to SourceId returned an error: "
+        << errorMsg;
+    return -1;
+  }
   std::unique_ptr capturer = CreateDesktopCapturerAndThread(
       mDeviceType, sourceId, getter_AddRefs(mCaptureThread));
 

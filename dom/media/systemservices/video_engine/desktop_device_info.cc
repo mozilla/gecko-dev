@@ -107,7 +107,8 @@ static std::map<intptr_t, TabSource> InitializeTabList() {
       int64_t browserId;
       browserTab->GetBrowserId(&browserId);
 
-      auto result = tabList.try_emplace(static_cast<intptr_t>(browserId));
+      auto result =
+          tabList.try_emplace(mozilla::AssertedCast<intptr_t>(browserId));
       auto& [iter, inserted] = result;
       if (!inserted) {
         MOZ_ASSERT_UNREACHABLE("Duplicate browser ids");
