@@ -2875,13 +2875,24 @@ static bool DecodeLimits(Decoder& d, LimitsKind kind, Limits* limits) {
   return true;
 }
 
-static bool DecodeTableTypeAndLimits(Decoder& d, CodeMetadata* codeMeta) {
+// Combined decoding for both table types and the augmented form of table types
+// that can include init expressions:
+//
+// https://wasm-dsl.github.io/spectec/core/binary/types.html#table-types
+// https://wasm-dsl.github.io/spectec/core/binary/modules.html#table-section
+//
+// Only defined tables are therefore allowed to have init expressions, not
+// imported tables.
+static bool DecodeTableType(Decoder& d, CodeMetadata* codeMeta, bool isImport) {
   bool initExprPresent = false;
   uint8_t typeCode;
   if (!d.peekByte(&typeCode)) {
     return d.fail("expected type code");
   }
   if (typeCode == (uint8_t)TypeCode::TableHasInitExpr) {
+    if (isImport) {
+      return d.fail("imported tables cannot have initializer expressions");
+    }
     d.uncheckedReadFixedU8();
     uint8_t flags;
     if (!d.readFixedU8(&flags) || flags != 0) {
@@ -2927,14 +2938,14 @@ static bool DecodeTableTypeAndLimits(Decoder& d, CodeMetadata* codeMeta) {
     }
     initExpr = Some(std::move(initializer));
   } else {
-    if (!tableElemType.isNullable()) {
+    if (!tableElemType.isNullable() && !isImport) {
       return d.fail("table with non-nullable references requires initializer");
     }
   }
 
   return codeMeta->tables.emplaceBack(limits, tableElemType,
                                       std::move(initExpr),
-                                      /* isAsmJS */ false);
+                                      /* isAsmJS */ false, isImport);
 }
 
 static bool DecodeGlobalType(Decoder& d, const SharedTypeContext& types,
@@ -3055,10 +3066,9 @@ static bool DecodeImport(Decoder& d, CodeMetadata* codeMeta,
       break;
     }
     case DefinitionKind::Table: {
-      if (!DecodeTableTypeAndLimits(d, codeMeta)) {
+      if (!DecodeTableType(d, codeMeta, /*isImport=*/true)) {
         return false;
       }
-      codeMeta->tables.back().isImported = true;
       break;
     }
     case DefinitionKind::Memory: {
@@ -3279,7 +3289,7 @@ static bool DecodeTableSection(Decoder& d, CodeMetadata* codeMeta) {
   }
 
   for (uint32_t i = 0; i < numTables; ++i) {
-    if (!DecodeTableTypeAndLimits(d, codeMeta)) {
+    if (!DecodeTableType(d, codeMeta, /*isImport=*/false)) {
       return false;
     }
   }

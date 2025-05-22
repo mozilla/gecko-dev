@@ -91,7 +91,7 @@ wasmError(
   const body = [1];
   body.push(...string("mod"));
   body.push(...string("exn"));
-  body.push(...varU32(TagCode));
+  body.push(...varU32(ExternTagCode));
 
   wasmError(
     moduleWithSections([
@@ -146,7 +146,7 @@ wasmError(
 (() => {
   const body = [1];
   body.push(...string("exn"));
-  body.push(...varU32(TagCode));
+  body.push(...varU32(ExternTagCode));
   wasmError(
     moduleWithSections([
       sigSection([emptyType]),

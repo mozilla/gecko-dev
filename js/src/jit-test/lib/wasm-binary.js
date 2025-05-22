@@ -42,7 +42,7 @@ const I64Code          = 0x7e;
 const F32Code          = 0x7d;
 const F64Code          = 0x7c;
 const V128Code         = 0x7b;
-const AnyFuncCode      = 0x70;
+const FuncRefCode      = 0x70;
 const ExternRefCode    = 0x6f;
 const AnyRefCode       = 0x6e;
 const EqRefCode        = 0x6d;
@@ -227,12 +227,12 @@ const StructNewDefault = 0x01;  // UNOFFICIAL
 const StructGet = 0x03;         // UNOFFICIAL
 const StructSet = 0x06;         // UNOFFICIAL
 
-// DefinitionKind
-const FunctionCode     = 0x00;
-const TableCode        = 0x01;
-const MemoryCode       = 0x02;
-const GlobalCode       = 0x03;
-const TagCode          = 0x04;
+// External type codes (used for imports/exports)
+const ExternFuncCode   = 0x00;
+const ExternTableCode  = 0x01;
+const ExternMemCode    = 0x02;
+const ExternGlobalCode = 0x03;
+const ExternTagCode    = 0x04;
 
 // ResizableFlags
 const HasMaximumFlag   = 0x1;
@@ -279,6 +279,21 @@ function varS32(s32) {
             byte |= 0x80;
         bytes.push(byte);
     } while (s32 != 0 && s32 != -1);
+    return bytes;
+}
+
+function varU64(u64) {
+    u64 = BigInt(u64);
+    assertEq(u64 >= 0n, true, `varU64 input must be number between 0 and 2^64-1, got ${u64}`);
+    assertEq(u64 < 2n**64n, true, `varU64 input must be number between 0 and 2^64-1, got ${u64}`);
+    var bytes = [];
+    do {
+        var byte = Number(u64 & 0x7fn);
+        u64 >>= 7n;
+        if (u64 !== 0n)
+            byte |= 0x80;
+        bytes.push(byte);
+    } while (u64 !== 0n);
     return bytes;
 }
 
@@ -556,9 +571,25 @@ function importSection(imports) {
     body.push(...varU32(imports.length));
     for (let imp of imports) {
         body.push(...string(imp.module));
-        body.push(...string(imp.func));
-        body.push(...varU32(FunctionCode));
-        body.push(...varU32(imp.sigIndex));
+        body.push(...string(imp.item));
+        if (imp.hasOwnProperty("funcTypeIndex")) {
+            body.push(ExternFuncCode);
+            body.push(...varU32(imp.funcTypeIndex));
+        } else if (imp.hasOwnProperty("tableType")) {
+            body.push(ExternTableCode);
+            body.push(...imp.tableType);
+        } else if (imp.hasOwnProperty("memType")) {
+            body.push(ExternMemCode);
+            body.push(...imp.memType);
+        } else if (imp.hasOwnProperty("globalType")) {
+            body.push(ExternGlobalCode);
+            body.push(...imp.globalType);
+        } else if (imp.hasOwnProperty("tagType")) {
+            body.push(ExternTagCode);
+            body.push(...imp.tagType);
+        } else {
+            throw new Error(`unknown import type for "${imp.module}" "${imp.name}"`);
+        }
     }
     return { name: importId, body };
 }
@@ -569,13 +600,13 @@ function exportSection(exports) {
     for (let exp of exports) {
         body.push(...string(exp.name));
         if (exp.hasOwnProperty("funcIndex")) {
-            body.push(...varU32(FunctionCode));
+            body.push(...varU32(ExternFuncCode));
             body.push(...varU32(exp.funcIndex));
         } else if (exp.hasOwnProperty("memIndex")) {
-            body.push(...varU32(MemoryCode));
+            body.push(...varU32(ExternMemCode));
             body.push(...varU32(exp.memIndex));
         } else if (exp.hasOwnProperty("tagIndex")) {
-            body.push(...varU32(TagCode));
+            body.push(...varU32(ExternTagCode));
             body.push(...varU32(exp.tagIndex));
         } else {
             throw "Bad export " + exp;
@@ -584,13 +615,89 @@ function exportSection(exports) {
     return { name: exportId, body };
 }
 
-function tableSection(initialSize) {
+/**
+ * Encode a table section:
+ * https://wasm-dsl.github.io/spectec/core/binary/modules.html#table-section
+ *
+ *     tableSection([
+ *         // (table 10 100 funcref), two ways
+ *         { type: tableType(FuncRefCode, { min: 10, max: 100 }) },
+ *         { elemType: FuncRefCode, min: 10, max: 100 },
+ *
+ *         // (table i64 10 (ref func) ref.func 123), two ways
+ *         {
+ *             type: tableType([RefCode, FuncRefCode], { addrType: "i64", min: 10n }),
+ *             init: [RefFuncCode, ...varU32(123), EndCode],
+ *         },
+ *         {
+ *             elemType: [RefCode, FuncRefCode],
+ *             addrType: "i64", min: 10n,
+ *             init: [RefFuncCode, ...varU32(123), EndCode],
+ *         },
+ *     ]);
+ */
+function tableSection(tables) {
     var body = [];
-    body.push(...varU32(1));           // number of tables
-    body.push(...varU32(AnyFuncCode));
-    body.push(...varU32(0x0));         // for now, no maximum
-    body.push(...varU32(initialSize));
+    body.push(...varU32(tables.length));
+    for (const table of tables) {
+        if (table.init) {
+            body.push(0x40, 0x00);
+        }
+        if (table.type) {
+            body.push(...table.type);
+        } else {
+            body.push(...tableType(table.elemType, limits({
+                addrType: table.addrType ?? "i32",
+                min: table.min, max: table.max,
+            })));
+        }
+        if (table.init) {
+            body.push(...table.init);
+        }
+    }
     return { name: tableId, body };
+}
+
+/**
+ * Encode a table section of funcs with the given initial size (and no max).
+ * Useful for the typical wasm 1.0 use of tables.
+ */
+function defaultTableSection(initialSize) {
+    return tableSection([{ elemType: FuncRefCode, min: initialSize }]);
+}
+
+/**
+ * Create limits:
+ * https://wasm-dsl.github.io/spectec/core/binary/types.html#binary-limits
+ *
+ *     limits({ min: 0 })
+ *     limits({ addrType: "i64", min: 0n, max: 10n })
+ */
+function limits({ addrType = "i32", min, max }) {
+    var body = [];
+    body.push((addrType === "i64" ? 0x04 : 0x00) & (max === undefined ? 0x00 : 0x01));
+    body.push(...varU64(min));
+    if (max !== undefined) {
+        body.push(...varU64(max));
+    }
+    return body;
+}
+
+/**
+ * Create a table type:
+ * https://wasm-dsl.github.io/spectec/core/binary/types.html#table-types
+ *
+ *     tableType(FuncRefCode, limits({ min: 0 }))
+ *     tableType([RefCode, ...varS32(123)], limits({ addrType: "i64", min: 0n, max: 10n }))
+ */
+function tableType(elemType, limits) {
+    var body = [];
+    if (typeof elemType === "number") {
+        elemType = [elemType];
+    }
+    body.push(...elemType);
+    body.push(...limits);
+    return body;
 }
 
 function memorySection(initialSize) {
@@ -615,7 +722,7 @@ function dataSection(segmentArrays) {
     var body = [];
     body.push(...varU32(segmentArrays.length));
     for (let array of segmentArrays) {
-        body.push(...varU32(0)); // table index
+        body.push(...varU32(0)); // memory index
         body.push(...varU32(I32ConstCode));
         body.push(...varS32(array.offset));
         body.push(...varU32(EndCode));
@@ -661,14 +768,11 @@ function elemSection(elemArrays) {
     return { name: elemId, body };
 }
 
-// For now, the encoding spec is here:
-// https://github.com/WebAssembly/bulk-memory-operations/issues/98#issuecomment-507330729
-
-const LegacyActiveExternVal = 0;
-const PassiveExternVal = 1;
-const ActiveExternVal = 2;
-const DeclaredExternVal = 3;
-const LegacyActiveElemExpr = 4;
+const ActiveFuncIdxTable0 = 0;
+const PassiveFuncIdx = 1;
+const ActiveFuncIdx = 2;
+const DeclaredFuncIdx = 3;
+const ActiveElemExprTable0 = 4;
 const PassiveElemExpr = 5;
 const ActiveElemExpr = 6;
 const DeclaredElemExpr = 7;
