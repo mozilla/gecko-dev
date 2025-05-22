@@ -129,6 +129,9 @@ export const ModelHubProvider = {
   },
 
   async getAddonByID(id) {
+    if (id?.endsWith(MODELHUB_ADDON_ID_SUFFIX) && !this.cache.size) {
+      await this.refreshAddonCache();
+    }
     return this.cache.get(id);
   },
 
@@ -149,7 +152,7 @@ export const ModelHubProvider = {
     }
   },
 
-  async init() {
+  init() {
     if (!lazy.MODELHUB_PROVIDER_ENABLED || this.initialized) {
       return;
     }
@@ -157,7 +160,6 @@ export const ModelHubProvider = {
     this.initialized = true;
     lazy.AddonManagerPrivate.registerProvider(this, [MODELHUB_ADDON_TYPE]);
     this.modelHub = new lazy.ModelHub();
-    await this.refreshAddonCache();
   },
 
   async onUninstalled(addon) {
@@ -168,7 +170,7 @@ export const ModelHubProvider = {
     lazy.AddonManagerPrivate.callAddonListeners("onUninstalled", addon);
   },
 
-  async clearAddonCache() {
+  clearAddonCache() {
     this.cache.clear();
   },
 
@@ -180,6 +182,12 @@ export const ModelHubProvider = {
   },
 
   async refreshAddonCache() {
+    // Return earlier if the model hub provider was disabled.
+    // by the time it was being called.
+    if (!lazy.MODELHUB_PROVIDER_ENABLED) {
+      return;
+    }
+
     const models = await this.modelHub.listModels();
 
     for (const model of models) {

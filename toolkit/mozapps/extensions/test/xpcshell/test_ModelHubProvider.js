@@ -58,16 +58,11 @@ add_task(
   },
   async function test_modelhub_provider_addon_wrappers() {
     let sandbox = sinon.createSandbox();
-    await ModelHubProvider.clearAddonCache();
+    ModelHubProvider.clearAddonCache();
     // Sanity checks.
     ok(
       AddonManager.hasProvider("ModelHubProvider"),
       "Expect ModelHubProvider to be registered"
-    );
-    Assert.deepEqual(
-      await AddonManager.getAddonsByTypes(["mlmodel"]),
-      [],
-      "Expect getAddonsByTypes result to be initially empty"
     );
     Assert.ok(
       ModelHubProvider.modelHub,
@@ -135,6 +130,10 @@ add_task(
     const getOwnerIcon = sinon
       .stub(ModelHubProvider.modelHub, "getOwnerIcon")
       .resolves("chrome://mozapps/skin/extensions/extensionGeneric.svg");
+
+    const deleteModels = sinon
+      .stub(ModelHubProvider.modelHub, "deleteModels")
+      .resolves();
 
     const modelWrappers = await AddonManager.getAddonsByTypes(["mlmodel"]);
 
@@ -266,6 +265,24 @@ add_task(
       await AddonManager.getAddonByID(modelWrappers[1].id),
       modelWrappers[1],
       `Got the expected result from getAddonByID for ${modelWrappers[1].id}`
+    );
+
+    Assert.equal(
+      deleteModels.callCount,
+      1,
+      "Got the expected number of ModelHub.deleteModels() method calls"
+    );
+
+    Assert.deepEqual(
+      deleteModels.firstCall.args,
+      [
+        {
+          model: mockModels[0].name,
+          revision: mockModels[0].revision,
+          deletedBy: "about:addons",
+        },
+      ],
+      "Got the expected arguments in the ModelHub.deleteModels() method call"
     );
 
     // Reset all sinon stubs.
