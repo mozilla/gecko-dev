@@ -62,8 +62,6 @@ let patterns: string[];
 - [`pageActionInUrlbar`](#pageactioninurlbar)
 - [`onSearch`](#onsearch)
 - [`sidebarToolOpened`](#sidebartoolopened)
-- [`shoppingProductPageWithIntegratedRCSidebarClosed`](#shoppingproductpagewithintegratedrcsidebarclosed)
-- [`reviewCheckerSidebarClosedCallout`](#reviewcheckersidebarclosedcallout)
 - [`elementClicked`](#elementclicked)
 
 ### `openArticleURL`
@@ -403,34 +401,6 @@ The `clickCounts` object context variable is also available in targeting, and in
 {
   trigger: { id: "sidebarToolOpened" },
   targeting: `'sidebar.position_start'|preferenceValue && view != 'viewGenaiChatSidebar' && clickCounts.totalToolsMinusGenai == 5 && !'messaging-system-action.sidebar-tools-microsurvey-complete-or-dismissed'|preferenceValue`
-}
-```
-
-### `shoppingProductPageWithIntegratedRCSidebarClosed`
-
-Happens when the user navigates to a product page
-
-The `isReviewCheckerInSidebarClosed` string context variable is available in targeting, and will correspond with which whether the Review Checker panel in the sidebar is closed.
-
-```js
-{
-  trigger: { id: "shoppingProductPageWithIntegratedRCSidebarClosed" },
-  targeting: `'sidebar.main.tools' | preferenceValue | regExpMatch('reviewchecker') && !'messaging-system-action.shopping-block-review-checker-callout-3' | preferenceValue && !'messaging-system-action.shopping-block-review-checker-callouts' | preferenceValue && isReviewCheckerInSidebarClosed && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 0 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false && 'browser.shopping.experience2023.onboardingImpressionTime' | preferenceValue && ((currentDate | date - ('browser.shopping.experience2023.onboardingImpressionTime' | preferenceValue * 1000)) / 3600000) > 24 && !'sidebar.verticalTabs' | preferenceValue`
-}
-```
-
-### `reviewCheckerSidebarClosedCallout`
-
-Happens when the user navigates to a product page
-
-The `isReviewCheckerInSidebarClosed` string context variable is available in targeting, and will correspond with which whether the Review Checker panel in the sidebar is closed.
-
-The `isSidebarVisible` string context variable is available in targeting, and will correspond with whether the sidebar launcher is visible.
-
-```js
-{
-  trigger: { id: "shoppingProductPageWithIntegratedRCSidebarClosed" },
-  targeting: `'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && isReviewCheckerInSidebarClosed && !'sidebar.verticalTabs' | preferenceValue`
 }
 ```
 

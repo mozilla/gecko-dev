@@ -211,21 +211,6 @@ let JSWINDOWACTORS = {
     matches: ["about:tabcrashed*"],
   },
 
-  AboutWelcomeShopping: {
-    parent: {
-      esModuleURI: "resource:///actors/AboutWelcomeParent.sys.mjs",
-    },
-    child: {
-      esModuleURI: "resource:///actors/AboutWelcomeChild.sys.mjs",
-      events: {
-        Update: {},
-      },
-    },
-    matches: ["about:shoppingsidebar"],
-    remoteTypes: ["privilegedabout"],
-    messageManagerGroups: ["shopping-sidebar", "browsers", "review-checker"],
-  },
-
   AboutWelcome: {
     parent: {
       esModuleURI: "resource:///actors/AboutWelcomeParent.sys.mjs",

@@ -375,50 +375,6 @@
           "properties": {
             "id": {
               "type": "string",
-              "enum": ["shoppingProductPageWithIntegratedRCSidebarClosed"]
-            }
-          },
-          "additionalProperties": false,
-          "required": ["id"],
-          "description": "Happens when the user navigates to a product page with the sidebar closed",
-          "context": {
-            "type": "object",
-            "properties": {
-              "isReviewCheckerInSidebarClosed": {
-                "type": "string",
-                "description": "Whether the Review Checker panel in the sidebar is closed"
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "type": "string",
-              "enum": ["reviewCheckerSidebarClosedCallout"]
-            }
-          },
-          "additionalProperties": false,
-          "required": ["id"],
-          "description": "Happens when the user closes the sidebar",
-          "context": {
-            "type": "object",
-            "properties": {
-              "isReviewCheckerInSidebarClosed": {
-                "type": "string",
-                "description": "Whether the Review Checker panel in the sidebar is closed"
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "type": "string",
               "enum": ["activityAfterIdle"]
             }
           },
