@@ -993,24 +993,6 @@
   }
 }
 
-/* Shopping Sidebar icon */
-
-#shopping-sidebar-button > .urlbar-icon {
-  list-style-image: url(chrome://browser/content/shopping/assets/shopping.svg);
-  pointer-events: none;
-}
-
-#shopping-sidebar-button[shoppingsidebaropen="true"] > .urlbar-icon {
-  fill: var(--toolbarbutton-icon-fill-attention);
-  fill-opacity: 1;
-}
-
-@media (prefers-contrast) {
-  #shopping-sidebar-button[shoppingsidebaropen="true"]:hover > .urlbar-icon {
-    fill: currentColor;
-  }
-}
-
 /* Search bar */
 
 #search-container,

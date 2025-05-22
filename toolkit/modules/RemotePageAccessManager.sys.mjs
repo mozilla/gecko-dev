@@ -261,23 +261,6 @@ export let RemotePageAccessManager = {
       ],
       RPMRecordGleanEvent: ["securityUiProtections"],
     },
-    "about:shoppingsidebar": {
-      RPMSetPref: [
-        "browser.shopping.experience2023.optedIn",
-        "browser.shopping.experience2023.active",
-        "browser.shopping.experience2023.ads.userEnabled",
-        "browser.shopping.experience2023.autoOpen.userEnabled",
-        "browser.shopping.experience2023.sidebarClosedCount",
-        "browser.shopping.experience2023.showKeepSidebarClosedMessage",
-      ],
-      RPMGetFormatURLPref: ["app.support.baseURL"],
-      RPMGetIntPref: ["browser.shopping.experience2023.sidebarClosedCount"],
-      RPMGetBoolPref: [
-        "browser.shopping.experience2023.showKeepSidebarClosedMessage",
-        "sidebar.revamp",
-        "toolkit.shopping.experience2023.defr",
-      ],
-    },
     "about:tabcrashed": {
       RPMSendAsyncMessage: ["Load", "closeTab", "restoreTab", "restoreAll"],
       RPMAddMessageListener: ["*"],
