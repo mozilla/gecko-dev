@@ -23,6 +23,7 @@ UNIFIED_SOURCES += [
     "TestInputStreamTransport.cpp",
     "TestIsValidIp.cpp",
     "TestLinkHeader.cpp",
+    "TestLocalNetworkAccess.cpp",
     "TestMIMEInputStream.cpp",
     "TestMozURL.cpp",
     "TestPACMan.cpp",
