@@ -63,7 +63,7 @@ add_task(async function test_NimbusIntegration_enable() {
     "The timer callback should be called"
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
   gSandbox.restore();
 });
 
@@ -94,6 +94,6 @@ add_task(async function test_NimbusIntegration_disable() {
     "Should not register timer"
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
   gSandbox.restore();
 });
