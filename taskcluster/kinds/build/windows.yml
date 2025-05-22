@@ -205,7 +205,6 @@ win64/debug:
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
             - vs
-            - dxc-x86_64-pc-windows-msvc
         fetch:
             - upx-3.95-win
 
@@ -252,7 +251,6 @@ win64-non-unified/plain:
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
             - vs
-            - dxc-x86_64-pc-windows-msvc
         fetch:
             - upx-3.95-win
 
@@ -302,7 +300,6 @@ win64-fuzzing/debug:
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
             - vs
-            - dxc-x86_64-pc-windows-msvc
         fetch:
             - upx-3.95-win
     optimization:
@@ -348,7 +345,6 @@ win64-plain/debug:
             - vs
             - nsis
             - sysroot-wasm32-wasi
-            - dxc-x86_64-pc-windows-msvc
     optimization:
         skip-unless-expanded: null
 
@@ -398,7 +394,6 @@ win64/opt:
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
             - vs
-            - dxc-x86_64-pc-windows-msvc
         fetch:
             - upx-3.95-win
 
@@ -442,7 +437,6 @@ win64-plain/opt:
             - vs
             - nsis
             - sysroot-wasm32-wasi
-            - dxc-x86_64-pc-windows-msvc
     optimization:
         skip-unless-expanded: null
 
@@ -559,7 +553,6 @@ win64-shippable/opt:
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
             - vs
-            - dxc-x86_64-pc-windows-msvc
         fetch:
             - upx-3.95-win
 
@@ -610,7 +603,6 @@ win64-nightlyasrelease/opt:
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
             - vs
-            - dxc-x86_64-pc-windows-msvc
         fetch:
             - upx-3.95-win
 
@@ -701,7 +693,6 @@ win64-add-on-devel/opt:
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
             - vs
-            - dxc-x86_64-pc-windows-msvc
         fetch:
             - upx-3.95-win
 
@@ -747,7 +738,6 @@ win64-noopt/debug:
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
             - vs
-            - dxc-x86_64-pc-windows-msvc
         fetch:
             - upx-3.95-win
 
@@ -919,7 +909,6 @@ win64-rusttests/opt:
             - win64-mozmake
             - win64-dump_syms
             - vs
-            - dxc-x86_64-pc-windows-msvc
     optimization:
         test-inclusive: [rusttests]
 
@@ -960,7 +949,6 @@ win64-rusttests/debug:
             - win64-mozmake
             - win64-dump_syms
             - vs
-            - dxc-x86_64-pc-windows-msvc
     optimization:
         test-inclusive: [rusttests]
 
@@ -1013,7 +1001,6 @@ win64-ccov/opt:
             - vs
             - nsis
             - sysroot-wasm32-wasi
-            - dxc-x86_64-pc-windows-msvc
 
 win64-fuzzing-ccov/opt:
     description: "Win64 Fuzzing Opt w/ Coverage"
@@ -1064,7 +1051,6 @@ win64-fuzzing-ccov/opt:
             - vs
             - nsis
             - sysroot-wasm32-wasi
-            - dxc-x86_64-pc-windows-msvc
 
 win64-asan/debug:
     description: "Win64 Debug ASAN"
@@ -1110,7 +1096,6 @@ win64-asan/debug:
             - sysroot-wasm32-wasi
             - win64-llvm-symbolizer
             - vs
-            - dxc-x86_64-pc-windows-msvc
         fetch:
             - upx-3.95-win
     optimization:
@@ -1161,7 +1146,6 @@ win64-asan/opt:
             - sysroot-wasm32-wasi
             - win64-llvm-symbolizer
             - vs
-            - dxc-x86_64-pc-windows-msvc
         fetch:
             - upx-3.95-win
 
@@ -1222,7 +1206,6 @@ win64-asan-reporter-shippable/opt:
             - sysroot-wasm32-wasi
             - win64-llvm-symbolizer
             - vs
-            - dxc-x86_64-pc-windows-msvc
         fetch:
             - upx-3.95-win
 
@@ -1269,7 +1252,6 @@ win64-asan-fuzzing/opt:
             - sysroot-wasm32-wasi
             - win64-llvm-symbolizer
             - vs
-            - dxc-x86_64-pc-windows-msvc
         fetch:
             - upx-3.95-win
     optimization:
@@ -1389,7 +1371,6 @@ win64-devedition/opt:
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
             - vs
-            - dxc-x86_64-pc-windows-msvc
         fetch:
             - upx-3.95-win
 
@@ -1438,7 +1419,6 @@ win64-aarch64/debug:
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
             - vs
-            - dxc-aarch64-pc-windows-msvc
         fetch:
             - upx-3.95-win
     optimization:
@@ -1490,7 +1470,6 @@ win64-aarch64/opt:
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
             - vs
-            - dxc-aarch64-pc-windows-msvc
         fetch:
             - upx-3.95-win
     optimization:
@@ -1546,7 +1525,6 @@ win64-aarch64-shippable/opt:
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
             - vs
-            - dxc-aarch64-pc-windows-msvc
         fetch:
             - upx-3.95-win
 
@@ -1601,6 +1579,5 @@ win64-aarch64-devedition/opt:
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
             - vs
-            - dxc-aarch64-pc-windows-msvc
         fetch:
             - upx-3.95-win
