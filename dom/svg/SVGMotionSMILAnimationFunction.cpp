@@ -208,17 +208,21 @@ void SVGMotionSMILAnimationFunction::RebuildPathAndVerticesFromMpathElem(
   mPathSourceType = ePathSourceType_Mpath;
 
   // Use the shape that's the target of our chosen <mpath> child.
-  SVGGeometryElement* shapeElem = aMpathElem->GetReferencedPath();
-  if (shapeElem && shapeElem->HasValidDimensions()) {
-    bool ok = shapeElem->GetDistancesFromOriginToEndsOfVisibleSegments(
-        &mPathVertices);
-    if (!ok) {
-      mPathVertices.Clear();
-      return;
-    }
-    if (mPathVertices.Length()) {
-      mPath = shapeElem->GetOrBuildPathForMeasuring();
-    }
+  SVGGeometryElement* shape = aMpathElem->GetReferencedPath();
+  if (!shape || !shape->HasValidDimensions()) {
+    return;
+  }
+  if (!shape->GetDistancesFromOriginToEndsOfVisibleSegments(&mPathVertices)) {
+    mPathVertices.Clear();
+    return;
+  }
+  if (mPathVertices.IsEmpty()) {
+    return;
+  }
+  mPath = shape->GetOrBuildPathForMeasuring();
+  if (!mPath) {
+    mPathVertices.Clear();
+    return;
   }
 }
 
@@ -237,7 +241,7 @@ void SVGMotionSMILAnimationFunction::RebuildPathAndVerticesFromPathAttr() {
 
   mPath = path.BuildPathForMeasuring(1.0f);
   bool ok = path.GetDistancesFromOriginToEndsOfVisibleSegments(&mPathVertices);
-  if (!ok || !mPathVertices.Length()) {
+  if (!ok || mPathVertices.IsEmpty() || !mPath) {
     mPath = nullptr;
     mPathVertices.Clear();
   }
@@ -265,7 +269,6 @@ void SVGMotionSMILAnimationFunction::RebuildPathAndVertices(
     mValueNeedsReparsingEverySample = false;
   } else {
     // Get path & vertices from basic SMIL attrs: from/by/to/values
-
     RebuildPathAndVerticesFromBasicAttrs(aTargetElement);
     mValueNeedsReparsingEverySample = true;
   }
