@@ -11,7 +11,6 @@ import android.content.res.Configuration
 import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES
 import android.os.Bundle
-import android.provider.Settings
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -774,7 +773,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
     private fun onTabsTrayPbmLockedClick() {
         val userHasEnabledCapability = BiometricManager.from(requireContext()).isEnrolled()
         if (!userHasEnabledCapability) {
-            requireContext().startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS))
+            findNavController().navigate(TabsTrayFragmentDirections.actionGlobalPrivateBrowsingFragment())
         } else {
             DefaultBiometricUtils.bindBiometricsCredentialsPromptOrShowWarning(
                 titleRes = R.string.pbm_authentication_enable_lock,
