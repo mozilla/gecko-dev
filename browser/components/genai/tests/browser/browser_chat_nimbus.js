@@ -40,7 +40,7 @@ add_task(async function test_nimbus_user_prefs() {
     "nimbus pref has user value"
   );
 
-  cleanup();
+  await cleanup();
 
   Assert.equal(Services.prefs.getStringPref(foo), "bar", "foo pref still set");
   Assert.equal(
@@ -76,7 +76,7 @@ add_task(async function test_nimbus_user_prefs() {
     "sidebar pref has user value"
   );
 
-  cleanup();
+  await cleanup();
   Services.prefs.clearUserPref(nimbus);
   Services.prefs.clearUserPref(sidebar);
 });
@@ -107,7 +107,7 @@ add_task(async function test_nimbus_default_prefs() {
     "sidebar still is default value"
   );
 
-  cleanup();
+  await cleanup();
   Services.prefs.clearUserPref("browser.ml.chat.nimbus");
   Services.prefs.getDefaultBranch("").setBoolPref(pref, true);
 });
@@ -158,8 +158,8 @@ add_task(async function test_nimbus_rollout_experiment() {
     "nimbus pref changed by experiment"
   );
 
-  cleanRollout();
-  cleanExperiment();
+  await cleanRollout();
+  await cleanExperiment();
   Services.prefs.clearUserPref(nimbus);
   Services.prefs.clearUserPref(foo);
 });
@@ -186,7 +186,7 @@ add_task(async function test_nimbus_minimum_version() {
   );
   Assert.ok(!Services.prefs.prefHasUserValue(nimbus), "nimbus pref not set");
 
-  cleanup();
+  await cleanup();
 
   cleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "chatbot",
@@ -205,7 +205,7 @@ add_task(async function test_nimbus_minimum_version() {
   );
   Assert.ok(Services.prefs.getStringPref(nimbus), "nimbus pref set");
 
-  cleanup();
+  await cleanup();
   Services.prefs.clearUserPref(nimbus);
   Services.prefs.clearUserPref(foo);
 });
