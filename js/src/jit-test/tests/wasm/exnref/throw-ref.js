@@ -16,7 +16,7 @@ wasmValidateText(`(module
   let {test} = wasmEvalText(`(module
     (tag $a)
     (func (export "test")
-      (block (result exnref)
+      (block (result (ref exn))
         try_table (catch_all_ref 0)
           throw $a
         end
@@ -35,12 +35,12 @@ wasmValidateText(`(module
     (tag $E)
     (func (export "test") (param $shouldRethrow i32) (result i32)
       (local $e exnref)
-      (block $catch (result exnref)
+      (block $catch (result (ref exn))
         (try_table (catch_ref $E $catch) (throw $E))
         unreachable
       )
       (local.set $e)
-      (block $catch (result exnref)
+      (block $catch (result (ref exn))
         (try_table (result i32) (catch_ref $E $catch)
           (if (i32.eqz (local.get $shouldRethrow))
             (then (throw_ref (local.get $e)))

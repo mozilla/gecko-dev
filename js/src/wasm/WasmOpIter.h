@@ -1696,7 +1696,7 @@ inline bool OpIter<Policy>::readTryTable(BlockType* type,
 
     // Any captured exnref is the final parameter
     if (tryTableCatch.captureExnRef &&
-        !tryTableCatch.labelType.append(ValType(RefType::exn()))) {
+        !tryTableCatch.labelType.append(ValType(RefType::exn().asNonNullable()))) {
       return false;
     }
 
