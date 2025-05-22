@@ -66,3 +66,46 @@ extensions_button:
       should_hide:
         description: Whether the user wants the button to be hidden.
         type: boolean
+
+  open_via_app_menu:
+    type: event
+    description: |
+      When the user prefers the Extensions Button to be hidden, the default
+      "Extensions and Themes" item in the Application Menu is replaced with an
+      "Extensions" item, which serves as an alternative trigger for the
+      Extensions Button.
+
+      This event records when the user clicks on this "Extensions" menu item.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966935
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966935
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+      - rwu@mozilla.com
+    expires: 150
+    extra_keys:
+      is_extensions_panel_empty:
+        description: |
+          Whether the Extensions Panel is unable to show any extensions.
+
+          When false, the Extensions Panel is opened.
+
+          When true, about:addons is opened, at least until an empty state is
+          added (https://bugzilla.mozilla.org/show_bug.cgi?id=1814871). When
+          that bug is resolved, the Extensions Panel is always opened.
+        type: boolean
+      is_extensions_button_visible:
+        description: |
+          Whether the Extensions Button is visible. Although the appmenu item
+          is only shown when the user prefers the button to be hidden, it is
+          possible for the button to be shown despite the user's preference if
+          there was a reason to show the button temporarily.
+
+          If true, this could be a sign that the user is confused about the
+          function of the appmenu item, because the Extensions Button offers
+          exactly the same functionality, except in a more visible location
+          (on the toolbar).
+        type: boolean

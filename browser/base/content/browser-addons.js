@@ -2559,6 +2559,13 @@ var gUnifiedExtensions = {
       throw new Error("Cannot open panel while in Customize mode!");
     }
 
+    if (aEvent.sourceEvent?.target.id === "appMenu-unified-extensions-button") {
+      Glean.extensionsButton.openViaAppMenu.record({
+        is_extensions_panel_empty: !this.hasExtensionsInPanel(),
+        is_extensions_button_visible: !this._button.hidden,
+      });
+    }
+
     await this.togglePanel(aEvent);
   },
 

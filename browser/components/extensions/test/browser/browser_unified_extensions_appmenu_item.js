@@ -54,6 +54,7 @@ add_task(async function test_appmenu_when_button_is_hidden() {
 });
 
 add_task(async function test_appmenu_extensions_opens_panel() {
+  Services.fog.testResetFOG();
   await SpecialPowers.pushPrefEnv({
     set: [["extensions.unifiedExtensions.button.always_visible", false]],
   });
@@ -64,6 +65,17 @@ add_task(async function test_appmenu_extensions_opens_panel() {
   is(PanelUI.panel.state, "closed", "Menu closed after clicking Extensions");
   // assertExtensionsButtonVisible(); cannot be checked because button showing
   // is async. We will check its visibility later, before closing the panel.
+
+  Assert.deepEqual(
+    Glean.extensionsButton.openViaAppMenu.testGetValue().map(e => e.extra),
+    [
+      {
+        is_extensions_panel_empty: "false",
+        is_extensions_button_visible: "false",
+      },
+    ],
+    "extensions_button.open_via_app_menu telemetry on menu click"
+  );
 
   const listView = getListView();
   await BrowserTestUtils.waitForEvent(listView, "ViewShown");
@@ -98,6 +110,8 @@ add_task(async function test_appmenu_extensions_opens_when_no_extensions() {
   const origGetActivePolicies = gUnifiedExtensions.getActivePolicies;
   gUnifiedExtensions.getActivePolicies = () => [];
 
+  Services.fog.testResetFOG();
+
   await SpecialPowers.pushPrefEnv({
     set: [["extensions.unifiedExtensions.button.always_visible", false]],
   });
@@ -127,7 +141,73 @@ add_task(async function test_appmenu_extensions_opens_when_no_extensions() {
   assertExtensionsButtonHidden();
   gUnifiedExtensions.panel.removeEventListener("popupshowing", listener);
 
+  Assert.deepEqual(
+    Glean.extensionsButton.openViaAppMenu.testGetValue().map(e => e.extra),
+    [
+      {
+        is_extensions_panel_empty: "true",
+        is_extensions_button_visible: "false",
+      },
+    ],
+    "extensions_button.open_via_app_menu telemetry on menu click"
+  );
+
   await SpecialPowers.popPrefEnv();
 
   gUnifiedExtensions.getActivePolicies = origGetActivePolicies;
+});
+
+// A hidden Extensions Button can temporarily be shown when an attention dot is
+// shown.
+add_task(async function test_appmenu_extensions_with_attention_dot() {
+  Services.fog.testResetFOG();
+
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      // Attention dot is shown when MV3 permissions are not granted, so
+      // prevent auto-granting of permissions on install.
+      ["extensions.originControls.grantByDefault", false],
+      ["extensions.unifiedExtensions.button.always_visible", false],
+    ],
+  });
+
+  const extension = ExtensionTestUtils.loadExtension({
+    useAddonManager: "temporary",
+    manifest: {
+      browser_specific_settings: { gecko: { id: "test@attention-dot" } },
+      manifest_version: 3,
+      host_permissions: ["https://example.com/*"],
+    },
+  });
+  await extension.startup();
+
+  // Trigger attention dot and open the appmenu item. The attention dot has
+  // more tests in browser_unified_extensions_button_visibility_attention.js.
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "https://example.com/?test-attention-dot" },
+    async () => {
+      assertExtensionsButtonVisible();
+      await gCUITestUtils.openMainMenu();
+      menuItemThatOpensExtensionsPanel().click();
+      const listView = getListView();
+      await BrowserTestUtils.waitForEvent(listView, "ViewShown");
+      ok(PanelView.forNode(listView).active, "Extensions panel is shown");
+      await closeExtensionsPanel();
+      assertExtensionsButtonVisible();
+    }
+  );
+
+  Assert.deepEqual(
+    Glean.extensionsButton.openViaAppMenu.testGetValue().map(e => e.extra),
+    [
+      {
+        is_extensions_panel_empty: "false",
+        is_extensions_button_visible: "true",
+      },
+    ],
+    "extensions_button.open_via_app_menu telemetry on menu click"
+  );
+
+  await extension.unload();
+  await SpecialPowers.popPrefEnv();
 });
