@@ -6,13 +6,13 @@ package mozilla.components.feature.search.storage
 
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
+import mozilla.appservices.remotesettings.RemoteSettingsClient
 import mozilla.appservices.search.RefinedSearchConfig
 import mozilla.components.browser.state.search.RegionState
 import mozilla.components.feature.search.SearchApplicationName
 import mozilla.components.feature.search.SearchDeviceType
 import mozilla.components.feature.search.SearchEngineSelector
 import mozilla.components.feature.search.SearchUpdateChannel
-import mozilla.components.feature.search.icons.SearchConfigIconsModel
 import mozilla.components.feature.search.icons.SearchConfigIconsUpdateService
 import mozilla.components.feature.search.middleware.SearchExtraParams
 import mozilla.components.feature.search.middleware.SearchMiddleware
@@ -34,14 +34,16 @@ class SearchEngineSelectorRepositoryTest {
 
     private lateinit var mockSelector: SearchEngineSelector
     private lateinit var mockService: RemoteSettingsService
-    private lateinit var repository: SearchEngineSelectorRepository
+    private lateinit var mockClient: RemoteSettingsClient
     private lateinit var mockConfig: SearchEngineSelectorConfig
+    private lateinit var repository: SearchEngineSelectorRepository
     private lateinit var searchConfigIconsUpdateService: SearchConfigIconsUpdateService
 
     @Before
     fun setUp() {
         mockSelector = mock<SearchEngineSelector>()
         mockService = mock<RemoteSettingsService>()
+        mockClient = mock<RemoteSettingsClient>()
         searchConfigIconsUpdateService = mock<SearchConfigIconsUpdateService>()
 
         // Mocking SearchEngineSelectorConfig with a fake app configuration
@@ -59,7 +61,7 @@ class SearchEngineSelectorRepositoryTest {
         doNothing().`when`(mockConfig.selector).useRemoteSettingsServer(service = any(), applyEngineOverrides = eq(false))
 
         // Instantiate the repository with the mocked config
-        repository = SearchEngineSelectorRepository(mockConfig)
+        repository = SearchEngineSelectorRepository(mockConfig, mockClient)
     }
 
     @Test
@@ -91,7 +93,7 @@ class SearchEngineSelectorRepositoryTest {
         `when`(mockSelector.filterEngineConfiguration(any())).thenReturn(expectedConfig)
 
         // mock the image loading
-        `when`(searchConfigIconsUpdateService.fetchIcons(any())).thenReturn(emptyList<SearchConfigIconsModel>())
+        `when`(searchConfigIconsUpdateService.fetchIconsRecords(any())).thenReturn(emptyList())
 
         // Run the repository load function
         val result = repository.load(fakeRegion, fakeLocale, fakeDistribution, fakeSearchExtraParams, fakeCoroutineContext)
@@ -126,7 +128,7 @@ class SearchEngineSelectorRepositoryTest {
         `when`(mockSelector.filterEngineConfiguration(any())).thenReturn(expectedConfig)
 
         // mock the image loading
-        `when`(searchConfigIconsUpdateService.fetchIcons(any())).thenReturn(emptyList<SearchConfigIconsModel>())
+        `when`(searchConfigIconsUpdateService.fetchIconsRecords(any())).thenReturn(emptyList())
 
         // Run the repository load function
         val result = repository.load(fakeRegion, fakeLocale, fakeDistribution, fakeSearchExtraParams, fakeCoroutineContext)
