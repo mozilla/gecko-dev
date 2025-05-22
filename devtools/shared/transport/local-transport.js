@@ -128,6 +128,19 @@ LocalDebuggerTransport.prototype = {
               receiverResolve(copying);
               return copying;
             },
+            copyToBuffer: outputBuffer => {
+              if (outputBuffer.byteLength !== length) {
+                throw new Error(
+                  `In copyToBuffer, the output buffer needs to have the same length as the data to read. ${outputBuffer.byteLength} !== ${length}`
+                );
+              }
+              const copying = StreamUtils.copyAsyncStreamToArrayBuffer(
+                pipe.inputStream,
+                outputBuffer
+              );
+              receiverResolve(copying);
+              return copying;
+            },
             stream: pipe.inputStream,
             done: receiverResolve,
           };
@@ -152,6 +165,19 @@ LocalDebuggerTransport.prototype = {
                   input,
                   pipe.outputStream,
                   length
+                );
+                copyResolve(copying);
+                return copying;
+              },
+              copyFromBuffer: inputBuffer => {
+                if (inputBuffer.byteLength !== length) {
+                  throw new Error(
+                    `In copyFromBuffer, the input buffer needs to have the same length as the data to write. ${inputBuffer.byteLength} !== ${length}`
+                  );
+                }
+                const copying = StreamUtils.copyArrayBufferToAsyncStream(
+                  inputBuffer,
+                  pipe.outputStream
                 );
                 copyResolve(copying);
                 return copying;

@@ -99,10 +99,17 @@ Request.prototype = {
    */
   read(packet, ctx) {
     if (this.template === BULK_REQUEST) {
-      // The transport layer will convey a custom packet object with length and copyTo
+      // The transport layer will convey a custom packet object with length, copyTo and copyToBuffer,
       // which we transfer to the Actor's method via a unique object argument.
-      // This help know about the incoming data size and read the binary buffer via `copyTo`.
-      return [{ length: packet.length, copyTo: packet.copyTo }];
+      // This help know about the incoming data size and read the binary buffer via `copyTo`
+      // or `copyToBuffer`.
+      return [
+        {
+          length: packet.length,
+          copyTo: packet.copyTo,
+          copyToBuffer: packet.copyToBuffer,
+        },
+      ];
     }
 
     const fnArgs = [];

@@ -303,6 +303,20 @@ BulkPacket.prototype.read = function (stream) {
         resolve(copying);
         return copying;
       },
+      copyToBuffer: outputBuffer => {
+        if (outputBuffer.byteLength !== this.length) {
+          throw new Error(
+            `In copyToBuffer, the output buffer needs to have the same length as the data to read. ${outputBuffer.byteLength} !== ${this.length}`
+          );
+        }
+        dumpv("CT length: " + this.length);
+        const copying = StreamUtils.copyAsyncStreamToArrayBuffer(
+          stream,
+          outputBuffer
+        );
+        resolve(copying);
+        return copying;
+      },
       stream,
       done: resolve,
     });
@@ -350,6 +364,20 @@ BulkPacket.prototype.write = function (stream) {
       copyFrom: input => {
         dumpv("CF length: " + this.length);
         const copying = StreamUtils.copyStream(input, stream, this.length);
+        resolve(copying);
+        return copying;
+      },
+      copyFromBuffer: inputBuffer => {
+        if (inputBuffer.byteLength !== this.length) {
+          throw new Error(
+            `In copyFromBuffer, the input buffer needs to have the same length as the data to write. ${inputBuffer.byteLength} !== ${this.length}`
+          );
+        }
+        dumpv("CF length: " + this.length);
+        const copying = StreamUtils.copyArrayBufferToAsyncStream(
+          inputBuffer,
+          stream
+        );
         resolve(copying);
         return copying;
       },

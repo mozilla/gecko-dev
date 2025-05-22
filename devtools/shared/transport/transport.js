@@ -51,28 +51,38 @@ const PACKET_HEADER_MAX = 200;
  *
  * - onBulkPacket(packet) - called when we have switched to bulk packet
  *   receiving mode. |packet| is an object containing:
- *   * actor:  Name of actor that will receive the packet
- *   * type:   Name of actor's method that should be called on receipt
- *   * length: Size of the data to be read
- *   * stream: This input stream should only be used directly if you can ensure
- *             that you will read exactly |length| bytes and will not close the
- *             stream when reading is complete
- *   * done:   If you use the stream directly (instead of |copyTo| below), you
- *             must signal completion by resolving / rejecting this deferred.
- *             If it's rejected, the transport will be closed.  If an Error is
- *             supplied as a rejection value, it will be logged via |dumpn|.
- *             If you do use |copyTo|, resolving is taken care of for you when
- *             copying completes.
- *   * copyTo: A helper function for getting your data out of the stream that
- *             meets the stream handling requirements above, and has the
- *             following signature:
+ *   * actor:        Name of actor that will receive the packet
+ *   * type:         Name of actor's method that should be called on receipt
+ *   * length:       Size of the data to be read
+ *   * stream:       This input stream should only be used directly if you can ensure
+ *                   that you will read exactly |length| bytes and will not close the
+ *                   stream when reading is complete
+ *   * done:         If you use the stream directly (instead of |copyTo| or
+ *                   |copyToBuffer| below), you must signal completion by
+ *                   resolving / rejecting this deferred. If it's rejected, the
+ *                   transport will be closed.  If an Error is supplied as a
+ *                   rejection value, it will be logged via |dumpn|. If you do
+ *                   use |copyTo| or |copyToBuffer|, resolving is taken care of
+ *                   for you when copying completes.
+ *   * copyTo:       A helper function for getting your data out of the stream that
+ *                   meets the stream handling requirements above, and has the
+ *                   following signature:
  *     @param  output nsIAsyncOutputStream
- *             The stream to copy to.
+ *                   The stream to copy to.
  *     @return Promise
- *             The promise is resolved when copying completes or rejected if any
- *             (unexpected) errors occur.
- *             This object also emits "progress" events for each chunk that is
- *             copied.  See stream-utils.js.
+ *                   The promise is resolved when copying completes or rejected if any
+ *                   (unexpected) error occurs.
+ *                   This object also emits "progress" events for each chunk that is
+ *                   copied.  See stream-utils.js.
+ *   * copyToBuffer: a helper function for getting your data out of the stream
+ *                   that meets the stream handling requirements above, and has
+ *                   the following signature:
+ *     @param output ArrayBuffer
+ *                   The buffer to copy to. It needs to be the same length as the data
+ *                   to be transfered.
+ *     @return Promise
+ *                   The promise is resolved when copying completes or rejected if any
+ *                   (unexpected) error occurs.
  *
  * - onTransportClosed(reason) - called when the connection is closed. |reason| is
  *   an optional nsresult or object, typically passed when the transport is
@@ -127,7 +137,7 @@ DebuggerTransport.prototype = {
    *
    * N.B.: Do *not* attempt to close the stream handed to you, as it will
    * continue to be used by this transport afterwards.  Most users should
-   * instead use the provided |copyFrom| function instead.
+   * instead use the provided |copyFrom| or |copyFromBuffer| functions instead.
    *
    * @param header Object
    *        This is modeled after the format of JSON packets above, but does not
@@ -138,20 +148,22 @@ DebuggerTransport.prototype = {
    * @return Promise
    *         The promise will be resolved when you are allowed to write to the
    *         stream with an object containing:
-   *           * stream:   This output stream should only be used directly if
-   *                       you can ensure that you will write exactly |length|
-   *                       bytes and will not close the stream when writing is
-   *                       complete
-   *           * done:     If you use the stream directly (instead of |copyFrom|
-   *                       below), you must signal completion by resolving /
-   *                       rejecting this deferred.  If it's rejected, the
-   *                       transport will be closed.  If an Error is supplied as
-   *                       a rejection value, it will be logged via |dumpn|.  If
-   *                       you do use |copyFrom|, resolving is taken care of for
-   *                       you when copying completes.
-   *           * copyFrom: A helper function for getting your data onto the
-   *                       stream that meets the stream handling requirements
-   *                       above, and has the following signature:
+   *           * stream:         This output stream should only be used directly if
+   *                             you can ensure that you will write exactly |length|
+   *                             bytes and will not close the stream when writing is
+   *                             complete
+   *           * done:           If you use the stream directly (instead of |copyFrom|
+   *                             or |copyFromBuffer| below), you must signal
+   *                             completion by resolving / rejecting this
+   *                             deferred.  If it's rejected, the transport will
+   *                             be closed.  If an Error is supplied as a
+   *                             rejection value, it will be logged via |dumpn|.
+   *                             If you do use |copyFrom| or |copyFromBuffer|,
+   *                             resolving is taken care of for you when copying
+   *                             completes.
+   *           * copyFrom:       A helper function for getting your data onto the
+   *                             stream that meets the stream handling requirements
+   *                             above, and has the following signature:
    *             @param  input nsIAsyncInputStream
    *                     The stream to copy from.
    *             @return Promise
@@ -159,6 +171,16 @@ DebuggerTransport.prototype = {
    *                     rejected if any (unexpected) errors occur.
    *                     This object also emits "progress" events for each chunk
    *                     that is copied.  See stream-utils.js.
+   *           * copyFromBuffer: A helper function for getting your data onto
+   *                             the stream that meets the stream handling
+   *                             requirements above, and has the following
+   *                             signature:
+   *             @param  input ArrayBuffer
+   *                     The buffer to read from. It needs to be the same length
+   *                     as the data to write.
+   *             @return Promise
+   *                     The promise is resolved when copying completes or
+   *                     rejected if any (unexpected) errors occur.
    */
   startBulkSend(header) {
     const packet = new BulkPacket(this);

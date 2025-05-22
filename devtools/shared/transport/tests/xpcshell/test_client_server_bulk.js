@@ -20,6 +20,10 @@ add_task(async function () {
   await test_bulk_request_cs(socket_transport, "bulkEcho", "bulk");
   await test_bulk_request_cs(local_transport, "bulkEcho", "bulk");
 
+  dump(" ################# BULK ECHO WITH BUFFER\n");
+  await test_bulk_request_cs(socket_transport, "bulkEchoWithBuffer", "bulk");
+  await test_bulk_request_cs(local_transport, "bulkEchoWithBuffer", "bulk");
+
   dump(" ################# BULK REPLY\n");
   await test_json_request_cs(socket_transport, "bulkReply", "bulk");
   await test_json_request_cs(local_transport, "bulkReply", "bulk");
@@ -37,6 +41,10 @@ const testBulkSpec = protocol.generateActorSpec({
 
   methods: {
     bulkEcho: {
+      request: protocol.BULK_REQUEST,
+      response: protocol.BULK_RESPONSE,
+    },
+    bulkEchoWithBuffer: {
       request: protocol.BULK_REQUEST,
       response: protocol.BULK_RESPONSE,
     },
@@ -78,6 +86,17 @@ class TestBulkActor extends Actor {
     copyFrom(pipe.inputStream).then(() => {
       pipe.inputStream.close();
     });
+  }
+
+  async bulkEchoWithBuffer({ length, copyToBuffer }, startBulkResponse) {
+    Assert.equal(length, really_long().length);
+
+    const { copyFromBuffer } = await startBulkResponse(length);
+
+    // We'll just echo back the same thing
+    const buffer = new ArrayBuffer(length);
+    await copyToBuffer(buffer);
+    await copyFromBuffer(buffer);
   }
 
   // Receives data as json and respond as bulk

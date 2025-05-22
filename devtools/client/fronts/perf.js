@@ -13,9 +13,6 @@ const {
   registerFront,
 } = require("resource://devtools/shared/protocol.js");
 const { perfSpec } = require("resource://devtools/shared/specs/perf.js");
-const {
-  copyAsyncStreamToArrayBuffer,
-} = require("resource://devtools/shared/transport/stream-utils.js");
 
 class PerfFront extends FrontClassWithSpec(perfSpec) {
   constructor(client, targetFront, parentFront) {
@@ -112,24 +109,18 @@ class PerfFront extends FrontClassWithSpec(perfSpec) {
       );
     }
 
-    try {
-      if (!profileResult.length) {
-        throw new Error(
-          "The profile result is an empty buffer, this is unexpected."
-        );
-      }
-
-      // We need to copy the data out of the stream we get using the bulk API.
-      // Note that the profile data is gzipped, but the profiler's frontend code
-      // knows how to deal with it.
-      const buffer = new ArrayBuffer(profileResult.length);
-      await copyAsyncStreamToArrayBuffer(profileResult.stream, buffer);
-
-      return buffer;
-    } finally {
-      // Notify the bulk machinery that we're done reading.
-      profileResult.done();
+    if (!profileResult.length) {
+      throw new Error(
+        "The profile result is an empty buffer, this is unexpected."
+      );
     }
+
+    // We need to copy the data out of the stream we get using the bulk API.
+    // Note that the profile data is gzipped, but the profiler's frontend code
+    // knows how to deal with it.
+    const buffer = new ArrayBuffer(profileResult.length);
+    await profileResult.copyToBuffer(buffer);
+    return buffer;
   }
 }
 

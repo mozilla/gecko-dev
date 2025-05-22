@@ -756,6 +756,7 @@ export interface BulkSending {
   stream: nsIAsyncOutputStream;
   done: (err: void | Error) => void;
   copyFrom: (inputStream: nsIInputStream) => Promise<void>;
+  copyFromBuffer: (inputBuffer: ArrayBuffer) => Promise<void>;
 }
 
 // This interface is the object received by the receiving end.
@@ -766,5 +767,6 @@ export interface BulkReceiving {
   length: number;
   stream: nsIAsyncInputStream;
   done: (err: void | Error) => void;
-  copyTo: (inputStream: nsIAsyncOutputStream) => Promise<void>;
+  copyTo: (outputStream: nsIAsyncOutputStream) => Promise<void>;
+  copyToBuffer: (outputBuffer: ArrayBuffer) => Promise<void>;
 }

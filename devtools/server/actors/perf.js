@@ -10,9 +10,6 @@
 
 const { Actor } = require("resource://devtools/shared/protocol.js");
 const { perfSpec } = require("resource://devtools/shared/specs/perf.js");
-const {
-  copyArrayBufferToAsyncStream,
-} = require("resource://devtools/shared/transport/stream-utils.js");
 
 ChromeUtils.defineESModuleGetters(
   this,
@@ -196,11 +193,7 @@ exports.PerfActor = class PerfActor extends Actor {
     this.#previouslyRetrievedProfileDataPromise = null;
 
     const bulk = await startBulkSend(profile.byteLength);
-    try {
-      await copyArrayBufferToAsyncStream(profile, bulk.stream);
-    } finally {
-      bulk.done();
-    }
+    await bulk.copyFromBuffer(profile);
   }
 
   /**
