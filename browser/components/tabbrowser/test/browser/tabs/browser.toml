@@ -514,6 +514,8 @@ tags = "vertical-tabs"
 ["browser_tab_groups_keyboard_focus.js"]
 tags = "vertical-tabs"
 
+["browser_tab_groups_tab_interactions_telemetry.js"]
+
 ["browser_tab_groups_telemetry.js"]
 
 ["browser_tab_label_during_reload.js"]

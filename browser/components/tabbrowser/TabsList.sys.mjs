@@ -324,9 +324,12 @@ export class TabsPanel extends TabsListBase {
           break;
         }
         if (event.target.classList.contains("all-tabs-close-button")) {
-          this.gBrowser.removeTab(event.target.tab, {
-            telemetrySource: lazy.TabMetrics.METRIC_SOURCE.TAB_OVERFLOW_MENU,
-          });
+          this.gBrowser.removeTab(
+            event.target.tab,
+            lazy.TabMetrics.userTriggeredContext(
+              lazy.TabMetrics.METRIC_SOURCE.TAB_OVERFLOW_MENU
+            )
+          );
           break;
         }
         if ("tabGroupId" in event.target.dataset) {

@@ -55,6 +55,7 @@ const METRIC_REOPEN_TYPE = Object.freeze({
  * @returns {TabMetricsContext}
  */
 function userTriggeredContext(telemetrySource) {
+  telemetrySource = telemetrySource || METRIC_SOURCE.UNKNOWN;
   return {
     isUserTriggered: true,
     telemetrySource,

@@ -4139,15 +4139,16 @@
       return duplicateTabs;
     }
 
-    removeDuplicateTabs(aTab) {
+    removeDuplicateTabs(aTab, options) {
       this._removeDuplicateTabs(
         aTab,
         this.getDuplicateTabsToClose(aTab),
-        this.closingTabsEnum.DUPLICATES
+        this.closingTabsEnum.DUPLICATES,
+        options
       );
     }
 
-    _removeDuplicateTabs(aConfirmationAnchor, tabs, aCloseTabs) {
+    _removeDuplicateTabs(aConfirmationAnchor, tabs, aCloseTabs, options) {
       if (!tabs.length) {
         return;
       }
@@ -4156,7 +4157,7 @@
         return;
       }
 
-      this.removeTabs(tabs);
+      this.removeTabs(tabs, options);
       ConfirmationHint.show(
         aConfirmationAnchor,
         "confirmation-hint-duplicate-tabs-closed",
@@ -4179,7 +4180,7 @@
      * In a multi-select context, the tabs (except pinned tabs) that are located to the
      * left of the leftmost selected tab will be removed.
      */
-    removeTabsToTheStartFrom(aTab) {
+    removeTabsToTheStartFrom(aTab, options) {
       let tabs = this._getTabsToTheStartFrom(aTab);
       if (
         !this.warnAboutClosingTabs(tabs.length, this.closingTabsEnum.TO_START)
@@ -4187,14 +4188,14 @@
         return;
       }
 
-      this.removeTabs(tabs);
+      this.removeTabs(tabs, options);
     }
 
     /**
      * In a multi-select context, the tabs (except pinned tabs) that are located to the
      * right of the rightmost selected tab will be removed.
      */
-    removeTabsToTheEndFrom(aTab) {
+    removeTabsToTheEndFrom(aTab, options) {
       let tabs = this._getTabsToTheEndFrom(aTab);
       if (
         !this.warnAboutClosingTabs(tabs.length, this.closingTabsEnum.TO_END)
@@ -4202,7 +4203,7 @@
         return;
       }
 
-      this.removeTabs(tabs);
+      this.removeTabs(tabs, options);
     }
 
     /**
@@ -4258,7 +4259,7 @@
       this.removeTabs(tabsToRemove, aParams);
     }
 
-    removeMultiSelectedTabs({ telemetrySource } = {}) {
+    removeMultiSelectedTabs({ isUserTriggered, telemetrySource } = {}) {
       let selectedTabs = this.selectedTabs;
       if (
         !this.warnAboutClosingTabs(
@@ -4269,7 +4270,7 @@
         return;
       }
 
-      this.removeTabs(selectedTabs, { telemetrySource });
+      this.removeTabs(selectedTabs, { isUserTriggered, telemetrySource });
     }
 
     /**
@@ -4313,6 +4314,7 @@
         skipPermitUnload,
         skipRemoves,
         skipSessionStore,
+        isUserTriggered,
         telemetrySource,
       }
     ) {
@@ -4396,6 +4398,7 @@
             prewarmed: true,
             skipPermitUnload,
             skipSessionStore,
+            isUserTriggered,
             telemetrySource,
           });
         }
@@ -4509,6 +4512,7 @@
      * @param {boolean} [options.skipGroupCheck]
      *   Skip separate processing of whole tab groups from the set of tabs.
      *   Used by removeTabGroup.
+     * TODO add docs
      */
     removeTabs(
       tabs,
@@ -4518,6 +4522,7 @@
         skipPermitUnload = false,
         skipSessionStore = false,
         skipGroupCheck = false,
+        isUserTriggered = false,
         telemetrySource,
       } = {}
     ) {
@@ -4553,6 +4558,8 @@
               animate,
               skipSessionStore,
               skipPermitUnload,
+              isUserTriggered,
+              telemetrySource,
             });
           });
           tabs = leftoverTabs;
@@ -4565,6 +4572,7 @@
             skipPermitUnload,
             skipRemoves: false,
             skipSessionStore,
+            isUserTriggered,
             telemetrySource,
           });
 
@@ -4589,6 +4597,8 @@
           prewarmed: true,
           skipPermitUnload,
           skipSessionStore,
+          isUserTriggered,
+          telemetrySource,
         };
 
         // Now run again sequentially the beforeunload listeners that will result in a prompt.
@@ -4626,6 +4636,7 @@
         closeWindowWithLastTab,
         prewarmed,
         skipSessionStore,
+        isUserTriggered,
         telemetrySource,
       } = {}
     ) {
@@ -4664,6 +4675,7 @@
           closeWindowWithLastTab,
           prewarmed,
           skipSessionStore,
+          isUserTriggered,
           telemetrySource,
         })
       ) {
@@ -4752,6 +4764,7 @@
         skipPermitUnload,
         prewarmed,
         skipSessionStore = false,
+        isUserTriggered,
         telemetrySource,
       } = {}
     ) {
@@ -4904,7 +4917,12 @@
       // inspect the tab that's about to close.
       let evt = new CustomEvent("TabClose", {
         bubbles: true,
-        detail: { adoptedBy: adoptedByTab, skipSessionStore, telemetrySource },
+        detail: {
+          adoptedBy: adoptedByTab,
+          skipSessionStore,
+          isUserTriggered,
+          telemetrySource,
+        },
       });
       aTab.dispatchEvent(evt);
 
@@ -9274,13 +9292,17 @@ var TabContextMenu = {
 
   closeContextTabs() {
     if (this.contextTab.multiselected) {
-      gBrowser.removeMultiSelectedTabs({
-        telemetrySource: gBrowser.TabMetrics.METRIC_SOURCE.TAB_STRIP,
-      });
+      gBrowser.removeMultiSelectedTabs(
+        gBrowser.TabMetrics.userTriggeredContext(
+          gBrowser.TabMetrics.METRIC_SOURCE.TAB_STRIP
+        )
+      );
     } else {
       gBrowser.removeTab(this.contextTab, {
         animate: true,
-        telemetrySource: gBrowser.TabMetrics.METRIC_SOURCE.TAB_STRIP,
+        ...gBrowser.TabMetrics.userTriggeredContext(
+          gBrowser.TabMetrics.METRIC_SOURCE.TAB_STRIP
+        ),
       });
     }
   },

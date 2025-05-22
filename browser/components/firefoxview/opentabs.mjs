@@ -26,6 +26,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   NonPrivateTabs: "resource:///modules/OpenTabs.sys.mjs",
   getTabsTargetForWindow: "resource:///modules/OpenTabs.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+  TabMetrics: "moz-src:///browser/components/tabbrowser/TabMetrics.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "fxAccounts", () => {
@@ -503,7 +504,10 @@ class OpenTabsInViewCard extends ViewPageContent {
 
   closeTab(event) {
     const tab = event.originalTarget.tabElement;
-    tab?.ownerGlobal.gBrowser.removeTab(tab);
+    tab?.ownerGlobal.gBrowser.removeTab(
+      tab,
+      lazy.TabMetrics.userTriggeredContext()
+    );
 
     Glean.firefoxviewNext.closeOpenTabTabs.record();
   }

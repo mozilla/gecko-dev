@@ -555,14 +555,18 @@
 
       if (event.target.classList.contains("tab-close-button")) {
         if (this.multiselected) {
-          gBrowser.removeMultiSelectedTabs({
-            telemetrySource: lazy.TabMetrics.METRIC_SOURCE.TAB_STRIP,
-          });
+          gBrowser.removeMultiSelectedTabs(
+            lazy.TabMetrics.userTriggeredContext(
+              lazy.TabMetrics.METRIC_SOURCE.TAB_STRIP
+            )
+          );
         } else {
           gBrowser.removeTab(this, {
             animate: true,
             triggeringEvent: event,
-            telemetrySource: lazy.TabMetrics.METRIC_SOURCE.TAB_STRIP,
+            ...lazy.TabMetrics.userTriggeredContext(
+              lazy.TabMetrics.METRIC_SOURCE.TAB_STRIP
+            ),
           });
         }
         // This enables double-click protection for the tab container

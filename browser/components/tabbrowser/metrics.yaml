@@ -396,9 +396,11 @@ tabgroup:
     bugs:
       - https://bugzil.la/1938405
       - https://bugzil.la/1960360
+      - https://bugzil.la/1961161
     data_reviews:
       - https://bugzil.la/1938405
       - https://bugzil.la/1960360
+      - https://bugzil.la/1961161
     data_sensitivity:
       - interaction
     labels:
@@ -408,6 +410,7 @@ tabgroup:
       - new
       - close_tabstrip
       - close_tabmenu
+      - close_tab_other
       - reorder
       - remove_same_window
       - remove_other_window

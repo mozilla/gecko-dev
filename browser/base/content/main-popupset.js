@@ -88,16 +88,28 @@ document.addEventListener(
           TabContextMenu.closeContextTabs();
           break;
         case "context_closeDuplicateTabs":
-          gBrowser.removeDuplicateTabs(TabContextMenu.contextTab);
+          gBrowser.removeDuplicateTabs(
+            TabContextMenu.contextTab,
+            lazy.TabMetrics.userTriggeredContext()
+          );
           break;
         case "context_closeTabsToTheStart":
-          gBrowser.removeTabsToTheStartFrom(TabContextMenu.contextTab);
+          gBrowser.removeTabsToTheStartFrom(
+            TabContextMenu.contextTab,
+            lazy.TabMetrics.userTriggeredContext()
+          );
           break;
         case "context_closeTabsToTheEnd":
-          gBrowser.removeTabsToTheEndFrom(TabContextMenu.contextTab);
+          gBrowser.removeTabsToTheEndFrom(
+            TabContextMenu.contextTab,
+            lazy.TabMetrics.userTriggeredContext()
+          );
           break;
         case "context_closeOtherTabs":
-          gBrowser.removeAllTabsBut(TabContextMenu.contextTab);
+          gBrowser.removeAllTabsBut(
+            TabContextMenu.contextTab,
+            lazy.TabMetrics.userTriggeredContext()
+          );
           break;
         case "context_unloadTab":
           TabContextMenu.explicitUnloadTabs();

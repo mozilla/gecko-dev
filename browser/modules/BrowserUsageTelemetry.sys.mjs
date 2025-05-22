@@ -1269,13 +1269,16 @@ export let BrowserUsageTelemetry = {
 
   _onTabClosed(event) {
     const group = event.target?.group;
+    const isUserTriggered = event.detail?.isUserTriggered;
     const source = event.detail?.telemetrySource;
 
-    if (group) {
+    if (group && isUserTriggered) {
       if (source == lazy.TabMetrics.METRIC_SOURCE.TAB_STRIP) {
         Glean.tabgroup.tabInteractions.close_tabstrip.add();
       } else if (source == lazy.TabMetrics.METRIC_SOURCE.TAB_OVERFLOW_MENU) {
         Glean.tabgroup.tabInteractions.close_tabmenu.add();
+      } else {
+        Glean.tabgroup.tabInteractions.close_tab_other.add();
       }
     }
   },

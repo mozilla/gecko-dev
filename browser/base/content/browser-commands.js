@@ -396,7 +396,9 @@ var BrowserCommands = {
 
     // In a multi-select context, close all selected tabs
     if (gBrowser.multiSelectedTabsCount) {
-      gBrowser.removeMultiSelectedTabs();
+      gBrowser.removeMultiSelectedTabs(
+        gBrowser.TabMetrics.userTriggeredContext()
+      );
       return;
     }
 
@@ -414,7 +416,10 @@ var BrowserCommands = {
     }
 
     // If the current tab is the last one, this will close the window.
-    gBrowser.removeCurrentTab({ animate: true });
+    gBrowser.removeCurrentTab({
+      animate: true,
+      ...gBrowser.TabMetrics.userTriggeredContext(),
+    });
   },
 
   tryToCloseWindow(event) {
