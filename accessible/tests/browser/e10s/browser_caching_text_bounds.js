@@ -822,3 +822,29 @@ addAccessibleTask(
   },
   { chrome: true, topLevel: true }
 );
+
+/**
+ * Test list bullets.
+ */
+addAccessibleTask(
+  `<ul><li id="li" style="font-family: monospace;">a</li></ul>`,
+  async function testBullet(browser, docAcc) {
+    // We can't use testChar because it doesn't know how to handle list bullets.
+    // We check relative to other characters instead.
+    const li = findAccessibleChildByID(docAcc, "li", [nsIAccessibleText]);
+    const [x0, y0, w0, h0] = getCharacterExtents(li, 0);
+    const [x1, y1, w1, h1] = getCharacterExtents(li, 1);
+    const [x2, y2, ,] = getCharacterExtents(li, 2);
+    // Characters 0 and 1 are the bullet.
+    // Character 2 is a letter.
+    Assert.less(x0, x2, "x0 < x2");
+    isWithin(y0, y2, 5, "y0 ~ y2");
+    Assert.greater(w0, 0, "w0 > 0");
+    Assert.greater(h0, 0, "h0 > 0");
+    Assert.less(x1, x2, "x1 < x2");
+    isWithin(y1, y2, 5, "y1 ~ y2");
+    Assert.greater(w1, 0, "w1 > 0");
+    Assert.greater(h1, 0, "h1 > 0");
+  },
+  { chrome: true, topLevel: true }
+);
