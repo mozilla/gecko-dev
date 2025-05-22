@@ -440,6 +440,15 @@ static void AddLLVMProfilePathDirectory(SandboxBroker::Policy* aPolicy) {
 }
 #endif  // defined(MOZ_PROFILE_GENERATE)
 
+// Make sure the path read from environment is correct (absolute).
+const char* PathFromEnvIfAbsolute(const char* aPath) {
+  const char* envValue = PR_GetEnv(aPath);
+  if (envValue && envValue[0] == '/') {
+    return envValue;
+  }
+  return nullptr;
+}
+
 void SandboxBrokerPolicyFactory::InitContentPolicy() {
   const int level = GetEffectiveContentSandboxLevel();
   const bool headless = level >= 5;
@@ -503,20 +512,24 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
   // For that we use AddPath(, SandboxBroker::Policy::AddCondition::AddAlways).
   //
   // Allow access to XDG_CONFIG_HOME and XDG_CONFIG_DIRS
-  nsAutoCString xdgConfigHome(PR_GetEnv("XDG_CONFIG_HOME"));
+  nsAutoCString xdgConfigHome(PathFromEnvIfAbsolute("XDG_CONFIG_HOME"));
   if (!xdgConfigHome.IsEmpty()) {  // AddPath will fail on empty strings
     policy->AddFutureDir(rdonly, xdgConfigHome.get());
   }
 
   nsAutoCString xdgConfigDirs(PR_GetEnv("XDG_CONFIG_DIRS"));
   for (const auto& path : xdgConfigDirs.Split(':')) {
+    if (path[0] != '/') {
+      continue;
+    }
+
     if (!path.IsEmpty()) {  // AddPath will fail on empty strings
       policy->AddFutureDir(rdonly, PromiseFlatCString(path).get());
     }
   }
 
   // Allow fonts subdir in XDG_DATA_HOME
-  nsAutoCString xdgDataHome(PR_GetEnv("XDG_DATA_HOME"));
+  nsAutoCString xdgDataHome(PathFromEnvIfAbsolute("XDG_DATA_HOME"));
   if (!xdgDataHome.IsEmpty()) {
     nsAutoCString fontPath(xdgDataHome);
     fontPath.Append("/fonts");
@@ -526,6 +539,10 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
   // Any font subdirs in XDG_DATA_DIRS
   nsAutoCString xdgDataDirs(PR_GetEnv("XDG_DATA_DIRS"));
   for (const auto& path : xdgDataDirs.Split(':')) {
+    if (path[0] != '/') {
+      continue;
+    }
+
     nsAutoCString fontPath(path);
     fontPath.Append("/fonts");
     policy->AddFutureDir(rdonly, PromiseFlatCString(fontPath).get());
