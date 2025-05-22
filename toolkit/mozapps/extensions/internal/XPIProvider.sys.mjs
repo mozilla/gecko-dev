@@ -1533,22 +1533,62 @@ var XPIStates = {
           "Force scan SCOPE_ALL locations on empty XPIStates locations data"
         );
         startupScanScopes = AddonManager.SCOPE_ALL;
-      } else if (!oldLocations.has(KEY_APP_SYSTEM_BUILTINS)) {
+      }
+
+      const hasScopeApplication =
+        startupScanScopes & AddonManager.SCOPE_APPLICATION;
+      const hasScopeProfile = startupScanScopes & AddonManager.SCOPE_PROFILE;
+      const systemAddonSet = SystemAddonLocation._loadAddonSet();
+      const hasSystemAddonDirectory = !!systemAddonSet.directory;
+      const getMissingIds = ({ knownIds, expectedIds }) => {
+        return new Set(expectedIds).difference(new Set(knownIds));
+      };
+
+      // Recover from lost or stale XPIStates data for the "app-builtin-addons" location.
+      if (!hasScopeApplication && !oldLocations.has(KEY_APP_SYSTEM_BUILTINS)) {
         logger.warn(
           `Force scan SCOPE_APPLICATION (${KEY_APP_SYSTEM_BUILTINS} location missing from XPIStates)`
         );
         startupScanScopes |= AddonManager.SCOPE_APPLICATION;
-      } else {
-        const knownIds = new Set(
-          Object.keys(oldState[KEY_APP_SYSTEM_BUILTINS].addons ?? {})
-        );
-        const expectedIds = new Set(SystemBuiltInLocation.readAddons().keys());
-        const missingIds = expectedIds.difference(knownIds);
+      } else if (!hasScopeApplication) {
+        // Detect stale/incomplete location data.
+        const missingIds = getMissingIds({
+          knownIds: new Set(
+            Object.keys(oldState[KEY_APP_SYSTEM_BUILTINS].addons ?? {})
+          ),
+          expectedIds: new Set(SystemBuiltInLocation.readAddons().keys()),
+        });
         if (missingIds.size) {
           logger.warn(
             `Force scan SCOPE_APPLICATION location (detected missing builtins: ${JSON.stringify(Array.from(missingIds))})`
           );
           startupScanScopes |= AddonManager.SCOPE_APPLICATION;
+        }
+      }
+
+      // Recover from lost or stale XPIStates data for the "app-system-addons" location.
+      if (
+        hasSystemAddonDirectory &&
+        !hasScopeProfile &&
+        !oldLocations.has(KEY_APP_SYSTEM_ADDONS)
+      ) {
+        logger.warn(
+          `Force scan SCOPE_PROFILE (${KEY_APP_SYSTEM_ADDONS} location missing from XPIStates)`
+        );
+        startupScanScopes |= AddonManager.SCOPE_PROFILE;
+      } else if (hasSystemAddonDirectory && !hasScopeProfile) {
+        // Detect stale/incomplete location data.
+        const missingIds = getMissingIds({
+          knownIds: new Set(
+            Object.keys(oldState[KEY_APP_SYSTEM_ADDONS].addons ?? {})
+          ),
+          expectedIds: new Set(Object.keys(systemAddonSet.addons ?? {})),
+        });
+        if (missingIds.size) {
+          logger.warn(
+            `Force scan SCOPE_PROFILE location (detected missing system-addons: ${JSON.stringify(Array.from(missingIds))})`
+          );
+          startupScanScopes |= AddonManager.SCOPE_PROFILE;
         }
       }
     }

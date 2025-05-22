@@ -276,6 +276,24 @@ async function testBrokenXPIStates({
   info(`Exit test case (${description})`);
 }
 
+function readAddonStartupData() {
+  return Cc["@mozilla.org/addons/addon-manager-startup;1"]
+    .getService(Ci.amIAddonManagerStartup)
+    .readStartupData();
+}
+
+async function promiseWriteAddonStartupData(data) {
+  const { JSONFile } = ChromeUtils.importESModule(
+    "resource://gre/modules/JSONFile.sys.mjs"
+  );
+  let jsonFile = new JSONFile({
+    path: PathUtils.join(AddonTestUtils.addonStartup.path),
+    compression: "lz4",
+  });
+  jsonFile.data = data;
+  await jsonFile._save();
+}
+
 // This tests case verifies that in case of a missing or completely corrupted
 // xpi states, the builin addons are still installed and started up as expected.
 add_task(
@@ -314,36 +332,93 @@ add_task(
       ["extensions.startupScanScopes", 0],
     ],
   },
-  async function test_stale_xpistate() {
-    async function setupTestCase() {
-      const { JSONFile } = ChromeUtils.importESModule(
-        "resource://gre/modules/JSONFile.sys.mjs"
-      );
-      const aomStartup = Cc[
-        "@mozilla.org/addons/addon-manager-startup;1"
-      ].getService(Ci.amIAddonManagerStartup);
-      const xpiStateData = aomStartup.readStartupData();
+  async function test_stale_xpistate_app_builtin_addons_location() {
+    const builtinId = "system2@tests.mozilla.org";
+
+    function verifyXPIStateData(xpiStateData) {
       ok(
         xpiStateData["app-builtin-addons"],
         "Got app-builtin-addons location in the XPIStates data"
       );
-      const builtinId = "system2@tests.mozilla.org";
       ok(
         xpiStateData["app-builtin-addons"]?.addons?.[builtinId],
-        `Got ${builtinId} entry in XPIStates data`
+        `Got ${builtinId} app-builtin-addons entry in XPIStates data`
       );
-      delete xpiStateData["app-builtin-addons"].addons[builtinId];
-      let jsonFile = new JSONFile({
-        path: PathUtils.join(AddonTestUtils.addonStartup.path),
-        compression: "lz4",
-      });
-      jsonFile.data = xpiStateData;
-      await jsonFile._save();
     }
+
+    await testBrokenXPIStates({
+      description:
+        "stale addonStartup.json.lz4 missing entire app-builtin-addons location",
+      async setupTestCase() {
+        const xpiStateData = readAddonStartupData();
+        verifyXPIStateData(xpiStateData);
+        delete xpiStateData["app-builtin-addons"];
+        await promiseWriteAddonStartupData(xpiStateData);
+      },
+      expectSystemUpdateVersion: true,
+    });
+
     await testBrokenXPIStates({
       description:
         "stale addonStartup.json.lz4 missing one of the builtin addons",
-      setupTestCase,
+      async setupTestCase() {
+        const xpiStateData = readAddonStartupData();
+        verifyXPIStateData(xpiStateData);
+        delete xpiStateData["app-builtin-addons"].addons[builtinId];
+        await promiseWriteAddonStartupData(xpiStateData);
+      },
+      expectSystemUpdateVersion: true,
+    });
+  }
+);
+
+// This tests case verifies that in case of a stale addonStartup.json.lz4 state,
+// missing system-signed addons are still detected early during application startup
+// and installed and started as expected.
+add_task(
+  {
+    pref_set: [
+      ["extensions.skipInstallDefaultThemeForTests", true],
+      // Set the same startupScanScopes value set by default on a Firefox Desktop
+      // instance.
+      ["extensions.startupScanScopes", 0],
+    ],
+  },
+  async function test_stale_xpistate_app_system_addons_location() {
+    const builtinId = "system2@tests.mozilla.org";
+
+    function verifyXPIStateData(xpiStateData) {
+      ok(
+        xpiStateData["app-system-addons"],
+        "Got app-system-addons location in the XPIStates data"
+      );
+      ok(
+        xpiStateData["app-system-addons"]?.addons?.[builtinId],
+        `Got ${builtinId} app-system-addons entry in XPIStates data`
+      );
+    }
+
+    await testBrokenXPIStates({
+      description:
+        "stale addonStartup.json.lz4 missing entire app-system-addons location",
+      async setupTestCase() {
+        const xpiStateData = readAddonStartupData();
+        verifyXPIStateData(xpiStateData);
+        delete xpiStateData["app-system-addons"];
+        await promiseWriteAddonStartupData(xpiStateData);
+      },
+      expectSystemUpdateVersion: true,
+    });
+
+    await testBrokenXPIStates({
+      description:
+        "stale addonStartup.json.lz4 missing one of the system-signed addons",
+      async setupTestCase() {
+        const xpiStateData = readAddonStartupData();
+        verifyXPIStateData(xpiStateData);
+        delete xpiStateData["app-system-addons"].addons[builtinId];
+        await promiseWriteAddonStartupData(xpiStateData);
+      },
       expectSystemUpdateVersion: true,
     });
   }
