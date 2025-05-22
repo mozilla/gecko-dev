@@ -141,7 +141,6 @@ class SessionHistoryInfo {
   nsIPrincipal* GetPrincipalToInherit() const;
 
   nsIPrincipal* GetPartitionedPrincipalToInherit() const;
-  void SetPartitionedPrincipalToInherit(nsIPrincipal* aPrincipal);
 
   nsIContentSecurityPolicy* GetCsp() const;
 

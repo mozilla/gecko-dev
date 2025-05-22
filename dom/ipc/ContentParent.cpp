@@ -7527,13 +7527,7 @@ mozilla::ipc::IPCResult ContentParent::RecvHistoryCommit(
     const MaybeDiscarded<BrowsingContext>& aContext, const uint64_t& aLoadID,
     const nsID& aChangeID, const uint32_t& aLoadType, const bool& aPersist,
     const bool& aCloneEntryChildren, const bool& aChannelExpired,
-    const uint32_t& aCacheKey, nsIPrincipal* aPartitionedPrincipal) {
-  if (!ValidatePrincipal(aPartitionedPrincipal,
-                         {ValidatePrincipalOptions::AllowNullPtr,
-                          ValidatePrincipalOptions::AllowSystem})) {
-    LogAndAssertFailedPrincipalValidationInfo(aPartitionedPrincipal, __func__);
-  }
-
+    const uint32_t& aCacheKey) {
   if (!aContext.IsDiscarded()) {
     CanonicalBrowsingContext* canonical = aContext.get_canonical();
     if (!canonical) {
@@ -7542,7 +7536,7 @@ mozilla::ipc::IPCResult ContentParent::RecvHistoryCommit(
     }
     canonical->SessionHistoryCommit(aLoadID, aChangeID, aLoadType, aPersist,
                                     aCloneEntryChildren, aChannelExpired,
-                                    aCacheKey, aPartitionedPrincipal);
+                                    aCacheKey);
   }
   return IPC_OK();
 }

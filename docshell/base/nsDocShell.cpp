@@ -9044,7 +9044,7 @@ nsresult nsDocShell::HandleSameDocumentNavigation(
           *mLoadingEntry, mLoadType, mCurrentURI, previousActiveEntry.get(),
           true, true,
           /* No expiration update on the same document loads*/
-          false, cacheKey, doc->PartitionedPrincipal());
+          false, cacheKey);
       // FIXME Need to set postdata.
 
       // Set the title for the SH entry for this target url so that
@@ -9103,9 +9103,6 @@ nsresult nsDocShell::HandleSameDocumentNavigation(
       // Set the title for the SH entry for this target url so that
       // SH menus in go/back/forward buttons won't be empty for this.
       mActiveEntry->SetTitle(mTitle);
-
-      mActiveEntry->SetPartitionedPrincipalToInherit(
-          doc->PartitionedPrincipal());
 
       if (scrollRestorationIsManual.isSome()) {
         mActiveEntry->SetScrollRestorationIsManual(
@@ -11612,7 +11609,7 @@ nsresult nsDocShell::UpdateURLAndHistory(
                         /* aReferrerInfo = */ referrerInfo,
                         /* aTriggeringPrincipal = */ aDocument->NodePrincipal(),
                         csp, title, scrollRestorationIsManual, aData,
-                        uriWasModified, aDocument->PartitionedPrincipal());
+                        uriWasModified);
     } else {
       // Since we're not changing which page we have loaded, pass
       // true for aCloneChildren.
@@ -11666,7 +11663,7 @@ nsresult nsDocShell::UpdateURLAndHistory(
         /* aReferrerInfo = */ referrerInfo, aDocument->NodePrincipal(),
         aDocument->GetCsp(), title,
         mActiveEntry && mActiveEntry->GetScrollRestorationIsManual(), aData,
-        uriWasModified, aDocument->PartitionedPrincipal());
+        uriWasModified);
   } else {
     // Step 3.
     newSHEntry = mOSHE;
@@ -12115,8 +12112,7 @@ void nsDocShell::UpdateActiveEntry(
     nsIURI* aOriginalURI, nsIReferrerInfo* aReferrerInfo,
     nsIPrincipal* aTriggeringPrincipal, nsIContentSecurityPolicy* aCsp,
     const nsAString& aTitle, bool aScrollRestorationIsManual,
-    nsIStructuredCloneContainer* aData, bool aURIWasModified,
-    nsIPrincipal* aPartitionedPrincipal) {
+    nsIStructuredCloneContainer* aData, bool aURIWasModified) {
   MOZ_ASSERT(mozilla::SessionHistoryInParent());
   MOZ_ASSERT(aURI, "uri is null");
   MOZ_ASSERT(mLoadType == LOAD_PUSHSTATE,
@@ -12151,7 +12147,6 @@ void nsDocShell::UpdateActiveEntry(
   mActiveEntry->SetStateData(static_cast<nsStructuredCloneContainer*>(aData));
   mActiveEntry->SetURIWasModified(aURIWasModified);
   mActiveEntry->SetScrollRestorationIsManual(aScrollRestorationIsManual);
-  mActiveEntry->SetPartitionedPrincipalToInherit(aPartitionedPrincipal);
 
   if (replace) {
     mBrowsingContext->ReplaceActiveSessionHistoryEntry(mActiveEntry.get());
@@ -13892,13 +13887,6 @@ void nsDocShell::MoveLoadingToActiveEntry(bool aPersist, bool aExpired,
     if (aCacheKey != 0) {
       mActiveEntry->SetCacheKey(aCacheKey);
     }
-
-    nsCOMPtr<nsIPrincipal> partitionedPrincipal;
-    RefPtr<Document> doc = GetDocument();
-    if (doc) {
-      partitionedPrincipal = doc->PartitionedPrincipal();
-    }
-    mActiveEntry->SetPartitionedPrincipalToInherit(partitionedPrincipal);
     MOZ_ASSERT(loadingEntry);
     uint32_t loadType =
         mLoadType == LOAD_ERROR_PAGE ? mFailedLoadType : mLoadType;
@@ -13909,7 +13897,7 @@ void nsDocShell::MoveLoadingToActiveEntry(bool aPersist, bool aExpired,
       // URI, but in that case mCurrentURI won't be null here.
       mBrowsingContext->SessionHistoryCommit(
           *loadingEntry, loadType, aPreviousURI, previousActiveEntry.get(),
-          aPersist, false, aExpired, aCacheKey, partitionedPrincipal);
+          aPersist, false, aExpired, aCacheKey);
     }
 
     // Only update navigation if the new entry will be persisted (i.e., is not

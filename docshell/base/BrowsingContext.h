@@ -867,8 +867,7 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
                             uint32_t aLoadType, nsIURI* aCurrentURI,
                             SessionHistoryInfo* aPreviousActiveEntry,
                             bool aPersist, bool aCloneEntryChildren,
-                            bool aChannelExpired, uint32_t aCacheKey,
-                            nsIPrincipal* aPartitionedPrincipal);
+                            bool aChannelExpired, uint32_t aCacheKey);
 
   // Set a new active entry on this browsing context. This is used for
   // implementing history.pushState/replaceState and same document navigations.

@@ -227,11 +227,6 @@ nsIPrincipal* SessionHistoryInfo::GetPartitionedPrincipalToInherit() const {
   return mSharedState.Get()->mPartitionedPrincipalToInherit;
 }
 
-void SessionHistoryInfo::SetPartitionedPrincipalToInherit(
-    nsIPrincipal* aPartitionedPrincipal) {
-  mSharedState.Get()->mPartitionedPrincipalToInherit = aPartitionedPrincipal;
-}
-
 nsIContentSecurityPolicy* SessionHistoryInfo::GetCsp() const {
   return mSharedState.Get()->mCsp;
 }
@@ -1670,10 +1665,12 @@ bool IPDLParamTraits<dom::SessionHistoryInfo>::Read(
                          aResult->mSharedState.Get()->mPrincipalToInherit)
                    : !aResult->mSharedState.Get()->mPrincipalToInherit,
                "We don't expect this to change!");
-    MOZ_ASSERT_IF(
-        aResult->mSharedState.Get()->mPartitionedPrincipalToInherit,
-        aResult->mSharedState.Get()->mPartitionedPrincipalToInherit->Equals(
-            partitionedPrincipalToInherit));
+    MOZ_ASSERT(
+        partitionedPrincipalToInherit
+            ? partitionedPrincipalToInherit->Equals(
+                  aResult->mSharedState.Get()->mPartitionedPrincipalToInherit)
+            : !aResult->mSharedState.Get()->mPartitionedPrincipalToInherit,
+        "We don't expect this to change!");
     MOZ_ASSERT(
         csp ? nsCSPContext::Equals(csp, aResult->mSharedState.Get()->mCsp)
             : !aResult->mSharedState.Get()->mCsp,

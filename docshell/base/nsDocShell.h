@@ -625,8 +625,7 @@ class nsDocShell final : public nsDocLoader,
       nsIURI* aURI, nsIURI* aOriginalURI, nsIReferrerInfo* aReferrerInfo,
       nsIPrincipal* aTriggeringPrincipal, nsIContentSecurityPolicy* aCsp,
       const nsAString& aTitle, bool aScrollRestorationIsManual,
-      nsIStructuredCloneContainer* aData, bool aURIWasModified,
-      nsIPrincipal* aPartitionedPrincipal);
+      nsIStructuredCloneContainer* aData, bool aURIWasModified);
 
   nsresult AddChildSHEntry(nsISHEntry* aCloneRef, nsISHEntry* aNewEntry,
                            int32_t aChildOffset, uint32_t aLoadType,
