@@ -71,7 +71,7 @@ def symbolicate_profile_json(profile_path, firefox_symbols_path):
     )
 
     try:
-        with open(profile_path, "rb", encoding="utf-8") as profile_file:
+        with open(profile_path, "rb") as profile_file:
             if orjson is not None:
                 profile = orjson.loads(profile_file.read())
             else:
