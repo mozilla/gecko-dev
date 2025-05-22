@@ -92,8 +92,8 @@ add_task(async function test_closetab_isDeviceCompatible() {
   // Feature successfully disabled
   Assert.ok(!closeTab.isDeviceCompatible(device));
 
-  doExperimentCleanup();
-  cleanup();
+  await doExperimentCleanup();
+  await cleanup();
 });
 
 add_task(async function test_closetab_send() {
