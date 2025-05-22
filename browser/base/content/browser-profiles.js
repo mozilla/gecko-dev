@@ -274,7 +274,7 @@ var gProfiles = {
       "aria-label",
       this.bundle.GetStringFromName("panel.back")
     );
-    backButton.style.fill = "var(--appmenu-profiles-theme-fg)";
+    backButton.style.fill = "var(--appmenu-profiles-theme-fg, currentColor)";
 
     let currentProfileCard = PanelMultiView.getViewNode(
       document,
