@@ -319,4 +319,4 @@ load 1806189-1.html
 pref(layout.css.scroll-driven-animations.enabled,true) load 1821416.html
 load 1872309.html
 pref(layout.css.scroll-driven-animations.enabled,true) load 1944977.html
-load 1966679.html
+pref(dom.viewTransitions.enabled,true) load 1966679.html
