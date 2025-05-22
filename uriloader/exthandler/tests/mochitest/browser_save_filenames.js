@@ -27,6 +27,8 @@ let types = {
   zip: "application/zip",
   json: "application/json",
   tar: "application/x-tar",
+  mp2: "audio/mpeg",
+  wav: "audio/x-wav",
 };
 
 const PNG_DATA = atob(
