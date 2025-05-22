@@ -5,7 +5,6 @@
 package org.mozilla.fenix.tabstray
 
 import android.app.Dialog
-import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build.VERSION.SDK_INT
@@ -410,10 +409,6 @@ class TabsTrayFragment : AppCompatDialogFragment() {
 
         return tabsTrayDialogBinding.root
     }
-
-    private fun shouldShowLockPbmBanner(context: Context) = FeatureFlags.privateBrowsingLock &&
-            !context.settings().privateBrowsingLockedEnabled &&
-            BiometricManager.from(context).isHardwareAvailable()
 
     override fun onStart() {
         super.onStart()
@@ -840,22 +835,6 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             }
             tabsTrayInteractor.onTrayPositionSelected(page.ordinal, false)
         }
-    }
-
-    @VisibleForTesting
-    internal fun shouldShowPrompt(
-        biometricAuthenticationNeededInfo: BiometricAuthenticationNeededInfo,
-        isPrivateTabPage: Boolean,
-        isInPrivateMode: Boolean,
-    ): Boolean {
-        val hasPrivateTabs = requireComponents.core.store.state.privateTabs.isNotEmpty()
-        val biometricLockEnabled = requireContext().settings().privateBrowsingLockedEnabled
-        val shouldShowAuthenticationPrompt =
-            biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt
-        val isNotOnPrivateTabsPage = tabsTrayStore.state.selectedPage != Page.PrivateTabs
-
-        return isPrivateTabPage && hasPrivateTabs && biometricLockEnabled &&
-            shouldShowAuthenticationPrompt && isNotOnPrivateTabsPage && !isInPrivateMode
     }
 
     /**
