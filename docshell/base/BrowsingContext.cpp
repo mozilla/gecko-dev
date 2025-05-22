@@ -474,6 +474,10 @@ already_AddRefed<BrowsingContext> BrowsingContext::CreateDetached(
   fields.Get<IDX_AllowJavascript>() =
       inherit ? inherit->GetAllowJavascript() : true;
 
+  fields.Get<IDX_IPAddressSpace>() = inherit
+                                         ? inherit->GetIPAddressSpace()
+                                         : nsILoadInfo::IPAddressSpace::Public;
+
   fields.Get<IDX_IsPopupRequested>() = aOptions.isPopupRequested;
 
   fields.Get<IDX_TopLevelCreatedByWebContent>() =
