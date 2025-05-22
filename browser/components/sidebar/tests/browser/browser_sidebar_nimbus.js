@@ -33,7 +33,7 @@ add_task(async function test_nimbus_user_prefs() {
     "vertical pref has user value"
   );
 
-  cleanup();
+  await cleanup();
   Services.prefs.clearUserPref(nimbus);
   Services.prefs.clearUserPref(vertical);
 });
@@ -73,8 +73,8 @@ add_task(async function test_nimbus_rollout_experiment() {
     "nimbus pref changed by experiment"
   );
 
-  cleanRollout();
-  cleanExperiment();
+  await cleanRollout();
+  await cleanExperiment();
   Services.prefs.clearUserPref(nimbus);
 });
 
@@ -95,7 +95,7 @@ add_task(async function test_nimbus_multi_feature() {
 
   Assert.ok(Services.prefs.prefHasUserValue(chatbot), "chatbot user pref set");
 
-  cleanup();
+  await cleanup();
 
   Assert.ok(Services.prefs.prefHasUserValue(chatbot), "chatbot pref still set");
 
@@ -125,7 +125,7 @@ add_task(async function test_nimbus_minimum_version() {
   );
   Assert.ok(!Services.prefs.prefHasUserValue(nimbus), "nimbus pref not set");
 
-  cleanup();
+  await cleanup();
 
   cleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "sidebar",
@@ -138,7 +138,7 @@ add_task(async function test_nimbus_minimum_version() {
   Assert.ok(Services.prefs.getBoolPref(revamp), "revamp pref set for version");
   Assert.ok(Services.prefs.getStringPref(nimbus), "nimbus pref set");
 
-  cleanup();
+  await cleanup();
   Services.prefs.clearUserPref(nimbus);
   Services.prefs.clearUserPref(revamp);
 });
