@@ -442,7 +442,6 @@ const rollouts = [
       "browser/components/sidebar/**",
       "browser/components/shell/**",
       "browser/components/sessionstore/**",
-      "browser/components/shopping/**",
       "browser/components/storybook/.storybook/**",
       "browser/components/storybook/custom-elements-manifest.config.mjs",
       "browser/components/syncedtabs/**",

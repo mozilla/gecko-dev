@@ -60,7 +60,6 @@ DIRS += [
     "search",
     "sessionstore",
     "shell",
-    "shopping",
     "sidebar",
     "syncedtabs",
     "tabbrowser",
