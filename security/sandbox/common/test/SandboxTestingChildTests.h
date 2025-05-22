@@ -556,6 +556,12 @@ void RunTestsContent(SandboxTestingChild* child) {
     munmap(mapping, kMapSize);
   }
 
+  child->ErrnoValueTest("ioctl_dma_buf"_ns, ENOSYS, [] {
+    // Attempt an arbitrary non-tty ioctl, on the wrong type of fd; if
+    // allowed it would fail with ENOTTY (see the RDD tests) but in
+    // this sandbox it should be blocked (ENOSYS).
+    return ioctl(0, _IOW('b', 0, uint64_t), nullptr);
+  });
 #  endif  // XP_LINUX
 
 #  ifdef XP_MACOSX

@@ -1485,9 +1485,10 @@ class ContentSandboxPolicy : public SandboxPolicyCommon {
         return If(request == FIOCLEX, Allow())
             // Rust's stdlib also uses FIONBIO instead of equivalent fcntls.
             .ElseIf(request == FIONBIO, Allow())
-            // Allow anything that isn't a tty ioctl, for now; bug 1302711
-            // will cover changing this to a default-deny policy.
-            .ElseIf(shifted_type != kTtyIoctls, Allow())
+            // Allow anything that isn't a tty ioctl, if level < 6
+            .ElseIf(
+                BelowLevel(6) ? shifted_type != kTtyIoctls : BoolConst(false),
+                Allow())
             .Else(SandboxPolicyCommon::EvaluateSyscall(sysno));
       }
 

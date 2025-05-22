@@ -1583,12 +1583,13 @@ pref("browser.bookmarks.editDialog.maxRecentFolders", 7);
   // 5 -> blocks access to GL / DRI / display servers
   //      (formerly the separate pref `security.sandbox.content.headless`)
   //      (side effect: sets MOZ_HEADLESS for content processes)
+  // 6 -> default-deny for ioctl
   //
   // The purpose of this setting is to allow Linux users or distros to disable
   // the sandbox while we fix their problems, or to allow running Firefox with
   // exotic configurations we can't reasonably support out of the box.
   //
-  pref("security.sandbox.content.level", 5);
+  pref("security.sandbox.content.level", 6);
   // Introduced as part of bug 1608558.  Linux is currently the only platform
   // that uses a sandbox level for the socket process.  There are currently
   // only 2 levels:
