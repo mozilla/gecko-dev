@@ -959,17 +959,6 @@
     </issue>
 
     <issue
-        id="ModifierParameter"
-        message="Modifier parameter should be the first optional parameter"
-        errorLine1="    modifier: Modifier = Modifier,"
-        errorLine2="    ~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/components/menu/compose/MenuItem.kt"
-            line="78"
-            column="5"/>
-    </issue>
-
-    <issue
         id="DiscouragedApi"
         message="Use of this function is discouraged because resource reflection makes it harder to perform build optimizations and compile-time verification of code. It is much more efficient to retrieve resources by identifier (e.g. `R.foo.bar`) than by name (e.g. `getIdentifier(&quot;bar&quot;, &quot;foo&quot;, null)`)."
         errorLine1="        val resId = context.resources.getIdentifier(projectIdKey, &quot;string&quot;, context.packageName)"

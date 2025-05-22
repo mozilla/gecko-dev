@@ -50,6 +50,8 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(4.dp)
  *
  * @param label The label in the menu item.
  * @param beforeIconPainter [Painter] used to display an [Icon] before the list item.
+ * @param modifier [Modifier] to be applied to the layout.
+ * @param labelModifier [Modifier] to be applied to the label.
  * @param beforeIconDescription Content description of the icon.
  * @param description An optional description text below the label.
  * @param state The state of the menu item to display.
@@ -59,8 +61,6 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(4.dp)
  * at the end.
  * @param afterIconPainter [Painter] used to display an [IconButton] after the list item.
  * @param afterIconDescription Content description of the icon.
- * @param modifier [Modifier] to be applied to the layout.
- * @param labelModifier [Modifier] to be applied to the label.
  * @param onAfterIconClick Invoked when the user clicks on the icon. An [IconButton] will be
  * displayed if this is provided. Otherwise, an [Icon] will be displayed.
  * @param afterContent Optional Composable for adding UI to the end of the list item.
@@ -69,6 +69,8 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(4.dp)
 internal fun MenuItem(
     label: String,
     beforeIconPainter: Painter,
+    modifier: Modifier = Modifier,
+    labelModifier: Modifier = Modifier,
     beforeIconDescription: String? = null,
     description: String? = null,
     state: MenuItemState = MenuItemState.ENABLED,
@@ -77,8 +79,6 @@ internal fun MenuItem(
     showDivider: Boolean = false,
     afterIconPainter: Painter? = null,
     afterIconDescription: String? = null,
-    modifier: Modifier = Modifier,
-    labelModifier: Modifier = Modifier,
     onAfterIconClick: (() -> Unit)? = null,
     afterContent: (@Composable RowScope.() -> Unit)? = null,
 ) {
