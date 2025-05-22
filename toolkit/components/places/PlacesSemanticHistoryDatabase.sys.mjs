@@ -97,7 +97,7 @@ export class PlacesSemanticHistoryDatabase {
       lazy.logger.info("Initializing schema");
       await this.#initializeSchema();
     } catch (e) {
-      lazy.logger.warn("Schema initialization failed");
+      lazy.logger.warn(`Schema initialization failed: ${e}`);
       // If the schema cannot be initialized close the connection and create
       // a new database file.
       await this.closeConnection();
@@ -153,12 +153,15 @@ export class PlacesSemanticHistoryDatabase {
    */
   async #initializeSchema() {
     let version = await this.#conn.getSchemaVersion();
+    lazy.logger.debug(`Database schema version: ${version}`);
     if (version > CURRENT_SCHEMA_VERSION) {
+      lazy.logger.warn(`Database schema downgrade`);
       throw new Error("Downgrade of the schema is not supported");
     }
     if (version == CURRENT_SCHEMA_VERSION) {
       let healthy = await this.#checkDatabaseEntities(this.#embeddingSize);
       if (!healthy) {
+        lazy.logger.error(`Database schema is not healthy`);
         throw new Error("Database schema is not healthy");
       }
       return;
@@ -228,18 +231,21 @@ export class PlacesSemanticHistoryDatabase {
       !tableNames.includes("vec_history") ||
       !tableNames.includes("vec_history_mapping")
     ) {
+      lazy.logger.error(`Missing tables in the database`);
       return false;
     }
 
     // If the embedding size changed the database should be recreated. This
     // should be handled by a migration, but we check to be overly safe.
-    let embeddingSizeCheck = await this.#conn.execute(
-      `PRAGMA table_info(vec_history)`
-    );
-    let embeddingSizeRow = embeddingSizeCheck.find(
-      row => row.getResultByName("name") == "embedding"
-    );
-    if (embeddingSizeRow.getResultByName("type") != `FLOAT[${embeddingSize}]`) {
+    let embeddingSizeMatches = (
+      await this.#conn.execute(
+        `SELECT INSTR(sql, :needle) > 0
+       FROM sqlite_master WHERE name = 'vec_history'`,
+        { needle: `FLOAT[${embeddingSize}]` }
+      )
+    )[0].getResultByIndex(0);
+    if (!embeddingSizeMatches) {
+      lazy.logger.error(`Embeddings size doesn't match`);
       return false;
     }
 
