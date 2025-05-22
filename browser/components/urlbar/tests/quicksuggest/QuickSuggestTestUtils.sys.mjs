@@ -1346,7 +1346,7 @@ class _QuickSuggestTestUtils {
 
     return async () => {
       this.#log("enrollExperiment.cleanup", "Awaiting experiment cleanup");
-      doExperimentCleanup();
+      await doExperimentCleanup();
     };
   }
 
