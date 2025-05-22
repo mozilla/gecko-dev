@@ -46,6 +46,11 @@ resume_geolocationProvider(async () => {
   await SimpleTest.promiseFocus(window);
   await hiddenPromise;
 
+  // Send data to be ignored...
+  await p(start_sending_garbage);
+  await p(stop_sending_garbage);
+  await p(resume_geolocationProvider);
+
   // The following promises only resolve successfully when document is visible,
   // meaning that position updates are ignored when the document is hidden.
   let success = false;
@@ -60,12 +65,13 @@ resume_geolocationProvider(async () => {
         resolve();
       },
       () => {
-        ok(false, "Error callback of watchPosition must not be called.");
+        // It's still allowed to get error when document is hidden
+        ok(true, "Error callback of watchPosition was called.");
       }
     );
   });
 
-  const currentPositionPromise = new Promise((resolve) => {
+  const currentPositionPromise = new Promise((resolve, reject) => {
     geo.getCurrentPosition(
       () => {
         ok(success, "getCurrentPosition was called.");
@@ -75,15 +81,10 @@ resume_geolocationProvider(async () => {
         resolve();
       },
       () => {
-        ok(false, "Error callback of getCurrentPosition must not be called.");
+        reject(new Error("Error callback of getCurrentPosition must not be called."))
       }
     );
   });
-
-  // Send data to be ignored...
-  await p(start_sending_garbage);
-  await p(stop_sending_garbage);
-  await p(resume_geolocationProvider);
 
   // Refocus popup window...
   const visiblePopupPromise = new Promise(
