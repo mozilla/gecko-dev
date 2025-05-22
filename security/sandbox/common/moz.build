@@ -45,10 +45,9 @@ if CONFIG["MOZ_SANDBOX"] and CONFIG["MOZ_DEBUG"] and CONFIG["ENABLE_TESTS"]:
         "/netwerk/base",
     ]
 
-if CONFIG["MOZ_SANDBOX"] and CONFIG["OS_TARGET"] == "Linux":
-    EXTRA_JS_MODULES += [
-        "SandboxUtils.sys.mjs",
-    ]
+EXTRA_JS_MODULES += [
+    "SandboxUtils.sys.mjs",
+]
 
 include("/ipc/chromium/chromium-config.mozbuild")
 

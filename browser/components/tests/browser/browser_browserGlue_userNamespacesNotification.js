@@ -3,6 +3,9 @@
 
 "use strict";
 
+const kCID = "@mozilla.org/browser/browserglue;1";
+const BrowserGlue = Cc[kCID].getService(Ci.nsISupports).wrappedJSObject;
+
 const kNotificationSelector =
   'notification-message[message-bar-type="infobar"]' +
   '[value="sandbox-unprivileged-namespaces"]';
@@ -36,9 +39,6 @@ async function getNotification(shouldBeNull = false) {
 }
 
 if (AppConstants.platform === "linux" && AppConstants.MOZ_SANDBOX) {
-  let { SandboxUtils } = ChromeUtils.importESModule(
-    "resource://gre/modules/SandboxUtils.sys.mjs"
-  );
   add_setup(async function setup() {
     await SpecialPowers.pushPrefEnv({
       set: [["security.sandbox.warn_unprivileged_namespaces", true]],
@@ -59,7 +59,7 @@ if (AppConstants.platform === "linux" && AppConstants.MOZ_SANDBOX) {
       "No existing notification"
     );
     setHasUsernamespaces(true);
-    SandboxUtils.maybeWarnAboutMissingUserNamespaces(window);
+    BrowserGlue._verifySandboxUserNamespaces(window);
 
     const notification = await getNotification(/* shouldBeNull */ true);
     Assert.equal(
@@ -76,7 +76,7 @@ if (AppConstants.platform === "linux" && AppConstants.MOZ_SANDBOX) {
       "No existing notification"
     );
     setHasUsernamespaces(false);
-    SandboxUtils.maybeWarnAboutMissingUserNamespaces(window);
+    BrowserGlue._verifySandboxUserNamespaces(window);
 
     const notification = await getNotification();
     Assert.notEqual(
@@ -97,7 +97,7 @@ if (AppConstants.platform === "linux" && AppConstants.MOZ_SANDBOX) {
       set: [["security.sandbox.warn_unprivileged_namespaces", false]],
     });
     setHasUsernamespaces(false);
-    SandboxUtils.maybeWarnAboutMissingUserNamespaces(window);
+    BrowserGlue._verifySandboxUserNamespaces(window);
 
     const notification = await getNotification(/* shouldBeNull */ true);
     Assert.equal(
@@ -125,7 +125,7 @@ if (AppConstants.platform === "linux" && AppConstants.MOZ_SANDBOX) {
       "Pref is enabled"
     );
     setHasUsernamespaces(false);
-    SandboxUtils.maybeWarnAboutMissingUserNamespaces(window);
+    BrowserGlue._verifySandboxUserNamespaces(window);
 
     const notification = await getNotification();
     const dontShowAgain = notification.querySelector(".notification-button");
@@ -147,10 +147,8 @@ if (AppConstants.platform === "linux" && AppConstants.MOZ_SANDBOX) {
       document.querySelector(kNotificationSelector),
       "No existing notification"
     );
-    await Assert.rejects(
-      fetch("resource://gre/modules/SandboxUtils.sys.mjs"),
-      /NetworkError when attempting to fetch/,
-      "SandboxUtils should not be packaged."
-    );
+    BrowserGlue._verifySandboxUserNamespaces(window);
+    const notification = await getNotification(/* shouldBeNull */ true);
+    Assert.equal(null, notification, "Notification is not shown on non linux");
   });
 }

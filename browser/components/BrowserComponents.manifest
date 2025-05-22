@@ -36,24 +36,6 @@ category browser-window-unload moz-src:///browser/components/tabbrowser/NewTabPa
 category browser-window-delayed-startup resource:///modules/taskbartabs/TaskbarTabs.sys.mjs TaskbarTabs.init
 
 # App startup consumers
-
-category browser-first-window-ready resource:///modules/AboutNewTab.sys.mjs AboutNewTab.init
-category browser-first-window-ready resource:///modules/ContentCrashHandlers.sys.mjs TabCrashHandler.init
-category browser-first-window-ready resource:///modules/ProcessHangMonitor.sys.mjs ProcessHangMonitor.init
-category browser-first-window-ready resource://gre/modules/PageThumbs.sys.mjs PageThumbs.init
-category browser-first-window-ready resource://gre/modules/NewTabUtils.sys.mjs NewTabUtils.init
-category browser-first-window-ready resource:///modules/PageActions.sys.mjs PageActions.init
-category browser-first-window-ready resource://gre/modules/DoHController.sys.mjs DoHController.init
-category browser-first-window-ready moz-src:///toolkit/profile/ProfilesDatastoreService.sys.mjs ProfilesDatastoreService.init
-category browser-first-window-ready resource:///modules/profiles/SelectableProfileService.sys.mjs SelectableProfileService.init
-category browser-first-window-ready moz-src:///browser/components/protections/ContentBlockingPrefs.sys.mjs ContentBlockingPrefs.init
-category browser-first-window-ready resource://gre/modules/CaptchaDetectionPingUtils.sys.mjs CaptchaDetectionPingUtils.init
-#ifdef MOZ_SANDBOX
-#ifdef XP_LINUX
-category browser-first-window-ready resource://gre/modules/SandboxUtils.sys.mjs SandboxUtils.maybeWarnAboutMissingUserNamespaces
-#endif
-#endif
-
 category browser-idle-startup resource:///modules/PlacesUIUtils.sys.mjs PlacesUIUtils.unblockToolbars
 category browser-idle-startup resource:///modules/BuiltInThemes.sys.mjs BuiltInThemes.ensureBuiltInThemes
 category browser-idle-startup resource://gre/modules/RFPHelper.sys.mjs RFPHelper.init

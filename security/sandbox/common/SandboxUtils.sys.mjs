@@ -8,11 +8,11 @@ export var SandboxUtils = {
   /**
    * Show a notification bar if user is running without unprivileged namespace
    *
-   * @param {Window} aWindow
-   *        The window where the notification will be displayed.
+   * @param {NotificationBox} aNotificationBox
+   *        The target notification box where notification will be added
    */
   maybeWarnAboutMissingUserNamespaces:
-    function SU_maybeWarnAboutMissingUserNamespaces(aWindow) {
+    function SU_maybeWarnAboutMissingUserNamespaces(aNotificationBox) {
       if (AppConstants.platform !== "linux") {
         return;
       }
@@ -41,8 +41,7 @@ export var SandboxUtils = {
         return;
       }
 
-      let box = aWindow.gNotificationBox;
-      const mozXulElement = box.stack.ownerGlobal.MozXULElement;
+      const mozXulElement = aNotificationBox.stack.ownerGlobal.MozXULElement;
       mozXulElement.insertFTLIfNeeded("toolkit/updates/elevation.ftl");
 
       let buttons = [
@@ -59,11 +58,11 @@ export var SandboxUtils = {
       ];
 
       // Now actually create the notification
-      box.appendNotification(
+      aNotificationBox.appendNotification(
         "sandbox-unprivileged-namespaces",
         {
           label: { "l10n-id": "sandbox-missing-unprivileged-namespaces" },
-          priority: box.PRIORITY_WARNING_HIGH,
+          priority: aNotificationBox.PRIORITY_WARNING_HIGH,
         },
         buttons
       );
