@@ -105,13 +105,6 @@ function findSource(dbg, url) {
 }
 exports.findSource = findSource;
 
-function isCm6Enabled() {
-  return Services.prefs.getBoolPref(
-    "devtools.debugger.features.codemirror-next"
-  );
-}
-exports.isCm6Enabled = isCm6Enabled;
-
 function getCMEditor(dbg) {
   return dbg.win.codeMirrorSourceEditorTestInstance;
 }
@@ -225,15 +218,7 @@ async function waitForLoadedScopes(dbg) {
 async function waitForScrolling(dbg, { useTimeoutFallback = true } = {}) {
   return new Promise(resolve => {
     const editor = getCMEditor(dbg);
-    if (isCm6Enabled()) {
-      editor.once("cm-editor-scrolled", resolve);
-    } else {
-      function onScroll() {
-        editor.codeMirror.off("scroll", onScroll);
-        resolve();
-      }
-      editor.codeMirror.on("scroll", onScroll);
-    }
+    editor.once("cm-editor-scrolled", resolve);
     if (useTimeoutFallback) {
       setTimeout(resolve, 500);
     }
@@ -250,7 +235,6 @@ async function waitForScrolling(dbg, { useTimeoutFallback = true } = {}) {
  */
 async function scrollEditorIntoView(dbg, line, column) {
   const onScrolled = waitForScrolling(dbg);
-  line = isCm6Enabled() ? line : line - 1;
   getCMEditor(dbg).scrollTo(line, column);
   return onScrolled;
 }
@@ -443,7 +427,7 @@ exports.step = step;
 
 async function hoverOnToken(dbg, textToWaitFor, textToHover) {
   await waitForText(dbg, textToWaitFor);
-  const selector = isCm6Enabled() ? ".cm-editor span" : ".CodeMirror span";
+  const selector = ".cm-editor span";
   const tokenElement = [...dbg.win.document.querySelectorAll(selector)].find(
     el => el.textContent === textToHover
   );
@@ -501,10 +485,7 @@ exports.hoverOnToken = hoverOnToken;
 async function openEditorContextMenu(dbg, toolbox) {
   const waitForOpen = waitForContextMenu(dbg, toolbox);
   dump(`Open the editor context menu \n`);
-  showContextMenuForElement(
-    dbg,
-    isCm6Enabled() ? ".cm-content" : ".CodeMirror-lines"
-  );
+  showContextMenuForElement(dbg, ".cm-content");
   return waitForOpen;
 }
 exports.openEditorContextMenu = openEditorContextMenu;
