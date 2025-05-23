@@ -8,6 +8,8 @@ Releases
    :glob:
    :hidden:
 
+   nss_3_112.rst
+   nss_3_111.rst
    nss_3_110.rst
    nss_3_109.rst
    nss_3_108.rst
@@ -83,33 +85,30 @@ Releases
 
 .. note::
 
-   **NSS 3.110** is the latest version of NSS.
-   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_110_release_notes`
+   **NSS 3.112** is the latest version of NSS.
+   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_112_release_notes`
 
    **NSS 3.101.3 (ESR)** is the latest ESR version of NSS.
    Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_101_3_release_notes`
 
 .. container::
 
-   Changes in 3.110 included in this release:
+   Changes in 3.112 included in this release:
 
-   - Bug 1930806 - FIPS changes need to be upstreamed: force ems policy.
-   - Bug 1954724 - Prevent excess allocations in sslBuffer_Grow.
-   - Bug 1953429 - Remove Crl templates from ASN1 fuzz target.
-   - Bug 1953429 - Remove CERT_CrlTemplate from ASN1 fuzz target.
-   - Bug 1952855 - Fix memory leak in NSS_CMSMessage_IsSigned.
-   - Bug 1930807 - NSS policy updates.
-   - Bug 1951161 - Improve locking in nssPKIObject_GetInstances.
-   - Bug 1951394 - Fix race in sdb_GetMetaData.
-   - Bug 1951800 - Fix member access within null pointer.
-   - Bug 1950077 - Increase smime fuzzer memory limit.
-   - Bug 1949677 - Enable resumption when using custom extensions.
-   - Bug 1952568 - change CN of server12 test certificate.
-   - Bug 1949118 - Part 2: Add missing check in NSS_CMSDigestContext_FinishSingle.
-   - Bug 1949118 - Part 1: Fix smime UBSan errors.
-   - Bug 1930806 - FIPS changes need to be upstreamed: updated key checks.
-   - Bug 1951491 - Don't build libpkix in static builds.
-   - Bug 1951395 - handle `-p all` in try syntax.
-   - Bug 1951346 - fix opt-make builds to actually be opt.
-   - Bug 1951346 - fix opt-static builds to actually be opt.
-   - Bug 1916439 - Remove extraneous assert.
+   - Bug 1963792 - Fix alias for mac workers on try.
+   - Bug 1966786 - ensure all options can be configured with SSL_OptionSet and SSL_OptionSetDefault.
+   - Bug 1931930 - ABI/API break in ssl certificate processing
+   - Bug 1955971 - remove unnecessary assertion in sec_asn1d_init_state_based_on_template.
+   - Bug 1965754 - update taskgraph to v14.2.1.
+   - Bug 1964358 - Workflow for automation of the release on GitHub when pushing a tag
+   - Bug 1952860 - fix faulty assertions in SEC_ASN1DecoderUpdate
+   - Bug 1934877 - Renegotiations should use a fresh ECH GREASE buffer.
+   - Bug 1951396 - update taskgraph to v14.1.1
+   - Bug 1962503 - Partial fix for ACVP build CI job
+   - Bug 1961827 - Initialize find in sftk_searchDatabase.
+   - Bug 1963121 - Add clang-18 to extra builds.
+   - Bug 1963044 - Fault tolerant git fetch for fuzzing.
+   - Bug 1962556 - Tolerate intermittent failures in ssl_policy_pkix_ocsp.
+   - Bug 1962770 - fix compiler warnings when DEBUG_ASN1D_STATES or CMSDEBUG are set.
+   - Bug 1961835 - fix content type tag check in NSS_CMSMessage_ContainsCertsOrCrls.
+   - Bug 1963102 - Remove Cryptofuzz CI version check
