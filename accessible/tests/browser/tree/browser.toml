@@ -7,7 +7,7 @@ support-files = [
   "!/accessible/tests/mochitest/moz.png",
 ]
 prefs = [
-  "dom.viewTransition.enabled=true",
+  "dom.viewTransitions.enabled=true",
   "layout.css.content.alt-text.enabled=true",
 ]
 
