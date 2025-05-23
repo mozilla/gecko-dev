@@ -25,6 +25,12 @@ const RECOMMENDED_PREFS = new Map([
   // Enables permission isolation by user context.
   // It should be enabled by default in Nightly in the scope of the bug 1641584.
   ["permissions.isolateBy.userContext", true],
+  // Enables race-cache-with-network, which avoids issues with requests
+  // intercepted in the responseStarted phase. Without this preference, any
+  // subsequent request to the same URL as a suspended request hangs as well.
+  // Bug 1966494: should allow to unblock subsequent request, but might do so
+  // with a timer, slowing down tests. Should be reconsidered once fixed.
+  ["network.http.rcwn.enabled", true],
 ]);
 
 /**
