@@ -27,13 +27,17 @@ function installLocale() {
   });
 }
 
-async function checkCategory(win, category, { expectHidden, expectSelected }) {
+async function getCategoryButton(win, category) {
   await win.customElements.whenDefined("categories-box");
 
   let categoriesBox = win.document.getElementById("categories");
   await categoriesBox.promiseRendered;
+  return categoriesBox.getButtonByName(category);
+}
 
-  let button = categoriesBox.getButtonByName(category);
+async function checkCategory(win, category, { expectHidden, expectSelected }) {
+  let button = await getCategoryButton(win, category);
+
   is(
     button.hidden,
     expectHidden,
@@ -112,6 +116,18 @@ add_task(async function testLocalesHiddenWhenUninstalled() {
   });
   let win = await viewLoaded;
 
+  // CategoriesBox updateHiddenCategories method is async
+  // and it calls AddonManager getAddonsByTypes and
+  // getInstallsByTypes async methods to determine which
+  // of the hidden categories may need to be shown
+  // and so the assertion may hit a race if any of the
+  // providers is taking longer to resolve the getAddonsByTypes
+  // async call.
+  await BrowserTestUtils.waitForCondition(async () => {
+    const button = await getCategoryButton(win, "locale");
+    return button.hidden;
+  }, "Wait for the locale category button to be hidden");
+
   await checkCategory(win, "locale", { expectHidden: true });
 
   await closeView(win);
@@ -127,6 +143,11 @@ add_task(async function testLocalesHiddenWithoutDelay() {
     },
   });
   let win = await viewLoaded;
+
+  await BrowserTestUtils.waitForCondition(async () => {
+    const button = await getCategoryButton(win, "locale");
+    return button.hidden;
+  }, "Wait for the locale category button to be hidden");
 
   await checkCategory(win, "locale", { expectHidden: true });
 
@@ -145,6 +166,11 @@ add_task(async function testLocalesShownAfterDelay() {
     },
   });
   let win = await viewLoaded;
+
+  await BrowserTestUtils.waitForCondition(async () => {
+    const button = await getCategoryButton(win, "locale");
+    return !button.hidden;
+  }, "Wait for the locale category button to be shown");
 
   await checkCategory(win, "locale", {
     expectHidden: false,
