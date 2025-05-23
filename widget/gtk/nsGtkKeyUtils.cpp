@@ -1152,7 +1152,7 @@ guint KeymapWrapper::ConvertWidgetModifierToGdkState(
 
 /* static */
 void KeymapWrapper::InitInputEvent(WidgetInputEvent& aInputEvent,
-                                   guint aGdkModifierState) {
+                                   guint aGdkModifierState, bool isEraser) {
   KeymapWrapper* keymapWrapper = GetInstance();
 
   aInputEvent.mModifiers = ComputeKeyModifiers(aGdkModifierState);
@@ -1193,7 +1193,11 @@ void KeymapWrapper::InitInputEvent(WidgetInputEvent& aInputEvent,
   WidgetMouseEventBase& mouseEvent = *aInputEvent.AsMouseEventBase();
   mouseEvent.mButtons = 0;
   if (aGdkModifierState & GDK_BUTTON1_MASK) {
-    mouseEvent.mButtons |= MouseButtonsFlag::ePrimaryFlag;
+    if (isEraser) {
+      mouseEvent.mButtons |= MouseButtonsFlag::eEraserFlag;
+    } else {
+      mouseEvent.mButtons |= MouseButtonsFlag::ePrimaryFlag;
+    }
   }
   if (aGdkModifierState & GDK_BUTTON3_MASK) {
     mouseEvent.mButtons |= MouseButtonsFlag::eSecondaryFlag;

@@ -729,16 +729,18 @@ bool nsWindow::WidgetTypeSupportsAcceleration() {
   return true;
 }
 
-static void InitPenEvent(WidgetMouseEvent& aGeckoEvent, GdkEvent* aEvent) {
-  // Find the source of the event
+static bool IsPenEvent(GdkEvent* aEvent, bool* isEraser) {
   GdkDevice* device = gdk_event_get_source_device(aEvent);
   GdkInputSource eSource = gdk_device_get_source(device);
-  gdouble value;
 
-  // We distinguish touch screens from pens using the event type
-  // Eraser corresponds to the pen with the "erase" button pressed
-  if (eSource != GDK_SOURCE_PEN && eSource != GDK_SOURCE_ERASER) {
-    bool XWaylandPen = false;
+  *isEraser = false;
+  if (eSource == GDK_SOURCE_PEN) {
+    return true;
+  } else if (eSource == GDK_SOURCE_ERASER) {
+    *isEraser = true;
+    return true;
+  } else {
+
 #ifdef MOZ_X11
     // Workaround : When using Xwayland, pens are reported as
     // GDK_SOURCE_TOUCHSCREEN If eSource is GDK_SOURCE_TOUCHSCREEN and the
@@ -747,18 +749,22 @@ static void InitPenEvent(WidgetMouseEvent& aGeckoEvent, GdkEvent* aEvent) {
     // Note, however, that the tilt values are not reliable
     // Another approach could be use the device tool type, but that's only
     // available in GTK > 3.22
-    XWaylandPen = (eSource == GDK_SOURCE_TOUCHSCREEN && GdkIsX11Display() &&
-                   gdk_event_get_axis(aEvent, GDK_AXIS_XTILT, &value) &&
-                   gdk_event_get_axis(aEvent, GDK_AXIS_YTILT, &value));
-#endif
-    if (!XWaylandPen) {
-      return;
+    gdouble value;
+    if (eSource == GDK_SOURCE_TOUCHSCREEN && GdkIsX11Display() &&
+        gdk_event_get_axis(aEvent, GDK_AXIS_XTILT, &value) &&
+        gdk_event_get_axis(aEvent, GDK_AXIS_YTILT, &value)) {
+      LOGW("InitPenEvent(): Is XWayland pen");
+      return true;
     }
-    LOGW("InitPenEvent(): Is XWayland pen");
-  }
+#endif
 
-  aGeckoEvent.mInputSource = dom::MouseEvent_Binding::MOZ_SOURCE_PEN;
-  aGeckoEvent.pointerId = 1;
+    return false;
+  }
+}
+
+static void FetchAndAdjustPenData(WidgetMouseEvent& aGeckoEvent,
+                                  GdkEvent* aEvent) {
+  gdouble value;
 
   // The range of xtilt and ytilt are -1 to 1. Normalize it to -90 to 90.
   if (gdk_event_get_axis(aEvent, GDK_AXIS_XTILT, &value)) {
@@ -769,11 +775,14 @@ static void InitPenEvent(WidgetMouseEvent& aGeckoEvent, GdkEvent* aEvent) {
   }
   if (gdk_event_get_axis(aEvent, GDK_AXIS_PRESSURE, &value)) {
     aGeckoEvent.mPressure = (float)value;
-    // Make sure the pression is acceptable
+    // Make sure the pressure is acceptable
     MOZ_ASSERT(aGeckoEvent.mPressure >= 0.0 && aGeckoEvent.mPressure <= 1.0);
   }
 
-  LOGW("InitPenEvent(): pressure %f\n", aGeckoEvent.mPressure);
+  LOGW("FetchAndAdjustPenData(): pressure %f\n", aGeckoEvent.mPressure);
+
+  aGeckoEvent.mInputSource = dom::MouseEvent_Binding::MOZ_SOURCE_PEN;
+  aGeckoEvent.pointerId = 1;
 }
 
 void nsWindow::SetModal(bool aModal) {
@@ -4460,8 +4469,22 @@ void nsWindow::OnMotionNotifyEvent(GdkEventMotion* aEvent) {
   event.mRefPoint = refPoint;
   event.AssignEventTime(GetWidgetEventTime(aEvent->time));
 
-  KeymapWrapper::InitInputEvent(event, aEvent->state);
-  InitPenEvent(event, (GdkEvent*)aEvent);
+  bool isEraser;
+  bool isPenEvent = IsPenEvent((GdkEvent*)aEvent, &isEraser);
+
+  // Workaround because GTK's aEvent->state does not include the button states
+  // for the barrel buttons of the stylus.
+  // Actually, an unconditional aEvent->state = gButtonState; should be ok,
+  // but let's do this in a minimally invasive fashion.
+  if (isPenEvent) {
+    aEvent->state |= gButtonState & (GDK_BUTTON2_MASK | GDK_BUTTON3_MASK);
+  }
+
+  KeymapWrapper::InitInputEvent(event, aEvent->state, isEraser);
+
+  if (isPenEvent) {
+    FetchAndAdjustPenData(event, (GdkEvent*)aEvent);
+  }
 
   DispatchInputEvent(&event);
 }
@@ -4515,7 +4538,8 @@ void nsWindow::DispatchMissedButtonReleases(GdkEventCrossing* aGdkEvent) {
 
 void nsWindow::InitButtonEvent(WidgetMouseEvent& aEvent,
                                GdkEventButton* aGdkEvent,
-                               const LayoutDeviceIntPoint& aRefPoint) {
+                               const LayoutDeviceIntPoint& aRefPoint,
+                               bool isEraser) {
   aEvent.mRefPoint = aRefPoint;
 
   guint modifierState = aGdkEvent->state;
@@ -4540,7 +4564,7 @@ void nsWindow::InitButtonEvent(WidgetMouseEvent& aEvent,
     modifierState |= buttonMask;
   }
 
-  KeymapWrapper::InitInputEvent(aEvent, modifierState);
+  KeymapWrapper::InitInputEvent(aEvent, modifierState, isEraser);
 
   aEvent.AssignEventTime(GetWidgetEventTime(aGdkEvent->time));
 
@@ -4697,10 +4721,17 @@ void nsWindow::OnButtonPressEvent(GdkEventButton* aEvent) {
   gdk_event_get_axis((GdkEvent*)aEvent, GDK_AXIS_PRESSURE, &pressure);
   mLastMotionPressure = pressure;
 
+  bool isEraser;
+  bool isPenEvent = IsPenEvent((GdkEvent*)aEvent, &isEraser);
+
   uint16_t domButton;
   switch (aEvent->button) {
     case 1:
-      domButton = MouseButton::ePrimary;
+      if (isEraser) {
+        domButton = MouseButton::eEraser;
+      } else {
+        domButton = MouseButton::ePrimary;
+      }
       break;
     case 2:
       domButton = MouseButton::eMiddle;
@@ -4735,10 +4766,13 @@ void nsWindow::OnButtonPressEvent(GdkEventButton* aEvent) {
 
   WidgetMouseEvent event(true, eMouseDown, this, WidgetMouseEvent::eReal);
   event.mButton = domButton;
-  InitButtonEvent(event, aEvent, refPoint);
+  InitButtonEvent(event, aEvent, refPoint, isEraser);
   event.mPressure = mLastMotionPressure;
 
-  InitPenEvent(event, (GdkEvent*)aEvent);
+  if (isPenEvent) {
+    FetchAndAdjustPenData(event, (GdkEvent*)aEvent);
+  }
+
   nsIWidget::ContentAndAPZEventStatus eventStatus = DispatchInputEvent(&event);
 
   const bool defaultPrevented =
@@ -4779,10 +4813,17 @@ void nsWindow::OnButtonReleaseEvent(GdkEventButton* aEvent) {
     mWindowShouldStartDragging = false;
   }
 
+  bool isEraser;
+  bool isPenEvent = IsPenEvent((GdkEvent*)aEvent, &isEraser);
+
   uint16_t domButton;
   switch (aEvent->button) {
     case 1:
-      domButton = MouseButton::ePrimary;
+      if (isEraser) {
+        domButton = MouseButton::eEraser;
+      } else {
+        domButton = MouseButton::ePrimary;
+      }
       break;
     case 2:
       domButton = MouseButton::eMiddle;
@@ -4800,7 +4841,7 @@ void nsWindow::OnButtonReleaseEvent(GdkEventButton* aEvent) {
 
   WidgetMouseEvent event(true, eMouseUp, this, WidgetMouseEvent::eReal);
   event.mButton = domButton;
-  InitButtonEvent(event, aEvent, refPoint);
+  InitButtonEvent(event, aEvent, refPoint, isEraser);
   gdouble pressure = 0;
   gdk_event_get_axis((GdkEvent*)aEvent, GDK_AXIS_PRESSURE, &pressure);
   event.mPressure = pressure ? (float)pressure : (float)mLastMotionPressure;
@@ -4809,7 +4850,9 @@ void nsWindow::OnButtonReleaseEvent(GdkEventButton* aEvent) {
   // to use it for the doubleclick position check.
   const LayoutDeviceIntPoint pos = event.mRefPoint;
 
-  InitPenEvent(event, (GdkEvent*)aEvent);
+  if (isPenEvent) {
+    FetchAndAdjustPenData(event, (GdkEvent*)aEvent);
+  }
 
   nsIWidget::ContentAndAPZEventStatus eventStatus = DispatchInputEvent(&event);
 

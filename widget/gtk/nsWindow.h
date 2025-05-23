@@ -540,7 +540,8 @@ class nsWindow final : public nsBaseWidget {
   void SetWindowDecoration(BorderStyle aStyle);
   void InitButtonEvent(mozilla::WidgetMouseEvent& aEvent,
                        GdkEventButton* aGdkEvent,
-                       const mozilla::LayoutDeviceIntPoint& aRefPoint);
+                       const mozilla::LayoutDeviceIntPoint& aRefPoint,
+                       bool isEraser = false);
   bool CheckForRollup(gdouble aMouseX, gdouble aMouseY, bool aIsWheel,
                       bool aAlwaysRollup);
   void RollupAllMenus() { CheckForRollup(0, 0, false, true); }

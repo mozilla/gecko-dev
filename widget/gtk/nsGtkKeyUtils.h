@@ -140,7 +140,7 @@ class KeymapWrapper {
    * InitInputEvent() initializes the aInputEvent with aModifierState.
    */
   static void InitInputEvent(WidgetInputEvent& aInputEvent,
-                             guint aGdkModifierState);
+                             guint aGdkModifierState, bool isEraser = false);
 
   /**
    * InitKeyEvent() intializes aKeyEvent's modifier key related members
