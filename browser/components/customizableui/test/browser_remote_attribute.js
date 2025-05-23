@@ -4,6 +4,13 @@
 
 "use strict";
 
+add_setup(async () => {
+  // Bug 1968055 - Temporarily enabled pocket pref while we remove the pref entirely
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.pocket.enabled", true]],
+  });
+});
+
 /**
  * These tests check that the remote attribute is true for remote panels.
  * This attribute is needed for Mac to properly render the panel.
