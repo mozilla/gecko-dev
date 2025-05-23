@@ -43,7 +43,8 @@ function main(lib_dts, xpc_msg, errors_json) {
       return line ? `  // ${line.trim()}` : "";
     }
     let [name, msg] = line;
-    return `\n  /** ${msg} */\n  ${name}: 0x${errors[name].toString(16)};`;
+    let type = name in errors ? "0x" + errors[name].toString(16) : "number";
+    return `\n  /** ${msg} */\n  ${name}: ${type};`;
   });
 
   let dts = [

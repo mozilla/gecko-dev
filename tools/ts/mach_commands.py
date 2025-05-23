@@ -43,8 +43,14 @@ def build(ctx, lib):
 
     if lib == "nsresult":
         xpc_msg = mozpath.join(ctx.topsrcdir, "js/xpconnect/src/xpc.msg")
-        errors_json = mozpath.join(ctx.topsrcdir, "tools/ts/config/error_list.json")
-        return node(ctx, "build_nsresult", lib_dts, xpc_msg, errors_json)
+        errors_obj = mozpath.join(ctx.topobjdir, "xpcom/base/error_list.json")
+        errors_src = mozpath.join(ctx.topsrcdir, "tools/ts/config/error_list.json")
+
+        if os.path.exists(errors_obj):
+            print(f"[INFO] {errors_obj} -> {errors_src}")
+            shutil.copy(errors_obj, errors_src)
+
+        return node(ctx, "build_nsresult", lib_dts, xpc_msg, errors_src)
 
     if lib == "services":
         services_json = mozpath.join(ctx.topobjdir, "xpcom/components/services.json")
