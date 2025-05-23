@@ -81,7 +81,7 @@ private const val LIGHTEN_TRACK_COLOR_FACTOR = 0.2f
 @Suppress("LongMethod")
 fun AnimatedProgressBar(
     @IntRange(from = 0, to = 100) progress: Int,
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     color: List<Color>? = null,
     trackColor: Color? = null,
     strokeWidth: Dp = DEFAULT_STROKE_WIDTH.dp,
@@ -159,7 +159,7 @@ fun AnimatedProgressBar(
         }
     }
 
-    Canvas(modifier) {
+    Canvas(modifier.fillMaxWidth()) {
         val width = this.size.width
         val height = this.size.height
 

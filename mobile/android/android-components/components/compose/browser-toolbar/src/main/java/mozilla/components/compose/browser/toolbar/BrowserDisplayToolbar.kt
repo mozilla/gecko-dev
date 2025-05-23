@@ -165,7 +165,7 @@ fun BrowserDisplayToolbar(
                 modifier = when (progressBarConfig.gravity) {
                     Top -> Modifier.align(Alignment.TopCenter)
                     Bottom -> Modifier.align(Alignment.BottomCenter)
-                }.fillMaxWidth(),
+                },
             )
         }
     }
