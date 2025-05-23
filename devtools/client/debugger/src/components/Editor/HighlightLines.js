@@ -9,7 +9,6 @@
 
 import { Component } from "devtools/client/shared/vendor/react";
 import PropTypes from "devtools/client/shared/vendor/react-prop-types";
-import { features } from "../../utils/prefs";
 import { markerTypes } from "../../constants";
 
 class HighlightLines extends Component {
@@ -40,64 +39,29 @@ class HighlightLines extends Component {
   clearHighlightRange() {
     const { range, editor } = this.props;
 
-    if (!range) {
+    if (!range || !editor) {
       return;
     }
 
-    if (features.codemirrorNext) {
-      if (editor) {
-        editor.removeLineContentMarker("multi-highlight-line-marker");
-      }
-      return;
-    }
-
-    const { codeMirror } = editor;
-    if (!codeMirror) {
-      return;
-    }
-
-    const { start, end } = range;
-    codeMirror.operation(() => {
-      for (let line = start - 1; line < end; line++) {
-        codeMirror.removeLineClass(line, "wrap", "highlight-lines");
-      }
-    });
+    editor.removeLineContentMarker("multi-highlight-line-marker");
   }
 
   highlightLineRange = () => {
     const { range, editor } = this.props;
 
-    if (!range) {
+    if (!range || !editor) {
       return;
     }
 
-    if (features.codemirrorNext) {
-      if (editor) {
-        editor.scrollTo(range.start, 0);
-        const lines = [];
-        for (let line = range.start; line <= range.end; line++) {
-          lines.push({ line });
-        }
-        editor.setLineContentMarker({
-          id: markerTypes.MULTI_HIGHLIGHT_LINE_MARKER,
-          lineClassName: "highlight-lines",
-          lines,
-        });
-      }
-      return;
+    editor.scrollTo(range.start, 0);
+    const lines = [];
+    for (let line = range.start; line <= range.end; line++) {
+      lines.push({ line });
     }
-
-    const { codeMirror } = editor;
-    if (!codeMirror) {
-      return;
-    }
-
-    const { start, end } = range;
-    codeMirror.operation(() => {
-      editor.alignLine(start);
-      for (let line = start - 1; line < end; line++) {
-        codeMirror.addLineClass(line, "wrap", "highlight-lines");
-      }
+    editor.setLineContentMarker({
+      id: markerTypes.MULTI_HIGHLIGHT_LINE_MARKER,
+      lineClassName: "highlight-lines",
+      lines,
     });
   };
 
