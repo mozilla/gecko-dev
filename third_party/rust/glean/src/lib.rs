@@ -203,7 +203,7 @@ pub fn test_get_experimentation_id() -> Option<String> {
 
 /// Set the remote configuration values for the metrics' disabled property
 ///
-/// See [`glean_core::Glean::glean_apply_server_knobs_config`].
+/// See [`glean_core::Glean::apply_server_knobs_config`].
 pub fn glean_apply_server_knobs_config(json: String) {
     glean_core::glean_apply_server_knobs_config(json)
 }

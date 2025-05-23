@@ -124,7 +124,7 @@ fn nofollows_ping_can_ride_along() {
             .unwrap();
 
         if obj["ping_name"].as_str().unwrap() == "nofollows" {
-            assert_eq!(2, counter_val, "{:?}", json);
+            assert_eq!(2, counter_val, "{json:?}");
         } else {
             let seq = json["ping_info"]["seq"].as_i64().unwrap();
 
@@ -132,7 +132,7 @@ fn nofollows_ping_can_ride_along() {
                 0 => assert_eq!(1, counter_val),
                 1 => assert_eq!(3, counter_val),
                 2 => assert_eq!(8, counter_val),
-                _ => panic!("unexpected sequence number: {}", seq),
+                _ => panic!("unexpected sequence number: {seq}"),
             }
         }
     }
@@ -162,7 +162,7 @@ fn nofollows_ping_can_ride_along() {
             0 => assert_eq!(1, counter_val),
             1 => assert_eq!(3, counter_val),
             2 => assert_eq!(8, counter_val),
-            _ => panic!("unexpected sequence number: {}", seq),
+            _ => panic!("unexpected sequence number: {seq}"),
         }
     }
 }

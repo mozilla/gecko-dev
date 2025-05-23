@@ -4,7 +4,10 @@
 
 use std::borrow::Cow;
 use std::collections::{hash_map::Entry, HashMap};
+use std::mem;
 use std::sync::{Arc, Mutex};
+
+use malloc_size_of::MallocSizeOf;
 
 use crate::common_metric_data::{CommonMetricData, CommonMetricDataInternal};
 use crate::error_recording::{record_error, test_get_num_recorded_errors, ErrorType};
@@ -84,6 +87,32 @@ pub struct LabeledMetric<T> {
     /// A map from a unique ID for the labeled submetric to a handle of an instantiated
     /// metric type.
     label_map: Mutex<HashMap<String, Arc<T>>>,
+}
+
+impl<T: MallocSizeOf> ::malloc_size_of::MallocSizeOf for LabeledMetric<T> {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        let map = self.label_map.lock().unwrap();
+
+        // Copy of `MallocShallowSizeOf` implementation for `HashMap<K, V>` in `wr_malloc_size_of`.
+        // Note: An instantiated submetric is behind an `Arc`.
+        // `size_of` should only be called from a single thread to avoid double-counting.
+        let shallow_size = if ops.has_malloc_enclosing_size_of() {
+            map.values()
+                .next()
+                .map_or(0, |v| unsafe { ops.malloc_enclosing_size_of(v) })
+        } else {
+            map.capacity()
+                * (mem::size_of::<String>() + mem::size_of::<T>() + mem::size_of::<usize>())
+        };
+
+        let mut map_size = shallow_size;
+        for (k, v) in map.iter() {
+            map_size += k.size_of(ops);
+            map_size += v.size_of(ops);
+        }
+
+        self.labels.size_of(ops) + self.submetric.size_of(ops) + map_size
+    }
 }
 
 /// Sealed traits protect against downstream implementations.

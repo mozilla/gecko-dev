@@ -2,7 +2,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use std::sync::{Arc, Mutex};
+use std::{
+    mem,
+    sync::{Arc, Mutex},
+};
+
+use malloc_size_of::MallocSizeOf;
 
 type BoxedCallback = Box<dyn FnOnce(Option<&str>) + Send + 'static>;
 
@@ -17,6 +22,19 @@ pub struct PingType {
     ///
     /// A function to be called right before a ping is submitted.
     test_callback: Arc<Mutex<Option<BoxedCallback>>>,
+}
+
+impl MallocSizeOf for PingType {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        self.inner.size_of(ops)
+            + self
+                .test_callback
+                .lock()
+                .unwrap()
+                .as_ref()
+                .map(|cb| mem::size_of_val(cb))
+                .unwrap_or(0)
+    }
 }
 
 impl PingType {

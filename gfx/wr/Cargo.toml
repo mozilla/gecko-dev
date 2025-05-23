@@ -9,7 +9,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-glean = "=64.1.1"
+glean = "=64.3.1"
 
 [profile.release]
 debug = true
@@ -29,3 +29,4 @@ opt-level = 2
 firefox-on-glean = { path = "fog" }
 # use a patched version of glutin that works on android
 glutin = { version = "0.28", git = "https://github.com/jamienicol/glutin", branch="wr" }
+wr_malloc_size_of = { path = "wr_malloc_size_of" }

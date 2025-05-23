@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.82"
 name = "glean"
-version = "64.1.1"
+version = "64.3.1"
 authors = [
     "Jan-Erik Rediger <jrediger@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
@@ -115,13 +115,19 @@ path = "tests/uploader_capabilities.rs"
 version = "0.5"
 
 [dependencies.glean-core]
-version = "64.1.1"
+version = "64.3.1"
 
 [dependencies.inherent]
 version = "1"
 
 [dependencies.log]
 version = "0.4.8"
+
+[dependencies.malloc_size_of]
+version = "0.2.1"
+features = ["once_cell"]
+default-features = false
+package = "wr_malloc_size_of"
 
 [dependencies.once_cell]
 version = "1.18.0"

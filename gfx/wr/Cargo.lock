@@ -982,9 +982,9 @@ dependencies = [
 
 [[package]]
 name = "glean"
-version = "64.1.1"
+version = "64.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95024f4707705270208e36983976cbac235dd7fc33c9f1cb0dee396ec1ce295d"
+checksum = "1f6155b7e7f027bb402c536a82f832281de4bbca277454b1b1bccb83eb4042ff"
 dependencies = [
  "crossbeam-channel",
  "glean-core",
@@ -992,13 +992,14 @@ dependencies = [
  "log",
  "once_cell",
  "whatsys",
+ "wr_malloc_size_of",
 ]
 
 [[package]]
 name = "glean-core"
-version = "64.1.1"
+version = "64.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ca0df94fb37669287b77e8aa300913ad1d14426d7f9e443b0ce1185349c817e"
+checksum = "1ac4ff736d4ed65d751ff5289fc95b2e224791d6ecd127d551c7b6035faf1a39"
 dependencies = [
  "android_logger",
  "bincode",
@@ -1006,6 +1007,7 @@ dependencies = [
  "crossbeam-channel",
  "flate2",
  "log",
+ "malloc_size_of_derive",
  "once_cell",
  "oslog",
  "rkv",
@@ -1015,6 +1017,7 @@ dependencies = [
  "time",
  "uniffi",
  "uuid",
+ "wr_malloc_size_of",
  "zeitstempel",
 ]
 
@@ -1571,13 +1574,13 @@ dependencies = [
 
 [[package]]
 name = "malloc_size_of_derive"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "632647502a8bfa82458c07134791fffa7a719f00427d1afd79c3cb6d4960a982"
+checksum = "f44db74bde26fdf427af23f1d146c211aed857c59e3be750cf2617f6b0b05c94"
 dependencies = [
  "proc-macro2",
- "syn 1.0.91",
- "synstructure 0.12.6",
+ "syn 2.0.32",
+ "synstructure",
 ]
 
 [[package]]
@@ -1989,7 +1992,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.32",
- "synstructure 0.13.1",
+ "synstructure",
 ]
 
 [[package]]
@@ -2641,18 +2644,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "synstructure"
-version = "0.12.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f36bdaa60a83aca3921b5259d5400cbf5e90fc51931376a9bd4a0eb79aa7210f"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.91",
- "unicode-xid",
 ]
 
 [[package]]

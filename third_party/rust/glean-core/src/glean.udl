@@ -476,6 +476,14 @@ interface LabeledString {
     i32 test_get_num_recorded_errors(ErrorType error);
 };
 
+interface LabeledQuantity {
+    constructor(LabeledMetricData meta, sequence<CowString>? labels);
+
+    QuantityMetric get(string label);
+
+    i32 test_get_num_recorded_errors(ErrorType error);
+};
+
 interface StringListMetric {
     constructor(CommonMetricData meta);
 

@@ -117,7 +117,6 @@ fn test_metrics_must_report_experimentation_id() {
         .collect(&glean, &ping_type, None, "", "")
         .unwrap();
     let metrics = ping.content["metrics"].as_object().unwrap();
-    println!("TLDEBUG Metrics:\n{:?}", metrics);
 
     let strings = metrics["string"].as_object().unwrap();
     assert_eq!(

@@ -5,6 +5,8 @@
 use inherent::inherent;
 use std::{collections::HashMap, marker::PhantomData};
 
+use malloc_size_of::MallocSizeOf;
+
 use glean_core::{metrics::MetricIdentifier, traits};
 
 use crate::{ErrorType, RecordedEvent};
@@ -23,6 +25,12 @@ use crate::{ErrorType, RecordedEvent};
 pub struct EventMetric<K> {
     pub(crate) inner: glean_core::metrics::EventMetric,
     extra_keys: PhantomData<K>,
+}
+
+impl<K> MallocSizeOf for EventMetric<K> {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        self.inner.size_of(ops)
+    }
 }
 
 impl<'a, K> MetricIdentifier<'a> for EventMetric<K> {
