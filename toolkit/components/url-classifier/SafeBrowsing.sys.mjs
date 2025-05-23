@@ -296,6 +296,24 @@ const FEATURES = [
       );
     },
   },
+  {
+    name: "antifraud-annotation",
+    list: [
+      "urlclassifier.features.antifraud.annotate.blocklistTables",
+      "urlclassifier.features.antifraud.annotate.allowlistTables",
+    ],
+    enabled() {
+      return Services.prefs.getBoolPref(
+        "privacy.trackingprotection.antifraud.annotate_channels"
+      );
+    },
+    update() {
+      return Services.prefs.getBoolPref(
+        "browser.safebrowsing.features.antifraud.annotate.update",
+        this.enabled()
+      );
+    },
+  },
 ];
 
 export var SafeBrowsing = {
