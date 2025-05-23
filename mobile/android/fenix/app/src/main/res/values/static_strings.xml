@@ -127,6 +127,7 @@
     <string name="debug_info_region_current" translatable="false">Current region</string>
     <string name="debug_info_distribution_id" translatable="false">Distribution ID</string>
     <string name="debug_info_play_referrer" translatable="false">Play install referrer</string>
+    <string name="debug_info_run_query_provider_test" translatable="false">Run query provider test</string>
 
     <!-- Profiler settings -->
     <string name="preferences_start_profiler">Start Profiler</string>

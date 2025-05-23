@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -17,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
@@ -24,6 +26,9 @@ import mozilla.components.browser.state.search.RegionState
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.components
+import org.mozilla.fenix.distributions.DefaultDistributionProviderChecker
+import org.mozilla.fenix.distributions.SecondaryDistributionProviderChecker
+import org.mozilla.fenix.distributions.ThirdDistributionProviderChecker
 import org.mozilla.fenix.ext.showToolbar
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -139,5 +144,20 @@ private fun DebugInfo(
             color = FirefoxTheme.colors.textPrimary,
             modifier = Modifier.padding(4.dp),
         )
+
+        val context = LocalContext.current
+
+        Button(
+            onClick = {
+                SecondaryDistributionProviderChecker(context).queryProvider()
+                ThirdDistributionProviderChecker(context).queryProvider()
+                DefaultDistributionProviderChecker(context).queryProvider()
+            },
+        ) {
+            Text(
+                text = stringResource(R.string.debug_info_run_query_provider_test),
+                color = FirefoxTheme.colors.textOnColorPrimary,
+            )
+        }
     }
 }
