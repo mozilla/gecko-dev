@@ -13,6 +13,9 @@
     "webidl2": "24.4.1",
     "yaml": "2.7.1"
   },
+  "overrides": {
+    "globals": "13.24.0"
+  },
   "scripts": {
     "prepare": "ts-patch install -s",
     "postinstall": "npm explore @typescript/dom-lib-generator -- tsc --typeRoots ../../@types",
