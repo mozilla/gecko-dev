@@ -47,7 +47,6 @@ private fun OnboardingCardData.isCardEnabled(
     OnboardingCardType.DEFAULT_BROWSER -> enabled && showDefaultBrowserPage
     OnboardingCardType.NOTIFICATION_PERMISSION -> enabled && showNotificationPage
     OnboardingCardType.ADD_SEARCH_WIDGET -> enabled && showAddWidgetPage
-    OnboardingCardType.ADD_ONS -> extraData?.addOnsData?.isNotEmpty() == true
     OnboardingCardType.TOOLBAR_PLACEMENT ->
         showToolbarPage && enabled && extraData?.customizationToolbarData?.isNotEmpty() == true
     OnboardingCardType.THEME_SELECTION -> enabled && extraData?.customizationThemeData?.isNotEmpty() == true
@@ -125,7 +124,6 @@ private fun OnboardingCardType.toPageUiDataType() = when (this) {
     OnboardingCardType.SYNC_SIGN_IN -> OnboardingPageUiData.Type.SYNC_SIGN_IN
     OnboardingCardType.NOTIFICATION_PERMISSION -> OnboardingPageUiData.Type.NOTIFICATION_PERMISSION
     OnboardingCardType.ADD_SEARCH_WIDGET -> OnboardingPageUiData.Type.ADD_SEARCH_WIDGET
-    OnboardingCardType.ADD_ONS -> OnboardingPageUiData.Type.ADD_ONS
     OnboardingCardType.TOOLBAR_PLACEMENT -> OnboardingPageUiData.Type.TOOLBAR_PLACEMENT
     OnboardingCardType.THEME_SELECTION -> OnboardingPageUiData.Type.THEME_SELECTION
     OnboardingCardType.TERMS_OF_SERVICE -> OnboardingPageUiData.Type.TERMS_OF_SERVICE
@@ -212,7 +210,6 @@ internal fun mapToOnboardingPageState(
     onNotificationPermissionSkipClick: () -> Unit,
     onAddFirefoxWidgetClick: () -> Unit,
     onAddFirefoxWidgetSkipClick: () -> Unit,
-    onAddOnsButtonClick: () -> Unit,
     onCustomizeToolbarButtonClick: () -> Unit,
     onCustomizeThemeClick: () -> Unit,
     onTermsOfServiceButtonClick: () -> Unit,
@@ -240,12 +237,6 @@ internal fun mapToOnboardingPageState(
         onboardingPageUiData = onboardingPageUiData,
         onPositiveButtonClick = onNotificationPermissionButtonClick,
         onNegativeButtonClick = onNotificationPermissionSkipClick,
-    )
-
-    OnboardingPageUiData.Type.ADD_ONS -> createOnboardingPageState(
-        onboardingPageUiData = onboardingPageUiData,
-        onPositiveButtonClick = onAddOnsButtonClick,
-        onNegativeButtonClick = {}, // No negative button option for add-ons.
     )
 
     OnboardingPageUiData.Type.TOOLBAR_PLACEMENT -> createOnboardingPageState(

@@ -15,7 +15,6 @@ import org.mozilla.experiments.nimbus.NimbusMessagingHelperInterface
 import org.mozilla.experiments.nimbus.StringHolder
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
-import org.mozilla.fenix.nimbus.AddOnData
 import org.mozilla.fenix.nimbus.CustomizationThemeData
 import org.mozilla.fenix.nimbus.CustomizationToolbarData
 import org.mozilla.fenix.nimbus.ExtraCardData
@@ -26,7 +25,6 @@ import org.mozilla.fenix.nimbus.OnboardingCardType
 import org.mozilla.fenix.nimbus.TermsOfServiceData
 import org.mozilla.fenix.nimbus.ThemeType
 import org.mozilla.fenix.nimbus.ToolbarType
-import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
 
 class OnboardingMapperTest {
 
@@ -377,109 +375,6 @@ class OnboardingMapperTest {
         assertEquals(
             expected,
             listOf(defaultBrowserCardData, termsOfServiceCardData).toPageUiData(
-                privacyCaption = privacyCaption,
-                showDefaultBrowserPage = true,
-                showNotificationPage = false,
-                showAddWidgetPage = false,
-                showToolbarPage = false,
-                jexlConditions = jexlConditions,
-                func = evalFunction,
-            ).last(),
-        )
-    }
-
-    @Test
-    fun addOnsCardHasExtraData_toPageUiData_returnsConvertedPage() {
-        val imageRes = R.drawable.ic_extensions_onboarding
-        val title = "add-ons card title"
-        val description = "add-ons card body"
-        val primaryButtonLabel = "add-ons card primary button text"
-
-        // Add-ons
-        val addOnIconRes = R.drawable.ic_extensions_onboarding
-        val id = "add-on-1"
-        val addOnName = "test add-on"
-        val addOnDescription = "test add-on description"
-        val addOnAverageRating = "5"
-        val addOnReviewCount = "1234"
-        val addOnInstallUrl = "test.addon.org"
-        val status = OnboardingAddonStatus.NOT_INSTALLED
-
-        val expected = OnboardingPageUiData(
-            type = OnboardingPageUiData.Type.ADD_ONS,
-            imageRes = imageRes,
-            title = title,
-            description = description,
-            primaryButtonLabel = primaryButtonLabel,
-            addOns = listOf(
-                OnboardingAddOn(
-                    id = id,
-                    iconRes = addOnIconRes,
-                    name = addOnName,
-                    description = addOnDescription,
-                    averageRating = addOnAverageRating,
-                    reviewCount = addOnReviewCount,
-                    installUrl = addOnInstallUrl,
-                    status = status,
-                ),
-            ),
-        )
-
-        val addOnsCardData = OnboardingCardData(
-            cardType = OnboardingCardType.ADD_ONS,
-            imageRes = imageRes,
-            title = StringHolder(null, title),
-            body = StringHolder(null, description),
-            primaryButtonLabel = StringHolder(null, primaryButtonLabel),
-            ordering = 30,
-            extraData = ExtraCardData(
-                addOnsData = listOf(
-                    AddOnData(
-                        id = StringHolder(null, id),
-                        iconRes = addOnIconRes,
-                        name = StringHolder(null, addOnName),
-                        description = StringHolder(null, addOnDescription),
-                        averageRating = addOnAverageRating,
-                        reviewCount = addOnReviewCount,
-                        installUrl = StringHolder(null, addOnInstallUrl),
-                    ),
-                ),
-            ),
-        )
-
-        assertEquals(
-            expected,
-            listOf(defaultBrowserCardData, addOnsCardData).toPageUiData(
-                privacyCaption = privacyCaption,
-                showDefaultBrowserPage = true,
-                showNotificationPage = false,
-                showAddWidgetPage = false,
-                showToolbarPage = false,
-                jexlConditions = jexlConditions,
-                func = evalFunction,
-            ).last(),
-        )
-    }
-
-    @Test
-    fun addOnsCardNoExtraData_toPageUiData_convertedPageDoesNotIncludeAddOnsCard() {
-        val imageRes = R.drawable.ic_extensions_onboarding
-        val title = "add-ons card title"
-        val description = "add-ons card body"
-        val primaryButtonLabel = "add-ons card primary button text"
-
-        val addOnsCardData = OnboardingCardData(
-            cardType = OnboardingCardType.ADD_ONS,
-            imageRes = imageRes,
-            title = StringHolder(null, title),
-            body = StringHolder(null, description),
-            primaryButtonLabel = StringHolder(null, primaryButtonLabel),
-            ordering = 30,
-        )
-
-        assertEquals(
-            defaultBrowserPageUiDataWithPrivacyCaption,
-            listOf(defaultBrowserCardData, addOnsCardData).toPageUiData(
                 privacyCaption = privacyCaption,
                 showDefaultBrowserPage = true,
                 showNotificationPage = false,

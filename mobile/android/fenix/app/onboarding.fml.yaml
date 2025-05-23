@@ -473,8 +473,6 @@ enums:
         description: Allows user to enable notification permission.
       add-search-widget:
         description: Allows user to add search widget to homescreen.
-      add-ons:
-        description: Allows user to install add-ons from onboarding.
       toolbar-placement:
         description: Allows user to choose the toolbar position.
       theme-selection:

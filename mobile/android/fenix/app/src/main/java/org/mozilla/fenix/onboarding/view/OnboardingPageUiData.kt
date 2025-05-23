@@ -44,9 +44,6 @@ data class OnboardingPageUiData(
         NOTIFICATION_PERMISSION(
             telemetryId = "notification",
         ),
-        ADD_ONS(
-            telemetryId = "add_ons",
-        ),
         TOOLBAR_PLACEMENT(
             telemetryId = "toolbar_placement",
         ),

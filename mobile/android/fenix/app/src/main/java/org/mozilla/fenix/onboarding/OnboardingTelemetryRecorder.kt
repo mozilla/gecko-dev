@@ -90,8 +90,6 @@ class OnboardingTelemetryRecorder {
                 )
             }
 
-            OnboardingPageUiData.Type.ADD_ONS -> {} // TODO to remove
-
             OnboardingPageUiData.Type.TOOLBAR_PLACEMENT -> {
                 Onboarding.toolbarPlacementCard.record(
                     Onboarding.ToolbarPlacementCardExtra(
