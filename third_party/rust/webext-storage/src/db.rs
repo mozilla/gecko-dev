@@ -258,7 +258,7 @@ pub mod test {
     static ATOMIC_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
     pub fn new_mem_db() -> StorageDb {
-        let _ = env_logger::try_init();
+        error_support::init_for_tests();
         let counter = ATOMIC_COUNTER.fetch_add(1, Ordering::Relaxed);
         StorageDb::new_memory(&format!("test-api-{}", counter)).expect("should get an API")
     }

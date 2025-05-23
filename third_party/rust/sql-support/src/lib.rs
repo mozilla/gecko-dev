@@ -30,6 +30,9 @@ pub use lazy::*;
 pub use maybe_cached::*;
 pub use repeat::*;
 
+// reexport logging helpers.
+use error_support::{debug, info, warn};
+
 /// In PRAGMA foo='bar', `'bar'` must be a constant string (it cannot be a
 /// bound parameter), so we need to escape manually. According to
 /// <https://www.sqlite.org/faq.html>, the only character that must be escaped is

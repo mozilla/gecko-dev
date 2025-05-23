@@ -197,7 +197,15 @@ export class WeatherSuggestions extends SuggestProvider {
     if (suggestions.length <= 1) {
       return suggestions;
     }
-    let suggestion = await lazy.GeolocationUtils.best(suggestions);
+
+    let suggestion = await lazy.GeolocationUtils.best(suggestions, s => ({
+      latitude: s.city?.latitude,
+      longitude: s.city?.longitude,
+      country: s.city?.countryCode,
+      region: s.city?.adminDivisionCodes.get(1),
+      population: s.city?.population,
+    }));
+
     return [suggestion];
   }
 
@@ -215,9 +223,16 @@ export class WeatherSuggestions extends SuggestProvider {
     // Set up location params to pass to Merino. We need to null-check each
     // suggestion property because `MerinoClient` will stringify null values.
     let otherParams = {};
-    for (let key of ["city", "region", "country"]) {
-      if (suggestion[key]) {
-        otherParams[key] = suggestion[key];
+    if (suggestion.city) {
+      if (suggestion.city.name) {
+        otherParams.city = suggestion.city.name;
+      }
+      if (suggestion.city.countryCode) {
+        otherParams.country = suggestion.city.countryCode;
+      }
+      let admin1Code = suggestion.city.adminDivisionCodes.get(1);
+      if (admin1Code) {
+        otherParams.region = admin1Code;
       }
     }
 

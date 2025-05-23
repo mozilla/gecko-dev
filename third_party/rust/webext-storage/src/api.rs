@@ -69,7 +69,7 @@ fn save_to_db(tx: &Transaction<'_>, ext_id: &str, val: &StorageChangeOp) -> Resu
             )?
             .unwrap_or_default();
         if in_mirror {
-            log::trace!("saving data for '{}': leaving a tombstone", ext_id);
+            trace!("saving data for '{}': leaving a tombstone", ext_id);
             tx.execute_cached(
                 "
                 INSERT INTO storage_sync_data(ext_id, data, sync_change_counter)
@@ -81,7 +81,7 @@ fn save_to_db(tx: &Transaction<'_>, ext_id: &str, val: &StorageChangeOp) -> Resu
                 },
             )?;
         } else {
-            log::trace!("saving data for '{}': removing the row", ext_id);
+            trace!("saving data for '{}': removing the row", ext_id);
             tx.execute_cached(
                 "
                 DELETE FROM storage_sync_data WHERE ext_id = :ext_id",
@@ -104,7 +104,7 @@ fn save_to_db(tx: &Transaction<'_>, ext_id: &str, val: &StorageChangeOp) -> Resu
             StorageChangeOp::Clear => unreachable!(),
         };
 
-        log::trace!("saving data for '{}': writing", ext_id);
+        trace!("saving data for '{}': writing", ext_id);
         tx.execute_cached(
             "INSERT INTO storage_sync_data(ext_id, data, sync_change_counter)
                 VALUES (:ext_id, :data, 1)

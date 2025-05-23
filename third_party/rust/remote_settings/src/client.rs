@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::config::{BaseUrl, RemoteSettingsConfig};
-use crate::error::{Error, Result};
+use crate::error::{debug, trace, Error, Result};
 use crate::jexl_filter::JexlFilter;
 #[cfg(feature = "signatures")]
 use crate::signatures;
@@ -309,7 +309,7 @@ impl<C: ApiClient> RemoteSettingsClient<C> {
         let collection_url = inner.api_client.collection_url();
         let timestamp = inner.storage.get_last_modified_timestamp(&collection_url)?;
         let changeset = inner.api_client.fetch_changeset(timestamp)?;
-        log::debug!(
+        debug!(
             "{0}: apply {1} change(s) locally.",
             self.collection_name,
             changeset.changes.len()
@@ -327,7 +327,7 @@ impl<C: ApiClient> RemoteSettingsClient<C> {
         self.perform_sync_operation()?;
         // Verify that inserted data has valid signature
         if self.verify_signature().is_err() {
-            log::debug!(
+            debug!(
                 "{0}: signature verification failed. Reset and retry.",
                 self.collection_name
             );
@@ -341,12 +341,12 @@ impl<C: ApiClient> RemoteSettingsClient<C> {
                     .expect("Failed to reset storage after verification failure");
             })?;
         }
-        log::trace!("{0}: sync done.", self.collection_name);
+        trace!("{0}: sync done.", self.collection_name);
         Ok(())
     }
 
     fn reset_storage(&self) -> Result<()> {
-        log::trace!("{0}: reset local storage.", self.collection_name);
+        trace!("{0}: reset local storage.", self.collection_name);
         let mut inner = self.inner.lock();
         let collection_url = inner.api_client.collection_url();
         // Clear existing storage
@@ -354,7 +354,7 @@ impl<C: ApiClient> RemoteSettingsClient<C> {
         // Load packaged data only for production
         if inner.api_client.is_prod_server()? {
             if let Some(packaged_data) = self.load_packaged_data() {
-                log::trace!("{0}: restore packaged dump.", self.collection_name);
+                trace!("{0}: restore packaged dump.", self.collection_name);
                 inner.storage.insert_collection_content(
                     &collection_url,
                     &packaged_data.data,
@@ -372,7 +372,7 @@ impl<C: ApiClient> RemoteSettingsClient<C> {
 
     #[cfg(not(feature = "signatures"))]
     fn verify_signature(&self) -> Result<()> {
-        log::debug!("{0}: signature verification skipped.", self.collection_name);
+        debug!("{0}: signature verification skipped.", self.collection_name);
         Ok(())
     }
 
@@ -415,15 +415,12 @@ impl<C: ApiClient> RemoteSettingsClient<C> {
                     &expected_leaf_cname,
                 )
                 .inspect_err(|err| {
-                    log::debug!(
+                    debug!(
                         "{0}: bad signature ({1:?}) using certificate {2} and signer '{3}'",
-                        self.collection_name,
-                        err,
-                        &metadata.signature.x5u,
-                        expected_leaf_cname
+                        self.collection_name, err, &metadata.signature.x5u, expected_leaf_cname
                     );
                 })?;
-                log::trace!("{0}: signature verification success.", self.collection_name);
+                trace!("{0}: signature verification success.", self.collection_name);
                 Ok(())
             }
             _ => {
@@ -565,7 +562,7 @@ impl ViaductApiClient {
     }
 
     fn make_request(&mut self, url: Url) -> Result<Response> {
-        log::trace!("make_request: {url}");
+        trace!("make_request: {url}");
         self.remote_state.ensure_no_backoff()?;
 
         let req = Request::get(url);

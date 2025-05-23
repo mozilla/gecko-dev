@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::GLOBAL_SETTINGS;
+use crate::{info, trace};
 use ffi::FfiBackend;
 use once_cell::sync::OnceCell;
 mod ffi;
@@ -14,11 +15,11 @@ pub fn note_backend(which: &str) {
     static NOTE_BACKEND_ONCE: std::sync::Once = std::sync::Once::new();
     let mut called = false;
     NOTE_BACKEND_ONCE.call_once(|| {
-        log::info!("Using HTTP backend {}", which);
+        info!("Using HTTP backend {}", which);
         called = true;
     });
     if !called {
-        log::trace!("Using HTTP backend {}", which);
+        trace!("Using HTTP backend {}", which);
     }
 }
 

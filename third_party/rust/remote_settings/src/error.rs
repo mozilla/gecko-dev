@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use error_support::{ErrorHandling, GetErrorHandling};
+// reexport logging helpers.
+pub use error_support::{debug, error, info, trace, warn};
 
 pub type ApiResult<T> = std::result::Result<T, RemoteSettingsError>;
 pub type Result<T> = std::result::Result<T, Error>;

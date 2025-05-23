@@ -26,7 +26,7 @@ fn do_sync(
     tx: &Transaction<'_>,
     incoming_payloads: &[IncomingContent<WebextRecord>],
 ) -> Result<Vec<OutgoingBso>> {
-    log::info!("test do_sync() starting");
+    info!("test do_sync() starting");
     // First we stage the incoming in the temp tables.
     stage_incoming(tx, incoming_payloads, &NeverInterrupts)?;
     // Then we process them getting a Vec of (item, state), which we turn into
@@ -35,12 +35,12 @@ fn do_sync(
         .into_iter()
         .map(|(item, state)| (item, plan_incoming(state)))
         .collect();
-    log::debug!("do_sync applying {:?}", actions);
+    debug!("do_sync applying {:?}", actions);
     apply_actions(tx, actions, &NeverInterrupts)?;
     // So we've done incoming - do outgoing.
     stage_outgoing(tx)?;
     let outgoing = get_outgoing(tx, &NeverInterrupts)?;
-    log::debug!("do_sync has outgoing {:?}", outgoing);
+    debug!("do_sync has outgoing {:?}", outgoing);
     record_uploaded(
         tx,
         outgoing
@@ -51,7 +51,7 @@ fn do_sync(
         &NeverInterrupts,
     )?;
     create_empty_sync_temp_tables(tx)?;
-    log::info!("test do_sync() complete");
+    info!("test do_sync() complete");
     Ok(outgoing)
 }
 

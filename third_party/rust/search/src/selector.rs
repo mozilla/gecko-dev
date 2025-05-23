@@ -160,7 +160,6 @@ impl SearchEngineSelector {
 mod tests {
     use super::*;
     use crate::{types::*, SearchApiError};
-    use env_logger;
     use mockito::mock;
     use pretty_assertions::assert_eq;
     use remote_settings::{RemoteSettingsConfig2, RemoteSettingsContext, RemoteSettingsServer};
@@ -1890,7 +1889,7 @@ mod tests {
         should_apply_overrides: bool,
         expect_sync_successful: bool,
     ) -> Arc<SearchEngineSelector> {
-        let _ = env_logger::builder().try_init();
+        error_support::init_for_tests();
         viaduct_reqwest::use_reqwest_backend();
 
         let config = RemoteSettingsConfig2 {

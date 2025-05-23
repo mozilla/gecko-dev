@@ -161,7 +161,7 @@ impl WebExtStorageStore {
         // Failing to store this information should not cause migration failure.
         if let Err(e) = result.store(conn) {
             debug_assert!(false, "Migration error: {:?}", e);
-            log::warn!("Failed to record migration telmetry: {}", e);
+            warn!("Failed to record migration telmetry: {}", e);
         }
         Ok(())
     }

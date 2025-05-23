@@ -5,7 +5,7 @@
 
 use chrono::Local;
 
-use crate::db::DEFAULT_SUGGESTION_SCORE;
+use crate::{db::DEFAULT_SUGGESTION_SCORE, geoname::Geoname};
 
 /// The template parameter for a timestamp in a "raw" sponsored suggestion URL.
 const TIMESTAMP_TEMPLATE: &str = "%YYYYMMDDHH%";
@@ -86,11 +86,7 @@ pub enum Suggestion {
         score: f64,
     },
     Weather {
-        city: Option<String>,
-        region: Option<String>,
-        country: Option<String>,
-        latitude: Option<f64>,
-        longitude: Option<f64>,
+        city: Option<Geoname>,
         score: f64,
     },
     Fakespot {

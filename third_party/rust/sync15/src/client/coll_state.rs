@@ -6,6 +6,7 @@ use super::request::InfoConfiguration;
 use super::{CollectionKeys, GlobalState};
 use crate::engine::{CollSyncIds, EngineSyncAssociation, SyncEngine};
 use crate::error;
+use crate::error::{info, trace, warn};
 use crate::KeyBundle;
 use crate::ServerTimestamp;
 
@@ -111,7 +112,7 @@ impl<'state> LocalCollStateMachine<'state> {
 
             LocalCollState::SyncIdChanged { ids } => {
                 let assoc = EngineSyncAssociation::Connected(ids);
-                log::info!("Resetting {} engine", engine.collection_name());
+                info!("Resetting {} engine", engine.collection_name());
                 engine.reset(&assoc)?;
                 Ok(LocalCollState::Unknown { assoc })
             }
@@ -132,14 +133,14 @@ impl<'state> LocalCollStateMachine<'state> {
         // 10 goes around.
         let mut count = 0;
         loop {
-            log::trace!("LocalCollState in {:?}", s);
+            trace!("LocalCollState in {:?}", s);
             match s {
                 LocalCollState::Ready { coll_state } => return Ok(Some(coll_state)),
                 LocalCollState::Declined | LocalCollState::NoSuchCollection => return Ok(None),
                 _ => {
                     count += 1;
                     if count > 10 {
-                        log::warn!("LocalCollStateMachine appears to be looping");
+                        warn!("LocalCollStateMachine appears to be looping");
                         return Ok(None);
                     }
                     // should we have better loop detection? Our limit of 10

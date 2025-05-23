@@ -41,6 +41,7 @@ use rusqlite::{
 use thiserror::Error;
 
 use crate::ConnExt;
+use crate::{debug, info, warn};
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -143,18 +144,18 @@ fn do_open_database_with_flags<CI: ConnectionInitializer, P: AsRef<Path>>(
     connection_initializer: &CI,
 ) -> Result<Connection> {
     // Try running the migration logic with an existing file
-    log::debug!("{}: opening database", CI::NAME);
+    debug!("{}: opening database", CI::NAME);
     let mut conn = Connection::open_with_flags(path, open_flags)?;
-    log::debug!("{}: checking if initialization is necessary", CI::NAME);
+    debug!("{}: checking if initialization is necessary", CI::NAME);
     let db_empty = is_db_empty(&conn)?;
 
-    log::debug!("{}: preparing", CI::NAME);
+    debug!("{}: preparing", CI::NAME);
     connection_initializer.prepare(&conn, db_empty)?;
 
     if open_flags.contains(OpenFlags::SQLITE_OPEN_READ_WRITE) {
         let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
         if db_empty {
-            log::debug!("{}: initializing new database", CI::NAME);
+            debug!("{}: initializing new database", CI::NAME);
             connection_initializer.init(&tx)?;
         } else {
             let mut current_version = get_schema_version(&tx)?;
@@ -162,7 +163,7 @@ fn do_open_database_with_flags<CI: ConnectionInitializer, P: AsRef<Path>>(
                 return Err(Error::IncompatibleVersion(current_version));
             }
             while current_version < CI::END_VERSION {
-                log::debug!(
+                debug!(
                     "{}: upgrading database to {}",
                     CI::NAME,
                     current_version + 1
@@ -171,7 +172,7 @@ fn do_open_database_with_flags<CI: ConnectionInitializer, P: AsRef<Path>>(
                 current_version += 1;
             }
         }
-        log::debug!("{}: finishing writable database open", CI::NAME);
+        debug!("{}: finishing writable database open", CI::NAME);
         connection_initializer.finish(&tx)?;
         set_schema_version(&tx, CI::END_VERSION)?;
         tx.commit()?;
@@ -183,10 +184,10 @@ fn do_open_database_with_flags<CI: ConnectionInitializer, P: AsRef<Path>>(
             get_schema_version(&conn)? == CI::END_VERSION,
             "existing writer must have migrated"
         );
-        log::debug!("{}: finishing readonly database open", CI::NAME);
+        debug!("{}: finishing readonly database open", CI::NAME);
         connection_initializer.finish(&conn)?;
     }
-    log::debug!("{}: database open successful", CI::NAME);
+    debug!("{}: database open successful", CI::NAME);
     Ok(conn)
 }
 
@@ -211,15 +212,15 @@ fn try_handle_db_failure<CI: ConnectionInitializer, P: AsRef<Path>>(
     if !open_flags.contains(OpenFlags::SQLITE_OPEN_CREATE)
         && matches!(err, Error::SqlError(rusqlite::Error::SqliteFailure(code, _)) if code.code == rusqlite::ErrorCode::CannotOpen)
     {
-        log::info!(
+        info!(
             "{}: database doesn't exist, but we weren't requested to create it",
             CI::NAME
         );
         return Err(err);
     }
-    log::warn!("{}: database operation failed: {}", CI::NAME, err);
+    warn!("{}: database operation failed: {}", CI::NAME, err);
     if !open_flags.contains(OpenFlags::SQLITE_OPEN_READ_WRITE) {
-        log::warn!(
+        warn!(
             "{}: not attempting recovery as this is a read-only connection request",
             CI::NAME
         );
@@ -228,7 +229,7 @@ fn try_handle_db_failure<CI: ConnectionInitializer, P: AsRef<Path>>(
 
     let delete = matches!(err, Error::Corrupt);
     if delete {
-        log::info!(
+        info!(
             "{}: the database is fatally damaged; deleting and starting fresh",
             CI::NAME
         );

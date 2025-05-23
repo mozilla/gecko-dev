@@ -7,8 +7,7 @@ mod error;
 pub use error::{ApiError, ApiResult, Error, Result};
 
 use chrono::{DateTime, Duration, Utc};
-use error_support::handle_error;
-use log::error;
+use error_support::{error, handle_error};
 use parking_lot::{Mutex, RwLock};
 use uuid::Uuid;
 

@@ -4,7 +4,7 @@
 
 use super::storage_client::Sync15ClientResponse;
 use crate::bso::OutgoingEncryptedBso;
-use crate::error::{self, Error as ErrorKind, Result};
+use crate::error::{self, debug, info, warn, Error as ErrorKind, Result};
 use crate::ServerTimestamp;
 use serde_derive::*;
 use std::collections::HashMap;
@@ -262,7 +262,7 @@ where
             || self.batch_limits.can_never_add(payload_length)
             || payload_length >= self.max_payload_bytes
         {
-            log::warn!(
+            warn!(
                 "Single record too large to submit to server ({} b)",
                 payload_length
             );
@@ -299,7 +299,7 @@ where
 
         if item_len >= self.max_request_bytes {
             self.queued.truncate(item_start);
-            log::warn!(
+            warn!(
                 "Single record too large to submit to server ({} b)",
                 item_len
             );
@@ -311,11 +311,9 @@ where
         let can_send_record = self.queued.len() < self.max_request_bytes;
 
         if !can_post_record || !can_send_record || !can_batch_record {
-            log::debug!(
+            debug!(
                 "PostQueue flushing! (can_post = {}, can_send = {}, can_batch = {})",
-                can_post_record,
-                can_send_record,
-                can_batch_record
+                can_post_record, can_send_record, can_batch_record
             );
             // "unwrite" the record.
             self.queued.truncate(item_start);
@@ -353,7 +351,7 @@ where
             BatchState::InBatch(ref s) => Some(s.clone()),
         };
 
-        log::info!(
+        info!(
             "Posting {} records of {} bytes",
             self.post_limits.cur_records,
             self.queued.len()
@@ -397,7 +395,7 @@ where
         }
 
         if want_commit {
-            log::debug!("Committed batch {:?}", self.batch);
+            debug!("Committed batch {:?}", self.batch);
             self.batch = BatchState::NoBatch;
             self.on_response.handle_response(resp, false)?;
             return Ok(());
@@ -426,7 +424,7 @@ where
 
         match &self.batch {
             BatchState::Unsupported => {
-                log::warn!("Server changed its mind about supporting batching mid-batch...");
+                warn!("Server changed its mind about supporting batching mid-batch...");
             }
 
             BatchState::InBatch(ref cur_id) => {

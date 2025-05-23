@@ -99,10 +99,12 @@ class _GeolocationUtils {
    *   `locationFromItem(item)` and it should return an object with the
    *   following properties, all optional:
    *
-   *   {number} latitude
-   *     The location's latitude in decimal coordinates.
-   *   {number} longitude
-   *     The location's longitude in decimal coordinates.
+   *   {String|number} latitude
+   *     The location's latitude in decimal coordinates as either a string or
+   *     float.
+   *   {String|number} longitude
+   *     The location's longitude in decimal coordinates as either a string or
+   *     float.
    *   {string} country
    *     The location's two-digit ISO country code. Case doesn't matter.
    *   {string} region
@@ -158,9 +160,9 @@ class _GeolocationUtils {
    *   `geo` does not include a location or coordinates, null is returned.
    */
   #bestByDistance(geo, items, locationFromItem) {
-    let geoLat = geo.location?.latitude;
-    let geoLong = geo.location?.longitude;
-    if (typeof geoLat != "number" || typeof geoLong != "number") {
+    let geoLat = parseFloat(geo.location?.latitude);
+    let geoLong = parseFloat(geo.location?.longitude);
+    if (isNaN(geoLat) || isNaN(geoLong)) {
       return null;
     }
 
@@ -174,15 +176,17 @@ class _GeolocationUtils {
     let dMin = Infinity;
     for (let item of items) {
       let location = locationFromItem(item);
-      if (
-        typeof location.latitude != "number" ||
-        typeof location.longitude != "number"
-      ) {
+      if (!location) {
         continue;
       }
-      let [itemLat, itemLong] = [location.latitude, location.longitude].map(
-        toRadians
-      );
+
+      let locationLat = parseFloat(location.latitude);
+      let locationLong = parseFloat(location.longitude);
+      if (isNaN(locationLat) || isNaN(locationLong)) {
+        continue;
+      }
+
+      let [itemLat, itemLong] = [locationLat, locationLong].map(toRadians);
       let d =
         EARTH_RADIUS_KM *
         Math.acos(
@@ -244,7 +248,7 @@ class _GeolocationUtils {
     let bestRegionTuple;
     for (let item of items) {
       let location = locationFromItem(item);
-      if (location.country?.toLowerCase() == geoCountry) {
+      if (location?.country?.toLowerCase() == geoCountry) {
         if (
           !bestCountryTuple ||
           hasLargerPopulation(location, bestCountryTuple.location)

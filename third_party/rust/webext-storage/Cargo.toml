@@ -35,7 +35,6 @@ path = "src/lib.rs"
 anyhow = "1.0"
 ffi-support = "0.4"
 lazy_static = "1.4"
-log = "0.4"
 parking_lot = ">=0.11,<=0.12"
 serde = "1"
 serde_derive = "1"
@@ -81,9 +80,9 @@ features = ["serde"]
 [dev-dependencies]
 tempfile = "3"
 
-[dev-dependencies.env_logger]
-version = "0.10"
-default-features = false
+[dev-dependencies.error-support]
+path = "../support/error"
+features = ["testing"]
 
 [dev-dependencies.serde_json]
 version = "1"

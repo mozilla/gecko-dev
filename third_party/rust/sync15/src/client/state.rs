@@ -8,7 +8,7 @@ use super::request::{InfoCollections, InfoConfiguration};
 use super::storage_client::{SetupStorageClient, Sync15ClientResponse};
 use super::CollectionKeys;
 use crate::bso::OutgoingEncryptedBso;
-use crate::error::{self, Error as ErrorKind, ErrorResponse};
+use crate::error::{self, debug, info, trace, warn, Error as ErrorKind, ErrorResponse};
 use crate::record_types::{MetaGlobalEngine, MetaGlobalRecord};
 use crate::EncryptedPayload;
 use crate::{Guid, KeyBundle, ServerTimestamp};
@@ -96,7 +96,7 @@ struct EngineStateOutput {
 
 fn compute_engine_states(input: EngineStateInput) -> EngineStateOutput {
     use super::util::*;
-    log::debug!("compute_engine_states: input {:?}", input);
+    debug!("compute_engine_states: input {:?}", input);
     let (must_enable, must_disable) = partition_by_value(&input.user_changes);
     let have_remote = input.remote.is_some();
     let RemoteEngineState {
@@ -107,7 +107,7 @@ fn compute_engine_states(input: EngineStateInput) -> EngineStateOutput {
     let both_declined_and_remote = set_intersection(&info_collections, &remote_declined);
     if !both_declined_and_remote.is_empty() {
         // Should we wipe these too?
-        log::warn!(
+        warn!(
             "Remote state contains engines which are in both info/collections and meta/global's declined: {:?}",
             both_declined_and_remote,
         );
@@ -137,7 +137,7 @@ fn compute_engine_states(input: EngineStateInput) -> EngineStateOutput {
         declined: result_declined,
     };
     // No PII here and this helps debug problems.
-    log::debug!("compute_engine_states: output {:?}", output);
+    debug!("compute_engine_states: output {:?}", output);
     output
 }
 
@@ -208,7 +208,7 @@ fn fixup_meta_global(global: &mut MetaGlobalRecord) -> bool {
         let should_have_engine = !global.declined.iter().any(|c| c == name);
         if had_engine != should_have_engine {
             if should_have_engine {
-                log::debug!("SyncID for engine {:?} was missing", name);
+                debug!("SyncID for engine {:?} was missing", name);
                 global.engines.insert(
                     name.to_string(),
                     MetaGlobalEngine {
@@ -217,7 +217,7 @@ fn fixup_meta_global(global: &mut MetaGlobalRecord) -> bool {
                     },
                 );
             } else {
-                log::debug!("SyncID for engine {:?} was present, but shouldn't be", name);
+                debug!("SyncID for engine {:?} was present, but shouldn't be", name);
                 global.engines.remove(name);
             }
             changed_any = true;
@@ -353,7 +353,7 @@ impl<'a> SetupStateMachine<'a> {
                         if global.storage_version < STORAGE_VERSION {
                             Ok(FreshStartRequired { config })
                         } else {
-                            log::info!("Have info/collections and meta/global. Computing new engine states");
+                            info!("Have info/collections and meta/global. Computing new engine states");
                             let initial_global_declined: HashSet<String> =
                                 global.declined.iter().cloned().collect();
                             let result = compute_engine_states(EngineStateInput {
@@ -370,7 +370,7 @@ impl<'a> SetupStateMachine<'a> {
                             // If the declined engines differ from remote, fix that.
                             let fixed_declined = if result.declined != initial_global_declined {
                                 global.declined = result.declined.iter().cloned().collect();
-                                log::info!(
+                                info!(
                                     "Uploading new declined {:?} to meta/global with timestamp {:?}",
                                     global.declined,
                                     global_timestamp,
@@ -381,7 +381,7 @@ impl<'a> SetupStateMachine<'a> {
                             };
                             // If there are missing syncIds, we need to fix those as well
                             let fixed_ids = if fixup_meta_global(&mut global) {
-                                log::info!(
+                                info!(
                                     "Uploading corrected meta/global with timestamp {:?}",
                                     global_timestamp,
                                 );
@@ -393,14 +393,14 @@ impl<'a> SetupStateMachine<'a> {
                             if fixed_declined || fixed_ids {
                                 global_timestamp =
                                     self.client.put_meta_global(global_timestamp, &global)?;
-                                log::debug!("new global_timestamp: {:?}", global_timestamp);
+                                debug!("new global_timestamp: {:?}", global_timestamp);
                             }
                             // Update the set of changes needed.
                             if self.changes_needed.is_some() {
                                 // Should never happen (we prevent state machine
                                 // loops elsewhere) but if it did, the info is stale
                                 // anyway.
-                                log::warn!("Already have a set of changes needed, Overwriting...");
+                                warn!("Already have a set of changes needed, Overwriting...");
                             }
                             self.changes_needed = Some(result.changes_needed);
                             Ok(InitialWithMetaGlobal {
@@ -487,11 +487,11 @@ impl<'a> SetupStateMachine<'a> {
 
             FreshStartRequired { config } => {
                 // Wipe the server.
-                log::info!("Fresh start: wiping remote");
+                info!("Fresh start: wiping remote");
                 self.client.wipe_all_remote()?;
 
                 // Upload a fresh `meta/global`...
-                log::info!("Uploading meta/global");
+                info!("Uploading meta/global");
                 let computed = compute_engine_states(EngineStateInput {
                     local_declined: self.pgs.get_declined().iter().cloned().collect(),
                     user_changes: self.engine_updates.cloned().unwrap_or_default(),
@@ -531,7 +531,7 @@ impl<'a> SetupStateMachine<'a> {
         loop {
             self.interruptee.err_if_interrupted()?;
             let label = &s.label();
-            log::trace!("global state: {:?}", label);
+            trace!("global state: {:?}", label);
             match s {
                 Ready { state } => {
                     self.sequence.push(label);
@@ -757,7 +757,7 @@ mod tests {
     #[test]
     fn test_state_machine_ready_from_empty() {
         nss::ensure_initialized();
-        let _ = env_logger::try_init();
+        error_support::init_for_tests();
         let root_key = KeyBundle::new_random().unwrap();
         let keys = CollectionKeys {
             timestamp: ServerTimestamp(123_400),
@@ -815,7 +815,7 @@ mod tests {
     #[test]
     fn test_from_previous_state_declined() {
         nss::ensure_initialized();
-        let _ = env_logger::try_init();
+        error_support::init_for_tests();
         // The state-machine sequence where we didn't use the previous state
         // (ie, where the state machine restarted)
         let sm_seq_restarted = vec![

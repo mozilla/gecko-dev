@@ -28,7 +28,7 @@ pub fn ensure_interest_data_populated<C: RelevancyRemoteSettingsClient>(
             db.read_write(move |dao| insert_interest_data(data, dao))?;
         }
         Err(e) => {
-            log::warn!("error fetching interest data: {e}");
+            crate::warn!("error fetching interest data: {e}");
             return Err(Error::FetchInterestDataError);
         }
     }

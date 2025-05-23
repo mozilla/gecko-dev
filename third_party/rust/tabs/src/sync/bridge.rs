@@ -140,7 +140,7 @@ mod tests {
     // A copy of the normal "engine" tests but which go via the bridge
     #[test]
     fn test_sync_via_bridge() {
-        env_logger::try_init().ok();
+        error_support::init_for_tests();
 
         let store = Arc::new(TabsStore::new_with_mem_path("test-bridge_incoming"));
 
@@ -282,7 +282,7 @@ mod tests {
 
     #[test]
     fn test_sync_meta() {
-        env_logger::try_init().ok();
+        error_support::init_for_tests();
 
         let store = Arc::new(TabsStore::new_with_mem_path("test-meta"));
         let bridge = store.bridged_engine();

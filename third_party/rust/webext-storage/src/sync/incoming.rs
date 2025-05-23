@@ -89,7 +89,7 @@ pub fn stage_incoming(
                         params.push(None);
                     }
                     IncomingKind::Malformed => {
-                        log::error!("Ignoring incoming malformed record: {}", record.envelope.id);
+                        error!("Ignoring incoming malformed record: {}", record.envelope.id);
                     }
                 }
             }
@@ -413,7 +413,7 @@ pub fn apply_actions(
     for (item, action) in actions {
         signal.err_if_interrupted()?;
 
-        log::trace!("action for '{:?}': {:?}", item, action);
+        trace!("action for '{:?}': {:?}", item, action);
         match action {
             IncomingAction::DeleteLocally { ext_id, changes } => {
                 // Can just nuke it entirely.

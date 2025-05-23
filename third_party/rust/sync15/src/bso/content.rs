@@ -10,6 +10,7 @@
 //! * Turn arbitrary <T> objects with an `id` field into an OutgoingBso.
 
 use super::{IncomingBso, IncomingContent, IncomingKind, OutgoingBso, OutgoingEnvelope};
+use crate::error::{trace, warn};
 use crate::Guid;
 use error_support::report_error;
 use serde::Serialize;
@@ -65,7 +66,7 @@ impl IncomingBso {
             }
             Err(e) => {
                 // payload isn't valid json.
-                log::warn!("Invalid incoming cleartext {}: {}", self.envelope.id, e);
+                warn!("Invalid incoming cleartext {}: {}", self.envelope.id, e);
                 IncomingContent {
                     envelope: self.envelope,
                     kind: IncomingKind::Malformed,
@@ -140,7 +141,7 @@ where
             Some(serde_json::Value::String(content_id)) => {
                 // It exists in the payload! We treat a mismatch as malformed.
                 if content_id != id {
-                    log::trace!(
+                    trace!(
                         "malformed incoming record: envelope id: {} payload id: {}",
                         content_id,
                         id
@@ -152,7 +153,7 @@ where
                     return IncomingKind::Malformed;
                 }
                 if !id.is_valid_for_sync_server() {
-                    log::trace!("malformed incoming record: id is not valid: {}", id);
+                    trace!("malformed incoming record: id is not valid: {}", id);
                     report_error!(
                         "incoming-invalid-bad-payload-id",
                         "ID in the payload is invalid"
@@ -163,14 +164,14 @@ where
             Some(v) => {
                 // It exists in the payload but is not a string - they can't possibly be
                 // the same as the envelope uses a String, so must be malformed.
-                log::trace!("malformed incoming record: id is not a string: {}", v);
+                trace!("malformed incoming record: id is not a string: {}", v);
                 report_error!("incoming-invalid-wrong_type", "ID is not a string");
                 return IncomingKind::Malformed;
             }
             None => {
                 // Doesn't exist in the payload - add it before trying to deser a T.
                 if !id.is_valid_for_sync_server() {
-                    log::trace!("malformed incoming record: id is not valid: {}", id);
+                    trace!("malformed incoming record: id is not valid: {}", id);
                     report_error!(
                         "incoming-invalid-bad-envelope-id",
                         "ID in envelope is not valid"
@@ -254,7 +255,7 @@ mod tests {
     }
     #[test]
     fn test_content_deser() {
-        env_logger::try_init().ok();
+        error_support::init_for_tests();
         let json = json!({
             "id": "test",
             "payload": json!({"data": 1}).to_string(),
@@ -271,7 +272,7 @@ mod tests {
 
     #[test]
     fn test_content_deser_empty_id() {
-        env_logger::try_init().ok();
+        error_support::init_for_tests();
         let json = json!({
             "id": "",
             "payload": json!({"data": 1}).to_string(),
@@ -286,7 +287,7 @@ mod tests {
 
     #[test]
     fn test_content_deser_invalid() {
-        env_logger::try_init().ok();
+        error_support::init_for_tests();
         // And a non-empty but still invalid guid.
         let json = json!({
             "id": "X".repeat(65),
@@ -299,7 +300,7 @@ mod tests {
 
     #[test]
     fn test_content_deser_not_string() {
-        env_logger::try_init().ok();
+        error_support::init_for_tests();
         // A non-string id.
         let json = json!({
             "id": "0",
@@ -312,7 +313,7 @@ mod tests {
 
     #[test]
     fn test_content_ser_with_id() {
-        env_logger::try_init().ok();
+        error_support::init_for_tests();
         // When serializing, expect the ID to be in the top-level payload (ie,
         // in the envelope) but should not appear in the cleartext `payload` part of
         // the payload.
@@ -332,7 +333,7 @@ mod tests {
 
     #[test]
     fn test_content_ser_with_envelope() {
-        env_logger::try_init().ok();
+        error_support::init_for_tests();
         // When serializing, expect the ID to be in the top-level payload (ie,
         // in the envelope) but should not appear in the cleartext `payload`
         let val = TestStruct {
@@ -353,7 +354,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_content_ser_no_ids() {
-        env_logger::try_init().ok();
+        error_support::init_for_tests();
         #[derive(Serialize)]
         struct StructWithNoId {
             data: u32,
@@ -365,14 +366,14 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_content_ser_not_object() {
-        env_logger::try_init().ok();
+        error_support::init_for_tests();
         let _ = OutgoingBso::from_content_with_id(json!("string"));
     }
 
     #[test]
     #[should_panic]
     fn test_content_ser_mismatched_ids() {
-        env_logger::try_init().ok();
+        error_support::init_for_tests();
         let val = TestStruct {
             id: Guid::new("test"),
             data: 1,
@@ -384,7 +385,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_content_empty_id() {
-        env_logger::try_init().ok();
+        error_support::init_for_tests();
         let val = TestStruct {
             id: Guid::new(""),
             data: 1,
@@ -395,7 +396,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_content_invalid_id() {
-        env_logger::try_init().ok();
+        error_support::init_for_tests();
         let val = TestStruct {
             id: Guid::new(&"X".repeat(65)),
             data: 1,

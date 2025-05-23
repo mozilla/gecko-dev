@@ -156,8 +156,6 @@ impl Suggestion {
 pub fn before_each() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
-        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("trace"))
-            .is_test(true)
-            .init();
+        error_support::init_for_tests_with_level(error_support::Level::Trace);
     });
 }

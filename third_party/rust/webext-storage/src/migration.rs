@@ -57,24 +57,24 @@ impl LegacyRow {
     // our target database.
     fn parse(&self) -> Option<Parsed<'_>> {
         if self.col_name.len() < 8 {
-            log::trace!("collection_name of '{}' is too short", self.col_name);
+            trace!("collection_name of '{}' is too short", self.col_name);
             return None;
         }
         if &self.col_name[..8] != "default/" {
-            log::trace!("collection_name of '{}' isn't ours", self.col_name);
+            trace!("collection_name of '{}' isn't ours", self.col_name);
             return None;
         }
         let ext_id = &self.col_name[8..];
         let mut record_map = match serde_json::from_str(&self.record) {
             Ok(Value::Object(m)) => m,
             Ok(o) => {
-                log::info!("skipping non-json-object 'record' column");
-                log::trace!("record value is json, but not an object: {}", o);
+                info!("skipping non-json-object 'record' column");
+                trace!("record value is json, but not an object: {}", o);
                 return None;
             }
             Err(e) => {
-                log::info!("skipping non-json 'record' column");
-                log::trace!("record value isn't json: {}", e);
+                info!("skipping non-json 'record' column");
+                trace!("record value isn't json: {}", e);
                 return None;
             }
         };
@@ -82,18 +82,18 @@ impl LegacyRow {
         let key = match record_map.remove("key") {
             Some(Value::String(s)) if !s.is_empty() => s,
             Some(o) => {
-                log::trace!("key is json but not a string: {}", o);
+                trace!("key is json but not a string: {}", o);
                 return None;
             }
             _ => {
-                log::trace!("key doesn't exist in the map");
+                trace!("key doesn't exist in the map");
                 return None;
             }
         };
         let data = match record_map.remove("data") {
             Some(d) => d,
             _ => {
-                log::trace!("data doesn't exist in the map");
+                trace!("data doesn't exist in the map");
                 return None;
             }
         };
@@ -114,7 +114,7 @@ pub fn migrate(tx: &Transaction<'_>, filename: &Path) -> Result<MigrationInfo> {
     let mut curr_values: Vec<(String, serde_json::Value)> = Vec::new();
     let (rows, mut mi) = read_rows(filename);
     for row in rows {
-        log::trace!("processing '{}' - '{}'", row.col_name, row.record);
+        trace!("processing '{}' - '{}'", row.col_name, row.record);
         let parsed = match row.parse() {
             Some(p) => p,
             None => continue,
@@ -133,7 +133,7 @@ pub fn migrate(tx: &Transaction<'_>, filename: &Path) -> Result<MigrationInfo> {
         // no 'else' here - must also enter this block on ext_id change.
         if parsed.ext_id == last_ext_id {
             curr_values.push((parsed.key.to_string(), parsed.data));
-            log::trace!(
+            trace!(
                 "extension {} now has {} keys",
                 parsed.ext_id,
                 curr_values.len()
@@ -147,7 +147,7 @@ pub fn migrate(tx: &Transaction<'_>, filename: &Path) -> Result<MigrationInfo> {
         mi.extensions_successful += 1;
         mi.entries_successful += entries;
     }
-    log::info!("migrated {} extensions: {:?}", mi.extensions_successful, mi);
+    info!("migrated {} extensions: {:?}", mi.extensions_successful, mi);
     Ok(mi)
 }
 
@@ -156,7 +156,7 @@ fn read_rows(filename: &Path) -> (Vec<LegacyRow>, MigrationInfo) {
     let src_conn = match Connection::open_with_flags(filename, flags) {
         Ok(conn) => conn,
         Err(e) => {
-            log::warn!("Failed to open the source DB: {}", e);
+            warn!("Failed to open the source DB: {}", e);
             return (Vec::new(), MigrationInfo::open_failure());
         }
     };
@@ -169,7 +169,7 @@ fn read_rows(filename: &Path) -> (Vec<LegacyRow>, MigrationInfo) {
     ) {
         Ok(stmt) => stmt,
         Err(e) => {
-            log::warn!("Failed to prepare the statement: {}", e);
+            warn!("Failed to prepare the statement: {}", e);
             return (Vec::new(), MigrationInfo::open_failure());
         }
     };
@@ -181,7 +181,7 @@ fn read_rows(filename: &Path) -> (Vec<LegacyRow>, MigrationInfo) {
     }) {
         Ok(r) => r,
         Err(e) => {
-            log::warn!("Failed to read any rows from the source DB: {}", e);
+            warn!("Failed to read any rows from the source DB: {}", e);
             return (Vec::new(), MigrationInfo::open_failure());
         }
     };

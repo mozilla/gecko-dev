@@ -86,3 +86,14 @@ a user's database in their errors, which would then appear in our error
 variants. However, we've never seen that in practice so we are comfortable
 including the `rusqlite` error message in our error reports, without attempting
 to sanitize them.
+
+# Logging support
+
+This crate also supplies macros for logging, like `trace!()`, `error!()` etc,
+which act just like the same macros from the `log` and `tracing` crates. Using
+these macros means you don't need to take additional dependencies, nor know exactly
+what logging system is in-place - it will arrange to be the correct logging system
+for the application the crate is being used in.
+
+Avoiding PII in logging is up to the crate doing the logging. In general, components
+might log PII (eg, URLs etc) at trace level.

@@ -309,6 +309,34 @@ const constructUniffiObject = Symbol("constructUniffiObject");
 UnitTestObjs.uniffiObjectPtr = uniffiObjectPtr;
 
 // Export the FFIConverter object to make external types work.
+export class FfiConverterU8 extends FfiConverter {
+    static checkType(value) {
+        super.checkType(value);
+        if (!Number.isInteger(value)) {
+            throw new UniFFITypeError(`${value} is not an integer`);
+        }
+        if (value < 0 || value > 256) {
+            throw new UniFFITypeError(`${value} exceeds the U8 bounds`);
+        }
+    }
+    static computeSize(_value) {
+        return 1;
+    }
+    static lift(value) {
+        return value;
+    }
+    static lower(value) {
+        return value;
+    }
+    static write(dataStream, value) {
+        dataStream.writeUint8(value)
+    }
+    static read(dataStream) {
+        return dataStream.readUint8()
+    }
+}
+
+// Export the FFIConverter object to make external types work.
 export class FfiConverterI32 extends FfiConverter {
     static checkType(value) {
         super.checkType(value);
@@ -551,7 +579,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                53, // suggest:uniffi_suggest_fn_constructor_suggeststore_new
+                54, // suggest:uniffi_suggest_fn_constructor_suggeststore_new
                 FfiConverterString.lower(path),
                 FfiConverterTypeRemoteSettingsService.lower(remoteSettingsService),
             )
@@ -714,32 +742,44 @@ export class SuggestStore {
     }
 
     /**
+     * Fetches a geoname's names stored in the database.
+     *
+     * See `fetch_geoname_alternates` in `geoname.rs` for documentation.
+     * @returns {GeonameAlternates}
+     */
+    fetchGeonameAlternates(geoname) {
+        const liftResult = (result) => FfiConverterTypeGeonameAlternates.lift(result);
+        const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterTypeGeoname.checkType(geoname)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("geoname");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                44, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_geoname_alternates
+                FfiConverterTypeSuggestStore.lower(this),
+                FfiConverterTypeGeoname.lower(geoname),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
      * Fetches geonames stored in the database. A geoname represents a
      * geographic place.
      *
-     * `query` is a string that will be matched directly against geoname names.
-     * It is not a query string in the usual Suggest sense. `match_name_prefix`
-     * determines whether prefix matching is performed on names excluding
-     * abbreviations and airport codes. When `true`, names that start with
-     * `query` will match. When false, names that equal `query` will match.
-     *
-     * `geoname_type` restricts returned geonames to a [`GeonameType`].
-     *
-     * `filter` restricts returned geonames to certain cities or regions.
-     * Cities can be restricted to regions by including the regions in
-     * `filter`, and regions can be restricted to those containing certain
-     * cities by including the cities in `filter`. This is especially useful
-     * since city and region names are not unique. `filter` is disjunctive: If
-     * any item in `filter` matches a geoname, the geoname will be filtered in.
-     *
-     * The query can match a single geoname in more than one way. For example,
-     * it can match both a full name and an abbreviation. The returned vec of
-     * [`GeonameMatch`] values will include all matches for a geoname, one
-     * match per `match_type` per geoname. In other words, a matched geoname
-     * can map to more than one `GeonameMatch`.
+     * See `fetch_geonames` in `geoname.rs` for documentation.
      * @returns {Array.<GeonameMatch>}
      */
-    fetchGeonames(query,matchNamePrefix,geonameType,filter) {
+    fetchGeonames(query,matchNamePrefix,filter) {
         const liftResult = (result) => FfiConverterSequenceTypeGeonameMatch.lift(result);
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
         const functionCall = () => {
@@ -760,14 +800,6 @@ export class SuggestStore {
                 throw e;
             }
             try {
-                FfiConverterOptionalTypeGeonameType.checkType(geonameType)
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("geonameType");
-                }
-                throw e;
-            }
-            try {
                 FfiConverterOptionalSequenceTypeGeoname.checkType(filter)
             } catch (e) {
                 if (e instanceof UniFFITypeError) {
@@ -776,11 +808,10 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                44, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_geonames
+                45, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_geonames
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterString.lower(query),
                 FfiConverterBool.lower(matchNamePrefix),
-                FfiConverterOptionalTypeGeonameType.lower(geonameType),
                 FfiConverterOptionalSequenceTypeGeoname.lower(filter),
             )
         }
@@ -800,7 +831,7 @@ export class SuggestStore {
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                45, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_global_config
+                46, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_global_config
                 FfiConverterTypeSuggestStore.lower(this),
             )
         }
@@ -828,7 +859,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                46, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_provider_config
+                47, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_provider_config
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterTypeSuggestionProvider.lower(provider),
             )
@@ -857,7 +888,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                47, // suggest:uniffi_suggest_fn_method_suggeststore_ingest
+                48, // suggest:uniffi_suggest_fn_method_suggeststore_ingest
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterTypeSuggestIngestionConstraints.lower(constraints),
             )
@@ -889,7 +920,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                48, // suggest:uniffi_suggest_fn_method_suggeststore_interrupt
+                49, // suggest:uniffi_suggest_fn_method_suggeststore_interrupt
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterOptionalTypeInterruptKind.lower(kind),
             )
@@ -919,7 +950,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                49, // suggest:uniffi_suggest_fn_method_suggeststore_is_dismissed_by_key
+                50, // suggest:uniffi_suggest_fn_method_suggeststore_is_dismissed_by_key
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterString.lower(key),
             )
@@ -952,7 +983,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                50, // suggest:uniffi_suggest_fn_method_suggeststore_is_dismissed_by_suggestion
+                51, // suggest:uniffi_suggest_fn_method_suggeststore_is_dismissed_by_suggestion
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterTypeSuggestion.lower(suggestion),
             )
@@ -981,7 +1012,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                51, // suggest:uniffi_suggest_fn_method_suggeststore_query
+                52, // suggest:uniffi_suggest_fn_method_suggeststore_query
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterTypeSuggestionQuery.lower(query),
             )
@@ -1010,7 +1041,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                52, // suggest:uniffi_suggest_fn_method_suggeststore_query_with_metrics
+                53, // suggest:uniffi_suggest_fn_method_suggeststore_query_with_metrics
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterTypeSuggestionQuery.lower(query),
             )
@@ -1081,7 +1112,7 @@ export class SuggestStoreBuilder {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                61, // suggest:uniffi_suggest_fn_constructor_suggeststorebuilder_new
+                62, // suggest:uniffi_suggest_fn_constructor_suggeststorebuilder_new
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
@@ -1095,7 +1126,7 @@ export class SuggestStoreBuilder {
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                54, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_build
+                55, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_build
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
             )
         }
@@ -1119,7 +1150,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                55, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_cache_path
+                56, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_cache_path
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(path),
             )
@@ -1148,7 +1179,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                56, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_data_path
+                57, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_data_path
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(path),
             )
@@ -1185,7 +1216,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                57, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_load_extension
+                58, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_load_extension
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(library),
                 FfiConverterOptionalstring.lower(entryPoint),
@@ -1211,7 +1242,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                58, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name
+                59, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(bucketName),
             )
@@ -1236,7 +1267,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                59, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server
+                60, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterTypeRemoteSettingsServer.lower(server),
             )
@@ -1261,7 +1292,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                60, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_service
+                61, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_service
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterTypeRemoteSettingsService.lower(rsService),
             )
@@ -1297,6 +1328,118 @@ export class FfiConverterTypeSuggestStoreBuilder extends FfiConverter {
 
     static computeSize(value) {
         return 8;
+    }
+}
+
+/**
+ * A set of names for a single entity.
+ */
+export class AlternateNames {
+    constructor({ primary, localized, abbreviation } = { primary: undefined, localized: undefined, abbreviation: undefined }) {
+        try {
+            FfiConverterString.checkType(primary)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("primary");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(localized)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("localized");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(abbreviation)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("abbreviation");
+            }
+            throw e;
+        }
+        /**
+         * The entity's primary name. For a `Geoname`, this is `Geoname::name`.
+         * @type {string}
+         */
+        this.primary = primary;
+        /**
+         * The entity's name in the language that was ingested according to the
+         * locale in the remote settings context. If none exists and this
+         * `AlternateNames` is for a `Geoname`, then this will be its primary name.
+         * @type {?string}
+         */
+        this.localized = localized;
+        /**
+         * The entity's abbreviation, if any.
+         * @type {?string}
+         */
+        this.abbreviation = abbreviation;
+    }
+
+    equals(other) {
+        return (
+            this.primary == other.primary &&
+            this.localized == other.localized &&
+            this.abbreviation == other.abbreviation
+        )
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeAlternateNames extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        return new AlternateNames({
+            primary: FfiConverterString.read(dataStream),
+            localized: FfiConverterOptionalstring.read(dataStream),
+            abbreviation: FfiConverterOptionalstring.read(dataStream),
+        });
+    }
+    static write(dataStream, value) {
+        FfiConverterString.write(dataStream, value.primary);
+        FfiConverterOptionalstring.write(dataStream, value.localized);
+        FfiConverterOptionalstring.write(dataStream, value.abbreviation);
+    }
+
+    static computeSize(value) {
+        let totalSize = 0;
+        totalSize += FfiConverterString.computeSize(value.primary);
+        totalSize += FfiConverterOptionalstring.computeSize(value.localized);
+        totalSize += FfiConverterOptionalstring.computeSize(value.abbreviation);
+        return totalSize
+    }
+
+    static checkType(value) {
+        super.checkType(value);
+        if (!(value instanceof AlternateNames)) {
+            throw new UniFFITypeError(`Expected 'AlternateNames', found '${typeof value}'`);
+        }
+        try {
+            FfiConverterString.checkType(value.primary);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".primary");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.localized);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".localized");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.abbreviation);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".abbreviation");
+            }
+            throw e;
+        }
     }
 }
 
@@ -1394,12 +1537,20 @@ export class FfiConverterTypeFtsMatchInfo extends FfiConverterArrayBuffer {
  * [1]: https://download.geonames.org/export/dump/readme.txt
  */
 export class Geoname {
-    constructor({ geonameId, name, latitude, longitude, countryCode, admin1Code, population } = { geonameId: undefined, name: undefined, latitude: undefined, longitude: undefined, countryCode: undefined, admin1Code: undefined, population: undefined }) {
+    constructor({ geonameId, geonameType, name, countryCode, featureClass, featureCode, adminDivisionCodes, population, latitude, longitude } = { geonameId: undefined, geonameType: undefined, name: undefined, countryCode: undefined, featureClass: undefined, featureCode: undefined, adminDivisionCodes: undefined, population: undefined, latitude: undefined, longitude: undefined }) {
         try {
             FfiConverterI64.checkType(geonameId)
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart("geonameId");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterTypeGeonameType.checkType(geonameType)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("geonameType");
             }
             throw e;
         }
@@ -1412,22 +1563,6 @@ export class Geoname {
             throw e;
         }
         try {
-            FfiConverterF64.checkType(latitude)
-        } catch (e) {
-            if (e instanceof UniFFITypeError) {
-                e.addItemDescriptionPart("latitude");
-            }
-            throw e;
-        }
-        try {
-            FfiConverterF64.checkType(longitude)
-        } catch (e) {
-            if (e instanceof UniFFITypeError) {
-                e.addItemDescriptionPart("longitude");
-            }
-            throw e;
-        }
-        try {
             FfiConverterString.checkType(countryCode)
         } catch (e) {
             if (e instanceof UniFFITypeError) {
@@ -1436,10 +1571,26 @@ export class Geoname {
             throw e;
         }
         try {
-            FfiConverterString.checkType(admin1Code)
+            FfiConverterString.checkType(featureClass)
         } catch (e) {
             if (e instanceof UniFFITypeError) {
-                e.addItemDescriptionPart("admin1Code");
+                e.addItemDescriptionPart("featureClass");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterString.checkType(featureCode)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("featureCode");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterMapU8String.checkType(adminDivisionCodes)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("adminDivisionCodes");
             }
             throw e;
         }
@@ -1451,58 +1602,97 @@ export class Geoname {
             }
             throw e;
         }
+        try {
+            FfiConverterString.checkType(latitude)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("latitude");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterString.checkType(longitude)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("longitude");
+            }
+            throw e;
+        }
         /**
          * The `geonameid` straight from the geoname table.
          * @type {number}
          */
         this.geonameId = geonameId;
         /**
-         * This is pretty much the place's canonical name. Usually there will be a
-         * row in the alternates table with the same name, but not always. When
-         * there is such a row, it doesn't always have `is_preferred_name` set, and
-         * in fact fact there may be another row with a different name with
-         * `is_preferred_name` set.
+         * The geoname type. This is derived from `feature_class` and
+         * `feature_code` as a more convenient representation of the type.
+         * @type {GeonameType}
+         */
+        this.geonameType = geonameType;
+        /**
+         * The place's primary name.
          * @type {string}
          */
         this.name = name;
-        /**
-         * Latitude in decimal degrees.
-         * @type {number}
-         */
-        this.latitude = latitude;
-        /**
-         * Longitude in decimal degrees.
-         * @type {number}
-         */
-        this.longitude = longitude;
         /**
          * ISO-3166 two-letter uppercase country code, e.g., "US".
          * @type {string}
          */
         this.countryCode = countryCode;
         /**
-         * The top-level administrative region for the place within its country,
-         * like a state or province. For the U.S., the two-letter uppercase state
-         * abbreviation.
+         * Primary geoname category. Examples:
+         *
+         * "PCLI" - Independent political entity: country
+         * "A" - Administrative division: state, province, borough, district, etc.
+         * "P" - Populated place: city, village, etc.
          * @type {string}
          */
-        this.admin1Code = admin1Code;
+        this.featureClass = featureClass;
+        /**
+         * Secondary geoname category, depends on `feature_class`. Examples:
+         *
+         * "ADM1" - Administrative division 1
+         * "PPL" - Populated place like a city
+         * @type {string}
+         */
+        this.featureCode = featureCode;
+        /**
+         * Administrative divisions. This maps admin division levels (1-based) to
+         * their corresponding codes. For example, Liverpool has two admin
+         * divisions: "ENG" at level 1 and "H8" at level 2. They would be
+         * represented in this map with entries `(1, "ENG")` and `(2, "H8")`.
+         * @type {object}
+         */
+        this.adminDivisionCodes = adminDivisionCodes;
         /**
          * Population size.
          * @type {number}
          */
         this.population = population;
+        /**
+         * Latitude in decimal degrees (as a string).
+         * @type {string}
+         */
+        this.latitude = latitude;
+        /**
+         * Longitude in decimal degrees (as a string).
+         * @type {string}
+         */
+        this.longitude = longitude;
     }
 
     equals(other) {
         return (
             this.geonameId == other.geonameId &&
+            this.geonameType == other.geonameType &&
             this.name == other.name &&
-            this.latitude == other.latitude &&
-            this.longitude == other.longitude &&
             this.countryCode == other.countryCode &&
-            this.admin1Code == other.admin1Code &&
-            this.population == other.population
+            this.featureClass == other.featureClass &&
+            this.featureCode == other.featureCode &&
+            this.adminDivisionCodes == other.adminDivisionCodes &&
+            this.population == other.population &&
+            this.latitude == other.latitude &&
+            this.longitude == other.longitude
         )
     }
 }
@@ -1512,33 +1702,42 @@ export class FfiConverterTypeGeoname extends FfiConverterArrayBuffer {
     static read(dataStream) {
         return new Geoname({
             geonameId: FfiConverterI64.read(dataStream),
+            geonameType: FfiConverterTypeGeonameType.read(dataStream),
             name: FfiConverterString.read(dataStream),
-            latitude: FfiConverterF64.read(dataStream),
-            longitude: FfiConverterF64.read(dataStream),
             countryCode: FfiConverterString.read(dataStream),
-            admin1Code: FfiConverterString.read(dataStream),
+            featureClass: FfiConverterString.read(dataStream),
+            featureCode: FfiConverterString.read(dataStream),
+            adminDivisionCodes: FfiConverterMapU8String.read(dataStream),
             population: FfiConverterU64.read(dataStream),
+            latitude: FfiConverterString.read(dataStream),
+            longitude: FfiConverterString.read(dataStream),
         });
     }
     static write(dataStream, value) {
         FfiConverterI64.write(dataStream, value.geonameId);
+        FfiConverterTypeGeonameType.write(dataStream, value.geonameType);
         FfiConverterString.write(dataStream, value.name);
-        FfiConverterF64.write(dataStream, value.latitude);
-        FfiConverterF64.write(dataStream, value.longitude);
         FfiConverterString.write(dataStream, value.countryCode);
-        FfiConverterString.write(dataStream, value.admin1Code);
+        FfiConverterString.write(dataStream, value.featureClass);
+        FfiConverterString.write(dataStream, value.featureCode);
+        FfiConverterMapU8String.write(dataStream, value.adminDivisionCodes);
         FfiConverterU64.write(dataStream, value.population);
+        FfiConverterString.write(dataStream, value.latitude);
+        FfiConverterString.write(dataStream, value.longitude);
     }
 
     static computeSize(value) {
         let totalSize = 0;
         totalSize += FfiConverterI64.computeSize(value.geonameId);
+        totalSize += FfiConverterTypeGeonameType.computeSize(value.geonameType);
         totalSize += FfiConverterString.computeSize(value.name);
-        totalSize += FfiConverterF64.computeSize(value.latitude);
-        totalSize += FfiConverterF64.computeSize(value.longitude);
         totalSize += FfiConverterString.computeSize(value.countryCode);
-        totalSize += FfiConverterString.computeSize(value.admin1Code);
+        totalSize += FfiConverterString.computeSize(value.featureClass);
+        totalSize += FfiConverterString.computeSize(value.featureCode);
+        totalSize += FfiConverterMapU8String.computeSize(value.adminDivisionCodes);
         totalSize += FfiConverterU64.computeSize(value.population);
+        totalSize += FfiConverterString.computeSize(value.latitude);
+        totalSize += FfiConverterString.computeSize(value.longitude);
         return totalSize
     }
 
@@ -1556,26 +1755,18 @@ export class FfiConverterTypeGeoname extends FfiConverterArrayBuffer {
             throw e;
         }
         try {
+            FfiConverterTypeGeonameType.checkType(value.geonameType);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".geonameType");
+            }
+            throw e;
+        }
+        try {
             FfiConverterString.checkType(value.name);
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart(".name");
-            }
-            throw e;
-        }
-        try {
-            FfiConverterF64.checkType(value.latitude);
-        } catch (e) {
-            if (e instanceof UniFFITypeError) {
-                e.addItemDescriptionPart(".latitude");
-            }
-            throw e;
-        }
-        try {
-            FfiConverterF64.checkType(value.longitude);
-        } catch (e) {
-            if (e instanceof UniFFITypeError) {
-                e.addItemDescriptionPart(".longitude");
             }
             throw e;
         }
@@ -1588,10 +1779,26 @@ export class FfiConverterTypeGeoname extends FfiConverterArrayBuffer {
             throw e;
         }
         try {
-            FfiConverterString.checkType(value.admin1Code);
+            FfiConverterString.checkType(value.featureClass);
         } catch (e) {
             if (e instanceof UniFFITypeError) {
-                e.addItemDescriptionPart(".admin1Code");
+                e.addItemDescriptionPart(".featureClass");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterString.checkType(value.featureCode);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".featureCode");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterMapU8String.checkType(value.adminDivisionCodes);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".adminDivisionCodes");
             }
             throw e;
         }
@@ -1600,6 +1807,135 @@ export class FfiConverterTypeGeoname extends FfiConverterArrayBuffer {
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart(".population");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterString.checkType(value.latitude);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".latitude");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterString.checkType(value.longitude);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".longitude");
+            }
+            throw e;
+        }
+    }
+}
+
+/**
+ * Alternate names for a geoname and its country and admin divisions.
+ */
+export class GeonameAlternates {
+    constructor({ geoname, country, adminDivisions } = { geoname: undefined, country: undefined, adminDivisions: undefined }) {
+        try {
+            FfiConverterTypeAlternateNames.checkType(geoname)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("geoname");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalTypeAlternateNames.checkType(country)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("country");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterMapU8TypeAlternateNames.checkType(adminDivisions)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("adminDivisions");
+            }
+            throw e;
+        }
+        /**
+         * Names for the geoname itself.
+         * @type {AlternateNames}
+         */
+        this.geoname = geoname;
+        /**
+         * Names for the geoname's country. This will be `Some` as long as the
+         * country is also in the ingested data, which should typically be true.
+         * @type {?AlternateNames}
+         */
+        this.country = country;
+        /**
+         * Names for the geoname's admin divisions. This is parallel to
+         * `Geoname::admin_division_codes`. If there are no names in the ingested
+         * data for an admin division, then it will be absent from this map.
+         * @type {object}
+         */
+        this.adminDivisions = adminDivisions;
+    }
+
+    equals(other) {
+        return (
+            this.geoname.equals(other.geoname) &&
+            this.country == other.country &&
+            this.adminDivisions == other.adminDivisions
+        )
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeGeonameAlternates extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        return new GeonameAlternates({
+            geoname: FfiConverterTypeAlternateNames.read(dataStream),
+            country: FfiConverterOptionalTypeAlternateNames.read(dataStream),
+            adminDivisions: FfiConverterMapU8TypeAlternateNames.read(dataStream),
+        });
+    }
+    static write(dataStream, value) {
+        FfiConverterTypeAlternateNames.write(dataStream, value.geoname);
+        FfiConverterOptionalTypeAlternateNames.write(dataStream, value.country);
+        FfiConverterMapU8TypeAlternateNames.write(dataStream, value.adminDivisions);
+    }
+
+    static computeSize(value) {
+        let totalSize = 0;
+        totalSize += FfiConverterTypeAlternateNames.computeSize(value.geoname);
+        totalSize += FfiConverterOptionalTypeAlternateNames.computeSize(value.country);
+        totalSize += FfiConverterMapU8TypeAlternateNames.computeSize(value.adminDivisions);
+        return totalSize
+    }
+
+    static checkType(value) {
+        super.checkType(value);
+        if (!(value instanceof GeonameAlternates)) {
+            throw new UniFFITypeError(`Expected 'GeonameAlternates', found '${typeof value}'`);
+        }
+        try {
+            FfiConverterTypeAlternateNames.checkType(value.geoname);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".geoname");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalTypeAlternateNames.checkType(value.country);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".country");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterMapU8TypeAlternateNames.checkType(value.adminDivisions);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".adminDivisions");
             }
             throw e;
         }
@@ -2433,7 +2769,7 @@ export class FfiConverterTypeAmpMatchingStrategy extends FfiConverterArrayBuffer
  */
 export const GeonameMatchType = {
     /**
-     * For U.S. states, abbreviations are the usual two-letter codes ("CA").
+     * ABBREVIATION
      */
     ABBREVIATION:0,
     /**
@@ -2498,54 +2834,131 @@ export class FfiConverterTypeGeonameMatchType extends FfiConverterArrayBuffer {
 /**
  * The type of a geoname.
  */
-export const GeonameType = {
-    /**
-     * CITY
-     */
-    CITY:0,
-    /**
-     * REGION
-     */
-    REGION:1,
-};
+export class GeonameType {}
+/**
+ * Country
+ */
+GeonameType.Country = class extends GeonameType{
+    constructor(
+        ) {
+            super();
+        }
+}
+/**
+ * A state, province, prefecture, district, borough, etc.
+ */
+GeonameType.AdminDivision = class extends GeonameType{
+    constructor(
+        level
+        ) {
+            super();
+            this.level = level;
+        }
+}
+/**
+ * AdminDivisionOther
+ */
+GeonameType.AdminDivisionOther = class extends GeonameType{
+    constructor(
+        ) {
+            super();
+        }
+}
+/**
+ * A city, town, village, populated place, etc.
+ */
+GeonameType.City = class extends GeonameType{
+    constructor(
+        ) {
+            super();
+        }
+}
+/**
+ * Other
+ */
+GeonameType.Other = class extends GeonameType{
+    constructor(
+        ) {
+            super();
+        }
+}
 
-Object.freeze(GeonameType);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeGeonameType extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(GeonameType);
-
     static read(dataStream) {
         // Use sequential indices (1-based) for the wire format to match Python bindings
         switch (dataStream.readInt32()) {
             case 1:
-                return GeonameType.CITY
+                return new GeonameType.Country(
+                    );
             case 2:
-                return GeonameType.REGION
+                return new GeonameType.AdminDivision(
+                    FfiConverterU8.read(dataStream)
+                    );
+            case 3:
+                return new GeonameType.AdminDivisionOther(
+                    );
+            case 4:
+                return new GeonameType.City(
+                    );
+            case 5:
+                return new GeonameType.Other(
+                    );
             default:
                 throw new UniFFITypeError("Unknown GeonameType variant");
         }
     }
 
     static write(dataStream, value) {
-        if (value === GeonameType.CITY) {
+        if (value instanceof GeonameType.Country) {
             dataStream.writeInt32(1);
             return;
         }
-        if (value === GeonameType.REGION) {
+        if (value instanceof GeonameType.AdminDivision) {
             dataStream.writeInt32(2);
+            FfiConverterU8.write(dataStream, value.level);
+            return;
+        }
+        if (value instanceof GeonameType.AdminDivisionOther) {
+            dataStream.writeInt32(3);
+            return;
+        }
+        if (value instanceof GeonameType.City) {
+            dataStream.writeInt32(4);
+            return;
+        }
+        if (value instanceof GeonameType.Other) {
+            dataStream.writeInt32(5);
             return;
         }
         throw new UniFFITypeError("Unknown GeonameType variant");
     }
 
     static computeSize(value) {
-        return 4;
+        // Size of the Int indicating the variant
+        let totalSize = 4;
+        if (value instanceof GeonameType.Country) {
+            return totalSize;
+        }
+        if (value instanceof GeonameType.AdminDivision) {
+            totalSize += FfiConverterU8.computeSize(value.level);
+            return totalSize;
+        }
+        if (value instanceof GeonameType.AdminDivisionOther) {
+            return totalSize;
+        }
+        if (value instanceof GeonameType.City) {
+            return totalSize;
+        }
+        if (value instanceof GeonameType.Other) {
+            return totalSize;
+        }
+        throw new UniFFITypeError("Unknown GeonameType variant");
     }
 
     static checkType(value) {
-      // Check that the value is a valid enum variant
-      if (!this.#validValues.includes(value)) {
-          throw new UniFFITypeError(`${value} is not a valid value for GeonameType`);
+      if (value === undefined || value === null || !(value instanceof GeonameType)) {
+        throw new UniFFITypeError(`${value} is not a subclass instance of GeonameType`);
       }
     }
 }
@@ -2983,18 +3396,10 @@ Suggestion.Mdn = class extends Suggestion{
 Suggestion.Weather = class extends Suggestion{
     constructor(
         city,
-        region,
-        country,
-        latitude,
-        longitude,
         score
         ) {
             super();
             this.city = city;
-            this.region = region;
-            this.country = country;
-            this.latitude = latitude;
-            this.longitude = longitude;
             this.score = score;
         }
 }
@@ -3114,11 +3519,7 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
                     );
             case 7:
                 return new Suggestion.Weather(
-                    FfiConverterOptionalstring.read(dataStream),
-                    FfiConverterOptionalstring.read(dataStream),
-                    FfiConverterOptionalstring.read(dataStream),
-                    FfiConverterOptionalf64.read(dataStream),
-                    FfiConverterOptionalf64.read(dataStream),
+                    FfiConverterOptionalTypeGeoname.read(dataStream),
                     FfiConverterF64.read(dataStream)
                     );
             case 8:
@@ -3217,11 +3618,7 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
         }
         if (value instanceof Suggestion.Weather) {
             dataStream.writeInt32(7);
-            FfiConverterOptionalstring.write(dataStream, value.city);
-            FfiConverterOptionalstring.write(dataStream, value.region);
-            FfiConverterOptionalstring.write(dataStream, value.country);
-            FfiConverterOptionalf64.write(dataStream, value.latitude);
-            FfiConverterOptionalf64.write(dataStream, value.longitude);
+            FfiConverterOptionalTypeGeoname.write(dataStream, value.city);
             FfiConverterF64.write(dataStream, value.score);
             return;
         }
@@ -3316,11 +3713,7 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
             return totalSize;
         }
         if (value instanceof Suggestion.Weather) {
-            totalSize += FfiConverterOptionalstring.computeSize(value.city);
-            totalSize += FfiConverterOptionalstring.computeSize(value.region);
-            totalSize += FfiConverterOptionalstring.computeSize(value.country);
-            totalSize += FfiConverterOptionalf64.computeSize(value.latitude);
-            totalSize += FfiConverterOptionalf64.computeSize(value.longitude);
+            totalSize += FfiConverterOptionalTypeGeoname.computeSize(value.city);
             totalSize += FfiConverterF64.computeSize(value.score);
             return totalSize;
         }
@@ -3577,43 +3970,6 @@ export class FfiConverterOptionali32 extends FfiConverterArrayBuffer {
 }
 
 // Export the FFIConverter object to make external types work.
-export class FfiConverterOptionalf64 extends FfiConverterArrayBuffer {
-    static checkType(value) {
-        if (value !== undefined && value !== null) {
-            FfiConverterF64.checkType(value)
-        }
-    }
-
-    static read(dataStream) {
-        const code = dataStream.readUint8(0);
-        switch (code) {
-            case 0:
-                return null
-            case 1:
-                return FfiConverterF64.read(dataStream)
-            default:
-                throw new UniFFIError(`Unexpected code: ${code}`);
-        }
-    }
-
-    static write(dataStream, value) {
-        if (value === null || value === undefined) {
-            dataStream.writeUint8(0);
-            return;
-        }
-        dataStream.writeUint8(1);
-        FfiConverterF64.write(dataStream, value)
-    }
-
-    static computeSize(value) {
-        if (value === null || value === undefined) {
-            return 1;
-        }
-        return 1 + FfiConverterF64.computeSize(value)
-    }
-}
-
-// Export the FFIConverter object to make external types work.
 export class FfiConverterOptionalstring extends FfiConverterArrayBuffer {
     static checkType(value) {
         if (value !== undefined && value !== null) {
@@ -3688,6 +4044,43 @@ export class FfiConverterOptionalbytes extends FfiConverterArrayBuffer {
 }
 
 // Export the FFIConverter object to make external types work.
+export class FfiConverterOptionalTypeAlternateNames extends FfiConverterArrayBuffer {
+    static checkType(value) {
+        if (value !== undefined && value !== null) {
+            FfiConverterTypeAlternateNames.checkType(value)
+        }
+    }
+
+    static read(dataStream) {
+        const code = dataStream.readUint8(0);
+        switch (code) {
+            case 0:
+                return null
+            case 1:
+                return FfiConverterTypeAlternateNames.read(dataStream)
+            default:
+                throw new UniFFIError(`Unexpected code: ${code}`);
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === null || value === undefined) {
+            dataStream.writeUint8(0);
+            return;
+        }
+        dataStream.writeUint8(1);
+        FfiConverterTypeAlternateNames.write(dataStream, value)
+    }
+
+    static computeSize(value) {
+        if (value === null || value === undefined) {
+            return 1;
+        }
+        return 1 + FfiConverterTypeAlternateNames.computeSize(value)
+    }
+}
+
+// Export the FFIConverter object to make external types work.
 export class FfiConverterOptionalTypeFtsMatchInfo extends FfiConverterArrayBuffer {
     static checkType(value) {
         if (value !== undefined && value !== null) {
@@ -3721,6 +4114,43 @@ export class FfiConverterOptionalTypeFtsMatchInfo extends FfiConverterArrayBuffe
             return 1;
         }
         return 1 + FfiConverterTypeFtsMatchInfo.computeSize(value)
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterOptionalTypeGeoname extends FfiConverterArrayBuffer {
+    static checkType(value) {
+        if (value !== undefined && value !== null) {
+            FfiConverterTypeGeoname.checkType(value)
+        }
+    }
+
+    static read(dataStream) {
+        const code = dataStream.readUint8(0);
+        switch (code) {
+            case 0:
+                return null
+            case 1:
+                return FfiConverterTypeGeoname.read(dataStream)
+            default:
+                throw new UniFFIError(`Unexpected code: ${code}`);
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === null || value === undefined) {
+            dataStream.writeUint8(0);
+            return;
+        }
+        dataStream.writeUint8(1);
+        FfiConverterTypeGeoname.write(dataStream, value)
+    }
+
+    static computeSize(value) {
+        if (value === null || value === undefined) {
+            return 1;
+        }
+        return 1 + FfiConverterTypeGeoname.computeSize(value)
     }
 }
 
@@ -3795,43 +4225,6 @@ export class FfiConverterOptionalTypeAmpMatchingStrategy extends FfiConverterArr
             return 1;
         }
         return 1 + FfiConverterTypeAmpMatchingStrategy.computeSize(value)
-    }
-}
-
-// Export the FFIConverter object to make external types work.
-export class FfiConverterOptionalTypeGeonameType extends FfiConverterArrayBuffer {
-    static checkType(value) {
-        if (value !== undefined && value !== null) {
-            FfiConverterTypeGeonameType.checkType(value)
-        }
-    }
-
-    static read(dataStream) {
-        const code = dataStream.readUint8(0);
-        switch (code) {
-            case 0:
-                return null
-            case 1:
-                return FfiConverterTypeGeonameType.read(dataStream)
-            default:
-                throw new UniFFIError(`Unexpected code: ${code}`);
-        }
-    }
-
-    static write(dataStream, value) {
-        if (value === null || value === undefined) {
-            dataStream.writeUint8(0);
-            return;
-        }
-        dataStream.writeUint8(1);
-        FfiConverterTypeGeonameType.write(dataStream, value)
-    }
-
-    static computeSize(value) {
-        if (value === null || value === undefined) {
-            return 1;
-        }
-        return 1 + FfiConverterTypeGeonameType.computeSize(value)
     }
 }
 
@@ -4318,6 +4711,116 @@ export class FfiConverterSequenceTypeSuggestionProvider extends FfiConverterArra
                 throw e;
             }
         })
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterMapU8String extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        const len = dataStream.readInt32();
+        const map = new Map();
+        for (let i = 0; i < len; i++) {
+            const key = FfiConverterU8.read(dataStream);
+            const value = FfiConverterString.read(dataStream);
+            map.set(key, value);
+        }
+
+        return map;
+    }
+
+    static write(dataStream, map) {
+        dataStream.writeInt32(map.size);
+        for (const [key, value] of map) {
+            FfiConverterU8.write(dataStream, key);
+            FfiConverterString.write(dataStream, value);
+        }
+    }
+
+    static computeSize(map) {
+        // The size of the length
+        let size = 4;
+        for (const [key, value] of map) {
+            size += FfiConverterU8.computeSize(key);
+            size += FfiConverterString.computeSize(value);
+        }
+        return size;
+    }
+
+    static checkType(map) {
+        for (const [key, value] of map) {
+            try {
+                FfiConverterU8.checkType(key);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("(key)");
+                }
+                throw e;
+            }
+
+            try {
+                FfiConverterString.checkType(value);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart(`[${key}]`);
+                }
+                throw e;
+            }
+        }
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterMapU8TypeAlternateNames extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        const len = dataStream.readInt32();
+        const map = new Map();
+        for (let i = 0; i < len; i++) {
+            const key = FfiConverterU8.read(dataStream);
+            const value = FfiConverterTypeAlternateNames.read(dataStream);
+            map.set(key, value);
+        }
+
+        return map;
+    }
+
+    static write(dataStream, map) {
+        dataStream.writeInt32(map.size);
+        for (const [key, value] of map) {
+            FfiConverterU8.write(dataStream, key);
+            FfiConverterTypeAlternateNames.write(dataStream, value);
+        }
+    }
+
+    static computeSize(map) {
+        // The size of the length
+        let size = 4;
+        for (const [key, value] of map) {
+            size += FfiConverterU8.computeSize(key);
+            size += FfiConverterTypeAlternateNames.computeSize(value);
+        }
+        return size;
+    }
+
+    static checkType(map) {
+        for (const [key, value] of map) {
+            try {
+                FfiConverterU8.checkType(key);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("(key)");
+                }
+                throw e;
+            }
+
+            try {
+                FfiConverterTypeAlternateNames.checkType(value);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart(`[${key}]`);
+                }
+                throw e;
+            }
+        }
     }
 }
 

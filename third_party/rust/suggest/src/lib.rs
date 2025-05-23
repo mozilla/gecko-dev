@@ -26,7 +26,7 @@ mod yelp;
 
 pub use config::{SuggestGlobalConfig, SuggestProviderConfig};
 pub use error::{Error, SuggestApiError};
-pub use geoname::{Geoname, GeonameMatch, GeonameType};
+pub use geoname::{Geoname, GeonameMatch};
 pub use metrics::{LabeledTimingSample, SuggestIngestionMetrics};
 pub use provider::{AmpMatchingStrategy, SuggestionProvider, SuggestionProviderConstraints};
 pub use query::{QueryWithMetricsResult, SuggestionQuery};

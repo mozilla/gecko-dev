@@ -22,7 +22,8 @@ const REMOTE_SETTINGS_RECORDS = [
       score: 0.5,
     },
   },
-  QuickSuggestTestUtils.geonamesRecord(),
+  ...QuickSuggestTestUtils.geonamesRecords(),
+  ...QuickSuggestTestUtils.geonamesAlternatesRecords(),
 ];
 
 const TOKYO_RESULT = {

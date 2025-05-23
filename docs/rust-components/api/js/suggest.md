@@ -8,6 +8,10 @@
     :members:
     :exclude-members: SuggestStoreBuilder
 ```
+```{js:autoclass} RustSuggest.sys.AlternateNames
+    :members:
+    :exclude-members: AlternateNames
+```
 ```{js:autoclass} RustSuggest.sys.FtsMatchInfo
     :members:
     :exclude-members: FtsMatchInfo
@@ -15,6 +19,10 @@
 ```{js:autoclass} RustSuggest.sys.Geoname
     :members:
     :exclude-members: Geoname
+```
+```{js:autoclass} RustSuggest.sys.GeonameAlternates
+    :members:
+    :exclude-members: GeonameAlternates
 ```
 ```{js:autoclass} RustSuggest.sys.GeonameMatch
     :members:

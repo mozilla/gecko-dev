@@ -8,6 +8,7 @@ use std::{
 };
 
 use camino::Utf8PathBuf;
+use error_support::trace;
 use parking_lot::Mutex;
 use serde::Deserialize;
 use viaduct::Request;
@@ -101,13 +102,13 @@ impl RemoteSettingsService {
                 if let Some(server_last_modified) = change_map.get(&(collection_name, &bucket_name))
                 {
                     if client_last_modified != *server_last_modified {
-                        log::trace!("skipping up-to-date collection: {collection_name}");
+                        trace!("skipping up-to-date collection: {collection_name}");
                         continue;
                     }
                 }
             }
             if synced_collections.insert(collection_name.to_string()) {
-                log::trace!("syncing collection: {collection_name}");
+                trace!("syncing collection: {collection_name}");
                 client.sync()?;
             }
         }
@@ -171,7 +172,7 @@ impl RemoteSettingsServiceInner {
         // notification.
         url.query_pairs_mut().append_pair("_expected", "0");
         let url = url.into_inner();
-        log::trace!("make_request: {url}");
+        trace!("make_request: {url}");
         self.remote_state.ensure_no_backoff()?;
 
         let req = Request::get(url);

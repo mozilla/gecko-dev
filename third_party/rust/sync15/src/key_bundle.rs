@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::error::{Error, Result};
+use crate::error::{warn, Error, Result};
 use base64::{
     engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD},
     Engine,
@@ -108,7 +108,7 @@ impl KeyBundle {
         // robust and avoids an allocation.
         let mut decoded_hmac = vec![0u8; 32];
         if base16::decode_slice(hmac_base16, &mut decoded_hmac).is_err() {
-            log::warn!("Garbage HMAC verification string: contained non base16 characters");
+            warn!("Garbage HMAC verification string: contained non base16 characters");
             return Err(Error::HmacMismatch);
         }
         let iv = STANDARD.decode(iv_base64)?;

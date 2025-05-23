@@ -13,6 +13,8 @@ mod backend;
 pub mod error;
 pub mod settings;
 pub use error::*;
+// reexport logging helpers.
+pub use error_support::{debug, error, info, trace, warn};
 
 pub use backend::{note_backend, set_backend, Backend};
 pub use headers::{consts as header_names, Header, HeaderName, Headers, InvalidHeaderName};

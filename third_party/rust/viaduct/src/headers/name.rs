@@ -107,7 +107,7 @@ impl std::fmt::Display for HeaderName {
 #[cold]
 #[inline(never)]
 fn invalid_header_name(s: Cow<'static, str>) -> InvalidHeaderName {
-    log::warn!("Invalid header name: {}", s);
+    crate::warn!("Invalid header name: {}", s);
     InvalidHeaderName(s)
 }
 // Note: 0 = invalid, 1 = valid, 2 = valid but needs lowercasing. I'd use an

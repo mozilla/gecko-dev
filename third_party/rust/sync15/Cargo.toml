@@ -51,7 +51,6 @@ path = "src/lib.rs"
 [dependencies]
 anyhow = "1.0"
 lazy_static = "1.4"
-log = "0.4"
 serde_derive = "1"
 serde_json = "1"
 serde_path_to_error = "0.1"
@@ -98,9 +97,9 @@ optional = true
 path = "../viaduct"
 optional = true
 
-[dev-dependencies.env_logger]
-version = "0.10"
-default-features = false
+[dev-dependencies.error-support]
+path = "../support/error"
+features = ["testing"]
 
 [dev-dependencies.nss]
 path = "../support/rc_crypto/nss"

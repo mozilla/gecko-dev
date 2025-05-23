@@ -28,7 +28,8 @@ add_setup(async () => {
     ],
     remoteSettingsRecords: [
       QuickSuggestTestUtils.weatherRecord(),
-      QuickSuggestTestUtils.geonamesRecord(),
+      ...QuickSuggestTestUtils.geonamesRecords(),
+      ...QuickSuggestTestUtils.geonamesAlternatesRecords(),
     ],
   });
 

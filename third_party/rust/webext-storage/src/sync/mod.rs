@@ -53,7 +53,7 @@ fn merge(
         for (key, parent_value) in parent.into_iter() {
             if let Some(incoming_value) = other.remove(&key) {
                 if incoming_value != parent_value {
-                    log::trace!(
+                    trace!(
                         "merge: key {} was updated in incoming - copying value locally",
                         key
                     );
@@ -71,7 +71,7 @@ fn merge(
             } else {
                 // Key was not present in incoming value.
                 // Another client must have deleted it.
-                log::trace!(
+                trace!(
                     "merge: key {} no longer present in incoming - removing it locally",
                     key
                 );
@@ -89,7 +89,7 @@ fn merge(
         // the ones where a corresponding key does not exist in
         // parent, so it is a new key, and we need to add it.
         for (key, incoming_value) in other.into_iter() {
-            log::trace!(
+            trace!(
                 "merge: key {} doesn't occur in parent - copying from incoming",
                 key
             );
@@ -103,7 +103,7 @@ fn merge(
     } else {
         // No parent. Server wins. Overwrite every key in ours with
         // the corresponding value in other.
-        log::trace!("merge: no parent - copying all keys from incoming");
+        trace!("merge: no parent - copying all keys from incoming");
         for (key, incoming_value) in other.into_iter() {
             let old_value = ours.remove(&key);
             let new_value = Some(incoming_value.clone());
@@ -179,7 +179,7 @@ pub mod test {
     use crate::schema::create_empty_sync_temp_tables;
 
     pub fn new_syncable_mem_db() -> StorageDb {
-        let _ = env_logger::try_init();
+        error_support::init_for_tests();
         let db = new_mem_db();
         let conn = db.get_connection().expect("should retrieve connection");
         create_empty_sync_temp_tables(conn).expect("should work");

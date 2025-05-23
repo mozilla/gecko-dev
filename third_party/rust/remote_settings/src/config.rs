@@ -10,6 +10,7 @@
 
 use url::Url;
 
+use crate::error::warn;
 use crate::{ApiResult, Error, RemoteSettingsContext, Result};
 
 /// Remote settings configuration
@@ -86,7 +87,7 @@ impl RemoteSettingsServer {
             Ok(url) => url,
             // The unwrap below will never fail, since prod is a hard-coded/valid URL.
             Err(_) => {
-                log::warn!("Invalid Custom URL: {}", self.raw_url());
+                warn!("Invalid Custom URL: {}", self.raw_url());
                 BaseUrl::parse(Self::Prod.raw_url()).unwrap()
             }
         }

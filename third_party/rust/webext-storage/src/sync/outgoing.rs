@@ -79,7 +79,7 @@ pub fn get_outgoing(conn: &Connection, signal: &dyn Interruptee) -> Result<Vec<O
             outgoing_from_row(row)
         })?;
 
-    log::debug!("get_outgoing found {} items", elts.len());
+    debug!("get_outgoing found {} items", elts.len());
     Ok(elts.into_iter().collect())
 }
 
@@ -93,7 +93,7 @@ pub fn record_uploaded(
     items: &[SyncGuid],
     signal: &dyn Interruptee,
 ) -> Result<()> {
-    log::debug!(
+    debug!(
         "record_uploaded recording that {} items were uploaded",
         items.len()
     );

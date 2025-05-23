@@ -20,7 +20,7 @@
 macro_rules! report_error {
     ($type_name:expr, $($arg:tt)*) => {
         let message = std::format!($($arg)*);
-        ::log::warn!("report {}: {}", $type_name, message);
+        $crate::warn!("report {}: {}", $type_name, message);
         $crate::report_error_to_app($type_name.to_string(), message.to_string());
     };
 }
@@ -50,7 +50,7 @@ macro_rules! breadcrumb {
     ($($arg:tt)*) => {
         {
             let message = std::format!($($arg)*);
-            ::log::info!("breadcrumb: {}", message);
+            $crate::info!("breadcrumb: {}", message);
             $crate::report_breadcrumb(
                 message,
                 std::module_path!().to_string(),

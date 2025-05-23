@@ -11,7 +11,8 @@ use crate::client::{
 };
 use crate::client_types::{ClientData, RemoteClient};
 use crate::engine::CollectionRequest;
-use crate::{error::Result, Guid, KeyBundle};
+use crate::error::{debug, info, warn, Result};
+use crate::{Guid, KeyBundle};
 use interrupt_support::Interruptee;
 
 use super::{
@@ -67,18 +68,18 @@ impl<'a> Driver<'a> {
 
             let client: ClientRecord = match content.kind {
                 IncomingKind::Malformed => {
-                    log::debug!("Error unpacking record");
+                    debug!("Error unpacking record");
                     continue;
                 }
                 IncomingKind::Tombstone => {
-                    log::debug!("Record has been deleted; skipping...");
+                    debug!("Record has been deleted; skipping...");
                     continue;
                 }
                 IncomingKind::Content(client) => client,
             };
 
             if client.id == self.command_processor.settings().fxa_device_id {
-                log::debug!("Found my record on the server");
+                debug!("Found my record on the server");
                 // If we see our own client record, apply any incoming commands,
                 // remove them from the list, and reupload the record. Any
                 // commands that we don't understand also go back in the list.
@@ -94,10 +95,10 @@ impl<'a> Driver<'a> {
                     match status {
                         CommandStatus::Applied => {}
                         CommandStatus::Ignored => {
-                            log::debug!("Ignored command {:?}", c);
+                            debug!("Ignored command {:?}", c);
                         }
                         CommandStatus::Unsupported => {
-                            log::warn!("Don't know how to apply command {:?}", c);
+                            warn!("Don't know how to apply command {:?}", c);
                             current_client_record.commands.push(c.clone());
                         }
                     }
@@ -120,7 +121,7 @@ impl<'a> Driver<'a> {
                 // We periodically upload our own client record, even if it
                 // doesn't change, to keep it fresh.
                 if should_refresh_client || client != current_client_record {
-                    log::debug!("Will update our client record on the server");
+                    debug!("Will update our client record on the server");
                     let envelope = OutgoingEnvelope {
                         id: content.envelope.id,
                         ttl: Some(CLIENTS_TTL),
@@ -276,7 +277,7 @@ impl Engine<'_> {
         root_sync_key: &KeyBundle,
         should_refresh_client: bool,
     ) -> Result<()> {
-        log::info!("Syncing collection clients");
+        info!("Syncing collection clients");
 
         let coll_keys = CollectionKeys::from_encrypted_payload(
             global_state.keys.clone(),
@@ -314,13 +315,13 @@ impl Engine<'_> {
         )?
         .upload()?;
 
-        log::info!(
+        info!(
             "Upload success ({} records success, {} records failed)",
             upload_info.successful_ids.len(),
             upload_info.failed_ids.len()
         );
 
-        log::info!("Finished syncing clients");
+        info!("Finished syncing clients");
         Ok(())
     }
 

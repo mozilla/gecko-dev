@@ -564,10 +564,6 @@ class MockMerinoServer {
       "MockMerinoServer received request with query string: " +
         JSON.stringify(httpRequest.queryString)
     );
-    this.info(
-      "MockMerinoServer replying with response: " +
-        JSON.stringify(this.response)
-    );
 
     // Add the request to the list of received requests.
     this.#requests.push(httpRequest);
@@ -580,6 +576,10 @@ class MockMerinoServer {
     httpResponse.processAsync();
 
     let response = this.#requestHandler?.(httpRequest) || this.response;
+
+    this.info(
+      "MockMerinoServer replying with response: " + JSON.stringify(response)
+    );
 
     let finishResponse = () => {
       let status = response.status || 200;

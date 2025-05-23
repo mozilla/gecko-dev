@@ -658,32 +658,24 @@ class _QuickSuggestTestUtils {
     min_keyword_length = undefined,
     score = 0.29,
   } = {}) {
-    let [maxLen, maxWordCount] = keywords.reduce(
-      ([len, wordCount], kw) => [
-        Math.max(len, kw.length),
-        Math.max(wordCount, kw.split(/\s+/).filter(s => !!s).length),
-      ],
-      [0, 0]
-    );
     return {
       type: "weather",
       attachment: {
         keywords,
         min_keyword_length,
         score,
-        max_keyword_length: maxLen,
-        max_keyword_word_count: maxWordCount,
       },
     };
   }
 
   /**
-   * Returns a remote settings geonames record populated with some cities.
+   * Returns remote settings records containing geonames populated with some
+   * cities.
    *
-   * @returns {object}
-   *   A geonames record for storing in remote settings.
+   * @returns {Array}
+   *   One or more geonames records for storing in remote settings.
    */
-  geonamesRecord() {
+  geonamesRecords() {
     let geonames = [
       // Waterloo, AL
       {
@@ -693,11 +685,9 @@ class _QuickSuggestTestUtils {
         longitude: "-88.0642",
         feature_class: "P",
         feature_code: "PPL",
-        country_code: "US",
-        admin1_code: "AL",
+        country: "US",
+        admin1: "AL",
         population: 200,
-        alternate_names: ["waterloo"],
-        alternate_names_2: [{ name: "waterloo" }],
       },
       // AL
       {
@@ -707,14 +697,9 @@ class _QuickSuggestTestUtils {
         longitude: "-86.75026",
         feature_class: "A",
         feature_code: "ADM1",
-        country_code: "US",
-        admin1_code: "AL",
+        country: "US",
+        admin1: "AL",
         population: 4530315,
-        alternate_names: ["al", "alabama"],
-        alternate_names_2: [
-          { name: "alabama" },
-          { name: "al", iso_language: "abbr" },
-        ],
       },
       // Waterloo, IA
       {
@@ -724,11 +709,9 @@ class _QuickSuggestTestUtils {
         longitude: "-92.34296",
         feature_class: "P",
         feature_code: "PPLA2",
-        country_code: "US",
-        admin1_code: "IA",
+        country: "US",
+        admin1: "IA",
         population: 68460,
-        alternate_names: ["waterloo"],
-        alternate_names_2: [{ name: "waterloo" }],
       },
       // IA
       {
@@ -738,14 +721,9 @@ class _QuickSuggestTestUtils {
         longitude: "-93.50049",
         feature_class: "A",
         feature_code: "ADM1",
-        country_code: "US",
-        admin1_code: "IA",
+        country: "US",
+        admin1: "IA",
         population: 2955010,
-        alternate_names: ["ia", "iowa"],
-        alternate_names_2: [
-          { name: "iowa" },
-          { name: "ia", iso_language: "abbr" },
-        ],
       },
       // Made-up cities with the same name in the US and CA. The CA city has a
       // larger population.
@@ -756,11 +734,9 @@ class _QuickSuggestTestUtils {
         longitude: "-97.92977",
         feature_class: "P",
         feature_code: "PPL",
-        country_code: "US",
-        admin1_code: "IA",
+        country: "US",
+        admin1: "IA",
         population: 1,
-        alternate_names: ["us ca city"],
-        alternate_names_2: [{ name: "us ca city" }],
       },
       {
         id: 101,
@@ -769,11 +745,9 @@ class _QuickSuggestTestUtils {
         longitude: "-73.58781",
         feature_class: "P",
         feature_code: "PPL",
-        country_code: "CA",
-        admin1_code: "08",
+        country: "CA",
+        admin1: "08",
         population: 2,
-        alternate_names: ["us ca city"],
-        alternate_names_2: [{ name: "us ca city" }],
       },
       // Made-up cities that are only ~1.5 km apart.
       {
@@ -783,11 +757,9 @@ class _QuickSuggestTestUtils {
         longitude: "-84.39",
         feature_class: "P",
         feature_code: "PPL",
-        country_code: "US",
-        admin1_code: "GA",
+        country: "US",
+        admin1: "GA",
         population: 1,
-        alternate_names: ["twin city a"],
-        alternate_names_2: [{ name: "twin city a" }],
       },
       {
         id: 103,
@@ -796,11 +768,9 @@ class _QuickSuggestTestUtils {
         longitude: "-84.4",
         feature_class: "P",
         feature_code: "PPL",
-        country_code: "US",
-        admin1_code: "GA",
+        country: "US",
+        admin1: "GA",
         population: 2,
-        alternate_names: ["twin city b"],
-        alternate_names_2: [{ name: "twin city b" }],
       },
       {
         id: 1850147,
@@ -809,33 +779,42 @@ class _QuickSuggestTestUtils {
         longitude: "139.69171",
         feature_class: "P",
         feature_code: "PPLC",
-        country_code: "JP",
-        admin1_code: "Tokyo-to",
+        country: "JP",
+        admin1: "Tokyo-to",
         population: 8336599,
-        alternate_names: ["tokyo"],
-        alternate_names_2: [{ name: "tokyo" }],
       },
     ];
-    let [maxLen, maxWordCount] = geonames.reduce(
-      ([len, wordCount], geoname) => [
-        Math.max(len, ...geoname.alternate_names.map(n => n.length)),
-        Math.max(
-          wordCount,
-          ...geoname.alternate_names.map(
-            n => n.split(/\s+/).filter(s => !!s).length
-          )
-        ),
-      ],
-      [0, 0]
-    );
-    return {
-      type: "geonames",
-      attachment: {
-        geonames,
-        max_alternate_name_length: maxLen,
-        max_alternate_name_word_count: maxWordCount,
+
+    return [
+      {
+        type: "geonames-2",
+        attachment: geonames,
       },
-    };
+    ];
+  }
+
+  /**
+   * Returns remote settings records containing geonames alternates (alternate
+   * names) populated with some names.
+   *
+   * @returns {Array}
+   *   One or more geonames alternates records for storing in remote settings.
+   */
+  geonamesAlternatesRecords() {
+    return [
+      {
+        type: "geonames-alternates",
+        attachment: [
+          {
+            language: "abbr",
+            alternates_by_geoname_id: [
+              [2, ["AL"]],
+              [4, ["IA"]],
+            ],
+          },
+        ],
+      },
+    ];
   }
 
   /**

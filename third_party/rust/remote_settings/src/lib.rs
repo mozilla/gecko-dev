@@ -23,7 +23,7 @@ mod macros;
 pub use client::{Attachment, RemoteSettingsRecord, RemoteSettingsResponse, RsJsonObject};
 pub use config::{BaseUrl, RemoteSettingsConfig, RemoteSettingsConfig2, RemoteSettingsServer};
 pub use context::RemoteSettingsContext;
-pub use error::{ApiResult, RemoteSettingsError, Result};
+pub use error::{trace, ApiResult, RemoteSettingsError, Result};
 
 use client::Client;
 use error::Error;
@@ -124,7 +124,7 @@ impl RemoteSettingsClient {
             Ok(records) => records,
             Err(e) => {
                 // Log/report the error
-                log::trace!("get_records error: {e}");
+                trace!("get_records error: {e}");
                 convert_log_report_error(e);
                 // Throw away the converted result and return None, there's nothing a client can
                 // really do with an error except treat it as the None case

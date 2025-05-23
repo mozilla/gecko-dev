@@ -26,6 +26,7 @@ use crate::{
         DownloadedAmoSuggestion, DownloadedAmpSuggestion, DownloadedDynamicRecord,
         DownloadedDynamicSuggestion, DownloadedFakespotSuggestion, DownloadedMdnSuggestion,
         DownloadedPocketSuggestion, DownloadedWikipediaSuggestion, Record, SuggestRecordId,
+        SuggestRecordType,
     },
     schema::{clear_database, SuggestConnectionInitializer},
     suggestion::{cook_raw_suggestion_url, FtsMatchInfo, Suggestion},
@@ -1366,6 +1367,11 @@ impl<'a> SuggestDao<'a> {
         )?;
         self.scope.err_if_interrupted()?;
         self.conn.execute_cached(
+            "DELETE FROM geonames_alternates WHERE record_id = :record_id",
+            named_params! { ":record_id": record_id.as_str() },
+        )?;
+        self.scope.err_if_interrupted()?;
+        self.conn.execute_cached(
             "DELETE FROM geonames_metrics WHERE record_id = :record_id",
             named_params! { ":record_id": record_id.as_str() },
         )?;
@@ -1445,6 +1451,32 @@ impl<'a> SuggestDao<'a> {
     ) -> Result<Option<SuggestProviderConfig>> {
         self.get_meta::<String>(&provider_config_meta_key(provider))?
             .map_or_else(|| Ok(None), |json| Ok(serde_json::from_str(&json)?))
+    }
+
+    /// Gets keywords metrics for a record type.
+    pub fn get_keywords_metrics(&self, record_type: SuggestRecordType) -> Result<KeywordsMetrics> {
+        let data = self.conn.try_query_row(
+            r#"
+            SELECT
+                max(max_len) AS len,
+                max(max_word_count) AS word_count
+            FROM
+                keywords_metrics
+            WHERE
+                record_type = :record_type
+            "#,
+            named_params! {
+                ":record_type": record_type,
+            },
+            |row| -> Result<(usize, usize)> { Ok((row.get("len")?, row.get("word_count")?)) },
+            true, // cache
+        )?;
+        Ok(data
+            .map(|(max_len, max_word_count)| KeywordsMetrics {
+                max_len,
+                max_word_count,
+            })
+            .unwrap_or_default())
     }
 }
 
@@ -1839,32 +1871,68 @@ impl<'conn> PrefixKeywordInsertStatement<'conn> {
     }
 }
 
-pub(crate) struct KeywordMetricsInsertStatement<'conn>(rusqlite::Statement<'conn>);
+#[derive(Debug, Default)]
+pub(crate) struct KeywordsMetrics {
+    pub(crate) max_len: usize,
+    pub(crate) max_word_count: usize,
+}
 
-impl<'conn> KeywordMetricsInsertStatement<'conn> {
-    pub(crate) fn new(conn: &'conn Connection) -> Result<Self> {
-        Ok(Self(conn.prepare(
-            "INSERT INTO keywords_metrics(
-                 record_id,
-                 provider,
-                 max_length,
-                 max_word_count
-             )
-             VALUES(?, ?, ?, ?)
-             ",
-        )?))
+/// This can be used to update metrics as keywords are inserted into the DB.
+/// Create a `KeywordsMetricsUpdater`, call `update` on it as each keyword is
+/// inserted, and then call `finish` after all keywords have been inserted.
+pub(crate) struct KeywordsMetricsUpdater {
+    pub(crate) max_len: usize,
+    pub(crate) max_word_count: usize,
+}
+
+impl KeywordsMetricsUpdater {
+    pub(crate) fn new() -> Self {
+        Self {
+            max_len: 0,
+            max_word_count: 0,
+        }
     }
 
-    pub(crate) fn execute(
-        &mut self,
+    pub(crate) fn update(&mut self, keyword: &str) {
+        self.max_len = std::cmp::max(self.max_len, keyword.len());
+        self.max_word_count =
+            std::cmp::max(self.max_word_count, keyword.split_whitespace().count());
+    }
+
+    /// Inserts keywords metrics into the database. This assumes you have a
+    /// cache object inside the `cache` cell that caches the metrics. It will be
+    /// cleared since it will be invalidated by the metrics update.
+    pub(crate) fn finish<T>(
+        &self,
+        conn: &Connection,
         record_id: &SuggestRecordId,
-        provider: SuggestionProvider,
-        max_len: usize,
-        max_word_count: usize,
+        record_type: SuggestRecordType,
+        cache: &mut OnceCell<T>,
     ) -> Result<()> {
-        self.0
-            .execute((record_id.as_str(), provider, max_len, max_word_count))
-            .with_context("keyword metrics insert")?;
+        let mut insert_stmt = conn.prepare(
+            r#"
+            INSERT OR REPLACE INTO keywords_metrics(
+                record_id,
+                record_type,
+                max_len,
+                max_word_count
+            )
+            VALUES(?, ?, ?, ?)
+            "#,
+        )?;
+        insert_stmt
+            .execute((
+                record_id.as_str(),
+                record_type,
+                self.max_len,
+                self.max_word_count,
+            ))
+            .with_context("keywords metrics insert")?;
+
+        // We just made some insertions that might invalidate the data in the
+        // cache. Clear it so it's repopulated the next time it's accessed.
+        cache.take();
+
         Ok(())
     }
 }

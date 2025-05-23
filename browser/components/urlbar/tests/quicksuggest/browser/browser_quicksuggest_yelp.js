@@ -19,7 +19,8 @@ const REMOTE_SETTINGS_RECORDS = [
       score: 0.5,
     },
   },
-  QuickSuggestTestUtils.geonamesRecord(),
+  ...QuickSuggestTestUtils.geonamesRecords(),
+  ...QuickSuggestTestUtils.geonamesAlternatesRecords(),
 ];
 
 add_setup(async function () {

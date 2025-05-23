@@ -37,7 +37,6 @@ path = "src/bin/generate-test-data.rs"
 [dependencies]
 anyhow = "1.0"
 base64 = "0.21.2"
-log = "0.4"
 md-5 = "0.10"
 parking_lot = ">=0.11,<=0.12"
 rand = "0.8"
