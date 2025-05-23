@@ -737,6 +737,50 @@ class FxaWebChannelFeatureTest {
     }
 
     @Test
+    fun `COMMAND_SYNC_PREFERENCES is processed if there is an account`() = runTest {
+        val engineSession: EngineSession = mock()
+        val ext: WebExtension = mock()
+        val port: Port = mock()
+        val messageHandler = argumentCaptor<MessageHandler>()
+        val accountManager: FxaAccountManager = mock {
+            whenever(authenticatedAccount()).thenReturn(mock())
+        }
+        val jsonFromWebChannel = argumentCaptor<JSONObject>()
+        val webchannelFeature = prepareFeatureForTest(
+            ext = ext,
+            port = port,
+            engineSession = engineSession,
+            fxaCapabilities = setOf(FxaCapability.CHOOSE_WHAT_TO_SYNC),
+            accountManager = accountManager,
+        )
+        webchannelFeature.start()
+        shadowOf(getMainLooper()).idle()
+
+        verify(ext).registerContentMessageHandler(
+            eq(engineSession),
+            eq(FxaWebChannelFeature.WEB_CHANNEL_MESSAGING_ID),
+            messageHandler.capture(),
+        )
+
+        messageHandler.value.onPortConnected(port)
+
+        val jsonToWebChannelLogout = JSONObject(
+            """{
+             "message":{
+                "command": "fxaccounts:sync_preferences",
+                "messageId":123
+             }
+            }
+            """.trimIndent(),
+        )
+
+        messageHandler.value.onPortMessage(jsonToWebChannelLogout, port)
+        verify(port).postMessage(jsonFromWebChannel.capture())
+
+        assertTrue(jsonFromWebChannel.value.getOk())
+    }
+
+    @Test
     fun `COMMAND_LOGOUT and COMMAND_DELETE_ACCOUNT are processed`() = runTest {
         val engineSession: EngineSession = mock()
         val ext: WebExtension = mock()

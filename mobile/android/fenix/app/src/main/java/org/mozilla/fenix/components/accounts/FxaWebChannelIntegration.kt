@@ -5,6 +5,7 @@
 package org.mozilla.fenix.components.accounts
 
 import android.app.Activity
+import androidx.navigation.findNavController
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.webextension.WebExtensionRuntime
 import mozilla.components.feature.accounts.FxaCapability
@@ -13,8 +14,12 @@ import mozilla.components.feature.accounts.FxaWebChannelFeature.Companion.WebCha
 import mozilla.components.service.fxa.ServerConfig
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.support.base.feature.LifecycleAwareFeature
+import mozilla.components.support.base.log.logger.Logger
+import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.customtabs.ExternalAppBrowserActivity
 import org.mozilla.fenix.ext.isIntentInternal
+import org.mozilla.fenix.ext.nav
 import java.lang.ref.WeakReference
 
 /**
@@ -24,19 +29,19 @@ import java.lang.ref.WeakReference
  * @param customTabSessionId see [FxaWebChannelFeature.customTabSessionId].
  * @param runtime  see [FxaWebChannelFeature.runtime].
  * @param store see [FxaWebChannelFeature.store].
- * @param accountManager see [FxaWebChannelFeature.accountManager].
  * @param serverConfig see [FxaWebChannelFeature.serverConfig].
- * @property activityRef a reference to provide the [Activity] to dismiss.
+ * @param accountManager see [FxaWebChannelFeature.accountManager].
+ * @param activityRef a reference to provide the [Activity] to dismiss.
  */
-@Suppress("OutdatedDocumentation") // false-positive
 class FxaWebChannelIntegration(
     customTabSessionId: String?,
     runtime: WebExtensionRuntime,
     store: BrowserStore,
-    accountManager: FxaAccountManager,
     serverConfig: ServerConfig,
+    private val accountManager: FxaAccountManager,
     private val activityRef: WeakReference<Activity?>,
 ) : LifecycleAwareFeature {
+    private val logger = Logger("FxaWebChannelIntegration")
     private val feature by lazy {
         FxaWebChannelFeature(
             customTabSessionId = customTabSessionId,
@@ -45,7 +50,7 @@ class FxaWebChannelIntegration(
             accountManager = accountManager,
             serverConfig = serverConfig,
             fxaCapabilities = setOf(FxaCapability.CHOOSE_WHAT_TO_SYNC),
-            onCommandExecuted = ::handleWebCommandLogOut,
+            onCommandExecuted = ::commandRouter,
         )
     }
 
@@ -57,11 +62,39 @@ class FxaWebChannelIntegration(
         feature.stop()
     }
 
-    private fun handleWebCommandLogOut(command: WebChannelCommand) {
-        if (command != WebChannelCommand.LOGOUT && command != WebChannelCommand.DELETE_ACCOUNT) {
+    private fun commandRouter(command: WebChannelCommand) = when (command) {
+        WebChannelCommand.SYNC_PREFERENCES,
+            -> handleWebCommandSyncPreferences()
+
+        WebChannelCommand.LOGOUT,
+        WebChannelCommand.DELETE_ACCOUNT,
+            -> handleWebCommandLogOut()
+
+        else -> {
+            // noop
+        }
+    }
+
+    private fun handleWebCommandSyncPreferences() {
+        val hasAuthAccount = accountManager.authenticatedAccount() != null
+        logger.info("Received ${WebChannelCommand.SYNC_PREFERENCES}, responding with: $hasAuthAccount")
+        if (!hasAuthAccount) {
             return
         }
 
+        // We could get this command while the activity is no longer available, so we only take it
+        // when we are about to use it.
+        val activity = activityRef.get() ?: return
+        val navController = activity.findNavController(R.id.container)
+
+        navController.nav(
+            R.id.browserFragment,
+            BrowserFragmentDirections.actionGlobalAccountSettingsFragment(),
+        )
+    }
+
+    private fun handleWebCommandLogOut() {
+        logger.info("Received ${WebChannelCommand.DELETE_ACCOUNT} or ${WebChannelCommand.LOGOUT}")
         // We could get this command while the activity is no longer available, so we only take it
         // when we are about to use it.
         val activity = activityRef.get() ?: return
