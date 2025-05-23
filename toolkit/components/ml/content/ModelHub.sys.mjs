@@ -383,7 +383,7 @@ class IndexedDBCache {
     }
   }
 
-  #migrateStore(db, oldVersion) {
+  async #migrateStore(db, oldVersion) {
     const newVersion = db.version;
     lazy.console.debug(`Migrating from version ${oldVersion} to ${newVersion}`);
     try {
@@ -463,8 +463,6 @@ class IndexedDBCache {
    * @returns {Promise<IDBDatabase>}
    */
   async #openDB() {
-    let wasUpgraded = false;
-
     return new Promise((resolve, reject) => {
       if (DEFAULT_PRINCIPAL_ORIGIN) {
         this.#ensurePersistentStorage();
@@ -475,16 +473,16 @@ class IndexedDBCache {
         this.dbName,
         this.dbVersion
       );
-
       request.onerror = event => reject(event.target.error);
-
-      request.onupgradeneeded = event => {
+      request.onupgradeneeded = async event => {
         const db = event.target.result;
-        const transaction = event.target.transaction;
+        let transaction = event.target.transaction;
 
         try {
-          this.#migrateStore(db, event.oldVersion, transaction);
+          // Run migration first
+          await this.#migrateStore(db, event.oldVersion, transaction);
 
+          // Create object stores inside `onupgradeneeded` transaction
           if (!db.objectStoreNames.contains(this.headersStoreName)) {
             db.createObjectStore(this.headersStoreName, {
               keyPath: ["model", "revision", "file"],
@@ -520,33 +518,34 @@ class IndexedDBCache {
             this.#createOrMigrateIndices({ store: taskStore, name, keyPath });
           }
 
-          wasUpgraded = true;
+          await new Promise(resolve => (transaction.oncomplete = resolve));
         } catch (error) {
           console.error("Migration failed:", error);
           reject(error);
         }
       };
 
-      request.onsuccess = event => {
+      request.onsuccess = async event => {
         const db = event.target.result;
-        db.onversionchange = () => {
+
+        db.onversionchange = async () => {
           lazy.console.debug(
             "The version of this database is changing. Closing."
           );
           db.close();
         };
 
-        resolve(db); // Immediately resolve after DB is ready
+        if (event.target.upgradeCompleted) {
+          try {
+            lazy.console.debug("Clearing OPFS cache");
+            await lazy.OPFS.remove("modelFiles", { recursive: true });
+          } catch (error) {
+            // we ignore failures here.
+            lazy.console.warn("Failed to clear OPFS cache:", error);
+          }
+        }
+        resolve(db);
       };
-    }).then(async db => {
-      if (wasUpgraded) {
-        lazy.console.debug("Clearing OPFS cache");
-        await lazy.OPFS.remove("modelFiles", {
-          recursive: true,
-          ignoreErrors: true,
-        });
-      }
-      return db;
     });
   }
 
@@ -724,42 +723,10 @@ class IndexedDBCache {
    * @returns {Promise<boolean>} A promise that resolves with `true` if the key exists, otherwise `false`.
    */
   async fileExists({ model, revision, file }) {
-    // First, check if the file is in the headers store
-    const fileMedataExists = this.#hasData({
+    return this.#hasData({
       storeName: this.headersStoreName,
       key: [model, revision, file],
     });
-
-    if (!fileMedataExists) {
-      return false;
-    }
-
-    // Now check if we have the file in OPFS
-    const localFilePath = this.generateFilePathInOPFS({
-      model,
-      revision,
-      file,
-    });
-
-    lazy.console.debug(
-      "ModelHub: Checking if file exists in OPFS: " + localFilePath
-    );
-
-    try {
-      const fileHandle = await lazy.OPFS.getFileHandle(localFilePath);
-
-      if (!fileHandle) {
-        // The file is not in OPFS and is in IndexDB...
-        // TODO: we should clean up
-        lazy.console.debug(
-          "ModelHub: The file is not in OPFS and is in IndexDB..."
-        );
-        return false;
-      }
-    } catch (e) {
-      return false;
-    }
-    return true;
   }
 
   /**
@@ -1778,12 +1745,11 @@ export class ModelHub {
     const modelWithHostname = `${hostname}/${model}`;
 
     let useCached;
-    const chromeFile = url.startsWith("chrome://");
-    const fileAllowed = this.allowDenyList?.allowedURL(url);
+
     let cachedHeaders = null;
 
     // If the revision is `main` we want to check the ETag in the hub
-    if (revision === "main" && !chromeFile) {
+    if (revision === "main") {
       // this can be null if no ETag was found or there were a network error
       const hubETag = await this.getETag(url);
 
@@ -1827,13 +1793,15 @@ export class ModelHub {
     });
 
     if (useCached) {
-      if (!fileAllowed.allowed) {
+      // ensure that cached model is still in the allow list
+      const result = this.allowDenyList && this.allowDenyList.allowedURL(url);
+      if (result && !result.allowed) {
         await this.cache.deleteModels({
           model,
           revision,
           deletedBy: "denylist",
         });
-        throw new ForbiddenURLError(url, fileAllowed.rejectionType);
+        throw new ForbiddenURLError(url, result.rejectionType);
       }
       lazy.console.debug(`Cache Hit for ${url}`);
       progressCallback?.(

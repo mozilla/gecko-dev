@@ -1799,10 +1799,11 @@ pref("extensions.browser_style_mv3.supported", false);
 pref("extensions.browser_style_mv3.same_as_mv2", false);
 
 // Experimental Inference API
-pref("extensions.ml.enabled", true);
-
-// Local model management page enabled
-pref("extensions.htmlaboutaddons.local_model_management", true);
+#ifdef NIGHTLY_BUILD
+  pref("extensions.ml.enabled", true);
+#else
+  pref("extensions.ml.enabled", false);
+#endif
 
 // Middle-mouse handling
 pref("middlemouse.paste", false);

@@ -17,8 +17,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "LOCAL_MODEL_MANAGEMENT_ENABLED",
-  "extensions.htmlaboutaddons.local_model_management",
+  "MODELHUB_PROVIDER_ENABLED",
+  "browser.ml.modelHubProvider",
   false,
   (_pref, _old, val) => ModelHubProvider[val ? "init" : "shutdown"]()
 );
@@ -116,7 +116,7 @@ export const ModelHubProvider = {
   },
 
   async getAddonsByTypes(types) {
-    if (!lazy.LOCAL_MODEL_MANAGEMENT_ENABLED) {
+    if (!lazy.MODELHUB_PROVIDER_ENABLED) {
       return [];
     }
 
@@ -129,9 +129,6 @@ export const ModelHubProvider = {
   },
 
   async getAddonByID(id) {
-    if (id?.endsWith(MODELHUB_ADDON_ID_SUFFIX) && !this.cache.size) {
-      await this.refreshAddonCache();
-    }
     return this.cache.get(id);
   },
 
@@ -152,14 +149,15 @@ export const ModelHubProvider = {
     }
   },
 
-  init() {
-    if (!lazy.LOCAL_MODEL_MANAGEMENT_ENABLED || this.initialized) {
+  async init() {
+    if (!lazy.MODELHUB_PROVIDER_ENABLED || this.initialized) {
       return;
     }
 
     this.initialized = true;
     lazy.AddonManagerPrivate.registerProvider(this, [MODELHUB_ADDON_TYPE]);
     this.modelHub = new lazy.ModelHub();
+    await this.refreshAddonCache();
   },
 
   async onUninstalled(addon) {
@@ -170,7 +168,7 @@ export const ModelHubProvider = {
     lazy.AddonManagerPrivate.callAddonListeners("onUninstalled", addon);
   },
 
-  clearAddonCache() {
+  async clearAddonCache() {
     this.cache.clear();
   },
 
@@ -182,12 +180,6 @@ export const ModelHubProvider = {
   },
 
   async refreshAddonCache() {
-    // Return earlier if the model hub provider was disabled.
-    // by the time it was being called.
-    if (!lazy.LOCAL_MODEL_MANAGEMENT_ENABLED) {
-      return;
-    }
-
     const models = await this.modelHub.listModels();
 
     for (const model of models) {
