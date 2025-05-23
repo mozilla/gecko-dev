@@ -3651,20 +3651,24 @@ class SystemAddonInstaller extends DirectoryInstaller {
   }
 
   /**
-   * Tests whether the loaded add-on information matches what is expected.
+   * Tests whether the loaded add-on information matches what is expected
+   * and returns the list of add-on ids of the ones detected as invalid
+   * (e.g. addon version not matching the expected version included in the
+   * addonSet about:config pref).
    *
    * @param {Map<string, AddonInternal>} aAddons
    *        The set of add-ons to check.
-   * @returns {boolean}
-   *        True if all of the given add-ons are valid.
+   * @returns {Array<string>}
+   *        Add-ons ids of the system-signed addons detected as invalid.
    */
-  isValid(aAddons) {
+  getInvalidAddonIds(aAddons) {
+    const invalidAddonIds = [];
     for (let id of Object.keys(this._addonSet.addons)) {
       if (!aAddons.has(id)) {
         logger.warn(
           `Expected add-on ${id} is missing from the system add-on location.`
         );
-        return false;
+        continue;
       }
 
       let addon = aAddons.get(id);
@@ -3672,15 +3676,17 @@ class SystemAddonInstaller extends DirectoryInstaller {
         logger.warn(
           `Expected system add-on ${id} to be version ${this._addonSet.addons[id].version} but was ${addon.version}.`
         );
-        return false;
+        invalidAddonIds.push(id);
+        continue;
       }
 
       if (!this.isValidAddon(addon)) {
-        return false;
+        invalidAddonIds.push(id);
+        continue;
       }
     }
 
-    return true;
+    return invalidAddonIds;
   }
 
   async updateAddonSetOnAppVersionChanged(builtInsMap) {

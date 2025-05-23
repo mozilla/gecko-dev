@@ -91,6 +91,7 @@ async function check_installed(conditions) {
   for (let i = 0; i < conditions.length; i++) {
     let condition = conditions[i];
     let id = "system" + (i + 1) + "@tests.mozilla.org";
+    info(`check_installed: verifying addon ${id}`);
     let addon = await promiseAddonByID(id);
 
     if (!("isUpgrade" in condition) || !("version" in condition)) {
@@ -105,20 +106,25 @@ async function check_installed(conditions) {
 
     if (version) {
       // Add-on should be installed
-      Assert.notEqual(addon, null);
-      Assert.equal(addon.version, version);
-      Assert.ok(addon.isActive);
-      Assert.ok(!addon.foreignInstall);
-      Assert.ok(addon.hidden);
-      Assert.ok(addon.isSystem);
-      Assert.ok(!hasFlag(addon.permissions, AddonManager.PERM_CAN_UPGRADE));
+      Assert.notEqual(addon, null, "add-on should be installed");
+      Assert.equal(addon.version, version, "addon.version");
+      Assert.ok(addon.isActive, "addon.isActive");
+      Assert.ok(!addon.foreignInstall, "!addon.foreignInstall");
+      Assert.ok(addon.hidden, "addon.hidden");
+      Assert.ok(addon.isSystem, "addon.isSystem");
+      Assert.ok(
+        !hasFlag(addon.permissions, AddonManager.PERM_CAN_UPGRADE),
+        "should not have PERM_CAN_UPGRADE"
+      );
       if (isUpgrade) {
         Assert.ok(
-          hasFlag(addon.permissions, AddonManager.PERM_API_CAN_UNINSTALL)
+          hasFlag(addon.permissions, AddonManager.PERM_API_CAN_UNINSTALL),
+          "system-signed update should have PERM_API_CAN_UNINSTALL"
         );
       } else {
         Assert.ok(
-          !hasFlag(addon.permissions, AddonManager.PERM_API_CAN_UNINSTALL)
+          !hasFlag(addon.permissions, AddonManager.PERM_API_CAN_UNINSTALL),
+          "auto-installed built-in add-ons update should not have PERM_API_CAN_UNINSTALL"
         );
       }
 
@@ -131,14 +137,21 @@ async function check_installed(conditions) {
         Assert.ok(file.exists());
         Assert.ok(file.isFile());
         Assert.equal(getAddonFile(addon).path, file.path);
-        Assert.equal(addon.signedState, AddonManager.SIGNEDSTATE_SYSTEM);
+        Assert.equal(
+          addon.signedState,
+          AddonManager.SIGNEDSTATE_SYSTEM,
+          "should be system-signed"
+        );
       }
     } else if (isUpgrade) {
       // Add-on should not be installed
-      Assert.equal(addon, null);
+      Assert.equal(addon, null, "add-on should not be installed");
     } else {
       // Either add-on should not be installed or it shouldn't be active
-      Assert.ok(!addon || !addon.isActive);
+      Assert.ok(
+        !addon || !addon.isActive,
+        "add-on should disabled or not installed"
+      );
     }
   }
 }
@@ -331,7 +344,7 @@ async function test_skips_additional() {
 }
 
 // Missing add-on should revert to the default set
-async function test_revert() {
+async function test_no_hide_location_on_missing_addon() {
   manuallyUninstall(updatesDir, "system2@tests.mozilla.org");
 
   await setupOverrideBuiltinsApp1();
@@ -342,7 +355,7 @@ async function test_revert() {
   let conditions = [
     { isUpgrade: false, version: "1.0" },
     { isUpgrade: false, version: "1.0" },
-    { isUpgrade: false, version: null },
+    { isUpgrade: true, version: "2.0" },
   ];
 
   await check_installed(conditions);
@@ -387,9 +400,14 @@ async function test_corrupt_pref() {
   await promiseShutdownManager();
 }
 
-// An add-on with a bad certificate should cause us to use the default set
+// An add-on that is not system-signed in the system-addons profile location should be reset selectively,
+// while the rest of the set is expected to be preserved.
 async function test_bad_profile_cert() {
-  let file = await getSystemAddonXPI(1, "1.0");
+  AddonTestUtils.usePrivilegedSignatures = id => {
+    return id === "system1@tests.mozilla.org" ? false : "system";
+  };
+
+  let file = await getSystemAddonXPI(1, "2.0");
   file.copyTo(updatesDir, "system1@tests.mozilla.org.xpi");
 
   // Inject it into the system set
@@ -401,31 +419,61 @@ async function test_bad_profile_cert() {
         version: "2.0",
       },
       "system2@tests.mozilla.org": {
-        version: "1.0",
+        version: "2.0",
       },
       "system3@tests.mozilla.org": {
-        version: "1.0",
+        version: "2.0",
       },
     },
   };
   Services.prefs.setCharPref(PREF_SYSTEM_ADDON_SET, JSON.stringify(addonSet));
 
   await setupOverrideBuiltinsApp1();
-  await promiseStartupManager();
 
+  const { messages } = await AddonTestUtils.promiseConsoleOutput(async () => {
+    await promiseStartupManager();
+  });
+
+  // Expected condition
   let conditions = [
     { isUpgrade: false, version: "1.0" },
-    { isUpgrade: false, version: "1.0" },
-    { isUpgrade: false, version: null },
+    { isUpgrade: true, version: "2.0" },
+    { isUpgrade: true, version: "2.0" },
   ];
 
   await check_installed(conditions);
 
+  // Verify that the system1 add-on from the system-addons location was disabled
+  // because it was not correctly signed.
+  const expectedMessage = /system1@tests.mozilla.org is not correctly signed/;
+  AddonTestUtils.checkMessages(messages, {
+    expected: [{ message: expectedMessage }],
+  });
+
+  // system1 version got from Balrog was not system-signed and so it has been disabled
+  // (and the underlying builtin add-on version revealed), but it is still expected to
+  // be listed in the extesions.systemAddonSet pref.
+  verifySystemAddonSetPref({
+    "system1@tests.mozilla.org": {
+      version: "2.0",
+    },
+    "system2@tests.mozilla.org": {
+      version: "2.0",
+    },
+    "system3@tests.mozilla.org": {
+      version: "2.0",
+    },
+  });
+
   await promiseShutdownManager();
+
+  AddonTestUtils.usePrivilegedSignatures = () => "system";
 }
 
-// Switching to app defaults that contain a bad certificate should still work
-async function test_bad_app_cert() {
+// Built-in addons installed in the system-builds location are bundled into the omni jar
+// and so the buil-in addon version is expected to never be disabled due to an unexpected
+// signed state and should still work.
+async function test_system_signature_is_not_required_for_builtins() {
   gAppInfo.version = "3";
 
   AddonTestUtils.usePrivilegedSignatures = id => {
@@ -440,20 +488,17 @@ async function test_bad_app_cert() {
   // add-ons are kept if the app has a matching builtin add-ons with an older version
   // (on the contrary system-signed xpi files are uninstalled if older then the builtin
   // addon version or if there isn't a matching built-in addon).
-  let addonSet = Services.prefs.getCharPref(PREF_SYSTEM_ADDON_SET);
-  let oldAddonSet = JSON.parse(addonSet);
-  Assert.equal(
-    addonSet,
-    JSON.stringify({
-      schema: 1,
-      directory: oldAddonSet.directory,
-      addons: {
-        "system1@tests.mozilla.org": {
-          version: "2.0",
-        },
-      },
-    })
-  );
+  verifySystemAddonSetPref({
+    "system1@tests.mozilla.org": {
+      version: "2.0",
+    },
+    "system2@tests.mozilla.org": {
+      version: "2.0",
+    },
+    "system3@tests.mozilla.org": {
+      version: "2.0",
+    },
+  });
 
   // Add-on will still be present
   let addon = await promiseAddonByID("system1@tests.mozilla.org");
@@ -462,11 +507,26 @@ async function test_bad_app_cert() {
 
   let conditions = [
     { isUpgrade: false, version: "1.0" },
-    { isUpgrade: false, version: null },
-    { isUpgrade: false, version: "1.0" },
+    { isUpgrade: true, version: "2.0" },
+    { isUpgrade: true, version: "2.0" },
   ];
 
   await check_installed(conditions);
+
+  // system1 version got from Balrog was not system-signed and so it has been disabled
+  // (and the underlying builtin add-on version revealed), but it is still expected to
+  // be listed in the extesions.systemAddonSet pref.
+  verifySystemAddonSetPref({
+    "system1@tests.mozilla.org": {
+      version: "2.0",
+    },
+    "system2@tests.mozilla.org": {
+      version: "2.0",
+    },
+    "system3@tests.mozilla.org": {
+      version: "2.0",
+    },
+  });
 
   await promiseShutdownManager();
 
@@ -527,11 +587,11 @@ add_task(async function run_system_reset_scenarios() {
     safe_mode_disabled,
     normal_mode_enabled,
     test_skips_additional,
-    test_revert,
+    test_no_hide_location_on_missing_addon,
     test_reuse,
     test_corrupt_pref,
     test_bad_profile_cert,
-    test_bad_app_cert,
+    test_system_signature_is_not_required_for_builtins,
     test_updated_bad_update_set,
   ];
   for (const test_fn of test_scenarios) {
