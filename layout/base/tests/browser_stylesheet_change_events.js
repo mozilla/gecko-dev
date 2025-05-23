@@ -41,7 +41,7 @@ async function testApplicableStateChangeEvent(testRoot) {
     // accessiblecaret.css might be reported, interfering with the test
     // assertions, so let's ignore it
     return (
-      e.stylesheet?.href === "resource://content-accessible/accessiblecaret.css"
+      e.stylesheet?.href === "resource://gre-resources/accessiblecaret.css"
     );
   }
 

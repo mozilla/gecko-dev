@@ -997,8 +997,8 @@ class StyleSheetsManager extends EventEmitter {
     // FIXME(bug 1826538): Make accessiblecaret.css and similar UA-widget
     // sheets system sheets, then remove this special-case.
     if (
-      href === "resource://content-accessible/accessiblecaret.css" ||
-      href === "resource://content-accessible/details.css" ||
+      href === "resource://gre-resources/accessiblecaret.css" ||
+      href === "resource://gre-resources/details.css" ||
       (href === "resource://devtools-highlighter-styles/highlighters.css" &&
         this.#targetActor.sessionContext.type !== "all")
     ) {
