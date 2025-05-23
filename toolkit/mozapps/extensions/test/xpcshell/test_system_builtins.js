@@ -4,6 +4,8 @@
 
 // Additional tests specifically targeting system addons installed from assets bundled in the omni jar.
 
+AddonTestUtils.usePrivilegedSignatures = () => "system";
+
 const appInfoCommon = {
   ID: "xpcshell@tests.mozilla.org",
   name: "XPCShell",
@@ -159,6 +161,247 @@ add_task(
     ]);
     await assertAddonProperties(id, "2.0");
     assertAOMStartupChanges([]);
+    await promiseShutdownManager();
+  }
+);
+
+/**
+ * Test that on application version upgrades we keep the set of system-signed updates
+ * to built-in add-ons, but still reset the entire add-on set got from
+ * Balrog on application version downgrades.
+ */
+add_task(async function test_noreset_system_signed_on_app_upgrade() {
+  const idBuiltin = "system-builtin@tests.mozilla.org";
+  const idHotfix = "system-hotfix@tests.mozilla.org";
+  let addonBuiltin;
+  let addonHotfix;
+
+  info("Test system builtin addon initially installed in a new profile");
+  AddonTestUtils.updateAppInfo({ version: "1", lastAppVersion: "" });
+  await setupSystemBuiltin(idBuiltin, "1.0", "builtin-ext-path-v1");
+  await Promise.all([
+    promiseStartupManager(),
+    promiseWebExtensionStartup(idBuiltin),
+  ]);
+  await checkAddon(idBuiltin, "1.0", BOOTSTRAP_REASONS.ADDON_INSTALL);
+  await assertAddonProperties(idBuiltin, "1.0");
+  addonBuiltin = await AddonManager.getAddonByID(idBuiltin);
+  Assert.equal(
+    addonBuiltin.locationName,
+    "app-builtin-addons",
+    `got addon ${idBuiltin} in the expected builtin location`
+  );
+
+  // Sanity Checks:
+  // AOM STARTUP_CHANGE_CHANGED is expected to be empty when the profile is brand new (see
+  // https://searchfox.org/mozilla-central/rev/488e2d83/toolkit/mozapps/extensions/AddonManager.sys.mjs#758-763)
+  assertAOMStartupChanges([]);
+  // PREF_EM_LAST_APP_BUILD_ID is expected to be set.
+  Assert.equal(
+    Services.prefs.getCharPref(PREF_EM_LAST_APP_BUILD_ID, ""),
+    Services.appinfo.appBuildID,
+    "build ID is correct after a startup"
+  );
+
+  // Mock a new system addon update check
+  info("Mock system-signed update installed");
+  // Simulated addons set delivered through Balrog:
+  // - a system-signed update version 3.0 to builtin addon version 1.0 (idBuiltin)
+  // - a system-signed hotfix addon with version 1.0.1 (idHotfix)
+  await promiseUpdateSystemAddonsSet([
+    { id: idBuiltin, version: "3.0" },
+    { id: idHotfix, version: "1.0.1" },
+  ]);
+
+  verifySystemAddonSetPref({
+    [idBuiltin]: {
+      version: "3.0",
+    },
+    [idHotfix]: {
+      version: "1.0.1",
+    },
+  });
+
+  await checkAddon(idBuiltin, "3.0", BOOTSTRAP_REASONS.ADDON_UPGRADE);
+  await assertAddonProperties(idBuiltin, "3.0");
+  addonBuiltin = await AddonManager.getAddonByID(idBuiltin);
+  Assert.equal(
+    addonBuiltin.locationName,
+    "app-system-addons",
+    `got addon ${idBuiltin} in the system-signed updates location`
+  );
+
+  await checkAddon(idHotfix, "1.0.1", BOOTSTRAP_REASONS.ADDON_INSTALL);
+  await assertAddonProperties(idHotfix, "1.0.1");
+  addonHotfix = await AddonManager.getAddonByID(idHotfix);
+  Assert.equal(
+    addonHotfix.locationName,
+    "app-system-addons",
+    `got addon ${idHotfix} in the system-signed updates location`
+  );
+
+  await promiseShutdownManager();
+
+  info(
+    "Test app version upgrade (should keep system-signed updates and remove hotfix addon)"
+  );
+  AddonTestUtils.updateAppInfo({ version: "2", lastAppVersion: "1" });
+  await setupSystemBuiltin(idBuiltin, "2.0", "builtin-ext-path-v2");
+  await Promise.all([
+    promiseStartupManager(),
+    promiseWebExtensionStartup(idBuiltin),
+  ]);
+  await assertAddonProperties(idBuiltin, "3.0");
+  addonBuiltin = await AddonManager.getAddonByID(idBuiltin);
+  Assert.equal(
+    addonBuiltin.locationName,
+    "app-system-addons",
+    `got addon ${idBuiltin} in the system-signed updates location`
+  );
+  addonHotfix = await AddonManager.getAddonByID(idHotfix);
+  Assert.equal(addonHotfix, null, `addon ${idHotfix} is not found as expected`);
+
+  verifySystemAddonSetPref({
+    [idBuiltin]: {
+      version: "3.0",
+    },
+  });
+
+  info(
+    "Test Uninstalling the system addon update (should reveal the underlying builtin version)"
+  );
+  await addonBuiltin.uninstall();
+  await assertAddonProperties(idBuiltin, "2.0");
+  addonBuiltin = await AddonManager.getAddonByID(idBuiltin);
+  Assert.equal(
+    addonBuiltin.locationName,
+    "app-builtin-addons",
+    `got addon ${idBuiltin} in the expected builtin location`
+  );
+
+  info("Mock system-signed update installed back");
+  await promiseUpdateSystemAddon(idBuiltin, "3.0");
+  await checkAddon(idBuiltin, "3.0", BOOTSTRAP_REASONS.ADDON_UPGRADE);
+  await promiseShutdownManager();
+
+  info("Test app version downgrade (should reset system-signed updates)");
+  AddonTestUtils.updateAppInfo({ version: "1", lastAppVersion: "2" });
+  await setupSystemBuiltin(idBuiltin, "1.0", "builtin-ext-path-v1");
+  await Promise.all([
+    promiseStartupManager(),
+    promiseWebExtensionStartup(idBuiltin),
+  ]);
+  await assertAddonProperties(idBuiltin, "1.0");
+  addonBuiltin = await AddonManager.getAddonByID(idBuiltin);
+  Assert.equal(
+    addonBuiltin.locationName,
+    "app-builtin-addons",
+    `got addon ${idBuiltin} in the expected builtin location`
+  );
+
+  verifySystemAddonSetPref({});
+
+  await promiseShutdownManager();
+});
+
+/**
+ * Test that on application upgrades we uninstall the system-signed add-ons that
+ * are part of the add-ons set previously got from balrog if during application
+ * version changes we detect that the system-signed add-on version has a lower
+ * version compared to the corresponding add-on built in the omni jar.
+ */
+add_task(
+  async function test_reset_systemsigned_set_on_builtin_version_downgrade() {
+    const idBuiltin = "system-builtin@tests.mozilla.org";
+    const idHotfix = "system-hotfix@tests.mozilla.org";
+    let addonBuiltin;
+    let addonHotfix;
+
+    info(
+      "Setup initial conditions: app version 1, builtin v1, new system-signed v2)"
+    );
+    AddonTestUtils.updateAppInfo({ version: "1", lastAppVersion: "" });
+    await setupSystemBuiltin(idBuiltin, "1.0", "builtin-ext-path-v1");
+    await Promise.all([
+      promiseStartupManager(),
+      promiseWebExtensionStartup(idBuiltin),
+    ]);
+    await checkAddon(idBuiltin, "1.0", BOOTSTRAP_REASONS.ADDON_INSTALL);
+    await assertAddonProperties(idBuiltin, "1.0");
+    addonBuiltin = await AddonManager.getAddonByID(idBuiltin);
+    Assert.equal(
+      addonBuiltin.locationName,
+      "app-builtin-addons",
+      `got addon ${idBuiltin} in the expected builtin location`
+    );
+
+    // Simulated addons set delivered through Balrog:
+    // - a system-signed update version 2.0 to builtin addon version 1.0 (idBuiltin)
+    // - a system-signed hotfix addon with version 1.0.1 (idHotfix)
+    await promiseUpdateSystemAddonsSet([
+      { id: idBuiltin, version: "2.0" },
+      { id: idHotfix, version: "1.0.1" },
+    ]);
+
+    verifySystemAddonSetPref({
+      [idBuiltin]: {
+        version: "2.0",
+      },
+      [idHotfix]: {
+        version: "1.0.1",
+      },
+    });
+
+    await checkAddon(idBuiltin, "2.0", BOOTSTRAP_REASONS.ADDON_UPGRADE);
+    await assertAddonProperties(idBuiltin, "2.0");
+    addonBuiltin = await AddonManager.getAddonByID(idBuiltin);
+    Assert.equal(
+      addonBuiltin.locationName,
+      "app-system-addons",
+      `got addon ${idBuiltin} in the system-signed updates location`
+    );
+
+    await checkAddon(idHotfix, "1.0.1", BOOTSTRAP_REASONS.ADDON_INSTALL);
+    await assertAddonProperties(idHotfix, "1.0.1");
+    addonHotfix = await AddonManager.getAddonByID(idHotfix);
+    Assert.equal(
+      addonHotfix.locationName,
+      "app-system-addons",
+      `got addon ${idHotfix} in the system-signed updates location`
+    );
+
+    await promiseShutdownManager();
+
+    info(
+      "Mock app upgrade: new app version 2, builtin v2.1, existing system-signed v2"
+    );
+    AddonTestUtils.updateAppInfo({ version: "2", lastAppVersion: "1" });
+
+    info(
+      "Test app version upgrade again with builtin version more recent than system-signed update (should reset system-signed updates)"
+    );
+    await setupSystemBuiltin(idBuiltin, "2.1", "builtin-ext-path-v2");
+    await Promise.all([
+      promiseStartupManager(),
+      promiseWebExtensionStartup(idBuiltin),
+    ]);
+    await assertAddonProperties(idBuiltin, "2.1");
+    addonBuiltin = await AddonManager.getAddonByID(idBuiltin);
+    Assert.equal(
+      addonBuiltin.locationName,
+      "app-builtin-addons",
+      `got addon ${idBuiltin} in the builtin location`
+    );
+
+    addonHotfix = await AddonManager.getAddonByID(idHotfix);
+    Assert.equal(
+      addonHotfix,
+      null,
+      `addon ${idHotfix} is not found as expected`
+    );
+
+    verifySystemAddonSetPref({});
+
     await promiseShutdownManager();
   }
 );

@@ -3683,6 +3683,48 @@ class SystemAddonInstaller extends DirectoryInstaller {
     return true;
   }
 
+  async updateAddonSetOnAppVersionChanged(builtInsMap) {
+    let addonSet = this._addonSet;
+
+    if (!addonSet.directory) {
+      // Nothing to do if there aren't any system-signed updates.
+      return;
+    }
+
+    if (!builtInsMap.size) {
+      // If the builtin map is completely empty, we would uninstall
+      // all system-signed updates like resetAddonSet method would.
+      await this.resetAddonSet();
+      return;
+    }
+
+    logger.info("Re-validate system add-on upgrades on app version changed.");
+
+    const systemUpdateIsBuiltInUpgrade = (id, systemUpdateVersion) => {
+      if (!builtInsMap.has(id)) {
+        return false;
+      }
+      const builtInVersion = builtInsMap.get(id).builtin.addon_version;
+      return Services.vc.compare(systemUpdateVersion, builtInVersion) > 0;
+    };
+    for (const id of Object.keys(this._addonSet.addons)) {
+      const { version } = this._addonSet.addons[id];
+      if (systemUpdateIsBuiltInUpgrade(id, version)) {
+        logger.info(
+          `SystemAddonInstaller: keep system-signed update for built-in addon ${id}`
+        );
+        continue;
+      }
+
+      logger.info(
+        `SystemAddonInstaller: uninstalling system-signed addon ${id}`
+      );
+      uninstallAddonFromLocation(id, this.location);
+      delete this._addonSet.addons[id];
+    }
+    SystemAddonInstaller._saveAddonSet(this._addonSet);
+  }
+
   /**
    * Resets the add-on set so on the next startup the default set will be used.
    */
