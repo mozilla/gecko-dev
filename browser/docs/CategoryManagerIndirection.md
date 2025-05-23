@@ -34,7 +34,7 @@ would be preferable if components used their own manifest files.
 An example registration looks like:
 
 ```
-category browser-idle-startup moz-src://browser/components/tabbrowser/TabUnloader.sys.mjs TabUnloader.init
+category browser-idle-startup moz-src:///browser/components/tabbrowser/TabUnloader.sys.mjs TabUnloader.init
 ```
 
 This will ensure that when the `browser-idle-startup` publisher is invoked,
@@ -49,7 +49,7 @@ manager's XPCOM API:
 ```js
 Services.catMan.addCategoryEntry(
     "browser-idle-startup",
-    "moz-src://browser/components/tabbrowser/TabUnloader.sys.mjs",
+    "moz-src:///browser/components/tabbrowser/TabUnloader.sys.mjs",
     "TabUnloader.init"
 )
 ```
