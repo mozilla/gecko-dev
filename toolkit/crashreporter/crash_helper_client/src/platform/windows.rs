@@ -120,7 +120,7 @@ fn escape_cmd_line_arg(arg: &OsStr) -> OsString {
 
     let encoded_arg: Vec<u16> = arg.encode_wide().collect();
     let mut escaped_arg = Vec::<u16>::new();
-    escaped_arg.push(DOUBLE_QUOTES as u16);
+    escaped_arg.push(DOUBLE_QUOTES);
 
     let mut it = encoded_arg.iter().peekable();
     loop {
@@ -145,9 +145,7 @@ fn escape_cmd_line_arg(arg: &OsStr) -> OsString {
                 escaped_arg.extend([BACKSLASH, DOUBLE_QUOTES]);
             }
             Some(&&c) => {
-                for _ in 0..backslash_num {
-                    escaped_arg.push(BACKSLASH);
-                }
+                escaped_arg.extend(std::iter::repeat_n(BACKSLASH, backslash_num));
                 escaped_arg.push(c)
             }
         }

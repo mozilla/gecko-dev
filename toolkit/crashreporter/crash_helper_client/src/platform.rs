@@ -8,5 +8,5 @@ pub(crate) mod windows;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 pub(crate) mod unix;
 
-#[cfg(any(target_os = "android"))]
+#[cfg(target_os = "android")]
 pub(crate) mod android;
