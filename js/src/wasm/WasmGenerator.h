@@ -28,6 +28,7 @@
 #include "threading/ProtectedData.h"
 #include "vm/HelperThreadTask.h"
 #include "wasm/WasmCompile.h"
+#include "wasm/WasmConstants.h"
 #include "wasm/WasmMetadata.h"
 #include "wasm/WasmModule.h"
 
@@ -58,6 +59,11 @@ struct FuncCompileInput {
         index(index),
         lineOrBytecode(lineOrBytecode),
         callSiteLineNums(std::move(callSiteLineNums)) {}
+
+  uint32_t bytecodeSize() const {
+    static_assert(wasm::MaxFunctionBytes <= UINT32_MAX);
+    return uint32_t(end - begin);
+  }
 };
 
 using FuncCompileInputVector = Vector<FuncCompileInput, 8, SystemAllocPolicy>;

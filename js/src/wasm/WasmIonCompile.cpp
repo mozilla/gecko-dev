@@ -275,6 +275,7 @@ struct InliningStats {
   size_t inlinedDirectFunctions = 0;      // number of inlinees
   size_t inlinedCallRefBytecodeSize = 0;  // sum of sizes of inlinees
   size_t inlinedCallRefFunctions = 0;     // number of inlinees
+  bool largeFunctionBackoff = false;      // did large function backoff happen?
 };
 
 // Encapsulates the generation of MIR for a wasm function and any functions
@@ -354,12 +355,16 @@ class RootCompiler {
   const CompilerEnvironment& compilerEnv() const { return compilerEnv_; }
   const CodeMetadata& codeMeta() const { return codeMeta_; }
   const CodeTailMetadata* codeTailMeta() const { return codeTailMeta_; }
+  const FuncCompileInput& func() const { return func_; }
   TempAllocator& alloc() { return alloc_; }
   MIRGraph& mirGraph() { return mirGraph_; }
   MIRGenerator& mirGen() { return mirGen_; }
   int64_t inliningBudget() const { return localInliningBudget_; }
   FeatureUsage observedFeatures() const { return observedFeatures_; }
   const CompileStats& funcStats() const { return funcStats_; }
+  void noteLargeFunctionBackoffWasApplied() {
+    inliningStats_.largeFunctionBackoff = true;
+  }
 
   uint32_t loopDepth() const { return loopDepth_; }
   void startLoop() { loopDepth_++; }
@@ -2639,8 +2644,15 @@ class FunctionCompiler {
       // Ask the heuristics system if we're allowed to inline a function of
       // this size and kind at the current inlining depth.
       uint32_t inlineeBodySize = codeTailMeta()->funcDefRange(funcIndex).size;
-      if (!InliningHeuristics::isSmallEnoughToInline(kind, inliningDepth(),
-                                                     inlineeBodySize)) {
+      uint32_t rootFunctionBodySize = rootCompiler_.func().bytecodeSize();
+      bool largeFunctionBackoff;
+      bool smallEnough = InliningHeuristics::isSmallEnoughToInline(
+          kind, inliningDepth(), inlineeBodySize, rootFunctionBodySize,
+          &largeFunctionBackoff);
+      if (largeFunctionBackoff) {
+        rootCompiler_.noteLargeFunctionBackoffWasApplied();
+      }
+      if (!smallEnough) {
         continue;
       }
 
@@ -10555,13 +10567,15 @@ bool RootCompiler::generate() {
   MOZ_ASSERT(loopDepth_ == 0);
 
   funcStats_.numFuncs += 1;
-  funcStats_.bytecodeSize += func_.end - func_.begin;
+  funcStats_.bytecodeSize += func_.bytecodeSize();
   funcStats_.inlinedDirectCallCount += inliningStats_.inlinedDirectFunctions;
   funcStats_.inlinedCallRefCount += inliningStats_.inlinedCallRefFunctions;
   funcStats_.inlinedDirectCallBytecodeSize +=
       inliningStats_.inlinedDirectBytecodeSize;
   funcStats_.inlinedCallRefBytecodeSize +=
       inliningStats_.inlinedCallRefBytecodeSize;
+  funcStats_.numLargeFunctionBackoffs +=
+      inliningStats_.largeFunctionBackoff ? 1 : 0;
 
   if (codeTailMeta_) {
     auto guard = codeTailMeta_->inliningBudget.lock();

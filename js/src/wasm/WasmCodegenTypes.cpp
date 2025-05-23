@@ -391,6 +391,7 @@ void CompileStats::merge(const CompileStats& other) {
   inlinedDirectCallBytecodeSize += other.inlinedDirectCallBytecodeSize;
   inlinedCallRefBytecodeSize += other.inlinedCallRefBytecodeSize;
   numInliningBudgetOverruns += other.numInliningBudgetOverruns;
+  numLargeFunctionBackoffs += other.numLargeFunctionBackoffs;
 }
 
 void CompileAndLinkStats::merge(const CompileAndLinkStats& other) {
@@ -418,6 +419,8 @@ void CompileAndLinkStats::print() const {
          inlinedCallRefBytecodeSize);
   JS_LOG(wasmPerf, Info, "    %7zu functions overran inlining budget",
          numInliningBudgetOverruns);
+  JS_LOG(wasmPerf, Info, "    %7zu functions needed large-function backoff",
+         numLargeFunctionBackoffs);
   JS_LOG(wasmPerf, Info, "    %7zu bytes mmap'd for code storage",
          codeBytesMapped);
   JS_LOG(wasmPerf, Info, "    %7zu bytes actually used for code storage",

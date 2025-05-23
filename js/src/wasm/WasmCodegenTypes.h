@@ -1731,6 +1731,9 @@ struct CompileStats {
   size_t inlinedCallRefBytecodeSize;
   // number of funcs for which inlining stopped due to budget overrun
   size_t numInliningBudgetOverruns;
+  // number of funcs for which inlining was made less aggressive because the
+  // function was already large
+  size_t numLargeFunctionBackoffs = 0;
 
   void clear() {
     numFuncs = 0;
@@ -1740,13 +1743,15 @@ struct CompileStats {
     inlinedDirectCallBytecodeSize = 0;
     inlinedCallRefBytecodeSize = 0;
     numInliningBudgetOverruns = 0;
+    numLargeFunctionBackoffs = 0;
   }
   CompileStats() { clear(); }
 
   bool empty() const {
     return 0 == (numFuncs | bytecodeSize | inlinedDirectCallCount |
                  inlinedCallRefCount | inlinedDirectCallBytecodeSize |
-                 inlinedCallRefBytecodeSize | numInliningBudgetOverruns);
+                 inlinedCallRefBytecodeSize | numInliningBudgetOverruns |
+                 numLargeFunctionBackoffs);
   }
 
   // Merge in the counts from `other`.  When using this, be careful to avoid
