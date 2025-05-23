@@ -224,7 +224,9 @@ treechildren::-moz-tree-cell-text(broken) {
   -moz-default-appearance: listbox;
   margin: .5em;
   overflow: auto;
+  background-color: Field;
   color: FieldText;
+  border: 1px solid ThreeDShadow;
 }
 
 .permission {
