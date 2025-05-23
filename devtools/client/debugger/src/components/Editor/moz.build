@@ -16,7 +16,6 @@ CompiledModules(
     "ConditionalPanel.js",
     "DebugLine.js",
     "EmptyLines.js",
-    "Exception.js",
     "Exceptions.js",
     "Footer.js",
     "HighlightLine.js",

@@ -2,15 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-import React, { Component } from "devtools/client/shared/vendor/react";
+import { Component } from "devtools/client/shared/vendor/react";
 import PropTypes from "devtools/client/shared/vendor/react-prop-types";
 import { connect } from "devtools/client/shared/vendor/react-redux";
 
-import { getDocument } from "../../utils/editor/index";
 import { markerTypes } from "../../constants";
-import { features } from "../../utils/prefs";
-
-import Exception from "./Exception";
 
 import {
   getSelectedSource,
@@ -41,7 +37,7 @@ class Exceptions extends Component {
 
   clearMarkers(prevProps) {
     const { exceptions, selectedSource, editor } = this.props;
-    if (!features.codemirrorNext || !editor) {
+    if (!editor) {
       return;
     }
 
@@ -57,12 +53,7 @@ class Exceptions extends Component {
 
   setMarkers() {
     const { exceptions, selectedSource, editor } = this.props;
-    if (
-      !features.codemirrorNext ||
-      !selectedSource ||
-      !editor ||
-      !exceptions.length
-    ) {
+    if (!selectedSource || !editor || !exceptions.length) {
       return;
     }
 
@@ -85,29 +76,7 @@ class Exceptions extends Component {
   }
 
   render() {
-    const { exceptions, selectedSource } = this.props;
-
-    if (features.codemirrorNext) {
-      return null;
-    }
-
-    if (!selectedSource || !exceptions.length) {
-      return null;
-    }
-
-    const doc = getDocument(selectedSource.id);
-    return React.createElement(
-      React.Fragment,
-      null,
-      exceptions.map(exception =>
-        React.createElement(Exception, {
-          exception,
-          doc,
-          key: `${exception.sourceActorId}:${exception.lineNumber}`,
-          selectedSource,
-        })
-      )
-    );
+    return null;
   }
 }
 
