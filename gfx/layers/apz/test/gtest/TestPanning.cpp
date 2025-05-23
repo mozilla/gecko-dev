@@ -543,3 +543,22 @@ TEST_F(APZCPanningTesterMock, HoldGesture_SubframeTargeting) {
   PanGesture(PanGestureInput::PANGESTURE_END, manager, panPoint,
              ScreenPoint(0, 0), mcc->Time());
 }
+
+TEST_F(APZCPanningTester, HoldGesture_DuringAutoscrollAnimation) {
+  // Tell APZ about the current mouse position. This is needed for
+  // autoscroll to work correctly.
+  tm->SetCurrentMousePosition(ScreenPoint(5, 5));
+
+  // Start an autoscroll animation.
+  apzc->StartAutoscroll(ScreenPoint(5, 5));
+  apzc->AssertStateIsAutoscroll();
+
+  // Send a PANGESTURE_MAYSTART event. With a touchpad, this can happen
+  // when you start moving the cursor after a three-finger gesture to
+  // start autoscroll.
+  PanGesture(PanGestureInput::PANGESTURE_MAYSTART, apzc, ScreenIntPoint(50, 80),
+             ScreenPoint(0, 0), mcc->Time());
+
+  // Check that this did NOT cancel the autoscroll animation.
+  apzc->AssertStateIsAutoscroll();
+}
