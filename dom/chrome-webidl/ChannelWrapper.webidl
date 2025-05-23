@@ -45,6 +45,7 @@ enum MozUrlClassificationFlags {
   "cryptomining_content",
   "emailtracking",
   "emailtracking_content",
+  "consentmanager",
   "tracking",
   "tracking_ad",
   "tracking_analytics",
@@ -56,9 +57,7 @@ enum MozUrlClassificationFlags {
   "socialtracking_twitter",
   "any_basic_tracking",
   "any_strict_tracking",
-  "any_social_tracking",
-  "consentmanager",
-  "antifraud"
+  "any_social_tracking"
 };
 
 /**

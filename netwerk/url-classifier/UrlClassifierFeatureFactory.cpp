@@ -7,7 +7,6 @@
 #include "mozilla/net/UrlClassifierFeatureFactory.h"
 
 // List of Features
-#include "UrlClassifierFeatureAntiFraudAnnotation.h"
 #include "UrlClassifierFeatureCryptominingAnnotation.h"
 #include "UrlClassifierFeatureCryptominingProtection.h"
 #include "UrlClassifierFeatureConsentManagerAnnotation.h"
@@ -38,7 +37,6 @@ void UrlClassifierFeatureFactory::Shutdown() {
   UrlClassifierFeatureCryptominingAnnotation::MaybeShutdown();
   UrlClassifierFeatureCryptominingProtection::MaybeShutdown();
   UrlClassifierFeatureConsentManagerAnnotation::MaybeShutdown();
-  UrlClassifierFeatureAntiFraudAnnotation::MaybeShutdown();
   UrlClassifierFeatureEmailTrackingDataCollection::MaybeShutdown();
   UrlClassifierFeatureEmailTrackingProtection::MaybeShutdown();
   UrlClassifierFeatureFingerprintingAnnotation::MaybeShutdown();
@@ -78,14 +76,6 @@ void UrlClassifierFeatureFactory::GetFeaturesFromChannel(
   // This must be run before any blocking features because the annotation will
   // affect whether the channel should be blocked.
   feature = UrlClassifierFeatureConsentManagerAnnotation::MaybeCreate(aChannel);
-  if (feature) {
-    aFeatures.AppendElement(feature);
-  }
-
-  // Anti-fraud Annotation
-  // This must be run before any blocking features because the annotation will
-  // affect whether the channel should be blocked.
-  feature = UrlClassifierFeatureAntiFraudAnnotation::MaybeCreate(aChannel);
   if (feature) {
     aFeatures.AppendElement(feature);
   }
@@ -159,12 +149,6 @@ UrlClassifierFeatureFactory::GetFeatureByName(const nsACString& aName) {
   }
 
   nsCOMPtr<nsIUrlClassifierFeature> feature;
-
-  // Anti-fraud Annotation
-  feature = UrlClassifierFeatureAntiFraudAnnotation::GetIfNameMatches(aName);
-  if (feature) {
-    return feature.forget();
-  }
 
   // Cryptomining Annotation
   feature = UrlClassifierFeatureCryptominingAnnotation::GetIfNameMatches(aName);
@@ -255,12 +239,6 @@ void UrlClassifierFeatureFactory::GetFeatureNames(nsTArray<nsCString>& aArray) {
   }
 
   nsAutoCString name;
-
-  // Anti-fraud Annotation
-  name.Assign(UrlClassifierFeatureAntiFraudAnnotation::Name());
-  if (!name.IsEmpty()) {
-    aArray.AppendElement(name);
-  }
 
   // Cryptomining Annotation
   name.Assign(UrlClassifierFeatureCryptominingAnnotation::Name());
