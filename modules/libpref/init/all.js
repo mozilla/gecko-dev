@@ -36,9 +36,6 @@ pref("security.default_personal_cert",   "Ask Every Time");
 // x_11_x: COSE is required, PKCS#7 disabled (fail when present)
 pref("security.signed_app_signatures.policy", 2);
 
-pref("security.xfocsp.errorReporting.enabled", true);
-pref("security.xfocsp.errorReporting.automatic", false);
-
 // Issuer we use to detect MitM proxies. Set to the issuer of the cert of the
 // Firefox update service. The string format is whatever NSS uses to print a DN.
 // This value is set and cleared automatically.
