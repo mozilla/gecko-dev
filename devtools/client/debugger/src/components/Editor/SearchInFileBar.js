@@ -24,7 +24,6 @@ import SearchInput from "../shared/SearchInput";
 
 const { PluralForm } = require("resource://devtools/shared/plural-form.js");
 const { debounce } = require("resource://devtools/shared/debounce.js");
-import { renderWasmText } from "../../utils/wasm";
 import {
   clearSearch,
   find,
@@ -182,9 +181,7 @@ class SearchInFileBar extends Component {
 
     let text;
     if (selectedContent.type === "wasm") {
-      text = renderWasmText(this.props.selectedSource.id, selectedContent).join(
-        "\n"
-      );
+      text = editor.renderWasmText(selectedContent).join("\n");
     } else {
       text = selectedContent.value;
     }

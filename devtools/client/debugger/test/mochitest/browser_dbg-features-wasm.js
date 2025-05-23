@@ -111,11 +111,11 @@ add_task(async function () {
       ") matches the mapped location when we set the breakpoint on the original line. If you rebuilt the binary, you may just need to update the virtualBinaryLine variable to the new location."
   );
 
-  const binaryLine = wasmOffsetToLine(dbg, binarySource.id, virtualBinaryLine);
-
   await dbg.actions.selectLocation(createLocation({ source: binarySource }), {
     keepContext: false,
   });
+
+  const binaryLine = wasmOffsetToLine(dbg, virtualBinaryLine);
 
   // Make sure line is within viewport
   await scrollEditorIntoView(dbg, binaryLine, 0);

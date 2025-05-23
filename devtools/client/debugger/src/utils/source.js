@@ -326,7 +326,7 @@ export const getLineText = memoizeLast((sourceId, asyncContent, line) => {
   if (content.type === "wasm") {
     const editor = getEditor();
     const lines = editor.renderWasmText(content);
-    return lines[toWasmSourceLine(sourceId, line)] || "";
+    return lines[toWasmSourceLine(line)] || "";
   }
 
   const lineText = getNthLine(content.value, line - 1);

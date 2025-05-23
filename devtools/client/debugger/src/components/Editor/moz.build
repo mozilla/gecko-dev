@@ -8,12 +8,10 @@ DIRS += [
 ]
 
 CompiledModules(
-    "BlackboxLines.js",
     "Breakpoints.js",
     "ColumnBreakpoints.js",
     "ConditionalPanel.js",
     "DebugLine.js",
-    "EmptyLines.js",
     "Exceptions.js",
     "Footer.js",
     "HighlightLine.js",

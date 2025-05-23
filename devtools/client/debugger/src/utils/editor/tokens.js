@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-import { features } from "../prefs";
-
 function _isInvalidTarget(target) {
   if (!target || !target.innerText) {
     return true;
@@ -24,12 +22,6 @@ function _isInvalidTarget(target) {
   // - operators
   // - tags
   const INVALID_TARGET_CLASSES = [
-    // CM5 tokens,
-    "cm-atom",
-    "cm-number",
-    "cm-operator",
-    "cm-string",
-    "cm-tag",
     // CM6 tokens,
     "tok-string",
     "tok-punctuation",
@@ -93,11 +85,7 @@ function _isInvalidTarget(target) {
 }
 
 function _dispatch(editor, eventName, data) {
-  if (features.codemirrorNext) {
-    editor.emit(eventName, data);
-  } else {
-    editor.codeMirror.constructor.signal(editor.codeMirror, eventName, data);
-  }
+  editor.emit(eventName, data);
 }
 
 function _invalidLeaveTarget(target) {

@@ -3581,7 +3581,7 @@ class Editor extends EventEmitter {
         cm.state.doc,
         cursor.to
       );
-      // The lines in CM6 are 1 based while CM5 is  0 based
+      // The lines in CM6 are 1 based
       return {
         text: cursor.match[0],
         line: cursorPosition.line - 1,

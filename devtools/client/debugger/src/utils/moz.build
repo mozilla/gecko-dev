@@ -47,6 +47,5 @@ CompiledModules(
     "ui.js",
     "url.js",
     "utils.js",
-    "wasm.js",
     "worker.js",
 )

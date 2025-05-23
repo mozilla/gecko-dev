@@ -366,7 +366,7 @@ async function _assertDebugLine(dbg, line, column) {
   const source = dbg.selectors.getSelectedSource();
   // WASM lines are hex addresses which have to be mapped to decimal line number
   if (isWasmBinarySource(source)) {
-    line = wasmOffsetToLine(dbg, source.id, line);
+    line = wasmOffsetToLine(dbg, line);
   }
 
   // Check the debug line
@@ -2338,11 +2338,11 @@ function getCMEditor(dbg) {
   return dbg.win.codeMirrorSourceEditorTestInstance;
 }
 
-function wasmOffsetToLine(dbg, sourceId, offset) {
+function wasmOffsetToLine(dbg, offset) {
   if (isCm6Enabled) {
     return getCMEditor(dbg).wasmOffsetToLine(offset) + 1;
   }
-  return dbg.wasmOffsetToLine(sourceId, offset) + 1;
+  return dbg.wasmOffsetToLine(offset) + 1;
 }
 
 // Gets the number of lines in the editor

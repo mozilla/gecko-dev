@@ -49,11 +49,10 @@ export function createEditor(config = { cm6: false }) {
 /**
  * Create an headless editor (can be used for syntax highlighting for example)
  *
- * @param {Boolean} useCm6: Should the headless editor use CodeMirror 6
  * @returns {CodeMirror}
  */
-export function createHeadlessEditor(useCm6) {
-  const editor = createEditor({ cm6: useCm6 });
+export function createHeadlessEditor() {
+  const editor = createEditor({ cm6: true });
   editor.appendToLocalElement(document.createElement("div"));
   return editor;
 }

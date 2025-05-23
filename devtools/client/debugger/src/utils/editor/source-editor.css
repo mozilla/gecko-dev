@@ -55,8 +55,6 @@
   pointer-events: none;
 }
 
-/* For CM5 */
-.paused-line > pre.CodeMirror-line,
 /* For CM6 */
 .cm-editor .cm-line.paused-line {
   background-color: var(--paused-line-background);
@@ -64,8 +62,6 @@
   outline: var(--paused-line-border) solid 1px;
 }
 
-/* For CM5 */
-.traced-line > pre.CodeMirror-line,
 /* For CM6 */
 .cm-editor .cm-line.traced-line {
   background-color: var(--theme-inline-preview-label-trace-background);

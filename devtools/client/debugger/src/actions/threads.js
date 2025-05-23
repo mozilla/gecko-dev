@@ -4,7 +4,6 @@
 
 import { createThread } from "../client/firefox/create";
 import { getSourcesToRemoveForThread } from "../selectors/index";
-import { clearDocumentsForSources } from "../utils/editor/source-documents";
 import { getEditor } from "../utils/editor/index";
 
 export function addTarget(targetFront) {
@@ -25,10 +24,6 @@ export function removeTarget(targetFront) {
       getState(),
       threadActorID
     );
-
-    // CodeMirror documents aren't stored in redux reducer,
-    // so we need this manual function call in order to ensure clearing them.
-    clearDocumentsForSources(sources);
 
     // Notify the reducers that a target/thread is being removed
     // and that all related resources should be cleared.

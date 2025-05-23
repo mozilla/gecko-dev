@@ -3,12 +3,8 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 import sourceQueue from "../utils/source-queue";
-
-import { clearWasmStates } from "../utils/wasm";
 import { getMainThread } from "../selectors/index";
 import { evaluateExpressionsForCurrentContext } from "../actions/expressions";
-
-import { features } from "../utils/prefs";
 import { getEditor } from "../utils/editor/index";
 
 /**
@@ -24,11 +20,8 @@ export function willNavigate(event) {
   return async function ({ dispatch, getState, sourceMapLoader }) {
     sourceQueue.clear();
     sourceMapLoader.clearSourceMaps();
-    if (features.codemirrorNext) {
-      const editor = getEditor();
-      editor.clearSources();
-    }
-    clearWasmStates();
+    const editor = getEditor();
+    editor.clearSources();
     const thread = getMainThread(getState());
 
     dispatch({
