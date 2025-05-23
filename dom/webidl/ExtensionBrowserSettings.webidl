@@ -84,9 +84,6 @@ interface ExtensionBrowserSettings {
   [Replaceable]
   readonly attribute ExtensionSetting zoomSiteSpecific;
 
-  [Replaceable]
-  readonly attribute ExtensionSetting verticalTabs;
-
   // API child namespaces.
 
   [Replaceable, SameObject,
