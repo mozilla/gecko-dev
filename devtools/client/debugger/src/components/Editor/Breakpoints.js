@@ -3,21 +3,17 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 import PropTypes from "devtools/client/shared/vendor/react-prop-types";
-import React, { Component } from "devtools/client/shared/vendor/react";
-import { div } from "devtools/client/shared/vendor/react-dom-factories";
-import Breakpoint from "./Breakpoint";
+import { Component } from "devtools/client/shared/vendor/react";
 
 import {
   getSelectedSource,
   getFirstVisibleBreakpoints,
 } from "../../selectors/index";
 import { getSelectedLocation } from "../../utils/selected-location";
-import { makeBreakpointId } from "../../utils/breakpoint/index";
 import { connect } from "devtools/client/shared/vendor/react-redux";
 import { fromEditorLine } from "../../utils/editor/index";
 import actions from "../../actions/index";
 import { markerTypes } from "../../constants";
-import { features } from "../../utils/prefs";
 const classnames = require("resource://devtools/client/shared/classnames.js");
 
 const isMacOS = Services.appinfo.OS === "Darwin";
@@ -49,11 +45,6 @@ class Breakpoints extends Component {
 
   setMarkers() {
     const { selectedSource, editor, breakpoints } = this.props;
-
-    // Only for codemirror 6
-    if (!features.codemirrorNext) {
-      return;
-    }
 
     if (!selectedSource || !breakpoints || !editor) {
       return;
@@ -141,39 +132,7 @@ class Breakpoints extends Component {
   };
 
   render() {
-    const {
-      breakpoints,
-      selectedSource,
-      editor,
-      showEditorEditBreakpointContextMenu,
-      continueToHere,
-      toggleBreakpointsAtLine,
-      removeBreakpointsAtLine,
-    } = this.props;
-
-    if (!selectedSource || !breakpoints) {
-      return null;
-    }
-
-    if (features.codemirrorNext) {
-      return null;
-    }
-
-    return div(
-      null,
-      breakpoints.map(breakpoint => {
-        return React.createElement(Breakpoint, {
-          key: makeBreakpointId(breakpoint.location),
-          breakpoint,
-          selectedSource,
-          showEditorEditBreakpointContextMenu,
-          continueToHere,
-          toggleBreakpointsAtLine,
-          removeBreakpointsAtLine,
-          editor,
-        });
-      })
-    );
+    return null;
   }
 }
 
