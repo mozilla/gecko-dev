@@ -43,13 +43,6 @@ XPCOMUtils.defineLazyServiceGetter(
   "nsIFileProtocolHandler"
 );
 
-XPCOMUtils.defineLazyServiceGetter(
-  lazy,
-  "handlerService",
-  "@mozilla.org/uriloader/handler-service;1",
-  "nsIHandlerService"
-);
-
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "fixupSchemeTypos",
@@ -249,16 +242,7 @@ ChromeUtils.defineLazyGetter(lazy, "knownSuffixes", () => {
   return suffixes;
 });
 
-export function URIFixup() {
-  // There are cases that nsIExternalProtocolService.externalProtocolHandlerExists() does
-  // not work well and returns always true due to flatpak. In this case, in order to
-  // fallback to nsIHandlerService.exits(), we test whether can trust
-  // nsIExternalProtocolService here.
-  this._trustExternalProtocolService =
-    !lazy.externalProtocolService.externalProtocolHandlerExists(
-      `__dummy${Date.now()}__`
-    );
-}
+export function URIFixup() {}
 
 URIFixup.prototype = {
   get FIXUP_FLAG_NONE() {
@@ -645,19 +629,13 @@ URIFixup.prototype = {
   isDomainKnown,
 
   _isKnownExternalProtocol(scheme) {
-    if (this._trustExternalProtocolService) {
-      return lazy.externalProtocolService.externalProtocolHandlerExists(scheme);
-    }
-
-    try {
-      // nsIExternalProtocolService.getProtocolHandlerInfo() on Android throws
-      // error due to not implemented.
-      return lazy.handlerService.exists(
-        lazy.externalProtocolService.getProtocolHandlerInfo(scheme)
-      );
-    } catch (e) {
+    if (AppConstants.platform == "android") {
+      // On Android, externalProtocolHandlerExists ~always returns true (see
+      // nsOSHelperAppService::OSProtocolHandlerExists). For now, this
+      // preserves behavior from before bug 1966666.
       return false;
     }
+    return lazy.externalProtocolService.externalProtocolHandlerExists(scheme);
   },
 
   classID: Components.ID("{c6cf88b7-452e-47eb-bdc9-86e3561648ef}"),
