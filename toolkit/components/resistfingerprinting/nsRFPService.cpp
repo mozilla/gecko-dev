@@ -2653,15 +2653,16 @@ void nsRFPService::GetExemptedDomainsLowercase(nsCString& aExemptedDomains) {
 
 /* static */
 CSSIntRect nsRFPService::GetSpoofedScreenAvailSize(const nsRect& aRect,
-                                                   float aScale) {
-  int spoofedHeightOffset =
+                                                   float aScale,
+                                                   bool aIsFullscreen) {
+  int spoofedHeightOffset = aIsFullscreen ? 0 :
 #ifdef XP_WIN
-      48;
+                                          48;
 #elif defined(XP_MACOSX)
-      76;
+                                          76;
 #else
-      // Linux, Android and other platforms
-      0;
+                                          // Linux, Android and other platforms
+                                0;
 #endif
   spoofedHeightOffset =
       NS_lround(float(spoofedHeightOffset) / aScale * AppUnitsPerCSSPixel());

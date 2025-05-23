@@ -16,6 +16,7 @@
 #include "nsIDocShellTreeItem.h"
 #include "nsLayoutUtils.h"
 #include "nsDeviceContext.h"
+#include "mozilla/GeckoBindings.h"
 #include "mozilla/widget/ScreenManager.h"
 
 using namespace mozilla;
@@ -97,8 +98,8 @@ CSSIntRect nsScreen::GetAvailRect() {
     if (NS_WARN_IF(!context)) {
       return {};
     }
-    return nsRFPService::GetSpoofedScreenAvailSize(context->GetRect(),
-                                                   context->GetFullZoom());
+    return nsRFPService::GetSpoofedScreenAvailSize(
+        context->GetRect(), context->GetFullZoom(), IsFullscreen());
   }
 
   // Here we manipulate the value of aRect to represent the screen size,
@@ -119,6 +120,16 @@ CSSIntRect nsScreen::GetAvailRect() {
     return {};
   }
   return CSSIntRect::FromAppUnitsRounded(context->GetClientRect());
+}
+
+bool nsScreen::IsFullscreen() const {
+  if (nsPIDOMWindowInner* owner = GetOwnerWindow()) {
+    if (Document* doc = owner->GetExtantDoc()) {
+      return StyleDisplayMode::Fullscreen ==
+             Gecko_MediaFeatures_GetDisplayMode(doc);
+    }
+  }
+  return false;
 }
 
 uint16_t nsScreen::GetOrientationAngle() const {
