@@ -19,6 +19,7 @@ impl IPCChannel {
     pub fn new() -> Result<IPCChannel, IPCError> {
         let pid = process::id() as Pid;
         let mut listener = IPCListener::new(pid)?;
+        listener.listen()?;
         let client_endpoint = IPCConnector::connect(pid)?;
         let server_endpoint = listener.accept()?;
 
