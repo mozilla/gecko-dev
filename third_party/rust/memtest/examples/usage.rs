@@ -1,6 +1,6 @@
 use {
     anyhow::Context,
-    memtest::{MemtestKind, MemtestRunner, MemtestRunnerArgs},
+    memtest::{Runner, RunnerArgs, TestKind},
     rand::{seq::SliceRandom, thread_rng},
     std::{
         mem::size_of,
@@ -19,7 +19,7 @@ fn main() -> anyhow::Result<()> {
         .with_thread_ids(true)
         .init();
     let start_time = Instant::now();
-    let (mem_usize_count, memtest_runner_args, memtest_kinds) = match parse_args() {
+    let (mem_usize_count, runner_args, test_kinds) = match parse_args() {
         Ok(parsed_args) => parsed_args,
         Err(s) => {
             eprintln!(concat!(
@@ -30,15 +30,15 @@ fn main() -> anyhow::Result<()> {
                 "<allow_working_set_resize as bool> ",
                 "<allow_multithread as bool> ",
                 "<allow_early_temrmination as bool> ",
-                "<memtest_kinds as space separated string>"
+                "<test_kinds as space separated string>"
             ));
             anyhow::bail!("Invalid/missing argument '{s}'");
         }
     };
 
-    info!("Running memtest-runner with: {memtest_runner_args:#?}");
+    info!("Running memtest-runner with: {runner_args:#?}");
     let mut memory = vec![0; mem_usize_count];
-    let report_list = MemtestRunner::from_test_kinds(&memtest_runner_args, memtest_kinds)
+    let report_list = Runner::from_test_kinds(&runner_args, test_kinds)
         .run(&mut memory)
         .context("Failed to run memtest-runner")?;
     println!("Tester ran for {:?}", start_time.elapsed());
@@ -46,14 +46,14 @@ fn main() -> anyhow::Result<()> {
 
     anyhow::ensure!(
         report_list.all_pass(),
-        "Found failures or errors among memtest reports"
+        "Found failures or errors among test reports"
     );
     Ok(())
 }
 
 /// Parse command line arguments to return a usize for the requested memory vector length and
-/// other MemtestRunner arguments
-fn parse_args() -> Result<(usize, MemtestRunnerArgs, Vec<MemtestKind>), &'static str> {
+/// other Runner arguments
+fn parse_args() -> Result<(usize, RunnerArgs, Vec<TestKind>), &'static str> {
     const KIB: usize = 1024;
     const MIB: usize = 1024 * KIB;
 
@@ -66,7 +66,7 @@ fn parse_args() -> Result<(usize, MemtestRunnerArgs, Vec<MemtestKind>), &'static
     let memsize: usize = parse_next!("memsize");
     let mem_usize_count = memsize * MIB / size_of::<usize>();
 
-    let memtest_runner_args = MemtestRunnerArgs {
+    let runner_args = RunnerArgs {
         timeout: Duration::from_millis(parse_next!("timeout_ms")),
         mem_lock_mode: parse_next!("mem_lock_mode"),
         allow_working_set_resize: parse_next!("allow_working_set_resize"),
@@ -74,20 +74,20 @@ fn parse_args() -> Result<(usize, MemtestRunnerArgs, Vec<MemtestKind>), &'static
         allow_early_termination: parse_next!("allow_early_termination"),
     };
 
-    let memtest_kinds_string: String = parse_next!("memtest_kinds");
-    let memtest_kinds = memtest_kinds_from_str(&memtest_kinds_string)?;
+    let test_kinds_string: String = parse_next!("test_kinds");
+    let test_kinds = test_kinds_from_str(&test_kinds_string)?;
 
-    Ok((mem_usize_count, memtest_runner_args, memtest_kinds))
+    Ok((mem_usize_count, runner_args, test_kinds))
 }
 
-/// Returns a vector of MemtestKind that contains all kinds, but prioritizes the given memtests.
-fn memtest_kinds_from_str(str: &str) -> Result<Vec<MemtestKind>, &'static str> {
+/// Returns a vector of TestKind that contains all kinds, but prioritizes the given test kinds.
+fn test_kinds_from_str(str: &str) -> Result<Vec<TestKind>, &'static str> {
     let specified = str
         .split_whitespace()
-        .map(|s| s.parse().map_err(|_| "memtest_kinds"))
-        .collect::<Result<Vec<MemtestKind>, &'static str>>()?;
+        .map(|s| s.parse().map_err(|_| "test_kinds"))
+        .collect::<Result<Vec<TestKind>, &'static str>>()?;
 
-    let mut remaining: Vec<_> = MemtestKind::ALL
+    let mut remaining: Vec<_> = TestKind::ALL
         .iter()
         .filter(|k| !specified.contains(k))
         .cloned()

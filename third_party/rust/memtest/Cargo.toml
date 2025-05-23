@@ -12,9 +12,10 @@
 [package]
 edition = "2021"
 name = "memtest"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["Brian Tsoi <brian.s.tsoi@gmail.com>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
